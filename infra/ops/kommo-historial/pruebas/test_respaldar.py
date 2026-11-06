@@ -12,7 +12,9 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
+import types
 import tempfile
 import time
 import unittest
@@ -527,6 +529,103 @@ def stamp_de(ts: int) -> str:
 
 def iso_de(ts: int) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
+
+
+class PruebasAdjuntosParaCarga(unittest.TestCase):
+    """5.5b: la copia en claro de cada adjunto para el cargador, solo en tmpfs, fuera del paquete, y su flujo."""
+
+    def setUp(self):
+        self.base = PruebasExtraccionCompleta("test_extraccion_informe_y_sin_datos_personales")
+        self.base.setUp()
+
+    def tearDown(self):
+        self.base.tearDown()
+
+    def test_con_la_opcion_deja_copia_en_claro_0600_y_su_huella(self):
+        st, args, _ = self.base.extraer(adjuntos_para_carga=True)
+        adj = list(st.leer_ndjson("adjuntos.ndjson"))
+        self.assertEqual(len(adj), 1)
+        self.assertEqual(adj[0]["archivo_carga"], "adjuntos-carga/m3.jpg")
+        ruta = st.ruta_de(adj[0]["archivo_carga"])
+        with open(ruta, "rb") as f:
+            datos = f.read()
+        self.assertEqual(datos, b"JPEGDATA-" + TEXTO_SECRETO.encode())
+        self.assertEqual(R.sha256_bytes(datos), adj[0]["sha256"])
+        self.assertEqual(len(datos), adj[0]["bytes"])
+        if os.name == "posix":
+            self.assertEqual(os.stat(ruta).st_mode & 0o777, 0o600)
+        self.assertEqual(len(self.base.cifrados), 1, "el .age del respaldo se sigue haciendo")
+
+    def test_sin_la_opcion_no_hay_copia_en_claro(self):
+        st, args, _ = self.base.extraer()
+        self.assertFalse(os.path.exists(st.ruta_de("adjuntos-carga")))
+        self.assertNotIn("archivo_carga", list(st.leer_ndjson("adjuntos.ndjson"))[0])
+
+    def test_validar_pide_corte_tmpfs_y_que_no_sea_sin_adjuntos(self):
+        original = R.en_tmpfs
+        try:
+            R.en_tmpfs = lambda ruta: True
+            R.validar_adjuntos_para_carga(Args(adjuntos_para_carga=True, corte="2026-11-07T02:00:00Z", staging="/dev/shm/x"))
+            R.validar_adjuntos_para_carga(Args(adjuntos_para_carga=False, sin_adjuntos=True, staging="/tmp/x"))
+            for malo in (Args(adjuntos_para_carga=True, sin_adjuntos=True, corte="c", staging="s"),
+                         Args(adjuntos_para_carga=True, corte=None, staging="s")):
+                with self.assertRaises(R.ErrorFatal):
+                    R.validar_adjuntos_para_carga(malo)
+            R.en_tmpfs = lambda ruta: False
+            with self.assertRaises(R.ErrorFatal):
+                R.validar_adjuntos_para_carga(Args(adjuntos_para_carga=True, corte="c", staging="/tmp/x"))
+        finally:
+            R.en_tmpfs = original
+
+    @unittest.skipUnless(shutil.which("tar"), "hace falta tar")
+    def test_el_paquete_no_lleva_las_copias_en_claro(self):
+        st = R.Staging(os.path.join(self.base.tmp, "staging-tar"))
+        os.makedirs(st.ruta_de("adjuntos-carga"))
+        with open(st.ruta_de("adjuntos-carga/m3.jpg"), "wb") as f:
+            f.write(b"EN-CLARO")
+        st.escribir_json("informe.json", {"n": 1})
+        salida = os.path.join(self.base.tmp, "paquete.tar")
+        with open(salida, "wb") as f:
+            subprocess.run(R.comando_tar(st.ruta), stdout=f, check=True)
+        lista = subprocess.run(["tar", "-tf", salida], capture_output=True, text=True, check=True).stdout
+        self.assertIn("informe.json", lista)
+        self.assertNotIn("adjuntos-carga", lista)
+
+    def test_preparar_carga_y_flujo_llevan_el_adjunto_con_su_huella(self):
+        st = R.Staging(os.path.join(self.base.tmp, "staging-carga"))
+        PruebasVinculoYCarga.armar_staging(types.SimpleNamespace(st=st))
+        datos = b"PDF-INVENTADO-" + TEXTO_SECRETO.encode()
+        os.makedirs(st.ruta_de("adjuntos-carga"))
+        with open(st.ruta_de("adjuntos-carga/f1.jpg"), "wb") as f:
+            f.write(datos)
+        st.borrar("adjuntos.ndjson")
+        st.anexar_ndjson("adjuntos.ndjson", [{"message_id": "f1", "archivo": "adjuntos/f1.jpg.age", "http": 200,
+                                              "archivo_carga": "adjuntos-carga/f1.jpg", "tipo": "picture", "ext": "jpg",
+                                              "content_type": "image/jpeg", "bytes": len(datos),
+                                              "sha256": R.sha256_bytes(datos)}])
+        informe = R.preparar_carga(st)
+        self.assertEqual(informe["con_adjunto_para_carga"], 1)
+        self.assertEqual(informe["bytes_adjuntos_para_carga"], len(datos))
+        adjunto = {m["source_id"]: m for m in st.leer_ndjson("carga.ndjson") if m["tipo"] == "mensaje"}["kommo:f1"]["adjunto"]
+        self.assertEqual(adjunto["archivo_carga"], "adjuntos-carga/f1.jpg")
+        salida = io.StringIO()
+        cuenta = R.flujo_adjuntos(st, salida)
+        self.assertEqual(cuenta, {"adjuntos": 1, "bytes": len(datos)})
+        lineas = [json.loads(x) for x in salida.getvalue().splitlines()]
+        self.assertEqual([x["source_id"] for x in lineas], ["kommo:f1"])
+        import base64
+        self.assertEqual(base64.b64decode(lineas[0]["b64"]), datos)
+        # Si el archivo cambió (mismo largo, otro contenido: solo lo ve la huella), o falta, no sale y se cuenta.
+        with open(st.ruta_de("adjuntos-carga/f1.jpg"), "wb") as f:
+            f.write(b"X" + datos[1:])
+        salida = io.StringIO()
+        self.assertEqual(R.flujo_adjuntos(st, salida), {"no_coinciden": 1})
+        self.assertEqual(salida.getvalue(), "")
+        with open(st.ruta_de("adjuntos-carga/f1.jpg"), "wb") as f:
+            f.write(datos + b"x")
+        self.assertEqual(R.flujo_adjuntos(st, io.StringIO()), {"no_coinciden": 1})
+        os.remove(st.ruta_de("adjuntos-carga/f1.jpg"))
+        self.assertEqual(R.flujo_adjuntos(st, io.StringIO()), {"faltan": 1})
 
 
 class PruebasIncremental(unittest.TestCase):

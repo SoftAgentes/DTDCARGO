@@ -40,6 +40,8 @@ class CargaArchivoKommo
                      entrada: entrada, salida: salida)
       if modo == 'crear-bandeja'
         cargador.crear_bandeja(env.fetch('NOMBRE', 'Archivo Kommo'))
+      elsif %w[adjuntos adjuntos-seco].include?(modo)
+        cargador.cargar_adjuntos(env.fetch('CARGA'))
       else
         cargador.cargar(env.fetch('CARGA'))
       end
@@ -344,6 +346,85 @@ class CargaArchivoKommo
     hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
     hecho('modo', @modo)
     hecho('carga', 'ok')
+  end
+
+  # 5.5b: los adjuntos de Kommo, por la entrada estándar, una línea NDJSON por adjunto con source_id, tipo, ext,
+  # content_type, bytes, sha256 y b64 (`respaldar-historial.py flujo-adjuntos`). Solo a mensajes de la bandeja Archivo
+  # que todavía no tienen adjunto, así que correrlo dos veces no duplica. El archivo se sube con
+  # ActiveStorage::Blob.create_and_upload! (sin identificar ni analizar); las filas de `attachments` y de
+  # `active_storage_attachments` van con insert_all, sin callbacks: ni análisis, ni variantes, ni eventos.
+  # MODO=adjuntos-seco cuenta lo que haría, sin subir ni escribir nada.
+  TIPOS_KOMMO = { 'picture' => :image, 'sticker' => :image, 'voice' => :audio, 'audio' => :audio,
+                  'video' => :video, 'file' => :file }.freeze
+
+  def cargar_adjuntos(ruta)
+    require 'base64'
+    require 'digest'
+    seco = @modo == 'adjuntos-seco'
+    comprobar_bandeja!
+    cola_antes = trabajos_en_cola
+    clases_antes = trabajos_por_clase
+    blobs_antes = ActiveStorage::Blob.count
+    fuente = ruta == '-' ? @entrada : File.open(ruta, encoding: 'UTF-8')
+    fuente.each_line do |linea|
+      linea = linea.strip
+      next if linea.empty?
+
+      unless linea.start_with?('{')
+        @cuenta[:lineas_ignoradas] += 1
+        next
+      end
+      a = JSON.parse(linea)
+      @cuenta[:adjuntos_leidos] += 1
+      mensaje = Message.where(inbox_id: @bandeja_id, source_id: a['source_id']).pick(:id, :account_id)
+      unless mensaje
+        @cuenta[:adjuntos_sin_mensaje] += 1
+        next
+      end
+      if Attachment.where(message_id: mensaje[0]).exists?
+        @cuenta[:adjuntos_existentes] += 1
+        next
+      end
+      datos = Base64.strict_decode64(a['b64'].to_s)
+      if datos.bytesize != a['bytes'].to_i || Digest::SHA256.hexdigest(datos) != a['sha256']
+        @cuenta[:adjuntos_no_coinciden] += 1
+        next
+      end
+      if seco
+        @cuenta[:adjuntos_nuevos] += 1
+        @cuenta[:bytes_nuevos] += datos.bytesize
+      else
+        subir_adjunto(mensaje[0], mensaje[1], a, datos)
+      end
+    end
+    @cuenta.sort.each { |k, v| hecho(k, v) }
+    hecho('blobs', "#{blobs_antes}->#{ActiveStorage::Blob.count}")
+    hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
+    hecho('modo', @modo)
+    hecho('carga', 'ok')
+  ensure
+    fuente.close if fuente.is_a?(File)
+  end
+
+  def subir_adjunto(message_id, account_id, adj, datos)
+    tipo = Attachment.file_types[TIPOS_KOMMO.fetch(adj['tipo'].to_s, :file)]
+    ext = adj['ext'].to_s[/\A[a-z0-9]{1,10}\z/] || 'bin'
+    blob = ActiveStorage::Blob.create_and_upload!(io: StringIO.new(datos), filename: "kommo-#{message_id}.#{ext}",
+                                                  content_type: adj['content_type'].presence || 'application/octet-stream',
+                                                  identify: false)
+    ahora = Time.zone.now
+    ActiveRecord::Base.transaction do
+      fila = Attachment.insert_all([{ account_id: account_id, message_id: message_id, file_type: tipo, extension: ext,
+                                      created_at: ahora, updated_at: ahora }], returning: %w[id]).first
+      ActiveStorage::Attachment.insert_all([{ name: 'file', record_type: 'Attachment', record_id: fila['id'], blob_id: blob.id, created_at: ahora }])
+    end
+    @cuenta[:adjuntos_nuevos] += 1
+    @cuenta[:bytes_nuevos] += datos.bytesize
+  rescue StandardError
+    # Sin las filas, el archivo subido sería un huérfano en el almacenamiento: se borra con su blob.
+    blob&.purge
+    @cuenta[:adjuntos_fallidos] += 1
   end
 
   # La bandeja «Archivo Kommo»: canal API sin webhook_url, sin asignación automática, sin saludo ni encuesta.

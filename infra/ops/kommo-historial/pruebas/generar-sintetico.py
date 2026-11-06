@@ -5,15 +5,36 @@ foto mínima del ERP (clientes.ndjson). La prueba corre después `vincular` y `p
 así que el archivo de carga que recibe el cargador sale del mismo código que en el servidor.
 
 Lo esperado (lo comprueba prueba-cargador.sh):
-  personas 4 · conversaciones 5 (1 sin contacto) · mensajes 8 (5 entrantes, 3 salientes, 1 con adjunto sin texto)
+  personas 4 · conversaciones 5 (1 sin contacto) · mensajes 8 (5 entrantes, 3 salientes, 1 sin texto)
+  3 adjuntos con copia en claro para el cargador (5.5b): una imagen PNG (m5, sin texto), un PDF (m6) y un audio OGG
+  (m8), como los dejaría `extraer --adjuntos-para-carga`.
   En Chatwoot ya existen X1 (+584120000001) y X2 (sint.existente@example.test): se reusan, no se duplican.
 """
+import hashlib
 import json
 import os
+import struct
 import sys
 import time
+import zlib
 
 DIA = 86_400
+
+
+def png_inventado() -> bytes:
+    """Una imagen PNG válida de 2×2 píxeles, sin nada de nadie."""
+    def bloque(tipo, datos):
+        return struct.pack(">I", len(datos)) + tipo + datos + struct.pack(">I", zlib.crc32(tipo + datos) & 0xFFFFFFFF)
+    filas = b"".join(b"\x00" + b"\xff\x00\x00" * 2 for _ in range(2))
+    return (b"\x89PNG\r\n\x1a\n" + bloque(b"IHDR", struct.pack(">IIBBBBB", 2, 2, 8, 2, 0, 0, 0))
+            + bloque(b"IDAT", zlib.compress(filas)) + bloque(b"IEND", b""))
+
+
+ADJUNTOS = {
+    "m5": ("picture", "png", "image/png", png_inventado()),
+    "m6": ("file", "pdf", "application/pdf", b"%PDF-1.4\n% SINT-ADJUNTO-PDF\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"),
+    "m8": ("voice", "ogg", "audio/ogg", b"OggS" + bytes(24) + b"SINT-ADJUNTO-AUDIO" * 8),
+}
 
 
 def main(carpeta: str) -> None:
@@ -75,13 +96,25 @@ def main(carpeta: str) -> None:
         mensaje("m4", 2002, ahora - 200 * DIA, texto="SINT-TEXTO-4"),
         mensaje("m5", 2002, ahora - 200 * DIA + 30, adjunto={"type": "picture", "file_name": "SINT.jpg",
                                                              "link": "https://drive.kommo.example/SINT?sig=SINT"}),
-        mensaje("m6", 2003, ahora - 100 * DIA, texto="SINT-TEXTO-6"),
+        mensaje("m6", 2003, ahora - 100 * DIA, texto="SINT-TEXTO-6",
+                adjunto={"type": "file", "file_name": "SINT.pdf", "link": "https://drive.kommo.example/SINT6?sig=SINT"}),
         mensaje("m7", 2004, ahora - 50 * DIA, "outgoing", "SINT-TEXTO-7", asesora),
-        mensaje("m8", 2005, ahora - DIA, texto="SINT-TEXTO-8 SINTBUSCAR"),
+        mensaje("m8", 2005, ahora - DIA, texto="SINT-TEXTO-8 SINTBUSCAR",
+                adjunto={"type": "voice", "file_name": "SINT.ogg", "link": "https://drive.kommo.example/SINT8?sig=SINT"}),
         mensaje("m9", 2006, ahora - DIA, texto="SINT-TEXTO-9"),  # de la conversación 403: no entra
         dict(m1),                                              # repetido: entra una vez
     ])
-    escribir("adjuntos.ndjson", [{"message_id": "m5", "archivo": "adjuntos/m5.jpg.age", "http": 200}])
+    # Como los deja `extraer --adjuntos-para-carga`: el .age del respaldo (aquí no hace falta el archivo) y la copia
+    # en claro en adjuntos-carga/, con tipo, extensión, bytes y sha256.
+    os.makedirs(os.path.join(carpeta, "adjuntos-carga"), exist_ok=True)
+    filas = []
+    for mid, (tipo, ext, content_type, datos) in ADJUNTOS.items():
+        with open(os.path.join(carpeta, "adjuntos-carga", f"{mid}.{ext}"), "wb") as f:
+            f.write(datos)
+        filas.append({"message_id": mid, "archivo": f"adjuntos/{mid}.{ext}.age", "http": 200,
+                      "archivo_carga": f"adjuntos-carga/{mid}.{ext}", "tipo": tipo, "ext": ext,
+                      "content_type": content_type, "bytes": len(datos), "sha256": hashlib.sha256(datos).hexdigest()})
+    escribir("adjuntos.ndjson", filas)
 
 
 if __name__ == "__main__":

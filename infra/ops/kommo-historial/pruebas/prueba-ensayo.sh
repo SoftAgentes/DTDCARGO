@@ -108,7 +108,7 @@ huella_prod() {
 ANTES="$(huella_prod | tr '\n' ' ')"
 
 ensayo() { # salida → corre el ensayo con la carga inventada
-  CARGA="$S/carga.ndjson" INFORME_CARGA="$S/carga-informe.json" INFORME_VINCULO="$S/vinculo-informe.json" \
+  CARGA="$S/carga.ndjson" INFORME_CARGA="$S/carga-informe.json" INFORME_VINCULO="$S/vinculo-informe.json" STAGING="$S" \
     CUENTA="$CUENTA" CHATWOOT_DIR="$D" EVIDENCIA="$TRABAJO/evidencia-$1.txt" TOPE_CARGA="${TOPE:-32}" \
     bash "$KH/ensayo-archivo.sh" "${@:2}" >"$TRABAJO/ensayo-$1.txt" 2>&1
 }
@@ -171,7 +171,7 @@ exigir L2 '[ "$rc" = 0 ] && [ "$(quedan)" = 0,0,0 ] && [ "$(huella_prod | tr "\n
 # ── F. La evidencia ──────────────────────────────────────────────────────────
 E="$TRABAJO/evidencia-r.txt"
 fugas=0
-for m in SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot 4120000001 4120000002 example.test SINT-C1 Pérez kommo.example; do
+for m in SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot SINT-ADJUNTO 4120000001 4120000002 example.test SINT-C1 Pérez kommo.example; do
   grep -q -F -- "$m" "$E" && { fugas=$((fugas + 1)); log "   fuga: $m"; }
 done
 exigir F1 '[ -s "$E" ] && ! grep -qv "^HECHO " "$E" && [ "$fugas" = 0 ]' "la evidencia trae solo líneas HECHO ($(wc -l <"$E")) y ningún valor inventado de personas"

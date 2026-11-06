@@ -64,6 +64,7 @@ module SondaEnsayo
     max_mensaje = Message.where(account_id: cuenta).maximum(:id).to_i
     rep = repetidos(cuenta)
     {
+      'inicio' => Time.now.to_f,
       'conversaciones' => convs.count, 'mensajes' => Message.where(account_id: cuenta).count,
       'contactos' => Contact.where(account_id: cuenta).count, 'bandejas' => Inbox.where(account_id: cuenta).count,
       'max_conversacion' => max_conv, 'max_contacto' => max_contacto, 'max_mensaje' => max_mensaje,
@@ -129,6 +130,23 @@ module SondaEnsayo
     hecho(out, 'contactos_existentes_intactos', huella('contacts', cuenta, a['max_contacto']) == a['huella_contactos'] ? 'si' : 'no')
     hecho(out, 'mensajes_existentes_intactos', huella('messages', cuenta, a['max_mensaje']) == a['huella_mensajes'] ? 'si' : 'no')
     hecho(out, 'mensajes_fuera_del_archivo', Message.where(account_id: cuenta).where('id > ?', a['max_mensaje']).where.not(inbox_id: archivo).count)
+
+    # 5.5b: los adjuntos del Archivo. Cuántos y cuántos bytes, cuántos íntegros en el almacenamiento de la copia, y
+    # ningún huérfano entre los blobs creados desde la foto de antes (los de producción no tienen archivo en la copia).
+    adjs = Attachment.joins(:message).where(messages: { inbox_id: archivo })
+    hecho(out, 'adjuntos_archivo', adjs.count)
+    medir.call('adjuntos_bytes') { adjs.to_a.sum { |x| x.file.attached? ? x.file.blob.byte_size : 0 } }
+    medir.call('adjuntos_integros') do
+      adjs.find_each.count { |x| x.file.attached? && Digest::MD5.base64digest(x.file.download) == x.file.blob.checksum }
+    end
+    desde = Time.zone.at(a['inicio'].to_f)
+    nuevos = ActiveStorage::Blob.where('active_storage_blobs.created_at >= ?', desde)
+    hecho(out, 'blobs_huerfanos', nuevos.left_joins(:attachments).where(active_storage_attachments: { id: nil }).count)
+    medir.call('blobs_sin_archivo') { nuevos.to_a.count { |bl| !bl.service.exist?(bl.key) } }
+    medir.call('archivos_sin_blob') do
+      claves = nuevos.pluck(:key).to_set
+      Dir.glob(File.join(ActiveStorage::Blob.service.root, '**', '*')).count { |f| File.file?(f) && !claves.include?(File.basename(f)) }
+    end
 
     # E-6: lo cargado.
     hecho(out, 'archivo_conversaciones', convs.count)

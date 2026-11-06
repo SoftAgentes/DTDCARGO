@@ -82,7 +82,7 @@ module SondaCargador
     conv.messages.create!(account: cuenta, inbox: viva, message_type: :incoming, content: 'SINT-EXISTENTE', sender: x1)
     # Control: crear con los modelos SÍ encola trabajos. Si diera 0, la medida de E-3 no vería nada.
     hecho.call('control_cola', cola - antes)
-    base = { 'cuenta' => cuenta.id, 'admin' => admin.id, 'agente' => agente.id, 'viva' => viva.id, 'con_webhook' => con_webhook.id,
+    base = { 'inicio' => Time.now.to_f, 'cuenta' => cuenta.id, 'admin' => admin.id, 'agente' => agente.id, 'viva' => viva.id, 'con_webhook' => con_webhook.id,
              'x1' => x1.id, 'x2' => x2.id, 'conv' => conv.id, 'conv_updated' => conv.reload.updated_at.to_f,
              'x1_updated' => x1.reload.updated_at.to_f, 'x2_updated' => x2.reload.updated_at.to_f,
              'mensajes_vivos' => Message.where(inbox_id: viva.id).count,
@@ -113,6 +113,32 @@ module SondaCargador
     hecho.call('trabajos_actuales', trabajos_por_clase)
     hecho.call('cola_delta', cola - b['cola'])
     hecho.call('con_webhook_conversaciones', Conversation.where(inbox_id: b['con_webhook']).count)
+
+    # 5.5b: los adjuntos. Cada uno en su mensaje, con su tipo, el archivo íntegro en el almacenamiento, y ningún
+    # huérfano: ni blobs sin adjunto, ni archivos sin blob, ni blobs sin archivo.
+    adjs = Attachment.joins(:message).where(messages: { inbox_id: archivo })
+    hecho.call('adjuntos_archivo', adjs.count)
+    medir.call('adjuntos_por_tipo') { adjs.group(:file_type).count.map { |t, n| "#{t}:#{n}" }.sort.join(',') }
+    medir.call('adjuntos_en_su_mensaje') do
+      fuentes = adjs.joins(:message).pluck('messages.source_id')
+      fuentes.sort == %w[kommo:m5 kommo:m6 kommo:m8] ? 'si' : "no:#{fuentes.size}"
+    end
+    medir.call('adjuntos_integros') do
+      adjs.to_a.count { |a| a.file.attached? && Digest::MD5.base64digest(a.file.download) == a.file.blob.checksum }
+    end
+    medir.call('adjuntos_analizados') { adjs.to_a.count { |a| a.file.attached? && a.file.blob.analyzed? } }
+    # Solo lo creado desde la línea base de este escenario: los escenarios de mutantes comparten base y almacenamiento.
+    desde = Time.zone.at(b['inicio'].to_f)
+    nuevos = ActiveStorage::Blob.where('active_storage_blobs.created_at >= ?', desde)
+    hecho.call('blobs_huerfanos', nuevos.left_joins(:attachments).where(active_storage_attachments: { id: nil }).count)
+    medir.call('archivos_sin_blob') do
+      raiz = ActiveStorage::Blob.service.root
+      claves = ActiveStorage::Blob.pluck(:key).to_set
+      Dir.glob(File.join(raiz, '**', '*')).count do |f|
+        File.file?(f) && File.mtime(f) >= desde - 1 && !claves.include?(File.basename(f))
+      end
+    end
+    medir.call('blobs_sin_archivo') { nuevos.to_a.count { |bl| !bl.service.exist?(bl.key) } }
 
     # E-6: lo cargado.
     hecho.call('conversaciones', convs.count)
@@ -263,7 +289,82 @@ module SondaCargador
   end
 end
 
+module SondaCargador
+  module_function
+
+  # 5.5b: que Chatwoot sirva los adjuntos del Archivo por su API, como los ve el panel. Un agente miembro del Archivo
+  # (lo agrega `verificar`, E-10f) pide los mensajes de cada conversación con adjuntos y baja cada `data_url`,
+  # siguiendo las redirecciones de ActiveStorage, desde el servicio `rails` de la prueba. Un agente que no es
+  # miembro no tiene que poder pedirlos. Solo datos inventados.
+  def servir(out:, estado:, bandeja:)
+    require 'net/http'
+    hecho = ->(k, v) { out.puts "HECHO #{k}=#{v}" }
+    b = JSON.parse(File.read(estado))
+    host = URI(ENV.fetch('FRONTEND_URL')).host
+    http = Net::HTTP.new('rails', 3000)
+    http.read_timeout = 30
+    pedir = lambda do |ruta, token = nil|
+      req = Net::HTTP::Get.new(ruta)
+      req['Host'] = host
+      req['api_access_token'] = token if token
+      http.request(req)
+    end
+    listo = (1..60).any? do
+      ok = begin
+        pedir.call('/health').code == '200'
+      rescue StandardError
+        false
+      end
+      sleep 3 unless ok
+      ok
+    end
+    hecho.call('rails_responde', listo ? 'si' : 'no')
+    descargar = lambda do |url|
+      5.times do
+        r = pedir.call(URI(url).request_uri)
+        return r.body if r.code == '200'
+        return nil unless r['location']
+
+        url = URI.join("http://#{host}", r['location']).to_s
+      end
+      nil
+    end
+    token_de = ->(u) { (u.access_token || AccessToken.create!(owner: u)).token }
+    agente = User.find(b['agente'])
+    clave = "#{SecureRandom.hex(12)}Aa1!"
+    ajeno = User.new(name: 'SINT Ajeno', email: "sint.ajeno.#{SecureRandom.hex(4)}@example.test", password: clave,
+                     password_confirmation: clave)
+    ajeno.skip_confirmation!
+    ajeno.save!
+    AccountUser.create!(account_id: b['cuenta'], user: ajeno, role: :agent)
+    convs = Conversation.where(inbox_id: Integer(bandeja), id: Message.where(id: Attachment.select(:message_id)).select(:conversation_id))
+    total = 0
+    servidos = 0
+    ajeno_codigos = []
+    convs.each do |c|
+      ruta = "/api/v1/accounts/#{c.account_id}/conversations/#{c.display_id}/messages"
+      r = pedir.call(ruta, token_de.call(agente))
+      Array(JSON.parse(r.body)['payload']).each do |m|
+        Array(m['attachments']).each do |a|
+          total += 1
+          datos = descargar.call(a['data_url'].to_s)
+          blob = Attachment.find(a['id']).file.blob
+          servidos += 1 if datos && Digest::MD5.base64digest(datos) == blob.checksum
+        end
+      end
+      ajeno_codigos << pedir.call(ruta, token_de.call(ajeno)).code
+    end
+    hecho.call('servidos', "#{servidos}/#{total}")
+    hecho.call('ajeno_codigos', ajeno_codigos.uniq.sort.join(','))
+    hecho.call('servir', 'ok')
+  rescue StandardError => e
+    out.puts "HECHO servir=error:#{e.class}"
+  end
+end
+
 case ENV['FASE']
+when 'servir'
+  SondaCargador.servir(out: $stdout, estado: ENV.fetch('ESTADO', '/tmp/estado/base.json'), bandeja: ENV.fetch('BANDEJA'))
 when 'preparar'
   SondaCargador.preparar(out: $stdout, estado: ENV.fetch('ESTADO', '/tmp/estado/base.json'))
 when 'verificar'

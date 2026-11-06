@@ -9,6 +9,7 @@
 #   CARGA=/dev/shm/kommo-e5-carga/carga.ndjson \
 #   INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
 #   INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
+#   STAGING=/dev/shm/kommo-e5-carga \                       # 5.5b: de ahí salen los adjuntos en claro
 #     bash ensayo-archivo.sh            # el ensayo
 #     bash ensayo-archivo.sh --limpiar  # solo borra un ensayo que haya quedado (con las mismas guardas)
 #
@@ -155,7 +156,7 @@ vigilar_carga inicio
 # ── Stack efímero ────────────────────────────────────────────────────────────
 mkdir -m 700 "$DIR" || { mal G0 "no se pudo crear $DIR"; exit 1; }
 CREADO=1
-mkdir -m 700 "$DIR/cargador" "$DIR/estado"
+mkdir -m 700 "$DIR/cargador" "$DIR/estado" "$DIR/storage"
 cp "$AQUI/cargar-archivo-kommo.rb" "$AQUI/pruebas/sonda-ensayo.rb" "$DIR/cargador/"
 chmod 644 "$DIR/cargador/"*.rb
 chmod 777 "$DIR/estado" # el contenedor escribe la foto de antes; la carpeta padre sigue en 0700
@@ -247,8 +248,10 @@ services:
       - ${CORREO_DIR}/views:/app/dtd-correo/views:ro
       - ./cargador:/tmp/cargador:ro
       - ./estado:/tmp/estado
+      # 5.5b: el almacenamiento de la copia, en /dev/shm/cw-ensayo/storage (tmpfs), para que los adjuntos subidos
+      # sigan ahí en el paso siguiente. Se borra con la carpeta.
+      - ./storage:/app/storage
     tmpfs:
-      - /app/storage
       - /app/tmp
     networks: [aislada]
     mem_limit: 1536m
@@ -390,6 +393,19 @@ B="$(h "$DIR/bandeja.txt" bandeja)"
 rr "$DIR/seco.txt" MODO=seco "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$DIR/carga-1.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$DIR/carga-2.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
+# 5.5b: los adjuntos en claro del staging (STAGING), por la entrada estándar, dos veces (la segunda no duplica).
+ADJ_ESPERADOS="$(inf con_adjunto_para_carga "${INFORME_CARGA:-}")"
+if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null; then
+  if [ -d "${STAGING:-}/adjuntos-carga" ]; then
+    for n in 1 2; do
+      python3 -I "$AQUI/respaldar-historial.py" flujo-adjuntos --staging "$STAGING" 2>"$DIR/flujo-$n.err" \
+        | rr "$DIR/adjuntos-$n.txt" MODO=adjuntos "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR"
+      evidencia "HECHO flujo_adjuntos_$n=$(sed -n 's/^flujo-adjuntos: //p' "$DIR/flujo-$n.err" | tr -d ' ')"
+    done
+  else
+    mal AD0 "el informe trae $ADJ_ESPERADOS adjuntos para carga, pero falta STAGING con adjuntos-carga/"
+  fi
+fi
 rr "$DIR/despues.txt" FASE=despues "CUENTA=$CUENTA" "BANDEJA=$B" -- "$SONDA" </dev/null
 
 # ── Comprobaciones ───────────────────────────────────────────────────────────
@@ -442,8 +458,22 @@ exigir E10f 'solo_invalidacion "$(h "$F" miembros_trabajos)" && [ "$(h "$F" miem
   "E-10f: agregar un miembro no asigna ni notifica ($(h "$F" miembros_trabajos))"
 exigir E11 '[ "$(h "$F" conversaciones_existentes_intactas)" = si ] && [ "$(h "$F" contactos_existentes_intactos)" = si ] && [ "$(h "$F" mensajes_existentes_intactos)" = si ]' \
   "E-11: las conversaciones, contactos y mensajes que ya existían no cambiaron (huellas)"
+if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null && [ -f "$DIR/adjuntos-1.txt" ]; then
+  ADJ_BYTES="$(inf bytes_adjuntos_para_carga "$INFORME_CARGA")"
+  F="$DIR/adjuntos-1.txt"
+  exigir AD1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" adjuntos_nuevos)" = "$ADJ_ESPERADOS" ] && [ "$(h "$F" bytes_nuevos)" = "$ADJ_BYTES" ] && cero "$(h "$F" adjuntos_sin_mensaje)" && cero "$(h "$F" adjuntos_no_coinciden)" && cero "$(h "$F" adjuntos_fallidos)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "5.5b: $(h "$F" adjuntos_nuevos) de $ADJ_ESPERADOS adjuntos subidos, $(h "$F" bytes_nuevos) de $ADJ_BYTES bytes, sin trabajos encolados ($(h "$F" trabajos_nuevos))"
+  F="$DIR/adjuntos-2.txt"
+  exigir AD2 '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" adjuntos_nuevos)" && [ "$(h "$F" adjuntos_existentes)" = "$ADJ_ESPERADOS" ] && avance "$(h "$F" blobs)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "5.5b: la segunda carga de adjuntos no duplica: 0 nuevos, $(h "$F" adjuntos_existentes) existentes"
+  F="$DIR/despues.txt"
+  exigir AD3 '[ "$(h "$F" adjuntos_archivo)" = "$ADJ_ESPERADOS" ] && [ "$(h "$F" adjuntos_bytes)" = "$ADJ_BYTES" ] && [ "$(h "$F" adjuntos_integros)" = "$ADJ_ESPERADOS" ] && cero "$(h "$F" blobs_huerfanos)" && cero "$(h "$F" blobs_sin_archivo)" && cero "$(h "$F" archivos_sin_blob)" && [ -n "$(h "$F" archivos_sin_blob)" ]' \
+    "5.5b: en la copia, $(h "$F" adjuntos_archivo) adjuntos con $(h "$F" adjuntos_bytes) bytes, $(h "$F" adjuntos_integros) íntegros, 0 huérfanos"
+else
+  log "5.5b, adjuntos: NO EJECUTADO (el informe no trae adjuntos para carga)"
+fi
 correos_pasos=0
-for p in bandeja seco carga-1 carga-2; do
+for p in bandeja seco carga-1 carga-2 $([ -f "$DIR/adjuntos-1.txt" ] && echo adjuntos-1 adjuntos-2); do
   [ "$(h "$DIR/$p.txt" correos_enviados)" = 0 ] || correos_pasos=$((correos_pasos + 1))
 done
 exigir SMTP1 '[ "$correos_pasos" = 0 ] && [ "$(h "$F" correos_enviados_sonda)" = 0 ] && [ "$(h "$F" correos_en_cola)" = 0 ]' \

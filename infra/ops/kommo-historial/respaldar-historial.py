@@ -54,7 +54,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.2.1"
+VERSION = "1.3.0"
+# 5.5b: copias en claro de los adjuntos, dentro del staging (tmpfs), solo para el cargador del Archivo Kommo.
+CARPETA_ADJUNTOS_CARGA = "adjuntos-carga"
 SOLAPE_HORAS_POR_DEFECTO = 24
 # Listas que en modo incremental se piden con filter[updated_at][from|to]. Las demás (cuenta, usuarios,
 # embudos, campos, no clasificados) son chicas y se bajan enteras.
@@ -745,6 +747,8 @@ class Extractor:
             return
         destino = os.path.join(self.args.destino_corrida, "adjuntos")
         os.makedirs(destino, mode=0o700, exist_ok=True)
+        if getattr(self.args, "adjuntos_para_carga", False):
+            os.makedirs(self.st.ruta_de(CARPETA_ADJUNTOS_CARGA), mode=0o700, exist_ok=True)
         listos = self.st.marcados("listo-adjuntos")
         pendientes = []
         for m in self.st.leer_ndjson("mensajes.ndjson"):
@@ -767,6 +771,13 @@ class Extractor:
                 ruta = os.path.join(destino, nombre)
                 cifrar_bytes(datos, self.args.recipients, ruta)
                 fila["archivo"] = os.path.join("adjuntos", nombre)
+                if getattr(self.args, "adjuntos_para_carga", False):
+                    # 5.5b: además del .age del respaldo, una copia en claro en el staging (tmpfs, 0600) para el
+                    # cargador, solo durante la ventana. empaquetar no la mete en el paquete y la borra con el staging.
+                    carga = f"{CARPETA_ADJUNTOS_CARGA}/{mid}.{fila['ext']}"
+                    with open(self.st.ruta_de(carga), "wb", opener=lambda p, f: os.open(p, f, 0o600)) as salida:
+                        salida.write(datos)
+                    fila["archivo_carga"] = carga
             self.st.anexar_ndjson("adjuntos.ndjson", [fila])
             self.st.marcar("listo-adjuntos", str(mid))
             if k % 100 == 0 or k == len(pendientes):
@@ -994,7 +1005,16 @@ def preparar_carga(st: Staging) -> dict:
     if not vinculos:
         raise ErrorFatal("falta vinculos.ndjson: corre `vincular` antes")
     contactos = {int(c["id"]): c for c in st.leer_ndjson("contactos.ndjson") if c.get("id") is not None}
-    adjuntos = {str(a.get("message_id")): a.get("archivo") for a in st.leer_ndjson("adjuntos.ndjson") if a.get("archivo")}
+    adjuntos = {}
+    for a in st.leer_ndjson("adjuntos.ndjson"):
+        if not a.get("archivo"):
+            continue
+        if a.get("archivo_carga"):
+            # 5.5b: el cargador sube este archivo. Sin la ruta en claro, el adjunto queda como pendiente (la ruta del .age).
+            adjuntos[str(a.get("message_id"))] = {k: a.get(k) for k in ("archivo", "archivo_carga", "tipo", "ext",
+                                                                         "content_type", "bytes", "sha256")}
+        else:
+            adjuntos[str(a.get("message_id"))] = a.get("archivo")
     cuenta = collections.Counter()
     salida = st.ruta_de("carga.ndjson")
     personas: dict[int, dict] = {}
@@ -1051,6 +1071,9 @@ def preparar_carga(st: Staging) -> dict:
             cuenta["mensajes"] += 1
             cuenta["entrantes" if entrante else "salientes"] += 1
             cuenta["con_adjunto"] += bool(fila["adjunto"])
+            if isinstance(fila["adjunto"], dict):
+                cuenta["con_adjunto_para_carga"] += 1
+                cuenta["bytes_adjuntos_para_carga"] += int(fila["adjunto"].get("bytes") or 0)
             cuenta["sin_texto"] += not m.get("text")
     informe = dict(sorted(cuenta.items()))
     st.escribir_json("carga-informe.json", informe)
@@ -1064,6 +1087,12 @@ def cifrar_bytes(datos: bytes, recipients: str, salida: str) -> None:
     os.chmod(salida, 0o600)
 
 
+def comando_tar(ruta_staging: str) -> list[str]:
+    """El tar del paquete de metadatos. Las copias en claro para el cargador (5.5b) no van: los adjuntos ya van
+    cifrados uno por uno, y el paquete no tiene que llevar 2 GB en claro adentro."""
+    return ["tar", "-C", ruta_staging, f"--exclude=./{CARPETA_ADJUNTOS_CARGA}", "-cf", "-", "."]
+
+
 def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, conservar: bool,
                efimera: str | None = None) -> dict:
     """tar | zstd | age del staging. Si `efimera` es una clave pública, también se cifra para ella (solo ensayos)."""
@@ -1071,7 +1100,7 @@ def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, con
     os.makedirs(destino_corrida, mode=0o700, exist_ok=True)
     salida = os.path.join(destino_corrida, f"kommo-{stamp}-metadatos.tar.zst.age")
     cmd_age = ["age", "-R", recipients] + (["-r", efimera] if efimera else []) + ["-o", salida]
-    tar = subprocess.Popen(["tar", "-C", st.ruta, "-cf", "-", "."], stdout=subprocess.PIPE)
+    tar = subprocess.Popen(comando_tar(st.ruta), stdout=subprocess.PIPE)
     zst = subprocess.Popen(["zstd", "-T2", "-10", "-q"], stdin=tar.stdout, stdout=subprocess.PIPE)
     tar.stdout.close()
     age = subprocess.Popen(cmd_age, stdin=zst.stdout, stderr=subprocess.PIPE)
@@ -1556,7 +1585,21 @@ def preparar_corrida(args, st: Staging) -> str:
     return carpeta
 
 
+def validar_adjuntos_para_carga(args) -> None:
+    """5.5b: las copias en claro solo con un corte fijo, con adjuntos, y con el staging en tmpfs. Antes de pedirle
+    nada a Kommo."""
+    if not getattr(args, "adjuntos_para_carga", False):
+        return
+    if getattr(args, "sin_adjuntos", False):
+        raise ErrorFatal("--adjuntos-para-carga y --sin-adjuntos se excluyen")
+    if not getattr(args, "corte", None):
+        raise ErrorFatal("--adjuntos-para-carga pide --corte: la carga es de una extracción hasta un corte fijo")
+    if not en_tmpfs(args.staging):
+        raise ErrorFatal("--adjuntos-para-carga deja adjuntos en claro: el staging tiene que estar en /dev/shm")
+
+
 def cmd_extraer(args, log: Log) -> int:
+    validar_adjuntos_para_carga(args)
     token = cargar_token(args.token_file)
     if not os.path.exists(args.recipients):
         raise ErrorFatal(f"no existe {args.recipients}")
@@ -1639,6 +1682,46 @@ def cmd_preparar_carga(args, log: Log) -> int:
     return 0
 
 
+def flujo_adjuntos(st: Staging, salida) -> dict:
+    """5.5b: una línea NDJSON por adjunto en claro de los mensajes del archivo de carga, con su contenido en base64,
+    para el cargador (`MODO=adjuntos`, por la entrada estándar del contenedor). Antes de escribir cada línea comprueba
+    bytes y sha256 contra adjuntos.ndjson. Devuelve conteos."""
+    cuenta = collections.Counter()
+    for m in st.leer_ndjson("carga.ndjson"):
+        adj = m.get("adjunto") if m.get("tipo") == "mensaje" else None
+        if not isinstance(adj, dict) or not adj.get("archivo_carga"):
+            continue
+        ruta = st.ruta_de(adj["archivo_carga"])
+        if not os.path.isfile(ruta):
+            cuenta["faltan"] += 1
+            continue
+        with open(ruta, "rb") as f:
+            datos = f.read()
+        if len(datos) != int(adj.get("bytes") or -1) or sha256_bytes(datos) != adj.get("sha256"):
+            cuenta["no_coinciden"] += 1
+            continue
+        salida.write(json.dumps({"source_id": m["source_id"], "tipo": adj.get("tipo"), "ext": adj.get("ext"),
+                                 "content_type": adj.get("content_type"), "bytes": len(datos),
+                                 "sha256": adj.get("sha256"), "b64": base64.b64encode(datos).decode("ascii")},
+                                separators=(",", ":")) + "\n")
+        cuenta["adjuntos"] += 1
+        cuenta["bytes"] += len(datos)
+    return dict(sorted(cuenta.items()))
+
+
+def cmd_flujo_adjuntos(args, log: Log) -> int:
+    st = Staging(args.staging)
+    informe = flujo_adjuntos(st, sys.stdout)
+    sys.stdout.flush()
+    # La salida estándar es el flujo de datos: el informe va a la de error y al log, nunca entre las líneas.
+    texto = f"flujo-adjuntos: {json.dumps(informe, ensure_ascii=False)}"
+    print(texto, file=sys.stderr, flush=True)
+    if log.archivo:
+        log.archivo.write(f"{utc(ahora())} {texto}\n")
+        log.archivo.flush()
+    return 0 if not informe.get("faltan") and not informe.get("no_coinciden") else 2
+
+
 def cmd_todo(args, log: Log) -> int:
     cmd_extraer(args, log)
     cmd_informe(args, log)
@@ -1670,6 +1753,9 @@ def construir_parser() -> argparse.ArgumentParser:
         sp.add_argument("--corte-ventanas-vacias", type=int, default=0, help="parar tras N ventanas vacías seguidas (0 = nunca)")
         sp.add_argument("--sondear-huecos", type=int, default=0, help="probar N ids sin eventos (-1 = todos)")
         sp.add_argument("--sin-adjuntos", action="store_true")
+        sp.add_argument("--adjuntos-para-carga", action="store_true",
+                        help="5.5b: además del .age, deja cada adjunto en claro en <staging>/adjuntos-carga (tmpfs, 0600) "
+                             "para el cargador del Archivo Kommo; pide --corte y el staging en /dev/shm")
         sp.add_argument("--tope-adjunto-mb", type=float, default=200.0)
         sp.add_argument("--conservar-staging", action="store_true")
         sp.add_argument("--verificar-efimera", action="store_true", help="ensayo: round-trip con llave efímera")
@@ -1682,6 +1768,7 @@ def construir_parser() -> argparse.ArgumentParser:
     sp.add_argument("--clientes", required=True, help="foto mínima del ERP en /dev/shm: client_id, phone_last10, correos")
     sp.add_argument("--conservar-clientes", action="store_true", help="no borrar la foto del ERP después de leerla")
     sp = sub.add_parser("preparar-carga"); comunes(sp, token=False, destino=False)
+    sp = sub.add_parser("flujo-adjuntos"); comunes(sp, token=False, destino=False)
     sp = sub.add_parser("empaquetar"); comunes(sp, token=False)
     sp.add_argument("--conservar-staging", action="store_true")
     sp.add_argument("--verificar-efimera", action="store_true")
@@ -1694,7 +1781,7 @@ def main(argv=None) -> int:
     log = Log(args.log)
     try:
         return {"probar-token": cmd_probar_token, "extraer": cmd_extraer, "informe": cmd_informe,
-                "vincular": cmd_vincular, "preparar-carga": cmd_preparar_carga,
+                "vincular": cmd_vincular, "preparar-carga": cmd_preparar_carga, "flujo-adjuntos": cmd_flujo_adjuntos,
                 "empaquetar": cmd_empaquetar, "todo": cmd_todo}[args.cmd](args, log)
     except ErrorFatal as e:
         log(f"ERROR: {e}")

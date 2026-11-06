@@ -20,12 +20,13 @@ load ENV.fetch('CARGADOR_RB')
 
 salidas = ENV.fetch('SALIDAS')
 carga = ENV.fetch('CARGA_ARCHIVO')
+flujo = ENV.fetch('FLUJO_ARCHIVO', '/tmp/estado/flujo.ndjson') # 5.5b: los adjuntos, como los manda flujo-adjuntos
 FileUtils.mkdir_p(salidas)
 estado = File.join(salidas, 'base.json')
 en = ->(nombre, &bloque) { File.open(File.join(salidas, "#{nombre}.txt"), 'w') { |f| bloque.call(f) } }
 paso = lambda do |nombre, env, con_carga|
   en.call(nombre) do |f|
-    entrada = con_carga ? File.open(carga, encoding: 'UTF-8') : StringIO.new('')
+    entrada = con_carga ? File.open(con_carga == :flujo ? flujo : carga, encoding: 'UTF-8') : StringIO.new('')
     begin
       CargaArchivoKommo.principal(env, entrada: entrada, salida: f)
     ensure
@@ -47,6 +48,8 @@ paso.call('rechazo-cuenta', { 'MODO' => 'cargar', 'CUENTA' => '999999', 'BANDEJA
 paso.call('seco', { 'MODO' => 'seco', 'CUENTA' => cuenta, 'BANDEJA' => bandeja, 'CARGA' => '-' }, true)
 paso.call('carga-1', { 'MODO' => 'cargar', 'CUENTA' => cuenta, 'BANDEJA' => bandeja, 'CARGA' => '-' }, true)
 paso.call('carga-2', { 'MODO' => 'cargar', 'CUENTA' => cuenta, 'BANDEJA' => bandeja, 'CARGA' => '-' }, true)
+paso.call('adjuntos-1', { 'MODO' => 'adjuntos', 'CUENTA' => cuenta, 'BANDEJA' => bandeja, 'CARGA' => '-' }, :flujo)
+paso.call('adjuntos-2', { 'MODO' => 'adjuntos', 'CUENTA' => cuenta, 'BANDEJA' => bandeja, 'CARGA' => '-' }, :flujo)
 en.call('sonda-verificar') do |f|
   SondaCargador.verificar(out: f, estado: estado, bandeja: bandeja)
 rescue StandardError => e

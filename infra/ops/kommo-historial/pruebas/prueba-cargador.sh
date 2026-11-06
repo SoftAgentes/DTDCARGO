@@ -174,8 +174,8 @@ comprobar() {
   F="$O/carga-1.txt"
   exigir C1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_nuevas)" = 5 ] && [ "$(h "$F" mensajes_nuevos)" = 8 ] && [ "$(h "$F" personas_nuevas)" = 3 ] && [ "$(h "$F" personas_reusadas)" = 2 ] && [ "$(h "$F" contact_inboxes_nuevos)" = 5 ]' \
     "5 conversaciones, 8 mensajes, 3 personas nuevas (2 de Kommo y «sin contacto»), 2 reusadas, 5 contact_inboxes"
-  exigir C2 '[ "$(h "$F" conversaciones_sin_contacto)" = 1 ] && [ "$(h "$F" adjuntos_pendientes)" = 1 ] && [ "$(h "$F" mensajes_sin_texto)" = 1 ]' \
-    "1 conversación sin contacto, 1 adjunto pendiente, 1 mensaje sin texto"
+  exigir C2 '[ "$(h "$F" conversaciones_sin_contacto)" = 1 ] && [ "$(h "$F" adjuntos_pendientes)" = 3 ] && [ "$(h "$F" mensajes_sin_texto)" = 1 ]' \
+    "1 conversación sin contacto, 3 mensajes con adjunto (los sube MODO=adjuntos), 1 mensaje sin texto"
   exigir C3 '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" personas_omitidas)" && cero "$(h "$F" conversaciones_omitidas)" && cero "$(h "$F" mensajes_omitidos)" && cero "$(h "$F" contact_inboxes_omitidos)" && cero "$(h "$F" mensajes_sin_conversacion)"' \
     "ninguna fila omitida por un conflicto ni mensaje sin conversación"
   exigir C4 '[ "$(h "$F" despues)" = "conversaciones:5,mensajes:8,contact_inboxes:5" ]' "filas en la bandeja después: $(h "$F" despues)"
@@ -191,7 +191,18 @@ comprobar() {
     "E-7: ni números ni trabajos ($(h "$F" secuencia), cola $(h "$F" cola), $(h "$F" trabajos_nuevos))"
 
   local fugas=0 f m
-  for f in bandeja-1 bandeja-2 rechazo-webhook rechazo-cuenta seco carga-1 carga-2; do
+  # 5.5b: los adjuntos, después de la carga: 3 nuevos con sus bytes, sin trabajos; la segunda vez, ninguno.
+  F="$O/adjuntos-1.txt"
+  exigir AD1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" adjuntos_nuevos)" = 3 ] && [ "$(h "$F" bytes_nuevos)" = "$ESPERADO_BYTES" ] && cero "$(h "$F" adjuntos_sin_mensaje)" && cero "$(h "$F" adjuntos_no_coinciden)" && cero "$(h "$F" adjuntos_fallidos)" && avance "$(h "$F" blobs)" 3 && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "5.5b: 3 adjuntos subidos ($(h "$F" bytes_nuevos) de $ESPERADO_BYTES bytes), 3 blobs, sin trabajos encolados ($(h "$F" trabajos_nuevos))"
+  F="$O/adjuntos-2.txt"
+  exigir AD2 '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" adjuntos_nuevos)" && [ "$(h "$F" adjuntos_existentes)" = 3 ] && avance "$(h "$F" blobs)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "5.5b: la segunda carga de adjuntos no duplica: 0 nuevos, 3 existentes, 0 blobs"
+  F="$O/sonda-verificar.txt"
+  exigir AD3 '[ "$(h "$F" adjuntos_archivo)" = 3 ] && [ "$(h "$F" adjuntos_por_tipo)" = "audio:1,file:1,image:1" ] && [ "$(h "$F" adjuntos_en_su_mensaje)" = si ] && [ "$(h "$F" adjuntos_integros)" = 3 ] && [ "$(h "$F" blobs_huerfanos)" = 0 ] && [ "$(h "$F" archivos_sin_blob)" = 0 ] && [ "$(h "$F" blobs_sin_archivo)" = 0 ]' \
+    "5.5b: cada adjunto en su mensaje y con su tipo ($(h "$F" adjuntos_por_tipo)), 3 íntegros en el almacenamiento, 0 huérfanos (blobs $(h "$F" blobs_huerfanos), archivos $(h "$F" archivos_sin_blob), sin archivo $(h "$F" blobs_sin_archivo))"
+
+  for f in bandeja-1 bandeja-2 rechazo-webhook rechazo-cuenta seco carga-1 carga-2 adjuntos-1 adjuntos-2; do
     for m in "${MARCAS[@]}"; do
       if grep -q -F -- "$m" "$O/$f.txt" 2>/dev/null; then
         fugas=$((fugas + 1))
@@ -199,7 +210,7 @@ comprobar() {
       fi
     done
   done
-  exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/carga-1.txt" ]' "cero de ${#MARCAS[@]} valores inventados en 7 salidas del cargador"
+  exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/carga-1.txt" ]' "cero de ${#MARCAS[@]} valores inventados en 9 salidas del cargador"
 
   F="$O/sonda-verificar.txt"
   exigir E0 '[ "$(h "$F" verificar)" = ok ]' "la sonda corrió entera"
@@ -240,7 +251,7 @@ comprobar() {
   return 0
 }
 
-MARCAS=(SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot 4120000001 4120000002 example.test SINT-C1 SINT-AVATAR Pérez kommo.example)
+MARCAS=(SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot SINT-ADJUNTO 4120000001 4120000002 example.test SINT-C1 SINT-AVATAR Pérez kommo.example)
 
 log "== prueba del cargador del Archivo Kommo · $(date -u +%Y-%m-%dT%H:%M:%SZ) · trabajo $TRABAJO"
 vigilar inicio
@@ -256,9 +267,16 @@ log "== D. archivo de carga"
 inf() { "$PY" -I -c 'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8")).get(sys.argv[2],0))' "$(win "$S/carga-informe.json")" "$1" | tr -d '\r'; }
 exigir D1 '[ "$(inf personas)" = 4 ] && [ "$(inf conversaciones)" = 5 ] && [ "$(inf conversaciones_sin_contacto)" = 1 ]' \
   "4 personas, 5 conversaciones, 1 sin contacto"
-exigir D2 '[ "$(inf mensajes)" = 8 ] && [ "$(inf entrantes)" = 5 ] && [ "$(inf salientes)" = 3 ] && [ "$(inf con_adjunto)" = 1 ] && [ "$(inf sin_texto)" = 1 ]' \
-  "8 mensajes: 5 entrantes, 3 salientes, 1 con adjunto y sin texto"
+exigir D2 '[ "$(inf mensajes)" = 8 ] && [ "$(inf entrantes)" = 5 ] && [ "$(inf salientes)" = 3 ] && [ "$(inf con_adjunto)" = 3 ] && [ "$(inf sin_texto)" = 1 ]' \
+  "8 mensajes: 5 entrantes, 3 salientes, 3 con adjunto, 1 sin texto"
+ESPERADO_BYTES="$(inf bytes_adjuntos_para_carga)"
+exigir D3 '[ "$(inf con_adjunto_para_carga)" = 3 ] && [ "${ESPERADO_BYTES:-0}" -gt 0 ]' \
+  "5.5b: 3 adjuntos con copia en claro para el cargador ($ESPERADO_BYTES bytes)"
 CARGA="$S/carga.ndjson"
+FLUJO="$TRABAJO/flujo.ndjson"
+"$PY" -I "$(win "$KH/respaldar-historial.py")" flujo-adjuntos --staging "$(win "$S")" >"$FLUJO" 2>"$TRABAJO/flujo.err" \
+  || { mal D0 "flujo-adjuntos falló"; cat "$TRABAJO/flujo.err"; exit 1; }
+exigir D4 '[ "$(grep -c . "$FLUJO")" = 3 ] && grep -q "\"adjuntos\": 3" "$TRABAJO/flujo.err"' "5.5b: flujo-adjuntos manda 3 adjuntos con su huella comprobada"
 
 # ── Stack: copia como /srv/chatwoot + overlay local + .env de prueba ──────────
 log "== stack"
@@ -269,6 +287,7 @@ cp "$CW/pruebas/compose.local.yml" "$D/compose.override.yml"
 cp "$AQUI/compose.cargador.yml" "$D/"
 cp "$KH/cargar-archivo-kommo.rb" "$AQUI/sonda-cargador.rb" "$AQUI/escenario-mutante.rb" "$D/cargador/"
 cp "$CARGA" "$D/estado/carga.ndjson"
+cp "$FLUJO" "$D/estado/flujo.ndjson"
 cat >"$D/.env" <<EOF
 CHATWOOT_HOST=chat.prueba.test
 CHATWOOT_EDGE_NETWORK=$EDGE
@@ -310,10 +329,29 @@ rr "$REAL/rechazo-cuenta.txt" MODO=cargar CUENTA=999999 "BANDEJA=$B" CARGA=- -- 
 rr "$REAL/seco.txt" MODO=seco "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$REAL/carga-1.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$REAL/carga-2.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
+rr "$REAL/adjuntos-1.txt" MODO=adjuntos "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$FLUJO"
+rr "$REAL/adjuntos-2.txt" MODO=adjuntos "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$FLUJO"
 rr "$REAL/sonda-verificar.txt" FASE=verificar "BANDEJA=$B" -- "$SONDA" </dev/null
 comprobar "$REAL"
-log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana de 90 días; $(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
+log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana de 90 días; $(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"
+log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
+
+# ── AD4. Chatwoot sirve los adjuntos por su API, como en el panel (5.5b) ─────
+# Con el servicio `rails` de la prueba: un agente miembro del Archivo baja cada adjunto y su checksum coincide con
+# el del blob; un agente que no es miembro no puede pedir esos mensajes. Solo en la corrida real.
+log "== AD4. servir los adjuntos"
+if dc "${BASE[@]}" up -d --wait rails >"$TRABAJO/rails-up.txt" 2>&1; then
+  F="$REAL/servir.txt"
+  rr "$F" FASE=servir "BANDEJA=$B" -- "$SONDA" </dev/null
+  exigir AD4 '[ "$(h "$F" servir)" = ok ] && [ "$(h "$F" rails_responde)" = si ] && [ "$(h "$F" servidos)" = 3/3 ] && [ -n "$(h "$F" ajeno_codigos)" ] && ! h "$F" ajeno_codigos | tr "," "\n" | grep -qx 200' \
+    "5.5b: un agente miembro baja los 3 adjuntos por la API e íntegros ($(h "$F" servidos)); a uno que no es miembro le responde $(h "$F" ajeno_codigos)"
+else
+  mal AD4 "el servicio rails de la prueba no arrancó (ver $TRABAJO/rails-up.txt)"
+  tail -n 30 "$TRABAJO/rails-up.txt"
+fi
+dc "${BASE[@]}" stop rails >/dev/null 2>&1
+vigilar "servir"
 
 # ── M. Control y mutantes ────────────────────────────────────────────────────
 escenario() { # id → salidas en $D/estado/m/<id>/
@@ -364,7 +402,7 @@ if [ "$MUTANTES" = 1 ]; then
   MODO_LOG=1
   total=${#RES[@]}
   cayeron="$(cayeron_en)"
-  exigir M0 '[ -z "$cayeron" ] && [ "$total" -ge 41 ]' \
+  exigir M0 '[ -z "$cayeron" ] && [ "$total" -ge 44 ]' \
     "control: el escenario en un solo proceso pasa las $total comprobaciones de la corrida real${cayeron:+ — cayeron: $cayeron}"
   [ "${RES[M0]}" = FALLÓ ] && MUT_FALLADOS="$MUT_FALLADOS M0"
 
@@ -455,6 +493,23 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M24 "la bandeja con la asignación automática por defecto" "B1" "C1 E10e" \
     "name: nombre, enable_auto_assignment: false," \
     "name: nombre,"
+  # 5.5b: los adjuntos.
+  mutante M25 "adjunto al mensaje equivocado" "AD1 AD3" "C1" \
+    "mensaje = Message.where(inbox_id: @bandeja_id, source_id: a['source_id']).pick(:id, :account_id)" \
+    "mensaje = Message.where(inbox_id: @bandeja_id).order(:id).pick(:id, :account_id)"
+  mutante M26 "no salta los mensajes que ya tienen adjunto" "AD2" "AD1" \
+    "      if Attachment.where(message_id: mensaje[0]).exists?" \
+    "      if false"
+  mutante M27 "el archivo no queda en el almacenamiento" "AD3" "AD1" \
+    "identify: false)" \
+    "identify: false)
+    blob.service.delete(blob.key)"
+  mutante M28 "tipo mal mapeado" "AD3" "AD1" \
+    "'picture' => :image" \
+    "'picture' => :file"
+  mutante M29 "adjunto con los callbacks de ActiveStorage" "AD1" "C1" \
+    "ActiveStorage::Attachment.insert_all([{ name: 'file', record_type: 'Attachment', record_id: fila['id'], blob_id: blob.id, created_at: ahora }])" \
+    "Attachment.find(fila['id']).file.attach(blob)"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi
