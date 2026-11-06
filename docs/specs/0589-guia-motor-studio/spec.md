@@ -214,7 +214,7 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 
 ## 2026-11-06 · Paso 9.3 · estado por usuario
 
-**Encargo y puertas.** El Director General pidió la 9.3 entera, en local y en una PR en borrador, bajo esta SDD (2026-11-06). **No hay OK de Sam al diseño de la migración:** está en su lista, y la fila 9.3 no cuenta como OK. Fusionar la PR y aplicar la 0517, en prueba o en producción, también esperan su OK.
+**Encargo y puertas.** El Director General pidió la 9.3 entera, en local y en una PR en borrador, bajo esta SDD (2026-11-06). **No hay OK de Sam al diseño de la migración:** está en su lista, y la fila 9.3 no cuenta como OK. Fusionar la PR y aplicar la 0517, en prueba o en producción, también esperaban su OK. Llegó el mismo día (§ «Autorización y salida de la 0517»): la 0517 se aplicó en prueba a las 18:20:23Z y en producción a las 19:43:51Z, y la #384 se fusionó en `a63623ac9` a las 19:44:04Z. Las evidencias y el cierre están en `.agents/handoffs/0589-e9-estado.md`.
 
 **Número.** La 0517 la asignó el Director General, medida libre a las 03:50Z: la 0514 y la 0515 son de SDD-0606 y la 0516 de otra rama. Quedó reservada sin tocar `main`, con la rama `codex/migration-reserve-0517-user-guide-prefs` (`be6e0f949`), que nunca se fusiona.
 
@@ -227,7 +227,7 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 
 **El botón está hecho y probado, pero no montado.** `StudioTopbar.tsx` lo tocan tres ramas del rediseño (SDD-0603). Montarlo es una línea, `<GuiaBoton />`, cuando lo permita esa adopción. Hasta entonces, la guía se abre sola la primera vez, por `?guia=` o desde el código.
 
-**⚠️ Aplicar la 0517 enciende el arranque automático.** Hoy el único recorrido es el de demostración del Dashboard. Cada persona de Studio lo verá abrirse solo la primera vez que entre al Dashboard después de aplicar la migración. Sin la 0517 no cambia nada: la guía no arranca sola. Sam tiene que saberlo antes de dar el OK para aplicarla.
+**⚠️ Aplicar la 0517 enciende el arranque automático.** Hoy el único recorrido es el de demostración del Dashboard. Cada persona de Studio lo verá abrirse solo la primera vez que entre al Dashboard después de aplicar la migración. Sin la 0517 no cambia nada: la guía no arranca sola. Sam lo supo antes de dar el OK para aplicarla: la pregunta del 2026-11-06 lo explicaba (`.agents/handoffs/0589-autorizacion-0517.txt`).
 
 ### Qué quedó
 
@@ -244,7 +244,7 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 | Botón «Guía», sin montar | `app/studio/_components/guia/GuiaBoton.tsx` |
 | Montaje con el estado del servidor | `app/studio/_components/guia/GuiaStudio.tsx` y `app/studio/(app)/layout.tsx` |
 | Decisiones pendientes de Sam | `lib/studio/guia/preferencias.ts` |
-| Espera de la 0517 y su degradación | `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` |
+| Espera de la 0517 y su degradación, retiradas al aplicarla (2026-11-06); desde ahí, su sello | `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`; el sello, en `supabase/migrations.lock.json` |
 | Inventario de acciones: 459 → 460, excepciones 17 → 18 | `lib/studio/rbac-actions-guard.test.ts` |
 
 ### En qué cambia lo propuesto en §8
@@ -266,7 +266,7 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 | 18 mutantes del código, entre ellos: arrancar sola ya vista o sin estado de la base, «No volver a mostrar» que no guarda, botón que no sigue o sigue con la guía terminada, `?guia=` que no gana, almacén que no manda o lee el navegador al crearse, y acción sin validar o sin tope | PASÓ: 18 de 18 caen por la prueba esperada, con el control en verde antes y después. Los de `?guia=` y del tope de la acción sobrevivían en la primera vuelta: las pruebas no medían eso y se corrigieron |
 | RBAC: inventario 460, excepciones 18, superficie 81 archivos | PASÓ |
 | Gate de símbolos pendientes | PASÓ: 0 ROJO · 1 AMARILLO declarado (`user_guide_prefs`) |
-| Candado de migraciones, numeración e índice | PASÓ; la 0517, en espera sin sellar |
+| Candado de migraciones, numeración e índice | PASÓ; la 0517, en espera sin sellar hasta aplicarla. El cierre del 2026-11-06 la selló |
 | `/ui-check` de `GuiaBoton.tsx` y `GuiaTarjeta.tsx` | OK con ajustes menores, no bloqueante: cuatro controles en el primer paso automático, para mirar en vivo en 9.6; el objetivo táctil del botón, al montarlo; el `title` como pista secundaria |
 | `pnpm verify` sobre `3df4e4e96`, con turno del Director General, de 04:12:51Z a 05:04:33Z | **FALLÓ en dos pasos.** (1) `typecheck`: tres claves inventadas en `estado.test.ts` que el tipo `GuiaClave` no admite. Error mío, corregido. (2) `test`, 14 852 de 14 855: vencimientos de 600 s en `prueba-migraciones-produccion.sh` y en las pruebas con dobles de `entorno-prueba-scripts.test.mjs`, scripts bash con el pool lleno; el diff no toca `scripts` ni `infra/ops`. PASÓ: harness, lint, rsc-boundary, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, e2e y build |
 | Después de la corrección: `typecheck` entero, y las dos pruebas vencidas a solas con un worker | PASÓ; 32 de 32, en 100,4 s y unos 120 s. El `verify` entero no se repitió: la corrección solo cambia esas tres claves de una prueba |
