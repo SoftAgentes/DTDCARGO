@@ -320,4 +320,35 @@ Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 convers
 
 ### 9.5 revisar-datos-ve de 5.3
 
-Trata los mismos datos que 5.1 (§6). No suma campos, terceros ni destinos. Pide menos: solo lo que cambió y solo hasta el corte. El staging en tmpfs, el cifrado, el log sin datos y la retención de §6.3 no cambian. El instante de corte no es un dato de personas. **Sin hallazgos nuevos.**
+Lo pidió el Director General antes de cerrar 5.3. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal.
+
+**Qué guarda el extractor incremental, dónde y por cuánto tiempo:**
+
+| Qué | Campos | Dónde | Cuánto tiempo |
+|---|---|---|---|
+| Los mismos NDJSON de 5.1, solo con lo que cambió entre el inicio y el corte | Los de §6.1, sin campos nuevos: contactos, leads, empresas, notas y tareas que cambiaron; conversaciones con eventos en la ventana y sus mensajes hasta el corte; usuarios, embudos y campos enteros | Staging en tmpfs (`/dev/shm`, carpeta 0700), y después el paquete `kommo-<stamp>-metadatos.tar.zst.age` en `/srv/backups/kommo/kommo-<stamp>/` | Staging: hasta empaquetar, que lo borra (`empaquetar`, `shutil.rmtree`). Paquete: como el de 5.1, corte + 12 meses (§6.3), con la fecha concreta que se escribe en E8 |
+| Adjuntos de mensajes desde el inicio | Archivo cifrado y, en `adjuntos.ndjson`, id del mensaje, tipo, extensión, host, código HTTP, bytes y sha256 | `adjuntos/<message_id>.<ext>.age`, junto al paquete | Igual que el paquete |
+| Plan de la corrida | `base_stamp`, `base_sha256_paquete`, `desde`, `corte`, `solape_segundos` y versión. Sin datos de personas | `incremental.json` en el staging y el bloque `incremental` de `manifiesto.json`, en claro junto al paquete | El staging, hasta empaquetar; el manifiesto, mientras viva el paquete |
+| Mensajes que quedaron fuera por el corte | Id de la conversación y cuántos mensajes. Sin texto ni autor | `mensajes-despues-del-corte` en el staging, dentro del paquete | Igual que el paquete |
+| Log | Ids, conteos, códigos HTTP y fechas | `--log`, en claro | Como el de 5.1 |
+
+**Resumen:** 0 ENCONTRADO nuevo, 5 CORRECTO, 1 NO VERIFICABLE y 6 sin cambio frente a §6.2.
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | La tabla de arriba: ningún campo nuevo frente a §6.1. `incremental.json` y `mensajes-despues-del-corte` no traen datos de personas |
+| 2 | Minimización | CORRECTO | Pide menos que 5.1: solo listas con `updated_at` en la ventana (`LISTAS_INCREMENTALES`), solo conversaciones con eventos en la ventana, nada después del corte (`en_corte`) y solo adjuntos nuevos. Las pruebas `test_listas_que_cambian_se_piden_por_updated_at`, `test_ningun_mensaje_posterior_al_corte_entra` y `test_adjuntos_solo_de_mensajes_desde_el_inicio` lo fijan, con su mutante |
+| 3 | Consentimiento | Sin cambio | §6.2 punto 3 |
+| 4 | Derechos | Sin cambio | §6.2 punto 4: cada paquete incremental es otro `.age` inmutable, igual que el de 5.1. El borrado por persona tiene que recorrer la base y todos los incrementales |
+| 5 | Borrado | CORRECTO | El staging se borra al empaquetar, como en 5.1. Cada incremental suma una carpeta en `/srv/backups/kommo/` con la misma retención (§6.3): la fila de `mapa-de-borrado.md` §F tiene que nombrarlas cuando existan |
+| 6 | Trazabilidad | Sin cambio | §6.2 punto 6 |
+| 7 | Política pública | Sin cambio | §6.2 punto 7 |
+| 8 | Terceros | CORRECTO | Mismo destino: el VPS de DTD. El token solo viaja a hosts de Kommo, sin cambio frente a 5.1 |
+| 9 | Transferencia internacional | Sin cambio | §6.2 punto 9 |
+| 10 | Decisiones automatizadas | Sin cambio | No aplica |
+| 11 | Valor probatorio | CORRECTO | El manifiesto liga cada incremental a su base por stamp y sha256 del paquete (`bloque_incremental`): se puede reconstruir el orden de las cargas |
+| 12 | Titulares que no son usuarios | NO VERIFICABLE | Los mismos de §6.2 punto 12. Cuántos entran en el incremental se sabe solo al correrlo con token |
+
+**Fixtures:** las pruebas usan solo datos inventados, marcados para comprobar que no se filtran (`TEXTO-SECRETO-XK93`, «Nombre Inventado Zq», `+584129998877`). No copian nada del respaldo cifrado ni de producción.
+
+**Puertas:** el «sí» de Sam del 2026-11-06 cubre el código y las pruebas en local. Correr contra Kommo, leer `clients`, crear la bandeja, el ensayo y la carga esperan su OK, uno por uno.
