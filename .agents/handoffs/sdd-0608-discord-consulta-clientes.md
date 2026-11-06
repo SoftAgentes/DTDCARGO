@@ -45,7 +45,7 @@ Turno: el 2026-11-05 pedí turno al Director General (`local_25e2dded…`); el m
 
 ## PR / BRANCH
 
-Rama `claude/discord-consulta-clientes-c50c23`. PR en borrador contra `main`: ver la descripción de la PR (número y SHA allí).
+Rama `claude/discord-consulta-clientes-c50c23`, publicada. **PR en borrador #387** contra `main` (https://github.com/SoftAgentes/DTDCARGO/pull/387), abierta el 2026-11-06 con autorización transmitida por el Subdirector («abrir la PR en borrador de la SDD-0608 está autorizado»). La rama trae `main` `5373e6c81` una vez (merge `7c6e6e6f9`; índice de specs regenerado sin diferencias; docs:check, sdd:check y gate de símbolos PASÓ después del merge). La PR dice que no se fusiona sin el OK de Sam a la 0516 y que la línea de `/privacidad` la decide Sam, y lleva el pedido de turno.
 
 ## PENDIENTES DE ESTA TAREA
 
