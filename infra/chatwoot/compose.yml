@@ -119,9 +119,9 @@ x-entorno: &entorno
   SMTP_AUTHENTICATION: ${CHATWOOT_SMTP_AUTHENTICATION:-login}
   SMTP_ENABLE_STARTTLS_AUTO: ${CHATWOOT_SMTP_ENABLE_STARTTLS_AUTO:-true}
   SMTP_OPENSSL_VERIFY_MODE: ${CHATWOOT_SMTP_OPENSSL_VERIFY_MODE:-peer}
-  # Búsqueda de mensajes: cuántos días hacia atrás mira (lib/limits.rb; 90 sin la variable). 1540 alcanza el
-  # historial de Kommo del Archivo, desde el 2023-08-23, con un año de margen (SDD-0590 §10.14).
-  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-1540}
+  # Búsqueda de mensajes: cuántos días hacia atrás mira (lib/limits.rb; 90 sin la variable). 3650 cubre el
+  # historial de Kommo del Archivo, desde el 2023-08-23, hasta 2033 (SDD-0590 §10.14).
+  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-3650}
 
 x-chatwoot: &chatwoot
   <<: *imagen
