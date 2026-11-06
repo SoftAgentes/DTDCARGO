@@ -74,7 +74,10 @@ dejarían de verse desde fuera).
 
 Monitores mínimos por proyecto: `GET https://<app>/` (200), `GET https://<api>/rest/v1/`
 con la `apikey` anon (200), y un `HEAD` a una ruta de cron (403 es la respuesta
-sana: exige el Bearer). Avisos por Telegram al mismo chat que usa la app.
+sana: exige el Bearer). Avisos por la notificación de Discord de Kuma al canal
+`#salud` (SDD-0609, [uptime-kuma/README.md](uptime-kuma/README.md)); hasta el
+2026-11-05 iban por Telegram al chat de la app. Los de cada publicación de la web
+salen a `#publicaciones` por `web/aviso-discord.sh`.
 
 ## Backups
 
