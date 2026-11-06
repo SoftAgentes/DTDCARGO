@@ -203,8 +203,9 @@ SDD nueva: amplían la SDD-0605, no la sustituyen.
   abierto un problema que congela la empresa) ni Hermes a 0.22.4 o más (un problema abierto
   impide reanudar sesiones).
 - **Aislamiento:** los motores nuevos usan los envoltorios `dtd-claude` y `dtd-codex`, con la
-  misma regla que `dtd-hermes`. Llevan SDD propia, que escribe la sesión «Paperclip»; al cerrar
-  este anexo **no tenía número ni estaba publicada**.
+  misma regla que `dtd-hermes`. Llevan SDD propia, la **SDD-0615**
+  (`oficina-motores-claude-codex`), que escribe la sesión «Paperclip»; al cerrar este anexo
+  estaba reservada y sin publicar.
 - **Hallazgos menores de seguridad,** sin corregir: prompt de Hermes por argumento (visible en
   el registro de `sudo` y con `ps`), Hermes con `--yolo` y sin reglas `deny`, subordinados que
   pueden contratar y crear skills, y skills de Paperclip que no llegan a Hermes.
@@ -214,7 +215,7 @@ documentos de la PR #406):
 
 | Archivo | Cambio |
 |---|---|
-| `docs/organizacion/plan-maestro-oficina.md` | Aviso arriba; §4 con el agente 14; §7.2 con 14 agentes; §7.4 con lo que no se sube; §7.5 reescrita con motores, ciclo y condiciones; §7.7 pasos 3, 5 y 5b; §7.8 decisiones del 2026-11-06 y pendientes; §7.9 riesgos; §7.10 paso 3 |
+| `docs/organizacion/plan-maestro-oficina.md` | Aviso arriba; §2 con la hoja de alta que llena Sam en la pantalla; §4 con el agente 14; §7.2 con 14 agentes; §7.4 con lo que no se sube; §7.5 reescrita con motores, ciclo y condiciones; §7.7 pasos 3, 5 y 5b; §7.8 decisiones del 2026-11-06 y pendientes; §7.9 riesgos; §7.10 paso 3 |
 | `docs/organizacion/oficina-conocimiento/07-quien-hace-que.md` | Fila del Auxiliar, regla 7, columna «Modelo», cuenta de 14 y fila en «¿A quién le asigno…?» |
 | `docs/organizacion/organigrama-paperclip.md` §9 | Aviso, §9.1, tabla de 14, diagrama, §9.5, §9.7 reescrita y §9.9 |
 | `docs/organizacion/README.md`, `oficina-conocimiento/README.md`, `oficina-agentes/README.md` | Solo la cuenta |
@@ -225,7 +226,9 @@ documentos de la PR #406):
 
 - `oficina-agentes/AGENTS-paperclip.md` y `oficina-agentes/ceo/*` siguen diciendo 13 agentes y
   no nombran al Auxiliar. Las instrucciones de ALFRED en Claude Code y las del Auxiliar las
-  escribe la sesión «Paperclip» en la SDD de los envoltorios.
+  escribe la sesión «Paperclip» en la SDD-0615. Tampoco se tocan sus archivos:
+  `oficina-agentes/configuracion-paperclip.md`, `ceo/AGENTS-claude.md`, `ceo/CLAUDE.md`,
+  `oficina-agentes/auxiliar/`, `infra/oficina/envoltorios/` y `docs/specs/0615-*`.
 - La carpeta del Auxiliar se escribió como `auxiliar` porque así aparece en el árbol de esa
   sesión; **por confirmar** con ella.
 - El aviso de arriba del plan maestro dice «Nada de la sección 7 está ejecutado». Ya hay perfiles

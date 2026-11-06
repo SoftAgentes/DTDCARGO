@@ -1296,8 +1296,8 @@ dos vueltas → los agentes de GLM ejecutan como subtareas hijas. La decisión f
 ALFRED. El Auxiliar critica planes; el Revisor (§9.5) comprueba entregables.
 
 Los dos motores nuevos usan envoltorios propios, `dtd-claude` y `dtd-codex`, con la misma regla
-de aislamiento que `dtd-hermes`: carpeta propia por agente. Los describe la SDD de los
-envoltorios, **pendiente**.
+de aislamiento que `dtd-hermes`: carpeta propia por agente. Los describe la SDD-0615
+(`oficina-motores-claude-codex`), **pendiente**.
 
 **Lo que queda fuera por ahora:** Kimi K3 es candidato para los expertos en TikTok, YouTube e
 Instagram cuando tengan que mirar videos o miniaturas, y se prueba antes de adoptarlo.
@@ -1347,7 +1347,7 @@ configuración, reglas y orden de migración: plan maestro §7.6.
 | Revisor | Existe y nada llega a Sam sin pasar por él | — |
 | Nombres | «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido». El plan los listaba por confirmar; Sam los confirmó ese mismo día al revisar la SDD-0605 | — |
 | Vigía de mejoras | Rutina semanal del Puente de ingeniería; actualizar leyendo las notas y probando antes | — |
-| Modelos | 2026-11-06 (resolución 3.1): ALFRED en Claude Code con el plan Max, el Auxiliar en Codex con ChatGPT Plus y los otros doce en GLM dentro de Hermes (§9.7) | El modelo de ALFRED; la SDD de los envoltorios `dtd-claude` y `dtd-codex`; prueba con tres tareas reales |
+| Modelos | 2026-11-06 (resolución 3.1): ALFRED en Claude Code con el plan Max, el Auxiliar en Codex con ChatGPT Plus y los otros doce en GLM dentro de Hermes (§9.7) | El modelo de ALFRED; la SDD-0615 con los envoltorios `dtd-claude` y `dtd-codex`; prueba con tres tareas reales |
 | Tamaño | 14 agentes en la estructura desde el 2026-11-06 (eran 13) | Si los 14 caben en el tope de 100 USD al mes |
 | Contrataciones | 2026-11-06: las crea Sam en la pantalla de Paperclip, con una hoja de alta | — |
 | Oficina visual | Paperclip tal cual más Discord | La oficina dibujada, después de usarlo unos días |

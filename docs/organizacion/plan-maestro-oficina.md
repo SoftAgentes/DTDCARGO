@@ -61,6 +61,17 @@ sigue pendiente hasta que Sam la apruebe. Primero se comprueba que el puesto no 
 agente correcto. El envoltorio evita el fallo histórico de ejecución como `agentes`;
 no convierte los perfiles de `agentes-run` en usuarios aislados entre sí.
 
+**Resolución 3.1 (2026-11-06): la contratación la crea Sam en la pantalla de Paperclip,** con
+esta plantilla como **hoja de alta** que copia campo por campo. Ningún agente la envía:
+
+- una llave de agente no puede fijar `command`, `cwd` ni `env`, y Paperclip responde 403 (le
+  pasó a ALFRED el 2026-11-06 al contratar al Director de contenido, y está bien que así sea);
+- la llave temporal de Junta del perfil `director` está vencida y no se crea otra.
+
+La plantilla vale para los agentes de Hermes. ALFRED en Claude Code y el Auxiliar en Codex usan
+otros motores y envoltorios; su hoja de alta la escribe la SDD-0615
+(`oficina-motores-claude-codex`), **pendiente**.
+
 ```json
 {
   "name": "<Nombre del puesto>",
@@ -81,8 +92,10 @@ no convierte los perfiles de `agentes-run` en usuarios aislados entre sí.
 }
 ```
 
-- **Dónde se envía:** `POST $PAPERCLIP_API_URL/companies/<empresa>/agent-hires`. Queda «pending»
-  hasta que Sam apruebe.
+- **Dónde se crea:** en la pantalla de Paperclip, por Sam (resolución 3.1). El camino anterior,
+  `POST $PAPERCLIP_API_URL/companies/<empresa>/agent-hires` con la llave de un agente, queda
+  «pending» hasta que Sam apruebe, pero no puede fijar `command`, `cwd` ni `env`: no sirve para
+  estas contrataciones.
 - **Herramienta `web`:** solo se agrega (`,web`) a quien investiga internet: contenido y
   community. Para los perfiles nuevos, el
   [plan de entrenamiento §2](oficina-agentes/entrenamiento.md#2-quién-necesita-internet)
@@ -93,14 +106,16 @@ no convierte los perfiles de `agentes-run` en usuarios aislados entre sí.
   `operaciones`, `crm` y `community`. Cada uno corresponde a su agente; no son perfiles libres
   para reutilizar en otra contratación.
 - **Fuera de la contratación ordinaria:** `director`, perfil de configuración con la llave
-  temporal de Junta descrita en D11, y `telegram`, cuya continuación es separada. Ninguno puede
+  temporal de Junta descrita en D11 (vencida al 2026-11-06, sin reemplazo), y `telegram`, cuya
+  continuación es separada. Ninguno puede
   usarse como sustituto de un perfil ordinario.
 - **Perfiles previstos por la reestructura del 2026-11-05, todavía sin crear:** `revisor`,
   `director-contenido`, `seo`, `tiktok` y `youtube` (§7.2). Su identidad ya está versionada en
   [`oficina-agentes/`](oficina-agentes/README.md); eso no los crea en el VPS.
 - **Modelo y proveedor:** la plantilla muestra `glm-5.3` con `zai`, que es lo que usan hoy
-  todos los perfiles. La reestructura cambia el modelo de cuatro perfiles (§7.5); ese cambio
-  se hace en el perfil de Hermes y está pendiente.
+  todos los perfiles. Con la resolución 3.1 se queda así para todos los agentes de Hermes,
+  incluidos el Revisor, el Director de contenido y el Redactor (§7.5): ya no hay cambio de
+  modelo dentro de Hermes.
 - **Perfil nuevo:** lo crea una persona con acceso al VPS (Claude o el Director), no Hermes. Sin
   perfil **no se contrata**.
 - **Después de aprobado:** se carga su `AGENTS.md` con
@@ -266,8 +281,8 @@ los motores de ALFRED, el Revisor, el Director de contenido y el Redactor.
 
 | # | Agente | Perfil o carpeta | Qué hay que hacer | Necesita |
 |---|---|---|---|---|
-| 1 | ALFRED (CEO) | `ceo` | Pasarlo a Claude Code (`claude_local`) dentro de Paperclip, con el plan Max de Sam; el modelo lo elige Sam después (candidato: Claude Fable 5.1, esfuerzo `high`). Su perfil de Hermes `ceo` queda de respaldo y no se borra. Conectarlo a Discord; actualizar sus instrucciones con el equipo nuevo | Sam conecta su plan en la pantalla de conexiones de IA de Paperclip y cambia el motor; envoltorio `dtd-claude` (SDD pendiente) |
-| 2 | Auxiliar de ALFRED | `auxiliar` (nombre de la carpeta por confirmar) | Crearlo y contratarlo con Codex (`gpt-6-astra`, esfuerzo `high`). Es el crítico de los planes de ALFRED (§7.5) | Sam conecta su ChatGPT Plus y crea el agente en la pantalla; envoltorio `dtd-codex` (SDD pendiente) |
+| 1 | ALFRED (CEO) | `ceo` | Pasarlo a Claude Code (`claude_local`) dentro de Paperclip, con el plan Max de Sam; el modelo lo elige Sam después (candidato: Claude Fable 5.1, esfuerzo `high`). Su perfil de Hermes `ceo` queda de respaldo y no se borra. Conectarlo a Discord; actualizar sus instrucciones con el equipo nuevo | Sam conecta su plan en la pantalla de conexiones de IA de Paperclip y cambia el motor; envoltorio `dtd-claude` (SDD-0615, pendiente) |
+| 2 | Auxiliar de ALFRED | `auxiliar` (nombre de la carpeta por confirmar) | Crearlo y contratarlo con Codex (`gpt-6-astra`, esfuerzo `high`). Es el crítico de los planes de ALFRED (§7.5) | Sam conecta su ChatGPT Plus y crea el agente en la pantalla; envoltorio `dtd-codex` (SDD-0615, pendiente) |
 | 3 | Revisor | `revisor` | Crear perfil, contratar con GLM en Hermes, ponerlo como etapa de revisión | Perfil nuevo; aprobación de Sam |
 | 4 | Coordinador de procesos y seguimiento | `gabinete` | Renombrar el agente en Paperclip y cargar su identidad ajustada | — |
 | 5 | Puente de ingeniería | `ingenieria` | Crearle la rutina semanal «Vigía de mejoras» (§7.4) | Darle una forma de leer las notas de versión |
@@ -287,8 +302,8 @@ hoja de alta: una llave de agente no puede fijar `command`, `cwd` ni `env` (ALFR
 403 el 2026-11-06 al intentar contratar al Director de contenido, y está bien que así sea).
 Después de aprobado se carga su `AGENTS.md`. Las instrucciones de Paperclip de los puestos
 de Hermes están en [`oficina-agentes/AGENTS-paperclip.md`](oficina-agentes/AGENTS-paperclip.md);
-las de ALFRED en Claude Code y las del Auxiliar las escribe la SDD de los envoltorios
-`dtd-claude` y `dtd-codex`, **pendiente**.
+las de ALFRED en Claude Code y las del Auxiliar las escribe la SDD-0615
+(`oficina-motores-claude-codex`, envoltorios `dtd-claude` y `dtd-codex`), **pendiente**.
 
 ### 7.3 Orden de entrada de los expertos
 
@@ -364,8 +379,9 @@ plan antes de repartir; el Revisor comprueba cada entregable antes de que llegue
 - **GLM sigue en Hermes** aunque Hermes no figure en la lista de herramientas del plan de Z.AI;
   Sam lo aceptó.
 - **Aislamiento:** `dtd-claude` y `dtd-codex` siguen la misma regla que `dtd-hermes`: cada
-  agente corre en `/srv/oficina/trabajo/<perfil>` con `DTD_PERFIL`. Los describe la SDD de los
-  envoltorios, **pendiente** (la escribe la sesión que configura Paperclip).
+  agente corre en `/srv/oficina/trabajo/<perfil>` con `DTD_PERFIL`. Los describe la SDD-0615
+  (`oficina-motores-claude-codex`), **pendiente** (la escribe la sesión que configura
+  Paperclip).
 - **Paperclip no registra el gasto de Hermes,** así que su tope no frena a los doce de GLM; el
   freno es el plan fijo de Z.AI.
 - La llave de Anthropic que §5 pide revocar sigue siendo otra: no se usa para esto.
@@ -522,7 +538,7 @@ tiene permisos de administrador: no sirve para crear perfiles ni para actualizar
 | 3 | Mantenimiento del VPS de la oficina: respaldo, Paperclip, decidir Hermes, reinicio y repetir la prueba de aislamiento. **Sin subir Paperclip a v2026.1023.0 ni Hermes a 0.22.4 o más** (§7.4, resolución 3.1) | VPS de la oficina | Autorizarlo y dar una entrada con permisos |
 | 4 | Recorrido de Paperclip: tablero, panel en vivo, «qué necesita de mí», organigrama | Paperclip | Estar presente |
 | 5 | Crear 5 perfiles, contratar y renombrar 3 agentes, por turnos | VPS de la oficina y Paperclip | Crear cada contratación en la pantalla de Paperclip con su hoja de alta |
-| 5b | Pasar ALFRED a Claude Code y crear el Auxiliar con Codex (resolución 3.1), con los envoltorios `dtd-claude` y `dtd-codex` | Repositorio (SDD de envoltorios, pendiente), VPS de la oficina y Paperclip | Conectar sus planes en Paperclip, cambiar el motor de ALFRED, crear el Auxiliar y pegar las instrucciones |
+| 5b | Pasar ALFRED a Claude Code y crear el Auxiliar con Codex (resolución 3.1), con los envoltorios `dtd-claude` y `dtd-codex` | Repositorio (SDD-0615, pendiente), VPS de la oficina y Paperclip | Conectar sus planes en Paperclip, cambiar el motor de ALFRED, crear el Auxiliar y pegar las instrucciones |
 | 6 | Discord como central: canales, bot de ALFRED, avisos de la oficina y del servidor | Discord y los dos VPS | Crear el bot, los canales y los avisos automáticos; dar acceso |
 | 6b | Avisos del Studio a Discord: SDD propia, revisión de privacidad y corte directo de Telegram | Repositorio y producción | Aprobar la SDD y descongelar la publicación |
 | 7 | Puertas del Studio y estado de revisión de noticias | Repositorio y producción | OK de la migración, cuenta de servicio y descongelar la publicación |
