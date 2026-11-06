@@ -36,7 +36,7 @@ Relayada por el Subdirector de Chatwoot: «bien encaminado», cambios menores de
 - Contradicción de Reportes: la RPC por asesor no devuelve ids de fichas; el facturado se suma dentro con `studio_client_annual_billing`.
 - Los crons nacen apagados (`CRM_CAMBIOS_TABLERO`, `CRM_RETENCION`, `CRM_AVISO_VENTANA`): encenderlos es un OK aparte de Sam.
 
-Además, coordinación con la PR #400 (10.5): 6.6 usa la pieza `crm_tarjeta_de_ficha` de la 10.5 y fija **una sola vez** las definiciones D-SA («sin atender») y D-AUD (qué lleva la auditoría del CRM y quién es el actor), en spec §2.8. La 10.5 las cita igual. Puntero en la SDD-0587 §10 (P-1).
+Además, coordinación con la PR #400 (10.5): 6.6 usa la pieza `crm_tarjeta_ubicar_o_crear` de la 10.5 (por ficha y por teléfono; antes se llamaba `crm_tarjeta_de_ficha`) y fija **una sola vez** las definiciones D-SA («sin atender») y D-AUD (qué lleva la auditoría del CRM y quién es el actor), en spec §2.8. La 10.5 las cita igual. Puntero en la SDD-0587 §10 (P-1).
 
 ## Pendientes de esta tarea
 

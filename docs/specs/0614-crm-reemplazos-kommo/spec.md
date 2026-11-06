@@ -183,20 +183,22 @@ estimado y junto a los envíos a Kommo de hoy, con el cliente de servicio que ya
 web de 6.4 en `/registro`).
 
 **Cómo encuentra la tarjeta** (en SQL, una RPC de `service_role`). **No repite la regla de
-ubicar o crear:** con ficha usa la pieza única de la 10.5, `crm_tarjeta_de_ficha(tenant, ficha,
-fuente, etapa_leads)` (SDD-0586 §10.5.6, pieza 1, decisión E10-D30), que también usan el alta web
-de la 0513 y los tickets del portal (§2.8).
+ubicar o crear:** llama a la pieza única de la 10.5, `crm_tarjeta_ubicar_o_crear` (SDD-0586
+§10.5.6, pieza 1, decisión E10-D30), que también usan el alta web de la 0513 y los tickets del
+portal (§2.8). La pieza cubre los dos caminos, por ficha y por teléfono; 6.6 solo le pasa los datos
+y aplica el mapeo de abajo. Si a 6.6 le faltara un parámetro, se agrega redefiniendo la pieza desde
+su última definición, no con otra pieza.
 
-1. Estimado con Shipping Mark → ficha viva de ese tenant → `crm_tarjeta_de_ficha` con `fuente =
-   'cotizador'` (ya admitida en `0506_crm_modelo.sql:318-320`). La pieza devuelve la tarjeta de la
-   ficha, liga la del lead sin ficha que cruza por teléfono o crea una.
-2. Estimado web sin Shipping Mark → últimos 10 de `prospect_whatsapp` →
-   `crm_ficha_por_telefono` (0513:62): con una sola ficha, como en 1.
-3. Sin ficha → la tarjeta sin ficha con ese teléfono (`crm_buscar_tarjeta`, 0513:117). Si no hay
-   ninguna, se crea con `fuente = 'cotizador'`, nombre visible (`quotes.client_name`) y últimos 10
-   (D6). Es el único caso que la pieza de la 10.5 no cubre, porque esa pieza es por ficha; si el
-   Director General prefiere, se suma a la pieza como una rama «sin ficha» en vez de vivir aquí.
-   **Con más de una coincidencia no se mueve nada** y queda un código en el log.
+1. Estimado con Shipping Mark → ficha viva de ese tenant → la pieza con esa ficha y `fuente =
+   'cotizador'` (ya admitida en `0506_crm_modelo.sql:318-320`). Devuelve la tarjeta de la ficha,
+   liga la del lead sin ficha que cruza por teléfono o crea una.
+2. Estimado web sin Shipping Mark → la pieza con los últimos 10 de `prospect_whatsapp`, el nombre
+   visible (`quotes.client_name`) y `fuente = 'cotizador'`.
+3. Lo que hace la pieza por teléfono: con una sola ficha para ese número (`crm_ficha_por_telefono`,
+   0513:62), sigue como en 1; si no hay ficha, toma la tarjeta sin ficha de ese teléfono
+   (`crm_buscar_tarjeta`, 0513:117); si no hay ninguna, crea una con nombre visible y últimos 10
+   (D6). **Con más de una coincidencia devuelve `ambigua`: no se mueve nada** y queda un código en
+   el log.
 4. El tablero que se mueve sale del segmento en ese momento (`crm_segmento_cliente`; sin ficha,
    lead nuevo).
 
@@ -413,9 +415,9 @@ clave junto al texto actual. Esto le da a Sam la opción «otro asunto» que pid
   `crm-ficha.ts` y `supabase/pending-migration-symbol-declarations.json`. La implementación de 6.6
   arranca sobre `main` con la 10.5 ya fusionada y no edita esos archivos mientras la 10.5 los tenga
   abiertos.
-- **Una sola pieza para ubicar o crear la tarjeta de una ficha:** `crm_tarjeta_de_ficha` de la 10.5
-  (E10-D30) sirve al alta web de la 0513, a los tickets y al cotizador de 6.6 (§2.3). 6.6 no la
-  copia.
+- **Una sola pieza para ubicar o crear la tarjeta:** `crm_tarjeta_ubicar_o_crear` de la 10.5
+  (E10-D30), por ficha y por teléfono, sirve al alta web de la 0513, a los tickets y al cotizador de
+  6.6 (§2.3). 6.6 no la copia.
 - **Migración:** la de 6.6 va después de la de la 10.5 y su preflight la exige. Ninguna de las dos
   reserva número ahora: se asigna al arrancar cada una (P-6).
 - **Las dos definiciones de abajo las fija esta SDD, una sola vez.** La 10.5 las cita igual; si
@@ -478,7 +480,7 @@ renombra nada. Aplicarla no enciende nada: los crons dependen de sus interruptor
 | `crm_tarjetas.motivo_perdida_clave` y `crm_historial_etapas.motivo_clave` | Columna nueva con `check` a la lista de R7. El texto actual se queda | `crm_mover_etapa` y el RPC de R3 |
 | `crm_cambios_tablero` | Tabla nueva: `id`, `tenant_id`, `tarjeta_id` (borrado en cascada), `de` y `a` (`leads` o `clientes`), `inicial`, `clave` única por tenant, `detectado_at`. Sin datos de personas. RLS de lectura con `crm_puede_usar()` | `service_role` |
 | `crm_registrar_mensaje(tenant, contacto, ficha, dirección, ocurrió)` | Ubica la tarjeta con `crm_buscar_tarjeta` y sube la fecha con `greatest`: dos veces no cambia nada | `service_role` |
-| `crm_mover_por_estimado(tenant, estimado, estado, ocurrió)` | §2.3 completo: ubica con `crm_tarjeta_de_ficha` de la 10.5 o, sin ficha, con `crm_buscar_tarjeta`; «solo si»; limpiar motivo | `service_role` |
+| `crm_mover_por_estimado(tenant, estimado, estado, ocurrió)` | §2.3 completo: ubica o crea con `crm_tarjeta_ubicar_o_crear` de la 10.5, por ficha o por teléfono; con `ambigua` no mueve nada; «solo si»; limpiar motivo | `service_role` |
 | `crm_registrar_cambios_tablero(tenant, ahora)` | §2.7 a. Devuelve cuántos cambios guardó | `service_role` |
 | `crm_sin_atender(umbral, ahora)` | D-SA (§2.8), por tarjeta, incluidos los tickets del portal de la 10.5. Una variante con tenant para el cron | `authenticated` con `crm_puede_usar()`; la variante, `service_role` |
 | `crm_kpis(desde, hasta, umbral)` | Las fórmulas de §2.5. Solo conteos | Admin y comercial |
@@ -489,7 +491,7 @@ renombra nada. Aplicarla no enciende nada: los crons dependen de sus interruptor
 | `audit_entity_types` | Fila `crm_tarjeta`, dominio `commercial` (existe en `0258_audit_entity_catalog.sql:127`) | Migración |
 | `audit_crm_tarjeta_change()` | Trigger de §2.7 e, con la regla D-AUD (§2.8) | Trigger |
 
-**Preflight:** exige la 0506, la 0513 y la migración de la 10.5 (`crm_tarjeta_de_ficha`,
+**Preflight:** exige la 0506, la 0513 y la migración de la 10.5 (`crm_tarjeta_ubicar_o_crear`,
 `crm_tickets`), y aborta si esta ya se aplicó, como la 0513 (SDD-0587 §16.3). **Contrato en
 PGlite** con las migraciones reales (§8).
 
@@ -755,3 +757,6 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
 - **2026-11-06:** el Director General revisó el diseño sobre `99e7d6300` («bien encaminado»,
   cambios menores de texto), resolvió P-1 a P-7 y pidió los cambios de §11, ya aplicados. Las
   decisiones D-6.6-1 a D-6.6-12 se las lleva él a Sam, junto con las de la 10.5 y la línea base.
+- **2026-11-06:** el nombre de la pieza única queda alineado con la SDD-0586 en `9acf84b60`:
+  `crm_tarjeta_ubicar_o_crear`, antes `crm_tarjeta_de_ficha`. Cubre también el camino por teléfono
+  del cotizador, así que §2.3 ya no lo resuelve aparte.
