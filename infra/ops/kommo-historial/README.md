@@ -39,7 +39,7 @@ del host. No tiene dependencias de Python.
 
 1. **Copiar al VPS** (desde el worktree):
    `C:\Windows\System32\OpenSSH\scp.exe -r infra/ops/kommo-historial root@217.216.54.70:/srv/ops/`
-2. **Pruebas en el VPS:** `python3 -I /srv/ops/kommo-historial/pruebas/test_respaldar.py` (36 pruebas desde la 1.2.0; con `age` y `zstd` corre también el round-trip de cifrado).
+2. **Pruebas en el VPS:** `python3 -I /srv/ops/kommo-historial/pruebas/test_respaldar.py` (54 pruebas desde la 1.2.1, entre ellas la de solo lectura: ningún método distinto de GET; con `age` y `zstd` corre también el round-trip de cifrado).
 3. **Token:** Sam entra a Kommo → Ajustes → Integraciones → «DTD 0582 historial (solo lectura)» → Claves y alcances → **Token de larga duración** → Generar → Copiar, y lo pega con `pegar-token-kommo-e5-0582.ps1` (está en las notas compartidas de la sesión, no en Git). El token queda en `/dev/shm/k0582-e5` (0600) y el script lo comprueba al vuelo:
    `python3 -I respaldar-historial.py probar-token --token-file /dev/shm/k0582-e5`
 4. **Ensayo corto** (20 conversaciones, 2 ventanas de eventos, round-trip con llave efímera, todo en tmpfs):

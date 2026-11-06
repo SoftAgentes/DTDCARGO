@@ -54,7 +54,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 SOLAPE_HORAS_POR_DEFECTO = 24
 # Listas que en modo incremental se piden con filter[updated_at][from|to]. Las demás (cuenta, usuarios,
 # embudos, campos, no clasificados) son chicas y se bajan enteras.
@@ -128,6 +128,17 @@ def cargar_token(ruta: str) -> str:
     if len(token) < 100:
         raise ErrorFatal(f"el token es muy corto ({len(token)} caracteres)")
     return token
+
+
+def describir_emisor(claims: dict, subdominio: str) -> str:
+    """El emisor (`iss`) del token frente a la cuenta. Los tokens de larga duración de Kommo pueden no traer
+    `iss` (medido el 2026-11-06): entonces lo dice, en vez de compararlo con un texto vacío. La cuenta se comprueba
+    de todos modos con GET /api/v4/account."""
+    iss = str(claims.get("iss") or "").strip()
+    if not iss:
+        return "iss: no viene en el token (la cuenta se comprueba con GET /api/v4/account)"
+    coincide = iss.rstrip("/").endswith(f"{subdominio}.{DOMINIO}")
+    return f"iss coincide con {subdominio}.{DOMINIO}: {'sí' if coincide else 'no'}"
 
 
 def claims_jwt(token: str) -> dict | None:
@@ -1516,10 +1527,8 @@ def cmd_probar_token(args, log: Log) -> int:
     if claims:
         exp = claims.get("exp")
         dias = round((exp - ahora()) / DIA, 1) if exp else None
-        iss = str(claims.get("iss") or "")
         print(f"alcances: {','.join(claims.get('scopes') or [])} | vence en: {dias} días | "
-              f"iss coincide con {args.subdominio}.{DOMINIO}: {'sí' if iss.rstrip('/').endswith(f'{args.subdominio}.{DOMINIO}') else 'no'} | "
-              f"account_id: {claims.get('account_id')}")
+              f"{describir_emisor(claims, args.subdominio)} | account_id: {claims.get('account_id')}")
     api = Kommo(args.subdominio, token, log, pausa=0.0)
     try:
         codigo, datos = api.get("/api/v4/account")

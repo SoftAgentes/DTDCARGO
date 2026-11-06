@@ -689,3 +689,18 @@ El Director General le preguntó a Sam si quiere los adjuntos en Chatwoot. Si di
 - Los enlaces de Kommo vencen: en 5.1 ya había 15 con 404 de 3.592.
 
 **Datos personales:** fotos, audios y documentos de clientes. En claro solo en tmpfs, durante la ventana. Después quedan en el almacenamiento de Chatwoot, con la retención de Chatwoot, igual que los adjuntos que hoy llegan por WhatsApp e Instagram. revisar-datos-ve se hace con el código, si Sam dice que sí.
+
+### 10.13 Kommo solo se lee: prueba y emisor del token (2026-11-06)
+
+**El alcance `crm` del token permite escribir** en Kommo. El Director General lo revisó: el extractor (`7795fdc34c65260f`) tiene una sola llamada de red, `urllib.request.Request(..., method="GET")`, que se abre con `self.abrir(req, timeout=…)`. La condición 2 del OK de Sam («Kommo solo se lee») queda ahora fijada por una prueba (`PruebasSoloLectura`, en `pruebas/test_respaldar.py`):
+
+- **`test_el_extractor_solo_hace_get`:** recorre el AST del extractor. Cada `Request` tiene que llevar `method="GET"` explícito y sin `data`, y cada apertura tiene que ir sin cuerpo. No puede haber conexiones HTTP a mano (`HTTPConnection`, `HTTPSConnection`, `putrequest`), ni importar `requests`, `httpx`, `aiohttp`, `urllib3` o `socket`, ni pasar `POST`, `PUT`, `PATCH` o `DELETE` como argumento. **Piso:** exactamente 1 `Request` y 1 apertura. Si el extractor cambiara de forma de llamar, la prueba cae en vez de no mirar nada.
+- **`test_mutantes_de_escritura_caen`:** 6 mutantes en memoria, y cada uno tiene que ser detectado: `POST`, sin `method`, con `data`, la apertura con cuerpo, una conexión a mano con `PUT` y una segunda llamada.
+- **Mutante sobre el archivo real:** una copia del extractor con `method="POST"` tumba `test_el_extractor_solo_hace_get`.
+
+**El emisor del token.** `probar-token` decía «iss coincide con dtdcargo.kommo.com: no». Se midió el 2026-11-06, mirando solo el host de los claims y sin imprimir el token: **el token de larga duración no trae `iss`** (el claim no existe), y `aud` es un identificador de la integración, no un host. La comparación era contra un texto vacío. En la 1.2.1, `describir_emisor` dice «iss: no viene en el token», y si viene, lo compara con la cuenta. La cuenta se sigue comprobando con `GET /api/v4/account`: HTTP 200 y el subdominio. Pruebas: `test_emisor_ausente_no_dice_que_no_coincide` y `test_emisor_presente_se_compara_con_la_cuenta`. **No se redespliega por ahora** (Director General): el VPS sigue con la 1.2.0, que extrae igual; solo cambia ese mensaje.
+
+| Comprobación | Resultado |
+|---|---|
+| `python -I infra/ops/kommo-historial/pruebas/test_respaldar.py` (Windows) | PASÓ: 54 pruebas, 3 omitidas |
+| Copia del extractor con `method="POST"` | Cae `test_el_extractor_solo_hace_get` (y la de mutantes, porque el texto a mutar ya no está) |

@@ -940,5 +940,96 @@ class PruebasVinculoYCarga(unittest.TestCase):
             R.preparar_carga(self.st)
 
 
+def violaciones_de_solo_lectura(fuente: str) -> list[str]:
+    """Lo que en el extractor podría escribir en Kommo (SDD-0590, pedido del Director General: el alcance `crm`
+    del token permite escribir). Recorre el AST: cada `Request` tiene que llevar `method="GET"` explícito y sin
+    `data`; cada apertura (`self.abrir`, `urlopen`) va sin cuerpo; nada de conexiones HTTP a mano ni de `requests`."""
+    import ast
+
+    arbol = ast.parse(fuente)
+    malas: list[str] = []
+    requests_vistos = aperturas = 0
+
+    def nombre(func) -> str:
+        partes = []
+        while isinstance(func, ast.Attribute):
+            partes.append(func.attr)
+            func = func.value
+        if isinstance(func, ast.Name):
+            partes.append(func.id)
+        return ".".join(reversed(partes))
+
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, (ast.Import, ast.ImportFrom)):
+            modulos = [a.name for a in nodo.names] + ([nodo.module] if isinstance(nodo, ast.ImportFrom) and nodo.module else [])
+            for m in modulos:
+                if m.split(".")[0] in ("requests", "httpx", "aiohttp", "urllib3", "socket"):
+                    malas.append(f"línea {nodo.lineno}: importa {m}")
+        if not isinstance(nodo, ast.Call):
+            continue
+        n = nombre(nodo.func)
+        kw = {k.arg: k.value for k in nodo.keywords if k.arg}
+        if n.endswith("Request") and n.split(".")[-1] == "Request":
+            requests_vistos += 1
+            metodo = kw.get("method")
+            if not (isinstance(metodo, ast.Constant) and metodo.value == "GET"):
+                malas.append(f"línea {nodo.lineno}: Request sin method=\"GET\" explícito")
+            if "data" in kw or len(nodo.args) > 1:
+                malas.append(f"línea {nodo.lineno}: Request con cuerpo (data)")
+        elif n.split(".")[-1] in ("urlopen", "abrir"):
+            aperturas += 1
+            if "data" in kw or len(nodo.args) > 1:
+                malas.append(f"línea {nodo.lineno}: {n} con cuerpo (data)")
+        elif n.split(".")[-1] in ("HTTPConnection", "HTTPSConnection", "putrequest"):
+            malas.append(f"línea {nodo.lineno}: conexión HTTP a mano ({n})")
+        for valor in kw.values():
+            if isinstance(valor, ast.Constant) and valor.value in ("POST", "PUT", "PATCH", "DELETE"):
+                malas.append(f"línea {nodo.lineno}: método {valor.value}")
+    # Piso: si el extractor dejara de tener su única llamada, esta prueba no estaría mirando nada.
+    if requests_vistos != 1:
+        malas.append(f"se esperaba exactamente 1 Request y hay {requests_vistos}")
+    if aperturas != 1:
+        malas.append(f"se esperaba exactamente 1 apertura (self.abrir) y hay {aperturas}")
+    return malas
+
+
+class PruebasSoloLectura(unittest.TestCase):
+    """El extractor solo lee de Kommo, aunque el token pueda escribir, y probar-token informa bien el emisor."""
+
+    FUENTE = open(RUTA, encoding="utf-8").read()
+
+    def test_el_extractor_solo_hace_get(self):
+        self.assertEqual(violaciones_de_solo_lectura(self.FUENTE), [])
+
+    def mutar(self, buscar: str, reemplazo: str) -> str:
+        self.assertEqual(self.FUENTE.count(buscar), 1, f"el texto a mutar tiene que aparecer una vez: {buscar}")
+        return self.FUENTE.replace(buscar, reemplazo)
+
+    def test_mutantes_de_escritura_caen(self):
+        llamada = 'urllib.request.Request(url, headers=cabeceras, method="GET")'
+        apertura = "self.abrir(req, timeout=self.timeout)"
+        mutantes = {
+            "POST": self.mutar(llamada, 'urllib.request.Request(url, headers=cabeceras, method="POST")'),
+            "sin method": self.mutar(llamada, "urllib.request.Request(url, headers=cabeceras)"),
+            "con data": self.mutar(llamada, 'urllib.request.Request(url, data=b"x", headers=cabeceras, method="GET")'),
+            "apertura con cuerpo": self.mutar(apertura, 'self.abrir(req, b"x", timeout=self.timeout)'),
+            "conexión a mano": self.mutar(llamada, llamada + '; http.client.HTTPSConnection("kommo.com").request("PUT", "/")'),
+            "segunda llamada": self.mutar(llamada, llamada + "; urllib.request.Request(url)"),
+        }
+        for nombre, fuente in mutantes.items():
+            with self.subTest(mutante=nombre):
+                self.assertNotEqual(fuente, self.FUENTE)
+                self.assertTrue(violaciones_de_solo_lectura(fuente), f"el mutante «{nombre}» no se detectó")
+
+    def test_emisor_ausente_no_dice_que_no_coincide(self):
+        texto = R.describir_emisor({"scopes": ["crm"]}, "dtdcargo")
+        self.assertIn("no viene en el token", texto)
+        self.assertNotIn("coincide", texto)
+
+    def test_emisor_presente_se_compara_con_la_cuenta(self):
+        self.assertTrue(R.describir_emisor({"iss": "https://dtdcargo.kommo.com/"}, "dtdcargo").endswith(": sí"))
+        self.assertTrue(R.describir_emisor({"iss": "https://otra.kommo.com"}, "dtdcargo").endswith(": no"))
+
+
 if __name__ == "__main__":
     unittest.main()
