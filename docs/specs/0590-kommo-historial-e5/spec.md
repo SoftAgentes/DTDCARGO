@@ -301,6 +301,18 @@ Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 convers
 - **NO VERIFICADO contra la cuenta:** que Kommo acepte `filter[updated_at][from|to]` en `/leads/notes`, `/contacts/notes`, `/companies/notes` y `/tasks`. En contactos, leads y empresas lo trae la documentación (**D**). Se mide en la primera corrida con token, que es una puerta de Sam. Si alguna lista lo ignora, baja entera y la carga quita repetidos por id: más tráfico, mismo resultado.
 - **Mensajes editados o borrados en Kommo después de la base,** en conversaciones sin eventos nuevos, no se vuelven a pedir. Es inferencia que en un chat de WhatsApp o Instagram eso no pasa.
 
+### 9.2 bis La primera corrida incremental es una sonda
+
+Lo pidió el Director General. La primera corrida incremental con el token real sirve para probar el token, el filtro por `updated_at` y el modo incremental con datos reales.
+
+- **No alimenta la carga.** Su paquete se cifra para las llaves de Sam y de emergencia, igual que el de 5.1, así que el servidor tampoco lo puede leer. La carga sale de la extracción completa hasta el corte (§10.1).
+- **Lo que deja:** un respaldo nuevo de lo que cambió desde el 30 de octubre. Queda bajo la retención de §6.3: corte + 12 meses.
+- **Cómo corre:**
+  - el corte se fija justo antes de lanzar y se anota en la evidencia;
+  - va con `--pausa 0.5`, unas 2 peticiones por segundo;
+  - si la carga del VPS pasa de 8, se para con `systemctl stop kommo-e5-inc1`;
+  - el token se borra al terminar.
+
 ### 9.3 Allowlist
 
 - `infra/ops/kommo-historial/respaldar-historial.py` (1.1.1 → 1.2.0) y `infra/ops/kommo-historial/pruebas/test_respaldar.py`
@@ -369,6 +381,22 @@ Los paquetes `.age` están cifrados para las claves de Sam y de emergencia, y ni
 
 El modo incremental de 5.3 queda para el segundo respaldo de 8.5 y para ponerse al día entre ensayos.
 
+**Cuánto le pide a Kommo la extracción completa** (estimación, **I**). Sale de la corrida de 5.1 (§4.3 y §5): 4.715 conversaciones, 3.577 adjuntos y 96 ventanas de eventos.
+
+| Concepto | Peticiones aproximadas |
+|---|---|
+| Listas: contactos, leads, empresas, notas y tareas, en páginas de 250 | ≈ 100 |
+| Eventos: 96 ventanas × 2 tipos, con alguna página extra | ≈ 250 |
+| Conversaciones: el talk y la primera página de mensajes | ≈ 9.500 |
+| Adjuntos | ≈ 3.600 |
+| Sondeo de huecos | ≈ 250 |
+| **Total** | **≈ 13.700** |
+
+- **Ritmo:** con `--pausa 0.5` y lo que tarda Kommo (≈ 0,8 s por petición en 5.1), sale ≈ 1,3 s por petición. Eso da **≈ 0,8 peticiones por segundo de promedio**, lejos del límite de 7 por segundo de Kommo.
+- **Duración: ≈ 5 horas.**
+- **Horario:** fuera del horario de atención, de noche en Venezuela, entre las 02:00Z y las 10:00Z (22:00 a 06:00 VET).
+- **Si la carga del VPS pasa de 8, se para.** Se reanuda con el mismo comando.
+
 ### 10.2 Paso 5.4 — E.164, vínculo con el ERP y deduplicación
 
 - **E.164:** se quitan los separadores. Con `+` o `00` delante, se conserva el código de país si quedan entre 8 y 15 dígitos. Sin código de país, solo se completan los patrones venezolanos: `0` y 10 dígitos, `58` y 10 dígitos, o 10 dígitos que empiezan por `2` o `4`. Lo demás queda sin E.164, con motivo: no se inventa un país.
@@ -415,6 +443,10 @@ Pedido del Director General. Cada medición da un conteo y PASÓ o FALLÓ. Todo 
 | E-5 | **Mensajes a clientes** | Trabajos `SendReplyJob` y de envío de canal en Sidekiq durante la carga; mensajes nuevos fuera de la bandeja Archivo | 0 y 0 |
 | E-6 | **Lo cargado coincide con lo extraído** | Personas, conversaciones y mensajes en Chatwoot frente a `carga.ndjson` | Iguales |
 | E-7 | **Cargar dos veces no duplica** | Segunda corrida del cargador | 0 filas nuevas |
+| E-8 | **`display_id`** | Valor actual de la secuencia `conv_dpid_seq_<cuenta>` frente al `display_id` máximo de la cuenta, y una conversación de prueba creada después | La secuencia queda por encima del máximo, y la conversación nueva no choca |
+| E-9 | **Contactos** | `contact_inboxes` sin contacto, conversaciones sin `contact_inbox`, y contactos de la cuenta con el mismo teléfono o correo, antes y después | 0 huérfanos; los repetidos no aumentan, porque se reusa el contacto que ya existe |
+| E-10 | **Panel y búsqueda** | Conteo de conversaciones de la bandeja Archivo en el panel, y buscar un mensaje cargado con una marca inventada (en prueba) | El panel muestra lo cargado y la búsqueda lo encuentra. Si no, se reindexa |
+| E-11 | **Lo que ya había** | `updated_at` de las conversaciones que existían antes de la carga | 0 cambian |
 
 ### 10.5 Puertas
 
