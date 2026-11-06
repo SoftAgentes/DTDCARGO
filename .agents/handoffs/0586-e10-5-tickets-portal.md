@@ -45,12 +45,12 @@ Sobre `89fb586cf`, comunicada por el Subdirector de Chatwoot: «bien encaminado�
 
 - **Decisiones** (spec §10.5.14): D-1, una sola pieza «ubicar o crear la tarjeta» para el alta web, la 10.5 y el cotizador de la 6.6, redefinida desde la última definición y con su contrato vuelto a correr; el número de migración se asigna al arrancar (nadie reserva la 0518); reestimación de 1,25 a 2 días aceptada, va a Sam con la de la 6.6; orden: primero la 10.5 y después la 6.6.
 - **Cambios:** b, barrido `crm_tickets_reconciliar` en el cron `chatwoot-reintentos` con aviso de solo números (E10-D31); c, actor `system` para lo que dispara el cliente (E10-D27); d, «Perdido» mira el segmento antes de volver a recontacto (E10-D22); f, P6 va después de la #399, y el aviso de Telegram lo lleva el Director General al Subdirector de SEO.
-- **Coordinación con la #401** (spec §10.5.17): «sin atender» y la regla de ids de la auditoría las fija la 6.6 una sola vez; la 10.5 las cita. Siguen pendientes de que esa sesión las cierre.
+- **Coordinación con la #401** (spec §10.5.17): la 6.6 cerró la D-SA («sin atender») y la D-AUD (qué lleva la auditoría del CRM) en la SDD-0614 §2.8, cabeza `17dc41cfc`. La 10.5 las cita literalmente; la cita se comparó con la fuente y coincide. E10-D23 separa el «vencido» del ticket, que sigue siendo de la 10.5, de «sin atender», que es la señal 2 de la D-SA. E10-D27 dice que lo que dispara el cliente lleva actor `system` y nunca `client_id`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Seis preguntas para Sam** (§10.5.14), sin hacer: las lleva el Director General con las de la 6.6 y la línea base.
-- **Citas de la 6.6:** cuando el Subdirector pase la definición de «sin atender» y la regla de ids, cambiar en §10.5.17 «pendientes de cerrar» por la cita exacta.
+- **Seis preguntas para Sam** (§10.5.14), sin hacer: las lleva el Director General con las de la 6.6 y la línea base. No cambiaron con la D-SA; la nota de P5 ahora dice que es la regla del «vencido» de la 10.5.
+- **Nombre de la pieza única en la 0614:** la SDD-0614 §2.8 la llama `crm_tarjeta_de_ficha`, el nombre de la primera versión; el vigente es `crm_tarjeta_ubicar_o_crear`. Lo alinea la sesión de la 6.6.
 - La implementación, la migración y su aplicación quedan fuera de este encargo.
 
 ## FUERA DE ALCANCE DETECTADO
