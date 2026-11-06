@@ -113,11 +113,27 @@ describe("0516 · consulta de clientes desde Discord (PGlite)", () => {
     expect(await run(inline(CONTRACT, { transform: sinRetencion }))).toMatch(/CONTRATO 5/);
   }, 60_000);
 
-  it("mutante: con EXECUTE para authenticated, el contrato lo detecta", async () => {
-    const conGrant = (sql: string) =>
-      `${sql}\ngrant execute on function public.discord_buscar_clientes(uuid, text, integer) to authenticated;\n`;
-    expect(await run(inline(CONTRACT, { transform: conGrant }))).toMatch(
-      /CONTRATO 6: authenticated pudo ejecutar: select \* from public\.discord_buscar_clientes/,
-    );
+  // Las funciones son SECURITY INVOKER: con EXECUTE, authenticated igual cae al
+  // leer `clients`. El contrato tiene que ver el privilegio en sí (en la #387 el
+  // primer intento pasaba por esa otra razón).
+  it.each<[string, string, RegExp]>([
+    [
+      "EXECUTE de la búsqueda para authenticated",
+      "grant execute on function public.discord_buscar_clientes(uuid, text, integer) to authenticated;",
+      /CONTRATO 6: authenticated tiene EXECUTE sobre discord_buscar_clientes/,
+    ],
+    [
+      "EXECUTE del registro para anon",
+      "grant execute on function public.discord_consulta_registrar(text, uuid, uuid, text, text, integer) to anon;",
+      /CONTRATO 6: anon tiene EXECUTE sobre discord_consulta_registrar/,
+    ],
+    [
+      "SELECT del registro para authenticated",
+      "grant select on public.discord_consultas_clientes to authenticated;",
+      /CONTRATO 6: authenticated tiene privilegios sobre discord_consultas_clientes/,
+    ],
+  ])("mutante: %s, el contrato lo detecta", async (_n, grant, error) => {
+    const conGrant = (sql: string) => `${sql}\n${grant}\n`;
+    expect(await run(inline(CONTRACT, { transform: conGrant }))).toMatch(error);
   }, 60_000);
 });

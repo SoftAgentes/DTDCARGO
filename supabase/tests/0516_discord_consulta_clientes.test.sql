@@ -208,6 +208,21 @@ declare
   v_rol text;
   v_sql text;
 begin
+  -- Primero el privilegio en sí. Las funciones son SECURITY INVOKER: si un rol
+  -- tuviera EXECUTE, igual caería por no poder leer `clients` o la tabla, y el
+  -- bloque de abajo pasaría por la razón equivocada (lo mostró el CI de la #387).
+  foreach v_rol in array array['anon', 'authenticated'] loop
+    if has_function_privilege(v_rol, 'public.discord_buscar_clientes(uuid, text, integer)', 'EXECUTE') then
+      raise exception 'CONTRATO 6: % tiene EXECUTE sobre discord_buscar_clientes', v_rol;
+    end if;
+    if has_function_privilege(v_rol, 'public.discord_consulta_registrar(text, uuid, uuid, text, text, integer)', 'EXECUTE') then
+      raise exception 'CONTRATO 6: % tiene EXECUTE sobre discord_consulta_registrar', v_rol;
+    end if;
+    if has_table_privilege(v_rol, 'public.discord_consultas_clientes', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE') then
+      raise exception 'CONTRATO 6: % tiene privilegios sobre discord_consultas_clientes', v_rol;
+    end if;
+  end loop;
+
   foreach v_rol in array array['anon', 'authenticated'] loop
     foreach v_sql in array array[
       'select count(*) from public.discord_consultas_clientes',

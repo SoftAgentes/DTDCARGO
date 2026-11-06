@@ -59,8 +59,8 @@ describe("comando /cliente", () => {
     const r = spawnSync(process.execPath, ["scripts/discord/registrar-comando-cliente.mjs", "--dry-run"], {
       cwd: ROOT,
       encoding: "utf8",
-      // Entorno mínimo: sin credenciales de Discord, el script no puede llamar a la API.
-      env: { PATH: process.env.PATH ?? "", NODE_ENV: "test" },
+      // Sin ID de aplicación: el modo de prueba muestra el marcador y no llama a la API.
+      env: { ...process.env, DISCORD_CONSULTA_APPLICATION_ID: "", DISCORD_CONSULTA_CLIENT_SECRET: "" },
     });
     expect(r.status).toBe(0);
     const [primera, ...resto] = r.stdout.split("\n");
