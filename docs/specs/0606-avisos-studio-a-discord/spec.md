@@ -209,6 +209,7 @@ Modificados:
 Nada de esto lo ejecuta esta spec. Es el orden para cuando Sam descongele la publicación.
 
 1. **Publicar la web con este código.** Sin variables de Discord no cambia nada: todo sigue por Telegram.
+1b. **Publicar el texto de `/privacidad`** que cubre los avisos a Discord (aprobado por Sam; PR aparte). Sin eso no se ponen las direcciones del paso 3: los avisos a Discord no se encienden antes.
 2. **Crear en Discord** los cinco canales y un webhook por canal (Ajustes del canal › Integraciones › Webhooks).
 3. **Poner las cinco direcciones y `DISCORD_TENANT_ID`** (el ID del tenant de DTD Cargo) en el servidor con `infra/ops/migrate/env-set.sh` y reiniciar la web. Desde ese momento los avisos por categoría de ese tenant salen a Discord y dejan de salir por Telegram.
 4. **Probar** un aviso por categoría y mirar Ajustes › Alertas del equipo: las cinco deben decir «Sale a #canal».

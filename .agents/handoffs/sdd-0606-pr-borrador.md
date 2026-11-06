@@ -55,10 +55,11 @@ Medido aparte: 71 pruebas nuevas en 7 archivos, incluido el contrato de la 0514 
 ### Para que llegue a producción (Sam)
 
 1. Descongelar la publicación de la web.
-2. Crear un webhook por canal en Discord y poner las cinco direcciones y `DISCORD_TENANT_ID` en el servidor (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`). Las direcciones son llaves: nunca en el repositorio.
-3. Probar un aviso por categoría.
-4. OK nominal para aplicar `0514_user_profiles_discord_user_id` y `0515_studio_alert_outbox`, de a una, con el Director General y el runbook.
-5. Retirar `TELEGRAM_BOT_TOKEN`: ese es el apagado de Telegram.
+2. **Publicar antes el texto de `/privacidad` que cubre los avisos a Discord** (aprobado por Sam; va en una PR aparte). Los avisos del Studio a Discord no se encienden —no se ponen las direcciones del paso 3— hasta que ese texto esté publicado.
+3. Crear un webhook por canal en Discord y poner las cinco direcciones y `DISCORD_TENANT_ID` en el servidor (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`). Las direcciones son llaves: nunca en el repositorio.
+4. Probar un aviso por categoría.
+5. OK nominal para aplicar `0514_user_profiles_discord_user_id` y `0515_studio_alert_outbox`, de a una, con el Director General y el runbook.
+6. Retirar `TELEGRAM_BOT_TOKEN`: ese es el apagado de Telegram.
 
 El orden completo, las decisiones abiertas y lo que quedó fuera de alcance están en `.agents/handoffs/sdd-0606-avisos-studio-a-discord.md`.
 
