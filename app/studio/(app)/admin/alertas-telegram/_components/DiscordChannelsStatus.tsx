@@ -36,10 +36,10 @@ function estado(s: DiscordCategoryStatus, canalRespaldo: string) {
     case "sin-tenant":
       return {
         tone: "neutral" as const,
-        text: "Discord no está asignado a esta empresa · sigue por Telegram",
+        text: "Discord no está asignado a esta empresa · sin mensajería",
       };
     default:
-      return { tone: "neutral" as const, text: "Sin Discord · sigue por Telegram" };
+      return { tone: "neutral" as const, text: "Sin Discord · sin mensajería" };
   }
 }
 
@@ -86,7 +86,7 @@ export function DiscordChannelsStatus({ statuses, canalRespaldo }: Props) {
         >
           <b>Los canales de Discord no están asignados a esta empresa.</b> Se
           asignan en el servidor con <code>DISCORD_TENANT_ID</code>. Mientras
-          tanto, los avisos siguen saliendo por Telegram.
+          tanto, los avisos sólo llegan por correo y a la campana del Studio.
         </div>
       )}
 
@@ -102,8 +102,8 @@ export function DiscordChannelsStatus({ statuses, canalRespaldo }: Props) {
             color: "var(--ink)",
           }}
         >
-          <b>Discord todavía no está configurado.</b> Los avisos siguen saliendo por
-          Telegram, como hasta ahora.
+          <b>Discord todavía no está configurado.</b> Mientras tanto, los avisos sólo
+          llegan por correo y a la campana del Studio.
         </div>
       )}
 

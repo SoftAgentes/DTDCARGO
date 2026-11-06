@@ -70,15 +70,17 @@ describe("DiscordChannelsStatus", () => {
     expect(container.textContent).not.toContain("discord.com");
   });
 
-  it("sin ninguna dirección avisa que los avisos siguen por Telegram", () => {
+  it("sin ninguna dirección avisa que no hay mensajería: sólo correo y campana", () => {
     pintar({});
     expect(screen.getByText(/Discord todavía no está configurado/)).toBeTruthy();
-    expect(screen.getAllByText("Sin Discord · sigue por Telegram")).toHaveLength(5);
+    expect(screen.getAllByText("Sin Discord · sin mensajería")).toHaveLength(5);
+    expect(document.body.textContent?.replace(/\s+/g, " ")).toContain("sólo llegan por correo y a la campana");
+    expect(document.body.textContent).not.toContain("Telegram");
   });
 
-  it("A5: a otra empresa le dice que Discord no es suyo y que sigue por Telegram", () => {
+  it("A5: a otra empresa le dice que Discord no es suyo y que no hay mensajería", () => {
     pintar({ DISCORD_WEBHOOK_EQUIPO: hook(5) }, "00000000-0000-4000-8000-000000000002");
-    expect(screen.getAllByText("Discord no está asignado a esta empresa · sigue por Telegram")).toHaveLength(5);
+    expect(screen.getAllByText("Discord no está asignado a esta empresa · sin mensajería")).toHaveLength(5);
     expect(screen.getByText(/DISCORD_TENANT_ID/)).toBeTruthy();
   });
 

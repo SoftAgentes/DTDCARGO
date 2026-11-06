@@ -12,8 +12,9 @@
  *   3. Si tampoco se guardó y la categoría no puede perderse (`registro`,
  *      `bugs`, `reportes`): la cola durable, que reintenta por Discord.
  *   4. Si Discord no aplica, o la categoría no va a la cola: el camino de
- *      SDD-0271 (rutas de Telegram y, sin rutas, los administradores). Deja de
- *      existir cuando se retire el token de Telegram del servidor.
+ *      SDD-0271 (rutas de Telegram). Desde el 2026-11-06 Telegram está retirado
+ *      (`lib/studio/telegram/send-message.ts` no manda nada): ese camino ya no
+ *      entrega, y el aviso queda en el correo y la campana del Studio.
  *
  * Si Discord entrega, Telegram NO se usa: el corte es directo, sin doble envío.
  * Si la entrega quedó INCIERTA (pudo guardarse), no se repite por ningún lado.

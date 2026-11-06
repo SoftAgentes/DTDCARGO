@@ -73,7 +73,7 @@ Orden de entrega de un aviso:
 1. El canal de Discord de su categoría.
 2. Si esa categoría no tiene dirección, o Discord no guardó el mensaje: `#avisos-equipo`, con una línea que dice de qué categoría venía («Sin canal propio · Registro de clientes»).
 3. Si tampoco se guardó y la categoría no puede perderse (`registro`, `bugs`, `reportes`): la **cola durable** (D3b).
-4. Si Discord no aplica, o la categoría no va a la cola, o la cola todavía no existe: el camino de SDD-0271 (rutas de Telegram y, sin rutas, los administradores), mientras exista el token de Telegram.
+4. Si Discord no aplica, o la categoría no va a la cola, o la cola todavía no existe: el camino de SDD-0271 (rutas de Telegram). **Desde el 2026-11-06 Telegram está retirado del Studio** (D8): ese camino ya no entrega, y el aviso queda sólo en el correo y la campana.
 
 Si Discord entrega, Telegram no se usa: no hay doble envío. Sin ninguna variable de Discord, el Studio se comporta exactamente como antes; lo mide una prueba.
 
@@ -149,6 +149,16 @@ El reporte diario sale con conteos (recepciones, despachos, gastos cargados, inc
 - Manda `User-Agent: DiscordBot (https://dtdcargo.com, 1.0)`, el formato que documenta Discord (M4).
 - Nunca lanza. Devuelve `{ ok, estado, messageId, error }` y el error no contiene la dirección: de un error de red sólo se conserva su nombre o su código.
 - Sin vista previa de enlaces.
+
+### D8 · Telegram se retira ahora (decisión de Sam, 2026-11-06)
+
+Sam: «deberíamos eliminar Telegram en este momento, entonces procede a eliminar Telegram». Motivo: lo que el Studio mandaba a Telegram llevaba datos de clientes (el alta con nombre, documento, correo y teléfono; el mensaje del portal con el nombre y un extracto) y el texto de `/privacidad` de la #399 dice que la mensajería interna no los recibe.
+
+- `lib/studio/telegram/send-message.ts` deja de mandar: devuelve `{ ok: false }` sin ningún pedido, con o sin `TELEGRAM_BOT_TOKEN`. Todos los envíos del Studio a Telegram pasan por esa función (medido: los otros dos usos de la API, en `lib/studio/integration-health.ts`, sólo consultan el estado del bot). Lo mide `lib/studio/telegram/__tests__/send-message.test.ts`.
+- Ajustes › Alertas del equipo deja de mostrar la matriz de destinos de Telegram y dice que está retirado.
+- Consecuencia: si un aviso no sale por Discord, ya no hay respaldo de mensajería. Queda en el correo y la campana del Studio; los de registro, bugs y reporte diario, además, en la cola (0515).
+- Este cambio de código protege desde que se publique la #380. Hasta entonces la web en producción sigue mandando a Telegram: para cortarlo antes hay que retirar `TELEGRAM_BOT_TOKEN` del servidor (operación del Director General).
+- No se toca el bloque de Telegram del perfil (`ProfileModal.tsx` cruza con la SDD-0603) ni la oficina (Hermes y ALFRED). El borrado de código y datos de Telegram sigue siendo el paso 9 del corte.
 
 ### D7 · Entorno de prueba
 
