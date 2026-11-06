@@ -7,6 +7,11 @@ SDD-0605).
 Estado de la tarea: **lista para revisión, con PR en borrador contra `main`.** Sam autorizó
 publicar el 2026-11-05 (ver «Permisos»). El orden de integración lo fija el Director General.
 
+**Actualización del 2026-11-06:** la #378 entró a `main` (`9bf156a1`) y el corte se ejecutó en el VPS
+el 2026-11-05, de 20:21 a 20:58 UTC, con el código de `2be91ad5`; queda pendiente revocar el bot de
+Telegram, por decisión de Sam. Lo que pasó y lo que faltaba en el runbook está en
+`docs/runbooks/oficina-corte-discord.md` §0.
+
 - **Worktree:** `DTD-worktrees/oficina-puente-discord`, sin `node_modules`.
 - **Rama:** `codex/oficina-puente-discord`, desde `main` `243df5c0a`.
 - **SDD:** `docs/specs/0607-oficina-puente-discord/spec.md`, estado `proposed`. Reservada con
