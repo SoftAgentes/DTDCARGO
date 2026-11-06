@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 589 specs)
+### Índice de specs (generado · 590 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -627,6 +627,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
 | 0607 | Puente de ALFRED en el repositorio y corte de la oficina a Di… | proposed | interno |
 | 0609 | Avisos del servidor: de Telegram a Discord | in-progress | interno |
+| 0611 | Publicación automática de noticias en /noticias, con filtros | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0603, 0606, 0608 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0603, 0606, 0608, 0610 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
