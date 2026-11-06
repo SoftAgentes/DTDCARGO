@@ -10,7 +10,7 @@
 #   INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
 #   INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
 #   STAGING=/dev/shm/kommo-e5-carga \                       # 5.5b: de ahí salen los adjuntos en claro
-#   BUSQUEDA_DIAS=1540 \                                    # la ventana de búsqueda que se ensaya (por defecto 1540)
+#   BUSQUEDA_DIAS=3650 \                                    # la ventana de búsqueda que se ensaya (por defecto 3650)
 #     bash ensayo-archivo.sh            # el ensayo
 #     bash ensayo-archivo.sh --limpiar  # solo borra un ensayo que haya quedado (con las mismas guardas)
 #
@@ -24,6 +24,8 @@
 #   4. pg_dump con un rol de solo lectura si existe; si no, con default_transaction_read_only=on. Se anotan bytes
 #      y sha256 corto, y el dump se borra apenas restaurado.
 #   5. Si la carga del VPS pasa de TOPE_CARGA (8), se para.
+#   6. El almacenamiento y el runner se dimensionan con los adjuntos del informe, y si MemAvailable no alcanza
+#      para el ensayo y 2 GB más, no arranca.
 #
 # Salida: PASÓ/FALLÓ por comprobación. La evidencia (EVIDENCIA) guarda solo líneas HECHO: conteos y huellas.
 set -uo pipefail
@@ -50,8 +52,9 @@ IMAGEN_CHATWOOT="${IMAGEN_CHATWOOT:-chatwoot/chatwoot:v4.19.1-ce@sha256:04895c7b
 IMAGEN_PG="${IMAGEN_PG:-pgvector/pgvector:0.8.1-pg16@sha256:33198da2828a14c30348d2ccb4750833d5ed9a44c88d840a0e523d7417120337}"
 IMAGEN_REDIS="${IMAGEN_REDIS:-redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7}"
 TOPE_CARGA="${TOPE_CARGA:-8}"
+MEMINFO_DE="${ENSAYO_MEMINFO_DE:-/proc/meminfo}" # solo la prueba lo cambia (N6)
 # La ventana de búsqueda de mensajes que se ensaya (plan de SEARCH_TIME_RANGE_LIMIT_DAYS, SDD-0590 §10.14).
-BUSQUEDA_DIAS="${BUSQUEDA_DIAS:-1540}"
+BUSQUEDA_DIAS="${BUSQUEDA_DIAS:-3650}"
 case "$BUSQUEDA_DIAS" in ''|*[!0-9]*) echo "BUSQUEDA_DIAS tiene que ser un número de días"; exit 2 ;; esac
 EVIDENCIA="${EVIDENCIA:-$AQUI/evidencia-ensayo-$(date -u +%Y%m%dT%H%M%SZ).txt}"
 CREADO=0
@@ -161,6 +164,30 @@ for f in zz_dtd_redaccion_logs.rb zz_dtd_proteccion_register.rb zz_dtd_revocar_s
 done
 vigilar_carga inicio
 
+# ── Guarda 6: memoria (Director General, 2026-11-06) ─────────────────────────
+# El almacenamiento de la copia (tmpfs) y el runner se dimensionan con los adjuntos del informe: el vigía de la
+# completa deja llegar hasta 5 GB a /dev/shm, y un almacenamiento fijo de 3 GB podría quedarse corto. Las páginas
+# del tmpfs se le cargan al runner, así que su límite lleva el almacenamiento, Rails y tres veces el adjunto más
+# grande (la línea, el base64 y los bytes). Antes de crear nada, MemAvailable tiene que alcanzar para el runner,
+# Postgres y Redis del ensayo (1 GB) y 2 GB más; si no, no arranca.
+inf() { [ -r "${2:-}" ] && python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$2" "$1"; }
+ADJ_TOTAL="$(inf bytes_adjuntos_para_carga "${INFORME_CARGA:-}")"
+ADJ_MAX="$(inf bytes_adjunto_max "${INFORME_CARGA:-}")"
+ADJ_TOTAL="${ADJ_TOTAL:-0}"
+ADJ_MAX="${ADJ_MAX:-0}"
+case "$ADJ_TOTAL$ADJ_MAX" in *[!0-9]*) mal MEM0 "carga-informe.json trae tamaños de adjuntos que no son números"; exit 3 ;; esac
+ALM_MB=$(( ADJ_TOTAL * 13 / 10 / 1048576 + 512 ))
+RUNNER_MB=$(( ALM_MB + 2048 + 3 * ADJ_MAX / 1048576 ))
+NECESARIO_MB=$(( RUNNER_MB + 1024 + 2048 ))
+DISPONIBLE_MB="$(awk '/^MemAvailable:/ { print int($2 / 1024) }' "$MEMINFO_DE" 2>/dev/null)"
+evidencia "HECHO almacen_mb=$ALM_MB" "HECHO runner_mb=$RUNNER_MB" "HECHO memoria_necesaria_mb=$NECESARIO_MB" \
+          "HECHO memoria_disponible_mb=${DISPONIBLE_MB:-ilegible}"
+if ! [ "${DISPONIBLE_MB:-0}" -ge "$NECESARIO_MB" ] 2>/dev/null; then
+  mal MEM0 "MemAvailable ${DISPONIBLE_MB:-ilegible} MB no alcanza: el ensayo necesita $NECESARIO_MB MB (runner $RUNNER_MB, con $ALM_MB de almacenamiento; Postgres y Redis 1024; margen 2048). No arranca"
+  exit 3
+fi
+log "memoria: el ensayo necesita $NECESARIO_MB MB y hay $DISPONIBLE_MB MB disponibles (almacenamiento $ALM_MB MB, runner $RUNNER_MB MB)"
+
 # ── Stack efímero ────────────────────────────────────────────────────────────
 mkdir -m 700 "$DIR" || { mal G0 "no se pudo crear $DIR"; exit 1; }
 CREADO=1
@@ -180,6 +207,8 @@ SECRET_KEY_BASE=$(openssl rand -hex 64)
 AR_PRIMARIA=$(openssl rand -hex 16)
 AR_DETERMINISTA=$(openssl rand -hex 16)
 AR_SAL=$(openssl rand -hex 16)
+ALM_MB=$ALM_MB
+RUNNER_MB=$RUNNER_MB
 EOF
 cat >"$DIR/compose.yml" <<'EOF'
 # Stack EFÍMERO del ensayo del Archivo Kommo (ensayo-archivo.sh). Una sola red, interna, sin puertos.
@@ -272,22 +301,23 @@ services:
     tmpfs:
       - /app/tmp
     networks: [aislada]
-    # Las páginas de un tmpfs se le cargan al cgroup del proceso que las escribe: los ~2,1 GB de adjuntos que sube
-    # MODO=adjuntos cuentan contra este límite, además de Rails. Con 1536m terminaría en OOM.
-    mem_limit: 4g
+    # Las páginas de un tmpfs se le cargan al cgroup del proceso que las escribe: los adjuntos que sube MODO=adjuntos
+    # cuentan contra este límite, además de Rails. Lo calcula la guarda 6 con los adjuntos del informe.
+    mem_limit: ${RUNNER_MB}m
     cpus: 1.0
 networks:
   aislada:
     internal: true
 volumes:
   # 5.5b: los adjuntos subidos siguen ahí de un paso al siguiente (cada paso es un `run --rm`), viven en memoria y
-  # se borran con el proyecto. Con 3 GB caben los ~2,1 GB del Archivo; si no cupieran, la subida falla y AD1 cae.
+  # se borran con el proyecto. El tamaño lo calcula la guarda 6 con los adjuntos del informe; si no cupieran, la
+  # subida falla y AD1 cae.
   # Un bind de /dev/shm dejaría carpetas de root que el borrado sin root no puede quitar (la prueba de CI).
   almacenamiento:
     driver_opts:
       type: tmpfs
       device: tmpfs
-      o: "size=3g,mode=0700"
+      o: "size=${ALM_MB}m,mode=0700"
 EOF
 log "== stack"
 if ! dc up -d --wait postgres redis almacen >"$DIR/up.txt" 2>&1; then
@@ -563,6 +593,10 @@ BB="$DIR/busqueda-amplia.txt"
 vieja_fuera_de_90() { [ "$(h "$BA" vieja_dias)" -le 90 ] 2>/dev/null || [ "$(h "$BA" vieja_encontrada)" = no ]; }
 exigir BQ1 '[ "$(h "$BA" busqueda)" = ok ] && [ "$(h "$BB" busqueda)" = ok ] && [ "$(h "$BA" ventana_dias)" = 90 ] && [ "$(h "$BB" ventana_dias)" = "$BUSQUEDA_DIAS" ] && vieja_fuera_de_90 && [ "$(h "$BB" vieja_encontrada)" = si ]' \
   "búsqueda de mensajes: el mensaje con texto más viejo del Archivo (de hace $(h "$BB" vieja_dias) días) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada)"
+# BQ2, puerta del Director General: con la ventana ampliada, la búsqueda sin coincidencias, que recorre toda la
+# ventana, no puede pasar de 1.000 ms. Si pasa, se para y se le avisa antes de tocar el VPS.
+exigir BQ2 '[ "$(h "$BB" sin_coincidencias_ms)" -le 1000 ] 2>/dev/null' \
+  "búsqueda sin coincidencias con $BUSQUEDA_DIAS días: $(h "$BB" sin_coincidencias_ms) ms (puerta: 1.000 ms)"
 log "MEDIDA BQ — 90 días: $(h "$BA" mensajes_cuenta_en_ventana) mensajes de la cuenta en la ventana ($(h "$BA" mensajes_archivo_en_ventana) del Archivo), palabra $(h "$BA" palabra_ms) ms, sin coincidencias $(h "$BA" sin_coincidencias_ms) ms"
 log "MEDIDA BQ — $BUSQUEDA_DIAS días: $(h "$BB" mensajes_cuenta_en_ventana) mensajes de la cuenta en la ventana ($(h "$BB" mensajes_archivo_en_ventana) del Archivo), palabra $(h "$BB" palabra_ms) ms, sin coincidencias $(h "$BB" sin_coincidencias_ms) ms; GIN $(h "$BB" busqueda_gin), índices GIN sobre content $(h "$BB" indice_gin_contenido)"
 

@@ -791,8 +791,9 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 
 **Valor.** El mensaje más viejo del respaldo 5.1 es del 2023-08-23 (§5, «primero 2023-08-23»).
 - Hasta el 2026-11-06 son **1.171 días**: pasa de 1.100.
-- Propuesta: **1.540**, que es esos 1.171 más un año de margen (1.536), redondeado.
-- La ventana corre con el tiempo. Con 1.540, el mensaje del 2023-08-23 sale de la búsqueda de texto el 2027-11-10. Con 1.825 (cinco años), el 2028-08-21.
+- Primero se propusieron 1.540: los 1.171 días más un año de margen.
+- **El Director General decidió 3.650** (2026-11-06), dentro del «Ampliar la búsqueda» de Sam. La ventana corre con el tiempo: con 1.540, el 2027-11-10 los mensajes más viejos habrían salido de la búsqueda de texto sin que nadie se enterara, y alguien tendría que acordarse de revisarlo. Con 3.650, el mensaje del 2023-08-23 sale el 2033-08-20.
+- **El rendimiento es el mismo:** hoy las dos ventanas cubren exactamente las mismas filas, porque todo el historial cae dentro de los 1.171 días.
 
 Por la persona o el número, la conversación se sigue encontrando sin ventana (E-10d). **Decide el Director General con Sam.**
 
@@ -803,8 +804,9 @@ Por la persona o el número, la conversación se sigue encontrando sin ventana (
 
 Las dos lecturas son del proceso web. **Sidekiq no la necesita:** ningún trabajo busca. Como el compose la pasa también a sidekiq, la tomará cuando se recree por otra razón, sin efecto.
 
-**Rendimiento.** El ensayo corre la búsqueda de mensajes dos veces, con todo el Archivo cargado: con 90 días y con `BUSQUEDA_DIAS` (por defecto 1.540).
-- **BQ1:** con 90 días no aparece el mensaje con texto más viejo del Archivo; con 1.540, sí.
+**Rendimiento.** El ensayo corre la búsqueda de mensajes dos veces, con todo el Archivo cargado: con 90 días y con `BUSQUEDA_DIAS` (por defecto 3.650).
+- **BQ1:** con 90 días no aparece el mensaje con texto más viejo del Archivo; con 3.650, sí.
+- **BQ2, la puerta del Director General:** con 3.650 días, la búsqueda sin coincidencias, que recorre toda la ventana, no puede pasar de 1.000 ms. Si pasa, el ensayo falla y se le avisa antes de tocar el VPS.
 - **MEDIDA BQ:** mensajes de la cuenta dentro de la ventana, la mediana de 3 en ms de la primera página para una palabra de ese mensaje, y lo mismo para una consulta sin coincidencias, que recorre la ventana entera. También si la cuenta usa la búsqueda GIN (`search_with_gin`) y cuántos índices GIN sobre `content` hay.
 
 La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca se imprime. **En CI solo se prueba con datos inventados. Los tiempos reales salen del ensayo.**
@@ -822,13 +824,13 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
    - `S=$(date -u +%Y%m%dT%H%M%SZ); cp -p compose.yml compose.yml.antes-busqueda-$S`;
    - `umask 077; docker logs chatwoot-rails-1 >/srv/backups/chatwoot/rails-antes-busqueda-$S.log 2>&1`. El log ya sale redactado por `zz_dtd_redaccion_logs.rb`, y queda con 0600 en el VPS.
 3. **Agregar la variable**, con las mismas tres líneas de la #396 (dos de comentario y la variable), debajo de `SMTP_OPENSSL_VERIFY_MODE` en `x-entorno`:
-   - la variable: `  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-1540}`;
+   - la variable: `  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-3650}`;
    - validar con `docker compose config --quiet`, que no imprime nada;
-   - leer solo esta clave: `docker compose config --format json | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["rails"]["environment"].get("SEARCH_TIME_RANGE_LIMIT_DAYS"))'`, que tiene que dar `1540`. El `.env` no se toca.
+   - leer solo esta clave: `docker compose config --format json | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["rails"]["environment"].get("SEARCH_TIME_RANGE_LIMIT_DAYS"))'`, que tiene que dar `3650`. El `.env` no se toca.
 4. **Recrear solo rails:** `docker compose up -d --no-deps --force-recreate rails`, con el compose del propio VPS. Nunca `up` del stack entero. Se anota la hora: el panel se cae entre 1 y 2 minutos.
 5. **Esperar healthy:** `until [ "$(docker inspect -f '{{.State.Health.Status}}' chatwoot-rails-1)" = healthy ]; do sleep 5; done`, con un tope de 5 minutos. Si no llega, se vuelve atrás.
 6. **Comprobar, solo sobre rails** (las S del [runbook de versiones](../../runbooks/chatwoot-versiones.md), con `docker logs chatwoot-rails-1 --since <hora del paso 4>` y `docker exec chatwoot-rails-1`):
-   - `docker exec chatwoot-rails-1 printenv SEARCH_TIME_RANGE_LIMIT_DAYS` da `1540`, y `bundle exec rails runner 'p Limits.search_time_range_limit_days'` da `1540`;
+   - `docker exec chatwoot-rails-1 printenv SEARCH_TIME_RANGE_LIMIT_DAYS` da `3650`, y `bundle exec rails runner 'p Limits.search_time_range_limit_days'` da `3650`;
    - S2: «protección de /register activa: 1 » da 1 y «modo cerrado» da 0;
    - S3: el candado por comportamiento;
    - S4: «redacción de logs activa» da 1 o más;
@@ -845,7 +847,7 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
 
    Sin la variable, todo vuelve a ser como hoy: el cambio no toca datos.
 
-**Repositorio:** la misma línea en `infra/chatwoot/compose.yml` y `CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS=1540` en `.env.example`, en la PR #396 contra main, para que main y el VPS no se separen más. Con el `.env.example`, `docker compose config` da `1540` en rails, sidekiq y prepare. El default del compose es el que vale. El `.env` del VPS no necesita la línea; si un día se quiere otro valor, se pone ahí.
+**Repositorio:** la misma línea en `infra/chatwoot/compose.yml` y `CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS=3650` en `.env.example`, en la PR #396 contra main, para que main y el VPS no se separen más. Con el `.env.example`, `docker compose config` da `3650` en rails, sidekiq y prepare. El default del compose es el que vale. El `.env` del VPS no necesita la línea; si un día se quiere otro valor, se pone ahí.
 
 ### 10.15 Memoria del cargador en producción (Director General, 2026-11-06)
 
@@ -871,3 +873,10 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
    - **`blobs_huerfanos_nuevos`**, en 0: los blobs `kommo-*` creados desde el inicio de la corrida que no tienen adjunto. Un OOM entre la subida y el insert dejaría uno, y repetir la corrida no lo limpia.
 
    AD1 exige las tres cosas, en CI y en el ensayo. **El caso en que el contador da más de 0 no está probado en CI:** haría falta romper el proceso entre la subida y el insert. Lo cubre por otro camino AD3, que busca huérfanos desde la sonda.
+
+**El almacenamiento del ensayo se dimensiona con los adjuntos** (Director General, 2026-11-06). El vigía de la completa deja llegar hasta 5 GB a `/dev/shm`, así que un almacenamiento fijo de 3 GB podía quedarse corto y tumbar AD1. La guarda 6 de `ensayo-archivo.sh` calcula, antes de crear nada y desde `carga-informe.json`:
+- **el almacenamiento:** `bytes_adjuntos_para_carga` × 1,3 más 512 MB;
+- **el `mem_limit` del runner:** el almacenamiento, más 2.048 MB para Rails, más tres veces `bytes_adjunto_max`;
+- **la memoria necesaria:** el runner, más 1.024 MB para Postgres y Redis, más 2.048 MB de margen.
+
+Si `MemAvailable` no alcanza, sale con 3 y lo dice (MEM0), sin crear nada. Lo prueba N6, con un `/proc/meminfo` inventado. Con unos 2,1 GB de adjuntos salen unos 3,1 GB de almacenamiento, un runner de ~5,7 GB y ~8,8 GB necesarios (I), contra los 15,8 GB que se midieron hoy.

@@ -10,6 +10,7 @@
 #   N4  el borrado de otras cuentas (ensayo-otras-cuentas.sql) apuntado a la «producción» simulada, sin la marca de
 #       la copia, se niega antes de leer o borrar nada; producción conserva sus 2 cuentas
 #   N5  con un contenedor ajeno llamado chatwoot-ensayo-postgres-1, se niega y no lo toca
+#   N6  con MemAvailable por debajo de lo que pide el ensayo (inyectado), no arranca y no crea nada
 #   R   el ensayo entero pasa contra la producción simulada
 #   P   la producción simulada queda intacta: sin «Archivo Kommo», mismas bandejas y conversaciones (huella),
 #       contenedores corriendo
@@ -131,6 +132,11 @@ exigir N2 '[ "$rc" != 0 ] && [ ! -e /dev/shm/cw-ensayo ] && [ "$(quedan)" = 0,0,
 TOPE=0 ensayo n3; rc=$?
 exigir N3 '[ "$rc" = 3 ] && [ ! -e /dev/shm/cw-ensayo ] && [ "$(quedan)" = 0,0,0 ] && grep -q "FALLÓ CARGA" "$TRABAJO/ensayo-n3.txt"' \
   "con la carga por encima del tope se para (código $rc) antes de crear nada"
+# N6: la guarda de memoria, con un /proc/meminfo inventado de 1.000 MB disponibles.
+printf 'MemTotal:       24000000 kB\nMemAvailable:    1024000 kB\n' >"$TRABAJO/meminfo-poca"
+ENSAYO_MEMINFO_DE="$TRABAJO/meminfo-poca" ensayo n6; rc=$?
+exigir N6 '[ "$rc" = 3 ] && [ ! -e /dev/shm/cw-ensayo ] && [ "$(quedan)" = 0,0,0 ] && grep -q "FALLÓ MEM0 — MemAvailable 1000 MB no alcanza" "$TRABAJO/ensayo-n6.txt"' \
+  "con MemAvailable de 1000 MB no arranca (código $rc), no crea nada y dice cuánto necesita"
 # N4: el borrado de otras cuentas, el mismo SQL que usa el ensayo, apuntado a la «producción» simulada, que no
 # tiene la marca. Tiene que negarse antes de leer o borrar nada.
 docker exec -i chatwoot-postgres-1 psql -U chatwoot -d chatwoot_production -At -v ON_ERROR_STOP=1 \
@@ -165,10 +171,11 @@ exigir R2 'adjuntos_medidos && ! grep -q "adjuntos: NO EJECUTADO" "$TRABAJO/ensa
   "5.5b: el ensayo carga los 3 adjuntos inventados del staging, dos veces, y pasan AD1 a AD3"
 # R3: los miembros y la búsqueda ampliada. La producción simulada tiene un agente y un administrador (sonda-cargador,
 # FASE=preparar), así que E-10e se mide con el agente real: no la encuentra antes de ser miembro y sí después. El
-# mensaje inventado más viejo es de hace 500 días: con 90 días no aparece y con 1540, sí.
+# mensaje inventado más viejo es de hace 500 días: con 90 días no aparece y con 3650, sí, y sin coincidencias
+# tarda menos de 1.000 ms (BQ2).
 pasan_todas() { local c; for c in "$@"; do grep -qE "^PASÓ +$c — " "$TRABAJO/ensayo-r.txt" || return 1; done; }
-exigir R3 'pasan_todas MI1 MI2 MI3 E10g BQ1 MEM1 && grep -qE "^PASÓ +E10g — E-10e con un usuario real \(agente\)" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +MI2 — .*\(4 de 4," "$TRABAJO/ensayo-r.txt"' \
-  "miembros: todos los usuarios quedan en el Archivo y el agente real la encuentra solo después; búsqueda: con 1540 días aparece el mensaje de hace 500"
+exigir R3 'pasan_todas MI1 MI2 MI3 E10g BQ1 BQ2 MEM1 && grep -qE "^PASÓ +BQ1 — .*con 3650: si" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +E10g — E-10e con un usuario real \(agente\)" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +MI2 — .*\(4 de 4," "$TRABAJO/ensayo-r.txt"' \
+  "miembros: todos los usuarios quedan en el Archivo y el agente real la encuentra solo después; búsqueda: con 3650 días aparece el mensaje de hace 500, por debajo de la puerta de 1.000 ms"
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────
 DESPUES="$(huella_prod | tr '\n' ' ')"

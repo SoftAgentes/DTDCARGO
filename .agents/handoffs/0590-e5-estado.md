@@ -58,7 +58,7 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 1. **El token de Kommo**: pegado a las 13:40Z. Hecho.
 2. **Adjuntos en Chatwoot (5.5b)**: «Con adjuntos». Hecho; la 5.5b está en la #394.
 3. **Miembros del Archivo:** «todo el equipo» (Sam, ~15:00Z). Hecho en código: `MODO=miembros` (spec §10.14). Hoy son 2 usuarios, los 2 administradores.
-4. **Búsqueda:** «Ampliar la búsqueda» (Sam, ~15:00Z). El plan de `SEARCH_TIME_RANGE_LIMIT_DAYS` está en la spec §10.14: 1.540 días propuestos, a decidir por el Director General. Se aplica con él, en la ventana de la carga.
+4. **Búsqueda:** «Ampliar la búsqueda» (Sam, ~15:00Z). El plan de `SEARCH_TIME_RANGE_LIMIT_DAYS` está en la spec §10.14: **3.650 días**, decididos por el Director General, con la puerta de 1.000 ms del ensayo (BQ2). Se aplica con él, en la ventana de la carga.
 
 ## 4. Los 10 pasos hasta producción
 
@@ -257,5 +257,5 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 ## 6. FUERA DE ALCANCE DETECTADO
 
 - Un usuario que entre a Chatwoot después de la carga no queda como miembro del Archivo solo: hay que agregarlo desde el panel o repetir `MODO=miembros`.
-- La ventana de búsqueda corre con el tiempo: con 1.540 días, los mensajes de 2023 salen de la búsqueda de texto a fines de 2027. Por la persona o el número se siguen encontrando.
+- La ventana de búsqueda corre con el tiempo: con 3.650 días, el mensaje más viejo del Archivo sale de la búsqueda de texto el 2033-08-20. Por la persona o el número se sigue encontrando.
 - La miniatura de una imagen del Archivo se genera la primera vez que alguien la abre en el panel, como con cualquier imagen de WhatsApp. Lo que eso encola es de ActiveStorage, y AD5 lo mide en CI. No cambia nada de la carga.
