@@ -48,7 +48,12 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
   - Tope: «Sí, cuenta solo las automáticas. El sistema publica sus dos noticias y avisa que
     también las de nosotros» → decisión 3; dos automáticas por semana y aviso también de las
     manuales en `#noticias`.
-  - Quedan abiertas la 4 (fecha de revisión) y la 5 (persona que revisa).
+  - Retiro: «no me apagues la automatización» y que detecte cada noticia que sale y diga el
+    porqué «para entrenar a la gente» → se quitó el apagado automático (§4.6) y se agregó §4.11
+    (motivo obligatorio, detección de toda salida, motivo de vuelta a la oficina).
+  - Revisores: «el humano va a ser Sam y va a ser Alejandro», más un agente crítico → decisión 5
+    (§4.7). Alejandro necesita cuenta propia en el Studio.
+  - Queda abierta la 4 (fecha de revisión): Sam citó las opciones sin elegir.
 
 ## Validación
 
