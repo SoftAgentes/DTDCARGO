@@ -94,7 +94,7 @@ y política afectada». La sección 2 de esta spec es ese registro.
 | Controles que compensan | Los filtros F1 a F10 de §4.2, el aviso a Sam y a Alejandro con retiro de §4.5, el motivo obligatorio de cada retiro y su vuelta a la oficina (§4.11) y la auditoría de §4.4. El interruptor lo apaga solo Sam |
 | Lo que IA-01 sigue exigiendo | Auditoría con modelo, versión y resultado; salida segura y camino manual; separar hecho de propuesta; prueba contra contenido no confiable; minimizar datos. Nada de eso se exceptúa |
 | Retirar una noticia | Es I3 (reversible): `published = false`, con auditoría. No requiere esta excepción |
-| Fecha de revisión | 90 días después de la primera publicación automática, o el 2027-03-01, lo que llegue antes. En la revisión Sam decide si sigue, cambia los filtros o se cierra |
+| Fecha de revisión | **60 días después de la primera publicación automática** (decisión de Sam del 2026-11-06). En la revisión Sam decide si sigue, cambia los filtros o se cierra |
 | Vigencia | Empieza cuando esta spec esté `approved`, la implementación esté en producción y Sam encienda el interruptor. Antes de eso no existe |
 
 ### 2.1 Propuesta para el registro de gobernanza
@@ -105,8 +105,7 @@ Es una **propuesta**: la aprueba Sam. Al aprobarla, quien implemente agrega en
 > **Excepción vigente a IA-01 (I4): publicación automática de noticias en `/noticias`.**
 > Decisión de Sam del 2026-11-05, registrada en SDD-0611 §2. Alcance: solo noticias nuevas de
 > `/noticias` que pasan los filtros F1 a F10; todo lo demás sigue en I4. Responsable: Sam.
-> Revisión: a los 90 días de la primera publicación automática o el 2027-03-01, lo que llegue
-> antes.
+> Revisión: a los 60 días de la primera publicación automática.
 
 No se agrega antes de que la spec esté `approved`: hasta entonces la excepción no existe.
 
@@ -482,9 +481,12 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 3. ~~**Qué cuenta el tope.**~~ *Resuelto por Sam el 2026-11-06:* una por día en la prueba;
    después dos por semana, contando solo las automáticas; las manuales también se avisan (§4.2.1
    y §4.5).
-4. **Fecha de revisión** de la excepción: aceptar la propuesta (90 días o el 2027-03-01, lo que
-   llegue antes), acortar el primer tramo a 60 días o alargarla. *Sigue abierta.* Al quitar el
-   apagado automático, esta revisión y el aviso de §4.6 son el freno que queda además de Sam.
+4. ~~**Fecha de revisión.**~~ *Resuelto por Sam el 2026-11-06:* 60 días después de la primera
+   publicación automática (§2). Al quitar el apagado automático, esta revisión y el aviso de
+   §4.6 son el freno que queda además de Sam y Alejandro.
+
+**Todas las decisiones abiertas quedaron resueltas.** La spec queda lista para que Sam la
+apruebe (`status: approved`).
 5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y Alejandro, más el
    Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
    revisó cuando la revisión esté registrada.
