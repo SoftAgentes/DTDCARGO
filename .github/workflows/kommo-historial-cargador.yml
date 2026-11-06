@@ -46,6 +46,11 @@ jobs:
       - name: Guardas de la completa (systemd y token falso)
         run: sudo bash infra/ops/kommo-historial/pruebas/prueba-completa.sh
 
+      # SDD-0590 5.5b: el vigía de la completa para la unidad por carga, por /dev/shm o por MemAvailable, con
+      # systemd de verdad y medidas inyectadas, con control y mutantes.
+      - name: Vigía de la completa (systemd y medidas inyectadas)
+        run: sudo bash infra/ops/kommo-historial/pruebas/prueba-vigia.sh
+
       - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
         run: bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
 

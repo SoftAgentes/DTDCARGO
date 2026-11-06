@@ -6,7 +6,8 @@
 #   · el token /dev/shm/k0582-e5 existe, tiene permisos 600 y más de 200 bytes, y su borrado programado
 #     (kommo-e5-token-caduca.timer) sigue activo y por disparar. Si el timer no está o ya disparó, sale (código 11).
 #     La vida del token la fija un solo plazo, el de ese timer (Director General, 2026-11-06);
-#   · la carga del VPS no pasa de 8 (código 12);
+#   · la carga del VPS, como la mira el vigía: la de 5 minutos hasta 8 y la de 1 minuto hasta 16 (código 12). Con
+#     sar, la de 1 minuto pasa de 8 en hasta 6 de 36 lecturas por noche, y la de 5 minutos en 0 o 1 (§10.12);
 #   · el extractor desplegado entiende --adjuntos-para-carga, o sea, es la 1.3.0 o posterior (código 13). Si no,
 #     extraer fallaría por la opción y, al terminar, se borraría el token sin haber bajado nada.
 # Baja los adjuntos para el Archivo Kommo (5.5b, --adjuntos-para-carga): cifrados para el respaldo y, además, en
@@ -41,8 +42,12 @@ if [ "$perm" != 600 ] || [ "$bytes" -le 200 ] || [ "$borrado" != active ] || [ "
   estado "token=no_valido: no se pide nada a Kommo"; estado "codigo=11"; exit 11
 fi
 carga="$(cut -d' ' -f1 "$CARGA_DE")"
-estado "carga_inicio=$carga"
-if awk -v c="$carga" 'BEGIN { exit !(c > 8) }'; then estado "carga=alta: no arranca"; estado "codigo=12"; exit 12; fi
+carga5="$(cut -d' ' -f2 "$CARGA_DE")"
+estado "carga_inicio=$carga carga5_inicio=$carga5"
+if ! awk -v c="$carga" -v d="$carga5" \
+     'BEGIN { exit !(c ~ /^[0-9]+(\.[0-9]+)?$/ && d ~ /^[0-9]+(\.[0-9]+)?$/ && c + 0 <= 16 && d + 0 <= 8) }'; then
+  estado "carga=alta: no arranca"; estado "codigo=12"; exit 12
+fi
 # La ayuda se guarda antes de mirarla: con pipefail, un `| grep -q` cortaría la salida y daría un falso «no».
 ayuda="$(python3 -I "$AQUI/respaldar-historial.py" extraer --help 2>/dev/null)"
 case "$ayuda" in

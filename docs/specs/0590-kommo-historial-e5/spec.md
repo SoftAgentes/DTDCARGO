@@ -743,6 +743,14 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
    - un informe sin el conteo de adjuntos da AD0 como falla;
    - `prueba-ensayo.sh` exige R2: AD1 a AD3 presentes y pasando, con los 3 adjuntos inventados.
 
+8. **El vigía, con guardas de memoria** (Director General, 2026-11-06), y **la carga contada como sostenida** (propuesta, a revisar por él):
+   - `vigia-carga.sh` para la unidad, con TERM (`completa.sh` sale con 143 y el token queda), si `/dev/shm` pasa de 5.120 MB usados, si `MemAvailable` baja de 6.144 MB o si alguna medida no se puede leer. Los ~2,1 GB de adjuntos en claro son una estimación: si salen más del doble, cambia el riesgo, y la condición de Sam es parar y preguntar;
+   - **la carga.** Con `sar` del VPS, entre las 05:00 y las 11:00Z, en lecturas de 10 minutos: la de 1 minuto pasó de 8 en 6 de 36 lecturas el 2026-11-02, en 5 de 35 el 03, en 0 el 04 y el 05 y en unas 2 el 06. La de 5 minutos, en 0 o 1 por noche. El 2026-11-01, una incidencia llegó a 173. A las 16:01Z del 06 había 3 lecturas sobre 8 en 2 minutos, con un pico de 8,66. El vigía de hoy mira cada 30 s la de 1 minuto sola, así que pararía casi seguro una completa de 5 h. Propuesta: el vigía y `completa.sh` paran o no arrancan si la de 5 minutos pasa de 8 o la de 1 minuto pasa de 16, el doble. Ese es el pico grave;
+   - **pruebas:** `pruebas/prueba-vigia.sh`, en CI con systemd de verdad. La carga y `MemAvailable` se inyectan con `VIGIA_*`, y `/dev/shm` se mide de verdad con `df`, con un archivo de relleno.
+     - V1: control. V2: carga sostenida. V7: un pico tolerado. V8: un pico grave. V3: memoria. V4: `/dev/shm`. V5: una medida ilegible. V6: la unidad no arranca.
+     - M0 y los mutantes MV1 a MV6, entre ellos MV5, la carga de 1 minuto sola.
+     - En `completa.sh`, G8 pasa a una carga alta, G14 es un pico tolerado, y el mutante MC9 es la guarda de 1 minuto de antes.
+
 **Memoria del VPS durante la ventana** (medido el 2026-11-06 a las 14:21Z): 24.031 MB de RAM, con 15.852 disponibles; `/dev/shm` de 12.016 MB, casi vacío; `/` con 174 GB libres; la base de Chatwoot ocupa 77 MB y su almacenamiento 6 MB. Los `.age` van a disco. En tmpfs quedan los textos, unos 2,1 GB de copias en claro y, durante el ensayo, otros 2,1 GB del almacenamiento de la copia más su PGDATA. En el pico, unos 4,5 GB (I).
 
 **Evidencia:** en la PR #394 y en el handoff `0590-e5-estado.md`.
