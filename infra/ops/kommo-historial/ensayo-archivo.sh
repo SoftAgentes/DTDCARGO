@@ -10,6 +10,7 @@
 #   INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
 #   INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
 #   STAGING=/dev/shm/kommo-e5-carga \                       # 5.5b: de ahí salen los adjuntos en claro
+#   BUSQUEDA_DIAS=1540 \                                    # la ventana de búsqueda que se ensaya (por defecto 1540)
 #     bash ensayo-archivo.sh            # el ensayo
 #     bash ensayo-archivo.sh --limpiar  # solo borra un ensayo que haya quedado (con las mismas guardas)
 #
@@ -49,6 +50,9 @@ IMAGEN_CHATWOOT="${IMAGEN_CHATWOOT:-chatwoot/chatwoot:v4.19.1-ce@sha256:04895c7b
 IMAGEN_PG="${IMAGEN_PG:-pgvector/pgvector:0.8.1-pg16@sha256:33198da2828a14c30348d2ccb4750833d5ed9a44c88d840a0e523d7417120337}"
 IMAGEN_REDIS="${IMAGEN_REDIS:-redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7}"
 TOPE_CARGA="${TOPE_CARGA:-8}"
+# La ventana de búsqueda de mensajes que se ensaya (plan de SEARCH_TIME_RANGE_LIMIT_DAYS, SDD-0590 §10.14).
+BUSQUEDA_DIAS="${BUSQUEDA_DIAS:-1540}"
+case "$BUSQUEDA_DIAS" in ''|*[!0-9]*) echo "BUSQUEDA_DIAS tiene que ser un número de días"; exit 2 ;; esac
 EVIDENCIA="${EVIDENCIA:-$AQUI/evidencia-ensayo-$(date -u +%Y%m%dT%H%M%SZ).txt}"
 CREADO=0
 FALLAS=0
@@ -409,6 +413,17 @@ if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null; then
   fi
 fi
 rr "$DIR/despues.txt" FASE=despues "CUENTA=$CUENTA" "BANDEJA=$B" -- "$SONDA" </dev/null
+# Miembros (Sam, 2026-11-06: «todo el equipo»), después de `despues`: E45b compara la cola con la de la creación de
+# la bandeja, y agregar miembros encola la invalidación de caché. E-10 con un usuario real, antes y después.
+rr "$DIR/real-antes.txt" FASE=usuario-real ETAPA=antes "CUENTA=$CUENTA" "BANDEJA=$B" -- "$SONDA" </dev/null
+rr "$DIR/miembros-seco.txt" MODO=miembros-seco "CUENTA=$CUENTA" "BANDEJA=$B" -- "$CARGADOR" </dev/null
+rr "$DIR/miembros-1.txt" MODO=miembros "CUENTA=$CUENTA" "BANDEJA=$B" -- "$CARGADOR" </dev/null
+rr "$DIR/miembros-2.txt" MODO=miembros "CUENTA=$CUENTA" "BANDEJA=$B" -- "$CARGADOR" </dev/null
+rr "$DIR/real-despues.txt" FASE=usuario-real ETAPA=despues "CUENTA=$CUENTA" "BANDEJA=$B" -- "$SONDA" </dev/null
+# Búsqueda de mensajes con la ventana de hoy (90 días) y con la propuesta (BUSQUEDA_DIAS), con todo cargado.
+rr "$DIR/busqueda-90.txt" FASE=busqueda "CUENTA=$CUENTA" "BANDEJA=$B" -- "$SONDA" </dev/null
+rr "$DIR/busqueda-amplia.txt" FASE=busqueda "SEARCH_TIME_RANGE_LIMIT_DAYS=$BUSQUEDA_DIAS" "CUENTA=$CUENTA" "BANDEJA=$B" \
+  -- "$SONDA" </dev/null
 
 # ── Comprobaciones ───────────────────────────────────────────────────────────
 log "== E. mediciones"
@@ -477,7 +492,7 @@ else
   log "5.5b, adjuntos: NO EJECUTADO (el informe trae ${ADJ_ESPERADOS:-0} adjuntos para carga)"
 fi
 correos_pasos=0
-for p in bandeja seco carga-1 carga-2 $([ -f "$DIR/adjuntos-1.txt" ] && echo adjuntos-1 adjuntos-2); do
+for p in bandeja seco carga-1 carga-2 $([ -f "$DIR/adjuntos-1.txt" ] && echo adjuntos-1 adjuntos-2) miembros-seco miembros-1 miembros-2; do
   [ "$(h "$DIR/$p.txt" correos_enviados)" = 0 ] || correos_pasos=$((correos_pasos + 1))
 done
 exigir SMTP1 '[ "$correos_pasos" = 0 ] && [ "$(h "$F" correos_enviados_sonda)" = 0 ] && [ "$(h "$F" correos_en_cola)" = 0 ]' \
@@ -490,6 +505,38 @@ if [ -n "${INFORME_VINCULO:-}" ]; then
 else
   log "E-1 y E-2: NO EJECUTADO (sin INFORME_VINCULO)"
 fi
+
+# Miembros del Archivo (Sam, 2026-11-06: «todo el equipo»), con MODO=miembros del cargador.
+S1="$DIR/miembros-seco.txt"
+M1="$DIR/miembros-1.txt"
+M2="$DIR/miembros-2.txt"
+exigir MI1 '[ "$(h "$S1" carga)" = ok ] && [ "$(h "$S1" modo)" = miembros-seco ] && [ "$(h "$S1" miembros_nuevos)" -gt 0 ] 2>/dev/null && [ "$(h "$S1" miembros_despues)" = "$(h "$S1" miembros_antes)" ] && [ "$(h "$S1" trabajos_nuevos)" = ninguno ]' \
+  "miembros, seco: cuenta $(h "$S1" miembros_nuevos) por agregar y no agrega a nadie ni encola nada"
+exigir MI2 '[ "$(h "$M1" carga)" = ok ] && [ "$(h "$M1" miembros_despues)" = "$(h "$M1" usuarios_cuenta)" ] && [ "$(h "$M1" miembros_nuevos)" = "$(h "$S1" miembros_nuevos)" ] && cero "$(h "$M1" notificaciones_nuevas)" && cola_igual "$(h "$M1" asignadas)" && solo_invalidacion "$(h "$M1" trabajos_nuevos)"' \
+  "miembros: todos los usuarios de la cuenta en el Archivo ($(h "$M1" miembros_despues) de $(h "$M1" usuarios_cuenta), con los temporales del ensayo), sin notificar ni asignar ($(h "$M1" asignadas)); encola $(h "$M1" trabajos_nuevos)"
+exigir MI3 '[ "$(h "$M2" carga)" = ok ] && cero "$(h "$M2" miembros_nuevos)" && [ "$(h "$M2" miembros_despues)" = "$(h "$M1" miembros_despues)" ] && [ "$(h "$M2" trabajos_nuevos)" = ninguno ]' \
+  "miembros: la segunda vez no agrega a nadie ni encola nada"
+RA="$DIR/real-antes.txt"
+RD="$DIR/real-despues.txt"
+case "$(h "$RD" usuario_real_rol)" in
+  agente)
+    exigir E10g '[ "$(h "$RA" usuario_real_fase)" = ok ] && [ "$(h "$RD" usuario_real_fase)" = ok ] && [ "$(h "$RA" usuario_real_miembro)" = no ] && todas no "$(h "$RA" usuario_real_encuentra)" && [ "$(h "$RD" usuario_real_miembro)" = si ] && todas si "$(h "$RD" usuario_real_encuentra)"' \
+      "E-10e con un usuario real (agente): no la encuentra antes de ser miembro ($(h "$RA" usuario_real_encuentra)) y sí después ($(h "$RD" usuario_real_encuentra))" ;;
+  administrador)
+    exigir E10g '[ "$(h "$RA" usuario_real_fase)" = ok ] && [ "$(h "$RD" usuario_real_fase)" = ok ] && [ "$(h "$RD" usuario_real_miembro)" = si ] && todas si "$(h "$RA" usuario_real_encuentra)" && todas si "$(h "$RD" usuario_real_encuentra)"' \
+      "E-10e con un usuario real (administrador; la cuenta tiene $(h "$RD" agentes_reales) agentes): la encuentra antes y después ($(h "$RD" usuario_real_encuentra)) y quedó como miembro" ;;
+  *)
+    mal E10g "no hubo usuario real para medir E-10e ($(h "$RD" usuario_real_rol), fase $(h "$RD" usuario_real_fase))" ;;
+esac
+
+# Búsqueda de mensajes: la ventana de hoy (90 días) frente a la propuesta (BUSQUEDA_DIAS), con todo el Archivo.
+BA="$DIR/busqueda-90.txt"
+BB="$DIR/busqueda-amplia.txt"
+vieja_fuera_de_90() { [ "$(h "$BA" vieja_dias)" -le 90 ] 2>/dev/null || [ "$(h "$BA" vieja_encontrada)" = no ]; }
+exigir BQ1 '[ "$(h "$BA" busqueda)" = ok ] && [ "$(h "$BB" busqueda)" = ok ] && [ "$(h "$BA" ventana_dias)" = 90 ] && [ "$(h "$BB" ventana_dias)" = "$BUSQUEDA_DIAS" ] && vieja_fuera_de_90 && [ "$(h "$BB" vieja_encontrada)" = si ]' \
+  "búsqueda de mensajes: el mensaje con texto más viejo del Archivo (de hace $(h "$BB" vieja_dias) días) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada)"
+log "MEDIDA BQ — 90 días: $(h "$BA" mensajes_cuenta_en_ventana) mensajes de la cuenta en la ventana ($(h "$BA" mensajes_archivo_en_ventana) del Archivo), palabra $(h "$BA" palabra_ms) ms, sin coincidencias $(h "$BA" sin_coincidencias_ms) ms"
+log "MEDIDA BQ — $BUSQUEDA_DIAS días: $(h "$BB" mensajes_cuenta_en_ventana) mensajes de la cuenta en la ventana ($(h "$BB" mensajes_archivo_en_ventana) del Archivo), palabra $(h "$BB" palabra_ms) ms, sin coincidencias $(h "$BB" sin_coincidencias_ms) ms; GIN $(h "$BB" busqueda_gin), índices GIN sobre content $(h "$BB" indice_gin_contenido)"
 
 evidencia "HECHO ensayo_fallas=$FALLAS" "HECHO ensayo_fin=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 log "== resultado: $FALLAS fallas · evidencia $EVIDENCIA"

@@ -13,6 +13,9 @@
 #   E45  0 trabajos en cola: ni webhooks (E-4) ni envíos a clientes (E-5)
 #   E6   lo cargado coincide con el archivo de carga · E7 cargar dos veces no duplica · E8 números de
 #        conversación · E9 contactos sin huérfanos ni duplicados · E10 búsqueda · E11 lo que ya existía
+#   AD   adjuntos (5.5b): subidos sin trabajos, sin duplicar, íntegros, servidos por la API, la miniatura
+#   MI   miembros (MODO=miembros): todos los usuarios de la cuenta, sin notificar ni asignar, sin duplicar; con
+#        sus mutantes MI-M1 a MI-M3, cada uno en una bandeja propia
 #   M    control M0 y mutantes: cada uno rompe una propiedad del cargador y TIENE que tumbar su comprobación,
 #        sin caer por otro camino. Corren con escenario-mutante.rb, un arranque de Rails por escenario, cada
 #        uno en una cuenta nueva sobre la misma base.
@@ -333,7 +336,7 @@ rr "$REAL/adjuntos-1.txt" MODO=adjuntos "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- --
 rr "$REAL/adjuntos-2.txt" MODO=adjuntos "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$FLUJO"
 rr "$REAL/sonda-verificar.txt" FASE=verificar "BANDEJA=$B" -- "$SONDA" </dev/null
 comprobar "$REAL"
-log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana de 90 días; $(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"
+log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana del compose ($(h "$REAL/sonda-verificar.txt" buscador_ventana_dias) días);$(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"
 log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
 
@@ -357,6 +360,56 @@ else
 fi
 dc "${BASE[@]}" stop rails >/dev/null 2>&1
 vigilar "servir"
+
+# ── MI. Miembros del Archivo (Sam, 2026-11-06: «todo el equipo») ─────────────
+# Después de AD4, que necesita un agente que no sea miembro. MODO=miembros-seco, MODO=miembros y otra vez
+# MODO=miembros: el seco no agrega; la primera deja a todos los usuarios de la cuenta como miembros sin notificar
+# ni asignar, y encola solo la invalidación de caché; la segunda no agrega a nadie.
+log "== MI. miembros del Archivo"
+mi_corrida() { # script bandeja prefijo
+  rr "$REAL/$3-seco.txt" MODO=miembros-seco "CUENTA=$CUENTA" "BANDEJA=$2" -- "$1" </dev/null
+  rr "$REAL/$3-1.txt" MODO=miembros "CUENTA=$CUENTA" "BANDEJA=$2" -- "$1" </dev/null
+  rr "$REAL/$3-2.txt" MODO=miembros "CUENTA=$CUENTA" "BANDEJA=$2" -- "$1" </dev/null
+}
+mi_comprobar() { # prefijo
+  local S1="$REAL/$1-seco.txt" F1="$REAL/$1-1.txt" F2="$REAL/$1-2.txt"
+  exigir MI1 '[ "$(h "$S1" carga)" = ok ] && [ "$(h "$S1" modo)" = miembros-seco ] && [ "$(h "$S1" miembros_nuevos)" -gt 0 ] 2>/dev/null && [ "$(h "$S1" miembros_despues)" = "$(h "$S1" miembros_antes)" ] && [ "$(h "$S1" trabajos_nuevos)" = ninguno ]' \
+    "seco: cuenta $(h "$S1" miembros_nuevos) por agregar y no agrega a nadie ni encola nada"
+  exigir MI2 '[ "$(h "$F1" carga)" = ok ] && [ "$(h "$F1" miembros_despues)" = "$(h "$F1" usuarios_cuenta)" ] && [ "$(h "$F1" miembros_nuevos)" = "$(h "$S1" miembros_nuevos)" ] && cero "$(h "$F1" notificaciones_nuevas)" && cola_igual "$(h "$F1" asignadas)" && solo_invalidacion "$(h "$F1" trabajos_nuevos)" && cero "$(h "$F1" correos_enviados)"' \
+    "todos los usuarios de la cuenta quedan como miembros ($(h "$F1" miembros_despues) de $(h "$F1" usuarios_cuenta): $(h "$F1" administradores) administradores y $(h "$F1" agentes) agentes), sin notificar ni asignar ($(h "$F1" asignadas)); encola $(h "$F1" trabajos_nuevos)"
+  exigir MI3 '[ "$(h "$F2" carga)" = ok ] && cero "$(h "$F2" miembros_nuevos)" && [ "$(h "$F2" miembros_despues)" = "$(h "$F1" miembros_despues)" ] && [ "$(h "$F2" trabajos_nuevos)" = ninguno ]' \
+    "la segunda vez no agrega a nadie ni encola nada ($(h "$F2" miembros_nuevos) nuevos)"
+}
+mi_corrida "$CARGADOR" "$B" miembros
+mi_comprobar miembros
+# Mutantes de MODO=miembros: cada uno en una bandeja «Archivo Kommo MI-Mn» nueva, de la misma cuenta y sin
+# miembros, con su copia del cargador en /tmp/cargador.
+mi_mutante() { # id qué caen pasan buscar reemplazo
+  local id="$1" que="$2" caen="$3" pasan="$4" faltan="" otro="" c bm
+  if ! mutar "$D/cargador/cargar-archivo-kommo.rb" "$D/cargador/$id.rb" "$5" "$6" >"$REAL/$id.mutar.txt" 2>&1; then
+    mal "$id" "$que: no se pudo aplicar ($(tr -d '\r' <"$REAL/$id.mutar.txt"))"; return 0
+  fi
+  rr "$REAL/$id-bandeja.txt" MODO=crear-bandeja "CUENTA=$CUENTA" "NOMBRE=Archivo Kommo $id" -- "$CARGADOR" </dev/null
+  bm="$(h "$REAL/$id-bandeja.txt" bandeja)"
+  mi_corrida "/tmp/cargador/$id.rb" "$bm" "$id"
+  RES=()
+  MODO_LOG=0
+  mi_comprobar "$id"
+  MODO_LOG=1
+  for c in $caen; do [ "${RES[$c]:-FALLÓ}" = FALLÓ ] || faltan="$faltan $c"; done
+  for c in $pasan; do [ "${RES[$c]:-FALLÓ}" = PASÓ ] || otro="$otro $c"; done
+  exigir "$id" '[ -n "$bm" ] && [ -z "$faltan" ] && [ -z "$otro" ]' \
+    "$que: tienen que caer [$caen]${faltan:+ — SOBREVIVEN:$faltan}${otro:+ — CAEN POR OTRO CAMINO:$otro}"
+}
+if [ "$MUTANTES" = 1 ]; then
+  mi_mutante MI-M1 "el seco agrega" "MI1 MI2" "MI3" \
+    "bandeja.add_members(nuevos) unless seco || nuevos.empty?" "bandeja.add_members(nuevos) unless nuevos.empty?"
+  mi_mutante MI-M2 "no salta a los que ya son miembros" "MI3" "MI1 MI2" \
+    "usuarios.pluck(:user_id).uniq.reject { |id| ya.include?(id) }.sort" "usuarios.pluck(:user_id).uniq.sort"
+  mi_mutante MI-M3 "solo los administradores" "MI2" "MI1 MI3" \
+    "nuevos = usuarios.pluck(:user_id)" "nuevos = usuarios.where(role: :administrator).pluck(:user_id)"
+fi
+vigilar "miembros"
 
 # ── M. Control y mutantes ────────────────────────────────────────────────────
 escenario() { # id → salidas en $D/estado/m/<id>/

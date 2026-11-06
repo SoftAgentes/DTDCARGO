@@ -57,8 +57,8 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 
 1. **El token de Kommo**: pegado a las 13:40Z. Hecho.
 2. **Adjuntos en Chatwoot (5.5b)**: «Con adjuntos». Hecho; la 5.5b está en la #394.
-3. **Quién entra como miembro del Archivo** (§10.9). Sin miembros, solo lo ven los administradores.
-4. **Cómo buscar lo viejo** (§10.9): por la persona, sin cambios, o subiendo `SEARCH_TIME_RANGE_LIMIT_DAYS`, que es un despliegue del Director General.
+3. **Miembros del Archivo:** «todo el equipo» (Sam, ~15:00Z). Hecho en código: `MODO=miembros` (spec §10.14). Hoy son 2 usuarios, los 2 administradores.
+4. **Búsqueda:** «Ampliar la búsqueda» (Sam, ~15:00Z). El plan de `SEARCH_TIME_RANGE_LIMIT_DAYS` está en la spec §10.14: 1.540 días propuestos, a decidir por el Director General. Se aplica con él, en la ventana de la carga.
 
 ## 4. Los 10 pasos hasta producción
 
@@ -73,7 +73,7 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 | 7 | `MODO=seco` en producción: no escribe ni consume números | Con el Director General | — |
 | 8 | Respaldo de la base de Chatwoot | Director General | — |
 | 9 | Carga en producción, con E-3 y E-8 antes y después | El Director General, o con él | — |
-| 10 | Miembros del Archivo, según decida Sam; después `empaquetar` el staging | Un administrador / Subdirector | — |
+| 10 | Miembros del Archivo (`MODO=miembros`, todo el equipo), la búsqueda ampliada (plan de §10.14) y después `empaquetar` el staging | Con el Director General | — |
 
 ## 5. Guion para cuando llegue el token (NO correr sin el aviso del Director General)
 
@@ -250,10 +250,11 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 - **Adjuntos (5.5b), después de los mensajes:** `flujo-adjuntos | MODO=adjuntos-seco` y después `MODO=adjuntos`, por la entrada estándar (README). Se anotan `blobs antes->después` y `trabajos_nuevos`, que tiene que dar `ninguno`.
 - **Al final:**
   - `respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo`, que cifra y borra el staging;
-  - los miembros del Archivo, cuando Sam decida.
+  - los miembros del Archivo: `MODO=miembros-seco` y después `MODO=miembros` (README), con la misma bandeja;
+  - la búsqueda ampliada, si el Director General la aprueba: los pasos 1 a 7 de la spec §10.14, con su vuelta atrás.
 
 ## 6. FUERA DE ALCANCE DETECTADO
 
-- El Archivo sin miembros solo lo ven los administradores: es una decisión de Sam, no un defecto.
-- El buscador de mensajes de Chatwoot solo mira 90 días (`SEARCH_TIME_RANGE_LIMIT_DAYS`). Si Sam elige subirlo, es un despliegue aparte.
+- Un usuario que entre a Chatwoot después de la carga no queda como miembro del Archivo solo: hay que agregarlo desde el panel o repetir `MODO=miembros`.
+- La ventana de búsqueda corre con el tiempo: con 1.540 días, los mensajes de 2023 salen de la búsqueda de texto a fines de 2027. Por la persona o el número se siguen encontrando.
 - La miniatura de una imagen del Archivo se genera la primera vez que alguien la abre en el panel, como con cualquier imagen de WhatsApp. Lo que eso encola es de ActiveStorage, y AD5 lo mide en CI. No cambia nada de la carga.

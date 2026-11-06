@@ -208,6 +208,8 @@ module SondaCargador
       end
     end
     medir.call('buscador_reciente') { buscar.call('SINTBUSCAR') }
+    # La ventana con que corre este proceso: 90 sin la variable; la del compose si infra/chatwoot la define.
+    hecho.call('buscador_ventana_dias', Limits.search_time_range_limit_days)
     medir.call('buscador_viejo') { buscar.call('SINTVIEJO') }
     # E-10c: el buscador de mensajes solo mira SEARCH_TIME_RANGE_LIMIT_DAYS días (90 por defecto,
     # lib/limits.rb). Opción 1: subir esa ventana. Limits la lee de ENV en cada búsqueda; se cambia solo en este

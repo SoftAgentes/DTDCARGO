@@ -112,6 +112,9 @@ docker exec -i -e MODO=seco -e CUENTA=1 -e BANDEJA=<id> -e CARGA=- chatwoot-rail
 python3 -I respaldar-historial.py flujo-adjuntos --staging /dev/shm/kommo-e5-carga 2>flujo.err \
   | docker exec -i -e MODO=adjuntos -e CUENTA=1 -e BANDEJA=<id> -e CARGA=- chatwoot-rails-1 \
       bundle exec rails runner /tmp/cargar-archivo-kommo.rb                   # MODO=adjuntos-seco solo cuenta
+# 4c. Miembros del Archivo (Sam: «todo el equipo»): todos los usuarios de la cuenta, con Inbox#add_members
+docker exec -e MODO=miembros-seco -e CUENTA=1 -e BANDEJA=<id> chatwoot-rails-1 \
+  bundle exec rails runner /tmp/cargar-archivo-kommo.rb                       # y después MODO=miembros
 # 5. Cifrar y borrar el staging (las copias en claro no entran al paquete y se borran con él)
 python3 -I respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo
 ```
@@ -125,6 +128,10 @@ la segunda corrida. `MODO=seco` solo cuenta, sin consumir números de conversaci
 escribe `attachments` y `active_storage_attachments` con `insert_all`: no encola análisis ni variantes. Solo
 toca mensajes del Archivo que todavía no tienen adjunto, así que repetirlo no duplica. Comprueba bytes y sha256
 de cada uno antes de subirlo y, si falla la escritura, purga el blob.
+
+`MODO=miembros` agrega como miembros del Archivo a todos los usuarios de la cuenta que todavía no lo son, con
+`Inbox#add_members`, igual que el panel: no asigna, no notifica y encola solo la invalidación de caché. Se niega
+si la bandeja tiene asignación automática, y no quita a nadie. `MODO=miembros-seco` solo cuenta.
 
 Prueba con datos inventados y la imagen real: corre en GitHub Actions en cada PR que toque esta carpeta
 (`.github/workflows/kommo-historial-cargador.yml`). Mide E-4 a E-11 (SDD-0590 §10.4), los adjuntos AD1 a
@@ -161,6 +168,7 @@ INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
 INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
 STAGING=/dev/shm/kommo-e5-carga \
   bash ensayo-archivo.sh           # el ensayo; con STAGING también carga los adjuntos (5.5b)
+#   además: MODO=miembros en la copia, E-10e con un usuario real, y la búsqueda con 90 días y con BUSQUEDA_DIAS
 bash ensayo-archivo.sh --limpiar   # solo borra un ensayo que haya quedado
 ```
 

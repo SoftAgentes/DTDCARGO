@@ -8,6 +8,8 @@
 #   MODO=seco|cargar   CUENTA=1 BANDEJA=<id> CARGA=-  bundle exec rails runner cargar-archivo-kommo.rb < carga.ndjson
 #   MODO=adjuntos[-seco] CUENTA=1 BANDEJA=<id> CARGA=- bundle exec rails runner cargar-archivo-kommo.rb < flujo
 #     (5.5b: el flujo lo da `respaldar-historial.py flujo-adjuntos`, una línea JSON con base64 por adjunto)
+#   MODO=miembros[-seco] CUENTA=1 BANDEJA=<id>         bundle exec rails runner cargar-archivo-kommo.rb
+#     (Sam, 2026-11-06: «todo el equipo»: todos los usuarios de la cuenta, con Inbox#add_members, como el panel)
 #
 # Sin efectos quiere decir:
 #   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
@@ -45,6 +47,8 @@ class CargaArchivoKommo
         cargador.crear_bandeja(env.fetch('NOMBRE', 'Archivo Kommo'))
       elsif %w[adjuntos adjuntos-seco].include?(modo)
         cargador.cargar_adjuntos(env.fetch('CARGA'))
+      elsif %w[miembros miembros-seco].include?(modo)
+        cargador.agregar_miembros
       else
         cargador.cargar(env.fetch('CARGA'))
       end
@@ -474,6 +478,37 @@ class CargaArchivoKommo
     hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, clases_despues))
     # Todo lo que queda en cola, por clase y evento: la línea base de la carga (prueba-cargador.sh, E45).
     hecho('trabajos_despues', CargaArchivoKommo.formato_trabajos(clases_despues))
+    hecho('carga', 'ok')
+  end
+
+  # MODO=miembros (Sam, 2026-11-06: «todo el equipo»): agrega como miembros del Archivo a todos los usuarios de la
+  # cuenta que todavía no lo son, con Inbox#add_members, igual que el panel. Inbox#add_members crea los InboxMember
+  # con sus callbacks y llama a update_account_cache: la invalidación de caché de la cuenta (E-10f). Con la
+  # asignación automática apagada (crear_bandeja), InboxMember#add_agent_to_round_robin no reparte nada, y si
+  # estuviera encendida no se agrega a nadie. Solo agrega: no quita a nadie. MODO=miembros-seco solo cuenta.
+  # Salida: conteos por rol, nunca nombres ni correos.
+  def agregar_miembros
+    bandeja = comprobar_bandeja!
+    raise 'la bandeja tiene asignación automática: no se agregan miembros' if bandeja.reload.enable_auto_assignment
+
+    seco = @modo == 'miembros-seco'
+    usuarios = AccountUser.where(account_id: @cuenta_id)
+    ya = InboxMember.where(inbox_id: bandeja.id).pluck(:user_id).to_set
+    nuevos = usuarios.pluck(:user_id).uniq.reject { |id| ya.include?(id) }.sort
+    hecho('modo', @modo)
+    hecho('usuarios_cuenta', usuarios.count)
+    hecho('administradores', usuarios.where(role: :administrator).count)
+    hecho('agentes', usuarios.where(role: :agent).count)
+    hecho('miembros_antes', ya.size)
+    clases_antes = trabajos_por_clase
+    notificaciones = Notification.where(account_id: @cuenta_id).count
+    asignadas = Conversation.where(inbox_id: bandeja.id).where.not(assignee_id: nil).count
+    bandeja.add_members(nuevos) unless seco || nuevos.empty?
+    hecho('miembros_nuevos', nuevos.size)
+    hecho('miembros_despues', InboxMember.where(inbox_id: bandeja.id).count)
+    hecho('notificaciones_nuevas', Notification.where(account_id: @cuenta_id).count - notificaciones)
+    hecho('asignadas', "#{asignadas}->#{Conversation.where(inbox_id: bandeja.id).where.not(assignee_id: nil).count}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
     hecho('carga', 'ok')
   end
 end

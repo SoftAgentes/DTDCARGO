@@ -150,7 +150,7 @@ exigir N5 '[ "$rc" != 0 ] && [ "$(docker inspect -f "{{.State.Status}}" chatwoot
 # ── R. El ensayo ─────────────────────────────────────────────────────────────
 log "== R. ensayo"
 ensayo r; rc=$?
-grep -E '^(PASÓ|FALLÓ|== resultado|.*NO EJECUTADO)' "$TRABAJO/ensayo-r.txt" | sed 's/^/   /'
+grep -E '^(PASÓ|FALLÓ|MEDIDA|== resultado|.*NO EJECUTADO)' "$TRABAJO/ensayo-r.txt" | sed 's/^/   /'
 pasadas="$(grep -c '^PASÓ ' "$TRABAJO/ensayo-r.txt" || true)"
 caidas="$(grep -c '^FALLÓ ' "$TRABAJO/ensayo-r.txt" || true)"
 exigir R1 '[ "$rc" = 0 ] && [ "$caidas" = 0 ] && [ "$pasadas" -ge 30 ]' "el ensayo pasa: $pasadas comprobaciones, $caidas fallas (código $rc)"
@@ -163,6 +163,12 @@ adjuntos_medidos() {
 }
 exigir R2 'adjuntos_medidos && ! grep -q "adjuntos: NO EJECUTADO" "$TRABAJO/ensayo-r.txt"' \
   "5.5b: el ensayo carga los 3 adjuntos inventados del staging, dos veces, y pasan AD1 a AD3"
+# R3: los miembros y la búsqueda ampliada. La producción simulada tiene un agente y un administrador (sonda-cargador,
+# FASE=preparar), así que E-10e se mide con el agente real: no la encuentra antes de ser miembro y sí después. El
+# mensaje inventado más viejo es de hace 500 días: con 90 días no aparece y con 1540, sí.
+pasan_todas() { local c; for c in "$@"; do grep -qE "^PASÓ +$c — " "$TRABAJO/ensayo-r.txt" || return 1; done; }
+exigir R3 'pasan_todas MI1 MI2 MI3 E10g BQ1 && grep -qE "^PASÓ +E10g — E-10e con un usuario real \(agente\)" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +MI2 — .*\(4 de 4," "$TRABAJO/ensayo-r.txt"' \
+  "miembros: todos los usuarios quedan en el Archivo y el agente real la encuentra solo después; búsqueda: con 1540 días aparece el mensaje de hace 500"
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────
 DESPUES="$(huella_prod | tr '\n' ' ')"

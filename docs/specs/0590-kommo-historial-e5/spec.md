@@ -536,7 +536,7 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 - **Números de conversación (I, se mide en E-8):** Chatwoot numera las conversaciones con una secuencia por cuenta, que un disparador de la base aplica en cada inserción. Cada conversación cargada consume un número, en orden de creación. Después de la carga, las conversaciones nuevas siguen desde ahí: el número salta en tantas como se carguen, unas 4.700 con la base 5.1 (§5.5), o 2.096 si solo se cargan 12 meses. No hay choque ni duplicado, pero se nota. El modo seco no consume números. **El Director General aceptó el salto el 2026-11-06,** porque es interno y no choca, y se lo comunica a Sam. Condición: en la carga de producción se anota aquí el número antes y después (la línea `HECHO secuencia=antes->después` del cargador), para que el equipo no se sorprenda.
 - **Quién ve el Archivo (R en el código; se mide en E-10e y E-10f):** la bandeja se crea sin miembros. Un administrador ve y busca en todas las bandejas. Un agente sin ese rol solo en las bandejas de las que es miembro: `SearchService#accessable_inbox_ids` (`search_service.rb:26`) usa `User#assigned_inboxes` (`user.rb:164-165`). Así que, sin miembros, **el equipo de agentes no ve el Archivo ni lo encuentra al buscar.**
   - **Paso de producción, después de la carga:** un administrador agrega a los miembros desde el panel (Configuración → Bandejas → «Archivo Kommo» → Colaboradores), que llama a `Inbox#add_members` (`inbox_members_controller.rb:15` y `:55`). La bandeja no tiene asignación automática y las conversaciones están resueltas. E-10f mide en la prueba que agregar un miembro no asigna conversaciones, no crea notificaciones y no encola más que la invalidación de caché de la cuenta.
-  - **Pendiente de Sam:** quién entra como miembro del Archivo. Sin eso, el Archivo existe, pero solo lo ven los administradores.
+  - **Sam decidió (2026-11-06):** «todo el equipo». Se hace con `MODO=miembros` del cargador después de la carga (§10.14).
 - **Lo que encola crear la bandeja (R; código de la imagen 4.19.1 de producción, leído en solo lectura, y la prueba):** la bandeja se crea con los modelos, como desde el panel, y eso encola dos trabajos. Ninguno llega a un cliente ni a Studio:
   - **`ActionCableBroadcastJob(account.cache_invalidated)`:** `Inbox` incluye `AccountCacheRevalidator`, que en `after_commit` llama a `account.update_cache_key('inbox')`. Eso despacha `account.cache_invalidated`, y `ActionCableListener#account_cache_invalidated` avisa a los navegadores de agentes y administradores para que recarguen la lista de bandejas. Lleva las llaves de caché, sin datos de personas.
   - **`EventDispatcherJob(account.cache_invalidated)`:** el lado asíncrono del mismo evento. Ninguno de sus diez oyentes (`AsyncDispatcher#listeners`) tiene `account_cache_invalidated`, así que al correr no hace nada. `WebhookListener` tampoco lo tiene: no sale ningún webhook.
@@ -553,6 +553,8 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
   1. **Buscar el Archivo por la persona y no por el texto:** número, nombre o teléfono encuentran la conversación de cualquier fecha, y adentro se lee todo. Sin cambios. Lo comprueba E-10d, con la ventana por defecto: la del Archivo de hace 500 días aparece por nombre, por teléfono y por número.
   2. **Subir `SEARCH_TIME_RANGE_LIMIT_DAYS`**, por ejemplo a 1.100 días, para que la búsqueda de texto llegue a todo el historial. La prueba mide que con 1.100 encuentra el mensaje de hace 500 días (E-10c). Cuesta un compose con la variable y recrear `rails` en el VPS, porque `docker restart` no toma variables nuevas y el compose del VPS no es el de main: es un paso de despliegue del Director General. Con unos 55 mil mensajes (§5.5), el ILIKE sobre el historial entero es chico. **No medido en el VPS.**
   3. **Buscar desde Studio** sobre su propia copia. Hoy no existe: sería otro trabajo.
+
+  **Sam eligió la 2 (2026-11-06):** «Ampliar la búsqueda». El plan está en §10.14.
 - **Reportes (I):** sin callbacks no se crean eventos de reportes, así que tiempos de respuesta y resoluciones no cambian. Los conteos que salen directo de la tabla de conversaciones por fecha de creación sí podrían sumar las del Archivo en sus fechas de Kommo. No medido.
 
 ### 10.10 Paso 5.6 — el ensayo, en una copia efímera de la base de Chatwoot
@@ -759,3 +761,80 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 |---|---|
 | `python -I infra/ops/kommo-historial/pruebas/test_respaldar.py` (Windows) | PASÓ: 54 pruebas, 3 omitidas |
 | Copia del extractor con `method="POST"` | Cae `test_el_extractor_solo_hace_get` (y la de mutantes, porque el texto a mutar ya no está) |
+
+### 10.14 Miembros del Archivo y búsqueda ampliada (Sam, 2026-11-06)
+
+**Sam, relayado por el Director General hacia las 15:00Z:** «No, todo el equipo, no hay problema. Ampliar la búsqueda.»
+
+#### Miembros: todo el equipo
+
+- **Cuántos (medido el 2026-11-06 a las ~15:05Z, solo un conteo en solo lectura de `account_users` de la cuenta 1 de producción):** 2 usuarios, los 2 administradores y 0 agentes. Un administrador ya ve y busca en todas las bandejas, así que hoy agregarlos no cambia lo que ven. Los deja como miembros por si algún día pasan a agentes. **Un usuario que entre después no queda como miembro solo:** hay que agregarlo desde el panel, o repetir `MODO=miembros`, que solo agrega a los que falten.
+- **Cómo:** después de la carga, `MODO=miembros CUENTA=1 BANDEJA=<id>` del cargador agrega a todos los usuarios de la cuenta que todavía no son miembros, con `Inbox#add_members`, como el panel. `MODO=miembros-seco` solo cuenta. Si la bandeja tuviera asignación automática, se niega. No quita a nadie.
+- **Prueba en CI** (`prueba-cargador.sh`):
+  - MI1: el seco no agrega ni encola;
+  - MI2: todos los usuarios quedan como miembros, sin notificaciones ni asignaciones, y solo se encola la invalidación de caché;
+  - MI3: la segunda vez no agrega a nadie;
+  - mutantes, cada uno en una bandeja propia: MI-M1, el seco agrega; MI-M2, no salta a los que ya son miembros; MI-M3, solo los administradores.
+- **Ensayo:** `MODO=miembros` en la copia, después de la sonda `despues`, porque E45b compara la cola con la de la creación de la bandeja, con MI1 a MI3. **E10g mide E-10e con un usuario real**: el de menor id entre los agentes y, si no hay agentes, entre los administradores. Con un agente: no encuentra la conversación más vieja del Archivo antes de ser miembro, y sí después. Con un administrador, la encuentra antes y después y queda como miembro. En producción hay 0 agentes, así que el ensayo real mide el caso del administrador. El caso del agente lo cubren el agente temporal (E10e) y la prueba de CI, donde la «producción» simulada tiene un agente.
+
+#### Búsqueda: `SEARCH_TIME_RANGE_LIMIT_DAYS`
+
+**Plan aparte. No se ejecuta sin el Director General.** Va en la ventana de la carga, para que el panel se caiga una sola vez.
+
+**Valor.** El mensaje más viejo del respaldo 5.1 es del 2023-08-23 (§5, «primero 2023-08-23»).
+- Hasta el 2026-11-06 son **1.171 días**: pasa de 1.100.
+- Propuesta: **1.540**, que es esos 1.171 más un año de margen (1.536), redondeado.
+- La ventana corre con el tiempo. Con 1.540, el mensaje del 2023-08-23 sale de la búsqueda de texto el 2027-11-10. Con 1.825 (cinco años), el 2028-08-21.
+
+Por la persona o el número, la conversación se sigue encontrando sin ventana (E-10d). **Decide el Director General con Sam.**
+
+**Dónde la lee Chatwoot** (imagen 4.19.1 de producción, leída en solo lectura el 2026-11-06):
+- `lib/limits.rb:17-20`: `ENV.fetch('SEARCH_TIME_RANGE_LIMIT_DAYS', '90').to_i`; si no es positivo, 90. No tiene tope;
+- `app/services/search_service.rb:194-195`: la ventana de la búsqueda de mensajes;
+- `app/views/layouts/vueapp.html.erb:62`: `searchTimeRangeLimitDays`, que el panel usa para decir cuántos días mira.
+
+Las dos lecturas son del proceso web. **Sidekiq no la necesita:** ningún trabajo busca. Como el compose la pasa también a sidekiq, la tomará cuando se recree por otra razón, sin efecto.
+
+**Rendimiento.** El ensayo corre la búsqueda de mensajes dos veces, con todo el Archivo cargado: con 90 días y con `BUSQUEDA_DIAS` (por defecto 1.540).
+- **BQ1:** con 90 días no aparece el mensaje con texto más viejo del Archivo; con 1.540, sí.
+- **MEDIDA BQ:** mensajes de la cuenta dentro de la ventana, la mediana de 3 en ms de la primera página para una palabra de ese mensaje, y lo mismo para una consulta sin coincidencias, que recorre la ventana entera. También si la cuenta usa la búsqueda GIN (`search_with_gin`) y cuántos índices GIN sobre `content` hay.
+
+La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca se imprime. **En CI solo se prueba con datos inventados. Los tiempos reales salen del ensayo.**
+
+**Cómo llegan las variables a rails en el VPS** (leído el 2026-11-06, solo nombres; `/srv/chatwoot/compose.yml` con sha256 `6722ce94fde5948a`):
+- sin `env_file`;
+- las variables entran una por una en `x-entorno` (`&entorno`): 39 claves, 23 interpoladas desde el `.env` y 16 literales;
+- `x-chatwoot` las hereda (`environment: *entorno`), y de ahí `prepare`, `rails` y `sidekiq` (`<<: *chatwoot`);
+- `SEARCH_TIME_RANGE_LIMIT_DAYS` no está;
+- la última clave es `SMTP_OPENSSL_VERIFY_MODE`, igual que en `infra/chatwoot/compose.yml` de main.
+
+**Pasos en el VPS, con el Director General, en la ventana de la carga:**
+1. **Antes:** BQ1 del ensayo en PASÓ y tiempos aceptables para el Director General; `date -u`; carga del VPS de 8 o menos; `cd /srv/chatwoot && sha256sum compose.yml`, que tiene que dar `6722ce94fde5948a`. Si cambió, se para.
+2. **Respaldo:**
+   - `S=$(date -u +%Y%m%dT%H%M%SZ); cp -p compose.yml compose.yml.antes-busqueda-$S`;
+   - `umask 077; docker logs chatwoot-rails-1 >/srv/backups/chatwoot/rails-antes-busqueda-$S.log 2>&1`. El log ya sale redactado por `zz_dtd_redaccion_logs.rb`, y queda con 0600 en el VPS.
+3. **Agregar la variable**, como en la PR de `infra/chatwoot`, debajo de `SMTP_OPENSSL_VERIFY_MODE` en `x-entorno`:
+   - la línea: `  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-1540}`;
+   - validar con `docker compose config --quiet`, que no imprime nada;
+   - leer solo esta clave: `docker compose config --format json | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["rails"]["environment"].get("SEARCH_TIME_RANGE_LIMIT_DAYS"))'`, que tiene que dar `1540`. El `.env` no se toca.
+4. **Recrear solo rails:** `docker compose up -d --no-deps --force-recreate rails`, con el compose del propio VPS. Nunca `up` del stack entero. Se anota la hora: el panel se cae entre 1 y 2 minutos.
+5. **Esperar healthy:** `until [ "$(docker inspect -f '{{.State.Health.Status}}' chatwoot-rails-1)" = healthy ]; do sleep 5; done`, con un tope de 5 minutos. Si no llega, se vuelve atrás.
+6. **Comprobar, solo sobre rails** (las S del [runbook de versiones](../../runbooks/chatwoot-versiones.md), con `docker logs chatwoot-rails-1 --since <hora del paso 4>` y `docker exec chatwoot-rails-1`):
+   - `docker exec chatwoot-rails-1 printenv SEARCH_TIME_RANGE_LIMIT_DAYS` da `1540`, y `bundle exec rails runner 'p Limits.search_time_range_limit_days'` da `1540`;
+   - S2: «protección de /register activa: 1 » da 1 y «modo cerrado» da 0;
+   - S3: el candado por comportamiento;
+   - S4: «redacción de logs activa» da 1 o más;
+   - S5: redacción por comportamiento, con 0 apariciones del correo de sonda;
+   - S6: «revocación de sesiones activa» da 1 o más, y «revocar sesiones: faltan» da 0;
+   - S7: revocación por comportamiento;
+   - S1, S8 y S9: la versión, el registro cerrado y las cabeceras, igual que antes;
+   - **la búsqueda encuentra un mensaje viejo:** un `rails runner` que busca, como un administrador de la cuenta 1, la palabra menos frecuente del mensaje con texto más viejo del Archivo, igual que `FASE=busqueda` del ensayo. Imprime solo «si» o «no» y los ms.
+7. **Volver atrás**, si algo de 5 o 6 falla:
+   - `cp -p compose.yml.antes-busqueda-$S compose.yml && docker compose up -d --no-deps --force-recreate rails`;
+   - esperar healthy;
+   - `printenv SEARCH_TIME_RANGE_LIMIT_DAYS` vacío y `Limits` en 90;
+   - repetir S2 a S7.
+
+   Sin la variable, todo vuelve a ser como hoy: el cambio no toca datos.
+
+**Repositorio:** la misma línea en `infra/chatwoot/compose.yml` y `CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS=1540` en `.env.example`, en una PR aparte contra main, para que main y el VPS no se separen más. El default del compose es el que vale. El `.env` del VPS no necesita la línea; si un día se quiere otro valor, se pone ahí.

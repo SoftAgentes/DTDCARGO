@@ -5,6 +5,10 @@
 #
 #   FASE=antes   CUENTA=<id>                  foto de la cuenta antes de cargar → ESTADO (por defecto /tmp/estado/antes.json)
 #   FASE=despues CUENTA=<id> BANDEJA=<id>     mide E-4 a E-11 contra esa foto
+#   FASE=usuario-real CUENTA BANDEJA ETAPA=antes|despues
+#                E-10 con un usuario real de la cuenta (no uno temporal), antes y después de MODO=miembros
+#   FASE=busqueda CUENTA BANDEJA          búsqueda de mensajes con la ventana del proceso
+#                (SEARCH_TIME_RANGE_LIMIT_DAYS): si encuentra el mensaje más viejo del Archivo y cuánto tarda
 #
 # Trabaja con datos reales: imprime SOLO conteos, huellas (md5) y «si»/«no». Nunca nombres, teléfonos, correos ni
 # textos. Lo que crea para medir (un administrador y un agente temporales, una conversación de prueba, dos mensajes
@@ -232,6 +236,120 @@ module SondaEnsayo
     hecho(out, 'correos_en_cola', clases_en_cola.select { |clase, _| clase.match?(/mail|email/i) }.values.sum)
     hecho(out, 'despues', 'ok')
   end
+
+  # Los usuarios reales de la cuenta: todos menos los temporales de esta sonda (@example.invalid).
+  def reales(cuenta)
+    AccountUser.where(account_id: cuenta).joins(:user).where.not('users.email LIKE ?', '%@example.invalid')
+  end
+
+  # Las consultas de E-10 sobre una conversación, y si un usuario la encuentra con cada una (páginas de a 15).
+  def consultas_de(conversacion)
+    contacto = conversacion&.contact
+    { 'nombre' => contacto&.name.to_s, 'telefono' => contacto&.phone_number.to_s.delete_prefix('+'),
+      'numero' => conversacion&.display_id.to_s }.reject { |_, q| q.empty? }
+  end
+
+  def encuentra(usuario, cuenta_ar, conversacion, consultas)
+    consultas.map do |k, q|
+      hallada = (1..40).any? do |pagina|
+        r = como(usuario, cuenta_ar) do
+          SearchService.new(current_user: usuario, current_account: cuenta_ar, search_type: 'Conversation',
+                            params: { q: q, page: pagina }).perform
+        end
+        lista = Array(r[:conversations])
+        break false if lista.empty?
+
+        lista.any? { |c| c.id == conversacion.id }
+      end
+      "#{k}:#{hallada ? 'si' : 'no'}"
+    end.sort.join(',')
+  end
+
+  # E-10 con un usuario real (Sam, 2026-11-06: miembros, «todo el equipo»). El de menor id entre los agentes, que
+  # solo ven las bandejas de las que son miembros; si no hay agentes, entre los administradores, que ven todas.
+  # Imprime el rol y «si»/«no», nunca quién es.
+  def usuario_real_fase(out:, cuenta:, bandeja:, etapa:)
+    cuenta_ar = Account.find(cuenta)
+    archivo = Integer(bandeja)
+    vieja = Conversation.where(inbox_id: archivo).order(:created_at).first
+    lista = reales(cuenta)
+    au = lista.where(role: :agent).order(:user_id).first || lista.where(role: :administrator).order(:user_id).first
+    hecho(out, 'etapa', etapa)
+    hecho(out, 'usuarios_reales', lista.count)
+    hecho(out, 'administradores_reales', lista.where(role: :administrator).count)
+    hecho(out, 'agentes_reales', lista.where(role: :agent).count)
+    if au.nil? || vieja.nil?
+      hecho(out, 'usuario_real_rol', au.nil? ? 'ninguno' : 'sin_conversacion')
+    else
+      hecho(out, 'usuario_real_rol', au.administrator? ? 'administrador' : 'agente')
+      hecho(out, 'usuario_real_miembro', InboxMember.exists?(inbox_id: archivo, user_id: au.user_id) ? 'si' : 'no')
+      hecho(out, 'usuario_real_encuentra', encuentra(au.user, cuenta_ar, vieja, consultas_de(vieja)))
+    end
+    hecho(out, 'miembros_archivo', InboxMember.where(inbox_id: archivo).count)
+    hecho(out, 'usuario_real_fase', 'ok')
+  rescue StandardError => e
+    hecho(out, 'usuario_real_fase', "error:#{e.class}")
+  end
+
+  # Búsqueda de mensajes con la ventana del proceso (SEARCH_TIME_RANGE_LIMIT_DAYS; sin la variable, 90 días), como
+  # un administrador temporal: si encuentra el mensaje con texto más viejo del Archivo y cuánto tarda la primera
+  # página (mediana de 3). La palabra sale de ese mensaje, es la menos frecuente de la cuenta entre las suyas de 5
+  # letras o más, y nunca se imprime. Otra consulta, sin coincidencias, recorre la ventana entera.
+  def busqueda(out:, cuenta:, bandeja:)
+    cuenta_ar = Account.find(cuenta)
+    archivo = Integer(bandeja)
+    dias = Limits.search_time_range_limit_days
+    desde = dias.days.ago
+    hecho(out, 'ventana_dias', dias)
+    hecho(out, 'busqueda_gin', cuenta_ar.feature_enabled?('search_with_gin') ? 'si' : 'no')
+    # Sin sql(): sanitize_sql_array sin parámetros usa el texto como formato de String#%, y '%gin%' rompería.
+    hecho(out, 'indice_gin_contenido', ActiveRecord::Base.connection.select_value(
+      "SELECT count(*) FROM pg_indexes WHERE tablename = 'messages' AND indexdef ILIKE '%gin%' " \
+      "AND indexdef ILIKE '%content%'"
+    ))
+    hecho(out, 'mensajes_cuenta_en_ventana', Message.where(account_id: cuenta).where('created_at >= ?', desde).count)
+    hecho(out, 'mensajes_archivo', Message.where(inbox_id: archivo).count)
+    hecho(out, 'mensajes_archivo_en_ventana', Message.where(inbox_id: archivo).where('created_at >= ?', desde).count)
+    admin = usuario_temporal(cuenta_ar, :administrator)
+    buscar = lambda do |q, pagina = 1|
+      como(admin, cuenta_ar) do
+        SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Message',
+                          params: { q: q, page: pagina }).perform[:messages].to_a
+      end
+    end
+    mediana_ms = lambda do |q|
+      Array.new(3) do
+        t = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        buscar.call(q)
+        ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t) * 1000).round
+      end.sort[1]
+    end
+    vieja = Message.where(inbox_id: archivo).where.not(content: [nil, '']).order(:created_at, :id).first
+    candidatas = vieja ? vieja.content.scan(/\p{L}{5,}/).uniq.first(12) : []
+    frecuencia = candidatas.to_h do |w|
+      [w, Message.where(account_id: cuenta).where('content ILIKE ?', "%#{Message.sanitize_sql_like(w)}%").count]
+    end
+    palabra, veces = frecuencia.min_by { |_, n| n }
+    if palabra
+      hecho(out, 'vieja_dias', ((Time.zone.now - vieja.created_at) / 1.day).floor)
+      paginas = [(veces.to_i / 15) + 2, 200].min
+      hallada = (1..paginas).any? do |pagina|
+        lista = buscar.call(palabra, pagina)
+        break false if lista.empty?
+
+        lista.any? { |m| m.id == vieja.id }
+      end
+      hecho(out, 'vieja_encontrada', hallada ? 'si' : 'no')
+      hecho(out, 'palabra_coincidencias_cuenta', veces)
+      hecho(out, 'palabra_ms', mediana_ms.call(palabra))
+    else
+      hecho(out, 'vieja_encontrada', 'sin_palabra')
+    end
+    hecho(out, 'sin_coincidencias_ms', mediana_ms.call("zq#{SecureRandom.hex(6)}"))
+    hecho(out, 'busqueda', 'ok')
+  rescue StandardError => e
+    hecho(out, 'busqueda', "error:#{e.class}")
+  end
 end
 
 case ENV['FASE']
@@ -240,4 +358,9 @@ when 'antes'
 when 'despues'
   SondaEnsayo.despues(out: $stdout, estado: ENV.fetch('ESTADO', '/tmp/estado/antes.json'),
                       cuenta: Integer(ENV.fetch('CUENTA')), bandeja: ENV.fetch('BANDEJA'))
+when 'usuario-real'
+  SondaEnsayo.usuario_real_fase(out: $stdout, cuenta: Integer(ENV.fetch('CUENTA')), bandeja: ENV.fetch('BANDEJA'),
+                                etapa: ENV.fetch('ETAPA'))
+when 'busqueda'
+  SondaEnsayo.busqueda(out: $stdout, cuenta: Integer(ENV.fetch('CUENTA')), bandeja: ENV.fetch('BANDEJA'))
 end
