@@ -25,6 +25,16 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-11-05 · SEO, GEO y AEO: fase A (SDD-0604, local)
+
+- `llms.txt` sin razón social ni RIF, con 2015 como fundación, «puerta a puerta (DDP)» y sin hablar de seguimiento de envíos.
+- Nueva `/llms-full.txt`, armada con los servicios, las FAQ y el glosario del código, sin precios.
+- `/privacidad` y `/cookies` entran al sitemap. Faltaban porque el contrato de cobertura leía la palabra `noindex` en comentarios; ya los ignora.
+- Los posts usan `updated_at` como `lastModified`. `robots.ts` nombra más agentes de IA; no cambia el acceso, que `*` ya permitía.
+- Clave de IndexNow publicada en `public/` y `scripts/indexnow-enviar.mjs`, sin envío real todavía.
+- **Pendiente fuera del repo:** enviar a IndexNow cuando la clave esté en producción (`node scripts/indexnow-enviar.mjs --enviar`), dar de alta el sitio en Bing Webmaster Tools y crear en GA4 el segmento de tráfico desde chatgpt.com, perplexity.ai, gemini.google.com y copilot.microsoft.com.
+- Sin promesa de ranking ni de citas: es corrección de señales. El plan del agente está en [`agente-seo-noticias.md`](agente-seo-noticias.md).
+
 ### 2026-10-23 · Promesas de seguimiento coherentes (SDD-0579, local)
 
 Cinco FAQ del sitio dejan de prometer eventos en vivo o etapas visibles en el Portal mientras `TRACKING_EN_CONSTRUCCION` siga encendido. `/faq` y `/shipping-mark` reutilizan las mismas respuestas en UI y FAQPage JSON-LD; `/puerta-a-puerta` conserva su selección. La fuente markdown de Kommo, el beneficio fuente de la infografía de pre-alerta y una referencia factual de privacidad se alinean sin alterar otras condiciones.

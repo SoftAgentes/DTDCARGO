@@ -117,6 +117,7 @@ Este índice no las mencionaba y era un hueco: cambiar una sin la otra las desin
   explícitamente como escalamiento.
 
 ### 📝 Contenido / Captación de leads
+- **Agente SEO de noticias:** diseño aprobado, sede y fases en [`agente-seo-noticias.md`](agente-seo-noticias.md).
 - **Centro editorial = `/noticias`**, nombre público **Actualidad** y portada
   **“Actualidad, guía y noticias”**. Conserva el motor existente de las SDD-0088/0089;
   no existe un `/blog` paralelo. Rediseño y gates en [`../specs/0167-actualidad-centro-editorial/spec.md`](../specs/0167-actualidad-centro-editorial/spec.md).

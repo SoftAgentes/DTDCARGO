@@ -168,8 +168,8 @@ Borrarlas antes lo decide y lo corre Sam. No está preparado aquí.
 
 ## Pendiente de esta tarea
 
-- CI y fusión de la PR, e instalación, por el Director General.
-- Registrar la instalación, y el conteo del paso 6 con el primer entrante real.
+- ~~CI y fusión de la PR, e instalación, por el Director General.~~ **Hecho el 2026-11-05:** #375 fusionada a las 16:08:16Z (`49bdba2e5`). Instalación de 16:09Z a 16:12Z, código 0, mismos contenedores, huella `caf1430ddfba9368`, sonda 0, 1, 1 y 1. Sidekiq tardó 1 min 55 s y Rails 56 s. Evidencia en `/srv/ops/evidencias/filtro-chatwoot-20261105T160907Z`, según el Director General. Registrado en el seguimiento de la spec.
+- **El conteo del paso 6 con el primer entrante real, todavía sin hacer.** `T` es la hora de la instalación, 2026-11-05T16:12Z. Se mide con los cuatro `grep -c` de la receta: solo conteos, sin abrir líneas.
 
 ## FUERA DE ALCANCE DETECTADO
 
