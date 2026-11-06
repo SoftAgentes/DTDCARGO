@@ -9,8 +9,15 @@ import { leerEstadoGuia } from "../estado-queries";
 import type { GuiaRecorrido } from "../tipos";
 
 const CATALOGO: GuiaRecorrido[] = [
-  { id: "dashboard", ruta: "/studio/dashboard", pasos: [{ id: "D1", ancla: "dashboard.a", clave: "k.a" }, { id: "D2", ancla: "dashboard.b", clave: "k.b" }] },
-  { id: "bandeja", ruta: "/studio/bandeja", pasos: [{ id: "B1", ancla: "bandeja.a", clave: "k.c" }] },
+  {
+    id: "dashboard",
+    ruta: "/studio/dashboard",
+    pasos: [
+      { id: "D1", ancla: "dashboard.a", clave: "guide.dashboard.welcome" },
+      { id: "D2", ancla: "dashboard.b", clave: "guide.dashboard.kpis" },
+    ],
+  },
+  { id: "bandeja", ruta: "/studio/bandeja", pasos: [{ id: "B1", ancla: "bandeja.a", clave: "guide.dashboard.panels" }] },
 ];
 
 function storageFalso(): Storage {

@@ -268,7 +268,9 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 | Gate de símbolos pendientes | PASÓ: 0 ROJO · 1 AMARILLO declarado (`user_guide_prefs`) |
 | Candado de migraciones, numeración e índice | PASÓ; la 0517, en espera sin sellar |
 | `/ui-check` de `GuiaBoton.tsx` y `GuiaTarjeta.tsx` | OK con ajustes menores, no bloqueante: cuatro controles en el primer paso automático, para mirar en vivo en 9.6; el objetivo táctil del botón, al montarlo; el `title` como pista secundaria |
-| `pnpm verify` | Pendiente: pide turno al Director General |
+| `pnpm verify` sobre `3df4e4e96`, con turno del Director General, de 04:12:51Z a 05:04:33Z | **FALLÓ en dos pasos.** (1) `typecheck`: tres claves inventadas en `estado.test.ts` que el tipo `GuiaClave` no admite. Error mío, corregido. (2) `test`, 14 852 de 14 855: vencimientos de 600 s en `prueba-migraciones-produccion.sh` y en las pruebas con dobles de `entorno-prueba-scripts.test.mjs`, scripts bash con el pool lleno; el diff no toca `scripts` ni `infra/ops`. PASÓ: harness, lint, rsc-boundary, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, e2e y build |
+| Después de la corrección: `typecheck` entero, y las dos pruebas vencidas a solas con un worker | PASÓ; 32 de 32, en 100,4 s y unos 120 s. El `verify` entero no se repitió: la corrección solo cambia esas tres claves de una prueba |
+| migrations-applied, sql-tests y schema-rebuild | NO DISPONIBLE: sin `.env.local` y con Docker apagado. El contrato SQL de la 0517 corre en PGlite: ver arriba |
 
 ### revisar-datos-ve de 9.3
 
