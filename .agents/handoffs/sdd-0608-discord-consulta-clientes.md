@@ -15,7 +15,7 @@ Especificar y construir `/cliente` en Discord: el equipo de Operación consulta 
 - **D1:** aplicación de Discord propia del Studio, no ALFRED (una URL de interacciones por aplicación; llaves aisladas).
 - **D7:** rama propia desde `main`, sin apilar sobre la 0606; se integra **después** de la PR de la 0606.
 - Ruta `POST /api/discord/interacciones` (`app/api/discord/interacciones/route.ts`) y lógica en `lib/studio/discord/consulta/` (`firma.ts`, `comando.ts` + `comando-cliente.json`, `consulta.ts`, `respuesta.ts`).
-- Migración `0516_discord_consulta_clientes.sql` (registro, tope por minuto con candado por persona, búsqueda que devuelve sólo `markbox` y `name`), su contrato SQL y la prueba PGlite con control rojo y 8 mutantes. Espera en `migrations-baseline.json` y declaración en `pending-migration-symbol-declarations.json`.
+- Migración `0516_discord_consulta_clientes.sql` (registro, tope por minuto con candado por persona, búsqueda que devuelve sólo `markbox` y `name`), su contrato SQL y la prueba PGlite con control rojo y 10 mutantes. Espera en `migrations-baseline.json` y declaración en `pending-migration-symbol-declarations.json`.
 - Script `scripts/discord/registrar-comando-cliente.mjs` (con `--dry-run`).
 - `.env.example` e `infra/dtd-cargo/.env.example`: `DISCORD_CONSULTA_PUBLIC_KEY`, `DISCORD_TENANT_ID` y, sólo en la raíz, las dos variables del script.
 - Revisión de privacidad [`privacidad.md`](../../docs/specs/0608-discord-consulta-clientes/privacidad.md) (8 CORRECTO, 3 ENCONTRADO, 5 NO VERIFICABLE) y fila propuesta en `docs/legal/privacidad/inventario-terceros.md`.
@@ -28,7 +28,7 @@ Especificar y construir `/cliente` en Discord: el equipo de Operación consulta 
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ — 586 specs |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ — sin números repetidos |
 | `git diff --check` | PASÓ |
-| vitest focal (`firma`, `respuesta`, `route`, `consulta-clientes.migration`) | NO EJECUTADO — esperando turno de máquina (ver abajo) |
+| vitest focal (`firma`, `respuesta`, `route`, `consulta-clientes.migration`) | NO EJECUTADO en local (sin turno). En el CI de la #387: run 42174032722 FALLÓ en typecheck (env de `spawnSync`, arreglado en `d6cb4266f`); run 42174722413 FALLÓ en Unitarios con dos rojos propios: el mutante «EXECUTE para authenticated» pasaba por otra razón (funciones INVOKER) y `process.env.PATH` rompía el contrato de `.env.example`; las demás pruebas de la 0608 pasaron. Arreglo en `c7cafd174`, pendiente de su corrida |
 | `typecheck` / `lint` | NO EJECUTADO — mismo motivo |
 | `pnpm verify` | NO EJECUTADO — requiere turno del Director General |
 | Discord real (firma, PING, comando) | NO DISPONIBLE — la aplicación no existe todavía |
