@@ -361,6 +361,18 @@ fi
 dc "${BASE[@]}" stop rails >/dev/null 2>&1
 vigilar "servir"
 
+# Copia mutada del cargador, para MI y para M. Tiene que estar definida antes de la primera llamada (MI-M1).
+mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
+  "$PY" -I -c 'import sys
+o, d, b, r = sys.argv[1:5]
+t = open(o, encoding="utf-8").read()
+n = t.count(b)
+if n != 1:
+    print(f"el texto a mutar aparece {n} veces")
+    sys.exit(1)
+open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1")" "$(win "$2")" "$3" "$4"
+}
+
 # ── MI. Miembros del Archivo (Sam, 2026-11-06: «todo el equipo») ─────────────
 # Después de AD4, que necesita un agente que no sea miembro. MODO=miembros-seco, MODO=miembros y otra vez
 # MODO=miembros: el seco no agrega; la primera deja a todos los usuarios de la cuenta como miembros sin notificar
@@ -416,16 +428,6 @@ escenario() { # id → salidas en $D/estado/m/<id>/
   dc "${BASE[@]}" run --rm -T -e "CARGADOR_RB=/tmp/estado/m/$1.rb" -e CARGA_ARCHIVO=/tmp/estado/carga.ndjson \
     -e "SALIDAS=/tmp/estado/m/$1" prepare bundle exec rails runner /tmp/cargador/escenario-mutante.rb \
     >"$D/estado/m/$1.log" 2>&1 </dev/null
-}
-mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
-  "$PY" -I -c 'import sys
-o, d, b, r = sys.argv[1:5]
-t = open(o, encoding="utf-8").read()
-n = t.count(b)
-if n != 1:
-    print(f"el texto a mutar aparece {n} veces")
-    sys.exit(1)
-open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1")" "$(win "$2")" "$3" "$4"
 }
 cayeron_en() { local k; for k in "${!RES[@]}"; do [ "${RES[$k]}" = FALLÓ ] && echo "$k"; done | sort | tr '\n' ' '; }
 # mutante <id> <qué rompe> <tienen que caer> <tienen que pasar> <texto> <reemplazo>

@@ -813,8 +813,8 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
 2. **Respaldo:**
    - `S=$(date -u +%Y%m%dT%H%M%SZ); cp -p compose.yml compose.yml.antes-busqueda-$S`;
    - `umask 077; docker logs chatwoot-rails-1 >/srv/backups/chatwoot/rails-antes-busqueda-$S.log 2>&1`. El log ya sale redactado por `zz_dtd_redaccion_logs.rb`, y queda con 0600 en el VPS.
-3. **Agregar la variable**, como en la PR de `infra/chatwoot`, debajo de `SMTP_OPENSSL_VERIFY_MODE` en `x-entorno`:
-   - la línea: `  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-1540}`;
+3. **Agregar la variable**, con las mismas tres líneas de la #396 (dos de comentario y la variable), debajo de `SMTP_OPENSSL_VERIFY_MODE` en `x-entorno`:
+   - la variable: `  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-1540}`;
    - validar con `docker compose config --quiet`, que no imprime nada;
    - leer solo esta clave: `docker compose config --format json | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["rails"]["environment"].get("SEARCH_TIME_RANGE_LIMIT_DAYS"))'`, que tiene que dar `1540`. El `.env` no se toca.
 4. **Recrear solo rails:** `docker compose up -d --no-deps --force-recreate rails`, con el compose del propio VPS. Nunca `up` del stack entero. Se anota la hora: el panel se cae entre 1 y 2 minutos.
@@ -837,4 +837,4 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
 
    Sin la variable, todo vuelve a ser como hoy: el cambio no toca datos.
 
-**Repositorio:** la misma línea en `infra/chatwoot/compose.yml` y `CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS=1540` en `.env.example`, en una PR aparte contra main, para que main y el VPS no se separen más. El default del compose es el que vale. El `.env` del VPS no necesita la línea; si un día se quiere otro valor, se pone ahí.
+**Repositorio:** la misma línea en `infra/chatwoot/compose.yml` y `CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS=1540` en `.env.example`, en la PR #396 contra main, para que main y el VPS no se separen más. Con el `.env.example`, `docker compose config` da `1540` en rails, sidekiq y prepare. El default del compose es el que vale. El `.env` del VPS no necesita la línea; si un día se quiere otro valor, se pone ahí.
