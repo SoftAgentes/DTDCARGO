@@ -64,6 +64,10 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
     no se creó ni se renombró. Con el «Sí, solo Dirección» de Sam se quitaron los roles Atención y
     Equipo de `#noticias`: quedan Admin, Dirección y Sam (deja de sincronizar con Operación). Hoy el
     único miembro con acceso es Sam: **Alejandro necesita el rol Dirección** para verlo.
+  - Después Sam pidió que lo vean «Alejandro y el otro miembro». No hay nadie llamado Alejandro en el
+    servidor; Sam eligió las cuentas `_satyr` (josemendezc) y «DTD Cargo» (doortudoorvzla), que se
+    agregaron como miembros de `#noticias`. Acceso final: Admin, Dirección, Sam, _satyr y DTD Cargo.
+    Descripción de `#noticias` puesta; `#decisiones` ya tenía la suya y no se tocó.
 
 ## Validación
 
