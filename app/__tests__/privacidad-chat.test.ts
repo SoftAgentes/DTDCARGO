@@ -20,9 +20,9 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
     expect(texto).toContain("los últimos 10 dígitos de tu teléfono");
   });
 
-  it("nombra a Meta y aclara que el sistema de atención es propio", () => {
+  it("nombra a Meta y ya no dice que todas las conversaciones se atienden en el sistema propio", () => {
     expect(texto).toContain("Meta (WhatsApp e Instagram)");
-    expect(texto).toContain("alojado en nuestro servidor");
+    expect(texto).not.toContain("Las conversaciones las atendemos en nuestro propio sistema");
   });
 
   // Sam aprobó estas palabras el 2026-11-05, por el Director General: si esta
@@ -33,9 +33,24 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
     );
   });
 
-  it("la fila de Meta dice exactamente lo que Sam aprobó, y la del sistema de atención no cambia", () => {
+  // Sam aprobó estos tres textos el 2026-11-05, por el Director General, con lo que
+  // dio la lectura L3 de SDD-0587. Si esta prueba falla porque cambió el texto, se le
+  // vuelve a preguntar. Fijan también el cierre de cada bloque: una frase de más sale roja.
+  it("la fila de Meta dice exactamente lo que Sam aprobó, y nada más", () => {
     expect(texto).toContain(
-      "<strong>Meta (WhatsApp e Instagram)</strong>, que transporta los mensajes que nos envías y te enviamos por esos canales. Las conversaciones las atendemos en nuestro propio sistema de atención, alojado en nuestro servidor.",
+      "<li> <strong>Meta (WhatsApp e Instagram)</strong>, que transporta los mensajes que nos envías y te enviamos por esos canales. </li>",
+    );
+  });
+
+  it("el punto del proveedor de gestión de clientes dice exactamente lo que Sam aprobó", () => {
+    expect(texto).toContain(
+      "<li> <strong>Proveedor de gestión de clientes</strong>, que todavía usamos para llevar el seguimiento de clientes y atender parte de las conversaciones por WhatsApp e Instagram. Recibe tu nombre, tu correo, tu teléfono o usuario y esos mensajes. Si te atendemos como cliente o te preparamos un estimado, también puede recibir tu Shipping Mark, el valor del estimado y las notas de seguimiento. Estamos pasando esa atención a nuestro propio sistema, alojado en nuestro servidor. </li>",
+    );
+  });
+
+  it("§5 agrega al primer párrafo lo que Sam aprobó, y va al final de ese párrafo", () => {
+    expect(texto).toContain(
+      "solo nosotros tenemos la clave para abrirlas. Mientras terminamos ese cambio, lo que pasa por ese proveedor también se guarda en sus servidores y en los de quienes le prestan servicio, que pueden estar en Estados Unidos o en otros países. </p>",
     );
   });
 
