@@ -604,7 +604,7 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 **Orden hasta producción** (de acuerdo con el Director General):
 1. Token de Sam.
 2. Sonda incremental (paso 3).
-3. Completa hasta el corte, entre 02:00 y 10:00Z.
+3. Completa hasta el corte: primero entre 02:00 y 10:00Z; desde el cambio de Sam, a las 05:00Z del 2026-11-07 y sin tope de hora (§10.12).
 4. Foto del ERP, `vincular` y `preparar-carga`.
 5. Este ensayo.
 6. Evidencia al Director General.
@@ -658,7 +658,7 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 
 ### 10.12 Paso 5.5b — adjuntos en Chatwoot (programado el 2026-11-06)
 
-**Sam dijo «Con adjuntos»** (2026-11-06, ~14:00Z, transmitido por el Director General). La completa va con adjuntos en este modo, en una sola bajada, si la 5.5b está en verde en CI y revisada por el Director General antes de las 00:30Z. Si no llega, se cancelan `kommo-e5-completa.timer` y `kommo-e5-vigia.timer`, no se corre solo con texto, el token se borra con su timer y la completa se reprograma otra noche, con Sam pegando el token otra vez. Lo que sigue es el diseño de antes de la respuesta; lo que quedó en código está al final de esta sección.
+**Sam dijo «Con adjuntos»** (2026-11-06, ~14:00Z, transmitido por el Director General). La completa va con adjuntos en este modo, en una sola bajada, si la 5.5b está en verde en CI y revisada por el Director General antes de las 03:30Z del 2026-11-07. La completa arranca a las 05:00Z, la 1:00 a. m. en Caracas, sin tope de hora: Sam cambió la hora a las ~14:25Z del 2026-11-06, y antes eran las 02:00Z con plazo a las 00:30Z. Si no llega, se cancelan `kommo-e5-completa.timer` y `kommo-e5-vigia.timer`, no se corre solo con texto, el token se borra con su timer y la completa se reprograma otra noche, con Sam pegando el token otra vez. Lo que sigue es el diseño de antes de la respuesta; lo que quedó en código está al final de esta sección.
 
 **Por qué hace falta un paso propio.** Hoy la extracción cifra cada adjunto al bajarlo, para las llaves de Sam y de emergencia (`respaldar-historial.py:757`), y nunca queda en claro en el servidor. El cargador no puede leerlos.
 

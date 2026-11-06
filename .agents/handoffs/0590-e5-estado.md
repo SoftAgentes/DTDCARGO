@@ -5,9 +5,9 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 **Estado al 2026-11-06, ~14:30Z.**
 - Sam pegó el token a las 13:40Z.
 - La sonda incremental corrió y su paquete es `/srv/backups/kommo/kommo-20261106T134402Z`. Su evidencia, solo conteos, se le mandó al Director General.
-- La completa está programada para el 2026-11-07 a las 02:00:00 UTC (`kommo-e5-completa.timer`, con `kommo-e5-vigia.timer` a la misma hora). El token se borra solo el 2026-11-07 a las 13:41:51 UTC (`kommo-e5-token-caduca.timer`).
+- La completa está programada para el 2026-11-07 a las 05:00:00 UTC, la 1:00 a. m. en Caracas, sin tope de hora (`kommo-e5-completa.timer`, con `kommo-e5-vigia.timer` a la misma hora y el tope de carga 8). El token se borra solo el 2026-11-08 a las 05:00:00 UTC (`kommo-e5-token-caduca.timer`). Reprogramado a las 14:28Z, a pedido de Sam (§2).
 - Sam pidió los adjuntos («Con adjuntos»), y la 5.5b está en la PR #394.
-- **Puerta de las 00:30Z:** si la #394 no está en verde y revisada por el Director General, se cancelan los dos timers de la completa y no se corre solo con texto (§2).
+- **Puerta de las 03:30Z:** si la #394 no está en verde y revisada por el Director General, se cancelan los dos timers de la completa y no se corre solo con texto (§2).
 - Nada se cargó en producción.
 
 ## 1. Las PR (borrador, apiladas). No se suben commits sin avisar al Director General
@@ -46,6 +46,12 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
   - la prueba en CI, con adjuntos inventados, mutantes, sin huérfanos y sin duplicar, y el ensayo que cuente adjuntos y bytes;
   - **plazo, las 00:30Z:** en verde en CI y revisada por él. Si llega, se redespliega el extractor con huellas y `completa.sh` pasa a `--adjuntos-para-carga` sin `--sin-adjuntos`, con el mismo token y a las 02:00Z como está programado;
   - **si no llega:** se cancelan `kommo-e5-completa.timer` y `kommo-e5-vigia.timer`. **No se corre solo con texto.** El token se borra con su timer, y se reprograma otra noche, con Sam pegándolo otra vez.
+- **Sam cambió la hora** (relayado por el Director General a las ~14:25Z): «Cambia el tiempo para la 1:00 a. m. de hoy sábado por la madrugada (o 2:00 a. m.), hasta lo que dure». El Director General pidió:
+  - la completa y su vigía, a las 05:00:00 UTC del 2026-11-07, sin tope de hora; el tope de carga 8 sigue;
+  - el borrado del token, a las 05:00:00 UTC del 2026-11-08, como red de seguridad. `completa.sh` lo sigue borrando apenas termina `extraer`, y si la para el vigía, queda para reanudar;
+  - **el plazo de la 5.5b pasa a las 03:30Z**, con las mismas condiciones.
+
+  **Ojo con reanudar:** `completa.sh` se niega a arrancar si el token tiene 24 h o más. Sam lo pegó a las 13:40:42Z, así que una reanudación después de las 13:40Z del 2026-11-07 sale con el código 11. La corrida de las 05:00Z arranca con unas 15 h 19 min, y esa guarda no la corta a mitad.
 
 ## 3. Lo que espera a Sam
 
@@ -60,7 +66,7 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 |---|---|---|---|
 | 1 | Sam pega el token | Sam | Hecho, a las 13:40Z |
 | 2 | Sonda incremental desde la base 5.1 hasta un corte (§5.2) | Subdirector, con aviso al Director General | Hecho; evidencia al Director General |
-| 3 | Completa hasta el corte, entre las 02:00 y las 10:00Z, con `--adjuntos-para-carga` si la #394 pasa la puerta de las 00:30Z (§5.3) | Subdirector | Programada para el 2026-11-07 a las 02:00Z |
+| 3 | Completa hasta el corte, desde las 05:00Z y sin tope de hora, con `--adjuntos-para-carga` si la #394 pasa la puerta de las 03:30Z (§5.3) | Subdirector | Programada para el 2026-11-07 a las 05:00Z |
 | 4 | Foto del ERP, `vincular` y `preparar-carga` (§5.4) | Subdirector | Guion listo, sin correr |
 | 5 | Ensayo en la copia efímera (§5.5) | Subdirector | Guion aprobado (#392), sin correr |
 | 6 | Evidencia del ensayo al Director General | Subdirector | — |
@@ -136,11 +142,11 @@ stat -c '%a %s %y' /dev/shm/k0582-e5     # el token SIGUE: lo usa la completa (�
 
 Lo que se mide aquí (spec §9.2): si Kommo respeta `filter[updated_at]` en notas y tareas, visto en `incremental.filtro_updated_at` (`fuera_de_la_ventana`). Se manda al Director General.
 
-### 5.3 Paso 3: la completa hasta el corte (entre las 02:00 y las 10:00Z)
+### 5.3 Paso 3: la completa hasta el corte (desde las 05:00Z, sin tope de hora)
 
-Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1). Dura unas 3,7 h sin adjuntos y unas 5 h con ellos (I), y tiene que terminar antes de las 10:00Z.
+Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1). Dura unas 3,7 h sin adjuntos y unas 5 h con ellos (I). El tope de las 10:00Z se quitó a pedido de Sam (§2): nunca estuvo en el código, solo en este guion.
 
-**Cómo quedó programada.** La corre `/srv/ops/kommo-historial-0590b/completa.sh`, por medio de `kommo-e5-completa.timer`, el 2026-11-07 a las 02:00:00 UTC. El vigía va en `kommo-e5-vigia.timer`, a la misma hora. El guion:
+**Cómo quedó programada.** La corre `/srv/ops/kommo-historial-0590b/completa.sh`, por medio de `kommo-e5-completa.timer`, el 2026-11-07 a las 05:00:00 UTC. El vigía va en `kommo-e5-vigia.timer`, a la misma hora. El guion:
 - se niega si el token no tiene 0600, si tiene 200 bytes o menos, o si tiene 24 h o más (código 11);
 - se niega si la carga pasa de 8 (código 12);
 - toma el corte en la hora en punto y espera 30 s;
@@ -149,7 +155,7 @@ Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1). Dura unas 3,7
 
 Si lo paran con TERM, devuelve 143 y no borra el token.
 
-**Con la 5.5b** (si pasa la puerta de las 00:30Z, §2), en `completa.sh` cambia una sola cosa: `--sin-adjuntos` sale y entra `--adjuntos-para-carga`. Antes se redespliega el extractor 1.3.0 de la #394 en `/srv/ops/kommo-historial-0590b` y se anotan las huellas. El bloque de abajo es el de antes; con la 5.5b, la línea del medio queda `--token-file /dev/shm/k0582-e5 --corte "$CORTE" --sondear-huecos -1 --adjuntos-para-carga \`.
+**Con la 5.5b** (si pasa la puerta de las 03:30Z, §2), en `completa.sh` cambia una sola cosa: `--sin-adjuntos` sale y entra `--adjuntos-para-carga`. Antes se redespliega el extractor 1.3.0 de la #394 en `/srv/ops/kommo-historial-0590b` y se anotan las huellas. El bloque de abajo es el de antes; con la 5.5b, la línea del medio queda `--token-file /dev/shm/k0582-e5 --corte "$CORTE" --sondear-huecos -1 --adjuntos-para-carga \`.
 
 ```sh
 stat -c '%a %s %y' /dev/shm/k0582-e5     # 600, más de 200 bytes, menos de 24 h; si no, Sam lo pega otra vez
