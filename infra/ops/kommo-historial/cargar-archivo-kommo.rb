@@ -28,10 +28,30 @@ class CargaArchivoKommo
   ENTRANTE = 0 # Message.message_types[:incoming]
   SALIENTE = 1 # Message.message_types[:outgoing]
 
-  def initialize(cuenta_id:, bandeja_id: nil, modo: 'seco', salida: $stdout)
+  # Punto de entrada: el script lo llama con ENV, $stdin y $stdout; la prueba de mutantes, con un Hash y archivos.
+  # Devuelve el código de salida.
+  def self.principal(env, entrada: $stdin, salida: $stdout)
+    modo = env.fetch('MODO')
+    cargador = new(cuenta_id: env.fetch('CUENTA'), bandeja_id: env['BANDEJA'].presence, modo: modo,
+                   entrada: entrada, salida: salida)
+    if modo == 'crear-bandeja'
+      cargador.crear_bandeja(env.fetch('NOMBRE', 'Archivo Kommo'))
+    else
+      cargador.cargar(env.fetch('CARGA'))
+    end
+    0
+  rescue StandardError => e
+    # Solo los mensajes propios; de los demás, la clase: los errores de la base pueden traer valores de la fila.
+    salida.puts 'HECHO carga=error'
+    salida.puts "HECHO error=#{e.instance_of?(RuntimeError) ? e.message : e.class.name}"
+    1
+  end
+
+  def initialize(cuenta_id:, bandeja_id: nil, modo: 'seco', entrada: $stdin, salida: $stdout)
     @cuenta_id = Integer(cuenta_id)
     @bandeja_id = bandeja_id && Integer(bandeja_id)
     @modo = modo
+    @entrada = entrada
     @salida = salida
     @cuenta = Hash.new(0)
     @falso = 0
@@ -68,7 +88,7 @@ class CargaArchivoKommo
     personas = []
     conversaciones = []
     mensajes = []
-    fuente = ruta == '-' ? $stdin : File.open(ruta, encoding: 'UTF-8')
+    fuente = ruta == '-' ? @entrada : File.open(ruta, encoding: 'UTF-8')
     fuente.each_line do |linea|
       next if linea.strip.empty?
 
@@ -311,19 +331,4 @@ class CargaArchivoKommo
   end
 end
 
-if ENV['MODO']
-  begin
-    modo = ENV.fetch('MODO')
-    cargador = CargaArchivoKommo.new(cuenta_id: ENV.fetch('CUENTA'), bandeja_id: ENV['BANDEJA'].presence, modo: modo)
-    if modo == 'crear-bandeja'
-      cargador.crear_bandeja(ENV.fetch('NOMBRE', 'Archivo Kommo'))
-    else
-      cargador.cargar(ENV.fetch('CARGA'))
-    end
-  rescue StandardError => e
-    # Solo los mensajes propios; de los demás, la clase: los errores de la base pueden traer valores de la fila.
-    puts 'HECHO carga=error'
-    puts "HECHO error=#{e.instance_of?(RuntimeError) ? e.message : e.class.name}"
-    exit 1
-  end
-end
+exit(CargaArchivoKommo.principal(ENV)) if ENV['MODO']

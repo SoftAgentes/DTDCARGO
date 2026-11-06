@@ -116,9 +116,10 @@ Rechaza una bandeja con `webhook_url` o de otra cuenta, reusa contactos por tel�
 la segunda corrida. `MODO=seco` solo cuenta, sin consumir números de conversación. La salida son solo conteos
 (`HECHO clave=valor`).
 
-Prueba local en Docker, con datos inventados y la imagen real (una corrida pesada: pide turno):
-`bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh`. Mide E-3 y E-6 a E-11 (SDD-0590 §10.4) y para
-sola si el commit libre de Windows baja de 3 GB.
+Prueba con datos inventados y la imagen real: corre en GitHub Actions en cada PR que toque esta carpeta
+(`.github/workflows/kommo-historial-cargador.yml`). Mide E-4 a E-11 (SDD-0590 §10.4) y corre el control M0
+y 20 mutantes. En una PC con Docker: `bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
+[--sin-mutantes]`. Es una corrida pesada, así que pide turno, y para sola si la memoria libre baja de 3 GB.
 
 | Paso | Qué deja | Con datos de personas |
 |---|---|---|

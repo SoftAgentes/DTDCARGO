@@ -1,8 +1,10 @@
-# Overlay de la PRUEBA LOCAL del cargador del Archivo Kommo (SDD-0590 5.5). Nunca en el VPS.
+# Overlay de la PRUEBA del cargador del Archivo Kommo (SDD-0590 5.5), en GitHub Actions o en una PC. Nunca en
+# el VPS.
 #
-# prueba-cargador.sh corre el cargador y su sonda con `rails runner` en el servicio `prepare`, que solo está en
-# la red `interna` (internal: true): sin salida a internet. Sin Sidekiq ni Rails corriendo, todo trabajo que se
-# encole queda en Redis y se puede contar.
+# prueba-cargador.sh corre el cargador, su sonda y los mutantes con `rails runner` en el servicio `prepare`, que
+# solo está en la red `interna` (internal: true): sin salida a internet. Sin Sidekiq ni Rails corriendo, todo
+# trabajo que se encole queda en Redis y se puede contar. `estado` es de escritura: la línea base y las salidas
+# de los mutantes.
 
 services:
   prepare:

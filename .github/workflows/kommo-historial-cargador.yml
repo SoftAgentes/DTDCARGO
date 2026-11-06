@@ -1,0 +1,45 @@
+name: Cargador del Archivo Kommo
+
+# SDD-0590 paso 5.5: prueba del cargador del «Archivo Kommo» con datos INVENTADOS, sobre la imagen real de
+# Chatwoot (v4.19.1-ce, fijada por digest en infra/chatwoot/compose.yml) con su Postgres y su Redis.
+# Mide E-4 a E-11 de la SDD-0590 §10.4 y corre el control M0 y los mutantes (prueba-cargador.sh).
+#
+# Sin secretos ni variables del repositorio, sin token de Kommo y sin pedirle nada a Kommo ni a internet desde
+# Rails: el servicio `prepare` vive en la red `interna` (internal: true) del compose.
+# No reemplaza a «Calidad continua» (quality.yml), que corre solo contra main.
+
+on:
+  pull_request:
+    paths:
+      - "infra/ops/kommo-historial/**"
+      - "infra/chatwoot/compose.yml"
+      - "infra/chatwoot/pruebas/compose.local.yml"
+      - "infra/chatwoot/rails/**"
+      - ".github/workflows/kommo-historial-cargador.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kommo-cargador-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargador:
+    name: Cargador del Archivo Kommo (datos inventados)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pruebas del extractor (Python)
+        run: python3 -I infra/ops/kommo-historial/pruebas/test_respaldar.py
+
+      - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
+        run: bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
