@@ -32,29 +32,55 @@ Los canales siguen privados: solo Sam (y quien él agregue) los ve.
 
 ## 2 · Dónde pega Sam la llave en el VPS de producción
 
-En el VPS `217.216.54.70`, como root, dentro de tmux (la sesión de Contabo abre la
-ventana; **Sam pega**). El valor no se muestra ni pasa por `ps`: `read -s`, `printf`
-y `[[ ]]` son internos de bash.
+Con `infra/ops/web/guardar-webhook-discord.sh`. La sesión de Contabo lo instala
+antes en `/srv/ops/web/` (root, 700), con el mismo procedimiento del § 3.
+
+La dirección no pasa por ningún chat ni por una ventana de `ssh -t`. El
+2026-11-05, en la oficina, pegar dentro de `ssh -t` desde la consola de Windows no
+llegó bien a `read -s`. Ahora viaja del portapapeles de Sam a la entrada estándar
+del guion.
+
+**Sam, en PowerShell de su PC, en este orden:**
+
+1. Pega este comando en PowerShell **sin pulsar Enter**:
+
+   ```powershell
+   Get-Clipboard | C:\Windows\System32\OpenSSH\ssh.exe -o BatchMode=yes root@217.216.54.70 /srv/ops/web/guardar-webhook-discord.sh
+   ```
+
+2. En Discord: `#publicaciones` → Editar canal → Integraciones → Webhooks →
+   `Servidor · publicaciones` → **Copiar URL del webhook**. Ahora el portapapeles
+   tiene la dirección, no el comando.
+3. Vuelve a PowerShell y pulsa **Enter**.
+
+**Qué hace el guion:**
+
+- busca la dirección dentro de lo pegado, aunque traiga comillas, espacios, saltos de línea o texto alrededor;
+- normaliza `discordapp.com`, `ptb.` y `/api/vN` a `https://discord.com/api/webhooks/<id>/<token>`;
+- le pregunta a Discord (`GET` al webhook) y exige que sea del canal `#publicaciones` (`1567955265918079096`);
+- respalda `publicar.env` como `publicar.env.antes-0609-<fecha UTC>`, en la misma carpeta y en 600, porque lleva llaves;
+- escribe `PUBLICAR_DISCORD_WEBHOOK`, quita las líneas `PUBLICAR_TELEGRAM_*` y deja el archivo en `600 root`.
+
+Responde una sola línea, sin la dirección:
+
+| Salida | Qué hacer |
+|---|---|
+| `GUARDADA · 121 caracteres · sha256 1a2b3c4d5e6f · canal #publicaciones · … en 600 root · respaldo …` | Listo. La huella sirve para comparar si se vuelve a pegar, sin mostrar la dirección |
+| `NO GUARDADA: lo pegado no trae la dirección…` | El portapapeles tenía otra cosa. Repite desde el paso 1 |
+| `NO GUARDADA: el webhook es del canal …, no de #publicaciones` | Se copió el webhook de otro canal (por ejemplo `#salud`). Copia el de `#publicaciones` |
+| `NO GUARDADA: Discord no reconoce ese webhook (HTTP 401/404)` | Se copió incompleto o el webhook se borró. Copia de nuevo o crea otro (§ 1) |
+| `NO GUARDADA: trae 2 direcciones…` | Copia solo una |
+| `NO GUARDADA: no pude preguntarle a Discord …` / `HTTP 429` / `HTTP 5xx` | Pasajero. Repite en un minuto |
+
+Con `NO GUARDADA` no se cambió nada: ni el archivo ni el respaldo. El `TELEGRAM_BOT_TOKEN` del `.env` de la app **no se toca**: lo usa el Studio hasta que la SDD-0606 lo retire.
+
+Comprobación sin ver la llave, desde la sesión de Contabo:
 
 ```bash
-cd /srv/ops/web
-read -rs -p 'Pega la URL del webhook de #publicaciones y Enter: ' W; echo
-W="${W//$'\r'/}"; W="${W#"${W%%[![:space:]]*}"}"; W="${W%"${W##*[![:space:]]}"}"
-[[ "$W" =~ ^https://(discord\.com|discordapp\.com)/api/webhooks/[0-9]{17,20}/[A-Za-z0-9_-]{20,100}$ ]] && echo "forma OK (${#W} caracteres)" || echo "NO tiene la forma de un webhook: no sigas"
+stat -c '%a %U' /srv/ops/web/publicar.env; grep -c '^PUBLICAR_DISCORD_WEBHOOK=' /srv/ops/web/publicar.env; grep -c '^PUBLICAR_TELEGRAM_' /srv/ops/web/publicar.env
 ```
 
-Solo con «forma OK»:
-
-```bash
-cp -p publicar.env "publicar.env.antes-0609-$(date -u +%Y%m%dT%H%M%SZ)"   # se queda aquí, root 600: lleva llaves
-{ grep -v '^PUBLICAR_DISCORD_WEBHOOK=\|^PUBLICAR_TELEGRAM_' publicar.env; printf 'PUBLICAR_DISCORD_WEBHOOK=%s\n' "$W"; } > publicar.env.nuevo \
-  && chmod 600 publicar.env.nuevo && mv publicar.env.nuevo publicar.env; unset W
-stat -c '%a %U' publicar.env; grep -c '^PUBLICAR_DISCORD_WEBHOOK=' publicar.env; grep -c '^PUBLICAR_TELEGRAM_' publicar.env
-```
-
-Esperado: `600 root`, `1`, `0`. Las líneas `PUBLICAR_TELEGRAM_*` se quitan (corte
-directo). El `TELEGRAM_BOT_TOKEN` del `.env` de la app **no se toca**: lo usa el
-Studio hasta que la SDD-0606 lo retire.
+Esperado: `600 root`, `1`, `0`.
 
 ## 3 · Instalar los scripts (sesión de Contabo, con el OK del Director General)
 
@@ -63,12 +89,13 @@ Desde el commit fusionado `M` de `main`, con el procedimiento de solo script de
 candado `/run/lock/dtd-cargo-publicar.lock`, respaldo con hash en
 `/srv/ops/evidencias/`, temporal root/700 en `/srv/ops/web/` y renombrado atómico.
 
-1. **Primero** `aviso-discord.sh` (nuevo, root 700): no lo usa nadie todavía.
-2. **Después** `publicar-web.sh`. Si se instala antes del paso 2, cada aviso dice
+1. **Primero** `guardar-webhook-discord.sh` y `aviso-discord.sh` (nuevos, root 700):
+   no los usa nadie todavía. Con el primero, Sam hace el § 2.
+2. **Después** `publicar-web.sh`. Si se instala antes del § 2, cada aviso dice
    en el journal «aviso NO enviado: Discord SIN CONFIGURAR» y la publicación sigue
    igual.
 
-Comprobación: `sha256sum /srv/ops/web/{aviso-discord,publicar-web}.sh` igual a
+Comprobación: `sha256sum /srv/ops/web/{guardar-webhook-discord,aviso-discord,publicar-web}.sh` igual a
 `git show M:infra/ops/web/<archivo> | sha256sum`.
 
 ## 4 · Prueba de ida y vuelta
