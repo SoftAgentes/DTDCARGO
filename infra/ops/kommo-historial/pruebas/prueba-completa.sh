@@ -15,12 +15,13 @@
 #   G5   token con permisos 644: código 11
 #   G6   token de 200 bytes: código 11
 #   G7   sin token: código 11
-#   G8   carga por encima de 8: código 12, sin llamar a extraer
+#   G8   carga alta (17.00 a 1 minuto, 9.00 a 5): código 12, sin llamar a extraer
+#   G14  un pico de 9.50 a 1 minuto con 6.00 a 5 minutos no la frena: corre extraer
 #   G9   TERM a mitad de extraer (como el vigía): código 143, el token y el timer quedan para reanudar
 #   G10  extraer falla: devuelve su código, borra el token y para el timer
 #   F1   el contenido del token no aparece en ninguna salida
 #   M0   control: una copia sin cambios pasa todo
-#   MC1–MC8 mutantes: cada uno tiene que tumbar sus comprobaciones y dejar pasar las otras
+#   MC1–MC9 mutantes: cada uno tiene que tumbar sus comprobaciones y dejar pasar las otras
 set -uo pipefail
 PRUEBAS="$(cd "$(dirname "$0")" && pwd)"
 COMPLETA="$PRUEBAS/../completa.sh"
@@ -71,7 +72,7 @@ token() { # bytes permisos: un token falso que se reconoce en las salidas
   python3 -I -c 'import sys; sys.stdout.write(("FALSOTOKEN" * 200)[: int(sys.argv[1])])' "$1" >"$W/token"
   chmod "$2" "$W/token"
 }
-carga() { echo "$1 0.50 0.40 1/100 1" >"$W/carga"; }
+carga() { echo "$1 ${2:-0.50} 0.40 1/100 1" >"$W/carga"; } # 1 minuto [5 minutos]
 nueva_unidad() { N=$((N + 1)); U="$PREFIJO-$N"; }
 timer_futuro() { # el caso normal: OnCalendar por disparar, como kommo-e5-token-caduca
   systemd-run --quiet --unit "$U" --on-calendar='2099-01-01 00:00:00 UTC' --timer-property=AccuracySec=1s /bin/true
@@ -167,9 +168,14 @@ casos() { # script → $W/r/<id> = si | no
   anota G7 '[ "$(rc g7)" = 11 ] && sin_llamar && grep -qx "token=ausente" "$W/g7.estado" && activo'
   quitar
 
-  token 1035 600; carga 9.50; nueva_unidad; timer_futuro
+  token 1035 600; carga 17.00 9.00; nueva_unidad; timer_futuro
   correr "$S" g8
   anota G8 '[ "$(rc g8)" = 12 ] && sin_llamar && [ -e "$W/token" ] && activo'
+  quitar
+
+  token 1035 600; carga 9.50 6.00; nueva_unidad; timer_futuro
+  correr "$S" g14
+  anota G14 '[ "$(rc g14)" = 0 ] && [ "$(grep -c . "$W/args")" = 1 ] && grep -qx "codigo=0" "$W/g14.estado"'
   quitar
 
   # G9: TERM a bash mientras extraer duerme, como cuando el vigía para la unidad.
@@ -210,13 +216,14 @@ declare -A TEXTO=(
   [G5]="token con permisos 644: código 11"
   [G6]="token de 200 bytes: código 11"
   [G7]="sin token: código 11"
-  [G8]="carga 9.50: código 12, extraer no se llama"
+  [G8]="carga 17.00 a 1 minuto y 9.00 a 5: código 12, extraer no se llama"
+  [G14]="pico de 9.50 a 1 minuto con 6.00 a 5 minutos: corre extraer"
   [G9]="TERM a mitad de extraer: código 143, el token y el timer quedan para reanudar"
   [G10]="extraer falla con 3: devuelve 3, borra el token y para el timer"
   [G11]="el extractor desplegado no entiende --adjuntos-para-carga (la 1.2.0): código 13, sin llamar a extraer; el token y el timer quedan"
   [F1]="el contenido del token no aparece en ninguna salida"
 )
-IDS="G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 F1"
+IDS="G1 G2 G3 G4 G5 G6 G7 G8 G14 G9 G10 G11 G12 G13 F1"
 
 echo "== completa.sh"
 casos "$COMPLETA"
@@ -273,6 +280,8 @@ mutante MC5 "borra el token cuando la paran" "G9" "G1 G2" \
 mutante MC6 "no mira si el extractor entiende --adjuntos-para-carga" "G11" "G1 G2" \
   '  *) estado "extractor=sin_adjuntos_para_carga: no se pide nada a Kommo"; estado "codigo=13"; exit 13 ;;' \
   '  *) estado "extractor=sin_adjuntos_para_carga" ;;'
+mutante MC9 "vuelve a la carga de 1 minuto sola (más de 8, la guarda de antes)" "G14" "G1 G8" \
+  "c + 0 <= 16 && d + 0 <= 8" "c + 0 <= 8"
 mutante MC7 "mira la ayuda con | grep -q y pipefail" "G1" "G2 G11" \
   'case "$ayuda" in' \
   'python3 -I "$AQUI/respaldar-historial.py" extraer --help 2>/dev/null | grep -q -- --adjuntos-para-carga || ayuda=vieja
