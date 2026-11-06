@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 587 specs)
+### Índice de specs (generado · 588 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -625,6 +625,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
 | 0604 | SEO, GEO y AEO: fase A, mejoras estáticas del sitio público | in-progress | interno |
 | 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
+| 0607 | Puente de ALFRED en el repositorio y corte de la oficina a Di… | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0603 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0603, 0606 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
