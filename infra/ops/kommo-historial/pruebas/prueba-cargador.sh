@@ -94,6 +94,9 @@ h() { sed -n "s/^HECHO $2=//p" "$1" 2>/dev/null | tail -n 1 | tr -d '\r'; }
 cero() { [ "${1:-0}" = 0 ]; }
 cola_igual() { [ -n "$1" ] && [ "${1%%->*}" = "${1##*->}" ] && [ "${1%%->*}" != -1 ]; }
 avance() { [ -n "$1" ] && [ "$(( ${1##*->} - ${1%%->*} ))" = "$2" ]; }
+dif() { [ -n "$1" ] && echo "$(( ${1##*->} - ${1%%->*} ))"; }
+# Lo que encola crear una bandeja con los modelos, igual que desde el panel (cargar-archivo-kommo.rb).
+AVISO_BANDEJA="ActionCableBroadcastJob:1,EventDispatcherJob:1"
 
 memoria_libre_mb() {
   if command -v powershell.exe >/dev/null 2>&1; then
@@ -139,7 +142,8 @@ comprobar() {
   B="$(h "$F" bandeja)"
   exigir B1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" bandeja_existia)" = no ] && [ -n "$B" ] && [ "$(h "$F" webhook_url)" = no ] && [ "$(h "$F" miembros)" = 0 ]' \
     "bandeja $B: canal API, sin webhook_url, sin miembros"
-  exigir B2 'cola_igual "$(h "$F" cola)"' "crear la bandeja no encola trabajos (cola $(h "$F" cola))"
+  exigir B2 '[ "$(h "$F" trabajos_nuevos)" = "$AVISO_BANDEJA" ] && [ "$(dif "$(h "$F" cola)")" = 2 ]' \
+    "crear la bandeja encola solo el aviso de bandeja nueva, como desde el panel: $(h "$F" trabajos_nuevos)"
   F="$O/bandeja-2.txt"
   exigir B3 '[ "$(h "$F" bandeja)" = "$B" ] && [ "$(h "$F" bandeja_existia)" = si ]' "la segunda vez devuelve la misma bandeja"
 
@@ -158,7 +162,7 @@ comprobar() {
   exigir S3 '[ "$(h "$F" antes)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$F" despues)" = "$(h "$F" antes)" ]' \
     "no escribe nada ($(h "$F" despues))"
   exigir S4 'avance "$(h "$F" secuencia)" 0' "no consume números de conversación ($(h "$F" secuencia))"
-  exigir S5 'cola_igual "$(h "$F" cola)"' "no encola trabajos ($(h "$F" cola))"
+  exigir S5 'cola_igual "$(h "$F" cola)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' "no encola trabajos ($(h "$F" cola), $(h "$F" trabajos_nuevos))"
 
   F="$O/carga-1.txt"
   exigir C1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_nuevas)" = 5 ] && [ "$(h "$F" mensajes_nuevos)" = 8 ] && [ "$(h "$F" personas_nuevas)" = 3 ] && [ "$(h "$F" personas_reusadas)" = 2 ] && [ "$(h "$F" contact_inboxes_nuevos)" = 5 ]' \
@@ -169,13 +173,15 @@ comprobar() {
     "ninguna fila omitida por un conflicto ni mensaje sin conversación"
   exigir C4 '[ "$(h "$F" despues)" = "conversaciones:5,mensajes:8,contact_inboxes:5" ]' "filas en la bandeja después: $(h "$F" despues)"
   exigir C5 'avance "$(h "$F" secuencia)" 5' "los números de conversación avanzan 5 ($(h "$F" secuencia))"
-  exigir C6 'cola_igual "$(h "$F" cola)"' "la carga no encola trabajos (cola $(h "$F" cola))"
+  exigir C6 'cola_igual "$(h "$F" cola)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "la carga no encola trabajos (cola $(h "$F" cola), $(h "$F" trabajos_nuevos))"
   F="$O/carga-2.txt"
   exigir E7a '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && cero "$(h "$F" personas_nuevas)" && cero "$(h "$F" contact_inboxes_nuevos)"' \
     "E-7: segunda carga, 0 filas nuevas"
   exigir E7b '[ "$(h "$F" conversaciones_existentes)" = 5 ] && [ "$(h "$F" mensajes_existentes)" = 8 ] && [ "$(h "$F" personas_reusadas)" = 4 ] && [ "$(h "$F" despues)" = "conversaciones:5,mensajes:8,contact_inboxes:5" ]' \
     "E-7: reconoce lo cargado: 5 conversaciones, 8 mensajes y 4 personas"
-  exigir E7c 'avance "$(h "$F" secuencia)" 0 && cola_igual "$(h "$F" cola)"' "E-7: ni números ni trabajos ($(h "$F" secuencia), cola $(h "$F" cola))"
+  exigir E7c 'avance "$(h "$F" secuencia)" 0 && cola_igual "$(h "$F" cola)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "E-7: ni números ni trabajos ($(h "$F" secuencia), cola $(h "$F" cola), $(h "$F" trabajos_nuevos))"
 
   local fugas=0 f m
   for f in bandeja-1 bandeja-2 rechazo-webhook rechazo-cuenta seco carga-1 carga-2; do
@@ -190,14 +196,15 @@ comprobar() {
 
   F="$O/sonda-verificar.txt"
   exigir E0 '[ "$(h "$F" verificar)" = ok ]' "la sonda corrió entera"
-  exigir E45 '[ "$(h "$F" cola_delta)" = 0 ] && [ "$(h "$F" con_webhook_conversaciones)" = 0 ]' \
-    "E-4 y E-5: 0 trabajos encolados desde la línea base y 0 conversaciones en la bandeja con webhook"
+  exigir E45 '[ -n "$(h "$F" cola_delta)" ] && [ "$(h "$F" cola_delta)" = "$(dif "$(h "$O/bandeja-1.txt" cola)")" ] && [ "$(h "$F" con_webhook_conversaciones)" = 0 ]' \
+    "E-4 y E-5: desde la línea base, ningún trabajo fuera de los $(dif "$(h "$O/bandeja-1.txt" cola)") del aviso de bandeja nueva (en total $(h "$F" cola_delta)), y 0 conversaciones en la bandeja con webhook"
   exigir E6a '[ "$(h "$F" conversaciones)" = 5 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ] && [ "$(h "$F" resueltas)" = 5 ]' \
     "E-6: 5 conversaciones resueltas, 8 mensajes (5 entrantes, 3 salientes)"
   exigir E6b '[ "$(h "$F" historicas)" = 1 ] && [ "$(h "$F" mensajes_historicos)" = 3 ]' \
     "E-6: con sus fechas de Kommo, 1 conversación y 3 mensajes de hace más de 400 días"
   exigir E6c '[ "$(h "$F" autores)" = "Bot Kommo|SINT-Asesora|SINT-Asesora" ]' "E-6: los salientes llevan su autor por nombre de pila o «Bot Kommo»"
-  exigir E6d '[ "$(h "$F" json_conv)" = 0 ] && [ "$(h "$F" json_msg)" = 0 ]' "E-6: los atributos quedan como objeto JSON, no como texto"
+  exigir E6d '[ "$(h "$F" json_conv)" = 0 ] && [ "$(h "$F" json_msg_como_chatwoot | cut -d: -f1)" = si ] && [ "$(h "$F" no_reenviados)" = 8 ]' \
+    "E-6: los atributos de la conversación son objeto JSON y los del mensaje quedan como los guarda Chatwoot ($(h "$F" json_msg_como_chatwoot)); su scope not_forwarded los lee ($(h "$F" no_reenviados))"
   exigir E6e '[ "$(h "$F" procesado_faltante)" = 0 ] || [ "$(h "$F" procesado_faltante)" = sin_columna ]' \
     "E-6: processed_message_content lleno donde hay texto ($(h "$F" procesado_faltante))"
   exigir E6f '[ "$(h "$F" no_leidos)" = 0 ]' "E-6: la bandeja no muestra entrantes viejos como no leídos ($(h "$F" no_leidos))"

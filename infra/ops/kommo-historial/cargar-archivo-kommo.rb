@@ -80,6 +80,25 @@ class CargaArchivoKommo
     -1
   end
 
+  # Trabajos esperando en Sidekiq, por clase. Solo nombres de clase, nunca argumentos.
+  def trabajos_por_clase
+    require 'sidekiq/api'
+    cuenta = Hash.new(0)
+    [*Sidekiq::Queue.all, Sidekiq::ScheduledSet.new, Sidekiq::RetrySet.new].each do |cola|
+      cola.each { |trabajo| cuenta[trabajo.display_class] += 1 }
+    end
+    cuenta
+  rescue StandardError
+    nil
+  end
+
+  def trabajos_nuevos(antes, despues)
+    return 'desconocido' unless antes && despues
+
+    nuevos = despues.filter_map { |clase, n| "#{clase}:#{n - antes[clase]}" if n > antes[clase] }.sort
+    nuevos.empty? ? 'ninguno' : nuevos.join(',')
+  end
+
   def secuencia
     ActiveRecord::Base.connection.select_value("SELECT last_value FROM conv_dpid_seq_#{@cuenta_id}").to_i
   end
@@ -285,6 +304,7 @@ class CargaArchivoKommo
     hecho('leidas', "personas:#{personas.size},conversaciones:#{conversaciones.size},mensajes:#{mensajes.size}")
     hecho('antes', filas_en_bandeja)
     cola_antes = trabajos_en_cola
+    clases_antes = trabajos_por_clase
     secuencia_antes = secuencia
     ActiveRecord::Base.transaction do
       contacto_de = cargar_personas(personas)
@@ -299,17 +319,22 @@ class CargaArchivoKommo
     hecho('despues', filas_en_bandeja)
     hecho('secuencia', "#{secuencia_antes}->#{secuencia}")
     hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
     hecho('modo', @modo)
     hecho('carga', 'ok')
   end
 
   # La bandeja «Archivo Kommo»: canal API sin webhook_url, sin asignación automática, sin saludo ni encuesta.
   # Si ya existe una bandeja API con ese nombre en la cuenta, la devuelve sin tocarla.
+  # Se crea con los modelos, como desde el panel, así que Chatwoot avisa de la bandeja nueva: un
+  # EventDispatcherJob (el evento `inbox_created`, que solo llega a los webhooks de cuenta suscritos a él) y un
+  # ActionCableBroadcastJob (los navegadores de los agentes). Ninguno escribe a un cliente.
   def crear_bandeja(nombre)
     raise 'falta NOMBRE' if nombre.blank?
 
     existente = Inbox.where(account_id: @cuenta_id, name: nombre, channel_type: 'Channel::Api').order(:id).first
     cola_antes = trabajos_en_cola
+    clases_antes = trabajos_por_clase
     if existente
       hecho('bandeja_existia', 'si')
       bandeja = existente
@@ -327,6 +352,7 @@ class CargaArchivoKommo
     hecho('webhook_url', bandeja.channel.webhook_url.present? ? 'si' : 'no')
     hecho('miembros', InboxMember.where(inbox_id: bandeja.id).count)
     hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
     hecho('carga', 'ok')
   end
 end

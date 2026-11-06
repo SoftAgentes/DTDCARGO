@@ -91,7 +91,8 @@ module SondaCargador
     hecho.call('mensajes_historicos', msgs.where('created_at < ?', 400.days.ago).count)
     medir.call('autores') { msgs.where(message_type: :outgoing).map { |m| m.content_attributes['kommo_autor'] }.compact.sort.join('|') }
     hecho.call('json_conv', convs.where("jsonb_typeof(additional_attributes::jsonb) <> 'object'").count)
-    hecho.call('json_msg', msgs.where("json_typeof(content_attributes::json) <> 'object'").count)
+    # Un scope de Chatwoot que lee content_attributes en SQL: tiene que funcionar sobre lo cargado.
+    medir.call('no_reenviados') { msgs.not_forwarded.count }
     if Message.column_names.include?('processed_message_content')
       hecho.call('procesado_faltante', msgs.where.not(content: nil).where(processed_message_content: nil).count)
     else
@@ -144,6 +145,25 @@ module SondaCargador
     hecho.call('display_nulos', Conversation.where(account_id: cuenta, display_id: nil).count)
     orden = convs.order(:display_id).map { |c| c.created_at.to_i }
     hecho.call('display_en_orden', orden == orden.sort ? 'si' : 'no')
+
+    # E-6: content_attributes queda guardado igual que lo guarda Chatwoot con sus modelos. Chatwoot lo
+    # serializa como texto JSON dentro de la columna json (de ahí su scope `#>> '{}'`), así que no se compara
+    # contra «objeto» sino contra dos mensajes de referencia creados con el modelo, uno con atributos y otro
+    # sin ellos. Va al final: crearlos encola trabajos y toca la conversación viva.
+    medir.call('json_msg_como_chatwoot') do
+      tipo = Arel.sql('json_typeof(content_attributes::json)')
+      viva = Conversation.find(b['conv'])
+      lleno = viva.messages.create!(account_id: cuenta, inbox_id: b['viva'], message_type: :outgoing,
+                                    content: 'SINT-REFERENCIA', content_attributes: { 'kommo_autor' => 'SINT' })
+      vacio = viva.messages.create!(account_id: cuenta, inbox_id: b['viva'], message_type: :incoming,
+                                    content: 'SINT-REFERENCIA', sender: Contact.find(b['x1']))
+      ref_lleno = Message.where(id: lleno.id).pick(tipo)
+      ref_vacio = Message.where(id: vacio.id).pick(tipo)
+      salientes = msgs.where(message_type: :outgoing).pluck(tipo).uniq
+      entrantes = msgs.where(message_type: :incoming).pluck(tipo).uniq
+      ok = salientes == [ref_lleno] && entrantes == [ref_vacio]
+      "#{ok ? 'si' : 'no'}:salientes=#{salientes.inspect},ref=#{ref_lleno.inspect};entrantes=#{entrantes.inspect},ref=#{ref_vacio.inspect}"
+    end
     hecho.call('verificar', 'ok')
   end
 end
