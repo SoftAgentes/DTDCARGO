@@ -650,6 +650,12 @@ Publicada en `dtd-cargo` la imagen de `fe35eb2d1` a las 12:41:54Z, con el webhoo
 | W8 | Sin agentes vinculados; el asesor ya se probó en prueba | NO APLICA |
 | BSUID | Solo se guarda de un usuario sin teléfono, y este lo trae | NO VERIFICABLE |
 
+**Estado de W5 a W7 el 2026-11-06:** siguen sin hacerse, hasta donde sabe el Subdirector, y no se midió nada nuevo. Para cerrarlos:
+
+1. Sam pasa su tarjeta a Perdido, con motivo.
+2. Escribe otra vez desde el 5202, y otra más.
+3. Se cuentan `crm_historial_etapas`, `crm_tarjetas` y `crm_tareas` desde esa hora, sin datos de personas. Esos conteos los corre el Director General.
+
 La conversación existía desde 2026-10-30T17:01:12Z, así que la tarjeta nació del mensaje entrante y no de `conversation_created`. Es el camino que prueba no podía cubrir (`docs/runbooks/chatwoot-bandeja.md`). Que esos dos mensajes sean de Sam es inferencia por la hora y la bandeja, hasta que lo confirme.
 
 ### Pendiente de E6: una conversación que abre DTD crea una tarjeta de lead
@@ -668,6 +674,21 @@ La conversación existía desde 2026-10-30T17:01:12Z, así que la tarjeta nació
 - El primer entrante real de Instagram tras el corte: sigue sin llegar.
 
 **La decisión es de Sam:** si alguien a quien DTD le escribió primero cuenta como lead. Se la presenta el Director General. El código no cambia hasta que decida, y las sesiones no borran ni mueven esa tarjeta. Sam la movió a `negociacion` a las 21:02:28Z; eso no se toma como su decisión.
+
+**2026-11-05, lo que dijo Sam, por el Director General:** «Déjalo como pendiente para más adelante.» **No es una decisión tomada, y el código no cambia.** Adelantó un criterio que él mismo no da por definitivo:
+
+- Si es un cliente no registrado, es lead.
+- «si es otra cosa, tenemos que analizarlo».
+- Con plantilla, «sería lead automáticamente, pero puedo obtener la opción de ponerle si es otro asunto. Yo creo que sí entraría en lead.»
+
+Para decidir faltan dos cosas: la opción de marcar «otro asunto», que hoy no existe, y lo no medido del 5202.
+
+**Primer entrante real de Instagram después del corte**, medido el 2026-11-05 a las 01:10Z, con hora y dirección y sin contenido:
+
+- Dos entrantes, a las 00:29:48Z en la conversación 31 y a las 00:54:17Z en la 32. Los dos `incoming` con remitente `Contact`, no eco.
+- Tarjetas `instagram` en `nuevo` a las 00:29:50Z y 00:54:21Z, 2 y 4 s después, según el Director General. El vínculo por id no está comprobado, solo la hora.
+
+Así que la entrada de Meta a Chatwoot siguió viva después del corte de `rails`.
 
 ## 2026-11-05 · `/privacidad` nombra Instagram
 

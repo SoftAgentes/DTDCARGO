@@ -254,8 +254,8 @@ Tiene que imprimir `1` y `0`. Con eso no llega nada más a Studio. Chatwoot sigu
 
 ## PENDIENTES DE ESTA TAREA
 
-- W5 y W6 con Sam, y repetir W7 después. Se miden con conteos desde las 12:37Z y van en un commit aparte, cuando ocurran.
-- El primer entrante real de Instagram tras el corte.
+- W5 y W6 con Sam, y repetir W7 después. Se miden con conteos desde las 12:37Z y van en un commit aparte, cuando ocurran. **Al 2026-11-06 siguen sin hacerse**, hasta donde sabe el Subdirector. Los conteos los corre el Director General.
+- ~~El primer entrante real de Instagram tras el corte.~~ **Llegó el 2026-11-05 a las 00:29:48Z**, `incoming` y no eco. Detalle en la SDD-0587.
 - Los pasos de la sección 9 que no dicen «Hecho»: Ficha DTD, cierre de sesión desde Studio y `verificar-aislamiento.sh` de prueba.
 
 ## FUERA DE ALCANCE DETECTADO
