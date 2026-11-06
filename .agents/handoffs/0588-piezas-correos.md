@@ -23,8 +23,8 @@ No cambia lo que viaja al motor, salvo el diff de esas rutas cuando una versión
 
 ## Pendiente
 
-- Subirla cuando entre la #382, y abrir la PR en borrador.
-- El OK de Sam para fusionarla, que lo pide el Director General.
+- ~~Subirla cuando entre la #382, y abrir la PR en borrador.~~ Hecho el 2026-11-06, con `main` en `186d505ff` traído. El único conflicto fue la spec 0588: se conservaron las dos secciones, sin quitar nada de `main`. Pruebas puntuales otra vez: 76 de 76.
+- **Queda en borrador**, sin pasar a lista, hasta que Sam dé el OK para fusionarla. Se lo lleva el Director General junto con la #376.
 
 ## FUERA DE ALCANCE DETECTADO
 
