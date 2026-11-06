@@ -1,7 +1,9 @@
 # Corte de la oficina de agentes a Discord
 
-Dueño: Sam (Junta de la oficina) · Estado: **escrito y sin ejecutar** · Escrito: 2026-11-05 por la
-[SDD-0607](../specs/0607-oficina-puente-discord/spec.md) · review-by: 2027-02-05
+Dueño: Sam (Junta de la oficina) · Estado: **ejecutado el 2026-11-05 con el código de la #378 en
+`2be91ad5`**; revocar el bot de Telegram queda pendiente, por decisión de Sam · Escrito: 2026-11-05
+por la [SDD-0607](../specs/0607-oficina-puente-discord/spec.md) · Actualizado: 2026-11-06 con lo
+que pasó al ejecutarlo · review-by: 2027-02-05
 
 Cómo se pasa de Telegram a Discord la conversación de Sam con la oficina de agentes: la
 **recepción** (el perfil de Hermes con el que Sam conversa) y el **puente** que le devuelve los
@@ -13,9 +15,43 @@ avisos de ALFRED. Es un corte directo, sin semana de doble envío (decisión de 
 > alcanza. Este runbook no cubre los avisos del Studio (SDD-0606) ni los del servidor de DTD
 > Cargo.
 
-> ⚠️ **Este runbook se escribió sin entrar al VPS.** Lo que se sabe del VPS lo midió otra sesión
-> el 2026-11-05, en solo lectura (§1). Lo que nadie leyó va marcado **NO VERIFICADO** y se lee en
-> el paso 0, antes de tocar nada. Si lo que encuentras no calza con este runbook, **para**.
+> ⚠️ **Este runbook se escribió sin entrar al VPS** y se corrigió después de usarlo. Lo que se
+> midió al ejecutarlo está en §0 y en §1. Si vuelves a usarlo y lo que encuentras no calza,
+> **para**.
+
+## 0. Cómo se ejecutó el 2026-11-05
+
+El corte se hizo entre las 20:21 y las 20:58 UTC, con Sam presente y con el código del puente de
+la #378 en `2be91ad5`. Ese commit ya trae las correcciones de la revisión de Codex; los dos merges
+de `main` que vinieron después en esa rama no cambian el puente. Los datos los midió la sesión
+coordinadora y los pasó a este documento la sesión que escribió el runbook, que no entró al VPS.
+
+**Resultado:**
+
+| Pieza | Comprobado |
+|---|---|
+| Puente | 3 avisos entregados por Discord, 0 sin enviar y 0 inciertos |
+| Recepción | Conectada como `ALFRED#4271`, responde solo en `#alfred`. Sam aprobó las pruebas de ida y vuelta |
+| Telegram | No arrancó después del reinicio |
+
+**Lo que faltaba en el runbook y se agregó** (va marcado **⚠ aprendido** donde corresponde):
+
+1. El puente no es lo único que vive en `/usr/local/lib/dtd-alfred/`: también están
+   `transcribe.py` y `transcribe_desktop.py`, que los perfiles `telegram` y `sam` llaman por esa
+   ruta para transcribir audios. Al cambiar de carpeta hay que copiarlos también (§6 y §7).
+2. En el perfil de recepción, `platform_toolsets.discord` venía con `hermes-discord`, que trae
+   todas las herramientas, terminal incluida. Hay que igualarlo a la lista cerrada de Telegram. Es
+   un paso obligatorio (§8).
+3. Pegar las llaves dentro de una sesión `ssh -t` abierta desde la consola de Windows no llegó bien
+   a `read -s`. Funcionó mandar el portapapeles directo por la entrada del comando (§6).
+4. Los pasos del portal de Discord (§3).
+
+**Queda sin hacer, a propósito:**
+
+- **Revocar el bot de Telegram:** pendiente, por decisión de Sam. Mientras no se revoque, la vuelta
+  atrás directa sigue siendo posible (§9).
+- El proyecto de Paperclip «Encargos de Sam - Telegram» y el servicio `dtd-hermes-telegram.service`
+  conservan su nombre.
 
 ## Qué cambia
 
@@ -40,17 +76,19 @@ Paperclip, ALFRED, la base del puente y los encargos ya registrados no cambian.
 
 | Dato | Estado |
 |---|---|
-| Hermes v0.22.2, con la conexión de Discord incluida | Medido el 2026-11-05 por la sesión coordinadora |
+| Hermes v0.22.2, con la conexión de Discord incluida | Medido el 2026-11-05 por la sesión coordinadora. La guía que se siguió es la de la versión instalada: `/opt/hermes/hermes-agent/website/docs/user-guide/messaging/discord.md` |
 | Sam conversa con el perfil `telegram`, que corre como `dtd-hermes-telegram.service` | Medido el 2026-11-05 |
 | El puente corre como `dtd-alfred-bridge.service` y su código está en `/usr/local/lib/dtd-alfred/` | Medido el 2026-11-05 |
 | El puente lee `/etc/dtd-alfred/config.json` y recibe sus credenciales de systemd | Leído en el código |
 | El código del puente en el VPS es el del commit `5c8d0d546` | **NO VERIFICADO** contra el VPS. Se comprueba en el paso 0 |
 | Cómo declara su credencial la unidad del puente | **NO VERIFICADO.** La unidad no está en el repositorio |
-| Cómo se configura Discord en Hermes: nombres de las opciones, lista de usuarios y de canales | **NO VERIFICADO.** Se lee en la documentación de la versión instalada |
+| Cómo se configura Discord en Hermes: nombres de las opciones, lista de usuarios y de canales | **Usado el 2026-11-05:** variables `DISCORD_*` en el `.env` del perfil y `config.yaml` (§8) |
+| Qué más vive en `/usr/local/lib/dtd-alfred/` | **Medido el 2026-11-05:** también `transcribe.py` y `transcribe_desktop.py`, que llaman los perfiles `telegram` y `sam` (`stt` en su `config.yaml`) |
+| Qué herramientas trae Discord por defecto en la recepción | **Medido el 2026-11-05:** `platform_toolsets.discord` venía con `hermes-discord`, que incluye terminal |
 | Dónde guarda la recepción su llave de Telegram | **NO VERIFICADO** |
 | Qué dicen de Telegram la identidad y las instrucciones de la recepción y de ALFRED | **NO VERIFICADO** |
 | Versión de Python del VPS | **NO VERIFICADO.** El puente solo usa la biblioteca estándar |
-| Si la recepción ignora los mensajes que escribe un webhook | **NO VERIFICADO.** Se comprueba en el paso 4 |
+| Si la recepción ignora los mensajes que escribe un webhook | **Resuelto el 2026-11-05** con `DISCORD_ALLOW_BOTS=none` (§8) |
 
 ## 2. Datos de Discord
 
@@ -87,6 +125,15 @@ título ni el texto de un comentario.
 - [ ] Sam creó el **bot** en el portal de desarrolladores de Discord y lo invitó al servidor con
       el rol de recepción: sin permisos de administrador y con acceso solo a la categoría
       Oficina.
+- [ ] **⚠ aprendido.** En el portal, para el bot:
+  - encender los dos *intents* privilegiados: el de miembros del servidor y el de contenido de
+    mensajes;
+  - dejarlo **privado**. Discord lo rechaza si antes el enlace de instalación no está en
+    «Ninguna»: primero se cambia eso;
+  - instalación **solo en servidor**, no en cuentas de usuario;
+  - «Permisos del bot» en el portal es solo una calculadora para armar el enlace. **Los permisos
+    reales son los del rol del bot en el servidor.** El 2026-11-05 el rol `ALFRED` quedó con el
+    entero `309237763136`, comprobado con la API.
 - [ ] Sam creó el **webhook** en el canal elegido, con un nombre que lo distinga del bot.
 - [ ] Sam tiene a mano su ID de usuario de Discord, para la lista de usuarios permitidos.
 - [ ] Las dos llaves las pega Sam en el VPS. No pasan por el chat de ninguna sesión.
@@ -162,6 +209,11 @@ Nada de este paso cambia lo que está corriendo.
 
 1. Copia el puente de `main` a una carpeta al lado, por ejemplo `/usr/local/lib/dtd-alfred.nuevo/`:
    `bridge.py`, `bridge_mcp.py`, `desktop_feed.py` y la carpeta `tests/`.
+
+   **⚠ aprendido.** Copia también, desde la carpeta actual del VPS, `transcribe.py` y
+   `transcribe_desktop.py`. No son del puente ni están en el repositorio, pero viven en esa
+   carpeta y los perfiles `telegram` y `sam` los llaman por esa ruta (`stt` en su `config.yaml`).
+   Si no se copian, el cambio de carpeta del paso 3 les rompe la transcripción de audios.
 2. Corre las pruebas **en el VPS**, con su Python:
 
    ```bash
@@ -172,6 +224,18 @@ Nada de este paso cambia lo que está corriendo.
    máquina.
 3. Sam pega la dirección del webhook en un archivo de credencial nuevo, junto al de Telegram,
    con el mismo dueño y los mismos permisos que ese.
+
+   **⚠ aprendido.** Pegar dentro de una sesión `ssh -t` abierta desde la consola de Windows no
+   llegó bien a `read -s`. Lo que funcionó fue mandar el portapapeles por la entrada del comando,
+   desde PowerShell en la PC de Sam:
+
+   ```powershell
+   Get-Clipboard | ssh.exe <host> sudo /usr/local/sbin/dtd-guardar-llave-discord webhook
+   ```
+
+   Y lo mismo con `bot` en lugar de `webhook` para la llave del bot. Ese script del VPS valida la
+   llave contra Discord —el `channel_id` del webhook y el `id` del bot— y solo imprime su largo y
+   una huella, nunca el valor. El script no está en el repositorio.
 4. Comprueba la forma de la credencial sin imprimirla:
 
    ```bash
@@ -188,6 +252,7 @@ sin canal para pedir.
 
 1. Detén el puente: `sudo systemctl stop dtd-alfred-bridge.service`.
 2. Cambia la carpeta: la actual pasa a `dtd-alfred.telegram` y la nueva pasa a `dtd-alfred`.
+   Comprueba que la nueva tiene `transcribe.py` y `transcribe_desktop.py` (paso 2).
 3. En la unidad, cambia la credencial `telegram_token` por `discord_webhook`, apuntando al
    archivo del paso 2. Es el cambio que anotaste en el paso 0. **Sin esto el servicio no
    arranca:** el puente nuevo busca `discord_webhook` y ya no lee `telegram_token`.
@@ -221,8 +286,31 @@ Si algo falla y no se arregla en el momento: vuelta atrás del puente (§9.1).
 1. En el perfil de recepción, configura Discord como dice la documentación de Hermes que leíste
    en el paso 0: la llave del bot, **solo el usuario de Sam** en la lista de permitidos, también
    para mensajes privados, y solo el canal `#alfred`.
-2. En el mismo cambio, apaga la conexión de Telegram de ese perfil.
-3. Reinicia la recepción: `sudo systemctl restart dtd-hermes-telegram.service`. El servicio
+
+   Lo que se usó el 2026-11-05, en el `.env` del perfil (los valores no van aquí):
+
+   | Variable | Valor |
+   |---|---|
+   | `DISCORD_BOT_TOKEN` | La llave del bot, guardada con el script del paso 2 |
+   | `DISCORD_ALLOWED_USERS` | El ID de usuario de Sam |
+   | `DISCORD_ALLOWED_CHANNELS` | El ID de `#alfred` |
+   | `DISCORD_FREE_RESPONSE_CHANNELS` | El ID de `#alfred` |
+   | `DISCORD_HOME_CHANNEL` | El ID de `#alfred` |
+   | `DISCORD_HOME_CHANNEL_NAME` | `alfred` |
+   | `DISCORD_ALLOW_BOTS` | `none`: así la recepción no le contesta al webhook del puente |
+   | `DISCORD_ALLOW_MENTION_EVERYONE` | `false` |
+   | `DISCORD_ALLOW_MENTION_ROLES` | `false` |
+
+2. **⚠ aprendido, obligatorio.** En el `config.yaml` del mismo perfil, `platform_toolsets.discord`
+   viene con `hermes-discord`, que trae todas las herramientas, terminal incluida. Se iguala a la
+   lista cerrada que ya tenía Telegram: `file, memory, session_search, skills, todo,
+   mcp-dtd_alfred`. **Sin este paso, quien escriba en `#alfred` habla con un agente que tiene
+   terminal en el VPS.**
+3. En el mismo cambio, apaga la conexión de Telegram de ese perfil: en `config.yaml`,
+   `platforms.telegram.enabled: false`, y del `.env` se quitan las tres variables `TELEGRAM_*`.
+4. **⚠ aprendido.** En el `SOUL.md` de la recepción, cambia las frases que dicen Telegram. El
+   2026-11-05 fueron tres.
+5. Reinicia la recepción: `sudo systemctl restart dtd-hermes-telegram.service`. El servicio
    conserva su nombre; renombrarlo es un paso posterior (§11).
 
 **Prueba de ida y vuelta de la recepción, con Sam:**
@@ -246,7 +334,8 @@ Si algo falla y no se arregla en el momento: vuelta atrás del puente (§9.1).
 - [ ] `chat_id` se quita de `/etc/dtd-alfred/config.json`. El puente nuevo no lo lee.
 - [ ] Se cambian los textos de la recepción y de ALFRED que todavía digan Telegram.
 - [ ] **Sam revoca en Telegram las llaves de los bots.** Este es el punto sin vuelta: después,
-      volver atrás exige crear bots nuevos.
+      volver atrás exige crear bots nuevos. **El 2026-11-05 quedó pendiente, por decisión de
+      Sam.**
 
 ## 9. Volver atrás
 
@@ -324,6 +413,10 @@ Cómo se resuelve, uno por uno y con Sam:
 
 - Renombrar el perfil `telegram` y el servicio `dtd-hermes-telegram.service`. Toca la lista
   cerrada de perfiles del VPS.
+- Renombrar el proyecto de Paperclip «Encargos de Sam - Telegram».
+- Revocar el bot de Telegram, cuando Sam lo decida.
+- Guardar en el repositorio, sin llaves, el script `dtd-guardar-llave-discord`, y decidir si
+  `transcribe.py` y `transcribe_desktop.py` siguen viviendo en la carpeta del puente.
 - Que los avisos lleguen al hilo de cada pedido y no al canal.
 - `#actividad-oficina`, con la extensión de Paperclip.
 - Guardar en el repositorio la unidad de systemd del puente, sin llaves.
