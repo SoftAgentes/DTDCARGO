@@ -95,6 +95,12 @@ cero() { [ "${1:-0}" = 0 ]; }
 cola_igual() { [ -n "$1" ] && [ "${1%%->*}" = "${1##*->}" ] && [ "${1%%->*}" != -1 ]; }
 avance() { [ -n "$1" ] && [ "$(( ${1##*->} - ${1%%->*} ))" = "$2" ]; }
 dif() { [ -n "$1" ] && echo "$(( ${1##*->} - ${1%%->*} ))"; }
+# Ningún trabajo o solo la invalidación de caché de la cuenta (lo que encolan Inbox#add_members y crear bandejas).
+solo_invalidacion() {
+  [ -n "$1" ] && [ "$1" != desconocido ] || return 1
+  [ "$1" = ninguno ] && return 0
+  ! printf '%s\n' "$1" | tr ',' '\n' | grep -qvE '^(ActionCableBroadcastJob|EventDispatcherJob)\(account\.cache_invalidated\):[0-9]+$'
+}
 # Lo que encola crear una bandeja con los modelos, igual que desde el panel: la invalidación de la caché de la
 # cuenta (AccountCacheRevalidator), sin `inbox_created` porque ENABLE_INBOX_EVENTS está vacía (SDD-0590 §10.9).
 AVISO_BANDEJA="ActionCableBroadcastJob(account.cache_invalidated):1,EventDispatcherJob(account.cache_invalidated):1"
@@ -224,7 +230,11 @@ comprobar() {
   exigir E10a '[ "$(h "$F" ilike_reciente)" = 1 ] && [ "$(h "$F" ilike_viejo)" = 1 ]' "E-10: el texto cargado se encuentra en la base"
   exigir E10b '[ "$(h "$F" buscador_reciente)" -ge 1 ] 2>/dev/null' "E-10: el buscador de Chatwoot encuentra un mensaje reciente ($(h "$F" buscador_reciente))"
   exigir E10d '[ "$(h "$F" conv_vieja_antigua)" = si ] && [ "$(h "$F" conv_vieja_por_nombre)" = si ] && [ "$(h "$F" conv_vieja_por_telefono)" = si ] && [ "$(h "$F" conv_vieja_por_numero)" = si ]' \
-    "E-10d: con la ventana por defecto, la búsqueda de conversaciones encuentra la del Archivo de hace 500 días por nombre ($(h "$F" conv_vieja_por_nombre)), por teléfono ($(h "$F" conv_vieja_por_telefono)) y por número ($(h "$F" conv_vieja_por_numero))"
+    "E-10d: con la ventana por defecto, la búsqueda de conversaciones encuentra la del Archivo de hace 500 días por nombre ($(h "$F" conv_vieja_por_nombre)), por teléfono ($(h "$F" conv_vieja_por_telefono)) y por número ($(h "$F" conv_vieja_por_numero)), como administrador"
+  exigir E10e '[ "$(h "$F" agente_sin_ser_miembro)" = "nombre:no,telefono:no,numero:no" ] && [ "$(h "$F" agente_miembro)" = "nombre:si,telefono:si,numero:si" ] && [ "$(h "$F" miembros_del_archivo)" = 1 ]' \
+    "E-10e: un agente sin rol de administrador no encuentra el Archivo sin ser miembro ($(h "$F" agente_sin_ser_miembro)) y sí siendo miembro ($(h "$F" agente_miembro))"
+  exigir E10f 'solo_invalidacion "$(h "$F" miembros_trabajos)" && [ "$(h "$F" miembros_notificaciones)" = 0 ] && [ "$(h "$F" miembros_asignadas)" = 0 ] && [ "$(h "$F" miembros_resueltas)" = 5 ]' \
+    "E-10f: agregar el miembro como el panel no asigna ni notifica: trabajos $(h "$F" miembros_trabajos), notificaciones $(h "$F" miembros_notificaciones), asignadas $(h "$F" miembros_asignadas), resueltas $(h "$F" miembros_resueltas)"
   exigir E11 '[ "$(h "$F" conv_viva_intacta)" = si ] && [ "$(h "$F" x1_intacto)" = si ] && [ "$(h "$F" x2_intacto)" = si ] && [ "$(h "$F" mensajes_vivos_delta)" = 0 ]' \
     "E-11: la conversación y los contactos que ya existían no cambiaron"
   return 0
@@ -354,7 +364,7 @@ if [ "$MUTANTES" = 1 ]; then
   MODO_LOG=1
   total=${#RES[@]}
   cayeron="$(cayeron_en)"
-  exigir M0 '[ -z "$cayeron" ] && [ "$total" -ge 39 ]' \
+  exigir M0 '[ -z "$cayeron" ] && [ "$total" -ge 41 ]' \
     "control: el escenario en un solo proceso pasa las $total comprobaciones de la corrida real${cayeron:+ — cayeron: $cayeron}"
   [ "${RES[M0]}" = FALLÓ ] && MUT_FALLADOS="$MUT_FALLADOS M0"
 
@@ -436,6 +446,11 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M22 "todas las conversaciones al contacto «sin contacto»" "E10d" "C1" \
     "contacto = c['grupo'] ? contacto_de[c['grupo']] : nil" \
     "contacto = nil"
+  # E-10e: si la bandeja naciera con todos los usuarios como miembros, el agente la vería sin que nadie decida.
+  mutante M23 "la bandeja nace con todos los usuarios como miembros" "E10e" "C1" \
+    "greeting_enabled: false, csat_survey_enabled: false)" \
+    "greeting_enabled: false, csat_survey_enabled: false)
+        bandeja.add_members(cuenta.account_users.pluck(:user_id))"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi

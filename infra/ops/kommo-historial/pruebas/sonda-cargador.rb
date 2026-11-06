@@ -25,7 +25,7 @@ module SondaCargador
   end
 
   # Lo mismo que CargaArchivoKommo#trabajos_por_clase y .formato_trabajos: clase y nombre de evento, nada más.
-  def trabajos_por_clase
+  def clases_en_cola
     cuenta = Hash.new(0)
     [*Sidekiq::Queue.all, Sidekiq::ScheduledSet.new, Sidekiq::RetrySet.new].each do |c|
       c.each do |trabajo|
@@ -33,8 +33,19 @@ module SondaCargador
         cuenta[evento ? "#{trabajo.display_class}(#{evento})" : trabajo.display_class] += 1
       end
     end
-    lista = cuenta.map { |clase, n| "#{clase}:#{n}" }.sort
-    lista.empty? ? 'ninguno' : lista.join(',')
+    cuenta
+  end
+
+  def formato(lista)
+    lista.empty? ? 'ninguno' : lista.sort.join(',')
+  end
+
+  def trabajos_por_clase
+    formato(clases_en_cola.map { |clase, n| "#{clase}:#{n}" })
+  end
+
+  def trabajos_nuevos(antes, despues)
+    formato(despues.filter_map { |clase, n| "#{clase}:#{n - antes[clase]}" if n > antes[clase] })
   end
 
   def igual(a, b)
@@ -51,6 +62,12 @@ module SondaCargador
     admin.skip_confirmation!
     admin.save!
     AccountUser.create!(account: cuenta, user: admin, role: :administrator)
+    # Un agente sin rol de administrador: solo ve y busca en las bandejas de las que es miembro.
+    agente = User.new(name: 'SINT Agente', email: "sint.agente.#{marca}@example.test", password: clave,
+                      password_confirmation: clave)
+    agente.skip_confirmation!
+    agente.save!
+    AccountUser.create!(account: cuenta, user: agente, role: :agent)
     viva = Inbox.create!(account: cuenta, name: 'SINT WhatsApp', channel: Channel::Api.create!(account: cuenta))
     con_webhook = Inbox.create!(account: cuenta, name: 'SINT Con webhook',
                                 channel: Channel::Api.create!(account: cuenta, webhook_url: 'https://studio.prueba.test/api'))
@@ -65,7 +82,7 @@ module SondaCargador
     conv.messages.create!(account: cuenta, inbox: viva, message_type: :incoming, content: 'SINT-EXISTENTE', sender: x1)
     # Control: crear con los modelos SÍ encola trabajos. Si diera 0, la medida de E-3 no vería nada.
     hecho.call('control_cola', cola - antes)
-    base = { 'cuenta' => cuenta.id, 'admin' => admin.id, 'viva' => viva.id, 'con_webhook' => con_webhook.id,
+    base = { 'cuenta' => cuenta.id, 'admin' => admin.id, 'agente' => agente.id, 'viva' => viva.id, 'con_webhook' => con_webhook.id,
              'x1' => x1.id, 'x2' => x2.id, 'conv' => conv.id, 'conv_updated' => conv.reload.updated_at.to_f,
              'x1_updated' => x1.reload.updated_at.to_f, 'x2_updated' => x2.reload.updated_at.to_f,
              'mensajes_vivos' => Message.where(inbox_id: viva.id).count,
@@ -147,16 +164,17 @@ module SondaCargador
     cuenta_ar = Account.find(cuenta)
     # SearchService lee Current (User#assigned_inboxes usa Current.account). En una petición lo llenan
     # application_controller.rb:18 y ensure_current_account_helper.rb:6 y :25; aquí se llena igual.
-    como_en_la_api = lambda do |&bloque|
-      Current.user = admin
+    como_usuario = lambda do |usuario, &bloque|
+      Current.user = usuario
       Current.account = cuenta_ar
-      Current.account_user = AccountUser.find_by(account_id: cuenta, user_id: admin.id)
+      Current.account_user = AccountUser.find_by(account_id: cuenta, user_id: usuario.id)
       bloque.call
     ensure
       Current.user = nil
       Current.account = nil
       Current.account_user = nil
     end
+    como_en_la_api = ->(&bloque) { como_usuario.call(admin, &bloque) }
     buscar = lambda do |q|
       como_en_la_api.call do
         r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Message', params: { q: q }).perform
@@ -180,9 +198,9 @@ module SondaCargador
     # (Kommo 2001, contacto X1 reusado) con la ventana por defecto, la de producción.
     vieja = convs.where("additional_attributes->>'kommo_talk_id' = '2001'").first
     hecho.call('conv_vieja_antigua', vieja && vieja.created_at < 400.days.ago ? 'si' : 'no')
-    encuentra_vieja = lambda do |q|
-      como_en_la_api.call do
-        r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Conversation',
+    encuentra_vieja = lambda do |q, usuario = admin|
+      como_usuario.call(usuario) do
+        r = SearchService.new(current_user: usuario, current_account: cuenta_ar, search_type: 'Conversation',
                               params: { q: q }).perform
         Array(r[:conversations]).any? { |c| c.id == vieja&.id } ? 'si' : 'no'
       end
@@ -190,6 +208,28 @@ module SondaCargador
     medir.call('conv_vieja_por_nombre') { encuentra_vieja.call('SINT-NOMBRE-X1') }
     medir.call('conv_vieja_por_telefono') { encuentra_vieja.call('4120000001') }
     medir.call('conv_vieja_por_numero') { encuentra_vieja.call(vieja&.display_id.to_s) }
+
+    # E-10e: un agente sin rol de administrador solo busca en las bandejas de las que es miembro
+    # (User#assigned_inboxes). El Archivo nace sin miembros: sin serlo no lo encuentra; siendo miembro, sí.
+    agente = User.find(b['agente'])
+    tres = ->(usuario) do
+      { 'nombre' => 'SINT-NOMBRE-X1', 'telefono' => '4120000001', 'numero' => vieja&.display_id.to_s }
+        .map { |k, q| "#{k}:#{encuentra_vieja.call(q, usuario)}" }.join(',')
+    end
+    medir.call('agente_sin_ser_miembro') { tres.call(agente) }
+    # E-10f: agregarlo como miembro igual que el panel (inbox_members_controller.rb:15 → Inbox#add_members).
+    # Se mide lo que encola, las notificaciones y que las conversaciones sigan resueltas y sin asignar.
+    medir.call('miembros_trabajos') do
+      antes = clases_en_cola
+      notificaciones = Notification.count
+      Inbox.find(archivo).add_members([agente.id])
+      hecho.call('miembros_notificaciones', Notification.count - notificaciones)
+      trabajos_nuevos(antes, clases_en_cola)
+    end
+    hecho.call('miembros_del_archivo', InboxMember.where(inbox_id: archivo).count)
+    hecho.call('miembros_asignadas', convs.where.not(assignee_id: nil).count)
+    hecho.call('miembros_resueltas', convs.where(status: :resolved).count)
+    medir.call('agente_miembro') { tres.call(agente) }
 
     # E-8: números de conversación. Una conversación nueva, creada como la crearía el canal, va después.
     max_archivo = convs.maximum(:display_id).to_i
