@@ -155,3 +155,34 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **Motor de IA:** las 3 variables `DTD_CHATWOOT_IA_GLM_*` están vacías, según el Director General. La llave es gasto de Sam y queda fuera del mandato, así que el análisis usa el respaldo sin IA. El **NO VERIFICADO** de la API de pago sigue en pie.
 - **Lectura de esta nota:** COMMIT y md5 salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Del ledger se leyó el `version` de estas dos y el total: 512. La fila de cada una sale de ese total y del orden. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0507…») siguen siendo ciertos para otro entorno y no cambian.
+
+## 2026-11-06 · Los correos de SDD-0583 como pieza propia
+
+**Por qué.** Los correos de DTD (`rails/zz_dtd_correo.rb` y `correo/views`) corren en el VPS desde el 2026-10-30 y están en `main` desde la #373. El runbook ya los tiene en su tabla de piezas, pero `PIEZAS` no, así que «Analizar con IA» y el informe sin IA no avisaban si una versión nueva cambia los mailers o las plantillas que DTD reemplaza. Si dejan de cargar, los avisos a agentes vuelven a copiar el nombre del contacto y el texto de los mensajes. Lo había anotado el handoff de SDD-0583 en FUERA DE ALCANCE.
+
+**Encargo:** del Director General, 2026-11-06. Él decidió el 2026-11-05 que fusionarla pide OK de Sam, porque está fuera del mandato. La fusión es de él.
+
+**Qué cambia.** Una pieza nueva, `correo`. Depende de lo que el inicializador toca en Chatwoot 4.19.1, leído en el repositorio público con la etiqueta `v4.19.1`:
+
+| Ruta | Por qué |
+|---|---|
+| `app/mailers/` | `ApplicationMailer` con `layout 'mailer/base'`, `prepend_view_path ::EmailTemplate.resolver` y `append_view_path app/views/mailers`; DTD antepone sus vistas y un `prepend` sobre `#mail` |
+| `app/views/mailers/administrator_notifications/`, `agent_notifications/` y `email_delivery_test_mailer/` | Las plantillas que DTD reemplaza |
+| `app/views/devise/mailer/` y `app/views/layouts/mailer/` | Las de Devise y el diseño común |
+| `app/models/email_template.rb` | El resolver de plantillas guardadas en la base, al que DTD le gana |
+| `config/initializers/devise.rb` | `config.parent_mailer = 'ApplicationMailer'`: por eso los asuntos de Devise pasan por DTD |
+| `Gemfile.lock` | Versión de ActionMailer y Devise |
+
+Las vistas de `correo/views` no entran en la superficie que viaja al motor, porque `FUENTES_SUPERFICIE` no recorre subcarpetas. El inicializador sí, como los demás `.rb`.
+
+**Allowlist:** `lib/studio/chatwoot/analisis.ts`, solo `PiezaId` y la pieza nueva; `lib/studio/chatwoot/__tests__/analisis.test.ts`; esta sección; `.agents/handoffs/0588-piezas-correos.md`; y una línea en `.agents/handoffs/0583-chatwoot-vps-e1.md` que cierra su FUERA DE ALCANCE.
+
+**Evidencia:**
+
+| Comprobación | Resultado |
+|---|---|
+| `analisis`, `analisis-superficie`, `analisis-motor`, `actions` y `ActualizacionesPanel` | PASÓ: 76 de 76 |
+| Mutantes: sin la pieza, sin el layout, sin `devise.rb`, sin `app/mailers/`, con todas las vistas de mailers, y descripción sin el inicializador | PASÓ: 6 de 6 caen por la prueba nueva, con el control en verde antes y después |
+| eslint de los dos archivos | PASÓ |
+| `tsc` | NO EJECUTADO: lo corre el CI |
+| `pnpm verify` | NO EJECUTADO: pide turno al Director General |
