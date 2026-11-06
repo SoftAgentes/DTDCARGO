@@ -4,7 +4,7 @@ title: "Motor de guía propio y liviano en Studio (E9 del programa SDD-0582, pas
 status: in-progress
 author: "Claude Worker «E9 motor» (Sam)"
 created: 2026-10-30
-updated: 2026-10-30
+updated: 2026-11-06
 supersedes: null
 superseded_by: null
 related: ["0582", "0233"]
@@ -211,3 +211,84 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 |---|---|
 | `GuiaMotor.test.tsx` | PASÓ: 17 de 17 |
 | Mutantes: arrancar solo el recorrido de la ruta, arrancar solo a los 3 s, reanudar solo con progreso a medias | PASÓ: 3 de 3 caen por la prueba nueva. **El de los 3 s solo lo atrapa la prueba nueva**: era un hueco real |
+
+## 2026-11-06 · Paso 9.3 · estado por usuario
+
+**Encargo y puertas.** El Director General pidió la 9.3 entera, en local y en una PR en borrador, bajo esta SDD (2026-11-06). **No hay OK de Sam al diseño de la migración:** está en su lista, y la fila 9.3 no cuenta como OK. Fusionar la PR y aplicar la 0517, en prueba o en producción, también esperan su OK.
+
+**Número.** La 0517 la asignó el Director General, medida libre a las 03:50Z: la 0514 y la 0515 son de SDD-0606 y la 0516 de otra rama. Quedó reservada sin tocar `main`, con la rama `codex/migration-reserve-0517-user-guide-prefs` (`be6e0f949`), que nunca se fusiona.
+
+**Decisiones pendientes de Sam, con valor provisional.** Están en `lib/studio/guia/preferencias.ts`: cambiarlas es cambiar una constante.
+
+| Pregunta | Valor provisional (propuesta del guion) | Constante |
+|---|---|---|
+| S-6: ¿arranca en cada pantalla la primera vez, o una sola vez? | Por pantalla | `ARRANQUE_AUTOMATICO` |
+| S-7: ¿«Guía» como nombre, en la barra superior? | «Guía», en la barra superior | `CLAVE_NOMBRE_BOTON`; el lugar es donde se monte `<GuiaBoton />` |
+
+**El botón está hecho y probado, pero no montado.** `StudioTopbar.tsx` lo tocan tres ramas del rediseño (SDD-0603). Montarlo es una línea, `<GuiaBoton />`, cuando lo permita esa adopción. Hasta entonces, la guía se abre sola la primera vez, por `?guia=` o desde el código.
+
+**⚠️ Aplicar la 0517 enciende el arranque automático.** Hoy el único recorrido es el de demostración del Dashboard. Cada persona de Studio lo verá abrirse solo la primera vez que entre al Dashboard después de aplicar la migración. Sin la 0517 no cambia nada: la guía no arranca sola. Sam tiene que saberlo antes de dar el OK para aplicarla.
+
+### Qué quedó
+
+| Pieza | Archivo |
+|---|---|
+| Tabla `user_guide_prefs`, RLS por dueño con usuario activo | `supabase/migrations/0517_user_guide_prefs.sql` |
+| Contrato SQL, 20 aserciones | `supabase/tests/0517_user_guide_prefs.test.sql` |
+| Contrato en PGlite, con control rojo y 9 mutantes | `lib/studio/__tests__/guia-estado.migration.test.ts` |
+| Validador del estado | `lib/studio/guia/estado-types.ts` (`validarEstadoGuia`) |
+| Lectura | `lib/studio/guia/estado-queries.ts` (`leerEstadoGuia`) |
+| Acción de guardado | `app/studio/(app)/_actions/guia-actions.ts` (`guardarEstadoGuiaAction`) |
+| Almacén por usuario | `lib/studio/guia/almacen.ts` (`crearAlmacenServidor`) |
+| Arranque automático, reanudar, reiniciar, «No volver a mostrar» y cierre por evento | `app/studio/_components/guia/GuiaMotor.tsx` y `GuiaTarjeta.tsx` |
+| Botón «Guía», sin montar | `app/studio/_components/guia/GuiaBoton.tsx` |
+| Montaje con el estado del servidor | `app/studio/_components/guia/GuiaStudio.tsx` y `app/studio/(app)/layout.tsx` |
+| Decisiones pendientes de Sam | `lib/studio/guia/preferencias.ts` |
+| Espera de la 0517 y su degradación | `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` |
+| Inventario de acciones: 459 → 460, excepciones 17 → 18 | `lib/studio/rbac-actions-guard.test.ts` |
+
+### En qué cambia lo propuesto en §8
+
+1. **Arranca sola solo con estado de la base.** Si `leerEstadoGuia` devuelve `null`, porque la base no respondió o la 0517 no está aplicada, `GuiaStudio` deja `autoArranque` apagado. Así, publicar el código sin aplicar la migración no le muestra la guía a nadie de golpe.
+2. **«Vista» se anota al abrir, no antes de intentar.** Si la pantalla no tiene ninguna de las anclas, no se abre y tampoco se da por vista.
+3. **Un cuarto origen, `programa`:** `iniciarGuia(id)` sin origen sigue abriendo en el primer paso, como en 9.2. Solo el botón (`origen: "boton"`) sigue donde quedó.
+4. **El botón no cambia de nombre accesible.** Se llama siempre «Guía» y el estado va en `aria-pressed`, que es lo correcto para un botón de alternar. `toggle_on_aria` y `toggle_off_aria` van en el `title`.
+5. **`guardar` acepta cambios parciales y conserva lo demás:** guardar el paso no borra `noMostrar` ni `vistoEn`.
+6. **La tabla tiene tope:** `state` tiene que ser un objeto de 16 KB como máximo, y la acción rechaza más de 16 384 caracteres antes de parsear.
+7. **La acción se llama `guia-actions.ts`**, para que el contrato de RBAC la recorra. Va como excepción, con la misma razón que el Dashboard: guarda la fila propia del usuario.
+
+### Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato 0517 en PGlite: 20 aserciones, control rojo sin la 0517, 9 mutantes (sin `disabled_at`, sin dueño, sin tenant, anon con lectura, sin `unique`, estado que no es objeto, sin tope, sin trigger, sin cascada) y reaplicar | PASÓ: 13 de 13 |
+| Pruebas de la guía: motor, botón, montaje con hidratación, acción, validador, almacenes y lectura | PASÓ: 75 de 75 |
+| 18 mutantes del código, entre ellos: arrancar sola ya vista o sin estado de la base, «No volver a mostrar» que no guarda, botón que no sigue o sigue con la guía terminada, `?guia=` que no gana, almacén que no manda o lee el navegador al crearse, y acción sin validar o sin tope | PASÓ: 18 de 18 caen por la prueba esperada, con el control en verde antes y después. Los de `?guia=` y del tope de la acción sobrevivían en la primera vuelta: las pruebas no medían eso y se corrigieron |
+| RBAC: inventario 460, excepciones 18, superficie 81 archivos | PASÓ |
+| Gate de símbolos pendientes | PASÓ: 0 ROJO · 1 AMARILLO declarado (`user_guide_prefs`) |
+| Candado de migraciones, numeración e índice | PASÓ; la 0517, en espera sin sellar |
+| `/ui-check` de `GuiaBoton.tsx` y `GuiaTarjeta.tsx` | OK con ajustes menores, no bloqueante: cuatro controles en el primer paso automático, para mirar en vivo en 9.6; el objetivo táctil del botón, al montarlo; el `title` como pista secundaria |
+| `pnpm verify` | Pendiente: pide turno al Director General |
+
+### revisar-datos-ve de 9.3
+
+Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal.
+
+**Inventario:** por usuario y tenant, ids de recorrido y de paso, `terminado`, `noMostrar` y la fecha en que la guía se abrió sola por primera vez. Describe si un empleado vio la guía. No hay datos de clientes. En el navegador queda la misma copia que en 9.2, ahora con dos campos más.
+
+**Resumen:** 0 ENCONTRADO, 6 CORRECTO, 2 NO VERIFICABLE y 4 no aplica.
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | `0517_user_guide_prefs.sql:43-46` y `estado-types.ts:37-57`. Solo ids, booleanos y una fecha |
+| 2 | Minimización | CORRECTO | `validarEstadoGuia` descarta todo lo que no está en el catálogo (`estado-types.ts:51`). Tope de 16 KB en la tabla (`0517_user_guide_prefs.sql:46`) y en la acción (`guia-actions.ts:22`) |
+| 3 | Consentimiento | No aplica | Es estado de una herramienta interna del empleado, no un dato del cliente. La base la decide Sam con su asesor si hiciera falta |
+| 4 | Derechos | CORRECTO | El dueño lee y borra su fila (`0517_user_guide_prefs.sql:61-75`, `grant … delete` en la línea 79); contrato: «el dueño borra su fila» |
+| 5 | Borrado | CORRECTO | En cascada con el usuario y con el tenant (`0517_user_guide_prefs.sql:43-44`); contrato: «al borrar el usuario se borra su fila» |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | No hay registro de pedidos de acceso o borrado en Studio. Sigue igual que en el resto del programa |
+| 7 | Política pública | No aplica | No es un dato que `/privacidad` tenga que nombrar: es de empleados, no de clientes |
+| 8 | Terceros | CORRECTO | Nada sale de Studio y la base propia |
+| 9 | Transferencia internacional | No aplica | Mismo servidor y base que el resto de Studio |
+| 10 | Decisiones automatizadas | No aplica | Abrir la guía sola no decide nada sobre la persona |
+| 11 | Aceptación electrónica | NO VERIFICABLE | No registra aceptaciones. Si la guía llegara a pedir una, sería otro paso |
+| 12 | Titulares que no son usuarios | CORRECTO | Solo usuarios de Studio, y un usuario desactivado no accede a su fila (`0517_user_guide_prefs.sql:67` y `:74`; contrato) |

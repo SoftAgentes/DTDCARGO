@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { crearAlmacenMemoria } from "@/lib/studio/guia/almacen";
 import type { GuiaRecorrido } from "@/lib/studio/guia/tipos";
 import { LocaleProvider } from "@/lib/i18n";
-import { GuiaMotor, iniciarGuia } from "./GuiaMotor";
+import { cerrarGuia, GuiaMotor, iniciarGuia } from "./GuiaMotor";
 import { GuiaTarjeta } from "./GuiaTarjeta";
 
 const nav = vi.hoisted(() => ({ pathname: "/studio/dashboard", query: "" }));
@@ -80,9 +80,9 @@ describe("arranque", () => {
   });
 
   // Pedido del Director General (2026-11-05): no había prueba de que, sin `?guia=`
-  // ni `iniciarGuia()`, la guía no se abre sola. Hoy nada la llama, así que esta es
-  // la garantía de que no le aparece a nadie. La primera vez automática de 9.3
-  // cambia esto a propósito, y entonces esta prueba se ajusta a sus condiciones.
+  // ni `iniciarGuia()`, la guía no se abre sola. Con 9.3 sigue igual mientras no se
+  // encienda `autoArranque`, que solo enciende `GuiaStudio` con estado de la base;
+  // los casos con arranque automático están en «9.3 · estado por usuario».
   it("sin ?guia= ni iniciarGuia() no abre, aunque esté en su ruta con todas las anclas", () => {
     vi.useFakeTimers();
     const almacen = crearAlmacenMemoria();
@@ -313,5 +313,160 @@ describe("movimiento reducido e idioma", () => {
     expect(screen.getByRole("heading", { name: "你在 Studio 的首页" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "下一步" })).toBeInTheDocument();
     expect(within(tarjeta()!).getByText(/第 1 步,共 4 步/)).toBeInTheDocument();
+  });
+});
+
+describe("9.3 · estado por usuario", () => {
+  const OTRO: GuiaRecorrido = {
+    id: "clientes",
+    ruta: "/studio/clientes",
+    pasos: [{ id: "C1", ancla: "dashboard.bienvenida", clave: "guide.dashboard.welcome" }],
+  };
+
+  function montarAuto(
+    almacen: ReturnType<typeof crearAlmacenMemoria>,
+    extra: Partial<Parameters<typeof GuiaMotor>[0]> = {},
+  ) {
+    return render(
+      <>
+        <Pantalla />
+        <GuiaMotor catalogo={[RECORRIDO]} almacen={almacen} autoArranque {...extra} />
+      </>,
+    );
+  }
+
+  it("la primera vez en la pantalla arranca sola en el primer paso, ofrece «No volver a mostrar» y lo anota", () => {
+    const almacen = crearAlmacenMemoria();
+    montarAuto(almacen);
+    expect(tarjeta()).not.toBeNull();
+    expect(within(tarjeta()!).getByRole("heading", { name: "Tu inicio en Studio" })).toBeInTheDocument();
+    expect(within(tarjeta()!).getByRole("button", { name: "No volver a mostrar" })).toBeInTheDocument();
+    expect(within(tarjeta()!).queryByRole("button", { name: "Ver la guía desde el principio" })).toBeNull();
+    expect(almacen.leer("dashboard")?.vistoEn).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("«No volver a mostrar» solo está en el primer paso del arranque automático", () => {
+    montarAuto(crearAlmacenMemoria());
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(screen.queryByRole("button", { name: "No volver a mostrar" })).toBeNull();
+  });
+
+  it("ya vista, no arranca sola: recargar no la repite", () => {
+    const almacen = crearAlmacenMemoria();
+    const primera = montarAuto(almacen);
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar la guía" }));
+    primera.unmount();
+    vi.useFakeTimers();
+    montarAuto(almacen);
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(tarjeta()).toBeNull();
+  });
+
+  it("«No volver a mostrar» la apaga, y el botón la sigue abriendo", () => {
+    const almacen = crearAlmacenMemoria();
+    const primera = montarAuto(almacen);
+    fireEvent.click(screen.getByRole("button", { name: "No volver a mostrar" }));
+    expect(tarjeta()).toBeNull();
+    expect(almacen.leer("dashboard")).toMatchObject({ noMostrar: true });
+    primera.unmount();
+    montarAuto(almacen);
+    expect(tarjeta()).toBeNull();
+    act(() => iniciarGuia("dashboard", { origen: "boton" }));
+    expect(tarjeta()).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "No volver a mostrar" })).toBeNull();
+  });
+
+  it("sin anclas no abre, y no la da por vista", () => {
+    vi.useFakeTimers();
+    const almacen = crearAlmacenMemoria();
+    render(
+      <>
+        <Pantalla sin={RECORRIDO.pasos.map((p) => p.ancla)} />
+        <GuiaMotor catalogo={[RECORRIDO]} almacen={almacen} autoArranque />
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(tarjeta()).toBeNull();
+    expect(almacen.leer("dashboard")).toBeNull();
+  });
+
+  it("con `una_vez`, otra pantalla ya vista basta para no arrancar", () => {
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("clientes", { vistoEn: "2026-11-06T04:00:00.000Z" });
+    render(
+      <>
+        <Pantalla />
+        <GuiaMotor catalogo={[RECORRIDO, OTRO]} almacen={almacen} autoArranque modoArranque="una_vez" />
+      </>,
+    );
+    expect(tarjeta()).toBeNull();
+  });
+
+  it("con `por_pantalla`, otra pantalla vista no cuenta", () => {
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("clientes", { vistoEn: "2026-11-06T04:00:00.000Z" });
+    render(
+      <>
+        <Pantalla />
+        <GuiaMotor catalogo={[RECORRIDO, OTRO]} almacen={almacen} autoArranque modoArranque="por_pantalla" />
+      </>,
+    );
+    expect(tarjeta()).not.toBeNull();
+  });
+
+  it("?guia= gana al arranque automático y siempre empieza por el primer paso", () => {
+    nav.query = "guia=dashboard";
+    // Nunca vista: sin ?guia= arrancaría sola. Con ?guia=, abre la URL y no la da por vista.
+    const almacen = crearAlmacenMemoria();
+    montarAuto(almacen);
+    expect(within(tarjeta()!).getByRole("heading", { name: "Tu inicio en Studio" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "No volver a mostrar" })).toBeNull();
+    expect(almacen.leer("dashboard")?.vistoEn).toBeUndefined();
+  });
+
+  it("?guia= no sigue el progreso guardado", () => {
+    nav.query = "guia=dashboard";
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("dashboard", { pasoId: "D3", terminado: false });
+    montar({ almacen });
+    expect(within(tarjeta()!).getByRole("heading", { name: "Tu inicio en Studio" })).toBeInTheDocument();
+  });
+
+  it("el botón sigue donde quedó una guía a medias, y «desde el principio» vuelve al primero", () => {
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("dashboard", { pasoId: "D3", terminado: false, vistoEn: "2026-11-06T04:00:00.000Z" });
+    montar({ almacen });
+    act(() => iniciarGuia("dashboard", { origen: "boton" }));
+    expect(within(tarjeta()!).getByText(/3 de 4/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver la guía desde el principio" }));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Tu inicio en Studio" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ver la guía desde el principio" })).toBeNull();
+  });
+
+  it("terminada, el botón empieza por el primer paso", () => {
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("dashboard", { pasoId: "D4", terminado: true });
+    montar({ almacen });
+    act(() => iniciarGuia("dashboard", { origen: "boton" }));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Tu inicio en Studio" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ver la guía desde el principio" })).toBeNull();
+  });
+
+  it("si el paso guardado ya no está en pantalla, el botón empieza por el primero", () => {
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("dashboard", { pasoId: "D3", terminado: false });
+    montar({ almacen, sin: ["dashboard.configurar"] });
+    act(() => iniciarGuia("dashboard", { origen: "boton" }));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Tu inicio en Studio" })).toBeInTheDocument();
+  });
+
+  it("cerrarGuia() la cierra y guarda el paso", () => {
+    const almacen = crearAlmacenMemoria();
+    montar({ almacen });
+    act(() => iniciarGuia("dashboard"));
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    act(() => cerrarGuia());
+    expect(tarjeta()).toBeNull();
+    expect(almacen.leer("dashboard")).toMatchObject({ pasoId: "D2", terminado: false });
   });
 });
