@@ -32,6 +32,13 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
   la salida de SDD-0610 (§4.9); temas solo de Search Console en F2; revisor humano después de
   publicar (§4.7); migración sin número, la asigna el Director General (§3).
 
+- **Tercera pasada (2026-11-06), decisión de Sam en esta sesión:** «Vamos a empezar esta semana
+  una diaria, por lo menos esta semana y la otra para hacer pruebas. Ya después se convertiría en
+  una semanal o dos semanales». Registrada en §1.1 y en §4.2.1: los topes son una configuración
+  que cambia Sam, con un límite duro de una automática por día; las dos semanas de prueba
+  (2026-11-06 al 2026-11-15) son **a mano**, porque la vía automática no existe, y sirven de
+  ensayo de los filtros. La decisión abierta 3 queda resuelta en parte.
+
 ## Validación
 
 | Comprobación | Resultado |
