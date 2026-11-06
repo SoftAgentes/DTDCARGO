@@ -200,3 +200,14 @@ create policy user_guide_prefs_owner on public.user_guide_prefs
 - Si el usuario está desactivado, no tiene acceso a su fila (RLS).
 
 **Preguntas que cambian el diseño:** S-6 (por pantalla o toda junta) cambia solo cuándo se llama el arranque automático. S-7 (nombre y lugar del botón) cambia solo dónde se monta `GuiaBoton`.
+
+## 2026-11-06 · Prueba de que la guía no se abre sola
+
+**Por qué.** El Director General revisó la guía el 2026-11-05. Solo abre con `?guia=` o con `iniciarGuia()`, y hoy nada la llama. Pero ninguna prueba lo fijaba. La pidió para la 9.3.
+
+**Qué se agregó.** Una prueba en `app/studio/_components/guia/GuiaMotor.test.tsx`: el motor está montado en la ruta de su recorrido, con todas las anclas y con progreso a medias guardado. Sin `?guia=` y sin `iniciarGuia()`, a los 5 s no hay tarjeta ni contorno, y el progreso guardado no cambió. La primera vez automática de 9.3 cambia esto a propósito; cuando entre, la prueba se ajusta a sus condiciones.
+
+| Comprobación | Resultado |
+|---|---|
+| `GuiaMotor.test.tsx` | PASÓ: 17 de 17 |
+| Mutantes: arrancar solo el recorrido de la ruta, arrancar solo a los 3 s, reanudar solo con progreso a medias | PASÓ: 3 de 3 caen por la prueba nueva. **El de los 3 s solo lo atrapa la prueba nueva**: era un hueco real |

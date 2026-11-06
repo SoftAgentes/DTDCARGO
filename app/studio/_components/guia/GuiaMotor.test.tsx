@@ -79,6 +79,22 @@ describe("arranque", () => {
     expect(screen.getByTestId("guia-contorno")).toBeInTheDocument();
   });
 
+  // Pedido del Director General (2026-11-05): no había prueba de que, sin `?guia=`
+  // ni `iniciarGuia()`, la guía no se abre sola. Hoy nada la llama, así que esta es
+  // la garantía de que no le aparece a nadie. La primera vez automática de 9.3
+  // cambia esto a propósito, y entonces esta prueba se ajusta a sus condiciones.
+  it("sin ?guia= ni iniciarGuia() no abre, aunque esté en su ruta con todas las anclas", () => {
+    vi.useFakeTimers();
+    const almacen = crearAlmacenMemoria();
+    almacen.guardar("dashboard", { pasoId: "D2", terminado: false });
+    montar({ almacen });
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(tarjeta()).toBeNull();
+    expect(screen.queryByTestId("guia-contorno")).toBeNull();
+    // Tampoco tocó el progreso guardado: no se abrió ni en silencio.
+    expect(almacen.leer("dashboard")).toEqual({ pasoId: "D2", terminado: false });
+  });
+
   it("iniciarGuia() abre desde cualquier componente", () => {
     montar();
     expect(tarjeta()).toBeNull();
