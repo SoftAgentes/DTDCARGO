@@ -606,6 +606,7 @@ class PruebasAdjuntosParaCarga(unittest.TestCase):
         informe = R.preparar_carga(st)
         self.assertEqual(informe["con_adjunto_para_carga"], 1)
         self.assertEqual(informe["bytes_adjuntos_para_carga"], len(datos))
+        self.assertEqual(informe["bytes_adjunto_max"], len(datos))
         adjunto = {m["source_id"]: m for m in st.leer_ndjson("carga.ndjson") if m["tipo"] == "mensaje"}["kommo:f1"]["adjunto"]
         self.assertEqual(adjunto["archivo_carga"], "adjuntos-carga/f1.jpg")
         salida = io.StringIO()

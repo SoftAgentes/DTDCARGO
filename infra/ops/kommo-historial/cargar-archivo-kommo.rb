@@ -60,8 +60,17 @@ class CargaArchivoKommo
       1
     ensure
       salida.puts "HECHO correos_enviados=#{correos}"
+      # El pico de memoria de este proceso (VmHWM), en todos los modos. En producción corre dentro de
+      # chatwoot-rails-1, en el mismo cgroup que el panel: es la medida de la puerta de memoria (SDD-0590 §10.15).
+      salida.puts "HECHO rss_pico_kb=#{rss_pico_kb}"
       ActiveSupport::Notifications.unsubscribe(suscripcion)
     end
+  end
+
+  def self.rss_pico_kb
+    File.read('/proc/self/status')[/^VmHWM:\s+(\d+)/, 1] || 'desconocido'
+  rescue StandardError
+    'desconocido'
   end
 
   def initialize(cuenta_id:, bandeja_id: nil, modo: 'seco', entrada: $stdin, salida: $stdout)
@@ -364,6 +373,11 @@ class CargaArchivoKommo
   TIPOS_KOMMO = { 'picture' => :image, 'sticker' => :image, 'voice' => :audio, 'audio' => :audio,
                   'video' => :video, 'file' => :file }.freeze
 
+  # Una línea del flujo pesa 4/3 del adjunto (base64). Para no tener varias copias vivas a la vez: sin `strip`
+  # (chomp al leer), la línea se suelta apenas se parsea, el base64 apenas se decodifica, y con un adjunto grande se
+  # llama al GC antes de seguir. En producción esto corre dentro de chatwoot-rails-1 (SDD-0590 §10.15).
+  ADJUNTO_GRANDE = 8 * 1024 * 1024
+
   def cargar_adjuntos(ruta)
     require 'base64'
     require 'digest'
@@ -371,10 +385,13 @@ class CargaArchivoKommo
     comprobar_bandeja!
     cola_antes = trabajos_en_cola
     clases_antes = trabajos_por_clase
+    inicio = Time.zone.now
     blobs_antes = ActiveStorage::Blob.count
+    # Los blobs de este cargador se llaman kommo-<mensaje>.<ext>: con tráfico vivo, el total de blobs también
+    # cuenta los de WhatsApp e Instagram que lleguen mientras corre.
+    blobs_kommo_antes = ActiveStorage::Blob.where('filename LIKE ?', 'kommo-%').count
     fuente = ruta == '-' ? @entrada : File.open(ruta, encoding: 'UTF-8')
-    fuente.each_line do |linea|
-      linea = linea.strip
+    fuente.each_line(chomp: true) do |linea|
       next if linea.empty?
 
       unless linea.start_with?('{')
@@ -382,6 +399,8 @@ class CargaArchivoKommo
         next
       end
       a = JSON.parse(linea)
+      linea = nil # rubocop:disable Lint/UselessAssignment -- suelta la línea para el GC
+      b64 = a.delete('b64').to_s
       @cuenta[:adjuntos_leidos] += 1
       mensaje = Message.where(inbox_id: @bandeja_id, source_id: a['source_id']).pick(:id, :account_id)
       unless mensaje
@@ -392,7 +411,10 @@ class CargaArchivoKommo
         @cuenta[:adjuntos_existentes] += 1
         next
       end
-      datos = Base64.strict_decode64(a['b64'].to_s)
+      grande = b64.bytesize > ADJUNTO_GRANDE
+      GC.start if grande
+      datos = Base64.strict_decode64(b64)
+      b64 = nil # rubocop:disable Lint/UselessAssignment -- suelta el base64 para el GC
       if datos.bytesize != a['bytes'].to_i || Digest::SHA256.hexdigest(datos) != a['sha256']
         @cuenta[:adjuntos_no_coinciden] += 1
         next
@@ -403,9 +425,17 @@ class CargaArchivoKommo
       else
         subir_adjunto(mensaje[0], mensaje[1], a, datos)
       end
+      @cuenta[:bytes_adjunto_max] = [@cuenta[:bytes_adjunto_max], datos.bytesize].max
+      datos = nil # rubocop:disable Lint/UselessAssignment -- suelta los bytes para el GC
+      GC.start if grande
     end
     @cuenta.sort.each { |k, v| hecho(k, v) }
     hecho('blobs', "#{blobs_antes}->#{ActiveStorage::Blob.count}")
+    hecho('blobs_kommo', "#{blobs_kommo_antes}->#{ActiveStorage::Blob.where('filename LIKE ?', 'kommo-%').count}")
+    # Un blob subido en esta corrida que quedó sin su fila (por ejemplo, el proceso murió entre la subida y el
+    # insert): repetir la corrida no lo limpia, así que se cuenta aparte. Tiene que dar 0.
+    hecho('blobs_huerfanos_nuevos', ActiveStorage::Blob.where('created_at >= ?', inicio).where('filename LIKE ?', 'kommo-%')
+                                                        .where.not(id: ActiveStorage::Attachment.select(:blob_id)).count)
     hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
     hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
     hecho('modo', @modo)

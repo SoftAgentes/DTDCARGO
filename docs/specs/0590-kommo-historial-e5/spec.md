@@ -838,3 +838,28 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
    Sin la variable, todo vuelve a ser como hoy: el cambio no toca datos.
 
 **Repositorio:** la misma línea en `infra/chatwoot/compose.yml` y `CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS=1540` en `.env.example`, en la PR #396 contra main, para que main y el VPS no se separen más. Con el `.env.example`, `docker compose config` da `1540` en rails, sidekiq y prepare. El default del compose es el que vale. El `.env` del VPS no necesita la línea; si un día se quiere otro valor, se pone ahí.
+
+### 10.15 Memoria del cargador en producción (Director General, 2026-11-06)
+
+**El riesgo.** En producción, el cargador corre con `docker exec … chatwoot-rails-1`, en el mismo cgroup que el panel.
+- El límite de `chatwoot-rails-1` es de 1.536 MiB, y Puma ya usa unos 383 MiB (Director General).
+- El runner del ensayo pasó a 4g (§10.12), así que ya no reproduce ese límite. Vale también para `MODO=cargar`, el de los textos.
+- Antes, una línea de un adjunto de 200 MB costaba unas 3,5 veces su tamaño: la línea, el `strip`, la cadena del JSON y el decode.
+- Un OOM ahí puede tumbar el panel.
+
+**En código (PR #395):**
+1. **`rss_pico_kb`:** el cargador imprime el pico de memoria del proceso (`VmHWM` de `/proc/self/status`) en todos los modos. MEM1 lo comprueba en CI, con el mutante MEM-M1, y también en el ensayo, que anota el pico de cada paso en la evidencia.
+2. **`bytes_adjunto_max`:** el extractor 1.3.1 lo agrega a `carga-informe.json`. Lo cubren la prueba de Python y D3.
+3. **Menos memoria por línea:**
+   - `each_line(chomp: true)`, sin la copia del `strip`;
+   - la línea se suelta apenas se parsea, el base64 apenas se decodifica y los bytes apenas se suben;
+   - con un adjunto de más de 8 MB, se llama al GC antes de decodificar y al terminar.
+
+   **No hay prueba de memoria en CI:** con 314 bytes no se ve, y un umbral de RSS en CI sería inestable. El pico real lo mide el ensayo.
+4. **Puerta en producción, antes de cada modo:** `rss_pico_kb` de ese modo en el ensayo, más el uso actual de `chatwoot-rails-1` (`docker stats --no-stream`), más 300 MB, tiene que quedar por debajo de 1.536 MiB. Si no queda, no se corre dentro de `chatwoot-rails-1`, y se le propone al Director General otra vía: un contenedor aparte con su propio límite, o los adjuntos grandes por separado.
+5. **Evidencia de adjuntos en producción:**
+   - `adjuntos_fallidos`, `adjuntos_no_coinciden` y `adjuntos_sin_mensaje`, en 0;
+   - `blobs_kommo a->b`, con b−a igual a `adjuntos_nuevos`. Solo cuenta los blobs `kommo-*`: con tráfico vivo, el total de blobs también suma los de WhatsApp e Instagram que lleguen mientras corre. `blobs a->b` queda como referencia;
+   - **`blobs_huerfanos_nuevos`**, en 0: los blobs `kommo-*` creados desde el inicio de la corrida que no tienen adjunto. Un OOM entre la subida y el insert dejaría uno, y repetir la corrida no lo limpia.
+
+   AD1 exige las tres cosas, en CI y en el ensayo. **El caso en que el contador da más de 0 no está probado en CI:** haría falta romper el proceso entre la subida y el insert. Lo cubre por otro camino AD3, que busca huérfanos desde la sonda.

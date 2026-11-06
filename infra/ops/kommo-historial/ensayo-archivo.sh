@@ -502,8 +502,8 @@ exigir E11 '[ "$(h "$F" conversaciones_existentes_intactas)" = si ] && [ "$(h "$
 if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null && [ -f "$DIR/adjuntos-1.txt" ]; then
   ADJ_BYTES="$(inf bytes_adjuntos_para_carga "$INFORME_CARGA")"
   F="$DIR/adjuntos-1.txt"
-  exigir AD1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" adjuntos_nuevos)" = "$ADJ_ESPERADOS" ] && [ "$(h "$F" bytes_nuevos)" = "$ADJ_BYTES" ] && cero "$(h "$F" adjuntos_sin_mensaje)" && cero "$(h "$F" adjuntos_no_coinciden)" && cero "$(h "$F" adjuntos_fallidos)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
-    "5.5b: $(h "$F" adjuntos_nuevos) de $ADJ_ESPERADOS adjuntos subidos, $(h "$F" bytes_nuevos) de $ADJ_BYTES bytes, sin trabajos encolados ($(h "$F" trabajos_nuevos))"
+  exigir AD1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" adjuntos_nuevos)" = "$ADJ_ESPERADOS" ] && [ "$(h "$F" bytes_nuevos)" = "$ADJ_BYTES" ] && cero "$(h "$F" adjuntos_sin_mensaje)" && cero "$(h "$F" adjuntos_no_coinciden)" && cero "$(h "$F" adjuntos_fallidos)" && avance "$(h "$F" blobs_kommo)" "$ADJ_ESPERADOS" && cero "$(h "$F" blobs_huerfanos_nuevos)" && [ -n "$(h "$F" blobs_huerfanos_nuevos)" ] && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "5.5b: $(h "$F" adjuntos_nuevos) de $ADJ_ESPERADOS adjuntos subidos, $(h "$F" bytes_nuevos) de $ADJ_BYTES bytes, blobs de kommo $(h "$F" blobs_kommo), $(h "$F" blobs_huerfanos_nuevos) huérfanos nuevos, sin trabajos encolados ($(h "$F" trabajos_nuevos))"
   F="$DIR/adjuntos-2.txt"
   exigir AD2 '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" adjuntos_nuevos)" && [ "$(h "$F" adjuntos_existentes)" = "$ADJ_ESPERADOS" ] && avance "$(h "$F" blobs)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
     "5.5b: la segunda carga de adjuntos no duplica: 0 nuevos, $(h "$F" adjuntos_existentes) existentes"
@@ -565,6 +565,20 @@ exigir BQ1 '[ "$(h "$BA" busqueda)" = ok ] && [ "$(h "$BB" busqueda)" = ok ] && 
   "búsqueda de mensajes: el mensaje con texto más viejo del Archivo (de hace $(h "$BB" vieja_dias) días) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada)"
 log "MEDIDA BQ — 90 días: $(h "$BA" mensajes_cuenta_en_ventana) mensajes de la cuenta en la ventana ($(h "$BA" mensajes_archivo_en_ventana) del Archivo), palabra $(h "$BA" palabra_ms) ms, sin coincidencias $(h "$BA" sin_coincidencias_ms) ms"
 log "MEDIDA BQ — $BUSQUEDA_DIAS días: $(h "$BB" mensajes_cuenta_en_ventana) mensajes de la cuenta en la ventana ($(h "$BB" mensajes_archivo_en_ventana) del Archivo), palabra $(h "$BB" palabra_ms) ms, sin coincidencias $(h "$BB" sin_coincidencias_ms) ms; GIN $(h "$BB" busqueda_gin), índices GIN sobre content $(h "$BB" indice_gin_contenido)"
+
+# Memoria del cargador (punto B del Director General): el pico de cada paso es la medida de la puerta de memoria
+# en producción, donde corre dentro de chatwoot-rails-1 (SDD-0590 §10.15).
+pasos_cargador="bandeja seco carga-1 carga-2 $([ -f "$DIR/adjuntos-1.txt" ] && echo adjuntos-1 adjuntos-2) miembros-seco miembros-1 miembros-2"
+rss_ok=1
+rss_lista=""
+for p in $pasos_cargador; do
+  r="$(h "$DIR/$p.txt" rss_pico_kb)"
+  case "$r" in ''|*[!0-9]*) rss_ok=0 ;; esac
+  rss_lista="$rss_lista $p:$r"
+done
+exigir MEM1 '[ "$rss_ok" = 1 ]' "el cargador anota rss_pico_kb en cada paso"
+log "MEDIDA MEM — rss_pico_kb del cargador por paso:$rss_lista; el adjunto más grande, $(inf bytes_adjunto_max "${INFORME_CARGA:-}") bytes"
+evidencia "HECHO rss_pico_kb_por_paso=${rss_lista# }" "HECHO bytes_adjunto_max=$(inf bytes_adjunto_max "${INFORME_CARGA:-}")"
 
 evidencia "HECHO ensayo_fallas=$FALLAS" "HECHO ensayo_fin=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 log "== resultado: $FALLAS fallas · evidencia $EVIDENCIA"

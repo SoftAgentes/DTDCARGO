@@ -167,7 +167,7 @@ exigir R2 'adjuntos_medidos && ! grep -q "adjuntos: NO EJECUTADO" "$TRABAJO/ensa
 # FASE=preparar), así que E-10e se mide con el agente real: no la encuentra antes de ser miembro y sí después. El
 # mensaje inventado más viejo es de hace 500 días: con 90 días no aparece y con 1540, sí.
 pasan_todas() { local c; for c in "$@"; do grep -qE "^PASÓ +$c — " "$TRABAJO/ensayo-r.txt" || return 1; done; }
-exigir R3 'pasan_todas MI1 MI2 MI3 E10g BQ1 && grep -qE "^PASÓ +E10g — E-10e con un usuario real \(agente\)" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +MI2 — .*\(4 de 4," "$TRABAJO/ensayo-r.txt"' \
+exigir R3 'pasan_todas MI1 MI2 MI3 E10g BQ1 MEM1 && grep -qE "^PASÓ +E10g — E-10e con un usuario real \(agente\)" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +MI2 — .*\(4 de 4," "$TRABAJO/ensayo-r.txt"' \
   "miembros: todos los usuarios quedan en el Archivo y el agente real la encuentra solo después; búsqueda: con 1540 días aparece el mensaje de hace 500"
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────

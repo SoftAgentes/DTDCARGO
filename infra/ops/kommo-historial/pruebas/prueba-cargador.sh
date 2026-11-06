@@ -196,8 +196,8 @@ comprobar() {
   local fugas=0 f m
   # 5.5b: los adjuntos, después de la carga: 3 nuevos con sus bytes, sin trabajos; la segunda vez, ninguno.
   F="$O/adjuntos-1.txt"
-  exigir AD1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" adjuntos_nuevos)" = 3 ] && [ "$(h "$F" bytes_nuevos)" = "$ESPERADO_BYTES" ] && cero "$(h "$F" adjuntos_sin_mensaje)" && cero "$(h "$F" adjuntos_no_coinciden)" && cero "$(h "$F" adjuntos_fallidos)" && avance "$(h "$F" blobs)" 3 && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
-    "5.5b: 3 adjuntos subidos ($(h "$F" bytes_nuevos) de $ESPERADO_BYTES bytes), 3 blobs, sin trabajos encolados ($(h "$F" trabajos_nuevos))"
+  exigir AD1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" adjuntos_nuevos)" = 3 ] && [ "$(h "$F" bytes_nuevos)" = "$ESPERADO_BYTES" ] && cero "$(h "$F" adjuntos_sin_mensaje)" && cero "$(h "$F" adjuntos_no_coinciden)" && cero "$(h "$F" adjuntos_fallidos)" && avance "$(h "$F" blobs)" 3 && avance "$(h "$F" blobs_kommo)" 3 && cero "$(h "$F" blobs_huerfanos_nuevos)" && [ -n "$(h "$F" blobs_huerfanos_nuevos)" ] && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "5.5b: 3 adjuntos subidos ($(h "$F" bytes_nuevos) de $ESPERADO_BYTES bytes), 3 blobs de kommo ($(h "$F" blobs_kommo)), $(h "$F" blobs_huerfanos_nuevos) huérfanos nuevos, sin trabajos encolados ($(h "$F" trabajos_nuevos))"
   F="$O/adjuntos-2.txt"
   exigir AD2 '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" adjuntos_nuevos)" && [ "$(h "$F" adjuntos_existentes)" = 3 ] && avance "$(h "$F" blobs)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
     "5.5b: la segunda carga de adjuntos no duplica: 0 nuevos, 3 existentes, 0 blobs"
@@ -273,8 +273,8 @@ exigir D1 '[ "$(inf personas)" = 4 ] && [ "$(inf conversaciones)" = 5 ] && [ "$(
 exigir D2 '[ "$(inf mensajes)" = 8 ] && [ "$(inf entrantes)" = 5 ] && [ "$(inf salientes)" = 3 ] && [ "$(inf con_adjunto)" = 3 ] && [ "$(inf sin_texto)" = 1 ]' \
   "8 mensajes: 5 entrantes, 3 salientes, 3 con adjunto, 1 sin texto"
 ESPERADO_BYTES="$(inf bytes_adjuntos_para_carga)"
-exigir D3 '[ "$(inf con_adjunto_para_carga)" = 3 ] && [ "${ESPERADO_BYTES:-0}" -gt 0 ]' \
-  "5.5b: 3 adjuntos con copia en claro para el cargador ($ESPERADO_BYTES bytes)"
+exigir D3 '[ "$(inf con_adjunto_para_carga)" = 3 ] && [ "${ESPERADO_BYTES:-0}" -gt 0 ] && [ "$(inf bytes_adjunto_max)" -gt 0 ] && [ "$(inf bytes_adjunto_max)" -le "$ESPERADO_BYTES" ]' \
+  "5.5b: 3 adjuntos con copia en claro para el cargador ($ESPERADO_BYTES bytes; el mayor, $(inf bytes_adjunto_max))"
 CARGA="$S/carga.ndjson"
 FLUJO="$TRABAJO/flujo.ndjson"
 "$PY" -I "$(win "$KH/respaldar-historial.py")" flujo-adjuntos --staging "$(win "$S")" >"$FLUJO" 2>"$TRABAJO/flujo.err" \
@@ -422,6 +422,25 @@ if [ "$MUTANTES" = 1 ]; then
     "nuevos = usuarios.pluck(:user_id)" "nuevos = usuarios.where(role: :administrator).pluck(:user_id)"
 fi
 vigilar "miembros"
+
+# ── MEM. El pico de memoria del cargador (VmHWM), en todos los modos ─────────
+# En producción el cargador corre dentro de chatwoot-rails-1, con el panel: rss_pico_kb del ensayo es la medida
+# de la puerta de memoria antes de cada modo (SDD-0590 §10.15). Aquí se comprueba que sale en todos los modos.
+log "== MEM. pico de memoria del cargador"
+rss_en_todos() { local f; for f in "$@"; do h "$f" rss_pico_kb | grep -qE '^[0-9]+$' || return 1; done; }
+exigir MEM1 'rss_en_todos "$REAL/bandeja-1.txt" "$REAL/seco.txt" "$REAL/carga-1.txt" "$REAL/adjuntos-1.txt" "$REAL/miembros-seco.txt" "$REAL/miembros-1.txt"' \
+  "el cargador imprime rss_pico_kb en todos los modos"
+log "MEDIDA MEM — rss_pico_kb: crear-bandeja $(h "$REAL/bandeja-1.txt" rss_pico_kb), seco $(h "$REAL/seco.txt" rss_pico_kb), cargar $(h "$REAL/carga-1.txt" rss_pico_kb), adjuntos $(h "$REAL/adjuntos-1.txt" rss_pico_kb), miembros $(h "$REAL/miembros-1.txt" rss_pico_kb)"
+if [ "$MUTANTES" = 1 ]; then
+  if mutar "$D/cargador/cargar-archivo-kommo.rb" "$D/cargador/MEM-M1.rb" \
+       '      salida.puts "HECHO rss_pico_kb=#{rss_pico_kb}"' '      nil' >"$REAL/MEM-M1.mutar.txt" 2>&1; then
+    rr "$REAL/MEM-M1.txt" MODO=miembros-seco "CUENTA=$CUENTA" "BANDEJA=$B" -- /tmp/cargador/MEM-M1.rb </dev/null
+    exigir MEM-M1 '[ "$(h "$REAL/MEM-M1.txt" carga)" = ok ] && ! rss_en_todos "$REAL/MEM-M1.txt"' \
+      "sin la línea de rss_pico_kb, MEM1 cae"
+  else
+    mal MEM-M1 "no se pudo aplicar ($(tr -d '\r' <"$REAL/MEM-M1.mutar.txt"))"
+  fi
+fi
 
 # ── M. Control y mutantes ────────────────────────────────────────────────────
 escenario() { # id → salidas en $D/estado/m/<id>/

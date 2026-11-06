@@ -238,6 +238,7 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 
 ### 5.6 Pasos 7 a 10, con el Director General
 
+- **Puerta de memoria, antes de cada modo** (spec §10.15): `rss_pico_kb` de ese modo en el ensayo, más el uso actual de `chatwoot-rails-1` (`docker stats --no-stream`), más 300 MB, tiene que quedar por debajo de 1.536 MiB. Si no queda, no se corre en `chatwoot-rails-1` y se le propone otra vía al Director General.
 - **Seco en producción.** Se copia el cargador al contenedor y la carga entra por la entrada estándar:
 
   ```sh
@@ -247,7 +248,7 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
   Primero se crea la bandeja con `MODO=crear-bandeja` (exige `asignacion_automatica=no`, `miembros=0` y `trabajos_nuevos` de `account.cache_invalidated`). Después `MODO=seco` con `CARGA=-`. Sus conteos tienen que coincidir con los del ensayo.
 - **Respaldo de Chatwoot**, antes de cargar: lo hace el Director General.
 - **Carga:** `MODO=cargar`. Se anota `HECHO secuencia=antes->después` (E-8, aceptado por el Director General). E-3 lo cuenta él antes y después: `crm_tarjetas`, `crm_tareas`, `chatwoot_webhook_events` y `chatwoot_conversations`.
-- **Adjuntos (5.5b), después de los mensajes:** `flujo-adjuntos | MODO=adjuntos-seco` y después `MODO=adjuntos`, por la entrada estándar (README). Se anotan `blobs antes->después` y `trabajos_nuevos`, que tiene que dar `ninguno`.
+- **Adjuntos (5.5b), después de los mensajes:** `flujo-adjuntos | MODO=adjuntos-seco` y después `MODO=adjuntos`, por la entrada estándar (README). Se anotan `blobs`, `blobs_kommo` y `trabajos_nuevos`, que tiene que dar `ninguno`. Además, `adjuntos_fallidos`, `adjuntos_no_coinciden`, `adjuntos_sin_mensaje` y `blobs_huerfanos_nuevos` tienen que dar 0, y la diferencia de `blobs_kommo` tiene que ser igual a `adjuntos_nuevos`.
 - **Al final:**
   - `respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo`, que cifra y borra el staging;
   - los miembros del Archivo: `MODO=miembros-seco` y después `MODO=miembros` (README), con la misma bandeja;

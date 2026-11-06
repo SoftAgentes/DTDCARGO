@@ -54,7 +54,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 # 5.5b: copias en claro de los adjuntos, dentro del staging (tmpfs), solo para el cargador del Archivo Kommo.
 CARPETA_ADJUNTOS_CARGA = "adjuntos-carga"
 SOLAPE_HORAS_POR_DEFECTO = 24
@@ -1074,6 +1074,8 @@ def preparar_carga(st: Staging) -> dict:
             if isinstance(fila["adjunto"], dict):
                 cuenta["con_adjunto_para_carga"] += 1
                 cuenta["bytes_adjuntos_para_carga"] += int(fila["adjunto"].get("bytes") or 0)
+                # El adjunto más grande: con él se estima el pico de memoria del cargador (SDD-0590 §10.15).
+                cuenta["bytes_adjunto_max"] = max(cuenta["bytes_adjunto_max"], int(fila["adjunto"].get("bytes") or 0))
             cuenta["sin_texto"] += not m.get("text")
     informe = dict(sorted(cuenta.items()))
     st.escribir_json("carga-informe.json", informe)
