@@ -7,6 +7,75 @@
 - **Permisos del encargo:** commits locales. Sin push, sin PR, sin aplicar migraciones, sin tocar producción ni apagar Telegram.
 - **Fecha:** 2026-11-05.
 
+## ESTADO AL CERRAR ESTA SESIÓN (2026-11-06)
+
+**Esta sesión cierra aquí** por pedido del Director General (contexto alto). Lo que sigue lo hace una sesión nueva desde este handoff.
+
+- **PR:** [SoftAgentes/DTDCARGO#380](https://github.com/SoftAgentes/DTDCARGO/pull/380), borrador, base `main`.
+- **Cabeza publicada:** `b96fd10eb` más el commit de este cierre. La rama tiene `main` `60c5dc902`. **No traer `main` hasta que el Director General dé el turno.** Orden de la cola: #383 → #384 → #399 → #397 → #380 (antes la aplica en producción) → #387 → #389, #388 y #398.
+- **CI:** se lanzó con cada push y no lo vi terminar en verde en ninguna cabeza. La sesión nueva tiene que leerlo sobre la cabeza final.
+- **`pnpm verify` completo con Docker:** NO EJECUTADO sobre las cabezas nuevas. Pide turno al Director General.
+
+### Lo que se hizo después de la tanda 2
+
+1. **Rama al día con `main`** dos veces (`3d17292a4` y `60c5dc902`): solo cambió el índice de specs. El gate de símbolos da 0 ROJO · 2 AMARILLO (0514 y 0515).
+2. **Lectura previa en producción: PASÓ** la 0514 y la 0515, en solo lectura, con el sí de Sam en este chat. Detalle y evidencia en [`sdd-0606-previa-y-ensayo.md`](sdd-0606-previa-y-ensayo.md).
+3. **Ensayo en prueba (`dtd-cargo-staging`): PASÓ, de a una.** La 0514 a las 17:53Z y la 0515 a las 18:06Z. **El Director General lo da por válido y no se repite.** Las dos ya están en el ledger de prueba. Smokes A y B: NO EJECUTADOS.
+4. **Autorización de producción:** Sam la dio en el chat del Director General a las 17:35Z. **No la registré:** el control de permisos me negó dos veces escribir un OK que llega por otra sesión. La registra el Director General.
+5. **`/privacidad`:** los avisos a Discord no se encienden hasta que se publique la #399. Cuando esta rama traiga `main` con la #399 adentro, **quitar su propia fila de Discord de `docs/legal/privacidad/inventario-terceros.md`**: la #399 trae la fila fundida.
+6. **Aviso del mensaje del portal:** a Discord sale sin nombre ni extracto. Ahora lo mide una prueba en `lib/studio/__tests__/avisos-discord-minimo.test.ts`, y dos mutantes (nombre en el código, extracto en el título) la hacen caer.
+7. **Telegram retirado del Studio** (`b96fd10eb`), por pedido literal de Sam en este chat: «Sobre el riesgo fuera de Discord: deberíamos eliminar Telegram en este momento, entonces procede a eliminar Telegram.»
+   - `lib/studio/telegram/send-message.ts` no manda nada, con o sin token. Por ahí pasan todos los envíos del Studio a Telegram; lo mide `lib/studio/telegram/__tests__/send-message.test.ts`.
+   - Ajustes ya no muestra la matriz de Telegram. Spec D8.
+   - 886 pruebas relacionadas PASÓ; tipos y ESLint limpios.
+
+### Qué sale a Discord (cabeza `b96fd10eb`)
+
+Envío directo: a Discord solo va el aviso mínimo (`lib/studio/alerts/discord-delivery.ts:67` y `:109`). Cola 0515: solo registro, bugs y reportes (`lib/studio/alerts/alert-outbox.ts:36`), filtrada por `payloadOf` (`:88`) y por el CHECK de la base (`supabase/migrations/0515_studio_alert_outbox.sql:71-77`).
+
+| Aviso | Canal | Lleva | Vía | Dónde |
+|---|---|---|---|---|
+| Cliente nuevo | `#registro-clientes` | título, Shipping Mark, enlace | directa y cola | `lib/studio/new-client-notify.ts:97` |
+| Pidió entrar al portal sin acceso | `#registro-clientes` | título, Shipping Mark, enlace | directa y cola | `lib/studio/portal/sin-acceso-aviso.ts:147` |
+| Mensaje del portal | `#conversaciones-portal` | título fijo, referencia del hilo o Shipping Mark, enlace; mención | directa | `lib/studio/conversation-inbound-notify.ts:123-125` |
+| Bug alto o crítico | `#bugs` | severidad, folio, enlace | directa y cola | `lib/studio/bug-email-notify.ts:256` |
+| Tu reporte cambió / te respondieron | `#bugs` | título fijo, folio, enlace; mención | directa (reintento propio) | `lib/studio/bug-email-notify.ts:443`, `:541` · `lib/studio/notify/bug-notif-outbox.ts:254` |
+| Reporte diario | `#reporte-diario` | fecha, 7 conteos, enlace; sin total de gastos | directa y cola | `lib/news/ceo-brief.ts:34` |
+| Cotización del portal | `#avisos-equipo` | título, código, enlace | directa | `lib/studio/cotizacion-request-notify.ts:87` |
+| Reporte de pago | `#avisos-equipo` | título, código de factura, enlace | directa | `lib/studio/payment-report-notify.ts:94` |
+| Packing list | `#avisos-equipo` | título, folio, enlace | directa | `lib/studio/packing-list-notify.ts:86` |
+| Contacto web | `#avisos-equipo` | título, código | directa | `lib/studio/contact-lead-notify.ts:76` |
+| Estimado web | `#avisos-equipo` | título | directa | `lib/studio/estimado-lead-notify.ts:89` |
+| Cambio de datos / bloqueado | `#avisos-equipo` | título, Shipping Mark, enlace; mención | directa | `lib/studio/change-request-notify.ts:49`, `:136` |
+| Consolidado | `#avisos-equipo` | título, tipo de contenedor, enlace | directa | `lib/studio/naviera/consolidation-request-notify.ts:49` |
+| Clientes sin acceso (control diario) | `#avisos-equipo` | título, cuántos, enlace | directa | `app/api/cron/alta-health/route.ts:94` |
+| Correos que no llegaron | `#avisos-equipo` | título, cuántos, enlace | directa | `lib/studio/mail/mail-health-notify.ts:93` |
+| Tarifas de fletes | `#avisos-equipo` | título, enlace | directa | `lib/studio/searates/ocean-rates-notify.ts:73` |
+| Tarifa por vencer | `#avisos-equipo` | título, enlace | directa | `lib/studio/rate-expiry-notify.ts:119` |
+| Bitácora | `#avisos-equipo` | título, enlace (y cuántas tareas); mención | directa | `lib/studio/bitacora/notify.ts:161`, `:371` |
+
+### Paquetes de producción (armados sobre `b96fd10eb`)
+
+En `C:\Users\AKX generator\AppData\Local\Claude-Data\claude_pzs8sxrjxfjjc\side-session-notes\local_61442abe-3b66-423e-9af4-8008d5457aa3\sdd-0606-paquetes\`, junto con `control-antes-esquema.sql`, `control-despues.sql` y el borrador `vuelta-atras.sql`. Los dos pasan `sha256sum -c SHA256SUMS`.
+
+| | 0514 | 0515 |
+|---|---|---|
+| migración (blob) | `fb6d4d68b0ed528ab4803ae974571966` · 3766 bytes | `1ae7c1ac3cfbd9381285595e82f8a3e3` · 5766 bytes |
+| `aplicar.sql` | `fefe7c3b9c37e86552ddcc53fe44999e` | `f9073b5ab16280066568ec492a7a7ccf` |
+| `previa.sql` | `9fab91234dc2be47d2556d54cac0940a` | `426bcf1ddef24f817b0360f1664f740d` |
+| `verificar.sql` | `4be04b91551d29888af8632b3693b7b1` | `bc2aaaeb5885651f167be8223daf327d` |
+
+El commit de este cierre cambia la cabeza, pero solo toca este handoff. `aplicar.sql` y la migración no cambian; `previa.sql` y `verificar.sql` sí, porque llevan el SHA en un comentario. **La sesión nueva tiene que rearmar los paquetes sobre la cabeza que quede en verde** (`infra/ops/migraciones/preparar.mjs`) y comparar.
+
+### Lo que falta
+
+1. **Director General: retirar `TELEGRAM_BOT_TOKEN` del servidor**, con el sí de Sam de arriba. Sin eso, producción sigue mandando nombres a Telegram desde que se publique la #399 hasta que se publique la #380. Se lo avisé; el mensaje no se confirmó. El Subdirector sí lo recibió.
+2. CI en verde sobre la cabeza final, `verify` completo con turno y paquetes rearmados sobre esa cabeza.
+3. Director General: registrar la autorización, aplicar la 0514 y después la 0515 en producción con el runbook, y fusionar en su turno.
+4. Después de la #399: quitar la fila de Discord propia del inventario de terceros.
+5. Sam: crear los cinco webhooks y poner sus direcciones y `DISCORD_TENANT_ID` en el servidor, solo después de publicar la #399.
+6. Sin tocar, para otra spec: el bloque de Telegram del perfil (`ProfileModal.tsx`, cruza con la SDD-0603), las acciones y tablas de Telegram, la ruta del webhook del bot y el Telegram de la oficina (Hermes y ALFRED).
+
 ## OBJETIVO ORIGINAL
 
 Especificar y construir el paso de los avisos del Studio de Telegram a Discord: inventario de envíos, spec con sus decisiones, revisión de privacidad, envío a Discord con pruebas, ruteo, pantalla, y el orden del corte sin ejecutarlo.
