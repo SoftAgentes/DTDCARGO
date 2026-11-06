@@ -1,7 +1,7 @@
 ---
 sdd: "0611"
 title: "Publicación automática de noticias en /noticias, con filtros"
-status: proposed
+status: approved
 author: "founder"
 created: 2026-11-06
 updated: 2026-11-06
@@ -485,8 +485,9 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
    publicación automática (§2). Al quitar el apagado automático, esta revisión y el aviso de
    §4.6 son el freno que queda además de Sam y Alejandro.
 
-**Todas las decisiones abiertas quedaron resueltas.** La spec queda lista para que Sam la
-apruebe (`status: approved`).
+**Todas las decisiones abiertas quedaron resueltas.** Sam aprobó la spec el 2026-11-06, texto
+literal: «yo aprobé el PR (aprobado), pero que él tome la decisión». La aprobación es de la spec;
+el merge lo decide el Director.
 5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y Alejandro, más el
    Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
    revisó cuando la revisión esté registrada.
