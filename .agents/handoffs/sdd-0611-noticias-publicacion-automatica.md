@@ -25,6 +25,12 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
   firma, identidad y permisos, privacidad, gate de pruebas de IA-01, criterios de aceptación,
   decisiones abiertas y dependencias.
 - Índice de specs regenerado.
+- **Segunda pasada (2026-11-06), con el encargo completo del Subdirector:** tabla de los ocho
+  puntos con su prueba (§5.1); requisito previo de bloquear `[VERIFICAR]` en el servidor (§3);
+  propuesta de nota para `docs/governance/README.md` (§2.1); aviso a `#actividad-oficina` con
+  el transporte de SDD-0606 y retiro por enlace (§4.5); puertas del esquema mixto alineadas con
+  la salida de SDD-0610 (§4.9); temas solo de Search Console en F2; revisor humano después de
+  publicar (§4.7); migración sin número, la asigna el Director General (§3).
 
 ## Validación
 
@@ -34,14 +40,17 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 | `pnpm docs:check` | PASÓ |
 | `pnpm sdd:check` | PASÓ (solo choques históricos conocidos) |
 | `git diff --check` | PASÓ |
-| `pnpm verify` | NO APLICA: solo documentos |
+| `pnpm verify` | NO APLICA: solo documentos; el encargo pidió correr solo `docs:check` y `sdd:check` |
+| Segunda pasada: `docs:index`, `docs:check`, `sdd:check`, `git diff --check` | PASÓ |
 | `pnpm knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en este worktree; estructural y semántico `UNAVAILABLE` |
 | Hallazgo de la marca vacía | Comprobado con node sobre la expresión de `lib/news/score.ts`: `[VERIFICAR]` y `[VERIFICAR: ]` cuentan 0 |
 
 ## Pendientes de esta tarea
 
 1. Que Sam revise la spec y conteste las cinco decisiones abiertas de su §7.
-2. Publicar la rama y abrir la PR: **no autorizado** en el encargo.
+2. PR en borrador abierta. Autorización recibida por mensaje del Subdirector «SEO, GEO y AEO»
+   el 2026-11-06, texto literal: «publica la rama y abre la PR en borrador; eso está autorizado,
+   fusionarla no». No cubre el merge.
 3. Publicar la reserva 0611 en `origin` si se quiere que otras máquinas la vean (el comando lo
    imprimió `sdd:next`).
 
@@ -64,6 +73,11 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 - Ya anotado por la SDD-0605: `lib/news/prompts.ts:468` sobre el marcado de preguntas frecuentes.
 
 ## Coordinación
+
+- `#actividad-oficina` lo pidió el encargo; el plan maestro §7.6 la deja solo a Paperclip. Queda
+  como decisión abierta 1 de Sam.
+- Índice de specs: la PR #388 (SDD-0610) agrega su fila en el mismo bloque; quien integre la
+  segunda regenera el índice.
 
 - La sesión del resumen del CRM (`local_2e23f385…`, SDD-0610) preguntó si esta SDD define la
   puerta de salida. Respuesta enviada: no; queda fuera de alcance, puede seguir con su propuesta.
