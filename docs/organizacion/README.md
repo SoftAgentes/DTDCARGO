@@ -5,7 +5,7 @@
 
 | Documento | Qué es | Estado |
 |---|---|---|
-| [`organigrama-paperclip.md`](organigrama-paperclip.md) | Propuesta de organigrama (personas y agentes) para Paperclip: diagnóstico, puestos, asignación de personas, el CEO, riesgos y respuestas de Sam. Desde el 2026-11-05, su sección 9 trae la reestructura en 13 agentes (SDD-0605) | borrador · faltan los titulares por confirmar · sección 9 del 2026-11-05: diseño aprobado, sin ejecutar |
+| [`organigrama-paperclip.md`](organigrama-paperclip.md) | Propuesta de organigrama (personas y agentes) para Paperclip: diagnóstico, puestos, asignación de personas, el CEO, riesgos y respuestas de Sam. Desde el 2026-11-05, su sección 9 trae la reestructura en 13 agentes (SDD-0605), 14 desde la resolución 3.1 del 2026-11-06 | borrador · faltan los titulares por confirmar · sección 9 del 2026-11-05: diseño aprobado, sin ejecutar |
 | [`assets/01-organigrama-dtd-cargo.svg`](assets/01-organigrama-dtd-cargo.svg) | Organigrama gráfico por puestos | borrador |
 | [`hermes-oficina.md`](hermes-oficina.md) | Diseño histórico aprobado de Hermes y Paperclip; cambios posteriores y límites remiten a SDD-0564 D11 | histórico · no usar como lista de ejecución |
 | [`plan-maestro-oficina.md`](plan-maestro-oficina.md) | Evidencia fechada, plantilla de contratación ordinaria y comprobaciones pendientes para el Director. Desde el 2026-11-05, su sección 7 trae cómo se llega a la reestructura: modelos por perfil, Discord como central, orden de ejecución y pendientes (SDD-0605) | revisado 2026-10-20 · sección 7 del 2026-11-05: plan aprobado, sin ejecutar · estado vivo no verificado |

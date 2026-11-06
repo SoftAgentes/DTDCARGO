@@ -168,3 +168,67 @@ No se tocó nada de esto.
   Archify y Obsidian quedan para después de integrar.
 - **Ownership:** claim liberado al cerrar esta sesión de escritura. Si se retoma (por ejemplo,
   para cambiar un nombre), se reclama otra vez.
+
+## Anexo: resolución 3.1 del 2026-11-06
+
+**Fuente.** Las decisiones que Sam le dio el 2026-11-06 a la sesión «Paperclip», que configura
+los agentes en Paperclip, y que esa sesión registró en su nota «Resolución 3.1 del plan de
+oficina», en la carpeta de notas compartidas de las sesiones (fuera del repositorio). Su plan
+aprobado por Sam también está fuera del repositorio. Este anexo las pasa a los documentos sin
+SDD nueva: amplían la SDD-0605, no la sustituyen.
+
+**Decisiones de Sam (2026-11-06):**
+
+1. **ALFRED pasa a Claude Code** (`claude_local`) dentro de Paperclip, con el plan Max de
+   Anthropic de Sam. El modelo lo elige Sam después; el candidato es Claude Fable 5.1 con
+   esfuerzo `high`. Su perfil de Hermes `ceo` queda de respaldo y no se borra.
+2. **Entra el Auxiliar de ALFRED,** un crítico con Codex (`gpt-6-astra`, esfuerzo `high`) que
+   usa el ChatGPT Plus de Sam. **La oficina pasa de 13 a 14 agentes.**
+3. **Todas las subtareas van con GLM en Hermes.** El Revisor, el Director de contenido y el
+   Redactor quedan en GLM, no en Sonnet ni Codex como decía la SDD-0605.
+4. **El ciclo:** ALFRED instruye (documento `plan`) → el Auxiliar critica (documento `critica`
+   y tarjeta `request_confirmation`, que no bloquea) → ALFRED reestructura, como máximo dos
+   vueltas → los agentes de GLM ejecutan como subtareas hijas. La decisión final es de ALFRED.
+5. **El riesgo de usar las suscripciones lo asume Sam;** él conecta sus planes en la pantalla
+   de conexiones de IA de Paperclip.
+6. **GLM sigue en Hermes** aunque Hermes no figure en la lista de herramientas del plan de
+   Z.AI. Sam lo aceptó.
+
+**Cambios al plan que salen de la investigación de esa sesión:**
+
+- **Contrataciones:** las crea Sam en la pantalla, con una hoja de alta. Una llave de agente no
+  puede fijar `command`, `cwd` ni `env` (ALFRED recibió un 403 al intentarlo). La llave de
+  Junta de `director` está vencida y no se crea otra.
+- **Mantenimiento:** no se sube Paperclip a v2026.1023.0 (bloquea el uso sin precio y tiene
+  abierto un problema que congela la empresa) ni Hermes a 0.22.4 o más (un problema abierto
+  impide reanudar sesiones).
+- **Aislamiento:** los motores nuevos usan los envoltorios `dtd-claude` y `dtd-codex`, con la
+  misma regla que `dtd-hermes`. Llevan SDD propia, que escribe la sesión «Paperclip»; al cerrar
+  este anexo **no tenía número ni estaba publicada**.
+- **Hallazgos menores de seguridad,** sin corregir: prompt de Hermes por argumento (visible en
+  el registro de `sudo` y con `ps`), Hermes con `--yolo` y sin reglas `deny`, subordinados que
+  pueden contratar y crear skills, y skills de Paperclip que no llegan a Hermes.
+
+**Dónde quedó escrito** (rama `claude/oficina-resolucion-3-1`, apilada sobre el tren de
+documentos de la PR #406):
+
+| Archivo | Cambio |
+|---|---|
+| `docs/organizacion/plan-maestro-oficina.md` | Aviso arriba; §4 con el agente 14; §7.2 con 14 agentes; §7.4 con lo que no se sube; §7.5 reescrita con motores, ciclo y condiciones; §7.7 pasos 3, 5 y 5b; §7.8 decisiones del 2026-11-06 y pendientes; §7.9 riesgos; §7.10 paso 3 |
+| `docs/organizacion/oficina-conocimiento/07-quien-hace-que.md` | Fila del Auxiliar, regla 7, columna «Modelo», cuenta de 14 y fila en «¿A quién le asigno…?» |
+| `docs/organizacion/organigrama-paperclip.md` §9 | Aviso, §9.1, tabla de 14, diagrama, §9.5, §9.7 reescrita y §9.9 |
+| `docs/organizacion/README.md`, `oficina-conocimiento/README.md`, `oficina-agentes/README.md` | Solo la cuenta |
+
+**Validación:** `docs:check` y `sdd:check`, registrados en el commit de la rama.
+
+**Fuera de alcance detectado** (no se tocó, por encargo):
+
+- `oficina-agentes/AGENTS-paperclip.md` y `oficina-agentes/ceo/*` siguen diciendo 13 agentes y
+  no nombran al Auxiliar. Las instrucciones de ALFRED en Claude Code y las del Auxiliar las
+  escribe la sesión «Paperclip» en la SDD de los envoltorios.
+- La carpeta del Auxiliar se escribió como `auxiliar` porque así aparece en el árbol de esa
+  sesión; **por confirmar** con ella.
+- El aviso de arriba del plan maestro dice «Nada de la sección 7 está ejecutado». Ya hay perfiles
+  creados en el VPS según la sesión coordinadora; corregirlo pide medir antes.
+- `oficina-agentes/entrenamiento.md` §4 dice «Hoy todos los perfiles usan GLM 5.3»; sigue siendo
+  cierto hasta el cambio de motor de ALFRED.

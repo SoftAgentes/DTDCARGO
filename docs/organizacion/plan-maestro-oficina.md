@@ -15,6 +15,12 @@
 > registro del 2026-10-20 y siguen valiendo como historia y como reglas; donde la sección 7
 > las cambia, lo dice. **Nada de la sección 7 está ejecutado.**
 >
+> **Resolución 3.1 del 2026-11-06.** Sam ajustó el plan al configurar Paperclip: ALFRED pasa a
+> Claude Code, entra el **Auxiliar de ALFRED** (son **14 agentes**), todas las subtareas van
+> con GLM en Hermes y no se actualiza Paperclip a la versión 1023 ni Hermes a 0.22.4 o más.
+> Está en §7.2, §7.5, §7.7 y §7.8; la fuente es la
+> [resolución 3.1 en el handoff de la SDD-0605](../../.agents/handoffs/sdd-0605-oficina-reestructura.md#anexo-resolución-31-del-2026-11-06).
+>
 > **Contexto que debes leer antes de actuar**, todo de solo lectura en el VPS:
 >
 > | Archivo | Qué es |
@@ -196,6 +202,10 @@ Con 8 agentes la ola 1 queda llena: no se contrata a nadie más sin decisión de
 marketing. Si los 13 caben en el tope de 100 USD al mes sigue pendiente (§7.8), y cada
 contratación sigue pasando por la plantilla de §2 y por la aprobación de Sam.
 
+**Resolución 3.1 (2026-11-06).** Entra un agente más, el Auxiliar de ALFRED: la estructura pasa
+a 14 (§7.2). Las contrataciones las crea Sam en la pantalla de Paperclip con una hoja de alta,
+porque una llave de agente no puede fijar el comando, la carpeta ni el entorno del agente.
+
 ## 5. Pendientes fuera de Paperclip (Hermes no puede)
 
 | Pendiente | Quién |
@@ -249,28 +259,36 @@ arquitectura nueva ni amplía la aceptación histórica del riesgo del Director 
 
 Lo medido es de esa fecha y no se repitió al escribir este documento.
 
-### 7.2 Los 13 agentes y lo que le falta a cada uno
+### 7.2 Los 14 agentes y lo que le falta a cada uno
 
-| # | Agente | Perfil | Qué hay que hacer | Necesita |
+Eran 13 en la SDD-0605; la resolución 3.1 (2026-11-06) suma el Auxiliar de ALFRED y cambia
+los motores de ALFRED, el Revisor, el Director de contenido y el Redactor.
+
+| # | Agente | Perfil o carpeta | Qué hay que hacer | Necesita |
 |---|---|---|---|---|
-| 1 | ALFRED (CEO) | `ceo` | Cambiar su modelo a Claude Fable 5.1; conectarlo a Discord; actualizar sus instrucciones con el equipo nuevo | Llave del modelo con límite; bot de Discord |
-| 2 | Revisor | `revisor` | Crear perfil, contratar con Codex de OpenAI, ponerlo como etapa de revisión | Perfil nuevo; llave o sesión del modelo; aprobación de Sam |
-| 3 | Coordinador de procesos y seguimiento | `gabinete` | Renombrar el agente en Paperclip y cargar su identidad ajustada | — |
-| 4 | Puente de ingeniería | `ingenieria` | Crearle la rutina semanal «Vigía de mejoras» (§7.4) | Darle una forma de leer las notas de versión |
-| 5 | Director de contenido | `director-contenido` | Crear perfil y contratar con Claude Sonnet 5.5 | Perfil nuevo; llave del modelo; aprobación de Sam |
-| 6 | Experto en SEO, GEO y AEO | `seo` | Crear perfil y contratar | Perfil nuevo; la salida de temas del Studio para trabajar con datos reales |
-| 7 | Experto en TikTok | `tiktok` | Crear perfil y contratar, en su turno | Perfil nuevo |
-| 8 | Experto en YouTube | `youtube` | Crear perfil y contratar, en su turno | Perfil nuevo |
-| 9 | Experto en Instagram y Facebook | `community` | Renombrar el agente y cargar su identidad | — |
-| 10 | Redactor de noticias | `contenido` | Renombrar el agente, cargar su identidad ajustada y cambiar su modelo a Claude Sonnet 5.5 | Llave del modelo |
-| 11 | Asesor comercial | `asesor` | Nada | — |
-| 12 | Analista de CRM/datos | `crm` | Nada | — |
-| 13 | Analista de operaciones | `operaciones` | Nada | — |
+| 1 | ALFRED (CEO) | `ceo` | Pasarlo a Claude Code (`claude_local`) dentro de Paperclip, con el plan Max de Sam; el modelo lo elige Sam después (candidato: Claude Fable 5.1, esfuerzo `high`). Su perfil de Hermes `ceo` queda de respaldo y no se borra. Conectarlo a Discord; actualizar sus instrucciones con el equipo nuevo | Sam conecta su plan en la pantalla de conexiones de IA de Paperclip y cambia el motor; envoltorio `dtd-claude` (SDD pendiente) |
+| 2 | Auxiliar de ALFRED | `auxiliar` (nombre de la carpeta por confirmar) | Crearlo y contratarlo con Codex (`gpt-6-astra`, esfuerzo `high`). Es el crítico de los planes de ALFRED (§7.5) | Sam conecta su ChatGPT Plus y crea el agente en la pantalla; envoltorio `dtd-codex` (SDD pendiente) |
+| 3 | Revisor | `revisor` | Crear perfil, contratar con GLM en Hermes, ponerlo como etapa de revisión | Perfil nuevo; aprobación de Sam |
+| 4 | Coordinador de procesos y seguimiento | `gabinete` | Renombrar el agente en Paperclip y cargar su identidad ajustada | — |
+| 5 | Puente de ingeniería | `ingenieria` | Crearle la rutina semanal «Vigía de mejoras» (§7.4) | Darle una forma de leer las notas de versión |
+| 6 | Director de contenido | `director-contenido` | Crear perfil y contratar con GLM en Hermes | Perfil nuevo; aprobación de Sam |
+| 7 | Experto en SEO, GEO y AEO | `seo` | Crear perfil y contratar | Perfil nuevo; la salida de temas del Studio para trabajar con datos reales |
+| 8 | Experto en TikTok | `tiktok` | Crear perfil y contratar, en su turno | Perfil nuevo |
+| 9 | Experto en YouTube | `youtube` | Crear perfil y contratar, en su turno | Perfil nuevo |
+| 10 | Experto en Instagram y Facebook | `community` | Renombrar el agente y cargar su identidad | — |
+| 11 | Redactor de noticias | `contenido` | Renombrar el agente y cargar su identidad ajustada. Sigue en GLM | — |
+| 12 | Asesor comercial | `asesor` | Nada | — |
+| 13 | Analista de CRM/datos | `crm` | Nada | — |
+| 14 | Analista de operaciones | `operaciones` | Nada | — |
 
 Para cada perfil nuevo vale la regla de §2: lo crea una persona con acceso al VPS, y sin
-perfil no se contrata. Para cada contratación, la plantilla de §2 y la aprobación de Sam.
-Después de aprobado se carga su `AGENTS.md`; las instrucciones de Paperclip de los puestos
-nuevos todavía no están escritas.
+perfil no se contrata. **Cada contratación la crea Sam en la pantalla de Paperclip**, con una
+hoja de alta: una llave de agente no puede fijar `command`, `cwd` ni `env` (ALFRED recibió un
+403 el 2026-11-06 al intentar contratar al Director de contenido, y está bien que así sea).
+Después de aprobado se carga su `AGENTS.md`. Las instrucciones de Paperclip de los puestos
+de Hermes están en [`oficina-agentes/AGENTS-paperclip.md`](oficina-agentes/AGENTS-paperclip.md);
+las de ALFRED en Claude Code y las del Auxiliar las escribe la SDD de los envoltorios
+`dtd-claude` y `dtd-codex`, **pendiente**.
 
 ### 7.3 Orden de entrada de los expertos
 
@@ -308,42 +326,53 @@ agente trae identidad, entrenamiento, revisión de lo que aprende y más cosas q
   el aislamiento.
 - **Primer caso:** al medir el 2026-11-05 había versiones más nuevas de las dos piezas que las
   instaladas. Decidir si se actualiza es parte del mantenimiento del VPS (§7.7, paso 3).
+- **Lo que no se sube todavía (resolución 3.1, 2026-11-06):** Paperclip v2026.1023.0, porque
+  bloquea el uso sin precio (`unpricedUsagePolicy: block`) y congelaría a los agentes de Hermes,
+  cuyo gasto Paperclip no mide, y porque tiene abierto un problema que congela la empresa
+  (#18956 de Paperclip); y Hermes 0.22.4 o más, porque un problema abierto impide reanudar
+  sesiones (#18314 de Hermes). La Vigía lo vuelve a mirar cuando salgan versiones nuevas.
 
-### 7.5 Un modelo por perfil
+### 7.5 Un motor y un modelo por agente
 
-**Forma elegida:** cambiar proveedor y modelo dentro del perfil de Hermes. El agente conserva
-memoria, skills, conexión y el envoltorio `dtd-hermes`.
+**Resolución 3.1 (decisión de Sam, 2026-11-06).** Reemplaza el reparto de la SDD-0605, que
+ponía a ALFRED en Fable dentro de Hermes, al Director de contenido y al Redactor en Sonnet y al
+Revisor en Codex. Ahora **todas las subtareas van con GLM en Hermes** y solo cambian ALFRED y
+su Auxiliar:
 
-| Agente | Modelo | Cómo se paga, según la documentación de Hermes instalada |
-|---|---|---|
-| ALFRED (CEO) | Claude Fable 5.1 | Llave de API de Anthropic, de pago por uso, o un plan de suscripción que admita uso extra |
-| Director de contenido y Redactor de noticias | Claude Sonnet 5.5 | Igual que el anterior |
-| Revisor | Codex de OpenAI | Inicio de sesión del plan de ChatGPT, o llave de API de OpenAI |
-| Los otros nueve | GLM 5.3 | Plan fijo de Z.AI, como hoy |
+| Agente | Motor en Paperclip | Modelo | Cómo se paga |
+|---|---|---|---|
+| ALFRED (CEO) | Claude Code (`claude_local`), con el envoltorio `dtd-claude` | Lo elige Sam después; candidato: Claude Fable 5.1, esfuerzo `high` | Plan Max de Anthropic de Sam, conectado por él en la pantalla de conexiones de IA de Paperclip |
+| Auxiliar de ALFRED | Codex, con el envoltorio `dtd-codex` | `gpt-6-astra`, esfuerzo `high` | ChatGPT Plus de Sam, conectado igual |
+| Los otros doce, incluidos el Revisor, el Director de contenido y el Redactor | Hermes, con `dtd-hermes` | GLM 5.3 | Plan fijo de Z.AI, como hoy |
+
+**El ciclo de ALFRED y el Auxiliar:**
+
+1. ALFRED instruye: escribe un documento `plan` en la tarea.
+2. El Auxiliar critica: escribe un documento `critica` y deja una tarjeta
+   `request_confirmation`. **No bloquea:** ALFRED puede seguir sin esperar.
+3. ALFRED reestructura el plan, **como máximo dos vueltas**.
+4. Los agentes de GLM ejecutan como subtareas hijas.
+
+La decisión final es de ALFRED. El Auxiliar no reemplaza al Revisor: el Auxiliar critica el
+plan antes de repartir; el Revisor comprueba cada entregable antes de que llegue a Sam.
 
 **Condiciones:**
 
-- **Las llaves de modelos sí viven en la oficina;** la de GLM ya está ahí. La regla «sin
-  llaves en Hermes» se refiere a las de producción y a las de Google.
-- **Llave propia de la oficina con límite mensual puesto en el proveedor,** no la sesión
-  personal de Sam. Como el aislamiento entre perfiles no está verificado (§6), cualquier
-  perfil podría leerla.
-- **El freno real es ese límite del proveedor.** Paperclip no registra el gasto de Hermes, así
-  que su tope no frena nada.
+- **El riesgo de usar las suscripciones de Sam lo asumió Sam** al decidirlo; él conecta sus
+  planes en Paperclip. Esto sustituye la condición anterior de «llave propia de la oficina con
+  límite en el proveedor» para ALFRED y el Auxiliar.
+- **GLM sigue en Hermes** aunque Hermes no figure en la lista de herramientas del plan de Z.AI;
+  Sam lo aceptó.
+- **Aislamiento:** `dtd-claude` y `dtd-codex` siguen la misma regla que `dtd-hermes`: cada
+  agente corre en `/srv/oficina/trabajo/<perfil>` con `DTD_PERFIL`. Los describe la SDD de los
+  envoltorios, **pendiente** (la escribe la sesión que configura Paperclip).
+- **Paperclip no registra el gasto de Hermes,** así que su tope no frena a los doce de GLM; el
+  freno es el plan fijo de Z.AI.
+- La llave de Anthropic que §5 pide revocar sigue siendo otra: no se usa para esto.
 
-**Pendiente antes de aplicar el reparto:**
-
-1. Que Sam elija cómo pagar Fable 5.1 y Codex: llave de API con límite mensual (lo recomendado
-   en el plan) o los planes de suscripción.
-2. Comprobar que la versión instalada de Hermes conoce Fable 5.1. Si no la trae, es un motivo
-   concreto para actualizar Hermes.
-3. La prueba: las mismas tres tareas reales en cada modelo candidato. El reparto sale de
-   opiniones de usuarios y cifras de fabricantes, no de una prueba controlada.
-4. La llave de Anthropic que §5 pide revocar es otra llave: no se reutiliza para esto sin
-   decisión de Sam.
-
-Kimi K3 queda como candidato para los expertos que tengan que mirar videos o miniaturas, con
-prueba previa. DeepSeek queda fuera. No se usan más de tres familias de modelos al arrancar.
+**Pendiente:** que Sam elija el modelo de ALFRED y la prueba con tres tareas reales
+([entrenamiento §4](oficina-agentes/entrenamiento.md#4-qué-se-mide)). Kimi K3 sigue como candidato para los
+expertos que tengan que mirar videos o miniaturas, con prueba previa. DeepSeek queda fuera.
 
 ### 7.6 Discord como central única
 
@@ -490,9 +519,10 @@ tiene permisos de administrador: no sirve para crear perfiles ni para actualizar
 | 0 | Discord primero: guía para crear el bot, estructura de canales y configuración de Hermes lista para aplicar | Discord y VPS de la oficina | Crear el bot, invitarlo y dar una entrada con permisos al VPS |
 | 1 | Cerrar la fase A de SEO, GEO y AEO del sitio (SDD-0604, en su rama) | Repositorio | Lo que pida esa SDD |
 | 2 | **Esta reestructura en documentos (SDD-0605)** | Repositorio, solo documentos | Hecho el 2026-11-05: confirmó los nombres y autorizó publicar. Queda la integración |
-| 3 | Mantenimiento del VPS de la oficina: respaldo, Paperclip, decidir Hermes, reinicio y repetir la prueba de aislamiento | VPS de la oficina | Autorizarlo y dar una entrada con permisos |
+| 3 | Mantenimiento del VPS de la oficina: respaldo, Paperclip, decidir Hermes, reinicio y repetir la prueba de aislamiento. **Sin subir Paperclip a v2026.1023.0 ni Hermes a 0.22.4 o más** (§7.4, resolución 3.1) | VPS de la oficina | Autorizarlo y dar una entrada con permisos |
 | 4 | Recorrido de Paperclip: tablero, panel en vivo, «qué necesita de mí», organigrama | Paperclip | Estar presente |
-| 5 | Crear 5 perfiles, contratar y renombrar 3 agentes, por turnos | VPS de la oficina y Paperclip | Aprobar cada contratación con su mano |
+| 5 | Crear 5 perfiles, contratar y renombrar 3 agentes, por turnos | VPS de la oficina y Paperclip | Crear cada contratación en la pantalla de Paperclip con su hoja de alta |
+| 5b | Pasar ALFRED a Claude Code y crear el Auxiliar con Codex (resolución 3.1), con los envoltorios `dtd-claude` y `dtd-codex` | Repositorio (SDD de envoltorios, pendiente), VPS de la oficina y Paperclip | Conectar sus planes en Paperclip, cambiar el motor de ALFRED, crear el Auxiliar y pegar las instrucciones |
 | 6 | Discord como central: canales, bot de ALFRED, avisos de la oficina y del servidor | Discord y los dos VPS | Crear el bot, los canales y los avisos automáticos; dar acceso |
 | 6b | Avisos del Studio a Discord: SDD propia, revisión de privacidad y corte directo de Telegram | Repositorio y producción | Aprobar la SDD y descongelar la publicación |
 | 7 | Puertas del Studio y estado de revisión de noticias | Repositorio y producción | OK de la migración, cuenta de servicio y descongelar la publicación |
@@ -514,7 +544,8 @@ Discord con los agentes actuales.
 - Marketing como subgrupo con Director de contenido y expertos por plataforma.
 - Un Revisor nuevo.
 - Vigía de mejoras semanal; actualizar leyendo las notas y probando antes.
-- Un modelo por perfil de Hermes, con el reparto de §7.5.
+- Un modelo por perfil de Hermes. **Reemplazado el 2026-11-06** por el reparto de la
+  resolución 3.1 (§7.5).
 - Paperclip tal cual más Discord como oficina visual; la oficina dibujada se decide después.
 - Arranque de Discord solo con Sam.
 - Los nombres «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»,
@@ -522,21 +553,41 @@ Discord con los agentes actuales.
 - Las noticias se publican solas, con filtros. No está vigente: necesita su SDD y el registro
   de la excepción a IA-01.
 
+**Tomadas por Sam el 2026-11-06 (resolución 3.1):**
+
+- ALFRED pasa a Claude Code con el plan Max de Sam; su perfil de Hermes `ceo` queda de
+  respaldo.
+- Entra el Auxiliar de ALFRED, crítico con Codex en el ChatGPT Plus de Sam: son 14 agentes.
+- Todas las subtareas van con GLM en Hermes, incluidos el Revisor, el Director de contenido y
+  el Redactor.
+- El ciclo plan → crítica (no bloquea) → reestructura (máximo dos vueltas) → subtareas de GLM;
+  la decisión final es de ALFRED.
+- Sam asume el riesgo de usar sus suscripciones y conecta él sus planes.
+- GLM sigue en Hermes aunque Hermes no figure en la lista de herramientas del plan de Z.AI.
+- Las contrataciones las crea Sam en la pantalla; no se crea otra llave de Junta para
+  `director`.
+
 **Pendientes:**
 
-1. **Tope de la oficina:** 13 agentes y el tope de 100 USD al mes.
+1. **Tope de la oficina:** 14 agentes y el tope de 100 USD al mes.
 2. **Orden de entrada de los expertos** (§7.3) o todos de una vez.
 3. **Quién más está en el servidor de Discord «DTD Cargo».**
-4. **Cómo pagar Fable 5.1 y Codex** (§7.5).
+4. **Modelo de ALFRED** dentro del plan Max (§7.5); candidato: Claude Fable 5.1, esfuerzo
+   `high`. Cómo pagar quedó resuelto el 2026-11-06.
 
 ### 7.9 Riesgos
 
 - El aislamiento entre perfiles de Hermes no está verificado (§6). Por eso ninguna llave de
-  producción vive en la oficina, y las de modelos llevan límite en el proveedor.
+  producción vive en la oficina. ALFRED y el Auxiliar usan las suscripciones de Sam, un riesgo
+  que Sam asumió el 2026-11-06.
 - GLM a veces dice que guardó algo sin guardarlo; el Studio y el Revisor comprueban del otro
   lado.
-- No se sabe si GLM redacta con la voz que Sam quiere. Por eso el Redactor pasa a Claude, y
-  antes de comprometerse conviene el mismo artículo con los dos modelos.
+- No se sabe si GLM redacta con la voz que Sam quiere. Con la resolución 3.1 el Redactor sigue
+  en GLM: el Revisor lo mira y la prueba de tres tareas del entrenamiento lo mide.
+- Hallazgos menores de la revisión de Paperclip del 2026-11-06, sin corregir todavía: el
+  prompt de Hermes viaja por argumento, así que queda en el registro de `sudo` y se ve con
+  `ps`; Hermes corre con `--yolo` y sin reglas `deny`; los subordinados pueden contratar y
+  crear skills; y las skills de Paperclip no llegan a los perfiles de Hermes.
 - Paperclip no registra el costo de Hermes: su tope no es el límite real.
 - Una extensión de Paperclip corre con la sesión de la Junta, o sea con todo el poder de Sam.
   Las que hagan falta se escriben propias y se revisan; no se instalan de terceros.
@@ -546,7 +597,7 @@ Discord con los agentes actuales.
 | Paso | Cómo se comprueba |
 |---|---|
 | 2 | `pnpm docs:check` y `pnpm sdd:check`; ningún archivo de biblioteca trae nombres, montos ni datos de clientes |
-| 3 | Versión nueva en la comprobación de salud de Paperclip, prueba de aislamiento repetida, los 8 agentes responden |
+| 3 | La versión decidida (no la v2026.1023.0) en la comprobación de salud de Paperclip, prueba de aislamiento repetida, los 8 agentes responden |
 | 5 | Pregunta de control a cada agente nuevo: «¿qué no puedes hacer nunca?» |
 | 6 | Una tarea de punta a punta desde `#alfred`; otro usuario del servidor no logra que el bot responda; `#actividad-oficina` refleja la corrida |
 | 7 | El servidor rechaza publicar sin aprobación; la puerta de entrada no puede publicar ni leer |

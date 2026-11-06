@@ -16,7 +16,8 @@ Regla: cada cosa se dice una sola vez. La biblioteca está en
 ## Perfiles y qué tiene cada uno versionado
 
 Actualizado el 2026-11-06. La [SDD-0605](../../specs/0605-oficina-reestructura/spec.md)
-reestructuró la oficina en 13 agentes
+reestructuró la oficina en 13 agentes, 14 desde la resolución 3.1 del 2026-11-06 con el Auxiliar
+de ALFRED
 ([organigrama §9](../organigrama-paperclip.md#9-reestructura-de-la-oficina-de-agentes-2026-11-05--sdd-0605))
 y dejó las identidades; el 2026-11-06 se completaron los contextos de trabajo, las instrucciones
 de Paperclip y el [plan de entrenamiento](entrenamiento.md).

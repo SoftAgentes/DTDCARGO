@@ -1102,6 +1102,12 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 > «Existe» quiere decir que el agente figura en los documentos del 2026-10-20
 > ([plan maestro](plan-maestro-oficina.md) §1), cuyo estado vivo sigue **NO VERIFICADO**. Lo
 > único medido el 2026-11-05, en solo lectura, está en el plan maestro §7.1.
+>
+> **Resolución 3.1 (decisión de Sam, 2026-11-06).** Entra el Auxiliar de ALFRED y la
+> estructura pasa a **14 agentes**; ALFRED pasa a Claude Code y su Auxiliar usa Codex; el
+> Revisor, el Director de contenido y el Redactor quedan en GLM, como los demás. Fuente:
+> [anexo en el handoff de la SDD-0605](../../.agents/handoffs/sdd-0605-oficina-reestructura.md#anexo-resolución-31-del-2026-11-06).
+> Cómo se llega: [plan maestro §7.2 y §7.5](plan-maestro-oficina.md#75-un-motor-y-un-modelo-por-agente).
 
 ### 9.1 Qué cambia y qué no
 
@@ -1115,7 +1121,9 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 4. **Entra un Revisor** (§9.5).
 5. **Tres agentes cambian de nombre** y el Puente de ingeniería gana la rutina «Vigía de
    mejoras» (§9.6).
-6. **Cada perfil usa el modelo que le conviene** (§9.7).
+6. **Cada agente usa el motor y el modelo que le conviene** (§9.7).
+7. **Entra el Auxiliar de ALFRED** (resolución 3.1): critica los planes de ALFRED antes de que
+   se repartan (§9.7).
 
 **No cambia:**
 
@@ -1131,27 +1139,29 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
   Studio guarda datos, llaves, aprobación y publicación. Hermes no recibe llaves de
   producción ni de Google.
 
-### 9.2 Los 13 agentes
+### 9.2 Los 14 agentes
 
-Son 8 actuales, 3 de ellos renombrados, más 5 nuevos. La columna «Reporta a» es
-**PROPUESTA**: el plan da las áreas y dice que el Director de contenido reparte entre los
-expertos; Sam la confirma al aprobar cada contratación.
+Son 8 actuales, 3 de ellos renombrados, más 6 nuevos: los 5 de la SDD-0605 y el Auxiliar de
+ALFRED de la resolución 3.1 (2026-11-06). La columna «Reporta a» es **PROPUESTA**: el plan da
+las áreas y dice que el Director de contenido reparte entre los expertos; Sam la confirma al
+aprobar cada contratación.
 
-| # | Área | Agente | Estado | Perfil de Hermes | Reporta a | Modelo | Trabajo |
+| # | Área | Agente | Estado | Perfil o carpeta | Reporta a | Modelo | Trabajo |
 |---|---|---|---|---|---|---|---|
-| 1 | Dirección | **ALFRED (CEO)** | Existe | `ceo` | Junta (Sam) | Claude Fable 5.1 | Recibe a Sam, reparte, da seguimiento, parte del viernes |
-| 2 | Dirección | **Revisor** | Nuevo | `revisor` | ALFRED | Codex de OpenAI | Nada llega a Sam sin pasar por él. Revisa voz de marca, datos sin fuente y reglas |
-| 3 | Dirección | **Coordinador de procesos y seguimiento** | Renombrado (era «Jefe de gabinete») | `gabinete` | ALFRED | GLM 5.3 | Procedimientos, actas, fechas |
-| 4 | Dirección | **Puente de ingeniería**, con la rutina **Vigía de mejoras** | Existe, con rutina nueva | `ingenieria` | ALFRED | GLM 5.3 | Convierte metas en pedidos para el equipo de código. Cada semana lee las novedades de Hermes y Paperclip |
-| 5 | Marketing | **Director de contenido** | Nuevo | `director-contenido` | ALFRED | Claude Sonnet 5.5 | Cabeza del subgrupo: plan del mes, calendario editorial, reparte entre los expertos, cruza el resumen del CRM |
-| 6 | Marketing | **Experto en SEO, GEO y AEO** | Nuevo | `seo` | Director de contenido | GLM 5.3 | Search Console cada semana: qué buscan, qué cayó, qué no está indexado. Entrega los temas |
-| 7 | Marketing | **Experto en TikTok** | Nuevo | `tiktok` | Director de contenido | GLM 5.3 | Estudia el algoritmo y las tendencias; entrega ganchos, guiones y calendario de TikTok |
-| 8 | Marketing | **Experto en YouTube** | Nuevo | `youtube` | Director de contenido | GLM 5.3 | Títulos, miniaturas, guiones, Shorts y búsqueda dentro de YouTube |
-| 9 | Marketing | **Experto en Instagram y Facebook** | Renombrado (era «Community manager asistente») | `community` | Director de contenido | GLM 5.3 | Reels, carruseles, historias y respuestas tipo; es el canal principal |
-| 10 | Marketing | **Redactor de noticias** | Renombrado (era «Editor de contenido») | `contenido` | Director de contenido | Claude Sonnet 5.5 | Artículos de `/noticias` y textos largos del sitio |
-| 11 | Comercial | **Asesor comercial** | Existe | `asesor` | ALFRED | GLM 5.3 | Lista diaria de leads |
-| 12 | Comercial | **Analista de CRM/datos** | Existe | `crm` | ALFRED | GLM 5.3 | CRM |
-| 13 | Operaciones | **Analista de operaciones** | Existe | `operaciones` | ALFRED | GLM 5.3 | Checklist del embarque y procedimientos |
+| 1 | Dirección | **ALFRED (CEO)** | Existe, cambia de motor | `ceo` (su perfil de Hermes queda de respaldo) | Junta (Sam) | Claude Code; el modelo lo elige Sam (candidato: Claude Fable 5.1) | Recibe a Sam, reparte, da seguimiento, parte del viernes |
+| 2 | Dirección | **Auxiliar de ALFRED** | Nuevo | `auxiliar` (por confirmar) | ALFRED | Codex (`gpt-6-astra`) | Critica cada plan de ALFRED antes de repartirlo; no bloquea y no decide |
+| 3 | Dirección | **Revisor** | Nuevo | `revisor` | ALFRED | GLM 5.3 | Nada llega a Sam sin pasar por él. Revisa voz de marca, datos sin fuente y reglas |
+| 4 | Dirección | **Coordinador de procesos y seguimiento** | Renombrado (era «Jefe de gabinete») | `gabinete` | ALFRED | GLM 5.3 | Procedimientos, actas, fechas |
+| 5 | Dirección | **Puente de ingeniería**, con la rutina **Vigía de mejoras** | Existe, con rutina nueva | `ingenieria` | ALFRED | GLM 5.3 | Convierte metas en pedidos para el equipo de código. Cada semana lee las novedades de Hermes y Paperclip |
+| 6 | Marketing | **Director de contenido** | Nuevo | `director-contenido` | ALFRED | GLM 5.3 | Cabeza del subgrupo: plan del mes, calendario editorial, reparte entre los expertos, cruza el resumen del CRM |
+| 7 | Marketing | **Experto en SEO, GEO y AEO** | Nuevo | `seo` | Director de contenido | GLM 5.3 | Search Console cada semana: qué buscan, qué cayó, qué no está indexado. Entrega los temas |
+| 8 | Marketing | **Experto en TikTok** | Nuevo | `tiktok` | Director de contenido | GLM 5.3 | Estudia el algoritmo y las tendencias; entrega ganchos, guiones y calendario de TikTok |
+| 9 | Marketing | **Experto en YouTube** | Nuevo | `youtube` | Director de contenido | GLM 5.3 | Títulos, miniaturas, guiones, Shorts y búsqueda dentro de YouTube |
+| 10 | Marketing | **Experto en Instagram y Facebook** | Renombrado (era «Community manager asistente») | `community` | Director de contenido | GLM 5.3 | Reels, carruseles, historias y respuestas tipo; es el canal principal |
+| 11 | Marketing | **Redactor de noticias** | Renombrado (era «Editor de contenido») | `contenido` | Director de contenido | GLM 5.3 | Artículos de `/noticias` y textos largos del sitio |
+| 12 | Comercial | **Asesor comercial** | Existe | `asesor` | ALFRED | GLM 5.3 | Lista diaria de leads |
+| 13 | Comercial | **Analista de CRM/datos** | Existe | `crm` | ALFRED | GLM 5.3 | CRM |
+| 14 | Operaciones | **Analista de operaciones** | Existe | `operaciones` | ALFRED | GLM 5.3 | Checklist del embarque y procedimientos |
 
 Los perfiles `director` (configuración de la oficina) y el de recepción con el que Sam
 conversa (hoy llamado `telegram`) no son agentes de este organigrama y no se contratan.
@@ -1161,6 +1171,7 @@ flowchart TD
   B["Junta · Sam<br/>habla solo con ALFRED"]
   CEO(["ALFRED · CEO"])
   B --> CEO
+  CEO -.-> AUX(["Auxiliar de ALFRED · nuevo<br/>critica los planes"])
   CEO --> REV(["Revisor · nuevo"])
   CEO --> COO(["Coordinador de procesos<br/>y seguimiento"])
   CEO --> ING(["Puente de ingeniería<br/>+ Vigía de mejoras"])
@@ -1247,8 +1258,9 @@ resuma a Sam. Revisa tres cosas: la voz de la marca, los datos sin fuente y las 
 
 - **No reemplaza a Sam.** Lo que sale hacia afuera sigue esperando la aprobación de Sam o del
   dueño humano del puesto.
-- **Usa un modelo de otra casa** (Codex de OpenAI) a propósito: un revisor de otra familia de
-  modelos detecta errores que el modelo que escribió no ve.
+- **Usa GLM, como los que revisa** (resolución 3.1, 2026-11-06). La SDD-0605 le daba Codex de
+  OpenAI para que un modelo de otra familia viera lo que el que escribió no ve; esa mirada de
+  otra casa queda ahora en el Auxiliar de ALFRED, que critica los planes antes de repartirlos.
 - **Nadie se revisa a sí mismo.** Antes la revisión de entregables era de ALFRED; con la
   reestructura pasa al Revisor, y ALFRED resume. Cómo se configura esa etapa en Paperclip es
   parte de su contratación.
@@ -1266,33 +1278,35 @@ podemos usar».
 | Regla | Antes de cada actualización se leen las notas de la versión, para aprovechar lo nuevo y para ver qué puede romper el aislamiento |
 | Precedente | Administración › Actualizaciones del Studio ya hace esto para Chatwoot (SDD-0588) |
 
-### 9.7 Un modelo por agente
+### 9.7 Un motor y un modelo por agente
 
-**Decisión de Sam (2026-11-05):** el modelo se cambia **dentro de Hermes, por perfil**. El
-agente sigue siendo Hermes y conserva su memoria, sus skills, su conexión y el envoltorio de
-aislamiento `dtd-hermes`. No se cambia el motor en Paperclip: así era el ALFRED viejo, que
-quedó en pausa, y pierde todo eso.
+**Resolución 3.1 (decisión de Sam, 2026-11-06).** Reemplaza el reparto del 2026-11-05, que
+cambiaba el modelo dentro de Hermes por perfil (Fable para ALFRED, Sonnet para el Director de
+contenido y el Redactor, Codex para el Revisor). Ahora:
 
-| Modelo | Fuerte en | Agentes |
-|---|---|---|
-| Claude Fable 5.1 | Planificar y repartir, seguir reglas largas | ALFRED (CEO) |
-| Claude Sonnet 5.5 | Redacción | Director de contenido, Redactor de noticias |
-| Codex de OpenAI | Revisión rigurosa, análisis estructurado | Revisor |
-| GLM 5.3 | Usar herramientas y ejecutar tareas; el más tolerante dentro de Hermes | Los otros nueve |
+| Motor | Modelo | Agentes | Cómo se paga |
+|---|---|---|---|
+| Claude Code (`claude_local`) | Lo elige Sam; candidato: Claude Fable 5.1, esfuerzo `high` | ALFRED (CEO). Su perfil de Hermes `ceo` queda de respaldo | Plan Max de Sam |
+| Codex | `gpt-6-astra`, esfuerzo `high` | Auxiliar de ALFRED | ChatGPT Plus de Sam |
+| Hermes | GLM 5.3 | **Los otros doce**: todas las subtareas | Plan fijo de Z.AI |
 
-Por qué: el CEO decide mejor a quién asignar con un modelo más fuerte; la redacción de GLM
-recibe malas opiniones aunque use bien las herramientas; y revisar con un modelo de otra casa
-es el patrón más repetido entre quienes mezclan modelos. Son opiniones de usuarios y cifras de
-fabricantes, no una prueba controlada.
+**El ciclo:** ALFRED instruye con un documento `plan` → el Auxiliar critica con un documento
+`critica` y una tarjeta de confirmación, **sin bloquear** → ALFRED reestructura, como máximo
+dos vueltas → los agentes de GLM ejecutan como subtareas hijas. La decisión final es de
+ALFRED. El Auxiliar critica planes; el Revisor (§9.5) comprueba entregables.
+
+Los dos motores nuevos usan envoltorios propios, `dtd-claude` y `dtd-codex`, con la misma regla
+de aislamiento que `dtd-hermes`: carpeta propia por agente. Los describe la SDD de los
+envoltorios, **pendiente**.
 
 **Lo que queda fuera por ahora:** Kimi K3 es candidato para los expertos en TikTok, YouTube e
 Instagram cuando tengan que mirar videos o miniaturas, y se prueba antes de adoptarlo.
 DeepSeek queda fuera hasta que se estabilice dentro de Hermes. OpenClaw no es un modelo sino
 otro motor: no se agrega. El arranque es con tres familias: Claude, OpenAI y GLM.
 
-Las condiciones y lo pendiente (cómo se paga, límite mensual en el proveedor, prueba previa y
-si la versión instalada de Hermes conoce Fable 5.1) están en el plan maestro §7.5. **Hoy
-todos los perfiles usan GLM 5.3** (medido el 2026-11-05).
+Las condiciones y lo pendiente (el modelo de ALFRED, los envoltorios y la prueba con tres
+tareas reales) están en el plan maestro §7.5. **Hasta el cambio de motor, todos los perfiles
+usan GLM 5.3** (medido el 2026-11-05).
 
 ### 9.8 Discord: quién habla y quién ve
 
@@ -1333,8 +1347,9 @@ configuración, reglas y orden de migración: plan maestro §7.6.
 | Revisor | Existe y nada llega a Sam sin pasar por él | — |
 | Nombres | «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido». El plan los listaba por confirmar; Sam los confirmó ese mismo día al revisar la SDD-0605 | — |
 | Vigía de mejoras | Rutina semanal del Puente de ingeniería; actualizar leyendo las notas y probando antes | — |
-| Modelos | Por perfil de Hermes, con el reparto de §9.7 | Cómo se paga Fable 5.1 y Codex; prueba con tres tareas reales; que Hermes conozca Fable 5.1 |
-| Tamaño | 13 agentes en la estructura | Si los 13 caben en el tope de 100 USD al mes |
+| Modelos | 2026-11-06 (resolución 3.1): ALFRED en Claude Code con el plan Max, el Auxiliar en Codex con ChatGPT Plus y los otros doce en GLM dentro de Hermes (§9.7) | El modelo de ALFRED; la SDD de los envoltorios `dtd-claude` y `dtd-codex`; prueba con tres tareas reales |
+| Tamaño | 14 agentes en la estructura desde el 2026-11-06 (eran 13) | Si los 14 caben en el tope de 100 USD al mes |
+| Contrataciones | 2026-11-06: las crea Sam en la pantalla de Paperclip, con una hoja de alta | — |
 | Oficina visual | Paperclip tal cual más Discord | La oficina dibujada, después de usarlo unos días |
 | Noticias | Se publican solas, con filtros | Su SDD y el registro de la excepción a IA-01. Hasta entonces IA-01 sigue igual |
 
