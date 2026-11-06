@@ -1,0 +1,11 @@
+# Overlay de la PRUEBA LOCAL del cargador del Archivo Kommo (SDD-0590 5.5). Nunca en el VPS.
+#
+# prueba-cargador.sh corre el cargador y su sonda con `rails runner` en el servicio `prepare`, que solo está en
+# la red `interna` (internal: true): sin salida a internet. Sin Sidekiq ni Rails corriendo, todo trabajo que se
+# encole queda en Redis y se puede contar.
+
+services:
+  prepare:
+    volumes:
+      - ./cargador:/tmp/cargador:ro
+      - ./estado:/tmp/estado
