@@ -82,8 +82,32 @@ describe("0516 · consulta de clientes desde Discord (PGlite)", () => {
   }, 60_000);
 
   it("mutante: sin exigir una palabra, «%» de una letra devuelve todos", async () => {
-    const sinPiso = mutar("and exists (select 1 from palabras)", "");
+    const sinPiso = mutar("exists (select 1 from palabras) and not exists", "not exists");
     expect(await run(inline(CONTRACT, { transform: sinPiso }))).toMatch(/CONTRATO 1\/2: búsqueda «%» \(% solo\)/);
+  }, 60_000);
+
+  it("mutante: sin el camino por código, el código no encuentra al cliente", async () => {
+    const sinCodigo = mutar("where k.por_codigo\n      or (", "where false\n      or (");
+    expect(await run(inline(CONTRACT, { transform: sinCodigo }))).toMatch(
+      /CONTRATO 1\/2: búsqueda «DTD-0001» \(código exacto\)/,
+    );
+  }, 60_000);
+
+  // Con un prefijo en vez de igualdad, el término vacío ya coincide con todos y
+  // el contrato cae en «% solo», el primer caso que lo nota.
+  it("mutante: el código por prefijo en vez de igualdad", async () => {
+    const conComodin = mutar(
+      "= (select limpio from codigo)",
+      "like (select limpio from codigo) || '%'",
+    );
+    expect(await run(inline(CONTRACT, { transform: conComodin }))).toMatch(
+      /CONTRATO 1\/2: búsqueda «%» \(% solo\)/,
+    );
+  }, 60_000);
+
+  it("mutante: sin poner primero el código, gana el orden por nombre", async () => {
+    const sinOrden = mutar("order by k.por_codigo desc, k.name", "order by k.name");
+    expect(await run(inline(CONTRACT, { transform: sinOrden }))).toMatch(/CONTRATO 1\/2: el código no fue primero/);
   }, 60_000);
 
   it("mutante: sin filtrar eliminados, aparece el Pedro Pérez borrado", async () => {
@@ -96,7 +120,9 @@ describe("0516 · consulta de clientes desde Discord (PGlite)", () => {
   it("mutante: la búsqueda devuelve también el teléfono", async () => {
     const conTelefono = (sql: string) =>
       mutar("returns table (markbox text, name text)", "returns table (markbox text, name text, phone text)")(
-        mutar("select c.markbox, c.name", "select c.markbox, c.name, c.phone")(sql),
+        mutar("select c.markbox, c.name,", "select c.markbox, c.name, c.phone,")(
+          mutar("select k.markbox, k.name\n", "select k.markbox, k.name, k.phone\n")(sql),
+        ),
       );
     expect(await run(inline(CONTRACT, { transform: conTelefono }))).toMatch(
       /CONTRATO 3: la búsqueda devuelve otras columnas/,

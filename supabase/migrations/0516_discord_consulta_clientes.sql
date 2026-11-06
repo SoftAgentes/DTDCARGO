@@ -16,16 +16,19 @@
 --   2. `discord_consulta_registrar(...)`: anota la consulta y aplica el límite
 --      por persona y minuto en el MISMO paso, con un candado por persona, para
 --      que dos pedidos simultáneos no pasen los dos.
---   3. `discord_buscar_clientes(...)`: busca por nombre y devuelve SÓLO
---      `markbox` y `name`. La minimización vive en la base: la ruta no puede
---      pedir el teléfono aunque quisiera.
+--   3. `discord_buscar_clientes(...)`: busca por nombre o por código y devuelve
+--      SÓLO `markbox` y `name`. La minimización vive en la base: la ruta no
+--      puede pedir el teléfono aunque quisiera.
 --
 -- ── La búsqueda ──────────────────────────────────────────────
 -- En SQL y no con `.ilike()` de PostgREST, porque PostgREST convierte `*` en
 -- `%` sin forma de escaparlo. Acá `\`, `%` y `_` se escapan y `*` es literal.
--- Cada palabra del término tiene que aparecer en el nombre (en cualquier
--- orden), sin distinguir mayúsculas ni acentos (á→a, ñ→n). Un término sin
--- palabras de al menos 2 caracteres no devuelve nada (nunca «todos»).
+-- Por código (pedido de Sam, 2026-11-06: «si yo pregunto el código, me dice el
+-- cliente»): el término sin mayúsculas ni signos igual al Shipping Mark sin
+-- signos. Es igualdad exacta, sin comodines, y va primero.
+-- Por nombre: cada palabra del término tiene que aparecer en el nombre (en
+-- cualquier orden), sin distinguir mayúsculas ni acentos (á→a, ñ→n). Un término
+-- sin palabras de al menos 2 caracteres no busca por nombre (nunca «todos»).
 --
 -- ── Retención ────────────────────────────────────────────────
 -- El término puede ser el nombre de una persona. Las filas de más de 180 días
@@ -175,7 +178,13 @@ revoke all on function public.discord_consulta_registrar(text, uuid, uuid, text,
 revoke all on function public.discord_consulta_registrar(text, uuid, uuid, text, text, integer) from authenticated;
 grant execute on function public.discord_consulta_registrar(text, uuid, uuid, text, text, integer) to service_role;
 
--- ── Buscar por nombre: sólo código y nombre ─────────────────
+-- ── Buscar por nombre o por código: sólo código y nombre ────
+-- Dos caminos en la misma consulta:
+--   · por código: el término, sin mayúsculas ni signos, IGUAL al Shipping Mark
+--     sin signos («dtd0123» encuentra DTD-0123; también los prefijos de aliados).
+--     Es igualdad exacta: ningún comodín entra por acá.
+--   · por nombre: cada palabra de 2+ caracteres, con los comodines escapados.
+-- Una coincidencia por código va primero.
 create or replace function public.discord_buscar_clientes(
   p_tenant_id uuid,
   p_termino text,
@@ -200,27 +209,38 @@ as $fn$
          where char_length(p) >= 2
          limit 6
       ) as t
+  ),
+  codigo as (
+    select pg_catalog.regexp_replace(upper(btrim(coalesce(p_termino, ''))), '[^A-Z0-9]', '', 'g') as limpio
+  ),
+  candidatos as (
+    select c.markbox, c.name,
+           pg_catalog.regexp_replace(upper(c.markbox), '[^A-Z0-9]', '', 'g') = (select limpio from codigo)
+             as por_codigo
+      from public.clients c
+     where c.tenant_id = p_tenant_id
+       and c.deleted_at is null
   )
-  select c.markbox, c.name
-    from public.clients c
-   where c.tenant_id = p_tenant_id
-     and c.deleted_at is null
-     and exists (select 1 from palabras)
-     and not exists (
-       select 1
-         from palabras w
-        where not (
-          lower(translate(c.name, 'ÁÀÄÂÃáàäâãÉÈËÊéèëêÍÌÏÎíìïîÓÒÖÔÕóòöôõÚÙÜÛúùüûÑñÇç',
-                                  'aaaaaaaaaaeeeeeeeeiiiiiiiioooooooooouuuuuuuunncc'))
-            like w.patron escape '\'
+  select k.markbox, k.name
+    from candidatos k
+   where k.por_codigo
+      or (
+        exists (select 1 from palabras) and not exists (
+          select 1
+            from palabras w
+           where not (
+             lower(translate(k.name, 'ÁÀÄÂÃáàäâãÉÈËÊéèëêÍÌÏÎíìïîÓÒÖÔÕóòöôõÚÙÜÛúùüûÑñÇç',
+                                     'aaaaaaaaaaeeeeeeeeiiiiiiiioooooooooouuuuuuuunncc'))
+               like w.patron escape '\'
+           )
         )
-     )
-   order by c.name, c.markbox
+      )
+   order by k.por_codigo desc, k.name, k.markbox
    limit least(greatest(coalesce(p_limite, 1), 1), 25);
 $fn$;
 
 comment on function public.discord_buscar_clientes(uuid, text, integer) is
-  'SDD-0608: busca clientes del tenant por nombre (palabras, sin acentos, comodines escapados) y devuelve SÓLO markbox y name. Sólo service_role.';
+  'SDD-0608: busca clientes del tenant por código exacto (sin signos) o por nombre (palabras, sin acentos, comodines escapados) y devuelve SÓLO markbox y name. Sólo service_role.';
 
 revoke all on function public.discord_buscar_clientes(uuid, text, integer) from public;
 revoke all on function public.discord_buscar_clientes(uuid, text, integer) from anon;

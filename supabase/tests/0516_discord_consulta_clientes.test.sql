@@ -59,6 +59,7 @@ insert into public.clients (tenant_id, markbox, name, phone, deleted_at) values
   ('00000000-0000-4000-8000-000000000001', 'DTD-0007', 'Ana*Luisa',         null,           null),
   ('00000000-0000-4000-8000-000000000001', 'DTD-0008', 'Pedro Pérez',       null,           now()),
   ('00000000-0000-4000-8000-000000000001', 'DTD-0009', 'Muñoz Peña',        null,           null),
+  ('00000000-0000-4000-8000-000000000001', 'DTD-0011', 'Agencia reenvío DTD-1001', null,     null),
   ('00000000-0000-4000-8000-000000000002', 'DTD-0010', 'Pedro Pérez',       null,           null);
 
 insert into public.clients (tenant_id, markbox, name)
@@ -94,7 +95,15 @@ begin
       ('espacios',             '   ',          10, ''),
       ('una letra',            'a',            10, ''),
       ('palabra de 1 se salta','p perez',      10, 'DTD-0001,DTD-0002,DTD-0003'),
-      ('nulo',                 null,           10, '')
+      ('nulo',                 null,           10, ''),
+      -- Por código: igualdad exacta sin mayúsculas ni signos.
+      ('código exacto',        'DTD-0001',     10, 'DTD-0001'),
+      ('código sin guion',     'dtd0005',      10, 'DTD-0005'),
+      ('código con espacios',  '  dtd-0009 ',  10, 'DTD-0009'),
+      ('código eliminado',     'DTD-0008',     10, ''),
+      ('código de otro tenant','DTD-0010',     10, ''),
+      ('código parcial',       'DTD-000',      10, ''),
+      ('prefijo en un nombre', 'DTD',          10, 'DTD-0011')
     ) as t(nombre, termino, limite, esperado)
   loop
     select coalesce(string_agg(r.markbox, ',' order by r.markbox), '')
@@ -111,6 +120,13 @@ begin
     from public.discord_buscar_clientes('00000000-0000-4000-8000-000000000002', 'pedro', 10) r;
   if v_obtenido <> 'DTD-0010' then
     raise exception 'CONTRATO 2: el tenant 2 vio [%]', v_obtenido;
+  end if;
+
+  -- La coincidencia por código va primero, aunque otro nombre la contenga.
+  select string_agg(r.markbox, ',') into v_obtenido
+    from public.discord_buscar_clientes('00000000-0000-4000-8000-000000000001', 'DTD-1001', 10) r;
+  if v_obtenido <> 'DTD-1001,DTD-0011' then
+    raise exception 'CONTRATO 1/2: el código no fue primero: [%]', v_obtenido;
   end if;
 
   -- 3. Topes.
