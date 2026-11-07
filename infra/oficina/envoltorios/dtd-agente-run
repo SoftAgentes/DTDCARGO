@@ -83,6 +83,13 @@ sin_rutas_de_los_glm() {
   done
 }
 
+# Herramientas de Hermes: lista cerrada y sin comodines, de la más nueva a la más vieja; se usa la
+# primera que exista. Hermes 0.23 trae node 26.12.1; node 26.7.0 se queda en /opt/hermes/tools
+# para volver atrás. Si no hay ninguna, Hermes no arranca (69) en vez de correr sin node.
+HERRAMIENTAS_HERMES=/opt/hermes/tools
+NODES_HERMES=(node-26.12.1-linux-x64 node-26.7.0-linux-x64)
+RIPGREP_HERMES=ripgrep-15.2.0-linux-x64
+
 case "$herramienta" in
   codex)
     motor_en "$MOTORES/auxiliar"
@@ -98,6 +105,13 @@ case "$herramienta" in
     case "$perfil" in ceo|gabinete|ingenieria|contenido|prueba|director|asesor|operaciones|crm|community|revisor|director-contenido|seo|tiktok|youtube) ;; *) echo "dtd-agente-run: perfil de Hermes no permitido" >&2; exit 64 ;; esac
     export HERMES_HOME="/home/agentes-run/.hermes/profiles/$perfil"
     if [ "$perfil" = director ] && [ -r "$HERMES_HOME/paperclip.env" ]; then set -a; . "$HERMES_HOME/paperclip.env"; set +a; fi
-    export PATH="/opt/hermes/tools/node-26.7.0-linux-x64/bin:/opt/hermes/tools/ripgrep-15.2.0-linux-x64/bin:$PATH"
+    node_bin=""
+    for n in "${NODES_HERMES[@]}"; do
+      if [ -x "$HERRAMIENTAS_HERMES/$n/bin/node" ]; then node_bin="$HERRAMIENTAS_HERMES/$n/bin"; break; fi
+    done
+    [ -n "$node_bin" ] || { echo "dtd-agente-run: falta node de Hermes en $HERRAMIENTAS_HERMES" >&2; exit 69; }
+    rg_bin="$HERRAMIENTAS_HERMES/$RIPGREP_HERMES/bin"
+    [ -x "$rg_bin/rg" ] || { echo "dtd-agente-run: falta ripgrep de Hermes en $rg_bin" >&2; exit 69; }
+    export PATH="$node_bin:$rg_bin:$PATH"
     exec /opt/hermes/bin/hermes "$@" ;;
 esac

@@ -17,6 +17,20 @@ También cambiaron 8 pruebas nuevas (de 46 a 54), 15 mutantes nuevos (de 54 a 69
 los envoltorios, la spec (§ Riesgos BAJOS de la aprobación) y `MINIMO = 54` en
 `scripts/tests/oficina-envoltorios.node.mjs`.
 
+**Agregado del co-CEO (2026-11-07), en `dtd-agente-run`.** El `PATH` de Hermes tenía fija la
+carpeta `/opt/hermes/tools/node-26.7.0-linux-x64/bin`, pero Hermes 0.23 trae node 26.12.1
+(`pm/lock.json`, según el procedimiento de la 0.23 en las notas de la sesión Paperclip). Ahora:
+
+- toma el primer node que exista de una lista cerrada y sin comodines: `node-26.12.1-linux-x64` y
+  después `node-26.7.0-linux-x64`, que se queda para volver atrás;
+- exige ripgrep 15.2.0;
+- si falta node o ripgrep, Hermes sale con 69 en vez de correr sin ellos;
+- suma 4 pruebas (de 54 a 58), 8 mutantes y el piso del harness en 58.
+
+**Por qué 69 y no seguir sin node.** Una falla ruidosa se ve en la prueba de humo que sigue a la
+instalación. Sin node, Hermes correría a medias y no se notaría. Si el DG prefiere que Hermes
+arranque igual y solo avise, basta con cambiar las dos líneas con `exit 69`.
+
 ## Por qué así
 
 1. **Riesgo 1.** En `dtd-motor` no hay forma buena de cubrirlo: revisa todos los argumentos

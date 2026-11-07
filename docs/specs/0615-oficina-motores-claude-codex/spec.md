@@ -191,7 +191,9 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
     Codex. Si uno, resuelto con sus enlaces, cae en `/srv/oficina/trabajo`, sale con 66.
   - Hace `unset` de `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` y `OPENAI_API_KEY`, y solo
     Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-  - La rama `hermes` no cambia.
+  - La rama `hermes` solo cambia en el `PATH`. Toma el primer node que exista de una lista
+    cerrada y sin comodines: `node-26.12.1-linux-x64` (Hermes 0.23) y después
+    `node-26.7.0-linux-x64`, que se queda para volver atrás. Si falta node o ripgrep, sale con 69.
 - **El sudoers suma tres cosas:**
   - `CLAUDE_CODE_OAUTH_TOKEN` en `env_keep`;
   - `!log_allowed` y los dos usuarios nuevos como destino;
@@ -346,7 +348,7 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
    usuario.
 4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-5. Las pruebas pasan sin saltos en Linux, con un piso de 54 en el harness, y todos los mutantes
+5. Las pruebas pasan sin saltos en Linux, con un piso de 58 en el harness, y todos los mutantes
    mueren.
 6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 
@@ -421,6 +423,9 @@ corrige una PR aparte, que parte de `main`.
 | 1 | `dtd-motor` corre como `agentes` y no ve los enlaces dentro de `motores/<perfil>` (700) | En el VPS de la oficina, en `/tmp`: un enlace `notas` → `trabajo/ceo` en una carpeta 700. El dueño lo resuelve hacia `trabajo/ceo`; `agentes` devuelve `motores/ceo/notas` | `dtd-agente-run` revisa otra vez los argumentos como el usuario del motor y desde su carpeta. Rechazar en `dtd-motor` las relativas que `agentes` no resuelve las rechazaría todas, también `high` o `hola` |
 | 2 | `~` no se expande: `~/../../srv/oficina/trabajo` pasaba como `motores/srv/oficina/trabajo` | Mismo VPS, como `agentes` | `dtd-motor` sale con 66 si un argumento, o el valor de `--opción=valor`, empieza por `~`. Paperclip le manda el prompt a Claude por stdin (`adapter-claude-local`, `execute.js`) |
 | 3 | `codex -C <carpeta>` cambia desde dónde se resuelven las relativas | Codex 0.163.0: `-C` se resuelve desde el cwd del proceso y pasa a ser la carpeta de la sesión, de donde salen las `--add-dir` relativas y el proyecto activo | `dtd-motor` rechaza `-C`, `-C<carpeta>`, `-C=<carpeta>`, `--cd` y `--cd=<carpeta>`. Revisar solo la carpeta no alcanza: `-C /tmp/x` mudaría la raíz del proyecto fuera de la carpeta que revisa `dtd-agente-run`. `codex_local` 2026.1012.0 no pasa `-C` |
+
+En la misma PR, a pedido del co-CEO, el `PATH` de Hermes deja de tener fija la carpeta de
+node 26.7.0. Hermes 0.23 trae 26.12.1, y la carpeta vieja se rompería el día que alguien la borre.
 
 El detalle, con las líneas de Codex, está en el README de los envoltorios. Lo instalado todavía no
 tiene estos arreglos. **Reinstalar lo decide Sam por medio del DG.**

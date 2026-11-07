@@ -41,7 +41,7 @@ out="$SALIDA_FALSA"
   echo "BIN=$0"
   for a in "$@"; do echo "ARG=$a"; done
   if pwd -W >/dev/null 2>&1; then echo "ENV PWD=$(pwd -W)"; else echo "ENV PWD=$(pwd)"; fi
-  for v in DTD_PERFIL CLAUDE_CONFIG_DIR CODEX_HOME HERMES_HOME HOME; do
+  for v in DTD_PERFIL CLAUDE_CONFIG_DIR CODEX_HOME HERMES_HOME HOME PATH; do
     if [ -n "${!v+x}" ]; then echo "ENV $v=${!v}"; fi
   done
   for v in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN HERMES_EPHEMERAL_SYSTEM_PROMPT; do
@@ -519,6 +519,14 @@ class AgenteRun(Base):
         (self.glm / "ceo" / ".claude" / "settings.json").write_text("{}")
         for nombre in ("claude", "codex", "opencode", "hermes"):
             self.falso(nombre)
+        # Las herramientas de Hermes (/opt/hermes/tools), con la forma de Hermes 0.23.
+        self.herramientas = self.tmp / "hermes-tools"
+        for carpeta, binario in (
+            ("node-26.12.1-linux-x64", "node"),
+            ("node-26.7.0-linux-x64", "node"),
+            ("ripgrep-15.2.0-linux-x64", "rg"),
+        ):
+            self.herramienta(carpeta, binario)
         texto = (RAIZ / "dtd-agente-run").read_text()
         for viejo, nuevo in {
             "/opt/agentes-cli/bin": _barra(self.bin),
@@ -527,6 +535,7 @@ class AgenteRun(Base):
             "/home/agentes-run": _barra(self.home / "agentes-run"),
             "MOTORES=/srv/oficina/motores": f"MOTORES={_barra(self.trabajo)}",
             "TRABAJO=/srv/oficina/trabajo": f'TRABAJO="{_barra(self.glm)}"',
+            "HERRAMIENTAS_HERMES=/opt/hermes/tools": f"HERRAMIENTAS_HERMES={_barra(self.herramientas)}",
             "TOPE=/": f"TOPE={_barra(self.tmp)}",
             "DUENO_SEGURO=0": "DUENO_SEGURO=$(id -u)",
             '"$(id -un)"': '"$USUARIO_FALSO"',
@@ -535,6 +544,14 @@ class AgenteRun(Base):
             texto = texto.replace(viejo, nuevo)
         self.script = self.tmp / "dtd-agente-run"
         self.script.write_text(texto, newline="\n")
+
+    def herramienta(self, carpeta, binario):
+        b = self.herramientas / carpeta / "bin"
+        b.mkdir(parents=True, exist_ok=True)
+        f = b / binario
+        f.write_text("#!/bin/sh\n", newline="\n")
+        f.chmod(0o755)
+        return f
 
     def run_(self, herramienta, perfil, usuario, args=("--version",)):
         env = {"DTD_PERFIL": perfil} if perfil is not None else {}
@@ -747,6 +764,39 @@ class AgenteRun(Base):
                 self.assertEqual(r.returncode, 0, r.stderr)
                 self.assertEqual(self.leer()[0], args)
 
+    # Pedido del co-CEO (2026-11-07): Hermes 0.23 trae node 26.12.1 y el PATH tenía fija la carpeta
+    # de node 26.7.0, que se rompería el día que alguien la borre. Lista cerrada, la primera que exista.
+    def path_de_hermes(self):
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return self.leer()[1]["PATH"]
+
+    def test_hermes_usa_el_node_de_hermes_023(self):
+        path = self.path_de_hermes()
+        nuevo = _barra(self.herramientas / "node-26.12.1-linux-x64" / "bin")
+        rg = _barra(self.herramientas / "ripgrep-15.2.0-linux-x64" / "bin")
+        self.assertTrue(path.startswith(f"{nuevo}:{rg}:"), path)
+        self.assertNotIn("node-26.7.0-linux-x64", path)
+
+    def test_hermes_vuelve_al_node_viejo_si_falta_el_nuevo(self):
+        viejo = _barra(self.herramientas / "node-26.7.0-linux-x64" / "bin") + ":"
+        shutil.rmtree(self.herramientas / "node-26.12.1-linux-x64")
+        self.assertTrue(self.path_de_hermes().startswith(viejo))
+        # Una carpeta sin el binario no cuenta.
+        (self.herramientas / "node-26.12.1-linux-x64" / "bin").mkdir(parents=True)
+        self.assertTrue(self.path_de_hermes().startswith(viejo))
+
+    def test_hermes_sin_node_o_sin_ripgrep_no_arranca(self):
+        for falta in (("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"), ("ripgrep-15.2.0-linux-x64",)):
+            with self.subTest(falta=falta):
+                for carpeta in falta:
+                    shutil.rmtree(self.herramientas / carpeta)
+                r = self.run_("hermes", "seo", "agentes-run")
+                self.assertEqual(r.returncode, 69, r.stderr)
+                self.assertIsNone(self.leer(), "Hermes no debe arrancar sin sus herramientas")
+                for carpeta in falta:
+                    self.herramienta(carpeta, "rg" if carpeta.startswith("ripgrep") else "node")
+
     def test_hermes_si_trabaja_en_la_carpeta_de_los_glm(self):
         args = ["--cwd", _barra(self.glm / "ceo")]
         r = self.run_("hermes", "ceo", "agentes-run", args)
@@ -813,6 +863,16 @@ class Archivos(unittest.TestCase):
                 texto = ruta.read_text(encoding="utf-8")
                 self.assertNotRegex(texto, r"(?i)ni (ver )?(sus|los) procesos")
                 self.assertNotRegex(texto, r"(?i)no (puede|pueden) ver (sus|los) procesos")
+
+    def test_herramientas_de_hermes_sin_comodines(self):
+        texto = (RAIZ / "dtd-agente-run").read_text()
+        lineas = [l for l in texto.splitlines() if l.startswith(("NODES_HERMES=", "RIPGREP_HERMES="))]
+        self.assertEqual(len(lineas), 2, lineas)
+        for l in lineas:
+            with self.subTest(linea=l):
+                # Ni comodines (* ? [) ni llaves ni variables: solo nombres fijos.
+                self.assertNotRegex(l, r"[*?\[{$]")
+        self.assertNotIn("node-26.7.0-linux-x64/bin:", texto, "el PATH no fija una versión de node")
 
     def test_dtd_claude_y_dtd_codex_solo_llaman_al_motor(self):
         for nombre, herramienta in (("dtd-claude", "claude"), ("dtd-codex", "codex")):
