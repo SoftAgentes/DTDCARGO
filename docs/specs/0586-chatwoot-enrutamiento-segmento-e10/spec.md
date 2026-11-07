@@ -7,7 +7,7 @@ created: 2026-10-30
 updated: 2026-11-06
 supersedes: null
 superseded_by: null
-related: ["0582", "0585", "0383", "0341", "0367", "0492", "0587", "0056", "0148", "0599"]
+related: ["0582", "0585", "0383", "0341", "0367", "0492", "0587", "0056", "0148", "0599", "0590", "0127", "0149"]
 confidencialidad: interno
 ---
 
@@ -19,7 +19,7 @@ confidencialidad: interno
 >
 > **10.1, 10.2 y 10.3 aceptados** (Sam, 2026-10-30, a la pregunta del Director «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?»: «Acepto todo»). Aceptar la entrega no aplica la 0505: aplicarla sigue siendo una puerta aparte, con OK nominal de Sam al integrar.
 >
-> **10.5, diseño en borrador** (2026-11-06): sección [«Paso 10.5»](#paso-105--tickets-del-portal-a-los-embudos-diseño-en-borrador-2026-11-06), al final. Sin código ni migración; lo revisa el Director General antes de programarlo.
+> **10.5, rediseño en borrador** (2026-11-06): sección [«Paso 10.5»](#paso-105--conversaciones-del-portal-en-chatwoot-y-en-los-embudos-rediseño-2026-11-06), al final, con las respuestas de Sam del mismo día. El chat del portal se contesta desde Chatwoot. Sin código ni migración; lo revisa el Director General antes de programarlo.
 
 ## Contexto
 
@@ -141,7 +141,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 ## Pendientes de esta SDD
 
 - 10.4, 10.5 y 10.6 (ver checklist); se programan después de integrar a `main`.
-- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Diseño en borrador el 2026-11-06** («Paso 10.5», al final), con seis preguntas para Sam. El Director General lo revisó el mismo día: sus cuatro decisiones y los cambios pedidos ya están en la sección (§10.5.14 y §10.5.17).
+- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. Quedan una pregunta nueva para Sam (P7, los feriados), los textos públicos por aprobar y las puertas (§10.5.20).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
@@ -162,371 +162,527 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
 
-## Paso 10.5 — Tickets del portal a los embudos (diseño en borrador, 2026-11-06)
+## Paso 10.5 — Conversaciones del portal en Chatwoot y en los embudos (rediseño, 2026-11-06)
 
-> **Borrador para la revisión del Director General.** Sin código de producto, sin migración escrita ni aplicada y sin preguntarle nada a Sam: sus preguntas están en §10.5.14. Rama `claude/trusting-kowalevski-525bef`, sobre `main` en `3d17292a4`. Etiquetas: **C** código leído, **D** documentación, **I** inferencia, **NV** no verificado.
+<a id="paso-105--tickets-del-portal-a-los-embudos-diseño-en-borrador-2026-11-06"></a>
+
+> **Rediseño en borrador, con las respuestas de Sam.** El 2026-11-06 Sam contestó en el chat del Director General las seis preguntas de este paso (las 13 a 18 de esa ronda). El Director General las registró literalmente y el Subdirector de Chatwoot encargó rehacer el paso con cada respuesta como decisión cerrada. Sin código de producto, sin migración escrita ni aplicada y sin nada contado en producción. Rama `claude/trusting-kowalevski-525bef`; lo que se cita de `main` es de `7a3cde25d`. Etiquetas: **C** código leído, **D** documentación, **I** inferencia, **NV** no verificado.
 >
-> **Revisión del Director General (2026-11-06, sobre `89fb586cf`, comunicada por el Subdirector de Chatwoot):** «bien encaminado», con cambios menores de texto. Sus cuatro decisiones están en §10.5.14 y los cambios, aplicados en esta versión: (b) un fallo del trigger no pasa sin que nadie se entere (E10-D31); (c) lo que dispara el cliente se audita con actor `system` (E10-D27); (d) desde «Perdido» se mira el segmento antes de volver a recontacto (E10-D22); (f) P6 va después de la #399 y el aviso de Telegram lo lleva el Director General (§10.5.14 y §10.5.16). La coordinación con la 6.6 está en §10.5.17.
+> **Qué cambió.** El borrador anterior (cabeza `9acf84b60`) dejaba el chat del portal en Studio, con un ticket propio por episodio y la respuesta desde Conversaciones. Sam eligió contestarlo desde Chatwoot (P2) y pasar a Chatwoot las conversaciones que ya existen (P4). Ahora el chat del portal entra a Chatwoot como una bandeja propia, con ida y vuelta al portal, y la tarjeta se ata a esa conversación como en la 6.4. Ya no hay tabla de tickets. Las decisiones del borrador anterior, con su estado, están en §10.5.18: E10-D25 y E10-D26 quedan **reemplazadas**, no borradas.
 
-### 10.5.1 Lo que pidió Sam y cómo se lee
+### 10.5.1 Las respuestas de Sam (decisiones cerradas)
 
-- Sam, 2026-10-30, comunicado por el Director: «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets».
-- En el portal no hay ninguna pantalla que se llame «Canales». Lo más cercano (**C**):
-  - el **chat con el asesor** de `/portal/soporte`, que en el código es el **«Canal Portal» de Conversaciones** (SDD-0056): `conversations.channel = 'portal'` (`supabase/migrations/0106_conversaciones.sql:31` y `:47`), escrito por `portal_post_message` (`supabase/migrations/0512_portal_intento_sin_duplicar.sql:112`) desde `app/portal/(app)/mensajes/actions.ts`;
-  - la tarjeta «Otros canales» de la misma pantalla (`app/portal/(app)/soporte/page.tsx:306-325`), que son solo enlaces a WhatsApp, correo y teléfono;
-  - «Tus casos», los reclamos post-venta (`client_claims`, `supabase/migrations/0152_client_claims.sql:18`), que ya tienen número `RC-AAAA-NNN`, estado y módulo propio.
-- **Lectura de este diseño (I):** «canales» es el chat del Canal Portal. Es la que ya fijó el programa: la SDD-0582 («Tickets del portal a los embudos») y el contrato de E6 (SDD-0587, §1.2 y la fila «Ticket del portal (`conversations`, canal `portal`)» de §5.1). Los reclamos quedan fuera hasta que Sam diga otra cosa (**P1**).
+Fuente: registro literal del Director General del 2026-11-06 (notas de su sesión, fuera del repo). Horas en UTC.
 
-### 10.5.2 Lo que hay hoy (C)
+| P | Pregunta | Respuesta de Sam | Decisión |
+|---|---|---|---|
+| P1 | 13 · Qué son los «canales» del portal (19:58Z) | Literal: «En la pregunta número 13, eso se refiere a las conversaciones. Creo que tenemos que atarlo dentro del CRM; adentro del ERP yo lo llamé "Conversaciones". No sé si le cambiamos el nombre adentro del portal y le ponemos "Chat y reclamos" o "Tickets", pero la verdad no me gusta la palabra "reclamos". Si no encontramos otro nombre, mejor dejémoslo como "Conversaciones".» | E10-D32 |
+| P2 | 14 · Desde dónde se contesta el chat del portal (20:00Z) | Botón «Desde Chatwoot», la opción (b), que no era la recomendada. Antes de elegir se le dijeron las contras | E10-D33 a E10-D41 |
+| P3 | 15 · ¿El cliente ve en el portal el número de su conversación? (20:08Z) | Botón «No por ahora», la recomendada | E10-D44 |
+| P4 | 16 · ¿Las conversaciones del portal que ya existen se pasan a Chatwoot? (20:09Z) | Botón «Sí, pasar todas», la opción (b), que no era la recomendada. Antes de elegir se le dijeron las contras | E10-D43 y §10.5.10 |
+| P5 | 17 · Un mensaje de fin de semana, ¿vence ese mismo día? (20:28Z, corregida) | Primero, el botón «Sí, ese mismo día». Enseguida, literal: «Las 17 vencen desde el lunes. Cambio.» Vale la segunda | E10-D23 y §10.5.11 |
+| P6 | 18 · ¿Agregamos a /privacidad el seguimiento del chat de Soporte? (20:35Z) | Botón «Sí, con el texto nuevo»: un texto nuevo sobre el diseño rehecho, que pasa por revisar-datos-ve y Sam aprueba palabra por palabra antes de publicar. El chat no se conecta al CRM hasta que esté publicado | E10-D42 y §10.5.12 |
 
-| Pieza | Dónde | Qué importa para el ticket |
-|---|---|---|
-| Un hilo por cliente y canal | `conversations` (0106:42-61), único vivo por `(tenant, client, channel)` (0106:67) | Un hilo no es un ticket: es una conversación que sigue. Por eso el ticket es un **episodio** del hilo |
-| Estados del hilo | `abierto`, `pendiente`, `resuelto` (0106:34) | El equipo los cambia con `setStatusAction` (`app/studio/(app)/conversaciones/actions.ts:216`) |
-| Mensaje del cliente | `portal_post_message(text, uuid)` (0512:112): resuelve la ficha por la sesión, crea o reusa el hilo, inserta el mensaje `in` y reabre el hilo si estaba `resuelto` (0512:203). Un reintento no inserta nada (0512:162-169 y :197) | Un reintento nunca puede abrir otro ticket |
-| Firma vieja | `portal_post_message(text)` (0431), que la web anterior usa hasta publicar (0512) | También inserta en `conversation_messages`: el diseño la cubre sin tocarla |
-| Respuesta del equipo | `sendReplyAction` (`conversaciones/actions.ts:91`) → `insertOutboundMessage` (`lib/studio/conversaciones/messages-queries.ts:47`), con push al portal | El asesor ya responde ahí |
-| Aviso al equipo | `notifyConversationInbound` (`lib/studio/conversation-inbound-notify.ts`): Telegram al asesor o a los admins, con enlace `?c=<id>` | No cambia |
-| Quién puede escribir | Soporte está cerrado hasta verificar la identidad (`lib/portal/verify-gate.ts:31`); la página aplica el cierre (`soporte/page.tsx:63-67`) | Quien escribe siempre tiene ficha: siempre hay `client_id` |
-| Lo que se le promete al cliente | «Te responde en el día» (`soporte/page.tsx:200`) | El «vencido» del ticket sigue esa promesa (E10-D23, P5) |
-| Fusión de fichas | `merge_clients` mueve los hilos a la ficha superviviente y archiva el duplicado (`supabase/migrations/0361_merge_clients_conserva_kommo_contact.sql:157-170`) | El ticket no guarda la tarjeta: la saca de la ficha del hilo (E10-D20) |
+Tres respuestas de la misma ronda fijan la dirección:
 
-### 10.5.3 Decisiones
+- **Respuesta 1 (19:08Z).** Literal, en parte: «Me interesa trabajar directamente con Chatwoot» y «Solo vamos a enlazar Chatwoot lo mejor posible y con la mejor visualización, tratando de que el usuario no se salga de la aplicación del ERP (para eso se está haciendo)». De Kommo: «déjalo externo hasta que hagamos la migración al 100%». Para la 10.5, el equipo contesta en Chatwoot **dentro del Studio**, en la Bandeja (SDD-0585), y nada de este paso va a Kommo.
+- **Respuesta 3 (19:16Z).** «vamos a eliminar a Kommo totalmente de la fórmula». La regla de cliente sigue siendo la de 0.8: «queremos pasarlo a cliente hasta que recibamos su primera carga en China».
+- **Respuesta 8 (19:52Z).** La 6.6 guarda el teléfono completo del lead sin ficha (D-6.6-8, opción b). **No toca la 10.5.** Quien escribe por el portal siempre tiene ficha: `portal_post_message` exige un `client_users` activo con su `clients` vivo (`0512_portal_intento_sin_duplicar.sql:112` en adelante, C). Para las tarjetas con ficha, D6 de la SDD-0587 sigue igual: nombre y teléfono viven en `clients`. Además, la 10.5 no le manda a Chatwoot ni el teléfono ni el correo (E10-D35). Usa solo el camino por ficha de la pieza única (E10-D30); qué guarda el camino por teléfono lo decide la 6.6.
+
+### 10.5.2 Lo que ya hay en `main` y se reusa (C)
+
+| Pieza | Dónde | Qué hace hoy | Cómo la usa la 10.5 |
+|---|---|---|---|
+| Chat del portal | `conversations` y `conversation_messages` (`0106_conversaciones.sql:86-93`); `portal_post_message(text, uuid)` (`0512_portal_intento_sin_duplicar.sql:112`) | Un hilo por cliente, solo texto. Es idempotente por `external_msg_id = 'portal:<cliente>:<intento>'` (`:162`) y reabre un hilo resuelto (`:203`) | **No cambia.** Sigue siendo la fuente de lo que el cliente ve |
+| Envío del portal | `sendPortalMessageAction` (`app/portal/(app)/mensajes/actions.ts:72-73`) | Después de guardar, llama sin bloquear al aviso de la SDD-0148 | En el mismo lugar, sin bloquear, pide el envío a Chatwoot (E10-D34) |
+| Respuesta desde Studio | `sendReplyAction` (`app/studio/(app)/conversaciones/actions.ts:126` y `:138`); `insertOutboundMessage` (`lib/studio/conversaciones/messages-queries.ts:47`, que pone `unread_count = 0` en `:65`) | Guarda la respuesta y avisa al cliente con `notifyClientReplyPush` | La vuelta desde Chatwoot hace lo mismo (E10-D37). Con el interruptor encendido, Studio deja de responder el portal (E10-D41) |
+| Webhook de Chatwoot | `app/api/chatwoot/webhook/route.ts`; `procesarEventoChatwoot` y `MANEJADORES` (`lib/studio/chatwoot/webhook-procesar.ts:128`) | Registra cada evento (0504), corre los manejadores y lo cierra. Un evento fallido se reintenta a 1, 2, 4 y 8 min y se descarta al quinto intento (`chatwoot_tomar_pendientes`, `:204`) | Dos manejadores nuevos, con esos mismos reintentos (E10-D36 y E10-D37) |
+| Lectura del evento | `interpretarEvento` (`lib/studio/chatwoot/webhook-events.ts`) | Lleva ids, estado y los últimos 10 dígitos del teléfono: «Nada más cruza este archivo» (`:9`) | No cambia. El texto de una respuesta lo lee solo el manejador del portal (E10-D37) |
+| Estado por conversación | `chatwoot_conversations` (0504) | Liga el `client_id` por el teléfono. Si el evento no trae teléfono, conserva el cruce anterior (`0504_chatwoot_eventos.sql:212-214`) | El vínculo del portal escribe el `client_id` una vez, y los eventos siguientes lo conservan |
+| Ficha DTD | `pedirFichaDtd` (`app/studio/(app)/bandeja/actions.ts:369`; lee `chatwoot_conversations.client_id` en `:421`) | Muestra el Shipping Mark, los envíos y el saldo según el rol, al lado de la conversación | Sirve igual para el portal, por ese `client_id` (E10-D36) |
+| Entrada de leads (6.4) | `entrarLead` y `fuenteDeCanal` (`lib/studio/chatwoot/entrada-leads.ts:86`) | Crea o completa la tarjeta. Un canal API no da fuente (`default`, `:104`) | No cambia: la bandeja del portal tiene su propio manejador (E10-D36) |
+| Enrutamiento (10.2) | `clasificarContacto` (`lib/studio/chatwoot/enrutar.ts`); `router-api.ts` (`envioIncierto` en `:26`, espera de 10 s en `:32`) | Etiqueta, equipo y redirección, solo en la bandeja de leads | Se reusan la etiqueta por segmento, el equipo y la API. En el portal no hay redirección ni respuesta automática |
+| Agentes vinculados | `chatwoot_agent_links` (0503); `obtenerTokenAgente` (`lib/studio/chatwoot/platform-api.ts:118`) | Traducen un agente de Chatwoot a su usuario de Studio y le piden su token | Autor de la respuesta en el portal (E10-D37) y envío en el modo de respaldo (E10-D40) |
+| Bandeja API sin efectos (E5) | SDD-0590 §10.3, §10.4 y §10.10, en la rama `codex/0590-e5-miembros` (PR #395) | Cargador con `insert_all`, sin callbacks y por `source_id`; ensayo en una copia efímera de la base de Chatwoot | La carga de P4 (§10.5.10) |
+| Feriados | `operational_calendar` (`0192_operational_calendar.sql:22-32`: país `VE` o `CN`, tipo `holiday` o `fair`); pantalla «Feriados & ferias» del admin (SDD-0127) | Calendario operativo que mantiene el admin | Opción recomendada de P7 (§10.5.11) |
+| Cron | `chatwoot-reintentos`, cada 5 min (`infra/dtd-cargo/cron/crontab:26`) | Reintenta eventos y corre las purgas de E2 y E10 | Red de seguridad del envío y de la conciliación (E10-D34 y E10-D40) |
+
+### 10.5.3 Cómo funciona
+
+```
+Portal (a la vista, igual que hoy)
+  │ portal_post_message → conversation_messages (in)          ← la fuente del portal
+  │ después de guardar, sin bloquear: pedir el envío
+  ▼
+chatwoot_portal_salida (cola) ──► Chatwoot: contacto, conversación y mensaje entrante,
+                                  con source_id = dtd:<id del mensaje>
+                                        │ webhook de cuenta (message_created, incoming)
+                                        ▼
+                    entrarPortal: tarjeta por la ficha, etiquetas, equipo y asesor
+                    avisarPorPush: aviso al asesor, sin datos de la persona (ya existe)
+
+El equipo responde en la Bandeja (Chatwoot dentro del Studio)
+                                        │ webhook (message_created, outgoing)
+                                        ▼
+                    responderAlPortal → conversation_messages (out) → portal en vivo + push al cliente
+```
+
+### 10.5.4 Decisiones
+
+**Nuevas:**
 
 | ID | Decisión | Por qué / evidencia |
 |---|---|---|
-| E10-D18 | **Un ticket = un episodio del hilo del Canal Portal.** Lo abre el mensaje del cliente que llega cuando el hilo no tiene ticket abierto; los mensajes siguientes van al mismo; se cierra cuando el equipo marca la conversación `resuelto`. Si el cliente vuelve a escribir, se abre el siguiente | El hilo es uno por cliente (0106:67) y vuelve a `abierto` cuando el cliente escribe (0512:203). Un ticket por mensaje llenaría el tablero de duplicados |
-| E10-D19 | **Lo abre la base, no el portal:** un trigger `after insert` en `conversation_messages`, solo con `direction = 'in'` y un hilo `channel = 'portal'`. **El portal no cambia** | Queda en la misma transacción que el mensaje: no se pierde si la acción muere después de guardar, cubre las dos firmas de la RPC y un reintento no lo dispara, porque no inserta. La SDD-0582 ponía el enganche después de `notifyConversationInbound` (V2-8); esa fila solo ubicaba el lugar, y desde la base es más seguro. Ver E10-D24 |
-| E10-D20 | **El ticket guarda el hilo, no la tarjeta.** El tablero llega a la tarjeta por `conversations.client_id = crm_tarjetas.client_id` en cada lectura | Igual que el tablero, que tampoco se guarda (SDD-0587 §4.1). Una fusión mueve el hilo a la ficha superviviente (0361:170) y el ticket la sigue sin escribir nada |
-| E10-D21 | **El embudo sale del segmento, calculado en el momento.** Quien escribe por el portal tiene ficha, así que es `cliente` (embudo **Clientes**) o `lead_registrado` (embudo **Leads**). Lo decide `crm_segmento_tarjetas` (0506), igual que en el tablero de 6.3, y no se guarda | Regla de 0.8 y SDD-0587 §4.1. Si la persona gana o pierde su único envío, la tarjeta cambia de tablero y su ticket se va con ella |
-| E10-D22 | **La tarjeta.** Si la ficha no tiene, se crea con `fuente = 'portal'` (ya admitida, `0506_crm_modelo.sql:318-320`), `etapa_leads = 'registrado_recontacto'` y el asesor activo de la ficha, sin nombre ni teléfono (check de 0506:339). Si hay una tarjeta de lead sin ficha cuyo teléfono cruza con esta única ficha, se liga, como en la alta web. Si la tarjeta está en «Perdido», **primero se mira el segmento en ese momento** (`crm_segmento_cliente`, 0506): solo si es lead vuelve a «Registrado / recontacto» con tarea y sin motivo (`crm_volver_a_recontacto`, `0513_crm_entrada_leads.sql:147`). A un cliente con un envío vivo o carga en China no se le crea «Volvió a escribir» ni se le toca la etapa de Leads: si algún día vuelve a lead, lo mueve el registro del cambio de tablero de la 6.6 (SDD-0614 §2.7 a). A una tarjeta que ya existe no se le cambia la etapa ni la fuente | SDD-0587 §4.3: el lead registrado que escribe entra en «Registrado / recontacto». Para «Perdido», el mismo trato que 6.4, sin la tarea equivocada para un cliente (cambio d del Director General) |
-| E10-D23 | **Dos cosas distintas.** (1) **«Vencido» es de la 10.5:** sin primera respuesta al terminar el día, hora de Caracas, en que se abrió el ticket. Se calcula en TypeScript al leer y no se guarda; es lo que dice la insignia. (2) **«Sin atender» no se define aquí:** es la D-SA de la SDD-0614 §2.8, citada igual en §10.5.17. Para el portal es su señal 2: ticket abierto sin `primera_respuesta_at` y pasado el umbral (D-6.6-5) desde `abierto_at`, sin ventana de 24 h. La calcula una sola función SQL de la 6.6, `crm_sin_atender`, con las fechas del ticket | El «vencido» es la promesa del portal, «Te responde en el día» (`soporte/page.tsx:200`); si cuentan los fines de semana es **P5**. Como no se guarda, cambiar la regla no pide migración. Que «sin atender» sea una sola definición es decisión del Director General (2026-11-06), y la D-SA dice que el «vencido» «sigue siendo de la 10.5» |
-| E10-D24 | **El mensaje del cliente nunca falla por el CRM.** Lo del ticket corre en un bloque con `exception when others` que solo deja un `warning` con el SQLSTATE, y las funciones de los triggers llevan `lock_timeout = '2s'`. Si algo falla, quedan el mensaje, el contador y el aviso, y el ticket lo abre el barrido de E10-D31 en la corrida siguiente, o el próximo mensaje, lo que pase primero. Lo mismo vale para la respuesta del equipo y el cambio de estado | El mismo principio de 6.4: «un fallo de la tarjeta no rompe ni demora el registro» (SDD-0587 §16.6). El ticket y su evento de auditoría van juntos dentro del bloque: quedan los dos o ninguno (E10-D27) |
-| E10-D25 | **El asesor responde donde ya responde: en Conversaciones.** La ficha de la tarjeta lista los tickets y enlaza a `/studio/conversaciones?c=<conversation_id>`. No hay un camino nuevo para escribirle al cliente | El enlace `?c=` ya existe (SDD-0148 #1, `app/studio/(app)/conversaciones/page.tsx:33`). Contrato de E6: Studio no copia el texto de los mensajes (SDD-0587 §3) |
-| E10-D26 | **Sin Chatwoot en 10.5.** El chat del portal no se copia a una bandeja de Chatwoot | Es un canal propio de Studio y ya se responde desde Studio. Copiarlo dejaría el texto del cliente en otro almacén y pediría sincronizar en los dos sentidos. Lo decide Sam (**P2**) |
-| E10-D27 | **Auditoría (AUD-01), según la D-AUD de la SDD-0614 §2.8** (citada igual en §10.5.17): abrir, resolver y archivar un ticket dejan un evento `crm_ticket_*` en `entity_audit_log`, en la misma transacción que el cambio y dentro del bloque de E10-D24. `entity_id` es el id del ticket; el evento lleva solo estado, cierre, número del episodio y, si lo cerró alguien del equipo, su id. **Lo que dispara el cliente lleva actor `system`, con `actor_id` nulo, y nunca `client_id`**, ni Shipping Mark, nombre, teléfono, texto ni el id de la conversación. **Actor y origen por caso:** abrir, desde el portal → `system`, `source = 'rpc'`; el barrido de E10-D31 → `system`, `job`; resolver en Studio, o archivar al fusionar fichas → `user` con su `auth.uid()` solo si es miembro activo del tenant de la fila, `studio`; si no lo es o no hay sesión → `system` | Patrón de la 0491 (fila en `audit_entity_types` y trigger que llama a `append_audit_event`); actor y origen admiten esos valores (`0267_audit_contract_append_only.sql:312-313` y `:324-336`). Cambio c del Director General y D-AUD de la 6.6. `entity_audit_log` es de solo agregar y sobrevive a la purga de la ficha: nada de lo que guarda puede identificar a la persona después |
-| E10-D28 | **Número del ticket:** `C-AAAA-NNNN · #n`, el `ref` del hilo más el número del episodio dentro del hilo | Sin correlativo nuevo por tenant: dos tickets de clientes distintos al mismo tiempo no pueden pelear un número. Un `MAX+1` por tenant chocaría, y con el bloque de E10-D24 ese ticket se perdería |
-| E10-D29 | **Primera respuesta:** el primer mensaje `out` del equipo en el hilo marca `primera_respuesta_at` y quién respondió, una sola vez por ticket | Sirve para el «vencido» y para la señal 2 de «sin atender» (E10-D23), y para ver cuánto tardó el equipo. No mueve la tarjeta |
-| E10-D30 | **Una sola pieza «ubicar o crear la tarjeta» para los tres usos:** el alta web de la 0513, el ticket del portal de la 10.5 y el «ubicar o crear» del cotizador de la 6.6 (SDD-0614 §2.3, PR #401). La crea la migración de la 10.5, que va primero, con los dos caminos que piden esos usos: por ficha y, para el cotizador sin Shipping Mark, por teléfono. `crm_alta_tarjeta_web` (0513:325) se redefine **desde su última definición** para usarla, sin cambiar su conducta, y su contrato se vuelve a correr. La 6.6 la llama y no escribe otra | Decisión del Director General (D-1, 2026-11-06). Copiar el bloque duplicaría la regla de ligado por teléfono, y SDD-0587 §4.2.1 pide una sola definición. **Antes de reescribir, se busca la última `create or replace` de cada función en todas las migraciones** (regla del repo): al 2026-11-06, `crm_alta_tarjeta_web` solo está definida en la 0513, en `main` y en todas las ramas remotas |
-| E10-D31 | **Un fallo del trigger no pasa en silencio.** Además del `warning`: un barrido `crm_tickets_reconciliar()` en el cron `chatwoot-reintentos`, que ya corre cada 5 min (`infra/dtd-cargo/cron/crontab:26`) y ya lleva la purga de E10 (E10-D16). Abre el ticket que falte, marca la primera respuesta que falte y asegura la tarjeta, con las mismas piezas del trigger e idempotente por `primer_mensaje_id`. Cuenta lo que recuperó, y si es más de cero deja un aviso interno con **solo el número**, sin nombre, Shipping Mark ni contacto | Cambio b del Director General. El número del barrido es el contador: si el trigger falla, se ve en ≤5 min sin abrir los logs de Postgres. El aviso sale por el canal de alertas internas vigente al programar, coordinado con los avisos a Discord (SDD-0606) |
+| E10-D32 | **Nombre: «Conversaciones».** Los «canales» de Sam son el chat de Soporte del portal, «Chat con tu asesor». En el Studio y en el CRM se llama «Conversaciones». La sección de la ficha de la tarjeta se llama «Conversaciones del portal», y la bandeja de Chatwoot también. No se usan «Tickets» ni «reclamos». «Tus casos» (los reclamos) queda fuera | P1. «Reclamos» no se le muestra al cliente: en el portal ese módulo se llama «Tus casos» (comentario de `app/portal/(app)/soporte/page.tsx`). Sam no pidió meterlo al CRM; el Director General se lo dijo para que corrija si no era así |
+| E10-D33 | **Reemplaza a E10-D25 y E10-D26.** El chat del portal entra a Chatwoot como **una bandeja propia**, de canal API, llamada «Conversaciones del portal». El equipo lo contesta desde Chatwoot, dentro del Studio (la Bandeja). **Studio sigue siendo la fuente del hilo del portal:** `conversation_messages` guarda todo lo que el cliente ve, y Chatwoot es la mesa de trabajo del equipo | P2 y respuesta 1. El portal lee `conversation_messages` en vivo (`0433_portal_conversation_realtime_principal_tenant.sql`), muestra 90 días (`soporte/page.tsx:209`) y arma los resúmenes mensuales con esos mensajes (`0219_conversation_monthly_digests.sql`). Si la fuente fuera Chatwoot, el portal necesitaría a Chatwoot para mostrar su propio chat |
+| E10-D34 | **Ida, de Studio a Chatwoot: una cola, sin trigger.** Cada mensaje del portal que no vino de Chatwoot pasa por la cola `chatwoot_portal_salida`. No la llena un trigger: una función busca los mensajes que faltan por enviar (E10-D24). El envío se pide sin bloquear al guardar el mensaje (`mensajes/actions.ts:72`, al lado del aviso de la SDD-0148), y el cron `chatwoot-reintentos` toma lo que haya quedado. **Orden:** por hilo, según `sent_at` y `id`. Un mensaje no sale mientras quede uno anterior del mismo hilo sin enviar, y cada hilo tiene un solo envío en curso (`for update skip locked` sobre su vínculo). **Idempotencia:** cada mensaje va a Chatwoot con `source_id = dtd:<id del mensaje>`. Ante un error incierto (`envioIncierto`, `router-api.ts:26`), antes de reenviar se leen los últimos mensajes de esa conversación en Chatwoot y se busca ese `source_id`. **Reintentos:** a 1, 2, 4, 8 y 15 min, y después cada 15 min hasta cumplir 24 h. Pasado eso, el mensaje queda «atascado» y sale el aviso de E10-D40 | Es el reintento de la 0504, con más plazo, porque aquí no se pierde nada: el mensaje ya está guardado en Studio. Que Chatwoot 4.19.1 guarde el `source_id` que manda la API y lo devuelva al listar es **NV**; es lo primero que mide la prueba de concepto (PoC-1, §10.5.15) |
+| E10-D35 | **El contacto y la conversación en Chatwoot.** Con el primer mensaje de un cliente sin vínculo: (1) Studio genera un identificador al azar y lo guarda; (2) crea el contacto en la bandeja del portal con ese identificador (`dtd-portal:<uuid>`) y el **nombre** tal como lo guarda `portal_post_message`, que es el de la ficha; (3) crea la conversación y guarda el vínculo. **No van a Chatwoot** el teléfono, el correo, la cédula o el RIF, el Shipping Mark ni el `client_id`. Un hilo vivo de Studio es una conversación de Chatwoot; si el hilo se archiva y el cliente vuelve a escribir, es otra | El identificador guardado antes de llamar permite reintentar sin crear dos contactos: si la llamada fue incierta, se busca por ese identificador (NV, PoC-2). El nombre es lo que el agente necesita para saber con quién habla. El resto ya está en la Ficha DTD, que se abre al lado y pide sesión de Studio |
+| E10-D36 | **Qué ve el agente y cómo entra la tarjeta: el manejador `entrarPortal`.** Corre con cada mensaje entrante de la bandeja del portal (`message_created`, `incoming`): (1) la tarjeta, con `crm_entrada_portal` (E10-D22); (2) la etiqueta `portal` y la del segmento, con la misma regla de E10 (`etiquetasConSegmento`); (3) el equipo: Clientes si el segmento es `cliente`, Leads si es `lead_registrado`; (4) si la conversación no tiene agente, el asesor de la ficha, cuando está activo y vinculado en `chatwoot_agent_links`. Sin respuesta automática ni redirección. La Ficha DTD muestra el Shipping Mark, los envíos y el saldo según el rol, porque el vínculo dejó el `client_id` en `chatwoot_conversations`. **Miembros de la bandeja:** solo el equipo de Venezuela, nunca un usuario del equipo de China | El portal ya le muestra al cliente quién es su asesor (`getPortalAdvisor`, `soporte/page.tsx`): asignarle la conversación cumple esa promesa. La regla de China sale de `/privacidad`: el equipo de China «No ve tu nombre». Si hoy hay usuarios de China en Chatwoot es **NV** (§10.5.13, punto 9) |
+| E10-D37 | **Vuelta, de Chatwoot al portal: el manejador `responderAlPortal`.** Solo toma `message_created` de la bandeja del portal que sea `outgoing`, no privado, ni de actividad ni plantilla, y que no sea el eco de un mensaje nuestro (`source_id` que empieza con `dtd:`). Lo escribe `chatwoot_portal_respuesta` en `conversation_messages` con `direction = 'out'`, idempotente por `external_msg_id = 'chatwoot:<id del mensaje>'` (índice único de `0106_conversaciones.sql:107`) y con la hora de Chatwoot como `sent_at`. **Autor:** el usuario de Studio vinculado al agente (`author_user_id` y su nombre, como la respuesta de hoy). Si el agente no está vinculado, el nombre va vacío y el portal muestra «DTD Cargo», como ya hace (`soporte/page.tsx:234`). Después corren el mismo `notifyClientReplyPush` de hoy y el `unread_count` del hilo a 0, como en `insertOutboundMessage`. **El texto** de la carga del webhook lo lee solo este manejador y solo para esa bandeja: `interpretarEvento` sigue sin llevar texto. En un reproceso, el evento no tiene el texto (la 0504 no lo guarda), así que se relee el mensaje en Chatwoot con el token del servicio (NV, PoC-3) | El webhook ya está firmado y se reintenta (2.3). Con la hora de Chatwoot, una respuesta que llega tarde por un reintento queda en su lugar del hilo |
+| E10-D38 | **Adjuntos: el chat del portal es solo texto.** `conversation_messages` solo tiene `body` (`0106_conversaciones.sql:93`), `portal_post_message` solo recibe texto y la pantalla solo pinta texto. **Ida:** no hay adjuntos que mandar. **Vuelta:** si el agente adjunta un archivo, al portal llega el texto, si lo hay, y el manejador deja en Chatwoot una nota privada, una vez por mensaje: «Este archivo no le llegó al cliente: el chat del portal solo lleva texto. Mándalo por WhatsApp o por correo.» | Mostrar adjuntos en el portal pide almacenamiento nuevo, su revisión de datos y su borrado: queda fuera (§10.5.17) |
+| E10-D39 | **El estado.** De Chatwoot al portal, con el evento `conversation_status_changed`, que ya llega: `resolved` pasa a `resuelto`, `open` a `abierto`, y `pending` y `snoozed` a `pendiente`. Del portal a Chatwoot: si el cliente escribe en un hilo resuelto, `portal_post_message` lo reabre en Studio (`0512_portal_intento_sin_duplicar.sql:203`) y el mensaje entrante lo reabre en Chatwoot. Si Chatwoot no lo reabre en una bandeja API, lo reabre el envío (NV, PoC-4) | El estado lo decide un solo lugar, Chatwoot, donde trabaja el equipo. El portal lo refleja |
+| E10-D40 | **Si Chatwoot no responde.** (1) **El portal nunca falla:** el mensaje se guarda en Studio antes de intentar el envío, y el envío no lo espera (E10-D24). (2) La cola reintenta (E10-D34). (3) **Aviso:** si hay mensajes del portal sin llegar a Chatwoot hace más de 15 min, o alguno «atascado», los administradores reciben un push de Studio con **solo números**, por ejemplo «Portal → Chatwoot: 3 mensajes sin llegar», una vez por hora mientras dure. (4) **Modo de respaldo:** apagar el interruptor (E10-D42) devuelve la respuesta del portal a Conversaciones de Studio, como hoy. Al encenderlo otra vez, lo que el equipo escribió desde Studio en ese tiempo sale a Chatwoot como mensaje saliente, con el token del agente vinculado. Así el hilo de Chatwoot queda completo y esas respuestas cuentan como humanas para la D-SA. (5) **Si falla el webhook:** Chatwoot 4.19.1 no reintenta los webhooks de cuenta (comentario de `reprocesarEventosChatwoot`, `webhook-procesar.ts`). El cron compara, en cada hilo vinculado con actividad en las últimas 24 h, los últimos mensajes salientes de Chatwoot con `conversation_messages`, y escribe los que falten por el mismo `external_msg_id` | El aviso de solo números sigue el patrón de la salud de agentes (SDD-0585, paso 2.5). Que la API de cuenta liste los mensajes de una conversación con su `source_id` y su tipo es NV (PoC-3) |
+| E10-D41 | **Un solo lugar para responder.** Con el interruptor encendido, los hilos del portal quedan de solo lectura en Conversaciones de Studio. La caja de respuesta se cambia por «Responder en la Bandeja →», que abre `/studio/bandeja?c=<conversación de Chatwoot>`, y `sendReplyAction` rechaza en el servidor una respuesta a un hilo del portal. Con el interruptor apagado, Studio responde como hoy | Con dos lugares para responder, Chatwoot no vería las respuestas dadas en Studio. El enlace `?c=` a la Bandeja ya existe (`app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`) |
+| E10-D42 | **El interruptor `chatwoot_portal`.** Es un flag por tenant de `feature_flag_catalog()` y nace apagado. Esa función se definió por última vez en la 0503 (`0503_chatwoot_bandeja.sql:43`), en `main` y en todas las ramas remotas (medido el 2026-11-06), y se redefine desde ahí. **Encenderlo es un OK nominal de Sam, y no antes de que esté publicado el `/privacidad` nuevo** (P6, §10.5.12). Apagado, no se crea nada en Chatwoot, no se manda nada y no corre ningún manejador del portal | P6: el chat no se conecta al CRM hasta que el texto esté publicado. El CRM se alimenta desde Chatwoot, así que la puerta es la misma |
+| E10-D43 | **Las conversaciones que ya existen se cargan a Chatwoot** (P4), con el rigor de E5: ensayo en una copia, cero efectos externos, respaldo, conteos y huellas, y OK nominal de Sam antes de producción. Diseño en §10.5.10 | P4. Es el camino del Archivo Kommo de la SDD-0590 |
+| E10-D44 | **El portal no muestra número** (P3). El equipo ve el número de la conversación en Chatwoot (`#n`), y `conversations.ref` (`C-AAAA-NNNN`) sigue siendo interno. No hay números de episodio porque ya no hay tickets | P3. Deja sin objeto E10-D28 |
+| E10-D45 | **Auditoría.** Sin tabla de tickets, la 10.5 no crea un tipo de auditoría propio: `crm_ticket` queda sin objeto. Los cambios de la tarjeta los audita el trigger de `crm_tarjetas` de la 6.6, con la D-AUD (§10.5.19). Los vínculos y la cola son estado de integración, como `chatwoot_conversations` (0504), y no se auditan. Las respuestas y los cambios de estado que llegan de Chatwoot se escriben en el hilo igual que hoy desde Studio | D-AUD. Hoy, cambiar el estado de un hilo desde Studio no deja evento en `entity_audit_log` (I, no medido): la 10.5 no lo empeora |
+| E10-D46 | **Sin ventana de 24 h en el portal.** El portal no es WhatsApp: el equipo puede responder cuando sea, sin plantilla. Para la D-SA, la propuesta a la 0614 es que la bandeja del portal no cuente en las señales 1 y 3 y entre por la señal 2 (§10.5.19) | La D-SA ya dice «En el portal no hay ventana» |
 
-### 10.5.4 Qué entra como ticket
+**Vigentes del borrador anterior, adaptadas:**
 
-| Caso | ¿Abre ticket? |
-|---|---|
-| Mensaje del cliente en su chat de Soporte, sin ticket abierto en el hilo | **Sí**: el #1 o el siguiente |
-| Más mensajes del cliente con el ticket abierto | No: van al mismo |
-| El cliente escribe después de que el equipo marcó «Resuelto» | **Sí**, el siguiente (el hilo ya vuelve a `abierto`, 0512:203) |
-| Reintento del mismo envío (SDD-0599) | No: la RPC no inserta nada |
-| Respuesta del equipo (`out`) | No: marca la primera respuesta del ticket abierto |
-| El equipo reabre a mano un hilo resuelto, sin mensaje del cliente | No: solo abre un mensaje del cliente |
-| Hilos de otros canales en `conversations` (`whatsapp`, `email`: fases 2 y 3 de SDD-0056) | No |
-| Reclamos de «Tus casos» (`client_claims`) | No (**P1**) |
-| WhatsApp, Instagram o correo por Chatwoot | No: esos ya entran a los embudos por 6.4 |
-| Hilos abiertos antes de publicar | No se cargan hacia atrás: el próximo mensaje abre el ticket (**P4**) |
+| ID | Decisión | Por qué / evidencia |
+|---|---|---|
+| E10-D21 | **El embudo sale del segmento, calculado en el momento.** Quien escribe por el portal tiene ficha, así que es `cliente` (embudo Clientes) o `lead_registrado` (embudo Leads). Lo decide `crm_segmento_tarjetas` (0506), como en el tablero de 6.3, y no se guarda | Sin cambios. Con la respuesta 3, «cliente» sigue siendo quien ya tiene su primera carga recibida en China (0.8) |
+| E10-D22 | **La tarjeta, con `crm_entrada_portal`.** La llama `entrarPortal` (E10-D36), como `entrarLead` llama a `crm_entrada_chatwoot` en la 6.4. Ubica la ficha por el vínculo del hilo, no por el teléfono, y usa la pieza única por ficha (E10-D30). Si la ficha no tiene tarjeta, la crea con `fuente = 'portal'` (`0506_crm_modelo.sql:318-320`), etapa de recontacto y el asesor activo de la ficha. Si hay una tarjeta de lead sin ficha cuyo teléfono cruza con esa única ficha, la liga, como el alta web. **Desde «Perdido»,** primero mira el segmento en ese momento (`crm_segmento_cliente`): solo si es lead vuelve a recontacto, con tarea y sin motivo, con la clave `portal:<id del mensaje de Chatwoot>`. A un cliente no se le crea «Volvió a escribir». La regla nueva de recontacto (después de 30 días sin actividad, desde cualquier etapa; respuesta extra de Sam, 19:50Z) es de la 6.6, que la aplica igual aquí y en la 6.4. Con `conversation_updated` no se crea nada: solo se le da asesor a la tarjeta que no lo tiene, como en la 6.4 | Cambio d del Director General y regla de la 6.4. «Registrado / recontacto» pasa a llamarse «Recontacto» (Sam, 21:09Z); ese nombre visible lo cambia la 6.6 |
+| E10-D23 | **«Vencida» es de la 10.5 (regla nueva por P5).** Una conversación del portal queda vencida si el primer mensaje del cliente que espera respuesta no la tuvo al terminar su plazo. **El plazo,** en hora de Caracas: si el cliente escribió en un día que cuenta, vence al terminar ese día; si escribió en uno que no cuenta, al terminar el siguiente día que cuenta. **No cuentan** el sábado, el domingo y, según P7, los feriados (§10.5.11). Se calcula en TypeScript al leer, con `conversation_messages`, y no se guarda. **«Sin atender» es otra cosa:** es la D-SA de la 6.6 (§10.5.19), con su umbral de 1 h (respuesta 5) | P5 corregida: «Las 17 vencen desde el lunes». Como no se guarda, cambiar la regla o los feriados no pide migración |
+| E10-D24 | **El mensaje del cliente nunca falla por Chatwoot ni por el CRM.** `portal_post_message` no cambia y no hay trigger: el envío y la tarjeta corren después de guardar y fuera de esa transacción | Sin trigger desaparece el riesgo que pedían el bloque `exception` y el barrido de E10-D31 |
+| E10-D30 | **Una sola pieza, `crm_tarjeta_ubicar_o_crear`, para los tres usos:** el alta web de la 0513, la 10.5 y el cotizador de la 6.6, con un camino por ficha y otro por teléfono. La 10.5 usa solo el de ficha. `crm_alta_tarjeta_web` se redefine desde su última definición y su contrato se vuelve a correr | D-1 del Director General. La 0614 ya la llama así desde `5dc8500c3` |
 
-**Se cierra** cuando el hilo pasa a `resuelto` (cierre `resuelto`) o se archiva (`deleted_at`, como en la fusión: cierre `archivado`). `pendiente` no lo cierra.
+### 10.5.5 Qué ve el asesor
 
-### 10.5.5 Qué ve el asesor y cómo responde
+- **En la Bandeja** (Chatwoot dentro del Studio):
+  - la bandeja «Conversaciones del portal»;
+  - el contacto, con el nombre del cliente;
+  - las etiquetas `portal` y la del segmento, el equipo y el asesor asignado;
+  - la pestaña «Ficha DTD», con el Shipping Mark, los envíos y el saldo según el rol.
+- **En el tablero del CRM**, una insignia en la tarjeta:
+  - «Portal · sin responder · 3 h»
+  - «Portal · respondida»
+  - «Portal · vencida»
+- **En la ficha de la tarjeta**, la sección «Conversaciones del portal»:
 
-**En el tablero** (`/studio/crm`, pestaña Embudos, en Leads o en Clientes según el segmento):
-
-- La tarjeta con un ticket abierto lleva una insignia con texto: «Ticket abierto · sin responder · 3 h», «Ticket abierto · respondido» o «Ticket vencido», esta última en el tono de alerta de las tareas vencidas (E10-D23). El texto dice el estado: el color no es lo único que lo dice (SGE-00.11).
-- Cuando la 6.6 esté, la misma tarjeta aparece además en su pestaña «Sin atender» si cumple la señal 2 de la D-SA (E10-D23). La 10.5 no calcula «sin atender».
-- Ni el tablero ni la ficha muestran el texto del mensaje (E10-D25).
-
-**En la ficha de la tarjeta** (`TarjetaFichaDrawer`), una sección nueva «Tickets del portal», después de «Quién contesta el chat»:
-
-```text
-Tickets del portal (1 abierto)
-  C-2026-0012 · #3   Abierto · sin responder · vence hoy a las 23:59
-                     Abierto el 6 nov a las 10:42
-                     Responder en Conversaciones →
-  C-2026-0012 · #2   Resuelto el 2 nov por Ana · primera respuesta a los 40 min
+```
+Conversaciones del portal
+#418 · Abierta · sin responder · vence el lunes
+Último mensaje del cliente: sábado 7 de noviembre
+[ Abrir en la Bandeja → ]
 ```
 
-- «Responder en Conversaciones» es un enlace a `/studio/conversaciones?c=<id>`, que abre el hilo. Ahí el asesor contesta como siempre (`sendReplyAction`: mensaje al portal y push) y marca «Resuelto» al terminar (`setStatusAction`), lo que cierra el ticket.
-- La sección muestra los 10 más recientes; el resto se ve en Conversaciones (TBL-01).
-- El aviso de Telegram de SDD-0148 sigue igual: es lo que le avisa al asesor que hay un mensaje.
-
-**Quién lo ve:** el CRM es de `admin` y `commercial` (`lib/studio/rbac.ts:99`, `crm_puede_usar()` en 0506:186-195). Responder es de quien edita Conversaciones: `admin`, `commercial` y `operations` (`rbac.ts:91`; `support` solo lee). Un comercial tiene las dos cosas.
+  No muestra el texto de los mensajes: se lee en la Bandeja. Al programar se mira si sirve `ChatwootConversacionesCard.tsx`, la tarjeta «Conversaciones en la Bandeja» de la ficha del cliente, que ya lista número, estado, no leídos y última actividad, sin texto. Iría filtrada a la bandeja del portal.
+- **Con la 6.6**, la tarjeta aparece además en su pestaña «Sin atender» si cumple la D-SA. La 10.5 no calcula «sin atender».
 
 ### 10.5.6 Modelo de datos y migración (solo descripción)
 
-Una migración nueva, `supabase/migrations/05NN_crm_tickets_portal.sql`. **No se escribe ni se aplica en esta tarea.** **El número se asigna al arrancar el código** (decisión del Director General, 2026-11-06): ni la 10.5 ni la 6.6 reservan la 0518. Como referencia, al 2026-11-06 ya había de la 0514 a la 0517 en ramas remotas (`claude/gracious-kapitsa-213515`, `claude/discord-consulta-clientes-c50c23` y `codex/0589-e9-estado`). Va con el OK nominal de Sam y el runbook de producción, primero en prueba.
+Una migración nueva, `supabase/migrations/05NN_chatwoot_portal.sql`. **No se escribe ni se aplica en esta tarea.** El número se asigna al arrancar el código (Director General, 2026-11-06). Va primero en prueba y después en producción, con el OK nominal de Sam y el runbook de producción.
 
-**Preflight:** exige la 0106 (`conversations`, `conversation_messages`), la 0506 (`crm_tarjetas`, `crm_segmento_*`), la 0513 (`crm_volver_a_recontacto`, `crm_alta_tarjeta_web`, `crm_asesor_activo`, `crm_ficha_por_telefono`, `crm_buscar_tarjeta`) y el catálogo de auditoría (`audit_entity_types`, `append_audit_event`). Aborta si ya se aplicó.
+**Preflight.** Exige la 0106, la 0503 (`feature_flag_catalog` y `chatwoot_agent_links`), la 0504 (`chatwoot_conversations`), la 0506, la 0512 (`portal_post_message(text, uuid)` y el índice de `external_msg_id`), la 0513 (con `crm_buscar_tarjeta`) y, si P7 es (a), la 0192. Antes de redefinir una función se busca su última `create or replace` en todas las migraciones y en todas las ramas.
 
-**Tabla `crm_tickets`:**
+**Tablas.** Todas con RLS, sin permisos para `anon` ni `authenticated`; solo `service_role`.
 
-| Columna | Tipo | Regla |
-|---|---|---|
-| `id` | uuid, pk | — |
-| `tenant_id` | uuid, fk `tenants`, cascade | El del hilo |
-| `canal` | text, `check (canal = 'portal')` | Deja lugar a otro canal sin renombrar la tabla |
-| `conversation_id` | uuid, fk `conversations`, **cascade** | Purgar la ficha borra el hilo (0106:45) y con él sus tickets |
-| `numero` | int > 0 | El episodio dentro del hilo; `unique (conversation_id, numero)` |
-| `primer_mensaje_id` | uuid, fk `conversation_messages`, `set null`; único cuando no es nulo | Llave de idempotencia al abrir. Con `set null`, borrar un mensaje no borra el ticket |
-| `abierto_at` | timestamptz | El `sent_at` del primer mensaje |
-| `primera_respuesta_at`, `respondido_por` | timestamptz; uuid fk `auth.users`, `set null` | E10-D29 |
-| `cerrado_at`, `cerrado_por`, `cierre` | timestamptz; uuid fk `auth.users`, `set null`; text `check (cierre in ('resuelto', 'archivado'))` | `check ((cerrado_at is null) = (cierre is null))` |
-| `created_at` | timestamptz | — |
+1. `chatwoot_portal_contactos`: `tenant_id`; `client_id` (→ `clients`, `on delete cascade`); `identificador uuid`, único; `chatwoot_contact_id bigint`; `chatwoot_source_id text`; `created_at`. Únicos `(tenant_id, client_id)` y `(tenant_id, chatwoot_contact_id)`.
+2. `chatwoot_portal_hilos`: `tenant_id`; `conversation_id` (→ `conversations`, `on delete cascade`), único; `chatwoot_conversation_id bigint`; `created_at`. Único `(tenant_id, chatwoot_conversation_id)`.
+3. `chatwoot_portal_salida`: `message_id` (→ `conversation_messages`, `on delete cascade`) como clave; `tenant_id`; `conversation_id`; `estado` (`pendiente`, `enviando`, `enviado`, `cargado` o `atascado`); `intentos`; `proximo_at`; `chatwoot_message_id bigint`; `error`, que solo admite un código (`^[a-z0-9_]{1,40}$`); `created_at` y `updated_at`. Índice parcial para lo pendiente.
+4. `chatwoot_portal_estado`: una fila por tenant, con `corte timestamptz` (desde cuándo manda la cola; lo anterior lo trae la carga de §10.5.10) y `cargado_at`. Sin corte, la cola no manda nada; en prueba, una carga vacía fija el corte.
 
-- Índice único parcial: **un solo ticket abierto por hilo**, `(conversation_id) where cerrado_at is null`.
-- Índice `(tenant_id, conversation_id) where cerrado_at is null`, para el tablero.
-- **Sin** columnas de texto, nombre, teléfono, correo ni código: el contrato lo comprueba en el catálogo, como el de la 0506.
+**Funciones.** Todas `security definer`, con `search_path = ''` y solo para `service_role`, salvo donde se dice.
 
-**Piezas:**
+1. `chatwoot_portal_tomar(p_limite)`: toma los mensajes del portal posteriores al corte que no vinieron de Chatwoot (sin el prefijo `chatwoot:` en `external_msg_id`) y no tienen fila `enviado` ni `cargado`. Uno por hilo, el más viejo primero. Devuelve el texto, porque el envío lo necesita.
+2. `chatwoot_portal_marcar(...)`: cierra un intento, como `enviado` con el id de Chatwoot, o con el código de error y la hora del próximo intento.
+3. `chatwoot_portal_vincular(...)`: guarda el contacto y el hilo, y crea la fila de `chatwoot_conversations` con el `client_id`.
+4. `chatwoot_portal_respuesta(...)`: la vuelta (E10-D37). Devuelve si insertó, para no avisar dos veces.
+5. `chatwoot_portal_estado_hilo(...)`: el estado (E10-D39).
+6. `chatwoot_portal_vincular_carga(p_tenant, p_corte, p_filas jsonb)`: el paso 4 de la carga (§10.5.10).
+7. `crm_entrada_portal(...)`: la tarjeta (E10-D22).
+8. `crm_tarjeta_ubicar_o_crear(...)` y `crm_alta_tarjeta_web` redefinida (E10-D30).
+9. `crm_portal_espera(p_tenant)`: por ficha, desde cuándo espera respuesta, que es la hora del primer mensaje del cliente después de la última respuesta del equipo. La usan el tablero y, si la 0614 lo acepta, la señal 2 de la D-SA. Para `authenticated` con `crm_puede_usar()`.
+10. `feature_flag_catalog()`, redefinida desde la 0503, con `chatwoot_portal` apagado.
 
-1. **`crm_tarjeta_ubicar_o_crear`**, interna y única para los tres usos (E10-D30). Recibe el tenant, la ficha si la hay, los últimos 10 dígitos si no hay ficha, el nombre visible solo para el lead sin ficha (D6), la fuente y la etapa de Leads de una tarjeta nueva. Devuelve la tarjeta y el resultado: `existente`, `ligada`, `creada` o `ambigua`.
-   - **Con ficha** (alta web, portal y cotizador con Shipping Mark): la tarjeta de la ficha; si no hay, liga la del lead sin ficha que cruza por teléfono con esta única ficha (`crm_ficha_por_telefono`, 0513:62); si tampoco, crea una con `on conflict do nothing`.
-   - **Sin ficha** (cotizador sin Shipping Mark, SDD-0614 §2.3, punto 2): con una sola ficha para ese teléfono, sigue como con ficha; si no hay ficha, la tarjeta sin ficha de ese teléfono (`crm_buscar_tarjeta`, 0513:117); si no hay ninguna, crea una con nombre visible y últimos 10; con más de una coincidencia, `ambigua` y no toca nada.
-   - No mueve etapas ni crea tareas: eso lo decide cada uso (el «Perdido» del alta web, la regla d del portal y el mapeo del cotizador).
-2. `crm_alta_tarjeta_web`, redefinida **desde su última definición** (hoy la 0513) para usar la pieza 1 con `web_registro` y «Nuevo», con la misma firma, los mismos grants, los mismos resultados (`creada`, `ligada`, `existente`) y su salida de «Perdido» con la clave `web_registro:<ficha>`. El contrato de la 0513 se vuelve a correr sin cambios. E10-D30.
-3. Trigger `crm_tickets_mensaje` (`after insert on conversation_messages`), con función `security definer`, `search_path = ''` y `lock_timeout = '2s'`:
-   - mensaje `in` en un hilo vivo del canal `portal`: bloquea la fila del hilo (`for update`, para que dos mensajes del mismo cliente al mismo tiempo no abran dos tickets); asegura la tarjeta con la pieza 1 (`portal`, `registrado_recontacto`); si está en «Perdido» **y el segmento en ese momento no es `cliente`** (`crm_segmento_cliente`), llama a `crm_volver_a_recontacto` con la clave `portal:<message_id>`; actualiza `ultima_actividad_at`; si no hay ticket abierto, inserta el siguiente número y su evento de auditoría con actor `system`, `actor_id` nulo y `source = 'rpc'` (D-AUD);
-   - mensaje `out`: marca la primera respuesta del ticket abierto del hilo, si no la tiene;
-   - todo dentro del bloque de E10-D24.
-4. Trigger `crm_tickets_conversacion` (`after update of status, deleted_at on conversations`): al pasar a `resuelto`, cierre `resuelto` con `cerrado_por = auth.uid()`; al ponerse `deleted_at`, cierre `archivado`. El mismo bloque. Actor del evento, según la D-AUD: `user` con su `auth.uid()` solo si es miembro activo del tenant del ticket, con `source = 'studio'`; si no, `system`. `cerrado_por` sigue la misma regla.
-5. **`crm_tickets_reconciliar(p_desde)`**, solo `service_role` (E10-D31). Sobre los hilos vivos del canal `portal` con actividad desde `p_desde` (el cron pasa los últimos 7 días):
-   - hilo no resuelto, sin ticket abierto y con un mensaje `in` posterior al cierre de su último ticket (o sin tickets): abre el ticket con el primero de esos mensajes y asegura la tarjeta, con las mismas piezas del trigger;
-   - ticket abierto sin primera respuesta y con un `out` posterior a `abierto_at`: la marca;
-   - devuelve cuántos tickets abrió y cuántas respuestas marcó. Dos corridas a la vez no duplican nada: la llave es `primer_mensaje_id` y el índice de un abierto por hilo;
-   - el ticket que abre lleva su evento con actor `system` y `source = 'job'` (D-AUD).
-6. `audit_entity_types`: fila `crm_ticket`, dominio comercial, `introduced_by_ref = 'migration:05NN'`. Eventos `crm_ticket_opened`, `crm_ticket_resolved` y `crm_ticket_archived` (E10-D27).
-7. Postflight: tabla, índices, triggers, ACL y fila del catálogo en su lugar.
-
-**En la aplicación:** `reconciliarTicketsPortal` (`lib/studio/crm-tickets-barrido.ts`) llama al barrido desde `app/api/cron/chatwoot-reintentos/route.ts`, junto a la purga de E10; nunca lanza y deja el resultado en la respuesta del cron. Si abrió o marcó algo, manda un aviso interno con solo los dos números: «CRM · el barrido recuperó N tickets del portal que el trigger no abrió. Revisar el log de la base.»
-
-**Lo que la migración no hace:** no cambia `portal_post_message`, ni las columnas de `conversations` o `conversation_messages` (solo les cuelga triggers), ni la RLS de la 0106. No carga tickets hacia atrás (**P4**).
-
-**Declaraciones:** la migración va pendiente en `supabase/migrations-baseline.json`. Como el tablero y la ficha degradan sin la tabla (avisan que falta aplicar la migración, como en 6.3), lleva también su declaración en `supabase/pending-migration-symbol-declarations.json`.
+**Postflight** con firmas, permisos y `search_path`, como el de la 0512. **Declaraciones:** `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
 
 ### 10.5.7 Permisos y RLS
 
-| Quién | En `crm_tickets` | Cómo |
+| Quién | Qué puede |
+|---|---|
+| `admin` y `commercial` (`crm_puede_usar()`) | Ver la insignia y la sección de la tarjeta, con `crm_portal_espera` y la lectura por tenant de `chatwoot_conversations` (0504) |
+| Otros roles del tenant | Nada nuevo |
+| Cliente del portal | Nada nuevo. Sigue escribiendo solo con `portal_post_message` y leyendo su hilo (0433) |
+| `service_role` | Las tablas nuevas y las funciones de la cola, el vínculo, la vuelta y la carga |
+| Agentes de Chatwoot | Lo que Chatwoot les deje ver de la bandeja «Conversaciones del portal»: solo a sus miembros (E10-D36) |
+
+La lectura de `chatwoot_conversations` es por tenant y no mira el rol (0504). Es de antes y no cambia; ahora incluye las conversaciones del portal, sin texto (§10.5.22).
+
+### 10.5.8 Variables nuevas del servidor de Studio
+
+- `CHATWOOT_INBOX_PORTAL_ID`: el id de la bandeja «Conversaciones del portal».
+- El token es el del usuario de servicio de E10 (`CHATWOOT_ROUTER_TOKEN`), que tiene que ser miembro de esa bandeja. Los equipos son los de E10 (`CHATWOOT_TEAM_CLIENTES_ID` y `CHATWOOT_TEAM_LEADS_ID`).
+- Si falta la bandeja, el token o la cuenta, `chatwootPortalConfig()` da `null` y nada del portal corre, aunque el flag esté encendido.
+- Cargarlas es un OK nominal de Sam, como las de E10.
+
+### 10.5.9 Puertas, en orden
+
+1. **La PR de la 10.5,** revisada y fusionada con el flag apagado. Fusionar publica: el texto del portal y el de `/privacidad` salen con esa publicación (§10.5.12).
+2. **La migración:** primero en prueba y después en producción (OK nominal).
+3. **La bandeja en Chatwoot y las variables** (OK nominal). La bandeja va sin `webhook_url`, sin saludo, sin asignación automática y sin encuesta, como el Archivo Kommo.
+4. **Punta a punta en prueba,** con la cuenta 2 de Chatwoot y sin datos reales (§10.5.15).
+5. **La carga de las conversaciones que ya existen:** ensayo y después producción, cada una con su puerta (§10.5.10).
+6. **Encender `chatwoot_portal`** (OK nominal), solo con el `/privacidad` nuevo publicado.
+
+### 10.5.10 La carga de las conversaciones que ya existen (P4)
+
+Es el camino del Archivo Kommo de E5 (SDD-0590 §10.3, §10.4 y §10.10), adaptado a una bandeja que sigue viva. **Va después de publicar el `/privacidad` nuevo,** porque copia a Chatwoot texto y nombres.
+
+**Qué se carga.** Los hilos vivos del canal `portal` del tenant de Chatwoot (`deleted_at` nulo), con todos sus mensajes y su estado. Los hilos archivados no se cargan: el equipo los sacó de la vista. Se cuentan aparte (C-1), y esta lectura se le confirma a Sam en el OK nominal: si él quiere también los archivados, es un parámetro.
+
+**Cómo, en el VPS, todo en `/dev/shm` (0700) y borrado al terminar:**
+
+1. **Extraer** de la base de Studio, en una transacción de solo lectura, a un ndjson. Lleva: por hilo, su id de Studio, su estado y el nombre del cliente; por mensaje, su id, la dirección, el texto, `sent_at` y, si es del equipo, el usuario y su nombre. No lleva teléfono, correo, cédula, RIF ni Shipping Mark.
+2. **Preparar la carga:** un contacto por cliente, con un identificador nuevo al azar (E10-D35); una conversación por hilo, con el estado traducido (E10-D39); y por mensaje, `source_id = dtd:<id del mensaje>`, entrante o saliente, y `created_at` = `sent_at`. El remitente de un saliente es el agente vinculado a su autor y, si no tiene, el usuario de servicio.
+3. **Cargar** con el cargador de E5 (Ruby, `rails runner` en el contenedor de Chatwoot), adaptado a esta bandeja. Escribe con `insert_all`, que no corre callbacks: ni webhooks, ni notificaciones, ni `SendReplyJob`, ni eventos de reportes. Salta lo que ya existe por `source_id`, y tiene un modo seco que solo cuenta. Devuelve un archivo de vínculos con **solo ids**: del hilo de Studio a la conversación y el contacto de Chatwoot, y de cada mensaje a su id en Chatwoot.
+4. **Vincular en Studio** con `chatwoot_portal_vincular_carga`. Guarda los vínculos, marca como `cargado` cada mensaje cargado, fija el corte de la cola y crea las filas de `chatwoot_conversations` (estado, bandeja y `client_id`), sin eventos. No crea tarjetas, ni tareas, ni avisos. Lo escrito entre la extracción y el encendido del flag sale por la cola, que empieza en el corte.
+
+**El ensayo (5.6 de E5, adaptado).** Es una copia efímera de la base de Chatwoot, con el mismo guion y las mismas guardas de `ensayo-archivo.sh`: red interna, tmpfs, `pg_dump` en solo lectura, la marca de la copia y el borrado de las otras cuentas solo en la copia. El paso 4 corre contra una copia efímera de la base de Studio, con las mismas guardas. Todo se mide con conteos y huellas md5, sin datos de personas:
+
+| # | Medición | PASÓ si |
 |---|---|---|
-| `admin` y `commercial` del tenant | Leen los suyos | Política `select` con `tenant_id = get_user_tenant_id() and crm_puede_usar()` (0506:186-195) |
-| Los demás roles del equipo (`operations`, `support`, `accounting`, `warehouse`, `marketing`) | Nada | `crm_puede_usar()` da falso. Siguen viendo el hilo en Conversaciones si su rol lo tiene |
-| El cliente del portal (`authenticated` sin `user_tenants`) | Nada | `get_user_tenant_id()` le da nulo (`supabase/migrations/0453_portal_helpers_principal_determinista.sql`). Solo dispara el trigger al escribir |
-| `anon` | Nada | Sin grant |
-| Cualquier `authenticated` | No inserta, no actualiza, no borra | Sin grant de escritura: solo escriben las funciones de los triggers, cuyo dueño es `postgres` |
-| `service_role` | Todo | Como el resto de las tablas `crm_*` |
-| Funciones internas y de los triggers | Sin `execute` para `anon` ni `authenticated` | `revoke` explícito, como en 0513:420-438 |
-| `crm_tickets_reconciliar` | Solo `service_role` | La llama el cron con la llave de servicio; el aviso no lleva datos de personas |
+| C-1 | Hilos vivos y archivados, mensajes del cliente y del equipo, en Studio | Solo se anotan; son la base de C-2 |
+| C-2 | Lo cargado coincide con lo extraído: contactos, conversaciones y mensajes | Iguales |
+| C-3 | Cargar dos veces no duplica | 0 filas nuevas |
+| C-4 | Webhooks de Chatwoot a Studio durante la carga (log del proxy y trabajos de webhook en Sidekiq) | 0 |
+| C-5 | Mensajes a clientes: `SendReplyJob` y trabajos de canal; correos entregados (`deliver.action_mailer`); filas nuevas en `outbox_push_events` de Studio | 0, 0 y 0 |
+| C-6 | El portal no cambia: conteo y md5 de los ids de `conversation_messages` y de `conversations`, antes y después | Iguales |
+| C-7 | El CRM no cambia: `crm_tarjetas`, `crm_tareas`, `crm_historial_etapas` y `chatwoot_webhook_events` | Iguales |
+| C-8 | `chatwoot_conversations`: una fila nueva por hilo cargado, con el `client_id` de su hilo | Una por hilo y 0 distintos |
+| C-9 | La secuencia de `display_id` queda por encima del máximo, y una conversación creada después no choca (E-8 de E5) | Sí |
+| C-10 | Contactos: uno por cliente, 0 huérfanos y 0 contactos de esta bandeja con teléfono o correo | 1, 0 y 0 |
+| C-11 | Lo que ya había en Chatwoot no se toca: `updated_at` de las conversaciones previas (E-11 de E5) | 0 cambian |
+| C-12 | El orden: en cada hilo, el orden de Chatwoot por `created_at` es el de Studio por `sent_at` e `id` | 0 diferencias |
+| C-13 | Los estados: conteo por estado en Studio frente al de Chatwoot, ya traducido | Iguales |
+| C-14 | El panel y la búsqueda muestran lo cargado (E-10 de E5) | Sí; si no, se reindexa |
 
-- **Cerrar un ticket** es marcar la conversación como resuelta: en la acción lo frena `moduleEditDenial("conversaciones")` (`conversaciones/actions.ts:216`). La política «conversations by tenant» (0106:128) es por tenant y no mira el rol, así que un usuario del tenant sin el módulo podría cambiar el estado llamando directo a la API. Eso es de antes y está en §10.5.16. El ticket guarda quién lo cerró.
-- El trigger no le abre al cliente ningún camino nuevo: escribe donde ya escribía.
+**Puertas.** Cada una con su OK nominal de Sam; el «Sí, pasar todas» de hoy no cubre ninguna:
 
-### 10.5.8 Datos personales (revisar-datos-ve, acotado a 10.5)
+1. leer en producción el chat del portal para el ensayo (datos de clientes, que no salen del VPS y viven en tmpfs);
+2. crear la bandeja «Conversaciones del portal» (también es la puerta 3 de §10.5.9);
+3. correr el ensayo;
+4. producción: respaldo de Chatwoot y de Studio antes, lectura previa, de a una y conteos después, con el Director General, que recibe la evidencia del ensayo antes;
+5. encender el interruptor.
+
+**Conteo para el Director General.** Contar las conversaciones en producción pide su propio OK, así que aquí no se contó nada. La consulta queda lista y la corre el Director General: es de solo lectura y devuelve solo conteos y fechas, sin texto, nombres ni ids de clientes. Se corre en el contenedor de la base de Studio con `psql -v tenant=<uuid del tenant> -f <archivo>`:
+
+```sql
+-- SDD-0586 §10.5.10 · Conteo del chat del portal. SOLO LECTURA.
+-- Devuelve conteos y fechas; ni texto, ni nombres, ni ids de clientes.
+begin transaction read only;
+set local statement_timeout = '30s';
+
+select
+  count(*)                                                                as hilos,
+  count(*) filter (where c.deleted_at is null)                            as hilos_vivos,
+  count(*) filter (where c.deleted_at is not null)                        as hilos_archivados,
+  count(*) filter (where c.deleted_at is null and c.status = 'abierto')   as abiertos,
+  count(*) filter (where c.deleted_at is null and c.status = 'pendiente') as pendientes,
+  count(*) filter (where c.deleted_at is null and c.status = 'resuelto')  as resueltos,
+  count(distinct c.client_id)                                             as clientes
+from public.conversations c
+where c.tenant_id = :'tenant' and c.channel = 'portal';
+
+select
+  count(*)                                    as mensajes,
+  count(*) filter (where m.direction = 'in')  as del_cliente,
+  count(*) filter (where m.direction = 'out') as del_equipo,
+  min(m.sent_at)::date                        as primero,
+  max(m.sent_at)::date                        as ultimo,
+  max(length(m.body))                         as largo_maximo
+from public.conversation_messages m
+join public.conversations c on c.id = m.conversation_id
+where c.tenant_id = :'tenant' and c.channel = 'portal' and c.deleted_at is null;
+
+rollback;
+```
+
+### 10.5.11 El plazo de respuesta: lunes y feriados (P5 y P7)
+
+**La regla (E10-D23), en hora de Caracas:**
+
+| El cliente escribe | Vence al terminar |
+|---|---|
+| Un día que cuenta (lunes a viernes, sin feriado) | Ese mismo día |
+| El sábado o el domingo | El lunes (o el siguiente día que cuente, si el lunes es feriado) |
+| Un feriado, según P7 | El siguiente día que cuente |
+
+La calcula una función pura, sin red ni base, con la lista de días que no cuentan. Venezuela no cambia la hora en el año, así que el fin del día es siempre 23:59:59 en `America/Caracas`.
+
+**P7, pregunta para Sam:** «Además del sábado y el domingo, ¿qué días no cuentan para el plazo del chat del portal?»
+
+| Opción | Qué pasa | Quién la mantiene |
+|---|---|---|
+| **(a) Los feriados de Venezuela que el administrador carga en Studio, en Administración › Feriados & ferias (Recomendado)** | Usa la lista que ya existe (`operational_calendar`, país `VE`, tipo `holiday`; SDD-0127). Si al empezar un año no hay feriados de Venezuela cargados, el CRM se lo avisa al administrador | El administrador de Studio |
+| (b) Ninguno: solo el sábado y el domingo | Un feriado cuenta como día de trabajo | Nadie |
+| (c) Una lista fija de feriados nacionales, escrita en el sistema | No hay que cargar nada, pero cada cambio del calendario pide un cambio de código | Programación |
+
+### 10.5.12 Textos públicos propuestos
+
+**Propuestas, sin aprobar.** Sam los aprueba palabra por palabra antes de publicar. Si cambia una palabra, se le vuelve a preguntar. Se escriben sobre `main` en `7a3cde25d`, que ya tiene el texto de la #399.
+
+**T1 · Portal, Soporte** (`app/portal/(app)/soporte/page.tsx:200`). Hoy: `{role} · Te responde en el día`. Con la regla de P5, ya no es cierto para el fin de semana.
+
+| Si P7 es | Texto nuevo |
+|---|---|
+| (a) o (c), con feriados | `{role} · Te responde en el día hábil` |
+| (b), sin feriados | `{role} · Te responde en el día, de lunes a viernes` |
+
+**T2 · `/privacidad`, fila «Portal del Cliente» de lo que recogemos** (`app/privacidad/page.tsx:80`). Se agrega al final, después de «pagos reportados y comunicaciones con nuestro equipo.»:
+
+> Todos los mensajes del chat de Soporte, con tu nombre, quedan también en nuestro propio sistema de atención, alojado en nuestro servidor, donde nuestro equipo los lee y te responde.
+
+**T3 · `/privacidad`, finalidades** (`app/privacidad/page.tsx:212`). Hoy: «**Gestionar tu cuenta** en el Portal del Cliente.» Queda:
+
+> **Gestionar tu cuenta** en el Portal del Cliente y atender lo que nos escribes por su chat de Soporte: saber si ya eres cliente para que te atienda el equipo que corresponde y darle seguimiento a tu consulta.
+
+**T4 · Fecha.** `UPDATED` (`app/privacidad/page.tsx:43`) pasa al día en que se publique, con un comentario en el código que registre la aprobación de Sam, como los anteriores.
+
+**Lo que no cambia, y por qué:**
+
+- §4, «Con quién compartimos datos». Chatwoot no es un tercero (§10.5.13, punto 8), y la lista ya dice, del proveedor de gestión de clientes: «Estamos pasando esa atención a nuestro propio sistema, alojado en nuestro servidor» (`app/privacidad/page.tsx:278`).
+- §6, plazos. El chat del portal sigue el plazo de la cuenta del cliente, y los respaldos de Chatwoot son los 30 días cifrados que la política ya dice.
+
+### 10.5.13 Datos personales (revisar-datos-ve)
 
 Revisión del diseño y del código vigente que toca, con `.claude/skills/revisar-datos-ve/SKILL.md` y sus referencias. Las citas son del código de hoy; lo que depende de código que todavía no existe queda **NO VERIFICABLE** hasta implementarlo. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Marco: Venezuela (CRBV arts. 28 y 60; SC 332/2001). Esto no es asesoría legal.
 
-**Resumen:** 4 CORRECTO · 7 NO VERIFICABLE · 1 no aplica · y 1 ENCONTRADO anterior a 10.5 (punto 8, Telegram).
+**Resumen:** 3 CORRECTO · 5 NO VERIFICABLE · 3 ENCONTRADO (los tres con su arreglo en el diseño) · 1 no aplica · y 1 ENCONTRADO anterior a la 10.5 (Telegram, punto 8).
 
-**Inventario que suma 10.5:**
+**¿Chatwoot es un tercero? No, según el repo (D):**
 
-| Dato | Qué es | Finalidad | Retención | Quién lo ve |
+- «Chatwoot CE corre en el mismo servidor de Contabo (fila de arriba): **no es un tercero**, es software propio» (`docs/legal/privacidad/inventario-terceros.md:75`);
+- «Chatwoot CE `v4.19.1-ce` en el mismo VPS que la producción de DTD (decisión E0-D1)» (`docs/runbooks/chatwoot-servidor.md:16`);
+- los adjuntos se guardan en el disco del servidor: `ACTIVE_STORAGE_SERVICE: local` (`infra/chatwoot/compose.yml:103`).
+
+Contabo es el proveedor del servidor, y ya está en la política como proveedor de alojamiento. Que el VPS siga hoy así no lo medí en esta tarea: es evidencia del repo, no una lectura del servidor.
+
+Salidas de Chatwoot que ya existían y siguen igual (`inventario-terceros.md`):
+
+- **Cloudflare:** «todo el tráfico del panel en claro (conversaciones y adjuntos), como ya pasa con la web y Supabase de DTD» (`:84`). La misma fila anota que falta Cloudflare en la tabla general.
+- **Backblaze B2:** respaldos de Chatwoot cifrados con `age`, 30 días.
+
+**Inventario que suma la 10.5:**
+
+| Dato | Dónde | Finalidad | Retención | Quién lo ve |
 |---|---|---|---|---|
-| `crm_tickets`: ids, número y fechas | Episodios del chat de un cliente, sin texto | Seguimiento comercial: que ningún mensaje quede sin respuesta y saber cuánto tarda el equipo | Con el hilo: se borra en cascada al purgar la ficha (0106:45) | `admin` y `commercial` del tenant |
-| `respondido_por`, `cerrado_por` | Usuario del equipo | Saber quién atendió | Igual; `set null` si se borra el usuario | Igual |
-| Tarjeta con `fuente = 'portal'` | La misma de la 0506, sin nombre ni teléfono porque tiene ficha (0506:339) | Embudo | Con la ficha (`on delete cascade` de la 0506) | Igual |
-| Evento `crm_ticket_*` en `entity_audit_log` | Lo que permite la D-AUD de la SDD-0614 §2.8: el id del ticket, estado, cierre, número del episodio y el id de quien cerró, si es del equipo. Nunca `client_id`, Shipping Mark, nombre, teléfono ni texto. Actor `system` o el usuario del equipo, nunca el cliente (E10-D27) | AUD-01 | El de la bitácora, de solo agregar: queda tras la purga sin nada que identifique a la persona | Quien lee la bitácora (AUD-02) |
-| Aviso del barrido (E10-D31) | Dos números: tickets abiertos y respuestas marcadas | Enterarse de que el trigger falló | El del canal de alertas internas | El equipo que recibe esas alertas |
+| Texto de cada mensaje del chat del portal y nombre del cliente | Chatwoot: contacto y mensajes de la bandeja «Conversaciones del portal» | Que el equipo lea y responda (P2) | Hoy, sin plazo propio en Chatwoot (ENCONTRADO, punto 5) | Miembros de la bandeja: solo el equipo de Venezuela (E10-D36) |
+| Lo mismo, de las conversaciones que ya existen | Igual, por la carga de §10.5.10; durante la carga, un ndjson en `/dev/shm` del VPS | P4 | El ndjson se borra al terminar; lo cargado, como la fila anterior | Igual; el ndjson, solo root en el VPS |
+| Identificador al azar del contacto | Studio (`chatwoot_portal_contactos`) y Chatwoot | Reintentar sin duplicar (E10-D35) | Con la ficha (cascada) | `service_role` |
+| Ids de Chatwoot (contacto, conversación, mensaje) | Studio (`chatwoot_portal_contactos`, `chatwoot_portal_hilos` y `chatwoot_portal_salida`) | El vínculo y la cola | Con el hilo y la ficha (cascada) | `service_role` |
+| Código de error del envío | `chatwoot_portal_salida.error` | Saber por qué no llegó | Igual | `service_role` |
+| Respuesta del equipo, con su autor | `conversation_messages` (ya existía; ahora también llega de Chatwoot) | Que el cliente la vea en el portal | La de hoy | La de hoy |
+| Aviso a los administradores | Push de Studio | Enterarse si Chatwoot no recibe (E10-D40) | El del push | Admins; solo números |
 
-Lo que ya existía y 10.5 no copia: el texto y el nombre del autor de cada mensaje (`conversation_messages.author_name` y `body`, 0106:91-93).
+**Los doce puntos:**
 
 | # | Punto | Estado | Evidencia y comentario |
 |---|---|---|---|
-| 1 | Inventario | CORRECTO | La tabla de arriba. Los datos de origen están en 0106:45-50 y 0106:91-93; el diseño no suma texto, nombre, teléfono ni correo (E10-D25, §10.5.6) |
-| 2 | Minimización | NO VERIFICABLE | Por diseño, solo ids y fechas, y el tablero no lee el texto. Se comprueba al implementar: el contrato revisa las columnas en el catálogo y la prueba de consultas, que no se pidan `body` ni `author_name` |
-| 3 | Consentimiento | NO VERIFICABLE | Igual que en SDD-0587 §14.3: la base de licitud para el seguimiento comercial del chat de un cliente no está en el código. La decide Sam con su asesor |
-| 4 | Derechos | NO VERIFICABLE | El cliente ve su chat (`lib/portal/portal-conversation-queries.ts`), no sus tickets, que son datos internos de seguimiento. La destrucción va con la purga de la ficha (cascada); «Anonimizar ahora» es de 6.6 |
-| 5 | Borrado | NO VERIFICABLE | Por diseño, en cascada desde `conversations`. Se prueba en PGlite al implementar: purgar la ficha deja sin tickets y solo queda el evento de auditoría. No se prueba contra producción sin OK |
-| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que en 6.4 |
-| 7 | Política pública | NO VERIFICABLE | `/privacidad` ya dice del Portal «comunicaciones con nuestro equipo» (`app/privacidad/page.tsx:75-76`) y, entre las finalidades, «Atender tus mensajes por WhatsApp y chat: saber si ya eres cliente para que te atienda el equipo que corresponde, darle seguimiento a tu consulta» (`:195-199`). Que «chat» incluya el del Portal es una lectura. **Propuesta (P6):** sumar a la fila del Portal «y el seguimiento de tus consultas por el chat de Soporte», con texto aprobado por Sam antes de publicar 10.5. **Va después de la #399**, que trae el texto ya aprobado de la mensajería interna y toca el mismo `app/privacidad/page.tsx` |
-| 8 | Terceros | CORRECTO · ENCONTRADO anterior | El diseño no envía nada fuera (E10-D26), y el aviso del barrido solo lleva dos números (E10-D31). **Anterior a 10.5:** el aviso de SDD-0148 manda a Telegram el nombre del cliente, su Shipping Mark y un extracto de hasta 140 caracteres del mensaje (`lib/studio/conversation-inbound-notify.ts:103-112`), y el texto ya aprobado de la #399 dice que la mensajería interna recibe avisos «sin tu nombre ni tus datos de contacto». 10.5 no lo amplía. Lo lleva el Director General al Subdirector de SEO (§10.5.16) |
-| 9 | Transferencia internacional | CORRECTO | Lo nuevo vive en la base de DTD y no sale. Lo de Telegram es el punto 8 |
-| 10 | Decisiones automatizadas | CORRECTO | El segmento solo elige el tablero: no niega servicio ni le responde al cliente. La regla es pública en la SDD-0582 |
+| 1 | Inventario | CORRECTO | La tabla de arriba. Lo que sale de Studio es el nombre y el texto (E10-D35); el teléfono, el correo, la cédula, el RIF, el Shipping Mark y el `client_id` no salen |
+| 2 | Minimización | NO VERIFICABLE | Por diseño: el contacto de Chatwoot lleva solo nombre e identificador al azar, y los logs, solo códigos, como hoy (`webhook-events.ts:9`, `entrada-leads.ts`). Se prueba al implementar: la prueba del envío revisa las claves de cada carga que sale a Chatwoot |
+| 3 | Consentimiento | NO VERIFICABLE | El cliente escribe al chat para que le respondan; la base de licitud de atenderlo desde otro sistema propio y de darle seguimiento comercial no está en el código. La decide Sam con su asesor |
+| 4 | Derechos | ENCONTRADO, con arreglo | El cliente ve su chat en el portal, igual que hoy. **Hallazgo:** pedir el borrado de sus datos tiene que alcanzar la copia de Chatwoot. **Arreglo:** el borrado de la ficha borra en Chatwoot el contacto y sus conversaciones de esta bandeja (API de cuenta), con el vínculo en cascada; los respaldos caen a los 30 días, como dice la política. Fila nueva en `docs/legal/privacidad/mapa-de-borrado.md` |
+| 5 | Borrado | ENCONTRADO, con arreglo | Chatwoot no tiene plazo propio para el contenido de las conversaciones (SDD-0587 §14.3, punto 8). Para esta bandeja: el contenido dura lo que dura la ficha, y se borra con ella (punto 4). Se prueba en prueba con un valor único rastreable: se borra la ficha y se busca ese valor en Studio, en Chatwoot y en sus logs. Sin OK, no se prueba en producción |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que en la 6.4: no hay registro de solicitudes de derechos en el código |
+| 7 | Política pública | ENCONTRADO, con arreglo | Hoy `/privacidad` no dice que el chat de Soporte se lee y se responde en otro sistema. **Arreglo:** T2 y T3 (§10.5.12), aprobados por Sam y publicados **antes** de encender el flag y antes de la carga (E10-D42) |
+| 8 | Terceros | CORRECTO · ENCONTRADO anterior | Chatwoot no es un tercero (arriba). Las salidas que ya existían (Cloudflare y Backblaze) no cambian. **Anterior a la 10.5:** el aviso de la SDD-0148 manda a Telegram el nombre del cliente, su Shipping Mark y hasta 140 caracteres del mensaje (`lib/studio/conversation-inbound-notify.ts:103-112`), y el texto de la #399 dice que la mensajería interna recibe avisos «sin tu nombre ni tus datos de contacto». Con el flag encendido, el aviso al equipo es el push de Chatwoot, sin datos de la persona, así que ese de Telegram sobra para el portal. Apagarlo lo decide el Director General con el Subdirector de SEO (§10.5.20) |
+| 9 | Transferencia internacional | NO VERIFICABLE | El servidor está en Estados Unidos, como ya dice la política. **China:** la bandeja solo lleva miembros del equipo de Venezuela (E10-D36), porque la política dice que el equipo de China no ve nombres. Si hoy hay usuarios de China en Chatwoot no se midió: se mira al crear la bandeja |
+| 10 | Decisiones automatizadas | CORRECTO | El segmento solo elige el equipo y el tablero: no niega servicio ni le responde al cliente. Sin bot ni IA en esta bandeja |
 | 11 | Aceptación electrónica | No aplica | No se registran aceptaciones |
-| 12 | Titulares que no son usuarios | NO VERIFICABLE | El texto del chat puede nombrar a terceros (un proveedor, otro importador). 10.5 no lo copia; lo que ya guarda `conversation_messages` es de SDD-0056 |
-| — | Logs y avisos | Por diseño | El `warning` de E10-D24 lleva solo el SQLSTATE y el aviso del barrido, solo dos números; se prueba al implementar |
-| — | China (PIPL) | NO VERIFICABLE | El diseño no amplía quién ve. Si un `admin` o un `commercial` trabaja desde China, aplica la PIPL; el código no dice desde dónde trabaja cada usuario |
+| 12 | Titulares que no son usuarios | NO VERIFICABLE | El texto del chat puede nombrar a otras personas (un proveedor, otro importador). Con la 10.5 ese texto queda también en Chatwoot, con el mismo borrado del punto 4 |
 
-La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño. **Lo que necesita un abogado:** la base de licitud y la redacción final de P6.
+La skill pide una segunda opinión: otro modelo puede revisar este diseño. **Lo que necesita un abogado:** la base de licitud (punto 3) y la redacción final de T2 y T3.
 
-### 10.5.9 Gobernanza ([AGENT-BRIEF](../../governance/AGENT-BRIEF.md))
+### 10.5.14 Gobernanza ([AGENT-BRIEF](../../governance/AGENT-BRIEF.md))
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
 | SGE-00 | cumplimiento por diseño | Matriz de abajo |
-| AUD-01 | cumplimiento por diseño para el ticket (E10-D27) · **no conformidad pendiente** para la tarjeta que se crea desde el portal | Es la misma de 6.4 (SDD-0587 §16.6): crear una tarjeta no deja evento en `entity_audit_log`. La cierra el trigger de `crm_tarjetas` de la 6.6 (SDD-0614 §2.7 d), que va después de la 10.5; hasta entonces, las tarjetas que crea el portal están en ese pendiente |
+| AUD-01 | no conformidad pendiente para la tarjeta | Es la misma de la 6.4 (SDD-0587 §16.6): crear una tarjeta no deja evento. La cierra el trigger de `crm_tarjetas` de la 6.6 (SDD-0614 §2.7 d), que va después. Sin tickets, no hay otro evento que auditar (E10-D45) |
 | AUD-02 | no aplica | No cambia quién consulta ni exporta la bitácora |
-| MP-01 | cumplimiento | No hay borrado ni archivo nuevo desde la pantalla. Cerrar es el «Resuelto» de siempre, y el cliente puede abrir otro escribiendo |
-| BTN-01 | cumplimiento por diseño | «Responder en Conversaciones» es un enlace, no un botón que cambie algo |
-| A11Y-01 | por verificar al implementar | Insignia con texto y nombre accesible; enlace alcanzable con teclado |
+| MP-01 | cumplimiento | No hay borrado ni archivo nuevo desde la pantalla |
+| BTN-01 | cumplimiento por diseño | «Abrir en la Bandeja» y «Responder en la Bandeja» son enlaces; no cambian nada |
+| A11Y-01 | por verificar al implementar | Insignia con texto y nombre accesible; enlaces alcanzables con teclado |
 | VIS-01, VIS-02 | por verificar al implementar | Tokens de `app/studio/tokens.css` y el tono de las tareas vencidas; `/ui-check` |
-| LOD-01, ERR-01 | por verificar al implementar | La sección usa los estados de la ficha: cargando, vacío («Sin tickets del portal»), error con «Reintentar» y migración sin aplicar |
-| TBL-01 | cumplimiento por diseño | Lista con tope de 10 y paso a Conversaciones |
-| DND-01 | no aplica | El ticket no se arrastra; la tarjeta sí, como en 6.3 |
-| CMP-01 | por verificar al implementar | Reusa las piezas de la ficha; nada nuevo en `components/` |
+| LOD-01, ERR-01 | por verificar al implementar | La sección usa los estados de la ficha: cargando, vacío («Sin conversaciones del portal»), error con «Reintentar» y migración sin aplicar |
+| TBL-01 | cumplimiento por diseño | Lista corta con paso a la Bandeja |
+| DND-01 | no aplica | La tarjeta se arrastra como en 6.3 |
+| CMP-01 | por verificar al implementar | Reusa las piezas de la ficha y, si sirve, `ChatwootConversacionesCard` |
 | FRM-01 | no aplica | Sin formulario nuevo |
 
 **Matriz SGE-00:**
 
 | Principio | Resultado | Evidencia |
 |---|---|---|
-| .01 Acción predecible | cumple | «Responder» lleva a donde siempre se responde y «Resuelto» cierra, como hoy |
-| .02 No perder trabajo | cumple | E10-D24: el mensaje del cliente nunca falla por el CRM, y el barrido recupera el ticket que faltó (E10-D31) |
-| .03 El riesgo fija la fricción | no aplica | No hay acción nueva con riesgo |
-| .04 Auditable | cumple para el ticket · pendiente para la tarjeta | E10-D27 y AUD-01 arriba |
-| .05 Permisos, tenant y privacidad | cumple por diseño | §10.5.7, con pruebas negativas (§10.5.11, punto 12) |
-| .06 Prevenir errores | cumple | Un ticket abierto por hilo (índice) y número por hilo (E10-D28) |
-| .07 Estado visible y verdadero | cumple por diseño | El «vencido» sigue la promesa del portal, «sin atender» es la definición única de la 6.6 (E10-D23), y un fallo del trigger se ve en el aviso del barrido (E10-D31) |
-| .08 La frecuencia reduce pasos | cumple, con nota | Responder queda a un clic desde la tarjeta. Responder dentro de la ficha queda para después (§10.5.13) |
-| .09 Mismo patrón | cumple | Insignia como la de las tareas vencidas; enlace `?c=` existente |
+| .01 Acción predecible | cumple | Se responde en un solo lugar (E10-D41) |
+| .02 No perder trabajo | cumple por diseño | El portal guarda antes de enviar y la cola reintenta (E10-D24, E10-D34); con Chatwoot caído hay aviso y modo de respaldo (E10-D40) |
+| .03 El riesgo fija la fricción | cumple | La carga y el encendido llevan cada uno su OK nominal (§10.5.9 y §10.5.10) |
+| .04 Auditable | pendiente para la tarjeta | AUD-01 arriba |
+| .05 Permisos, tenant y privacidad | cumple por diseño | §10.5.7 y §10.5.13, con pruebas negativas (§10.5.15) |
+| .06 Prevenir errores | cumple | Idempotencia por `source_id` y `external_msg_id`, un envío por hilo y orden por hilo (E10-D34, E10-D37) |
+| .07 Estado visible y verdadero | cumple por diseño | El «vencido» sigue la promesa del portal (T1), «sin atender» es la D-SA, y el aviso dice si algo no llegó (E10-D40) |
+| .08 La frecuencia reduce pasos | cumple | Responder queda a un clic desde la tarjeta, sin salir del Studio |
+| .09 Mismo patrón | cumple | Bandeja, Ficha DTD y webhook de siempre |
 | .10 Accesible | por verificar al implementar | A11Y-01 |
-| .11 Lenguaje | cumple por diseño | El texto de la insignia dice el estado |
+| .11 Lenguaje | cumple por diseño | «Conversaciones», sin «tickets» ni «reclamos» (E10-D32) |
 | .12 IA | no aplica | Sin IA |
 
-### 10.5.10 Allowlist exacta (para la PR de implementación)
+### 10.5.15 Pruebas y criterios de aceptación
 
-**Nuevos:**
+**Prueba de concepto primero**, en prueba, con la cuenta 2 de Chatwoot y sin datos reales. Cada punto da PASÓ o FALLÓ, y lo que falle cambia el diseño antes de programar:
 
-- `supabase/migrations/05NN_crm_tickets_portal.sql`
-- `supabase/tests/05NN_crm_tickets_portal.test.sql`
-- `lib/studio/__tests__/crm-tickets.migration.test.ts`
-- `lib/studio/crm-tickets.ts` (puro: tipos, estado, «vencido» al terminar el día en `America/Caracas` y texto de la insignia; no calcula «sin atender», que es la `crm_sin_atender` de la 6.6, E10-D23)
-- `lib/studio/__tests__/crm-tickets.test.ts`
-- `lib/studio/crm-tickets-barrido.ts` (`reconciliarTicketsPortal`: llama al barrido, nunca lanza y manda el aviso con solo los números; E10-D31)
-- `lib/studio/__tests__/crm-tickets-barrido.test.ts`
+- **PoC-1:** un mensaje creado por la API de cuenta en una bandeja API guarda el `source_id` que se le manda y lo devuelve al listar.
+- **PoC-2:** se puede buscar un contacto por su `identifier`.
+- **PoC-3:** listar los mensajes de una conversación da su tipo, si es privado, su `source_id` y sus adjuntos (para el reproceso y la conciliación).
+- **PoC-4:** un mensaje entrante por la API en una conversación resuelta la reabre.
+- **PoC-5:** la API de cuenta acepta `message_type: incoming` en una bandeja API, con el contacto como remitente, y el webhook lo entrega como `incoming`.
+- **PoC-6:** una nota privada creada por la API no le llega a nadie fuera de Chatwoot.
+
+**Contrato SQL** (PGlite, con mutantes y control rojo):
+
+1. el preflight falla sin cada dependencia;
+2. RLS en las tablas nuevas, sin permisos para `anon` ni `authenticated`;
+3. `chatwoot_portal_tomar`: solo el portal, solo después del corte, sin lo que vino de Chatwoot, uno por hilo, el más viejo primero, y nada de un hilo con un envío en curso;
+4. `chatwoot_portal_respuesta`: idempotente, con `unread_count` a 0, la hora que llega y el autor del vínculo;
+5. `chatwoot_portal_vincular`: un `chatwoot_registrar_evento` posterior sin teléfono conserva el `client_id`;
+6. `crm_entrada_portal`: crea por ficha con `fuente = 'portal'`, liga por teléfono, vuelve de «Perdido» solo si es lead y una sola vez por clave, y no crea con `conversation_updated`;
+7. el contrato de la 0513 pasa igual con `crm_alta_tarjeta_web` redefinida;
+8. `crm_portal_espera`: el primer mensaje sin respuesta después de la última del equipo, y nada si lo último es del equipo; sin `crm_puede_usar()`, rechazo;
+9. `chatwoot_portal_vincular_carga`: marca `cargado`, fija el corte y no escribe en el CRM ni en los eventos;
+10. el flag nace apagado;
+11. el contrato de `portal_post_message` (0512) pasa igual.
+
+**TypeScript:**
+
+- el envío: orden, un envío por hilo, un error incierto busca el `source_id` antes de reenviar, los reintentos, «atascado» y el aviso con solo números; con el flag apagado o sin configuración, nada;
+- la carga que sale a Chatwoot lleva solo el nombre y el identificador: sin teléfono, correo, cédula, RIF, Shipping Mark ni `client_id`;
+- `entrarPortal`: etiquetas, equipo y asesor; solo la bandeja del portal; logs con solo códigos;
+- `responderAlPortal`: deja pasar solo lo saliente, no privado y no propio; la nota del adjunto, una sola vez; el push, una sola vez; el reproceso relee el mensaje;
+- el estado, traducido;
+- «vencida»: viernes 23:59, sábado y domingo al lunes, feriados según P7, y el borde de 23:59:59 en `America/Caracas`;
+- Conversaciones de Studio en solo lectura con el flag encendido, y `sendReplyAction` que rechaza en el servidor;
+- la ruta del webhook nunca registra el texto;
+- T1 en la página de Soporte, y T2 y T3 en `/privacidad`.
+
+**Punta a punta en prueba** (cuenta 2): ida, vuelta, estado, tarjeta, Ficha DTD, Chatwoot sin responder (con una URL que no contesta) y la conciliación.
+
+**Criterios de aceptación:**
+
+- [ ] PoC-1 a PoC-6 medidos, y el diseño ajustado a lo que falló.
+- [ ] Un mensaje del portal llega a Chatwoot en orden y una sola vez, aunque se reintente.
+- [ ] La respuesta del agente llega al portal una sola vez, con su autor y su hora, y el cliente recibe el push de hoy.
+- [ ] El portal nunca falla por Chatwoot, y si Chatwoot no responde hay aviso y modo de respaldo.
+- [ ] La tarjeta entra por la ficha, en el embudo de su segmento; desde «Perdido» vuelve solo si es lead.
+- [ ] «Vencida» sigue la regla de P5 y la respuesta de P7.
+- [ ] Nada sale a Chatwoot fuera del nombre y el texto.
+- [ ] El flag nace apagado y no se enciende sin el `/privacidad` nuevo publicado.
+- [ ] La carga pasa C-1 a C-14 en el ensayo, antes de producción.
+- [ ] `pnpm verify`, `/ui-check` y revisar-datos-ve sobre el código.
+- [ ] Aceptación de Sam de las filas de la 10.5.
+
+### 10.5.16 Allowlist exacta (para las PR de implementación)
+
+Son dos PR, en este orden: la del rediseño y los textos (10.5) y la de la carga (fila propia, P4). Si al arrancar alguno de estos archivos cambió, se mide de nuevo antes de tocarlo.
+
+**PR 1 · rediseño y textos.**
+
+Nuevos:
+
+- `supabase/migrations/05NN_chatwoot_portal.sql` y su prueba de contrato en `supabase/tests/`, con el mismo número
+- `lib/studio/__tests__/chatwoot-portal.migration.test.ts`
+- `lib/studio/chatwoot/portal.ts` (configuración, envío, contacto, conversación y conciliación) y `lib/studio/chatwoot/__tests__/portal.test.ts`
+- `lib/studio/chatwoot/portal-manejadores.ts` (`entrarPortal` y `responderAlPortal`) y `lib/studio/chatwoot/__tests__/portal-manejadores.test.ts`
+- `lib/studio/crm-portal.ts` (puro: estado, «vencida» con días que no cuentan, texto de la insignia) y `lib/studio/__tests__/crm-portal.test.ts`
 - `app/studio/(app)/crm/_components/TarjetaFichaDrawer.test.tsx`
-**Editados:**
 
-- `supabase/migrations-baseline.json` (pendiente)
-- `supabase/pending-migration-symbol-declarations.json` (degradación del tablero y la ficha)
-- `lib/studio/crm-tablero.ts` (`CrmTarjetaTablero` suma el ticket abierto)
-- `lib/studio/crm-tablero-queries.ts` (tickets abiertos por `conversations.client_id`)
-- `lib/studio/__tests__/crm-tablero.test.ts`
-- `lib/studio/__tests__/crm-tablero-queries.test.ts`
-- `lib/studio/crm-ficha.ts` (`CrmFichaTarjeta.tickets`)
-- `app/studio/(app)/crm/tarjeta-actions.ts` (`cargarFichaTarjetaAction` lee los tickets con los mismos candados)
-- `app/studio/(app)/crm/__tests__/tarjeta-actions-gate.test.ts`
-- `app/studio/(app)/crm/_components/CrmTableroKanban.tsx` (insignia)
-- `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx`
-- `app/studio/(app)/crm/_components/TarjetaFichaDrawer.tsx` (sección «Tickets del portal»)
-- `app/api/cron/chatwoot-reintentos/route.ts` (llama a `reconciliarTicketsPortal` junto a la purga de E10) y `app/api/cron/chatwoot-reintentos/__tests__/route.test.ts`
-- `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`, `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 10.5), `docs/specs/README.md` (índice generado) y `.agents/handoffs/0586-e10-5-tickets-portal.md`
-- Solo si Sam aprueba P6, y **después de que se integre la #399**, que toca los mismos archivos: `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts`
+Editados:
 
-**No se tocan**, y la revisión lo comprueba con `git diff --stat`: `app/portal/**`, `lib/portal/**`, `components/**`, `app/studio/(app)/conversaciones/**`, `lib/studio/conversaciones/**`, `lib/studio/conversation-inbound-notify.ts`, `lib/studio/chatwoot/**`, `supabase/migrations.lock.json` y ninguna migración ya aplicada (la función de la 0513 se redefine desde la migración nueva; el archivo 0513 no se edita).
+- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`
+- `lib/studio/feature-flags-types.ts` (`chatwoot_portal`)
+- `lib/studio/chatwoot/config.ts` (`chatwootPortalConfig`)
+- `lib/studio/chatwoot/router-api.ts` (contacto, conversación, mensajes de una conversación, asignar agente) y su prueba
+- `lib/studio/chatwoot/webhook-procesar.ts` (los dos manejadores en `MANEJADORES` y sus nombres) y su prueba
+- `app/api/chatwoot/webhook/route.ts` (le pasa al contexto lo saliente del portal) y su prueba
+- `app/api/cron/chatwoot-reintentos/route.ts` (cola, conciliación y aviso) y su prueba
+- `app/portal/(app)/mensajes/actions.ts` (pide el envío sin bloquear) y `app/portal/reintento-no-duplica.test.ts`
+- `app/studio/(app)/conversaciones/actions.ts` y `app/studio/(app)/conversaciones/_components/ConversationThread.tsx` (solo lectura con el flag encendido), con `app/studio/(app)/conversaciones/__tests__/send-reply-gate.test.ts`
+- `lib/studio/crm-tablero.ts`, `lib/studio/crm-tablero-queries.ts` y sus pruebas
+- `lib/studio/crm-ficha.ts`, `app/studio/(app)/crm/tarjeta-actions.ts` y `app/studio/(app)/crm/__tests__/tarjeta-actions-gate.test.ts`
+- `app/studio/(app)/crm/_components/CrmTableroKanban.tsx`, su prueba y `app/studio/(app)/crm/_components/TarjetaFichaDrawer.tsx`
+- T1: `app/portal/(app)/soporte/page.tsx` (una línea) y su prueba
+- T2 a T4: `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts`
+- `infra/chatwoot/.env.example` y la prueba de variables de infraestructura
+- `docs/runbooks/chatwoot-bandeja.md` (la bandeja del portal), `docs/legal/privacidad/mapa-de-borrado.md` (punto 4)
+- `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`, `docs/specs/0582-chatwoot-piloto/checklist.md`, `docs/specs/README.md` (índice generado) y `.agents/handoffs/0586-e10-5-tickets-portal.md`
 
-**Cruce con 6.6:** comparten archivos y van en serie, primero la 10.5 (§10.5.17).
+**PR 2 · la carga (P4).** Nuevos, junto al cargador de E5 en `infra/ops/kommo-historial/` o en una carpeta hermana `infra/ops/portal-historial/`, lo que el Director General prefiera: la extracción, la preparación, el cargador adaptado, el ensayo y sus pruebas en CI con datos sintéticos.
 
-### 10.5.11 Pruebas
+**No se tocan:** `lib/portal/**`, `components/**`, `lib/studio/conversation-inbound-notify.ts` (salvo que el Director General decida el punto 8 de §10.5.13), `supabase/migrations.lock.json` ni ninguna migración ya aplicada. La revisión lo comprueba con `git diff --stat`.
 
-**Contrato SQL en PGlite** (`05NN_crm_tickets_portal.test.sql`, sobre las migraciones reales hasta la 0513 y la nueva):
+**Cruce con la 6.6:** comparten archivos y van en serie, primero la 10.5 (§10.5.19).
 
-1. El primer mensaje `in` del portal abre el ticket #1 con `abierto_at` igual a `sent_at`; el segundo no abre otro.
-2. El reintento de la 0512 (mismo identificador) no abre ticket ni toca la tarjeta.
-3. La firma vieja `portal_post_message(text)` también abre.
-4. «Resuelto» cierra con `cerrado_por`; el siguiente mensaje abre el #2; `pendiente` no cierra; reabrir a mano no abre.
-5. El primer `out` marca la primera respuesta; el segundo no la pisa; un `out` sin ticket abierto no hace nada.
-6. Un hilo `whatsapp` o `email` en `conversations` no abre ticket.
-7. Tarjeta: se crea con `portal` y «Registrado / recontacto», sin nombre ni teléfono; una existente no cambia de etapa ni de fuente; un lead en «Perdido» vuelve con tarea, idempotente por `portal:<message_id>`; **un cliente con envío vivo y «Perdido» guardado en Leads no recibe tarea ni movimiento**; el lead sin ficha con el mismo teléfono se liga.
-8. Tablero: con envío vivo, la tarjeta sale en Clientes con su ticket; sin envío, en Leads; si pierde su único envío, vuelve a Leads con el ticket.
-9. Fusión con `merge_clients`: el hilo que se mueve lleva sus tickets a la ficha superviviente; el que se archiva cierra el suyo como `archivado`.
-10. **Un fallo del CRM no rompe el mensaje:** con la escritura de `crm_tickets` forzada a fallar, quedan el mensaje, el contador y el hilo; no hay ticket ni evento, y el `warning` no lleva datos. Igual para la respuesta del equipo y para «Resuelto». Con la falla quitada, el barrido abre ese ticket con el primer mensaje que quedó sin ticket.
-11. Dos mensajes al mismo tiempo del mismo cliente dejan un solo ticket abierto. PGlite tiene una conexión y solo lo simula; la carrera real con `dblink` va en `sql-tests` con Docker.
-12. Acceso: el cliente del portal lee 0; `admin` y `commercial` leen los de su tenant; otro tenant, 0; `operations` y `support`, 0; ningún `authenticated` inserta, actualiza ni borra; las funciones no tienen `execute` para `anon` ni `authenticated`.
-13. Abrir, resolver y archivar dejan su evento en la misma transacción, con lo que permite la D-AUD y nada de lo que prohíbe: ni `client_id`, ni Shipping Mark, nombre, teléfono, texto o id de la conversación. Abrir desde el portal va con `system`, `actor_id` nulo y `rpc`; el barrido, con `system` y `job`; resolver, con el usuario del equipo y `studio`, y con `system` si ese usuario no es miembro activo del tenant.
-14. El catálogo de `crm_tickets` no tiene columnas con datos personales.
-15. Purgar la ficha borra hilo y tickets; solo queda el evento de auditoría.
-16. Con `crm_alta_tarjeta_web` redefinida, el contrato de la 0513 pasa igual. La pieza única cubre también el camino del cotizador sin ficha: una ficha para el teléfono, ninguna (tarjeta sin ficha existente o nueva) y más de una (`ambigua`, sin tocar nada).
-17. Barrido: abre el ticket que falta y marca la primera respuesta que falta; una segunda corrida no hace nada; dos a la vez no duplican; un hilo resuelto o de otro canal no se toca; devuelve los dos números.
-18. Control rojo (sin la migración, cae en la primera aserción), reaplicación y preflight que abortan, y un mutante por regla. Como mínimo: sin el filtro de canal, sin el índice de un abierto, sin el bloque de E10-D24, sin el `for update`, sin el cierre al archivar, primera respuesta que se pisa, sin el `check` de cierre, grant de escritura a `authenticated`, política sin `crm_puede_usar()`, auditoría con el `auth.uid()` del cliente como actor, «Perdido» sin mirar el segmento y barrido que abre un ticket que ya existía.
+### 10.5.17 Lo que queda fuera
 
-**TypeScript (Vitest):**
+- «Tus casos» (reclamos), en el CRM o en Chatwoot (P1).
+- Adjuntos en el chat del portal, en los dos sentidos (E10-D38).
+- Mostrarle al cliente un número (P3).
+- Responder dentro de la ficha de la tarjeta: se responde en la Bandeja.
+- Kommo, en cualquier sentido (respuestas 1 y 3).
+- Bot o IA en esta bandeja (E7).
+- Avisos nuevos, salvo el de los administradores con solo números (E10-D40).
+- Cambios del portal a la vista, salvo la línea de T1.
 
-- `crm-tickets.test.ts`: «vencido» en el borde de las 23:59 y las 00:00 de Caracas (UTC−4), estados y texto de la insignia. El archivo no calcula «sin atender»: eso es de la `crm_sin_atender` de la 6.6.
-- `crm-tickets-barrido.test.ts`: con números en cero no hay aviso; con números mayores, un aviso que no lleva nombre, Shipping Mark, teléfono ni ids de fichas; un error de la base no lanza y queda en el log solo con su código.
-- `chatwoot-reintentos/__tests__/route.test.ts`: el cron llama al barrido y su resultado sale en la respuesta, sin cambiar lo que ya hacía.
-- `crm-tablero-queries.test.ts`: lee solo tickets abiertos y solo de las fichas de las tarjetas visibles; nunca pide `body` ni `author_name`; sin la tabla, degrada con el aviso de migración.
-- `crm-tablero.test.ts`: la tarjeta lleva su ticket al tablero que le toca.
-- `CrmTableroKanban.test.tsx`: la insignia se lee como texto y tiene nombre accesible.
-- `TarjetaFichaDrawer.test.tsx`: la sección con los tickets, el enlace a `?c=<id>`, el vacío y el error.
-- `tarjeta-actions-gate.test.ts`: los tickets llegan solo con el módulo y el rol, y sin texto de mensajes.
-- Mutantes a mano: sin el filtro `cerrado_at is null`, barrido que no avisa y sin el candado de rol.
-- **El portal sin cambios:** `git diff --stat main -- app/portal lib/portal components` vacío, y las pruebas del portal (`app/portal/reintento-no-duplica.test.ts`, `conservar-lo-escrito.test.tsx` y `la-accion-lanza.test.tsx`) pasan sin tocarlas.
+### 10.5.18 Historial: las decisiones del borrador anterior
 
-**Cierre:** `pnpm verify` completo, con Docker para `sql-tests`; `pnpm docs:check`, `pnpm sdd:check`, el gate de símbolos pendientes y `/ui-check` de la insignia y la sección. Después, en el entorno de prueba, con la migración aplicada ahí y el OK de Sam, desde una cuenta de prueba del portal: escribir, ver la tarjeta con su ticket, responder, resolver y volver a escribir.
+Borrador anterior: cabeza `9acf84b60` de esta rama, con tickets propios en Studio. Así queda cada decisión:
 
-### 10.5.12 Criterios de aceptación
-
-- [ ] Un mensaje del cliente en el chat de Soporte abre un ticket si el hilo no tiene uno abierto; los demás mensajes van al mismo; «Resuelto» lo cierra y el siguiente mensaje abre otro.
-- [ ] El ticket aparece en la tarjeta del embudo que marca el segmento en ese momento (Clientes o Leads) y la sigue si cambia de embudo.
-- [ ] Si la ficha no tenía tarjeta, se crea con fuente «portal» en «Registrado / recontacto»; si estaba en «Perdido» y es lead, vuelve con tarea; si es cliente, no se le crea tarea.
-- [ ] El asesor ve en el tablero si hay un ticket abierto y si está sin responder o vencido (E10-D23), y desde la ficha llega al hilo en Conversaciones con un clic. Las fechas del ticket son las que usa la señal 2 de «sin atender» de la 6.6.
-- [ ] La primera respuesta queda registrada una sola vez por ticket.
-- [ ] Un fallo del CRM nunca impide guardar el mensaje del cliente ni la respuesta del equipo, y no pasa en silencio: el barrido recupera lo que faltó y avisa con solo los números.
-- [ ] Solo `admin` y `commercial` del tenant leen los tickets; el cliente y los demás roles no; nadie los escribe desde la API.
-- [ ] Abrir, resolver y archivar dejan su evento de auditoría según la D-AUD: sin datos personales ni `client_id`, y con actor `system` cuando lo dispara el cliente.
-- [ ] Una sola pieza «ubicar o crear la tarjeta» sirve al alta web, al portal y al cotizador, y el contrato de la 0513 pasa igual.
-- [ ] Ninguna tabla nueva guarda texto, nombre, teléfono ni correo, y purgar la ficha borra sus tickets.
-- [ ] El portal no cambia (`git diff --stat` vacío en `app/portal`, `lib/portal` y `components`).
-- [ ] Contrato SQL con control rojo, mutantes, reaplicación y preflight; pruebas de TypeScript; `pnpm verify`; `/ui-check`.
-- [ ] Migración aplicada: **no** en esta etapa. Con OK nominal de Sam y el runbook, primero en prueba.
-- [ ] Aceptación de Sam de la fila 10.5.
-
-### 10.5.13 Lo que queda fuera
-
-- Los reclamos como tickets (**P1**), responder el chat del portal desde Chatwoot (**P2**), mostrarle al cliente el número de ticket (**P3**) y cargar tickets hacia atrás (**P4**).
-- Abrir Soporte a quien no ha verificado su identidad: hoy lo cierra SDD-0169 y aquí no cambia.
-- Responder dentro de la ficha de la tarjeta, sin pasar a Conversaciones: mejora posterior.
-- Avisos nuevos, salvo el del barrido, que solo lleva números (E10-D31). El de Telegram de SDD-0148 sigue igual y lo revisa el Director General con el Subdirector de SEO (§10.5.16).
-- Fusionar dos tarjetas de la misma persona (SDD-0587 §16.5) y auditar la creación de tarjetas (6.6).
-- 10.4, 10.6, E7, E8 y Meta.
-- Escribir o aplicar la migración, tocar producción y fusionar.
-
-### 10.5.14 Pendientes de Sam (10.5)
-
-No se le preguntó nada. Quedan aquí para que el Director las lleve.
-
-| # | Pregunta | Recomendación |
+| ID | Decía, en corto | Estado |
 |---|---|---|
-| P1 | «En el portal, ¿los "canales" son el chat de Soporte con tu asesor? ¿Los reclamos de "Tus casos" también entran al CRM como tickets?» | Sí al chat. Los reclamos no, por ahora: ya tienen número, estado y su módulo, los atiende operaciones y no son comerciales |
-| P2 | «¿El chat del portal se sigue respondiendo desde Studio (Conversaciones) o lo quieres en Chatwoot, junto con WhatsApp?» | Desde Studio, por ahora (E10-D26) |
-| P3 | «¿El cliente ve en el portal el número de su ticket?» | No en 10.5: el portal no cambia, y «Tus casos» ya usa los números `RC-` |
-| P4 | «Las conversaciones abiertas antes de publicar, ¿se cargan como tickets?» | No: el próximo mensaje abre el ticket |
-| P5 | «El portal promete "Te responde en el día". ¿Un mensaje del sábado o del domingo vence ese mismo día o el lunes?» | Que venza ese día, como dice el portal. Si debe ser día hábil, hay que cambiar también el texto del portal. Es la regla del «vencido» de la 10.5 (E10-D23); el umbral de «sin atender» es otra pregunta, de la 6.6 (D-6.6-5) |
-| P6 | «En /privacidad, ¿sumamos al Portal "y el seguimiento de tus consultas por el chat de Soporte"?» | Aprobarlo antes de publicar 10.5. **Va después de la #399**, que ya trae el texto aprobado de la mensajería interna y toca el mismo archivo: el texto final se escribe sobre `/privacidad` con la #399 integrada |
+| E10-D18 | Un ticket es un episodio del hilo del portal | Sin objeto: no hay tickets (P1 y P2). El estado lo lleva la conversación de Chatwoot (E10-D39) |
+| E10-D19 | Lo abre un trigger en `conversation_messages`; el portal no cambia | Reemplazada por E10-D34: una cola, sin trigger |
+| E10-D20 | El ticket guarda el hilo, no la tarjeta | Reemplazada por E10-D35: el vínculo del hilo con la conversación de Chatwoot |
+| E10-D21 | El embudo sale del segmento | Vigente |
+| E10-D22 | La tarjeta | Vigente, con otro disparador (E10-D36) |
+| E10-D23 | «Vencido» y «sin atender» son dos cosas | Vigente, con la regla nueva de P5 y P7 |
+| E10-D24 | El mensaje nunca falla por el CRM | Vigente, ahora sin trigger |
+| E10-D25 | Literal: «**El asesor responde donde ya responde: en Conversaciones.** La ficha de la tarjeta lista los tickets y enlaza a `/studio/conversaciones?c=<conversation_id>`. No hay un camino nuevo para escribirle al cliente» | **Reemplazada por E10-D33** (P2: «Desde Chatwoot») |
+| E10-D26 | Literal: «**Sin Chatwoot en 10.5.** El chat del portal no se copia a una bandeja de Chatwoot» | **Reemplazada por E10-D33** (P2: «Desde Chatwoot») |
+| E10-D27 | Auditoría de los tickets (`crm_ticket_*`) | Sin objeto (E10-D45); la D-AUD sigue valiendo para la tarjeta |
+| E10-D28 | Número `C-AAAA-NNNN · #n` | Sin objeto (P3, E10-D44) |
+| E10-D29 | Se sella la primera respuesta | Reemplazada: la espera sale de `conversation_messages` (`crm_portal_espera`) |
+| E10-D30 | Una sola pieza para ubicar o crear la tarjeta | Vigente |
+| E10-D31 | Barrido de lo que el trigger no abrió | Reemplazada por la cola y su aviso (E10-D34 y E10-D40) |
 
-**Decisiones del Director General** (2026-11-06, sobre `89fb586cf`, comunicadas por el Subdirector de Chatwoot):
+Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1).
 
-| # | Decisión |
-|---|---|
-| D-1 | Redefinir, como **una sola pieza para los tres usos**: el alta web de la 0513, la 10.5 y el «ubicar o crear» del cotizador de la 6.6 (#401, SDD-0614). Se parte de la última definición de la función y su contrato se vuelve a correr; antes de reescribirla, se busca su última `create or replace` en todas las migraciones (E10-D30) |
-| Número | **Se asigna al arrancar el código.** Ni la 10.5 ni la 6.6 reservan la 0518 (§10.5.6) |
-| Reestimación | **Aceptada**, de 1,25 a 2 días. Va a Sam junto con la de la 6.6 (§10.5.15) |
-| Orden | **Primero la 10.5 y después la 6.6, en serie** (§10.5.17) |
+### 10.5.19 Coordinación con la 6.6 (PR #401, SDD-0614)
 
-### 10.5.15 Reestimación (I)
+- **Orden:** primero la 10.5 y después la 6.6, en serie (Director General, 2026-11-06). Las dos tocan `TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts`, `crm-ficha.ts` y las declaraciones de migraciones pendientes. La 6.6 arranca sobre `main` con la 10.5 integrada y mide el cruce con `git merge-tree` antes de publicar.
+- **La pieza única:** `crm_tarjeta_ubicar_o_crear` (E10-D30). La SDD-0614 ya la llama así desde `5dc8500c3`, así que ese pendiente queda cerrado.
+- **La D-SA y la D-AUD siguen valiendo** y se citan igual abajo. Su texto en la SDD-0614 §2.8 no cambió entre `17dc41cfc` y `5dc8500c3`, la cabeza de la #401 al 2026-11-06: se compararon las dos versiones y salieron iguales.
+- **Lo que el rediseño cambia para la 0614** (propuesta; lo decide la 0614, y si lo cambia, esta copia se actualiza igual):
+  - **Señal 2 de la D-SA:** ya no hay «ticket abierto del portal» ni `primera_respuesta_at`. Propuesta: «2. **Espera respuesta en el portal:** la conversación del portal de la ficha tiene mensajes del cliente sin respuesta del equipo (`crm_portal_espera`, SDD-0586 §10.5) y pasó el umbral desde el primero de ellos».
+  - **Señales 1 y 3:** la bandeja del portal no cuenta en ellas, para no contarla dos veces y porque en el portal no hay ventana (E10-D46).
+  - **«Respuesta humana» en el portal:** en lugar de «la primera respuesta del ticket (E10-D29)», un mensaje del equipo en el hilo (`conversation_messages` con `direction = 'out'`), que con el flag encendido llega desde Chatwoot.
+  - **D-AUD:** el tipo `crm_ticket` de la 10.5 y su última frase («En la 10.5, el ticket y su evento van juntos…») quedan sin objeto (E10-D45).
+- **La respuesta 8 (teléfono completo del lead)** no toca la 10.5 (§10.5.1).
+- **Auditoría de la tarjeta:** la cubre el trigger de `crm_tarjetas` de la 6.6 (SDD-0614 §2.7 d), también para las tarjetas del portal.
 
-El checklist le da 1,25 días. Con la migración, dos triggers, el barrido, la pieza única para los tres usos, el contrato con mutantes y la parte visual, este diseño estima **2 días**. **El Director General la aceptó el 2026-11-06** y se la lleva a Sam junto con la de la 6.6. El checklist no se cambia hasta que Sam la apruebe.
-
-### 10.5.16 Fuera de alcance detectado (se informa, no se toca)
-
-- **Telegram recibe el nombre y texto del cliente:** `notifyConversationInbound` manda a Telegram el nombre del cliente, su Shipping Mark y un extracto de hasta 140 caracteres del mensaje del portal (`lib/studio/conversation-inbound-notify.ts:103-112`). El texto de `/privacidad` ya aprobado en la #399 dice que la mensajería interna del equipo recibe avisos «sin tu nombre ni tus datos de contacto». Viene de SDD-0148 y se cruza con los avisos a Discord. **Lo lleva el Director General al Subdirector de SEO**; 10.5 no lo toca ni lo amplía.
-- **La RLS de `conversations` no mira el rol:** «conversations by tenant» (0106:128) deja que cualquier usuario del tenant cambie el estado de un hilo llamando directo a la API; solo la acción lo frena con `moduleEditDenial`. Es lo mismo que la SDD-0497 anotó para los mensajes (`conversaciones/actions.ts:77-89`). Con 10.5, ese cambio de estado también cierra el ticket, que guarda quién lo cerró.
-
-### 10.5.17 Coordinación con la 6.6 (PR #401, SDD-0614)
-
-- **Orden:** primero la 10.5 y después la 6.6, en serie (Director General, 2026-11-06). Las dos tocan `TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts`, `crm-ficha.ts` y las declaraciones de migraciones pendientes (`supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`). La 6.6 arranca sobre `main` con la 10.5 integrada y mide el cruce con `git merge-tree` antes de publicar.
-- **Lo que la 10.5 crea y la 6.6 usa, sin redefinirlo:** la pieza única `crm_tarjeta_ubicar_o_crear` (E10-D30), incluido el camino por teléfono que pide el cotizador (SDD-0614 §2.3). Si la 6.6 necesita otro parámetro, lo agrega redefiniendo desde la última definición, no con una pieza nueva. **La SDD-0614 §2.8 la llama `crm_tarjeta_de_ficha`**, el nombre de la primera versión de este diseño; el vigente es `crm_tarjeta_ubicar_o_crear`, porque también cubre el camino por teléfono. Falta alinear ese nombre en la 0614.
-- **Lo que fija la 6.6 una sola vez y la 10.5 cita:** la D-SA («sin atender») y la D-AUD (qué lleva la auditoría del CRM), cerradas en la SDD-0614 §2.8, rama `claude/wizardly-hopper-d89dac` (PR #401), cabeza `17dc41cfc`. Si cambian, cambian allá y esta copia se actualiza igual. Lo que tomaron de la 10.5: la señal 2 de la D-SA usa las fechas del ticket (E10-D23) y los eventos `crm_ticket_*` siguen la D-AUD (E10-D27). El «vencido» del ticket sigue siendo de la 10.5.
-- **Auditoría de la tarjeta:** el trigger de `crm_tarjetas` de la 6.6 (SDD-0614 §2.7 d) cubre también las tarjetas que crea el portal. Hasta que llegue, es la no conformidad pendiente de §10.5.9.
-
-**Cita literal de la SDD-0614 §2.8 en `17dc41cfc`** (no es otra versión: manda la de la 0614):
+**Cita literal de la SDD-0614 §2.8** (rama `claude/wizardly-hopper-d89dac`, PR #401; igual en `17dc41cfc` y en `5dc8500c3`):
 
 > **D-SA · Definición de «sin atender»** (única para la alerta, los reportes, el conteo y el aviso)
 >
@@ -546,3 +702,65 @@ El checklist le da 1,25 días. Con la migración, dos triggers, el barrido, la p
 > - **Nunca lleva:** `client_id`, Shipping Mark, nombre, teléfono, correo, contacto de Chatwoot, BSUID, texto libre (notas, tareas, motivo «Otro», mensajes) ni montos. `entity_audit_log` es de solo agregar y sobrevive a la purga de la ficha: nada de lo que guarda puede identificar a la persona después.
 > - **Actor:** `user` con `auth.uid()` **solo si ese usuario es miembro activo del tenant de la fila** (`user_tenants`, sin `disabled_at`). Lo que dispara un cliente del portal, el webhook de Chatwoot, un cron o `service_role` lleva `system`, con `actor_id` nulo, nunca el `auth.uid()` del cliente. El origen va en `source`, con los valores que admite la 0267 (`0267_audit_contract_append_only.sql:324-336`): `studio` (el equipo en Studio, incluido el cotizador), `webhook` (Chatwoot), `job` (crons) y `rpc` (portal y alta web de `/registro`).
 > - **Misma transacción que el cambio** (AUD-01). En la 10.5, el ticket y su evento van juntos dentro del bloque que nunca rompe el mensaje del cliente (E10-D24).
+
+### 10.5.20 Pendientes
+
+**Para Sam.** Los lleva el Director General; esta tarea no le pregunta nada directamente.
+
+| # | Qué | Opción recomendada |
+|---|---|---|
+| P7 | «Además del sábado y el domingo, ¿qué días no cuentan para el plazo del chat del portal?» | (a) Los feriados de Venezuela que el administrador carga en Studio (§10.5.11) |
+| T1 a T4 | Aprobar los textos públicos palabra por palabra (§10.5.12) | Los de §10.5.12; T1 según la respuesta a P7 |
+| Hilos archivados | Confirmar que no se cargan a Chatwoot (§10.5.10) | No cargarlos |
+| Reestimación | Las filas de E10 (§10.5.21) | — |
+| Puertas | La migración; la bandeja y las variables; cada paso de la carga; encender el flag (§10.5.9 y §10.5.10) | Cada una con su OK nominal, en ese orden |
+
+**Para el Director General:**
+
+- Correr el conteo de §10.5.10, con su propio OK.
+- Decidir con el Subdirector de SEO si, con el flag encendido, se apaga el aviso de Telegram del portal (§10.5.13, punto 8).
+- Elegir dónde viven los scripts de la carga (PR 2, §10.5.16).
+- Llevar a la 0614 la propuesta de §10.5.19.
+- El checklist 0582 no se tocó en esta revisión. La nota de la fila 10.5 en esta rama dice todavía «con seis preguntas para Sam (P1 a P6)», que ya tienen respuesta. La fila, las dos filas nuevas y su enlace los actualiza quien lleve el checklist, cuando Sam apruebe la reestimación.
+
+### 10.5.21 Reestimación (I)
+
+La línea base v3 del checklist 0582 le da a E10 7,25 días, de 115,5 en todo el programa. Fila por fila:
+
+| Fila | Línea base v3 (d) | Ahora (d) | Delta |
+|---|---|---|---|
+| 10.1 Regla de segmento | 1,5 | 1,5 | 0 |
+| 10.2 Clasificar y redirigir | 2 | 2 | 0 |
+| 10.3 Sin teléfono (BSUID) | 0,5 | 0,5 | 0 |
+| 10.4 Portal: número nuevo | 1 | 1 | 0 |
+| **10.5** Conversaciones del portal en Chatwoot y en los embudos (rediseño) | 1,25 | 5 | +3,75 |
+| **10.5 b** Carga de las conversaciones que ya existen (P4), fila nueva | — | 2,25 | +2,25 |
+| **10.5 c** Textos públicos del portal y `/privacidad`, fila nueva | — | 0,5 | +0,5 |
+| 10.6 revisar-datos-ve y punta a punta | 1 | 1 | 0 |
+| **E10** | **7,25** | **13,75** | **+6,5** |
+
+Con E10 sola, el programa pasa de 115,5 a 122 días; la 6.6 lleva su propia reestimación. **Queda vencida** la reestimación anterior de la 10.5, de 1,25 a 2 días, que el Director General aceptó el 2026-11-06, y con ella los +2,25 días que la sumaban a la de la 6.6: las respuestas 14 y 16 la cambiaron.
+
+**Desglose de la 10.5 (5 días):**
+
+| Parte | Días |
+|---|---|
+| Prueba de concepto contra Chatwoot 4.19.1 en la cuenta 2 (PoC-1 a PoC-6) | 0,5 |
+| Migración, contrato en PGlite y mutantes | 1,25 |
+| Ida: cola, contacto, conversación, orden, idempotencia y reintentos | 1 |
+| Vuelta: respuestas, estado, adjuntos y conciliación | 0,75 |
+| CRM: tarjeta, insignia, sección de la ficha y «vencida» con feriados | 0,75 |
+| Studio en solo lectura y modo de respaldo | 0,25 |
+| Cierre: revisar-datos-ve, `/ui-check`, punta a punta en prueba y `pnpm verify` | 0,5 |
+
+**Desglose de la 10.5 b (2,25 días):** extraer y preparar, 0,5; adaptar el cargador de E5 y su archivo de vínculos, 0,75; vincular en Studio, con su contrato, 0,25; ensayo en copias efímeras con C-1 a C-14, 0,5; producción con el Director General y acta, 0,25.
+
+**Desglose de la 10.5 c (0,5 días):** redacción, revisar-datos-ve de los textos, pruebas de las dos páginas y publicación coordinada con el flag.
+
+### 10.5.22 Fuera de alcance detectado (se informa, no se toca)
+
+- **Telegram recibe el nombre y el texto del cliente:** `notifyConversationInbound` manda a Telegram el nombre del cliente, su Shipping Mark y hasta 140 caracteres de cada mensaje del portal (`lib/studio/conversation-inbound-notify.ts:103-112`). El texto de `/privacidad` de la #399 dice que la mensajería interna del equipo recibe avisos «sin tu nombre ni tus datos de contacto». Viene de la SDD-0148 y lo lleva el Director General al Subdirector de SEO. Con el rediseño, ese aviso sobra para el portal cuando el flag esté encendido (§10.5.13, punto 8).
+- **La RLS de `conversations` no mira el rol:** «conversations by tenant» (`0106_conversaciones.sql:128`) deja que cualquier usuario del tenant cambie el estado de un hilo llamando directo a la API; solo la acción lo frena con `moduleEditDenial` (`conversaciones/actions.ts:103`). Con el flag encendido, Studio ya no responde el portal, pero esa puerta sigue igual.
+- **`chatwoot_conversations` se lee por tenant, sin mirar el rol** (política de la 0504). Con la 10.5 también tendrá las conversaciones del portal, sin texto.
+- **Falta Cloudflare en la tabla general de terceros:** lo anota la propia fila de Chatwoot (`docs/legal/privacidad/inventario-terceros.md:84`). Es de antes.
+- **Chatwoot no tiene plazo para el contenido de las conversaciones** (SDD-0587 §14.3, punto 8). La 10.5 lo resuelve solo para su bandeja (§10.5.13, punto 5).
