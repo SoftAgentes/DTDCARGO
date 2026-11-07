@@ -66,8 +66,8 @@ export interface AlertDispatchResult {
 
 /**
  * IDs de Discord de un conjunto de usuarios del Studio (los que lo enlazaron
- * en su perfil). Tolerante: si la columna todavía no existe —migración 0514
- * sin aplicar— devuelve `[]` y el aviso sale sin menciones.
+ * en su perfil). Tolerante: si la columna no existe —una base sin la
+ * migración 0514— devuelve `[]` y el aviso sale sin menciones.
  */
 export async function resolveDiscordUserIds(
   admin: SupabaseClient,

@@ -6,7 +6,7 @@
  *   2. sin sesión, o sin membresía ACTIVA en el Studio, no se lee ni se escribe,
  *   3. sólo se escribe sobre la fila del usuario de la sesión,
  *   4. un error de la base no se le muestra crudo a la persona,
- *   5. leer tolera que la columna todavía no exista (migración 0514 sin aplicar).
+ *   5. leer tolera que la columna no exista (una base sin la migración 0514).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
