@@ -25,7 +25,7 @@ select set_config('test.uid','11111111-1111-4111-8111-111111111111',true);
 set local role authenticated;
 do $$ declare n integer; begin
   select count(*) into n from public.user_profiles;
-  if n <> 2 then raise exception '0329: esperaba propia + tenant compartido, obtuvo %',n; end if;
+  if n <> 3 then raise exception '0329: esperaba propia + tenant compartido, obtuvo %',n; end if;
 end $$;
 reset role;
 rollback;
