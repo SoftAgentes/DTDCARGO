@@ -9,7 +9,8 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 - **La carga (5.7) corrió de 10:59Z a 11:29Z, con el sí del Director General.** La bandeja 8, «Archivo Kommo», tiene 4780 conversaciones, 54.737 mensajes, 4258 contactos, 3639 adjuntos y 2 miembros, con 0 trabajos y 0 correos.
 - El Director General hizo el respaldo `chatwoot-20261107T103842Z` y midió E-3 antes y después: 8 / 0 / 22 / 7, sin cambios.
 - `empaquetar` cifró 3640 archivos y borró el staging.
-- **Las filas 5.6 y 5.7 quedan en `entregado`: la aceptación es de Sam.** El código de las PR #386 y #391 a #396 sigue en borrador, sin fusionar. La fusión se la pide el Director General a Sam.
+- **Sam aceptó la 5.6 y la 5.7** en el chat del Director General, el 2026-11-07 a las 14:07:57Z: «Acepto los dos». Las dos filas pasan a `aceptado`.
+- **Sam autorizó a las 14:01Z fusionar el código en un solo paso:** «Sí, fusiónalo», a «¿Fusiono el código del historial de Kommo (#386 a #395) en un solo paso?». Se fusiona por la cima: la #395 tiene base `main`, y la #391 a la #394 se cierran apuntando a ella. La #396, la búsqueda ampliada, va aparte.
 
 **Estado anterior, al 2026-11-06, ~14:30Z.**
 - Sam pegó el token a las 13:40Z.

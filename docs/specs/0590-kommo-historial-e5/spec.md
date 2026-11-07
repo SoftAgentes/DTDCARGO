@@ -883,6 +883,8 @@ Si `MemAvailable` no alcanza, sale con 3 y lo dice (MEM0), sin crear nada. Lo pr
 
 ### 10.16 La corrida real: completa, 5.4, ensayo (5.6) y carga en producción (5.7), 2026-11-07
 
+**Aceptación.** Sam aceptó la 5.6 y la 5.7 en el chat del Director General, el 2026-11-07 a las 14:07:57Z. La pregunta fue «¿Aceptas los pasos 5.6 (ensayo) y 5.7 (carga del historial de Kommo en producción)?», y la respuesta, «Acepto los dos». Antes se le explicaron los cuatro intentos del ensayo, las 4 FALLÓ de la sonda que aceptó el Director General y que la muestra la revisó el Director General.
+
 Corrió el Subdirector de Chatwoot, con el Director General al lado en cada puerta. Todo dentro del OK de Sam («Todo, incluida producción», 2026-11-06) y sus seis condiciones. Las horas son UTC, medidas en el VPS. La evidencia está en el VPS, fuera de Git, y solo trae conteos y huellas.
 
 **Huellas que corrieron** (sha256, 16 caracteres):
