@@ -137,3 +137,11 @@ Se pega sin Enter. Después se copia la URL del webhook en Discord y al final se
 ## FUERA DE ALCANCE DETECTADO
 
 - Ninguno nuevo.
+
+## CUARTA VUELTA · 2026-11-07 (revisión de la sesión de la #421)
+
+- **Paso 1:** define `M=` también en el VPS, comprueba que sea un sha de 40 y lo anota en `antes.txt`.
+- **Paso 6:** `despues.txt` lleva `M`. El `MANIFIESTO` usa `${M:?…}`: con `M` vacío no se escribe, en lugar de quedar con `M=` en blanco.
+- **Paso 2:** ahora es la función `instalar_guiones`, que vuelve al primer `PARAR`. Si el paquete no coincide con `SHA256SUMS`, no se instala nada. Si falla un guion, no se instala ni ese ni los que siguen, y la salida dice cuáles entraron. Usa `return` y no `exit`, para no cerrar la sesión de root.
+- **Prueba nueva:** `infra/ops/tests/prueba-runbook-avisos-discord.sh`, registrada en `pruebas-linux.sh`. Corre el bloque del runbook tal cual, ubicado por la marca `<!-- bloque:instalar-guiones -->` y con un piso de 10 líneas. Da 5 PASÓ · 0 FALLÓ.
+- **Mutantes sobre el runbook**, los tres MUERTOS: el bucle sigue después de PARAR (4/1), el paquete alterado no corta (4/1) y sin `cmp` ni `bash -n` (3/2).

@@ -169,9 +169,11 @@ traiga la #403, si el DG la sumó).
 `publicar-web.sh` instalado no es `f71d27594e568f2b`, **se para** y se avisa al DG.
 
 ```bash
+M=<el mismo sha completo del paso 0>   # se define también aquí: el MANIFIESTO del paso 6 lo usa
+[[ "$M" =~ ^[0-9a-f]{40}$ ]] || echo "PARAR: M no es un sha de 40"
 E=/srv/ops/evidencias/instalar-avisos-discord-$(date -u +%Y%m%dT%H%M%SZ)
 install -d -m 700 "$E" && cd "$E"
-{ date -u +%FT%TZ
+{ date -u +%FT%TZ; echo "M=$M"
   for f in /srv/ops/web/publicar-web.sh /srv/ops/web/aviso-discord.sh /srv/ops/web/guardar-webhook-discord.sh /srv/ops/web/publicar.env; do
     if [ -e "$f" ]; then stat -c '%n %a %U %s %y' "$f"; sha256sum "$f"; else echo "$f NO EXISTE"; fi; done
   echo "CONGELADO: $(head -1 /srv/ops/web/CONGELADO 2>/dev/null || echo 'no')"
@@ -184,15 +186,27 @@ cat antes.txt
 
 **Paso 2 · instalar los dos guiones nuevos** (nadie los usa todavía). Con
 `paquete-0609/` copiado a `$E/paquete` (root/700). Cada temporal pasa `cmp` contra
-el paquete y `bash -n` antes del `mv`:
+el paquete y `bash -n` antes del `mv`. Al primer `PARAR` no se instala nada más (lo
+que ya entró queda dicho en la salida). Es una función con `return`, para no cerrar
+la sesión de root; la prueba `infra/ops/tests/prueba-runbook-avisos-discord.sh`
+corre este bloque tal cual:
 
+<!-- bloque:instalar-guiones -->
 ```bash
-P="$E/paquete"; ( cd "$P" && sha256sum -c SHA256SUMS ) || echo PARAR
-for f in aviso-discord.sh guardar-webhook-discord.sh; do
-  t="/srv/ops/web/.$f.nuevo"
-  install -o root -g root -m 700 "$P/$f" "$t" && cmp "$P/$f" "$t" && bash -n "$t" && mv -f "$t" "/srv/ops/web/$f" || { rm -f "$t"; echo "PARAR en $f"; }
-done
-sha256sum /srv/ops/web/{aviso-discord,guardar-webhook-discord}.sh
+P="$E/paquete"; WEB="${WEB:-/srv/ops/web}"
+instalar_guiones() {
+  ( cd "$P" && sha256sum -c --quiet SHA256SUMS ) || { echo "PARAR: el paquete no coincide con SHA256SUMS; no se instaló nada"; return 1; }
+  local f t
+  for f in aviso-discord.sh guardar-webhook-discord.sh; do
+    t="$WEB/.$f.nuevo"
+    if install -o root -g root -m 700 "$P/$f" "$t" && cmp -s "$P/$f" "$t" && bash -n "$t" && mv -f "$t" "$WEB/$f"; then
+      echo "instalado: $f"
+    else
+      rm -f "$t"; echo "PARAR en $f: no se instaló ni este ni los que siguen"; return 1
+    fi
+  done
+}
+instalar_guiones && sha256sum "$WEB"/{aviso-discord,guardar-webhook-discord}.sh
 ```
 
 Avisar a Sam: puede hacer el § 1 B.
@@ -235,7 +249,8 @@ cambian solo `PUBLICAR_DISCORD_WEBHOOK` (entra) y `PUBLICAR_TELEGRAM_*` (salen):
 
 ```bash
 cd "$E"
-{ date -u +%FT%TZ
+: "${M:?M está vacío: defínelo como en el paso 1 (el mismo sha del paso 0) antes de cerrar}"
+{ date -u +%FT%TZ; echo "M=$M"
   for f in /srv/ops/web/publicar-web.sh /srv/ops/web/aviso-discord.sh /srv/ops/web/guardar-webhook-discord.sh /srv/ops/web/publicar.env; do
     if [ -e "$f" ]; then stat -c '%n %a %U %s %y' "$f"; sha256sum "$f"; else echo "$f NO EXISTE"; fi; done
   echo "CONGELADO: $(head -1 /srv/ops/web/CONGELADO 2>/dev/null || echo 'no')"
@@ -243,7 +258,7 @@ cd "$E"
   echo "variables de publicar.env (sin valores):"; cut -d= -f1 /srv/ops/web/publicar.env | sort
 } > despues.txt
 diff antes.txt despues.txt
-printf '%s\n' "M=$M" "paquete: $(cat paquete/SHA256SUMS | tr '\n' ' ')" "instalado por: ${SUDO_USER:-root}" > MANIFIESTO
+printf '%s\n' "M=${M:?M vacío: no se escribió el MANIFIESTO}" "paquete: $(cat paquete/SHA256SUMS | tr '\n' ' ')" "instalado por: ${SUDO_USER:-root}" > MANIFIESTO
 grep -c webhooks antes.txt despues.txt MANIFIESTO | grep -v ":0$" && echo "PARAR: hay una dirección en la evidencia" || echo "evidencia sin direcciones"
 find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
 ```
