@@ -158,7 +158,7 @@ $$;
 
 -- Llamadas como el servidor de Studio (service_role).
 create temporary table tomados (
-  orden serial, mensaje_id uuid, hilo_id uuid, autor text, cuerpo text, intento integer,
+  orden serial, mensaje_id uuid, hilo_id uuid, autor text, cuerpo text, enviado_at timestamptz, intento integer,
   verificar boolean, identificador uuid, contacto_id bigint, contacto_source_id text, conversacion_id bigint
 );
 grant all on tomados to service_role;
@@ -169,7 +169,7 @@ declare v integer;
 begin
   truncate tomados;
   set local role service_role;
-  insert into tomados (mensaje_id, hilo_id, autor, cuerpo, intento, verificar, identificador,
+  insert into tomados (mensaje_id, hilo_id, autor, cuerpo, enviado_at, intento, verificar, identificador,
     contacto_id, contacto_source_id, conversacion_id)
   select * from public.chatwoot_portal_tomar(pg_temp.id(p_tenant), p_limite,
     case when p_hilo is null then null else pg_temp.id(p_hilo) end);
@@ -294,9 +294,10 @@ begin
     'el primer intento no verifica');
   perform pg_temp.assert_true((
     select t.cuerpo = 'texto a1' and t.autor = 'Autor a1' and t.hilo_id = pg_temp.id('hA')
+      and t.enviado_at = now() - interval '60 minutes'
       and t.contacto_id is null and t.contacto_source_id is null and t.conversacion_id is null
     from tomados t where t.mensaje_id = pg_temp.id('a1')
-  ), 'devuelve el texto y el nombre, sin vínculo todavía');
+  ), 'devuelve el texto, el nombre y la hora del mensaje, sin vínculo todavía');
   perform pg_temp.assert_true((
     select count(*) = 2 and count(distinct k.identificador) = 2 from public.chatwoot_portal_contactos k
     where k.client_id in (pg_temp.id('A'), pg_temp.id('B')) and k.chatwoot_contact_id is null

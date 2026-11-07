@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   asignarEquipo,
   buscarContactoPortal,
+  buscarMensajePorSourceId,
   crearContactoPortal,
   crearConversacionPortal,
   crearMensajeEntrante,
@@ -204,5 +205,76 @@ describe("router-api · la ida del portal (SDD-0586, 10.5)", () => {
     expect(await crearConversacionPortal(CUENTA, { inboxId: 9, contactoId: 41, sourceId: "s" })).toEqual({ ok: false, error: "respuesta_invalida" });
     expect(await crearMensajeEntrante(CUENTA, 1, { texto: "x", sourceId: "dtd:x" })).toEqual({ ok: false, error: "respuesta_invalida" });
     expect(await listarMensajes(CUENTA, 1)).toEqual({ ok: false, error: "respuesta_invalida" });
+  });
+});
+
+describe("router-api · buscar el source_id página por página (revisión de la #424)", () => {
+  const CUENTA = { origin: "https://chat.ejemplo.test", token: "tok-router", accountId: 1 };
+  const MSJ = "https://chat.ejemplo.test/api/v1/accounts/1/conversations/9001/messages";
+  const S = "dtd:40000000-0000-4000-8000-000000000001";
+  const DESDE = new Date("2026-11-07T19:00:00Z");
+  const T = DESDE.getTime() / 1000;
+  /** Una página de mensajes con ids de `desde` a `hasta` (bajando) y una misma hora. */
+  const pagina = (desde: number, hasta: number, creado: number | string, extra: object[] = []) => ({
+    payload: [
+      ...Array.from({ length: desde - hasta + 1 }, (_, i) => ({ id: desde - i, source_id: null, created_at: creado })),
+      ...extra,
+    ],
+  });
+  const urls = () => fetchSpy.mock.calls.map(([u]) => u as string);
+
+  it("lo encuentra en la segunda página, con ?before= el más viejo de la primera", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(json(pagina(130, 111, T + 600)))
+      .mockResolvedValueOnce(json(pagina(110, 106, T + 60, [{ id: 105, source_id: S, created_at: T + 5 }])));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: true, data: 105 });
+    expect(urls()).toEqual([MSJ, `${MSJ}?before=111`]);
+  });
+
+  it("corta al pasar la hora del mensaje de Studio: lo de más atrás no puede ser él", async () => {
+    fetchSpy.mockResolvedValue(json({ payload: [] }));
+    fetchSpy
+      .mockResolvedValueOnce(json(pagina(130, 111, T + 600)))
+      .mockResolvedValueOnce(json(pagina(110, 91, T - 3600)));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: true, data: null });
+    expect(urls()).toHaveLength(2);
+  });
+
+  it("el margen de 5 minutos: un mensaje un poco anterior a la hora de Studio todavía se mira", async () => {
+    fetchSpy.mockResolvedValue(json({ payload: [] }));
+    fetchSpy
+      .mockResolvedValueOnce(json(pagina(130, 111, T - 120)))
+      .mockResolvedValueOnce(json(pagina(110, 106, T - 200, [{ id: 105, source_id: S, created_at: T - 240 }])));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: true, data: 105 });
+  });
+
+  it("acepta created_at como fecha ISO", async () => {
+    fetchSpy.mockResolvedValue(json({ payload: [] }));
+    fetchSpy.mockResolvedValueOnce(json(pagina(130, 111, "2026-11-07T17:00:00Z")));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: true, data: null });
+    expect(urls()).toHaveLength(1);
+  });
+
+  it("una página vacía: no está", async () => {
+    fetchSpy.mockResolvedValueOnce(json(pagina(130, 111, T + 600))).mockResolvedValueOnce(json({ payload: [] }));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: true, data: null });
+  });
+
+  it("sin pasar la hora en el tope de páginas, no lo da por ausente", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(json(pagina(130, 111, T + 600)))
+      .mockResolvedValueOnce(json(pagina(110, 91, T + 300)));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE, 2)).toEqual({ ok: false, error: "busqueda_incompleta" });
+  });
+
+  it("si Chatwoot ignora ?before=, no da vueltas: no se puede seguir buscando", async () => {
+    fetchSpy.mockResolvedValue(json(pagina(130, 111, T + 600)));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: false, error: "respuesta_invalida" });
+    expect(urls()).toHaveLength(2);
+  });
+
+  it("un error de una página se informa tal cual", async () => {
+    fetchSpy.mockResolvedValueOnce(json(pagina(130, 111, T + 600))).mockResolvedValueOnce(json({}, 503));
+    expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: false, error: "http_503" });
   });
 });

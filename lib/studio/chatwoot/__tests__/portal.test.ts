@@ -16,7 +16,7 @@ const api = vi.hoisted(() => ({
   buscarContactoPortal: vi.fn(),
   listarConversacionesContacto: vi.fn(),
   crearConversacionPortal: vi.fn(),
-  listarMensajes: vi.fn(),
+  buscarMensajePorSourceId: vi.fn(),
   crearMensajeEntrante: vi.fn(),
 }));
 const flags = vi.hoisted(() => ({ chatwoot_portal: true }));
@@ -47,12 +47,14 @@ const ENV = {
 const HILO = "20000000-0000-4000-8000-0000000000aa";
 const IDENT = "30000000-0000-4000-8000-0000000000bb";
 const TEXTO = "Hola, ¿llegó mi caja? Mi teléfono es 0412-555-0101";
+const ENVIADO_AT = "2026-11-07T19:00:00.000Z";
 
 interface Fila {
   mensaje_id: string;
   hilo_id: string;
   autor: string | null;
   cuerpo: string;
+  enviado_at: string;
   intento: number;
   verificar: boolean;
   identificador: string;
@@ -65,6 +67,7 @@ const fila = (extra: Partial<Fila> = {}): Fila => ({
   hilo_id: HILO,
   autor: "Cliente Sintético",
   cuerpo: TEXTO,
+  enviado_at: ENVIADO_AT,
   intento: 1,
   verificar: false,
   identificador: IDENT,
@@ -137,7 +140,7 @@ beforeEach(() => {
   api.buscarContactoPortal.mockResolvedValue({ ok: true, data: null });
   api.listarConversacionesContacto.mockResolvedValue({ ok: true, data: [] });
   api.crearConversacionPortal.mockResolvedValue({ ok: true, data: 9001 });
-  api.listarMensajes.mockResolvedValue({ ok: true, data: [] });
+  api.buscarMensajePorSourceId.mockResolvedValue({ ok: true, data: null });
   api.crearMensajeEntrante.mockResolvedValue({ ok: true, data: 5001 });
   push.enqueueUserPush.mockResolvedValue("push-1");
   avisos = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -257,7 +260,7 @@ describe("enviarPortalPendientes · el primer mensaje de un hilo", () => {
     await enviarPortalPendientes(admin);
     expect(api.crearContactoPortal).not.toHaveBeenCalled();
     expect(api.crearConversacionPortal).not.toHaveBeenCalled();
-    expect(api.listarMensajes).not.toHaveBeenCalled();
+    expect(api.buscarMensajePorSourceId).not.toHaveBeenCalled();
     expect(argsDe(admin, "chatwoot_portal_vincular")).toEqual([]);
     expect(api.crearMensajeEntrante).toHaveBeenCalledOnce();
   });
@@ -295,16 +298,16 @@ describe("enviarPortalPendientes · reintentos sin duplicar (E10-D34)", () => {
   });
 
   it("después de un incierto, busca el source_id y si ya entró no lo reenvía", async () => {
-    api.listarMensajes.mockResolvedValueOnce({
-      ok: true,
-      data: [
-        { id: 4999, sourceId: null },
-        { id: 5001, sourceId: "dtd:40000000-0000-4000-8000-000000000001" },
-      ],
-    });
+    api.buscarMensajePorSourceId.mockResolvedValueOnce({ ok: true, data: 5001 });
     const admin = base({ tandas: [[vinculada({ intento: 2, verificar: true })]] });
     expect(await enviarPortalPendientes(admin)).toEqual({ tomados: 1, enviados: 1, fallidos: 0 });
-    expect(api.listarMensajes).toHaveBeenCalledWith(expect.anything(), 9001);
+    // Busca desde la hora del mensaje de Studio: lo de antes no puede ser él.
+    expect(api.buscarMensajePorSourceId).toHaveBeenCalledWith(
+      expect.anything(),
+      9001,
+      "dtd:40000000-0000-4000-8000-000000000001",
+      new Date(ENVIADO_AT),
+    );
     expect(api.crearMensajeEntrante).not.toHaveBeenCalled();
     expect(argsDe(admin, "chatwoot_portal_marcar")[0]).toMatchObject({ p_intento: 2, p_ok: true, p_chatwoot_message_id: 5001 });
   });
@@ -312,17 +315,29 @@ describe("enviarPortalPendientes · reintentos sin duplicar (E10-D34)", () => {
   it("después de un incierto, si no entró, lo manda una vez", async () => {
     const admin = base({ tandas: [[vinculada({ intento: 2, verificar: true })]] });
     await enviarPortalPendientes(admin);
-    expect(api.listarMensajes).toHaveBeenCalledOnce();
+    expect(api.buscarMensajePorSourceId).toHaveBeenCalledOnce();
     expect(api.crearMensajeEntrante).toHaveBeenCalledOnce();
-    expect(api.listarMensajes.mock.invocationCallOrder[0]).toBeLessThan(api.crearMensajeEntrante.mock.invocationCallOrder[0]);
+    expect(api.buscarMensajePorSourceId.mock.invocationCallOrder[0]).toBeLessThan(api.crearMensajeEntrante.mock.invocationCallOrder[0]);
   });
 
   it("si no puede buscar, no reenvía: queda incierto para la próxima", async () => {
-    api.listarMensajes.mockResolvedValueOnce({ ok: false, error: "http_503" });
+    api.buscarMensajePorSourceId.mockResolvedValueOnce({ ok: false, error: "http_503" });
     const admin = base({ tandas: [[vinculada({ verificar: true })]] });
     await enviarPortalPendientes(admin);
     expect(api.crearMensajeEntrante).not.toHaveBeenCalled();
     expect(argsDe(admin, "chatwoot_portal_marcar")[0]).toMatchObject({ p_ok: false, p_error: "mensaje_http_503", p_incierto: true });
+  });
+
+  it("si la búsqueda no pudo descartarlo en todas sus páginas, no reenvía", async () => {
+    api.buscarMensajePorSourceId.mockResolvedValueOnce({ ok: false, error: "busqueda_incompleta" });
+    const admin = base({ tandas: [[vinculada({ verificar: true })]] });
+    await enviarPortalPendientes(admin);
+    expect(api.crearMensajeEntrante).not.toHaveBeenCalled();
+    expect(argsDe(admin, "chatwoot_portal_marcar")[0]).toMatchObject({
+      p_ok: false,
+      p_error: "mensaje_busqueda_incompleta",
+      p_incierto: true,
+    });
   });
 
   it("un contacto que ya existe (422) se busca y se vincula, sin crear otro", async () => {

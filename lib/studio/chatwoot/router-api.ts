@@ -256,6 +256,64 @@ export async function listarMensajes(
   return { ok: true, data: out };
 }
 
+/** Margen para la hora: el reloj de Chatwoot y el de Studio pueden no coincidir del todo. */
+const MARGEN_BUSQUEDA_S = 300;
+
+/** El segundo Unix de `created_at`, que Chatwoot da como número o como fecha ISO. */
+function segundos(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const ms = Date.parse(v);
+    return Number.isNaN(ms) ? null : ms / 1000;
+  }
+  return null;
+}
+
+/**
+ * Busca, en la conversación, el mensaje con ese `source_id`, para no reenviarlo después de un
+ * intento incierto (E10-D34). Chatwoot da los mensajes de a una página, los más nuevos primero, y
+ * `?before=<id>` trae la anterior. Si el equipo escribió mucho después del intento, el mensaje ya
+ * no está en la primera página (hallazgo de la revisión independiente de la #424): se pagina hacia
+ * atrás hasta encontrarlo, hasta que la página no traiga nada o hasta pasar la hora del mensaje de
+ * Studio (`desde`, menos un margen), porque el de Chatwoot no puede ser anterior. Si se acaban las
+ * páginas sin poder descartarlo, `busqueda_incompleta`: no se sabe, así que no se reenvía.
+ */
+export async function buscarMensajePorSourceId(
+  cfg: CuentaChatwoot,
+  conversacionId: number,
+  sourceId: string,
+  desde: Date,
+  maxPaginas = 50,
+): Promise<{ ok: true; data: number | null } | { ok: false; error: ChatwootError | "busqueda_incompleta" }> {
+  const limite = desde.getTime() / 1000 - MARGEN_BUSQUEDA_S;
+  let antes: number | null = null;
+  for (let pagina = 0; pagina < maxPaginas; pagina += 1) {
+    const r = await llamar(cfg, `${conversacionId}/messages${antes === null ? "" : `?before=${antes}`}`);
+    if (!r.ok) return r;
+    const payload = (r.data as { payload?: unknown } | null)?.payload;
+    if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+    let minId: number | null = null;
+    let minCreado: number | null = null;
+    for (const m of payload) {
+      const fila = m as { id?: unknown; source_id?: unknown; created_at?: unknown } | null;
+      const id = ENTERO(fila?.id);
+      if (id === null) continue;
+      if (fila?.source_id === sourceId) return { ok: true, data: id };
+      if (minId === null || id < minId) minId = id;
+      const creado = segundos(fila?.created_at);
+      if (creado !== null && (minCreado === null || creado < minCreado)) minCreado = creado;
+    }
+    // Sin más páginas: no está.
+    if (minId === null) return { ok: true, data: null };
+    // Lo más viejo de la página ya es anterior al mensaje de Studio: lo de atrás también.
+    if (minCreado !== null && minCreado < limite) return { ok: true, data: null };
+    // Chatwoot no avanzó con `before`: no hay cómo seguir buscando.
+    if (antes !== null && minId >= antes) return { ok: false, error: "respuesta_invalida" };
+    antes = minId;
+  }
+  return { ok: false, error: "busqueda_incompleta" };
+}
+
 /** El mensaje del cliente, `incoming` y público, con `source_id = dtd:<id del mensaje>`. */
 export async function crearMensajeEntrante(
   cfg: CuentaChatwoot,

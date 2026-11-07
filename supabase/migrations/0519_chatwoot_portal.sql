@@ -180,6 +180,7 @@ returns table (
   hilo_id            uuid,
   autor              text,
   cuerpo             text,
+  enviado_at         timestamptz,
   intento            integer,
   verificar          boolean,
   identificador      uuid,
@@ -213,7 +214,7 @@ begin
   end if;
 
   for v_hilo in
-    select c.id as hilo, cab.id as mensaje, cab.author_name, cab.body, c.client_id
+    select c.id as hilo, cab.id as mensaje, cab.author_name, cab.body, cab.sent_at, c.client_id
     from public.conversations c
     cross join lateral (
       select m.id, m.author_name, m.body, m.sent_at, s.estado, s.proximo_at, s.updated_at as tomado_at
@@ -276,13 +277,14 @@ begin
     hilo_id := v_hilo.hilo;
     autor := v_hilo.author_name;
     cuerpo := v_hilo.body;
+    enviado_at := v_hilo.sent_at;
     return next;
   end loop;
 end;
 $function$;
 
 comment on function public.chatwoot_portal_tomar(uuid, integer, uuid) is
-  'SDD-0586 E10-D34: reclama, por hilo del portal, el mensaje del cliente que le toca ir a Chatwoot, el más viejo primero y uno por hilo. Apagado (chatwoot_portal) o sin corte, no devuelve nada. Devuelve el texto y el nombre porque el envío los necesita; no devuelve el client_id.';
+  'SDD-0586 E10-D34: reclama, por hilo del portal, el mensaje del cliente que le toca ir a Chatwoot, el más viejo primero y uno por hilo. Apagado (chatwoot_portal) o sin corte, no devuelve nada. Devuelve el texto y el nombre porque el envío los necesita, y la hora del mensaje para acotar la búsqueda de su source_id; no devuelve el client_id.';
 
 -- ─── 3. Cerrar un intento ────────────────────────────────────────────────────
 --

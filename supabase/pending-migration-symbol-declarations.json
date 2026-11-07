@@ -17,61 +17,61 @@
           "name": "chatwoot_portal_tomar",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:231",
-            "lib/studio/chatwoot/portal.ts:238"
+            "lib/studio/chatwoot/portal.ts:232",
+            "lib/studio/chatwoot/portal.ts:239"
           ]
         },
         {
           "name": "chatwoot_portal_marcar",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:199",
-            "lib/studio/chatwoot/portal.ts:208"
+            "lib/studio/chatwoot/portal.ts:200",
+            "lib/studio/chatwoot/portal.ts:209"
           ]
         },
         {
           "name": "chatwoot_portal_vincular",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:98",
-            "lib/studio/chatwoot/portal.ts:106"
+            "lib/studio/chatwoot/portal.ts:100",
+            "lib/studio/chatwoot/portal.ts:108"
           ]
         },
         {
           "name": "chatwoot_portal_rezagados",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:303",
-            "lib/studio/chatwoot/portal.ts:305"
+            "lib/studio/chatwoot/portal.ts:304",
+            "lib/studio/chatwoot/portal.ts:306"
           ]
         },
         {
           "name": "chatwoot_portal_hilos",
           "kind": "table",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:120",
-            "lib/studio/chatwoot/portal.ts:124"
+            "lib/studio/chatwoot/portal.ts:122",
+            "lib/studio/chatwoot/portal.ts:126"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/chatwoot/portal.ts:225",
+          "site": "lib/studio/chatwoot/portal.ts:226",
           "contains": "if (!flags.chatwoot_portal) return { ...resultado, omitido: \"apagado\" };",
           "degradation": "Sin la migración no hay fila de chatwoot_portal y listFeatureFlags lo da apagado (FEATURE_FLAG_DEFAULTS): la cola no llama a ninguna de sus funciones ni a Chatwoot."
         },
         {
-          "site": "lib/studio/chatwoot/portal.ts:239",
+          "site": "lib/studio/chatwoot/portal.ts:240",
           "contains": "return resultado.tomados === 0 ? { ...resultado, omitido: \"base\" } : resultado;",
           "degradation": "Si igual se llamara, chatwoot_portal_tomar ausente (PGRST202) devuelve omitido «base» con su código en el log, sin lanzar."
         },
         {
-          "site": "lib/studio/chatwoot/portal.ts:270",
+          "site": "lib/studio/chatwoot/portal.ts:271",
           "contains": "if (!chatwootPortalConfig()) return;",
           "degradation": "El portal no agenda nada sin CHATWOOT_INBOX_PORTAL_ID, que se carga después de aplicar la migración: el mensaje del cliente se guarda como hoy."
         },
         {
-          "site": "lib/studio/chatwoot/portal.ts:301",
+          "site": "lib/studio/chatwoot/portal.ts:302",
           "contains": "if (!flags.chatwoot_portal) return { ...vacio, omitido: \"apagado\" };",
           "degradation": "El aviso a los admins tampoco consulta chatwoot_portal_rezagados con el flag apagado."
         },

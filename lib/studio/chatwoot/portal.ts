@@ -10,12 +10,12 @@ import type { ChatwootError } from "./chatwoot-types";
 import { chatwootPortalConfig, type ChatwootPortalConfig } from "./config";
 import {
   buscarContactoPortal,
+  buscarMensajePorSourceId,
   crearContactoPortal,
   crearConversacionPortal,
   crearMensajeEntrante,
   envioIncierto,
   listarConversacionesContacto,
-  listarMensajes,
   type ContactoPortal,
 } from "./router-api";
 
@@ -35,7 +35,8 @@ import {
  *   2. La conversación del hilo. Después de un incierto se reusa la de la bandeja que no
  *      esté vinculada a otro hilo.
  *   3. El mensaje, `incoming`, con `source_id = dtd:<id del mensaje>`. Después de un
- *      incierto, antes de reenviar se busca ese source_id en la conversación.
+ *      incierto, antes de reenviar se busca ese source_id en la conversación, página por
+ *      página hacia atrás hasta pasar la hora del mensaje (`buscarMensajePorSourceId`).
  *
  * Cada vínculo se guarda apenas existe, antes del paso siguiente. A Chatwoot solo van el
  * nombre, el identificador y el texto: ni teléfono, ni correo, ni cédula o RIF, ni Shipping
@@ -50,6 +51,7 @@ interface Tomado {
   hilo_id: string;
   autor: string | null;
   cuerpo: string;
+  enviado_at: string;
   intento: number;
   verificar: boolean;
   identificador: string;
@@ -74,7 +76,7 @@ const sourceIdDe = (mensajeId: string) => `dtd:${mensajeId}`;
 const identificadorDe = (uuid: string) => `dtd-portal:${uuid}`;
 
 /** Un código para `chatwoot_portal_salida.error` (`^[a-z0-9_]{1,40}$`). */
-function codigo(paso: "contacto" | "conversacion" | "mensaje", error: ChatwootError): string {
+function codigo(paso: "contacto" | "conversacion" | "mensaje", error: ChatwootError | "busqueda_incompleta"): string {
   return `${paso}_${error}`.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 40);
 }
 
@@ -84,7 +86,7 @@ function falloPost(paso: "contacto" | "conversacion" | "mensaje", error: Chatwoo
 }
 
 /** Un GET que falla no crea nada, pero no deja saber si el intento anterior entró. */
-function falloLectura(paso: "contacto" | "conversacion" | "mensaje", error: ChatwootError): Intento {
+function falloLectura(paso: "contacto" | "conversacion" | "mensaje", error: ChatwootError | "busqueda_incompleta"): Intento {
   return { ok: false, codigo: codigo(paso, error), incierto: true };
 }
 
@@ -184,10 +186,9 @@ async function enviarUno(admin: SupabaseClient, cfg: ChatwootPortalConfig, fila:
   // 3. El mensaje, una sola vez aunque se reintente.
   const sourceId = sourceIdDe(fila.mensaje_id);
   if (fila.verificar) {
-    const l = await listarMensajes(cfg, conversacionId);
-    if (!l.ok) return falloLectura("mensaje", l.error);
-    const ya = l.data.find((m) => m.sourceId === sourceId);
-    if (ya) return { ok: true, chatwootMessageId: ya.id };
+    const b = await buscarMensajePorSourceId(cfg, conversacionId, sourceId, new Date(fila.enviado_at));
+    if (!b.ok) return falloLectura("mensaje", b.error);
+    if (b.data !== null) return { ok: true, chatwootMessageId: b.data };
   }
   const m = await crearMensajeEntrante(cfg, conversacionId, { texto: fila.cuerpo, sourceId });
   return m.ok ? { ok: true, chatwootMessageId: m.data } : falloPost("mensaje", m.error);
