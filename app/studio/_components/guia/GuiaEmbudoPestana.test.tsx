@@ -370,6 +370,37 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     },
   );
 
+  // Revisión de la #418 (2026-11-07): la segunda pulsación cancelaba la espera de 10 s
+  // y empezaba una de 2 s, así que con un tablero lento la guía ya no abría.
+  it.each([4_000, 6_000])(
+    "B2 · con un tablero de %i ms, pedir la guía otra vez mientras carga no acorta la espera: abre igual",
+    (tardaMs) => {
+      montar({ resolver: conDefecto("direccion"), tardaMs });
+      act(() => iniciarGuia("embudo", { origen: "boton" }));
+      esperar(600);
+      expect(pestana()).toBe("embudos");
+      expect(tarjeta()).toBeNull();
+
+      act(() => iniciarGuia("embudo", { origen: "boton" }));
+      expect(esperarTarjeta(12_000)).toBe(true);
+      expect(within(tarjeta()!).getByText(/1 de 4/)).toBeInTheDocument();
+      expect(nav.replace).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("B2 · dos pulsaciones seguidas, antes de que cambie la pestaña, piden el cambio una sola vez", () => {
+    nav.estado.demoraMs = 1_000;
+    montar({ resolver: conDefecto("direccion") });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(300);
+    expect(pestana()).toBe("direccion");
+
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    expect(esperarTarjeta(5_000)).toBe(true);
+    expect(pestana()).toBe("embudos");
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+  });
+
   it("B2 · con el arranque automático encendido, su efecto no reemplaza la espera del botón", () => {
     const conAuto: GuiaRecorrido = { ...RECORRIDO_EMBUDO, arranqueAutomatico: true };
     montar({ resolver: conDefecto("direccion"), tardaMs: 4_000, catalogo: [conAuto], autoArranque: true });
@@ -380,6 +411,8 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     // El tablero tarda 4 s: más que los 2 s de una espera del arranque automático.
     expect(esperarTarjeta(8_000)).toBe(true);
     expect(nav.replace).toHaveBeenCalledTimes(1);
+    // La abrió el botón, no el arranque automático: no ofrece «No volver a mostrar».
+    expect(within(tarjeta()!).queryByRole("button", { name: "No volver a mostrar" })).toBeNull();
   });
 
   it("B2 · cerrarGuia() durante la espera la cancela: la guía no abre cuando llega el tablero", () => {

@@ -241,8 +241,12 @@ export function GuiaMotor({
    * pestaña sigue en camino; si cambia a otra sin la pestaña, la persona se fue.
    */
   const pendiente = useRef<{ id: string; opciones: OpcionesGuia; consultaDelPedido: string } | null>(null);
-  /** Cancela la espera con reintentos en curso. Hay una sola a la vez (P-13, B2). */
-  const esperaRef = useRef<(() => void) | null>(null);
+  /**
+   * La espera con reintentos en curso: hay una sola a la vez (P-13, B2). `restantes`
+   * dice cuántos intentos le quedan, para que una espera nueva del mismo recorrido no
+   * la acorte.
+   */
+  const esperaRef = useRef<{ id: string; restantes: () => number; cancelar: () => void } | null>(null);
   useLayoutEffect(() => {
     cerrarRef.current = cerrar;
     activoRef.current = activo;
@@ -273,6 +277,13 @@ export function GuiaMotor({
       const destino = urlConConsulta(recorrido, pathname, new URLSearchParams(consultaRef.current));
       if (destino !== null) {
         if (origen === "auto" || !navegar) return false;
+        // El mismo cambio de pestaña ya va en camino: no se pide dos veces. El pedido
+        // nuevo reemplaza las opciones del anterior.
+        const enCamino = pendiente.current;
+        if (enCamino && enCamino.id === id && enCamino.consultaDelPedido === consultaRef.current) {
+          pendiente.current = { ...enCamino, opciones: { ...opciones, origen } };
+          return true;
+        }
         pendiente.current = { id, opciones: { ...opciones, origen }, consultaDelPedido: consultaRef.current };
         routerRef.current.replace(destino, { scroll: false });
         return true;
@@ -313,29 +324,34 @@ export function GuiaMotor({
    * Abre con reintentos cortos: un ancla puede pintarse después del motor. Solo el
    * primer intento de cada pedido puede cambiar la pestaña (P-13). Una espera nueva
    * cancela la anterior: dos esperas vivas abrirían la tarjeta dos veces, y la segunda
-   * la devolvería al primer paso (B2).
+   * la devolvería al primer paso (B2). Si la anterior era del mismo recorrido, la nueva
+   * se queda con los intentos que le faltaban, cuando son más que los suyos: pedir la
+   * guía otra vez mientras carga el tablero no acorta la espera de 10 s.
    */
   const abrirCuandoHaya = useCallback(
     (id: string, opciones: OpcionesGuia, reintentos: number = REINTENTOS) => {
-      esperaRef.current?.();
+      const previa = esperaRef.current;
+      const total = previa && previa.id === id ? Math.max(reintentos, previa.restantes()) : reintentos;
+      previa?.cancelar();
       let intentos = 0;
       let timer: ReturnType<typeof setTimeout> | null = null;
       const soltar = () => {
-        if (esperaRef.current === cancelar) esperaRef.current = null;
+        if (esperaRef.current === espera) esperaRef.current = null;
       };
       const cancelar = () => {
         if (timer) clearTimeout(timer);
         timer = null;
         soltar();
       };
+      const espera = { id, restantes: () => total - intentos, cancelar };
       const probar = () => {
         timer = null;
         if (intentarAbrir(id, opciones, intentos === 0)) return soltar();
         intentos += 1;
-        if (intentos < reintentos) timer = setTimeout(probar, ESPERA_MS);
+        if (intentos < total) timer = setTimeout(probar, ESPERA_MS);
         else soltar();
       };
-      esperaRef.current = cancelar;
+      esperaRef.current = espera;
       probar();
       return cancelar;
     },
@@ -396,7 +412,7 @@ export function GuiaMotor({
         cancelar?.();
         cancelar = null;
         // También la espera que dejó un cambio de pestaña (B2).
-        esperaRef.current?.();
+        esperaRef.current?.cancelar();
         pendiente.current = null;
         if (activoRef.current) cerrarRef.current(false);
         return;
@@ -409,7 +425,9 @@ export function GuiaMotor({
           : "programa";
       const desde = typeof detalle?.desde === "string" ? detalle.desde : undefined;
       cancelar?.();
-      pendiente.current = null;
+      // Un cambio de pestaña en camino para este mismo recorrido se conserva: así no se
+      // pide dos veces. El de otro recorrido se olvida.
+      if (pendiente.current?.id !== id) pendiente.current = null;
       cancelar = abrirCuandoHaya(id, { origen, desde });
     };
     window.addEventListener(EVENTO_GUIA, onEvento);
