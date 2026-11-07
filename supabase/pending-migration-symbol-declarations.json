@@ -28,7 +28,8 @@
             "lib/studio/alerts/dispatch-alert.ts:81",
             "lib/studio/alerts/dispatch-alert.ts:83",
             "lib/studio/alerts/dispatch-alert.ts:86",
-            "lib/studio/alerts/dispatch-alert.ts:87"
+            "lib/studio/alerts/dispatch-alert.ts:87",
+            "lib/studio/discord/consulta/consulta.ts:80"
           ]
         }
       ],
@@ -47,6 +48,11 @@
           "site": "app/studio/(app)/usuarios/actions.ts:1189",
           "contains": "No se pudo guardar tu ID de Discord.",
           "degradation": "Guardar con la columna ausente devuelve un aviso genérico, sin el texto de la base, y no rompe el resto del perfil. Medido en usuarios/__tests__/discord-user-id.test.ts."
+        },
+        {
+          "site": "lib/studio/discord/consulta/consulta.ts:84",
+          "contains": "return { resultado: \"no_disponible\", userId: null, tenantId: null };",
+          "degradation": "SDD-0608: /cliente busca el perfil por discord_user_id; con la columna ausente la lectura devuelve error y la respuesta es «no disponible», efímera, sin registrar ni buscar. Medido en app/api/discord/interacciones/__tests__/route.test.ts («columna discord_user_id ausente (0514 sin aplicar) → no disponible, sin búsqueda»)."
         }
       ]
     },
