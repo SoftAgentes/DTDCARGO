@@ -1,0 +1,60 @@
+name: Cargador del Archivo Kommo
+
+# SDD-0590 paso 5.5: prueba del cargador del «Archivo Kommo» con datos INVENTADOS, sobre la imagen real de
+# Chatwoot (v4.19.1-ce, fijada por digest en infra/chatwoot/compose.yml) con su Postgres y su Redis.
+# Mide E-4 a E-11 de la SDD-0590 §10.4 y corre el control M0 y los mutantes (prueba-cargador.sh).
+#
+# Sin secretos ni variables del repositorio, sin token de Kommo y sin pedirle nada a Kommo ni a internet desde
+# Rails: el servicio `prepare` vive en la red `interna` (internal: true) del compose.
+# No reemplaza a «Calidad continua» (quality.yml), que corre solo contra main.
+
+on:
+  pull_request:
+    paths:
+      - "infra/ops/kommo-historial/**"
+      - "infra/chatwoot/compose.yml"
+      - "infra/chatwoot/pruebas/compose.local.yml"
+      - "infra/chatwoot/rails/**"
+      - ".github/workflows/kommo-historial-cargador.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kommo-cargador-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargador:
+    name: Cargador del Archivo Kommo (datos inventados)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pruebas del extractor (Python)
+        run: python3 -I infra/ops/kommo-historial/pruebas/test_respaldar.py
+
+      # SDD-0590 5.5b: las guardas de completa.sh con systemd de verdad, un token falso, timers falsos y un
+      # extractor falso (no le pide nada a Kommo), con control y mutantes.
+      - name: Guardas de la completa (systemd y token falso)
+        run: sudo bash infra/ops/kommo-historial/pruebas/prueba-completa.sh
+
+      # SDD-0590 5.5b: el vigía de la completa para la unidad por carga, por /dev/shm o por MemAvailable, con
+      # systemd de verdad y medidas inyectadas, con control y mutantes.
+      - name: Vigía de la completa (systemd y medidas inyectadas)
+        run: sudo bash infra/ops/kommo-historial/pruebas/prueba-vigia.sh
+
+      - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
+        run: bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
+
+      # SDD-0590 5.6: el guion del ensayo contra una «producción» simulada (el compose real como proyecto
+      # chatwoot, con datos inventados): guardas, aislamiento, copia en solo lectura y borrado sin tocarla.
+      - name: Ensayo contra una producción simulada
+        run: bash infra/ops/kommo-historial/pruebas/prueba-ensayo.sh

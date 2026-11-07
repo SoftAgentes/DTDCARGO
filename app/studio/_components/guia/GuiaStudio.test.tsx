@@ -115,3 +115,56 @@ describe("GuiaStudio", () => {
     });
   });
 });
+
+describe("GuiaStudio · 9.5, el rol del layout", () => {
+  function Actualizaciones() {
+    return (
+      <>
+        <dl data-guia="actualizaciones.version" />
+        <span data-guia="actualizaciones.pedir" />
+      </>
+    );
+  }
+
+  it("con rol admin abre el recorrido de Actualizaciones", () => {
+    nav.pathname = "/studio/admin/actualizaciones";
+    nav.query = "guia=actualizaciones";
+    render(
+      <>
+        <Actualizaciones />
+        <GuiaStudio estadoInicial={estadoGuiaVacio()} rol="admin" />
+      </>,
+    );
+    expect(screen.getByRole("heading", { name: "Qué versión tienes" })).toBeInTheDocument();
+  });
+
+  it("con otro rol, o sin rol, ese recorrido no existe para el motor", () => {
+    vi.useFakeTimers();
+    nav.pathname = "/studio/admin/actualizaciones";
+    nav.query = "guia=actualizaciones";
+    for (const rol of ["support", null] as const) {
+      const r = render(
+        <>
+          <Actualizaciones />
+          <GuiaStudio estadoInicial={estadoGuiaVacio()} rol={rol} />
+        </>,
+      );
+      act(() => vi.advanceTimersByTime(3_000));
+      expect(screen.queryByRole("dialog")).toBeNull();
+      r.unmount();
+    }
+  });
+
+  it("los recorridos nuevos no arrancan solos, ni con estado de la base y nunca vistos", () => {
+    vi.useFakeTimers();
+    nav.pathname = "/studio/admin/actualizaciones";
+    render(
+      <>
+        <Actualizaciones />
+        <GuiaStudio estadoInicial={estadoGuiaVacio()} rol="admin" />
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

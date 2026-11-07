@@ -112,6 +112,19 @@ const EXCEPCIONES: Lista = {
   "cn/rate-snapshot-actions.ts::previewRateAction":
     "SDD-0571: gate de vista `cn` al tope; la RPC va con p_dry_run=true (freezeRpcArgs(input, true)), no escribe y repite rol y tenant.",
 
+  // SDD-0606 · Las dos tocan SÓLO la fila propia de `user_profiles`, y sólo la
+  // columna `discord_user_id`. No hay módulo que pedir: es el perfil de cada
+  // quien. El candado es `getStudioAccess` al tope —miembro ACTIVO, falla
+  // cerrado ante `disabled_at`— y el `.eq("user_id", acceso.userId)` sobre la
+  // sesión. Verificado, no supuesto: `usuarios/__tests__/discord-user-id.test.ts`
+  // mide que sin membresía activa no se lee ni se escribe y que el filtro lleva
+  // el usuario de la sesión; el contrato de la migr 0514 mide en PostgreSQL que
+  // un usuario no puede cambiar el ID de otro.
+  "usuarios/actions.ts::getMyDiscordUserIdAction":
+    "SDD-0606: lee el ID de Discord PROPIO. `getStudioAccess` al tope (miembro activo) y `.eq(\"user_id\", acceso.userId)`; medido en `usuarios/__tests__/discord-user-id.test.ts`.",
+  "usuarios/actions.ts::saveMyDiscordUserIdAction":
+    "SDD-0606: guarda o quita el ID de Discord PROPIO. `getStudioAccess` al tope (miembro activo), formato validado antes de tocar la base y `.eq(\"user_id\", acceso.userId)`; medido en `usuarios/__tests__/discord-user-id.test.ts` y en el contrato de la migr 0514.",
+
   "actions.ts::signOut":
     "Cierra la sesión del PROPIO usuario (`supabase.auth.signOut()`); no hay privilegio de módulo que pedir.",
 
@@ -354,8 +367,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0589 (paso 9.3) sumó `_actions/guia-actions.ts::guardarEstadoGuiaAction`
   // (459 → 460), en EXCEPCIONES (17 → 18) con la razón del Dashboard: guarda la
   // fila propia del usuario y la RLS de la 0517 lo repite.
+  // SDD-0606 sumó `usuarios/actions.ts::getMyDiscordUserIdAction` y
+  // `::saveMyDiscordUserIdAction` (460 → 462): perfil propio, miembro activo por
+  // `getStudioAccess`; van en EXCEPCIONES (18 → 20) con su verificación.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(460);
+    expect(reportes.length).toBe(462);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -364,7 +380,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 18, deuda: 24 });
+    }).toEqual({ excepciones: 20, deuda: 24 });
   });
 
   for (const { rel, r } of reportes) {

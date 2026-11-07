@@ -470,3 +470,186 @@ describe("9.3 · estado por usuario", () => {
     expect(almacen.leer("dashboard")).toMatchObject({ pasoId: "D2", terminado: false });
   });
 });
+
+describe("9.4 · anclas dentro de Chatwoot", () => {
+  // Recorrido como el de la Bandeja: dos pasos de Chatwoot con respaldo al marco y uno de Studio.
+  const BANDEJA: GuiaRecorrido = {
+    id: "bandeja",
+    ruta: "/studio/bandeja",
+    pasos: [
+      { id: "B1", ancla: "bandeja.composer", clave: "guide.inbox.reply", respaldo: "bandeja.marco" },
+      { id: "B6", ancla: "bandeja.nota-privada", clave: "guide.inbox.note", respaldo: "bandeja.marco" },
+      { id: "X", ancla: "bandeja.otra", clave: "guide.dashboard.kpis" },
+    ],
+  };
+  const MARCO = { top: 200, left: 100, width: 900, height: 600 };
+
+  function Marco({ con = true }: { con?: boolean }) {
+    return con ? (
+      <div
+        data-guia="bandeja.marco"
+        ref={(el) => {
+          if (el) el.getBoundingClientRect = () => ({ ...MARCO, x: 0, y: 0, right: 1000, bottom: 800, toJSON() {} }) as DOMRect;
+        }}
+      />
+    ) : null;
+  }
+  const contorno = () => screen.getByTestId("guia-contorno").style;
+  const quitar: Array<() => void> = [];
+
+  beforeEach(() => {
+    nav.pathname = "/studio/bandeja";
+  });
+  afterEach(() => {
+    while (quitar.length) quitar.pop()!();
+  });
+
+  it("sin el script del panel, los pasos de Chatwoot se anclan al marco y el de Studio sin ancla se salta", () => {
+    render(
+      <>
+        <Marco />
+        <GuiaMotor catalogo={[BANDEJA]} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Contestar un WhatsApp" })).toBeInTheDocument();
+    expect(within(tarjeta()!).getByText(/1 de 2/)).toBeInTheDocument();
+    expect(contorno().top).toBe(`${MARCO.top - 4}px`);
+    expect(contorno().width).toBe(`${MARCO.width + 8}px`);
+    // No es «esta parte cambió de lugar»: el texto sigue valiendo para el marco.
+    expect(screen.queryByText(/cambió de lugar/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Dejar una nota" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Terminar" })).toBeInTheDocument();
+  });
+
+  it("el botón retoma un paso de Chatwoot que solo está por su respaldo (sin el script del panel)", () => {
+    const almacen = crearAlmacenMemoria();
+    render(
+      <>
+        <Marco />
+        <GuiaMotor catalogo={[BANDEJA]} almacen={almacen} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    act(() => cerrarGuia());
+    expect(almacen.leer("bandeja")).toMatchObject({ pasoId: "B6", terminado: false });
+    act(() => iniciarGuia("bandeja", { origen: "boton" }));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Dejar una nota" })).toBeInTheDocument();
+    expect(within(tarjeta()!).getByText(/2 de 2/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver la guía desde el principio" })).toBeInTheDocument();
+  });
+
+  it("sin marco (la Bandeja sin configurar) no abre", () => {
+    vi.useFakeTimers();
+    render(
+      <>
+        <Marco con={false} />
+        <GuiaMotor catalogo={[BANDEJA]} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(tarjeta()).toBeNull();
+  });
+
+  it("cuando el ubicador trae la caja, el contorno pasa del marco al elemento y la sigue", async () => {
+    const { registrarUbicador, avisarCambioUbicadores } = await import("@/lib/studio/guia/ubicadores");
+    let caja: { top: number; left: number; width: number; height: number } | null | undefined;
+    const mostrar = vi.fn();
+    quitar.push(registrarUbicador({ caja: (a) => (a === "bandeja.composer" ? caja : undefined), mostrar }));
+    render(
+      <>
+        <Marco />
+        <GuiaMotor catalogo={[BANDEJA]} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    expect(contorno().top).toBe(`${MARCO.top - 4}px`);
+
+    // Llega la medida del panel: el contorno va al composer.
+    caja = { top: 600, left: 300, width: 500, height: 120 };
+    await act(async () => {
+      avisarCambioUbicadores();
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    });
+    expect(contorno().top).toBe("596px");
+    expect(contorno().left).toBe("296px");
+
+    // El composer se va fuera de la vista del marco: vuelve al marco.
+    caja = null;
+    await act(async () => {
+      avisarCambioUbicadores();
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    });
+    expect(contorno().top).toBe(`${MARCO.top - 4}px`);
+  });
+
+  it("al entrar a un paso de Chatwoot, le pide al ubicador que lo traiga a la vista", async () => {
+    const { registrarUbicador } = await import("@/lib/studio/guia/ubicadores");
+    const mostrar = vi.fn();
+    quitar.push(
+      registrarUbicador({
+        caja: (a) => (a === "bandeja.nota-privada" ? null : undefined),
+        mostrar,
+      }),
+    );
+    render(
+      <>
+        <Marco />
+        <GuiaMotor catalogo={[BANDEJA]} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    // B1: el ubicador no lo tiene; no se le pide nada.
+    expect(mostrar).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(mostrar).toHaveBeenCalledWith("bandeja.nota-privada", { suave: true });
+  });
+
+  it("un ubicador que lanza no rompe la guía", async () => {
+    const { registrarUbicador } = await import("@/lib/studio/guia/ubicadores");
+    quitar.push(
+      registrarUbicador({
+        caja: () => {
+          throw new Error("roto");
+        },
+      }),
+    );
+    render(
+      <>
+        <Marco />
+        <GuiaMotor catalogo={[BANDEJA]} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    expect(tarjeta()).not.toBeNull();
+  });
+});
+
+describe("9.5 · recorridos que no arrancan solos", () => {
+  it("con arranqueAutomatico: false no abre sola, aunque nunca la haya visto; ?guia= sí la abre", () => {
+    vi.useFakeTimers();
+    const almacen = crearAlmacenMemoria();
+    const SIN_AUTO: GuiaRecorrido = { ...RECORRIDO, arranqueAutomatico: false };
+    const primera = render(
+      <>
+        <Pantalla />
+        <GuiaMotor catalogo={[SIN_AUTO]} almacen={almacen} autoArranque />
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(tarjeta()).toBeNull();
+    expect(almacen.leer("dashboard")).toBeNull();
+    primera.unmount();
+    nav.query = "guia=dashboard";
+    render(
+      <>
+        <Pantalla />
+        <GuiaMotor catalogo={[SIN_AUTO]} almacen={almacen} autoArranque />
+      </>,
+    );
+    expect(tarjeta()).not.toBeNull();
+  });
+});

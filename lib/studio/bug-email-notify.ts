@@ -51,6 +51,9 @@ import {
 } from "@/lib/studio/notify/resolve-recipient";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import { resolveCategoryChatIds } from "@/lib/studio/telegram/alert-routing";
+import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
+import { sendDiscordMentionToUser } from "@/lib/studio/alerts/user-alert";
+import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
 import {
   BUG_STATE_LABELS,
   BUG_SEVERITY_LABELS,
@@ -242,11 +245,20 @@ export async function notifyBugCreatedToAdmin(
     // porque esa tabla es por USUARIO y un chat de categoría no es de nadie: un
     // fallo se loguea, no se reintenta. El camino per-admin de abajo —el que
     // corre cuando no hay rutas— conserva el outbox intacto.
-    const routedBugChats = await resolveCategoryChatIds(
+    //
+    // SDD-0606 · Discord va primero: al canal de bugs, con el folio y el
+    // enlace, SIN el título del bug ni el nombre de quien lo reportó. Si
+    // entrega, no sale ningún Telegram por este aviso.
+    const bugEnDiscord = await sendDiscordCategoryAlert(
       supabaseAdmin,
       tenantId,
       "bugs",
+      { titulo: notifLabel, codigo: bug.folio, url: `${SITE_URL}${bugUrlPath}` },
+      { logTag: "bug-admin" },
     );
+    const routedBugChats = bugEnDiscord.handled
+      ? []
+      : await resolveCategoryChatIds(supabaseAdmin, tenantId, "bugs");
     if (routedBugChats.length > 0) {
       const text = `${notifLabel} · ${bug.folio}\n\n${bug.title}\nReportado por ${reporterName}.\n\n${SITE_URL}${bugUrlPath}`;
       for (const chatId of routedBugChats) {
@@ -326,8 +338,8 @@ export async function notifyBugCreatedToAdmin(
       // Telegram · respeta channel_telegram (default OFF) + link. Fallo → outbox P3.
       // Sólo cuando la categoría `bugs` no tiene destino: si lo tiene, el aviso
       // ya salió arriba y repetirlo acá sería el duplicado que cierra SDD-0271.
-      if (channels.telegram && routedBugChats.length === 0) {
-        const result = await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
+      if (channels.telegram && routedBugChats.length === 0 && !bugEnDiscord.handled) {
+        const result = await sendBugTelegramToUser(supabaseAdmin, tenantId, admin.user_id, {
           title: `${notifLabel} · ${bug.folio}`,
           body: `${bug.title}\nReportado por ${reporterName}.`,
           url: `${SITE_URL}${bugUrlPath}`,
@@ -423,10 +435,15 @@ export async function notifyBugStateChangeToReporter(
     }
 
     if (channels.telegram) {
-      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      const result = await sendBugTelegramToUser(supabaseAdmin, tenantId, bug.reporter_id, {
         title: `${bug.folio} · ${stateLabel}`,
         body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
         url: `${SITE_URL}${bugUrlPath}`,
+        discord: {
+          titulo: "Tu reporte cambió de estado",
+          codigo: bug.folio,
+          url: `${SITE_URL}${bugUrlPath}`,
+        },
       });
       if (result.ok) {
         await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
@@ -516,10 +533,15 @@ export async function notifyBugMessageToReporter(
     }
 
     if (channels.telegram) {
-      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      const result = await sendBugTelegramToUser(supabaseAdmin, tenantId, bug.reporter_id, {
         title: `${bug.folio} · Admin respondió`,
         body: excerpt,
         url: `${SITE_URL}${bugUrlPath}`,
+        discord: {
+          titulo: "Respondieron tu reporte",
+          codigo: bug.folio,
+          url: `${SITE_URL}${bugUrlPath}`,
+        },
       });
       if (result.ok) {
         await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
@@ -620,14 +642,36 @@ async function resolveAdminEntries(
  */
 async function sendBugTelegramToUser(
   supabaseAdmin: SupabaseClient,
+  tenantId: string,
   userId: string,
   payload: {
     title: string;
     body: string;
     url: string;
+    /** SDD-0606 · lo mínimo para la mención en el canal de bugs de Discord. */
+    discord?: MinimalAlert;
   },
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    // SDD-0606 · Discord primero: mención en el canal de bugs, si la persona
+    // enlazó su ID. Si entrega, no hay Telegram. Si falla, se intenta su
+    // Telegram; y si tampoco tiene, el fallo va al outbox para reintentar.
+    let discordError: string | undefined;
+    if (payload.discord) {
+      const mencion = await sendDiscordMentionToUser(
+        supabaseAdmin,
+        tenantId,
+        userId,
+        "bugs",
+        payload.discord,
+      );
+      // Confirmada, o incierta: pudo guardarse y no se repite (M2).
+      if (mencion.attempted && (mencion.ok || mencion.outcome === "incierto")) {
+        return { ok: true };
+      }
+      if (mencion.attempted) discordError = mencion.error ?? "Discord no entregó";
+    }
+
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
       .select("telegram_chat_id")
@@ -635,7 +679,10 @@ async function sendBugTelegramToUser(
       .maybeSingle<{ telegram_chat_id: string | null }>();
 
     const chatId = profile?.telegram_chat_id;
-    if (!chatId) return { ok: true }; // sin destino: no es un fallo a reintentar.
+    if (!chatId) {
+      // Sin Telegram: si Discord falló hay algo que reintentar; si no, no.
+      return discordError ? { ok: false, error: discordError } : { ok: true };
+    }
 
     // Plain text · evita escape hell de MarkdownV2.
     const text = `${payload.title}\n\n${payload.body}\n\n${payload.url}`;

@@ -12,6 +12,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
+import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
 import { sendTelegramToUser } from "@/lib/studio/notify/send-user-telegram";
 import { sendPushToUserDevices } from "@/lib/studio/notify/send-user-push";
 import type { ChangeRequestDiffRow } from "@/lib/portal/change-request-types";
@@ -43,7 +45,11 @@ export async function notifyChangeRequestToAdmin(
       clientUrl,
     ].join("\n");
 
-    await routeToAdvisorOrTeam(supabaseAdmin, args, text, "change-request-notify");
+    await routeToAdvisorOrTeam(supabaseAdmin, args, text, "change-request-notify", {
+      titulo: "Solicitud de cambio de datos",
+      codigo: args.markbox,
+      url: clientUrl,
+    });
   } catch (err) {
     console.error("[change-request-notify] falló:", err);
   }
@@ -58,7 +64,16 @@ async function routeToAdvisorOrTeam(
   args: { tenantId: string; advisorId: string | null },
   text: string,
   logTag: string,
+  discord: MinimalAlert,
 ): Promise<void> {
+  // SDD-0606 · Discord primero: al canal del equipo, mencionando al asesor si
+  // enlazó su ID. Sin nombre ni el detalle del cambio: Shipping Mark y ficha.
+  const enDiscord = await sendDiscordCategoryAlert(supabaseAdmin, args.tenantId, "equipo", discord, {
+    alsoUserIds: args.advisorId ? [args.advisorId] : [],
+    logTag,
+  });
+  if (enDiscord.handled) return;
+
   if (args.advisorId) {
     const { data: prof } = await supabaseAdmin
       .from("user_profiles")
@@ -117,7 +132,11 @@ export async function notifyBlockedProfileEditToAdmin(
       `Revisar:`,
       `${SITE_URL}/studio/clientes/${args.markbox}`,
     ].join("\n");
-    await routeToAdvisorOrTeam(supabaseAdmin, args, text, "profile-edit-blocked");
+    await routeToAdvisorOrTeam(supabaseAdmin, args, text, "profile-edit-blocked", {
+      titulo: "Cambio de datos bloqueado",
+      codigo: args.markbox,
+      url: `${SITE_URL}/studio/clientes/${args.markbox}`,
+    });
   } catch (err) {
     console.error("[profile-edit-blocked-notify] falló:", err);
   }

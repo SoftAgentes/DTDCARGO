@@ -21,3 +21,11 @@ export const ARRANQUE_AUTOMATICO: ModoArranque = "por_pantalla";
  * rediseño (SDD-0603).
  */
 export const CLAVE_NOMBRE_BOTON = "guide.chrome.toggle";
+
+/**
+ * S-2, cerrada (9.5): quién ve la tarjeta B4, «Asignar una conversación».
+ * Sam, 2026-11-07 07:00Z: «También quien atiende». Se suman `commercial` y
+ * `support`, los roles del módulo Bandeja. El permiso real de asignar lo da
+ * Chatwoot; esto solo decide quién ve la tarjeta.
+ */
+export const ROLES_ASIGNAR = ["admin", "commercial", "support"] as const;
