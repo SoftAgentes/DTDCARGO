@@ -292,6 +292,10 @@ oficina y no están cubiertas por este documento.
 
 ### Paso 1 · Hermes v0.23.0 (ventana corta, Paperclip sigue en 1012)
 
+> **Hecho el 2026-11-07** con el OK de Sam. El resultado y el procedimiento que se corrió están en
+> la §7. Esa sección corrige esta: el respaldo también lleva `~agentes/.hermes`, hay que detener
+> `dtd-hermes-telegram.service` y hay tres capas que actualizar.
+
 1. **Comprobar que no hay corridas vivas ni en cola** (consulta de §5.0).
 2. **Respaldo** como root, con la oficina quieta. Ocupa unos 4 GB y hay 40 GB libres [MEDIDO]:
 
@@ -498,7 +502,74 @@ gh issue view 18316 -R paperclipai/paperclip --json state,updatedAt
 
 Si sale una 1106.1, se evalúa esa en lugar de la 1106.0, con este mismo documento.
 
-## 7. Qué se midió y qué no
+## 7. Paso 1 hecho: Hermes v0.23.0 instalado (2026-11-07)
+
+**Autorización:** Sam, en la sesión de esta PR, contestó literalmente «Sí, instálalo» a la pregunta
+de si autorizaba instalar Hermes v0.23.0 en el VPS de la oficina. Antes, el Subdirector había
+coordinado el orden con Sam: primero la corrección de la PR #407, después Hermes.
+
+**Cómo se hizo.** Se usó el método de la fase H1 de la SDD-0564, con los nombres de versión nuevos:
+
+1. **Instalación como `agentes`, sin sudo:**
+   - script `scripts/install.sh` de la etiqueta, con sha256 `abf338605dae6dd2…`;
+   - banderas `--commit 2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19 --skip-browser
+     --skip-computer-use --non-interactive`.
+
+   Sobre un checkout que ya existe, el script avanza `main` y después fija el commit. `2bd378ed`
+   es antecesor de `main`.
+2. **root copia a `/opt/hermes`** con `rsync`: `hermes-agent` sin `.git` y las cuatro
+   herramientas. Después regenera el lanzador con `sed`.
+3. **Refresco de `agentes-run`:**
+   - copia de `/opt/hermes/tools` a `~agentes-run/.hermes/tools`, sin `--delete`;
+   - `DTD_PERFIL=prueba dtd-hermes pm install`.
+
+0.23 trae Node 26.12.1, Python 3.14.9 y uv 0.13.5. **Las carpetas de Node 26.7.0, Python 3.14.7
+y uv 0.12.3 se quedaron**, porque `dtd-agente-run` y `dtd-hermes-telegram.service` tienen escrita
+la ruta `node-26.7.0`.
+
+**Resultado [MEDIDO]:**
+
+| Comprobación | Resultado |
+|---|---|
+| Versión | `Hermes Agent v0.23.0 · upstream 2bd378ed`, desde `/opt/hermes/hermes-agent` |
+| Respaldo | `/root/respaldo-hermes-0230-20261107T145930Z`: `/opt/hermes`, `~agentes/.hermes` y `~agentes-run/.hermes` en `.tgz` con `SHA256SUMS`, más copias de los envoltorios, el sudoers y la unidad |
+| `#alfred` sin servicio | 9 min 55 s, de 14:59:27Z a 15:09:22Z. Reconectó como ALFRED#4271 a las 15:09:10Z |
+| Extras de Hermes | `all, discord, edge-tts, telegram`, los mismos de antes |
+| Skills | 13 por perfil en los 16 perfiles, antes y después |
+| 5.5 Hermes directo | **PASÓ**: responde, imprime `session_id:` y un perfil fuera de la lista da 64 |
+| 5.3 agente GLM (Jefe de gabinete, HAI-65) | **PASÓ**: corrida `succeeded`; cita sus reglas del puesto; cierra la tarea en `done` por la API; sin retenciones ni incidentes |
+| HAI-51 | **FALLÓ también en 0.23** (HAI-64 en `blocked`). Ver abajo |
+| Procesos de `agentes-run` | Cada perfil usado deja un `hermes` y un `engram` que se cierran solos en 10 a 15 minutos |
+| `cua-driver` | Falla su verificación igual que en 0.22.2. Es opcional y no se usa |
+
+**HAI-51 es un bug de Hermes, no del despliegue.**
+
+- **La causa:** `hermes_cli/cli_single_query.py:547` imprime la pregunta con rich sin escaparla:
+  `console.print(f"[bold blue]…[/] {_query_label}")`.
+- **Cuándo falla:** cualquier tarea de Paperclip cuyo texto lleve `[/…]` hace que Hermes salga con
+  exit 1 antes de llamar al modelo. Por ejemplo, la referencia
+  `[/HAI/issues/HAI-51#document-plan]` que escribe ALFRED.
+- **Por qué no se veía con `-Q`:** ese modo no imprime la pregunta.
+- **Upstream:** está reportado y abierto como NousResearch/hermes-agent#98789.
+- **Mientras tanto:** los textos de las tareas para agentes Hermes no deben llevar `[/`. La
+  corrección de fondo, en Hermes o pasando `-Q` desde el envoltorio, queda para su propia SDD.
+
+**Hallazgos de paso, que no cambian el veredicto:**
+
+- **Los `session_id` de 0.23 tienen la forma `local-…`.** La 1012 los descarta (#18314), igual que
+  en 0.22.2, y no había sesiones guardadas que perder.
+- **Una tarea sin proyecto corre en el espacio de trabajo de respaldo de Paperclip**, dentro de
+  `~agentes`, y no en el `cwd` del agente. Ya se sabía desde la SDD-0564. Las tareas de prueba
+  deberían llevar proyecto.
+
+**Volver atrás**, si hiciera falta:
+
+1. Detener `dtd-hermes-telegram.service`.
+2. Comprobar `SHA256SUMS`.
+3. Mover a un lado (sin borrar) `/opt/hermes`, `~agentes/.hermes` y `~agentes-run/.hermes`.
+4. Restaurar los tres `.tgz` sobre `/` y encender el servicio.
+
+## 8. Qué se midió y qué no
 
 **Medido:**
 

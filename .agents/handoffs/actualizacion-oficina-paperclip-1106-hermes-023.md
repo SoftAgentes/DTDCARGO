@@ -4,10 +4,17 @@
 - **Rama:** `claude/practical-cannon-f13640`, en el worktree
   `.claude/worktrees/practical-cannon-f13640`.
 - **Base:** `main` `f28c5dcc1`.
-- **Alcance:** evaluar y preparar un plan probado. **No se instaló nada.** El VPS de la oficina
-  solo se leyó: cuatro conexiones, la base con `default_transaction_read_only = on` y sin imprimir
-  secretos.
+- **Alcance:** evaluar y preparar un plan probado. Durante la evaluación el VPS solo se leyó: la
+  base con `default_transaction_read_only = on` y sin imprimir secretos.
 - **Entregable:** `docs/organizacion/oficina-agentes/actualizacion-paperclip-hermes.md`.
+- **Actualización del 2026-11-07, 14:57–15:30Z: Hermes v0.23.0 instalado** en el VPS de la oficina.
+  - **Autorización:** el OK de Sam en esta sesión, literal «Sí, instálalo». Antes, el Subdirector
+    (`local_61442abe…`) avisó que la sesión de la 0615 había dejado el VPS libre.
+  - **Resultado:** la §7 del documento.
+  - **Escrituras en Paperclip:** dos tareas de prueba creadas por la API con la sesión de Sam en el
+    navegador integrado, después de que Sam respondiera «Sí, créala»: HAI-64 (`blocked` por el bug
+    de HAI-51) y HAI-65 (`done`).
+  - **Paperclip sigue en 1012.**
 
 ## Conclusiones
 
@@ -40,19 +47,29 @@
 |---|---|
 | `node scripts/build-docs-index.mjs --check` | PASÓ |
 | `pnpm verify` | NO APLICA: solo hay documentación |
-| Pruebas de humo del plan | NO EJECUTADO: el plan se corre con el OK de Sam |
+| Paso 1, Hermes 0.23: 5.5 Hermes directo | PASÓ |
+| Paso 1, Hermes 0.23: 5.3 agente GLM (HAI-65) | PASÓ |
+| Paso 1, Hermes 0.23: 5.7 conexión de Discord | PASÓ del lado del servidor («Connected as ALFRED#4271»). NO VERIFICADO con un mensaje: a las 15:18Z no había llegado ninguno de Sam |
+| HAI-51 en 0.23 | FALLÓ. Es un bug de Hermes (#98789), ver §7 |
+| Pruebas de Paperclip 1106 (5.1, 5.2, 5.4 y 5.6) | NO EJECUTADO: es el paso 3 |
 | Búsqueda de IP, correos y llaves en los archivos nuevos | Sin coincidencias |
 
 ## Pendientes de esta tarea
 
-1. Publicar la PR en borrador (encargo: «Abre la PR en borrador»). La fusión es del Director
-   General.
+1. Que Sam confirme en `#alfred` que la recepción le responde (5.7).
+2. La fusión de la PR es del Director General.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Cambio A:** agregar `HERMES_EPHEMERAL_SYSTEM_PROMPT` a
-  `infra/oficina/envoltorios/91-agentes-run`, con su prueba y su mutante. Toca la allowlist de la
-  SDD-0615 (PR #407), así que necesita su propia SDD o una enmienda.
+- **HAI-51 (Hermes #98789):** `cli_single_query.py:547` imprime la pregunta con rich sin
+  escaparla, así que una tarea con `[/…]` hace salir a Hermes con exit 1. Arreglarlo en una SDD:
+  pasar `-Q` desde `dtd-agente-run` (hay que medir si Paperclip lee igual esa salida) o esperar la
+  corrección de Hermes.
+- **Rutas `node-26.7.0`** en `dtd-agente-run` y en `dtd-hermes-telegram.service`. Hay que moverlas
+  a 26.12.1 en la SDD-0615 o en otra. Mientras tanto, las carpetas viejas se quedan.
+- **La HAI-64** quedó en `blocked` como evidencia. Sam decide si la cancela.
+- **Cambio A:** instalado por la sesión de la 0615 el 2026-11-07 (sudoers `66b5cd84…`); ya no está
+  pendiente.
 - **Hojas de alta de `configuracion-paperclip.md` (PR #407):** agregar «Legacy runner» y la regla
   de «Upgrade runner».
 - **La guía de la PR #407**, en «Lo que no se hace», dice que no se actualiza a 1023; habría que
