@@ -149,8 +149,25 @@ primero, en una PR chica contra `main` (P-8):
   envíos del alta de `/registro` y del cotizador hoy no escriben nada (H14). `convertLead`
   (`crm/actions.ts:62`) y su envío del Shipping Mark quedan sin botón que los llame. Borrar
   cualquiera de esas piezas va con su OK aparte (§12).
-- **No se oculta** la guía «Antes en Kommo → Ahora aquí» (SDD-0589, `app/studio/(app)/layout.tsx:232`):
-  enseña a dejar Kommo, no conecta con Kommo, y la trabaja otra sesión (P-10).
+- **La guía «Antes en Kommo → Ahora aquí» se queda y S0 no la toca** (SDD-0589; P-10, cerrada por
+  Sam el 2026-11-07: «Sí, se queda»). Sigue montada como `<GuiaStudio>` en
+  `app/studio/(app)/layout.tsx:237-239` (medido en `main` `f28c5dcc1`) hasta que Sam decida
+  apagarla. Enseña a dejar Kommo y no conecta con Kommo. No es consejo, es invariante de S0, y se
+  comprueba así (§5, §8, §9):
+  - ningún archivo de la guía entra en el diff de S0: `app/studio/_components/guia/`,
+    `lib/studio/guia/`, `app/studio/(app)/_actions/guia-actions.ts`, `lib/i18n/*/guide.ts` ni
+    `app/studio/(app)/layout.tsx`;
+  - una prueba nueva de S0 lee el layout y exige que siga importando y montando `GuiaStudio`, con un
+    mutante: quitar el montaje la pone roja;
+  - la misma prueba exige que `/studio/crm` sin `?tab=` abra **Embudos**, la pestaña donde están las
+    anclas `embudo.*` del recorrido Embudo de la guía (`CrmTableroKanban.tsx`). Hoy la pestaña por
+    defecto es Dirección y esas anclas no están al entrar; S0 lo arregla de paso.
+- **Con Resumen por defecto (S3), el recorrido Embudo no abre** al entrar a `/studio/crm` sin
+  `?tab=`: la guía salta cada paso cuya ancla no está y, si no queda ninguno, el recorrido no abre
+  (`lib/studio/guia/motor.ts`), y su ruta solo mira el camino, no la pestaña (`rutaCoincide`,
+  `recorridos.ts`). Inferido (**I**) del
+  código de la #408 (`836edcd18`, sin fusionar). 6.6 no toca la guía ni lo aprobado de E9; la salida
+  se decide con la SDD-0589 antes de S3 (P-13).
 
 **El resto de R1:**
 
@@ -806,6 +823,8 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 - `app/studio/(app)/reportes/_components/ReportesClient.tsx` (solo `ByAgentView`), `lib/studio/reports/queries.ts`, `types.ts` y `export-csv.ts` (sin la tabla ni el CSV del espejo)
 - `app/studio/(app)/cotizador/[code]/page.tsx` y `cotizador/_components/QuoteDetailClient.tsx` (sin el cruce con contactos de Kommo)
 - Pruebas: las que fijan la lista de pestañas, la pestaña por defecto, `hasKommo` o `kommoMatches` (`git grep -n "resolveKommoTab\|KOMMO_TABS\|hasKommo\|kommoMatches"` en `__tests__`), más `app/studio/(app)/crm/__tests__/stage-control.test.ts` y `crm-rename.test.ts` si fijan el encabezado
+- `app/studio/(app)/crm/__tests__/guia-se-queda.test.ts` (nueva: la guía sigue montada y `/studio/crm` abre Embudos; P-10)
+- **Fuera de S0, aunque nombren a Kommo:** los archivos de la guía de la SDD-0589 (`app/studio/_components/guia/`, `lib/studio/guia/`, `app/studio/(app)/_actions/guia-actions.ts`, `lib/i18n/*/guide.ts`) y `app/studio/(app)/layout.tsx`. Si el diff de S0 toca uno, S0 no cierra
 
 **M · Maqueta** (sin código)
 - Resumen, Sin atender y la ficha de la tarjeta (con «Crear ficha», el tipo de lead, la marca de R8 y
@@ -986,7 +1005,9 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
   lanza), y **ya no se encola nada a Kommo** en ninguna de las tres transiciones (D-6.6-3 = b).
 - **S0:** sin pestañas de Kommo en la barra; cada `?tab=` viejo abre la pestaña por defecto;
   Reportes › Por agente muestra su aviso y el CSV no trae la tabla del espejo; el detalle del
-  estimado no muestra contactos de Kommo.
+  estimado no muestra contactos de Kommo. **La guía se queda** (P-10): el layout sigue importando y
+  montando `GuiaStudio`, con su mutante, y `/studio/crm` sin `?tab=` abre Embudos, donde están las
+  anclas `embudo.*`; `git diff --name-only` de S0 no trae ningún archivo de la guía.
 - **Recuperación:** los dos grupos con su tope; el CSV lo baja solo admin y deja su registro; una
   tarjeta anonimizada o con «No volver a escribir» no aparece; una ficha sin tarjeta tampoco.
 - **El teléfono no sale:** ni en logs, ni en el push, ni en `entity_audit_log`, con un teléfono
@@ -1006,7 +1027,8 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
 ## 9. Criterios de aceptación
 
 - [ ] S0: el Studio no muestra pestañas, tablas ni cruces de Kommo; los `?tab=` viejos abren la
-  pestaña por defecto; nada de Kommo se apagó ni se borró.
+  pestaña por defecto; nada de Kommo se apagó ni se borró; la guía «Antes en Kommo → Ahora aquí»
+  sigue montada y S0 no tocó ninguno de sus archivos (P-10).
 - [ ] R1: Resumen, Embudos y Sin atender funcionan con datos de tarjetas; cada tarjeta de Leads dice
   «Interesado» o «Interesado con código».
 - [ ] M: Sam aprobó la maqueta de Resumen, Sin atender y la ficha de la tarjeta antes de S3.
@@ -1128,15 +1150,17 @@ extracción del historial de Kommo sigue, porque es parte de la migración a Cha
 
 ### Preguntas nuevas al Director General (2026-11-06)
 
-Respondidas por el Subdirector de Chatwoot el mismo día. P-12 se cerró con la 10.5 rediseñada; P-10 sigue abierta.
+P-8, P-9 y P-11 las respondió el Subdirector de Chatwoot el mismo día. P-12 se cerró con la 10.5
+rediseñada. P-10 la contestó Sam el 2026-11-07. P-13, nueva del 2026-11-07, sigue abierta.
 
 | # | Pregunta | Estado |
 |---|---|---|
 | P-8 | ¿S0 (ocultar Kommo) va en su propia PR, antes que todo? | **Sí:** en su propia PR y primero |
 | P-9 | Entre S0 y S3, Reportes › Por agente no muestra desempeño por asesor. ¿Se acepta, o la tabla de Kommo se queda hasta S3? | **Se oculta**, con un aviso corto e interno. El texto de §2.1 quedó aprobado tal cual por el Subdirector |
-| P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | **Abierta: la decide Sam.** Se la lleva el Director General, con la recomendación de esta SDD: que se quede, porque enseña a dejar Kommo y no conecta con Kommo |
+| P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | **Cerrada por Sam** el 2026-11-07 a las 03:56Z: «Sí, se queda». Se la dio al Director General, que la trajo, por el Subdirector de Chatwoot. Es la recomendación de esta SDD. La guía sigue montada cuando S0 oculte Kommo, hasta que Sam decida apagarla, y queda como invariante comprobable de S0 (§2.1, §5, §8, §9). No toca lo aprobado de E9 en la #408 |
 | P-11 | ¿El teléfono completo va en su propia migración (B)? | **Sí:** la B va aparte |
 | P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | **Cerrada** con la 10.5 rediseñada (#400, `12a5f7c52`, §10.5.19): la pieza sigue; la señal 2 sale de `crm_portal_espera`; la bandeja del portal queda fuera de las señales 1 y 3; `crm_ticket` queda sin objeto. Aplicado en §2.8 |
+| P-13 | Con Resumen por defecto (S3), `/studio/crm` sin `?tab=` ya no monta el tablero, y el recorrido Embudo de la guía (`RECORRIDO_EMBUDO`, #408) no encuentra sus anclas y no abre (§2.1, **I**). ¿Cómo sigue llegando la guía a Embudos? | **Abierta** (2026-11-07). Propuesta: que lo resuelva la SDD-0589, por ejemplo con un recorrido que abra `?tab=embudos`, y que 6.6 no toque la guía. Se decide antes de S3; no cambia ninguna estimación de 6.6 |
 
 ### Resueltas por el Director General (2026-11-06, sobre `99e7d6300`)
 
@@ -1200,11 +1224,16 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
 - **2026-11-06:** corrección del Subdirector, con lo que midió el Director General en
   `dtd-cargo-functions-1`: hoy el ERP no le escribe nada a Kommo (`KOMMO_PUSH_DRY_RUN` vacío; H14).
   Quitar los envíos del cotizador deja de ser un apagado en producción y el alta de `/registro` sale
-  de lo que Sam decide aparte. El Subdirector respondió P-8, P-9 y P-11; P-10 (de Sam) y P-12 siguen
-  abiertas. El nombre «Recontacto» va en la migración A, con número que reserva el Director General.
+  de lo que Sam decide aparte. El Subdirector respondió P-8, P-9 y P-11; P-10 (de Sam) y P-12
+  quedaron abiertas ese día y se cerraron después (P-12 el mismo 2026-11-06, P-10 el 2026-11-07).
+  El nombre «Recontacto» va en la migración A, con número que reserva el Director General.
 - **2026-11-06:** P-12 cerrada con la 10.5 rediseñada (#400, `12a5f7c52`, §10.5.19). D-SA y D-AUD de
   §2.8 quedan como las cita esa SDD: la señal 2 con `crm_portal_espera`, la bandeja del portal
   fuera de las señales 1 y 3, y sin `crm_ticket`. No cambia ninguna estimación.
+- **2026-11-07:** P-10 cerrada por Sam a las 03:56Z, traída por el Director General: «Sí, se queda».
+  La guía de la SDD-0589 queda fuera de S0 como invariante comprobable (§2.1, §5, §8, §9). Al
+  medirlo apareció P-13 (la guía y Resumen por defecto en S3), abierta. No cambia ninguna
+  estimación.
 
 ## 14. Textos públicos propuestos (no se publican sin el OK de Sam)
 
