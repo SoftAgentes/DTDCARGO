@@ -129,10 +129,15 @@ try {
       console.log(`${C.green}   ✓${C.nc} ${C.dim}${f}${C.nc}`);
     } else {
       failed.push(f);
-      // Un error del spawn (ENOBUFS, timeout) no es un ERROR de psql: se dice cuál.
-      const err = (res.error ? [`el runner cortó a psql: ${res.error.code ?? res.error.message}`] : `${res.stdout || ""}${res.stderr || ""}`
-        .split("\n")
-        .filter((l) => l.includes("ERROR:")))
+      // Un error del spawn (ENOBUFS, timeout) no es un ERROR de psql: se dice cuál. Y si psql cayó sin ningún ERROR
+      // de SQL (no pudo conectarse, el servidor se cerró a mitad), se muestra su primera línea y su código: sin esto,
+      // un fallo de conexión salía como un ✗ mudo.
+      const salida = `${res.stdout || ""}${res.stderr || ""}`.split("\n");
+      const errores = salida.filter((l) => l.includes("ERROR:"));
+      const primera = salida.find((l) => l.trim());
+      const err = (res.error
+        ? [`el runner cortó a psql: ${res.error.code ?? res.error.message}`]
+        : errores.length > 0 ? errores : [`psql salió con ${res.status} sin ERROR de SQL: ${(primera || "(sin salida)").trim()}`])
         .slice(0, 2)
         .join("\n      ");
       console.log(`${C.red}   ✗ ${f}${C.nc}`);

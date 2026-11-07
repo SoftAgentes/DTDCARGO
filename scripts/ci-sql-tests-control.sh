@@ -7,7 +7,9 @@
 #   C1  mutante en el contrato: la primera aserción de la 0327 espera lo contrario → rojo, con ✗ 0327 y ✓ 0310
 #   C2  regresión en la migración: la 0327 sin el REVOKE de sync_boxes → el contrato de siempre da rojo
 #   C3  salto: VERIFY_SKIP_SQL=1 → run-sql-tests sale con 3 y ci-sql-tests.sh no lo cuenta como verde
-# Sale con 0 solo si los cuatro casos dan lo esperado. Cada caso levanta su Postgres desechable (el de
+#   C4  arranque: con la fase temporal del initdb alargada 8 s (imagen derivada de postgres:17), todos los contratos
+#       tienen que salir verdes; la espera no puede dar por listo al servidor temporal (tren #427, run 42415565680)
+# Sale con 0 solo si los cinco casos dan lo esperado. Cada caso levanta su Postgres desechable (el de
 # run-sql-tests.mjs) y lo borra al terminar.
 #
 # Uso: bash scripts/ci-sql-tests-control.sh   (desde la raíz del repo, con Docker)
@@ -95,6 +97,32 @@ if [ "$(rc c0)" != 0 ] && tiene c0 "[SKIP]" && tiene c0 "código 3" && tiene c0 
   ok C3 "VERIFY_SKIP_SQL=1: run-sql-tests sale con 3 y el job lo da en rojo"
 else
   mal C3 "un salto tenía que dar rojo (código $(rc c0))"; mostrar c0
+fi
+
+# C4: el arranque de Postgres. La imagen oficial levanta primero un servidor temporal, solo en el socket, para el
+# initdb, y después lo apaga y arranca el definitivo. Si la espera de run-sql-tests da por listo al temporal, los
+# psql que caen en el cambio fallan sin ningún ERROR de SQL: es el rojo intermitente del tren #427 (run 42415565680,
+# la 0310 en C0 a C2). Aquí la fase temporal se alarga 8 s con un script de initdb, en una imagen derivada de la misma,
+# y se corren todos los contratos: los que caigan en el cambio tienen que salir verdes igual.
+LENTA=dtd-sqltest-initdb-lento:control
+if docker build -q -t "$LENTA" - >"$W/c4-build.log" 2>&1 <<'EOF'
+FROM postgres:17
+RUN printf '#!/bin/sh\necho "control C4: fase temporal del initdb alargada"\nsleep 8\n' \
+      > /docker-entrypoint-initdb.d/00-lento.sh && chmod 755 /docker-entrypoint-initdb.d/00-lento.sh
+EOF
+then
+  mkdir -p "$W/c4/supabase"
+  cp -r "$REPO/supabase/migrations" "$REPO/supabase/tests" "$W/c4/supabase/"
+  correr c4 SQL_TEST_PG_IMAGE="$LENTA"
+  if [ "$(rc c4)" = 0 ] && tiene c4 "contratos de SQL en verde"; then
+    ok C4 "con la fase temporal del initdb alargada 8 s, $(grep -o '[0-9]* de [0-9]* contratos en verde' "$W/c4.log" | head -n 1): la espera no confunde el servidor temporal con el definitivo"
+  else
+    mal C4 "con la fase temporal del initdb alargada, los contratos tenían que salir verdes (código $(rc c4))"
+    grep -E '✗|sin ERROR de SQL|ERROR:|ci-sql-tests:' "$W/c4.log" | head -n 12 | sed 's/^/     /'
+  fi
+  docker image rm -f "$LENTA" >/dev/null 2>&1
+else
+  mal C4 "no se pudo armar la imagen de Postgres con el initdb alargado"; sed 's/^/     /' "$W/c4-build.log" | tail -n 5
 fi
 
 echo "== control: $FALLAS fallas"
