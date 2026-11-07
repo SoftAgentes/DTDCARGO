@@ -376,6 +376,7 @@ export function UserDetailDrawer({
                   disabled={pendiente}
                   className="studio-btn studio-btn-ghost studio-btn-sm"
                   title="Le corta el acceso al Studio · reversible"
+                  data-guia="usuarios.baja"
                 >
                   {disablePending ? "Suspendiendo…" : "Suspender acceso"}
                 </button>

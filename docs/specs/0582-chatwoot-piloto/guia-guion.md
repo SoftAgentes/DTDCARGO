@@ -124,7 +124,7 @@ Clave del recorrido: `guide.inbox`. Pantalla: Studio → Bandeja, con el panel d
 ### B4 · Asignar una conversación
 
 - **Ancla:** `bandeja.asignar` (Chatwoot)
-- **Rol:** Admin; Agente según la matriz de 2.7 (pregunta S-2)
+- **Rol:** Admin y Agente. S-2 contestada (Sam, 2026-11-07 07:00Z): «También quien atiende». En Studio son `admin`, `commercial` y `support`, los roles del módulo Bandeja; el permiso real de asignar lo da Chatwoot.
 - **Clave:** `guide.inbox.assign`
 - **Qué es:** «Cada conversación tiene un responsable. Así nadie contesta dos veces lo mismo.»
 - **Antes en Kommo:** «En Kommo el responsable era el "usuario responsable" del lead.» D(`docs/marketing/agentes-ia-por-etapa.md:349`, 2026-08): «Cambiar el usuario responsable del lead» es una acción de automatización. Ruta manual: **NV**.
@@ -277,9 +277,10 @@ Clave del recorrido: `guide.users`. Pantalla: Studio → Usuarios (el módulo ex
 - **Ancla:** `usuarios.acceso-bandeja`
 - **Rol:** Admin
 - **Clave:** `guide.users.grant`
-- **Qué es:** «Desde Usuarios decides quién entra a la Bandeja. No hay que crear la cuenta dos veces.»
+- **Qué es:** «Desde Vínculos decides quién entra a la Bandeja. No hay que crear la cuenta dos veces.»
 - **Antes en Kommo:** «Los usuarios se creaban en Kommo, en Ajustes → Gestión de usuarios, y cada uno gastaba una licencia.» T (K-17): 5 usuarios y 1 licencia paga.
-- **Ahora aquí:** «Invita a la persona en Studio y activa su acceso a la Bandeja. Studio le crea la cuenta en el chat.» **NV (E2: 2.5, 2.7).**
+- **Ahora aquí:** «Invita a la persona en Usuarios y vincúlala aquí. Studio le crea la cuenta en el chat.» **NV (E2: 2.5, 2.7).**
+- **Aprobado:** Sam, 2026-11-07 07:02Z: «Apruebo los dos». Cambian «Qué es» y «Ahora aquí», con el texto de la propuesta de SDD-0589 (9.5): el acceso se da en Bandeja › Vínculos, no en Usuarios. Huellas (sha256 del texto entre « », 16 caracteres): `d5654c7bab073a82` y `ceae585ea7ba8997`. En Studio va en el recorrido `bandeja`, solo admin, con el ancla en Vínculos.
 
 ### U2 · Qué bandejas ve cada uno
 
@@ -297,7 +298,8 @@ Clave del recorrido: `guide.users`. Pantalla: Studio → Usuarios (el módulo ex
 - **Clave:** `guide.users.revoke`
 - **Qué es:** «Cuando alguien deja de atender, le quitas el acceso en un paso.»
 - **Antes en Kommo:** «Se desactivaba el usuario en Kommo.» D(`docs/marketing/kommo-estado-y-pendientes.md:15-29`, 2026-08-10): se desactivó un usuario para cuadrar las licencias.
-- **Ahora aquí:** «Desactiva a la persona en Studio. Se cierra su sesión en la Bandeja y ya no puede entrar por fuera.» **NV (E2: 2.7).** La aceptación del SSO prueba cierre, baja, revocación y acceso directo (decisión A).
+- **Ahora aquí:** «Abre a la persona en Usuarios y pulsa Suspender acceso. Se cierra su sesión en la Bandeja y ya no puede entrar por fuera.» **NV (E2: 2.7).** La aceptación del SSO prueba cierre, baja, revocación y acceso directo (decisión A).
+- **Aprobado:** Sam, 2026-11-07 07:02Z: «Apruebo los dos». Cambia solo «Ahora aquí», con el texto de la propuesta de SDD-0589 (9.5): nombra el botón real de la ficha de la persona. Huella (sha256 del texto entre « », 16 caracteres): `c8036fae1eaf9340`. El ancla está en ese botón. Arrancar la guía desde la ficha queda para la 9.6.
 
 ## Recorrido 6 · Actualizaciones (solo admin)
 
@@ -351,7 +353,7 @@ Clave del recorrido: `guide.updates`. Pantalla: Studio → Actualizaciones (3.3)
 ### Para Sam
 
 - **S-1.** ¿Quién mueve el interruptor de la IA: solo tú, o también la persona que atiende? El guion propone que solo tú.
-- **S-2.** ¿La persona que atiende puede asignar conversaciones a otros, o solo a sí misma?
+- **S-2.** ¿La persona que atiende puede asignar conversaciones a otros, o solo a sí misma? **Contestada** el 2026-11-07 a las 07:00Z: «También quien atiende». B4 la ven admin, commercial y support.
 - **S-3.** ¿La oficina de China va a usar la Bandeja? Si no, la guía se oculta en `zh-CN`; si sí, hay que traducirla. La clave tiene que existir igual en los dos idiomas.
 - **S-4.** ¿El embudo nuevo arranca con las mismas etapas de «Ventas DTD» o con otras? Lo cierra 6.1.
 - **S-5.** ¿Quién contesta hoy el correo de `info@`, y desde dónde (webmail de Hostinger, otro programa o el celular)?

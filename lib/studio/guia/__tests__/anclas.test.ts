@@ -11,7 +11,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SELECTORES_CHATWOOT } from "../puente-chatwoot";
-import { ANCLA_MARCO_BANDEJA, RECORRIDOS } from "../recorridos";
+import { ANCLA_MARCO_BANDEJA, PASO_QUITAR_ACCESO, RECORRIDOS } from "../recorridos";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const leer = (ruta: string) => readFileSync(resolve(ROOT, ruta), "utf8");
@@ -19,7 +19,7 @@ const leer = (ruta: string) => readFileSync(resolve(ROOT, ruta), "utf8");
 /** Archivos donde vive cada recorrido. */
 const PANTALLAS: Record<string, string[]> = {
   dashboard: ["app/studio/(app)/dashboard/page.tsx", "app/studio/(app)/dashboard/_components/DashboardClient.tsx"],
-  bandeja: ["app/studio/(app)/bandeja/_components/BandejaClient.tsx"],
+  bandeja: ["app/studio/(app)/bandeja/_components/BandejaClient.tsx", "app/studio/(app)/bandeja/_components/VinculosAdmin.tsx"],
   embudo: ["app/studio/(app)/crm/_components/CrmTableroKanban.tsx"],
   cliente: ["app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx"],
   actualizaciones: ["app/studio/(app)/admin/actualizaciones/_components/ActualizacionesPanel.tsx"],
@@ -52,8 +52,23 @@ describe("anclas de Studio en sus pantallas", () => {
         revisadas += 1;
       }
     }
-    // Dashboard 4, Bandeja 1 (el marco), Embudo 4, Cliente 1 y Actualizaciones 3.
-    expect(revisadas).toBeGreaterThanOrEqual(13);
+    // Dashboard 4, Bandeja 2 (el marco y U1), Embudo 4, Cliente 1 y Actualizaciones 3.
+    expect(revisadas).toBeGreaterThanOrEqual(14);
+  });
+
+  it("U1 está en Vínculos, que BandejaClient solo monta con datos de admin", () => {
+    const vinculos = leer("app/studio/(app)/bandeja/_components/VinculosAdmin.tsx");
+    expect(anclaEnFuente(vinculos, "usuarios.acceso-bandeja")).toBe(true);
+    expect(anclaEnFuente(leer("app/studio/(app)/bandeja/_components/BandejaClient.tsx"), "usuarios.acceso-bandeja")).toBe(false);
+  });
+
+  it("U3 tiene su ancla en la ficha de la persona, sin recorrido hasta la 9.6", () => {
+    const ficha = leer("app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx");
+    expect(anclaEnFuente(ficha, PASO_QUITAR_ACCESO.ancla)).toBe(true);
+    // El ancla va en el botón Suspender acceso, no en otro de la ficha.
+    expect(ficha).toMatch(/data-guia="usuarios\.baja"\s*>\s*\{disablePending \? "Suspendiendo…" : "Suspender acceso"\}/);
+    // La tarjeta (capa 90) quedaría debajo del cajón (capa 100): ningún recorrido la usa todavía.
+    expect(RECORRIDOS.flatMap((r) => r.pasos).some((p) => p.ancla === PASO_QUITAR_ACCESO.ancla)).toBe(false);
   });
 
   it("los pasos de Chatwoot tienen su selector y caen al marco de la Bandeja", () => {

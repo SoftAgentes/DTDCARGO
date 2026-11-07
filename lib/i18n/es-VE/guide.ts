@@ -5,7 +5,7 @@
  * Textos del motor (`guide.chrome.*`), del recorrido de demostración
  * (`guide.dashboard.*`) y de los recorridos por pantalla de 9.5, copiados del
  * guion aceptado de 9.1 (`docs/specs/0582-chatwoot-piloto/guia-guion.md`). Las
- * tarjetas del guion sin pantalla en `main` (IA, Usuarios, parte de la Ficha DTD)
+ * tarjetas del guion sin pantalla en `main` (IA, U2, parte de la Ficha DTD)
  * quedan pendientes en SDD-0589 y no tienen claves todavía.
  *
  * Cada tarjeta tiene una clave base con cuatro sufijos: `.title`, `.what`,
@@ -158,6 +158,24 @@ export const guide = {
     "Si quieres la versión nueva, la pides aquí y se programa con respaldo y prueba.",
   "guide.updates.request.now":
     "Pulsa Pedir actualización. Se hace en una ventana acordada, con respaldo antes y prueba después.",
+
+  // Usuarios (guion, recorrido 5; solo admin). «Qué es» de U1 y «Ahora aquí» de
+  // U1 y U3: textos de la propuesta de SDD-0589 (9.5), aprobados por Sam el
+  // 2026-11-07 07:02Z («Apruebo los dos»). Lo demás es del guion aceptado.
+  // U1 va en el recorrido `bandeja` (Vínculos). U3 tiene su ancla en la ficha de
+  // la persona, pero todavía no tiene recorrido: es de la 9.6.
+  "guide.users.grant.title": "Dar acceso a la Bandeja",
+  "guide.users.grant.what":
+    "Desde Vínculos decides quién entra a la Bandeja. No hay que crear la cuenta dos veces.",
+  "guide.users.grant.before":
+    "Los usuarios se creaban en Kommo, en Ajustes → Gestión de usuarios, y cada uno gastaba una licencia.",
+  "guide.users.grant.now":
+    "Invita a la persona en Usuarios y vincúlala aquí. Studio le crea la cuenta en el chat.",
+  "guide.users.revoke.title": "Quitar el acceso",
+  "guide.users.revoke.what": "Cuando alguien deja de atender, le quitas el acceso en un paso.",
+  "guide.users.revoke.before": "Se desactivaba el usuario en Kommo.",
+  "guide.users.revoke.now":
+    "Abre a la persona en Usuarios y pulsa Suspender acceso. Se cierra su sesión en la Bandeja y ya no puede entrar por fuera.",
 } as const satisfies Record<string, string>;
 
 export type GuideDict = Record<keyof typeof guide, string>;

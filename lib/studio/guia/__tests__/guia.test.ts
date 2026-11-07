@@ -3,6 +3,7 @@
  * navegación con anclas faltantes, colocación de la tarjeta y almacén.
  */
 
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { hasI18nKey, t } from "@/lib/i18n";
 import { guide as guideES } from "@/lib/i18n/es-VE/guide";
@@ -13,6 +14,7 @@ import { colocarTarjeta, MARGEN, SEPARACION } from "../posicion";
 import { ROLES_ASIGNAR } from "../preferencias";
 import {
   buscarRecorrido,
+  PASO_QUITAR_ACCESO,
   RECORRIDOS,
   RECORRIDO_ACTUALIZACIONES,
   RECORRIDO_BANDEJA,
@@ -49,6 +51,20 @@ describe("recorridos como datos", () => {
           expect(t("zh-CN", k)).not.toBe(t("es-VE", k));
         }
       }
+    }
+  });
+
+  it("U1 y U3 llevan, palabra por palabra, los textos que aprobó Sam (2026-11-07 07:02Z)", () => {
+    const huella = (texto: string) => createHash("sha256").update(texto, "utf8").digest("hex").slice(0, 16);
+    expect(huella(guideES["guide.users.grant.what"])).toBe("d5654c7bab073a82");
+    expect(huella(guideES["guide.users.grant.now"])).toBe("ceae585ea7ba8997");
+    expect(huella(guideES["guide.users.revoke.now"])).toBe("c8036fae1eaf9340");
+    expect(validarRecorrido({ id: "u3", ruta: "/studio/usuarios", pasos: [PASO_QUITAR_ACCESO] })).toEqual([]);
+    for (const sufijo of ["title", "what", "before", "now"] as const) {
+      const k = `${PASO_QUITAR_ACCESO.clave}.${sufijo}` as keyof typeof guideES;
+      expect(hasI18nKey(k), k).toBe(true);
+      expect(guideES[k], k).toBeTruthy();
+      expect(guideCN[k], k).not.toBe(guideES[k]);
     }
   });
 
@@ -171,10 +187,21 @@ describe("9.5 · recorridos por rol", () => {
     expect(pasosDe("admin", "bandeja")).toEqual(RECORRIDO_BANDEJA.pasos.map((p) => p.id));
   });
 
-  it("B4 (asignar) es solo de admin mientras S-2 siga abierta", () => {
-    expect(ROLES_ASIGNAR).toEqual(["admin"]);
-    expect(pasosDe("commercial", "bandeja")).toEqual(["B1", "B2", "B3", "B5", "B6", "F1"]);
-    expect(pasosDe("support", "bandeja")).toEqual(["B1", "B2", "B3", "B5", "B6", "F1"]);
+  it("B4 (asignar) la ven admin, commercial y support: S-2 cerrada (Sam, 2026-11-07 07:00Z)", () => {
+    expect(pasosDe("commercial", "bandeja")).toEqual(["B1", "B2", "B3", "B4", "B5", "B6", "F1"]);
+    expect(pasosDe("support", "bandeja")).toEqual(["B1", "B2", "B3", "B4", "B5", "B6", "F1"]);
+    expect(pasosDe("admin", "bandeja")).toContain("B4");
+    // Sin el módulo Bandeja no la ve, aunque el recorrido le llegue.
+    expect(pasosDe("accounting", "bandeja")).not.toContain("B4");
+    expect(ROLES_ASIGNAR).toEqual(["admin", "commercial", "support"]);
+  });
+
+  it("U1 (Vínculos) va al final de la Bandeja y solo la ve admin; U3 también es de admin", () => {
+    expect(pasosDe("admin", "bandeja")?.at(-1)).toBe("U1");
+    for (const rol of ["commercial", "support", "accounting"] as const) {
+      expect(pasosDe(rol, "bandeja"), rol).not.toContain("U1");
+    }
+    expect(PASO_QUITAR_ACCESO.roles).toEqual(["admin"]);
   });
 
   it("Embudo es de admin y commercial; Actualizaciones, solo de admin", () => {

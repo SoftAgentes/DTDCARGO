@@ -16,7 +16,7 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
 - **9.4 · Puente en la Bandeja:** `usePuenteChatwoot`, con `lib/studio/guia/puente-chatwoot.ts` y `ubicadores.ts`. Si una ancla de Chatwoot no aparece, la tarjeta va al marco (`bandeja.marco`).
 - **9.4 · Smoke de E3:** `infra/chatwoot/pruebas/smoke-guia.mjs`, con su núcleo probado. Entra en §4 y S13 del runbook de versiones; el de agentes explica cómo pegar los dos scripts y su marcha atrás.
 - **9.5 · Recorridos:**
-  - `bandeja`: B1–B6 y F1; B4 solo admin hasta S-2;
+  - `bandeja`: B1–B6, F1 y U1. B4 la ven admin, commercial y support (S-2 cerrada el 2026-11-07); U1, solo admin;
   - `embudo`: E1–E4, para admin y commercial;
   - `cliente`: F3;
   - `actualizaciones`: A1–A3, solo admin.
@@ -27,11 +27,10 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
   - F2, I2 e I3: la Ficha DTD enmarcada no monta el motor;
   - F4: el contador está en el sidebar del rediseño;
   - I1 e I4: no hay pantalla de modos de la IA (7.7);
-  - U1: el texto dice «Usuarios», pero el control está en Bandeja › Vínculos;
   - U2: no hay pantalla;
-  - U3: el control está dentro de la ficha de la persona, con el nombre «Suspender acceso».
+  - U3: tiene el texto aprobado y el ancla en el botón Suspender acceso de la ficha de la persona. La ficha es un cajón (capa 100) y la tarjeta va debajo (capa 90): arrancar desde la ficha es de la 9.6.
 
-  Hay una propuesta de texto para U1 y U3, que va al DG antes porque el guion está aprobado.
+  Los textos de U1 y U3 los aprobó Sam el 2026-11-07 a las 07:02Z («Apruebo los dos») y están aplicados, con sus huellas en la spec.
 
 ## VALIDACIÓN
 
@@ -46,6 +45,8 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
 | `/ui-check` | OK con ajustes menores; aplicado el cambio a comillas «» |
 | Smoke contra un Chatwoot real | NO EJECUTADO: sin Docker en esta PC y sin OK de despliegue |
 | `pnpm verify` | NO EJECUTADO: pide turno del Director General; queda el CI de la PR |
+| 2026-11-07, S-2, U1 y U3: guía (9 archivos), Bandeja y Usuarios (11 archivos) | PASÓ: 144 de 144 y 131 de 131. El rojo previo de B4 con `["admin"]` está en la spec |
+| 2026-11-07, 3 mutantes: sin ancla U1, sin ancla U3 y texto de U3 cambiado | PASÓ: 3 de 3 caen por su prueba, archivos restaurados |
 
 ## COMMITS
 
@@ -64,8 +65,9 @@ Ver la PR. Commits selectivos con `git commit -F`.
 - **9.6:**
   - prueba en vivo con quien atiende;
   - colocación de la tarjeta cuando cae al marco: hoy queda abajo a la derecha, encima del composer del chat;
-  - encender `arranqueAutomatico` por recorrido, con OK de Sam.
-- **S-1, S-2, S-3 y S-8,** cuando Sam conteste: S-2 cambia `ROLES_ASIGNAR`.
+  - encender `arranqueAutomatico` por recorrido, con OK de Sam;
+  - arrancar U3 desde la ficha de la persona: la tarjeta tiene que quedar encima del cajón y dentro de su trampa de foco.
+- **S-1, S-3 y S-8,** cuando Sam conteste. S-2 se cerró el 2026-11-07 a las 07:00Z («También quien atiende») y ya cambió `ROLES_ASIGNAR`.
 - **P-13 (2026-11-07):** la guía tiene que llegar a Embudos sin `?tab=`. Es un paso aparte de la SDD-0589, con PR propia, después de la #408. No arranca hasta que el DG cierre esa revisión, y S3 de la 6.6 no se fusiona antes. Ya pasa hoy, con Dirección por defecto: `?guia=embudo` solo abre con `?tab=embudos`. Ver la spec, sección «2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)».
 
 ## FUERA DE ALCANCE DETECTADO

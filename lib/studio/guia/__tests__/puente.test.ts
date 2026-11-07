@@ -14,7 +14,7 @@ import {
   validarSelectores,
   type ArchivoSelectores,
 } from "../puente-chatwoot";
-import { RECORRIDO_BANDEJA } from "../recorridos";
+import { ANCLA_MARCO_BANDEJA, RECORRIDO_BANDEJA } from "../recorridos";
 
 const BASE = SELECTORES_CHATWOOT;
 const con = (anclas: ArchivoSelectores["anclas"], version = BASE.version): ArchivoSelectores => ({
@@ -31,8 +31,10 @@ describe("archivo de selectores (un solo archivo)", () => {
   });
 
   it("cada ancla de Chatwoot del recorrido Bandeja está en el archivo, y nada sobra", () => {
-    const delRecorrido = RECORRIDO_BANDEJA.pasos.map((p) => p.ancla).sort();
-    expect(Object.keys(BASE.anclas).sort()).toEqual(delRecorrido);
+    // Los pasos de Chatwoot caen al marco; U1 es de Studio (Vínculos) y no lo necesita.
+    const deChatwoot = RECORRIDO_BANDEJA.pasos.filter((p) => p.respaldo === ANCLA_MARCO_BANDEJA);
+    expect(Object.keys(BASE.anclas).sort()).toEqual(deChatwoot.map((p) => p.ancla).sort());
+    expect(RECORRIDO_BANDEJA.pasos.filter((p) => !deChatwoot.includes(p)).map((p) => p.id)).toEqual(["U1"]);
   });
 
   it("detecta selectores vacíos, largos o de más, anclas mal escritas y versión rara", () => {

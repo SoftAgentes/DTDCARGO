@@ -114,4 +114,14 @@ export const guide: GuideDict = {
   "guide.updates.request.title": "申请更新",
   "guide.updates.request.what": "如果你想要新版本,在这里申请,会安排备份和测试。",
   "guide.updates.request.now": "点击「Pedir actualización」。更新在约定的时间窗口进行,之前备份,之后测试。",
+
+  // 用户(仅管理员)。西语文本已获 Sam 批准(2026-11-07);这里是临时译文(S-3)。
+  "guide.users.grant.title": "开通 Bandeja 权限",
+  "guide.users.grant.what": "在「Vínculos」中决定谁可以进入 Bandeja。不需要重复创建账号。",
+  "guide.users.grant.before": "以前用户在 Kommo 的「设置 → 用户管理」中创建,每个用户占用一个许可证。",
+  "guide.users.grant.now": "在「Usuarios」中邀请此人,并在这里关联。Studio 会为他在聊天中创建账号。",
+  "guide.users.revoke.title": "取消权限",
+  "guide.users.revoke.what": "当某人不再负责接待时,一步就能取消他的权限。",
+  "guide.users.revoke.before": "以前在 Kommo 中停用该用户。",
+  "guide.users.revoke.now": "在「Usuarios」中打开此人,点击「Suspender acceso」。他在 Bandeja 的会话会关闭,也无法从外部进入。",
 };
