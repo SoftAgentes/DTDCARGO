@@ -59,7 +59,7 @@ const FILAS_MIXTAS = [
   "| 1.2 | E1 | Pendiente | IA | 2 | — | — | pendiente | — | — |",
 ];
 
-// Línea base v3 del checklist real (2026-10-29): ID=días base de cada paso, en orden.
+// Línea base v4 del checklist real (2026-11-07): ID=días base de cada paso, en orden.
 const LINEA_BASE = [
   "0.1=1.25 0.2=0.25 0.3=0.75 0.4=1 0.5=0.25 0.6=1 0.7=0.5 0.8=0.5",
   "1.1=1 1.2=0.5 1.3=0.25 1.4=0.5 1.5=0.75 1.6=0.25 1.7=1.5",
@@ -67,11 +67,11 @@ const LINEA_BASE = [
   "3.1=1 3.2=1 3.3=1.5 3.4=1.5",
   "4.1=0.5 4.2=0.75 4.3=1 4.4=1 4.5=1.25 4.6=1 4.7=0.75 4.8=1.75 4.9=1.75",
   "5.1=0.5 5.2=0.5 5.3=1.5 5.4=1.5 5.5=1.75 5.6=1 5.7=0.5 5.8=0.5",
-  "6.1=2 6.2=2 6.3=5 6.4=2 6.5=1.5 6.6=2.5 6.7=2.25",
+  "6.1=2 6.2=2 6.3=5 6.4=2 6.5=1.5 6.6=5.5 6.7=2.25 6.8=0.75 6.9=2.75 6.10=1",
   "7.1=1 7.2=0.5 7.3=0.5 7.4=1.5 7.5=2 7.6=6.25 7.7=1.75 7.8=1.5 7.9=1.5 7.10=1 7.11=1",
   "8.1=1 8.2=0.5 8.3=0.25 8.4=0.5 8.5=0.5 8.6=0.75 8.7=0.75 8.8=0.25 8.9=0.75 8.10=3.5 8.11=0.5 8.12=0.25 8.13=0.5",
   "9.1=1 9.2=2 9.3=1.5 9.4=2 9.5=1.5 9.6=1",
-  "10.1=1.5 10.2=2 10.3=0.5 10.4=1 10.5=1.25 10.6=1",
+  "10.1=1.5 10.2=2 10.3=0.5 10.4=1 10.5=5 10.6=1 10.7=2.25 10.8=0.5",
 ].join(" ");
 
 describe("avance-checklist", () => {
@@ -82,11 +82,11 @@ describe("avance-checklist", () => {
     expect(r.stderr).toBe("");
     expect(r.status).toBe(0);
     const out = JSON.parse(r.stdout);
-    const ALCANCE = 115.5;
-    const ALCANCE_ANTERIOR = 109.25;
-    expect(out.lineaBase).toEqual({ version: "v3", fecha: "2026-10-29", alcance: ALCANCE });
-    expect(out.anterior).toEqual({ version: "v2", alcance: ALCANCE_ANTERIOR });
-    const DIAS_ETAPA = [5.5, 4.75, 20.75, 5, 9.75, 7.75, 17.25, 18.5, 10, 9, 7.25];
+    const ALCANCE = 129.5;
+    const ALCANCE_ANTERIOR = 115.5;
+    expect(out.lineaBase).toEqual({ version: "v4", fecha: "2026-11-07", alcance: ALCANCE });
+    expect(out.anterior).toEqual({ version: "v3", alcance: ALCANCE_ANTERIOR });
+    const DIAS_ETAPA = [5.5, 4.75, 20.75, 5, 9.75, 7.75, 24.75, 18.5, 10, 9, 13.75];
     expect(out.etapas.map((e) => e.id)).toEqual(DIAS_ETAPA.map((_, i) => `E${i}`));
     expect(out.etapas.map((e) => e.base)).toEqual(DIAS_ETAPA);
     const pesos = out.etapas.map((e) => (e.base / out.lineaBase.alcance) * 100);

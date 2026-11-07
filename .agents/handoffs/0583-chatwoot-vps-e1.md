@@ -160,6 +160,8 @@ Coincide con la medición del Director en lo central (p95 98,85; 156 sobre 60; l
 
 `PIEZAS` de `lib/studio/chatwoot/analisis.ts` no incluye los correos, y el informe «Analizar con IA» de SDD-0588 no avisará si una versión nueva cambia `app/mailers/` o las plantillas. Si dejan de cargar, los avisos a agentes vuelven a copiar nombre y mensajes del cliente, así que no es solo cosmético. Agregarlos cambia lo que recibe el motor, un comportamiento de Studio que esta rama no cubre. Hasta entonces, el runbook `chatwoot-versiones.md` §3 lo manda a revisar a mano. Va como PR propia bajo SDD-0588, si el Director General la abre.
 
+**2026-11-06:** la abrió. La pieza `correo` entra en `PIEZAS` con la rama `codex/0588-piezas-correos`. Detalle en la SDD-0588, sección «Los correos de SDD-0583 como pieza propia».
+
 ## FUERA DE ALCANCE (coordinado por el Director) · cambio de llave de respaldos de DTD y Chatwoot
 
 - **Autorizaciones.** El Director (sesión del programa) me encargó coordinarlo con condiciones. Sam lo autorizó en esta sesión, literal: «Autorizo las dos» (llave nueva para DTD y Chatwoot, y archivo de los respaldos viejos).
