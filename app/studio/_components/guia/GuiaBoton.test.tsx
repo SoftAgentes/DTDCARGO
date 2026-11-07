@@ -13,6 +13,8 @@ const nav = vi.hoisted(() => ({ pathname: "/studio/dashboard", query: "" }));
 vi.mock("next/navigation", () => ({
   usePathname: () => nav.pathname,
   useSearchParams: () => new URLSearchParams(nav.query),
+  // El motor cambia la pestaña con replace (P-13); estos recorridos no tienen consulta.
+  useRouter: () => ({ replace: () => undefined }),
 }));
 
 const RECORRIDO: GuiaRecorrido = {
