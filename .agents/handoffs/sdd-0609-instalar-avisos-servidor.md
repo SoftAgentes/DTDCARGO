@@ -67,16 +67,17 @@ Fecha: 2026-11-07. Task ID: `sdd-0609-instalar-avisos-servidor`.
 
 | Comprobación | Resultado |
 |---|---|
-| `node scripts/build-docs-index.mjs --check` (`pnpm docs:check`) | ver abajo |
-| `node scripts/check-numbering.mjs` (`pnpm sdd:check`) | ver abajo |
-| `git diff --check` | ver abajo |
-| `git merge-tree` de esta rama contra la #403 y la #404 | ver abajo |
+| `node scripts/build-docs-index.mjs --check` (`pnpm docs:check`) | **PASÓ**: índice sincronizado con 596 specs |
+| `node scripts/check-numbering.mjs` (`pnpm sdd:check`) | **PASÓ**: sin números repetidos (0342 y 0394, choques históricos conocidos) |
+| `git diff --check` | **PASÓ** |
+| `git merge-tree` de `92e1966ac` contra la #403 y la #404 | **PASÓ**: sin conflicto con ninguna |
 | Comandos del guion en el VPS | **NO EJECUTADO**: la tarea prohíbe tocar producción. Son de la sesión de Contabo, en la ventana |
 | `pnpm verify` y build | **NO APLICA**: solo documentación; el gate es el CI de GitHub |
 
 ## COMMITS
 
-Ver el log de la rama. Un commit de docs y este handoff.
+- `92e1966ac` docs(ops): SDD-0609 — guion de instalación de los avisos del servidor y lista para Sam
+- el commit siguiente: esta tabla de validación
 
 ## PR / BRANCH
 
