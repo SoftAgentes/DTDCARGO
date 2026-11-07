@@ -343,6 +343,27 @@ el repositorio**: no se instaló nada.
   - Windows: 38, con 11 saltadas por ser solo Linux.
 - **Mutantes:** 47 de 47 mueren en Linux.
 
+**Segunda vuelta del DG (14:15Z, cabeza `8829854d7`).** El código cerraba los cuatro hallazgos.
+Pidió tres cambios más, en un solo commit:
+
+1. **La spec, al diseño real.** Quedan `motores/`, la lista cerrada, las 14 variables y que los
+   procesos se ven. Además, `test_no_se_promete_ocultar_procesos` revisa también la spec.
+2. **El piso del harness sube de 20 a 42**, el total actual.
+3. **Decisión del DG:** `dtd-motor` rechaza con 66 todo argumento que, resuelto, caiga en
+   `/srv/oficina/trabajo`. Además resuelve las rutas relativas desde `/`, para que un archivo
+   llamado como un argumento no bloquee a ALFRED.
+   - Lo cubren 4 pruebas y 4 mutantes.
+   - **Pruebas:** en Linux, 25 fallas contra `8829854d7`; con el arreglo, 42 de 42 sin saltos.
+   - **Mutantes:** 51 de 51.
+
+**VPS de la oficina, MEDIDO a las 14:2x Z (solo huellas sha256):**
+
+- Están instalados `dtd-motor` `28c28543…` (de `64e2116c4`/`29622d18b`), `dtd-agente-run`
+  `d8ec6a32…`, `dtd-claude` `210c507f…`, `dtd-codex` `0b3d6b03…` y sudoers `52ade946…`. Es la
+  versión vieja.
+- `/srv/oficina/motores` no existe.
+- ALFRED corre con Claude Code (`claude_local`) desde las 04:12 UTC.
+
 **Pendiente de instalar.** Hay que:
 
 1. crear `/srv/oficina/motores` con sus dos carpetas;

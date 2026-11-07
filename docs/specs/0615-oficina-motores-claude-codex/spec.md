@@ -84,7 +84,8 @@ ALFRED conserva su identidad en Paperclip: el mismo id, el puente de Discord y l
 `cce798a2`. Sam le cambia el motor en la pantalla Harness:
 
 - `engine: cli` y `command: /usr/local/bin/dtd-claude`;
-- `cwd: /srv/oficina/trabajo/ceo` y `env.DTD_PERFIL: ceo`;
+- `cwd: /srv/oficina/trabajo/ceo` y `env.DTD_PERFIL: ceo`. Ese `cwd` es solo el de Paperclip:
+  el motor trabaja en `/srv/oficina/motores/ceo`, que fija `dtd-agente-run` (revisión del DG);
 - su conexión de IA es el plan de Sam;
 - `effort: high`, el recomendado para Fable 5.1;
 - el modelo lo elige Sam (candidato: `claude-fable-5-1`);
@@ -106,7 +107,8 @@ Lo crea Sam en la pantalla, porque una llave de agente no puede fijar los campos
 
 - **Puesto:** reporta a ALFRED.
 - **Motor:** `engine: cli`, `command: /usr/local/bin/dtd-codex`,
-  `cwd: /srv/oficina/trabajo/auxiliar`, `env.DTD_PERFIL: auxiliar`.
+  `cwd: /srv/oficina/trabajo/auxiliar`, `env.DTD_PERFIL: auxiliar`. El motor trabaja en
+  `/srv/oficina/motores/auxiliar`, que fija `dtd-agente-run`.
 - **Modelo:** `gpt-6-astra`, con `modelReasoningEffort: high`.
 - **Sandbox:** `dangerouslyBypassApprovalsAndSandbox: false` y `search: false`.
 - **Permisos:** no asigna, no contrata y no crea skills.
@@ -159,10 +161,18 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
 - **`dtd-motor`** corre como `agentes`. Hace cuatro cosas:
   1. revisa una lista cerrada que solo admite `claude:ceo`, que corre como `agentes-alfred`, y
      `codex:auxiliar`, que corre como `agentes-auxiliar`;
-  2. copia a `/srv/oficina/staging/<perfil>/run.*` toda ruta que exista dentro de
-     `/home/agentes/`, reescribe el argumento y sigue los enlaces. La carpeta del perfil la crea
-     la instalación con dueño `agentes`, el grupo del usuario del motor y permisos 2750, y sin
-     ella el envoltorio sale con 65;
+  2. copia a `/srv/oficina/staging/<perfil>/run.*` (750, con ACL de lectura para el usuario del
+     motor) las rutas de `/home/agentes/` que Paperclip pasa, y reescribe el argumento. Solo
+     copia si la ruta, resuelta con `realpath`, y todo lo que alcanzan sus enlaces caen en una
+     lista cerrada:
+     - `companies/<id>/claude-prompt-cache/<sha>`;
+     - `companies/<id>/agents/<id>/instructions`;
+     - las skills de la instancia y de la instalación.
+
+     Si no caen ahí, no copia nada y sale con 66. La carpeta del perfil la crea la instalación,
+     con dueño `agentes`, el grupo del usuario del motor y permisos 750. Sin ella sale con 65;
+     además rechaza con 66 todo argumento que, resuelto, caiga en `/srv/oficina/trabajo`, la
+     carpeta que escriben los GLM, y resuelve las rutas relativas desde `/`;
   3. quita `--mcp-config` y su valor, y conserva `--strict-mcp-config`;
   4. borra las corridas de más de 3 horas y ejecuta `sudo -n -u <usuario> dtd-agente-run`.
 - **`dtd-agente-run`** parte del `dtd-agente-run` vivo, medido el 2026-11-06 a las 15:22 UTC.
@@ -170,13 +180,19 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
     `ceo` y el usuario `agentes-alfred`; `codex`, solo con `auxiliar` y `agentes-auxiliar`.
     `hermes` y `opencode` corren solo como `agentes-run`.
   - `HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME` y las carpetas XDG salen del usuario.
-  - La carpeta de trabajo de Claude y de Codex la fija el envoltorio.
+  - Lleva a Claude y a Codex a `/srv/oficina/motores/<perfil>`, fuera de la carpeta de los GLM.
+    Antes comprueba que nadie más que el usuario del motor o root pueda escribirla, ni lo que
+    cargan de ella (`.claude`, `.mcp.json`, `CLAUDE.md`, `.codex`, `AGENTS.md`), ni un padre. Si
+    no, sale con 66.
   - Hace `unset` de `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` y `OPENAI_API_KEY`, y solo
     Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
   - La rama `hermes` no cambia.
-- **El sudoers suma dos cosas:**
+- **El sudoers suma tres cosas:**
   - `CLAUDE_CODE_OAUTH_TOKEN` en `env_keep`;
-  - `!log_allowed` y los dos usuarios nuevos como destino.
+  - `!log_allowed` y los dos usuarios nuevos como destino;
+  - las variables `PAPERCLIP_` nombradas una por una, 14 en total. Nunca `PAPERCLIP_*`: el
+    servicio tiene `PAPERCLIP_AGENT_JWT_SECRET` y `PAPERCLIP_TOOL_ACTION_SIGNING_SECRET`
+    (MEDIDO, solo nombres).
 
 **Lo que no se resuelve aquí:**
 
@@ -225,14 +241,17 @@ se para ahí.
 1. **Preparar sin tocar a ALFRED.**
    - Crear `agentes-alfred` y `agentes-auxiliar`, cada uno con su grupo y sin el grupo
      `oficina`. La biblioteca es legible por todos, y ese grupo abre las carpetas de los GLM.
-   - Crear `/srv/oficina/trabajo/auxiliar` y las carpetas de staging, que no lee `agentes-run`.
-     El paso por `/srv/oficina/trabajo` y el acceso de ALFRED a `ceo` van con ACL, sin cambiar
-     el dueño de `ceo`. Así la vuelta atrás a Hermes no toca permisos.
+   - Crear `/srv/oficina/motores` (`root:root` 755) con `ceo` (`agentes-alfred`, 700) y
+     `auxiliar` (`agentes-auxiliar`, 700, con `git init`), y las carpetas de staging (750), que
+     no lee `agentes-run`. Los motores no trabajan en `/srv/oficina/trabajo`: la escriben los
+     GLM. Las carpetas de Hermes no cambian, así que la vuelta atrás no toca permisos.
    - Instalar los envoltorios y el sudoers, con respaldo y `visudo -cf`.
-   - Copiar `CLAUDE.md` y `settings.json` (que el agente no puede escribir) y la skill
+   - Copiar `CLAUDE.md` a `motores/ceo`, `AGENTS.md` a `motores/auxiliar` y `settings.json`
+     (que el agente no puede escribir), y la skill
      `paperclip` del Auxiliar.
 2. **Comprobar el aislamiento,** sin leer valores:
-   - `agentes-run` no puede abrir las carpetas de los usuarios nuevos ni ver sus procesos;
+   - `agentes-run` no puede abrir las casas de los usuarios nuevos ni escribir en
+     `/srv/oficina/motores`. Los procesos sí los ve con `ps`, porque no hay `hidepid`;
    - `--version` pasa por cada envoltorio;
    - sudo deja de registrar el prompt.
 3. **Conectar los planes.**
@@ -312,17 +331,24 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
 ## Criterios de aceptación
 
 1. Los envoltorios rechazan con 64 todo perfil o motor que no esté en la lista cerrada.
-2. Ninguna ruta de `/home/agentes/` llega a `agentes-run`. Llega una copia legible por el grupo
-   y no por los demás.
-3. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
+2. Ninguna ruta de `/home/agentes/` llega al motor. Llega una copia que lee su usuario por ACL y
+   que nadie más lee, y solo de la lista cerrada. Ningún argumento lleva a `/srv/oficina/trabajo`.
+3. El motor no arranca si su carpeta, lo que carga de ella o un padre los puede escribir otro
+   usuario.
+4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-4. Las pruebas pasan sin saltos en Linux, con un piso de 20, y todos los mutantes mueren.
-5. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
+5. Las pruebas pasan sin saltos en Linux, con un piso de 42 en el harness, y todos los mutantes
+   mueren.
+6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 
 ## Validación de esta PR
 
-- Pruebas de los envoltorios: 20 en Linux (VPS de la oficina, Python 3.12.3), sin saltos; en Windows corren 18 y se saltan las 2 de enlaces y permisos. Mutantes: 29 de 29 mueren en Linux.
-- Mutantes.
+- **Pruebas de los envoltorios, después de la revisión del DG:**
+  - Linux (VPS de la oficina, en `/tmp`, sin tocar lo instalado; Python 3.12.3): 42, sin
+    saltos.
+  - Windows: 42, con 12 saltadas por ser solo Linux.
+- **Mutantes:** todos mueren en Linux.
+- **Antes:** 20 pruebas y 29 mutantes, del 2026-11-06.
 - `docs:check`, `sdd:check` y `git diff --check`.
 - `pnpm verify` no aplica: no hay código de producto.
 
@@ -333,8 +359,30 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
 - **Los bugs abiertos de Paperclip, #17474 y #9668, pueden cortar el ciclo.** Si eso pasa, la
   crítica pasa a una subtarea asignada al Auxiliar.
 - **Un cambio de versión puede romper los envoltorios.** Paperclip o Claude Code podrían pasar
-  nuevas rutas por argumento. `dtd-motor` copia cualquier ruta protegida, pero no las que van
-  dentro de un archivo de configuración.
+  nuevas rutas por argumento. `dtd-motor` solo copia las de su lista cerrada: una ruta nueva
+  deja al motor sin arrancar (66) hasta que se agregue. No revisa las rutas que van dentro de
+  un archivo de configuración.
+
+## Revisión del DG (2026-11-07)
+
+La revisión independiente de la #407 (cabeza `29622d18b`) encontró una ALTA, tres MEDIA y
+varias BAJA:
+
+- **ALTA:** los GLM podían escribir hooks o MCP en la carpeta de ALFRED.
+- **MEDIA:**
+  - la misma exposición en la carpeta del Auxiliar;
+  - `dtd-motor` copiaba cualquier ruta de la casa;
+  - el sudoers dejaba pasar `PAPERCLIP_*`.
+- **BAJA:** pruebas y textos que prometían de más.
+
+Lo corrigen `81211d02b` y el commit siguiente. Este último agrega:
+
+- el rechazo de los argumentos bajo `/srv/oficina/trabajo`;
+- el piso de 42 pruebas;
+- esta spec al día.
+
+El detalle está en el README de los envoltorios y en el handoff. **Instalarlo pide el OK de
+Sam:** en el VPS sigue la versión anterior.
 
 ## Qué no autoriza
 

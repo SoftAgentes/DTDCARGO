@@ -14,7 +14,12 @@ PROTEGIDO=/home/agentes/
 AGENTE_RUN=/usr/local/libexec/dtd-agente-run
 SUDO=(sudo -n -u)
 ACL=(setfacl)
+TRABAJO=/srv/oficina/trabajo
 MINUTOS_VIDA=180
+
+# Paperclip arranca el motor con cwd en /srv/oficina/trabajo/<perfil>, que escriben los GLM: las rutas
+# relativas se resuelven desde /, para que un archivo creado ahí no se confunda con un argumento.
+cd /
 
 herramienta="${1:-}"
 shift || true
@@ -31,8 +36,21 @@ esac
 base="$RAIZ_STAGING/$perfil"
 [ -d "$base" ] || { echo "dtd-motor: falta $base" >&2; exit 65; }
 
-# Prefijo protegido ya resuelto, para comparar contra rutas resueltas.
+# Prefijos ya resueltos, para comparar contra rutas resueltas.
 protegido_real="$(realpath -m -- "$PROTEGIDO")/"
+trabajo_real="$(realpath -m -- "$TRABAJO")"
+
+# Ningún argumento puede llevar al motor a la carpeta de los GLM: Claude cargaría de ahí hooks,
+# settings o skills (--settings, --add-dir, --plugin-dir...) con el token de Sam.
+de_los_glm() {
+  local real
+  [ -e "$1" ] || [ -L "$1" ] || return 1
+  real="$(realpath -m -- "$1")"
+  case "$real" in
+    "$trabajo_real"|"$trabajo_real"/*) return 0 ;;
+  esac
+  return 1
+}
 
 # Lo único que se copia, relativo a la casa de agentes (Paperclip 2026.1012.0, medido el 2026-11-07):
 # - el paquete de instrucciones y skills de Claude: companies/<id>/claude-prompt-cache/<sha>;
@@ -87,6 +105,10 @@ while [ "$i" -lt "${#pendientes[@]}" ]; do
   esac
   if protegida "$candidato" && ! revisar "$candidato"; then
     echo "dtd-motor: ruta protegida fuera de la lista: $candidato" >&2
+    exit 66
+  fi
+  if de_los_glm "$candidato"; then
+    echo "dtd-motor: ruta en la carpeta de los GLM: $candidato" >&2
     exit 66
   fi
 done

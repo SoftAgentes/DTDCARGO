@@ -80,7 +80,7 @@ class Base(unittest.TestCase):
         puestas = {l[4:] for l in lineas if l.startswith("SET ")}
         return args, env, puestas
 
-    def correr(self, script, args, env_extra=None):
+    def correr(self, script, args, env_extra=None, cwd=None):
         env = {
             "PATH": os.environ.get("PATH", ""),
             "SALIDA_FALSA": _barra(self.salida),
@@ -93,6 +93,7 @@ class Base(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=60,
+            cwd=cwd,
         )
 
 
@@ -106,6 +107,9 @@ class Motor(Base):
         self.staging = self.tmp / "staging"
         for perfil in ("ceo", "auxiliar"):
             (self.staging / perfil).mkdir(parents=True)
+        # La carpeta que escriben los GLM, y el cwd que Paperclip le da al motor.
+        self.trabajo_glm = self.tmp / "trabajo"
+        (self.trabajo_glm / "ceo").mkdir(parents=True)
         self.usuario = self.tmp / "usuario.txt"
         self.sudo = self.bin / "sudo-falso"
         self.sudo.write_text(
@@ -126,6 +130,7 @@ class Motor(Base):
             "AGENTE_RUN=/usr/local/libexec/dtd-agente-run": f"AGENTE_RUN={_barra(agente_run)}",
             "SUDO=(sudo -n -u)": f"SUDO=({_barra(self.sudo)})",
             "ACL=(setfacl)": f"ACL=({_barra(self.acl)})",
+            "TRABAJO=/srv/oficina/trabajo": f"TRABAJO={_barra(self.trabajo_glm)}",
         }
         for viejo, nuevo in reemplazos.items():
             self.assertIn(viejo, texto, f"falta la constante {viejo!r} en dtd-motor")
@@ -357,6 +362,46 @@ class Motor(Base):
         enlace = self.instrucciones().parent / "AGENTS-enlace.md"
         os.symlink(self.secreto(), enlace)
         self.rechazada(["--append-system-prompt-file", _barra(enlace)])
+
+    # Decisión del DG (2026-11-07): ningún argumento puede apuntar a /srv/oficina/trabajo, que
+    # escriben los GLM; Claude cargaría de ahí hooks, settings o skills y se reabriría la ALTA.
+    def glm(self, rel="ceo/.claude/settings.json"):
+        f = self.trabajo_glm / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("{}")
+        return f
+
+    def test_argumento_bajo_la_carpeta_de_los_glm_no_corre(self):
+        f = self.glm()
+        for args in (
+            ["--settings", _barra(f)],
+            [f"--settings={_barra(f)}"],
+            ["--add-dir", _barra(f.parent)],
+            [f"--plugin-dir={_barra(self.trabajo_glm / 'ceo')}"],
+            [_barra(self.trabajo_glm)],
+        ):
+            with self.subTest(args=args):
+                self.rechazada(args)
+
+    def test_puntos_hacia_la_carpeta_de_los_glm_no_corren(self):
+        self.glm()
+        self.rechazada(["--add-dir", _barra(self.staging / "ceo") + "/../../trabajo/ceo/.claude"])
+
+    def test_enlace_hacia_la_carpeta_de_los_glm_no_corre(self):
+        if not POSIX:
+            self.skipTest("los enlaces simbólicos se prueban en Linux")
+        enlace = self.tmp / "parece-inocente"
+        os.symlink(self.glm().parent, enlace)
+        self.rechazada(["--add-dir", _barra(enlace)])
+
+    def test_rutas_relativas_no_se_leen_desde_la_carpeta_de_los_glm(self):
+        # Paperclip arranca el motor con cwd en trabajo/ceo: un GLM podría crear ahí un archivo
+        # llamado como un argumento («high») y bloquear a ALFRED. Las relativas se ven desde /.
+        self.glm("ceo/high")
+        r = self.correr(self.script, ["claude", "--effort", "high"], {"DTD_PERFIL": "ceo"},
+                        cwd=str(self.trabajo_glm / "ceo"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["claude", "--effort", "high"])
 
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"
@@ -621,9 +666,14 @@ class Archivos(unittest.TestCase):
 
     def test_no_se_promete_ocultar_procesos(self):
         # Sin hidepid en /proc, cualquier usuario ve los procesos y sus argumentos.
-        for nombre in ("dtd-motor", "README.md"):
-            with self.subTest(nombre=nombre):
-                self.assertNotRegex((RAIZ / nombre).read_text(), r"(?i)ni (ver )?(sus|los) procesos")
+        # La spec se busca desde estas pruebas (los mutantes copian solo los envoltorios).
+        spec = AQUI.parents[3] / "docs/specs/0615-oficina-motores-claude-codex/spec.md"
+        self.assertTrue(spec.exists(), spec)
+        for ruta in (RAIZ / "dtd-motor", RAIZ / "README.md", spec):
+            with self.subTest(ruta=ruta.name):
+                texto = ruta.read_text(encoding="utf-8")
+                self.assertNotRegex(texto, r"(?i)ni (ver )?(sus|los) procesos")
+                self.assertNotRegex(texto, r"(?i)no (puede|pueden) ver (sus|los) procesos")
 
     def test_dtd_claude_y_dtd_codex_solo_llaman_al_motor(self):
         for nombre, herramienta in (("dtd-claude", "claude"), ("dtd-codex", "codex")):
