@@ -12,7 +12,7 @@ Diseño en borrador de 6.6, sin código de producto, para que lo revise el Direc
 
 ## Qué quedó
 
-- La spec completa: nueve piezas (R1 a R9), dos migraciones descritas (A y B, §3), allowlist por tramo (S0, M y S1 a S5, §5), revisar-datos-ve con el mapa de borrado del teléfono (§6 y §6.1), gobernanza (§7), pruebas (§8), aceptación (§9), reestimación contra la línea base v3 (§10), **las 12 decisiones de Sam cerradas con su cita, P-1 a P-12 del Director General** (§11), fuera de alcance (§12) y textos públicos propuestos T1 a T3 (§14).
+- La spec completa: nueve piezas (R1 a R9), dos migraciones descritas (A y B, §3), allowlist por tramo (S0, M y S1 a S5, §5), revisar-datos-ve con el mapa de borrado del teléfono (§6 y §6.1), gobernanza (§7), pruebas (§8), aceptación (§9), reestimación contra la línea base v3 (§10), **las 12 decisiones de Sam cerradas con su cita, P-1 a P-13 del Director General** (§11), fuera de alcance (§12) y textos públicos T1 a T3 (§14), aprobados por Sam el 2026-11-07.
 - Índice `docs/specs/README.md` regenerado.
 - **Sin código de producto, sin migración escrita, sin producción y sin preguntas a Sam.** Las respuestas de Sam llegaron por el Director General.
 
@@ -57,7 +57,8 @@ Registro literal: `respuestas-18-preguntas-20261106.md`, en las notas compartida
 - P-10 cerrada por Sam el 2026-11-07 a las 03:56Z, traída por el Director General: «Sí, se queda». La guía de la SDD-0589 queda fuera de S0 como invariante comprobable (spec §2.1, §5, §8, §9): ningún archivo de la guía en el diff de S0, y una prueba nueva (`crm/__tests__/guia-se-queda.test.ts`) que exige el montaje de `GuiaStudio`, con mutante, y que `/studio/crm` abra Embudos. Sin cambio de estimación.
 - **Abierta, P-13** (2026-11-07, inferida del código de la #408 `836edcd18`): con Resumen por defecto en S3, el recorrido Embudo de la guía no encuentra sus anclas en `/studio/crm` y no abre. Se decide con la SDD-0589 antes de S3; 6.6 no toca la guía.
 - La #401 está congelada en `8958ca951`: los commits de P-10 en adelante quedan locales hasta que el Subdirector diga que se publica.
-- Sam decide aparte (§11): aprobar T1 a T3; encender crons; aplicar A y B; rellenar teléfonos; retención de Chatwoot; base de licitud de T3. Retirar Kommo (lectura diaria del espejo, webhook, tablas y código oculto) es de E8, fuera de esta SDD.
+- T1 a T3 aprobados por Sam el 2026-11-07 a las 03:59Z, traídos por el Director General: «Apruebo los tres», con el SMS de T3. El texto no cambió (huellas sha256 iguales a las de `8958ca951`). Si cambia una palabra, vuelve al Director General antes. Se publican antes de la migración B, por PR y tanda con el OK del Director General.
+- Sam decide aparte (§11): encender crons; aplicar A y B; rellenar teléfonos; retención de Chatwoot; base de licitud de T3. Retirar Kommo (lectura diaria del espejo, webhook, tablas y código oculto) es de E8, fuera de esta SDD.
 - El código va en PR en serie contra `main`: PR 0 (S0), PR A (S1 + S2), PR B (S3 + S4) y PR C (S5). Los números de la A (que lleva también el nombre «Recontacto») y de la B los reserva el Director General; cada una se aplica solo con el OK nominal de Sam.
 - La fila 6.6 del checklist no se tocó: sigue «pendiente». Al integrar, conviene que su columna de evidencia apunte a la SDD-0614.
 

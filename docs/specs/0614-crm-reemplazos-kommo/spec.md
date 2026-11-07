@@ -16,8 +16,9 @@ confidencialidad: interno
 > **Diseño en borrador, sin código de producto.** Esta SDD no escribe migraciones, no toca
 > producción, Kommo, Meta, el VPS ni Chatwoot. La revisa el Director General antes de que exista
 > código. **Sam cerró las 12 decisiones y dos temas extra el 2026-11-06** (§11, con su cita); el
-> diseño ya las incorpora. Lo que Sam decide aparte (apagar envíos a Kommo, borrar sus tablas,
-> textos públicos, encender crons) está marcado así y no lo autoriza esta SDD.
+> diseño ya las incorpora. Lo que Sam decide aparte (retirar Kommo en E8, borrar sus tablas,
+> aplicar las migraciones, encender crons) está marcado así y no lo autoriza esta SDD. Los textos
+> públicos de §14 los aprobó el 2026-11-07; publicarlos lleva su PR y su OK.
 
 Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [fila 6.6](../0582-chatwoot-piloto/checklist.md) ·
 contrato de E6: [SDD-0587](../0587-chatwoot-contrato-sistema-maestro/spec.md) (6.1 a 6.4, aceptados).
@@ -696,8 +697,8 @@ retención es la de D-6.6-9 (a). Se anota en la 0587 con una línea que apunta a
 - `crm_mover_por_estimado` redefinida desde la A: pone el teléfono del estimado web en la tarjeta sin
   ficha que no lo tiene (`coalesce`);
 - **número reservado por el Director General.** Aplicarla pide el **OK nominal de Sam** y el
-  runbook de producción, y va **después** de que el texto nuevo de `/privacidad` (§14, T1 a T3) esté
-  aprobado por Sam y publicado: antes, el sistema no puede empezar a guardar el teléfono completo,
+  runbook de producción, y va **después** de que el texto nuevo de `/privacidad` (§14, T1 a T3,
+  aprobados el 2026-11-07) esté publicado: antes, el sistema no puede empezar a guardar el teléfono completo,
   porque la política diría otra cosa. El preflight exige la A.
 
 **Recuperación sobre las tarjetas** (reemplaza la de Kommo que S0 oculta, H13). Hace lo mismo que la
@@ -873,7 +874,7 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 - `lib/studio/crm-estimado.ts` (el teléfono del estimado web)
 - `lib/studio/crm-recuperacion.ts` (nuevo), `app/studio/(app)/crm/_components/CrmRecuperacionSlot.tsx` y `CrmRecuperacion.tsx` (nuevos), `kommo-tabs.shared.ts` (la pestaña), `app/studio/(app)/crm/tarjeta-actions.ts` (CSV solo admin y «No volver a escribir»)
 - `app/studio/(app)/crm/_components/TarjetaFichaDrawer.tsx` (el teléfono y el botón «No volver a escribir») y `lib/studio/crm-ficha.ts`
-- `app/privacidad/page.tsx`: **solo** los textos T1 a T3 de §14, tal como Sam los apruebe, y su fecha de actualización. Se publica **antes** de aplicar la migración B
+- `app/privacidad/page.tsx`: **solo** los textos T1 a T3 de §14, aprobados el 2026-11-07 y sin cambiar una palabra, y su fecha de actualización. Se publica **antes** de aplicar la migración B
 - Pruebas: `lib/studio/__tests__/crm-recuperacion.test.ts`, `app/studio/(app)/crm/_components/CrmRecuperacion.test.tsx`, `lib/studio/chatwoot/__tests__/webhook-events.test.ts` y `entrada-leads.test.ts` (el teléfono no sale a logs ni a avisos), `lib/studio/rbac-actions-guard.test.ts`
 
 **En todos los tramos:** esta spec, `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 6.6 y las
@@ -916,7 +917,7 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Se eval�
 | 4 | Derechos | ENCONTRADO | Un lead sin ficha no tiene cómo pedir que se borre su tarjeta antes de los 12 meses: la anonimización solo la corre `service_role` y nada la llama (`0506_crm_modelo.sql:759`; `git grep` sin llamadas). **Arreglo:** «Anonimizar ahora» (§2.7 d) |
 | 5 | Borrado | ENCONTRADO | La anonimización por plazo no está agendada y solo mira a quien está en «Perdido» y sin ficha (`0506_crm_modelo.sql:768-774`): el registrado que nunca envió nada conserva para siempre en su tarjeta el contacto del chat, el BSUID, las notas y las tareas. **Arreglo:** cron diario con D-6.6-9 (a), que nace apagado y lo enciende Sam (§2.7 c). Chatwoot conserva contacto y conversación sin plazo (0587 §14.3, punto 8): el diálogo lo dice. La prueba de borrado con un valor rastreable se propone para prueba (§8), no para producción |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Hoy no hay camino que registrar. El diseño deja `crm_tarjeta_anonymized` con quién y el motivo de la lista |
-| 7 | Política pública | ENCONTRADO | `/privacidad` promete anonimizar a los 12 meses sin actividad a quien «no llegaste a ser cliente» (`app/privacidad/page.tsx:345-349`) y borrar el BSUID al año (`:352-354`); nada lo hace hoy, y el predicado de la 0506 deja fuera al registrado sin envíos. Sam eligió D-6.6-9 (a), que **con el cron encendido** deja ese texto cierto sin cambiarlo. **R9 sí obliga a cambiar el texto:** la lista de datos dice que de quien no es cliente se guardan «los últimos 10 dígitos de tu teléfono» (`:64`), y la de finalidades no dice que le volvamos a escribir (`:183-224`). Textos propuestos en §14 (T1 a T3), sin publicar hasta el OK de Sam palabra por palabra |
+| 7 | Política pública | ENCONTRADO | `/privacidad` promete anonimizar a los 12 meses sin actividad a quien «no llegaste a ser cliente» (`app/privacidad/page.tsx:345-349`) y borrar el BSUID al año (`:352-354`); nada lo hace hoy, y el predicado de la 0506 deja fuera al registrado sin envíos. Sam eligió D-6.6-9 (a), que **con el cron encendido** deja ese texto cierto sin cambiarlo. **R9 sí obliga a cambiar el texto:** la lista de datos dice que de quien no es cliente se guardan «los últimos 10 dígitos de tu teléfono» (`:64`), y la de finalidades no dice que le volvamos a escribir (`:183-224`). Textos en §14 (T1 a T3), aprobados por Sam el 2026-11-07 y sin publicar: lo dejan cierto al publicarse, antes de la migración B |
 | 8 | Terceros | NO VERIFICABLE | Studio no escribe en Chatwoot (0587 §5.1) y 6.6 tampoco. El aviso sale por los servicios de push del navegador (`web-push`, `package.json:85`); que el contenido viaje cifrado de punta a punta no se leyó aquí. Por eso el aviso no lleva datos de la persona |
 | 9 | Transferencia internacional | NO VERIFICABLE | Todo queda en la base de DTD. El CRM solo lo ven admin y comercial (`rbac.ts:99`); si alguno trabaja desde China aplicaría la PIPL, y eso no se ve en el código |
 | 10 | Decisiones automatizadas | CORRECTO | Los movimientos solos cambian la etapa y el aviso es interno: nada niega servicio ni escribe al cliente (D8 de la 0587) |
@@ -1046,8 +1047,8 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
 - [ ] R8: el lead que vuelve tras 30 días pasa a «Recontacto» o recibe la marca y la tarea, según
   §2.9; la etapa se llama «Recontacto» y su clave sigue igual.
 - [ ] R9: el teléfono completo se guarda solo sin ficha, se va al ligar y al anonimizar, y no sale a
-  logs, avisos ni auditoría; Recuperación lista los dos grupos y el CSV es solo de admin; T1 a T3
-  estaban publicados antes de aplicar la migración B.
+  logs, avisos ni auditoría; Recuperación lista los dos grupos y el CSV es solo de admin; T1 a T3,
+  aprobados el 2026-11-07, estaban publicados antes de aplicar la migración B.
 - [ ] Las definiciones D-SA y D-AUD (§2.8) son las mismas que cita la SDD-0586 §10.5.
 - [ ] Contrato SQL, control rojo y mutantes en verde; `pnpm verify` de cada tramo con su resultado
   por paso.
@@ -1140,7 +1141,8 @@ extracción del historial de Kommo sigue, porque es parte de la migración a Cha
 
 - retirar Kommo en E8, fuera de esta SDD: la lectura diaria del espejo y el webhook, las tablas y
   columnas (8.9 a 8.11) y el código que S0 deja oculto (8.7);
-- aprobar los textos públicos T1 a T3 de §14, palabra por palabra;
+- ~~aprobar los textos públicos T1 a T3 de §14, palabra por palabra~~ **cumplido el 2026-11-07**
+  (03:59Z, «Apruebo los tres», traído por el Director General). Publicarlos sigue con su OK (§12);
 - encender cada cron (`CRM_CAMBIOS_TABLERO`, `CRM_RETENCION`, `CRM_AVISO_VENTANA`), después de
   publicar y de probar en prueba (§2.7 c); la retención, antes del 2027-11-04;
 - aplicar la migración A y la B, cada una con su OK nominal;
@@ -1234,10 +1236,17 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   La guía de la SDD-0589 queda fuera de S0 como invariante comprobable (§2.1, §5, §8, §9). Al
   medirlo apareció P-13 (la guía y Resumen por defecto en S3), abierta. No cambia ninguna
   estimación.
+- **2026-11-07:** Sam aprobó T1, T2 y T3 de §14 a las 03:59Z, traídos por el Director General:
+  «Apruebo los tres». T3 queda con «o por mensaje de texto (SMS)». El texto de cada uno no cambió:
+  sus huellas sha256, con los saltos de línea unidos por un espacio, son las mismas que en
+  `8958ca951`. Siguen sin publicar; se publican antes de aplicar la migración B, por PR y tanda con
+  el OK del Director General. No cambia ninguna estimación.
 
-## 14. Textos públicos propuestos (no se publican sin el OK de Sam)
+## 14. Textos públicos aprobados por Sam (se publican por PR y tanda, con el OK del Director General)
 
-Para quien solo consultó, por R9 (D-6.6-8 = b). **Sam los aprueba palabra por palabra.** Van en la
+Para quien solo consultó, por R9 (D-6.6-8 = b). **Sam los aprobó palabra por palabra el 2026-11-07
+a las 03:59Z**, traídos por el Director General: «Apruebo los tres». Si cambia una sola palabra de
+cualquiera de los tres, vuelve al Director General antes. Van en la
 PR C (S5), junto con la fecha `UPDATED` de la página (`app/privacidad/page.tsx:39`), y se publican
 **antes** de aplicar la migración B. Pasan por revisar-datos-ve (§6) y no son asesoría legal.
 Ninguno está publicado.
@@ -1247,7 +1256,7 @@ Ninguno está publicado.
 
 - Hoy: «Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, los últimos 10
   dígitos de tu teléfono para dar seguimiento a tu consulta.»
-- Propuesto: «Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, tu número
+- Aprobado (Sam, 2026-11-07 03:59Z, traído por el DG): «Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, tu número
   de teléfono completo para dar seguimiento a tu consulta y, si no llegas a contratar, para volver
   a escribirte más adelante.»
 
@@ -1255,7 +1264,7 @@ Ninguno está publicado.
 
 - Hoy: «Datos del envío (tipo de carga, volumen/peso, origen-destino) y el contacto que dejas para
   enviarte el estimado (EST-XXXX).»
-- Propuesto: «Datos del envío (tipo de carga, volumen/peso, origen-destino) y el contacto que dejas
+- Aprobado (Sam, 2026-11-07 03:59Z, traído por el DG): «Datos del envío (tipo de carga, volumen/peso, origen-destino) y el contacto que dejas
   para enviarte el estimado (EST-XXXX). Si todavía no eres cliente, también guardamos tu nombre y tu
   teléfono para dar seguimiento a tu estimado.»
 
@@ -1263,7 +1272,7 @@ Ninguno está publicado.
 mensajes por WhatsApp y chat» (`:194-200`).
 
 - Hoy: no existe.
-- Propuesto: «**Retomar tu consulta:** si nos escribiste o pediste un estimado y no llegaste a
+- Aprobado (Sam, 2026-11-07 03:59Z, traído por el DG): «**Retomar tu consulta:** si nos escribiste o pediste un estimado y no llegaste a
   contratar, podemos escribirte más adelante por WhatsApp o por mensaje de texto (SMS) para
   retomarla. Si no quieres que te volvamos a escribir, dínoslo por el mismo chat o por los medios de
   la sección 11, y no te escribimos más. También puedes pedirnos que borremos tus datos de
@@ -1283,3 +1292,8 @@ cerrada», así que hace al menos lo que promete (**I**).
   «identificadores del chat» (§6.1). Los textos de arriba no lo arreglan.
 - **«Por mensaje de texto (SMS)»** sale de la Recuperación de hoy, que exporta un CSV para SMS
   (`lib/studio/kommo-recovery.ts:1-4`). Si DTD ya no manda SMS, se quita de T3.
+
+Sam aprobó los tres textos el 2026-11-07, después de ver estos tres puntos en el mismo mensaje, y
+aprobó T3 con «o por mensaje de texto (SMS)», sin quitarlo. La base de T3 y la retención de Chatwoot
+siguen en «Lo que Sam decide aparte» (§11). La del SMS no estaba en esa lista: quedó resuelta al
+aprobar T3 tal cual.
