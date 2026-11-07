@@ -21,16 +21,65 @@ import { hasI18nKey, useT } from "@/lib/i18n";
 import { crearAlmacenLocal, type GuiaAlmacen } from "@/lib/studio/guia/almacen";
 import { contador, pasoAnterior, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
 import { colocarTarjeta, type Caja } from "@/lib/studio/guia/posicion";
+import { ARRANQUE_AUTOMATICO, type ModoArranque } from "@/lib/studio/guia/preferencias";
 import { buscarRecorrido, RECORRIDOS, rutaCoincide } from "@/lib/studio/guia/recorridos";
 import { esAnclaValida, textoDe, type GuiaRecorrido } from "@/lib/studio/guia/tipos";
 import { GuiaTarjeta } from "./GuiaTarjeta";
 
 export const EVENTO_GUIA = "dtd:guia";
 
+/**
+ * Quién pidió abrir (9.3):
+ * - `auto`: la primera vez en la pantalla; el primer paso ofrece «No volver a mostrar».
+ * - `boton`: el usuario; si dejó la guía a medias, sigue donde quedó.
+ * - `url`: `?guia=<id>`; siempre desde el primer paso.
+ * - `programa`: `iniciarGuia(id)` sin origen, desde el código; desde el primer paso,
+ *   o desde `desde`, como en 9.2.
+ */
+export type OrigenGuia = "auto" | "boton" | "url" | "programa";
+
+export interface OpcionesGuia {
+  /** Paso donde abrir, si su ancla está; si no, el primero presente. */
+  desde?: string;
+  origen?: OrigenGuia;
+}
+
 /** Pide al motor montado que abra un recorrido de la pantalla actual. */
-export function iniciarGuia(recorridoId: string): void {
+export function iniciarGuia(recorridoId: string, opciones: OpcionesGuia = {}): void {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(EVENTO_GUIA, { detail: { id: recorridoId } }));
+  window.dispatchEvent(
+    new CustomEvent(EVENTO_GUIA, {
+      detail: { id: recorridoId, desde: opciones.desde, origen: opciones.origen ?? "programa" },
+    }),
+  );
+}
+
+/** Pide al motor montado que cierre la guía abierta (el botón «Guía» la alterna). */
+export function cerrarGuia(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(EVENTO_GUIA, { detail: { cerrar: true } }));
+}
+
+// Si hay una guía abierta, para el `aria-pressed` del botón. Un almacén mínimo
+// fuera de React: el motor lo escribe y el botón lo lee.
+let guiaAbierta = false;
+const oyentesAbierta = new Set<() => void>();
+
+function fijarGuiaAbierta(valor: boolean): void {
+  if (guiaAbierta === valor) return;
+  guiaAbierta = valor;
+  for (const avisar of oyentesAbierta) avisar();
+}
+
+export function useGuiaAbierta(): boolean {
+  return useSyncExternalStore(
+    (avisar) => {
+      oyentesAbierta.add(avisar);
+      return () => oyentesAbierta.delete(avisar);
+    },
+    () => guiaAbierta,
+    () => false,
+  );
 }
 
 /** Elemento visible con `data-guia` = ancla, o `null`. Nunca lanza. */
@@ -73,6 +122,9 @@ interface Activo {
   indice: number;
   /** Ruta donde se abrió: cambiar de pantalla cierra la guía. */
   ruta: string;
+  origen: OrigenGuia;
+  /** Abrió en un paso guardado: la tarjeta ofrece «Ver la guía desde el principio». */
+  reanudado: boolean;
 }
 
 interface Geometria {
@@ -84,10 +136,19 @@ interface Geometria {
 export function GuiaMotor({
   catalogo = RECORRIDOS,
   almacen,
+  autoArranque = false,
+  modoArranque = ARRANQUE_AUTOMATICO,
 }: {
   catalogo?: readonly GuiaRecorrido[];
   /** 9.3 inyecta aquí el almacén por usuario. */
   almacen?: GuiaAlmacen;
+  /**
+   * Abre sola la primera vez (9.3). Solo con estado de la base: sin él no se sabe si
+   * la persona ya la vio en otro equipo, y la guía no le aparece a nadie de golpe.
+   */
+  autoArranque?: boolean;
+  /** S-6, pendiente de Sam: ver `ARRANQUE_AUTOMATICO`. */
+  modoArranque?: ModoArranque;
 } = {}) {
   const t = useT();
   const pathname = usePathname() ?? "";
@@ -131,33 +192,64 @@ export function GuiaMotor({
     },
     [activo, obtenerAlmacen, t],
   );
+  // El oyente del evento vive fuera del render: lee lo último por referencia.
+  const cerrarRef = useRef(cerrar);
+  const activoRef = useRef(activo);
+  useLayoutEffect(() => {
+    cerrarRef.current = cerrar;
+    activoRef.current = activo;
+  });
+
+  // El botón «Guía» lee si hay una guía abierta.
+  useEffect(() => {
+    fijarGuiaAbierta(activo !== null);
+  }, [activo]);
+  useEffect(() => () => fijarGuiaAbierta(false), []);
 
   /** Intenta abrir; devuelve false si el recorrido no aplica o no hay anclas. */
   const intentarAbrir = useCallback(
-    (id: string): boolean => {
+    (id: string, opciones: OpcionesGuia): boolean => {
       const recorrido = buscarRecorrido(id, catalogo);
       if (!recorrido || !rutaCoincide(recorrido, pathname)) return false;
-      const indice = primerPaso(recorrido.pasos, existeAncla);
-      if (indice === null) return false;
+      const primero = primerPaso(recorrido.pasos, existeAncla);
+      if (primero === null) return false;
+      const origen = opciones.origen ?? "programa";
+      const almacenActual = obtenerAlmacen();
+
+      // El botón sigue donde quedó una guía a medias; la URL y el arranque automático no.
+      let desde = opciones.desde;
+      if (!desde && origen === "boton") {
+        const previo = almacenActual.leer(recorrido.id);
+        if (previo && !previo.terminado && previo.pasoId) desde = previo.pasoId;
+      }
+      let indice = primero;
+      if (desde) {
+        const j = recorrido.pasos.findIndex((p) => p.id === desde);
+        if (j > primero && existeAncla(recorrido.pasos[j].ancla)) indice = j;
+      }
+
+      // La primera vez queda anotada al abrir, antes de pintar: recargar no la repite.
+      if (origen === "auto") almacenActual.guardar(recorrido.id, { vistoEn: new Date().toISOString() });
+
       const enfocado = document.activeElement;
       if (!tarjetaRef.current?.contains(enfocado)) {
         focoPrevio.current = enfocado instanceof HTMLElement ? enfocado : null;
       }
       enfocarAlAbrir.current = true;
-      setActivo({ recorrido, indice, ruta: pathname });
+      setActivo({ recorrido, indice, ruta: pathname, origen, reanudado: indice !== primero });
       return true;
     },
-    [catalogo, pathname],
+    [catalogo, pathname, obtenerAlmacen],
   );
 
   /** Abre con reintentos cortos: un ancla puede pintarse después del motor. */
   const abrirCuandoHaya = useCallback(
-    (id: string) => {
+    (id: string, opciones: OpcionesGuia) => {
       let intentos = 0;
       let timer: ReturnType<typeof setTimeout> | null = null;
       const probar = () => {
         timer = null;
-        if (intentarAbrir(id)) return;
+        if (intentarAbrir(id, opciones)) return;
         intentos += 1;
         if (intentos < REINTENTOS) timer = setTimeout(probar, ESPERA_MS);
       };
@@ -172,17 +264,41 @@ export function GuiaMotor({
   // Arranque por URL.
   useEffect(() => {
     if (!pedidoUrl) return;
-    return abrirCuandoHaya(pedidoUrl);
+    return abrirCuandoHaya(pedidoUrl, { origen: "url" });
   }, [pedidoUrl, abrirCuandoHaya]);
 
-  // Arranque programático.
+  // Arranque automático (9.3): la primera vez en la pantalla, si nunca la vio.
+  // Con `por_pantalla` cuenta cada recorrido; con `una_vez`, cualquiera visto basta.
+  useEffect(() => {
+    if (!autoArranque || pedidoUrl) return;
+    const recorrido = catalogo.find((r) => rutaCoincide(r, pathname));
+    if (!recorrido) return;
+    const almacenActual = obtenerAlmacen();
+    if (almacenActual.leer(recorrido.id)) return;
+    if (modoArranque === "una_vez" && catalogo.some((r) => almacenActual.leer(r.id))) return;
+    return abrirCuandoHaya(recorrido.id, { origen: "auto" });
+  }, [autoArranque, modoArranque, pedidoUrl, pathname, catalogo, obtenerAlmacen, abrirCuandoHaya]);
+
+  // Arranque y cierre programáticos.
   useEffect(() => {
     let cancelar: (() => void) | null = null;
     const onEvento = (e: Event) => {
-      const id = (e as CustomEvent<{ id?: unknown }>).detail?.id;
+      const detalle = (e as CustomEvent<{ id?: unknown; desde?: unknown; origen?: unknown; cerrar?: unknown }>).detail;
+      if (detalle?.cerrar === true) {
+        cancelar?.();
+        cancelar = null;
+        if (activoRef.current) cerrarRef.current(false);
+        return;
+      }
+      const id = detalle?.id;
       if (typeof id !== "string") return;
+      const origen: OrigenGuia =
+        detalle?.origen === "auto" || detalle?.origen === "url" || detalle?.origen === "boton"
+          ? detalle.origen
+          : "programa";
+      const desde = typeof detalle?.desde === "string" ? detalle.desde : undefined;
       cancelar?.();
-      cancelar = abrirCuandoHaya(id);
+      cancelar = abrirCuandoHaya(id, { origen, desde });
     };
     window.addEventListener(EVENTO_GUIA, onEvento);
     return () => {
@@ -271,6 +387,20 @@ export function GuiaMotor({
     if (j !== null) setActivo({ ...activo, indice: j });
   }, [activo]);
 
+  /** «No volver a mostrar»: apaga el arranque automático de esta pantalla, no el botón. */
+  const noMostrar = useCallback(() => {
+    if (!activo) return;
+    obtenerAlmacen().guardar(activo.recorrido.id, { noMostrar: true });
+    cerrar(false);
+  }, [activo, obtenerAlmacen, cerrar]);
+
+  /** «Ver la guía desde el principio». */
+  const desdeElPrincipio = useCallback(() => {
+    if (!activo) return;
+    const primero = primerPaso(activo.recorrido.pasos, existeAncla);
+    if (primero !== null) setActivo({ ...activo, indice: primero, reanudado: false });
+  }, [activo]);
+
   const posicion = activo ? contador(activo.recorrido.pasos, activo.indice, existeAncla) : null;
   const anuncio =
     pasoActual && posicion
@@ -334,6 +464,10 @@ export function GuiaMotor({
         onSiguiente={siguiente}
         onAnterior={anterior}
         onCerrar={() => cerrar(false)}
+        onNoMostrar={
+          activo.origen === "auto" && activo.indice === primerPaso(pasos, existeAncla) ? noMostrar : undefined
+        }
+        onDesdeElPrincipio={activo.reanudado ? desdeElPrincipio : undefined}
       />
     </>
   );
