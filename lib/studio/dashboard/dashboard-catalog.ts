@@ -11,6 +11,8 @@
  *   · `source`  → qué bundle de datos server-side alimenta el KPI (para fetchear
  *                 en paralelo solo lo accesible).
  *   · `status`  → 'ready' (tiene query real) | 'wip' (aún sin query → muestra "—").
+ *   · `oculto`  → (SDD-0614 S0b) el KPI sigue en el catálogo pero no se ofrece,
+ *                 no se pinta ni se pide su fuente. Hoy: el de leads de Kommo.
  *
  * Data PURA: sin React, sin server-only. La importa tanto el server component
  * (page.tsx) como el cliente (editor) — igual que rbac.ts.
@@ -42,6 +44,12 @@ export type KpiCatalogEntry = {
   module: string | null;
   source: KpiSource;
   status: "ready" | "wip";
+  /**
+   * SDD-0614 S0b (D-6.6-1): oculto del Studio sin borrarlo. Lo filtran
+   * `validateDashboardConfigInput` y `accessibleCatalog`, así que tampoco se pide
+   * su fuente de datos.
+   */
+  oculto?: true;
 };
 
 export type ChartPeriod = "1M" | "3M" | "1A" | "YTD";
@@ -62,7 +70,8 @@ export const KPI_CATALOG: readonly KpiCatalogEntry[] = [
   { id: "marginYTD",       label: "Margen sobre embarques", icon: "chart",     tone: "wine",    cat: "Finanzas",  module: "costing",  source: "finance",     status: "ready" },
   { id: "pendingCollect",  label: "Por cobrar",             icon: "invoice",   tone: "info",    cat: "Finanzas",  module: "invoices", source: "finance",     status: "ready" },
   // ─── Comercial ───────────────────────────────────────────────
-  { id: "newLeads",        label: "Leads en pipeline",      icon: "spark",     tone: "info",    cat: "Comercial", module: "kommo",    source: "leads",       status: "ready" },
+  // SDD-0614 S0b: sale del espejo `kommo_leads`; Kommo está oculto del Studio hasta la migración completa.
+  { id: "newLeads",        label: "Leads en pipeline",      icon: "spark",     tone: "info",    cat: "Comercial", module: "kommo",    source: "leads",       status: "ready", oculto: true },
   { id: "wonEstimados",    label: "Estimados aceptados (mes)", icon: "check",  tone: "success", cat: "Comercial", module: "quotes",   source: "quotes",      status: "ready" },
   { id: "activeClients",   label: "Clientes",               icon: "users",     tone: "neutral", cat: "Comercial", module: "clients",  source: "clients",     status: "ready" },
   { id: "avgTicket",       label: "Ticket promedio",        icon: "tag",       tone: "wine",    cat: "Comercial", module: "invoices", source: "finance",     status: "ready" },

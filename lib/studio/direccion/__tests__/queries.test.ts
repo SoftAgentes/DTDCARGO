@@ -28,6 +28,7 @@ import {
   deriveAlerts,
   firstOfMonth,
   getDireccionData,
+  resumenComercialKommo,
   textosFinancieros,
   type ForecastBill,
 } from "../queries";
@@ -303,11 +304,33 @@ function makeClient(opts: {
   } as unknown as SupabaseClient;
 }
 
+/**
+ * Envuelve un cliente de prueba y anota cada tabla que se consulta. Sirve para
+ * afirmar que una lectura NO ocurre (SDD-0614 S0b: `kommo_leads`).
+ */
+function registrarTablas(cliente: SupabaseClient): { client: SupabaseClient; leidas: string[] } {
+  const leidas: string[] = [];
+  const base = cliente as unknown as {
+    from: (t: string) => unknown;
+    rpc: (fn: string) => unknown;
+  };
+  return {
+    leidas,
+    client: {
+      from: (t: string) => {
+        leidas.push(t);
+        return base.from(t);
+      },
+      rpc: (fn: string) => base.rpc(fn),
+    } as unknown as SupabaseClient,
+  };
+}
+
 describe("getDireccionData — composición (smoke)", () => {
   const today = "2026-06-03";
 
   it("compone finanzas, salud, operación, comercial, forecast y alertas", async () => {
-    const client = makeClient({
+    const base = makeClient({
       tables: {
         // Plan de cuentas: ingreso (4), ventas (4.5, la que acredita la
         // factura), caja (1.1.1).
@@ -373,7 +396,8 @@ describe("getDireccionData — composición (smoke)", () => {
         consolidation_items: { data: [] },
         shipments: { data: [] },
         sailings: { count: 2, data: [{ id: "s1", tenant_id: "t", vessel: "MSC", pol: "X", pod: "Y", status: "abierto", space: "alta", cutoff: "2026-06-05" }] },
-        // Comercial (kommo).
+        // Comercial (kommo): el espejo tiene leads, pero desde SDD-0614 S0b
+        // el tablero no lo lee (ver abajo).
         kommo_leads: {
           data: [
             { id: 1, name: "L1", price: 1500, closed_at: null },
@@ -391,6 +415,7 @@ describe("getDireccionData — composición (smoke)", () => {
         },
       },
     });
+    const { client, leidas } = registrarTablas(base);
 
     const data = await getDireccionData(client, today);
 
@@ -418,9 +443,13 @@ describe("getDireccionData — composición (smoke)", () => {
     // cut-off 2026-06-05 vs hoy 06-03 → 2 días.
     expect(data.ops.cutoffDays).toBe(2);
 
-    // Comercial: solo el lead abierto cuenta.
-    expect(data.commercial.leadsActivos).toBe(1);
-    expect(data.commercial.pipeline).toBe(1500);
+    // Comercial (SDD-0614 S0b, D-6.6-1): Kommo está oculto del Studio. Aunque
+    // el espejo tenga leads, el tablero no lo lee y no trae sus cifras. La
+    // cuenta de antes sigue probada en `resumenComercialKommo`, abajo.
+    expect(data.commercial).toEqual({ pipeline: 0, leadsActivos: 0, oculto: true });
+    expect(leidas).not.toContain("kommo_leads");
+    // Control: el registro de tablas sí ve las lecturas que ocurren.
+    expect(leidas).toContain("supplier_bills");
 
     // Forecast: la CxP de 6000 vence en sem1 (+9d).
     expect(data.forecast[1].usd).toBe(6000);
@@ -458,6 +487,26 @@ describe("getDireccionData — composición (smoke)", () => {
     expect(data.forecast.every((w) => w.usd === 0)).toBe(true);
     expect(data.alerts).toHaveLength(1);
     expect(data.alerts[0].tone).toBe("success");
+  });
+});
+
+/**
+ * La cuenta del pipeline de Kommo se conserva (ocultar no es borrar,
+ * SDD-0614 §2.1): queda sin consumidor hasta 8.7, con la misma regla de
+ * antes. Solo cuentan los leads abiertos.
+ */
+describe("resumenComercialKommo (sin consumidor desde SDD-0614 S0b)", () => {
+  it("solo el lead abierto cuenta, como antes de S0b", () => {
+    expect(
+      resumenComercialKommo([
+        { price: 1500, closed_at: null },
+        { price: 9999, closed_at: "2026-05-30" },
+      ]),
+    ).toEqual({ pipeline: 1500, leadsActivos: 1, oculto: false });
+  });
+
+  it("sin leads: ceros", () => {
+    expect(resumenComercialKommo([])).toEqual({ pipeline: 0, leadsActivos: 0, oculto: false });
   });
 });
 
