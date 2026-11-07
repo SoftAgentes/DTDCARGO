@@ -193,7 +193,8 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
     Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
   - La rama `hermes` solo cambia en el `PATH`. Toma el primer node que exista de una lista
     cerrada y sin comodines: `node-26.12.1-linux-x64` (Hermes 0.23) y después
-    `node-26.7.0-linux-x64`, que se queda para volver atrás. Si falta node o ripgrep, sale con 69.
+    `node-26.7.0-linux-x64`, que se queda para volver atrás. Si no hay node, sale con 69. ripgrep
+    sigue como estaba: en el VPS su carpeta no trae `bin/rg` (medido el 2026-11-07).
 - **El sudoers suma tres cosas:**
   - `CLAUDE_CODE_OAUTH_TOKEN` en `env_keep`;
   - `!log_allowed` y los dos usuarios nuevos como destino;
@@ -348,7 +349,7 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
    usuario.
 4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-5. Las pruebas pasan sin saltos en Linux, con un piso de 58 en el harness, y todos los mutantes
+5. Las pruebas pasan sin saltos en Linux, con un piso de 59 en el harness, y todos los mutantes
    mueren.
 6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 

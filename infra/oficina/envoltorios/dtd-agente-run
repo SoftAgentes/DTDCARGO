@@ -110,8 +110,8 @@ case "$herramienta" in
       if [ -x "$HERRAMIENTAS_HERMES/$n/bin/node" ]; then node_bin="$HERRAMIENTAS_HERMES/$n/bin"; break; fi
     done
     [ -n "$node_bin" ] || { echo "dtd-agente-run: falta node de Hermes en $HERRAMIENTAS_HERMES" >&2; exit 69; }
-    rg_bin="$HERRAMIENTAS_HERMES/$RIPGREP_HERMES/bin"
-    [ -x "$rg_bin/rg" ] || { echo "dtd-agente-run: falta ripgrep de Hermes en $rg_bin" >&2; exit 69; }
-    export PATH="$node_bin:$rg_bin:$PATH"
+    # ripgrep queda como estaba: en el VPS (2026-11-07) esa carpeta no trae bin/rg, y exigirlo
+    # dejaría a todos los GLM sin arrancar. Revisarlo queda para otra PR.
+    export PATH="$node_bin:$HERRAMIENTAS_HERMES/$RIPGREP_HERMES/bin:$PATH"
     exec /opt/hermes/bin/hermes "$@" ;;
 esac

@@ -521,12 +521,9 @@ class AgenteRun(Base):
             self.falso(nombre)
         # Las herramientas de Hermes (/opt/hermes/tools), con la forma de Hermes 0.23.
         self.herramientas = self.tmp / "hermes-tools"
-        for carpeta, binario in (
-            ("node-26.12.1-linux-x64", "node"),
-            ("node-26.7.0-linux-x64", "node"),
-            ("ripgrep-15.2.0-linux-x64", "rg"),
-        ):
-            self.herramienta(carpeta, binario)
+        # ripgrep no se crea: en el VPS (2026-11-07) su carpeta no trae bin/rg.
+        for carpeta in ("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"):
+            self.herramienta(carpeta, "node")
         texto = (RAIZ / "dtd-agente-run").read_text()
         for viejo, nuevo in {
             "/opt/agentes-cli/bin": _barra(self.bin),
@@ -786,16 +783,17 @@ class AgenteRun(Base):
         (self.herramientas / "node-26.12.1-linux-x64" / "bin").mkdir(parents=True)
         self.assertTrue(self.path_de_hermes().startswith(viejo))
 
-    def test_hermes_sin_node_o_sin_ripgrep_no_arranca(self):
-        for falta in (("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"), ("ripgrep-15.2.0-linux-x64",)):
-            with self.subTest(falta=falta):
-                for carpeta in falta:
-                    shutil.rmtree(self.herramientas / carpeta)
-                r = self.run_("hermes", "seo", "agentes-run")
-                self.assertEqual(r.returncode, 69, r.stderr)
-                self.assertIsNone(self.leer(), "Hermes no debe arrancar sin sus herramientas")
-                for carpeta in falta:
-                    self.herramienta(carpeta, "rg" if carpeta.startswith("ripgrep") else "node")
+    def test_hermes_sin_node_no_arranca(self):
+        for carpeta in ("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"):
+            shutil.rmtree(self.herramientas / carpeta)
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 69, r.stderr)
+        self.assertIsNone(self.leer(), "Hermes no debe arrancar sin node")
+
+    def test_hermes_arranca_aunque_su_ripgrep_no_traiga_rg(self):
+        # Así está el VPS de la oficina (2026-11-07): exigir rg dejaría a todos los GLM sin arrancar.
+        self.assertFalse((self.herramientas / "ripgrep-15.2.0-linux-x64" / "bin" / "rg").exists())
+        self.path_de_hermes()
 
     def test_hermes_si_trabaja_en_la_carpeta_de_los_glm(self):
         args = ["--cwd", _barra(self.glm / "ceo")]

@@ -8,7 +8,7 @@ import test from 'node:test';
 
 const CARPETA = path.join('infra', 'oficina', 'envoltorios', 'tests');
 /** Piso de pruebas: un «OK» con menos pruebas de las que hay es un verde vacío. */
-const MINIMO = 58;
+const MINIMO = 59;
 
 const python = ['python3', 'python'].find((candidato) => {
   const r = spawnSync(candidato, ['-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'], { windowsHide: true });

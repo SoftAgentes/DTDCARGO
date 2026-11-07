@@ -23,13 +23,15 @@ carpeta `/opt/hermes/tools/node-26.7.0-linux-x64/bin`, pero Hermes 0.23 trae nod
 
 - toma el primer node que exista de una lista cerrada y sin comodines: `node-26.12.1-linux-x64` y
   después `node-26.7.0-linux-x64`, que se queda para volver atrás;
-- exige ripgrep 15.2.0;
-- si falta node o ripgrep, Hermes sale con 69 en vez de correr sin ellos;
-- suma 4 pruebas (de 54 a 58), 8 mutantes y el piso del harness en 58.
+- si no hay node, Hermes sale con 69 en vez de correr sin él;
+- ripgrep queda como estaba. La primera versión también lo exigía, pero la corrida en el VPS
+  (2026-11-07, solo lectura) midió que `/opt/hermes/tools/ripgrep-15.2.0-linux-x64/bin/rg` no
+  existe: exigirlo habría dejado a todos los GLM sin arrancar. No se publicó;
+- suma 5 pruebas (de 54 a 59), 8 mutantes y el piso del harness en 59.
 
 **Por qué 69 y no seguir sin node.** Una falla ruidosa se ve en la prueba de humo que sigue a la
 instalación. Sin node, Hermes correría a medias y no se notaría. Si el DG prefiere que Hermes
-arranque igual y solo avise, basta con cambiar las dos líneas con `exit 69`.
+arranque igual y solo avise, basta con cambiar la línea con `exit 69`.
 
 ## Por qué así
 
@@ -99,6 +101,7 @@ se borraron al terminar. Usé Ubuntu, kernel 6.8.0-139, Python 3.12.3, bash 5.2.
 - **Carpetas que escriben los GLM fuera de `/srv/oficina/trabajo`**, como `/tmp`. La regla solo
   mira `trabajo`. Un `--add-dir /tmp/x` o un `--settings /tmp/x.json` de Claude pasaría.
 - **Ruido de `find` en `dtd-motor`.** Si se corre desde una carpeta que `agentes` no puede leer (por ejemplo, desde `/home/sam` por sudo), el `find` de limpieza avisa «Failed to restore initial working directory». No es una falla. Se quita con un `cd` a la carpeta de staging antes de ese `find` (aviso de la sesión Paperclip, 2026-11-07).
+- **ripgrep de Hermes.** El `PATH` vivo apunta a `/opt/hermes/tools/ripgrep-15.2.0-linux-x64/bin`, pero ahí no hay `rg` (medido el 2026-11-07). Hay que medir dónde quedó `rg` (o si Hermes lo usa) y corregirlo en una PR aparte.
 - **Comentario viejo en `scripts/tests/oficina-envoltorios.node.mjs`:** dice que en Windows «se
   saltan las dos» pruebas de enlaces y permisos, pero ya son 13.
 
