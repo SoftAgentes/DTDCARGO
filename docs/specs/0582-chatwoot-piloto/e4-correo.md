@@ -323,7 +323,13 @@ Falló solo **T6**, que esperaba 3 conversaciones ordenadas en el log y contó 4
 
 **Se corrigió T6 sin aflojarlo:** ahora cuenta por bandeja. Exige 3 en la de la sonda (A, D y H), 1 en la de la encuesta (Y), 4 en total y ninguna dirección. La sonda escribe los ids de las dos bandejas (`bandeja` y `bandeja_y`), y el patrón termina en « con» para que la bandeja 1 no cuente las líneas de la 12. Probado en local con un log inventado: el caso bueno pasa, y fallan una conversación de más, Y sin ordenar y una línea con dirección.
 
-El resultado de la corrida con T6 corregido se anota aquí con su SHA.
+**Resultado de la quinta corrida, con T6 corregido** (`ead49295b`, run 42415725067, job 128533261077, 2026-11-07 de 21:24:38Z a 21:31:09Z): **PASÓ 47 de 47, 0 fallas.**
+- La sonda da 41 de 41 y el guion de PC-3, 37 de 37.
+- T6 cuenta 3 en la bandeja de la sonda, 1 en la de la encuesta, 4 en total y ninguna dirección.
+- T8 da `0/0/0`, y su control T9 ve `1/0/1` con la encuesta encendida. C4 pasa.
+- Caen los 8 mutantes del inicializador y los 5 del guion, cada uno por su motivo.
+
+Es el último resultado de esta ronda. Lo leyeron con `gh api` el Subdirector y el Worker.
 
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 

@@ -91,7 +91,9 @@
 | «Calidad continua» sobre `e6b47b3ba` (run 42413311901) | Seguía en curso a las 21:02Z; lo lee el Subdirector |
 | «Correo automático» sobre `4914644fa`, solo documentos (run 42414076481, de 21:04:21Z a 21:10:17Z) | PASÓ (verde), con el mismo código que `e6b47b3ba` |
 | «Correo automático», 4.ª corrida sobre `e22c61a65`, con la segunda revisión (run 42414834780, job 128530543746, 7,2 min) | FALLÓ 1 de 47: solo T6, que contó 4 conversaciones ordenadas en vez de 3. La cuarta es Y («conversación 11 de la bandeja 2», sin dirección), que el inicializador resuelve como debe. Pasaron T8 (`0/0/0`), T9 (`y_salidas=1/0/1`: la encuesta sale por `deliver_now`), C4, V 37 de 37, y W3, W4 y W5. Leído con `gh api` por el Subdirector y por mí |
-| T6 corregido: cuenta por bandeja (3 en la de la sonda, 1 en la de Y, 4 en total y sin direcciones) | Probado en local con un log inventado: el caso bueno pasa y fallan los 3 controles (una de más, Y sin ordenar, línea con dirección). La corrida sobre el commit siguiente se anota con su SHA |
+| T6 corregido: cuenta por bandeja (3 en la de la sonda, 1 en la de Y, 4 en total y sin direcciones) | Probado en local con un log inventado: el caso bueno pasa y fallan los 3 controles (una de más, Y sin ordenar, línea con dirección) |
+| «Correo automático», 5.ª corrida sobre `ead49295b` (run 42415725067, job 128533261077, de 21:24:38Z a 21:31:09Z) | **PASÓ 47 de 47, 0 fallas.** La sonda da 41 de 41 y V, 37 de 37. T6 da 3/1/4 sin direcciones, T8 `0/0/0`, T9 `1/0/1` y C4 pasa. Caen M1–M8 y W1–W5. Leído con `gh api` por el Subdirector y por mí |
+| «Calidad continua» sobre `ead49295b` (run 42415725101) | Seguía pendiente a las 21:31Z; lo lee el Subdirector |
 | Los 13 `sed` de los mutantes (M1–M8 y W1–W5), en local | PASÓ: cada uno cambia una sola línea |
 | `prueba-correo-sistema.sh` en la PC (Docker) | NO EJECUTADO, porque Docker Desktop levanta 22 contenedores ajenos |
 | Ruby en la PC | NO DISPONIBLE (no hay `ruby`); lo cubre la corrida de Actions |
@@ -105,7 +107,9 @@
 - `86a520e9d`: el guion de PC-3 y su prueba, el arreglo del detector de la sonda de P4, el chequeo de los mutantes, la allowlist de `spec.md` y la evidencia de las corridas.
 - `e6b47b3ba`: la revisión independiente (clase con `safe_constantize`, encuesta CSAT apagada, caso P y `timeout-minutes` en 25).
 - `ea3ecf572` y `4914644fa`: solo documentos. El resultado de la 3.ª corrida, y la corrección de que un commit de documentos también vuelve a correr el flujo de la PR.
-- El commit siguiente: la segunda revisión independiente (T8 con el control Y, listas que suman, búsqueda por buzón y buzón en `estado`).
+- `e22c61a65`: la segunda revisión independiente (T8 con el control Y, listas que suman, búsqueda por buzón y buzón en `estado`).
+- `ead49295b`: T6 cuenta por bandeja, con los runs 42414076481 y 42414834780 anotados.
+- El commit siguiente, solo de documentos: el run verde 42415725067. Es el último de esta ronda.
 
 ## PR / BRANCH
 
