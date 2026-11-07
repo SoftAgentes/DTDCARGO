@@ -312,3 +312,170 @@ El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
 - `scripts/qa/0517-control-posterior.sql`: una fila en el ledger y la tabla con sus 6 columnas, el `unique`, las dos cascadas, el check, el trigger, la RLS, la policy con el tenant activo, los permisos (ni `anon` ni `public`; `authenticated` con cuatro), y vacía. Son 15 comprobaciones.
 - **Prueba:** `lib/studio/__tests__/guia-estado-control.migration.test.ts` los corre en PGlite con la 0517 real. Tiene tres controles (el previo y el posterior en verde, y el previo con la 0517 ya puesta) y doce mutantes, y cada mutante tumba solo su comprobación.
 - **El previo, corrido en solo lectura el 2026-11-06 hacia las 18:05Z:** las 10 comprobaciones dan `si`, en prueba y en producción.
+
+## 2026-11-06 · Pasos 9.4 y 9.5 · guía dentro de Chatwoot y recorridos por rol
+
+**Encargo.** El Subdirector de Chatwoot pidió la 9.4 y la 9.5 en una PR en borrador contra `main`, sin desplegar nada (2026-11-06). La 9.6, la prueba con la persona que atiende, queda fuera.
+
+**Puertas que esta PR no abre:**
+
+- **Pegar el script en el Super Admin de Chatwoot** (`DASHBOARD_SCRIPTS`) exige OK de Sam. Sin el script, las tarjetas de Chatwoot se anclan al marco de la Bandeja y nada se rompe.
+- **Fusionar** también espera su OK. Fusionar publica Studio, pero los recorridos nuevos **no arrancan solos** (D11): solo abren con `?guia=<id>`.
+- S-1, S-2, S-6, S-7 y S-8 siguen abiertas. Los valores provisionales están en `lib/studio/guia/preferencias.ts`.
+
+### 9.4 · Diseño
+
+**Qué recorre.** Las tarjetas «(Chatwoot)» del guion que caen dentro del panel de Chatwoot: B1 a B6 y F1. La Bandeja de Studio enmarca el panel (decisión de 2.1: iframe), así que la tarjeta sigue siendo la de Studio y solo el ancla está del otro lado del marco.
+
+**Cómo funciona.**
+
+1. **El script** (`infra/chatwoot/panel/guia-panel.html`) va en `DASHBOARD_SCRIPTS`, debajo del de cierre de sesión. Chatwoot 4.19.1 lo pone al final del `<body>` de cada página del panel. No dibuja nada ni lee texto: **solo mide**. Recibe la lista de anclas con sus selectores, devuelve el rectángulo de cada una (o `null`) y lleva una a la vista cuando se lo piden.
+2. **Se activa por `postMessage`.** Studio manda `dtd:guia:mirar` solo mientras hay una guía abierta, y `dtd:guia:parar` al cerrarla. Sin pedido, el script no observa nada: no pesa sobre el panel. Al cargar, el script avisa `dtd:guia:listo` para que Studio repita el pedido si la guía ya estaba abierta.
+3. **Los selectores viven en un solo archivo de Studio,** `lib/studio/guia/chatwoot-selectores.json`, y viajan en el mensaje. Si una versión de Chatwoot los rompe, se arreglan con una PR de Studio, sin volver a pegar nada en el Super Admin. El smoke de E3 lee ese mismo archivo.
+4. **En Studio,** `usePuenteChatwoot` (en `BandejaClient`) registra un *ubicador*. El motor le pregunta por las anclas que no encuentra en su propio DOM y suma el desplazamiento del marco al rectángulo que llegó. El contorno se dibuja en Studio, encima del marco, con `pointer-events: none`.
+5. **Ancla de respaldo.** Cada paso de Chatwoot trae `respaldo: "bandeja.marco"`. Si el selector no aparece (otra versión, ninguna conversación abierta, bandeja sin WhatsApp), la tarjeta se ancla al marco y el texto sigue valiendo. Así lo pide el guion.
+
+**Protocolo.**
+
+| Sentido | Mensaje | Contenido |
+|---|---|---|
+| Chatwoot → Studio | `dtd:guia:listo` | nada |
+| Studio → Chatwoot | `dtd:guia:mirar` | `anclas: { [ancla]: { css: string[], cerca?: string } }` |
+| Chatwoot → Studio | `dtd:guia:cajas` | `cajas: { [ancla]: { top, left, width, height } \| null }`, en coordenadas del marco; solo cuando algo cambió |
+| Studio → Chatwoot | `dtd:guia:mostrar` | `ancla`, `suave` (falso con `prefers-reduced-motion`) |
+| Studio → Chatwoot | `dtd:guia:parar` | nada |
+
+**Seguridad.**
+
+- El script acepta mensajes solo de `https://dtdcargo.com` y `https://www.dtdcargo.com`, y solo de la ventana que lo enmarca. Contesta solo a ese origen. Es la misma regla del script de cierre de sesión.
+- Studio acepta mensajes solo del origen del chat y del `contentWindow` de su propio marco.
+- Topes en el script: 20 anclas, 4 selectores por ancla, 200 caracteres por selector y nombres de ancla con el formato del guion. Un selector inválido se ignora sin romper el panel.
+- El script no lee texto, valores, cookies ni almacenamiento: solo `getBoundingClientRect`.
+
+**Datos personales.** No viaja ningún dato: solo nombres de ancla, selectores CSS y rectángulos (D14).
+
+**Riesgo de versión.** Chatwoot no publica un contrato de su DOM. Los selectores salen del código fuente de `chatwoot/chatwoot` en la etiqueta `v4.19.1` (ReplyBox, ReplyTopPanel, EditorModeToggle, ReplyBottomPanel, ChatListHeader, Sidebar, ConversationAction, MultiselectDropdown, ConversationBox y TabsItem) y **no están medidos en el panel vivo** (NV). Varios usan clases de Tailwind, que cambian con facilidad. Lo que protege:
+
+- el respaldo al marco: un selector roto deja la tarjeta en el marco, sin error;
+- el smoke `infra/chatwoot/pruebas/smoke-guia.mjs`, que entra a la corrida §4 del [runbook de versiones](../../runbooks/chatwoot-versiones.md) y a su smoke S13: cada ancla obligatoria tiene que aparecer en la versión nueva;
+- §3 del mismo runbook suma los archivos `.vue` de los que salen los selectores al diff de la superficie.
+
+**Marcha atrás.**
+
+1. **Del script:** volver a pegar en `DASHBOARD_SCRIPTS` solo `dashboard-scripts.html`, que es lo que se cargó el 2026-11-03. Las tarjetas de Chatwoot pasan al marco; el cierre de sesión no cambia.
+2. **De Studio:** revertir la PR. Sin el puente, los pasos de Chatwoot se anclan al marco; sin los recorridos, no hay guía en esas pantallas.
+3. Nada de esto toca datos de Chatwoot ni de Studio.
+
+### 9.5 · Diseño
+
+**Un recorrido del motor es una pantalla.** Las tarjetas del guion se reparten según la pantalla de `main` donde existe su ancla. Una tarjeta sin pantalla, o con un texto que no describe la pantalla real, queda pendiente con su motivo. No se inventa ninguna pantalla ni se cambia ningún texto: los textos de `guide.ts` son los del guion aceptado.
+
+**Roles.** `GuiaRecorrido.roles` y `GuiaPaso.roles` son opcionales. Sin ellos, vale el permiso de la pantalla. `recorridosParaRol` filtra el catálogo con el rol del layout antes de entregárselo al motor; un recorrido sin pasos para el rol desaparece. «Agente» del guion es quien tiene el módulo Bandeja: `commercial` y `support` (`lib/studio/rbac.ts`).
+
+| Recorrido | Ruta | Rol | Pasos (guion) | Anclas |
+|---|---|---|---|---|
+| `bandeja` | `/studio/bandeja` | módulo Bandeja: admin, commercial, support | B1, B2, B3, B4, B5, B6 y F1 | (Chatwoot) `bandeja.composer`, `bandeja.filtro-canal`, `bandeja.buscar`, `bandeja.asignar`, `bandeja.plantillas`, `bandeja.nota-privada` y `ficha.panel`, todas con respaldo `bandeja.marco` |
+| `embudo` | `/studio/crm`, pestaña Embudos | admin, commercial (la RLS de la 0506) | E1, E2, E3 y E4 | `embudo.tablero`, `embudo.tarjeta`, `embudo.tareas` y `embudo.columna-entrada` |
+| `cliente` | `/studio/clientes/<markbox>` | quien ve la ficha con la tarjeta de conversaciones | F3 | `cliente.conversaciones` |
+| `actualizaciones` | `/studio/admin/actualizaciones` | admin | A1, A2 y A3 | `actualizaciones.version`, `actualizaciones.analizar` y `actualizaciones.pedir`; las dos últimas solo aparecen con una versión nueva publicada |
+
+B4 (asignar) lo ve solo admin hasta que Sam conteste S-2: `ROLES_ASIGNAR` en `preferencias.ts`.
+
+**Pendientes, sin inventar:**
+
+| Tarjeta | Motivo | Qué falta |
+|---|---|---|
+| F2 `ficha.vincular`, I2 `ficha.sugerencia`, I3 `ficha.copiar` | Están dentro de la Ficha DTD, una página de Studio que Chatwoot enmarca (`app/studio/(panel)/ficha-chat`) y que no monta el motor. I2 e I3 dependen además de 7.8 | Montar el motor en `(panel)` o una guía propia de la ficha; S-8 para F2 |
+| F4 `chrome.contador-bandeja` | El contador está en `StudioSidebar`, que tocan las ramas del rediseño (SDD-0603) | Poner el ancla cuando la adopción lo permita |
+| I1 `ia.interruptor`, I4 `ia.limites` | La pantalla de modos de la IA (7.7) no existe en `main` | 7.7; S-1 para I1 |
+| U1 `usuarios.acceso-bandeja` | El acceso a la Bandeja se da en Bandeja › Vínculos (2.5), no en Usuarios. El texto aprobado dice «Desde Usuarios decides…» | Cambiar el texto (al DG antes; ver abajo) o mover el control |
+| U2 `usuarios.bandejas` | No hay en `main` una pantalla para elegir las bandejas o el equipo de cada persona: la matriz de 2.7 sale del rol | La pantalla, si se decide hacerla |
+| U3 `usuarios.baja` | El control existe, pero dentro de la ficha de cada persona («Suspender acceso»), que solo está abierta después de elegirla. El texto aprobado dice «Desactiva» | Ancla en la ficha, más un arranque desde la ficha, o un texto que nombre el botón real |
+
+Por eso no hay recorrido de Usuarios ni de IA: no queda ninguna tarjeta con pantalla y texto en `main`.
+
+**Textos que prometen pasos pendientes.** Se usan tal cual, porque son los aceptados, pero describen el estado final del programa:
+
+| Tarjeta | Lo que dice | Paso del que depende |
+|---|---|---|
+| B1 | «El cliente lo recibe en el mismo número de siempre» | 4.5 |
+| B2 | Contestar el correo desde la Bandeja | 4.8 |
+| B3 | La bandeja «Archivo Kommo» | 5.5 |
+| B5 | «Tienen el mismo texto que las de Kommo» | 4.5 |
+| E1 | «Entra a Embudo en el menú»: hoy es CRM › Embudos. «Los leads ya vienen de Kommo» | 6.5 |
+| E2 | «Algunas etapas cambian solas, como cuando sale una cotización» | 6.6 |
+| E3 | «Studio te avisa de los leads sin atender…» | 6.6 y 6.7 |
+
+Por esto mismo vale D11: ningún recorrido nuevo arranca solo antes de la 9.6.
+
+**Propuesta de textos para U1 y U3.** Va primero al DG, porque el guion está aprobado; esta PR no la aplica.
+
+- U1, en el recorrido `bandeja`, solo admin. Qué es: «Desde Vínculos decides quién entra a la Bandeja. No hay que crear la cuenta dos veces.» Ahora aquí: «Invita a la persona en Usuarios y vincúlala aquí. Studio le crea la cuenta en el chat.»
+- U3, en la ficha de la persona. Ahora aquí: «Abre a la persona en Usuarios y pulsa Suspender acceso. Se cierra su sesión en la Bandeja y ya no puede entrar por fuera.»
+
+### Decisiones
+
+- **D7 · Studio dibuja, Chatwoot mide.** Hay una sola tarjeta, la de 9.2, con su accesibilidad, su marca y sus textos de i18n. Se descartó dibujar la tarjeta dentro de Chatwoot: eran dos implementaciones de foco, teclado y anuncios, y sin los tokens de Studio.
+- **D8 · Selectores en Studio, no en el script.** Arreglarlos tras una versión nueva es una PR normal. El script pegado cambia poco, y cada cambio suyo pide un OK.
+- **D9 · Respaldo al marco por paso** (`GuiaPaso.respaldo`). El motor salta un paso solo si faltan las dos anclas.
+- **D10 · Ubicadores registrables** (`lib/studio/guia/ubicadores.ts`). El motor no sabe de Chatwoot: pregunta a los ubicadores por las anclas que no están en su DOM. La Bandeja registra el suyo.
+- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
+- **D12 · Roles en los datos** (`roles` en el recorrido y en el paso), filtrados con `recorridosParaRol` antes del motor. Mostrar una tarjeta de más no es un agujero, porque cada pantalla tiene su gate, pero el guion fija quién ve cada tarjeta.
+- **D13 · zh-CN provisional,** como D3: las claves nuevas se traducen porque el tipo exige los dos idiomas. S-3 sigue abierta.
+- **D14 · Sin revisión aparte de datos personales.** No se captura, mueve ni guarda ningún dato nuevo: los ids de recorrido y de paso ya estaban en la 0517, y el puente solo mueve geometría.
+
+### Allowlist exacta de 9.4 y 9.5
+
+- **Motor:** `lib/studio/guia/tipos.ts`, `motor.ts`, `recorridos.ts`, `preferencias.ts`, `ubicadores.ts` (nuevo), `puente-chatwoot.ts` (nuevo) y `chatwoot-selectores.json` (nuevo); `app/studio/_components/guia/GuiaMotor.tsx`, `GuiaStudio.tsx` y `usePuenteChatwoot.ts` (nuevo).
+- **Textos:** `lib/i18n/es-VE/guide.ts` y `lib/i18n/zh-CN/guide.ts`.
+- **Montaje:** `app/studio/(app)/layout.tsx`, solo la prop `rol` de `<GuiaStudio>`.
+- **Anclas `data-guia`:**
+  - `app/studio/(app)/bandeja/_components/BandejaClient.tsx`, más el puente;
+  - `app/studio/(app)/crm/_components/CrmTableroKanban.tsx`;
+  - `app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`;
+  - `app/studio/(app)/admin/actualizaciones/_components/ActualizacionesPanel.tsx`.
+- **Chatwoot:** `infra/chatwoot/panel/guia-panel.html` (nuevo), `infra/chatwoot/pruebas/smoke-guia.mjs` y `smoke-guia-nucleo.mjs` (nuevos).
+- **Pruebas:** `lib/studio/guia/__tests__/guia.test.ts`, `puente.test.ts` (nuevo) y `anclas.test.ts` (nuevo); `lib/studio/chatwoot/__tests__/guia-panel.test.ts` (nuevo); `app/studio/_components/guia/GuiaMotor.test.tsx`, `GuiaStudio.test.tsx` y `usePuenteChatwoot.test.tsx` (nuevo).
+- **Documentos:** esta spec, `docs/runbooks/chatwoot-versiones.md` (pieza propia, §3, §4 y S13), `docs/runbooks/chatwoot-agentes.md` (cómo pegar los dos scripts y la marcha atrás) y `.agents/handoffs/0589-e9-recorridos.md`. Las filas 9.4 y 9.5 del checklist no se tocan, igual que la 9.3: las mueve quien cuenta el avance. El texto propuesto está en el handoff.
+
+### Aceptación de 9.4 y 9.5
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| G1 | El script solo atiende a Studio desde el marco padre y responde solo a ese origen | `guia-panel.test.ts` |
+| G2 | El script mide lo pedido, con `cerca`, y avisa solo cuando algo cambió; un selector inválido o de más no rompe nada | `guia-panel.test.ts` |
+| G3 | `mostrar` lleva el ancla a la vista y `parar` deja de observar | `guia-panel.test.ts` |
+| G4 | El script no lee texto, cookies ni almacenamiento | `guia-panel.test.ts` (análisis del texto) |
+| G5 | Los selectores están en un solo archivo, con formato válido, y el smoke y el script resuelven igual | `puente.test.ts` y `guia-panel.test.ts` |
+| G6 | Studio acepta cajas solo del marco y del origen del chat, y las pasa a coordenadas de la página | `puente.test.ts` y `usePuenteChatwoot.test.tsx` |
+| G7 | Un paso de Chatwoot sin su ancla se ancla al marco; sin marco, se salta | `GuiaMotor.test.tsx` |
+| G8 | Al llegar la caja, el contorno pasa del marco al elemento | `GuiaMotor.test.tsx` |
+| G9 | Smoke en E3 | `smoke-guia.mjs` con su núcleo probado; S13 en §6 y la corrida en §4 del runbook. **Correrlo contra un Chatwoot real queda NO EJECUTADO:** no hay Docker en esta PC ni OK de despliegue |
+| R1 | Recorridos del catálogo válidos, con claves en es-VE y zh-CN y el tono del guion | `guia.test.ts` |
+| R2 | Cada ancla de Studio existe en la pantalla que dice el recorrido | `anclas.test.ts`, con piso de coincidencias y mutante |
+| R3 | Filtro por rol: B4 solo admin, Actualizaciones solo admin y Embudo sin support | `guia.test.ts` |
+| R4 | Ningún recorrido nuevo arranca solo | `GuiaMotor.test.tsx` y `GuiaStudio.test.tsx` |
+| R5 | El layout pasa el rol a la guía | `GuiaStudio.test.tsx` |
+
+### Qué cambió frente al diseño
+
+- **El ubicador distingue tres casos** (`GuiaUbicador.caja`). `undefined`: el panel no tiene el ancla. `null`: la tiene, pero fuera de la parte visible del marco. Una caja: la tiene a la vista. En el segundo caso el motor ancla la tarjeta al marco y le pide al panel `mostrar`; cuando llega la caja nueva, el contorno pasa al elemento.
+- **El título de F3 se cortó** a «Conversaciones en la ficha del cliente» (38 caracteres). El del guion tenía 42, y el guion manda cortar el texto antes que agrandar la tarjeta.
+- **Comillas internas «».** El guion usa comillas rectas dentro de sus «» («Archivo Kommo», «usuario responsable», «Ventas DTD», «Ping 23 h», «Leads entrantes»). En `guide.ts` van con «», como el resto del diccionario. Es tipografía; la redacción no cambia.
+- **Varias anclas repetidas.** `embudo.tarjeta` y `embudo.tareas` están en todas las tarjetas; el motor toma la primera del DOM.
+
+### Evidencia de 9.4 y 9.5 (2026-11-06)
+
+| Comprobación | Resultado |
+|---|---|
+| Pruebas de la guía: `lib/studio/guia`, `app/studio/_components/guia` y `lib/studio/chatwoot/__tests__/guia-panel.test.ts`, con `--pool=threads --maxWorkers=1` | PASÓ: 140 de 140 en 9 archivos (contado con el reporte JSON de Vitest). Hay 69 pruebas nuevas: `guia-panel.test.ts` 18, `puente.test.ts` 17, `usePuenteChatwoot.test.tsx` 13, `anclas.test.ts` 4, `guia.test.ts` +8, `GuiaMotor.test.tsx` +6 y `GuiaStudio.test.tsx` +3 |
+| Pantallas tocadas: `bandeja`, `crm/_components`, `clientes/_components` y `admin/actualizaciones` | PASÓ: 170 de 170 en 18 archivos |
+| 12 mutantes, uno por vez y restaurados: el script sin control de origen, sin control de ventana, que manda sin cambios, que ignora `cerca` o que contesta a `*`; el puente sin control de ventana, que mide sin guía abierta o que no olvida al cerrar; el motor sin respaldo o que arranca solo igual; el rol que no filtra pasos, y las coordenadas sin recorte | PASÓ: 12 de 12 caen por su prueba, con la suite en verde antes y después. Los archivos quedaron iguales a su original |
+| `tsc --noEmit` del proyecto | PASÓ |
+| ESLint de los archivos tocados, con `--max-warnings=0` | PASÓ. Los `.mjs` de `infra/` están fuera de ESLint por configuración; se revisaron con `node --check` |
+| `docs:check`, `sdd:check`, `components:check`, `governance:check`, `rsc-boundary` y `git diff --check` | PASÓ |
+| `smoke-guia.mjs` sin variables | Sale con 2 y no imprime nada sensible |
+| `smoke-guia.mjs` contra un Chatwoot real (ensayo de §4 o S13) | **NO EJECUTADO:** no hay Docker en esta PC y no hay OK de despliegue. Los selectores siguen NV en el panel vivo |
+| Script pegado en `DASHBOARD_SCRIPTS` | **NO EJECUTADO:** es una puerta con OK de Sam |
+| `/ui-check` del diff | OK con ajustes menores, no bloqueante. Aplicado: las comillas «». Para mirar en vivo en la 9.6: con la tarjeta sobre el marco, la colocación libre la deja abajo a la derecha, encima del composer del chat. Ya anotado: el texto de E1 («Embudo en el menú») |
+| `pnpm verify` | **NO EJECUTADO:** necesita turno del Director General. Queda para el CI de la PR |
