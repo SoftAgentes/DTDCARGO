@@ -182,6 +182,24 @@ bash ensayo-archivo.sh --limpiar   # solo borra un ensayo que haya quedado
 Guardas, diseño y revisión de datos personales: SDD-0590 §10.10 y §10.11. Se prueba en el mismo workflow,
 contra una «producción» simulada: `pruebas/prueba-ensayo.sh`.
 
+**Cómo termina** (SDD-0590 §10.17). El veredicto está en el código de salida y en la última línea de la
+evidencia, `HECHO ensayo_codigo=<código>`:
+
+| Código | Qué pasó |
+|---|---|
+| 0 | Pasó todo y la limpieza dejó 0 contenedores, volúmenes y redes |
+| 1 | Alguna comprobación falló |
+| 3 | Lo paró la guarda de carga o de memoria |
+| 4 | Todo pasó, pero la limpieza no terminó (`FALLÓ L0`, `limpieza_completa=no`) |
+| 143, 130, 129 | Lo pararon con TERM, INT o HUP (`FALLÓ PARADA`, `HECHO senal=…`) |
+
+Como unidad de systemd, cualquier código distinto de 0 la deja en `failed`, con `Result=exit-code` y el código
+en `ExecMainStatus`. Antes de la 1.3.2 del extractor, una parada con TERM terminaba en `Result=success`. Con
+`systemctl stop`, el paso en curso recibe la misma señal y termina enseguida. Con TERM solo al proceso
+principal, el ensayo espera a que termine el paso en curso. La limpieza nunca toca nada fuera del proyecto
+`chatwoot-ensayo`: si algo ajeno sostiene su red o su volumen, lo dice y no sale con 0; después de revisarlo,
+`--limpiar`.
+
 | Paso | Qué deja | Con datos de personas |
 |---|---|---|
 | `extraer --corte` | Staging completo hasta el corte, `corte.json`; el manifiesto lleva `corte` y sirve de base a un incremental | Sí: queda en tmpfs |

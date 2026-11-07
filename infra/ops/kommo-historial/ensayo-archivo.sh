@@ -28,6 +28,9 @@
 #      para el ensayo y 2 GB más, no arranca.
 #
 # Salida: PASÓ/FALLÓ por comprobación. La evidencia (EVIDENCIA) guarda solo líneas HECHO: conteos y huellas.
+# Código de salida (también en la evidencia, `HECHO ensayo_codigo`): 0 pasó todo; 1 fallas; 2 opción mala; 3 carga
+# o memoria; 4 la limpieza no terminó (y nada más falló); 143, 130 y 129 parado por TERM, INT y HUP. Como unidad de
+# systemd, todo lo que no es 0 deja la unidad en failed (Result=exit-code), con el código en ExecMainStatus.
 set -uo pipefail
 
 LIMPIAR_SOLO=0
@@ -104,33 +107,77 @@ recursos_del_ensayo() {
        "volumenes=$(docker volume ls -q --filter "label=com.docker.compose.project=$PROYECTO" | wc -l)" \
        "redes=$(docker network ls -q --filter "label=com.docker.compose.project=$PROYECTO" | wc -l)"
 }
+SIN_RESTOS="contenedores=0 volumenes=0 redes=0"
+# El trap de EXIT corre siempre, y sale con el código del ensayo: 0 si pasó todo, 1 con fallas, 3 por la carga o
+# la memoria, 143 (130, 129) si lo pararon con TERM (INT, HUP). Si la limpieza no deja 0 contenedores, volúmenes y
+# redes del proyecto, lo dice (FALLÓ L0, limpieza_completa=no) y, si el código era 0, sale con 4. Nunca sale con 0
+# dejando algo. La última línea de la evidencia es `HECHO ensayo_codigo=<código>`.
 limpiar() {
-  local rc=$?
+  local rc=$? intento restos carpeta completa
+  # Una señal durante la limpieza no la corta: se anota y se sigue. Es un trap y no un «ignorar» para que los
+  # docker que se lanzan desde aquí no hereden la señal ignorada.
+  trap 'evidencia "HECHO senal_durante_limpieza=si"' TERM INT HUP
   if [ "$CREADO" != 1 ] && [ "$LIMPIAR_SOLO" != 1 ]; then
-    return "$rc"
+    evidencia "HECHO ensayo_codigo=$rc"
+    exit "$rc"
   fi
   # El proyecto es el fijo y no es el de producción.
   if [ "$PROYECTO" != chatwoot-ensayo ] || [ "$PROYECTO" = "$PROD_PROYECTO" ]; then
-    echo "proyecto inesperado ($PROYECTO frente a $PROD_PROYECTO): no se borra nada"
-    return 1
+    mal L0 "proyecto inesperado ($PROYECTO frente a $PROD_PROYECTO): no se borra nada"
+    evidencia "HECHO limpieza_completa=no" "HECHO ensayo_codigo=1"
+    exit 1
   fi
-  if docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" | grep -q . \
-     || docker network ls -q --filter "label=com.docker.compose.project=$PROYECTO" | grep -q . \
-     || docker volume ls -q --filter "label=com.docker.compose.project=$PROYECTO" | grep -q .; then
-    docker compose -p chatwoot-ensayo down -v --remove-orphans >/dev/null 2>&1
-  fi
-  # El volumen del almacenamiento (5.5b), por si `down -v` sin el compose no lo encontró. Solo los del proyecto fijo.
-  docker volume ls -q --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker volume rm >/dev/null 2>&1
+  for intento in 1 2 3; do
+    [ "$(recursos_del_ensayo)" = "$SIN_RESTOS" ] && break
+    # Con el compose del ensayo, si sigue ahí, `down` conoce su red y su volumen. Si no, por el nombre del
+    # proyecto, desde / para que no lea otro compose.yml: el del directorio de trabajo puede ser el de producción.
+    if [ -f "$DIR/compose.yml" ]; then
+      dc down -v --remove-orphans >/dev/null 2>&1
+    else
+      (cd / && docker compose -p chatwoot-ensayo down -v --remove-orphans) >/dev/null 2>&1
+    fi
+    # Lo que quede del proyecto fijo, en orden: contenedores, redes y volúmenes. Nada ajeno: si un contenedor de
+    # otro proyecto está conectado a la red del ensayo, la red queda, y eso se informa abajo.
+    docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v >/dev/null 2>&1
+    docker network ls -q --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker network rm >/dev/null 2>&1
+    docker volume ls -q --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker volume rm >/dev/null 2>&1
+    [ "$(recursos_del_ensayo)" = "$SIN_RESTOS" ] && break
+    [ "$intento" = 3 ] || sleep 2
+  done
   rm -rf -- /dev/shm/cw-ensayo
-  evidencia "HECHO limpieza=$(recursos_del_ensayo | tr ' ' ',')" \
-            "HECHO limpieza_carpeta=$([ -e /dev/shm/cw-ensayo ] && echo presente || echo ausente)" \
+  restos="$(recursos_del_ensayo)"
+  carpeta="$([ -e /dev/shm/cw-ensayo ] && echo presente || echo ausente)"
+  completa=si
+  [ "$restos" = "$SIN_RESTOS" ] && [ "$carpeta" = ausente ] || completa=no
+  evidencia "HECHO limpieza=$(echo "$restos" | tr ' ' ',')" \
+            "HECHO limpieza_carpeta=$carpeta" \
+            "HECHO limpieza_completa=$completa" \
             "HECHO produccion_postgres=$(docker inspect -f '{{.State.Status}}' "$PROD_PG" 2>/dev/null || echo ausente)" \
             "HECHO produccion_redis=$(docker inspect -f '{{.State.Status}}' "$PROD_REDIS" 2>/dev/null || echo ausente)"
-  log "== limpieza: $(recursos_del_ensayo), carpeta $([ -e /dev/shm/cw-ensayo ] && echo presente || echo ausente)," \
+  log "== limpieza: $restos, carpeta $carpeta," \
       "producción: postgres $(docker inspect -f '{{.State.Status}}' "$PROD_PG" 2>/dev/null || echo ausente)"
-  return "$rc"
+  if [ "$completa" != si ]; then
+    mal L0 "la limpieza no terminó: quedan $restos y la carpeta está $carpeta. No se borró nada ajeno: mira qué los usa (docker network inspect $RED) y corre --limpiar"
+    [ "$rc" = 0 ] && rc=4
+  fi
+  evidencia "HECHO ensayo_codigo=$rc"
+  log "== código de salida: $rc"
+  exit "$rc"
+}
+# Una parada con TERM (el vigía, `systemctl stop`), INT o HUP: se anota, y el trap de EXIT limpia. Sale con 128 más
+# la señal, así que la unidad de systemd queda en exit-code y no en success: sin esto, bash moría por la señal
+# después de limpiar y systemd lo tomaba por una salida limpia (SDD-0590 §10.16, intento 3 del ensayo). Si llega a
+# mitad de un paso, bash espera a que el paso termine: con `systemctl stop` el paso recibe la misma señal y termina
+# enseguida; con TERM solo al proceso principal, termina el paso en curso.
+parada() { # señal código
+  mal PARADA "el ensayo recibió $1 y no terminó: se limpia y sale con $2"
+  evidencia "HECHO senal=$1"
+  exit "$2"
 }
 trap limpiar EXIT
+trap 'parada TERM 143' TERM
+trap 'parada INT 130' INT
+trap 'parada HUP 129' HUP
 
 umask 077
 : >"$EVIDENCIA" && chmod 600 "$EVIDENCIA"
