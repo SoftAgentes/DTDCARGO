@@ -15,6 +15,9 @@
     navegador integrado, después de que Sam respondiera «Sí, créala»: HAI-64 (`blocked` por el bug
     de HAI-51) y HAI-65 (`done`).
   - **Paperclip sigue en 1012.**
+- **Cambio B, hecho el 2026-11-07 a las 15:38Z** con el OK de Sam en esta sesión, literal «Sí,
+  apágalo». Las 8 políticas vivas quedaron sin corte duro; se comprobó en la base, en solo lectura.
+  El detalle está en el paso 2 del documento.
 
 ## Conclusiones
 

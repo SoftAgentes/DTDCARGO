@@ -329,6 +329,23 @@ oficina y no están cubiertas por este documento.
 2. **B:** Sam apaga el corte duro de las 8 políticas vivas en la pantalla de presupuestos.
    Después se comprueba en la base (§5.0) que las 8 quedaron con `hard_stop_enabled = false`.
 
+> **A y B, hechos el 2026-11-07.**
+>
+> - **A:** la sesión de la SDD-0615 instaló hacia las 14:50Z el sudoers `66b5cd84…`, que ya deja
+>   pasar `HERMES_EPHEMERAL_SYSTEM_PROMPT`. Su respaldo está en
+>   `/root/respaldo-sdd-0615-dg-20261107T144934Z`.
+> - **B:** lo hizo la sesión de esta PR a las 15:38Z, con el OK de Sam en su chat, literal
+>   «Sí, apágalo».
+>   - **Cómo:** `POST /api/companies/<empresa>/budgets/policies` desde la sesión de Sam en el
+>     navegador integrado. Se repitieron los valores de cada política y solo cambió
+>     `hardStopEnabled: false`.
+>   - **Comprobación en la base, en solo lectura:** las 8 vivas tienen `hard_stop_enabled = false`
+>     y conservan su monto y el aviso al 80 %. Son ALFRED, Jefe de gabinete, Puente de ingeniería,
+>     Editor de contenido, Asesor comercial, Community manager asistente, Analista de CRM/datos y
+>     Analista de operaciones.
+>   - **Sin tocar:** las 6 de agentes terminados.
+>   - **Incidentes:** 0.
+
 ### Paso 3 · Paperclip 2026.1106.0 (ventana, unos 15 minutos)
 
 1. **Comprobar** que no hay corridas vivas ni en cola, y que el próximo latido no cae dentro de la
