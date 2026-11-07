@@ -106,10 +106,14 @@ try {
     skip(`no se pudo levantar ${IMAGE}: ${(up.stderr || "").trim().split("\n")[0]}`);
   }
 
-  // Esperar a que acepte conexiones (el initdb tarda unos segundos).
+  // Esperar a que acepte conexiones (el initdb tarda unos segundos). Por TCP y no por el socket: la imagen oficial
+  // levanta primero un servidor temporal solo en el socket (`listen_addresses=''`) para el initdb, y después lo apaga
+  // y arranca el definitivo. `pg_isready` por el socket daba por listo al temporal, y los primeros psql caían en el
+  // cambio sin ningún ERROR de SQL: el rojo intermitente del control en el tren #427 (run 42415565680). El temporal no
+  // escucha en 127.0.0.1; el definitivo sí.
   let ready = false;
   for (let i = 0; i < 60; i++) {
-    const r = docker(["exec", containerName, "pg_isready", "-U", "postgres"]);
+    const r = docker(["exec", containerName, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]);
     if (r.status === 0) {
       ready = true;
       break;
