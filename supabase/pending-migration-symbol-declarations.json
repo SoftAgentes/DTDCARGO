@@ -7,5 +7,75 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0606-discord-user-id",
+      "primarySymbol": "user_profiles.discord_user_id",
+      "migration": "0514_user_profiles_discord_user_id",
+      "reason": "SDD-0606: el ID de Discord del perfil sólo sirve para mencionar a la persona en los avisos. Sin la columna, los avisos salen a Discord sin menciones y el perfil dice que todavía no se puede guardar el ID. No es migrate-first.",
+      "symbols": [
+        {
+          "name": "user_profiles.discord_user_id",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/usuarios/actions.ts:1152",
+            "app/studio/(app)/usuarios/actions.ts:1154",
+            "app/studio/(app)/usuarios/actions.ts:1157",
+            "app/studio/(app)/usuarios/actions.ts:1165",
+            "app/studio/(app)/usuarios/actions.ts:1180",
+            "app/studio/(app)/usuarios/actions.ts:1188",
+            "app/studio/_components/wiring/ProfileModal.tsx:1699",
+            "lib/studio/alerts/dispatch-alert.ts:81",
+            "lib/studio/alerts/dispatch-alert.ts:83",
+            "lib/studio/alerts/dispatch-alert.ts:86",
+            "lib/studio/alerts/dispatch-alert.ts:87"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/alerts/dispatch-alert.ts:84",
+          "contains": "if (error || !data) return [];",
+          "degradation": "Si la consulta falla porque la columna no existe, no hay menciones: el aviso sale igual al canal. Medido en dispatch-alert.test.ts (resolveDiscordUserIds con consulta rota)."
+        },
+        {
+          "site": "app/studio/(app)/usuarios/actions.ts:1156",
+          "contains": "if (error) return { discordUserId: null, disponible: false };",
+          "degradation": "Leer el ID con la columna ausente devuelve disponible:false y el perfil muestra que todavía no se puede guardar. Medido en usuarios/__tests__/discord-user-id.test.ts."
+        },
+        {
+          "site": "app/studio/(app)/usuarios/actions.ts:1189",
+          "contains": "No se pudo guardar tu ID de Discord.",
+          "degradation": "Guardar con la columna ausente devuelve un aviso genérico, sin el texto de la base, y no rompe el resto del perfil. Medido en usuarios/__tests__/discord-user-id.test.ts."
+        }
+      ]
+    },
+    {
+      "id": "sdd-0606-studio-alert-outbox",
+      "primarySymbol": "studio_alert_outbox",
+      "migration": "0515_studio_alert_outbox",
+      "reason": "SDD-0606 (revisión de Codex, A3): cola de avisos que Discord no guardó. Sin la tabla, encolar devuelve false y el aviso sigue por Telegram como antes; el drenado del cron devuelve ceros. No es migrate-first.",
+      "symbols": [
+        {
+          "name": "studio_alert_outbox",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/alerts/alert-outbox.ts:33"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/alerts/alert-outbox.ts:124",
+          "contains": "return false;",
+          "degradation": "Encolar con la tabla ausente: el INSERT devuelve error y la función devuelve false; dispatchAlert sigue por Telegram. Medido en alerts/__tests__/dispatch-alert.test.ts («si la cola todavía no existe…, cae a Telegram»)."
+        },
+        {
+          "site": "lib/studio/alerts/alert-outbox.ts:186",
+          "contains": "if (!error && data) {",
+          "degradation": "Drenar con la tabla ausente: la consulta falla y no se procesa ninguna fila; nada lanza. Medido en alerts/__tests__/alert-outbox.test.ts («si la tabla no existe, no lanza»)."
+        }
+      ]
+    }
+  ]
 }
