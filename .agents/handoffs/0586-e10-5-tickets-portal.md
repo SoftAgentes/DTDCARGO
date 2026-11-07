@@ -35,7 +35,7 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 - **Textos públicos aprobados** (§10.5.12): T1 en el portal, T2 y T3 en `/privacidad`, y T4, la fecha. Sam los aprobó palabra por palabra el 2026-11-07 a las 04:48Z, traídos por el Director General: «Apruebo los cuatro». Si cambia una sola palabra, se vuelve al Director General antes. El flag no se enciende hasta que T1 a T4 estén publicados (E10-D42 y su casilla en §10.5.15).
 - **revisar-datos-ve** del rediseño (§10.5.13). Que Chatwoot es software propio en el servidor de DTD, y no un tercero, lo confirma la evidencia del repo; el VPS no se leyó en esta tarea.
 - **Reestimación** fila por fila contra la línea base v3 (§10.5.21): E10 pasa de 7,25 a 13,75 días (+6,5). Queda vencida la de 1,25 → 2. Sam la aprobó el 2026-11-07 a las 03:42Z, traída por el Director General: «Sí, 129,5 días», la línea base nueva del programa con la 6.6 y la 10.5.
-- **Checklist 0582:** no se tocó en esta revisión, por pedido del Subdirector. La nota de la fila 10.5 en esta rama sigue diciendo «seis preguntas para Sam».
+- **Checklist 0582:** igual que en la base de la rama (`3d17292a4`). Se deshizo la edición de la fila 10.5 que traía `89fb586cf`, así que la #400 no lo toca. La fila 10.5 y las nuevas 10.7 («10.5 b») y 10.8 («10.5 c») quedaron en la #410 (`af50750d3`), con la línea base v4.
 
 ## Validación
 
@@ -52,7 +52,7 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 ## Impacto documental
 
 - Guardado en esta tarea: la spec 0586 (sección rehecha, `related` con 0590, 0127 y 0149) y este handoff.
-- Pendiente de integración: el checklist 0582 (filas nuevas y la nota de la 10.5) lo actualiza quien lo lleve, cuando se cierren las demás decisiones del paquete de la 6.6 y la 10.5. La reestimación ya está aprobada.
+- Checklist 0582: sus filas 10.5, 10.7 y 10.8 van en la #410, no en esta rama. La reestimación ya está aprobada.
 - Graphify, Archify y Obsidian: los revisa el Director al integrar, según el runbook de conocimiento.
 
 ## Historia de la tarea (2026-11-06)
@@ -65,6 +65,7 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 6. La fila «Reestimación» sale de los pendientes de §10.5.20, porque Sam aprobó 129,5 días; §10.5.21 registra la aprobación. Commit local, sin push.
 7. T1 a T4 aprobados por Sam (2026-11-07 04:48Z), con las tres citas sin cambiar un byte: lo comprueban sus sha256 antes y después. E10-D42, la puerta 6 y su casilla piden T1 a T4 publicados. Commit local, sin push: la #400 sigue congelada hasta la decisión 6, el conteo.
 8. Decisiones 6 y 6 b cerradas: el resultado del conteo queda en §10.5.10 sin tocar la consulta, y la carga incluye los hilos archivados. Salen de los pendientes para Sam; quedan las puertas. T1 a T4 sin cambios, con sus sha256. Commit local, sin push: el Subdirector publica la #400 después de la #401.
+9. El checklist 0582 vuelve a quedar como en la base (`3d17292a4`), porque sus filas van en la #410. La nota de §10.5.20 lo dice. Commit local, sin push.
 
 ## PENDIENTES DE ESTA TAREA
 

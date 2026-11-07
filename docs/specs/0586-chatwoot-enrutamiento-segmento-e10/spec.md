@@ -746,7 +746,7 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 - Decidir con el Subdirector de SEO si, con el flag encendido, se apaga el aviso de Telegram del portal (§10.5.13, punto 8).
 - Elegir dónde viven los scripts de la carga (PR 2, §10.5.16).
 - Llevar a la 0614 la propuesta de §10.5.19.
-- El checklist 0582 no se tocó en esta revisión. La nota de la fila 10.5 en esta rama dice todavía «con seis preguntas para Sam (P1 a P6)», que ya tienen respuesta. La fila, las dos filas nuevas y su enlace los actualiza quien lleve el checklist, cuando se cierren las demás decisiones del paquete de la 6.6 y la 10.5. La reestimación ya está aprobada (§10.5.21).
+- El checklist 0582 quedó en la #410 (`af50750d3`, en borrador), con la línea base v4: la fila 10.5 reescrita y dos filas nuevas, la 10.7 (aquí, «10.5 b») y la 10.8 (aquí, «10.5 c»). Esta rama deja el checklist igual que en su base (`3d17292a4`), así que la #400 no lo toca y no choca con la #410 en ningún orden de fusión. La reestimación ya está aprobada (§10.5.21).
 
 ### 10.5.21 Reestimación (I)
 
