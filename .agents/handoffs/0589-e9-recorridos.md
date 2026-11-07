@@ -66,6 +66,7 @@ Ver la PR. Commits selectivos con `git commit -F`.
   - colocación de la tarjeta cuando cae al marco: hoy queda abajo a la derecha, encima del composer del chat;
   - encender `arranqueAutomatico` por recorrido, con OK de Sam.
 - **S-1, S-2, S-3 y S-8,** cuando Sam conteste: S-2 cambia `ROLES_ASIGNAR`.
+- **P-13 (2026-11-07):** la guía tiene que llegar a Embudos sin `?tab=`. Es un paso aparte de la SDD-0589, con PR propia, después de la #408. No arranca hasta que el DG cierre esa revisión, y S3 de la 6.6 no se fusiona antes. Ya pasa hoy, con Dirección por defecto: `?guia=embudo` solo abre con `?tab=embudos`. Ver la spec, sección «2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)».
 
 ## FUERA DE ALCANCE DETECTADO
 

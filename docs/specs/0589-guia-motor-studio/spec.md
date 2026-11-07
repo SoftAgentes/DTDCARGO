@@ -4,7 +4,7 @@ title: "Motor de guía propio y liviano en Studio (E9 del programa SDD-0582, pas
 status: in-progress
 author: "Claude Worker «E9 motor» (Sam)"
 created: 2026-10-30
-updated: 2026-11-06
+updated: 2026-11-07
 supersedes: null
 superseded_by: null
 related: ["0582", "0233"]
@@ -479,3 +479,33 @@ Por esto mismo vale D11: ningún recorrido nuevo arranca solo antes de la 9.6.
 | Script pegado en `DASHBOARD_SCRIPTS` | **NO EJECUTADO:** es una puerta con OK de Sam |
 | `/ui-check` del diff | OK con ajustes menores, no bloqueante. Aplicado: las comillas «». Para mirar en vivo en la 9.6: con la tarjeta sobre el marco, la colocación libre la deja abajo a la derecha, encima del composer del chat. Ya anotado: el texto de E1 («Embudo en el menú») |
 | `pnpm verify` | **NO EJECUTADO:** necesita turno del Director General. Queda para el CI de la PR |
+
+## 2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)
+
+> **Solo registro.** El paso no está abierto. Esta sección no trae diseño ni estimación: van cuando se abra.
+
+**Fuente.** Decisión del Director General del 2026-11-07, hacia las 04:20Z. La propuesta es de E6, encontrada en la 6.6 (SDD-0614 §2.1), y la trajo el Subdirector de Chatwoot.
+
+**El problema (P-13).**
+
+- En el tramo S3 de la 6.6, la pestaña por defecto de `/studio/crm` pasa a ser **Resumen**.
+- Sin `?tab=`, la página ya no monta el tablero.
+- `RECORRIDO_EMBUDO` (9.5) no encuentra entonces sus anclas `embudo.*` y no abre: `rutaCoincide` mira el camino, no la pestaña.
+- E6 lo infirió del código; nadie lo corrió. Hoy no rompe nada: D11 tiene apagado el arranque automático.
+
+**Condiciones del Director General.**
+
+1. Lo resuelve la SDD-0589 en un **paso aparte, con PR propia, después de la #408**. No es un ajuste de `836edcd18`.
+2. La 6.6 no toca la guía.
+3. **S3 de la 6.6 no se fusiona antes de este paso.**
+4. El paso trae una prueba que **falla** con la pestaña por defecto en Resumen y **pasa** con el arreglo. El arreglo es un recorrido que abre `?tab=embudos` o un `rutaCoincide` que mira la pestaña. Lo elige y lo justifica el Worker al abrir el paso.
+5. **No arranca todavía.** E9 no abre pasos nuevos hasta que el Director General cierre la revisión de la #408.
+
+**Observación del Worker (2026-11-07).** Leído en el código, sin correrlo, sobre `836edcd18` y sobre `origin/main` en `f28c5dcc1`:
+
+- La pestaña por defecto ya es **Dirección**, no Embudos (`resolveKommoTab`, en `app/studio/(app)/crm/_components/kommo-tabs.shared.ts`). `page.tsx` monta el tablero solo con `tab === "embudos"`.
+- Por eso, hoy `/studio/crm?guia=embudo` tampoco abre: el motor reintenta 2 s, no encuentra ancla y no abre. El recorrido abre en `/studio/crm?tab=embudos&guia=embudo`.
+- La indicación `?guia=embudo` de D11 vale solo con esa pestaña.
+- Ningún enlace del código usa `?guia=embudo`.
+
+El P-13 no lo trae S3: ya existe. S3 cambia la pestaña por defecto, de Dirección a Resumen, y el resultado es el mismo. La prueba de la condición 4 tiene que fallar también hoy, con Dirección.
