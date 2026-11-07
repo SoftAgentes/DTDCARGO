@@ -30,7 +30,7 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
   - la tarjeta entra por la ficha con `crm_entrada_portal` y la pieza única;
   - un interruptor `chatwoot_portal` que nace apagado, con aviso y modo de respaldo si Chatwoot no responde.
 - **Carga de P4** (§10.5.10): cuatro pasos, catorce mediciones (C-1 a C-14), cinco puertas y la consulta de conteo de solo lectura para el Director General. No se contó nada en producción.
-- **Plazo y feriados** (§10.5.11), con la pregunta nueva P7 para Sam.
+- **Plazo y feriados** (§10.5.11). P7, la pregunta nueva sobre los feriados, quedó contestada el 2026-11-07: opción (a). No cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio (`operational_calendar`), y el preflight exige la 0192. Sam la contestó en tres respuestas; la primera, «Ninguno», quedó anulada porque la pregunta se le planteó distinta a la de la spec (§10.5.1). T1 quedó con una sola propuesta, `{role} · Te responde en el día hábil`, todavía sin aprobar.
 - **Textos públicos propuestos** palabra por palabra (§10.5.12): T1 en el portal, T2 y T3 en `/privacidad`, y T4, la fecha.
 - **revisar-datos-ve** del rediseño (§10.5.13). Que Chatwoot es software propio en el servidor de DTD, y no un tercero, lo confirma la evidencia del repo; el VPS no se leyó en esta tarea.
 - **Reestimación** fila por fila contra la línea base v3 (§10.5.21): E10 pasa de 7,25 a 13,75 días (+6,5). Queda vencida la de 1,25 → 2.
@@ -58,11 +58,12 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 1. Borrador con tickets propios en Studio (`89fb586cf`), con seis preguntas para Sam.
 2. Revisión del Director General: D-1 (pieza única), número de migración al arrancar, reestimación a 2 días y orden 10.5 → 6.6; cambios b, c, d y f (`821813031`).
 3. Cita de la D-SA y la D-AUD de la SDD-0614 §2.8 (`9acf84b60`).
-4. Respuestas de Sam y rediseño (este commit).
+4. Respuestas de Sam y rediseño (`12a5f7c52`).
+5. P7 contestada (2026-11-07), anotada con un commit local. La #400 sigue congelada y sin push hasta que se cierren las otras decisiones del paquete: P-10, los textos de la 6.6, los textos de la 10.5 y el conteo.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Para Sam** (los lleva el Director General): P7, los feriados; aprobar T1 a T4; confirmar que los hilos archivados no se cargan; la reestimación; y las puertas, cada una con su OK nominal (§10.5.20).
+- **Para Sam** (los lleva el Director General): aprobar T1 a T4 (la decisión 5); confirmar que los hilos archivados no se cargan; la reestimación; y las puertas, cada una con su OK nominal (§10.5.20).
 - **Para el Director General:** correr el conteo de §10.5.10 con su OK; decidir con el Subdirector de SEO el aviso de Telegram del portal; elegir dónde viven los scripts de la carga; llevar a la 0614 la propuesta de §10.5.19 (señal 2 de la D-SA y `crm_ticket` sin objeto).
 - La implementación, la migración, la carga y sus aplicaciones quedan fuera de este encargo.
 

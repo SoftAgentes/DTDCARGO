@@ -141,7 +141,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 ## Pendientes de esta SDD
 
 - 10.4, 10.5 y 10.6 (ver checklist); se programan después de integrar a `main`.
-- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. Quedan una pregunta nueva para Sam (P7, los feriados), los textos públicos por aprobar y las puertas (§10.5.20).
+- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. El 2026-11-07 contestó P7, los feriados: opción (a) (§10.5.11). Quedan los textos públicos por aprobar y las puertas (§10.5.20).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
@@ -172,7 +172,7 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 
 ### 10.5.1 Las respuestas de Sam (decisiones cerradas)
 
-Fuente: registro literal del Director General del 2026-11-06 (notas de su sesión, fuera del repo). Horas en UTC.
+Fuente: registro literal del Director General del 2026-11-06 (notas de su sesión, fuera del repo). P7 es una pregunta nueva de este rediseño: Sam la contestó el 2026-11-07, se la llevó el Director General y la trajo el Subdirector de Chatwoot. Horas en UTC.
 
 | P | Pregunta | Respuesta de Sam | Decisión |
 |---|---|---|---|
@@ -182,6 +182,7 @@ Fuente: registro literal del Director General del 2026-11-06 (notas de su sesió
 | P4 | 16 · ¿Las conversaciones del portal que ya existen se pasan a Chatwoot? (20:09Z) | Botón «Sí, pasar todas», la opción (b), que no era la recomendada. Antes de elegir se le dijeron las contras | E10-D43 y §10.5.10 |
 | P5 | 17 · Un mensaje de fin de semana, ¿vence ese mismo día? (20:28Z, corregida) | Primero, el botón «Sí, ese mismo día». Enseguida, literal: «Las 17 vencen desde el lunes. Cambio.» Vale la segunda | E10-D23 y §10.5.11 |
 | P6 | 18 · ¿Agregamos a /privacidad el seguimiento del chat de Soporte? (20:35Z) | Botón «Sí, con el texto nuevo»: un texto nuevo sobre el diseño rehecho, que pasa por revisar-datos-ve y Sam aprueba palabra por palabra antes de publicar. El chat no se conecta al CRM hasta que esté publicado | E10-D42 y §10.5.12 |
+| P7 | Feriados: «Además del sábado y el domingo, ¿qué días no cuentan para el plazo del chat del portal?» (2026-11-07) | 03:45Z: «Ninguno». **Anulada:** el Director General le había presentado P7 como «todos los días cuentan, incluidos sábados, domingos y feriados», que no es lo que pregunta la spec. 03:50Z, a «Un feriado entre semana, ¿cuenta como día de trabajo para el plazo del chat del portal?»: «No cuenta». 03:52Z, a «¿Quién mantiene la lista de feriados que no cuentan?»: «Administrador en Studio». Vale la opción (a) | E10-D23 y §10.5.11 |
 
 Tres respuestas de la misma ronda fijan la dirección:
 
@@ -204,7 +205,7 @@ Tres respuestas de la misma ronda fijan la dirección:
 | Enrutamiento (10.2) | `clasificarContacto` (`lib/studio/chatwoot/enrutar.ts`); `router-api.ts` (`envioIncierto` en `:26`, espera de 10 s en `:32`) | Etiqueta, equipo y redirección, solo en la bandeja de leads | Se reusan la etiqueta por segmento, el equipo y la API. En el portal no hay redirección ni respuesta automática |
 | Agentes vinculados | `chatwoot_agent_links` (0503); `obtenerTokenAgente` (`lib/studio/chatwoot/platform-api.ts:118`) | Traducen un agente de Chatwoot a su usuario de Studio y le piden su token | Autor de la respuesta en el portal (E10-D37) y envío en el modo de respaldo (E10-D40) |
 | Bandeja API sin efectos (E5) | SDD-0590 §10.3, §10.4 y §10.10, en la rama `codex/0590-e5-miembros` (PR #395) | Cargador con `insert_all`, sin callbacks y por `source_id`; ensayo en una copia efímera de la base de Chatwoot | La carga de P4 (§10.5.10) |
-| Feriados | `operational_calendar` (`0192_operational_calendar.sql:22-32`: país `VE` o `CN`, tipo `holiday` o `fair`); pantalla «Feriados & ferias» del admin (SDD-0127) | Calendario operativo que mantiene el admin | Opción recomendada de P7 (§10.5.11) |
+| Feriados | `operational_calendar` (`0192_operational_calendar.sql:22-32`: país `VE` o `CN`, tipo `holiday` o `fair`); pantalla «Feriados & ferias» del admin (SDD-0127) | Calendario operativo que mantiene el admin | La lista de feriados que no cuentan para «vencida» (P7 = (a), §10.5.11) |
 | Cron | `chatwoot-reintentos`, cada 5 min (`infra/dtd-cargo/cron/crontab:26`) | Reintenta eventos y corre las purgas de E2 y E10 | Red de seguridad del envío y de la conciliación (E10-D34 y E10-D40) |
 
 ### 10.5.3 Cómo funciona
@@ -286,7 +287,7 @@ Conversaciones del portal
 
 Una migración nueva, `supabase/migrations/05NN_chatwoot_portal.sql`. **No se escribe ni se aplica en esta tarea.** El número se asigna al arrancar el código (Director General, 2026-11-06). Va primero en prueba y después en producción, con el OK nominal de Sam y el runbook de producción.
 
-**Preflight.** Exige la 0106, la 0503 (`feature_flag_catalog` y `chatwoot_agent_links`), la 0504 (`chatwoot_conversations`), la 0506, la 0512 (`portal_post_message(text, uuid)` y el índice de `external_msg_id`), la 0513 (con `crm_buscar_tarjeta`) y, si P7 es (a), la 0192. Antes de redefinir una función se busca su última `create or replace` en todas las migraciones y en todas las ramas.
+**Preflight.** Exige la 0106, la 0503 (`feature_flag_catalog` y `chatwoot_agent_links`), la 0504 (`chatwoot_conversations`), la 0506, la 0512 (`portal_post_message(text, uuid)` y el índice de `external_msg_id`), la 0513 (con `crm_buscar_tarjeta`) y la 0192 (`operational_calendar`, por P7). Antes de redefinir una función se busca su última `create or replace` en todas las migraciones y en todas las ramas.
 
 **Tablas.** Todas con RLS, sin permisos para `anon` ni `authenticated`; solo `service_role`.
 
@@ -423,24 +424,27 @@ rollback;
 
 La calcula una función pura, sin red ni base, con la lista de días que no cuentan. Venezuela no cambia la hora en el año, así que el fin del día es siempre 23:59:59 en `America/Caracas`.
 
-**P7, pregunta para Sam:** «Además del sábado y el domingo, ¿qué días no cuentan para el plazo del chat del portal?»
+**P7, decisión cerrada: opción (a)** (Sam, 2026-11-07, traída por el Director General; las tres respuestas están en §10.5.1). La pregunta era «Además del sábado y el domingo, ¿qué días no cuentan para el plazo del chat del portal?». **No cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio, en Administración › Feriados & ferias.**
 
-| Opción | Qué pasa | Quién la mantiene |
-|---|---|---|
-| **(a) Los feriados de Venezuela que el administrador carga en Studio, en Administración › Feriados & ferias (Recomendado)** | Usa la lista que ya existe (`operational_calendar`, país `VE`, tipo `holiday`; SDD-0127). Si al empezar un año no hay feriados de Venezuela cargados, el CRM se lo avisa al administrador | El administrador de Studio |
-| (b) Ninguno: solo el sábado y el domingo | Un feriado cuenta como día de trabajo | Nadie |
-| (c) Una lista fija de feriados nacionales, escrita en el sistema | No hay que cargar nada, pero cada cambio del calendario pide un cambio de código | Programación |
+- **La lista** es la que ya existe: `operational_calendar`, país `VE`, tipo `holiday`, sin `deleted_at` (`0192_operational_calendar.sql:22-47`; SDD-0127). Un feriado tiene `end_date` nula y dura un día. Si alguno trae un rango, cuenta cada día del rango (I). Las ferias (`fair`) y los feriados de China no entran.
+- **Quién la mantiene:** el administrador de Studio. Cambiar o agregar un feriado no pide código ni migración, porque «vencida» se calcula al leer (E10-D23).
+- **Aviso:** si un año no tiene feriados de Venezuela cargados, el CRM se lo avisa al administrador.
+
+| Opción | Qué pasa | Quién la mantiene | Estado |
+|---|---|---|---|
+| **(a) Los feriados de Venezuela que el administrador carga en Studio, en Administración › Feriados & ferias** | Usa la lista que ya existe (`operational_calendar`, país `VE`, tipo `holiday`; SDD-0127). Si al empezar un año no hay feriados de Venezuela cargados, el CRM se lo avisa al administrador | El administrador de Studio | **Elegida** («No cuenta», 03:50Z; «Administrador en Studio», 03:52Z) |
+| (b) Ninguno: solo el sábado y el domingo | Un feriado cuenta como día de trabajo | Nadie | Descartada: Sam contestó que un feriado entre semana «No cuenta» |
+| (c) Una lista fija de feriados nacionales, escrita en el sistema | No hay que cargar nada, pero cada cambio del calendario pide un cambio de código | Programación | Descartada: la lista la mantiene el «Administrador en Studio» |
 
 ### 10.5.12 Textos públicos propuestos
 
 **Propuestas, sin aprobar.** Sam los aprueba palabra por palabra antes de publicar. Si cambia una palabra, se le vuelve a preguntar. Se escriben sobre `main` en `7a3cde25d`, que ya tiene el texto de la #399.
 
-**T1 · Portal, Soporte** (`app/portal/(app)/soporte/page.tsx:200`). Hoy: `{role} · Te responde en el día`. Con la regla de P5, ya no es cierto para el fin de semana.
+**T1 · Portal, Soporte** (`app/portal/(app)/soporte/page.tsx:200`). Hoy: `{role} · Te responde en el día`. Con la regla de P5, ya no es cierto para el fin de semana. Con P7 = (a) queda una sola propuesta, **todavía sin aprobar**: se aprueba palabra por palabra en la decisión 5 del Director General, la de los textos de la 10.5.
 
-| Si P7 es | Texto nuevo |
-|---|---|
-| (a) o (c), con feriados | `{role} · Te responde en el día hábil` |
-| (b), sin feriados | `{role} · Te responde en el día, de lunes a viernes` |
+> `{role} · Te responde en el día hábil`
+
+La variante de la opción (b), `{role} · Te responde en el día, de lunes a viernes`, se descarta con ella.
 
 **T2 · `/privacidad`, fila «Portal del Cliente» de lo que recogemos** (`app/privacidad/page.tsx:80`). Se agrega al final, después de «pagos reportados y comunicaciones con nuestro equipo.»:
 
@@ -573,7 +577,7 @@ La skill pide una segunda opinión: otro modelo puede revisar este diseño. **Lo
 - `entrarPortal`: etiquetas, equipo y asesor; solo la bandeja del portal; logs con solo códigos;
 - `responderAlPortal`: deja pasar solo lo saliente, no privado y no propio; la nota del adjunto, una sola vez; el push, una sola vez; el reproceso relee el mensaje;
 - el estado, traducido;
-- «vencida»: viernes 23:59, sábado y domingo al lunes, feriados según P7, y el borde de 23:59:59 en `America/Caracas`;
+- «vencida»: viernes 23:59, sábado y domingo al lunes, un feriado de Venezuela entre semana y uno que cae en lunes (P7 = (a)), un feriado borrado o de China que no cuenta, el aviso de un año sin feriados cargados, y el borde de 23:59:59 en `America/Caracas`;
 - Conversaciones de Studio en solo lectura con el flag encendido, y `sendReplyAction` que rechaza en el servidor;
 - la ruta del webhook nunca registra el texto;
 - T1 en la página de Soporte, y T2 y T3 en `/privacidad`.
@@ -587,7 +591,8 @@ La skill pide una segunda opinión: otro modelo puede revisar este diseño. **Lo
 - [ ] La respuesta del agente llega al portal una sola vez, con su autor y su hora, y el cliente recibe el push de hoy.
 - [ ] El portal nunca falla por Chatwoot, y si Chatwoot no responde hay aviso y modo de respaldo.
 - [ ] La tarjeta entra por la ficha, en el embudo de su segmento; desde «Perdido» vuelve solo si es lead.
-- [ ] «Vencida» sigue la regla de P5 y la respuesta de P7.
+- [ ] «Vencida» sigue la regla de P5 y P7 = (a): no cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio.
+- [ ] T1 a T4 aprobados por Sam palabra por palabra (decisión 5) antes de publicarlos.
 - [ ] Nada sale a Chatwoot fuera del nombre y el texto.
 - [ ] El flag nace apagado y no se enciende sin el `/privacidad` nuevo publicado.
 - [ ] La carga pasa C-1 a C-14 en el ensayo, antes de producción.
@@ -709,8 +714,7 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 
 | # | Qué | Opción recomendada |
 |---|---|---|
-| P7 | «Además del sábado y el domingo, ¿qué días no cuentan para el plazo del chat del portal?» | (a) Los feriados de Venezuela que el administrador carga en Studio (§10.5.11) |
-| T1 a T4 | Aprobar los textos públicos palabra por palabra (§10.5.12) | Los de §10.5.12; T1 según la respuesta a P7 |
+| T1 a T4 | Aprobar los textos públicos palabra por palabra (§10.5.12), en la decisión 5 del Director General | Los de §10.5.12. T1 ya tiene una sola propuesta, por P7 = (a) |
 | Hilos archivados | Confirmar que no se cargan a Chatwoot (§10.5.10) | No cargarlos |
 | Reestimación | Las filas de E10 (§10.5.21) | — |
 | Puertas | La migración; la bandeja y las variables; cada paso de la carga; encender el flag (§10.5.9 y §10.5.10) | Cada una con su OK nominal, en ese orden |
