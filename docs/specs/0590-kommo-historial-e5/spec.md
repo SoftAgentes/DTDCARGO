@@ -880,3 +880,100 @@ La palabra es la menos frecuente de la cuenta entre las de ese mensaje y nunca s
 - **la memoria necesaria:** el runner, más 1.024 MB para Postgres y Redis, más 2.048 MB de margen.
 
 Si `MemAvailable` no alcanza, sale con 3 y lo dice (MEM0), sin crear nada. Lo prueba N6, con un `/proc/meminfo` inventado. Con unos 2,1 GB de adjuntos salen unos 3,1 GB de almacenamiento, un runner de ~5,7 GB y ~8,8 GB necesarios (I), contra los 15,8 GB que se midieron hoy.
+
+### 10.16 La corrida real: completa, 5.4, ensayo (5.6) y carga en producción (5.7), 2026-11-07
+
+Corrió el Subdirector de Chatwoot, con el Director General al lado en cada puerta. Todo dentro del OK de Sam («Todo, incluida producción», 2026-11-06) y sus seis condiciones. Las horas son UTC, medidas en el VPS. La evidencia está en el VPS, fuera de Git, y solo trae conteos y huellas.
+
+**Huellas que corrieron** (sha256, 16 caracteres):
+- Extractor 1.3.0 en la completa: `f576cb2767f1a3ea`.
+- Extractor 1.3.1 desde la 5.4: `a9fbc324d10eefe6`.
+- `completa.sh`: `86422805c3ed5f55`.
+- `vigia-carga.sh`: `79ad8944c359a755`.
+- `cargar-archivo-kommo.rb`: `b86c0eed4b5a95fa`.
+- `ensayo-archivo.sh`: `c0fb3d336a135ca1`.
+- `pruebas/sonda-ensayo.rb`: `5b08e3e2f333847a`.
+- `ensayo-otras-cuentas.sql`: `fc0dd444c22c2d6a`.
+
+#### Completa hasta el corte `2026-11-07T05:00:00Z`
+
+- **Corrida 1:** de 05:00:01Z a 06:06:26Z. El vigía la paró por «carga sostenida 8.34 (5 minutos) por encima de 8», con `codigo=143`. Iba en 1850 de 4780 conversaciones.
+- **Corrida 2:** reanudó a las 06:40:01Z, con la 1.3.0 y el mismo `CORTE`, por orden del Director General. Terminó a las 09:26:52Z con `extraer_codigo=0`, `codigo=0`, `token=borrado` y la unidad `inactive`.
+- **Resultado:**
+  - 54.753 eventos y 4780 conversaciones.
+  - 3654 adjuntos en el índice: 3639 bajados y 15 con 404 de los servidores de Kommo (`drive-g` 12 y `drive-c` 3; 11 `picture` y 4 `file`, en 10 conversaciones).
+  - Huecos: 244 sondeados, ninguno existe y 12 con 403.
+  - Peticiones: 9730 (200 = 9470, 404 = 248, 403 = 12, red = 7). De los 248 con 404, 232 son huecos y 15 adjuntos; 1 queda sin atribuir, porque el extractor no registra los 404 (I).
+
+#### 5.4, de 09:33:41Z a 09:33:46Z
+
+- Un solo tenant y la foto del ERP con 704 clientes. Se borró después de leerla.
+- **`vincular`:** 4303 contactos, 4258 grupos y 241 clientes vinculados. **E-1 = 0, E-2 = 0**, y 1 ambiguo sin vincular.
+- **`preparar-carga`:**
+  - 4780 conversaciones y 54.737 mensajes: 29.099 entrantes, 25.638 salientes, 11.714 de bot y 3148 sin texto.
+  - 4258 personas.
+  - 3639 adjuntos para carga, con 2.134.541.464 bytes; el más grande, 46.839.781.
+
+#### Ensayo (5.6), cuatro intentos
+
+| Intento | Hora | Cómo terminó |
+|---|---|---|
+| 1 | 09:34:21Z | Lo paró la guarda de 1 min con 9,67 (> 8), antes de la carga-2 |
+| 2 | 09:44:34Z | Lo paró la guarda de 1 min con 8,92, antes de la carga-1 |
+| 3 | 09:57:53Z | Con `TOPE_CARGA=16`, cambio de guarda del Director General solo para el ensayo. Lo paró el vigía de 5 min con 8,08 (> 8), en la carga-2 |
+| 4 | 10:10:55Z → 10:34:31Z | **Completo**: «terminó sola, sin que el vigía la parara» |
+
+- **Guardas del intento 4**, también del Director General, de las ~10:10Z: el vigía corta con 10 a 5 min y 16 a 1 min, y cada 30 s revisa la salud de `dtd-cargo-web-1`, `chatwoot-rails-1`, `chatwoot-sidekiq-1` y `chatwoot-postgres-1`, más el `curl` a la web y a `/api`. La ventana de ejecución iba hasta las 12:30Z.
+- **Limpieza:** en los cuatro intentos quedó en 0. En el 3 hizo falta `--limpiar`, porque quedaron un volumen y una red.
+- **Intento 4, 32 PASÓ:**
+  - A1–A8, D1–D4 y O0–O2;
+  - P1, B1, B2, S1, C1 y C2;
+  - E45a/b, E6/E6b, E7 (la carga-2 no deja nada nuevo), E8a/b, E9a/b, E10f y E11;
+  - AD1–AD3: 3639 adjuntos y 2.134.541.464 bytes, sin duplicar y sin huérfanos;
+  - SMTP1, E1, E2, MI1–MI3, BQ2 (12 ms con 3650 días) y MEM1.
+- **4 FALLÓ, de la sonda.** El Director General los aceptó como limitaciones de la sonda:
+  - **E10d, E10e y E10g:** por nombre la encuentran en los tres casos, y el agente que no es miembro no la ve. Por número, no. La sonda busca el `display_id` de la conversación más vieja del Archivo, la 21 (`sonda-ensayo.rb:186-189`). Chatwoot busca con `ILIKE '%21%'`, ordena por `created_at DESC` y pagina de a 15 (`search_service.rb:32-47`). Con 4800 conversaciones, la más vieja queda al final.
+  - **BQ1:** dio `sin_palabra`. El mensaje con texto más viejo del Archivo no tiene ninguna palabra de 5 letras o más (`sonda-ensayo.rb:327-328`). BQ1 no quedó medido.
+- **Memoria (`rss_pico_kb`):** el máximo fue 622.616 KB, en adjuntos-2. La puerta de §10.15 da 608 + 406 + 300 = 1314 MiB, por debajo de 1536.
+
+#### Carga en producción (5.7), de 10:59:02Z a 11:29:40Z
+
+- **Puertas del Director General:**
+  - el sí, a las 10:40Z;
+  - el respaldo `chatwoot-20261107T103842Z`: sha256 de las tres piezas iguales al manifiesto, y B2 «0 differences found»;
+  - E-3 «antes», a las 10:39:31Z: `crm_tarjetas=8 crm_tareas=0 chatwoot_webhook_events=22 chatwoot_conversations=7`.
+- **Lectura previa** (10:41:47Z), cuenta 1: 19 contactos, 20 conversaciones, 58 mensajes, 5 bandejas, Archivo = 0, 37 blobs (0 `kommo-%`) y **2 usuarios, los 2 administradores**. Coincide con la copia del ensayo.
+- **Guardas:**
+  - antes de cada modo, la puerta de memoria de §10.15;
+  - si la carga pasa de 8 a 5 min o de 16 a 1 min, se pausa hasta que baje de 5 a 1 min y de 6 a 5 min, sin forzar;
+  - el vigía de producción cada 30 s, igual que en el ensayo;
+  - después de cada modo, los conteos exactos de la bandeja contra el ensayo: cualquier diferencia, para.
+- **Resultado:** el vigía dio «terminó sola». En sus 74 lecturas, web y `/api` respondieron 200 y los cuatro contenedores estuvieron `healthy`.
+
+| Modo | Lo que salió (igual que el ensayo) |
+|---|---|
+| crear-bandeja | **Bandeja 8**, sin `webhook_url`, sin asignación automática ni miembros; `trabajos_nuevos=ninguno` |
+| seco | 4258 / 4780 / 54.737, 4257 nuevas y 1 reusada, 0 omitidos; no escribe; secuencia de 20 a 20 |
+| cargar | Lo mismo, escrito; secuencia de 20 a 4800; en la bandeja, 4780 conversaciones, 54.737 mensajes, 4258 contact_inboxes y 4258 contactos |
+| adjuntos-seco | 3639 adjuntos y 2.134.541.464 bytes; no sube nada |
+| adjuntos | 3639 subidos y 2.134.541.464 bytes; `blobs_kommo` de 0 a 3639; 0 huérfanos, 0 fallidos, 0 que no coinciden y 0 sin mensaje |
+| miembros-seco / miembros | 2 nuevos (`usuarios_cuenta=2`, los 2 administradores; en el ensayo eran 4 por los usuarios temporales de la sonda); 0 notificaciones y 0 asignadas |
+| empaquetar | 3640 archivos cifrados, con 2.146.760.842 bytes y 2 destinatarios; el staging quedó borrado |
+
+- **En todos los modos de carga:** `trabajos_nuevos=ninguno` y 0 correos.
+- **Pausa por carga:** de 11:11:33Z (8,31 / 8,39) a 11:28:25Z, antes de miembros-seco.
+- **Picos:** la carga de 5 min llegó a 8,89, y `chatwoot-rails-1` a 861 MiB de 1536.
+- **E-3 «después»**, del Director General a las 11:32:22Z: **8 / 0 / 22 / 7, igual que antes.** La carga no disparó nada hacia el Studio.
+
+#### Quedó fuera del Archivo (FUERA DE ALCANCE DETECTADO)
+
+- **12 conversaciones de Kommo con 403:** 118, 134, 138, 364, 3746, 3747, 3761, 3764, 3834, 3927, 3928 y 4718. Existen, pero el usuario de la integración no las ve.
+  - No tienen eventos, mensajes ni adjuntos bajados.
+  - Recuperarlas pide darle acceso en Kommo y otro token, y eso lo decide Sam.
+- **15 adjuntos con 404:** Kommo ya no los tiene.
+
+#### Hallazgos para una PR aparte (no se corrigen en esta)
+
+1. **`ensayo-archivo.sh`:** después de un TERM, el `trap limpiar EXIT` (`:133`) sale con 0. La unidad queda en `Result=success` y puede dejar el volumen `chatwoot-ensayo_almacenamiento` y la red. El veredicto hay que sacarlo del vigía, no de `ExecMainStatus`.
+2. **`pruebas/sonda-ensayo.rb`:** con datos reales, no mide la búsqueda por número ni BQ1. Hay que buscar por `display_id` exacto y elegir el primer mensaje que tenga una palabra apta.
+3. **El guion de la carga no corre `informe` antes de `empaquetar`.** Por eso no quedó `informe.json` con `talks.sin_acceso_403`, que escribe `informe()` (`respaldar-historial.py:1440`), y `manifiesto.json` no lo trae. Los ids siguen en los archivos del staging que van dentro del paquete cifrado de metadatos (I: no se puede comprobar sin la llave de Sam).

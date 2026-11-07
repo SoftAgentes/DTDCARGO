@@ -2,7 +2,16 @@
 
 Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del Director General. Las fuentes de estado son Git, las PR y la spec `docs/specs/0590-kommo-historial-e5/spec.md`. Este handoff junta lo necesario para seguir sin la conversación.
 
-**Estado al 2026-11-06, ~14:30Z.**
+**Estado al 2026-11-07, 11:33Z: el Archivo Kommo está cargado en producción.** El detalle, con horas, conteos y huellas, está en la spec §10.16.
+- La completa terminó a las 09:26:52Z (`codigo=0`) y el token quedó borrado.
+- La 5.4 corrió a las 09:33Z: E-1 = 0 y E-2 = 0.
+- El ensayo (5.6) se completó en el cuarto intento, a las 10:34Z. Dio 32 PASÓ y 4 FALLÓ de la sonda de búsqueda, que el Director General aceptó como limitaciones de la sonda.
+- **La carga (5.7) corrió de 10:59Z a 11:29Z, con el sí del Director General.** La bandeja 8, «Archivo Kommo», tiene 4780 conversaciones, 54.737 mensajes, 4258 contactos, 3639 adjuntos y 2 miembros, con 0 trabajos y 0 correos.
+- El Director General hizo el respaldo `chatwoot-20261107T103842Z` y midió E-3 antes y después: 8 / 0 / 22 / 7, sin cambios.
+- `empaquetar` cifró 3640 archivos y borró el staging.
+- **Las filas 5.6 y 5.7 quedan en `entregado`: la aceptación es de Sam.** El código de las PR #386 y #391 a #396 sigue en borrador, sin fusionar. La fusión se la pide el Director General a Sam.
+
+**Estado anterior, al 2026-11-06, ~14:30Z.**
 - Sam pegó el token a las 13:40Z.
 - La sonda incremental corrió y su paquete es `/srv/backups/kommo/kommo-20261106T134402Z`. Su evidencia, solo conteos, se le mandó al Director General.
 - La completa está programada para el 2026-11-07 a las 05:00:00 UTC, la 1:00 a. m. en Caracas, sin tope de hora (`kommo-e5-completa.timer`, con `kommo-e5-vigia.timer` a la misma hora y el tope de carga 8). El token se borra solo el 2026-11-08 a las 05:00:00 UTC (`kommo-e5-token-caduca.timer`). Reprogramado a las 14:28Z, a pedido de Sam (§2).
@@ -66,14 +75,14 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 |---|---|---|---|
 | 1 | Sam pega el token | Sam | Hecho, a las 13:40Z |
 | 2 | Sonda incremental desde la base 5.1 hasta un corte (§5.2) | Subdirector, con aviso al Director General | Hecho; evidencia al Director General |
-| 3 | Completa hasta el corte, desde las 05:00Z y sin tope de hora, con `--adjuntos-para-carga` si la #394 pasa la puerta de las 03:30Z (§5.3) | Subdirector | Programada para el 2026-11-07 a las 05:00Z |
-| 4 | Foto del ERP, `vincular` y `preparar-carga` (§5.4) | Subdirector | Guion listo, sin correr |
-| 5 | Ensayo en la copia efímera (§5.5) | Subdirector | Guion aprobado (#392), sin correr |
-| 6 | Evidencia del ensayo al Director General | Subdirector | — |
-| 7 | `MODO=seco` en producción: no escribe ni consume números | Con el Director General | — |
-| 8 | Respaldo de la base de Chatwoot | Director General | — |
-| 9 | Carga en producción, con E-3 y E-8 antes y después | El Director General, o con él | — |
-| 10 | Miembros del Archivo (`MODO=miembros`, todo el equipo), la búsqueda ampliada (plan de §10.14) y después `empaquetar` el staging | Con el Director General | — |
+| 3 | Completa hasta el corte, desde las 05:00Z y sin tope de hora, con `--adjuntos-para-carga` si la #394 pasa la puerta de las 03:30Z (§5.3) | Subdirector | Hecho el 2026-11-07: parada por el vigía a las 06:06Z (143) y reanudada, terminó a las 09:26:52Z con `codigo=0` |
+| 4 | Foto del ERP, `vincular` y `preparar-carga` (§5.4) | Subdirector | Hecho a las 09:33Z, con la 1.3.1: E-1 = 0, E-2 = 0 |
+| 5 | Ensayo en la copia efímera (§5.5) | Subdirector | Hecho al cuarto intento, de 10:10Z a 10:34Z: 32 PASÓ y 4 FALLÓ de la sonda, aceptados por el Director General |
+| 6 | Evidencia del ensayo al Director General | Subdirector | Hecho; el Director General dio el sí a las 10:40Z |
+| 7 | `MODO=seco` en producción: no escribe ni consume números | Con el Director General | Hecho a las 10:59Z: los mismos números que el ensayo y la secuencia de 20 a 20 |
+| 8 | Respaldo de la base de Chatwoot | Director General | Hecho: `chatwoot-20261107T103842Z`, verificado; E-3 «antes» 8 / 0 / 22 / 7 |
+| 9 | Carga en producción, con E-3 y E-8 antes y después | El Director General, o con él | Hecho de 11:00Z a 11:11Z: 4780 / 54.737 / 3639 adjuntos, secuencia de 20 a 4800; E-3 «después» igual que antes |
+| 10 | Miembros del Archivo (`MODO=miembros`, todo el equipo), la búsqueda ampliada (plan de §10.14) y después `empaquetar` el staging | Con el Director General | Miembros: hecho, los 2 administradores. `empaquetar`: hecho, con el staging borrado. **La búsqueda ampliada no se aplicó en producción:** `SEARCH_TIME_RANGE_LIMIT_DAYS` está en la #396, sin fusionar, y espera al Director General |
 
 ## 5. Guion para cuando llegue el token (NO correr sin el aviso del Director General)
 
@@ -255,6 +264,13 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
   - la búsqueda ampliada, si el Director General la aprueba: los pasos 1 a 7 de la spec §10.14, con su vuelta atrás.
 
 ## 6. FUERA DE ALCANCE DETECTADO
+
+- **12 conversaciones de Kommo con 403** (118, 134, 138, 364, 3746, 3747, 3761, 3764, 3834, 3927, 3928 y 4718). Quedan fuera del Archivo: no tienen eventos, mensajes ni adjuntos bajados. Recuperarlas pide darle acceso en Kommo y otro token; lo decide Sam.
+- **15 adjuntos con 404:** Kommo ya no los tiene.
+- **Tres hallazgos para una PR aparte** (spec §10.16):
+  1. el trap de `ensayo-archivo.sh` sale con 0 después de un TERM y puede dejar un volumen y una red;
+  2. la sonda no mide la búsqueda por número ni BQ1 con datos reales;
+  3. el guion de la carga no corre `informe` antes de `empaquetar`, así que no queda `informe.json` con `sin_acceso_403`.
 
 - Un usuario que entre a Chatwoot después de la carga no queda como miembro del Archivo solo: hay que agregarlo desde el panel o repetir `MODO=miembros`.
 - La ventana de búsqueda corre con el tiempo: con 3.650 días, el mensaje más viejo del Archivo sale de la búsqueda de texto el 2033-08-20. Por la persona o el número se sigue encontrando.
