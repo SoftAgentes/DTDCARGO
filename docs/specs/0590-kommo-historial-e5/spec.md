@@ -1027,9 +1027,9 @@ Es lo que se probó en producción el 2026-11-07, en solo lectura (lo informó e
 - `.agents/handoffs/0590-e5-hallazgos.md`
 
 **Huellas** (sha256, 16 caracteres, del contenido en Git) para comparar en un próximo despliegue:
-- `ensayo-archivo.sh`: `a7ea89f6abd7b71a`, antes `c0fb3d336a135ca1`.
+- `ensayo-archivo.sh`: `a108a12efacfc24a`, antes `c0fb3d336a135ca1`.
 - `pruebas/sonda-ensayo.rb`: `5d08ca99ce265dd2`, antes `5b08e3e2f333847a`.
-- `respaldar-historial.py`: `fd2588004a6a7adf`, antes `a9fbc324d10eefe6`.
+- `respaldar-historial.py`: `a090cfb04e9fb11b`, antes `a9fbc324d10eefe6`.
 - Sin cambios: `cargar-archivo-kommo.rb` (`b86c0eed4b5a95fa`) y `ensayo-otras-cuentas.sql` (`fc0dd444c22c2d6a`).
 
 Las huellas de antes son las de `main` en `ecadbac91`, y coinciden con las que corrieron en producción (§10.16).
@@ -1039,9 +1039,10 @@ Las huellas de antes son las de `main` en `ecadbac91`, y coinciden con las que c
 - **`prueba-ensayo.sh`, T1 a T3**, con systemd de verdad: el ensayo corre como root en una unidad, como en el VPS.
   - **T1:** `systemctl stop` con un runner del ensayo corriendo, lo que hace `vigia-carga.sh`.
   - **T2:** TERM solo al proceso principal, lo que hizo el vigía del ensayo del 2026-11-07.
-  - En los dos, la unidad tiene que quedar en `exit-code 1 143` (Result, ExecMainCode y ExecMainStatus), con `senal=TERM`, `ensayo_codigo=143`, `limpieza_completa=si` y 0 contenedores, volúmenes y redes.
+  - En los dos, el TERM tiene que llegar con un runner del ensayo corriendo (el choque de §10.16), y la unidad tiene que quedar en `exit-code 1 143` (Result, ExecMainCode y ExecMainStatus), con `senal=TERM`, `ensayo_codigo=143`, `limpieza_completa=si` y 0 contenedores, volúmenes y redes.
   - **T3:** un contenedor ajeno conectado a `chatwoot-ensayo_aislada`. La limpieza no lo toca, deja la red, dice `limpieza_completa=no` y `FALLÓ L0`, y no sale con 0. `--limpiar` tampoco sale con 0 mientras el ajeno siga. Cuando se va, `--limpiar` deja todo en 0 y sale con 0.
-  - **Mutantes**, sobre una copia de la carpeta: ME1 quita el trap de TERM y tiene que tumbar T1 y T2; ME2 hace que la limpieza no mire lo que quedó y tiene que tumbar T3 y dejar pasar T1; ME3 saca al contenedor ajeno para poder borrar la red y tiene que tumbar T3.
+  - **Mutantes**, sobre una copia de la carpeta. Cada caso deja `no:<motivo>`, el primer requisito que no cumplió, y el mutante tiene que caer justo por el suyo: ME1 quita el trap de TERM y tiene que tumbar T1 y T2 por la unidad; ME2 hace que la limpieza no mire lo que quedó y tiene que tumbar T3 por `completa`, con T1 como control; ME3 saca al contenedor ajeno para poder borrar la red y tiene que tumbar T3 por `ajeno`, con T2 como control.
+- **`prueba-ensayo.sh`, L3:** con un `docker` que no responde delante en el `PATH`, `--limpiar` tiene que salir con 4 y decir que no pudo comprobar la limpieza. Con el guion de `main`, contaba 0, 0 y 0 y salía con 0 (medido en la PC con el mismo `docker` falso).
 - **`generar-sintetico.py --relleno 650`**, solo en `prueba-ensayo.sh`: 650 conversaciones más, cada una con su persona (`+584123000000` en adelante, todas con el 2 del número de la más vieja) y un mensaje con una palabra frecuente. En la conversación más vieja, dos mensajes antes del que tiene `SINTVIEJO`: uno sin palabras de 6 letras y otro con solo la frecuente. `prueba-cargador.sh` no usa el relleno y sus datos no cambian.
   - **R4:** la búsqueda por el número de la más vieja trae más de 600 resultados, y aun así pasan E10d, E10e y E10g.
   - **R5:** BQ1 busca el tercer mensaje (`vieja_posicion=3`, 1 coincidencia) con las dos ventanas.
@@ -1058,8 +1059,10 @@ Las huellas de antes son las de `main` en `ecadbac91`, y coinciden con las que c
 | El trap de TERM, misma estructura y sin Docker, en la PC | PASÓ: 143 con el paso en segundo plano y con el paso en primer plano |
 | `generar-sintetico.py`, `vincular` y `preparar-carga`, en la PC | PASÓ: con `--relleno 650`, 655 conversaciones, 660 mensajes y 654 personas; sin la opción, las 5, 8 y 4 de siempre |
 | `bash -n` de los `.sh` de la carpeta | PASÓ |
-| CI del cargador sobre `bb20ae5b6`, solo las pruebas nuevas con el código de `main` (rojo previo) | Pendiente |
-| CI del cargador con los arreglos | Pendiente |
+| CI del cargador, run 42399372669 sobre `bb20ae5b6`: solo las pruebas nuevas, con el código de `main` (rojo previo; log leído con `gh api`) | FALLÓ en el paso del ensayo, como se esperaba, con 10 fallas. Los demás pasos, en verde. **T1, T2 y T3:** la unidad termina en `success 0 0`, lo mismo que el `ExecMainStatus=0` del intento 3: el TERM llegó con un runner vivo, bash murió por la señal y systemd descargó la unidad. **ME1 a ME3:** no se pueden mutar, porque el código no existe en `main`. **Dentro del ensayo,** 44 PASÓ y las 4 FALLÓ de la corrida real: E10d, E10e y E10g por número (`nombre:si,numero:no,telefono:si`) y BQ1 con `sin_palabra` en las dos ventanas. **R1, R3, R4 y R5** caen por eso. Pasan R2, P1 a P3, L1, L2 y F1 a F4: el relleno (655 conversaciones y 660 mensajes) no rompe nada más |
+| Revisión independiente de solo lectura del diff (subagente revisor), antes de publicar los arreglos | Sin fallas al ejecutar. Hubo tres hallazgos y los tres se corrigieron. **1.** Con docker caído, `--limpiar` contaba 0 y salía con 0: ahora cuenta `?`, dice `FALLÓ L0` y sale con 4 (L3). **2.** T1 y T2 podían pasar sin un runner vivo: ahora lo exigen. **3.** Los mutantes no miraban por qué caía cada caso: ahora cada uno tiene que caer por su motivo, con un control. También corrigió un espacio faltante en `respaldar-historial.py` |
+| `--limpiar` con un `docker` que no responde, en la PC | PASÓ: el guion nuevo sale con 4, con `limpieza=contenedores=?,volumenes=?,redes=?` y `limpieza_completa=no`. El de `main` sale con 0 y anota `limpieza=contenedores=0,volumenes=0,redes=0` |
+| CI del cargador con los arreglos | En la PR #413, el run sobre su cabeza. El resultado va en el cuerpo de la PR y en el aviso al Subdirector de Chatwoot, para no publicar otro commit que repita el job |
 | `sonda-ensayo.rb` | Sin Ruby en la PC: se mide en el CI (R1, R3, R4 y R5) |
 
 #### revisar-datos-ve
@@ -1068,6 +1071,6 @@ No se capturan, mueven ni borran datos personales nuevos. La sonda sigue imprimi
 
 #### FUERA DE ALCANCE DETECTADO
 
-- **Aislamiento del ensayo:** A1 a A7 miran los contenedores del proyecto, pero no que un contenedor ajeno se conecte a `chatwoot-ensayo_aislada`. T3 lo hace a propósito y el ensayo no lo nota antes de copiar la base (C). En el VPS, eso pide root. Propuesta: una comprobación A9 que exija que en la red solo haya contenedores del proyecto, antes del dump y después de cada paso.
+- **Aislamiento del ensayo:** A1 a A7 miran los contenedores del proyecto, pero no que un contenedor ajeno se conecte a `chatwoot-ensayo_aislada`. T3 lo hace a propósito, y A1 a A7 filtran por la etiqueta del proyecto, así que no lo pueden ver (C). En el VPS, eso pide root. Propuesta: una comprobación A9 que exija que en la red solo haya contenedores del proyecto, antes del dump y después de cada paso.
 - **`sonda-cargador.rb` (E-10d de `prueba-cargador.sh`)** mira solo la primera página de 15 (`:229-234`). Con los 5 datos inventados alcanza; a escala real fallaría como la del ensayo. Corre solo en CI.
 - `preparar_corrida` abre `stamp.txt` sin cerrarlo (`ResourceWarning` en las pruebas). No cambia nada.
