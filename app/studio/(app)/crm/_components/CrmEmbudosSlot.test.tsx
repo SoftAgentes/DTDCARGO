@@ -26,7 +26,7 @@ import { CrmEmbudosSlot } from "./CrmEmbudosSlot";
 afterEach(() => cleanup());
 
 describe("Embudos sin la migración 0506 (SDD-0614 S0b)", () => {
-  it("dice qué falta y no manda a las pestañas de Kommo, ocultas desde S0", async () => {
+  it("dice qué falta y no manda a las otras pestañas, ocultas desde S0", async () => {
     render(await CrmEmbudosSlot({ tableroInicial: "leads" }));
     expect(screen.getByText("Los embudos todavía no están activos.")).toBeInTheDocument();
     expect(screen.getByText("Falta aplicar la migración 0506 en esta base.")).toBeInTheDocument();
