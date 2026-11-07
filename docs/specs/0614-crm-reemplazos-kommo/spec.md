@@ -820,14 +820,35 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 | **PR B** | S3 + S4 | Con la A fusionada, la maqueta aprobada por Sam y **la PR del paso P-13 de la SDD-0589 fusionada en `main`** (P-13; casilla de §9) |
 | **PR C** | S5 (R9) | Con la B fusionada; la migración B se aplica después de publicar T1 a T3 (§14) |
 
-**S0 · Ocultar Kommo** (§2.1, sin migración)
-- `app/studio/(app)/crm/_components/kommo-tabs.shared.ts` (lista de pestañas y la de por defecto)
-- `app/studio/(app)/crm/page.tsx` y `_components/KommoClient.tsx` (no cargar ni pintar lo de Kommo; encabezado)
-- `app/studio/(app)/reportes/_components/ReportesClient.tsx` (solo `ByAgentView`), `lib/studio/reports/queries.ts`, `types.ts` y `export-csv.ts` (sin la tabla ni el CSV del espejo)
-- `app/studio/(app)/cotizador/[code]/page.tsx` y `cotizador/_components/QuoteDetailClient.tsx` (sin el cruce con contactos de Kommo)
-- Pruebas: las que fijan la lista de pestañas, la pestaña por defecto, `hasKommo` o `kommoMatches` (`git grep -n "resolveKommoTab\|KOMMO_TABS\|hasKommo\|kommoMatches"` en `__tests__`), más `app/studio/(app)/crm/__tests__/stage-control.test.ts` y `crm-rename.test.ts` si fijan el encabezado
-- `app/studio/(app)/crm/__tests__/guia-se-queda.test.ts` (nueva: la guía sigue montada y `/studio/crm` abre Embudos; P-10)
+**S0 · Ocultar Kommo** (§2.1, sin migración). Allowlist exacta de la PR 0, contra `main`
+`ecadbac91` (2026-11-07):
+- `app/studio/(app)/crm/_components/kommo-tabs.shared.ts` (lista de pestañas y la de por defecto:
+  `KOMMO_TABS_OCULTAS`, `CRM_TAB_POR_DEFECTO` = `embudos`; la lista completa se conserva)
+- `app/studio/(app)/crm/page.tsx` (vuelve antes de leer el espejo cuando la pestaña no es de Kommo; el
+  camino de las pestañas de Kommo queda sin uso, no borrado) y `_components/KommoClient.tsx`
+  (encabezado sin estado de conexión ni último sync del espejo; `overview` puede ser nulo)
+- `app/studio/(app)/reportes/_components/ReportesClient.tsx` (solo `ByAgentView`: el aviso de P-9),
+  `lib/studio/reports/queries.ts` (`commercialByAgent` ya no lee; la lectura del espejo sigue como
+  `commercialByAgentKommo`, sin consumidor), `types.ts` (campo `oculto`) y `export-csv.ts` (sin CSV
+  si `oculto`)
+- `app/studio/(app)/cotizador/[code]/page.tsx` y `cotizador/_components/QuoteDetailClient.tsx` (sin el
+  cruce con contactos de Kommo; `findKommoContactsByPhone` sigue en `lib/studio/kommo-convert.ts`)
+- Pruebas: el `git grep -n "resolveKommoTab\|KOMMO_TABS\|hasKommo\|kommoMatches"` en `__tests__` da 0
+  en `main` `ecadbac91`, así que S0 trae las suyas, todas nuevas:
+  - `app/studio/(app)/crm/__tests__/guia-se-queda.test.ts` (la guía sigue montada, con tres
+    mutantes, y `/studio/crm` abre Embudos, donde están las anclas `embudo.*`; P-10)
+  - `app/studio/(app)/crm/__tests__/kommo-oculto.test.tsx` (barra, `?tab=` viejos, la página no
+    llama ninguna lectura de Kommo, encabezado, y el código de Kommo sigue en el repo)
+  - `app/studio/(app)/reportes/__tests__/por-agente-oculto.test.tsx` (`commercialByAgent` no
+    consulta, CSV vacío con su control, aviso literal y CSV deshabilitado)
+  - `app/studio/(app)/cotizador/__tests__/sin-cruce-kommo.test.ts` (la página no cruza y el detalle no
+    pinta contactos de Kommo; la sección de vincular sigue)
+- `app/studio/(app)/crm/__tests__/stage-control.test.ts` y `crm-rename.test.ts` no se tocan: siguen
+  verdes con el encabezado nuevo
+- Esta spec (allowlist e historial) y el handoff `.agents/handoffs/0614-s0-ocultar-kommo.md`
 - **Fuera de S0, aunque nombren a Kommo:** los archivos de la guía de la SDD-0589 (`app/studio/_components/guia/`, `lib/studio/guia/`, `app/studio/(app)/_actions/guia-actions.ts`, `lib/i18n/*/guide.ts`) y `app/studio/(app)/layout.tsx`. Si el diff de S0 toca uno, S0 no cierra
+- **Fuera de S0:** `patch_price` y `patch_stage` de `cotizador/actions.ts` (van en S2, PR A),
+  `app/studio/(app)/reportes/page.tsx` y cualquier migración
 
 **M · Maqueta** (sin código)
 - Resumen, Sin atender y la ficha de la tarjeta (con «Crear ficha», el tipo de lead, la marca de R8 y
@@ -1254,6 +1275,10 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   paso aparte con PR propia, después de la #408, y S3 no se fusiona antes de ese paso. La
   dependencia queda como condición de la PR B (§5) y casilla de §9. E9 todavía no abre el paso. No
   cambia ninguna estimación.
+- **2026-11-07:** S0 implementado en la PR 0, desde `main` `ecadbac91`. La allowlist de §5 queda con
+  los archivos exactos: las cuatro pruebas de S0 son nuevas, porque ninguna prueba de `main` fijaba
+  las pestañas, `hasKommo` ni `kommoMatches`. Recuperación de Kommo se oculta con las demás (H13).
+  `patch_price` y `patch_stage` no se tocan: van en S2. No cambia ninguna estimación.
 
 ## 14. Textos públicos aprobados por Sam (se publican por PR y tanda, con el OK del Director General)
 

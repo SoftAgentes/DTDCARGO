@@ -136,7 +136,8 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
   if (category === "com") {
     if (rep === "by-agent") {
       const data = input.byAgent;
-      if (!data || !data.hasKommo || data.rows.length === 0) return null;
+      // SDD-0614 S0 (P-9): con la tabla del espejo oculta no hay CSV de Por agente.
+      if (!data || data.oculto || !data.hasKommo || data.rows.length === 0) return null;
       return {
         slug: "comercial-por-agente",
         headers: ["Agente", "Estimados", "Ganadas", "Perdidas", "Conversión %", "Clientes", "Revenue USD 12m"],
