@@ -176,8 +176,24 @@ Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrom
   sesión y en Revisions de Paperclip.
 - **Skills:** solo `paperclip` y `paperclip-converting-plans-to-tasks`.
 - **Permisos:** `standard`; asignar sí, crear agentes no, crear skills no.
-- **NO VERIFICADO:** una corrida real de ALFRED con Claude dentro de Paperclip. La primera será
-  la que lo despierte, o el latido de las 11:00 UTC.
+- **Primera corrida real (`d7740c49`, 04:41 UTC): FALLÓ** con `EACCES` al leer
+  `1-agent-instructions.md` del staging.
+  - **Causa (MEDIDO):** `agentes` no es miembro del grupo `agentes-alfred`, así que Linux le
+    quita el setgid a `run.*` cuando hace `chmod 2750`, y lo copiado queda con grupo
+    `agentes`, sin lectura para el motor.
+  - Las pruebas no lo veían porque corren con un solo usuario.
+- **Arreglo:** `dtd-motor` da lectura al usuario del motor con
+  `setfacl -m u:<usuario>:rX` (la corrida) y `setfacl -R -m` (cada copia).
+  - Prueba nueva con un `setfacl` falso y 2 mutantes.
+  - Linux (VPS): 21 de 21 pruebas, sin saltos, y 31 de 31 mutantes muertos.
+  - Windows: 21 pruebas, 2 saltadas.
+  - Instalado a las 04:44 UTC: `28c28543…`, sobre `948f7d64…`, que coincidía con lo
+    registrado. Respaldo en `/root/respaldo-sdd-0615-acl-20261107T044406Z`.
+- **Segunda corrida (`1c45e740`, 04:44–04:46 UTC): PASÓ**, `exit_code 0`, con
+  `claude-fable-5-1`.
+  - Cargó la skill `paperclip`, leyó su bandeja por la API y concluyó «Latido sin novedades».
+    No escribió comentarios.
+  - Reportó que HAI-44 (tres contrataciones de marketing) espera a Sam.
 - **Volver atrás:** pegar la fila de `alfred-agente-antes.json` (Hermes) en Harness y
   restaurar el `AGENTS.md` anterior desde Revisions.
 

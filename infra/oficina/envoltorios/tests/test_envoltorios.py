@@ -112,6 +112,12 @@ class Motor(Base):
             '#!/bin/bash\necho "$1" > "' + _barra(self.usuario) + '"\nshift\nexec "$@"\n', newline="\n"
         )
         self.sudo.chmod(0o755)
+        self.acl_log = self.tmp / "acl.txt"
+        self.acl = self.bin / "setfacl-falso"
+        self.acl.write_text(
+            '#!/bin/bash\nprintf "%s\\n" "$*" >> "' + _barra(self.acl_log) + '"\n', newline="\n"
+        )
+        self.acl.chmod(0o755)
         agente_run = self.falso("dtd-agente-run")
         texto = (RAIZ / "dtd-motor").read_text()
         reemplazos = {
@@ -119,6 +125,7 @@ class Motor(Base):
             "PROTEGIDO=/home/agentes/": f"PROTEGIDO={_barra(self.protegido)}/",
             "AGENTE_RUN=/usr/local/libexec/dtd-agente-run": f"AGENTE_RUN={_barra(agente_run)}",
             "SUDO=(sudo -n -u)": f"SUDO=({_barra(self.sudo)})",
+            "ACL=(setfacl)": f"ACL=({_barra(self.acl)})",
         }
         for viejo, nuevo in reemplazos.items():
             self.assertIn(viejo, texto, f"falta la constante {viejo!r} en dtd-motor")
@@ -261,6 +268,29 @@ class Motor(Base):
         copia = Path(args[1])
         self.assertEqual(copia.stat().st_mode & 0o777, 0o640)
         self.assertEqual(copia.parent.stat().st_mode & 0o7777, 0o2750)
+
+    def test_el_usuario_del_motor_recibe_lectura_por_acl(self):
+        # 2026-11-07: sin ACL, agentes-alfred no podía leer las instrucciones copiadas (EACCES),
+        # porque agentes no es miembro de su grupo y la corrida pierde el setgid.
+        for herramienta, perfil, usuario in [
+            ("claude", "ceo", "agentes-alfred"),
+            ("codex", "auxiliar", "agentes-auxiliar"),
+        ]:
+            with self.subTest(herramienta=herramienta):
+                if self.acl_log.exists():
+                    self.acl_log.unlink()
+                f = self.protegido / f"{perfil}.md"
+                f.write_text("x")
+                r = self.motor(herramienta, perfil, ["--append-system-prompt-file", _barra(f)])
+                self.assertEqual(r.returncode, 0, r.stderr)
+                args, _, _ = self.leer()
+                copia = args[2]
+                corrida = copia.rsplit("/", 1)[0]
+                llamadas = self.acl_log.read_text().splitlines()
+                self.assertEqual(
+                    llamadas,
+                    [f"-m u:{usuario}:rX -- {corrida}", f"-R -m u:{usuario}:rX -- {copia}"],
+                )
 
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"

@@ -28,6 +28,8 @@ MUTANTES = [
     ("dtd-motor", " -name 'run.*'", "", "borra carpetas ajenas", False),
     ("dtd-motor", "n=$((n + 1))", "n=1", "copias con el mismo nombre", False),
     ("dtd-motor", 'a="$clave=$RESULTADO"', 'a="$a"', "no reescribe --opcion=ruta", False),
+    ("dtd-motor", '  "${ACL[@]}" -R -m "u:$usuario:rX" -- "$destino"' + NL, NL, "la copia queda sin lectura del motor", False),
+    ("dtd-motor", '"${ACL[@]}" -m "u:$usuario:rX" -- "$corrida"', "true", "la corrida queda sin lectura del motor", False),
     ("dtd-motor", "cp -RL --", "cp -R --", "copia enlaces en vez de archivos (solo Linux)", True),
     ("dtd-motor", 'chmod 2750 -- "$corrida"', 'chmod 755 -- "$corrida"', "corrida legible por todos (solo Linux)", True),
     ("dtd-agente-run", "claude:ceo:agentes-alfred | codex", "claude:ceo:* | codex", "Claude con cualquier usuario", False),
