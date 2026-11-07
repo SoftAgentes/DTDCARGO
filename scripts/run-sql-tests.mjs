@@ -106,10 +106,14 @@ try {
     skip(`no se pudo levantar ${IMAGE}: ${(up.stderr || "").trim().split("\n")[0]}`);
   }
 
-  // Esperar a que acepte conexiones (el initdb tarda unos segundos).
+  // Esperar a que acepte conexiones (el initdb tarda unos segundos). Por TCP y no por el socket: la imagen oficial
+  // levanta primero un servidor temporal solo en el socket (`listen_addresses=''`) para el initdb, y después lo apaga
+  // y arranca el definitivo. `pg_isready` por el socket daba por listo al temporal, y los primeros psql caían en el
+  // cambio sin ningún ERROR de SQL: el rojo intermitente del control en el tren #427 (run 42415565680). El temporal no
+  // escucha en 127.0.0.1; el definitivo sí.
   let ready = false;
   for (let i = 0; i < 60; i++) {
-    const r = docker(["exec", containerName, "pg_isready", "-U", "postgres"]);
+    const r = docker(["exec", containerName, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]);
     if (r.status === 0) {
       ready = true;
       break;
@@ -129,10 +133,15 @@ try {
       console.log(`${C.green}   ✓${C.nc} ${C.dim}${f}${C.nc}`);
     } else {
       failed.push(f);
-      // Un error del spawn (ENOBUFS, timeout) no es un ERROR de psql: se dice cuál.
-      const err = (res.error ? [`el runner cortó a psql: ${res.error.code ?? res.error.message}`] : `${res.stdout || ""}${res.stderr || ""}`
-        .split("\n")
-        .filter((l) => l.includes("ERROR:")))
+      // Un error del spawn (ENOBUFS, timeout) no es un ERROR de psql: se dice cuál. Y si psql cayó sin ningún ERROR
+      // de SQL (no pudo conectarse, el servidor se cerró a mitad), se muestra su primera línea y su código: sin esto,
+      // un fallo de conexión salía como un ✗ mudo.
+      const salida = `${res.stdout || ""}${res.stderr || ""}`.split("\n");
+      const errores = salida.filter((l) => l.includes("ERROR:"));
+      const primera = salida.find((l) => /FATAL|error:|could not|server closed/i.test(l)) ?? salida.find((l) => l.trim());
+      const err = (res.error
+        ? [`el runner cortó a psql: ${res.error.code ?? res.error.message}`]
+        : errores.length > 0 ? errores : [`psql salió con ${res.status} sin ERROR de SQL: ${(primera || "(sin salida)").trim()}`])
         .slice(0, 2)
         .join("\n      ");
       console.log(`${C.red}   ✗ ${f}${C.nc}`);
