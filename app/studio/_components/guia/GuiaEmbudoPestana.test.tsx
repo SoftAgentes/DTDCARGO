@@ -322,7 +322,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     },
     { origen: "boton", arrancar: () => {} },
   ])(
-    "B1 · pedido por $origen: si la persona cambia de pestaña antes de que termine el cambio, la guía no abre sola después",
+    "S1 (B1) · pedido por $origen: si la persona cambia de pestaña antes de que termine el cambio, la guía no abre sola después",
     ({ origen, arrancar }) => {
       nav.estado.demoraMs = 1_000;
       arrancar();
@@ -338,8 +338,9 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
       expect(pestana()).toBe("asesor");
       expect(tarjeta()).toBeNull();
 
-      // Minutos después entra a Embudos por su cuenta: la guía no se abre sola.
-      esperar(30_000);
+      // Al rato, antes de que el pedido venza (10 s), entra a Embudos por su cuenta: la
+      // guía no se abre sola. Más tarde ya lo cubriría el vencimiento (S10), no B1.
+      esperar(1_000);
       act(() => nav.persona("tab=embudos"));
       esperar(12_000);
       expect(pestana()).toBe("embudos");
@@ -352,7 +353,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
   // «2 de 4», pero se abre otra vez (el foco vuelve a ella y aparece «Ver la guía desde
   // el principio»). Desde el código (`programa`), vuelve al primer paso.
   it.each([{ origen: "boton" as const }, { origen: "programa" as const }])(
-    "B2 · pedir la guía otra vez ($origen) mientras espera al tablero no deja una segunda espera que reabra la tarjeta",
+    "S2 (B2) · pedir la guía otra vez ($origen) mientras espera al tablero no deja una segunda espera que reabra la tarjeta",
     ({ origen }) => {
       montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
       act(() => iniciarGuia("embudo", { origen }));
@@ -376,7 +377,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
   // Revisión de la #418 (2026-11-07): la segunda pulsación cancelaba la espera de 10 s
   // y empezaba una de 2 s, así que con un tablero lento la guía ya no abría.
   it.each([4_000, 6_000])(
-    "B2 · con un tablero de %i ms, pedir la guía otra vez mientras carga no acorta la espera: abre igual",
+    "S6 (B2) · con un tablero de %i ms, pedir la guía otra vez mientras carga no acorta la espera: abre igual",
     (tardaMs) => {
       montar({ resolver: conDefecto("direccion"), tardaMs });
       act(() => iniciarGuia("embudo", { origen: "boton" }));
@@ -391,7 +392,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     },
   );
 
-  it("B2 · dos pulsaciones seguidas, antes de que cambie la pestaña, piden el cambio una sola vez", () => {
+  it("S7 (B2) · dos pulsaciones seguidas, antes de que cambie la pestaña, piden el cambio una sola vez", () => {
     nav.estado.demoraMs = 1_000;
     montar({ resolver: conDefecto("direccion") });
     act(() => iniciarGuia("embudo", { origen: "boton" }));
@@ -406,7 +407,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
 
   // Segunda revisión de la #418 (ac50c6fca): la espera heredada la crea el evento, no
   // el efecto del pedido, así que ya no se cancelaba al cambiar la URL.
-  it("B1 · pedir otra vez, irse a otra pestaña y volver antes de 10 s: la guía no se abre sola", () => {
+  it("S8 (B1) · pedir otra vez, irse a otra pestaña y volver antes de 10 s: la guía no se abre sola", () => {
     montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
     act(() => iniciarGuia("embudo", { origen: "boton" }));
     esperar(600);
@@ -425,7 +426,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     expect(nav.replace).toHaveBeenCalledTimes(1);
   });
 
-  it("B2 · si el cambio de pestaña se pierde, una pulsación pasados 10 s lo vuelve a pedir", () => {
+  it("S9 (B2) · si el cambio de pestaña se pierde, una pulsación pasados 10 s lo vuelve a pedir", () => {
     nav.estado.perder = true;
     montar({ resolver: conDefecto("direccion") });
     act(() => iniciarGuia("embudo", { origen: "boton" }));
@@ -442,7 +443,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     expect(pestana()).toBe("embudos");
   });
 
-  it("B2 · con el arranque automático encendido, su efecto no reemplaza la espera del botón", () => {
+  it("S4 (B2) · con el arranque automático encendido, su efecto no reemplaza la espera del botón", () => {
     const conAuto: GuiaRecorrido = { ...RECORRIDO_EMBUDO, arranqueAutomatico: true };
     montar({ resolver: conDefecto("direccion"), tardaMs: 4_000, catalogo: [conAuto], autoArranque: true });
     esperar(500);
@@ -456,7 +457,7 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     expect(within(tarjeta()!).queryByRole("button", { name: "No volver a mostrar" })).toBeNull();
   });
 
-  it("B2 · cerrarGuia() durante la espera la cancela: la guía no abre cuando llega el tablero", () => {
+  it("S3 (B2) · cerrarGuia() durante la espera la cancela: la guía no abre cuando llega el tablero", () => {
     montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
     act(() => iniciarGuia("embudo", { origen: "boton" }));
     esperar(600);
@@ -467,5 +468,35 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     esperar(12_000);
     expect(screen.getByText("Tarjeta")).toBeInTheDocument();
     expect(tarjeta()).toBeNull();
+  });
+
+  // Tercera revisión de la #418: el pedido vencido no se borraba al vencer.
+  it("S10 (B2) · si el cambio se perdió y nadie vuelve a pulsar, entrar después a Embudos no abre la guía sola", () => {
+    nav.estado.perder = true;
+    montar({ resolver: conDefecto("direccion") });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(11_000);
+    expect(pestana()).toBe("direccion");
+
+    // Pasados los 10 s, la persona entra a Embudos con un clic.
+    nav.estado.perder = false;
+    act(() => nav.persona("tab=embudos"));
+    esperar(3_000);
+    expect(pestana()).toBe("embudos");
+    expect(tarjeta()).toBeNull();
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it("S11 (B2) · con el arranque automático encendido, el pedido vencido no lo frena: abre como arranque automático", () => {
+    const conAuto: GuiaRecorrido = { ...RECORRIDO_EMBUDO, arranqueAutomatico: true };
+    nav.estado.perder = true;
+    montar({ resolver: conDefecto("direccion"), catalogo: [conAuto], autoArranque: true });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(11_000);
+
+    nav.estado.perder = false;
+    act(() => nav.persona("tab=embudos"));
+    expect(esperarTarjeta(3_000)).toBe(true);
+    expect(within(tarjeta()!).getByRole("button", { name: "No volver a mostrar" })).toBeInTheDocument();
   });
 });
