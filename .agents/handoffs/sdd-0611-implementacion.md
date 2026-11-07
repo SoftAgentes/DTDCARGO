@@ -89,7 +89,8 @@ Migración sin aplicar, con su paquete para el Director General. PR en borrador.
 | `lib/studio/news/__tests__/autopublicar.test.ts` (orquestador con base y Discord dobles) | PASÓ, 7 pruebas |
 | Contrato `supabase/tests/0518_…test.sql` en PGlite | PASÓ: `TEST 0518 GREEN: 63 aserciones` |
 | Control rojo del contrato (sin 0518) | PASÓ: cae en la primera aserción |
-| Mutantes de la 0518 (19) y gemelas TS/SQL (marca y huella) | PENDIENTE DE TURNO (ver abajo) |
+| Mutantes de la 0518 (19) y gemelas TS/SQL (marca y huella) | PASÓ con el turno del Subdirector (2026-11-07, 1 worker): murieron los 19, cada uno en la aserción que lo nombra; las 2 gemelas coinciden. El archivo entero da 24/24 en 32 s |
+| Número 0518 sin choque | PASÓ: no hay `refs/dtd/reservations/0518` en origin ni en local, y ninguna otra rama ni worktree tiene `supabase/migrations/0518_*` |
 | `node scripts/check-pending-migration-symbols.mjs` | PASÓ: `0 ROJO · 0 AMARILLO`. El primer intento dio 5 rojos por nombres de columna homónimos; se renombraron a `autopub_*` y `seo_draft_id` |
 | `pnpm docs:check` / `pnpm sdd:check` | PASÓ / PASÓ (números sin repetir) |
 | `tsc` y `eslint` de los archivos tocados (primera tanda) | PASÓ, sin errores. La tanda final, NO EJECUTADO todavía |
@@ -109,7 +110,6 @@ Migración sin aplicar, con su paquete para el Director General. PR en borrador.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr los 19 mutantes SQL y las 2 gemelas (pedido de turno enviado al Subdirector).
 - `pnpm verify` con turno del Director General.
 - **Segunda PR, después de aplicar la 0518** (migrate-first; si va antes, el gate de símbolos se pone rojo):
   - ruta de cron que llame a `evaluarBorradorAutomatico` con service_role;
@@ -144,7 +144,7 @@ Migración sin aplicar, con su paquete para el Director General. PR en borrador.
 
 ## COMMITS
 
-Ver `git log main..claude/wizardly-murdock-7db565`.
+PR en borrador [SoftAgentes/DTDCARGO#417](https://github.com/SoftAgentes/DTDCARGO/pull/417). Ver `git log main..claude/wizardly-murdock-7db565`.
 
 ## HANDOFF AL DIRECTOR
 
