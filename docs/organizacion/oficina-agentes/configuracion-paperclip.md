@@ -94,7 +94,8 @@ Paperclip. No tiene búsqueda web ni nada sensible en su usuario.
 |---|---|---|---|
 | Motor | Claude Code, `engine: cli` | Codex, `engine: cli` | Hermes |
 | Comando | `/usr/local/bin/dtd-claude` | `/usr/local/bin/dtd-codex` | `/usr/local/bin/dtd-hermes` (`hermesCommand`) |
-| Carpeta | `/srv/oficina/trabajo/ceo` | `/srv/oficina/trabajo/auxiliar` | `/srv/oficina/trabajo/<perfil>` |
+| Carpeta en Paperclip (`cwd`) | `/srv/oficina/trabajo/ceo` | `/srv/oficina/trabajo/auxiliar` | `/srv/oficina/trabajo/<perfil>` |
+| Carpeta donde trabaja el motor | `/srv/oficina/motores/ceo` (la fija `dtd-agente-run`) | `/srv/oficina/motores/auxiliar` (la fija `dtd-agente-run`) | La misma del `cwd` |
 | Variables | `DTD_PERFIL=ceo` | `DTD_PERFIL=auxiliar` | `DTD_PERFIL=<perfil>` |
 | Modelo | Lo elige Sam. El candidato es `claude-fable-5-1` | `gpt-6-astra` | `glm-5.3`, proveedor `zai` |
 | Esfuerzo | `effort: high`, el recomendado para Fable 5.1 [DOC] | `modelReasoningEffort: high` | — |

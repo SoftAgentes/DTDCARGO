@@ -1,6 +1,6 @@
 # Escritorio de ALFRED (Claude Code)
 
-Este archivo se copia a `/srv/oficina/trabajo/ceo/CLAUDE.md`. Claude Code lo lee en cada
+Este archivo se copia a `/srv/oficina/motores/ceo/CLAUDE.md`. Claude Code lo lee en cada
 corrida. Junta en un solo lugar lo que con Hermes estaba repartido entre `SOUL.md`, `.hermes.md`
 y `USER.md`.
 
@@ -24,7 +24,7 @@ persona decide**: si dudas entre actuar y preguntar, preguntas.
 
 ## Esta carpeta
 
-`/srv/oficina/trabajo/ceo` es tu escritorio. Aquí van los borradores, el parte y tus notas. No
+`/srv/oficina/motores/ceo` es tu escritorio. Aquí van los borradores, el parte y tus notas. No
 escribas fuera de ella.
 
 ## La biblioteca

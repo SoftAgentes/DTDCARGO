@@ -1,7 +1,7 @@
 #!/bin/bash
 # dtd-agente-run · SDD-0564 fase B y SDD-0615. Lo llama sudo desde dtd-hermes (como agentes-run) y desde
 # dtd-motor (como agentes-alfred para Claude y agentes-auxiliar para Codex).
-# Entorno: sudo ya lo limpió (env_reset) y solo dejó PAPERCLIP_*, DTD_PERFIL, CLAUDE_CODE_OAUTH_TOKEN,
+# Entorno: sudo ya lo limpió (env_reset) y solo dejó las PAPERCLIP_ nombradas en el sudoers, DTD_PERFIL, CLAUDE_CODE_OAUTH_TOKEN,
 # TERM y LANG/LC_*.
 set -euo pipefail
 umask 007
@@ -26,12 +26,45 @@ export OPENCODE_DISABLE_PROJECT_CONFIG=true OPENCODE_DISABLE_AUTOUPDATE=true
 unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY
 # El token de la suscripción de Claude solo lo recibe Claude.
 [ "$herramienta" = claude ] || unset CLAUDE_CODE_OAUTH_TOKEN
+
+# Los motores de suscripción trabajan fuera de /srv/oficina/trabajo, que escribe agentes-run: Claude y
+# Codex cargan de su carpeta hooks, MCP e instrucciones (.claude/, .mcp.json, CLAUDE.md, .codex/,
+# AGENTS.md) y los correrían con el token de Sam. Antes de arrancar se comprueba que nadie más que el
+# usuario del motor o root pueda escribir la carpeta, lo que carga de ella ni sus padres.
+MOTORES=/srv/oficina/motores
+TOPE=/
+DUENO_SEGURO=0
+ajeno() { # imprime algo si $1 lo puede escribir alguien que no es el dueño, o el dueño no sirve
+  find "$1" -maxdepth 0 \( -perm /022 -o ! \( -uid "$2" -o -uid "$DUENO_SEGURO" \) \) -print
+}
+# find no sigue el enlace de partida: un enlace tiene permisos 777, así que -perm /022 ya lo marca,
+# sea la carpeta o un archivo de configuración.
+carpeta_segura() {
+  local d="$1" yo_uid p rel
+  yo_uid="$(id -u)"
+  [ -d "$d" ] || return 1
+  [ -z "$(ajeno "$d" "$yo_uid")" ] || return 1
+  for rel in .claude .mcp.json CLAUDE.md CLAUDE.local.md .codex AGENTS.md AGENTS.override.md; do
+    [ -e "$d/$rel" ] || [ -L "$d/$rel" ] || continue
+    [ -z "$(find "$d/$rel" \( -perm /022 -o ! \( -uid "$yo_uid" -o -uid "$DUENO_SEGURO" \) \) -print -quit)" ] || return 1
+  done
+  p="$d"
+  while [ "$p" != "$TOPE" ] && [ "$p" != / ]; do
+    p="$(dirname -- "$p")"
+    [ -z "$(ajeno "$p" "$DUENO_SEGURO")" ] || return 1
+  done
+}
+motor_en() {
+  carpeta_segura "$1" || { echo "dtd-agente-run: carpeta de trabajo insegura o ausente: $1" >&2; exit 66; }
+  cd -- "$1"
+}
+
 case "$herramienta" in
   codex)
-    cd /srv/oficina/trabajo/auxiliar
+    motor_en "$MOTORES/auxiliar"
     exec /opt/agentes-cli/bin/codex "$@" ;;
   claude)
-    cd /srv/oficina/trabajo/ceo
+    motor_en "$MOTORES/ceo"
     exec /opt/agentes-cli/bin/claude "$@" ;;
   opencode)
     exec /opt/agentes-cli/bin/opencode "$@" ;;

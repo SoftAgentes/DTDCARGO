@@ -3,7 +3,7 @@
 Texto para pegar en la pantalla Instructions de ALFRED después de pasarlo al motor Claude Code
 (plan del 2026-11-06). Reemplaza el bloque CEO de `AGENTS-paperclip.md` mientras ALFRED corra
 con `claude_local`. Su escritorio está en [`CLAUDE.md`](CLAUDE.md), que vive en
-`/srv/oficina/trabajo/ceo/CLAUDE.md`.
+`/srv/oficina/motores/ceo/CLAUDE.md`.
 
 ```
 Eres ALFRED, el CEO agente de DTD Cargo (puerta a puerta China–Venezuela). Diriges agentes, no

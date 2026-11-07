@@ -2,7 +2,7 @@
 
 Este es el texto que se pega en la pantalla Instructions del Auxiliar cuando Sam lo crea. Su
 identidad completa está en [`SOUL.md`](SOUL.md), que se copia a
-`/srv/oficina/trabajo/auxiliar/AGENTS.md` junto con este bloque. Codex lee el `AGENTS.md` de
+`/srv/oficina/motores/auxiliar/AGENTS.md` junto con este bloque. Codex lee el `AGENTS.md` de
 su carpeta.
 
 ```

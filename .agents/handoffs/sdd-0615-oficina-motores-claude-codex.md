@@ -318,6 +318,39 @@ Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrom
   - ALFRED, además, propuso avisar en `#decisiones` y dejar el envío a una persona
     autorizada.
 
+## Revisión del DG sobre la #407 (2026-11-07, cabeza revisada `29622d18b`)
+
+El co-CEO la pasó con un encargo literal: «Corrígelos en la misma PR, con pruebas que fallen
+antes del arreglo. No toques el VPS de la oficina ni pauses agentes». Lo corregido está **solo en
+el repositorio**: no se instaló nada.
+
+| Hallazgo | Qué cambió |
+|---|---|
+| **ALTA:** `agentes-run` escribe en la carpeta de ALFRED y Claude carga hooks y MCP de ahí | Los motores trabajan en `/srv/oficina/motores/{ceo,auxiliar}` (usuario del motor, 700). `dtd-agente-run` sale con 66 si la carpeta, `.claude`, `.mcp.json`, `CLAUDE.md`, `CLAUDE.local.md`, `.codex`, `AGENTS.md` o `AGENTS.override.md`, o un padre, los puede escribir alguien que no sea el motor o root. También sale con 66 si alguno es un enlace (`find -perm /022` lo marca: 777) |
+| **MEDIA:** carpeta del Auxiliar escribible por `oficina` | Lo mismo, con `/srv/oficina/motores/auxiliar` |
+| **MEDIA:** `dtd-motor` copiaba cualquier ruta de `/home/agentes/` con `cp -RL` | Lista cerrada sobre `realpath`: `companies/<id>/claude-prompt-cache/<sha>`, `companies/<id>/agents/<id>/instructions`, `instances/default/skills/*` y las skills de `cli/installs/npm/*/…/@paperclipai/{server/skills,skills-catalog}`. Cada entrada que alcanza `find -L` se resuelve y se revisa. Fuera de la lista: no copia nada y sale con 66 |
+| **MEDIA:** `PAPERCLIP_*` en el sudoers | 14 variables nombradas una por una (MEDIDO: las que usan las skills de Paperclip y el adaptador de Hermes). **Hallazgo nuevo, MEDIDO:** el servicio tiene `PAPERCLIP_AGENT_JWT_SECRET` y `PAPERCLIP_TOOL_ACTION_SIGNING_SECRET`, y con el comodín llegaban a todos los agentes, también a los GLM |
+| **BAJA:** se prometían procesos ocultos sin `hidepid` | `dtd-motor` y el README ya dicen que los procesos se ven con `ps` |
+| **BAJA:** la prueba del sudoers no veía líneas de más ni corría `visudo` | Compara las reglas exactas y corre `visudo -c -f` si está instalado (en Linux corrió) |
+| **BAJA:** la prueba medía `0o2750` y en el VPS queda `0750` | `dtd-motor` hace `chmod 750` y la prueba mide `0o750` |
+| **BAJA:** faltaban pruebas de `..`, enlaces fuera y la casa sola | Agregadas, más el enlace como argumento y el enlace dentro del paquete |
+
+**Pruebas:**
+
+- **Contra el código viejo:** en Linux, 24 fallas de 38 (rojo); en Windows, 20.
+- **Contra el nuevo:**
+  - Linux (VPS, `/tmp`, sin tocar lo instalado): 38 de 38, sin saltos.
+  - Windows: 38, con 11 saltadas por ser solo Linux.
+- **Mutantes:** 47 de 47 mueren en Linux.
+
+**Pendiente de instalar.** Hay que:
+
+1. crear `/srv/oficina/motores` con sus dos carpetas;
+2. mover allí `CLAUDE.md` y el `AGENTS.md` del Auxiliar, y hacer `git init` en `auxiliar`;
+3. instalar los tres archivos con respaldo y `visudo`.
+
+Lo decide Sam por medio del DG. Hasta entonces, **el riesgo ALTO sigue vivo en el VPS**.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.

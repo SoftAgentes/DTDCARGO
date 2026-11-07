@@ -137,6 +137,37 @@ class Motor(Base):
         env = {} if perfil is None else {"DTD_PERFIL": perfil}
         return self.correr(self.script, [herramienta, *args], env)
 
+    # Rutas con la forma real de Paperclip 2026.1012.0 (medidas el 2026-11-07).
+    def instrucciones(self, texto="Eres ALFRED.\n", nombre="AGENTS.md"):
+        f = self.protegido / ".paperclip/instances/default/companies/co1/agents/ag1/instructions" / nombre
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(texto)
+        return f
+
+    def paquete(self, nombre="abc123"):
+        d = self.protegido / ".paperclip/instances/default/companies/co1/claude-prompt-cache" / nombre
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def skill_instalada(self, nombre="paperclip"):
+        d = self.protegido / ".paperclip/cli/installs/npm/2026.1012.0/node_modules/@paperclipai/server/skills" / nombre
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "SKILL.md").write_text(nombre)
+        return d
+
+    def secreto(self):
+        f = self.protegido / ".paperclip/instances/default/secrets/master.key"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("NO-COPIAR")
+        return f
+
+    def rechazada(self, args):
+        r = self.motor("claude", "ceo", args)
+        self.assertEqual(r.returncode, 66, r.stderr)
+        self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+        copias = [p for p in self.staging.rglob("*") if p.is_file()]
+        self.assertEqual(copias, [], "no debe copiar nada")
+
     def test_perfil_no_permitido_se_rechaza(self):
         for herramienta, perfil in [
             ("claude", "gabinete"),
@@ -173,9 +204,7 @@ class Motor(Base):
         self.assertIsNone(self.leer())
 
     def test_archivo_protegido_se_copia_y_la_ruta_cambia(self):
-        instrucciones = self.protegido / "instructions" / "AGENTS.md"
-        instrucciones.parent.mkdir()
-        instrucciones.write_text("Eres ALFRED.\n")
+        instrucciones = self.instrucciones()
         r = self.motor("claude", "ceo", ["--append-system-prompt-file", _barra(instrucciones), "-p", "x"])
         self.assertEqual(r.returncode, 0, r.stderr)
         args, _, _ = self.leer()
@@ -187,8 +216,7 @@ class Motor(Base):
         self.assertEqual(args[3:], ["-p", "x"])
 
     def test_opcion_con_igual_tambien_se_reescribe(self):
-        origen = self.protegido / "skills"
-        origen.mkdir()
+        origen = self.paquete()
         (origen / "SKILL.md").write_text("paperclip")
         r = self.motor("claude", "ceo", [f"--add-dir={_barra(origen)}"])
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -201,21 +229,19 @@ class Motor(Base):
     def test_carpeta_con_enlace_se_copia_con_el_contenido_real(self):
         if not POSIX:
             self.skipTest("los enlaces simbólicos se prueban en Linux (CI)")
-        real = self.protegido / "instalacion" / "paperclip"
-        real.mkdir(parents=True)
-        (real / "SKILL.md").write_text("real")
-        skills = self.protegido / "skills"
-        skills.mkdir()
+        real = self.skill_instalada()
+        skills = self.paquete() / ".claude" / "skills"
+        skills.mkdir(parents=True)
         os.symlink(real, skills / "paperclip")
-        r = self.motor("claude", "ceo", ["--add-dir", _barra(skills)])
+        r = self.motor("claude", "ceo", ["--add-dir", _barra(self.paquete())])
         self.assertEqual(r.returncode, 0, r.stderr)
         args, _, _ = self.leer()
-        copia = Path(args[2]) / "paperclip"
+        copia = Path(args[2]) / ".claude" / "skills" / "paperclip"
         self.assertFalse(copia.is_symlink(), "la copia no debe seguir siendo un enlace")
-        self.assertEqual((copia / "SKILL.md").read_text(), "real")
+        self.assertEqual((copia / "SKILL.md").read_text(), "paperclip")
 
     def test_mcp_config_se_quita_y_strict_se_conserva(self):
-        mcp = self.protegido / "mcp.json"
+        mcp = self.paquete() / "mcp.json"
         mcp.write_text("{}")
         r = self.motor(
             "claude",
@@ -243,13 +269,11 @@ class Motor(Base):
         self.assertEqual(args, ["codex", _barra(afuera), inexistente, parecida, "--model=gpt-6-astra"])
 
     def test_cada_copia_tiene_nombre_propio(self):
-        a = self.protegido / "a"
-        b = self.protegido / "b"
-        a.mkdir()
-        b.mkdir()
-        (a / "AGENTS.md").write_text("A")
-        (b / "AGENTS.md").write_text("B")
-        r = self.motor("claude", "ceo", [_barra(a / "AGENTS.md"), _barra(b / "AGENTS.md")])
+        a = self.paquete("a") / "AGENTS.md"
+        b = self.paquete("b") / "AGENTS.md"
+        a.write_text("A")
+        b.write_text("B")
+        r = self.motor("claude", "ceo", [_barra(a), _barra(b)])
         self.assertEqual(r.returncode, 0, r.stderr)
         args, _, _ = self.leer()
         self.assertNotEqual(args[1], args[2])
@@ -259,15 +283,15 @@ class Motor(Base):
     def test_permisos_de_la_copia(self):
         if not POSIX:
             self.skipTest("los permisos se prueban en Linux (CI)")
-        f = self.protegido / "AGENTS.md"
-        f.write_text("x")
+        f = self.instrucciones("x")
         f.chmod(0o600)
         r = self.motor("claude", "ceo", [_barra(f)])
         self.assertEqual(r.returncode, 0, r.stderr)
         args, _, _ = self.leer()
         copia = Path(args[1])
         self.assertEqual(copia.stat().st_mode & 0o777, 0o640)
-        self.assertEqual(copia.parent.stat().st_mode & 0o7777, 0o2750)
+        # Sin setgid: en el VPS agentes no es del grupo del motor y Linux lo quita (medido: 0750).
+        self.assertEqual(copia.parent.stat().st_mode & 0o7777, 0o750)
 
     def test_el_usuario_del_motor_recibe_lectura_por_acl(self):
         # 2026-11-07: sin ACL, agentes-alfred no podía leer las instrucciones copiadas (EACCES),
@@ -279,8 +303,7 @@ class Motor(Base):
             with self.subTest(herramienta=herramienta):
                 if self.acl_log.exists():
                     self.acl_log.unlink()
-                f = self.protegido / f"{perfil}.md"
-                f.write_text("x")
+                f = self.instrucciones("x", f"{perfil}.md")
                 r = self.motor(herramienta, perfil, ["--append-system-prompt-file", _barra(f)])
                 self.assertEqual(r.returncode, 0, r.stderr)
                 args, _, _ = self.leer()
@@ -291,6 +314,49 @@ class Motor(Base):
                     llamadas,
                     [f"-m u:{usuario}:rX -- {corrida}", f"-R -m u:{usuario}:rX -- {copia}"],
                 )
+
+    # Revisión del DG (2026-11-07): solo se copian las subrutas que Paperclip usa, ya resueltas.
+    def test_ruta_protegida_fuera_de_la_lista_no_se_copia(self):
+        self.rechazada(["--append-system-prompt-file", _barra(self.secreto()), "-p", "x"])
+
+    def test_opcion_con_igual_fuera_de_la_lista_no_se_copia(self):
+        self.rechazada([f"--add-dir={_barra(self.secreto().parent)}"])
+
+    def test_home_de_agentes_sola_no_se_copia(self):
+        self.secreto()
+        self.rechazada([_barra(self.protegido) + "/"])
+        self.rechazada([_barra(self.protegido)])
+
+    def test_puntos_que_salen_de_la_lista_no_se_copian(self):
+        self.secreto()
+        self.instrucciones()
+        # instructions → ag1 → agents → co1 → companies → default: secrets/master.key sí existe.
+        escape = _barra(self.instrucciones().parent) + "/../../../../../secrets/master.key"
+        self.assertTrue(Path(escape).exists(), escape)
+        self.rechazada(["--append-system-prompt-file", escape])
+
+    def test_enlace_dentro_del_paquete_hacia_un_secreto_no_se_copia(self):
+        if not POSIX:
+            self.skipTest("los enlaces simbólicos se prueban en Linux")
+        paquete = self.paquete()
+        os.symlink(self.secreto(), paquete / "llave")
+        self.rechazada(["--add-dir", _barra(paquete)])
+
+    def test_enlace_hacia_fuera_de_home_no_se_copia(self):
+        if not POSIX:
+            self.skipTest("los enlaces simbólicos se prueban en Linux")
+        afuera = self.tmp / "afuera.txt"
+        afuera.write_text("x")
+        paquete = self.paquete()
+        os.symlink(afuera, paquete / "afuera")
+        self.rechazada(["--add-dir", _barra(paquete)])
+
+    def test_argumento_que_es_enlace_a_un_secreto_no_se_copia(self):
+        if not POSIX:
+            self.skipTest("los enlaces simbólicos se prueban en Linux")
+        enlace = self.instrucciones().parent / "AGENTS-enlace.md"
+        os.symlink(self.secreto(), enlace)
+        self.rechazada(["--append-system-prompt-file", _barra(enlace)])
 
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"
@@ -315,9 +381,15 @@ class AgenteRun(Base):
     def setUp(self):
         super().setUp()
         self.home = self.tmp / "home"
-        self.trabajo = self.tmp / "trabajo"
+        # Las carpetas de los motores van aparte de /srv/oficina/trabajo, que escribe agentes-run.
+        self.trabajo = self.tmp / "motores"
         for d in ("ceo", "auxiliar"):
             (self.trabajo / d).mkdir(parents=True)
+            if POSIX:
+                (self.trabajo / d).chmod(0o700)
+        if POSIX:
+            self.trabajo.chmod(0o755)
+            self.tmp.chmod(0o755)
         for nombre in ("claude", "codex", "opencode", "hermes"):
             self.falso(nombre)
         texto = (RAIZ / "dtd-agente-run").read_text()
@@ -326,7 +398,9 @@ class AgenteRun(Base):
             "/opt/hermes/bin/hermes": _barra(self.bin / "hermes"),
             'casa="/home/$yo"': f'casa="{_barra(self.home)}/$yo"',
             "/home/agentes-run": _barra(self.home / "agentes-run"),
-            "/srv/oficina/trabajo": _barra(self.trabajo),
+            "MOTORES=/srv/oficina/motores": f"MOTORES={_barra(self.trabajo)}",
+            "TOPE=/": f"TOPE={_barra(self.tmp)}",
+            "DUENO_SEGURO=0": "DUENO_SEGURO=$(id -u)",
             '"$(id -un)"': '"$USUARIO_FALSO"',
         }.items():
             self.assertIn(viejo, texto, f"falta {viejo!r} en dtd-agente-run")
@@ -418,26 +492,138 @@ class AgenteRun(Base):
             with self.subTest(usuario=usuario):
                 self.rechazado("bash", "ceo", usuario)
 
+    # Revisión del DG (2026-11-07, ALTA): un agente GLM podía escribir en la carpeta de ALFRED un
+    # .claude/settings.json con hooks o un .mcp.json; Claude los carga con -p y correrían con el
+    # token de Sam. El motor no arranca si su carpeta, lo que carga de ella o un padre los puede
+    # escribir alguien más.
+    def insegura(self, herramienta, perfil, usuario):
+        r = self.run_(herramienta, perfil, usuario)
+        self.assertEqual(r.returncode, 66, f"{herramienta}: {r.stderr}")
+        self.assertIsNone(self.leer(), "no debe arrancar el motor")
+
+    MOTORES = (("claude", "ceo", "agentes-alfred"), ("codex", "auxiliar", "agentes-auxiliar"))
+
+    def test_carpeta_del_motor_no_es_la_de_los_glm(self):
+        texto = (RAIZ / "dtd-agente-run").read_text()
+        self.assertNotIn("cd /srv/oficina/trabajo", texto)
+
+    def test_carpeta_escribible_por_grupo_u_otros_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los permisos se prueban en Linux")
+        for herramienta, perfil, usuario in self.MOTORES:
+            for modo in (0o770, 0o2770, 0o707, 0o777):
+                with self.subTest(herramienta=herramienta, modo=oct(modo)):
+                    (self.trabajo / perfil).chmod(modo)
+                    self.insegura(herramienta, perfil, usuario)
+            (self.trabajo / perfil).chmod(0o700)
+
+    def test_configuracion_del_proyecto_escribible_por_otros_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los permisos se prueban en Linux")
+        casos = {
+            "ceo": [".claude/settings.json", ".claude/settings.local.json", ".mcp.json", "CLAUDE.md"],
+            "auxiliar": ["AGENTS.md", ".codex/config.toml"],
+        }
+        for herramienta, perfil, usuario in self.MOTORES:
+            for rel in casos[perfil]:
+                with self.subTest(herramienta=herramienta, archivo=rel):
+                    f = self.trabajo / perfil / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_text("{}")
+                    f.chmod(0o666)
+                    self.insegura(herramienta, perfil, usuario)
+                    f.chmod(0o644)
+                    if f.parent != self.trabajo / perfil:
+                        f.parent.chmod(0o777)
+                        self.insegura(herramienta, perfil, usuario)
+                        f.parent.chmod(0o755)
+                    r = self.run_(herramienta, perfil, usuario)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_configuracion_del_proyecto_como_enlace_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los enlaces se prueban en Linux")
+        afuera = self.tmp / "hooks.json"
+        afuera.write_text("{}")
+        for herramienta, perfil, usuario in self.MOTORES:
+            nombre = ".mcp.json" if perfil == "ceo" else "AGENTS.md"
+            enlace = self.trabajo / perfil / nombre
+            with self.subTest(herramienta=herramienta):
+                os.symlink(afuera, enlace)
+                self.insegura(herramienta, perfil, usuario)
+                enlace.unlink()
+
+    def test_carpeta_que_es_enlace_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los enlaces se prueban en Linux")
+        real = self.tmp / "real-ceo"
+        real.mkdir(mode=0o700)
+        shutil.rmtree(self.trabajo / "ceo")
+        os.symlink(real, self.trabajo / "ceo")
+        self.insegura("claude", "ceo", "agentes-alfred")
+
+    def test_padre_escribible_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los permisos se prueban en Linux")
+        self.trabajo.chmod(0o777)
+        for herramienta, perfil, usuario in self.MOTORES:
+            with self.subTest(herramienta=herramienta):
+                self.insegura(herramienta, perfil, usuario)
+        self.trabajo.chmod(0o755)
+
+    def test_carpeta_inexistente_no_arranca(self):
+        shutil.rmtree(self.trabajo / "ceo")
+        self.insegura("claude", "ceo", "agentes-alfred")
+
 
 class Archivos(unittest.TestCase):
     """Lo que no se ejecuta en las pruebas pero sí se instala."""
 
-    def test_sudoers_deja_pasar_solo_lo_necesario(self):
+    # Las variables PAPERCLIP_* que usan los agentes (skills de Paperclip y adaptador de Hermes,
+    # medido en 2026.1012.0 el 2026-11-07). El servidor tiene además PAPERCLIP_AGENT_JWT_SECRET y
+    # PAPERCLIP_TOOL_ACTION_SIGNING_SECRET, que con un comodín llegaban a todos los agentes.
+    PAPERCLIP = [
+        "PAPERCLIP_API_URL", "PAPERCLIP_API_BASE", "PAPERCLIP_API_KEY", "PAPERCLIP_AGENT_ID",
+        "PAPERCLIP_COMPANY_ID", "PAPERCLIP_RUN_ID", "PAPERCLIP_TASK_ID", "PAPERCLIP_WAKE_REASON",
+        "PAPERCLIP_WAKE_COMMENT_ID", "PAPERCLIP_WAKE_PAYLOAD_JSON", "PAPERCLIP_APPROVAL_ID",
+        "PAPERCLIP_APPROVAL_STATUS", "PAPERCLIP_LINKED_ISSUE_IDS", "PAPERCLIP_HELPER_STATE_DIR",
+    ]
+    LINEAS = [
+        "Defaults!/usr/local/libexec/dtd-agente-run env_reset",
+        "Defaults!/usr/local/libexec/dtd-agente-run env_keep = \""
+        + " ".join(PAPERCLIP + ["DTD_PERFIL", "CLAUDE_CODE_OAUTH_TOKEN", "TERM", "LANG", "LC_ALL", "LC_CTYPE"])
+        + "\"",
+        "Defaults!/usr/local/libexec/dtd-agente-run !log_allowed",
+        "agentes ALL=(agentes-run, agentes-alfred, agentes-auxiliar) NOPASSWD: /usr/local/libexec/dtd-agente-run",
+    ]
+
+    def test_sudoers_es_exactamente_lo_esperado(self):
         texto = (RAIZ / "91-agentes-run").read_text()
-        keep = [l for l in texto.splitlines() if "env_keep" in l]
+        reglas = [l for l in texto.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+        self.assertEqual(reglas, self.LINEAS, "ni una línea de más ni de menos")
+
+    def test_sudoers_sin_comodines_ni_secretos(self):
+        keep = [l for l in (RAIZ / "91-agentes-run").read_text().splitlines() if "env_keep" in l]
         self.assertEqual(len(keep), 1)
         variables = keep[0].split('"')[1].split()
-        self.assertEqual(
-            sorted(variables),
-            sorted(["PAPERCLIP_*", "DTD_PERFIL", "CLAUDE_CODE_OAUTH_TOKEN", "TERM", "LANG", "LC_ALL", "LC_CTYPE"]),
-        )
-        self.assertIn("Defaults!/usr/local/libexec/dtd-agente-run env_reset", texto)
-        self.assertIn("Defaults!/usr/local/libexec/dtd-agente-run !log_allowed", texto)
-        self.assertIn(
-            "agentes ALL=(agentes-run, agentes-alfred, agentes-auxiliar) NOPASSWD: /usr/local/libexec/dtd-agente-run",
-            texto,
-        )
-        self.assertEqual(len([l for l in texto.splitlines() if "NOPASSWD" in l]), 1)
+        for v in variables:
+            with self.subTest(variable=v):
+                self.assertNotIn("*", v)
+                self.assertNotRegex(v, "SECRET|JWT|SIGNING|PASSWORD")
+        self.assertEqual(len(variables), len(set(variables)))
+
+    def test_sudoers_pasa_visudo(self):
+        visudo = shutil.which("visudo") or ("/usr/sbin/visudo" if os.path.exists("/usr/sbin/visudo") else None)
+        if not visudo:
+            self.skipTest("visudo no está en esta máquina")
+        r = subprocess.run([visudo, "-c", "-q", "-f", str(RAIZ / "91-agentes-run")], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_no_se_promete_ocultar_procesos(self):
+        # Sin hidepid en /proc, cualquier usuario ve los procesos y sus argumentos.
+        for nombre in ("dtd-motor", "README.md"):
+            with self.subTest(nombre=nombre):
+                self.assertNotRegex((RAIZ / nombre).read_text(), r"(?i)ni (ver )?(sus|los) procesos")
 
     def test_dtd_claude_y_dtd_codex_solo_llaman_al_motor(self):
         for nombre, herramienta in (("dtd-claude", "claude"), ("dtd-codex", "codex")):
