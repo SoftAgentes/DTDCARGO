@@ -13,9 +13,14 @@ require "json"
 
 mensaje = Message.find(ENV.fetch("MENSAJE").to_i)
 carga = mensaje.webhook_data.with_indifferent_access
+remitente = carga[:sender].is_a?(Hash) ? carga[:sender] : {}
+# El remitente se mide por el modelo (sender_type) y por su id en la carga. La carga de Chatwoot 4.19.1 no trae un
+# `type` en el remitente (medido en Actions, run 42416532718): de él solo se imprimen los nombres de sus campos.
 puts "CARGA #{JSON.generate(
   id: carga[:id],
   message_type: carga[:message_type],
   source_id: carga[:source_id],
-  sender_type: carga.dig(:sender, :type)
+  sender_type: mensaje.sender_type,
+  sender_id_en_carga: remitente[:id],
+  campos_del_remitente: remitente.keys.sort
 )}"

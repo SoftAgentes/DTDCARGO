@@ -246,11 +246,20 @@ describe.skipIf(!HAY_INSTANCIA)("PoC de la ida contra Chatwoot 4.19.1 efímero (
     );
     const linea = salida.split(/\r?\n/).find((l) => l.startsWith("CARGA "));
     expect(linea, "la sonda imprime la carga del webhook").toBeDefined();
-    const carga = JSON.parse((linea ?? "CARGA {}").slice(6)) as { id?: number; message_type?: unknown; source_id?: unknown; sender_type?: unknown };
+    const carga = JSON.parse((linea ?? "CARGA {}").slice(6)) as {
+      id?: number;
+      message_type?: unknown;
+      source_id?: unknown;
+      sender_type?: unknown;
+      sender_id_en_carga?: unknown;
+      campos_del_remitente?: unknown;
+    };
     expect(carga.id).toBe(mensaje);
     expect(esEntrante(carga.message_type), JSON.stringify(carga.message_type)).toBe(true);
     expect(carga.source_id).toBe(sourceId);
-    expect(String(carga.sender_type ?? "").toLowerCase()).toBe("contact");
+    // El remitente es el contacto: por el modelo y por su id en la carga que se entrega.
+    expect(carga.sender_type).toBe("Contact");
+    expect(carga.sender_id_en_carga, JSON.stringify(carga.campos_del_remitente)).toBe(contacto.contactoId);
   }, 180_000);
 
   it("revisión de la #424: con más de una página de mensajes después, la primera página ya no trae el mensaje", async () => {
