@@ -684,6 +684,11 @@ Nuevos:
 - `lib/studio/__tests__/chatwoot-portal.migration.test.ts`
 - `lib/studio/chatwoot/portal.ts` (configuración leída aparte, envío, contacto, conversación y aviso) y `lib/studio/chatwoot/__tests__/portal.test.ts`
 - `.agents/handoffs/0586-e10-5-ida.md`
+- Por decisión del Director General (2026-11-07, comunicada por el Subdirector), el portón de la PoC y de las dos sesiones va en esta misma PR:
+  - `.github/workflows/chatwoot-portal-poc.yml`, con dos jobs: `poc` y `carrera`
+  - `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh`, `compose.portal-poc.yml`, `sonda-portal-poc.rb` y `receptor-webhook.mjs`
+  - `lib/studio/chatwoot/__tests__/portal.poc.test.ts`, que se salta sin la instancia efímera
+  - `supabase/tests/0519_chatwoot_portal_carrera.test.sql`
 
 Editados:
 
@@ -698,7 +703,7 @@ Editados:
 
 No se tocan en la 1a: `webhook-procesar.ts`, `app/api/chatwoot/webhook/route.ts`, `app/studio/(app)/conversaciones/**`, `app/studio/(app)/crm/**`, `lib/studio/crm-*.ts`, `app/portal/(app)/soporte/page.tsx`, `app/privacidad/page.tsx`, `docs/specs/0582-chatwoot-piloto/checklist.md`, `docs/runbooks/chatwoot-bandeja.md` y `docs/legal/privacidad/mapa-de-borrado.md`, más lo que §10.5.16 ya excluye.
 
-**PR 1a · qué prueba de §10.5.15 cubre.** Del contrato SQL: los puntos 1 (preflight, con la reaplicación y un catálogo que no es el de la 0503), 2, 3, 5 y 10, más el aviso, los reintentos, el «atascado» y un intento viejo que no cierra el nuevo. Los puntos 4, 6 a 9 y 11 son de la 1b y de la PR 2. De TypeScript: el envío (orden, uno por hilo, el incierto que busca el `source_id` antes de reenviar, los reintentos, «atascado» y el aviso con solo números; con el flag apagado o sin configuración, nada) y que a Chatwoot solo salgan el nombre, el identificador y el texto. Las PoC-1, PoC-2, PoC-3 y PoC-5 siguen **sin medir (NV)**: las pruebas usan dobles, y se miden en la cuenta 2 antes de encender el flag (puerta 4 de §10.5.9). Si alguna falla, la cola reintenta, termina «atascada» y avisa, sin romper el portal. Queda **pendiente** una prueba con dos sesiones de Postgres para el `skip locked` y la guarda del upsert: PGlite tiene una sola conexión.
+**PR 1a · qué prueba de §10.5.15 cubre.** Del contrato SQL: los puntos 1 (preflight, con la reaplicación y un catálogo que no es el de la 0503), 2, 3, 5 y 10, más el aviso, los reintentos, el «atascado» y un intento viejo que no cierra el nuevo. Los puntos 4, 6 a 9 y 11 son de la 1b y de la PR 2. De TypeScript: el envío (orden, uno por hilo, el incierto que busca el `source_id` antes de reenviar, los reintentos, «atascado» y el aviso con solo números; con el flag apagado o sin configuración, nada) y que a Chatwoot solo salgan el nombre, el identificador y el texto. **PoC y dos sesiones (decisión del Director General, 2026-11-07).** Las PoC-1, PoC-2, PoC-3 y PoC-5 se miden en esta PR, y son el portón para fusionar. Corren en GitHub Actions (`chatwoot-portal-poc.yml`, job `poc`) contra un Chatwoot v4.19.1-ce real y efímero, el del compose de `infra/chatwoot`, con el cliente real de Studio, datos inventados y secretos generados en la corrida. Cada PoC tiene su control, y la ida corre de punta a punta, con un reintento incierto que no duplica. El job `carrera` mide `skip locked` con dos sesiones (dblink, Postgres 17), con sus controles en la misma corrida y un mutante de la 0519 sin `skip locked` que tiene que hacerla caer. La guarda del upsert se mide quitando `skip locked`: la guarda sola, con `skip locked` presente, no se alcanza de forma determinista (handoff, «Dos sesiones»). El resultado de cada corrida va en el handoff. Si `carrera` no sale verde, aplicar la 0519 en producción queda bloqueado, aunque la PR se fusione.
 
 ### 10.5.17 Lo que queda fuera
 
@@ -785,7 +790,31 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 - Decidir con el Subdirector de SEO si, con el flag encendido, se apaga el aviso de Telegram del portal (§10.5.13, punto 8).
 - Elegir dónde viven los scripts de la carga (PR 2, §10.5.16).
 - Llevar a la 0614 la propuesta de §10.5.19.
-- Decidir cómo se destraba un mensaje «atascado» de la ida, que detiene su hilo: a mano con `service_role`, según un runbook, o con una función para el admin en la 1b (§10.5.16, «Partición de la PR 1»).
+- ~~Decidir cómo se destraba un mensaje «atascado» de la ida~~ **Decidido** por el Director General el 2026-11-07, comunicado por el Subdirector: la vía para el admin va en la PR 1b. Hasta entonces vale el procedimiento manual de abajo, y **el flag `chatwoot_portal` no se enciende hasta que exista la vía de la 1b**.
+
+**Mensaje atascado: procedimiento manual (PR 1a).** Un mensaje «atascado» detiene su hilo: los siguientes del mismo hilo esperan, para no romper el orden. Lo avisa el push de solo números de E10-D40.
+
+- **Quién lo autoriza:** el Director General, con el OK de Sam, para cada corrida. Lo corre `service_role` sobre la base del tenant, nunca desde una pantalla.
+- **Antes:** arreglar la causa con el código de `error` (por ejemplo, el token o la bandeja). Si no, el mensaje vuelve a atascarse en 24 h.
+- **Ver lo atascado.** Solo ids, estado, intentos, el código de error y fechas, sin el texto ni el nombre:
+
+  ```sql
+  select s.message_id, s.conversation_id, s.intentos, s.error, s.created_at, s.updated_at
+  from public.chatwoot_portal_salida s
+  where s.tenant_id = :'tenant' and s.estado = 'atascado'
+  order by s.created_at;
+  ```
+
+- **Reintentarlo, de a uno.** Vuelve a «pendiente» con un plazo nuevo de 24 h y con `verificar` encendido, porque un atascado pudo haber llegado: el próximo intento busca primero su `source_id` y no lo duplica. Toca una sola fila, y solo si sigue atascada:
+
+  ```sql
+  update public.chatwoot_portal_salida
+  set estado = 'pendiente', proximo_at = now(), verificar = true,
+      created_at = now(), updated_at = now()
+  where tenant_id = :'tenant' and message_id = :'mensaje' and estado = 'atascado';
+  ```
+
+  El cron `chatwoot-reintentos` lo toma en su próxima corrida, cada 5 minutos. El resultado se ve con la misma consulta de arriba (`estado` en `enviado`) o con `chatwoot_portal_rezagados`.
 - El checklist 0582 quedó en la #410 (`af50750d3`, en borrador), con la línea base v4: la fila 10.5 reescrita y dos filas nuevas, la 10.7 (aquí, «10.5 b») y la 10.8 (aquí, «10.5 c»). Esta rama deja el checklist igual que en su base (`3d17292a4`), así que la #400 no lo toca y no choca con la #410 en ningún orden de fusión. La reestimación ya está aprobada (§10.5.21).
 
 ### 10.5.21 Reestimación (I)

@@ -442,6 +442,26 @@ begin
 end;
 $aviso$;
 
+-- ── El procedimiento manual del atascado (spec §10.5.20), tal cual ──────────
+do $manual$
+declare v_filas integer;
+begin
+  update public.chatwoot_portal_salida
+  set estado = 'pendiente', proximo_at = now(), verificar = true,
+      created_at = now(), updated_at = now()
+  where tenant_id = pg_temp.id('T1') and message_id = pg_temp.id('a2') and estado = 'atascado';
+  get diagnostics v_filas = row_count;
+  perform pg_temp.assert_true(v_filas = 1, 'el procedimiento manual toca una sola fila, la atascada');
+  perform pg_temp.assert_true(pg_temp.tomar('T1', 20, 'hA') = 1, 'después del procedimiento el hilo da uno');
+  perform pg_temp.assert_true(pg_temp.tomado('a2'), 'el atascado vuelve a salir');
+  perform pg_temp.assert_true((select t.verificar from tomados t),
+    'vuelve verificando: si había llegado, no se duplica');
+  perform pg_temp.assert_true(pg_temp.marcar('a2', 8, true, 702) = 'enviado', 'esta vez llega');
+  perform pg_temp.assert_true(pg_temp.tomar('T1', 20, 'hA') = 1, 'el hilo quedó destrabado');
+  perform pg_temp.assert_true(pg_temp.tomado('a3'), 'y sigue con a3, en orden');
+end;
+$manual$;
+
 -- ── §2 · Acceso y datos ─────────────────────────────────────────────────────
 do $acceso$
 declare
