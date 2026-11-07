@@ -22,7 +22,7 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
   - `actualizaciones`: A1–A3, solo admin.
 
   `recorridosParaRol` filtra con el rol del layout.
-- **9.5 · Sin arranque automático** (D11). La 0517 está aplicada en producción: sin este freno, fusionar abriría estas guías solas a todo el equipo. Se abren con `?guia=bandeja`, `?guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`.
+- **9.5 · Sin arranque automático** (D11). La 0517 está aplicada en producción: sin este freno, fusionar abriría estas guías solas a todo el equipo. Se abren con `?guia=bandeja`, `?tab=embudos&guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`.
 - **Pendientes con su motivo, sin inventar pantallas:**
   - F2, I2 e I3: la Ficha DTD enmarcada no monta el motor;
   - F4: el contador está en el sidebar del rediseño;
@@ -70,11 +70,11 @@ Ver la PR. Commits selectivos con `git commit -F`.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **El Embudo vive en `/studio/crm?tab=embudos`.** El motor compara solo el `pathname`, así que cambiar de pestaña no vuelve a evaluar el arranque automático. No importa mientras D11 lo tenga apagado. Antes de encenderlo, el motor tendría que mirar la pestaña.
+- **El Embudo vive en `/studio/crm?tab=embudos`.** El motor compara solo el `pathname`, así que cambiar de pestaña no vuelve a evaluar el arranque automático. No importa mientras D11 lo tenga apagado. Antes de encenderlo, el motor tendría que mirar la pestaña. Ahora es el P-13: ver Pendientes.
 - **La Ficha DTD dentro de Chatwoot** (`app/studio/(panel)/ficha-chat`) no monta el motor. Las tarjetas F2, I2 e I3 necesitan una decisión de diseño propia.
 
 ## HANDOFF AL DIRECTOR
 
 - Fusionar no enciende nada solo: los recorridos nuevos no arrancan sin `?guia=` y el script no está pegado.
-- El único efecto visible al publicar es que `?guia=<id>` funciona en esas cuatro pantallas.
+- El único efecto visible al publicar es que `?guia=<id>` funciona en esas cuatro pantallas. En Embudos hace falta además la pestaña: `/studio/crm?tab=embudos&guia=embudo`.
 - Sin el script, las tarjetas de Chatwoot señalan el marco de la Bandeja.

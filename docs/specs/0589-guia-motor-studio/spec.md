@@ -320,7 +320,7 @@ El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
 **Puertas que esta PR no abre:**
 
 - **Pegar el script en el Super Admin de Chatwoot** (`DASHBOARD_SCRIPTS`) exige OK de Sam. Sin el script, las tarjetas de Chatwoot se anclan al marco de la Bandeja y nada se rompe.
-- **Fusionar** también espera su OK. Fusionar publica Studio, pero los recorridos nuevos **no arrancan solos** (D11): solo abren con `?guia=<id>`.
+- **Fusionar** también espera su OK. Fusionar publica Studio, pero los recorridos nuevos **no arrancan solos** (D11): solo abren con `?guia=<id>`. Embudo necesita además la pestaña: `?tab=embudos&guia=embudo`.
 - S-1, S-2, S-6, S-7 y S-8 siguen abiertas. Los valores provisionales están en `lib/studio/guia/preferencias.ts`.
 
 ### 9.4 · Diseño
@@ -381,6 +381,8 @@ El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
 
 B4 (asignar) lo ve solo admin hasta que Sam conteste S-2: `ROLES_ASIGNAR` en `preferencias.ts`.
 
+**Embudo abre solo con la pestaña.** La URL completa es `/studio/crm?tab=embudos&guia=embudo`. `RECORRIDO_EMBUDO.ruta` es `/studio/crm` y `rutaCoincide` no mira la pestaña. La pestaña por defecto hoy es Dirección, y `page.tsx` monta el tablero solo con `tab === "embudos"`. Sin `?tab=embudos` no hay anclas `embudo.*`, y el recorrido no abre. El arreglo es el paso P-13 (sección del 2026-11-07, al final).
+
 **Pendientes, sin inventar:**
 
 | Tarjeta | Motivo | Qué falta |
@@ -419,7 +421,7 @@ Por esto mismo vale D11: ningún recorrido nuevo arranca solo antes de la 9.6.
 - **D8 · Selectores en Studio, no en el script.** Arreglarlos tras una versión nueva es una PR normal. El script pegado cambia poco, y cada cambio suyo pide un OK.
 - **D9 · Respaldo al marco por paso** (`GuiaPaso.respaldo`). El motor salta un paso solo si faltan las dos anclas.
 - **D10 · Ubicadores registrables** (`lib/studio/guia/ubicadores.ts`). El motor no sabe de Chatwoot: pregunta a los ubicadores por las anclas que no están en su DOM. La Bandeja registra el suyo.
-- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
+- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?tab=embudos&guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
 - **D12 · Roles en los datos** (`roles` en el recorrido y en el paso), filtrados con `recorridosParaRol` antes del motor. Mostrar una tarjeta de más no es un agujero, porque cada pantalla tiene su gate, pero el guion fija quién ve cada tarjeta.
 - **D13 · zh-CN provisional,** como D3: las claves nuevas se traducen porque el tipo exige los dos idiomas. S-3 sigue abierta.
 - **D14 · Sin revisión aparte de datos personales.** No se captura, mueve ni guarda ningún dato nuevo: los ids de recorrido y de paso ya estaban en la 0517, y el puente solo mueve geometría.
@@ -456,6 +458,7 @@ Por esto mismo vale D11: ningún recorrido nuevo arranca solo antes de la 9.6.
 | R3 | Filtro por rol: B4 solo admin, Actualizaciones solo admin y Embudo sin support | `guia.test.ts` |
 | R4 | Ningún recorrido nuevo arranca solo | `GuiaMotor.test.tsx` y `GuiaStudio.test.tsx` |
 | R5 | El layout pasa el rol a la guía | `GuiaStudio.test.tsx` |
+| R6 | El recorrido Embudo abre en `/studio/crm?tab=embudos&guia=embudo`. `RECORRIDO_EMBUDO.ruta` es `/studio/crm` y `rutaCoincide` no mira la pestaña: sin `?tab=embudos` no abre, porque la pestaña por defecto hoy es Dirección. El arreglo es el paso P-13 | Las anclas en `CrmTableroKanban`: `anclas.test.ts`. Que el tablero solo se monta con `tab === "embudos"`: leído en `page.tsx`. Abrirlo en la página real: **NO EJECUTADO** |
 
 ### Qué cambió frente al diseño
 
@@ -498,14 +501,14 @@ Por esto mismo vale D11: ningún recorrido nuevo arranca solo antes de la 9.6.
 1. Lo resuelve la SDD-0589 en un **paso aparte, con PR propia, después de la #408**. No es un ajuste de `836edcd18`.
 2. La 6.6 no toca la guía.
 3. **S3 de la 6.6 no se fusiona antes de este paso.**
-4. El paso trae una prueba que **falla** con la pestaña por defecto en Resumen y **pasa** con el arreglo. El arreglo es un recorrido que abre `?tab=embudos` o un `rutaCoincide` que mira la pestaña. Lo elige y lo justifica el Worker al abrir el paso.
+4. El paso trae una prueba que **falla hoy, con Dirección por defecto**, y también con Resumen por defecto, como queda en S3. Con el arreglo, **pasa**. El Director General amplió esta regla el 2026-11-07, al confirmar la observación de abajo. El arreglo es un recorrido que abre `?tab=embudos` o un `rutaCoincide` que mira la pestaña. Lo elige y lo justifica el Worker al abrir el paso.
 5. **No arranca todavía.** E9 no abre pasos nuevos hasta que el Director General cierre la revisión de la #408.
 
 **Observación del Worker (2026-11-07).** Leído en el código, sin correrlo, sobre `836edcd18` y sobre `origin/main` en `f28c5dcc1`:
 
 - La pestaña por defecto ya es **Dirección**, no Embudos (`resolveKommoTab`, en `app/studio/(app)/crm/_components/kommo-tabs.shared.ts`). `page.tsx` monta el tablero solo con `tab === "embudos"`.
 - Por eso, hoy `/studio/crm?guia=embudo` tampoco abre: el motor reintenta 2 s, no encuentra ancla y no abre. El recorrido abre en `/studio/crm?tab=embudos&guia=embudo`.
-- La indicación `?guia=embudo` de D11 vale solo con esa pestaña.
+- D11 decía `?guia=embudo`, sin la pestaña. El 2026-11-07 se corrigió a `?tab=embudos&guia=embudo`, igual que en el handoff y en la nota de puertas de 9.4 y 9.5. Además, R6 quedó en la aceptación.
 - Ningún enlace del código usa `?guia=embudo`.
 
-El P-13 no lo trae S3: ya existe. S3 cambia la pestaña por defecto, de Dirección a Resumen, y el resultado es el mismo. La prueba de la condición 4 tiene que fallar también hoy, con Dirección.
+El P-13 no lo trae S3: ya existe. S3 cambia la pestaña por defecto, de Dirección a Resumen, y el resultado es el mismo. Por eso, la condición 4 pide que la prueba falle también hoy.
