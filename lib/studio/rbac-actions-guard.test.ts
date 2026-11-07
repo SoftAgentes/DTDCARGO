@@ -153,6 +153,12 @@ const EXCEPCIONES: Lista = {
   "dashboard/actions.ts::resetDashboardConfigAction":
     "SDD-0114: borra la config propia del usuario; ver `saveDashboardConfigAction`.",
 
+  // SDD-0589 (paso 9.3) · Misma razón que el Dashboard: cada usuario guarda el
+  // estado de SU guía. Un gate de módulo no aplica, porque la guía es de todo
+  // Studio y cualquier usuario con acceso la ve.
+  "_actions/guia-actions.ts::guardarEstadoGuiaAction":
+    "SDD-0589: cada usuario guarda el estado de SU guía (fila `user_guide_prefs`, migr 0517). La RLS exige user_id = auth.uid() y un tenant del usuario con disabled_at null, y `validarEstadoGuia` descarta lo que no esté en el catálogo. No muta datos de negocio ni de otros usuarios.",
+
   "bugs/actions.ts::markBugNotificationsReadAction":
     "Marca leídas las notificaciones PROPIAS: el update lleva `.eq(\"user_id\", userResp.user.id)` sobre la sesión, así que el alcance es el propio usuario.",
   "bugs/actions.ts::advanceBugStateAction":
@@ -276,13 +282,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // 22 → 23): el tablero de los dos embudos y la ficha de la tarjeta.
   // SDD-0588 sumó `admin/actualizaciones/actions.ts` (79 → 80, exactos 56 → 57):
   // las versiones de Chatwoot.
-  it("la superficie escaneada es la esperada (80 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0589 (9.3) sumó `_actions/guia-actions.ts` (80 → 81, con prefijo 23 → 24):
+  // el estado de la guía por usuario.
+  it("la superficie escaneada es la esperada (81 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 80,
+      total: 81,
       exactos: 57,
-      conPrefijo: 23,
+      conPrefijo: 24,
     });
   });
 
@@ -356,11 +364,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0588 (paso 3.4) sumó `::analizarConIa` (458 → 459): `tenantAdminGate`
   // antes de leer nada; solo analiza el salto que muestra la última revisión del
   // tenant y el informe lo escribe service_role (la 0509 no da INSERT a authenticated).
+  // SDD-0589 (paso 9.3) sumó `_actions/guia-actions.ts::guardarEstadoGuiaAction`
+  // (459 → 460), en EXCEPCIONES (17 → 18) con la razón del Dashboard: guarda la
+  // fila propia del usuario y la RLS de la 0517 lo repite.
   // SDD-0606 sumó `usuarios/actions.ts::getMyDiscordUserIdAction` y
-  // `::saveMyDiscordUserIdAction` (459 → 461): perfil propio, miembro activo por
-  // `getStudioAccess`; van en EXCEPCIONES con su verificación.
+  // `::saveMyDiscordUserIdAction` (460 → 462): perfil propio, miembro activo por
+  // `getStudioAccess`; van en EXCEPCIONES (18 → 20) con su verificación.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(461);
+    expect(reportes.length).toBe(462);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -369,7 +380,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 19, deuda: 24 });
+    }).toEqual({ excepciones: 20, deuda: 24 });
   });
 
   for (const { rel, r } of reportes) {
