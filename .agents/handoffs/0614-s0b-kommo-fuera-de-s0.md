@@ -116,6 +116,55 @@ Rama `claude/0614-s0b-kommo-fuera-de-s0`. La PR se abre después de que la #415 
   los imports y las lecturas de `kommo_*`. Quedan las del cotizador (`patch_price` y
   `patch_stage`, en S2) y las de la propia pantalla del CRM, ya ocultas en S0.
 
+## Antes → después, por pantalla y por rol (para Sam)
+
+Los roles salen del código, en `main` `7e75f7708`. El Studio tiene siete roles: `admin`,
+`commercial`, `operations`, `accounting`, `warehouse`, `support` y `marketing`
+(`lib/studio/user-types.ts:13-20`). `admin` siempre pasa (`lib/studio/rbac.ts:343`). Dirección
+no es un rol: es un módulo solo de `admin`.
+
+Qué ve cada rol depende de la matriz `ROLE_MODULE_ACCESS` (`rbac.ts`):
+
+| Módulo | Roles que lo ven |
+|---|---|
+| `tracking` (`:62`) | commercial, operations, accounting, warehouse, support |
+| `naviera` (`:74`) | operations, accounting |
+| `kommo` (`:99`), el CRM | commercial |
+| `direccion` (`:114`) | solo admin |
+| `invoices` (`:118`) | accounting |
+
+Los KPI del Dashboard se filtran por rol con `canAccessModule(role, …)`, sin los permisos por
+usuario (`app/studio/(app)/dashboard/page.tsx:107`).
+
+**El Dashboard por defecto** es `DEFAULT_CONFIG` (`lib/studio/dashboard/dashboard-catalog.ts:103`),
+filtrado por rol. Antes traía seis KPI:
+
+- «Embarques activos» (`tracking`, `:53`)
+- «On-time delivery» (`tracking`, `:54`)
+- «Ingresos del mes» (`invoices`, `:60`)
+- «Leads en pipeline» (`kommo`, `:65`)
+- «Facturas vencidas» (`invoices`, `:61`)
+- «CBM en tránsito» (`naviera`, `:55`)
+
+| Pantalla | Rol | Antes | Después |
+|---|---|---|---|
+| Dashboard, por defecto | admin | Los seis KPI | Cinco: Embarques activos, On-time delivery, Ingresos del mes, Facturas vencidas y CBM en tránsito. Sin «Leads en pipeline» |
+| Dashboard, por defecto | commercial | Tres: Embarques activos, On-time delivery y **Leads en pipeline** | Dos: Embarques activos y On-time delivery. Pierde su único KPI comercial del default |
+| Dashboard, por defecto | operations | Embarques activos, On-time delivery y CBM en tránsito | Igual (no veía `kommo`) |
+| Dashboard, por defecto | accounting | Embarques activos, On-time delivery, Ingresos del mes, Facturas vencidas y CBM en tránsito | Igual (no veía `kommo`) |
+| Dashboard, por defecto | warehouse, support | Embarques activos y On-time delivery | Igual |
+| Dashboard, por defecto | marketing | Ninguno de los seis (no ve `tracking`, `invoices`, `kommo` ni `naviera`) | Igual |
+| Dashboard, config guardada que trae `newLeads` (`user_dashboard_prefs`) | admin, commercial | «Leads en pipeline» aparece donde el usuario lo puso | No aparece. Los demás KPI quedan en su orden. Si `newLeads` era lo único guardado, la config queda vacía y se usa el default (`page.tsx:111-113`). La fila de la base no se toca |
+| Dashboard, config guardada que trae `newLeads` | operations, accounting, warehouse, support, marketing | Ya no lo veían: el filtro por rol lo descartaba | Igual |
+| Editor del Dashboard («Configurar dashboard», `DashboardEditorDrawer.tsx:64`) | admin, commercial | Ofrece «Leads en pipeline» (`newLeads`) | Ya no lo ofrece. El resto del catálogo sigue igual |
+| Editor del Dashboard | los demás roles | No lo ofrecía (no ven `kommo`) | Igual |
+| Dirección › tarjeta «Comercial» | admin (`direccion/page.tsx:55` manda a los demás al Dashboard) | Tarjeta con «Pipeline CRM» (USD en etapas abiertas) y «Leads activos» (sin cerrar), las dos del espejo de Kommo y con enlace a `/studio/crm` | La tarjeta no aparece. En «Operación + comercial» queda solo la de Operación |
+| CRM › Embudos, aviso «Los embudos todavía no están activos.» | Entran al CRM los que ven `kommo`: commercial y admin, más quien tenga un permiso por usuario (`crm/page.tsx:62`). El tablero lo ven solo admin y commercial (`CrmEmbudosSlot.tsx:26`, `crm-tablero.ts:39`); a los demás les sale «Tu rol no usa el CRM propio.» | «Falta aplicar la migración 0506 en esta base. Mientras tanto, los leads siguen en las otras pestañas del CRM.» | «Falta aplicar la migración 0506 en esta base.» |
+
+Sobre el aviso de Embudos: solo sale en una base sin la 0506. Producción la tiene aplicada desde el
+2026-11-04 (§1.1 de la spec), así que en producción no lo ve nadie. Sí aparece en un entorno de
+prueba sin esa migración.
+
 ## HANDOFF AL DIRECTOR
 
 - **Cambio visible:** el Dashboard por defecto muestra 5 KPI en vez de 6 y Dirección pierde la
