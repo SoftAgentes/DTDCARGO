@@ -311,7 +311,7 @@ Están en la fila 2.3 del checklist.
 ## Metodología de avance
 
 - **Fórmula:** `avance = Σ días base de pasos aceptados ÷ Σ días base del alcance aprobado`, y **falta = 100 − avance**. Unidad: persona-día de 8 h.
-- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
+- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). La **v4 del 2026-11-07** son 129,5 días, por el rediseño de la 6.6 y la 10.5, con cinco filas nuevas (ver el checklist, «Cambio de alcance v4»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
 - **Esfuerzo aparte.** El real y el restante reestimado se informan aparte y no mueven el %. Las esperas pesan 0 y bloquean.
 - **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`. Solo `aceptado` suma.
 - **Cálculo:** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
