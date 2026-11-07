@@ -15,14 +15,23 @@
  *   solo en el navegador, como en 9.2, y no arranca sola.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { guardarEstadoGuiaAction } from "@/app/studio/(app)/_actions/guia-actions";
 import { crearAlmacenServidor } from "@/lib/studio/guia/almacen";
 import type { EstadoGuia } from "@/lib/studio/guia/estado-types";
-import { RECORRIDOS } from "@/lib/studio/guia/recorridos";
+import { RECORRIDOS, recorridosParaRol } from "@/lib/studio/guia/recorridos";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import { GuiaMotor } from "./GuiaMotor";
 
-export function GuiaStudio({ estadoInicial }: { estadoInicial: EstadoGuia | null }) {
+export function GuiaStudio({
+  estadoInicial,
+  rol = null,
+}: {
+  estadoInicial: EstadoGuia | null;
+  /** Rol del layout (9.5): el motor solo recibe los recorridos y pasos de ese rol. */
+  rol?: StudioUserRole | null;
+}) {
+  const catalogo = useMemo(() => recorridosParaRol(RECORRIDOS, rol), [rol]);
   const [almacen] = useState(() =>
     crearAlmacenServidor({
       inicial: estadoInicial,
@@ -45,5 +54,5 @@ export function GuiaStudio({ estadoInicial }: { estadoInicial: EstadoGuia | null
     };
   }, [almacen]);
 
-  return <GuiaMotor almacen={almacen} autoArranque={almacen.conServidor} />;
+  return <GuiaMotor catalogo={catalogo} almacen={almacen} autoArranque={almacen.conServidor} />;
 }
