@@ -140,8 +140,8 @@ fi
 mutante MLA1 "sin TimeoutStopSec (los 90 s por defecto)" "L1 L5" "L2 L4" \
   '-p "TimeoutStopSec=${TIMEOUT_STOP_S}s" ' ''
 mutante MLA2 "sin la negativa con otra unidad activa" "L2 L3" "L1 L4" \
-  '  if systemctl is-active --quiet kommo-e5-ensayo.service || systemctl is-active --quiet kommo-e5-carga.service; then' \
-  '  if false; then'
+  'if systemctl is-active --quiet kommo-e5-ensayo.service || systemctl is-active --quiet kommo-e5-carga.service; then' \
+  'if false; then'
 mutante MLA3 "sin el vigía" "L1" "L2 L4 L5" \
   '  systemd-run --quiet --unit "$UNIDAD-vigia"' '  : systemd-run --quiet --unit "$UNIDAD-vigia"'
 
