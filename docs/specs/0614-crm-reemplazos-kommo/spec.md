@@ -166,9 +166,11 @@ primero, en una PR chica contra `main` (P-8):
 - **Con Resumen por defecto (S3), el recorrido Embudo no abre** al entrar a `/studio/crm` sin
   `?tab=`: la guía salta cada paso cuya ancla no está y, si no queda ninguno, el recorrido no abre
   (`lib/studio/guia/motor.ts`), y su ruta solo mira el camino, no la pestaña (`rutaCoincide`,
-  `recorridos.ts`). Inferido (**I**) del
-  código de la #408 (`836edcd18`, sin fusionar). 6.6 no toca la guía ni lo aprobado de E9; la salida
-  se decide con la SDD-0589 antes de S3 (P-13).
+  `recorridos.ts`). Inferido (**I**) del código de la #408 (`836edcd18`, sin fusionar). 6.6 no toca
+  la guía ni lo aprobado de E9. **P-13, decidida por el Director General el 2026-11-07:** lo
+  resuelve la SDD-0589 en un paso aparte, con PR propia y después de la #408, y **S3 no se fusiona
+  antes de ese paso** (condición de la PR B en §5 y §9). Ese paso está pendiente: E9 todavía no lo
+  abre.
 
 **El resto de R1:**
 
@@ -815,7 +817,7 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 | **PR 0** | S0 | Primero: no espera la 10.5 ni migración (P-8) |
 | — | **M · maqueta** | Antes de S3, sin código (D-6.6-12 = b) |
 | **PR A** | S1 + S2 | Después de la implementación de la 10.5 (§2.8) |
-| **PR B** | S3 + S4 | Con la A fusionada y la maqueta aprobada por Sam |
+| **PR B** | S3 + S4 | Con la A fusionada, la maqueta aprobada por Sam y **la PR del paso P-13 de la SDD-0589 fusionada en `main`** (P-13; casilla de §9) |
 | **PR C** | S5 (R9) | Con la B fusionada; la migración B se aplica después de publicar T1 a T3 (§14) |
 
 **S0 · Ocultar Kommo** (§2.1, sin migración)
@@ -859,6 +861,7 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 - `app/studio/(app)/crm/_components/CrmTableroKanban.tsx` y `TarjetaFichaDrawer.tsx` (tipo de lead y marca «Volvió a escribir»), `lib/studio/crm-tablero.ts` y `crm-tablero-queries.ts` (el tipo y la marca; comentario de `:17-20`), `lib/studio/chatwoot/entrada-leads.ts` (solo el comentario de `:13`)
 - `lib/studio/reports/queries.ts` y `types.ts` (Por agente), `app/studio/(app)/reportes/_components/ReportesClient.tsx` (solo `ByAgentView`)
 - Pruebas: `lib/studio/chatwoot/__tests__/respuestas.test.ts`, `webhook-events.test.ts`, `webhook-fixtures.ts`, `lib/studio/__tests__/crm-kpis.test.ts`, `crm-tablero.test.ts` y `crm-tablero-queries.test.ts`, `app/studio/(app)/crm/_components/CrmResumen.test.tsx`, `CrmSinAtender.test.tsx`, `CrmTableroKanban.test.tsx`, `app/studio/(app)/crm/__tests__/stage-control.test.ts` y `crm-rename.test.ts` (si fijan pestañas o encabezado), `lib/studio/reports/__tests__/queries.test.ts`
+- **Condición para fusionar (P-13):** la PR del paso P-13 de la SDD-0589 ya está en `main` (§9). S3 no toca ningún archivo de la guía; la prueba de ese paso vive en `main` y corre en su `pnpm verify`
 
 **S4 · Mantenimiento**
 - `app/api/cron/crm-mantenimiento/route.ts` y `app/api/cron/crm-retencion/route.ts` (nuevos), `lib/studio/crm-mantenimiento.ts` (nuevo)
@@ -1033,6 +1036,11 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
 - [ ] R1: Resumen, Embudos y Sin atender funcionan con datos de tarjetas; cada tarjeta de Leads dice
   «Interesado» o «Interesado con código».
 - [ ] M: Sam aprobó la maqueta de Resumen, Sin atender y la ficha de la tarjeta antes de S3.
+- [ ] S3 (P-13): antes de fusionar la PR B, la PR del paso P-13 de la SDD-0589 está fusionada en
+  `main`. En la PR B se anotan su número y su commit de merge; `git merge-base --is-ancestor
+  <commit de merge> HEAD` da 0 en la rama de la PR B, y la prueba de ese paso (falla con Resumen por
+  defecto y pasa con el arreglo) sale verde en el `pnpm verify` de la PR B. Sin esa PR en `main`, la
+  PR B no se fusiona.
 - [ ] R2: crear ficha desde una tarjeta sin ficha deja la ficha ligada, sin nombre ni teléfono en la
   tarjeta, en el mismo tablero; con duplicado ofrece ligar o se detiene, según §2.2.
 - [ ] R3: enviar, aceptar o rechazar mueven la tarjeta según la tabla de §2.3; repetir no mueve dos
@@ -1103,8 +1111,8 @@ lo que 6.2 a 6.4 le pasaron a 6.6 (cerca de 1 día) y las dos fechas de «sin at
 incluye lo que sume la 10.5 rediseñada por las respuestas 13 a 18 (es de su SDD).
 
 **Orden:** la PR 0 (S0) ya; la maqueta M mientras se rediseña la 10.5; con la 10.5 implementada, la
-PR A (S1 + S2, con la parte de R8 en la migración A); con la maqueta aprobada, la PR B (S3 + S4, con
-la parte de R8 en pantalla); después, la PR C (S5), cuya migración B se aplica tras publicar T1 a T3
+PR A (S1 + S2, con la parte de R8 en la migración A); con la maqueta aprobada y el paso P-13 de la
+SDD-0589 en `main`, la PR B (S3 + S4, con la parte de R8 en pantalla); después, la PR C (S5), cuya migración B se aplica tras publicar T1 a T3
 (P-3, P-11).
 
 ## 11. Decisiones
@@ -1153,7 +1161,8 @@ extracción del historial de Kommo sigue, porque es parte de la migración a Cha
 ### Preguntas nuevas al Director General (2026-11-06)
 
 P-8, P-9 y P-11 las respondió el Subdirector de Chatwoot el mismo día. P-12 se cerró con la 10.5
-rediseñada. P-10 la contestó Sam el 2026-11-07. P-13, nueva del 2026-11-07, sigue abierta.
+rediseñada. P-10 la contestó Sam el 2026-11-07. P-13, nueva del 2026-11-07, la decidió el
+Director General ese mismo día.
 
 | # | Pregunta | Estado |
 |---|---|---|
@@ -1162,7 +1171,7 @@ rediseñada. P-10 la contestó Sam el 2026-11-07. P-13, nueva del 2026-11-07, si
 | P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | **Cerrada por Sam** el 2026-11-07 a las 03:56Z: «Sí, se queda». Se la dio al Director General, que la trajo, por el Subdirector de Chatwoot. Es la recomendación de esta SDD. La guía sigue montada cuando S0 oculte Kommo, hasta que Sam decida apagarla, y queda como invariante comprobable de S0 (§2.1, §5, §8, §9). No toca lo aprobado de E9 en la #408 |
 | P-11 | ¿El teléfono completo va en su propia migración (B)? | **Sí:** la B va aparte |
 | P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | **Cerrada** con la 10.5 rediseñada (#400, `12a5f7c52`, §10.5.19): la pieza sigue; la señal 2 sale de `crm_portal_espera`; la bandeja del portal queda fuera de las señales 1 y 3; `crm_ticket` queda sin objeto. Aplicado en §2.8 |
-| P-13 | Con Resumen por defecto (S3), `/studio/crm` sin `?tab=` ya no monta el tablero, y el recorrido Embudo de la guía (`RECORRIDO_EMBUDO`, #408) no encuentra sus anclas y no abre (§2.1, **I**). ¿Cómo sigue llegando la guía a Embudos? | **Abierta** (2026-11-07). Propuesta: que lo resuelva la SDD-0589, por ejemplo con un recorrido que abra `?tab=embudos`, y que 6.6 no toque la guía. Se decide antes de S3; no cambia ninguna estimación de 6.6 |
+| P-13 | Con Resumen por defecto (S3), `/studio/crm` sin `?tab=` ya no monta el tablero, y el recorrido Embudo de la guía (`RECORRIDO_EMBUDO`, #408) no encuentra sus anclas y no abre (§2.1, **I**). ¿Cómo sigue llegando la guía a Embudos? | **Decidida por el Director General** el 2026-11-07, hacia las 04:20Z (decisión técnica, no de Sam; la trajo el Subdirector de Chatwoot). Lo resuelve la SDD-0589 en un **paso aparte con PR propia, después de la #408**, no como ajuste de `836edcd18`. 6.6 no toca la guía (P-10). **S3 no se fusiona antes de ese paso** (§5, §9). El paso trae una prueba que falla con la pestaña por defecto en Resumen y pasa con el arreglo; el arreglo (un recorrido que abra `?tab=embudos` o un `rutaCoincide` que mire la pestaña) lo elige E9. Pendiente: E9 todavía no abre el paso. No cambia ninguna estimación de 6.6 |
 
 ### Resueltas por el Director General (2026-11-06, sobre `99e7d6300`)
 
@@ -1234,13 +1243,17 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   fuera de las señales 1 y 3, y sin `crm_ticket`. No cambia ninguna estimación.
 - **2026-11-07:** P-10 cerrada por Sam a las 03:56Z, traída por el Director General: «Sí, se queda».
   La guía de la SDD-0589 queda fuera de S0 como invariante comprobable (§2.1, §5, §8, §9). Al
-  medirlo apareció P-13 (la guía y Resumen por defecto en S3), abierta. No cambia ninguna
-  estimación.
+  medirlo apareció P-13 (la guía y Resumen por defecto en S3), que el Director General decidió ese
+  mismo día. No cambia ninguna estimación.
 - **2026-11-07:** Sam aprobó T1, T2 y T3 de §14 a las 03:59Z, traídos por el Director General:
   «Apruebo los tres». T3 queda con «o por mensaje de texto (SMS)». El texto de cada uno no cambió:
   sus huellas sha256, con los saltos de línea unidos por un espacio, son las mismas que en
   `8958ca951`. Siguen sin publicar; se publican antes de aplicar la migración B, por PR y tanda con
   el OK del Director General. No cambia ninguna estimación.
+- **2026-11-07:** el Director General decidió P-13 hacia las 04:20Z: la resuelve la SDD-0589 en un
+  paso aparte con PR propia, después de la #408, y S3 no se fusiona antes de ese paso. La
+  dependencia queda como condición de la PR B (§5) y casilla de §9. E9 todavía no abre el paso. No
+  cambia ninguna estimación.
 
 ## 14. Textos públicos aprobados por Sam (se publican por PR y tanda, con el OK del Director General)
 
