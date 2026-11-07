@@ -76,7 +76,7 @@ describe("SDD-0611 · 0518 publicación automática de noticias (PGlite)", () =>
   it("el contrato pasa entero con la 0518", async () => {
     const run = await contract();
     expect(run.error).toBeNull();
-    expect(run.green).toBe("TEST 0518 GREEN: 63 aserciones");
+    expect(run.green).toBe("TEST 0518 GREEN: 66 aserciones");
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0518 cae en la primera aserción", async () => {
@@ -200,6 +200,21 @@ describe("SDD-0611 · 0518 publicación automática de noticias (PGlite)", () =>
       "authenticated no puede llamar a la vía automática",
     ],
   ];
+
+  MUTANTES.push(
+    [
+      "FK con SET NULL (choca con el CHECK de la automática)",
+      "uuid references public.seo_drafts(id) on delete no action,",
+      "uuid references public.seo_drafts(id) on delete set null,",
+      "el borrador de una noticia automática no se borra",
+    ],
+    [
+      "FK con CASCADE (borrar el borrador se lleva la noticia)",
+      "uuid references public.seo_drafts(id) on delete no action,",
+      "uuid references public.seo_drafts(id) on delete cascade,",
+      "el borrador de una noticia automática no se borra",
+    ],
+  );
 
   for (const [nombre, from, to, aserto] of MUTANTES) {
     it(`MUTANTE «${nombre}» cae en «${aserto}»`, async () => {

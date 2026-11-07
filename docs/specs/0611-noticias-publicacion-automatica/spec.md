@@ -524,6 +524,19 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 
 ## 11. Hallazgos que esta spec deja escritos
 
+### 11.1 Riesgo aceptado en la implementación (revisión del Director General, 2026-11-07)
+
+- **F3 confía en `seo_drafts.reviewer_verdict`, y cualquier admin del tenant puede escribir esa
+  columna** (policy de actualización de la 0053, sin restricción por columna). Un admin podría
+  poner a mano un veredicto «aprobado» atado a la huella correcta. Se acepta como riesgo porque:
+  - el admin ya puede publicar a mano;
+  - la vía automática solo corre con el interruptor que enciende Sam;
+  - cada publicación deja la auditoría con agente, modelo y versión;
+  - cada publicación avisa en `#noticias`.
+  Se cierra cuando la puerta de entrada de la oficina (§4.9) escriba el veredicto con su
+  credencial propia y la columna deje de poder editarse desde la sesión de un admin.
+
+
 - `publishPost` no exige en el servidor que no queden marcas; hoy una llamada directa a la
   acción publica un texto con `[VERIFICAR: …]`. Lo corrige la fase B y lo exige el criterio 3.
 - `verifyMarkers` no cuenta la marca vacía: `[VERIFICAR]` y `[VERIFICAR: ]` dan cero marcas.

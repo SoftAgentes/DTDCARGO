@@ -170,6 +170,22 @@ describe("SDD-0611 · orquestador de la vía automática", () => {
     expect(contenido).toContain("aviso_pendiente");
   });
 
+  it("retenida por datos personales en el titular: el aviso no lleva el titular", async () => {
+    const titular = "Importa · Escribe al 0414-123-45-67 por tu envío";
+    const { db } = dobleDb(
+      estado({
+        draft: borrador({ selected_headline: titular }),
+        rpcResultado: { decision: "retenida", audit_id: "50000000-0000-4000-8000-000000000003", motivos: ["linea_roja:datos_personales"] },
+      }),
+    );
+    const fetchImpl = discord();
+    const r = await evaluarBorradorAutomatico({ db, env: ENV, ahora: AHORA, fetchImpl: fetchImpl as unknown as typeof fetch }, DRAFT);
+    expect(r.evaluacion?.motivos).toContain("linea_roja:datos_personales");
+    const contenido = JSON.parse(String(fetchImpl.mock.calls[0][1].body)).content as string;
+    expect(contenido).not.toContain("0414");
+    expect(contenido).toContain(`Borrador ${DRAFT.slice(0, 8)}`);
+  });
+
   it("fallo parcial: si el aviso no llega, la noticia sigue publicada y queda registrado para F8", async () => {
     const { db, rpcs } = dobleDb(estado());
     const r = await evaluarBorradorAutomatico(

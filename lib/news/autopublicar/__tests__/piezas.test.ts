@@ -323,8 +323,28 @@ describe("§4.5 · avisos a #noticias", () => {
     expect(t).toContain("Sam");
   });
 
+  it("retenida por datos personales: no manda el titular, solo el código del borrador, el motivo y el enlace", () => {
+    const titular = "Importa · Llama al 0414-123-45-67 para tu envío";
+    const t = avisoRetenida({
+      titular,
+      motivos: ["linea_roja:datos_personales"],
+      colaUrl: "https://dtdcargo.com/studio/marketing/noticias-web?estado=retenido",
+      codigoBorrador: "30000000-0000-4000-8000-000000000001",
+    });
+    expect(t).not.toContain("0414");
+    expect(t).not.toContain(titular);
+    expect(t).toContain("Borrador 30000000");
+    expect(t).toContain("linea_roja:datos_personales");
+    expect(t).toContain("Cola de revisión: https://dtdcargo.com/studio/marketing/noticias-web?estado=retenido");
+  });
+
+  it("retenida por otra cosa sí lleva el titular", () => {
+    const t = avisoRetenida({ titular: TITULAR, motivos: ["tope_dia"], colaUrl: "c", codigoBorrador: "30000000-0000-4000-8000-000000000001" });
+    expect(t).toContain(TITULAR);
+  });
+
   it("retenida lleva motivos y la cola", () => {
-    const t = avisoRetenida({ titular: TITULAR, motivos: ["tope_dia", "linea_roja:precio"], colaUrl: "c" });
+    const t = avisoRetenida({ titular: TITULAR, motivos: ["tope_dia", "linea_roja:precio"], colaUrl: "c", codigoBorrador: "x" });
     expect(t).toContain("tope_dia, linea_roja:precio");
     expect(t).toContain("Cola de revisión: c");
   });
@@ -338,6 +358,9 @@ describe("§4.11 · motivos de retiro", () => {
     expect(validarRetiro("otro", "No aplica al lector")).toBe(null);
     expect(validarRetiro("tono", "")).toBe(null);
     expect(validarRetiro("tono", "x".repeat(1001))).toBe("nota_larga");
+    expect(validarRetiro("dato_incorrecto", "El cliente pidió retirarla, su número es 0414-123-45-67")).toBe(
+      "nota_con_datos_personales",
+    );
   });
   it("una nota con un teléfono no se entrega a la oficina", () => {
     expect(notaParaOficina("Llamen al 0414-123-45-67")).toBe(null);

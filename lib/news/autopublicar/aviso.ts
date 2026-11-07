@@ -89,12 +89,23 @@ export interface AvisoRetenida {
   titular: string;
   motivos: string[];
   colaUrl: string;
+  /** Id del borrador: identifica la retenida cuando el titular no puede viajar. */
+  codigoBorrador: string;
 }
 
+/**
+ * Si F5 la retuvo por datos personales, o el titular trae algo que lo parezca,
+ * el titular no viaja a Discord: solo el código del borrador, los motivos y el
+ * enlace al Studio.
+ */
 export function avisoRetenida(a: AvisoRetenida): string {
+  const sinTitular =
+    a.motivos.includes("linea_roja:datos_personales") || tieneDatosPersonales(a.titular);
   return [
     "**Retenida para revisión**",
-    plano(a.titular),
+    sinTitular
+      ? `Borrador ${a.codigoBorrador.slice(0, 8)} (titular omitido: puede traer datos personales)`
+      : plano(a.titular),
     `Motivos: ${a.motivos.join(", ")}`,
     `Cola de revisión: ${a.colaUrl}`,
   ].join("\n");

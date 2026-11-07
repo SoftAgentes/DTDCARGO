@@ -245,6 +245,7 @@ export async function evaluarBorradorAutomatico(
 
   const aviso = await avisar(deps, env, ahora, b.tenant_id, r, {
     titular: title,
+    draftId: b.id,
     slug: post.slug,
     evaluacion,
     riesgo: typeof v?.riesgo === "string" ? v.riesgo : null,
@@ -270,6 +271,7 @@ async function avisar(
   r: { decision: DecisionAutomatica; post_id?: string | null; audit_id?: string; motivos?: string[] },
   datos: {
     titular: string;
+    draftId: string;
     slug: string;
     evaluacion: EvaluacionFiltros;
     riesgo: string | null;
@@ -301,6 +303,7 @@ async function avisar(
       titular: datos.titular,
       motivos: r.motivos ?? [],
       colaUrl: `${base}/studio/marketing/noticias-web?estado=retenido`,
+      codigoBorrador: datos.draftId,
     });
   }
 

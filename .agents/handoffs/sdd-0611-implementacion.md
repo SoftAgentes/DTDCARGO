@@ -96,7 +96,7 @@ Migración sin aplicar, con su paquete para el Director General. PR en borrador.
 | `tsc` y `eslint` de los archivos tocados (primera tanda) | PASÓ, sin errores. La tanda final, NO EJECUTADO todavía |
 | `pnpm verify` | NO EJECUTADO: necesita turno del Director General |
 | Carrera real (dos corridas a la vez, `dblink` en Postgres) | NO EJECUTADO: PGlite tiene una sola conexión. El diseño la cubre con `FOR UPDATE` sobre la fila del interruptor y del borrador y con el índice único `seo_draft_id`; falta la prueba con el patrón de la 0459 |
-| `revisar-datos-ve` completo sobre el diff (criterio 9) | NO EJECUTADO. Revisión focal hecha: Discord ya está en `inventario-terceros.md`; el aviso lleva titular, enlace público y códigos, nunca el cuerpo; la opinión del Revisor no viaja si trae un dato personal; la auditoría no admite prompts (CHECK de claves) |
+| `revisar-datos-ve` sobre el flujo (criterio 9, pedido del DG) | PASÓ, con hallazgos. Informe en `docs/specs/0611-noticias-publicacion-automatica/privacidad.md`: 8 CORRECTO, 2 ENCONTRADO y 4 NO VERIFICABLE. Los ENCONTRADO son la retención sin plazo de las tablas nuevas y el nombre de quien publica a mano en `#noticias` (decisión de Sam, sin declarar al personal). La línea de `#noticias` quedó en `inventario-terceros.md` |
 | Graphify / Archify / `knowledge:status` | NO EJECUTADO: el Director publica desde `main` integrado |
 
 ## Paquete para el Director General (aplicar la 0518)
@@ -133,7 +133,20 @@ La 0518 cambia `seo_drafts_categoria_check` **solo** si todavía tiene la lista 
 3. Aplicar con el OK nominal de Sam para `0518_noticias_publicacion_automatica` y el runbook `aplicar-migraciones-prod.md`. Después: sellarla, retirar la espera y mirar `md5` contra el ledger.
 4. Aplicarla **no enciende nada**: ninguna ruta llama a estas funciones.
 
+## Revisión del Director General sobre `2e6e678b9` (CHANGES_REQUESTED), resuelta
+
+1. **MEDIA:** el aviso de «Retenida» mandaba el titular aunque F5 la retuviera por datos personales. Ahora va solo el código del borrador, los motivos y el enlace, también si el titular trae un dato personal. Dos pruebas en rojo antes del arreglo.
+2. **MEDIA:** `revisar-datos-ve` corrido (informe `privacidad.md`) y línea de `#noticias` en `inventario-terceros.md`. De paso, `validarRetiro` rechaza una nota con datos personales.
+3. **BAJA:** `seo_draft_id` pasa de `on delete set null` a `on delete no action`.
+   - `set null` chocaba con el CHECK de las automáticas.
+   - `no action` y no `restrict`, porque se comprueba al final de la sentencia y el borrado en cascada de un tenant no aborta.
+   - El contrato suma tres aserciones: el borrador de una automática no se borra, la noticia sigue y el tenant se borra en cascada. Dos mutantes nuevos, SET NULL y CASCADE, mueren.
+4. **BAJA:** el riesgo de que un admin escriba `reviewer_verdict` quedó anotado en la spec, §11.1, como riesgo aceptado.
+5. `set local`: sin cambios.
+
 ## PENDIENTES DE ESTA TAREA
+
+- Plazo de retención y purga de `news_publication_audit`, `news_post_exits` y `news_autopublish_settings_log`. Lo decide Sam; va en la segunda PR.
 
 - `pnpm verify` con turno del Director General.
 - **Segunda PR, después de aplicar la 0518** (migrate-first; si va antes, el gate de símbolos se pone rojo):

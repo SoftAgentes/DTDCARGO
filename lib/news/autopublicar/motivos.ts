@@ -22,7 +22,11 @@ export type MotivoRetiro = keyof typeof MOTIVOS_RETIRO;
 
 export const NOTA_MAX = 1000;
 
-export type ErrorRetiro = "motivo_obligatorio" | "nota_obligatoria" | "nota_larga";
+export type ErrorRetiro =
+  | "motivo_obligatorio"
+  | "nota_obligatoria"
+  | "nota_larga"
+  | "nota_con_datos_personales";
 
 /** Valida motivo y nota antes de retirar. `null` = vale. */
 export function validarRetiro(motivo: unknown, nota: unknown): ErrorRetiro | null {
@@ -30,6 +34,9 @@ export function validarRetiro(motivo: unknown, nota: unknown): ErrorRetiro | nul
   const n = typeof nota === "string" ? nota.trim() : "";
   if (motivo === "otro" && n === "") return "nota_obligatoria";
   if (n.length > NOTA_MAX) return "nota_larga";
+  // La nota se guarda en news_post_exits y viaja a la oficina: sin teléfonos,
+  // correos, cédulas, RIF ni direcciones (revisar-datos-ve, punto 2).
+  if (tieneDatosPersonales(n)) return "nota_con_datos_personales";
   return null;
 }
 

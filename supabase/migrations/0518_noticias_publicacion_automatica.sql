@@ -210,7 +210,11 @@ create index seo_drafts_en_revision_idx
 -- ─── 2. Noticias ─────────────────────────────────────────────────────────────
 alter table public.news_posts
   add column publish_via     text not null default 'manual',
-  add column seo_draft_id    uuid references public.seo_drafts(id) on delete set null,
+  -- NO ACTION y no SET NULL: SET NULL chocaría con el CHECK que exige el borrador
+  -- en una automática. NO ACTION y no RESTRICT: se comprueba al final de la
+  -- sentencia, así el borrado en cascada de un tenant (noticia y borrador juntos)
+  -- no aborta; borrar a mano el borrador de una noticia publicada sí se rechaza.
+  add column seo_draft_id    uuid references public.seo_drafts(id) on delete no action,
   add column content_sha256  text;
 
 alter table public.news_posts

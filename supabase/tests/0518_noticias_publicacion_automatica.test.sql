@@ -527,6 +527,17 @@ begin
   reset role;
   perform set_config('request.jwt.claim.sub', '', true);
   perform pg_temp.assert_true(v_n = 0, 'quien no es admin no ve la auditoría');
+
+  -- ── El borrador de una noticia publicada no se borra; el tenant, sí ──
+  perform pg_temp.assert_true(pg_temp.falla('service_role', null,
+    format('delete from public.seo_drafts where id = %L', d4)) = '23503',
+    'el borrador de una noticia automática no se borra (la noticia queda como ejemplo)');
+  perform pg_temp.assert_true(exists (select 1 from public.news_posts where seo_draft_id = d4),
+    'la noticia automática sigue con su borrador');
+  delete from public.tenants where id = t2;
+  perform pg_temp.assert_true(not exists (select 1 from public.news_posts where tenant_id = t2)
+    and not exists (select 1 from public.seo_drafts where tenant_id = t2),
+    'borrar un tenant en cascada borra sus noticias y borradores sin abortar');
 end;
 $contrato$;
 
