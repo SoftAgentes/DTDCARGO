@@ -141,7 +141,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 ## Pendientes de esta SDD
 
 - 10.4, 10.5 y 10.6 (ver checklist); se programan después de integrar a `main`.
-- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. El 2026-11-07 contestó P7, los feriados: opción (a) (§10.5.11). Quedan los textos públicos por aprobar y las puertas (§10.5.20).
+- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. El 2026-11-07 contestó P7, los feriados: opción (a) (§10.5.11). Ese mismo día aprobó los textos públicos T1 a T4 (§10.5.12). Quedan el OK del conteo, los hilos archivados y las puertas (§10.5.20).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
@@ -244,7 +244,7 @@ El equipo responde en la Bandeja (Chatwoot dentro del Studio)
 | E10-D39 | **El estado.** De Chatwoot al portal, con el evento `conversation_status_changed`, que ya llega: `resolved` pasa a `resuelto`, `open` a `abierto`, y `pending` y `snoozed` a `pendiente`. Del portal a Chatwoot: si el cliente escribe en un hilo resuelto, `portal_post_message` lo reabre en Studio (`0512_portal_intento_sin_duplicar.sql:203`) y el mensaje entrante lo reabre en Chatwoot. Si Chatwoot no lo reabre en una bandeja API, lo reabre el envío (NV, PoC-4) | El estado lo decide un solo lugar, Chatwoot, donde trabaja el equipo. El portal lo refleja |
 | E10-D40 | **Si Chatwoot no responde.** (1) **El portal nunca falla:** el mensaje se guarda en Studio antes de intentar el envío, y el envío no lo espera (E10-D24). (2) La cola reintenta (E10-D34). (3) **Aviso:** si hay mensajes del portal sin llegar a Chatwoot hace más de 15 min, o alguno «atascado», los administradores reciben un push de Studio con **solo números**, por ejemplo «Portal → Chatwoot: 3 mensajes sin llegar», una vez por hora mientras dure. (4) **Modo de respaldo:** apagar el interruptor (E10-D42) devuelve la respuesta del portal a Conversaciones de Studio, como hoy. Al encenderlo otra vez, lo que el equipo escribió desde Studio en ese tiempo sale a Chatwoot como mensaje saliente, con el token del agente vinculado. Así el hilo de Chatwoot queda completo y esas respuestas cuentan como humanas para la D-SA. (5) **Si falla el webhook:** Chatwoot 4.19.1 no reintenta los webhooks de cuenta (comentario de `reprocesarEventosChatwoot`, `webhook-procesar.ts`). El cron compara, en cada hilo vinculado con actividad en las últimas 24 h, los últimos mensajes salientes de Chatwoot con `conversation_messages`, y escribe los que falten por el mismo `external_msg_id` | El aviso de solo números sigue el patrón de la salud de agentes (SDD-0585, paso 2.5). Que la API de cuenta liste los mensajes de una conversación con su `source_id` y su tipo es NV (PoC-3) |
 | E10-D41 | **Un solo lugar para responder.** Con el interruptor encendido, los hilos del portal quedan de solo lectura en Conversaciones de Studio. La caja de respuesta se cambia por «Responder en la Bandeja →», que abre `/studio/bandeja?c=<conversación de Chatwoot>`, y `sendReplyAction` rechaza en el servidor una respuesta a un hilo del portal. Con el interruptor apagado, Studio responde como hoy | Con dos lugares para responder, Chatwoot no vería las respuestas dadas en Studio. El enlace `?c=` a la Bandeja ya existe (`app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`) |
-| E10-D42 | **El interruptor `chatwoot_portal`.** Es un flag por tenant de `feature_flag_catalog()` y nace apagado. Esa función se definió por última vez en la 0503 (`0503_chatwoot_bandeja.sql:43`), en `main` y en todas las ramas remotas (medido el 2026-11-06), y se redefine desde ahí. **Encenderlo es un OK nominal de Sam, y no antes de que esté publicado el `/privacidad` nuevo** (P6, §10.5.12). Apagado, no se crea nada en Chatwoot, no se manda nada y no corre ningún manejador del portal | P6: el chat no se conecta al CRM hasta que el texto esté publicado. El CRM se alimenta desde Chatwoot, así que la puerta es la misma |
+| E10-D42 | **El interruptor `chatwoot_portal`.** Es un flag por tenant de `feature_flag_catalog()` y nace apagado. Esa función se definió por última vez en la 0503 (`0503_chatwoot_bandeja.sql:43`), en `main` y en todas las ramas remotas (medido el 2026-11-06), y se redefine desde ahí. **Encenderlo es un OK nominal de Sam, y no antes de que estén publicados T1 a T4** (P6, §10.5.12): la línea nueva de Soporte en el portal y el `/privacidad` nuevo, con su fecha. Apagado, no se crea nada en Chatwoot, no se manda nada y no corre ningún manejador del portal | P6: el chat no se conecta al CRM hasta que el texto esté publicado. El CRM se alimenta desde Chatwoot, así que la puerta es la misma |
 | E10-D43 | **Las conversaciones que ya existen se cargan a Chatwoot** (P4), con el rigor de E5: ensayo en una copia, cero efectos externos, respaldo, conteos y huellas, y OK nominal de Sam antes de producción. Diseño en §10.5.10 | P4. Es el camino del Archivo Kommo de la SDD-0590 |
 | E10-D44 | **El portal no muestra número** (P3). El equipo ve el número de la conversación en Chatwoot (`#n`), y `conversations.ref` (`C-AAAA-NNNN`) sigue siendo interno. No hay números de episodio porque ya no hay tickets | P3. Deja sin objeto E10-D28 |
 | E10-D45 | **Auditoría.** Sin tabla de tickets, la 10.5 no crea un tipo de auditoría propio: `crm_ticket` queda sin objeto. Los cambios de la tarjeta los audita el trigger de `crm_tarjetas` de la 6.6, con la D-AUD (§10.5.19). Los vínculos y la cola son estado de integración, como `chatwoot_conversations` (0504), y no se auditan. Las respuestas y los cambios de estado que llegan de Chatwoot se escriben en el hilo igual que hoy desde Studio | D-AUD. Hoy, cambiar el estado de un hilo desde Studio no deja evento en `entity_audit_log` (I, no medido): la 10.5 no lo empeora |
@@ -337,7 +337,7 @@ La lectura de `chatwoot_conversations` es por tenant y no mira el rol (0504). Es
 3. **La bandeja en Chatwoot y las variables** (OK nominal). La bandeja va sin `webhook_url`, sin saludo, sin asignación automática y sin encuesta, como el Archivo Kommo.
 4. **Punta a punta en prueba,** con la cuenta 2 de Chatwoot y sin datos reales (§10.5.15).
 5. **La carga de las conversaciones que ya existen:** ensayo y después producción, cada una con su puerta (§10.5.10).
-6. **Encender `chatwoot_portal`** (OK nominal), solo con el `/privacidad` nuevo publicado.
+6. **Encender `chatwoot_portal`** (OK nominal), solo con T1 a T4 publicados (E10-D42).
 
 ### 10.5.10 La carga de las conversaciones que ya existen (P4)
 
@@ -436,11 +436,11 @@ La calcula una función pura, sin red ni base, con la lista de días que no cuen
 | (b) Ninguno: solo el sábado y el domingo | Un feriado cuenta como día de trabajo | Nadie | Descartada: Sam contestó que un feriado entre semana «No cuenta» |
 | (c) Una lista fija de feriados nacionales, escrita en el sistema | No hay que cargar nada, pero cada cambio del calendario pide un cambio de código | Programación | Descartada: la lista la mantiene el «Administrador en Studio» |
 
-### 10.5.12 Textos públicos propuestos
+### 10.5.12 Textos públicos aprobados
 
-**Propuestas, sin aprobar.** Sam los aprueba palabra por palabra antes de publicar. Si cambia una palabra, se le vuelve a preguntar. Se escriben sobre `main` en `7a3cde25d`, que ya tiene el texto de la #399.
+**Aprobados por Sam palabra por palabra (2026-11-07 04:48Z, traídos por el DG): «Apruebo los cuatro».** Son T1 (la variante de P7 = (a)), T2, T3 y T4, tal como están abajo. Se publican en la PR de la 10.5 (§10.5.16) y en su tanda, con el OK del Director General. Si cambia una sola palabra, se vuelve al Director General antes de publicar. Se escriben sobre `main` en `7a3cde25d`, que ya tiene el texto de la #399.
 
-**T1 · Portal, Soporte** (`app/portal/(app)/soporte/page.tsx:200`). Hoy: `{role} · Te responde en el día`. Con la regla de P5, ya no es cierto para el fin de semana. Con P7 = (a) queda una sola propuesta, **todavía sin aprobar**: se aprueba palabra por palabra en la decisión 5 del Director General, la de los textos de la 10.5.
+**T1 · Portal, Soporte** (`app/portal/(app)/soporte/page.tsx:200`). Hoy: `{role} · Te responde en el día`. Con la regla de P5, ya no es cierto para el fin de semana. Con P7 = (a) queda una sola variante.
 
 > `{role} · Te responde en el día hábil`
 
@@ -592,9 +592,9 @@ La skill pide una segunda opinión: otro modelo puede revisar este diseño. **Lo
 - [ ] El portal nunca falla por Chatwoot, y si Chatwoot no responde hay aviso y modo de respaldo.
 - [ ] La tarjeta entra por la ficha, en el embudo de su segmento; desde «Perdido» vuelve solo si es lead.
 - [ ] «Vencida» sigue la regla de P5 y P7 = (a): no cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio.
-- [ ] T1 a T4 aprobados por Sam palabra por palabra (decisión 5) antes de publicarlos.
+- [x] T1 a T4 aprobados por Sam palabra por palabra (decisión 5) antes de publicarlos. Cumplido el 2026-11-07 a las 04:48Z: «Apruebo los cuatro».
 - [ ] Nada sale a Chatwoot fuera del nombre y el texto.
-- [ ] El flag nace apagado y no se enciende sin el `/privacidad` nuevo publicado.
+- [ ] El flag nace apagado y no se enciende hasta que T1 a T4 estén publicados en producción (E10-D42). Se comprueba en la web publicada: Soporte del portal muestra T1, y `/privacidad` muestra T2, T3 y la fecha de T4.
 - [ ] La carga pasa C-1 a C-14 en el ensayo, antes de producción.
 - [ ] `pnpm verify`, `/ui-check` y revisar-datos-ve sobre el código.
 - [ ] Aceptación de Sam de las filas de la 10.5.
@@ -714,7 +714,8 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 
 | # | Qué | Opción recomendada |
 |---|---|---|
-| T1 a T4 | Aprobar los textos públicos palabra por palabra (§10.5.12), en la decisión 5 del Director General | Los de §10.5.12. T1 ya tiene una sola propuesta, por P7 = (a) |
+| T1 a T4 | ~~Aprobar los textos públicos palabra por palabra (§10.5.12), en la decisión 5 del Director General~~ **Cumplido** el 2026-11-07 a las 04:48Z: «Apruebo los cuatro» | — |
+| Conteo (decisión 6) | El OK para que el Director General corra en producción la consulta de solo lectura de §10.5.10 | — |
 | Hilos archivados | Confirmar que no se cargan a Chatwoot (§10.5.10) | No cargarlos |
 | Puertas | La migración; la bandeja y las variables; cada paso de la carga; encender el flag (§10.5.9 y §10.5.10) | Cada una con su OK nominal, en ese orden |
 

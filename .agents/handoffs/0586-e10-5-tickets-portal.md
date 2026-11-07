@@ -30,8 +30,8 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
   - la tarjeta entra por la ficha con `crm_entrada_portal` y la pieza única;
   - un interruptor `chatwoot_portal` que nace apagado, con aviso y modo de respaldo si Chatwoot no responde.
 - **Carga de P4** (§10.5.10): cuatro pasos, catorce mediciones (C-1 a C-14), cinco puertas y la consulta de conteo de solo lectura para el Director General. No se contó nada en producción.
-- **Plazo y feriados** (§10.5.11). P7, la pregunta nueva sobre los feriados, quedó contestada el 2026-11-07: opción (a). No cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio (`operational_calendar`), y el preflight exige la 0192. Sam la contestó en tres respuestas; la primera, «Ninguno», quedó anulada porque la pregunta se le planteó distinta a la de la spec (§10.5.1). T1 quedó con una sola propuesta, `{role} · Te responde en el día hábil`, todavía sin aprobar.
-- **Textos públicos propuestos** palabra por palabra (§10.5.12): T1 en el portal, T2 y T3 en `/privacidad`, y T4, la fecha.
+- **Plazo y feriados** (§10.5.11). P7, la pregunta nueva sobre los feriados, quedó contestada el 2026-11-07: opción (a). No cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio (`operational_calendar`), y el preflight exige la 0192. Sam la contestó en tres respuestas; la primera, «Ninguno», quedó anulada porque la pregunta se le planteó distinta a la de la spec (§10.5.1). T1 quedó con una sola variante, `{role} · Te responde en el día hábil`.
+- **Textos públicos aprobados** (§10.5.12): T1 en el portal, T2 y T3 en `/privacidad`, y T4, la fecha. Sam los aprobó palabra por palabra el 2026-11-07 a las 04:48Z, traídos por el Director General: «Apruebo los cuatro». Si cambia una sola palabra, se vuelve al Director General antes. El flag no se enciende hasta que T1 a T4 estén publicados (E10-D42 y su casilla en §10.5.15).
 - **revisar-datos-ve** del rediseño (§10.5.13). Que Chatwoot es software propio en el servidor de DTD, y no un tercero, lo confirma la evidencia del repo; el VPS no se leyó en esta tarea.
 - **Reestimación** fila por fila contra la línea base v3 (§10.5.21): E10 pasa de 7,25 a 13,75 días (+6,5). Queda vencida la de 1,25 → 2. Sam la aprobó el 2026-11-07 a las 03:42Z, traída por el Director General: «Sí, 129,5 días», la línea base nueva del programa con la 6.6 y la 10.5.
 - **Checklist 0582:** no se tocó en esta revisión, por pedido del Subdirector. La nota de la fila 10.5 en esta rama sigue diciendo «seis preguntas para Sam».
@@ -61,10 +61,11 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 4. Respuestas de Sam y rediseño (`12a5f7c52`).
 5. P7 contestada (2026-11-07), anotada con un commit local. La #400 sigue congelada y sin push hasta que se cierren las otras decisiones del paquete: P-10, los textos de la 6.6, los textos de la 10.5 y el conteo.
 6. La fila «Reestimación» sale de los pendientes de §10.5.20, porque Sam aprobó 129,5 días; §10.5.21 registra la aprobación. Commit local, sin push.
+7. T1 a T4 aprobados por Sam (2026-11-07 04:48Z), con las tres citas sin cambiar un byte: lo comprueban sus sha256 antes y después. E10-D42, la puerta 6 y su casilla piden T1 a T4 publicados. Commit local, sin push: la #400 sigue congelada hasta la decisión 6, el conteo.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Para Sam** (los lleva el Director General): aprobar T1 a T4 (la decisión 5); confirmar que los hilos archivados no se cargan; y las puertas, cada una con su OK nominal (§10.5.20).
+- **Para Sam** (los lleva el Director General): el OK del conteo (la decisión 6); confirmar que los hilos archivados no se cargan; y las puertas, cada una con su OK nominal (§10.5.20).
 - **Para el Director General:** correr el conteo de §10.5.10 con su OK; decidir con el Subdirector de SEO el aviso de Telegram del portal; elegir dónde viven los scripts de la carga; llevar a la 0614 la propuesta de §10.5.19 (señal 2 de la D-SA y `crm_ticket` sin objeto).
 - La implementación, la migración, la carga y sus aplicaciones quedan fuera de este encargo.
 
