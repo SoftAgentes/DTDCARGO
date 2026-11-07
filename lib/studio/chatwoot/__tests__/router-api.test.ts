@@ -221,7 +221,9 @@ describe("router-api · buscar el source_id página por página (revisión de la
       ...extra,
     ],
   });
-  const urls = () => fetchSpy.mock.calls.map(([u]) => u as string);
+  const urls = () => fetchSpy.mock.calls.map((c: unknown[]) => c[0] as string);
+  /** Un Response NUEVO en cada llamada: el cuerpo de uno solo se lee una vez (mutante M29). */
+  const siempre = (cuerpo: unknown) => fetchSpy.mockImplementation(async () => json(cuerpo));
 
   it("lo encuentra en la segunda página, con ?before= el más viejo de la primera", async () => {
     fetchSpy
@@ -232,7 +234,7 @@ describe("router-api · buscar el source_id página por página (revisión de la
   });
 
   it("corta al pasar la hora del mensaje de Studio: lo de más atrás no puede ser él", async () => {
-    fetchSpy.mockResolvedValue(json({ payload: [] }));
+    siempre({ payload: [] });
     fetchSpy
       .mockResolvedValueOnce(json(pagina(130, 111, T + 600)))
       .mockResolvedValueOnce(json(pagina(110, 91, T - 3600)));
@@ -241,7 +243,7 @@ describe("router-api · buscar el source_id página por página (revisión de la
   });
 
   it("el margen de 5 minutos: un mensaje un poco anterior a la hora de Studio todavía se mira", async () => {
-    fetchSpy.mockResolvedValue(json({ payload: [] }));
+    siempre({ payload: [] });
     fetchSpy
       .mockResolvedValueOnce(json(pagina(130, 111, T - 120)))
       .mockResolvedValueOnce(json(pagina(110, 106, T - 200, [{ id: 105, source_id: S, created_at: T - 240 }])));
@@ -249,7 +251,7 @@ describe("router-api · buscar el source_id página por página (revisión de la
   });
 
   it("acepta created_at como fecha ISO", async () => {
-    fetchSpy.mockResolvedValue(json({ payload: [] }));
+    siempre({ payload: [] });
     fetchSpy.mockResolvedValueOnce(json(pagina(130, 111, "2026-11-07T17:00:00Z")));
     expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: true, data: null });
     expect(urls()).toHaveLength(1);
@@ -268,7 +270,7 @@ describe("router-api · buscar el source_id página por página (revisión de la
   });
 
   it("si Chatwoot ignora ?before=, no da vueltas: no se puede seguir buscando", async () => {
-    fetchSpy.mockResolvedValue(json(pagina(130, 111, T + 600)));
+    siempre(pagina(130, 111, T + 600));
     expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: false, error: "respuesta_invalida" });
     expect(urls()).toHaveLength(2);
   });

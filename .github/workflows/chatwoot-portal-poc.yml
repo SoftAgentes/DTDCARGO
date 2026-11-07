@@ -66,7 +66,8 @@ jobs:
       # Chatwoot que no arrancó pasaría por bueno.
       - name: Control, sin instancia la PoC da rojo
         run: |
-          set -uo pipefail
+          # Sin -e: el rojo de vitest es lo esperado y se lee abajo (GitHub corre los pasos con bash -e).
+          set +e -uo pipefail
           salida=$(pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts --maxWorkers=1 2>&1)
           codigo=$?
           printf '%s\n' "$salida" | tail -n 12
@@ -105,9 +106,10 @@ jobs:
 
       - name: Mutante de la 0519 sin skip locked (la carrera tiene que caer)
         run: |
-          set -uo pipefail
+          # Sin -e: que psql caiga es lo esperado y se lee abajo (GitHub corre los pasos con bash -e).
+          set +e -uo pipefail
           M="$RUNNER_TEMP/sb-mutante"
-          cp -r supabase "$M"
+          cp -r supabase "$M" || { echo "FALLÓ: no se pudo copiar supabase"; exit 1; }
           antes=$(grep -c 'for no key update of c skip locked' "$M/migrations/0519_chatwoot_portal.sql")
           sed -i 's/    for no key update of c skip locked$/    for no key update of c/' "$M/migrations/0519_chatwoot_portal.sql"
           despues=$(grep -c 'for no key update of c skip locked' "$M/migrations/0519_chatwoot_portal.sql" || true)
@@ -115,8 +117,11 @@ jobs:
             echo "FALLÓ: el mutante no cambió la 0519 (antes $antes, después $despues)"; exit 1
           fi
           docker run --rm -d --name pg-mutante -e POSTGRES_PASSWORD=postgres -e POSTGRES_INITDB_ARGS=--nosync \
-            -v "$M:/sb:ro" postgres:17 -c fsync=off -c full_page_writes=off >/dev/null
-          for _ in $(seq 1 60); do docker exec pg-mutante pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
+            -v "$M:/sb:ro" postgres:17 -c fsync=off -c full_page_writes=off >/dev/null \
+            || { echo "FALLÓ: no arrancó el Postgres del mutante"; exit 1; }
+          listo=0
+          for _ in $(seq 1 60); do docker exec pg-mutante pg_isready -U postgres >/dev/null 2>&1 && { listo=1; break; }; sleep 1; done
+          [ "$listo" = 1 ] || { echo "FALLÓ: el Postgres del mutante no aceptó conexiones"; exit 1; }
           salida=$(docker exec pg-mutante psql -U postgres -v ON_ERROR_STOP=1 -f /sb/tests/0519_chatwoot_portal_carrera.test.sql 2>&1)
           codigo=$?
           docker rm -f pg-mutante >/dev/null
