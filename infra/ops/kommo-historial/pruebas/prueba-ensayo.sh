@@ -214,7 +214,21 @@ esperar() { # segundos comando...: hasta que el comando se cumpla, mirando cada 
   return 1
 }
 prop() { sudo -n systemctl show -p "$2" --value "$1" 2>/dev/null; }
-ver() { sudo -n cat "$1" 2>/dev/null; }
+# Lo que deja una corrida como root (la evidencia, en 0600, y el registro de la unidad) se copia con sudo y se lee
+# la copia: sin tuberías con pipefail, y la misma copia se muestra si el caso cae. Falla si no se pudo leer o quedó
+# vacío. (En el run 42402802348, T1 a T3 cayeron porque el registro no traía FALLÓ PARADA ni FALLÓ L0: el guion los
+# escribía en un archivo de $DIR. Ver SALIDA en ensayo-archivo.sh y ME4.)
+copia() { sudo -n cat "$1" >"$1.leido" 2>/dev/null && [ -s "$1.leido" ]; }
+# Si un caso cae: su evidencia y el final de su registro, en el log del CI. Son datos inventados: líneas HECHO
+# (conteos y huellas) y PASÓ/FALLÓ.
+mostrar_t() { # id de la corrida
+  local f
+  log "   --- corrida $1: $(cat "$TRABAJO/$1.vivo" 2>/dev/null), unidad $(cat "$TRABAJO/$1.unidad" 2>/dev/null)"
+  for f in "$TRABAJO/evidencia-$1.txt" "$TRABAJO/ensayo-$1.txt"; do
+    log "   --- $(sudo -n ls -l "$f" 2>&1 | sed "s|$TRABAJO/||")"
+    sudo -n tail -n 30 "$f" 2>&1 | sed 's/^/       /'
+  done
+}
 corrida() { # guion id stop|main [intruso]
   local g="$1" id="$2" modo="$3" u="kommo-prueba-ensayo-$$-$2"
   U_ACTUAL="$u"
@@ -246,18 +260,19 @@ falta() { MOTIVO="$1"; return 1; }
 # T1 y T2: el TERM llegó con un runner del ensayo corriendo (el choque de §10.16); la parada sale con 143 (exited,
 # no muerta por la señal) y la unidad queda en exit-code; la evidencia lo dice, y no queda nada.
 t_ok() {
-  local E="$TRABAJO/evidencia-$1.txt"
+  local E="$TRABAJO/evidencia-$1.txt.leido" R="$TRABAJO/ensayo-$1.txt.leido"
   [ "$(cat "$TRABAJO/$1.vivo" 2>/dev/null)" = "con un runner vivo" ] || falta runner || return 1
   [ "$(cat "$TRABAJO/$1.unidad" 2>/dev/null)" = "exit-code 1 143" ] || falta unidad || return 1
-  { ver "$E" | grep -qx "HECHO senal=TERM" && ver "$E" | grep -qx "HECHO ensayo_codigo=143" \
-    && grep -q "^FALLÓ PARADA — " "$TRABAJO/ensayo-$1.txt"; } || falta senal || return 1
-  { ver "$E" | grep -qx "HECHO limpieza_completa=si" && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=0" \
+  { copia "$TRABAJO/evidencia-$1.txt" && copia "$TRABAJO/ensayo-$1.txt"; } || falta lectura || return 1
+  { grep -qx "HECHO senal=TERM" "$E" && grep -qx "HECHO ensayo_codigo=143" "$E" && grep -q "^FALLÓ PARADA — " "$R"; } \
+    || falta senal || return 1
+  { grep -qx "HECHO limpieza_completa=si" "$E" && grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=0" "$E" \
     && [ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ]; } || falta limpieza || return 1
 }
 # T3: con el ajeno en la red, la limpieza no lo toca, dice que no terminó y no sale con 0. `--limpiar`, igual.
 # Cuando el ajeno se va, `--limpiar` deja todo en 0 y sale con 0.
 t3_ok() { # guion id
-  local g="$1" E="$TRABAJO/evidencia-$2.txt" res cod est rc1 rc2 sigue
+  local g="$1" E="$TRABAJO/evidencia-$2.txt.leido" R="$TRABAJO/ensayo-$2.txt.leido" res cod est rc1 rc2 sigue
   sigue="$(docker inspect -f '{{.State.Status}}' "$INTRUSO" 2>/dev/null)"
   docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' chatwoot-ensayo_aislada 2>/dev/null | grep -qw "$INTRUSO" \
     || sigue="${sigue:-ausente},fuera-de-la-red"
@@ -265,8 +280,9 @@ t3_ok() { # guion id
   [ "$sigue" = running ] || falta ajeno || return 1
   read -r res cod est <"$TRABAJO/$2.unidad"
   { [ "$res" = exit-code ] && [ "${est:-0}" != 0 ]; } || falta unidad || return 1
-  { ver "$E" | grep -qx "HECHO limpieza_completa=no" && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=1" \
-    && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2.txt"; } || falta completa || return 1
+  { copia "$TRABAJO/evidencia-$2.txt" && copia "$TRABAJO/ensayo-$2.txt"; } || falta lectura || return 1
+  { grep -qx "HECHO limpieza_completa=no" "$E" && grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=1" "$E" \
+    && grep -q "^FALLÓ L0 — " "$R"; } || falta completa || return 1
   sudo -n env EVIDENCIA="$TRABAJO/evidencia-$2-l1.txt" bash "$g" --limpiar >"$TRABAJO/ensayo-$2-l1.txt" 2>&1
   rc1=$?
   sigue="$(docker inspect -f '{{.State.Status}}' "$INTRUSO" 2>/dev/null)"
@@ -275,8 +291,8 @@ t3_ok() { # guion id
   rc2=$?
   echo "el ajeno después del ensayo: running; --limpiar con el ajeno: código $rc1 (ajeno ${sigue:-ausente}); sin el ajeno: código $rc2, quedan $(quedan)" >"$TRABAJO/$2.limpiar"
   { [ "$rc1" != 0 ] && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2-l1.txt" && [ "$sigue" = running ]; } || falta limpiar || return 1
-  { [ "$rc2" = 0 ] && [ "$(quedan)" = 0,0,0 ] && ver "$TRABAJO/evidencia-$2-l2.txt" | grep -qx "HECHO limpieza_completa=si"; } \
-    || falta limpiar_sin_ajeno || return 1
+  { [ "$rc2" = 0 ] && [ "$(quedan)" = 0,0,0 ] && copia "$TRABAJO/evidencia-$2-l2.txt" \
+    && grep -qx "HECHO limpieza_completa=si" "$TRABAJO/evidencia-$2-l2.txt.leido"; } || falta limpiar_sin_ajeno || return 1
 }
 casos_t() { # guion prefijo ids... → $TRABAJO/t-<prefijo>/<id> = si | no:<motivo>
   local g="$1" p="$2" id r
@@ -292,6 +308,8 @@ casos_t() { # guion prefijo ids... → $TRABAJO/t-<prefijo>/<id> = si | no:<moti
       T3) corrida "$g" "$p-t3" main intruso && t3_ok "$g" "$p-t3" && r=si ;;
     esac
     echo "${r:-no:$MOTIVO}" >"$TRABAJO/t-$p/$id"
+    # El guion real no tiene que caer: si cae, se muestra lo que dejó.
+    [ "$p" = real ] && [ -z "$r" ] && mostrar_t "$p-$(echo "$id" | tr 'T' 't')"
     restos_fuera
   done
 }
@@ -324,6 +342,7 @@ mutante_t() {
     ok "$id" "$que: caen $caen${pasan:+; pasa $pasan}"
   else
     mal "$id" "$que: no cayeron por su motivo:${faltan:- ninguno}; cayeron de más:${otro:- ninguno}"
+    for c in $faltan $otro; do c="${c%%(*}"; c="${c%%:*}"; mostrar_t "$id-$(echo "$c" | tr 'T' 't')"; done
   fi
 }
 if [ "$T_OK" = 1 ]; then
@@ -339,6 +358,11 @@ if [ "$T_OK" = 1 ]; then
     "trap 'parada TERM 143' TERM" ":"
   mutante_t ME2 "la limpieza no mira lo que quedó" "T3:completa" "T1" \
     '[ "$restos" = "$SIN_RESTOS" ] && [ "$carpeta" = ausente ] || completa=no' 'true'
+  # ME4: la parada escribe en el archivo del paso que se cortó (como en el run 42402802348); la limpieza, que
+  # restaura la salida por su cuenta, sigue diciendo FALLÓ L0 en T3.
+  mutante_t ME4 "la parada no restaura la salida del guion" "T1:senal" "T3" \
+    $'  exec 1>&7 2>&8 # a la salida del guion, no a la del paso que se cortó (ver SALIDA abajo)\n  mal PARADA' \
+    '  mal PARADA'
   mutante_t ME3 "para poder borrar la red, saca también al contenedor ajeno" "T3:ajeno" "T2" \
     'docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v' \
     'docker ps -aq --filter "network=chatwoot-ensayo_aislada" | xargs -r docker rm -f -v; docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v'
@@ -402,8 +426,8 @@ for m in SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot 
   grep -q -F -- "$m" "$E" && { fugas=$((fugas + 1)); log "   fuga: $m"; }
 done
 exigir F1 '[ -s "$E" ] && ! grep -qv "^HECHO " "$E" && [ "$fugas" = 0 ]' "la evidencia trae solo líneas HECHO ($(wc -l <"$E")) y ningún valor inventado de personas"
-exigir F2 'grep -q "^HECHO dump_sha=" "$E" && grep -q "^HECHO limpieza=contenedores=0,volumenes=0,redes=0" "$E" && grep -q "^HECHO limpieza_carpeta=ausente" "$E"' \
-  "la evidencia anota el dump (bytes y sha256) y la limpieza en cero"
+exigir F2 'grep -q "^HECHO dump_sha=" "$E" && grep -q "^HECHO limpieza=contenedores=0,volumenes=0,redes=0" "$E" && grep -q "^HECHO limpieza_carpeta=ausente" "$E" && grep -qx "HECHO limpieza_completa=si" "$E" && [ "$(tail -n 1 "$E")" = "HECHO ensayo_codigo=0" ]' \
+  "la evidencia anota el dump (bytes y sha256), la limpieza en cero y completa, y termina en ensayo_codigo=0"
 exigir F3 'grep -qx "HECHO marca=ok" "$E" && grep -qx "HECHO borrado_contenedor_proyecto=chatwoot-ensayo" "$E" && grep -qx "HECHO borrado_pgdata=tmpfs" "$E" && grep -qx "HECHO otras_cuentas_antes=1" "$E" && grep -qx "HECHO otras_cuentas=0" "$E" && grep -qx "HECHO otras_cuentas_filas=0" "$E" && ! grep -qx "HECHO otras_cuentas_filas_antes=0" "$E"' \
   "el borrado corrió en el Postgres del ensayo (proyecto y tmpfs) con la marca; la copia tenía la otra cuenta con filas y quedó en 0; producción la conserva (P1)"
 exigir F4 'grep -qx "HECHO correos_en_cola=0" "$E" && grep -qx "HECHO correos_enviados_sonda=0" "$E" && [ "$(grep -c "^HECHO correos_enviados=0$" "$E")" -ge 4 ]' \

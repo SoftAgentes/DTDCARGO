@@ -121,6 +121,7 @@ SIN_RESTOS="contenedores=0 volumenes=0 redes=0"
 # dejando algo. La última línea de la evidencia es `HECHO ensayo_codigo=<código>`.
 limpiar() {
   local rc=$? intento restos carpeta completa
+  exec 1>&7 2>&8 # a la salida del guion, no a la del paso que se cortó (ver SALIDA abajo)
   # Una señal durante la limpieza no la corta: se anota y se sigue. Es un trap y no un «ignorar» para que los
   # docker que se lanzan desde aquí no hereden la señal ignorada.
   trap 'evidencia "HECHO senal_durante_limpieza=si"' TERM INT HUP
@@ -180,10 +181,17 @@ limpiar() {
 # mitad de un paso, bash espera a que el paso termine: con `systemctl stop` el paso recibe la misma señal y termina
 # enseguida; con TERM solo al proceso principal, termina el paso en curso.
 parada() { # señal código
+  exec 1>&7 2>&8 # a la salida del guion, no a la del paso que se cortó (ver SALIDA abajo)
   mal PARADA "el ensayo recibió $1 y no terminó: se limpia y sale con $2"
   evidencia "HECHO senal=$1"
   exit "$2"
 }
+# SALIDA. Si la señal llega mientras corre una función con redirección (`dc … >"$DIR/aislamiento.txt"`, o el `dc run`
+# de `rr` hacia "$DIR/<paso>.txt"), bash corre el trap con esa redirección todavía puesta. Lo que dijeran la parada
+# y la limpieza (FALLÓ PARADA, FALLÓ L0, el código) iría a parar a ese archivo, que la limpieza borra con la carpeta.
+# Lo midió el run 42402802348 (T1 a T3) y se reprodujo en la PC. Por eso la salida del guion se guarda en 7 y 8, y
+# los dos traps la restauran primero.
+exec 7>&1 8>&2
 trap limpiar EXIT
 trap 'parada TERM 143' TERM
 trap 'parada INT 130' INT
