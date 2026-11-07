@@ -13,7 +13,8 @@
 --    de símbolos pendientes no las confunda con claves homónimas) que trae un borrador para poder publicarse solo (veredicto del
 --    Revisor, fuentes, consulta de Search Console, agente que redactó, …) y los
 --    motivos de retención. El CHECK de `categoria` pasa a las 6 categorías de
---    negocio (0140 lo cambió en `news_posts` y no aquí) como NOT VALID.
+--    negocio (0140 lo cambió en `news_posts` y no aquí) como NOT VALID, solo si
+--    todavía es el de la 0053.
 -- 2. `news_posts`: `publish_via` (manual | automatica), `seo_draft_id` (una sola
 --    publicación por borrador, F10) y `content_sha256`. Un CHECK NOT VALID
 --    rechaza publicar un texto con una marca `[VERIFICAR`, por cualquier vía
@@ -135,14 +136,28 @@ alter table public.seo_drafts drop constraint if exists seo_drafts_status_check;
 alter table public.seo_drafts add constraint seo_drafts_status_check
   check (status in ('draft', 'en_revision', 'retenido', 'published', 'archived'));
 
--- 0140 cambió las categorías de `news_posts` y no las de `seo_drafts`. NOT VALID:
--- no revisa las filas de hoy, sí las nuevas y las que se editen.
-alter table public.seo_drafts drop constraint if exists seo_drafts_categoria_check;
-alter table public.seo_drafts add constraint seo_drafts_categoria_check
-  check (categoria is null or categoria in (
-    'importa-sin-perder-plata', 'que-se-mueve-en-china', 'como-llega-tu-mercancia',
-    'venezuela-y-tu-bolsillo', 'historias-reales', 'novedades-dtd'
-  )) not valid;
+-- 0140 cambió las categorías de `news_posts` y no las de `seo_drafts`. Solo si el
+-- CHECK sigue siendo el de la 0053 (lista vieja) se cambia por las 6 de negocio,
+-- NOT VALID (no revisa las filas de hoy) y con una marca en su comentario para que
+-- el desarme sepa qué devolver. Si producción ya lo cambió fuera de banda, no se toca.
+do $categorias$
+begin
+  if exists (
+    select 1 from pg_catalog.pg_constraint
+     where conrelid = 'public.seo_drafts'::regclass and conname = 'seo_drafts_categoria_check'
+       and pg_catalog.pg_get_constraintdef(oid) like '%tarifas-fletes%'
+  ) then
+    alter table public.seo_drafts drop constraint seo_drafts_categoria_check;
+    alter table public.seo_drafts add constraint seo_drafts_categoria_check
+      check (categoria is null or categoria in (
+        'importa-sin-perder-plata', 'que-se-mueve-en-china', 'como-llega-tu-mercancia',
+        'venezuela-y-tu-bolsillo', 'historias-reales', 'novedades-dtd'
+      )) not valid;
+    comment on constraint seo_drafts_categoria_check on public.seo_drafts is
+      'SDD-0611 (0518): reemplazó el de la 0053 con la lista vieja de 10 categorías';
+  end if;
+end
+$categorias$;
 
 alter table public.seo_drafts
   add column reviewer_verdict    jsonb,

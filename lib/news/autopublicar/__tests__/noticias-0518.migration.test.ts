@@ -253,6 +253,64 @@ describe("SDD-0611 · 0518 publicación automática de noticias (PGlite)", () =>
     }
   }, SLOW);
 
+  // ── DESARME: supabase/desarmes/0518_desarme.sql ──────────────────────────
+  const DESARME = read(resolve(ROOT, "supabase/desarmes/0518_desarme.sql"));
+  /** El preludio del contrato: roles, auth, tenants y las migraciones de noticias, sin la 0518. */
+  const PRELUDIO = (() => {
+    const texto = inline(CONTRACT, { [M0518]: "-- (0518 fuera)" });
+    return texto.slice(0, texto.indexOf("-- (0518 fuera)"));
+  })();
+  /** Firma del catálogo de public: columnas, CHECK, índices, funciones, disparadores, tablas, policies y permisos. */
+  const FIRMA = `select string_agg(x, E'\\n' order by x) as firma from (
+      select 'col ' || table_name || '.' || column_name || ' ' || data_type || ' ' || coalesce(column_default, '') || ' ' || is_nullable as x
+        from information_schema.columns where table_schema = 'public'
+      union all select 'con ' || conrelid::regclass || '.' || conname || ' ' || replace(pg_get_constraintdef(oid), ' NOT VALID', '')
+        from pg_constraint where connamespace = 'public'::regnamespace
+      union all select 'idx ' || indexname || ' ' || indexdef from pg_indexes where schemaname = 'public'
+      union all select 'fn ' || p.oid::regprocedure::text from pg_proc p where pronamespace = 'public'::regnamespace
+      union all select 'tg ' || tgrelid::regclass || '.' || tgname from pg_trigger where not tgisinternal
+      union all select 'tb ' || relname || ' ' || relkind::text || ' ' || coalesce(relacl::text, '') from pg_class where relnamespace = 'public'::regnamespace
+      union all select 'pol ' || tablename || '.' || policyname || ' ' || coalesce(qual, '') || ' ' || coalesce(with_check, '') from pg_policies where schemaname = 'public'
+    ) s;`;
+
+  async function firma(sql: string): Promise<{ firma?: string; error?: string }> {
+    const db = await pgliteLimpio();
+    try {
+      const res = await db.exec(`${sql}\n${FIRMA}\nrollback;`);
+      return { firma: String((res.at(-2)?.rows[0] as { firma?: string } | undefined)?.firma ?? "") };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      await db.close();
+    }
+  }
+
+  it("DESARME: después de la 0518 y su desarme, el catálogo es el de antes de la 0518", async () => {
+    const antes = await firma(PRELUDIO);
+    const despues = await firma(`${PRELUDIO}\n${FILE_0518}\n${DESARME}`);
+    expect(antes.error).toBeUndefined();
+    expect(despues.error).toBeUndefined();
+    expect(antes.firma!.length).toBeGreaterThan(1000);
+    expect(despues.firma).toBe(antes.firma);
+  }, SLOW);
+
+  it("DESARME: control, la firma sí distingue la 0518 aplicada", async () => {
+    const antes = await firma(PRELUDIO);
+    const con = await firma(`${PRELUDIO}\n${FILE_0518}`);
+    expect(con.firma).not.toBe(antes.firma);
+  }, SLOW);
+
+  const USADA: Array<[string, string, string]> = [
+    ["interruptor encendido", "insert into public.news_autopublish_settings (tenant_id, enabled) values ('10000000-0000-4000-8000-000000000001', true);", "el interruptor está encendido"],
+    ["fila de auditoría", "insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id) values ('10000000-0000-4000-8000-000000000001', gen_random_uuid(), 'manual', 'publicada', '{}', gen_random_uuid());", "se perderían"],
+  ];
+  for (const [nombre, uso, mensaje] of USADA) {
+    it(`DESARME: aborta sin cambiar nada si la 0518 ya se usó (${nombre})`, async () => {
+      const r = await firma(`${PRELUDIO}\n${FILE_0518}\n${uso}\n${DESARME}`);
+      expect(r.error).toContain(mensaje);
+    }, SLOW);
+  }
+
   it("ESPERA: la 0518 está declarada pendiente y no está sellada", () => {
     const baseline = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
       pendingBelowCutoff: Record<string, string>;
