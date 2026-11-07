@@ -145,12 +145,49 @@
   - ALFRED (Hermes) tomó las dos tareas.
 - **Volver atrás:** copiar el respaldo sobre `paperclip.env` y reiniciar `paperclip.service`.
 
+## ALFRED pasa a Claude Code (2026-11-07, 04:12–04:40 UTC)
+
+Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrome, por el túnel.
+
+- **Conexión (cambio respecto del plan, MEDIDO):**
+  - El inicio de sesión que ofrece Paperclip («ai-local-logins») deja la sesión en una carpeta
+    de `agentes`. En cada corrida, Paperclip lee de ahí solo el `accessToken`, sin el
+    `refreshToken`, y borra esa carpeta cuando vence el intento (`local-ai-login.js`,
+    `local-ai-credentials.js`).
+  - Además, `dtd-agente-run` fija `CLAUDE_CONFIG_DIR` a la casa de `agentes-alfred`.
+  - **Se dejó sin conexión administrada** («Existing authentication — not managed by
+    Connections»). Sam inició sesión directo como `agentes-alfred`
+    (`claude auth login` con `HOME` y `CLAUDE_CONFIG_DIR` de ese usuario).
+  - Resultado: `loggedIn: true`, `authMethod: claude.ai`, `subscriptionType: max`.
+    `.credentials.json` es 600 de `agentes-alfred`; `agentes` y `agentes-run` no pueden
+    leerlo.
+- **Harness guardado** (leído en la base):
+  - `claude_local`, `engine: cli`, `command: /usr/local/bin/dtd-claude`;
+  - `cwd: /srv/oficina/trabajo/ceo`, `DTD_PERFIL=ceo`;
+  - `claude-fable-5-1` con `effort: high`;
+  - 80 vueltas, 1800 s, 20 s de gracia;
+  - heartbeat apagado, wake on demand encendido, 1 corrida a la vez.
+- **Pruebas:**
+  - El «Run test» de Paperclip pasó. Revisa carpeta, comando y que no haya
+    `ANTHROPIC_API_KEY`; se salta el «hola» porque el comando no es `claude`.
+  - Una corrida directa por `dtd-claude` como `agentes` terminó con `end_turn`.
+- **Instructions:** `AGENTS.md` reemplazado por el bloque de `ceo/AGENTS-claude.md` (2409
+  bytes, la lista del ciclo con 5 puntos). El texto anterior quedó en el scratchpad de la
+  sesión y en Revisions de Paperclip.
+- **Skills:** solo `paperclip` y `paperclip-converting-plans-to-tasks`.
+- **Permisos:** `standard`; asignar sí, crear agentes no, crear skills no.
+- **NO VERIFICADO:** una corrida real de ALFRED con Claude dentro de Paperclip. La primera será
+  la que lo despierte, o el latido de las 11:00 UTC.
+- **Volver atrás:** pegar la fila de `alfred-agente-antes.json` (Hermes) en Harness y
+  restaurar el `AGENTS.md` anterior desde Revisions.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.
 2. **Instalación:** hecha y comprobada con una corrida real de ALFRED.
-3. **Sam:** conectar el plan de Claude en Paperclip, iniciar la sesión de Codex como
-   `agentes-auxiliar`, cambiar ALFRED en Harness, crear al Auxiliar y elegir el modelo.
+3. **ALFRED en Claude Code:** hecho el 2026-11-07 (sección anterior). Falta de Sam: iniciar la
+   sesión de Codex como `agentes-auxiliar` y crear al Auxiliar (o pedirme que lo cree en
+   pantalla).
 4. **Rutinas de ALFRED:** arregladas el 2026-11-07 (sección anterior).
 5. **Probar el ciclo por ramas** (paso 7 de la spec) y la pregunta de control.
 6. **Temporales con salida cruda de la base:** borrados el 2026-11-06.
