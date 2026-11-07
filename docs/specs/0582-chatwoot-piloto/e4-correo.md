@@ -296,7 +296,7 @@ Se corrigió así:
   - M8: con `constantize`, la clase que falta da `NameError`.
 - M4 sigue cayendo por su motivo.
 
-Esta anotación va en un commit solo de documentos, que no vuelve a disparar el flujo.
+Esta anotación va en commits solo de documentos. En una PR, el filtro de rutas mira todo el diff de la PR y no el último commit, así que el flujo vuelve a correr sobre ellos, con el mismo código. El push nuevo cancela la corrida anterior.
 
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 
