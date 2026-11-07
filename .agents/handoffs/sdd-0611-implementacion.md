@@ -101,17 +101,19 @@ Migración sin aplicar, con su paquete para el Director General. PR en borrador.
 
 ## Paquete para el Director General (aplicar la 0518)
 
-Generado con `infra/ops/migraciones/preparar.mjs` desde `aada8a4ce7111074a27664c9c4651070e29b8da6`. Está en la carpeta de notas del Subdirector, fuera del repo:
-- `paquete-0518-aada8a4ce-dtd-cargo` (producción);
-- `paquete-0518-aada8a4ce-dtd-cargo-staging` (prueba).
+Generado con `infra/ops/migraciones/preparar.mjs` desde `ce9b3e3636f98d5f5e0606bc339d884f2bf7c9a2` y rearmado después de la revisión del Director General. Está en la carpeta de notas del Subdirector, fuera del repo:
+- `paquete-0518-ce9b3e363-dtd-cargo` (producción);
+- `paquete-0518-ce9b3e363-dtd-cargo-staging` (prueba; lleva `ENSAYO-PRUEBA.md`, preparado y **no corrido**).
+
+Los de `aada8a4ce` quedan marcados `OBSOLETO-`.
 
 | Pieza | Producción | Prueba |
 |---|---|---|
-| blob de la 0518 | `53ead8e1849e`, md5 `04da30d0272d1bd6e1393e792658b54a`, 44.342 bytes | igual |
-| `previa.sql` | md5 `7f543b584a0abfb4033b50106939b318` | `7f543b584a0abfb4033b50106939b318` |
-| `aplicar.sql` | md5 `5fba4d5348db39ee902c50c3c2b95940` | `f2070efa237362e52062d53fffefa923` (otro `created_by`) |
-| `verificar.sql` | md5 `ffe913f0805695a38fd245a6df4e21d2` | `ffe913f0805695a38fd245a6df4e21d2` |
-| `desarme.sql` (`supabase/desarmes/0518_desarme.sql`) | md5 `b81612eb10048d2a9bc2529acb0520ef`, 5.825 bytes | igual |
+| blob de la 0518 | `30c81cde72af`, md5 `c692dfa9c4ad31e3352721400c3e3ceb`, 44.672 bytes | igual |
+| `previa.sql` | md5 `818aa20945f964530798d4655b80f3b0` | igual |
+| `aplicar.sql` | md5 `a74d11585b413d2987b2c1a7d60a9444` | `d040556396b7ffb3302cc2d72100ee67` (otro `created_by`) |
+| `verificar.sql` | md5 `580bc00ff40811810513b510f763e796` | igual |
+| `desarme.sql` | md5 `b81612eb10048d2a9bc2529acb0520ef`, 5.825 bytes (sin cambios) | igual |
 
 Ensayo de los dos paquetes en PGlite, con un ledger simulado (no es producción ni prueba):
 - PASÓ: previa, luego aplicar, luego verificar. Quedó una fila en el ledger y los 13 cuerpos son iguales al archivo.
