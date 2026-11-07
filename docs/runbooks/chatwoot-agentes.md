@@ -94,6 +94,15 @@ Un id vacío apaga esa parte de la matriz.
    - comprobar, ya con Studio publicado: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
 
    Sin el script, la salida espera 4 s y sigue al login: la sesión del chat queda abierta en ese navegador hasta la próxima entrada a Studio, como antes del 2.7.
+
+   **Guía de Studio dentro del panel** (SDD-0589, paso 9.4). **Sin cargar:** pegarla es una puerta con OK de Sam. `DASHBOARD_SCRIPTS` es un solo campo, así que lleva los dos archivos, en este orden:
+   - el contenido de `infra/chatwoot/panel/dashboard-scripts.html`, como hasta ahora;
+   - debajo, el de `infra/chatwoot/panel/guia-panel.html`, comentario incluido.
+
+   El segundo solo mide dónde están el composer, la nota privada, las plantillas, el buscador, el filtro, el asignar y la pestaña «Ficha DTD», y solo cuando Studio se lo pide con una guía abierta. No lee texto ni datos. Antes de pegar, guardar el valor vivo del campo con su sha256, igual que el 2026-11-03.
+   - **Comprobar,** ya con Studio publicado: abrir Studio › Bandeja con `?guia=bandeja` y una conversación de la bandeja de prueba. La tarjeta «Contestar un WhatsApp» tiene que señalar la caja de respuesta del chat, no todo el marco. Salir de Studio tiene que seguir pidiendo login en el chat, igual que con el script de 2.7 solo.
+   - **Marcha atrás:** volver a pegar solo `dashboard-scripts.html`. Las tarjetas de Chatwoot pasan a señalar el marco de la Bandeja y el cierre de sesión no cambia.
+   - **Sin el script,** la guía de la Bandeja funciona igual, con todas las tarjetas sobre el marco.
 5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik que responde 403 a `POST /auth/password` en `chat.dtdcargo.com`. Está escrita como etiquetas de `rails` en `infra/chatwoot/compose.yml` (routers `-clave`, middleware `-nadie`), y `infra/chatwoot/pruebas/prueba-regla-clave.sh` la ensaya contra Rails real, con control de correo:
    - en el VPS se agregaron a mano al compose vivo, con respaldo y sin copiar el del repo, el 2026-11-04: 80 s de corte medidos, evidencia en `/srv/ops/evidencias/chatwoot-rails-20261104T082839Z`;
    - un admin que olvide su clave la cambia desde el superadmin;
