@@ -569,7 +569,7 @@ exigir E9a 'cero "$(h "$F" huerfanos_mensaje)" && cero "$(h "$F" huerfanos_conve
 exigir E9b 'cola_igual "$(h "$F" tel_repetidos)" && cola_igual "$(h "$F" correo_repetidos)"' \
   "E-9: los teléfonos y correos repetidos no aumentan (tel $(h "$F" tel_repetidos), correo $(h "$F" correo_repetidos)); $(h "$F" contactos_reusados_en_archivo) contactos existentes reusados"
 exigir E10d '[ -n "$(h "$F" busqueda_consultas)" ] && todas si "$(h "$F" admin_encuentra)"' \
-  "E-10d: como administrador, la búsqueda de conversaciones encuentra la del Archivo más vieja ($(h "$F" admin_encuentra))"
+  "E-10d: como administrador, la búsqueda de conversaciones encuentra la del Archivo más vieja ($(h "$F" admin_encuentra)), en la consulta entera (resultados: $(h "$F" admin_resultados))"
 exigir E10e 'todas no "$(h "$F" agente_sin_ser_miembro)" && todas si "$(h "$F" agente_miembro)"' \
   "E-10e: un agente no la encuentra sin ser miembro ($(h "$F" agente_sin_ser_miembro)) y sí siéndolo ($(h "$F" agente_miembro))"
 exigir E10f 'solo_invalidacion "$(h "$F" miembros_trabajos)" && [ "$(h "$F" miembros_notificaciones)" = 0 ] && cero "$(h "$F" miembros_asignadas)"' \
@@ -626,7 +626,7 @@ RD="$DIR/real-despues.txt"
 case "$(h "$RD" usuario_real_rol)" in
   agente)
     exigir E10g '[ "$(h "$RA" usuario_real_fase)" = ok ] && [ "$(h "$RD" usuario_real_fase)" = ok ] && [ "$(h "$RA" usuario_real_miembro)" = no ] && todas no "$(h "$RA" usuario_real_encuentra)" && [ "$(h "$RD" usuario_real_miembro)" = si ] && todas si "$(h "$RD" usuario_real_encuentra)"' \
-      "E-10e con un usuario real (agente): no la encuentra antes de ser miembro ($(h "$RA" usuario_real_encuentra)) y sí después ($(h "$RD" usuario_real_encuentra))" ;;
+      "E-10e con un usuario real (agente): no la encuentra antes de ser miembro ($(h "$RA" usuario_real_encuentra)) y sí después ($(h "$RD" usuario_real_encuentra); resultados: $(h "$RD" usuario_real_resultados))" ;;
   administrador)
     exigir E10g '[ "$(h "$RA" usuario_real_fase)" = ok ] && [ "$(h "$RD" usuario_real_fase)" = ok ] && [ "$(h "$RD" usuario_real_miembro)" = si ] && todas si "$(h "$RA" usuario_real_encuentra)" && todas si "$(h "$RD" usuario_real_encuentra)"' \
       "E-10e con un usuario real (administrador; la cuenta tiene $(h "$RD" agentes_reales) agentes): la encuentra antes y después ($(h "$RD" usuario_real_encuentra)) y quedó como miembro" ;;
@@ -638,8 +638,10 @@ esac
 BA="$DIR/busqueda-90.txt"
 BB="$DIR/busqueda-amplia.txt"
 vieja_fuera_de_90() { [ "$(h "$BA" vieja_dias)" -le 90 ] 2>/dev/null || [ "$(h "$BA" vieja_encontrada)" = no ]; }
-exigir BQ1 '[ "$(h "$BA" busqueda)" = ok ] && [ "$(h "$BB" busqueda)" = ok ] && [ "$(h "$BA" ventana_dias)" = 90 ] && [ "$(h "$BB" ventana_dias)" = "$BUSQUEDA_DIAS" ] && vieja_fuera_de_90 && [ "$(h "$BB" vieja_encontrada)" = si ]' \
-  "búsqueda de mensajes: el mensaje con texto más viejo del Archivo (de hace $(h "$BB" vieja_dias) días) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada)"
+# Las dos ventanas buscan el mismo mensaje: el primero, del más viejo al más nuevo, con una palabra apta (sonda).
+mismo_mensaje() { [ -n "$(h "$BB" vieja_posicion)" ] && [ "$(h "$BA" vieja_posicion)" = "$(h "$BB" vieja_posicion)" ] && [ "$(h "$BA" palabra_coincidencias_cuenta)" = "$(h "$BB" palabra_coincidencias_cuenta)" ]; }
+exigir BQ1 '[ "$(h "$BA" busqueda)" = ok ] && [ "$(h "$BB" busqueda)" = ok ] && [ "$(h "$BA" ventana_dias)" = 90 ] && [ "$(h "$BB" ventana_dias)" = "$BUSQUEDA_DIAS" ] && mismo_mensaje && vieja_fuera_de_90 && [ "$(h "$BB" vieja_encontrada)" = si ]' \
+  "búsqueda de mensajes: el mensaje con texto más viejo del Archivo que tiene una palabra apta (el $(h "$BB" vieja_posicion)º, de hace $(h "$BB" vieja_dias) días; $(h "$BB" vieja_revisados) revisados si no hubo) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada) ($(h "$BB" palabra_resultados) resultados)"
 # BQ2, puerta del Director General: con la ventana ampliada, la búsqueda sin coincidencias, que recorre toda la
 # ventana, no puede pasar de 1.000 ms. Si pasa, se para y se le avisa antes de tocar el VPS.
 exigir BQ2 '[ "$(h "$BB" sin_coincidencias_ms)" -le 1000 ] 2>/dev/null' \
