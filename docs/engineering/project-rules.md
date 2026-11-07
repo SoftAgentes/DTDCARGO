@@ -101,6 +101,8 @@ node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres 
 node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (el script cuenta solo)
 node scripts/check-edge-functions.mjs  # deno check sobre supabase/functions (tsc NO las mira)
 ```
+**En el CI**, los contratos de SQL (`supabase/tests/*.test.sql`) los corre el job «Contratos SQL» (`.github/workflows/sql-tests.yml`) en cada PR que toque `supabase/migrations/**`, `supabase/tests/**` o su runner. Ahí un SKIP da rojo (`scripts/ci-sql-tests.sh`), y un paso de control comprueba antes que un contrato roto también da rojo. Desde el 2026-11-07; antes solo corrían en `pnpm verify`.
+
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
 
 ### ⚠️ Las Edge Functions viven FUERA de `tsc` — las chequea Deno
