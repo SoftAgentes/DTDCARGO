@@ -15,15 +15,16 @@
  *          devuelve al listar.
  *   PoC-2  se puede buscar un contacto por su identifier; el mismo identifier dos veces da 422.
  *   PoC-3  el listado de mensajes da su tipo, si es privado, su source_id y sus adjuntos.
- *   PoC-5  la API acepta message_type incoming en una bandeja API, con el contacto como remitente, y el webhook
- *          de cuenta lo entrega como incoming.
+ *   PoC-5  la API acepta message_type incoming en una bandeja API, con el contacto como remitente, y la carga del
+ *          webhook de cuenta lo lleva como incoming con su source_id. La entrega por red a un host sin IP pública
+ *          la bloquea Chatwoot 4.19.1 (protección SSRF), así que en el arnés se mide la carga, no la entrega.
  *   Ida    portal.ts de punta a punta: el primer mensaje crea contacto, conversación y mensaje, y un reintento
  *          incierto no duplica nada, aunque el equipo haya escrito más de una página de mensajes después
  *          (hallazgo de la revisión independiente de la #424).
  *
  * Datos inventados: «SINT-…».
  */
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it, vi } from "vitest";
 
 const flags = vi.hoisted(() => ({ chatwoot_portal: true }));
@@ -47,7 +48,8 @@ const ORIGEN = process.env.CHATWOOT_POC_ORIGIN ?? "";
 const CUENTA = Number(process.env.CHATWOOT_POC_CUENTA ?? "0");
 const BANDEJA = Number(process.env.CHATWOOT_POC_BANDEJA ?? "0");
 const TOKEN = process.env.CHATWOOT_POC_TOKEN ?? "";
-const WEBHOOKS = process.env.CHATWOOT_POC_WEBHOOKS ?? "";
+const STACK = process.env.CHATWOOT_POC_STACK ?? "";
+const PROYECTO = process.env.CHATWOOT_POC_PROYECTO ?? "";
 const CFG = { origin: ORIGEN, token: TOKEN, accountId: CUENTA };
 const LARGO = 60_000;
 
@@ -114,11 +116,12 @@ async function escribirMasDeUnaPagina(conversacionId: number, n = 25): Promise<v
 
 describe.runIf(process.env.POC_REQUERIDA === "1")("la PoC es obligatoria en su workflow (POC_REQUERIDA=1)", () => {
   it("encuentra la instancia efímera: sin ella, rojo y no omitido", () => {
-    expect({ origen: Boolean(ORIGEN), token: Boolean(TOKEN), cuenta: CUENTA > 0, bandeja: BANDEJA > 0 }).toEqual({
+    expect({ origen: Boolean(ORIGEN), token: Boolean(TOKEN), cuenta: CUENTA > 0, bandeja: BANDEJA > 0, stack: Boolean(STACK && PROYECTO) }).toEqual({
       origen: true,
       token: true,
       cuenta: true,
       bandeja: true,
+      stack: true,
     });
   });
 });
@@ -228,25 +231,27 @@ describe.skipIf(!HAY_INSTANCIA)("PoC de la ida contra Chatwoot 4.19.1 efímero (
     expect(entrante?.attachments ?? []).toEqual([]);
   }, LARGO);
 
-  it("PoC-5b: el webhook de cuenta entrega el mensaje como incoming, con su source_id", async () => {
-    expect(WEBHOOKS, "la prueba pasa la ruta del receptor").not.toBe("");
-    type Entrega = { cuerpo?: { event?: string; id?: number; message_type?: unknown; source_id?: unknown } | null };
-    let entrega: Entrega | undefined;
-    const limite = Date.now() + 45_000;
-    while (!entrega && Date.now() < limite) {
-      let lineas: Entrega[] = [];
-      try {
-        lineas = readFileSync(WEBHOOKS, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Entrega);
-      } catch {
-        lineas = [];
-      }
-      entrega = lineas.find((e) => e.cuerpo?.event === "message_created" && e.cuerpo.id === mensaje);
-      if (!entrega) await new Promise((r) => setTimeout(r, 1000));
-    }
-    expect(entrega, "Sidekiq entregó el webhook de message_created al receptor").toBeDefined();
-    expect(esEntrante(entrega?.cuerpo?.message_type), JSON.stringify(entrega?.cuerpo?.message_type)).toBe(true);
-    expect(entrega?.cuerpo?.source_id).toBe(sourceId);
-  }, LARGO);
+  it("PoC-5b: la carga del webhook de cuenta lleva el mensaje como incoming, con su source_id y el contacto", () => {
+    // La entrega por red a un receptor sin IP pública la bloquea el propio Chatwoot (ver carga-webhook-poc.rb): se
+    // mide la carga que arma para ese mensaje, la misma que entrega el webhook de cuenta de Studio en producción.
+    expect(STACK, "la prueba pasa la carpeta y el proyecto del stack").not.toBe("");
+    const salida = execFileSync(
+      "docker",
+      [
+        "compose", "-p", PROYECTO, "-f", "compose.yml", "-f", "compose.override.yml", "-f", "compose.portal-poc.yml",
+        "run", "--rm", "-T", "-e", `MENSAJE=${mensaje}`, "prepare",
+        "bundle", "exec", "rails", "runner", "/tmp/poc/carga-webhook-poc.rb",
+      ],
+      { cwd: STACK, encoding: "utf8", timeout: 170_000, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    const linea = salida.split(/\r?\n/).find((l) => l.startsWith("CARGA "));
+    expect(linea, "la sonda imprime la carga del webhook").toBeDefined();
+    const carga = JSON.parse((linea ?? "CARGA {}").slice(6)) as { id?: number; message_type?: unknown; source_id?: unknown; sender_type?: unknown };
+    expect(carga.id).toBe(mensaje);
+    expect(esEntrante(carga.message_type), JSON.stringify(carga.message_type)).toBe(true);
+    expect(carga.source_id).toBe(sourceId);
+    expect(String(carga.sender_type ?? "").toLowerCase()).toBe("contact");
+  }, 180_000);
 
   it("revisión de la #424: con más de una página de mensajes después, la primera página ya no trae el mensaje", async () => {
     const desde = new Date(Date.now() - 10 * 60_000);

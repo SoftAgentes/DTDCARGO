@@ -9,7 +9,9 @@
 #      token, bandeja API «Conversaciones del portal» y webhook de cuenta al receptor de la red interna.
 #   2. Levanta Rails (en 127.0.0.1:3000 del runner), Sidekiq y el receptor.
 #   3. Corre lib/studio/chatwoot/__tests__/portal.poc.test.ts con el cliente REAL de Studio (router-api.ts y
-#      portal.ts) contra esa instancia. Cada PoC es una prueba con su PASÓ o FALLÓ.
+#      portal.ts) contra esa instancia. Cada PoC es una prueba con su PASÓ o FALLÓ. La PoC-5b corre
+#      carga-webhook-poc.rb en la misma instancia: Chatwoot no entrega webhooks a un host sin IP pública, así que el
+#      receptor solo sirve para medir ese rechazo (MEDIDA al final).
 #
 # Uso:  bash infra/chatwoot/pruebas/portal/prueba-portal-poc.sh [--conservar]
 # Sale con el código de vitest; 1 si la instancia no arrancó.
@@ -56,7 +58,7 @@ cp "$CW/compose.yml" "$D/"
 cp -r "$CW/rails" "$CW/marca" "$CW/correo" "$D/"
 cp "$CW/pruebas/compose.local.yml" "$D/compose.override.yml"
 cp "$AQUI/compose.portal-poc.yml" "$D/"
-cp "$AQUI/sonda-portal-poc.rb" "$AQUI/receptor-webhook.mjs" "$D/poc/"
+cp "$AQUI/sonda-portal-poc.rb" "$AQUI/carga-webhook-poc.rb" "$AQUI/receptor-webhook.mjs" "$D/poc/"
 chmod 0777 "$D/estado"
 cat >"$D/.env" <<EOF
 CHATWOOT_HOST=chat.prueba.test
@@ -107,9 +109,15 @@ CHATWOOT_POC_ORIGIN=http://127.0.0.1:3000 \
 CHATWOOT_POC_CUENTA="$CUENTA" \
 CHATWOOT_POC_BANDEJA="$BANDEJA" \
 CHATWOOT_POC_TOKEN="$TOKEN" \
-CHATWOOT_POC_WEBHOOKS="$D/estado/webhooks.ndjson" \
+CHATWOOT_POC_STACK="$D" \
+CHATWOOT_POC_PROYECTO="$P" \
   pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts --reporter=verbose --maxWorkers=1
 CODIGO=$?
+# MEDIDA de la PoC-5: Chatwoot 4.19.1 no entrega un webhook a un host sin IP pública (el receptor de la red interna).
+BLOQUEOS="$(dc logs --no-color sidekiq 2>/dev/null | grep -c 'has no public ip addresses')"
+ENTREGAS=0
+[ -f "$D/estado/webhooks.ndjson" ] && ENTREGAS="$(grep -c . "$D/estado/webhooks.ndjson")"
+echo "MEDIDA PoC-5 — entregas al receptor de la red interna: $ENTREGAS; rechazos «has no public ip addresses» en Sidekiq: $BLOQUEOS"
 if [ "$CODIGO" != 0 ]; then
   echo "== registros de Sidekiq (redactados por zz_dtd_redaccion_logs.rb)"
   dc logs --no-color --tail 60 sidekiq 2>/dev/null | sed 's/^/   /'

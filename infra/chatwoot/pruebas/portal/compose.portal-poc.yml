@@ -4,7 +4,8 @@
 # Sobre el compose real de infra/chatwoot y su overlay local (Mailpit, volúmenes nombrados):
 #   · `rails` publica el puerto 3000 solo en 127.0.0.1 del runner: la prueba llama a la API de cuenta como lo
 #     haría el servidor de Studio;
-#   · `receptor` recibe el webhook de cuenta en la red `interna` (sin salida a internet), donde vive Sidekiq;
+#   · `receptor` es el destino del webhook de cuenta en la red `interna` (sin salida a internet). Chatwoot 4.19.1
+#     no le entrega nada porque no tiene IP pública (protección SSRF): sirve para medir ese rechazo;
 #   · `prepare` monta la sonda y la carpeta de estado;
 #   · Postgres y Redis van fijados por digest, los mismos que la prueba del cargador de E5
 #     (infra/ops/kommo-historial/pruebas/compose.cargador.yml), que son los que corren en producción.
