@@ -15,13 +15,20 @@
 - Qué hace Sam y cuándo.
 - Comprobaciones previas: issues del día, corridas vivas, próximos disparos, latidos, huellas, la
   base en solo lectura y el estado del puente.
-- Respaldo en frío con `SHA256SUMS`.
-- `paperclipai update --version 2026.1106.0`, primero con `--dry-run`.
-- Migraciones: de 304 a 373.
+- Respaldo en frío con el servicio detenido, `umask 077` y `SHA256SUMS` de la base, `cli` y la
+  configuración.
+- `paperclipai update --version 2026.1106.0 --no-backup` con `umask 022` (#17208), sin encender el
+  servicio entre la copia y la actualización. Antes, un `--dry-run` con el servicio encendido.
+- Migraciones: de 304 a 373, y el `engine` de ALFRED y del Auxiliar sin cambios.
 - `unpricedUsagePolicy = allow` en las 8 políticas.
-- Pruebas 5.1 a 5.4 y 5.6.
-- Vuelta atrás en 10 pasos.
+- Pruebas 5.1 a 5.4 y 5.6, y criterios de parada (§7.1).
+- Vuelta atrás en 8 pasos: detener, comprobar, apartar, restaurar con la 1012 activa y recién
+  entonces arrancar; las migraciones vuelven a 304.
 - La regla de «Upgrade runner».
+
+**Alineación con la #409 (2026-11-07, pedida por el Subdirector).** El primer commit (`b40c9c4fa`)
+es anterior a la revisión del DG de la #409. Este segundo commit sigue el paso 3 de la #409 en
+`fb3504059`.
 
 ## Hallazgos al escribirlo [CÓDIGO 1106, sin medir en el VPS]
 
@@ -32,8 +39,12 @@
    - Eso corrige la §3 del documento de la PR #409, que decía que vuelve solo.
    - El guion reinicia a mano y valida la salud.
 2. **El respaldo previo de `update` necesita la base viva.** Con el servicio detenido, el comando
-   se niega (`update.ts:51-63`). Por eso el guion vuelve a encender el servicio después del
-   respaldo en frío.
+   se niega (`update.ts:51-63`).
+   - La primera versión volvía a encender el servicio después del respaldo en frío.
+   - Tras la revisión del DG se usa `--no-backup` con el servicio detenido, y la copia en frío es
+     el respaldo. Así no queda un hueco de escrituras que se perderían al volver atrás.
+6. **`update` falla con `umask 0002`** (#17208, abierto y confirmado en la 1106). Por eso corre con
+   `umask 022`.
 3. **Sin terminal, el servidor aplica solo las migraciones pendientes** (`server/src/index.ts:275-278`),
    y `paperclip.env` no define `PAPERCLIP_MIGRATION_PROMPT`.
 4. **En la 1106, un campo omitido en el upsert de una política conserva su valor**
