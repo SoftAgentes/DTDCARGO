@@ -62,49 +62,65 @@ Las líneas son de `main` `7e75f7708`, medidas antes de editar.
 
 ## Rojos previos
 
-PENDIENTE: se corren con el turno de máquina. Las pruebas se escribieron antes de correrlas. El rojo
-se toma con los archivos de producto en su versión de `main`
-(`git checkout origin/main -- <archivos de producto>`) y después se restauran desde HEAD.
+Corrida del turno de máquina del 2026-11-07, de 19:29:51Z a 19:44:48Z, sobre `5f867f8f7`. Las
+pruebas se escribieron antes de correrlas. El rojo se tomó con los seis archivos de producto en su
+versión de `main` `7e75f7708` (`git checkout origin/main -- …`), restaurados desde HEAD después.
+
+**4 archivos en rojo, 11 de 68 pruebas fallidas:**
+
+| Prueba | Rojo antes del cambio |
+|---|---|
+| `CommercialCard.test.tsx` | Con el resumen oculto, la tarjeta se pintaba (1). El control ya pasaba |
+| `direccion/__tests__/queries.test.ts` | El smoke traía `{ pipeline: 1500, leadsActivos: 1 }` y leía `kommo_leads` (1). `resumenComercialKommo` no existía (2): es un rojo por función nueva, no por comportamiento |
+| `dashboard-types.test.ts` | `newLeads` sin `oculto`, en el editor, en la config guardada, en el default y con fuente «leads» accesible (6) |
+| `CrmEmbudosSlot.test.tsx` | El aviso decía «los leads siguen en las otras pestañas del CRM» (1) |
 
 ## VALIDACIÓN
 
-PENDIENTE: con el turno. Plan:
-
-- Las cuatro pruebas de S0b, rojas contra `main` y verdes con el cambio.
-- Un mutante por pieza:
-  - la tarjeta sin el `return null`;
-  - el resumen con `oculto: false`;
-  - `newLeads` sin `oculto`;
-  - la validación sin filtrar lo oculto;
-  - el texto viejo de Embudos.
-- Vecinas: `lib/studio/dashboard`, `lib/studio/direccion`, `app/studio/(app)/direccion`,
-  `app/studio/(app)/dashboard`, `app/studio/(app)/crm`, `fase-c-rename` e `invoice-read-boundary`.
-- `tsc`, ESLint sobre lo tocado, `check-numbering`, `build-docs-index --check`, `git diff --check`
-  y `/ui-check`.
-
-Ya corridos sin turno, porque no cargan la máquina:
-
 | Comprobación | Resultado |
 |---|---|
-| `node scripts/build-docs-index.mjs --check` | PASÓ: 596 specs |
-| `node scripts/check-numbering.mjs` | PASÓ |
-| `git diff --check` | PASÓ |
+| Las 4 pruebas de S0b (verde, `5f867f8f7`) | PASÓ: 68 de 68 |
+| M1: la tarjeta sin el `return null` | PASÓ: muere (1 rojo) |
+| M2: el resumen de Dirección con `oculto: false` | PASÓ: muere (1 rojo) |
+| M3: `newLeads` sin `oculto` | PASÓ: muere (6 rojos) |
+| M4: la validación no descarta lo oculto | PASÓ: muere (3 rojos) |
+| M5: el catálogo accesible no descarta lo oculto | PASÓ: muere (3 rojos) |
+| M6: Embudos vuelve a remitir a las otras pestañas | PASÓ: muere (1 rojo) |
+| Vecinas, antes del merge: dashboard, direccion, crm, `fase-c-rename` e `invoice-read-boundary` | FALLÓ y se corrigió: 1 de 261. `crm-rename.test.ts` recorre los `.tsx` de `crm/_components`, y el nombre de la prueba nueva de Embudos decía «Kommo» en texto visible. Arreglado en `910d05999`; `crm-rename` y la prueba de Embudos dan 27 de 27 |
+| `tsc --noEmit` (`5f867f8f7`) | PASÓ: exit 0, 279 s |
+| ESLint sobre los 10 archivos de código y pruebas | PASÓ: exit 0 |
+| Después del merge de `main` `eef75ebef` (`3ba3d3172`): direccion, dashboard, crm, reportes, cotizador e `invoice-read-boundary` | PASÓ: 26 archivos, 354 pruebas, incluidas las de S0 de la #415 |
+| `tsc` después del merge | NO EJECUTADO: S0 y S0b no comparten archivos de código. Lo cubre el CI de la PR |
+| `build-docs-index --check`, `check-numbering` y `git diff --check`, después del merge | PASÓ: 596 specs |
+| `/ui-check` | OK para commit, con 3 hallazgos menores. (1) En Dirección, la sección «Operación + comercial» queda solo con Operación, a todo el ancho; su comentario en `direccion/page.tsx:169` queda viejo, pero ese archivo está fuera de la allowlist. (2) Con 5 KPI la grilla `auto-fit` no deja huecos. (3) El aviso de Embudos cumple el estado «sin migración» |
+| Revisión en el navegador | NO EJECUTADO: el Studio pide sesión |
+| `pnpm verify` | NO EJECUTADO: el portón ahora es el CI «Calidad continua» (orden del Director General) |
+
+`node_modules` de S0b: instalación propia (`corepack pnpm install --frozen-lockfile --offline`, 1 min
+58 s). Reemplaza la junction a la #415, que quité con `cmd /c rmdir` antes de instalar.
 
 ## COMMITS
 
-Se anotan al commitear.
+- `2a6f319e4` feat(studio): S0b oculta las cifras de Kommo de Dirección y el Dashboard.
+- `6f1ad3b35` docs(studio): enmienda S0b con su allowlist y handoff.
+- `5f867f8f7` docs(studio): tabla antes → después por pantalla y rol.
+- `910d05999` test(studio): la prueba de Embudos no dice «Kommo» en texto visible.
+- `3ba3d3172` Merge origin/main `eef75ebef` (#415). El único conflicto fue §13 de la spec 0614: se
+  conservan las dos entradas, S0 y después S0b. La §5 se combinó sola. La spec queda +59 −0 contra
+  `main` y el índice se regeneró.
+- El commit de este handoff, con los resultados.
 
 ## PR / BRANCH
 
-Rama `claude/0614-s0b-kommo-fuera-de-s0`. La PR se abre después de que la #415 esté fusionada.
+[PR #419](https://github.com/SoftAgentes/DTDCARGO/pull/419), en borrador contra `main`. Rama
+`claude/0614-s0b-kommo-fuera-de-s0`. Se publicó en `5f867f8f7` antes de que entrara la #415, por
+orden del Director General.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Rojos previos, mutantes y validación con el turno de máquina.
-- Traer `main` después de la fusión de la #415. La spec 0614 choca en §5 (bloque de S0) y §13
-  (historial), y también el índice. Se resuelven a mano, conservando los dos lados, y se regenera
-  el índice.
-- Publicar, abrir la PR en borrador y mandarle al Subdirector el SHA, el numstat y los rojos.
+- La fusión la hace el Director General. Después: limpiar este worktree y la rama, con evidencia.
+- El worktree de la #415 (`angry-ellis-1ec8c1`) lo limpia el Subdirector cuando esta sesión quede
+  inactiva. S0b ya no depende de él.
 
 ## FUERA DE ALCANCE DETECTADO
 
