@@ -152,7 +152,7 @@ describe.skipIf(!ORIGEN || !TOKEN || !CUENTA || !BANDEJA)("PoC de la ida contra 
     form.append("content", "SINT-ADJUNTO de la PoC");
     form.append("message_type", "outgoing");
     form.append("private", "false");
-    form.append("attachments[]", new Blob([PNG], { type: "image/png" }), "sint-poc.png");
+    form.append("attachments[]", new Blob([new Uint8Array(PNG)], { type: "image/png" }), "sint-poc.png");
     const r = await api(`conversations/${conversacion}/messages`, { method: "POST", body: form });
     expect(r.status, JSON.stringify(r.json)).toBe(200);
     const conAdjunto = (r.json as { id?: number }).id;
