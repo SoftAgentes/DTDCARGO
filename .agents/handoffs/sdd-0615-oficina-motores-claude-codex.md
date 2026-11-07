@@ -372,6 +372,53 @@ Pidió tres cambios más, en un solo commit:
 
 Lo decide Sam por medio del DG. Hasta entonces, **el riesgo ALTO sigue vivo en el VPS**.
 
+## Instalación de la revisión del DG (2026-11-07, 14:49–14:56 UTC)
+
+- **Autorización:** Sam se la dio al co-CEO a las 14:40Z: «Vamos a avanzar e instalar las
+  actualizaciones bajo tu recomendación… Primero se hace esto, después se termina y avanzamos con
+  el plan.» Aquí la confirmó a las ~14:48Z con «Sí, instala».
+- **Origen:** cabeza `0e80cb77c` (incluye el cambio A de la #409). El paquete se comprobó con
+  sha256 antes de instalar.
+- **Antes de instalar:**
+  - lo instalado era la versión vieja (`28c28543…`, `d8ec6a32…`, `52ade946…`);
+  - `/srv/oficina/motores` no existía;
+  - había 0 corridas vivas o en cola.
+- **Respaldo:** `/root/respaldo-sdd-0615-dg-20261107T144934Z`. Trae los tres archivos, las ACL de
+  `trabajo/{ceo,auxiliar}` y los sha256 previos.
+- **Hecho:**
+  - `/srv/oficina/motores` (`root:root` 755);
+  - `ceo` (`agentes-alfred`, 700) con `CLAUDE.md` (`root:agentes-alfred` 640, `5271dd8c…`);
+  - `auxiliar` (`agentes-auxiliar`, 700) con el `AGENTS.md` instalado (`root:agentes-auxiliar`
+    640) y `git init`;
+  - instalados `dtd-motor` `09176905…`, `dtd-agente-run` `e3b451c2…` y sudoers `66b5cd84…`;
+  - `visudo -cf` del archivo nuevo y `visudo -c` completo: OK.
+- **Incidente propio:** el primer script volvió solo al respaldo cuando ya había terminado.
+  - La causa: su última prueba (un perfil ajeno da 64) sale con error a propósito, y el
+    `trap ERR` se dispara aunque esté `set +e`.
+  - Se reinstalaron los tres archivos con un script sin esa trampa.
+- **Pruebas de humo:**
+
+  | Prueba | Resultado |
+  |---|---|
+  | `dtd-claude --version` y `dtd-codex --version` como `agentes` | PASÓ |
+  | Un perfil ajeno da 64 | PASÓ |
+  | `agentes-run` escribe o lista `motores/ceo` y `motores/auxiliar` | PASÓ (no puede) |
+  | ALFRED, corrida `on_demand` 14:50 | PASÓ, `cwd=/srv/oficina/motores/ceo` |
+  | Auxiliar, 14:51 | PASÓ, `cwd=/srv/oficina/motores/auxiliar` |
+  | Jefe de gabinete (GLM, Hermes), 14:51 | PASÓ, con el sudoers nuevo |
+  | Secretos del servidor en los procesos de los agentes | PASÓ: ni `PAPERCLIP_AGENT_JWT_SECRET` ni `PAPERCLIP_TOOL_ACTION_SIGNING_SECRET` en ningún proceso de los tres usuarios (medido en `/proc/<pid>/environ`, solo nombres) |
+
+- **Visto de paso:**
+  - El Jefe de gabinete falló 3 veces a las 14:22, antes de instalar, con el error conocido
+    de Hermes `[/HAI/issues/HAI-51…]`. Espera a Hermes 0.23.
+  - Codex del Auxiliar tiene plugins remotos en caché
+    (`~/.codex/plugins/cache/openai-curated-remote/{codex-security,data-analytics}`). Puede
+    ser el origen del 403 de MCP. **NO VERIFICADO.**
+- **Volver atrás:**
+  1. copiar los tres archivos del respaldo;
+  2. correr `visudo -c`;
+  3. `/srv/oficina/motores` puede quedarse: la versión vieja no la usa.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.

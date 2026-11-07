@@ -97,11 +97,17 @@ En el VPS de la oficina se instala desde el commit revisado y con respaldo.
    - que no puede listar `~agentes-alfred` ni `~agentes-auxiliar`;
    - que no puede crear nada en `/srv/oficina/motores/ceo` ni en `/srv/oficina/motores/auxiliar`.
 
-## Pendiente de instalar (revisión del DG, 2026-11-07)
+## Instalado (revisión del DG, 2026-11-07, 14:56 UTC)
 
-Lo que corrige esta revisión está solo en el repositorio. En el VPS siguen instalados los
-envoltorios del 2026-11-06 y del arreglo de la ACL. El DG le lleva a Sam la recomendación, y
-hasta su OK no se instala nada ni se pausa ningún agente.
+Se instaló desde la cabeza `0e80cb77c`, con el OK de Sam y respaldo en
+`/root/respaldo-sdd-0615-dg-20261107T144934Z`:
+
+- `dtd-motor` `09176905…`, `dtd-agente-run` `e3b451c2…` y `91-agentes-run` `66b5cd84…`;
+- `visudo` OK;
+- `/srv/oficina/motores/{ceo,auxiliar}` creadas.
+
+Pasaron las pruebas de humo de ALFRED, el Auxiliar y el Jefe de gabinete. Ningún proceso de
+agente tiene los secretos del servidor. El detalle está en el handoff.
 
 ## Pruebas
 
