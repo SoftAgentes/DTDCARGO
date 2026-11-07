@@ -639,6 +639,8 @@ No depende de la pestaña por defecto: Dirección (hoy), Embudos (S0) y Resumen 
 | `node scripts/check-numbering.mjs`, `node scripts/build-docs-index.mjs --check` y `git diff --check` | PASÓ |
 | `/ui-check` | OK para commit. Un hallazgo bajo: entre el `replace` y la tarjeta, la guía no da una señal propia; se ve la carga del tablero. Queda para la prueba en vivo de la 9.6 |
 | Ningún archivo de `app/studio/(app)/crm/` en el diff | PASÓ: `git diff --name-only origin/main -- "app/studio/(app)/crm"` sale vacío |
+| `GuiaEmbudoPestana.test.tsx` con el `kommo-tabs.shared.ts` de S0 de la SDD-0614 (`88d479ca2`, local de E6: Embudos por defecto y las pestañas de Kommo ocultas), puesto en su lugar y restaurado después con su huella | PASÓ: 15 de 15. Los casos de Dirección y Resumen simulan la pestaña por defecto y no leen la real. El que usa `resolveKommoTab` no depende de cuál sea |
+| Merge de `origin/main` `7e75f7708` con el driver de `main`, y el índice regenerado con `docs:index` | PASÓ: sin conflictos y sin cambios del índice tras regenerar (596 specs). `docs:check`, `check-numbering` y `git diff --check`, en verde. El merge no trae dependencias ni configuración de pruebas |
 | `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
 
 **Qué cambió mientras se hacía.** La primera corrida verde de la guía dio 141 de 142. El rojo era de la prueba: un solo `act` largo no deja que React pinte entre timers. Al corregirla, avanzando el reloj de a 50 ms, aparecieron dos riesgos del diseño, que se arreglaron con su prueba:

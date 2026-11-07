@@ -32,6 +32,8 @@ El detalle está en la tabla «Evidencia del P-13» de la spec. Las corridas pes
 | ESLint de los 9 archivos tocados, `--max-warnings=0` | PASÓ |
 | `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
 | `/ui-check` | OK para commit, con un hallazgo bajo para la 9.6 |
+| Prueba nueva con el `kommo-tabs.shared.ts` de S0 (`88d479ca2`, Embudos por defecto) | PASÓ: 15 de 15, con el archivo restaurado después |
+| Merge de `origin/main` `7e75f7708` con el driver de `main` e índice regenerado | PASÓ: sin conflictos; `docs:check` y `check-numbering` en verde |
 | `pnpm verify` | NO EJECUTADO: lo corre el Director General |
 | `pnpm knowledge:status`, Graphify y Archify | NO EJECUTADO: fuera del cierre pedido; los publica el Director desde `main`. Impacto documental: spec 0589 y dos handoffs |
 | Abrir la página real con `next dev` | NO EJECUTADO |
