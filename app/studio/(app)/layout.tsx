@@ -234,9 +234,9 @@ export default async function StudioAppLayout({
           <Suspense fallback={null}>
             <DeniedToast />
           </Suspense>
-          {/* Guía «Antes en Kommo → Ahora aquí» · SDD-0589 (9.2 y 9.3). */}
+          {/* Guía «Antes en Kommo → Ahora aquí» · SDD-0589 (9.2 a 9.5). */}
           <Suspense fallback={null}>
-            <GuiaStudio estadoInicial={estadoGuia} />
+            <GuiaStudio estadoInicial={estadoGuia} rol={role} />
           </Suspense>
         </WiringProvider>
       </ToastProvider>
