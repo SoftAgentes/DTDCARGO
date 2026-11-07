@@ -268,9 +268,19 @@ disfraza elevando el estado normativo.
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | LNK-01 | Enlaces y cambio de contexto | aprobada v1.0 | Adoptada en el enlazado al glosario; falta barrer documentos y destinos externos | [`TerminoGlosario.test.tsx`](../../components/TerminoGlosario.test.tsx) |
-| IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
+| IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal. Excepción aprobada para noticias (abajo), todavía sin vigencia | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | 0.1.2 repo/team reproducible: cache sincronizable, runner Node 7/7, read-only y sin capacidades remotas | [REV-SGE-025](reviews/plg-01-durable-runner-2026-07-31.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
+
+**Estado de la excepción (2026-11-07):** la SDD-0611 está aprobada y su implementación espera
+integración; la migración 0518 no está aplicada y el interruptor nace apagado. La nota de abajo
+es el texto de SDD-0611 §2.1 y rige **cuando** la 0518 esté en producción y Sam encienda el
+interruptor; antes de eso no hay excepción.
+
+> **Excepción vigente a IA-01 (I4): publicación automática de noticias en `/noticias`.**
+> Decisión de Sam del 2026-11-05, registrada en SDD-0611 §2. Alcance: solo noticias nuevas de
+> `/noticias` que pasan los filtros F1 a F10; todo lo demás sigue en I4. Responsable: Sam.
+> Revisión: a los 60 días de la primera publicación automática.
 
 ## 5. Jerarquía y resolución de conflictos
 

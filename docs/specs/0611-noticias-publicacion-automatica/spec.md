@@ -1,10 +1,10 @@
 ---
 sdd: "0611"
 title: "Publicación automática de noticias en /noticias, con filtros"
-status: approved
+status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-07
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
