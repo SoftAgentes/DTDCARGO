@@ -21,7 +21,7 @@ const SCRIPT = path.join(RAIZ, "scripts", "run-sql-tests.mjs");
 const MIB = 1024 * 1024;
 const SOLO_POSIX = { skip: process.platform === "win32" && "el doble de docker es un script de sh" };
 
-function correr({ bytes, salida }) {
+function correr({ bytes, salida, listo = "exit 0" }) {
   const { PATH: rutas = "" } = process.env;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sql-tests-salida-"));
   try {
@@ -32,7 +32,7 @@ function correr({ bytes, salida }) {
 case "$1" in
   exec)
     case "$3" in
-      pg_isready) exit 0 ;;
+      pg_isready) ${listo} ;;
       *) head -c ${bytes} /dev/zero | tr '\\0' 'x' >&2; exit ${salida} ;;
     esac ;;
   *) exit 0 ;;
@@ -58,6 +58,23 @@ test("un contrato roto sigue en rojo aunque imprima mucho", SOLO_POSIX, () => {
   const r = correr({ bytes: 2 * MIB, salida: 3 });
   assert.equal(r.status, 1, r.stdout);
   assert.match(r.stdout, /\[FAIL\].*a\.test\.sql/);
+});
+
+// La #426: un psql que cae sin ERROR de SQL dice su primera línea, pero recortada. La primera versión la imprimía
+// entera, y con los 2 MiB de arriba tapaba el [FAIL] (run 42416468624, «Harness Director Worker»).
+test("un psql que cae sin ERROR de SQL dice su primera línea, recortada", SOLO_POSIX, () => {
+  const r = correr({ bytes: 2 * MIB, salida: 3 });
+  assert.equal(r.status, 1, r.stdout.slice(0, 2000));
+  assert.match(r.stdout, /psql salió con 3 sin ERROR de SQL: x{300}… \(2097152 caracteres\)/);
+  assert.ok(r.stdout.length < 10_000, `la salida tiene ${r.stdout.length} caracteres`);
+});
+
+// La #426, tren #427: la espera va por TCP (-h 127.0.0.1), que el servidor temporal del initdb no escucha. Este
+// doble solo responde que sí por TCP: con la espera por el socket, run-sql-tests nunca lo da por listo y sale con SKIP.
+test("la espera de Postgres va por TCP, no por el socket del servidor temporal", SOLO_POSIX, () => {
+  const r = correr({ bytes: 0, salida: 0, listo: 'case " $* " in *" -h 127.0.0.1 "*) exit 0 ;; *) exit 2 ;; esac' });
+  assert.equal(r.status, 0, r.stdout);
+  assert.match(r.stdout, /✓.*a\.test\.sql/);
 });
 
 test("si el runner corta a psql, lo dice en vez de un rojo mudo", SOLO_POSIX, () => {
