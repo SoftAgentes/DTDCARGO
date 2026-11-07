@@ -65,6 +65,14 @@
       - §6.3 deja escrito que la encuesta queda apagada.
     - **Caso P (C3):** un mailer-daemon sin `Auto-Submitted` que la regla «Sonda · sistema» sí resuelve.
     - **El flujo:** `timeout-minutes` baja de 40 a 25.
+11. **Segunda revisión independiente de la #423** (CHANGES_REQUESTED, «cerca», sobre `e6b47b3ba`):
+    - **T8 no medía la encuesta.** Chatwoot la guarda como mensaje `template` con `input_csat` (C, `MessageTemplates::Template::CsatSurvey`), no `outgoing`. La medida ahora cuenta tres cosas: los mensajes salientes o de plantilla, los trabajos de correo encolados (el adaptador anota también los diferidos que descarta) y los correos entregados.
+      - El caso **Y** es el control: el mismo rebote en una bandeja con la encuesta encendida, donde la sonda tiene que ver la salida (T9).
+      - Sin el inicializador, Y queda abierto y sin salida (C4).
+    - **A (media):** `reglas` reescribía «sistema» solo con lo que traía `DTD_SISTEMA_REMITENTES`. Ahora suma a lo que la regla ya tiene, y «no-cliente» también. V5 corre `reglas` sin ninguna variable y exige que siga el remitente extra y que el `Reply-To` del ERP se resuelva. Mutantes W3 y W4.
+    - **B (baja):** la bandeja se busca primero por el buzón. V7 la renombra y exige que `estado` y `apagar-imap` la encuentren. Mutante W5.
+    - **C (baja):** `estado` empieza por «buzón … · dominio …», sin «@» (`v_buzon`). §6.4 pide que Sam lo confirme en el paso 2.
+    - **El punto 1 ya estaba** en `ea3ecf572`: el run 42413311941 con su SHA, en la línea 82 del handoff y en la 290 del diseño.
 
 ## VALIDACIÓN
 
@@ -81,6 +89,8 @@
 | «Correo automático (datos inventados)», 2.ª corrida sobre `86a520e9d` (run 42412688316, de 20:46:54Z a 20:52:44Z) | PASÓ 34 de 34, 0 fallas. M4 cae por su motivo: `a_aviso_estado` da 1 sin el autor y 0 con él. V da 30 de 30, y W1 y W2 caen |
 | «Correo automático», 3.ª corrida sobre `e6b47b3ba`, con la revisión independiente (run 42413311941, job 128525883687, de 20:54:49Z a 21:01:05Z) | PASÓ 39 de 39, 0 fallas: la sonda 39 de 39 y V 31 de 31. Pasan T7, T8, C3 y M8, y M4 sigue cayendo. Leído con `gh api` por el Subdirector y por mí |
 | «Calidad continua» sobre `e6b47b3ba` (run 42413311901) | Seguía en curso a las 21:02Z; lo lee el Subdirector |
+| «Correo automático», 4.ª corrida, con la segunda revisión (T9, C4, V5 ampliado, V7, `v_buzon`, W3, W4 y W5) | Corre sobre el commit siguiente; se anota con su SHA |
+| Los 13 `sed` de los mutantes (M1–M8 y W1–W5), en local | PASÓ: cada uno cambia una sola línea |
 | `prueba-correo-sistema.sh` en la PC (Docker) | NO EJECUTADO, porque Docker Desktop levanta 22 contenedores ajenos |
 | Ruby en la PC | NO DISPONIBLE (no hay `ruby`); lo cubre la corrida de Actions |
 | `knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en el worktree (estructural y semántica UNAVAILABLE) |
@@ -92,7 +102,8 @@
 - `69eaa40f8`: DNS, plan, lista para Sam, checklist y este handoff.
 - `86a520e9d`: el guion de PC-3 y su prueba, el arreglo del detector de la sonda de P4, el chequeo de los mutantes, la allowlist de `spec.md` y la evidencia de las corridas.
 - `e6b47b3ba`: la revisión independiente (clase con `safe_constantize`, encuesta CSAT apagada, caso P y `timeout-minutes` en 25).
-- El commit siguiente, solo de documentos: el resultado de la 3.ª corrida.
+- `ea3ecf572` y `4914644fa`: solo documentos. El resultado de la 3.ª corrida, y la corrección de que un commit de documentos también vuelve a correr el flujo de la PR.
+- El commit siguiente: la segunda revisión independiente (T8 con el control Y, listas que suman, búsqueda por buzón y buzón en `estado`).
 
 ## PR / BRANCH
 

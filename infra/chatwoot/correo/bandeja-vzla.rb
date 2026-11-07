@@ -22,10 +22,12 @@
 #   DTD_RESPONSABLE_LEGAL    id del agente al que la regla «legal» asigna (Sam, 2026-11-03); tiene que ser
 #                            miembro, porque Chatwoot solo asigna a miembros de la bandeja
 #   DTD_NO_CLIENTE_DOMINIOS  dominios de remitentes «no-cliente», separados por coma, armados con `dominios`.
-#                            Sin la variable, la regla «no-cliente» no se crea ni se cambia
+#                            SUMAN a los que la regla ya tiene. Sin la variable, la regla no se crea ni se cambia
 #   DTD_SISTEMA_REMITENTES   remitentes de avisos de DTD además de noreply@, notificaciones@ y no-responder@
 #                            del dominio. Chatwoot toma como contacto el Reply-To (MailPresenter#original_sender),
-#                            así que si el aviso del ERP trae Reply-To, ese es el que va aquí
+#                            así que si el aviso del ERP trae Reply-To, ese es el que va aquí. SUMAN a los que la
+#                            regla ya tiene: `reglas` sin la variable no borra el que se agregó antes
+# Las dos listas solo crecen desde aquí: quitar un valor se hace en el panel (Ajustes → Automatizaciones).
 #   DTD_CUENTA_ID            cuenta de Chatwoot (1 por defecto)
 #   DTD_BUZON_VZLA           solo para la prueba con datos inventados; en el VPS sale de SMTP_DOMAIN
 module DtdBandejaVzla
@@ -42,8 +44,18 @@ module DtdBandejaVzla
 
   def cuenta = Account.find(ENV.fetch('DTD_CUENTA_ID', '1'))
 
+  # Primero por el buzón, que es único, y después por el nombre: si Sam renombra la bandeja, `estado`, `reglas` y
+  # `apagar-imap` (la vuelta atrás) la siguen encontrando.
   def bandeja(c)
+    canal = Channel::Email.find_by(account: c, email: BUZON) # [por-buzon]
+    return canal.inbox if canal&.inbox
+
     c.inboxes.where(channel_type: 'Channel::Email').find_by(name: NOMBRE)
+  end
+
+  # Los valores que una regla ya tiene en su segunda condición (la primera es la bandeja).
+  def valores_actuales(c, nombre)
+    Array(AutomationRule.find_by(account: c, name: nombre)&.conditions&.dig(1, 'values')).map { _1.to_s.downcase }
   end
 
   def lista(variable) = ENV[variable].to_s.split(',').map { |v| v.strip.downcase }.reject(&:empty?)
@@ -71,14 +83,16 @@ module DtdBandejaVzla
     valor.to_i
   end
 
-  def remitentes_sistema
+  def remitentes_sistema(c)
     extra = lista('DTD_SISTEMA_REMITENTES')
     malos = extra.grep_v(DIRECCION_VALIDA)
     abort "DTD_SISTEMA_REMITENTES: #{malos.size} valor(es) no son direcciones" if malos.any?
 
-    (%w[noreply notificaciones no-responder].map { |u| "#{u}@#{DOMINIO}" } + extra).uniq
+    base = %w[noreply notificaciones no-responder].map { "#{_1}@#{DOMINIO}" }
+    (base + valores_actuales(c, REGLAS[:sistema]) + extra).uniq # [conserva-sistema]
   end
 
+  # Solo los dominios nuevos de la variable, validados. `reglas` los suma a los que ya tiene la regla.
   def dominios_no_cliente
     dominios = lista('DTD_NO_CLIENTE_DOMINIOS').map { |d| d.delete_prefix('@') }
     malos = dominios.grep_v(DOMINIO_VALIDO)
@@ -115,13 +129,17 @@ module DtdBandejaVzla
     # Un aviso de DTD nunca debería traer «Privacidad» ni «Gerencia» en el asunto; si lo trae, gana «legal».
     guardar_regla(
       c, REGLAS[:sistema],
-      [en_bandeja(inbox), { attribute_key: 'email', filter_operator: 'contains', values: remitentes_sistema, query_operator: 'and' },
+      [en_bandeja(inbox), { attribute_key: 'email', filter_operator: 'contains', values: remitentes_sistema(c), query_operator: 'and' },
        sin_asunto_legal(nil)],
       [{ action_name: 'add_label', action_params: ['sistema'] }, { action_name: 'resolve_conversation', action_params: [] }]
     )
-    dominios = dominios_no_cliente
-    return puts('regla «no-cliente»: sin DTD_NO_CLIENTE_DOMINIOS, no se crea ni se cambia') if dominios.empty?
+    nuevos = dominios_no_cliente
+    anteriores = valores_actuales(c, REGLAS[:no_cliente]).map { _1.delete_prefix('@') }
+    if nuevos.empty?
+      return puts("regla «no-cliente»: sin DTD_NO_CLIENTE_DOMINIOS, la lista sigue igual (#{anteriores.size} dominios)")
+    end
 
+    dominios = (anteriores + nuevos).uniq # [conserva-no-cliente]
     guardar_regla(
       c, REGLAS[:no_cliente],
       [en_bandeja(inbox), { attribute_key: 'email', filter_operator: 'contains', values: dominios.map { |d| "@#{d}" }, query_operator: 'and' },
@@ -172,6 +190,10 @@ module DtdBandejaVzla
   def etiquetadas(inbox, titulo) = inbox.conversations.tagged_with(titulo, on: :labels).pluck(:id).size
 
   def estado(c)
+    # El buzón sale de SMTP_DOMAIN y el compose del VPS no es el de main: Sam lo confirma aquí antes de escribir la
+    # clave. Va sin «@» para que ninguna salida lleve una dirección completa.
+    usuario, dominio = BUZON.split('@', 2)
+    puts "buzón #{usuario} · dominio #{dominio} · cuenta #{c.id}"
     inbox = bandeja(c)
     return puts('sin bandeja «Correo · vzla@»') unless inbox
 

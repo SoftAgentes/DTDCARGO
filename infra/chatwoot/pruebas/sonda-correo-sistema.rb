@@ -13,8 +13,20 @@
 #
 # Con SONDA_CARGAR=<archivo> carga ese inicializador al arrancar (lo usan el control M0 y los
 # mutantes, que corren sin el montaje) y llama a DtdCorreoSistema.instalar.
+#
+# Cada trabajo encolado queda en ENCOLADOS, también los diferidos que se descartan: así la sonda ve un correo que
+# Chatwoot mandaría más tarde (ActionMailer::MailDeliveryJob) aunque aquí no corra.
+ENCOLADOS = [] # rubocop:disable Style/MutableConstant
 class AdaptadorEnLinea < ActiveJob::QueueAdapters::InlineAdapter
-  def enqueue_at(*) = nil
+  def enqueue(job)
+    ENCOLADOS << job.class.name
+    super
+  end
+
+  def enqueue_at(job, _momento)
+    ENCOLADOS << job.class.name
+    nil
+  end
 end
 ActiveJob::Base.queue_adapter = AdaptadorEnLinea.new
 ActionMailer::Base.delivery_method = :test
@@ -98,16 +110,26 @@ informar = lambda do |letra, c|
   hecho "#{letra}_aviso_estado", aviso_estado.call(c)
   hecho "#{letra}_auto_reply", c ? c.additional_attributes['auto_reply'].inspect : 'sin-conversacion'
 end
+# Lo que saldría hacia el remitente, desde una marca: «mensajes/trabajos/correos». Mensajes salientes o de plantilla
+# de la conversación (la encuesta CSAT es `template` con content_type input_csat, no `outgoing`), trabajos de
+# correo encolados desde la marca (también los diferidos) y correos entregados desde la marca.
+salidas = lambda do |c, desde_trabajos, desde_correos|
+  mensajes = c ? c.messages.where(message_type: %i[outgoing template]).count : -1
+  trabajos = ENCOLADOS.drop(desde_trabajos).count { _1.include?('Mail') }
+  "#{mensajes}/#{trabajos}/#{ActionMailer::Base.deliveries.size - desde_correos}"
+end
 
 # A · rebote nuevo, como el de mailchannels.net en PC-1 (Auto-Submitted: auto-replied).
 rebote = correo('a-rebote', de: 'MAILER-DAEMON@relay.sonda.example.test', asunto: 'Undelivered Mail Returned to Sender',
                             cabeceras: { 'Auto-Submitted' => 'auto-replied' })
+marca_trabajos = ENCOLADOS.size
+marca_correos = ActionMailer::Base.deliveries.size
 procesar.call(rebote)
 a = conversacion_de.call('a-rebote')
 informar.call('a', a)
-# Resolver no manda nada: ni mensaje saliente en la conversación ni correo (la encuesta CSAT, apagada, se lo
-# mandaría a MAILER-DAEMON y armaría un bucle de rebotes).
-hecho 'a_salientes', "#{a ? a.messages.outgoing.count : -1}/#{ActionMailer::Base.deliveries.size}"
+# Resolver no manda nada al remitente, con la encuesta CSAT apagada como queda en las bandejas de correo. El caso Y,
+# con la encuesta encendida, prueba que esta medida sí ve la salida.
+hecho 'a_salientes', salidas.call(a, marca_trabajos, marca_correos)
 
 # P · control positivo de la regla: un aviso de mailer-daemon SIN Auto-Submitted. La regla «Sonda · sistema» SÍ lo
 # resuelve; con A no actúa solo porque A es automático. Así el «aunque haya una regla» de C queda demostrado.
@@ -181,5 +203,23 @@ z&.resolved!
 hecho 'z_aviso_estado', aviso_estado.call(z&.reload)
 
 hecho 'conversaciones', inbox.conversations.count
-hecho 'correos_enviados', ActionMailer::Base.deliveries.size
+# Correos y trabajos de correo de toda la sonda hasta aquí, todo con la encuesta apagada: tienen que ser 0.
+hecho 'correos_enviados', "#{ENCOLADOS.count { _1.include?('Mail') }}/#{ActionMailer::Base.deliveries.size}"
+
+# Y · CONTROL de la medida: el mismo rebote en otra bandeja con la encuesta CSAT ENCENDIDA. Al resolverlo, Chatwoot
+# manda la encuesta (CsatSurveyListener → CsatSurveyService → mensaje `template`). `salidas` TIENE que verlo: si da
+# «0/0/0», el 0 de A no mide nada. Va al final para no tocar `correos_enviados`.
+canal_y = Channel::Email.create!(account: cuenta, email: "encuesta-#{SecureRandom.hex(4)}@sonda.example.test",
+                                 imap_enabled: false, smtp_enabled: false)
+inbox_y = Inbox.create!(account: cuenta, name: 'Sonda · con encuesta', channel: canal_y, csat_survey_enabled: true)
+canal_y.reload
+marca_trabajos = ENCOLADOS.size
+marca_correos = ActionMailer::Base.deliveries.size
+Imap::ImapMailbox.new.process(correo('y-rebote', de: 'MAILER-DAEMON@relay-y.sonda.example.test', asunto: 'Undelivered Mail Returned to Sender',
+                                                 cabeceras: { 'Auto-Submitted' => 'auto-replied' }), canal_y)
+y = inbox_y.messages.find_by(source_id: 'y-rebote@sonda.example.test')&.conversation&.reload
+salida_y = salidas.call(y, marca_trabajos, marca_correos)
+hecho 'y_estado', y&.status || 'sin-conversacion'
+hecho 'y_salidas', salida_y
+hecho 'y_csat', salida_y.split('/').map(&:to_i).any?(&:positive?) ? 'si' : 'no'
 hecho 'sonda', 'ok'

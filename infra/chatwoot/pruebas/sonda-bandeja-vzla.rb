@@ -85,6 +85,7 @@ legal = reglas.find_by(name: 'Correo · legal')
 hecho 'v_legal_asigna', legal&.actions&.find { |a| a['action_name'] == 'assign_agent' }&.dig('action_params', 0).to_i == sam.id ? 'si' : 'no'
 hecho 'v_etiquetas', Label.where(account: cuenta, title: %w[legal no-cliente sistema]).count
 hecho 'v_estado', "#{contiene.call(t, 'clave imap vacía')}:#{contiene.call(t, 'imap false')}"
+hecho 'v_buzon', contiene.call(t, "buzón vzla-#{marca} · dominio sonda.example.test")
 r, t = intentar.call('crear')
 hecho 'v_otra_vez', "#{r}:#{contiene.call(t, 'ya existe la bandeja')}"
 
@@ -113,13 +114,22 @@ hecho 'v_gerencia', leer.call('v-gerencia', canal, de: 'avisos@banco-inventado.e
 hecho 'v_cliente', leer.call('v-cliente', canal, de: 'cliente.w@sonda.example.test', asunto: 'Cotizacion inventada')
 hecho 'v_otra', leer.call('v-otra', otra_canal, de: 'noreply@sonda.example.test', asunto: 'Nuevo contacto web inventado')
 
-# V5 · `reglas` sin variables conserva al responsable y no toca la lista «no-cliente».
-%w[DTD_RESPONSABLE_LEGAL DTD_NO_CLIENTE_DOMINIOS].each { |v| ENV.delete(v) }
+# V5 · `reglas` SIN ninguna variable (como cuando solo se quiere rehacer las reglas) conserva al responsable, el
+# remitente extra de «sistema» (el Reply-To del ERP) y la lista «no-cliente».
+%w[DTD_RESPONSABLE_LEGAL DTD_NO_CLIENTE_DOMINIOS DTD_SISTEMA_REMITENTES].each { |v| ENV.delete(v) }
 r, t = intentar.call('reglas')
 no_cliente = AutomationRule.find_by(account: cuenta, name: 'Correo · no-cliente')
-hecho 'v_reglas_sin_variables', "#{r}:#{contiene.call(t, 'no se crea ni se cambia')}"
-hecho 'v_no_cliente_valores', no_cliente&.conditions&.dig(1, 'values')&.size.to_i
+sistema = AutomationRule.find_by(account: cuenta, name: 'Correo · sistema')
+hecho 'v_reglas_sin_variables', "#{r}:#{contiene.call(t, 'la lista sigue igual')}"
+hecho 'v_no_cliente_valores', no_cliente&.reload&.conditions&.dig(1, 'values')&.size.to_i
 hecho 'v_legal_sigue', legal&.reload&.actions&.find { |a| a['action_name'] == 'assign_agent' }&.dig('action_params', 0).to_i == sam.id ? 'si' : 'no'
+hecho 'v_sistema_conserva', Array(sistema&.reload&.conditions&.dig(1, 'values')).include?('comercial@sonda.example.test') ? 'si' : 'no'
+hecho 'v_replyto2', leer.call('v-replyto2', canal, de: 'noreply@sonda.example.test', asunto: 'Otra estimacion inventada',
+                                                   cabeceras: { 'Reply-To' => 'comercial@sonda.example.test' })
+# Un dominio nuevo SE SUMA a los dos que ya había.
+ENV['DTD_NO_CLIENTE_DOMINIOS'] = 'otro-banco.example'
+r, = intentar.call('reglas')
+hecho 'v_no_cliente_suma', "#{r}:#{no_cliente&.reload&.conditions&.dig(1, 'values')&.size.to_i}"
 ENV['DTD_NO_CLIENTE_DOMINIOS'] = 'sonda.example.test'
 r, t = intentar.call('reglas')
 hecho 'v_dominio_propio', "#{r}:#{contiene.call(t, 'es el dominio de DTD')}"
@@ -130,5 +140,13 @@ r, t = intentar.call('dominios', '7')
 hecho 'v_dominios', "#{r}:#{contiene.call(t, '2 banco-inventado.example')}"
 r, = intentar.call('dominios', '90')
 hecho 'v_dominios_tope', r
+
+# V7 · si Sam renombra la bandeja, `estado` y `apagar-imap` (la vuelta atrás) la siguen encontrando por el buzón.
+inbox.update!(name: 'Correo renombrado por Sam')
+canal.update!(imap_enabled: true)
+r, t = intentar.call('estado')
+hecho 'v_renombrada', "#{r}:#{contiene.call(t, "bandeja #{inbox.id} ·")}"
+r, = intentar.call('apagar-imap')
+hecho 'v_apagar_renombrada', "#{r}:#{canal.reload.imap_enabled}"
 hecho 'v_sin_arroba', salidas.none? { |s| s.include?('@') } ? 'si' : 'no'
 hecho 'sonda_vzla', 'ok'

@@ -236,7 +236,16 @@ No borra nada. Si después escribe una persona en ese hilo, Chatwoot reabre la c
 
 Si una versión nueva renombra `Imap::ImapMailbox`, o le quita `#process` o `#find_or_create_conversation`, el inicializador no hace nada y lo dice en el log. Busca la clase con `safe_constantize`, así que Rails y sidekiq arrancan igual.
 
-**La encuesta de satisfacción (CSAT) de las bandejas de correo queda apagada.** `CsatSurveyListener#conversation_status_changed` la manda al resolver si la bandeja la tiene encendida (C, v4.19.1). Aquí le llegaría a MAILER-DAEMON o a un contestador automático, y podría armar un bucle de rebotes. `bandeja-vzla.rb` crea la bandeja con la encuesta apagada y `estado` lo muestra. La sonda comprueba que resolver no manda nada: 0 salientes y 0 correos (T8). Encenderla después pide antes una regla de la encuesta que excluya «sistema» y «no-cliente», con su propia prueba.
+**La encuesta de satisfacción (CSAT) de las bandejas de correo queda apagada.** `CsatSurveyListener#conversation_status_changed` la manda al resolver si la bandeja la tiene encendida (C, v4.19.1). Aquí le llegaría a MAILER-DAEMON o a un contestador automático, y podría armar un bucle de rebotes. `bandeja-vzla.rb` crea la bandeja con la encuesta apagada y `estado` lo muestra.
+
+La sonda comprueba que resolver no manda nada al remitente (T8). Cuenta tres cosas:
+- los mensajes salientes y los de plantilla, porque la encuesta es un mensaje `template` con `content_type: input_csat` (`MessageTemplates::Template::CsatSurvey`), no `outgoing`;
+- los trabajos de correo encolados, también los diferidos;
+- los correos entregados.
+
+El caso **Y** es el control de esa medida. Es el mismo rebote en una bandeja con la encuesta **encendida**, y ahí la sonda **tiene que** ver la salida (T9). Sin el inicializador, Y queda abierto y no sale nada (C4).
+
+Encender la encuesta después pide antes una regla de la encuesta que excluya «sistema» y «no-cliente», con su propia prueba.
 
 **Riesgo que queda.** Un correo real con `Auto-Submitted` distinto de `no`, por ejemplo el de un formulario automático de un tercero, queda resuelto con «sistema». Se mitiga de tres formas:
 - la nota pide reabrirlo;
@@ -247,7 +256,8 @@ Si una versión nueva renombra `Imap::ImapMailbox`, o le quita `#process` o `#fi
 
 | Caso | Correo | Con el inicializador (T) | Sin él (control C) |
 |---|---|---|---|
-| A | Rebote nuevo (`Auto-Submitted: auto-replied`), con la regla «Sonda · sistema» de P8 activa | `resolved`, `sistema`, 1 nota, 0 avisos de inactividad, 0 salientes y 0 correos | **Abierto y sin etiqueta: el hallazgo P4 se reproduce** |
+| A | Rebote nuevo (`Auto-Submitted: auto-replied`), con la regla «Sonda · sistema» de P8 activa | `resolved`, `sistema`, 1 nota, 0 avisos de inactividad, y 0 mensajes, 0 trabajos y 0 correos hacia el remitente | **Abierto y sin etiqueta: el hallazgo P4 se reproduce** |
+| Y | El mismo rebote en otra bandeja con la encuesta CSAT **encendida**: control de la medida de A | `resolved`, y la sonda **sí** ve la salida de la encuesta | Abierto y sin salida |
 | P | Aviso de mailer-daemon **sin** `Auto-Submitted`: control positivo de la regla | `resolved` y `prueba-sistema`: la regla de Chatwoot lo resuelve | Igual. Con A la regla no actúa solo porque A es automático |
 | B | Correo de cliente con asunto «Privacidad» | Abierto y con `prueba-legal` (la regla de Chatwoot sigue actuando) | Igual |
 | C | Respuesta automática enhebrada a una conversación de cliente | En la misma conversación, abierta y sin etiqueta | Igual |
@@ -298,6 +308,15 @@ Se corrigió así:
 
 Esta anotación va en commits solo de documentos. En una PR, el filtro de rutas mira todo el diff de la PR y no el último commit, así que el flujo vuelve a correr sobre ellos, con el mismo código. El push nuevo cancela la corrida anterior.
 
+**Cuarta corrida, con la segunda revisión independiente (CHANGES_REQUESTED sobre `e6b47b3ba`):**
+- T8 cuenta también los mensajes `template` y los trabajos de correo, y tiene el control Y (T9 y C4);
+- el guion de PC-3:
+  - conserva las listas de «sistema» y «no-cliente» (V5, W3 y W4);
+  - busca la bandeja por el buzón (V7 y W5);
+  - muestra el buzón resuelto (`v_buzon`).
+
+Su resultado se anota aquí con su SHA.
+
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 
 **Cómo se quita:** se borra la línea de montaje de `rails` y `sidekiq` y se recrean los dos. Lo ya etiquetado y resuelto queda como está.
@@ -319,17 +338,23 @@ Las variables van solo en el comando, nunca en Git:
 |---|---|
 | `DTD_MIEMBROS` | Ids de los agentes de la bandeja, separados por coma (decisión 3) |
 | `DTD_RESPONSABLE_LEGAL` | Id de Sam, el responsable legal nombrado el 2026-11-03. Tiene que ser miembro, porque Chatwoot solo asigna a miembros de la bandeja |
-| `DTD_NO_CLIENTE_DOMINIOS` | Dominios «no-cliente», separados por coma. Sin la variable, esa regla no se crea ni se cambia |
-| `DTD_SISTEMA_REMITENTES` | Remitentes de avisos de DTD además de `noreply@`, `notificaciones@` y `no-responder@`. Chatwoot toma como contacto el `Reply-To` del correo (`MailPresenter#original_sender`). El valor vivo del `reply_to` del ERP es NV (C-11): si sus avisos quedan abiertos, ese es el que falta |
+| `DTD_NO_CLIENTE_DOMINIOS` | Dominios «no-cliente», separados por coma. **Suman** a los que la regla ya tiene. Sin la variable, la regla no se crea ni se cambia |
+| `DTD_SISTEMA_REMITENTES` | Remitentes de avisos de DTD además de `noreply@`, `notificaciones@` y `no-responder@`. **Suman** a los que la regla ya tiene: `reglas` sin la variable no borra el que se agregó antes. Chatwoot toma como contacto el `Reply-To` del correo (`MailPresenter#original_sender`). El valor vivo del `reply_to` del ERP es NV (C-11): si sus avisos quedan abiertos, ese es el que falta |
+
+Las dos listas solo crecen desde el guion. Quitar un valor se hace en el panel (Ajustes → Automatizaciones).
+
+El guion busca la bandeja primero por el buzón y después por el nombre. Si Sam la renombra, `estado`, `reglas` y `apagar-imap` la siguen encontrando.
+
+`estado` empieza por el buzón resuelto («buzón vzla · dominio dtdcargo.com»), sin «@». El buzón sale de `SMTP_DOMAIN`, y el compose del VPS no es el de `main`.
 
 | Paso | Qué hace | OK que pide | Qué tiene que ver Sam | Vuelta atrás |
 |---|---|---|---|---|
 | 1 | Respaldo de Chatwoot (Subdirector) | Parte del OK de PC-3 | Nada: el Subdirector le pasa el nombre del respaldo | — |
-| 2 | **`crear`.** Crea las etiquetas «legal», «no-cliente» y «sistema»; la bandeja «Correo · vzla@» con IMAP y SMTP apagados y sin claves, «DTD Cargo», modo `friendly` y la encuesta CSAT apagada (§6.3); los miembros; y las reglas «Correo · legal», «Correo · sistema» y, si hay lista, «Correo · no-cliente». **Se niega** si falta un miembro, si el responsable no es miembro, si la bandeja o el buzón ya existen, o si la lista trae el dominio de DTD | «Crea la bandeja de vzla@ con sus reglas» (OK de PC-3) | En Ajustes → Bandejas, «Correo · vzla@» sin conversaciones. En Ajustes → Automatizaciones, las reglas «Correo · …» activas | Sam borra la bandeja (todavía vacía) y las reglas «Correo · …» desde el panel |
+| 2 | **`crear`.** Crea las etiquetas «legal», «no-cliente» y «sistema»; la bandeja «Correo · vzla@» con IMAP y SMTP apagados y sin claves, «DTD Cargo», modo `friendly` y la encuesta CSAT apagada (§6.3); los miembros; y las reglas «Correo · legal», «Correo · sistema» y, si hay lista, «Correo · no-cliente». **Se niega** si falta un miembro, si el responsable no es miembro, si la bandeja o el buzón ya existen, o si la lista trae el dominio de DTD | «Crea la bandeja de vzla@ con sus reglas» (OK de PC-3) | La primera línea de `estado` dice «buzón vzla · dominio dtdcargo.com»: si dice otro, no se sigue. En Ajustes → Bandejas, «Correo · vzla@» sin conversaciones. En Ajustes → Automatizaciones, las reglas «Correo · …» activas | Sam borra la bandeja (todavía vacía) y las reglas «Correo · …» desde el panel |
 | 3 | **Sam escribe la clave.** En Ajustes → Bandejas → «Correo · vzla@» → Configuración, enciende IMAP y SMTP y escribe la clave en los dos campos. Al guardar, Chatwoot prueba la conexión y empieza a leer. Que la pantalla muestre esos campos para una bandeja creada así es **NV**: se ve en este paso | Es la acción misma de Sam; la clave nunca pasa por el chat ni por el repo | Se guarda sin error. `estado` dice «imap true · smtp true · clave imap cargada · clave smtp cargada» | `apagar-imap`: la entrada se corta al momento |
 | 4 | **`estado`**, a los 5 minutos | — | Conversaciones solo desde el día anterior. «de dtdcargo.com abiertas» cerca de 0; si no, falta un remitente en «sistema» | `apagar-imap` |
 | 5 | Pruebas P1, P2, P3, P5, P8 y N2 (§6.2, PC-3, pasos 6 y 7) | La de cada prueba | Lo que dice cada una | `apagar-imap` |
-| 6 | **Primera semana:** `dominios 7` cada día. Con esa lista, **`reglas`** con `DTD_NO_CLIENTE_DOMINIOS` (y `DTD_SISTEMA_REMITENTES` si hace falta). `reglas` conserva al responsable si no se le pasa | «Actualiza la lista no-cliente» | Lo de esos dominios aparece en «Resueltas» con «no-cliente», salvo los asuntos legales, que siguen abiertos y asignados a Sam | `reglas` con la lista anterior |
+| 6 | **Primera semana:** `dominios 7` cada día. Con los dominios nuevos, **`reglas`** con `DTD_NO_CLIENTE_DOMINIOS` (y `DTD_SISTEMA_REMITENTES` si hace falta). Las dos suman, y `reglas` conserva al responsable si no se le pasa | «Actualiza la lista no-cliente» | Lo de esos dominios aparece en «Resueltas» con «no-cliente», salvo los asuntos legales, que siguen abiertos y asignados a Sam | Quitar el dominio en el panel (Ajustes → Automatizaciones → «Correo · no-cliente») |
 
 **Probado sin tocar nada vivo.** Lo prueban los casos V de `prueba-correo-sistema.sh` (§6.3), con datos inventados sobre la imagen real:
 - las cuatro negativas;
@@ -338,12 +363,17 @@ Las variables van solo en el comando, nunca en Git:
 - «legal» asigna al responsable aunque el remitente sea «no-cliente»;
 - «sistema» toma el `Reply-To`;
 - ninguna regla toca otra bandeja;
-- `reglas` sin variables conserva al responsable y la lista;
+- `reglas` sin **ninguna** variable conserva al responsable, el remitente extra de «sistema» y la lista «no-cliente», y un dominio nuevo se suma a los de antes;
+- con la bandeja renombrada, `estado` y `apagar-imap` la siguen encontrando;
+- `estado` muestra el buzón resuelto;
 - ninguna salida lleva una dirección.
 
-Dos mutantes, cada uno con una comprobación que tiene que seguir igual:
+Cinco mutantes, cada uno con una comprobación que tiene que seguir igual:
 - **W1** quita la condición de bandeja de «sistema»;
-- **W2** quita la guarda del asunto de «no-cliente».
+- **W2** quita la guarda del asunto de «no-cliente»;
+- **W3** deja de conservar los remitentes de «sistema»;
+- **W4** deja de conservar los dominios «no-cliente»;
+- **W5** deja de buscar por el buzón.
 
 ## 7. Puertas (cada una con OK nominal de Sam, nombrando la operación)
 
