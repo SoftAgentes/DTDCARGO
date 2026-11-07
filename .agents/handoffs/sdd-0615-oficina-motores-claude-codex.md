@@ -116,21 +116,42 @@
   - `agentes-run` no entra a lo nuevo;
   - sudo registra 0 llamadas a `dtd-agente-run`;
   - Paperclip responde 200.
-- **NO VERIFICADO:** una corrida real de ALFRED con Hermes por Paperclip después de la
-  instalación. No hubo ninguna entre las 21:39 y el cierre.
+- **Corrida real de ALFRED con Hermes por Paperclip después de la instalación:** verificada el
+  2026-11-07. El latido diario (corrida `c12ec8de`) pasó en 62 s y cerró su tarea.
 - **Volver atrás:** copiar los cuatro archivos del respaldo, borrar
   `/usr/local/libexec/dtd-motor` y correr `visudo -c`. Los usuarios, las ACL y las carpetas
   nuevas no afectan a Hermes.
 
+## Rutinas de ALFRED (F7, 2026-11-07 00:25 UTC)
+
+- **Causa (MEDIDO):** Paperclip corría con `HEARTBEAT_SCHEDULER_ENABLED=false` en
+  `~agentes/.config/paperclip/paperclip.env`. Se puso así el 2026-10-20 «hasta que existan
+  agentes» (handoff `2026-10-20-sdd-0564-vps-paso-4-paperclip.md`) y nunca se levantó. Con eso
+  el servicio de latidos queda en `null` y el tick de rutinas no corre. Los dos disparadores
+  seguían con `next_run_at` del 21 y el 23 de octubre, `last_fired_at` vacío y 0
+  `routine_runs`.
+- **Antes de tocar se midió:**
+  - los 8 agentes activos tienen el latido propio apagado;
+  - no había corridas vivas ni en cola;
+  - las dos rutinas usan `skip_missed`;
+  - ALFRED tenía 2 tareas en revisión.
+- **Arreglo:** la línea pasó a `true`, con respaldo
+  `paperclip.env.bak-sdd0615-20261107T002534Z`, y se reinició `paperclip.service`. La salud dio
+  200 a los 15 s.
+- **Resultado:**
+  - las dos rutinas vencidas salieron una vez cada una, `triggered: 2`;
+  - el próximo latido es el 2026-11-07 a las 11:00 UTC y el próximo parte, el 2026-11-13 a las
+    18:00 UTC;
+  - ALFRED (Hermes) tomó las dos tareas.
+- **Volver atrás:** copiar el respaldo sobre `paperclip.env` y reiniciar `paperclip.service`.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.
-2. **Instalación:** hecha (sección anterior). Falta confirmar que la próxima corrida real de
-   ALFRED con Hermes pase.
+2. **Instalación:** hecha y comprobada con una corrida real de ALFRED.
 3. **Sam:** conectar el plan de Claude en Paperclip, iniciar la sesión de Codex como
    `agentes-auxiliar`, cambiar ALFRED en Harness, crear al Auxiliar y elegir el modelo.
-4. **Las rutinas de ALFRED nunca corrieron.** Hay que diagnosticarlas y arreglarlas antes de
-   probar el ciclo.
+4. **Rutinas de ALFRED:** arregladas el 2026-11-07 (sección anterior).
 5. **Probar el ciclo por ramas** (paso 7 de la spec) y la pregunta de control.
 6. **Temporales con salida cruda de la base:** borrados el 2026-11-06.
 
