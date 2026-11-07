@@ -5,6 +5,7 @@
  * manual en la action, NO Zod). `validateDashboardConfigInput` es defensiva:
  *   · descarta ids que NO estén en el catálogo (basura / catálogo viejo);
  *   · descarta ids de módulos a los que el usuario no tiene acceso (RBAC);
+ *   · descarta los KPIs marcados `oculto` en el catálogo (SDD-0614 S0b);
  *   · deduplica preservando el orden (el orden de `kpis` ES el orden de render);
  *   · limita `kpis` a MAX_KPIS;
  *   · normaliza `chartPeriod` a uno de los 4 valores (default '1A').
@@ -74,7 +75,7 @@ export function validateDashboardConfigInput(
   const kpis = dedupe(asStringArray(obj.kpis))
     .filter((id) => {
       const meta = kpiById(id);
-      return !!meta && canAccess(meta.module);
+      return !!meta && !meta.oculto && canAccess(meta.module);
     })
     .slice(0, MAX_KPIS);
 
@@ -109,7 +110,8 @@ export function accessibleCatalog(canAccess: ModuleAccessFn = ALLOW_ALL): {
   widgets: WidgetCatalogEntry[];
 } {
   return {
-    kpis: KPI_CATALOG.filter((k) => canAccess(k.module)),
+    // SDD-0614 S0b: un KPI oculto no se ofrece en el editor ni se pide su fuente.
+    kpis: KPI_CATALOG.filter((k) => !k.oculto && canAccess(k.module)),
     widgets: WIDGET_CATALOG.filter((w) => canAccess(w.module)),
   };
 }
