@@ -138,7 +138,7 @@ try {
       // un fallo de conexión salía como un ✗ mudo.
       const salida = `${res.stdout || ""}${res.stderr || ""}`.split("\n");
       const errores = salida.filter((l) => l.includes("ERROR:"));
-      const primera = salida.find((l) => l.trim());
+      const primera = salida.find((l) => /FATAL|error:|could not|server closed/i.test(l)) ?? salida.find((l) => l.trim());
       const err = (res.error
         ? [`el runner cortó a psql: ${res.error.code ?? res.error.message}`]
         : errores.length > 0 ? errores : [`psql salió con ${res.status} sin ERROR de SQL: ${(primera || "(sin salida)").trim()}`])
