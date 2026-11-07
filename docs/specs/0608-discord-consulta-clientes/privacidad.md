@@ -63,7 +63,7 @@ Sam pidió esta excepción a la regla «sin nombre» de la SDD-0606 con estas pa
 
 1. **El nombre del cliente sale a un tercero que `/privacidad` no declara** (puntos 7 y 9). `app/privacidad/page.tsx:246` lista alojamiento, correo, Meta, el proveedor de gestión de clientes, analítica y los equipos propios. No lista una mensajería interna. La SDD-0606 ya lo encontró para los avisos con código; esta spec lo agrava porque sale el **nombre**.
    - Por qué importa: en Venezuela la política es un compromiso. Lo que no dice no está informado (SC 332/2001, autonomía), y la transferencia a EE. UU. queda sin soporte.
-   - Arreglo: el texto de §5. **Lo aprueba Sam.** Esta rama no toca la página.
+   - Arreglo: el texto de §5. **Lo aprueba Sam.** Esta rama no toca la página. Sam lo aprobó y la PR #399 lo publicó en `main` (ver el final de §5).
 2. **La entrada de la lista de `/privacidad` promete confidencialidad que Discord no da por contrato** (punto 8). `app/privacidad/page.tsx:249` dice «Solo acceden a lo necesario y bajo obligación de confidencialidad». Un servidor gratuito de Discord se rige por sus términos de servicio, sin acuerdo de tratamiento.
    - Arreglo: poner la línea de Discord **fuera** de esa lista, en un párrafo propio (§5). La alternativa es conseguir un acuerdo que la respalde.
 3. **La cuenta compartida no deja atribuir una consulta a una persona.** Si alguien pega en su perfil el ID de la cuenta compartida «DTD Cargo», las consultas desde ella quedan a nombre de ese usuario, sin saber quién del equipo escribió.
@@ -85,6 +85,8 @@ Los dos `ENCONTRADO` corregidos en la rama, puntos 5 y 12, quedan en la tabla de
 
 Cuando la PR de la SDD-0606 entre a `main`, su fila de Discord dirá «sin nombre» para los avisos. Al traer `main` hay que **fundir las dos en una sola fila de Discord**, con este texto en «Qué recibe»: «Avisos internos con lo mínimo (título fijo, código, conteos, enlace; sin nombre ni contacto) y, por `/cliente`, el nombre y el Shipping Mark de hasta 10 clientes sólo para quien preguntó.»
 
+**Hecho (2026-11-06).** La PR #399 llevó a `main` esa fila fundida, «Discord — propuesto (SDD-0606 avisos y SDD-0608 `/cliente`), todavía sin datos», con el texto de arriba. La fila dice que es la única de Discord y que las de las PR #380 y #387 se quitan al integrarlas. Al traer `main` `2d006940f`, esta rama quitó la suya: el inventario queda igual al de `main`.
+
 ## 5 · `/privacidad`: texto exacto propuesto (lo aprueba Sam)
 
 **Sí cambia** `/privacidad` si se activa `/cliente`. Va en `app/privacidad/page.tsx`, sección «4. Con quién compartimos datos», como **párrafo propio después de la lista** y antes del párrafo «No compartimos la información de tu Portal…». No va como ítem de la lista, por el `ENCONTRADO` 2:
@@ -105,7 +107,9 @@ Notas para Sam:
 
 Sam pidió después que también funcione al revés: «si yo pregunto el código, me dice el cliente». `/cliente buscar:DTD-0123` devuelve el nombre de ese cliente. **No sale ningún dato nuevo:** siguen siendo nombre, Shipping Mark y enlace, y el código se compara exacto, sin comodines (`0516…sql`, camino `por_codigo`, con mutantes).
 
-Pero el texto aprobado de §4 dice «busca un cliente **por su nombre**». Con la búsqueda por código queda corto. Es un cambio de palabras, así que **vuelve a Sam**. Propuesta: «Cuando alguien del equipo con permiso para ver clientes busca un cliente por su nombre o por su Shipping Mark, la herramienta le muestra solo a esa persona el nombre y el Shipping Mark de los clientes que coinciden.» Hasta que Sam decida, la PR #399 sigue con el texto aprobado.
+El texto aprobado de §4 decía «busca un cliente **por su nombre**», y con la búsqueda por código quedaba corto. Volvió a Sam, que aprobó el cambio en esta sesión con «Sí, cámbialo»: «Cuando alguien del equipo con permiso para ver clientes busca un cliente por su nombre o por su Shipping Mark, la herramienta le muestra solo a esa persona el nombre y el Shipping Mark de los clientes que coinciden.»
+
+**Publicado en `main` por la PR #399** (merge `7a3cde25d`), con los dos textos de arriba y ese cambio, en `app/privacidad/page.tsx` §4 y §5 y la fecha «6 de noviembre de 2026». Esta rama no toca la página. Lo vigila `app/__tests__/privacidad-mensajeria-interna.test.tsx`, que renderiza la página y busca los textos literales.
 
 ## 6 · No verificable
 
