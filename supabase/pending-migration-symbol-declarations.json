@@ -62,16 +62,16 @@
             "app/studio/(app)/usuarios/actions.ts:1180",
             "app/studio/(app)/usuarios/actions.ts:1188",
             "app/studio/_components/wiring/ProfileModal.tsx:1699",
-            "lib/studio/alerts/dispatch-alert.ts:80",
-            "lib/studio/alerts/dispatch-alert.ts:82",
-            "lib/studio/alerts/dispatch-alert.ts:85",
-            "lib/studio/alerts/dispatch-alert.ts:86"
+            "lib/studio/alerts/dispatch-alert.ts:81",
+            "lib/studio/alerts/dispatch-alert.ts:83",
+            "lib/studio/alerts/dispatch-alert.ts:86",
+            "lib/studio/alerts/dispatch-alert.ts:87"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/alerts/dispatch-alert.ts:83",
+          "site": "lib/studio/alerts/dispatch-alert.ts:84",
           "contains": "if (error || !data) return [];",
           "degradation": "Si la consulta falla porque la columna no existe, no hay menciones: el aviso sale igual al canal. Medido en dispatch-alert.test.ts (resolveDiscordUserIds con consulta rota)."
         },
