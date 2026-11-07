@@ -25,13 +25,12 @@
 #      espacios o texto alrededor). Tiene que haber exactamente una.
 #   2. La normaliza a https://discord.com/api/webhooks/<id>/<token>
 #      (discordapp.com, ptb., canary. y /api/vN pasan a esa forma).
-#   3. La valida contra Discord: GET al webhook, 200 y el mismo id.
-#      - publicaciones: channel_id = 1567955265918079096.
-#      - los cinco del Studio: el servidor «DTD Cargo» (guild 1534936818951262390),
-#        el nombre del webhook que pide el runbook (sin distinguir mayúsculas) y un
-#        canal que no sea uno conocido de otra categoría (Servidor u Oficina).
-#        Los IDs de los canales de Operación no están medidos en el repo: por eso
-#        el nombre. El canal sale en la línea de GUARDADA (no es una llave).
+#   3. La valida contra Discord: GET al webhook, 200, el mismo id y el channel_id
+#      exacto del destino. Los IDs de canal (no son llaves) se leyeron en Discord el
+#      2026-11-07: #publicaciones 1567955265918079096 · #registro-clientes
+#      1567954867878629406 · #conversaciones-portal 1567954948333768854 · #bugs
+#      1567955017237921883 · #reporte-diario 1567955085550428251 · #avisos-equipo
+#      1567955151493271785. El nombre del webhook no importa.
 #   4. Respalda el archivo como <archivo>.antes-<sdd>-<fecha UTC> (600, en la misma
 #      carpeta: lleva llaves), reemplaza solo su variable y deja el archivo en 600
 #      root. En publicar.env además quita PUBLICAR_TELEGRAM_* (corte directo de la
@@ -45,9 +44,6 @@
 # Salida: 0 guardada · 1 no guardada · 64 uso.
 set -uo pipefail
 
-GUILD=1534936818951262390   # servidor «DTD Cargo»
-# Canales conocidos que NO son de Operación: Servidor y Oficina (docs/runbooks/oficina-corte-discord.md).
-OTROS="1567955265918079096 1567955345219780698 1567954536251920494 1567954632838479993 1567954709820473446 1567954800765829280"
 UA='DiscordBot (https://dtdcargo.com, 1.0)'
 
 DESTINO=publicaciones; CONFIG=""
@@ -61,12 +57,12 @@ while [ $# -gt 0 ]; do
 done
 
 case "${DESTINO}" in
-  publicaciones)  ARCHIVO=/srv/ops/web/publicar.env; CLAVE=PUBLICAR_DISCORD_WEBHOOK;       CANAL_NOMBRE='#publicaciones';         CANAL=1567955265918079096; NOMBRE=""; SDD=0609 ;;
-  registro)       ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_REGISTRO;       CANAL_NOMBRE='#registro-clientes';     CANAL=""; NOMBRE='Studio registro';       SDD=0606 ;;
-  conversaciones) ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_CONVERSACIONES; CANAL_NOMBRE='#conversaciones-portal'; CANAL=""; NOMBRE='Studio conversaciones'; SDD=0606 ;;
-  bugs)           ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_BUGS;           CANAL_NOMBRE='#bugs';                  CANAL=""; NOMBRE='Studio bugs';           SDD=0606 ;;
-  reportes)       ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_REPORTES;       CANAL_NOMBRE='#reporte-diario';        CANAL=""; NOMBRE='Studio reporte diario'; SDD=0606 ;;
-  equipo)         ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_EQUIPO;         CANAL_NOMBRE='#avisos-equipo';         CANAL=""; NOMBRE='Studio avisos equipo';  SDD=0606 ;;
+  publicaciones)  ARCHIVO=/srv/ops/web/publicar.env; CLAVE=PUBLICAR_DISCORD_WEBHOOK;       CANAL_NOMBRE='#publicaciones';         CANAL=1567955265918079096; SDD=0609 ;;
+  registro)       ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_REGISTRO;       CANAL_NOMBRE='#registro-clientes';     CANAL=1567954867878629406; SDD=0606 ;;
+  conversaciones) ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_CONVERSACIONES; CANAL_NOMBRE='#conversaciones-portal'; CANAL=1567954948333768854; SDD=0606 ;;
+  bugs)           ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_BUGS;           CANAL_NOMBRE='#bugs';                  CANAL=1567955017237921883; SDD=0606 ;;
+  reportes)       ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_REPORTES;       CANAL_NOMBRE='#reporte-diario';        CANAL=1567955085550428251; SDD=0606 ;;
+  equipo)         ARCHIVO=/srv/dtd-cargo/.env;       CLAVE=DISCORD_WEBHOOK_EQUIPO;         CANAL_NOMBRE='#avisos-equipo';         CANAL=1567955151493271785; SDD=0606 ;;
 esac
 CONFIG="${CONFIG:-${ARCHIVO}}"
 
@@ -93,7 +89,7 @@ T="$(mktemp -d)" || no "sin directorio temporal"
 trap 'rm -rf "${T}"' EXIT
 chmod 700 "${T}"
 
-# GET al webhook: Discord responde el objeto del webhook (id, name, channel_id, guild_id…).
+# GET al webhook: Discord responde el objeto del webhook (id, channel_id, guild_id…).
 codigo="$(printf 'url = "%s"\n' "${W}" | curl -s -K - --connect-timeout 10 -m 20 -o "${T}/respuesta" -w '%{http_code}' -A "${UA}" 2>/dev/null)"
 rc=$?
 [ "${rc}" = 0 ] || no "no pude preguntarle a Discord (curl ${rc}); no se cambió nada · $(que)"
@@ -104,15 +100,9 @@ case "${codigo}" in
   *) no "Discord respondió HTTP ${codigo:-sin respuesta} · $(que)" ;;
 esac
 campo() { grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "${T}/respuesta" | head -1 | sed -E 's/^"[^"]*"[[:space:]]*:[[:space:]]*"(.*)"$/\1/'; }
-canal="$(campo channel_id)"; id_resp="$(campo id)"; guild="$(campo guild_id)"; nombre="$(campo name)"
+canal="$(campo channel_id)"; id_resp="$(campo id)"
 [ "${id_resp}" = "${ID}" ] || no "la respuesta de Discord no es de ese webhook · $(que)"
-if [ -n "${CANAL}" ]; then
-  [ "${canal}" = "${CANAL}" ] || no "el webhook es del canal ${canal:-desconocido}, no de ${CANAL_NOMBRE} (${CANAL}) · $(que)"
-else
-  [ "${guild}" = "${GUILD}" ] || no "el webhook no es del servidor «DTD Cargo» · $(que)"
-  case " ${OTROS} " in *" ${canal} "*) no "el webhook es de un canal de Servidor u Oficina (${canal}), no de ${CANAL_NOMBRE} · $(que)" ;; esac
-  [ "${nombre,,}" = "${NOMBRE,,}" ] || no "el webhook se llama «${nombre:-sin nombre}» y para ${CANAL_NOMBRE} tiene que llamarse «${NOMBRE}»: ¿se copió el de otro canal? · $(que)"
-fi
+[ "${canal}" = "${CANAL}" ] || no "el webhook es del canal ${canal:-desconocido}, no de ${CANAL_NOMBRE} (${CANAL}) · $(que)"
 
 dir="$(dirname "${CONFIG}")"
 [ -d "${dir}" ] || no "no existe ${dir}"

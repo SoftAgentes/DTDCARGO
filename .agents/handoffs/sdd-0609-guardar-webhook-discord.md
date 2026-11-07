@@ -33,6 +33,59 @@ Pedido: el guion de instalación de la 0609 en el VPS; una lista única de lo qu
 - **`DISCORD_TENANT_ID`** no es de Sam. Lo pone la sesión de Contabo.
 - **La #403 y la #404** estaban verdes y se podían fusionar contra `main` `7e75f7708`. Ninguna de las dos necesitaba traer `main`.
 
+## TERCERA VUELTA · 2026-11-07 (la #404 queda como base; se suma lo útil de la #421)
+
+**Runbook § 3:**
+
+- Lectura previa: `antes.txt` con `stat` y sha256, `CONGELADO`, el timer y los nombres de las variables de `publicar.env`, sin valores. **PARAR** si el `publicar-web.sh` instalado no es `f71d27594e568f2b`.
+- Huellas de referencia, `git log ea8ca60d7..M` y paquete desde Git Bash con `MSYS_NO_PATHCONV=1` y `git cat-file blob`.
+- Carpeta de evidencia `instalar-avisos-discord-<UTC>` en 700, con `despues.txt`, `MANIFIESTO`, `SHA256SUMS` y `grep -c webhooks` = 0 sobre los `.txt` y el manifiesto. No sobre el paquete: sus guiones nombran la palabra en el código.
+- Cada temporal pasa `cmp` y `bash -n` antes del `mv`.
+- La #403 queda como opción aparte, con OK del DG y `free -m`.
+
+**§ 4 y § 6 corregidos:**
+
+- **Por dónde sale hoy `mail-health` en producción:** «no medido». Depende de si la web publicada es anterior a la #380 y de si `TELEGRAM_BOT_TOKEN` sigue en el `.env`.
+- **Script viejo:** sin `PUBLICAR_TELEGRAM_*`, no avisa aunque el token siga en el `.env`. El 01-nov ya decía «SIN CONFIGURAR».
+- **Vuelta atrás:** huella esperada `f71d…`, y `publicar.env` vuelve por un temporal en 600 con `mv`.
+
+**Huellas medidas por mí** (sha256, primeros 16):
+
+| Archivo | Commit | Huella |
+|---|---|---|
+| `publicar-web.sh` | `ea8ca60d7` | `f71d27594e568f2b` |
+| `publicar-web.sh` | `7e75f7708` | `1863b76e71e9f8f8` |
+| `publicar-web.sh` | `eef75ebef` | `1863b76e71e9f8f8` |
+| `aviso-discord.sh` | `7e75f7708` | `70639acad24ef26b` |
+| `aviso-discord.sh` | `eef75ebef` | `70639acad24ef26b` |
+| `publicar-web.sh` (#403) | `451363eb8` | `467c5f634af842a8` |
+| `guardar-webhook-discord.sh` | `2cf8a60cc` | `fbe2b697bf3aecf1` |
+
+Entre `ea8ca60d7` y `7e75f7708`, el único commit en `publicar-web.sh` es `f69d520b4`. Coincide con lo que dijo el Subdirector.
+
+**Pregunta de la cola de la 0606, medida.** `ALERT_OUTBOX_CATEGORIES` (`lib/studio/alerts/alert-outbox.ts:36-40`) solo decide qué categorías se reintentan por la cola durable: registro, bugs y reportes. Conversaciones y equipo **sí tienen uso**: salen directo por `dispatchAlert`. En `main` `eef75ebef` hay 2 llamadas con «conversaciones» y 9 con «equipo», entre ellas `mail-health` y `alta-health`. Lo que no tienen es reintento por la cola. Por eso sus webhooks hacen falta.
+
+**Canales de Operación, medidos en Discord** (2026-11-07, solo lectura, con la sesión de Sam en el panel):
+
+| Canal | ID |
+|---|---|
+| `#registro-clientes` | `1567954867878629406` |
+| `#conversaciones-portal` | `1567954948333768854` |
+| `#bugs` | `1567955017237921883` |
+| `#reporte-diario` | `1567955085550428251` |
+| `#avisos-equipo` | `1567955151493271785` |
+
+- **El guion exige ahora el `channel_id` exacto en los seis destinos.** Se quitaron la comprobación por nombre, la del servidor y la lista de canales ajenos de la segunda vuelta: el ID exacto las cubre todas, y Sam puede poner cualquier nombre.
+- **Webhooks existentes:** `#registro-clientes` tiene 0. Los otros cuatro no se alcanzaron a abrir.
+- **Prueba:** 29 PASÓ · 0 FALLÓ · 1 NO VERIFICADO.
+- **Mutantes puntuales:** «sin comprobar el canal» da 24/8 y «equipo con el canal de reportes» da 28/1. Los dos MUERTOS.
+
+## FUERA DE ALCANCE DETECTADO
+
+- **`docs/runbooks/chatwoot-vigilancia.md`** todavía dice «Telegram» en los 4 monitores de Kuma de Chatwoot. Desde el 2026-11-06 avisan a Discord `#salud`. Es del Subdirector de Chatwoot.
+- **La cola de la 0606** no reintenta conversaciones ni equipo. Si Discord falla, esos avisos no se guardan para después. Decide el DG si entra en otra SDD.
+- **Los avisos de correo** van a `#avisos-equipo` y no a `#salud`, como dicen el plan maestro y la 0610. Ver la segunda vuelta.
+
 ## OBJETIVO ORIGINAL
 
 Un guion para que Sam guarde en el VPS de producción la dirección del webhook de `#publicaciones`. La pide así:

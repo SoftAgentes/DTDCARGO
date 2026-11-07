@@ -128,13 +128,14 @@ reiniciar; rm -f "${CFG}"; printf '%s\n' "${BUENA}" | correr
 [ "${RC}" = 0 ] && [ "$(grep -c . "${CFG}")" = 1 ] && [ "$(guardada)" = "${BUENA}" ] && ! grep -q respaldo "${T}/salida" && ok "sin publicar.env: lo crea con la línea, sin respaldo" || { ko "sin archivo rc=${RC}"; ver; }
 
 echo "== destinos del Studio (SDD-0606) =="
-# Los cinco van al .env de la app. Sus canales no tienen ID medido: se exige el servidor
-# «DTD Cargo», el nombre del webhook del runbook y un canal que no sea de Servidor u Oficina.
-APPENV="${T}/srv/dtd-cargo/.env"; GUILD=1534936818951262390
+# Los cinco van al .env de la app, cada uno a su variable, con el channel_id exacto de
+# su canal (IDs leídos en Discord el 2026-11-07).
+APPENV="${T}/srv/dtd-cargo/.env"
+C_REG=1567954867878629406; C_CONV=1567954948333768854; C_BUGS=1567955017237921883; C_REP=1567955085550428251; C_EQ=1567955151493271785
 IDR=1570000000000000003; TOKR="TokenSecreto_registro-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJ0123456789"
 REG="https://discord.com/api/webhooks/${IDR}/${TOKR}"
-studio() { # $1 = nombre del webhook, $2 = canal, $3 = guild
-  printf '200|{"type": 1, "id": "%s", "name": "%s", "channel_id": "%s", "guild_id": "%s", "token": "%s", "user": {"id": "999", "username": "sam"}}\n' "${IDR}" "$1" "$2" "$3" "${TOKR}" > "${D}/webhooks/${IDR}"
+studio() { # $1 = canal del webhook
+  printf '200|{"type": 1, "id": "%s", "name": "Spidey Bot", "channel_id": "%s", "guild_id": "1534936818951262390", "token": "%s", "user": {"id": "999", "username": "sam"}}\n' "${IDR}" "$1" "${TOKR}" > "${D}/webhooks/${IDR}"
 }
 app_env() {
   mkdir -p "${T}/srv/dtd-cargo"
@@ -146,33 +147,28 @@ correr_app() { # $1 = destino
   PATH="${T}/bin:${PATH}" DOBLE="${D}" bash "${SCRIPT}" "$1" --config "${APPENV}" > "${T}/salida" 2>&1
   RC=$?; cat "${T}/salida" >> "${TODO}"
 }
-reiniciar; app_env; studio 'Studio registro' 1580000000000000001 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
-[ "${RC}" = 0 ] && grep -q "^GUARDADA (registro) · ${#REG} caracteres · sha256 [0-9a-f]\{12\} · canal #registro-clientes 1580000000000000001 · DISCORD_WEBHOOK_REGISTRO en " "${T}/salida" \
+reiniciar; app_env; studio "${C_REG}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 0 ] && grep -q "^GUARDADA (registro) · ${#REG} caracteres · sha256 [0-9a-f]\{12\} · canal #registro-clientes ${C_REG} · DISCORD_WEBHOOK_REGISTRO en " "${T}/salida" \
   && [ "$(grep -c '^DISCORD_WEBHOOK_REGISTRO=' "${APPENV}")" = 1 ] && grep -qx "DISCORD_WEBHOOK_REGISTRO=${REG}" "${APPENV}" \
   && grep -qx "TELEGRAM_BOT_TOKEN='123:SECRETO'" "${APPENV}" && grep -qx 'CRON_SECRET="x"' "${APPENV}" && grep -qx 'APP_ENV=production' "${APPENV}" \
   && ls -A "${T}/srv/dtd-cargo" | grep -q '^\.env\.antes-0606-[0-9]\{8\}T[0-9]\{6\}Z$' \
   && ok "registro: reemplaza solo DISCORD_WEBHOOK_REGISTRO en el .env de la app, no toca TELEGRAM_BOT_TOKEN ni lo demás, respaldo .env.antes-0606-<fecha>" \
   || { ko "registro rc=${RC}"; ver; }
-reiniciar; app_env; studio 'STUDIO REGISTRO' 1580000000000000001 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
-[ "${RC}" = 0 ] && ok "el nombre del webhook no distingue mayúsculas" || { ko "mayúsculas rc=${RC}"; ver; }
-reiniciar; app_env; studio 'Studio bugs' 1580000000000000001 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
-[ "${RC}" = 1 ] && grep -q 'se llama «Studio bugs» y para #registro-clientes tiene que llamarse «Studio registro»' "${T}/salida" && app_sin_cambios \
-  && ok "el webhook de otro canal de Operación (por el nombre): NO GUARDADA, sin respaldo ni cambios" || { ko "nombre ajeno rc=${RC}"; ver; }
-reiniciar; app_env; studio 'Studio registro' 1580000000000000001 1234567890123456789; printf '%s\n' "${REG}" | correr_app registro
-[ "${RC}" = 1 ] && grep -q 'no es del servidor «DTD Cargo»' "${T}/salida" && app_sin_cambios && ok "webhook de otro servidor de Discord: NO GUARDADA" || { ko "otro servidor rc=${RC}"; ver; }
-reiniciar; app_env; studio 'Studio registro' "${SALUD}" "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
-[ "${RC}" = 1 ] && grep -q "es de un canal de Servidor u Oficina (${SALUD})" "${T}/salida" && app_sin_cambios \
-  && ok "un webhook en #salud aunque se llame «Studio registro»: NO GUARDADA" || { ko "canal de Servidor rc=${RC}"; ver; }
-reiniciar; app_env; studio 'Studio registro' 1567954536251920494 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
-[ "${RC}" = 1 ] && grep -q 'es de un canal de Servidor u Oficina' "${T}/salida" && app_sin_cambios && ok "un webhook en #alfred (Oficina): NO GUARDADA" || { ko "canal de Oficina rc=${RC}"; ver; }
+reiniciar; app_env; studio "${C_BUGS}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 1 ] && grep -q "el webhook es del canal ${C_BUGS}, no de #registro-clientes (${C_REG})" "${T}/salida" && app_sin_cambios \
+  && ok "el webhook de #bugs pegado como registro: NO GUARDADA, sin respaldo ni cambios" || { ko "canal ajeno rc=${RC}"; ver; }
+reiniciar; app_env; studio "${SALUD}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 1 ] && grep -q "el webhook es del canal ${SALUD}" "${T}/salida" && app_sin_cambios && ok "un webhook de #salud como registro: NO GUARDADA" || { ko "salud como registro rc=${RC}"; ver; }
 todos=1
-for par in 'conversaciones|Studio conversaciones|DISCORD_WEBHOOK_CONVERSACIONES' 'bugs|Studio bugs|DISCORD_WEBHOOK_BUGS' 'reportes|Studio reporte diario|DISCORD_WEBHOOK_REPORTES' 'equipo|Studio avisos equipo|DISCORD_WEBHOOK_EQUIPO'; do
-  IFS='|' read -r dest nom var <<< "${par}"
-  reiniciar; app_env; studio "${nom}" 1580000000000000002 "${GUILD}"; printf '%s\n' "${REG}" | correr_app "${dest}"
+for par in "conversaciones|${C_CONV}|DISCORD_WEBHOOK_CONVERSACIONES" "bugs|${C_BUGS}|DISCORD_WEBHOOK_BUGS" "reportes|${C_REP}|DISCORD_WEBHOOK_REPORTES" "equipo|${C_EQ}|DISCORD_WEBHOOK_EQUIPO"; do
+  IFS='|' read -r dest canal var <<< "${par}"
+  reiniciar; app_env; studio "${canal}"; printf '%s\n' "${REG}" | correr_app "${dest}"
   { [ "${RC}" = 0 ] && grep -qx "${var}=${REG}" "${APPENV}" && grep -qx 'DISCORD_WEBHOOK_REGISTRO=https://discord.com/api/webhooks/1/vieja' "${APPENV}"; } || { todos=0; ko "${dest} rc=${RC}"; ver; }
+  reiniciar; app_env; studio "${C_REG}"; printf '%s\n' "${REG}" | correr_app "${dest}"
+  { [ "${RC}" = 1 ] && app_sin_cambios; } || { todos=0; ko "${dest} aceptó el canal de registro rc=${RC}"; ver; }
 done
-[ "${todos}" = 1 ] && ok "conversaciones, bugs, reportes y equipo: cada uno a su variable, sin tocar las otras"
-reiniciar; app_env; studio 'Studio registro' 1580000000000000001 "${GUILD}"; printf '%s\n' "${BUENA}" | correr_app registro
+[ "${todos}" = 1 ] && ok "conversaciones, bugs, reportes y equipo: cada uno a su variable con su canal exacto, y rechazan el canal de otro"
+reiniciar; app_env; printf '%s\n' "${BUENA}" | correr_app registro
 [ "${RC}" = 1 ] && app_sin_cambios && ok "la dirección de #publicaciones pegada como registro: NO GUARDADA" || { ko "publicaciones como registro rc=${RC}"; ver; }
 reiniciar; correr otro-destino < /dev/null
 [ "${RC}" = 64 ] && grep -q 'el destino es publicaciones, registro, conversaciones, bugs, reportes o equipo' "${T}/salida" && ok "un destino desconocido: error de uso (64)" || { ko "destino raro rc=${RC}"; ver; }
