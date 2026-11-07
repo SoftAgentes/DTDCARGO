@@ -79,7 +79,8 @@
 | `node scripts/avance-checklist.mjs …/checklist.md --json`, comparado campo por campo con `main` (`250e86f65`) y con la base (`eef75ebef`) | PASÓ: sin diferencias. 49,03 %, etapa E4, paso 4.4, restante 62 d, línea base v4 de 129,5 d |
 | «Correo automático (datos inventados)», 1.ª corrida sobre `69eaa40f8` | FALLÓ 1 de 25: M4, porque el detector no podía ver nada (COMPLETADO, punto 9). Pasaron T (31/31), C, M0 y M1, M2, M3, M5, M6 y M7 |
 | «Correo automático (datos inventados)», 2.ª corrida sobre `86a520e9d` (run 42412688316, de 20:46:54Z a 20:52:44Z) | PASÓ 34 de 34, 0 fallas. M4 cae por su motivo: `a_aviso_estado` da 1 sin el autor y 0 con él. V da 30 de 30, y W1 y W2 caen |
-| «Correo automático», 3.ª corrida, con la revisión independiente (T7, T8, C3, M8, `v_csat` y `timeout-minutes` en 25) | Corre sobre el commit siguiente; se anota en un commit solo de documentos |
+| «Correo automático», 3.ª corrida sobre `e6b47b3ba`, con la revisión independiente (run 42413311941, job 128525883687, de 20:54:49Z a 21:01:05Z) | PASÓ 39 de 39, 0 fallas: la sonda 39 de 39 y V 31 de 31. Pasan T7, T8, C3 y M8, y M4 sigue cayendo. Leído con `gh api` por el Subdirector y por mí |
+| «Calidad continua» sobre `e6b47b3ba` (run 42413311901) | Seguía en curso a las 21:02Z; lo lee el Subdirector |
 | `prueba-correo-sistema.sh` en la PC (Docker) | NO EJECUTADO, porque Docker Desktop levanta 22 contenedores ajenos |
 | Ruby en la PC | NO DISPONIBLE (no hay `ruby`); lo cubre la corrida de Actions |
 | `knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en el worktree (estructural y semántica UNAVAILABLE) |
@@ -89,7 +90,9 @@
 
 - `7ae38e229`: el inicializador de correo automático y su prueba (sin instalar).
 - `69eaa40f8`: DNS, plan, lista para Sam, checklist y este handoff.
-- El commit siguiente: el guion de PC-3 y su prueba, el arreglo del detector de la sonda de P4, el chequeo de los mutantes, la allowlist de `spec.md` y la evidencia de las corridas. Su SHA está en la PR.
+- `86a520e9d`: el guion de PC-3 y su prueba, el arreglo del detector de la sonda de P4, el chequeo de los mutantes, la allowlist de `spec.md` y la evidencia de las corridas.
+- `e6b47b3ba`: la revisión independiente (clase con `safe_constantize`, encuesta CSAT apagada, caso P y `timeout-minutes` en 25).
+- El commit siguiente, solo de documentos: el resultado de la 3.ª corrida.
 
 ## PR / BRANCH
 
@@ -97,7 +100,7 @@ PR en borrador desde `claude/goofy-archimedes-797aef` hacia `main`. Sin fusionar
 
 ## PENDIENTES DE ESTA TAREA
 
-- Resultado de la 2.ª corrida de «Correo automático» sobre el commit nuevo: lo lee el Subdirector y se anota en §6.3 con su SHA. Si sale rojo, se corrige la sonda o el código, nunca la expectativa.
+- «Calidad continua» sobre la cabeza: lo lee el Subdirector.
 - Al instalar, si Sam elige la opción (b):
   - sumar la pieza a `docs/runbooks/chatwoot-versiones.md`;
   - sumarla a la lista de piezas de `lib/studio/chatwoot/analisis.ts`, que es código de Studio, con su propia SDD;

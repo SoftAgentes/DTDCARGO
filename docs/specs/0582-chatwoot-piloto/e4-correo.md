@@ -287,13 +287,16 @@ Se corrigió así:
 - **M4 cae por su motivo:** sin el autor, Chatwoot escribe 1 nota de estado (`a_aviso_estado` = 1); con el autor, 0. La línea del autor sí hace falta.
 - Pasaron T, el control C con su detector (caso Z), M0, los 7 mutantes, los casos V del guion de PC-3 (30 de 30) y W1 y W2.
 
-**Tercera corrida, con la revisión independiente:**
-- la guarda de la clase, con T7 y M8;
-- la encuesta CSAT apagada, con T8 y `v_csat`;
-- el caso P (C3);
-- `timeout-minutes` de 40 a 25.
+**Resultado de la tercera corrida, con la revisión independiente** (`e6b47b3ba`, run 42413311941, job 128525883687, 2026-11-07 de 20:54:49Z a 21:01:05Z): **PASÓ 39 de 39, 0 fallas.**
+- La sonda da 39 de 39 y el guion de PC-3, 31 de 31.
+- Lo nuevo de esta corrida:
+  - T7: si falta la clase, solo avisa;
+  - T8: 0 salientes y 0 correos, con la encuesta CSAT apagada;
+  - C3: la regla resuelve al mailer-daemon sin `Auto-Submitted`;
+  - M8: con `constantize`, la clase que falta da `NameError`.
+- M4 sigue cayendo por su motivo.
 
-Su resultado se anota aquí con su SHA en un commit solo de documentos, que no vuelve a disparar el flujo.
+Esta anotación va en un commit solo de documentos, que no vuelve a disparar el flujo.
 
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 
