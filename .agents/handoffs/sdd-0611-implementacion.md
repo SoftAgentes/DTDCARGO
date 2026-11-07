@@ -146,6 +146,21 @@ La 0518 cambia `seo_drafts_categoria_check` **solo** si todavía tiene la lista 
 4. **BAJA:** el riesgo de que un admin escriba `reviewer_verdict` quedó anotado en la spec, §11.1, como riesgo aceptado.
 5. `set local`: sin cambios.
 
+## Puesta al día con `main` `dda93b219` (2026-11-07, turno del DG de las 23:20Z)
+
+Merge (no rebase) con el driver `dtd-generated-records`. Entró sin conflictos y el índice regenerado no cambió. `main` trae `sql-tests.yml`, que corre `supabase/tests/*.test.sql` con `psql` en postgres:17. El contrato de la 0518 ya aplica las migraciones con `\ir`, así que corre ahí sin cambios. Los md5 de la 0518 (`c692dfa9…`) y del desarme (`b81612eb…`) no cambiaron, y los paquetes de `ce9b3e363` siguen valiendo.
+
+| Comprobación | Resultado |
+|---|---|
+| Candado (`migrations-lock.mjs`) | PASÓ: 503 selladas (la mayor, 0517) y 3 esperas: 0422, 0423 y 0518. Historia comparada contra `dda93b2192f4` |
+| Gate de símbolos | PASÓ: 0 ROJO · 0 AMARILLO |
+| docs:check / sdd:check | PASÓ / PASÓ |
+| `git diff --check dda93b219 HEAD` | PASÓ |
+| Vitest, `--maxWorkers=1`, en `lib/news`, `lib/studio/news` y `noticias-web` | PASÓ: 13 archivos, 270/270. Incluye el contrato PGlite de 66 aserciones y los 21 mutantes |
+| eslint de los 18 archivos de la PR / `tsc --noEmit` | PASÓ / PASÓ |
+| `sql-tests` con Postgres real | NO EJECUTADO en local (Docker queda para GitHub Actions); lo corre el CI de la PR |
+| `pnpm verify` / build | NO EJECUTADO: el DG lo pidió así |
+
 ## PENDIENTES DE ESTA TAREA
 
 - Plazo de retención y purga de `news_publication_audit`, `news_post_exits` y `news_autopublish_settings_log`. Lo decide Sam; va en la segunda PR.
@@ -162,7 +177,7 @@ La 0518 cambia `seo_drafts_categoria_check` **solo** si todavía tiene la lista 
   - devolución del motivo a la oficina por la puerta de salida (0610), con `notaParaOficina`.
 - Crear el canal `#noticias` y su webhook en Discord (Sam), y cargar `DISCORD_WEBHOOK_NOTICIAS` y `NEWS_NOMBRES_PROHIBIDOS` en el servidor. Ninguna de las dos llaves va al repo.
 - Carrera con `dblink` en la suite SQL local.
-- Pasada completa de `revisar-datos-ve` y la línea de `#noticias` en `inventario-terceros.md`. Ese texto legal pasa por el Director General antes.
+- Los dos ENCONTRADO de `privacidad.md`: plazo de retención (Sam) y declarar al personal que su nombre sale en `#noticias` antes de enganchar la vía manual.
 - Legibilidad (Fernández Huerta) y variación de oraciones: la spec dice medirlas desde el primer día y volverlas filtro después de la prueba. No están construidas.
 
 ## Interpretaciones (inferidas, para confirmar)
@@ -181,6 +196,7 @@ La 0518 cambia `seo_drafts_categoria_check` **solo** si todavía tiene la lista 
 - **`seo_drafts.categoria` seguía con las 10 categorías viejas de la 0053.** La 0518 la corrige como NOT VALID. Falta comprobar en producción si `saveDraft` con las categorías nuevas funciona hoy, o si el CHECK se cambió fuera de banda.
 - **`news_posts` no tiene `content_kind`, `cover_image_url` ni `reviewer_name`** en ninguna migración del repo, aunque `lib/news/types.ts` los declara. Lo automático no guarda portada ni tipo de contenido en la noticia.
 - **El control de precio ataja frases de la regla de densidad**, como «500 kg por metro cúbico». Es un falso positivo aceptado: la noticia va a revisión manual.
+- **Prueba intermitente de Chatwoot (SDD-0589):** `lib/studio/chatwoot/__tests__/guia-panel.test.ts:185` («vuelve a contestar solo cuando algo cambió»). La prueba espera 5 ms fijos (`esperar()`, línea 84) y bajo la carga del CI a veces no alcanza. Puso rojo el CI de la #417 en `e7cff494c`. Debería esperar una condición.
 
 ## COMMITS
 
