@@ -6,7 +6,8 @@ en [publicacion-automatica-web.md](publicacion-automatica-web.md).
 **Estado:** preparado en la rama, **sin instalar**. Nada de esto se hace antes de
 que la PR esté fusionada y el Director General autorice instalar el script en el
 VPS de producción. La publicación de la web sigue congelada: este corte no la
-descongela ni publica nada.
+descongela ni publica nada. El orden de la ventana y la lista de lo que Sam crea o
+pega están en [instalar-avisos-servidor-discord.md](instalar-avisos-servidor-discord.md).
 **Decisión:** Sam, 2026-11-05: Discord reemplaza a Telegram como central única de
 avisos, con **corte directo** (sin semana de doble envío).
 
