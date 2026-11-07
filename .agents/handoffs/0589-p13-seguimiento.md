@@ -42,6 +42,16 @@ La primera versión de la prueba de la doble pulsación pasaba sin el arreglo, p
 | Suite de la guía con `guia-se-queda` de la S0, sobre el árbol fusionado | PASÓ: 182 de 182 en 11 archivos |
 | `tsc`, ESLint de los 2 archivos y checks de docs | PASÓ |
 
+**Segunda revisión de la #418 (sobre `ac50c6fca`).** La regresión quedó cerrada. Quedaba un hallazgo menor CONFIRMADO, una variante de B1: la espera heredada la crea el evento, así que no se cancelaba al cambiar la URL. Si alguien pedía otra vez, se iba a Asesor y volvía a Embudos antes de 10 s, la guía se abría sola. Arreglo: un efecto cancela la espera viva cuando la URL deja la pestaña de su recorrido. Del POSIBLE, el `replace` perdido que dejaba el pedido pegado, también quedó cerrado: el pedido vence a los 10 s (`VIGENCIA_PEDIDO_MS`) y la pulsación siguiente lo vuelve a pedir.
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo contra el motor de `ac50c6fca` | FALLÓ, como se esperaba: 2 de 26 (S8, irse y volver; S9, cambio perdido) |
+| Con el arreglo | PASÓ: 26 de 26 |
+| 10 mutantes, de a uno | PASÓ: 10 de 10 muertos (MC y MV nuevos), todo restaurado |
+| Suite de la guía con `guia-se-queda` | PASÓ: 184 de 184 en 11 archivos |
+| `tsc`, ESLint de los 2 archivos y checks de docs | PASÓ |
+
 ## COMMITS
 
 Ver la PR. Commits selectivos con `git commit -F`.

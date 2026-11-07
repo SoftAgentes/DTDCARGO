@@ -721,3 +721,28 @@ Con el turno de máquina que dio el Subdirector y la regla nueva de dos corridas
 | `tsc --noEmit` sobre el árbol fusionado | PASÓ |
 | `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
 | `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
+
+### 2026-11-07 · Segunda revisión de la #418: la espera heredada sobrevivía a un cambio de pestaña
+
+**Fuente.** Segunda revisión de la #418, sobre `ac50c6fca`. La regresión quedó cerrada, y B1 y B2 también. El Director General dijo que esta es la última vuelta si sale limpia. Queda un hallazgo menor CONFIRMADO y uno POSIBLE.
+
+- **CONFIRMADO, una variante de B1.** La espera heredada la crea el evento y no el efecto del pedido, así que ya no se cancelaba al cambiar la URL, como prometía su comentario. Pasos: tablero de 1,5 s, pulsar, llega Embudos, pulsar otra vez, ir a Asesor y volver a Embudos antes de 10 s. La guía se abría sola.
+  - **Arreglo:** un efecto nuevo, que depende de la consulta, cancela la espera viva cuando la URL deja la pestaña de su recorrido. Le da igual quién haya empezado la espera: el pedido, el evento o la URL. Un cambio dentro de la misma pestaña, como `?embudo=`, no la cancela.
+- **POSIBLE, cerrado en esta tanda.** Si el `replace` se pierde sin que cambie la URL, el pedido queda pegado, y las pulsaciones siguientes, que lo ven «en camino», no vuelven a pedir el cambio.
+  - **Arreglo:** el pedido guarda `pedidoEn`. Pasados 10 s (`VIGENCIA_PEDIDO_MS`, lo mismo que la espera tras cambiar de pestaña), se da por perdido y la pulsación siguiente lo vuelve a pedir. Son tres líneas. El doble de navegación agrega `perder`, un `replace` que no cambia la URL.
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S8 | Pedir otra vez, irse a otra pestaña y volver antes de 10 s: la guía no se abre sola y no se pide otro cambio | `GuiaEmbudoPestana.test.tsx`, rojo contra `ac50c6fca` |
+| S9 | Si el cambio de pestaña se pierde, una pulsación antes de 10 s no lo repite, y una pasados 10 s lo vuelve a pedir y la guía abre | `GuiaEmbudoPestana.test.tsx`, rojo contra `ac50c6fca` |
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo de la segunda revisión: las pruebas contra el `GuiaMotor.tsx` de `ac50c6fca` (M0s) | FALLÓ, como se esperaba: 2 de 26. Caen S8 y S9 |
+| Con el arreglo | PASÓ: 26 de 26 |
+| 10 mutantes, de a uno, con base verde | PASÓ: 10 de 10 muertos. M0s tumba 2. MC, sin la cancelación, tumba S8. MV, sin la vigencia, tumba S9. MH, MD, MD2, MB1, MB2a, MB2b y MB2c siguen muertos. Todo restaurado |
+| ESLint de los 2 archivos, con `--max-warnings=0` | PASÓ |
+| Suite de la guía más `crm/__tests__/guia-se-queda.test.ts`, con 1 worker y sin otro vitest vivo en la máquina | PASÓ: 184 de 184 en 11 archivos |
+| `tsc --noEmit` | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
