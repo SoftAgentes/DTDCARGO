@@ -102,10 +102,17 @@ vigilar_carga() {
 }
 
 # ── Guarda 2: el borrado ─────────────────────────────────────────────────────
+# Cuántos hay del proyecto, o «?» si docker no responde (sin daemon, sin permiso): un docker caído no es «0».
+contar_del_ensayo() { # ps | volume | network
+  local ids
+  case "$1" in
+    ps) ids="$(docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" 2>/dev/null)" ;;
+    *) ids="$(docker "$1" ls -q --filter "label=com.docker.compose.project=$PROYECTO" 2>/dev/null)" ;;
+  esac || { echo '?'; return 0; }
+  printf '%s' "$ids" | grep -c .
+}
 recursos_del_ensayo() {
-  echo "contenedores=$(docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" | wc -l)" \
-       "volumenes=$(docker volume ls -q --filter "label=com.docker.compose.project=$PROYECTO" | wc -l)" \
-       "redes=$(docker network ls -q --filter "label=com.docker.compose.project=$PROYECTO" | wc -l)"
+  echo "contenedores=$(contar_del_ensayo ps) volumenes=$(contar_del_ensayo volume) redes=$(contar_del_ensayo network)"
 }
 SIN_RESTOS="contenedores=0 volumenes=0 redes=0"
 # El trap de EXIT corre siempre, y sale con el código del ensayo: 0 si pasó todo, 1 con fallas, 3 por la carga o
@@ -157,7 +164,10 @@ limpiar() {
   log "== limpieza: $restos, carpeta $carpeta," \
       "producción: postgres $(docker inspect -f '{{.State.Status}}' "$PROD_PG" 2>/dev/null || echo ausente)"
   if [ "$completa" != si ]; then
-    mal L0 "la limpieza no terminó: quedan $restos y la carpeta está $carpeta. No se borró nada ajeno: mira qué los usa (docker network inspect $RED) y corre --limpiar"
+    case "$restos" in
+      *'?'*) mal L0 "no se pudo comprobar la limpieza: docker no respondió ($restos, carpeta $carpeta). Revísalo y corre --limpiar" ;;
+      *) mal L0 "la limpieza no terminó: quedan $restos y la carpeta está $carpeta. No se borró nada ajeno: mira qué los usa (docker network inspect $RED) y corre --limpiar" ;;
+    esac
     [ "$rc" = 0 ] && rc=4
   fi
   evidencia "HECHO ensayo_codigo=$rc"

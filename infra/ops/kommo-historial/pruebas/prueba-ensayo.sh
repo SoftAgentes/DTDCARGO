@@ -25,6 +25,7 @@
 #   P   la producción simulada queda intacta: sin «Archivo Kommo», mismas bandejas y conversaciones (huella),
 #       contenedores corriendo
 #   L   no queda nada del ensayo (contenedores, volúmenes, redes, carpeta) y --limpiar no rompe nada
+#   L3  con docker caído, --limpiar no cuenta 0: sale con 4 y dice que no pudo comprobar la limpieza
 #   F   la evidencia solo trae líneas HECHO y ningún valor inventado de personas
 #
 # Uso:  bash infra/ops/kommo-historial/pruebas/prueba-ensayo.sh
@@ -238,52 +239,64 @@ corrida() { # guion id stop|main [intruso]
   sudo -n systemctl reset-failed "$u" >/dev/null 2>&1
   return 0
 }
-# T1 y T2: la parada sale con 143 (exited, no muerta por la señal), la unidad queda en exit-code, la evidencia lo
-# dice y no queda nada.
+# Cada caso deja «si» o «no:<motivo>», el primer requisito que no se cumplió. Así un mutante tiene que caer por el
+# motivo que le toca, no por otro.
+MOTIVO=""
+falta() { MOTIVO="$1"; return 1; }
+# T1 y T2: el TERM llegó con un runner del ensayo corriendo (el choque de §10.16); la parada sale con 143 (exited,
+# no muerta por la señal) y la unidad queda en exit-code; la evidencia lo dice, y no queda nada.
 t_ok() {
   local E="$TRABAJO/evidencia-$1.txt"
-  [ "$(cat "$TRABAJO/$1.unidad" 2>/dev/null)" = "exit-code 1 143" ] && ver "$E" | grep -qx "HECHO senal=TERM" \
-    && ver "$E" | grep -qx "HECHO ensayo_codigo=143" && ver "$E" | grep -qx "HECHO limpieza_completa=si" \
-    && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=0" \
-    && grep -q "^FALLÓ PARADA — " "$TRABAJO/ensayo-$1.txt" && [ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ]
+  [ "$(cat "$TRABAJO/$1.vivo" 2>/dev/null)" = "con un runner vivo" ] || falta runner || return 1
+  [ "$(cat "$TRABAJO/$1.unidad" 2>/dev/null)" = "exit-code 1 143" ] || falta unidad || return 1
+  { ver "$E" | grep -qx "HECHO senal=TERM" && ver "$E" | grep -qx "HECHO ensayo_codigo=143" \
+    && grep -q "^FALLÓ PARADA — " "$TRABAJO/ensayo-$1.txt"; } || falta senal || return 1
+  { ver "$E" | grep -qx "HECHO limpieza_completa=si" && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=0" \
+    && [ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ]; } || falta limpieza || return 1
 }
-# T3: con el ajeno en la red, la limpieza dice que no terminó, no sale con 0 y no toca al ajeno. `--limpiar`,
-# igual. Cuando el ajeno se va, `--limpiar` deja todo en 0 y sale con 0.
+# T3: con el ajeno en la red, la limpieza no lo toca, dice que no terminó y no sale con 0. `--limpiar`, igual.
+# Cuando el ajeno se va, `--limpiar` deja todo en 0 y sale con 0.
 t3_ok() { # guion id
   local g="$1" E="$TRABAJO/evidencia-$2.txt" res cod est rc1 rc2 sigue
+  sigue="$(docker inspect -f '{{.State.Status}}' "$INTRUSO" 2>/dev/null)"
+  docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' chatwoot-ensayo_aislada 2>/dev/null | grep -qw "$INTRUSO" \
+    || sigue="${sigue:-ausente},fuera-de-la-red"
+  echo "el ajeno después del ensayo: $sigue" >"$TRABAJO/$2.limpiar"
+  [ "$sigue" = running ] || falta ajeno || return 1
   read -r res cod est <"$TRABAJO/$2.unidad"
-  { [ "$res" = exit-code ] && [ "${est:-0}" != 0 ] && ver "$E" | grep -qx "HECHO limpieza_completa=no" \
-    && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=1" \
-    && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2.txt"; } || return 1
+  { [ "$res" = exit-code ] && [ "${est:-0}" != 0 ]; } || falta unidad || return 1
+  { ver "$E" | grep -qx "HECHO limpieza_completa=no" && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=1" \
+    && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2.txt"; } || falta completa || return 1
   sudo -n env EVIDENCIA="$TRABAJO/evidencia-$2-l1.txt" bash "$g" --limpiar >"$TRABAJO/ensayo-$2-l1.txt" 2>&1
   rc1=$?
   sigue="$(docker inspect -f '{{.State.Status}}' "$INTRUSO" 2>/dev/null)"
-  docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' chatwoot-ensayo_aislada 2>/dev/null | grep -qw "$INTRUSO" \
-    || sigue="$sigue,fuera-de-la-red"
   docker rm -f "$INTRUSO" >/dev/null 2>&1
   sudo -n env EVIDENCIA="$TRABAJO/evidencia-$2-l2.txt" bash "$g" --limpiar >"$TRABAJO/ensayo-$2-l2.txt" 2>&1
   rc2=$?
-  echo "--limpiar con el ajeno: código $rc1, ajeno ${sigue:-ausente}; sin el ajeno: código $rc2, quedan $(quedan)" >"$TRABAJO/$2.limpiar"
-  [ "$rc1" != 0 ] && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2-l1.txt" && [ "$sigue" = running ] \
-    && [ "$rc2" = 0 ] && [ "$(quedan)" = 0,0,0 ] && ver "$TRABAJO/evidencia-$2-l2.txt" | grep -qx "HECHO limpieza_completa=si"
+  echo "el ajeno después del ensayo: running; --limpiar con el ajeno: código $rc1 (ajeno ${sigue:-ausente}); sin el ajeno: código $rc2, quedan $(quedan)" >"$TRABAJO/$2.limpiar"
+  { [ "$rc1" != 0 ] && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2-l1.txt" && [ "$sigue" = running ]; } || falta limpiar || return 1
+  { [ "$rc2" = 0 ] && [ "$(quedan)" = 0,0,0 ] && ver "$TRABAJO/evidencia-$2-l2.txt" | grep -qx "HECHO limpieza_completa=si"; } \
+    || falta limpiar_sin_ajeno || return 1
 }
-casos_t() { # guion prefijo ids... → $TRABAJO/t-<prefijo>/<id> = si | no
+casos_t() { # guion prefijo ids... → $TRABAJO/t-<prefijo>/<id> = si | no:<motivo>
   local g="$1" p="$2" id r
   shift 2
   rm -rf "$TRABAJO/t-$p"
   mkdir -p "$TRABAJO/t-$p"
   for id in "$@"; do
-    r=no
+    MOTIVO=desconocido
+    r=""
     case "$id" in
       T1) corrida "$g" "$p-t1" stop && t_ok "$p-t1" && r=si ;;
       T2) corrida "$g" "$p-t2" main && t_ok "$p-t2" && r=si ;;
       T3) corrida "$g" "$p-t3" main intruso && t3_ok "$g" "$p-t3" && r=si ;;
     esac
-    echo "$r" >"$TRABAJO/t-$p/$id"
+    echo "${r:-no:$MOTIVO}" >"$TRABAJO/t-$p/$id"
     restos_fuera
   done
 }
 t_es() { [ "$(cat "$TRABAJO/t-$1/$2" 2>/dev/null)" = si ]; }
+t_motivo() { cat "$TRABAJO/t-$1/$2" 2>/dev/null; }
 mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
   "$PY" -I - "$@" <<'EOF'
 import sys
@@ -295,34 +308,38 @@ if n != 1:
 open(destino, "w", encoding="utf-8").write(texto.replace(buscar, poner))
 EOF
 }
-mutante_t() { # id descripción "caen" "pasan" buscar reemplazo: una copia de la carpeta, con el guion mutado
-  local id="$1" que="$2" caen="$3" pasan="$4" dir="$TRABAJO/mut-$1" faltan="" otro="" c
+# id descripción "caen" "pasan" buscar reemplazo. «caen» lleva caso:motivo (T1:unidad): el caso tiene que caer justo
+# por ese motivo. «pasan» es el control: casos que el mutante no toca y tienen que seguir pasando.
+mutante_t() {
+  local id="$1" que="$2" caen="$3" pasan="$4" dir="$TRABAJO/mut-$1" faltan="" otro="" c casos=""
   rm -rf "$dir"
   cp -r "$KH" "$dir"
   if ! mutar "$KH/ensayo-archivo.sh" "$dir/ensayo-archivo.sh" "$5" "$6"; then mal "$id" "no se pudo mutar ($que)"; return; fi
+  for c in $caen; do casos="$casos ${c%%:*}"; done
   # shellcheck disable=SC2086
-  casos_t "$dir/ensayo-archivo.sh" "$id" $caen $pasan
-  for c in $caen; do t_es "$id" "$c" && faltan="$faltan $c"; done
-  for c in $pasan; do t_es "$id" "$c" || otro="$otro $c"; done
+  casos_t "$dir/ensayo-archivo.sh" "$id" $casos $pasan
+  for c in $caen; do [ "$(t_motivo "$id" "${c%%:*}")" = "no:${c#*:}" ] || faltan="$faltan $c($(t_motivo "$id" "${c%%:*}"))"; done
+  for c in $pasan; do t_es "$id" "$c" || otro="$otro $c($(t_motivo "$id" "$c"))"; done
   if [ -z "$faltan" ] && [ -z "$otro" ]; then
     ok "$id" "$que: caen $caen${pasan:+; pasa $pasan}"
   else
-    mal "$id" "$que: no cayeron:${faltan:- ninguna}; cayeron de más:${otro:- ninguna}"
+    mal "$id" "$que: no cayeron por su motivo:${faltan:- ninguno}; cayeron de más:${otro:- ninguno}"
   fi
 }
 if [ "$T_OK" = 1 ]; then
   casos_t "$KH/ensayo-archivo.sh" real T1 T2 T3
   exigir T1 't_es real T1' \
-    "systemctl stop $(cat "$TRABAJO/real-t1.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t1.unidad" 2>/dev/null) (Result, código, estado), la evidencia dice senal=TERM y ensayo_codigo=143, y quedan 0 contenedores, volúmenes y redes"
+    "systemctl stop $(cat "$TRABAJO/real-t1.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t1.unidad" 2>/dev/null) (Result, código, estado), la evidencia dice senal=TERM y ensayo_codigo=143, y quedan 0 contenedores, volúmenes y redes ($(t_motivo real T1))"
   exigir T2 't_es real T2' \
-    "TERM al proceso principal $(cat "$TRABAJO/real-t2.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t2.unidad" 2>/dev/null), igual que T1"
+    "TERM al proceso principal $(cat "$TRABAJO/real-t2.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t2.unidad" 2>/dev/null), igual que T1 ($(t_motivo real T2))"
   exigir T3 't_es real T3' \
-    "con un contenedor ajeno en la red: la unidad termina en $(cat "$TRABAJO/real-t3.unidad" 2>/dev/null), la evidencia dice limpieza_completa=no, sale FALLÓ L0 y el ajeno sigue; $(cat "$TRABAJO/real-t3.limpiar" 2>/dev/null)"
-  mutante_t ME1 "sin el trap de TERM (como hasta el 2026-11-07)" "T1 T2" "" \
+    "con un contenedor ajeno en la red: la unidad termina en $(cat "$TRABAJO/real-t3.unidad" 2>/dev/null), la evidencia dice limpieza_completa=no y sale FALLÓ L0; $(cat "$TRABAJO/real-t3.limpiar" 2>/dev/null) ($(t_motivo real T3))"
+  # ME1, sin trap de TERM: la limpieza la sigue haciendo el trap de EXIT; lo que cae es la unidad (success).
+  mutante_t ME1 "sin el trap de TERM (como hasta el 2026-11-07)" "T1:unidad T2:unidad" "" \
     "trap 'parada TERM 143' TERM" ":"
-  mutante_t ME2 "la limpieza no mira lo que quedó" "T3" "T1" \
+  mutante_t ME2 "la limpieza no mira lo que quedó" "T3:completa" "T1" \
     '[ "$restos" = "$SIN_RESTOS" ] && [ "$carpeta" = ausente ] || completa=no' 'true'
-  mutante_t ME3 "para poder borrar la red, saca también al contenedor ajeno" "T3" "" \
+  mutante_t ME3 "para poder borrar la red, saca también al contenedor ajeno" "T3:ajeno" "T2" \
     'docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v' \
     'docker ps -aq --filter "network=chatwoot-ensayo_aislada" | xargs -r docker rm -f -v; docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v'
 fi
@@ -370,6 +387,13 @@ exigir P3 '[ "$(docker volume ls -q --filter label=com.docker.compose.project=ch
 exigir L1 '[ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ]' "0 contenedores, 0 volúmenes, 0 redes y ninguna carpeta del ensayo"
 ensayo limpiar --limpiar; rc=$?
 exigir L2 '[ "$rc" = 0 ] && [ "$(quedan)" = 0,0,0 ] && [ "$(huella_prod | tr "\n" " ")" = "$ANTES" ]' "--limpiar sin nada que borrar no rompe nada"
+# L3: con docker caído (un docker que no responde, delante en el PATH), --limpiar no puede contar 0 y salir con 0.
+mkdir -p "$TRABAJO/docker-caido"
+printf '#!/usr/bin/env bash\necho "Cannot connect to the Docker daemon" >&2\nexit 1\n' >"$TRABAJO/docker-caido/docker"
+chmod +x "$TRABAJO/docker-caido/docker"
+PATH="$TRABAJO/docker-caido:$PATH" ensayo l3 --limpiar; rc=$?
+exigir L3 '[ "$rc" = 4 ] && grep -q "^FALLÓ L0 — no se pudo comprobar la limpieza: docker no respondió" "$TRABAJO/ensayo-l3.txt" && grep -qx "HECHO limpieza_completa=no" "$TRABAJO/evidencia-l3.txt"' \
+  "--limpiar con docker caído no cuenta 0: sale con $rc y dice que no pudo comprobar la limpieza"
 
 # ── F. La evidencia ──────────────────────────────────────────────────────────
 E="$TRABAJO/evidencia-r.txt"

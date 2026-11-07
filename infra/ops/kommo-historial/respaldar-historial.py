@@ -1121,7 +1121,7 @@ def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, con
                efimera: str | None = None, sin_informe: bool = False) -> dict:
     """tar | zstd | age del staging. Si `efimera` es una clave pública, también se cifra para ella (solo ensayos)."""
     exigir_informe(st, sin_informe)
-    stamp =os.path.basename(destino_corrida).replace("kommo-", "")
+    stamp = os.path.basename(destino_corrida).replace("kommo-", "")
     os.makedirs(destino_corrida, mode=0o700, exist_ok=True)
     salida = os.path.join(destino_corrida, f"kommo-{stamp}-metadatos.tar.zst.age")
     cmd_age = ["age", "-R", recipients] + (["-r", efimera] if efimera else []) + ["-o", salida]
