@@ -19,7 +19,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExter
 import { usePathname, useSearchParams } from "next/navigation";
 import { hasI18nKey, useT } from "@/lib/i18n";
 import { crearAlmacenLocal, type GuiaAlmacen } from "@/lib/studio/guia/almacen";
-import { anclaEfectiva, contador, pasoAnterior, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
+import { anclaEfectiva, contador, pasoAnterior, pasoPresente, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
 import { colocarTarjeta, type Caja } from "@/lib/studio/guia/posicion";
 import { ARRANQUE_AUTOMATICO, type ModoArranque } from "@/lib/studio/guia/preferencias";
 import { buscarRecorrido, RECORRIDOS, rutaCoincide } from "@/lib/studio/guia/recorridos";
@@ -245,7 +245,8 @@ export function GuiaMotor({
       let indice = primero;
       if (desde) {
         const j = recorrido.pasos.findIndex((p) => p.id === desde);
-        if (j > primero && existeAncla(recorrido.pasos[j].ancla)) indice = j;
+        // Como el resto del motor: un paso de Chatwoot cuenta si está su respaldo (9.4).
+        if (j > primero && pasoPresente(recorrido.pasos[j], existeAncla)) indice = j;
       }
 
       // La primera vez queda anotada al abrir, antes de pintar: recargar no la repite.

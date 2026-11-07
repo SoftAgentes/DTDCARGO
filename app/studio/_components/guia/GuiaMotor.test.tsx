@@ -523,6 +523,24 @@ describe("9.4 · anclas dentro de Chatwoot", () => {
     expect(screen.getByRole("button", { name: "Terminar" })).toBeInTheDocument();
   });
 
+  it("el botón retoma un paso de Chatwoot que solo está por su respaldo (sin el script del panel)", () => {
+    const almacen = crearAlmacenMemoria();
+    render(
+      <>
+        <Marco />
+        <GuiaMotor catalogo={[BANDEJA]} almacen={almacen} />
+      </>,
+    );
+    act(() => iniciarGuia("bandeja"));
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    act(() => cerrarGuia());
+    expect(almacen.leer("bandeja")).toMatchObject({ pasoId: "B6", terminado: false });
+    act(() => iniciarGuia("bandeja", { origen: "boton" }));
+    expect(within(tarjeta()!).getByRole("heading", { name: "Dejar una nota" })).toBeInTheDocument();
+    expect(within(tarjeta()!).getByText(/2 de 2/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver la guía desde el principio" })).toBeInTheDocument();
+  });
+
   it("sin marco (la Bandeja sin configurar) no abre", () => {
     vi.useFakeTimers();
     render(

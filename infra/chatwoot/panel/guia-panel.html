@@ -152,7 +152,8 @@
       observar();
       medir();
     } else if (datos.evento === "dtd:guia:mostrar") {
-      if (!pedido || typeof datos.ancla !== "string" || !pedido[datos.ancla]) return;
+      // Solo un ancla propia del pedido: `__proto__` o `constructor` vienen de Object.
+      if (!pedido || typeof datos.ancla !== "string" || !Object.prototype.hasOwnProperty.call(pedido, datos.ancla)) return;
       var el = buscar(pedido[datos.ancla]);
       if (el && typeof el.scrollIntoView === "function") {
         el.scrollIntoView({ block: "center", inline: "nearest", behavior: datos.suave === true ? "smooth" : "auto" });

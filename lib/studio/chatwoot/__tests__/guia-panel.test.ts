@@ -200,6 +200,20 @@ describe("DASHBOARD_SCRIPTS · guía de Studio dentro del panel (9.4)", () => {
     expect(composer.scrollIntoView).toHaveBeenCalledTimes(2);
   });
 
+  it("«mostrar» con un nombre heredado de Object (`__proto__`, `constructor`) no lanza ni mueve nada", () => {
+    const composer = document.querySelector(".reply-box") as HTMLElement;
+    composer.scrollIntoView = vi.fn();
+    const p = montar();
+    p.enviar(STUDIO, MIRAR);
+    for (const ancla of ["__proto__", "constructor", "toString", "hasOwnProperty"]) {
+      expect(() => p.enviar(STUDIO, JSON.stringify({ evento: "dtd:guia:mostrar", ancla })), ancla).not.toThrow();
+    }
+    expect(composer.scrollIntoView).not.toHaveBeenCalled();
+    // El pedido sigue sano: un ancla pedida se sigue mostrando.
+    p.enviar(STUDIO, JSON.stringify({ evento: "dtd:guia:mostrar", ancla: "bandeja.composer" }));
+    expect(composer.scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
   it("«parar» deja de observar y de contestar", async () => {
     const p = montar();
     p.enviar(STUDIO, MIRAR);

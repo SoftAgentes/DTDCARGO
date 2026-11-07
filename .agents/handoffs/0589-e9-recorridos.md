@@ -47,6 +47,7 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
 | `pnpm verify` | NO EJECUTADO: pide turno del Director General; queda el CI de la PR |
 | 2026-11-07, S-2, U1 y U3: guía (9 archivos), Bandeja y Usuarios (11 archivos) | PASÓ: 144 de 144 y 131 de 131. El rojo previo de B4 con `["admin"]` está en la spec |
 | 2026-11-07, 3 mutantes: sin ancla U1, sin ancla U3 y texto de U3 cambiado | PASÓ: 3 de 3 caen por su prueba, archivos restaurados |
+| 2026-11-07, revisión del DG: merge de `main` `5650ac4fe` y hallazgos 1 y 2, cada uno con su prueba roja antes | PASÓ: guía 146 de 146, Bandeja y Usuarios 145 de 145, `tsc`, gate de símbolos (0 ROJO) y `migrations-lock`. Detalle en la spec |
 
 ## COMMITS
 
@@ -58,7 +59,9 @@ Ver la PR. Commits selectivos con `git commit -F`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Pegar `guia-panel.html` en `DASHBOARD_SCRIPTS`,** debajo de `dashboard-scripts.html`: OK de Sam. Antes, guardar el valor vivo con su sha256 (runbook `chatwoot-agentes.md`).
+- **Pegar `guia-panel.html` en `DASHBOARD_SCRIPTS`,** debajo de `dashboard-scripts.html`: OK de Sam. Antes, guardar el valor vivo con su sha256 (runbook `chatwoot-agentes.md`) y resolver los hallazgos 3 y 4 del DG.
+- **Hallazgo 3 del DG (2026-11-07):** el panel pasa a `querySelector` cualquier selector que le mande Studio. La propuesta es una lista fija dentro del script, y choca con D8: cada versión de Chatwoot pediría pegarlo otra vez.
+- **Hallazgo 4 del DG (2026-11-07):** `bandeja.asignar` (clases de maquetación) y `ficha.panel` (`nth-child`) son frágiles, y el smoke solo mide que algo coincida, no que sea el control correcto.
 - **Correr `smoke-guia.mjs`** contra el ensayo local con un agente y una conversación sintéticos, o S13 con la bandeja de prueba, para pasar los selectores de NV a medidos.
 - **`pnpm verify`,** con turno del Director General.
 - **Filas 9.4 y 9.5 del checklist:** no se tocaron, igual que la 9.3; las mueve quien cuenta el avance. Propuesta: `entregado`, con 0,4 y 0,3 días reales, y la evidencia de la sección de la spec.

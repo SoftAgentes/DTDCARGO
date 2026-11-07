@@ -319,7 +319,7 @@ El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
 
 **Puertas que esta PR no abre:**
 
-- **Pegar el script en el Super Admin de Chatwoot** (`DASHBOARD_SCRIPTS`) exige OK de Sam. Sin el script, las tarjetas de Chatwoot se anclan al marco de la Bandeja y nada se rompe.
+- **Pegar el script en el Super Admin de Chatwoot** (`DASHBOARD_SCRIPTS`) exige OK de Sam. Sin el script, las tarjetas de Chatwoot se anclan al marco de la Bandeja y nada se rompe. Antes de pegarlo hay que resolver los hallazgos 3 y 4 de la revisión del Director General (sección «2026-11-07 · Revisión del Director General»).
 - **Fusionar** también espera su OK. Fusionar publica Studio, pero los recorridos nuevos **no arrancan solos** (D11): solo abren con `?guia=<id>`. Embudo necesita además la pestaña: `?tab=embudos&guia=embudo`.
 - S-1, S-6, S-7 y S-8 siguen abiertas. Los valores provisionales están en `lib/studio/guia/preferencias.ts`. S-2 se cerró el 2026-11-07 (ver «Roles» en 9.5).
 
@@ -513,6 +513,36 @@ Las huellas son el sha256 del texto entre « », 16 caracteres: U1 «Qué es», 
 | ESLint de los 9 archivos de código tocados, con `--max-warnings=0` | PASÓ |
 | `sdd:check` (`scripts/check-numbering.mjs`), `docs:check` y `git diff --check` | PASÓ |
 | Abrir U1 en la página real | **NO EJECUTADO** |
+| `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
+
+### 2026-11-07 · Revisión del Director General
+
+**Fuente.** Mensaje del Director General, hacia las 09:25Z, sobre la cabeza `b218f1004`. La revisión independiente salió APPROVED, sin graves. Su `pnpm verify` (08:28Z a 09:19Z, en un worktree aparte) dio exit 1 por dos causas:
+
+- **`test`:** dos pruebas de scripts bash con dobles pasaron los 600 s (`infra/ops/tests/migraciones.test.mjs:483` y `scripts/__tests__/entorno-prueba-scripts.test.mjs`). El DG lo atribuye al ambiente, y esta PR no toca esos archivos. No se cambió nada.
+- **`pending-migration-symbols`:** `GuiaStudio.tsx:48` no tenía la evidencia `autoArranque={almacen.conServidor}`. Esa declaración de la 0517 ya no está en `main`, porque la retiró el cierre de la #405, pero la base `7a3cde25d` la arrastraba.
+
+**Qué se hizo:**
+
+- **Merge (no rebase) de `origin/main` `5650ac4fe`,** con el driver de `main` (`scripts/merge-generated-records.mjs`). Salió sin conflictos. El índice regenerado con `build-docs-index.mjs` quedó igual al que resolvió el driver. `supabase/pending-migration-symbol-declarations.json` y `migrations-baseline.json` quedaron idénticos a los de `main`: ninguno nombra la 0517.
+- **Hallazgo 1 (baja):** al retomar con el botón, `GuiaMotor.tsx` miraba solo el ancla del paso (`existeAncla`) y no su respaldo, a diferencia del resto del motor. Sin el script del panel, cerrar en un paso de Chatwoot y volver a abrir arrancaba en B1. Ahora usa `pasoPresente`. La prueba nueva de `GuiaMotor.test.tsx` falló antes del cambio: guardó B6, pero abrió en «Contestar un WhatsApp», 1 de 2. Con el cambio, pasa.
+- **Hallazgo 2 (baja):** en `guia-panel.html`, `mostrar` leía `pedido[datos.ancla]`, que acepta `__proto__` o `constructor` y lanzaba un TypeError. Ahora exige un ancla propia del pedido (`Object.prototype.hasOwnProperty.call`). La prueba nueva de `guia-panel.test.ts` falló antes con `TypeError: Cannot read properties of undefined (reading 'length')`. Con el cambio, pasa.
+
+**Pendientes antes de pegar el script en el VPS** (hallazgos 3 y 4, sin cambiar en esta PR):
+
+- **Hallazgo 3 · El panel ejecuta cualquier selector.** El script acepta los selectores que le manda Studio en `dtd:guia:mirar` y los pasa a `document.querySelector`. `limpiar` acota la cantidad y el largo, pero no cuáles. La propuesta del DG es una lista fija dentro del script. Ese cambio pide pegar el script otra vez después de cada versión de Chatwoot, lo que choca con D8; hay que decidirlo antes de pegarlo.
+- **Hallazgo 4 · `bandeja.asignar` y `ficha.panel` son frágiles.** `bandeja.asignar` usa clases de maquetación (`[class*='md:w-[320px]'] .relative.w-full.mb-2 > button`). `ficha.panel` usa una posición (`.conversation-details-wrap ul > li:nth-child(2) > a`). El smoke (`smoke-guia.mjs`) solo mide que algo coincida, no que sea el control correcto. Hace falta un ancla más firme o un smoke que mire qué elemento encontró.
+
+Evidencia de esta ronda:
+
+| Comprobación | Resultado |
+|---|---|
+| Pruebas de la guía: `lib/studio/guia`, `app/studio/_components/guia` y `guia-panel.test.ts`, con `--pool=threads --maxWorkers=1` | PASÓ: 146 de 146 en 9 archivos (reporte JSON de Vitest), con 2 pruebas nuevas, una por hallazgo |
+| Pantallas `bandeja` y `usuarios`, ya con `main` | PASÓ: 145 de 145 en 12 archivos |
+| `tsc --noEmit` del proyecto, ya con `main` | PASÓ |
+| ESLint de `GuiaMotor.tsx`, `GuiaMotor.test.tsx` y `guia-panel.test.ts`, con `--max-warnings=0` | PASÓ. `guia-panel.html` está fuera de ESLint por configuración (`infra/**`); su script pasó `node --check` |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO y 2 AMARILLO declarados, la 0514 y la 0515, que vinieron de `main`. Nada de la 0517 ni de `GuiaStudio.tsx` |
+| `sdd:check` (`scripts/check-numbering.mjs`), `docs:check` y `git diff --check` | PASÓ |
 | `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
 
 ## 2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)
