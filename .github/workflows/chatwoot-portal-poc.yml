@@ -44,7 +44,7 @@ jobs:
     env:
       CI: "true"
       # En este job la PoC no se puede saltar: sin la instancia, portal.poc.test.ts da rojo, no omitido.
-      POC_REQUERIDA: "1"
+      CHATWOOT_POC_REQUERIDA: "1"
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,7 +62,7 @@ jobs:
       - name: Instalar dependencias desde el lockfile
         run: pnpm install --frozen-lockfile
 
-      # Control: con POC_REQUERIDA=1 y sin instancia, la PoC tiene que dar ROJO. Si saliera verde, un
+      # Control: con CHATWOOT_POC_REQUERIDA=1 y sin instancia, la PoC tiene que dar ROJO. Si saliera verde, un
       # Chatwoot que no arrancó pasaría por bueno.
       - name: Control, sin instancia la PoC da rojo
         run: |

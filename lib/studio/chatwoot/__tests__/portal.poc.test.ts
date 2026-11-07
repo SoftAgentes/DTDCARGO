@@ -5,7 +5,7 @@
  * Solo corre dentro de infra/chatwoot/pruebas/portal/prueba-portal-poc.sh, que levanta la instancia (en GitHub
  * Actions: .github/workflows/chatwoot-portal-poc.yml) y pasa CHATWOOT_POC_*. Sin esas variables, las PoC se
  * saltan: en «Calidad continua» y en una PC sin la instancia salen como omitidas, no como verdes. En el workflow
- * de la PoC no se pueden saltar: con POC_REQUERIDA=1, si falta la instancia, la primera prueba da ROJO (y el
+ * de la PoC no se pueden saltar: con CHATWOOT_POC_REQUERIDA=1, si falta la instancia, la primera prueba da ROJO (y el
  * workflow lo comprueba con un control antes de levantar Chatwoot).
  *
  * Usa el cliente real de Studio (router-api.ts y portal.ts), sin dobles de red. Cada PoC tiene su control: lo
@@ -114,7 +114,7 @@ async function escribirMasDeUnaPagina(conversacionId: number, n = 25): Promise<v
   }
 }
 
-describe.runIf(process.env.POC_REQUERIDA === "1")("la PoC es obligatoria en su workflow (POC_REQUERIDA=1)", () => {
+describe.runIf(process.env.CHATWOOT_POC_REQUERIDA === "1")("la PoC es obligatoria en su workflow (CHATWOOT_POC_REQUERIDA=1)", () => {
   it("encuentra la instancia efímera: sin ella, rojo y no omitido", () => {
     expect({ origen: Boolean(ORIGEN), token: Boolean(TOKEN), cuenta: CUENTA > 0, bandeja: BANDEJA > 0, stack: Boolean(STACK && PROYECTO) }).toEqual({
       origen: true,

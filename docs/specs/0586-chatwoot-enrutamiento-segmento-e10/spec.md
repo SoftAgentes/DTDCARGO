@@ -692,6 +692,7 @@ Nuevos:
   - `.github/workflows/chatwoot-portal-poc.yml`, con dos jobs: `poc` y `carrera`
   - `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh`, `compose.portal-poc.yml`, `sonda-portal-poc.rb`, `carga-webhook-poc.rb`, `receptor-webhook.mjs` y `mutantes-ida.cjs` (el ejecutor de los mutantes del código, que pidió la revisión)
   - `lib/studio/chatwoot/__tests__/portal.poc.test.ts`, que se salta sin la instancia efímera
+  - `scripts/__tests__/env-example-contract.test.ts`, que suma `CHATWOOT_POC_` a los interruptores del arnés que no se documentan en `.env.example`, como `SCHEMA_REBUILD_`
   - `supabase/tests/0519_chatwoot_portal_carrera.test.sql`
 
 Editados:
