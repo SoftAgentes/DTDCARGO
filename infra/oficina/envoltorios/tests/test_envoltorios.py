@@ -44,7 +44,7 @@ out="$SALIDA_FALSA"
   for v in DTD_PERFIL CLAUDE_CONFIG_DIR CODEX_HOME HERMES_HOME HOME; do
     if [ -n "${!v+x}" ]; then echo "ENV $v=${!v}"; fi
   done
-  for v in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN; do
+  for v in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN HERMES_EPHEMERAL_SYSTEM_PROMPT; do
     if [ -n "${!v+x}" ]; then echo "SET $v"; fi
   done
 } > "$out"
@@ -110,6 +110,10 @@ class Motor(Base):
         # La carpeta que escriben los GLM, y el cwd que Paperclip le da al motor.
         self.trabajo_glm = self.tmp / "trabajo"
         (self.trabajo_glm / "ceo").mkdir(parents=True)
+        # La carpeta donde trabaja el motor (la fija dtd-agente-run), hermana de la de los GLM.
+        self.motores = self.tmp / "motores"
+        for perfil in ("ceo", "auxiliar"):
+            (self.motores / perfil).mkdir(parents=True)
         self.usuario = self.tmp / "usuario.txt"
         self.sudo = self.bin / "sudo-falso"
         self.sudo.write_text(
@@ -131,6 +135,7 @@ class Motor(Base):
             "SUDO=(sudo -n -u)": f"SUDO=({_barra(self.sudo)})",
             "ACL=(setfacl)": f"ACL=({_barra(self.acl)})",
             "TRABAJO=/srv/oficina/trabajo": f"TRABAJO={_barra(self.trabajo_glm)}",
+            "MOTORES=/srv/oficina/motores": f"MOTORES={_barra(self.motores)}",
         }
         for viejo, nuevo in reemplazos.items():
             self.assertIn(viejo, texto, f"falta la constante {viejo!r} en dtd-motor")
@@ -396,12 +401,39 @@ class Motor(Base):
 
     def test_rutas_relativas_no_se_leen_desde_la_carpeta_de_los_glm(self):
         # Paperclip arranca el motor con cwd en trabajo/ceo: un GLM podría crear ahí un archivo
-        # llamado como un argumento («high») y bloquear a ALFRED. Las relativas se ven desde /.
+        # llamado como un argumento («high») y bloquear a ALFRED. Las relativas no se ven desde ahí.
         self.glm("ceo/high")
         r = self.correr(self.script, ["claude", "--effort", "high"], {"DTD_PERFIL": "ceo"},
                         cwd=str(self.trabajo_glm / "ceo"))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.leer()[0], ["claude", "--effort", "high"])
+
+    # Tercera vuelta del DG (H1, ALTA): el motor arranca en motores/<perfil>, así que una relativa
+    # se abre desde ahí. ../../trabajo/... llega a la carpeta de los GLM aunque desde / no exista.
+    def test_relativa_que_sale_de_la_carpeta_del_motor_hacia_los_glm_no_corre(self):
+        self.glm()
+        for perfil, herramienta in (("ceo", "claude"), ("auxiliar", "codex")):
+            for args in (
+                ["--settings", "../../trabajo/ceo/.claude/settings.json"],
+                ["--settings=../../trabajo/ceo/.claude/settings.json"],
+                ["--add-dir", "../../trabajo"],
+                ["--add-dir", "./../../trabajo/ceo"],
+            ):
+                with self.subTest(perfil=perfil, args=args):
+                    r = self.motor(herramienta, perfil, args)
+                    self.assertEqual(r.returncode, 66, r.stderr)
+                    self.assertIsNone(self.leer())
+
+    def test_relativa_dentro_de_la_carpeta_del_motor_si_corre(self):
+        r = self.motor("claude", "ceo", ["--add-dir", "notas", "--settings", "./.claude/settings.json"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    # Tercera vuelta del DG (H2, MEDIA): una ruta bajo trabajo/ que todavía no existe también cuenta.
+    def test_ruta_de_los_glm_que_aun_no_existe_no_corre(self):
+        futura = self.trabajo_glm / "ceo" / ".claude" / "settings.json"
+        self.assertFalse(futura.exists())
+        self.rechazada(["--settings", _barra(futura)])
+        self.rechazada([f"--plugin-dir={_barra(self.trabajo_glm / 'nueva')}"])
 
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"
@@ -462,6 +494,7 @@ class AgenteRun(Base):
                 "ANTHROPIC_AUTH_TOKEN": "x",
                 "OPENAI_API_KEY": "x",
                 "CLAUDE_CODE_OAUTH_TOKEN": "x",
+                "HERMES_EPHEMERAL_SYSTEM_PROMPT": "x",
             }
         )
         self.salida.unlink(missing_ok=True)
@@ -516,7 +549,7 @@ class AgenteRun(Base):
         _, env, puestas = self.leer()
         self.assertEqual(env["HERMES_HOME"], _barra(self.home / "agentes-run" / ".hermes" / "profiles" / "seo"))
         self.assertEqual(env["HOME"], _barra(self.home / "agentes-run"))
-        self.assertEqual(puestas, set())
+        self.assertEqual(puestas, {"HERMES_EPHEMERAL_SYSTEM_PROMPT"}, "Hermes recibe sus instrucciones y nada más")
         for perfil, usuario in [
             ("seo", "agentes-alfred"),
             ("auxiliar", "agentes-run"),

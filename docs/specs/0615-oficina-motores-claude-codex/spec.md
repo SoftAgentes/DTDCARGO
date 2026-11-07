@@ -172,7 +172,8 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
      Si no caen ahí, no copia nada y sale con 66. La carpeta del perfil la crea la instalación,
      con dueño `agentes`, el grupo del usuario del motor y permisos 750. Sin ella sale con 65;
      además rechaza con 66 todo argumento que, resuelto, caiga en `/srv/oficina/trabajo`, la
-     carpeta que escriben los GLM, y resuelve las rutas relativas desde `/`;
+     carpeta que escriben los GLM. Las rutas relativas las resuelve desde la carpeta donde
+     trabaja el motor (`/srv/oficina/motores/<perfil>`), y las revisa aunque todavía no existan;
   3. quita `--mcp-config` y su valor, y conserva `--strict-mcp-config`;
   4. borra las corridas de más de 3 horas y ejecuta `sudo -n -u <usuario> dtd-agente-run`.
 - **`dtd-agente-run`** parte del `dtd-agente-run` vivo, medido el 2026-11-06 a las 15:22 UTC.
@@ -190,7 +191,11 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
 - **El sudoers suma tres cosas:**
   - `CLAUDE_CODE_OAUTH_TOKEN` en `env_keep`;
   - `!log_allowed` y los dos usuarios nuevos como destino;
-  - las variables `PAPERCLIP_` nombradas una por una, 14 en total, y `HERMES_EPHEMERAL_SYSTEM_PROMPT`, por donde Paperclip 1023 y posteriores mandan las instrucciones de los GLM (PR #409, §2.5). Nunca `PAPERCLIP_*`: el
+  - las variables `PAPERCLIP_` nombradas una por una, 14 en total;
+  - `HERMES_EPHEMERAL_SYSTEM_PROMPT`, por donde Paperclip 1023 y posteriores mandan las
+    instrucciones de los GLM (PR #409, §2.5). Es **preparación** para esa actualización: con
+    Paperclip 1012 la variable no llega y no cambia nada. `dtd-agente-run` la borra para Claude,
+    Codex y OpenCode. Nunca `PAPERCLIP_*`: el
     servicio tiene `PAPERCLIP_AGENT_JWT_SECRET` y `PAPERCLIP_TOOL_ACTION_SIGNING_SECRET`
     (MEDIDO, solo nombres).
 
@@ -337,16 +342,16 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
    usuario.
 4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-5. Las pruebas pasan sin saltos en Linux, con un piso de 43 en el harness, y todos los mutantes
+5. Las pruebas pasan sin saltos en Linux, con un piso de 46 en el harness, y todos los mutantes
    mueren.
 6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 
 ## Validación de esta PR
 
 - **Pruebas de los envoltorios, después de la revisión del DG:**
-  - Linux (VPS de la oficina, en `/tmp`, sin tocar lo instalado; Python 3.12.3): 43, sin
+  - Linux (VPS de la oficina, en `/tmp`, sin tocar lo instalado; Python 3.12.3): 46, sin
     saltos.
-  - Windows: 43, con 12 saltadas por ser solo Linux.
+  - Windows: 46, con 12 saltadas por ser solo Linux.
 - **Mutantes:** todos mueren en Linux.
 - **Antes:** 20 pruebas y 29 mutantes, del 2026-11-06.
 - `docs:check`, `sdd:check` y `git diff --check`.
@@ -378,11 +383,28 @@ varias BAJA:
 Lo corrigen `81211d02b` y el commit siguiente. Este último agrega:
 
 - el rechazo de los argumentos bajo `/srv/oficina/trabajo`;
-- el piso de 43 pruebas;
+- el piso de 46 pruebas;
 - esta spec al día.
 
-El detalle está en el README de los envoltorios y en el handoff. **Instalarlo pide el OK de
-Sam:** en el VPS sigue la versión anterior.
+El detalle está en el README de los envoltorios y en el handoff.
+
+**Instalación.** El 2026-11-07 a las 14:56 UTC se instaló en el VPS de la oficina la versión de
+`0e80cb77c`, con respaldo:
+
+- Sam se lo autorizó al co-CEO a las 14:40 UTC: «Vamos a avanzar e instalar las actualizaciones
+  bajo tu recomendación…».
+- Lo confirmó en la sesión que instaló con «Sí, instala».
+
+**La tercera vuelta del DG** encontró H1 (las rutas relativas se resolvían desde `/` y no desde
+la carpeta del motor) y H2 (las rutas inexistentes bajo `trabajo/` pasaban). Las corrige el commit
+siguiente.
+
+- Lo instalado todavía tiene esos dos defectos.
+- No son explotables hoy, según lo medido el 2026-11-07: la configuración viva de ALFRED y del
+  Auxiliar no pasa argumentos con ruta, y una llave de agente no puede cambiar `args`,
+  `extraArgs`, `command`, `cwd` ni `env` (`routes/agents.js`,
+  `assertNoAgentLocalAdapterHostCommandMutation`).
+- **Reinstalar lo decide Sam por medio del DG.**
 
 ## Qué no autoriza
 

@@ -419,6 +419,36 @@ Lo decide Sam por medio del DG. Hasta entonces, **el riesgo ALTO sigue vivo en e
   2. correr `visudo -c`;
   3. `/srv/oficina/motores` puede quedarse: la versión vieja no la usa.
 
+## Tercera vuelta del DG (~15:40Z, sobre `0095e31c7`)
+
+- **H1, ALTA.** `dtd-motor` resolvía las rutas relativas desde `/`, pero el motor arranca en
+  `/srv/oficina/motores/<perfil>`: `--settings ../../trabajo/...` pasaba.
+  - **Arreglo:** cada argumento relativo se resuelve desde `$MOTORES/<perfil>`, y se quita el
+    `cd /`.
+  - Solo en Git Bash, una ruta `C:/…` cuenta como absoluta, para las pruebas en Windows.
+- **H2, MEDIA.** `de_los_glm()` dejaba pasar una ruta bajo `trabajo/` si todavía no existía.
+  **Arreglo:** se revisa exista o no (`realpath -m`).
+- **Menores:**
+  - `HERMES_EPHEMERAL_SYSTEM_PROMPT` queda documentada en el README y en `dtd-agente-run`, y
+    se borra para Claude, Codex y OpenCode.
+  - La spec y el README quedan de acuerdo sobre la instalación y sobre quién la autorizó.
+  - La spec aclara que esa variable es preparación para 1023.
+  - El mutante del `cd /` se va con el `cd /`.
+  - Piso: 46.
+- **Pruebas:**
+  - Linux: 30 fallas contra `0095e31c7`; con el arreglo, 46 de 46 sin saltos.
+  - Mutantes: 54 de 54.
+  - Windows: 46, con 12 saltadas.
+- **Medido para el DG (solo lectura):**
+  - La configuración viva de ALFRED tiene `command` y `cwd`; la del Auxiliar, `command`.
+    Ninguna tiene `args`, `extraArgs`, `--settings`, `--add-dir` ni `--plugin-dir`.
+  - Una llave de agente recibe 403 si intenta tocar `command`, `hermesCommand`, `args`,
+    `extraArgs`, `cwd`, `env` o `filesystemSandboxCommand`
+    (`routes/agents.js`, `assertNoAgentLocalAdapterHostCommandMutation`).
+  - Conclusión: **H1 no es explotable hoy**.
+- **Instalado:** sigue la versión de `0e80cb77c`. Reinstalar con este arreglo lo decide Sam por
+  medio del DG.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.

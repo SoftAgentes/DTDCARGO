@@ -15,11 +15,8 @@ AGENTE_RUN=/usr/local/libexec/dtd-agente-run
 SUDO=(sudo -n -u)
 ACL=(setfacl)
 TRABAJO=/srv/oficina/trabajo
+MOTORES=/srv/oficina/motores
 MINUTOS_VIDA=180
-
-# Paperclip arranca el motor con cwd en /srv/oficina/trabajo/<perfil>, que escriben los GLM: las rutas
-# relativas se resuelven desde /, para que un archivo creado ahí no se confunda con un argumento.
-cd /
 
 herramienta="${1:-}"
 shift || true
@@ -41,11 +38,18 @@ protegido_real="$(realpath -m -- "$PROTEGIDO")/"
 trabajo_real="$(realpath -m -- "$TRABAJO")"
 
 # Ningún argumento puede llevar al motor a la carpeta de los GLM: Claude cargaría de ahí hooks,
-# settings o skills (--settings, --add-dir, --plugin-dir...) con el token de Sam.
+# settings o skills (--settings, --add-dir, --plugin-dir...) con el token de Sam. Cada argumento se
+# resuelve como lo haría el motor: si es relativo, desde su carpeta de trabajo (dtd-agente-run lo
+# lleva a $MOTORES/<perfil>). Exista o no: una ruta creada después también cuenta.
 de_los_glm() {
-  local real
-  [ -e "$1" ] || [ -L "$1" ] || return 1
-  real="$(realpath -m -- "$1")"
+  local ruta="$1" real
+  case "$ruta" in
+    /*) ;;
+    # Solo en Git Bash (pruebas en Windows) una ruta C:/... es absoluta; en Linux es relativa.
+    [A-Za-z]:/*) case "${OSTYPE:-}" in msys*|cygwin*) ;; *) ruta="$MOTORES/$perfil/$ruta" ;; esac ;;
+    *) ruta="$MOTORES/$perfil/$ruta" ;;
+  esac
+  real="$(realpath -m -- "$ruta")"
   case "$real" in
     "$trabajo_real"|"$trabajo_real"/*) return 0 ;;
   esac
