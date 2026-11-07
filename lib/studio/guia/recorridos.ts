@@ -70,10 +70,18 @@ export const PASO_QUITAR_ACCESO: GuiaPaso = {
   roles: ["admin"],
 };
 
-/** Embudo (guion: recorrido 2), en CRM › Embudos. La RLS de la 0506 solo deja pasar a admin y commercial. */
+/**
+ * Embudo (guion: recorrido 2), en CRM › Embudos. La RLS de la 0506 solo deja pasar a
+ * admin y commercial.
+ *
+ * Las anclas están en el tablero, que `crm/page.tsx` monta solo con `?tab=embudos`. La
+ * pestaña por defecto de `/studio/crm` la decide la 6.6 (Dirección hoy, Embudos en S0 y
+ * Resumen en S3), así que el recorrido pide su pestaña y el motor la pone (P-13).
+ */
 export const RECORRIDO_EMBUDO: GuiaRecorrido = {
   id: "embudo",
   ruta: "/studio/crm",
+  consulta: { tab: "embudos" },
   roles: ["admin", "commercial"],
   arranqueAutomatico: false,
   pasos: [
@@ -121,9 +129,35 @@ export function buscarRecorrido(
   return catalogo.find((r) => r.id === id) ?? null;
 }
 
-/** La ruta actual es la del recorrido o una subruta suya. */
+/** La ruta actual es la del recorrido o una subruta suya. No mira la consulta. */
 export function rutaCoincide(recorrido: GuiaRecorrido, pathname: string): boolean {
   return pathname === recorrido.ruta || pathname.startsWith(`${recorrido.ruta}/`);
+}
+
+/** Lo que se lee de la URL: un `URLSearchParams` o el `ReadonlyURLSearchParams` de Next. */
+type ParametrosUrl = Pick<URLSearchParams, "get" | "toString">;
+
+/** La URL tiene los parámetros que pide el recorrido (P-13). Sin `consulta`, siempre. */
+export function consultaCoincide(recorrido: GuiaRecorrido, params: ParametrosUrl | null): boolean {
+  const pedida = recorrido.consulta;
+  if (pedida === undefined) return true;
+  return Object.entries(pedida).every(([clave, valor]) => params?.get(clave) === valor);
+}
+
+/**
+ * URL de la pantalla del recorrido (P-13): la ruta actual y sus parámetros, con los de
+ * `consulta` puestos. `null` si la URL ya los tiene. Los demás parámetros (`?guia=`,
+ * `?embudo=`) se conservan.
+ */
+export function urlConConsulta(
+  recorrido: GuiaRecorrido,
+  pathname: string,
+  params: ParametrosUrl | null,
+): string | null {
+  if (consultaCoincide(recorrido, params)) return null;
+  const destino = new URLSearchParams(params?.toString() ?? "");
+  for (const [clave, valor] of Object.entries(recorrido.consulta ?? {})) destino.set(clave, valor);
+  return `${pathname}?${destino.toString()}`;
 }
 
 /**

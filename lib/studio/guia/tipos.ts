@@ -48,6 +48,14 @@ export interface GuiaRecorrido {
   readonly id: string;
   /** Ruta de Studio donde vive el recorrido. Fuera de ella no arranca. */
   readonly ruta: `/studio/${string}`;
+  /**
+   * Parámetros de la URL que también son parte de la pantalla (P-13), como la
+   * pestaña: `{ tab: "embudos" }`. Si faltan, el motor los pone antes de abrir por
+   * `?guia=`, por el botón o por código; el arranque automático no los pone, solo
+   * abre donde la persona ya está. Con la guía abierta, si se van, la guía cierra,
+   * como al cambiar de ruta.
+   */
+  readonly consulta?: Readonly<Record<string, string>>;
   readonly pasos: readonly GuiaPaso[];
   /** Roles que ven el recorrido (9.5). Sin la lista, vale el permiso de la pantalla. */
   readonly roles?: readonly StudioUserRole[];
@@ -80,6 +88,17 @@ export function validarRecorrido(recorrido: GuiaRecorrido): string[] {
   }
   if (recorrido.roles !== undefined && recorrido.roles.length === 0) {
     errores.push(`el recorrido «${recorrido.id}» tiene una lista de roles vacía`);
+  }
+  if (recorrido.consulta !== undefined) {
+    const entradas = Object.entries(recorrido.consulta);
+    if (entradas.length === 0) errores.push(`el recorrido «${recorrido.id}» tiene una consulta vacía`);
+    for (const [clave, valor] of entradas) {
+      // `?guia=` es el pedido de abrir: la consulta no lo puede pisar.
+      if (clave === "guia") errores.push(`la consulta de «${recorrido.id}» no puede fijar «guia»`);
+      else if (clave === "" || valor === "") {
+        errores.push(`consulta incompleta en «${recorrido.id}»: «${clave}=${valor}»`);
+      }
+    }
   }
   const ids = new Set<string>();
   for (const paso of recorrido.pasos) {
