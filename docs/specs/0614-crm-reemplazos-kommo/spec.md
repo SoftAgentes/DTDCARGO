@@ -230,8 +230,8 @@ web de 6.4 en `/registro`).
 
 **Cómo encuentra la tarjeta** (en SQL, una RPC de `service_role`). **No repite la regla de
 ubicar o crear:** llama a la pieza única de la 10.5, `crm_tarjeta_ubicar_o_crear` (SDD-0586
-§10.5.6, pieza 1, decisión E10-D30), que también usan el alta web de la 0513 y los tickets del
-portal (§2.8). La pieza cubre los dos caminos, por ficha y por teléfono; 6.6 solo le pasa los datos
+§10.5.6, pieza 1, decisión E10-D30), que también usan el alta web de la 0513 y la entrada del
+portal de la 10.5 (§2.8). La pieza cubre los dos caminos, por ficha y por teléfono; 6.6 solo le pasa los datos
 y aplica el mapeo de abajo. Si a 6.6 le faltara un parámetro, se agrega redefiniendo la pieza desde
 su última definición, no con otra pieza.
 
@@ -288,7 +288,7 @@ quita S0.
 
 | Señal de D-SA | Reemplaza |
 |---|---|
-| **Espera respuesta** (Chatwoot o ticket del portal) | La tarea vencida «Responder al cliente» de los agentes de Kommo (`kommo-atencion.ts:1-15`) |
+| **Espera respuesta** (Chatwoot o conversación del portal) | La tarea vencida «Responder al cliente» de los agentes de Kommo (`kommo-atencion.ts:1-15`) |
 | **Ventana por cerrar o cerrada** (solo Chatwoot) | «Ping 23 h» y «Aviso interno — ventana de 24 h por cerrarse», como alerta interna (D8 de la 0587) |
 | **Tarea vencida** | `leadsSinAtender` sobre `kommo_tasks` (sin fecha no vence, igual que `kommo-atencion.ts:62`) |
 
@@ -302,14 +302,15 @@ quita S0.
 | Mensaje de actividad | No |
 | Respuesta de un bot (`AgentBot`) | No |
 | La redirección automática de E10 | **No.** Sale con el token del usuario de servicio (`router-api.ts:10`) como `outgoing` y no privado (`:123`), así que se excluye por el id de ese usuario, `chatwootServicioUserId()` (`config.ts:67`). Sin ese id configurado, ningún saliente de agente cuenta: la alerta avisa de más, nunca de menos |
+| Cualquier mensaje de la bandeja «Conversaciones del portal» | **No mueve las fechas de la tarjeta.** Se reconoce por `CHATWOOT_INBOX_PORTAL_ID` (SDD-0586 §10.5.8); la espera del portal la mide `crm_portal_espera` (señal 2) |
 
 La dirección y el remitente salen del payload de `message_created` (`message_type`, `private`,
 `sender`), que `interpretarEvento` ya lee en parte (`webhook-events.ts:129`). Que 4.19.1 mande el
 tipo y el id del remitente en el webhook es **NV**: se confirma en su fuente, como hizo 6.4
 (SDD-0587 §16.2).
 
-En el portal, la respuesta es la primera respuesta del ticket (`primera_respuesta_at`, E10-D29 de
-la SDD-0586). 6.6 no la vuelve a calcular.
+En el portal, la respuesta es un mensaje del equipo en el hilo y la mide `crm_portal_espera` de la
+10.5 (§2.8). 6.6 no la vuelve a calcular.
 
 **Límite (I):** una conversación que E10 redirige al otro número queda como «espera respuesta»
 hasta que alguien del equipo conteste. Es lo que pide excluir la redirección; si molesta, se decide
@@ -478,24 +479,29 @@ clave junto al texto actual. Esto le da a Sam la opción «otro asunto» que pid
 
 ### 2.8 Coordinación con la 10.5 y las dos definiciones únicas
 
-**Con la PR #400** (paso 10.5, tickets del portal, SDD-0586 §10.5), que va **primero y en serie**:
+**Con la PR #400** (paso 10.5, conversaciones del portal en Chatwoot, SDD-0586 §10.5), que va
+**primero y en serie**:
 
 - **Comparten archivos:** `TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts`,
   `crm-ficha.ts` y `supabase/pending-migration-symbol-declarations.json`. La implementación de 6.6
   arranca sobre `main` con la 10.5 ya fusionada y no edita esos archivos mientras la 10.5 los tenga
   abiertos.
 - **Una sola pieza para ubicar o crear la tarjeta:** `crm_tarjeta_ubicar_o_crear` de la 10.5
-  (E10-D30), por ficha y por teléfono, sirve al alta web de la 0513, a los tickets y al cotizador de
-  6.6 (§2.3). 6.6 no la copia.
+  (E10-D30), por ficha y por teléfono, sirve al alta web de la 0513, a la entrada del portal de la
+  10.5 y al cotizador de 6.6 (§2.3). 6.6 no la copia.
 - **Migración:** la de 6.6 va después de la de la 10.5 y su preflight la exige. Ninguna de las dos
   reserva número ahora: lo reserva el Director General al arrancar cada una (P-6).
 - **Las dos definiciones de abajo las fija esta SDD, una sola vez.** La 10.5 las cita igual; si
   alguna cambia, cambia aquí.
-- **La 10.5 se rediseña** por las respuestas 13 a 18 de Sam (2026-11-06): el chat del portal se
-  contesta desde Chatwoot, como una bandeja propia (respuesta 14). Eso no lo decide esta SDD, pero
-  toca tres cosas de aquí: la señal 2 de D-SA (el ticket propio puede no existir), la señal 3 (la
-  bandeja del portal no tiene ventana de Meta) y la pieza `crm_tarjeta_ubicar_o_crear`. Abajo quedan
-  ajustadas con su fecha; lo que falte se cierra con la 10.5 rediseñada (P-12).
+- **La 10.5 rediseñada** (#400, `12a5f7c52`, §10.5.19) cierra P-12 el 2026-11-06. El chat del
+  portal se contesta desde Chatwoot, en la bandeja propia «Conversaciones del portal» (E10-D33), y
+  entra a la tarjeta por su propio manejador, `entrarPortal` con `crm_entrada_portal` (E10-D36 y
+  E10-D22), no por `crm_entrada_chatwoot`. No hay tabla de tickets. Por eso, desde esa fecha:
+  - la señal 2 de D-SA se calcula con `crm_portal_espera` (SDD-0586 §10.5.6, objeto 9);
+  - la bandeja del portal queda fuera de las señales 1 y 3 (E10-D46): no se cuenta dos veces y en el
+    portal no hay ventana;
+  - el tipo de auditoría `crm_ticket` queda sin objeto (E10-D45);
+  - la pieza única sigue siendo `crm_tarjeta_ubicar_o_crear`.
 
 **D-SA · Definición de «sin atender»** (única para la alerta, los reportes, el conteo y el aviso)
 
@@ -504,34 +510,36 @@ su tablero del momento) y cumple al menos una de estas señales:
 
 1. **Espera respuesta en Chatwoot:** `ultimo_entrante_at` no es nulo, `ultima_respuesta_at` es nulo
    o anterior a él, y pasó el umbral desde `ultimo_entrante_at`. El umbral es **1 hora a reloj
-   corrido** (D-6.6-5 = a, cerrada).
-2. **Espera respuesta en el portal:** tiene un ticket abierto del portal (SDD-0586 §10.5) sin
-   `primera_respuesta_at`, y pasó el umbral desde su `abierto_at`. *Ajuste del 2026-11-06:* si la
-   10.5 rediseñada lleva el chat del portal a una bandeja de Chatwoot (respuesta 14 de Sam), no hay
-   ticket propio y esta señal se vuelve la 1; la frase se cierra con la 10.5 (P-12).
+   corrido** (D-6.6-5 = a, cerrada). **La bandeja del portal no cuenta aquí:** sus mensajes no
+   mueven `ultimo_entrante_at` ni `ultima_respuesta_at`.
+2. **Espera respuesta en el portal:** la conversación del portal de la ficha tiene mensajes del
+   cliente sin respuesta del equipo (`crm_portal_espera`, SDD-0586 §10.5), y pasó el umbral desde el
+   primero de ellos.
 3. **Ventana por cerrar o cerrada**, solo si el último entrante llegó por una bandeja **con ventana
    de Meta**: la señal 1 y pasaron 20 h desde `ultimo_entrante_at` (por cerrar) o 24 h (cerrada:
    hace falta plantilla). WhatsApp la tiene; Instagram y Messenger también, según Meta (NV en esta
-   tarea). La bandeja del portal no tiene ventana. *Ajuste del 2026-11-06:* por eso la tarjeta guarda
-   si su último entrante tiene ventana (`ultimo_entrante_con_ventana`, §3).
+   tarea). La bandeja del portal no cuenta (en el portal no hay ventana), y una bandeja sin ventana,
+   como el correo, tampoco: por eso la tarjeta guarda si su último entrante tiene ventana
+   (`ultimo_entrante_con_ventana`, §3).
 4. **Tarea vencida:** una tarea abierta de la tarjeta con `vence_at` anterior a ahora. Sin fecha
    no vence.
 
 **Respuesta humana**, en Chatwoot: un mensaje saliente no privado de un agente que no es el usuario
 de servicio (`chatwootServicioUserId()`, `lib/studio/chatwoot/config.ts:67`), o un eco sin
 remitente. No lo son una nota privada, un mensaje de actividad, un bot ni la redirección de E10.
-Sin el id del usuario de servicio configurado, ningún saliente de agente cuenta. En el portal, la
-primera respuesta del ticket (E10-D29). La calcula **una sola función SQL**, `crm_sin_atender`
-(§3). El «vencido» del ticket del portal (E10-D23: sin primera respuesta al terminar el día) es
-otra cosa: es la promesa del portal y sigue siendo de la 10.5.
+Sin el id del usuario de servicio configurado, ningún saliente de agente cuenta. **En el portal,**
+un mensaje del equipo en el hilo (`conversation_messages` con `direction = 'out'`), que con el flag
+de la 10.5 encendido llega desde Chatwoot; lo mide `crm_portal_espera`, no esta SDD. La calcula
+**una sola función SQL**, `crm_sin_atender` (§3). El plazo del portal (E10-D23: la conversación
+vence al terminar el día que cuenta, o el lunes; SDD-0586 §10.5.11) es otra cosa: es la promesa del
+portal y sigue siendo de la 10.5.
 
-**D-AUD · Qué lleva la auditoría del CRM** (única para los tipos `crm_*`: `crm_tarjeta` de esta
-SDD y `crm_ticket` de la 10.5)
+**D-AUD · Qué lleva la auditoría del CRM** (única para los tipos `crm_*`; hoy, `crm_tarjeta` de
+esta SDD. El `crm_ticket` de la 10.5 quedó sin objeto, E10-D45)
 
-- **Entidad:** `entity_id` es el id de la fila del CRM (la tarjeta o el ticket).
-- **Puede llevar:** ids de filas propias del CRM (tarjeta, ticket), ids de usuarios del equipo
-  (dueño, quien cerró), claves de etapa, fuente, motivo de lista, estado, número del episodio y
-  banderas sí o no.
+- **Entidad:** `entity_id` es el id de la fila del CRM (la tarjeta).
+- **Puede llevar:** ids de filas propias del CRM (la tarjeta), ids de usuarios del equipo (el dueño),
+  claves de etapa, fuente, motivo de lista, estado, número del episodio y banderas sí o no.
 - **Nunca lleva:** `client_id`, Shipping Mark, nombre, teléfono, correo, contacto de Chatwoot,
   BSUID, texto libre (notas, tareas, motivo «Otro», mensajes) ni montos. `entity_audit_log` es de
   solo agregar y sobrevive a la purga de la ficha: nada de lo que guarda puede identificar a la
@@ -541,9 +549,11 @@ SDD y `crm_ticket` de la 10.5)
   Chatwoot, un cron o `service_role` lleva `system`, con `actor_id` nulo, nunca el `auth.uid()` del
   cliente. El origen va en `source`, con los valores que admite la 0267
   (`0267_audit_contract_append_only.sql:324-336`): `studio` (el equipo en Studio, incluido el
-  cotizador), `webhook` (Chatwoot), `job` (crons) y `rpc` (portal y alta web de `/registro`).
-- **Misma transacción que el cambio** (AUD-01). En la 10.5, el ticket y su evento van juntos
-  dentro del bloque que nunca rompe el mensaje del cliente (E10-D24).
+  cotizador), `webhook` (Chatwoot, también la bandeja del portal), `job` (crons) y `rpc` (portal y
+  alta web de `/registro`).
+- **Misma transacción que el cambio** (AUD-01). Lo que la 10.5 cambia en la tarjeta lo audita el
+  mismo trigger de `crm_tarjetas` (§2.7 e), y la tarjeta del portal corre fuera de la transacción
+  del mensaje del cliente, que nunca falla por el CRM (E10-D24).
 
 ### 2.9 R8 — Recontacto (tema extra de Sam, opción A)
 
@@ -577,6 +587,10 @@ escribir»**, y pasa a «Recontacto» si eso no lo hace retroceder:
   la tarea (`on conflict do nothing`). Un movimiento manual posterior gana (`crm_mover_etapa_auto`).
 - **Solo Leads.** Al cliente no le aplica: su tarjeta está en Clientes, y el cliente que vuelve a
   lead ya tiene su camino (§2.7 a).
+- **La bandeja del portal no dispara R8:** sus mensajes entran por `crm_entrada_portal` de la 10.5
+  (E10-D22), no por `crm_entrada_chatwoot`, y su espera la mide la señal 2. Si Sam quiere que
+  escribir por el portal tras 30 días también cuente como recontacto, se suma a esa función, en la
+  10.5 o después (**I**: no se le preguntó).
 - **Registrarse o pedir un estimado no es «escribir».** El alta web sigue como hoy: quien estaba en
   «Perdido» vuelve a Recontacto (`0513_crm_entrada_leads.sql:381-383`), y nada más.
 
@@ -724,7 +738,7 @@ los crons dependen de sus interruptores (§2.7 c).
 | `crm_etapas` (dato) y `crm_sembrar_etapas` | «Registrado / recontacto» pasa a «Recontacto» solo donde sigue el nombre sembrado; la siembra, redefinida desde `0506_crm_modelo.sql:224-244` (§2.9) | Migración |
 | `crm_mover_por_estimado(tenant, estimado, estado, ocurrió)` | §2.3 completo: ubica o crea con `crm_tarjeta_ubicar_o_crear` de la 10.5, por ficha o por teléfono; con `ambigua` no mueve nada; «solo si»; limpiar motivo | `service_role` |
 | `crm_registrar_cambios_tablero(tenant, ahora)` | §2.7 a. Devuelve cuántos cambios guardó | `service_role` |
-| `crm_sin_atender(umbral, ahora)` | D-SA (§2.8), por tarjeta, incluidos los tickets del portal de la 10.5. Una variante con tenant para el cron | `authenticated` con `crm_puede_usar()`; la variante, `service_role` |
+| `crm_sin_atender(umbral, ahora)` | D-SA (§2.8), por tarjeta; la señal 2, con `crm_portal_espera` de la 10.5. Una variante con tenant para el cron | `authenticated` con `crm_puede_usar()`; la variante, `service_role` |
 | `crm_kpis(desde, hasta, umbral)` | Las fórmulas de §2.5. Solo conteos | Admin y comercial |
 | `crm_resumen_por_asesor(desde, hasta, umbral)` | Las de §2.6. Solo conteos y totales por asesor, con el id del usuario del equipo; el facturado, sumado adentro con `studio_client_annual_billing`. Ni ids de fichas ni de tarjetas | Admin, comercial y contabilidad (D-6.6-7 = a) |
 | `crm_anonimizar_tarjeta(tarjeta, motivo)` | §2.7 d. Exige admin del tenant de la tarjeta y tarjeta sin ficha | `authenticated` (con ese chequeo adentro) |
@@ -733,8 +747,8 @@ los crons dependen de sus interruptores (§2.7 c).
 | `audit_entity_types` | Fila `crm_tarjeta`, dominio `commercial` (existe en `0258_audit_entity_catalog.sql:127`) | Migración |
 | `audit_crm_tarjeta_change()` | Trigger de §2.7 e, con la regla D-AUD (§2.8) | Trigger |
 
-**Preflight de la A:** exige la 0506, la 0513 y lo que deje la migración de la 10.5 rediseñada (como
-mínimo, `crm_tarjeta_ubicar_o_crear`; P-12), y aborta si la A ya se aplicó, como la 0513 (SDD-0587
+**Preflight de la A:** exige la 0506, la 0513 y, de la migración de la 10.5, `crm_tarjeta_ubicar_o_crear`
+y `crm_portal_espera` (P-12, cerrada), y aborta si la A ya se aplicó, como la 0513 (SDD-0587
 §16.3).
 
 **Migración B**
@@ -817,7 +831,7 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 - Pruebas: `lib/studio/__tests__/crm-estimado.test.ts`, `app/studio/(app)/cotizador/__tests__/transicion-tarjeta-crm.test.ts` (también: ya no encola nada a Kommo), `app/studio/(app)/crm/__tests__/tarjeta-actions-gate.test.ts` (casos nuevos), `app/studio/(app)/crm/_components/CrearFichaDrawer.test.tsx`, `lib/studio/rbac-actions-guard.test.ts` (conteo de acciones)
 
 **S3 · Vista, KPI, por asesor, sin atender, tipo de lead y recontacto**
-- `lib/studio/chatwoot/webhook-events.ts` (dirección, tipo de remitente y si la bandeja tiene ventana, sin nombres), `webhook-procesar.ts` (lista de manejadores), `lib/studio/chatwoot/respuestas.ts` (nuevo manejador)
+- `lib/studio/chatwoot/webhook-events.ts` (dirección, tipo de remitente, si la bandeja tiene ventana y si es la del portal, sin nombres), `webhook-procesar.ts` (lista de manejadores), `lib/studio/chatwoot/respuestas.ts` (nuevo manejador)
 - `lib/studio/crm-kpis.ts` (nuevo: tipos y lecturas de las RPC)
 - `app/studio/(app)/crm/page.tsx`, `_components/kommo-tabs.shared.ts`, `_components/KommoClient.tsx` (pestañas nuevas y slots)
 - `app/studio/(app)/crm/_components/CrmResumenSlot.tsx`, `CrmResumen.tsx`, `CrmSinAtenderSlot.tsx`, `CrmSinAtender.tsx` (nuevos)
@@ -944,7 +958,8 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
   limpia el motivo; estimado web con 0, 1 y 2 coincidencias; cambio de tablero en los dos sentidos
   sin duplicar y sin contar la ubicación inicial; `crm_registrar_mensaje` con `greatest` y con
   contacto desconocido; señales de «sin atender» en los bordes (umbral exacto, 20 h, 24 h, respuesta
-  posterior, tarea sin fecha, ticket del portal sin primera respuesta); KPI y por asesor contra un
+  posterior, tarea sin fecha, conversación del portal con mensajes sin respuesta por
+  `crm_portal_espera`; la bandeja del portal no mueve las señales 1 y 3); KPI y por asesor contra un
   juego de datos fijo, y que el de por asesor no devuelva ids de fichas ni de tarjetas; anonimizar
   ahora (admin sí, comercial no, otro tenant no, con ficha no; misma limpieza que por plazo);
   retención con D-6.6-9 (a): lead sin ficha y registrado sin envíos a los 12 meses, el registrado
@@ -965,7 +980,8 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
   acepta la llamada sin el parámetro.
 - **Control rojo** sin la migración y **mutantes** por rama de cada RPC, como la 0506 y la 0513.
 - **Manejador de mensajes:** saliente de agente, eco sin remitente, nota privada, bot y redirección
-  de E10, cada uno con su resultado esperado; bandeja con ventana y sin ella.
+  de E10, cada uno con su resultado esperado; bandeja con ventana y sin ella; un saliente o un
+  entrante de la bandeja del portal no mueve las fechas.
 - **Cotizador:** el fallo de la tarjeta no rompe la transición (error, promesa rechazada, llamada que
   lanza), y **ya no se encola nada a Kommo** en ninguna de las tres transiciones (D-6.6-3 = b).
 - **S0:** sin pestañas de Kommo en la barra; cada `?tab=` viejo abre la pestaña por defecto;
@@ -1112,7 +1128,7 @@ extracción del historial de Kommo sigue, porque es parte de la migración a Cha
 
 ### Preguntas nuevas al Director General (2026-11-06)
 
-Respondidas por el Subdirector de Chatwoot el mismo día, salvo las dos que siguen abiertas.
+Respondidas por el Subdirector de Chatwoot el mismo día. P-12 se cerró con la 10.5 rediseñada; P-10 sigue abierta.
 
 | # | Pregunta | Estado |
 |---|---|---|
@@ -1120,7 +1136,7 @@ Respondidas por el Subdirector de Chatwoot el mismo día, salvo las dos que sigu
 | P-9 | Entre S0 y S3, Reportes › Por agente no muestra desempeño por asesor. ¿Se acepta, o la tabla de Kommo se queda hasta S3? | **Se oculta**, con un aviso corto e interno. El texto de §2.1 quedó aprobado tal cual por el Subdirector |
 | P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | **Abierta: la decide Sam.** Se la lleva el Director General, con la recomendación de esta SDD: que se quede, porque enseña a dejar Kommo y no conecta con Kommo |
 | P-11 | ¿El teléfono completo va en su propia migración (B)? | **Sí:** la B va aparte |
-| P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | **Abierta** hasta que vuelva el rediseño de la 10.5. Si ya no trae la pieza, se decide aquí antes de la PR A, sin copiarla |
+| P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | **Cerrada** con la 10.5 rediseñada (#400, `12a5f7c52`, §10.5.19): la pieza sigue; la señal 2 sale de `crm_portal_espera`; la bandeja del portal queda fuera de las señales 1 y 3; `crm_ticket` queda sin objeto. Aplicado en §2.8 |
 
 ### Resueltas por el Director General (2026-11-06, sobre `99e7d6300`)
 
@@ -1186,6 +1202,9 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   Quitar los envíos del cotizador deja de ser un apagado en producción y el alta de `/registro` sale
   de lo que Sam decide aparte. El Subdirector respondió P-8, P-9 y P-11; P-10 (de Sam) y P-12 siguen
   abiertas. El nombre «Recontacto» va en la migración A, con número que reserva el Director General.
+- **2026-11-06:** P-12 cerrada con la 10.5 rediseñada (#400, `12a5f7c52`, §10.5.19). D-SA y D-AUD de
+  §2.8 quedan como las cita esa SDD: la señal 2 con `crm_portal_espera`, la bandeja del portal
+  fuera de las señales 1 y 3, y sin `crm_ticket`. No cambia ninguna estimación.
 
 ## 14. Textos públicos propuestos (no se publican sin el OK de Sam)
 
