@@ -65,6 +65,7 @@ import {
   type NewsDialecto,
 } from "@/lib/news/prompts";
 import { slugify, dedupSlug } from "@/lib/news/slugify";
+import { tieneMarca } from "@/lib/news/autopublicar/marcas";
 import {
   getNextWriter,
   getActiveWriters,
@@ -1111,6 +1112,15 @@ export async function publishPost(
   }
   if (!NEWS_CATEGORIES_V4[input.categoria]) {
     return { ok: false, error: `Categoría inválida: ${input.categoria}` };
+  }
+  // SDD-0611 §3 y criterio 3: el servidor no publica una marca [VERIFICAR, en
+  // ninguna forma (vacía, en minúsculas, en un enlace…). Antes la regla vivía
+  // solo en el navegador y una llamada directa a esta acción la saltaba.
+  if (tieneMarca(cleanHeadline, cleanMarkdown)) {
+    return {
+      ok: false,
+      error: "Quedan marcas [VERIFICAR] sin resolver: corrígelas antes de publicar",
+    };
   }
 
   // ── Slug · base del titular, dedupe contra DB ──
