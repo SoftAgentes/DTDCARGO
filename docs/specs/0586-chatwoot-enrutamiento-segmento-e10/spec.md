@@ -4,7 +4,7 @@ title: "Enrutamiento por segmento desde el ERP (etapa E10 del programa SDD-0582)
 status: in-progress
 author: "Claude Worker «0582 E10» (Sam)"
 created: 2026-10-30
-updated: 2026-11-06
+updated: 2026-11-07
 supersedes: null
 superseded_by: null
 related: ["0582", "0585", "0383", "0341", "0367", "0492", "0587", "0056", "0148", "0599", "0590", "0127", "0149"]
@@ -661,6 +661,45 @@ Editados:
 
 **Cruce con la 6.6:** comparten archivos y van en serie, primero la 10.5 (§10.5.19).
 
+**Partición de la PR 1 (Worker de la ida, 2026-11-07).** La PR 1 se parte en dos, en serie, para que la primera lleve solo la ida, de Studio a Chatwoot (E10-D34, E10-D35 y el aviso de E10-D40). Medido sobre `main` en `7e75f7708`.
+
+- **PR 1a · la ida (esta).** Migración `0519_chatwoot_portal.sql` (número asignado por el Director General el 2026-11-07, comunicado por el Subdirector de Chatwoot; reserva local `refs/dtd/reservations/migraciones/0519`) con las cuatro tablas de §10.5.6, `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` (el aviso, solo números) y `feature_flag_catalog()` con `chatwoot_portal` apagado. El envío en el servidor de Studio, el cron y el pedido sin bloquear del portal. Con el flag apagado, o sin `CHATWOOT_INBOX_PORTAL_ID`, el token o la cuenta, no hace nada. **No toca ninguno de los archivos que comparte con la 6.6** (`TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts` y `crm-ficha.ts`); solo cruza en `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
+- **PR 1b · la vuelta, el estado, el CRM y Studio en solo lectura.** Una migración propia, con su número, con `chatwoot_portal_respuesta`, `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar` desde la 1a. Lleva los dos manejadores, la conciliación, la reapertura por el envío si la PoC-4 falla, `crm-portal.ts`, la insignia y la sección de la ficha, Studio en solo lectura y los textos T1 a T4. Es la que cruza con la 6.6. El resto de la allowlist de la PR 1, de arriba, es de la 1b.
+- **PR 2 · la carga (P4)**, como arriba. `chatwoot_portal_vincular_carga` va con ella o en la migración de la 1b, lo que se integre primero. Hasta entonces, el `corte` de `chatwoot_portal_estado` solo lo escribe `service_role` a mano, y en prueba con una carga vacía.
+
+Lo que cambia respecto de §10.5.6, por la partición:
+
+- La ida solo toma mensajes del cliente (`direction = 'in'`). Lo saliente del modo de respaldo es de la 1b.
+- `chatwoot_portal_tomar` recibe también el tenant: la cuenta de Chatwoot es de un solo tenant (`CHATWOOT_TENANT_ID`), y sin él la cola podría mandar mensajes de otro tenant a la cuenta de DTD. Recibe además, opcional, el hilo, para que el portal pida solo el envío de su hilo.
+- `chatwoot_portal_salida` lleva una columna más, `verificar`: queda en verdadero después de un intento incierto, y desde ahí cada intento busca primero el `source_id` en Chatwoot. Un envío colgado en `enviando` más de 5 minutos cuenta como incierto.
+- El bloqueo por hilo es `for no key update skip locked` sobre la fila de `conversations`, no sobre el vínculo, que todavía no existe con el primer mensaje del hilo. `no key update` no choca con el `for key share` de la clave foránea, así que no frena a `portal_post_message` cuando inserta un mensaje en ese hilo.
+- Un mensaje «atascado» detiene su hilo: los siguientes esperan, para no romper el orden. Cómo se destraba uno atascado (a mano con `service_role`, o con una función para el admin) queda **pendiente** para el Director General.
+- No se mandan los mensajes de una ficha borrada (`clients.deleted_at`). Sí los de un hilo archivado en Studio: el mensaje existe y el equipo tiene que verlo. La guarda de la vuelta para esos hilos es de la 1b (E10-D37).
+
+**PR 1a · allowlist exacta.**
+
+Nuevos:
+
+- `supabase/migrations/0519_chatwoot_portal.sql` y `supabase/tests/0519_chatwoot_portal.test.sql`
+- `lib/studio/__tests__/chatwoot-portal.migration.test.ts`
+- `lib/studio/chatwoot/portal.ts` (configuración leída aparte, envío, contacto, conversación y aviso) y `lib/studio/chatwoot/__tests__/portal.test.ts`
+- `.agents/handoffs/0586-e10-5-ida.md`
+
+Editados:
+
+- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`
+- `lib/studio/feature-flags-types.ts` (`chatwoot_portal` y el efecto nuevo `servidor`), `lib/studio/__tests__/feature-flags-catalog.test.ts` (que un flag `servidor` lo lea de verdad el servidor) y `app/studio/(app)/admin/feature-flags/_components/FeatureFlagsClient.tsx` (el texto del efecto `servidor`; sin él, el panel caería en «oculta del menú»)
+- `lib/studio/chatwoot/config.ts` (`chatwootPortalConfig`); no tiene prueba propia, así que sus casos van en `portal.test.ts`
+- `lib/studio/chatwoot/router-api.ts` (contacto, conversación y mensajes de una conversación; asignar agente es de la 1b) y `lib/studio/chatwoot/__tests__/router-api.test.ts`
+- `app/api/cron/chatwoot-reintentos/route.ts` (la cola y el aviso; la conciliación es de la 1b) y `app/api/cron/chatwoot-reintentos/__tests__/route.test.ts`
+- `app/portal/(app)/mensajes/actions.ts` (pide el envío sin bloquear, con `after()`) y `app/portal/reintento-no-duplica.test.ts`
+- `.env.example` y `infra/dtd-cargo/.env.example` (`CHATWOOT_INBOX_PORTAL_ID`). Los vigilan `env-example-contract.test.ts` y `scripts/__tests__/infra-env-example.test.ts`, que no cambian. En §10.5.16 decía `infra/chatwoot/.env.example`, pero esa plantilla es la del contenedor de Chatwoot y la variable la lee Studio
+- `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md` y `docs/specs/README.md` (índice generado)
+
+No se tocan en la 1a: `webhook-procesar.ts`, `app/api/chatwoot/webhook/route.ts`, `app/studio/(app)/conversaciones/**`, `app/studio/(app)/crm/**`, `lib/studio/crm-*.ts`, `app/portal/(app)/soporte/page.tsx`, `app/privacidad/page.tsx`, `docs/specs/0582-chatwoot-piloto/checklist.md`, `docs/runbooks/chatwoot-bandeja.md` y `docs/legal/privacidad/mapa-de-borrado.md`, más lo que §10.5.16 ya excluye.
+
+**PR 1a · qué prueba de §10.5.15 cubre.** Del contrato SQL: los puntos 1 (preflight, con la reaplicación y un catálogo que no es el de la 0503), 2, 3, 5 y 10, más el aviso, los reintentos, el «atascado» y un intento viejo que no cierra el nuevo. Los puntos 4, 6 a 9 y 11 son de la 1b y de la PR 2. De TypeScript: el envío (orden, uno por hilo, el incierto que busca el `source_id` antes de reenviar, los reintentos, «atascado» y el aviso con solo números; con el flag apagado o sin configuración, nada) y que a Chatwoot solo salgan el nombre, el identificador y el texto. Las PoC-1, PoC-2, PoC-3 y PoC-5 siguen **sin medir (NV)**: las pruebas usan dobles, y se miden en la cuenta 2 antes de encender el flag (puerta 4 de §10.5.9). Si alguna falla, la cola reintenta, termina «atascada» y avisa, sin romper el portal. Queda **pendiente** una prueba con dos sesiones de Postgres para el `skip locked` y la guarda del upsert: PGlite tiene una sola conexión.
+
 ### 10.5.17 Lo que queda fuera
 
 - «Tus casos» (reclamos), en el CRM o en Chatwoot (P1).
@@ -746,6 +785,7 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 - Decidir con el Subdirector de SEO si, con el flag encendido, se apaga el aviso de Telegram del portal (§10.5.13, punto 8).
 - Elegir dónde viven los scripts de la carga (PR 2, §10.5.16).
 - Llevar a la 0614 la propuesta de §10.5.19.
+- Decidir cómo se destraba un mensaje «atascado» de la ida, que detiene su hilo: a mano con `service_role`, según un runbook, o con una función para el admin en la 1b (§10.5.16, «Partición de la PR 1»).
 - El checklist 0582 quedó en la #410 (`af50750d3`, en borrador), con la línea base v4: la fila 10.5 reescrita y dos filas nuevas, la 10.7 (aquí, «10.5 b») y la 10.8 (aquí, «10.5 c»). Esta rama deja el checklist igual que en su base (`3d17292a4`), así que la #400 no lo toca y no choca con la #410 en ningún orden de fusión. La reestimación ya está aprobada (§10.5.21).
 
 ### 10.5.21 Reestimación (I)
