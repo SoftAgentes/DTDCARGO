@@ -43,6 +43,8 @@ jobs:
     timeout-minutes: 30
     env:
       CI: "true"
+      # En este job la PoC no se puede saltar: sin la instancia, portal.poc.test.ts da rojo, no omitido.
+      POC_REQUERIDA: "1"
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -59,6 +61,19 @@ jobs:
 
       - name: Instalar dependencias desde el lockfile
         run: pnpm install --frozen-lockfile
+
+      # Control: con POC_REQUERIDA=1 y sin instancia, la PoC tiene que dar ROJO. Si saliera verde, un
+      # Chatwoot que no arrancó pasaría por bueno.
+      - name: Control, sin instancia la PoC da rojo
+        run: |
+          set -uo pipefail
+          salida=$(pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts --maxWorkers=1 2>&1)
+          codigo=$?
+          printf '%s\n' "$salida" | tail -n 12
+          if [ "$codigo" = 0 ]; then echo "FALLÓ: sin instancia la PoC salió verde"; exit 1; fi
+          printf '%s\n' "$salida" | grep -q 'encuentra la instancia efímera' \
+            || { echo "FALLÓ: cayó, pero no por la prueba obligatoria"; exit 1; }
+          echo "PASÓ: sin instancia, la PoC da rojo"
 
       - name: PoC-1, PoC-2, PoC-3 y PoC-5 con el cliente de Studio
         run: bash infra/chatwoot/pruebas/portal/prueba-portal-poc.sh

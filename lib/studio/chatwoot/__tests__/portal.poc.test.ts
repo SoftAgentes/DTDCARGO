@@ -3,8 +3,10 @@
  * SDD-0586 (10.5, PR 1a) · Prueba de concepto contra un Chatwoot 4.19.1 REAL y efímero (§10.5.15).
  *
  * Solo corre dentro de infra/chatwoot/pruebas/portal/prueba-portal-poc.sh, que levanta la instancia (en GitHub
- * Actions: .github/workflows/chatwoot-portal-poc.yml) y pasa CHATWOOT_POC_*. Sin esas variables, todo el archivo
- * se salta: en «Calidad continua» y en una PC sin la instancia sale como omitido, no como verde.
+ * Actions: .github/workflows/chatwoot-portal-poc.yml) y pasa CHATWOOT_POC_*. Sin esas variables, las PoC se
+ * saltan: en «Calidad continua» y en una PC sin la instancia salen como omitidas, no como verdes. En el workflow
+ * de la PoC no se pueden saltar: con POC_REQUERIDA=1, si falta la instancia, la primera prueba da ROJO (y el
+ * workflow lo comprueba con un control antes de levantar Chatwoot).
  *
  * Usa el cliente real de Studio (router-api.ts y portal.ts), sin dobles de red. Cada PoC tiene su control: lo
  * que la prueba busca tiene que poder faltar, para que su verde diga algo.
@@ -16,7 +18,8 @@
  *   PoC-5  la API acepta message_type incoming en una bandeja API, con el contacto como remitente, y el webhook
  *          de cuenta lo entrega como incoming.
  *   Ida    portal.ts de punta a punta: el primer mensaje crea contacto, conversación y mensaje, y un reintento
- *          incierto no duplica nada.
+ *          incierto no duplica nada, aunque el equipo haya escrito más de una página de mensajes después
+ *          (hallazgo de la revisión independiente de la #424).
  *
  * Datos inventados: «SINT-…».
  */
@@ -32,6 +35,7 @@ vi.mock("@/lib/studio/notify/operario-push-outbox", () => ({ enqueueUserPush: vi
 import { enviarPortalPendientes } from "../portal";
 import {
   buscarContactoPortal,
+  buscarMensajePorSourceId,
   crearContactoPortal,
   crearConversacionPortal,
   crearMensajeEntrante,
@@ -69,6 +73,22 @@ async function mensajesCrudos(conversacionId: number): Promise<MensajeCrudo[]> {
   expect(r.status).toBe(200);
   return ((r.json as { payload?: MensajeCrudo[] })?.payload ?? []) as MensajeCrudo[];
 }
+/** Toda la conversación, página por página con ?before=, para contar sin depender del tamaño de página. */
+async function todosLosMensajes(conversacionId: number): Promise<MensajeCrudo[]> {
+  const todos: MensajeCrudo[] = [];
+  let antes: number | null = null;
+  for (let i = 0; i < 30; i += 1) {
+    const r = await api(`conversations/${conversacionId}/messages${antes === null ? "" : `?before=${antes}`}`);
+    expect(r.status).toBe(200);
+    const pagina = ((r.json as { payload?: MensajeCrudo[] })?.payload ?? []) as MensajeCrudo[];
+    if (pagina.length === 0) break;
+    todos.push(...pagina);
+    const menor = Math.min(...pagina.map((m) => m.id));
+    if (antes !== null && menor >= antes) break;
+    antes = menor;
+  }
+  return todos;
+}
 const esEntrante = (t: unknown) => t === 0 || t === "incoming";
 const esSaliente = (t: unknown) => t === 1 || t === "outgoing";
 
@@ -78,7 +98,32 @@ const PNG = Buffer.from(
   "base64",
 );
 
-describe.skipIf(!ORIGEN || !TOKEN || !CUENTA || !BANDEJA)("PoC de la ida contra Chatwoot 4.19.1 efímero (SDD-0586 §10.5.15)", () => {
+const HAY_INSTANCIA = Boolean(ORIGEN && TOKEN && CUENTA && BANDEJA);
+
+/** Más mensajes de los que caben en una página de Chatwoot (20, NV), del agente, después del dado. */
+async function escribirMasDeUnaPagina(conversacionId: number, n = 25): Promise<void> {
+  for (let i = 0; i < n; i += 1) {
+    const r = await api(`conversations/${conversacionId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: `SINT respuesta ${i + 1}`, message_type: "outgoing", private: false }),
+    });
+    expect(r.status).toBe(200);
+  }
+}
+
+describe.runIf(process.env.POC_REQUERIDA === "1")("la PoC es obligatoria en su workflow (POC_REQUERIDA=1)", () => {
+  it("encuentra la instancia efímera: sin ella, rojo y no omitido", () => {
+    expect({ origen: Boolean(ORIGEN), token: Boolean(TOKEN), cuenta: CUENTA > 0, bandeja: BANDEJA > 0 }).toEqual({
+      origen: true,
+      token: true,
+      cuenta: true,
+      bandeja: true,
+    });
+  });
+});
+
+describe.skipIf(!HAY_INSTANCIA)("PoC de la ida contra Chatwoot 4.19.1 efímero (SDD-0586 §10.5.15)", () => {
   const sufijo = crypto.randomUUID();
   const identificador = `dtd-portal:${sufijo}`;
   const sourceId = `dtd:${crypto.randomUUID()}`;
@@ -203,6 +248,24 @@ describe.skipIf(!ORIGEN || !TOKEN || !CUENTA || !BANDEJA)("PoC de la ida contra 
     expect(entrega?.cuerpo?.source_id).toBe(sourceId);
   }, LARGO);
 
+  it("revisión de la #424: con más de una página de mensajes después, la primera página ya no trae el mensaje", async () => {
+    const desde = new Date(Date.now() - 10 * 60_000);
+    await escribirMasDeUnaPagina(conversacion);
+    const primera = await listarMensajes(CFG, conversacion);
+    expect(primera.ok).toBe(true);
+    // Control: si la primera página lo trajera, esta prueba no estaría midiendo la paginación.
+    expect(primera.ok && primera.data.some((m) => m.id === mensaje)).toBe(false);
+    // La búsqueda de portal.ts pagina hacia atrás y lo encuentra: un reintento no lo duplica.
+    expect(await buscarMensajePorSourceId(CFG, conversacion, sourceId, desde)).toEqual({ ok: true, data: mensaje });
+    // Control: un source_id que nunca se mandó no aparece, y la búsqueda termina (no se queda en el tope).
+    expect(await buscarMensajePorSourceId(CFG, conversacion, `dtd:${crypto.randomUUID()}`, desde)).toEqual({ ok: true, data: null });
+  }, LARGO);
+
+  it("los mensajes traen created_at, con el que la búsqueda corta al pasar la hora del mensaje", async () => {
+    const crudo = (await mensajesCrudos(conversacion))[0] as MensajeCrudo & { created_at?: unknown };
+    expect(typeof crudo.created_at === "number" || typeof crudo.created_at === "string", JSON.stringify(crudo.created_at)).toBe(true);
+  }, LARGO);
+
   it("Ida de punta a punta: el primer mensaje del hilo y un reintento incierto, sin duplicar nada", async () => {
     vi.stubEnv("CHATWOOT_URL", ORIGEN);
     vi.stubEnv("CHATWOOT_ROUTER_TOKEN", TOKEN);
@@ -234,6 +297,7 @@ describe.skipIf(!ORIGEN || !TOKEN || !CUENTA || !BANDEJA)("PoC de la ida contra 
         hilo_id: crypto.randomUUID(),
         autor: "SINT-Cliente punta a punta",
         cuerpo: "SINT-TEXTO punta a punta",
+        enviado_at: new Date(Date.now() - 60_000).toISOString(),
         intento: 1,
         verificar: false,
         identificador: ident,
@@ -252,10 +316,12 @@ describe.skipIf(!ORIGEN || !TOKEN || !CUENTA || !BANDEJA)("PoC de la ida contra 
       expect(marcas[0]).toMatchObject({ p_ok: true, p_intento: 1, p_incierto: false });
       const enviado = Number(marcas[0].p_chatwoot_message_id);
       const contarSource = async () =>
-        (await mensajesCrudos(conv)).filter((m) => m.source_id === `dtd:${mensajeId}`).map((m) => m.id);
+        (await todosLosMensajes(conv)).filter((m) => m.source_id === `dtd:${mensajeId}`).map((m) => m.id);
       expect(await contarSource()).toEqual([enviado]);
 
-      // 2. Un reintento después de un incierto, con el vínculo ya guardado: lo encuentra y no lo reenvía.
+      // 2. Un reintento después de un incierto, con el vínculo ya guardado y con más de una página de
+      //    respuestas del equipo en el medio: lo encuentra y no lo reenvía.
+      await escribirMasDeUnaPagina(conv);
       await enviarPortalPendientes(
         base([{ ...fila, intento: 2, verificar: true, contacto_id: conContacto?.p_contacto_id, contacto_source_id: conContacto?.p_contacto_source_id, conversacion_id: conv }]),
       );
