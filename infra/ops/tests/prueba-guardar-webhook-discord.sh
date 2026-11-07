@@ -67,14 +67,14 @@ guardada() { grep -E '^PUBLICAR_DISCORD_WEBHOOK=' "${CFG}" | cut -d= -f2-; }
 
 echo "== lo que no sirve =="
 reiniciar; printf 'hola, esto no es un webhook\r\n' | correr
-[ "${RC}" = 1 ] && grep -q '^NO GUARDADA: lo pegado no trae la dirección' "${T}/salida" && [ "$(gets)" = 0 ] && sin_cambios \
+[ "${RC}" = 1 ] && grep -q '^NO GUARDADA (publicaciones): lo pegado no trae la dirección' "${T}/salida" && [ "$(gets)" = 0 ] && sin_cambios \
   && ok "basura: NO GUARDADA, no le pregunta a Discord y no toca nada" || { ko "basura rc=${RC}"; ver; }
 reiniciar; printf '' | correr
 [ "${RC}" = 1 ] && grep -q '^NO GUARDADA' "${T}/salida" && sin_cambios && ok "vacío: NO GUARDADA" || { ko "vacío rc=${RC}"; ver; }
 reiniciar; printf 'https://discord.com/api/webhooks/123/%s\nhttps://otro.test/api/webhooks/%s/%s\nhttp://discord.com/api/webhooks/%s/%s\n' "${TOK}" "${IDP}" "${TOK}" "${IDP}" "${TOK}" | correr
 [ "${RC}" = 1 ] && [ "$(gets)" = 0 ] && sin_cambios && ok "id corto, otro host o http: no cuenta como dirección" || { ko "formas raras rc=${RC}"; ver; }
 reiniciar; printf '%s\n' "${DE_SALUD}" | correr
-[ "${RC}" = 1 ] && grep -q "^NO GUARDADA: el webhook es del canal ${SALUD}, no de #publicaciones" "${T}/salida" && [ "$(gets)" = 1 ] && sin_cambios \
+[ "${RC}" = 1 ] && grep -q "^NO GUARDADA (publicaciones): el webhook es del canal ${SALUD}, no de #publicaciones" "${T}/salida" && [ "$(gets)" = 1 ] && sin_cambios \
   && ok "dirección válida de otro canal (#salud): NO GUARDADA, sin respaldo ni cambios" || { ko "otro canal rc=${RC}"; ver; }
 reiniciar; printf '%s %s\n' "${BUENA}" "${DE_SALUD}" | correr
 [ "${RC}" = 1 ] && grep -q 'trae 2 direcciones de webhook distintas' "${T}/salida" && [ "$(gets)" = 0 ] && sin_cambios \
@@ -96,7 +96,7 @@ reiniciar; correr "${BUENA}" < /dev/null
 
 echo "== la correcta =="
 reiniciar; printf '%s\r\n' "${BUENA}" | correr
-[ "${RC}" = 0 ] && grep -q "^GUARDADA · ${#BUENA} caracteres · sha256 [0-9a-f]\{12\} · canal #publicaciones" "${T}/salida" \
+[ "${RC}" = 0 ] && grep -q "^GUARDADA (publicaciones) · ${#BUENA} caracteres · sha256 [0-9a-f]\{12\} · canal #publicaciones ${PUB} · PUBLICAR_DISCORD_WEBHOOK en " "${T}/salida" \
   && ok "la correcta: GUARDADA con el largo y la huella" || { ko "correcta rc=${RC}"; ver; }
 [ "$(guardada)" = "${BUENA}" ] && [ "$(grep -c '^PUBLICAR_DISCORD_WEBHOOK=' "${CFG}")" = 1 ] && ! grep -q '^PUBLICAR_TELEGRAM_' "${CFG}" \
   && grep -qx 'PUBLICAR_KUMA_PUSH_URL=https://kuma.test/api/push/TOKENKUMA' "${CFG}" && grep -qx 'PUBLICAR_MIN_LIBRE_GB=10' "${CFG}" \
@@ -127,10 +127,60 @@ reiniciar; printf 'PUBLICAR_DISCORD_WEBHOOK=https://discord.com/api/webhooks/1/v
 reiniciar; rm -f "${CFG}"; printf '%s\n' "${BUENA}" | correr
 [ "${RC}" = 0 ] && [ "$(grep -c . "${CFG}")" = 1 ] && [ "$(guardada)" = "${BUENA}" ] && ! grep -q respaldo "${T}/salida" && ok "sin publicar.env: lo crea con la línea, sin respaldo" || { ko "sin archivo rc=${RC}"; ver; }
 
+echo "== destinos del Studio (SDD-0606) =="
+# Los cinco van al .env de la app. Sus canales no tienen ID medido: se exige el servidor
+# «DTD Cargo», el nombre del webhook del runbook y un canal que no sea de Servidor u Oficina.
+APPENV="${T}/srv/dtd-cargo/.env"; GUILD=1534936818951262390
+IDR=1570000000000000003; TOKR="TokenSecreto_registro-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJ0123456789"
+REG="https://discord.com/api/webhooks/${IDR}/${TOKR}"
+studio() { # $1 = nombre del webhook, $2 = canal, $3 = guild
+  printf '200|{"type": 1, "id": "%s", "name": "%s", "channel_id": "%s", "guild_id": "%s", "token": "%s", "user": {"id": "999", "username": "sam"}}\n' "${IDR}" "$1" "$2" "$3" "${TOKR}" > "${D}/webhooks/${IDR}"
+}
+app_env() {
+  mkdir -p "${T}/srv/dtd-cargo"
+  printf '%s\n' 'APP_ENV=production' "TELEGRAM_BOT_TOKEN='123:SECRETO'" 'DISCORD_WEBHOOK_REGISTRO=https://discord.com/api/webhooks/1/vieja' 'CRON_SECRET="x"' > "${APPENV}"
+  chmod 600 "${APPENV}"; cp "${APPENV}" "${T}/app-antes"
+}
+app_sin_cambios() { cmp -s "${APPENV}" "${T}/app-antes" && [ -z "$(ls -A "${T}/srv/dtd-cargo" | grep -v '^\.env$')" ]; }
+correr_app() { # $1 = destino
+  PATH="${T}/bin:${PATH}" DOBLE="${D}" bash "${SCRIPT}" "$1" --config "${APPENV}" > "${T}/salida" 2>&1
+  RC=$?; cat "${T}/salida" >> "${TODO}"
+}
+reiniciar; app_env; studio 'Studio registro' 1580000000000000001 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 0 ] && grep -q "^GUARDADA (registro) · ${#REG} caracteres · sha256 [0-9a-f]\{12\} · canal #registro-clientes 1580000000000000001 · DISCORD_WEBHOOK_REGISTRO en " "${T}/salida" \
+  && [ "$(grep -c '^DISCORD_WEBHOOK_REGISTRO=' "${APPENV}")" = 1 ] && grep -qx "DISCORD_WEBHOOK_REGISTRO=${REG}" "${APPENV}" \
+  && grep -qx "TELEGRAM_BOT_TOKEN='123:SECRETO'" "${APPENV}" && grep -qx 'CRON_SECRET="x"' "${APPENV}" && grep -qx 'APP_ENV=production' "${APPENV}" \
+  && ls -A "${T}/srv/dtd-cargo" | grep -q '^\.env\.antes-0606-[0-9]\{8\}T[0-9]\{6\}Z$' \
+  && ok "registro: reemplaza solo DISCORD_WEBHOOK_REGISTRO en el .env de la app, no toca TELEGRAM_BOT_TOKEN ni lo demás, respaldo .env.antes-0606-<fecha>" \
+  || { ko "registro rc=${RC}"; ver; }
+reiniciar; app_env; studio 'STUDIO REGISTRO' 1580000000000000001 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 0 ] && ok "el nombre del webhook no distingue mayúsculas" || { ko "mayúsculas rc=${RC}"; ver; }
+reiniciar; app_env; studio 'Studio bugs' 1580000000000000001 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 1 ] && grep -q 'se llama «Studio bugs» y para #registro-clientes tiene que llamarse «Studio registro»' "${T}/salida" && app_sin_cambios \
+  && ok "el webhook de otro canal de Operación (por el nombre): NO GUARDADA, sin respaldo ni cambios" || { ko "nombre ajeno rc=${RC}"; ver; }
+reiniciar; app_env; studio 'Studio registro' 1580000000000000001 1234567890123456789; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 1 ] && grep -q 'no es del servidor «DTD Cargo»' "${T}/salida" && app_sin_cambios && ok "webhook de otro servidor de Discord: NO GUARDADA" || { ko "otro servidor rc=${RC}"; ver; }
+reiniciar; app_env; studio 'Studio registro' "${SALUD}" "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 1 ] && grep -q "es de un canal de Servidor u Oficina (${SALUD})" "${T}/salida" && app_sin_cambios \
+  && ok "un webhook en #salud aunque se llame «Studio registro»: NO GUARDADA" || { ko "canal de Servidor rc=${RC}"; ver; }
+reiniciar; app_env; studio 'Studio registro' 1567954536251920494 "${GUILD}"; printf '%s\n' "${REG}" | correr_app registro
+[ "${RC}" = 1 ] && grep -q 'es de un canal de Servidor u Oficina' "${T}/salida" && app_sin_cambios && ok "un webhook en #alfred (Oficina): NO GUARDADA" || { ko "canal de Oficina rc=${RC}"; ver; }
+todos=1
+for par in 'conversaciones|Studio conversaciones|DISCORD_WEBHOOK_CONVERSACIONES' 'bugs|Studio bugs|DISCORD_WEBHOOK_BUGS' 'reportes|Studio reporte diario|DISCORD_WEBHOOK_REPORTES' 'equipo|Studio avisos equipo|DISCORD_WEBHOOK_EQUIPO'; do
+  IFS='|' read -r dest nom var <<< "${par}"
+  reiniciar; app_env; studio "${nom}" 1580000000000000002 "${GUILD}"; printf '%s\n' "${REG}" | correr_app "${dest}"
+  { [ "${RC}" = 0 ] && grep -qx "${var}=${REG}" "${APPENV}" && grep -qx 'DISCORD_WEBHOOK_REGISTRO=https://discord.com/api/webhooks/1/vieja' "${APPENV}"; } || { todos=0; ko "${dest} rc=${RC}"; ver; }
+done
+[ "${todos}" = 1 ] && ok "conversaciones, bugs, reportes y equipo: cada uno a su variable, sin tocar las otras"
+reiniciar; app_env; studio 'Studio registro' 1580000000000000001 "${GUILD}"; printf '%s\n' "${BUENA}" | correr_app registro
+[ "${RC}" = 1 ] && app_sin_cambios && ok "la dirección de #publicaciones pegada como registro: NO GUARDADA" || { ko "publicaciones como registro rc=${RC}"; ver; }
+reiniciar; correr otro-destino < /dev/null
+[ "${RC}" = 64 ] && grep -q 'el destino es publicaciones, registro, conversaciones, bugs, reportes o equipo' "${T}/salida" && ok "un destino desconocido: error de uso (64)" || { ko "destino raro rc=${RC}"; ver; }
+
 echo "== la llave no sale =="
-! grep -q "${TOK}\|${TOKS}\|/api/webhooks/" "${TODO}" && [ "$(grep -c . "${TODO}")" -ge 15 ] \
+! grep -q "${TOK}\|${TOKS}\|${TOKR}\|/api/webhooks/" "${TODO}" && [ "$(grep -c . "${TODO}")" -ge 15 ] \
   && ok "en $(grep -c . "${TODO}") líneas de salida (con un error de curl que traía la dirección) no aparece ninguna dirección ni token" \
-  || ko "se escapó una dirección: $(grep -n "${TOK}\|${TOKS}\|/api/webhooks/" "${TODO}" | head -1 | cut -c1-60)"
+  || ko "se escapó una dirección: $(grep -n "${TOK}\|${TOKS}\|${TOKR}\|/api/webhooks/" "${TODO}" | head -1 | cut -c1-60)"
 
 echo "RESUMEN: ${pass} PASÓ · ${fail} FALLÓ · ${nv} NO VERIFICADO"
 [ "${fail}" = 0 ]
