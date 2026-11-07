@@ -32,6 +32,16 @@ El detalle está en la tabla «Evidencia del seguimiento» de la spec. Se corri�
 
 La primera versión de la prueba de la doble pulsación pasaba sin el arreglo, porque el botón retoma el paso guardado. Quedó parametrizada con el botón y desde el código.
 
+**Revisión de la #418 (CHANGES_REQUESTED sobre `ee22c804a`).** Pedir la guía otra vez mientras carga el tablero cancelaba la espera de 10 s y empezaba una de 2 s. Con un tablero lento, la guía ya no abría. Arreglo en `54f28c1c7`: la espera nueva del mismo recorrido hereda los intentos que le quedaban a la anterior, y un cambio de pestaña que ya va en camino no se pide dos veces. El merge de `origin/main` `250e86f65`, que ya trae la #416 y la S0, va en `b3247f37e`.
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo contra el motor de `ee22c804a` | FALLÓ, como se esperaba: 3 de 24 (tableros de 4 s y 6 s, y dos pulsaciones seguidas) |
+| Con el arreglo | PASÓ: 24 de 24 |
+| 8 mutantes, de a uno | PASÓ: 8 de 8 muertos. MB2c quedó vivo en la primera tanda; S4 ahora exige la tarjeta del botón |
+| Suite de la guía con `guia-se-queda` de la S0, sobre el árbol fusionado | PASÓ: 182 de 182 en 11 archivos |
+| `tsc`, ESLint de los 2 archivos y checks de docs | PASÓ |
+
 ## COMMITS
 
 Ver la PR. Commits selectivos con `git commit -F`.

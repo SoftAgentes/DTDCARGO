@@ -673,7 +673,7 @@ También salió del arranque automático una comprobación de la consulta que re
 | S1 | B1: con el pedido por `?guia=` y por el botón, si la persona pasa a otra pestaña antes de que termine el cambio, la guía no se abre sola cuando vuelve a Embudos minutos después | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo sobre `a0b4457a4` |
 | S2 | B2: pedir la guía otra vez durante la espera, con el botón o desde el código, no reabre la tarjeta: sigue en el paso 2 después de 12 s y sin «Ver la guía desde el principio» | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo |
 | S3 | B2: `cerrarGuia()` durante la espera la cancela, y la guía no abre cuando llega el tablero | `GuiaEmbudoPestana.test.tsx`, con rojo previo |
-| S4 | Con el arranque automático encendido, su efecto no reemplaza la espera del botón: un tablero de 4 s abre igual | `GuiaEmbudoPestana.test.tsx`. Hoy pasa: protege el arreglo de B2, y lo mata el mutante que quita la guarda |
+| S4 | Con el arranque automático encendido, su efecto no reemplaza la espera del botón: un tablero de 4 s abre igual, y la tarjeta es la del botón, sin «No volver a mostrar» | `GuiaEmbudoPestana.test.tsx`. Sobre `a0b4457a4` pasaba: protege el arreglo de B2, y lo mata el mutante que quita la guarda |
 | S5 | Lo del P-13 sigue igual | Los 15 casos de la #416 y la suite de la guía |
 
 ### Evidencia del seguimiento (2026-11-07)
@@ -692,3 +692,32 @@ Con el turno de máquina que dio el Subdirector y la regla nueva de dos corridas
 | `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» de la PR |
 
 **Qué cambió mientras se hacía.** La primera versión de la prueba de la doble pulsación quedó viva frente a M0 y MB2a: pasaba sin el arreglo. Con el botón, la segunda apertura retoma el paso guardado y la tarjeta sigue en «2 de 4». El daño estaba, pero se veía de otra forma: el foco vuelve a la tarjeta y aparece «Ver la guía desde el principio». La prueba quedó parametrizada con el botón y desde el código (`programa`, que sí vuelve a «1 de 4»), y además exige que no aparezca «Ver la guía desde el principio».
+
+### 2026-11-07 · Revisión de la #418: pedir la guía otra vez acortaba la espera
+
+**Fuente.** Revisión independiente de la #418 sobre `ee22c804a`: CHANGES_REQUESTED. B1 y B2 quedaron cerrados, pero el arreglo de B2 trajo una regresión. Al pedir la guía otra vez mientras Embudos carga, el evento llama a `abrirCuandoHaya` con los 8 reintentos por defecto (unos 2 s). Esa llamada cancela la espera viva de 40 reintentos (unos 10 s). El revisor lo midió con una prueba temporal, con tableros de 3 s y 5 s y dos pulsaciones: la #418 no abría ninguno, y el motor de `a0b4457a4` sí.
+
+**Arreglo:**
+
+- La espera guarda cuántos intentos le quedan (`restantes`). Una espera nueva del mismo recorrido se queda con esos intentos, si son más que los suyos: pedir la guía otra vez no acorta la espera.
+- Además se arregló lo menor que señaló la revisión: con dos pulsaciones rápidas, antes de que cambie la pestaña, el motor pedía dos veces el `router.replace`. Ahora, si el mismo cambio de pestaña ya va en camino, el pedido nuevo solo reemplaza las opciones del anterior. El evento conserva el pedido en camino del mismo recorrido y olvida el de otro.
+- Con la herencia de intentos, el mutante que quita la guarda del arranque automático (MB2c) quedó vivo: el arranque automático heredaba los 10 s y la tarjeta abría igual. El daño se ve en que la abre como arranque automático, con «No volver a mostrar» y la guía anotada como vista. Por eso, S4 ahora exige que la tarjeta sea la del botón.
+
+**Allowlist:** la misma del seguimiento, `GuiaMotor.tsx` y `GuiaEmbudoPestana.test.tsx`, más esta spec y el handoff. Con esta subida va también el merge de `origin/main` `250e86f65`, que ya trae la #416 y la #415 (S0).
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S6 | Pedir la guía otra vez mientras carga un tablero de 4 s o de 6 s no acorta la espera: la tarjeta abre en E1 | `GuiaEmbudoPestana.test.tsx`, 2 casos, rojos contra `ee22c804a` |
+| S7 | Dos pulsaciones seguidas, antes de que cambie la pestaña, piden el cambio una sola vez y la guía abre | `GuiaEmbudoPestana.test.tsx`, rojo contra `ee22c804a` |
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo de la revisión: las pruebas contra el `GuiaMotor.tsx` de `ee22c804a` (M0r) | FALLÓ, como se esperaba: 3 de 24. Caen los dos tableros lentos y las dos pulsaciones seguidas |
+| Con el arreglo | PASÓ: 24 de 24 |
+| 8 mutantes, de a uno, con base verde | PASÓ: 8 de 8 muertos. M0r tumba 3. MH, la segunda pulsación con los 8 reintentos por defecto, tumba los 2 de tablero lento. MD, que pide otra vez el cambio en camino, y MD2, en el que el evento lo olvida, tumban 1 cada uno. MB1 tumba 2, MB2a tumba 2, MB2b tumba 1 y MB2c, sin la guarda, tumba 1 desde que S4 exige la tarjeta del botón. En la primera tanda MB2c quedó vivo. Todo restaurado |
+| ESLint de los 2 archivos, con `--max-warnings=0` | PASÓ |
+| Merge de `origin/main` `250e86f65` con el driver de `main`, y el índice regenerado | PASÓ: sin conflictos y sin cambios del índice tras regenerar (596 specs) |
+| Suite de la guía sobre el árbol fusionado, más `crm/__tests__/guia-se-queda.test.ts` de la S0, con 1 worker | PASÓ: 182 de 182 en 11 archivos |
+| `tsc --noEmit` sobre el árbol fusionado | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
