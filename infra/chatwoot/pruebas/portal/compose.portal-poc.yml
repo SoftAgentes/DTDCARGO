@@ -1,0 +1,35 @@
+# Overlay de la PRUEBA DE CONCEPTO de la ida del chat del portal (SDD-0586, 10.5, §10.5.15), en GitHub Actions o
+# en una PC con Docker. Nunca en el VPS.
+#
+# Sobre el compose real de infra/chatwoot y su overlay local (Mailpit, volúmenes nombrados):
+#   · `rails` publica el puerto 3000 solo en 127.0.0.1 del runner: la prueba llama a la API de cuenta como lo
+#     haría el servidor de Studio;
+#   · `receptor` recibe el webhook de cuenta en la red `interna` (sin salida a internet), donde vive Sidekiq;
+#   · `prepare` monta la sonda y la carpeta de estado;
+#   · Postgres y Redis van fijados por digest, los mismos que la prueba del cargador de E5
+#     (infra/ops/kommo-historial/pruebas/compose.cargador.yml), que son los que corren en producción.
+
+services:
+  prepare:
+    volumes:
+      - ./poc:/tmp/poc:ro
+      - ./estado:/tmp/estado
+  rails:
+    ports:
+      - "127.0.0.1:3000:3000"
+  receptor:
+    # La misma imagen de Node que el servicio `acceso` del compose real.
+    image: node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+    command: ["node", "/poc/receptor-webhook.mjs"]
+    environment:
+      SALIDA: /estado/webhooks.ndjson
+    volumes:
+      - ./poc:/poc:ro
+      - ./estado:/estado
+    networks:
+      interna:
+        aliases: ["receptor"]
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg16@sha256:33198da2828a14c30348d2ccb4750833d5ed9a44c88d840a0e523d7417120337
+  redis:
+    image: redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7

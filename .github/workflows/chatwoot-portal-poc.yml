@@ -1,0 +1,115 @@
+name: Ida del portal a Chatwoot (PoC y carrera)
+
+# SDD-0586 paso 10.5, PR 1a: el portón que pidió el Director General antes de fusionar la ida del chat del portal.
+#
+#   poc       PoC-1, PoC-2, PoC-3 y PoC-5 de §10.5.15 contra Chatwoot v4.19.1-ce REAL y efímero: el compose de
+#             infra/chatwoot (imagen fijada por digest) con su Postgres, su Redis, Rails y Sidekiq. Lo llama el
+#             cliente real de Studio (router-api.ts y portal.ts). Datos inventados y secretos generados al azar
+#             en la corrida; ninguno del repositorio.
+#   carrera   La toma de la cola con dos sesiones de verdad (dblink, Postgres 17 desechable): skip locked y la
+#             guarda del upsert, con sus controles en la misma corrida. Después, un MUTANTE de la 0519 sin
+#             skip locked tiene que hacerla caer. También corre el contrato de una sesión sobre Postgres real.
+#
+# Sin secretos ni variables del repositorio. No reemplaza a «Calidad continua» (quality.yml).
+
+on:
+  pull_request:
+    paths:
+      - "lib/studio/chatwoot/router-api.ts"
+      - "lib/studio/chatwoot/portal.ts"
+      - "lib/studio/chatwoot/config.ts"
+      - "lib/studio/chatwoot/__tests__/portal.poc.test.ts"
+      - "supabase/migrations/0519_chatwoot_portal.sql"
+      - "supabase/tests/0519_chatwoot_portal.test.sql"
+      - "supabase/tests/0519_chatwoot_portal_carrera.test.sql"
+      - "infra/chatwoot/compose.yml"
+      - "infra/chatwoot/pruebas/compose.local.yml"
+      - "infra/chatwoot/pruebas/portal/**"
+      - "infra/chatwoot/rails/**"
+      - ".github/workflows/chatwoot-portal-poc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatwoot-portal-poc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  poc:
+    name: PoC contra Chatwoot 4.19.1 efímero
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar pnpm 11 y Node 24
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          version: 11.19.0
+          runtime: node@24.22.1
+          cache: true
+          install: false
+
+      - name: Instalar dependencias desde el lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: PoC-1, PoC-2, PoC-3 y PoC-5 con el cliente de Studio
+        run: bash infra/chatwoot/pruebas/portal/prueba-portal-poc.sh
+
+  carrera:
+    name: Dos sesiones sobre Postgres 17 (skip locked y guarda)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Contrato de una sesión y carrera con la 0519
+        run: |
+          set -euo pipefail
+          correr() {
+            local nombre="$1" carpeta="$2" archivo="$3"
+            docker run --rm -d --name "$nombre" -e POSTGRES_PASSWORD=postgres -e POSTGRES_INITDB_ARGS=--nosync \
+              -v "$carpeta:/sb:ro" postgres:17 -c fsync=off -c full_page_writes=off >/dev/null
+            for _ in $(seq 1 60); do docker exec "$nombre" pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
+            docker exec "$nombre" psql -U postgres -v ON_ERROR_STOP=1 -f "/sb/tests/$archivo"
+          }
+          correr pg-contrato "$PWD/supabase" 0519_chatwoot_portal.test.sql
+          docker rm -f pg-contrato >/dev/null
+          correr pg-carrera "$PWD/supabase" 0519_chatwoot_portal_carrera.test.sql
+          docker rm -f pg-carrera >/dev/null
+
+      - name: Mutante de la 0519 sin skip locked (la carrera tiene que caer)
+        run: |
+          set -uo pipefail
+          M="$RUNNER_TEMP/sb-mutante"
+          cp -r supabase "$M"
+          antes=$(grep -c 'for no key update of c skip locked' "$M/migrations/0519_chatwoot_portal.sql")
+          sed -i 's/    for no key update of c skip locked$/    for no key update of c/' "$M/migrations/0519_chatwoot_portal.sql"
+          despues=$(grep -c 'for no key update of c skip locked' "$M/migrations/0519_chatwoot_portal.sql" || true)
+          if [ "$antes" != 1 ] || [ "$despues" != 0 ]; then
+            echo "FALLÓ: el mutante no cambió la 0519 (antes $antes, después $despues)"; exit 1
+          fi
+          docker run --rm -d --name pg-mutante -e POSTGRES_PASSWORD=postgres -e POSTGRES_INITDB_ARGS=--nosync \
+            -v "$M:/sb:ro" postgres:17 -c fsync=off -c full_page_writes=off >/dev/null
+          for _ in $(seq 1 60); do docker exec pg-mutante pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
+          salida=$(docker exec pg-mutante psql -U postgres -v ON_ERROR_STOP=1 -f /sb/tests/0519_chatwoot_portal_carrera.test.sql 2>&1)
+          codigo=$?
+          docker rm -f pg-mutante >/dev/null
+          printf '%s\n' "$salida" | tail -n 5
+          if [ "$codigo" = 0 ]; then
+            echo "FALLÓ: la carrera salió verde con la 0519 sin skip locked"; exit 1
+          fi
+          if ! printf '%s\n' "$salida" | grep -q 'escenarios reales que fallan: \[1, 2, 3\]'; then
+            echo "FALLÓ: la carrera cayó, pero no por los tres escenarios reales"; exit 1
+          fi
+          echo "PASÓ: el mutante sin skip locked cae en los tres escenarios reales"
