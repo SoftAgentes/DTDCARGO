@@ -190,7 +190,7 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
 - **El sudoers suma tres cosas:**
   - `CLAUDE_CODE_OAUTH_TOKEN` en `env_keep`;
   - `!log_allowed` y los dos usuarios nuevos como destino;
-  - las variables `PAPERCLIP_` nombradas una por una, 14 en total. Nunca `PAPERCLIP_*`: el
+  - las variables `PAPERCLIP_` nombradas una por una, 14 en total, y `HERMES_EPHEMERAL_SYSTEM_PROMPT`, por donde Paperclip 1023 y posteriores mandan las instrucciones de los GLM (PR #409, §2.5). Nunca `PAPERCLIP_*`: el
     servicio tiene `PAPERCLIP_AGENT_JWT_SECRET` y `PAPERCLIP_TOOL_ACTION_SIGNING_SECRET`
     (MEDIDO, solo nombres).
 
@@ -337,16 +337,16 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
    usuario.
 4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-5. Las pruebas pasan sin saltos en Linux, con un piso de 42 en el harness, y todos los mutantes
+5. Las pruebas pasan sin saltos en Linux, con un piso de 43 en el harness, y todos los mutantes
    mueren.
 6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 
 ## Validación de esta PR
 
 - **Pruebas de los envoltorios, después de la revisión del DG:**
-  - Linux (VPS de la oficina, en `/tmp`, sin tocar lo instalado; Python 3.12.3): 42, sin
+  - Linux (VPS de la oficina, en `/tmp`, sin tocar lo instalado; Python 3.12.3): 43, sin
     saltos.
-  - Windows: 42, con 12 saltadas por ser solo Linux.
+  - Windows: 43, con 12 saltadas por ser solo Linux.
 - **Mutantes:** todos mueren en Linux.
 - **Antes:** 20 pruebas y 29 mutantes, del 2026-11-06.
 - `docs:check`, `sdd:check` y `git diff --check`.
@@ -378,7 +378,7 @@ varias BAJA:
 Lo corrigen `81211d02b` y el commit siguiente. Este último agrega:
 
 - el rechazo de los argumentos bajo `/srv/oficina/trabajo`;
-- el piso de 42 pruebas;
+- el piso de 43 pruebas;
 - esta spec al día.
 
 El detalle está en el README de los envoltorios y en el handoff. **Instalarlo pide el OK de

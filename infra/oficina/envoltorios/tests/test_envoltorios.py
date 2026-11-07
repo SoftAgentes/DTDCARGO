@@ -636,7 +636,7 @@ class Archivos(unittest.TestCase):
     LINEAS = [
         "Defaults!/usr/local/libexec/dtd-agente-run env_reset",
         "Defaults!/usr/local/libexec/dtd-agente-run env_keep = \""
-        + " ".join(PAPERCLIP + ["DTD_PERFIL", "CLAUDE_CODE_OAUTH_TOKEN", "TERM", "LANG", "LC_ALL", "LC_CTYPE"])
+        + " ".join(PAPERCLIP + ["HERMES_EPHEMERAL_SYSTEM_PROMPT", "DTD_PERFIL", "CLAUDE_CODE_OAUTH_TOKEN", "TERM", "LANG", "LC_ALL", "LC_CTYPE"])
         + "\"",
         "Defaults!/usr/local/libexec/dtd-agente-run !log_allowed",
         "agentes ALL=(agentes-run, agentes-alfred, agentes-auxiliar) NOPASSWD: /usr/local/libexec/dtd-agente-run",
@@ -646,6 +646,12 @@ class Archivos(unittest.TestCase):
         texto = (RAIZ / "91-agentes-run").read_text()
         reglas = [l for l in texto.splitlines() if l.strip() and not l.lstrip().startswith("#")]
         self.assertEqual(reglas, self.LINEAS, "ni una línea de más ni de menos")
+
+    def test_sudoers_deja_pasar_las_instrucciones_de_hermes(self):
+        # Paperclip 1023+ manda las instrucciones de los GLM en esta variable (PR #409, §2.5).
+        # Sin ella, sudo la borra y los agentes de Hermes corren sin su puesto ni la API.
+        keep = [l for l in (RAIZ / "91-agentes-run").read_text().splitlines() if "env_keep" in l]
+        self.assertIn("HERMES_EPHEMERAL_SYSTEM_PROMPT", keep[0].split('"')[1].split())
 
     def test_sudoers_sin_comodines_ni_secretos(self):
         keep = [l for l in (RAIZ / "91-agentes-run").read_text().splitlines() if "env_keep" in l]
