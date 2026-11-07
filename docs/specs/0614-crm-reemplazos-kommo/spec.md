@@ -88,6 +88,11 @@ respuestas de Sam a esta SDD, pero se estiman aparte de la fila 6.6.
 | Reporte por asesor | `lib/studio/reports/queries.ts:601`; vista en `reportes/_components/ReportesClient.tsx:1030` | `kommo_leads`, `kommo_users`, `invoices` |
 | «Sin atender» | `lib/studio/kommo-atencion.ts:77`; sin consumidor fuera de pruebas (SDD-0587 §12) | `kommo_tasks` |
 | Recuperación (SDD-0157) | `lib/studio/kommo-recovery.ts:259`; CSV con teléfono completo en `:239` | `kommo_contacts`, `clients` |
+| Dirección › Comercial (S0b) | «Pipeline CRM» y «Leads activos» en `direccion/_components/CommercialCard.tsx:65` y `:72`, que enlazan a `/studio/crm`; salen de `listKommoLeads` en `lib/studio/direccion/queries.ts:436` (import en `:46`, cuenta en `:496-501`) | `kommo_leads` |
+| KPI «Leads en pipeline» del Dashboard (S0b) | `leadsKpi` en `lib/studio/dashboard/dashboard-kpi-queries.ts:244`, que pide `dashboard/page.tsx:158` si alguna fuente accesible es «leads» (`:130`); entrada `newLeads` en `dashboard-catalog.ts:65`, que viene en `DEFAULT_CONFIG` (`:103`) | `kommo_leads` |
+
+Las dos filas de S0b no estaban en este inventario: las encontró el Director General al revisar la
+#415 (PR 0). Las líneas son de `main` `7e75f7708` (2026-11-07).
 
 ### 1.4 Hallazgos de esta lectura que cambian el diseño
 
@@ -171,6 +176,28 @@ primero, en una PR chica contra `main` (P-8):
   resuelve la SDD-0589 en un paso aparte, con PR propia y después de la #408, y **S3 no se fusiona
   antes de ese paso** (condición de la PR B en §5 y §9). Ese paso está pendiente: E9 todavía no lo
   abre.
+
+**S0b · Kommo fuera de las tres zonas de S0 (enmienda del 2026-11-07).** Después de S0, el Studio
+todavía mostraba cifras de Kommo en dos lugares que §1.3 no inventariaba, y un texto que S0 dejó
+falso. Lo cubre la misma D-6.6-1 («no lo quiero ver») y va en su propia PR, después de la PR 0:
+
+- **Dirección › Comercial:** «Pipeline CRM» y «Leads activos» salían de `kommo_leads` y
+  enlazaban a `/studio/crm`, donde desde S0 se ve otra cosa. `getDireccionData` deja de leer el
+  espejo y devuelve el resumen `oculto`; la tarjeta no se pinta. La cuenta de antes se conserva
+  como `resumenComercialKommo`, sin consumidor.
+- **KPI «Leads en pipeline» del Dashboard** (`newLeads`, con `leadsKpi` sobre `kommo_leads`): la
+  entrada sigue en el catálogo con `oculto: true`. `validateDashboardConfigInput` y
+  `accessibleCatalog` la descartan, así que no se ofrece en el editor, una config guardada no la
+  pinta y el default no la trae. Como la página pide solo las fuentes de los KPI accesibles,
+  `leadsKpi` deja de llamarse sin tocar `dashboard/page.tsx`. `DEFAULT_CONFIG` no cambia: el
+  Dashboard por defecto pasa de seis KPI a cinco.
+- **Embudos sin la 0506** (`CrmEmbudosSlot.tsx:47`): decía «Mientras tanto, los leads siguen en
+  las otras pestañas del CRM», que desde S0 no es cierto. Queda «Falta aplicar la migración 0506
+  en esta base.», sin prometer nada que todavía no existe.
+- **Ocultar no es borrar**, igual que S0: `listKommoLeads`, `leadsKpi`, la entrada del catálogo y la
+  tarjeta se conservan hasta 8.7, con su OK aparte. Sin migración, sin tocar la guía de la
+  SDD-0589 ni `layout.tsx`.
+- Sin estimación propia en §10: la anota el Subdirector de Chatwoot.
 
 **El resto de R1:**
 
@@ -815,6 +842,7 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 | PR | Tramos | Cuándo |
 |---|---|---|
 | **PR 0** | S0 | Primero: no espera la 10.5 ni migración (P-8) |
+| **PR 0b** | S0b | Con la PR 0 fusionada (enmienda del Director General, 2026-11-07) |
 | — | **M · maqueta** | Antes de S3, sin código (D-6.6-12 = b) |
 | **PR A** | S1 + S2 | Después de la implementación de la 10.5 (§2.8) |
 | **PR B** | S3 + S4 | Con la A fusionada, la maqueta aprobada por Sam y **la PR del paso P-13 de la SDD-0589 fusionada en `main`** (P-13; casilla de §9) |
@@ -828,6 +856,27 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 - Pruebas: las que fijan la lista de pestañas, la pestaña por defecto, `hasKommo` o `kommoMatches` (`git grep -n "resolveKommoTab\|KOMMO_TABS\|hasKommo\|kommoMatches"` en `__tests__`), más `app/studio/(app)/crm/__tests__/stage-control.test.ts` y `crm-rename.test.ts` si fijan el encabezado
 - `app/studio/(app)/crm/__tests__/guia-se-queda.test.ts` (nueva: la guía sigue montada y `/studio/crm` abre Embudos; P-10)
 - **Fuera de S0, aunque nombren a Kommo:** los archivos de la guía de la SDD-0589 (`app/studio/_components/guia/`, `lib/studio/guia/`, `app/studio/(app)/_actions/guia-actions.ts`, `lib/i18n/*/guide.ts`) y `app/studio/(app)/layout.tsx`. Si el diff de S0 toca uno, S0 no cierra
+
+**S0b · Kommo fuera de las tres zonas de S0** (§2.1, sin migración). Allowlist exacta de la PR 0b:
+- `lib/studio/direccion/queries.ts` (`CommercialSummary.oculto`; `getDireccionData` sin
+  `listKommoLeads`; la cuenta queda como `resumenComercialKommo`) y
+  `app/studio/(app)/direccion/_components/CommercialCard.tsx` (no se pinta si `oculto`)
+- `lib/studio/dashboard/dashboard-catalog.ts` (`oculto` en el tipo y en `newLeads`),
+  `dashboard-types.ts` (validación y catálogo accesible sin lo oculto) y
+  `dashboard-kpi-queries.ts` (solo el comentario de `leadsKpi`)
+- `app/studio/(app)/crm/_components/CrmEmbudosSlot.tsx` (el texto sin la 0506 y el comentario de
+  cabecera)
+- Pruebas:
+  - `app/studio/(app)/direccion/_components/CommercialCard.test.tsx` (nueva: oculto no pinta,
+    con su control)
+  - `lib/studio/direccion/__tests__/queries.test.ts` (el smoke ya no espera cifras de Kommo y
+    afirma que no se lee `kommo_leads`; la cuenta de antes se prueba en `resumenComercialKommo`)
+  - `lib/studio/dashboard/dashboard-types.test.ts` (el catálogo accesible y el default sin lo
+    oculto, la config guardada, la fuente «leads» y que solo `newLeads` está oculto)
+  - `app/studio/(app)/crm/_components/CrmEmbudosSlot.test.tsx` (nueva: el texto sin la 0506)
+- Esta spec (§1.3, §2.1, §5, §8, §9 y §13) y el handoff `.agents/handoffs/0614-s0b-kommo-fuera-de-s0.md`
+- **Fuera de S0b:** `app/studio/(app)/dashboard/page.tsx` y `direccion/page.tsx` (no hace falta
+  tocarlos), los archivos de la guía de la SDD-0589 y `layout.tsx`, y cualquier migración
 
 **M · Maqueta** (sin código)
 - Resumen, Sin atender y la ficha de la tarjeta (con «Crear ficha», el tipo de lead, la marca de R8 y
@@ -1012,6 +1061,10 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
   estimado no muestra contactos de Kommo. **La guía se queda** (P-10): el layout sigue importando y
   montando `GuiaStudio`, con su mutante, y `/studio/crm` sin `?tab=` abre Embudos, donde están las
   anclas `embudo.*`; `git diff --name-only` de S0 no trae ningún archivo de la guía.
+- **S0b:** Dirección no lee `kommo_leads` y la tarjeta Comercial no se pinta (con su control); el
+  KPI de leads no se ofrece, no se pinta desde una config guardada, no viene en el default y su
+  fuente no se pide; Embudos sin la 0506 no nombra las otras pestañas. Rojo antes del cambio y un
+  mutante por pieza.
 - **Recuperación:** los dos grupos con su tope; el CSV lo baja solo admin y deja su registro; una
   tarjeta anonimizada o con «No volver a escribir» no aparece; una ficha sin tarjeta tampoco.
 - **El teléfono no sale:** ni en logs, ni en el push, ni en `entity_audit_log`, con un teléfono
@@ -1033,6 +1086,8 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
 - [ ] S0: el Studio no muestra pestañas, tablas ni cruces de Kommo; los `?tab=` viejos abren la
   pestaña por defecto; nada de Kommo se apagó ni se borró; la guía «Antes en Kommo → Ahora aquí»
   sigue montada y S0 no tocó ninguno de sus archivos (P-10).
+- [ ] S0b: Dirección y el Dashboard no muestran cifras de Kommo ni las leen; el texto de Embudos
+  sin la 0506 no remite a pestañas ocultas; nada de Kommo se borró.
 - [ ] R1: Resumen, Embudos y Sin atender funcionan con datos de tarjetas; cada tarjeta de Leads dice
   «Interesado» o «Interesado con código».
 - [ ] M: Sam aprobó la maqueta de Resumen, Sin atender y la ficha de la tarjeta antes de S3.
@@ -1254,6 +1309,10 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   paso aparte con PR propia, después de la #408, y S3 no se fusiona antes de ese paso. La
   dependencia queda como condición de la PR B (§5) y casilla de §9. E9 todavía no abre el paso. No
   cambia ninguna estimación.
+- **2026-11-07:** enmienda S0b, encargada por el Director General al revisar la #415. §1.3 no
+  inventariaba la tarjeta Comercial de Dirección ni el KPI «Leads en pipeline» del Dashboard, que
+  siguen leyendo `kommo_leads`, ni el texto de Embudos que remite a las pestañas ocultas. Se
+  ocultan sin borrar en la PR 0b (§2.1, §5, §8 y §9). Sin estimación propia en §10.
 
 ## 14. Textos públicos aprobados por Sam (se publican por PR y tanda, con el OK del Director General)
 
