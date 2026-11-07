@@ -104,6 +104,36 @@ export function isEmptyConfig(cfg: DashboardConfig): boolean {
   return cfg.kpis.length === 0 && cfg.widgets.length === 0;
 }
 
+/** ¿La config cruda (DB) traía algún KPI que el catálogo marca `oculto`? */
+function traiaKpiOculto(raw: unknown): boolean {
+  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return asStringArray(obj.kpis).some((id) => kpiById(id)?.oculto === true);
+}
+
+/**
+ * La config con la que abre el Dashboard (lectura y pintado; no escribe nada).
+ *
+ *   · Normaliza y filtra por RBAC y por lo oculto (`validateDashboardConfigInput`).
+ *   · Vacía del todo (sin KPI ni widgets) → el default del rol, como siempre.
+ *   · SDD-0614 S0b-bis (opción 2 del Director General): si la config guardada
+ *     traía un KPI oculto y, al quitarlo, no queda ningún KPI, se usan los KPI del
+ *     default de ESE rol, con los widgets y el período que el usuario guardó. Sin
+ *     esto, quien tenía solo «Leads en pipeline» (Kommo, oculto en S0b) y algún
+ *     widget abría el Dashboard sin ningún KPI.
+ *   · Quien guardó cero KPI a propósito sigue con cero: el respaldo es solo por lo
+ *     oculto.
+ */
+export function resolverConfigDashboard(
+  raw: unknown,
+  canAccess: ModuleAccessFn = ALLOW_ALL,
+): DashboardConfig {
+  const config = validateDashboardConfigInput(raw, canAccess);
+  const defecto = defaultConfigForAccess(canAccess);
+  if (isEmptyConfig(config)) return defecto;
+  if (config.kpis.length === 0 && traiaKpiOculto(raw)) return { ...config, kpis: defecto.kpis };
+  return config;
+}
+
 /** Catálogo accesible (para poblar el editor sin ofrecer lo que el user no ve). */
 export function accessibleCatalog(canAccess: ModuleAccessFn = ALLOW_ALL): {
   kpis: KpiCatalogEntry[];

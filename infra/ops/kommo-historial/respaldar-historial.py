@@ -54,7 +54,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 # 5.5b: copias en claro de los adjuntos, dentro del staging (tmpfs), solo para el cargador del Archivo Kommo.
 CARPETA_ADJUNTOS_CARGA = "adjuntos-carga"
 SOLAPE_HORAS_POR_DEFECTO = 24
@@ -1095,9 +1095,32 @@ def comando_tar(ruta_staging: str) -> list[str]:
     return ["tar", "-C", ruta_staging, f"--exclude=./{CARPETA_ADJUNTOS_CARGA}", "-cf", "-", "."]
 
 
+def exigir_informe(st: Staging, sin_informe: bool = False) -> None:
+    """`empaquetar` borra el staging. Sin `informe.json`, el manifiesto no diría cuántas conversaciones y mensajes
+    quedaron fuera por 403 (los cuenta `informe`), y esos conteos solo quedarían dentro del paquete cifrado. Pasó
+    en la carga del 2026-11-07 (SDD-0590 §10.16, hallazgo 3). Con `--sin-informe` se empaqueta igual, y el
+    manifiesto lo anota con `informe: null`."""
+    if not sin_informe and not st.existe("informe.json"):
+        raise ErrorFatal("falta informe.json en el staging: corre `informe` antes de `empaquetar` (o --sin-informe, "
+                         "y el manifiesto lo anota). No se creó, cifró ni borró nada")
+
+
+def bloque_informe(st: Staging) -> dict | None:
+    """Lo que el manifiesto dice del informe del staging: su huella, su fecha y cuántas conversaciones y mensajes
+    quedaron fuera por 403. Solo conteos: los ids van cifrados dentro del paquete."""
+    if not st.existe("informe.json"):
+        return None
+    datos = st.leer_json("informe.json")
+    conversaciones = datos.get("conversaciones") or {}
+    return {"sha256": sha256_archivo(st.ruta_de("informe.json")), "fecha": datos.get("fecha"),
+            "conversaciones_sin_acceso_403": conversaciones.get("sin_acceso_403"),
+            "mensajes_sin_acceso_403": conversaciones.get("mensajes_sin_acceso_403")}
+
+
 def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, conservar: bool,
-               efimera: str | None = None) -> dict:
+               efimera: str | None = None, sin_informe: bool = False) -> dict:
     """tar | zstd | age del staging. Si `efimera` es una clave pública, también se cifra para ella (solo ensayos)."""
+    exigir_informe(st, sin_informe)
     stamp = os.path.basename(destino_corrida).replace("kommo-", "")
     os.makedirs(destino_corrida, mode=0o700, exist_ok=True)
     salida = os.path.join(destino_corrida, f"kommo-{stamp}-metadatos.tar.zst.age")
@@ -1140,6 +1163,7 @@ def construir_manifiesto(st: Staging, destino_corrida: str, stamp: str, recipien
     manifiesto["adjuntos_cifrados"] = sum(1 for a in manifiesto["archivos"] if a["archivo"].startswith("adjuntos"))
     manifiesto["bytes_cifrados"] = sum(a["bytes"] for a in manifiesto["archivos"])
     manifiesto["destinatarios"] = etiquetas_recipients(recipients)
+    manifiesto["informe"] = bloque_informe(st)
     bloque = bloque_incremental(st)
     if bloque:
         manifiesto["incremental"] = bloque
@@ -1628,7 +1652,9 @@ def cmd_informe(args, log: Log) -> int:
 
 
 def cmd_empaquetar(args, log: Log) -> int:
+    sin_informe = getattr(args, "sin_informe", False)  # `todo` no tiene la opción: corre informe antes
     st = Staging(args.staging)
+    exigir_informe(st, sin_informe)
     carpeta = preparar_corrida(args, st)
     efimera = None
     clave_efimera = None
@@ -1639,7 +1665,8 @@ def cmd_empaquetar(args, log: Log) -> int:
         efimera = subprocess.run(["age-keygen", "-y", clave_efimera], check=True, capture_output=True, text=True).stdout.strip()
         log("empaquetar: ENSAYO con llave efímera (el paquete también se cifra para ella)")
     try:
-        manifiesto = empaquetar(st, carpeta, args.recipients, log, conservar=args.conservar_staging or bool(efimera), efimera=efimera)
+        manifiesto = empaquetar(st, carpeta, args.recipients, log, conservar=args.conservar_staging or bool(efimera),
+                                efimera=efimera, sin_informe=sin_informe)
         if clave_efimera:
             paquete = [a for a in manifiesto["archivos"] if a["archivo"].endswith("metadatos.tar.zst.age")][0]["archivo"]
             dec = subprocess.Popen(["age", "-d", "-i", clave_efimera, os.path.join(carpeta, paquete)], stdout=subprocess.PIPE)
@@ -1654,6 +1681,10 @@ def cmd_empaquetar(args, log: Log) -> int:
             os.remove(clave_efimera)
     log(f"empaquetar: {len(manifiesto['archivos'])} archivos cifrados, {manifiesto['bytes_cifrados']} bytes; destinatarios "
         f"{manifiesto['destinatarios']['etiquetas']} ({manifiesto['destinatarios']['claves_publicas']} claves)")
+    inf = manifiesto["informe"]
+    log("empaquetar: sin informe (--sin-informe), anotado en el manifiesto" if inf is None else
+        f"empaquetar: el manifiesto lleva el informe ({inf['conversaciones_sin_acceso_403']} conversaciones y "
+        f"{inf['mensajes_sin_acceso_403']} mensajes sin acceso por 403)")
     return 0
 
 
@@ -1774,6 +1805,8 @@ def construir_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("empaquetar"); comunes(sp, token=False)
     sp.add_argument("--conservar-staging", action="store_true")
     sp.add_argument("--verificar-efimera", action="store_true")
+    sp.add_argument("--sin-informe", action="store_true",
+                    help="empaqueta aunque falte informe.json (corre `informe` antes); el manifiesto lo anota con informe: null")
     return p
 
 
