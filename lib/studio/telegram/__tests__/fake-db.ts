@@ -77,6 +77,26 @@ export function makeFakeSupabase(db: FakeDb) {
     }
 
     const chain = {
+      /**
+       * SDD-0606 · INSERT de una fila. Una tabla que el fixture no define
+       * responde como PostgREST cuando la relación no existe (migración sin
+       * aplicar): con error y sin escribir nada.
+       */
+      insert(row: Row | Row[]) {
+        const rows = Array.isArray(row) ? row : [row];
+        const target = db[table];
+        const result = target
+          ? (target.push(...rows.map((r) => ({ ...r }))), { data: null, error: null })
+          : {
+              data: null,
+              error: { code: "42P01", message: `relation "public.${table}" does not exist` },
+            };
+        return {
+          then(onOk: (v: unknown) => unknown, onErr?: (e: unknown) => unknown) {
+            return Promise.resolve(result).then(onOk, onErr);
+          },
+        };
+      },
       select(cols?: string) {
         if (cols) select = cols;
         return chain;
