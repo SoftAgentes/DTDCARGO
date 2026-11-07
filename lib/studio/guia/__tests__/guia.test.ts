@@ -8,9 +8,19 @@ import { hasI18nKey, t } from "@/lib/i18n";
 import { guide as guideES } from "@/lib/i18n/es-VE/guide";
 import { guide as guideCN } from "@/lib/i18n/zh-CN/guide";
 import { crearAlmacenLocal, crearAlmacenMemoria } from "../almacen";
-import { contador, pasoAnterior, pasoSiguiente, primerPaso } from "../motor";
+import { anclaEfectiva, contador, pasoAnterior, pasoPresente, pasoSiguiente, primerPaso } from "../motor";
 import { colocarTarjeta, MARGEN, SEPARACION } from "../posicion";
-import { buscarRecorrido, RECORRIDOS, RECORRIDO_DASHBOARD, rutaCoincide } from "../recorridos";
+import { ROLES_ASIGNAR } from "../preferencias";
+import {
+  buscarRecorrido,
+  RECORRIDOS,
+  RECORRIDO_ACTUALIZACIONES,
+  RECORRIDO_BANDEJA,
+  RECORRIDO_DASHBOARD,
+  RECORRIDO_EMBUDO,
+  recorridosParaRol,
+  rutaCoincide,
+} from "../recorridos";
 import { esAnclaValida, textoDe, validarRecorrido, type GuiaPaso } from "../tipos";
 
 const pasos: GuiaPaso[] = [
@@ -115,6 +125,76 @@ describe("navegación con anclas faltantes", () => {
     expect(pasoSiguiente(pasos, 99, todo)).toBeNull();
     expect(pasoAnterior(pasos, -5, todo)).toBeNull();
     expect(pasoSiguiente(pasos, -10, todo)).toBe(0);
+  });
+});
+
+describe("9.4 · ancla de respaldo", () => {
+  const conRespaldo: GuiaPaso[] = [
+    { id: "A", ancla: "chat.a", clave: "guide.inbox.reply", respaldo: "bandeja.marco" },
+    { id: "B", ancla: "demo.b", clave: "guide.dashboard.kpis" },
+    { id: "C", ancla: "chat.c", clave: "guide.inbox.note", respaldo: "bandeja.marco" },
+  ];
+
+  it("un paso sigue presente con su respaldo; sin los dos, se salta", () => {
+    expect(pasoPresente(conRespaldo[0], presentes("bandeja.marco"))).toBe(true);
+    expect(pasoPresente(conRespaldo[0], presentes())).toBe(false);
+    expect(primerPaso(conRespaldo, presentes("bandeja.marco"))).toBe(0);
+    expect(pasoSiguiente(conRespaldo, 0, presentes("bandeja.marco"))).toBe(2);
+    expect(contador(conRespaldo, 0, presentes("bandeja.marco"))).toEqual({ n: 1, total: 2 });
+  });
+
+  it("la tarjeta va a su ancla si está; si no, al respaldo", () => {
+    expect(anclaEfectiva(conRespaldo[0], presentes("chat.a", "bandeja.marco"))).toBe("chat.a");
+    expect(anclaEfectiva(conRespaldo[0], presentes("bandeja.marco"))).toBe("bandeja.marco");
+    expect(anclaEfectiva(conRespaldo[0], presentes())).toBeNull();
+    expect(anclaEfectiva(conRespaldo[1], presentes("bandeja.marco"))).toBeNull();
+  });
+
+  it("validarRecorrido revisa el respaldo y las listas de roles", () => {
+    const base = { id: "x", ruta: "/studio/x" as const };
+    expect(validarRecorrido({ ...base, pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply", respaldo: "X" }] })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply", respaldo: "x.a" }] })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply", roles: [] }] })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, roles: [], pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply" }] })).toHaveLength(1);
+  });
+});
+
+describe("9.5 · recorridos por rol", () => {
+  const ids = (rol: Parameters<typeof recorridosParaRol>[1]) => recorridosParaRol(RECORRIDOS, rol).map((r) => r.id);
+  const pasosDe = (rol: Parameters<typeof recorridosParaRol>[1], id: string) =>
+    recorridosParaRol(RECORRIDOS, rol)
+      .find((r) => r.id === id)
+      ?.pasos.map((p) => p.id);
+
+  it("admin ve todos los recorridos y todos los pasos", () => {
+    expect(ids("admin")).toEqual(RECORRIDOS.map((r) => r.id));
+    expect(pasosDe("admin", "bandeja")).toEqual(RECORRIDO_BANDEJA.pasos.map((p) => p.id));
+  });
+
+  it("B4 (asignar) es solo de admin mientras S-2 siga abierta", () => {
+    expect(ROLES_ASIGNAR).toEqual(["admin"]);
+    expect(pasosDe("commercial", "bandeja")).toEqual(["B1", "B2", "B3", "B5", "B6", "F1"]);
+    expect(pasosDe("support", "bandeja")).toEqual(["B1", "B2", "B3", "B5", "B6", "F1"]);
+  });
+
+  it("Embudo es de admin y commercial; Actualizaciones, solo de admin", () => {
+    expect(RECORRIDO_EMBUDO.roles).toEqual(["admin", "commercial"]);
+    expect(RECORRIDO_ACTUALIZACIONES.roles).toEqual(["admin"]);
+    expect(ids("commercial")).toEqual(["dashboard", "bandeja", "embudo", "cliente"]);
+    expect(ids("support")).toEqual(["dashboard", "bandeja", "cliente"]);
+    expect(ids("accounting")).toEqual(["dashboard", "bandeja", "cliente"]);
+  });
+
+  it("sin rol, solo lo que no pide ninguno; un recorrido sin pasos para el rol desaparece", () => {
+    expect(ids(null)).toEqual(["dashboard", "bandeja", "cliente"]);
+    const soloAdmin = [{ ...RECORRIDO_DASHBOARD, pasos: RECORRIDO_DASHBOARD.pasos.map((p) => ({ ...p, roles: ["admin" as const] })) }];
+    expect(recorridosParaRol(soloAdmin, "support")).toEqual([]);
+    // Sin filtrar nada, devuelve el mismo objeto.
+    expect(recorridosParaRol([RECORRIDO_DASHBOARD], "support")[0]).toBe(RECORRIDO_DASHBOARD);
+  });
+
+  it("solo el Dashboard arranca solo; los recorridos de 9.5 esperan a la 9.6 (D11)", () => {
+    expect(RECORRIDOS.filter((r) => r.arranqueAutomatico !== false).map((r) => r.id)).toEqual(["dashboard"]);
   });
 });
 

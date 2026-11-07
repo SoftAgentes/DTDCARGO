@@ -21,3 +21,11 @@ export const ARRANQUE_AUTOMATICO: ModoArranque = "por_pantalla";
  * rediseño (SDD-0603).
  */
 export const CLAVE_NOMBRE_BOTON = "guide.chrome.toggle";
+
+/**
+ * S-2, pendiente de Sam (9.5): quién ve la tarjeta B4, «Asignar una conversación».
+ * El guion la da a Admin y deja a la persona que atiende según la respuesta de Sam.
+ * Mientras no conteste, solo admin. Si contesta que sí, se suman `commercial` y
+ * `support`, los roles del módulo Bandeja.
+ */
+export const ROLES_ASIGNAR = ["admin"] as const;

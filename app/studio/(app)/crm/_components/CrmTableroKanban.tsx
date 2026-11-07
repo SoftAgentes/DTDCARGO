@@ -77,7 +77,10 @@ export function CrmTableroKanban({
       <p role="status" aria-live="polite" style={SR_ONLY}>
         {aviso}
       </p>
+      {/* Anclas de la guía (SDD-0589, 9.5): el tablero, la primera columna, y la
+          primera tarjeta y el primer aviso de tareas que el motor encuentre. */}
       <div
+        data-guia="embudo.tablero"
         style={{
           display: "flex",
           gap: "var(--s-3)",
@@ -86,7 +89,7 @@ export function CrmTableroKanban({
           alignItems: "flex-start",
         }}
       >
-        {columnas.map(({ etapa, tarjetas }) => {
+        {columnas.map(({ etapa, tarjetas }, i) => {
           const encima = sobre === etapa.clave;
           const visibles = tarjetas.slice(0, CRM_TARJETAS_POR_COLUMNA);
           const resto = tarjetas.length - visibles.length;
@@ -94,6 +97,7 @@ export function CrmTableroKanban({
             <section
               key={etapa.clave}
               aria-label={`Etapa ${etapa.nombre}`}
+              data-guia={i === 0 ? "embudo.columna-entrada" : undefined}
               onDragOver={(e) => {
                 if (!canEdit || !etapa.activa) return;
                 e.preventDefault();
@@ -254,6 +258,7 @@ function TarjetaCard({
   return (
     <article
       data-tarjeta-id={t.id}
+      data-guia="embudo.tarjeta"
       draggable={canEdit && !enCurso}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", t.id);
@@ -315,13 +320,17 @@ function TarjetaCard({
           </Badge>
         )}
         {t.tareasVencidas > 0 ? (
-          <Badge tone="danger" size="sm">
-            {t.tareasVencidas === 1 ? "1 tarea vencida" : `${t.tareasVencidas} tareas vencidas`}
-          </Badge>
+          <span data-guia="embudo.tareas" style={{ display: "inline-flex" }}>
+            <Badge tone="danger" size="sm">
+              {t.tareasVencidas === 1 ? "1 tarea vencida" : `${t.tareasVencidas} tareas vencidas`}
+            </Badge>
+          </span>
         ) : t.tareasAbiertas > 0 ? (
-          <Badge tone="neutral" size="sm">
-            {t.tareasAbiertas === 1 ? "1 tarea" : `${t.tareasAbiertas} tareas`}
-          </Badge>
+          <span data-guia="embudo.tareas" style={{ display: "inline-flex" }}>
+            <Badge tone="neutral" size="sm">
+              {t.tareasAbiertas === 1 ? "1 tarea" : `${t.tareasAbiertas} tareas`}
+            </Badge>
+          </span>
         ) : null}
       </div>
 

@@ -5,11 +5,26 @@
  * `existe(ancla)`, porque la pantalla cambia (un KPI apagado, un panel que
  * carga tarde). Un paso cuya ancla no está se salta; si no queda ninguno, el
  * recorrido no abre. Nada de esto lanza errores.
+ *
+ * 9.4: un paso con `respaldo` sigue presente mientras esté su ancla o la de
+ * respaldo (las anclas de Chatwoot caen al marco de la Bandeja).
  */
 
 import type { GuiaPaso } from "./tipos";
 
 export type ExisteAncla = (ancla: string) => boolean;
+
+/** El paso tiene dónde ponerse: su ancla o, si falta, su respaldo. */
+export function pasoPresente(paso: GuiaPaso, existe: ExisteAncla): boolean {
+  return existe(paso.ancla) || (paso.respaldo !== undefined && existe(paso.respaldo));
+}
+
+/** Ancla donde va la tarjeta del paso: la suya, la de respaldo o `null`. */
+export function anclaEfectiva(paso: GuiaPaso, existe: ExisteAncla): string | null {
+  if (existe(paso.ancla)) return paso.ancla;
+  if (paso.respaldo !== undefined && existe(paso.respaldo)) return paso.respaldo;
+  return null;
+}
 
 /** Índice del primer paso con ancla presente, o `null`. */
 export function primerPaso(
@@ -26,7 +41,7 @@ export function pasoSiguiente(
   existe: ExisteAncla,
 ): number | null {
   for (let i = Math.max(-1, desde) + 1; i < pasos.length; i++) {
-    if (existe(pasos[i].ancla)) return i;
+    if (pasoPresente(pasos[i], existe)) return i;
   }
   return null;
 }
@@ -38,7 +53,7 @@ export function pasoAnterior(
   existe: ExisteAncla,
 ): number | null {
   for (let i = Math.min(pasos.length, desde) - 1; i >= 0; i--) {
-    if (existe(pasos[i].ancla)) return i;
+    if (pasoPresente(pasos[i], existe)) return i;
   }
   return null;
 }
@@ -56,7 +71,7 @@ export function contador(
   let n = 0;
   let total = 0;
   pasos.forEach((paso, i) => {
-    const cuenta = i === actual || existe(paso.ancla);
+    const cuenta = i === actual || pasoPresente(paso, existe);
     if (!cuenta) return;
     total += 1;
     if (i <= actual) n += 1;

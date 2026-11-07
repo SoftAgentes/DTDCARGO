@@ -19,11 +19,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExter
 import { usePathname, useSearchParams } from "next/navigation";
 import { hasI18nKey, useT } from "@/lib/i18n";
 import { crearAlmacenLocal, type GuiaAlmacen } from "@/lib/studio/guia/almacen";
-import { contador, pasoAnterior, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
+import { anclaEfectiva, contador, pasoAnterior, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
 import { colocarTarjeta, type Caja } from "@/lib/studio/guia/posicion";
 import { ARRANQUE_AUTOMATICO, type ModoArranque } from "@/lib/studio/guia/preferencias";
 import { buscarRecorrido, RECORRIDOS, rutaCoincide } from "@/lib/studio/guia/recorridos";
-import { esAnclaValida, textoDe, type GuiaRecorrido } from "@/lib/studio/guia/tipos";
+import { esAnclaValida, textoDe, type GuiaPaso, type GuiaRecorrido } from "@/lib/studio/guia/tipos";
+import { suscribirUbicadores, ubicarRemota } from "@/lib/studio/guia/ubicadores";
 import { GuiaTarjeta } from "./GuiaTarjeta";
 
 export const EVENTO_GUIA = "dtd:guia";
@@ -90,7 +91,26 @@ export function buscarAncla(ancla: string): HTMLElement | null {
   return el;
 }
 
-const existeAncla = (ancla: string) => buscarAncla(ancla) !== null;
+/**
+ * El ancla está en esta página (`data-guia`) o la conoce un ubicador (9.4: el
+ * panel de Chatwoot dentro del marco de la Bandeja), aunque esté fuera de la vista.
+ */
+const existeAncla = (ancla: string) => buscarAncla(ancla) !== null || ubicarRemota(ancla) !== null;
+
+/** Caja visible del ancla en la página, o `null` si no está o está fuera de la vista. */
+function cajaDeAncla(ancla: string): Caja | null {
+  const el = buscarAncla(ancla);
+  if (el) {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, left: r.left, width: r.width, height: r.height };
+  }
+  return ubicarRemota(ancla)?.caja ?? null;
+}
+
+/** Caja del paso: la de su ancla y, si no se ve, la de su respaldo (9.4, D9). */
+function cajaDePaso(paso: GuiaPaso): Caja | null {
+  return cajaDeAncla(paso.ancla) ?? (paso.respaldo !== undefined ? cajaDeAncla(paso.respaldo) : null);
+}
 
 const CONSULTA_MOVIMIENTO = "(prefers-reduced-motion: reduce)";
 
@@ -272,7 +292,8 @@ export function GuiaMotor({
   useEffect(() => {
     if (!autoArranque || pedidoUrl) return;
     const recorrido = catalogo.find((r) => rutaCoincide(r, pathname));
-    if (!recorrido) return;
+    // Los recorridos de 9.5 no abren solos hasta la 9.6 (D11).
+    if (!recorrido || recorrido.arranqueAutomatico === false) return;
     const almacenActual = obtenerAlmacen();
     if (almacenActual.leer(recorrido.id)) return;
     if (modoArranque === "una_vez" && catalogo.some((r) => almacenActual.leer(r.id))) return;
@@ -315,14 +336,28 @@ export function GuiaMotor({
     obtenerAlmacen().guardar(activo.recorrido.id, { pasoId: pasoActual.id, terminado: false });
   }, [activo, pasoActual, obtenerAlmacen]);
 
-  // Llevar el ancla a la vista al cambiar de paso.
+  // Llevar el ancla a la vista al cambiar de paso. Un ancla remota la mueve su
+  // ubicador dentro de su documento; el elemento de Studio que la contiene (el
+  // respaldo, si lo hay) se trae a la vista aquí.
   useEffect(() => {
     if (!pasoActual) return;
-    const el = buscarAncla(pasoActual.ancla);
-    if (!el || typeof el.scrollIntoView !== "function") return;
-    const r = el.getBoundingClientRect();
-    const fuera = r.top < 0 || r.bottom > window.innerHeight || r.left < 0 || r.right > window.innerWidth;
-    if (fuera) el.scrollIntoView({ block: "center", inline: "nearest", behavior: reducido ? "auto" : "smooth" });
+    const traer = (el: HTMLElement | null) => {
+      if (!el || typeof el.scrollIntoView !== "function") return;
+      const r = el.getBoundingClientRect();
+      const fuera = r.top < 0 || r.bottom > window.innerHeight || r.left < 0 || r.right > window.innerWidth;
+      if (fuera) el.scrollIntoView({ block: "center", inline: "nearest", behavior: reducido ? "auto" : "smooth" });
+    };
+    const propia = buscarAncla(pasoActual.ancla);
+    if (propia) {
+      traer(propia);
+      return;
+    }
+    const remota = ubicarRemota(pasoActual.ancla);
+    remota?.ubicador.mostrar?.(pasoActual.ancla, { suave: !reducido });
+    const efectiva = anclaEfectiva(pasoActual, existeAncla);
+    if (pasoActual.respaldo !== undefined && (remota || efectiva === pasoActual.respaldo)) {
+      traer(buscarAncla(pasoActual.respaldo));
+    }
   }, [pasoActual, reducido]);
 
   // Medir y colocar: al abrir, al cambiar de paso, con scroll, resize y
@@ -332,9 +367,7 @@ export function GuiaMotor({
     let raf = 0;
     const medir = () => {
       raf = 0;
-      const el = buscarAncla(pasoActual.ancla);
-      const r = el?.getBoundingClientRect();
-      const ancla: Caja | null = el && r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null;
+      const ancla = cajaDePaso(pasoActual);
       const card = tarjetaRef.current;
       const tam =
         card && card.offsetWidth > 0
@@ -358,11 +391,14 @@ export function GuiaMotor({
       attributes: true,
       attributeFilter: ["data-guia", "hidden", "inert", "aria-hidden"],
     });
+    // Un ubicador avisa cuando llegan cajas nuevas del otro documento (9.4).
+    const bajaUbicadores = suscribirUbicadores(programar);
     return () => {
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("resize", programar);
       window.removeEventListener("scroll", programar, true);
       mo?.disconnect();
+      bajaUbicadores();
     };
   }, [pasoActual]);
 
