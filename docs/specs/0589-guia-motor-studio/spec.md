@@ -381,7 +381,7 @@ El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
 
 B4 (asignar) la ven admin, commercial y support: `ROLES_ASIGNAR` en `preferencias.ts`. **S-2 quedó cerrada** el 2026-11-07 a las 07:00Z. Sam, literal: «También quien atiende». El permiso real de asignar lo da Chatwoot; la constante solo decide quién ve la tarjeta.
 
-**Embudo abre solo con la pestaña.** La URL completa es `/studio/crm?tab=embudos&guia=embudo`. `RECORRIDO_EMBUDO.ruta` es `/studio/crm` y `rutaCoincide` no mira la pestaña. La pestaña por defecto hoy es Dirección, y `page.tsx` monta el tablero solo con `tab === "embudos"`. Sin `?tab=embudos` no hay anclas `embudo.*`, y el recorrido no abre. El arreglo es el paso P-13 (sección del 2026-11-07, al final).
+**Embudo pide su pestaña (P-13).** `page.tsx` monta el tablero solo con `tab === "embudos"`, y sin tablero no hay anclas `embudo.*`. Hasta el P-13, el recorrido abría solo con `/studio/crm?tab=embudos&guia=embudo`. Desde el P-13, `RECORRIDO_EMBUDO` lleva `consulta: { tab: "embudos" }` y el motor pone la pestaña: `/studio/crm?guia=embudo` abre con cualquier pestaña por defecto. Ver la sección del 2026-11-07, al final.
 
 **Pendientes, sin inventar:**
 
@@ -422,7 +422,7 @@ Las huellas son el sha256 del texto entre « », 16 caracteres: U1 «Qué es», 
 - **D8 · Selectores en Studio, no en el script.** Arreglarlos tras una versión nueva es una PR normal. El script pegado cambia poco, y cada cambio suyo pide un OK.
 - **D9 · Respaldo al marco por paso** (`GuiaPaso.respaldo`). El motor salta un paso solo si faltan las dos anclas.
 - **D10 · Ubicadores registrables** (`lib/studio/guia/ubicadores.ts`). El motor no sabe de Chatwoot: pregunta a los ubicadores por las anclas que no están en su DOM. La Bandeja registra el suyo.
-- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?tab=embudos&guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
+- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Para Embudo, hasta el P-13 hacía falta además `?tab=embudos`; desde el P-13 la pone el motor. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
 - **D12 · Roles en los datos** (`roles` en el recorrido y en el paso), filtrados con `recorridosParaRol` antes del motor. Mostrar una tarjeta de más no es un agujero, porque cada pantalla tiene su gate, pero el guion fija quién ve cada tarjeta.
 - **D13 · zh-CN provisional,** como D3: las claves nuevas se traducen porque el tipo exige los dos idiomas. S-3 sigue abierta.
 - **D14 · Sin revisión aparte de datos personales.** No se captura, mueve ni guarda ningún dato nuevo: los ids de recorrido y de paso ya estaban en la 0517, y el puente solo mueve geometría.
@@ -461,7 +461,7 @@ Las huellas son el sha256 del texto entre « », 16 caracteres: U1 «Qué es», 
 | R3 | Filtro por rol: B4 para admin, commercial y support (S-2), U1 solo admin, Actualizaciones solo admin y Embudo sin support | `guia.test.ts` |
 | R4 | Ningún recorrido nuevo arranca solo | `GuiaMotor.test.tsx` y `GuiaStudio.test.tsx` |
 | R5 | El layout pasa el rol a la guía | `GuiaStudio.test.tsx` |
-| R6 | El recorrido Embudo abre en `/studio/crm?tab=embudos&guia=embudo`. `RECORRIDO_EMBUDO.ruta` es `/studio/crm` y `rutaCoincide` no mira la pestaña: sin `?tab=embudos` no abre, porque la pestaña por defecto hoy es Dirección. El arreglo es el paso P-13 | Las anclas en `CrmTableroKanban`: `anclas.test.ts`. Que el tablero solo se monta con `tab === "embudos"`: leído en `page.tsx`. Abrirlo en la página real: **NO EJECUTADO** |
+| R6 | El recorrido Embudo abre en `/studio/crm?guia=embudo`, sin `?tab=`, con la pestaña por defecto en Dirección (hoy), Embudos (S0 de la 6.6) o Resumen (S3). El motor pone `?tab=embudos` (P-13). Antes del P-13 abría solo con `/studio/crm?tab=embudos&guia=embudo` | Las anclas en `CrmTableroKanban`: `anclas.test.ts`. La pestaña y la apertura con cada pestaña por defecto: `GuiaEmbudoPestana.test.tsx`, roja sobre `main` `ecadbac91` y con mutantes (P-13, abajo). Que el tablero solo se monta con `tab === "embudos"`: leído en `page.tsx`. Abrirlo en la página real: **NO EJECUTADO** |
 | R7 | U1 y U3 llevan los textos aprobados, comprobados con su huella. El ancla de U1 está en Vínculos y la de U3, en el botón Suspender acceso de la ficha. U3 no entra en ningún recorrido hasta la 9.6 | `guia.test.ts` y `anclas.test.ts`. Abrir U1 en la página real: **NO EJECUTADO**. Arrancar U3 desde la ficha: 9.6 |
 
 ### Qué cambió frente al diseño
@@ -545,9 +545,9 @@ Evidencia de esta ronda:
 | `sdd:check` (`scripts/check-numbering.mjs`), `docs:check` y `git diff --check` | PASÓ |
 | `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
 
-## 2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)
+## 2026-11-07 · Paso P-13: la guía llega a Embudos con cualquier pestaña por defecto
 
-> **Solo registro.** El paso no está abierto. Esta sección no trae diseño ni estimación: van cuando se abra.
+> **Paso abierto el 2026-11-07,** después de que la #408 entrara en `main`. El encargo lo trajo el Subdirector de Chatwoot. El registro original sigue tal cual; el diseño, la allowlist y la evidencia están al final de esta sección.
 
 **Fuente.** Decisión del Director General del 2026-11-07, hacia las 04:20Z. La propuesta es de E6, encontrada en la 6.6 (SDD-0614 §2.1), y la trajo el Subdirector de Chatwoot.
 
@@ -574,3 +574,76 @@ Evidencia de esta ronda:
 - Ningún enlace del código usa `?guia=embudo`.
 
 El P-13 no lo trae S3: ya existe. S3 cambia la pestaña por defecto, de Dirección a Resumen, y el resultado es el mismo. Por eso, la condición 4 pide que la prueba falle también hoy.
+
+### P-13 · Diseño (2026-11-07)
+
+**D15 · El recorrido pide su pestaña y el motor la pone.** De las dos salidas de la condición 4:
+
+- **Un `rutaCoincide` que mire la pestaña, solo, no abre nada.** Haría que la guía se niegue fuera de Embudos. Pero el tablero lo monta el servidor solo con `?tab=embudos`, así que alguien tiene que poner la pestaña en la URL.
+- **Que `crm/page.tsx` abra Embudos con `?guia=embudo`** toca `page.tsx` y `kommo-tabs.shared.ts`, que la 6.6 edita en S0 y S3 (SDD-0614 §2.1). La guía quedaría metida en el CRM, y tampoco cubriría el botón «Guía», que abre sin `?guia=`.
+- **Elegida:** un campo opcional, `GuiaRecorrido.consulta`. `RECORRIDO_EMBUDO` lleva `consulta: { tab: "embudos" }`. `rutaCoincide` sigue mirando solo el camino; `consultaCoincide` mira la consulta, y `urlConConsulta` arma la URL de destino. Todo queda en archivos de la guía: la 6.6 no toca la guía, y la guía no toca la 6.6.
+
+| Situación | Qué hace el motor |
+|---|---|
+| `?guia=embudo`, el botón o `iniciarGuia("embudo")` en `/studio/crm` sin `?tab=embudos` | `router.replace` a la misma ruta con `tab=embudos`, sin scroll y con los demás parámetros (`?guia=`, `?embudo=`). Cuando la URL ya tiene la pestaña, abre con reintentos de hasta 10 s (`REINTENTOS_TRAS_PESTANA`): el servidor tiene que leer el tablero, que llega detrás de su Suspense |
+| Ya en `?tab=embudos` | No navega. Abre como antes, con 2 s de reintentos |
+| Arranque automático, apagado por D11 | No cambia la pestaña de nadie. Abre solo si la persona ya está en Embudos, y entrar a la pestaña también cuenta |
+| La persona cambia de pestaña mientras la guía espera | La espera se cancela y la guía no la devuelve a Embudos. Solo el primer intento de cada pedido navega; los reintentos no |
+| La persona cambia de pestaña con la guía abierta | La guía cierra, igual que al cambiar de ruta |
+| Fuera de `/studio/crm` | Nada cambia: ni navega ni abre |
+
+No depende de la pestaña por defecto: Dirección (hoy), Embudos (S0) y Resumen (S3) dan lo mismo. Con Embudos por defecto y sin `?tab=`, el motor hace un `replace` de más, que deja la pestaña escrita en la URL y no cambia lo que se ve. `validarRecorrido` rechaza una consulta vacía, una con un valor vacío y una que fije `guia`.
+
+**Gobernanza:**
+
+- **A11Y-01:** cumplimiento. La tarjeta y su foco no cambian: al abrir, el foco pasa a la tarjeta, como antes. La barra de pestañas la sigue pintando `KommoClient` con la pestaña que resuelve el servidor.
+- **MOT-01:** cumplimiento. El `replace` va con `scroll: false` y no hay animación nueva.
+- **LOD-01:** no aplica. La carga del tablero sigue siendo la de `CrmEmbudosCargando`, sin cambios.
+- **CMP-01:** no aplica. No hay componente nuevo ni reemplazado.
+- **Datos personales:** no aplica, como D14. La consulta solo lleva el nombre de la pestaña.
+
+### Allowlist exacta del P-13
+
+- **Motor:** `lib/studio/guia/tipos.ts` (el campo `consulta` y su validación), `lib/studio/guia/recorridos.ts` (la consulta de `RECORRIDO_EMBUDO`, `consultaCoincide` y `urlConConsulta`) y `app/studio/_components/guia/GuiaMotor.tsx`.
+- **Pruebas:**
+  - `app/studio/_components/guia/GuiaEmbudoPestana.test.tsx` (nueva);
+  - `lib/studio/guia/__tests__/guia.test.ts`;
+  - una línea `useRouter` en el doble de `next/navigation` de `GuiaMotor.test.tsx`, `GuiaStudio.test.tsx`, `GuiaBoton.test.tsx` y `usePuenteChatwoot.test.tsx`, porque el motor ahora usa el router.
+- **Documentos:** esta spec (R6, D11, el párrafo de Embudo en 9.5 y esta sección), `.agents/handoffs/0589-e9-recorridos.md` (la URL de R6 y la de D11) y `.agents/handoffs/0589-p13-embudo-pestana.md` (nuevo).
+- **No toca:** nada de `app/studio/(app)/crm/` (`page.tsx`, `kommo-tabs.shared.ts`, `KommoClient.tsx`, el tablero), `app/studio/(app)/layout.tsx`, los textos de `lib/i18n/*/guide.ts`, el checklist del programa, producción, Chatwoot ni `DASHBOARD_SCRIPTS`.
+
+### Aceptación del P-13
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| P1 | `/studio/crm?guia=embudo` lleva a Embudos y abre en E1 con la pestaña por defecto en Dirección (hoy), Resumen (S3), Embudos (S0) y la que da `resolveKommoTab` en la rama | `GuiaEmbudoPestana.test.tsx`, 4 casos. Rojo sobre `main` con Dirección, Resumen y `resolveKommoTab` |
+| P2 | Cambia la pestaña con `replace`, sin scroll, y conserva `?guia=` y los demás parámetros | `GuiaEmbudoPestana.test.tsx` y `guia.test.ts` (`urlConConsulta`) |
+| P3 | Después de cambiar de pestaña espera al tablero: 2,7 s en total entre la URL y el tablero, y 6 s de tablero | `GuiaEmbudoPestana.test.tsx`, 2 casos |
+| P4 | El botón (`iniciarGuia` con origen `boton`) también lleva a Embudos | `GuiaEmbudoPestana.test.tsx` |
+| P5 | Ni el arranque automático ni un reintento cambian la pestaña, y si la persona se va mientras la guía espera, no la devuelve a Embudos | `GuiaEmbudoPestana.test.tsx`, 3 casos |
+| P6 | Cambiar de pestaña con la guía abierta la cierra | `GuiaEmbudoPestana.test.tsx` |
+| P7 | Ya en `?tab=embudos`, no navega; fuera de `/studio/crm`, ni navega ni abre | `GuiaEmbudoPestana.test.tsx`, 2 casos |
+| P8 | La pestaña que pide el recorrido existe en el CRM (`resolveKommoTab("embudos")`), y `consultaCoincide`, `urlConConsulta` y `validarRecorrido` cubren la consulta | `GuiaEmbudoPestana.test.tsx` y `guia.test.ts` |
+| P9 | Abrir `/studio/crm?guia=embudo` en la página real | **NO EJECUTADO:** la prueba simula la página, con el tablero montado solo con `tab === "embudos"`, como en `crm/page.tsx` |
+
+### Evidencia del P-13 (2026-11-07)
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo previo, antes de tocar el código, sobre `main` `ecadbac91`, con la primera versión de la prueba (12 casos) | FALLÓ, como se esperaba: 9 de 12. Con Dirección, Resumen y `resolveKommoTab`, «la guía no abrió». Pasaron los 3 que ya valían en `main`: Embudos por defecto, `?tab=embudos` en la URL y fuera de `/studio/crm` |
+| Prueba nueva con el arreglo | PASÓ: 15 de 15 |
+| 6 mutantes, de a uno, con turno del Subdirector (18:01Z a 18:03Z), sobre `GuiaEmbudoPestana.test.tsx` y `guia.test.ts` | PASÓ: base sin mutar en verde (47 de 47) y 6 de 6 muertos. M0, los tres archivos fuente como en `origin/main`: caen 14, entre ellos Dirección y Resumen; es el rojo de la versión final de la prueba. M1, sin `consulta`: caen 12. M2, un reintento que navega; M3, el arranque automático que navega; M4, los 2 s de siempre tras cambiar de pestaña; M5, sin cierre al cambiar de pestaña: cae 1 cada uno, el de su caso. Cada archivo vuelve a su huella y `git diff --stat` queda idéntico |
+| Pruebas de la guía: `lib/studio/guia`, `app/studio/_components/guia` y `guia-panel.test.ts`, con `--pool=threads --maxWorkers=1` | PASÓ: 164 de 164 en 10 archivos (reporte JSON de Vitest), 18 nuevas |
+| `tsc --noEmit` del proyecto | PASÓ, en el segundo intento. El primero dio TS2493 en la prueba nueva, que leía el segundo argumento de un doble declarado con uno. Se corrigió con `toHaveBeenLastCalledWith` y la prueba volvió a pasar 15 de 15 |
+| ESLint de los 9 archivos `.ts`/`.tsx` tocados, con `--max-warnings=0` | PASÓ |
+| `node scripts/check-numbering.mjs`, `node scripts/build-docs-index.mjs --check` y `git diff --check` | PASÓ |
+| `/ui-check` | OK para commit. Un hallazgo bajo: entre el `replace` y la tarjeta, la guía no da una señal propia; se ve la carga del tablero. Queda para la prueba en vivo de la 9.6 |
+| Ningún archivo de `app/studio/(app)/crm/` en el diff | PASÓ: `git diff --name-only origin/main -- "app/studio/(app)/crm"` sale vacío |
+| `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
+
+**Qué cambió mientras se hacía.** La primera corrida verde de la guía dio 141 de 142. El rojo era de la prueba: un solo `act` largo no deja que React pinte entre timers. Al corregirla, avanzando el reloj de a 50 ms, aparecieron dos riesgos del diseño, que se arreglaron con su prueba:
+
+- 2 s no alcanzan después de cambiar de pestaña, porque el servidor todavía lee el tablero. De ahí los 10 s de `REINTENTOS_TRAS_PESTANA`.
+- Un reintento podía devolver a Embudos a quien ya se había ido. Desde el arreglo, solo navega el primer intento de cada pedido.
+
+También salió del arranque automático una comprobación de la consulta que repetía la de `intentarAbrir`: un mutante sobre ella habría sobrevivido sin cambiar nada visible.
