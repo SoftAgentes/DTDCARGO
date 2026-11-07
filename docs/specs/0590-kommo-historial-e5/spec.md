@@ -997,6 +997,7 @@ Para que el próximo ensayo o la próxima carga se lean bien. **No cambia lo que
 - Si quedan contenedores, volúmenes, redes o la carpeta, lo dice: `FALLÓ L0` y `limpieza_completa=no`. Si el código era 0, sale con 4. No toca nada fuera del proyecto `chatwoot-ensayo`: un contenedor ajeno conectado a su red la deja en pie, y eso se informa.
 - Una señal durante la limpieza no la corta: se anota (`senal_durante_limpieza=si`) y se sigue.
 - La evidencia termina en `HECHO ensayo_codigo=<código>`. Los códigos están en el README.
+- **La salida del guion se guarda al arrancar (`exec 7>&1 8>&2`), y la parada y la limpieza la restauran primero.** Si la señal llega mientras corre una función con redirección, como `dc … >"$DIR/aislamiento.txt"` o el `dc run` de `rr` hacia `$DIR/<paso>.txt`, bash corre el trap con esa redirección todavía puesta. Sin la restauración, `FALLÓ PARADA`, `FALLÓ L0` y el código iban a un archivo de `$DIR`, y la limpieza los borraba con la carpeta. En el VPS, el aviso de una limpieza incompleta no se habría visto nunca. Lo encontró el run 42402802348 (evidencia, abajo); la restauración de la limpieza es de defensa, porque con TERM ya la hace la parada.
 
 #### 2. La sonda (`pruebas/sonda-ensayo.rb`)
 
@@ -1021,13 +1022,13 @@ Es lo que se probó en producción el 2026-11-07, en solo lectura (lo informó e
 - `infra/ops/kommo-historial/pruebas/prueba-ensayo.sh`
 - `infra/ops/kommo-historial/pruebas/generar-sintetico.py`
 - `infra/ops/kommo-historial/README.md`
-- `.github/workflows/kommo-historial-cargador.yml`: el tope del job pasa de 45 a 75 minutos y el comentario del paso del ensayo
+- `.github/workflows/kommo-historial-cargador.yml`: el tope del job pasa de 45 a 60 minutos y el comentario del paso del ensayo. Regla del Director General: si el run con las pruebas nuevas dura menos de 35 minutos, 60; el 42402802348 duró 31,2. Un tope holgado escondería un cuelgue
 - `docs/specs/0590-kommo-historial-e5/spec.md`
 - `.agents/handoffs/0590-e5-estado.md`
 - `.agents/handoffs/0590-e5-hallazgos.md`
 
 **Huellas** (sha256, 16 caracteres, del contenido en Git) para comparar en un próximo despliegue:
-- `ensayo-archivo.sh`: `a108a12efacfc24a`, antes `c0fb3d336a135ca1`.
+- `ensayo-archivo.sh`: `91528bdd2ea26243`, antes `c0fb3d336a135ca1`.
 - `pruebas/sonda-ensayo.rb`: `5d08ca99ce265dd2`, antes `5b08e3e2f333847a`.
 - `respaldar-historial.py`: `a090cfb04e9fb11b`, antes `a9fbc324d10eefe6`.
 - Sin cambios: `cargar-archivo-kommo.rb` (`b86c0eed4b5a95fa`) y `ensayo-otras-cuentas.sql` (`fc0dd444c22c2d6a`).
@@ -1041,7 +1042,9 @@ Las huellas de antes son las de `main` en `ecadbac91`, y coinciden con las que c
   - **T2:** TERM solo al proceso principal, lo que hizo el vigía del ensayo del 2026-11-07.
   - En los dos, el TERM tiene que llegar con un runner del ensayo corriendo (el choque de §10.16), y la unidad tiene que quedar en `exit-code 1 143` (Result, ExecMainCode y ExecMainStatus), con `senal=TERM`, `ensayo_codigo=143`, `limpieza_completa=si` y 0 contenedores, volúmenes y redes.
   - **T3:** un contenedor ajeno conectado a `chatwoot-ensayo_aislada`. La limpieza no lo toca, deja la red, dice `limpieza_completa=no` y `FALLÓ L0`, y no sale con 0. `--limpiar` tampoco sale con 0 mientras el ajeno siga. Cuando se va, `--limpiar` deja todo en 0 y sale con 0.
-  - **Mutantes**, sobre una copia de la carpeta. Cada caso deja `no:<motivo>`, el primer requisito que no cumplió, y el mutante tiene que caer justo por el suyo: ME1 quita el trap de TERM y tiene que tumbar T1 y T2 por la unidad; ME2 hace que la limpieza no mire lo que quedó y tiene que tumbar T3 por `completa`, con T1 como control; ME3 saca al contenedor ajeno para poder borrar la red y tiene que tumbar T3 por `ajeno`, con T2 como control.
+  - **Mutantes**, sobre una copia de la carpeta. Cada caso deja `no:<motivo>`, el primer requisito que no cumplió, y el mutante tiene que caer justo por el suyo: ME1 quita el trap de TERM y tiene que tumbar T1 y T2 por la unidad; ME2 hace que la limpieza no mire lo que quedó y tiene que tumbar T3 por `completa`, con T1 como control; ME3 saca al contenedor ajeno para poder borrar la red y tiene que tumbar T3 por `ajeno`, con T2 como control; ME4 quita la restauración de la salida en la parada y tiene que tumbar T1 por `senal`, con T3 como control.
+  - Lo que deja una corrida como root (la evidencia en 0600 y el registro de la unidad) se copia con `sudo` y se lee la copia, sin tuberías. Si un caso del guion real cae, o un mutante cae por otro motivo, el log del CI muestra su evidencia y el final de su registro: son datos inventados, líneas HECHO y PASÓ/FALLÓ.
+  - **F2**, además, exige `limpieza_completa=si` y que la evidencia del ensayo R termine en `ensayo_codigo=0`.
 - **`prueba-ensayo.sh`, L3:** con un `docker` que no responde delante en el `PATH`, `--limpiar` tiene que salir con 4 y decir que no pudo comprobar la limpieza. Con el guion de `main`, contaba 0, 0 y 0 y salía con 0 (medido en la PC con el mismo `docker` falso).
 - **`generar-sintetico.py --relleno 650`**, solo en `prueba-ensayo.sh`: 650 conversaciones más, cada una con su persona (`+584123000000` en adelante, todas con el 2 del número de la más vieja) y un mensaje con una palabra frecuente. En la conversación más vieja, dos mensajes antes del que tiene `SINTVIEJO`: uno sin palabras de 6 letras y otro con solo la frecuente. `prueba-cargador.sh` no usa el relleno y sus datos no cambian.
   - **R4:** la búsqueda por el número de la más vieja trae más de 600 resultados, y aun así pasan E10d, E10e y E10g.
@@ -1062,7 +1065,9 @@ Las huellas de antes son las de `main` en `ecadbac91`, y coinciden con las que c
 | CI del cargador, run 42399372669 sobre `bb20ae5b6`: solo las pruebas nuevas, con el código de `main` (rojo previo; log leído con `gh api`) | FALLÓ en el paso del ensayo, como se esperaba, con 10 fallas. Los demás pasos, en verde. **T1, T2 y T3:** la unidad termina en `success 0 0`, lo mismo que el `ExecMainStatus=0` del intento 3: el TERM llegó con un runner vivo, bash murió por la señal y systemd descargó la unidad. **ME1 a ME3:** no se pueden mutar, porque el código no existe en `main`. **Dentro del ensayo,** 44 PASÓ y las 4 FALLÓ de la corrida real: E10d, E10e y E10g por número (`nombre:si,numero:no,telefono:si`) y BQ1 con `sin_palabra` en las dos ventanas. **R1, R3, R4 y R5** caen por eso. Pasan R2, P1 a P3, L1, L2 y F1 a F4: el relleno (655 conversaciones y 660 mensajes) no rompe nada más |
 | Revisión independiente de solo lectura del diff (subagente revisor), antes de publicar los arreglos | Sin fallas al ejecutar. Hubo tres hallazgos y los tres se corrigieron. **1.** Con docker caído, `--limpiar` contaba 0 y salía con 0: ahora cuenta `?`, dice `FALLÓ L0` y sale con 4 (L3). **2.** T1 y T2 podían pasar sin un runner vivo: ahora lo exigen. **3.** Los mutantes no miraban por qué caía cada caso: ahora cada uno tiene que caer por su motivo, con un control. También corrigió un espacio faltante en `respaldar-historial.py` |
 | `--limpiar` con un `docker` que no responde, en la PC | PASÓ: el guion nuevo sale con 4, con `limpieza=contenedores=?,volumenes=?,redes=?` y `limpieza_completa=no`. El de `main` sale con 0 y anota `limpieza=contenedores=0,volumenes=0,redes=0` |
-| CI del cargador con los arreglos | En la PR #413, el run sobre su cabeza. El resultado va en el cuerpo de la PR y en el aviso al Subdirector de Chatwoot, para no publicar otro commit que repita el job |
+| CI del cargador, run 42402802348 sobre `9f15c13bc`, con los arreglos (log leído por el Subdirector de Chatwoot y aquí con `gh api`) | FALLÓ, en el paso del ensayo. Duró 31,2 minutos (job de 18:44:55Z a 19:16:01Z; el ensayo, 5,9 minutos). **Pasaron:** R1 (48 comprobaciones, 0 fallas), R2 a R5, L1 a L3 y F1 a F4. E10d, E10e y E10g sobre la consulta entera (`numero` con 654 resultados, más de 40 páginas) y BQ1 con el tercer mensaje. ME1 cae por la unidad. **Cayeron:** T1 y T2 con la unidad bien (`exit-code 1 143`) pero `no:senal`, T3 con `no:completa`, y ME2 y ME3 «de más» por lo mismo |
+| Causa del rojo de 42402802348, reproducida en la PC | **Era del guion, no de la prueba.** Con el guion de `9f15c13bc`, sus fuentes y un `docker` falso, y con TERM a mitad de un `dc run`: la evidencia sale completa (`senal=TERM`, `limpieza_completa=si`, `ensayo_codigo=143`), pero el registro termina en A5, sin `FALLÓ PARADA`, `== limpieza` ni el código. Con un caso mínimo de bash: el trap de una señal que llega dentro de una función con `>archivo` escribe en ese archivo. Con `exec 7>&1 8>&2` y la restauración en los traps, el mismo caso y el guion simulado escriben en la salida del guion. La prueba no cambió lo que exige: T1 a T3 siguen pidiendo `FALLÓ PARADA` y `FALLÓ L0` en el registro, y ME4 lo cubre |
+| CI con el arreglo de la salida, el tope en 60 y `main` traído | En la PR #413, el run sobre su cabeza. El resultado va en el cuerpo de la PR y en el aviso al Subdirector de Chatwoot, para no publicar otro commit que repita el job |
 | `sonda-ensayo.rb` | Sin Ruby en la PC: se mide en el CI (R1, R3, R4 y R5) |
 
 #### revisar-datos-ve
@@ -1073,4 +1078,5 @@ No se capturan, mueven ni borran datos personales nuevos. La sonda sigue imprimi
 
 - **Aislamiento del ensayo:** A1 a A7 miran los contenedores del proyecto, pero no que un contenedor ajeno se conecte a `chatwoot-ensayo_aislada`. T3 lo hace a propósito, y A1 a A7 filtran por la etiqueta del proyecto, así que no lo pueden ver (C). En el VPS, eso pide root. Propuesta: una comprobación A9 que exija que en la red solo haya contenedores del proyecto, antes del dump y después de cada paso.
 - **`sonda-cargador.rb` (E-10d de `prueba-cargador.sh`)** mira solo la primera página de 15 (`:229-234`). Con los 5 datos inventados alcanza; a escala real fallaría como la del ensayo. Corre solo en CI.
+- **La guarda de carga del ensayo no para los pasos de adjuntos.** `python3 … flujo-adjuntos | rr …` (`ensayo-archivo.sh`, en los pasos de adjuntos) corre `rr` en el subshell del pipeline. Si `vigilar_carga` dice `exit 3` ahí, sale solo ese subshell y el ensayo sigue con el paso siguiente (C; no medido). Está así en `main`, desde la 5.5b.
 - `preparar_corrida` abre `stamp.txt` sin cerrarlo (`ResourceWarning` en las pruebas). No cambia nada.
