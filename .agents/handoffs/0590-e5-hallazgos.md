@@ -30,7 +30,9 @@ Los tres hallazgos de la corrida real de E5 del 2026-11-07, para que el próximo
 | `git diff --check` | PASÓ |
 | CI del cargador, rojo previo: run 42399372669 sobre `bb20ae5b6` | FALLÓ como se esperaba: 10 fallas en el ensayo (T1 a T3 en `success 0 0`; ME1 a ME3 no mutables en `main`; E10d, E10e, E10g por número y BQ1 `sin_palabra`, como en producción; R1, R3, R4 y R5). Los otros pasos, en verde |
 | Revisión independiente del diff (subagente revisor) | Tres hallazgos, corregidos en `bb5c711ba`: docker caído contaba 0 (L3), T1/T2 sin runner vivo y mutantes sin motivo |
-| CI del cargador con los arreglos | En curso sobre la cabeza de la PR; el resultado, en el cuerpo de la PR |
+| CI del cargador con los arreglos: run 42402802348 sobre `9f15c13bc` | FALLÓ en T1 a T3 (y ME2 y ME3 de rebote), con la unidad bien en `exit-code 1 143`. Duró 31,2 min. Pasaron R1 (48 comprobaciones), R2 a R5, L1 a L3 y F1 a F4 |
+| Causa, reproducida en la PC | Del guion: el trap de una señal que llega dentro de una función con redirección (`dc … >archivo`) escribía `FALLÓ PARADA` y `FALLÓ L0` en ese archivo de `$DIR`, que la limpieza borra. Arreglo en `0d99d545f` (`exec 7>&1 8>&2` y restauración en los traps); ME4 lo cubre. La prueba no se aflojó |
+| CI con el arreglo de la salida, el tope en 60 y `main` traído | En curso sobre la cabeza de la PR; el resultado, en el cuerpo de la PR y al Subdirector |
 | `sonda-ensayo.rb` | NO DISPONIBLE en la PC (sin Ruby): lo mide el CI |
 | `pnpm verify` | NO EJECUTADO: el cierre de esta tarea es el del diff (infra y docs, sin producto) |
 | `node scripts/knowledge-sync.mjs status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en el worktree |
@@ -43,7 +45,11 @@ Los tres hallazgos de la corrida real de E5 del 2026-11-07, para que el próximo
 - `ffd145739` fix(0590): la sonda mide la búsqueda en la consulta entera y BQ1
 - `a616dec1c` docs(0590): §10.17
 - `bb5c711ba` fix(0590): revisión de la #413 (docker caído, runner vivo, motivo de los mutantes)
-- el commit de docs con el rojo del CI y este handoff
+- `9f15c13bc` docs(0590): el rojo previo del CI, la revisión y el handoff
+- `0d99d545f` fix(0590): la parada y la limpieza escriben en la salida del guion; ME4; tope en 60
+- `3c31a5860` docs(0590): §10.17, el rojo de 42402802348 y su causa
+- `8c2338102` merge de `origin/main` `7e75f7708` con el driver de `main`; el índice regenerado no cambió (596 specs)
+- este handoff
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -55,6 +61,7 @@ Los tres hallazgos de la corrida real de E5 del 2026-11-07, para que el próximo
 - El aislamiento del ensayo no mira si un contenedor ajeno se conecta a `chatwoot-ensayo_aislada` (spec §10.17).
 - `sonda-cargador.rb` mira solo la primera página de 15 en E-10d; alcanza con los datos inventados.
 - `preparar_corrida` deja `stamp.txt` abierto (`ResourceWarning`).
+- La guarda de carga del ensayo no para los pasos de adjuntos: `flujo-adjuntos | rr` corre `rr` en un subshell y su `exit 3` no sale del ensayo (spec §10.17).
 
 ## Conocimiento
 
