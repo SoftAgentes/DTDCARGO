@@ -3177,6 +3177,15 @@
         "fecha": "2026-11-04",
         "forma": "exacta"
       }
+    },
+    "0517_user_guide_prefs": {
+      "sha256": "ab7e09eae3ae17295cd1b40f7e02419301df4fe39eb801a5a15807bba2766d24",
+      "md5": "22769e1bb0280481c5fd0b7b201a314f",
+      "bytes": 3676,
+      "ledger": {
+        "fecha": "2026-11-06",
+        "forma": "exacta"
+      }
     }
   }
 }
