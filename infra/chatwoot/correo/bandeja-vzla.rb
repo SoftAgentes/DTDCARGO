@@ -147,7 +147,9 @@ module DtdBandejaVzla
         smtp_enabled: false, smtp_address: 'smtp.hostinger.com', smtp_port: 587, smtp_login: BUZON, smtp_domain: DOMINIO,
         smtp_enable_starttls_auto: true, smtp_authentication: 'login', smtp_openssl_verify_mode: 'peer'
       )
-      inbox = Inbox.create!(account: c, name: NOMBRE, channel: canal, business_name: 'DTD Cargo', sender_name_type: :friendly)
+      # Encuesta CSAT apagada: al resolver un rebote se la mandaría a MAILER-DAEMON (e4-correo.md §6.3).
+      inbox = Inbox.create!(account: c, name: NOMBRE, channel: canal, business_name: 'DTD Cargo', sender_name_type: :friendly,
+                            csat_survey_enabled: false)
       usuarios.each { |u| InboxMember.create!(inbox: inbox, user: u) }
       reglas(c, inbox, id_responsable)
     end
@@ -176,7 +178,8 @@ module DtdBandejaVzla
     ch = inbox.channel
     puts "bandeja #{inbox.id} · canal #{ch.id} · imap #{ch.imap_enabled} · smtp #{ch.smtp_enabled} · " \
          "clave imap #{ch.imap_password.present? ? 'cargada' : 'vacía'} · clave smtp #{ch.smtp_password.present? ? 'cargada' : 'vacía'}"
-    puts "remitente: business_name=#{inbox.business_name.inspect} · modo=#{inbox.sender_name_type} · miembros #{inbox.members.count}"
+    puts "remitente: business_name=#{inbox.business_name.inspect} · modo=#{inbox.sender_name_type} · miembros #{inbox.members.count} · " \
+         "encuesta CSAT #{inbox.csat_survey_enabled ? 'ENCENDIDA (apagarla: §6.3)' : 'apagada'}"
     REGLAS.each_value do |nombre|
       r = AutomationRule.find_by(account: c, name: nombre)
       puts(r ? "regla «#{nombre}» id #{r.id} · activa=#{r.active} · en_bandeja=#{en_esta_bandeja?(r, inbox)} · " \

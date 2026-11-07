@@ -56,6 +56,15 @@
    - **El fallo:** el detector de notas de estado leía `content_attributes` con `->`, pero Chatwoot guarda ese `json` como texto, así que el detector no veía nada y M4 sobrevivió.
    - **La corrección:** el detector lee la nota en Ruby y el caso Z lo obliga a ver 1 nota.
    - **El chequeo de los mutantes:** ahora exige que `sed` termine bien y que cambie una sola línea. Un `sed` roto deja el archivo vacío, y el `cmp` de antes lo daba por bueno.
+   - **Por qué no sobra el autor** (la pregunta del Subdirector sobre las dos lecturas de M4): es la lectura 2. La sonda no medía. Con el detector arreglado, M4 cae en la 2.ª corrida, así que la línea del autor sí hace falta.
+10. **Revisión independiente de la #423** (CHANGES_REQUESTED sobre `69eaa40f8`):
+    - **La clase:** `instalar` la busca con `safe_constantize`. Si falta la clase o un método, solo avisa y devuelve `false`. Lo prueban T7 y el mutante M8.
+    - **CSAT:** `CsatSurveyListener` manda la encuesta al resolver si está encendida (C), lo que podría armar un bucle de rebotes.
+      - T8 exige 0 salientes en el rebote y 0 correos en toda la sonda.
+      - `bandeja-vzla.rb` crea la bandeja con `csat_survey_enabled: false` y `estado` lo muestra (`v_csat`).
+      - §6.3 deja escrito que la encuesta queda apagada.
+    - **Caso P (C3):** un mailer-daemon sin `Auto-Submitted` que la regla «Sonda · sistema» sí resuelve.
+    - **El flujo:** `timeout-minutes` baja de 40 a 25.
 
 ## VALIDACIÓN
 
@@ -69,7 +78,8 @@
 | `node node_modules/vitest/vitest.mjs run scripts/__tests__/avance-checklist.test.mjs --maxWorkers=1` (20:31:34Z) | PASÓ: 12 de 12, en 6,5 s |
 | `node scripts/avance-checklist.mjs …/checklist.md --json`, comparado campo por campo con `main` (`250e86f65`) y con la base (`eef75ebef`) | PASÓ: sin diferencias. 49,03 %, etapa E4, paso 4.4, restante 62 d, línea base v4 de 129,5 d |
 | «Correo automático (datos inventados)», 1.ª corrida sobre `69eaa40f8` | FALLÓ 1 de 25: M4, porque el detector no podía ver nada (COMPLETADO, punto 9). Pasaron T (31/31), C, M0 y M1, M2, M3, M5, M6 y M7 |
-| «Correo automático (datos inventados)», con el arreglo y los casos V | Corre en la PR sobre el commit nuevo; lo lee el Subdirector |
+| «Correo automático (datos inventados)», 2.ª corrida sobre `86a520e9d` (run 42412688316, de 20:46:54Z a 20:52:44Z) | PASÓ 34 de 34, 0 fallas. M4 cae por su motivo: `a_aviso_estado` da 1 sin el autor y 0 con él. V da 30 de 30, y W1 y W2 caen |
+| «Correo automático», 3.ª corrida, con la revisión independiente (T7, T8, C3, M8, `v_csat` y `timeout-minutes` en 25) | Corre sobre el commit siguiente; se anota en un commit solo de documentos |
 | `prueba-correo-sistema.sh` en la PC (Docker) | NO EJECUTADO, porque Docker Desktop levanta 22 contenedores ajenos |
 | Ruby en la PC | NO DISPONIBLE (no hay `ruby`); lo cubre la corrida de Actions |
 | `knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en el worktree (estructural y semántica UNAVAILABLE) |

@@ -76,6 +76,7 @@ hecho 'v_imap_smtp', canal ? "#{canal.imap_enabled}/#{canal.smtp_enabled}" : 'si
 hecho 'v_claves', canal && canal.imap_password.blank? && canal.smtp_password.blank? ? 'vacias' : 'cargadas'
 hecho 'v_servidores', canal ? "#{canal.imap_address}:#{canal.imap_port}:#{canal.imap_enable_ssl}|#{canal.smtp_address}:#{canal.smtp_port}" : '-'
 hecho 'v_remitente', inbox ? "#{inbox.business_name}/#{inbox.sender_name_type}" : '-'
+hecho 'v_csat', inbox ? "#{inbox.csat_survey_enabled}:#{contiene.call(t, 'encuesta CSAT apagada')}" : '-'
 hecho 'v_miembros', inbox ? inbox.members.pluck(:id).sort == [sam.id, otro.id].sort : false
 reglas = AutomationRule.where(account: cuenta, name: ['Correo · legal', 'Correo · sistema', 'Correo · no-cliente'])
 hecho 'v_reglas', reglas.where(active: true).count

@@ -232,7 +232,11 @@ El guion es [`correo/bandeja-vzla.rb`](../../../infra/chatwoot/correo/bandeja-vz
 - lo que nace resuelto (contacto bloqueado);
 - las reglas de Chatwoot para todo lo demás.
 
-No borra nada. Si después escribe una persona en ese hilo, Chatwoot reabre la conversación como siempre, y el inicializador no la vuelve a cerrar. Si una versión nueva quita `#process` o `#find_or_create_conversation`, no hace nada y lo dice en el log.
+No borra nada. Si después escribe una persona en ese hilo, Chatwoot reabre la conversación como siempre, y el inicializador no la vuelve a cerrar.
+
+Si una versión nueva renombra `Imap::ImapMailbox`, o le quita `#process` o `#find_or_create_conversation`, el inicializador no hace nada y lo dice en el log. Busca la clase con `safe_constantize`, así que Rails y sidekiq arrancan igual.
+
+**La encuesta de satisfacción (CSAT) de las bandejas de correo queda apagada.** `CsatSurveyListener#conversation_status_changed` la manda al resolver si la bandeja la tiene encendida (C, v4.19.1). Aquí le llegaría a MAILER-DAEMON o a un contestador automático, y podría armar un bucle de rebotes. `bandeja-vzla.rb` crea la bandeja con la encuesta apagada y `estado` lo muestra. La sonda comprueba que resolver no manda nada: 0 salientes y 0 correos (T8). Encenderla después pide antes una regla de la encuesta que excluya «sistema» y «no-cliente», con su propia prueba.
 
 **Riesgo que queda.** Un correo real con `Auto-Submitted` distinto de `no`, por ejemplo el de un formulario automático de un tercero, queda resuelto con «sistema». Se mitiga de tres formas:
 - la nota pide reabrirlo;
@@ -243,7 +247,8 @@ No borra nada. Si después escribe una persona en ese hilo, Chatwoot reabre la c
 
 | Caso | Correo | Con el inicializador (T) | Sin él (control C) |
 |---|---|---|---|
-| A | Rebote nuevo (`Auto-Submitted: auto-replied`), con la regla «Sonda · sistema» de P8 activa | `resolved`, `sistema`, 1 nota, 0 avisos de inactividad | **Abierto y sin etiqueta: el hallazgo P4 se reproduce** |
+| A | Rebote nuevo (`Auto-Submitted: auto-replied`), con la regla «Sonda · sistema» de P8 activa | `resolved`, `sistema`, 1 nota, 0 avisos de inactividad, 0 salientes y 0 correos | **Abierto y sin etiqueta: el hallazgo P4 se reproduce** |
+| P | Aviso de mailer-daemon **sin** `Auto-Submitted`: control positivo de la regla | `resolved` y `prueba-sistema`: la regla de Chatwoot lo resuelve | Igual. Con A la regla no actúa solo porque A es automático |
 | B | Correo de cliente con asunto «Privacidad» | Abierto y con `prueba-legal` (la regla de Chatwoot sigue actuando) | Igual |
 | C | Respuesta automática enhebrada a una conversación de cliente | En la misma conversación, abierta y sin etiqueta | Igual |
 | D | Respuesta automática nueva por `X-Autoreply: yes` | `resolved` y `sistema` | Abierta |
@@ -253,18 +258,21 @@ No borra nada. Si después escribe una persona en ese hilo, Chatwoot reabre la c
 | H | Persona que escribe en el hilo de una automática, y otra automática después | Se reabre y sigue abierta | — |
 | Z | Control del detector: un correo normal resuelto sin autor | 1 nota de estado de Chatwoot | 1 nota de estado de Chatwoot |
 
-El control **M0** carga la misma copia por otro camino (`SONDA_CARGAR`) y tiene que dar lo mismo que T. Cada uno de los **7 mutantes** quita una pieza y tiene que romper su comprobación:
+Con el inicializador, la sonda llama además a `instalar('Imap::BuzonQueNoExiste')`. Tiene que devolver `false` y dejar el aviso en el log, sin levantar un error (T7).
+
+El control **M0** carga la misma copia por otro camino (`SONDA_CARGAR`) y tiene que dar lo mismo que T. Cada uno de los **8 mutantes** quita una pieza y tiene que romper su comprobación:
 1. la guarda de conversación nueva → H;
 2. la de automático → B;
 3. la de abierta → F;
 4. el autor → aviso de inactividad;
 5. la etiqueta → A;
 6. resolver → A;
-7. la nota → A.
+7. la nota → A;
+8. `safe_constantize` → la clase que falta levanta `NameError`.
 
 Cada mutante comprueba antes que su `sed` terminó bien y cambió una sola línea. Un `sed` roto deja el archivo vacío, que también «cambia».
 
-**Resultado de la primera corrida** (PR #423, `69eaa40f8`, 2026-11-07 a las 20:27Z): **FALLÓ 1 de 25**. Pasaron:
+**Resultado de la primera corrida** (PR #423, `69eaa40f8`, run 42411100158, 2026-11-07 a las 20:27Z): **FALLÓ 1 de 25**. Pasaron:
 - T, las 31 comprobaciones;
 - el control C, que reproduce el hallazgo P4;
 - M0 y los mutantes 1, 2, 3, 5, 6 y 7.
@@ -275,7 +283,17 @@ Se corrigió así:
 - la sonda lee la nota en Ruby;
 - el caso **Z** resuelve un correo normal sin autor y **tiene que** contar 1 nota de Chatwoot, en T, en C y en cada mutante.
 
-El resultado de la segunda corrida se anota aquí con su SHA.
+**Resultado de la segunda corrida** (`86a520e9d`, run 42412688316, 2026-11-07 de 20:46:54Z a 20:52:44Z): **PASÓ 34 de 34, 0 fallas.**
+- **M4 cae por su motivo:** sin el autor, Chatwoot escribe 1 nota de estado (`a_aviso_estado` = 1); con el autor, 0. La línea del autor sí hace falta.
+- Pasaron T, el control C con su detector (caso Z), M0, los 7 mutantes, los casos V del guion de PC-3 (30 de 30) y W1 y W2.
+
+**Tercera corrida, con la revisión independiente:**
+- la guarda de la clase, con T7 y M8;
+- la encuesta CSAT apagada, con T8 y `v_csat`;
+- el caso P (C3);
+- `timeout-minutes` de 40 a 25.
+
+Su resultado se anota aquí con su SHA en un commit solo de documentos, que no vuelve a disparar el flujo.
 
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 
@@ -304,7 +322,7 @@ Las variables van solo en el comando, nunca en Git:
 | Paso | Qué hace | OK que pide | Qué tiene que ver Sam | Vuelta atrás |
 |---|---|---|---|---|
 | 1 | Respaldo de Chatwoot (Subdirector) | Parte del OK de PC-3 | Nada: el Subdirector le pasa el nombre del respaldo | — |
-| 2 | **`crear`.** Crea las etiquetas «legal», «no-cliente» y «sistema»; la bandeja «Correo · vzla@» con IMAP y SMTP apagados y sin claves, «DTD Cargo» y modo `friendly`; los miembros; y las reglas «Correo · legal», «Correo · sistema» y, si hay lista, «Correo · no-cliente». **Se niega** si falta un miembro, si el responsable no es miembro, si la bandeja o el buzón ya existen, o si la lista trae el dominio de DTD | «Crea la bandeja de vzla@ con sus reglas» (OK de PC-3) | En Ajustes → Bandejas, «Correo · vzla@» sin conversaciones. En Ajustes → Automatizaciones, las reglas «Correo · …» activas | Sam borra la bandeja (todavía vacía) y las reglas «Correo · …» desde el panel |
+| 2 | **`crear`.** Crea las etiquetas «legal», «no-cliente» y «sistema»; la bandeja «Correo · vzla@» con IMAP y SMTP apagados y sin claves, «DTD Cargo», modo `friendly` y la encuesta CSAT apagada (§6.3); los miembros; y las reglas «Correo · legal», «Correo · sistema» y, si hay lista, «Correo · no-cliente». **Se niega** si falta un miembro, si el responsable no es miembro, si la bandeja o el buzón ya existen, o si la lista trae el dominio de DTD | «Crea la bandeja de vzla@ con sus reglas» (OK de PC-3) | En Ajustes → Bandejas, «Correo · vzla@» sin conversaciones. En Ajustes → Automatizaciones, las reglas «Correo · …» activas | Sam borra la bandeja (todavía vacía) y las reglas «Correo · …» desde el panel |
 | 3 | **Sam escribe la clave.** En Ajustes → Bandejas → «Correo · vzla@» → Configuración, enciende IMAP y SMTP y escribe la clave en los dos campos. Al guardar, Chatwoot prueba la conexión y empieza a leer. Que la pantalla muestre esos campos para una bandeja creada así es **NV**: se ve en este paso | Es la acción misma de Sam; la clave nunca pasa por el chat ni por el repo | Se guarda sin error. `estado` dice «imap true · smtp true · clave imap cargada · clave smtp cargada» | `apagar-imap`: la entrada se corta al momento |
 | 4 | **`estado`**, a los 5 minutos | — | Conversaciones solo desde el día anterior. «de dtdcargo.com abiertas» cerca de 0; si no, falta un remitente en «sistema» | `apagar-imap` |
 | 5 | Pruebas P1, P2, P3, P5, P8 y N2 (§6.2, PC-3, pasos 6 y 7) | La de cada prueba | Lo que dice cada una | `apagar-imap` |

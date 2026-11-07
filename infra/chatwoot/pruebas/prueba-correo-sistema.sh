@@ -63,7 +63,9 @@ es() { [ "$(h "$1" "$2")" = "$3" ]; }
 
 # Lo que tiene que dar el inicializador entero (T y M0). Cada línea es «clave valor».
 ESPERADO=(
-  "a_estado resolved" "a_etiquetas sistema" "a_notas 1" "a_aviso_estado 0" "a_auto_reply true"
+  "clase_ausente aviso"
+  "a_estado resolved" "a_etiquetas sistema" "a_notas 1" "a_aviso_estado 0" "a_auto_reply true" "a_salientes 0/0"
+  "p_estado resolved" "p_etiquetas prueba-sistema" "p_notas 0" "p_auto_reply false"
   "b_estado open" "b_etiquetas prueba-legal" "b_notas 0"
   "c_misma si" "c_estado open" "c_etiquetas -" "c_notas 0"
   "d_estado resolved" "d_etiquetas sistema" "d_notas 1" "d_auto_reply true"
@@ -71,13 +73,13 @@ ESPERADO=(
   "f_estado resolved" "f_etiquetas -" "f_notas 0"
   "g_estado open" "g_adjuntos 1" "g_tipo file"
   "h_estado_inicio resolved" "h_estado_persona open" "h_misma si" "h_estado open" "h_notas 1"
-  "z_aviso_estado 1" "conversaciones 9" "sonda ok"
+  "z_aviso_estado 1" "conversaciones 10" "correos_enviados 0" "sonda ok"
 )
 # Lo que tiene que dar el guion de PC-3 entero (V). Mismo formato; el valor puede llevar espacios y «|».
 ESPERADO_V=(
   "v_sin_miembros abort:si" "v_responsable_fuera abort:si" "v_nada_creado 0"
   "v_crear ok" "v_imap_smtp false/false" "v_claves vacias"
-  "v_servidores imap.hostinger.com:993:true|smtp.hostinger.com:587" "v_remitente DTD Cargo/friendly" "v_miembros true"
+  "v_servidores imap.hostinger.com:993:true|smtp.hostinger.com:587" "v_remitente DTD Cargo/friendly" "v_csat false:si" "v_miembros true"
   "v_reglas 3" "v_reglas_en_bandeja 3" "v_legal_asigna si" "v_etiquetas 3" "v_estado si:si" "v_otra_vez abort:si"
   "v_legal open|legal|urgent|sam" "v_noreply resolved|sistema|-|-" "v_replyto resolved|sistema|-|-"
   "v_banco resolved|no-cliente|-|-" "v_gerencia open|legal|urgent|sam" "v_cliente open|-|-|-" "v_otra open|-|-|-"
@@ -133,6 +135,7 @@ MUTANTES=(
   "m5|/# \[etiqueta\]$/d|a_etiquetas|sin la etiqueta el rebote no queda marcado «sistema»"
   "m6|/# \[resolver\]$/d|a_estado|sin resolver el rebote sigue en la cola"
   "m7|s/::Conversations::ActivityMessageJob.perform_now( # \[nota\]/[].push( # [nota]/|a_notas|sin la nota nadie sabe por qué se cerró"
+  "m8|s/nombre.safe_constantize # \[clase\]/nombre.constantize # [clase]/|clase_ausente|sin safe_constantize, una clase renombrada levanta NameError y no arrancan rails ni sidekiq"
 )
 # mutar ORIGEN DESTINO SED: el sed tiene que terminar bien y cambiar UNA línea (una sola fila borrada, o una
 # cambiada). Un sed roto deja el archivo vacío, que también «cambia»: por eso no basta con cmp.
@@ -195,6 +198,10 @@ exigir T5 'es "$F" g_adjuntos 1 && es "$F" g_tipo file && [ "$(h "$F" g_bytes)" 
   "P3 en la imagen real: el PDF adjunto de entrada queda como 1 adjunto «file» de $(h "$F" g_bytes) bytes"
 lineas="$(grep -F '[DTD] correo automático' "$F" || true)"
 ordenadas="$(printf "%s\n" "$lineas" | grep -F "con etiqueta" | grep -o "conversación [0-9]* de la bandeja [0-9]*" | sort -u | wc -l | tr -d ' ')"
+exigir T7 'es "$F" clase_ausente aviso && [ "$(cuenta "[DTD] correo automático NO activo: falta Imap::BuzonQueNoExiste" "$F")" -ge 1 ]' \
+  "si falta la clase, instalar solo avisa en el log y no levanta: rails y sidekiq arrancarían igual"
+exigir T8 'es "$F" a_salientes 0/0 && es "$F" correos_enviados 0' \
+  "resolver no manda nada: 0 salientes en el rebote y 0 correos en toda la sonda (encuesta CSAT apagada)"
 exigir T6 '[ "$ordenadas" = 3 ] && ! printf "%s" "$lineas" | grep -q "@"' \
   "el log nombra 3 conversaciones ordenadas (A, D y H; dio $ordenadas) y ninguna línea suya lleva una dirección"
 
@@ -205,6 +212,8 @@ exigir C0 'es "$F" inicializador no && es "$F" sonda ok && es "$F" z_aviso_estad
   "la sonda corre sin el inicializador y su detector de notas de estado ve la de Chatwoot (caso Z)"
 exigir C1 'es "$F" a_estado open && es "$F" a_etiquetas - && es "$F" a_auto_reply true && es "$F" d_estado open' \
   "sin el inicializador el rebote y la respuesta automática quedan abiertos y sin etiqueta: el hallazgo P4 se reproduce"
+exigir C3 'es "$F" p_estado resolved && es "$F" p_etiquetas prueba-sistema && es "$F" p_auto_reply false' \
+  "la regla «Sonda · sistema» SÍ resuelve un mailer-daemon sin Auto-Submitted: con A no actúa solo porque A es automático"
 exigir C2 'es "$F" b_etiquetas prueba-legal && es "$F" g_adjuntos 1' \
   "la regla legal y el adjunto no dependen del inicializador"
 

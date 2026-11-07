@@ -31,6 +31,17 @@ hecho 'inicializador', instalado ? 'si' : 'no'
 hecho 'metodos', Imap::ImapMailbox.method_defined?(:process) &&
                  Imap::ImapMailbox.private_method_defined?(:find_or_create_conversation) ? 'ok' : 'faltan'
 
+# Si una versión nueva renombra la clase, `instalar` (lo que corre to_prepare al arrancar) solo avisa en el log:
+# un NameError ahí no dejaría arrancar rails ni sidekiq.
+if instalado
+  ausente = begin
+    DtdCorreoSistema.instalar('Imap::BuzonQueNoExiste') ? 'instalo' : 'aviso'
+  rescue NameError
+    'NameError'
+  end
+  hecho 'clase_ausente', ausente
+end
+
 # Cada corrida crea su cuenta y su buzón (el buzón es único en toda la instalación).
 cuenta = Account.create!(name: 'Sonda correo automático')
 canal = Channel::Email.create!(account: cuenta, email: "bandeja-#{SecureRandom.hex(4)}@sonda.example.test",
@@ -94,6 +105,14 @@ rebote = correo('a-rebote', de: 'MAILER-DAEMON@relay.sonda.example.test', asunto
 procesar.call(rebote)
 a = conversacion_de.call('a-rebote')
 informar.call('a', a)
+# Resolver no manda nada: ni mensaje saliente en la conversación ni correo (la encuesta CSAT, apagada, se lo
+# mandaría a MAILER-DAEMON y armaría un bucle de rebotes).
+hecho 'a_salientes', "#{a ? a.messages.outgoing.count : -1}/#{ActionMailer::Base.deliveries.size}"
+
+# P · control positivo de la regla: un aviso de mailer-daemon SIN Auto-Submitted. La regla «Sonda · sistema» SÍ lo
+# resuelve; con A no actúa solo porque A es automático. Así el «aunque haya una regla» de C queda demostrado.
+procesar.call(correo('p-sin-cabecera', de: 'MAILER-DAEMON@otro-relay.sonda.example.test', asunto: 'Aviso sin cabecera'))
+informar.call('p', conversacion_de.call('p-sin-cabecera'))
 
 # B · correo normal de una persona, con asunto «Privacidad»: la regla legal de Chatwoot sigue actuando.
 procesar.call(correo('b-cliente', de: 'cliente.b@sonda.example.test', asunto: 'Privacidad: consulta inventada'))
@@ -162,4 +181,5 @@ z&.resolved!
 hecho 'z_aviso_estado', aviso_estado.call(z&.reload)
 
 hecho 'conversaciones', inbox.conversations.count
+hecho 'correos_enviados', ActionMailer::Base.deliveries.size
 hecho 'sonda', 'ok'

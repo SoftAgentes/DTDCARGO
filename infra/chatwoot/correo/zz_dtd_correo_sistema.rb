@@ -32,8 +32,14 @@
 # que sería falsa, y los eventos llevan performed_by = Inbox, que sus listeners ya conocen.
 #
 # Si cambia en una versión nueva: Imap::ImapMailbox#process o #find_or_create_conversation, o
-# ActivityMessageHandler#automation_status_change_activity_content. Si alguno de los dos métodos
-# desaparece, el inicializador no hace nada y lo dice en el log (no rompe la lectura del correo).
+# ActivityMessageHandler#automation_status_change_activity_content. Si desaparece la clase o uno de
+# los dos métodos, el inicializador no hace nada y lo dice en el log: Rails y sidekiq arrancan igual
+# y la lectura del correo no se rompe (la clase se busca con safe_constantize, no por su nombre).
+#
+# Encuesta de satisfacción (CSAT): CsatSurveyListener la manda al resolver si la bandeja la tiene
+# encendida. Aquí le llegaría a MAILER-DAEMON o a un contestador, y podría armar un bucle de rebotes.
+# Por eso la encuesta de las bandejas de correo queda APAGADA (e4-correo.md §6.3); la sonda comprueba
+# que este inicializador no manda ningún correo.
 #
 # Logs: solo números de conversación y de bandeja, nunca direcciones ni asuntos.
 # Prueba con la imagen real, control sin este archivo y mutantes:
@@ -93,16 +99,20 @@ module DtdCorreoSistema
     Current.executed_by = anterior
   end
 
-  def self.instalar
-    buzon = Imap::ImapMailbox
-    unless buzon.method_defined?(:process) && buzon.private_method_defined?(:find_or_create_conversation)
-      Rails.logger.error('[DTD] correo automático NO activo: Imap::ImapMailbox ya no tiene #process o ' \
+  CLASE = 'Imap::ImapMailbox'
+
+  # Devuelve true si quedó instalado. Nunca levanta por una clase o un método que falte: lo dice en el log.
+  def self.instalar(nombre = CLASE)
+    buzon = nombre.safe_constantize # [clase]
+    unless buzon.is_a?(Class) && buzon.method_defined?(:process) && buzon.private_method_defined?(:find_or_create_conversation)
+      Rails.logger.error("[DTD] correo automático NO activo: falta #{nombre}, o ya no tiene #process o " \
                          '#find_or_create_conversation (revisar zz_dtd_correo_sistema.rb)')
-      return
+      return false
     end
 
     buzon.prepend(Buzon) unless buzon <= Buzon
     Rails.logger.info('[DTD] correo automático activo (zz_dtd_correo_sistema.rb)')
+    true
   end
 end
 
