@@ -35,7 +35,8 @@ El objetivo: un job de Actions que los corra, que dé rojo si un contrato falla 
 - `scripts/ci-sql-tests.sh`
 - `scripts/ci-sql-tests-control.sh`
 - `docs/engineering/project-rules.md` (una línea en «Comandos»)
-- `scripts/run-sql-tests.mjs`: la espera por TCP y la línea de psql cuando cae sin `ERROR:`. Ampliación del alcance aprobada por el Director General el 2026-11-07, porque la carrera está ahí y afecta también a `pnpm verify`
+- `scripts/tests/run-sql-tests-salida.node.mjs`: dos pruebas nuevas, la línea recortada y la espera por TCP. El doble de `docker` acepta qué contestar a `pg_isready`; por defecto contesta lo mismo que antes, y las pruebas que ya había no cambian
+- `scripts/run-sql-tests.mjs`: la espera por TCP y la línea de psql, recortada, cuando cae sin `ERROR:`. Ampliación del alcance aprobada por el Director General el 2026-11-07, porque la carrera está ahí y afecta también a `pnpm verify`
 - `.agents/handoffs/ci-sql-tests.md`
 - `supabase/tests/0327_internal_function_grants.test.sql` y `supabase/tests/0329_user_profiles_tenant_scope.test.sql`: solo mutantes temporales, cada uno revertido en un commit propio. Contra `main` no cambian.
 
@@ -53,7 +54,10 @@ El objetivo: un job de Actions que los corra, que dé rojo si un contrato falla 
 | Tren #427, run 42415565680, job 128532763643, con el `supabase/` de `7d5cb334c` | FALLÓ en el control: C0 a C2 con la 0310 ✗ sin `ERROR:`. Es la carrera de arranque (ver abajo). El Director General sacó la #426 del tren |
 | **Rojo previo de C4**, run 42415992570 sobre `1dc474269`, con la espera vieja | FALLÓ, como se esperaba: **260 de 263**. 0363 cayó con «FATAL: the database system is shutting down», y 0364 y 0365 con «connection to server on socket … failed: No such file or directory». En los tres, psql salió con 2 sin ERROR de SQL. En la misma corrida, C0 a C3 en verde: la carrera natural es intermitente |
 | **Verde de C4 y las 5 corridas**, run 42416143382 sobre `a8bcbc6d0`, con la espera por TCP y la matriz temporal | **PASÓ, 5 de 5** (jobs 128534559315, 128534559616, 128534559574, 128534559529 y 128534559657). En cada uno, el control dio 0 fallas: C0 verde, C1 a C3 rojos y **C4 con 263 de 263**. Los contratos, 263 de 263. Duraron entre 2,3 y 3,0 min (21:30:10Z → 21:33:09Z) |
-| Run final sin la matriz, sobre la cabeza | Ver la PR |
+| Run 42416468634 sobre `aee8ced3e`, sin la matriz | PASÓ: «Contratos SQL» en 2,3 min |
+| **«Calidad continua» de `aee8ced3e`**, run 42416468624 | **FALLÓ** en «Harness Director Worker»: `scripts/tests/run-sql-tests-salida.node.mjs:57`, «un contrato roto sigue en rojo aunque imprima mucho». El diagnóstico nuevo imprimía entera la primera línea de un psql que cae sin ERROR (2 MiB en la prueba), y con eso el `[FAIL]` dejaba de aparecer en lo que lee la prueba. **Lección:** un cambio en `run-sql-tests.mjs` también lo miden las pruebas del harness, no solo los contratos. Arreglo en `e0ba2f570`: la línea va recortada a 300 caracteres, y hay dos pruebas nuevas en la misma suite, sin contenedores |
+| Pruebas del harness en la PC (`node scripts/tests/run-harness.mjs`, 28 archivos y 232 pruebas) | 226 pasan, 5 se saltan y 1 falla. La que falla es `e2e-supabase-sintetico.node.mjs`, por `ERR_MODULE_NOT_FOUND '@supabase/supabase-js'`: el worktree no tiene `node_modules`, así que es NO DISPONIBLE en local, no un rojo del código. Las 5 de `run-sql-tests-salida.node.mjs` se saltan en Windows, porque el doble de `docker` es un script de sh: **NO EJECUTADO en local**. Las mide «Calidad continua» |
+| CI sobre la cabeza nueva | Ver la PR |
 | `node scripts/build-docs-index.mjs --check` y `node scripts/check-numbering.mjs` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: es un cambio de harness y de CI, sin producto. Lo que corre el job es lo mismo que el paso `sql-tests` de verify |
 
