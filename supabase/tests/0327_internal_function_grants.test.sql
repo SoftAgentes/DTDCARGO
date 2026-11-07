@@ -12,7 +12,7 @@ grant execute on function public.warehouse_receipts_cn_sync_box_identity() to an
 grant execute on function public.consolidation_box_positions_same_tenant() to anon,authenticated;
 \ir ../migrations/0327_internal_function_grants.sql
 do $$ begin
-  if not has_function_privilege('anon','public.warehouse_receipts_cn_sync_boxes()','EXECUTE') then raise exception '0327: sync_boxes público'; end if;
+  if has_function_privilege('anon','public.warehouse_receipts_cn_sync_boxes()','EXECUTE') then raise exception '0327: sync_boxes público'; end if;
   if has_function_privilege('authenticated','public.warehouse_receipts_cn_sync_box_identity()','EXECUTE') then raise exception '0327: sync_identity público'; end if;
   if has_function_privilege('anon','public.consolidation_box_positions_same_tenant()','EXECUTE') then raise exception '0327: constraint trigger público'; end if;
 end $$;
