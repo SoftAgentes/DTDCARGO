@@ -140,7 +140,7 @@ primero, en una PR chica contra `main` (P-8):
   Resumen no exista (llega en S3), la pestaña por defecto es **Embudos**.
 - **Reportes › Por agente** deja de mostrar la tabla del espejo (`ReportesClient.tsx:1030`) y su
   CSV (`lib/studio/reports/export-csv.ts`). En su lugar, un aviso corto e interno (P-9, texto
-  propuesto, lo revisa el Subdirector): «El desempeño por asesor se está pasando al CRM del Studio.
+  aprobado tal cual por el Subdirector el 2026-11-06): «El desempeño por asesor se está pasando al CRM del Studio.
   Vuelve a aparecer aquí cuando esté listo.» Entre S0 y S3, contabilidad no ve ese reporte.
 - **El detalle del estimado** deja de cruzar el teléfono con contactos de Kommo
   (`cotizador/[code]/page.tsx:52`) y de mostrar sus nombres (H13).
@@ -1117,7 +1117,7 @@ Respondidas por el Subdirector de Chatwoot el mismo día, salvo las dos que sigu
 | # | Pregunta | Estado |
 |---|---|---|
 | P-8 | ¿S0 (ocultar Kommo) va en su propia PR, antes que todo? | **Sí:** en su propia PR y primero |
-| P-9 | Entre S0 y S3, Reportes › Por agente no muestra desempeño por asesor. ¿Se acepta, o la tabla de Kommo se queda hasta S3? | **Se oculta**, con un aviso corto e interno. Texto propuesto en §2.1; lo revisa el Subdirector |
+| P-9 | Entre S0 y S3, Reportes › Por agente no muestra desempeño por asesor. ¿Se acepta, o la tabla de Kommo se queda hasta S3? | **Se oculta**, con un aviso corto e interno. El texto de §2.1 quedó aprobado tal cual por el Subdirector |
 | P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | **Abierta: la decide Sam.** Se la lleva el Director General, con la recomendación de esta SDD: que se quede, porque enseña a dejar Kommo y no conecta con Kommo |
 | P-11 | ¿El teléfono completo va en su propia migración (B)? | **Sí:** la B va aparte |
 | P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | **Abierta** hasta que vuelva el rediseño de la 10.5. Si ya no trae la pieza, se decide aquí antes de la PR A, sin copiarla |

@@ -53,7 +53,7 @@ Registro literal: `respuestas-18-preguntas-20261106.md`, en las notas compartida
 ## Pendientes de esta tarea
 
 - La línea base nueva la arma el Subdirector (esta sesión no tocó el checklist). Números de esta SDD (§10): 6.6 de 2,5 a 5,5 d (+3); filas nuevas propuestas, R8 0,75, R9 2,75 y maqueta de Chatwoot en el Studio 1 (4,5); total +7,5, de 115,5 a 123, sin la 10.5 rediseñada. La reestimación anterior (+2,25) quedó vencida.
-- P-8, P-9 y P-11 respondidas por el Subdirector: S0 en PR propia y primera; la tabla de Reportes se oculta con un aviso (texto propuesto en spec §2.1, lo revisa él); la migración B va aparte. Abiertas: P-10 (la decide Sam) y P-12 (espera el rediseño de la 10.5).
+- P-8, P-9 y P-11 respondidas por el Subdirector: S0 en PR propia y primera; la tabla de Reportes se oculta con el aviso de spec §2.1, que aprobó tal cual; la migración B va aparte. Abiertas: P-10 (la decide Sam) y P-12 (espera el rediseño de la 10.5).
 - Sam decide aparte (§11): aprobar T1 a T3; encender crons; aplicar A y B; rellenar teléfonos; retención de Chatwoot; base de licitud de T3; y la guía de la SDD-0589 (P-10, se la lleva el Director General). Retirar Kommo (lectura diaria del espejo, webhook, tablas y código oculto) es de E8, fuera de esta SDD.
 - El código va en PR en serie contra `main`: PR 0 (S0), PR A (S1 + S2), PR B (S3 + S4) y PR C (S5). Los números de la A (que lleva también el nombre «Recontacto») y de la B los reserva el Director General; cada una se aplica solo con el OK nominal de Sam.
 - La fila 6.6 del checklist no se tocó: sigue «pendiente». Al integrar, conviene que su columna de evidencia apunte a la SDD-0614.
