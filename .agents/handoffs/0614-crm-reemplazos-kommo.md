@@ -12,9 +12,9 @@ Diseño en borrador de 6.6, sin código de producto, para que lo revise el Direc
 
 ## Qué quedó
 
-- La spec completa: siete piezas (R1 a R7), una migración descrita (§3), allowlist por tramo (§5), revisar-datos-ve (§6), gobernanza (§7), pruebas (§8), aceptación (§9), reestimación (§10), **12 decisiones para Sam y 7 preguntas para el Director General** (§11) y fuera de alcance (§12).
+- La spec completa: nueve piezas (R1 a R9), dos migraciones descritas (A y B, §3), allowlist por tramo (S0, M y S1 a S5, §5), revisar-datos-ve con el mapa de borrado del teléfono (§6 y §6.1), gobernanza (§7), pruebas (§8), aceptación (§9), reestimación contra la línea base v3 (§10), **las 12 decisiones de Sam cerradas con su cita, P-1 a P-12 del Director General** (§11), fuera de alcance (§12) y textos públicos propuestos T1 a T3 (§14).
 - Índice `docs/specs/README.md` regenerado.
-- **Sin código de producto, sin migración escrita, sin producción y sin preguntas a Sam.**
+- **Sin código de producto, sin migración escrita, sin producción y sin preguntas a Sam.** Las respuestas de Sam llegaron por el Director General.
 
 ## Validación
 
@@ -38,10 +38,24 @@ Relayada por el Subdirector de Chatwoot: «bien encaminado», cambios menores de
 
 Además, coordinación con la PR #400 (10.5): 6.6 usa la pieza `crm_tarjeta_ubicar_o_crear` de la 10.5 (por ficha y por teléfono; antes se llamaba `crm_tarjeta_de_ficha`) y fija **una sola vez** las definiciones D-SA («sin atender») y D-AUD (qué lleva la auditoría del CRM y quién es el actor), en spec §2.8. La 10.5 las cita igual. Puntero en la SDD-0587 §10 (P-1).
 
+## Respuestas de Sam (2026-11-06, por el Director General)
+
+Registro literal: `respuestas-18-preguntas-20261106.md`, en las notas compartidas del Director General. Se aplicaron las secciones 1 a 12, el extra «Recontacto» y el nombre de la etapa (las 13 a 18 son de la 10.5). Lo que cambió en el diseño:
+
+- **D-6.6-1:** Kommo fuera del Studio desde ya: tramo **S0** (ocultar pestañas, la tabla de Reportes y el cruce del estimado), sin apagar ni borrar nada de Kommo.
+- **D-6.6-3 = b:** el cotizador deja de encolar `patch_price` y `patch_stage`; cambio de producción, se le confirma a Sam al publicar la PR A. Tipo de lead «Interesado» / «Interesado con código», sin etapa.
+- **D-6.6-4 = b:** el rechazo de un cliente vuelve de «Recompra en curso» a «Recompra pendiente».
+- **D-6.6-8 = b:** **R9**, teléfono completo en la tarjeta sin ficha, con **migración B** propia, trigger que lo vacía al ligar y al anonimizar, Recuperación sobre las tarjetas, «No volver a escribir» y textos T1 a T3. Cambia D6 de la 0587 (nota fechada en su §8).
+- **D-6.6-12 = b:** paso **M** (maqueta) antes de S3; propuesta aparte, la maqueta de Chatwoot dentro del Studio.
+- **Extra:** **R8**, recontacto a los 30 días; la etapa se llama «Recontacto» con la misma clave. La etiqueta vive en `crm_etapas.nombre`: cambiarla pide migración (un `update` guardado y la siembra redefinida). Nota fechada en la 0587 §4.3.
+- Lo demás, como estaba recomendado (2, 5, 6, 7, 9, 10 y 11).
+
 ## Pendientes de esta tarea
 
-- Las decisiones D-6.6-1 a D-6.6-12 se las lleva el Director General a Sam, junto con las de la 10.5 y la línea base (+2,25 días entre las dos, de 115,5 a 117,75). Esta sesión no le preguntó nada.
-- Con la salida, el código va en dos PR en serie contra `main` (A = S1 + S2, B = S3 + S4), después de la implementación de la 10.5. El número de migración se asigna al arrancar; no se reserva ninguno ahora.
+- La línea base nueva la arma el Subdirector (esta sesión no tocó el checklist). Números de esta SDD (§10): 6.6 de 2,5 a 5,5 d (+3); filas nuevas propuestas, R8 0,75, R9 2,75 y maqueta de Chatwoot en el Studio 1 (4,5); total +7,5, de 115,5 a 123, sin la 10.5 rediseñada. La reestimación anterior (+2,25) quedó vencida.
+- P-8 a P-12 para el Director General (§11): PR propia para S0, el hueco de Reportes entre S0 y S3, la guía de la SDD-0589, la migración B aparte y lo que traiga la 10.5 rediseñada.
+- Sam decide aparte (§11): apagar el alta de `/registro` hacia Kommo, la copia diaria y el webhook; borrar tablas y código de Kommo; aprobar T1 a T3; encender crons; aplicar A y B; rellenar teléfonos; retención de Chatwoot; base de licitud de T3.
+- El código va en PR en serie contra `main`: PR 0 (S0), PR A (S1 + S2), PR B (S3 + S4) y PR C (S5). El número de la A se asigna al arrancar; el de la B lo reserva el Director General.
 - La fila 6.6 del checklist no se tocó: sigue «pendiente». Al integrar, conviene que su columna de evidencia apunte a la SDD-0614.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -49,15 +63,18 @@ Además, coordinación con la PR #400 (10.5): 6.6 usa la pieza `crm_tarjeta_ubic
 1. **`/privacidad` promete anonimizar a los 12 meses y nada lo corre.** `crm_anonimizar_leads_perdidos` no tiene llamadas fuera de las migraciones, y su predicado solo toma «Perdido» (`0506_crm_modelo.sql:768-774`). La primera tarjeta es del 2026-11-04, así que todavía no se incumple (inferencia). La spec lo resuelve en R7 b, con la decisión D-6.6-9.
 2. **La SDD-0587 §16.6 está vencida en un punto:** pide ampliar `entity_audit_log_entity_type_check`, que no existe desde la 0261 (`0261_audit_entity_catalog_validate.sql:132`). Lo vigente es registrar el tipo en `audit_entity_types`.
 3. **Reportes es de contabilidad y las tablas `crm_*` no la dejan leer** (`rbac.ts:129`, `0506_crm_modelo.sql:186`). Hoy contabilidad ve el desempeño por asesor porque sale del espejo de Kommo.
-4. **Recuperación (SDD-0157) necesita el teléfono completo**, y la tarjeta del lead sin ficha guarda solo 10 dígitos (D6).
+4. **Recuperación (SDD-0157) necesita el teléfono completo**, y la tarjeta del lead sin ficha guarda solo 10 dígitos (D6). Sam eligió guardarlo (D-6.6-8 = b): queda dentro de esta SDD como R9.
 5. **Las pestañas del CRM** usan botones con `role="tab"`; no se probó si manejan flechas (A11Y-01).
 6. **Otra sesión diseña la SDD-0610** (rama `claude/practical-swartz-5b50ae`, resumen semanal del CRM para marketing) y clasifica `motivo_perdida` como texto libre. El Director General resolvió (P-5) que use la clave de R7 y el texto solo en «Otro»: falta que esa spec lo diga.
 7. **La SDD-0586 §10.5 (PR #400) dice en E10-D27 que el actor al abrir un ticket es el `auth.uid()` del cliente.** La regla D-AUD de esta spec lo cambia a `system`; la sesión de la #400 lo copia.
+8. **Chatwoot conserva contacto y conversación sin plazo**, y `/privacidad` ya promete anonimizar los «identificadores del chat» (`app/privacidad/page.tsx:345-349`). R9 no lo arregla: decide Sam aparte (spec §6.1).
+9. **`/privacidad` §3 dice que el marketing va con consentimiento** (`app/privacidad/page.tsx:227-243`); volver a escribirle a quien solo consultó (T3) puede leerse así. Lo mira Sam con su asesor antes de aprobar T3.
+10. **Los envíos del cotizador a Kommo dicen «dry-run por default»** (`app/studio/(app)/cotizador/actions.ts:334-352`): si en producción salían de verdad no se midió.
 
 ## Impacto documental
 
 - Nuevo: `docs/specs/0614-crm-reemplazos-kommo/spec.md` y este handoff.
 - Regenerado: `docs/specs/README.md`.
-- Puntero en la SDD-0587 §10 (P-1), en esta misma PR.
+- En la SDD-0587, en esta misma PR: el puntero de §10 (P-1) y dos notas fechadas que apuntan aquí, en §4.3 (etapa «Recontacto») y en §8 (D6, teléfono completo y retención).
 - Pendiente al integrar: la evidencia de la fila 6.6 del checklist.
 - Graphify, Archify y Obsidian: los revisa el Director General al cierre, según el runbook de conocimiento. Esta tarea no los tocó.
