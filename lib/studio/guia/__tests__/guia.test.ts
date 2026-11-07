@@ -20,8 +20,10 @@ import {
   RECORRIDO_BANDEJA,
   RECORRIDO_DASHBOARD,
   RECORRIDO_EMBUDO,
+  consultaCoincide,
   recorridosParaRol,
   rutaCoincide,
+  urlConConsulta,
 } from "../recorridos";
 import { esAnclaValida, textoDe, validarRecorrido, type GuiaPaso } from "../tipos";
 
@@ -112,6 +114,44 @@ describe("recorridos como datos", () => {
     expect(rutaCoincide(RECORRIDO_DASHBOARD, "/studio/dashboard/x")).toBe(true);
     expect(rutaCoincide(RECORRIDO_DASHBOARD, "/studio/dashboard-otro")).toBe(false);
     expect(rutaCoincide(RECORRIDO_DASHBOARD, "/studio/bandeja")).toBe(false);
+  });
+
+  // P-13: la pestaña es parte de la pantalla del recorrido Embudo.
+  it("consultaCoincide mira cada parámetro de la consulta; sin consulta, siempre coincide", () => {
+    const q = (s: string) => new URLSearchParams(s);
+    expect(RECORRIDO_EMBUDO.consulta).toEqual({ tab: "embudos" });
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("tab=embudos&guia=embudo"))).toBe(true);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("guia=embudo"))).toBe(false);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("tab=direccion"))).toBe(false);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("tab=Embudos"))).toBe(false);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, null)).toBe(false);
+    expect(consultaCoincide(RECORRIDO_DASHBOARD, q(""))).toBe(true);
+    expect(consultaCoincide(RECORRIDO_DASHBOARD, null)).toBe(true);
+    const dos = { ...RECORRIDO_EMBUDO, consulta: { tab: "embudos", embudo: "leads" } };
+    expect(consultaCoincide(dos, q("tab=embudos"))).toBe(false);
+    expect(consultaCoincide(dos, q("embudo=leads&tab=embudos"))).toBe(true);
+  });
+
+  it("urlConConsulta pone la pestaña, conserva lo demás y no navega si ya está", () => {
+    const destino = urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", new URLSearchParams("guia=embudo&embudo=clientes"));
+    expect(destino).not.toBeNull();
+    const url = new URL(destino!, "http://studio.test");
+    expect(url.pathname).toBe("/studio/crm");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ guia: "embudo", embudo: "clientes", tab: "embudos" });
+    expect(urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", new URLSearchParams("tab=asesor&q=x"))).toBe(
+      "/studio/crm?tab=embudos&q=x",
+    );
+    expect(urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", null)).toBe("/studio/crm?tab=embudos");
+    expect(urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", new URLSearchParams("tab=embudos&guia=embudo"))).toBeNull();
+    expect(urlConConsulta(RECORRIDO_DASHBOARD, "/studio/dashboard", new URLSearchParams("guia=dashboard"))).toBeNull();
+  });
+
+  it("validarRecorrido rechaza una consulta vacía, incompleta o que pisa ?guia=", () => {
+    const base = { id: "x", ruta: "/studio/x" as const, pasos: [pasos[0]] };
+    expect(validarRecorrido({ ...base, consulta: { tab: "embudos" } })).toEqual([]);
+    expect(validarRecorrido({ ...base, consulta: {} })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, consulta: { tab: "" } })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, consulta: { guia: "otra" } })).toHaveLength(1);
   });
 });
 
