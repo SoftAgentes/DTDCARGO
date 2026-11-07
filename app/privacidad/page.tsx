@@ -36,7 +36,11 @@ const DESC =
 // Sale con la tanda D. Esta fecha lleva el día de publicar: si no sale el 5, se mueve.
 // Si `KOMMO_PUSH_DRY_RUN` pasa a "false", el proveedor recibe además cédula o RIF y
 // este texto ya no alcanza: eso vuelve a Sam antes de cambiar ese valor.
-const UPDATED = "5 de noviembre de 2026";
+// El 2026-11-06 Sam aprobó, por el Director General, el párrafo «Mensajería interna
+// del equipo» de §4 y la frase final del primer párrafo de §5 (SDD-0606 avisos a
+// Discord y SDD-0608 `/cliente`). Los avisos y `/cliente` no se encienden hasta que
+// esto esté publicado. Esta fecha lleva el día de publicar: si no sale el 6, se mueve.
+const UPDATED = "6 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -292,6 +296,26 @@ export default function PrivacidadPage() {
                   <strong>Autoridades</strong>, únicamente cuando la ley lo exija.
                 </li>
               </ul>
+              {/* SDD-0606 y SDD-0608 · texto exacto aprobado por Sam el 2026-11-06.
+                  Ese mismo día, al sumar la búsqueda por código a /cliente, Sam
+                  aprobó cambiar «por su nombre» por «por su nombre o por su
+                  Shipping Mark» («Sí, cámbialo»).
+                  Va fuera de la lista: la lista promete «obligación de
+                  confidencialidad» y con esta herramienta no hay contrato que la
+                  respalde. Si cambia una palabra, se le vuelve a preguntar. */}
+              <p className={P}>
+                <strong>Mensajería interna del equipo.</strong> Nuestro equipo
+                usa una herramienta de mensajería con servidores en Estados
+                Unidos. Ahí recibe avisos internos con tu Shipping Mark y un
+                enlace a nuestro sistema, sin tu nombre ni tus datos de contacto.
+                Cuando alguien del equipo con permiso para ver clientes busca un
+                cliente por su nombre o por su Shipping Mark, la herramienta le
+                muestra solo a esa persona el nombre y el Shipping Mark de los
+                clientes que
+                coinciden. Tus datos de contacto, tus envíos y tus pagos se
+                consultan solo en nuestro sistema. Esa herramienta se rige por
+                sus propios términos de servicio.
+              </p>
               <p className={P}>
                 No compartimos la información de tu Portal con plataformas de
                 publicidad. La analítica del sitio y tus datos de cliente están{" "}
@@ -312,7 +336,9 @@ export default function PrivacidadPage() {
                 abrirlas. Mientras terminamos ese cambio, lo que pasa por ese
                 proveedor también se guarda en sus servidores y en los de quienes
                 le prestan servicio, que pueden estar en Estados Unidos o en otros
-                países.
+                países. El nombre y el Shipping Mark que ve nuestro equipo en su
+                herramienta de mensajería interna también pasan por servidores en
+                Estados Unidos.
               </p>
               <p className={P}>
                 Nuestro equipo en China trabaja con tu{" "}

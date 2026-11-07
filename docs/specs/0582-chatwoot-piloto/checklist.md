@@ -1,7 +1,20 @@
 # Checklist — SDD-0582 programa Kommo → Chatwoot
 
-Línea base: v3 · 2026-10-29 · alcance 115,5 persona-días
-Línea base anterior: v2 · alcance 109,25
+Línea base: v4 · 2026-11-07 · alcance 129,5 persona-días
+Línea base anterior: v3 · alcance 115,5
+
+> **Cambio de alcance v4** (Sam, 2026-11-07 03:42Z, en el chat del Director General, decisión 1 del paquete de la 6.6 y la 10.5: «Sí, 129,5 días»). La 6.6 y la 10.5 se rediseñan con las respuestas de Sam del 2026-11-06. Suma +14 días:
+>
+> - **6.6**, de 2,5 a 5,5 (+3).
+> - **Filas nuevas de E6:** 6.8, recontacto a los 30 días (R8), con 0,75; 6.9, teléfono completo y Recuperación (R9), con 2,75; y 6.10, maqueta de Chatwoot dentro del Studio, con 1.
+> - **10.5**, de 1,25 a 5 (+3,75).
+> - **Filas nuevas de E10:** 10.7 (la «10.5 b» de la SDD-0586), carga de las conversaciones del portal que ya existen (P4), con 2,25; y 10.8 (la «10.5 c»), textos públicos, con 0,5.
+>
+> El alcance pasa de 115,5 a **129,5 días**. Quedan vencidas las reestimaciones anteriores, que no llegaron a la línea base: +2,25 hasta 117,75, y la 10.5 de 1,25 a 2. No se descarta nada.
+>
+> - **En esta rama** (57,25 días aceptados): **49,6 % → 44,2 %**, salida de `avance-checklist`. El porcentaje baja porque crece el total; no se perdió trabajo.
+>
+> Detalle por tramo: SDD-0614 §10 (PR #401) y SDD-0586 §10.5.21 (PR #400).
 
 > **Cambio de alcance v3** (Sam, aprobación del análisis comparativo del Director, 2026-10-29): ajustes del análisis del video y el kit de Basdonax, la guía de Meta, la calculadora y el contraplan de Codex, más el costo de referencia por chat. Suma +5,25 días repartidos en 0.8, 2.3, 2.6, 4.9, 6.7, 7.5, 7.6, 7.7 y 7.9, y el paso **opcional 2.8** (+1). Alcance 109,25 → **115,5 días**; **sin el 2.8 serían 114,5**. No se descarta nada.
 >
@@ -53,19 +66,19 @@ Línea base anterior: v2 · alcance 109,25
 
 | Etapa | Nombre | Días base | Peso |
 |---|---|---|---|
-| E0 | Preparación y puertas | 5,5 | 4,8 % |
-| E1 | Chatwoot en el VPS | 4,75 | 4,1 % |
-| E2 | Bandeja en Studio, usuarios y permisos | 20,75 | 18,0 % |
-| E3 | Actualizaciones desde Studio | 5 | 4,3 % |
-| E4 | Canales en paralelo a Kommo | 9,75 | 8,4 % |
-| E5 | Historial de Kommo | 7,75 | 6,7 % |
-| E6 | Embudo propio y reemplazos | 17,25 | 14,9 % |
-| E7 | Bot propio | 18,5 | 16,0 % |
-| E8 | Corte, salida de Kommo y limpieza del ERP | 10 | 8,7 % |
-| E9 | Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1) | 9 | 7,8 % |
-| E10 | Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3) | 7,25 | 6,3 % |
+| E0 | Preparación y puertas | 5,5 | 4,2 % |
+| E1 | Chatwoot en el VPS | 4,75 | 3,7 % |
+| E2 | Bandeja en Studio, usuarios y permisos | 20,75 | 16,0 % |
+| E3 | Actualizaciones desde Studio | 5 | 3,9 % |
+| E4 | Canales en paralelo a Kommo | 9,75 | 7,5 % |
+| E5 | Historial de Kommo | 7,75 | 6,0 % |
+| E6 | Embudo propio y reemplazos | 24,75 | 19,1 % |
+| E7 | Bot propio | 18,5 | 14,3 % |
+| E8 | Corte, salida de Kommo y limpieza del ERP | 10 | 7,7 % |
+| E9 | Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1) | 9 | 7,0 % |
+| E10 | Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3) | 13,75 | 10,6 % |
 
-Pesos = días base de la etapa ÷ 115,5, redondeados a décimas por resto mayor para que sumen 100 %. Son informativos: el % se calcula por pasos.
+Pesos = días base de la etapa ÷ 129,5, redondeados a décimas por resto mayor para que sumen 100 %. Son informativos: el % se calcula por pasos.
 
 ## Pasos
 
@@ -120,8 +133,11 @@ Pesos = días base de la etapa ÷ 115,5, redondeados a décimas por resto mayor 
 | 6.3 | E6 | Tablero Kanban con dos embudos Leads/Clientes (paso automático de uno a otro) y ficha del lead | IA | 5 | 0,5 | 0 | aceptado | Aplicar la 0506 (OK Sam, con 6.2; puerta aparte con OK nominal al integrar) | aceptado por Sam el 2026-10-30: a «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»); SDD-0587 §15; pestaña «Embudos» de `/studio/crm`; pruebas puntuales PASÓ (59 nuevas; 180 con las vecinas y el contrato PGlite de la 0506), 4 mutantes caen, `tsc` acotado y ESLint PASÓ, `/ui-check` con 3 ajustes, gate de símbolos 0 ROJO, revisar-datos-ve en §15.3; `pnpm verify` sobre `4f277075a` FALLÓ con 13 de 17 pasos PASÓ: el rojo propio (`rbac-actions-guard`, conteo de acciones) quedó corregido; siguen rojos ajenos en sql-tests (0497), e2e (CTA de Shipping Mark) e `infra-env-example` (variables de E10); `migrations-applied` NO DISPONIBLE (§15.2); prueba visual con datos NO EJECUTADO (sin base con la 0506); rama `codex/0582-e6-tablero`. Línea base v2 (aprobación del plan v3 del Director, 2026-10-29): 4 → 5 días |
 | 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | 0,5 | 0 | aceptado | 0513 aplicada el 2026-11-04. Prueba con un Chatwoot real, partida por Sam («Probar WhatsApp al publicar»): en prueba con cuenta aparte; lo de WhatsApp real, en producción justo después de publicar la tanda A. Si falla la tarjeta, se quita el webhook. D7: lectura L3 con OK Sam. Texto de `/privacidad` sobre la campaña: aprobado el 2026-11-03; sale solo con la tanda A | SDD-0587 §16; rama `claude/0582-e6-entrada-leads-ef62df`, apilada sobre `codex/0582-e6-tablero`; migración `0513_crm_entrada_leads`; `conversation_created` y `conversation_updated` confirmados en la fuente de Chatwoot 4.19.1 (§16.2); `/registro` crea o liga la tarjeta en `after()`: un fallo no rompe ni demora el alta, con prueba; D7 detrás de `CRM_ALTA_WEB_SIN_KOMMO`, apagado; evidencia y lo pendiente en §16.7; punta a punta con Chatwoot real NO EJECUTADO; aceptado por Sam el 2026-11-03 con ese límite |
 | 6.5 | E6 | Migrar leads, etapas, tareas, mappings e IDs | IA | 1,5 | — | 1,5 | pendiente | OK nominal Sam (carga) | — |
-| 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 2,5 | — | 2,5 | pendiente | — | — |
+| 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 5,5 | — | 5,5 | pendiente | Migración A: OK nominal Sam | Línea base v4 (Sam, 2026-11-07 03:42Z, decisión 1 del paquete: «Sí, 129,5 días»): 2,5 → 5,5 d. Diseño en la SDD-0614 (PR #401, borrador, sin código), con los tramos S0 0,25 (ocultar Kommo), M 0,5, S1 1,75, S2 1, S3 1,25 y S4 0,75. P-10 decidida por Sam el 2026-11-07 a las 03:56Z, con «Sí, se queda»: la guía de la SDD-0589 se mantiene |
 | 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) y revisar con su costo los «Ping 23 h»: desde el 2026-10-01 cada respuesta cuenta contra el cupo de 1.000 | IA | 2,25 | — | 1 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md`; Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 2 → 2,25 d |
+| 6.8 | E6 | Recontacto a los 30 días (R8): el lead que escribe después de 30 días callado vuelve a «Recontacto», con la marca «Volvió a escribir» | IA | 0,75 | — | 0,75 | pendiente | Va en la migración A de la 6.6 (OK nominal Sam) | Línea base v4 (decisión 1, 2026-11-07): fila nueva. Diseño en la SDD-0614, §2.9 (PR #401) |
+| 6.9 | E6 | Teléfono completo y Recuperación (R9): la tarjeta del lead sin ficha guarda el teléfono completo, y Recuperación trabaja sobre las tarjetas, con CSV solo para admin y «No volver a escribir» | IA | 2,75 | — | 2,75 | pendiente | Migración B: OK nominal Sam, después de publicar T1 a T3 en `/privacidad` | Línea base v4 (decisión 1, 2026-11-07): fila nueva, D-6.6-8 = b. T1 a T3 aprobados palabra por palabra por Sam el 2026-11-07 a las 03:59Z («Apruebo los tres»). Diseño en la SDD-0614 (PR #401) |
+| 6.10 | E6 | Maqueta de la integración visual de Chatwoot en el Studio: la bandeja, la conversación junto a la ficha de la tarjeta y el paso de una a otra. Solo maqueta; lo que salga de ella se estima después | IA | 1 | — | 1 | pendiente | — | Línea base v4 (decisión 1, 2026-11-07): fila nueva, por la respuesta 1 de Sam y una propuesta del Director General. SDD-0614, §10 (PR #401) |
 | 7.1 | E7 | Cuentas de pago (proyecto con facturación), retención y DPA registrados, y corte local duro de gasto | S+IA | 1 | — | — | pendiente | OK Sam | — |
 | 7.2 | E7 | Excepción IA-01 acotada, redactada para aprobar. Hasta entonces, solo Sugerir | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
 | 7.3 | E7 | Respaldar el conocimiento de Kommo y ubicar «analiza mi contestación» | S+IA | 0,5 | — | — | pendiente | — | — |
@@ -156,5 +172,7 @@ Pesos = días base de la etapa ÷ 115,5, redondeados a décimas por resto mayor 
 | 10.2 | E10 | Endpoint `clasificar` con secreto (patrón `lib/http/secret-compare.ts`) y webhook de Chatwoot que pone etiqueta, equipo y la respuesta de redirección sin IA, en 1 mensaje; en automático solo cuando el número viejo esté en Chatwoot | IA | 2 | 0,2 | 0 | aceptado | Requiere 10.1, y el número viejo en Chatwoot (4.5 / E8). Sin endpoint nuevo: manejador del webhook firmado de 2.3 (E10-D6). Variables nuevas con OK de Sam después de la 0505. Punta a punta en 10.6 | SDD-0586; `94b2b7bb2`, `ccdc24c80` y `d4d5e18a2`. 1 mensaje sin IA con `wa.me` al número de configuración, una vez cada 24 h y nunca dos (reserva con estados); reproceso de 2.3 reutilizado. Revisión de Codex: 5 hallazgos corregidos. Pruebas de Chatwoot, webhook, cron y contratos 0503–0505 PASÓ 200/200; 13 mutantes del manejador mueren; tsc y eslint PASÓ; aceptado por Sam el 2026-10-30 («Acepto todo») |
 | 10.3 | E10 | Usuarios sin teléfono (BSUID): respuesta neutra y se guarda el BSUID | IA | 0,5 | 0,05 | 0 | aceptado | Retención decidida por Sam el 2026-10-30: BSUID «1 año» y registro del bot «30 días (Recomendado)», purgados por el cron `chatwoot-reintentos`. Que Chatwoot 4.19.1 entregue el BSUID en `contact_inbox.source_id` es NV (10.6) | SDD-0586; respuesta neutra idéntica para todos y BSUID en `chatwoot_contactos_bsuid` (RLS por tenant: lee el admin, escribe `service_role`). revisar-datos-ve: 5 CORRECTO, 3 ENCONTRADO (los tres corregidos), 3 NV; aceptado por Sam el 2026-10-30 («Acepto todo») |
 | 10.4 | E10 | Portal: muestra el número nuevo a los clientes. La web no cambia (ya apunta al viejo, que queda para leads). Se achica; se reestima al arrancar | IA | 1 | — | — | pendiente | Despliegue: OK Sam; con el número de 4.9 vivo | Enmienda del 0.8 (Sam, 2026-10-30) |
-| 10.5 | E10 | Tickets del portal a los embudos (Clientes / Leads registrados) | IA | 1,25 | — | — | pendiente | Destrabado: 6.3 aceptado. Se programa después de integrar a `main` | Sam lo reafirmó el 2026-10-30: «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets» |
+| 10.5 | E10 | Tickets del portal a los embudos (Clientes / Leads registrados); rediseño: las conversaciones del portal en Chatwoot y en los embudos | IA | 5 | — | 5 | pendiente | Destrabado: 6.3 aceptado. Migración, bandeja y variables, y flag `chatwoot_portal`: un OK nominal de Sam cada uno. El chat no se conecta al CRM hasta que estén publicados T1 a T4 (E10-D42) | Sam lo reafirmó el 2026-10-30: «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». Línea base v4 (decisión 1, 2026-11-07): 1,25 → 5 d. Diseño en la [SDD-0586, «Paso 10.5»](../0586-chatwoot-enrutamiento-segmento-e10/spec.md) (PR #400, borrador, sin código), con las respuestas de Sam del 2026-11-06 y P7 = (a) (2026-11-07 03:52Z) |
 | 10.6 | E10 | revisar-datos-ve y prueba de punta a punta con el número de prueba | IA | 1 | — | — | pendiente | — | — |
+| 10.7 | E10 | 10.5 b: carga de las conversaciones del portal que ya existen (P4), incluidos los hilos archivados | IA | 2,25 | — | 2,25 | pendiente | Carga: OK nominal Sam | Línea base v4 (decisión 1, 2026-11-07): fila nueva. El conteo de solo lectura lo corrió el Director General el 2026-11-07 a las 06:44:45Z (decisión 6). Los hilos archivados se cargan por decisión de Sam del 2026-11-07 a las 06:55Z («Sí, todos»). SDD-0586 §10.5.10 (PR #400) |
+| 10.8 | E10 | 10.5 c: textos públicos del portal y de `/privacidad` (T1 a T4) | IA | 0,5 | — | 0,5 | pendiente | Publicación por PR y tanda, con el OK del Director General | Línea base v4 (decisión 1, 2026-11-07): fila nueva. T1 a T4 aprobados palabra por palabra por Sam el 2026-11-07 a las 04:48Z («Apruebo los cuatro»). SDD-0586 §10.5.12 (PR #400) |

@@ -43,6 +43,10 @@ export interface GuiaTarjetaProps {
   onSiguiente: () => void;
   onAnterior: () => void;
   onCerrar: () => void;
+  /** Solo en el primer paso de un arranque automático (9.3). */
+  onNoMostrar?: () => void;
+  /** Solo cuando abrió en un paso guardado (9.3). */
+  onDesdeElPrincipio?: () => void;
 }
 
 const ID_TITULO = "studio-guia-titulo";
@@ -66,6 +70,8 @@ export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
       onSiguiente,
       onAnterior,
       onCerrar,
+      onNoMostrar,
+      onDesdeElPrincipio,
     } = props;
     const t = useT();
 
@@ -184,6 +190,22 @@ export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
             </div>
           )}
         </div>
+
+        {(onNoMostrar || onDesdeElPrincipio) && (
+          // Acciones sobre la guía misma, no sobre datos: botones fantasma pequeños.
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)" }}>
+            {onDesdeElPrincipio && (
+              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onDesdeElPrincipio}>
+                {t("guide.chrome.restart")}
+              </button>
+            )}
+            {onNoMostrar && (
+              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onNoMostrar}>
+                {t("guide.chrome.dont_show")}
+              </button>
+            )}
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-2)", paddingTop: "var(--s-1)" }}>
           <button

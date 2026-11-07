@@ -35,10 +35,11 @@ import {
   orquestarLoteDeAcceso,
   type BulkAccessResult,
 } from "@/lib/studio/access-link-bulk";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
+import { isDiscordUserId } from "@/lib/studio/discord/send-webhook";
 import {
   ROLE_LABELS,
   invitationAcceptPath,
@@ -1123,4 +1124,70 @@ export async function unlinkTelegramAccountAction(): Promise<{
 
   revalidatePath("/studio");
   return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// ID de Discord del perfil (SDD-0606)
+//
+// Los avisos por persona pasan de un chat privado de Telegram a una MENCIÓN en
+// el canal de Discord. Para mencionar hace falta el ID de usuario de Discord,
+// que cada quien pega en su perfil. No es una credencial; sí es un dato
+// personal, y por eso sólo lo edita su dueño, sobre su propia fila.
+//
+// Las dos acciones toleran que la columna todavía no exista (migración 0514
+// sin aplicar): leer devuelve `disponible: false` y guardar da un aviso claro.
+// ─────────────────────────────────────────────────────────────
+
+export async function getMyDiscordUserIdAction(): Promise<{
+  discordUserId: string | null;
+  /** false = el Studio todavía no puede guardar el ID (falta la migración 0514). */
+  disponible: boolean;
+}> {
+  const supabase = await createClient();
+  const acceso = await getStudioAccess(supabase); // miembro ACTIVO del Studio; falla cerrado ante disabled_at
+  if (!acceso.role || !acceso.userId) return { discordUserId: null, disponible: false };
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("discord_user_id")
+    .eq("user_id", acceso.userId)
+    .maybeSingle<{ discord_user_id: string | null }>();
+
+  if (error) return { discordUserId: null, disponible: false };
+  return { discordUserId: data?.discord_user_id ?? null, disponible: true };
+}
+
+export async function saveMyDiscordUserIdAction(formData: FormData): Promise<{
+  ok?: boolean;
+  error?: string;
+  discordUserId?: string | null;
+}> {
+  const raw = ((formData.get("discord_user_id") as string | null) ?? "").trim();
+  if (raw && !isDiscordUserId(raw)) {
+    return {
+      error:
+        "El ID de Discord es un número de 17 a 20 dígitos. No es tu nombre de usuario.",
+    };
+  }
+
+  const supabase = await createClient();
+  const acceso = await getStudioAccess(supabase); // miembro ACTIVO del Studio; falla cerrado ante disabled_at
+  if (!acceso.role || !acceso.userId) return { error: "Inicia sesión primero." };
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
+      discord_user_id: raw || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", acceso.userId);
+
+  if (error) {
+    // Sin el texto de la base: puede traer nombres de columnas y no le sirve a
+    // quien lo lee.
+    console.error("[usuarios] guardar discord_user_id falló:", error.code);
+    return { error: "No se pudo guardar tu ID de Discord. Intenta de nuevo más tarde." };
+  }
+
+  return { ok: true, discordUserId: raw || null };
 }

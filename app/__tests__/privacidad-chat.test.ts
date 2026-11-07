@@ -48,9 +48,11 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
     );
   });
 
+  // El 2026-11-06 Sam aprobó cerrar ese mismo párrafo con la frase de la mensajería
+  // interna (SDD-0606, SDD-0608): va después de la del proveedor y es la última.
   it("§5 agrega al primer párrafo lo que Sam aprobó, y va al final de ese párrafo", () => {
     expect(texto).toContain(
-      "solo nosotros tenemos la clave para abrirlas. Mientras terminamos ese cambio, lo que pasa por ese proveedor también se guarda en sus servidores y en los de quienes le prestan servicio, que pueden estar en Estados Unidos o en otros países. </p>",
+      "solo nosotros tenemos la clave para abrirlas. Mientras terminamos ese cambio, lo que pasa por ese proveedor también se guarda en sus servidores y en los de quienes le prestan servicio, que pueden estar en Estados Unidos o en otros países. El nombre y el Shipping Mark que ve nuestro equipo en su herramienta de mensajería interna también pasan por servidores en Estados Unidos. </p>",
     );
   });
 
@@ -67,6 +69,6 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
   });
 
   it("la fecha de la política se movió con el cambio", () => {
-    expect(texto).toContain('const UPDATED = "5 de noviembre de 2026";');
+    expect(texto).toContain('const UPDATED = "6 de noviembre de 2026";');
   });
 });
