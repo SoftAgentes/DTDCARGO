@@ -31,15 +31,26 @@ export function envioIncierto(error: ChatwootError): boolean {
 
 const TIMEOUT_MS = 10_000;
 
+/** Lo que cualquier llamada de cuenta necesita: el enrutador de E10 y la ida del portal (10.5). */
+export type CuentaChatwoot = Pick<ChatwootRouterConfig, "origin" | "token" | "accountId">;
+
 async function llamar(
-  cfg: ChatwootRouterConfig,
+  cfg: CuentaChatwoot,
+  ruta: string,
+  init: { method: "GET" | "POST"; body?: unknown } = { method: "GET" },
+): Promise<ChatwootResult<unknown>> {
+  return llamarCuenta(cfg, `conversations/${ruta}`, init);
+}
+
+async function llamarCuenta(
+  cfg: CuentaChatwoot,
   ruta: string,
   init: { method: "GET" | "POST"; body?: unknown } = { method: "GET" },
 ): Promise<ChatwootResult<unknown>> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${cfg.origin}/api/v1/accounts/${cfg.accountId}/conversations/${ruta}`, {
+    const res = await fetch(`${cfg.origin}/api/v1/accounts/${cfg.accountId}/${ruta}`, {
       method: init.method,
       headers: {
         api_access_token: cfg.token,
@@ -123,4 +134,139 @@ export async function enviarMensaje(
     body: { content: texto, message_type: "outgoing", private: false },
   });
   return r.ok ? { ok: true, data: null } : r;
+}
+
+// ─── La ida del chat del portal (SDD-0586, paso 10.5, PR 1a) ──────────────────
+//
+//   POST /contacts                          → { inbox_id, name, identifier }: el contacto
+//                                             y su contact_inbox (source_id) en la bandeja
+//   GET  /contacts/search?q=<identificador> → en un reintento: el contacto ya creado
+//   GET  /contacts/{id}/conversations       → en un reintento: la conversación ya creada
+//   POST /conversations                     → { source_id, inbox_id, contact_id, status }
+//   GET  /conversations/{id}/messages       → en un reintento: ¿ya entró ese source_id?
+//   POST /conversations/{id}/messages       → el mensaje del cliente, `incoming` y público
+//
+// Lo que sale lleva solo el nombre, el identificador al azar y el texto (E10-D35). Lo que
+// vuelve se reduce a ids y source_id: ni nombre ni texto salen de este archivo. Que
+// Chatwoot 4.19.1 acepte y devuelva así cada cosa es NV (PoC-1, PoC-2, PoC-3 y PoC-5).
+
+const ENTERO = (v: unknown): number | null =>
+  typeof v === "number" && Number.isInteger(v) && v > 0 && v <= 2_147_483_647 ? v : null;
+const TEXTO = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+
+export interface ContactoPortal {
+  contactoId: number;
+  sourceId: string;
+}
+
+/** El source_id del contact_inbox de esa bandeja, en cualquiera de las dos formas que da Chatwoot. */
+function sourceIdDeBandeja(contactInboxes: unknown, inboxId: number): string | null {
+  if (!Array.isArray(contactInboxes)) return null;
+  for (const ci of contactInboxes) {
+    const fila = ci as { source_id?: unknown; inbox?: { id?: unknown }; inbox_id?: unknown } | null;
+    if (fila && (ENTERO(fila.inbox?.id) === inboxId || ENTERO(fila.inbox_id) === inboxId)) return TEXTO(fila.source_id);
+  }
+  return null;
+}
+
+export async function crearContactoPortal(
+  cfg: CuentaChatwoot,
+  datos: { inboxId: number; nombre: string; identificador: string },
+): Promise<ChatwootResult<ContactoPortal>> {
+  const r = await llamarCuenta(cfg, "contacts", {
+    method: "POST",
+    body: { inbox_id: datos.inboxId, name: datos.nombre, identifier: datos.identificador },
+  });
+  if (!r.ok) return r;
+  const payload = (
+    r.data as { payload?: { contact?: { id?: unknown; contact_inboxes?: unknown }; contact_inbox?: { source_id?: unknown } } } | null
+  )?.payload;
+  const contactoId = ENTERO(payload?.contact?.id);
+  const sourceId = TEXTO(payload?.contact_inbox?.source_id) ?? sourceIdDeBandeja(payload?.contact?.contact_inboxes, datos.inboxId);
+  return contactoId !== null && sourceId !== null
+    ? { ok: true, data: { contactoId, sourceId } }
+    : { ok: false, error: "respuesta_invalida" };
+}
+
+/** El contacto con ese identificador exacto y su source_id en la bandeja; `null` si no está. */
+export async function buscarContactoPortal(
+  cfg: CuentaChatwoot,
+  identificador: string,
+  inboxId: number,
+): Promise<ChatwootResult<ContactoPortal | null>> {
+  const r = await llamarCuenta(cfg, `contacts/search?q=${encodeURIComponent(identificador)}&include_contact_inboxes=true`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  for (const c of payload) {
+    const fila = c as { id?: unknown; identifier?: unknown; contact_inboxes?: unknown } | null;
+    if (!fila || fila.identifier !== identificador) continue;
+    const contactoId = ENTERO(fila.id);
+    const sourceId = sourceIdDeBandeja(fila.contact_inboxes, inboxId);
+    if (contactoId !== null && sourceId !== null) return { ok: true, data: { contactoId, sourceId } };
+  }
+  return { ok: true, data: null };
+}
+
+export async function listarConversacionesContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+): Promise<ChatwootResult<{ id: number; inboxId: number | null }[]>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}/conversations`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  const out: { id: number; inboxId: number | null }[] = [];
+  for (const c of payload) {
+    const fila = c as { id?: unknown; inbox_id?: unknown } | null;
+    const id = ENTERO(fila?.id);
+    if (id !== null) out.push({ id, inboxId: ENTERO(fila?.inbox_id) });
+  }
+  return { ok: true, data: out };
+}
+
+export async function crearConversacionPortal(
+  cfg: CuentaChatwoot,
+  datos: { inboxId: number; contactoId: number; sourceId: string },
+): Promise<ChatwootResult<number>> {
+  const r = await llamarCuenta(cfg, "conversations", {
+    method: "POST",
+    body: { source_id: datos.sourceId, inbox_id: datos.inboxId, contact_id: datos.contactoId, status: "open" },
+  });
+  if (!r.ok) return r;
+  const id = ENTERO((r.data as { id?: unknown } | null)?.id);
+  return id !== null ? { ok: true, data: id } : { ok: false, error: "respuesta_invalida" };
+}
+
+/** Los últimos mensajes de la conversación (la primera página de Chatwoot), solo id y source_id. */
+export async function listarMensajes(
+  cfg: CuentaChatwoot,
+  conversacionId: number,
+): Promise<ChatwootResult<{ id: number; sourceId: string | null }[]>> {
+  const r = await llamar(cfg, `${conversacionId}/messages`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  const out: { id: number; sourceId: string | null }[] = [];
+  for (const m of payload) {
+    const fila = m as { id?: unknown; source_id?: unknown } | null;
+    const id = ENTERO(fila?.id);
+    if (id !== null) out.push({ id, sourceId: TEXTO(fila?.source_id) });
+  }
+  return { ok: true, data: out };
+}
+
+/** El mensaje del cliente, `incoming` y público, con `source_id = dtd:<id del mensaje>`. */
+export async function crearMensajeEntrante(
+  cfg: CuentaChatwoot,
+  conversacionId: number,
+  datos: { texto: string; sourceId: string },
+): Promise<ChatwootResult<number>> {
+  const r = await llamar(cfg, `${conversacionId}/messages`, {
+    method: "POST",
+    body: { content: datos.texto, message_type: "incoming", private: false, source_id: datos.sourceId },
+  });
+  if (!r.ok) return r;
+  const id = ENTERO((r.data as { id?: unknown } | null)?.id);
+  return id !== null ? { ok: true, data: id } : { ok: false, error: "respuesta_invalida" };
 }
