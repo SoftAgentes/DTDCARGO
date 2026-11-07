@@ -308,14 +308,22 @@ Se corrigió así:
 
 Esta anotación va en commits solo de documentos. En una PR, el filtro de rutas mira todo el diff de la PR y no el último commit, así que el flujo vuelve a correr sobre ellos, con el mismo código. El push nuevo cancela la corrida anterior.
 
-**Cuarta corrida, con la segunda revisión independiente (CHANGES_REQUESTED sobre `e6b47b3ba`):**
-- T8 cuenta también los mensajes `template` y los trabajos de correo, y tiene el control Y (T9 y C4);
-- el guion de PC-3:
-  - conserva las listas de «sistema» y «no-cliente» (V5, W3 y W4);
-  - busca la bandeja por el buzón (V7 y W5);
-  - muestra el buzón resuelto (`v_buzon`).
+**Corrida sobre `4914644fa`** (solo documentos; run 42414076481, de 21:04:21Z a 21:10:17Z): **verde**, con el mismo código que `e6b47b3ba`.
 
-Su resultado se anota aquí con su SHA.
+**Cuarta corrida, con la segunda revisión independiente** (`e22c61a65`, run 42414834780, job 128530543746, 7,2 min): **FALLÓ 1 de 47.** Lo nuevo:
+- T8 cuenta también los mensajes `template` y los trabajos de correo, y tiene el control Y (T9 y C4);
+- el guion de PC-3 conserva las listas de «sistema» y «no-cliente» (V5, W3 y W4), busca la bandeja por el buzón (V7 y W5) y muestra el buzón resuelto (`v_buzon`).
+
+Todo eso pasó:
+- **El control Y ve la encuesta encendida:** `y_salidas=1/0/1`, es decir, 1 mensaje de plantilla, 0 trabajos y 1 correo. La encuesta sale por `deliver_now`, sin trabajo encolado. Sin el inicializador, Y queda abierto y no sale nada (C4).
+- **El rebote A, con la encuesta apagada,** da `0/0/0` (T8).
+- **El guion de PC-3** da 37 de 37, y W3, W4 y W5 caen.
+
+Falló solo **T6**, que esperaba 3 conversaciones ordenadas en el log y contó 4. La cuarta es **Y**: el inicializador también resuelve el rebote de la bandeja con encuesta, como debe. En el log de T, la línea dice «conversación 11 de la bandeja 2», sin dirección. La bandeja de la sonda tiene las conversaciones 1 a 10; Y es la 11, en la segunda bandeja creada.
+
+**Se corrigió T6 sin aflojarlo:** ahora cuenta por bandeja. Exige 3 en la de la sonda (A, D y H), 1 en la de la encuesta (Y), 4 en total y ninguna dirección. La sonda escribe los ids de las dos bandejas (`bandeja` y `bandeja_y`), y el patrón termina en « con» para que la bandeja 1 no cuente las líneas de la 12. Probado en local con un log inventado: el caso bueno pasa, y fallan una conversación de más, Y sin ordenar y una línea con dirección.
+
+El resultado de la corrida con T6 corregido se anota aquí con su SHA.
 
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 

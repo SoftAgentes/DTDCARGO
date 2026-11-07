@@ -204,15 +204,23 @@ exigir T4 'es "$F" h_estado_persona open && es "$F" h_estado open' \
 exigir T5 'es "$F" g_adjuntos 1 && es "$F" g_tipo file && [ "$(h "$F" g_bytes)" -gt 0 ]' \
   "P3 en la imagen real: el PDF adjunto de entrada queda como 1 adjunto «file» de $(h "$F" g_bytes) bytes"
 lineas="$(grep -F '[DTD] correo automático' "$F" || true)"
-ordenadas="$(printf "%s\n" "$lineas" | grep -F "con etiqueta" | grep -o "conversación [0-9]* de la bandeja [0-9]*" | sort -u | wc -l | tr -d ' ')"
+# Conversaciones distintas que el log da por ordenadas en una bandeja («… de la bandeja N con …»). Se cuentan por
+# bandeja: A, D y H van en la de la sonda e Y en la de la encuesta. Un total suelto no dice cuál sobra.
+ordenadas_en() {
+  [ -n "$1" ] || { echo -1; return; }
+  printf "%s\n" "$lineas" | grep -F "con etiqueta" | grep -o "conversación [0-9]* de la bandeja $1 con" | sort -u | wc -l | tr -d ' '
+}
+ordenadas="$(ordenadas_en "$(h "$F" bandeja)")"
+ordenadas_y="$(ordenadas_en "$(h "$F" bandeja_y)")"
+ordenadas_total="$(printf "%s\n" "$lineas" | grep -F "con etiqueta" | grep -o "conversación [0-9]* de la bandeja [0-9]* con" | sort -u | wc -l | tr -d ' ')"
 exigir T7 'es "$F" clase_ausente aviso && [ "$(cuenta "[DTD] correo automático NO activo: falta Imap::BuzonQueNoExiste" "$F")" -ge 1 ]' \
   "si falta la clase, instalar solo avisa en el log y no levanta: rails y sidekiq arrancarían igual"
 exigir T8 'es "$F" a_salientes 0/0/0 && es "$F" correos_enviados 0/0' \
   "resolver no manda nada al remitente: 0 mensajes salientes o de plantilla, 0 trabajos de correo y 0 correos (encuesta CSAT apagada)"
 exigir T9 'es "$F" y_estado resolved && es "$F" y_csat si' \
   "CONTROL de T8: con la encuesta encendida la sonda SÍ ve la salida ($(h "$F" y_salidas) mensajes/trabajos/correos), así que el 0 de A mide algo"
-exigir T6 '[ "$ordenadas" = 3 ] && ! printf "%s" "$lineas" | grep -q "@"' \
-  "el log nombra 3 conversaciones ordenadas (A, D y H; dio $ordenadas) y ninguna línea suya lleva una dirección"
+exigir T6 '[ "$ordenadas" = 3 ] && [ "$ordenadas_y" = 1 ] && [ "$ordenadas_total" = 4 ] && ! printf "%s" "$lineas" | grep -q "@"' \
+  "el log nombra A, D y H en la bandeja de la sonda (dio $ordenadas) e Y en la de la encuesta (dio $ordenadas_y), $ordenadas_total en total, y ninguna línea suya lleva una dirección"
 
 # ── C. Control sin el inicializador ──────────────────────────────────────────
 log "== C. control sin el inicializador"

@@ -60,6 +60,7 @@ canal = Channel::Email.create!(account: cuenta, email: "bandeja-#{SecureRandom.h
                                imap_enabled: false, smtp_enabled: false)
 inbox = Inbox.create!(account: cuenta, name: 'Correo · sonda', channel: canal)
 canal.reload
+hecho 'bandeja', inbox.id # para que T6 cuente las líneas del log de esta bandeja y las de Y por separado
 %w[sistema prueba-legal prueba-sistema].each { |t| Label.create!(account: cuenta, title: t) }
 
 # Las dos reglas de la prueba P8 de PC-1 (bandeja-prueba.rb reglas), limitadas a esta bandeja.
@@ -213,6 +214,7 @@ canal_y = Channel::Email.create!(account: cuenta, email: "encuesta-#{SecureRando
                                  imap_enabled: false, smtp_enabled: false)
 inbox_y = Inbox.create!(account: cuenta, name: 'Sonda · con encuesta', channel: canal_y, csat_survey_enabled: true)
 canal_y.reload
+hecho 'bandeja_y', inbox_y.id
 marca_trabajos = ENCOLADOS.size
 marca_correos = ActionMailer::Base.deliveries.size
 Imap::ImapMailbox.new.process(correo('y-rebote', de: 'MAILER-DAEMON@relay-y.sonda.example.test', asunto: 'Undelivered Mail Returned to Sender',

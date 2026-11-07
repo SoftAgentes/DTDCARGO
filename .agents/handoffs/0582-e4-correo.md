@@ -89,7 +89,9 @@
 | «Correo automático (datos inventados)», 2.ª corrida sobre `86a520e9d` (run 42412688316, de 20:46:54Z a 20:52:44Z) | PASÓ 34 de 34, 0 fallas. M4 cae por su motivo: `a_aviso_estado` da 1 sin el autor y 0 con él. V da 30 de 30, y W1 y W2 caen |
 | «Correo automático», 3.ª corrida sobre `e6b47b3ba`, con la revisión independiente (run 42413311941, job 128525883687, de 20:54:49Z a 21:01:05Z) | PASÓ 39 de 39, 0 fallas: la sonda 39 de 39 y V 31 de 31. Pasan T7, T8, C3 y M8, y M4 sigue cayendo. Leído con `gh api` por el Subdirector y por mí |
 | «Calidad continua» sobre `e6b47b3ba` (run 42413311901) | Seguía en curso a las 21:02Z; lo lee el Subdirector |
-| «Correo automático», 4.ª corrida, con la segunda revisión (T9, C4, V5 ampliado, V7, `v_buzon`, W3, W4 y W5) | Corre sobre el commit siguiente; se anota con su SHA |
+| «Correo automático» sobre `4914644fa`, solo documentos (run 42414076481, de 21:04:21Z a 21:10:17Z) | PASÓ (verde), con el mismo código que `e6b47b3ba` |
+| «Correo automático», 4.ª corrida sobre `e22c61a65`, con la segunda revisión (run 42414834780, job 128530543746, 7,2 min) | FALLÓ 1 de 47: solo T6, que contó 4 conversaciones ordenadas en vez de 3. La cuarta es Y («conversación 11 de la bandeja 2», sin dirección), que el inicializador resuelve como debe. Pasaron T8 (`0/0/0`), T9 (`y_salidas=1/0/1`: la encuesta sale por `deliver_now`), C4, V 37 de 37, y W3, W4 y W5. Leído con `gh api` por el Subdirector y por mí |
+| T6 corregido: cuenta por bandeja (3 en la de la sonda, 1 en la de Y, 4 en total y sin direcciones) | Probado en local con un log inventado: el caso bueno pasa y fallan los 3 controles (una de más, Y sin ordenar, línea con dirección). La corrida sobre el commit siguiente se anota con su SHA |
 | Los 13 `sed` de los mutantes (M1–M8 y W1–W5), en local | PASÓ: cada uno cambia una sola línea |
 | `prueba-correo-sistema.sh` en la PC (Docker) | NO EJECUTADO, porque Docker Desktop levanta 22 contenedores ajenos |
 | Ruby en la PC | NO DISPONIBLE (no hay `ruby`); lo cubre la corrida de Actions |
