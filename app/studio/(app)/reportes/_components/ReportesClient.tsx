@@ -1028,6 +1028,17 @@ function agentInitials(name: string): string {
 }
 
 function ByAgentView({ data }: { data: CommercialByAgent }) {
+  // SDD-0614 S0 (D-6.6-1, P-9): la tabla del espejo de Kommo está oculta. El
+  // texto lo aprobó tal cual el Subdirector el 2026-11-06; R4 (S3) la reemplaza.
+  if (data.oculto) {
+    return (
+      <EmptyState
+        eyebrow="Por agente"
+        title="El desempeño por asesor se está pasando al CRM del Studio."
+        description="Vuelve a aparecer aquí cuando esté listo."
+      />
+    );
+  }
   if (!data.hasKommo || data.rows.length === 0) {
     return (
       <EmptyState

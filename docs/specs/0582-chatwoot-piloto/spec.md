@@ -333,15 +333,16 @@ Están en la fila 2.3 del checklist.
 
 ## Allowlist de esta SDD
 
-- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md}`
+- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md,e4-correo.md}`
 - `docs/specs/README.md` (índice regenerado)
 - `scripts/avance-checklist.mjs`
 - `scripts/__tests__/avance-checklist.test.mjs`
 - `.agents/handoffs/0582-chatwoot-piloto.md`
 - `.agents/handoffs/0582-e0-preparacion.md`
 - `.agents/handoffs/0582-e9-guion.md`
+- Paso 4.8, correo, que no tiene SDD hija (detalle en `e4-correo.md` §10): `infra/chatwoot/correo/{bandeja-prueba.rb,bandeja-vzla.rb,zz_dtd_correo_sistema.rb}`, `infra/chatwoot/pruebas/{prueba-correo-sistema.sh,sonda-correo-sistema.rb,sonda-bandeja-vzla.rb,compose.correo-sistema.yml,compose.correo-sistema-control.yml}`, `.github/workflows/chatwoot-correo-sistema.yml`, `docs/legal/privacidad/{revision-chatwoot-correo-2026-10-31.md,inventario-terceros.md}` y `.agents/handoffs/0582-e4-correo.md`
 
-El código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
+Fuera del paso 4.8, el código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
 
 ## Fuera de alcance detectado (se informa, no se toca)
 

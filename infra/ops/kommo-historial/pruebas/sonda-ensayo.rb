@@ -8,7 +8,9 @@
 #   FASE=usuario-real CUENTA BANDEJA ETAPA=antes|despues
 #                E-10 con un usuario real de la cuenta (no uno temporal), antes y después de MODO=miembros
 #   FASE=busqueda CUENTA BANDEJA          búsqueda de mensajes con la ventana del proceso
-#                (SEARCH_TIME_RANGE_LIMIT_DAYS): si encuentra el mensaje más viejo del Archivo y cuánto tarda
+#                (SEARCH_TIME_RANGE_LIMIT_DAYS): si encuentra un mensaje viejo del Archivo (palabra_apta) y cuánto tarda
+#
+# Las búsquedas miden la pertenencia sobre la consulta entera, no sobre una página (en_busqueda, SDD-0590 §10.17).
 #
 # Trabaja con datos reales: imprime SOLO conteos, huellas (md5) y «si»/«no». Nunca nombres, teléfonos, correos ni
 # textos. Lo que crea para medir (un administrador y un agente temporales, una conversación de prueba, dos mensajes
@@ -184,30 +186,18 @@ module SondaEnsayo
     # E-10: buscar el Archivo, con la ventana por defecto (la de producción), como administrador y como agente.
     cuenta_ar = Account.find(cuenta)
     vieja = convs.order(:created_at).first
-    contacto = vieja&.contact
-    consultas = { 'nombre' => contacto&.name.to_s, 'telefono' => contacto&.phone_number.to_s.delete_prefix('+'),
-                  'numero' => vieja&.display_id.to_s }.reject { |_, q| q.empty? }
+    consultas = consultas_de(vieja)
     hecho(out, 'busqueda_consultas', consultas.keys.sort.join(','))
-    # La búsqueda pagina de a 15 (search_service.rb:46-47), más nueva primero: se recorren las páginas.
-    esta = lambda do |usuario, q|
-      (1..40).any? do |pagina|
-        r = como(usuario, cuenta_ar) do
-          SearchService.new(current_user: usuario, current_account: cuenta_ar, search_type: 'Conversation',
-                            params: { q: q, page: pagina }).perform
-        end
-        lista = Array(r[:conversations])
-        break false if lista.empty?
-
-        lista.any? { |c| c.id == vieja.id }
-      end
-    end
-    encuentra = lambda do |usuario|
-      consultas.map { |k, q| "#{k}:#{esta.call(usuario, q) ? 'si' : 'no'}" }.sort.join(',')
+    # «si»/«no» por consulta, y aparte cuántos resultados trae cada una (admin_resultados, agente_..._resultados).
+    encuentra = lambda do |usuario, clave|
+      r = buscar_conversacion(usuario, cuenta_ar, vieja, consultas)
+      hecho(out, "#{clave}_resultados", totales(r))
+      si_no(r)
     end
     admin = usuario_temporal(cuenta_ar, :administrator)
     agente = usuario_temporal(cuenta_ar, :agent)
-    medir.call('admin_encuentra') { encuentra.call(admin) }
-    medir.call('agente_sin_ser_miembro') { encuentra.call(agente) }
+    medir.call('admin_encuentra') { encuentra.call(admin, 'admin') }
+    medir.call('agente_sin_ser_miembro') { encuentra.call(agente, 'agente_sin_ser_miembro') }
     medir.call('miembros_trabajos') do
       antes_cola = clases_en_cola
       notificaciones = Notification.count
@@ -216,7 +206,7 @@ module SondaEnsayo
       trabajos_nuevos(antes_cola, clases_en_cola)
     end
     hecho(out, 'miembros_asignadas', convs.where.not(assignee_id: nil).count)
-    medir.call('agente_miembro') { encuentra.call(agente) }
+    medir.call('agente_miembro') { encuentra.call(agente, 'agente_miembro') }
 
     # E-8: una conversación nueva, creada como la crearía un canal, va después de las del Archivo. En la copia.
     medir.call('display_nueva_mayor') do
@@ -242,27 +232,36 @@ module SondaEnsayo
     AccountUser.where(account_id: cuenta).joins(:user).where.not('users.email LIKE ?', '%@example.invalid')
   end
 
-  # Las consultas de E-10 sobre una conversación, y si un usuario la encuentra con cada una (páginas de a 15).
+  # Las consultas de E-10 sobre una conversación: lo que una persona escribiría en el buscador.
   def consultas_de(conversacion)
     contacto = conversacion&.contact
     { 'nombre' => contacto&.name.to_s, 'telefono' => contacto&.phone_number.to_s.delete_prefix('+'),
       'numero' => conversacion&.display_id.to_s }.reject { |_, q| q.empty? }
   end
 
-  def encuentra(usuario, cuenta_ar, conversacion, consultas)
-    consultas.map do |k, q|
-      hallada = (1..40).any? do |pagina|
-        r = como(usuario, cuenta_ar) do
-          SearchService.new(current_user: usuario, current_account: cuenta_ar, search_type: 'Conversation',
-                            params: { q: q, page: pagina }).perform
-        end
-        lista = Array(r[:conversations])
-        break false if lista.empty?
+  # Si la búsqueda de un usuario trae una fila, y cuántas trae en total. Chatwoot filtra con ILIKE '%q%' y pagina de
+  # a 15, de la más nueva a la más vieja (search_service.rb:33-48 y :100-107 de la v4.19.1). Con los datos reales,
+  # «21», el número de la conversación más vieja, trae cientos de resultados, y la más vieja queda en la última
+  # página (SDD-0590 §10.16). Por eso la pertenencia se mide sobre la consulta entera, con los mismos filtros, sin el
+  # límite ni el desplazamiento de la página. Se probó así en producción, en solo lectura, el 2026-11-07.
+  def en_busqueda(usuario, cuenta_ar, tipo, q, id)
+    como(usuario, cuenta_ar) do
+      rel = SearchService.new(current_user: usuario, current_account: cuenta_ar, search_type: tipo,
+                              params: { q: q, page: 1 }).perform[tipo == 'Message' ? :messages : :conversations]
+      [rel.except(:limit, :offset).where(id: id).exists?, rel.total_count]
+    end
+  end
 
-        lista.any? { |c| c.id == conversacion.id }
-      end
-      "#{k}:#{hallada ? 'si' : 'no'}"
-    end.sort.join(',')
+  def buscar_conversacion(usuario, cuenta_ar, conversacion, consultas)
+    consultas.to_h { |k, q| [k, en_busqueda(usuario, cuenta_ar, 'Conversation', q, conversacion.id)] }
+  end
+
+  def si_no(resultado)
+    resultado.map { |k, (esta, _)| "#{k}:#{esta ? 'si' : 'no'}" }.sort.join(',')
+  end
+
+  def totales(resultado)
+    resultado.map { |k, (_, n)| "#{k}:#{n}" }.sort.join(',')
   end
 
   # E-10 con un usuario real (Sam, 2026-11-06: miembros, «todo el equipo»). El de menor id entre los agentes, que
@@ -283,7 +282,9 @@ module SondaEnsayo
     else
       hecho(out, 'usuario_real_rol', au.administrator? ? 'administrador' : 'agente')
       hecho(out, 'usuario_real_miembro', InboxMember.exists?(inbox_id: archivo, user_id: au.user_id) ? 'si' : 'no')
-      hecho(out, 'usuario_real_encuentra', encuentra(au.user, cuenta_ar, vieja, consultas_de(vieja)))
+      r = buscar_conversacion(au.user, cuenta_ar, vieja, consultas_de(vieja))
+      hecho(out, 'usuario_real_encuentra', si_no(r))
+      hecho(out, 'usuario_real_resultados', totales(r))
     end
     hecho(out, 'miembros_archivo', InboxMember.where(inbox_id: archivo).count)
     hecho(out, 'usuario_real_fase', 'ok')
@@ -291,10 +292,32 @@ module SondaEnsayo
     hecho(out, 'usuario_real_fase', "error:#{e.class}")
   end
 
+  # BQ1 busca un mensaje viejo del Archivo por una de sus palabras. Con los datos reales, el mensaje con texto más
+  # viejo no tenía ninguna palabra de 5 letras o más, y BQ1 dio «sin_palabra» (SDD-0590 §10.16). Ahora es el primero,
+  # del más viejo al más nuevo entre los BQ1_REVISAR más viejos, que tenga una palabra apta: BQ1_PALABRA (6 letras o
+  # más) y como mucho BQ1_TOPE coincidencias en la cuenta. De las suyas, la menos frecuente. Es lo que se probó en
+  # producción, en solo lectura, el 2026-11-07. Se imprimen la posición y los conteos, nunca la palabra.
+  BQ1_REVISAR = 60
+  BQ1_PALABRA = /\p{L}{6,}/
+  BQ1_TOPE = 60
+
+  def palabra_apta(cuenta, archivo)
+    revisados = 0
+    Message.where(inbox_id: archivo).where.not(content: [nil, '']).order(:created_at, :id).limit(BQ1_REVISAR).each do |m|
+      revisados += 1
+      frecuencia = m.content.scan(BQ1_PALABRA).uniq.first(12).to_h do |w|
+        [w, Message.where(account_id: cuenta).where('content ILIKE ?', "%#{Message.sanitize_sql_like(w)}%").count]
+      end
+      palabra, veces = frecuencia.select { |_, n| n <= BQ1_TOPE }.min_by { |_, n| n }
+      return { mensaje: m, palabra: palabra, veces: veces, posicion: revisados } if palabra
+    end
+    { revisados: revisados }
+  end
+
   # Búsqueda de mensajes con la ventana del proceso (SEARCH_TIME_RANGE_LIMIT_DAYS; sin la variable, 90 días), como
-  # un administrador temporal: si encuentra el mensaje con texto más viejo del Archivo y cuánto tarda la primera
-  # página (mediana de 3). La palabra sale de ese mensaje, es la menos frecuente de la cuenta entre las suyas de 5
-  # letras o más, y nunca se imprime. Otra consulta, sin coincidencias, recorre la ventana entera.
+  # un administrador temporal: si el mensaje de BQ1 (palabra_apta) está entre los resultados de su palabra, en la
+  # consulta entera, y cuánto tarda la primera página (mediana de 3). Otra consulta, sin coincidencias, recorre la
+  # ventana entera.
   def busqueda(out:, cuenta:, bandeja:)
     cuenta_ar = Account.find(cuenta)
     archivo = Integer(bandeja)
@@ -324,25 +347,18 @@ module SondaEnsayo
         ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t) * 1000).round
       end.sort[1]
     end
-    vieja = Message.where(inbox_id: archivo).where.not(content: [nil, '']).order(:created_at, :id).first
-    candidatas = vieja ? vieja.content.scan(/\p{L}{5,}/).uniq.first(12) : []
-    frecuencia = candidatas.to_h do |w|
-      [w, Message.where(account_id: cuenta).where('content ILIKE ?', "%#{Message.sanitize_sql_like(w)}%").count]
-    end
-    palabra, veces = frecuencia.min_by { |_, n| n }
-    if palabra
+    elegido = palabra_apta(cuenta, archivo)
+    if elegido[:palabra]
+      vieja = elegido[:mensaje]
       hecho(out, 'vieja_dias', ((Time.zone.now - vieja.created_at) / 1.day).floor)
-      paginas = [(veces.to_i / 15) + 2, 200].min
-      hallada = (1..paginas).any? do |pagina|
-        lista = buscar.call(palabra, pagina)
-        break false if lista.empty?
-
-        lista.any? { |m| m.id == vieja.id }
-      end
+      hecho(out, 'vieja_posicion', elegido[:posicion])
+      hallada, resultados = en_busqueda(admin, cuenta_ar, 'Message', elegido[:palabra], vieja.id)
       hecho(out, 'vieja_encontrada', hallada ? 'si' : 'no')
-      hecho(out, 'palabra_coincidencias_cuenta', veces)
-      hecho(out, 'palabra_ms', mediana_ms.call(palabra))
+      hecho(out, 'palabra_coincidencias_cuenta', elegido[:veces])
+      hecho(out, 'palabra_resultados', resultados)
+      hecho(out, 'palabra_ms', mediana_ms.call(elegido[:palabra]))
     else
+      hecho(out, 'vieja_revisados', elegido[:revisados])
       hecho(out, 'vieja_encontrada', 'sin_palabra')
     end
     hecho(out, 'sin_coincidencias_ms', mediana_ms.call("zq#{SecureRandom.hex(6)}"))

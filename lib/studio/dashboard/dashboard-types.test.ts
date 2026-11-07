@@ -6,8 +6,13 @@ import {
   validateDashboardConfigInput,
   type ModuleAccessFn,
 } from "./dashboard-types";
-import { DEFAULT_CONFIG, KPI_CATALOG, MAX_KPIS, WIDGET_CATALOG } from "./dashboard-catalog";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { DEFAULT_CONFIG, KPI_CATALOG, MAX_KPIS, WIDGET_CATALOG, kpiById } from "./dashboard-catalog";
 import { money } from "./dashboard-kpi-queries";
+
+/** KPIs que el Dashboard muestra: el catálogo sin los ocultos (SDD-0614 S0b). */
+const KPIS_VISIBLES = KPI_CATALOG.filter((k) => !k.oculto);
 
 /** Predicado que bloquea un set de módulos (simula un rol sin acceso). */
 function denyModules(...blocked: string[]): ModuleAccessFn {
@@ -104,9 +109,9 @@ describe("validateDashboardConfigInput", () => {
 });
 
 describe("defaultConfigForAccess", () => {
-  it("con acceso total devuelve el DEFAULT_CONFIG normalizado", () => {
+  it("con acceso total devuelve el DEFAULT_CONFIG normalizado, sin los KPIs ocultos", () => {
     const cfg = defaultConfigForAccess();
-    expect(cfg.kpis).toEqual(DEFAULT_CONFIG.kpis);
+    expect(cfg.kpis).toEqual(DEFAULT_CONFIG.kpis.filter((id) => !kpiById(id)?.oculto));
     expect(cfg.widgets).toEqual(DEFAULT_CONFIG.widgets);
     expect(cfg.chartPeriod).toBe(DEFAULT_CONFIG.chartPeriod);
   });
@@ -121,9 +126,9 @@ describe("defaultConfigForAccess", () => {
 });
 
 describe("accessibleCatalog", () => {
-  it("con acceso total ofrece TODO el catálogo", () => {
+  it("con acceso total ofrece todo el catálogo visible (sin los KPIs ocultos)", () => {
     const { kpis, widgets } = accessibleCatalog();
-    expect(kpis.length).toBe(KPI_CATALOG.length);
+    expect(kpis.length).toBe(KPIS_VISIBLES.length);
     expect(widgets.length).toBe(WIDGET_CATALOG.length);
   });
 
@@ -141,7 +146,49 @@ describe("accessibleCatalog", () => {
     expect(ids).not.toContain("marginYTD"); // costing
     expect(ids).not.toContain("nominaNeto"); // nomina
     expect(ids).toContain("shipmentsActive"); // operación (tracking)
-    expect(ids).toContain("newLeads"); // comercial (kommo)
+    expect(ids).toContain("wonEstimados"); // comercial (quotes)
+    expect(ids).not.toContain("newLeads"); // comercial (kommo): oculto desde SDD-0614 S0b
+  });
+});
+
+/**
+ * SDD-0614 · S0b (D-6.6-1): el KPI «Leads en pipeline» salía del espejo
+ * `kommo_leads` (`leadsKpi`). Se oculta desde el catálogo: no se ofrece en el
+ * editor, una config guardada no lo pinta, el default no lo trae y, como la
+ * página solo pide las fuentes de los KPIs accesibles, `leadsKpi` no se llama.
+ * Ocultar no es borrar: la entrada sigue en el catálogo, marcada.
+ */
+describe("el KPI de leads de Kommo está oculto (SDD-0614 S0b)", () => {
+  it("sigue en el catálogo, marcado como oculto", () => {
+    const meta = kpiById("newLeads");
+    expect(meta?.oculto).toBe(true);
+    expect(meta?.source).toBe("leads");
+    expect(meta?.module).toBe("kommo");
+  });
+
+  it("una config guardada con el KPI no lo pinta", () => {
+    const cfg = validateDashboardConfigInput({
+      kpis: ["shipmentsActive", "newLeads", "monthRevenue"],
+      widgets: [],
+      chartPeriod: "1A",
+    });
+    expect(cfg.kpis).toEqual(["shipmentsActive", "monthRevenue"]);
+  });
+
+  it("el default del Dashboard no lo trae", () => {
+    expect(defaultConfigForAccess().kpis).not.toContain("newLeads");
+  });
+
+  it("ningún KPI accesible usa la fuente «leads», así que la página no llama a leadsKpi", () => {
+    expect(accessibleCatalog().kpis.some((k) => k.source === "leads")).toBe(false);
+    // La página pide `leadsKpi` solo si alguna fuente accesible es «leads».
+    const pagina = readFileSync(join(process.cwd(), "app/studio/(app)/dashboard/page.tsx"), "utf8");
+    expect(pagina).toContain('const needLeads = accessibleSources.has("leads");');
+    expect(pagina).toContain("needLeads ? leadsKpi(supabase) : Promise.resolve(null)");
+  });
+
+  it("solo el KPI de Kommo está oculto: los demás siguen visibles", () => {
+    expect(KPI_CATALOG.filter((k) => k.oculto).map((k) => k.id)).toEqual(["newLeads"]);
   });
 });
 

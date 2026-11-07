@@ -259,19 +259,20 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 - **Respaldo de Chatwoot**, antes de cargar: lo hace el Director General.
 - **Carga:** `MODO=cargar`. Se anota `HECHO secuencia=antes->después` (E-8, aceptado por el Director General). E-3 lo cuenta él antes y después: `crm_tarjetas`, `crm_tareas`, `chatwoot_webhook_events` y `chatwoot_conversations`.
 - **Adjuntos (5.5b), después de los mensajes:** `flujo-adjuntos | MODO=adjuntos-seco` y después `MODO=adjuntos`, por la entrada estándar (README). Se anotan `blobs`, `blobs_kommo` y `trabajos_nuevos`, que tiene que dar `ninguno`. Además, `adjuntos_fallidos`, `adjuntos_no_coinciden`, `adjuntos_sin_mensaje` y `blobs_huerfanos_nuevos` tienen que dar 0, y la diferencia de `blobs_kommo` tiene que ser igual a `adjuntos_nuevos`.
-- **Al final:**
-  - `respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo`, que cifra y borra el staging;
-  - los miembros del Archivo: `MODO=miembros-seco` y después `MODO=miembros` (README), con la misma bandeja;
-  - la búsqueda ampliada, si el Director General la aprueba: los pasos 1 a 7 de la spec §10.14, con su vuelta atrás.
+- **Al final, en este orden** (el del README, pasos 4c y 5):
+  1. los miembros del Archivo: `MODO=miembros-seco` y después `MODO=miembros` (README), con la misma bandeja;
+  2. `respaldar-historial.py informe --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo`, que deja `informe.json` con `sin_acceso_403`. En la carga del 2026-11-07 no se corrió (spec §10.16, hallazgo 3), y desde la 1.3.2 `empaquetar` se niega sin él;
+  3. `respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo`, que cifra y borra el staging. El manifiesto lleva el bloque `informe`, con los 403;
+  4. la búsqueda ampliada, si el Director General la aprueba: los pasos 1 a 7 de la spec §10.14, con su vuelta atrás.
 
 ## 6. FUERA DE ALCANCE DETECTADO
 
 - **12 conversaciones de Kommo con 403** (118, 134, 138, 364, 3746, 3747, 3761, 3764, 3834, 3927, 3928 y 4718). Quedan fuera del Archivo: no tienen eventos, mensajes ni adjuntos bajados. Recuperarlas pide darle acceso en Kommo y otro token; lo decide Sam.
 - **15 adjuntos con 404:** Kommo ya no los tiene.
-- **Tres hallazgos para una PR aparte** (spec §10.16):
+- **Tres hallazgos para una PR aparte** (spec §10.16), en la [#413](https://github.com/SoftAgentes/DTDCARGO/pull/413), en borrador (spec §10.17 y handoff `0590-e5-hallazgos.md`):
   1. el trap de `ensayo-archivo.sh` sale con 0 después de un TERM y puede dejar un volumen y una red;
   2. la sonda no mide la búsqueda por número ni BQ1 con datos reales;
-  3. el guion de la carga no corre `informe` antes de `empaquetar`, así que no queda `informe.json` con `sin_acceso_403`.
+  3. el guion de la carga no corre `informe` antes de `empaquetar`, así que no queda `informe.json` con `sin_acceso_403`. El guion de §5.6 ya lo corre.
 
 - Un usuario que entre a Chatwoot después de la carga no queda como miembro del Archivo solo: hay que agregarlo desde el panel o repetir `MODO=miembros`.
 - La ventana de búsqueda corre con el tiempo: con 3.650 días, el mensaje más viejo del Archivo sale de la búsqueda de texto el 2033-08-20. Por la persona o el número se sigue encontrando.
