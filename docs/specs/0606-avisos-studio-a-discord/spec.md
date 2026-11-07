@@ -90,7 +90,7 @@ Tratar un 5xx como «no se guardó» es una inferencia de la documentación de D
 
 ### D3b · Cola durable para lo que no puede perderse (revisión de Codex, A3)
 
-Migración `0515_studio_alert_outbox`, **sin aplicar**. Tabla `studio_alert_outbox`:
+Migración `0515_studio_alert_outbox`, **aplicada en producción el 2026-11-07** (ver «Aplicación en producción»). Tabla `studio_alert_outbox`:
 
 - guarda **sólo** el aviso mínimo (un CHECK rechaza cualquier clave fuera de `titulo`, `codigo`, `url` y `conteos`, y más de 2 KB) y los IDs de Discord a mencionar;
 - RLS activada sin policies, sin privilegios para `anon` ni `authenticated`: sólo `service_role`;
@@ -114,7 +114,7 @@ En Discord no hay chat privado. Un aviso por persona se escribe en el canal de s
 - Enlazar el ID es lo que enciende las menciones. Sin ID no hay mención y tampoco se escribe en el canal un aviso que era para una sola persona.
 - Los interruptores de cada módulo (`channel_telegram` de bugs, el de Bitácora, el del portal) se siguen aplicando antes de enviar. Pasan a significar «avísame por mensajería», sea Telegram o Discord. No se renombran en esta spec.
 - Mientras exista el token de Telegram, quien no enlazó Discord sigue recibiendo por Telegram. Al retirarlo, esos avisos quedan en la campana del Studio y el correo, que nunca dependieron de esto.
-- El ID se guarda en `user_profiles.discord_user_id` (migración 0514, **sin aplicar**). No es una credencial; sí es un dato personal. El código tolera que la columna no exista: los avisos salen sin menciones y el perfil dice que todavía no se puede guardar.
+- El ID se guarda en `user_profiles.discord_user_id` (migración 0514, **aplicada en producción el 2026-11-07**). No es una credencial; sí es un dato personal. El código tolera una base sin la columna: los avisos salen sin menciones y el perfil dice que todavía no se puede guardar.
 - Las dos acciones del perfil exigen ser miembro activo del Studio (`getStudioAccess`) y sólo tocan la fila de quien está en sesión.
 - El reintento de avisos de bugs (`bug_notifications`) prueba primero la mención en Discord. Si Discord no la guardó por una falla pasajera, la fila sigue viva para el próximo tick aunque la persona no tenga Telegram (revisión de Codex, A4); antes se abandonaba. Una mención incierta cierra la fila sin repetir.
 - El ID no se verifica contra Discord: un webhook no puede consultar miembros. Si alguien pega el ID de otra persona, esa persona recibe menciones en un canal que sólo ve si tiene el rol. Riesgo aceptado; el CHECK de la base sólo deja entrar números de 17 a 20 dígitos.
@@ -247,6 +247,19 @@ Vuelta atrás entre los pasos 3 y 7: quitar las variables de Discord y reiniciar
 - [x] La pantalla nombra las categorías sin canal y nunca muestra una dirección.
 - [ ] `pnpm verify` — **FALLÓ** e incompleto en la única corrida (2026-11-05): un rojo real de esta rama en el contrato de permisos, ya corregido y vuelto a medir aislado; tres archivos ajenos que pasaron en uno de los dos intentos; `migrations-applied`, `sql-tests` y `schema-rebuild` sin medir. Falta una corrida completa sobre la rama final. Detalle por paso en el handoff.
 - [ ] Prueba real contra un webhook de Discord: **no hecha**. No existe todavía ningún webhook y crear uno es de Sam. Los formatos de pedido y de respuesta están tomados de la documentación de Discord, no medidos.
+
+## Aplicación en producción (2026-11-07)
+
+Las aplicó el Director General después de fusionar la #380 (`main` `27254ea5e`), con el runbook y desde la cabeza `d9c8832ce8602b0ea41811e917399b6bab0408bb`. Cada una pasó la lectura previa, el apply con su fila en el ledger y la verificación (una fila con el md5 y los bytes del archivo; cuerpos vivos iguales al archivo). Los md5 se copiaron de `IDENTIDAD.txt` y de `verificar.out` de cada evidencia, y coinciden con el ensayo en prueba del 2026-11-06.
+
+| Migración | COMMIT (UTC) | md5 del blob | Bytes | Ledger después | Evidencia en el servidor |
+|---|---|---|---|---|---|
+| `0514_user_profiles_discord_user_id` | 2026-11-07 07:49:56Z (versión `20261107074955`) | `fb6d4d68b0ed528ab4803ae974571966` | 3766 | 514 filas | `/srv/ops/evidencias/apply-0514-dtd-cargo-20261107T074954Z` |
+| `0515_studio_alert_outbox` | 2026-11-07 07:50:23Z (versión `20261107075023`) | `1ae7c1ac3cfbd9381285595e82f8a3e3` | 5766 | 515 filas | `/srv/ops/evidencias/apply-0515-dtd-cargo-20261107T075021Z` |
+
+OK de Sam, literal: «Prueba y producción (Recomendado)», 2026-11-06 ~17:35Z, en el chat del Director General.
+
+Las dos quedaron selladas en `supabase/migrations.lock.json` y fuera de las esperas (`retirar-espera.mjs`) en la rama `claude/0606-cierre-0514-0515`.
 
 ## Fuera de alcance
 

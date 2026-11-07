@@ -3178,6 +3178,24 @@
         "forma": "exacta"
       }
     },
+    "0514_user_profiles_discord_user_id": {
+      "sha256": "f2a0317f7b3646761e051b1d5e39a50784bf2b814b9a45b51f86b95be0c4a7cb",
+      "md5": "fb6d4d68b0ed528ab4803ae974571966",
+      "bytes": 3766,
+      "ledger": {
+        "fecha": "2026-11-07",
+        "forma": "exacta"
+      }
+    },
+    "0515_studio_alert_outbox": {
+      "sha256": "24add6f0e259301b9ca4f346eecf0a051645748bf7f8a083f50cf058974621b7",
+      "md5": "1ae7c1ac3cfbd9381285595e82f8a3e3",
+      "bytes": 5766,
+      "ledger": {
+        "fecha": "2026-11-07",
+        "forma": "exacta"
+      }
+    },
     "0517_user_guide_prefs": {
       "sha256": "ab7e09eae3ae17295cd1b40f7e02419301df4fe39eb801a5a15807bba2766d24",
       "md5": "22769e1bb0280481c5fd0b7b201a314f",

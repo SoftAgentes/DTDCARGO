@@ -1134,13 +1134,14 @@ export async function unlinkTelegramAccountAction(): Promise<{
 // que cada quien pega en su perfil. No es una credencial; sí es un dato
 // personal, y por eso sólo lo edita su dueño, sobre su propia fila.
 //
-// Las dos acciones toleran que la columna todavía no exista (migración 0514
-// sin aplicar): leer devuelve `disponible: false` y guardar da un aviso claro.
+// Las dos acciones toleran que la columna no exista (una base sin la migración
+// 0514; producción la tiene desde el 2026-11-07): leer devuelve
+// `disponible: false` y guardar da un aviso claro.
 // ─────────────────────────────────────────────────────────────
 
 export async function getMyDiscordUserIdAction(): Promise<{
   discordUserId: string | null;
-  /** false = el Studio todavía no puede guardar el ID (falta la migración 0514). */
+  /** false = el Studio no puede guardar el ID (a la base le falta la migración 0514). */
   disponible: boolean;
 }> {
   const supabase = await createClient();

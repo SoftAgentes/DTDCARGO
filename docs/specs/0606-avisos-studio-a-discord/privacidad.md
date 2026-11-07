@@ -43,7 +43,7 @@ Además de los avisos, Discord recibe en cada mensaje con mención el **ID de Di
 
 Sólo el tenant de `DISCORD_TENANT_ID` escribe en estos canales (`lib/studio/discord/channels.ts`, `discordTenantAuthorized`): un aviso de otra empresa no llega a los canales de DTD.
 
-### Cola de reintento (migración 0515, sin aplicar)
+### Cola de reintento (migración 0515, aplicada en producción el 2026-11-07)
 
 ```
 studio_alert_outbox | avisos que Discord no guardó (registro, bugs, reportes)
