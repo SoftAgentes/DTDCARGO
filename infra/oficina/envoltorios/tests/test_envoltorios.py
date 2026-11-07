@@ -435,6 +435,51 @@ class Motor(Base):
         self.rechazada(["--settings", _barra(futura)])
         self.rechazada([f"--plugin-dir={_barra(self.trabajo_glm / 'nueva')}"])
 
+    # Riesgos BAJOS de la aprobación de la #407 (2026-11-07). Riesgo 2: el motor puede expandir ~
+    # a la casa de su usuario; dtd-motor la leería como una relativa dentro de su carpeta.
+    def test_ruta_que_empieza_por_virgulilla_no_corre(self):
+        for herramienta, perfil in (("claude", "ceo"), ("codex", "auxiliar")):
+            for args in (
+                ["--add-dir", "~/../../srv/oficina/trabajo"],
+                ["--settings=~/../../srv/oficina/trabajo/ceo/.claude/settings.json"],
+                ["--add-dir", "~agentes-run/x"],
+                # En Windows, MSYS expande una ~ suelta antes de que llegue a bash.
+                *([["~"]] if POSIX else []),
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.salida.unlink(missing_ok=True)
+                    r = self.motor(herramienta, perfil, args)
+                    self.assertEqual(r.returncode, 66, r.stderr)
+                    self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+
+    def test_virgulilla_que_no_va_al_inicio_si_corre(self):
+        r = self.motor("claude", "ceo", ["--add-dir", "notas/~viejo", "-p", "hola ~"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["claude", "--add-dir", "notas/~viejo", "-p", "hola ~"])
+
+    # Riesgo 3: Codex 0.163.0 resuelve -C/--cd desde su cwd, lo vuelve la raíz del proyecto y
+    # resuelve desde ahí las --add-dir relativas. dtd-agente-run solo revisa motores/<perfil>.
+    def test_codex_no_acepta_cambiar_de_carpeta(self):
+        for args in (
+            ["-C", "notas"],
+            ["-C/tmp/x"],
+            ["-C=/tmp/x"],
+            ["--cd", "/tmp/x"],
+            ["--cd=/tmp/x"],
+            ["exec", "--json", "-C", "notas", "--add-dir", "../../../trabajo"],
+        ):
+            with self.subTest(args=args):
+                self.salida.unlink(missing_ok=True)
+                r = self.motor("codex", "auxiliar", args)
+                self.assertEqual(r.returncode, 66, r.stderr)
+                self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+
+    def test_codex_sin_cambio_de_carpeta_si_corre(self):
+        args = ["exec", "--json", "-c", "model_reasoning_effort=high", "--add-dir", "notas", "-"]
+        r = self.motor("codex", "auxiliar", args)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["codex", *args])
+
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"
         vieja = base / "run.viejo0001"
@@ -467,6 +512,11 @@ class AgenteRun(Base):
         if POSIX:
             self.trabajo.chmod(0o755)
             self.tmp.chmod(0o755)
+        # La carpeta que escriben los GLM (/srv/oficina/trabajo), aparte de la de los motores.
+        # Con la ruta larga: en Windows, bash resuelve las relativas con ella y no con la 8.3.
+        (self.tmp / "trabajo-glm" / "ceo" / ".claude").mkdir(parents=True)
+        self.glm = Path(os.path.realpath(self.tmp / "trabajo-glm"))
+        (self.glm / "ceo" / ".claude" / "settings.json").write_text("{}")
         for nombre in ("claude", "codex", "opencode", "hermes"):
             self.falso(nombre)
         texto = (RAIZ / "dtd-agente-run").read_text()
@@ -476,6 +526,7 @@ class AgenteRun(Base):
             'casa="/home/$yo"': f'casa="{_barra(self.home)}/$yo"',
             "/home/agentes-run": _barra(self.home / "agentes-run"),
             "MOTORES=/srv/oficina/motores": f"MOTORES={_barra(self.trabajo)}",
+            "TRABAJO=/srv/oficina/trabajo": f'TRABAJO="{_barra(self.glm)}"',
             "TOPE=/": f"TOPE={_barra(self.tmp)}",
             "DUENO_SEGURO=0": "DUENO_SEGURO=$(id -u)",
             '"$(id -un)"': '"$USUARIO_FALSO"',
@@ -485,7 +536,7 @@ class AgenteRun(Base):
         self.script = self.tmp / "dtd-agente-run"
         self.script.write_text(texto, newline="\n")
 
-    def run_(self, herramienta, perfil, usuario):
+    def run_(self, herramienta, perfil, usuario, args=("--version",)):
         env = {"DTD_PERFIL": perfil} if perfil is not None else {}
         env.update(
             {
@@ -498,7 +549,7 @@ class AgenteRun(Base):
             }
         )
         self.salida.unlink(missing_ok=True)
-        return self.correr(self.script, [herramienta, "--version"], env)
+        return self.correr(self.script, [herramienta, *args], env)
 
     def rechazado(self, herramienta, perfil, usuario):
         r = self.run_(herramienta, perfil, usuario)
@@ -652,6 +703,55 @@ class AgenteRun(Base):
     def test_carpeta_inexistente_no_arranca(self):
         shutil.rmtree(self.trabajo / "ceo")
         self.insegura("claude", "ceo", "agentes-alfred")
+
+    # Riesgo BAJO 1 de la aprobación de la #407 (2026-11-07): dtd-motor corre como agentes y no ve
+    # los enlaces dentro de motores/<perfil> (700 del usuario del motor). Un enlace notas ->
+    # trabajo/ceo, creado por el motor, le pasaría. dtd-agente-run lo revisa como ese usuario.
+    def con_args(self, herramienta, perfil, usuario, args):
+        r = self.run_(herramienta, perfil, usuario, args)
+        self.assertEqual(r.returncode, 66, f"{herramienta} {args}: {r.stderr}")
+        self.assertIsNone(self.leer(), "no debe arrancar el motor")
+
+    def test_enlace_dentro_de_la_carpeta_del_motor_hacia_los_glm_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los enlaces se prueban en Linux")
+        for herramienta, perfil, usuario in self.MOTORES:
+            os.symlink(self.glm / "ceo", self.trabajo / perfil / "notas")
+            for args in (
+                ["--add-dir", "notas"],
+                ["--settings", "notas/.claude/settings.json"],
+                ["--settings=./notas/.claude/settings.json"],
+                ["--add-dir", "notas/nueva"],
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.con_args(herramienta, perfil, usuario, args)
+
+    def test_ruta_hacia_los_glm_no_arranca_aunque_no_pase_por_dtd_motor(self):
+        for herramienta, perfil, usuario in self.MOTORES:
+            for args in (
+                ["--add-dir", _barra(self.glm)],
+                [f"--settings={_barra(self.glm / 'ceo' / '.claude' / 'settings.json')}"],
+                # En Windows bash resuelve el cwd con la ruta 8.3; la relativa se prueba en Linux.
+                *([["--add-dir", "../../trabajo-glm/ceo"]] if POSIX else []),
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.con_args(herramienta, perfil, usuario, args)
+
+    def test_argumentos_comunes_si_arrancan(self):
+        if POSIX:
+            (self.trabajo / "ceo" / "notas").mkdir()
+        args = ["-p", "hola", "--effort", "high", "--add-dir", "notas", "--settings=./x.json", ""]
+        for herramienta, perfil, usuario in self.MOTORES:
+            with self.subTest(herramienta=herramienta):
+                r = self.run_(herramienta, perfil, usuario, args)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(self.leer()[0], args)
+
+    def test_hermes_si_trabaja_en_la_carpeta_de_los_glm(self):
+        args = ["--cwd", _barra(self.glm / "ceo")]
+        r = self.run_("hermes", "ceo", "agentes-run", args)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], args)
 
 
 class Archivos(unittest.TestCase):

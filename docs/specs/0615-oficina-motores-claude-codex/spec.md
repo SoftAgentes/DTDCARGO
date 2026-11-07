@@ -173,7 +173,9 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
      con dueño `agentes`, el grupo del usuario del motor y permisos 750. Sin ella sale con 65;
      además rechaza con 66 todo argumento que, resuelto, caiga en `/srv/oficina/trabajo`, la
      carpeta que escriben los GLM. Las rutas relativas las resuelve desde la carpeta donde
-     trabaja el motor (`/srv/oficina/motores/<perfil>`), y las revisa aunque todavía no existan;
+     trabaja el motor (`/srv/oficina/motores/<perfil>`), y las revisa aunque todavía no existan.
+     También sale con 66 si un argumento, o el valor de `--opción=valor`, empieza por `~`, y si
+     a Codex le llega `-C` o `--cd` en cualquiera de sus formas;
   3. quita `--mcp-config` y su valor, y conserva `--strict-mcp-config`;
   4. borra las corridas de más de 3 horas y ejecuta `sudo -n -u <usuario> dtd-agente-run`.
 - **`dtd-agente-run`** parte del `dtd-agente-run` vivo, medido el 2026-11-06 a las 15:22 UTC.
@@ -185,6 +187,8 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
     Antes comprueba que nadie más que el usuario del motor o root pueda escribirla, ni lo que
     cargan de ella (`.claude`, `.mcp.json`, `CLAUDE.md`, `.codex`, `AGENTS.md`), ni un padre. Si
     no, sale con 66.
+  - Ya en esa carpeta y como el usuario del motor, revisa otra vez los argumentos de Claude y
+    Codex. Si uno, resuelto con sus enlaces, cae en `/srv/oficina/trabajo`, sale con 66.
   - Hace `unset` de `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` y `OPENAI_API_KEY`, y solo
     Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
   - La rama `hermes` no cambia.
@@ -342,7 +346,7 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
    usuario.
 4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-5. Las pruebas pasan sin saltos en Linux, con un piso de 46 en el harness, y todos los mutantes
+5. Las pruebas pasan sin saltos en Linux, con un piso de 54 en el harness, y todos los mutantes
    mueren.
 6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 
@@ -405,6 +409,21 @@ siguiente.
   `extraArgs`, `command`, `cwd` ni `env` (`routes/agents.js`,
   `assertNoAgentLocalAdapterHostCommandMutation`).
 - **Reinstalar lo decide Sam por medio del DG.**
+
+## Riesgos BAJOS de la aprobación (2026-11-07)
+
+El DG aprobó la #407 sobre la cabeza `1388a7ef4` y dejó tres riesgos BAJOS. Ninguno es explotable
+hoy: una llave de agente no puede cambiar `args`, `extraArgs`, `command`, `cwd` ni `env`. Los
+corrige una PR aparte, que parte de `main`.
+
+| # | Riesgo | Medido | Arreglo |
+|---|---|---|---|
+| 1 | `dtd-motor` corre como `agentes` y no ve los enlaces dentro de `motores/<perfil>` (700) | En el VPS de la oficina, en `/tmp`: un enlace `notas` → `trabajo/ceo` en una carpeta 700. El dueño lo resuelve hacia `trabajo/ceo`; `agentes` devuelve `motores/ceo/notas` | `dtd-agente-run` revisa otra vez los argumentos como el usuario del motor y desde su carpeta. Rechazar en `dtd-motor` las relativas que `agentes` no resuelve las rechazaría todas, también `high` o `hola` |
+| 2 | `~` no se expande: `~/../../srv/oficina/trabajo` pasaba como `motores/srv/oficina/trabajo` | Mismo VPS, como `agentes` | `dtd-motor` sale con 66 si un argumento, o el valor de `--opción=valor`, empieza por `~`. Paperclip le manda el prompt a Claude por stdin (`adapter-claude-local`, `execute.js`) |
+| 3 | `codex -C <carpeta>` cambia desde dónde se resuelven las relativas | Codex 0.163.0: `-C` se resuelve desde el cwd del proceso y pasa a ser la carpeta de la sesión, de donde salen las `--add-dir` relativas y el proyecto activo | `dtd-motor` rechaza `-C`, `-C<carpeta>`, `-C=<carpeta>`, `--cd` y `--cd=<carpeta>`. Revisar solo la carpeta no alcanza: `-C /tmp/x` mudaría la raíz del proyecto fuera de la carpeta que revisa `dtd-agente-run`. `codex_local` 2026.1012.0 no pasa `-C` |
+
+El detalle, con las líneas de Codex, está en el README de los envoltorios. Lo instalado todavía no
+tiene estos arreglos. **Reinstalar lo decide Sam por medio del DG.**
 
 ## Qué no autoriza
 

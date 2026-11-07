@@ -61,12 +61,36 @@ motor_en() {
   cd -- "$1"
 }
 
+# dtd-motor ya rechaza los argumentos que caen en la carpeta de los GLM, pero corre como agentes,
+# que no puede leer la carpeta del motor (700): no ve los enlaces de adentro y un notas ->
+# /srv/oficina/trabajo/ceo le pasaría. Aquí se revisa otra vez como el usuario del motor y desde
+# su carpeta, igual que abriría la ruta el motor: lo que esta revisión no resuelva, él tampoco.
+TRABAJO=/srv/oficina/trabajo
+sin_rutas_de_los_glm() {
+  local a ruta real trabajo_real
+  trabajo_real="$(realpath -m -- "$TRABAJO")"
+  for a in "$@"; do
+    case "$a" in
+      --*=*) ruta="${a#*=}" ;;
+      *) ruta="$a" ;;
+    esac
+    real="$(realpath -m -- "$ruta" 2>/dev/null)" || continue
+    case "$real" in
+      "$trabajo_real"|"$trabajo_real"/*)
+        echo "dtd-agente-run: ruta en la carpeta de los GLM: $a" >&2
+        exit 66 ;;
+    esac
+  done
+}
+
 case "$herramienta" in
   codex)
     motor_en "$MOTORES/auxiliar"
+    sin_rutas_de_los_glm "$@"
     exec /opt/agentes-cli/bin/codex "$@" ;;
   claude)
     motor_en "$MOTORES/ceo"
+    sin_rutas_de_los_glm "$@"
     exec /opt/agentes-cli/bin/claude "$@" ;;
   opencode)
     exec /opt/agentes-cli/bin/opencode "$@" ;;

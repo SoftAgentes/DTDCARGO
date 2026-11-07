@@ -107,6 +107,19 @@ while [ "$i" -lt "${#pendientes[@]}" ]; do
     --*=*) candidato="${a#*=}" ;;
     *) candidato="$a" ;;
   esac
+  # El motor puede expandir ~ a la casa de su usuario: ~/../../srv/oficina/trabajo llegaría a la
+  # carpeta de los GLM y aquí se resolvería como una relativa inocente. No se adivina: no corre.
+  case "$candidato" in
+    "~"*) echo "dtd-motor: ruta que empieza por ~: $candidato" >&2; exit 66 ;;
+  esac
+  # Codex 0.163.0 resuelve -C/--cd desde su cwd y lo vuelve la raíz del proyecto: de ahí carga
+  # AGENTS.md y su configuración, y desde ahí resuelve las --add-dir relativas. Esa carpeta no es
+  # la que revisa dtd-agente-run, así que -C no se acepta en ninguna de sus formas.
+  if [ "$herramienta" = codex ]; then
+    case "$a" in
+      -C*|--cd|--cd=*) echo "dtd-motor: Codex no acepta -C ni --cd: $a" >&2; exit 66 ;;
+    esac
+  fi
   if protegida "$candidato" && ! revisar "$candidato"; then
     echo "dtd-motor: ruta protegida fuera de la lista: $candidato" >&2
     exit 66
