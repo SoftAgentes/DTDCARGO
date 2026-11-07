@@ -199,6 +199,23 @@ Antes de empezar se guarda el JSON actual, para poder volver a Hermes.
 - **Permisos:** asignar no, crear agentes no, crear skills no.
 - **Instructions:** el bloque de [`auxiliar/AGENTS.md`](auxiliar/AGENTS.md).
 
+**Cómo se dio de alta (2026-11-07, MEDIDO):**
+
+1. **El alta empieza con Hermes.** El asistente de alta de Codex obliga a conectar OpenAI en la
+   carpeta de Paperclip. Por eso el agente se crea con el tipo Hermes, que no pide conexión.
+2. **Primero se aprueba.** Paperclip no deja guardar la configuración mientras el alta espera
+   aprobación.
+3. **Después se pasa a Codex** en Harness, con «Existing authentication»: la sesión de Codex
+   de Sam vive en `/home/agentes-auxiliar/.codex`, en archivo y con permisos 600.
+4. **El agente lleva una segunda variable,
+   `CODEX_HOME=/srv/oficina/staging/auxiliar/codex-home-paperclip`.**
+   - Sin un `CODEX_HOME` propio, Paperclip exige credenciales en su carpeta administrada y no
+     arranca (`configuration incomplete`).
+   - Con uno externo no revisa nada. Escribe ahí su `config.toml` y sus skills como `agentes`.
+   - El envoltorio descarta esa variable y Codex usa la casa de `agentes-auxiliar`.
+5. **«Can assign tasks» sigue encendido en la pantalla** por la opción general de la
+   organización. En la base del agente queda en `false`.
+
 ### Revisor, Director de contenido y SEO (GLM)
 
 - **Harness:**

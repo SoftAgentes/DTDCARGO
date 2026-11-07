@@ -197,13 +197,56 @@ Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrom
 - **Volver atrás:** pegar la fila de `alfred-agente-antes.json` (Hermes) en Harness y
   restaurar el `AGENTS.md` anterior desde Revisions.
 
+## Auxiliar de ALFRED (2026-11-07, 04:48–05:24 UTC)
+
+- **Sesión de Codex:**
+  - Antes del inicio de sesión se dejó `config.toml` con `cli_auth_credentials_store = "file"`
+    en `/home/agentes-auxiliar/.codex`.
+  - Sam inició sesión (`codex login --device-auth`) como `agentes-auxiliar`.
+  - `codex login status`: «Logged in using ChatGPT».
+  - `auth.json` es 600; `agentes`, `agentes-run` y `agentes-alfred` no lo leen.
+- **Alta (agente `d0f433b1`):** se creó con el tipo Hermes, porque el asistente de Codex
+  obliga a conectar OpenAI en la carpeta de Paperclip. Quedó en `pending_approval`; Paperclip
+  no deja guardar la configuración antes de aprobar.
+  - Sam aprobó `hire_agent` `64a55a57` a las 05:17:21 UTC.
+  - Al aprobarse, Paperclip despertó a ALFRED (corrida `9cbf9cdd`, automática).
+- **Harness guardado** (leído en la base):
+  - `codex_local`, `engine: cli`, `command: /usr/local/bin/dtd-codex`;
+  - `gpt-6-astra` con `modelReasoningEffort: high`;
+  - `dangerouslyBypassApprovalsAndSandbox: false`;
+  - `DTD_PERFIL=auxiliar`, 1800 s, 20 s de gracia;
+  - heartbeat apagado, wake on demand encendido, 1 corrida a la vez;
+  - título «Crítico de planes», reporta a ALFRED.
+- **Instructions:** el bloque de `auxiliar/AGENTS.md`, con los pasos como «Paso 1/2/3», porque
+  el editor no cerraba bien la lista. Se verificó que no quedara el texto por defecto.
+- **Skills:** solo `paperclip`.
+- **Permisos en la base:** asignar, crear agentes y crear skills en `false`. La pantalla
+  muestra «Can assign tasks» encendido por la opción general de la organización. No se
+  tocó, porque afecta a todos.
+- **Primera corrida (`e5feb5ee`): FALLÓ** antes de lanzar Codex: `configuration incomplete:
+  no Codex credentials available for managed home`.
+  - El chequeo previo de `heartbeat.js` se salta solo si `CODEX_HOME` es externo
+    (`evaluateCodexCredentialReadiness`).
+  - Pero con un `CODEX_HOME` externo el adaptador escribe ahí, como `agentes`, su
+    `config.toml` y sus skills (`execute.js`). Por eso no sirve la casa de
+    `agentes-auxiliar`.
+- **Arreglo:** carpeta propia de Paperclip,
+  `/srv/oficina/staging/auxiliar/codex-home-paperclip` (`agentes`, 700), y la variable
+  `CODEX_HOME` en el agente. `sudo env_reset` la descarta y `dtd-agente-run` fija la de
+  `agentes-auxiliar`.
+- **Segunda corrida (`b84f55bf`, 05:23:49–05:24:14 UTC): PASÓ** con `exit_code 0`.
+  - Leyó `/home/agentes-auxiliar/.codex/skills/paperclip/SKILL.md` y las reglas.
+  - Respondió «No tienes ninguna subtarea de crítica asignada… no hice cambios».
+- **NO VERIFICADO:** en stderr, un cliente MCP de Codex (`rmcp`) recibió `HTTP 403` con una
+  página HTML ajena. La corrida no se frenó. Falta ver qué servidor intenta y si conviene
+  apagarlo en el `config.toml` del Auxiliar.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.
 2. **Instalación:** hecha y comprobada con una corrida real de ALFRED.
-3. **ALFRED en Claude Code:** hecho el 2026-11-07 (sección anterior). Falta de Sam: iniciar la
-   sesión de Codex como `agentes-auxiliar` y crear al Auxiliar (o pedirme que lo cree en
-   pantalla).
+3. **ALFRED en Claude Code y el Auxiliar en Codex:** hechos y probados el 2026-11-07
+   (secciones anteriores). Queda revisar el 403 de MCP del Auxiliar.
 4. **Rutinas de ALFRED:** arregladas el 2026-11-07 (sección anterior).
 5. **Probar el ciclo por ramas** (paso 7 de la spec) y la pregunta de control.
 6. **Temporales con salida cruda de la base:** borrados el 2026-11-06.
