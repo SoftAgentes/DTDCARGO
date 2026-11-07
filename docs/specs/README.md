@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 595 specs)
+### Índice de specs (generado · 596 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -633,6 +633,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0612 | Avisos de Paperclip a #actividad-oficina y resumen diario de … | proposed | interno |
 | 0613 | SEO, GEO y AEO: fase B, revisión en servidor, Search Console … | proposed | interno |
 | 0614 | Reemplazos de Kommo en el ERP: vista CRM nueva, ficha desde l… | draft | interno |
+| 0615 | ALFRED con Claude Code, un crítico con Codex y envoltorios ai… | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0603, 0608 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
