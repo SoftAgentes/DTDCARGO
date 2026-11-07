@@ -198,6 +198,13 @@ falso. Lo cubre la misma D-6.6-1 («no lo quiero ver») y va en su propia PR, de
   tarjeta se conservan hasta 8.7, con su OK aparte. Sin migración, sin tocar la guía de la
   SDD-0589 ni `layout.tsx`.
 - Sin estimación propia en §10: la anota el Subdirector de Chatwoot.
+- **S0b-bis (opción 2 del Director General, 2026-11-07).** Al medir S0b apareció un caso: una
+  config guardada con «Leads en pipeline» como único KPI y algún widget quedaba sin KPI después
+  del filtro, y no caía al default porque `isEmptyConfig` pide KPI y widgets vacíos. El Dashboard
+  abría sin ningún KPI. Ahora, si la config traía un KPI oculto y al quitarlo no queda ninguno,
+  se usan los KPI del default **de ese rol**, con los widgets y el período guardados
+  (`resolverConfigDashboard`). Es solo lectura y pintado: la fila de `user_dashboard_prefs` no se
+  toca. Quien guardó cero KPI a propósito sigue con cero.
 
 **El resto de R1:**
 
@@ -843,6 +850,7 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 |---|---|---|
 | **PR 0** | S0 | Primero: no espera la 10.5 ni migración (P-8) |
 | **PR 0b** | S0b | Con la PR 0 fusionada (enmienda del Director General, 2026-11-07) |
+| **PR 0b-bis** | S0b-bis | Con la PR 0b fusionada (opción 2 del Director General, 2026-11-07) |
 | — | **M · maqueta** | Antes de S3, sin código (D-6.6-12 = b) |
 | **PR A** | S1 + S2 | Después de la implementación de la 10.5 (§2.8) |
 | **PR B** | S3 + S4 | Con la A fusionada, la maqueta aprobada por Sam y **la PR del paso P-13 de la SDD-0589 fusionada en `main`** (P-13; casilla de §9) |
@@ -898,6 +906,20 @@ cuando la anterior ya está fusionada. Las pruebas de cada tramo van en el mismo
 - Esta spec (§1.3, §2.1, §5, §8, §9 y §13) y el handoff `.agents/handoffs/0614-s0b-kommo-fuera-de-s0.md`
 - **Fuera de S0b:** `app/studio/(app)/dashboard/page.tsx` y `direccion/page.tsx` (no hace falta
   tocarlos), los archivos de la guía de la SDD-0589 y `layout.tsx`, y cualquier migración
+
+**S0b-bis · Respaldo de KPI del Dashboard** (§2.1, sin migración). Allowlist exacta de la PR 0b-bis:
+- `lib/studio/dashboard/dashboard-types.ts` (`resolverConfigDashboard`, nueva, y su ayudante
+  `traiaKpiOculto`)
+- `app/studio/(app)/dashboard/page.tsx` (solo la resolución de la config: usa
+  `resolverConfigDashboard` en vez de validar y caer al default a mano)
+- `app/studio/(app)/dashboard/__tests__/kpi-respaldo.test.ts` (nueva: la página de verdad, admin y
+  commercial con el default de cada rol, y tres controles)
+- `.agents/handoffs/0614-s0b-kommo-fuera-de-s0.md` (solo la fila de la config guardada: la frase
+  corregida para el comportamiento nuevo)
+- Esta spec (§2.1, §5, §8, §9 y §13) y el handoff `.agents/handoffs/0614-s0b-bis-kpi-respaldo.md`
+- **Fuera de S0b-bis:** el subtítulo de Dirección y el comentario «Operación + comercial»
+  (`direccion/page.tsx`), que van en la próxima PR que toque Dirección, y cualquier escritura en
+  `user_dashboard_prefs`
 
 **M · Maqueta** (sin código)
 - Resumen, Sin atender y la ficha de la tarjeta (con «Crear ficha», el tipo de lead, la marca de R8 y
@@ -1086,6 +1108,10 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
   KPI de leads no se ofrece, no se pinta desde una config guardada, no viene en el default y su
   fuente no se pide; Embudos sin la 0506 no nombra las otras pestañas. Rojo antes del cambio y un
   mutante por pieza.
+- **S0b-bis:** una config guardada con solo el KPI oculto y widgets abre con los KPI del default
+  del rol (admin y commercial), conservando widgets y período; con otro KPI visible no hay
+  respaldo; cero KPI a propósito sigue en cero; sin config, el default. Rojo antes y dos mutantes
+  (sin respaldo; respaldo siempre).
 - **Recuperación:** los dos grupos con su tope; el CSV lo baja solo admin y deja su registro; una
   tarjeta anonimizada o con «No volver a escribir» no aparece; una ficha sin tarjeta tampoco.
 - **El teléfono no sale:** ni en logs, ni en el push, ni en `entity_audit_log`, con un teléfono
@@ -1109,6 +1135,8 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
   sigue montada y S0 no tocó ninguno de sus archivos (P-10).
 - [ ] S0b: Dirección y el Dashboard no muestran cifras de Kommo ni las leen; el texto de Embudos
   sin la 0506 no remite a pestañas ocultas; nada de Kommo se borró.
+- [ ] S0b-bis: nadie abre el Dashboard sin KPI por un KPI oculto; el respaldo es el default de su
+  rol y no escribe en `user_dashboard_prefs`.
 - [ ] R1: Resumen, Embudos y Sin atender funcionan con datos de tarjetas; cada tarjeta de Leads dice
   «Interesado» o «Interesado con código».
 - [ ] M: Sam aprobó la maqueta de Resumen, Sin atender y la ficha de la tarjeta antes de S3.
@@ -1338,6 +1366,10 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   inventariaba la tarjeta Comercial de Dirección ni el KPI «Leads en pipeline» del Dashboard, que
   siguen leyendo `kommo_leads`, ni el texto de Embudos que remite a las pestañas ocultas. Se
   ocultan sin borrar en la PR 0b (§2.1, §5, §8 y §9). Sin estimación propia en §10.
+- **2026-11-07:** S0b-bis, opción 2 del Director General para el caso del Dashboard sin KPI que
+  salió al medir S0b: respaldo con los KPI del default del rol cuando lo único guardado era un KPI
+  oculto (§2.1, §5, §8 y §9). La frase del handoff de S0b se corrige en la misma PR. Sin
+  estimación propia en §10.
 
 ## 14. Textos públicos aprobados por Sam (se publican por PR y tanda, con el OK del Director General)
 
