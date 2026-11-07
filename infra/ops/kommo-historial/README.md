@@ -194,7 +194,8 @@ evidencia, `HECHO ensayo_codigo=<código>`:
 | 143, 130, 129 | Lo pararon con TERM, INT o HUP (`FALLÓ PARADA`, `HECHO senal=…`) |
 
 Como unidad de systemd, cualquier código distinto de 0 la deja en `failed`, con `Result=exit-code` y el código
-en `ExecMainStatus`. Antes de la 1.3.2 del extractor, una parada con TERM terminaba en `Result=success`. Con
+en `ExecMainStatus`. El guion que corrió el 2026-11-07 (huella `c0fb3d336a135ca1`) terminaba una parada con TERM
+en `Result=success`. Con
 `systemctl stop`, el paso en curso recibe la misma señal y termina enseguida. Con TERM solo al proceso
 principal, el ensayo espera a que termine el paso en curso. La limpieza nunca toca nada fuera del proyecto
 `chatwoot-ensayo`: si algo ajeno sostiene su red o su volumen, lo dice y no sale con 0; después de revisarlo,
