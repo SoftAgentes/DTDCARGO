@@ -9,11 +9,12 @@
 --
 -- ── Qué hace ─────────────────────────────────────────────────
 -- 1. `seo_drafts`: los estados `en_revision` y `retenido` (SDD-0611 §4.1), las
---    columnas que trae un borrador para poder publicarse solo (veredicto del
+--    columnas (`autopub_*` y las del veredicto; nombres únicos para que el gate
+--    de símbolos pendientes no las confunda con claves homónimas) que trae un borrador para poder publicarse solo (veredicto del
 --    Revisor, fuentes, consulta de Search Console, agente que redactó, …) y los
 --    motivos de retención. El CHECK de `categoria` pasa a las 6 categorías de
 --    negocio (0140 lo cambió en `news_posts` y no aquí) como NOT VALID.
--- 2. `news_posts`: `publish_via` (manual | automatica), `draft_id` (una sola
+-- 2. `news_posts`: `publish_via` (manual | automatica), `seo_draft_id` (una sola
 --    publicación por borrador, F10) y `content_sha256`. Un CHECK NOT VALID
 --    rechaza publicar un texto con una marca `[VERIFICAR`, por cualquier vía
 --    (criterio 3). Una fila automática solo la escriben estas funciones.
@@ -33,6 +34,7 @@
 --    · `news_autopublish_configurar` (admin): interruptor y topes, con registro.
 --    · `news_retirar` (admin): retiro con motivo obligatorio; no toca el interruptor.
 --    · `news_salida_motivo` (admin): completa el motivo de una salida pendiente.
+--    · `news_volver_a_publicar` (admin): una persona vuelve a publicar una retirada.
 -- 7. Disparadores: registran toda salida, rechazan borrar una noticia automática
 --    y rechazan que una sesión de la API escriba una fila automática a mano.
 --
@@ -144,12 +146,12 @@ alter table public.seo_drafts add constraint seo_drafts_categoria_check
 
 alter table public.seo_drafts
   add column reviewer_verdict    jsonb,
-  add column sources             jsonb not null default '[]'::jsonb,
+  add column autopub_sources     jsonb not null default '[]'::jsonb,
   add column search_console      jsonb,
   add column idea_tipo           text,
-  add column test_noticia        jsonb,
-  add column content_kind        text,
-  add column cover_image_url     text,
+  add column autopub_test_noticia jsonb,
+  add column autopub_content_kind text,
+  add column autopub_cover_image_url text,
   add column writer_agent        jsonb,
   add column held_reasons        text[] not null default '{}',
   add column filter_results      jsonb,
@@ -157,8 +159,8 @@ alter table public.seo_drafts
 
 alter table public.seo_drafts
   add constraint seo_drafts_sources_lista
-    check (jsonb_typeof(sources) = 'array' and jsonb_array_length(sources) <= 50
-           and octet_length(sources::text) <= 16384),
+    check (jsonb_typeof(autopub_sources) = 'array' and jsonb_array_length(autopub_sources) <= 50
+           and octet_length(autopub_sources::text) <= 16384),
   add constraint seo_drafts_verdict_objeto
     check (reviewer_verdict is null or (jsonb_typeof(reviewer_verdict) = 'object'
            and octet_length(reviewer_verdict::text) <= 16384)),
@@ -169,9 +171,9 @@ alter table public.seo_drafts
     check (idea_tipo is null or idea_tipo in (
       'guia', 'postura', 'historia', 'dato', 'actualidad', 'promo', 'pregunta', 'detras-camara')),
   add constraint seo_drafts_test_noticia_objeto
-    check (test_noticia is null or jsonb_typeof(test_noticia) = 'object'),
+    check (autopub_test_noticia is null or jsonb_typeof(autopub_test_noticia) = 'object'),
   add constraint seo_drafts_content_kind_valido
-    check (content_kind is null or content_kind in ('guide', 'news', 'analysis', 'case')),
+    check (autopub_content_kind is null or autopub_content_kind in ('guide', 'news', 'analysis', 'case')),
   add constraint seo_drafts_writer_agent_objeto
     check (writer_agent is null or (jsonb_typeof(writer_agent) = 'object'
            and (writer_agent - array['agente', 'modelo', 'version']) = '{}'::jsonb)),
@@ -193,14 +195,14 @@ create index seo_drafts_en_revision_idx
 -- ─── 2. Noticias ─────────────────────────────────────────────────────────────
 alter table public.news_posts
   add column publish_via     text not null default 'manual',
-  add column draft_id        uuid references public.seo_drafts(id) on delete set null,
+  add column seo_draft_id    uuid references public.seo_drafts(id) on delete set null,
   add column content_sha256  text;
 
 alter table public.news_posts
   add constraint news_posts_publish_via_valida check (publish_via in ('manual', 'automatica')),
   add constraint news_posts_sha256_hex check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}$'),
   add constraint news_posts_automatica_con_huella
-    check (publish_via = 'manual' or (draft_id is not null and content_sha256 is not null));
+    check (publish_via = 'manual' or (seo_draft_id is not null and content_sha256 is not null));
 
 -- Criterio 3: nada con una marca [VERIFICAR queda publicado, venga de donde venga.
 -- NOT VALID: no revisa las filas de hoy (antes de aplicar se cuentan, ver el
@@ -218,7 +220,7 @@ alter table public.news_posts add constraint news_posts_sin_marca_verificar
 
 -- F10: un borrador se publica una sola vez.
 create unique index news_posts_un_borrador_una_vez
-  on public.news_posts (draft_id) where draft_id is not null;
+  on public.news_posts (seo_draft_id) where seo_draft_id is not null;
 
 -- F7: lo que cuenta el tope (solo las automáticas).
 create index news_posts_automaticas_idx
@@ -386,13 +388,13 @@ as $fn$
 begin
   -- service_role tampoco: la llave general no publica una automática (§4.8).
   if current_user in ('authenticated', 'anon', 'service_role') then
-    if tg_op = 'INSERT' and (new.publish_via = 'automatica' or new.draft_id is not null
+    if tg_op = 'INSERT' and (new.publish_via = 'automatica' or new.seo_draft_id is not null
                              or new.content_sha256 is not null) then
       raise exception 'SDD-0611: una noticia automática solo la publica la función de la base'
         using errcode = '42501';
     end if;
     if tg_op = 'UPDATE' and (new.publish_via is distinct from old.publish_via
-                             or new.draft_id is distinct from old.draft_id
+                             or new.seo_draft_id is distinct from old.seo_draft_id
                              or new.content_sha256 is distinct from old.content_sha256) then
       raise exception 'SDD-0611: el origen de una noticia no se cambia a mano'
         using errcode = '42501';
@@ -511,7 +513,7 @@ begin
     tenant_id, slug, tipo, categoria, title, excerpt, body_markdown,
     author_name, author_role, focus_keyword, secondary_keywords, meta_description,
     pain_points, read_time_min, date, published, source, created_by,
-    publish_via, draft_id, content_sha256)
+    publish_via, seo_draft_id, content_sha256)
   values (
     p_tenant, p_post ->> 'slug', p_post ->> 'tipo', p_post ->> 'categoria',
     p_post ->> 'title', p_post ->> 'excerpt', p_post ->> 'body_markdown',
@@ -578,7 +580,7 @@ begin
   select * into v_conf from public.news_autopublish_settings
    where tenant_id = p_tenant_id for update;
   if not found or not v_conf.enabled then
-    v_motivos := v_motivos || 'interruptor_apagado';
+    v_motivos := pg_catalog.array_append(v_motivos, 'interruptor_apagado');
     v_filtros := v_filtros || pg_catalog.jsonb_build_object('F1', pg_catalog.jsonb_build_object(
       'pasa', false, 'codigos', pg_catalog.jsonb_build_array('interruptor_apagado')));
   end if;
@@ -607,19 +609,19 @@ begin
     from public.news_posts p
    where p.tenant_id = p_tenant_id and p.publish_via = 'automatica';
   if v_dia >= least(coalesce(v_conf.daily_cap, 0), 1) then
-    v_motivos := v_motivos || 'tope_dia';
+    v_motivos := pg_catalog.array_append(v_motivos, 'tope_dia');
     v_filtros := v_filtros || pg_catalog.jsonb_build_object('F7', pg_catalog.jsonb_build_object(
       'pasa', false, 'codigos', pg_catalog.jsonb_build_array('tope_dia')));
   elsif v_semana >= coalesce(v_conf.weekly_cap, 0) then
-    v_motivos := v_motivos || 'tope_semana';
+    v_motivos := pg_catalog.array_append(v_motivos, 'tope_semana');
     v_filtros := v_filtros || pg_catalog.jsonb_build_object('F7', pg_catalog.jsonb_build_object(
       'pasa', false, 'codigos', pg_catalog.jsonb_build_array('tope_semana')));
   end if;
 
   -- F10 · una sola vez por borrador, y el slug no choca.
-  if exists (select 1 from public.news_posts where draft_id = p_draft_id)
+  if exists (select 1 from public.news_posts where seo_draft_id = p_draft_id)
      or exists (select 1 from public.news_posts where slug = p_post ->> 'slug') then
-    v_motivos := v_motivos || 'duplicado';
+    v_motivos := pg_catalog.array_append(v_motivos, 'duplicado');
     v_filtros := v_filtros || pg_catalog.jsonb_build_object('F10', pg_catalog.jsonb_build_object(
       'pasa', false, 'codigos', pg_catalog.jsonb_build_array('duplicado')));
   end if;
@@ -630,7 +632,7 @@ begin
      or public.news_texto_tiene_marca(coalesce(p_post ->> 'excerpt', ''))
      or public.news_texto_tiene_marca(coalesce(p_post ->> 'meta_description', '')) then
     if not ('marca_pendiente' = any (v_motivos)) then
-      v_motivos := v_motivos || 'marca_pendiente';
+      v_motivos := pg_catalog.array_append(v_motivos, 'marca_pendiente');
     end if;
     v_filtros := v_filtros || pg_catalog.jsonb_build_object('F4', pg_catalog.jsonb_build_object(
       'pasa', false, 'codigos', pg_catalog.jsonb_build_array('marca_pendiente')));
@@ -783,6 +785,32 @@ begin
 end;
 $fn$;
 
+-- Una persona vuelve a publicar una noticia retirada (§4.1). El CHECK de marcas
+-- sigue mandando. Hace falta una función: la lectura de `news_posts` solo deja
+-- ver las publicadas, y un UPDATE directo no encuentra la retirada.
+create function public.news_volver_a_publicar(p_post_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_slug text;
+begin
+  if not (select public.is_tenant_admin()) then
+    raise exception 'SDD-0611: solo un admin vuelve a publicar' using errcode = '42501';
+  end if;
+  update public.news_posts
+     set published = true
+   where id = p_post_id and tenant_id = (select public.get_user_tenant_id()) and not published
+  returning slug into v_slug;
+  if v_slug is null then
+    raise exception 'SDD-0611: no hay una noticia retirada con ese id' using errcode = 'P0002';
+  end if;
+  return v_slug;
+end;
+$fn$;
+
 -- Completa el motivo de una salida que llegó sin él.
 create function public.news_salida_motivo(p_exit_id uuid, p_motivo text, p_nota text)
 returns void
@@ -810,6 +838,7 @@ revoke all on function public.news_registrar_aviso(uuid, text, text) from public
 revoke all on function public.news_aviso_confirmar_a_mano(uuid) from public, anon;
 revoke all on function public.news_retirar(uuid, text, text) from public, anon;
 revoke all on function public.news_salida_motivo(uuid, text, text) from public, anon;
+revoke all on function public.news_volver_a_publicar(uuid) from public, anon;
 revoke all on function public.news_posts_guarda_automatica() from public, anon, authenticated;
 
 grant execute on function public.news_autopublish_configurar(boolean, integer, integer) to authenticated;
@@ -819,6 +848,7 @@ grant execute on function public.news_registrar_aviso(uuid, text, text) to servi
 grant execute on function public.news_aviso_confirmar_a_mano(uuid) to authenticated;
 grant execute on function public.news_retirar(uuid, text, text) to authenticated;
 grant execute on function public.news_salida_motivo(uuid, text, text) to authenticated;
+grant execute on function public.news_volver_a_publicar(uuid) to authenticated;
 
 -- ─── Postflight ──────────────────────────────────────────────────────────────
 do $postflight$
