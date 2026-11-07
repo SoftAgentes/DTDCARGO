@@ -345,23 +345,30 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     },
   );
 
-  it("B2 · pulsar «Guía» otra vez mientras espera al tablero no deja una segunda espera que reinicie la tarjeta", () => {
-    montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
-    act(() => iniciarGuia("embudo", { origen: "boton" }));
-    esperar(600);
-    expect(pestana()).toBe("embudos");
-    expect(tarjeta()).toBeNull();
+  // Con el botón, una segunda apertura retoma el paso guardado: la tarjeta sigue en
+  // «2 de 4», pero se abre otra vez (el foco vuelve a ella y aparece «Ver la guía desde
+  // el principio»). Desde el código (`programa`), vuelve al primer paso.
+  it.each([{ origen: "boton" as const }, { origen: "programa" as const }])(
+    "B2 · pedir la guía otra vez ($origen) mientras espera al tablero no deja una segunda espera que reabra la tarjeta",
+    ({ origen }) => {
+      montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
+      act(() => iniciarGuia("embudo", { origen }));
+      esperar(600);
+      expect(pestana()).toBe("embudos");
+      expect(tarjeta()).toBeNull();
 
-    act(() => iniciarGuia("embudo", { origen: "boton" }));
-    expect(esperarTarjeta(5_000)).toBe(true);
-    expect(within(tarjeta()!).getByText(/1 de 4/)).toBeInTheDocument();
-    fireEvent.click(within(tarjeta()!).getByRole("button", { name: "Siguiente" }));
-    expect(within(tarjeta()!).getByText(/2 de 4/)).toBeInTheDocument();
+      act(() => iniciarGuia("embudo", { origen }));
+      expect(esperarTarjeta(5_000)).toBe(true);
+      expect(within(tarjeta()!).getByText(/1 de 4/)).toBeInTheDocument();
+      fireEvent.click(within(tarjeta()!).getByRole("button", { name: "Siguiente" }));
+      expect(within(tarjeta()!).getByText(/2 de 4/)).toBeInTheDocument();
 
-    // Ninguna espera vieja vuelve a abrir la tarjeta en el primer paso.
-    esperar(12_000);
-    expect(within(tarjeta()!).getByText(/2 de 4/)).toBeInTheDocument();
-  });
+      // Ninguna espera vieja vuelve a abrir la tarjeta.
+      esperar(12_000);
+      expect(within(tarjeta()!).getByText(/2 de 4/)).toBeInTheDocument();
+      expect(within(tarjeta()!).queryByRole("button", { name: "Ver la guía desde el principio" })).toBeNull();
+    },
+  );
 
   it("B2 · con el arranque automático encendido, su efecto no reemplaza la espera del botón", () => {
     const conAuto: GuiaRecorrido = { ...RECORRIDO_EMBUDO, arranqueAutomatico: true };
