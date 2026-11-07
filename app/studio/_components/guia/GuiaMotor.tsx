@@ -403,6 +403,13 @@ export function GuiaMotor({
   useEffect(() => {
     const p = pendiente.current;
     if (!p) return;
+    // Un pedido vencido (el cambio de pestaña se perdió) se borra y no abre la guía:
+    // si la persona llega después a Embudos por su cuenta, no se la encuentra abierta,
+    // y el arranque automático tampoco queda frenado por él.
+    if (Date.now() - p.pedidoEn >= VIGENCIA_PEDIDO_MS) {
+      pendiente.current = null;
+      return;
+    }
     const recorrido = buscarRecorrido(p.id, catalogo);
     if (!recorrido || !rutaCoincide(recorrido, pathname)) {
       pendiente.current = null;

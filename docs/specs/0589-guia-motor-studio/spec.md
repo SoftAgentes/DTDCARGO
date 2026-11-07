@@ -746,3 +746,31 @@ Con el turno de máquina que dio el Subdirector y la regla nueva de dos corridas
 | `tsc --noEmit` | PASÓ |
 | `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
 | `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
+
+**Cierre de la #418.** La tercera revisión la aprobó sobre `9c7f38d63`. Sam la autorizó y entró en `main` con el tren #428 (`ce878289f`), el 2026-11-07 a las 22:14Z.
+
+## 2026-11-07 · P-13: el pedido vencido se borra
+
+**Fuente.** Dos pendientes de la tercera revisión de la #418, que se dejaron para una PR aparte desde `main`.
+
+- **El pedido vencido no se borraba al vencer** (`GuiaMotor.tsx:294-303` en `9c7f38d63`). El vencimiento de la #418 solo servía para volver a pedir el cambio. Si el `replace` se perdía y nadie volvía a pulsar, el pedido seguía ahí, y cuando la persona entraba después a Embudos con un clic, el efecto del pedido abría la guía sola, como si fuera del botón. Lo mismo reemplazaba el arranque automático (la guarda de `:432`).
+  - **Arreglo:** el efecto del pedido borra el pedido vencido (`VIGENCIA_PEDIDO_MS`, 10 s) antes de mirar la URL, y no abre la guía. El arranque automático, que corre después en el mismo cambio de URL, ya no lo encuentra.
+- **Las pruebas del seguimiento llevan su número** de la aceptación (S1 a S9), sin cambiar lo que comprueban. Para S1 hubo que cambiar algo más: volvía a Embudos «minutos después», y con el borrado el pedido ya habría vencido, así que la prueba pasaba sin B1 (el mutante MB1 quedó vivo). Ahora vuelve antes de 10 s, y lo de más tarde lo cubre S10.
+
+**Allowlist exacta:** `app/studio/_components/guia/GuiaMotor.tsx`, `app/studio/_components/guia/GuiaEmbudoPestana.test.tsx`, esta spec y `.agents/handoffs/0589-p13-pedido-vencido.md` (nuevo). No toca `lib/studio/guia/` ni nada de `app/studio/(app)/crm/`.
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S10 | Si el cambio se perdió y nadie vuelve a pulsar, entrar a Embudos pasados los 10 s no abre la guía sola | `GuiaEmbudoPestana.test.tsx`, rojo contra `ce878289f` |
+| S11 | Con el arranque automático encendido, el pedido vencido no lo frena: al entrar a Embudos, la guía abre como arranque automático, con «No volver a mostrar» | `GuiaEmbudoPestana.test.tsx`. Pasa también sobre `ce878289f`, porque allí el arranque automático reabría la guía detrás del pedido. Comprueba que el pedido vencido se borra, y no solo se ignora: lo mata el mutante MVe2 |
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo: las pruebas contra el `GuiaMotor.tsx` de `ce878289f`, que es `main` con la #418 (M0v) | FALLÓ, como se esperaba: 1 de 28. Cae S10 |
+| Con el arreglo | PASÓ: 28 de 28 |
+| 12 mutantes, de a uno, con base verde | PASÓ: 12 de 12 muertos. M0v y MVe (sin el borrado) tumban S10. MVe2 (el pedido vencido se ignora pero no se borra) tumba S11. MC, MV, MH, MD, MD2, MB1, MB2a, MB2b y MB2c siguen muertos. En la primera tanda MB1 quedó vivo; S1 se ajustó. Todo restaurado |
+| ESLint de los 2 archivos, con `--max-warnings=0` | PASÓ |
+| Suite de la guía más `crm/__tests__/guia-se-queda.test.ts`, con 1 worker y sin otro vitest vivo | PASÓ: 186 de 186 en 11 archivos |
+| `tsc --noEmit` | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
