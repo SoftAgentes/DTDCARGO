@@ -1,0 +1,11 @@
+# CONTROL de la prueba del correo automático (SDD-0582 4.8, P4). Nunca en el VPS.
+#
+# Las pruebas en /tmp/pruebas, SIN montar correo/zz_dtd_correo_sistema.rb: Chatwoot tal como está.
+# Con este overlay el rebote TIENE que quedar abierto y sin etiqueta, como en P4 de PC-1. Si no,
+# la sonda ya no reproduce el problema y el verde con el inicializador no vale nada.
+# También lo usan el control M0 y los mutantes, que cargan su copia con SONDA_CARGAR.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas:/tmp/pruebas:ro
