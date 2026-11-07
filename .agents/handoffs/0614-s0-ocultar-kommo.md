@@ -90,11 +90,31 @@ pantalla. Lo de A11Y-01 en las pestañas ya venía de antes y es de S3.
 
 ## COMMITS
 
-Se completan al commitear (ver la PR).
+- `88d479ca2` feat(studio): SDD-0614 — S0 oculta Kommo del Studio sin borrar nada (código y las
+  cuatro pruebas).
+- `7ce8d20dd` docs(studio): SDD-0614 — allowlist exacta de S0 y handoff del tramo.
+- `530fd303e` Merge origin/main `7e75f7708` (#407, oficina y SDD-0615). Ningún archivo en común con
+  S0. `docs/specs/README.md` se resolvió con el driver de `main` y se regeneró con
+  `build-docs-index`: 596 specs y el árbol quedó limpio. `docs:check` y `sdd:check` dieron verde
+  después del merge.
+- El commit de este handoff, con los commits y el merge.
+
+Diff contra `main` `7e75f7708`: 15 archivos, los de la allowlist de §5 S0 (13 de producto y
+pruebas, la spec y este handoff).
+
+**Después del merge no corrí vitest ni tsc.** El Subdirector le dio a E9 el turno de máquina. `main`
+solo trajo archivos de oficina (`infra/oficina/`, `docs/organizacion/`, SDD-0615) y el índice, sin
+archivos en común. El `merge-tree` del Subdirector sobre `88d479ca2` salió rc=0. Las pruebas de S0
+vuelven a correr en el CI de la PR y en el `pnpm verify` del Director General.
 
 ## PR / BRANCH
 
-Rama `claude/0614-s0-ocultar-kommo`. La PR en borrador contra `main` se anota aquí al abrirla.
+Rama `claude/0614-s0-ocultar-kommo`, PR en borrador contra `main`. El número y el `headRefOid` se
+leen con `gh pr view claude/0614-s0-ocultar-kommo --json number,headRefOid`. La rama no recibe más
+commits después de publicar, para que el verde quede sobre el SHA publicado.
+
+**Cruce con E9, resuelto (2026-11-07, Subdirector):** «Deja Embudos por defecto», como dice la spec.
+E9 no toca `crm/page.tsx` ni `kommo-tabs.shared.ts`, y el `merge-tree` sobre `88d479ca2` da rc=0.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -141,4 +161,5 @@ Rama `claude/0614-s0-ocultar-kommo`. La PR en borrador contra `main` se anota aq
   §9. Le mandé los hunks y el commit `88d479ca2` para el `merge-tree`, con el diff en las notas
   compartidas (`0614-s0-hunks-crm-page-y-tabs.diff`). Le pregunté si queda Embudos por defecto o qué
   tiene que abrir `/studio/crm` en S0.
-- **No se publica hasta que conteste.**
+- Contestó el mismo día: «tienes razón y me equivoqué. **Deja Embudos por defecto**». Lo que va en
+  S3 es Resumen por defecto. No comparten archivos.
