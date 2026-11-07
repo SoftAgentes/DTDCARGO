@@ -4,7 +4,7 @@ title: "Historial de Kommo: respaldo cifrado fuera de Git y medición del volume
 status: in-progress
 author: "Claude Worker «E5 historial» (Sam)"
 created: 2026-10-30
-updated: 2026-11-06
+updated: 2026-11-07
 supersedes: null
 superseded_by: null
 related: ["0582", "0043", "0082", "0391", "0535", "0587"]
@@ -979,3 +979,104 @@ Corrió el Subdirector de Chatwoot, con el Director General al lado en cada puer
 1. **`ensayo-archivo.sh`:** después de un TERM, el `trap limpiar EXIT` (`:133`) sale con 0. La unidad queda en `Result=success` y puede dejar el volumen `chatwoot-ensayo_almacenamiento` y la red. El veredicto hay que sacarlo del vigía, no de `ExecMainStatus`.
 2. **`pruebas/sonda-ensayo.rb`:** con datos reales, no mide la búsqueda por número ni BQ1. Hay que buscar por `display_id` exacto y elegir el primer mensaje que tenga una palabra apta.
 3. **El guion de la carga no corre `informe` antes de `empaquetar`.** Por eso no quedó `informe.json` con `talks.sin_acceso_403`, que escribe `informe()` (`respaldar-historial.py:1440`), y `manifiesto.json` no lo trae. Los ids siguen en los archivos del staging que van dentro del paquete cifrado de metadatos (I: no se puede comprobar sin la llave de Sam).
+
+Los tres se corrigen en la [#413](https://github.com/SoftAgentes/DTDCARGO/pull/413) (§10.17).
+
+### 10.17 Los tres hallazgos, corregidos (PR #413, 2026-11-07)
+
+Para que el próximo ensayo o la próxima carga se lean bien. **No cambia lo que ya está cargado en la bandeja 8, no toca producción ni el VPS y no se vuelve a correr nada allí.** Las pruebas usan solo datos inventados. Las que llevan contenedores corren en GitHub Actions, no en la PC. Handoff: `.agents/handoffs/0590-e5-hallazgos.md`.
+
+#### 1. El ensayo parado con TERM (`ensayo-archivo.sh`)
+
+**Qué pasaba (C, R).** El guion solo tenía `trap limpiar EXIT`. Bash, al recibir TERM, corría la limpieza y después moría por la señal. Para una unidad `simple`, systemd toma la muerte por SIGTERM como una salida limpia: `Result=success`, y descarga la unidad. Por eso `systemctl show` dio `ExecMainStatus=0` en el intento 3: son los valores por defecto de una unidad descargada (I). Además, sin trap de TERM, bash puede correr la limpieza con el paso todavía vivo, y el `run --rm` que termina choca con el `down`. De ahí pudieron salir el volumen y la red (I: no se puede reproducir sin el VPS).
+
+**Qué hace ahora:**
+- Un trap de TERM, INT y HUP anota `HECHO senal=TERM` y `FALLÓ PARADA`, y sale con 143, 130 o 129. Al salir con un código, y no morir por la señal, la unidad queda en `failed` con `Result=exit-code`.
+- Con un trap, bash espera a que termine el paso en primer plano antes de limpiar: ya no se cruza con un `run --rm` vivo. Con `systemctl stop`, el paso recibe la misma señal y termina enseguida. Con TERM solo al proceso principal, termina el paso en curso.
+- La limpieza usa el compose del ensayo si sigue en `/dev/shm/cw-ensayo` (conoce su red y su volumen). Si no, corre `down` por el nombre del proyecto desde `/`, para no leer otro `compose.yml`. Después borra lo que quede del proyecto fijo, en orden: contenedores, redes y volúmenes. Reintenta 3 veces.
+- Si quedan contenedores, volúmenes, redes o la carpeta, lo dice: `FALLÓ L0` y `limpieza_completa=no`. Si el código era 0, sale con 4. No toca nada fuera del proyecto `chatwoot-ensayo`: un contenedor ajeno conectado a su red la deja en pie, y eso se informa.
+- Una señal durante la limpieza no la corta: se anota (`senal_durante_limpieza=si`) y se sigue.
+- La evidencia termina en `HECHO ensayo_codigo=<código>`. Los códigos están en el README.
+- **La salida del guion se guarda al arrancar (`exec 7>&1 8>&2`), y la parada y la limpieza la restauran primero.** Si la señal llega mientras corre una función con redirección, como `dc … >"$DIR/aislamiento.txt"` o el `dc run` de `rr` hacia `$DIR/<paso>.txt`, bash corre el trap con esa redirección todavía puesta. Sin la restauración, `FALLÓ PARADA`, `FALLÓ L0` y el código iban a un archivo de `$DIR`, y la limpieza los borraba con la carpeta. En el VPS, el aviso de una limpieza incompleta no se habría visto nunca. Lo encontró el run 42402802348 (evidencia, abajo); la restauración de la limpieza es de defensa, porque con TERM ya la hace la parada.
+
+#### 2. La sonda (`pruebas/sonda-ensayo.rb`)
+
+**Búsqueda por número (E10d, E10e y E10g).** Chatwoot filtra con `ILIKE '%q%'`, ordena por `created_at DESC` y pagina de a 15 (`search_service.rb:33-48` de la v4.19.1, D). La sonda miraba 40 páginas, 600 resultados. Con los datos reales, «21» trae más y la más vieja queda al final. Ahora `en_busqueda` toma la consulta que arma `SearchService`, con sus filtros y los permisos del usuario, y mide la pertenencia sin el límite ni el desplazamiento de la página: `rel.except(:limit, :offset).where(id:).exists?`. Además anota cuántos resultados trae cada consulta: `admin_resultados`, `agente_sin_ser_miembro_resultados`, `agente_miembro_resultados` y `usuario_real_resultados`, solo conteos. La consulta sigue siendo el número tal cual, lo que una persona escribe en el buscador; «buscar por `display_id` exacto», como decía §10.16, queda reemplazado por medir sobre la consulta entera.
+
+**BQ1.** Se busca el primero de los 60 mensajes con texto más viejos del Archivo, del más viejo al más nuevo, que tenga una palabra apta: 6 letras o más y 60 coincidencias o menos en la cuenta. De sus palabras aptas, la menos frecuente. La pertenencia se mide igual, sobre la consulta entera. Se anotan `vieja_posicion`, `palabra_coincidencias_cuenta` y `palabra_resultados`, y nunca la palabra. Si ninguno de los 60 tiene una palabra apta, da `sin_palabra` y `vieja_revisados`. En `ensayo-archivo.sh`, BQ1 exige además que la ventana de 90 días y la amplia busquen el mismo mensaje.
+
+Es lo que se probó en producción el 2026-11-07, en solo lectura (lo informó el Subdirector de Chatwoot; no se volvió a correr).
+
+#### 3. `informe` antes de `empaquetar` (`respaldar-historial.py` 1.3.2)
+
+- `empaquetar` se niega si falta `informe.json` en el staging: código 2, antes de crear la carpeta de la corrida, de cifrar o de borrar nada. Con `--sin-informe` empaqueta igual. `todo` corre `informe` antes, como siempre.
+- El manifiesto lleva el bloque `informe`: huella, fecha, `conversaciones_sin_acceso_403` y `mensajes_sin_acceso_403`. Son conteos; los ids siguen solo dentro del paquete cifrado. Sin informe, `informe: null`.
+- El procedimiento corre `informe` antes de `empaquetar`: README, paso 5 de «5.4 y 5.5», y handoff `0590-e5-estado.md` §5.6, que también pone los miembros antes, como se hizo el 2026-11-07.
+
+#### Allowlist
+
+- `infra/ops/kommo-historial/ensayo-archivo.sh`
+- `infra/ops/kommo-historial/pruebas/sonda-ensayo.rb`
+- `infra/ops/kommo-historial/respaldar-historial.py`
+- `infra/ops/kommo-historial/pruebas/test_respaldar.py`
+- `infra/ops/kommo-historial/pruebas/prueba-ensayo.sh`
+- `infra/ops/kommo-historial/pruebas/generar-sintetico.py`
+- `infra/ops/kommo-historial/README.md`
+- `.github/workflows/kommo-historial-cargador.yml`: el tope del job pasa de 45 a 60 minutos y el comentario del paso del ensayo. Regla del Director General: si el run con las pruebas nuevas dura menos de 35 minutos, 60; el 42402802348 duró 31,2. Un tope holgado escondería un cuelgue
+- `docs/specs/0590-kommo-historial-e5/spec.md`
+- `.agents/handoffs/0590-e5-estado.md`
+- `.agents/handoffs/0590-e5-hallazgos.md`
+
+**Huellas** (sha256, 16 caracteres, del contenido en Git) para comparar en un próximo despliegue:
+- `ensayo-archivo.sh`: `91528bdd2ea26243`, antes `c0fb3d336a135ca1`.
+- `pruebas/sonda-ensayo.rb`: `5d08ca99ce265dd2`, antes `5b08e3e2f333847a`.
+- `respaldar-historial.py`: `a090cfb04e9fb11b`, antes `a9fbc324d10eefe6`.
+- Sin cambios: `cargar-archivo-kommo.rb` (`b86c0eed4b5a95fa`) y `ensayo-otras-cuentas.sql` (`fc0dd444c22c2d6a`).
+
+Las huellas de antes son las de `main` en `ecadbac91`, y coinciden con las que corrieron en producción (§10.16).
+
+#### Pruebas nuevas
+
+- **`prueba-ensayo.sh`, T1 a T3**, con systemd de verdad: el ensayo corre como root en una unidad, como en el VPS.
+  - **T1:** `systemctl stop` con un runner del ensayo corriendo, lo que hace `vigia-carga.sh`.
+  - **T2:** TERM solo al proceso principal, lo que hizo el vigía del ensayo del 2026-11-07.
+  - En los dos, el TERM tiene que llegar con un runner del ensayo corriendo (el choque de §10.16), y la unidad tiene que quedar en `exit-code 1 143` (Result, ExecMainCode y ExecMainStatus), con `senal=TERM`, `ensayo_codigo=143`, `limpieza_completa=si` y 0 contenedores, volúmenes y redes.
+  - **T3:** un contenedor ajeno conectado a `chatwoot-ensayo_aislada`. La limpieza no lo toca, deja la red, dice `limpieza_completa=no` y `FALLÓ L0`, y no sale con 0. `--limpiar` tampoco sale con 0 mientras el ajeno siga. Cuando se va, `--limpiar` deja todo en 0 y sale con 0.
+  - **Mutantes**, sobre una copia de la carpeta. Cada caso deja `no:<motivo>`, el primer requisito que no cumplió, y el mutante tiene que caer justo por el suyo: ME1 quita el trap de TERM y tiene que tumbar T1 y T2 por la unidad; ME2 hace que la limpieza no mire lo que quedó y tiene que tumbar T3 por `completa`, con T1 como control; ME3 saca al contenedor ajeno para poder borrar la red y tiene que tumbar T3 por `ajeno`, con T2 como control; ME4 quita la restauración de la salida en la parada y tiene que tumbar T1 por `senal`, con T3 como control.
+  - Lo que deja una corrida como root (la evidencia en 0600 y el registro de la unidad) se copia con `sudo` y se lee la copia, sin tuberías. Si un caso del guion real cae, o un mutante cae por otro motivo, el log del CI muestra su evidencia y el final de su registro: son datos inventados, líneas HECHO y PASÓ/FALLÓ.
+  - **F2**, además, exige `limpieza_completa=si` y que la evidencia del ensayo R termine en `ensayo_codigo=0`.
+- **`prueba-ensayo.sh`, L3:** con un `docker` que no responde delante en el `PATH`, `--limpiar` tiene que salir con 4 y decir que no pudo comprobar la limpieza. Con el guion de `main`, contaba 0, 0 y 0 y salía con 0 (medido en la PC con el mismo `docker` falso).
+- **`generar-sintetico.py --relleno 650`**, solo en `prueba-ensayo.sh`: 650 conversaciones más, cada una con su persona (`+584123000000` en adelante, todas con el 2 del número de la más vieja) y un mensaje con una palabra frecuente. En la conversación más vieja, dos mensajes antes del que tiene `SINTVIEJO`: uno sin palabras de 6 letras y otro con solo la frecuente. `prueba-cargador.sh` no usa el relleno y sus datos no cambian.
+  - **R4:** la búsqueda por el número de la más vieja trae más de 600 resultados, y aun así pasan E10d, E10e y E10g.
+  - **R5:** BQ1 busca el tercer mensaje (`vieja_posicion=3`, 1 coincidencia) con las dos ventanas.
+- **`test_respaldar.py`, `PruebasInformeAntesDeEmpaquetar`:** sin `informe.json`, código 2, sin carpeta de la corrida y con el staging entero; también llamando a `empaquetar()` directo, y con solo `informe.md`. `--sin-informe` llega a cifrar y el manifiesto trae `informe: null`. Con informe, el manifiesto trae el bloque esperado. El cifrado se reemplaza por una falla marcada, así que corre sin `age` ni `zstd`. Seis mutantes del extractor, cada uno en su carpeta.
+
+#### Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| `test_respaldar.py`, la prueba nueva, con el código de `main` (rojo previo, en la PC) | FALLÓ, como se esperaba, con 6 problemas: llegó a cifrar sin `informe.json`; creó la carpeta de la corrida; `empaquetar()` directo llegó a cifrar; no entiende `--sin-informe`; el manifiesto no trae `informe: null`, y con informe trae `{}` |
+| Los 6 mutantes de `test_respaldar.py` | PASÓ: los 6 caen, cada uno por su comprobación: la línea de comandos sin guarda crea la carpeta; `empaquetar()` sin guarda llega a cifrar; mirar `informe.md` deja pasar un staging sin `informe.json`; `--sin-informe` que no deja pasar; el manifiesto sin el bloque, y con los mensajes contados como conversaciones. El control pasa dos veces sobre la misma carpeta base. **Primera versión, verde falso:** los mutantes compartían la carpeta temporal, desde el segundo caían por los restos del anterior, y el de `informe.md` sobrevivía. Se corrigió con una carpeta por corrida y el caso de solo `informe.md` |
+| `python -I infra/ops/kommo-historial/pruebas/test_respaldar.py` con los arreglos, en la PC | PASÓ: 61 pruebas, 3 omitidas (`age`, permisos POSIX y tmpfs de Linux) |
+| `limpiar` de `ensayo-archivo.sh --limpiar` con un `docker` falso, en la PC (Git Bash) | PASÓ: sin restos, código 0 y `limpieza_completa=si`; con la red sostenida, 3 intentos, `FALLÓ L0`, `limpieza=contenedores=0,volumenes=0,redes=1`, `limpieza_completa=no` y código 4. El primer intento tomó el `docker` de la PC (la ruta `C:/…` rompía el `PATH`), con Docker Desktop apagado: no hizo nada. Se repitió con la ruta `/c/…` |
+| El trap de TERM, misma estructura y sin Docker, en la PC | PASÓ: 143 con el paso en segundo plano y con el paso en primer plano |
+| `generar-sintetico.py`, `vincular` y `preparar-carga`, en la PC | PASÓ: con `--relleno 650`, 655 conversaciones, 660 mensajes y 654 personas; sin la opción, las 5, 8 y 4 de siempre |
+| `bash -n` de los `.sh` de la carpeta | PASÓ |
+| CI del cargador, run 42399372669 sobre `bb20ae5b6`: solo las pruebas nuevas, con el código de `main` (rojo previo; log leído con `gh api`) | FALLÓ en el paso del ensayo, como se esperaba, con 10 fallas. Los demás pasos, en verde. **T1, T2 y T3:** la unidad termina en `success 0 0`, lo mismo que el `ExecMainStatus=0` del intento 3: el TERM llegó con un runner vivo, bash murió por la señal y systemd descargó la unidad. **ME1 a ME3:** no se pueden mutar, porque el código no existe en `main`. **Dentro del ensayo,** 44 PASÓ y las 4 FALLÓ de la corrida real: E10d, E10e y E10g por número (`nombre:si,numero:no,telefono:si`) y BQ1 con `sin_palabra` en las dos ventanas. **R1, R3, R4 y R5** caen por eso. Pasan R2, P1 a P3, L1, L2 y F1 a F4: el relleno (655 conversaciones y 660 mensajes) no rompe nada más |
+| Revisión independiente de solo lectura del diff (subagente revisor), antes de publicar los arreglos | Sin fallas al ejecutar. Hubo tres hallazgos y los tres se corrigieron. **1.** Con docker caído, `--limpiar` contaba 0 y salía con 0: ahora cuenta `?`, dice `FALLÓ L0` y sale con 4 (L3). **2.** T1 y T2 podían pasar sin un runner vivo: ahora lo exigen. **3.** Los mutantes no miraban por qué caía cada caso: ahora cada uno tiene que caer por su motivo, con un control. También corrigió un espacio faltante en `respaldar-historial.py` |
+| `--limpiar` con un `docker` que no responde, en la PC | PASÓ: el guion nuevo sale con 4, con `limpieza=contenedores=?,volumenes=?,redes=?` y `limpieza_completa=no`. El de `main` sale con 0 y anota `limpieza=contenedores=0,volumenes=0,redes=0` |
+| CI del cargador, run 42402802348 sobre `9f15c13bc`, con los arreglos (log leído por el Subdirector de Chatwoot y aquí con `gh api`) | FALLÓ, en el paso del ensayo. Duró 31,2 minutos (job de 18:44:55Z a 19:16:01Z; el ensayo, 5,9 minutos). **Pasaron:** R1 (48 comprobaciones, 0 fallas), R2 a R5, L1 a L3 y F1 a F4. E10d, E10e y E10g sobre la consulta entera (`numero` con 654 resultados, más de 40 páginas) y BQ1 con el tercer mensaje. ME1 cae por la unidad. **Cayeron:** T1 y T2 con la unidad bien (`exit-code 1 143`) pero `no:senal`, T3 con `no:completa`, y ME2 y ME3 «de más» por lo mismo |
+| Causa del rojo de 42402802348, reproducida en la PC | **Era del guion, no de la prueba.** Con el guion de `9f15c13bc`, sus fuentes y un `docker` falso, y con TERM a mitad de un `dc run`: la evidencia sale completa (`senal=TERM`, `limpieza_completa=si`, `ensayo_codigo=143`), pero el registro termina en A5, sin `FALLÓ PARADA`, `== limpieza` ni el código. Con un caso mínimo de bash: el trap de una señal que llega dentro de una función con `>archivo` escribe en ese archivo. Con `exec 7>&1 8>&2` y la restauración en los traps, el mismo caso y el guion simulado escriben en la salida del guion. La prueba no cambió lo que exige: T1 a T3 siguen pidiendo `FALLÓ PARADA` y `FALLÓ L0` en el registro, y ME4 lo cubre |
+| CI con el arreglo de la salida, el tope en 60 y `main` traído | En la PR #413, el run sobre su cabeza. El resultado va en el cuerpo de la PR y en el aviso al Subdirector de Chatwoot, para no publicar otro commit que repita el job |
+| `sonda-ensayo.rb` | Sin Ruby en la PC: se mide en el CI (R1, R3, R4 y R5) |
+
+#### revisar-datos-ve
+
+No se capturan, mueven ni borran datos personales nuevos. La sonda sigue imprimiendo solo conteos, «si»/«no» y la posición del mensaje; nunca la palabra, el nombre, el teléfono ni el texto. El bloque `informe` del manifiesto son conteos y una huella del informe, que ya tenía solo conteos. Los datos de las pruebas son inventados: `F1` busca en la evidencia las marcas nuevas (`SINT-RELLENO`, `SINTFRECUENTE` y los teléfonos `4123000…`). **Cumplimiento.**
+
+#### FUERA DE ALCANCE DETECTADO
+
+- **Aislamiento del ensayo:** A1 a A7 miran los contenedores del proyecto, pero no que un contenedor ajeno se conecte a `chatwoot-ensayo_aislada`. T3 lo hace a propósito, y A1 a A7 filtran por la etiqueta del proyecto, así que no lo pueden ver (C). En el VPS, eso pide root. Propuesta: una comprobación A9 que exija que en la red solo haya contenedores del proyecto, antes del dump y después de cada paso.
+- **`sonda-cargador.rb` (E-10d de `prueba-cargador.sh`)** mira solo la primera página de 15 (`:229-234`). Con los 5 datos inventados alcanza; a escala real fallaría como la del ensayo. Corre solo en CI.
+- **La guarda de carga del ensayo no para los pasos de adjuntos.** `python3 … flujo-adjuntos | rr …` (`ensayo-archivo.sh`, en los pasos de adjuntos) corre `rr` en el subshell del pipeline. Si `vigilar_carga` dice `exit 3` ahí, sale solo ese subshell y el ensayo sigue con el paso siguiente (C; no medido). Está así en `main`, desde la 5.5b.
+- `preparar_corrida` abre `stamp.txt` sin cerrarlo (`ResourceWarning` en las pruebas). No cambia nada.
