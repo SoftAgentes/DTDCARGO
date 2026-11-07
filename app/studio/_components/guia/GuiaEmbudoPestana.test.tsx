@@ -13,27 +13,41 @@
  * vuelven a leer.
  */
 
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveKommoTab } from "@/app/studio/(app)/crm/_components/kommo-tabs.shared";
 import { crearAlmacenMemoria } from "@/lib/studio/guia/almacen";
 import { RECORRIDO_EMBUDO, RECORRIDOS } from "@/lib/studio/guia/recorridos";
 import type { GuiaRecorrido } from "@/lib/studio/guia/tipos";
-import { GuiaMotor, iniciarGuia } from "./GuiaMotor";
+import { cerrarGuia, GuiaMotor, iniciarGuia } from "./GuiaMotor";
 
 const nav = vi.hoisted(() => {
   const oyentes = new Set<() => void>();
-  const estado = { pathname: "/studio/crm", query: "", demoraMs: 0 };
+  /** `perder`: el `replace` se pierde y la URL no cambia (red cortada, navegación abortada). */
+  const estado = { pathname: "/studio/crm", query: "", demoraMs: 0, perder: false };
   const fijar = (query: string) => {
     estado.query = query;
     for (const avisar of oyentes) avisar();
   };
+  /** Cambios de URL del motor que todavía no terminaron. */
+  const enCurso = new Set<ReturnType<typeof setTimeout>>();
   const replace = vi.fn((href: string) => {
+    if (estado.perder) return;
     const query = new URL(href, "http://studio.test").search.replace(/^\?/, "");
-    setTimeout(() => fijar(query), estado.demoraMs);
+    const t = setTimeout(() => {
+      enCurso.delete(t);
+      fijar(query);
+    }, estado.demoraMs);
+    enCurso.add(t);
   });
-  return { oyentes, estado, fijar, replace };
+  /** La persona navega (clic en otra pestaña): como en Next, gana la última navegación. */
+  const persona = (query: string) => {
+    for (const t of enCurso) clearTimeout(t);
+    enCurso.clear();
+    fijar(query);
+  };
+  return { oyentes, estado, fijar, replace, persona };
 });
 
 vi.mock("next/navigation", async () => {
@@ -145,6 +159,7 @@ beforeEach(() => {
   nav.estado.pathname = "/studio/crm";
   nav.estado.query = "";
   nav.estado.demoraMs = 0;
+  nav.estado.perder = false;
   nav.replace.mockClear();
 });
 afterEach(() => {
@@ -287,5 +302,170 @@ describe("P-13 · el recorrido Embudo abre en /studio/crm sin ?tab=", () => {
     const tab = RECORRIDO_EMBUDO.consulta?.tab;
     expect(tab).toBe("embudos");
     expect(resolveKommoTab(tab)).toBe(tab);
+  });
+});
+
+/** Avanza el reloj hasta que la tarjeta aparezca o se cumpla `tope`; devuelve si apareció. */
+const esperarTarjeta = (tope: number) => {
+  for (let hecho = 0; hecho < tope && tarjeta() === null; hecho += 50) esperar(50);
+  return tarjeta() !== null;
+};
+
+// Seguimiento del P-13: las dos BAJAS de la revisión del Director General (2026-11-07).
+describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
+  it.each([
+    {
+      origen: "url",
+      arrancar: () => {
+        nav.estado.query = "guia=embudo";
+      },
+    },
+    { origen: "boton", arrancar: () => {} },
+  ])(
+    "B1 · pedido por $origen: si la persona cambia de pestaña antes de que termine el cambio, la guía no abre sola después",
+    ({ origen, arrancar }) => {
+      nav.estado.demoraMs = 1_000;
+      arrancar();
+      montar({ resolver: conDefecto("direccion") });
+      if (origen === "boton") act(() => iniciarGuia("embudo", { origen: "boton" }));
+      esperar(300);
+      expect(nav.replace).toHaveBeenCalledTimes(1);
+      expect(pestana()).toBe("direccion");
+
+      // La persona pulsa otra pestaña antes de que llegue la de Embudos: gana la suya.
+      act(() => nav.persona("tab=asesor"));
+      esperar(2_000);
+      expect(pestana()).toBe("asesor");
+      expect(tarjeta()).toBeNull();
+
+      // Minutos después entra a Embudos por su cuenta: la guía no se abre sola.
+      esperar(30_000);
+      act(() => nav.persona("tab=embudos"));
+      esperar(12_000);
+      expect(pestana()).toBe("embudos");
+      expect(tarjeta()).toBeNull();
+      expect(nav.replace).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  // Con el botón, una segunda apertura retoma el paso guardado: la tarjeta sigue en
+  // «2 de 4», pero se abre otra vez (el foco vuelve a ella y aparece «Ver la guía desde
+  // el principio»). Desde el código (`programa`), vuelve al primer paso.
+  it.each([{ origen: "boton" as const }, { origen: "programa" as const }])(
+    "B2 · pedir la guía otra vez ($origen) mientras espera al tablero no deja una segunda espera que reabra la tarjeta",
+    ({ origen }) => {
+      montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
+      act(() => iniciarGuia("embudo", { origen }));
+      esperar(600);
+      expect(pestana()).toBe("embudos");
+      expect(tarjeta()).toBeNull();
+
+      act(() => iniciarGuia("embudo", { origen }));
+      expect(esperarTarjeta(5_000)).toBe(true);
+      expect(within(tarjeta()!).getByText(/1 de 4/)).toBeInTheDocument();
+      fireEvent.click(within(tarjeta()!).getByRole("button", { name: "Siguiente" }));
+      expect(within(tarjeta()!).getByText(/2 de 4/)).toBeInTheDocument();
+
+      // Ninguna espera vieja vuelve a abrir la tarjeta.
+      esperar(12_000);
+      expect(within(tarjeta()!).getByText(/2 de 4/)).toBeInTheDocument();
+      expect(within(tarjeta()!).queryByRole("button", { name: "Ver la guía desde el principio" })).toBeNull();
+    },
+  );
+
+  // Revisión de la #418 (2026-11-07): la segunda pulsación cancelaba la espera de 10 s
+  // y empezaba una de 2 s, así que con un tablero lento la guía ya no abría.
+  it.each([4_000, 6_000])(
+    "B2 · con un tablero de %i ms, pedir la guía otra vez mientras carga no acorta la espera: abre igual",
+    (tardaMs) => {
+      montar({ resolver: conDefecto("direccion"), tardaMs });
+      act(() => iniciarGuia("embudo", { origen: "boton" }));
+      esperar(600);
+      expect(pestana()).toBe("embudos");
+      expect(tarjeta()).toBeNull();
+
+      act(() => iniciarGuia("embudo", { origen: "boton" }));
+      expect(esperarTarjeta(12_000)).toBe(true);
+      expect(within(tarjeta()!).getByText(/1 de 4/)).toBeInTheDocument();
+      expect(nav.replace).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("B2 · dos pulsaciones seguidas, antes de que cambie la pestaña, piden el cambio una sola vez", () => {
+    nav.estado.demoraMs = 1_000;
+    montar({ resolver: conDefecto("direccion") });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(300);
+    expect(pestana()).toBe("direccion");
+
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    expect(esperarTarjeta(5_000)).toBe(true);
+    expect(pestana()).toBe("embudos");
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+  });
+
+  // Segunda revisión de la #418 (ac50c6fca): la espera heredada la crea el evento, no
+  // el efecto del pedido, así que ya no se cancelaba al cambiar la URL.
+  it("B1 · pedir otra vez, irse a otra pestaña y volver antes de 10 s: la guía no se abre sola", () => {
+    montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(600);
+    expect(pestana()).toBe("embudos");
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(300);
+    expect(tarjeta()).toBeNull();
+
+    act(() => nav.persona("tab=asesor"));
+    esperar(1_000);
+    expect(pestana()).toBe("asesor");
+    act(() => nav.persona("tab=embudos"));
+    esperar(6_000);
+    expect(pestana()).toBe("embudos");
+    expect(tarjeta()).toBeNull();
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it("B2 · si el cambio de pestaña se pierde, una pulsación pasados 10 s lo vuelve a pedir", () => {
+    nav.estado.perder = true;
+    montar({ resolver: conDefecto("direccion") });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(1_000);
+    // Antes de 10 s, el pedido sigue en camino: no se pide dos veces.
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+
+    esperar(10_000);
+    nav.estado.perder = false;
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    expect(nav.replace).toHaveBeenCalledTimes(2);
+    expect(esperarTarjeta(5_000)).toBe(true);
+    expect(pestana()).toBe("embudos");
+  });
+
+  it("B2 · con el arranque automático encendido, su efecto no reemplaza la espera del botón", () => {
+    const conAuto: GuiaRecorrido = { ...RECORRIDO_EMBUDO, arranqueAutomatico: true };
+    montar({ resolver: conDefecto("direccion"), tardaMs: 4_000, catalogo: [conAuto], autoArranque: true });
+    esperar(500);
+    expect(tarjeta()).toBeNull();
+
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    // El tablero tarda 4 s: más que los 2 s de una espera del arranque automático.
+    expect(esperarTarjeta(8_000)).toBe(true);
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+    // La abrió el botón, no el arranque automático: no ofrece «No volver a mostrar».
+    expect(within(tarjeta()!).queryByRole("button", { name: "No volver a mostrar" })).toBeNull();
+  });
+
+  it("B2 · cerrarGuia() durante la espera la cancela: la guía no abre cuando llega el tablero", () => {
+    montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(600);
+    expect(pestana()).toBe("embudos");
+    expect(tarjeta()).toBeNull();
+
+    act(() => cerrarGuia());
+    esperar(12_000);
+    expect(screen.getByText("Tarjeta")).toBeInTheDocument();
+    expect(tarjeta()).toBeNull();
   });
 });
