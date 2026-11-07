@@ -29,7 +29,7 @@ jobs:
   cargador:
     name: Cargador del Archivo Kommo (datos inventados)
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       CI: "true"
     steps:
@@ -56,5 +56,7 @@ jobs:
 
       # SDD-0590 5.6: el guion del ensayo contra una «producción» simulada (el compose real como proyecto
       # chatwoot, con datos inventados): guardas, aislamiento, copia en solo lectura y borrado sin tocarla.
+      # §10.17: además, la parada con TERM en una unidad de systemd (usa sudo sin clave, como las de arriba), con
+      # mutantes, y la búsqueda con 650 conversaciones de relleno.
       - name: Ensayo contra una producción simulada
         run: bash infra/ops/kommo-historial/pruebas/prueba-ensayo.sh

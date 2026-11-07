@@ -11,7 +11,17 @@
 #       la copia, se niega antes de leer o borrar nada; producción conserva sus 2 cuentas
 #   N5  con un contenedor ajeno llamado chatwoot-ensayo-postgres-1, se niega y no lo toca
 #   N6  con MemAvailable por debajo de lo que pide el ensayo (inyectado), no arranca y no crea nada
-#   R   el ensayo entero pasa contra la producción simulada
+#   T1  `systemctl stop` con un runner del ensayo corriendo (TERM a toda la unidad, como vigia-carga.sh): la unidad
+#       termina en Result=exit-code con 143, la evidencia dice senal=TERM y ensayo_codigo=143, y no queda nada
+#   T2  TERM solo al proceso principal (como el vigía del ensayo del 2026-11-07): lo mismo
+#   T3  con un contenedor ajeno conectado a la red del ensayo: la limpieza no lo toca, dice que no terminó
+#       (limpieza_completa=no, FALLÓ L0) y no sale con 0; `--limpiar` tampoco, hasta que el ajeno se va
+#   ME1–ME3 mutantes del guion: cada uno tiene que tumbar su comprobación T y dejar pasar la otra
+#   R   el ensayo entero pasa contra la producción simulada, con 650 conversaciones de relleno (--relleno)
+#   R4  la búsqueda por el número de la más vieja trae más de 600 resultados (más de 40 páginas de 15, como con los
+#       datos reales del 2026-11-07) y aun así la encuentran
+#   R5  BQ1 busca el tercer mensaje más viejo: el primero no tiene palabras de 6 letras y el segundo solo una con
+#       más de 60 coincidencias
 #   P   la producción simulada queda intacta: sin «Archivo Kommo», mismas bandejas y conversaciones (huella),
 #       contenedores corriendo
 #   L   no queda nada del ensayo (contenedores, volúmenes, redes, carpeta) y --limpiar no rompe nada
@@ -41,8 +51,26 @@ TRABAJO="$(mktemp -d "${TMPDIR:-/tmp}/cw-ensayo-prueba.XXXXXX")"
 S="$(mktemp -d /dev/shm/cw-ensayo-prueba-staging.XXXXXX)"
 D="$TRABAJO/prod"
 EDGE="chatwoot_edge_prueba"
+UNIDADES=()
+INTRUSO=cw-prueba-intruso
+REDIS_IMG="redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7"
 dc() { (cd "$D" && docker compose -p chatwoot "$@"); }
+# Lo que una corrida T (o un mutante) haya dejado: solo lo del proyecto del ensayo, su carpeta y el ajeno de T3.
+restos_fuera() {
+  docker rm -f "$INTRUSO" >/dev/null 2>&1
+  docker ps -aq --filter label=com.docker.compose.project=chatwoot-ensayo | xargs -r docker rm -f -v >/dev/null 2>&1
+  docker network ls -q --filter label=com.docker.compose.project=chatwoot-ensayo | xargs -r docker network rm >/dev/null 2>&1
+  docker volume ls -q --filter label=com.docker.compose.project=chatwoot-ensayo | xargs -r docker volume rm >/dev/null 2>&1
+  [ -e /dev/shm/cw-ensayo ] && sudo -n rm -rf -- /dev/shm/cw-ensayo
+  return 0
+}
 bajar() {
+  local u
+  for u in "${UNIDADES[@]}"; do
+    sudo -n systemctl stop "$u" >/dev/null 2>&1
+    sudo -n systemctl reset-failed "$u" >/dev/null 2>&1
+  done
+  [ "${#UNIDADES[@]}" -gt 0 ] && restos_fuera
   # El contenedor ajeno de N5, si quedó: solo el que lleva la etiqueta de la prueba.
   [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' chatwoot-ensayo-postgres-1 2>/dev/null)" = otro ] \
     && docker rm -f chatwoot-ensayo-postgres-1 >/dev/null 2>&1
@@ -57,7 +85,10 @@ psql_prod() { docker exec chatwoot-postgres-1 psql -U chatwoot -d chatwoot_produ
 log "== prueba del ensayo · $(date -u +%Y-%m-%dT%H:%M:%SZ) · trabajo $TRABAJO"
 
 # ── Datos inventados y archivo de carga con el extractor real ────────────────
-"$PY" -I "$AQUI/generar-sintetico.py" "$S" >"$TRABAJO/generar.txt" 2>&1 || { mal D0 "no se generaron los datos"; exit 1; }
+# Con relleno: 650 conversaciones más, para la búsqueda por número a la escala real, y los dos mensajes más viejos
+# sin palabra apta para BQ1 (generar-sintetico.py).
+"$PY" -I "$AQUI/generar-sintetico.py" "$S" --relleno 650 >"$TRABAJO/generar.txt" 2>&1 \
+  || { mal D0 "no se generaron los datos"; exit 1; }
 "$PY" -I "$KH/respaldar-historial.py" vincular --staging "$S" --clientes "$S/clientes.ndjson" >"$TRABAJO/vincular.txt" 2>&1 \
   || { mal D0 "vincular falló"; cat "$TRABAJO/vincular.txt"; exit 1; }
 "$PY" -I "$KH/respaldar-historial.py" preparar-carga --staging "$S" >"$TRABAJO/preparar.txt" 2>&1 \
@@ -153,6 +184,149 @@ exigir N5 '[ "$rc" != 0 ] && [ "$(docker inspect -f "{{.State.Status}}" chatwoot
 [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' chatwoot-ensayo-postgres-1 2>/dev/null)" = otro ] \
   && docker rm -f chatwoot-ensayo-postgres-1 >/dev/null
 
+# ── T. Una parada con TERM a mitad, y una limpieza que no puede terminar ─────
+# Como en el VPS: el ensayo corre como root, en una unidad de systemd. `corrida` lanza el guion (el real o un
+# mutante), espera a ver un runner del ensayo corriendo y lo para con TERM: a toda la unidad (`systemctl stop`, lo
+# que hace vigia-carga.sh) o solo al proceso principal (lo que hizo el vigía del ensayo del 2026-11-07). Una unidad
+# cuyo bash muere por la señal termina en Result=success, y systemd la descarga: así se vio el intento 3 del
+# ensayo (SDD-0590 §10.16).
+log "== T. parada y limpieza"
+T_OK=1
+if [ ! -d /run/systemd/system ] || ! sudo -n true 2>/dev/null; then
+  mal T0 "hacen falta systemd y sudo sin clave (los tiene el runner de GitHub Actions)"
+  T_OK=0
+fi
+U_ACTUAL=""
+activa() {
+  case "$(sudo -n systemctl is-active "$1" 2>/dev/null)" in active | activating | deactivating | reloading) return 0 ;; *) return 1 ;; esac
+}
+inactiva() { ! activa "$1"; }
+vivo() {
+  docker ps -q --filter label=com.docker.compose.project=chatwoot-ensayo --filter label=com.docker.compose.oneoff=True | grep -q .
+}
+para_parar() { vivo || inactiva "$U_ACTUAL"; }
+red_lista() { docker network inspect chatwoot-ensayo_aislada >/dev/null 2>&1; }
+esperar() { # segundos comando...: hasta que el comando se cumpla, mirando cada 0,2 s
+  local n=$(($1 * 5))
+  shift
+  while [ "$n" -gt 0 ]; do "$@" && return 0; sleep 0.2; n=$((n - 1)); done
+  return 1
+}
+prop() { sudo -n systemctl show -p "$2" --value "$1" 2>/dev/null; }
+ver() { sudo -n cat "$1" 2>/dev/null; }
+corrida() { # guion id stop|main [intruso]
+  local g="$1" id="$2" modo="$3" u="kommo-prueba-ensayo-$$-$2"
+  U_ACTUAL="$u"
+  UNIDADES+=("$u")
+  sudo -n systemd-run --quiet --unit "$u" -p "StandardOutput=truncate:$TRABAJO/ensayo-$id.txt" -p StandardError=inherit \
+    --setenv=CARGA="$S/carga.ndjson" --setenv=INFORME_CARGA="$S/carga-informe.json" \
+    --setenv=INFORME_VINCULO="$S/vinculo-informe.json" --setenv=STAGING="$S" --setenv=CUENTA="$CUENTA" \
+    --setenv=CHATWOOT_DIR="$D" --setenv=EVIDENCIA="$TRABAJO/evidencia-$id.txt" --setenv=TOPE_CARGA=32 \
+    bash "$g"
+  if [ "${4:-}" = intruso ]; then
+    # Un contenedor de otro proyecto conectado a la red del ensayo: la red no se puede borrar sin tocarlo.
+    esperar 120 red_lista && docker run -d --name "$INTRUSO" --label com.docker.compose.project=otro \
+      --network chatwoot-ensayo_aislada "$REDIS_IMG" >/dev/null
+  fi
+  if esperar 180 para_parar && vivo; then echo "con un runner vivo" >"$TRABAJO/$id.vivo"; else echo "sin runner vivo" >"$TRABAJO/$id.vivo"; fi
+  case "$modo" in
+    stop) sudo -n systemctl stop "$u" ;;
+    main) sudo -n systemctl kill --kill-whom=main --signal=TERM "$u" ;;
+  esac
+  esperar 180 inactiva "$u"
+  echo "$(prop "$u" Result) $(prop "$u" ExecMainCode) $(prop "$u" ExecMainStatus)" >"$TRABAJO/$id.unidad"
+  sudo -n systemctl reset-failed "$u" >/dev/null 2>&1
+  return 0
+}
+# T1 y T2: la parada sale con 143 (exited, no muerta por la señal), la unidad queda en exit-code, la evidencia lo
+# dice y no queda nada.
+t_ok() {
+  local E="$TRABAJO/evidencia-$1.txt"
+  [ "$(cat "$TRABAJO/$1.unidad" 2>/dev/null)" = "exit-code 1 143" ] && ver "$E" | grep -qx "HECHO senal=TERM" \
+    && ver "$E" | grep -qx "HECHO ensayo_codigo=143" && ver "$E" | grep -qx "HECHO limpieza_completa=si" \
+    && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=0" \
+    && grep -q "^FALLÓ PARADA — " "$TRABAJO/ensayo-$1.txt" && [ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ]
+}
+# T3: con el ajeno en la red, la limpieza dice que no terminó, no sale con 0 y no toca al ajeno. `--limpiar`,
+# igual. Cuando el ajeno se va, `--limpiar` deja todo en 0 y sale con 0.
+t3_ok() { # guion id
+  local g="$1" E="$TRABAJO/evidencia-$2.txt" res cod est rc1 rc2 sigue
+  read -r res cod est <"$TRABAJO/$2.unidad"
+  { [ "$res" = exit-code ] && [ "${est:-0}" != 0 ] && ver "$E" | grep -qx "HECHO limpieza_completa=no" \
+    && ver "$E" | grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=1" \
+    && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2.txt"; } || return 1
+  sudo -n env EVIDENCIA="$TRABAJO/evidencia-$2-l1.txt" bash "$g" --limpiar >"$TRABAJO/ensayo-$2-l1.txt" 2>&1
+  rc1=$?
+  sigue="$(docker inspect -f '{{.State.Status}}' "$INTRUSO" 2>/dev/null)"
+  docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' chatwoot-ensayo_aislada 2>/dev/null | grep -qw "$INTRUSO" \
+    || sigue="$sigue,fuera-de-la-red"
+  docker rm -f "$INTRUSO" >/dev/null 2>&1
+  sudo -n env EVIDENCIA="$TRABAJO/evidencia-$2-l2.txt" bash "$g" --limpiar >"$TRABAJO/ensayo-$2-l2.txt" 2>&1
+  rc2=$?
+  echo "--limpiar con el ajeno: código $rc1, ajeno ${sigue:-ausente}; sin el ajeno: código $rc2, quedan $(quedan)" >"$TRABAJO/$2.limpiar"
+  [ "$rc1" != 0 ] && grep -q "^FALLÓ L0 — " "$TRABAJO/ensayo-$2-l1.txt" && [ "$sigue" = running ] \
+    && [ "$rc2" = 0 ] && [ "$(quedan)" = 0,0,0 ] && ver "$TRABAJO/evidencia-$2-l2.txt" | grep -qx "HECHO limpieza_completa=si"
+}
+casos_t() { # guion prefijo ids... → $TRABAJO/t-<prefijo>/<id> = si | no
+  local g="$1" p="$2" id r
+  shift 2
+  rm -rf "$TRABAJO/t-$p"
+  mkdir -p "$TRABAJO/t-$p"
+  for id in "$@"; do
+    r=no
+    case "$id" in
+      T1) corrida "$g" "$p-t1" stop && t_ok "$p-t1" && r=si ;;
+      T2) corrida "$g" "$p-t2" main && t_ok "$p-t2" && r=si ;;
+      T3) corrida "$g" "$p-t3" main intruso && t3_ok "$g" "$p-t3" && r=si ;;
+    esac
+    echo "$r" >"$TRABAJO/t-$p/$id"
+    restos_fuera
+  done
+}
+t_es() { [ "$(cat "$TRABAJO/t-$1/$2" 2>/dev/null)" = si ]; }
+mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
+  "$PY" -I - "$@" <<'EOF'
+import sys
+origen, destino, buscar, poner = sys.argv[1:5]
+texto = open(origen, encoding="utf-8").read()
+n = texto.count(buscar)
+if n != 1:
+    sys.exit(f"el texto a mutar aparece {n} veces: {buscar!r}")
+open(destino, "w", encoding="utf-8").write(texto.replace(buscar, poner))
+EOF
+}
+mutante_t() { # id descripción "caen" "pasan" buscar reemplazo: una copia de la carpeta, con el guion mutado
+  local id="$1" que="$2" caen="$3" pasan="$4" dir="$TRABAJO/mut-$1" faltan="" otro="" c
+  rm -rf "$dir"
+  cp -r "$KH" "$dir"
+  if ! mutar "$KH/ensayo-archivo.sh" "$dir/ensayo-archivo.sh" "$5" "$6"; then mal "$id" "no se pudo mutar ($que)"; return; fi
+  # shellcheck disable=SC2086
+  casos_t "$dir/ensayo-archivo.sh" "$id" $caen $pasan
+  for c in $caen; do t_es "$id" "$c" && faltan="$faltan $c"; done
+  for c in $pasan; do t_es "$id" "$c" || otro="$otro $c"; done
+  if [ -z "$faltan" ] && [ -z "$otro" ]; then
+    ok "$id" "$que: caen $caen${pasan:+; pasa $pasan}"
+  else
+    mal "$id" "$que: no cayeron:${faltan:- ninguna}; cayeron de más:${otro:- ninguna}"
+  fi
+}
+if [ "$T_OK" = 1 ]; then
+  casos_t "$KH/ensayo-archivo.sh" real T1 T2 T3
+  exigir T1 't_es real T1' \
+    "systemctl stop $(cat "$TRABAJO/real-t1.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t1.unidad" 2>/dev/null) (Result, código, estado), la evidencia dice senal=TERM y ensayo_codigo=143, y quedan 0 contenedores, volúmenes y redes"
+  exigir T2 't_es real T2' \
+    "TERM al proceso principal $(cat "$TRABAJO/real-t2.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t2.unidad" 2>/dev/null), igual que T1"
+  exigir T3 't_es real T3' \
+    "con un contenedor ajeno en la red: la unidad termina en $(cat "$TRABAJO/real-t3.unidad" 2>/dev/null), la evidencia dice limpieza_completa=no, sale FALLÓ L0 y el ajeno sigue; $(cat "$TRABAJO/real-t3.limpiar" 2>/dev/null)"
+  mutante_t ME1 "sin el trap de TERM (como hasta el 2026-11-07)" "T1 T2" "" \
+    "trap 'parada TERM 143' TERM" ":"
+  mutante_t ME2 "la limpieza no mira lo que quedó" "T3" "T1" \
+    '[ "$restos" = "$SIN_RESTOS" ] && [ "$carpeta" = ausente ] || completa=no' 'true'
+  mutante_t ME3 "para poder borrar la red, saca también al contenedor ajeno" "T3" "" \
+    'docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v' \
+    'docker ps -aq --filter "network=chatwoot-ensayo_aislada" | xargs -r docker rm -f -v; docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v'
+fi
+
 # ── R. El ensayo ─────────────────────────────────────────────────────────────
 log "== R. ensayo"
 ensayo r; rc=$?
@@ -176,6 +350,13 @@ exigir R2 'adjuntos_medidos && ! grep -q "adjuntos: NO EJECUTADO" "$TRABAJO/ensa
 pasan_todas() { local c; for c in "$@"; do grep -qE "^PASÓ +$c — " "$TRABAJO/ensayo-r.txt" || return 1; done; }
 exigir R3 'pasan_todas MI1 MI2 MI3 E10g BQ1 BQ2 MEM1 && grep -qE "^PASÓ +BQ1 — .*con 3650: si" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +E10g — E-10e con un usuario real \(agente\)" "$TRABAJO/ensayo-r.txt" && grep -qE "^PASÓ +MI2 — .*\(4 de 4," "$TRABAJO/ensayo-r.txt"' \
   "miembros: todos los usuarios quedan en el Archivo y el agente real la encuentra solo después; búsqueda: con 3650 días aparece el mensaje de hace 500, por debajo de la puerta de 1.000 ms"
+# R4 y R5: lo que la corrida real del 2026-11-07 no midió (SDD-0590 §10.16), con el relleno de generar-sintetico.py.
+ER="$TRABAJO/evidencia-r.txt"
+por_numero="$(sed -n 's/^HECHO admin_resultados=.*numero:\([0-9]*\).*/\1/p' "$ER" 2>/dev/null | tail -n 1)"
+exigir R4 '[ "${por_numero:-0}" -gt 600 ] 2>/dev/null && pasan_todas E10d E10e E10g' \
+  "búsqueda por el número de la más vieja: ${por_numero:-?} resultados, más de 40 páginas de 15, y aun así la encuentran el administrador, el agente miembro y el usuario real"
+exigir R5 '[ "$(grep -c "^HECHO vieja_posicion=3$" "$ER")" = 2 ] && [ "$(grep -c "^HECHO palabra_coincidencias_cuenta=1$" "$ER")" = 2 ] && pasan_todas BQ1' \
+  "BQ1 salta el mensaje más viejo (sin palabras de 6 letras) y el segundo (una palabra con más de 60 coincidencias), y busca el tercero, con las dos ventanas"
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────
 DESPUES="$(huella_prod | tr '\n' ' ')"
@@ -193,7 +374,7 @@ exigir L2 '[ "$rc" = 0 ] && [ "$(quedan)" = 0,0,0 ] && [ "$(huella_prod | tr "\n
 # ── F. La evidencia ──────────────────────────────────────────────────────────
 E="$TRABAJO/evidencia-r.txt"
 fugas=0
-for m in SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot SINT-ADJUNTO 4120000001 4120000002 example.test SINT-C1 Pérez kommo.example; do
+for m in SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINTVIEJO SINT-Asesora SINT-Salesbot SINT-ADJUNTO 4120000001 4120000002 example.test SINT-C1 Pérez kommo.example SINT-RELLENO SINTFRECUENTE 4123000; do
   grep -q -F -- "$m" "$E" && { fugas=$((fugas + 1)); log "   fuga: $m"; }
 done
 exigir F1 '[ -s "$E" ] && ! grep -qv "^HECHO " "$E" && [ "$fugas" = 0 ]' "la evidencia trae solo líneas HECHO ($(wc -l <"$E")) y ningún valor inventado de personas"
