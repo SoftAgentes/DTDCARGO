@@ -480,6 +480,32 @@ class Motor(Base):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.leer()[0], ["codex", *args])
 
+    # Revisión del DG sobre dbe4a5576 (2026-11-07): una opción corta con la ruta pegada se revisa
+    # igual que si viniera aparte. Hoy no es explotable; se cierra como -C.
+    def test_opcion_corta_con_ruta_pegada_no_corre(self):
+        f = self.glm()
+        for herramienta, perfil in (("claude", "ceo"), ("codex", "auxiliar")):
+            for args in (
+                [f"-i{_barra(f)}"],
+                [f"-i={_barra(f)}"],
+                [f"-i{_barra(self.trabajo_glm)}"],
+                ["-i../../trabajo/ceo/.claude/settings.json"],
+                ["-i~/x.png"],
+                ["-i=~/x.png"],
+                ["-i~agentes-run/x"],
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.salida.unlink(missing_ok=True)
+                    r = self.motor(herramienta, perfil, args)
+                    self.assertEqual(r.returncode, 66, r.stderr)
+                    self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+
+    def test_opcion_corta_sin_ruta_de_los_glm_si_corre(self):
+        args = ["-p", "-inotas/x.png", "-i=notas/~viejo.png", "-v"]
+        r = self.motor("claude", "ceo", args)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["claude", *args])
+
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"
         vieja = base / "run.viejo0001"
@@ -751,10 +777,26 @@ class AgenteRun(Base):
                 with self.subTest(herramienta=herramienta, args=args):
                     self.con_args(herramienta, perfil, usuario, args)
 
+    def test_opcion_corta_con_ruta_pegada_hacia_los_glm_no_arranca(self):
+        casos = [
+            [f"-i{_barra(self.glm / 'ceo' / 'x.png')}"],
+            [f"-i={_barra(self.glm)}"],
+        ]
+        if POSIX:
+            # El enlace solo lo ve el usuario del motor; la relativa, solo con la ruta larga.
+            for _, perfil, _ in self.MOTORES:
+                os.symlink(self.glm / "ceo", self.trabajo / perfil / "notas")
+            casos += [["-inotas/x.png"], ["-i=notas"], ["-i../../trabajo-glm/ceo"]]
+        for herramienta, perfil, usuario in self.MOTORES:
+            for args in casos:
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.con_args(herramienta, perfil, usuario, args)
+
     def test_argumentos_comunes_si_arrancan(self):
         if POSIX:
             (self.trabajo / "ceo" / "notas").mkdir()
-        args = ["-p", "hola", "--effort", "high", "--add-dir", "notas", "--settings=./x.json", ""]
+        args = ["-p", "hola", "--effort", "high", "--add-dir", "notas", "--settings=./x.json", "",
+                "-inotas/x.png", "-v"]
         for herramienta, perfil, usuario in self.MOTORES:
             with self.subTest(herramienta=herramienta):
                 r = self.run_(herramienta, perfil, usuario, args)
@@ -769,7 +811,10 @@ class AgenteRun(Base):
         return self.leer()[1]["PATH"]
 
     def test_hermes_usa_el_node_de_hermes_023(self):
-        path = self.path_de_hermes()
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("aviso", r.stderr, "con el node nuevo no hay nada que avisar")
+        path = self.leer()[1]["PATH"]
         nuevo = _barra(self.herramientas / "node-26.12.1-linux-x64" / "bin")
         rg = _barra(self.herramientas / "ripgrep-15.2.0-linux-x64" / "bin")
         self.assertTrue(path.startswith(f"{nuevo}:{rg}:"), path)
@@ -782,6 +827,16 @@ class AgenteRun(Base):
         # Una carpeta sin el binario no cuenta.
         (self.herramientas / "node-26.12.1-linux-x64" / "bin").mkdir(parents=True)
         self.assertTrue(self.path_de_hermes().startswith(viejo))
+
+    # Revisión del DG sobre dbe4a5576: volver al node viejo no puede ser silencioso.
+    def test_hermes_avisa_cuando_vuelve_al_node_viejo(self):
+        shutil.rmtree(self.herramientas / "node-26.12.1-linux-x64")
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        avisos = [l for l in r.stderr.splitlines() if l.startswith("dtd-agente-run: aviso:")]
+        self.assertEqual(len(avisos), 1, r.stderr)
+        self.assertIn("node-26.12.1-linux-x64/bin/node", avisos[0])
+        self.assertIn("node-26.7.0-linux-x64", avisos[0])
 
     def test_hermes_sin_node_no_arranca(self):
         for carpeta in ("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"):

@@ -8,7 +8,7 @@ import test from 'node:test';
 
 const CARPETA = path.join('infra', 'oficina', 'envoltorios', 'tests');
 /** Piso de pruebas: un «OK» con menos pruebas de las que hay es un verde vacío. */
-const MINIMO = 59;
+const MINIMO = 63;
 
 const python = ['python3', 'python'].find((candidato) => {
   const r = spawnSync(candidato, ['-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'], { windowsHide: true });
@@ -29,7 +29,8 @@ test('envoltorios de la oficina: las pruebas de Python pasan y no son menos de l
   assert.ok(corridas, `unittest no informó cuántas pruebas corrió:\n${salida}`);
   assert.ok(Number(corridas[1]) >= MINIMO, `corrieron ${corridas[1]} pruebas y se esperan al menos ${MINIMO}:\n${salida}`);
   assert.match(salida, /^OK\b/m, salida);
-  // En Windows se saltan las dos de enlaces y permisos; en Linux (el CI) no se salta ninguna.
+  // En Windows se saltan las 13 de enlaces, permisos y rutas que solo resuelve Linux; en Linux (el CI)
+  // no se salta ninguna.
   if (process.platform !== 'win32') {
     assert.doesNotMatch(salida, /skipped/i, `en Linux ninguna prueba de los envoltorios se salta:\n${salida}`);
   }

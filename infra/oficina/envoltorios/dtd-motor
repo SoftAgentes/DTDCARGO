@@ -120,6 +120,22 @@ while [ "$i" -lt "${#pendientes[@]}" ]; do
       -C*|--cd|--cd=*) echo "dtd-motor: Codex no acepta -C ni --cd: $a" >&2; exit 66 ;;
     esac
   fi
+  # Una opción corta puede traer la ruta pegada (-i/ruta, -i~/x, -i=ruta): el valor se revisa igual
+  # que si viniera aparte. Hoy ninguna opción corta de Claude o Codex toma una ruta así; si una la
+  # toma mañana, no abre otra puerta.
+  case "$a" in
+    -[!-]?*)
+      pegado="${a:2}"
+      pegado="${pegado#=}"
+      case "$pegado" in
+        "~"*) echo "dtd-motor: ruta pegada que empieza por ~: $a" >&2; exit 66 ;;
+      esac
+      if de_los_glm "$pegado"; then
+        echo "dtd-motor: ruta pegada en la carpeta de los GLM: $a" >&2
+        exit 66
+      fi
+      ;;
+  esac
   if protegida "$candidato" && ! revisar "$candidato"; then
     echo "dtd-motor: ruta protegida fuera de la lista: $candidato" >&2
     exit 66

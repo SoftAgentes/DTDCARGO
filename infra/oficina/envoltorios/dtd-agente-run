@@ -72,6 +72,8 @@ sin_rutas_de_los_glm() {
   for a in "$@"; do
     case "$a" in
       --*=*) ruta="${a#*=}" ;;
+      # Opción corta con la ruta pegada: -i/ruta o -i=ruta.
+      -[!-]?*) ruta="${a:2}"; ruta="${ruta#=}" ;;
       *) ruta="$a" ;;
     esac
     real="$(realpath -m -- "$ruta" 2>/dev/null)" || continue
@@ -110,6 +112,10 @@ case "$herramienta" in
       if [ -x "$HERRAMIENTAS_HERMES/$n/bin/node" ]; then node_bin="$HERRAMIENTAS_HERMES/$n/bin"; break; fi
     done
     [ -n "$node_bin" ] || { echo "dtd-agente-run: falta node de Hermes en $HERRAMIENTAS_HERMES" >&2; exit 69; }
+    # Volver al node viejo funciona, pero no en silencio: queda una línea en el registro de la corrida.
+    if [ "$n" != "${NODES_HERMES[0]}" ]; then
+      echo "dtd-agente-run: aviso: falta $HERRAMIENTAS_HERMES/${NODES_HERMES[0]}/bin/node; Hermes usa $n" >&2
+    fi
     # ripgrep queda como estaba: en el VPS (2026-11-07) esa carpeta no trae bin/rg, y exigirlo
     # dejaría a todos los GLM sin arrancar. Revisarlo queda para otra PR.
     export PATH="$node_bin:$HERRAMIENTAS_HERMES/$RIPGREP_HERMES/bin:$PATH"
