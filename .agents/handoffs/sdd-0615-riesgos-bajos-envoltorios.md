@@ -55,6 +55,7 @@ se borraron al terminar. Usé Ubuntu, kernel 6.8.0-139, Python 3.12.3, bash 5.2.
   - **rojo2:** 8 fallas, todas de `test_ruta_que_empieza_por_virgulilla_no_corre`;
   - **rojo3:** 6 fallas, todas de `test_codex_no_acepta_cambiar_de_carpeta`.
 - **Verde:** `Ran 54 tests`, `OK`, 0 saltadas.
+- **Otra vez sobre `main` `7e75f7708` con este commit encima.** Corrió a las ~17:55Z, con el «va» del co-CEO y después de la reinstalación de las 17:52Z. Dio lo mismo: rojo1 14, rojo2 8, rojo3 6, verde 54 sin saltos y 69 de 69 mutantes muertos.
 - **Mutantes:** 69 de 69 mueren.
 - **En Windows (Git Bash):** 54 pruebas en `OK`, con 13 saltadas por ser solo Linux. El harness
   `node --test scripts/tests/oficina-envoltorios.node.mjs` pasa con el piso de 54.
@@ -83,6 +84,7 @@ se borraron al terminar. Usé Ubuntu, kernel 6.8.0-139, Python 3.12.3, bash 5.2.
   rutas dentro de un archivo de configuración; esto es lo mismo, pero por argumento.
 - **Carpetas que escriben los GLM fuera de `/srv/oficina/trabajo`**, como `/tmp`. La regla solo
   mira `trabajo`. Un `--add-dir /tmp/x` o un `--settings /tmp/x.json` de Claude pasaría.
+- **Ruido de `find` en `dtd-motor`.** Si se corre desde una carpeta que `agentes` no puede leer (por ejemplo, desde `/home/sam` por sudo), el `find` de limpieza avisa «Failed to restore initial working directory». No es una falla. Se quita con un `cd` a la carpeta de staging antes de ese `find` (aviso de la sesión Paperclip, 2026-11-07).
 - **Comentario viejo en `scripts/tests/oficina-envoltorios.node.mjs`:** dice que en Windows «se
   saltan las dos» pruebas de enlaces y permisos, pero ya son 13.
 
