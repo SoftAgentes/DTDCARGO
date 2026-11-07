@@ -21,6 +21,12 @@ Subcomandos:
   empaquetar     tar | zstd | age del staging al destino, sha256, manifiesto; borra el staging
   todo           extraer + informe + empaquetar
 
+Modo incremental (paso 5.3), con `--base <carpeta de un respaldo anterior> --corte <instante UTC>`
+en `extraer` o `todo`: baja solo lo que cambió entre el corte anterior (menos `--solape-horas`) y el
+`--corte`, que tiene que estar en el pasado. Mensajes posteriores al corte no entran. El corte queda
+fijo en el staging: reanudar con otro corte o con otra base es un error. El manifiesto del paquete
+dice de qué base parte, para que la carga (5.5) los aplique en orden y quite repetidos por id.
+
 Uso típico (ver README.md de esta carpeta):
   python3 respaldar-historial.py todo --token-file /dev/shm/k0582-e5 \
       --staging /dev/shm/kommo-e5 --destino /srv/backups/kommo \
@@ -48,7 +54,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.1.1"
+VERSION = "1.3.1"
+# 5.5b: copias en claro de los adjuntos, dentro del staging (tmpfs), solo para el cargador del Archivo Kommo.
+CARPETA_ADJUNTOS_CARGA = "adjuntos-carga"
+SOLAPE_HORAS_POR_DEFECTO = 24
+# Listas que en modo incremental se piden con filter[updated_at][from|to]. Las demás (cuenta, usuarios,
+# embudos, campos, no clasificados) son chicas y se bajan enteras.
+LISTAS_INCREMENTALES = ("contactos", "leads", "empresas", "notas-leads", "notas-contacts", "notas-companies", "tareas")
 SUBDOMINIO_POR_DEFECTO = "dtdcargo"
 DOMINIO = "kommo.com"
 LIMITE_LISTAS = 250
@@ -118,6 +130,17 @@ def cargar_token(ruta: str) -> str:
     if len(token) < 100:
         raise ErrorFatal(f"el token es muy corto ({len(token)} caracteres)")
     return token
+
+
+def describir_emisor(claims: dict, subdominio: str) -> str:
+    """El emisor (`iss`) del token frente a la cuenta. Los tokens de larga duración de Kommo pueden no traer
+    `iss` (medido el 2026-11-06): entonces lo dice, en vez de compararlo con un texto vacío. La cuenta se comprueba
+    de todos modos con GET /api/v4/account."""
+    iss = str(claims.get("iss") or "").strip()
+    if not iss:
+        return "iss: no viene en el token (la cuenta se comprueba con GET /api/v4/account)"
+    coincide = iss.rstrip("/").endswith(f"{subdominio}.{DOMINIO}")
+    return f"iss coincide con {subdominio}.{DOMINIO}: {'sí' if coincide else 'no'}"
 
 
 def claims_jwt(token: str) -> dict | None:
@@ -432,9 +455,102 @@ def ventanas(desde: int, hasta: int, dias: int = VENTANA_EVENTOS_DIAS):
         b = a - 1
 
 
+def parsear_instante(texto: str) -> int:
+    """`2026-11-20T03:00:00Z`, `2026-11-20` (medianoche UTC) o segundos epoch → segundos epoch UTC."""
+    t = str(texto or "").strip()
+    if re.fullmatch(r"\d{9,11}", t):
+        return int(t)
+    for formato in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%MZ", "%Y-%m-%d"):
+        try:
+            return int(dt.datetime.strptime(t, formato).replace(tzinfo=dt.timezone.utc).timestamp())
+        except ValueError:
+            continue
+    raise ErrorFatal(f"instante no reconocido: {t[:40]!r}; usa AAAA-MM-DDTHH:MM:SSZ en UTC")
+
+
+def leer_base(carpeta: str) -> dict:
+    """De la carpeta de un respaldo anterior, lo único que hace falta sin descifrar nada: su stamp, el corte
+    si fue incremental, y la huella del paquete. Todo sale de `manifiesto.json`."""
+    ruta = os.path.join(carpeta, "manifiesto.json")
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            m = json.load(f)
+    except (OSError, ValueError) as e:
+        raise ErrorFatal(f"no se pudo leer el manifiesto de la base ({os.path.basename(carpeta)}): {type(e).__name__}")
+    stamp = str(m.get("stamp") or "")
+    try:
+        instante_stamp = int(dt.datetime.strptime(stamp, "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc).timestamp())
+    except ValueError:
+        raise ErrorFatal(f"la base no tiene un stamp válido: {stamp[:30]!r}")
+    paquete = [a for a in m.get("archivos") or [] if str(a.get("archivo", "")).endswith("metadatos.tar.zst.age")]
+    corte_previo = (m.get("incremental") or {}).get("corte") or m.get("corte")
+    return {"stamp": stamp, "hasta": int(corte_previo) if corte_previo else instante_stamp,
+            "sha256_paquete": paquete[0].get("sha256") if paquete else None}
+
+
+def preparar_incremental(args, st: Staging) -> dict | None:
+    """Fija base, desde y corte en el staging (`incremental.json`). Sin `--base` ni `--corte`, es una corrida
+    completa como en 5.1. Reanudar con otra base o con otro corte es un error: el resultado dejaría de ser
+    el mismo para el mismo pedido."""
+    base_dir, corte_txt = getattr(args, "base", None), getattr(args, "corte", None)
+    if not base_dir and not corte_txt:
+        if st.existe("incremental.json"):
+            raise ErrorFatal("este staging es de una corrida incremental: pasa el mismo --base y --corte")
+        if st.existe("corte.json"):
+            raise ErrorFatal("este staging es de una corrida completa con corte: pasa el mismo --corte")
+        return None
+    if base_dir and not corte_txt:
+        raise ErrorFatal("el modo incremental pide --base y --corte juntos")
+    corte = parsear_instante(corte_txt)
+    if corte > ahora():
+        raise ErrorFatal(f"el corte {utc(corte)} está en el futuro: tiene que ser un instante ya pasado")
+    if not base_dir:
+        # Completa hasta el corte (5.5): todo lo que hay hasta ese instante, para cargarlo en la misma ventana.
+        if st.existe("incremental.json"):
+            raise ErrorFatal("este staging es de una corrida incremental: pasa el mismo --base y --corte")
+        plan = {"corte": corte, "version": VERSION}
+        if st.existe("corte.json") and st.leer_json("corte.json").get("corte") != corte:
+            raise ErrorFatal("el staging es de otra corrida con corte (corte distinto): usa otro staging")
+        if not st.existe("corte.json"):
+            st.escribir_json("corte.json", plan)
+        return {"corte": corte, "desde": None, "base_stamp": None}
+    if st.existe("corte.json"):
+        raise ErrorFatal("este staging es de una corrida completa con corte: no se le aplica una base")
+    base = leer_base(base_dir)
+    solape = int(getattr(args, "solape_horas", SOLAPE_HORAS_POR_DEFECTO)) * 3600
+    desde = base["hasta"] - solape
+    if desde >= corte:
+        raise ErrorFatal(f"el corte {utc(corte)} no es posterior al inicio {utc(desde)} de esta corrida")
+    plan = {"base_stamp": base["stamp"], "base_sha256_paquete": base["sha256_paquete"], "desde": desde,
+            "corte": corte, "solape_segundos": solape, "version": VERSION}
+    if st.existe("incremental.json"):
+        previo = st.leer_json("incremental.json")
+        for clave in ("base_stamp", "corte", "desde"):
+            if previo.get(clave) != plan[clave]:
+                raise ErrorFatal(f"el staging es de otra corrida incremental ({clave} distinto): usa otro staging")
+        return previo
+    st.escribir_json("incremental.json", plan)
+    return plan
+
+
 class Extractor:
     def __init__(self, api: Kommo, st: Staging, log: Log, args):
         self.api, self.st, self.log, self.args = api, st, log, args
+        plan = preparar_incremental(args, st)
+        # `inc` solo si hay base (incremental); `corte` también en la completa hasta el corte (5.5).
+        self.inc = plan if plan and plan.get("base_stamp") else None
+        self.corte = plan["corte"] if plan else None
+        if self.inc:
+            log(f"incremental: base {self.inc['base_stamp']}, desde {utc(self.inc['desde'])}, corte {utc(self.inc['corte'])}")
+        elif self.corte:
+            log(f"completa hasta el corte {utc(self.corte)}")
+
+    def en_corte(self, ts) -> bool:
+        """Sin corte, todo entra. Con corte, solo lo creado hasta el corte inclusive."""
+        if self.corte is None:
+            return True
+        s = segundos(ts)
+        return s is not None and s <= self.corte
 
     # ---- entidades simples
     def entidad_lista(self, nombre: str, ruta: str, params: dict | None, clave: str):
@@ -442,6 +558,10 @@ class Extractor:
         if self.st.existe(marca):
             self.log(f"{nombre}: ya estaba (se salta)")
             return
+        if self.inc and nombre in LISTAS_INCREMENTALES:
+            params = dict(params or {})
+            params["filter[updated_at][from]"] = self.inc["desde"]
+            params["filter[updated_at][to]"] = self.inc["corte"]
         archivo = f"{nombre}.ndjson"
         self.st.borrar(archivo)
         total = 0
@@ -467,9 +587,12 @@ class Extractor:
                          {"with": "amojo_id,version,datetime_settings,drive_url,task_types,users_groups"})
 
     def desde(self) -> int:
-        """Inicio de la enumeración de eventos. `--desde` manda; si no, la creación de la cuenta,
-        salvo que Kommo devuelva una fecha reciente (en la cuenta de DTD `created_at` trae la hora de la
-        consulta, medido el 2026-10-30), en cuyo caso se parte del 2019-01-01."""
+        """Inicio de la enumeración de eventos. En modo incremental, el corte de la base menos el solape.
+        Si no, `--desde` manda; si no, la creación de la cuenta, salvo que Kommo devuelva una fecha reciente
+        (en la cuenta de DTD `created_at` trae la hora de la consulta, medido el 2026-10-30), en cuyo caso se
+        parte del 2019-01-01."""
+        if self.inc:
+            return self.inc["desde"]
         if self.args.desde:
             return int(dt.datetime.strptime(self.args.desde, "%Y-%m-%d").replace(tzinfo=dt.timezone.utc).timestamp())
         try:
@@ -488,6 +611,11 @@ class Extractor:
         marcadas y se bajarían (y duplicarían) las 96 otra vez. Un staging de la versión 1.0 no trae el
         archivo: se toma el fin de la primera ventana marcada, que es la más reciente de esa corrida."""
         ruta = self.st.ruta_de("eventos-hasta.txt")
+        if self.corte is not None:
+            # El corte es el fin fijo: no hay ventana de cola ni hora de la primera corrida que recordar.
+            with open(ruta, "w", encoding="utf-8") as f:
+                f.write(str(self.corte))
+            return self.corte
         if self.st.existe("eventos-hasta.txt"):
             with open(ruta, encoding="utf-8") as f:
                 return int(f.read().strip())
@@ -512,7 +640,7 @@ class Extractor:
         vent = list(ventanas(desde, hasta))
         if self.args.max_eventos_ventanas:
             vent = vent[: self.args.max_eventos_ventanas]
-        elif ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
+        elif self.corte is None and ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
             # Reanudación horas después: una ventana de cola desde la hora de la primera corrida hasta ahora.
             # Se solapa un poco con la ventana más reciente; los repetidos se quitan al leer (eventos_unicos).
             vent.insert(0, (hasta - DIA, ahora() + DIA))
@@ -559,9 +687,12 @@ class Extractor:
                 antes_403 = self.api.codigos["403"]
                 for _pagina, mensajes in self.api.paginar(f"/api/v4/talks/{tid}/messages", None, "messages",
                                                           LIMITE_MENSAJES, tolerar_403=True):
-                    for m in mensajes:
+                    dentro = [m for m in mensajes if self.en_corte(m.get("created_at"))]
+                    for m in dentro:
                         m["_talk_id"] = tid
-                    n_msj += self.st.anexar_ndjson("mensajes.ndjson", mensajes)
+                    if len(dentro) < len(mensajes):
+                        self.st.marcar("mensajes-despues-del-corte", f"{tid}:{len(mensajes) - len(dentro)}")
+                    n_msj += self.st.anexar_ndjson("mensajes.ndjson", dentro)
                 if self.api.codigos["403"] > antes_403:
                     self.st.marcar("mensajes-sin-acceso", f"{tid}")
             elif codigo == 403:
@@ -616,10 +747,15 @@ class Extractor:
             return
         destino = os.path.join(self.args.destino_corrida, "adjuntos")
         os.makedirs(destino, mode=0o700, exist_ok=True)
+        if getattr(self.args, "adjuntos_para_carga", False):
+            os.makedirs(self.st.ruta_de(CARPETA_ADJUNTOS_CARGA), mode=0o700, exist_ok=True)
         listos = self.st.marcados("listo-adjuntos")
         pendientes = []
         for m in self.st.leer_ndjson("mensajes.ndjson"):
             adj = m.get("attachment") or {}
+            # En modo incremental, el adjunto de un mensaje anterior al inicio ya está en la base.
+            if self.inc and (segundos(m.get("created_at")) or 0) < self.inc["desde"]:
+                continue
             if adj.get("link") and str(m.get("id")) not in listos:
                 pendientes.append((m.get("id"), m.get("_talk_id"), adj))
         self.log(f"adjuntos: {len(pendientes)} pendientes ({len(listos)} ya hechos)")
@@ -635,6 +771,13 @@ class Extractor:
                 ruta = os.path.join(destino, nombre)
                 cifrar_bytes(datos, self.args.recipients, ruta)
                 fila["archivo"] = os.path.join("adjuntos", nombre)
+                if getattr(self.args, "adjuntos_para_carga", False):
+                    # 5.5b: además del .age del respaldo, una copia en claro en el staging (tmpfs, 0600) para el
+                    # cargador, solo durante la ventana. empaquetar no la mete en el paquete y la borra con el staging.
+                    carga = f"{CARPETA_ADJUNTOS_CARGA}/{mid}.{fila['ext']}"
+                    with open(self.st.ruta_de(carga), "wb", opener=lambda p, f: os.open(p, f, 0o600)) as salida:
+                        salida.write(datos)
+                    fila["archivo_carga"] = carga
             self.st.anexar_ndjson("adjuntos.ndjson", [fila])
             self.st.marcar("listo-adjuntos", str(mid))
             if k % 100 == 0 or k == len(pendientes):
@@ -657,13 +800,286 @@ class Extractor:
         self.entidad_lista("tareas", "/api/v4/tasks", None, "tasks")
         self.eventos()
         self.talks()
-        self.sondear_huecos()
+        if not self.inc:  # el sondeo de huecos es del respaldo completo; la base ya lo hizo
+            self.sondear_huecos()
         self.adjuntos()
         self.log(f"peticiones: {self.api.peticiones}; por código: {dict(self.api.codigos)}; "
                  f"{self.api.segundos:.0f} s de red")
 
 
 # --------------------------------------------------------------------------- cifrado y paquete
+
+
+# --------------------------------------------------------------------------- 5.4 · E.164 y vínculo con el ERP
+#
+# Trabaja sobre el staging en claro (tmpfs) de una extracción hasta el corte. Lo que sale con teléfonos o
+# correos queda en el staging y se cifra con el paquete; el informe lleva solo conteos.
+
+PREFIJOS_VE = ("2", "4")
+
+
+def solo_digitos(valor) -> str:
+    return re.sub(r"\D", "", str(valor or ""))
+
+
+def e164(valor) -> tuple[str | None, str]:
+    """(+E.164, motivo). Con `+` o `00`, el código de país viene dado. Sin él, solo se completan los patrones
+    venezolanos (0 + 10, 58 + 10, o 10 que empiezan por 2 o 4). Lo demás queda sin E.164: no se inventa un país."""
+    crudo = str(valor or "").strip()
+    d = solo_digitos(crudo)
+    if not d:
+        return None, "vacio"
+    if crudo.startswith("+") or d.startswith("00"):
+        d = d[2:] if d.startswith("00") else d
+        return (f"+{d}", "con_codigo") if 8 <= len(d) <= 15 else (None, "largo_invalido")
+    if len(d) == 12 and d.startswith("58"):
+        return f"+{d}", "venezuela_58"
+    if len(d) == 11 and d.startswith("0") and d[1] in PREFIJOS_VE:
+        return f"+58{d[1:]}", "venezuela_0"
+    if len(d) == 10 and d[0] in PREFIJOS_VE:
+        return f"+58{d}", "venezuela_10"
+    return None, "sin_codigo_de_pais"
+
+
+def ultimos10(valor) -> str | None:
+    """La misma llave que `phone_last10` del ERP (migraciones 0363 y 0383): últimos 10 dígitos, o nada."""
+    d = solo_digitos(valor)
+    return d[-10:] if len(d) >= 10 else None
+
+
+def correo_normal(valor) -> str | None:
+    c = str(valor or "").strip().lower()
+    return c if "@" in c and " " not in c and len(c) <= 254 else None
+
+
+def valores_campo(contacto: dict, codigo: str) -> list[str]:
+    salida = []
+    for campo in contacto.get("custom_fields_values") or []:
+        if (campo or {}).get("field_code") == codigo:
+            salida.extend(str(v.get("value")) for v in campo.get("values") or [] if v.get("value"))
+    return salida
+
+
+def en_tmpfs(ruta: str) -> bool:
+    """Los archivos con datos de personas viven solo en /dev/shm. En Windows (pruebas) no aplica."""
+    if os.name != "posix":
+        return True
+    return os.path.realpath(ruta).startswith("/dev/shm/")
+
+
+def cargar_foto_erp(ruta: str) -> dict:
+    """Foto mínima del ERP: NDJSON con `client_id`, `phone_last10` (lista) y `correos` (lista). Sin nombres."""
+    if not en_tmpfs(ruta):
+        raise ErrorFatal("la foto del ERP tiene datos de personas: tiene que estar en /dev/shm")
+    por_tel: dict[str, set] = collections.defaultdict(set)
+    por_correo: dict[str, set] = collections.defaultdict(set)
+    del_cliente: dict[str, dict] = {}
+    with open(ruta, encoding="utf-8") as f:
+        for linea in f:
+            if not linea.strip():
+                continue
+            fila = json.loads(linea)
+            cid = str(fila.get("client_id") or "")
+            if not cid:
+                continue
+            tels = {k for k in (ultimos10(t) for t in fila.get("phone_last10") or []) if k}
+            correos = {c for c in (correo_normal(x) for x in fila.get("correos") or []) if c}
+            del_cliente[cid] = {"tels": tels, "correos": correos}
+            for t in tels:
+                por_tel[t].add(cid)
+            for c in correos:
+                por_correo[c].add(cid)
+    return {"por_tel": por_tel, "por_correo": por_correo, "clientes": del_cliente}
+
+
+class Grupos:
+    """Unión de contactos de Kommo que son la misma persona. El id del grupo es el menor id de contacto."""
+
+    def __init__(self):
+        self.padre: dict[int, int] = {}
+
+    def raiz(self, x: int) -> int:
+        self.padre.setdefault(x, x)
+        while self.padre[x] != x:
+            self.padre[x] = self.padre[self.padre[x]]
+            x = self.padre[x]
+        return x
+
+    def unir(self, a: int, b: int) -> None:
+        ra, rb = self.raiz(a), self.raiz(b)
+        if ra != rb:
+            self.padre[max(ra, rb)] = min(ra, rb)
+
+
+def vincular(contactos, foto: dict) -> tuple[list[dict], dict]:
+    """Un renglón por contacto de Kommo: E.164, llave, cliente del ERP y grupo. Más el informe de conteos."""
+    filas, grupos = [], Grupos()
+    por_llave: dict[str, list[int]] = collections.defaultdict(list)
+    por_cliente: dict[str, list[int]] = collections.defaultdict(list)
+    motivos_e164 = collections.Counter()
+    cuenta = collections.Counter()
+    for c in contactos:
+        try:
+            kid = int(c.get("id"))
+        except (TypeError, ValueError):
+            continue
+        grupos.raiz(kid)
+        tels = valores_campo(c, "PHONE")
+        normal = [e164(t) for t in tels]
+        for _e, motivo in normal:
+            motivos_e164[motivo] += 1
+        e164s = sorted({e for e, _m in normal if e})
+        llaves = sorted({k for k in (ultimos10(t) for t in tels) if k})
+        correos = sorted({x for x in (correo_normal(v) for v in valores_campo(c, "EMAIL")) if x})
+        for k in llaves:
+            por_llave[k].append(kid)
+
+        candidatos_tel = set().union(*(foto["por_tel"].get(k, set()) for k in llaves)) if llaves else set()
+        cliente, motivo, otro_tel = None, "sin_vinculo", False
+        if len(candidatos_tel) == 1:
+            cliente, motivo = next(iter(candidatos_tel)), "telefono"
+        elif len(candidatos_tel) > 1:
+            motivo = "ambiguo_telefono"
+        else:
+            candidatos_correo = set().union(*(foto["por_correo"].get(x, set()) for x in correos)) if correos else set()
+            if len(candidatos_correo) == 1:
+                cliente, motivo = next(iter(candidatos_correo)), "correo"
+                otro_tel = bool(llaves) and not (set(llaves) & foto["clientes"].get(cliente, {}).get("tels", set()))
+            elif len(candidatos_correo) > 1:
+                motivo = "ambiguo_correo"
+        if cliente:
+            por_cliente[cliente].append(kid)
+        cuenta[motivo] += 1
+        cuenta["con_telefono"] += bool(tels)
+        cuenta["con_e164"] += bool(e164s)
+        cuenta["otro_telefono"] += otro_tel
+        filas.append({"kommo_contact_id": kid, "e164": e164s, "llaves": llaves, "correos": correos,
+                      "client_id": cliente, "motivo": motivo, "otro_telefono": otro_tel})
+
+    for ids in list(por_llave.values()) + list(por_cliente.values()):
+        for x in ids[1:]:
+            grupos.unir(ids[0], x)
+    for fila in filas:
+        fila["grupo"] = grupos.raiz(fila["kommo_contact_id"])
+
+    grupos_de_cliente = collections.defaultdict(set)
+    for fila in filas:
+        if fila["client_id"]:
+            grupos_de_cliente[fila["client_id"]].add(fila["grupo"])
+    tamanio = collections.Counter(f["grupo"] for f in filas)
+    informe = {
+        "contactos": len(filas),
+        "con_telefono": cuenta["con_telefono"],
+        "con_e164": cuenta["con_e164"],
+        "telefonos_por_motivo_e164": dict(sorted(motivos_e164.items())),
+        "vinculados_por_telefono": cuenta["telefono"],
+        "vinculados_por_correo": cuenta["correo"],
+        "otro_telefono": cuenta["otro_telefono"],
+        "ambiguos": cuenta["ambiguo_telefono"] + cuenta["ambiguo_correo"],
+        "sin_vinculo": cuenta["sin_vinculo"],
+        "clientes_vinculados": len(grupos_de_cliente),
+        # E-1 del ensayo: tiene que dar 0.
+        "clientes_en_varios_grupos": sum(1 for g in grupos_de_cliente.values() if len(g) > 1),
+        # E-2: un ambiguo nunca queda vinculado.
+        "ambiguos_vinculados": sum(1 for f in filas if f["motivo"].startswith("ambiguo") and f["client_id"]),
+        "grupos": len(tamanio),
+        "grupos_con_varios_contactos": sum(1 for n in tamanio.values() if n > 1),
+    }
+    return filas, informe
+
+
+# --------------------------------------------------------------------------- 5.5 · archivo de carga reducido
+
+AUTOR_BOT = "Bot Kommo"
+
+
+def nombre_de_pila(nombre) -> str | None:
+    partes = str(nombre or "").split()
+    return partes[0] if partes else None
+
+
+def preparar_carga(st: Staging) -> dict:
+    """Arma `carga.ndjson` en el staging: personas por grupo, conversaciones y mensajes reducidos. Solo lo que
+    el Archivo muestra: sin `avatar_url`, sin campos propios de Kommo, asesores por nombre de pila."""
+    vinculos = {f["kommo_contact_id"]: f for f in st.leer_ndjson("vinculos.ndjson")}
+    if not vinculos:
+        raise ErrorFatal("falta vinculos.ndjson: corre `vincular` antes")
+    contactos = {int(c["id"]): c for c in st.leer_ndjson("contactos.ndjson") if c.get("id") is not None}
+    adjuntos = {}
+    for a in st.leer_ndjson("adjuntos.ndjson"):
+        if not a.get("archivo"):
+            continue
+        if a.get("archivo_carga"):
+            # 5.5b: el cargador sube este archivo. Sin la ruta en claro, el adjunto queda como pendiente (la ruta del .age).
+            adjuntos[str(a.get("message_id"))] = {k: a.get(k) for k in ("archivo", "archivo_carga", "tipo", "ext",
+                                                                         "content_type", "bytes", "sha256")}
+        else:
+            adjuntos[str(a.get("message_id"))] = a.get("archivo")
+    cuenta = collections.Counter()
+    salida = st.ruta_de("carga.ndjson")
+    personas: dict[int, dict] = {}
+    for kid, v in vinculos.items():
+        g = v["grupo"]
+        p = personas.setdefault(g, {"tipo": "persona", "grupo": g, "kommo_contact_ids": [], "nombre": None,
+                                    "telefono": None, "correo": None, "client_id": None})
+        p["kommo_contact_ids"].append(kid)
+        if kid == g:
+            p["nombre"] = (contactos.get(kid) or {}).get("name")
+        p["telefono"] = p["telefono"] or (v["e164"][0] if v["e164"] else None)
+        p["correo"] = p["correo"] or (v["correos"][0] if v["correos"] else None)
+        p["client_id"] = p["client_id"] or v["client_id"]
+    with open(salida, "w", encoding="utf-8") as f:
+        for p in personas.values():
+            p["kommo_contact_ids"].sort()
+            f.write(json.dumps(p, ensure_ascii=False, separators=(",", ":")) + "\n")
+            cuenta["personas"] += 1
+        talks_validos = set()
+        for t in st.leer_ndjson("talks.ndjson"):
+            if t.get("_http") != 200 or not t.get("talk"):
+                continue
+            talk = t["talk"]
+            tid = int(t["_talk_id"])
+            contacto = talk.get("contact_id")
+            grupo = (vinculos.get(int(contacto)) or {}).get("grupo") if contacto is not None else None
+            if grupo is None:
+                cuenta["conversaciones_sin_contacto"] += 1
+            talks_validos.add(tid)
+            f.write(json.dumps({"tipo": "conversacion", "kommo_talk_id": tid, "grupo": grupo,
+                                "origen": talk.get("origin"), "creada": segundos(talk.get("created_at")),
+                                "actualizada": segundos(talk.get("updated_at"))},
+                               ensure_ascii=False, separators=(",", ":")) + "\n")
+            cuenta["conversaciones"] += 1
+        vistos = set()
+        for m in st.leer_ndjson("mensajes.ndjson"):
+            mid = str(m.get("id"))
+            if m.get("_talk_id") not in talks_validos or mid in vistos:
+                continue
+            vistos.add(mid)
+            autor = m.get("author") or {}
+            entrante = m.get("type") == "incoming"
+            if entrante:
+                quien = "cliente"
+            elif autor.get("type") == "bot":
+                quien = AUTOR_BOT
+                cuenta["mensajes_de_bot"] += 1
+            else:
+                quien = nombre_de_pila(autor.get("name")) or "Asesor"
+            fila = {"tipo": "mensaje", "source_id": f"kommo:{mid}", "kommo_talk_id": m["_talk_id"],
+                    "entrante": entrante, "autor": quien, "texto": m.get("text"), "creado": segundos(m.get("created_at")),
+                    "adjunto": adjuntos.get(mid)}
+            f.write(json.dumps(fila, ensure_ascii=False, separators=(",", ":")) + "\n")
+            cuenta["mensajes"] += 1
+            cuenta["entrantes" if entrante else "salientes"] += 1
+            cuenta["con_adjunto"] += bool(fila["adjunto"])
+            if isinstance(fila["adjunto"], dict):
+                cuenta["con_adjunto_para_carga"] += 1
+                cuenta["bytes_adjuntos_para_carga"] += int(fila["adjunto"].get("bytes") or 0)
+                # El adjunto más grande: con él se estima el pico de memoria del cargador (SDD-0590 §10.15).
+                cuenta["bytes_adjunto_max"] = max(cuenta["bytes_adjunto_max"], int(fila["adjunto"].get("bytes") or 0))
+            cuenta["sin_texto"] += not m.get("text")
+    informe = dict(sorted(cuenta.items()))
+    st.escribir_json("carga-informe.json", informe)
+    return informe
 
 
 def cifrar_bytes(datos: bytes, recipients: str, salida: str) -> None:
@@ -673,6 +1089,12 @@ def cifrar_bytes(datos: bytes, recipients: str, salida: str) -> None:
     os.chmod(salida, 0o600)
 
 
+def comando_tar(ruta_staging: str) -> list[str]:
+    """El tar del paquete de metadatos. Las copias en claro para el cargador (5.5b) no van: los adjuntos ya van
+    cifrados uno por uno, y el paquete no tiene que llevar 2 GB en claro adentro."""
+    return ["tar", "-C", ruta_staging, f"--exclude=./{CARPETA_ADJUNTOS_CARGA}", "-cf", "-", "."]
+
+
 def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, conservar: bool,
                efimera: str | None = None) -> dict:
     """tar | zstd | age del staging. Si `efimera` es una clave pública, también se cifra para ella (solo ensayos)."""
@@ -680,7 +1102,7 @@ def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, con
     os.makedirs(destino_corrida, mode=0o700, exist_ok=True)
     salida = os.path.join(destino_corrida, f"kommo-{stamp}-metadatos.tar.zst.age")
     cmd_age = ["age", "-R", recipients] + (["-r", efimera] if efimera else []) + ["-o", salida]
-    tar = subprocess.Popen(["tar", "-C", st.ruta, "-cf", "-", "."], stdout=subprocess.PIPE)
+    tar = subprocess.Popen(comando_tar(st.ruta), stdout=subprocess.PIPE)
     zst = subprocess.Popen(["zstd", "-T2", "-10", "-q"], stdin=tar.stdout, stdout=subprocess.PIPE)
     tar.stdout.close()
     age = subprocess.Popen(cmd_age, stdin=zst.stdout, stderr=subprocess.PIPE)
@@ -696,22 +1118,46 @@ def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, con
     with open(salida + ".sha256", "w", encoding="utf-8") as f:
         f.write(f"{huella}  {os.path.basename(salida)}\n")
     log(f"paquete: {os.path.basename(salida)} ({os.path.getsize(salida)} bytes, sha256 {huella[:12]}…)")
-    manifiesto = {"version": VERSION, "stamp": stamp, "fecha": utc(ahora()), "archivos": []}
-    for raiz, _dirs, archivos in os.walk(destino_corrida):
-        for a in sorted(archivos):
-            if a.endswith(".age"):
-                ruta = os.path.join(raiz, a)
-                manifiesto["archivos"].append({"archivo": os.path.relpath(ruta, destino_corrida),
-                                               "bytes": os.path.getsize(ruta), "sha256": sha256_archivo(ruta)})
-    manifiesto["adjuntos_cifrados"] = sum(1 for a in manifiesto["archivos"] if a["archivo"].startswith("adjuntos"))
-    manifiesto["bytes_cifrados"] = sum(a["bytes"] for a in manifiesto["archivos"])
-    manifiesto["destinatarios"] = etiquetas_recipients(recipients)
+    manifiesto = construir_manifiesto(st, destino_corrida, stamp, recipients)
     with open(os.path.join(destino_corrida, "manifiesto.json"), "w", encoding="utf-8") as f:
         json.dump(manifiesto, f, ensure_ascii=False, indent=1)
     if not conservar:
         shutil.rmtree(st.ruta)
         log(f"staging borrado: {st.ruta}")
     return manifiesto
+
+
+def construir_manifiesto(st: Staging, destino_corrida: str, stamp: str, recipients: str) -> dict:
+    """Lista de los `.age` de la corrida con tamaño y huella, destinatarios y, si fue incremental, de qué
+    base parte. Va aparte de `empaquetar` para probarlo sin age, tar ni zstd."""
+    manifiesto = {"version": VERSION, "stamp": stamp, "fecha": utc(ahora()), "archivos": []}
+    for raiz, _dirs, archivos in os.walk(destino_corrida):
+        for a in sorted(archivos):
+            if a.endswith(".age"):
+                ruta = os.path.join(raiz, a)
+                manifiesto["archivos"].append({"archivo": os.path.relpath(ruta, destino_corrida).replace(os.sep, "/"),
+                                               "bytes": os.path.getsize(ruta), "sha256": sha256_archivo(ruta)})
+    manifiesto["adjuntos_cifrados"] = sum(1 for a in manifiesto["archivos"] if a["archivo"].startswith("adjuntos"))
+    manifiesto["bytes_cifrados"] = sum(a["bytes"] for a in manifiesto["archivos"])
+    manifiesto["destinatarios"] = etiquetas_recipients(recipients)
+    bloque = bloque_incremental(st)
+    if bloque:
+        manifiesto["incremental"] = bloque
+    elif st.existe("corte.json"):
+        # Completa hasta el corte: el siguiente incremental parte de aquí.
+        manifiesto["corte"] = st.leer_json("corte.json").get("corte")
+    return manifiesto
+
+
+def bloque_incremental(st: Staging) -> dict | None:
+    """Lo que el manifiesto dice de una corrida incremental: base, desde y corte. Solo fechas, stamps y huellas;
+    nada de datos. La carga (5.5) aplica los paquetes en orden de corte y quita repetidos por id."""
+    if not st.existe("incremental.json"):
+        return None
+    plan = st.leer_json("incremental.json")
+    return {"base_stamp": plan.get("base_stamp"), "base_sha256_paquete": plan.get("base_sha256_paquete"),
+            "desde": plan.get("desde"), "desde_utc": utc(plan.get("desde")), "corte": plan.get("corte"),
+            "corte_utc": utc(plan.get("corte")), "solape_segundos": plan.get("solape_segundos")}
 
 
 def etiquetas_recipients(ruta: str) -> dict:
@@ -965,6 +1411,25 @@ def estimar_chatwoot(msj: dict, talks: dict, contactos: dict, adj: dict) -> dict
     }
 
 
+def filtro_updated_at(st: Staging) -> dict | None:
+    """En una corrida incremental: por lista, cuántos elementos llegaron y cuántos cambiaron fuera de la ventana.
+    Si `fuera` > 0, Kommo ignoró `filter[updated_at]` en esa lista (SDD-0590 §9.2): bajó entera."""
+    if not st.existe("incremental.json"):
+        return None
+    plan = st.leer_json("incremental.json")
+    desde, corte = plan.get("desde"), plan.get("corte")
+    listas = {}
+    for nombre in LISTAS_INCREMENTALES:
+        total = fuera = 0
+        for e in st.leer_ndjson(f"{nombre}.ndjson"):
+            total += 1
+            ts = segundos(e.get("updated_at") or e.get("created_at"))
+            if ts is None or ts < desde or ts > corte:
+                fuera += 1
+        listas[nombre] = {"total": total, "fuera_de_la_ventana": fuera}
+    return {"desde": utc(desde), "corte": utc(corte), "filtro_updated_at": listas}
+
+
 def informe(st: Staging, log: Log, ahora_ts: int | None = None) -> dict:
     ahora_ts = ahora_ts or ahora()
     indice = {int(k): v for k, v in (st.leer_json("talks-indice.json") if st.existe("talks-indice.json") else {}).items()}
@@ -984,6 +1449,7 @@ def informe(st: Staging, log: Log, ahora_ts: int | None = None) -> dict:
     salida = {
         "version": VERSION,
         "fecha": utc(ahora_ts),
+        "incremental": filtro_updated_at(st),
         "cuenta": {"subdominio": cuenta.get("subdomain"), "creada": utc(cuenta.get("created_at")),
                    "campos_presentes": sorted(k for k in cuenta if k != "_embedded")},
         "eventos_chat": contar_eventos(st.leer_ndjson("eventos.ndjson")),
@@ -1092,10 +1558,8 @@ def cmd_probar_token(args, log: Log) -> int:
     if claims:
         exp = claims.get("exp")
         dias = round((exp - ahora()) / DIA, 1) if exp else None
-        iss = str(claims.get("iss") or "")
         print(f"alcances: {','.join(claims.get('scopes') or [])} | vence en: {dias} días | "
-              f"iss coincide con {args.subdominio}.{DOMINIO}: {'sí' if iss.rstrip('/').endswith(f'{args.subdominio}.{DOMINIO}') else 'no'} | "
-              f"account_id: {claims.get('account_id')}")
+              f"{describir_emisor(claims, args.subdominio)} | account_id: {claims.get('account_id')}")
     api = Kommo(args.subdominio, token, log, pausa=0.0)
     try:
         codigo, datos = api.get("/api/v4/account")
@@ -1123,7 +1587,21 @@ def preparar_corrida(args, st: Staging) -> str:
     return carpeta
 
 
+def validar_adjuntos_para_carga(args) -> None:
+    """5.5b: las copias en claro solo con un corte fijo, con adjuntos, y con el staging en tmpfs. Antes de pedirle
+    nada a Kommo."""
+    if not getattr(args, "adjuntos_para_carga", False):
+        return
+    if getattr(args, "sin_adjuntos", False):
+        raise ErrorFatal("--adjuntos-para-carga y --sin-adjuntos se excluyen")
+    if not getattr(args, "corte", None):
+        raise ErrorFatal("--adjuntos-para-carga pide --corte: la carga es de una extracción hasta un corte fijo")
+    if not en_tmpfs(args.staging):
+        raise ErrorFatal("--adjuntos-para-carga deja adjuntos en claro: el staging tiene que estar en /dev/shm")
+
+
 def cmd_extraer(args, log: Log) -> int:
+    validar_adjuntos_para_carga(args)
     token = cargar_token(args.token_file)
     if not os.path.exists(args.recipients):
         raise ErrorFatal(f"no existe {args.recipients}")
@@ -1179,6 +1657,73 @@ def cmd_empaquetar(args, log: Log) -> int:
     return 0
 
 
+def cmd_vincular(args, log: Log) -> int:
+    st = Staging(args.staging)
+    if not st.existe("contactos.ndjson"):
+        raise ErrorFatal("el staging no tiene contactos.ndjson: extrae hasta el corte con --conservar-staging")
+    foto = cargar_foto_erp(args.clientes)
+    if not args.conservar_clientes:
+        # La foto trae teléfonos y correos de clientes del ERP: se borra apenas se lee. No va al paquete de Kommo.
+        os.remove(args.clientes)
+        log("vincular: foto del ERP borrada tras leerla")
+    filas, informe = vincular(st.leer_ndjson("contactos.ndjson"), foto)
+    st.borrar("vinculos.ndjson")
+    st.anexar_ndjson("vinculos.ndjson", filas)
+    st.escribir_json("vinculo-informe.json", informe)
+    log(f"vincular: {informe['contactos']} contactos, {informe['vinculados_por_telefono']} por teléfono, "
+        f"{informe['vinculados_por_correo']} por correo, {informe['ambiguos']} ambiguos, {informe['grupos']} grupos")
+    print(json.dumps(informe, ensure_ascii=False))
+    return 0
+
+
+def cmd_preparar_carga(args, log: Log) -> int:
+    st = Staging(args.staging)
+    informe = preparar_carga(st)
+    log(f"preparar-carga: {json.dumps(informe, ensure_ascii=False)}")
+    print(json.dumps(informe, ensure_ascii=False))
+    return 0
+
+
+def flujo_adjuntos(st: Staging, salida) -> dict:
+    """5.5b: una línea NDJSON por adjunto en claro de los mensajes del archivo de carga, con su contenido en base64,
+    para el cargador (`MODO=adjuntos`, por la entrada estándar del contenedor). Antes de escribir cada línea comprueba
+    bytes y sha256 contra adjuntos.ndjson. Devuelve conteos."""
+    cuenta = collections.Counter()
+    for m in st.leer_ndjson("carga.ndjson"):
+        adj = m.get("adjunto") if m.get("tipo") == "mensaje" else None
+        if not isinstance(adj, dict) or not adj.get("archivo_carga"):
+            continue
+        ruta = st.ruta_de(adj["archivo_carga"])
+        if not os.path.isfile(ruta):
+            cuenta["faltan"] += 1
+            continue
+        with open(ruta, "rb") as f:
+            datos = f.read()
+        if len(datos) != int(adj.get("bytes") or -1) or sha256_bytes(datos) != adj.get("sha256"):
+            cuenta["no_coinciden"] += 1
+            continue
+        salida.write(json.dumps({"source_id": m["source_id"], "tipo": adj.get("tipo"), "ext": adj.get("ext"),
+                                 "content_type": adj.get("content_type"), "bytes": len(datos),
+                                 "sha256": adj.get("sha256"), "b64": base64.b64encode(datos).decode("ascii")},
+                                separators=(",", ":")) + "\n")
+        cuenta["adjuntos"] += 1
+        cuenta["bytes"] += len(datos)
+    return dict(sorted(cuenta.items()))
+
+
+def cmd_flujo_adjuntos(args, log: Log) -> int:
+    st = Staging(args.staging)
+    informe = flujo_adjuntos(st, sys.stdout)
+    sys.stdout.flush()
+    # La salida estándar es el flujo de datos: el informe va a la de error y al log, nunca entre las líneas.
+    texto = f"flujo-adjuntos: {json.dumps(informe, ensure_ascii=False)}"
+    print(texto, file=sys.stderr, flush=True)
+    if log.archivo:
+        log.archivo.write(f"{utc(ahora())} {texto}\n")
+        log.archivo.flush()
+    return 0 if not informe.get("faltan") and not informe.get("no_coinciden") else 2
+
+
 def cmd_todo(args, log: Log) -> int:
     cmd_extraer(args, log)
     cmd_informe(args, log)
@@ -1210,10 +1755,22 @@ def construir_parser() -> argparse.ArgumentParser:
         sp.add_argument("--corte-ventanas-vacias", type=int, default=0, help="parar tras N ventanas vacías seguidas (0 = nunca)")
         sp.add_argument("--sondear-huecos", type=int, default=0, help="probar N ids sin eventos (-1 = todos)")
         sp.add_argument("--sin-adjuntos", action="store_true")
+        sp.add_argument("--adjuntos-para-carga", action="store_true",
+                        help="5.5b: además del .age, deja cada adjunto en claro en <staging>/adjuntos-carga (tmpfs, 0600) "
+                             "para el cargador del Archivo Kommo; pide --corte y el staging en /dev/shm")
         sp.add_argument("--tope-adjunto-mb", type=float, default=200.0)
         sp.add_argument("--conservar-staging", action="store_true")
         sp.add_argument("--verificar-efimera", action="store_true", help="ensayo: round-trip con llave efímera")
+        sp.add_argument("--base", default=None, help="incremental: carpeta de un respaldo anterior (con manifiesto.json)")
+        sp.add_argument("--corte", default=None, help="incremental: instante de corte UTC, ya pasado (AAAA-MM-DDTHH:MM:SSZ)")
+        sp.add_argument("--solape-horas", type=int, default=SOLAPE_HORAS_POR_DEFECTO,
+                        help="incremental: horas antes del corte anterior desde donde se vuelve a mirar")
     sp = sub.add_parser("informe"); comunes(sp, token=False)
+    sp = sub.add_parser("vincular"); comunes(sp, token=False, destino=False)
+    sp.add_argument("--clientes", required=True, help="foto mínima del ERP en /dev/shm: client_id, phone_last10, correos")
+    sp.add_argument("--conservar-clientes", action="store_true", help="no borrar la foto del ERP después de leerla")
+    sp = sub.add_parser("preparar-carga"); comunes(sp, token=False, destino=False)
+    sp = sub.add_parser("flujo-adjuntos"); comunes(sp, token=False, destino=False)
     sp = sub.add_parser("empaquetar"); comunes(sp, token=False)
     sp.add_argument("--conservar-staging", action="store_true")
     sp.add_argument("--verificar-efimera", action="store_true")
@@ -1226,6 +1783,7 @@ def main(argv=None) -> int:
     log = Log(args.log)
     try:
         return {"probar-token": cmd_probar_token, "extraer": cmd_extraer, "informe": cmd_informe,
+                "vincular": cmd_vincular, "preparar-carga": cmd_preparar_carga, "flujo-adjuntos": cmd_flujo_adjuntos,
                 "empaquetar": cmd_empaquetar, "todo": cmd_todo}[args.cmd](args, log)
     except ErrorFatal as e:
         log(f"ERROR: {e}")
