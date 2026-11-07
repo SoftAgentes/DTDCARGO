@@ -18,7 +18,19 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
 
 ## VALIDACIÓN
 
-Pendiente del turno de máquina: los `verify` del DG corrían al escribir el código, y por eso solo se leyó y se editó.
+El detalle está en la tabla «Evidencia del seguimiento» de la spec. Se corrió con el turno del Subdirector.
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo previo: las pruebas nuevas contra el motor de `a0b4457a4` | FALLÓ, como se esperaba: 5 de 21 |
+| Con el arreglo | PASÓ: 21 de 21 |
+| 5 mutantes, de a uno, con base verde | PASÓ: 5 de 5 muertos, todo restaurado |
+| Suite de la guía (10 archivos, 1 worker) | PASÓ: 170 de 170 |
+| `tsc --noEmit` y ESLint de los 2 archivos | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO: el portón es el CI de la PR |
+
+La primera versión de la prueba de la doble pulsación pasaba sin el arreglo, porque el botón retoma el paso guardado. Quedó parametrizada con el botón y desde el código.
 
 ## COMMITS
 
@@ -26,12 +38,11 @@ Ver la PR. Commits selectivos con `git commit -F`.
 
 ## PR / BRANCH
 
-`claude/0589-p13-seguimiento` → `main`, en borrador. Se abre solo con la #416 fusionada y `main` traído con el driver.
+`claude/0589-p13-seguimiento` → `main`, en borrador: [#418](https://github.com/SoftAgentes/DTDCARGO/pull/418). Por orden nueva del DG (avanzar en varias líneas a la vez), se abrió antes de fusionar la #416, con base `main` porque «Calidad continua» solo corre contra `main`. Para revisar: solo los commits propios, encima de `a0b4457a4`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Con turno: instalar dependencias, correr el rojo previo sobre el `GuiaMotor.tsx` de `a0b4457a4`, el verde, los mutantes, la suite de la guía, `tsc`, ESLint y los checks de docs.
-- Con la #416 en `main`: traer `main` con el driver, abrir la PR y mandarle al Subdirector el SHA, el numstat y los rojos previos.
+- PR en borrador #418, base `main`, apilada sobre la #416: se fusiona después de la #416. Cuando la #416 esté en `main`, traer `main` con el driver.
 - `pnpm verify`: lo corre el Director General.
 - Al fusionar: limpiar este worktree y su rama. El árbol de la #416 (`.claude/worktrees/laughing-mclaren-33178a`, rama `claude/0589-p13-embudo-pestana`) se limpia cuando la #416 esté en `main`.
 

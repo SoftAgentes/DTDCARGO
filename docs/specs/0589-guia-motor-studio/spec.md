@@ -671,7 +671,24 @@ También salió del arranque automático una comprobación de la consulta que re
 | # | Criterio | Evidencia |
 |---|---|---|
 | S1 | B1: con el pedido por `?guia=` y por el botón, si la persona pasa a otra pestaña antes de que termine el cambio, la guía no se abre sola cuando vuelve a Embudos minutos después | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo sobre `a0b4457a4` |
-| S2 | B2: pulsar «Guía» otra vez durante la espera no reinicia la tarjeta, que sigue en el paso 2 después de 12 s | `GuiaEmbudoPestana.test.tsx`, con rojo previo |
+| S2 | B2: pedir la guía otra vez durante la espera, con el botón o desde el código, no reabre la tarjeta: sigue en el paso 2 después de 12 s y sin «Ver la guía desde el principio» | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo |
 | S3 | B2: `cerrarGuia()` durante la espera la cancela, y la guía no abre cuando llega el tablero | `GuiaEmbudoPestana.test.tsx`, con rojo previo |
 | S4 | Con el arranque automático encendido, su efecto no reemplaza la espera del botón: un tablero de 4 s abre igual | `GuiaEmbudoPestana.test.tsx`. Hoy pasa: protege el arreglo de B2, y lo mata el mutante que quita la guarda |
 | S5 | Lo del P-13 sigue igual | Los 15 casos de la #416 y la suite de la guía |
+
+### Evidencia del seguimiento (2026-11-07)
+
+Con el turno de máquina que dio el Subdirector y la regla nueva de dos corridas medianas a la vez como máximo.
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo previo: las pruebas nuevas contra el `GuiaMotor.tsx` de `a0b4457a4`, la cabeza de la #416 (mutante M0) | FALLÓ, como se esperaba: 5 de 21. Caen B1 por URL, B1 por botón, B2 con el botón, B2 desde el código y B2 con `cerrarGuia` |
+| Las mismas pruebas con el arreglo | PASÓ: 21 de 21 |
+| 5 mutantes, de a uno, con base verde | PASÓ: 5 de 5 muertos. M0 tumba 5. MB1, sin olvidar el pedido, tumba los 2 de B1. MB2a, sin cancelar la espera anterior, tumba los 2 de la doble pedida. MB2b, con `cerrarGuia` sin cancelar, tumba 1. MB2c, sin la guarda del arranque automático, tumba 1 (S4). Todo restaurado, con `git diff --stat` igual |
+| Suite de la guía: `lib/studio/guia`, `app/studio/_components/guia` y `guia-panel.test.ts`, con 1 worker | PASÓ: 170 de 170 en 10 archivos |
+| `tsc --noEmit` | PASÓ |
+| ESLint de `GuiaMotor.tsx` y `GuiaEmbudoPestana.test.tsx`, con `--max-warnings=0` | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» de la PR |
+
+**Qué cambió mientras se hacía.** La primera versión de la prueba de la doble pulsación quedó viva frente a M0 y MB2a: pasaba sin el arreglo. Con el botón, la segunda apertura retoma el paso guardado y la tarjeta sigue en «2 de 4». El daño estaba, pero se veía de otra forma: el foco vuelve a la tarjeta y aparece «Ver la guía desde el principio». La prueba quedó parametrizada con el botón y desde el código (`programa`, que sí vuelve a «1 de 4»), y además exige que no aparezca «Ver la guía desde el principio».
