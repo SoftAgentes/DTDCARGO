@@ -241,6 +241,31 @@ Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrom
   página HTML ajena. La corrida no se frenó. Falta ver qué servidor intenta y si conviene
   apagarlo en el `config.toml` del Auxiliar.
 
+## Prueba del ciclo (F5, 2026-11-07, 05:29–05:41 UTC; Sam: «Sí, probémoslo»)
+
+- **Pedido:** HAI-48, creada desde la pantalla de ALFRED a nombre de Sam. Es interna: una lista
+  de 5 puntos para revisar la oficina cada viernes, con plan, crítica del Auxiliar y redacción
+  del Jefe de gabinete.
+- **Recorrido (MEDIDO en la base, 6 corridas, todas `succeeded`):**
+  1. **ALFRED** escribió el `plan` v1 y abrió HAI-49 «Crítica del plan v1» para el Auxiliar.
+     Dejó HAI-48 en `blocked` por HAI-49.
+  2. **Auxiliar** (Codex) escribió `critica` en HAI-49 con las cinco partes, marcas NO
+     VERIFICADO y una ⭐. La cerró con «otra vuelta: …».
+  3. **ALFRED** despertó solo. Escribió el `plan` v2 con «Vuelta 1 · qué tomé y qué no» y
+     abrió HAI-50 para el Jefe de gabinete.
+  4. **Jefe de gabinete** (GLM) entregó el documento `entregable` y cerró HAI-50: 42 líneas,
+     dentro del tope.
+  5. **ALFRED** despertó al cerrarse HAI-50, comprobó el entregable contra «Terminado cuando»
+     y dejó HAI-48 en `in_review`. El ensayo en seco y el cierre quedan para el viernes
+     2026-11-13, como dice su plan.
+- **Resultado:** el ciclo plan → crítica → reestructura → subtarea GLM → comprobación funciona
+  de punta a punta.
+- **No cubierto:**
+  - la segunda vuelta de crítica;
+  - el silencio del Auxiliar;
+  - una hermana bloqueada (#9668);
+  - la pregunta de control.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.
@@ -248,7 +273,7 @@ Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrom
 3. **ALFRED en Claude Code y el Auxiliar en Codex:** hechos y probados el 2026-11-07
    (secciones anteriores). Queda revisar el 403 de MCP del Auxiliar.
 4. **Rutinas de ALFRED:** arregladas el 2026-11-07 (sección anterior).
-5. **Probar el ciclo por ramas** (paso 7 de la spec) y la pregunta de control.
+5. **Probar el ciclo:** la rama feliz pasó el 2026-11-07 (HAI-48). Faltan la segunda vuelta, el silencio del Auxiliar, una hermana bloqueada y la pregunta de control.
 6. **Temporales con salida cruda de la base:** borrados el 2026-11-06.
 
 ## FUERA DE ALCANCE DETECTADO
