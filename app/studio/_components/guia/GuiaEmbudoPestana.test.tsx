@@ -24,7 +24,8 @@ import { cerrarGuia, GuiaMotor, iniciarGuia } from "./GuiaMotor";
 
 const nav = vi.hoisted(() => {
   const oyentes = new Set<() => void>();
-  const estado = { pathname: "/studio/crm", query: "", demoraMs: 0 };
+  /** `perder`: el `replace` se pierde y la URL no cambia (red cortada, navegación abortada). */
+  const estado = { pathname: "/studio/crm", query: "", demoraMs: 0, perder: false };
   const fijar = (query: string) => {
     estado.query = query;
     for (const avisar of oyentes) avisar();
@@ -32,6 +33,7 @@ const nav = vi.hoisted(() => {
   /** Cambios de URL del motor que todavía no terminaron. */
   const enCurso = new Set<ReturnType<typeof setTimeout>>();
   const replace = vi.fn((href: string) => {
+    if (estado.perder) return;
     const query = new URL(href, "http://studio.test").search.replace(/^\?/, "");
     const t = setTimeout(() => {
       enCurso.delete(t);
@@ -157,6 +159,7 @@ beforeEach(() => {
   nav.estado.pathname = "/studio/crm";
   nav.estado.query = "";
   nav.estado.demoraMs = 0;
+  nav.estado.perder = false;
   nav.replace.mockClear();
 });
 afterEach(() => {
@@ -399,6 +402,44 @@ describe("P-13 · seguimiento: pedidos que quedan vivos", () => {
     expect(esperarTarjeta(5_000)).toBe(true);
     expect(pestana()).toBe("embudos");
     expect(nav.replace).toHaveBeenCalledTimes(1);
+  });
+
+  // Segunda revisión de la #418 (ac50c6fca): la espera heredada la crea el evento, no
+  // el efecto del pedido, así que ya no se cancelaba al cambiar la URL.
+  it("B1 · pedir otra vez, irse a otra pestaña y volver antes de 10 s: la guía no se abre sola", () => {
+    montar({ resolver: conDefecto("direccion"), tardaMs: 1_500 });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(600);
+    expect(pestana()).toBe("embudos");
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(300);
+    expect(tarjeta()).toBeNull();
+
+    act(() => nav.persona("tab=asesor"));
+    esperar(1_000);
+    expect(pestana()).toBe("asesor");
+    act(() => nav.persona("tab=embudos"));
+    esperar(6_000);
+    expect(pestana()).toBe("embudos");
+    expect(tarjeta()).toBeNull();
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it("B2 · si el cambio de pestaña se pierde, una pulsación pasados 10 s lo vuelve a pedir", () => {
+    nav.estado.perder = true;
+    montar({ resolver: conDefecto("direccion") });
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    esperar(1_000);
+    // Antes de 10 s, el pedido sigue en camino: no se pide dos veces.
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+
+    esperar(10_000);
+    nav.estado.perder = false;
+    act(() => iniciarGuia("embudo", { origen: "boton" }));
+    expect(nav.replace).toHaveBeenCalledTimes(2);
+    expect(esperarTarjeta(5_000)).toBe(true);
+    expect(pestana()).toBe("embudos");
   });
 
   it("B2 · con el arranque automático encendido, su efecto no reemplaza la espera del botón", () => {
