@@ -101,8 +101,33 @@ Migración sin aplicar, con su paquete para el Director General. PR en borrador.
 
 ## Paquete para el Director General (aplicar la 0518)
 
+Generado con `infra/ops/migraciones/preparar.mjs` desde `aada8a4ce7111074a27664c9c4651070e29b8da6`. Está en la carpeta de notas del Subdirector, fuera del repo:
+- `paquete-0518-aada8a4ce-dtd-cargo` (producción);
+- `paquete-0518-aada8a4ce-dtd-cargo-staging` (prueba).
+
+| Pieza | Producción | Prueba |
+|---|---|---|
+| blob de la 0518 | `53ead8e1849e`, md5 `04da30d0272d1bd6e1393e792658b54a`, 44.342 bytes | igual |
+| `previa.sql` | md5 `7f543b584a0abfb4033b50106939b318` | `7f543b584a0abfb4033b50106939b318` |
+| `aplicar.sql` | md5 `5fba4d5348db39ee902c50c3c2b95940` | `f2070efa237362e52062d53fffefa923` (otro `created_by`) |
+| `verificar.sql` | md5 `ffe913f0805695a38fd245a6df4e21d2` | `ffe913f0805695a38fd245a6df4e21d2` |
+| `desarme.sql` (`supabase/desarmes/0518_desarme.sql`) | md5 `b81612eb10048d2a9bc2529acb0520ef`, 5.825 bytes | igual |
+
+Ensayo de los dos paquetes en PGlite, con un ledger simulado (no es producción ni prueba):
+- PASÓ: previa, luego aplicar, luego verificar. Quedó una fila en el ledger y los 13 cuerpos son iguales al archivo.
+- PASÓ: la previa repetida frena con «ya está en el ledger».
+- `sha256sum -c` da OK en las dos carpetas.
+
+El desarme tiene su ensayo en la prueba Vitest («DESARME»):
+- el catálogo queda idéntico al de antes de la 0518;
+- aborta si el interruptor está encendido o si hay filas que se perderían.
+
+Declaración de símbolos: no hace falta. El gate da `0 ROJO · 0 AMARILLO`, porque ningún módulo alcanzable desde una ruta nombra los símbolos de la 0518.
+
+La 0518 cambia `seo_drafts_categoria_check` **solo** si todavía tiene la lista vieja de la 0053, y lo deja marcado en su comentario. Si producción ya lo cambió fuera de banda, no lo toca.
+
 1. **Preflight en producción, solo lectura y sin filas:**
-   - la definición viva de `seo_drafts_status_check`, de `seo_drafts_categoria_check` (la 0053 la creó con las 10 categorías viejas y ninguna migración del repo la cambió) y de las policies de `news_posts`;
+   - la definición viva de `seo_drafts_status_check`, de `seo_drafts_categoria_check` y de las policies de `news_posts`. `seo_drafts_categoria_check` lo creó la 0053 con las 10 categorías viejas y ninguna migración del repo lo cambió; la 0518 lo cambia solo si sigue igual;
    - **el conteo, y solo el número,** de noticias publicadas con marca (consulta en la espera de `migrations-baseline.json`). Si da más de 0, esas noticias siguen publicadas (el CHECK es NOT VALID) pero no se pueden volver a publicar ni editar sin quitar la marca: decidirlo con Sam antes.
 2. Ensayo en prueba con el mismo archivo y postflight: el interruptor sigue apagado y `authenticated` no ejecuta `news_evaluacion_automatica`. Ya lo comprueba el bloque `$postflight$`.
 3. Aplicar con el OK nominal de Sam para `0518_noticias_publicacion_automatica` y el runbook `aplicar-migraciones-prod.md`. Después: sellarla, retirar la espera y mirar `md5` contra el ledger.
