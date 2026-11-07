@@ -266,6 +266,48 @@ Sam pidió «¿Puedes entrar tú y configurarlo?». Lo configuré desde su Chrom
   - una hermana bloqueada (#9668);
   - la pregunta de control.
 
+## Casos difíciles del ciclo (2026-11-07, 05:44–07:30 UTC; Sam: «Casos difíciles»)
+
+**HAI-51, tope de vueltas y hermana bloqueada:**
+
+- **Tope de 2 vueltas: PASÓ.**
+  - El pedido le indicaba al Auxiliar que pidiera «otra vuelta» siempre. Lo hizo en HAI-52 y
+    en HAI-53.
+  - ALFRED escribió los planes v2 y v3 con «Vuelta 1» y «Vuelta 2». Anotó «Tope de 2 vueltas
+    alcanzado: no abro otra crítica» y creó las subtareas de trabajo.
+- **Despertar con un comentario de Sam: PASÓ.** Un comentario en HAI-51 lo despertó en
+  segundos.
+- **Hermana bloqueada (#9668): CONFIRMADO.**
+  - Paperclip pasó HAI-54 y HAI-55 a `blocked` tras agotar los reintentos y no despertó a
+    ALFRED.
+  - ALFRED se había dejado un monitor propio en HAI-51: revisión a las 24 h y despertar al
+    cerrarse las dos hijas.
+- **Subtareas GLM: FALLAN antes de empezar (MEDIDO).**
+  - Error: `rich.errors.MarkupError: closing tag '[/HAI/issues/HAI-51#document-plan]'`.
+    Hermes 0.22.2 imprime el prompt con Rich y lee `[/…]` como etiqueta de cierre.
+  - ALFRED escribía los enlaces con la ruta como texto. Ya limpió las descripciones de
+    HAI-54 y HAI-55, pero sus comentarios viejos en HAI-51 llegan en el contexto y siguen
+    tumbando a Hermes.
+  - No gasta cuota GLM: falla antes de llamar al modelo.
+- **Mitigación:** una regla nueva en las Instructions de ALFRED y en `ceo/AGENTS-claude.md`:
+  el texto visible del enlace es una palabra.
+- **Decisión de Sam: «Esperar a Hermes 0.23».** No se toca `dtd-agente-run`. HAI-54 y HAI-55
+  quedan bloqueadas.
+- **Pendiente para la actualización (PR #409):** comprobar en 0.23 que `[/` en el prompt ya no
+  tumba a Hermes.
+
+**HAI-56, silencio del Auxiliar: PASÓ, por otro camino.**
+
+- El Auxiliar se pausó a las 07:32 UTC sin avisarle a ALFRED. Paperclip le rechazó a ALFRED la
+  subtarea de crítica: `409 «Cannot assign work to a paused agent»`.
+- ALFRED siguió con el plan y anotó «Sin crítica: Auxiliar de ALFRED en pausa». Se lo señaló a
+  Sam y encargó HAI-57 al Jefe de gabinete.
+- HAI-57 corrió bien con GLM, la primera corrida GLM sin caída después de la regla de
+  enlaces. ALFRED comprobó la nota, cerró HAI-56 y dejó el lote para `#decisiones`.
+- **No cubierto:** una crítica asignada que el Auxiliar no contesta. Paperclip no deja asignar
+  a un pausado; ese caso lo cubre la regla del siguiente latido.
+- **Pendiente:** reanudar al Auxiliar. Al cerrarse la prueba, Chrome se desconectó.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.
