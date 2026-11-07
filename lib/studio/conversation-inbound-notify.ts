@@ -25,7 +25,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -114,12 +114,24 @@ export async function notifyConversationInbound(
       url,
     ].join("\n");
 
+    // A Discord no va el cuerpo del mensaje ni el nombre: la referencia del
+    // hilo (o el Shipping Mark) y el enlace (SDD-0606). El asesor se menciona
+    // en el canal si enlazó su Discord.
+    const alerta = {
+      telegramText: text,
+      discord: {
+        titulo: "Mensaje nuevo del portal",
+        codigo: conv.ref ?? client?.markbox ?? null,
+        url,
+      },
+    };
+
     if (assignedTo) {
       // Hilo asignado (o recién auto-asignado por advisor_id) → a ese agente si
       // no silenció el aviso del portal (TOGGLE), MÁS el chat de la categoría
       // `conversaciones` (SDD-0271). Una sola vez por chat: si el asesor ES ese
       // chat, no le llega dos veces.
-      await dispatchTelegramAlert(admin, conv.tenant_id, "conversaciones", text, {
+      await dispatchAlert(admin, conv.tenant_id, "conversaciones", alerta, {
         alsoUserIds: (await wantsPortalNotif(admin, assignedTo)) ? [assignedTo] : [],
         fallback: "none",
         logTag: "conversacion-asignada",
@@ -159,7 +171,7 @@ export async function notifyConversationInbound(
         .eq("id", args.conversationId)
         .is("assigned_to", null);
       // Se asigna igual; el Telegram respeta el TOGGLE del agente.
-      await dispatchTelegramAlert(admin, conv.tenant_id, "conversaciones", text, {
+      await dispatchAlert(admin, conv.tenant_id, "conversaciones", alerta, {
         alsoUserIds: (await wantsPortalNotif(admin, best)) ? [best] : [],
         fallback: "none",
         logTag: "conversacion-round-robin",

@@ -15,6 +15,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { drainBugNotificationOutbox } from "@/lib/studio/notify/bug-notif-outbox";
+import { drainAlertOutbox } from "@/lib/studio/alerts/alert-outbox";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,10 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
   const result = await drainBugNotificationOutbox(admin);
-  return NextResponse.json({ ok: true, ...result });
+  // SDD-0606 · la cola de avisos a Discord se drena en el mismo tick (cada 5
+  // min, infra/dtd-cargo/cron/crontab): sin entrada nueva en el crontab.
+  const alertas = await drainAlertOutbox(admin);
+  return NextResponse.json({ ok: true, ...result, alertas });
 }
 
 export async function POST(req: NextRequest) {
