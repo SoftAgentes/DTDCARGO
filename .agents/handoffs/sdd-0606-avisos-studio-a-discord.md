@@ -1,5 +1,25 @@
 # Handoff — SDD-0606 · Avisos del Studio: de Telegram a Discord
 
+## CIERRE DE LA 0514 Y LA 0515 (2026-11-07)
+
+- La #380 se fusionó a las 07:48Z (`main` `27254ea5e`). El Director General aplicó las dos en producción con el runbook, desde la cabeza `d9c8832ce8602b0ea41811e917399b6bab0408bb`. Lectura previa, apply y verificación: PASÓ en las dos.
+
+| Migración | COMMIT (UTC) | md5 del blob | Bytes | Ledger después | Evidencia en el servidor |
+|---|---|---|---|---|---|
+| `0514_user_profiles_discord_user_id` | 2026-11-07 07:49:56Z (versión `20261107074955`) | `fb6d4d68b0ed528ab4803ae974571966` | 3766 | 514 filas | `/srv/ops/evidencias/apply-0514-dtd-cargo-20261107T074954Z` |
+| `0515_studio_alert_outbox` | 2026-11-07 07:50:23Z (versión `20261107075023`) | `1ae7c1ac3cfbd9381285595e82f8a3e3` | 5766 | 515 filas | `/srv/ops/evidencias/apply-0515-dtd-cargo-20261107T075021Z` |
+
+- md5 copiados de `IDENTIDAD.txt` (`blob_md5`, `blob_bytes`) y de `verificar.out` (`md5_ledger`, `bytes_ledger`, `filas_ledger`) de cada evidencia, leídos por ssh en solo lectura.
+- OK de Sam, literal: «Prueba y producción (Recomendado)», 2026-11-06 ~17:35Z, en el chat del Director General.
+- Rama de cierre `claude/0606-cierre-0514-0515` desde `27254ea5e`. Lo que se hizo ahí:
+  - `retirar-espera.mjs` con cada md5 (exit 0, `revisarAMano` vacío);
+  - las dos quedaron selladas en el candado;
+  - las cuatro frases «sin aplicar» del código pasaron a hablar de una base sin la migración, y la tolerancia queda;
+  - la spec y `privacidad.md` dicen que están aplicadas.
+- Ninguna prueba afirmaba la espera: se buscó a mano 0514/0515 junto a «sin aplicar», «todavía» y `pendingBelowCutoff`.
+- **Pendiente fuera de esta rama:** Sam crea los webhooks y pone `DISCORD_TENANT_ID` y las direcciones en el servidor.
+
+
 - **Owner / sesión:** Worker, sesión `a25c32c6-5a38-4b25-8d4e-7cbf1ea56f10` (iniciada por `local_61442abe-3b66-423e-9af4-8008d5457aa3`).
 - **Ruta:** `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\gracious-kapitsa-213515`
 - **Rama:** `claude/gracious-kapitsa-213515`, sobre `main` 49bdba2e5. **Sin publicar.**
