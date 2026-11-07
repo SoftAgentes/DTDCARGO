@@ -39,7 +39,7 @@ del host. No tiene dependencias de Python.
 
 1. **Copiar al VPS** (desde el worktree):
    `C:\Windows\System32\OpenSSH\scp.exe -r infra/ops/kommo-historial root@217.216.54.70:/srv/ops/`
-2. **Pruebas en el VPS:** `python3 -I /srv/ops/kommo-historial/pruebas/test_respaldar.py` (54 pruebas desde la 1.2.1, entre ellas la de solo lectura: ningún método distinto de GET; con `age` y `zstd` corre también el round-trip de cifrado).
+2. **Pruebas en el VPS:** `python3 -I /srv/ops/kommo-historial/pruebas/test_respaldar.py` (61 pruebas desde la 1.3.2, entre ellas la de solo lectura: ningún método distinto de GET; con `age` y `zstd` corre también el round-trip de cifrado).
 3. **Token:** Sam entra a Kommo → Ajustes → Integraciones → «DTD 0582 historial (solo lectura)» → Claves y alcances → **Token de larga duración** → Generar → Copiar, y lo pega con `pegar-token-kommo-e5-0582.ps1` (está en las notas compartidas de la sesión, no en Git). El token queda en `/dev/shm/k0582-e5` (0600) y el script lo comprueba al vuelo:
    `python3 -I respaldar-historial.py probar-token --token-file /dev/shm/k0582-e5`
 4. **Ensayo corto** (20 conversaciones, 2 ventanas de eventos, round-trip con llave efímera, todo en tmpfs):
@@ -115,9 +115,16 @@ python3 -I respaldar-historial.py flujo-adjuntos --staging /dev/shm/kommo-e5-car
 # 4c. Miembros del Archivo (Sam: «todo el equipo»): todos los usuarios de la cuenta, con Inbox#add_members
 docker exec -e MODO=miembros-seco -e CUENTA=1 -e BANDEJA=<id> chatwoot-rails-1 \
   bundle exec rails runner /tmp/cargar-archivo-kommo.rb                       # y después MODO=miembros
-# 5. Cifrar y borrar el staging (las copias en claro no entran al paquete y se borran con él)
+# 5. Primero el informe de conteos y después cifrar y borrar el staging (las copias en claro no entran al
+#    paquete y se borran con él). empaquetar se niega si falta informe.json: sin él, el manifiesto no diría
+#    cuántas conversaciones quedaron fuera por 403 (pasó en la carga del 2026-11-07, SDD-0590 §10.16)
+python3 -I respaldar-historial.py informe --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo
 python3 -I respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo
 ```
+
+`informe` deja `informe.json` e `informe.md` en el staging y una copia en la carpeta de la corrida, solo con
+conteos. El manifiesto lleva el bloque `informe`: huella, fecha, `conversaciones_sin_acceso_403` y
+`mensajes_sin_acceso_403`. Los ids de esas conversaciones van solo dentro del paquete cifrado.
 
 `cargar-archivo-kommo.rb` escribe con `insert_all`, sin callbacks: ni webhooks, ni notificaciones, ni envíos.
 Rechaza una bandeja con `webhook_url` o de otra cuenta, reusa contactos por teléfono o correo y no duplica en
@@ -207,6 +214,7 @@ Cada línea de `mensajes.ndjson` es el mensaje tal como lo da Kommo más `_talk_
 | `--tope-adjunto-mb` | Tope por adjunto (200 MB por defecto); los que pasan quedan anotados como `demasiado-grande` |
 | `--pausa` | Segundos entre peticiones (0,25 por defecto) |
 | `--conservar-staging` | No borrar el tmpfs al empaquetar (para repetir `informe`) |
+| `--sin-informe` | `empaquetar` aunque falte `informe.json`. El manifiesto lo anota con `informe: null`. Sin la opción, se niega |
 | `--verificar-efimera` | Solo ensayos: cifra también para una llave efímera y descifra para comprobar el paquete |
 | `--base` y `--corte` | Modo incremental (5.3): ver arriba |
 | `--solape-horas` | Horas antes del corte anterior desde donde el incremental vuelve a mirar (24 por defecto) |
