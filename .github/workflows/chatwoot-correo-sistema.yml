@@ -4,7 +4,8 @@ name: Correo automático en Chatwoot
 # automáticas con la etiqueta «sistema» y resueltas) con datos INVENTADOS, sobre la imagen real de
 # Chatwoot (v4.19.1-ce, fijada por digest en infra/chatwoot/compose.yml) con su Postgres y su Redis.
 # Corre T (con el inicializador), el control C (sin él: el rebote tiene que quedar abierto, como en
-# PC-1), el control M0 y 7 mutantes (prueba-correo-sistema.sh).
+# PC-1), el control M0 y 7 mutantes, y los casos V del guion de PC-3 (correo/bandeja-vzla.rb) con sus
+# 2 mutantes (prueba-correo-sistema.sh).
 #
 # Sin secretos ni variables del repositorio. Rails corre en `prepare`, que vive en la red `interna`
 # (internal: true) del compose: ningún correo sale ni entra. No instala nada en el VPS.
@@ -14,8 +15,10 @@ on:
   pull_request:
     paths:
       - "infra/chatwoot/correo/zz_dtd_correo_sistema.rb"
+      - "infra/chatwoot/correo/bandeja-vzla.rb"
       - "infra/chatwoot/pruebas/prueba-correo-sistema.sh"
       - "infra/chatwoot/pruebas/sonda-correo-sistema.rb"
+      - "infra/chatwoot/pruebas/sonda-bandeja-vzla.rb"
       - "infra/chatwoot/pruebas/compose.correo-sistema.yml"
       - "infra/chatwoot/pruebas/compose.correo-sistema-control.yml"
       - "infra/chatwoot/pruebas/compose.local.yml"

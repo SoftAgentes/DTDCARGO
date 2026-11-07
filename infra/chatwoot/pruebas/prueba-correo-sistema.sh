@@ -13,6 +13,9 @@
 #      una regla «sistema» (el hallazgo P4 de PC-1). Si no, la sonda no ve el problema
 #   M  M0 carga una copia sin cambios con SONDA_CARGAR y TIENE que dar lo mismo que T; cada mutante
 #      quita una pieza del inicializador y TIENE que romper su comprobación
+#   V  el guion de PC-3 (correo/bandeja-vzla.rb) con pruebas/sonda-bandeja-vzla.rb: sus negativas
+#      terminan en abort, crea la bandeja con IMAP y SMTP apagados y sin claves, y cada regla actúa
+#      solo en su bandeja. W1 y W2 son sus mutantes: TIENEN que romper su comprobación sin romper otra
 #
 # Uso:  bash infra/chatwoot/pruebas/prueba-correo-sistema.sh [--conservar]
 # Salida: PASÓ/FALLÓ por comprobación en stdout y en $TRABAJO/resumen.txt; sale 0 solo sin fallas.
@@ -68,12 +71,25 @@ ESPERADO=(
   "f_estado resolved" "f_etiquetas -" "f_notas 0"
   "g_estado open" "g_adjuntos 1" "g_tipo file"
   "h_estado_inicio resolved" "h_estado_persona open" "h_misma si" "h_estado open" "h_notas 1"
-  "conversaciones 8" "sonda ok"
+  "z_aviso_estado 1" "conversaciones 9" "sonda ok"
 )
-# Las que no cumple: «clave=lo que dio» separadas por espacio; vacío si cumple todas.
+# Lo que tiene que dar el guion de PC-3 entero (V). Mismo formato; el valor puede llevar espacios y «|».
+ESPERADO_V=(
+  "v_sin_miembros abort:si" "v_responsable_fuera abort:si" "v_nada_creado 0"
+  "v_crear ok" "v_imap_smtp false/false" "v_claves vacias"
+  "v_servidores imap.hostinger.com:993:true|smtp.hostinger.com:587" "v_remitente DTD Cargo/friendly" "v_miembros true"
+  "v_reglas 3" "v_reglas_en_bandeja 3" "v_legal_asigna si" "v_etiquetas 3" "v_estado si:si" "v_otra_vez abort:si"
+  "v_legal open|legal|urgent|sam" "v_noreply resolved|sistema|-|-" "v_replyto resolved|sistema|-|-"
+  "v_banco resolved|no-cliente|-|-" "v_gerencia open|legal|urgent|sam" "v_cliente open|-|-|-" "v_otra open|-|-|-"
+  "v_reglas_sin_variables ok:si" "v_no_cliente_valores 2" "v_legal_sigue si" "v_dominio_propio abort:si"
+  "v_dominios ok:si" "v_dominios_tope abort" "v_sin_arroba si" "sonda_vzla ok"
+)
+# diferencias ARCHIVO [ARREGLO]: las que no cumple, «clave=lo que dio» separadas por espacio; vacío si
+# cumple todas. El arreglo es ESPERADO si no se dice otro.
 diferencias() {
   local f="$1" par clave valor salida=""
-  for par in "${ESPERADO[@]}"; do
+  local -n esp="${2:-ESPERADO}"
+  for par in "${esp[@]}"; do
     clave="${par%% *}"; valor="${par#* }"
     es "$f" "$clave" "$valor" || salida="$salida $clave=$(h "$f" "$clave")"
   done
@@ -118,10 +134,27 @@ MUTANTES=(
   "m6|/# \[resolver\]$/d|a_estado|sin resolver el rebote sigue en la cola"
   "m7|s/::Conversations::ActivityMessageJob.perform_now( # \[nota\]/[].push( # [nota]/|a_notas|sin la nota nadie sabe por qué se cerró"
 )
+# mutar ORIGEN DESTINO SED: el sed tiene que terminar bien y cambiar UNA línea (una sola fila borrada, o una
+# cambiada). Un sed roto deja el archivo vacío, que también «cambia»: por eso no basta con cmp.
+mutar() {
+  sed -e "$3" "$1" >"$2" || return 1
+  local cambios
+  cambios="$(diff "$1" "$2" | grep -c '^[<>]')"
+  [ "$cambios" = 1 ] || [ "$cambios" = 2 ]
+}
 for m in "${MUTANTES[@]}"; do
   IFS='|' read -r id expr _ _ <<<"$m"
-  sed -e "$expr" "$ORIG" >"$MUT/$id.rb"
-  exigir "${id^^}a" '! cmp -s "$ORIG" "$MUT/$id.rb"' "el mutante $id cambia el archivo (si no, su sed ya no encuentra la línea)"
+  exigir "${id^^}a" 'mutar "$ORIG" "$MUT/$id.rb" "$expr"' "el mutante $id cambia una sola línea (si no, su sed ya no encuentra la suya)"
+done
+# Mutantes del guion de PC-3. id · sed · clave que tiene que romperse · clave que tiene que seguir igual · qué quita
+ORIG_V="$D/correo/bandeja-vzla.rb"
+MUTANTES_V=(
+  "w1|s/\[en_bandeja(inbox), { attribute_key: 'email', filter_operator: 'contains', values: remitentes_sistema/[{ attribute_key: 'email', filter_operator: 'contains', values: remitentes_sistema/|v_otra|v_noreply|sin la condición de bandeja, «sistema» resuelve los avisos de otra bandeja"
+  "w2|s/sin_asunto_legal(nil, ASUNTOS_LEGALES)\], # \[no-cliente\]/sin_asunto_legal(nil, %w[zzz])], # [no-cliente]/|v_gerencia|v_banco|sin la guarda del asunto, «no-cliente» resuelve un reclamo «Gerencia» de un banco"
+)
+for m in "${MUTANTES_V[@]}"; do
+  IFS='|' read -r id expr _ _ _ <<<"$m"
+  exigir "${id^^}a" 'mutar "$ORIG_V" "$MUT/$id.rb" "$expr"' "el mutante $id cambia una sola línea del guion (si no, su sed ya no encuentra la suya)"
 done
 
 docker network create "$EDGE" >/dev/null || { mal P0 "no se pudo crear la red $EDGE"; exit 1; }
@@ -168,7 +201,8 @@ exigir T6 '[ "$ordenadas" = 3 ] && ! printf "%s" "$lineas" | grep -q "@"' \
 # ── C. Control sin el inicializador ──────────────────────────────────────────
 log "== C. control sin el inicializador"
 F="$(caso control pruebas/compose.correo-sistema-control.yml)"
-exigir C0 'es "$F" inicializador no && es "$F" sonda ok' "la sonda corre sin el inicializador"
+exigir C0 'es "$F" inicializador no && es "$F" sonda ok && es "$F" z_aviso_estado 1' \
+  "la sonda corre sin el inicializador y su detector de notas de estado ve la de Chatwoot (caso Z)"
 exigir C1 'es "$F" a_estado open && es "$F" a_etiquetas - && es "$F" a_auto_reply true && es "$F" d_estado open' \
   "sin el inicializador el rebote y la respuesta automática quedan abiertos y sin etiqueta: el hallazgo P4 se reproduce"
 exigir C2 'es "$F" b_etiquetas prueba-legal && es "$F" g_adjuntos 1' \
@@ -187,6 +221,32 @@ for m in "${MUTANTES[@]}"; do
   for par in "${ESPERADO[@]}"; do [ "${par%% *}" = "$clave" ] && esperado="${par#* }"; done
   exigir "${id^^}" 'es "$F" sonda ok && [ -n "$esperado" ] && ! es "$F" "$clave" "$esperado"' \
     "$pieza ($clave dio «$(h "$F" "$clave")», sin el mutante «$esperado»)"
+done
+
+# ── V. Guion de PC-3 (correo/bandeja-vzla.rb), sin el inicializador ─────────────
+log "== V. guion de PC-3"
+caso_v() { # nombre [SONDA_VZLA] → ruta de la salida
+  local salida="$TRABAJO/caso-$1.txt" entorno=()
+  [ -n "${2:-}" ] && entorno=(-e "SONDA_VZLA=$2")
+  dc "${BASE[@]}" -f pruebas/compose.correo-sistema-control.yml run --rm -T "${entorno[@]}" prepare     bundle exec rails runner /tmp/pruebas/sonda-bandeja-vzla.rb >"$salida" 2>&1
+  echo "$salida"
+}
+F="$(caso_v vzla)"
+dif="$(diferencias "$F" ESPERADO_V)"
+exigir V0 'es "$F" sonda_vzla ok && [ -z "$dif" ]' "las ${#ESPERADO_V[@]} comprobaciones del guion de PC-3${dif:+ (no cumplen: $dif)}"
+exigir V1 'es "$F" v_sin_miembros abort:si && es "$F" v_responsable_fuera abort:si && es "$F" v_nada_creado 0 && es "$F" v_otra_vez abort:si && es "$F" v_dominio_propio abort:si'   "sin miembros, con el responsable fuera de la bandeja, dos veces o con el dominio de DTD como «no-cliente»: no crea nada"
+exigir V2 'es "$F" v_imap_smtp false/false && es "$F" v_claves vacias && es "$F" v_reglas_en_bandeja 3'   "crea la bandeja con IMAP y SMTP apagados, sin claves, y las 3 reglas empiezan por la bandeja"
+exigir V3 'es "$F" v_legal "open|legal|urgent|sam" && es "$F" v_gerencia "open|legal|urgent|sam" && es "$F" v_banco "resolved|no-cliente|-|-" && es "$F" v_otra "open|-|-|-"'   "«legal» asigna al responsable aunque el remitente sea «no-cliente»; las reglas no tocan otra bandeja"
+exigir V4 'es "$F" v_sin_arroba si' "ninguna salida del guion lleva una dirección"
+for m in "${MUTANTES_V[@]}"; do
+  IFS='|' read -r id _ clave igual pieza <<<"$m"
+  F="$(caso_v "$id" "/tmp/pruebas/mutantes/$id.rb")"
+  esperado=""; esperado_igual=""
+  for par in "${ESPERADO_V[@]}"; do
+    [ "${par%% *}" = "$clave" ] && esperado="${par#* }"
+    [ "${par%% *}" = "$igual" ] && esperado_igual="${par#* }"
+  done
+  exigir "${id^^}" 'es "$F" sonda_vzla ok && [ -n "$esperado" ] && ! es "$F" "$clave" "$esperado" && es "$F" "$igual" "$esperado_igual"'     "$pieza ($clave dio «$(h "$F" "$clave")», sin el mutante «$esperado»; $igual sigue «$(h "$F" "$igual")»)"
 done
 
 log "== resultado: $FALLAS fallas"

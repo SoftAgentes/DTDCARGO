@@ -73,9 +73,11 @@ end
 procesar = ->(mail) { Imap::ImapMailbox.new.process(mail, canal) }
 conversacion_de = ->(id) { inbox.messages.find_by(source_id: "#{id}@sonda.example.test")&.conversation&.reload }
 notas = ->(c) { c ? c.messages.activity.where('content LIKE ?', 'Correo automático%').count : -1 }
-# Notas de estado que escribe Chatwoot («resolved by system due to N minutes of inactivity»).
+# Notas de estado que escribe Chatwoot («resolved by system due to N minutes of inactivity»). Se leen en Ruby:
+# messages.content_attributes es una columna json que guarda el objeto como TEXTO (Chatwoot mismo la consulta con
+# `#>> '{}'`), y `content_attributes -> 'activity'` en SQL da siempre NULL. El caso Z comprueba que esto ve algo.
 aviso_estado = lambda do |c|
-  c ? c.messages.activity.where("content_attributes -> 'activity' ->> 'type' = 'conversation_status_changed'").count : -1
+  c ? c.messages.activity.to_a.count { |m| m.content_attributes.to_h.dig('activity', 'type') == 'conversation_status_changed' } : -1
 end
 etiquetas = ->(c) { c ? c.label_list.sort.join(',').presence || '-' : 'sin-conversacion' }
 informar = lambda do |letra, c|
@@ -149,6 +151,15 @@ procesar.call(correo('h3-automatica', de: 'robot.h@sonda.example.test', asunto: 
 h = conversacion_de.call('h3-automatica')
 hecho 'h_misma', h && h.id == conversacion_de.call('h1-automatica')&.id ? 'si' : 'no'
 informar.call('h', h)
+
+# Z · control del detector: un correo normal que se resuelve SIN autor, como lo haría el inicializador sin
+# `con_autor`. Chatwoot TIENE que escribir su nota de estado y `aviso_estado` TIENE que contarla; si da 0, el
+# «0 avisos» de A no mide nada.
+procesar.call(correo('z-detector', de: 'cliente.z@sonda.example.test', asunto: 'Control del detector'))
+z = conversacion_de.call('z-detector')
+Current.executed_by = nil
+z&.resolved!
+hecho 'z_aviso_estado', aviso_estado.call(z&.reload)
 
 hecho 'conversaciones', inbox.conversations.count
 hecho 'sonda', 'ok'

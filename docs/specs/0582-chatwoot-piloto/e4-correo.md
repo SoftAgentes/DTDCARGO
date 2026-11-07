@@ -5,6 +5,7 @@
   - lectura pública del DNS (§5);
   - plan paso a paso de lo que falta (§6.2);
   - arreglo propuesto de P4, con su prueba, **sin instalar** (§6.3);
+  - guion de PC-3, con su prueba, **nunca corrido en el VPS** (§6.4);
   - lista para Sam (§9) y allowlist del paso (§10).
 
   Lo encargó el Director General el 2026-11-07 a las 19:38Z.
@@ -201,18 +202,18 @@ Antes de empezar:
 - que `vzla@` no tenga respuesta automática (N4 de PC-2);
 - el texto de `/privacidad` con H3 de PC-2.
 
-El guion de esta bandeja **no está escrito**. Es otro `rails runner` como `bandeja-prueba.rb`, que crea primero las etiquetas y las reglas y después la bandeja con el IMAP apagado.
+El guion es [`correo/bandeja-vzla.rb`](../../../infra/chatwoot/correo/bandeja-vzla.rb) y su detalle, acción por acción, está en §6.4. Crea primero las etiquetas, los miembros y las reglas, con la bandeja y el IMAP apagado; la clave la escribe Sam en la pantalla de la bandeja.
 
 | Paso | Qué | Pasa si | No pasa si |
 |---|---|---|---|
 | 1 | Respaldo de Chatwoot | Respaldo del día con sus tres partes | — |
-| 2 | Etiquetas «legal», «no-cliente» y «sistema». Reglas al crearse la conversación: «legal» (asunto con «Privacidad» o «Gerencia» → etiqueta, prioridad urgente y `assign_agent` a Sam), «sistema» (remitentes `noreply@` y `notificaciones@` de DTD → etiqueta y resolver) y «no-cliente» (lista inicial por dominio, armada con conteos) | Las 3 reglas activas y limitadas a la bandeja nueva | Alguna regla sin condición de bandeja: actuaría sobre WhatsApp |
+| 2 | `crear` (§6.4): etiquetas «legal», «no-cliente» y «sistema»; reglas al crearse la conversación, todas limitadas a la bandeja nueva: «legal» (asunto con «Privacidad» o «Gerencia» → etiqueta, prioridad urgente y `assign_agent` a Sam), «sistema» (avisos de `noreply@`, `notificaciones@` y `no-responder@` de DTD → etiqueta y resolver) y «no-cliente» (lista por dominio, cuando la haya). «Legal» gana: las otras dos no tocan un asunto legal | `estado` muestra las reglas activas con `en_bandeja=true` | Alguna regla con `en_bandeja=false`: actuaría sobre WhatsApp o el Archivo |
 | 3 | Si Sam eligió (b), el inicializador ya instalado (P4) | La línea «activo» en `sidekiq` | — |
-| 4 | Bandeja «Correo · vzla@» con IMAP **apagado**, SMTP 587 STARTTLS, `business_name` «DTD Cargo», modo `friendly` y los miembros de la decisión 3. Sam carga la clave en la pantalla de la bandeja | La bandeja existe, IMAP `false` y 0 conversaciones | La clave llega por el chat o por un archivo: se cambia la clave en Hostinger |
-| 5 | Encender el IMAP | En 5 min entran solo los correos desde el día anterior (C2 de PC-2). Se cuentan por dominio, sin direcciones | Entra correo de hace más de 2 días: alguien recuperó a propósito |
+| 4 | La bandeja «Correo · vzla@» queda con IMAP y SMTP **apagados** y sin claves, SMTP 587 STARTTLS, `business_name` «DTD Cargo», modo `friendly` y los miembros de la decisión 3. Sam escribe la clave en la pantalla de la bandeja y enciende IMAP y SMTP | `estado`: IMAP y SMTP `true` y las dos claves «cargada» | La clave llega por el chat o por un archivo: se cambia la clave en Hostinger |
+| 5 | La primera lectura (al guardar el IMAP encendido) | En 5 min entran solo los correos desde el día anterior (C2 de PC-2). Se cuentan por dominio, sin direcciones | Entra correo de hace más de 2 días: alguien recuperó a propósito |
 | 6 | P1 y P2 con `vzla@`: un correo de Sam desde su cuenta personal y la respuesta del chat | Conversación en 2 min o menos. La respuesta llega como «Manuel de DTD Cargo» desde la dirección elegida. «Mostrar original» dice SPF, DKIM y DMARC `pass` con `d=dtdcargo.com` (§5) | Algún `fail` o `softfail`: se mira el SPF o el selector DKIM antes de seguir |
 | 7 | P3 (PDF de entrada y de salida), P5 (el webmail sigue sin leer), P8 (un correo de Sam con asunto «Privacidad» queda «legal», urgente y asignado a Sam) y N2 (un correo de Sam con una imagen remota: ¿la carga el panel?) | Las cuatro como dice §6 | — |
-| 8 | Primera semana: conteo diario por dominio y por etiqueta (N1 de PC-2). Revisar una vez al día lo resuelto con «sistema», por si algo era de un cliente | La lista «no-cliente» se ajusta con conteos, sin guardar direcciones en Git | — |
+| 8 | Primera semana: `dominios 7` y `estado` cada día (N1 de PC-2). Revisar una vez al día lo resuelto con «sistema» y «no-cliente», por si algo era de un cliente | La lista «no-cliente» se ajusta con `reglas` y conteos, sin guardar direcciones ni dominios en Git | — |
 
 **Vuelta atrás:** apagar el IMAP de la bandeja corta la entrada al momento. Borrar la bandeja borra lo copiado, y eso lo decide Sam.
 
@@ -250,6 +251,7 @@ No borra nada. Si después escribe una persona en ese hilo, Chatwoot reabre la c
 | F | Contacto bloqueado: la conversación nace resuelta | No se toca: 0 notas y sin etiqueta | — |
 | G | PDF como archivo adjunto (P3) | 1 adjunto `file` con bytes | Igual |
 | H | Persona que escribe en el hilo de una automática, y otra automática después | Se reabre y sigue abierta | — |
+| Z | Control del detector: un correo normal resuelto sin autor | 1 nota de estado de Chatwoot | 1 nota de estado de Chatwoot |
 
 El control **M0** carga la misma copia por otro camino (`SONDA_CARGAR`) y tiene que dar lo mismo que T. Cada uno de los **7 mutantes** quita una pieza y tiene que romper su comprobación:
 1. la guarda de conversación nueva → H;
@@ -260,13 +262,67 @@ El control **M0** carga la misma copia por otro camino (`SONDA_CARGAR`) y tiene 
 6. resolver → A;
 7. la nota → A.
 
-Cada mutante comprueba antes que su `sed` cambió el archivo.
+Cada mutante comprueba antes que su `sed` terminó bien y cambió una sola línea. Un `sed` roto deja el archivo vacío, que también «cambia».
 
-**Resultado:** NO EJECUTADO todavía. Corre en la PR de este tramo; el resultado se anota aquí con su SHA.
+**Resultado de la primera corrida** (PR #423, `69eaa40f8`, 2026-11-07 a las 20:27Z): **FALLÓ 1 de 25**. Pasaron:
+- T, las 31 comprobaciones;
+- el control C, que reproduce el hallazgo P4;
+- M0 y los mutantes 1, 2, 3, 5, 6 y 7.
+
+Falló **M4**: sin el autor, la sonda contó 0 notas de estado de Chatwoot. La falla era de la sonda. `messages.content_attributes` es una columna `json` que guarda el objeto como texto (Chatwoot mismo la consulta con `#>> '{}'`), así que la consulta `content_attributes -> 'activity'` daba siempre NULL. El «0 avisos de inactividad» de T no medía nada.
+
+Se corrigió así:
+- la sonda lee la nota en Ruby;
+- el caso **Z** resuelve un correo normal sin autor y **tiene que** contar 1 nota de Chatwoot, en T, en C y en cada mutante.
+
+El resultado de la segunda corrida se anota aquí con su SHA.
 
 **Cómo se instala:** puerta PC-5 y P4, paso 2. Al instalarlo se suma también como pieza propia en `docs/runbooks/chatwoot-versiones.md`, con su sonda en cada subida de versión.
 
 **Cómo se quita:** se borra la línea de montaje de `rails` y `sidekiq` y se recrean los dos. Lo ya etiquetado y resuelto queda como está.
+
+### 6.4 Guion de PC-3: `correo/bandeja-vzla.rb` (nunca corrido en el VPS)
+
+Es un `rails runner` como `bandeja-prueba.rb`, desde `/srv/chatwoot` en el VPS:
+
+```bash
+docker compose cp correo/bandeja-vzla.rb rails:/tmp/bandeja-vzla.rb
+docker compose exec -T -e DTD_MIEMBROS=<ids> -e DTD_RESPONSABLE_LEGAL=<id> rails bundle exec rails runner /tmp/bandeja-vzla.rb crear
+```
+
+Imprime solo ids, conteos, estados, nombres de reglas y dominios. **No escribe claves ni enciende el IMAP**, y **no borra**: borrar la bandeja borra lo copiado, y eso lo hace Sam desde el panel si lo decide.
+
+Las variables van solo en el comando, nunca en Git:
+
+| Variable | Qué es |
+|---|---|
+| `DTD_MIEMBROS` | Ids de los agentes de la bandeja, separados por coma (decisión 3) |
+| `DTD_RESPONSABLE_LEGAL` | Id de Sam, el responsable legal nombrado el 2026-11-03. Tiene que ser miembro, porque Chatwoot solo asigna a miembros de la bandeja |
+| `DTD_NO_CLIENTE_DOMINIOS` | Dominios «no-cliente», separados por coma. Sin la variable, esa regla no se crea ni se cambia |
+| `DTD_SISTEMA_REMITENTES` | Remitentes de avisos de DTD además de `noreply@`, `notificaciones@` y `no-responder@`. Chatwoot toma como contacto el `Reply-To` del correo (`MailPresenter#original_sender`). El valor vivo del `reply_to` del ERP es NV (C-11): si sus avisos quedan abiertos, ese es el que falta |
+
+| Paso | Qué hace | OK que pide | Qué tiene que ver Sam | Vuelta atrás |
+|---|---|---|---|---|
+| 1 | Respaldo de Chatwoot (Subdirector) | Parte del OK de PC-3 | Nada: el Subdirector le pasa el nombre del respaldo | — |
+| 2 | **`crear`.** Crea las etiquetas «legal», «no-cliente» y «sistema»; la bandeja «Correo · vzla@» con IMAP y SMTP apagados y sin claves, «DTD Cargo» y modo `friendly`; los miembros; y las reglas «Correo · legal», «Correo · sistema» y, si hay lista, «Correo · no-cliente». **Se niega** si falta un miembro, si el responsable no es miembro, si la bandeja o el buzón ya existen, o si la lista trae el dominio de DTD | «Crea la bandeja de vzla@ con sus reglas» (OK de PC-3) | En Ajustes → Bandejas, «Correo · vzla@» sin conversaciones. En Ajustes → Automatizaciones, las reglas «Correo · …» activas | Sam borra la bandeja (todavía vacía) y las reglas «Correo · …» desde el panel |
+| 3 | **Sam escribe la clave.** En Ajustes → Bandejas → «Correo · vzla@» → Configuración, enciende IMAP y SMTP y escribe la clave en los dos campos. Al guardar, Chatwoot prueba la conexión y empieza a leer. Que la pantalla muestre esos campos para una bandeja creada así es **NV**: se ve en este paso | Es la acción misma de Sam; la clave nunca pasa por el chat ni por el repo | Se guarda sin error. `estado` dice «imap true · smtp true · clave imap cargada · clave smtp cargada» | `apagar-imap`: la entrada se corta al momento |
+| 4 | **`estado`**, a los 5 minutos | — | Conversaciones solo desde el día anterior. «de dtdcargo.com abiertas» cerca de 0; si no, falta un remitente en «sistema» | `apagar-imap` |
+| 5 | Pruebas P1, P2, P3, P5, P8 y N2 (§6.2, PC-3, pasos 6 y 7) | La de cada prueba | Lo que dice cada una | `apagar-imap` |
+| 6 | **Primera semana:** `dominios 7` cada día. Con esa lista, **`reglas`** con `DTD_NO_CLIENTE_DOMINIOS` (y `DTD_SISTEMA_REMITENTES` si hace falta). `reglas` conserva al responsable si no se le pasa | «Actualiza la lista no-cliente» | Lo de esos dominios aparece en «Resueltas» con «no-cliente», salvo los asuntos legales, que siguen abiertos y asignados a Sam | `reglas` con la lista anterior |
+
+**Probado sin tocar nada vivo.** Lo prueban los casos V de `prueba-correo-sistema.sh` (§6.3), con datos inventados sobre la imagen real:
+- las cuatro negativas;
+- la bandeja con IMAP y SMTP apagados y sin claves;
+- las 3 reglas con `en_bandeja=true`;
+- «legal» asigna al responsable aunque el remitente sea «no-cliente»;
+- «sistema» toma el `Reply-To`;
+- ninguna regla toca otra bandeja;
+- `reglas` sin variables conserva al responsable y la lista;
+- ninguna salida lleva una dirección.
+
+Dos mutantes, cada uno con una comprobación que tiene que seguir igual:
+- **W1** quita la condición de bandeja de «sistema»;
+- **W2** quita la guarda del asunto de «no-cliente».
 
 ## 7. Puertas (cada una con OK nominal de Sam, nombrando la operación)
 
@@ -309,9 +365,10 @@ Nada en Hostinger ni en Cloudflare: el DNS ya tiene lo que hace falta (§5). Nin
 7. **Antes de PC-3:**
    - responder las decisiones 2, 3 y 4 de §8;
    - mirar en hPanel → Correos → `vzla@` que la respuesta automática esté **apagada**. **Tiene que ver** el interruptor apagado.
-8. **Dar el OK de PC-3** y cargar la clave de `vzla@` en la pantalla de la bandeja de Chatwoot.
-   - **Tiene que ver:** la bandeja «Correo · vzla@» con el IMAP apagado y las reglas listas.
-   - Después, su primer correo de prueba como conversación nueva en 2 minutos o menos (§6.2, PC-3).
+8. **Dar el OK de PC-3:** «Crea la bandeja de vzla@ con sus reglas». El guion y cada paso están en §6.4.
+   - **Tiene que ver:** la bandeja «Correo · vzla@» sin conversaciones y las reglas «Correo · …» activas.
+   - Después escribe la clave de `vzla@` en la pantalla de la bandeja, con IMAP y SMTP encendidos, y guarda sin error. La clave nunca pasa por el chat.
+   - Por último manda su primer correo de prueba, que tiene que aparecer como conversación nueva en 2 minutos o menos (§6.2, PC-3).
 
 ## 10. Allowlist del paso 4.8
 
@@ -322,6 +379,8 @@ El paso 4.8 no tiene SDD hija: su allowlist vive aquí.
 - `infra/chatwoot/correo/bandeja-prueba.rb` (PC-1, 2026-10-30)
 - `docs/legal/privacidad/revision-chatwoot-correo-2026-10-31.md` y `docs/legal/privacidad/inventario-terceros.md` (PC-2, 2026-10-31)
 - `infra/chatwoot/correo/zz_dtd_correo_sistema.rb` (P4, 2026-11-07; sin montar en `compose.yml`)
-- `infra/chatwoot/pruebas/{prueba-correo-sistema.sh,sonda-correo-sistema.rb,compose.correo-sistema.yml,compose.correo-sistema-control.yml}` (2026-11-07)
+- `infra/chatwoot/correo/bandeja-vzla.rb` (guion de PC-3, 2026-11-07; nunca corrido en el VPS)
+- `infra/chatwoot/pruebas/{prueba-correo-sistema.sh,sonda-correo-sistema.rb,sonda-bandeja-vzla.rb,compose.correo-sistema.yml,compose.correo-sistema-control.yml}` (2026-11-07)
 - `.github/workflows/chatwoot-correo-sistema.yml` (2026-11-07)
 - `.agents/handoffs/0582-e4-correo.md` (2026-11-07)
+- `docs/specs/0582-chatwoot-piloto/spec.md` (solo la allowlist, para sumar este paso; 2026-11-07)

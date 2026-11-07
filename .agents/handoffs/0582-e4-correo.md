@@ -44,8 +44,18 @@
    - **Control M0:** carga una copia con `SONDA_CARGAR`.
    - **7 mutantes,** uno por guarda o acción. Cada uno comprueba que su `sed` cambió el archivo; se verificó en local que cada `sed` cambia solo su línea.
 6. **Documentos:**
-   - `e4-correo.md`: estado, EC-2, §5, §6.1 (hallazgo), §6.2, §6.3, PC-5 en §7, decisión 6 con recomendación, §9 y §10;
+   - `e4-correo.md`: estado, EC-2, §5, §6.1 (hallazgo), §6.2, §6.3, §6.4, PC-5 en §7, decisión 6 con recomendación, §9 y §10;
    - checklist, fila 4.8: de `pendiente` a `en curso`, porque PC-1 está en curso desde el 2026-10-30. Puerta PC-5 y evidencia del tramo.
+7. **Guion de PC-3** (encargo del Subdirector, 2026-11-07 ~20:35Z): [`infra/chatwoot/correo/bandeja-vzla.rb`](../../infra/chatwoot/correo/bandeja-vzla.rb), nunca corrido en el VPS. Detalle en §6.4 del diseño.
+   - **Acciones:** `crear`, `estado`, `reglas`, `dominios N` y `apagar-imap`.
+   - **Lo que no hace:** no escribe claves (la escribe Sam en la pantalla de la bandeja), no enciende el IMAP y no borra.
+   - **Reglas:** toda regla empieza por la bandeja. En Chatwoot, «contains» con varios valores es `ILIKE ANY` (C, `FilterService#ilike_filter_string`). «Legal» gana sobre «sistema» y «no-cliente» por la guarda `does_not_contain` del asunto.
+   - **Prueba:** casos V en la misma prueba de Actions, con la sonda `sonda-bandeja-vzla.rb` y los mutantes W1 (sin bandeja en «sistema») y W2 (sin la guarda del asunto). Cada mutante tiene además una comprobación que debe seguir igual.
+8. **Allowlist de `spec.md`:** solo se sumaron `e4-correo.md` y las rutas del paso 4.8, con la misma lista que §10 del diseño.
+9. **Arreglo de la prueba de P4 tras la primera corrida de CI:**
+   - **El fallo:** el detector de notas de estado leía `content_attributes` con `->`, pero Chatwoot guarda ese `json` como texto, así que el detector no veía nada y M4 sobrevivió.
+   - **La corrección:** el detector lee la nota en Ruby y el caso Z lo obliga a ver 1 nota.
+   - **El chequeo de los mutantes:** ahora exige que `sed` termine bien y que cambie una sola línea. Un `sed` roto deja el archivo vacío, y el `cmp` de antes lo daba por bueno.
 
 ## VALIDACIÓN
 
@@ -54,16 +64,22 @@
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (596 specs) |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ (sin números repetidos; los choques históricos conocidos, sin cambios) |
 | `git diff --check` | PASÓ |
-| `bash -n prueba-correo-sistema.sh` y los 7 `sed` de los mutantes en local | PASÓ: cada uno cambia solo su línea |
-| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ: 49,0 %, línea base v4 de 129,5 d, igual que `main` |
-| `scripts/__tests__/avance-checklist.test.mjs` | NO EJECUTADO todavía: turno pedido al Subdirector; el worktree no tiene `node_modules` |
-| `prueba-correo-sistema.sh` (Docker) | NO EJECUTADO en la PC, porque Docker Desktop levanta 22 contenedores ajenos. Corre en la PR |
-| Ruby (sintaxis del inicializador y de la sonda) | NO DISPONIBLE en la PC (no hay `ruby`); lo cubre la corrida de Actions |
+| `bash -n prueba-correo-sistema.sh` y los 9 `sed` de los mutantes (M1–M7, W1 y W2) en local | PASÓ: cada uno cambia una sola línea; el control con un `sed` roto queda rechazado |
+| `corepack pnpm install --frozen-lockfile --offline` (turno del Subdirector, 20:29:52Z a 20:31:23Z) | PASÓ en 1 min 31 s, sin red y sin cambios en Git |
+| `node node_modules/vitest/vitest.mjs run scripts/__tests__/avance-checklist.test.mjs --maxWorkers=1` (20:31:34Z) | PASÓ: 12 de 12, en 6,5 s |
+| `node scripts/avance-checklist.mjs …/checklist.md --json`, comparado campo por campo con `main` (`250e86f65`) y con la base (`eef75ebef`) | PASÓ: sin diferencias. 49,03 %, etapa E4, paso 4.4, restante 62 d, línea base v4 de 129,5 d |
+| «Correo automático (datos inventados)», 1.ª corrida sobre `69eaa40f8` | FALLÓ 1 de 25: M4, porque el detector no podía ver nada (COMPLETADO, punto 9). Pasaron T (31/31), C, M0 y M1, M2, M3, M5, M6 y M7 |
+| «Correo automático (datos inventados)», con el arreglo y los casos V | Corre en la PR sobre el commit nuevo; lo lee el Subdirector |
+| `prueba-correo-sistema.sh` en la PC (Docker) | NO EJECUTADO, porque Docker Desktop levanta 22 contenedores ajenos |
+| Ruby en la PC | NO DISPONIBLE (no hay `ruby`); lo cubre la corrida de Actions |
+| `knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en el worktree (estructural y semántica UNAVAILABLE) |
 | `pnpm verify` | NO APLICA: no hay cambio de producto. El cierre se eligió por el diff |
 
 ## COMMITS
 
-Se anotan al cerrar (ver PR).
+- `7ae38e229`: el inicializador de correo automático y su prueba (sin instalar).
+- `69eaa40f8`: DNS, plan, lista para Sam, checklist y este handoff.
+- El commit siguiente: el guion de PC-3 y su prueba, el arreglo del detector de la sonda de P4, el chequeo de los mutantes, la allowlist de `spec.md` y la evidencia de las corridas. Su SHA está en la PR.
 
 ## PR / BRANCH
 
@@ -71,8 +87,7 @@ PR en borrador desde `claude/goofy-archimedes-797aef` hacia `main`. Sin fusionar
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr el vitest del checklist cuando el Subdirector dé turno.
-- Leer el resultado de «Correo automático en Chatwoot» en la PR y anotarlo en §6.3 con su SHA. Si sale rojo, corregir la sonda o el inicializador, nunca la expectativa.
+- Resultado de la 2.ª corrida de «Correo automático» sobre el commit nuevo: lo lee el Subdirector y se anota en §6.3 con su SHA. Si sale rojo, se corrige la sonda o el código, nunca la expectativa.
 - Al instalar, si Sam elige la opción (b):
   - sumar la pieza a `docs/runbooks/chatwoot-versiones.md`;
   - sumarla a la lista de piezas de `lib/studio/chatwoot/analisis.ts`, que es código de Studio, con su propia SDD;
@@ -81,7 +96,6 @@ PR en borrador desde `claude/goofy-archimedes-797aef` hacia `main`. Sin fusionar
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La allowlist de `docs/specs/0582-chatwoot-piloto/spec.md` no lista `e4-correo.md` ni los archivos de 4.8. Ahora están en §10 del diseño; sumarlos a la spec lo decide el Director.
 - El texto de `/privacidad` con H3 de PC-2 (personas en copia o citadas) es requisito de PC-3. No se comprobó si ya está.
 - DMARC sin `rua`: nadie recibe reportes del dominio. Es mejora aparte, con su OK, porque también cubre a Resend y a la web.
 - Desde esta PC, el DNS por UDP 53 a resolvedores públicos no responde (por DoH sí).
