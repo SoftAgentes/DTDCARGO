@@ -649,3 +649,29 @@ No depende de la pestaña por defecto: Dirección (hoy), Embudos (S0) y Resumen 
 - Un reintento podía devolver a Embudos a quien ya se había ido. Desde el arreglo, solo navega el primer intento de cada pedido.
 
 También salió del arranque automático una comprobación de la consulta que repetía la de `intentarAbrir`: un mutante sobre ella habría sobrevivido sin cambiar nada visible.
+
+### 2026-11-07 · Seguimiento del P-13: pedidos que quedan vivos (B1 y B2)
+
+**Fuente.** El Director General revisó la #416 (`a0b4457a4`) por su cuenta, la aprobó y dejó dos observaciones BAJAS que no bloquean. El Subdirector de Chatwoot las encargó en una PR aparte, después de que se fusione la #416. La rama es `claude/0589-p13-seguimiento` y sale de `a0b4457a4`.
+
+| # | Hallazgo | Arreglo |
+|---|---|---|
+| B1 | `GuiaMotor.tsx:345`: si la persona cambia de pestaña antes de que termine el `router.replace`, el pedido queda pendiente y la guía se abre sola minutos después, cuando la persona entra a Embudos | El pedido guarda la URL del momento en que se hizo (`consultaDelPedido`). Mientras la URL siga igual, el cambio de pestaña sigue en camino. Si cambia a otra URL sin la pestaña pedida, el pedido se olvida |
+| B2 | `:347` y `:385`: pulsar «Guía» dos veces durante la espera deja dos series de reintentos, y la segunda puede devolver la tarjeta al primer paso. `cerrarGuia` tampoco cancelaba la espera que deja un cambio de pestaña | Una sola espera a la vez (`esperaRef`): la nueva cancela la anterior, y `cerrarGuia` también la cancela. Además, el arranque automático no reemplaza un pedido de la persona que sigue en curso. Sin esa guarda, el arreglo mismo le quitaría la espera de 10 s al botón cuando la 9.6 encienda el arranque automático |
+
+### Allowlist exacta del seguimiento
+
+- **Motor:** `app/studio/_components/guia/GuiaMotor.tsx`.
+- **Pruebas:** `app/studio/_components/guia/GuiaEmbudoPestana.test.tsx`. El doble de `next/navigation` agrega `persona(query)`: como en Next, la navegación de la persona cancela el `replace` que el motor tenga en curso.
+- **Documentos:** esta spec y `.agents/handoffs/0589-p13-seguimiento.md` (nuevo).
+- **No toca:** `lib/studio/guia/` ni nada de `app/studio/(app)/crm/`, `app/studio/(app)/layout.tsx`, los textos de la guía, producción, Chatwoot ni `DASHBOARD_SCRIPTS`.
+
+### Aceptación del seguimiento
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S1 | B1: con el pedido por `?guia=` y por el botón, si la persona pasa a otra pestaña antes de que termine el cambio, la guía no se abre sola cuando vuelve a Embudos minutos después | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo sobre `a0b4457a4` |
+| S2 | B2: pulsar «Guía» otra vez durante la espera no reinicia la tarjeta, que sigue en el paso 2 después de 12 s | `GuiaEmbudoPestana.test.tsx`, con rojo previo |
+| S3 | B2: `cerrarGuia()` durante la espera la cancela, y la guía no abre cuando llega el tablero | `GuiaEmbudoPestana.test.tsx`, con rojo previo |
+| S4 | Con el arranque automático encendido, su efecto no reemplaza la espera del botón: un tablero de 4 s abre igual | `GuiaEmbudoPestana.test.tsx`. Hoy pasa: protege el arreglo de B2, y lo mata el mutante que quita la guarda |
+| S5 | Lo del P-13 sigue igual | Los 15 casos de la #416 y la suite de la guía |
