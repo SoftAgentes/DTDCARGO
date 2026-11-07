@@ -9,43 +9,6 @@
   ],
   "degradations": [
     {
-      "id": "sdd-0589-guia-estado",
-      "primarySymbol": "user_guide_prefs",
-      "migration": "0517_user_guide_prefs",
-      "symbols": [
-        {
-          "name": "user_guide_prefs",
-          "kind": "table",
-          "callSites": [
-            "app/studio/(app)/_actions/guia-actions.ts:42",
-            "lib/studio/guia/estado-queries.ts:20"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/guia/estado-queries.ts:24",
-          "contains": "if (error) return null;",
-          "degradation": "Sin 0517 (42P01/PGRST205) leerEstadoGuia devuelve null: el layout de Studio no se cae y la guía sigue como en 9.2, guardando solo en el navegador."
-        },
-        {
-          "site": "app/studio/_components/guia/GuiaStudio.tsx:48",
-          "contains": "autoArranque={almacen.conServidor}",
-          "degradation": "Con estado null la guía no arranca sola: nadie la ve aparecer de golpe antes de aplicar la 0517."
-        },
-        {
-          "site": "lib/studio/guia/almacen.ts:150",
-          "contains": "// Best-effort: si la base no responde, queda en el navegador.",
-          "degradation": "Con estado null el almacén ni llama a guardarEstadoGuiaAction; si la llamada falla, el rechazo se descarta y el estado queda en el navegador."
-        },
-        {
-          "site": "app/studio/(app)/_actions/guia-actions.ts:44",
-          "contains": "if (error) return { error: \"No se pudo guardar.\" };",
-          "degradation": "guardarEstadoGuiaAction sin la tabla responde «No se pudo guardar.», sin el error crudo."
-        }
-      ]
-    },
-    {
       "id": "sdd-0608-discord-consulta-clientes",
       "primarySymbol": "discord_consulta_registrar",
       "migration": "0516_discord_consulta_clientes",
