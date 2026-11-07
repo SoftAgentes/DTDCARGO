@@ -690,7 +690,7 @@ Nuevos:
 - `.agents/handoffs/0586-e10-5-ida.md`
 - Por decisión del Director General (2026-11-07, comunicada por el Subdirector), el portón de la PoC y de las dos sesiones va en esta misma PR:
   - `.github/workflows/chatwoot-portal-poc.yml`, con dos jobs: `poc` y `carrera`
-  - `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh`, `compose.portal-poc.yml`, `sonda-portal-poc.rb` y `receptor-webhook.mjs`
+  - `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh`, `compose.portal-poc.yml`, `sonda-portal-poc.rb`, `carga-webhook-poc.rb`, `receptor-webhook.mjs` y `mutantes-ida.cjs` (el ejecutor de los mutantes del código, que pidió la revisión)
   - `lib/studio/chatwoot/__tests__/portal.poc.test.ts`, que se salta sin la instancia efímera
   - `supabase/tests/0519_chatwoot_portal_carrera.test.sql`
 
@@ -708,6 +708,12 @@ Editados:
 No se tocan en la 1a: `webhook-procesar.ts`, `app/api/chatwoot/webhook/route.ts`, `app/studio/(app)/conversaciones/**`, `app/studio/(app)/crm/**`, `lib/studio/crm-*.ts`, `app/portal/(app)/soporte/page.tsx`, `app/privacidad/page.tsx`, `docs/specs/0582-chatwoot-piloto/checklist.md`, `docs/runbooks/chatwoot-bandeja.md` y `docs/legal/privacidad/mapa-de-borrado.md`, más lo que §10.5.16 ya excluye.
 
 **PR 1a · qué prueba de §10.5.15 cubre.** Del contrato SQL: los puntos 1 (preflight, con la reaplicación y un catálogo que no es el de la 0503), 2, 3, 5 y 10, más el aviso, los reintentos, el «atascado» y un intento viejo que no cierra el nuevo. Los puntos 4, 6 a 9 y 11 son de la 1b y de la PR 2. De TypeScript: el envío (orden, uno por hilo, el incierto que busca el `source_id` antes de reenviar, los reintentos, «atascado» y el aviso con solo números; con el flag apagado o sin configuración, nada) y que a Chatwoot solo salgan el nombre, el identificador y el texto. **PoC y dos sesiones (decisión del Director General, 2026-11-07).** Las PoC-1, PoC-2, PoC-3 y PoC-5 se miden en esta PR, y son el portón para fusionar. Corren en GitHub Actions (`chatwoot-portal-poc.yml`, job `poc`) contra un Chatwoot v4.19.1-ce real y efímero, el del compose de `infra/chatwoot`, con el cliente real de Studio, datos inventados y secretos generados en la corrida. Cada PoC tiene su control, y la ida corre de punta a punta, con un reintento incierto que no duplica. El job `carrera` mide `skip locked` con dos sesiones (dblink, Postgres 17), con sus controles en la misma corrida y un mutante de la 0519 sin `skip locked` que tiene que hacerla caer. La guarda del upsert se mide quitando `skip locked`: la guarda sola, con `skip locked` presente, no se alcanza de forma determinista (handoff, «Dos sesiones»). El resultado de cada corrida va en el handoff. Si `carrera` no sale verde, aplicar la 0519 en producción queda bloqueado, aunque la PR se fusione.
+
+**Lo que la PoC midió contra Chatwoot 4.19.1** (run 42415834528, 2026-11-07):
+
+- **PASÓ:** PoC-1, PoC-2, PoC-3 y PoC-5a, el caso de la paginación y la ida de punta a punta sin duplicar.
+- **Un hecho nuevo:** Chatwoot rechaza entregar un webhook a un host sin IP pública («has no public ip addresses»), una protección contra SSRF. En producción no cambia nada, porque la URL del webhook de Studio (2.3) es pública. En el arnés, la PoC-5b mide la carga que Chatwoot arma para el webhook de cuenta (`webhook_data`) en lugar de la entrega.
+- **Queda NV** la entrega por red hasta Studio, hasta la punta a punta en prueba (puerta 4 de §10.5.9).
 
 ### 10.5.17 Lo que queda fuera
 
