@@ -19,6 +19,21 @@
   apágalo». Las 8 políticas vivas quedaron sin corte duro; se comprobó en la base, en solo lectura.
   El detalle está en el paso 2 del documento.
 
+- **Revisión del Director General sobre `ec31b492e` (2026-11-07, hacia las 19:20Z): CHANGES_REQUESTED.**
+  El arreglo va en el commit siguiente y es solo de documentos; no se tocó el VPS.
+  - **Frases vencidas:** marcados como hechos A, B y C, Hermes 0.23 y el sudoers de `main`.
+  - **Paso 3 reescrito:**
+    - el servicio se detiene antes de la copia en frío y no se vuelve a encender hasta después de
+      `update --no-backup`;
+    - `umask 077` en el respaldo y `umask 022` en `update` (#17208);
+    - `SHA256SUMS` cubre la base, `cli` y la configuración;
+    - en la vuelta atrás se detiene, se restaura y recién entonces se arranca; las migraciones
+      vuelven a 304;
+    - hay criterios de parada.
+  - **§6 «Antes de la ventana»:** variables contra `env_keep`, Runner y `engine`, riesgo de
+    presupuesto, la caída, Node, espacio e issues.
+  - **`configuracion-paperclip.md`:** «Legacy runner», «Upgrade runner» y las reglas de versión.
+
 ## Conclusiones
 
 1. **Uso sin precio (1023+).**
@@ -73,10 +88,11 @@
 - **La HAI-64** quedó en `blocked` como evidencia. Sam decide si la cancela.
 - **Cambio A:** instalado por la sesión de la 0615 el 2026-11-07 (sudoers `66b5cd84…`); ya no está
   pendiente.
-- **Hojas de alta de `configuracion-paperclip.md` (PR #407):** agregar «Legacy runner» y la regla
-  de «Upgrade runner».
-- **La guía de la PR #407**, en «Lo que no se hace», dice que no se actualiza a 1023; habría que
-  apuntarla a este documento.
+- **Hojas de alta y reglas de versión de `configuracion-paperclip.md`:** ya no está pendiente; lo
+  hace esta PR, después de la revisión del DG.
+- **El guion de la PR #420** (`docs/runbooks/oficina-paperclip-1106.md`) se escribió antes de esta
+  revisión. Tiene que repetir el orden del paso 3 corregido aquí: sin encender el servicio entre la
+  copia y `update`, `umask` y restaurar antes de arrancar.
 - **Hermes en la línea base:** 6 de 8 corridas fallaron en 14 días. «Asesor comercial» y «Jefe de
   gabinete» están en `error`. No se investigó.
 - **Roles de los miembros (preset Operator de la 1023):** no medido.
