@@ -716,7 +716,6 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 |---|---|---|
 | T1 a T4 | Aprobar los textos públicos palabra por palabra (§10.5.12), en la decisión 5 del Director General | Los de §10.5.12. T1 ya tiene una sola propuesta, por P7 = (a) |
 | Hilos archivados | Confirmar que no se cargan a Chatwoot (§10.5.10) | No cargarlos |
-| Reestimación | Las filas de E10 (§10.5.21) | — |
 | Puertas | La migración; la bandeja y las variables; cada paso de la carga; encender el flag (§10.5.9 y §10.5.10) | Cada una con su OK nominal, en ese orden |
 
 **Para el Director General:**
@@ -725,7 +724,7 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 - Decidir con el Subdirector de SEO si, con el flag encendido, se apaga el aviso de Telegram del portal (§10.5.13, punto 8).
 - Elegir dónde viven los scripts de la carga (PR 2, §10.5.16).
 - Llevar a la 0614 la propuesta de §10.5.19.
-- El checklist 0582 no se tocó en esta revisión. La nota de la fila 10.5 en esta rama dice todavía «con seis preguntas para Sam (P1 a P6)», que ya tienen respuesta. La fila, las dos filas nuevas y su enlace los actualiza quien lleve el checklist, cuando Sam apruebe la reestimación.
+- El checklist 0582 no se tocó en esta revisión. La nota de la fila 10.5 en esta rama dice todavía «con seis preguntas para Sam (P1 a P6)», que ya tienen respuesta. La fila, las dos filas nuevas y su enlace los actualiza quien lleve el checklist, cuando se cierren las demás decisiones del paquete de la 6.6 y la 10.5. La reestimación ya está aprobada (§10.5.21).
 
 ### 10.5.21 Reestimación (I)
 
@@ -744,6 +743,8 @@ La línea base v3 del checklist 0582 le da a E10 7,25 días, de 115,5 en todo el
 | **E10** | **7,25** | **13,75** | **+6,5** |
 
 Con E10 sola, el programa pasa de 115,5 a 122 días; la 6.6 lleva su propia reestimación. **Queda vencida** la reestimación anterior de la 10.5, de 1,25 a 2 días, que el Director General aceptó el 2026-11-06, y con ella los +2,25 días que la sumaban a la de la 6.6: las respuestas 14 y 16 la cambiaron.
+
+**Aprobada.** Sam, 2026-11-07 a las 03:42Z, traída por el Director General (decisión 1 del paquete): «Sí, 129,5 días». Es la línea base nueva del programa, con la 6.6 y la 10.5: pasa de 115,5 a 129,5 días. La 10.5 (5 días), la 10.5 b (2,25) y la 10.5 c (0,5) entran en ella con las cifras de esta tabla, y esa línea base ya incluía «vencida» con feriados.
 
 **Desglose de la 10.5 (5 días):**
 

@@ -33,7 +33,7 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 - **Plazo y feriados** (§10.5.11). P7, la pregunta nueva sobre los feriados, quedó contestada el 2026-11-07: opción (a). No cuentan el sábado, el domingo ni los feriados de Venezuela que el administrador carga en Studio (`operational_calendar`), y el preflight exige la 0192. Sam la contestó en tres respuestas; la primera, «Ninguno», quedó anulada porque la pregunta se le planteó distinta a la de la spec (§10.5.1). T1 quedó con una sola propuesta, `{role} · Te responde en el día hábil`, todavía sin aprobar.
 - **Textos públicos propuestos** palabra por palabra (§10.5.12): T1 en el portal, T2 y T3 en `/privacidad`, y T4, la fecha.
 - **revisar-datos-ve** del rediseño (§10.5.13). Que Chatwoot es software propio en el servidor de DTD, y no un tercero, lo confirma la evidencia del repo; el VPS no se leyó en esta tarea.
-- **Reestimación** fila por fila contra la línea base v3 (§10.5.21): E10 pasa de 7,25 a 13,75 días (+6,5). Queda vencida la de 1,25 → 2.
+- **Reestimación** fila por fila contra la línea base v3 (§10.5.21): E10 pasa de 7,25 a 13,75 días (+6,5). Queda vencida la de 1,25 → 2. Sam la aprobó el 2026-11-07 a las 03:42Z, traída por el Director General: «Sí, 129,5 días», la línea base nueva del programa con la 6.6 y la 10.5.
 - **Checklist 0582:** no se tocó en esta revisión, por pedido del Subdirector. La nota de la fila 10.5 en esta rama sigue diciendo «seis preguntas para Sam».
 
 ## Validación
@@ -50,7 +50,7 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 ## Impacto documental
 
 - Guardado en esta tarea: la spec 0586 (sección rehecha, `related` con 0590, 0127 y 0149) y este handoff.
-- Pendiente de integración: el checklist 0582 (filas nuevas y la nota de la 10.5) lo actualiza quien lo lleve, cuando Sam apruebe la reestimación.
+- Pendiente de integración: el checklist 0582 (filas nuevas y la nota de la 10.5) lo actualiza quien lo lleve, cuando se cierren las demás decisiones del paquete de la 6.6 y la 10.5. La reestimación ya está aprobada.
 - Graphify, Archify y Obsidian: los revisa el Director al integrar, según el runbook de conocimiento.
 
 ## Historia de la tarea (2026-11-06)
@@ -60,10 +60,11 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 3. Cita de la D-SA y la D-AUD de la SDD-0614 §2.8 (`9acf84b60`).
 4. Respuestas de Sam y rediseño (`12a5f7c52`).
 5. P7 contestada (2026-11-07), anotada con un commit local. La #400 sigue congelada y sin push hasta que se cierren las otras decisiones del paquete: P-10, los textos de la 6.6, los textos de la 10.5 y el conteo.
+6. La fila «Reestimación» sale de los pendientes de §10.5.20, porque Sam aprobó 129,5 días; §10.5.21 registra la aprobación. Commit local, sin push.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Para Sam** (los lleva el Director General): aprobar T1 a T4 (la decisión 5); confirmar que los hilos archivados no se cargan; la reestimación; y las puertas, cada una con su OK nominal (§10.5.20).
+- **Para Sam** (los lleva el Director General): aprobar T1 a T4 (la decisión 5); confirmar que los hilos archivados no se cargan; y las puertas, cada una con su OK nominal (§10.5.20).
 - **Para el Director General:** correr el conteo de §10.5.10 con su OK; decidir con el Subdirector de SEO el aviso de Telegram del portal; elegir dónde viven los scripts de la carga; llevar a la 0614 la propuesta de §10.5.19 (señal 2 de la D-SA y `crm_ticket` sin objeto).
 - La implementación, la migración, la carga y sus aplicaciones quedan fuera de este encargo.
 
