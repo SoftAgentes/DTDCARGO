@@ -7,6 +7,32 @@ Owner / sesión escritora: `local_d3ee839a-webhook` (Worker Claude Code), por en
 - **Rama:** `codex/guardar-webhook-discord`, desde `origin/main` `14040bb87`.
 - **SDD:** 0609, el mismo corte a Discord. No hay número nuevo.
 
+## SEGUNDA VUELTA · 2026-11-07 (encargo del Subdirector, línea del Director General)
+
+Pedido: el guion de instalación de la 0609 en el VPS; una lista única de lo que Sam crea o pega; el estado de `#salud` y de los avisos de correo; el estado de la #403 y la #404. Sin ejecutar nada en producción. Gate: CI de GitHub, revisión independiente y lectura del DG. Ni `verify` ni build en la PC.
+
+**Qué cambió:**
+
+- **`guardar-webhook-discord.sh` ahora tiene un destino.** Por defecto es `publicaciones`, que se comporta como antes. Los otros cinco son del Studio de la 0606: `registro`, `conversaciones`, `bugs`, `reportes` y `equipo`, en `/srv/dtd-cargo/.env`, cada uno con su variable `DISCORD_WEBHOOK_*`.
+  - **Por qué:** la 0606 pedía pegarlos con `env-set.sh`, que usa `read -s` dentro de `ssh -t`. Es el camino que falló en la oficina, y así Sam recibe un solo pedido.
+  - **Cómo se valida el canal:** los IDs de los canales de Operación no están en el repo y no se pudieron medir. Discord pidió sesión en el panel y Claude in Chrome no estaba conectado. Por eso el guion exige el servidor «DTD Cargo», el nombre del webhook que pide el runbook y un canal que no sea de Servidor u Oficina.
+  - **Qué toca:** solo reemplaza su variable. No toca `TELEGRAM_BOT_TOKEN` y respalda `.env.antes-0606-<fecha>`.
+- **Runbook `avisos-servidor-discord.md`, reescrito:**
+  - § 0 estado;
+  - § 1 la lista única para Sam: cinco webhooks con nombre exacto y seis vueltas de pegado en orden;
+  - § 2 qué hace el guion;
+  - § 3 el guion de instalación por pasos, con hashes, candado y la prueba real con `aviso-discord.sh --probar`;
+  - § 4 `#salud` y los avisos de correo;
+  - § 5 y § 6 las salidas y la vuelta atrás.
+- **Prueba:** `prueba-guardar-webhook-discord.sh` pasa de 23 a 32 PASÓ, con 0 FALLÓ y 1 NO VERIFICADO (los permisos 600 en Windows). Cubre los cinco destinos nuevos, un nombre ajeno, otro servidor, un canal de Servidor u Oficina y un destino desconocido. Además, `ls -A` hace que «sin cambios» mire de verdad el respaldo, que es un archivo oculto.
+- **Mutantes puntuales, uno por uno:** sin comprobar el nombre, 31/1; sin comprobar el servidor, 31/1; sin la lista de canales ajenos, 30/2. Los tres MUERTOS.
+
+**Hallazgos para el Director General:**
+
+- **Los avisos de correo** («Correos que no llegaron», cron `mail-health`) van con la categoría `equipo`, así que caen en `#avisos-equipo` y no en `#salud`. El plan maestro dice `#salud`. La SDD-0610 también espera `#salud` «por la cola de la 0606», pero la 0606 no tiene esa categoría. Hace falta decidir y, en su caso, abrir una SDD del Studio.
+- **`DISCORD_TENANT_ID`** no es de Sam. Lo pone la sesión de Contabo.
+- **La #403 y la #404** estaban verdes y se podían fusionar contra `main` `7e75f7708`. Ninguna de las dos necesitaba traer `main`.
+
 ## OBJETIVO ORIGINAL
 
 Un guion para que Sam guarde en el VPS de producción la dirección del webhook de `#publicaciones`. La pide así:
