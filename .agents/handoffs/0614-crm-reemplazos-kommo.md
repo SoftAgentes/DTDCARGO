@@ -43,7 +43,7 @@ Además, coordinación con la PR #400 (10.5): 6.6 usa la pieza `crm_tarjeta_ubic
 Registro literal: `respuestas-18-preguntas-20261106.md`, en las notas compartidas del Director General. Se aplicaron las secciones 1 a 12, el extra «Recontacto» y el nombre de la etapa (las 13 a 18 son de la 10.5). Lo que cambió en el diseño:
 
 - **D-6.6-1:** Kommo fuera del Studio desde ya: tramo **S0** (ocultar pestañas, la tabla de Reportes y el cruce del estimado), sin apagar ni borrar nada de Kommo.
-- **D-6.6-3 = b:** el cotizador deja de encolar `patch_price` y `patch_stage`; cambio de producción, se le confirma a Sam al publicar la PR A. Tipo de lead «Interesado» / «Interesado con código», sin etapa.
+- **D-6.6-3 = b:** el cotizador deja de encolar `patch_price` y `patch_stage`. No es un apagado en producción: hoy el ERP no le escribe nada a Kommo (`KOMMO_PUSH_DRY_RUN` vacío, medido por el Director General en `dtd-cargo-functions-1`); es retirar código sin efecto en la PR A. Tipo de lead «Interesado» / «Interesado con código», sin etapa.
 - **D-6.6-4 = b:** el rechazo de un cliente vuelve de «Recompra en curso» a «Recompra pendiente».
 - **D-6.6-8 = b:** **R9**, teléfono completo en la tarjeta sin ficha, con **migración B** propia, trigger que lo vacía al ligar y al anonimizar, Recuperación sobre las tarjetas, «No volver a escribir» y textos T1 a T3. Cambia D6 de la 0587 (nota fechada en su §8).
 - **D-6.6-12 = b:** paso **M** (maqueta) antes de S3; propuesta aparte, la maqueta de Chatwoot dentro del Studio.
@@ -53,9 +53,9 @@ Registro literal: `respuestas-18-preguntas-20261106.md`, en las notas compartida
 ## Pendientes de esta tarea
 
 - La línea base nueva la arma el Subdirector (esta sesión no tocó el checklist). Números de esta SDD (§10): 6.6 de 2,5 a 5,5 d (+3); filas nuevas propuestas, R8 0,75, R9 2,75 y maqueta de Chatwoot en el Studio 1 (4,5); total +7,5, de 115,5 a 123, sin la 10.5 rediseñada. La reestimación anterior (+2,25) quedó vencida.
-- P-8 a P-12 para el Director General (§11): PR propia para S0, el hueco de Reportes entre S0 y S3, la guía de la SDD-0589, la migración B aparte y lo que traiga la 10.5 rediseñada.
-- Sam decide aparte (§11): apagar el alta de `/registro` hacia Kommo, la copia diaria y el webhook; borrar tablas y código de Kommo; aprobar T1 a T3; encender crons; aplicar A y B; rellenar teléfonos; retención de Chatwoot; base de licitud de T3.
-- El código va en PR en serie contra `main`: PR 0 (S0), PR A (S1 + S2), PR B (S3 + S4) y PR C (S5). El número de la A se asigna al arrancar; el de la B lo reserva el Director General.
+- P-8, P-9 y P-11 respondidas por el Subdirector: S0 en PR propia y primera; la tabla de Reportes se oculta con un aviso (texto propuesto en spec §2.1, lo revisa él); la migración B va aparte. Abiertas: P-10 (la decide Sam) y P-12 (espera el rediseño de la 10.5).
+- Sam decide aparte (§11): aprobar T1 a T3; encender crons; aplicar A y B; rellenar teléfonos; retención de Chatwoot; base de licitud de T3; y la guía de la SDD-0589 (P-10, se la lleva el Director General). Retirar Kommo (lectura diaria del espejo, webhook, tablas y código oculto) es de E8, fuera de esta SDD.
+- El código va en PR en serie contra `main`: PR 0 (S0), PR A (S1 + S2), PR B (S3 + S4) y PR C (S5). Los números de la A (que lleva también el nombre «Recontacto») y de la B los reserva el Director General; cada una se aplica solo con el OK nominal de Sam.
 - La fila 6.6 del checklist no se tocó: sigue «pendiente». Al integrar, conviene que su columna de evidencia apunte a la SDD-0614.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -69,7 +69,7 @@ Registro literal: `respuestas-18-preguntas-20261106.md`, en las notas compartida
 7. **La SDD-0586 §10.5 (PR #400) dice en E10-D27 que el actor al abrir un ticket es el `auth.uid()` del cliente.** La regla D-AUD de esta spec lo cambia a `system`; la sesión de la #400 lo copia.
 8. **Chatwoot conserva contacto y conversación sin plazo**, y `/privacidad` ya promete anonimizar los «identificadores del chat» (`app/privacidad/page.tsx:345-349`). R9 no lo arregla: decide Sam aparte (spec §6.1).
 9. **`/privacidad` §3 dice que el marketing va con consentimiento** (`app/privacidad/page.tsx:227-243`); volver a escribirle a quien solo consultó (T3) puede leerse así. Lo mira Sam con su asesor antes de aprobar T3.
-10. **Los envíos del cotizador a Kommo dicen «dry-run por default»** (`app/studio/(app)/cotizador/actions.ts:334-352`): si en producción salían de verdad no se midió.
+10. **Hoy el ERP no le escribe nada a Kommo:** `KOMMO_PUSH_DRY_RUN` está vacío y el código solo escribe con exactamente `"false"` (`supabase/functions/_shared/kommo-outbound.ts:241`); lo midió el Director General. Lo único vivo hacia Kommo es la lectura diaria del espejo, que se retira en E8.
 
 ## Impacto documental
 

@@ -36,7 +36,7 @@ sigue mandando: esta SDD lo cumple y no lo cambia, salvo donde §11 lo dice con 
 |---|---|---|---|---|
 | R1 | **Vista CRM nueva** | Pestañas Dirección, Tablero, Asesor y Recuperación, que leen el espejo `kommo_*` | Pestañas propias **Resumen** (por defecto), **Embudos** (6.3) y **Sin atender**. **Las de Kommo se ocultan del Studio** desde el primer tramo (D-6.6-1). En Leads, cada tarjeta dice si es «Interesado» o «Interesado con código» | No |
 | R2 | **Crear ficha desde la tarjeta** | `convertLead` sobre `kommo_leads` | Crea la ficha del cliente desde la tarjeta, o la liga a una ficha que ya existe | No (usa los grants de la 0506) |
-| R3 | **Etapas desde el cotizador** | `patch_price` y `patch_stage` a Kommo | Enviar, aceptar o rechazar un estimado mueve la tarjeta, con reglas de «solo si». **Deja de mandar precio y etapa a Kommo** (D-6.6-3) | Sí |
+| R3 | **Etapas desde el cotizador** | `patch_price` y `patch_stage` a Kommo | Enviar, aceptar o rechazar un estimado mueve la tarjeta, con reglas de «solo si». **Retira el envío de precio y etapa a Kommo**, que hoy no escribe nada (D-6.6-3, H14) | Sí |
 | R4 | **Reporte por asesor** | `commercialByAgent` sobre `kommo_leads.responsible_user_id` | Desempeño por dueño de la tarjeta, en el CRM y en Reportes › Por agente | Sí |
 | R5 | **KPI de leads** | Los KPI de Dirección (`kommo-analytics.ts`) | Nuevos, abiertos, estimados, aceptados, pasaron a cliente, perdidos, por fuente | Sí |
 | R6 | **Alerta «sin atender»** | `leadsSinAtender` (sin consumidor) y los «Ping 23 h» / «Aviso interno — ventana de 24 h por cerrarse» de Kommo | Lista y conteo de tarjetas con el último mensaje sin respuesta, la ventana de 24 h por cerrar o tareas vencidas. Aviso interno, nunca un mensaje al cliente | Sí |
@@ -105,7 +105,7 @@ respuestas de Sam a esta SDD, pero se estiman aparte de la fila 6.6.
 | H11 | **El nombre de una etapa vive en la base, no en el código.** `crm_etapas.nombre` lo siembra `crm_sembrar_etapas` por tenant (`0506_crm_modelo.sql:224-244`, «Registrado / recontacto» en `:234`) y la 0506 lo corrió en cada tenant existente (`:253`). La app lo lee de la tabla (`lib/studio/crm-tablero-queries.ts:115`) y lo pinta con `nombreEtapa` (`lib/studio/crm-tablero.ts:250-255`). Ninguna pantalla edita etapas: es la única lectura de `crm_etapas` en `app/` y `lib/` | `git grep crm_etapas -- app lib` | Cambiar la etiqueta **pide migración**: un `update` de las filas sembradas y la siembra nueva para los tenants que vengan (§2.9) |
 | H12 | **El recontacto de hoy solo sale de «Perdido».** `crm_entrada_chatwoot` llama a `crm_volver_a_recontacto` solo si la etapa es `perdido` (`0513_crm_entrada_leads.sql:271-275`), y antes ya subió `ultima_actividad_at` (`:268`) | 0513 | La regla de 30 días tiene que leer las fechas **antes** de ese `update` (§2.9) |
 | H13 | **Ocultar las pestañas de Kommo oculta también Recuperación** (`kommo-tabs.shared.ts:30`), que hoy es la única lista de recuperación del Studio, y el cruce del estimado con contactos de Kommo, que muestra sus nombres (`cotizador/_components/QuoteDetailClient.tsx:134-157`) | `kommo-tabs.shared.ts:26-32` | Hasta que exista R9, el Studio no tiene lista de recuperación |
-| H14 | **Los envíos del cotizador a Kommo dicen «dry-run por default»** y quedan inertes sin el mapa de etapas (`cotizador/actions.ts:334-352`). Si en producción salen de verdad es NV: no se leyó la configuración | `cotizador/actions.ts:334`, `:345` | Quitarlos (D-6.6-3) sigue siendo un cambio de producción y se le confirma a Sam al publicar |
+| H14 | **Hoy el ERP no le escribe nada a Kommo.** Los envíos del cotizador (`patch_price`, `patch_stage`) y del alta de `/registro` solo escriben si el secreto `KOMMO_PUSH_DRY_RUN` vale exactamente `"false"` (`supabase/functions/_shared/kommo-outbound.ts:241`, `kommo-push-client/index.ts:109-110`), y en producción está vacío: lo midió el Director General en `dtd-cargo-functions-1` el 2026-11-06 (**T**, relayado por el Subdirector). Lo único vivo hacia Kommo es la lectura diaria del espejo | `cotizador/actions.ts:334`, `:345` («dry-run por default») | Quitar los envíos del cotizador (D-6.6-3) **no apaga nada en producción**: retira código sin efecto, en la PR A. La lectura diaria se retira en E8, fuera de esta SDD |
 
 **DESIGN-CHECK.** El Norte vigente (`docs/design/studio/_norte/`) no trae una pantalla del CRM.
 R1 reusa lo que ya está aprobado en el Studio: `KpiCard`, la tarjeta de sección y las barras de
@@ -139,14 +139,16 @@ primero, en una PR chica contra `main` (P-8):
 - **`?tab=direccion`, `tablero`, `asesor` y `recuperacion`** abren la pestaña por defecto. Mientras
   Resumen no exista (llega en S3), la pestaña por defecto es **Embudos**.
 - **Reportes › Por agente** deja de mostrar la tabla del espejo (`ReportesClient.tsx:1030`) y su
-  CSV (`lib/studio/reports/export-csv.ts`): dice «El desempeño por asesor sale del CRM propio y
-  llega con el paso 6.6.» Entre S0 y S3, contabilidad no ve ese reporte (P-9).
+  CSV (`lib/studio/reports/export-csv.ts`). En su lugar, un aviso corto e interno (P-9, texto
+  propuesto, lo revisa el Subdirector): «El desempeño por asesor se está pasando al CRM del Studio.
+  Vuelve a aparecer aquí cuando esté listo.» Entre S0 y S3, contabilidad no ve ese reporte.
 - **El detalle del estimado** deja de cruzar el teléfono con contactos de Kommo
   (`cotizador/[code]/page.tsx:52`) y de mostrar sus nombres (H13).
-- **Ocultar no es apagar ni borrar.** El código, el espejo, la copia diaria, el webhook de Kommo y
-  el envío del alta de `/registro` siguen como están. `convertLead` (`crm/actions.ts:62`) y su envío
-  del Shipping Mark a Kommo quedan sin botón que los llame. Apagar o borrar cualquiera de esas
-  piezas lo **decide Sam aparte** (§12).
+- **Ocultar no es apagar ni borrar.** El código y el espejo de Kommo siguen como están. Lo único vivo
+  hacia Kommo es la lectura diaria del espejo (H14), que se retira en E8, fuera de esta SDD. Los
+  envíos del alta de `/registro` y del cotizador hoy no escriben nada (H14). `convertLead`
+  (`crm/actions.ts:62`) y su envío del Shipping Mark quedan sin botón que los llame. Borrar
+  cualquiera de esas piezas va con su OK aparte (§12).
 - **No se oculta** la guía «Antes en Kommo → Ahora aquí» (SDD-0589, `app/studio/(app)/layout.tsx:232`):
   enseña a dejar Kommo, no conecta con Kommo, y la trabaja otra sesión (P-10).
 
@@ -269,13 +271,12 @@ mano posterior gana, `crm_mover_etapa_auto`):
 - **Cliente desde la primera carga recibida en China** (regla de 0.8, que Sam repitió el
   2026-11-06): enviar, aceptar o convertir un estimado no vuelve cliente a nadie. «Aceptado,
   esperando carga» sigue en Leads.
-- **Kommo deja de recibir el estimado (D-6.6-3 = b).** `transitionStatus` ya no encola
-  `patch_price` (`cotizador/actions.ts:339`) ni `patch_stage` (`:349`): la tarjeta es lo único que
-  se mueve. Es lo que decía el contrato («en vez de», SDD-0587 §5.1). **Es un cambio de
-  producción:** entra en la PR A y se le confirma a Sam al publicarla. Consecuencia (I): lo que el
-  equipo atienda todavía en Kommo, por fuera, no verá ahí el precio ni la etapa del estimado. Si en
-  producción esos envíos salían de verdad o en `dry-run` es NV (H14). Las funciones de envío y su
-  edge function se quedan para 8.7; quitarlas es parte del OK aparte (§12).
+- **El cotizador ya no le manda nada a Kommo (D-6.6-3 = b).** `transitionStatus` deja de encolar
+  `patch_price` (`cotizador/actions.ts:339`) y `patch_stage` (`:349`): la tarjeta es lo único que se
+  mueve. Es lo que decía el contrato («en vez de», SDD-0587 §5.1). **No es un apagado en
+  producción:** hoy esos envíos no escriben nada, porque `KOMMO_PUSH_DRY_RUN` está vacío (H14). Es
+  retirar de `transitionStatus` un camino sin efecto, dentro de la PR A. Las funciones de envío y su
+  edge function quedan sin esa llamada y se retiran con Kommo en E8 (8.7).
 
 **Detalle del estimado** (`cotizador/[code]/page.tsx`): si hay tarjeta, una línea «En el CRM:
 Leads · Estimado enviado» con enlace a la ficha (R1). El cruce con Kommo (`:52`) ya no está: lo
@@ -487,7 +488,7 @@ clave junto al texto actual. Esto le da a Sam la opción «otro asunto» que pid
   (E10-D30), por ficha y por teléfono, sirve al alta web de la 0513, a los tickets y al cotizador de
   6.6 (§2.3). 6.6 no la copia.
 - **Migración:** la de 6.6 va después de la de la 10.5 y su preflight la exige. Ninguna de las dos
-  reserva número ahora: se asigna al arrancar cada una (P-6).
+  reserva número ahora: lo reserva el Director General al arrancar cada una (P-6).
 - **Las dos definiciones de abajo las fija esta SDD, una sola vez.** La 10.5 las cita igual; si
   alguna cambia, cambia aquí.
 - **La 10.5 se rediseña** por las respuestas 13 a 18 de Sam (2026-11-06): el chat del portal se
@@ -587,7 +588,9 @@ del mensaje.
 
 **El nombre «Recontacto».** La clave `registrado_recontacto` de la 0506 se queda (la usan la 0513,
 `lib/studio/crm-tablero.ts:42` y el historial); cambia solo la etiqueta visible. Como vive en la base
-(H11), la migración A:
+(H11), el cambio **va en la migración A, dentro de la PR A**. Es lo más limpio: la A ya
+redefine `crm_entrada_chatwoot` para R8 y mueve tarjetas a esa etapa, y una migración aparte pediría
+otro número y otro OK para dos sentencias. La A:
 
 1. hace `update crm_etapas set nombre = 'Recontacto'` donde `tablero = 'leads'`, `clave =
    'registrado_recontacto'` **y el nombre sigue siendo el sembrado** («Registrado / recontacto»),
@@ -697,8 +700,8 @@ de la SDD-0157 (`lib/studio/kommo-recovery.ts:1-12`), con otra fuente:
 
 **Dos migraciones**, descritas aquí y **no escritas**:
 
-- **A (6.6 y R8).** Número: se asigna al arrancar el código, no antes, y no se reserva ninguno ahora
-  (P-6). Va después de la 0506 y la 0513, ya aplicadas, y de la migración de la 10.5 (§2.8).
+- **A (6.6, R8 y el nombre «Recontacto»).** Número: lo reserva el Director General al arrancar el
+  código, no antes (P-6). Va después de la 0506 y la 0513, ya aplicadas, y de la migración de la 10.5 (§2.8).
   Aditiva salvo un dato: el nombre visible de una etapa (§2.9). No borra ni renombra objetos.
 - **B (R9, teléfono completo).** Número reservado por el Director General. Va después de la A y
   **después de publicar** los textos de §14 (§2.10). Cambia dos checks de la 0506.
@@ -994,8 +997,7 @@ Chatwoot o una frase que lo diga: **decide Sam aparte** (§12).
 - [ ] R2: crear ficha desde una tarjeta sin ficha deja la ficha ligada, sin nombre ni teléfono en la
   tarjeta, en el mismo tablero; con duplicado ofrece ligar o se detiene, según §2.2.
 - [ ] R3: enviar, aceptar o rechazar mueven la tarjeta según la tabla de §2.3; repetir no mueve dos
-  veces; un fallo no rompe la transición; el cotizador ya no encola nada a Kommo y Sam lo supo al
-  publicar.
+  veces; un fallo no rompe la transición; el cotizador ya no encola nada a Kommo.
 - [ ] R4: la tabla por asesor sale de las tarjetas, con la misma definición en el CRM y en Reportes.
 - [ ] R5: cada KPI coincide con su fórmula sobre un juego de datos fijo.
 - [ ] R6: las tres señales aparecen y desaparecen en sus bordes; nada se envía al cliente; el aviso,
@@ -1079,7 +1081,7 @@ siguen en esta spec en `5dc8500c3`.
 |---|---|---|---|---|---|
 | D-6.6-1 | Pestaña que abre el CRM | «A Como no lo quiero ver por ahora ni nada; como lo están trabajando externo, déjalo externo hasta que hagamos la migración al 100%» (~19:08Z; dictado, «Como» es Kommo) | Resumen. **Las pestañas de Kommo se ocultan del Studio desde ya**, y la tabla de Kommo en Reportes también | Va más allá de la (a) | §2.1 (S0), §2.6 |
 | D-6.6-2 | Nombre del botón | Botón «Crear ficha» (19:11Z) | «Crear ficha» | Sí | §2.2 |
-| D-6.6-3 | Kommo al mover desde el cotizador | «Ahorita no me interesa que avise nada a Kommo; vamos a eliminar a Kommo totalmente de la fórmula» (19:16Z) | (b) Solo la tarjeta: el cotizador deja de mandar precio y etapa a Kommo. En la misma respuesta: dos tipos de lead, «Interesado» e «Interesado con código», y cliente desde la primera carga recibida en China | No | §2.1, §2.3 |
+| D-6.6-3 | Kommo al mover desde el cotizador | «Ahorita no me interesa que avise nada a Kommo; vamos a eliminar a Kommo totalmente de la fórmula» (19:16Z) | (b) Solo la tarjeta: se retira del cotizador el envío de precio y etapa a Kommo, que hoy no escribe nada (H14). En la misma respuesta: dos tipos de lead, «Interesado» e «Interesado con código», y cliente desde la primera carga recibida en China | No | §2.1, §2.3 |
 | D-6.6-4 | Estimado rechazado de un cliente | «si el cliente la rechaza, prefiero que se vaya a postventa (es decir, a recompra pendiente). Dije la opción A, pero prefiero la opción B» (19:37Z; corrige la (a) del mismo minuto) | (b) A «Recompra pendiente» | No | §2.3 |
 | D-6.6-5 | Umbral de «espera respuesta» | «opcion a» (19:39Z) | (a) 1 hora a reloj corrido | Sí | §2.4, D-SA |
 | D-6.6-6 | Aviso de «sin atender» | Botón «Pantalla y aviso» (19:48Z) | (b) Pantalla y push al dueño cuando a la ventana le quedan 4 h; nace apagado | Sí | §2.4, §2.7 c |
@@ -1098,9 +1100,8 @@ extracción del historial de Kommo sigue, porque es parte de la migración a Cha
 
 **Lo que Sam decide aparte.** No lo autoriza esta SDD; cada punto lleva su OK:
 
-- apagar el alta de `/registro` hacia Kommo (lo pregunta el Director General aparte);
-- apagar la copia diaria del espejo de Kommo y su webhook;
-- borrar tablas y columnas de Kommo (E8, 8.9 a 8.11) y el código que S0 deja oculto (8.7);
+- retirar Kommo en E8, fuera de esta SDD: la lectura diaria del espejo y el webhook, las tablas y
+  columnas (8.9 a 8.11) y el código que S0 deja oculto (8.7);
 - aprobar los textos públicos T1 a T3 de §14, palabra por palabra;
 - encender cada cron (`CRM_CAMBIOS_TABLERO`, `CRM_RETENCION`, `CRM_AVISO_VENTANA`), después de
   publicar y de probar en prueba (§2.7 c); la retención, antes del 2027-11-04;
@@ -1109,15 +1110,17 @@ extracción del historial de Kommo sigue, porque es parte de la migración a Cha
 - la retención de Chatwoot (§6.1);
 - con su asesor, la base de licitud de volver a escribirle a quien solo consultó (§2.10).
 
-### Para el Director General (nuevas, 2026-11-06)
+### Preguntas nuevas al Director General (2026-11-06)
 
-| # | Pregunta | Recomendación |
+Respondidas por el Subdirector de Chatwoot el mismo día, salvo las dos que siguen abiertas.
+
+| # | Pregunta | Estado |
 |---|---|---|
-| P-8 | ¿S0 (ocultar Kommo) va en su propia PR, antes que todo? | Sí: no depende de la 10.5 ni de una migración, y Sam lo pidió «desde ya» |
-| P-9 | Entre S0 y S3, Reportes › Por agente no muestra desempeño por asesor. ¿Se acepta, o la tabla de Kommo se queda hasta S3? | Ocultarla en S0, como dijo Sam, con el aviso de que llega con el CRM propio |
-| P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | Sí: enseña a dejar Kommo y no conecta con Kommo. Esta SDD no la toca |
-| P-11 | ¿El teléfono completo va en su propia migración (B)? | Sí: se aplica después de publicar T1 a T3, con su número y su OK nominal |
-| P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | Que lo diga la 10.5 rediseñada. Si ya no trae la pieza, se decide aquí antes de la PR A, sin copiarla |
+| P-8 | ¿S0 (ocultar Kommo) va en su propia PR, antes que todo? | **Sí:** en su propia PR y primero |
+| P-9 | Entre S0 y S3, Reportes › Por agente no muestra desempeño por asesor. ¿Se acepta, o la tabla de Kommo se queda hasta S3? | **Se oculta**, con un aviso corto e interno. Texto propuesto en §2.1; lo revisa el Subdirector |
+| P-10 | ¿La guía «Antes en Kommo → Ahora aquí» (SDD-0589) se queda en el Studio? | **Abierta: la decide Sam.** Se la lleva el Director General, con la recomendación de esta SDD: que se quede, porque enseña a dejar Kommo y no conecta con Kommo |
+| P-11 | ¿El teléfono completo va en su propia migración (B)? | **Sí:** la B va aparte |
+| P-12 | La 10.5 se rediseña (respuesta 14). ¿Sigue trayendo `crm_tarjeta_ubicar_o_crear`, y qué pasa con la señal 2 de D-SA? | **Abierta** hasta que vuelva el rediseño de la 10.5. Si ya no trae la pieza, se decide aquí antes de la PR A, sin copiarla |
 
 ### Resueltas por el Director General (2026-11-06, sobre `99e7d6300`)
 
@@ -1127,10 +1130,10 @@ Relayadas por el Subdirector de Chatwoot.
 |---|---|---|
 | P-1 | ¿Puntero en la SDD-0587 §10? | Sí. Va en esta misma PR |
 | P-2 | Cambio de tablero: ¿tabla propia o filas en el historial? | Tabla propia: un movimiento a la misma etapa no deja fila (`0506_crm_modelo.sql:731-733`), y en el historial `de` y `a` son etapas, no tableros (§2.7 a) |
-| P-3 | ¿Cuántas PR? | En serie contra `main` y sin apilar (§5). Eran dos; con las respuestas de Sam se proponen además la PR 0 (P-8) y la PR C (P-11) |
+| P-3 | ¿Cuántas PR? | En serie contra `main` y sin apilar (§5). Eran dos; con las respuestas de Sam se suman la PR 0 (P-8) y la PR C (P-11), las dos aceptadas |
 | P-4 | ¿Línea base o recorte? | No se recortan la retención (§2.7 b) ni «Anonimizar ahora» (§2.7 d). La cifra de entonces (+2,25 días con la 10.5, de 115,5 a 117,75) **quedó vencida** el 2026-11-06: la nueva está en §10 |
 | P-5 | ¿La SDD-0610 usa la clave del motivo? | Sí: usa la clave, y el texto libre solo en «Otro» |
-| P-6 | Número de migración | Se asigna al arrancar. Ni 6.6 ni la 10.5 reservan la 0518 (§3) |
+| P-6 | Número de migración | Se asigna al arrancar; lo reserva el Director General. Ni 6.6 ni la 10.5 reservan la 0518 (§3) |
 | P-7 | Identidad de la redirección de E10 | Respondida con el código: sale con el token del usuario de servicio (`router-api.ts:10`) como `outgoing` no privado (`:123`) y se excluye por el id de ese usuario (§2.4, D-SA) |
 
 Cambios que pidió antes de aceptar, ya aplicados: D-6.6-9 reescrita con el texto literal de
@@ -1140,8 +1143,8 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
 
 ## 12. Fuera de alcance
 
-- **Apagar o retirar Kommo** (decide Sam aparte, §11): el código que S0 deja oculto, el espejo, la
-  copia diaria, el webhook, el writeback y el alta de `/registro` hacia Kommo (8.7 a 8.11);
+- **Retirar Kommo** (E8, con su OK aparte): el código que S0 deja oculto, el espejo y su lectura
+  diaria, que es lo único vivo hacia Kommo (H14), el webhook y el writeback (8.7 a 8.11);
   `registration_channel = 'kommo'` (8.10). S0 solo oculta.
 - **La integración visual de Chatwoot en el Studio**: aquí solo se propone su maqueta, como fila
   nueva (§10).
@@ -1178,6 +1181,11 @@ coordinación con la 10.5 con sus dos definiciones (§2.8).
   (teléfono completo, Recuperación y su migración B) y los textos públicos de §14, sin publicar. La
   reestimación anterior queda vencida (§10). Se suman P-8 a P-12 para el Director General. En la
   SDD-0587 quedan dos notas fechadas que apuntan aquí (§4.3 y D6).
+- **2026-11-06:** corrección del Subdirector, con lo que midió el Director General en
+  `dtd-cargo-functions-1`: hoy el ERP no le escribe nada a Kommo (`KOMMO_PUSH_DRY_RUN` vacío; H14).
+  Quitar los envíos del cotizador deja de ser un apagado en producción y el alta de `/registro` sale
+  de lo que Sam decide aparte. El Subdirector respondió P-8, P-9 y P-11; P-10 (de Sam) y P-12 siguen
+  abiertas. El nombre «Recontacto» va en la migración A, con número que reserva el Director General.
 
 ## 14. Textos públicos propuestos (no se publican sin el OK de Sam)
 
