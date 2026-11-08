@@ -17,7 +17,7 @@ import { CONTACT } from "@/lib/design-tokens";
 
 import base from "../base.json";
 // @ts-expect-error -- script .mjs sin tipos
-import { DESTINO, extraerFichas, generar } from "../../../../../../scripts/bot-conocimiento.mjs";
+import { DESTINO, extraerFichas, generar, sinEtiquetas } from "../../../../../../scripts/bot-conocimiento.mjs";
 
 const RAIZ = resolve(__dirname, "../../../../../..");
 
@@ -98,5 +98,17 @@ describe("extraerFichas", () => {
     expect(fichas[0]).toMatchObject({ grupo: "A", titulo: "Uno", preguntas: ["¿a?", "¿b?"], texto: "**Respuesta:** Hola." });
     expect(fichas[1].texto).not.toContain("+86");
     expect(fichas[1].texto).toContain("pasa la conversación a una persona");
+  });
+});
+
+describe("sinEtiquetas", () => {
+  it.each([
+    ["**Respuesta (aprobada · founder 2026-08-06):** Hola.", "**Respuesta:** Hola."],
+    ["**Respuesta (escalar · sin precio ni promesa):** Hola.", "**Respuesta:** Hola."],
+    ["**Pregunta de continuación (elige UNA):** *¿Y tú?*", "**Pregunta de continuación:** *¿Y tú?*"],
+    ["se pide un 50% (founder, 2026-08-20 — ya es público). La razón", "se pide un 50%. La razón"],
+    ["tarda (flete interno en China + la espera)", "tarda (flete interno en China + la espera)"],
+  ])("%s", (entrada, salida) => {
+    expect(sinEtiquetas(entrada)).toBe(salida);
   });
 });

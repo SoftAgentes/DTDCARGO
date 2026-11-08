@@ -40,6 +40,16 @@ function limpiar(lineas) {
   return out.join("\n");
 }
 
+/**
+ * Quita las etiquetas internas del documento, que no son para el cliente: «(founder, …)» y el
+ * paréntesis de «**Respuesta (aprobada · …):**» o «**Pregunta de continuación (elige UNA):**».
+ */
+export function sinEtiquetas(linea) {
+  return linea
+    .replace(/\s*\([^()]*\bfounder\b[^()]*\)/gi, "")
+    .replace(/\*\*(Respuesta|Pregunta de continuación)\s*\([^)]*\):\*\*/g, "**$1:**");
+}
+
 /** Las fichas de la fuente. Puro: recibe el texto del Markdown. */
 export function extraerFichas(markdown) {
   const lineas = markdown.replace(/\r\n?/g, "\n").split("\n");
@@ -88,7 +98,7 @@ export function extraerFichas(markdown) {
       actual.cortado = true;
       continue;
     }
-    actual.cuerpo.push(linea);
+    actual.cuerpo.push(sinEtiquetas(linea));
   }
   cerrar();
   return fichas;

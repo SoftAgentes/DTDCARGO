@@ -38,6 +38,27 @@ export const DOMINIOS_PERMITIDOS: readonly string[] = [
   "maps.app.goo.gl",
 ];
 
+// Piezas de `pide_dato_sensible`.
+const PEDIR = [
+  "envíame|enviame|envía|envia|enviar|envíanos|envianos",
+  "mándame|mandame|manda|mandar",
+  "pásame|pasame|pasa|pasar",
+  "dime|decir|dinos",
+  "indícame|indicame|indica|indicar",
+  "compárteme|compartime|comparte|compartir",
+  "escríbeme|escribeme|escribe|escribir",
+  "facilítame|facilitame|facilita|facilitar",
+  "dame|danos|dar",
+  "necesito|necesitamos|requiero|requerimos",
+].join("|");
+const RELLENO = "me|nos|por\\s+favor|aquí|aqui|acá|aca|tu|tus|su|sus|la|el|las|los|una|un|foto|fotos|copia|imagen|número|numero|nro\\.?|de|del";
+const SENSIBLE = [
+  "contraseña|contrasena|clave|pin|tarjeta|cvv",
+  "código\\s+de\\s+(verificación|verificacion|seguridad)|codigo\\s+de\\s+(verificación|verificacion|seguridad)",
+  "cédula|cedula|rif|pasaporte",
+  "datos\\s+bancarios|cuenta\\s+bancaria",
+].join("|");
+
 const PATRONES: readonly [ReglaSalida, RegExp][] = [
   // FAQ #28 y kommo-reconfig.md:73-76: la dirección completa (con el detalle de cargo, el
   // teléfono y el contacto de bodega) no la da el bot; FAQ #4: la de referencia sí.
@@ -52,7 +73,9 @@ const PATRONES: readonly [ReglaSalida, RegExp][] = [
   // FAQ #2 y #29-#33: el bot no cotiza ni da precios; los números salen de la calculadora.
   [
     "monto",
-    /(US\s?\$|\$|€|¥|\bUSD\b|\bUSDT\b|\bBs\.?S?\b|\bVES\b|\bRMB\b|\bCNY\b|\bEUR\b)\s?\d|\d[\d.,]*\s?(US\s?\$|\$|€|¥|\bUSD\b|\bUSDT\b|\bBs\.?S?\b|\bVES\b|\bRMB\b|\bCNY\b|\bEUR\b|dólares|bolívares|yuanes|euros)/iu,
+    // «Bs.» termina en punto: el `\b` después del punto no calza («Son Bs. 500»), así que se
+    // corta con un lookahead de letra.
+    /(US\s?\$|\$|€|¥|\bUSD\b|\bUSDT\b|\bBs\.?(?:S\.?)?(?!\p{L})|\bVES\b|\bRMB\b|\bCNY\b|\bEUR\b)\s?\d|\d[\d.,]*\s?(US\s?\$|\$|€|¥|\bUSD\b|\bUSDT\b|\bBs\.?(?:S\.?)?(?!\p{L})|\bVES\b|\bRMB\b|\bCNY\b|\bEUR\b|dólares|bolívares|yuanes|euros)/iu,
   ],
   // SDD-0579: el seguimiento está en construcción; el bot no afirma estados ni fechas de llegada.
   [
@@ -60,17 +83,27 @@ const PATRONES: readonly [ReglaSalida, RegExp][] = [
     /\btu\s+(carga|envío|mercancía|paquete|contenedor|caja)\s+(ya\s+)?(está|esta|salió|llegó|zarpó|se\s+encuentra|fue\s+(despachad|entregad|recibid))|\b(llega|llegará|estará|la\s+recibes)\s+(el|para\s+el|antes\s+del)\s+\d/iu,
   ],
   // Datos que no se piden por chat (revisar-datos-ve; el registro va por la web).
+  // Cualquier forma de pedirlo: imperativo, infinitivo («¿me puedes enviar…?»), «tu» o «tus»,
+  // «número de» con o sin artículo, y la pregunta directa «¿cuál es tu cédula?».
   [
     "pide_dato_sensible",
-    /(envíame|enviame|mándame|mandame|pásame|pasame|dime|indícame|indicame|compárteme|compartime|escríbeme|escribeme|necesito|requiero)\s+(tu|la|el|una|un|los|las)\s+((foto|copia|número|numero)\s+de\s+(tu|la|el)\s+)?(contraseña|clave|pin|tarjeta|cvv|código\s+de\s+(verificación|seguridad)|cédula|cedula|rif|pasaporte|datos\s+bancarios|cuenta\s+bancaria)/iu,
+    new RegExp(
+      `\\b(${PEDIR})(\\s+(${RELLENO}))*\\s+(${SENSIBLE})(?!\\p{L})|\\bcu[aá]l\\s+es\\s+(tu|su)\\s+((n[uú]mero|nro\\.?)\\s+de\\s+)?(${SENSIBLE})(?!\\p{L})`,
+      "iu",
+    ),
   ],
-  // Un número de cédula o RIF repetido en la respuesta.
-  ["documento_de_identidad", /\b[VEJPG][-\s.]?\d{1,2}\.?\d{3}\.?\d{3}(-?\d)?\b/u],
+  // Un número de cédula o RIF repetido en la respuesta: con letra (V-12345678, J-12345678-9) o
+  // solo, de 7 u 8 dígitos (con o sin puntos). Un teléfono no calza: tiene más dígitos seguidos
+  // o va partido en grupos de 3 y 4, y el `-` delante (0414-5550101) lo deja fuera.
+  [
+    "documento_de_identidad",
+    /(?<![\p{L}\d+])[VEJPG][-\s.]?\d{1,2}\.?\d{3}\.?\d{3}(-?\d)?(?!\d)|(?<![\p{L}\d+.\-/])\d{1,2}\.?\d{3}\.?\d{3}(?![\d.\-/])/iu,
+  ],
 ];
 
 // Sin «@» ni «/» delante: un usuario de red (@dtdcargo.ve) o un trozo de ruta
 // (instagram.com/dtdcargo.ve/) no es un dominio; el correo se mira aparte.
-const DOMINIO_RE = /(?<![@/\w.-])(?:https?:\/\/)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?=[/\s.,;:!?)»"']|$)/giu;
+const DOMINIO_RE = /(?<![@/\w.-])(?:https?:\/\/)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?=[/\s.,;:!?)»"'>#]|$)/giu;
 const CORREO_RE = /[a-z0-9._%+-]+@((?:[a-z0-9-]+\.)+[a-z]{2,})/giu;
 const FECHA_ISO_RE = /^\d{4}-\d{2}-\d{2}$/u;
 const TELEFONO_RE = /\+?\d[\d\s().-]{7,}\d/gu;
