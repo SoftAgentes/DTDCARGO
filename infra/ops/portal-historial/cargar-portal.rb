@@ -10,9 +10,13 @@
 #
 # Entrada: `preparado.ndjson`, el formato de E10 (SDD-0586 §10.5.10, «Los dos archivos»): cabecera, contacto,
 # conversacion y mensaje. Salida: `vinculos.ndjson`, SOLO ids (cabecera, contacto, conversacion y mensaje), en la
-# ruta de VINCULOS. Con VINCULOS=- cada línea sale en la salida estándar con el prefijo `VINCULO `, junto a las HECHO:
-# la salida de `rails runner` en el contenedor también trae Bundler y los logs de los inicializadores, así que se
-# extrae con `sed -n 's/^VINCULO //p'`. En MODO=seco no se escribe.
+# ruta de VINCULOS. En MODO=seco no se escribe.
+#
+# El contrato con E10 en el VPS es VINCULOS=<ruta> (Subdirector, 2026-11-08): un ndjson limpio, que `vincular.sh`
+# lee tal cual. Con `docker exec chatwoot-rails-1`, la ruta es la del contenedor: va en su /dev/shm (tmpfs, así que
+# los ids no tocan disco), y después se copia con `docker cp` a la carpeta 0700 del VPS y se borra del contenedor.
+# VINCULOS=- es SOLO PARA PRUEBAS: cada línea sale con el prefijo `VINCULO ` en la salida estándar, que en el
+# contenedor también trae Bundler y los logs de los inicializadores. Un `sed` sobre esa mezcla no es un contrato.
 #
 # Sin efectos quiere decir:
 #   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
