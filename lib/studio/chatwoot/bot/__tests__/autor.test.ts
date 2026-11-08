@@ -88,6 +88,23 @@ describe("efectoDelMensaje", () => {
     expect(efectoDelMensaje(mensaje(extra))).toBe("ignora");
   });
 
+  // Revisión del DG de la #449 (2026-11-08): lo que no sea `false` es privado (falla cerrada).
+  it.each([
+    ["sin el campo private", { private: undefined }],
+    ["private: null", { private: null }],
+    ["private como texto", { private: "false" }],
+    ["private: 0", { private: 0 }],
+  ])("un entrante %s no abre turno", (_caso, extra) => {
+    const m = mensaje(extra);
+    expect(m.privado).toBe(true);
+    expect(efectoDelMensaje(m)).toBe("ignora");
+  });
+
+  it("solo private: false abre", () => {
+    expect(mensaje({ private: false }).privado).toBe(false);
+    expect(efectoDelMensaje(mensaje({ private: false }))).toBe("abre");
+  });
+
   it("un saliente de un usuario que es uno de los bots de DTD no invalida", () => {
     const m = mensaje({ message_type: "outgoing", sender: { id: 90, type: "user" } });
     expect(efectoDelMensaje(m, new Set([90]))).toBe("ignora");

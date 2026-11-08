@@ -124,6 +124,19 @@ describe("llamarMotor", () => {
     }
   });
 
+  // Revisión del DG de la #449 (2026-11-08): «nunca lanza» también con un precio inválido.
+  it.each([
+    ["NaN", { entradaPorMillon: Number.NaN, salidaPorMillon: 1 }],
+    ["negativo", { entradaPorMillon: 1, salidaPorMillon: -1 }],
+    ["infinito", { entradaPorMillon: Number.POSITIVE_INFINITY, salidaPorMillon: 1 }],
+  ])("con un precio %s no lanza, no llama al motor y no sigue", async (_caso, precio) => {
+    const generar = vi.fn(async () => ({ texto: "x", tokensEntrada: 1, tokensSalida: 1 }));
+    const r = await llamarMotor({ ...doble(generar), precio }, ENTRADA, { timeoutMs: 1_000 });
+    expect(r).toMatchObject({ ok: false, motivo: "error" });
+    expect(r.llamada).toMatchObject({ resultado: "error", costoUsd: 0, tokensEntrada: 0, tokensSalida: 0 });
+    expect(generar).not.toHaveBeenCalled();
+  });
+
   it("mide la duración con el reloj que se le pasa", async () => {
     const tiempos = [1_000, 1_250];
     const r = await llamarMotor(doble(async () => ({ texto: "x", tokensEntrada: 1, tokensSalida: 1 })), ENTRADA, {
