@@ -34,11 +34,18 @@ def hecho(clave, valor) = puts("HECHO #{clave}=#{valor}")
 def tabla(h) = h.map { |k, v| "#{k.presence || 'sin_canal'}:#{v}" }.sort.join(',')
 
 def contar(cuenta, bandeja)
-  conv = Conversation.where(account_id: cuenta.id, inbox_id: bandeja.id)
-  msgs = Message.where(account_id: cuenta.id, inbox_id: bandeja.id)
-  adjs = Attachment.joins(:message).where(messages: { inbox_id: bandeja.id, account_id: cuenta.id }) # [bandeja-adjuntos]
+  # Sin orden: Chatwoot ordena por defecto, y un GROUP BY o un COUNT(DISTINCT) con ese ORDER BY da
+  # StatementInvalid (lo mismo que `bandeja-prueba.rb` y `bandeja-vzla.rb` en infra/chatwoot/correo).
+  conv = Conversation.where(account_id: cuenta.id, inbox_id: bandeja.id).unscope(:order)
+  msgs = Message.where(account_id: cuenta.id, inbox_id: bandeja.id).unscope(:order)
+  adjs = Attachment.joins(:message).where(messages: { inbox_id: bandeja.id, account_id: cuenta.id }).unscope(:order) # [bandeja-adjuntos]
   origen = Arel.sql("conversations.additional_attributes->>'kommo_origen'")
   c = {}
+  # Si un conteo falla, el error dice cuál fue el último que salió (solo la clave, nunca un valor).
+  def c.[]=(clave, valor)
+    $ultimo_conteo = clave
+    super
+  end
   c['conversaciones'] = conv.count
   c['conversaciones_kommo'] = conv.where("conversations.additional_attributes ? 'kommo_talk_id'").count
   c['mensajes'] = msgs.count # [bandeja-mensajes]
@@ -113,5 +120,7 @@ rescue StandardError => e
   # transaction»): solo la clase, sin el mensaje ni la traza, que podrían traer datos.
   hecho('acta', 'error')
   hecho('motivo', e.class.name)
+  hecho('causa', e.cause.class.name) if e.cause
+  hecho('ultimo_conteo', $ultimo_conteo || 'ninguno')
   exit 1
 end
