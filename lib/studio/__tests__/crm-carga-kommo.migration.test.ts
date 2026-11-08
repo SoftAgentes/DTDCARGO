@@ -13,7 +13,7 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
@@ -272,10 +272,11 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       const servicio = join(dir, "servicio.conf");
       writeFileSync(servicio, "[dtd]\nhost=/no/existe\n");
       chmodSync(servicio, 0o600);
-      // Copia del entorno sin leer variables por nombre (el contrato de .env.example cuenta cada lectura directa).
-      const entorno: Record<string, string | undefined> = { ...process.env };
-      entorno["PATH"] = `${dir}:${entorno["PATH"] ?? ""}`;
-      entorno["PGOPTIONS"] = "-c dtd.entorno=copia";
+      const entorno = {
+        ...process.env,
+        PATH: `${dir}${delimiter}${process.env.PATH ?? ""}`,
+        PGOPTIONS: "-c dtd.entorno=copia",
+      };
       const r = spawnSync(
         "bash",
         [resolve(ROOT, "supabase/cargas/crm-kommo/correr.sh"), "seco", "--entorno", "copia", "--servicio", servicio,

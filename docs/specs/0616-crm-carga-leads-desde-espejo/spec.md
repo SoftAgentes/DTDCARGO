@@ -312,6 +312,7 @@ El corte lo fija el instante de 8.2. La extracción final del espejo (8.5) va an
 | `scripts/ci-sql-tests-control.sh` | El control C4 copia también `supabase/cargas/`: sin eso, el contrato no encuentra el cargador (rojo del run 42478778578) |
 | `.agents/handoffs/0616-crm-carga-leads-desde-espejo.md` | Handoff |
 | `docs/specs/README.md` | Índice regenerado con `docs:index` |
+| `scripts/__tests__/env-example-contract.test.ts` | `PATH$`, anclado, en `IGNORAR`: lo inyecta el sistema y lo leen las pruebas que arman el entorno de un proceso hijo, como la del lanzador. No se documenta en `.env.example`, por pedido del DG (rojo de Calidad del run 42489862295) |
 
 ## 13. Aceptación de 6.5
 
