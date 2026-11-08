@@ -59,6 +59,21 @@ describe("comprobarSalida: lo que bloquea", () => {
     ["enlace_no_permitido", "Entra a bit.ly/abc"],
     ["telefono_no_permitido", "Llama al +58 412 555 0101"],
     ["telefono_no_permitido", "Escribe al 0414-5550101"],
+    // Revisión del DG de la #448 (2026-11-08): lo que b53a9368a dejaba pasar.
+    ["pide_dato_sensible", "Envíame tu número de cédula"],
+    ["pide_dato_sensible", "Indícame tu número de cédula"],
+    ["pide_dato_sensible", "¿Cuál es tu cédula?"],
+    ["pide_dato_sensible", "Necesito tus datos bancarios"],
+    ["pide_dato_sensible", "¿Me puedes enviar una foto de tu cédula?"],
+    ["pide_dato_sensible", "Por favor envía tu cédula"],
+    ["pide_dato_sensible", "Escribe tu clave aquí"],
+    ["documento_de_identidad", "Tu cédula v-12345678 quedó anotada"],
+    ["documento_de_identidad", "La cédula 12345678 ya está"],
+    ["documento_de_identidad", "Cédula 1234567"],
+    ["documento_de_identidad", "Anotado: 12.345.678"],
+    ["monto", "Son Bs. 500"],
+    ["enlace_no_permitido", "Mira <https://malo-falso.net>"],
+    ["enlace_no_permitido", "Entra a malo-falso.net#oferta"],
   ])("%s: %s", (regla, texto) => {
     expect(reglas(texto)).toContain(regla);
   });
@@ -85,6 +100,10 @@ describe("comprobarSalida: lo que deja pasar", () => {
     "Tu Shipping Mark es como DTD-1014",
     "Dirección de referencia: Yiwu Port Phase II, Warehouse 2, No. 2, Yiwu City, Zhejiang, China",
     "Operamos en Venezuela desde 2015; en el comercio con China desde 2008",
+    "Escríbenos al +58 412 166 8021",
+    "Te escribimos el 2026-08-20",
+    "Tu Shipping Mark tiene 4 dígitos, como DTD-1014",
+    "Llámanos al +58 241 414 7886",
   ])("%s", (texto) => {
     expect(reglas(texto)).toEqual([]);
   });

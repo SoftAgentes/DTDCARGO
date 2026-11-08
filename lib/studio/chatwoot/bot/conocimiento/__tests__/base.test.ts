@@ -41,6 +41,9 @@ describe("base.json", () => {
     expect(f.texto.trim().length).toBeGreaterThan(100);
     expect(f.texto).not.toMatch(/^\s*>/m);
     expect(f.texto).not.toMatch(/Nota interna/i);
+    // Etiquetas internas del documento: no son para el cliente (revisión del DG de la #448).
+    expect(f.texto).not.toMatch(/founder/i);
+    expect(f.texto).not.toMatch(/**(Respuesta|Pregunta de continuación)s*(/);
   });
 });
 
