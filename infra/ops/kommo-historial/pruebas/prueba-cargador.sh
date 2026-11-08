@@ -384,7 +384,7 @@ for m in "${MARCAS[@]}" @ kommo:; do ac_marcas+=(-e "$m"); done
 exigir AC8 '! grep -h -E "^(HECHO|CONCILIA) " "$REAL/acta.txt" "$REAL/acta-comparar.txt" | grep -q -F "${ac_marcas[@]}"' \
   "la salida no trae ninguno de los ${#MARCAS[@]} valores inventados, ni correos ni ids de Kommo"
 # AC9: en una transacción READ ONLY como la del acta, Postgres rechaza una escritura de verdad y no queda nada.
-rr "$REAL/acta-escritura.txt" -- 'begin; ActiveRecord::Base.transaction { ActiveRecord::Base.connection.execute("SET TRANSACTION READ ONLY"); Label.create!(account_id: Account.first.id, title: "sonda-escritura-acta"); puts "HECHO escritura=aceptada" }; rescue ActiveRecord::StatementInvalid => e; puts "HECHO escritura=rechazada"; puts "HECHO causa=#{e.cause.class}"; end; puts "HECHO etiquetas_sonda=#{Label.where(title: "sonda-escritura-acta").count}"' </dev/null
+rr "$REAL/acta-escritura.txt" -- 'begin; ActiveRecord::Base.transaction { ActiveRecord::Base.connection.execute("SET TRANSACTION READ ONLY"); Label.create!(account_id: Account.first.id, title: "sonda-escritura-acta"); puts "HECHO escritura=aceptada"; raise ActiveRecord::Rollback }; rescue ActiveRecord::StatementInvalid => e; puts "HECHO escritura=rechazada"; puts "HECHO causa=#{e.cause.class}"; end; puts "HECHO etiquetas_sonda=#{Label.where(title: "sonda-escritura-acta").count}"' </dev/null
 F="$REAL/acta-escritura.txt"
 exigir AC9 '[ "$(h "$F" escritura)" = rechazada ] && [ "$(h "$F" causa)" = PG::ReadOnlySqlTransaction ] && [ "$(h "$F" etiquetas_sonda)" = 0 ]' \
   "Postgres rechaza la escritura en la transacción de solo lectura ($(h "$F" causa)) y no queda ninguna fila"
