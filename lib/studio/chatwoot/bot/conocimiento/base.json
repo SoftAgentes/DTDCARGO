@@ -1,0 +1,508 @@
+{
+  "$comentario": "Generado por scripts/bot-conocimiento.mjs desde docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md. No editar a mano.",
+  "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md",
+  "fuenteSha256": "f429b8606538521951764bbc5bb5eab929d615fd33876904bfa0c2b9953513b9",
+  "fichas": [
+    {
+      "id": "1",
+      "grupo": "A",
+      "titulo": "Cómo iniciar un envío (registro · Shipping Mark)",
+      "preguntas": [
+        "¿Cómo empiezo a enviar con ustedes?",
+        "Ya compré en China, ¿ahora qué hago?",
+        "¿Cómo registro mi compra?",
+        "¿Cómo me registro como cliente?",
+        "¿Qué tengo que hacer para enviar?",
+        "Ya hice mi compra en 1688, ¿cuál es el siguiente paso?",
+        "¿Cómo abro una cuenta?",
+        "¿Qué es una pre-alerta?",
+        "¿Qué es el casillero?",
+        "¿Qué es el Shipping Mark (Markbox)?",
+        "Cómo empiezo a importar."
+      ],
+      "texto": "**Respuesta (aprobada):** ¡Hola! Registrarte toma dos minutos y **no necesitas tener la compra hecha todavía**. Entra en **dtdcargo.com/registro** y el formulario te va llevando paso a paso. Te pide poco:\n\n1. Si eres **persona o empresa**.\n2. **Nombre, cédula o RIF, correo y WhatsApp.**\n3. **Estado y ciudad**, para saber hasta dónde te entregamos.\n4. Revisas que todo esté bien y confirmas.\n\nApenas confirmas te aparece en pantalla tu **Shipping Mark** (唛头): es el código que identifica tus cajas en nuestra bodega en China. Tu proveedor lo escribe en cada bulto y así sabemos que ese bulto es tuyo. Es lo que muchos llaman \"casillero\", pero aquí lo llamamos **Shipping Mark**.\n\n**No tienes que inventar ninguna contraseña:** te llega un correo con tu enlace de acceso al portal — si no lo ves, revisa spam. Ahí adentro cargas tus compras y haces tus **pre-alertas**, que le mandan a tu proveedor un enlace con todo lo que necesita para despacharte. El resto de tus datos los completas después, con calma, dentro del portal.\n\n**Pregunta de continuación:** *\"¿Ya tienes la mercancía comprada en China o todavía estás buscando proveedor?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#1"
+    },
+    {
+      "id": "2",
+      "grupo": "A",
+      "titulo": "Cotización y tarifas (CBM)",
+      "preguntas": [
+        "¿Cuánto cuesta enviar de China a Venezuela?",
+        "¿Cuánto me sale traer mercancía de China?",
+        "¿Cómo cobran el flete?",
+        "¿Cobran por peso o por volumen?",
+        "¿Cuánto cobran por CBM?",
+        "¿Qué precio tiene el envío?",
+        "¿Cuánto cuesta un contenedor completo?",
+        "¿Tienen servicio aéreo?",
+        "¿Qué es DDP?",
+        "¿Cuál es el costo del envío marítimo?"
+      ],
+      "texto": "**Habilidad de respuesta:** DIRIGIR A LA HERRAMIENTA (la calculadora tiene la lógica + tarifa viva). La IA **NO cotiza en el chat** (evita números viejos e ida y vuelta).\n\n**Respuesta:** ¡Hola! Cuánto cuesta enviar de China a Venezuela depende sobre todo del **volumen (CBM)** de tu carga y de la ciudad de entrega. Lo bueno es que **lo calculas tú mismo al instante** en la calculadora, que ya tiene la tarifa vigente: 👉 **dtdcargo.com/tarifas**. Metes las medidas de tus cajas y te da el estimado en segundos. Es un **estimado**: el monto final lo confirma un asesor al reservar.\n\nNuestro servicio principal es el **Puerta a Puerta**: un solo precio que ya incluye flete, aduana, impuestos y entrega en tu dirección, y **pagas cuando tu carga llega a Venezuela** — sin adelantos. También trabajamos **Consolidado LCL** (hasta puerto, con tu propio BL) y **contenedor completo**, que se cotiza en **dtdcargo.com/fcl**. Todo va por vía **marítima**; el flete aéreo de carga está suspendido.\n\n**Pregunta de continuación (elige UNA):** *\"¿Ya traes directo de China o le compras a distribuidores aquí?\"* — es la que más información da y la que abre el comparativo.\n\n**Según lo que conteste:**\n- **\"Le compro a distribuidores aquí\"** → está pagando el margen del intermediario. Ofrécele el comparativo con su propio volumen.\n- **\"Sí, ya traigo\"** → tiene agente. Pregunta qué le cuesta más de traer hoy; ahí está la venta.\n- **\"Es la primera vez\"** → explícale el flujo desde el registro y el Shipping Mark (sección 1).",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#2"
+    },
+    {
+      "id": "3",
+      "grupo": "A",
+      "titulo": "Tiempos de tránsito",
+      "preguntas": [
+        "¿Cuánto tarda en llegar de China a Venezuela?",
+        "¿Cuánto tiempo demora el envío?",
+        "¿En cuánto tiempo llega mi carga?",
+        "¿Cuántos días tarda el barco?",
+        "¿Cuánto se demora la mercancía?",
+        "¿Cuánto tiempo de tránsito marítimo?",
+        "Cuánto dura el envío."
+      ],
+      "texto": "**Respuesta (aprobada · corta):** ¡Hola! Sin cuentos: tu carga va en **barco**, así que tarda **60 a 90 días** (flete interno en China + la espera de la próxima salida, cada 15-21 días + la travesía marítima). Puede variar por aduana o clima. El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo.\n\n**Pregunta de continuación:** *\"¿Para cuándo necesitas tener la mercancía aquí?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#3"
+    },
+    {
+      "id": "4",
+      "grupo": "A",
+      "titulo": "Cómo enviar a nuestra bodega en China",
+      "preguntas": [
+        "¿A qué dirección le digo a mi proveedor que envíe?",
+        "¿Cuál es la dirección de su bodega en China?",
+        "¿Dónde envía mi proveedor la mercancía?",
+        "¿Cómo marco mis cajas?",
+        "¿Qué dirección le doy a mi proveedor chino?",
+        "¿Cómo identifico mis cajas en su almacén?",
+        "¿Qué instrucciones le doy a mi proveedor?"
+      ],
+      "texto": "**Respuesta (aprobada):** ¡Hola! Para que tu proveedor te cotice el flete interno (**FOB** o **EXW**), pásale esta dirección de **referencia**. 👇 **Copia y pégasela a tu proveedor:**\n\n📋 **Yiwu Port Phase II, Warehouse 2, No. 2, Yiwu City, Zhejiang, China**\n\nCon eso te cotiza el costo hasta nuestra bodega. Ojo: es **solo de referencia para cotizar**. La **dirección completa para enviar** (con el detalle de cargo) + tus **códigos QR del Shipping Mark** los recibes al **registrarte** y generar tu pre-alerta: **dtdcargo.com/registro**.\n\n**Pregunta de continuación:** *\"¿Cuántos proveedores te van a enviar mercancía a la bodega?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#4"
+    },
+    {
+      "id": "5",
+      "grupo": "A",
+      "titulo": "Incoterms: FOB y EXW",
+      "preguntas": [
+        "¿Qué es FOB?",
+        "¿Qué es EXW?",
+        "¿Qué diferencia hay entre FOB y EXW?",
+        "Mi proveedor me dio precio FOB/EXW, ¿qué hago?",
+        "¿Qué es un Incoterm?",
+        "¿Quién paga el flete interno en China?",
+        "¿El precio incluye llevar al puerto?",
+        "No entiendo los términos de mi proveedor."
+      ],
+      "texto": "**Respuesta (aprobada · corta):** ¡Hola! Sencillo:\n🔹 **FOB:** el proveedor **incluye** el flete interno en China (llevar la carga hasta nuestra bodega). Te cotiza con la dirección de referencia.\n🔹 **EXW:** el precio es **solo la mercancía** en su fábrica; el flete interno **lo pagas tú**.\nEn resumen: con FOB lo cubre el proveedor; con EXW lo cubres tú. Saberlo te ayuda a **comparar precios reales**: con el incoterm en la mano se ve el costo total, no solo el precio de fábrica.\n\n**Pregunta de continuación:** *\"¿Ya le pediste a tu proveedor el precio puesto en nuestra bodega de Yiwu?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#5"
+    },
+    {
+      "id": "6",
+      "grupo": "A",
+      "titulo": "Métodos de pago",
+      "preguntas": [
+        "¿Qué métodos de pago aceptan?",
+        "¿Puedo pagar con tarjeta/Visa/Mastercard?",
+        "¿Puedo pagar con enlace o QR?",
+        "¿Aceptan PayPal?",
+        "¿Cómo/dónde pago la compra o el servicio?"
+      ],
+      "texto": "**Respuesta (aprobada · corta):** ¡Hola! Tu envío es un servicio de logística internacional, así que se cotiza en **dólares** (la mayor parte de los costos —flete, aduana, gestión en China— se pagan en divisas a terceros). Los **datos y la forma de pago** exactos para tu caso te los pasa un asesor de forma segura, con la referencia de tu **Shipping Mark**.\n\n**Pregunta de continuación:** *\"¿Este sería tu primer envío con nosotros o ya has traído antes?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#6"
+    },
+    {
+      "id": "7",
+      "grupo": "B",
+      "titulo": "Validación de proveedores",
+      "preguntas": [
+        "¿Validan proveedores en China?",
+        "¿Cómo sé si mi proveedor es confiable?",
+        "¿Hacen verificación de fábrica?",
+        "¿Qué incluye la validación de proveedor?",
+        "¿Cuánto cuesta validar un proveedor?",
+        "¿Validación digital o presencial?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email + link):** ¡Hola! Sí ✅ Validamos proveedores y fábricas en China para que compres seguro: **auditoría de legitimidad** (validez legal, capacidad, instalaciones) e **inspección pre-producción y pre-embarque**. Déjame tu **correo**: validamos tus datos y un asesor te pasa el **link** donde ves los **servicios de inspección con sus precios** y un ejemplo del reporte.\n\n**Pregunta de continuación:** *\"¿Es un proveedor nuevo o uno con el que ya has trabajado?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#7"
+    },
+    {
+      "id": "8",
+      "grupo": "B",
+      "titulo": "Verificación de mercancía",
+      "preguntas": [
+        "¿Revisan la mercancía antes de enviarla?",
+        "¿Hacen inspección de calidad?",
+        "¿Verifican cantidad y estado de mi pedido?",
+        "¿Qué incluye la verificación de mercancía?",
+        "¿Cuánto cuesta?",
+        "¿Toman fotos/video?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email + link):** ¡Hola! Sí ✅ Antes de embarcar **inspeccionamos tu mercancía en la fábrica del proveedor** para confirmar que lo que sale sea **lo que compraste**: cantidad, calidad y especificaciones contra tu ficha técnica, con **muestreo AQL** y **evidencia fotográfica**. Déjame tu **correo**: validamos tus datos y un asesor te pasa el **link** donde ves los **servicios de inspección con sus precios** y un ejemplo del reporte.\n\n**Pregunta de continuación:** *\"¿Qué mercancía es la que quieres que revisemos?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#8"
+    },
+    {
+      "id": "9",
+      "grupo": "B",
+      "titulo": "Compra asistida",
+      "preguntas": [
+        "¿Me ayudan a comprar en China?",
+        "No sé comprar en 1688/Alibaba, ¿me asisten?",
+        "¿Compran por mí?",
+        "¿Qué es la compra asistida?",
+        "¿Cuánto cobran por la compra asistida?",
+        "¿Negocian con el proveedor por mí?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! Sí ✅ Con la **compra asistida** somos tu **departamento de compras en China**: te ayudamos a **ubicar al proveedor, negociar y gestionar la compra** (incluso **pagarle al proveedor**) antes de consolidar tu carga. Mándame tu **lista de productos** por aquí y tu **correo**, y un asesor te confirma **viabilidad, modalidad y costo**.\n\n**Pregunta de continuación:** *\"¿Lo que quieres comprar es para revender o para uso propio?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#9"
+    },
+    {
+      "id": "10",
+      "grupo": "B",
+      "titulo": "Cursos",
+      "preguntas": [
+        "¿Dan cursos de importación?",
+        "¿Cómo me inscribo al curso?",
+        "¿Cuánto cuesta el curso?",
+        "¿Qué incluye el curso?",
+        "¿Es online o presencial?",
+        "¿Cuándo es el próximo curso?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! Por ahora **no tenemos cursos disponibles**, pero estamos por **activarlos muy pronto** 🚀. Déjame tu **correo** y te aviso apenas abramos el próximo curso (**presencial u online**).\n\n**Pregunta de continuación:** *\"¿Qué producto tienes pensado traer de China?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#10"
+    },
+    {
+      "id": "11",
+      "grupo": "B",
+      "titulo": "Seguimiento / Tracking",
+      "preguntas": [
+        "¿Dónde está mi mercancía?",
+        "¿Cómo rastreo mi envío?",
+        "¿Dónde veo el estado de mi carga?",
+        "¿Tienen tracking?",
+        "¿Cómo sé dónde va mi mercancía?",
+        "Quiero el estado de mi pedido.",
+        "¿En qué va mi envío?",
+        "¿Ya llegó mi carga?",
+        "¿Me puedes decir dónde va mi contenedor?"
+      ],
+      "texto": "**Respuesta (aprobada):** ¡Hola! Te la ubico enseguida. Para eso necesito **tu Shipping Mark** (el código DTD-XXXX) **o el número de tu envío** — con ese dato un asesor te dice exactamente en qué punto va tu carga.\n\nEl seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo.\n\n**Pregunta de continuación:** *\"¿Cuál es tu Shipping Mark?\"* — sin ese dato no se puede ubicar nada, así que es la única pregunta que va.",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#11"
+    },
+    {
+      "id": "12",
+      "grupo": "C",
+      "titulo": "Ubicación (oficinas)",
+      "preguntas": [
+        "¿Cómo puedo llegar?",
+        "¿Cuál es la dirección de tu oficina?",
+        "¿En qué zona/ciudad están?",
+        "¿Cómo puedo contactarte?"
+      ],
+      "texto": "**Respuesta:** ¡Hola! Con gusto te oriento.\n- **Venezuela:** oficina en **Valencia**. Mapa: https://maps.app.goo.gl/76T5MAeeTyynwV1M6 · datos de contacto en el pie de **www.dtdcargo.com** o en \"Contáctenos\".\n- **China:** bodegas en **Yiwu**. La dirección exacta se entrega a clientes registrados (cada envío tiene su proceso). Si ya compraste, regístrate en **www.dtdcargo.com/registro** y te indicamos dirección y pasos.\n\n**Pregunta de continuación:** *\"¿Y tú desde qué ciudad nos escribes? Así el asesor te confirma cómo sería la entrega hasta allá.\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#12"
+    },
+    {
+      "id": "13",
+      "grupo": "C",
+      "titulo": "Horario laboral",
+      "preguntas": [
+        "¿Cuáles son sus horarios de atención?",
+        "¿Qué días abren?",
+        "¿Trabajan fines de semana?",
+        "¿A qué hora abren/cierran?"
+      ],
+      "texto": "**Respuesta:** ¡Hola! Nuestros horarios:\n- **Oficina (Venezuela):** lunes a viernes, 9:00 a.m. a 5:00 p.m.\n- **WhatsApp:** todos los días, 8:00 a.m. a 8:00 p.m.\nY entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, así que es muy probable que te respondamos incluso fuera de horario.\n\n**Pregunta de continuación:** *\"Aprovechando que andamos por aquí: ¿ya tienes mercancía lista en China o apenas estás organizando la compra?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#13"
+    },
+    {
+      "id": "14",
+      "grupo": "C",
+      "titulo": "Experiencia de la empresa",
+      "preguntas": [
+        "¿Hace cuánto operan?",
+        "¿Cuántos años llevan en el mercado?",
+        "¿Cuál es su experiencia?",
+        "¿Desde qué año operan?"
+      ],
+      "texto": "**Respuesta:** ¡Hola! Sobre nuestra experiencia y desde cuándo operamos: estamos **en el comercio con China desde 2008**, abrimos **oficina propia en China en 2010** y **operamos en Venezuela desde 2015** — ese es nuestro año de fundación. Hacemos logística puerta a puerta entre China y Venezuela con carga consolidada, y acompañamos todo el proceso: compra, consolidación y envío hasta destino. Tenemos **equipo propio en Yiwu y en Valencia**. Más en **www.dtdcargo.com**.\n\n**Pregunta de continuación:** *\"¿Qué tipo de mercancía estás buscando traer?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#14"
+    },
+    {
+      "id": "15",
+      "grupo": "C",
+      "titulo": "Un solo nombre: DTD Cargo",
+      "preguntas": [
+        "¿DoorTuDoor y DTD Cargo son lo mismo?",
+        "¿Son la misma empresa?",
+        "¿Qué significa DTD?",
+        "¿Por qué antes los veía con otro nombre?",
+        "En Instagram los veía distinto."
+      ],
+      "texto": "*(⚠️ Los disparadores de arriba **conservan a propósito el nombre viejo**: la IA tiene que\nRECONOCER la pregunta cuando un cliente la escriba. La respuesta de abajo ya no lo promueve.\nDetectar ≠ promover — no quitar la palabra de la línea de preguntas.)*\n\n**Respuesta:** ¡Hola! Sí, somos la misma empresa de siempre: mismo equipo, mismo servicio, misma gente. Hoy nuestro **único nombre es DTD Cargo**, tanto en la web como en redes. Si nos conociste antes con otro nombre, estás en el lugar correcto.\n\n**Pregunta de continuación:** *\"Y para saber por dónde empezar contigo: ¿ya has traído mercancía de China antes o esta sería tu primera vez?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#15"
+    },
+    {
+      "id": "16",
+      "grupo": "D",
+      "titulo": "Descuentos y ofertas (fusión de \"Venta\" + \"Descuento\")",
+      "preguntas": [
+        "¿Tienen descuentos/ofertas?",
+        "¿Puedo pedir un descuento?",
+        "¿Ofrecen mejor precio por volumen?",
+        "¿Hay promociones vigentes?"
+      ],
+      "texto": "**Respuesta (aprobada):** ¡Hola! Sobre descuentos y mejores precios: sí, **premiamos el volumen y la frecuencia**. Mientras más CBM traigas mejor tarifa, y nuestros **clientes frecuentes** tienen las mejores condiciones — la tarifa preferencial se sostiene manteniendo la cadencia, no es un descuento de una sola vez.\n\nCalcula tu base en **dtdcargo.com/tarifas** y un asesor te arma la tarifa con tu condición. Si importas seguido te conviene **registrarte** en **dtdcargo.com/registro**: guardas tu historial y haces la recompra más fácil.\n\n**Pregunta de continuación:** *\"¿Cada cuánto repones mercancía?\"* — la frecuencia es lo que habilita la tarifa preferencial, así que es la pregunta correcta antes de hablar de números.",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#16"
+    },
+    {
+      "id": "17",
+      "grupo": "D",
+      "titulo": "Reembolsos, devoluciones y garantía (fusión de 3 secciones)",
+      "preguntas": [
+        "¿Puedo obtener un reembolso?",
+        "¿Cuáles son sus políticas de reembolso?",
+        "Mi carga llegó dañada/incompleta.",
+        "¿Cuándo recupero mi dinero?",
+        "¿Sus servicios tienen garantía?",
+        "¿Qué cubre la garantía?",
+        "¿Puedo cancelar mi envío?",
+        "Me arrepentí, ¿puedo sacar mi mercancía?"
+      ],
+      "texto": "**Respuesta (aprobada · escalar, sin afirmar política):** ¡Hola! Lamento mucho el inconveniente con tu carga 🙏. Tu caso es importante y queremos resolverlo bien. Cada situación de pérdida o daño se revisa **según las condiciones del servicio**, así que déjame conectarte con un **asesor** que lo atiende personalmente. Si ya eres cliente, también puedes abrir tu caso en **dtdcargo.com/portal**, sección **Soporte**.\n\n**Pregunta de continuación:** *\"¿Tienes a la mano tu Shipping Mark (el código DTD-XXXX)? Con ese código el asesor ubica tu envío sin que tengas que repetir la historia.\"*\n\n**Si lo que pregunta es CANCELAR (no un daño), el bot sí puede dar el corte** — respuesta aprobada:\n¡Hola! El punto de no retorno es la **salida del contenedor**. Mientras tu carga siga en nuestra bodega de China y el contenedor no haya zarpado, puedes arrepentirte: te despachamos la mercancía a donde nos digas. Pagas los costos que ya se hayan causado al recibirla y el flete desde nuestra bodega hasta ese nuevo destino, que se cancela aparte al momento de despacharla. Una vez que confirmamos la salida de tu carga de nuestro depósito en China, hasta ahí llega nuestro servicio: ese tramo lo ves directamente con la empresa de envíos y con quien la vaya a recibir. Y tenlo en cuenta antes de decidir: ese trayecto va **por fuera de nuestro seguro de carga**, porque la ventana para contratarlo se cierra cuando tu mercancía llega a nuestra bodega. Si el contenedor **ya zarpó**, el envío sigue su curso. ¿Me pasas tu **Shipping Mark** y te conecto con un asesor para verlo?",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#17"
+    },
+    {
+      "id": "18",
+      "grupo": "D",
+      "titulo": "Soporte: dificultades y sugerencias",
+      "preguntas": [
+        "¿Cómo reporto un problema?",
+        "No puedo acceder a la sección.",
+        "Tengo una sugerencia/idea para mejorar."
+      ],
+      "texto": "**Respuesta:** ¡Hola! Lamentamos el inconveniente y agradecemos tus sugerencias. Si ya eres cliente, entra a **www.dtdcargo.com/portal**, sección **Soporte**, registra tu caso y dale seguimiento. Si no tienes acceso o necesitas ayuda para ingresar, escríbenos por aquí y un asesor te orienta enseguida.\n\n**Pregunta de continuación:** *\"¿Y lo tuyo es algo que no te está funcionando o más bien una idea para mejorar?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#18"
+    },
+    {
+      "id": "19",
+      "grupo": "D",
+      "titulo": "Reseñas",
+      "preguntas": [
+        "¿Cómo dejo una opinión/reseña del servicio?",
+        "¿Dónde dejo un comentario?"
+      ],
+      "texto": "**Respuesta:** ¡Hola! Nos encantaría conocer tu opinión. Puedes compartir tu experiencia por aquí o etiquetándonos: Instagram **@dtdcargo.ve** · TikTok **@dtdcargo.ve**. ¡Gracias por ayudarnos a mejorar!\n\n**Pregunta de continuación:** *\"¿Y ese envío fue tu primera carga con nosotros o ya vas por varias?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#19"
+    },
+    {
+      "id": "20",
+      "grupo": "D",
+      "titulo": "Redes sociales",
+      "preguntas": [
+        "¿Tienen redes sociales?",
+        "¿Cuál es su Instagram/Facebook?",
+        "¿Dónde los sigo?"
+      ],
+      "texto": "**Respuesta:** ¡Hola! Síguenos: Instagram **https://www.instagram.com/dtdcargo.ve/** · TikTok **https://www.tiktok.com/@dtdcargo.ve** · YouTube **https://www.youtube.com/@dtdcargo** · WhatsApp **https://api.whatsapp.com/send/?phone=584121668021**. Novedades en **https://dtdcargo.com/noticias**.\n\n**Pregunta de continuación:** *\"Y para pasarte el contenido que más te sirva: ¿qué tipo de mercancía estás buscando traer?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#20"
+    },
+    {
+      "id": "21",
+      "grupo": "D",
+      "titulo": "Newsletter y darse de baja (fusión)",
+      "preguntas": [
+        "¿Cómo me suscribo al newsletter?",
+        "¿Cómo me doy de baja del boletín?",
+        "¿Cómo recibo sus actualizaciones?"
+      ],
+      "texto": "**Respuesta:** ¡Hola! Por ahora **no manejamos boletín ni newsletter** por correo, así que no hay nada a qué suscribirse ni de qué darte de baja. Para novedades, visita **https://dtdcargo.com/noticias**. Si en algún momento no deseas recibir nuestros mensajes, avísanos por aquí y lo gestionamos.\n\n**Pregunta de continuación:** *\"¿Y tú ya estás registrado con nosotros? Con el registro tienes tu portal del cliente para cargar tus compras y pre-alertas.\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#21"
+    },
+    {
+      "id": "22",
+      "grupo": "E",
+      "titulo": "Puerta a Puerta: qué incluye y cuándo se paga",
+      "preguntas": [
+        "¿Qué es el Puerta a Puerta?",
+        "¿Qué incluye el precio?",
+        "¿Cuándo pago mi mercancía?",
+        "¿Tengo que adelantar o dar depósito?",
+        "¿Pago por adelantado?",
+        "¿Qué es DDP?",
+        "¿Hay alguna restricción?",
+        "¿Qué condiciones tiene pagar al llegar?",
+        "¿Hay letra chica?",
+        "¿Cualquier mercancía aplica?",
+        "¿A todo el mundo le dan pagar al llegar?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! El **Puerta a Puerta** es nuestro servicio principal, y funciona así: **un solo precio que ya incluye el flete desde China, la aduana, los impuestos y la entrega en tu dirección** en Venezuela. No tienes que gestionar nada con la aduana ni te aparecen cobros sorpresa después.\n\nY sobre cuándo pagas: **no adelantas nada ni das depósito para embarcar.** El cobro arranca cuando tu carga **está por llegar**: entre **5 y 10 días antes de que toque puerto en Venezuela** un asesor te pasa el monto y los datos, con la referencia de tu **Shipping Mark**. *(Si usas compra asistida para pagarle al proveedor en China, eso se coordina aparte con el asesor.)*\n\nEl monto se calcula por **volumen (CBM)** y ciudad de destino. Míralo en **dtdcargo.com/tarifas** — es un estimado; el monto final lo confirma un asesor al reservar.\n\n**Si el cliente pregunta si hay alguna restricción o condición** (no lo menciones tú si no pregunta): sí, hay **una sola** y es de sentido común — si el flete termina costando **más que la mercancía**, se pide un **50% por adelantado** (founder, 2026-08-20 — ya es público, está en `/faq`). La razón es que un envío donde el flete se come todo el valor de lo que traes no te conviene a ti ni a nosotros. Fuera de eso no hay requisitos. Si tienes dudas de si tu caso entra, pásame los datos y un asesor te lo confirma. Cierra ese mensaje preguntando *\"¿más o menos en cuánto te salió la mercancía?\"* — con ese dato el asesor confirma al toque si aplica.\n\n**Pregunta de continuación (cuando NO preguntó por restricciones):** *\"¿Cada cuánto sueles reponer mercancía?\"* — separa al mayorista recurrente del que compra una sola vez, que es la información que más vale.",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#22"
+    },
+    {
+      "id": "23",
+      "grupo": "E",
+      "titulo": "Aduana e impuestos",
+      "preguntas": [
+        "¿Quién paga la aduana?",
+        "¿El precio incluye impuestos?",
+        "¿Tengo que hacer trámites de aduana?",
+        "¿Hay cobros sorpresa?",
+        "¿Me nacionalizan la carga?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! Sobre quién paga la aduana y los impuestos: con el **Puerta a Puerta la aduana y los impuestos ya van incluidos** en el precio que te damos. **No hay cobros sorpresa** ni tienes que gestionar nada con la aduana — de eso nos encargamos nosotros. Tú solo recibes tu mercancía en tu puerta.\n\n⚠️ Ten en cuenta una cosa importante: con el Puerta a Puerta **la importación no queda a tu nombre** y no recibes documentos de nacionalización propios. Si necesitas que la importación quede a nombre de tu empresa, existe la modalidad **con tu propia aduana**: llevamos la carga hasta el almacén fiscal y tú asumes impuestos, permisos y gastos de nacionalización. **Esa decisión se toma antes de embarcar.**\n\nEl costo total se calcula por CBM y destino en **dtdcargo.com/tarifas**.\n\n**Pregunta de continuación:** *\"¿Necesitas que la importación quede a nombre de tu empresa, o te sirve recibirla sin trámites?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#23"
+    },
+    {
+      "id": "24",
+      "grupo": "E",
+      "titulo": "Cobertura de entrega (¿a qué ciudades?)",
+      "preguntas": [
+        "¿A qué ciudades entregan?",
+        "¿Entregan en toda Venezuela?",
+        "¿Llega a mi ciudad (Caracas/Maracaibo/etc.)?",
+        "¿Y si no estoy en Valencia?",
+        "¿La entrega es a domicilio?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! **Entregamos en toda Venezuela** 🇻🇪. Nuestra sede y bodega están en **Valencia**, y si estás en otra ciudad coordinamos el **last-mile hasta tu dirección** — como es **puerta a puerta**, no tienes que ir a buscar la carga a ningún puerto. Dime tu **ciudad** y tu **correo** y un asesor te confirma la entrega para tu caso.\n\n**Pregunta de continuación:** *\"¿En qué ciudad recibirías tu carga?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#24"
+    },
+    {
+      "id": "25",
+      "grupo": "E",
+      "titulo": "Qué puedo importar (productos restringidos)",
+      "preguntas": [
+        "¿Qué productos puedo importar?",
+        "¿Puedo traer baterías/líquidos/comida/cosméticos?",
+        "¿Hay productos prohibidos?",
+        "¿Qué no puedo enviar?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! Traemos una gran variedad de productos, pero **algunos rubros hay que revisarlos antes** (por normativa o por ser carga peligrosa: ciertas baterías, líquidos, aerosoles, alimentos, cosméticos, etc.). Para no fallar, **pásame tu lista de productos** y tu **correo**, y un asesor te confirma **qué sí se puede** y la mejor modalidad.\n\n**Pregunta de continuación:** *\"¿Qué tipo de mercancía quieres traer?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#25"
+    },
+    {
+      "id": "25-bis",
+      "grupo": "E",
+      "titulo": "Réplicas, imitaciones y copias de marca — NO se trabaja",
+      "preguntas": [
+        "¿Puedo traer réplicas?",
+        "¿Traen imitaciones?",
+        "¿Copias de marca?",
+        "¿Zapatos/ropa réplica (Nike, Hoka, On Running, New Balance…)?",
+        "¿Traen AAA / clones / genéricos de marca?",
+        "¿Y si no dice la marca?",
+        "¿Puedo traer poquitas para probar?"
+      ],
+      "texto": "**Respuesta (aprobada · founder 2026-08-06):** Con las réplicas e imitaciones de marca te soy directo: **eso no lo trabajamos.** Está totalmente prohibido para nuestros servicios, sin excepciones — **sólo se podría si tienes una autorización de la marca**, y eso es un permiso que otorga el titular, no un trámite que se gestiona con nosotros.\n\nPero si tu interés es ese mercado, hay un camino que sí funciona y suele dejar más: **traer el mismo tipo de producto con tu propia marca.** En China lo fabrican con tu logo y tu empaque, y esa mercancía sí viaja sin problema. Muchos de nuestros clientes empezaron justo así.\n\n**Pregunta de continuación:** *\"¿Te interesaría traer ese mismo producto con tu propia marca?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#25-bis"
+    },
+    {
+      "id": "26",
+      "grupo": "E",
+      "titulo": "Consolidado (LCL) y juntar varios proveedores",
+      "preguntas": [
+        "¿Qué es carga consolidada / LCL?",
+        "¿Pueden juntar mi mercancía de varios proveedores?",
+        "¿No lleno un contenedor, igual me traen?",
+        "¿Cómo funciona el consolidado?",
+        "¿Diferencia entre consolidado y contenedor completo?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! En el **consolidado marítimo (LCL)** tu carga viaja junto a la de otros importadores y **pagas solo por el volumen que ocupas (CBM)** — es lo ideal cuando no llenas un contenedor completo. Y sí: **juntamos en nuestra bodega de Yiwu la mercancía de tus distintos proveedores** bajo tu mismo Shipping Mark, en un solo envío. **Tener varios proveedores no te obliga a contratar un contenedor completo.**\n\nSi tienes mucho volumen sí te conviene el **contenedor completo (FCL)**, que se cotiza en **dtdcargo.com/fcl**. Para carga suelta, calcula tu CBM en **dtdcargo.com/tarifas**.\n\n**Pregunta de continuación:** *\"¿Cuántos proveedores juntarías?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#26"
+    },
+    {
+      "id": "27",
+      "grupo": "E",
+      "titulo": "Envío aéreo y muestras",
+      "preguntas": [
+        "¿Hacen envío aéreo?",
+        "¿Pueden traerme una muestra por avión?",
+        "¿Tienen courier aéreo?",
+        "¿Envío rápido por avión?",
+        "¿Cuánto cuesta el aéreo?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! Por ahora el **flete aéreo de carga está suspendido** — la carga va por vía **marítima** (consolidado LCL y contenedor completo FCL). Lo que **sí mantenemos activo** es el **courier express de muestras y documentos** pequeños (DHL/UPS/FedEx desde Yiwu): muestras pre-producción, documentos y lotes pequeños críticos — eso es paquetería urgente, **no carga aérea**. Apenas se reactive el aéreo de carga te avisamos: déjame tu **correo**. Y si tu carga puede ir por barco, te ayudo a cotizarla.\n\n**Pregunta de continuación:** *\"¿Lo que necesitas mover ahora es una muestra o ya es el pedido completo?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#27"
+    },
+    {
+      "id": "28",
+      "grupo": "E",
+      "titulo": "Dirección para recibir compras de Alibaba / 1688",
+      "preguntas": [
+        "¿Cómo registro mi dirección para que mis paquetes lleguen por Alibaba u otra plataforma 1688?",
+        "¿Qué dirección pongo en Alibaba / 1688 / Taobao?",
+        "¿A dónde envío mis compras online de China?",
+        "¿Cuál es la dirección de recepción de la bodega en China?",
+        "¿Cómo le digo a mi proveedor a dónde enviar?",
+        "Dirección de entrega para mis pedidos de Alibaba"
+      ],
+      "texto": "**Se responde en DOS pasos. No pegues la dirección en el primer mensaje.**\n\n**Paso 1 — primera vez que la piden:** ¡Hola! Te la puedo dar sin problema, pero déjame decirte lo que de verdad te conviene: **regístrate gratis en dtdcargo.com/registro** y carga tu compra con su **pre-alerta**. Ahí pasan dos cosas que valen oro: a tu proveedor le llega un **enlace con todo lo que necesita** para despacharte, y tu compra queda **registrada en tu portal** desde el primer día. Y hay un detalle práctico: **la dirección sola no sirve** — el destinatario tiene que llevar **tu Shipping Mark**, porque si no, la caja llega a la bodega y no sabemos de quién es.\n\n**Pregunta de continuación:** *\"¿Te ayudo a sacar tu Shipping Mark ahora? Es un minuto.\"*\n\nSi después de ofrecerle el registro insiste en la dirección completa de recepción, no la des: pasa la conversación a una persona del equipo.",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#28"
+    },
+    {
+      "id": "29",
+      "grupo": "F",
+      "titulo": "Seguro de carga",
+      "preguntas": [
+        "¿La carga va asegurada?",
+        "¿Tienen seguro?",
+        "¿Qué pasa si se pierde mi mercancía?",
+        "¿Cubren daños?",
+        "¿Puedo asegurar mi carga?",
+        "¿Cuánto cuesta el seguro?"
+      ],
+      "texto": "**Respuesta (escalar · NO afirmar cobertura):** ¡Hola! Sobre el seguro de carga: **el flete no incluye seguro**. Puedes contratar un **seguro de carga opcional** a través de nosotros, y hay un detalle de tiempo importante: se solicita **antes de que tu mercancía llegue a la bodega en China**, declarando su valor real. Una vez que la carga llega a bodega, esa ventana se cierra.\n\nEl alcance y el costo dependen de tu mercancía y su valor, así que te conecto con un asesor para que te lo arme bien.\n\n**Pregunta de continuación:** *\"¿Ya sabes el valor declarado de la mercancía que vas a traer?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#29"
+    },
+    {
+      "id": "30",
+      "grupo": "F",
+      "titulo": "Documentos y requisitos de importación",
+      "preguntas": [
+        "¿Qué documentos necesito para importar?",
+        "¿Me dan factura?",
+        "¿La importación queda a mi nombre?",
+        "¿Necesito RIF o registro de importador?",
+        "¿Me dan los documentos de nacionalización?",
+        "¿Sirve para mi contabilidad?"
+      ],
+      "texto": "**Respuesta (escalar · Comercial/Legal):** ¡Hola! Sobre los documentos de importación, la respuesta depende de la modalidad que elijas, y conviene definirlo **antes de embarcar**:\n\n- Con **Puerta a Puerta**, tú recibes la mercancía pero **la importación no queda a tu nombre** y no recibes documentos de nacionalización propios.\n- Con **tu propia aduana**, tú eres el importador y los documentos pueden quedar a nombre de tu empresa; en ese caso asumes impuestos, permisos y gastos del almacén fiscal.\n\nCambiar esto con la carga ya en tránsito puede no ser viable, así que si necesitas soporte fiscal es mejor decirlo desde ahora. Te conecto con un asesor para revisarlo.\n\n**Pregunta de continuación:** *\"¿Necesitas que la importación quede a nombre de tu empresa?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#30"
+    },
+    {
+      "id": "31",
+      "grupo": "F",
+      "titulo": "Reserva de contenedor completo (FCL)",
+      "preguntas": [
+        "¿Cómo reservo un contenedor?",
+        "¿Cuánto cuesta un contenedor de 40 pies?",
+        "¿Tienen contenedor dedicado?",
+        "¿Puedo cargar en la fábrica de mi proveedor?",
+        "¿Qué diferencia hay entre FCL en bodega y FCL directo?"
+      ],
+      "texto": "**Respuesta (aprobada · captura email):** ¡Hola! Sobre reservar un contenedor completo, trabajamos dos modalidades:\n\n- **FCL directo de fábrica** — el contenedor se carga en la fábrica de tu proveedor. Un punto que vale la pena que sepas: **el Bill of Lading lo emitimos nosotros, no la fábrica**, así que tu proveedor no puede cambiar el destino ni desviar el contenedor.\n- **FCL en bodega** — nosotros armamos y consolidamos el contenedor en Yiwu, útil cuando reúnes mercancía de varios proveedores.\n\nPara un estimado inmediato entra en **dtdcargo.com/fcl**. La reserva en firme la confirma un asesor, porque depende del cupo y de la fecha de salida.\n\n**Pregunta de continuación:** *\"¿La mercancía sale de un solo proveedor o de varios?\"* — decide directo cuál de las dos modalidades aplica.",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#31"
+    },
+    {
+      "id": "32",
+      "grupo": "F",
+      "titulo": "Transporte terrestre nacional",
+      "preguntas": [
+        "¿Hacen transporte dentro de Venezuela?",
+        "¿Mueven carga nacional?",
+        "¿Me llevan mercancía de una ciudad a otra?"
+      ],
+      "texto": "**Respuesta (aprobada · no ofrecer como servicio activo):** ¡Hola! El **transporte terrestre nacional como servicio independiente** todavía no está activo — figura como **próximamente**.\n\nLo que sí hacemos hoy es la **entrega de tu carga importada hasta tu dirección** en toda Venezuela, que va incluida dentro del Puerta a Puerta. Si lo que necesitas es mover mercancía que ya está en el país, te conecto con un asesor para ver si podemos ayudarte.\n\n**Pregunta de continuación:** *\"¿La mercancía que quieres mover viene de China o ya está en Venezuela?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#32"
+    },
+    {
+      "id": "33",
+      "grupo": "F",
+      "titulo": "Servicios de nicho (registro de marca, visado, permisología, etiquetado)",
+      "preguntas": [
+        "¿Registran marcas en China?",
+        "¿Ayudan con el visado chino?",
+        "¿Hacen pruebas de laboratorio?",
+        "¿Gestionan permisos sanitarios?",
+        "¿Hacen etiquetado o preparación para Amazon FBA?",
+        "¿Ofrecen almacenaje de largo plazo?"
+      ],
+      "texto": "**Respuesta (escalar · sin precio ni promesa):** ¡Hola! Además de la logística tenemos algunos servicios de apoyo, pero el alcance de cada uno depende del caso, así que prefiero que lo veas con un asesor antes de que tomes una decisión — no quiero darte información a medias.\n\nCuéntame qué necesitas específicamente y te conecto con la persona que lo maneja.\n\n**Pregunta de continuación:** *\"¿Qué necesitas resolver exactamente?\"*",
+      "fuente": "docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md#33"
+    }
+  ]
+}
