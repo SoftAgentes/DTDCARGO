@@ -12,6 +12,15 @@ on:
   pull_request:
     paths:
       - "infra/ops/portal-historial/**"
+      # Las migraciones que aplica el fixture de Studio de la punta a punta (pruebas/studio-fixture.sql).
+      - "supabase/migrations/0006_clients.sql"
+      - "supabase/migrations/0106_conversaciones.sql"
+      - "supabase/migrations/0337_feature_flags_seed_and_trigger.sql"
+      - "supabase/migrations/0503_chatwoot_bandeja.sql"
+      - "supabase/migrations/0504_chatwoot_eventos.sql"
+      - "supabase/migrations/0519_chatwoot_portal.sql"
+      - "supabase/migrations/0520_chatwoot_portal_vuelta.sql"
+      - "supabase/migrations/0523_chatwoot_portal_carga.sql"
       - "infra/chatwoot/compose.yml"
       - "infra/chatwoot/pruebas/compose.local.yml"
       - "infra/chatwoot/rails/**"
@@ -40,3 +49,9 @@ jobs:
 
       - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
         run: bash infra/ops/portal-historial/pruebas/prueba-cargador.sh
+
+      # SDD-0586 10.7, PR 2a: la prueba que une los dos lados: extraer.sh y vincular.sh (E10) contra un Postgres de
+      # Studio desechable, y cargar.sh con el cargador contra un Chatwoot desechable. Corre aunque falle el paso anterior.
+      - name: Punta a punta (Studio, cargar.sh y Chatwoot)
+        if: ${{ !cancelled() }}
+        run: bash infra/ops/portal-historial/pruebas/prueba-punta-a-punta.sh
