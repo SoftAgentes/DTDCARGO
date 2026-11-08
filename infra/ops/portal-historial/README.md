@@ -18,6 +18,8 @@ Todo con `chatwoot_portal` **apagado**: la 0523 se niega si está encendido.
    - `reservar.sql` **escribe** en Studio el identificador de cada ficha por cargar. Así una repetición reusa el mismo contacto en Chatwoot.
    - `extraer.sql` **lee** en una transacción de solo lectura y deja `preparado.ndjson`.
 2. **El cargador de E5:** con `MODO=seco` primero, y después `cargar`. Lee `preparado.ndjson` y escribe `vinculos.ndjson`.
+   - **El contrato de los vínculos:** el cargador los deja en `/dev/shm/portal-historial/vinculos.ndjson`. Es el nombre fijo que lee `vincular.sh`, que no mira ninguna variable `VINCULOS`. `VINCULOS=-`, que es la salida estándar de `rails runner` mezclada con logs, queda solo para pruebas.
+   - **El puente entre el contenedor de Chatwoot y el VPS es de E5**, en su segunda PR y en un archivo suyo: `docker exec -i`, `VINCULOS` en el `/dev/shm` del contenedor, `docker cp` a esta carpeta y el borrado del contenedor con `trap`. Va entre `extraer.sh` y `vincular.sh`.
 3. **`vincular.sh`** **escribe** en Studio los vínculos, marca `cargado` los mensajes y fija el corte (`chatwoot_portal_vincular_carga`). Si sale bien, borra `/dev/shm/portal-historial`.
 4. **Si algo quedó a medias:** `limpiar.sh`. Si la vinculación falla, los archivos quedan en `/dev/shm` para poder reintentar. **Si no se reintenta, se corre `limpiar.sh`:** en un tmpfs, los datos de clientes siguen ahí hasta que alguien los borre o se reinicie el VPS.
 5. **El cierre:** comprobar que `/dev/shm/portal-historial` ya no existe (`test ! -e /dev/shm/portal-historial && echo vacio`) y dejarlo en la evidencia.
