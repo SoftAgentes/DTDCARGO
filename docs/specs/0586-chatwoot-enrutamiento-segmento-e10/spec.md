@@ -624,6 +624,66 @@ rollback;
 
 La segunda consulta cuenta solo los mensajes de hilos vivos (`c.deleted_at is null`). Como ese día había 0 archivados, los 73 son el total del chat del portal. El texto de la consulta no se cambia, porque ya se corrió así. La carga vuelve a contar al extraer (C-1): hasta entonces puede haber hilos y mensajes nuevos, y algún hilo archivado por una fusión.
 
+#### 10.7 · la 0524: las condiciones de la puerta 4 (diseño para revisar antes del SQL)
+
+La reparte el DG el 2026-11-08, después de la revisión de datos personales y de idempotencia de la #455 y la #456. Va en **una PR nueva, migrate-first, con el OK nominal de Sam en prueba y en producción**. Sale de `main` después del tren 4, y lleva también `0f100e2b3`: el `-O`/`! -L` de `extraer.sh` (punto 7), el guion de la puerta 4 y el log de Postgres de Chatwoot.
+
+**La 0523 ya está aplicada y no se toca** (md5 `83b016e0ac8aa2fe24172ae07642a60c`). La 0524 redefine con `create or replace`, con la misma firma, el mismo `security definer`, `search_path = ''` y solo `service_role`, estas funciones:
+- `chatwoot_portal_carga_lineas`;
+- `chatwoot_portal_vincular_carga`;
+- y, según la elección del punto 6, `chatwoot_purgar_bandeja` (0508).
+
+Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de la 0508, y se niega si ya se aplicó, comprobando su marca en el `comment`. Al final va un postflight de grants. La espera se declara en el baseline.
+
+**Punto 4 · la cola no corrió sobre lo que se carga.** `carga_lineas` se niega con 55000 si hay una fila de `chatwoot_portal_salida` del tenant en `pendiente`, `enviando`, `atascado` o `enviado` sobre un mensaje de un hilo que se va a cargar (`chatwoot_portal_carga_hilos`).
+- **El riesgo:** un `enviando` o un `atascado` en un hilo sin vínculo puede tener ya su conversación en Chatwoot. La cola la creó, pero el vínculo no llegó a guardarse. La carga crearía otra, y el cliente quedaría con dos hilos en Chatwoot.
+- **Por qué solo sobre los hilos que se cargan y no sobre todo el tenant (pregunta para el DG).** El DG pidió «ninguna fila `pendiente`, `enviando` ni `enviado`» en todo el tenant. Pero en la base de prueba la cola ya corrió: la punta a punta dejó filas `enviado` en hilos **ya vinculados**, con el corte que el DG fijó por SQL. Con la regla de todo el tenant, el ensayo en prueba se negaría siempre, salvo que se borren esas filas.
+  - En producción el flag nunca se encendió, así que las dos reglas dan lo mismo.
+  - Los hilos ya vinculados no se cargan (`carga_hilos`), y sus filas no son un riesgo.
+  - **Se propone la regla acotada.** Si el DG prefiere la de todo el tenant, el cambio es una línea, y el ensayo en prueba necesita limpiar la salida antes.
+- **`atascado` se suma** a los tres estados que pidió el DG. Es un `enviando` que se rindió, y tiene el mismo riesgo.
+- **Su prueba:** con una fila `enviando`, otra `atascado`, otra `pendiente` o una `enviado` en un hilo por cargar, `carga_lineas` se niega. Con un `enviado` en un hilo ya vinculado (el caso de prueba, hC/c1 del contrato), no se niega. Lleva un mutante por estado, y uno que lo vuelve de todo el tenant (cae en el caso hC).
+
+**Punto 5 · `vincular_carga` rechaza lo incompleto y las fichas borradas.**
+- En los contactos (`0523:312-319`): `contacto_id` nulo o fuera de 1 a 2147483647, y `source_id` nulo o vacío, dan 22023. Hoy el `update` los guardaba en nulo.
+- **Una ficha borrada** entre la extracción y la vinculación da 55000 y la vinculación no escribe nada. Se mira en los contactos (`clients.deleted_at`) y en las conversaciones (`0523:330-332`, el hilo se une con su ficha).
+  - Lo que ya está en Chatwoot de esa ficha queda **sin vínculo**. El guion de la puerta 4 ya dice que se corre seguido. Si pasa igual, se borra a mano en Chatwoot, como una supresión (`0f100e2b3`), y se repite desde la extracción, que ya no trae esa ficha.
+- **Un hilo archivado** (con `conversations.deleted_at`) **se sigue cargando**, por la decisión 6 b. Solo cuenta la ficha.
+- **Su prueba:** un caso por cada rechazo, más una ficha borrada después de leer las líneas. Todos sin nada a medias: ni vínculos, ni `cargado`, ni corte. Lleva un mutante por cada rechazo.
+
+**Punto 6 · la purga de 12 meses y los hilos cargados. Se elige excluir de la purga los espejos de los hilos del portal.**
+- **Lo medido:**
+  - `chatwoot_purgar_bandeja` (`0508:87-88`) borra de `chatwoot_conversations` toda fila con `coalesce(last_activity_at, updated_at)` de más de 12 meses.
+  - **No borra los vínculos:** `chatwoot_portal_hilos` no tiene llave foránea a ese espejo (`0519:97-103`).
+  - Lo que se pierde es el espejo. De ahí la 0521 lee el estado del hilo (`chatwoot_portal_estado_hilo` devuelve `sin_espejo`), la conciliación lee su actividad, y la Ficha DTD lee su `client_id`.
+  - El espejo vuelve recién con un evento de Chatwoot o una respuesta.
+- **El caso:** un hilo cargado con `last_message_at` de hace más de 12 meses pierde su espejo en la primera corrida de la purga después de la carga.
+  - En producción, hoy no hay ninguno: el mensaje más viejo es del 2026-06-09, según el conteo del DG de arriba.
+  - Pero la carga no tiene que depender de eso, y un hilo **normal** del portal pierde su espejo igual a los 12 meses sin actividad.
+- **Opción A, descartada: `last_activity_at` = la hora de la carga.**
+  - Cambia el orden de la Ficha DTD (`conversations-queries.ts:57` ordena por `last_activity_at`): todos los hilos viejos aparecerían como los más recientes.
+  - Hace que la conciliación de la 0521 (`greatest(cc.last_activity_at, c.last_message_at) >= now() - 7 days`) concilie con la API, durante una semana, todos los hilos resueltos cargados, sin motivo.
+  - Y, a los 12 meses de la carga, el problema vuelve igual.
+- **Opción B, elegida: la purga no borra el espejo de una conversación vinculada a un hilo del portal.** La 0524 redefine `chatwoot_purgar_bandeja` con un `and not exists (select 1 from public.chatwoot_portal_hilos hl where hl.tenant_id = c.tenant_id and hl.chatwoot_conversation_id = c.conversation_id)`.
+  - `last_activity_at` sigue saliendo de `last_message_at`, con la actividad verdadera.
+  - **La justificación de retención:** el chat del portal sigue el plazo de la cuenta del cliente, no el de 12 meses de la bandeja (§6 de la política de privacidad, plazos, en la lista de cambios de esta spec).
+    - El espejo de un hilo del portal lleva solo ids, el estado y el `client_id`.
+    - Cuando la ficha se borra, el hilo se borra en cascada, y con él su vínculo (`0519:98`). Desde ahí, su espejo vuelve a ser purgable a los 12 meses.
+    - El espejo de las demás bandejas (WhatsApp) sigue con la purga de 12 meses, igual que hoy.
+  - **El contrato de la 0508** (`chatwoot-bajas.migration.test.ts`) prueba la 0508 sola y la muta en su propio texto, así que no cambia. La purga redefinida la prueba el contrato de la 0524.
+  - **Su prueba:** un hilo cargado con `last_message_at` de hace 13 meses conserva su espejo después de `chatwoot_purgar_bandeja`. Una conversación de otra bandeja, con la misma antigüedad y sin vínculo, se purga. Cuando se borra la ficha, el espejo vuelve a purgarse. Lleva un mutante que quita el `not exists`.
+
+**Punto 7:** el `-O` y el `! -L` de `extraer.sh` ya están en `0f100e2b3`.
+
+**La prueba que une los dos lados** (el preparado real, el cargador de E5 y `vincular_carga`) **va en el ensayo de E5**, como propuso el Subdirector, porque necesita la #456 en main. El Worker de la 10.5 le pasa a E5:
+- los casos de rechazo de los puntos 4 y 5, para que el ensayo los provoque;
+- y el C-8 de `controles-studio.sql`.
+
+**Allowlist de la PR de la 0524:**
+- `supabase/migrations/0524_*.sql`, `supabase/tests/0524_*.test.sql` y su envoltorio de PGlite;
+- `supabase/migrations-baseline.json`, para la espera;
+- lo de `0f100e2b3`: `extraer.sh`, `prueba-portal-historial.sh`, el README de `portal-historial`, esta spec y el handoff.
+
 ### 10.5.11 El plazo de respuesta: lunes y feriados (P5 y P7)
 
 **La regla (E10-D23), en hora de Caracas:**
