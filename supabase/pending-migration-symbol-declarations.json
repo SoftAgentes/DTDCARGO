@@ -7,46 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0586-portal-vuelta",
-      "primarySymbol": "chatwoot_portal_respuesta",
-      "migration": "0520_chatwoot_portal_vuelta",
-      "symbols": [
-        {
-          "name": "chatwoot_portal_respuesta",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal-manejadores.ts:193",
-            "lib/studio/chatwoot/portal-manejadores.ts:201"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_destrabar",
-          "kind": "function",
-          "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:471",
-            "app/studio/(app)/bandeja/actions.ts:473"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/chatwoot/portal-manejadores.ts:177",
-          "contains": "if (!flags.chatwoot_portal) return;",
-          "degradation": "Con chatwoot_portal apagado (la fila que siembra la 0519 nace apagada; en una base sin la 0519 no hay fila y listFeatureFlags lo da apagado) responderAlPortal no llama a chatwoot_portal_respuesta ni a Chatwoot, y el webhook sigue como hoy. Encenderlo sin la 0520 es la condición de §10.5.9, paso 6."
-        },
-        {
-          "site": "app/studio/(app)/bandeja/_components/PortalChatwoot.tsx:46",
-          "contains": "{!resumen.encendido ? (",
-          "degradation": "Con el flag apagado la tarjeta muestra «Apagado» y no ofrece «Reintentar los atascados»: nadie llama a chatwoot_portal_destrabar."
-        },
-        {
-          "site": "app/studio/(app)/bandeja/actions.ts:474",
-          "contains": "return { ok: false, error: error.code === \"42501\" ? \"denied\" : \"base\" };",
-          "degradation": "Si igual se llamara, chatwoot_portal_destrabar ausente (PGRST202) devuelve el error «base» con su código en el log, sin lanzar."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
