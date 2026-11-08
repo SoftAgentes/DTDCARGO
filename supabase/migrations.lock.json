@@ -3258,6 +3258,15 @@
         "fecha": "2026-11-08",
         "forma": "exacta"
       }
+    },
+    "0524_chatwoot_portal_puerta4": {
+      "sha256": "a73023c3b62818883e5c0e4528ace39547eae7d9625929dc9be89cfca8f70d65",
+      "md5": "8891e2a4cda6197eec57653ec178d40a",
+      "bytes": 22764,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
     }
   }
 }

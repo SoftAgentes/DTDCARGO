@@ -1,4 +1,4 @@
-# Handoff · Cierre de migraciones del 2026-11-08: la 0518, la 0521, la 0522 y la 0523 (y el registro de la 0524)
+# Handoff · Cierre de migraciones del 2026-11-08: la 0518, la 0521, la 0522, la 0523 y la 0524
 
 - **Owner:** Claude Worker «10.5», en la sesión que inició el Subdirector de Chatwoot (`local_535053f4-40c2-4124-a280-63f4fc882820`). El DG y el Subdirector decidieron el alcance.
 - **Claim:** `worker-10.5-cierre`.
@@ -13,7 +13,7 @@
   - `lib/studio/__tests__/chatwoot-portal-estado.migration.test.ts`;
   - `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, de E7;
   - `lib/studio/__tests__/chatwoot-portal-carga.migration.test.ts`.
-- **Registrada, pero sin sellar:** la 0524. Su archivo y su espera viven en la #462, que todavía no está en main. El sello va en un cierre chico después del tren 6, desde ese main (decisión del DG del 2026-11-08). Es el mismo patrón de la 0523, que entró en el #460 y se cierra aquí.
+- **La 0524, sellada en su cierre chico** (PR propia desde `33c286e01`, después del tren 6, decisión del DG del 2026-11-08): `retirar-espera` con su md5 y su envoltorio, `chatwoot-portal-puerta4.migration.test.ts`, pasado a «aplicada y sellada». En la #463 había quedado registrada sin sellar, porque su archivo y su espera vivían en la #462. Es el mismo patrón de la 0523, que entró en el #460 y se cerró en la #463.
 - **Las cabeceras «NO APLICADA A PRODUCCIÓN» no se tocan:** el ledger guarda el texto exacto.
 
 ## Registro (§6, paso 3)
@@ -33,7 +33,7 @@
 | | | | producción | `20261108164015` | 2026-11-08T16:40:15.902Z | 521 | `apply-0523-dtd-cargo-20261108T164015Z` |
 | `0522_chatwoot_bot` | 0618 | `042eacc23862df84138ddbbd7f02503a` · 35074 | prueba | `20261108195845` | 2026-11-08T19:58:45.620Z | 510 | `apply-0522-dtd-cargo-staging-20261108T195844Z` |
 | | | | producción | `20261108195920` | 2026-11-08T19:59:20.678Z | 522 | `apply-0522-dtd-cargo-20261108T195919Z` |
-| `0524_chatwoot_portal_puerta4` (sin sellar) | 0586 | `8891e2a4cda6197eec57653ec178d40a` · 22764 | prueba | `20261108202540` | 2026-11-08T20:25:41.033Z | 511 | `apply-0524-dtd-cargo-staging-20261108T202540Z` |
+| `0524_chatwoot_portal_puerta4` | 0586 | `8891e2a4cda6197eec57653ec178d40a` · 22764 | prueba | `20261108202540` | 2026-11-08T20:25:41.033Z | 511 | `apply-0524-dtd-cargo-staging-20261108T202540Z` |
 | | | | producción | `20261108202610` | 2026-11-08T20:26:10.148Z | 523 | `apply-0524-dtd-cargo-20261108T202609Z` |
 
 **Lo que salió de dónde:**
@@ -48,7 +48,7 @@
 - **La 0518 y la 0521:** la #417 y la #453 en el tren #457, `9019d3997`, a las 2026-11-08T16:37:59Z. Las dos PR figuran como merged a las 16:38:01Z.
 - **La 0523:** la #456 en el tren #460, `88a87b181`, a las 2026-11-08T17:35:12Z. La PR figura a las 17:35:14Z.
 - **La 0522:** la #459 en el tren #465, `e4e3b1173`, a las 2026-11-08T20:48:02Z. La PR figura a las 20:48:04Z.
-- **La 0524:** la #462, en el tren 6, todavía no entró. Su hora va en su cierre.
+- **La 0524:** la #462 en el tren #466, `33c286e01`, a las 2026-11-08T21:44:40Z. La PR figura a las 21:44:42Z.
 
 ## Punteros en las SDD
 
@@ -72,5 +72,4 @@
 ## Pendientes de esta tarea
 
 - **El commit de la 0522:** el DG revisa el delta antes de publicar.
-- **El sello de la 0524:** va en un cierre chico después del tren 6.
 - **Los punteros de la 0611 y la 0618:** los ponen sus dueños.
