@@ -25,7 +25,8 @@ Preparar la 6.5: leads, etapas, tareas, mappings e IDs de Kommo al CRM propio, s
   - las comillas del `\i`;
   - los mutantes con su aserción;
   - el índice en la allowlist.
-- Pendiente medir en el ensayo: que el rol de la carga pueda leer `pg_control_system()` (**NV**).
+- Revisión del DG sobre `687475156`: `unset PGOPTIONS`, y en `copia` la marca tiene que estar guardada para la base (`pg_db_role_setting`, `setrole = 0`). La marca de la sesión o de un rol no vale. Rojo previo contra `687475156` y, con el arreglo, PASÓ 30 de 30 y 1 saltada en Windows: la del `psql` falso con `PGOPTIONS`, que corre en el CI de Linux.
+- Pendiente medir en el ensayo, antes de cualquier carga en producción: que el rol de la carga pueda leer `pg_control_system()` y `pg_db_role_setting` (**NV**).
 - `sql-tests.yml` se dispara también con `supabase/cargas/**`.
 
 ## Validación

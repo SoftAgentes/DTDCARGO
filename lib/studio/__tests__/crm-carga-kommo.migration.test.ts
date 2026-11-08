@@ -11,8 +11,9 @@
  * ESTÁTICA: el cargador no llama afuera, no escribe en el espejo ni en las fichas y no deja objetos.
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
@@ -190,6 +191,18 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       cae: /pedir produccion en una base marcada como copia se rechaza/,
     },
     {
+      nombre: "vuelve a mirar solo current_setting: la marca de la sesión vale como copia",
+      desde: "    if not v_guardada then",
+      hacia: "    if false then",
+      cae: /la marca copia solo en la sesión se rechaza/,
+    },
+    {
+      nombre: "acepta la marca guardada para cualquier rol",
+      desde: "        where s.setrole = 0\n",
+      hacia: "        where true\n",
+      cae: /la marca copia guardada solo para un rol se rechaza/,
+    },
+    {
       nombre: "no compara el identificador del sistema en produccion",
       desde: "if p_sistema is null or v_sistema is distinct from p_sistema then",
       hacia: "if false then",
@@ -240,6 +253,36 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
     expect(include, "falta el \\i con comillas, después del begin").toBeGreaterThan(begin);
     expect(correr).toContain("crm_carga_kommo('$tenant'::uuid, '$corte'::timestamptz, $dias, '$entorno', $sistema_sql);");
     expect(correr).toContain("INICIO modo=$modo entorno=$entorno ");
+  });
+
+  it("estática del lanzador: limpia PGOPTIONS antes de psql", () => {
+    const correr = read(resolve(ROOT, "supabase/cargas/crm-kommo/correr.sh"));
+    const limpia = correr.indexOf("\nunset PGOPTIONS\n");
+    expect(limpia, "falta unset PGOPTIONS").toBeGreaterThan(-1);
+    expect(correr.indexOf("\npsql "), "unset PGOPTIONS va antes de psql").toBeGreaterThan(limpia);
+  });
+
+  // stat -c '%a' de Git Bash no ve el 0600 en NTFS: en Windows el lanzador para antes de llegar a psql.
+  it.skipIf(process.platform === "win32")("el lanzador no le pasa a psql un PGOPTIONS de la shell", () => {
+    const dir = mkdtempSync(join(tmpdir(), "carga-kommo-"));
+    try {
+      const falso = join(dir, "psql");
+      writeFileSync(falso, '#!/usr/bin/env bash\ncat >/dev/null\necho "PGOPTIONS_EN_PSQL=${PGOPTIONS-<sin>}"\n');
+      chmodSync(falso, 0o755);
+      const servicio = join(dir, "servicio.conf");
+      writeFileSync(servicio, "[dtd]\nhost=/no/existe\n");
+      chmodSync(servicio, 0o600);
+      const r = spawnSync(
+        "bash",
+        [resolve(ROOT, "supabase/cargas/crm-kommo/correr.sh"), "seco", "--entorno", "copia", "--servicio", servicio,
+          "--tenant", "10000000-0000-0000-0000-000000000001", "--corte", "2026-01-01T00:00:00Z"],
+        { encoding: "utf8", env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, PGOPTIONS: "-c dtd.entorno=copia" } },
+      );
+      expect(r.status, r.stderr).toBe(0);
+      expect(r.stdout).toContain("PGOPTIONS_EN_PSQL=<sin>");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("el lanzador aborta antes de conectarse sin --entorno, o con produccion y sin --sistema", () => {

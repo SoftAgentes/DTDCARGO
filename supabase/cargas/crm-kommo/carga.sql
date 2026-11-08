@@ -50,6 +50,7 @@ declare
   v_vence   timestamptz;
   v_marca   text;
   v_sistema text;
+  v_guardada boolean;
 begin
   -- ─── Preflight ─────────────────────────────────────────────────────────────
   if p_entorno is null or p_entorno not in ('copia', 'produccion') then
@@ -60,6 +61,25 @@ begin
   if (p_entorno = 'copia' and v_marca <> 'copia') or (p_entorno = 'produccion' and v_marca <> '') then
     raise exception 'carga kommo→crm: el entorno pedido (%) no coincide con la marca de la base', p_entorno
       using errcode = '22023';
+  end if;
+  -- La marca de la copia tiene que estar guardada para la base (alter database), no solo en la sesión: un
+  -- PGOPTIONS o un options= del archivo de servicio la pondrían en producción. Se lee de pg_db_role_setting.
+  if p_entorno = 'copia' then
+    begin
+      select exists (
+        select 1 from pg_catalog.pg_db_role_setting s
+        where s.setrole = 0
+          and s.setdatabase = (select d.oid from pg_catalog.pg_database d where d.datname = pg_catalog.current_database())
+          and 'dtd.entorno=copia' = any (s.setconfig)
+      ) into v_guardada;
+    exception when insufficient_privilege then
+      raise exception 'carga kommo→crm: el rol no puede leer pg_db_role_setting; no se comprueba la marca'
+        using errcode = '42501';
+    end;
+    if not v_guardada then
+      raise exception 'carga kommo→crm: la marca copia no está guardada para la base (solo en la sesión)'
+        using errcode = '22023';
+    end if;
   end if;
   -- Sin marca no prueba que sea producción: hace falta identificarla. Quien opera trae del runbook el
   -- system_identifier esperado; no vive en el repo. Si el rol no puede leerlo, no se adivina: aborta.

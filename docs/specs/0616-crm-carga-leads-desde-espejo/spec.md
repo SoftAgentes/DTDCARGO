@@ -104,6 +104,14 @@ INICIO y se lo pasa a la función. La función lo compara con una marca de la ba
 ninguna. Si no coinciden, aborta antes de leer nada. La marca la pone solo el ensayo, en la copia restaurada
 (§9, paso 2). En producción nadie la escribe.
 
+**En `copia`, la marca tiene que estar guardada para la base.** `current_setting` no distingue si la marca
+viene de `alter database` o de la sesión: un `PGOPTIONS='-c dtd.entorno=copia'` en la shell, o un `options=` en
+el archivo de servicio, haría pasar a producción como copia, y en copia no se pide `--sistema`. Por eso:
+- `correr.sh` hace `unset PGOPTIONS` antes de psql;
+- la función busca `dtd.entorno=copia` en `pg_db_role_setting`, con `setrole = 0` y la base actual. La marca de
+  la sesión no vale, y la de un rol (`alter role … in database`) tampoco;
+- si el rol no puede leer esa tabla, aborta con `42501`.
+
 **Que no haya marca no prueba que sea producción**: una base de prueba o local tampoco la tiene. Por eso
 `produccion` exige además `--sistema`, el `system_identifier` que trae el runbook en el momento de correr y que
 no vive en el repo. La función lo compara con `pg_control_system()`, y si no es el mismo, o si el rol no puede
@@ -119,8 +127,9 @@ CONTEXT, que podrían traer valores de una fila. Los mensajes propios del cargad
    2. **La persona:** su contacto principal (`is_main`, y si no, el de id menor). **La ficha:** la viva con
       `kommo_lead_id` = el lead; si no, la única viva con `kommo_contact_id` = el contacto; si no, la única viva
       con su teléfono (`crm_ficha_por_telefono`). Una ficha borrada no cuenta. Con **dos o más fichas vivas con
-      el mismo `kommo_lead_id`, la carga aborta entera**: el índice único parcial de la 0108 no lo permite, así
-      que una base así no es la que se espera, y no se elige una al azar.
+      el mismo `kommo_lead_id`, la carga aborta entera**. Es una defensa extra: el índice único parcial
+      `clients_kommo_lead_unique` (`0108_clients_kommo_lead.sql:30-32`) ya lo impide, así que una base así no es
+      la que se espera, y no se elige una al azar.
    3. **La tarjeta:** la del contacto ya mapeado; si no, la de la ficha; si no hay ficha, la **única** tarjeta
       viva sin ficha con esos 10 dígitos. Con dos o más, `leads_ambiguos`: no se carga.
    4. **Si hay tarjeta**, gana su etapa (§5). Solo se le completa el asesor si no tiene y se sube la última
@@ -226,9 +235,21 @@ ya tenía dueño, y los dos casos se sumaron.
 
 **En Actions,** «Contratos SQL» PASÓ sobre `8915943f8`: 267 de 267, con `crm_carga_kommo.test.sql` (run 42479215146).
 
-**`pg_control_system()` y el rol de la carga.** En PGlite lo lee el superusuario. Que lo pueda leer el rol con que
-se corra en producción es **NV**: se mide en el ensayo sobre la copia, con el mismo rol (§9, paso 2). Si el rol no
-puede, la función aborta con `42501` y no carga: no hay un camino que se salte el identificador.
+**Tercera tanda, la marca guardada para la base** (revisión del DG sobre `687475156`, mismo turno y opciones):
+- **Rojo previo:** el contrato nuevo contra el cargador de `687475156` cae en «la marca copia solo en la sesión
+  se rechaza». Con el arreglo, **verde con 71 aserciones**.
+- **Corrida completa: PASÓ, 30 de 30, y 1 saltada**, en 27 s.
+  - Los mutantes nuevos son dos: volver a mirar solo `current_setting`, que cae en «la marca copia solo en la
+    sesión se rechaza», y aceptar la marca de un rol, que cae en «la marca copia guardada solo para un rol se
+    rechaza».
+  - La estática del lanzador exige `unset PGOPTIONS` antes de psql.
+  - **La saltada** es la que corre `correr.sh` con un `psql` falso y `PGOPTIONS` puesto, y comprueba que psql lo
+    recibe vacío. En Windows no puede correr, porque `stat` de Git Bash no ve el 0600 y el lanzador para antes.
+    Corre en el CI de Linux (Calidad).
+
+**Lo que el rol de la carga tiene que poder leer es NV:** `pg_control_system()` y `pg_db_role_setting`. En PGlite
+los lee el superusuario. Se mide en el ensayo sobre la copia, con el mismo rol (§9, paso 2). Si no puede, la
+función aborta con `42501` y no carga: no hay un camino que se salte la marca ni el identificador.
 
 **Ensayo.** El ensayo con datos inventados es este contrato. Corre en una base efímera que se deshace con
 `rollback`, en Actions, como el cargador de E5.
@@ -248,8 +269,9 @@ los demás. `sql-tests.yml` se dispara también con `supabase/cargas/**`.
 2. ⛔ **Ensayo en una copia efímera** de la base, en el VPS: restaurar el respaldo, marcarla con
    `alter database <copia> set dtd.entorno = 'copia'`, correr `seco`, `cargar` y otra vez `cargar` con
    `--entorno copia`, guardar solo los conteos y destruir la copia. OK de Sam: la copia tiene PII. Muestra
-   revisada con Sam, como 5.6. En el ensayo se mide también, con el mismo rol de la carga, que
-   `select system_identifier from pg_control_system()` se pueda leer.
+   revisada con Sam, como 5.6. **Antes de cualquier carga en producción**, el ensayo mide con el mismo rol de la
+   carga que se puedan leer `select system_identifier from pg_control_system()` y `pg_db_role_setting` (**NV**
+   hasta entonces).
 3. ⛔ **Seco en producción**, justo antes de cargar: `correr.sh seco --entorno produccion --sistema <del runbook>`. Lee filas de clientes: pide OK, y la salida son solo conteos.
 4. ⛔ **Carga**: `correr.sh cargar --entorno produccion --sistema <del runbook> --confirmo-ok-de-sam`. **OK nominal de Sam.** Antes, el respaldo de la base.
 5. **Acta**: conteos por etapa y objeto antes y después (SDD-0587 §7.6), sin ids ni nombres.
@@ -318,3 +340,6 @@ El corte lo fija el instante de 8.2. La extracción final del espejo (8.5) va an
   - **Menores:** allowlist, el candado de transacción, mutantes con su aserción, comillas en el `\i` y el caso
     de las etapas.
   - Hechos, con su rojo previo y sus mutantes (§8).
+- **2026-11-08:** el DG revisó `687475156`. Queda un punto: la marca de la copia se podía poner desde la
+  conexión. Resuelto con `unset PGOPTIONS` y la marca leída de `pg_db_role_setting` (§4, §8). El revisor confirma
+  que `clients_kommo_lead_unique` existe, así que el aborto por ficha doble queda como defensa extra.

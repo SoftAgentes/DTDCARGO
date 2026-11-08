@@ -59,6 +59,9 @@ fi
 permisos="$(stat -c '%a' "$servicio" 2>/dev/null || echo '?')"
 [ "$permisos" = "600" ] || { echo "el archivo de servicio tiene que ser 0600 (tiene $permisos)" >&2; exit 2; }
 
+# Un PGOPTIONS que quedó en la shell podría poner la marca dtd.entorno en la sesión. La función exige además la
+# marca guardada para la base (pg_db_role_setting), que cubre también un options= del archivo de servicio.
+unset PGOPTIONS
 export PGSERVICEFILE="$servicio" PGSERVICE=dtd PGAPPNAME="dtd-carga-kommo-crm-$modo"
 echo "INICIO modo=$modo entorno=$entorno corte=$corte dias=$dias $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 psql -X -q -At -F '=' -v ON_ERROR_STOP=1 <<SQL

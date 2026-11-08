@@ -273,7 +273,14 @@ update public.crm_tarjetas set asesor_id = '20000000-0000-0000-0000-000000000001
 
 \ir ../cargas/crm-kommo/carga.sql
 
--- La marca de la copia efímera: el ensayo la pone con «alter database … set dtd.entorno = 'copia'».
+-- La marca de la copia efímera: el ensayo la pone con «alter database … set dtd.entorno = 'copia'». Queda
+-- guardada en pg_db_role_setting (se deshace con el rollback del contrato) y vale para las sesiones nuevas;
+-- en esta sesión se pone además con set_config, que es lo que vería una sesión abierta después.
+do $marca$
+begin
+  execute pg_catalog.format('alter database %I set dtd.entorno = %L', pg_catalog.current_database(), 'copia');
+end;
+$marca$;
 select set_config('dtd.entorno', 'copia', true);
 
 create temporary sequence assertion_count;
@@ -507,6 +514,28 @@ begin
   exception when invalid_parameter_value then v_ok := sqlerrm like '%entorno%';
   end;
   perform pg_temp.assert_true(v_ok, 'un entorno desconocido se rechaza');
+
+  -- La marca puesta solo en la sesión (PGOPTIONS, options= del servicio o un set) no vale como copia.
+  begin
+    execute pg_catalog.format('alter database %I reset dtd.entorno', pg_catalog.current_database());
+    set dtd.entorno = 'copia';
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null);
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%no está guardada para la base%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'la marca copia solo en la sesión se rechaza');
+  -- Guardada para un rol (alter role … in database) tampoco: la marca es de la base, para todos.
+  begin
+    execute pg_catalog.format('alter database %I reset dtd.entorno', pg_catalog.current_database());
+    execute pg_catalog.format('alter role %I in database %I set dtd.entorno = %L',
+      current_user, pg_catalog.current_database(), 'copia');
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null);
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%no está guardada para la base%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'la marca copia guardada solo para un rol se rechaza');
+  perform pg_temp.assert_true(exists (select 1 from pg_catalog.pg_db_role_setting s
+    where s.setrole = 0 and 'dtd.entorno=copia' = any (s.setconfig)), 'la marca guardada vuelve después del caso');
 
   -- Producción se identifica en positivo: sin marca y con el system_identifier que trae quien opera.
   begin
