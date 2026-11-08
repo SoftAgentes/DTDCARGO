@@ -389,7 +389,8 @@ class CargaPortal
   end
 
   # vinculos.ndjson: solo ids. Va a un archivo temporal y se renombra al final, para que un archivo a medias nunca
-  # parezca completo.
+  # parezca completo. Los permisos son los del umask: lo protege la carpeta (/dev/shm/…, 0700, §10.5.10), y la
+  # prueba lo lee desde fuera del contenedor.
   def escribir_vinculos(cab, filas, por_cliente, ci_de, conv_de, de_studio)
     lineas = []
     lineas << { tipo: 'cabecera', version: 1, tenant_id: cab['tenant_id'], cuenta: cab['cuenta'], bandeja: cab['bandeja'],
@@ -409,7 +410,7 @@ class CargaPortal
       @salida_vinculos.write(texto)
     else
       tmp = "#{@ruta_vinculos}.parcial"
-      File.open(tmp, 'w', 0o600) { |f| f.write(texto) }
+      File.write(tmp, texto)
       File.rename(tmp, @ruta_vinculos)
     end
     hecho('vinculos', lineas.size)
