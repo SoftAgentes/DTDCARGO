@@ -710,9 +710,7 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
 - **No entra al ledger,** así que no es migrate-first.
 - **Imprime solo `HECHO clave=valor`,** con conteos, como los otros guiones de `portal-historial`.
 
-**Dónde va (pregunta para el Subdirector).** Se había acordado `supabase/desarmes/`. Pero su convención en `main` (el encabezado de `0518_desarme.sql`) dice que un desarme de esa carpeta **se copia a `supabase/migrations/` con el siguiente número y se aplica con el runbook.** Eso sirve para deshacer esquema, como en la 0518. Este guion no cambia esquema: borra filas de una carga y no tiene que entrar al ledger.
-- **Lo que se propone:** `infra/ops/portal-historial/deshacer-vinculos.sql`, junto a los guiones que deshace, y con su contrato en `supabase/tests/`.
-- **Si se prefiere `supabase/desarmes/`,** el encabezado tiene que decir que este no se copia a migraciones.
+**Dónde va: `infra/ops/portal-historial/deshacer-vinculos.sql`** (decisión del Subdirector, 2026-11-08), junto a los guiones que deshace, con su contrato en `supabase/tests/`. **No va en `supabase/desarmes/`:** según su convención en `main`, los desarmes de esa carpeta se copian a `supabase/migrations/` con el siguiente número y deshacen esquema. Este guion borra filas de una carga y no entra al ledger.
 
 **Cuándo sirve: solo antes de la puerta 5.** Con el flag que nunca se encendió y la cola que nunca corrió, todas las filas del tenant salen de la carga. **Después de encender no se puede distinguir** lo que vinculó la cola de lo que vinculó la carga, porque no hay marca. Por eso el guion se niega, y ese caso queda fuera de alcance.
 
