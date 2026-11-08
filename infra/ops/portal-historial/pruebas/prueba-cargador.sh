@@ -8,7 +8,10 @@
 #        bandeja viva, una bandeja con webhook_url y el webhook de la cuenta; control de la cola
 #   G    rechazos, sin escribir nada ni dejar vínculos: bandeja con webhook_url, bandeja de otra cuenta, cabecera de
 #        otra cuenta, conteos que no cuadran, mensaje de un hilo ausente, agente de otra cuenta, conversación de un
-#        cliente sin contacto, AGENTE_SERVICIO de otra cuenta
+#        cliente sin contacto, AGENTE_SERVICIO de otra cuenta; G10 otra bandeja API sin webhook (SINT WhatsApp y
+#        «Archivo Kommo», como la 8 de producción); G11 VINCULOS en otra ruta; G12 otra carga con el candado tomado
+#   N4   sin MODO, el script sale con error
+#   F2   con el log de SQL en debug, nada de lo cargado sale en él
 #   S    seco: cuenta lo que cargará, no escribe nada, ni vínculos, ni consume números de conversación
 #   C    carga: conteos, filas, números de conversación y cola de Sidekiq
 #   R    repetir la carga (C-3): 0 filas nuevas y los mismos vínculos, también con VINCULOS=- (a la salida estándar,
@@ -125,7 +128,8 @@ comprobar() {
   rechazo() { # id archivo error descripción
     F="$O/$2.txt"
     ESPERADO="$3" # una variable: dentro del eval de exigir, $3 sería el argumento de exigir
-    exigir "$1" '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "$ESPERADO" ] && [ ! -e "$O/v-x.ndjson" ] && [ ! -e "$O/v-x.ndjson.parcial" ]' "$4: no carga ni deja vínculos ($(h "$F" error))"
+    VX="$O/vinculos-$2"
+    exigir "$1" '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "$ESPERADO" ] && [ ! -e "$VX.ndjson" ] && [ ! -e "$VX.parcial" ]' "$4: no carga ni deja vínculos ($(h "$F" error))"
   }
   rechazo G1 rechazo-webhook 'la bandeja tiene webhook_url: no se carga' "bandeja con webhook_url"
   rechazo G2 rechazo-cuenta 'la bandeja no existe en esa cuenta' "bandeja de otra cuenta"
@@ -135,6 +139,10 @@ comprobar() {
   rechazo G6 rechazo-agente 'agente_desconocido' "un agente que no es de la cuenta"
   rechazo G7 rechazo-contacto 'una conversación es de un cliente sin contacto' "una conversación de un cliente sin contacto"
   rechazo G8 rechazo-servicio 'AGENTE_SERVICIO no es un usuario de la cuenta' "AGENTE_SERVICIO de otra cuenta"
+  rechazo G10a rechazo-whatsapp 'la bandeja no es «Conversaciones del portal»' "otra bandeja API sin webhook (SINT WhatsApp), con la cabecera de esa bandeja"
+  rechazo G10b rechazo-archivo 'la bandeja no es «Conversaciones del portal»' "la bandeja «Archivo Kommo», API y sin webhook, como la 8 de producción"
+  rechazo G11 rechazo-ruta 'VINCULOS tiene que ser /dev/shm/portal-historial/vinculos.ndjson o -' "VINCULOS en otra ruta"
+  rechazo G12 rechazo-candado 'otra carga del portal en curso' "otra carga con el candado tomado"
   F="$O/rechazo-conteos.txt"
   exigir G9 '[ "$(h "$F" antes)" = "" ] && [ "$(h "$O/seco.txt" antes)" = "conversaciones:1,mensajes:1,contact_inboxes:1" ]' \
     "los rechazos no llegan a escribir: la bandeja sigue con lo de la cola ($(h "$O/seco.txt" antes))"
@@ -144,7 +152,7 @@ comprobar() {
     "lee el archivo entero: $(h "$F" leidas)"
   exigir S2 '[ "$(h "$F" conversaciones_nuevas)" = 4 ] && [ "$(h "$F" mensajes_nuevos)" = 8 ] && [ "$(h "$F" notas_nuevas)" = 1 ] && [ "$(h "$F" contactos_nuevos)" = 2 ] && [ "$(h "$F" contactos_reusados)" = 1 ] && [ "$(h "$F" contact_inboxes_nuevos)" = 2 ] && [ "$(h "$F" contact_inboxes_existentes)" = 1 ]' \
     "cuenta lo que cargará: 4 conversaciones, 8 mensajes, 1 nota, 2 contactos nuevos y 1 reusado con su contact_inbox"
-  exigir S3 '[ "$(h "$F" despues)" = "$(h "$F" antes)" ] && [ ! -e "$O/v-seco.ndjson" ]' "no escribe nada, ni vínculos ($(h "$F" despues))"
+  exigir S3 '[ "$(h "$F" despues)" = "$(h "$F" antes)" ] && [ ! -e "$O/vinculos-seco.ndjson" ]' "no escribe nada, ni vínculos ($(h "$F" despues))"
   exigir S4 'avance "$(h "$F" secuencia)" 0' "no consume números de conversación ($(h "$F" secuencia))"
   exigir S5 'cola_igual "$(h "$F" cola)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' "no encola trabajos ($(h "$F" cola), $(h "$F" trabajos_nuevos))"
 
@@ -153,7 +161,7 @@ comprobar() {
     "4 conversaciones, 8 mensajes, 1 nota de archivo, 2 contactos nuevos, 1 reusado, 1 saliente firmado por el usuario de servicio"
   exigir C2 'cero "$(h "$F" contactos_omitidos)" && cero "$(h "$F" conversaciones_omitidas)" && cero "$(h "$F" mensajes_omitidos)" && cero "$(h "$F" contact_inboxes_omitidos)"' \
     "ninguna fila omitida por un conflicto"
-  exigir C3 '[ "$(h "$F" despues)" = "conversaciones:5,mensajes:10,contact_inboxes:3" ] && [ "$(h "$F" vinculos)" = 16 ] && [ -s "$O/vinculos-1.ndjson" ] && [ -r "$O/vinculos-1.ndjson" ] && [ ! -e "$O/vinculos-1.ndjson.parcial" ]' \
+  exigir C3 '[ "$(h "$F" despues)" = "conversaciones:5,mensajes:10,contact_inboxes:3" ] && [ "$(h "$F" vinculos)" = 16 ] && [ -s "$O/vinculos-carga-1.ndjson" ] && [ -r "$O/vinculos-carga-1.ndjson" ] && [ ! -e "$O/vinculos-carga-1.parcial" ]' \
     "filas en la bandeja después: $(h "$F" despues); 16 líneas de vínculos ($(h "$F" vinculos))"
   exigir C4 'avance "$(h "$F" secuencia)" 4' "los números de conversación avanzan 4 ($(h "$F" secuencia))"
   exigir C5 'cola_igual "$(h "$F" cola)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && cero "$(h "$F" correos_enviados)"' \
@@ -161,7 +169,7 @@ comprobar() {
 
   for e in 2 3; do
     F="$O/carga-$e.txt"
-    exigir "R$e" '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && cero "$(h "$F" notas_nuevas)" && cero "$(h "$F" contactos_nuevos)" && cero "$(h "$F" contact_inboxes_nuevos)" && [ "$(h "$F" conversaciones_existentes)" = 4 ] && [ "$(h "$F" mensajes_existentes)" = 8 ] && [ "$(h "$F" notas_existentes)" = 1 ] && [ "$(h "$F" contactos_reusados)" = 3 ] && avance "$(h "$F" secuencia)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && cmp -s "$O/vinculos-1.ndjson" "$O/vinculos-$e.ndjson"' \
+    exigir "R$e" '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && cero "$(h "$F" notas_nuevas)" && cero "$(h "$F" contactos_nuevos)" && cero "$(h "$F" contact_inboxes_nuevos)" && [ "$(h "$F" conversaciones_existentes)" = 4 ] && [ "$(h "$F" mensajes_existentes)" = 8 ] && [ "$(h "$F" notas_existentes)" = 1 ] && [ "$(h "$F" contactos_reusados)" = 3 ] && avance "$(h "$F" secuencia)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && cmp -s "$O/vinculos-carga-1.ndjson" "$O/vinculos-carga-$e.ndjson"' \
       "C-3: la carga $e no agrega filas, ni números, ni trabajos, y devuelve los mismos vínculos$([ "$e" = 3 ] && echo ', con VINCULOS=- en la salida estándar')"
   done
 
@@ -189,7 +197,7 @@ comprobar() {
   exigir V11 '[ "$(h "$F" conversaciones)" = 4 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" json_conv)" = 0 ] && [ "$(h "$F" no_leidos)" = 0 ]' "sobre las 4 conversaciones cargadas, los atributos son objeto JSON y no hay entrantes viejos como no leídos"
 
   local fugas=0 f m
-  for f in rechazo-webhook seco carga-1 carga-2 carga-3 vinculos-1.ndjson; do
+  for f in rechazo-webhook seco carga-1 carga-2 carga-3 vinculos-carga-1.ndjson; do
     [ "${f%.ndjson}" = "$f" ] && f="$f.txt"
     for m in "${MARCAS[@]}"; do
       if grep -q -F -- "$m" "$O/$f" 2>/dev/null; then
@@ -198,7 +206,12 @@ comprobar() {
       fi
     done
   done
-  exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/carga-1.txt" ] && [ -s "$O/vinculos-1.ndjson" ] && [ -r "$O/vinculos-1.ndjson" ]' "cero de ${#MARCAS[@]} valores inventados en las salidas y en los vínculos"
+  exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/carga-1.txt" ] && [ -s "$O/vinculos-carga-1.ndjson" ] && [ -r "$O/vinculos-carga-1.ndjson" ]' "cero de ${#MARCAS[@]} valores inventados en las salidas y en los vínculos"
+  # F2: el log de SQL en debug durante la carga 1. La consulta de control prueba que el log escribía.
+  local fugas_log=0
+  for m in "${MARCAS[@]}"; do grep -q -F -- "$m" "$O/sql.log" 2>/dev/null && fugas_log=$((fugas_log + 1)); done
+  exigir F2 '[ -r "$O/sql.log" ] && grep -q SINT-CONTROL-LOG "$O/sql.log" && [ "$fugas_log" = 0 ]' \
+    "con el log de SQL en debug, la consulta de control sale y ninguno de los ${#MARCAS[@]} valores inventados ($fugas_log)"
   return 0
 }
 
@@ -207,7 +220,7 @@ vigilar inicio
 
 # ── Stack: copia como /srv/chatwoot + overlay local + .env de prueba ──────────
 log "== stack"
-mkdir -p "$D/cargador" "$D/estado/real" "$D/estado/m"
+mkdir -p "$D/cargador" "$D/estado/real" "$D/estado/m" "$D/estado/shm"
 cp "$CW/compose.yml" "$D/"
 cp -r "$CW/rails" "$CW/marca" "$CW/correo" "$D/"
 cp "$CW/pruebas/compose.local.yml" "$D/compose.override.yml"
@@ -245,16 +258,27 @@ vigilar "base migrada"
 log "== corrida real"
 R="$D/estado/real"
 RC=/tmp/estado/real
+SHM="$D/estado/shm" # montada en el contenedor como /dev/shm/portal-historial (compose.cargador.yml)
+FIJA=/dev/shm/portal-historial/vinculos.ndjson
+mover() { # paso: los vínculos de la ruta fija pasan a $R/vinculos-<paso>.*
+  [ -e "$SHM/vinculos.ndjson" ] && mv -f "$SHM/vinculos.ndjson" "$R/vinculos-$1.ndjson"
+  [ -e "$SHM/vinculos.ndjson.parcial" ] && mv -f "$SHM/vinculos.ndjson.parcial" "$R/vinculos-$1.parcial"
+  return 0
+}
+rm -f "$SHM"/vinculos.ndjson*
 rr "$R/sonda-preparar.txt" FASE=preparar "DIR=$RC" -- "$SONDA" </dev/null
 C="$(h "$R/sonda-preparar.txt" cuenta)"
 B="$(h "$R/sonda-preparar.txt" portal)"
 SV="$(h "$R/sonda-preparar.txt" admin)"
 W="$(h "$R/sonda-preparar.txt" con_webhook)"
 AJ="$(h "$R/sonda-preparar.txt" ajeno)"
+VV="$(h "$R/sonda-preparar.txt" viva)"
+AR="$(h "$R/sonda-preparar.txt" archivo)"
 cargar() { # salida archivo [VAR=valor...]
   local sal="$1" arch="$2"
   shift 2
-  rr "$R/$sal.txt" MODO=cargar "CUENTA=$C" "BANDEJA=$B" "AGENTE_SERVICIO=$SV" CARGA=- "VINCULOS=$RC/v-x.ndjson" "$@" -- "$CARGADOR" <"$R/$arch"
+  rr "$R/$sal.txt" MODO=cargar "CUENTA=$C" "BANDEJA=$B" "AGENTE_SERVICIO=$SV" CARGA=- "VINCULOS=$FIJA" "$@" -- "$CARGADOR" <"$R/$arch"
+  mover "$sal"
 }
 cargar rechazo-webhook preparado.ndjson "BANDEJA=$W"
 cargar rechazo-cuenta preparado.ndjson CUENTA=999999
@@ -264,15 +288,29 @@ cargar rechazo-hilo preparado-hilo-ausente.ndjson
 cargar rechazo-agente preparado-agente-ajeno.ndjson
 cargar rechazo-contacto preparado-sin-contacto.ndjson
 cargar rechazo-servicio preparado.ndjson "AGENTE_SERVICIO=$AJ"
-cargar seco preparado.ndjson MODO=seco "VINCULOS=$RC/v-seco.ndjson"
-cargar carga-1 preparado.ndjson "VINCULOS=$RC/vinculos-1.ndjson"
-cargar carga-2 preparado.ndjson "VINCULOS=$RC/vinculos-2.ndjson"
+cargar rechazo-whatsapp preparado-whatsapp.ndjson "BANDEJA=$VV"
+cargar rechazo-archivo preparado-archivo.ndjson "BANDEJA=$AR"
+cargar rechazo-ruta preparado.ndjson VINCULOS=/tmp/vinculos-en-otra-ruta.ndjson
+rr "$R/sonda-candado.txt" FASE=candado "DIR=$RC" -- "$SONDA" </dev/null
+mover rechazo-candado
+cargar seco preparado.ndjson MODO=seco
+# La carga 1, con el log de SQL en debug (F2), en el proceso de la sonda.
+rr "$R/sonda-con-log.txt" FASE=con-log "DIR=$RC" -- "$SONDA" </dev/null
+mover carga-1
+cargar carga-2 preparado.ndjson
 # Con VINCULOS=-, la salida de rails runner trae también Bundler y los logs de los inicializadores: los vínculos se
-# extraen por su prefijo, como en el VPS.
+# extraen por su prefijo (solo en pruebas; en el VPS va la ruta fija).
 cargar carga-3 preparado.ndjson VINCULOS=-
-sed -n 's/^VINCULO //p' "$R/carga-3.txt" | tr -d '\r' >"$R/vinculos-3.ndjson"
+sed -n 's/^VINCULO //p' "$R/carga-3.txt" | tr -d '\r' >"$R/vinculos-carga-3.ndjson"
+# N4: sin MODO, el script sale con error.
+rr "$R/sin-modo.txt" "CUENTA=$C" "BANDEJA=$B" "AGENTE_SERVICIO=$SV" CARGA=- "VINCULOS=$FIJA" -- "$CARGADOR" </dev/null
+echo "HECHO salida_proceso=$?" >>"$R/sin-modo.txt"
+mover sin-modo
 rr "$R/sonda-verificar.txt" FASE=verificar "DIR=$RC" -- "$SONDA" </dev/null
 comprobar "$R"
+F="$R/sin-modo.txt"
+exigir N4 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "falta MODO" ] && [ "$(h "$F" salida_proceso)" != 0 ] && [ ! -e "$R/vinculos-sin-modo.ndjson" ]' \
+  "sin MODO, el script sale con error ($(h "$F" error), código $(h "$F" salida_proceso)) y no carga nada"
 log "MEDIDA C-9 — números de conversación en la carga: $(h "$R/carga-1.txt" secuencia); rss_pico_kb $(h "$R/carga-1.txt" rss_pico_kb)"
 vigilar "corrida real"
 

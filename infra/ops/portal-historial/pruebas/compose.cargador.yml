@@ -11,6 +11,8 @@ services:
     volumes:
       - ./cargador:/tmp/cargador:ro
       - ./estado:/tmp/estado
+      # La ruta fija de los vínculos (§10.5.10), para que la prueba los lea desde fuera del contenedor.
+      - ./estado/shm:/dev/shm/portal-historial
   # El compose de infra/chatwoot fija Chatwoot por digest, pero Postgres y Redis solo por etiqueta, así que
   # un runner podría bajar otra build de la misma etiqueta. Aquí se fijan los digests que corren en
   # producción (`docker inspect` en el VPS, 2026-11-06: chatwoot-postgres-1 y chatwoot-redis-1).

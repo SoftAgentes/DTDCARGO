@@ -11,6 +11,11 @@
 #     · un administrador (el usuario de servicio), un agente vinculado y un usuario de otra cuenta.
 #     Escribe en DIR el preparado (el formato de E10) y sus variantes malas, y la línea base en DIR/base.json.
 #   FASE=verificar DIR=<carpeta>  mide C-2, C-4, C-5 y C-9 a C-14, y los vínculos, contra esa línea base.
+#   FASE=con-log DIR=<carpeta>    la carga 1, en este proceso, con el log de SQL de ActiveRecord en debug hacia
+#                                 DIR/sql.log: nada de lo cargado (nombres, textos) puede salir allí (F2).
+#   FASE=candado DIR=<carpeta>    con el candado de la carga tomado desde otra conexión, una carga tiene que
+#                                 negarse sin escribir (G12).
+#   Las dos últimas cargan el cargador como biblioteca (CARGADOR_RB, por defecto /tmp/cargador/cargar-portal.rb).
 #
 # escenario-portal.rb la carga sin FASE y llama a SondaPortal.preparar y .verificar en el mismo proceso. Cada
 # escenario usa una cuenta nueva, así que varios pueden correr sobre la misma base. Salida: `HECHO clave=valor`.
@@ -69,6 +74,8 @@ module SondaPortal
     portal = Inbox.create!(account: cuenta, name: 'Conversaciones del portal', channel: Channel::Api.create!(account: cuenta),
                            enable_auto_assignment: false, greeting_enabled: false, csat_survey_enabled: false)
     viva = Inbox.create!(account: cuenta, name: 'SINT WhatsApp', channel: Channel::Api.create!(account: cuenta))
+    # Otra bandeja API sin webhook, como el Archivo Kommo (la bandeja 8 en producción): no es la del portal.
+    archivo = Inbox.create!(account: cuenta, name: 'Archivo Kommo', channel: Channel::Api.create!(account: cuenta))
     con_webhook = Inbox.create!(account: cuenta, name: 'SINT Con webhook',
                                 channel: Channel::Api.create!(account: cuenta, webhook_url: 'https://studio.prueba.test/api'))
     Webhook.create!(account: cuenta, url: "https://studio.prueba.test/hook/#{marca}",
@@ -132,10 +139,13 @@ module SondaPortal
     escribir(File.join(dir, 'preparado-truncado.ndjson'), todo[0...-1])
     escribir(File.join(dir, 'preparado-hilo-ausente.ndjson'), [*todo[0...-1], mensajes.last.merge(hilo: SecureRandom.uuid)])
     escribir(File.join(dir, 'preparado-agente-ajeno.ndjson'), [*todo[0...-1], mensajes.last.merge(agente: ajeno.id)])
+    # Con la cabecera de otra bandeja API sin webhook: la cabecera cuadra con BANDEJA, pero no es la del portal (G10).
+    escribir(File.join(dir, 'preparado-whatsapp.ndjson'), [cab.merge(bandeja: viva.id), *todo.drop(1)])
+    escribir(File.join(dir, 'preparado-archivo.ndjson'), [cab.merge(bandeja: archivo.id), *todo.drop(1)])
     escribir(File.join(dir, 'preparado-sin-contacto.ndjson'),
              [cab, *contactos, *conversaciones[0...-1], conversaciones.last.merge(cliente: SecureRandom.uuid), *mensajes])
 
-    base = { 'cuenta' => cuenta.id, 'portal' => portal.id, 'viva' => viva.id, 'con_webhook' => con_webhook.id,
+    base = { 'cuenta' => cuenta.id, 'portal' => portal.id, 'viva' => viva.id, 'archivo' => archivo.id, 'con_webhook' => con_webhook.id,
              'admin' => admin.id, 'agente' => agente.id, 'ajeno' => ajeno.id, 'c3' => c3.id, 'ci3' => ci3.id,
              'ci3_source' => ci3.source_id, 'cola_conv' => cola_conv.id, 'conv_viva' => conv_viva.id,
              'cola_conv_updated' => cola_conv.reload.updated_at.to_f, 'conv_viva_updated' => conv_viva.reload.updated_at.to_f,
@@ -145,7 +155,7 @@ module SondaPortal
              'servicio_firma' => "dtd:#{m[3]}", 'agente_firma' => ["dtd:#{m[1]}", "dtd:#{m[7]}"],
              'cola_base' => cola, 'trabajos_base' => trabajos_por_clase }
     File.write(File.join(dir, 'base.json'), JSON.generate(base))
-    %w[cuenta portal con_webhook admin ajeno].each { |k| hecho.call(k, base[k]) }
+    %w[cuenta portal viva archivo con_webhook admin ajeno].each { |k| hecho.call(k, base[k]) }
     hecho.call('preparar', 'ok')
     base
   end
@@ -213,7 +223,7 @@ module SondaPortal
 
     # Los vínculos: solo ids, y cada id es el de Chatwoot.
     medir.call('vinculos') do
-      lineas = File.readlines(File.join(dir, 'vinculos-1.ndjson'), chomp: true).reject(&:empty?).map { |l| JSON.parse(l) }
+      lineas = File.readlines(File.join(dir, 'vinculos-carga-1.ndjson'), chomp: true).reject(&:empty?).map { |l| JSON.parse(l) }
       claves = { 'cabecera' => %w[tipo version tenant_id cuenta bandeja corte contactos conversaciones mensajes],
                  'contacto' => %w[tipo cliente identificador contacto_id source_id],
                  'conversacion' => %w[tipo hilo conversacion_id], 'mensaje' => %w[tipo mensaje mensaje_id] }
@@ -259,7 +269,71 @@ module SondaPortal
   end
 end
 
+module SondaPortal
+  module_function
+
+  # El cargador como biblioteca: sin ejecutar su punto de entrada al cargarlo.
+  def cargador!
+    return if defined?(CargaPortal)
+
+    Object.const_set(:CARGA_PORTAL_COMO_BIBLIOTECA, true) unless defined?(CARGA_PORTAL_COMO_BIBLIOTECA)
+    load ENV.fetch('CARGADOR_RB', '/tmp/cargador/cargar-portal.rb')
+  end
+
+  def env_carga(dir, extra = {})
+    b = JSON.parse(File.read(File.join(dir, 'base.json')))
+    { 'MODO' => 'cargar', 'CUENTA' => b['cuenta'].to_s, 'BANDEJA' => b['portal'].to_s, 'AGENTE_SERVICIO' => b['admin'].to_s,
+      'CARGA' => '-', 'VINCULOS' => RUTA_VINCULOS }.merge(extra)
+  end
+
+  RUTA_VINCULOS = '/dev/shm/portal-historial/vinculos.ndjson'
+
+  def cargar_en_proceso(dir:, nombre:, archivo: 'preparado.ndjson', extra: {})
+    cargador!
+    File.open(File.join(dir, "#{nombre}.txt"), 'w') do |f|
+      File.open(File.join(dir, archivo), encoding: 'UTF-8') do |entrada|
+        CargaPortal.principal(env_carga(dir, extra), entrada: entrada, salida: f)
+      end
+    rescue StandardError, ScriptError => e
+      f.puts 'HECHO carga=error'
+      f.puts "HECHO error=sonda:#{e.class}"
+    end
+  end
+
+  # F2: el log de SQL en debug, como lo dejaría LOG_LEVEL=debug. Una consulta de control prueba que el log sí escribe;
+  # después, la carga 1.
+  def con_log(dir:)
+    previo = ActiveRecord::Base.logger
+    log = Logger.new(File.join(dir, 'sql.log'))
+    log.level = Logger::DEBUG
+    ActiveRecord::Base.logger = log
+    ActiveRecord::Base.connection.select_value("SELECT 'SINT-CONTROL-LOG'")
+    cargar_en_proceso(dir: dir, nombre: 'carga-1')
+  ensure
+    ActiveRecord::Base.logger = previo
+    log&.close
+  end
+
+  # G12: el candado de la carga, tomado desde otra conexión.
+  def candado(dir:)
+    cargador!
+    llave = CargaPortal::CANDADO
+    otra = ActiveRecord::Base.connection_pool.checkout
+    otra.execute("SELECT pg_advisory_lock(#{Integer(llave)})")
+    cargar_en_proceso(dir: dir, nombre: 'rechazo-candado')
+  rescue StandardError, ScriptError => e
+    File.write(File.join(dir, 'rechazo-candado.txt'), "HECHO carga=error\nHECHO error=sonda:#{e.class}\n")
+  ensure
+    if otra
+      otra.execute("SELECT pg_advisory_unlock_all()")
+      ActiveRecord::Base.connection_pool.checkin(otra)
+    end
+  end
+end
+
 case ENV['FASE']
 when 'preparar' then SondaPortal.preparar(out: $stdout, dir: ENV.fetch('DIR'))
 when 'verificar' then SondaPortal.verificar(out: $stdout, dir: ENV.fetch('DIR'))
+when 'con-log' then SondaPortal.con_log(dir: ENV.fetch('DIR'))
+when 'candado' then SondaPortal.candado(dir: ENV.fetch('DIR'))
 end

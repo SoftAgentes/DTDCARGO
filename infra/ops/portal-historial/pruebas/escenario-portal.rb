@@ -3,9 +3,11 @@
 # infra/ops/portal-historial/pruebas/escenario-portal.rb — un escenario entero de la prueba del cargador del portal
 # en UN arranque de Rails (SDD-0586 §10.5.10). Lo usan el control M0 y los mutantes de prueba-cargador.sh.
 #
-# Corre los mismos pasos que la corrida real (preparar, rechazos, seco, dos cargas y verificar), pero llamando a
-# CargaPortal.principal en el mismo proceso. Deja una salida por paso en SALIDAS, con los mismos nombres que la
-# corrida real, para que prueba-cargador.sh las compruebe con las mismas reglas.
+# Corre los mismos pasos que la corrida real (preparar, rechazos, seco, tres cargas, el candado, el log de SQL y
+# verificar), pero llamando a CargaPortal.principal en el mismo proceso. Deja una salida por paso en SALIDAS, con
+# los mismos nombres que la corrida real, para que prueba-cargador.sh las compruebe con las mismas reglas.
+# Los vínculos se escriben en la ruta fija, /dev/shm/portal-historial/vinculos.ndjson (montada por la prueba), y
+# después de cada paso se mueven a SALIDAS/vinculos-<paso>.ndjson.
 #
 #   CARGADOR_RB=<copia del cargador, mutada o no>  SALIDAS=<carpeta>
 #
@@ -14,42 +16,47 @@
 require 'fileutils'
 require 'stringio'
 
+CARGA_PORTAL_COMO_BIBLIOTECA = true
 load '/tmp/cargador/sonda-portal.rb'
 load ENV.fetch('CARGADOR_RB')
 
 dir = ENV.fetch('SALIDAS')
 FileUtils.mkdir_p(dir)
-en = ->(nombre, &bloque) { File.open(File.join(dir, "#{nombre}.txt"), 'w') { |f| bloque.call(f) } }
-paso = lambda do |nombre, env, archivo|
-  en.call(nombre) do |f|
-    File.open(File.join(dir, archivo), encoding: 'UTF-8') do |entrada|
-      CargaPortal.principal(env, entrada: entrada, salida: f)
-    end
-  end
+fija = SondaPortal::RUTA_VINCULOS
+FileUtils.rm_f([fija, "#{fija}.parcial"])
+mover = lambda do |nombre|
+  FileUtils.mv(fija, File.join(dir, "vinculos-#{nombre}.ndjson")) if File.exist?(fija)
+  FileUtils.mv("#{fija}.parcial", File.join(dir, "vinculos-#{nombre}.parcial")) if File.exist?("#{fija}.parcial")
+end
+paso = lambda do |nombre, archivo = 'preparado.ndjson', extra = {}|
+  SondaPortal.cargar_en_proceso(dir: dir, nombre: nombre, archivo: archivo, extra: extra)
+  mover.call(nombre)
 end
 
 base = nil
-en.call('sonda-preparar') { |f| base = SondaPortal.preparar(out: f, dir: dir) }
-c = base['cuenta'].to_s
-b = base['portal'].to_s
-s = base['admin'].to_s
-env = ->(modo, extra = {}) { { 'MODO' => modo, 'CUENTA' => c, 'BANDEJA' => b, 'AGENTE_SERVICIO' => s, 'CARGA' => '-' }.merge(extra) }
-paso.call('rechazo-webhook', env.call('cargar', 'BANDEJA' => base['con_webhook'].to_s, 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado.ndjson')
-paso.call('rechazo-cuenta', env.call('cargar', 'CUENTA' => '999999', 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado.ndjson')
-paso.call('rechazo-cabecera', env.call('cargar', 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado-otra-cuenta.ndjson')
-paso.call('rechazo-conteos', env.call('cargar', 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado-truncado.ndjson')
-paso.call('rechazo-hilo', env.call('cargar', 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado-hilo-ausente.ndjson')
-paso.call('rechazo-agente', env.call('cargar', 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado-agente-ajeno.ndjson')
-paso.call('rechazo-contacto', env.call('cargar', 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado-sin-contacto.ndjson')
-paso.call('rechazo-servicio', env.call('cargar', 'AGENTE_SERVICIO' => base['ajeno'].to_s, 'VINCULOS' => "#{dir}/v-x.ndjson"), 'preparado.ndjson')
-paso.call('seco', env.call('seco', 'VINCULOS' => "#{dir}/v-seco.ndjson"), 'preparado.ndjson')
-paso.call('carga-1', env.call('cargar', 'VINCULOS' => "#{dir}/vinculos-1.ndjson"), 'preparado.ndjson')
-paso.call('carga-2', env.call('cargar', 'VINCULOS' => "#{dir}/vinculos-2.ndjson"), 'preparado.ndjson')
+File.open(File.join(dir, 'sonda-preparar.txt'), 'w') { |f| base = SondaPortal.preparar(out: f, dir: dir) }
+paso.call('rechazo-webhook', 'preparado.ndjson', 'BANDEJA' => base['con_webhook'].to_s)
+paso.call('rechazo-cuenta', 'preparado.ndjson', 'CUENTA' => '999999')
+paso.call('rechazo-cabecera', 'preparado-otra-cuenta.ndjson')
+paso.call('rechazo-conteos', 'preparado-truncado.ndjson')
+paso.call('rechazo-hilo', 'preparado-hilo-ausente.ndjson')
+paso.call('rechazo-agente', 'preparado-agente-ajeno.ndjson')
+paso.call('rechazo-contacto', 'preparado-sin-contacto.ndjson')
+paso.call('rechazo-servicio', 'preparado.ndjson', 'AGENTE_SERVICIO' => base['ajeno'].to_s)
+paso.call('rechazo-whatsapp', 'preparado-whatsapp.ndjson', 'BANDEJA' => base['viva'].to_s)
+paso.call('rechazo-archivo', 'preparado-archivo.ndjson', 'BANDEJA' => base['archivo'].to_s)
+paso.call('rechazo-ruta', 'preparado.ndjson', 'VINCULOS' => '/tmp/vinculos-en-otra-ruta.ndjson')
+SondaPortal.candado(dir: dir)
+mover.call('rechazo-candado')
+paso.call('seco', 'preparado.ndjson', 'MODO' => 'seco')
+SondaPortal.con_log(dir: dir)
+mover.call('carga-1')
+paso.call('carga-2')
 # La tercera, con VINCULOS=-: los vínculos salen con el prefijo `VINCULO ` en la salida estándar, y se extraen.
-paso.call('carga-3', env.call('cargar', 'VINCULOS' => '-'), 'preparado.ndjson')
-File.write(File.join(dir, 'vinculos-3.ndjson'),
+paso.call('carga-3', 'preparado.ndjson', 'VINCULOS' => '-')
+File.write(File.join(dir, 'vinculos-carga-3.ndjson'),
            File.readlines(File.join(dir, 'carga-3.txt')).filter_map { |l| l.delete_prefix('VINCULO ') if l.start_with?('VINCULO ') }.join)
-en.call('sonda-verificar') do |f|
+File.open(File.join(dir, 'sonda-verificar.txt'), 'w') do |f|
   SondaPortal.verificar(out: f, dir: dir)
 rescue StandardError => e
   f.puts "HECHO verificar=error:#{e.class}"
