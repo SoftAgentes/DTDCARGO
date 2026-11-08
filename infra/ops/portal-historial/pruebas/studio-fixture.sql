@@ -4,7 +4,8 @@
 --
 -- Copia del fixture del contrato supabase/tests/0523_chatwoot_portal_carga.test.sql (E10, #456), líneas 17 a 158:
 -- los roles, el esquema auth mínimo, las fichas y los hilos sintéticos (ids md5('0523-sintetico-…'), teléfonos 555,
--- textos «SINT …») y las migraciones reales 0006, 0106, 0337, 0503, 0504, 0519, 0520 y 0523. Cambia en cuatro cosas:
+-- textos «SINT …») y las migraciones reales 0006, 0106, 0337, 0503, 0504, 0519, 0520 y 0523, y después la 0508 y la
+-- 0524, como el contrato de la 0524. Cambia en cuatro cosas:
 --   · aplica las migraciones con \i desde /supabase (montado por la prueba), no con \ir;
 --   · el vínculo del agente lo pone la prueba, con el id del agente de su Chatwoot;
 --   · suma las tablas del CRM que lee controles-studio.sql (C-7), vacías;
@@ -152,6 +153,11 @@ values (pg_temp.id('c1'), pg_temp.id('T1'), pg_temp.id('hC'), 'enviado', 1101);
 
 \i /supabase/migrations/0520_chatwoot_portal_vuelta.sql
 \i /supabase/migrations/0523_chatwoot_portal_carga.sql
+-- La 0508 (chatwoot_purgar_bandeja) y la 0524 (las condiciones de la puerta 4), en el orden del contrato
+-- supabase/tests/0524_chatwoot_portal_puerta4.test.sql:163-164. Con la 0524, vincular niega los contactos sin
+-- contacto_id o sin source_id: el caso (b) de la punta a punta.
+\i /supabase/migrations/0508_chatwoot_bajas_purga.sql
+\i /supabase/migrations/0524_chatwoot_portal_puerta4.sql
 
 -- C-7 de controles-studio.sql lee estas tablas del CRM: aquí van vacías, solo con lo que esa consulta mira.
 create table public.crm_tarjetas (id uuid primary key default gen_random_uuid(), tenant_id uuid not null);
