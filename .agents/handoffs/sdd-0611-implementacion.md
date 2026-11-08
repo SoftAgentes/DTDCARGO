@@ -161,6 +161,64 @@ Merge (no rebase) con el driver `dtd-generated-records`. Entró sin conflictos y
 | `sql-tests` con Postgres real | NO EJECUTADO en local (Docker queda para GitHub Actions); lo corre el CI de la PR |
 | `pnpm verify` / build | NO EJECUTADO: el DG lo pidió así |
 
+## Revisión del DG sobre `0f087def4` (CHANGES_REQUESTED), resuelta sin tocar la 0518
+
+- Allowlist exacta en la spec, §12: 32 archivos, medidos con `git diff --name-only origin/main...HEAD` después de traer `main` `3c14715ad`. Incluye la spec misma. AGENT-BRIEF la exige porque `publishPost` y `verifyMarkers` cambian el comportamiento del Studio.
+- `docs/governance/README.md`: la nota pasa de «Excepción vigente» a «aprobada, sin vigencia hasta que Sam encienda el interruptor», y así queda de acuerdo con el estado de arriba.
+- `spec.md`: el párrafo «solo documento, sin migraciones» ahora dice que la implementación trae código y la 0518.
+- La 0518 no cambió. Los puntos de SQL del DG van en la sección de abajo, para una migración nueva.
+
+## Pendiente de la segunda PR, antes de encender
+
+Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bloqueos, y de la revisión del DG sobre la misma cabeza. Nada de esto cambia la 0518 aplicada: lo que toque la base va en una migración nueva.
+
+1. **(C)1 · El público ve cómo se publicó la noticia.**
+   - `lib/public/news-queries.ts:12` y `:32` hacen `select("*")` con anon, y anon tiene SELECT sobre `news_posts` (0055).
+   - Así salen `publish_via`, `seo_draft_id` y `content_sha256`. `publish_via='automatica'` delata la IA, contra §4.7.
+   - **Arreglo:** lista de columnas explícita o permisos por columna.
+2. **(C)2 · No se puede borrar un usuario.**
+   - `seo_drafts.created_by` borra en cascada (0053), pero la FK `seo_draft_id … on delete no action` (0518) corta esa cascada.
+   - Borrar en Auth a quien creó el borrador de una noticia publicada da «Database error deleting user».
+   - **Arreglo:** lo decide Sam antes de enganchar `news_publicar_manual`. Las opciones son `created_by` en `set null`, anonimizar al dar de baja o no permitir el borrado.
+3. **(C)3 · Las pruebas del titular retenido no separan las dos condiciones.**
+   - Falta el caso de un titular limpio con el motivo `linea_roja:datos_personales`.
+   - Falta el caso de un titular con PII sin ese motivo.
+   - Con `linea_roja:revisor_datos_personales` el titular viaja si `tieneDatosPersonales` no detecta la PII. Hay que omitirlo también con ese motivo.
+4. **(C)4 · Hay pruebas que no miran nada.**
+   - `filtros.test.ts:186-190` recorre una lista vacía. Hay que exigir un mínimo de casos y un mutante.
+   - El doble de PostgREST de `autopublicar.test.ts:87-95` ignora los `.eq`.
+   - F8 vive solo en el código: si alguien quita `.eq("decision","publicada")`, ninguna prueba falla.
+   - **Arreglo:** un doble que filtre y una prueba que caiga sin ese `.eq`, o pasar F8 a la base.
+5. **(C)5 · El conteo de la espera mide menos que el CHECK.**
+   - La consulta de `migrations-baseline.json` no mira `meta_description`, no normaliza con NFKC, no quita invisibles y dice `draft_id` en vez de `seo_draft_id`.
+   - **Arreglo:** contar con `news_texto_tiene_marca`, la misma expresión que `news_posts_sin_marca_verificar`, antes de `VALIDATE CONSTRAINT`.
+6. **(C)6 · service_role cambia el interruptor sin dejar registro.**
+   - Tiene INSERT, UPDATE y DELETE sobre `news_autopublish_settings`, la auditoría y las salidas.
+   - Puede encender sin pasar por `news_autopublish_configurar`, y entonces no queda nada en `_settings_log`.
+   - **Arreglo:** un disparador que registre todo cambio de `_settings`, o revocar la escritura directa.
+7. **(C)7 · El desarme se vence pronto.**
+   - Aborta si hay filas en `news_post_exits`, `news_publication_audit` o `news_autopublish_settings`.
+   - Basta con despublicar o borrar una noticia después de aplicar para que deje de servir sin exportar esas filas.
+   - **Arreglo:** documentar la exportación previa o hacer un desarme v2 que las respalde.
+8. **(C)8 · Un borrador puede trabar la RPC.**
+   - Con más de 30 motivos de retención, el CHECK de `held_reasons` aborta `news_evaluacion_automatica`.
+   - El borrador queda en `en_revision` sin aviso.
+   - **Arreglo:** recortar o agrupar los motivos, con una prueba en el borde.
+9. **(C)9 · La huella no cubre todos los campos.**
+   - `news_huella` no incluye `excerpt`, `slug`, `pain_points` ni `read_time_min`.
+   - **Arreglo:** una huella `sdd0611-v2`, en TS y en SQL a la vez.
+10. **(C)10 · Menores.**
+    - `validarRetiro` y F2 usan `in`, así que aceptan `"constructor"`. La base lo corta, pero conviene `Object.hasOwn`.
+    - El CHECK de categorías NOT VALID puede hacer fallar el `update({status})` de `publishPost` en un borrador con categoría vieja. Hay que medir en producción cuántos quedan.
+11. **(DG, SQL) `news_salida_motivo` acepta un motivo nulo (0518:845).**
+    - **Arreglo:** validarlo como en `news_retirar` (0518:785): obligatorio, de la lista cerrada, y con nota si es «otro».
+12. **(DG, SQL) anon puede ejecutar `news_texto_tiene_marca` y `news_huella` (0518:97-98 y :131-132).**
+    - Hoy se revocan solo `from public`. Que los privilegios por defecto de Supabase den EXECUTE a anon es una inferencia, sin medir en la base.
+    - **Arreglo:** `revoke execute … from anon` explícito.
+13. **(DG, SQL) `content_sha256` queda viejo si un admin edita el cuerpo (0518:409-421).**
+    - La guarda impide cambiar el origen a mano, pero no recalcula la huella cuando cambian el titular o el cuerpo de una automática.
+    - **Arreglo:** recalcularla en el disparador, o tratar la edición como una salida de la vía automática.
+
 ## PENDIENTES DE ESTA TAREA
 
 - Plazo de retención y purga de `news_publication_audit`, `news_post_exits` y `news_autopublish_settings_log`. Lo decide Sam; va en la segunda PR.
