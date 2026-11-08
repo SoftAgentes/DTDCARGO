@@ -35,6 +35,12 @@ if [ -e "$DIR/preparado.ndjson" ]; then
   exit 2
 fi
 mkdir -p -m 0700 "$DIR"
+# Si ya existía, tiene que ser una carpeta de este usuario y no un enlace: `chmod` y la escritura
+# seguirían el enlace, y en una carpeta ajena otro usuario podría leer los datos de clientes.
+if [ -L "$DIR" ] || [ ! -d "$DIR" ] || [ ! -O "$DIR" ]; then
+  echo "HECHO error=dir_no_propio_o_enlace" >&2
+  exit 2
+fi
 chmod 0700 "$DIR"
 
 psql_db() {
