@@ -1171,6 +1171,24 @@ No se capturan, mueven ni borran datos personales. El lanzador imprime huellas y
 
 - El vigía de `lanzar-unidad.sh` es el `vigia-carga.sh` de `main`, que mira carga, `/dev/shm` y memoria. El del ensayo del 2026-11-07 miraba además la salud de cuatro contenedores y dos `curl`, y estaba fuera del repo. Traer esas comprobaciones al vigía del repo sería otra PR.
 
+### 10.19 Paso 5.8 — acta de conciliación parcial (2026-11-08, borrador)
+
+Encargo del Subdirector de Chatwoot, por el carril 4 que pidió Sam. El acta está en [`acta-conciliacion-parcial.md`](acta-conciliacion-parcial.md).
+
+- **Por objeto** concilia la cadena Kommo → preparado → Chatwoot, con lo medido en §10.16. Conversaciones, mensajes, contactos y adjuntos dan 0 de diferencia. Lo que queda fuera a sabiendas: 12 conversaciones con 403 y 15 adjuntos con 404.
+- **Por canal**, el lado de Chatwoot lo cuenta `kommo_origen`. El lado de Kommo de la extracción final es NV: solo queda dentro del paquete cifrado, y la 5.2 sirve de referencia, no de conciliación.
+- **Las consultas de producción las corre el Director General** solo con el OK nominal de Sam, que él le pide. Son de solo lectura: `infra/ops/kommo-historial/acta-conteos.rb`, con `COMPARAR=5.7`. No las corre un Worker.
+- **Prueba:** bloque AC de `pruebas/prueba-cargador.sh`, en el flujo «Cargador del Archivo Kommo», con datos inventados sobre la imagen real. Tiene nueve comprobaciones (AC9 intenta escribir, y Postgres tiene que rechazarlo) y dos mutantes: sin `READ ONLY`, que tiene que abortar, y contando toda la cuenta.
+- **revisar-datos-ve:** no se capturan, mueven ni borran datos personales. El guion imprime solo números y nombres de canal, y AC8 comprueba que su salida no trae nombres, correos, textos ni ids de Kommo.
+
+#### Allowlist
+
+- `infra/ops/kommo-historial/acta-conteos.rb` (nuevo)
+- `infra/ops/kommo-historial/pruebas/prueba-cargador.sh` (la copia del guion y el bloque AC)
+- `docs/specs/0590-kommo-historial-e5/acta-conciliacion-parcial.md` (nuevo) y esta sección
+- `docs/specs/0582-chatwoot-piloto/checklist.md` (solo la fila 5.8)
+- `.agents/handoffs/0590-e5-acta.md` (nuevo)
+
 ### 10.20 Los cinco puntos que no bloqueaban la #432 (2026-11-08)
 
 La revisión aprobó la #432 sobre `a52034e20` y dejó cinco puntos que no bloqueaban. El Subdirector de Chatwoot los pidió en su propia PR, después del tren #441 (`main` en `146d5ea5e`). **No toca producción ni el VPS, y no se corrió nada allí.** Las pruebas usan solo datos inventados, y las que llevan systemd corren en GitHub Actions. Handoff: `.agents/handoffs/0590-e5-lanzador-pulido.md`.

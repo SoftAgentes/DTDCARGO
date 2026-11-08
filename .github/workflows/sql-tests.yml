@@ -17,6 +17,8 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/tests/**"
+      # Los cargadores de una sola vez (supabase/cargas/, sin número) los prueba su contrato en supabase/tests/.
+      - "supabase/cargas/**"
       - "scripts/run-sql-tests.mjs"
       - "scripts/ci-sql-tests.sh"
       - "scripts/ci-sql-tests-control.sh"

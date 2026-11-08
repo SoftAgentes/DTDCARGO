@@ -297,19 +297,30 @@ describe("SDD-0586 1c-1 · un hilo del portal se responde desde la Bandeja", () 
     expect(await sendReplyAction({}, form())).toEqual({ ok: true });
   });
 
-  it("sin la bandeja del portal configurada responde como antes, aunque el flag esté encendido: Studio es la única vía", async () => {
+  // SDD-0586 1c-2 (decisión del DG, opción b): solo el flag decide, aunque falte la configuración,
+  // para que la pantalla diga lo mismo que la guarda de la 0521.
+  it("sin la bandeja del portal configurada y con el flag encendido, también rechaza (fail-closed)", async () => {
     configurar();
     vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "");
     flagPortal = { enabled: true };
 
-    expect(await sendReplyAction({}, form())).toEqual({ ok: true });
-    expect(sessionReads).not.toContain("feature_flags");
+    expect(await sendReplyAction({}, form())).toEqual({ error: SOLO_LECTURA });
+    nadaEscrito();
   });
 
-  it("con la configuración de otro tenant responde como antes", async () => {
+  it("con la configuración de otro tenant, el flag de la sesión decide: rechaza", async () => {
     configurar();
     vi.stubEnv("CHATWOOT_TENANT_ID", "10000000-0000-4000-8000-000000000002");
     flagPortal = { enabled: true };
+
+    expect(await sendReplyAction({}, form())).toEqual({ error: SOLO_LECTURA });
+    nadaEscrito();
+  });
+
+  it("sin la bandeja configurada y con el flag apagado responde como antes", async () => {
+    configurar();
+    vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "");
+    flagPortal = { enabled: false };
 
     expect(await sendReplyAction({}, form())).toEqual({ ok: true });
   });

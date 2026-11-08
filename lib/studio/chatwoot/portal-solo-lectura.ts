@@ -2,16 +2,17 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { chatwootPortalConfig } from "./config";
-
 /**
  * Studio en solo lectura para los hilos del portal (SDD-0586, paso 10.5, 1c-1: E10-D41).
  *
- * Con `chatwoot_portal` encendido para el tenant y la bandeja del portal configurada en el
- * servidor (`chatwootPortalConfig()`, con ese tenant), los hilos del portal se responden desde la
- * Bandeja de Chatwoot: Conversaciones de Studio no los responde ni les cambia el estado. Es la
- * misma condición con la que corren la ida y la vuelta. Si falta la configuración no se traba: la
- * ida no manda nada y Studio es la única vía para responderle al cliente.
+ * Con `chatwoot_portal` encendido para el tenant, los hilos del portal se responden desde la
+ * Bandeja de Chatwoot: Conversaciones de Studio no los responde ni les cambia el estado.
+ *
+ * **Solo el flag decide, aunque falte la configuración** (SDD-0586 1c-2, decisión del DG del
+ * 2026-11-08, opción b: fallar cerrado). La base no ve `chatwootPortalConfig()`, y la guarda de la
+ * 0521 traba los salientes y el estado de un hilo del portal con el flag encendido: así la pantalla
+ * y la base dicen lo mismo. Con el flag encendido sin la bandeja configurada nadie responde un hilo
+ * del portal hasta configurarla o apagar el flag; el guion de encendido pide la configuración antes.
  *
  * El flag se lee de su fila en `feature_flags` con la sesión (la RLS deja ver las del tenant). Si
  * la lectura falla, la traba queda puesta (fail-closed), y solo para el portal: mejor «no se pudo
@@ -27,10 +28,7 @@ export const MENSAJE_NO_SE_SABE =
 
 /** ¿Está puesta la traba de los hilos del portal en el tenant? */
 export async function trabaPortal(supabase: SupabaseClient, tenantId: string | null): Promise<EstadoTrabaPortal> {
-  const cfg = chatwootPortalConfig();
-  if (!cfg) return "apagada";
   if (!tenantId) return "no_se_sabe";
-  if (cfg.tenantId !== tenantId) return "apagada";
   const { data, error } = await supabase
     .from("feature_flags")
     .select("enabled")

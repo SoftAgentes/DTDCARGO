@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { notifyClientReplyPush } from "@/lib/studio/conversation-reply-push";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { chatwootPortalConfig, type ChatwootPortalConfig } from "./config";
@@ -139,7 +141,7 @@ export const NOTA_ADJUNTO =
 type MotivoNota = "archivado" | "adjunto";
 const sourceIdNota = (motivo: MotivoNota, mensajeId: number) => `dtd:nota:${motivo}:${mensajeId}`;
 
-type ResultadoRespuesta = "insertado" | "duplicado" | "archivado" | "sin_texto" | "ficha_borrada" | "sin_hilo" | "apagado";
+export type ResultadoRespuesta = "insertado" | "duplicado" | "archivado" | "sin_texto" | "ficha_borrada" | "sin_hilo" | "apagado";
 
 /** La nota privada, una sola vez por mensaje: se busca su `source_id` antes de crearla. */
 async function dejarNota(cfg: ChatwootPortalConfig, conversacionId: number, m: MensajePortal, motivo: MotivoNota): Promise<void> {
@@ -188,9 +190,23 @@ export const responderAlPortal: ManejadorEvento = async (ctx, evento) => {
     if (!m) return;
   }
   if (!esRespuestaDelEquipo(m, cfg.inboxPortalId)) return;
+  await escribirRespuestaPortal(ctx.admin, cfg, conversacionId, m);
+};
 
+/**
+ * Escribe una respuesta del equipo en el hilo del portal (`chatwoot_portal_respuesta`, 0520), avisa
+ * al cliente una sola vez y deja las notas del archivado y del adjunto. La usan `responderAlPortal`
+ * y la conciliación (SDD-0586 1c-2). Es idempotente: un reintento da «duplicado» y no avisa.
+ * El que llama ya comprobó `esRespuestaDelEquipo`. Lanza si falla Chatwoot o la base.
+ */
+export async function escribirRespuestaPortal(
+  admin: SupabaseClient,
+  cfg: ChatwootPortalConfig,
+  conversacionId: number,
+  m: MensajePortal,
+): Promise<ResultadoRespuesta | undefined> {
   const texto = m.texto.trim() === "" ? null : m.texto;
-  const { data, error } = await ctx.admin.rpc("chatwoot_portal_respuesta", {
+  const { data, error } = await admin.rpc("chatwoot_portal_respuesta", {
     p_tenant_id: cfg.tenantId,
     p_chatwoot_conversation_id: conversacionId,
     p_chatwoot_message_id: m.id,
@@ -204,11 +220,45 @@ export const responderAlPortal: ManejadorEvento = async (ctx, evento) => {
 
   // El push primero: si la nota falla y el evento se reintenta, la respuesta ya está y no se avisa dos veces.
   if (resultado === "insertado" && fila?.cliente_id && texto) {
-    await notifyClientReplyPush(ctx.admin, { clientId: fila.cliente_id, body: texto });
+    await notifyClientReplyPush(admin, { clientId: fila.cliente_id, body: texto });
   }
   if (resultado === "archivado") {
     await dejarNota(cfg, conversacionId, m, "archivado");
   } else if (m.adjuntos > 0 && (resultado === "insertado" || resultado === "duplicado" || resultado === "sin_texto")) {
     await dejarNota(cfg, conversacionId, m, "adjunto");
   }
+  return resultado;
+}
+
+/**
+ * El estado del hilo del portal (SDD-0586 1c-2, E10-D39): `chatwoot_portal_estado_hilo` (0521) lo
+ * lee del espejo `chatwoot_conversations`, que `chatwoot_registrar_evento` ya ordenó, y lo escribe
+ * solo si cambia. Nunca del evento: el reproceso lo rellena con «open». Sin la 0521 (PGRST202)
+ * no lanza: la 0521 se aplica antes de fusionar, y esto solo cubre el hueco.
+ */
+export async function estadoDelHilo(admin: SupabaseClient, tenantId: string, conversacionId: number): Promise<string> {
+  const { data, error } = await admin.rpc("chatwoot_portal_estado_hilo", {
+    p_tenant_id: tenantId,
+    p_chatwoot_conversation_id: conversacionId,
+  });
+  if (error) {
+    if (error.code === "PGRST202") return "sin_migracion";
+    throw new Error(`chatwoot_portal_estado_hilo: ${error.code ?? "sin código"}`);
+  }
+  const fila = (Array.isArray(data) ? data[0] : data) as { resultado?: string } | null;
+  return fila?.resultado ?? "sin_resultado";
+}
+
+/**
+ * Corre con cada evento, después de que `chatwoot_registrar_evento` aplicó el espejo. Solo en la
+ * bandeja del portal (en el reproceso la bandeja no vino: decide el vínculo, en la base), con el
+ * flag y la configuración de la 1c-1.
+ */
+export const estadoAlPortal: ManejadorEvento = async (ctx, evento) => {
+  const cfg = chatwootPortalConfig();
+  if (!cfg || cfg.tenantId !== ctx.tenantId) return;
+  if (evento.conversacion.inboxId !== null && evento.conversacion.inboxId !== cfg.inboxPortalId) return;
+  const flags = await listFeatureFlags(ctx.admin, ctx.tenantId);
+  if (!flags.chatwoot_portal) return;
+  await estadoDelHilo(ctx.admin, cfg.tenantId, evento.conversacion.id);
 };

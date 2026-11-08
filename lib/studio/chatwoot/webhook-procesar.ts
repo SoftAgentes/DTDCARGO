@@ -6,7 +6,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
 import { clasificarContacto } from "./enrutar";
 import { entrarLead } from "./entrada-leads";
-import { responderAlPortal, type MensajePortal } from "./portal-manejadores";
+import { estadoAlPortal, responderAlPortal, type MensajePortal } from "./portal-manejadores";
 import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 
 /**
@@ -133,7 +133,8 @@ async function yaAvisados(ctx: ContextoChatwoot, clave: string): Promise<Set<str
   return new Set(((data ?? []) as { target_id: string }[]).map((f) => f.target_id));
 }
 
-export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto, entrarLead, responderAlPortal];
+// SDD-0586 1c-2: `estadoAlPortal` lleva el estado del espejo al hilo del portal (E10-D39).
+export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto, entrarLead, responderAlPortal, estadoAlPortal];
 
 /** Nombres explícitos: en el build de producción `fn.name` queda minificado (`f`, `i`). */
 const NOMBRE_MANEJADOR: ReadonlyMap<ManejadorEvento, string> = new Map([
@@ -141,6 +142,7 @@ const NOMBRE_MANEJADOR: ReadonlyMap<ManejadorEvento, string> = new Map([
   [clasificarContacto, "clasificarContacto"],
   [entrarLead, "entrarLead"],
   [responderAlPortal, "responderAlPortal"],
+  [estadoAlPortal, "estadoAlPortal"],
 ]);
 
 export function nombreManejador(manejador: ManejadorEvento): string {
