@@ -288,7 +288,7 @@ cp "$CW/compose.yml" "$D/"
 cp -r "$CW/rails" "$CW/marca" "$CW/correo" "$D/"
 cp "$CW/pruebas/compose.local.yml" "$D/compose.override.yml"
 cp "$AQUI/compose.cargador.yml" "$D/"
-cp "$KH/cargar-archivo-kommo.rb" "$AQUI/sonda-cargador.rb" "$AQUI/escenario-mutante.rb" "$D/cargador/"
+cp "$KH/cargar-archivo-kommo.rb" "$KH/acta-conteos.rb" "$AQUI/sonda-cargador.rb" "$AQUI/escenario-mutante.rb" "$D/cargador/"
 cp "$CARGA" "$D/estado/carga.ndjson"
 cp "$FLUJO" "$D/estado/flujo.ndjson"
 cat >"$D/.env" <<EOF
@@ -340,6 +340,74 @@ log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $
 log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
 
+# Copia mutada del cargador, para MI y para M. Tiene que estar definida antes de la primera llamada (AC-M1, en el bloque AC).
+mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
+  "$PY" -I -c 'import sys
+o, d, b, r = sys.argv[1:5]
+t = open(o, encoding="utf-8").read()
+n = t.count(b)
+if n != 1:
+    print(f"el texto a mutar aparece {n} veces")
+    sys.exit(1)
+open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1")" "$(win "$2")" "$3" "$4"
+}
+
+# ── AC. Conteos del acta de conciliación parcial (5.8), sobre la bandeja de la corrida real ───────────────
+# acta-conteos.rb es lo que corre el Director General en producción, de solo lectura. Aquí, sobre los datos
+# inventados, tiene que contar lo mismo que dejó la carga: 5 conversaciones (4 waba y 1 instagram_business), 8
+# mensajes (5 entrantes y 3 salientes; waba 7 e instagram 1), 5 contact_inboxes, 3 adjuntos con los bytes del
+# informe, y ningún huérfano ni repetido. Los mensajes de la bandeja «viva» de la cuenta no tienen que entrar
+# (con ellos, la cuenta tiene más de 8). Antes de MI, 1 miembro: el agente que E-10e deja en el Archivo
+# (E10e exige miembros_del_archivo = 1).
+log "== AC. conteos del acta (5.8)"
+ACTA=/tmp/cargador/acta-conteos.rb
+rr "$REAL/acta.txt" "BANDEJA=$B" "CUENTA=$CUENTA" -- "$ACTA" </dev/null
+rr "$REAL/acta-comparar.txt" "BANDEJA=$B" "CUENTA=$CUENTA" COMPARAR=5.7 -- "$ACTA" </dev/null
+rr "$REAL/acta-sin-bandeja.txt" "CUENTA=$CUENTA" -- "$ACTA" </dev/null
+F="$REAL/acta.txt"
+exigir AC1 '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" solo_lectura)" = si ] && [ "$(h "$F" bandeja)" = "$B" ] && [ "$(h "$F" webhook_url)" = no ]' \
+  "corre entero, dentro de una transacción de solo lectura, sobre la bandeja del Archivo"
+exigir AC2 '[ "$(h "$F" conversaciones)" = 5 ] && [ "$(h "$F" conversaciones_kommo)" = 5 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" mensajes_kommo)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ]' \
+  "conversaciones y mensajes: los mismos que dejó la carga (5 / 8, con 5 entrantes y 3 salientes)"
+exigir AC3 '[ "$(h "$F" contact_inboxes)" = 5 ] && [ "$(h "$F" contactos)" = 5 ] && [ "$(h "$F" adjuntos)" = 3 ] && [ "$(h "$F" mensajes_con_adjunto)" = 3 ] && [ "$(h "$F" adjuntos_bytes)" = "$ESPERADO_BYTES" ] && [ "$(h "$F" miembros)" = 1 ]' \
+  "contactos y adjuntos: 5 / 5, 3 adjuntos con $ESPERADO_BYTES bytes, y 1 miembro antes de MI (el agente de E-10e)"
+exigir AC4 '[ "$(h "$F" conversaciones_por_canal)" = "instagram_business:1,waba:4" ] && [ "$(h "$F" mensajes_por_canal)" = "instagram_business:1,waba:7" ]' \
+  "por canal de Kommo: conversaciones $(h "$F" conversaciones_por_canal), mensajes $(h "$F" mensajes_por_canal)"
+exigir AC5 'cero "$(h "$F" conversaciones_sin_contact_inbox)" && cero "$(h "$F" mensajes_fuera_de_conversacion)" && cero "$(h "$F" source_id_repetidos)" && cero "$(h "$F" talk_id_repetidos)"' \
+  "sin huérfanos ni repetidos"
+exigir AC6 '[ "$(h "$REAL/acta-comparar.txt" concilia)" = no:9 ] && [ "$(grep -c "NO COINCIDE" "$REAL/acta-comparar.txt")" = 9 ] && [ "$(grep -c " coincide$" "$REAL/acta-comparar.txt")" = 4 ]' \
+  "COMPARAR=5.7 sobre datos inventados: 9 objetos NO COINCIDEN con la carga real y los 4 que tienen que dar 0 coinciden"
+exigir AC7 '[ "$(h "$REAL/acta-sin-bandeja.txt" acta)" = error ] && [ "$(h "$REAL/acta-sin-bandeja.txt" motivo)" = "falta BANDEJA (el id de «Archivo Kommo»)" ]' \
+  "sin BANDEJA no cuenta nada"
+# AC8 usa las mismas marcas que F1 (los valores inventados de generar-sintetico.py), más «@» y «kommo:».
+ac_marcas=()
+for m in "${MARCAS[@]}" @ kommo:; do ac_marcas+=(-e "$m"); done
+exigir AC8 '! grep -h -E "^(HECHO|CONCILIA) " "$REAL/acta.txt" "$REAL/acta-comparar.txt" | grep -q -F "${ac_marcas[@]}"' \
+  "la salida no trae ninguno de los ${#MARCAS[@]} valores inventados, ni correos ni ids de Kommo"
+# AC9: en una transacción READ ONLY como la del acta, Postgres rechaza una escritura de verdad y no queda nada.
+rr "$REAL/acta-escritura.txt" -- 'begin; ActiveRecord::Base.transaction { ActiveRecord::Base.connection.execute("SET TRANSACTION READ ONLY"); Label.create!(account_id: Account.first.id, title: "sonda-escritura-acta"); puts "HECHO escritura=aceptada"; raise ActiveRecord::Rollback }; rescue ActiveRecord::StatementInvalid => e; puts "HECHO escritura=rechazada"; puts "HECHO causa=#{e.cause.class}"; end; puts "HECHO etiquetas_sonda=#{Label.where(title: "sonda-escritura-acta").count}"' </dev/null
+F="$REAL/acta-escritura.txt"
+exigir AC9 '[ "$(h "$F" escritura)" = rechazada ] && [ "$(h "$F" causa)" = PG::ReadOnlySqlTransaction ] && [ "$(h "$F" etiquetas_sonda)" = 0 ]' \
+  "Postgres rechaza la escritura en la transacción de solo lectura ($(h "$F" causa)) y no queda ninguna fila"
+if [ "$MUTANTES" = 1 ]; then
+  # ac_mutante id descripción exigencia buscar reemplazo: la exigencia es cómo TIENE que caer el mutante.
+  ac_mutante() {
+    if mutar "$D/cargador/acta-conteos.rb" "$D/cargador/$1.rb" "$4" "$5" >"$REAL/$1.mutar.txt" 2>&1; then
+      rr "$REAL/$1.txt" "BANDEJA=$B" "CUENTA=$CUENTA" -- "/tmp/cargador/$1.rb" </dev/null
+      F="$REAL/$1.txt"
+      exigir "$1" "$3" "$2"
+    else
+      mal "$1" "no se pudo aplicar ($(tr -d '\r' <"$REAL/$1.mutar.txt"))"
+    fi
+  }
+  ac_mutante AC-M1 "sin READ ONLY, el acta aborta con «la transacción no quedó en solo lectura» y no cuenta nada" \
+    '[ "$(h "$F" solo_lectura)" = no ] && [ "$(h "$F" acta)" = error ] && [ "$(h "$F" motivo)" = "la transacción no quedó en solo lectura" ] && [ -z "$(h "$F" mensajes)" ]' \
+    "    ActiveRecord::Base.connection.execute('SET TRANSACTION READ ONLY') # [solo-lectura]" "    nil # [solo-lectura]"
+  ac_mutante AC-M2 "contando los mensajes de toda la cuenta, entra el de la bandeja viva y AC2 cae" \
+    '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" mensajes_kommo)" = 8 ] && [ "$(h "$F" mensajes)" -gt 8 ] 2>/dev/null' \
+    "  c['mensajes'] = msgs.count # [bandeja-mensajes]" "  c['mensajes'] = Message.where(account_id: cuenta.id).count # [bandeja-mensajes]"
+fi
+
 # ── AD4. Chatwoot sirve los adjuntos por su API, como en el panel (5.5b) ─────
 # Con el servicio `rails` de la prueba: un agente miembro del Archivo baja cada adjunto y su checksum coincide con
 # el del blob; un agente que no es miembro no puede pedir esos mensajes. Solo en la corrida real.
@@ -361,17 +429,6 @@ fi
 dc "${BASE[@]}" stop rails >/dev/null 2>&1
 vigilar "servir"
 
-# Copia mutada del cargador, para MI y para M. Tiene que estar definida antes de la primera llamada (MI-M1).
-mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
-  "$PY" -I -c 'import sys
-o, d, b, r = sys.argv[1:5]
-t = open(o, encoding="utf-8").read()
-n = t.count(b)
-if n != 1:
-    print(f"el texto a mutar aparece {n} veces")
-    sys.exit(1)
-open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1")" "$(win "$2")" "$3" "$4"
-}
 
 # ── MI. Miembros del Archivo (Sam, 2026-11-06: «todo el equipo») ─────────────
 # Después de AD4, que necesita un agente que no sea miembro. MODO=miembros-seco, MODO=miembros y otra vez

@@ -22,6 +22,9 @@ const p = vi.hoisted(() => ({
   conversaciones: [] as unknown[],
   traba: "apagada" as "activa" | "apagada" | "no_se_sabe",
   consultas: [] as (string | null)[],
+  denialBandeja: null as string | null,
+  chatwootInbox: true,
+  modulos: [] as string[],
 }));
 vi.mock("@/lib/db/server", () => ({
   createClient: async () => ({
@@ -31,7 +34,16 @@ vi.mock("@/lib/db/server", () => ({
     },
   }),
 }));
-vi.mock("@/lib/studio/rbac-guard", () => ({ requireModuleView: async () => "commercial" }));
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  requireModuleView: async () => "commercial",
+  moduleViewDenial: async (_: unknown, modulo: string) => {
+    p.modulos.push(modulo);
+    return modulo === "bandeja" ? p.denialBandeja : null;
+  },
+}));
+vi.mock("@/lib/studio/feature-flags-queries", () => ({
+  listFeatureFlags: async () => ({ chatwoot_inbox: p.chatwootInbox }),
+}));
 vi.mock("@/lib/studio/conversaciones/conversations-queries", () => ({
   listConversations: async () => p.conversaciones,
   computeConversationKpis: async () => ({ open: 1, unread: 0, unassigned: 1, openCases: 0, resolvedToday: 0 }),
@@ -104,6 +116,9 @@ beforeEach(() => {
   p.conversaciones = [];
   p.traba = "apagada";
   p.consultas.length = 0;
+  p.denialBandeja = null;
+  p.chatwootInbox = true;
+  p.modulos.length = 0;
   a.status.length = 0;
   a.assign.length = 0;
   a.caso.length = 0;
@@ -123,7 +138,7 @@ const asignar = () => screen.getByRole("combobox", { name: "Asignar agente" }) a
 
 describe("ConversationThread · SDD-0586 1c-1", () => {
   it("portal con la traba activa: aviso y enlace a la Bandeja en lugar de la caja", async () => {
-    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" />);
+    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" puedeVerBandeja />);
     await cargado();
 
     const aviso = screen.getByText(AVISO);
@@ -137,7 +152,7 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
   });
 
   it("el selector de estado queda deshabilitado y explicado; no cambia el estado", async () => {
-    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" />);
+    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" puedeVerBandeja />);
     await cargado();
 
     const sel = estado();
@@ -153,7 +168,7 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
   });
 
   it("asignar y «Caso» siguen como hoy", async () => {
-    render(<ConversationThread conv={hilo("portal")} agents={[{ id: "ag-1", name: "Agente" }]} trabaPortal="activa" />);
+    render(<ConversationThread conv={hilo("portal")} agents={[{ id: "ag-1", name: "Agente" }]} trabaPortal="activa" puedeVerBandeja />);
     await cargado();
 
     expect(asignar().disabled).toBe(false);
@@ -167,9 +182,19 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
     await waitFor(() => expect(a.caso).toHaveLength(1));
   });
 
+  it("SDD-0586 1c-1b · sin acceso a la Bandeja: el aviso va sin enlace, aunque haya número", async () => {
+    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" />);
+    await cargado();
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await act(async () => {});
+
+    expect(screen.getByText(AVISO)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Responder en la Bandeja →" })).toBeNull();
+  });
+
   it("sin conversación en Chatwoot todavía: el aviso va sin enlace", async () => {
     bandeja = null;
-    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" />);
+    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="activa" puedeVerBandeja />);
     await cargado();
 
     expect(screen.getByText(AVISO)).toBeTruthy();
@@ -177,7 +202,7 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
   });
 
   it("si no se pudo comprobar la traba: también sin caja, con su aviso", async () => {
-    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="no_se_sabe" />);
+    render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="no_se_sabe" puedeVerBandeja />);
     await cargado();
 
     expect(screen.getByText(/No se pudo comprobar si este hilo del portal/)).toBeTruthy();
@@ -212,7 +237,7 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
 
   it("otro canal con la traba activa: como antes", async () => {
     for (const canal of ["email", "whatsapp"] as const) {
-      render(<ConversationThread conv={hilo(canal)} agents={[]} trabaPortal="activa" />);
+      render(<ConversationThread conv={hilo(canal)} agents={[]} trabaPortal="activa" puedeVerBandeja />);
       await cargado();
       expect(screen.queryByRole("note"), canal).toBeNull();
       expect(screen.getByRole("textbox"), canal).toBeTruthy();
@@ -235,6 +260,33 @@ describe("ConversacionesPage · la traba llega al hilo", () => {
     expect(screen.getByText(AVISO)).toBeTruthy();
     expect(caja()).toBeNull();
     expect(estado().disabled).toBe(true);
+  });
+
+  it("SDD-0586 1c-1b · con el rol y `chatwoot_inbox`, el aviso trae el enlace a la Bandeja", async () => {
+    p.conversaciones = [hilo("portal")];
+    p.traba = "activa";
+    render(await ConversacionesPage({ searchParams: Promise.resolve({ c: "conv-1" }) }));
+    await cargado();
+
+    expect(p.modulos).toContain("bandeja");
+    const enlace = await screen.findByRole("link", { name: "Responder en la Bandeja →" });
+    expect(enlace.getAttribute("href")).toBe("/studio/bandeja?c=9001");
+  });
+
+  it("SDD-0586 1c-1b · sin el rol de la Bandeja, o con `chatwoot_inbox` apagado, el aviso va sin enlace", async () => {
+    for (const [denial, inbox] of [["No tienes permiso para ver esto.", true], [null, false]] as const) {
+      p.conversaciones = [hilo("portal")];
+      p.traba = "activa";
+      p.denialBandeja = denial;
+      p.chatwootInbox = inbox;
+      render(await ConversacionesPage({ searchParams: Promise.resolve({ c: "conv-1" }) }));
+      await cargado();
+      await act(async () => {});
+
+      expect(screen.getByText(AVISO), String(denial ?? inbox)).toBeTruthy();
+      expect(screen.queryByRole("link", { name: "Responder en la Bandeja →" }), String(denial ?? inbox)).toBeNull();
+      cleanup();
+    }
   });
 
   it("con la traba apagada, la caja y el estado como antes", async () => {

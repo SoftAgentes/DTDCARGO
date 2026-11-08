@@ -34,10 +34,12 @@ vi.setConfig({ testTimeout: 120_000 });
  * (SDD-0559) es uno de esos: apunta `check-schema-rebuild.mjs` a otra radiografía
  * para su control rojo y no se define en ningún entorno real. `CHATWOOT_POC_` (SDD-0586,
  * 10.5) es otro: las pone infra/chatwoot/pruebas/portal/prueba-portal-poc.sh para la PoC
- * contra un Chatwoot efímero en Actions, y ningún servidor las lee.
+ * contra un Chatwoot efímero en Actions, y ningún servidor las lee. `PATH` (SDD-0616) lo inyecta el
+ * sistema; lo leen las pruebas que arman el entorno de un proceso hijo. Va anclado (`PATH$`) para no
+ * ignorar también `PATH_ALGO` ni `PATHNAME`.
  */
 const IGNORAR =
-  /^(NODE_ENV|LOCALAPPDATA|VERCEL_(ENV|URL|GIT_.*|PROJECT_ID|TEAM_ID)|VERIFY_|E2E_|STUDIO_E2E_|SQL_TEST_PG_IMAGE|SCHEMA_REBUILD_|CHATWOOT_POC_|PLAYWRIGHT_BROWSERS_PATH)/;
+  /^(NODE_ENV|LOCALAPPDATA|VERCEL_(ENV|URL|GIT_.*|PROJECT_ID|TEAM_ID)|VERIFY_|E2E_|STUDIO_E2E_|SQL_TEST_PG_IMAGE|SCHEMA_REBUILD_|CHATWOOT_POC_|PLAYWRIGHT_BROWSERS_PATH|PATH$)/;
 
 const RAICES = ["lib", "app", "scripts", "components"];
 

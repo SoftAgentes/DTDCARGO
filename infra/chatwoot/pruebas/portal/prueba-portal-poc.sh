@@ -10,7 +10,8 @@
 #      token, bandeja API «Conversaciones del portal» y webhook de cuenta al receptor de la red interna.
 #   2. Levanta Rails (en 127.0.0.1:3000 del runner), Sidekiq y el receptor.
 #   3. Corre lib/studio/chatwoot/__tests__/portal.poc.test.ts (la ida) y portal-vuelta.poc.test.ts (la vuelta, la
-#      nota privada y la salud del webhook, PR 1b) con el cliente REAL de Studio (router-api.ts, portal.ts,
+#      nota privada y la salud del webhook, PR 1b) y portal-estado.poc.test.ts (la reapertura PoC-4, el estado y la
+#      conciliación, 1c-2) con el cliente REAL de Studio (router-api.ts, portal.ts,
 #      portal-manejadores.ts y webhook-salud.ts) contra esa instancia. Cada PoC es una prueba con su PASÓ o FALLÓ. La PoC-5b corre
 #      carga-webhook-poc.rb en la misma instancia: Chatwoot no entrega webhooks a un host sin IP pública, así que el
 #      receptor solo sirve para medir ese rechazo (MEDIDA al final).
@@ -118,6 +119,7 @@ CHATWOOT_POC_CANAL_CON_URL="$(leer webhook_url_del_canal)" \
 CHATWOOT_POC_STACK="$D" \
 CHATWOOT_POC_PROYECTO="$P" \
   pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts \
+    lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts \
     --reporter=verbose --maxWorkers=1
 CODIGO=$?
 # MEDIDA de la PoC-5: Chatwoot 4.19.1 no entrega un webhook a un host sin IP pública (el receptor de la red interna).

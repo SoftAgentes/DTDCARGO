@@ -66,6 +66,8 @@ interface Props {
    * lo rechazan en el servidor y la pantalla lo dice.
    */
   trabaPortal?: EstadoTrabaPortal;
+  /** SDD-0586 1c-1b: sin acceso a la Bandeja (rol o `chatwoot_inbox`), el aviso va sin enlace. */
+  puedeVerBandeja?: boolean;
 }
 
 function fmtTime(iso: string): string {
@@ -95,7 +97,13 @@ function fmtPeriod(iso: string): string {
   }
 }
 
-export function ConversationThread({ conv, agents, realtimeTick = 0, trabaPortal = "apagada" }: Props) {
+export function ConversationThread({
+  conv,
+  agents,
+  realtimeTick = 0,
+  trabaPortal = "apagada",
+  puedeVerBandeja = false,
+}: Props) {
   const router = useRouter();
   const toast = useToast();
   const avisoId = useId();
@@ -445,7 +453,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0, trabaPortal
                 ? "Este hilo del portal se responde desde la Bandeja de Chatwoot. El estado también se cambia allá."
                 : "No se pudo comprobar si este hilo del portal se responde desde la Bandeja de Chatwoot. Recarga la página para volver a intentar."}
             </p>
-            {bandeja !== null && (
+            {puedeVerBandeja && bandeja !== null && (
               <Link href={`/studio/bandeja?c=${bandeja}`} className="studio-btn studio-btn-ghost studio-btn-sm">
                 Responder en la Bandeja →
               </Link>
