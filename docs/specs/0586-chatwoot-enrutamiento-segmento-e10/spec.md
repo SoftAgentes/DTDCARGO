@@ -698,6 +698,97 @@ Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de 
 - `supabase/migrations-baseline.json`, para la espera;
 - lo de `0f100e2b3`: `extraer.sh`, `prueba-portal-historial.sh`, el README de `portal-historial`, esta spec y el handoff.
 
+#### 10.7 · Deshacer la carga en Studio (la vuelta atrás dirigida, 4.6b): diseño para revisar antes del SQL
+
+**El DG lo aprobó el 2026-11-08,** con lo que sumó el Subdirector. La condición de orden es que **esté en `main` y ensayado antes de que el DG le pida a Sam la puerta 4.** No hace falta para las puertas 1 a 3.
+
+Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas.md`](../../runbooks/chatwoot-portal-p4-puertas.md). La mitad de Chatwoot es la pieza de E5. **Es un borrado permanente en producción: lo corre Sam, y el DG lo prepara y lo ensaya con `rollback`.**
+
+**Qué es: un guion, no una migración.**
+- **No hace falta una RPC nueva:** todo lo que toca son tablas que `postgres` escribe directo.
+- **Va en una sola transacción.** El DG lo ensaya con `rollback` y Sam lo corre con `commit`.
+- **No entra al ledger,** así que no es migrate-first.
+- **Imprime solo `HECHO clave=valor`,** con conteos, como los otros guiones de `portal-historial`.
+
+**Dónde va (pregunta para el Subdirector).** Se había acordado `supabase/desarmes/`. Pero su convención en `main` (el encabezado de `0518_desarme.sql`) dice que un desarme de esa carpeta **se copia a `supabase/migrations/` con el siguiente número y se aplica con el runbook.** Eso sirve para deshacer esquema, como en la 0518. Este guion no cambia esquema: borra filas de una carga y no tiene que entrar al ledger.
+- **Lo que se propone:** `infra/ops/portal-historial/deshacer-vinculos.sql`, junto a los guiones que deshace, y con su contrato en `supabase/tests/`.
+- **Si se prefiere `supabase/desarmes/`,** el encabezado tiene que decir que este no se copia a migraciones.
+
+**Cuándo sirve: solo antes de la puerta 5.** Con el flag que nunca se encendió y la cola que nunca corrió, todas las filas del tenant salen de la carga. **Después de encender no se puede distinguir** lo que vinculó la cola de lo que vinculó la carga, porque no hay marca. Por eso el guion se niega, y ese caso queda fuera de alcance.
+
+**Entradas:**
+- `:tenant`, el uuid del tenant.
+- **Los conteos esperados,** sacados del conteo previo de solo lectura (el paso 1 de abajo):
+  - `:esperados_salida`, las filas `cargado`;
+  - `:esperados_hilos`;
+  - `:esperados_contactos`, los que tienen `chatwoot_contact_id`;
+  - `:esperados_espejo`, las filas de `chatwoot_conversations` de los hilos vinculados.
+- **`/dev/shm/portal-historial/contactos-conservados.ndjson`,** que escribe la pieza de E5. Va en 0600 y lleva solo ids, como `vinculos.ndjson`. El formato está propuesto y **lo confirma E5** ‹por confirmar›:
+  - **la cabecera:** `{"tipo":"cabecera","version":1,"tenant_id":"<uuid>","cuenta":<n>,"bandeja":<n>,"contactos":<n>}`;
+  - **una línea por contacto `dtd-portal:` que E5 no borró** porque tenía otra bandeja: `{"tipo":"contacto","identificador":"<uuid>","contacto_id":<n>}`;
+  - **si E5 no conservó ninguno,** el archivo trae solo la cabecera, con `"contactos":0`;
+  - entra a psql por `COPY`, igual que en `vincular.sh`.
+
+**Los pasos, en una transacción:**
+1. **Lectura previa,** con su `HECHO`: los cuatro conteos y el de `entity_audit_log` del tenant.
+2. **Guardas: aborta sin escribir nada** si se cumple cualquiera de estas condiciones.
+   - **El flag:** está encendido, o `entity_audit_log` tiene un encendido de `chatwoot_portal` (`entity_type = 'feature_flag'`, `event_type = 'feature_flag_changed'`, `after_data->>'enabled' = 'true'`). Son las mismas guardas de 4.3.
+   - **La cola:** hay una fila de `chatwoot_portal_salida` del tenant que no está `cargado`. Eso quiere decir que la cola corrió.
+   - **Los triggers:** una de las cinco tablas tiene un trigger que no es interno (`pg_trigger`, `not tgisinternal`). Las cinco tablas son `chatwoot_portal_salida`, `chatwoot_portal_hilos`, `chatwoot_portal_contactos`, `chatwoot_portal_estado` y `chatwoot_conversations`. **En `main` no tienen ninguno** (medido el 2026-11-08). Si producción se desvió, podrían dejar rastro en la auditoría.
+   - **Los conteos:** no son los esperados.
+   - **El archivo de E5:**
+     - falta;
+     - su cabecera no es la del tenant, la cuenta o la bandeja;
+     - su conteo no cuadra con sus líneas;
+     - un `identificador` no está reservado;
+     - o su `contacto_id` no es el que Studio tiene guardado.
+3. **Escrituras:**
+   - **borra** las filas `cargado` de `chatwoot_portal_salida` del tenant;
+   - **borra** las filas de `chatwoot_conversations` del tenant cuya `conversation_id` está en `chatwoot_portal_hilos`, es decir, el espejo que creó la vinculación;
+   - **borra** `chatwoot_portal_hilos` del tenant;
+   - **deja el corte en nulo** en `chatwoot_portal_estado`, junto con `cargado_at`;
+   - **en `chatwoot_portal_contactos` no borra ninguna fila.** Pone en nulo `chatwoot_contact_id` y `chatwoot_source_id`, salvo en los contactos del archivo de E5, que conservan los dos. El `check` de la 0519 admite los dos nulos juntos.
+4. **Verificación,** con `raise` si algo no cuadra:
+   - las filas borradas son las esperadas;
+   - quedan 0 hilos, 0 salidas y el corte nulo;
+   - los contactos conservados son los del archivo, y el resto tiene los dos ids en nulo;
+   - **`entity_audit_log` del tenant queda con el mismo número que en el paso 1.**
+5. **El cierre:** `HECHO salida=… hilos=… espejo=… contactos_vaciados=… contactos_conservados=… corte=nulo auditoria_antes=… auditoria_despues=…`. Lo corre Sam con `commit`, y el DG en el ensayo con `rollback`.
+
+**Por qué los contactos no se borran.** El `identificador` es la reserva del riesgo 1. Si se borra la fila, una carga nueva crearía otro identificador, y un contacto `dtd-portal:` que E5 dejó vivo, porque tenía otra bandeja, quedaría duplicado en Chatwoot.
+
+**Por qué el corte va siempre en nulo: el riesgo con la cola.** Al borrar la fila `cargado`, un mensaje queda sin salida. Con un corte, la cola lo tomaría al encender (`0519:226` y `:228`: entrantes con `sent_at >= corte` que no estén `enviado` ni `cargado`), y lo mandaría. **Con el corte en nulo, la cola no manda nada,** y ningún mensaje queda `pendiente`. Una carga nueva vuelve a fijar el corte.
+
+**Qué no toca:** `conversations` ni `conversation_messages`. C-6 y C-7 quedan iguales.
+
+**El contrato:** `supabase/tests/<nombre>.test.sql` y su envoltorio de PGlite.
+- **Sobre qué corre:** la 0519, la 0520, la 0523, la 0524 y la 0508, con un fixture de una carga hecha. Reusa el de la 0524.
+- **Casos:**
+  - el camino feliz;
+  - el que conserva contactos según el archivo de E5;
+  - una guarda por cada aborto, sin nada escrito;
+  - la cola después de deshacer: `chatwoot_portal_tomar` no devuelve nada, aunque se encienda el flag;
+  - **una carga nueva después de deshacer reusa los mismos identificadores.**
+- **Mutantes**, de 8 a 10:
+  - borra contactos en vez de vaciarlos;
+  - no deja el corte en nulo;
+  - no mira el flag ni su auditoría;
+  - acepta una salida que no está `cargado`;
+  - ignora el archivo de E5;
+  - no compara los conteos;
+  - no borra el espejo;
+  - no mira los triggers.
+- **Control rojo:** sin el guion, el contrato cae.
+
+**`revisar-datos-ve`:** es un borrado de datos personales en producción. Pasa por la skill, y su resultado va en la PR.
+- **Lo que borra son ids y estados,** sin nombres ni textos.
+- **No borra nada de lo que el cliente ve en el portal.**
+- **Los textos y los nombres** que la carga llevó a Chatwoot los borra la pieza de E5.
+
+**El tamaño:** unas 100 líneas de SQL, un contrato de unas 250 y un envoltorio de unas 150. Es una PR, con su handoff y la línea de 4.6b en el runbook.
+
+**El orden con E5:** primero Chatwoot y después Studio. Si la de Chatwoot falla, la de Studio no se corre. Como el flag sigue apagado y el corte queda en nulo, ningún orden hace daño a la cola.
+
 ### 10.5.11 El plazo de respuesta: lunes y feriados (P5 y P7)
 
 **La regla (E10-D23), en hora de Caracas:**
