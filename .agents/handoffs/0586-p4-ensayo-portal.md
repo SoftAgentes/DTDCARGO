@@ -83,8 +83,11 @@
   - L2 cayó porque la marca SINT-LOG salió 3 veces. L3 cayó por el permiso del insert.
   - M0 cayó por L2 y L3.
   - M35 a M38 no se pudieron aplicar.
-- **Verde**, sobre `9e82aa7bb`: pendiente. Lo lee el Subdirector, con L1 a L3 y M35 a M38 en PASÓ.
-- **Aprobada por el DG con esa condición.** Va en el tren 8.
+- **Verde**, sobre `9e82aa7bb`: los runs 42533753896 (cargador, job 128893410271) y 42533753860 (calidad).
+  - L1, L2 y L3 pasaron: la marca sale 0 veces.
+  - M0 pasó.
+  - M35 a M38 cayeron cada uno en lo suyo.
+- **Aprobada por el DG con la condición** de que L1 a L3 y M35 a M38 pasaran, y la cumple: lo verificó el Subdirector. Va en el tren 8 con la #468.
 
 ## FUERA DE ALCANCE DETECTADO
 
