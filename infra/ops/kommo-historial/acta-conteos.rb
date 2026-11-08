@@ -7,7 +7,7 @@
 # intentara escribir, Postgres lo rechaza. Imprime solo números y los nombres de canal que trae Kommo (`waba`,
 # `instagram_business`…), nunca un nombre, un teléfono, un correo, un texto ni un id de Kommo.
 #
-# En el VPS lo corre el Director General, con su OK (no lo corre un Worker):
+# En el VPS lo corre el Director General, solo con el OK nominal de Sam (no lo corre un Worker):
 #   docker compose cp …/acta-conteos.rb rails:/tmp/acta-conteos.rb
 #   docker compose exec -T -e BANDEJA=8 -e COMPARAR=5.7 rails bundle exec rails runner /tmp/acta-conteos.rb
 #

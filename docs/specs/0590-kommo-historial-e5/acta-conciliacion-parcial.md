@@ -1,7 +1,7 @@
 # Acta de conciliación parcial de E5 (paso 5.8)
 
 - **SDD:** 0590, paso 5.8 del programa [SDD-0582](../0582-chatwoot-piloto/checklist.md).
-- **Estado:** borrador. Lo medido por objeto ya está en [§10.16 de la spec](spec.md). Los conteos de la columna «Acta» los corre el Director General en producción, con su OK y de solo lectura: el Worker no los corre. Después, Sam acepta o no la 5.8.
+- **Estado:** borrador. Lo medido por objeto ya está en [§10.16 de la spec](spec.md). Las consultas de la columna «Acta» quedan escritas, solo de conteo y de solo lectura. El Director General se las presenta a Sam, y solo las corre en producción con el OK nominal de Sam. El Worker no las corre. Después, Sam acepta o no la 5.8.
 - **Es parcial:** cubre la carga del historial de Kommo hasta el corte `2026-11-07T05:00:00Z`. El acta final es la 8.6, después del corte de E8.
 - **Datos:** solo números y los nombres de canal que trae Kommo. Ningún nombre, teléfono, correo, texto, id de Kommo ni monto.
 - **Etiquetas:** R medido en el VPS (§10.16), C código, I inferencia, NV no verificado.
@@ -59,7 +59,7 @@ La referencia más cercana es la medición de la 5.2, del 2026-10-31 ([`informe-
 - **Imprime** solo números y nombres de canal.
 - **Con `COMPARAR=5.7`** compara cada objeto con la columna «En Chatwoot» de §1 y escribe «coincide» o «NO COINCIDE».
 
-El guion todavía no está en el VPS. Primero se copia de `main` junto a los otros de E5, en `/srv/ops/kommo-historial-0590b/`, y se compara su sha256 con el de `main`. Después, desde `/srv/chatwoot` y con el OK del Director General:
+El guion todavía no está en el VPS. Primero se copia de `main` junto a los otros de E5, en `/srv/ops/kommo-historial-0590b/`, y se compara su sha256 con el de `main`. Después, desde `/srv/chatwoot`, y solo con el OK nominal de Sam que pide el Director General:
 
 ```bash
 docker compose cp /srv/ops/kommo-historial-0590b/acta-conteos.rb rails:/tmp/acta-conteos.rb
