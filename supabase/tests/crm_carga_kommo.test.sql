@@ -273,6 +273,9 @@ update public.crm_tarjetas set asesor_id = '20000000-0000-0000-0000-000000000001
 
 \ir ../cargas/crm-kommo/carga.sql
 
+-- La marca de la copia efímera: el ensayo la pone con «alter database … set dtd.entorno = 'copia'».
+select set_config('dtd.entorno', 'copia', true);
+
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
 begin
@@ -309,7 +312,7 @@ create function pg_temp.corte() returns timestamptz language sql as $$ select no
 -- ─── Modo seco: la misma corrida dentro de un savepoint que se deshace no deja nada ───────────────────
 savepoint seco;
 insert into corrida select 0, r.clave, r.valor
-from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180) r;
+from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null) r;
 do $seco_dentro$
 begin
   perform pg_temp.assert_true(pg_temp.c(0, 'tarjetas_creadas') = 6, 'el seco cuenta lo mismo que la carga');
@@ -327,7 +330,7 @@ $seco$;
 
 -- ─── Primera corrida ─────────────────────────────────────────────────────────────────────────────────
 insert into corrida select 1, r.clave, r.valor
-from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180) r;
+from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null) r;
 
 do $primera$
 declare
@@ -432,7 +435,7 @@ insert into huellas values ('crm_primera', pg_temp.huella_crm());
 
 -- ─── Segunda corrida con el mismo corte: no cambia nada ──────────────────────────────────────────────
 insert into corrida select 2, r.clave, r.valor
-from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180) r;
+from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null) r;
 
 do $segunda$
 begin
@@ -449,7 +452,7 @@ $segunda$;
 insert into public.kommo_tasks (tenant_id, id, entity_id, entity_type, text, is_completed) values
   ('10000000-0000-0000-0000-000000000001', 7007, 1001, 'leads', 'Nueva', false);
 insert into corrida select 3, r.clave, r.valor
-from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180) r;
+from pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null) r;
 do $tercera$
 begin
   perform pg_temp.assert_true(pg_temp.c(3, 'tareas_creadas') = 1 and pg_temp.c(3, 'tarjetas_creadas') = 0, 'solo la tarea nueva');
@@ -464,23 +467,95 @@ declare
   v_ok boolean;
 begin
   begin
-    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', now() + interval '1 hour', 180);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', now() + interval '1 hour', 180, 'copia', null);
     v_ok := false;
   exception when invalid_parameter_value then v_ok := true;
   end;
   perform pg_temp.assert_true(v_ok, 'un corte en el futuro se rechaza');
   begin
-    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 0);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 0, 'copia', null);
     v_ok := false;
   exception when invalid_parameter_value then v_ok := true;
   end;
   perform pg_temp.assert_true(v_ok, 'cero días se rechaza');
   begin
-    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-0000000000ff', pg_temp.corte(), 180);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-0000000000ff', pg_temp.corte(), 180, 'copia', null);
     v_ok := false;
   exception when invalid_parameter_value then v_ok := true;
   end;
   perform pg_temp.assert_true(v_ok, 'un tenant inexistente se rechaza');
+
+  -- El entorno pedido tiene que coincidir con la marca de la base, aunque el identificador sea el bueno.
+  begin
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'produccion',
+      (select s.system_identifier::text from pg_control_system() s));
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%entorno%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'pedir produccion en una base marcada como copia se rechaza');
+  begin
+    perform set_config('dtd.entorno', '', true);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null);
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%entorno%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'pedir copia en una base sin marca se rechaza');
+  perform pg_temp.assert_true(current_setting('dtd.entorno', true) = 'copia', 'la marca vuelve después del caso');
+  begin
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'otro', null);
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%entorno%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'un entorno desconocido se rechaza');
+
+  -- Producción se identifica en positivo: sin marca y con el system_identifier que trae quien opera.
+  begin
+    perform set_config('dtd.entorno', '', true);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'produccion', '1');
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%identificador del sistema%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'produccion con el identificador equivocado se rechaza');
+  begin
+    perform set_config('dtd.entorno', '', true);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'produccion', null);
+    v_ok := false;
+  exception when invalid_parameter_value then v_ok := sqlerrm like '%identificador del sistema%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'produccion sin identificador se rechaza');
+  begin
+    perform set_config('dtd.entorno', '', true);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'produccion',
+      (select s.system_identifier::text from pg_control_system() s));
+    raise exception 'paso_produccion';
+  exception when others then v_ok := sqlerrm = 'paso_produccion';
+  end;
+  perform pg_temp.assert_true(v_ok, 'produccion sin marca y con su identificador pasa');
+  perform pg_temp.assert_true(current_setting('dtd.entorno', true) = 'copia', 'la marca vuelve después de los casos de produccion');
+
+  -- Dos fichas vivas con el mismo kommo_lead_id: no se elige una, se aborta.
+  begin
+    insert into public.kommo_leads (tenant_id, id, name, status_id, kommo_created_at, kommo_updated_at)
+    values ('10000000-0000-0000-0000-000000000001', 1020, 'L', 108343827, now() - interval '90 days', now() - interval '3 days');
+    insert into public.clients (id, tenant_id, markbox, kommo_lead_id) values
+      ('30000000-0000-0000-0000-000000000020', '10000000-0000-0000-0000-000000000001', 'DTD-1020', 1020),
+      ('30000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000001', 'DTD-1021', 1020);
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000001', pg_temp.corte(), 180, 'copia', null);
+    v_ok := false;
+  exception when others then v_ok := sqlerrm like '%kommo_lead_id%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'dos fichas vivas con el mismo kommo_lead_id abortan la carga');
+  perform pg_temp.assert_true(not exists (select 1 from public.kommo_leads where id = 1020), 'el caso se deshizo');
+
+  -- A un tenant le falta una etapa del mapa: el preflight aborta.
+  begin
+    delete from public.crm_etapas
+    where tenant_id = '10000000-0000-0000-0000-000000000002' and tablero = 'leads' and clave = 'negociacion';
+    perform pg_temp.crm_carga_kommo('10000000-0000-0000-0000-000000000002', pg_temp.corte(), 180, 'copia', null);
+    v_ok := false;
+  exception when others then v_ok := sqlerrm like '%faltan etapas%';
+  end;
+  perform pg_temp.assert_true(v_ok, 'sin las etapas sembradas el preflight aborta');
 end;
 $preflight$;
 

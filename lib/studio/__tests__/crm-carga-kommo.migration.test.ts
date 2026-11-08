@@ -10,6 +10,7 @@
  * MUTANTES: cada uno es un cargador coherente con un defecto y tiene que caer en la aserción que lo nombra.
  * ESTÁTICA: el cargador no llama afuera, no escribe en el espejo ni en las fichas y no deja objetos.
  */
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,15 +101,16 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
     },
     {
       nombre: "adivina entre dos tarjetas con el mismo teléfono",
-      desde: "if v_n > 1 then",
-      hacia: "if v_n > 99 then",
-      cae: /no adivina|leads_|tarjeta/,
+      desde: "if v_n > 1 then\n          -- No se adivina",
+      hacia: "if v_n > 99 then\n          -- No se adivina",
+      cae: /dos tarjetas con el mismo teléfono: no adivina/,
     },
     {
       nombre: "copia nombre y teléfono aunque haya ficha",
       desde: "case when v_client is null then v_nombre end",
       hacia: "v_nombre",
-      cae: /./,
+      // Lo frena el check de la 0506 (con ficha, sin nombre ni teléfono) antes de cualquier aserción.
+      cae: /new row for relation "crm_tarjetas" violates check constraint/,
     },
     {
       nombre: "la carga pisa la etapa de la tarjeta que ya existe",
@@ -140,7 +142,8 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       nombre: "toma el contacto que no es el principal",
       desde: "order by lc.is_main desc, lc.contact_id limit 1;",
       hacia: "order by lc.is_main, lc.contact_id limit 1;",
-      cae: /./,
+      // El lead 1007 toma el 5004, que ya es de la tarjeta del 1004: una tarjeta menos en el seco.
+      cae: /el seco cuenta lo mismo que la carga/,
     },
     {
       nombre: "el lead más viejo fija la etapa",
@@ -171,13 +174,44 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       nombre: "no salta los leads ya migrados",
       desde: "where x.tenant_id = p_tenant and x.sistema = 'kommo' and x.tipo = 'lead' and x.id_externo = l.id;",
       hacia: "where x.tenant_id = p_tenant and x.sistema = 'kommo' and x.tipo = 'lead' and x.id_externo = -l.id;",
-      cae: /./,
+      // En la segunda corrida vuelve a mapear el lead y lo frena la PK de crm_ids_externos.
+      cae: /duplicate key value violates unique constraint "crm_ids_externos_pkey"/,
     },
     {
       nombre: "ficha borrada cuenta",
-      desde: "c.kommo_lead_id = l.id and c.deleted_at is null limit 1;",
-      hacia: "c.kommo_lead_id = l.id limit 1;",
+      desde: "where c.tenant_id = p_tenant and c.kommo_lead_id = l.id and c.deleted_at is null;",
+      hacia: "where c.tenant_id = p_tenant and c.kommo_lead_id = l.id;",
       cae: /la ficha borrada no recibe tarjeta|sin ficha viva ni teléfono|el seco cuenta lo mismo que la carga/,
+    },
+    {
+      nombre: "no compara el entorno con la marca de la base",
+      desde: "if (p_entorno = 'copia' and v_marca <> 'copia') or (p_entorno = 'produccion' and v_marca <> '') then",
+      hacia: "if false then",
+      cae: /pedir produccion en una base marcada como copia se rechaza/,
+    },
+    {
+      nombre: "no compara el identificador del sistema en produccion",
+      desde: "if p_sistema is null or v_sistema is distinct from p_sistema then",
+      hacia: "if false then",
+      cae: /produccion con el identificador equivocado se rechaza/,
+    },
+    {
+      nombre: "acepta produccion sin identificador",
+      desde: "if p_sistema is null or v_sistema is distinct from p_sistema then",
+      hacia: "if p_sistema is not null and v_sistema is distinct from p_sistema then",
+      cae: /produccion sin identificador se rechaza/,
+    },
+    {
+      nombre: "vuelve a tomar una ficha cualquiera entre dos con el mismo kommo_lead_id",
+      desde: "      if v_n > 1 then\n        raise exception 'carga kommo→crm: hay más de una ficha viva con el mismo kommo_lead_id';",
+      hacia: "      if false then\n        raise exception 'carga kommo→crm: hay más de una ficha viva con el mismo kommo_lead_id';",
+      cae: /dos fichas vivas con el mismo kommo_lead_id abortan la carga/,
+    },
+    {
+      nombre: "no exige las etapas sembradas",
+      desde: "and e.clave in (select j.value from pg_catalog.jsonb_each_text(v_mapa) j)) <> 5 then",
+      hacia: "and e.clave in (select j.value from pg_catalog.jsonb_each_text(v_mapa) j)) < 0 then",
+      cae: /sin las etapas sembradas el preflight aborta/,
     },
     {
       nombre: "acepta un corte en el futuro",
@@ -194,6 +228,37 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       expect(run.error).toMatch(m.cae);
     }, SLOW);
   }
+
+  it("estática del lanzador: entorno obligatorio, VERBOSITY terse antes del \\i y el \\i con comillas", () => {
+    const correr = read(resolve(ROOT, "supabase/cargas/crm-kommo/correr.sh"));
+    expect(correr).toContain('  copia|produccion) ;;\n  *) echo "--entorno tiene que ser copia o produccion" >&2; exit 2 ;;');
+    const terse = correr.indexOf("\n\\set VERBOSITY terse\n");
+    const begin = correr.indexOf("\nbegin;\n");
+    const include = correr.indexOf("\n\\i '$DIR/carga.sql'\n");
+    expect(terse, "falta \\set VERBOSITY terse").toBeGreaterThan(-1);
+    expect(begin, "VERBOSITY terse va antes del begin").toBeGreaterThan(terse);
+    expect(include, "falta el \\i con comillas, después del begin").toBeGreaterThan(begin);
+    expect(correr).toContain("crm_carga_kommo('$tenant'::uuid, '$corte'::timestamptz, $dias, '$entorno', $sistema_sql);");
+    expect(correr).toContain("INICIO modo=$modo entorno=$entorno ");
+  });
+
+  it("el lanzador aborta antes de conectarse sin --entorno, o con produccion y sin --sistema", () => {
+    const correr = resolve(ROOT, "supabase/cargas/crm-kommo/correr.sh");
+    const base = ["--servicio", "/no/existe", "--tenant", "10000000-0000-0000-0000-000000000001", "--corte", "2026-01-01T00:00:00Z"];
+    const casos: Array<{ args: string[]; dice: RegExp }> = [
+      { args: ["seco", ...base], dice: /--entorno tiene que ser copia o produccion/ },
+      { args: ["seco", "--entorno", "prod", ...base], dice: /--entorno tiene que ser copia o produccion/ },
+      { args: ["seco", "--entorno", "produccion", ...base], dice: /produccion exige --sistema/ },
+      { args: ["seco", "--entorno", "produccion", "--sistema", "abc", ...base], dice: /produccion exige --sistema/ },
+      { args: ["seco", "--entorno", "copia", "--sistema", "123", ...base], dice: /--sistema solo va con --entorno produccion/ },
+    ];
+    for (const caso of casos) {
+      const r = spawnSync("bash", [correr, ...caso.args], { encoding: "utf8" });
+      expect(r.status, caso.args.join(" ")).toBe(2);
+      expect(r.stderr).toMatch(caso.dice);
+      expect(r.stdout).not.toMatch(/INICIO/);
+    }
+  });
 
   it("estática: no llama afuera, no escribe fuera de crm_* y no deja objetos", () => {
     const sinComentarios = CARGA.replace(/--.*$/gm, "");

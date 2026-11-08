@@ -14,10 +14,16 @@
 --
 -- Uso (lo hace correr.sh, dentro de una transacción):
 --   \i carga.sql
---   select clave, valor from pg_temp.crm_carga_kommo('<tenant>'::uuid, '<corte>'::timestamptz, 180);
+--   select clave, valor from pg_temp.crm_carga_kommo('<tenant>'::uuid, '<corte>'::timestamptz, 180, 'copia', null);
 --   rollback;   -- modo seco; commit en modo cargar
+--
+-- Entorno: 'copia' exige que la base tenga la marca dtd.entorno = 'copia' (la pone el ensayo en la copia
+-- efímera con «alter database … set dtd.entorno = 'copia'»); 'produccion' exige que no tenga ninguna marca
+-- y que el system_identifier de pg_control_system() sea el que trae quien opera (p_sistema, del runbook).
+-- Si lo pedido no coincide con la base, aborta antes de leer nada.
 
-create or replace function pg_temp.crm_carga_kommo(p_tenant uuid, p_corte timestamptz, p_dias integer default 180)
+create or replace function pg_temp.crm_carga_kommo(
+  p_tenant uuid, p_corte timestamptz, p_dias integer, p_entorno text, p_sistema text)
 returns table (clave text, valor bigint)
 language plpgsql
 set search_path = ''
@@ -42,8 +48,33 @@ declare
   v_asesor  uuid;
   v_tarea   uuid;
   v_vence   timestamptz;
+  v_marca   text;
+  v_sistema text;
 begin
   -- ─── Preflight ─────────────────────────────────────────────────────────────
+  if p_entorno is null or p_entorno not in ('copia', 'produccion') then
+    raise exception 'carga kommo→crm: el entorno tiene que ser copia o produccion' using errcode = '22023';
+  end if;
+  -- NULL y '' son lo mismo: sin marca.
+  v_marca := coalesce(pg_catalog.current_setting('dtd.entorno', true), '');
+  if (p_entorno = 'copia' and v_marca <> 'copia') or (p_entorno = 'produccion' and v_marca <> '') then
+    raise exception 'carga kommo→crm: el entorno pedido (%) no coincide con la marca de la base', p_entorno
+      using errcode = '22023';
+  end if;
+  -- Sin marca no prueba que sea producción: hace falta identificarla. Quien opera trae del runbook el
+  -- system_identifier esperado; no vive en el repo. Si el rol no puede leerlo, no se adivina: aborta.
+  if p_entorno = 'produccion' then
+    begin
+      select s.system_identifier::text into v_sistema from pg_catalog.pg_control_system() s;
+    exception when insufficient_privilege then
+      raise exception 'carga kommo→crm: el rol no puede leer pg_control_system(); no se identifica la base'
+        using errcode = '42501';
+    end;
+    if p_sistema is null or v_sistema is distinct from p_sistema then
+      raise exception 'carga kommo→crm: el identificador del sistema no es el esperado para produccion'
+        using errcode = '22023';
+    end if;
+  end if;
   if p_tenant is null or p_corte is null or p_dias is null or p_dias not between 1 and 3650 then
     raise exception 'carga kommo→crm: tenant, corte y días (1 a 3650) son obligatorios' using errcode = '22023';
   end if;
@@ -67,7 +98,7 @@ begin
         and e.clave in (select j.value from pg_catalog.jsonb_each_text(v_mapa) j)) <> 5 then
     raise exception 'carga kommo→crm: al tenant le faltan etapas sembradas o activas de la 0506';
   end if;
-  -- Una carga a la vez por tenant.
+  -- Una carga a la vez por tenant: candado de transacción, se suelta con el commit o el rollback.
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('dtd:carga-kommo-crm:' || p_tenant::text, 0));
 
   v_desde := p_corte - pg_catalog.make_interval(days => p_dias);
@@ -144,8 +175,12 @@ begin
           into v_phone, v_nombre
         from public.kommo_contacts c where c.tenant_id = p_tenant and c.id = v_contact;
       end if;
-      select c.id into v_client from public.clients c
-      where c.tenant_id = p_tenant and c.kommo_lead_id = l.id and c.deleted_at is null limit 1;
+      -- El índice único parcial de la 0108 no deja dos vivas; si las hay, la base no es la que se espera.
+      select pg_catalog.count(*), (pg_catalog.array_agg(c.id))[1] into v_n, v_client from public.clients c
+      where c.tenant_id = p_tenant and c.kommo_lead_id = l.id and c.deleted_at is null;
+      if v_n > 1 then
+        raise exception 'carga kommo→crm: hay más de una ficha viva con el mismo kommo_lead_id';
+      end if;
       if v_client is null and v_contact is not null then
         select case when pg_catalog.count(*) = 1 then (pg_catalog.array_agg(c.id))[1] end into v_client
         from public.clients c

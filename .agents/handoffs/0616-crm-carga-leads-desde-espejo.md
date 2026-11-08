@@ -14,14 +14,25 @@ Preparar la 6.5: leads, etapas, tareas, mappings e IDs de Kommo al CRM propio, s
 - Diseño en la SDD-0616, con D-6.5-1 a D-6.5-6 abiertas para el DG.
 - Cargador `supabase/cargas/crm-kommo/carga.sql`: función en `pg_temp`, sin migración. Su lanzador `correr.sh` tiene modo seco (rollback) y modo cargar (commit, con `--confirmo-ok-de-sam`). La salida son solo conteos.
 - Contrato `supabase/tests/crm_carga_kommo.test.sql`, con las migraciones 0503 a 0506 y la 0513 reales y datos inventados.
-- Prueba en PGlite con control rojo, 17 mutantes y una revisión estática del código del cargador.
+- Prueba en PGlite con control rojo, 22 mutantes, dos revisiones estáticas (cargador y lanzador) y el lanzador corrido sin `--entorno` o sin `--sistema`.
+- Revisión del DG sobre `4c0c2af54`, ya atendida:
+  - `--entorno copia|produccion` comparado con la marca `dtd.entorno`;
+  - `produccion` identificada con `--sistema` contra `pg_control_system()`;
+  - `\set VERBOSITY terse`;
+  - aborto con dos fichas vivas con el mismo `kommo_lead_id`;
+  - el caso de las etapas;
+  - el candado de transacción;
+  - las comillas del `\i`;
+  - los mutantes con su aserción;
+  - el índice en la allowlist.
+- Pendiente medir en el ensayo: que el rol de la carga pueda leer `pg_control_system()` (**NV**).
 - `sql-tests.yml` se dispara también con `supabase/cargas/**`.
 
 ## Validación
 
 | Comprobación | Resultado |
 |---|---|
-| `crm-carga-kommo.migration.test.ts`, `--maxWorkers=1`, con turno del Subdirector | PASÓ, 20 de 20 |
+| `crm-carga-kommo.migration.test.ts`, `--maxWorkers=1`, con turno del Subdirector | PASÓ, 20 de 20. Después de la revisión del DG: rojo previo del contrato nuevo contra el cargador de `4c0c2af54` (cae en «pedir produccion en una base marcada como copia se rechaza»), y con el arreglo PASÓ, 27 de 27 (68 aserciones y 22 mutantes) |
 | ESLint del archivo de prueba | PASÓ |
 | `bash -n correr.sh` | PASÓ |
 | `spec-migration-refs.test.ts` | PASÓ, 5 de 5 |

@@ -93,9 +93,24 @@ seco y se ajusta el mapa antes de cargar.
 
 ## 4. Qué hace el cargador
 
-`supabase/cargas/crm-kommo/carga.sql` define `pg_temp.crm_carga_kommo(tenant, corte, días)`, que muere con la
-sesión. `correr.sh` la llama dentro de una transacción y termina en `rollback` (seco) o `commit` (cargar). Un
-candado de sesión por tenant impide dos cargas a la vez.
+`supabase/cargas/crm-kommo/carga.sql` define `pg_temp.crm_carga_kommo(tenant, corte, días, entorno)`, que muere
+con la sesión. `correr.sh` la llama dentro de una transacción y termina en `rollback` (seco) o `commit` (cargar). Un
+candado de transacción por tenant (`pg_advisory_xact_lock`) impide dos cargas a la vez; se suelta con el commit o
+el rollback.
+
+**El entorno se comprueba contra la base.** `correr.sh` exige `--entorno copia|produccion`, lo escribe en la línea
+INICIO y se lo pasa a la función. La función lo compara con una marca de la base,
+`current_setting('dtd.entorno', true)`: `copia` exige que la marca sea `copia`, y `produccion` exige que no haya
+ninguna. Si no coinciden, aborta antes de leer nada. La marca la pone solo el ensayo, en la copia restaurada
+(§9, paso 2). En producción nadie la escribe.
+
+**Que no haya marca no prueba que sea producción**: una base de prueba o local tampoco la tiene. Por eso
+`produccion` exige además `--sistema`, el `system_identifier` que trae el runbook en el momento de correr y que
+no vive en el repo. La función lo compara con `pg_control_system()`, y si no es el mismo, o si el rol no puede
+leerlo, aborta. NULL y `''` cuentan igual: sin marca.
+
+**Errores sin datos.** `correr.sh` corre psql con `\set VERBOSITY terse`, así que un error sale sin DETAIL ni
+CONTEXT, que podrían traer valores de una fila. Los mensajes propios del cargador no llevan ids ni datos.
 
 1. **Asesores.** Cada usuario de Kommo con correo se mapea al usuario de Studio con el mismo correo, sin
    mayúsculas ni espacios, **solo si hay exactamente uno y está activo en el tenant**. Si no, queda sin par.
@@ -103,7 +118,9 @@ candado de sesión por tenant impide dos cargas a la vez.
    1. Si ya está mapeado, solo se miran sus tareas nuevas (paso 3).
    2. **La persona:** su contacto principal (`is_main`, y si no, el de id menor). **La ficha:** la viva con
       `kommo_lead_id` = el lead; si no, la única viva con `kommo_contact_id` = el contacto; si no, la única viva
-      con su teléfono (`crm_ficha_por_telefono`). Una ficha borrada no cuenta.
+      con su teléfono (`crm_ficha_por_telefono`). Una ficha borrada no cuenta. Con **dos o más fichas vivas con
+      el mismo `kommo_lead_id`, la carga aborta entera**: el índice único parcial de la 0108 no lo permite, así
+      que una base así no es la que se espera, y no se elige una al azar.
    3. **La tarjeta:** la del contacto ya mapeado; si no, la de la ficha; si no hay ficha, la **única** tarjeta
       viva sin ficha con esos 10 dígitos. Con dos o más, `leads_ambiguos`: no se carga.
    4. **Si hay tarjeta**, gana su etapa (§5). Solo se le completa el asesor si no tiene y se sube la última
@@ -179,15 +196,39 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no 
 | Comprobación | Dónde |
 |---|---|
 | Contrato con la 0503 a la 0506 y la 0513 reales, espejo con datos inventados y el cargador real: seco, carga, segunda corrida, tarea nueva y preflight | `supabase/tests/crm_carga_kommo.test.sql`, en Postgres 17 por `sql-tests.yml` en Actions |
-| El mismo contrato en PGlite, control rojo, 17 mutantes y la prueba estática | `lib/studio/__tests__/crm-carga-kommo.migration.test.ts`, en Vitest |
+| El mismo contrato en PGlite, control rojo, 22 mutantes y dos pruebas estáticas (cargador y lanzador) | `lib/studio/__tests__/crm-carga-kommo.migration.test.ts`, en Vitest |
+| El lanzador corrido de verdad: sin `--entorno`, con un entorno desconocido, `produccion` sin `--sistema` o con uno no numérico, y `--sistema` con `copia`. Todos salen con 2 antes de conectarse | El mismo archivo |
 
-**Resultado en la PC** (2026-11-08, con turno del Subdirector, `--maxWorkers=1`): **PASÓ, 20 de 20**, en 27 s.
-El contrato da verde, el control rojo cae y caen los 17 mutantes. Cinco caen en una aserción vecina de la que
-los nombra, y la prueba lo dice: pisar la etapa cae en «el lead más reciente fija la etapa»; el orden invertido,
-en el conteo por etapa; repetir tareas, en la PK de `crm_ids_externos`; la ficha borrada, en el conteo del seco;
-y pisar el asesor, en el conteo de asesores. Dos mutantes sobrevivían a la primera versión del contrato: un
-ganado sin `closed_at` y una tarjeta que ya tenía dueño. Los dos casos se sumaron al contrato.
-**En Actions** corre «Contratos SQL» en la PR: no se corrió Docker en la PC.
+**Resultado en la PC, primera tanda** (2026-11-08, con turno del Subdirector, `--maxWorkers=1`): **PASÓ, 20 de 20**,
+en 27 s. Dos mutantes sobrevivían a la primera versión del contrato, un ganado sin `closed_at` y una tarjeta que
+ya tenía dueño, y los dos casos se sumaron.
+
+**Segunda tanda, la revisión del DG sobre `4c0c2af54`** (mismo turno y mismas opciones):
+- **Rojo previo:** el contrato nuevo contra el cargador de `4c0c2af54`, con solo la firma adaptada, cae en
+  «pedir produccion en una base marcada como copia se rechaza». Con el arreglo da **verde, con 68 aserciones**.
+- **Corrida completa: PASÓ, 27 de 27**, en 76 s. Son el contrato, el control rojo, 22 mutantes, las dos pruebas
+  estáticas y la del lanzador.
+- **Los mutantes nuevos** son cinco, y cada uno cae en la aserción que lo nombra: saltarse la marca, saltarse el
+  identificador, aceptar `produccion` sin identificador, tomar una ficha cualquiera entre dos con el mismo
+  `kommo_lead_id` y no exigir las etapas.
+- **`VERBOSITY terse` no se puede medir sin psql:** lo fija la prueba estática del lanzador, que exige la línea
+  antes del `begin` y el `\i` con comillas después.
+
+**Mutantes que caen en una aserción vecina,** y la prueba lo dice:
+- pisar la etapa cae en «el lead más reciente fija la etapa»;
+- el orden invertido, en el conteo por etapa;
+- la ficha borrada, en el conteo del seco;
+- pisar el asesor, en el conteo de asesores;
+- tomar el contacto que no es el principal, en el conteo del seco (el lead 1007 toma un contacto que ya tiene
+  tarjeta);
+- repetir tareas o no saltar los leads ya migrados, en la PK de `crm_ids_externos`;
+- copiar nombre y teléfono con ficha, en el check de la 0506.
+
+**En Actions,** «Contratos SQL» PASÓ sobre `8915943f8`: 267 de 267, con `crm_carga_kommo.test.sql` (run 42479215146).
+
+**`pg_control_system()` y el rol de la carga.** En PGlite lo lee el superusuario. Que lo pueda leer el rol con que
+se corra en producción es **NV**: se mide en el ensayo sobre la copia, con el mismo rol (§9, paso 2). Si el rol no
+puede, la función aborta con `42501` y no carga: no hay un camino que se salte el identificador.
 
 **Ensayo.** El ensayo con datos inventados es este contrato. Corre en una base efímera que se deshace con
 `rollback`, en Actions, como el cargador de E5.
@@ -204,11 +245,13 @@ los demás. `sql-tests.yml` se dispara también con `supabase/cargas/**`.
 
 1. **L1, solo conteos en producción** (SDD-0587 §8, «Lecturas vivas propuestas»): leads por etapa y por
    antigüedad de la actividad, para confirmar D4 y el mapa. OK de Sam: es lectura de producción.
-2. **Ensayo en una copia efímera** de la base, en el VPS: restaurar el respaldo, correr `seco`, `cargar` y otra
-   vez `cargar`, guardar solo los conteos y destruir la copia. OK de Sam: la copia tiene PII. Muestra revisada
-   con Sam, como 5.6.
-3. ⛔ **Seco en producción**, justo antes de cargar: `correr.sh seco`. Lee filas de clientes: pide OK, y la salida son solo conteos.
-4. ⛔ **Carga**: `correr.sh cargar --confirmo-ok-de-sam`. **OK nominal de Sam.** Antes, el respaldo de la base.
+2. ⛔ **Ensayo en una copia efímera** de la base, en el VPS: restaurar el respaldo, marcarla con
+   `alter database <copia> set dtd.entorno = 'copia'`, correr `seco`, `cargar` y otra vez `cargar` con
+   `--entorno copia`, guardar solo los conteos y destruir la copia. OK de Sam: la copia tiene PII. Muestra
+   revisada con Sam, como 5.6. En el ensayo se mide también, con el mismo rol de la carga, que
+   `select system_identifier from pg_control_system()` se pueda leer.
+3. ⛔ **Seco en producción**, justo antes de cargar: `correr.sh seco --entorno produccion --sistema <del runbook>`. Lee filas de clientes: pide OK, y la salida son solo conteos.
+4. ⛔ **Carga**: `correr.sh cargar --entorno produccion --sistema <del runbook> --confirmo-ok-de-sam`. **OK nominal de Sam.** Antes, el respaldo de la base.
 5. **Acta**: conteos por etapa y objeto antes y después (SDD-0587 §7.6), sin ids ni nombres.
 
 El corte lo fija el instante de 8.2. La extracción final del espejo (8.5) va antes que el paso 3.
@@ -246,12 +289,14 @@ El corte lo fija el instante de 8.2. La extracción final del espejo (8.5) va an
 | `.github/workflows/sql-tests.yml` | Dispara «Contratos SQL» también con `supabase/cargas/**` |
 | `scripts/ci-sql-tests-control.sh` | El control C4 copia también `supabase/cargas/`: sin eso, el contrato no encuentra el cargador (rojo del run 42478778578) |
 | `.agents/handoffs/0616-crm-carga-leads-desde-espejo.md` | Handoff |
+| `docs/specs/README.md` | Índice regenerado con `docs:index` |
 
 ## 13. Aceptación de 6.5
 
 - [ ] Diseño aceptado por el Director General, con D-6.5-1 a D-6.5-6.
-- [x] Contrato verde en PGlite, con el control rojo y los 17 mutantes (§8).
-- [ ] Contrato verde en Postgres 17, en «Contratos SQL» de la PR.
+- [x] Contrato verde en PGlite, con el control rojo y los 22 mutantes (§8).
+- [x] Contrato verde en Postgres 17, en «Contratos SQL» de la PR (run 42479215146, sobre `8915943f8`). Hay que
+  repetirlo sobre la cabeza nueva.
 - [ ] L1, ensayo en copia, seco y carga en producción, cada uno con su OK (§9).
 - [ ] Acta con conteos antes y después.
 
@@ -266,3 +311,10 @@ El corte lo fija el instante de 8.2. La extracción final del espejo (8.5) va an
 ## 15. Seguimiento
 
 - **2026-11-08:** el Director General reservó el número 0616, con el stub `c764cf399`, y confirmó que va sin migración. SDD, cargador y pruebas en borrador. No se cargó nada, no se leyó producción y no hay migración.
+- **2026-11-08:** el DG pidió cambios (CHANGES_REQUESTED sobre `4c0c2af54`).
+  - **Bloqueantes:** `--entorno` comparado con la base; producción identificada en positivo con el
+    `system_identifier` que trae el runbook (opción A del Subdirector); `\set VERBOSITY terse`; y dos fichas
+    vivas con el mismo `kommo_lead_id` abortan la carga.
+  - **Menores:** allowlist, el candado de transacción, mutantes con su aserción, comillas en el `\i` y el caso
+    de las etapas.
+  - Hechos, con su rojo previo y sus mutantes (§8).
