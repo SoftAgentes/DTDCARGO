@@ -358,6 +358,18 @@ class CargaPortal
       @cuenta[:conversaciones_nuevas] += filas.size
       @cuenta[:conversaciones_omitidas] += lote.size - filas.size
     end
+    # Guardas del update (revisión del DG): no pisa en silencio el trabajo de un agente entre una carga fallida y la
+    # repetición. Si una conversación por cambiar tiene mensajes que no son de la carga, un agente asignado o está
+    # en snoozed, aborta con el conteo. (snoozed aborta, así que snoozed_until nunca queda a medias.)
+    por_cambiar = cambiar.values.flatten
+    unless por_cambiar.empty?
+      ajenos = Message.where(conversation_id: por_cambiar).where("source_id IS NULL OR source_id NOT LIKE 'dtd:%'").count
+      asignadas = Conversation.where(id: por_cambiar).where.not(assignee_id: nil).count
+      dormidas = Conversation.where(id: por_cambiar, status: Conversation.statuses.fetch('snoozed')).count
+      if ajenos.positive? || asignadas.positive? || dormidas.positive?
+        raise "una conversación ya cargada cambió en Chatwoot (mensajes ajenos #{ajenos}, asignadas #{asignadas}, snoozed #{dormidas})"
+      end
+    end
     cambiar.each do |estado, ids|
       Conversation.where(id: ids).update_all(status: Conversation.statuses.fetch(estado)) unless seco?
       @cuenta[:conversaciones_estado_actualizado] += ids.size

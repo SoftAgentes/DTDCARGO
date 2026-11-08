@@ -151,6 +151,13 @@ module SondaPortal
              [cab, *contactos, conversaciones.first.merge(estado: 'resolved'), *conversaciones.drop(1), *mensajes])
     # Un mensaje ya cargado que ahora llega en otro hilo: aborta (G14).
     escribir(File.join(dir, 'preparado-movido.ndjson'), [*todo[0...-1], mensajes.last.merge(hilo: h1)])
+    # Las guardas de R4: cada variante cambia el estado de UNA conversación ya cargada que cambió en Chatwoot.
+    # La base es la de preparado-estado (h1 ya resolved, como queda en Chatwoot después de R4).
+    conv_base = [conversaciones.first.merge(estado: 'resolved'), *conversaciones.drop(1)]
+    conv_con = ->(i, estado) { conv_base.each_with_index.map { |c, j| j == i ? c.merge(estado: estado) : c } }
+    escribir(File.join(dir, 'preparado-guarda-mensaje.ndjson'), [cab, *contactos, *conv_con.call(1, 'open'), *mensajes])
+    escribir(File.join(dir, 'preparado-guarda-asignada.ndjson'), [cab, *contactos, *conv_con.call(2, 'open'), *mensajes])
+    escribir(File.join(dir, 'preparado-guarda-snoozed.ndjson'), [cab, *contactos, *conv_con.call(0, 'open'), *mensajes])
     escribir(File.join(dir, 'preparado-sin-contacto.ndjson'),
              [cab, *contactos, *conversaciones[0...-1], conversaciones.last.merge(cliente: SecureRandom.uuid), *mensajes])
 
@@ -345,6 +352,7 @@ module SondaPortal
     tabla.execute('BEGIN')
     tabla.execute('LOCK TABLE conversations IN EXCLUSIVE MODE')
     salidas = Array.new(2) { StringIO.new }
+    inicio = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     hilos = salidas.map do |s|
       Thread.new do
         ActiveRecord::Base.connection_pool.with_connection do
@@ -352,11 +360,19 @@ module SondaPortal
             CargaPortal.principal(env_carga(sub, 'VINCULOS' => '-'), entrada: entrada, salida: s)
           end
         end
+      rescue Exception => e # rubocop:disable Lint/RescueException -- diagnóstico: se anota y se sigue
+        s.puts "HECHO hilo_excepcion=#{e.class}:#{e.message.to_s[0, 200].tr("\n", ' ')}"
+      ensure
+        s.puts "HECHO hilo_segundos=#{(Process.clock_gettime(Process::CLOCK_MONOTONIC) - inicio).round(1)}"
       end
     end
     esperando = 0
+    esperando_max = 0
+    vueltas = 0
     120.times do
+      vueltas += 1
       esperando = tabla.select_value("SELECT count(*) FROM pg_locks WHERE relation = 'conversations'::regclass AND NOT granted").to_i
+      esperando_max = [esperando_max, esperando].max
       break if esperando + hilos.count { |h| !h.alive? } >= 2
 
       sleep 0.25
@@ -373,6 +389,13 @@ module SondaPortal
       f.puts "HECHO concurrencia_mensajes=#{msgs.count}"
       f.puts "HECHO concurrencia_negadas=#{salidas.count { |s| s.string.include?('HECHO error=otra carga del portal en curso') }}"
       f.puts "HECHO concurrencia_ok=#{salidas.count { |s| s.string.include?('HECHO carga=ok') }}"
+      f.puts "HECHO concurrencia_esperando_max=#{esperando_max}"
+      f.puts "HECHO concurrencia_vueltas=#{vueltas}"
+      f.puts "HECHO concurrencia_vivos_al_final=#{hilos.count(&:alive?)}"
+      # Las HECHO de cada hilo (solo conteos y errores propios del cargador), para leer la causa de un rojo.
+      salidas.each_with_index do |s, i|
+        s.string.each_line { |l| f.puts "HILO#{i + 1} #{l}" if l.start_with?('HECHO ') }
+      end
     end
   rescue StandardError, ScriptError => e
     File.write(File.join(dir, 'concurrencia.txt'), "HECHO concurrencia=error:#{e.class}\n")
@@ -381,6 +404,35 @@ module SondaPortal
       tabla.execute('ROLLBACK') rescue nil
       ActiveRecord::Base.connection_pool.checkin(tabla)
     end
+  end
+
+  # C-13 justo después de la carga 1: los estados y la nota, antes de que una repetición pueda corregirlos.
+  def estados(out:, dir:)
+    b = JSON.parse(File.read(File.join(dir, 'base.json')))
+    convs = Conversation.where(inbox_id: b['portal']).where("additional_attributes ? 'dtd_hilo'")
+    hilo = ->(h) { convs.find_by("additional_attributes->>'dtd_hilo' = ?", b['hilos'][h]) }
+    out.puts "HECHO estados=#{%w[h1 h2 h3 h4].map { |h| hilo.call(h)&.status }.join(',')}"
+    nota = Message.where(inbox_id: b['portal']).where("source_id LIKE 'dtd:archivado:%'").pick(:conversation_id)
+    out.puts "HECHO nota_en_su_hilo=#{nota && nota == hilo.call('h4')&.id ? 'si' : 'no'}"
+  end
+
+  # Las guardas de R4: tres conversaciones ya cargadas que cambiaron en Chatwoot, una por guarda. h2 recibe un
+  # mensaje de un agente (sin source_id), h3 queda asignada y h1 queda en snoozed. Sin callbacks donde se puede.
+  def guardas(out:, dir:, cual:)
+    b = JSON.parse(File.read(File.join(dir, 'base.json')))
+    convs = Conversation.where(inbox_id: b['portal']).where("additional_attributes ? 'dtd_hilo'")
+    hilo = ->(h) { convs.find_by("additional_attributes->>'dtd_hilo' = ?", b['hilos'][h]) }
+    case cual
+    when 'mensaje'
+      ahora = Time.zone.now
+      Message.insert_all([{ account_id: b['cuenta'], inbox_id: b['portal'], conversation_id: hilo.call('h2').id, message_type: 1,
+                            content: 'SINT-AGENTE respuesta en Chatwoot', private: false, status: 0, source_id: nil,
+                            sender_type: 'User', sender_id: b['agente'], content_attributes: {}, created_at: ahora, updated_at: ahora }])
+    when 'asignada' then hilo.call('h3').update_columns(assignee_id: b['agente'])
+    when 'snoozed' then hilo.call('h1').update_columns(status: Conversation.statuses.fetch('snoozed'))
+    else raise 'guarda desconocida'
+    end
+    out.puts "HECHO guarda_#{cual}=ok"
   end
 
   # R4: el estado del hilo 1 en Chatwoot después de repetir la carga con otro estado.
@@ -414,4 +466,6 @@ when 'con-log' then SondaPortal.con_log(dir: ENV.fetch('DIR'))
 when 'candado' then SondaPortal.candado(dir: ENV.fetch('DIR'))
 when 'concurrencia' then SondaPortal.concurrencia(dir: ENV.fetch('DIR'))
 when 'estado' then SondaPortal.estado(out: $stdout, dir: ENV.fetch('DIR'))
+when 'estados' then SondaPortal.estados(out: $stdout, dir: ENV.fetch('DIR'))
+when 'guardas' then SondaPortal.guardas(out: $stdout, dir: ENV.fetch('DIR'), cual: ENV.fetch('CUAL'))
 end
