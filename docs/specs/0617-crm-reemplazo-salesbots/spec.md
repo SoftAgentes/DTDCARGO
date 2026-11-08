@@ -7,7 +7,7 @@ created: 2026-11-08
 updated: 2026-11-08
 supersedes: null
 superseded_by: null
-related: ["0582", "0587", "0614", "0586", "0616"]
+related: ["0582", "0587", "0614", "0586", "0618"]
 confidencialidad: interno
 ---
 
@@ -46,7 +46,7 @@ la 6.6), **base de conocimiento** (7.4, que lee el bot de E7), **/registro**, **
 | Bot (id) | Qué hacía | Reemplazo | Dónde está | Costo en Meta |
 |---|---|---|---|---|
 | 38249 Bienvenida horario oficina | Saludo y menú de letras A–H que repartía a los bots de servicio | **Base de conocimiento (7.4)**: el mapa de servicios del menú. **No se recrea el menú** ni un saludo automático: el primer mensaje que sale es la redirección de E10 o la respuesta de una persona | E7, por coordinar (§4) | 0. Un saludo automático costaría 1 mensaje por conversación (D-6.7-2) |
-| 38711 Asignar asesor (Round Robin) | Repartía por palabra clave entre usuarios que ya no existen; el 71,4 % caía en Round Robin | **Ninguno**: dueño = el primero que atiende (SDD-0587 §5.4). Con más agentes, la asignación automática de la bandeja de Chatwoot, que no envía nada | Embudo (6.4, hecho) | 0 |
+| 38711 Asignar asesor (Round Robin) | Repartía por palabra clave entre usuarios que ya no existen; el 71,4 % caía en Round Robin | **Ninguno**: dueño = el primero que atiende (SDD-0587 §5.4). Con más agentes, la asignación automática de la bandeja de Chatwoot, que no envía nada. ⛔ Encenderla en el Chatwoot vivo pide un OK de Sam | Embudo (6.4, hecho) | 0 |
 | 38713 Solicitud de datos | Pedía nombre, cédula, correo y dirección por chat | **Ninguno**: los datos se piden solo por /registro (6.4). El bot nunca pide ni repite una cédula o un RIF (reglas `pide_dato_sensible` y `documento_de_identidad` de la SDD-0618) | 6.4, hecho | 0 |
 | 38251 Carga marítima | Condiciones del servicio | **Base (7.4)**, revisando los datos (§3) | E7, por coordinar | 0 |
 | 38773 Cursos, 38775 Asesorías personalizadas | Información del servicio | **Base (7.4)** | E7, por coordinar | 0 |
@@ -73,21 +73,23 @@ inventario.
 
 ## 4. Coordinación con E7
 
-Antes de asignar algo al bot, el Subdirector lo confirma con el carril E7 (sesión «e7-bot-propio»). Lo que se
+Antes de asignar algo al bot, el Subdirector lo confirma con el carril E7 (SDD-0618). Lo que se
 propone:
 
 1. **7.3 / 7.4** reciben el mapa de servicios del menú A–H y los textos de los 6 bots de servicio como
    **material de partida**, con la lista de §3. No es un encargo nuevo: ya está en el alcance de 7.3 y 7.4.
-2. **El bot no recrea el menú de letras ni saluda solo.** Responde en 1 mensaje por turno (0.8), y fuera de
-   horario es decisión de 7.7 (horario por bandeja), no de esta SDD.
+2. **El bot solo responde a un mensaje entrante del cliente y nunca inicia una conversación.** Abre un turno
+   solo con un entrante y responde en 1 mensaje (0.8). Tampoco recrea el menú de letras. El horario y el modo
+   «solo el primer mensaje» son de la 7.7, no de esta SDD. E7 lo confirmó el 2026-11-08.
 3. **Ningún «ping» al cliente desde el bot.** Con D8 (a), el seguimiento de la ventana es una alerta interna.
+4. **Instagram:** ningún reemplazo de esta SDD contesta la bandeja de Instagram desde Chatwoot (checklist 4.6).
 
 ## 5. Costo de los «Ping 23 h» (lo que pide la fila 6.7)
 
 | Escenario | Mensajes al mes (**I**) | Costo |
 |---|---|---|
 | **D8 (a), alerta interna** (R6) | 0 | **US$0** |
-| (b) Mensaje automático al lead en las 3 etapas, como Kommo | Del orden de ~370 | Cada respuesta cuenta contra el cupo de 1.000 gratis por número desde el 2026-10-01; con el cupo ya pasado por las respuestas humanas (~1.960, spec 0582), ~US$4 al mes a US$0,0113 (tarifa de enero, **D**; la de octubre es **NV**) |
+| ⛔ (b) Mensaje automático al lead en las 3 etapas, como Kommo. **Contradice la D8 (a) aprobada** (SDD-0587 §8, D8): reabrirla pide un OK nominal de Sam | Del orden de ~370 | Cada respuesta cuenta contra el cupo de 1.000 gratis por número desde el 2026-10-01; con el cupo ya pasado por las respuestas humanas (~1.960, spec 0582), ~US$4 al mes a US$0,0113 (tarifa de enero, **D**; la de octubre es **NV**) |
 | (b) fuera de la ventana | — | Haría falta plantilla, con precio por categoría **NV** |
 
 **Base del cálculo (I):** K-13 cuenta 17, 368, 145 y 589 lanzamientos en total (1.119), sin saber a qué bot
@@ -101,8 +103,8 @@ el número. Por eso la recomendación sigue siendo D8 (a).
 | # | Pregunta | Opciones | Recomendación |
 |---|---|---|---|
 | D-6.7-1 | ¿R6 crea además una tarea, como el «Aviso interno» de Kommo? | (a) No: la lista y el aviso bastan · (b) sí, una tarea por ventana | **(a)**: una tarea por ventana llenaría la lista de tareas vencidas y la señal 4 de D-SA contaría dos veces lo mismo |
-| D-6.7-2 | ¿Saludo automático en la bandeja de leads de Chatwoot? | (a) No · (b) sí | **(a)**: cuesta 1 mensaje por conversación y la redirección de E10 ya es el primer mensaje |
-| D-6.7-3 | ¿Borrar los Salesbots en Kommo? | (a) No se tocan: apagados, se van con la cuenta en E8 · (b) borrarlos antes | **(a)**: apagados no hacen nada y Kommo no tiene borrado desde la lista; escribir en Kommo pide OK |
+| D-6.7-2 | ¿Saludo automático en la bandeja de leads de Chatwoot? | (a) No · ⛔ (b) sí: configurarlo en el Chatwoot vivo y enviar pide un OK nominal de Sam | **(a)**: cuesta 1 mensaje por conversación y la redirección de E10 ya es el primer mensaje |
+| D-6.7-3 | ¿Borrar los Salesbots en Kommo? | (a) No se tocan: apagados, se van con la cuenta en E8 · (b) borrarlos antes | **(a)**: apagados no hacen nada y Kommo no tiene borrado desde la lista. ⛔ Escribir en Kommo pide un OK nominal de Sam: aquí Kommo solo se lee |
 
 ## 7. Qué le queda a la 6.7 después de este diseño
 
@@ -118,8 +120,10 @@ el número. Por eso la recomendación sigue siendo D8 (a).
 |---|---|
 | `docs/specs/0617-crm-reemplazo-salesbots/spec.md` | Esta SDD |
 | `.agents/handoffs/0617-crm-reemplazo-salesbots.md` | Handoff |
+| `docs/specs/README.md` | Índice regenerado con `docs:index` |
 
 ## 9. Seguimiento
 
 - **2026-11-08:** el Director General reservó el número 0617, con el stub `2cfa005e2`. Diseño en borrador. No se activó ni se borró nada. El Subdirector tiene que confirmar §4 con el carril E7.
 - **2026-11-08:** E7 dio el OK a la §4 como entrada para la 7.4, con un cambio: la fila 38713 queda en «Ninguno», porque el patrón «¿su cédula es X?» choca con dos reglas duras de la SDD-0618.
+- **2026-11-08:** cambios de redacción del Director General sobre `9ffcda9ae`: ⛔ y su puerta en los pasos vivos, la línea de Instagram, `related` con la 0618, la cita de la SDD-0618 y la frontera con E7 (el bot solo responde a un entrante).
