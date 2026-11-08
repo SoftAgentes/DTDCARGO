@@ -1,0 +1,21 @@
+# Overlay de la PRUEBA del cargador del portal (SDD-0586 §10.5.10), en GitHub Actions o en una PC. Nunca en el VPS.
+# Copia de infra/ops/kommo-historial/pruebas/compose.cargador.yml (SDD-0590 5.5), que retira la 0619.
+#
+# prueba-cargador.sh corre el cargador del portal, su sonda y los mutantes con `rails runner` en el servicio `prepare`, que
+# solo está en la red `interna` (internal: true): sin salida a internet. Sin Sidekiq ni Rails corriendo, todo
+# trabajo que se encole queda en Redis y se puede contar. `estado` es de escritura: la línea base y las salidas
+# de los mutantes.
+
+services:
+  prepare:
+    volumes:
+      - ./cargador:/tmp/cargador:ro
+      - ./estado:/tmp/estado
+  # El compose de infra/chatwoot fija Chatwoot por digest, pero Postgres y Redis solo por etiqueta, así que
+  # un runner podría bajar otra build de la misma etiqueta. Aquí se fijan los digests que corren en
+  # producción (`docker inspect` en el VPS, 2026-11-06: chatwoot-postgres-1 y chatwoot-redis-1).
+  # Chatwoot ya es el mismo: 04895c7b… en el VPS y en el compose de main.
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg16@sha256:33198da2828a14c30348d2ccb4750833d5ed9a44c88d840a0e523d7417120337
+  redis:
+    image: redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7
