@@ -91,6 +91,22 @@ rollback;
 
 **Antes:** las condiciones de §0, salvo T1 a T4 en producción, y las piezas de §1 en prueba, cada una con su OK. El cliente de prueba es uno del tenant de prueba, con correo `example.test`. El agente es uno de los usuarios 4 o 5 de la cuenta 2, vinculado en Bandeja › Vínculos.
 
+**Cómo se llega a prueba. La lista de IP no se toca.** El 2026-11-08, con `prueba-sha-efd7e70f6`, el smoke de la puerta de `desplegar-prueba.sh` dio **403 en todo desde el VPS**. Es la lista de IP de Cloudflare, y ya pasaba con la imagen anterior (dato del Subdirector). Lo medido antes en este entorno está en `docs/runbooks/entorno-prueba.md` §2.1 y en las notas del DG:
+
+- **Desde el VPS por DNS, `curl` sale por IPv6 y da 403** en todo, incluido `/`. Por `127.0.0.1` también da 403. Con `curl -4` por `217.216.54.70`, o por la IP de Traefik en `dtd_edge`, da **401**, que es la puerta: entra.
+- **Para el navegador** (el cliente del portal y la Bandeja): Chrome desde la PC de Sam por un túnel, sin tocar ninguna lista.
+  - El túnel: `ssh -N -L 127.0.0.1:<puerto>:<IP de Traefik en dtd_edge>:443 root@217.216.54.70`.
+  - Chrome con un perfil aparte y `--host-resolver-rules="MAP prueba.dtdcargo.com 127.0.0.1:<puerto>,MAP supabase-prueba.dtdcargo.com 127.0.0.1:<puerto>"`.
+  - Antes de abrir, por el túnel tiene que dar 401.
+  - Pasar la puerta pide su clave: solo con el OK de Sam que nombre el host, en la sesión que la usa.
+  - Al terminar se cierra el túnel.
+- **Desde dentro, sin Traefik ni Cloudflare:**
+  - `docker exec -i dtd-cargo-staging-web-1 node -`, con un `http.request` a `127.0.0.1:3000` y el `Host` de prueba;
+  - el cron, desde su contenedor, con `http://web:3000/…`;
+  - los conteos de §2, en `dtd-cargo-staging-db-1`.
+  - Sirve para medir. No reemplaza el recorrido por el portal ni la Bandeja.
+- **El webhook de la cuenta 2 hacia prueba** entra por la ruta que el DG abrió en el borde, `/srv/edge/traefik/dynamic/prueba-chatwoot-webhook.yml` (solo `POST` y solo por Cloudflare). Se cierra borrándolo. Antes de la punta a punta, se comprueba que siga ahí (`ls`). Si no está, volver a abrirla es tocar el borde compartido: **⛔ FUERA DEL OK DE HOY**. La entrega firmada de Chatwoot a prueba ya pasó en la punta a punta de E2 (2026-11-04).
+
 | # | Paso | Esperado | Cómo se mide |
 |---|---|---|---|
 | 1 | Conteos de §2, con el flag **apagado** | Todo en 0. Si ya hay un corte, se anota | SQL de §2 |
@@ -164,7 +180,7 @@ Luego:
 3. **Cargar P4.** Su código, la PR 2, no está escrito. En producción, el corte sin P4 es una decisión de Sam (§1).
 4. **Reiniciar Chatwoot,** si hace falta.
 
-Además, tocar el webhook de cuenta o provocar las alertas de la salud en prueba también es un cambio en el Chatwoot vivo o en el VPS, y queda fuera. Fijar el corte en producción es escribir en la base: va con su OK.
+Además, tocar el webhook de cuenta o provocar las alertas de la salud en prueba también es un cambio en el Chatwoot vivo o en el VPS, y queda fuera. Fijar el corte en producción es escribir en la base: va con su OK. Tampoco entran en el OK de hoy tocar la lista de IP de prueba (`ips-prueba.sh` o `cloudflare-private.yml`) ni reabrir la ruta del webhook de prueba en el borde: para llegar a prueba están el túnel y las mediciones desde dentro de §3.
 
 ## 7 · Evidencia que queda
 
