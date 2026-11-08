@@ -87,12 +87,14 @@ module SondaPap
     r = http.request(req)
     hecho('api_codigo', r.code)
     # Sidekiq de la prueba procesa lo encolado: se espera a que las colas y lo programado queden vacíos.
+    # Las colas, no lo programado: Chatwoot deja trabajos para más tarde en ScheduledSet, y esos no son de este mensaje.
     vacio = (1..90).any? do
       sleep 1
-      Sidekiq::Queue.all.sum(&:size).zero? && Sidekiq::ScheduledSet.new.size.zero?
+      Sidekiq::Queue.all.sum(&:size).zero?
     end
     sleep 3 # lo que estaba en proceso termina o pasa a reintentos
     hecho('colas_vacias', vacio ? 'si' : 'no')
+    hecho('programados', Sidekiq::ScheduledSet.new.map(&:display_class).tally.map { |c, n| "#{c}:#{n}" }.sort.join(',').presence || 'ninguno')
     hecho('reintentos_nuevos', Sidekiq::RetrySet.new.size - reintentos_antes)
     hecho('muertos_nuevos', Sidekiq::DeadSet.new.size - muertos_antes)
     hecho('mensaje_api', Message.where(conversation_id: conv.id, content: 'SINT respuesta por la API').count)

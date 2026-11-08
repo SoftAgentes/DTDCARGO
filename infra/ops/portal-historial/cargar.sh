@@ -11,8 +11,9 @@
 # Cómo (revisión del DG y Subdirector, 2026-11-08):
 #   · el preparado (nombres y textos) entra por la entrada estándar de `docker exec -i`: NO se copia al contenedor;
 #   · en el contenedor, el cargador escribe los vínculos (solo ids) en su /dev/shm/portal-historial (tmpfs, 0700);
-#   · con MODO=cargar y `carga=ok`, `docker cp` los trae a un .parcial del VPS, se comprueban (cabecera y sin barras
-#     invertidas, que vincular.sh rechaza), se renombran a vinculos.ndjson y quedan en 0600;
+#   · con MODO=cargar y `carga=ok`, `docker exec … cat` los trae a un .parcial del VPS (docker cp no copia desde un
+#     tmpfs del contenedor: lo midió la prueba punta a punta), se comprueban (cabecera y sin barras invertidas, que
+#     vincular.sh rechaza), se renombran a vinculos.ndjson y quedan en 0600;
 #   · el trap de EXIT borra, también si algo falla, /dev/shm/portal-historial y /tmp/cargar-portal.rb del contenedor
 #     y el .parcial del VPS, y COMPRUEBA que en el contenedor no quedó nada: `HECHO contenedor_limpio=si|no`.
 #
@@ -67,7 +68,8 @@ printf '%s\n' "$salida" | grep '^HECHO ' | tr -d '\r'
 printf '%s\n' "$salida" | grep -qx 'HECHO carga=ok' || exit 1
 [ "$MODO" = cargar ] || exit 0
 
-docker cp "$DB_CW:$EN_CW_V" "$V.parcial" >/dev/null 2>&1 || mal no_se_pudo_traer_los_vinculos 1
+# docker cp no copia desde el /dev/shm del contenedor (es un tmpfs): se lee con cat, que saca solo el archivo.
+( umask 077; docker exec "$DB_CW" cat "$EN_CW_V" >"$V.parcial" ) 2>/dev/null || mal no_se_pudo_traer_los_vinculos 1
 cerrar "$V.parcial"
 head -n 1 "$V.parcial" | grep -q '"tipo":"cabecera"' || mal vinculos_sin_cabecera 1
 if grep -q '\\' "$V.parcial"; then mal barra_invertida_en_los_vinculos 1; fi

@@ -87,7 +87,7 @@ Lado de Studio: una copia efímera de la base de Studio con las mismas guardas, 
 
 ## Lo que trae la PR 2a
 
-- `infra/ops/portal-historial/cargar.sh`, como en el diseño 1.
+- `infra/ops/portal-historial/cargar.sh`, como en el diseño 1, salvo el traslado: `docker cp` no copia desde el tmpfs del contenedor (run 42506590809), así que los vínculos se leen con `docker exec … cat`.
 - `pruebas/prueba-punta-a-punta.sh`, `pruebas/sonda-pap.rb` y `pruebas/studio-fixture.sql`, como en el diseño 2, con un paso nuevo en el workflow del cargador.
   - **(b), el `contacto_id` nulo, queda PENDIENTE:** espera la 0524. La prueba imprime «PENDIENTE B … NO CUBIERTO» en el log y no lo da por cubierto.
   - **Lo que cambió del diseño en (f):** los fallos inyectados son dos.
