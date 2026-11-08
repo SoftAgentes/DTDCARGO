@@ -8,7 +8,8 @@
  */
 
 import { createClient } from "@/lib/db/server";
-import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { moduleViewDenial, requireModuleView } from "@/lib/studio/rbac-guard";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { canEditModule } from "@/lib/studio/rbac";
 import {
   computeConversationKpis,
@@ -43,11 +44,15 @@ export default async function ConversacionesPage({
 
   // SDD-0586 1c-1: con `chatwoot_portal` encendido, los hilos del portal se responden desde la
   // Bandeja de Chatwoot. Se calcula una vez por tenant; las acciones lo vuelven a comprobar.
-  const [conversations, kpis, agents, trabaPortalTenant] = await Promise.all([
+  // SDD-0586 1c-1b: «Responder en la Bandeja →» solo si se puede entrar a la Bandeja: las dos
+  // capas de su layout, el rol (requireModuleView) y el flag `chatwoot_inbox` (requireFeatureEnabled).
+  const [conversations, kpis, agents, trabaPortalTenant, denialBandeja, flags] = await Promise.all([
     listConversations(supabase),
     computeConversationKpis(supabase),
     listAssignableAgents(supabase),
     trabaPortal(supabase, tenantId),
+    moduleViewDenial(supabase, "bandeja"),
+    listFeatureFlags(supabase),
   ]);
 
   return (
@@ -84,6 +89,7 @@ export default async function ConversacionesPage({
         tenantId={tenantId}
         initialSelectedId={initialSelectedId ?? null}
         trabaPortal={trabaPortalTenant}
+        puedeVerBandeja={!denialBandeja && flags.chatwoot_inbox === true}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 // infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs — mutantes de «Studio en solo lectura» para los hilos
-// del portal (SDD-0586, paso 10.5, 1c-1: E10-D41). Mismo ejecutor que el de la vuelta (mutantes-vuelta.cjs).
+// del portal (SDD-0586, paso 10.5, 1c-1: E10-D41; y la 1c-1b: el hilo borrado y el enlace con permiso). Mismo
+// ejecutor que el de la vuelta (mutantes-vuelta.cjs).
 //
 // Uso:  node infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs [números separados por coma]
 //       node infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs --revisar   (solo cuenta los fragmentos)
@@ -61,14 +62,22 @@ const M = [
   ["el cambio de estado no se corta", HILO, "    if (soloLectura) return;\n", "", T_HILO, "no cambia el estado"],
   ["«no se sabe» deja la caja", HILO, '  const soloLectura = conv.channel === "portal" && trabaPortal !== "apagada";', '  const soloLectura = conv.channel === "portal" && trabaPortal === "activa";', T_HILO, "si no se pudo comprobar la traba"],
   ["el hilo no mira el canal", HILO, '  const soloLectura = conv.channel === "portal" && trabaPortal !== "apagada";', '  const soloLectura = trabaPortal !== "apagada";', T_HILO, "otro canal con la traba activa"],
-  ["sin la prop se traba", HILO, 'realtimeTick = 0, trabaPortal = "apagada" }: Props)', 'realtimeTick = 0, trabaPortal = "activa" }: Props)', T_HILO, "sin la prop, la traba se toma por apagada"],
+  ["sin la prop se traba", HILO, '  trabaPortal = "apagada",\n  puedeVerBandeja = false,', '  trabaPortal = "activa",\n  puedeVerBandeja = false,', T_HILO, "sin la prop, la traba se toma por apagada"],
   ["el enlace sin el número", HILO, "href={`/studio/bandeja?c=${bandeja}`}", 'href="/studio/bandeja"', T_HILO, "portal con la traba activa: aviso y enlace"],
-  ["el enlace sin conversación", HILO, "            {bandeja !== null && (", "            {(", T_HILO, "sin conversación en Chatwoot todavía"],
+  ["el enlace sin conversación", HILO, "            {puedeVerBandeja && bandeja !== null && (", "            {puedeVerBandeja && (", T_HILO, "sin conversación en Chatwoot todavía"],
   ["el número no se lee del detalle", HILO, '          setBandeja(typeof data.bandeja === "number" ? data.bandeja : null);\n', "", T_HILO, "portal con la traba activa: aviso y enlace"],
   // ── El cableado page → cliente → hilo ──
   ["el cliente no pasa la traba", CLIENTE, "            trabaPortal={trabaPortal}\n", "", T_HILO, "la page calcula la traba del tenant"],
   ["la page no pasa la traba", PAGE, "        trabaPortal={trabaPortalTenant}\n", "", T_HILO, "la page calcula la traba del tenant"],
   ["la page mira otro tenant", PAGE, "    trabaPortal(supabase, tenantId),", "    trabaPortal(supabase, null),", T_HILO, "la page calcula la traba del tenant"],
+  // ── 1c-1b: el hilo borrado ──
+  ["setStatus sigue con el hilo borrado", ACCIONES, '  if (!hilo) return { error: "Conversación no encontrada." };\n', "", T_STATUS, "un hilo borrado (o que la sesión no ve)"],
+  ["el update no mira deleted_at", ACCIONES, '    .eq("id", input!.conversation_id)\n    .is("deleted_at", null);', '    .eq("id", input!.conversation_id);', T_STATUS, "con el flag apagado cambia el estado como antes"],
+  // ── 1c-1b: el enlace solo con acceso a la Bandeja ──
+  ["el enlace sin mirar el permiso", HILO, "            {puedeVerBandeja && bandeja !== null && (", "            {bandeja !== null && (", T_HILO, "sin acceso a la Bandeja: el aviso va sin enlace"],
+  ["la page no mira el rol de la Bandeja", PAGE, "puedeVerBandeja={!denialBandeja && flags.chatwoot_inbox === true}", "puedeVerBandeja={flags.chatwoot_inbox === true}", T_HILO, "sin el rol de la Bandeja, o con"],
+  ["la page no mira chatwoot_inbox", PAGE, "puedeVerBandeja={!denialBandeja && flags.chatwoot_inbox === true}", "puedeVerBandeja={!denialBandeja}", T_HILO, "sin el rol de la Bandeja, o con"],
+  ["el cliente no pasa el permiso", CLIENTE, "            puedeVerBandeja={puedeVerBandeja}\n", "", T_HILO, "con el rol y"],
 ];
 
 if (revisar) {
