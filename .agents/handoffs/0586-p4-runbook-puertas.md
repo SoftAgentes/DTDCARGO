@@ -16,7 +16,7 @@
     4. producción, de 4.1 a 4.10, con los sub-pasos 4.6b y 4.10a;
     5. el encendido.
   - **Cada paso lleva seis cosas:** qué lee o escribe, el comando, la condición para seguir, la evidencia, la vuelta atrás y el OK nominal.
-  - **Los sub-pasos con OK propio:** 2a, 2b, 3.0, 4.6b, 4.10a y 5a.
+  - **Los sub-pasos con OK propio:** 3.0, 4.6b, 4.10a, 5a y 5c, y 5b si hay que cambiar el webhook. Las variables, la web y el webhook son de la puerta 5 desde la revisión de la #471.
   - **La revisión `revisar-datos-ve`.**
 - **Las partes de E5,** que son `cargar.sh`, la copia y el ensayo, salen de sus textos en las notas compartidas. **E5 revisa las puertas 3 y 4.5 a 4.7 antes de publicar.**
 - **El README de `infra/ops/portal-historial/`** (§Puertas), **la spec 0586** (§10.5.10, el guion de la puerta 4) y **`chatwoot-portal-encendido.md`** apuntan al runbook, en vez de repetir el guion.

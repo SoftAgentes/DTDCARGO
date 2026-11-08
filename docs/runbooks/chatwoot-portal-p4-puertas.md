@@ -1,6 +1,6 @@
 # Runbook · La carga P4 del chat del portal a Chatwoot y el encendido: las cinco puertas (SDD-0586 §10.5.10)
 
-> Lo armó el Worker de la 10.5 el 2026-11-08, por pedido del DG comunicado por el Subdirector de Chatwoot. Las partes de `cargar.sh`, de la copia y del ensayo son de E5, adaptadas a este formato. **E5 revisa las puertas 3 y de la 4.5 a la 4.7 antes de publicar.**
+> Lo armó el Worker de la 10.5 el 2026-11-08, por pedido del DG comunicado por el Subdirector de Chatwoot. Las partes de `cargar.sh`, de la copia y del ensayo son de E5, adaptadas a este formato. **E5 revisó la puerta 3 y los pasos 4.5 a 4.7, y dio su visto bueno** (2026-11-08).
 >
 > **Qué junta.** El guion que estaba repartido entre la spec 0586 §10.5.10, el README de `infra/ops/portal-historial/` y `chatwoot-portal-encendido.md`. Desde aquí, esos lugares apuntan a este runbook.
 >
@@ -15,7 +15,7 @@
 
 | Condición | Cómo se comprueba |
 |---|---|
-| La 0508, la 0519, la 0520, la 0521, la 0523 y la 0524 aplicadas en producción | En el ledger `supabase_migrations.schema_migrations` (`aplicar-migraciones-prod.md:22`), dentro de `dtd-cargo-db-1`: `select name from supabase_migrations.schema_migrations where name in ('0508_chatwoot_bajas_purga', '0519_chatwoot_portal', '0520_chatwoot_portal_vuelta', '0521_chatwoot_portal_estado', '0523_chatwoot_portal_carga', '0524_chatwoot_portal_puerta4');`. Tiene que dar seis filas |
+| La 0508, la 0519, la 0520, la 0521, la 0523 y la 0524 aplicadas en producción | En el ledger `supabase_migrations.schema_migrations` (`aplicar-migraciones-prod.md:26`), dentro de `dtd-cargo-db-1`: `select name from supabase_migrations.schema_migrations where name in ('0508_chatwoot_bajas_purga', '0519_chatwoot_portal', '0520_chatwoot_portal_vuelta', '0521_chatwoot_portal_estado', '0523_chatwoot_portal_carga', '0524_chatwoot_portal_puerta4');`. Tiene que dar seis filas |
 | La #462, la #463 y la #464 en `main`: el `grant` de `vincular.sh`, y el `-O` con el `! -L` de `extraer.sh` | `git log origin/main` incluye el merge del tren 6 |
 | La PR 2b de E5 en `main`: `cargar.sh`, `cargar-portal.rb`, `ensayo-portal.sh` y las listas de columnas con su prueba | `git log origin/main` |
 | T1 a T4 publicados, y la 1c-1 y la 1c-1b en producción | `chatwoot-portal-encendido.md` §0 |
@@ -31,7 +31,7 @@
 **Las variables de `cargar.sh`,** todas números:
 - `CUENTA`, la cuenta de Chatwoot;
 - `BANDEJA`, que es `CHATWOOT_INBOX_PORTAL_ID` y sale de la puerta 2. `cargar.sh` la cruza con el nombre «Conversaciones del portal», y si no coinciden no carga;
-- `AGENTE_SERVICIO`, el usuario de Chatwoot que firma los salientes sin vínculo de agente. **Es el usuario de servicio de E10** (el del `CHATWOOT_ROUTER_TOKEN`), y tiene que ser de la cuenta 1, porque si no el cargador se niega. Su id se lee en la puerta 2, en solo lectura: `docker exec -i chatwoot-rails-1 bundle exec rails runner 'u = User.find_by(email: "<correo del usuario de servicio>"); puts "HECHO agente_servicio=#{u&.id} en_cuenta=#{u && AccountUser.exists?(account_id: 1, user_id: u.id)}"'`. El correo no va a la evidencia, solo el id y `en_cuenta=true`.
+- `AGENTE_SERVICIO`, el usuario de Chatwoot que firma los salientes sin vínculo de agente. **Es el usuario de servicio de E10** (el del `CHATWOOT_ROUTER_TOKEN`), y tiene que ser de la cuenta 1, porque si no el cargador se niega. Su id se lee en la puerta 2, dentro de su OK.
 
 **Los códigos de salida de `cargar.sh`:**
 - **0:** bien.
@@ -66,7 +66,7 @@
 | **Tablas y columnas** | Las de la lista de la 2b ‹por confirmar hasta que la 2b esté en `main`› |
 | **Comando** | El de `ensayo-portal.sh`, la 2b ‹por confirmar› |
 | **Para seguir** | Sale con 0. La otra cuenta tiene 0 filas en todas las tablas de la copia, medido antes de cualquier otro paso. Producción queda sin cambios |
-| **Evidencia** | `HECHO`, con conteos y md5, sin datos de personas |
+| **Evidencia** | `HECHO` con las filas por tabla y el md5 de la lista de columnas. Sin datos de personas |
 | **Vuelta atrás** | Borrar la copia, con el `trap` o con `ensayo-portal.sh --limpiar`, y la prueba de borrado |
 | **OK nominal** | «¿Autorizas copiar de Chatwoot de producción, en solo lectura y filtrado a la cuenta 1, las tablas y columnas de la lista de la 2b (solo la bandeja del portal, sin teléfonos, correos, textos ni secretos) a una copia efímera en tmpfs del VPS (red interna, sin puertos, solo root, mientras dura el ensayo), que se borra al terminar?» |
 
@@ -79,7 +79,7 @@
 | **Tablas y columnas** | Las de la lista de la 2b ‹por confirmar hasta que la 2b esté en `main`› |
 | **Comando** | El de `ensayo-portal.sh`, la 2b ‹por confirmar› |
 | **Para seguir** | Sale con 0. Producción queda sin cambios. Los conteos de la copia son los del tenant (C-1) |
-| **Evidencia** | `HECHO`, con conteos y md5, sin datos de personas |
+| **Evidencia** | `HECHO` con las filas por tabla y el md5 de la lista de columnas. Sin datos de personas |
 | **Vuelta atrás** | Igual que la 1a |
 | **OK nominal** | «¿Autorizas copiar de Studio de producción, en solo lectura y filtrado al tenant, las tablas y columnas de la lista de la 2b (de datos personales, solo el nombre de la ficha y el texto de los mensajes del portal; sin teléfono ni correo) a la misma copia efímera, que se borra al terminar?» |
 
@@ -94,27 +94,11 @@
 | **Comando, la verificación de China** | **La hace Sam, con su sesión en el panel** (decisión del DG). **El DG no usa el navegador con la sesión de Sam.** El DG le lleva desde el VPS el conteo de administradores y agentes de la cuenta 1, y el de la bandeja nueva, por rol y sin nombres. Sam confirma en el panel (Ajustes → Agentes) que **ninguno es del equipo de China**. Un administrador ve todas las bandejas, y ahí aplicaría la PIPL. **En la evidencia** queda solo «verificado por Sam, 0 del equipo de China», con la hora |
 | **Comando, la bandeja** | Panel de la cuenta 1: Ajustes → Bandejas → Nueva → canal **API**. **Va sin `webhook_url`,** sin saludo, sin asignación automática y sin encuesta (§10.5.9, puerta 3). La guarda G1 del cargador rechaza una bandeja con `webhook_url`. Los miembros son el usuario de servicio de E10 y **solo agentes de Venezuela** (E10-D36) |
 | **Comando, después** | `docker exec -i chatwoot-rails-1 bundle exec rails runner 'puts "HECHO miembros=#{Inbox.find(<id>).inbox_members.count}"'`. Se anota el id de la bandeja |
-| **Para seguir** | 0 del equipo de China, la bandeja sin `webhook_url`, y los miembros que el DG espera |
+| **Comando, el id de `AGENTE_SERVICIO`** | Solo lectura: `docker exec -i chatwoot-rails-1 bundle exec rails runner 'u = User.find_by(email: "<correo del usuario de servicio>"); puts "HECHO agente_servicio=#{u&.id} en_cuenta=#{u && AccountUser.exists?(account_id: 1, user_id: u.id)}"'`. El correo no va a la evidencia, solo el id y `en_cuenta=true` |
+| **Para seguir** | 0 del equipo de China, la bandeja sin `webhook_url`, los miembros que el DG espera, y `AGENTE_SERVICIO` con `en_cuenta=true` |
 | **Evidencia** | `/srv/ops/evidencias/p4-bandeja-<UTC>/`: los conteos, «verificado, 0 del equipo de China», el id de la bandeja y su configuración, sin nombres |
 | **Vuelta atrás** | Borrar la bandeja desde el panel, mientras no tenga conversaciones. Si ya las tiene, la de la puerta 4 |
-| **OK nominal** | «¿Autorizas crear la bandeja "Conversaciones del portal" en la cuenta 1 de Chatwoot, con la verificación de administradores?» |
-
-**Sub-paso 2a · ⛔ OK propio · Las variables de la web y recrearla.**
-- **Las variables:** `CHATWOOT_INBOX_PORTAL_ID` (el id de la puerta 2), `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_ACCOUNT_ID=1`, `CHATWOOT_TENANT_ID` y `CHATWOOT_URL`, en `/srv/dtd-cargo/.env`.
-  - **No se imprimen:** se anota solo el nombre y el largo, o un sha256 corto.
-- **Recrear la web:** `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`.
-  - Es el comando que usa `publicar-web.sh`, medido en el VPS por el DG.
-  - **Sin `--force-recreate`:** compose recrea solo si cambió el `.env`.
-- **Para seguir:**
-  - el contenedor **fue recreado:** `docker inspect -f '{{.Created}}' dtd-cargo-web-1` da una hora nueva. **Si no cambió, se para;**
-  - la web queda healthy;
-  - la tarjeta «Portal → Chatwoot» de `/studio/bandeja` muestra la bandeja configurada.
-- **La vuelta atrás:** vaciar `CHATWOOT_INBOX_PORTAL_ID` y correr el mismo `up -d --no-deps web`. La cola queda en `omitido: "sin_configurar"`.
-
-**Sub-paso 2b · ⛔ OK propio · El webhook de la cuenta 1, con `message_created`.**
-- **Es el de E2, que ya existe. Se mira, no se crea:** que la URL termine en `/api/chatwoot/webhook` y que esté suscrito a `message_created`.
-- **Si le falta `message_created`,** agregarlo es un cambio en el Chatwoot vivo y pide este OK.
-- **La evidencia:** la salud del webhook en Studio, que es de solo lectura.
+| **OK nominal** | «¿Autorizas crear la bandeja "Conversaciones del portal" en la cuenta 1 de Chatwoot, con la verificación de administradores y la lectura del id del usuario de servicio?» |
 
 ---
 
@@ -127,7 +111,8 @@
 - **Qué escribe:** crea la carpeta y copia `infra/ops/portal-historial/` de `main`.
 - **La lista que se compara por sha256:**
   - `extraer.sh`, `vincular.sh`, `limpiar.sh`, `reservar.sql`, `extraer.sql` y `controles-studio.sql`;
-  - de la 2b: `cargar.sh`, `cargar-portal.rb`, `ensayo-portal.sh` y los archivos que sume, como la lista de columnas;
+  - `cargar.sh` y `cargar-portal.rb`, que ya están en `main` desde la #455 y la #461;
+  - de la 2b: `ensayo-portal.sh` y los archivos que sume, como la lista de columnas;
   - de la 2c: `deshacer.sh` y su `.rb`;
   - en Studio, desde `supabase/cargas/portal-historial-deshacer/`: `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, que van a la misma carpeta del VPS con su propio `scp` y su sha256.
   - **La lista crece con cada PR,** y se escribe aquí cuando entra en `main`.
@@ -154,7 +139,9 @@
 
 **Antes de la puerta 4** (condición del DG, 2026-11-08): **las dos vueltas atrás dirigidas, la de Studio (`supabase/cargas/portal-historial-deshacer/`) y la de Chatwoot (la pieza de E5), en `main` y ensayadas** por el DG con `rollback`. No hace falta para las puertas 1 a 3. Sin ellas, el DG no le pide a Sam la puerta 4.
 
-**Y, antes de la puerta 4, la comprobación de la prevención del log** (aprobada por el DG, 2026-11-08). En `chatwoot-postgres-1`, con el usuario de Rails: `docker exec -i chatwoot-postgres-1 psql -X -At -U chatwoot -c 'SELECT rolsuper FROM pg_roles WHERE rolname = current_user'`. **Tiene que dar `t`:** el cargador fija `SET LOCAL log_min_error_statement = 'panic'` y `log_error_verbosity = 'terse'`, que piden superusuario. **Si da `f`, la puerta no sigue.** El DG midió `t` el 2026-11-08.
+**Y, antes de la puerta 4, la prevención del log** (aprobada por el DG, 2026-11-08). Son dos condiciones, y sin las dos la puerta no sigue:
+- **El cargador tiene la prevención en `main`:** `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'` dentro de su transacción, y no carga si no puede fijarlos. **‹por confirmar hasta la #470›:** el `cargar-portal.rb` de `main` todavía no tiene ningún `SET LOCAL`. Se comprueba con `git show origin/main:infra/ops/portal-historial/cargar-portal.rb`, buscando `log_min_error_statement`.
+- **El rol de Rails es superusuario,** porque esos dos parámetros lo piden. En `chatwoot-postgres-1`: `docker exec -i chatwoot-postgres-1 psql -X -At -v ON_ERROR_STOP=1 -U chatwoot -c 'SELECT rolsuper FROM pg_roles WHERE rolname = current_user'`. **Tiene que dar `t`;** si da `f`, la puerta no sigue. El DG midió `t` el 2026-11-08.
 
 **Todo seguido, el mismo día y con el DG, con `chatwoot_portal` apagado.** Se corre en el VPS como root, desde `/srv/ops/portal-historial/` (3.0).
 
@@ -163,15 +150,29 @@
 | Paso | Qué lee o escribe | Comando | Para seguir | Evidencia | Vuelta atrás |
 |---|---|---|---|---|---|
 | **4.1 · Respaldo** | Escribe dos respaldos, y anota la **hora de 4.1** | **Chatwoot:** `systemctl start chatwoot-respaldo.service && tail -n 20 /var/log/chatwoot-respaldo.log`. Su `ExecStart` es `/srv/chatwoot/respaldo.sh --dir /srv/chatwoot --out /srv/backups/chatwoot`, medido en el VPS por el DG. **Studio:** `/srv/dtd-cargo/backup.sh`, el que el DG ya probó en las tandas. El externo a S3 (`pg-dump-to-s3.sh`) va aparte, con sus argumentos ‹por medir› | Los dos respaldos existen y se pueden leer | El nombre, el tamaño y el sha256 de cada uno, y la hora | No hace falta |
-| **4.2 · Lectura previa** | Lee | `docker exec -i dtd-cargo-db-1 psql -X -q -At -U postgres -d postgres -f - < controles-studio.sql` (C-6, C-7 y C-8), y el conteo de la spec 0586 §10.5.10, con md5 `a5da12512b23b4662678e6eb5926c632` | Sale con 0 | La salida, con conteos y md5 | No hace falta |
-| **4.3 · La cola nunca corrió y el flag nunca se encendió** | Lee | `begin transaction read only;` → `select (select count(*) from public.chatwoot_portal_salida where tenant_id = :'tenant') as salida, (select count(*) from public.feature_flags where tenant_id = :'tenant' and key = 'chatwoot_portal' and enabled) as flag_encendido, (select corte from public.chatwoot_portal_estado where tenant_id = :'tenant') as corte;` → `select count(*) filter (where after_data->>'enabled' = 'true') as encendidos from public.entity_audit_log where tenant_id = :'tenant' and entity_type = 'feature_flag' and event_type = 'feature_flag_changed' and after_data->>'key' = 'chatwoot_portal';` → `rollback;`. La auditoría está en `entity_audit_log`: la escribe `append_audit_event` (`0289:890-910`), y la columna `after_data` es de la `0267:306`. **`audit_d1_operations.result_data` guarda solo `{entity_id}` (`0289:654`)** | **Las cuatro juntas: `encendidos = 0`, `flag_encendido = 0`, `salida = 0` y `corte` nulo.** Un `UPDATE` por SQL no deja auditoría, por eso no basta con mirar `entity_audit_log`. **Si alguna no da, no se extrae y se le avisa al DG** | La salida | No hace falta |
+| **4.2 · Lectura previa** | Lee | `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -v tenant=<uuid> -U postgres -d postgres -f - < controles-studio.sql` (C-6, C-7 y C-8). Y el conteo de la spec 0586 §10.5.10, con md5 `a5da12512b23b4662678e6eb5926c632`: `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -v tenant=<uuid> -U postgres -d postgres -f - < conteo-portal.sql`. **Sin `ON_ERROR_STOP`, psql sale con 0 aunque fallen todas las consultas** | Sale con 0 | La salida, con conteos y md5 | No hace falta |
+| **4.3 · La cola nunca corrió y el flag nunca se encendió** | Lee | `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -v tenant=<uuid> -U postgres -d postgres -f - < cola-y-flag.sql`, con el archivo del bloque «4.3, la cola y el flag», debajo de esta tabla. La auditoría está en `entity_audit_log`: la escribe `append_audit_event` (`0289:890-910`), y la columna `after_data` es de la `0267:306`. **`audit_d1_operations.result_data` guarda solo `{entity_id}` (`0289:654`)** | **Las cuatro juntas: `encendidos = 0`, `flag_encendido = 0`, `salida = 0` y `corte` nulo.** Un `UPDATE` por SQL no deja auditoría, por eso no basta con mirar `entity_audit_log`. **Si alguna no da, no se extrae y se le avisa al DG** | La salida | No hace falta |
 | **4.4 · Extraer** | **Escribe** la reserva en Studio, y deja `preparado.ndjson` en `/dev/shm/portal-historial` (0600) | `DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> bash extraer.sh` | Código 0, `HECHO reservados=…` y `HECHO lineas=…` | Las líneas `HECHO` | `limpiar.sh`. La reserva no se deshace: una repetición la reusa |
 | **4.5 · Cargar en seco** | **Lee** el preparado, por la entrada estándar de `docker exec -i` y sin copiarlo al contenedor, y la base de Chatwoot. **No escribe nada en Chatwoot:** solo copia el `.rb` a `/tmp/cargar-portal.rb` y crea `/dev/shm/portal-historial` en el contenedor, y el `trap` borra las dos cosas | `DB_CW=chatwoot-rails-1 CUENTA=1 BANDEJA=<id> AGENTE_SERVICIO=<id> MODO=seco bash cargar.sh` | <ul><li>código 0, `carga=ok` y `contenedor_limpio=si`;</li><li>`leidas` es igual a la cabecera del preparado;</li><li>**`conversaciones_existentes` y `conversaciones_estado_actualizado` no aparecen, o dan 0;**</li><li>`secuencia` no avanza (`X->X`);</li><li>`trabajos_nuevos=ninguno` y `correos_enviados=0`;</li><li>**en la primera corrida, con la bandeja vacía, los números son exactos:** `contactos_nuevos`, `conversaciones_nuevas` y `mensajes_nuevos` son los del preparado, y `notas_nuevas`, los hilos archivados. Si algo no coincide, había algo antes en la bandeja, y se para.</li></ul> | La salida entera, solo con `HECHO` | No hace falta. Si da `contenedor_limpio=no` (código 4): `docker exec chatwoot-rails-1 rm -rf /dev/shm/portal-historial /tmp/cargar-portal.rb`, y se comprueba como en 4.9 |
 | **4.6 · Cargar** | **Escribe en Chatwoot,** con `insert_all` y sin callbacks: <ul><li>los contactos `dtd-portal:<identificador>`, sin teléfono ni correo;</li><li>sus `contact_inbox`, con `pubsub_token`;</li><li>las conversaciones y los mensajes;</li><li>la nota de cada hilo archivado.</li></ul>Toma un candado: no corren dos cargas a la vez. **En el VPS** deja `vinculos.ndjson` (0600, solo ids), que trae con `docker exec … cat` | El de 4.5, con `MODO=cargar` | <ul><li>código 0, `carga=ok` y `contenedor_limpio=si`;</li><li>`*_nuevos` es igual a lo que dijo el seco;</li><li>`conversaciones_existentes` y `conversaciones_estado_actualizado` siguen sin aparecer;</li><li>`secuencia` avanza exactamente `conversaciones_nuevas`;</li><li>`trabajos_nuevos=ninguno` y `correos_enviados=0`;</li><li>`vinculos_lineas` es igual a 1 + contactos + conversaciones + mensajes.</li></ul> | La salida `HECHO`, y `stat -c %a /dev/shm/portal-historial/vinculos.ndjson`, que da `600` | **1 · Repetir 4.6, sin limpiar, que no duplica.** El cargador reconoce lo cargado por `dtd-portal:`, por `dtd_hilo` y por `source_id`, y devuelve los mismos ids. **Aquí no se corre `limpiar.sh`:** con `carga=error` no queda `vinculos.ndjson`, y el preparado sigue ahí. Si la carga entró y falló el traslado (código 1, `error=no_se_pudo_traer_los_vinculos`), también se repite 4.6. **2 · Si se abandona sin restaurar:** `limpiar.sh`. Lo cargado queda sin vincular, y la próxima corrida lo reconoce. **3 · Si la carga quedó mal: la vuelta atrás dirigida, sub-paso 4.6b.** **4 · Último recurso: restaurar el respaldo de Chatwoot de 4.1** (`chatwoot-respaldo-restauracion.md` §3), con el DG y su OK. **El costo:** se lleva también todo lo que entró por WhatsApp e Instagram entre la hora de 4.1 y la restauración. Esa ventana se anota en la evidencia |
 | **4.7 · Vincular** | **Escribe en Studio** los vínculos, el `cargado` de cada mensaje y el corte. Todo o nada | `DB=dtd-cargo-db-1 TENANT=<uuid> bash vincular.sh`, **sin pausa después de 4.6** | Código 0. `HECHO contactos=… hilos=… mensajes=…`, con los números del preparado. `HECHO borrado=/dev/shm/portal-historial` | Las líneas `HECHO` | **Si falla, Studio no cambió,** pero `vincular.sh` deja el preparado y los vínculos en `/dev/shm`. Hay dos caminos. **Correr `limpiar.sh` y después repetir desde 4.4.** Sin limpiar, `extraer.sh` se niega (`ya_hay_un_preparado`) y `cargar.sh` también (`ya_hay_vinculos_borrar_con_limpiar`), con código 2. En la repetición, la reserva da el mismo identificador y el cargador reconoce lo cargado. En la repetición, `conversaciones_existentes` es igual a lo cargado antes, y `conversaciones_estado_actualizado` solo puede dar más que 0 si el estado cambió en Studio entre las dos corridas; eso va a la evidencia con su motivo. **O correr `limpiar.sh` y no repetir.** Repetir dentro de la puerta 4 se confirma con el DG |
-| **4.8 · Los conteos** | Lee | `controles-studio.sql` otra vez | C-6 y C-7 iguales a 4.2. C-8: `hilos_vinculados` igual a las conversaciones cargadas, y `salida_cargado` igual a los mensajes | La salida | No hace falta |
+| **4.8 · Los conteos** | Lee | `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -v tenant=<uuid> -U postgres -d postgres -f - < controles-studio.sql`, otra vez | C-6 y C-7 iguales a 4.2. C-8: `hilos_vinculados` igual a las conversaciones cargadas, y `salida_cargado` igual a los mensajes | La salida | No hace falta |
 | **4.9 · El cierre de los archivos** | Lee | `test ! -e /dev/shm/portal-historial && echo vacio` y `docker exec chatwoot-rails-1 sh -c 'test ! -e /dev/shm/portal-historial && test ! -e /tmp/cargar-portal.rb && echo limpio'` | `vacio` y `limpio` | Las dos líneas | Si no da `vacio`, `limpiar.sh`. Si no da `limpio`, `docker exec chatwoot-rails-1 rm -rf /dev/shm/portal-historial /tmp/cargar-portal.rb`, y otra vez |
-| **4.10 · El log de Postgres de Chatwoot** | **Solo lee.** El cargador previene que la fila llegue al log: dentro de su transacción fija `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'`, y si no puede, no carga. Lo aprobó el DG; la condición `rolsuper = t` se comprueba antes de la puerta 4. Este paso comprueba que no aparece nada | Ver el bloque «4.10, el conteo del log», debajo de esta tabla. Cuenta **`Failing row contains`, `DETAIL:` y `STATEMENT:`** en el intervalo de la carga, con `grep -c` y sin copiar las líneas | **El número es 0,** y el paso termina en «revisado, 0 líneas». **Si no es 0,** se abre el sub-paso 4.10a | «Revisado; N líneas», solo el número | No hace falta |
+| **4.10 · El log de Postgres de Chatwoot** | **Solo lee.** El cargador previene que la fila llegue al log con sus `SET LOCAL` ‹por confirmar hasta la #470›, y las dos condiciones se comprueban antes de la puerta 4. Este paso comprueba que no aparece nada | Ver el bloque «4.10, el conteo del log», debajo de esta tabla. Cuenta **`Failing row`, `DETAIL:  Key` y `STATEMENT:  INSERT`** en el intervalo de la carga, con `grep -c` y sin copiar las líneas | **El número es 0,** y el paso termina en «revisado, 0 líneas». **El sub-paso 4.10a se abre solo si 4.6 dio `carga=error` y el conteo da más de 0** en la ventana. Con `carga=ok` no se abre aunque haya líneas: esas son errores ajenos a la carga | «Revisado; N líneas», solo el número | No hace falta |
+
+**4.3, la cola y el flag** (`cola-y-flag.sql`, solo lectura; las cuatro juntas tienen que dar 0, 0, 0 y nulo):
+
+```sql
+begin transaction read only;
+select (select count(*) from public.chatwoot_portal_salida where tenant_id = :'tenant') as salida,
+       (select count(*) from public.feature_flags where tenant_id = :'tenant' and key = 'chatwoot_portal' and enabled) as flag_encendido,
+       (select corte from public.chatwoot_portal_estado where tenant_id = :'tenant') as corte;
+select count(*) filter (where after_data->>'enabled' = 'true') as encendidos
+from public.entity_audit_log
+where tenant_id = :'tenant' and entity_type = 'feature_flag' and event_type = 'feature_flag_changed'
+  and after_data->>'key' = 'chatwoot_portal';
+rollback;
+```
 
 **4.10, el conteo del log.** Va fuera de la tabla a propósito: dentro de una celda, el `|` tiene que ir escapado, y al copiar el texto crudo ese `\|` quedaría como un pipe literal. El `grep` contaría 0 y daría un falso «revisado» (observación de E5).
 
@@ -179,14 +180,15 @@
 # 1. Dónde escribe Postgres su log.
 docker exec -i chatwoot-postgres-1 psql -X -At -U chatwoot -c 'SHOW logging_collector'
 
-# 2a. Si da «off», el log es la salida del contenedor. Se cuentan las líneas desde la hora de 4.4, sin copiarlas.
-docker logs --since <hora de 4.4, en UTC> chatwoot-postgres-1 2>&1 | grep -c -e 'Failing row contains' -e 'DETAIL:' -e 'STATEMENT:'
+# 2, caso «off»: el log es la salida del contenedor. Se cuentan las líneas desde la hora de 4.4, sin copiarlas.
+# El patrón es el del DG: Postgres pone dos espacios después de «DETAIL:» y de «STATEMENT:», de ahí el « +».
+docker logs --since <hora de 4.4, en UTC> chatwoot-postgres-1 2>&1 | grep -c -E 'Failing row|DETAIL: +Key|STATEMENT: +INSERT'
 
-# 2b. Si da «on», los archivos de log_directory dentro de PGDATA, en el intervalo de la carga.
-docker exec -i chatwoot-postgres-1 sh -c 'cat "$PGDATA/$(psql -X -At -U chatwoot -c "SHOW log_directory")"/*' | grep -c -e 'Failing row contains' -e 'DETAIL:' -e 'STATEMENT:'
+# 2, caso «on»: los archivos de log_directory dentro de PGDATA, en el intervalo de la carga.
+docker exec -i chatwoot-postgres-1 sh -c 'cat "$PGDATA/$(psql -X -At -U chatwoot -c "SHOW log_directory")"/*' | grep -c -E 'Failing row|DETAIL: +Key|STATEMENT: +INSERT'
 ```
 
-El número tiene que ser 0. Va a la evidencia solo el número. **2b supone que `log_directory` es relativo a `PGDATA`,** que es lo de serie (`log`). Si `SHOW log_directory` da una ruta absoluta, se usa esa. **Ojo con 2b:** cuenta todo lo que hay en esos archivos, no solo el intervalo de la carga. Si da más que 0, antes de abrir el 4.10a se mira la hora de las líneas, sin copiarlas.
+El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» supone que `log_directory` es relativo a `PGDATA`,** que es lo de serie (`log`). Si `SHOW log_directory` da una ruta absoluta, se usa esa. **Ojo con el caso «on»:** cuenta todo lo que hay en esos archivos, no solo el intervalo de la carga. Si da más que 0, antes de abrir el 4.10a se mira la hora de las líneas, sin copiarlas.
 
 **Sub-paso 4.6b · ⛔ OK propio · La vuelta atrás dirigida de la carga.** Es la vuelta atrás principal de 4.6 (decisión del DG). **Es un borrado permanente: lo corre Sam. El DG lo prepara y lo ensaya con rollback.**
 - **El orden,** acordado entre E5 y el Worker de la 10.5 por medio del Subdirector:
@@ -198,6 +200,10 @@ El número tiene que ser 0. Va a la evidencia solo el número. **2b supone que `
   - una conversación sin `dtd_hilo`;
   - un `contact_inbox` con `source_id` que no empieza con `dtd-portal:`;
   - el flag `chatwoot_portal` encendido alguna vez.
+- **Antes del ensayo, la comprobación previa de la guarda de entorno de Studio:**
+  - **Lo medido por el DG el 2026-11-08,** que es solo metadata: en producción y en prueba, `postgres` tiene `rolsuper = f`, pero **`pg_control_system()` y `pg_db_role_setting` sí se pueden leer**. Así, la guarda de entorno del desarme funciona sin cambios.
+  - **El comando:** `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'select system_identifier is not null from pg_control_system()'`. **Tiene que dar `t`.** No se imprime el identificador.
+  - **Si da 42501, se para:** sin esa lectura, el desarme aborta en `produccion`.
 - **Los comandos:** ‹por confirmar hasta que las dos piezas estén en `main`›.
 - **Para seguir:** los conteos de después dan 0 en lo borrado, **salvo los contactos conservados, que son exactamente los del archivo.** C-6 y C-7 quedan iguales a 4.2.
 - **La evidencia:** solo conteos.
@@ -205,7 +211,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **2b supone que `
 
 **Sub-paso 4.10a · ⛔ OK propio · Limpiar el log de Postgres de Chatwoot.**
 - **Es el respaldo de la prevención,** solo para errores que pasen fuera de la transacción del cargador, donde no rige su `SET LOCAL`.
-- **Cuándo se abre:** solo si 4.10 contó más de 0 líneas.
+- **Cuándo se abre:** solo si 4.6 dio `carga=error` **y** 4.10 contó más de 0 líneas en la ventana de la carga. Con `carga=ok` no se abre aunque haya líneas, porque esas son errores ajenos a la carga.
 - **Por qué pide OK:** borrar líneas o truncar el log de un Postgres de producción es **escribir en producción**.
 - **Ojo:** editar el archivo de log de docker (`LogPath`) con el contenedor corriendo **no es seguro**.
 - **El procedimiento se define con el DG en el momento,** y aquí no va un comando que se pueda copiar. **Nunca se trunca el log de docker con el contenedor corriendo** sin decidirlo ahí.
@@ -217,7 +223,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **2b supone que `
 - La actualización de estado, con sus guardas (sin mensajes ajenos, sin asignar y sin `snoozed`), existe solo para repetir la carga después de una vinculación fallida.
 
 **Supresión mientras tanto.** Hasta que exista la pieza aparte, suprimir una ficha incluye borrar en Chatwoot su contacto `dtd-portal:<identificador>` y sus conversaciones de la bandeja del portal.
-- **Es un borrado permanente, y lo corre Sam** o alguien con su OK nominal.
+- **Es un borrado permanente, y lo corre Sam.**
 - Se registra cuántos y cuándo, sin nombres.
 
 **El OK nominal de la puerta 4:** «¿Autorizas la carga P4 en producción: respaldo, lectura previa, extraer, cargar y vincular seguidas, y los conteos?». Cubre de 4.1 a 4.10, **pero no la 4.10a.**
@@ -225,6 +231,27 @@ El número tiene que ser 0. Va a la evidencia solo el número. **2b supone que `
 ---
 
 ## Puerta 5 · Encender `chatwoot_portal`
+
+**Antes de encender, en este orden:** 5a, las variables y la web, y 5b, el webhook. El encendido va después, y 5c, el smoke, al final.
+
+**Sub-paso 5a · ⛔ OK propio · Las variables de la web y recrearla.** Va antes de encender, porque es parte del encendido.
+- **Las variables:** `CHATWOOT_INBOX_PORTAL_ID` (el id de la bandeja de la puerta 2), `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_ACCOUNT_ID=1`, `CHATWOOT_TENANT_ID` y `CHATWOOT_URL`, en `/srv/dtd-cargo/.env`.
+  - **No se imprimen:** se anota solo el nombre y el largo, o un sha256 corto.
+- **Recrear la web:** `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`.
+  - Es el comando que usa `publicar-web.sh`, medido en el VPS por el DG.
+  - **Sin `--force-recreate`:** compose recrea solo si cambió el `.env`.
+- **Para seguir:**
+  - el contenedor **fue recreado:** `docker inspect -f '{{.Created}}' dtd-cargo-web-1` da una hora nueva. **Si no cambió, se para;**
+  - la web queda healthy;
+  - la tarjeta «Portal → Chatwoot» de `/studio/bandeja` muestra la bandeja configurada.
+- **La vuelta atrás:** vaciar `CHATWOOT_INBOX_PORTAL_ID` y correr el mismo `up -d --no-deps web`. La cola queda en `omitido: "sin_configurar"`.
+
+**Sub-paso 5b · El webhook de la cuenta 1, con `message_created`.** Va antes de encender, igual que la E.3 del anexo.
+- **Es el de E2, que ya existe.** En el panel de la cuenta 1 → Ajustes → Integraciones → Webhooks: que la URL termine en `/api/chatwoot/webhook` y que esté marcado `message_created`. **Mirarlo no pide OK.**
+- **⛔ Cambiarlo sí pide OK propio.** Si le falta `message_created`, agregarlo es un cambio en el Chatwoot vivo: «¿Autorizas agregar `message_created` al webhook de la cuenta 1?».
+- **La evidencia:** «URL termina en `/api/chatwoot/webhook`, `message_created` marcado», sin la URL completa, y la salud del webhook en Studio en verde.
+
+**El encendido:**
 
 | | |
 |---|---|
@@ -235,7 +262,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **2b supone que `
 | **Vuelta atrás** | El mismo interruptor del panel, en `false` (`chatwoot-portal-encendido.md` §5) |
 | **OK nominal** | «¿Autorizas encender `chatwoot_portal` en producción desde el panel?» |
 
-**Sub-paso 5a · ⛔ OK propio · El smoke con un cliente real.**
+**Sub-paso 5c · ⛔ OK propio · El smoke con un cliente real.** Va después de encender.
 - **Qué se hace:** un cliente real, que sabe del smoke y lo autoriza, escribe desde el portal.
 - **Qué se mira:** que el mensaje llegue a la bandeja y que la respuesta del agente vuelva al portal.
 - **Qué se lee:** solo los conteos de la cola (`chatwoot-portal-encendido.md` §2), con su OK.
@@ -359,6 +386,7 @@ Es una revisión con el método de `.claude/skills/revisar-datos-ve/SKILL.md`. *
 
 - **Las listas de tablas y columnas de la 1a y la 1b,** con su prueba: las cierra la 2b.
 - **Los comandos de 4.6b:** salen de la pieza de E5, en Chatwoot, y de la del Worker de la 10.5, en Studio.
+- **La prevención del log en el cargador** (`SET LOCAL log_min_error_statement` y `log_error_verbosity`): llega con la #470. Hasta que esté en `main`, la puerta 4 no se pide.
 - **El procedimiento de 4.10a:** se define con el DG.
 - **Los argumentos del respaldo externo a S3.**
 
