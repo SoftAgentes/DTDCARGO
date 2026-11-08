@@ -71,5 +71,5 @@
 ## FUERA DE ALCANCE DETECTADO
 
 - El riesgo residual (I) de la 0106: un `authenticated` del equipo puede escribir un saliente en un hilo del portal directo por PostgREST. Lo cierra el trigger de la 1c-2 (decisión del DG).
-- **Esta frase estaba mal** y la corrige la 1c-1b. Decía que, en un hilo borrado (`deleted_at`), el update de `setStatusAction` «no cambia filas». En realidad el `update` filtra solo por `id`: cambia la fila, y en un hilo del portal borrado la traba no corre. La 1c-1b (decisión del DG) devuelve «no encontrada» y agrega `.is("deleted_at", null)`.
-- **`bandeja` en el detalle** lo recibe quien ve el hilo en Conversaciones, aunque no tenga acceso a la Bandeja. Es un número entero, sin PII. La 1c-1b muestra el enlace solo con acceso a la Bandeja (rol y flag `chatwoot_inbox`), y puede cortar también el campo.
+- **Esta frase estaba mal; la corrigió la 1c-1b** (`.agents/handoffs/0586-e10-5-1c-1b-borrado.md`). Decía que, en un hilo borrado (`deleted_at`), el update de `setStatusAction` «no cambia filas». En realidad el `update` filtra solo por `id`: cambia la fila, y en un hilo del portal borrado la traba no corre. La 1c-1b (decisión del DG) devuelve «no encontrada» y agrega `.is("deleted_at", null)`.
+- **`bandeja` en el detalle** lo recibe quien ve el hilo en Conversaciones, aunque no tenga acceso a la Bandeja. Es un número entero, sin PII. La 1c-1b muestra el enlace solo con acceso a la Bandeja (rol y flag `chatwoot_inbox`). El campo queda igual.
