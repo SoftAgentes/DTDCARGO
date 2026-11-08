@@ -46,7 +46,10 @@ Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [filas 7.1 a
 **Bandejas donde nunca habla.** El bot solo actúa en las bandejas donde Sam lo encienda (fila en `chatwoot_bot_bandejas` con un modo distinto de Apagado). Quedan excluidas, aunque alguien les ponga un modo:
 
 - la bandeja del **portal** (SDD-0586): la base corta por conversación, porque `chatwoot_bot_encolar` no crea turno en un hilo de `chatwoot_portal_hilos` (0519), y el código la descarta antes por `CHATWOOT_INBOX_PORTAL_ID`;
-- el **Archivo Kommo** (SDD-0590) y la bandeja de **Instagram**: ninguna tabla dice cuál es cuál, así que van en `chatwoot_bot_bandejas_excluidas` (una bandeja excluida no se puede encender y no encola) y el código las descarta antes. Encender el bot en Instagram es una puerta aparte (§9).
+- la bandeja de **Instagram** y el **Archivo Kommo** (SDD-0590), **desde el arranque**: ninguna tabla dice cuál es cuál y sus ids cambian según el entorno (en prueba el portal es la bandeja 9 de la cuenta 2; en producción el Archivo es la 8), así que llegan **por variable de entorno, como el portal**: `CHATWOOT_INBOX_INSTAGRAM_ID` y `CHATWOOT_INBOX_ARCHIVO_ID`, leídas en `lib/studio/chatwoot/config.ts` junto a `CHATWOOT_INBOX_PORTAL_ID`. La migración no siembra números: quedaría atada a un entorno y en el otro se equivocaría sin avisar. Encender el bot en Instagram es una puerta aparte (§9).
+- `chatwoot_bot_bandejas_excluidas` queda como **lista extra** que llena un admin: una bandeja excluida no se puede encender y no encola.
+
+**Falla cerrada de la exclusión:** si falta o es inválida cualquiera de las tres variables (`CHATWOOT_INBOX_PORTAL_ID`, `CHATWOOT_INBOX_INSTAGRAM_ID`, `CHATWOOT_INBOX_ARCHIVO_ID`), o si la lista de excluidas no se puede leer, **el bot no encola nada** en ninguna bandeja. Una línea `X=` vacía cuenta como faltante: llega como texto vacío, no como ausente.
 
 Regla pedida por el Subdirector de Chatwoot y por el DG el 2026-11-08.
 
@@ -183,7 +186,9 @@ Cada PR toca solo estos archivos. Una pieza que necesite otro lo agrega aquí an
 | C (#448) | `scripts/bot-conocimiento.mjs`, `lib/studio/chatwoot/bot/conocimiento/base.json`, `lib/studio/chatwoot/bot/conocimiento/reglas-duras.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/base.test.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/reglas-duras.test.ts` |
 | D (#449) | `lib/studio/chatwoot/bot/autor.ts`, `lib/studio/chatwoot/bot/frenos.ts`, `lib/studio/chatwoot/bot/decidir.ts`, `lib/studio/chatwoot/bot/motor.ts` y sus cuatro pruebas en `lib/studio/chatwoot/bot/__tests__/` (`autor`, `frenos`, `decidir`, `motor`, `.test.ts`) |
 | E1 (0522) | `supabase/migrations/0522_chatwoot_bot.sql`, `supabase/tests/0522_chatwoot_bot.test.sql`, `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, `supabase/migrations-baseline.json` (solo la espera de la 0522), `.agents/handoffs/0618-bot-propio-e7.md` |
-| E2 (manejador, trabajador, watchdog, PoC) | se fija en esta tabla antes de abrirla; incluye una o dos líneas de `lib/studio/chatwoot/webhook-procesar.ts` (lista de manejadores), con `merge-tree` contra E10 (§2) | 7.5, 7.10 y 7.11 no tienen PR hasta tener OK.
+| E2 (manejador, trabajador, watchdog, PoC) | se fija en esta tabla antes de abrirla; incluye una o dos líneas de `lib/studio/chatwoot/webhook-procesar.ts` (lista de manejadores) y de `lib/studio/chatwoot/config.ts` (las dos variables nuevas), con `merge-tree` contra E10 (§2) |
+
+7.5, 7.10 y 7.11 no tienen PR hasta tener OK.
 
 **Archivos que no toca:** los de E10 (`lib/studio/chatwoot/portal*`, `app/studio/(app)/conversaciones/**`, `app/api/studio/conversaciones/**`) y los del CRM (`TarjetaFichaDrawer`, `CrmTableroKanban`, `tarjeta-actions`, `crm-ficha`). La lista de `MANEJADORES` de `webhook-procesar.ts` es compartida: E la toca en una línea y se avisa al Subdirector antes.
 
@@ -191,7 +196,8 @@ Cada PR toca solo estos archivos. Una pieza que necesite otro lo agrega aquí an
 
 - Unitarias de cada función pura (frenos, filtro de autor, comprobación previa, reglas duras, recortes y costo). En C y D se escribieron junto con el código y no se vieron en rojo antes de él: los mutantes hacen ese papel (§11). Desde las correcciones de la revisión del DG, cada arreglo lleva su prueba vista en rojo contra la cabeza anterior y su mutante.
 - Mutantes sobre las guardas de falla cerrada: cada `return "humano"` y cada comparación del freno.
-- Contrato SQL de la migración en PGlite y en `sql-tests.yml`.
+- Contrato de la 0522: el `.test.sql` corre en Postgres con Docker (paso «Contratos SQL» de `sql-tests.yml`) y el `.test.ts` en PGlite, con control rojo y mutantes.
+- **Exclusión por variable (E2):** prueba en rojo primero de que, sin `CHATWOOT_INBOX_INSTAGRAM_ID`, sin `CHATWOOT_INBOX_ARCHIVO_ID`, sin `CHATWOOT_INBOX_PORTAL_ID`, con una de ellas vacía (`X=`) o no numérica, o con la lectura de `chatwoot_bot_bandejas_excluidas` fallando, `encolarTurnoBot` no llama a `chatwoot_bot_encolar`; y de que un mensaje en la bandeja de Instagram o del Archivo no encola aunque la bandeja tenga modo. Mutantes: quitar cada variable del chequeo, tratar `X=` como presente y seguir cuando la lectura de la lista falla; cada uno tiene que caer.
 - PoC en GitHub Actions, copiando el patrón de `chatwoot-portal-poc.yml`: Chatwoot 4.19.1 efímero, bandeja API inventada, contacto inventado, motor doble. Demuestra entrada → turno → nota privada, invalidación por una persona y caída del trabajador a mitad del turno.
 - 7.9 (inyección, cancelación, doble ejecución, fallback, apagar mientras genera, caída tras el acuse, nota propia que vuelve, reinicio con frenos a mitad y formato no admitido) se escribe sobre la PoC de E.
 - **Nunca** una llamada a un modelo real en las pruebas.
