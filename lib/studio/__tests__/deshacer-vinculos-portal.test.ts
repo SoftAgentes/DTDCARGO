@@ -146,6 +146,71 @@ describe("SDD-0586 10.7 · deshacer en Studio la carga P4 (PGlite)", () => {
       "  d_espejo := p.esperados_espejo;",
       /TEST deshacer: no queda el espejo de los hilos vinculados/,
     ],
+    // ── B2 ──
+    [
+      "acepta la marca copia solo en la sesión",
+      "    if not v_guardada then\n      raise exception 'deshacer_vinculos: la marca copia no está guardada para la base (solo en la sesión)'\n        using errcode = '22023';\n    end if;\n",
+      "",
+      /TEST deshacer: copia con la marca solo en la sesión se niega/,
+    ],
+    // ── B3: el borrado se limita a lo cargado del tenant ──
+    [
+      "borra las salidas de todos los tenants",
+      "  delete from public.chatwoot_portal_salida s where s.tenant_id = p.tenant and s.estado = 'cargado';",
+      "  delete from public.chatwoot_portal_salida s where s.estado = 'cargado';",
+      /TEST deshacer: (deshace e informa|no toca otro tenant)/,
+    ],
+    [
+      "borra el espejo sin cruzarlo con los hilos",
+      "  where hl.tenant_id = p.tenant and cc.tenant_id = p.tenant and cc.conversation_id = hl.chatwoot_conversation_id;",
+      "  where hl.tenant_id = p.tenant and cc.tenant_id = p.tenant;",
+      /TEST deshacer: (deshace e informa|no toca otro tenant)/,
+    ],
+    [
+      // La huella de lo ajeno como detector: borra lo de otro tenant sin mover ningún conteo del tenant.
+      // Ni la verificación ni el HECHO lo ven; solo «no toca otro tenant».
+      "borra además las salidas de otro tenant, sin contarlas",
+      "  get diagnostics d_salida = row_count;",
+      "  get diagnostics d_salida = row_count;\n  delete from public.chatwoot_portal_salida s where s.tenant_id <> p.tenant;",
+      /TEST deshacer: no toca otro tenant/,
+    ],
+    [
+      "borra los hilos de todos los tenants",
+      "  delete from public.chatwoot_portal_hilos hl where hl.tenant_id = p.tenant;",
+      "  delete from public.chatwoot_portal_hilos hl;",
+      /TEST deshacer: (deshace e informa|no toca otro tenant)/,
+    ],
+    // ── N3 ──
+    [
+      "no exige los parámetros",
+      "    raise exception 'deshacer_vinculos: faltan los parámetros' using errcode = '22023';",
+      "    null;",
+      /TEST deshacer: sin parámetros se niega/,
+    ],
+    [
+      "acepta un entorno que no es copia ni produccion",
+      "    raise exception 'deshacer_vinculos: el entorno tiene que ser copia o produccion' using errcode = '22023';",
+      "    null;",
+      /TEST deshacer: con un entorno que no es copia ni produccion se niega/,
+    ],
+    [
+      "no compara la cabecera de los conservados",
+      "    raise exception 'deshacer_vinculos: la cabecera de los conservados no es la del tenant, la cuenta o la bandeja' using errcode = '22023';",
+      "    null;",
+      /TEST deshacer: con la cabecera de otro tenant se niega/,
+    ],
+    [
+      "no compara el conteo de los conservados",
+      "    raise exception 'deshacer_vinculos: el conteo de los conservados no cuadra' using errcode = '22023';",
+      "    null;",
+      /TEST deshacer: con el conteo de los conservados que no cuadra se niega/,
+    ],
+    [
+      "no exige una sola cabecera",
+      "    raise exception 'deshacer_vinculos: el archivo de los conservados lleva una sola cabecera' using errcode = '22023';",
+      "    null;",
+      /TEST deshacer: sin la cabecera de los conservados se niega/,
+    ],
     [
       "no mira el entorno",
       "  if (p.entorno = 'copia' and v_marca <> 'copia') or (p.entorno = 'produccion' and v_marca <> '') then",

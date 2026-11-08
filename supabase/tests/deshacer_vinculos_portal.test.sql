@@ -170,10 +170,41 @@ select (select md5(string_agg(id::text || body || sent_at::text, ',' order by id
        (select md5(string_agg(id::text || status::text, ',' order by id)) from public.conversations),
        (select count(*) from public.entity_audit_log where tenant_id = pg_temp.id('T1'));
 
+-- B3 (revisión de la #469): lo que el desarme NO puede tocar.
+-- · T2, con una carga vinculada completa: contacto, hilo, salida cargado, espejo y corte.
+-- · En T1, un espejo de otra bandeja (WhatsApp) sin hilo del portal.
+insert into public.chatwoot_portal_contactos (tenant_id, client_id, chatwoot_contact_id, chatwoot_source_id)
+values (pg_temp.id('T2'), pg_temp.id('Z'), 800, 'dtd-portal:z');
+insert into public.chatwoot_portal_hilos (conversation_id, tenant_id, chatwoot_conversation_id)
+values (pg_temp.id('hZ'), pg_temp.id('T2'), 1500);
+insert into public.chatwoot_portal_salida (message_id, tenant_id, conversation_id, estado, chatwoot_message_id)
+values (pg_temp.id('z1'), pg_temp.id('T2'), pg_temp.id('hZ'), 'cargado', 95000);
+insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id) values
+  (pg_temp.id('T2'), 1500, 9, 'open', pg_temp.id('Z')),
+  (pg_temp.id('T1'), 7001, 3, 'resolved', null);
+insert into public.chatwoot_portal_estado (tenant_id, corte, cargado_at) values (pg_temp.id('T2'), now() - interval '1 day', now());
+create function pg_temp.huella_ajena() returns text language sql as $$
+  select md5(concat_ws('|',
+    (select string_agg(client_id::text || ':' || identificador::text || ':' || coalesce(chatwoot_contact_id::text, '-'), ',' order by client_id)
+       from public.chatwoot_portal_contactos where tenant_id = pg_temp.id('T2')),
+    (select string_agg(conversation_id::text || ':' || chatwoot_conversation_id::text, ',' order by conversation_id)
+       from public.chatwoot_portal_hilos where tenant_id = pg_temp.id('T2')),
+    (select string_agg(message_id::text || ':' || estado, ',' order by message_id)
+       from public.chatwoot_portal_salida where tenant_id = pg_temp.id('T2')),
+    (select string_agg(tenant_id::text || ':' || conversation_id::text || ':' || coalesce(inbox_id::text, '-'), ',' order by tenant_id, conversation_id)
+       from public.chatwoot_conversations where tenant_id = pg_temp.id('T2') or (tenant_id = pg_temp.id('T1') and conversation_id = 7001)),
+    (select string_agg(coalesce(corte::text, '-') || ':' || coalesce(cargado_at::text, '-'), ',')
+       from public.chatwoot_portal_estado where tenant_id = pg_temp.id('T2'))))
+$$;
+create temporary table huella_ajena_antes as select pg_temp.huella_ajena() as md5;
+
 -- ── §1 · La carga, hecha con las funciones reales (reserva, líneas y vinculación) ──
-do $carga$
+-- Como función, para correrla otra vez después de deshacer (N2). El contacto que ya tiene id en Studio
+-- (el conservado) lo reusa, como hace el cargador de E5 por su identificador.
+create function pg_temp.cargar() returns text language plpgsql as $$
 declare v jsonb[]; r record; v_cab jsonb; v_vinc jsonb;
 begin
+  delete from preparado;
   set local role service_role;
   perform public.chatwoot_portal_reservar_contactos(pg_temp.id('T1'));
   reset role;
@@ -189,9 +220,14 @@ begin
   end;
   select linea into v_cab from preparado where linea ->> 'tipo' = 'cabecera';
   select jsonb_build_array(jsonb_build_object('tipo', 'cabecera', 'version', 1, 'tenant_id', v_cab ->> 'tenant_id',
-      'cuenta', 1, 'bandeja', 9, 'corte', v_cab ->> 'corte', 'contactos', 2, 'conversaciones', 2, 'mensajes', 3))
+      'cuenta', 1, 'bandeja', 9, 'corte', v_cab ->> 'corte', 'contactos', (v_cab ->> 'contactos')::int,
+      'conversaciones', (v_cab ->> 'conversaciones')::int, 'mensajes', (v_cab ->> 'mensajes')::int))
     || coalesce((select jsonb_agg(jsonb_build_object('tipo', 'contacto', 'cliente', p.linea ->> 'cliente', 'identificador', p.linea ->> 'identificador',
-      'contacto_id', 500 + p.n, 'source_id', 'dtd-portal:' || (p.linea ->> 'identificador'))) from preparado p where p.linea ->> 'tipo' = 'contacto'), '[]')
+      'contacto_id', coalesce(k.chatwoot_contact_id, 500 + p.n),
+      'source_id', coalesce(k.chatwoot_source_id, 'dtd-portal:' || (p.linea ->> 'identificador'))))
+      from preparado p
+      join public.chatwoot_portal_contactos k on k.tenant_id = pg_temp.id('T1') and k.client_id = (p.linea ->> 'cliente')::uuid
+      where p.linea ->> 'tipo' = 'contacto'), '[]')
     || coalesce((select jsonb_agg(jsonb_build_object('tipo', 'conversacion', 'hilo', p.linea ->> 'hilo', 'conversacion_id', 1200 + p.n))
       from preparado p where p.linea ->> 'tipo' = 'conversacion'), '[]')
     || coalesce((select jsonb_agg(jsonb_build_object('tipo', 'mensaje', 'mensaje', p.linea ->> 'mensaje', 'mensaje_id', 90000 + p.n))
@@ -200,7 +236,15 @@ begin
   set local role service_role;
   select * into r from public.chatwoot_portal_vincular_carga(pg_temp.id('T1'), v_cab, v_vinc);
   reset role;
-  perform pg_temp.assert_true(r.contactos = 2 and r.hilos = 2 and r.mensajes = 3, 'la carga vincula 2 contactos, 2 hilos y 3 mensajes');
+  return r.contactos || '/' || r.hilos || '/' || r.mensajes;
+end;
+$$;
+
+do $carga$
+declare v text;
+begin
+  v := pg_temp.cargar();
+  perform pg_temp.assert_true(v = '2/2/3', 'la carga vincula 2 contactos, 2 hilos y 3 mensajes: ' || v);
   perform pg_temp.assert_true((select corte is not null from public.chatwoot_portal_estado where tenant_id = pg_temp.id('T1')), 'la carga fija el corte');
 end;
 $carga$;
@@ -264,6 +308,11 @@ begin
   v := pg_temp.deshacer();
   perform pg_temp.assert_true(v like '22023:%no coincide con la marca%', 'copia en una base sin marca se niega: ' || coalesce(v, 'null'));
   perform set_config('dtd.entorno', 'copia', true);
+  -- B2: la marca copia solo en la sesión (un PGOPTIONS en producción) no alcanza: tiene que estar guardada.
+  execute pg_catalog.format('alter database %I reset dtd.entorno', pg_catalog.current_database());
+  v := pg_temp.deshacer();
+  perform pg_temp.assert_true(v like '22023:%solo en la sesión%', 'copia con la marca solo en la sesión se niega: ' || coalesce(v, 'null'));
+  execute pg_catalog.format('alter database %I set dtd.entorno = %L', pg_catalog.current_database(), 'copia');
 
   perform pg_temp.entradas();
   perform pg_temp.flag(true);
@@ -323,6 +372,7 @@ begin
   perform pg_temp.assert_true(v like '22023:%no es el que Studio tiene%', 'con un contacto_id que no es el guardado se niega: ' || coalesce(v, 'null'));
 
   perform pg_temp.assert_true(pg_temp.intacto(), 'ninguna guarda escribió nada');
+  perform pg_temp.assert_true(pg_temp.huella_ajena() = (select md5 from huella_ajena_antes), 'ninguna guarda tocó T2 ni el espejo de otra bandeja');
 end;
 $guardas$;
 
@@ -350,8 +400,8 @@ begin
     'no toca conversations ni conversation_messages');
   perform pg_temp.assert_true((select count(*) from public.entity_audit_log where tenant_id = pg_temp.id('T1')) = (select auditoria from huella_antes),
     'no deja filas en la auditoría');
-  perform pg_temp.assert_true(exists (select 1 from public.chatwoot_portal_hilos where tenant_id = pg_temp.id('T2')) is not true
-    and exists (select 1 from public.conversations where id = pg_temp.id('hZ')), 'no toca otro tenant');
+  perform pg_temp.assert_true(pg_temp.huella_ajena() = (select md5 from huella_ajena_antes),
+    'no toca otro tenant (T2, con su carga vinculada) ni el espejo de otra bandeja de T1');
 end;
 $deshacer$;
 
@@ -377,6 +427,11 @@ begin
   reset role;
   perform pg_temp.assert_true(v = 0 and pg_temp.identificador('A') = (select identificador_a from antes)
     and pg_temp.identificador('B') = (select identificador_b from antes), 'una carga nueva reusa los identificadores: ' || v);
+  -- N2: la segunda carga entera vincula otra vez. El contacto conservado (A) mantiene su id.
+  perform pg_temp.assert_true(pg_temp.cargar() = '2/2/3', 'una segunda carga completa vincula otra vez 2/2/3');
+  perform pg_temp.assert_true((select chatwoot_contact_id = (select contacto_a from antes) from public.chatwoot_portal_contactos where client_id = pg_temp.id('A')),
+    'después de la segunda carga, el contacto conservado mantiene su id');
+  perform pg_temp.assert_true(pg_temp.huella_ajena() = (select md5 from huella_ajena_antes), 'la segunda carga tampoco toca T2');
 end;
 $otra$;
 

@@ -107,6 +107,8 @@ begin
   end if;
 
   -- ── Guardas: abortan sin escribir nada ──
+  -- La fila del flag queda tomada hasta el fin de la transacción: nadie la enciende a mitad de la corrida.
+  perform 1 from public.feature_flags f where f.tenant_id = p.tenant and f.key = 'chatwoot_portal' for update;
   if exists (
     select 1 from public.feature_flags f
     where f.tenant_id = p.tenant and f.key = 'chatwoot_portal' and f.enabled

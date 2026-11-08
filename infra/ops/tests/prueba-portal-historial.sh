@@ -186,7 +186,7 @@ rm -f "${C}"
 
 # ── deshacer-vinculos.sh (supabase/cargas/portal-historial-deshacer, el sub-paso 4.6b) ──
 TU=10000000-0000-4000-8000-000000000001
-dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA=1 ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" SISTEMA="${SISTEMA_DV-7234567890123456789}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   bash "${DS}/deshacer-vinculos.sh" > "${T}/dv.log" 2>&1; }
+dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" SISTEMA="${SISTEMA_DV-7234567890123456789}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   bash "${DS}/deshacer-vinculos.sh" > "${T}/dv.log" 2>&1; }
 mkdir -p -m 0700 "${D}"
 rm -f "${D}/contactos-conservados.ndjson"
 : > "${FALSO_REGISTRO}"
@@ -202,11 +202,18 @@ SISTEMA_DV= dv; rc=$?
 [ "${rc}" != 0 ] && grep -q 'produccion_exige_sistema' "${T}/dv.log" && ok "deshacer-vinculos.sh en produccion exige SISTEMA" || ko "deshacer produccion sin sistema: ${rc}"
 TENANT_DV="t; select 1" dv; rc=$?
 [ "${rc}" != 0 ] && grep -q 'tenant_no_es_uuid' "${T}/dv.log" && ok "deshacer-vinculos.sh pide el tenant como uuid" || ko "deshacer con tenant no uuid: ${rc}"
+ESPERADOS_SALIDA_DV=1x dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'numero_invalido' "${T}/dv.log" && ok "deshacer-vinculos.sh pide los conteos en números" || ko "deshacer con un conteo no numérico: ${rc}"
+printf '%s\n' '{"tipo":"cabecera","x":"a\\b"}' > "${D}/contactos-conservados.ndjson"
+: > "${FALSO_REGISTRO}"
+dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'barra_invertida_en_los_conservados' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ] && ok "deshacer-vinculos.sh rechaza la barra invertida sin llamar a psql" || ko "deshacer con barra invertida: ${rc}"
+printf '%s\n' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${D}/contactos-conservados.ndjson"
 DIR_DV=/dev/shm/ dv; rc=$?
 [ "${rc}" != 0 ] && grep -q 'dir_no_es_dev_shm_portal_historial' "${T}/dv.log" && ok "deshacer-vinculos.sh solo acepta /dev/shm/portal-historial" || ko "deshacer con otro DIR: ${rc}"
 : > "${FALSO_REGISTRO}"
 dv; rc=$?
-[ "${rc}" = 0 ] && grep -q '^HECHO modo=ensayo fin=rollback$' "${T}/dv.log" && grep -qx 'rollback;' "${FALSO_REGISTRO}" && ! grep -qx 'commit;' "${FALSO_REGISTRO}"   && grep -q 'pg_temp.deshacer_vinculos()' "${FALSO_REGISTRO}" && ok "deshacer-vinculos.sh en ensayo termina en rollback" || ko "deshacer ensayo: ${rc} $(cat "${T}/dv.log")"
+[ "${rc}" = 0 ] && grep -q '^HECHO modo=ensayo fin=rollback$' "${T}/dv.log" && grep -qx 'rollback;' "${FALSO_REGISTRO}" && ! grep -qx 'commit;' "${FALSO_REGISTRO}"   && grep -q 'pg_temp.deshacer_vinculos()' "${FALSO_REGISTRO}" && grep -qx '\\set VERBOSITY terse' "${FALSO_REGISTRO}" && ok "deshacer-vinculos.sh en ensayo termina en rollback, con VERBOSITY terse" || ko "deshacer ensayo: ${rc} $(cat "${T}/dv.log")"
 : > "${FALSO_REGISTRO}"
 MODO_DV=aplicar dv; rc=$?
 [ "${rc}" = 0 ] && grep -qx 'commit;' "${FALSO_REGISTRO}" && ! grep -qx 'rollback;' "${FALSO_REGISTRO}" && ok "deshacer-vinculos.sh en aplicar termina en commit" || ko "deshacer aplicar: ${rc}"

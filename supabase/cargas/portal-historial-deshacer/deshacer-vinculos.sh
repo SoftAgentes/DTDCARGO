@@ -62,7 +62,8 @@ if grep -q '\\' "$C"; then
 fi
 
 {
-  printf '%s\n' '\set ON_ERROR_STOP on' 'begin;'
+  # Sin DETAIL ni CONTEXT: un error o un deadlock no imprime filas (como crm-kommo/correr.sh).
+  printf '%s\n' '\set ON_ERROR_STOP on' '\set VERBOSITY terse' 'begin;'
   printf '%s\n' 'create temp table deshacer_param (tenant uuid, cuenta bigint, bandeja bigint, esperados_salida integer, esperados_hilos integer, esperados_contactos integer, esperados_espejo integer, entorno text, sistema text);'
   printf '%s\n' "insert into deshacer_param values (:'tenant', :cuenta, :bandeja, :esperados_salida, :esperados_hilos, :esperados_contactos, :esperados_espejo, :'entorno', nullif(:'sistema', ''));"
   printf '%s\n' 'create temp table conservados (n serial, linea text);' 'copy conservados (linea) from stdin;'
