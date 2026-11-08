@@ -1,119 +1,169 @@
 # Runbook · Ensayo y aplicación de la 0519 (`chatwoot_portal`, SDD-0586 paso 10.5)
 
-> **Preparado, NO corrido.** Lo preparó el Worker de la 10.5 el 2026-11-08, por pedido del Director General (vía el Subdirector de Chatwoot). Cada paso que toca una base, prueba o producción, lo corre el Director General con el OK nominal de Sam. Nada de este documento enciende `chatwoot_portal`, crea la bandeja ni carga variables.
+> **Preparado y NO corrido.** Lo armó el Worker de la 10.5 el 2026-11-08, por pedido del Director General, comunicado por el Subdirector de Chatwoot. **Decisión del DG: aplicar la 0519**, salida (a) de §0.
 >
-> Sigue `docs/runbooks/aplicar-migraciones-prod.md` (producción) y `docs/runbooks/entorno-prueba.md` §4 (ensayo, D6). Lo que aquí se dice de esos scripts sale de esos runbooks; no se midió en el VPS.
+> - Cada paso que toca un host lo corre el Director General, con el OK nominal de Sam para ese host: primero prueba y después producción, como con la 0514 y la 0515.
+> - Nada de este documento enciende `chatwoot_portal`, crea la bandeja, carga variables ni fija el corte.
+> - Sigue `docs/runbooks/aplicar-migraciones-prod.md` y `docs/runbooks/entorno-prueba.md` §4. Lo que aquí se dice de sus scripts sale de esos runbooks y del handoff de la 0606 (`.agents/handoffs/sdd-0606-previa-y-ensayo.md`); **no se midió en el VPS**.
 
 ## 0 · Por qué ahora
 
-La #424 se fusionó con la 0519 en espera (`main` en `caca3438b`). Según `aplicar-migraciones-prod.md` §10, `publicar-web.sh` no publica una imagen si en el ledger falta una migración que el commit exige, **esperas incluidas**. Desde `caca3438b`, **ninguna publicación entra hasta aplicar la 0519**. Hay dos salidas, cada una con OK de Sam:
+La #424 se fusionó con la 0519 en espera (`main` en `caca3438b`). `publicar-web.sh` no publica una imagen si falta en el ledger una migración que el commit exige, **esperas incluidas** (§10 del runbook de producción). Por eso ninguna publicación posterior entra hasta aplicar la 0519.
 
-- **(a)** este ensayo y después producción;
-- **(b)** mientras tanto, `publicar-web.sh aceptar-pendiente 0519_chatwoot_portal` en el servidor, como con la 0422 y la 0423.
+El 2026-11-08 a las 00:33Z el DG midió que la publicación está congelada (`CONGELADO` puesto y el timer apagado). Hoy no frena nada, pero sí frenaría la próxima tanda. La otra salida, `publicar-web.sh aceptar-pendiente 0519_chatwoot_portal`, queda descartada por la decisión del DG.
 
 ## 1 · Identidad
 
-Sale de `infra/ops/migraciones/preparar.mjs --sha caca3438b08c53c44a94693a7fcef7df67496a51 --migracion 0519_chatwoot_portal --sdd 0586`, corrido en el checkout del Worker el 2026-11-08. No toca ninguna base. **Antes de aplicar, se prepara otra vez desde el SHA de `main` del día y se copian los valores de esa salida**, no de aquí.
+Medida con `infra/ops/migraciones/preparar.mjs` sobre `caca3438b08c53c44a94693a7fcef7df67496a51` (`main`, 2026-11-08), sin tocar ninguna base. El blob no cambia mientras nadie toque el archivo, pero `aplicar.sql` lleva el SHA. **El día del apply se prepara otra vez sobre el `main` de ese día, y se copian los valores de esa salida.**
 
-| Qué | Valor |
-|---|---|
-| Archivo | `supabase/migrations/0519_chatwoot_portal.sql` |
-| SDD y PR | SDD-0586 (10.5, PR 1a) · #424, fusionada en `caca3438b` |
-| Blob | `02b9d160285f640bdc6b2be63481119584a76f54` |
-| Bytes y md5 | 30710 · `f613559d5ca34b2932995c8ff051e97e` |
-| `aplicar.sql` (producción) | md5 `d9e4c9c66d6b716d0c5f003bbb136464`, con `created_by servidor-propio:psql:SDD-0586` |
-| Lectura previa | ledger, deriva de 5 funciones y el preflight propio de la 0519 |
-| Verificación | md5 y bytes del ledger, y cuerpo vivo de las 5 funciones |
-| Funciones que crea o reemplaza | `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` y `feature_flag_catalog()`, redefinida desde la 0503 |
-| Locks | Solo objetos nuevos, salvo `feature_flag_catalog()` (`create or replace`) y un `insert … on conflict do nothing` en `feature_flags`. `lock_timeout` de 5 s. Sin locks largos sobre tablas de negocio |
-
-En prueba, `aplicar-migracion.sh --generar` arma su propio paquete, con `created_by …:prueba:SDD-0586`. El md5 del blob es el mismo, y por eso coincide el md5 del ledger de prueba y el de producción (§7 del runbook de producción).
-
-## 2 · Orden
-
-1. **Ensayo en prueba** (`entorno-prueba.md` §4):
-   1. Reset de la base de prueba al SHA de `main` (§5). El reset salta las esperas, así que la 0519 no queda aplicada.
-   2. Desplegar la imagen de prueba de `main` (§3). Ya trae el código de la #424, inerte sin la 0519, sin flag y sin variables.
-   3. Generar el paquete desde ese SHA, copiarlo y ejecutarlo con el md5 que imprimió `--generar` (los comandos están en §4.2 de ese runbook).
-   4. Las consultas de «Después» (§3) y el **smoke** (§5), con la misma imagen: aquí la app vieja y la nueva son la misma.
-   5. Sam dice «aprobado en prueba».
-2. **Pedido de OK para producción** (`aplicar-migraciones-prod.md` §3): el archivo, SDD-0586, la #424, el md5 y los bytes, la lectura previa de producción con su evidencia, el ensayo y su smoke, y el orden. **No hace falta fusionar después**: la PR ya está en `main`, y aplicar destraba la publicación.
-3. **Producción**: lectura previa (`--paso previa`), `--en-seco` y después el apply con `--autorizacion` (el OK literal tiene que nombrar `0519`). Las consultas de «Después» en `dtd-cargo` y el smoke.
-4. **Cierre** (§6): en una rama de cierre, `retirar-espera.mjs 0519_chatwoot_portal --md5 <blob_md5 de IDENTIDAD.txt de la evidencia>` y `migrations-lock.mjs`. También cambian las pruebas que afirman la espera: `lib/studio/__tests__/chatwoot-portal.migration.test.ts`, en «la 0519 está declarada como espera». La cabecera «NO APLICADA» del `.sql` **no** se corrige.
-
-## 3 · Qué se mide antes y después
-
-Solo lectura del catálogo y del ledger, en `begin transaction read only; … rollback;`. Lo único que se cuenta de una tabla son las filas del flag `chatwoot_portal` en `feature_flags`, que es configuración y no datos de personas.
-
-**Antes** (lo cubre la lectura previa; esto es el detalle a mirar):
-
-```sql
-begin transaction read only;
-select count(*) as filas_0519 from supabase_migrations.schema_migrations where name = '0519_chatwoot_portal';  -- 0
-select to_regclass('public.chatwoot_portal_salida') is null as sin_tablas;                                     -- true
-select count(*) as flags, bool_or(key = 'chatwoot_portal') as ya_tiene from public.feature_flag_catalog();     -- 23, false
-select count(*) as filas_flag from public.feature_flags where key = 'chatwoot_portal';                          -- 0
-rollback;
-```
-
-**Después:**
-
-```sql
-begin transaction read only;
--- El flag: en el catálogo, apagado; una fila por tenant, todas apagadas.
-select count(*) as flags,
-       bool_and(not enabled) filter (where key = 'chatwoot_portal') as portal_apagado
-from public.feature_flag_catalog();                                                    -- 24, true
-select (select count(*) from public.tenants) as tenants,
-       count(*) as filas_flag, count(*) filter (where enabled) as encendidas
-from public.feature_flags where key = 'chatwoot_portal';                               -- filas_flag = tenants, encendidas = 0
--- RLS y permisos de las cuatro tablas: RLS sí, nada para anon ni authenticated.
-select c.relname, c.relrowsecurity,
-       has_table_privilege('anon', c.oid, 'SELECT') as anon_lee,
-       has_table_privilege('authenticated', c.oid, 'SELECT') as auth_lee,
-       has_table_privilege('authenticated', c.oid, 'INSERT') as auth_escribe
-from pg_class c join pg_namespace n on n.oid = c.relnamespace
-where n.nspname = 'public' and c.relname like 'chatwoot\_portal\_%' order by 1;           -- 4 filas: t, f, f, f
--- Funciones: security definer, search_path vacío y EXECUTE solo para service_role.
-select p.oid::regprocedure, p.prosecdef, p.proconfig,
-       has_function_privilege('anon', p.oid, 'EXECUTE') as anon,
-       has_function_privilege('authenticated', p.oid, 'EXECUTE') as auth,
-       has_function_privilege('service_role', p.oid, 'EXECUTE') as service
-from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public' and p.proname like 'chatwoot\_portal\_%' order by 1;           -- 4 filas: t, {search_path=""}, f, f, t
--- La cola está inerte: sin corte y sin filas.
-select (select count(*) from public.chatwoot_portal_estado) as cortes,
-       (select count(*) from public.chatwoot_portal_salida) as en_cola;                -- 0, 0
-rollback;
-```
-
-La verificación de `aplicar.sh` ya compara el md5 del ledger y el cuerpo vivo de las 5 funciones. Esto suma el flag, la RLS y los permisos. El postflight de la 0519 los exige también, y aborta el apply si no se cumplen.
-
-## 4 · Vuelta atrás
-
-- **Antes del COMMIT** (códigos 5 y 6): no hay nada que deshacer (§8 del runbook de producción).
-- **Después**, lo recomendado es **no deshacer**. La 0519 solo agrega objetos, y queda inerte con `chatwoot_portal` apagado, sin `CHATWOOT_INBOX_PORTAL_ID` y sin `corte`: la cola no toma nada y el aviso da cero. Si la web falla, `publicar-web.sh volver`, que no toca la base.
-- **Si hubiera que sacarla**, va una migración nueva y numerada que la desarme, con su PR, sus pruebas y el mismo procedimiento. Tendría que:
-  - borrar las cuatro funciones y las cuatro tablas, que no tienen datos mientras el flag esté apagado;
-  - redefinir `feature_flag_catalog()` como en la 0503;
-  - borrar las filas `chatwoot_portal` de `feature_flags`.
-
-  **No está escrita ni ensayada.** Nunca se borra ni se edita la fila del ledger.
-
-## 5 · Smoke (en prueba y en producción), con el flag apagado
-
-Lo que tiene que seguir igual:
-
-| Rol | Pantalla | Qué se mira |
+| Qué | Producción (`dtd-cargo`) | Prueba (`dtd-cargo-staging`) |
 |---|---|---|
-| Cliente del portal (en prueba, uno de prueba) | `/portal/soporte`, el chat | Manda un mensaje: se guarda y aparece, sin error. Mismo comportamiento que antes |
-| Admin de Studio | Conversaciones | El mensaje aparece en su hilo; se responde como hoy |
-| Admin de Studio | Admin → Feature flags | «Conversaciones del portal en Chatwoot» apagado, con el texto «Al apagar: se detiene una integración del servidor» |
-| Cron | `GET /api/cron/chatwoot-reintentos` con `CRON_SECRET` | 200, y en la respuesta `portal: { omitido: "sin_configurar" }` (o `"apagado"`) y `avisoPortal` igual |
-| Base (solo lectura) | Las consultas de «Después» | `en_cola = 0` después del mensaje del smoke: con el flag apagado no se reclama nada |
+| Archivo | `supabase/migrations/0519_chatwoot_portal.sql` | el mismo |
+| Blob | `02b9d160285f640bdc6b2be63481119584a76f54` | el mismo |
+| Bytes y md5 del blob | 30710 · `f613559d5ca34b2932995c8ff051e97e` | los mismos |
+| md5 de `aplicar.sql` en `caca3438b` | `d9e4c9c66d6b716d0c5f003bbb136464` | `61780c9ba1a357fba31d81e1b5756512` |
+| `created_by` | `servidor-propio:psql:SDD-0586` | `servidor-propio:psql:prueba:SDD-0586` |
+| Lectura previa | ledger, sesiones esperando locks, deriva de 5 funciones y el bloque `$preflight$` de la 0519 | igual |
+| Verificación | una fila, md5 y bytes del ledger, y cuerpo vivo de las 5 funciones | igual |
 
-## 6 · Lo que este ensayo NO hace
+- **Funciones que crea o reemplaza:** `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` y `feature_flag_catalog()`. Esta última se redefine desde la 0503, y su preflight aborta si el catálogo vivo ya no es el de la 0503.
+- **Locks:** objetos nuevos, el `create or replace` del catálogo y un `insert … on conflict do nothing` en `feature_flags`, con `lock_timeout = 5s`. No hay locks largos sobre tablas de negocio.
+- **Orden:** la PR ya está en `main`, y lo que destraba la publicación es aplicar. No hay merge después.
 
-- No crea la bandeja «Conversaciones del portal» en Chatwoot ni carga `CHATWOOT_INBOX_PORTAL_ID`, que es la puerta 3 de §10.5.9.
-- No enciende `chatwoot_portal`, que es la puerta 6 y exige T1 a T4 publicados y la vía de destrabe de la 1b.
+## 2 · Comandos comunes (en el checkout del DG, Git Bash)
+
+```bash
+git fetch origin && H=$(git rev-parse origin/main)
+node infra/ops/migraciones/preparar.mjs --sha $H --migracion 0519_chatwoot_portal --sdd 0586 --proyecto dtd-cargo-staging --salida <carpeta-0519-prueba>
+node infra/ops/migraciones/preparar.mjs --sha $H --migracion 0519_chatwoot_portal --sdd 0586 --salida <carpeta-0519-prod>
+```
+
+```bash
+export MIGRACIONES_SSH=/c/Windows/System32/OpenSSH/ssh.exe
+export MIGRACIONES_SCP=/c/Windows/System32/OpenSSH/scp.exe
+```
+
+Antes de seguir: el blob, sus bytes y su md5 tienen que ser los de §1. Si cambió el md5 de `aplicar.sql` porque cambió `$H`, se usa el nuevo. Las mediciones son `docs/runbooks/chatwoot-portal-0519-antes.sql` y `docs/runbooks/chatwoot-portal-0519-despues.sql`: solo lectura, sin filas de negocio.
+
+## 3 · Prueba (`dtd-cargo-staging`, `prueba.dtdcargo.com`): con el OK de Sam para prueba
+
+**Lo corre el DG**, en el host que nombre Sam. Si la base de prueba ya está al nivel de `main`, como pasó con la 0606, no se resetea; si no, se resetea al SHA de `main` (§5 de `entorno-prueba.md`). La imagen de `main` ya trae el código de la #424, inerte sin la 0519.
+
+1. **Previa** (solo lectura):
+
+   ```bash
+   infra/ops/migraciones/aplicar-remoto.sh --host <host> --proyecto dtd-cargo-staging --confirm dtd-cargo-staging --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prueba> --paso previa
+   ```
+
+2. **Antes:** se copian las dos mediciones, una vez, y se corre la de antes. El contenedor de prueba es `dtd-cargo-staging-db-1`; es inferencia por el nombre del proyecto, así que se confirma con `docker ps`. La salida queda en la carpeta del ensayo.
+
+   ```bash
+   scp.exe docs/runbooks/chatwoot-portal-0519-antes.sql docs/runbooks/chatwoot-portal-0519-despues.sql <host>:/srv/ops/paquetes/
+   ```
+
+   ```bash
+   ssh.exe <host> "mkdir -p /srv/ops/evidencias/ensayo-0519-dtd-cargo-staging && docker exec -i dtd-cargo-staging-db-1 psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 < /srv/ops/paquetes/chatwoot-portal-0519-antes.sql > /srv/ops/evidencias/ensayo-0519-dtd-cargo-staging/antes.out"
+   ```
+
+3. **En seco**, y después el **apply**:
+
+   ```bash
+   infra/ops/migraciones/aplicar-remoto.sh --host <host> --proyecto dtd-cargo-staging --confirm dtd-cargo-staging --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prueba> --en-seco
+   infra/ops/migraciones/aplicar-remoto.sh --host <host> --proyecto dtd-cargo-staging --confirm dtd-cargo-staging --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prueba>
+   ```
+
+   Si `scp` corta la conexión (pasó con la 0515), no se aplicó nada: se repite el comando.
+4. **Después:**
+
+   ```bash
+   ssh.exe <host> "docker exec -i dtd-cargo-staging-db-1 psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 < /srv/ops/paquetes/chatwoot-portal-0519-despues.sql > /srv/ops/evidencias/ensayo-0519-dtd-cargo-staging/despues.out"
+   ```
+
+   Se anotan el md5 del ledger de prueba (D1) y el número de tenants (A5 y D3).
+5. **Smoke** (§6), con la imagen de `main`. Sam dice «aprobado en prueba».
+
+## 4 · Producción (`dtd-cargo`): con el OK nominal de Sam que nombre `0519`
+
+**Lo corre el DG.** El OK literal de Sam se guarda en un archivo con la herramienta de escritura, no con un heredoc: `aplicar.sh` lo exige y se niega si no nombra `0519`.
+
+1. **Previa:**
+
+   ```bash
+   infra/ops/migraciones/aplicar-remoto.sh --host root@217.216.54.70 --proyecto dtd-cargo --confirm dtd-cargo --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prod> --paso previa
+   ```
+
+2. **Antes** (las mediciones se copian como en prueba, a `root@217.216.54.70:/srv/ops/paquetes/`):
+
+   ```bash
+   ssh.exe root@217.216.54.70 "mkdir -p /srv/ops/evidencias/ensayo-0519-dtd-cargo && docker exec -i dtd-cargo-db-1 psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 < /srv/ops/paquetes/chatwoot-portal-0519-antes.sql > /srv/ops/evidencias/ensayo-0519-dtd-cargo/antes.out"
+   ```
+
+3. **En seco** y **apply**, en un momento de poco tráfico: los locks son cortos, pero el catálogo lo lee el panel de flags.
+
+   ```bash
+   infra/ops/migraciones/aplicar-remoto.sh --host root@217.216.54.70 --proyecto dtd-cargo --confirm dtd-cargo --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prod> --autorizacion <archivo con el OK literal> --en-seco
+   infra/ops/migraciones/aplicar-remoto.sh --host root@217.216.54.70 --proyecto dtd-cargo --confirm dtd-cargo --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prod> --autorizacion <archivo con el OK literal>
+   ```
+
+   Códigos de salida (§4 del runbook de producción):
+   - **0:** listo.
+   - **5 o 6:** no se aplicó nada.
+   - **7:** se aplicó, pero la verificación no coincide. **No se repite**; se lee `verificar.err` y se avisa.
+   - **255:** no se sabe si llegó al COMMIT. Se corre `--paso previa`: si dice «ya está en el ledger», se aplicó.
+4. **Después:**
+
+   ```bash
+   ssh.exe root@217.216.54.70 "docker exec -i dtd-cargo-db-1 psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 < /srv/ops/paquetes/chatwoot-portal-0519-despues.sql > /srv/ops/evidencias/ensayo-0519-dtd-cargo/despues.out"
+   ```
+
+   El md5 de D1 tiene que ser **el mismo que dio prueba**.
+5. **Smoke** (§6).
+6. **Destrabe de la publicación:** cuando el DG quite `CONGELADO`, la próxima imagen ya no frena por la 0519. Se mira en el aviso de `publicar-web.sh`.
+
+## 5 · Cierre: retirar la espera (en una rama de cierre, nunca en `main`)
+
+```bash
+node infra/ops/migraciones/retirar-espera.mjs 0519_chatwoot_portal --md5 <blob_md5 de IDENTIDAD.txt de la evidencia de producción>
+node scripts/migrations-lock.mjs
+```
+
+- Saca la 0519 de `pendingBelowCutoff` y su grupo `sdd-0586-portal-ida` de `pending-migration-symbol-declarations.json`, y la sella en `supabase/migrations.lock.json`. `--en-seco` muestra lo que haría.
+- Cambia a mano la prueba que afirma la espera: `lib/studio/__tests__/chatwoot-portal.migration.test.ts`, en «la 0519 está declarada como espera». La cabecera «NO APLICADA» del `.sql` **no** se corrige.
+- En la SDD y en el handoff quedan registrados: la hora del COMMIT, la `version` del ledger, el md5 y los bytes, las filas del ledger, la ruta de la evidencia y el OK literal.
+
+## 6 · Smoke, con el flag apagado (en prueba y en producción)
+
+| Rol | Dónde | Esperado |
+|---|---|---|
+| Cliente del portal (en prueba, uno de prueba; en producción, solo si Sam lo nombra) | `/portal/soporte`, el chat | Manda un mensaje y aparece, sin error, igual que antes |
+| Admin de Studio | Conversaciones | El mensaje está en su hilo y se responde como hoy |
+| Admin de Studio | Admin → Feature flags | «Conversaciones del portal en Chatwoot» apagado, con «Al apagar: se detiene una integración del servidor» |
+| Cron | `curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/chatwoot-reintentos` desde el contenedor del cron | 200, con `portal` y `avisoPortal` con `omitido: "sin_configurar"` (sin `CHATWOOT_INBOX_PORTAL_ID`) o `"apagado"` |
+| Base | `chatwoot-portal-0519-despues.sql` otra vez | D7 en ceros también después del mensaje del smoke |
+
+**Resultado inválido:** un 500, un error de columna o función desconocida, o cualquier fila en D7.
+
+## 7 · Vuelta atrás
+
+| Situación | Qué se hace |
+|---|---|
+| Falla antes del COMMIT (5 o 6) | Nada que deshacer. Se lee `previa.err` o `aplicar.err` |
+| Se aplicó y la verificación no coincide (7) | No se repite. Se lee `verificar.err` y se avisa a Sam |
+| Se aplicó y la web falla | `publicar-web.sh volver`, que no toca la base. La 0519 es compatible con la web vieja y con la nueva |
+| Hay que sacar la 0519 | **Se recomienda no deshacerla**: con el flag apagado, sin `CHATWOOT_INBOX_PORTAL_ID` y sin corte queda inerte. Si igual se decide, va una migración nueva y numerada de desarme, con su PR, sus pruebas y este mismo procedimiento. Tendría que borrar las 4 funciones y las 4 tablas, volver `feature_flag_catalog()` a la de la 0503 y borrar las filas `chatwoot_portal` de `feature_flags`. **No está escrita ni ensayada** |
+
+**Nunca** se borra ni se edita la fila del ledger, ni se reaplica con otro nombre.
+
+## 8 · Evidencia que queda
+
+| Dónde | Qué |
+|---|---|
+| `/srv/ops/evidencias/apply-0519-dtd-cargo-staging-<ts>/` y `apply-0519-dtd-cargo-<ts>/` | Lo que deja `aplicar.sh`: los cuatro scripts, `IDENTIDAD.txt`, `AUTORIZACION.txt` (en producción), los `.out` y `.err` de psql, `registro.txt` y `SHA256SUMS` |
+| Junto a cada una, `antes.out` y `despues.out` | La salida de las dos mediciones |
+| SDD-0586 y el handoff de la 10.5 | Lo de §5, más los resultados del smoke por rol |
+
+## 9 · Lo que este ensayo NO hace
+
+- No crea la bandeja ni carga `CHATWOOT_INBOX_PORTAL_ID`, que es la puerta 3 de §10.5.9.
+- No enciende `chatwoot_portal`, que es la puerta 6: exige T1 a T4 publicados y la vía de destrabe de la 1b.
 - No fija el `corte` ni corre la carga P4.
