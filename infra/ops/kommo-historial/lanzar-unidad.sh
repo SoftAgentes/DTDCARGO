@@ -6,18 +6,26 @@
 #   bash lanzar-unidad.sh --unidad kommo-e5-ensayo --dir /srv/ops/kommo-historial-ensayo \
 #     --env CARGA=/dev/shm/kommo-e5-carga/carga.ndjson --env INFORME_CARGA=… --env STAGING=/dev/shm/kommo-e5-carga \
 #     -- /bin/bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
-#   bash lanzar-unidad.sh --unidad kommo-e5-carga --dir <carpeta> [--env …] -- <el guion de la carga>
+#   La carga (5.7) no tiene guion en el repo: la de la noche del 2026-11-07 fue carga-57-remoto.sh, de una sola
+#   corrida, fuera del repo. Sus pasos son los del cargador de Rails del README. Una carga nueva se lanza con
+#   --unidad kommo-e5-carga y el comando de su propio guion, revisado en su PR.
+#
+#   Secretos: el token nunca va por --env, porque --setenv queda en Environment= y lo muestra `systemctl show`.
+#   El lanzador niega las claves con TOKEN, SECRET, PASSWORD, CLAVE o KEY (código 2). El token se lee de su
+#   archivo 0600.
 #
 # Qué fija, para las dos:
 #   · TimeoutStopSec de 600 s (TIMEOUT_STOP_S): si la paran, la limpieza tiene tiempo. Con los 90 s por defecto,
 #     systemd la mataría con KILL a mitad. El ensayo exige 300 o más y, si no, no arranca (código 5);
 #   · Nice 10 y la carpeta de trabajo;
 #   · su vigía, <unidad>-vigia, con el vigia-carga.sh de la carpeta y el tope pedido (--tope-vigia, 8 por defecto).
+#     Si el vigía no arranca, para la unidad y sale con 7: nunca corre sin vigía;
 #     El vigía para con `systemctl stop`: el TERM le llega a toda la unidad, y el paso en curso termina enseguida.
 #     Un TERM solo al proceso principal (`systemctl kill --kill-whom=main`) espera a que termine el paso;
 #   · nunca dos a la vez: si ya corre el ensayo o la carga, se niega (código 6).
 #
-# Códigos: 0 lanzada; 2 uso o carpeta mala; 6 ya corre una de las dos; otro, el de systemd-run.
+# Códigos: 0 lanzada; 2 uso, carpeta mala o un secreto en --env; 6 ya corre una de las dos; 7 no arrancó el vigía y
+# se paró la unidad; otro, el de systemd-run.
 # Imprime las huellas (sha256, 16 caracteres) de lo que va a correr, para compararlas con las de la rama.
 set -uo pipefail
 
@@ -28,12 +36,21 @@ TOPE_VIGIA=8
 VIGIA=1
 ENTORNO=()
 uso() { echo "uso: lanzar-unidad.sh --unidad kommo-e5-ensayo|kommo-e5-carga --dir <carpeta> [--env CLAVE=valor]... [--tope-vigia N] [--sin-vigia] -- <comando>..." >&2; exit 2; }
+# Una opción con valor, al final y sin él: `shift 2` fallaría sin mover nada, y el while giraría para siempre.
+pide_valor() { [ "$1" -ge 2 ] || uso; }
 while [ $# -gt 0 ]; do
   case "$1" in
-    --unidad) UNIDAD="${2:-}"; shift 2 ;;
-    --dir) CARPETA="${2:-}"; shift 2 ;;
-    --env) case "${2:-}" in [A-Z_]*=*) ENTORNO+=(--setenv="$2") ;; *) echo "--env pide CLAVE=valor: ${2:-}" >&2; exit 2 ;; esac; shift 2 ;;
-    --tope-vigia) TOPE_VIGIA="${2:-}"; shift 2 ;;
+    --unidad) pide_valor $#; UNIDAD="$2"; shift 2 ;;
+    --dir) pide_valor $#; CARPETA="$2"; shift 2 ;;
+    --env)
+      pide_valor $#
+      case "$2" in [A-Z_]*=*) ;; *) echo "--env pide CLAVE=valor" >&2; exit 2 ;; esac
+      # El token nunca va por --env: se vería en `systemctl show` (Environment=). No se imprime el valor.
+      case "${2%%=*}" in *TOKEN* | *SECRET* | *PASSWORD* | *CLAVE* | *KEY*)
+        echo "--env no lleva secretos: ${2%%=*} se vería en systemctl show. El token se lee de su archivo 0600" >&2; exit 2 ;;
+      esac
+      ENTORNO+=(--setenv="$2"); shift 2 ;;
+    --tope-vigia) pide_valor $#; TOPE_VIGIA="$2"; shift 2 ;;
     --sin-vigia) VIGIA=0; shift ;;
     --) shift; break ;;
     *) uso ;;
@@ -68,7 +85,10 @@ systemd-run --quiet --unit "$UNIDAD" -p "TimeoutStopSec=${TIMEOUT_STOP_S}s" -p N
   "${ENTORNO[@]}" "$@" || { rc=$?; echo "systemd-run no pudo lanzar $UNIDAD (código $rc)" >&2; exit "$rc"; }
 echo "lanzada $UNIDAD (TimeoutStopSec ${TIMEOUT_STOP_S} s, Nice 10)"
 if [ "$VIGIA" = 1 ]; then
-  systemd-run --quiet --unit "$UNIDAD-vigia" -p WorkingDirectory="$CARPETA" /bin/bash "$CARPETA/vigia-carga.sh" "$UNIDAD" "$TOPE_VIGIA" \
-    || { echo "AVISO: no arrancó $UNIDAD-vigia; $UNIDAD sigue corriendo sin vigía" >&2; exit 1; }
+  if ! systemd-run --quiet --unit "$UNIDAD-vigia" -p WorkingDirectory="$CARPETA" /bin/bash "$CARPETA/vigia-carga.sh" "$UNIDAD" "$TOPE_VIGIA"; then
+    echo "PARO: no arrancó $UNIDAD-vigia; se para $UNIDAD, que no corre sin vigía (código 7)" >&2
+    systemctl stop "$UNIDAD.service"
+    exit 7
+  fi
   echo "lanzado $UNIDAD-vigia (tope $TOPE_VIGIA)"
 fi

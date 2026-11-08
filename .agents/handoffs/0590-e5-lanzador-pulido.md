@@ -17,6 +17,31 @@
 
 PR en borrador, sin fusionar. Nada en producción ni en el VPS. Lo que lleva systemd va a GitHub Actions.
 
+## Commits
+
+- `228d9d67e` test: solo las pruebas, con el código de `main` (el rojo previo).
+- El commit de los arreglos sigue a este. Su SHA está en la PR #450.
+
+## Validación
+
+| Comprobación | Resultado |
+|---|---|
+| `prueba-docs-lanzador.sh` con el código de `main` (PC) | FALLÓ, como se esperaba: 0 de 4 |
+| `prueba-docs-lanzador.sh` con los arreglos (PC) | PASÓ: 4 de 4 |
+| `lanzar-unidad.sh` en la PC, sin systemd: `--dir` al final, `--env KOMMO_TOKEN=…` y `--env` sin `=` | PASÓ: los tres salen con 2. El primero sale enseguida, sin quedarse en el `while`, y ninguno imprime el valor |
+| Cada texto de MLA3 a MLA6 aparece una sola vez en el lanzador | PASÓ |
+| `bash -n`, `docs:check`, `check-numbering` y `git diff --check` | PASÓ |
+| CI del cargador, el rojo previo sobre `228d9d67e` y el verde con los arreglos | En la PR #450 y en el mensaje al Subdirector. La rama se congela al publicar |
+| `pnpm verify` | NO EJECUTADO: el cambio es de `infra/ops`, de docs y de un workflow, sin producto |
+
+## Impacto documental
+
+El README de `infra/ops/kommo-historial`, la spec 0590 (§10.18 y §10.19) y el handoff de la #432. Graphify y Obsidian los revisa el Director al integrar.
+
+## FUERA DE ALCANCE DETECTADO
+
+Nada nuevo. El vigía del repo todavía no mira la salud de los contenedores; está anotado en §10.18.
+
 ## Estado
 
-En curso.
+Lista para revisión, en borrador. Solo falta el resultado del CI alojado.

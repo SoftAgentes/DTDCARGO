@@ -25,6 +25,7 @@ PR en borrador, sin fusionar. Nada en producción ni en el VPS. Lo que lleva con
 
 - `4cfa0403f` test: solo las pruebas nuevas, con el código de `main` (el rojo previo).
 - `094c35851` fix: los arreglos, el lanzador, el README, el handoff de estado y la §10.18.
+- `a52034e20` ci: `timeout-minutes` en 75, con el rojo previo anotado.
 
 ## Validación
 
@@ -36,8 +37,8 @@ PR en borrador, sin fusionar. Nada en producción ni en el VPS. Lo que lleva con
 | `docs:check`, `check-numbering` y `git diff --check` | PASÓ |
 | CI del cargador sobre `4cfa0403f` (rojo previo, run 42424887376, 43 min) | FALLÓ, como se esperaba, solo en las pruebas nuevas. Python: `PruebasTexto403` («12 conversaciones y 1 mensajes sin acceso por 403»). Lanzador: 0 de 9, porque `lanzar-unidad.sh` no existe en `main`. Ensayo: 11 fallas. T0 no pudo leer el tope; T1 y T2 dan `no:tope`; T4 da `no:siguio`, porque sin la guarda el ensayo sigue. ME2 y ME3 caen por T1 y T2. ME5 y ME6 no se pueden mutar. N7 da `no:siguio`: en `main` el ensayo siguió hasta el final y salió con 0. R6: «el 3º, de hace 500 días;  revisados si no hubo». F5. Siguen verdes completa (25), vigía (15) y el cargador (0 fallas) |
 | Calidad continua sobre `4cfa0403f` (42424887337) | PASÓ |
-| CI del cargador sobre los arreglos | PENDIENTE |
-| Calidad continua | PENDIENTE |
+| CI del cargador sobre `a52034e20` (run 42428357622, el job tardó 43 min 32 s) | PASÓ. Python: 63, OK. Lanzador: 9 de 9 (L1 a L5, M0 y MLA1 a MLA3). Ensayo: 0 fallas. T1 a T4 pasan; en T1, la unidad tenía 600 s y la limpieza tardó 0 s (con resolución de 1 s). T4 termina en `exit-code 1 5`. ME1 a ME4 y ME6 caen por su motivo. N7 para en adjuntos-1 con código 3, ME5 cae por `siguio`, y pasan R1 (48), R6 y F5. Completa: 25. Vigía: 15. Cargador: 0 fallas |
+| Calidad continua sobre `a52034e20` (42428357683) | PASÓ |
 | `pnpm verify` | NO EJECUTADO: el cambio es de `infra/ops`, de docs y de un workflow, sin producto. El cierre lo dan las pruebas propias y el CI |
 
 ## Impacto documental
@@ -50,9 +51,8 @@ Graphify y Obsidian, sin cambios en esta tarea: los revisa el Director al integr
 
 ## Pendientes de esta tarea
 
-- Leer los runs y llenar la tabla.
-- Medir la duración del verde. El tope ya está en 75: el rojo previo tardó 43 min, más de los 35 de la regla del DG.
-- Mandarle al Subdirector el SHA, el numstat y los runs.
+Ninguno. Los cinco puntos de la revisión, que no bloqueaban, van en su propia PR (`0590-e5-lanzador-pulido.md`, §10.19).
+Con 43,5 de 75 minutos, el tope alcanza. Si pasa de unos 55, se parte el job antes de subirlo.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -60,4 +60,4 @@ Graphify y Obsidian, sin cambios en esta tarea: los revisa el Director al integr
 
 ## Estado
 
-En curso.
+Cerrada. La #432 quedó APPROVED sobre `a52034e20` y se fusionó en el tren #441 (2026-11-08 12:09Z, `main` en `146d5ea5e`). El worktree y la rama se quitaron con evidencia. Los runs se anotan aquí desde la PR de §10.19: la rama de la #432 estaba congelada.
