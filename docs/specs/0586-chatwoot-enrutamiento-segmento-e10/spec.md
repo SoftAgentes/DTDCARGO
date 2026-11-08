@@ -449,16 +449,25 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 {"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d2","mensaje_id":90002}
 ```
 
-**Para E5 confirmar o corregir:**
-1. Si al cargador le sirve el `tipo` `contacto` en lugar de `persona`, y `sentido` en lugar de su campo propio.
-2. Que devuelve el `display_id` en `conversacion_id`.
-3. Que en un contacto que ya existía devuelve el `source_id` del `contact_inbox` de esta bandeja.
+**El formato quedó cerrado con E5 el 2026-11-08** (comunicado por el Subdirector):
+1. **Nombres:** el cargador adopta tal cual `contacto`, `sentido` y los demás nombres de este formato.
+2. **`conversacion_id`:** es el `display_id`.
+3. **El contacto:** se reconoce por `identifier = dtd-portal:<identificador>`. Si ya tiene un `contact_inbox` en esta bandeja, `vinculos.ndjson` devuelve su `source_id` real, aunque no empiece con `dtd-portal:` (por ejemplo, si lo creó la cola). El chequeo de `chatwoot_portal_contactos` sigue rechazando un `source_id` que sea un teléfono.
+4. **`nota_archivo`:** es un objeto `{source_id, texto, created_at}`, o `null`. El cargador la escribe como un mensaje de actividad.
+5. **El usuario de servicio:** va en `AGENTE_SERVICIO=<id>`, en el entorno del cargador. El cargador rechaza la carga si ese id no es un usuario de la cuenta. Si un `agente` no nulo no es usuario de la cuenta, falla con `HECHO error=agente_desconocido`, y no firma con el usuario de servicio sin decirlo.
+6. **Lo que el cargador rechaza, sin escribir nada:**
+   - una `cuenta` o una `bandeja` de la cabecera distintas de las del entorno;
+   - conteos que no coinciden con las líneas;
+   - un `mensaje` de un hilo que no está en el archivo;
+   - una `conversacion` de un cliente sin `contacto`.
+7. **La bandeja con `webhook_url` (la guarda G1 del Archivo) se sigue rechazando.** La bandeja «Conversaciones del portal» es de canal API y va sin `webhook_url` (§10.5.9, puerta 3; guion de encendido, §1; PoC-6). El webhook que llega a Studio es el de la cuenta, como en V-4. Si la bandeja tuviera `webhook_url`, sería una bandeja mal configurada, y lo seguro es no cargar.
+8. **Los controles de Studio en el ensayo (C-6, C-7 y C-8):** el Worker de la 10.5 escribe las consultas en su propio archivo, `infra/ops/portal-historial/controles-studio.sql`. Son de solo lectura y devuelven solo conteos y huellas md5. E5 las corre desde su ensayo, contra la copia efímera de Studio. No hay archivos compartidos.
 
 **Dos riesgos de la carga y su arreglo** (revisión del Subdirector del 2026-11-08, sobre `4bdc781b4`):
 
 1. **Repetir la carga no duplica contactos ni conversaciones.** Supón que la carga en Chatwoot entra y `chatwoot_portal_vincular_carga` falla, por ejemplo por un corte de red. Al repetir, la extracción vuelve a traer esos hilos, porque siguen sin vínculo. Si la preparación inventara otro identificador al azar, el contacto `dtd-portal:<nuevo>` sería otro, y Chatwoot crearía contactos y conversaciones dobles. Es la regla de la 0519: el identificador se guarda **antes** de llamar a Chatwoot.
    - **(a), obligatoria: la reserva.** La 0523 suma `chatwoot_portal_reservar_contactos(p_tenant_id, p_clientes uuid[])` (solo `service_role`). La preparación la llama **antes** de escribir `preparado.ndjson`. Inserta en `chatwoot_portal_contactos` una fila por cliente que todavía no tiene, con su `identificador` al azar y `chatwoot_contact_id` nulo (`on conflict do nothing`), y devuelve el identificador de cada cliente, nuevo o guardado. Una repetición lee el mismo, así que el cargador encuentra el contacto `dtd-portal:<identificador>` que ya creó y lo reusa. Es una escritura en la base de Studio, y en producción va dentro de la puerta 4, con su OK.
-   - **(b), si E5 puede, además de la (a):** el cargador reconoce una conversación ya cargada por el hilo, con la marca `dtd:hilo:<hilo>` en sus atributos (`additional_attributes`), y no la crea otra vez. Los mensajes ya no se duplican por su `source_id`.
+   - **(b), confirmada por E5:** el cargador reconoce una conversación ya cargada por `additional_attributes.dtd_hilo` (el uuid del hilo) y los mensajes por su `source_id`, así que repetir no duplica ni conversaciones ni mensajes. **El contacto solo se mantiene igual si el identificador es estable:** por eso la reserva (a) es obligatoria.
    - **La prueba:** la carga entra, la vinculación falla, se repite todo desde la extracción, y no queda ningún contacto ni conversación doble. Lo miden C-3 y C-10 en el ensayo, y el contrato de la 0523.
 2. **Un mensaje que cae entre la foto y el corte entra una sola vez (I).** Supón que el corte fuera la hora exacta en que empieza la transacción de solo lectura. Un mensaje que inserta otra transacción que empezó antes y confirma después tiene un `sent_at` anterior al corte, pero no está en la foto. No lo carga la extracción y tampoco lo manda la cola, que toma solo `sent_at >= corte` (`0519_chatwoot_portal.sql:226`).
    - **El arreglo:** el `corte` de la cabecera va **5 minutos antes** del inicio de la transacción de solo lectura.
