@@ -1,5 +1,5 @@
 /**
- * SDD-NNNN · 7.6 · motor de `dtd-bot` con un DOBLE: ninguna llamada a un modelo real.
+ * SDD-0618 · 7.6 · motor de `dtd-bot` con un DOBLE: ninguna llamada a un modelo real.
  * Precio inventado (US$1 / US$2 por millón), no es la tarifa de ningún proveedor.
  */
 import { describe, expect, it, vi } from "vitest";

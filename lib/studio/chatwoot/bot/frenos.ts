@@ -1,5 +1,5 @@
 /**
- * `dtd-bot` · frenos (SDD-NNNN §3.3, fila 7.6 de SDD-0582). Puro.
+ * `dtd-bot` · frenos (SDD-0618 §3.3, fila 7.6 de SDD-0582). Puro.
  *
  * Los frenos que la v3 tomó del kit de Basdonax, pero con el estado en la base y no en la
  * memoria del proceso (el kit los pierde al reiniciar): estas funciones solo calculan, y

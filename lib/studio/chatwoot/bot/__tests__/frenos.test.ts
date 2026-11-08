@@ -1,5 +1,5 @@
 /**
- * SDD-NNNN · 7.6 · frenos de `dtd-bot`: ráfagas, tope por conversación, presupuesto y
+ * SDD-0618 · 7.6 · frenos de `dtd-bot`: ráfagas, tope por conversación, presupuesto y
  * recortes. Puro; las fechas son inventadas.
  */
 import { describe, expect, it } from "vitest";

@@ -1,5 +1,5 @@
 /**
- * `dtd-bot` · filtro de autor y dirección (SDD-NNNN §3.4, fila 7.6 de SDD-0582). Puro.
+ * `dtd-bot` · filtro de autor y dirección (SDD-0618 §3.4, fila 7.6 de SDD-0582). Puro.
  *
  * Decide qué hace un `message_created` de Chatwoot 4.19.1 con el turno del bot:
  *

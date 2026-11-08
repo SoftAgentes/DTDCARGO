@@ -1,5 +1,5 @@
 /**
- * SDD-NNNN · 7.6 · filtro de autor y dirección de `dtd-bot`. Pura, con payloads inventados
+ * SDD-0618 · 7.6 · filtro de autor y dirección de `dtd-bot`. Pura, con payloads inventados
  * con la forma de `message.rb#webhook_data` de Chatwoot 4.19.1. Sin datos de personas.
  */
 import { describe, expect, it } from "vitest";

@@ -1,5 +1,5 @@
 /**
- * `dtd-bot` · motor y costo por llamada (SDD-NNNN §3, fila 7.6 de SDD-0582). Puro salvo el
+ * `dtd-bot` · motor y costo por llamada (SDD-0618 §3, fila 7.6 de SDD-0582). Puro salvo el
  * motor que se inyecta.
  *
  * El proveedor real NO se elige aquí: la decisión F dice Gemini con GLM de respaldo y la

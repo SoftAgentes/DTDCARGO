@@ -1,5 +1,5 @@
 /**
- * `dtd-bot` · modo comprobado antes de enviar y falla cerrada (SDD-NNNN §3, fila 7.6). Puro.
+ * `dtd-bot` · modo comprobado antes de enviar y falla cerrada (SDD-0618 §3, fila 7.6). Puro.
  *
  * El trabajador junta una FOTO del estado (releída de la base y de Chatwoot) dos veces:
  * antes de llamar al motor y justo antes de enviar. Esta función decide con esa foto.

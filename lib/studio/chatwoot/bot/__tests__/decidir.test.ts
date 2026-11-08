@@ -1,5 +1,5 @@
 /**
- * SDD-NNNN · 7.6 · modo comprobado antes de enviar y falla cerrada de `dtd-bot`. Puro.
+ * SDD-0618 · 7.6 · modo comprobado antes de enviar y falla cerrada de `dtd-bot`. Puro.
  */
 import { describe, expect, it } from "vitest";
 
