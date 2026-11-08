@@ -144,7 +144,7 @@ describe("SDD-0618 · 0522 la cola de dtd-bot (PGlite)", () => {
     ],
     [
       "la espera pasa del límite",
-      "    v_listo := pg_catalog.least(p_llegada + pg_catalog.make_interval(secs => p_inactividad_ms / 1000.0), v_turno.limite_at);",
+      "    v_listo := least(p_llegada + pg_catalog.make_interval(secs => p_inactividad_ms / 1000.0), v_turno.limite_at);",
       "    v_listo := p_llegada + pg_catalog.make_interval(secs => p_inactividad_ms / 1000.0);",
       /TEST 0522: la espera no pasa del límite|violates check constraint/,
     ],

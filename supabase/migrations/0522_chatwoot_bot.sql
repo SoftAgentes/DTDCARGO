@@ -362,10 +362,10 @@ begin
 
   if found then
     -- Otro mensaje del cliente: corre la espera sin pasar del límite; nunca la adelanta.
-    v_listo := pg_catalog.least(p_llegada + pg_catalog.make_interval(secs => p_inactividad_ms / 1000.0), v_turno.limite_at);
+    v_listo := least(p_llegada + pg_catalog.make_interval(secs => p_inactividad_ms / 1000.0), v_turno.limite_at);
     update public.chatwoot_bot_turnos t
     set ultimo_mensaje_id = p_mensaje_id,
-        listo_desde = pg_catalog.greatest(t.listo_desde, v_listo)
+        listo_desde = greatest(t.listo_desde, v_listo)
     where t.id = v_turno.id;
     return query select v_turno.id, false, null::text;
     return;
