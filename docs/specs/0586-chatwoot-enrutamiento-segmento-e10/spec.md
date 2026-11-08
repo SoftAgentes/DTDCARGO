@@ -144,6 +144,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 - **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. El 2026-11-07 contestó P7, los feriados: opción (a) (§10.5.11). Ese mismo día aprobó los textos públicos T1 a T4 (§10.5.12) y dio el OK del conteo, que corrió el Director General: 24 hilos, 0 archivados y 73 mensajes. También eligió cargar los hilos archivados (§10.5.10). Quedan las puertas (§10.5.20).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
+- ~~Aplicar la 0519~~: aplicada en prueba y en producción el 2026-11-08 (ver «2026-11-08 · La 0519 aplicada»). La 0520 (PR 1b) espera el OK de Sam.
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
 
 ## 2026-11-04 · La 0505 aplicada en producción: cierre del runbook §6
@@ -161,6 +162,26 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **Publicación:** va en la imagen de `fe35eb2d1`, publicada en `dtd-cargo` el 2026-11-04 a las 12:41:54Z por el Director General; la hora es la que él reportó. El enrutamiento sigue sin clasificar hasta el corte: `CHATWOOT_INBOX_LEADS_ID`, `CHATWOOT_TEAM_LEADS_ID` y `WHATSAPP_NUMERO_CLIENTES` quedan sin escribir.
 - **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
+
+## 2026-11-08 · La 0519 aplicada en prueba y en producción: cierre
+
+La aplicó el Director General, primero en prueba y después en producción. Lo que antes en esta spec dice que la 0519 está en espera vale para su fecha. Es la ida del chat del portal a Chatwoot (paso 10.5, PR 1a, #424, fusionada el 2026-11-08 a las 00:25:11Z en `caca3438b`).
+
+| Proyecto | COMMIT | `version` del ledger | `created_by` | Evidencia, en `/srv/ops/evidencias/` |
+|---|---|---|---|---|
+| Prueba (`dtd-cargo-staging`) | 2026-11-08T02:09:22Z | `20261108020922` | `servidor-propio:psql:prueba:SDD-0586` | `apply-0519-dtd-cargo-staging-20261108T020921Z` y `ensayo-0519-dtd-cargo-staging/{antes,despues}.out` |
+| Producción (`dtd-cargo`) | 2026-11-08T02:11:18Z | `20261108021118` | `servidor-propio:psql:SDD-0586` | `apply-0519-dtd-cargo-20261108T021117Z` y `ensayo-0519-dtd-cargo/{antes,despues}.out` |
+
+- **OK literal de Sam,** hacia las 02:05Z del 2026-11-08: «Sí, prueba y producción». Respondía a «¿Autorizas aplicar la 0519, primero en prueba.dtdcargo.com y luego en producción?». Registrado a nombre del Director General; lo comunicó el Subdirector de Chatwoot.
+- **Identidad:** blob `02b9d160285f640bdc6b2be63481119584a76f54`, md5 `f613559d5ca34b2932995c8ff051e97e` y 30710 bytes, con los paquetes de `preparar.mjs` sobre `main` en `caca3438b`. El sello del candado lleva sha256 `a04fc76c9e51e6ce11da036319a206983db84fea0685f02cbba1fb835c6143a2` y `ledger` exacta del 2026-11-08. El md5 y los bytes se comprobaron contra el archivo al sellar.
+- **Mediciones** (`docs/runbooks/chatwoot-portal-0519-antes.sql` y `-despues.sql`, de la #433):
+  - **Antes,** en los dos proyectos, A1 a A5 dieron 0, 0, 23 flags (sin `chatwoot_portal` y con `chatwoot_inbox`), 0 y 1 tenant.
+  - **Después,** D1 a D7 dieron lo esperado: la fila del ledger con ese md5, 24 flags con el portal apagado, una fila del flag por tenant y ninguna encendida, las 4 tablas con RLS y solo `service_role`, las 4 RPC definer con `search_path` vacío y solo `service_role`, y la cola en ceros.
+- **Smoke sin sesión:** el cron `chatwoot-reintentos` respondió 200 en los dos, las rutas dieron 200 o 307 y el log quedó sin errores. Las imágenes que corren hoy **no** traen el código de la #424, porque la publicación está congelada: el smoke con sesión del runbook queda para cuando se publique.
+- **El flag `chatwoot_portal` sigue apagado,** y encenderlo sigue siendo un OK nominal de Sam, con las condiciones de §10.5.9, paso 6.
+- **La 0520 (PR 1b, #434) no tiene OK de Sam.** Se lo pregunta el Director General.
+- **Lectura de esta nota:** los datos vienen de la evidencia del Director General, comunicada por el Subdirector. Este cierre no consultó tablas de producción.
+- **Espera:** salió de `pendingBelowCutoff` y de las declaraciones de símbolos (`retirar-espera.mjs`), y quedó sellada. La cabecera «NO APLICADA A PRODUCCIÓN» de `0519_chatwoot_portal.sql` no se corrige: cambiar el archivo cambiaría el blob y el md5 que ya están en el ledger. La prueba que afirmaba la espera (`lib/studio/__tests__/chatwoot-portal.migration.test.ts`) ahora afirma que salió, con el md5 del sello. Los comentarios condicionales del código («sin la migración…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
 
 ## Paso 10.5 — Conversaciones del portal en Chatwoot y en los embudos (rediseño, 2026-11-06)
 
