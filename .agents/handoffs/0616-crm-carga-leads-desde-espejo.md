@@ -28,8 +28,14 @@ Preparar la 6.5: leads, etapas, tareas, mappings e IDs de Kommo al CRM propio, s
 | `sdd:check` | PASÓ |
 | `docs:check` | PASÓ, después de `docs:index` |
 | `migrations-lock` | PASÓ: 0 nuevas sin sellar |
-| «Contratos SQL» en Postgres 17 | NO EJECUTADO en la PC (lleva Docker): lo corre Actions en la PR |
+| «Contratos SQL» en Postgres 17 | NO EJECUTADO en la PC (lleva Docker). En Actions: rojo en el run 42478778578, por la copia del control C4, y PASÓ en el 42479215146 sobre `8915943f8`, con 267 de 267 y `✓ crm_carga_kommo.test.sql` |
 | `pnpm verify` y el build | NO EJECUTADO, por regla del carril |
+
+**`verify` también corre el contrato.**
+- `scripts/run-sql-tests.mjs` monta la carpeta `supabase/` entera en `/sb`, en modo `:ro` (línea 102).
+- Por eso `pnpm verify` y el paso «Contratos SQL» corren `crm_carga_kommo.test.sql` con `carga.sql` tal cual.
+- El único que arma una copia aparte es el control C4 de `scripts/ci-sql-tests-control.sh`, y por eso suma `cargas/`.
+- Nada de `cargas/` se aplica como migración: solo lo incluye el `\ir` del contrato.
 
 ## Pendientes de esta tarea
 
