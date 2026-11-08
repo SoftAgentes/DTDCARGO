@@ -89,8 +89,9 @@ export function interpretarMensajeBot(raw: unknown): MensajeBot | null {
     conversacionId,
     inboxId: entero(conversacion?.inbox_id) ?? entero(m.inbox_id),
     tipo: TIPOS.get(m.message_type) ?? "desconocido",
-    // Solo `true` es privado; lo que no vino se trata como privado para ABRIR (ver efecto).
-    privado: m.private === true,
+    // Falla cerrada: solo `false` es público. Lo que no vino, `null` o cualquier otro valor
+    // cuenta como privado, y un privado nunca abre turno (revisión del DG de la #449).
+    privado: m.private !== false,
     remitente,
     remitenteId: entero(sender?.id) ?? entero(m.sender_id),
     adjuntos: Array.isArray(m.attachments) ? m.attachments.length : 0,

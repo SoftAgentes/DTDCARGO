@@ -11,7 +11,8 @@
  *  - valida la forma de la respuesta (texto no vacío, tokens enteros);
  *  - anota SIEMPRE una llamada con proveedor, modelo, tokens, costo y resultado, también
  *    cuando falla o vence, para que el presupuesto la cuente (sin prompt ni respuesta);
- *  - nunca lanza: devuelve `ok: false` con el motivo y el turno pasa a humano.
+ *  - nunca lanza, tampoco con un precio inválido (entonces ni llama al motor): devuelve
+ *    `ok: false` con el motivo y el turno pasa a humano.
  */
 
 export interface PrecioModelo {
@@ -63,9 +64,20 @@ export type RespuestaLlamada =
 
 const tokensValidos = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0;
 
+/** Un precio usable: los dos números finitos y no negativos. */
+export function precioValido(precio: PrecioModelo | null | undefined): boolean {
+  return (
+    !!precio &&
+    Number.isFinite(precio.entradaPorMillon) &&
+    Number.isFinite(precio.salidaPorMillon) &&
+    precio.entradaPorMillon >= 0 &&
+    precio.salidaPorMillon >= 0
+  );
+}
+
 /** Costo en USD de una llamada, redondeado hacia arriba a la millonésima. Precio inválido → lanza. */
 export function costoLlamada(precio: PrecioModelo, tokensEntrada: number, tokensSalida: number): number {
-  if (!(precio.entradaPorMillon >= 0 && precio.salidaPorMillon >= 0)) throw new Error("precio inválido");
+  if (!precioValido(precio)) throw new Error("precio inválido");
   if (!tokensValidos(tokensEntrada) || !tokensValidos(tokensSalida)) throw new Error("tokens inválidos");
   const bruto = (tokensEntrada * precio.entradaPorMillon + tokensSalida * precio.salidaPorMillon) / 1_000_000;
   return Math.ceil(bruto * 1_000_000 - 1e-9) / 1_000_000;
@@ -88,6 +100,24 @@ export async function llamarMotor(
   opciones: { timeoutMs: number; ahora?: () => number },
 ): Promise<RespuestaLlamada> {
   const reloj = opciones.ahora ?? Date.now;
+  // Sin un precio usable (o con un tope de salida inválido) no se sabría cuánto cuesta: no se
+  // llama al motor, y la llamada se anota sin costo porque no hubo llamada (revisión del DG).
+  if (!precioValido(motor.precio) || !tokensValidos(entrada.maxTokensSalida)) {
+    return {
+      ok: false,
+      motivo: "error",
+      llamada: {
+        proveedor: motor.proveedor,
+        modelo: motor.modelo,
+        tokensEntrada: 0,
+        tokensSalida: 0,
+        costoUsd: 0,
+        resultado: "error",
+        duracionMs: 0,
+        costoEstimado: false,
+      },
+    };
+  }
   const inicio = reloj();
   const control = new AbortController();
   let temporizador: ReturnType<typeof setTimeout> | undefined;
