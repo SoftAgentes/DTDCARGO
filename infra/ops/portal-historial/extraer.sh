@@ -20,9 +20,16 @@ DIR="${DIR:-/dev/shm/portal-historial}"
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 
 case "$DIR" in
-  /dev/shm/*) ;;
+  *..*) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
+  /dev/shm/?*) ;;
   *) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
 esac
+# La cuenta y la bandeja entran a extraer.sql como números (:cuenta, :bandeja): solo dígitos.
+for n in "$CUENTA" "$BANDEJA"; do
+  case "$n" in
+    ''|*[!0-9]*) echo "HECHO error=cuenta_o_bandeja_no_numerica" >&2; exit 2 ;;
+  esac
+done
 if [ -e "$DIR/preparado.ndjson" ]; then
   echo "HECHO error=ya_hay_un_preparado (borrar con limpiar.sh antes)" >&2
   exit 2

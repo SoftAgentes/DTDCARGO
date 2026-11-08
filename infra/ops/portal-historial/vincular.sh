@@ -20,6 +20,13 @@ DIR="${DIR:-/dev/shm/portal-historial}"
 P="$DIR/preparado.ndjson"
 V="$DIR/vinculos.ndjson"
 
+# Borra el directorio al terminar: solo uno dentro de /dev/shm, como extraer.sh y limpiar.sh.
+case "$DIR" in
+  *..*) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
+  /dev/shm/?*) ;;
+  *) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
+esac
+
 test -s "$P" || { echo "HECHO error=sin_preparado" >&2; exit 2; }
 test -s "$V" || { echo "HECHO error=sin_vinculos" >&2; exit 2; }
 cabecera="$(head -n 1 "$P")"
@@ -31,6 +38,8 @@ fi
 {
   printf '%s\n' '\set ON_ERROR_STOP on' 'create temp table vinculos (n serial, linea text);' 'copy vinculos (linea) from stdin;'
   cat "$V"
+  # Un vinculos.ndjson sin salto de línea al final juntaría su última línea con el fin del COPY.
+  [ -z "$(tail -c 1 "$V")" ] || printf '\n'
   printf '%s\n' '\.' 'create temp table preparado (linea text);' 'copy preparado from stdin;'
   printf '%s\n' "$cabecera" '\.'
   printf '%s\n' 'set role service_role;'

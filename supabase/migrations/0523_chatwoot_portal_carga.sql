@@ -284,6 +284,13 @@ begin
        (select pg_catalog.count(*)::integer from pg_catalog.jsonb_array_elements(p_vinculos) e where e ->> 'tipo' = 'mensaje') then
     raise exception 'chatwoot_portal_vincular_carga: los conteos de la cabecera no son los de las líneas' using errcode = '22023';
   end if;
+  -- Y tienen que ser los del preparado: un vinculos incompleto fijaría el corte y lo que falta,
+  -- anterior al corte, no saldría nunca por la cola.
+  if (v_cab ->> 'contactos')::integer is distinct from (p_preparado ->> 'contactos')::integer
+     or (v_cab ->> 'conversaciones')::integer is distinct from (p_preparado ->> 'conversaciones')::integer
+     or (v_cab ->> 'mensajes')::integer is distinct from (p_preparado ->> 'mensajes')::integer then
+    raise exception 'chatwoot_portal_vincular_carga: los conteos de los vínculos no son los del preparado' using errcode = '22023';
+  end if;
   v_corte := (p_preparado ->> 'corte')::timestamptz;
   v_bandeja := (p_preparado ->> 'bandeja')::bigint;
   if v_corte is null or v_bandeja is null or v_bandeja <= 0 then

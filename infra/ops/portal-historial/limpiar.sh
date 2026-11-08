@@ -6,7 +6,8 @@
 set -euo pipefail
 DIR="${DIR:-/dev/shm/portal-historial}"
 case "$DIR" in
-  /dev/shm/*) ;;
+  *..*) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
+  /dev/shm/?*) ;;
   *) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
 esac
 rm -rf -- "$DIR"

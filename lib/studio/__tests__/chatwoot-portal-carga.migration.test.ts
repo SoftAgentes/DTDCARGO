@@ -106,6 +106,12 @@ describe("SDD-0586 · 0523 la carga del portal a Chatwoot (PGlite)", () => {
       "  if false then",
       /TEST 0523: fuera de una transacción de solo lectura las líneas se niegan/,
     ],
+    [
+      "las líneas con el flag encendido",
+      "  if not public.chatwoot_portal_carga_apagado(p_tenant_id) then\n    raise exception 'chatwoot_portal_carga_lineas: apagar",
+      "  if false then\n    raise exception 'chatwoot_portal_carga_lineas: apagar",
+      /TEST 0523: con el flag encendido las líneas se niegan/,
+    ],
     ["el corte sin margen", "(pg_catalog.transaction_timestamp() - interval '5 minutes')", "(pg_catalog.transaction_timestamp())", /TEST 0523: el corte va 5 minutos antes de la foto/],
     [
       "las líneas sin exigir la reserva",
@@ -144,6 +150,24 @@ describe("SDD-0586 · 0523 la carga del portal a Chatwoot (PGlite)", () => {
       "\n     or (v_cab ->> 'mensajes')::integer is distinct from\n       (select pg_catalog.count(*)::integer from pg_catalog.jsonb_array_elements(p_vinculos) e where e ->> 'tipo' = 'mensaje') then",
       " then",
       /TEST 0523: conteos que no cuadran se rechazan/,
+    ],
+    [
+      "acepta vínculos con menos contactos que el preparado",
+      "(v_cab ->> 'contactos')::integer is distinct from (p_preparado ->> 'contactos')::integer\n     or ",
+      "",
+      /TEST 0523: un vinculos al que le falta un contacto se rechaza/,
+    ],
+    [
+      "acepta vínculos con menos conversaciones que el preparado",
+      "\n     or (v_cab ->> 'conversaciones')::integer is distinct from (p_preparado ->> 'conversaciones')::integer",
+      "",
+      /TEST 0523: un vinculos al que le falta una conversación se rechaza/,
+    ],
+    [
+      "acepta vínculos con menos mensajes que el preparado",
+      "\n     or (v_cab ->> 'mensajes')::integer is distinct from (p_preparado ->> 'mensajes')::integer",
+      "",
+      /TEST 0523: un vinculos al que le falta un mensaje se rechaza/,
     ],
     [
       "un identificador cualquiera",

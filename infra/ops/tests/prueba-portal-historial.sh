@@ -7,7 +7,9 @@
 #   · /dev/shm/<dir> queda con 0700 y el preparado con 0600;
 #   · si la extracción falla, no queda ni el preparado ni lo parcial;
 #   · si la vinculación sale bien, el directorio se borra; si falla, queda para repetir;
-#   · ninguno acepta un directorio fuera de /dev/shm; la vinculación rechaza la barra invertida.
+#   · ninguno acepta un directorio fuera de /dev/shm (ni con `..`); la vinculación rechaza la barra invertida;
+#   · la extracción pide la cuenta y la bandeja en números; la vinculación acepta un vinculos.ndjson sin
+#     salto de línea al final (revisión del DG de la #456).
 # Datos inventados: uuid y números sintéticos.
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -86,6 +88,16 @@ FALSO_FALLA_EXTRAER=1 DB=db-falso TENANT=t CUENTA=1 BANDEJA=9 DIR="${D}" bash "$
 DB=db-falso TENANT=t CUENTA=1 BANDEJA=9 DIR="${T}/fuera" bash "${PH}/extraer.sh" > "${T}/e4.log" 2>&1; rc=$?
 [ "${rc}" != 0 ] && grep -q 'dir_fuera_de_dev_shm' "${T}/e4.log" && [ ! -e "${T}/fuera" ] && ok "extraer.sh no acepta un directorio fuera de /dev/shm" || ko "aceptó un directorio fuera de /dev/shm"
 
+rm -rf "${D}"
+DB=db-falso TENANT=t CUENTA='1; select 1' BANDEJA=9 DIR="${D}" bash "${PH}/extraer.sh" > "${T}/e5.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && grep -q 'cuenta_o_bandeja_no_numerica' "${T}/e5.log" && [ ! -e "${D}" ] \
+  && ok "extraer.sh pide la cuenta en números, sin tocar nada" || ko "aceptó una cuenta no numérica: ${rc}"
+DB=db-falso TENANT=t CUENTA=1 BANDEJA='' DIR="${D}" bash "${PH}/extraer.sh" > "${T}/e6.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && [ ! -e "${D}" ] && ok "extraer.sh pide la bandeja" || ko "aceptó una bandeja vacía: ${rc}"
+DB=db-falso TENANT=t CUENTA=1 BANDEJA=9x DIR="${D}" bash "${PH}/extraer.sh" > "${T}/e7.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && grep -q 'cuenta_o_bandeja_no_numerica' "${T}/e7.log" && [ ! -e "${D}" ] \
+  && ok "extraer.sh pide la bandeja en números" || ko "aceptó una bandeja no numérica: ${rc}"
+
 # ── vincular.sh ──
 rm -rf "${D}"
 DB=db-falso TENANT=10000000-0000-4000-8000-000000000001 CUENTA=1 BANDEJA=9 DIR="${D}" bash "${PH}/extraer.sh" > /dev/null 2>&1
@@ -111,12 +123,37 @@ printf '%s\n' '{"tipo":"cabecera","x":"a\\b"}' > "${D}/vinculos.ndjson"
 DB=db-falso TENANT=t DIR="${D}" bash "${PH}/vincular.sh" > "${T}/v3.log" 2>&1; rc=$?
 [ "${rc}" != 0 ] && grep -q 'barra_invertida' "${T}/v3.log" && [ -e "${D}" ] && ok "vincular.sh rechaza la barra invertida sin tocar nada" || ko "aceptó una barra invertida: ${rc}"
 
+# vincular.sh borra su directorio al terminar: fuera de /dev/shm se niega antes de tocar nada.
+mkdir -p "${T}/fuera3"
+cp "${D}/preparado.ndjson" "${T}/fuera3/preparado.ndjson"
+printf '%s\n' '{"tipo":"cabecera"}' > "${T}/fuera3/vinculos.ndjson"
+: > "${FALSO_REGISTRO}"
+DB=db-falso TENANT=t DIR="${T}/fuera3" bash "${PH}/vincular.sh" > "${T}/v4.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && grep -q 'dir_fuera_de_dev_shm' "${T}/v4.log" && [ -f "${T}/fuera3/preparado.ndjson" ] && [ -f "${T}/fuera3/vinculos.ndjson" ] \
+  && [ ! -s "${FALSO_REGISTRO}" ] && ok "vincular.sh no acepta un directorio fuera de /dev/shm ni lo borra" || ko "vincular.sh aceptó un directorio fuera de /dev/shm: ${rc}"
+DB=db-falso TENANT=t DIR="/dev/shm/../${T#/}/fuera3" bash "${PH}/vincular.sh" > "${T}/v5.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && grep -q 'dir_fuera_de_dev_shm' "${T}/v5.log" && [ -d "${T}/fuera3" ] \
+  && ok "vincular.sh no acepta salir de /dev/shm con .." || ko "vincular.sh aceptó /dev/shm/..: ${rc}"
+
+# Un vinculos.ndjson sin salto de línea al final: su última línea entra entera al COPY.
+rm -rf "${D}"
+DB=db-falso TENANT=10000000-0000-4000-8000-000000000001 CUENTA=1 BANDEJA=9 DIR="${D}" bash "${PH}/extraer.sh" > /dev/null 2>&1
+printf '%s\n%s' '{"tipo":"cabecera","version":1,"corte":"2026-11-10T14:00:00.000000Z","contactos":1,"conversaciones":1,"mensajes":1}' \
+  '{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d2","mensaje_id":90002}' > "${D}/vinculos.ndjson"
+: > "${FALSO_REGISTRO}"
+DB=db-falso TENANT=10000000-0000-4000-8000-000000000001 DIR="${D}" bash "${PH}/vincular.sh" > "${T}/v6.log" 2>&1; rc=$?
+[ "${rc}" = 0 ] && grep -qx '{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d2","mensaje_id":90002}' "${FALSO_REGISTRO}" \
+  && ok "vincular.sh acepta un vinculos.ndjson sin salto de línea al final" || ko "vinculos sin salto final: ${rc} $(grep -c 90002 "${FALSO_REGISTRO}")"
+mkdir -p -m 0700 "${D}"
+
 # ── limpiar.sh ──
 DIR="${D}" bash "${PH}/limpiar.sh" > /dev/null 2>&1
 [ ! -e "${D}" ] && ok "limpiar.sh borra el directorio" || ko "limpiar.sh no borró el directorio"
 mkdir -p "${T}/fuera2"
 DIR="${T}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l1.log" 2>&1; rc=$?
 [ "${rc}" != 0 ] && [ -e "${T}/fuera2" ] && ok "limpiar.sh no borra fuera de /dev/shm" || ko "limpiar.sh borró fuera de /dev/shm"
+DIR="/dev/shm/../${T#/}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l2.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && [ -e "${T}/fuera2" ] && ok "limpiar.sh no sale de /dev/shm con .." || ko "limpiar.sh borró con /dev/shm/.."
 
 echo "== ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]

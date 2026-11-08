@@ -232,6 +232,23 @@ begin
 end;
 $fuera$;
 
+-- Con el flag encendido, las líneas se niegan: la foto se toma con la cola quieta.
+do $encendido$
+declare v text;
+begin
+  perform pg_temp.flag('T1', true);
+  begin
+    set local transaction_read_only = on;
+    v := pg_temp.falla(format('select * from public.chatwoot_portal_carga_lineas(%L, 1, 9)', pg_temp.id('T1')));
+    raise exception 'FIN_SOLO_LECTURA %', coalesce(v, 'null');
+  exception when raise_exception then
+    if sqlerrm not like 'FIN_SOLO_LECTURA %' then raise; end if;
+    perform pg_temp.assert_true(sqlerrm like 'FIN_SOLO_LECTURA 55000:%apagar chatwoot_portal%', 'con el flag encendido las líneas se niegan: ' || sqlerrm);
+  end;
+  perform pg_temp.flag('T1', false);
+end;
+$encendido$;
+
 do $lineas$
 declare
   v jsonb[];
@@ -362,6 +379,10 @@ exception when others then
 end;
 $$;
 create function pg_temp.todo() returns jsonb language sql as $$ select jsonb_agg(linea) from vinculos $$;
+-- La cabecera del preparado con un conteo cambiado.
+create function pg_temp.cabecera(p_campo text, p_valor integer) returns jsonb language sql as $$
+  select jsonb_set(linea, array[p_campo], to_jsonb(p_valor)) from preparado where linea ->> 'tipo' = 'cabecera'
+$$;
 
 do $rechazos$
 declare v text; v_todo jsonb := pg_temp.todo();
@@ -374,20 +395,39 @@ begin
   v := pg_temp.vincular(v_todo, (select jsonb_set(linea, '{corte}', '"2020-01-01T00:00:00.000000Z"') from preparado where linea ->> 'tipo' = 'cabecera'));
   perform pg_temp.assert_true(v like '22023:%no es la del preparado%', 'otra cabecera se rechaza: ' || v);
   v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'cabecera' then jsonb_set(linea, '{mensajes}', '5') else linea end) from vinculos));
-  perform pg_temp.assert_true(v like '22023:%conteos%', 'conteos que no cuadran se rechazan: ' || v);
+  perform pg_temp.assert_true(v like '22023:%conteos de la cabecera no son los de las líneas%', 'conteos que no cuadran se rechazan: ' || v);
   v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'contacto' and linea ->> 'cliente' = pg_temp.id('A')::text
     then jsonb_set(linea, '{identificador}', to_jsonb(gen_random_uuid()::text)) else linea end) from vinculos));
   perform pg_temp.assert_true(v like '22023:%identificador%', 'un identificador que no es el reservado se rechaza: ' || v);
   v := pg_temp.vincular(v_todo || jsonb_build_object('tipo', 'mensaje', 'mensaje', pg_temp.id('d1')::text, 'mensaje_id', 99999));
   perform pg_temp.assert_true(v like '22023:%conteos%' or v like 'P0002:%', 'un mensaje de más se rechaza: ' || v);
+  -- Estos dos llegan a su rechazo propio con las dos cabeceras de acuerdo en el conteo de más.
   v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'cabecera' then jsonb_set(linea, '{mensajes}', '7') else linea end) from vinculos)
-    || jsonb_build_object('tipo', 'mensaje', 'mensaje', pg_temp.id('d1')::text, 'mensaje_id', 99999));
+    || jsonb_build_object('tipo', 'mensaje', 'mensaje', pg_temp.id('d1')::text, 'mensaje_id', 99999), pg_temp.cabecera('mensajes', 7));
   perform pg_temp.assert_true(v like 'P0002:%hilo vinculado%', 'un mensaje de un hilo que no se vinculó se rechaza: ' || v);
   v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'cabecera' then jsonb_set(linea, '{contactos}', '3') else linea end) from vinculos)
-    || jsonb_build_object('tipo', 'contacto', 'cliente', pg_temp.id('D')::text, 'identificador', gen_random_uuid()::text, 'contacto_id', 777, 'source_id', 'dtd-portal:x'));
+    || jsonb_build_object('tipo', 'contacto', 'cliente', pg_temp.id('D')::text, 'identificador', gen_random_uuid()::text, 'contacto_id', 777, 'source_id', 'dtd-portal:x'),
+    pg_temp.cabecera('contactos', 3));
   perform pg_temp.assert_true(v like 'P0002:%sin reserva%', 'un contacto sin reserva se rechaza: ' || v);
+
+  -- Un vinculos incompleto, coherente consigo mismo, no se acepta: si se aceptara, el corte quedaría
+  -- fijado y lo que falta, anterior al corte, no saldría nunca por la cola.
+  v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'cabecera' then jsonb_set(linea, '{mensajes}', '5') else linea end) from vinculos
+    where linea ->> 'mensaje' is distinct from pg_temp.id('p1')::text));
+  perform pg_temp.assert_true(v like '22023:%no son los del preparado%', 'un vinculos al que le falta un mensaje se rechaza: ' || v);
+  v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'cabecera' then jsonb_set(linea, '{conversaciones}', '2') else linea end) from vinculos
+    where linea ->> 'hilo' is distinct from pg_temp.id('hP')::text));
+  perform pg_temp.assert_true(v like '22023:%no son los del preparado%', 'un vinculos al que le falta una conversación se rechaza: ' || v);
+  v := pg_temp.vincular((select jsonb_agg(case when linea ->> 'tipo' = 'cabecera' then jsonb_set(linea, '{contactos}', '1') else linea end) from vinculos
+    where linea ->> 'cliente' is distinct from pg_temp.id('B')::text));
+  perform pg_temp.assert_true(v like '22023:%no son los del preparado%', 'un vinculos al que le falta un contacto se rechaza: ' || v);
+
   perform pg_temp.assert_true(not exists (select 1 from public.chatwoot_portal_hilos where conversation_id in (pg_temp.id('hA'), pg_temp.id('hP'), pg_temp.id('hX'))),
     'un rechazo no deja nada a medias');
+  perform pg_temp.assert_true(not exists (select 1 from public.chatwoot_portal_salida where estado = 'cargado' and tenant_id = pg_temp.id('T1')),
+    'un rechazo no marca nada cargado');
+  perform pg_temp.assert_true(not exists (select 1 from public.chatwoot_portal_estado where tenant_id = pg_temp.id('T1') and corte is not null),
+    'un rechazo no fija el corte');
 end;
 $rechazos$;
 
