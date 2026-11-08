@@ -342,3 +342,28 @@ export async function avisarRezagoPortal(admin: SupabaseClient, ahora: Date = ne
   if (encolados > 0) await drainOperarioPushOutbox(admin);
   return { avisados: encolados, sinLlegar, atascados };
 }
+
+export interface ResumenPortal {
+  encendido: boolean;
+  sinLlegar: number;
+  atascados: number;
+}
+
+/**
+ * Los números de la tarjeta «Portal → Chatwoot» de la Bandeja (SDD-0586, 10.5, PR 1b), para el
+ * admin: los mismos del aviso de E10-D40. `null` sin configuración o si la base no responde.
+ * Apagado, no llama a la cola.
+ */
+export async function resumenPortal(admin: SupabaseClient, tenantId: string): Promise<ResumenPortal | null> {
+  const cfg = chatwootPortalConfig();
+  if (!cfg || cfg.tenantId !== tenantId) return null;
+  const flags = await listFeatureFlags(admin, cfg.tenantId);
+  if (!flags.chatwoot_portal) return { encendido: false, sinLlegar: 0, atascados: 0 };
+  const { data, error } = await admin.rpc("chatwoot_portal_rezagados", { p_tenant_id: cfg.tenantId });
+  if (error) {
+    console.warn(`[chatwoot-portal] resumen: ${error.code ?? "sin código"}`);
+    return null;
+  }
+  const fila = (Array.isArray(data) ? data[0] : data) as { sin_llegar?: number; atascados?: number } | null;
+  return { encendido: true, sinLlegar: Number(fila?.sin_llegar ?? 0), atascados: Number(fila?.atascados ?? 0) };
+}
