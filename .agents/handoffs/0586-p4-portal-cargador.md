@@ -15,7 +15,7 @@
    - reconoce lo ya cargado (contacto, conversación y mensaje) y usa el `contact_inbox` que ya exista;
    - mete la nota de archivo como mensaje de actividad;
    - tiene un modo seco, y sin `MODO` sale con error.
-2. La prueba en GitHub Actions: `pruebas/prueba-cargador.sh`, `sonda-portal.rb`, `escenario-portal.rb` y `compose.cargador.yml`, con el workflow `.github/workflows/portal-historial-cargador.yml`. Trae una corrida real con un `rails runner` por paso, el control M0 y 28 mutantes.
+2. La prueba en GitHub Actions: `pruebas/prueba-cargador.sh`, `sonda-portal.rb`, `escenario-portal.rb` y `compose.cargador.yml`, con el workflow `.github/workflows/portal-historial-cargador.yml`. Trae una corrida real con un `rails runner` por paso, el control M0 y 31 mutantes.
 
 ## La revisión del DG sobre `50c044e49` (CHANGES_REQUESTED) y qué se hizo
 
@@ -29,6 +29,17 @@
 | N6: el handoff | Este | — |
 | N7: el checkout del workflow | `persist-credentials: false` | Lectura |
 | El log de Rails (datos personales) | `ActiveRecord::Base.logger = nil` mientras corre, y se restaura al final | F2: la carga 1 corre con el log de SQL en debug hacia `sql.log`. Una consulta de control demuestra que el log escribe, y ninguno de los valores inventados aparece. Mutante M28 |
+
+**La revisión de idempotencia y SQL del par (APPROVED, con tres puntos para esta PR):**
+
+| Punto | Qué se hizo | Prueba |
+|---|---|---|
+| `contact_inboxes.pubsub_token` quedaba nulo | Se genera al insertar, como `has_secure_token` (`SecureRandom.base58(24)`) | V12: 0 nulos en la bandeja; mutante M29 |
+| El candado de N5 sin prueba de concurrencia | Dos cargas a la vez, en dos hilos con su propia conexión, sobre una cuenta nueva cuyos contactos y `contact_inbox` ya existen. Una tercera conexión bloquea la tabla de conversaciones hasta que las dos llegan. Con el candado, una se niega y queda una sola copia | G13; mutante M27, sin el candado: las dos insertan y quedan 8 conversaciones |
+| Un mensaje reusado en otra conversación | **Aborta** con «un mensaje ya existe en otra conversación», y no vincula | G14; mutante M30 |
+| Una conversación ya cargada con otro estado | **Se actualiza**, con `update_all` y sin callbacks. La carga va antes del encendido, cuando el estado lo pone el Studio; desde el encendido lo decide Chatwoot (E10-D39) y la carga ya no corre. Abortar dejaría trabada la repetición por cualquier cambio de estado en el Studio | R4: el hilo 1 pasa de `open` a `resolved` sin filas ni trabajos nuevos; mutante M31 |
+
+Estas cuatro pruebas no tienen rojo previo propio: llegaron después del commit de pruebas `248efe973`. Su rojo lo da cada mutante, que corre la misma prueba sobre el cargador sin el arreglo.
 
 **El rojo previo.** El commit `248efe973` trae solo las pruebas, con el cargador de `50c044e49`. Lo medí en Actions, en el run 42502431572. El resultado está en «Validación».
 
@@ -77,7 +88,11 @@ Lo pidió el DG en su revisión del 2026-11-08. `infra/ops/portal-historial/carg
 - la comprobación final de que no queda nada en el contenedor, ni `vinculos.ndjson.parcial` ni `/tmp/cargar-portal.rb`;
 - su prueba en el workflow, con un fallo inyectado.
 
-Depende de `controles-studio.sql` (#456, de E10). Se abre cuando la #456 esté en `main`.
+Además, la revisión de idempotencia pide en esa PR, y en el ensayo:
+- **una prueba que una los dos lados**, con datos inventados: el preparado real de la 0523, el cargador y `vincular_carga`. Tiene que incluir repetir la carga con un preparado que trae más mensajes, y el efecto de un mensaje nuevo sobre lo cargado;
+- **un mensaje mandado por la API a una conversación cargada,** mirando después `RetrySet` y `DeadSet` (el `pubsub_token`).
+
+Se coordina con E10. Depende de `controles-studio.sql` (#456, de E10), así que se abre cuando la #456 esté en `main`.
 
 ## Permisos de los archivos
 

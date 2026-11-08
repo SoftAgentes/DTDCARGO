@@ -50,6 +50,7 @@
 # HECHO lleva solo conteos: nunca nombres ni textos.
 
 require 'json'
+require 'securerandom'
 require 'set'
 
 class CargaPortal
@@ -295,8 +296,10 @@ class CargaPortal
     faltan = pares.reject { |p| existentes.key?(p[:contacto_id]) }
     faltan.each_slice(LOTE) do |lote|
       filas = lote.map do |p|
+        # pubsub_token como lo genera ContactInbox (has_secure_token): sin él, cada mensaje nuevo al contacto
+        # mandaría un token nulo a ActionCableBroadcastJob (revisión de idempotencia, 2026-11-08).
         { contact_id: p[:contacto_id], inbox_id: @bandeja_id, source_id: "#{PREFIJO_CONTACTO}#{p[:identificador]}",
-          created_at: ahora, updated_at: ahora }
+          pubsub_token: SecureRandom.base58(24), created_at: ahora, updated_at: ahora }
       end
       creadas = if seco?
                   filas.map { |f| { 'id' => falso, 'contact_id' => f[:contact_id], 'source_id' => f[:source_id] } }
@@ -315,8 +318,9 @@ class CargaPortal
   def cargar_conversaciones(conversaciones, mensajes, por_cliente, ci_de)
     ya = {}
     Conversation.where(inbox_id: @bandeja_id).where("additional_attributes ? 'dtd_hilo'")
-                .pluck(Arel.sql("additional_attributes->>'dtd_hilo'"), :id, :display_id, :contact_id)
-                .each { |hilo, id, did, cid| ya[hilo] = { id: id, display_id: did, contacto_id: cid } }
+                .pluck(Arel.sql("additional_attributes->>'dtd_hilo'"), :id, :display_id, :contact_id, :status)
+                .each { |hilo, id, did, cid, st| ya[hilo] = { id: id, display_id: did, contacto_id: cid, estado: st } }
+    cambiar = Hash.new { |h, k| h[k] = [] }
     # La última actividad de cada hilo: su último mensaje o su nota de archivo.
     ultima = Hash.new { |h, k| h[k] = nil }
     mensajes.each { |m| ultima[m['hilo']] = [ultima[m['hilo']], instante(m['created_at'])].compact.max }
@@ -325,6 +329,10 @@ class CargaPortal
     conversaciones.sort_by { |c| [instante(c['creada_at']), c['hilo']] }.each do |c|
       if ya.key?(c['hilo'])
         @cuenta[:conversaciones_existentes] += 1
+        # Ya cargada con otro estado: se actualiza (sin callbacks). La carga va antes del encendido, cuando el estado
+        # lo pone el Studio; desde el encendido lo decide Chatwoot (E10-D39) y la carga ya no corre. Abortar dejaría
+        # trabada la repetición por cualquier cambio de estado en el Studio.
+        cambiar[c['estado']] << ya[c['hilo']][:id] if (Conversation.statuses.key(ya[c['hilo']][:estado]) || ya[c['hilo']][:estado].to_s) != c['estado']
         next
       end
       contacto = por_cliente.fetch(c['cliente'])[:contacto_id]
@@ -350,6 +358,10 @@ class CargaPortal
       @cuenta[:conversaciones_nuevas] += filas.size
       @cuenta[:conversaciones_omitidas] += lote.size - filas.size
     end
+    cambiar.each do |estado, ids|
+      Conversation.where(id: ids).update_all(status: Conversation.statuses.fetch(estado)) unless seco?
+      @cuenta[:conversaciones_estado_actualizado] += ids.size
+    end
     ya
   end
 
@@ -357,9 +369,15 @@ class CargaPortal
   def cargar_mensajes(mensajes, conversaciones, conv_de)
     fuentes = mensajes.map { |m| m['source_id'] } + conversaciones.filter_map { |c| c.dig('nota_archivo', 'source_id') }
     ya = {}
+    en_conv = {}
     fuentes.each_slice(5_000) do |lote|
-      Message.where(inbox_id: @bandeja_id, source_id: lote).pluck(:source_id, :id).each { |sid, id| ya[sid] = id }
+      Message.where(inbox_id: @bandeja_id, source_id: lote).pluck(:source_id, :id, :conversation_id)
+             .each { |sid, id, cid| ya[sid] = id; en_conv[sid] = cid }
     end
+    # Un mensaje que ya existe en otra conversación no se vincula: algo no cuadra entre Studio y Chatwoot.
+    otra = mensajes.any? { |m| en_conv.key?(m['source_id']) && en_conv[m['source_id']] != conv_de.fetch(m['hilo'])[:id] } ||
+           conversaciones.any? { |c| (s = c.dig('nota_archivo', 'source_id')) && en_conv.key?(s) && en_conv[s] != conv_de.fetch(c['hilo'])[:id] }
+    raise 'un mensaje ya existe en otra conversación' if otra
     procesado = Message.column_names.include?('processed_message_content')
     filas = []
     de_studio = {}

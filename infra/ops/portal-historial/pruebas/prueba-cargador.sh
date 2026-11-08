@@ -10,6 +10,8 @@
 #        otra cuenta, conteos que no cuadran, mensaje de un hilo ausente, agente de otra cuenta, conversación de un
 #        cliente sin contacto, AGENTE_SERVICIO de otra cuenta; G10 otra bandeja API sin webhook (SINT WhatsApp y
 #        «Archivo Kommo», como la 8 de producción); G11 VINCULOS en otra ruta; G12 otra carga con el candado tomado
+#   G13  dos cargas a la vez: con el candado, una se niega y queda una sola copia · G14 un mensaje ya cargado que
+#        llega en otro hilo: aborta · R4 repetir con otro estado en un hilo: se actualiza
 #   N4   sin MODO, el script sale con error
 #   F2   con el log de SQL en debug, nada de lo cargado sale en él
 #   S    seco: cuenta lo que cargará, no escribe nada, ni vínculos, ni consume números de conversación
@@ -143,6 +145,13 @@ comprobar() {
   rechazo G10b rechazo-archivo 'la bandeja no es «Conversaciones del portal»' "la bandeja «Archivo Kommo», API y sin webhook, como la 8 de producción"
   rechazo G11 rechazo-ruta 'VINCULOS tiene que ser /dev/shm/portal-historial/vinculos.ndjson o -' "VINCULOS en otra ruta"
   rechazo G12 rechazo-candado 'otra carga del portal en curso' "otra carga con el candado tomado"
+  rechazo G14 rechazo-movido 'un mensaje ya existe en otra conversación' "un mensaje ya cargado que llega en otro hilo"
+  F="$O/concurrencia.txt"
+  exigir G13 '[ "$(h "$F" concurrencia_conversaciones)" = 4 ] && [ "$(h "$F" concurrencia_mensajes)" = 9 ] && [ "$(h "$F" concurrencia_negadas)" = 1 ] && [ "$(h "$F" concurrencia_ok)" = 1 ] && [ "$(h "$F" concurrencia_esperando)" -ge 1 ] 2>/dev/null' \
+    "dos cargas a la vez: una se niega por el candado y queda una sola copia ($(h "$F" concurrencia_conversaciones) conversaciones, $(h "$F" concurrencia_mensajes) mensajes y notas; negadas $(h "$F" concurrencia_negadas))"
+  F="$O/carga-estado.txt"
+  exigir R4 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_estado_actualizado)" = 1 ] && [ "$(h "$O/estado.txt" estado_h1)" = resolved ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
+    "repetir con otro estado en un hilo ya cargado: se actualiza ese estado y nada más ($(h "$F" conversaciones_estado_actualizado))"
   F="$O/rechazo-conteos.txt"
   exigir G9 '[ "$(h "$F" antes)" = "" ] && [ "$(h "$O/seco.txt" antes)" = "conversaciones:1,mensajes:1,contact_inboxes:1" ]' \
     "los rechazos no llegan a escribir: la bandeja sigue con lo de la cola ($(h "$O/seco.txt" antes))"
@@ -194,6 +203,7 @@ comprobar() {
   exigir V10 '[ "$(h "$F" display_nueva_mayor)" = si ] && cero "$(h "$F" display_duplicados)" && [ "$(h "$F" display_en_orden)" = si ]' \
     "C-9: la conversación nueva va después, sin números repetidos, y los cargados siguen el orden de creación"
   # Piso: con la bandeja vacía, «0 no leídos» y «0 atributos malos» pasarían sin mirar nada.
+  exigir V12 '[ "$(h "$F" pubsub_nulos)" = 3:0 ]' "los 3 contact_inbox de la bandeja tienen pubsub_token ($(h "$F" pubsub_nulos))"
   exigir V11 '[ "$(h "$F" conversaciones)" = 4 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" json_conv)" = 0 ] && [ "$(h "$F" no_leidos)" = 0 ]' "sobre las 4 conversaciones cargadas, los atributos son objeto JSON y no hay entrantes viejos como no leídos"
 
   local fugas=0 f m
@@ -306,7 +316,12 @@ sed -n 's/^VINCULO //p' "$R/carga-3.txt" | tr -d '\r' >"$R/vinculos-carga-3.ndjs
 rr "$R/sin-modo.txt" "CUENTA=$C" "BANDEJA=$B" "AGENTE_SERVICIO=$SV" CARGA=- "VINCULOS=$FIJA" -- "$CARGADOR" </dev/null
 echo "HECHO salida_proceso=$?" >>"$R/sin-modo.txt"
 mover sin-modo
+cargar rechazo-movido preparado-movido.ndjson
 rr "$R/sonda-verificar.txt" FASE=verificar "DIR=$RC" -- "$SONDA" </dev/null
+# Después de verificar: los dos encolan o cambian cosas que la verificación no espera.
+cargar carga-estado preparado-estado.ndjson
+rr "$R/estado.txt" FASE=estado "DIR=$RC" -- "$SONDA" </dev/null
+rr "$R/sonda-concurrencia.txt" FASE=concurrencia "DIR=$RC" -- "$SONDA" </dev/null
 comprobar "$R"
 F="$R/sin-modo.txt"
 exigir N4 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "falta MODO" ] && [ "$(h "$F" salida_proceso)" != 0 ] && [ ! -e "$R/vinculos-sin-modo.ndjson" ]' \
@@ -426,8 +441,15 @@ if [ "$MUTANTES" = 1 ]; then
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident, phone_number: '+58412#{rand(1_000_000..9_999_999)}',"
   mutante M25 "acepta cualquier bandeja API sin webhook (B1)" "G10a G10b" "G1 S1"     "raise 'la bandeja no es «Conversaciones del portal»' unless" "nil unless true ||"
   mutante M26 "VINCULOS en cualquier ruta" "G11" "G1 S1"     "unless [RUTA_VINCULOS, '-'].include?(@ruta_vinculos)" "unless true"
-  mutante M27 "sin el candado" "G12" "G1 S1"     "raise 'otra carga del portal en curso' unless" "nil unless true ||"
+  mutante M27 "sin el candado" "G12 G13" "G1 S1"     "raise 'otra carga del portal en curso' unless" "nil unless true ||"
   mutante M28 "sin apagar el log de SQL" "F2" "C1 F1"     "    ActiveRecord::Base.logger = nil" "    nil"
+  mutante M29 "contact_inbox sin pubsub_token" "V12" "C1" \
+    "          pubsub_token: SecureRandom.base58(24), created_at: ahora, updated_at: ahora }" \
+    "          created_at: ahora, updated_at: ahora }"
+  mutante M30 "vincula un mensaje que ya existe en otra conversación" "G14" "C1" \
+    "    raise 'un mensaje ya existe en otra conversación' if otra" "    nil"
+  mutante M31 "no actualiza el estado de un hilo ya cargado" "R4" "C1 R2" \
+    "      Conversation.where(id: ids).update_all(status: Conversation.statuses.fetch(estado)) unless seco?" "      nil"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi

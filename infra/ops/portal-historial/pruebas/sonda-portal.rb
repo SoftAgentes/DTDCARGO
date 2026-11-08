@@ -15,13 +15,17 @@
 #                                 DIR/sql.log: nada de lo cargado (nombres, textos) puede salir allí (F2).
 #   FASE=candado DIR=<carpeta>    con el candado de la carga tomado desde otra conexión, una carga tiene que
 #                                 negarse sin escribir (G12).
-#   Las dos últimas cargan el cargador como biblioteca (CARGADOR_RB, por defecto /tmp/cargador/cargar-portal.rb).
+#   FASE=concurrencia DIR=<carpeta>  dos cargas a la vez, en dos hilos, sobre una cuenta nueva cuyos contactos ya
+#                                 existen: con el candado, una se niega y queda una sola copia (G13).
+#   Las tres últimas cargan el cargador como biblioteca (CARGADOR_RB, por defecto /tmp/cargador/cargar-portal.rb).
 #
 # escenario-portal.rb la carga sin FASE y llama a SondaPortal.preparar y .verificar en el mismo proceso. Cada
 # escenario usa una cuenta nueva, así que varios pueden correr sobre la misma base. Salida: `HECHO clave=valor`.
 
+require 'fileutils'
 require 'json'
 require 'securerandom'
+require 'stringio'
 require 'sidekiq/api'
 
 module SondaPortal
@@ -142,6 +146,11 @@ module SondaPortal
     # Con la cabecera de otra bandeja API sin webhook: la cabecera cuadra con BANDEJA, pero no es la del portal (G10).
     escribir(File.join(dir, 'preparado-whatsapp.ndjson'), [cab.merge(bandeja: viva.id), *todo.drop(1)])
     escribir(File.join(dir, 'preparado-archivo.ndjson'), [cab.merge(bandeja: archivo.id), *todo.drop(1)])
+    # Repetir con otro estado en un hilo ya cargado: se actualiza (R4).
+    escribir(File.join(dir, 'preparado-estado.ndjson'),
+             [cab, *contactos, conversaciones.first.merge(estado: 'resolved'), *conversaciones.drop(1), *mensajes])
+    # Un mensaje ya cargado que ahora llega en otro hilo: aborta (G14).
+    escribir(File.join(dir, 'preparado-movido.ndjson'), [*todo[0...-1], mensajes.last.merge(hilo: h1)])
     escribir(File.join(dir, 'preparado-sin-contacto.ndjson'),
              [cab, *contactos, *conversaciones[0...-1], conversaciones.last.merge(cliente: SecureRandom.uuid), *mensajes])
 
@@ -213,6 +222,8 @@ module SondaPortal
     hecho.call('contact_inbox_cruzado', convs.joins('JOIN contact_inboxes ci ON ci.id = conversations.contact_inbox_id')
                                              .where('ci.contact_id <> conversations.contact_id OR ci.inbox_id <> conversations.inbox_id').count)
     hecho.call('json_conv', convs.where("jsonb_typeof(additional_attributes::jsonb) <> 'object'").count)
+    # Sin pubsub_token, cada mensaje nuevo al contacto mandaría un token nulo a ActionCableBroadcastJob.
+    hecho.call('pubsub_nulos', "#{ContactInbox.where(inbox_id: portal).count}:#{ContactInbox.where(inbox_id: portal, pubsub_token: [nil, '']).count}")
     medir.call('no_leidos') { convs.to_a.sum { |c| c.unread_incoming_messages.count } }
 
     # C-11: lo que ya había no cambió.
@@ -314,6 +325,71 @@ module SondaPortal
     log&.close
   end
 
+  # G13: dos cargas a la vez. Una cuenta nueva cuyos contactos y contact_inboxes ya existen (como si los hubiera
+  # creado la cola): así las dos cargas no se esperan en los índices únicos de contactos, y sin el candado las dos
+  # insertarían las mismas conversaciones. Una tercera conexión bloquea la tabla de conversaciones hasta que las dos
+  # cargas llegan (o una ya terminó): con el candado, la segunda se niega en el acto.
+  def concurrencia(dir:)
+    cargador!
+    sub = File.join(dir, 'concurrencia')
+    FileUtils.mkdir_p(sub)
+    b = File.open(File.join(sub, 'sonda-preparar.txt'), 'w') { |f| preparar(out: f, dir: sub) }
+    portal = Inbox.find(b['portal'])
+    File.readlines(File.join(sub, 'preparado.ndjson')).map { |l| JSON.parse(l) }.select { |l| l['tipo'] == 'contacto' }.each do |c|
+      ident = "dtd-portal:#{c['identificador']}"
+      contacto = Contact.find_by(account_id: b['cuenta'], identifier: ident) ||
+                 Contact.create!(account_id: b['cuenta'], name: c['nombre'], identifier: ident)
+      ContactInbox.find_or_create_by!(contact: contacto, inbox: portal) { |ci| ci.source_id = "cola-#{SecureRandom.hex(4)}" }
+    end
+    tabla = ActiveRecord::Base.connection_pool.checkout
+    tabla.execute('BEGIN')
+    tabla.execute('LOCK TABLE conversations IN EXCLUSIVE MODE')
+    salidas = Array.new(2) { StringIO.new }
+    hilos = salidas.map do |s|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          File.open(File.join(sub, 'preparado.ndjson'), encoding: 'UTF-8') do |entrada|
+            CargaPortal.principal(env_carga(sub, 'VINCULOS' => '-'), entrada: entrada, salida: s)
+          end
+        end
+      end
+    end
+    esperando = 0
+    120.times do
+      esperando = tabla.select_value("SELECT count(*) FROM pg_locks WHERE relation = 'conversations'::regclass AND NOT granted").to_i
+      break if esperando + hilos.count { |h| !h.alive? } >= 2
+
+      sleep 0.25
+    end
+    tabla.execute('ROLLBACK')
+    ActiveRecord::Base.connection_pool.checkin(tabla)
+    tabla = nil
+    hilos.each { |h| h.join(120) }
+    convs = Conversation.where(inbox_id: portal.id).where("additional_attributes ? 'dtd_hilo'")
+    msgs = Message.where(inbox_id: portal.id).where("source_id LIKE 'dtd:%'")
+    File.open(File.join(dir, 'concurrencia.txt'), 'w') do |f|
+      f.puts "HECHO concurrencia_esperando=#{esperando}"
+      f.puts "HECHO concurrencia_conversaciones=#{convs.count}"
+      f.puts "HECHO concurrencia_mensajes=#{msgs.count}"
+      f.puts "HECHO concurrencia_negadas=#{salidas.count { |s| s.string.include?('HECHO error=otra carga del portal en curso') }}"
+      f.puts "HECHO concurrencia_ok=#{salidas.count { |s| s.string.include?('HECHO carga=ok') }}"
+    end
+  rescue StandardError, ScriptError => e
+    File.write(File.join(dir, 'concurrencia.txt'), "HECHO concurrencia=error:#{e.class}\n")
+  ensure
+    if tabla
+      tabla.execute('ROLLBACK') rescue nil
+      ActiveRecord::Base.connection_pool.checkin(tabla)
+    end
+  end
+
+  # R4: el estado del hilo 1 en Chatwoot después de repetir la carga con otro estado.
+  def estado(out:, dir:)
+    b = JSON.parse(File.read(File.join(dir, 'base.json')))
+    st = Conversation.where(inbox_id: b['portal']).where("additional_attributes->>'dtd_hilo' = ?", b['hilos']['h1']).pick(:status)
+    out.puts "HECHO estado_h1=#{Conversation.statuses.key(st) || st}"
+  end
+
   # G12: el candado de la carga, tomado desde otra conexión.
   def candado(dir:)
     cargador!
@@ -336,4 +412,6 @@ when 'preparar' then SondaPortal.preparar(out: $stdout, dir: ENV.fetch('DIR'))
 when 'verificar' then SondaPortal.verificar(out: $stdout, dir: ENV.fetch('DIR'))
 when 'con-log' then SondaPortal.con_log(dir: ENV.fetch('DIR'))
 when 'candado' then SondaPortal.candado(dir: ENV.fetch('DIR'))
+when 'concurrencia' then SondaPortal.concurrencia(dir: ENV.fetch('DIR'))
+when 'estado' then SondaPortal.estado(out: $stdout, dir: ENV.fetch('DIR'))
 end

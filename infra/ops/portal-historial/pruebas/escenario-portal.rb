@@ -56,9 +56,14 @@ paso.call('carga-2')
 paso.call('carga-3', 'preparado.ndjson', 'VINCULOS' => '-')
 File.write(File.join(dir, 'vinculos-carga-3.ndjson'),
            File.readlines(File.join(dir, 'carga-3.txt')).filter_map { |l| l.delete_prefix('VINCULO ') if l.start_with?('VINCULO ') }.join)
+paso.call('rechazo-movido', 'preparado-movido.ndjson')
 File.open(File.join(dir, 'sonda-verificar.txt'), 'w') do |f|
   SondaPortal.verificar(out: f, dir: dir)
 rescue StandardError => e
   f.puts "HECHO verificar=error:#{e.class}"
 end
+# Después de verificar: los dos encolan o cambian cosas que la verificación no espera.
+paso.call('carga-estado', 'preparado-estado.ndjson')
+File.open(File.join(dir, 'estado.txt'), 'w') { |f| SondaPortal.estado(out: f, dir: dir) }
+SondaPortal.concurrencia(dir: dir)
 puts 'HECHO escenario=ok'
