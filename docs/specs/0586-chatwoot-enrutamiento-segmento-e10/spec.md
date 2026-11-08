@@ -664,7 +664,22 @@ Editados:
 **Partición de la PR 1 (Worker de la ida, 2026-11-07).** La PR 1 se parte en dos, en serie, para que la primera lleve solo la ida, de Studio a Chatwoot (E10-D34, E10-D35 y el aviso de E10-D40). Medido sobre `main` en `7e75f7708`.
 
 - **PR 1a · la ida (esta).** Migración `0519_chatwoot_portal.sql` (número asignado por el Director General el 2026-11-07, comunicado por el Subdirector de Chatwoot; reserva local `refs/dtd/reservations/migraciones/0519`) con las cuatro tablas de §10.5.6, `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` (el aviso, solo números) y `feature_flag_catalog()` con `chatwoot_portal` apagado. El envío en el servidor de Studio, el cron y el pedido sin bloquear del portal. Con el flag apagado, o sin `CHATWOOT_INBOX_PORTAL_ID`, el token o la cuenta, no hace nada. **No toca ninguno de los archivos que comparte con la 6.6** (`TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts` y `crm-ficha.ts`); solo cruza en `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
-- **PR 1b · la vuelta, el estado, el CRM y Studio en solo lectura.** Una migración propia, con su número, con `chatwoot_portal_respuesta`, `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar` desde la 1a. Lleva los dos manejadores, la conciliación, la reapertura por el envío si la PoC-4 falla, `crm-portal.ts`, la insignia y la sección de la ficha, Studio en solo lectura y los textos T1 a T4. Es la que cruza con la 6.6. El resto de la allowlist de la PR 1, de arriba, es de la 1b.
+- **PR 1b · la vuelta, destrabar y el riesgo del webhook** (alcance aprobado por el Director General el 2026-11-08, comunicado por el Subdirector). Lleva la migración **0520** (`0520_chatwoot_portal_vuelta`), reservada en `codex/migracion-reserve-0520-chatwoot-portal-vuelta` y en `refs/dtd/reservations/migraciones/0520`. Sus cuatro partes:
+  - **La vuelta (E10-D37):** el manejador `responderAlPortal`, el texto saliente solo para la bandeja del portal, `chatwoot_portal_respuesta` (idempotente por `chatwoot:<id>` y sin escribir en un hilo archivado), el reproceso que relee el mensaje en Chatwoot, el push al cliente una sola vez, y la nota privada una vez por mensaje (adjunto o hilo archivado), con su propio `source_id`.
+  - **Destrabar (§10.5.20):** una RPC, una acción solo para admin y una tarjeta mínima «Portal → Chatwoot» en la Bandeja, con los números y «Reintentar los atascados». Pasa por `/ui-check`. Es texto interno del Studio, no público: no pide aprobación de Sam palabra por palabra.
+  - **El riesgo del webhook:** Chatwoot 4.19.1 no entrega a un host sin IP pública, como midió la PoC de la 1a. La salud de agentes revisa el webhook de cuenta y avisa a los admins si falta, si no tiene `message_created` o si su host no tiene IP pública.
+  - **PoC en Actions de lo saliente.**
+
+  **La 1b no se fusiona sin la 0520 aplicada en producción, o sin una decisión de Sam sobre `publicar-web.sh aceptar-pendiente`** (regla del Director General del 2026-11-08). Fusionar una migración en espera frena la publicación automática (§10 de `aplicar-migraciones-prod.md`), como pasó con la #424.
+- **PR 1c · el estado, el CRM y Studio en solo lectura.** Su migración propia, con número aparte, lleva `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar`. Lleva:
+  - `entrarPortal`;
+  - la conciliación;
+  - la reapertura por el envío, si la PoC-4 falla;
+  - `crm-portal.ts`, la insignia y la sección de la ficha;
+  - Studio en solo lectura;
+  - los textos T1 a T4.
+
+  Es la que cruza con la 6.6. El resto de la allowlist de la PR 1, de arriba, es de la 1c.
 - **PR 2 · la carga (P4)**, como arriba. `chatwoot_portal_vincular_carga` va con ella o en la migración de la 1b, lo que se integre primero. Hasta entonces, el `corte` de `chatwoot_portal_estado` solo lo escribe `service_role` a mano, y en prueba con una carga vacía.
 
 Lo que cambia respecto de §10.5.6, por la partición:
