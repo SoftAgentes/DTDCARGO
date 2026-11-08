@@ -3213,6 +3213,15 @@
         "fecha": "2026-11-08",
         "forma": "exacta"
       }
+    },
+    "0520_chatwoot_portal_vuelta": {
+      "sha256": "5814f9a905a03222460c399e70c867b05a04adfa7aa8ba41e0f867f374aeb80a",
+      "md5": "03bcee54616204644a6981d33ec7764c",
+      "bytes": 12500,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
     }
   }
 }
