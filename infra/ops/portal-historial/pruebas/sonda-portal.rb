@@ -387,19 +387,31 @@ module SondaPortal
     esperando_max = 0
     eventos = []
     vueltas = 0
-    desde = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    while Process.clock_gettime(Process::CLOCK_MONOTONIC) - desde < tope_s
+    reloj = -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }
+    desde = reloj.call
+    primera_espera = nil
+    # El tope corre desde la PRIMERA espera vista: el statement_timeout corta la sentencia que espera, no al hilo.
+    # Hasta ver una espera, el tope es 120 s: con Redis lleno (los escenarios de mutantes encolan sin Sidekiq), cada
+    # carga tarda en llegar al insert (trabajos_por_clase recorre toda la cola) y un tope desde el arranque soltaba la
+    # tabla antes de verla esperar (run 42509944324: M27 dejó 8 conversaciones con esperando 0).
+    loop do
+      ahora = reloj.call
+      break if primera_espera.nil? && ahora - desde >= 120
+      break if primera_espera && ahora - primera_espera >= tope_s
+
       vueltas += 1
       # La espera, por pid y por pg_stat_activity: pg_locks por relación no la veía (run 42506898392).
       filas = lista.empty? ? [] : tabla.select_rows("SELECT wait_event FROM pg_stat_activity WHERE pid IN (#{lista}) AND wait_event_type = 'Lock'")
       esperando = filas.size
       eventos |= filas.flatten.compact
       esperando_max = [esperando_max, esperando].max
+      primera_espera ||= reloj.call if esperando.positive?
       break if esperando + hilos.count { |h| !h.alive? } >= 2
 
       sleep 0.1
     end
-    esperado_s = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - desde).round(1)
+    hasta_espera_s = primera_espera ? (primera_espera - desde).round(1) : 'nunca'
+    esperado_s = (reloj.call - (primera_espera || desde)).round(1)
     tabla.execute('ROLLBACK')
     ActiveRecord::Base.connection_pool.checkin(tabla)
     tabla = nil
@@ -418,6 +430,7 @@ module SondaPortal
       f.puts "HECHO concurrencia_statement_timeout_ms=#{timeout_ms}"
       f.puts "HECHO concurrencia_tope_s=#{tope_s}"
       f.puts "HECHO concurrencia_esperado_s=#{esperado_s}"
+      f.puts "HECHO concurrencia_hasta_la_espera_s=#{hasta_espera_s}"
       f.puts "HECHO concurrencia_wait_event=#{eventos.empty? ? 'ninguno' : eventos.sort.join(',')}"
       f.puts "HECHO concurrencia_cancelados=#{salidas.count { |s| s.string.include?('QueryCanceled') }}"
       # Las HECHO de cada hilo (solo conteos y errores propios del cargador), para leer la causa de un rojo.
