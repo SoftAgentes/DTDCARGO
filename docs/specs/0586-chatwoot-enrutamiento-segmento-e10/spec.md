@@ -727,7 +727,7 @@ La fecha de T4 es el día en que se publique: el Director General la confirma an
 - **PR 1c · el estado, el CRM y Studio en solo lectura.** Su migración propia, con número aparte, lleva `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar`. Lleva:
   - `entrarPortal`;
   - la conciliación;
-  - la reapertura por el envío, si la PoC-4 falla;
+  - la reapertura por el envío, si la PoC-4 falla (no hizo falta: la PoC-4 pasó en la 1c-2);
   - `crm-portal.ts`, la insignia y la sección de la ficha;
   - Studio en solo lectura;
   - los textos T1 a T4.
@@ -918,9 +918,7 @@ Lo que ya existe y se reusa:
   - no toca un hilo archivado (`deleted_at`), de otro canal o de otro tenant, ni nada con el flag apagado;
   - devuelve `actualizado`, `igual` u `omitido`, con su motivo.
   - **El orden lo da el espejo:** un evento viejo no lo pisa, porque `chatwoot_registrar_evento` ya lo descartó.
-- **Del portal a Chatwoot:** no cambia. `portal_post_message` reabre en Studio (0512) y el entrante reabre en Chatwoot. **La PoC-4 nunca se midió** (la 1b no la llevó), y va en esta PR: un entrante por la API en una conversación `resolved`, ¿la deja `open`?
-  - Si no la reabre, el envío de la ida la reabre con la API (`toggle_status`), solo cuando el espejo dice `resolved`.
-  - Va con su prueba, y **su fragmento se decide con el resultado de la PoC**.
+- **Del portal a Chatwoot:** no cambia. `portal_post_message` reabre en Studio (0512) y el entrante reabre en Chatwoot. **La PoC-4 se midió en esta PR y PASÓ** (Actions, sobre `eceda3b9b`, job 128758591446, leído por el Subdirector): un entrante por la API en una conversación `resolved` la deja `open`. **No hace falta reabrir desde el envío con `toggle_status`, y `lib/studio/chatwoot/portal.ts` no cambia.**
 
 **E10-D40, punto 5 · la conciliación.**
 
@@ -1014,7 +1012,6 @@ Lo que ya existe y se reusa:
   - `lib/studio/chatwoot/router-api.ts`: `paginaMensajes`, y `obtenerConversacion`, que ahora acepta la cuenta del portal;
   - `app/api/cron/chatwoot-reintentos/route.ts`.
 - **Fallar cerrado (opción b):** `lib/studio/chatwoot/portal-solo-lectura.ts` y `docs/runbooks/chatwoot-portal-encendido.md`.
-- `lib/studio/chatwoot/portal.ts`, solo si la PoC-4 pide reabrir desde el envío.
 - **Las pruebas:**
   - `lib/studio/chatwoot/__tests__/portal-conciliar.test.ts` (nueva) y `portal-solo-lectura.test.ts`;
   - `aviso-unico-por-evento.test.ts` (la lista de manejadores);
