@@ -144,7 +144,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 - **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. El 2026-11-07 contestó P7, los feriados: opción (a) (§10.5.11). Ese mismo día aprobó los textos públicos T1 a T4 (§10.5.12) y dio el OK del conteo, que corrió el Director General: 24 hilos, 0 archivados y 73 mensajes. También eligió cargar los hilos archivados (§10.5.10). Quedan las puertas (§10.5.20).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
-- ~~Aplicar la 0519~~: aplicada en prueba y en producción el 2026-11-08 (ver «2026-11-08 · La 0519 aplicada»). La 0520 (PR 1b, #434) también está aplicada en prueba y en producción, con el OK de Sam de cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción», en respuesta a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Los detalles van en su propio cierre.
+- ~~Aplicar la 0519~~: aplicada en prueba y en producción el 2026-11-08 (ver «2026-11-08 · La 0519 aplicada»). La 0520 (PR 1b, #434) también está aplicada en prueba y en producción, con el OK de Sam de cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción», en respuesta a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Su cierre está en «2026-11-08 · La 0520 aplicada».
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
 
 ## 2026-11-04 · La 0505 aplicada en producción: cierre del runbook §6
@@ -179,10 +179,32 @@ La aplicó el Director General, primero en prueba y después en producción. Lo 
   - **Después,** D1 a D7 dieron lo esperado: la fila del ledger con ese md5, 24 flags con el portal apagado, una fila del flag por tenant y ninguna encendida, las 4 tablas con RLS y solo `service_role`, las 4 RPC definer con `search_path` vacío y solo `service_role`, y la cola en ceros.
 - **Smoke sin sesión:** el cron `chatwoot-reintentos` respondió 200 en los dos, las rutas dieron 200 o 307 y el log quedó sin errores. Las imágenes que corren hoy **no** traen el código de la #424, porque la publicación está congelada: el smoke con sesión del runbook queda para cuando se publique.
 - **El flag `chatwoot_portal` sigue apagado,** y encenderlo sigue siendo un OK nominal de Sam, con las condiciones de §10.5.9, paso 6.
-- **La 0520 (PR 1b, #434) está aplicada en prueba y en producción,** con el OK de Sam de cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción», en respuesta a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Los detalles van en su propio cierre.
+- **La 0520 (PR 1b, #434) está aplicada en prueba y en producción,** con el OK de Sam de cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción», en respuesta a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Su cierre está en «2026-11-08 · La 0520 aplicada».
 - **Filas del ledger** (runbook de producción §6.3): las midió el Director General a las 02:27Z del 2026-11-08 con un `count` de `supabase_migrations.schema_migrations`. Después de la 0519 había 517 en producción y 505 en prueba. Cuando las midió ya estaba aplicada también la 0520 (02:25:37Z en prueba y 02:26:32Z en producción, con su propio cierre), y había 518 y 506.
 - **Lectura de esta nota:** los datos vienen de la evidencia del Director General, comunicada por el Subdirector. Este cierre no consultó tablas de producción.
 - **Espera:** salió de `pendingBelowCutoff` y de las declaraciones de símbolos (`retirar-espera.mjs`), y quedó sellada. La cabecera «NO APLICADA A PRODUCCIÓN» de `0519_chatwoot_portal.sql` no se corrige: cambiar el archivo cambiaría el blob y el md5 que ya están en el ledger. La prueba que afirmaba la espera (`lib/studio/__tests__/chatwoot-portal.migration.test.ts`) ahora afirma que salió, con el md5 del sello. Los comentarios condicionales del código («sin la migración…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
+
+## 2026-11-08 · La 0520 aplicada en prueba y en producción: cierre
+
+La aplicó el Director General, primero en prueba y después en producción, con el paquete armado sobre la cabeza `32e858800` de la #434 (migrate-first). Lo que antes en esta spec dice que la 0520 está en espera vale para su fecha. Es la vuelta del chat del portal y destrabar (paso 10.5, PR 1b). La #434 se fusionó después, el 2026-11-08 a las 04:11Z, en `efd7e70f6`, con la cabeza `983f6c5e1`.
+
+| Proyecto | COMMIT | `version` del ledger | `created_by` | Filas del ledger después | Evidencia, en `/srv/ops/evidencias/` |
+|---|---|---|---|---|---|
+| Prueba (`dtd-cargo-staging`) | 2026-11-08T02:25:37Z | `20261108022537` | `servidor-propio:psql:prueba:SDD-0586` | 506 | `apply-0520-dtd-cargo-staging-20261108T022535Z` |
+| Producción (`dtd-cargo`) | 2026-11-08T02:26:32Z | `20261108022632` | `servidor-propio:psql:SDD-0586` | 518 | `apply-0520-dtd-cargo-20261108T022631Z` |
+
+- **OK literal de Sam,** cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción». Respondía a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Registrado a nombre del Director General; lo comunicó el Subdirector de Chatwoot.
+- **Identidad:** blob `29a3bbeaf3b01c85a85961653bffcedd902322e7`, md5 `03bcee54616204644a6981d33ec7764c` y 12500 bytes. El sello del candado lleva sha256 `5814f9a905a03222460c399e70c867b05a04adfa7aa8ba41e0f867f374aeb80a` y `ledger` exacta del 2026-11-08. El blob no cambió al fusionar la #434: en `main` (`efd7e70f6`) sigue siendo `29a3bbea…`.
+- **Verificación del script:** salió exacta en los dos proyectos.
+- **Permisos medidos por el DG,** en los dos:
+  - `chatwoot_portal_respuesta` es solo de `service_role`;
+  - `chatwoot_portal_destrabar` es de `authenticated` y de `service_role` (el de `service_role` lo dan los privilegios por defecto de Supabase, y no lo usa);
+  - las dos son security definer, con `search_path` vacío.
+- **Filas del ledger** (runbook de producción §6.3): las midió el Director General a las 02:27Z con un `count` de `supabase_migrations.schema_migrations`.
+- **Web:** respondió 200 o 307, sin errores. Las guardas del VPS corrieron a las 04:11:04Z, al fusionar la #434, y la 0520 está confirmada en el ledger de producción.
+- **El flag `chatwoot_portal` sigue apagado.** Encenderlo es un OK nominal de Sam, con las condiciones de §10.5.9, paso 6: T1 a T4 publicados, la 0520 aplicada (ya lo está) y la vía del atascado publicada.
+- **Lectura de esta nota:** los datos vienen de la evidencia del Director General, comunicada por el Subdirector. Este cierre no consultó tablas de producción.
+- **Espera:** salió de `pendingBelowCutoff` y de las declaraciones de símbolos (`retirar-espera.mjs`), y quedó sellada. Con ella se fue la frase «(la 0519 tampoco está aplicada)» del baseline. La cabecera «NO APLICADA A PRODUCCIÓN» de `0520_chatwoot_portal_vuelta.sql` no se corrige: cambiar el archivo cambiaría el blob y el md5 que ya están en el ledger. La prueba que afirmaba la espera (`lib/studio/__tests__/chatwoot-portal-vuelta.migration.test.ts`) ahora afirma que salió, con el md5 del sello. La web no cambia ni se publica con este cierre.
 
 ## Paso 10.5 — Conversaciones del portal en Chatwoot y en los embudos (rediseño, 2026-11-06)
 
@@ -692,7 +714,7 @@ Editados:
   - **El riesgo del webhook:** Chatwoot 4.19.1 no entrega a un host sin IP pública, como midió la PoC de la 1a. La salud de agentes revisa el webhook de cuenta y avisa a los admins si falta, si no tiene `message_created` o si su host no tiene IP pública.
   - **PoC en Actions de lo saliente.**
 
-  **La 1b no se fusiona sin la 0520 aplicada en producción, o sin una decisión de Sam sobre `publicar-web.sh aceptar-pendiente`** (regla del Director General del 2026-11-08). Fusionar una migración en espera frena la publicación automática (§10 de `aplicar-migraciones-prod.md`), como pasó con la #424.
+  **La 1b no se fusiona sin la 0520 aplicada en producción, o sin una decisión de Sam sobre `publicar-web.sh aceptar-pendiente`** (regla del Director General del 2026-11-08). **Se cumplió:** la 0520 se aplicó el 2026-11-08 a las 02:26:32Z en producción, y la #434 se fusionó a las 04:11Z (ver «2026-11-08 · La 0520 aplicada»). Fusionar una migración en espera frena la publicación automática (§10 de `aplicar-migraciones-prod.md`), como pasó con la #424.
 - **PR 1c · el estado, el CRM y Studio en solo lectura.** Su migración propia, con número aparte, lleva `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar`. Lleva:
   - `entrarPortal`;
   - la conciliación;
@@ -768,7 +790,7 @@ Nuevos:
 
 Editados:
 
-- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` (la 0520 en espera; la declaración de la 0519 suma los sitios nuevos de `chatwoot_portal_rezagados` y `chatwoot_portal_hilos`)
+- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` (la 0520 en espera hasta su cierre). Al traer `main` con el cierre de la 0519 (#435), la declaración de la 0519 se borró, porque ya estaba aplicada y sellada, y con ella los sitios que la 1b le había sumado en `chatwoot_portal_rezagados` y `chatwoot_portal_hilos`. Quedó solo la de la 0520, que su cierre también retira
 - `lib/studio/chatwoot/router-api.ts` (`leerMensaje`, `crearNotaPrivada` y `listarWebhooksCuenta`) y su prueba. «Asignar agente» pasa a la 1c, con `entrarPortal`
 - `lib/studio/chatwoot/portal.ts` (`resumenPortal`, los números de la tarjeta)
 - `lib/studio/chatwoot/webhook-procesar.ts` (`responderAlPortal` en `MANEJADORES`, su nombre y `ctx.salientePortal`) y `lib/studio/chatwoot/__tests__/aviso-unico-por-evento.test.ts` (la lista de nombres)
