@@ -73,13 +73,13 @@ Hay además **83 archivos de prueba** que mencionan Kommo.
 | Alta web | `app/registro/actions.ts` (paso 11, `altaWebSinKommo`, `:71`) y `lib/studio/crm-alta-web.ts` | El push del alta | NV |
 | Cotizador | `app/studio/(app)/cotizador/actions.ts` y `lib/studio/kommo-writeback.ts` | Le escribe el estimado a Kommo | NV |
 
-**8.7 empieza con una lectura de solo lectura en producción:** jobs de `cron.job` con «kommo», funciones desplegadas y el valor de `KOMMO_PUSH_DRY_RUN`, con el OK del Director General. Así se sabe qué está vivo de verdad.
+**8.7 empieza con una lectura de solo lectura en producción:** jobs de `cron.job` con «kommo», funciones desplegadas y si `KOMMO_PUSH_DRY_RUN` está vacío o no (se registra solo eso, nunca el valor), con el OK del Director General. Así se sabe qué está vivo de verdad.
 
 ### 3.2 Código de la aplicación (lo borra 8.10)
 
 - **`lib/studio/kommo-*.ts`** (9): `kommo-analytics`, `kommo-atencion`, `kommo-contact-status`, `kommo-conversacion`, `kommo-convert`, `kommo-queries`, `kommo-recovery`, `kommo-types` y `kommo-writeback`, con sus pruebas en `lib/studio/__tests__/`.
 - **`supabase/functions/_shared/kommo-*.ts`** (7): `mapping`, `outbound`, `prune`, `reapertura`, `router`, `webhook-parse` y `writeback-plan`, con 6 pruebas.
-- **Las 4 edge functions** de §3.1, con sus carpetas.
+- **Las 4 edge functions** de §3.1: sus carpetas del repo. Las desplegadas no se retiran aquí (§3.4.1).
 - **Vistas del CRM en el Studio:** `KommoClient.tsx`, `KommoBoardView.tsx` y `kommo-tabs.shared.ts`. También `StageMapConfig.tsx`, `MarkboxFieldConfig.tsx` y `RecoveryTab.tsx`, y las ramas de Kommo de `crm/page.tsx`, `crm/actions.ts`, `LeadDrawer.tsx`, `LeadActionsButton.tsx`, `ConvertLeadDrawer.tsx`, `StageControl.tsx` y `DireccionTab.tsx`. Son 27 archivos de `app/studio` en total. Cada uno se mide al borrar: algunos solo tienen una rama de Kommo, no son enteros de Kommo.
 - **Cifras de Kommo** que S0b ocultó: `lib/studio/dashboard/*`, `lib/studio/direccion/queries.ts`, `lib/studio/reports/*` y `app/studio/(app)/direccion/_components/CommercialCard.tsx`.
 - **Comentarios que nombran a Kommo** en código público: `components/PuertaAPuerta.tsx:7`, `lib/money.ts:6-12`, `lib/seo-offer-catalog.ts:4`, `lib/servicios-detalle.ts:4` y `:155`, `app/api/contact/route.ts:49-51`, `app/api/cron/portal-cold-reminder/route.ts:18` y `app/privacidad/page.tsx:37`. No son texto visible. Se reescriben o se quitan con la historia en el commit.
@@ -96,9 +96,10 @@ Hay además **83 archivos de prueba** que mencionan Kommo.
 
 ### 3.4 Configuración, crons y scripts (los borra 8.10)
 
-- **Variables:**
-  - `KOMMO_PUSH_DRY_RUN` y `KOMMO_WEBHOOK_SECRET`, en `.env.example` e `infra/dtd-cargo/.env.example`;
-  - sus líneas en `infra/dtd-cargo/compose.yml` y `compose.supabase.yml`, e `infra/dtd-cargo/README.md`.
+- **Variables** (buscadas por valor con `git grep -n "<NOMBRE>"`; C):
+  - `KOMMO_WEBHOOK_SECRET` y `KOMMO_PUSH_DRY_RUN`: declaradas en `infra/dtd-cargo/.env.example:363-364` y pasadas en `infra/dtd-cargo/compose.supabase.yml:479-480`. Las leen `supabase/functions/kommo-webhook/index.ts:545` y `supabase/functions/kommo-push-client/index.ts:110`. También las nombran `infra/ops/staging/verificar-aislamiento.sh:187` y `infra/ops/tests/prueba-scripts-entorno-prueba.sh:61`. **No están** en el `.env.example` de la raíz.
+  - `CRM_ALTA_WEB_SIN_KOMMO`: `.env.example:309` e `infra/dtd-cargo/.env.example:171`. La lee `lib/studio/crm-alta-web.ts:40`, la cita `app/registro/actions.ts:467` y la prueban `app/registro/__tests__/register-tarjeta-crm.test.ts:263` e `infra/ops/tests/prueba-scripts-entorno-prueba.sh:142-144`.
+  - `infra/dtd-cargo/compose.yml` no las tiene: solo nombra a Kommo en un comentario (`:20`). `infra/dtd-cargo/README.md` tampoco las nombra; menciona a Kommo en `:77` (`FUNCTIONS_VERIFY_JWT`) y `:150`. Esos textos se ajustan en L3.
 - **Crons:** la línea de `infra/dtd-cargo/cron/crontab:10` y la entrada de `vercel.json:18`.
 - **Ops:**
   - `infra/ops/migrate/{import-from-cloud.sh,vault-set-secret.sh}`;
@@ -106,6 +107,15 @@ Hay además **83 archivos de prueba** que mencionan Kommo.
   - las pruebas de `infra/ops/tests/` que lo mencionan.
 - **Scripts:** `scripts/check-edge-functions.mjs`, `scripts/verify.mjs`, `scripts/check-numbering.mjs` (choques históricos de `0342` y `0363`, que se quedan), `scripts/build-marketing-reader.mjs` y `scripts/qa/profile-merge-chain.mjs`.
 - **Chatwoot:** `infra/chatwoot/rails/zz_dtd_proteccion_register.rb` protege el número que se comparte con Kommo. Se quita cuando el número salga de Kommo (8.8), y lleva su propia prueba.
+
+### 3.4.1 Repo no es producción
+
+Borrar del repo (§3.2 y §3.4) **no retira nada de lo que está desplegado**:
+- las 4 edge functions de §3.1 siguen desplegadas en Supabase;
+- los valores de `KOMMO_WEBHOOK_SECRET`, `KOMMO_PUSH_DRY_RUN` y los de vault (§3.3) siguen en producción;
+- la línea del crontab del VPS (la copia viva de `infra/dtd-cargo/cron/crontab:10`) sigue corriendo hasta que se cambie allá.
+
+**Retirar eso en producción queda fuera de la 0619 y pide el OK nominal de Sam**, con el [runbook de producción](../../runbooks/aplicar-migraciones-prod.md). Lo apaga primero la 8.7 (§3.1). El borrado físico de datos de la 8.11 lo corre Sam.
 
 ### 3.5 Herramientas de E5 (se quedan hasta 8.9)
 
@@ -129,14 +139,14 @@ Hay además **83 archivos de prueba** que mencionan Kommo.
 Cada PR mide de nuevo su parte con §8 y lleva su allowlist exacta.
 
 1. **L1 · Vista y módulo:** §3.2, las vistas del CRM y las cifras, y D1 si es (a).
-2. **L2 · Lógica y funciones:** `lib/studio/kommo-*`, `_shared/kommo-*` y las 4 edge functions, con sus pruebas.
-3. **L3 · Configuración y ops:** §3.4.
+2. **L2 · Lógica y funciones:** `lib/studio/kommo-*`, `_shared/kommo-*` y las carpetas de las 4 edge functions, con sus pruebas. Solo repo.
+3. **L3 · Configuración y ops:** §3.4. Solo repo: el crontab del VPS y los secretos vivos siguen §3.4.1.
 4. **L4 · Barrido final:** comentarios y restos, más el criterio de salida (§7).
 
 ## 6. Datos personales (revisar-datos-ve)
 
 Este diseño no captura, mueve ni borra datos.
-- El borrado de datos es la 8.11, después del export cifrado de la 8.9, con el conteo de `entity_audit_log` y de los respaldos (fila 8.9).
+- El borrado de datos es la 8.11, después del export cifrado de la 8.9, con el conteo de `entity_audit_log` y de los respaldos (fila 8.9). Ese borrado físico lo corre Sam.
 - Borrar el código de 8.10 no borra filas. Antes de la 8.11 se anota que las tablas siguen en la base.
 
 ## 7. Criterio de salida de 8.10
