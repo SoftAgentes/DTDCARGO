@@ -411,6 +411,18 @@ select pg_temp.assert_true(pg_temp.como('uAdmin2', 'select count(*) from public.
 select pg_temp.assert_true(
   (select count(*) from pg_catalog.pg_class c where c.relname like 'chatwoot_bot_%' and c.relkind = 'r' and not c.relrowsecurity) = 0,
   'RLS en todas las tablas del bot');
+-- Revisión del DG (concurrencia): TRUNCATE se salta los triggers de fila, así que nadie lo tiene.
+select pg_temp.assert_true(
+  (select count(*) from pg_catalog.pg_class c
+   where c.relname like 'chatwoot_bot_%' and c.relkind = 'r'
+     and (has_table_privilege('service_role', c.oid, 'TRUNCATE') or has_table_privilege('authenticated', c.oid, 'TRUNCATE'))) = 0,
+  'nadie puede hacer TRUNCATE en las tablas del bot');
+-- La guarda de contesta_solo bloquea la excepción que lee (for share): sin eso, una revocación
+-- en curso y un encendido a la vez dejan contesta_solo sin IA-01. La carrera con dos sesiones
+-- está en 0522_chatwoot_bot_carrera.test.sql; esto fija la pieza en el contrato de una sesión.
+select pg_temp.assert_true(
+  pg_get_functiondef('public.chatwoot_bot_bandejas_guardar()'::regprocedure) ~ 'new\.inbox_id = any \(e\.inbox_ids\)\s+for share;',
+  'la guarda de contesta_solo bloquea la excepción con for share');
 select pg_temp.assert_true(
   (select count(*) from information_schema.columns
    where table_name like 'chatwoot_bot_%' and column_name ~ '(texto|content|body|nombre|name|phone|telefono|email|prompt|respuesta)') = 0,
