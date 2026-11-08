@@ -38,7 +38,8 @@ Corregido en un solo commit de docs:
    - A eso de las 04:15Z, el DG preguntó «¿para qué es el OK?» en un selector con cuatro opciones: «Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado».
    - Sam no marcó ninguna. Respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.»
    - El DG lo leyó como OK para las tres y fijó el orden: la web, el portal y la 0518.
-   - (En `a547e6f7c` decía que Sam había elegido «Encender el portal». Era falso y se corrigió en la segunda revisión; el error vino en el mensaje que se le pasó al Worker.) El guion prefiere el panel, que escribe por D1 (`executeD1Operation`, `feature_flag.toggle`) y deja auditoría. El `update` queda como alternativa, marcado como escritura sin auditoría.
+   - En `a547e6f7c` decía que Sam había marcado una de las opciones. Era falso, y se corrigió en la segunda y la tercera revisión. El error vino en el mensaje que se le pasó al Worker.
+   - El guion usa el panel, que escribe por D1 (`executeD1Operation`, `feature_flag.toggle`) y deja auditoría. **En producción, el flag se enciende y se apaga solo desde el panel. El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam.** En prueba, el `update` sigue como alternativa, marcado como escritura sin auditoría.
 3. **El smoke en producción con un cliente real** (§4, paso 3) queda ⛔ fuera del OK, con sus pantallas y roles, también en §6.
 4. **Paso 9:** esperar más de 15 min, porque `chatwoot_portal_rezagados` exige `sent_at <= now() - 15 min` (0519). El cron le manda el aviso de rezago a los admins del tenant de prueba.
 5. **§3:** se escribe que `entorno-prueba.md` §2.1 está desactualizado (IPv6). La ruta del webhook queda en una sola versión, la de `chatwoot-bandeja.md`: «sin la clave y con la misma lista de IP».
@@ -59,11 +60,18 @@ Corregido en un solo commit de docs:
 - **El cron de prueba** se dispara desde su contenedor, con la cabecera por stdin (`printf` interno de `sh` y `curl -H @-`). La clave no queda en el host ni en `ps`. El nombre `dtd-cargo-staging-cron-1` sale del patrón de compose y se confirma con `docker ps` (I).
 - **Recrear `rails`**, si algún día hace falta: `cd /srv/chatwoot && docker compose -f compose.yml up -d --no-deps --force-recreate rails`. Nunca `compose up` a secas.
 
+## Tercera revisión, sobre `c62865d01` (cambios pedidos, comunicada por el Subdirector)
+
+- **La cita del OK, en todas partes:** §3 paso 3 y §4 paso 2 todavía nombraban, entre paréntesis, la primera opción del selector como si Sam la hubiera elegido. Ahora llevan la frase literal de Sam y dicen que no marcó ninguna opción. Con `git grep` sobre el nombre de esa opción quedan solo las líneas que listan las cuatro opciones del selector.
+- **El flag en producción, decisión del DG:** se enciende y se apaga **solo desde el panel**. El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam. En prueba, el SQL sigue como alternativa. Dice lo mismo en la cabecera, en §2, en §4 paso 2, en §5 y en §6.
+- **La cabecera** quedó entera como blockquote.
+- **La 1c-1b es condición de producción** (decisión del DG): en un hilo borrado, `setStatusAction` tiene que dar «no encontrada» y no escribir. Está en la cabecera, en §0, en §4 y en §6. Sale en su propia rama y PR cuando la #440 esté en `main`.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - La PR de T1 a T4 la tiene la hija del correo (no se duplica).
 - La PR 2 (P4, la carga) no está escrita.
-- La 1c-1 está en su PR, la #440 (rama `codex/0586-e10-5-1c-solo-lectura`). La 1c-2, la 1c-3 y la 1c-4 no están escritas.
+- La 1c-1 está en su PR, la #440 (rama `codex/0586-e10-5-1c-solo-lectura`). La 1c-1b (el hilo borrado y el enlace a la Bandeja con permiso) arranca cuando la #440 esté en `main`. La 1c-2, la 1c-3 y la 1c-4 no están escritas.
 - **`docs/runbooks/entorno-prueba.md` §2.1 está desactualizado.** Dice que el 403 no se puede probar desde el VPS. El 2026-11-08, `curl` por DNS salió por IPv6 y dio 403 en todo, porque esa dirección no está en la lista. Corregirlo es otra PR de docs.
 
 ## Estado

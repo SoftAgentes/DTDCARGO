@@ -3,16 +3,17 @@
 > **Preparado y NO corrido.** Lo armó el Worker de la 10.5 el 2026-11-08, por pedido del Director General, comunicado por el Subdirector de Chatwoot. El orden del DG es: (1) publicar la web; (2) **encender `chatwoot_portal`**, primero en prueba con la punta a punta y después en producción; (3) la 0518. Este documento es el paso (2). **No enciende nada:** lo corre el DG. La web nueva ya está publicada en prueba y en producción desde ~04:20Z del 2026-11-08 (dato del Subdirector).
 >
 > **El OK de hoy para encender.** La fila 10.5 del checklist de la 0582 pide «Migración, bandeja y variables, y flag `chatwoot_portal`: un OK nominal de Sam cada uno». El del flag está dado, así (comunicado por el Subdirector):
-
-- A eso de las 04:15Z del 2026-11-08, el DG preguntó «¿para qué es el OK?» en un selector con cuatro opciones: «Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado».
-- **Sam no marcó ninguna.** Respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.»
-- El DG lo leyó como OK para las tres y fijó el orden: (1) publicar la web; (2) encender `chatwoot_portal`, primero en prueba y después en producción; (3) la 0518.
-
-Ese OK cubre encender el flag, en prueba y en producción. **En producción, además, espera a la 1c-1** (§0, decisión del DG).
-
-**Escrituras en la base, según el DG** (comunicado por el Subdirector):
-- **En prueba**, el corte (§2) y el atascado forzado del paso 9 (§3) **entran en el OK de encender en prueba**.
-- **En producción**, ninguna escritura en la base entra en ese OK. El corte, o P4, va con su propio OK nominal (§1 y §4), y el `update` del flag solo si el panel no se puede usar.
+>
+> - A eso de las 04:15Z del 2026-11-08, el DG preguntó «¿para qué es el OK?» en un selector con cuatro opciones: «Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado».
+> - **Sam no marcó ninguna.** Respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.»
+> - El DG lo leyó como OK para las tres y fijó el orden: (1) publicar la web; (2) encender `chatwoot_portal`, primero en prueba y después en producción; (3) la 0518.
+>
+> Ese OK cubre encender el flag, en prueba y en producción. **En producción, además, espera a la 1c-1 y a la 1c-1b** (§0, decisión del DG).
+>
+> **Escrituras en la base, según el DG** (comunicado por el Subdirector):
+>
+> - **En prueba**, el corte (§2) y el atascado forzado del paso 9 (§3) **entran en el OK de encender en prueba**. El `update` del flag por SQL sigue como alternativa al panel.
+> - **En producción**, ninguna escritura en la base entra en ese OK. El corte, o P4, va con su propio OK nominal (§1 y §4). **El flag se enciende y se apaga solo desde el panel. El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam.**
 >
 > Cada paso marcado **⛔ FUERA DEL OK DE HOY** pide un OK nominal de Sam aparte.
 
@@ -26,10 +27,11 @@ Ese OK cubre encender el flag, en prueba y en producción. **En producción, ade
 | La vía del atascado publicada (1b, #434): la tarjeta «Portal → Chatwoot» con «Reintentar los atascados» | ✅ publicada en los dos entornos (~04:20Z) | La tarjeta aparece en `/studio/bandeja` para un admin, con la bandeja configurada |
 | La web nueva publicada en el entorno | ✅ en prueba y en producción desde ~04:20Z (dato del Subdirector) | La imagen que corre incluye `efd7e70f6` o posterior |
 | **Solo producción: la 1c-1 (Studio en solo lectura, E10-D41) fusionada y publicada en producción** | ❌ en su PR, la #440 (rama `codex/0586-e10-5-1c-solo-lectura`) | La imagen de producción incluye el merge de la 1c-1. Con el flag encendido, un hilo del portal en Conversaciones de Studio muestra «Este hilo del portal se responde desde la Bandeja de Chatwoot.» y no tiene caja de respuesta |
+| **Solo producción: la 1c-1b (el hilo borrado) fusionada y publicada en producción** | ❌ sin escribir; arranca cuando la #440 esté en `main` | La imagen de producción incluye el merge de la 1c-1b. `setStatusAction` sobre un hilo borrado da «Conversación no encontrada.» y no escribe: el `update` lleva `deleted_at is null`. Antes, en un hilo del portal borrado, la traba de la 1c-1 no corría |
 
 **Sin T1 a T4 publicados en producción, el flag no se enciende en producción.** En prueba se pueden publicar antes, con la misma PR.
 
-**Sin la 1c-1 fusionada y publicada en producción, el flag tampoco se enciende en producción** (decisión del DG del 2026-11-08, comunicada por el Subdirector). En prueba, la punta a punta se hace antes de la 1c-1.
+**Sin la 1c-1 y la 1c-1b fusionadas y publicadas en producción, el flag tampoco se enciende en producción** (decisión del DG del 2026-11-08, comunicada por el Subdirector). En prueba, la punta a punta se hace antes, sin esperarlas.
 
 ### Lo que la 10.5 todavía no hace en `main` (I)
 
@@ -83,10 +85,13 @@ Si no devuelve ninguna fila, el corte ya existía y quedó igual.
 
 **Encender el flag**, por tenant. **Se usa el panel:** Studio → Admin → Feature flags → «Conversaciones del portal en Chatwoot», con una sesión de **platform admin** de ese tenant. La policy `feature_flags_platform_admin_update` (0355) no deja hacerlo a un admin común. El panel escribe por la vía D1 (`executeD1Operation`, `feature_flag.toggle`) y **deja la auditoría**: quién, cuándo y el valor.
 
-Solo si el panel no se puede usar, por SQL. **Es ESCRITURA**, con el superusuario, y **se salta la auditoría D1**. Se anota en la evidencia quién la corrió y a qué hora:
+**En producción, el flag se enciende y se apaga solo desde el panel. El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam.**
+
+**En prueba**, si el panel no se puede usar, sigue permitido por SQL. **Es ESCRITURA**, con el superusuario, y **se salta la auditoría D1**. Se anota en la evidencia quién la corrió y a qué hora:
 
 ```sql
--- ESCRITURA, sin auditoría D1: solo si el panel no se puede usar.
+-- ESCRITURA, sin auditoría D1. En prueba: solo si el panel no se puede usar.
+-- En producción: ⛔ con su propio OK nominal de Sam.
 update public.feature_flags set enabled = true, updated_at = pg_catalog.now()
 where tenant_id = '<tenant>' and key = 'chatwoot_portal'
 returning tenant_id, key, enabled, updated_at;
@@ -94,7 +99,7 @@ returning tenant_id, key, enabled, updated_at;
 
 Tiene que devolver una fila. Si no devuelve ninguna, el tenant no tiene la fila del flag y no se encendió nada.
 
-**Apagarlo** es el mismo interruptor del panel. Por SQL es el mismo `update` con `false`, con la misma advertencia.
+**Apagarlo** es el mismo interruptor del panel. Por SQL es el mismo `update` con `false`, con las mismas reglas: en prueba como alternativa, en producción ⛔ con su propio OK nominal de Sam.
 
 **Comprobar el flag** (solo lectura; el flag no tiene caché, así que rige en el próximo request y en la próxima corrida del cron):
 
@@ -148,7 +153,7 @@ rollback;
 |---|---|---|---|
 | 1 | Conteos de §2, con el flag **apagado** | Todo en 0. Si ya hay un corte, se anota | SQL de §2 |
 | 2 | Un admin abre `/studio/bandeja` | La salud no muestra ninguna alerta del webhook. La tarjeta «Portal → Chatwoot» dice «Apagado» | Pantalla |
-| 3 | Fijar el corte (leerlo antes; es escritura en la base de prueba) y **encender el flag** en el tenant de prueba, **desde el panel**. Encender está cubierto por el OK de Sam de ~04:15Z («Encender el portal»; ver la cabecera) | El flag queda en `t`, con su auditoría D1. La tarjeta muestra los números (0 y 0) | SQL de §2 y pantalla |
+| 3 | Fijar el corte (leerlo antes; es escritura en la base de prueba) y **encender el flag** en el tenant de prueba, **desde el panel** (en prueba, el SQL de §2 sigue como alternativa). Encender está cubierto por el OK de ~04:15Z: Sam respondió «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.», sin marcar ninguna opción (ver la cabecera) | El flag queda en `t`, con su auditoría D1. La tarjeta muestra los números (0 y 0) | SQL de §2 y pantalla |
 | 4 | El cliente de prueba escribe en `/portal/soporte` | El mensaje aparece en el portal, sin error, como antes | Pantalla |
 | 5 | En menos de un minuto (con `after()`; si no, en la próxima corrida del cron, cada 5 min) | **Llega a Chatwoot, en la bandeja del portal**, como mensaje entrante del contacto `dtd-portal:<uuid>`, con `source_id = dtd:<id del mensaje>`. La cola dice 1 `enviado`, y hay 1 contacto, 1 hilo y 1 conversación del portal | Pantalla de la Bandeja; el `source_id` se lee con la API de cuenta (abajo); SQL de §2 |
 | 6 | El agente responde en la Bandeja | La respuesta **vuelve al portal** con su nombre (o «DTD Cargo» si no está vinculado) y su hora, y el cliente recibe el push. En Studio, `conversation_messages` tiene una fila saliente con `external_msg_id = chatwoot:<id>` | Portal y push; SQL: `count(*) where external_msg_id like 'chatwoot:%'` en el hilo, sin leer el texto |
@@ -202,14 +207,14 @@ Solo después de:
 
 1. la punta a punta de §3 aprobada por Sam («aprobado en prueba»);
 2. T1 a T4 publicados en producción;
-3. **la 1c-1 (Studio en solo lectura, la #440) fusionada y publicada en producción** (decisión del DG del 2026-11-08);
+3. **la 1c-1 (Studio en solo lectura, la #440) y la 1c-1b (en un hilo borrado, `setStatusAction` da «no encontrada») fusionadas y publicadas en producción** (decisión del DG del 2026-11-08);
 4. la bandeja de la cuenta 1, las variables y el contenedor recreado, cada uno **⛔ con su OK nominal**;
 5. el corte, o P4, **⛔ con su OK nominal** y la decisión de §1.
 
 Luego:
 
 1. Conteos de §2 con el flag apagado, para tener la línea de base. **⛔ Con el OK nominal de los conteos en producción** (§2): el de encender no los cubre.
-2. **Encender** en el tenant de producción **desde el panel** (con su auditoría D1; el SQL de §2 solo si el panel no se puede usar) y comprobarlo. Encender está cubierto por el OK de Sam de ~04:15Z («Encender el portal»; ver la cabecera), siempre que se cumplan las condiciones de arriba.
+2. **Encender** en el tenant de producción y comprobarlo. **En producción, el flag se enciende y se apaga solo desde el panel**, con su auditoría D1. **El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam.** Encender está cubierto por el OK de ~04:15Z, siempre que se cumplan las condiciones de arriba: Sam respondió «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.», sin marcar ninguna opción (ver la cabecera).
 3. **⛔ FUERA DEL OK DE HOY: el smoke con un cliente real.** Crea en la cuenta 1 de Chatwoot un contacto `dtd-portal:<uuid>` y una conversación con el nombre del cliente, y le manda un push al cliente. Pide un OK nominal de Sam que nombre al cliente y estas pantallas y roles:
    - **el cliente** (uno que Sam nombre, o Sam desde su propia cuenta de cliente si existe), en `/portal/soporte`: escribe un mensaje y después lee la respuesta, y recibe el push;
    - **un agente del equipo de Venezuela, miembro de la bandeja del portal en la cuenta 1**, en la Bandeja de Chatwoot: ve el mensaje en «Conversaciones del portal» y responde;
@@ -220,7 +225,9 @@ Luego:
 
 ## 5 · Vuelta atrás: apagar el flag
 
-**Cómo:** el interruptor del panel, con su auditoría D1. El `update … set enabled = false` de §2 solo si el panel no se puede usar: es escritura y se salta la auditoría. Rige en el próximo request.
+**Cómo:** el interruptor del panel, con su auditoría D1. Rige en el próximo request.
+- **En producción, el flag se enciende y se apaga solo desde el panel. El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam.**
+- **En prueba**, el `update … set enabled = false` de §2 sigue como alternativa si el panel no se puede usar. Es escritura y se salta la auditoría.
 
 | Dónde | Qué deja de pasar | Qué queda |
 |---|---|---|
@@ -236,8 +243,8 @@ Luego:
 
 **Lo que SÍ cubre el OK de hoy:** encender el flag `chatwoot_portal`, en prueba y en producción. A eso de las 04:15Z del 2026-11-08, el DG preguntó «¿para qué es el OK?» en un selector («Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado»). Sam no marcó ninguna opción y respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» El DG lo leyó como OK para las tres y fijó el orden: la web, el portal y la 0518 (comunicado por el Subdirector).
 - Se enciende desde el panel.
-- En prueba entran también las dos escrituras de la base de prueba: el corte y el atascado forzado del paso 9.
-- En producción, solo con las condiciones de §4, incluida la 1c-1 publicada, y sin escrituras en la base.
+- En prueba entran también las dos escrituras de la base de prueba: el corte y el atascado forzado del paso 9. El `update` del flag por SQL sigue como alternativa al panel.
+- En producción, solo con las condiciones de §4, incluidas la 1c-1 y la 1c-1b publicadas, y sin escrituras en la base. **En producción, el flag se enciende y se apaga solo desde el panel. El `update` por SQL en producción queda ⛔ y pide su propio OK nominal de Sam.**
 
 **Lo que queda fuera:**
 
