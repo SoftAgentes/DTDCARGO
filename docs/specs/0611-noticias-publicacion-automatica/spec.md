@@ -579,7 +579,7 @@ interruptor en Ajustes) trae su propia allowlist.
 | `lib/studio/news/__tests__/autopublicar.test.ts` | Nuevo: orquestador con base y Discord dobles |
 | `supabase/migrations/0518_noticias_publicacion_automatica.sql` | Nuevo: migración 0518, sin aplicar |
 | `supabase/tests/0518_noticias_publicacion_automatica.test.sql` | Nuevo: contrato SQL de la 0518 |
-| `supabase/desarmes/0518_desarme.sql` | Nuevo: desarme de la 0518 |
+| `supabase/desarmes/` | Nuevo: el desarme de la 0518, único archivo nuevo de esa carpeta. Se nombra por la carpeta porque `spec-migration-refs.test.ts` toma todo nombre `NNNN_…` con extensión `.sql` como migración |
 | `supabase/migrations-baseline.json` | Modificado: espera de la 0518 en `pendingBelowCutoff` |
 | `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): estado, §11.1 y esta allowlist |
 | `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Nuevo: revisión `revisar-datos-ve` |
