@@ -47,7 +47,7 @@ la 6.6), **base de conocimiento** (7.4, que lee el bot de E7), **/registro**, **
 |---|---|---|---|---|
 | 38249 Bienvenida horario oficina | Saludo y menú de letras A–H que repartía a los bots de servicio | **Base de conocimiento (7.4)**: el mapa de servicios del menú. **No se recrea el menú** ni un saludo automático: el primer mensaje que sale es la redirección de E10 o la respuesta de una persona | E7, por coordinar (§4) | 0. Un saludo automático costaría 1 mensaje por conversación (D-6.7-2) |
 | 38711 Asignar asesor (Round Robin) | Repartía por palabra clave entre usuarios que ya no existen; el 71,4 % caía en Round Robin | **Ninguno**: dueño = el primero que atiende (SDD-0587 §5.4). Con más agentes, la asignación automática de la bandeja de Chatwoot, que no envía nada | Embudo (6.4, hecho) | 0 |
-| 38713 Solicitud de datos | Pedía nombre, cédula, correo y dirección por chat | **/registro**, con su atribución (6.4). El patrón «¿su cédula es X?» queda como idea para E7, sin asignar | 6.4, hecho | 0 |
+| 38713 Solicitud de datos | Pedía nombre, cédula, correo y dirección por chat | **Ninguno**: los datos se piden solo por /registro (6.4). El bot nunca pide ni repite una cédula o un RIF (reglas `pide_dato_sensible` y `documento_de_identidad` de la SDD-0618) | 6.4, hecho | 0 |
 | 38251 Carga marítima | Condiciones del servicio | **Base (7.4)**, revisando los datos (§3) | E7, por coordinar | 0 |
 | 38773 Cursos, 38775 Asesorías personalizadas | Información del servicio | **Base (7.4)** | E7, por coordinar | 0 |
 | 38715 Validación de proveedores, 38771 Validación de mercancía | Presencial o digital; almacén o fábrica | **Base (7.4)** | E7, por coordinar | 0 |
@@ -122,3 +122,4 @@ el número. Por eso la recomendación sigue siendo D8 (a).
 ## 9. Seguimiento
 
 - **2026-11-08:** el Director General reservó el número 0617, con el stub `2cfa005e2`. Diseño en borrador. No se activó ni se borró nada. El Subdirector tiene que confirmar §4 con el carril E7.
+- **2026-11-08:** E7 dio el OK a la §4 como entrada para la 7.4, con un cambio: la fila 38713 queda en «Ninguno», porque el patrón «¿su cédula es X?» choca con dos reglas duras de la SDD-0618.
