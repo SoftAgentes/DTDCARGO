@@ -920,9 +920,10 @@ Lo que ya existe y se reusa:
   1. `obtenerConversacion` y `aplicarConversacion(…, null)` corrigen el espejo si se perdió un evento de estado. Después corre `chatwoot_portal_estado_hilo`.
   2. **Mensajes, paginando hacia atrás** con `?before=<id>`, como `portal.poc.test.ts:83` y la búsqueda del `source_id` de la ida:
      - **sin el filtro «más nuevo que el último `chatwoot:<id>`»**, porque perdía mensajes. Con 25 perdidos y páginas de 20, la primera corrida metía los 20 más nuevos, y los 5 más viejos ya no entraban nunca. `chatwoot_portal_respuesta` ya es idempotente por `chatwoot:<id>`;
-     - se detiene en el primer saliente que el hilo ya tiene (`chatwoot:<id>` en `conversation_messages`), o en el tope de **5 páginas**;
+     - **hasta pasar la marca de agua** `chatwoot_portal_hilos.conciliado_hasta` (bigint): el id de Chatwoot del mensaje más nuevo revisado en una corrida completa. Los ids de mensaje de Chatwoot crecen. Si la marca es nula, va hasta el principio de la conversación. El tope es de **5 páginas**;
+     - **no se detiene en el primer saliente conocido.** Eso fallaba con una pérdida salteada: se pierde el 10, llega el 11 y se pierde el 12. Hacia atrás, el 12 es nuevo y el 11 conocido, así que paraba ahí y el 10 no volvía nunca. Chatwoot no reintenta los webhooks, y un corte de red de segundos alcanza para producirlo (revisión del Subdirector del 2026-11-08);
      - lo que junta se mete en **orden ascendente**, por el camino de `responderAlPortal`: `esRespuestaDelEquipo`, `chatwoot_portal_respuesta`, el push una sola vez y las notas.
-  3. `chatwoot_portal_marcar_conciliado(p_tenant_id, p_conversation_id)`, **solo si llegó a un mensaje conocido** o al principio de la conversación. Si lo cortó el tope de páginas, no lo marca, devuelve `faltan_paginas` y el hilo vuelve primero en la próxima corrida, porque `conciliado_at` sigue viejo.
+  3. `chatwoot_portal_marcar_conciliado(p_tenant_id, p_conversation_id, p_hasta)`, **solo si pasó la marca o llegó al principio**: mueve `conciliado_hasta` al mensaje más nuevo revisado (nunca hacia atrás) y fija `conciliado_at`. Si lo cortó el tope de páginas, devuelve `faltan_paginas`, no mueve la marca y no marca el hilo, que vuelve primero en la próxima corrida.
 - **Un hilo que falla no frena los demás.** Se informa solo con códigos, igual que la ida. Con Chatwoot caído no se marca, así que se reintenta en la próxima corrida.
 
 **El trigger (decisión del DG del 2026-11-08: también con el flag apagado).** Cierra el riesgo residual (I) de la 0106 para la 1c-1. Medido por el Subdirector: `authenticated` tiene `update` sobre `conversations` (`0106:80`) con la policy `for all` por tenant (`0106:128-132`), así que cualquiera del equipo escribe directo por PostgREST. Los clientes del portal no, porque `get_user_tenant_id` sale de `user_tenants` (`0453`). Va en `conversations` y en `conversation_messages`.
@@ -930,7 +931,7 @@ Lo que ya existe y se reusa:
 - **La función del trigger es `security invoker`** y mira `current_user = 'authenticated'`. Si fuera `security definer`, `current_user` sería su dueño y el chequeo dejaría pasar todo.
 - **No se usa `current_setting('role')`:** dentro de `portal_post_message` sigue diciendo `authenticated`, y trabaría a las RPC legítimas.
 - Dentro de las funciones `security definer` (`portal_post_message`, `chatwoot_portal_respuesta` y `chatwoot_portal_estado_hilo`), `current_user` es su dueño, así que pasan.
-- El flag lo lee un helper `security definer` (`chatwoot_portal_flag(p_tenant_id)`), porque el invoker no ve `feature_flags` de otro modo que por su RLS.
+- El flag lo lee un helper `security definer`, `chatwoot_portal_flag(p_tenant_id)`, porque el invoker no ve `feature_flags` de otro modo que por su RLS. **Compara `p_tenant_id` con `get_user_tenant_id()` y devuelve `false` si no coinciden.** Así nadie del equipo puede preguntar por el flag de otro tenant. Para el trigger no cambia nada, porque la fila ya pasó la RLS de su tenant.
 
 1. **`BEFORE UPDATE OF channel ON conversations`**, **en los dos sentidos y siempre**, aunque el flag esté apagado. Rechaza que un hilo deje de ser `portal` y también que **se vuelva** `portal`: con la policy actual, alguien del equipo podría pasar un hilo de `email` a `portal`, y el cliente lo vería en su portal.
 2. **`BEFORE INSERT ON conversation_messages`**, con `direction = 'out'` en un hilo del portal: rechaza **con el flag encendido**. Con el flag apagado, Studio vuelve a responder, como en la 1c-1.
@@ -944,7 +945,7 @@ Lo que ya existe y se reusa:
 **Aplicar antes de fusionar es seguro (medido por el Subdirector en `146d5ea5e`).** El trigger 1 queda vivo en producción antes que el código, pero hoy nadie cambia `channel`. No hay ningún `.update` con `channel` en `app/` ni en `lib/` (solo `channel_push`, que es otra tabla), y ninguna migración hace `set channel`. El 2 y el 3 hacen lo mismo que la 1c-1 en el servidor, que ya está en producción.
 
 **La migración 0521:**
-- `chatwoot_portal_hilos.conciliado_at timestamptz` (nula).
+- `chatwoot_portal_hilos.conciliado_at timestamptz` y `conciliado_hasta bigint` (las dos nulas). Lo que lee E7 no cambia.
 - `chatwoot_portal_estado_hilo`, `chatwoot_portal_por_conciliar` y `chatwoot_portal_marcar_conciliado`.
 - La función de los tres triggers (`security invoker`), el helper `chatwoot_portal_flag` (`security definer`) y los triggers.
 - Un postflight con firmas, permisos, `search_path` y los triggers. Las declaraciones van en `migrations-baseline.json` y `pending-migration-symbol-declarations.json`.
@@ -962,12 +963,15 @@ Lo que ya existe y se reusa:
     - el de canal, en los dos sentidos y con el flag apagado;
     - `assigned_to` e `is_case` pasan;
     - un mutante que vuelve `security definer` a la función del trigger muere;
+    - `chatwoot_portal_flag` con el tenant de otro da `false` para `authenticated`;
   - `por_conciliar`: los no resueltos sin ventana, los resueltos en 7 días, solo vivos, el orden y el tope;
   - control rojo y mutantes.
 - **Vitest:**
   - `estadoAlPortal`, con el estado leído del espejo y no del evento, incluido en el reproceso;
   - `conciliarPortal`:
     - **25 perdidos con páginas de 20 entran los 25, en orden ascendente, en dos corridas como mucho**, con un mutante que vuelve a poner el filtro de «más nuevo que el último»;
+    - **la pérdida salteada:** con el 10 y el 12 perdidos y el 11 entregado, entran los dos en una corrida, con un mutante que vuelve a parar en el primer conocido;
+    - la marca no se mueve con `faltan_paginas` ni hacia atrás;
     - con el tope de páginas no se marca y da `faltan_paginas`;
     - lo perdido entra una sola vez;
     - un hilo que falla no frena los demás;
@@ -986,7 +990,7 @@ Lo que ya existe y se reusa:
 - Sin acciones exportadas nuevas.
 - **La 0521 se aplica antes de fusionar**, en prueba y en producción, cada uno con OK nominal de Sam. Sin eso, la fusión frena la publicación (regla del DG del 2026-11-08).
 
-**Coordinación con E7:** su migración de la 7.6 b va a leer `chatwoot_portal_hilos` para que `chatwoot_bot_encolar` no cree turnos para las conversaciones del portal. La 0521 solo le agrega una columna nula a esa tabla, así que no cambia lo que E7 lee. Se revisa su diseño cuando llegue.
+**Coordinación con E7:** su migración de la 7.6 b va a leer `chatwoot_portal_hilos` para que `chatwoot_bot_encolar` no cree turnos para las conversaciones del portal. La 0521 solo le agrega dos columnas nulas a esa tabla, así que no cambia lo que E7 lee. Se revisa su diseño cuando llegue.
 
 ### 10.5.17 Lo que queda fuera
 
