@@ -1080,3 +1080,21 @@ No se capturan, mueven ni borran datos personales nuevos. La sonda sigue imprimi
 - **`sonda-cargador.rb` (E-10d de `prueba-cargador.sh`)** mira solo la primera página de 15 (`:229-234`). Con los 5 datos inventados alcanza; a escala real fallaría como la del ensayo. Corre solo en CI.
 - **La guarda de carga del ensayo no para los pasos de adjuntos.** `python3 … flujo-adjuntos | rr …` (`ensayo-archivo.sh`, en los pasos de adjuntos) corre `rr` en el subshell del pipeline. Si `vigilar_carga` dice `exit 3` ahí, sale solo ese subshell y el ensayo sigue con el paso siguiente (C; no medido). Está así en `main`, desde la 5.5b.
 - `preparar_corrida` abre `stamp.txt` sin cerrarlo (`ResourceWarning` en las pruebas). No cambia nada.
+
+### 10.18 Paso 5.8 — acta de conciliación parcial (2026-11-08, borrador)
+
+Encargo del Subdirector de Chatwoot, por el carril 4 que pidió Sam. El acta está en [`acta-conciliacion-parcial.md`](acta-conciliacion-parcial.md).
+
+- **Por objeto** concilia la cadena Kommo → preparado → Chatwoot, con lo medido en §10.16. Conversaciones, mensajes, contactos y adjuntos dan 0 de diferencia. Lo que queda fuera a sabiendas: 12 conversaciones con 403 y 15 adjuntos con 404.
+- **Por canal**, el lado de Chatwoot lo cuenta `kommo_origen`. El lado de Kommo de la extracción final es NV: solo queda dentro del paquete cifrado, y la 5.2 sirve de referencia, no de conciliación.
+- **Las consultas de producción las corre el Director General**, con su OK y de solo lectura: `infra/ops/kommo-historial/acta-conteos.rb`, con `COMPARAR=5.7`. No las corre un Worker.
+- **Prueba:** bloque AC de `pruebas/prueba-cargador.sh`, en el flujo «Cargador del Archivo Kommo», con datos inventados sobre la imagen real. Tiene ocho comprobaciones y dos mutantes: sin `READ ONLY`, y contando toda la cuenta.
+- **revisar-datos-ve:** no se capturan, mueven ni borran datos personales. El guion imprime solo números y nombres de canal, y AC8 comprueba que su salida no trae nombres, correos, textos ni ids de Kommo.
+
+#### Allowlist
+
+- `infra/ops/kommo-historial/acta-conteos.rb` (nuevo)
+- `infra/ops/kommo-historial/pruebas/prueba-cargador.sh` (la copia del guion y el bloque AC)
+- `docs/specs/0590-kommo-historial-e5/acta-conciliacion-parcial.md` (nuevo) y esta sección
+- `docs/specs/0582-chatwoot-piloto/checklist.md` (solo la fila 5.8)
+- `.agents/handoffs/0590-e5-acta.md` (nuevo)

@@ -288,7 +288,7 @@ cp "$CW/compose.yml" "$D/"
 cp -r "$CW/rails" "$CW/marca" "$CW/correo" "$D/"
 cp "$CW/pruebas/compose.local.yml" "$D/compose.override.yml"
 cp "$AQUI/compose.cargador.yml" "$D/"
-cp "$KH/cargar-archivo-kommo.rb" "$AQUI/sonda-cargador.rb" "$AQUI/escenario-mutante.rb" "$D/cargador/"
+cp "$KH/cargar-archivo-kommo.rb" "$KH/acta-conteos.rb" "$AQUI/sonda-cargador.rb" "$AQUI/escenario-mutante.rb" "$D/cargador/"
 cp "$CARGA" "$D/estado/carga.ndjson"
 cp "$FLUJO" "$D/estado/flujo.ndjson"
 cat >"$D/.env" <<EOF
@@ -339,6 +339,52 @@ comprobar "$REAL"
 log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana del compose ($(h "$REAL/sonda-verificar.txt" buscador_ventana_dias) días);$(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"
 log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
+
+# ── AC. Conteos del acta de conciliación parcial (5.8), sobre la bandeja de la corrida real ───────────────
+# acta-conteos.rb es lo que corre el Director General en producción, de solo lectura. Aquí, sobre los datos
+# inventados, tiene que contar lo mismo que dejó la carga: 5 conversaciones (4 waba y 1 instagram_business), 8
+# mensajes (5 entrantes y 3 salientes; waba 7 e instagram 1), 5 contact_inboxes, 3 adjuntos con los bytes del
+# informe, y ningún huérfano ni repetido. La bandeja «viva» de la cuenta (1 conversación y 1 mensaje) no tiene
+# que entrar. Antes de MI: 0 miembros.
+log "== AC. conteos del acta (5.8)"
+ACTA=/tmp/cargador/acta-conteos.rb
+rr "$REAL/acta.txt" "BANDEJA=$B" "CUENTA=$CUENTA" -- "$ACTA" </dev/null
+rr "$REAL/acta-comparar.txt" "BANDEJA=$B" "CUENTA=$CUENTA" COMPARAR=5.7 -- "$ACTA" </dev/null
+rr "$REAL/acta-sin-bandeja.txt" "CUENTA=$CUENTA" -- "$ACTA" </dev/null
+F="$REAL/acta.txt"
+exigir AC1 '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" solo_lectura)" = si ] && [ "$(h "$F" bandeja)" = "$B" ] && [ "$(h "$F" webhook_url)" = no ]' \
+  "corre entero, dentro de una transacción de solo lectura, sobre la bandeja del Archivo"
+exigir AC2 '[ "$(h "$F" conversaciones)" = 5 ] && [ "$(h "$F" conversaciones_kommo)" = 5 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" mensajes_kommo)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ]' \
+  "conversaciones y mensajes: los mismos que dejó la carga (5 / 8, con 5 entrantes y 3 salientes)"
+exigir AC3 '[ "$(h "$F" contact_inboxes)" = 5 ] && [ "$(h "$F" contactos)" = 5 ] && [ "$(h "$F" adjuntos)" = 3 ] && [ "$(h "$F" mensajes_con_adjunto)" = 3 ] && [ "$(h "$F" adjuntos_bytes)" = "$ESPERADO_BYTES" ] && [ "$(h "$F" miembros)" = 0 ]' \
+  "contactos y adjuntos: 5 / 5, 3 adjuntos con $ESPERADO_BYTES bytes, y 0 miembros antes de MI"
+exigir AC4 '[ "$(h "$F" conversaciones_por_canal)" = "instagram_business:1,waba:4" ] && [ "$(h "$F" mensajes_por_canal)" = "instagram_business:1,waba:7" ]' \
+  "por canal de Kommo: conversaciones $(h "$F" conversaciones_por_canal), mensajes $(h "$F" mensajes_por_canal)"
+exigir AC5 'cero "$(h "$F" conversaciones_sin_contact_inbox)" && cero "$(h "$F" mensajes_fuera_de_conversacion)" && cero "$(h "$F" source_id_repetidos)" && cero "$(h "$F" talk_id_repetidos)"' \
+  "sin huérfanos ni repetidos"
+exigir AC6 '[ "$(h "$REAL/acta-comparar.txt" concilia)" = no:9 ] && [ "$(grep -c "NO COINCIDE" "$REAL/acta-comparar.txt")" = 9 ] && [ "$(grep -c " coincide$" "$REAL/acta-comparar.txt")" = 4 ]' \
+  "COMPARAR=5.7 sobre datos inventados: 9 objetos NO COINCIDEN con la carga real y los 4 que tienen que dar 0 coinciden"
+exigir AC7 '[ "$(h "$REAL/acta-sin-bandeja.txt" acta)" = error ] && [ "$(h "$REAL/acta-sin-bandeja.txt" motivo)" = "falta BANDEJA (el id de «Archivo Kommo»)" ]' \
+  "sin BANDEJA no cuenta nada"
+exigir AC8 '! grep -h -E "^(HECHO|CONCILIA) " "$REAL/acta.txt" "$REAL/acta-comparar.txt" | grep -q -E "SINT-|@|kommo:|example"' \
+  "la salida no trae nombres, correos, textos ni ids de Kommo"
+if [ "$MUTANTES" = 1 ]; then
+  ac_mutante() { # id descripción comprobación buscar reemplazo
+    if mutar "$D/cargador/acta-conteos.rb" "$D/cargador/$1.rb" "$4" "$5" >"$REAL/$1.mutar.txt" 2>&1; then
+      rr "$REAL/$1.txt" "BANDEJA=$B" "CUENTA=$CUENTA" -- "/tmp/cargador/$1.rb" </dev/null
+      F="$REAL/$1.txt"
+      exigir "$1" "[ \"\$(h \"\$F\" acta)\" = ok ] && ! ( $3 )" "$2"
+    else
+      mal "$1" "no se pudo aplicar ($(tr -d '\r' <"$REAL/$1.mutar.txt"))"
+    fi
+  }
+  ac_mutante AC-M1 "sin READ ONLY, AC1 cae: la transacción ya no es de solo lectura" \
+    '[ "$(h "$F" solo_lectura)" = si ]' \
+    "    ActiveRecord::Base.connection.execute('SET TRANSACTION READ ONLY') # [solo-lectura]" "    nil # [solo-lectura]"
+  ac_mutante AC-M2 "contando los mensajes de toda la cuenta, entra el de la bandeja viva y AC2 cae" \
+    '[ "$(h "$F" mensajes)" = 8 ]' \
+    "  c['mensajes'] = msgs.count # [bandeja-mensajes]" "  c['mensajes'] = Message.where(account_id: cuenta.id).count # [bandeja-mensajes]"
+fi
 
 # ── AD4. Chatwoot sirve los adjuntos por su API, como en el panel (5.5b) ─────
 # Con el servicio `rails` de la prueba: un agente miembro del Archivo baja cada adjunto y su checksum coincide con
