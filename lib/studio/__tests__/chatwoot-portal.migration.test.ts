@@ -10,7 +10,9 @@
  * CONTROL ROJO: sin 0519 el contrato cae en la primera aserción.
  * MUTANTES: cada uno es una 0519 coherente con un defecto y tiene que caer en la aserción que
  * lo nombra. Los críticos de E10-D34: un envío por hilo, el orden y no saltarse al siguiente.
- * ESPERA: la 0519 está declarada como pendiente y no se aplica sin el OK nominal de Sam.
+ * APLICADA (2026-11-08, con el OK nominal de Sam, en prueba y en producción): la 0519 salió de
+ * las esperas de migrations-baseline.json y quedó sellada en migrations.lock.json. La cabecera
+ * «NO APLICADA» se conserva porque el ledger guarda el texto exacto. La última prueba lo fija.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -25,7 +27,14 @@ const MIGRACION = `${NOMBRE}.sql`;
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const FILE = read(resolve(ROOT, "supabase/migrations", MIGRACION));
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
+  cutoff: number;
   pendingBelowCutoff: Record<string, string>;
+};
+const DECLARATIONS = JSON.parse(read(resolve(ROOT, "supabase/pending-migration-symbol-declarations.json"))) as {
+  degradations: { migration: string }[];
+};
+const LOCK = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as {
+  selladas: Record<string, { md5?: string; bytes?: number; ledger?: { fecha: string; forma: string } }>;
 };
 const SLOW = 180_000;
 
@@ -324,9 +333,19 @@ describe("SDD-0586 · 0519 la ida del portal a Chatwoot (PGlite)", () => {
     expect(run.error).toMatch(/0519: feature_flag_catalog\(\) no es la de 0503/);
   }, SLOW);
 
-  it("la 0519 está declarada como espera y su cabecera lo dice", () => {
-    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toMatch(/^PENDIENTE DE APLICAR/);
-    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toMatch(/OK nominal de Sam/);
+  it("aplicada en producción el 2026-11-08: ya no es una espera y quedó sellada con el md5 del ledger", () => {
+    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toBeUndefined();
+    // El corte no se fija aquí (era un 238 copiado, frágil; lo cuida migrations-baseline.json, que no se sube por
+    // reflejo). Lo que importa es que la 0519 quede por encima de él: así no se da por reconciliada, el control del
+    // ledger la vigila por su nombre exacto y el candado de abajo guarda su identidad.
+    expect(Number(NOMBRE.slice(0, 4))).toBeGreaterThan(BASELINE.cutoff);
+    expect(DECLARATIONS.degradations.some((d) => d.migration === NOMBRE)).toBe(false);
+    expect(LOCK.selladas[NOMBRE]).toMatchObject({
+      md5: "f613559d5ca34b2932995c8ff051e97e",
+      bytes: 30710,
+      ledger: { fecha: "2026-11-08", forma: "exacta" },
+    });
+    // La cabecera no se toca: cambiarla cambiaría el md5 que ya está en el ledger.
     expect(FILE).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });
