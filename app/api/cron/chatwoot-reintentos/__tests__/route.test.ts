@@ -13,6 +13,8 @@ const m = vi.hoisted(() => ({
   purgarBandeja: vi.fn(),
   purgarBajas: vi.fn(),
   purgar: vi.fn(),
+  enviarPortal: vi.fn(),
+  avisarPortal: vi.fn(),
 }));
 vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => {
@@ -24,6 +26,7 @@ vi.mock("@/lib/studio/chatwoot/webhook-procesar", () => ({ reprocesarEventosChat
 vi.mock("@/lib/studio/chatwoot/purga", () => ({ purgarBandejaChatwoot: m.purgarBandeja, purgarBajasVencidas: m.purgarBajas }));
 vi.mock("@/lib/studio/chatwoot/config", () => ({ chatwootConfig: () => ({ cfg: true }), chatwootServicioUserId: () => 1 }));
 vi.mock("@/lib/studio/chatwoot/enrutar", () => ({ purgarEnrutamientoChatwoot: m.purgar }));
+vi.mock("@/lib/studio/chatwoot/portal", () => ({ enviarPortalPendientes: m.enviarPortal, avisarRezagoPortal: m.avisarPortal }));
 
 import { GET, POST } from "../route";
 
@@ -36,6 +39,8 @@ beforeEach(() => {
   m.purgarBandeja.mockReset().mockResolvedValue({ eventos: 4, conversaciones: 1 });
   m.purgarBajas.mockReset().mockResolvedValue({ borrados: 1, conservados: 0, ajenos: 0, fallidos: 0 });
   m.purgar.mockReset().mockResolvedValue({ bsuid: 1, respuestas: 3 });
+  m.enviarPortal.mockReset().mockResolvedValue({ tomados: 2, enviados: 2, fallidos: 0 });
+  m.avisarPortal.mockReset().mockResolvedValue({ avisados: 0, sinLlegar: 0, atascados: 0 });
   vi.stubEnv("CRON_SECRET", "cron-sintetico");
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -50,6 +55,8 @@ describe("GET /api/cron/chatwoot-reintentos (SDD-0585)", () => {
     expect(m.purgarBandeja).not.toHaveBeenCalled();
     expect(m.purgarBajas).not.toHaveBeenCalled();
     expect(m.purgar).not.toHaveBeenCalled();
+    expect(m.enviarPortal).not.toHaveBeenCalled();
+    expect(m.avisarPortal).not.toHaveBeenCalled();
   });
 
   it("con el secreto: reprocesa y devuelve el resumen", async () => {
@@ -63,6 +70,8 @@ describe("GET /api/cron/chatwoot-reintentos (SDD-0585)", () => {
       purgaBandeja: { eventos: 4, conversaciones: 1 },
       purgaBajas: { borrados: 1, conservados: 0, ajenos: 0, fallidos: 0 },
       purgaEnrutamiento: { bsuid: 1, respuestas: 3 },
+      portal: { tomados: 2, enviados: 2, fallidos: 0 },
+      avisoPortal: { avisados: 0, sinLlegar: 0, atascados: 0 },
     });
     expect(m.reprocesar).toHaveBeenCalledWith({ fake: true });
     // SDD-0585 2.7: las purgas usan el mismo cliente admin y la config de Chatwoot.
@@ -71,6 +80,21 @@ describe("GET /api/cron/chatwoot-reintentos (SDD-0585)", () => {
     // SDD-0586: purga por plazo con el mismo cliente admin.
     expect(m.purgar).toHaveBeenCalledWith({ fake: true });
     expect(m.admins).toBe(1);
+  });
+
+  it("SDD-0586 (10.5): manda la cola del portal y después avisa lo que no llegó", async () => {
+    await GET(pedir("Bearer cron-sintetico"));
+    expect(m.enviarPortal).toHaveBeenCalledWith({ fake: true });
+    expect(m.avisarPortal).toHaveBeenCalledWith({ fake: true });
+    expect(m.enviarPortal.mock.invocationCallOrder[0]).toBeLessThan(m.avisarPortal.mock.invocationCallOrder[0]);
+  });
+
+  it("SDD-0586 (10.5): si la ida del portal lanza, el cron sigue y lo informa con un código", async () => {
+    m.enviarPortal.mockRejectedValueOnce(new Error("caída"));
+    m.avisarPortal.mockRejectedValueOnce(new Error("caída"));
+    const r = await GET(pedir("Bearer cron-sintetico"));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: true, portal: { omitido: "error" }, avisoPortal: { omitido: "error" } });
   });
 
   it("POST hace lo mismo que GET", async () => {
