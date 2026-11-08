@@ -31,26 +31,8 @@ DB=dtd-cargo-staging-db-1 TENANT=<uuid> CUENTA=2 BANDEJA=<id> bash infra/ops/por
 DB=dtd-cargo-staging-db-1 TENANT=<uuid> bash infra/ops/portal-historial/vincular.sh
 ```
 
-## Puertas (cada una con su OK nominal de Sam, §10.5.10)
+## Puertas
 
-- **En producción**, `extraer.sh` lee el chat del portal (puerta 1, para el ensayo) y su reserva escribe (puerta 4).
-- **`vincular.sh` en producción** es la puerta 4: respaldo de Chatwoot y de Studio antes, de a una, y conteos después.
-- **Nada de esto se corre** contra producción sin el OK de esa puerta.
-
-**El guion de la puerta 4** (está también en la spec; condiciones de la revisión de datos personales de la #455 y la #456, 2026-11-08):
-- **Antes:**
-  - **Contar los administradores y los miembros** de la cuenta 1 y de la bandeja «Conversaciones del portal», sin nombres ni correos.
-  - **Verificar que ninguno sea del equipo de China.** Un administrador ve todas las bandejas, y ahí aplicaría la PIPL. Si alguno lo es, no se carga y se le avisa al DG.
-  - El resultado va en la evidencia solo como conteos.
-  - **Confirmar que la cola nunca corrió en producción:** el flag `chatwoot_portal` nunca se encendió para el tenant y `chatwoot_portal_salida` está vacía para el tenant. Son conteos de solo lectura, dentro del OK de la puerta. Si no da cero, no se extrae y se le avisa al DG.
-- **Seguidas, sin pausa:** `extraer.sh`, el cargador y `vincular.sh` corren uno detrás del otro.
-  - Así no se cuela en el medio una ficha borrada, cuyo hilo ya estaría en Chatwoot.
-  - Si hay que parar, se corre `limpiar.sh` y se vuelve a empezar desde la extracción.
-  - Entre la foto y el encendido, el equipo no responde desde Studio.
-- **Si falla un `insert_all` del cargador:** el log de Postgres del contenedor de Chatwoot registra la fila completa (`DETAIL: Failing row contains (…)`), con nombres y textos de clientes.
-  - **Dónde queda:** se mira con `SHOW logging_collector`. Si está apagado, el log es la salida del contenedor (`docker inspect --format '{{.LogPath}}' <contenedor de Postgres>`). Si está encendido, son los archivos de `log_directory` dentro de `PGDATA`.
-  - **Cómo se limpia:** se borran solo las líneas del intervalo de la carga, o se trunca ese archivo (`truncate -s 0`, como root) si no guarda otra cosa que haga falta. Se deja en la evidencia que se hizo, sin copiar las líneas.
-  - Lo mismo vale para el ensayo.
-- **Supresión:** hasta que exista la pieza aparte, el procedimiento manual de supresión de una ficha incluye Chatwoot. Se borran a mano el contacto `dtd-portal:<identificador>` y sus conversaciones de la bandeja del portal, y se registra.
+**El guion completo está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../../docs/runbooks/chatwoot-portal-p4-puertas.md):** las cinco puertas con su OK nominal, el camino corto «Encender sin el historial», los comandos, las condiciones, la evidencia, las vueltas atrás y la revisión de datos personales. **Nada de esta carpeta se corre contra producción sin el OK de su puerta.**
 
 **Las salidas** llevan solo `HECHO clave=valor`, con conteos: nunca nombres ni textos.

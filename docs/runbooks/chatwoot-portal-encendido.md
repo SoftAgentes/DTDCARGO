@@ -1,5 +1,7 @@
 # Runbook · Encender `chatwoot_portal` (SDD-0586 paso 10.5): prueba de punta a punta y producción
 
+> **Para producción, el guion vigente es [`chatwoot-portal-p4-puertas.md`](chatwoot-portal-p4-puertas.md)** (2026-11-08): las cinco puertas de la carga P4 y el camino corto «Encender sin el historial». Este documento queda para la punta a punta en prueba y como referencia de los comandos del flag y de la cola.
+>
 > **Preparado y NO corrido.** Lo armó el Worker de la 10.5 el 2026-11-08, por pedido del Director General, comunicado por el Subdirector de Chatwoot. El orden del DG es: (1) publicar la web; (2) **encender `chatwoot_portal`**, primero en prueba con la punta a punta y después en producción; (3) la 0518. Este documento es el paso (2). **No enciende nada:** lo corre el DG. La web nueva ya está publicada en prueba y en producción desde ~04:20Z del 2026-11-08 (dato del Subdirector).
 >
 > **El OK de hoy para encender.** La fila 10.5 del checklist de la 0582 pide «Migración, bandeja y variables, y flag `chatwoot_portal`: un OK nominal de Sam cada uno». El del flag está dado, así (comunicado por el Subdirector):
