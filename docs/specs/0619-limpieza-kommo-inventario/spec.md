@@ -167,4 +167,4 @@ git grep -c -E "kommo_lead_id|kommo_contact_id" origin/main -- app lib component
 
 - `docs/specs/0619-limpieza-kommo-inventario/spec.md`
 - `docs/specs/README.md` (índice regenerado)
-- `docs/specs/0582-chatwoot-piloto/checklist.md` (solo la fila 8.10)
+- `docs/specs/0582-chatwoot-piloto/checklist.md` (la fila 8.10 y, por encargo del Subdirector, la 10.8 a `entregado` tras la fusión de la #439, porque la #443 está aprobada y congelada)
