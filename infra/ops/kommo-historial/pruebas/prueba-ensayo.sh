@@ -16,10 +16,17 @@
 #   T2  TERM solo al proceso principal (como el vigía del ensayo del 2026-11-07): lo mismo
 #   T3  con un contenedor ajeno conectado a la red del ensayo: la limpieza no lo toca, dice que no terminó
 #       (limpieza_completa=no, FALLÓ L0) y no sale con 0; `--limpiar` tampoco, hasta que el ajeno se va
-#   ME1–ME3 mutantes del guion: cada uno tiene que tumbar su comprobación T y dejar pasar la otra
+#   T4  una unidad lanzada a mano con los 90 s de TimeoutStopSec por defecto: el ensayo se niega (código 5, FALLÓ G1)
+#       antes de crear nada. T1 a T3 se lanzan con el valor del lanzador (lanzar-unidad.sh), y la limpieza tarda menos
+#       de un tercio de ese valor (limpieza_segundos)
+#   ME1–ME4, ME6 mutantes del guion: cada uno tiene que tumbar su comprobación T por su motivo y dejar pasar la otra
+#   N7  la guarda de carga corta también los pasos de adjuntos (`flujo-adjuntos | rr`): con la carga alta desde la
+#       carga-2, el ensayo para en adjuntos-1 con 3 y no sigue; ME5 (el guion de antes) tiene que tumbarla
 #   R   el ensayo entero pasa contra la producción simulada, con 650 conversaciones de relleno (--relleno)
 #   R4  la búsqueda por el número de la más vieja trae más de 600 resultados (más de 40 páginas de 15, como con los
 #       datos reales del 2026-11-07) y aun así la encuentran
+#   R6  la línea de BQ1 dice cuál mensaje («el 3º, de hace 500 días») y no deja «revisados si no hubo» sin el valor
+#   F5  fuera de systemd, el ensayo dice que la guarda de TimeoutStopSec no aplica (HECHO unidad=ninguna)
 #   R5  BQ1 busca el tercer mensaje más viejo: el primero no tiene palabras de 6 letras y el segundo solo una con
 #       más de 60 coincidencias
 #   P   la producción simulada queda intacta: sin «Archivo Kommo», mismas bandejas y conversaciones (huella),
@@ -143,7 +150,7 @@ ANTES="$(huella_prod | tr '\n' ' ')"
 ensayo() { # salida → corre el ensayo con la carga inventada
   CARGA="$S/carga.ndjson" INFORME_CARGA="$S/carga-informe.json" INFORME_VINCULO="$S/vinculo-informe.json" STAGING="$S" \
     CUENTA="$CUENTA" CHATWOOT_DIR="$D" EVIDENCIA="$TRABAJO/evidencia-$1.txt" TOPE_CARGA="${TOPE:-32}" \
-    bash "$KH/ensayo-archivo.sh" "${@:2}" >"$TRABAJO/ensayo-$1.txt" 2>&1
+    bash "${GUION_ENSAYO:-$KH/ensayo-archivo.sh}" "${@:2}" >"$TRABAJO/ensayo-$1.txt" 2>&1
 }
 quedan() {
   echo "$(docker ps -aq --filter label=com.docker.compose.project=chatwoot-ensayo | wc -l)," \
@@ -197,6 +204,15 @@ if [ ! -d /run/systemd/system ] || ! sudo -n true 2>/dev/null; then
   mal T0 "hacen falta systemd y sudo sin clave (los tiene el runner de GitHub Actions)"
   T_OK=0
 fi
+# El TimeoutStopSec de las unidades sale del lanzador (una sola fuente). T1 a T3 lo usan; T4 no, a propósito.
+TIMEOUT_STOP_S="$(sed -n 's/^readonly TIMEOUT_STOP_S=\([0-9][0-9]*\).*/\1/p' "$KH/lanzar-unidad.sh" 2>/dev/null)"
+if [ -z "$TIMEOUT_STOP_S" ]; then
+  mal T0 "no se pudo leer TIMEOUT_STOP_S de lanzar-unidad.sh: T1 a T3 se lanzan con 600"
+  TIMEOUT_STOP_S=600
+fi
+ENTORNO_UNIDAD=(--setenv=CARGA="$S/carga.ndjson" --setenv=INFORME_CARGA="$S/carga-informe.json"
+  --setenv=INFORME_VINCULO="$S/vinculo-informe.json" --setenv=STAGING="$S" --setenv=CUENTA="$CUENTA"
+  --setenv=CHATWOOT_DIR="$D" --setenv=TOPE_CARGA=32)
 U_ACTUAL=""
 activa() {
   case "$(sudo -n systemctl is-active "$1" 2>/dev/null)" in active | activating | deactivating | reloading) return 0 ;; *) return 1 ;; esac
@@ -234,9 +250,7 @@ corrida() { # guion id stop|main [intruso]
   U_ACTUAL="$u"
   UNIDADES+=("$u")
   sudo -n systemd-run --quiet --unit "$u" -p "StandardOutput=truncate:$TRABAJO/ensayo-$id.txt" -p StandardError=inherit \
-    --setenv=CARGA="$S/carga.ndjson" --setenv=INFORME_CARGA="$S/carga-informe.json" \
-    --setenv=INFORME_VINCULO="$S/vinculo-informe.json" --setenv=STAGING="$S" --setenv=CUENTA="$CUENTA" \
-    --setenv=CHATWOOT_DIR="$D" --setenv=EVIDENCIA="$TRABAJO/evidencia-$id.txt" --setenv=TOPE_CARGA=32 \
+    -p "TimeoutStopSec=${TIMEOUT_STOP_S}s" "${ENTORNO_UNIDAD[@]}" --setenv=EVIDENCIA="$TRABAJO/evidencia-$id.txt" \
     bash "$g"
   if [ "${4:-}" = intruso ]; then
     # Un contenedor de otro proyecto conectado a la red del ensayo: la red no se puede borrar sin tocarlo.
@@ -268,6 +282,40 @@ t_ok() {
     || falta senal || return 1
   { grep -qx "HECHO limpieza_completa=si" "$E" && grep -qx "HECHO limpieza=contenedores=0,volumenes=0,redes=0" "$E" \
     && [ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ]; } || falta limpieza || return 1
+  # La guarda de TimeoutStopSec leyó el valor de la unidad, y la limpieza cupo holgada en él (un tercio).
+  grep -qx "HECHO unidad_timeout_stop_s=$TIMEOUT_STOP_S" "$E" || falta tope || return 1
+  local seg
+  seg="$(sed -n 's/^HECHO limpieza_segundos=\([0-9][0-9]*\)$/\1/p' "$E" | tail -n 1)"
+  { [ -n "$seg" ] && [ $((seg * 3)) -lt "$TIMEOUT_STOP_S" ]; } || falta tiempo || return 1
+  echo "$seg" >"$TRABAJO/$1.segundos"
+}
+# T4: la guarda propia de TimeoutStopSec. Una unidad lanzada a mano, sin el lanzador, queda con los 90 s por defecto:
+# si la paran, systemd mata con KILL una limpieza que tarde más. El ensayo tiene que negarse antes de crear nada.
+corrida_t4() { # guion id
+  local g="$1" id="$2" u="kommo-prueba-ensayo-$$-$2"
+  U_ACTUAL="$u"
+  UNIDADES+=("$u")
+  : >"$TRABAJO/$id.siguio"
+  sudo -n systemd-run --quiet --unit "$u" -p "StandardOutput=truncate:$TRABAJO/ensayo-$id.txt" -p StandardError=inherit \
+    "${ENTORNO_UNIDAD[@]}" --setenv=EVIDENCIA="$TRABAJO/evidencia-$id.txt" bash "$g"
+  if ! esperar 45 inactiva "$u"; then
+    echo "siguió corriendo a los 45 s" >"$TRABAJO/$id.siguio"
+    sudo -n systemctl stop "$u"
+    esperar 180 inactiva "$u"
+  fi
+  echo "$(prop "$u" Result) $(prop "$u" ExecMainCode) $(prop "$u" ExecMainStatus)" >"$TRABAJO/$id.unidad"
+  echo "sin runner vivo" >"$TRABAJO/$id.vivo"
+  sudo -n systemctl reset-failed "$u" >/dev/null 2>&1
+  return 0
+}
+t4_ok() { # id
+  local E="$TRABAJO/evidencia-$1.txt.leido" R="$TRABAJO/ensayo-$1.txt.leido"
+  [ ! -s "$TRABAJO/$1.siguio" ] || falta siguio || return 1
+  [ "$(cat "$TRABAJO/$1.unidad" 2>/dev/null)" = "exit-code 1 5" ] || falta unidad || return 1
+  { copia "$TRABAJO/evidencia-$1.txt" && copia "$TRABAJO/ensayo-$1.txt"; } || falta lectura || return 1
+  { grep -qx "HECHO unidad_timeout_stop_s=90" "$E" && grep -qx "HECHO ensayo_codigo=5" "$E" \
+    && grep -q "^FALLÓ G1 — " "$R"; } || falta guarda || return 1
+  { [ "$(quedan)" = 0,0,0 ] && [ ! -e /dev/shm/cw-ensayo ] && ! grep -q "^HECHO carga_vps_" "$E"; } || falta creo || return 1
 }
 # T3: con el ajeno en la red, la limpieza no lo toca, dice que no terminó y no sale con 0. `--limpiar`, igual.
 # Cuando el ajeno se va, `--limpiar` deja todo en 0 y sale con 0.
@@ -306,6 +354,7 @@ casos_t() { # guion prefijo ids... → $TRABAJO/t-<prefijo>/<id> = si | no:<moti
       T1) corrida "$g" "$p-t1" stop && t_ok "$p-t1" && r=si ;;
       T2) corrida "$g" "$p-t2" main && t_ok "$p-t2" && r=si ;;
       T3) corrida "$g" "$p-t3" main intruso && t3_ok "$g" "$p-t3" && r=si ;;
+      T4) corrida_t4 "$g" "$p-t4" && t4_ok "$p-t4" && r=si ;;
     esac
     echo "${r:-no:$MOTIVO}" >"$TRABAJO/t-$p/$id"
     # El guion real no tiene que caer: si cae, se muestra lo que dejó.
@@ -346,9 +395,11 @@ mutante_t() {
   fi
 }
 if [ "$T_OK" = 1 ]; then
-  casos_t "$KH/ensayo-archivo.sh" real T1 T2 T3
+  casos_t "$KH/ensayo-archivo.sh" real T1 T2 T3 T4
   exigir T1 't_es real T1' \
-    "systemctl stop $(cat "$TRABAJO/real-t1.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t1.unidad" 2>/dev/null) (Result, código, estado), la evidencia dice senal=TERM y ensayo_codigo=143, y quedan 0 contenedores, volúmenes y redes ($(t_motivo real T1))"
+    "systemctl stop $(cat "$TRABAJO/real-t1.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t1.unidad" 2>/dev/null) (Result, código, estado), la evidencia dice senal=TERM y ensayo_codigo=143, y quedan 0 contenedores, volúmenes y redes; la unidad tenía TimeoutStopSec ${TIMEOUT_STOP_S} s y la limpieza tardó $(cat "$TRABAJO/real-t1.segundos" 2>/dev/null) s ($(t_motivo real T1))"
+  exigir T4 't_es real T4' \
+    "una unidad con los 90 s de TimeoutStopSec por defecto: termina en $(cat "$TRABAJO/real-t4.unidad" 2>/dev/null), FALLÓ G1 y ensayo_codigo=5, sin crear nada ($(t_motivo real T4))"
   exigir T2 't_es real T2' \
     "TERM al proceso principal $(cat "$TRABAJO/real-t2.vivo" 2>/dev/null): la unidad termina en $(cat "$TRABAJO/real-t2.unidad" 2>/dev/null), igual que T1 ($(t_motivo real T2))"
   exigir T3 't_es real T3' \
@@ -366,6 +417,54 @@ if [ "$T_OK" = 1 ]; then
   mutante_t ME3 "para poder borrar la red, saca también al contenedor ajeno" "T3:ajeno" "T2" \
     'docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v' \
     'docker ps -aq --filter "network=chatwoot-ensayo_aislada" | xargs -r docker rm -f -v; docker ps -aq --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker rm -f -v'
+  # ME6: sin la guarda de TimeoutStopSec, la unidad de 90 s arranca el ensayo entero.
+  mutante_t ME6 "sin la guarda de TimeoutStopSec" "T4:siguio" "" \
+    'if [ -n "${INVOCATION_ID:-}" ]; then' 'if false; then'
+fi
+
+# ── N7. La guarda de carga también corta los pasos de adjuntos ───────────────
+# `python3 … flujo-adjuntos | rr …` corre rr en el subshell del pipeline. Hasta SDD-0590 §10.18, el exit 3 de su guarda
+# de carga solo salía de ese subshell, y el ensayo seguía con la carga alta. La carga se inyecta (ENSAYO_CARGA_DE):
+# baja hasta que aparece $DIR/carga-2.txt, que se crea después de la guarda de la carga-2, y 99 desde ahí. La guarda
+# siguiente es la de adjuntos-1: el ensayo tiene que parar ahí, con 3, sin llegar a adjuntos-2 ni a despues.
+log "== N7. la guarda de carga en los adjuntos"
+n7_listo() { [ -e /dev/shm/cw-ensayo/carga-2.txt ] || ! kill -0 "$1" 2>/dev/null; }
+n7_corrida() { # guion id → $TRABAJO/<id>.rc
+  local g="$1" id="$2" pid
+  echo "1.00 1.00 1.00 1/100 1" >"$TRABAJO/$id.loadavg"
+  GUION_ENSAYO="$g" ENSAYO_CARGA_DE="$TRABAJO/$id.loadavg" ensayo "$id" &
+  pid=$!
+  esperar 600 n7_listo "$pid" && [ -e /dev/shm/cw-ensayo/carga-2.txt ] && echo "99.00 99.00 99.00 1/100 1" >"$TRABAJO/$id.loadavg"
+  wait "$pid"
+  echo $? >"$TRABAJO/$id.rc"
+}
+n7_ok() { # id: si o no:<motivo>
+  local E="$TRABAJO/evidencia-$1.txt" R="$TRABAJO/ensayo-$1.txt"
+  { [ "$(grep -c "^FALLÓ CARGA — " "$R")" = 1 ] && grep -q "^FALLÓ CARGA — .*(adjuntos-1)" "$R" \
+    && grep -qx "HECHO carga_vps_adjuntos-1=99.00" "$E" && ! grep -q "^HECHO carga_vps_adjuntos-2=" "$E" \
+    && ! grep -q "^HECHO carga_vps_despues=" "$E"; } || falta siguio || return 1
+  { [ "$(cat "$TRABAJO/$1.rc")" = 3 ] && grep -qx "HECHO ensayo_codigo=3" "$E"; } || falta codigo || return 1
+  { grep -qx "HECHO limpieza_completa=si" "$E" && [ "$(quedan)" = 0,0,0 ]; } || falta limpieza || return 1
+}
+n7_corrida "$KH/ensayo-archivo.sh" n7
+MOTIVO=desconocido
+if n7_ok n7; then n7r=si; else n7r="no:$MOTIVO"; fi
+restos_fuera # después de contar lo que quedó, no antes
+exigir N7 '[ "$n7r" = si ]' \
+  "con la carga alta desde la carga-2, el ensayo para en adjuntos-1 (código $(cat "$TRABAJO/n7.rc" 2>/dev/null)) y no sigue a adjuntos-2 ni a despues ($n7r)"
+[ "$n7r" = si ] || grep -E "^(FALLÓ|== )" "$TRABAJO/ensayo-n7.txt" | tail -n 8 | sed 's/^/     /'
+# ME5: el guion de antes, sin mirar el código de rr en el pipeline, tiene que tumbar N7 por «siguio».
+rm -rf "$TRABAJO/mut-ME5"
+cp -r "$KH" "$TRABAJO/mut-ME5"
+if mutar "$KH/ensayo-archivo.sh" "$TRABAJO/mut-ME5/ensayo-archivo.sh" \
+     $'      [ "${PIPESTATUS[1]}" = 3 ] && exit 3 # la guarda de carga de rr corrió en el subshell del pipeline\n' ''; then
+  n7_corrida "$TRABAJO/mut-ME5/ensayo-archivo.sh" me5
+  MOTIVO=desconocido
+  if n7_ok me5; then me5r=si; else me5r="no:$MOTIVO"; fi
+  restos_fuera
+  exigir ME5 '[ "$me5r" = no:siguio ]' "sin mirar el código de rr en el pipeline (el guion de antes): N7 cae por siguio ($me5r)"
+else
+  mal ME5 "no se pudo mutar la línea de PIPESTATUS"
 fi
 
 # ── R. El ensayo ─────────────────────────────────────────────────────────────
@@ -398,6 +497,11 @@ exigir R4 '[ "${por_numero:-0}" -gt 600 ] 2>/dev/null && pasan_todas E10d E10e E
   "búsqueda por el número de la más vieja: ${por_numero:-?} resultados, más de 40 páginas de 15, y aun así la encuentran el administrador, el agente miembro y el usuario real"
 exigir R5 '[ "$(grep -c "^HECHO vieja_posicion=3$" "$ER")" = 2 ] && [ "$(grep -c "^HECHO palabra_coincidencias_cuenta=1$" "$ER")" = 2 ] && pasan_todas BQ1' \
   "BQ1 salta el mensaje más viejo (sin palabras de 6 letras) y el segundo (una palabra con más de 60 coincidencias), y busca el tercero, con las dos ventanas"
+# R6 (punto 2 del Director General): la línea de BQ1 dice cuál mensaje buscó, y no deja «revisados si no hubo» con
+# el valor vacío, como hasta §10.17.
+bq1_linea="$(grep -E '^PASÓ +BQ1 — ' "$TRABAJO/ensayo-r.txt" | head -n 1)"
+exigir R6 'printf "%s" "$bq1_linea" | grep -qF "(el 3º, de hace 500 días)" && ! printf "%s" "$bq1_linea" | grep -q "revisados si no hubo"' \
+  "la línea de BQ1 dice «(el 3º, de hace 500 días)» y no deja una frase sin su valor"
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────
 DESPUES="$(huella_prod | tr '\n' ' ')"
@@ -432,6 +536,8 @@ exigir F3 'grep -qx "HECHO marca=ok" "$E" && grep -qx "HECHO borrado_contenedor_
   "el borrado corrió en el Postgres del ensayo (proyecto y tmpfs) con la marca; la copia tenía la otra cuenta con filas y quedó en 0; producción la conserva (P1)"
 exigir F4 'grep -qx "HECHO correos_en_cola=0" "$E" && grep -qx "HECHO correos_enviados_sonda=0" "$E" && [ "$(grep -c "^HECHO correos_enviados=0$" "$E")" -ge 4 ]' \
   "0 correos enviados en los pasos y en la sonda, y 0 en cola"
+exigir F5 'grep -qx "HECHO unidad=ninguna" "$E" && grep -q "la guarda de TimeoutStopSec no aplica" "$TRABAJO/ensayo-r.txt"' \
+  "fuera de una unidad de systemd (el ensayo R), la guarda de TimeoutStopSec dice que no aplica"
 
 log "== resultado: $FALLAS fallas"
 [ "$FALLAS" = 0 ]

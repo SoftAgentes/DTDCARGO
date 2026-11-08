@@ -141,7 +141,8 @@ describe("fuentes estáticas alineadas y privacidad", () => {
     expect(plano(container.textContent)).toContain("cotizar, coordinar y dar seguimiento a tus envíos puerta a puerta.");
     // SDD-0587: la fecha se movió al nombrar Instagram entre los canales de chat y en la fila de Meta.
     // SDD-0606/0608: y otra vez el 2026-11-06, con la mensajería interna del equipo que aprobó Sam.
-    expect(plano(container.textContent)).toContain("6 de noviembre de 2026");
+    // SDD-0586 (T4): y el 2026-11-08, con el chat de Soporte del portal (T2 y T3, aprobados por Sam).
+    expect(plano(container.textContent)).toContain("8 de noviembre de 2026");
   });
 
   // SDD-0587, 2026-11-05: lo que lee la persona, ya renderizado. Texto aprobado por Sam.

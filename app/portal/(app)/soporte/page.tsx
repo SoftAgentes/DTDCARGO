@@ -197,7 +197,7 @@ function AsesorChatCard({
             {name}
           </div>
           <div className="text-[11.5px] text-grey-500 leading-tight mt-0.5">
-            {role} · Te responde en el día
+            {role} · Te responde en el día hábil
           </div>
         </div>
       </div>

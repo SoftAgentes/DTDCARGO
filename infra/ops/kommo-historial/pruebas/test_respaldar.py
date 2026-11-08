@@ -7,6 +7,7 @@ informe ni el log las dejan pasar.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import io
 import json
@@ -1231,6 +1232,54 @@ class PruebasInformeAntesDeEmpaquetar(unittest.TestCase):
         for nombre, (buscar, poner) in mutantes.items():
             with self.subTest(mutante=nombre):
                 self.assertTrue(self.problemas(self.cargar(self.mutar(buscar, poner))), f"el mutante «{nombre}» no se detectó")
+
+
+class PruebasTexto403(unittest.TestCase):
+    """SDD-0590 §10.18, punto 1 del Director General: el log de `empaquetar` decía «M mensajes sin acceso por 403»,
+    pero `mensajes_sin_acceso_403` cuenta conversaciones cuyos mensajes dieron 403 (`marcar("mensajes-sin-acceso",
+    tid)`). Tiene que decir lo mismo que `informe.md`: «conversaciones con mensajes sin acceso (HTTP 403)»."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="kommo-e5-texto403-")
+        self.recipients = os.path.join(self.tmp, "recipients.txt")
+        with open(self.recipients, "w", encoding="utf-8") as f:
+            f.write("# Sam-prueba · creada hoy\nage1" + "q" * 58 + "\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def log_de_empaquetar(self, informe):
+        """Lo que imprime `empaquetar` con un manifiesto que trae ese bloque de informe. El cifrado no corre: se
+        reemplaza `empaquetar()` por uno que devuelve el manifiesto."""
+        st = R.Staging(os.path.join(self.tmp, "st"))
+        st.escribir_json("informe.json", {"conversaciones": {}})
+        original = R.empaquetar
+        R.empaquetar = lambda *_a, **_k: {"archivos": [], "bytes_cifrados": 0, "informe": informe,
+                                          "destinatarios": {"etiquetas": ["Sam-prueba"], "claves_publicas": 1}}
+        salida = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(salida):
+                rc = R.main(["empaquetar", "--staging", st.ruta, "--destino", os.path.join(self.tmp, "destino"),
+                             "--recipients", self.recipients])
+        finally:
+            R.empaquetar = original
+        self.assertEqual(rc, 0, salida.getvalue())
+        return salida.getvalue()
+
+    def test_dice_conversaciones_con_mensajes_sin_acceso_como_el_informe(self):
+        texto = self.log_de_empaquetar({"conversaciones_sin_acceso_403": 12, "mensajes_sin_acceso_403": 1}).lower()
+        self.assertIn("conversaciones sin acceso (http 403): 12", texto)
+        self.assertIn("conversaciones con mensajes sin acceso (http 403): 1", texto)
+        self.assertNotIn("mensajes sin acceso por 403", texto)
+        # Las dos etiquetas son las mismas que usa informe.md (una sola fuente).
+        fuente = open(RUTA, encoding="utf-8").read()
+        self.assertIn('ETIQUETA_403_CONVERSACIONES = "Conversaciones sin acceso (HTTP 403)"', fuente)
+        self.assertIn('ETIQUETA_403_MENSAJES = "Conversaciones con mensajes sin acceso (HTTP 403)"', fuente)
+        self.assertIn("ETIQUETA_403_CONVERSACIONES: t[\"sin_acceso_403\"]", fuente)
+        self.assertIn("ETIQUETA_403_MENSAJES: t[\"mensajes_sin_acceso_403\"]", fuente)
+
+    def test_sin_informe_lo_dice(self):
+        self.assertIn("sin informe (--sin-informe)", self.log_de_empaquetar(None))
 
 
 class PruebasSoloLectura(unittest.TestCase):

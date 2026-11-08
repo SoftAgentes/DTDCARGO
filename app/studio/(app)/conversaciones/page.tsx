@@ -15,6 +15,7 @@ import {
   listAssignableAgents,
   listConversations,
 } from "@/lib/studio/conversaciones/conversations-queries";
+import { trabaPortal } from "@/lib/studio/chatwoot/portal-solo-lectura";
 import { ConversacionesClient } from "./_components/ConversacionesClient";
 import { GenerateDigestsPanel } from "./_components/GenerateDigestsPanel";
 
@@ -40,10 +41,13 @@ export default async function ConversacionesPage({
     .maybeSingle<{ tenant_id: string }>();
   const tenantId = link?.tenant_id ?? null;
 
-  const [conversations, kpis, agents] = await Promise.all([
+  // SDD-0586 1c-1: con `chatwoot_portal` encendido, los hilos del portal se responden desde la
+  // Bandeja de Chatwoot. Se calcula una vez por tenant; las acciones lo vuelven a comprobar.
+  const [conversations, kpis, agents, trabaPortalTenant] = await Promise.all([
     listConversations(supabase),
     computeConversationKpis(supabase),
     listAssignableAgents(supabase),
+    trabaPortal(supabase, tenantId),
   ]);
 
   return (
@@ -79,6 +83,7 @@ export default async function ConversacionesPage({
         agents={agents}
         tenantId={tenantId}
         initialSelectedId={initialSelectedId ?? null}
+        trabaPortal={trabaPortalTenant}
       />
     </div>
   );

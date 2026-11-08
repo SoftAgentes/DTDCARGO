@@ -26,10 +26,15 @@
 #   5. Si la carga del VPS pasa de TOPE_CARGA (8), se para.
 #   6. El almacenamiento y el runner se dimensionan con los adjuntos del informe, y si MemAvailable no alcanza
 #      para el ensayo y 2 GB más, no arranca.
+#   7. Si corre como unidad de systemd, su TimeoutStopSec tiene que ser de 300 s o más (TIMEOUT_STOP_MIN_S): con los
+#      90 s por defecto, systemd mataría con KILL una limpieza larga. Si no, no arranca (código 5). Se lanza con
+#      lanzar-unidad.sh, que pone 600. Fuera de systemd la guarda no aplica, y lo dice.
 #
 # Salida: PASÓ/FALLÓ por comprobación. La evidencia (EVIDENCIA) guarda solo líneas HECHO: conteos y huellas.
 # Código de salida (también en la evidencia, `HECHO ensayo_codigo`): 0 pasó todo; 1 fallas; 2 opción mala; 3 carga
-# o memoria; 4 la limpieza no terminó (y nada más falló); 143, 130 y 129 parado por TERM, INT y HUP. Como unidad de
+# o memoria; 4 la limpieza no terminó (y nada más falló); 5 la unidad tiene TimeoutStopSec de menos de 300 s; 143,
+# 130 y 129 parado por TERM, INT y HUP. Con TERM solo al proceso principal, el ensayo para al terminar el paso en
+# curso; con `systemctl stop` (lanzar-unidad.sh y vigia-carga.sh), el paso recibe la misma señal. Como unidad de
 # systemd, todo lo que no es 0 deja la unidad en failed (Result=exit-code), con el código en ExecMainStatus.
 set -uo pipefail
 
@@ -56,6 +61,8 @@ IMAGEN_PG="${IMAGEN_PG:-pgvector/pgvector:0.8.1-pg16@sha256:33198da2828a14c30348
 IMAGEN_REDIS="${IMAGEN_REDIS:-redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7}"
 TOPE_CARGA="${TOPE_CARGA:-8}"
 MEMINFO_DE="${ENSAYO_MEMINFO_DE:-/proc/meminfo}" # solo la prueba lo cambia (N6)
+CARGA_DE="${ENSAYO_CARGA_DE:-/proc/loadavg}" # solo la prueba lo cambia (N7)
+readonly TIMEOUT_STOP_MIN_S=300
 # La ventana de búsqueda de mensajes que se ensaya (plan de SEARCH_TIME_RANGE_LIMIT_DAYS, SDD-0590 §10.14).
 BUSQUEDA_DIAS="${BUSQUEDA_DIAS:-3650}"
 case "$BUSQUEDA_DIAS" in ''|*[!0-9]*) echo "BUSQUEDA_DIAS tiene que ser un número de días"; exit 2 ;; esac
@@ -90,7 +97,7 @@ entre() { # antes copia despues, cada uno «a,b,c,d»
   done
 }
 
-carga_vps() { awk '{ print $1 }' /proc/loadavg; }
+carga_vps() { awk '{ print $1 }' "$CARGA_DE"; }
 vigilar_carga() {
   local c
   c="$(carga_vps)"
@@ -120,7 +127,7 @@ SIN_RESTOS="contenedores=0 volumenes=0 redes=0"
 # redes del proyecto, lo dice (FALLÓ L0, limpieza_completa=no) y, si el código era 0, sale con 4. Nunca sale con 0
 # dejando algo. La última línea de la evidencia es `HECHO ensayo_codigo=<código>`.
 limpiar() {
-  local rc=$? intento restos carpeta completa
+  local rc=$? intento restos carpeta completa inicio_limpieza=$SECONDS
   exec 1>&7 2>&8 # a la salida del guion, no a la del paso que se cortó (ver SALIDA abajo)
   # Una señal durante la limpieza no la corta: se anota y se sigue. Es un trap y no un «ignorar» para que los
   # docker que se lanzan desde aquí no hereden la señal ignorada.
@@ -158,6 +165,7 @@ limpiar() {
   completa=si
   [ "$restos" = "$SIN_RESTOS" ] && [ "$carpeta" = ausente ] || completa=no
   evidencia "HECHO limpieza=$(echo "$restos" | tr ' ' ',')" \
+            "HECHO limpieza_segundos=$((SECONDS - inicio_limpieza))" \
             "HECHO limpieza_carpeta=$carpeta" \
             "HECHO limpieza_completa=$completa" \
             "HECHO produccion_postgres=$(docker inspect -f '{{.State.Status}}' "$PROD_PG" 2>/dev/null || echo ausente)" \
@@ -227,6 +235,45 @@ docker inspect "$PROD_PG" >/dev/null 2>&1 || { mal G0 "no existe $PROD_PG"; exit
 for f in zz_dtd_redaccion_logs.rb zz_dtd_proteccion_register.rb zz_dtd_revocar_sesiones.rb zz_dtd_correo.rb; do
   [ -r "$CHATWOOT_DIR/rails/$f" ] || { mal G0 "falta $CHATWOOT_DIR/rails/$f"; exit 1; }
 done
+# ── Guarda 7: el TimeoutStopSec de la unidad (SDD-0590 §10.18) ───────────────
+# Solo si este bash es el proceso principal de una unidad de servicio: el cgroup dice cuál, y su MainPID tiene que
+# ser $$. Un runner de CI o una sesión de SSH no lo son, aunque traigan INVOCATION_ID.
+segundos_systemd() { # «1min 30s» → 90; «infinity» → 999999; ilegible → vacío
+  awk -v t="$1" 'BEGIN {
+    if (t == "infinity") { print 999999; exit }
+    n = split(t, p, " "); s = 0
+    for (i = 1; i <= n; i++) {
+      v = p[i]
+      if (v ~ /^[0-9.]+ms$/) { sub(/ms$/, "", v); s += v / 1000 }
+      else if (v ~ /^[0-9.]+min$/) { sub(/min$/, "", v); s += v * 60 }
+      else if (v ~ /^[0-9.]+h$/) { sub(/h$/, "", v); s += v * 3600 }
+      else if (v ~ /^[0-9.]+d$/) { sub(/d$/, "", v); s += v * 86400 }
+      else if (v ~ /^[0-9.]+s$/) { sub(/s$/, "", v); s += v }
+      else if (v ~ /^[0-9]+$/) { s += v }
+      else { exit }
+    }
+    if (n > 0) printf "%d\n", s
+  }'
+}
+UNIDAD_PROPIA=""
+if [ -n "${INVOCATION_ID:-}" ]; then
+  UNIDAD_PROPIA="$(sed -n 's|^[0-9]*:[^:]*:.*/\([^/]*\.service\)$|\1|p' /proc/self/cgroup 2>/dev/null | head -n 1)"
+  if [ -n "$UNIDAD_PROPIA" ] && [ "$(systemctl show -p MainPID --value "$UNIDAD_PROPIA" 2>/dev/null)" != "$$" ]; then
+    UNIDAD_PROPIA=""
+  fi
+fi
+if [ -n "$UNIDAD_PROPIA" ]; then
+  tope_parada="$(segundos_systemd "$(systemctl show -p TimeoutStopUSec --value "$UNIDAD_PROPIA" 2>/dev/null)")"
+  evidencia "HECHO unidad=$UNIDAD_PROPIA" "HECHO unidad_timeout_stop_s=${tope_parada:-ilegible}"
+  if ! [ "${tope_parada:-0}" -ge "$TIMEOUT_STOP_MIN_S" ] 2>/dev/null; then
+    mal G1 "la unidad $UNIDAD_PROPIA tiene TimeoutStopSec de ${tope_parada:-?} s, menos de $TIMEOUT_STOP_MIN_S: si la paran, systemd mataría la limpieza a mitad. Lánzala con lanzar-unidad.sh (600 s) o con -p TimeoutStopSec=600. No arranca"
+    exit 5
+  fi
+  log "unidad $UNIDAD_PROPIA con TimeoutStopSec de $tope_parada s (mínimo $TIMEOUT_STOP_MIN_S)"
+else
+  evidencia "HECHO unidad=ninguna"
+  log "fuera de una unidad de systemd: la guarda de TimeoutStopSec no aplica"
+fi
 vigilar_carga inicio
 
 # ── Guarda 6: memoria (Director General, 2026-11-06) ─────────────────────────
@@ -526,6 +573,9 @@ if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null; then
     for n in 1 2; do
       python3 -I "$AQUI/respaldar-historial.py" flujo-adjuntos --staging "$STAGING" 2>"$DIR/flujo-$n.err" \
         | rr "$DIR/adjuntos-$n.txt" MODO=adjuntos "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR"
+      # rr corre en el subshell del pipeline: si su guarda de carga dijo exit 3, sale solo ese subshell. Se mira su
+      # código aquí y se para el ensayo (SDD-0590 §10.18, N7). Va justo después del pipeline: PIPESTATUS es de él.
+      [ "${PIPESTATUS[1]}" = 3 ] && exit 3 # la guarda de carga de rr corrió en el subshell del pipeline
       evidencia "HECHO flujo_adjuntos_$n=$(sed -n 's/^flujo-adjuntos: //p' "$DIR/flujo-$n.err" | tr -d ' ')"
     done
   else
@@ -658,8 +708,13 @@ BB="$DIR/busqueda-amplia.txt"
 vieja_fuera_de_90() { [ "$(h "$BA" vieja_dias)" -le 90 ] 2>/dev/null || [ "$(h "$BA" vieja_encontrada)" = no ]; }
 # Las dos ventanas buscan el mismo mensaje: el primero, del más viejo al más nuevo, con una palabra apta (sonda).
 mismo_mensaje() { [ -n "$(h "$BB" vieja_posicion)" ] && [ "$(h "$BA" vieja_posicion)" = "$(h "$BB" vieja_posicion)" ] && [ "$(h "$BA" palabra_coincidencias_cuenta)" = "$(h "$BB" palabra_coincidencias_cuenta)" ]; }
+if [ -n "$(h "$BB" vieja_posicion)" ]; then
+  bq1_cual="el $(h "$BB" vieja_posicion)º, de hace $(h "$BB" vieja_dias) días"
+else
+  bq1_cual="ninguno de los $(h "$BB" vieja_revisados) revisados tiene una palabra apta"
+fi
 exigir BQ1 '[ "$(h "$BA" busqueda)" = ok ] && [ "$(h "$BB" busqueda)" = ok ] && [ "$(h "$BA" ventana_dias)" = 90 ] && [ "$(h "$BB" ventana_dias)" = "$BUSQUEDA_DIAS" ] && mismo_mensaje && vieja_fuera_de_90 && [ "$(h "$BB" vieja_encontrada)" = si ]' \
-  "búsqueda de mensajes: el mensaje con texto más viejo del Archivo que tiene una palabra apta (el $(h "$BB" vieja_posicion)º, de hace $(h "$BB" vieja_dias) días; $(h "$BB" vieja_revisados) revisados si no hubo) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada) ($(h "$BB" palabra_resultados) resultados)"
+  "búsqueda de mensajes: el mensaje con texto más viejo del Archivo que tiene una palabra apta ($bq1_cual) con 90 días: $(h "$BA" vieja_encontrada); con $BUSQUEDA_DIAS: $(h "$BB" vieja_encontrada) ($(h "$BB" palabra_resultados) resultados)"
 # BQ2, puerta del Director General: con la ventana ampliada, la búsqueda sin coincidencias, que recorre toda la
 # ventana, no puede pasar de 1.000 ms. Si pasa, se para y se le avisa antes de tocar el VPS.
 exigir BQ2 '[ "$(h "$BB" sin_coincidencias_ms)" -le 1000 ] 2>/dev/null' \
