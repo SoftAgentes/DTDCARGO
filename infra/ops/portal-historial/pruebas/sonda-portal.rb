@@ -353,9 +353,14 @@ module SondaPortal
     tabla.execute('LOCK TABLE conversations IN EXCLUSIVE MODE')
     salidas = Array.new(2) { StringIO.new }
     inicio = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    pids = Thread::Queue.new
     hilos = salidas.map do |s|
       Thread.new do
-        ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.connection_pool.with_connection do |con|
+          # El pid y el statement_timeout de la conexión de este hilo: la espera se mide por pid, y el tope sale
+          # del timeout (revisión del DG): si Chatwoot lo cambia, la prueba se ajusta sola.
+          pids << [con.select_value('SELECT pg_backend_pid()').to_i,
+                   con.select_value("SELECT setting::bigint FROM pg_settings WHERE name = 'statement_timeout'").to_i]
           File.open(File.join(sub, 'preparado.ndjson'), encoding: 'UTF-8') do |entrada|
             CargaPortal.principal(env_carga(sub, 'VINCULOS' => '-'), entrada: entrada, salida: s)
           end
@@ -366,17 +371,35 @@ module SondaPortal
         s.puts "HECHO hilo_segundos=#{(Process.clock_gettime(Process::CLOCK_MONOTONIC) - inicio).round(1)}"
       end
     end
+    # Los dos pids (o los que lleguen en 10 s) y el timeout de sus conexiones, en milisegundos.
+    conexiones = []
+    100.times do
+      conexiones << pids.pop until pids.empty?
+      break if conexiones.size == 2
+
+      sleep 0.1
+    end
+    timeout_ms = conexiones.map(&:last).max.to_i
+    # El tope: la mitad del statement_timeout; sin timeout, 30 s.
+    tope_s = timeout_ms.positive? ? timeout_ms / 2000.0 : 30.0
+    lista = conexiones.map(&:first).join(',')
     esperando = 0
     esperando_max = 0
+    eventos = []
     vueltas = 0
-    120.times do
+    desde = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    while Process.clock_gettime(Process::CLOCK_MONOTONIC) - desde < tope_s
       vueltas += 1
-      esperando = tabla.select_value("SELECT count(*) FROM pg_locks WHERE relation = 'conversations'::regclass AND NOT granted").to_i
+      # La espera, por pid y por pg_stat_activity: pg_locks por relación no la veía (run 42506898392).
+      filas = lista.empty? ? [] : tabla.select_rows("SELECT wait_event FROM pg_stat_activity WHERE pid IN (#{lista}) AND wait_event_type = 'Lock'")
+      esperando = filas.size
+      eventos |= filas.flatten.compact
       esperando_max = [esperando_max, esperando].max
       break if esperando + hilos.count { |h| !h.alive? } >= 2
 
-      sleep 0.25
+      sleep 0.1
     end
+    esperado_s = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - desde).round(1)
     tabla.execute('ROLLBACK')
     ActiveRecord::Base.connection_pool.checkin(tabla)
     tabla = nil
@@ -392,6 +415,11 @@ module SondaPortal
       f.puts "HECHO concurrencia_esperando_max=#{esperando_max}"
       f.puts "HECHO concurrencia_vueltas=#{vueltas}"
       f.puts "HECHO concurrencia_vivos_al_final=#{hilos.count(&:alive?)}"
+      f.puts "HECHO concurrencia_statement_timeout_ms=#{timeout_ms}"
+      f.puts "HECHO concurrencia_tope_s=#{tope_s}"
+      f.puts "HECHO concurrencia_esperado_s=#{esperado_s}"
+      f.puts "HECHO concurrencia_wait_event=#{eventos.empty? ? 'ninguno' : eventos.sort.join(',')}"
+      f.puts "HECHO concurrencia_cancelados=#{salidas.count { |s| s.string.include?('QueryCanceled') }}"
       # Las HECHO de cada hilo (solo conteos y errores propios del cargador), para leer la causa de un rojo.
       salidas.each_with_index do |s, i|
         s.string.each_line { |l| f.puts "HILO#{i + 1} #{l}" if l.start_with?('HECHO ') }

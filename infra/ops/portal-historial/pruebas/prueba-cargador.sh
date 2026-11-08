@@ -150,8 +150,9 @@ comprobar() {
   rechazo G17 rechazo-guarda-snoozed 'una conversación ya cargada cambió en Chatwoot (mensajes ajenos 0, asignadas 0, snoozed 1)' "R4: no actualiza el estado de una conversación en snoozed"
   rechazo G14 rechazo-movido 'un mensaje ya existe en otra conversación' "un mensaje ya cargado que llega en otro hilo"
   F="$O/concurrencia.txt"
-  exigir G13 '[ "$(h "$F" concurrencia_conversaciones)" = 4 ] && [ "$(h "$F" concurrencia_mensajes)" = 9 ] && [ "$(h "$F" concurrencia_negadas)" = 1 ] && [ "$(h "$F" concurrencia_ok)" = 1 ] && [ "$(h "$F" concurrencia_esperando)" -ge 1 ] 2>/dev/null' \
-    "dos cargas a la vez: una se niega por el candado y queda una sola copia ($(h "$F" concurrencia_conversaciones) conversaciones, $(h "$F" concurrencia_mensajes) mensajes y notas; negadas $(h "$F" concurrencia_negadas))"
+  exigir G13 '[ "$(h "$F" concurrencia_conversaciones)" = 4 ] && [ "$(h "$F" concurrencia_mensajes)" = 9 ] && [ "$(h "$F" concurrencia_negadas)" = 1 ] && [ "$(h "$F" concurrencia_ok)" = 1 ] && [ "$(h "$F" concurrencia_esperando)" -ge 1 ] 2>/dev/null && [ "$(h "$F" concurrencia_cancelados)" = 0 ]' \
+    "dos cargas a la vez: una se niega por el candado y queda una sola copia ($(h "$F" concurrencia_conversaciones) conversaciones, $(h "$F" concurrencia_mensajes) mensajes y notas; negadas $(h "$F" concurrencia_negadas), canceladas $(h "$F" concurrencia_cancelados), esperó $(h "$F" concurrencia_esperado_s) s de $(h "$F" concurrencia_tope_s), wait_event $(h "$F" concurrencia_wait_event))"
+  [ "$MODO_LOG" = 1 ] && log "MEDIDA G13 — statement_timeout de las conexiones: $(h "$F" concurrencia_statement_timeout_ms) ms; tope de la espera: $(h "$F" concurrencia_tope_s) s"
   F="$O/carga-estado.txt"
   exigir R4 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_estado_actualizado)" = 1 ] && [ "$(h "$O/estado.txt" estado_h1)" = resolved ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
     "repetir con otro estado en un hilo ya cargado: se actualiza ese estado y nada más ($(h "$F" conversaciones_estado_actualizado))"
@@ -452,6 +453,7 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M26 "VINCULOS en cualquier ruta" "G11" "G1 S1"     "unless [RUTA_VINCULOS, '-'].include?(@ruta_vinculos)" "unless true"
   mutante M27 "sin el candado" "G12 G13" "G1 S1"     "raise 'otra carga del portal en curso' unless" "nil unless true ||"
   mutante M28 "sin apagar el log de SQL" "F2" "C1 F1"     "    ActiveRecord::Base.logger = nil" "    nil"
+  log "MEDIDA M27 — sin el candado, dos cargas a la vez dejan $(h "$D/estado/m/M27/concurrencia.txt" concurrencia_conversaciones) conversaciones (con el candado, 4) y esperaron $(h "$D/estado/m/M27/concurrencia.txt" concurrencia_esperando_max)"
   mutante M29 "contact_inbox sin pubsub_token" "V12" "C1" \
     "          pubsub_token: SecureRandom.base58(24), created_at: ahora, updated_at: ahora }" \
     "          created_at: ahora, updated_at: ahora }"
