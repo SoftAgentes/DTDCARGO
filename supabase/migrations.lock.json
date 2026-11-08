@@ -3205,6 +3205,15 @@
         "forma": "exacta"
       }
     },
+    "0518_noticias_publicacion_automatica": {
+      "sha256": "b68cb178485a149cbd23055b5f86644013ce6207e4ba2b097e7a09e480aa49c9",
+      "md5": "c692dfa9c4ad31e3352721400c3e3ceb",
+      "bytes": 44672,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
     "0519_chatwoot_portal": {
       "sha256": "a04fc76c9e51e6ce11da036319a206983db84fea0685f02cbba1fb835c6143a2",
       "md5": "f613559d5ca34b2932995c8ff051e97e",
@@ -3218,6 +3227,33 @@
       "sha256": "5814f9a905a03222460c399e70c867b05a04adfa7aa8ba41e0f867f374aeb80a",
       "md5": "03bcee54616204644a6981d33ec7764c",
       "bytes": 12500,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0521_chatwoot_portal_estado": {
+      "sha256": "a5fdd44d901ce5a1716db55db12e6ea35a6e00c3dac0c074b2a6be43c0146836",
+      "md5": "9613db9ca81059c4f6b308a0d84cb6e5",
+      "bytes": 18458,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0522_chatwoot_bot": {
+      "sha256": "26afe93ac4604dbb7b72776171189ca41f61d58a425c8d836995bb7cf42b81a7",
+      "md5": "042eacc23862df84138ddbbd7f02503a",
+      "bytes": 35074,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0523_chatwoot_portal_carga": {
+      "sha256": "07b8a71086c6e45b9a38c6cb0b37f8fc4181cbc22a305f15e6295594d04fb0f3",
+      "md5": "83b016e0ac8aa2fe24172ae07642a60c",
+      "bytes": 23960,
       "ledger": {
         "fecha": "2026-11-08",
         "forma": "exacta"

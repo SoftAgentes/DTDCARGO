@@ -13,8 +13,10 @@
  * nombra. Los críticos: el estado desde el espejo y solo si cambia; la conciliación sin ventana para
  * los no resueltos y con la marca que no vuelve; la guarda invoker, en los dos sentidos del canal, y
  * con el flag para los salientes y el estado.
- * EN ESPERA: la 0521 se aplica antes de fusionar (migrate-first), con OK nominal de Sam en cada
- * entorno. La última prueba fija que es una espera declarada.
+ * APLICADA (2026-11-08, con el OK nominal de Sam, en prueba a las 15:01:02Z y en producción a las
+ * 15:01:54Z): la 0521 salió de las esperas de migrations-baseline.json y quedó sellada en
+ * migrations.lock.json. La cabecera «NO APLICADA» se conserva porque el ledger guarda el texto exacto.
+ * La última prueba lo fija.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -34,6 +36,9 @@ const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.jso
 };
 const DECLARATIONS = JSON.parse(read(resolve(ROOT, "supabase/pending-migration-symbol-declarations.json"))) as {
   degradations: { migration: string }[];
+};
+const LOCK = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as {
+  selladas: Record<string, { md5?: string; bytes?: number; ledger?: { fecha: string; forma: string } }>;
 };
 const SLOW = 180_000;
 
@@ -194,10 +199,18 @@ describe("SDD-0586 · 0521 el estado, la conciliación y la guarda del portal (P
     expect(run.error).toMatch(/0521 requiere 0519/);
   }, SLOW);
 
-  it("en espera: declarada en migrations-baseline.json y en las declaraciones de símbolos", () => {
-    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toMatch(/^PENDIENTE DE APLICAR/);
-    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toMatch(/antes de fusionar/i);
-    expect(DECLARATIONS.degradations.some((d) => d.migration === NOMBRE)).toBe(true);
+  it("aplicada en producción el 2026-11-08: ya no es una espera y quedó sellada con el md5 del ledger", () => {
+    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toBeUndefined();
+    // Por encima del corte: el control del ledger la vigila por su nombre exacto y el candado guarda su
+    // identidad (igual que la 0519 y la 0520).
+    expect(Number(NOMBRE.slice(0, 4))).toBeGreaterThan(BASELINE.cutoff);
+    expect(DECLARATIONS.degradations.some((d) => d.migration === NOMBRE)).toBe(false);
+    expect(LOCK.selladas[NOMBRE]).toMatchObject({
+      md5: "9613db9ca81059c4f6b308a0d84cb6e5",
+      bytes: 18458,
+      ledger: { fecha: "2026-11-08", forma: "exacta" },
+    });
+    // La cabecera no se toca: cambiarla cambiaría el md5 que ya está en el ledger.
     expect(FILE).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });
