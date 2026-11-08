@@ -494,6 +494,25 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 
 **Para el DG:** el hallazgo del borrado y la pregunta de los roles de China van como **FUERA DE ALCANCE** de la 10.7. Los dos los tiene que mirar alguien antes de la puerta 4 de producción. Se sugiere que otro modelo revise esta misma carga.
 
+**10.7 · el lado de Studio (la 0523 y los scripts), del Worker de la 10.5.** La reparte y le asigna el número el DG el 2026-11-08 (comunicado por el Subdirector). Va en su rama y su PR desde `main` en `2e2ddeb34`. No depende de la 0521 (la #453): solo de la 0519 y la 0520.
+
+- **La 0523** (`supabase/migrations/0523_chatwoot_portal_carga.sql`), migrate-first. Tiene tres funciones y dos auxiliares, todas solo para `service_role`. Las tres funciones se niegan con `chatwoot_portal` encendido, porque la carga corre con la cola quieta.
+  - `chatwoot_portal_reservar_contactos(p_tenant_id)`: la reserva del riesgo 1. La firma cambia respecto de lo de arriba: toma los clientes de los hilos por cargar ella misma, y no los recibe.
+  - `chatwoot_portal_carga_lineas(p_tenant_id, p_cuenta, p_bandeja)`: las líneas de `preparado.ndjson`. Solo corre en una transacción de solo lectura, exige la reserva y pone el corte 5 minutos antes.
+  - `chatwoot_portal_vincular_carga(p_tenant_id, p_preparado, p_vinculos)`: el paso 4. Reemplaza la firma `(p_tenant, p_corte, p_filas)` de §10.5.6, porque compara las dos cabeceras. Nunca pisa un mensaje `enviado` ni mueve un corte que ya existe. Hace todo o nada.
+  - Los hilos de una **ficha borrada** no se cargan (I). Una ficha borrada no se copia a otro sistema, igual que en la vuelta de la 0520 (`ficha_borrada`).
+- **Los scripts** (`infra/ops/portal-historial/`, ver su README): `reservar.sql`, `extraer.sql`, `extraer.sh` (todo en `/dev/shm` con 0700, borra lo parcial si falla), `vincular.sh` (borra `/dev/shm` si sale bien), `limpiar.sh` y `controles-studio.sql` (C-6 a C-8, de solo lectura, los corre E5).
+- **Pruebas:**
+  - el contrato `supabase/tests/0523_chatwoot_portal_carga.test.sql` y su envoltorio de PGlite, con el control rojo, los mutantes, la reaplicación, el preflight y la espera;
+  - lo que prueba el contrato: la reserva (estable y sin fichas borradas), las líneas (el corte con margen, la minimización, el orden, los estados y la nota del archivado), la vinculación (los rechazos, que es idempotente, que no pisa un `enviado` ni mueve el corte, y la C-6) y la cola después (lo `cargado` no sale; lo que cayó en el margen sin estar en la foto sale una vez).
+  - Los scripts de shell no tienen prueba automática: los cubre el ensayo de E5.
+- **Allowlist 10.7 (este lado):**
+  - `supabase/migrations/0523_chatwoot_portal_carga.sql`, su contrato y su envoltorio `lib/studio/__tests__/chatwoot-portal-carga.migration.test.ts`;
+  - `supabase/migrations-baseline.json` (la espera; sin declaración de símbolos, porque no hay código de `app/` ni de `lib/` que llame a la 0523);
+  - `infra/ops/portal-historial/` (los siete archivos de arriba y el README);
+  - la spec y el handoff (`.agents/handoffs/0586-e10-7-p4-carga.md`).
+  - Sin acciones exportadas ni código de la app.
+
 **El ensayo (5.6 de E5, adaptado).** Es una copia efímera de la base de Chatwoot, con el mismo guion y las mismas guardas de `ensayo-archivo.sh`: red interna, tmpfs, `pg_dump` en solo lectura, la marca de la copia y el borrado de las otras cuentas solo en la copia. El paso 4 corre contra una copia efímera de la base de Studio, con las mismas guardas. Todo se mide con conteos y huellas md5, sin datos de personas:
 
 | # | Medición | PASÓ si |
