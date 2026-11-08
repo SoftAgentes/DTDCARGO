@@ -218,7 +218,7 @@
 
 ## Anexo · Encender sin el historial (camino corto, sin la carga P4)
 
-> **No es el camino elegido.** Sam eligió, literal, «Esperar la carga» (2026-11-08, comunicado por el Subdirector): el chat del portal se enciende en producción después de P4, con las cinco puertas. Este anexo queda como referencia, por si alguna vez se decide otra cosa.
+> **Sam eligió esperar la carga P4 (2026-11-08). Este anexo no se usa salvo que Sam cambie de decisión.** Su respuesta literal fue «Esperar la carga»: el chat del portal se enciende en producción después de P4, con las cinco puertas. Si alguna vez lo reconsidera, tiene que saber lo que dice el ⚠️ de abajo.
 
 **Había dos caminos:**
 - **esperar la carga P4**, con las puertas 1 a 5 de arriba: **es el elegido;**
