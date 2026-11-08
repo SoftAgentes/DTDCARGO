@@ -20,6 +20,9 @@
  *    de Studio que ve la Bandeja: crea (o adopta por correo) su usuario, lo mete
  *    en la cuenta como agente y guarda el vínculo. La baja la hacen Usuarios y
  *    el cron `chatwoot-agentes` (`lib/studio/chatwoot/agentes-ciclo.ts`).
+ *  - `destrabarPortal`: solo admin (SDD-0586, 10.5, PR 1b, §10.5.20). «Reintentar los
+ *    atascados» de la ida del chat del portal a Chatwoot. La RPC vuelve a exigir admin con
+ *    la sesión y toma el tenant de ella.
  *
  * Nunca se registra el enlace, el token ni un correo.
  */
@@ -66,13 +69,16 @@ export type BandejaErrorCode =
   | "unconfigured"
   | "unlinked"
   | "sin_bandeja"
-  | "service";
+  | "service"
+  | "base";
 
 export type EnlaceSsoResult = { ok: true; url: string } | { ok: false; error: BandejaErrorCode };
 
 export type VinculoState = { ok: boolean; error: BandejaErrorCode | null };
 
 export type ReconciliarResult = { ok: true; aplicadas: number } | { ok: false; error: BandejaErrorCode };
+
+export type DestrabarState = { ok: boolean; error: BandejaErrorCode | null; destrabados?: number };
 
 export async function pedirEnlaceSso(conversacion?: number): Promise<EnlaceSsoResult> {
   const supabase = await createClient();
@@ -451,4 +457,22 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     },
     costo,
   };
+}
+
+/**
+ * «Reintentar los atascados» del chat del portal (SDD-0586, 10.5, PR 1b, §10.5.20). Cada uno
+ * vuelve a la cola ahora, verificando antes si ya había llegado, con un plazo nuevo de 24 h.
+ * Solo admin: aquí y otra vez en `chatwoot_portal_destrabar`, con la sesión del admin.
+ */
+export async function destrabarPortal(): Promise<DestrabarState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+  const { data, error } = await supabase.rpc("chatwoot_portal_destrabar");
+  if (error) {
+    console.warn(`[bandeja] chatwoot_portal_destrabar: ${error.code ?? "sin código"}`);
+    return { ok: false, error: error.code === "42501" ? "denied" : "base" };
+  }
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null, destrabados: Number(data ?? 0) };
 }

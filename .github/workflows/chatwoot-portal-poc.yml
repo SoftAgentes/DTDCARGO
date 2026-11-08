@@ -1,11 +1,13 @@
-name: Ida del portal a Chatwoot (PoC y carrera)
+name: Ida y vuelta del portal en Chatwoot (PoC y carrera)
 
 # SDD-0586 paso 10.5, PR 1a: el portón que pidió el Director General antes de fusionar la ida del chat del portal.
 #
 #   poc       PoC-1, PoC-2, PoC-3 y PoC-5 de §10.5.15 contra Chatwoot v4.19.1-ce REAL y efímero: el compose de
 #             infra/chatwoot (imagen fijada por digest) con su Postgres, su Redis, Rails y Sidekiq. Lo llama el
 #             cliente real de Studio (router-api.ts y portal.ts). Datos inventados y secretos generados al azar
-#             en la corrida; ninguno del repositorio.
+#             en la corrida; ninguno del repositorio. Desde la PR 1b corre también la vuelta, la nota privada
+#             (PoC-6) y la salud del webhook (portal-vuelta.poc.test.ts). El contrato de la 0520 en Postgres real
+#             lo corre sql-tests.yml, como todos los .test.sql.
 #   carrera   La toma de la cola con dos sesiones de verdad (dblink, Postgres 17 desechable): skip locked y la
 #             guarda del upsert, con sus controles en la misma corrida. Después, un MUTANTE de la 0519 sin
 #             skip locked tiene que hacerla caer. También corre el contrato de una sesión sobre Postgres real.
@@ -19,6 +21,9 @@ on:
       - "lib/studio/chatwoot/portal.ts"
       - "lib/studio/chatwoot/config.ts"
       - "lib/studio/chatwoot/__tests__/portal.poc.test.ts"
+      - "lib/studio/chatwoot/portal-manejadores.ts"
+      - "lib/studio/chatwoot/webhook-salud.ts"
+      - "lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts"
       - "supabase/migrations/0519_chatwoot_portal.sql"
       - "supabase/tests/0519_chatwoot_portal.test.sql"
       - "supabase/tests/0519_chatwoot_portal_carrera.test.sql"
@@ -76,7 +81,7 @@ jobs:
             || { echo "FALLÓ: cayó, pero no por la prueba obligatoria"; exit 1; }
           echo "PASÓ: sin instancia, la PoC da rojo"
 
-      - name: PoC-1, PoC-2, PoC-3 y PoC-5 con el cliente de Studio
+      - name: PoC-1, PoC-2, PoC-3, PoC-5, PoC-6 y la vuelta con el cliente de Studio
         run: bash infra/chatwoot/pruebas/portal/prueba-portal-poc.sh
 
   carrera:

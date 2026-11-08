@@ -9,76 +9,42 @@
   ],
   "degradations": [
     {
-      "id": "sdd-0586-portal-ida",
-      "primarySymbol": "chatwoot_portal_tomar",
-      "migration": "0519_chatwoot_portal",
+      "id": "sdd-0586-portal-vuelta",
+      "primarySymbol": "chatwoot_portal_respuesta",
+      "migration": "0520_chatwoot_portal_vuelta",
       "symbols": [
         {
-          "name": "chatwoot_portal_tomar",
+          "name": "chatwoot_portal_respuesta",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:232",
-            "lib/studio/chatwoot/portal.ts:239"
+            "lib/studio/chatwoot/portal-manejadores.ts:193",
+            "lib/studio/chatwoot/portal-manejadores.ts:201"
           ]
         },
         {
-          "name": "chatwoot_portal_marcar",
+          "name": "chatwoot_portal_destrabar",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/portal.ts:200",
-            "lib/studio/chatwoot/portal.ts:209"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_vincular",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:100",
-            "lib/studio/chatwoot/portal.ts:108"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_rezagados",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:304",
-            "lib/studio/chatwoot/portal.ts:306"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_hilos",
-          "kind": "table",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:122",
-            "lib/studio/chatwoot/portal.ts:126"
+            "app/studio/(app)/bandeja/actions.ts:471",
+            "app/studio/(app)/bandeja/actions.ts:473"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/chatwoot/portal.ts:226",
-          "contains": "if (!flags.chatwoot_portal) return { ...resultado, omitido: \"apagado\" };",
-          "degradation": "Sin la migración no hay fila de chatwoot_portal y listFeatureFlags lo da apagado (FEATURE_FLAG_DEFAULTS): la cola no llama a ninguna de sus funciones ni a Chatwoot."
+          "site": "lib/studio/chatwoot/portal-manejadores.ts:177",
+          "contains": "if (!flags.chatwoot_portal) return;",
+          "degradation": "Con chatwoot_portal apagado (la fila que siembra la 0519 nace apagada; en una base sin la 0519 no hay fila y listFeatureFlags lo da apagado) responderAlPortal no llama a chatwoot_portal_respuesta ni a Chatwoot, y el webhook sigue como hoy. Encenderlo sin la 0520 es la condición de §10.5.9, paso 6."
         },
         {
-          "site": "lib/studio/chatwoot/portal.ts:240",
-          "contains": "return resultado.tomados === 0 ? { ...resultado, omitido: \"base\" } : resultado;",
-          "degradation": "Si igual se llamara, chatwoot_portal_tomar ausente (PGRST202) devuelve omitido «base» con su código en el log, sin lanzar."
+          "site": "app/studio/(app)/bandeja/_components/PortalChatwoot.tsx:46",
+          "contains": "{!resumen.encendido ? (",
+          "degradation": "Con el flag apagado la tarjeta muestra «Apagado» y no ofrece «Reintentar los atascados»: nadie llama a chatwoot_portal_destrabar."
         },
         {
-          "site": "lib/studio/chatwoot/portal.ts:271",
-          "contains": "if (!chatwootPortalConfig()) return;",
-          "degradation": "El portal no agenda nada sin CHATWOOT_INBOX_PORTAL_ID, que se carga después de aplicar la migración: el mensaje del cliente se guarda como hoy."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal.ts:302",
-          "contains": "if (!flags.chatwoot_portal) return { ...vacio, omitido: \"apagado\" };",
-          "degradation": "El aviso a los admins tampoco consulta chatwoot_portal_rezagados con el flag apagado."
-        },
-        {
-          "site": "app/api/cron/chatwoot-reintentos/route.ts:62",
-          "contains": "const portal = await enviarPortalPendientes(admin).catch(() => ({ omitido: \"error\" as const }));",
-          "degradation": "El cron chatwoot-reintentos no se cae por la ida del portal: lo informa con un código y sigue."
+          "site": "app/studio/(app)/bandeja/actions.ts:474",
+          "contains": "return { ok: false, error: error.code === \"42501\" ? \"denied\" : \"base\" };",
+          "degradation": "Si igual se llamara, chatwoot_portal_destrabar ausente (PGRST202) devuelve el error «base» con su código en el log, sin lanzar."
         }
       ]
     }

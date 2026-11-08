@@ -144,6 +144,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 - **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Rediseño en borrador el 2026-11-06** («Paso 10.5», al final). Ese día Sam contestó las seis preguntas del primer borrador, y el chat del portal pasa a contestarse desde Chatwoot, con las conversaciones que ya existen cargadas allí. El 2026-11-07 contestó P7, los feriados: opción (a) (§10.5.11). Ese mismo día aprobó los textos públicos T1 a T4 (§10.5.12) y dio el OK del conteo, que corrió el Director General: 24 hilos, 0 archivados y 73 mensajes. También eligió cargar los hilos archivados (§10.5.10). Quedan las puertas (§10.5.20).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
+- ~~Aplicar la 0519~~: aplicada en prueba y en producción el 2026-11-08 (ver «2026-11-08 · La 0519 aplicada»). La 0520 (PR 1b, #434) también está aplicada en prueba y en producción, con el OK de Sam de cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción», en respuesta a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Los detalles van en su propio cierre.
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
 
 ## 2026-11-04 · La 0505 aplicada en producción: cierre del runbook §6
@@ -161,6 +162,27 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **Publicación:** va en la imagen de `fe35eb2d1`, publicada en `dtd-cargo` el 2026-11-04 a las 12:41:54Z por el Director General; la hora es la que él reportó. El enrutamiento sigue sin clasificar hasta el corte: `CHATWOOT_INBOX_LEADS_ID`, `CHATWOOT_TEAM_LEADS_ID` y `WHATSAPP_NUMERO_CLIENTES` quedan sin escribir.
 - **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
+
+## 2026-11-08 · La 0519 aplicada en prueba y en producción: cierre
+
+La aplicó el Director General, primero en prueba y después en producción. Lo que antes en esta spec dice que la 0519 está en espera vale para su fecha. Es la ida del chat del portal a Chatwoot (paso 10.5, PR 1a, #424, fusionada el 2026-11-08 a las 00:25:11Z en `caca3438b`).
+
+| Proyecto | COMMIT | `version` del ledger | `created_by` | Filas del ledger después | Evidencia, en `/srv/ops/evidencias/` |
+|---|---|---|---|---|---|
+| Prueba (`dtd-cargo-staging`) | 2026-11-08T02:09:22Z | `20261108020922` | `servidor-propio:psql:prueba:SDD-0586` | 505 | `apply-0519-dtd-cargo-staging-20261108T020921Z` y `ensayo-0519-dtd-cargo-staging/{antes,despues}.out` |
+| Producción (`dtd-cargo`) | 2026-11-08T02:11:18Z | `20261108021118` | `servidor-propio:psql:SDD-0586` | 517 | `apply-0519-dtd-cargo-20261108T021117Z` y `ensayo-0519-dtd-cargo/{antes,despues}.out` |
+
+- **OK literal de Sam,** hacia las 02:05Z del 2026-11-08: «Sí, prueba y producción». Respondía a «¿Autorizas aplicar la 0519, primero en prueba.dtdcargo.com y luego en producción?». Registrado a nombre del Director General; lo comunicó el Subdirector de Chatwoot.
+- **Identidad:** blob `02b9d160285f640bdc6b2be63481119584a76f54`, md5 `f613559d5ca34b2932995c8ff051e97e` y 30710 bytes, con los paquetes de `preparar.mjs` sobre `main` en `caca3438b`. El sello del candado lleva sha256 `a04fc76c9e51e6ce11da036319a206983db84fea0685f02cbba1fb835c6143a2` y `ledger` exacta del 2026-11-08. El md5 y los bytes se comprobaron contra el archivo al sellar.
+- **Mediciones** (`docs/runbooks/chatwoot-portal-0519-antes.sql` y `-despues.sql`, de la #433):
+  - **Antes,** en los dos proyectos, A1 a A5 dieron 0, 0, 23 flags (sin `chatwoot_portal` y con `chatwoot_inbox`), 0 y 1 tenant.
+  - **Después,** D1 a D7 dieron lo esperado: la fila del ledger con ese md5, 24 flags con el portal apagado, una fila del flag por tenant y ninguna encendida, las 4 tablas con RLS y solo `service_role`, las 4 RPC definer con `search_path` vacío y solo `service_role`, y la cola en ceros.
+- **Smoke sin sesión:** el cron `chatwoot-reintentos` respondió 200 en los dos, las rutas dieron 200 o 307 y el log quedó sin errores. Las imágenes que corren hoy **no** traen el código de la #424, porque la publicación está congelada: el smoke con sesión del runbook queda para cuando se publique.
+- **El flag `chatwoot_portal` sigue apagado,** y encenderlo sigue siendo un OK nominal de Sam, con las condiciones de §10.5.9, paso 6.
+- **La 0520 (PR 1b, #434) está aplicada en prueba y en producción,** con el OK de Sam de cerca de las 02:24Z del 2026-11-08: «Sí, prueba y producción», en respuesta a «¿Autorizas aplicar la 0520, primero en prueba.dtdcargo.com y luego en producción?». Los detalles van en su propio cierre.
+- **Filas del ledger** (runbook de producción §6.3): las midió el Director General a las 02:27Z del 2026-11-08 con un `count` de `supabase_migrations.schema_migrations`. Después de la 0519 había 517 en producción y 505 en prueba. Cuando las midió ya estaba aplicada también la 0520 (02:25:37Z en prueba y 02:26:32Z en producción, con su propio cierre), y había 518 y 506.
+- **Lectura de esta nota:** los datos vienen de la evidencia del Director General, comunicada por el Subdirector. Este cierre no consultó tablas de producción.
+- **Espera:** salió de `pendingBelowCutoff` y de las declaraciones de símbolos (`retirar-espera.mjs`), y quedó sellada. La cabecera «NO APLICADA A PRODUCCIÓN» de `0519_chatwoot_portal.sql` no se corrige: cambiar el archivo cambiaría el blob y el md5 que ya están en el ledger. La prueba que afirmaba la espera (`lib/studio/__tests__/chatwoot-portal.migration.test.ts`) ahora afirma que salió, con el md5 del sello. Los comentarios condicionales del código («sin la migración…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
 
 ## Paso 10.5 — Conversaciones del portal en Chatwoot y en los embudos (rediseño, 2026-11-06)
 
@@ -337,7 +359,7 @@ La lectura de `chatwoot_conversations` es por tenant y no mira el rol (0504). Es
 3. **La bandeja en Chatwoot y las variables** (OK nominal). La bandeja va sin `webhook_url`, sin saludo, sin asignación automática y sin encuesta, como el Archivo Kommo.
 4. **Punta a punta en prueba,** con la cuenta 2 de Chatwoot y sin datos reales (§10.5.15).
 5. **La carga de las conversaciones que ya existen:** ensayo y después producción, cada una con su puerta (§10.5.10).
-6. **Encender `chatwoot_portal`** (OK nominal), solo con T1 a T4 publicados (E10-D42).
+6. **Encender `chatwoot_portal`** (OK nominal), solo con T1 a T4 publicados (E10-D42), **con la 0520 aplicada** y con la vía del atascado de la 1b publicada (§10.5.20). Encenderlo sin la 0520 rompe la vuelta: cada respuesta del equipo en la bandeja del portal llama a `chatwoot_portal_respuesta`, que no existe (PGRST202). El evento queda «fallido» y se reintenta a 1, 2, 4 y 8 min, y al quinto intento se descarta (0504): la respuesta no le llega al cliente. Sin la 0520 tampoco existe `chatwoot_portal_destrabar` (hallazgo de la revisión independiente de la #434).
 
 ### 10.5.10 La carga de las conversaciones que ya existen (P4)
 
@@ -350,7 +372,7 @@ Es el camino del Archivo Kommo de E5 (SDD-0590 §10.3, §10.4 y §10.10), adapta
 - **Qué es un hilo archivado (C).** Hoy solo lo archiva la fusión de fichas. Si las dos fichas tienen hilo del portal, `merge_clients` archiva el de la ficha fusionada y lo cuelga de la que queda, para no perder el historial (`0361_merge_clients_conserva_kommo_contact.sql:155-170`, su última definición). El portal no lo muestra: lee solo el hilo vivo (`getPortalThread`, `lib/portal/portal-conversation-queries.ts:135`), y `portal_post_message` escribe solo en el vivo (`0512_portal_intento_sin_duplicar.sql:175`). Conversaciones de Studio tampoco lo lista (`lib/studio/conversaciones/conversations-queries.ts:143`). No es que el equipo los saque de la vista, como decía el borrador.
 - **Cómo quedan en Chatwoot.** Chatwoot no tiene estado «archivado». La conversación se carga `resolved`, sea cual sea su estado en Studio, en el contacto de la ficha de la que cuelga. Al final lleva una nota de actividad, con la hora en que se archivó: «Hilo archivado en el Studio. El cliente ya no lo ve: lo que se escriba aquí no le llega.» La nota entra como un mensaje más, con `insert_all` y `source_id = dtd:archivado:<id del hilo>`, así que no avisa a nadie ni se duplica (C-3 y C-5). No se usa una etiqueta: el cargador de E5 no escribe etiquetas, y escribirlas sin callbacks (`taggings` y `cached_label_list`) sería trabajo nuevo para 0 hilos de hoy (I).
 - **El Studio sigue siendo la fuente.** La carga no cambia en Studio ni el `deleted_at` ni el estado de ningún hilo (C-6). El hilo archivado tiene su vínculo y su fila de `chatwoot_conversations`, como uno vivo, para que la Ficha DTD funcione.
-- **Si alguien le responde en Chatwoot a un hilo archivado.** `responderAlPortal` mira el hilo en Studio. Si tiene `deleted_at`, no escribe en `conversation_messages` ni manda el push, porque el cliente no lo vería: el portal lee solo el hilo vivo. Deja en Chatwoot una nota privada, una vez por mensaje: «Este hilo está archivado en el Studio: el cliente no ve esta respuesta. Escríbele en su otra conversación del portal.» El evento se cierra como hecho, sin reintentos (E10-D37). Un cambio de estado en Chatwoot tampoco cambia el hilo archivado (E10-D39), y la conciliación no lo toca (E10-D40).
+- **Si alguien le responde en Chatwoot a un hilo archivado.** `responderAlPortal` mira el hilo en Studio. Si tiene `deleted_at`, no escribe en `conversation_messages` ni manda el push, porque el cliente no lo vería: el portal lee solo el hilo vivo. Deja en Chatwoot una nota privada, una vez por mensaje: «Este hilo está archivado en el Studio: el cliente no ve esta respuesta. Si tiene otra conversación del portal abierta, escríbele allí; si no, por WhatsApp o por correo.» (texto de la 1b: la revisión independiente de la #434 notó que «su otra conversación» puede no existir; es texto interno de la nota) El evento se cierra como hecho, sin reintentos (E10-D37). Un cambio de estado en Chatwoot tampoco cambia el hilo archivado (E10-D39), y la conciliación no lo toca (E10-D40).
 - **Un hilo que se archiva después de la carga** (una fusión con el flag encendido) no cambia solo en Chatwoot. Lo cubre la misma guarda, porque mira el Studio en el momento de la respuesta.
 
 **Cómo, en el VPS, todo en `/dev/shm` (0700) y borrado al terminar:**
@@ -664,7 +686,22 @@ Editados:
 **Partición de la PR 1 (Worker de la ida, 2026-11-07).** La PR 1 se parte en dos, en serie, para que la primera lleve solo la ida, de Studio a Chatwoot (E10-D34, E10-D35 y el aviso de E10-D40). Medido sobre `main` en `7e75f7708`.
 
 - **PR 1a · la ida (esta).** Migración `0519_chatwoot_portal.sql` (número asignado por el Director General el 2026-11-07, comunicado por el Subdirector de Chatwoot; reserva local `refs/dtd/reservations/migraciones/0519`) con las cuatro tablas de §10.5.6, `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` (el aviso, solo números) y `feature_flag_catalog()` con `chatwoot_portal` apagado. El envío en el servidor de Studio, el cron y el pedido sin bloquear del portal. Con el flag apagado, o sin `CHATWOOT_INBOX_PORTAL_ID`, el token o la cuenta, no hace nada. **No toca ninguno de los archivos que comparte con la 6.6** (`TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts` y `crm-ficha.ts`); solo cruza en `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
-- **PR 1b · la vuelta, el estado, el CRM y Studio en solo lectura.** Una migración propia, con su número, con `chatwoot_portal_respuesta`, `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar` desde la 1a. Lleva los dos manejadores, la conciliación, la reapertura por el envío si la PoC-4 falla, `crm-portal.ts`, la insignia y la sección de la ficha, Studio en solo lectura y los textos T1 a T4. Es la que cruza con la 6.6. El resto de la allowlist de la PR 1, de arriba, es de la 1b.
+- **PR 1b · la vuelta, destrabar y el riesgo del webhook** (alcance aprobado por el Director General el 2026-11-08, comunicado por el Subdirector). Lleva la migración **0520** (`0520_chatwoot_portal_vuelta`), reservada en `codex/migracion-reserve-0520-chatwoot-portal-vuelta` y en `refs/dtd/reservations/migraciones/0520`. Sus cuatro partes:
+  - **La vuelta (E10-D37):** el manejador `responderAlPortal`, el texto saliente solo para la bandeja del portal, `chatwoot_portal_respuesta` (idempotente por `chatwoot:<id>` y sin escribir en un hilo archivado), el reproceso que relee el mensaje en Chatwoot, el push al cliente una sola vez, y la nota privada una vez por mensaje (adjunto o hilo archivado), con su propio `source_id`.
+  - **Destrabar (§10.5.20):** una RPC, una acción solo para admin y una tarjeta mínima «Portal → Chatwoot» en la Bandeja, con los números y «Reintentar los atascados». Pasa por `/ui-check`. Es texto interno del Studio, no público: no pide aprobación de Sam palabra por palabra.
+  - **El riesgo del webhook:** Chatwoot 4.19.1 no entrega a un host sin IP pública, como midió la PoC de la 1a. La salud de agentes revisa el webhook de cuenta y avisa a los admins si falta, si no tiene `message_created` o si su host no tiene IP pública.
+  - **PoC en Actions de lo saliente.**
+
+  **La 1b no se fusiona sin la 0520 aplicada en producción, o sin una decisión de Sam sobre `publicar-web.sh aceptar-pendiente`** (regla del Director General del 2026-11-08). Fusionar una migración en espera frena la publicación automática (§10 de `aplicar-migraciones-prod.md`), como pasó con la #424.
+- **PR 1c · el estado, el CRM y Studio en solo lectura.** Su migración propia, con número aparte, lleva `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar`. Lleva:
+  - `entrarPortal`;
+  - la conciliación;
+  - la reapertura por el envío, si la PoC-4 falla;
+  - `crm-portal.ts`, la insignia y la sección de la ficha;
+  - Studio en solo lectura;
+  - los textos T1 a T4.
+
+  Es la que cruza con la 6.6. El resto de la allowlist de la PR 1, de arriba, es de la 1c.
 - **PR 2 · la carga (P4)**, como arriba. `chatwoot_portal_vincular_carga` va con ella o en la migración de la 1b, lo que se integre primero. Hasta entonces, el `corte` de `chatwoot_portal_estado` solo lo escribe `service_role` a mano, y en prueba con una carga vacía.
 
 Lo que cambia respecto de §10.5.6, por la partición:
@@ -715,6 +752,51 @@ No se tocan en la 1a: `webhook-procesar.ts`, `app/api/chatwoot/webhook/route.ts`
 - **PASÓ:** PoC-1, PoC-2, PoC-3 y PoC-5a, el caso de la paginación y la ida de punta a punta sin duplicar.
 - **Un hecho nuevo:** Chatwoot rechaza entregar un webhook a un host sin IP pública («has no public ip addresses»), una protección contra SSRF. En producción no cambia nada, porque la URL del webhook de Studio (2.3) es pública. En el arnés, la PoC-5b mide la carga que Chatwoot arma para el webhook de cuenta (`webhook_data`) en lugar de la entrega.
 - **Queda NV** la entrega por red hasta Studio, hasta la punta a punta en prueba (puerta 4 de §10.5.9).
+
+**PR 1b · allowlist exacta** (medida sobre `main` en `caca3438b`, la #424 fusionada).
+
+Nuevos:
+
+- `supabase/migrations/0520_chatwoot_portal_vuelta.sql` y `supabase/tests/0520_chatwoot_portal_vuelta.test.sql`
+- `lib/studio/__tests__/chatwoot-portal-vuelta.migration.test.ts` (el contrato en PGlite, con su control rojo y sus mutantes)
+- `lib/studio/chatwoot/portal-manejadores.ts` (`responderAlPortal`; `entrarPortal` queda para la 1c) y `lib/studio/chatwoot/__tests__/portal-manejadores.test.ts`
+- `lib/studio/chatwoot/webhook-salud.ts` (la salud del webhook de cuenta) y `lib/studio/chatwoot/__tests__/webhook-salud.test.ts`
+- `app/studio/(app)/bandeja/_components/PortalChatwoot.tsx` (la tarjeta «Portal → Chatwoot»), con `app/studio/(app)/bandeja/__tests__/PortalChatwoot.test.tsx` y `app/studio/(app)/bandeja/__tests__/destrabar-portal.test.ts`
+- `lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts` e `infra/chatwoot/pruebas/portal/carga-saliente-poc.rb` (la PoC de lo saliente)
+- `infra/chatwoot/pruebas/portal/mutantes-vuelta.cjs` (los 40 mutantes del código de la 1b, con el mismo ejecutor que `mutantes-ida.cjs`)
+- `.agents/handoffs/0586-e10-5-1b-vuelta.md`
+
+Editados:
+
+- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` (la 0520 en espera; la declaración de la 0519 suma los sitios nuevos de `chatwoot_portal_rezagados` y `chatwoot_portal_hilos`)
+- `lib/studio/chatwoot/router-api.ts` (`leerMensaje`, `crearNotaPrivada` y `listarWebhooksCuenta`) y su prueba. «Asignar agente» pasa a la 1c, con `entrarPortal`
+- `lib/studio/chatwoot/portal.ts` (`resumenPortal`, los números de la tarjeta)
+- `lib/studio/chatwoot/webhook-procesar.ts` (`responderAlPortal` en `MANEJADORES`, su nombre y `ctx.salientePortal`) y `lib/studio/chatwoot/__tests__/aviso-unico-por-evento.test.ts` (la lista de nombres)
+- `app/api/chatwoot/webhook/route.ts` (le pasa al contexto lo saliente de la bandeja del portal) y su prueba
+- `lib/studio/chatwoot/agentes-salud.ts` y `lib/studio/chatwoot/agentes-ciclo.ts` (las cuatro alertas del webhook y su texto del push), `app/api/cron/chatwoot-agentes/route.ts` y su prueba
+- `app/studio/(app)/bandeja/page.tsx`, `_components/BandejaClient.tsx` y `actions.ts` (`destrabarPortal`), con `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones, 462 → 463)
+- `lib/i18n/es-VE/bandeja.ts` y `lib/i18n/zh-CN/bandeja.ts` (la tarjeta y las alertas)
+- `docs/runbooks/chatwoot-bandeja.md` (la tarjeta «Portal → Chatwoot», las alertas del webhook y su límite conocido)
+- `.github/workflows/chatwoot-portal-poc.yml`, `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh` y `sonda-portal-poc.rb` (la PoC de lo saliente en el mismo job; el webhook del arnés pasa a terminar en `/api/chatwoot/webhook`)
+- `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md` y `docs/specs/README.md` (índice generado)
+
+No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/crm/**`, `lib/studio/crm-*.ts`, `app/portal/**`, `app/privacidad/page.tsx`, `lib/studio/conversation-reply-push.ts` (se reusa tal cual), `lib/studio/chatwoot/webhook-events.ts` (`interpretarEvento` sigue sin texto), `docs/specs/0582-chatwoot-piloto/checklist.md`, más lo que §10.5.16 ya excluye.
+
+**PR 1b · decisiones del Worker** (I, para la revisión):
+
+- **La vuelta lee el texto de la carga del webhook solo en la bandeja del portal.** La ruta pasa `salientePortal` solo si la conversación es de esa bandeja y el mensaje es saliente; si no, `null`, y el manejador no relee nada. En el reproceso, que no guardó el texto, el manejador mira primero en `chatwoot_portal_hilos` si la conversación es del portal y solo entonces la relee en Chatwoot (`?before=<id + 1>`).
+- **Quién firma.** Solo un remitente que la carga marca como usuario (`sender.type = "user"`, o `sender_type = "User"` en la API de cuenta). Un bot o un contacto nunca firman, aunque su id coincida con el de un agente vinculado: los bots tienen otra secuencia de ids. La PoC mide que la carga real de un agente trae ese `type` (V-1).
+- **Lo que no va al portal:** lo privado, la actividad, las plantillas, el contenido que no es texto (`input_csat`, tarjetas, formularios) y el eco nuestro (`source_id` que empieza con `dtd:`, también el de las notas).
+- **Un saliente sin agente sí va al portal** (hallazgo POSIBLE de la revisión independiente de la #434, que queda como decisión). `esRespuestaDelEquipo` no exige un remitente usuario: si un bot o una automatización de Chatwoot escribe un saliente público de texto en la bandeja del portal, le llega al cliente firmado «DTD Cargo», sin autor (`author_name` vacío). Hoy la bandeja no tiene ni bot ni automatizaciones: va sin saludo, sin asignación automática y sin encuesta (§10.5.9, puerta 3). Si algún día se le pone una, esta decisión se revisa antes.
+- **Una ficha borrada** (`clients.deleted_at`) no recibe la respuesta ni el push, y no se deja nota: es un caso que la spec no nombra y que hoy no se da con el flag apagado. Si el Director General quiere una nota también ahí, es una línea más en `responderAlPortal`.
+- **La hora** es la de Chatwoot, nunca en el futuro (un reloj adelantado queda en «ahora»), y una respuesta tardía no retrocede el `last_message_at` del hilo. El `unread_count` queda en 0, como pide el punto 4 de §10.5.15, también cuando la respuesta llega tarde.
+- **El push primero, la nota después.** Si la nota falla, el evento queda «fallido» y se reintenta; la respuesta ya está escrita, así que el reintento da «duplicado» y no avisa otra vez. Cada nota se busca por su `source_id` (`dtd:nota:archivado:<id>` o `dtd:nota:adjunto:<id>`) antes de crearla. Si la búsqueda no puede decidir (`busqueda_incompleta`), no se crea y se reintenta.
+- **Destrabar es para `authenticated`, con el admin comprobado dentro de la RPC** (`is_tenant_admin`, 0386), y el tenant sale de la sesión. Así la acción del Studio no necesita `service_role` y la regla vive en la base. Repite el procedimiento manual de la 0519: a «pendiente» ahora, con `verificar` encendido y un plazo nuevo de 24 h. Conserva los intentos y el último código de error.
+- **La salud del webhook** lee la lista con el token del usuario de servicio de E1, que es administrador de la cuenta, pedido por la Platform API como `obtenerTokenAgente`. Reconoce el webhook de Studio por su ruta (`/api/chatwoot/webhook`), no por su host. Resuelve el host con DNS y lo compara con las redes que rechaza la gema `ssrf_filter` de Chatwoot. Si no puede leer la lista, avisa con `webhook_no_medido`, salvo que Chatwoot ya no responda, que es la misma causa. Corre en el cron diario `chatwoot-agentes`, que ya avisa a los admins por push, y al abrir la Bandeja.
+  - **Límite conocido** (hallazgo POSIBLE de la revisión independiente de la #434). Como mira la ruta y no el host, un webhook a `/api/chatwoot/webhook` de otro sitio (otro Studio, un entorno de prueba) cuenta como el de Studio. El DNS se resuelve desde el servidor del Studio, no desde la red de Chatwoot: si los dos resuelven distinto (un DNS interno o un host que solo existe en una de las dos redes), la salud puede no coincidir con lo que Chatwoot hace. La entrega real se comprueba en la punta a punta (puerta 4 de §10.5.9). Va también en `docs/runbooks/chatwoot-bandeja.md`.
+- **PoC-6** se mide en lo que Studio controla: la nota privada guarda su `source_id`, se encuentra al buscarla, su carga dice `private: true` y la vuelta no la lleva al portal, y la bandeja API no tiene `webhook_url`. Que Chatwoot no la mande por ningún otro canal queda NV: la bandeja del portal no tiene otro.
+
+**PR 1b · qué prueba de §10.5.15 cubre.** Del contrato SQL, el punto 4 (`chatwoot_portal_respuesta`: idempotente, con `unread_count` a 0, la hora que llega y el autor del vínculo), más el hilo archivado, la ficha borrada, otro canal, otro tenant, el flag apagado, la respuesta sin texto, que la ida no tome las respuestas y destrabar (solo el admin del tenant, solo los atascados, verificando y con plazo nuevo). Los puntos 6 a 9 y 11 son de la 1c y de la PR 2. De TypeScript, la línea de `responderAlPortal` entera: deja pasar solo lo saliente, no privado y no propio; la nota del adjunto, una sola vez; el push, una sola vez; el reproceso relee el mensaje; a un hilo archivado no le escribe ni le avisa y deja su nota una sola vez. También que la ruta del webhook nunca registre el texto, y la salud del webhook. **PoC en Actions** (`chatwoot-portal-poc.yml`, job `poc`, el mismo de la 1a): V-1 a V-4 y PoC-6 contra el Chatwoot 4.19.1 efímero. El contrato de la 0520 en Postgres 17 real lo corre `sql-tests.yml`.
 
 ### 10.5.17 Lo que queda fuera
 

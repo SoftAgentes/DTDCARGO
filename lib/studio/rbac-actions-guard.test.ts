@@ -370,8 +370,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0606 sumó `usuarios/actions.ts::getMyDiscordUserIdAction` y
   // `::saveMyDiscordUserIdAction` (460 → 462): perfil propio, miembro activo por
   // `getStudioAccess`; van en EXCEPCIONES (18 → 20) con su verificación.
+  // SDD-0586 (10.5, PR 1b) sumó `bandeja/actions.ts::destrabarPortal` (462 → 463):
+  // `tenantAdminGate` antes de leer nada; escribe solo por la RPC
+  // `chatwoot_portal_destrabar` (0520) con el cliente de sesión, que repite el admin
+  // del tenant (`is_tenant_admin`) y toma el tenant de la sesión.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(462);
+    expect(reportes.length).toBe(463);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

@@ -8,7 +8,8 @@
 #   · la bandeja API «Conversaciones del portal», sin webhook_url, sin saludo, sin asignación automática y sin
 #     encuesta (§10.5.9, puerta 3), con el administrador de miembro;
 #   · un webhook de cuenta a WEBHOOK_URL, solo con message_created, como el de Studio (2.3). Con un host sin IP
-#     pública, Chatwoot 4.19.1 encola el trabajo pero no lo entrega: es la MEDIDA de la PoC-5.
+#     pública, Chatwoot 4.19.1 encola el trabajo pero no lo entrega: es la MEDIDA de la PoC-5. Desde la 1b la
+#     URL termina en /api/chatwoot/webhook, como la de Studio, para que la salud del webhook lo reconozca.
 #
 # Escribe `clave=valor` en SALIDA (un archivo, no la salida estándar): el token no va al log del runner.
 require "securerandom"
@@ -43,6 +44,7 @@ File.write(salida, <<~FIN)
   cuenta=#{cuenta.id}
   bandeja=#{bandeja.id}
   token=#{token}
+  usuario=#{usuario.id}
   webhook=#{webhook.id}
   webhook_url_del_canal=#{canal.webhook_url.presence ? "si" : "no"}
 FIN

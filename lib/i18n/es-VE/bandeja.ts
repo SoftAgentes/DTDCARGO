@@ -133,9 +133,25 @@ export const bandeja = {
   "bandeja.salud.alerta.cierre_pendiente": "Una baja salió de la cuenta, pero sus sesiones siguen abiertas: el próximo cron lo reintenta.",
   "bandeja.salud.alerta.degradacion_bloqueada": "Un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador.",
   "bandeja.salud.alerta.matriz_incompleta": "No se pudieron aplicar todos los permisos de la matriz: el próximo cron lo reintenta.",
+  // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
+  "bandeja.salud.alerta.webhook_falta": "Falta el webhook de cuenta hacia el Studio (/api/chatwoot/webhook): no llegan los avisos ni las respuestas al portal.",
+  "bandeja.salud.alerta.webhook_sin_mensajes": "El webhook de cuenta no tiene el evento de mensajes nuevos: no llegan las respuestas al portal.",
+  "bandeja.salud.alerta.webhook_sin_ip_publica": "El webhook de cuenta apunta a un servidor sin IP pública, y el servidor de mensajes no le entrega nada.",
+  "bandeja.salud.alerta.webhook_no_medido": "No se pudo revisar el webhook de cuenta: falta el usuario de servicio o el servidor de mensajes no respondió.",
   "bandeja.salir.cerrando": "Cerrando tu sesión…",
   "bandeja.salir.marco": "Cierre de la sesión del chat",
   "bandeja.badge.aria": "{n} sin leer",
+  // SDD-0586 (10.5, PR 1b): la ida del chat del portal a Chatwoot, para el admin (§10.5.20).
+  "bandeja.error.base": "No se pudo guardar. Vuelve a intentarlo.",
+  "bandeja.portal.title": "Portal → Chatwoot",
+  "bandeja.portal.help": "Los mensajes del chat del portal que van a la bandeja «Conversaciones del portal». Un mensaje atascado detiene su conversación hasta que se reintenta.",
+  "bandeja.portal.off": "Apagado: el chat del portal no va a Chatwoot.",
+  "bandeja.portal.sin_llegar": "Sin llegar hace más de 15 min",
+  "bandeja.portal.atascados": "Atascados",
+  "bandeja.portal.retry": "Reintentar los atascados",
+  "bandeja.portal.retrying": "Reintentando…",
+  "bandeja.portal.none": "No hay mensajes atascados.",
+  "bandeja.portal.retried": "Vuelven a la cola {n} mensaje(s). Antes de mandarlos se revisa si ya habían llegado.",
 } as const satisfies Record<string, string>;
 
 export type BandejaDict = Record<keyof typeof bandeja, string>;
