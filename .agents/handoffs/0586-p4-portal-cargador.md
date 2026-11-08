@@ -22,13 +22,17 @@
 
 ## Allowlist
 
-- `infra/ops/portal-historial/cargar-portal.rb`, nuevo, adaptado de `infra/ops/kommo-historial/cargar-archivo-kommo.rb`.
-- `infra/ops/portal-historial/pruebas/prueba-cargador.sh`, nuevo, adaptado de `kommo-historial/pruebas/prueba-cargador.sh`.
-- `infra/ops/portal-historial/pruebas/sonda-portal.rb`, nuevo, adaptado de `kommo-historial/pruebas/sonda-cargador.rb`.
-- `infra/ops/portal-historial/pruebas/escenario-portal.rb`, nuevo, adaptado de `kommo-historial/pruebas/escenario-mutante.rb`.
-- `infra/ops/portal-historial/pruebas/compose.cargador.yml`, nuevo, copia de `kommo-historial/pruebas/compose.cargador.yml`.
-- `.github/workflows/portal-historial-cargador.yml`, nuevo.
-- `.agents/handoffs/0586-p4-portal-cargador.md`, nuevo.
+Son 7 archivos, todos nuevos, y ninguno lo comparte con E10. Las copias son adaptaciones de `kommo-historial/`, que se copian en vez de importarse porque la 0619 retira esa carpeta.
+
+| Archivo | Origen | Para qué |
+|---|---|---|
+| `infra/ops/portal-historial/cargar-portal.rb` | Adaptado de `kommo-historial/cargar-archivo-kommo.rb` | El cargador del paso 3: lee el preparado, comprueba, carga sin efectos y devuelve los vínculos |
+| `infra/ops/portal-historial/pruebas/prueba-cargador.sh` | Adaptado de `kommo-historial/pruebas/prueba-cargador.sh` | La prueba: el stack de Chatwoot efímero, la corrida real, las comprobaciones, M0 y los mutantes |
+| `infra/ops/portal-historial/pruebas/sonda-portal.rb` | Adaptado de `kommo-historial/pruebas/sonda-cargador.rb` | Crea la línea base y el preparado inventado, y mide lo cargado y los vínculos |
+| `infra/ops/portal-historial/pruebas/escenario-portal.rb` | Adaptado de `kommo-historial/pruebas/escenario-mutante.rb` | Un escenario entero en un solo arranque de Rails, para M0 y los mutantes |
+| `infra/ops/portal-historial/pruebas/compose.cargador.yml` | Copia de `kommo-historial/pruebas/compose.cargador.yml` | Monta el cargador y el estado en `prepare`, y fija los digests de Postgres y Redis |
+| `.github/workflows/portal-historial-cargador.yml` | Nuevo | Corre la prueba en Actions, porque lleva contenedores |
+| `.agents/handoffs/0586-p4-portal-cargador.md` | Nuevo | Este handoff |
 
 ## Límites
 
@@ -41,7 +45,7 @@
 
 - **`webhook_url`.** La guarda sigue en rechazo (G1), como en E5, mientras E10 no confirme cómo queda configurada la bandeja. Si lleva `webhook_url`, se acepta, y C-4 tiene que dar 0.
 - **`nota_archivo` y `AGENTE_SERVICIO`.** Hay que ajustarlos cuando E10 publique la versión cerrada del formato.
-- **El ensayo (5.6).** Va en una copia efímera con las guardas de `ensayo-archivo.sh`, copiadas a esta carpeta. Va a correr las consultas de control de Studio que escriba E10 (`controles-studio.sql`, C-6 a C-8), si E10 lo confirma.
+- **El ensayo (5.6): va en una segunda PR de E5,** después del verde de esta y de que exista `controles-studio.sql`. Va en una copia efímera con las guardas de `ensayo-archivo.sh`, copiadas a esta carpeta, y corre los controles de Studio que escribe E10 (C-6 a C-8).
 - **La sección de la spec.** El diseño, la allowlist y la evidencia de esta PR los tiene que llevar la spec 0586, en el commit de E10 o después de que entre su rama.
 
 ## Validación

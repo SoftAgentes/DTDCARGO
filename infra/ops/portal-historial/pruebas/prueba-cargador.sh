@@ -192,7 +192,8 @@ comprobar() {
   exigir V9 '[ "$(h "$F" buscador)" -ge 1 ] 2>/dev/null' "C-14: el buscador encuentra un mensaje cargado ($(h "$F" buscador))"
   exigir V10 '[ "$(h "$F" display_nueva_mayor)" = si ] && cero "$(h "$F" display_duplicados)" && [ "$(h "$F" display_en_orden)" = si ]' \
     "C-9: la conversación nueva va después, sin números repetidos, y los cargados siguen el orden de creación"
-  exigir V11 '[ "$(h "$F" json_conv)" = 0 ] && [ "$(h "$F" no_leidos)" = 0 ]' "los atributos son objeto JSON y no hay entrantes viejos como no leídos"
+  # Piso: con la bandeja vacía, «0 no leídos» y «0 atributos malos» pasarían sin mirar nada.
+  exigir V11 '[ "$(h "$F" conversaciones)" = 4 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" json_conv)" = 0 ] && [ "$(h "$F" no_leidos)" = 0 ]' "sobre las 4 conversaciones cargadas, los atributos son objeto JSON y no hay entrantes viejos como no leídos"
 
   local fugas=0 f m
   for f in rechazo-webhook seco carga-1 carga-2 carga-3 vinculos-1.ndjson; do
