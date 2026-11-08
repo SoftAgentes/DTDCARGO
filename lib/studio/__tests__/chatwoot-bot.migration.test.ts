@@ -114,21 +114,46 @@ describe("SDD-0618 · 0522 la cola de dtd-bot (PGlite)", () => {
     ],
     [
       "contesta_solo sin IA-01",
-      "  if new.modo = 'contesta_solo' and not exists (",
-      "  if false and not exists (",
+      "    if not found then\n      raise exception 'chatwoot_bot: contesta_solo sin excepción IA-01 vigente'",
+      "    if false then\n      raise exception 'chatwoot_bot: contesta_solo sin excepción IA-01 vigente'",
       /TEST 0522: contesta_solo sin excepción IA-01 se rechaza/,
     ],
     [
       "la excepción de otra bandeja alcanza",
-      "    where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids)\n  ) then",
-      "    where e.tenant_id = new.tenant_id and e.revocada_at is null\n  ) then",
+      "    where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids)\n    for share;",
+      "    where e.tenant_id = new.tenant_id and e.revocada_at is null\n    for share;",
       /TEST 0522: una excepción de otra bandeja no alcanza/,
     ],
     [
       "la excepción revocada sigue valiendo",
-      "    where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids)\n  ) then",
-      "    where e.tenant_id = new.tenant_id and new.inbox_id = any (e.inbox_ids)\n  ) then",
+      "    where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids)\n    for share;",
+      "    where e.tenant_id = new.tenant_id and new.inbox_id = any (e.inbox_ids)\n    for share;",
       /TEST 0522: una excepción revocada no alcanza/,
+    ],
+    // ── Revisión del DG de la #459, concurrencia (2026-11-08) ──
+    [
+      "la guarda sin for share (la carrera la mide con dos sesiones en Actions)",
+      "    where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids)\n    for share;",
+      "    where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids);",
+      /TEST 0522: la guarda de contesta_solo bloquea la excepción con for share/,
+    ],
+    [
+      "postflight: service_role con TRUNCATE",
+      "revoke truncate on public.chatwoot_bot_bandejas, public.chatwoot_bot_excepciones,\n  public.chatwoot_bot_bandejas_excluidas, public.chatwoot_bot_turnos, public.chatwoot_bot_llamadas,\n  public.chatwoot_bot_latidos from service_role;",
+      "",
+      /0522: public\.chatwoot_bot_bandejas admite TRUNCATE/,
+    ],
+    [
+      "postflight: falta un trigger",
+      "create trigger chatwoot_bot_excluir\n  after insert or update on public.chatwoot_bot_bandejas_excluidas\n  for each row execute function public.chatwoot_bot_excluir();",
+      "",
+      /0522: faltan los 3 triggers del bot, activos/,
+    ],
+    [
+      "postflight: service_role sin EXECUTE",
+      "grant execute on function public.chatwoot_bot_latir(text) to service_role;",
+      "",
+      /0522: public\.chatwoot_bot_latir\(text\) tiene que ser de service_role/,
     ],
     [
       "revocar no baja a sugerir",

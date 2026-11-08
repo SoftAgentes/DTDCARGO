@@ -110,11 +110,19 @@ begin
   ) then
     raise exception 'chatwoot_bot: la bandeja % está excluida', new.inbox_id using errcode = 'check_violation';
   end if;
-  if new.modo = 'contesta_solo' and not exists (
-    select 1 from public.chatwoot_bot_excepciones e
+  -- La excepción se lee con `for share` (revisión del DG, concurrencia). En READ COMMITTED:
+  --  · si otra transacción la revoca, la borra o le saca la bandeja primero, este `for share`
+  --    espera, vuelve a evaluar el where sobre la fila nueva, no la encuentra y falla;
+  --  · si este encendido llega primero, el update o el delete de la otra esperan a que
+  --    confirme, y después su trigger recalcula y baja la bandeja a sugerir.
+  -- La carrera está medida en supabase/tests/0522_chatwoot_bot_carrera.test.sql.
+  if new.modo = 'contesta_solo' then
+    perform 1 from public.chatwoot_bot_excepciones e
     where e.tenant_id = new.tenant_id and e.revocada_at is null and new.inbox_id = any (e.inbox_ids)
-  ) then
-    raise exception 'chatwoot_bot: contesta_solo sin excepción IA-01 vigente' using errcode = 'check_violation';
+    for share;
+    if not found then
+      raise exception 'chatwoot_bot: contesta_solo sin excepción IA-01 vigente' using errcode = 'check_violation';
+    end if;
   end if;
   new.updated_at := pg_catalog.now();
   return new;
@@ -294,6 +302,10 @@ grant all on public.chatwoot_bot_bandejas_excluidas to service_role;
 grant all on public.chatwoot_bot_turnos to service_role;
 grant all on public.chatwoot_bot_llamadas to service_role;
 grant all on public.chatwoot_bot_latidos to service_role;
+-- TRUNCATE se salta los triggers de fila (el recálculo de contesta_solo, la exclusión): nadie lo tiene.
+revoke truncate on public.chatwoot_bot_bandejas, public.chatwoot_bot_excepciones,
+  public.chatwoot_bot_bandejas_excluidas, public.chatwoot_bot_turnos, public.chatwoot_bot_llamadas,
+  public.chatwoot_bot_latidos from service_role;
 
 -- ─── 5. RPC de la cola (solo service_role) ───────────────────────────────────
 
@@ -646,6 +658,10 @@ begin
   ] loop
     if not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = pg_catalog.to_regclass(v_tabla)) then
       raise exception '0522: % sin RLS', v_tabla;
+    end if;
+    if pg_catalog.has_table_privilege('service_role', v_tabla, 'TRUNCATE')
+       or pg_catalog.has_table_privilege('authenticated', v_tabla, 'TRUNCATE') then
+      raise exception '0522: % admite TRUNCATE, que se salta los triggers', v_tabla;
     end if;
     if pg_catalog.has_table_privilege('anon', v_tabla, 'SELECT, INSERT, UPDATE, DELETE')
        or pg_catalog.has_table_privilege('authenticated', v_tabla, 'INSERT, UPDATE, DELETE') then
