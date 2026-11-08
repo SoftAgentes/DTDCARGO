@@ -48,6 +48,12 @@ docker cp chatwoot-rails-1:/dev/shm/vinculos.ndjson /dev/shm/portal-historial/vi
 docker exec chatwoot-rails-1 rm -f /dev/shm/vinculos.ndjson
 ```
 
+- **El puente entre el contenedor y el VPS lo hace `infra/ops/portal-historial/cargar.sh`,** en la segunda PR de E5, la del ensayo y la orquestación (Subdirector, 2026-11-08). Lo de arriba es solo un esquema. `cargar.sh` tiene que:
+  - pasar el preparado por la entrada estándar, sin copiarlo al contenedor;
+  - escribir los vínculos en `/dev/shm/<carpeta al azar>/` del contenedor;
+  - trasladarlos con `docker cp` a la carpeta 0700 de E10 y dejarlos en 0600;
+  - borrarlos del contenedor con un `trap`, también si algo falla, y comprobar al final que no quedó nada adentro;
+  - correr su prueba en el workflow, con un fallo inyectado.
 - **`VINCULOS=-` queda solo para pruebas.** En el contenedor, la salida de `rails runner` también trae Bundler y los logs de los inicializadores (R3, run 42495310693). Los vínculos salen con el prefijo `VINCULO `, y un `sed` sobre esa mezcla no es un contrato.
 - **El README de `portal-historial/` es de E10,** así que no lo toco. La línea de invocación queda aquí y en la cabecera de `cargar-portal.rb`.
 
