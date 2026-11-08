@@ -61,10 +61,13 @@ module SondaPap
     hecho('conversaciones', convs.count)
     hecho('conversaciones_dobles', convs.group(Arel.sql("additional_attributes->>'dtd_hilo'")).having('count(*) > 1').count.size)
     hecho('mensajes', msgs.count)
-    hecho('mensajes_dobles', msgs.group(:source_id).having('count(*) > 1').count.size)
+    # unscope(:order): un orden por defecto fuera del GROUP BY hacía caer la sonda aquí (run 42512852466).
+    hecho('mensajes_dobles', msgs.unscope(:order).group(:source_id).having('count(*) > 1').count.size)
     hecho('notas', Message.where(inbox_id: bandeja).where("source_id LIKE 'dtd:archivado:%'").count)
     hecho('pubsub_nulos', ContactInbox.where(inbox_id: bandeja, pubsub_token: [nil, '']).count)
     hecho('contar', 'ok')
+  rescue StandardError => e
+    hecho('contar', "error:#{e.class}")
   end
 
   # (e) Un mensaje por la API, como lo manda el panel, y lo que hace Sidekiq con él.

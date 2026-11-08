@@ -133,6 +133,12 @@ OTRA="$(h "$TRABAJO/preparar.txt" otra)"
 exigir P1 '[ "$(h "$TRABAJO/preparar.txt" preparar)" = ok ] && [ -n "$TENANT" ] && docker inspect "$CONT" >/dev/null 2>&1' \
   "Studio con el fixture de la 0523 (tenant ${TENANT:0:8}…) y Chatwoot con la bandeja del portal $BANDEJA (cuenta $CUENTA)"
 q "insert into public.chatwoot_agent_links (tenant_id, user_id, chatwoot_user_id) values ('$TENANT', '$U1', $AGENTE)" >/dev/null
+# hC lo vinculó la cola: en el flujo real, chatwoot_portal_vincular le crea su espejo en la misma transacción
+# (supabase/migrations/0519_chatwoot_portal.sql:428). El fixture del contrato solo pone el vínculo; aquí se le crea el
+# espejo igual que ese camino, con la bandeja del portal de este Chatwoot.
+q "insert into public.chatwoot_conversations as cc (tenant_id, conversation_id, inbox_id, status, client_id)
+   values ('$TENANT', 1100, $BANDEJA, 'open', md5('0523-sintetico-C')::uuid)
+   on conflict (tenant_id, conversation_id) do update set client_id = excluded.client_id, inbox_id = coalesce(cc.inbox_id, excluded.inbox_id)" >/dev/null
 
 CTL() { docker exec -i "$PG" psql -X -q -At -U postgres -d postgres -v tenant="$TENANT" -f - <"$PH/controles-studio.sql" >"$1" 2>&1; }
 ctl() { sed -n "s/^$2 //p" "$1" | head -n 1; } # archivo prefijo («C-6 conversation_messages»)
@@ -172,13 +178,34 @@ exigir C2 '[ -s "$SHM/vinculos.ndjson" ] && [ "$(stat -c %a "$SHM/vinculos.ndjso
   "los vínculos quedan en $SHM/vinculos.ndjson con 0600 y el contenedor, limpio"
 cp "$SHM/vinculos.ndjson" "$TRABAJO/vinculos-1.ndjson"
 # (a): sin la última línea de mensaje.
-awk 'BEGIN{n=0} {l[NR]=$0} /"tipo":"mensaje"/{u=NR} END{for(i=1;i<=NR;i++) if(i!=u) print l[i]}' "$TRABAJO/vinculos-1.ndjson" >"$SHM/vinculos.ndjson"
-CTL "$TRABAJO/controles-a-antes.txt"
-corte_antes="$(corte)"
-vincular "$TRABAJO/vincular-a.txt"
-CTL "$TRABAJO/controles-a-despues.txt"
-exigir A1 '[ "$(h "$TRABAJO/vincular-a.txt" salida_proceso)" != 0 ] && grep -q "no son los del preparado" "$TRABAJO/vincular-a.txt" && cmp -s "$TRABAJO/controles-a-antes.txt" "$TRABAJO/controles-a-despues.txt" && [ "$(corte)" = "$corte_antes" ]' \
-  "(a) vincular con un mensaje menos se niega («no son los del preparado») y Studio no cambia: controles y corte iguales ($(corte))"
+# Los vínculos sin la última línea de mensaje: con la cabecera sin tocar (A2, el archivo se contradice) y con la
+# cabecera coherente (A1, el archivo es coherente pero no es el del preparado).
+menos_un_mensaje() { # cabecera_coherente(si|no) → $SHM/vinculos.ndjson
+  python3 -I -c 'import json, sys
+lineas = open(sys.argv[1], encoding="utf-8").read().splitlines()
+u = max(i for i, l in enumerate(lineas) if json.loads(l)["tipo"] == "mensaje")
+del lineas[u]
+if sys.argv[2] == "si":
+    cab = json.loads(lineas[0]); cab["mensajes"] -= 1
+    lineas[0] = json.dumps(cab, separators=(",", ":"))
+open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) + "\n")' "$TRABAJO/vinculos-1.ndjson" "$1" "$SHM/vinculos.ndjson"
+}
+caso_a() { # id cabecera_coherente error esperado descripción
+  local id="$1"
+  menos_un_mensaje "$2"
+  CTL "$TRABAJO/controles-$id-antes.txt"
+  CORTE_ANTES="$(corte)"
+  vincular "$TRABAJO/vincular-$id.txt"
+  CTL "$TRABAJO/controles-$id-despues.txt"
+  ERR_A="$3"
+  VA="$TRABAJO/vincular-$id.txt"
+  CA="$TRABAJO/controles-$id-antes.txt"
+  CD="$TRABAJO/controles-$id-despues.txt"
+  exigir "$id" '[ "$(h "$VA" salida_proceso)" != 0 ] && grep -qF -- "$ERR_A" "$VA" && cmp -s "$CA" "$CD" && [ "$(corte)" = "$CORTE_ANTES" ]' \
+    "$4: vincular se niega («$ERR_A») y Studio no cambia, ni los controles ni el corte ($(corte))"
+}
+caso_a A2 no "los conteos de la cabecera no son los de las líneas" "(a) un mensaje menos y la cabecera sin tocar"
+caso_a A1 si "no son los del preparado" "(a) un mensaje menos con la cabecera coherente"
 
 # ── C. repetir desde la extracción, con un mensaje nuevo (d) ─────────────────
 log "== C. repetir desde la extracción, con un mensaje nuevo en hA"
@@ -209,6 +236,8 @@ exigir K1 '[ -n "$(ctl "$A" "C-6 conversations")" ] && [ "$(ctl "$A" "C-6 conver
 # conversation_messages tiene una fila más: la que agregó la prueba (d). Lo demás del portal no cambia.
 exigir K2 '[ "$(ctl "$A" "C-7 crm_tarjetas")" = "$(ctl "$Z" "C-7 crm_tarjetas")" ] && [ "$(ctl "$A" "C-7 crm_tareas")" = "$(ctl "$Z" "C-7 crm_tareas")" ] && [ "$(ctl "$A" "C-7 crm_historial_etapas")" = "$(ctl "$Z" "C-7 crm_historial_etapas")" ] && [ "$(ctl "$A" "C-7 chatwoot_webhook_events")" = "$(ctl "$Z" "C-7 chatwoot_webhook_events")" ]' \
   "C-7: el CRM igual antes y después"
+exigir K4 '[ "$(q "select count(*) from public.chatwoot_conversations where tenant_id = '"'"'$TENANT'"'"'")" = 4 ] && [ "$(q "select count(*) from public.chatwoot_conversations where tenant_id = '"'"'$TENANT'"'"' and conversation_id = 1100")" = 1 ]' \
+  "vincular no le crea un segundo espejo a hC: 4 filas de chatwoot_conversations, una de hC"
 exigir K3 '[ "$(c8 "$Z" hilos_vinculados)" = 4 ] && [ "$(c8 "$Z" con_espejo)" = 4 ] && [ "$(c8 "$Z" client_id_distinto)" = 0 ] && [ "$(c8 "$Z" salida_cargado)" = 7 ] && [ "$(c8 "$Z" salida_enviado)" = 1 ]' \
   "C-8: 4 hilos vinculados (hC de la cola y los 3 cargados) con su espejo, 7 mensajes cargado y 1 enviado ($(grep '^C-8' "$Z" | tr '\n' ' '))"
 
