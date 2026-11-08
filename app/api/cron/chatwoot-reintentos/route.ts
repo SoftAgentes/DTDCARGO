@@ -18,6 +18,11 @@
  * 2026-10-30): BSUID con un año sin actividad y respuestas del bot de más de
  * 30 días (`purgarEnrutamientoChatwoot`).
  *
+ * Y manda la cola de la ida del chat del portal a Chatwoot (SDD-0586, paso 10.5,
+ * E10-D34), red de seguridad del envío que pide el portal, y después avisa a los
+ * admins, con solo números, si algo lleva más de 15 min sin llegar (E10-D40). Con
+ * el flag `chatwoot_portal` apagado o sin su configuración, ninguno hace nada.
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera,
  * como push-drain. Sin la 0504 responde 200 con `omitido` y no rompe.
  */
@@ -27,6 +32,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
 import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
 import { purgarEnrutamientoChatwoot } from "@/lib/studio/chatwoot/enrutar";
+import { avisarRezagoPortal, enviarPortalPendientes } from "@/lib/studio/chatwoot/portal";
 import { purgarBajasVencidas, purgarBandejaChatwoot } from "@/lib/studio/chatwoot/purga";
 import { reprocesarEventosChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
@@ -52,7 +58,10 @@ export async function GET(req: NextRequest) {
   const purgaBandeja = await purgarBandejaChatwoot(admin);
   const purgaBajas = await purgarBajasVencidas(admin, chatwootConfig(), chatwootServicioUserId());
   const purgaEnrutamiento = await purgarEnrutamientoChatwoot(admin);
-  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas, purgaEnrutamiento });
+  // La ida del portal no tumba el cron: lo que falle se informa con un código.
+  const portal = await enviarPortalPendientes(admin).catch(() => ({ omitido: "error" as const }));
+  const avisoPortal = await avisarRezagoPortal(admin).catch(() => ({ omitido: "error" as const }));
+  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas, purgaEnrutamiento, portal, avisoPortal });
 }
 
 export async function POST(req: NextRequest) {

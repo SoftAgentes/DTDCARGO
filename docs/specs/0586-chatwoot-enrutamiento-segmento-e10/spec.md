@@ -4,7 +4,7 @@ title: "Enrutamiento por segmento desde el ERP (etapa E10 del programa SDD-0582)
 status: in-progress
 author: "Claude Worker «0582 E10» (Sam)"
 created: 2026-10-30
-updated: 2026-11-06
+updated: 2026-11-07
 supersedes: null
 superseded_by: null
 related: ["0582", "0585", "0383", "0341", "0367", "0492", "0587", "0056", "0148", "0599", "0590", "0127", "0149"]
@@ -661,6 +661,61 @@ Editados:
 
 **Cruce con la 6.6:** comparten archivos y van en serie, primero la 10.5 (§10.5.19).
 
+**Partición de la PR 1 (Worker de la ida, 2026-11-07).** La PR 1 se parte en dos, en serie, para que la primera lleve solo la ida, de Studio a Chatwoot (E10-D34, E10-D35 y el aviso de E10-D40). Medido sobre `main` en `7e75f7708`.
+
+- **PR 1a · la ida (esta).** Migración `0519_chatwoot_portal.sql` (número asignado por el Director General el 2026-11-07, comunicado por el Subdirector de Chatwoot; reserva local `refs/dtd/reservations/migraciones/0519`) con las cuatro tablas de §10.5.6, `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` (el aviso, solo números) y `feature_flag_catalog()` con `chatwoot_portal` apagado. El envío en el servidor de Studio, el cron y el pedido sin bloquear del portal. Con el flag apagado, o sin `CHATWOOT_INBOX_PORTAL_ID`, el token o la cuenta, no hace nada. **No toca ninguno de los archivos que comparte con la 6.6** (`TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts` y `crm-ficha.ts`); solo cruza en `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
+- **PR 1b · la vuelta, el estado, el CRM y Studio en solo lectura.** Una migración propia, con su número, con `chatwoot_portal_respuesta`, `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar` desde la 1a. Lleva los dos manejadores, la conciliación, la reapertura por el envío si la PoC-4 falla, `crm-portal.ts`, la insignia y la sección de la ficha, Studio en solo lectura y los textos T1 a T4. Es la que cruza con la 6.6. El resto de la allowlist de la PR 1, de arriba, es de la 1b.
+- **PR 2 · la carga (P4)**, como arriba. `chatwoot_portal_vincular_carga` va con ella o en la migración de la 1b, lo que se integre primero. Hasta entonces, el `corte` de `chatwoot_portal_estado` solo lo escribe `service_role` a mano, y en prueba con una carga vacía.
+
+Lo que cambia respecto de §10.5.6, por la partición:
+
+- La ida solo toma mensajes del cliente (`direction = 'in'`). Lo saliente del modo de respaldo es de la 1b.
+- `chatwoot_portal_tomar` recibe también el tenant: la cuenta de Chatwoot es de un solo tenant (`CHATWOOT_TENANT_ID`), y sin él la cola podría mandar mensajes de otro tenant a la cuenta de DTD. Recibe además, opcional, el hilo, para que el portal pida solo el envío de su hilo.
+- `chatwoot_portal_salida` lleva una columna más, `verificar`: queda en verdadero después de un intento incierto, y desde ahí cada intento busca primero el `source_id` en Chatwoot. Un envío colgado en `enviando` más de 5 minutos cuenta como incierto.
+- El bloqueo por hilo es `for no key update skip locked` sobre la fila de `conversations`, no sobre el vínculo, que todavía no existe con el primer mensaje del hilo. `no key update` no choca con el `for key share` de la clave foránea, así que no frena a `portal_post_message` cuando inserta un mensaje en ese hilo.
+- Un mensaje «atascado» detiene su hilo: los siguientes esperan, para no romper el orden. Cómo se destraba uno atascado (a mano con `service_role`, o con una función para el admin) queda **pendiente** para el Director General.
+- **La búsqueda del `source_id` pagina** (hallazgo de la revisión independiente de la #424). Después de un intento incierto, ya no se mira solo la primera página de mensajes. Se va hacia atrás con `?before=<id>`, hasta encontrarlo, hasta una página vacía o hasta pasar la hora del mensaje de Studio, con un margen de 5 minutos. Para eso `chatwoot_portal_tomar` devuelve también `enviado_at`. Si en 50 páginas no lo encuentra ni pasa esa hora, es `busqueda_incompleta`: no se reenvía y queda incierto. La PoC lo mide con más mensajes de los que caben en una página.
+- **Riesgos conocidos.**
+  - **El tope de 25 s por corrida** (`PRESUPUESTO_MS` en `portal.ts`): el cron deja de tomar tandas nuevas pasados 25 s, pero termina la tanda en curso, de hasta 10 mensajes. Cada mensaje hace hasta cuatro llamadas de 10 s, y después de un incierto puede leer hasta 50 páginas de la búsqueda. Una tanda lenta puede pasar del minuto. Lo que quede reclamado sin cerrar se retoma a los 5 minutos como incierto, buscando antes su `source_id`, así que no duplica: solo se demora.
+  - **Un admin puede encender `chatwoot_portal` desde el panel de flags.** Encenderlo solo no manda nada. Hace falta, además, que el servidor tenga `CHATWOOT_INBOX_PORTAL_ID`, el token, la cuenta y el tenant (`chatwootPortalConfig()`), y que `chatwoot_portal_estado` tenga un `corte`, que hoy solo escribe `service_role` y después la carga P4. Cargar las variables y fijar el corte son puertas con OK nominal de Sam (§10.5.9). El flag no reemplaza esas puertas; las suma.
+- No se mandan los mensajes de una ficha borrada (`clients.deleted_at`). Sí los de un hilo archivado en Studio: el mensaje existe y el equipo tiene que verlo. La guarda de la vuelta para esos hilos es de la 1b (E10-D37).
+
+**PR 1a · allowlist exacta.**
+
+Nuevos:
+
+- `supabase/migrations/0519_chatwoot_portal.sql` y `supabase/tests/0519_chatwoot_portal.test.sql`
+- `lib/studio/__tests__/chatwoot-portal.migration.test.ts`
+- `lib/studio/chatwoot/portal.ts` (configuración leída aparte, envío, contacto, conversación y aviso) y `lib/studio/chatwoot/__tests__/portal.test.ts`
+- `.agents/handoffs/0586-e10-5-ida.md`
+- Por decisión del Director General (2026-11-07, comunicada por el Subdirector), el portón de la PoC y de las dos sesiones va en esta misma PR:
+  - `.github/workflows/chatwoot-portal-poc.yml`, con dos jobs: `poc` y `carrera`
+  - `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh`, `compose.portal-poc.yml`, `sonda-portal-poc.rb`, `carga-webhook-poc.rb`, `receptor-webhook.mjs` y `mutantes-ida.cjs` (el ejecutor de los mutantes del código, que pidió la revisión)
+  - `lib/studio/chatwoot/__tests__/portal.poc.test.ts`, que se salta sin la instancia efímera
+  - `scripts/__tests__/env-example-contract.test.ts`, que suma `CHATWOOT_POC_` a los interruptores del arnés que no se documentan en `.env.example`, como `SCHEMA_REBUILD_`
+  - `supabase/tests/0519_chatwoot_portal_carrera.test.sql`
+
+Editados:
+
+- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`
+- `lib/studio/feature-flags-types.ts` (`chatwoot_portal` y el efecto nuevo `servidor`), `lib/studio/__tests__/feature-flags-catalog.test.ts` (que un flag `servidor` lo lea de verdad el servidor) y `app/studio/(app)/admin/feature-flags/_components/FeatureFlagsClient.tsx` (el texto del efecto `servidor`; sin él, el panel caería en «oculta del menú»)
+- `lib/studio/chatwoot/config.ts` (`chatwootPortalConfig`); no tiene prueba propia, así que sus casos van en `portal.test.ts`
+- `lib/studio/chatwoot/router-api.ts` (contacto, conversación y mensajes de una conversación; asignar agente es de la 1b) y `lib/studio/chatwoot/__tests__/router-api.test.ts`
+- `app/api/cron/chatwoot-reintentos/route.ts` (la cola y el aviso; la conciliación es de la 1b) y `app/api/cron/chatwoot-reintentos/__tests__/route.test.ts`
+- `app/portal/(app)/mensajes/actions.ts` (pide el envío sin bloquear, con `after()`) y `app/portal/reintento-no-duplica.test.ts`
+- `.env.example` y `infra/dtd-cargo/.env.example` (`CHATWOOT_INBOX_PORTAL_ID`). Los vigilan `env-example-contract.test.ts` y `scripts/__tests__/infra-env-example.test.ts`, que no cambian. En §10.5.16 decía `infra/chatwoot/.env.example`, pero esa plantilla es la del contenedor de Chatwoot y la variable la lee Studio
+- `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md` y `docs/specs/README.md` (índice generado)
+
+No se tocan en la 1a: `webhook-procesar.ts`, `app/api/chatwoot/webhook/route.ts`, `app/studio/(app)/conversaciones/**`, `app/studio/(app)/crm/**`, `lib/studio/crm-*.ts`, `app/portal/(app)/soporte/page.tsx`, `app/privacidad/page.tsx`, `docs/specs/0582-chatwoot-piloto/checklist.md`, `docs/runbooks/chatwoot-bandeja.md` y `docs/legal/privacidad/mapa-de-borrado.md`, más lo que §10.5.16 ya excluye.
+
+**PR 1a · qué prueba de §10.5.15 cubre.** Del contrato SQL: los puntos 1 (preflight, con la reaplicación y un catálogo que no es el de la 0503), 2, 3, 5 y 10, más el aviso, los reintentos, el «atascado» y un intento viejo que no cierra el nuevo. Los puntos 4, 6 a 9 y 11 son de la 1b y de la PR 2. De TypeScript: el envío (orden, uno por hilo, el incierto que busca el `source_id` antes de reenviar, los reintentos, «atascado» y el aviso con solo números; con el flag apagado o sin configuración, nada) y que a Chatwoot solo salgan el nombre, el identificador y el texto. **PoC y dos sesiones (decisión del Director General, 2026-11-07).** Las PoC-1, PoC-2, PoC-3 y PoC-5 se miden en esta PR, y son el portón para fusionar. Corren en GitHub Actions (`chatwoot-portal-poc.yml`, job `poc`) contra un Chatwoot v4.19.1-ce real y efímero, el del compose de `infra/chatwoot`, con el cliente real de Studio, datos inventados y secretos generados en la corrida. Cada PoC tiene su control, y la ida corre de punta a punta, con un reintento incierto que no duplica. El job `carrera` mide `skip locked` con dos sesiones (dblink, Postgres 17), con sus controles en la misma corrida y un mutante de la 0519 sin `skip locked` que tiene que hacerla caer. La guarda del upsert se mide quitando `skip locked`: la guarda sola, con `skip locked` presente, no se alcanza de forma determinista (handoff, «Dos sesiones»). El resultado de cada corrida va en el handoff. Si `carrera` no sale verde, aplicar la 0519 en producción queda bloqueado, aunque la PR se fusione.
+
+**Lo que la PoC midió contra Chatwoot 4.19.1** (run 42415834528, 2026-11-07):
+
+- **PASÓ:** PoC-1, PoC-2, PoC-3 y PoC-5a, el caso de la paginación y la ida de punta a punta sin duplicar.
+- **Un hecho nuevo:** Chatwoot rechaza entregar un webhook a un host sin IP pública («has no public ip addresses»), una protección contra SSRF. En producción no cambia nada, porque la URL del webhook de Studio (2.3) es pública. En el arnés, la PoC-5b mide la carga que Chatwoot arma para el webhook de cuenta (`webhook_data`) en lugar de la entrega.
+- **Queda NV** la entrega por red hasta Studio, hasta la punta a punta en prueba (puerta 4 de §10.5.9).
+
 ### 10.5.17 Lo que queda fuera
 
 - «Tus casos» (reclamos), en el CRM o en Chatwoot (P1).
@@ -746,6 +801,31 @@ Las seis preguntas del borrador anterior (P1 a P6) ya tienen respuesta (§10.5.1
 - Decidir con el Subdirector de SEO si, con el flag encendido, se apaga el aviso de Telegram del portal (§10.5.13, punto 8).
 - Elegir dónde viven los scripts de la carga (PR 2, §10.5.16).
 - Llevar a la 0614 la propuesta de §10.5.19.
+- ~~Decidir cómo se destraba un mensaje «atascado» de la ida~~ **Decidido** por el Director General el 2026-11-07, comunicado por el Subdirector: la vía para el admin va en la PR 1b. Hasta entonces vale el procedimiento manual de abajo, y **el flag `chatwoot_portal` no se enciende hasta que exista la vía de la 1b**.
+
+**Mensaje atascado: procedimiento manual (PR 1a).** Un mensaje «atascado» detiene su hilo: los siguientes del mismo hilo esperan, para no romper el orden. Lo avisa el push de solo números de E10-D40.
+
+- **Quién lo autoriza:** el Director General, con el OK de Sam, para cada corrida. Lo corre `service_role` sobre la base del tenant, nunca desde una pantalla.
+- **Antes:** arreglar la causa con el código de `error` (por ejemplo, el token o la bandeja). Si no, el mensaje vuelve a atascarse en 24 h.
+- **Ver lo atascado.** Solo ids, estado, intentos, el código de error y fechas, sin el texto ni el nombre:
+
+  ```sql
+  select s.message_id, s.conversation_id, s.intentos, s.error, s.created_at, s.updated_at
+  from public.chatwoot_portal_salida s
+  where s.tenant_id = :'tenant' and s.estado = 'atascado'
+  order by s.created_at;
+  ```
+
+- **Reintentarlo, de a uno.** Vuelve a «pendiente» con un plazo nuevo de 24 h y con `verificar` encendido, porque un atascado pudo haber llegado: el próximo intento busca primero su `source_id` y no lo duplica. Toca una sola fila, y solo si sigue atascada:
+
+  ```sql
+  update public.chatwoot_portal_salida
+  set estado = 'pendiente', proximo_at = now(), verificar = true,
+      created_at = now(), updated_at = now()
+  where tenant_id = :'tenant' and message_id = :'mensaje' and estado = 'atascado';
+  ```
+
+  El cron `chatwoot-reintentos` lo toma en su próxima corrida, cada 5 minutos. El resultado se ve con la misma consulta de arriba (`estado` en `enviado`) o con `chatwoot_portal_rezagados`.
 - El checklist 0582 quedó en la #410 (`af50750d3`, en borrador), con la línea base v4: la fila 10.5 reescrita y dos filas nuevas, la 10.7 (aquí, «10.5 b») y la 10.8 (aquí, «10.5 c»). Esta rama deja el checklist igual que en su base (`3d17292a4`), así que la #400 no lo toca y no choca con la #410 en ningún orden de fusión. La reestimación ya está aprobada (§10.5.21).
 
 ### 10.5.21 Reestimación (I)
