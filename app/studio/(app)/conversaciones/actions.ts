@@ -249,7 +249,10 @@ export async function setStatusAction(
     .is("deleted_at", null)
     .maybeSingle<{ id: string; channel: string }>();
   if (errorHilo) return { error: "No se pudo leer la conversación. Vuelve a intentar." };
-  if (hilo?.channel === "portal") {
+  // SDD-0586 1c-1b: un hilo borrado (o de otro tenant) no existe para la acción, como en
+  // sendReplyAction. Antes seguía al update, y en un hilo del portal borrado la traba no corría.
+  if (!hilo) return { error: "Conversación no encontrada." };
+  if (hilo.channel === "portal") {
     const rechazo = await rechazoPortal(supabase, await resolveTenantId(supabase), hilo.channel);
     if (rechazo) return { error: rechazo };
   }
@@ -257,7 +260,8 @@ export async function setStatusAction(
   const { error } = await supabase
     .from("conversations")
     .update({ status: input!.status })
-    .eq("id", input!.conversation_id);
+    .eq("id", input!.conversation_id)
+    .is("deleted_at", null);
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
 
   revalidatePath("/studio/conversaciones");

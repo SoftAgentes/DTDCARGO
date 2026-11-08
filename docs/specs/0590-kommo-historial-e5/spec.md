@@ -4,7 +4,7 @@ title: "Historial de Kommo: respaldo cifrado fuera de Git y medición del volume
 status: in-progress
 author: "Claude Worker «E5 historial» (Sam)"
 created: 2026-10-30
-updated: 2026-11-07
+updated: 2026-11-08
 supersedes: null
 superseded_by: null
 related: ["0582", "0043", "0082", "0391", "0535", "0587"]
@@ -1161,7 +1161,7 @@ Queda escrito en el README («Cómo pararlo»), en la cabecera de `ensayo-archiv
 | `segundos_systemd` y el `sed` del cgroup, en la PC | PASÓ: «1min 30s» da 90, «10min» 600, «4min 59s» 299 e «infinity» 999999, y lo ilegible queda vacío. Una unidad `.service` del cgroup v1 y del v2 sí cuenta; el cgroup de un runner (`…service/runner`) y una sesión `.scope`, no |
 | `bash -n` de los guiones y del lanzador | PASÓ |
 | CI del cargador sobre `4cfa0403f`, solo las pruebas nuevas con el código de `main` (rojo previo, run 42424887376, 43 min) | FALLÓ, como se esperaba, solo en las pruebas nuevas. Python: `PruebasTexto403`. Lanzador: 0 de 9, porque no existe `lanzar-unidad.sh`. Ensayo: 11 fallas (T0, T1, T2, T4, ME2, ME3, ME5, ME6, N7, R6 y F5). R6 vio «el 3º, de hace 500 días;  revisados si no hubo». Siguen verdes las guardas de la completa (25), el vigía (15) y el cargador. Calidad continua sobre el mismo commit (42424887337): PASÓ |
-| CI con los arreglos | Ver la PR |
+| CI del cargador con los arreglos (`a52034e20`, run 42428357622, el job tardó 43 min 32 s) | PASÓ. Python: 63, OK. Lanzador: 9 de 9 (L1 a L5, M0 y MLA1 a MLA3). Ensayo: 0 fallas. T1 a T4 pasan; en T1, la unidad tenía 600 s y la limpieza tardó 0 s (con resolución de 1 s). T4 termina en `exit-code 1 5`. ME1 a ME4 y ME6 caen por su motivo. N7 para en adjuntos-1 con código 3, ME5 cae por `siguio`, y pasan R1 (48), R6 y F5. Completa: 25. Vigía: 15. Cargador: 0 fallas. Calidad continua sobre el mismo commit (42428357683): PASÓ. La #432 se fusionó en el tren #441 (`146d5ea5e`) |
 
 #### revisar-datos-ve
 
@@ -1188,3 +1188,45 @@ Encargo del Subdirector de Chatwoot, por el carril 4 que pidió Sam. El acta est
 - `docs/specs/0590-kommo-historial-e5/acta-conciliacion-parcial.md` (nuevo) y esta sección
 - `docs/specs/0582-chatwoot-piloto/checklist.md` (solo la fila 5.8)
 - `.agents/handoffs/0590-e5-acta.md` (nuevo)
+
+### 10.20 Los cinco puntos que no bloqueaban la #432 (2026-11-08)
+
+La revisión aprobó la #432 sobre `a52034e20` y dejó cinco puntos que no bloqueaban. El Subdirector de Chatwoot los pidió en su propia PR, después del tren #441 (`main` en `146d5ea5e`). **No toca producción ni el VPS, y no se corrió nada allí.** Las pruebas usan solo datos inventados, y las que llevan systemd corren en GitHub Actions. Handoff: `.agents/handoffs/0590-e5-lanzador-pulido.md`.
+
+1. **Una opción sin valor ya no deja el `while` girando.** Con `--unidad`, `--dir` o `--tope-vigia` al final y sin valor, `shift 2` fallaba sin mover nada, y `while [ $# -gt 0 ]` giraba para siempre. Ahora `pide_valor $#` (`[ "$1" -ge 2 ] || uso`) sale con 2. `--env` ya salía con 2.
+2. **Nunca corre sin vigía.** Si el `systemd-run` del vigía falla, el lanzador para la unidad principal (`systemctl stop`) y sale con 7. Antes, solo avisaba y la dejaba corriendo.
+3. **El token nunca va por `--env`.** `--setenv` queda en `Environment=` de la unidad, y `systemctl show` lo muestra. El lanzador niega las claves con `TOKEN`, `SECRET`, `PASSWORD`, `CLAVE` o `KEY` (código 2), sin imprimir el valor. Tampoco imprime el valor de un `--env` mal formado. El README y la cabecera del lanzador lo dicen.
+4. **La carga no tiene guion en el repo.** El README y la cabecera citaban un `<guion de la carga>` que no existe. Ahora dicen qué hubo de verdad: `carga-57-remoto.sh`, un guion de una sola corrida, fuera del repo, que seguía los pasos del cargador de Rails del README. También dicen que una carga nueva necesita su guion, revisado en su PR. Se suma la tabla de códigos del lanzador: 0, 2, 6 y 7.
+5. **Los runs de la #432.** Su handoff y la §10.18 los dejaban como pendientes porque la rama estaba congelada. Ahora traen el rojo previo (42424887376) y el verde (42428357622 y 42428357683).
+
+#### Allowlist
+
+- `infra/ops/kommo-historial/lanzar-unidad.sh`
+- `infra/ops/kommo-historial/README.md`
+- `infra/ops/kommo-historial/pruebas/prueba-lanzador.sh`
+- `infra/ops/kommo-historial/pruebas/prueba-docs-lanzador.sh`, nuevo
+- `.github/workflows/kommo-historial-cargador.yml`: el paso «Documentación del lanzador»
+- `docs/specs/0590-kommo-historial-e5/spec.md`
+- `.agents/handoffs/0590-e5-guarda-adjuntos.md`
+- `.agents/handoffs/0590-e5-lanzador-pulido.md`, nuevo
+
+#### Pruebas nuevas
+
+- **`prueba-lanzador.sh`:**
+  - **L6:** `--unidad kommo-e5-ensayo --dir`, con un tope de 10 s, sale con 2 y no lanza nada. Sin la guarda daría 124.
+  - **L7:** con una unidad `kommo-e5-ensayo-vigia` ya activa, el vigía no arranca. El lanzador tiene que salir con 7 y dejar inactiva la unidad principal.
+  - **L8:** `--env KOMMO_TOKEN=…` se niega con 2, no lanza nada y no imprime el valor.
+  - Mutantes nuevos:
+    - MLA4 deja `pide_valor` vacío, y cae L6;
+    - MLA5 quita el `systemctl stop`, y cae L7;
+    - MLA6 deja pasar las claves, y cae L8.
+  - MLA3, sin el vigía, ahora tumba L1 y también L7.
+- **`prueba-docs-lanzador.sh`**, sin root, con piso de 4 casos:
+  - **D1:** el token nunca va por `--env`, en el README y en el lanzador;
+  - **D2:** no queda ningún `<guion de la carga>`, y el README nombra `carga-57-remoto.sh` como fuera del repo;
+  - **D3:** la #432 ya no tiene el CI pendiente;
+  - **D4:** el código 7 está en el README.
+
+#### revisar-datos-ve
+
+No se capturan, mueven ni borran datos personales. La guarda nueva impide que un secreto quede en la definición de la unidad, y no imprime su valor. **Cumplimiento.**

@@ -197,7 +197,7 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
       eq: () => chain,
       is: () => chain,
       maybeSingle: async () => ({
-        data: { id: "conversation-1", client_id: "client-1" },
+        data: { id: "conversation-1", client_id: "client-1", channel: "email", tenant_id: "tenant-1" },
         error: null,
       }),
     };
