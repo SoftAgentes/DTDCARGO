@@ -687,7 +687,7 @@ Editados:
 
 - `app/portal/(app)/soporte/page.tsx` (T1, una línea) y su prueba nueva, `app/__tests__/soporte-plazo-respuesta.test.ts`;
 - `app/privacidad/page.tsx` (T2, T3 y T4) y `app/__tests__/privacidad-chat.test.ts`;
-- `app/__tests__/faq-seguimiento-coherente.test.tsx` (solo la fecha, que esa prueba lee en la página renderizada);
+- `app/__tests__/faq-seguimiento-coherente.test.tsx` y `app/__tests__/privacidad-mensajeria-interna.test.tsx` (solo la fecha, que las dos leen en la página renderizada);
 - esta spec (esta lista) y `.agents/handoffs/0586-textos-t1-t4.md`.
 
 La fecha de T4 es el día en que se publique: el Director General la confirma antes de fusionar.
