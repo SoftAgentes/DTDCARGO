@@ -43,7 +43,12 @@ Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [filas 7.1 a
 2. **Proceso: un trabajador `dtd-bot` en el VPS.** El cron de Vercel corre cada 5 minutos (`vercel.json:82`), y juntar ráfagas pide segundos (8 s de inactividad, 24 s como máximo). Por eso el turno lo atiende un proceso largo, con la misma imagen del Studio y otro punto de entrada (`node scripts/dtd-bot.mjs`, sin puerto), que sondea la cola cada 2 s. **Nace sin desplegar**: instalarlo en el VPS es una puerta aparte (§9).
 3. **Watchdog: el cron que ya existe.** `chatwoot-reintentos` revisa el latido del trabajador y los turnos vencidos. Si el trabajador no late hace más de 2 minutos, o un turno pasó su plazo sin cerrarse, el turno pasa a humano con aviso en el Studio. Nunca se envía tarde.
 
-**Bandejas donde nunca habla.** El bot solo actúa en las bandejas donde Sam lo encienda (fila en `chatwoot_bot_bandejas` con un modo distinto de Apagado). La bandeja del **portal** (SDD-0586, `chatwoot_portal`) y el **Archivo Kommo** (SDD-0590) quedan excluidas en código, aunque alguien les ponga un modo: `encolarTurnoBot` las descarta antes de escribir y la base rechaza esa fila. Regla pedida por el Subdirector de Chatwoot el 2026-11-08.
+**Bandejas donde nunca habla.** El bot solo actúa en las bandejas donde Sam lo encienda (fila en `chatwoot_bot_bandejas` con un modo distinto de Apagado). Quedan excluidas, aunque alguien les ponga un modo:
+
+- la bandeja del **portal** (SDD-0586): la base corta por conversación, porque `chatwoot_bot_encolar` no crea turno en un hilo de `chatwoot_portal_hilos` (0519), y el código la descarta antes por `CHATWOOT_INBOX_PORTAL_ID`;
+- el **Archivo Kommo** (SDD-0590) y la bandeja de **Instagram**: ninguna tabla dice cuál es cuál, así que van en `chatwoot_bot_bandejas_excluidas` (una bandeja excluida no se puede encender y no encola) y el código las descarta antes. Encender el bot en Instagram es una puerta aparte (§9).
+
+Regla pedida por el Subdirector de Chatwoot y por el DG el 2026-11-08.
 
 **Cruce con E10.** El webhook de la 0504 es el mismo que usa el portal (E10), cuyas piezas tocan `router-api.ts`, `portal-manejadores.ts` y la ruta. Por eso el manejador vive en un módulo propio (`lib/studio/chatwoot/bot/`) y su registro en `MANEJADORES` es una o dos líneas. Antes de abrir la PR que lo registra (E, §7) se mide con `git merge-tree` contra las ramas abiertas de E10 y se le avisa al Subdirector qué archivos se comparten; si hay choque, se serializa con E10.
 
@@ -117,7 +122,7 @@ La base canónica va en el repo **solo** si no trae PII ni datos de clientes (§
 ## 4. Modos (7.7) y respuesta sugerida (7.8)
 
 - **Por bandeja:** Apagado (por defecto) / Sugerir / Contesta solo, más horario, «resolver calla al bot» y «solo el primer mensaje». Se guardan en `chatwoot_bot_bandejas`.
-- **Contesta solo** no se puede elegir mientras la excepción IA-01 (7.2) no esté aprobada: la base lo rechaza con un `CHECK` contra una fila de aprobación que solo un admin escribe, y la acción del Studio lo vuelve a comprobar.
+- **Contesta solo** no se puede elegir mientras la excepción IA-01 (7.2) no esté aprobada: la base lo rechaza con un **trigger** sobre `chatwoot_bot_bandejas` que busca una excepción vigente en `chatwoot_bot_excepciones` (un `CHECK` no puede consultar otra tabla); revocar o borrar la excepción baja la bandeja a Sugerir, y la acción del Studio lo vuelve a comprobar.
 - **Sugerir** deja una **nota privada** en la conversación de Chatwoot y la muestra en la Ficha DTD con un botón Copiar (7.8). La persona la copia o la ignora; el bot nunca envía en ese modo.
 - **Interruptor general:** flag `chatwoot_bot` (apagado por defecto, en `lib/studio/feature-flags-types.ts`). Con el flag apagado, `encolarTurnoBot` no escribe nada.
 
@@ -131,13 +136,13 @@ La base canónica va en el repo **solo** si no trae PII ni datos de clientes (§
 
 ### 5.2 7.4 — base canónica con reglas duras
 
-- **Fuentes en el repo, sin PII** (**C**): `docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md` (33 secciones), los textos de los 4 agentes (`docs/marketing/agentes-ia-configuracion.md:263-666`) y el menú A–H de los Salesbots (`docs/runbooks/kommo-salesbots-inventario.md:29-61`).
+- **Fuentes en el repo, sin PII** (**C**): `docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md` (33 secciones), los textos de los 4 agentes (`docs/marketing/agentes-ia-configuracion.md:263-666`) y el menú A–H de los Salesbots (`docs/runbooks/kommo-salesbots-inventario.md:63-82`).
 - **Forma:** `lib/studio/chatwoot/bot/conocimiento/base.json` **se genera** con `scripts/bot-conocimiento.mjs` desde la v7 (una sola fuente; `--check` falla si quedó atrás). Toma las 33 secciones y la 25-bis de los bloques A a F: 34 fichas con id, grupo, título, preguntas, texto y fuente. Quita las notas internas y corta el «Paso 2» de la #28 (dirección completa con el teléfono y el nombre del contacto de bodega), que se cambia por «si insiste, pasa a una persona». `reglas-duras.ts` tiene las comprobaciones de §3.5.
 - **Prueba de contrato:** el JSON está al día; cada ficha cita su fuente; ninguna trae notas internas, teléfonos que no sean de DTD, correos fuera de `dtdcargo.com` ni números de cédula o RIF.
 - **Después:** los textos de los 4 agentes y el menú A–H entran como «pautas» del bot en la PR de 7.6 b, que es la que arma el prompt.
 - **Las 3 fuentes de Kommo** entran después de 7.3, solo si su revisión con revisar-datos-ve da «sin PII».
 
-## 6. Datos (una migración, número a pedir al Subdirector)
+## 6. Datos (migración 0522)
 
 | Tabla | Qué guarda | Qué no guarda |
 |---|---|---|
@@ -146,7 +151,11 @@ La base canónica va en el repo **solo** si no trae PII ni datos de clientes (§
 | `chatwoot_bot_llamadas` | turno, proveedor, modelo, tokens de entrada y salida, costo en USD, resultado, duración | prompt, respuesta |
 | `chatwoot_bot_latidos` | id del trabajador, último latido | — |
 
-RPC con `security definer` y `search_path` fijo: `chatwoot_bot_encolar`, `chatwoot_bot_tomar` (`FOR UPDATE SKIP LOCKED`, con lease), `chatwoot_bot_cerrar`, `chatwoot_bot_invalidar` y `chatwoot_bot_gasto_mes`. Solo `service_role`; RLS en las cuatro tablas. Contrato en `.test.sql` (PGlite) y en `sql-tests.yml`. Purga: turnos y llamadas a los 90 días, en el cron de reintentos, como la 0508. **La PR de la migración no se fusiona sin la migración aplicada en producción**, con su OK nominal.
+Además, `chatwoot_bot_excepciones` (la excepción IA-01, vacía al nacer) y `chatwoot_bot_bandejas_excluidas` (§2).
+
+RPC con `security definer` y `search_path` fijo, solo `service_role`: `chatwoot_bot_encolar`, `chatwoot_bot_tomar` (`FOR UPDATE SKIP LOCKED`, con lease), `chatwoot_bot_cerrar`, `chatwoot_bot_invalidar`, `chatwoot_bot_vigilar`, `chatwoot_bot_latir`, `chatwoot_bot_anotar_llamada`, `chatwoot_bot_gasto_mes` y `chatwoot_bot_purgar`. RLS en las seis tablas; el admin del tenant lee. Contrato `.test.sql` en Postgres con Docker (paso «Contratos SQL» de Actions) y contrato `.test.ts` en PGlite. Purga: turnos cerrados y llamadas a los 90 días, en el cron de reintentos, como la 0508.
+
+**Migrate-first:** la 0522 se aplica en prueba y en producción antes de fusionar su PR, desde la cabeza aprobada, con un OK nominal de Sam para cada una.
 
 ## 7. Plan de PR (cada una desde `main`, en borrador)
 
@@ -160,15 +169,27 @@ RPC con `security definer` y `search_path` fijo: `chatwoot_bot_encolar`, `chatwo
 | F | 7.7: modos desde el Studio | 7.7 | página nueva en Administración › Chatwoot, acciones | quizás (si E no la cubre) | no (sin encender) |
 | G | 7.8: nota privada y Copiar en la Ficha DTD | 7.8 | Dashboard App «Ficha DTD» | no | no (sin encender) |
 
-Ramas al 2026-11-08: A en `claude/objective-bohr-fd58df`; C en `codex/e7-bot-conocimiento`; D en `codex/e7-bot-nucleo`. La migración de E se pide al Subdirector con su diseño al llegar a esa pieza (la 0521 es de la 1c-2 de E10, que va primero).
+Ramas al 2026-11-08: A en `claude/objective-bohr-fd58df`; C en `codex/e7-bot-conocimiento`; D en `codex/e7-bot-nucleo`. La migración de E es la **0522** (`0522_chatwoot_bot.sql`), asignada por el DG; la 0521 es de la 1c-2 de E10, que va primero.
 
-E y F pasan por `/ui-check` si tienen pantalla. 7.5, 7.10 y 7.11 no tienen PR hasta tener OK.
+E y F pasan por `/ui-check` si tienen pantalla.
+
+### 7.1 Allowlist exacta
+
+Cada PR toca solo estos archivos. Una pieza que necesite otro lo agrega aquí antes, en su propia PR.
+
+| PR | Archivos |
+|---|---|
+| A (#447) | `docs/specs/0618-bot-propio-e7/spec.md`, `docs/specs/README.md` (índice generado), `.agents/handoffs/0618-bot-propio-e7.md` |
+| C (#448) | `scripts/bot-conocimiento.mjs`, `lib/studio/chatwoot/bot/conocimiento/base.json`, `lib/studio/chatwoot/bot/conocimiento/reglas-duras.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/base.test.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/reglas-duras.test.ts` |
+| D (#449) | `lib/studio/chatwoot/bot/autor.ts`, `lib/studio/chatwoot/bot/frenos.ts`, `lib/studio/chatwoot/bot/decidir.ts`, `lib/studio/chatwoot/bot/motor.ts` y sus cuatro pruebas en `lib/studio/chatwoot/bot/__tests__/` (`autor`, `frenos`, `decidir`, `motor`, `.test.ts`) |
+| E1 (0522) | `supabase/migrations/0522_chatwoot_bot.sql`, `supabase/tests/0522_chatwoot_bot.test.sql`, `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, `supabase/migrations-baseline.json` (solo la espera de la 0522), `.agents/handoffs/0618-bot-propio-e7.md` |
+| E2 (manejador, trabajador, watchdog, PoC) | se fija en esta tabla antes de abrirla; incluye una o dos líneas de `lib/studio/chatwoot/webhook-procesar.ts` (lista de manejadores), con `merge-tree` contra E10 (§2) | 7.5, 7.10 y 7.11 no tienen PR hasta tener OK.
 
 **Archivos que no toca:** los de E10 (`lib/studio/chatwoot/portal*`, `app/studio/(app)/conversaciones/**`, `app/api/studio/conversaciones/**`) y los del CRM (`TarjetaFichaDrawer`, `CrmTableroKanban`, `tarjeta-actions`, `crm-ficha`). La lista de `MANEJADORES` de `webhook-procesar.ts` es compartida: E la toca en una línea y se avisa al Subdirector antes.
 
 ## 8. Pruebas
 
-- Unitarias de cada función pura (frenos, filtro de autor, comprobación previa, reglas duras, recortes y costo), escritas **antes** del código y vistas en rojo.
+- Unitarias de cada función pura (frenos, filtro de autor, comprobación previa, reglas duras, recortes y costo). En C y D se escribieron junto con el código y no se vieron en rojo antes de él: los mutantes hacen ese papel (§11). Desde las correcciones de la revisión del DG, cada arreglo lleva su prueba vista en rojo contra la cabeza anterior y su mutante.
 - Mutantes sobre las guardas de falla cerrada: cada `return "humano"` y cada comparación del freno.
 - Contrato SQL de la migración en PGlite y en `sql-tests.yml`.
 - PoC en GitHub Actions, copiando el patrón de `chatwoot-portal-poc.yml`: Chatwoot 4.19.1 efímero, bandeja API inventada, contacto inventado, motor doble. Demuestra entrada → turno → nota privada, invalidación por una persona y caída del trabajador a mitad del turno.
@@ -182,9 +203,10 @@ Cada una con su OK nominal de Sam, que pide el Director General:
 - **7.1:** cuentas de pago, retención y DPA del proveedor.
 - **7.2:** la excepción IA-01 acotada (bandejas, tipos de respuesta, herramientas, datos, prohibiciones, tope, responsable, revocación y suspensión).
 - **7.5:** la prueba de modelos con proveedores reales y cualquier llamada a un modelo pagado.
-- Aplicar la migración de E (prueba y producción).
+- Aplicar la 0522 en prueba y en producción antes de fusionar su PR, con un OK nominal de Sam para cada una (migrate-first, §6).
 - Instalar el trabajador `dtd-bot` en el VPS.
 - Encender el flag `chatwoot_bot` o poner una bandeja en Sugerir o Contesta solo.
+- Sacar la bandeja de **Instagram** de la lista de excluidas: decisión aparte, con su propio OK.
 - Leer Kommo con la sesión de Sam (7.3); escribir en Kommo, en Meta o en el Chatwoot vivo, nunca.
 - 7.11 (modo sombra sobre tráfico real) espera 7 días en 8.1.
 
@@ -194,6 +216,8 @@ Cada una con su OK nominal de Sam, que pide el Director General:
 |---|---|---|
 | Texto de los mensajes | Chatwoot; viaja al motor | No se guarda en Studio; se recorta a 2.000; no va a logs; el proveedor necesita retención y DPA (7.1) |
 | Nombre y teléfono del contacto | Chatwoot | No se manda al motor salvo que la regla lo pida; nunca se guarda en las tablas del bot |
+| Números de documento que escribe el cliente | el mensaje entrante | Se **enmascaran** antes de mandar la entrada al motor (cédula, RIF y pasaporte → «[documento]»; teléfonos que no son de DTD → «[teléfono]»), en la PR E. Recomendación del DG, 2026-11-08 |
+| Correo que pide la ficha 27 (lista de espera del aéreo) | la base v7 | Se revisa con revisar-datos-ve en la PR E: el bot no debería pedir el correo por chat sin finalidad y retención escritas |
 | Costo y tokens | `chatwoot_bot_llamadas` | Sin contenido; purga a 90 días |
 | Conocimiento de Kommo | respaldo `age` en el VPS | Fuera de Git; al repo solo con revisión «sin PII» |
 
