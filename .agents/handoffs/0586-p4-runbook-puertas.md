@@ -8,7 +8,7 @@
 ## Lo hecho
 
 - **[`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../docs/runbooks/chatwoot-portal-p4-puertas.md):**
-  - **Encender sin el historial** (E.1 a E.6): el camino corto, que va primero porque Sam está eligiendo entre los dos.
+  - **El anexo «Encender sin el historial»** (E.1 a E.6), al final. Sam eligió, literal, «Esperar la carga», así que quedó como referencia.
   - **Las cinco puertas, en el orden del DG:**
     1. la copia de producción para el ensayo, con dos OK: Chatwoot y Studio;
     2. la bandeja;
@@ -23,7 +23,7 @@
 
 ## Hallazgo: encender sin el historial cambia la carga P4 de después
 
-Va en el runbook, al principio de «Encender sin el historial», para que Sam lo sepa antes de elegir:
+Va en el anexo del runbook. Sam ya eligió esperar la carga, así que hoy no aplica:
 - **La puerta 4 se negaría:** al encender, la cola corre. La 4.3 exige que la cola nunca haya corrido y que el flag nunca se haya encendido.
 - **El historial de esos hilos queda fuera:** los hilos que la cola vincula ya no los carga `chatwoot_portal_carga_hilos`, así que su historial anterior al corte no llega a Chatwoot.
 - **Una carga posterior pide un rediseño,** y lo decide el DG.

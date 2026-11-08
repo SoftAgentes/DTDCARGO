@@ -33,6 +33,6 @@ DB=dtd-cargo-staging-db-1 TENANT=<uuid> bash infra/ops/portal-historial/vincular
 
 ## Puertas
 
-**El guion completo está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../../docs/runbooks/chatwoot-portal-p4-puertas.md):** las cinco puertas con su OK nominal, el camino corto «Encender sin el historial», los comandos, las condiciones, la evidencia, las vueltas atrás y la revisión de datos personales. **Nada de esta carpeta se corre contra producción sin el OK de su puerta.**
+**El guion completo está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../../docs/runbooks/chatwoot-portal-p4-puertas.md):** las cinco puertas con su OK nominal, el anexo «Encender sin el historial» (no elegido), los comandos, las condiciones, la evidencia, las vueltas atrás y la revisión de datos personales. **Nada de esta carpeta se corre contra producción sin el OK de su puerta.**
 
 **Las salidas** llevan solo `HECHO clave=valor`, con conteos: nunca nombres ni textos.

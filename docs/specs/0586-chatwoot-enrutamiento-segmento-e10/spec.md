@@ -568,7 +568,7 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 4. producción: respaldo de Chatwoot y de Studio antes, lectura previa, de a una y conteos después, con el Director General, que recibe la evidencia del ensayo antes. **Entre la foto y el encendido, el equipo no responde desde Studio:** la cola solo manda entrantes, y lo que escriba ahí no llegaría a Chatwoot (se cruza con la 1c-4). Si la vinculación falla y no se reintenta, se corre `limpiar.sh` y se comprueba que `/dev/shm/portal-historial` ya no existe;
 5. encender el interruptor.
 
-**El guion de las puertas,** con las condiciones de la revisión de datos personales de la #455 y la #456, la 0524 y las decisiones del DG del 2026-11-08, **está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../runbooks/chatwoot-portal-p4-puertas.md).** Incluye el camino corto, «Encender sin el historial». Esta spec no lo repite.
+**El guion de las puertas,** con las condiciones de la revisión de datos personales de la #455 y la #456, la 0524 y las decisiones del DG del 2026-11-08, **está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../runbooks/chatwoot-portal-p4-puertas.md).** Sam eligió, literal, «Esperar la carga» (2026-11-08): el portal se enciende después de P4. El camino corto «Encender sin el historial» queda como anexo del runbook. Esta spec no repite el guion.
 
 **Conteo para el Director General.** Contar las conversaciones en producción pide su propio OK, así que aquí no se contó nada. La consulta queda lista y la corre el Director General: es de solo lectura y devuelve solo conteos y fechas, sin texto, nombres ni ids de clientes. Se corre en el contenedor de la base de Studio con `psql -v tenant=<uuid del tenant> -f <archivo>`:
 

@@ -11,96 +11,6 @@
 > - **«según main, sin medir en el VPS»:** sale del repo, y el compose del VPS no es el de `main`.
 > - **‹por confirmar›:** todavía no está.
 
-## Encender sin el historial (camino corto, sin la carga P4)
-
-**Sam decide** entre dos caminos:
-- **esperar la carga P4** (las puertas 1 a 5, más abajo);
-- o **encender hoy sin el historial**, con esta sección.
-
-**Lo que se pierde con el camino corto:** los hilos y mensajes que ya existen (24 hilos y 73 mensajes según el conteo del 2026-11-07, sin archivados) **no van a Chatwoot.** El cliente los sigue viendo en el portal, pero el agente no los ve en la bandeja.
-
-**⚠️ Este camino cambia la carga P4 de después. Hay que decírselo a Sam antes de que elija:**
-- **La puerta 4 se negaría:** al encender, la cola corre y escribe en `chatwoot_portal_salida`. La 4.3 exige que la cola nunca haya corrido y que el flag nunca se haya encendido, así que la carga P4 se niega tal como está escrita.
-- **Parte del historial no se cargaría nunca:** un hilo que la cola vincula, porque el cliente escribió después del encendido, ya no se carga (`chatwoot_portal_carga_hilos` excluye los hilos con vínculo). Su historial anterior al corte no llega a Chatwoot.
-- **La carga P4 de después pediría un rediseño** (lo decide el DG), por esos dos motivos y por la regla de la cola de la 0524, que acota a los hilos sin vínculo.
-
-**El orden:** E.1 → E.2 → E.3 → E.4 → E.5 → E.6.
-- Cada paso tiene su OK nominal de Sam. Un OK no cubre el siguiente.
-- **Entre E.4 y E.5,** el equipo responde los hilos del portal desde Studio, como hoy.
-- **Desde E.5,** Studio queda en solo lectura para los hilos del portal (la 1c-1), y el equipo responde desde la bandeja de Chatwoot.
-
-### E.1 · La bandeja de la cuenta 1
-
-| | |
-|---|---|
-| **Qué lee o escribe** | **Antes, lee** los conteos de administradores y agentes de la cuenta 1, por rol y sin nombres. **Después, escribe en el Chatwoot vivo:** crea la bandeja |
-| **Comando** | **Conteo:** `docker exec -i chatwoot-rails-1 bundle exec rails runner 'a = Account.find(1); puts "HECHO administradores=#{a.account_users.administrator.count} agentes=#{a.account_users.agent.count}"'`. **China:** el DG le lleva el conteo a Sam, y **Sam verifica en el panel, con su sesión**, que ninguno sea del equipo de China. El DG no usa el navegador con la sesión de Sam. **La bandeja:** panel de la cuenta 1 → Ajustes → Bandejas → Nueva → canal **API**, **sin `webhook_url`**, sin saludo, sin asignación automática y sin encuesta. Los miembros son el usuario de servicio de E10 y solo agentes de Venezuela (E10-D36). **Después:** `… rails runner 'puts "HECHO miembros=#{Inbox.find(<id>).inbox_members.count}"'` |
-| **Para seguir** | 0 del equipo de China, la bandeja sin `webhook_url` y los miembros que el DG espera |
-| **Evidencia** | Los conteos, «verificado por Sam, 0 del equipo de China» con la hora, y el id de la bandeja. Sin nombres |
-| **Vuelta atrás** | Borrar la bandeja desde el panel, mientras no tenga conversaciones |
-| **OK nominal** | «¿Autorizas crear la bandeja "Conversaciones del portal" en la cuenta 1 de Chatwoot, con la verificación de administradores?» |
-
-### E.2 · Las variables de la web y recrearla
-
-| | |
-|---|---|
-| **Qué lee o escribe** | **Escribe** `/srv/dtd-cargo/.env` y recrea `dtd-cargo-web-1` |
-| **Comando** | Las variables `CHATWOOT_INBOX_PORTAL_ID` (de E.1), `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_ACCOUNT_ID=1`, `CHATWOOT_TENANT_ID` y `CHATWOOT_URL`. **No se imprimen:** solo el nombre y el largo, o un sha256 corto. Después, `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`, el comando de `publicar-web.sh` medido por el DG. Va sin `--force-recreate`: compose recrea si cambió el `.env` |
-| **Para seguir** | `docker inspect -f '{{.Created}}' dtd-cargo-web-1` da una hora nueva (**si no cambió, se para**). La web queda healthy, y la tarjeta «Portal → Chatwoot» de `/studio/bandeja` muestra la bandeja |
-| **Evidencia** | Los nombres y largos de las variables, el `Created` de antes y el de después |
-| **Vuelta atrás** | Vaciar `CHATWOOT_INBOX_PORTAL_ID` y correr el mismo `up -d --no-deps web` |
-| **OK nominal** | «¿Autorizas poner las variables de Chatwoot en la web de producción y recrear el contenedor?» |
-
-### E.3 · El webhook de la cuenta 1, con `message_created`
-
-| | |
-|---|---|
-| **Qué lee o escribe** | **Lee:** el webhook de E2, que ya existe. **Escribe** solo si le falta `message_created` |
-| **Comando** | En el panel de la cuenta 1 → Ajustes → Integraciones → Webhooks: que la URL termine en `/api/chatwoot/webhook` y que esté marcado `message_created` |
-| **Para seguir** | La URL y la suscripción, y la salud del webhook en Studio en verde |
-| **Evidencia** | «URL termina en `/api/chatwoot/webhook`, `message_created` marcado», sin la URL completa |
-| **Vuelta atrás** | Si se agregó `message_created`, quitarlo |
-| **OK nominal** | Mirarlo no pide OK. Si hay que agregar `message_created`: «¿Autorizas agregar `message_created` al webhook de la cuenta 1?» |
-
-### E.4 · El corte en `now()`
-
-**Sin corte, la cola no manda nada.** Con el corte en `now()`, la cola manda solo lo que el cliente escriba desde ese momento, nada viejo.
-
-**No hay RPC para fijarlo sin la carga:** solo lo fija `chatwoot_portal_vincular_carga` (0523 y 0524). Por eso este paso es una escritura por SQL en producción.
-
-| | |
-|---|---|
-| **Qué lee o escribe** | **Lee** el corte actual. **Escribe** una fila en `chatwoot_portal_estado`, como superusuario `postgres` y sin auditoría D1 |
-| **Comando** | **Lectura:** `docker exec -i dtd-cargo-db-1 psql -X -q -At -U postgres -d postgres -c "select corte from public.chatwoot_portal_estado where tenant_id = '<tenant>';"`. **Si ya hay corte, se anota y no se toca.** Si no hay, la escritura de `chatwoot-portal-encendido.md` §2, que no pisa uno que exista: `insert into public.chatwoot_portal_estado (tenant_id, corte) values ('<tenant>', pg_catalog.now()) on conflict (tenant_id) do update set corte = excluded.corte, updated_at = pg_catalog.now() where public.chatwoot_portal_estado.corte is null returning tenant_id, corte;` |
-| **Para seguir** | Devuelve una fila, con el corte de ahora. Si no devuelve ninguna, el corte ya existía y quedó igual |
-| **Evidencia** | El corte de antes y el de después, y quién lo corrió y a qué hora |
-| **Vuelta atrás** | `update public.chatwoot_portal_estado set corte = null, updated_at = pg_catalog.now() where tenant_id = '<tenant>';`, con el mismo OK y **antes de E.5**. Después de encender, mover el corte cambia qué mensajes salen |
-| **OK nominal** | «¿Autorizas fijar el corte de la cola del portal en este momento, en producción, por SQL?» |
-
-### E.5 · Encender `chatwoot_portal` desde el panel
-
-| | |
-|---|---|
-| **Qué lee o escribe** | **Escribe** el flag del tenant, con auditoría en `entity_audit_log` |
-| **Comando** | Studio → Admin → Feature flags → «Conversaciones del portal en Chatwoot», con la **sesión de platform admin de Sam**. **El `update` por SQL en producción queda ⛔** |
-| **Para seguir** | `select enabled from public.feature_flags where tenant_id = '<tenant>' and key = 'chatwoot_portal';` da `true`. Hay una fila nueva en `entity_audit_log` con `after_data->>'enabled' = 'true'` |
-| **Evidencia** | La hora, la fila de auditoría y la lectura del flag |
-| **Vuelta atrás** | El mismo interruptor, en `false` (`chatwoot-portal-encendido.md` §5) |
-| **OK nominal** | «¿Autorizas encender `chatwoot_portal` en producción desde el panel?» |
-
-### E.6 · El smoke con un cliente real
-
-| | |
-|---|---|
-| **Qué lee o escribe** | **Lee:** los conteos de la cola (`chatwoot-portal-encendido.md` §2). El cliente escribe en el portal: no es una escritura del DG |
-| **Comando** | Un cliente real, que sabe del smoke y lo autoriza, escribe desde el portal. Se mira que el mensaje llegue a la bandeja, y que la respuesta del agente vuelva al portal. Después, los conteos de la cola por estado |
-| **Para seguir** | El mensaje llega a la bandeja, la respuesta vuelve al portal, y la cola queda con el mensaje `enviado` y 0 atascados |
-| **Evidencia** | Las horas y los estados, sin el texto |
-| **Vuelta atrás** | Apagar el flag (E.5) |
-| **OK nominal** | «¿Autorizas el smoke con un cliente real, y leer los conteos de la cola?» |
-
----
-
 ## Antes de la primera puerta
 
 | Condición | Cómo se comprueba |
@@ -303,6 +213,99 @@
 - **Qué se mira:** que el mensaje llegue a la bandeja y que la respuesta del agente vuelva al portal.
 - **Qué se lee:** solo los conteos de la cola (`chatwoot-portal-encendido.md` §2), con su OK.
 - **La evidencia:** las horas y los estados, sin el texto.
+
+---
+
+## Anexo · Encender sin el historial (camino corto, sin la carga P4)
+
+> **No es el camino elegido.** Sam eligió, literal, «Esperar la carga» (2026-11-08, comunicado por el Subdirector): el chat del portal se enciende en producción después de P4, con las cinco puertas. Este anexo queda como referencia, por si alguna vez se decide otra cosa.
+
+**Había dos caminos:**
+- **esperar la carga P4**, con las puertas 1 a 5 de arriba: **es el elegido;**
+- o **encender sin el historial**, con este anexo.
+
+**Lo que se pierde con el camino corto:** los hilos y mensajes que ya existen (24 hilos y 73 mensajes según el conteo del 2026-11-07, sin archivados) **no van a Chatwoot.** El cliente los sigue viendo en el portal, pero el agente no los ve en la bandeja.
+
+**⚠️ Este camino cambia una carga P4 posterior:**
+- **La puerta 4 se negaría:** al encender, la cola corre y escribe en `chatwoot_portal_salida`. La 4.3 exige que la cola nunca haya corrido y que el flag nunca se haya encendido, así que la carga P4 se niega tal como está escrita.
+- **Parte del historial no se cargaría nunca:** un hilo que la cola vincula, porque el cliente escribió después del encendido, ya no se carga (`chatwoot_portal_carga_hilos` excluye los hilos con vínculo). Su historial anterior al corte no llega a Chatwoot.
+- **La carga P4 de después pediría un rediseño** (lo decide el DG), por esos dos motivos y por la regla de la cola de la 0524, que acota a los hilos sin vínculo.
+
+**El orden:** E.1 → E.2 → E.3 → E.4 → E.5 → E.6.
+- Cada paso tiene su OK nominal de Sam. Un OK no cubre el siguiente.
+- **Entre E.4 y E.5,** el equipo responde los hilos del portal desde Studio, como hoy.
+- **Desde E.5,** Studio queda en solo lectura para los hilos del portal (la 1c-1), y el equipo responde desde la bandeja de Chatwoot.
+
+### E.1 · La bandeja de la cuenta 1
+
+| | |
+|---|---|
+| **Qué lee o escribe** | **Antes, lee** los conteos de administradores y agentes de la cuenta 1, por rol y sin nombres. **Después, escribe en el Chatwoot vivo:** crea la bandeja |
+| **Comando** | **Conteo:** `docker exec -i chatwoot-rails-1 bundle exec rails runner 'a = Account.find(1); puts "HECHO administradores=#{a.account_users.administrator.count} agentes=#{a.account_users.agent.count}"'`. **China:** el DG le lleva el conteo a Sam, y **Sam verifica en el panel, con su sesión**, que ninguno sea del equipo de China. El DG no usa el navegador con la sesión de Sam. **La bandeja:** panel de la cuenta 1 → Ajustes → Bandejas → Nueva → canal **API**, **sin `webhook_url`**, sin saludo, sin asignación automática y sin encuesta. Los miembros son el usuario de servicio de E10 y solo agentes de Venezuela (E10-D36). **Después:** `… rails runner 'puts "HECHO miembros=#{Inbox.find(<id>).inbox_members.count}"'` |
+| **Para seguir** | 0 del equipo de China, la bandeja sin `webhook_url` y los miembros que el DG espera |
+| **Evidencia** | Los conteos, «verificado por Sam, 0 del equipo de China» con la hora, y el id de la bandeja. Sin nombres |
+| **Vuelta atrás** | Borrar la bandeja desde el panel, mientras no tenga conversaciones |
+| **OK nominal** | «¿Autorizas crear la bandeja "Conversaciones del portal" en la cuenta 1 de Chatwoot, con la verificación de administradores?» |
+
+### E.2 · Las variables de la web y recrearla
+
+| | |
+|---|---|
+| **Qué lee o escribe** | **Escribe** `/srv/dtd-cargo/.env` y recrea `dtd-cargo-web-1` |
+| **Comando** | Las variables `CHATWOOT_INBOX_PORTAL_ID` (de E.1), `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_ACCOUNT_ID=1`, `CHATWOOT_TENANT_ID` y `CHATWOOT_URL`. **No se imprimen:** solo el nombre y el largo, o un sha256 corto. Después, `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`, el comando de `publicar-web.sh` medido por el DG. Va sin `--force-recreate`: compose recrea si cambió el `.env` |
+| **Para seguir** | `docker inspect -f '{{.Created}}' dtd-cargo-web-1` da una hora nueva (**si no cambió, se para**). La web queda healthy, y la tarjeta «Portal → Chatwoot» de `/studio/bandeja` muestra la bandeja |
+| **Evidencia** | Los nombres y largos de las variables, el `Created` de antes y el de después |
+| **Vuelta atrás** | Vaciar `CHATWOOT_INBOX_PORTAL_ID` y correr el mismo `up -d --no-deps web` |
+| **OK nominal** | «¿Autorizas poner las variables de Chatwoot en la web de producción y recrear el contenedor?» |
+
+### E.3 · El webhook de la cuenta 1, con `message_created`
+
+| | |
+|---|---|
+| **Qué lee o escribe** | **Lee:** el webhook de E2, que ya existe. **Escribe** solo si le falta `message_created` |
+| **Comando** | En el panel de la cuenta 1 → Ajustes → Integraciones → Webhooks: que la URL termine en `/api/chatwoot/webhook` y que esté marcado `message_created` |
+| **Para seguir** | La URL y la suscripción, y la salud del webhook en Studio en verde |
+| **Evidencia** | «URL termina en `/api/chatwoot/webhook`, `message_created` marcado», sin la URL completa |
+| **Vuelta atrás** | Si se agregó `message_created`, quitarlo |
+| **OK nominal** | Mirarlo no pide OK. Si hay que agregar `message_created`: «¿Autorizas agregar `message_created` al webhook de la cuenta 1?» |
+
+### E.4 · El corte en `now()`
+
+**Sin corte, la cola no manda nada.** Con el corte en `now()`, la cola manda solo lo que el cliente escriba desde ese momento, nada viejo.
+
+**No hay RPC para fijarlo sin la carga:** solo lo fija `chatwoot_portal_vincular_carga` (0523 y 0524). Por eso este paso es una escritura por SQL en producción.
+
+| | |
+|---|---|
+| **Qué lee o escribe** | **Lee** el corte actual. **Escribe** una fila en `chatwoot_portal_estado`, como superusuario `postgres` y sin auditoría D1 |
+| **Comando** | **Lectura:** `docker exec -i dtd-cargo-db-1 psql -X -q -At -U postgres -d postgres -c "select corte from public.chatwoot_portal_estado where tenant_id = '<tenant>';"`. **Si ya hay corte, se anota y no se toca.** Si no hay, la escritura de `chatwoot-portal-encendido.md` §2, que no pisa uno que exista: `insert into public.chatwoot_portal_estado (tenant_id, corte) values ('<tenant>', pg_catalog.now()) on conflict (tenant_id) do update set corte = excluded.corte, updated_at = pg_catalog.now() where public.chatwoot_portal_estado.corte is null returning tenant_id, corte;` |
+| **Para seguir** | Devuelve una fila, con el corte de ahora. Si no devuelve ninguna, el corte ya existía y quedó igual |
+| **Evidencia** | El corte de antes y el de después, y quién lo corrió y a qué hora |
+| **Vuelta atrás** | `update public.chatwoot_portal_estado set corte = null, updated_at = pg_catalog.now() where tenant_id = '<tenant>';`, con el mismo OK y **antes de E.5**. Después de encender, mover el corte cambia qué mensajes salen |
+| **OK nominal** | «¿Autorizas fijar el corte de la cola del portal en este momento, en producción, por SQL?» |
+
+### E.5 · Encender `chatwoot_portal` desde el panel
+
+| | |
+|---|---|
+| **Qué lee o escribe** | **Escribe** el flag del tenant, con auditoría en `entity_audit_log` |
+| **Comando** | Studio → Admin → Feature flags → «Conversaciones del portal en Chatwoot», con la **sesión de platform admin de Sam**. **El `update` por SQL en producción queda ⛔** |
+| **Para seguir** | `select enabled from public.feature_flags where tenant_id = '<tenant>' and key = 'chatwoot_portal';` da `true`. Hay una fila nueva en `entity_audit_log` con `after_data->>'enabled' = 'true'` |
+| **Evidencia** | La hora, la fila de auditoría y la lectura del flag |
+| **Vuelta atrás** | El mismo interruptor, en `false` (`chatwoot-portal-encendido.md` §5) |
+| **OK nominal** | «¿Autorizas encender `chatwoot_portal` en producción desde el panel?» |
+
+### E.6 · El smoke con un cliente real
+
+| | |
+|---|---|
+| **Qué lee o escribe** | **Lee:** los conteos de la cola (`chatwoot-portal-encendido.md` §2). El cliente escribe en el portal: no es una escritura del DG |
+| **Comando** | Un cliente real, que sabe del smoke y lo autoriza, escribe desde el portal. Se mira que el mensaje llegue a la bandeja, y que la respuesta del agente vuelva al portal. Después, los conteos de la cola por estado |
+| **Para seguir** | El mensaje llega a la bandeja, la respuesta vuelve al portal, y la cola queda con el mensaje `enviado` y 0 atascados |
+| **Evidencia** | Las horas y los estados, sin el texto |
+| **Vuelta atrás** | Apagar el flag (E.5) |
+| **OK nominal** | «¿Autorizas el smoke con un cliente real, y leer los conteos de la cola?» |
+
 
 ---
 
