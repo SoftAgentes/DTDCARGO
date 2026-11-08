@@ -61,21 +61,23 @@ describe("trabaPortal", () => {
     expect(await trabaPortal(base("error").supabase, T1)).toBe("no_se_sabe");
   });
 
-  it("sin la bandeja del portal configurada, apagada y sin leer el flag", async () => {
+  // SDD-0586 1c-2 (decisión del DG, opción b): solo el flag decide, aunque falte la configuración.
+  it("sin la bandeja del portal configurada, el flag decide igual (fail-closed)", async () => {
     for (const falta of ["CHATWOOT_INBOX_PORTAL_ID", "CHATWOOT_ROUTER_TOKEN", "CHATWOOT_ACCOUNT_ID", "CHATWOOT_TENANT_ID"]) {
       configurar();
       vi.stubEnv(falta, "");
       const b = base({ enabled: true });
-      expect(await trabaPortal(b.supabase, T1), falta).toBe("apagada");
-      expect(b.tablas, falta).toEqual([]);
+      expect(await trabaPortal(b.supabase, T1), falta).toBe("activa");
+      expect(b.filtros, falta).toEqual([["tenant_id", T1], ["key", "chatwoot_portal"]]);
+      expect(await trabaPortal(base({ enabled: false }).supabase, T1), falta).toBe("apagada");
     }
   });
 
-  it("con la configuración de otro tenant, apagada", async () => {
+  it("con la configuración de otro tenant, decide el flag del tenant de la sesión", async () => {
     configurar(T2);
     const b = base({ enabled: true });
-    expect(await trabaPortal(b.supabase, T1)).toBe("apagada");
-    expect(b.tablas).toEqual([]);
+    expect(await trabaPortal(b.supabase, T1)).toBe("activa");
+    expect(b.filtros).toEqual([["tenant_id", T1], ["key", "chatwoot_portal"]]);
   });
 
   it("con la configuración pero sin saber el tenant de la sesión, no se sabe", async () => {

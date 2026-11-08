@@ -402,7 +402,139 @@ Es el camino del Archivo Kommo de E5 (SDD-0590 §10.3, §10.4 y §10.10), adapta
 1. **Extraer** de la base de Studio, en una transacción de solo lectura, a un ndjson. Lleva: por hilo, su id de Studio, su estado, si está archivado y desde cuándo, y el nombre del cliente; por mensaje, su id, la dirección, el texto, `sent_at` y, si es del equipo, el usuario y su nombre. No lleva teléfono, correo, cédula, RIF ni Shipping Mark.
 2. **Preparar la carga:** un contacto por cliente, con un identificador nuevo al azar (E10-D35); una conversación por hilo, con el estado traducido (E10-D39) o, si está archivado, `resolved` y su nota de actividad; y por mensaje, `source_id = dtd:<id del mensaje>`, entrante o saliente, y `created_at` = `sent_at`. El remitente de un saliente es el agente vinculado a su autor y, si no tiene, el usuario de servicio.
 3. **Cargar** con el cargador de E5 (Ruby, `rails runner` en el contenedor de Chatwoot), adaptado a esta bandeja. Escribe con `insert_all`, que no corre callbacks: ni webhooks, ni notificaciones, ni `SendReplyJob`, ni eventos de reportes. Salta lo que ya existe por `source_id`, y tiene un modo seco que solo cuenta. Devuelve un archivo de vínculos con **solo ids**: del hilo de Studio a la conversación y el contacto de Chatwoot, y de cada mensaje a su id en Chatwoot.
-4. **Vincular en Studio** con `chatwoot_portal_vincular_carga`. Guarda los vínculos, marca como `cargado` cada mensaje cargado, fija el corte de la cola y crea las filas de `chatwoot_conversations` (estado, bandeja y `client_id`), sin eventos. No crea tarjetas, ni tareas, ni avisos. Lo escrito entre la extracción y el encendido del flag sale por la cola, que empieza en el corte.
+4. **Vincular en Studio** con `chatwoot_portal_vincular_carga`. Guarda los vínculos, marca como `cargado` cada mensaje cargado, fija el corte de la cola y crea las filas de `chatwoot_conversations` (estado, bandeja y `client_id`), sin eventos. No crea tarjetas, ni tareas, ni avisos. Antes, exige que los conteos de `vinculos.ndjson` sean los del preparado: un archivo incompleto fijaría el corte, y lo que falta, anterior al corte, no saldría nunca por la cola (revisión del DG de la #456).
+   - **Lo que el cliente escribe** entre la foto y el encendido del flag sale por la cola, que empieza en el corte.
+   - **Lo que el equipo escriba desde Studio en esa ventana no llega a Chatwoot.** La cola solo manda **entrantes** (`chatwoot_portal_tomar`, 0519). Por eso, el guion de la puerta 4 dice que el equipo no responde desde Studio entre la foto y el encendido.
+   - **Se cruza con la 1c-4 (el modo de respaldo, E10-D40 punto 4):** mandar a Chatwoot lo que el equipo escribió en Studio es lo que esa pieza tiene que resolver. Mientras no esté, la regla de la puerta 4 cubre la ventana de la carga.
+
+**Los dos archivos entre la preparación y la carga (10.7, PR 2).** Lo propone el Worker de la 10.5 el 2026-11-08, para que E5 lo confirme antes de escribir código. La frontera la fijó el DG:
+- el Worker de la 10.5 hace la migración (`chatwoot_portal_vincular_carga`, la 0523), la extracción y la preparación;
+- E5 adapta su cargador y hace el ensayo, en su propia rama;
+- los dos trabajan en `infra/ops/portal-historial/` sin compartir archivos, y se comunican solo por estos dos archivos.
+
+Los dos viven en `/dev/shm` (0700) y se borran al terminar. Tienen un objeto JSON por línea, en UTF-8 y con LF. El campo `tipo` dice qué es cada línea, como en `carga.ndjson` de E5. Las fechas van en ISO 8601 con zona (`…Z`). Los ids de Studio son uuid en texto, y los de Chatwoot, enteros entre 1 y 2147483647. Un campo que no aplica va `null`, no se omite.
+
+**`preparado.ndjson`** (de la preparación al cargador). Lleva primero la cabecera, después todos los `contacto`, después todos los `conversacion` y al final todos los `mensaje`. Dentro de cada hilo, los mensajes van en el orden de Studio: `sent_at` y después `id`.
+
+| `tipo` | Campos | Notas |
+|---|---|---|
+| `cabecera` (1 línea) | `version` (1), `tenant_id`, `cuenta` (la de Chatwoot), `bandeja` (`CHATWOOT_INBOX_PORTAL_ID`), `corte` (5 minutos antes de que empiece la transacción de solo lectura de la extracción; ver el riesgo 2), `contactos`, `conversaciones` y `mensajes` (conteos) | El cargador rechaza el archivo si los conteos no coinciden con las líneas |
+| `contacto` (uno por cliente) | `cliente` (`clients.id`), `identificador` (uuid), `nombre` | `identificador`: el que devuelve la reserva `chatwoot_portal_reservar_contactos` (riesgo 1): el guardado, o uno nuevo al azar que se guarda antes de cargar (E10-D35). En Chatwoot es `dtd-portal:<identificador>`, sin teléfono ni correo (C-10). `nombre`: `clients.name` |
+| `conversacion` (una por hilo) | `hilo` (`conversations.id`), `cliente`, `estado` (`open`, `pending` o `resolved`), `creada_at`, `archivado_at` y `nota_archivo` | El estado se traduce así: `abierto` → `open`, `pendiente` → `pending` y `resuelto` → `resolved`. Un archivado va `resolved`, con `archivado_at` y una `nota_archivo` (`source_id` `dtd:archivado:<hilo>`, el texto de esta sección y `created_at` igual a `archivado_at`). Si no está archivado, `nota_archivo` va `null` |
+| `mensaje` (uno por mensaje) | `hilo`, `mensaje` (`conversation_messages.id`), `source_id` (`dtd:<mensaje>`), `sentido` (`entrante` o `saliente`), `texto`, `created_at` (el `sent_at` de Studio) y `agente` | `agente`: el `chatwoot_user_id` vinculado al autor (`chatwoot_agent_links`), solo en un saliente. Si no tiene vínculo, `null`, y el cargador firma con el usuario de servicio. En un entrante siempre va `null`: lo escribe el contacto |
+
+Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que **todavía no tienen vínculo** en `chatwoot_portal_hilos`; los que ya lo tienen los llevó la cola. Se toman todos sus mensajes, salvo los que vinieron de Chatwoot (`external_msg_id` que empieza con `chatwoot:`). No se llevan teléfono, correo, cédula, RIF ni Shipping Mark.
+
+**`vinculos.ndjson`** (del cargador a la vinculación). Lleva **solo ids**: ni nombres ni textos. Primero la cabecera, después los `contacto`, los `conversacion` y los `mensaje`. Con `MODO=seco` no se escribe.
+
+| `tipo` | Campos | Notas |
+|---|---|---|
+| `cabecera` (1 línea) | `version` (1), `tenant_id`, `cuenta`, `bandeja` y `corte`, copiados del `preparado.ndjson`; `contactos`, `conversaciones` y `mensajes` (conteos de lo vinculado) | `chatwoot_portal_vincular_carga` rechaza el archivo si `tenant_id`, `bandeja` o `corte` no son los del preparado, o si los conteos no coinciden con las líneas |
+| `contacto` | `cliente`, `identificador`, `contacto_id` (`contacts.id`) y `source_id` (el `source_id` del `contact_inbox` en la bandeja del portal) | Si el contacto ya existía, va su id. `source_id` nunca es un teléfono: es el chequeo de `chatwoot_portal_contactos` |
+| `conversacion` | `hilo` y `conversacion_id` | `conversacion_id` es el **`display_id`**, el número que usan la API y `chatwoot_portal_hilos`, no el id interno de la fila |
+| `mensaje` | `mensaje` (`conversation_messages.id`) y `mensaje_id` (`messages.id` en Chatwoot) | Va uno por mensaje cargado o ya existente por `source_id`. La nota de archivo no va: no es un mensaje de Studio |
+
+**Ejemplos inventados** (uuid y números sintéticos; los nombres y los textos son de muestra):
+
+```
+{"tipo":"cabecera","version":1,"tenant_id":"10000000-0000-4000-8000-000000000001","cuenta":1,"bandeja":9,"corte":"2026-11-10T14:00:00Z","contactos":1,"conversaciones":1,"mensajes":2}
+{"tipo":"contacto","cliente":"20000000-0000-4000-8000-0000000000a1","identificador":"30000000-0000-4000-8000-0000000000b1","nombre":"Cliente Sintético"}
+{"tipo":"conversacion","hilo":"40000000-0000-4000-8000-0000000000c1","cliente":"20000000-0000-4000-8000-0000000000a1","estado":"open","creada_at":"2026-10-01T12:00:00Z","archivado_at":null,"nota_archivo":null}
+{"tipo":"mensaje","hilo":"40000000-0000-4000-8000-0000000000c1","mensaje":"50000000-0000-4000-8000-0000000000d1","source_id":"dtd:50000000-0000-4000-8000-0000000000d1","sentido":"entrante","texto":"SINT ¿Llegó mi caja?","created_at":"2026-10-01T12:00:00Z","agente":null}
+{"tipo":"mensaje","hilo":"40000000-0000-4000-8000-0000000000c1","mensaje":"50000000-0000-4000-8000-0000000000d2","source_id":"dtd:50000000-0000-4000-8000-0000000000d2","sentido":"saliente","texto":"SINT Sí, llegó el lunes.","created_at":"2026-10-01T12:30:00Z","agente":7}
+```
+
+```
+{"tipo":"cabecera","version":1,"tenant_id":"10000000-0000-4000-8000-000000000001","cuenta":1,"bandeja":9,"corte":"2026-11-10T14:00:00Z","contactos":1,"conversaciones":1,"mensajes":2}
+{"tipo":"contacto","cliente":"20000000-0000-4000-8000-0000000000a1","identificador":"30000000-0000-4000-8000-0000000000b1","contacto_id":501,"source_id":"dtd-portal:30000000-0000-4000-8000-0000000000b1"}
+{"tipo":"conversacion","hilo":"40000000-0000-4000-8000-0000000000c1","conversacion_id":1201}
+{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d1","mensaje_id":90001}
+{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d2","mensaje_id":90002}
+```
+
+**El formato quedó cerrado con E5 el 2026-11-08** (comunicado por el Subdirector):
+1. **Nombres:** el cargador adopta tal cual `contacto`, `sentido` y los demás nombres de este formato.
+2. **`conversacion_id`:** es el `display_id`.
+3. **El contacto:** se reconoce por `identifier = dtd-portal:<identificador>`. Si ya tiene un `contact_inbox` en esta bandeja, `vinculos.ndjson` devuelve su `source_id` real, aunque no empiece con `dtd-portal:` (por ejemplo, si lo creó la cola). El chequeo de `chatwoot_portal_contactos` sigue rechazando un `source_id` que sea un teléfono.
+4. **`nota_archivo`:** es un objeto `{source_id, texto, created_at}`, o `null`. El cargador la escribe como un mensaje de actividad.
+5. **El usuario de servicio:** va en `AGENTE_SERVICIO=<id>`, en el entorno del cargador. El cargador rechaza la carga si ese id no es un usuario de la cuenta. Si un `agente` no nulo no es usuario de la cuenta, falla con `HECHO error=agente_desconocido`, y no firma con el usuario de servicio sin decirlo.
+6. **Lo que el cargador rechaza, sin escribir nada:**
+   - una `cuenta` o una `bandeja` de la cabecera distintas de las del entorno;
+   - conteos que no coinciden con las líneas;
+   - un `mensaje` de un hilo que no está en el archivo;
+   - una `conversacion` de un cliente sin `contacto`.
+7. **La bandeja con `webhook_url` (la guarda G1 del Archivo) se sigue rechazando.** La bandeja «Conversaciones del portal» es de canal API y va sin `webhook_url` (§10.5.9, puerta 3; guion de encendido, §1; PoC-6). El webhook que llega a Studio es el de la cuenta, como en V-4. Si la bandeja tuviera `webhook_url`, sería una bandeja mal configurada, y lo seguro es no cargar.
+8. **Los controles de Studio en el ensayo (C-6, C-7 y C-8):** el Worker de la 10.5 escribe las consultas en su propio archivo, `infra/ops/portal-historial/controles-studio.sql`. Son de solo lectura y devuelven solo conteos y huellas md5. E5 las corre desde su ensayo, contra la copia efímera de Studio. No hay archivos compartidos.
+
+**Dos riesgos de la carga y su arreglo** (revisión del Subdirector del 2026-11-08, sobre `4bdc781b4`):
+
+1. **Repetir la carga no duplica contactos ni conversaciones.** Supón que la carga en Chatwoot entra y `chatwoot_portal_vincular_carga` falla, por ejemplo por un corte de red. Al repetir, la extracción vuelve a traer esos hilos, porque siguen sin vínculo. Si la preparación inventara otro identificador al azar, el contacto `dtd-portal:<nuevo>` sería otro, y Chatwoot crearía contactos y conversaciones dobles. Es la regla de la 0519: el identificador se guarda **antes** de llamar a Chatwoot.
+   - **(a), obligatoria: la reserva.** La 0523 suma `chatwoot_portal_reservar_contactos(p_tenant_id, p_clientes uuid[])` (solo `service_role`). La preparación la llama **antes** de escribir `preparado.ndjson`. Inserta en `chatwoot_portal_contactos` una fila por cliente que todavía no tiene, con su `identificador` al azar y `chatwoot_contact_id` nulo (`on conflict do nothing`), y devuelve el identificador de cada cliente, nuevo o guardado. Una repetición lee el mismo, así que el cargador encuentra el contacto `dtd-portal:<identificador>` que ya creó y lo reusa. Es una escritura en la base de Studio, y en producción va dentro de la puerta 4, con su OK.
+   - **(b), confirmada por E5:** el cargador reconoce una conversación ya cargada por `additional_attributes.dtd_hilo` (el uuid del hilo) y los mensajes por su `source_id`, así que repetir no duplica ni conversaciones ni mensajes. **El contacto solo se mantiene igual si el identificador es estable:** por eso la reserva (a) es obligatoria.
+   - **La prueba:** la carga entra, la vinculación falla, se repite todo desde la extracción, y no queda ningún contacto ni conversación doble. Lo miden C-3 y C-10 en el ensayo, y el contrato de la 0523.
+2. **Un mensaje que cae entre la foto y el corte entra una sola vez (I).** Supón que el corte fuera la hora exacta en que empieza la transacción de solo lectura. Un mensaje que inserta otra transacción que empezó antes y confirma después tiene un `sent_at` anterior al corte, pero no está en la foto. No lo carga la extracción y tampoco lo manda la cola, que toma solo `sent_at >= corte` (`0519_chatwoot_portal.sql:226`).
+   - **El arreglo:** el `corte` de la cabecera va **5 minutos antes** del inicio de la transacción de solo lectura.
+   - **Lo que cae en ese margen y está en la foto** se carga y queda `cargado`. La cola salta las filas `enviado` y `cargado` (`0519_chatwoot_portal.sql:228`, comprobado), y `chatwoot_portal_rezagados` tampoco las cuenta (`:476`).
+   - **Lo que cae en el margen y no está en la foto** lo manda la cola al encender, porque su `sent_at` es posterior al corte.
+   - **Si algo se manda dos veces,** Chatwoot no lo duplica, por el `source_id` `dtd:<mensaje>`.
+   - **La prueba:** un mensaje en el margen que está en la foto entra una sola vez y no vuelve a salir por la cola. Otro en el margen que no está en la foto sale una sola vez por la cola. Va en el contrato de la 0523, con `chatwoot_portal_tomar`.
+
+**Revisión de datos personales de la carga (`revisar-datos-ve`, 2026-11-08, sobre el diseño, antes del código).** Es un inventario técnico, no asesoría legal. Cada punto lleva uno de tres estados: `CORRECTO` (se vio la implementación o el diseño que lo resuelve), `ENCONTRADO` (se vio el problema) o `NO VERIFICABLE` (no se puede comprobar leyendo el repo). El marco es la CRBV (arts. 28 y 60, habeas data) y la jurisprudencia de la Sala Constitucional. Se suma la PIPL si el equipo de China ve los datos.
+
+- **Inventario.**
+  - **Qué se mueve a Chatwoot:** `clients.name`, que pasa a ser el nombre del contacto; `conversation_messages.body`, el texto de cliente y equipo; `sent_at`; el estado del hilo; y, si es del equipo, el agente vinculado.
+  - **Qué no se mueve:** teléfono, correo, cédula, RIF ni Shipping Mark.
+  - **Dónde:** en la cuenta 1 de Chatwoot, en el VPS propio. Es la misma finalidad que el chat de Soporte ya tiene desde la 1a.
+- **Minimización · `CORRECTO` (diseño).** `preparado.ndjson` excluye por diseño los identificadores directos. El contacto se crea sin teléfono ni correo (C-10). `vinculos.ndjson` lleva solo ids. Los mensajes que vinieron de Chatwoot no se vuelven a copiar. *Hay que confirmarlo en el código (la extracción) y en el ensayo (C-10).*
+- **Base y aviso · `CORRECTO`.** El `/privacidad` publicado tiene T2 y T3. Son la línea «quedan también en nuestro propio sistema de atención, alojado en nuestro servidor» y la finalidad «atender lo que nos escribes por su chat de Soporte» (`app/privacidad/page.tsx:86`, `:219`), con la fecha del 8 de noviembre de 2026 (`:49`). La carga copia mensajes **anteriores** a esa fecha: el aviso nuevo los cubre si se lee como aviso de un tratamiento que sigue, no como un consentimiento nuevo. *La lectura legal es del abogado (fuera de alcance).*
+- **Archivos temporales · `CORRECTO` en el código; el ensayo lo mide en el VPS.**
+  - `extraer.sh` crea `/dev/shm/portal-historial` con 0700 y el preparado con 0600 (`umask 077`). Un `trap` borra lo parcial si la extracción falla.
+  - `vincular.sh` borra el directorio al salir bien. Si falla, lo deja para reintentar, y si no se reintenta se corre `limpiar.sh`.
+  - **Los tres scripts aceptan un solo directorio, el nombre fijo `/dev/shm/portal-historial`, y se niegan con cualquier otro antes de tocar nada.**
+    - En `04ba08d5d`, el `rm -rf` de `vincular.sh` podía borrar fuera de `/dev/shm` (primera revisión del DG de la #456).
+    - En `202b5daea`, el patrón `/dev/shm/?*` aceptaba `/dev/shm//`, y `limpiar.sh` borraba con eso todo `/dev/shm`, que usan otros procesos. También aceptaba `/dev/shm/a/b` y `/dev/shm/.x` (segunda revisión).
+  - **La prueba:** `infra/ops/tests/prueba-portal-historial.sh`, en Calidad, con un `docker` falso.
+  - **Nunca en el disco ni en Git.**
+- **Logs · `CORRECTO` (diseño).** El cargador imprime solo `HECHO clave=valor`, con conteos (patrón de E5). Las consultas de control (`controles-studio.sql`) devuelven solo conteos y md5.
+- **Borrado (supresión, art. 28 CRBV) · `ENCONTRADO`.** Si una ficha se borra en Studio, `chatwoot_portal_contactos` se borra en cascada (`0519_chatwoot_portal.sql:80`). **Pero el contacto, las conversaciones y los mensajes que ya están en Chatwoot no se borran.** La purga de 12 meses (`lib/studio/chatwoot/purga.ts:14`, 0508) limpia el espejo de Studio, no Chatwoot.
+  - Esto ya pasaba con la ida (1a): la carga no lo crea, pero lo agranda con el historial.
+  - **Arreglo propuesto, en otra pieza y no en la 10.7:** cuando se ejerza la supresión de un cliente, borrar en Chatwoot el contacto `dtd-portal:<identificador>` y sus conversaciones de la bandeja del portal, con el token del servicio, y registrarlo. Mientras tanto, el procedimiento manual de supresión tiene que incluir Chatwoot.
+- **Equipo de China · `NO VERIFICABLE`.** E10-D36 dice que la bandeja del portal tiene solo agentes de Venezuela. Pero en Chatwoot un **administrador** de la cuenta ve todas las bandejas, sea o no miembro. Si alguien del equipo de China es administrador de la cuenta 1, verá lo cargado, y ahí aplica la PIPL. Eso no está en el repo: hay que mirar los roles de la cuenta 1 en el panel de Chatwoot antes de la puerta 4.
+- **Titulares que no son usuarios · no aplica.** Solo se cargan clientes con ficha y los agentes del equipo.
+
+**Para el DG:** el hallazgo del borrado y la pregunta de los roles de China van como **FUERA DE ALCANCE** de la 10.7. Los dos los tiene que mirar alguien antes de la puerta 4 de producción. Se sugiere que otro modelo revise esta misma carga.
+
+**10.7 · el lado de Studio (la 0523 y los scripts), del Worker de la 10.5.** La reparte y le asigna el número el DG el 2026-11-08 (comunicado por el Subdirector). Va en su rama y su PR desde `main` en `2e2ddeb34`. No depende de la 0521 (la #453): solo de la 0519 y la 0520.
+
+- **La 0523** (`supabase/migrations/0523_chatwoot_portal_carga.sql`), migrate-first. Tiene tres funciones y dos auxiliares, todas solo para `service_role`. Las tres funciones se niegan con `chatwoot_portal` encendido, porque la carga corre con la cola quieta.
+  - `chatwoot_portal_reservar_contactos(p_tenant_id)`: la reserva del riesgo 1. La firma cambia respecto de lo de arriba: toma los clientes de los hilos por cargar ella misma, y no los recibe.
+  - `chatwoot_portal_carga_lineas(p_tenant_id, p_cuenta, p_bandeja)`: las líneas de `preparado.ndjson`. Solo corre en una transacción de solo lectura, exige la reserva y pone el corte 5 minutos antes.
+  - `chatwoot_portal_vincular_carga(p_tenant_id, p_preparado, p_vinculos)`: el paso 4. Reemplaza la firma `(p_tenant, p_corte, p_filas)` de §10.5.6, porque compara las dos cabeceras. Nunca pisa un mensaje `enviado` ni mueve un corte que ya existe. Hace todo o nada.
+  - **Un corte que ya existe y es anterior a la foto** (pedido del Subdirector del 2026-11-08). En la base de prueba, el DG fijó un corte por SQL, como `service_role`, para la punta a punta. `chatwoot_portal_vincular_carga` no lo mueve, y queda anterior a la foto. **Eso es correcto:**
+    - los hilos de esa punta a punta ya tienen vínculo, así que la extracción no los trae y la cola sigue con ellos;
+    - lo que se carga queda `cargado`, y la cola lo salta (`0519:228`) aunque esté después de ese corte;
+    - lo que llegó después de la foto sale una sola vez por la cola.
+    - **El contrato lo prueba:** con el corte en 2026-01-01, la cola manda solo el mensaje posterior a la foto. Lo cargado (también el del margen) y lo ya `enviado` no salen.
+  - **Los archivos que quedan en `/dev/shm`.** Si la vinculación falla, `vincular.sh` deja `preparado.ndjson` y `vinculos.ndjson` para poder reintentar. Pero un tmpfs guarda los datos de clientes hasta que alguien los borre o se reinicie el VPS.
+    - **El guion de la puerta 4** dice que se corre `limpiar.sh` si no se reintenta.
+    - **El cierre de la carga** comprueba que `/dev/shm/portal-historial` ya no existe (`test ! -e`) y lo deja en la evidencia.
+  - **Los hilos de una ficha borrada no se cargan. Es una decisión aparte, para que el DG se la muestre a Sam** (pedido del Subdirector del 2026-11-08).
+    - **El «Sí, todos» de Sam (decisión 6 b, 2026-11-07 06:55Z) no la cubre.** Era sobre los hilos **archivados**: los que archiva la fusión de fichas, que siguen colgando de una ficha viva. Esos sí se cargan, como `resolved` y con su nota.
+    - **Una ficha borrada es otra cosa:** la ficha tiene `deleted_at`, por una baja o una supresión, y su hilo puede no estar archivado.
+    - **El motivo:** si una ficha se suprimió, sus datos no se mueven a un sistema nuevo (art. 28 CRBV, ver la revisión de datos personales). Es la misma regla de la vuelta de la 0520, que no escribe en el hilo de una ficha borrada (`ficha_borrada`).
+    - **En código:** `chatwoot_portal_carga_hilos` exige `clients.deleted_at is null`, y el contrato lo prueba con la ficha D y su hilo. Si Sam decide otra cosa, el cambio es esa condición.
+- **Los scripts** (`infra/ops/portal-historial/`, ver su README): `reservar.sql`, `extraer.sql`, `extraer.sh` (todo en `/dev/shm` con 0700, borra lo parcial si falla), `vincular.sh` (borra `/dev/shm` si sale bien), `limpiar.sh` y `controles-studio.sql` (C-6 a C-8, de solo lectura, los corre E5).
+- **Pruebas:**
+  - el contrato `supabase/tests/0523_chatwoot_portal_carga.test.sql` y su envoltorio de PGlite, con el control rojo, los mutantes, la reaplicación, el preflight y la espera;
+  - lo que prueba el contrato: la reserva (estable y sin fichas borradas), las líneas (el corte con margen, la minimización, el orden, los estados y la nota del archivado), la vinculación (los rechazos, que es idempotente, que no pisa un `enviado` ni mueve el corte, y la C-6) y la cola después (lo `cargado` no sale; lo que cayó en el margen sin estar en la foto sale una vez).
+  - **los scripts de shell** tienen su prueba, `infra/ops/tests/prueba-portal-historial.sh`, con un `docker` falso que hace de psql (22 comprobaciones). Comprueba que `/dev/shm` queda con 0700 y el preparado con 0600, que lo parcial se borra si la extracción falla, y que el directorio se borra si la vinculación sale bien y queda si falla. Comprueba también los rechazos: fuera de `/dev/shm` y con barra invertida. Pide `/dev/shm`, así que la corre «Calidad continua» con `pruebas-linux.sh`.
+- **Allowlist 10.7 (este lado):**
+  - `supabase/migrations/0523_chatwoot_portal_carga.sql`, su contrato y su envoltorio `lib/studio/__tests__/chatwoot-portal-carga.migration.test.ts`;
+  - `supabase/migrations-baseline.json` (la espera; sin declaración de símbolos, porque no hay código de `app/` ni de `lib/` que llame a la 0523);
+  - `infra/ops/portal-historial/` (los seis scripts de arriba y el README);
+  - `infra/ops/tests/prueba-portal-historial.sh` y su línea en `infra/ops/tests/pruebas-linux.sh`;
+  - la spec y el handoff (`.agents/handoffs/0586-e10-7-p4-carga.md`).
+  - Sin acciones exportadas ni código de la app.
 
 **El ensayo (5.6 de E5, adaptado).** Es una copia efímera de la base de Chatwoot, con el mismo guion y las mismas guardas de `ensayo-archivo.sh`: red interna, tmpfs, `pg_dump` en solo lectura, la marca de la copia y el borrado de las otras cuentas solo en la copia. El paso 4 corre contra una copia efímera de la base de Studio, con las mismas guardas. Todo se mide con conteos y huellas md5, sin datos de personas:
 
@@ -428,7 +560,7 @@ Es el camino del Archivo Kommo de E5 (SDD-0590 §10.3, §10.4 y §10.10), adapta
 1. leer en producción el chat del portal para el ensayo (datos de clientes, que no salen del VPS y viven en tmpfs);
 2. crear la bandeja «Conversaciones del portal» (también es la puerta 3 de §10.5.9);
 3. correr el ensayo;
-4. producción: respaldo de Chatwoot y de Studio antes, lectura previa, de a una y conteos después, con el Director General, que recibe la evidencia del ensayo antes;
+4. producción: respaldo de Chatwoot y de Studio antes, lectura previa, de a una y conteos después, con el Director General, que recibe la evidencia del ensayo antes. **Entre la foto y el encendido, el equipo no responde desde Studio:** la cola solo manda entrantes, y lo que escriba ahí no llegaría a Chatwoot (se cruza con la 1c-4). Si la vinculación falla y no se reintenta, se corre `limpiar.sh` y se comprueba que `/dev/shm/portal-historial` ya no existe;
 5. encender el interruptor.
 
 **Conteo para el Director General.** Contar las conversaciones en producción pide su propio OK, así que aquí no se contó nada. La consulta queda lista y la corre el Director General: es de solo lectura y devuelve solo conteos y fechas, sin texto, nombres ni ids de clientes. Se corre en el contenedor de la base de Studio con `psql -v tenant=<uuid del tenant> -f <archivo>`:
@@ -727,7 +859,7 @@ La fecha de T4 es el día en que se publique: el Director General la confirma an
 - **PR 1c · el estado, el CRM y Studio en solo lectura.** Su migración propia, con número aparte, lleva `chatwoot_portal_estado_hilo`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear` y `crm_alta_tarjeta_web` redefinida, y `crm_portal_espera`. Si el modo de respaldo manda también lo que el equipo escribió en Studio (E10-D40, punto 4), redefine `chatwoot_portal_tomar`. Lleva:
   - `entrarPortal`;
   - la conciliación;
-  - la reapertura por el envío, si la PoC-4 falla;
+  - la reapertura por el envío, si la PoC-4 falla (no hizo falta: la PoC-4 pasó en la 1c-2);
   - `crm-portal.ts`, la insignia y la sección de la ficha;
   - Studio en solo lectura;
   - los textos T1 a T4.
@@ -899,6 +1031,131 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
   - `infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs`;
   - la spec y los handoffs (`0586-e10-5-1c-1b-borrado.md`, y la línea del de la 1c-1).
   - Sin migración y sin acciones exportadas nuevas.
+
+**1c-2 · diseño** (propuesta del Worker de la 10.5, 2026-11-08, para revisar antes de escribir código). Migración: la **0521**, que guarda el DG; se reserva cuando se apruebe este diseño. Medido sobre `main` en `146d5ea5e`.
+
+Lo que ya existe y se reusa:
+
+- **El espejo `chatwoot_conversations` (0504)** ya guarda `status` y `last_activity_at` de cada conversación. `chatwoot_registrar_evento` lo aplica en cada evento, en orden por `source_updated_at`, y devuelve `aplicado`.
+- **El reproceso** (`reprocesarEventosChatwoot`) vuelve a correr los manejadores con un evento de relleno (`estado: "open"` y `aplicado: false`). Por eso **el estado del hilo nunca se toma del evento**: se lee del espejo.
+- **La vuelta (0520):** `chatwoot_portal_respuesta` es idempotente por `chatwoot:<id>` y no escribe en un hilo archivado. `responderAlPortal` ya filtra lo que va al portal (`esRespuestaDelEquipo`) y deja las notas del archivado y del adjunto.
+- **La API, con el token del router** (el del cron): `obtenerConversacion` (`router-api.ts:78`), `listarMensajes` y `leerMensaje`. La de `account-api.ts` pide el token de un agente y no sirve aquí.
+
+**E10-D39 · el estado.**
+
+- **Manejador nuevo, `estadoAlPortal`** (en `MANEJADORES`, después de `responderAlPortal`). Corre en cualquier evento de una conversación de la bandeja del portal, con el flag y la configuración de la 1c-1. Llama a `chatwoot_portal_estado_hilo(p_tenant_id, p_chatwoot_conversation_id)`.
+- **`chatwoot_portal_estado_hilo`** (`service_role`, `security definer`, `search_path = ''`):
+  - lee el `status` del espejo y lo traduce: `open` → `abierto`, `resolved` → `resuelto`, `pending` y `snoozed` → `pendiente`;
+  - lo escribe en `conversations.status` del hilo vinculado (`chatwoot_portal_hilos`) **solo si cambia**;
+  - no toca un hilo archivado (`deleted_at`), de otro canal o de otro tenant, ni nada con el flag apagado;
+  - devuelve `actualizado`, `igual` u `omitido`, con su motivo.
+  - **El orden lo da el espejo:** un evento viejo no lo pisa, porque `chatwoot_registrar_evento` ya lo descartó.
+- **Del portal a Chatwoot:** no cambia. `portal_post_message` reabre en Studio (0512) y el entrante reabre en Chatwoot. **La PoC-4 se midió en esta PR y PASÓ** (Actions, sobre `eceda3b9b`, job 128758591446, leído por el Subdirector): un entrante por la API en una conversación `resolved` la deja `open`. **No hace falta reabrir desde el envío con `toggle_status`, y `lib/studio/chatwoot/portal.ts` no cambia.**
+
+**E10-D40, punto 5 · la conciliación.**
+
+- **En el cron `chatwoot-reintentos`** (cada 5 min), después de la ida: `conciliarPortal(admin)`, con un tope de **20 hilos por corrida** y de **5 páginas por hilo**.
+- **`chatwoot_portal_por_conciliar(p_tenant_id, p_limite)`** (`service_role`) da los hilos a mirar: vinculados y vivos, del canal portal, con el flag encendido, y:
+  - **los que no están `resuelto`, sin ventana de tiempo.** Una ventana de 24 h dejaba fuera justo el caso que la conciliación resuelve: un agente contesta más de 24 h después del último mensaje del cliente y el webhook se pierde. El espejo no se entera, porque se perdió el evento, y el `sent_at` del hilo sigue siendo el viejo del cliente (revisión del Subdirector del 2026-11-08);
+  - **los `resuelto`, con actividad en los últimos 7 días**, según `chatwoot_conversations.last_activity_at` o el último `sent_at` del hilo;
+  - ordenados por `conciliado_at`, primero los nulos, con el tope;
+  - devuelve el id de la conversación de Chatwoot.
+- **Por qué alcanza (I).** El conteo de solo lectura del DG del 2026-11-07, a las 06:44:45Z (decisión 6 del checklist), dio 24 hilos y 73 mensajes del portal en producción, archivados incluidos. Con un tope de 20 por corrida cada 5 min, todos los hilos vivos se miran cada 10 min como mucho. **No se pide otro conteo en producción.** Si los hilos crecen, el tope y la ventana de los resueltos se ajustan con un número medido.
+- **Por hilo:**
+  1. `obtenerConversacion` y `aplicarConversacion(…, null)` corrigen el espejo si se perdió un evento de estado. Después corre `chatwoot_portal_estado_hilo`.
+  2. **Mensajes, paginando hacia atrás** con `?before=<id>`, como `portal.poc.test.ts:83` y la búsqueda del `source_id` de la ida:
+     - **sin el filtro «más nuevo que el último `chatwoot:<id>`»**, porque perdía mensajes. Con 25 perdidos y páginas de 20, la primera corrida metía los 20 más nuevos, y los 5 más viejos ya no entraban nunca. `chatwoot_portal_respuesta` ya es idempotente por `chatwoot:<id>`;
+     - **hasta pasar la marca de agua** `chatwoot_portal_hilos.conciliado_hasta` (bigint): el id de Chatwoot del mensaje más nuevo revisado en una corrida completa. Los ids de mensaje de Chatwoot crecen. Si la marca es nula, va hasta el principio de la conversación. El tope es de **5 páginas**;
+     - **no se detiene en el primer saliente conocido.** Eso fallaba con una pérdida salteada: se pierde el 10, llega el 11 y se pierde el 12. Hacia atrás, el 12 es nuevo y el 11 conocido, así que paraba ahí y el 10 no volvía nunca. Que Chatwoot 4.19.1 no reintente los webhooks de cuenta es inferencia (I): lo dice el comentario de `reprocesarEventosChatwoot`, pero no se midió. El hueco existe igual: si reintenta y el corte dura más que sus reintentos, o si un evento llega y falla para siempre, queda un saliente perdido entre dos entregados (revisión del Subdirector del 2026-11-08);
+     - lo que junta se mete en **orden ascendente**, por el camino de `responderAlPortal`: `esRespuestaDelEquipo`, `chatwoot_portal_respuesta`, el push una sola vez y las notas.
+  3. `chatwoot_portal_marcar_conciliado(p_tenant_id, p_conversation_id, p_hasta)`, **solo si pasó la marca o llegó al principio**: mueve `conciliado_hasta` al mensaje más nuevo revisado (nunca hacia atrás) y fija `conciliado_at`. Si lo cortó el tope de páginas, devuelve `faltan_paginas`, no mueve la marca y no marca el hilo, que vuelve primero en la próxima corrida.
+  - **Con `faltan_paginas`, igual escribe lo que juntó**, en orden ascendente (es idempotente). Si no, un hilo con más de 5 páginas sin conciliar no traería ni siquiera sus respuestas más nuevas.
+  - **Límite conocido (I):** lo que quede a más de 5 páginas de la marca (o del final, si la marca es nula) no se alcanza, y el cron lo informa como `faltanPaginas`. Con 24 hilos y 73 mensajes en producción (conteo del 2026-11-07), hoy no se llega a ese caso.
+- **Un hilo que falla no frena los demás.** Se informa solo con códigos, igual que la ida. Con Chatwoot caído no se marca, así que se reintenta en la próxima corrida.
+
+**El trigger (decisión del DG del 2026-11-08: también con el flag apagado).** Cierra el riesgo residual (I) de la 0106 para la 1c-1. Medido por el Subdirector: `authenticated` tiene `update` sobre `conversations` (`0106:80`) con la policy `for all` por tenant (`0106:128-132`), así que cualquiera del equipo escribe directo por PostgREST. Los clientes del portal no, porque `get_user_tenant_id` sale de `user_tenants` (`0453`). Va en `conversations` y en `conversation_messages`.
+
+- **La función del trigger es `security invoker`** y mira `current_user = 'authenticated'`. Si fuera `security definer`, `current_user` sería su dueño y el chequeo dejaría pasar todo.
+- **No se usa `current_setting('role')`:** dentro de `portal_post_message` sigue diciendo `authenticated`, y trabaría a las RPC legítimas.
+- Dentro de las funciones `security definer` (`portal_post_message`, `chatwoot_portal_respuesta` y `chatwoot_portal_estado_hilo`), `current_user` es su dueño, así que pasan.
+- El flag lo lee un helper `security definer`, `chatwoot_portal_flag(p_tenant_id)`, porque el invoker no ve `feature_flags` de otro modo que por su RLS. **Compara `p_tenant_id` con `get_user_tenant_id()` y devuelve `false` si no coinciden.** Así nadie del equipo puede preguntar por el flag de otro tenant. Para el trigger no cambia nada, porque la fila ya pasó la RLS de su tenant.
+
+1. **`BEFORE UPDATE OF channel ON conversations`**, **en los dos sentidos y siempre**, aunque el flag esté apagado. Rechaza que un hilo deje de ser `portal` y también que **se vuelva** `portal`: con la policy actual, alguien del equipo podría pasar un hilo de `email` a `portal`, y el cliente lo vería en su portal.
+2. **`BEFORE INSERT ON conversation_messages`**, con `direction = 'out'` en un hilo del portal: rechaza **con el flag encendido**. Con el flag apagado, Studio vuelve a responder, como en la 1c-1.
+3. **`BEFORE UPDATE OF status ON conversations`**, en un hilo del portal: rechaza **con el flag encendido**, porque el estado lo decide Chatwoot. `assigned_to` e `is_case` siguen libres: `assignAction` y `markCaseAction` no se traban.
+
+**Riesgo para el DG (I), pendiente de su decisión:** la base no ve `chatwootPortalConfig()`, que vive en las variables de la web. Con el flag encendido **sin** la bandeja configurada, la 1c-1 deja responder desde Studio y el trigger 2 lo rechaza.
+- El Worker propuso declarar ese estado no soportado en el guion de encendido: la configuración va antes del flag.
+- El Subdirector propuso, además, fallar cerrado en el código.
+- **Decisión del DG del 2026-11-08: opción (b), fallar cerrado.** Con el flag encendido, el hilo del portal queda en solo lectura en Studio aunque falte la configuración: `trabaPortal` (`lib/studio/chatwoot/portal-solo-lectura.ts`) mira solo el flag, y así la pantalla y el trigger dicen lo mismo. Va en la 1c-2, con su rojo previo, sus pruebas y sus mutantes. El guion de encendido lo dice: la configuración va antes del flag.
+
+**Aplicar antes de fusionar es seguro (medido por el Subdirector en `146d5ea5e`).** El trigger 1 queda vivo en producción antes que el código, pero hoy nadie cambia `channel`. No hay ningún `.update` con `channel` en `app/` ni en `lib/` (solo `channel_push`, que es otra tabla), y ninguna migración hace `set channel`. El 2 y el 3 hacen lo mismo que la 1c-1 en el servidor, que ya está en producción.
+
+**La migración 0521:**
+- `chatwoot_portal_hilos.conciliado_at timestamptz` y `conciliado_hasta bigint` (las dos nulas). Lo que lee E7 no cambia.
+- `chatwoot_portal_estado_hilo`, `chatwoot_portal_por_conciliar` y `chatwoot_portal_marcar_conciliado`.
+- La función de los tres triggers (`security invoker`), el helper `chatwoot_portal_flag` (`security definer`) y los triggers.
+- Un postflight con firmas, permisos, `search_path` y los triggers. Las declaraciones van en `migrations-baseline.json` y `pending-migration-symbol-declarations.json`.
+- Sin datos: no hay backfill. El estado se alinea en la primera conciliación de cada hilo con actividad.
+
+**Pruebas:**
+- **El contrato `0521_…test.sql` en PGlite:**
+  - la traducción de los cuatro estados del espejo (`open`, `resolved`, `pending` y `snoozed`, `0504:96`) al enum `conversation_status` (`abierto`, `pendiente` y `resuelto`, `0106:34`);
+  - «solo si cambia»;
+  - el hilo archivado, otro canal, otro tenant y el flag apagado;
+  - el orden, que un evento viejo no pisa;
+  - **los triggers:**
+    - una escritura directa de `authenticated` se rechaza;
+    - la misma escritura pasa por `portal_post_message`, `chatwoot_portal_respuesta` y `chatwoot_portal_estado_hilo`;
+    - el de canal, en los dos sentidos y con el flag apagado;
+    - `assigned_to` e `is_case` pasan;
+    - un mutante que vuelve `security definer` a la función del trigger muere;
+    - `chatwoot_portal_flag` con el tenant de otro da `false` para `authenticated`;
+    - **dos membresías activas:** `get_user_tenant_id()` da nulo, el helper da `false` y los triggers 2 y 3 no frenan, pero la escritura tampoco pasa, porque la policy `0106:128-132` la corta por el mismo nulo. El contrato prueba que es la RLS la que corta;
+  - `por_conciliar`: los no resueltos sin ventana, los resueltos en 7 días, solo vivos, el orden y el tope;
+  - control rojo y mutantes.
+- **Vitest:**
+  - `estadoAlPortal`, con el estado leído del espejo y no del evento, incluido en el reproceso;
+  - `conciliarPortal`:
+    - **25 perdidos con páginas de 20 entran los 25, en orden ascendente, en dos corridas como mucho**, con un mutante que vuelve a poner el filtro de «más nuevo que el último»;
+    - **la pérdida salteada:** con el 10 y el 12 perdidos y el 11 entregado, entran los dos en una corrida, con un mutante que vuelve a parar en el primer conocido;
+    - la marca no se mueve con `faltan_paginas` ni hacia atrás;
+    - con el tope de páginas no se marca y da `faltan_paginas`;
+    - lo perdido entra una sola vez;
+    - un hilo que falla no frena los demás;
+    - con Chatwoot caído no se marca;
+  - el cron.
+- **La PoC en Actions** (`portal-estado.poc.test.ts`):
+  - la PoC-4;
+  - el estado que lee la conciliación después de `toggle_status` (`resolved`, `pending` y `open`);
+  - la conciliación de punta a punta con el webhook «perdido»: más de una página, en orden y sin duplicar en la corrida siguiente.
+  - **No puede medir** si Chatwoot 4.19.1 reintenta un webhook de cuenta, porque no le entrega al receptor del arnés, que no tiene IP pública (PoC-5 de la 1a). Queda como (I), por la lectura de `Webhooks::Trigger#execute` que cita el cron `chatwoot-reintentos`.
+- **El rojo previo sobre `main` y los mutantes del código**, con el ejecutor de la 1c-1.
+
+**Allowlist 1c-2:**
+- **La migración:**
+  - `supabase/migrations/0521_chatwoot_portal_estado.sql`, `supabase/tests/0521_chatwoot_portal_estado.test.sql` y su envoltorio, `lib/studio/__tests__/chatwoot-portal-estado.migration.test.ts`;
+  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` (la espera y sus símbolos);
+  - `migrations.lock.json` no cambia, porque una espera no se sella.
+- **El servidor:**
+  - `lib/studio/chatwoot/portal-manejadores.ts`: `estadoAlPortal`, `estadoDelHilo` y `escribirRespuestaPortal`, que sale de `responderAlPortal` sin cambiarle la conducta;
+  - `lib/studio/chatwoot/portal-conciliar.ts` (nuevo);
+  - `lib/studio/chatwoot/webhook-procesar.ts`: `MANEJADORES` y el nombre;
+  - `lib/studio/chatwoot/router-api.ts`: `paginaMensajes`, y `obtenerConversacion`, que ahora acepta la cuenta del portal;
+  - `app/api/cron/chatwoot-reintentos/route.ts`.
+- **Fallar cerrado (opción b):** `lib/studio/chatwoot/portal-solo-lectura.ts` y `docs/runbooks/chatwoot-portal-encendido.md`.
+- **Las pruebas:**
+  - `lib/studio/chatwoot/__tests__/portal-conciliar.test.ts` (nueva) y `portal-solo-lectura.test.ts`;
+  - `aviso-unico-por-evento.test.ts` (la lista de manejadores);
+  - `app/api/cron/chatwoot-reintentos/__tests__/route.test.ts`;
+  - `app/studio/(app)/conversaciones/__tests__/send-reply-gate.test.ts` y `set-status-gate.test.ts` (opción b).
+- **La PoC:** `lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts`, `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh` y `.github/workflows/chatwoot-portal-poc.yml` (sus rutas).
+- **Los mutantes:** `infra/chatwoot/pruebas/portal/mutantes-estado.cjs` (nuevo) y `mutantes-solo-lectura.cjs`, en los dos de la configuración que la opción b cambia.
+- La spec y el handoff (`.agents/handoffs/0586-e10-5-1c-2-estado.md`).
+- Sin acciones exportadas nuevas.
+- **Migrate-first (decisión del DG del 2026-11-08):** la 0521 se aplica **antes de fusionar**, desde la cabeza aprobada de la PR. Primero en prueba y después en producción, cada una con su OK nominal de Sam, que pide el DG. Sin eso, la fusión frena la publicación.
+
+**Coordinación con E7:** su migración de la 7.6 b va a leer `chatwoot_portal_hilos` para que `chatwoot_bot_encolar` no cree turnos para las conversaciones del portal. La 0521 solo le agrega dos columnas nulas a esa tabla, así que no cambia lo que E7 lee. Se revisa su diseño cuando llegue.
 
 ### 10.5.17 Lo que queda fuera
 

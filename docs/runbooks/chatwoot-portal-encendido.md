@@ -33,6 +33,10 @@
 
 **Sin la 1c-1 y la 1c-1b fusionadas y publicadas en producción, el flag tampoco se enciende en producción** (decisión del DG del 2026-11-08, comunicada por el Subdirector). En prueba, la punta a punta se hace antes, sin esperarlas.
 
+**La bandeja y las variables, antes del flag, en cada entorno.** Desde la 1c-2 (decisión del DG del 2026-11-08, opción b), Studio deja un hilo del portal en solo lectura **con el flag encendido aunque falte la configuración**, y la guarda de la 0521 traba en la base los salientes y el cambio de estado. Si se enciende el flag sin `CHATWOOT_INBOX_PORTAL_ID` y el resto de §1, nadie puede responder un hilo del portal: ni Studio ni Chatwoot, que no recibe nada. Se arregla configurando, o apagando el flag (§5).
+
+**La 0521 (la 1c-2) se aplica antes de fusionar su PR** (migrate-first, decisión del DG del 2026-11-08): primero en prueba y después en producción, cada una con su OK nominal de Sam. No es condición para encender: sin ella, Studio y la base hacen lo de la 1c-1, y el estado y la conciliación esperan.
+
 ### Lo que la 10.5 todavía no hace en `main` (I)
 
 Son las piezas de la 1c (§10.5.16). Por decisión del DG, la 1c-1 es condición para producción, y la 1c-2, la 1c-3 y la 1c-4 no lo son:
@@ -53,6 +57,14 @@ Son las piezas de la 1c (§10.5.16). Por decisión del DG, la 1c-1 es condición
 | **El corte** en `chatwoot_portal_estado`: sin corte, la cola no manda nada | El corte de §2, en la base de prueba | Lo fija la carga P4 (§10.5.10) | Ver la nota debajo |
 | **La carga P4** (las conversaciones que ya existen, también las archivadas) | No hace falta para la punta a punta: basta el corte | Decidida por Sam (decisión 6 b), pero **su código (PR 2) no está escrito** | **⛔ FUERA DEL OK DE HOY** |
 | **El panel de Chatwoot dentro de prueba** | **No hace falta:** en prueba el agente responde directo en la cuenta 2 de Chatwoot. El panel embebido pide agregar `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, y eso obliga a recrear `rails` (`chatwoot-bandeja.md`, «El panel dentro de prueba»): `docker restart` no toma la variable. Si algún día se hace, con el compose del VPS y solo ese servicio: `cd /srv/chatwoot && docker compose -f compose.yml up -d --no-deps --force-recreate rails`. **Nunca `compose up` a secas** | No aplica | Recrear `rails` es **⛔ FUERA DEL OK DE HOY** |
+
+**Antes de la punta a punta en prueba: tres pasos, cada uno ⛔ con su OK de Sam.** Lo midió el DG en la punta a punta del 2026-11-08 (evidencia en `/srv/ops/evidencias/portal-prueba-encendido-20261108T132606Z`, comunicada por el Subdirector):
+
+1. **Reactivar la cuenta 2 de Chatwoot.** Estaba suspendida desde el 2026-11-03, y con la cuenta suspendida el envío de la ida da `contacto_no_autorizado` (401).
+2. **Crear el webhook de la cuenta 2**, que no existía, hacia `https://prueba.dtdcargo.com/api/chatwoot/webhook` y con `message_created`. Se crea con el secreto del `.env` de prueba, leído en el VPS y **sin imprimirlo** ni pegarlo en el chat ni en el repo.
+3. **Reabrir la ruta del borde** `/srv/edge/traefik/dynamic/prueba-chatwoot-webhook.yml`, que se cerró el 2026-11-04.
+
+**Al terminar se cierra todo, en el orden inverso:** se quita la ruta del borde, se borra el webhook de la cuenta 2 y la cuenta 2 vuelve a quedar suspendida. Cada paso queda en la evidencia.
 
 **El corte sin P4 en producción es una decisión, no un paso técnico (I).** Si se fija `corte = now()` sin cargar P4, desde ese momento la cola manda lo nuevo. Pero los 24 hilos y 73 mensajes contados el 2026-11-07 no quedan en Chatwoot, y Sam eligió cargarlos todos, archivados incluidos (decisión 6 b). Además, fijar el corte en producción es escribir en la base. Va con su OK nominal y con la decisión de esperar o no a P4.
 
@@ -136,6 +148,7 @@ rollback;
 **Cómo se llega a prueba. La lista de IP no se toca.** El 2026-11-08, con `prueba-sha-efd7e70f6`, el smoke de la puerta de `desplegar-prueba.sh` dio **403 en todo desde el VPS**, y ya pasaba con la imagen anterior (dato del Subdirector). Es la lista de IP: por DNS, `curl` sale del VPS por IPv6, y esa dirección no está en la lista. **`entorno-prueba.md` §2.1 está desactualizado en este punto:** dice que desde el VPS el 403 no se puede ver, porque todo entra como `172.18.0.1` o `217.216.54.70`. Eso vale por IPv4, no por IPv6. Lo medido en este entorno, según las notas del DG:
 
 - **Desde el VPS por DNS, `curl` sale por IPv6 y da 403** en todo, incluido `/`. Por `127.0.0.1` también da 403. Con `curl -4` por `217.216.54.70`, o por la IP de Traefik en `dtd_edge`, da **401**, que es la puerta: entra.
+- **La ruta del webhook (medido por el DG el 2026-11-08):** desde el VPS directo a Traefik da **403** en todo, también en `/api/chatwoot/webhook`. Por Cloudflare, un `POST` **sin firma** da **401**: es lo esperado, porque la ruta está abierta y la firma la rechaza Studio.
 - **Para el navegador** (el cliente del portal y la Bandeja): Chrome desde la PC de Sam por un túnel, sin tocar ninguna lista.
   - El túnel: `ssh -N -L 127.0.0.1:<puerto>:<IP de Traefik en dtd_edge>:443 root@217.216.54.70`.
   - Chrome con un perfil aparte y `--host-resolver-rules="MAP prueba.dtdcargo.com 127.0.0.1:<puerto>,MAP supabase-prueba.dtdcargo.com 127.0.0.1:<puerto>"`.
@@ -199,7 +212,7 @@ for (const m of (await r.json()).payload) console.log(m.id, m.message_type, m.pr
 EOF
 ```
 
-**Al terminar** apagar el flag de prueba, si no se sigue usando. El cierre de la cuenta 2 (borrar el webhook, suspender la cuenta y revocar el token) es el de `docs/runbooks/chatwoot-bandeja.md` y no corresponde a este paso.
+**Al terminar** apagar el flag de prueba, si no se sigue usando, y cerrar lo de §1: quitar la ruta del borde, borrar el webhook de la cuenta 2 y suspender otra vez la cuenta 2. Revocar el token es el cierre completo de la cuenta 2, de `docs/runbooks/chatwoot-bandeja.md`.
 
 ## 4 · Producción
 

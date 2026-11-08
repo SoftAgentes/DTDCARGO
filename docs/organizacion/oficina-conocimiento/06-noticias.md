@@ -203,8 +203,11 @@ carpeta de trabajo y una persona lo lleva al Studio.
 - **Hoy:** todo artículo es un **borrador** que aprueba y publica una persona. Es la regla de
   la casa (`02-reglas-de-la-oficina.md`).
 - **Decidido por Sam el 2026-11-05:** las noticias de `/noticias` se publicarán solas, como
-  excepción a esa regla y solo para noticias. **No está vigente:** falta su especificación y
-  su registro en las políticas. Ningún agente la da por activa.
+  excepción a esa regla y solo para noticias. La especificación es la SDD-0611 (aprobada) y su
+  código espera integración. **No está vigente** hasta que su migración esté en producción y Sam
+  encienda el interruptor. Ningún agente la da por activa.
+- **Ya vale para todos:** el Studio no publica un texto con marcas `[VERIFICAR]`, ni siquiera
+  vacías, por ninguna vía.
 - **Cuando entre en vigor, el Studio publicará solo si se cumple todo esto;** si algo falla,
   el artículo queda en revisión y avisa:
   - pasó por el Revisor;
