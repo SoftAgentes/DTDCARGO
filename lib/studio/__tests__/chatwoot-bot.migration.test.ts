@@ -11,7 +11,9 @@
  * MUTANTES: cada uno es una 0522 coherente con un defecto, y tiene que caer en la aserción que
  * lo nombra. Los críticos: el portal nunca, contesta_solo sin IA-01, un turno abierto por
  * conversación, el lease ajeno y el watchdog.
- * PENDIENTE: la 0522 no está aplicada; es una espera en migrations-baseline.json (migrate-first).
+ * APLICADA (2026-11-08, con el OK nominal de Sam, en prueba y en producción, desde af2cd684d): la 0522
+ * salió de las esperas de migrations-baseline.json y quedó sellada en migrations.lock.json. La cabecera
+ * «NO APLICADA» se conserva porque el ledger guarda el texto exacto. La prueba de abajo lo fija.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -28,6 +30,9 @@ const FILE = read(resolve(ROOT, "supabase/migrations", MIGRACION));
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
   cutoff: number;
   pendingBelowCutoff: Record<string, string>;
+};
+const LOCK = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as {
+  selladas: Record<string, { md5?: string; bytes?: number; ledger?: { fecha: string; forma: string } }>;
 };
 const SLOW = 180_000;
 
@@ -334,10 +339,16 @@ describe("SDD-0618 · 0522 la cola de dtd-bot (PGlite)", () => {
     expect(run.error).toMatch(/0522 requiere .* 0519/);
   }, SLOW);
 
-  it("es una espera migrate-first por encima del corte, con su motivo", () => {
+  it("aplicada en producción el 2026-11-08: ya no es una espera y quedó sellada con el md5 del ledger", () => {
+    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toBeUndefined();
+    // Por encima del corte: el control del ledger la vigila por su nombre exacto y el candado guarda su identidad.
     expect(Number(NOMBRE.slice(0, 4))).toBeGreaterThan(BASELINE.cutoff);
-    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toMatch(/^PENDIENTE DE APLICAR — SDD-0618/);
-    expect(BASELINE.pendingBelowCutoff[NOMBRE]).toMatch(/MIGRATE-FIRST/);
+    expect(LOCK.selladas[NOMBRE]).toMatchObject({
+      md5: "042eacc23862df84138ddbbd7f02503a",
+      bytes: 35074,
+      ledger: { fecha: "2026-11-08", forma: "exacta" },
+    });
+    // La cabecera no se toca: cambiarla cambiaría el md5 que ya está en el ledger.
     expect(FILE).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 

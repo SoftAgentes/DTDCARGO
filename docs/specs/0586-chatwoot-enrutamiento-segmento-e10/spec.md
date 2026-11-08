@@ -206,6 +206,10 @@ La aplicó el Director General, primero en prueba y después en producción, con
 - **Lectura de esta nota:** los datos vienen de la evidencia del Director General, comunicada por el Subdirector. Este cierre no consultó tablas de producción.
 - **Espera:** salió de `pendingBelowCutoff` y de las declaraciones de símbolos (`retirar-espera.mjs`), y quedó sellada. Con ella se fue la frase «(la 0519 tampoco está aplicada)» del baseline. La cabecera «NO APLICADA A PRODUCCIÓN» de `0520_chatwoot_portal_vuelta.sql` no se corrige: cambiar el archivo cambiaría el blob y el md5 que ya están en el ledger. La prueba que afirmaba la espera (`lib/studio/__tests__/chatwoot-portal-vuelta.migration.test.ts`) ahora afirma que salió, con el md5 del sello. La web no cambia ni se publica con este cierre.
 
+## 2026-11-08 · La 0521, la 0523 y la 0524 aplicadas: cierre
+
+Las tres las aplicó el DG en prueba y en producción el 2026-11-08, con el OK nominal de Sam. Lo que antes en esta spec dice que están en espera vale para su fecha. **El registro del runbook §6, paso 3** (COMMIT, `version`, md5 y bytes, filas, evidencia, OK literal y merge) está en [`.agents/handoffs/cierre-migraciones-20261108.md`](../../../.agents/handoffs/cierre-migraciones-20261108.md), junto con la 0518 y la 0522. La 0521 y la 0523 quedan selladas en la #463; la 0524, en un cierre chico después del tren 6.
+
 ## Paso 10.5 — Conversaciones del portal en Chatwoot y en los embudos (rediseño, 2026-11-06)
 
 <a id="paso-105--tickets-del-portal-a-los-embudos-diseño-en-borrador-2026-11-06"></a>
