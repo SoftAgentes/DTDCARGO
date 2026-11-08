@@ -66,6 +66,12 @@
   - la lista de 3.0 tiene que sumar `copia-columnas.tsv`, `ensayo-studio-esquema.sql`, `ensayo-portal.sh` y la carpeta `migraciones/`, con las 10 migraciones que lista la guarda G0;
   - el comando de 3.1 queda así: `TENANT=… CUENTA=1 BANDEJA=… AGENTE_SERVICIO=… bash /srv/ops/portal-historial/ensayo-portal.sh`.
 
+## Registro de las vueltas en Actions (#473)
+
+| Vuelta | SHA | Run (job del ensayo) | Resultado | Qué cambió después |
+|---|---|---|---|---|
+| 1 | `c86e2b03a` | 42535639790 (128899213367) | Rojo: 8 fallas en el ensayo. Se copió una sola tabla por lado. Pasaron las guardas G1 a G3, el aislamiento, la limpieza, T4, T5 y los mutantes de marcas M1 a M4, M6 a M10, M13 y los de las guardas, M14 a M16. Cayeron M0, M5, M11 y M12 | Los `docker exec -i` de `copiar_tabla` leían la entrada estándar y se comían el resto de la lista. Ahora el bucle lee por el descriptor 3 |
+
 ## #468 · El caso (b) de la punta a punta
 
 - **Rojo previo**, sobre `f1d56c140`: el run 42528572344.

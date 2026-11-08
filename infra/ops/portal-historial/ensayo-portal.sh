@@ -535,12 +535,14 @@ commit;"
 }
 copiar_lado() { # lado
   local lado tabla columnas filtro n=0
-  while IFS=$'\t' read -r lado tabla columnas filtro; do
+  # La lista entra por el descriptor 3: los `docker exec -i` de copiar_tabla leen la entrada estándar y se comerían el
+  # resto de la lista (el run 42535639790 copió una sola tabla por lado).
+  while IFS=$'\t' read -r -u 3 lado tabla columnas filtro; do
     case "$lado" in '' | '#'*) continue ;; esac
     [ "$lado" = "$1" ] || continue
     copiar_tabla "$lado" "$tabla" "$columnas" "$filtro"
     n=$((n + 1))
-  done <"$LISTA"
+  done 3<"$LISTA"
   evidencia "HECHO copia_${1}_tablas=$n"
 }
 D_FALLAS=0
