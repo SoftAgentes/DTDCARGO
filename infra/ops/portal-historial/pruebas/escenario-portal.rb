@@ -23,7 +23,7 @@ en = ->(nombre, &bloque) { File.open(File.join(dir, "#{nombre}.txt"), 'w') { |f|
 paso = lambda do |nombre, env, archivo|
   en.call(nombre) do |f|
     File.open(File.join(dir, archivo), encoding: 'UTF-8') do |entrada|
-      CargaPortal.principal(env, entrada: entrada, salida: f, errores: f)
+      CargaPortal.principal(env, entrada: entrada, salida: f)
     end
   end
 end
@@ -45,14 +45,10 @@ paso.call('rechazo-servicio', env.call('cargar', 'AGENTE_SERVICIO' => base['ajen
 paso.call('seco', env.call('seco', 'VINCULOS' => "#{dir}/v-seco.ndjson"), 'preparado.ndjson')
 paso.call('carga-1', env.call('cargar', 'VINCULOS' => "#{dir}/vinculos-1.ndjson"), 'preparado.ndjson')
 paso.call('carga-2', env.call('cargar', 'VINCULOS' => "#{dir}/vinculos-2.ndjson"), 'preparado.ndjson')
-# La tercera, con VINCULOS=-: los vínculos van a la salida estándar y los HECHO a la de errores (como en el VPS).
-File.open(File.join(dir, 'vinculos-3.ndjson'), 'w') do |v|
-  File.open(File.join(dir, 'carga-3.txt'), 'w') do |f|
-    File.open(File.join(dir, 'preparado.ndjson'), encoding: 'UTF-8') do |entrada|
-      CargaPortal.principal(env.call('cargar', 'VINCULOS' => '-'), entrada: entrada, salida: v, errores: f)
-    end
-  end
-end
+# La tercera, con VINCULOS=-: los vínculos salen con el prefijo `VINCULO ` en la salida estándar, y se extraen.
+paso.call('carga-3', env.call('cargar', 'VINCULOS' => '-'), 'preparado.ndjson')
+File.write(File.join(dir, 'vinculos-3.ndjson'),
+           File.readlines(File.join(dir, 'carga-3.txt')).filter_map { |l| l.delete_prefix('VINCULO ') if l.start_with?('VINCULO ') }.join)
 en.call('sonda-verificar') do |f|
   SondaPortal.verificar(out: f, dir: dir)
 rescue StandardError => e

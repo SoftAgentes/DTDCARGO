@@ -11,7 +11,8 @@
 #        cliente sin contacto, AGENTE_SERVICIO de otra cuenta
 #   S    seco: cuenta lo que cargará, no escribe nada, ni vínculos, ni consume números de conversación
 #   C    carga: conteos, filas, números de conversación y cola de Sidekiq
-#   R    repetir la carga (C-3): 0 filas nuevas y los mismos vínculos, también con VINCULOS=- (a la salida estándar)
+#   R    repetir la carga (C-3): 0 filas nuevas y los mismos vínculos, también con VINCULOS=- (a la salida estándar,
+#        con el prefijo VINCULO, entre los logs de Rails)
 #   V    lo cargado (C-2, C-9 a C-14) y los vínculos (solo ids, y cada uno es el de Chatwoot)
 #   F    la salida del cargador y los vínculos no traen nombres ni textos
 #   M    control M0 y mutantes: cada uno rompe una propiedad del cargador y TIENE que tumbar su comprobación, sin
@@ -108,14 +109,6 @@ rr() {
   while [ "$1" != "--" ]; do envs+=(-e "$1"); shift; done
   shift
   dc "${BASE[@]}" run --rm -T "${envs[@]}" prepare bundle exec rails runner "$@" >"$salida" 2>&1
-}
-# rr2 <salida estándar> <salida de errores> VAR=valor... -- <script>: como rr, pero con las dos salidas separadas.
-rr2() {
-  local sal="$1" err="$2" envs=()
-  shift 2
-  while [ "$1" != "--" ]; do envs+=(-e "$1"); shift; done
-  shift
-  dc "${BASE[@]}" run --rm -T "${envs[@]}" prepare bundle exec rails runner "$@" >"$sal" 2>"$err"
 }
 
 MARCAS=(SINT-NOMBRE SINT-TEXTO SINTBUSCAR SINT-COLA SINT-EXISTENTE 'Hilo archivado' 4120000001)
@@ -274,8 +267,10 @@ cargar rechazo-servicio preparado.ndjson "AGENTE_SERVICIO=$AJ"
 cargar seco preparado.ndjson MODO=seco "VINCULOS=$RC/v-seco.ndjson"
 cargar carga-1 preparado.ndjson "VINCULOS=$RC/vinculos-1.ndjson"
 cargar carga-2 preparado.ndjson "VINCULOS=$RC/vinculos-2.ndjson"
-rr2 "$R/vinculos-3.ndjson" "$R/carga-3.txt" MODO=cargar "CUENTA=$C" "BANDEJA=$B" "AGENTE_SERVICIO=$SV" CARGA=- VINCULOS=- \
-  -- "$CARGADOR" <"$R/preparado.ndjson"
+# Con VINCULOS=-, la salida de rails runner trae también Bundler y los logs de los inicializadores: los vínculos se
+# extraen por su prefijo, como en el VPS.
+cargar carga-3 preparado.ndjson VINCULOS=-
+sed -n 's/^VINCULO //p' "$R/carga-3.txt" | tr -d '\r' >"$R/vinculos-3.ndjson"
 rr "$R/sonda-verificar.txt" FASE=verificar "DIR=$RC" -- "$SONDA" </dev/null
 comprobar "$R"
 log "MEDIDA C-9 — números de conversación en la carga: $(h "$R/carga-1.txt" secuencia); rss_pico_kb $(h "$R/carga-1.txt" rss_pico_kb)"

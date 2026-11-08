@@ -10,8 +10,9 @@
 #
 # Entrada: `preparado.ndjson`, el formato de E10 (SDD-0586 §10.5.10, «Los dos archivos»): cabecera, contacto,
 # conversacion y mensaje. Salida: `vinculos.ndjson`, SOLO ids (cabecera, contacto, conversacion y mensaje), en la
-# ruta de VINCULOS. Con VINCULOS=- va a la salida estándar, y entonces las líneas HECHO van a la de errores. En
-# MODO=seco no se escribe.
+# ruta de VINCULOS. Con VINCULOS=- cada línea sale en la salida estándar con el prefijo `VINCULO `, junto a las HECHO:
+# la salida de `rails runner` en el contenedor también trae Bundler y los logs de los inicializadores, así que se
+# extrae con `sed -n 's/^VINCULO //p'`. En MODO=seco no se escribe.
 #
 # Sin efectos quiere decir:
 #   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
@@ -41,9 +42,9 @@ class CargaPortal
 
   # Punto de entrada: el script lo llama con ENV, $stdin y $stdout; el escenario de mutantes, con un Hash y archivos.
   # Devuelve el código de salida.
-  def self.principal(env, entrada: $stdin, salida: $stdout, errores: $stderr)
+  def self.principal(env, entrada: $stdin, salida: $stdout)
     a_vinculos = env['VINCULOS'] == '-'
-    hechos = a_vinculos ? errores : salida
+    hechos = salida
     correos = 0
     suscripcion = ActiveSupport::Notifications.subscribe('deliver.action_mailer') { correos += 1 }
     begin
@@ -408,7 +409,7 @@ class CargaPortal
     filas['mensaje'].each { |m| lineas << { tipo: 'mensaje', mensaje: m['mensaje'], mensaje_id: de_studio.fetch(m['mensaje']) } }
     texto = lineas.map { |l| JSON.generate(l) }.join("\n") + "\n"
     if @salida_vinculos
-      @salida_vinculos.write(texto)
+      lineas.each { |l| @salida_vinculos.puts "VINCULO #{JSON.generate(l)}" }
     else
       tmp = "#{@ruta_vinculos}.parcial"
       File.write(tmp, texto)
