@@ -371,6 +371,10 @@ mutante() {
   for c in $caen; do [ "${RES[$c]:-FALLÓ}" = FALLÓ ] || faltan="$faltan $c"; done
   for c in $pasan; do [ "${RES[$c]:-FALLÓ}" = PASÓ ] || otro="$otro $c"; done
   cayeron="$(cayeron_en)"
+  # Diagnóstico de G13: si cae en este escenario, su detalle en una línea (conteos, esperas y los segundos por hilo).
+  if [ "${RES[G13]:-}" = FALLÓ ]; then
+    log "   G13 en $id: $(grep -E '^(HECHO concurrencia_|HILO[12] HECHO (error|hilo_))' "$D/estado/m/$id/concurrencia.txt" 2>/dev/null | sed 's/^HECHO concurrencia_//; s/^HILO\([12]\) HECHO /h\1:/' | tr '\n' ' ')"
+  fi
   exigir "$id" '[ -z "$faltan" ] && [ -z "$otro" ]' \
     "$que: tienen que caer [$caen]${faltan:+ — SOBREVIVEN:$faltan}${otro:+ — CAEN POR OTRO CAMINO:$otro} · cayeron: ${cayeron:-ninguna}"
   [ "${RES[$id]}" = FALLÓ ] && MUT_FALLADOS="$MUT_FALLADOS $id"
@@ -452,7 +456,9 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M25 "acepta cualquier bandeja API sin webhook (B1)" "G10a G10b" "G1 S1"     "raise 'la bandeja no es «Conversaciones del portal»' unless" "nil unless true ||"
   mutante M26 "VINCULOS en cualquier ruta" "G11" "G1 S1"     "unless [RUTA_VINCULOS, '-'].include?(@ruta_vinculos)" "unless true"
   mutante M27 "sin el candado" "G12 G13" "G1 S1"     "raise 'otra carga del portal en curso' unless" "nil unless true ||"
-  mutante M28 "sin apagar el log de SQL" "F2" "C1 F1"     "    ActiveRecord::Base.logger = nil" "    nil"
+  # M28 es neutro para G13: tiene que PASAR G13. Es el control de que G13 no cae siempre en los escenarios de
+  # mutantes (revisión del Subdirector, run 42509944324), y lo que le da sentido a que G13 caiga en M27.
+  mutante M28 "sin apagar el log de SQL" "F2" "C1 F1 G13"     "    ActiveRecord::Base.logger = nil" "    nil"
   log "MEDIDA M27 — sin el candado, dos cargas a la vez dejan $(h "$D/estado/m/M27/concurrencia.txt" concurrencia_conversaciones) conversaciones (con el candado, 4) y esperaron $(h "$D/estado/m/M27/concurrencia.txt" concurrencia_esperando_max)"
   mutante M29 "contact_inbox sin pubsub_token" "V12" "C1" \
     "          pubsub_token: SecureRandom.base58(24), created_at: ahora, updated_at: ahora }" \
