@@ -476,6 +476,24 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
    - **Si algo se manda dos veces,** Chatwoot no lo duplica, por el `source_id` `dtd:<mensaje>`.
    - **La prueba:** un mensaje en el margen que está en la foto entra una sola vez y no vuelve a salir por la cola. Otro en el margen que no está en la foto sale una sola vez por la cola. Va en el contrato de la 0523, con `chatwoot_portal_tomar`.
 
+**Revisión de datos personales de la carga (`revisar-datos-ve`, 2026-11-08, sobre el diseño, antes del código).** Es un inventario técnico, no asesoría legal. Cada punto lleva uno de tres estados: `CORRECTO` (se vio la implementación o el diseño que lo resuelve), `ENCONTRADO` (se vio el problema) o `NO VERIFICABLE` (no se puede comprobar leyendo el repo). El marco es la CRBV (arts. 28 y 60, habeas data) y la jurisprudencia de la Sala Constitucional. Se suma la PIPL si el equipo de China ve los datos.
+
+- **Inventario.**
+  - **Qué se mueve a Chatwoot:** `clients.name`, que pasa a ser el nombre del contacto; `conversation_messages.body`, el texto de cliente y equipo; `sent_at`; el estado del hilo; y, si es del equipo, el agente vinculado.
+  - **Qué no se mueve:** teléfono, correo, cédula, RIF ni Shipping Mark.
+  - **Dónde:** en la cuenta 1 de Chatwoot, en el VPS propio. Es la misma finalidad que el chat de Soporte ya tiene desde la 1a.
+- **Minimización · `CORRECTO` (diseño).** `preparado.ndjson` excluye por diseño los identificadores directos. El contacto se crea sin teléfono ni correo (C-10). `vinculos.ndjson` lleva solo ids. Los mensajes que vinieron de Chatwoot no se vuelven a copiar. *Hay que confirmarlo en el código (la extracción) y en el ensayo (C-10).*
+- **Base y aviso · `CORRECTO`.** El `/privacidad` publicado tiene T2 y T3. Son la línea «quedan también en nuestro propio sistema de atención, alojado en nuestro servidor» y la finalidad «atender lo que nos escribes por su chat de Soporte» (`app/privacidad/page.tsx:86`, `:219`), con la fecha del 8 de noviembre de 2026 (`:49`). La carga copia mensajes **anteriores** a esa fecha: el aviso nuevo los cubre si se lee como aviso de un tratamiento que sigue, no como un consentimiento nuevo. *La lectura legal es del abogado (fuera de alcance).*
+- **Archivos temporales · `NO VERIFICABLE` hasta el código.** El diseño los pone en `/dev/shm` con permisos 0700, borrados al terminar, nunca en el disco ni en Git. Lo tienen que hacer los scripts de `infra/ops/portal-historial/`, con un `trap` que borre también si algo falla, y el ensayo lo mide.
+- **Logs · `CORRECTO` (diseño).** El cargador imprime solo `HECHO clave=valor`, con conteos (patrón de E5). Las consultas de control (`controles-studio.sql`) devuelven solo conteos y md5.
+- **Borrado (supresión, art. 28 CRBV) · `ENCONTRADO`.** Si una ficha se borra en Studio, `chatwoot_portal_contactos` se borra en cascada (`0519_chatwoot_portal.sql:80`). **Pero el contacto, las conversaciones y los mensajes que ya están en Chatwoot no se borran.** La purga de 12 meses (`lib/studio/chatwoot/purga.ts:14`, 0508) limpia el espejo de Studio, no Chatwoot.
+  - Esto ya pasaba con la ida (1a): la carga no lo crea, pero lo agranda con el historial.
+  - **Arreglo propuesto, en otra pieza y no en la 10.7:** cuando se ejerza la supresión de un cliente, borrar en Chatwoot el contacto `dtd-portal:<identificador>` y sus conversaciones de la bandeja del portal, con el token del servicio, y registrarlo. Mientras tanto, el procedimiento manual de supresión tiene que incluir Chatwoot.
+- **Equipo de China · `NO VERIFICABLE`.** E10-D36 dice que la bandeja del portal tiene solo agentes de Venezuela. Pero en Chatwoot un **administrador** de la cuenta ve todas las bandejas, sea o no miembro. Si alguien del equipo de China es administrador de la cuenta 1, verá lo cargado, y ahí aplica la PIPL. Eso no está en el repo: hay que mirar los roles de la cuenta 1 en el panel de Chatwoot antes de la puerta 4.
+- **Titulares que no son usuarios · no aplica.** Solo se cargan clientes con ficha y los agentes del equipo.
+
+**Para el DG:** el hallazgo del borrado y la pregunta de los roles de China van como **FUERA DE ALCANCE** de la 10.7. Los dos los tiene que mirar alguien antes de la puerta 4 de producción. Se sugiere que otro modelo revise esta misma carga.
+
 **El ensayo (5.6 de E5, adaptado).** Es una copia efímera de la base de Chatwoot, con el mismo guion y las mismas guardas de `ensayo-archivo.sh`: red interna, tmpfs, `pg_dump` en solo lectura, la marca de la copia y el borrado de las otras cuentas solo en la copia. El paso 4 corre contra una copia efímera de la base de Studio, con las mismas guardas. Todo se mide con conteos y huellas md5, sin datos de personas:
 
 | # | Medición | PASÓ si |
