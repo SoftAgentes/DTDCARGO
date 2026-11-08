@@ -272,11 +272,15 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       const servicio = join(dir, "servicio.conf");
       writeFileSync(servicio, "[dtd]\nhost=/no/existe\n");
       chmodSync(servicio, 0o600);
+      // Copia del entorno sin leer variables por nombre (el contrato de .env.example cuenta cada lectura directa).
+      const entorno: Record<string, string | undefined> = { ...process.env };
+      entorno["PATH"] = `${dir}:${entorno["PATH"] ?? ""}`;
+      entorno["PGOPTIONS"] = "-c dtd.entorno=copia";
       const r = spawnSync(
         "bash",
         [resolve(ROOT, "supabase/cargas/crm-kommo/correr.sh"), "seco", "--entorno", "copia", "--servicio", servicio,
           "--tenant", "10000000-0000-0000-0000-000000000001", "--corte", "2026-01-01T00:00:00Z"],
-        { encoding: "utf8", env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, PGOPTIONS: "-c dtd.entorno=copia" } },
+        { encoding: "utf8", env: entorno },
       );
       expect(r.status, r.stderr).toBe(0);
       expect(r.stdout).toContain("PGOPTIONS_EN_PSQL=<sin>");
