@@ -356,8 +356,9 @@ open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1"
 # acta-conteos.rb es lo que corre el Director General en producción, de solo lectura. Aquí, sobre los datos
 # inventados, tiene que contar lo mismo que dejó la carga: 5 conversaciones (4 waba y 1 instagram_business), 8
 # mensajes (5 entrantes y 3 salientes; waba 7 e instagram 1), 5 contact_inboxes, 3 adjuntos con los bytes del
-# informe, y ningún huérfano ni repetido. La bandeja «viva» de la cuenta (1 conversación y 1 mensaje) no tiene
-# que entrar. Antes de MI: 0 miembros.
+# informe, y ningún huérfano ni repetido. Los mensajes de la bandeja «viva» de la cuenta no tienen que entrar
+# (con ellos, la cuenta tiene más de 8). Antes de MI, 1 miembro: el agente que E-10e deja en el Archivo
+# (E10e exige miembros_del_archivo = 1).
 log "== AC. conteos del acta (5.8)"
 ACTA=/tmp/cargador/acta-conteos.rb
 rr "$REAL/acta.txt" "BANDEJA=$B" "CUENTA=$CUENTA" -- "$ACTA" </dev/null
@@ -368,8 +369,8 @@ exigir AC1 '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" solo_lectura)" = si ] && [ 
   "corre entero, dentro de una transacción de solo lectura, sobre la bandeja del Archivo"
 exigir AC2 '[ "$(h "$F" conversaciones)" = 5 ] && [ "$(h "$F" conversaciones_kommo)" = 5 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" mensajes_kommo)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ]' \
   "conversaciones y mensajes: los mismos que dejó la carga (5 / 8, con 5 entrantes y 3 salientes)"
-exigir AC3 '[ "$(h "$F" contact_inboxes)" = 5 ] && [ "$(h "$F" contactos)" = 5 ] && [ "$(h "$F" adjuntos)" = 3 ] && [ "$(h "$F" mensajes_con_adjunto)" = 3 ] && [ "$(h "$F" adjuntos_bytes)" = "$ESPERADO_BYTES" ] && [ "$(h "$F" miembros)" = 0 ]' \
-  "contactos y adjuntos: 5 / 5, 3 adjuntos con $ESPERADO_BYTES bytes, y 0 miembros antes de MI"
+exigir AC3 '[ "$(h "$F" contact_inboxes)" = 5 ] && [ "$(h "$F" contactos)" = 5 ] && [ "$(h "$F" adjuntos)" = 3 ] && [ "$(h "$F" mensajes_con_adjunto)" = 3 ] && [ "$(h "$F" adjuntos_bytes)" = "$ESPERADO_BYTES" ] && [ "$(h "$F" miembros)" = 1 ]' \
+  "contactos y adjuntos: 5 / 5, 3 adjuntos con $ESPERADO_BYTES bytes, y 1 miembro antes de MI (el agente de E-10e)"
 exigir AC4 '[ "$(h "$F" conversaciones_por_canal)" = "instagram_business:1,waba:4" ] && [ "$(h "$F" mensajes_por_canal)" = "instagram_business:1,waba:7" ]' \
   "por canal de Kommo: conversaciones $(h "$F" conversaciones_por_canal), mensajes $(h "$F" mensajes_por_canal)"
 exigir AC5 'cero "$(h "$F" conversaciones_sin_contact_inbox)" && cero "$(h "$F" mensajes_fuera_de_conversacion)" && cero "$(h "$F" source_id_repetidos)" && cero "$(h "$F" talk_id_repetidos)"' \
@@ -403,7 +404,7 @@ if [ "$MUTANTES" = 1 ]; then
     '[ "$(h "$F" solo_lectura)" = no ] && [ "$(h "$F" acta)" = error ] && [ "$(h "$F" motivo)" = "la transacción no quedó en solo lectura" ] && [ -z "$(h "$F" mensajes)" ]' \
     "    ActiveRecord::Base.connection.execute('SET TRANSACTION READ ONLY') # [solo-lectura]" "    nil # [solo-lectura]"
   ac_mutante AC-M2 "contando los mensajes de toda la cuenta, entra el de la bandeja viva y AC2 cae" \
-    '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" mensajes)" = 9 ]' \
+    '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" mensajes_kommo)" = 8 ] && [ "$(h "$F" mensajes)" -gt 8 ] 2>/dev/null' \
     "  c['mensajes'] = msgs.count # [bandeja-mensajes]" "  c['mensajes'] = Message.where(account_id: cuenta.id).count # [bandeja-mensajes]"
 fi
 
