@@ -92,6 +92,14 @@ Además, la revisión de idempotencia pide en esa PR, y en el ensayo:
 - **una prueba que una los dos lados**, con datos inventados: el preparado real de la 0523, el cargador y `vincular_carga`. Tiene que incluir repetir la carga con un preparado que trae más mensajes, y el efecto de un mensaje nuevo sobre lo cargado;
 - **un mensaje mandado por la API a una conversación cargada,** mirando después `RetrySet` y `DeadSet` (el `pubsub_token`).
 
+**Acordado con E10 el 2026-11-08** (copia al Subdirector):
+- **El camino feliz completo:** extraer, preparar con la reserva de la 0523, `cargar-portal.rb` en seco y después de verdad, `vincular.sh`, y `controles-studio.sql` antes y después. C-6 y C-7 tienen que dar igual, y C-8 trae `hilos_vinculados`, `salida_cargado` y `salida_enviado`.
+- **(a)** Un `vinculos.ndjson` con un mensaje menos: `vincular.sh` lo rechaza con 22023 y no escribe nada en Studio.
+- **(b)** Un contacto con `contacto_id` nulo, inyectado en el archivo, da 22023. Necesita la 0524 aplicada en la copia, y E10 avisa cuando esté.
+- **(c)** Después de (a) se repite todo desde la extracción. La reserva da el mismo `dtd-portal:<identificador>`, el cargador salta por `source_id` lo que ya cargó, y queda un solo corte, el de la segunda foto. No puede haber ningún contacto ni conversación doble.
+- **La regla de la cola (punto 4, acotada por el DG):** si `carga_lineas` se niega con 55000, en la copia hay una fila de `chatwoot_portal_salida` sobre un hilo sin vínculo. **No se borra para seguir:** se anota y se le avisa al Subdirector.
+- **Las fichas borradas y la cola** quedan en el contrato de PGlite de E10.
+
 Se coordina con E10. Depende de `controles-studio.sql` (#456, de E10), así que se abre cuando la #456 esté en `main`.
 
 ## Permisos de los archivos
