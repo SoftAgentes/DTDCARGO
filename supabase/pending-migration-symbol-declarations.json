@@ -9,93 +9,6 @@
   ],
   "degradations": [
     {
-      "id": "sdd-0586-portal-ida",
-      "primarySymbol": "chatwoot_portal_tomar",
-      "migration": "0519_chatwoot_portal",
-      "symbols": [
-        {
-          "name": "chatwoot_portal_tomar",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:232",
-            "lib/studio/chatwoot/portal.ts:239"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_marcar",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:200",
-            "lib/studio/chatwoot/portal.ts:209"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_vincular",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:100",
-            "lib/studio/chatwoot/portal.ts:108"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_rezagados",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal.ts:304",
-            "lib/studio/chatwoot/portal.ts:306",
-            "lib/studio/chatwoot/portal.ts:362"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_hilos",
-          "kind": "table",
-          "callSites": [
-            "lib/studio/chatwoot/portal-manejadores.ts:158",
-            "lib/studio/chatwoot/portal-manejadores.ts:163",
-            "lib/studio/chatwoot/portal.ts:122",
-            "lib/studio/chatwoot/portal.ts:126"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/chatwoot/portal.ts:226",
-          "contains": "if (!flags.chatwoot_portal) return { ...resultado, omitido: \"apagado\" };",
-          "degradation": "Sin la migración no hay fila de chatwoot_portal y listFeatureFlags lo da apagado (FEATURE_FLAG_DEFAULTS): la cola no llama a ninguna de sus funciones ni a Chatwoot."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal.ts:240",
-          "contains": "return resultado.tomados === 0 ? { ...resultado, omitido: \"base\" } : resultado;",
-          "degradation": "Si igual se llamara, chatwoot_portal_tomar ausente (PGRST202) devuelve omitido «base» con su código en el log, sin lanzar."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal.ts:271",
-          "contains": "if (!chatwootPortalConfig()) return;",
-          "degradation": "El portal no agenda nada sin CHATWOOT_INBOX_PORTAL_ID, que se carga después de aplicar la migración: el mensaje del cliente se guarda como hoy."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal.ts:302",
-          "contains": "if (!flags.chatwoot_portal) return { ...vacio, omitido: \"apagado\" };",
-          "degradation": "El aviso a los admins tampoco consulta chatwoot_portal_rezagados con el flag apagado."
-        },
-        {
-          "site": "app/api/cron/chatwoot-reintentos/route.ts:62",
-          "contains": "const portal = await enviarPortalPendientes(admin).catch(() => ({ omitido: \"error\" as const }));",
-          "degradation": "El cron chatwoot-reintentos no se cae por la ida del portal: lo informa con un código y sigue."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal.ts:361",
-          "contains": "if (!flags.chatwoot_portal) return { encendido: false, sinLlegar: 0, atascados: 0 };",
-          "degradation": "La tarjeta «Portal → Chatwoot» de la Bandeja (PR 1b) no consulta chatwoot_portal_rezagados con el flag apagado: muestra «Apagado»."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal-manejadores.ts:177",
-          "contains": "if (!flags.chatwoot_portal) return;",
-          "degradation": "La vuelta (PR 1b) no mira chatwoot_portal_hilos con el flag apagado: el webhook sigue como hoy."
-        }
-      ]
-    },
-    {
       "id": "sdd-0586-portal-vuelta",
       "primarySymbol": "chatwoot_portal_respuesta",
       "migration": "0520_chatwoot_portal_vuelta",
@@ -121,7 +34,7 @@
         {
           "site": "lib/studio/chatwoot/portal-manejadores.ts:177",
           "contains": "if (!flags.chatwoot_portal) return;",
-          "degradation": "Sin la 0520 (y sin la 0519, que va antes) no hay fila de chatwoot_portal y listFeatureFlags lo da apagado: responderAlPortal no llama a chatwoot_portal_respuesta ni a Chatwoot, y el webhook sigue como hoy."
+          "degradation": "Con chatwoot_portal apagado (la fila que siembra la 0519 nace apagada; en una base sin la 0519 no hay fila y listFeatureFlags lo da apagado) responderAlPortal no llama a chatwoot_portal_respuesta ni a Chatwoot, y el webhook sigue como hoy. Encenderlo sin la 0520 es la condición de §10.5.9, paso 6."
         },
         {
           "site": "app/studio/(app)/bandeja/_components/PortalChatwoot.tsx:46",
