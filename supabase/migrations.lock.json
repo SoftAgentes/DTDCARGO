@@ -3240,6 +3240,15 @@
         "fecha": "2026-11-08",
         "forma": "exacta"
       }
+    },
+    "0523_chatwoot_portal_carga": {
+      "sha256": "07b8a71086c6e45b9a38c6cb0b37f8fc4181cbc22a305f15e6295594d04fb0f3",
+      "md5": "83b016e0ac8aa2fe24172ae07642a60c",
+      "bytes": 23960,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
     }
   }
 }
