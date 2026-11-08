@@ -182,6 +182,26 @@ bash ensayo-archivo.sh --limpiar   # solo borra un ensayo que haya quedado
 Guardas, diseño y revisión de datos personales: SDD-0590 §10.10 y §10.11. Se prueba en el mismo workflow,
 contra una «producción» simulada: `pruebas/prueba-ensayo.sh`.
 
+**Como unidad de systemd, con `lanzar-unidad.sh`** (§10.18). Lanza `kommo-e5-ensayo` o `kommo-e5-carga` con
+`TimeoutStopSec` de 600 s, `Nice` 10 y la carpeta de trabajo, más su vigía (`<unidad>-vigia`, con el
+`vigia-carga.sh` de la carpeta). Se niega si ya corre una de las dos (código 6). Con los 90 s por defecto de
+systemd, un `systemctl stop` mataría la limpieza con KILL a mitad: por eso el ensayo se niega a arrancar en una
+unidad con menos de 300 s (código 5).
+
+```sh
+cd /srv/ops/kommo-historial-ensayo
+bash lanzar-unidad.sh --unidad kommo-e5-ensayo --dir "$PWD" \
+  --env CARGA=/dev/shm/kommo-e5-carga/carga.ndjson \
+  --env INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
+  --env INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
+  --env STAGING=/dev/shm/kommo-e5-carga --env CUENTA=1 --tope-vigia 8 \
+  -- /bin/bash "$PWD/ensayo-archivo.sh"
+# La carga (5.7), con el guion de esa corrida: el mismo lanzador, y al final informe → empaquetar (paso 5)
+bash lanzar-unidad.sh --unidad kommo-e5-carga --dir "$PWD" --tope-vigia 8 -- /bin/bash <guion de la carga>
+```
+
+La prueba del lanzador, con systemd de verdad, va en el mismo workflow: `sudo bash pruebas/prueba-lanzador.sh`.
+
 **Cómo termina** (SDD-0590 §10.17). El veredicto está en el código de salida y en la última línea de la
 evidencia, `HECHO ensayo_codigo=<código>`:
 
@@ -189,15 +209,20 @@ evidencia, `HECHO ensayo_codigo=<código>`:
 |---|---|
 | 0 | Pasó todo y la limpieza dejó 0 contenedores, volúmenes y redes |
 | 1 | Alguna comprobación falló |
-| 3 | Lo paró la guarda de carga o de memoria |
+| 3 | Lo paró la guarda de carga o de memoria, también en los pasos de adjuntos (§10.18) |
 | 4 | Todo pasó, pero la limpieza no terminó (`FALLÓ L0`, `limpieza_completa=no`) |
+| 5 | La unidad de systemd tiene `TimeoutStopSec` de menos de 300 s (`FALLÓ G1`): no arrancó ni creó nada |
 | 143, 130, 129 | Lo pararon con TERM, INT o HUP (`FALLÓ PARADA`, `HECHO senal=…`) |
 
 Como unidad de systemd, cualquier código distinto de 0 la deja en `failed`, con `Result=exit-code` y el código
 en `ExecMainStatus`. El guion que corrió el 2026-11-07 (huella `c0fb3d336a135ca1`) terminaba una parada con TERM
-en `Result=success`. Con
-`systemctl stop`, el paso en curso recibe la misma señal y termina enseguida. Con TERM solo al proceso
-principal, el ensayo espera a que termine el paso en curso. La limpieza nunca toca nada fuera del proyecto
+en `Result=success`.
+
+**Cómo pararlo.** `systemctl stop kommo-e5-ensayo` manda TERM a toda la unidad: el paso en curso recibe la
+misma señal y termina enseguida, y después corre la limpieza. Es lo que hace `vigia-carga.sh`. **Un TERM solo al
+proceso principal** (`systemctl kill --kill-whom=main -s TERM`, como el vigía del 2026-11-07) **espera a que termine
+el paso en curso**: la carga o los adjuntos siguen hasta su final, y recién ahí para y limpia. Para cortar
+enseguida, `systemctl stop`. La limpieza anota cuánto tardó (`HECHO limpieza_segundos`) y nunca toca nada fuera del proyecto
 `chatwoot-ensayo`: si algo ajeno sostiene su red o su volumen, lo dice y no sale con 0; después de revisarlo,
 `--limpiar`.
 

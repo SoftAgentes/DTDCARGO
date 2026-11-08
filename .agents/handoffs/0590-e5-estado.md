@@ -245,6 +245,8 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 - **Qué hace:** copia la base de Chatwoot, deja en la copia solo la cuenta 1, crea el Archivo, corre el seco y las dos cargas, mide, y lo borra todo. Con `STAGING` (5.5b), también carga dos veces los adjuntos y mide AD1 a AD3: cantidad y bytes frente a `carga-informe.json`, 0 en la segunda corrida, íntegros y sin huérfanos.
 - **Evidencia:** `/srv/ops/kommo-historial-ensayo/evidencia-ensayo-<stamp>.txt`, solo líneas `HECHO`. Se le manda al Director General.
 - Si queda algo a medias: `bash ensayo-archivo.sh --limpiar`.
+- **Como unidad, desde la spec §10.18:** se lanza con `lanzar-unidad.sh` (README, «Ensayo (5.6)»), que fija `TimeoutStopSec` en 600 s, `Nice` 10 y su vigía. La carga (5.7) usa el mismo lanzador con `--unidad kommo-e5-carga`. Si el ensayo corre en una unidad con menos de 300 s, se niega (código 5): con los 90 s por defecto, un `systemctl stop` mataría la limpieza.
+- **Cómo pararlo:** `systemctl stop` manda TERM a toda la unidad, y el paso en curso termina enseguida. **Un TERM solo al proceso principal** (`systemctl kill --kill-whom=main`), como el del vigía del 2026-11-07, **espera a que termine el paso en curso**: la carga o los adjuntos siguen hasta su final, y recién ahí para y limpia. La guarda de carga también corta los pasos de adjuntos (código 3).
 
 ### 5.6 Pasos 7 a 10, con el Director General
 
