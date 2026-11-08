@@ -4,7 +4,7 @@ title: "Historial de Kommo: respaldo cifrado fuera de Git y medición del volume
 status: in-progress
 author: "Claude Worker «E5 historial» (Sam)"
 created: 2026-10-30
-updated: 2026-11-07
+updated: 2026-11-08
 supersedes: null
 superseded_by: null
 related: ["0582", "0043", "0082", "0391", "0535", "0587"]
@@ -1078,5 +1078,137 @@ No se capturan, mueven ni borran datos personales nuevos. La sonda sigue imprimi
 
 - **Aislamiento del ensayo:** A1 a A7 miran los contenedores del proyecto, pero no que un contenedor ajeno se conecte a `chatwoot-ensayo_aislada`. T3 lo hace a propósito, y A1 a A7 filtran por la etiqueta del proyecto, así que no lo pueden ver (C). En el VPS, eso pide root. Propuesta: una comprobación A9 que exija que en la red solo haya contenedores del proyecto, antes del dump y después de cada paso.
 - **`sonda-cargador.rb` (E-10d de `prueba-cargador.sh`)** mira solo la primera página de 15 (`:229-234`). Con los 5 datos inventados alcanza; a escala real fallaría como la del ensayo. Corre solo en CI.
-- **La guarda de carga del ensayo no para los pasos de adjuntos.** `python3 … flujo-adjuntos | rr …` (`ensayo-archivo.sh`, en los pasos de adjuntos) corre `rr` en el subshell del pipeline. Si `vigilar_carga` dice `exit 3` ahí, sale solo ese subshell y el ensayo sigue con el paso siguiente (C; no medido). Está así en `main`, desde la 5.5b.
+- **La guarda de carga del ensayo no para los pasos de adjuntos.** `python3 … flujo-adjuntos | rr …` (`ensayo-archivo.sh`, en los pasos de adjuntos) corre `rr` en el subshell del pipeline. Si `vigilar_carga` dice `exit 3` ahí, sale solo ese subshell y el ensayo sigue con el paso siguiente (C; no medido). Está así en `main`, desde la 5.5b. **Se corrige en §10.18.**
 - `preparar_corrida` abre `stamp.txt` sin cerrarlo (`ResourceWarning` en las pruebas). No cambia nada.
+
+### 10.18 La guarda de carga en los adjuntos y los cuatro puntos del Director General (PR #432, 2026-11-07)
+
+Los pendientes que dejó la #413: el hallazgo de §10.17 y los cuatro puntos que el Director General sumó al aprobarla. **No cambia lo cargado en la bandeja 8, no toca producción ni el VPS y no se corrió nada allí.** Las pruebas usan solo datos inventados; las que llevan contenedores o systemd corren en GitHub Actions. Handoff: `.agents/handoffs/0590-e5-guarda-adjuntos.md`.
+
+#### 1. La guarda de carga corta los pasos de adjuntos (`ensayo-archivo.sh`)
+
+`rr` es el último elemento de `python3 … flujo-adjuntos | rr …`, así que corre en el subshell del pipeline (`lastpipe` está apagado). Su `vigilar_carga` decía `FALLÓ CARGA` y `exit 3`, pero solo salía ese subshell: el ensayo seguía con adjuntos-2, `despues`, los miembros y la búsqueda, con la carga alta. Se reprodujo en la PC con un caso mínimo: sale con 0 y `PIPESTATUS 0 3`. Ahora, justo después del pipeline, `[ "${PIPESTATUS[1]}" = 3 ] && exit 3`. Se mantiene el pipeline, que espera a los dos procesos. Se descartaron `lastpipe`, porque cambia todos los pipelines del guion, y la sustitución de proceso, porque no espera a Python y `flujo-$n.err` se leería a medias.
+
+Para probarlo, la carga que lee la guarda se puede inyectar (`ENSAYO_CARGA_DE`, como `ENSAYO_MEMINFO_DE`). Solo la cambia la prueba.
+
+#### 2. El texto de los 403 (`respaldar-historial.py` 1.3.3)
+
+El log de `empaquetar` decía «M mensajes sin acceso por 403». Pero `mensajes_sin_acceso_403` cuenta conversaciones cuyos mensajes dieron 403 (`marcar("mensajes-sin-acceso", tid)`). Ahora las dos etiquetas son constantes, `ETIQUETA_403_CONVERSACIONES` y `ETIQUETA_403_MENSAJES`, y las usan `informe.md` y el log: «conversaciones sin acceso (HTTP 403): N; conversaciones con mensajes sin acceso (HTTP 403): M». Las claves del manifiesto no cambian.
+
+#### 3. La línea de BQ1 (`ensayo-archivo.sh`)
+
+Decía «(el 3º, de hace 500 días; revisados si no hubo)», con el valor vacío cuando sí hubo mensaje. Ahora dice cuál mensaje («el Nº, de hace D días») o, si no hubo ninguno, «ninguno de los N revisados tiene una palabra apta».
+
+#### 4. `TimeoutStopSec`: el lanzador y la guarda propia
+
+- **`lanzar-unidad.sh`**, nuevo, en el repo. Lo pidió el Subdirector de Chatwoot el 2026-11-07, eligiendo la opción (a), pero solo para el lanzador. Reemplaza los lanzadores de una sola noche, `lanzar-ensayo-v3.sh` y `lanzar-carga-57.sh`, que estaban fuera del repo. Las fuentes quedaron copiadas en las notas de la sesión. `carga-57-remoto.sh` no entra: fue el procedimiento de una sola corrida.
+  - Lanza `kommo-e5-ensayo` o `kommo-e5-carga` con `TimeoutStopSec` de 600 s (`TIMEOUT_STOP_S`), `Nice` 10, la carpeta de trabajo y el entorno pedido (`--env`), más `<unidad>-vigia` con el `vigia-carga.sh` de la carpeta y su tope.
+  - Se niega si ya corre una de las dos (código 6), y con una unidad que no sea esas dos (código 2).
+  - Imprime las huellas de lo que va a correr.
+  - Lo propio de la noche del 2026-11-07 queda fuera: las rutas de `/root/`, las horas de corte y los `.subida`.
+- **La guarda propia del ensayo (guarda 7).** Si el ensayo es el proceso principal de una unidad de servicio, lee su `TimeoutStopSec`. Para saber cuál es, usa el cgroup de `/proc/self/cgroup` y exige que el `MainPID` sea `$$`: un runner de CI o una sesión de SSH no cuentan, aunque traigan `INVOCATION_ID`.
+  - Con menos de 300 s (`TIMEOUT_STOP_MIN_S`), `FALLÓ G1` y sale con 5, antes de crear nada.
+  - Fuera de systemd, `HECHO unidad=ninguna` y lo dice.
+  - Es una defensa por si alguien lanza a mano sin el lanzador: con los 90 s por defecto, systemd mataría con KILL una limpieza larga.
+- **`HECHO limpieza_segundos`:** cuánto tardó la limpieza. Lo miden T1 y T2, que exigen menos de un tercio del `TimeoutStopSec`.
+
+#### 5. Un TERM al proceso principal espera al paso en curso
+
+Queda escrito en el README («Cómo pararlo»), en la cabecera de `ensayo-archivo.sh`, en `lanzar-unidad.sh` y en el handoff `0590-e5-estado.md` §5.5. `systemctl stop`, lo que hacen `lanzar-unidad.sh` y `vigia-carga.sh`, para enseguida. Un TERM solo al proceso principal deja terminar el paso en curso.
+
+#### Allowlist
+
+- `infra/ops/kommo-historial/ensayo-archivo.sh`
+- `infra/ops/kommo-historial/lanzar-unidad.sh`, nuevo
+- `infra/ops/kommo-historial/respaldar-historial.py`
+- `infra/ops/kommo-historial/README.md`
+- `infra/ops/kommo-historial/pruebas/prueba-ensayo.sh`
+- `infra/ops/kommo-historial/pruebas/prueba-lanzador.sh`, nuevo
+- `infra/ops/kommo-historial/pruebas/test_respaldar.py`
+- `.github/workflows/kommo-historial-cargador.yml`: el paso del lanzador, y cada paso corre aunque haya fallado el anterior (`!cancelled()`), para que un rojo no esconda otro. El job sigue en rojo si cualquiera falla. `timeout-minutes` pasa de 60 a 75 por la regla del DG para más de 35 min: el rojo previo tardó 43
+- `docs/specs/0590-kommo-historial-e5/spec.md`
+- `.agents/handoffs/0590-e5-estado.md`
+- `.agents/handoffs/0590-e5-guarda-adjuntos.md`
+
+#### Pruebas nuevas
+
+- **`prueba-ensayo.sh`:**
+  - **N7.** La carga inyectada es baja hasta que aparece `$DIR/carga-2.txt`, que se crea después de la guarda de la carga-2, y 99 desde ahí. El ensayo tiene que parar en adjuntos-1, con 3:
+    - un solo `FALLÓ CARGA (adjuntos-1)`;
+    - `carga_vps_adjuntos-1=99.00`, sin `carga_vps_adjuntos-2` ni `carga_vps_despues`;
+    - `ensayo_codigo=3` y la limpieza completa.
+    - **ME5** quita la línea de `PIPESTATUS` del guion nuevo y tiene que tumbar N7 por `siguio`. Sin esa línea, con la carga inyectada, el `exit 3` solo se vería en la guarda siguiente del proceso principal, ya pasados adjuntos-2. Por eso N7 mira dónde paró, no solo el código. En `main`, N7 cae por `siguio` y sale con 0, porque ahí la carga no se podía inyectar. La línea la prueba ME5, no ese rojo.
+  - **T4.** Una unidad lanzada a mano con los 90 s por defecto. La unidad tiene que terminar en `exit-code 1 5`, con `unidad_timeout_stop_s=90`, `FALLÓ G1`, `ensayo_codigo=5` y nada creado, ni siquiera una medida de carga. **ME6** quita la guarda y tiene que tumbar T4 por `siguio`.
+  - **T1 a T3** se lanzan con el `TimeoutStopSec` del lanzador, leído de `lanzar-unidad.sh`. T1 y T2 exigen además `unidad_timeout_stop_s=600` y `limpieza_segundos` por debajo de 200.
+  - **R6:** la línea de BQ1 dice «(el 3º, de hace 500 días)» y no «revisados si no hubo».
+  - **F5:** fuera de systemd, el ensayo R dice que la guarda no aplica.
+- **`prueba-lanzador.sh`**, con systemd de verdad y sudo, como `prueba-vigia.sh`. Lanza las dos unidades con un comando que solo duerme y un vigía falso.
+  - **L1:** `TimeoutStopUSec` de 10 min, `Nice` 10, la carpeta, el entorno y el vigía con la unidad y el tope.
+  - **L2:** con el ensayo activo, otro ensayo se niega con 6 y no lo relanza (el mismo `InvocationID`).
+  - **L3:** con el ensayo activo, la carga también se niega con 6.
+  - **L4:** otra unidad se niega con 2.
+  - **L5:** `--sin-vigia`.
+  - Control M0 y mutantes: MLA1 sin `TimeoutStopSec`, MLA2 sin la negativa y MLA3 sin el vigía.
+- **`test_respaldar.py`, `PruebasTexto403`:** el log de `empaquetar`, con un manifiesto de 12 y 1, dice las dos etiquetas de `informe.md` con su número y no «mensajes sin acceso por 403». Las etiquetas son constantes, y `informe_md` las usa.
+
+#### Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| `PruebasTexto403` con el código de `main` (rojo previo, en la PC) | FALLÓ, como se esperaba: el log decía «el manifiesto lleva el informe (12 conversaciones y 1 mensajes sin acceso por 403)» |
+| `test_respaldar.py` con el arreglo, en la PC | PASÓ: 63 pruebas, 3 omitidas |
+| El `exit 3` de una función en el último elemento de un pipeline, caso mínimo de bash en la PC | Confirmado: como en `main`, el guion sigue (`PIPESTATUS 0 3`) y sale con 0. Con `[ "${PIPESTATUS[1]}" = 3 ] && exit 3`, sale con 3 |
+| `segundos_systemd` y el `sed` del cgroup, en la PC | PASÓ: «1min 30s» da 90, «10min» 600, «4min 59s» 299 e «infinity» 999999, y lo ilegible queda vacío. Una unidad `.service` del cgroup v1 y del v2 sí cuenta; el cgroup de un runner (`…service/runner`) y una sesión `.scope`, no |
+| `bash -n` de los guiones y del lanzador | PASÓ |
+| CI del cargador sobre `4cfa0403f`, solo las pruebas nuevas con el código de `main` (rojo previo, run 42424887376, 43 min) | FALLÓ, como se esperaba, solo en las pruebas nuevas. Python: `PruebasTexto403`. Lanzador: 0 de 9, porque no existe `lanzar-unidad.sh`. Ensayo: 11 fallas (T0, T1, T2, T4, ME2, ME3, ME5, ME6, N7, R6 y F5). R6 vio «el 3º, de hace 500 días;  revisados si no hubo». Siguen verdes las guardas de la completa (25), el vigía (15) y el cargador. Calidad continua sobre el mismo commit (42424887337): PASÓ |
+| CI del cargador con los arreglos (`a52034e20`, run 42428357622, el job tardó 43 min 32 s) | PASÓ. Python: 63, OK. Lanzador: 9 de 9 (L1 a L5, M0 y MLA1 a MLA3). Ensayo: 0 fallas. T1 a T4 pasan; en T1, la unidad tenía 600 s y la limpieza tardó 0 s (con resolución de 1 s). T4 termina en `exit-code 1 5`. ME1 a ME4 y ME6 caen por su motivo. N7 para en adjuntos-1 con código 3, ME5 cae por `siguio`, y pasan R1 (48), R6 y F5. Completa: 25. Vigía: 15. Cargador: 0 fallas. Calidad continua sobre el mismo commit (42428357683): PASÓ. La #432 se fusionó en el tren #441 (`146d5ea5e`) |
+
+#### revisar-datos-ve
+
+No se capturan, mueven ni borran datos personales. El lanzador imprime huellas y conteos de carga y memoria. La guarda nueva anota el nombre de la unidad y su `TimeoutStopSec`. **Cumplimiento.**
+
+#### FUERA DE ALCANCE DETECTADO
+
+- El vigía de `lanzar-unidad.sh` es el `vigia-carga.sh` de `main`, que mira carga, `/dev/shm` y memoria. El del ensayo del 2026-11-07 miraba además la salud de cuatro contenedores y dos `curl`, y estaba fuera del repo. Traer esas comprobaciones al vigía del repo sería otra PR.
+
+### 10.20 Los cinco puntos que no bloqueaban la #432 (2026-11-08)
+
+La revisión aprobó la #432 sobre `a52034e20` y dejó cinco puntos que no bloqueaban. El Subdirector de Chatwoot los pidió en su propia PR, después del tren #441 (`main` en `146d5ea5e`). **No toca producción ni el VPS, y no se corrió nada allí.** Las pruebas usan solo datos inventados, y las que llevan systemd corren en GitHub Actions. Handoff: `.agents/handoffs/0590-e5-lanzador-pulido.md`.
+
+1. **Una opción sin valor ya no deja el `while` girando.** Con `--unidad`, `--dir` o `--tope-vigia` al final y sin valor, `shift 2` fallaba sin mover nada, y `while [ $# -gt 0 ]` giraba para siempre. Ahora `pide_valor $#` (`[ "$1" -ge 2 ] || uso`) sale con 2. `--env` ya salía con 2.
+2. **Nunca corre sin vigía.** Si el `systemd-run` del vigía falla, el lanzador para la unidad principal (`systemctl stop`) y sale con 7. Antes, solo avisaba y la dejaba corriendo.
+3. **El token nunca va por `--env`.** `--setenv` queda en `Environment=` de la unidad, y `systemctl show` lo muestra. El lanzador niega las claves con `TOKEN`, `SECRET`, `PASSWORD`, `CLAVE` o `KEY` (código 2), sin imprimir el valor. Tampoco imprime el valor de un `--env` mal formado. El README y la cabecera del lanzador lo dicen.
+4. **La carga no tiene guion en el repo.** El README y la cabecera citaban un `<guion de la carga>` que no existe. Ahora dicen qué hubo de verdad: `carga-57-remoto.sh`, un guion de una sola corrida, fuera del repo, que seguía los pasos del cargador de Rails del README. También dicen que una carga nueva necesita su guion, revisado en su PR. Se suma la tabla de códigos del lanzador: 0, 2, 6 y 7.
+5. **Los runs de la #432.** Su handoff y la §10.18 los dejaban como pendientes porque la rama estaba congelada. Ahora traen el rojo previo (42424887376) y el verde (42428357622 y 42428357683).
+
+#### Allowlist
+
+- `infra/ops/kommo-historial/lanzar-unidad.sh`
+- `infra/ops/kommo-historial/README.md`
+- `infra/ops/kommo-historial/pruebas/prueba-lanzador.sh`
+- `infra/ops/kommo-historial/pruebas/prueba-docs-lanzador.sh`, nuevo
+- `.github/workflows/kommo-historial-cargador.yml`: el paso «Documentación del lanzador»
+- `docs/specs/0590-kommo-historial-e5/spec.md`
+- `.agents/handoffs/0590-e5-guarda-adjuntos.md`
+- `.agents/handoffs/0590-e5-lanzador-pulido.md`, nuevo
+
+#### Pruebas nuevas
+
+- **`prueba-lanzador.sh`:**
+  - **L6:** `--unidad kommo-e5-ensayo --dir`, con un tope de 10 s, sale con 2 y no lanza nada. Sin la guarda daría 124.
+  - **L7:** con una unidad `kommo-e5-ensayo-vigia` ya activa, el vigía no arranca. El lanzador tiene que salir con 7 y dejar inactiva la unidad principal.
+  - **L8:** `--env KOMMO_TOKEN=…` se niega con 2, no lanza nada y no imprime el valor.
+  - Mutantes nuevos:
+    - MLA4 deja `pide_valor` vacío, y cae L6;
+    - MLA5 quita el `systemctl stop`, y cae L7;
+    - MLA6 deja pasar las claves, y cae L8.
+  - MLA3, sin el vigía, ahora tumba L1 y también L7.
+- **`prueba-docs-lanzador.sh`**, sin root, con piso de 4 casos:
+  - **D1:** el token nunca va por `--env`, en el README y en el lanzador;
+  - **D2:** no queda ningún `<guion de la carga>`, y el README nombra `carga-57-remoto.sh` como fuera del repo;
+  - **D3:** la #432 ya no tiene el CI pendiente;
+  - **D4:** el código 7 está en el README.
+
+#### revisar-datos-ve
+
+No se capturan, mueven ni borran datos personales. La guarda nueva impide que un secreto quede en la definición de la unidad, y no imprime su valor. **Cumplimiento.**
