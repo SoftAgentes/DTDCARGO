@@ -244,6 +244,7 @@ El corte lo fija el instante de 8.2. La extracción final del espejo (8.5) va an
 | `supabase/tests/crm_carga_kommo.test.sql` | El contrato |
 | `lib/studio/__tests__/crm-carga-kommo.migration.test.ts` | PGlite, control rojo, mutantes y estática |
 | `.github/workflows/sql-tests.yml` | Dispara «Contratos SQL» también con `supabase/cargas/**` |
+| `scripts/ci-sql-tests-control.sh` | El control C4 copia también `supabase/cargas/`: sin eso, el contrato no encuentra el cargador (rojo del run 42478778578) |
 | `.agents/handoffs/0616-crm-carga-leads-desde-espejo.md` | Handoff |
 
 ## 13. Aceptación de 6.5
