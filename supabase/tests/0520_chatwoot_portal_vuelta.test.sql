@@ -121,7 +121,7 @@ insert into public.tenants values
 insert into auth.users values
   (pg_temp.id('U1')), (pg_temp.id('U2')), (pg_temp.id('U3')),
   (pg_temp.id('AD')), (pg_temp.id('CO')), (pg_temp.id('AX')), (pg_temp.id('A2'));
-insert into public.user_profiles values (pg_temp.id('U1'), ' Ana ', 'Pérez ');
+insert into public.user_profiles values (pg_temp.id('U1'), 'Ana', 'Pérez');
 insert into public.user_tenants values
   (pg_temp.id('AD'), pg_temp.id('T1'), 'admin', null),
   (pg_temp.id('CO'), pg_temp.id('T1'), 'commercial', null),

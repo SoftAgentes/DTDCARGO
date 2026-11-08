@@ -89,10 +89,11 @@ describe("SDD-0586 · 0520 la vuelta de Chatwoot al portal y destrabar (PGlite)"
   const MUTANTES: [string, string, string, RegExp][] = [
     // ── Críticos (E10-D37) ──
     [
-      "la respuesta se duplica en un reintento",
-      "'chatwoot:' || p_chatwoot_message_id::text, v_cuando",
-      "'chatwoot:' || p_chatwoot_message_id::text || ':' || pg_catalog.gen_random_uuid()::text, v_cuando",
-      /TEST 0520: el duplicado no da cliente: el push sale una sola vez/,
+      // Sin el on conflict, el reintento choca con el índice único: el evento quedaría fallido para siempre.
+      "el reintento choca en vez de dar duplicado",
+      "  on conflict (tenant_id, external_msg_id) where external_msg_id is not null do nothing\n",
+      "",
+      /conversation_messages_external_idx/,
     ],
     [
       "el duplicado da el cliente (el push sale dos veces)",
