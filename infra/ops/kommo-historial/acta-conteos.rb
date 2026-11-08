@@ -92,6 +92,7 @@ begin
     ActiveRecord::Base.connection.execute('SET TRANSACTION READ ONLY') # [solo-lectura]
     solo_lectura = ActiveRecord::Base.connection.select_value('SHOW transaction_read_only') == 'on'
     hecho('solo_lectura', solo_lectura ? 'si' : 'no')
+    abort_con.call('la transacción no quedó en solo lectura') unless solo_lectura
     cuenta = Account.find_by(id: ENV.fetch('CUENTA', '1'))
     abort_con.call('la cuenta no existe') unless cuenta
     bandeja = cuenta.inboxes.find_by(id: bandeja_id.to_i)
@@ -107,8 +108,9 @@ begin
     hecho('acta', 'ok')
     raise ActiveRecord::Rollback
   end
-rescue ActiveRecord::StatementInvalid => e
-  # Lo que pasaría si algo quisiera escribir: Postgres responde «cannot execute … in a read-only transaction».
+rescue StandardError => e
+  # Cualquier error, incluido el de Postgres si algo quisiera escribir («cannot execute … in a read-only
+  # transaction»): solo la clase, sin el mensaje ni la traza, que podrían traer datos.
   hecho('acta', 'error')
   hecho('motivo', e.class.name)
   exit 1

@@ -340,6 +340,18 @@ log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $
 log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
 
+# Copia mutada del cargador, para MI y para M. Tiene que estar definida antes de la primera llamada (AC-M1, en el bloque AC).
+mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
+  "$PY" -I -c 'import sys
+o, d, b, r = sys.argv[1:5]
+t = open(o, encoding="utf-8").read()
+n = t.count(b)
+if n != 1:
+    print(f"el texto a mutar aparece {n} veces")
+    sys.exit(1)
+open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1")" "$(win "$2")" "$3" "$4"
+}
+
 # ── AC. Conteos del acta de conciliación parcial (5.8), sobre la bandeja de la corrida real ───────────────
 # acta-conteos.rb es lo que corre el Director General en producción, de solo lectura. Aquí, sobre los datos
 # inventados, tiene que contar lo mismo que dejó la carga: 5 conversaciones (4 waba y 1 instagram_business), 8
@@ -366,23 +378,32 @@ exigir AC6 '[ "$(h "$REAL/acta-comparar.txt" concilia)" = no:9 ] && [ "$(grep -c
   "COMPARAR=5.7 sobre datos inventados: 9 objetos NO COINCIDEN con la carga real y los 4 que tienen que dar 0 coinciden"
 exigir AC7 '[ "$(h "$REAL/acta-sin-bandeja.txt" acta)" = error ] && [ "$(h "$REAL/acta-sin-bandeja.txt" motivo)" = "falta BANDEJA (el id de «Archivo Kommo»)" ]' \
   "sin BANDEJA no cuenta nada"
-exigir AC8 '! grep -h -E "^(HECHO|CONCILIA) " "$REAL/acta.txt" "$REAL/acta-comparar.txt" | grep -q -E "SINT-|@|kommo:|example"' \
-  "la salida no trae nombres, correos, textos ni ids de Kommo"
+# AC8 usa las mismas marcas que F1 (los valores inventados de generar-sintetico.py), más «@» y «kommo:».
+ac_marcas=()
+for m in "${MARCAS[@]}" @ kommo:; do ac_marcas+=(-e "$m"); done
+exigir AC8 '! grep -h -E "^(HECHO|CONCILIA) " "$REAL/acta.txt" "$REAL/acta-comparar.txt" | grep -q -F "${ac_marcas[@]}"' \
+  "la salida no trae ninguno de los ${#MARCAS[@]} valores inventados, ni correos ni ids de Kommo"
+# AC9: en una transacción READ ONLY como la del acta, Postgres rechaza una escritura de verdad y no queda nada.
+rr "$REAL/acta-escritura.txt" -- 'begin; ActiveRecord::Base.transaction { ActiveRecord::Base.connection.execute("SET TRANSACTION READ ONLY"); Label.create!(account_id: Account.first.id, title: "sonda-escritura-acta"); puts "HECHO escritura=aceptada" }; rescue ActiveRecord::StatementInvalid => e; puts "HECHO escritura=rechazada"; puts "HECHO causa=#{e.cause.class}"; end; puts "HECHO etiquetas_sonda=#{Label.where(title: "sonda-escritura-acta").count}"' </dev/null
+F="$REAL/acta-escritura.txt"
+exigir AC9 '[ "$(h "$F" escritura)" = rechazada ] && [ "$(h "$F" causa)" = PG::ReadOnlySqlTransaction ] && [ "$(h "$F" etiquetas_sonda)" = 0 ]' \
+  "Postgres rechaza la escritura en la transacción de solo lectura ($(h "$F" causa)) y no queda ninguna fila"
 if [ "$MUTANTES" = 1 ]; then
-  ac_mutante() { # id descripción comprobación buscar reemplazo
+  # ac_mutante id descripción exigencia buscar reemplazo: la exigencia es cómo TIENE que caer el mutante.
+  ac_mutante() {
     if mutar "$D/cargador/acta-conteos.rb" "$D/cargador/$1.rb" "$4" "$5" >"$REAL/$1.mutar.txt" 2>&1; then
       rr "$REAL/$1.txt" "BANDEJA=$B" "CUENTA=$CUENTA" -- "/tmp/cargador/$1.rb" </dev/null
       F="$REAL/$1.txt"
-      exigir "$1" "[ \"\$(h \"\$F\" acta)\" = ok ] && ! ( $3 )" "$2"
+      exigir "$1" "$3" "$2"
     else
       mal "$1" "no se pudo aplicar ($(tr -d '\r' <"$REAL/$1.mutar.txt"))"
     fi
   }
-  ac_mutante AC-M1 "sin READ ONLY, AC1 cae: la transacción ya no es de solo lectura" \
-    '[ "$(h "$F" solo_lectura)" = si ]' \
+  ac_mutante AC-M1 "sin READ ONLY, el acta aborta con «la transacción no quedó en solo lectura» y no cuenta nada" \
+    '[ "$(h "$F" solo_lectura)" = no ] && [ "$(h "$F" acta)" = error ] && [ "$(h "$F" motivo)" = "la transacción no quedó en solo lectura" ] && [ -z "$(h "$F" mensajes)" ]' \
     "    ActiveRecord::Base.connection.execute('SET TRANSACTION READ ONLY') # [solo-lectura]" "    nil # [solo-lectura]"
   ac_mutante AC-M2 "contando los mensajes de toda la cuenta, entra el de la bandeja viva y AC2 cae" \
-    '[ "$(h "$F" mensajes)" = 8 ]' \
+    '[ "$(h "$F" acta)" = ok ] && [ "$(h "$F" mensajes)" = 9 ]' \
     "  c['mensajes'] = msgs.count # [bandeja-mensajes]" "  c['mensajes'] = Message.where(account_id: cuenta.id).count # [bandeja-mensajes]"
 fi
 
@@ -407,17 +428,6 @@ fi
 dc "${BASE[@]}" stop rails >/dev/null 2>&1
 vigilar "servir"
 
-# Copia mutada del cargador, para MI y para M. Tiene que estar definida antes de la primera llamada (MI-M1).
-mutar() { # origen destino buscar reemplazo: el texto tiene que aparecer exactamente una vez
-  "$PY" -I -c 'import sys
-o, d, b, r = sys.argv[1:5]
-t = open(o, encoding="utf-8").read()
-n = t.count(b)
-if n != 1:
-    print(f"el texto a mutar aparece {n} veces")
-    sys.exit(1)
-open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1")" "$(win "$2")" "$3" "$4"
-}
 
 # ── MI. Miembros del Archivo (Sam, 2026-11-06: «todo el equipo») ─────────────
 # Después de AD4, que necesita un agente que no sea miembro. MODO=miembros-seco, MODO=miembros y otra vez

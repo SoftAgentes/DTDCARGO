@@ -1088,7 +1088,7 @@ Encargo del Subdirector de Chatwoot, por el carril 4 que pidió Sam. El acta est
 - **Por objeto** concilia la cadena Kommo → preparado → Chatwoot, con lo medido en §10.16. Conversaciones, mensajes, contactos y adjuntos dan 0 de diferencia. Lo que queda fuera a sabiendas: 12 conversaciones con 403 y 15 adjuntos con 404.
 - **Por canal**, el lado de Chatwoot lo cuenta `kommo_origen`. El lado de Kommo de la extracción final es NV: solo queda dentro del paquete cifrado, y la 5.2 sirve de referencia, no de conciliación.
 - **Las consultas de producción las corre el Director General** solo con el OK nominal de Sam, que él le pide. Son de solo lectura: `infra/ops/kommo-historial/acta-conteos.rb`, con `COMPARAR=5.7`. No las corre un Worker.
-- **Prueba:** bloque AC de `pruebas/prueba-cargador.sh`, en el flujo «Cargador del Archivo Kommo», con datos inventados sobre la imagen real. Tiene ocho comprobaciones y dos mutantes: sin `READ ONLY`, y contando toda la cuenta.
+- **Prueba:** bloque AC de `pruebas/prueba-cargador.sh`, en el flujo «Cargador del Archivo Kommo», con datos inventados sobre la imagen real. Tiene nueve comprobaciones (AC9 intenta escribir, y Postgres tiene que rechazarlo) y dos mutantes: sin `READ ONLY`, que tiene que abortar, y contando toda la cuenta.
 - **revisar-datos-ve:** no se capturan, mueven ni borran datos personales. El guion imprime solo números y nombres de canal, y AC8 comprueba que su salida no trae nombres, correos, textos ni ids de Kommo.
 
 #### Allowlist

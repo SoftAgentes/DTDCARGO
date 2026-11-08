@@ -77,7 +77,9 @@ docker compose exec -T -e BANDEJA=8 -e COMPARAR=5.7 rails bundle exec rails runn
 - sin `BANDEJA` no cuenta nada;
 - su salida no trae nombres, correos ni ids.
 
-Tiene dos mutantes: sin `READ ONLY`, y contando toda la cuenta en vez de la bandeja.
+AC9 intenta escribir en una transacción `READ ONLY` como la del acta, y Postgres tiene que rechazarlo sin dejar ninguna fila. Tiene dos mutantes:
+- sin `READ ONLY`, el guion tiene que abortar con «la transacción no quedó en solo lectura», sin contar nada;
+- contando toda la cuenta en vez de la bandeja, el conteo tiene que salir mal.
 
 ## 5. Firma
 
