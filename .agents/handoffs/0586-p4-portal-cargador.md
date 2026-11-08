@@ -34,6 +34,11 @@ Son 7 archivos, todos nuevos, y ninguno lo comparte con E10. Las copias son adap
 | `.github/workflows/portal-historial-cargador.yml` | Nuevo | Corre la prueba en Actions, porque lleva contenedores |
 | `.agents/handoffs/0586-p4-portal-cargador.md` | Nuevo | Este handoff |
 
+## Permisos de los archivos
+
+- `vinculos.ndjson` se escribe con el umask del contenedor y puede quedar 0644. Eso solo es aceptable porque lleva ids y no datos personales, y porque la carpeta de `/dev/shm` es 0700 (§10.5.10). Con 0600 desde root, la prueba no lo podía leer (run 42493739280).
+- `preparado.ndjson` sí lleva nombres y textos. Lo crea E10 con 0600, y no pasa por el umask del cargador, que solo lo lee por la entrada estándar.
+
 ## Límites
 
 - PR en borrador, sin fusionar.

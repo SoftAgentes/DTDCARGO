@@ -389,8 +389,9 @@ class CargaPortal
   end
 
   # vinculos.ndjson: solo ids. Va a un archivo temporal y se renombra al final, para que un archivo a medias nunca
-  # parezca completo. Los permisos son los del umask: lo protege la carpeta (/dev/shm/…, 0700, §10.5.10), y la
-  # prueba lo lee desde fuera del contenedor.
+  # parezca completo. Los permisos son los del umask (puede quedar 0644), y la prueba lo lee desde fuera del
+  # contenedor. Es aceptable solo porque lleva ids y no datos personales, y porque la carpeta es 0700 (/dev/shm/…,
+  # §10.5.10). El preparado, que sí lleva nombres y textos, lo crea E10 con 0600 y no pasa por este umask.
   def escribir_vinculos(cab, filas, por_cliente, ci_de, conv_de, de_studio)
     lineas = []
     lineas << { tipo: 'cabecera', version: 1, tenant_id: cab['tenant_id'], cuenta: cab['cuenta'], bandeja: cab['bandeja'],
