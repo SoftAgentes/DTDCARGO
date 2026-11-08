@@ -356,7 +356,8 @@ class CargaPortal
       cuando = instante(nota['created_at'])
       fila = { account_id: @cuenta_id, inbox_id: @bandeja_id, conversation_id: conv_de.fetch(c['hilo'])[:id],
                message_type: ACTIVIDAD, content: nota['texto'], private: false, status: Message.statuses[:sent],
-               source_id: nota['source_id'], content_attributes: {}, created_at: cuando, updated_at: cuando }
+               source_id: nota['source_id'], sender_type: nil, sender_id: nil, content_attributes: {},
+               created_at: cuando, updated_at: cuando }
       fila[:processed_message_content] = nota['texto']&.truncate(150_000) if procesado
       filas << [nil, fila]
     end

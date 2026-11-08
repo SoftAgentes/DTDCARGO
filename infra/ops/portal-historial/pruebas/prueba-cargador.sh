@@ -131,7 +131,8 @@ comprobar() {
 
   rechazo() { # id archivo error descripción
     F="$O/$2.txt"
-    exigir "$1" '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "$3" ] && [ ! -e "$O/v-x.ndjson" ] && [ ! -e "$O/v-x.ndjson.parcial" ]' "$4: no carga ni deja vínculos ($(h "$F" error))"
+    ESPERADO="$3" # una variable: dentro del eval de exigir, $3 sería el argumento de exigir
+    exigir "$1" '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "$ESPERADO" ] && [ ! -e "$O/v-x.ndjson" ] && [ ! -e "$O/v-x.ndjson.parcial" ]' "$4: no carga ni deja vínculos ($(h "$F" error))"
   }
   rechazo G1 rechazo-webhook 'la bandeja tiene webhook_url: no se carga' "bandeja con webhook_url"
   rechazo G2 rechazo-cuenta 'la bandeja no existe en esa cuenta' "bandeja de otra cuenta"
