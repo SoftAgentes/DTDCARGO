@@ -131,7 +131,7 @@ Se coordina con E10. Depende de `controles-studio.sql` (#456, de E10), así que 
 | Cargador sobre `c46919317` (42495310693) | FALLÓ en R3: con `VINCULOS=-`, los vínculos salían mezclados con los logs de Rails |
 | Cargador sobre `71ba22b43` (42496801281) | PASÓ: 0 fallas, M0 con 36 comprobaciones y los 24 mutantes |
 | Calidad continua sobre `71ba22b43` | PASÓ |
-| Rojo previo de la revisión del DG: las pruebas nuevas con el cargador de `50c044e49` (`248efe973`, 42502431572) | PENDIENTE |
+| Rojo previo de la revisión del DG: las pruebas nuevas con el cargador de `50c044e49` (`248efe973`, 42502431572, 12 min) | FALLÓ, como se esperaba, en G10a, G10b, G11, G12 y N4. El resto de las 27 fallas es cascada, porque en el cargador viejo esos rechazos sí cargan: G9, S2, C1, C4, V7, M0 y los mutantes que caen por C1. **F2 dio PASÓ, pero no prueba nada:** los rechazos ya habían cargado todo, así que la carga 1 no insertó filas y el log de SQL no tenía nombres que mostrar. Su rojo lo da el mutante M28, con los rechazos ya arreglados |
 | Cargador con los arreglos | PENDIENTE |
 | `pnpm verify` | NO EJECUTADO: el cambio es de `infra/ops` y de un workflow, sin producto |
 
