@@ -75,7 +75,7 @@ dtd-bot (cada 2 s) ── toma con lease (SKIP LOCKED) ──► «tomado»
 
 ### 3.1 Estados del turno
 
-`pendiente` → `tomado` → uno de: `sugerido`, `enviado`, `humano` (pase a humano, con motivo), `cancelado` (lo invalidó una persona, un «resolver» o un modo Apagado), `descartado` (vencido sin trabajador). Un solo turno abierto por conversación (índice único parcial). Un mensaje nuevo del cliente **extiende** el turno abierto (`listo_desde`), sin pasar del límite de 24 s.
+`pendiente` → `tomado` → uno de: `sugerido`, `enviado`, `humano` (pase a humano, con motivo), `cancelado` (lo invalidó una persona, un «resolver» o un modo Apagado). No hay un estado «descartado»: lo que vence pasa a `humano` con su motivo, `lease_vencido` (el trabajador lo tomó y no cerró a tiempo) o `sin_trabajador` (nadie lo tomó antes del límite más la gracia), como hace `chatwoot_bot_vigilar` en la 0522. Un solo turno abierto por conversación (índice único parcial). Un mensaje nuevo del cliente **extiende** el turno abierto (`listo_desde`), sin pasar del límite de 24 s.
 
 ### 3.2 Falla cerrada (regla)
 
@@ -126,6 +126,8 @@ La base canónica va en el repo **solo** si no trae PII ni datos de clientes (§
 
 - **Por bandeja:** Apagado (por defecto) / Sugerir / Contesta solo, más horario, «resolver calla al bot» y «solo el primer mensaje». Se guardan en `chatwoot_bot_bandejas`.
 - **Contesta solo** no se puede elegir mientras la excepción IA-01 (7.2) no esté aprobada: la base lo rechaza con un **trigger** sobre `chatwoot_bot_bandejas` que busca una excepción vigente en `chatwoot_bot_excepciones` (un `CHECK` no puede consultar otra tabla); revocar o borrar la excepción baja la bandeja a Sugerir, y la acción del Studio lo vuelve a comprobar.
+  - **Dos escrituras a la vez** (revisión del DG de la #459): la guarda lee la excepción con `for share`. En READ COMMITTED hay dos órdenes y los dos terminan sin «Contesta solo» huérfano: (1) si otra transacción revoca, borra o le saca la bandeja a la excepción primero, el `for share` del encendido espera, vuelve a evaluar el where sobre la fila nueva, no la encuentra y el encendido falla; (2) si el encendido llega primero, el update o el delete de la otra esperan a que confirme, y después su trigger recalcula y baja la bandeja a Sugerir. Medido con dos sesiones por dblink en `supabase/tests/0522_chatwoot_bot_carrera.test.sql`.
+  - **Nadie tiene TRUNCATE** en las tablas del bot: se saltaría los triggers de fila. El postflight de la 0522 lo comprueba.
 - **Sugerir** deja una **nota privada** en la conversación de Chatwoot y la muestra en la Ficha DTD con un botón Copiar (7.8). La persona la copia o la ignora; el bot nunca envía en ese modo.
 - **Interruptor general:** flag `chatwoot_bot` (apagado por defecto, en `lib/studio/feature-flags-types.ts`). Con el flag apagado, `encolarTurnoBot` no escribe nada.
 
@@ -185,7 +187,7 @@ Cada PR toca solo estos archivos. Una pieza que necesite otro lo agrega aquí an
 | A (#447) | `docs/specs/0618-bot-propio-e7/spec.md`, `docs/specs/README.md` (índice generado), `.agents/handoffs/0618-bot-propio-e7.md` |
 | C (#448) | `scripts/bot-conocimiento.mjs`, `lib/studio/chatwoot/bot/conocimiento/base.json`, `lib/studio/chatwoot/bot/conocimiento/reglas-duras.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/base.test.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/reglas-duras.test.ts` |
 | D (#449) | `lib/studio/chatwoot/bot/autor.ts`, `lib/studio/chatwoot/bot/frenos.ts`, `lib/studio/chatwoot/bot/decidir.ts`, `lib/studio/chatwoot/bot/motor.ts` y sus cuatro pruebas en `lib/studio/chatwoot/bot/__tests__/` (`autor`, `frenos`, `decidir`, `motor`, `.test.ts`) |
-| E1 (0522) | `supabase/migrations/0522_chatwoot_bot.sql`, `supabase/tests/0522_chatwoot_bot.test.sql`, `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, `supabase/migrations-baseline.json` (solo la espera de la 0522), `.agents/handoffs/0618-bot-propio-e7.md` |
+| E1 (0522) | `supabase/migrations/0522_chatwoot_bot.sql`, `supabase/tests/0522_chatwoot_bot.test.sql`, `supabase/tests/0522_chatwoot_bot_carrera.test.sql`, `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, `supabase/migrations-baseline.json` (solo la espera de la 0522), `.agents/handoffs/0618-bot-propio-e7.md`, `docs/specs/0618-bot-propio-e7/spec.md` (solo §3.1, §4 y esta fila, por la revisión del DG) |
 | E2 (manejador, trabajador, watchdog, PoC) | se fija en esta tabla antes de abrirla; incluye una o dos líneas de `lib/studio/chatwoot/webhook-procesar.ts` (lista de manejadores) y de `lib/studio/chatwoot/config.ts` (las dos variables nuevas), con `merge-tree` contra E10 (§2) |
 
 7.5, 7.10 y 7.11 no tienen PR hasta tener OK.
