@@ -75,7 +75,7 @@ dtd-bot (cada 2 s) ── toma con lease (SKIP LOCKED) ──► «tomado»
 
 ### 3.1 Estados del turno
 
-`pendiente` → `tomado` → uno de: `sugerido`, `enviado`, `humano` (pase a humano, con motivo), `cancelado` (lo invalidó una persona, un «resolver» o un modo Apagado), `descartado` (vencido sin trabajador). Un solo turno abierto por conversación (índice único parcial). Un mensaje nuevo del cliente **extiende** el turno abierto (`listo_desde`), sin pasar del límite de 24 s.
+`pendiente` → `tomado` → uno de: `sugerido`, `enviado`, `humano` (pase a humano, con motivo), `cancelado` (lo invalidó una persona, un «resolver» o un modo Apagado). No hay un estado «descartado»: lo que vence pasa a `humano` con su motivo, `lease_vencido` (el trabajador lo tomó y no cerró a tiempo) o `sin_trabajador` (nadie lo tomó antes del límite más la gracia), como hace `chatwoot_bot_vigilar` en la 0522. Un solo turno abierto por conversación (índice único parcial). Un mensaje nuevo del cliente **extiende** el turno abierto (`listo_desde`), sin pasar del límite de 24 s.
 
 ### 3.2 Falla cerrada (regla)
 
@@ -185,7 +185,7 @@ Cada PR toca solo estos archivos. Una pieza que necesite otro lo agrega aquí an
 | A (#447) | `docs/specs/0618-bot-propio-e7/spec.md`, `docs/specs/README.md` (índice generado), `.agents/handoffs/0618-bot-propio-e7.md` |
 | C (#448) | `scripts/bot-conocimiento.mjs`, `lib/studio/chatwoot/bot/conocimiento/base.json`, `lib/studio/chatwoot/bot/conocimiento/reglas-duras.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/base.test.ts`, `lib/studio/chatwoot/bot/conocimiento/__tests__/reglas-duras.test.ts` |
 | D (#449) | `lib/studio/chatwoot/bot/autor.ts`, `lib/studio/chatwoot/bot/frenos.ts`, `lib/studio/chatwoot/bot/decidir.ts`, `lib/studio/chatwoot/bot/motor.ts` y sus cuatro pruebas en `lib/studio/chatwoot/bot/__tests__/` (`autor`, `frenos`, `decidir`, `motor`, `.test.ts`) |
-| E1 (0522) | `supabase/migrations/0522_chatwoot_bot.sql`, `supabase/tests/0522_chatwoot_bot.test.sql`, `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, `supabase/migrations-baseline.json` (solo la espera de la 0522), `.agents/handoffs/0618-bot-propio-e7.md` |
+| E1 (0522) | `supabase/migrations/0522_chatwoot_bot.sql`, `supabase/tests/0522_chatwoot_bot.test.sql`, `lib/studio/__tests__/chatwoot-bot.migration.test.ts`, `supabase/migrations-baseline.json` (solo la espera de la 0522), `.agents/handoffs/0618-bot-propio-e7.md`, `docs/specs/0618-bot-propio-e7/spec.md` (solo §3.1 y esta fila, por la revisión del DG) |
 | E2 (manejador, trabajador, watchdog, PoC) | se fija en esta tabla antes de abrirla; incluye una o dos líneas de `lib/studio/chatwoot/webhook-procesar.ts` (lista de manejadores) y de `lib/studio/chatwoot/config.ts` (las dos variables nuevas), con `merge-tree` contra E10 (§2) |
 
 7.5, 7.10 y 7.11 no tienen PR hasta tener OK.

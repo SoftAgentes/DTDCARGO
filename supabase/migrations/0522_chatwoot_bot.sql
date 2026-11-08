@@ -125,15 +125,21 @@ create trigger chatwoot_bot_bandejas_guardar
   before insert or update on public.chatwoot_bot_bandejas
   for each row execute function public.chatwoot_bot_bandejas_guardar();
 
--- Revocar una excepción baja a «sugerir» las bandejas que se quedan sin ninguna vigente.
+-- Cualquier cambio en las excepciones (revocar, borrar, sacar una bandeja de `inbox_ids` o
+-- cambiar el tenant) recalcula: las bandejas en «contesta_solo» que se quedan sin ninguna
+-- excepción vigente bajan a «sugerir». Se recalcula el tenant viejo y el nuevo.
 create function public.chatwoot_bot_excepciones_revocar() returns trigger
 language plpgsql security definer set search_path = '' as $fn$
 declare
-  v_tenant uuid := case when tg_op = 'DELETE' then old.tenant_id else new.tenant_id end;
+  v_tenants uuid[] := case tg_op
+    when 'DELETE' then array[old.tenant_id]
+    when 'INSERT' then array[new.tenant_id]
+    else array[old.tenant_id, new.tenant_id]
+  end;
 begin
   update public.chatwoot_bot_bandejas b
   set modo = 'sugerir'
-  where b.tenant_id = v_tenant
+  where b.tenant_id = any (v_tenants)
     and b.modo = 'contesta_solo'
     and not exists (
       select 1 from public.chatwoot_bot_excepciones e
@@ -144,10 +150,11 @@ end;
 $fn$;
 
 create trigger chatwoot_bot_excepciones_revocar
-  after update of revocada_at or delete on public.chatwoot_bot_excepciones
+  after update or delete on public.chatwoot_bot_excepciones
   for each row execute function public.chatwoot_bot_excepciones_revocar();
 
--- Una bandeja que pasa a excluida queda apagada.
+-- Una bandeja que pasa a excluida queda apagada: al insertar la exclusión y también al
+-- moverla a otra bandeja o a otro tenant con un UPDATE.
 create function public.chatwoot_bot_excluir() returns trigger
 language plpgsql security definer set search_path = '' as $fn$
 begin
@@ -158,7 +165,7 @@ end;
 $fn$;
 
 create trigger chatwoot_bot_excluir
-  after insert on public.chatwoot_bot_bandejas_excluidas
+  after insert or update on public.chatwoot_bot_bandejas_excluidas
   for each row execute function public.chatwoot_bot_excluir();
 
 -- ─── 4. La cola ──────────────────────────────────────────────────────────────
@@ -513,12 +520,23 @@ create function public.chatwoot_bot_anotar_llamada(
   p_resultado      text,
   p_duracion_ms    integer
 ) returns bigint
-language sql security definer set search_path = '' as $fn$
+language plpgsql security definer set search_path = '' as $fn$
+declare
+  v_id bigint;
+begin
+  -- El turno, si viene, tiene que ser del mismo tenant: el costo cuenta en el gasto de ese tenant.
+  if p_turno_id is not null and not exists (
+    select 1 from public.chatwoot_bot_turnos t where t.id = p_turno_id and t.tenant_id = p_tenant_id
+  ) then
+    raise exception 'chatwoot_bot_anotar_llamada: el turno no es de ese tenant' using errcode = 'invalid_parameter_value';
+  end if;
   insert into public.chatwoot_bot_llamadas (tenant_id, turno_id, proveedor, modelo, tokens_entrada, tokens_salida,
     costo_usd, costo_estimado, resultado, duracion_ms)
   values (p_tenant_id, p_turno_id, p_proveedor, p_modelo, p_tokens_entrada, p_tokens_salida,
     p_costo_usd, p_costo_estimado, p_resultado, p_duracion_ms)
-  returning id;
+  returning id into v_id;
+  return v_id;
+end;
 $fn$;
 
 -- Gasto del mes en curso, con el mes de Caracas (el corte duro de SDD-0618 §3.3).
@@ -566,3 +584,76 @@ grant execute on function public.chatwoot_bot_latir(text) to service_role;
 grant execute on function public.chatwoot_bot_anotar_llamada(uuid, bigint, text, text, integer, integer, numeric, boolean, text, integer) to service_role;
 grant execute on function public.chatwoot_bot_gasto_mes(uuid) to service_role;
 grant execute on function public.chatwoot_bot_purgar() to service_role;
+
+-- ─── Postflight: lo que la migración promete, comprobado en el catálogo ─────
+do $postflight$
+declare
+  v_firma text;
+  v_tabla text;
+begin
+  -- Las 9 RPC y las 3 funciones de trigger: security definer con search_path vacío y sin
+  -- EXECUTE para anon ni authenticated. Las RPC, además, sí para service_role.
+  foreach v_firma in array array[
+    'public.chatwoot_bot_encolar(uuid, bigint, bigint, bigint, timestamptz, integer, integer)',
+    'public.chatwoot_bot_tomar(text, integer, integer)',
+    'public.chatwoot_bot_cerrar(bigint, text, text, text)',
+    'public.chatwoot_bot_invalidar(uuid, bigint, text)',
+    'public.chatwoot_bot_vigilar(integer)',
+    'public.chatwoot_bot_latir(text)',
+    'public.chatwoot_bot_anotar_llamada(uuid, bigint, text, text, integer, integer, numeric, boolean, text, integer)',
+    'public.chatwoot_bot_gasto_mes(uuid)',
+    'public.chatwoot_bot_purgar()',
+    'public.chatwoot_bot_bandejas_guardar()',
+    'public.chatwoot_bot_excepciones_revocar()',
+    'public.chatwoot_bot_excluir()'
+  ] loop
+    if not exists (
+      select 1 from pg_catalog.pg_proc p
+      where p.oid = pg_catalog.to_regprocedure(v_firma)
+        and p.prosecdef
+        and p.proconfig @> array['search_path=""']
+    ) then
+      raise exception '0522: % no quedó security definer con search_path vacío', v_firma;
+    end if;
+    if pg_catalog.has_function_privilege('anon', v_firma, 'EXECUTE')
+       or pg_catalog.has_function_privilege('authenticated', v_firma, 'EXECUTE') then
+      raise exception '0522: % no puede ser de anon ni de authenticated', v_firma;
+    end if;
+    if v_firma not like '%()' or v_firma = 'public.chatwoot_bot_purgar()' then
+      if not pg_catalog.has_function_privilege('service_role', v_firma, 'EXECUTE') then
+        raise exception '0522: % tiene que ser de service_role', v_firma;
+      end if;
+    end if;
+  end loop;
+
+  -- Los 3 triggers, activos, en sus tablas.
+  if (
+    select pg_catalog.count(*) from pg_catalog.pg_trigger t
+    where not t.tgisinternal and t.tgenabled = 'O'
+      and (t.tgfoid, t.tgrelid) in (
+        (pg_catalog.to_regprocedure('public.chatwoot_bot_bandejas_guardar()'), pg_catalog.to_regclass('public.chatwoot_bot_bandejas')),
+        (pg_catalog.to_regprocedure('public.chatwoot_bot_excepciones_revocar()'), pg_catalog.to_regclass('public.chatwoot_bot_excepciones')),
+        (pg_catalog.to_regprocedure('public.chatwoot_bot_excluir()'), pg_catalog.to_regclass('public.chatwoot_bot_bandejas_excluidas'))
+      )
+  ) <> 3 then
+    raise exception '0522: faltan los 3 triggers del bot, activos';
+  end if;
+
+  -- RLS en las 6 tablas; anon sin nada; authenticated solo SELECT en las 5 que lee el admin.
+  foreach v_tabla in array array[
+    'public.chatwoot_bot_bandejas', 'public.chatwoot_bot_excepciones', 'public.chatwoot_bot_bandejas_excluidas',
+    'public.chatwoot_bot_turnos', 'public.chatwoot_bot_llamadas', 'public.chatwoot_bot_latidos'
+  ] loop
+    if not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = pg_catalog.to_regclass(v_tabla)) then
+      raise exception '0522: % sin RLS', v_tabla;
+    end if;
+    if pg_catalog.has_table_privilege('anon', v_tabla, 'SELECT, INSERT, UPDATE, DELETE')
+       or pg_catalog.has_table_privilege('authenticated', v_tabla, 'INSERT, UPDATE, DELETE') then
+      raise exception '0522: % tiene escritura o lectura de más', v_tabla;
+    end if;
+    if pg_catalog.has_table_privilege('authenticated', v_tabla, 'SELECT') <> (v_tabla <> 'public.chatwoot_bot_latidos') then
+      raise exception '0522: el SELECT de authenticated en % no es el esperado', v_tabla;
+    end if;
+  end loop;
+end;
+$postflight$;

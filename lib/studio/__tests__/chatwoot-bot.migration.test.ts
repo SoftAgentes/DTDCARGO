@@ -132,9 +132,76 @@ describe("SDD-0618 · 0522 la cola de dtd-bot (PGlite)", () => {
     ],
     [
       "revocar no baja a sugerir",
-      "after update of revocada_at or delete on public.chatwoot_bot_excepciones",
+      "after update or delete on public.chatwoot_bot_excepciones",
       "after insert on public.chatwoot_bot_excepciones",
       /TEST 0522: revocar baja a sugerir/,
+    ],
+    // ── Revisión del DG de la #459 (2026-11-08) ──
+    [
+      "B1: el trigger solo mira revocada_at (la cabeza a45994da2)",
+      "after update or delete on public.chatwoot_bot_excepciones",
+      "after update of revocada_at or delete on public.chatwoot_bot_excepciones",
+      /TEST 0522: sacar la bandeja de la excepción baja a sugerir/,
+    ],
+    [
+      "B1: borrar la excepción no baja a sugerir",
+      "after update or delete on public.chatwoot_bot_excepciones",
+      "after update on public.chatwoot_bot_excepciones",
+      /TEST 0522: borrar la excepción también baja a sugerir/,
+    ],
+    [
+      "B1: al mover la excepción solo se recalcula el tenant nuevo",
+      "    else array[old.tenant_id, new.tenant_id]",
+      "    else array[new.tenant_id]",
+      /TEST 0522: mover la excepción a otro tenant baja a sugerir/,
+    ],
+    [
+      "B1: mover una exclusión no apaga",
+      "after insert or update on public.chatwoot_bot_bandejas_excluidas",
+      "after insert on public.chatwoot_bot_bandejas_excluidas",
+      /TEST 0522: mover una exclusión a una bandeja encendida la apaga/,
+    ],
+    [
+      "la purga borra lo de 1 día",
+      "  delete from public.chatwoot_bot_turnos t where t.cerrado_at < pg_catalog.now() - interval '90 days';",
+      "  delete from public.chatwoot_bot_turnos t where t.cerrado_at < pg_catalog.now() - interval '1 day';",
+      /TEST 0522: un turno cerrado hace 30 días se queda/,
+    ],
+    [
+      "el gasto del mes en UTC",
+      "    and l.created_at >= (pg_catalog.date_trunc('month', pg_catalog.now() at time zone 'America/Caracas') at time zone 'America/Caracas');",
+      "    and l.created_at >= pg_catalog.date_trunc('month', pg_catalog.now());",
+      /TEST 0522: gasto del mes/,
+    ],
+    [
+      "anotar_llamada acepta el turno de otro tenant",
+      "  if p_turno_id is not null and not exists (",
+      "  if false and not exists (",
+      /TEST 0522: anotar una llamada con el turno de otro tenant se rechaza/,
+    ],
+    [
+      "postflight: authenticated ejecuta el gasto del mes",
+      "grant execute on function public.chatwoot_bot_gasto_mes(uuid) to service_role;",
+      "grant execute on function public.chatwoot_bot_gasto_mes(uuid) to service_role, authenticated;",
+      /0522: public\.chatwoot_bot_gasto_mes\(uuid\) no puede ser de anon ni de authenticated/,
+    ],
+    [
+      "postflight: la purga sin search_path",
+      "create function public.chatwoot_bot_purgar() returns integer\nlanguage plpgsql security definer set search_path = '' as $fn$",
+      "create function public.chatwoot_bot_purgar() returns integer\nlanguage plpgsql security definer as $fn$",
+      /0522: public\.chatwoot_bot_purgar\(\) no quedó security definer con search_path vacío/,
+    ],
+    [
+      "postflight: latidos sin RLS",
+      "alter table public.chatwoot_bot_latidos enable row level security;",
+      "",
+      /0522: public\.chatwoot_bot_latidos sin RLS/,
+    ],
+    [
+      "postflight: authenticated lee los latidos",
+      "grant select on public.chatwoot_bot_llamadas to authenticated;",
+      "grant select on public.chatwoot_bot_llamadas to authenticated;\ngrant select on public.chatwoot_bot_latidos to authenticated;",
+      /0522: el SELECT de authenticated en public\.chatwoot_bot_latidos no es el esperado/,
     ],
     [
       "sin idempotencia por mensaje",
