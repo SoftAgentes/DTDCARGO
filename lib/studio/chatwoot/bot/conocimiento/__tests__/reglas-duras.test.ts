@@ -101,6 +101,7 @@ describe("comprobarSalida: lo que deja pasar", () => {
     "Dirección de referencia: Yiwu Port Phase II, Warehouse 2, No. 2, Yiwu City, Zhejiang, China",
     "Operamos en Venezuela desde 2015; en el comercio con China desde 2008",
     "Escríbenos al +58 412 166 8021",
+    "Dime el pinyin del nombre de tu proveedor",
     "Te escribimos el 2026-08-20",
     "Tu Shipping Mark tiene 4 dígitos, como DTD-1014",
     "Llámanos al +58 241 414 7886",
