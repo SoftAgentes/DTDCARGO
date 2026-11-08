@@ -21,6 +21,8 @@ on:
       - "supabase/migrations/0519_chatwoot_portal.sql"
       - "supabase/migrations/0520_chatwoot_portal_vuelta.sql"
       - "supabase/migrations/0523_chatwoot_portal_carga.sql"
+      - "supabase/migrations/0508_chatwoot_bajas_purga.sql"
+      - "supabase/migrations/0524_chatwoot_portal_puerta4.sql"
       - "infra/chatwoot/compose.yml"
       - "infra/chatwoot/pruebas/compose.local.yml"
       - "infra/chatwoot/rails/**"
