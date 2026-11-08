@@ -399,7 +399,7 @@ Es el camino del Archivo Kommo de E5 (SDD-0590 §10.3, §10.4 y §10.10), adapta
 
 **Cómo, en el VPS, todo en `/dev/shm` (0700) y borrado al terminar:**
 
-1. **Extraer** de la base de Studio, en una transacción de solo lectura, a un ndjson. Lleva: por hilo, su id de Studio, su estado, si está archivado y desde cuándo, y el nombre del cliente; por mensaje, su id, la dirección, el texto, `sent_at` y, si es del equipo, el usuario y su nombre. No lleva teléfono, correo, cédula, RIF ni Shipping Mark.
+1. **Extraer** de la base de Studio, en una transacción de solo lectura, a un ndjson. Lleva: por hilo, su id de Studio, su estado, si está archivado y desde cuándo, y el nombre del cliente; por mensaje, su id, la dirección, el texto, `sent_at` y, si es del equipo, solo el id del agente de Chatwoot vinculado a su autor (`agente`), sin su nombre ni su usuario de Studio. El contacto lleva solo `name` (el nombre de la ficha) e `identifier` (`dtd-portal:<identificador>`). No lleva teléfono, correo, cédula, RIF ni Shipping Mark.
 2. **Preparar la carga:** un contacto por cliente, con un identificador nuevo al azar (E10-D35); una conversación por hilo, con el estado traducido (E10-D39) o, si está archivado, `resolved` y su nota de actividad; y por mensaje, `source_id = dtd:<id del mensaje>`, entrante o saliente, y `created_at` = `sent_at`. El remitente de un saliente es el agente vinculado a su autor y, si no tiene, el usuario de servicio.
 3. **Cargar** con el cargador de E5 (Ruby, `rails runner` en el contenedor de Chatwoot), adaptado a esta bandeja. Escribe con `insert_all`, que no corre callbacks: ni webhooks, ni notificaciones, ni `SendReplyJob`, ni eventos de reportes. Salta lo que ya existe por `source_id`, y tiene un modo seco que solo cuenta. Devuelve un archivo de vínculos con **solo ids**: del hilo de Studio a la conversación y el contacto de Chatwoot, y de cada mensaje a su id en Chatwoot.
 4. **Vincular en Studio** con `chatwoot_portal_vincular_carga`. Guarda los vínculos, marca como `cargado` cada mensaje cargado, fija el corte de la cola y crea las filas de `chatwoot_conversations` (estado, bandeja y `client_id`), sin eventos. No crea tarjetas, ni tareas, ni avisos. Antes, exige que los conteos de `vinculos.ndjson` sean los del preparado: un archivo incompleto fijaría el corte, y lo que falta, anterior al corte, no saldría nunca por la cola (revisión del DG de la #456).
@@ -493,6 +493,7 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
   - **Los tres scripts aceptan un solo directorio, el nombre fijo `/dev/shm/portal-historial`, y se niegan con cualquier otro antes de tocar nada.**
     - En `04ba08d5d`, el `rm -rf` de `vincular.sh` podía borrar fuera de `/dev/shm` (primera revisión del DG de la #456).
     - En `202b5daea`, el patrón `/dev/shm/?*` aceptaba `/dev/shm//`, y `limpiar.sh` borraba con eso todo `/dev/shm`, que usan otros procesos. También aceptaba `/dev/shm/a/b` y `/dev/shm/.x` (segunda revisión).
+  - **Si `/dev/shm/portal-historial` ya existe, `extraer.sh` exige que sea una carpeta de este usuario y no un enlace** (`-O` y `! -L`). Si no, aborta antes de `chmod` y de escribir: un enlace llevaría los datos a otra parte, y una carpeta ajena dejaría leerlos a otro usuario.
   - **La prueba:** `infra/ops/tests/prueba-portal-historial.sh`, en Calidad, con un `docker` falso.
   - **Nunca en el disco ni en Git.**
 - **Logs · `CORRECTO` (diseño).** El cargador imprime solo `HECHO clave=valor`, con conteos (patrón de E5). Las consultas de control (`controles-studio.sql`) devuelven solo conteos y md5.
@@ -562,6 +563,21 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 3. correr el ensayo;
 4. producción: respaldo de Chatwoot y de Studio antes, lectura previa, de a una y conteos después, con el Director General, que recibe la evidencia del ensayo antes. **Entre la foto y el encendido, el equipo no responde desde Studio:** la cola solo manda entrantes, y lo que escriba ahí no llegaría a Chatwoot (se cruza con la 1c-4). Si la vinculación falla y no se reintenta, se corre `limpiar.sh` y se comprueba que `/dev/shm/portal-historial` ya no existe;
 5. encender el interruptor.
+
+**El guion de la puerta 4** (condiciones de la revisión de datos personales de la #455 y la #456, 2026-11-08):
+- **Antes:**
+  - **Contar los administradores y los miembros** de la cuenta 1 y de la bandeja «Conversaciones del portal», sin nombres ni correos.
+  - **Verificar que ninguno sea del equipo de China.** Un administrador ve todas las bandejas, y ahí aplicaría la PIPL. Si alguno lo es, no se carga y se le avisa al DG.
+  - El resultado va en la evidencia solo como conteos.
+- **Seguidas, sin pausa:** `extraer.sh`, el cargador y `vincular.sh` corren uno detrás del otro.
+  - Así no se cuela en el medio una ficha borrada, cuyo hilo ya estaría en Chatwoot.
+  - Si hay que parar, se corre `limpiar.sh` y se vuelve a empezar desde la extracción.
+  - Entre la foto y el encendido, el equipo no responde desde Studio.
+- **Si falla un `insert_all` del cargador:** el log de Postgres del contenedor de Chatwoot registra la fila completa (`DETAIL: Failing row contains (…)`), con nombres y textos de clientes.
+  - **Dónde queda:** se mira con `SHOW logging_collector`. Si está apagado, el log es la salida del contenedor (`docker inspect --format '{{.LogPath}}' <contenedor de Postgres>`). Si está encendido, son los archivos de `log_directory` dentro de `PGDATA`.
+  - **Cómo se limpia:** se borran solo las líneas del intervalo de la carga, o se trunca ese archivo (`truncate -s 0`, como root) si no guarda otra cosa que haga falta. Se deja en la evidencia que se hizo, sin copiar las líneas.
+  - Lo mismo vale para el ensayo.
+- **Supresión:** hasta que exista la pieza aparte, el procedimiento manual de supresión de una ficha incluye Chatwoot. Se borran a mano el contacto `dtd-portal:<identificador>` y sus conversaciones de la bandeja del portal, y se registra.
 
 **Conteo para el Director General.** Contar las conversaciones en producción pide su propio OK, así que aquí no se contó nada. La consulta queda lista y la corre el Director General: es de solo lectura y devuelve solo conteos y fechas, sin texto, nombres ni ids de clientes. Se corre en el contenedor de la base de Studio con `psql -v tenant=<uuid del tenant> -f <archivo>`:
 
