@@ -108,6 +108,18 @@ DB=db-falso TENANT=t CUENTA=1 BANDEJA=9x DIR="${D}" bash "${PH}/extraer.sh" > "$
 [ "${rc}" != 0 ] && grep -q 'cuenta_o_bandeja_no_numerica' "${T}/e7.log" && [ ! -e "${D}" ] \
   && ok "extraer.sh pide la bandeja en números" || ko "aceptó una bandeja no numérica: ${rc}"
 
+# /dev/shm/portal-historial ya existe como enlace a otra carpeta: extraer.sh aborta sin escribir ni
+# cambiar permisos en el destino. (Que la carpeta sea de otro usuario pide root; lo cubre el mismo `-O`.)
+rm -rf "${D}"
+mkdir -p "${T}/destino"; chmod 0755 "${T}/destino"
+ln -s "${T}/destino" "${D}"
+: > "${FALSO_REGISTRO}"
+DB=db-falso TENANT=t CUENTA=1 BANDEJA=9 DIR="${D}" bash "${PH}/extraer.sh" > "${T}/e8.log" 2>&1; rc=$?
+[ "${rc}" != 0 ] && grep -q 'dir_no_propio_o_enlace' "${T}/e8.log" && [ -z "$(ls -A "${T}/destino")" ] \
+  && [ "$(permisos "${T}/destino")" = 755 ] && [ ! -s "${FALSO_REGISTRO}" ] \
+  && ok "extraer.sh no sigue un enlace en /dev/shm/portal-historial" || ko "extraer.sh siguió el enlace: ${rc} $(cat "${T}/e8.log")"
+rm -f "${D}"
+
 # ── vincular.sh ──
 rm -rf "${D}"
 DB=db-falso TENANT=10000000-0000-4000-8000-000000000001 CUENTA=1 BANDEJA=9 DIR="${D}" bash "${PH}/extraer.sh" > /dev/null 2>&1

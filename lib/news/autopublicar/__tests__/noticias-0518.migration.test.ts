@@ -12,7 +12,9 @@
  * MUTANTES: cada uno es una 0518 con UN defecto (un filtro de la base quitado) y
  * tiene que caer en la aserción que lo nombra.
  * GEMELAS: la marca [VERIFICAR y la huella dan lo mismo en TypeScript y en SQL.
- * ESPERA: la 0518 está declarada pendiente y no está sellada.
+ * APLICADA (2026-11-08, con el OK nominal de Sam, en prueba y en producción; evidencias
+ * apply-0518-dtd-cargo-staging-20261108T143111Z y apply-0518-dtd-cargo-20261108T143201Z): la 0518
+ * salió de las esperas y quedó sellada con el md5 del ledger. La cabecera «NO APLICADA» se conserva.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -326,12 +328,20 @@ describe("SDD-0611 · 0518 publicación automática de noticias (PGlite)", () =>
     }, SLOW);
   }
 
-  it("ESPERA: la 0518 está declarada pendiente y no está sellada", () => {
+  it("APLICADA el 2026-11-08: ya no es una espera y quedó sellada con el md5 del ledger", () => {
     const baseline = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
       pendingBelowCutoff: Record<string, string>;
     };
-    const lock = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as { selladas: Record<string, unknown> };
-    expect(baseline.pendingBelowCutoff["0518_noticias_publicacion_automatica"]).toMatch(/PENDIENTE DE APLICAR/);
-    expect(Object.keys(lock.selladas).some((k) => k.startsWith("0518"))).toBe(false);
+    const lock = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as {
+      selladas: Record<string, { md5?: string; bytes?: number; ledger?: { fecha: string; forma: string } }>;
+    };
+    expect(baseline.pendingBelowCutoff["0518_noticias_publicacion_automatica"]).toBeUndefined();
+    expect(lock.selladas["0518_noticias_publicacion_automatica"]).toMatchObject({
+      md5: "c692dfa9c4ad31e3352721400c3e3ceb",
+      bytes: 44672,
+      ledger: { fecha: "2026-11-08", forma: "exacta" },
+    });
+    // La cabecera no se toca: cambiarla cambiaría el md5 que ya está en el ledger.
+    expect(FILE_0518).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

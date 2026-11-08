@@ -42,6 +42,10 @@ fi
   [ -z "$(tail -c 1 "$V")" ] || printf '\n'
   printf '%s\n' '\.' 'create temp table preparado (linea text);' 'copy preparado from stdin;'
   printf '%s\n' "$cabecera" '\.'
+  # Las dos temporales son de postgres, y la llamada va como service_role (solo ese rol ejecuta la 0523):
+  # sin este grant, leerlas da «permission denied for table preparado» y la vinculación no se llama
+  # (la punta a punta de E5 en la #461). Las temporales mueren con la sesión.
+  printf '%s\n' 'grant select on pg_temp.vinculos, pg_temp.preparado to service_role;'
   printf '%s\n' 'set role service_role;'
   printf '%s\n' "select 'HECHO contactos=' || contactos || ' hilos=' || hilos || ' mensajes=' || mensajes from public.chatwoot_portal_vincular_carga(:'tenant'::uuid, (select linea::jsonb from preparado), (select jsonb_agg(linea::jsonb order by n) from vinculos));"
 } | docker exec -i "$DB" psql -X -q -At -U postgres -d postgres -v tenant="$TENANT" -f -
