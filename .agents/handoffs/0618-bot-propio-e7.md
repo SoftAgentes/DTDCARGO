@@ -6,22 +6,40 @@
 
 ## Piezas
 
-| Pieza | Rama | Worktree | Estado |
-|---|---|---|---|
-| A · SDD | `claude/objective-bohr-fd58df` | `.claude/worktrees/objective-bohr-fd58df` | spec + índice; `sdd:check` y `docs:check` PASÓ |
-| C · 7.4 base y reglas duras | `codex/e7-bot-conocimiento` | `DTD-worktrees/e7-bot-conocimiento` | vitest 128/128, 6/6 mutantes, tsc y eslint PASÓ |
-| D · 7.6 a núcleo puro | `codex/e7-bot-nucleo` | `DTD-worktrees/e7-bot-nucleo` | vitest 117/117, 6/6 mutantes, tsc y eslint PASÓ |
-| B · 7.3 respaldo de Kommo | — | — | en espera de Sam (ubicación de «analiza mi contestación» y sesión de Kommo) |
-| E · 7.6 b tablas, cola, trabajador, PoC | — | — | pide número de migración al Subdirector, con su diseño; antes, `merge-tree` contra E10 |
-| F, G · 7.7 y 7.8 | — | — | después de E |
+| Pieza | Rama / PR | Estado |
+|---|---|---|
+| A · SDD | #447 | **en main** (tren 3, `9019d3997`, 2026-11-08 16:38Z) |
+| C · 7.4 base y reglas duras | #448 | **en main** (tren 3). CI: 152/152; 11/11 mutantes de la revisión del DG |
+| D · 7.6 a núcleo puro | #449 | **en main** (tren 3). CI: 125/125; 4/4 mutantes de la revisión del DG |
+| B · 7.3 respaldo de Kommo | — | lectura hecha con Sam el 2026-11-08 (ver abajo); falta guardar cifrado en el VPS |
+| E1 · 7.6 b, la 0522 | `codex/e7-bot-cola` | migración y contratos; migrate-first (SDD-0618 §6) |
+| E2 · manejador, trabajador, watchdog, PoC | — | después de aplicar la 0522 |
+| F, G · 7.7 y 7.8 | — | después de E |
+
+Los worktrees de C y D se limpiaron con evidencia el 2026-11-08 16:45Z (registro en las notas de la sesión del Subdirector).
+
+## 7.3 — lectura de Kommo (2026-11-08)
+
+- **Autorización:** Sam, por el DG: lectura en Chrome, con él guiando, solo lectura. Guardar en el VPS, aparte: a la pregunta con las opciones A (cifrar en `/srv/backups/kommo/conocimiento-20261108/` con las llaves de E5) y B (no guardar), Sam respondió literal: «A».
+- **Fuentes de IA (7):** el DOCX v7 es el mismo archivo que está en el repo (`docs/specs/0062-crm-erp-cierres-automaticos/assets/DTDCARGO_Kommo_KnowledgeSource_v7_2026-08-06.docx`, commit `9a5d7b0f8`): Kommo cuenta 35 subsecciones = 34 secciones + la portada. `faq-knowledge-base.md` cambió después (por ejemplo, la 15 hoy es «Un solo nombre: DTD Cargo»). Las 5 de texto solo viven en Kommo: «DTD FAQ 1» y «DTD FAQ 2» (5.000 caracteres cada una, el tope de Kommo), «Datos clave» (2.194), «Productos y servicios» (2.308) y «Descripción del negocio» (1.993). La URL `dtdcargo.com` indexó 3 páginas (Servicios, Academia y una más); el resto quedó «Actualizando» desde agosto.
+- **Agentes (4, todos desactivados, última actividad 15.10.2026):** rol de 1.457 caracteres, idéntico en los cuatro. Pautas: Cotizador 14, Reenganche 12, asistente de ventas 42, «Atención al cliente de comercio minorista» 13. Fuentes: Cotizador y Reenganche, DOCX + «Conocimiento general» (vacía); asistente de ventas, DOCX + las 3 de texto; minorista, solo el DOCX. Las dos FAQ no las usa ningún agente (su «+1» es otra función de IA de Kommo).
+- **«Analiza mi contestación»:** Sam dijo que es lo que los agentes leen de las fuentes de conocimiento; no es una función aparte.
+- **Pendiente:** guardar los textos cifrados (opción A). Hasta entonces viven solo en Kommo.
+
+## Pendientes para la 7.6 b y la próxima edición de la spec
+
+- §9: cargar `CHATWOOT_INBOX_INSTAGRAM_ID` y `CHATWOOT_INBOX_ARCHIVO_ID` en producción es una puerta con su propio OK de Sam (nota del DG).
+- `sinEtiquetas` quitó etiquetas que eran instrucciones para el modelo: «escalar · NO afirmar cobertura» (29), «escalar · Comercial/Legal» (30), «no ofrecer como servicio activo» (32), «cuando NO preguntó por restricciones» (22). Vuelven como pautas del bot, aparte del texto al cliente.
+- `pide_dato_sensible`: sumar el código por SMS, OTP, código de verificación y token, con rojo previo y mutante.
+- La ficha 27 pide el correo por chat: revisar con revisar-datos-ve.
+- Falsos positivos aceptados por el DG: «Pedido 1234567», «2.500.000 unidades».
 
 ## Impacto documental
 
-- Canónico nuevo: la SDD-0618. El checklist de SDD-0582 no cambia en esta PR (ninguna fila se acepta todavía).
+- Canónico: la SDD-0618. El checklist de SDD-0582 no cambia todavía (ninguna fila se acepta).
 - Graphify, Archify y Obsidian: NO EJECUTADO en esta tarea; lo hace el DG desde main.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - Teléfono de la bodega en China distinto entre FAQ #28 (`+86 180 0689 1419`) y `lib/design-tokens.ts:326` (`+86 186 0689 1419`). El bot no da ninguno.
-- La sesión «E6 · Leads de Kommo y Salesbots» puede cruzarse con 7.3 y con el menú A–H: coordinar antes de 7.3.
 - Contradicciones para Sam (SDD-0618 §1.1): proveedor (F «Gemini + GLM» frente a 3.4 «Solo GLM») y tope (US$25 de E0-D3 frente a US$50 de la 3.4).
