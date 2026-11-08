@@ -921,9 +921,11 @@ Lo que ya existe y se reusa:
   2. **Mensajes, paginando hacia atrás** con `?before=<id>`, como `portal.poc.test.ts:83` y la búsqueda del `source_id` de la ida:
      - **sin el filtro «más nuevo que el último `chatwoot:<id>`»**, porque perdía mensajes. Con 25 perdidos y páginas de 20, la primera corrida metía los 20 más nuevos, y los 5 más viejos ya no entraban nunca. `chatwoot_portal_respuesta` ya es idempotente por `chatwoot:<id>`;
      - **hasta pasar la marca de agua** `chatwoot_portal_hilos.conciliado_hasta` (bigint): el id de Chatwoot del mensaje más nuevo revisado en una corrida completa. Los ids de mensaje de Chatwoot crecen. Si la marca es nula, va hasta el principio de la conversación. El tope es de **5 páginas**;
-     - **no se detiene en el primer saliente conocido.** Eso fallaba con una pérdida salteada: se pierde el 10, llega el 11 y se pierde el 12. Hacia atrás, el 12 es nuevo y el 11 conocido, así que paraba ahí y el 10 no volvía nunca. Chatwoot no reintenta los webhooks, y un corte de red de segundos alcanza para producirlo (revisión del Subdirector del 2026-11-08);
+     - **no se detiene en el primer saliente conocido.** Eso fallaba con una pérdida salteada: se pierde el 10, llega el 11 y se pierde el 12. Hacia atrás, el 12 es nuevo y el 11 conocido, así que paraba ahí y el 10 no volvía nunca. Que Chatwoot 4.19.1 no reintente los webhooks de cuenta es inferencia (I): lo dice el comentario de `reprocesarEventosChatwoot`, pero no se midió. El hueco existe igual: si reintenta y el corte dura más que sus reintentos, o si un evento llega y falla para siempre, queda un saliente perdido entre dos entregados (revisión del Subdirector del 2026-11-08);
      - lo que junta se mete en **orden ascendente**, por el camino de `responderAlPortal`: `esRespuestaDelEquipo`, `chatwoot_portal_respuesta`, el push una sola vez y las notas.
   3. `chatwoot_portal_marcar_conciliado(p_tenant_id, p_conversation_id, p_hasta)`, **solo si pasó la marca o llegó al principio**: mueve `conciliado_hasta` al mensaje más nuevo revisado (nunca hacia atrás) y fija `conciliado_at`. Si lo cortó el tope de páginas, devuelve `faltan_paginas`, no mueve la marca y no marca el hilo, que vuelve primero en la próxima corrida.
+  - **Con `faltan_paginas`, igual escribe lo que juntó**, en orden ascendente (es idempotente). Si no, un hilo con más de 5 páginas sin conciliar no traería ni siquiera sus respuestas más nuevas.
+  - **Límite conocido (I):** lo que quede a más de 5 páginas de la marca (o del final, si la marca es nula) no se alcanza, y el cron lo informa como `faltanPaginas`. Con 24 hilos y 73 mensajes en producción (conteo del 2026-11-07), hoy no se llega a ese caso.
 - **Un hilo que falla no frena los demás.** Se informa solo con códigos, igual que la ida. Con Chatwoot caído no se marca, así que se reintenta en la próxima corrida.
 
 **El trigger (decisión del DG del 2026-11-08: también con el flag apagado).** Cierra el riesgo residual (I) de la 0106 para la 1c-1. Medido por el Subdirector: `authenticated` tiene `update` sobre `conversations` (`0106:80`) con la policy `for all` por tenant (`0106:128-132`), así que cualquiera del equipo escribe directo por PostgREST. Los clientes del portal no, porque `get_user_tenant_id` sale de `user_tenants` (`0453`). Va en `conversations` y en `conversation_messages`.
@@ -938,9 +940,9 @@ Lo que ya existe y se reusa:
 3. **`BEFORE UPDATE OF status ON conversations`**, en un hilo del portal: rechaza **con el flag encendido**, porque el estado lo decide Chatwoot. `assigned_to` e `is_case` siguen libres: `assignAction` y `markCaseAction` no se traban.
 
 **Riesgo para el DG (I), pendiente de su decisión:** la base no ve `chatwootPortalConfig()`, que vive en las variables de la web. Con el flag encendido **sin** la bandeja configurada, la 1c-1 deja responder desde Studio y el trigger 2 lo rechaza.
-- El Worker propone declarar ese estado no soportado en el guion de encendido: la configuración va antes del flag.
-- El Subdirector propone, además, fallar cerrado en el código: con el flag encendido, el hilo del portal queda en solo lectura en Studio aunque falte la configuración, y así la pantalla y el trigger dicen lo mismo. Eso suma `lib/studio/chatwoot/portal-solo-lectura.ts` a la allowlist.
-- No se toca hasta que decida el DG.
+- El Worker propuso declarar ese estado no soportado en el guion de encendido: la configuración va antes del flag.
+- El Subdirector propuso, además, fallar cerrado en el código.
+- **Decisión del DG del 2026-11-08: opción (b), fallar cerrado.** Con el flag encendido, el hilo del portal queda en solo lectura en Studio aunque falte la configuración: `trabaPortal` (`lib/studio/chatwoot/portal-solo-lectura.ts`) mira solo el flag, y así la pantalla y el trigger dicen lo mismo. Va en la 1c-2, con su rojo previo, sus pruebas y sus mutantes. El guion de encendido lo dice: la configuración va antes del flag.
 
 **Aplicar antes de fusionar es seguro (medido por el Subdirector en `146d5ea5e`).** El trigger 1 queda vivo en producción antes que el código, pero hoy nadie cambia `channel`. No hay ningún `.update` con `channel` en `app/` ni en `lib/` (solo `channel_push`, que es otra tabla), y ninguna migración hace `set channel`. El 2 y el 3 hacen lo mismo que la 1c-1 en el servidor, que ya está en producción.
 
@@ -964,6 +966,7 @@ Lo que ya existe y se reusa:
     - `assigned_to` e `is_case` pasan;
     - un mutante que vuelve `security definer` a la función del trigger muere;
     - `chatwoot_portal_flag` con el tenant de otro da `false` para `authenticated`;
+    - **dos membresías activas:** `get_user_tenant_id()` da nulo, el helper da `false` y los triggers 2 y 3 no frenan, pero la escritura tampoco pasa, porque la policy `0106:128-132` la corta por el mismo nulo. El contrato prueba que es la RLS la que corta;
   - `por_conciliar`: los no resueltos sin ventana, los resueltos en 7 días, solo vivos, el orden y el tope;
   - control rojo y mutantes.
 - **Vitest:**
@@ -977,18 +980,36 @@ Lo que ya existe y se reusa:
     - un hilo que falla no frena los demás;
     - con Chatwoot caído no se marca;
   - el cron.
-- **La PoC en Actions:** la PoC-4; `conversation_status_changed` de la bandeja del portal hasta el hilo de Studio; y una respuesta con el webhook caído que la conciliación trae.
+- **La PoC en Actions** (`portal-estado.poc.test.ts`):
+  - la PoC-4;
+  - el estado que lee la conciliación después de `toggle_status` (`resolved`, `pending` y `open`);
+  - la conciliación de punta a punta con el webhook «perdido»: más de una página, en orden y sin duplicar en la corrida siguiente.
+  - **No puede medir** si Chatwoot 4.19.1 reintenta un webhook de cuenta, porque no le entrega al receptor del arnés, que no tiene IP pública (PoC-5 de la 1a). Queda como (I), por la lectura de `Webhooks::Trigger#execute` que cita el cron `chatwoot-reintentos`.
 - **El rojo previo sobre `main` y los mutantes del código**, con el ejecutor de la 1c-1.
 
-**Allowlist 1c-2 (propuesta):**
-- `supabase/migrations/0521_chatwoot_portal_estado.sql`, `supabase/tests/0521_chatwoot_portal_estado.test.sql` y su envoltorio de PGlite;
-- `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json` y `supabase/migrations.lock.json`, con las herramientas;
-- `lib/studio/chatwoot/portal-manejadores.ts` (`estadoAlPortal`), `lib/studio/chatwoot/portal-conciliar.ts` (nuevo) y `webhook-procesar.ts` (`MANEJADORES` y el nombre);
-- `app/api/cron/chatwoot-reintentos/route.ts`;
-- `lib/studio/chatwoot/portal.ts`, solo si la PoC-4 pide reabrir desde el envío;
-- sus pruebas, las PoC (`portal-estado.poc.test.ts` y el arnés), el ejecutor de mutantes, la spec y el handoff.
+**Allowlist 1c-2:**
+- **La migración:**
+  - `supabase/migrations/0521_chatwoot_portal_estado.sql`, `supabase/tests/0521_chatwoot_portal_estado.test.sql` y su envoltorio, `lib/studio/__tests__/chatwoot-portal-estado.migration.test.ts`;
+  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` (la espera y sus símbolos);
+  - `migrations.lock.json` no cambia, porque una espera no se sella.
+- **El servidor:**
+  - `lib/studio/chatwoot/portal-manejadores.ts`: `estadoAlPortal`, `estadoDelHilo` y `escribirRespuestaPortal`, que sale de `responderAlPortal` sin cambiarle la conducta;
+  - `lib/studio/chatwoot/portal-conciliar.ts` (nuevo);
+  - `lib/studio/chatwoot/webhook-procesar.ts`: `MANEJADORES` y el nombre;
+  - `lib/studio/chatwoot/router-api.ts`: `paginaMensajes`, y `obtenerConversacion`, que ahora acepta la cuenta del portal;
+  - `app/api/cron/chatwoot-reintentos/route.ts`.
+- **Fallar cerrado (opción b):** `lib/studio/chatwoot/portal-solo-lectura.ts` y `docs/runbooks/chatwoot-portal-encendido.md`.
+- `lib/studio/chatwoot/portal.ts`, solo si la PoC-4 pide reabrir desde el envío.
+- **Las pruebas:**
+  - `lib/studio/chatwoot/__tests__/portal-conciliar.test.ts` (nueva) y `portal-solo-lectura.test.ts`;
+  - `aviso-unico-por-evento.test.ts` (la lista de manejadores);
+  - `app/api/cron/chatwoot-reintentos/__tests__/route.test.ts`;
+  - `app/studio/(app)/conversaciones/__tests__/send-reply-gate.test.ts` y `set-status-gate.test.ts` (opción b).
+- **La PoC:** `lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts`, `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh` y `.github/workflows/chatwoot-portal-poc.yml` (sus rutas).
+- **Los mutantes:** `infra/chatwoot/pruebas/portal/mutantes-estado.cjs` (nuevo) y `mutantes-solo-lectura.cjs`, en los dos de la configuración que la opción b cambia.
+- La spec y el handoff (`.agents/handoffs/0586-e10-5-1c-2-estado.md`).
 - Sin acciones exportadas nuevas.
-- **La 0521 se aplica antes de fusionar**, en prueba y en producción, cada uno con OK nominal de Sam. Sin eso, la fusión frena la publicación (regla del DG del 2026-11-08).
+- **Migrate-first (decisión del DG del 2026-11-08):** la 0521 se aplica **antes de fusionar**, desde la cabeza aprobada de la PR. Primero en prueba y después en producción, cada una con su OK nominal de Sam, que pide el DG. Sin eso, la fusión frena la publicación.
 
 **Coordinación con E7:** su migración de la 7.6 b va a leer `chatwoot_portal_hilos` para que `chatwoot_bot_encolar` no cree turnos para las conversaciones del portal. La 0521 solo le agrega dos columnas nulas a esa tabla, así que no cambia lo que E7 lee. Se revisa su diseño cuando llegue.
 

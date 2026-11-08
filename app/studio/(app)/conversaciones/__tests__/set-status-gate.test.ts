@@ -138,13 +138,14 @@ describe("setStatusAction · SDD-0586 1c-1", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/studio/conversaciones");
   });
 
-  it("sin la bandeja del portal configurada cambia el estado como antes, sin mirar el flag", async () => {
+  // SDD-0586 1c-2 (decisión del DG, opción b): solo el flag decide, aunque falte la configuración.
+  it("sin la bandeja del portal configurada y con el flag encendido, tampoco cambia el estado (fail-closed)", async () => {
     configurar();
     vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "");
     flagPortal = { enabled: true };
 
-    expect(await setStatusAction({}, form())).toEqual({ ok: true });
-    expect(lecturas.some((l) => l.tabla === "feature_flags")).toBe(false);
+    expect(await setStatusAction({}, form())).toEqual({ error: SOLO_LECTURA });
+    expect(updates).toEqual([]);
   });
 
   it("un hilo de otro canal cambia de estado como antes, aunque el flag esté encendido o no se pueda leer", async () => {

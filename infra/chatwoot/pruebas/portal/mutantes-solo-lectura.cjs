@@ -34,8 +34,9 @@ const T_HILO = "app/studio/(app)/conversaciones/__tests__/thread-solo-lectura.te
 const M = [
   // ── La pieza: cuándo está puesta la traba ──
   ["fail-open al leer el flag", PIEZA, '  if (error) return "no_se_sabe";', '  if (error) return "apagada";', T_PIEZA, "si la lectura falla, no se sabe"],
-  ["ignora la configuración", PIEZA, '  if (!cfg) return "apagada";\n  if (!tenantId) return "no_se_sabe";\n  if (cfg.tenantId !== tenantId) return "apagada";', '  if (!tenantId) return "no_se_sabe";', T_PIEZA, "sin la bandeja del portal configurada"],
-  ["ignora el tenant de la configuración", PIEZA, '  if (cfg.tenantId !== tenantId) return "apagada";\n', "", T_PIEZA, "con la configuración de otro tenant"],
+  // 1c-2 (opción b del DG): solo el flag decide, aunque falte la configuración.
+  ["vuelve a mirar la configuración", PIEZA, '  if (!tenantId) return "no_se_sabe";\n', '  if (!tenantId) return "no_se_sabe";\n  if (!process.env.CHATWOOT_INBOX_PORTAL_ID) return "apagada";\n', T_PIEZA, "sin la bandeja del portal configurada, el flag decide igual"],
+  ["vuelve a mirar el tenant de la configuración", PIEZA, '  if (!tenantId) return "no_se_sabe";\n', '  if (!tenantId) return "no_se_sabe";\n  if (process.env.CHATWOOT_TENANT_ID && process.env.CHATWOOT_TENANT_ID !== tenantId) return "apagada";\n', T_PIEZA, "con la configuración de otro tenant, decide el flag"],
   ["sin tenant de la sesión deja pasar", PIEZA, '  if (!tenantId) return "no_se_sabe";', '  if (!tenantId) return "apagada";', T_PIEZA, "sin saber el tenant de la sesión"],
   ["el flag no se filtra por tenant", PIEZA, '    .eq("tenant_id", tenantId)\n', "", T_PIEZA, "encendida con el flag del tenant"],
   ["el flag no se filtra por clave", PIEZA, '    .eq("key", "chatwoot_portal")\n', "", T_PIEZA, "encendida con el flag del tenant"],
