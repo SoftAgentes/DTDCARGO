@@ -160,7 +160,7 @@ comprobar() {
     "4 conversaciones, 8 mensajes, 1 nota de archivo, 2 contactos nuevos, 1 reusado, 1 saliente firmado por el usuario de servicio"
   exigir C2 'cero "$(h "$F" contactos_omitidos)" && cero "$(h "$F" conversaciones_omitidas)" && cero "$(h "$F" mensajes_omitidos)" && cero "$(h "$F" contact_inboxes_omitidos)"' \
     "ninguna fila omitida por un conflicto"
-  exigir C3 '[ "$(h "$F" despues)" = "conversaciones:5,mensajes:10,contact_inboxes:3" ] && [ "$(h "$F" vinculos)" = 16 ] && [ -s "$O/vinculos-1.ndjson" ] && [ ! -e "$O/vinculos-1.ndjson.parcial" ]' \
+  exigir C3 '[ "$(h "$F" despues)" = "conversaciones:5,mensajes:10,contact_inboxes:3" ] && [ "$(h "$F" vinculos)" = 16 ] && [ -s "$O/vinculos-1.ndjson" ] && [ -r "$O/vinculos-1.ndjson" ] && [ ! -e "$O/vinculos-1.ndjson.parcial" ]' \
     "filas en la bandeja después: $(h "$F" despues); 16 líneas de vínculos ($(h "$F" vinculos))"
   exigir C4 'avance "$(h "$F" secuencia)" 4' "los números de conversación avanzan 4 ($(h "$F" secuencia))"
   exigir C5 'cola_igual "$(h "$F" cola)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && cero "$(h "$F" correos_enviados)"' \
@@ -205,7 +205,7 @@ comprobar() {
       fi
     done
   done
-  exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/carga-1.txt" ] && [ -s "$O/vinculos-1.ndjson" ]' "cero de ${#MARCAS[@]} valores inventados en las salidas y en los vínculos"
+  exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/carga-1.txt" ] && [ -s "$O/vinculos-1.ndjson" ] && [ -r "$O/vinculos-1.ndjson" ]' "cero de ${#MARCAS[@]} valores inventados en las salidas y en los vínculos"
   return 0
 }
 
