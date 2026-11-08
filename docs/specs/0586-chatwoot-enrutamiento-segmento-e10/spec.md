@@ -834,6 +834,7 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
 | Pieza | Qué lleva | Migración | Cruza con la 6.6 | Por qué en este lugar |
 |---|---|---|---|---|
 | **1c-1 · Studio en solo lectura** | E10-D41: la traba en el servidor y en la pantalla (diseño abajo) | No | No | Es lo único que falta para encender en producción, y no necesita apply |
+| **1c-1b · El hilo borrado y el enlace con permiso** | Decisión del DG del 2026-11-08, después de la revisión de la #440. `setStatusAction` da «Conversación no encontrada.» con un hilo borrado, y su `update` lleva `deleted_at is null`; antes cambiaba la fila, y en un hilo del portal borrado la traba no corría. «Responder en la Bandeja →» aparece solo con acceso a la Bandeja: el rol (`moduleViewDenial`) y el flag `chatwoot_inbox`. Diseño abajo | No | No | Condición para encender en producción, como la 1c-1. En prueba no se espera |
 | **1c-2 · El estado y la conciliación** | E10-D39: `conversation_status_changed` de la bandeja del portal → `chatwoot_portal_estado_hilo`, con la guarda del hilo archivado y el orden por `updated_at`. E10-D40, punto 5: el cron compara, en los hilos vinculados y vivos con actividad en las últimas 24 h, los salientes de Chatwoot con `conversation_messages`, y escribe los que falten con `chatwoot_portal_respuesta` (0520, ya aplicada) | Sí, para el estado. La conciliación reusa la 0520 | No | Es el agujero de confiabilidad más grande: si Studio está caído cuando el agente responde, la respuesta hoy se pierde |
 | **1c-3 · El CRM** | E10-D36, D22, D23 y D30: `entrarPortal`, `crm_entrada_portal`, `crm_tarjeta_ubicar_o_crear`, `crm_alta_tarjeta_web` redefinida, `crm_portal_espera`, `crm-portal.ts`, la insignia, la sección de la ficha y «vencida» | Sí | **Sí**: `TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts` y `crm-ficha.ts`. Esta vez entran, porque la 10.5 va antes que la 6.6 | La más grande. Va sola para no frenar a las otras con su apply |
 | **1c-4 · Modo de respaldo** | E10-D40, punto 4: al encender otra vez, lo que el equipo escribió desde Studio con el flag apagado sale a Chatwoot como saliente, con el token del agente vinculado. Redefine `chatwoot_portal_tomar` | Sí | No | Solo importa después de apagar el flag. Con la 1c-1, apagar devuelve Studio a responder como hoy |
@@ -884,6 +885,20 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
   - el ejecutor de mutantes (`infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs`), la spec y su handoff (`.agents/handoffs/0586-e10-5-1c-solo-lectura.md`).
   - Sin migración y sin acciones exportadas nuevas: el inventario del RBAC no cambia.
 - **Riesgo residual.** (I) Las policies de la 0106 (`"conversations by tenant"` y `"conversation_messages by tenant"`, FOR ALL por tenant, sin rol) dejan a `authenticated` escribir el hilo y sus mensajes directo por PostgREST, sin pasar por la acción. Es la postura de hoy para las cinco acciones de Conversaciones (lo anota la SDD-0497). Con la 1c-1, la pantalla y las acciones del Studio quedan trabadas, pero un cliente HTTP con la sesión de un usuario del equipo todavía podría insertar un saliente en un hilo del portal. Cerrarlo en la base es un trigger que rechace un `out` de `authenticated` en un hilo del portal con el flag encendido, y pide migración. **Decisión del DG del 2026-11-08, ~10:22Z:** el riesgo queda aceptado para la 1c-1, y el trigger va en la migración de la 1c-2.
+
+**1c-1b · diseño** (decisión del DG del 2026-11-08, comunicada por el Subdirector):
+
+- **El hilo borrado:** `setStatusAction` ya leía el hilo con `deleted_at is null`. Si no lo encuentra (borrado o de otro tenant), devuelve «Conversación no encontrada.» y no escribe, como `sendReplyAction`. El `update` suma `.is("deleted_at", null)`.
+- **El enlace con permiso:** la page calcula `moduleViewDenial(supabase, "bandeja")` y `listFeatureFlags`, las dos capas de `bandeja/layout.tsx`, y le pasa `puedeVerBandeja` al hilo por `ConversacionesClient`. Sin acceso, el aviso va sin enlace. El campo `bandeja` del detalle no cambia: es un número entero sin PII (I).
+- **`route-auth.test.ts`:** el fixture del detalle lleva `channel: "email"` explícito.
+- **Pruebas:** cada cambio con su rojo previo sobre `main` y su mutante (`mutantes-solo-lectura.cjs`). Las pruebas se buscan por importador.
+- **Allowlist 1c-1b:**
+  - `app/studio/(app)/conversaciones/actions.ts`, `page.tsx`, `_components/ConversacionesClient.tsx` y `_components/ConversationThread.tsx`;
+  - `__tests__/set-status-gate.test.ts` y `__tests__/thread-solo-lectura.test.tsx`;
+  - `app/api/studio/__tests__/route-auth.test.ts`;
+  - `infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs`;
+  - la spec y los handoffs (`0586-e10-5-1c-1b-borrado.md`, y la línea del de la 1c-1).
+  - Sin migración y sin acciones exportadas nuevas.
 
 **1c-2 · diseño** (propuesta del Worker de la 10.5, 2026-11-08, para revisar antes de escribir código). Migración: la **0521**, que guarda el DG; se reserva cuando se apruebe este diseño. Medido sobre `main` en `146d5ea5e`.
 

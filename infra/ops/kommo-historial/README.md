@@ -196,11 +196,28 @@ bash lanzar-unidad.sh --unidad kommo-e5-ensayo --dir "$PWD" \
   --env INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
   --env STAGING=/dev/shm/kommo-e5-carga --env CUENTA=1 --tope-vigia 8 \
   -- /bin/bash "$PWD/ensayo-archivo.sh"
-# La carga (5.7), con el guion de esa corrida: el mismo lanzador, y al final informe → empaquetar (paso 5)
-bash lanzar-unidad.sh --unidad kommo-e5-carga --dir "$PWD" --tope-vigia 8 -- /bin/bash <guion de la carga>
 ```
 
+**La carga (5.7) no tiene guion en el repo.** La de la noche del 2026-11-07 la hizo `carga-57-remoto.sh`, un guion
+de una sola corrida que no está en el repo. Hacía los pasos del cargador de Rails (punto 4 de «Hasta el corte, vínculo
+con el ERP y archivo de carga», arriba: bandeja, seco, carga, adjuntos y miembros), de a uno y con sus puertas de carga y memoria. Una carga nueva necesita su propio
+guion, revisado en su PR. Se lanza con `--unidad kommo-e5-carga`, este mismo lanzador y el comando de ese guion,
+y al final van `informe` y `empaquetar` (paso 5).
+
+**El token nunca va por `--env`.** `--env` pasa a `--setenv` de `systemd-run`, que lo guarda en `Environment=` de
+la unidad. Ahí lo ve cualquiera que corra `systemctl show`. El lanzador niega las claves con `TOKEN`, `SECRET`,
+`PASSWORD`, `CLAVE` o `KEY` (código 2) y no imprime su valor. El token de Kommo se lee de su archivo 0600 en
+`/dev/shm` (`--token-file`), como en la extracción.
+
+| Código | Qué pasó (`lanzar-unidad.sh`) |
+|---|---|
+| 0 | Lanzó la unidad y su vigía |
+| 2 | Uso malo (también una opción sin valor), carpeta que no existe o un secreto en `--env` |
+| 6 | Ya corre el ensayo o la carga: no lanzó nada |
+| 7 | No arrancó el vigía: se paró la unidad principal, que nunca corre sin vigía |
+
 La prueba del lanzador, con systemd de verdad, va en el mismo workflow: `sudo bash pruebas/prueba-lanzador.sh`.
+Lo que esta documentación tiene que decir lo mira `pruebas/prueba-docs-lanzador.sh` (§10.20).
 
 **Cómo termina** (SDD-0590 §10.17). El veredicto está en el código de salida y en la última línea de la
 evidencia, `HECHO ensayo_codigo=<código>`:

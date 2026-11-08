@@ -31,6 +31,7 @@ let role: StudioUserRole | null = "commercial";
 let canal = "portal";
 let flagPortal: { enabled: boolean } | null | "error" = null;
 let hiloFalla = false;
+let hiloBorrado = false;
 const lecturas: { tabla: string; filtros: [string, unknown][] }[] = [];
 const updates: { tabla: string; valores: unknown; filtros: [string, unknown][] }[] = [];
 
@@ -46,7 +47,9 @@ function sessionClient() {
             ? { tenant_id: TENANT, role }
             : null
           : tabla === "conversations"
-            ? { id: CONV, channel: canal }
+            ? hiloBorrado
+              ? null
+              : { id: CONV, channel: canal }
             : tabla === "feature_flags"
               ? flagPortal === "error"
                 ? null
@@ -62,7 +65,10 @@ function sessionClient() {
           filtros.push([col, val]);
           return q;
         },
-        is: () => q,
+        is: (col: string, val: unknown) => {
+          filtros.push([col, val]);
+          return q;
+        },
         limit: () => q,
         maybeSingle: async () => {
           lecturas.push({ tabla, filtros });
@@ -102,6 +108,7 @@ beforeEach(() => {
   canal = "portal";
   flagPortal = null;
   hiloFalla = false;
+  hiloBorrado = false;
   lecturas.length = 0;
   updates.length = 0;
 });
@@ -134,7 +141,9 @@ describe("setStatusAction · SDD-0586 1c-1", () => {
     flagPortal = { enabled: false };
 
     expect(await setStatusAction({}, form())).toEqual({ ok: true });
-    expect(updates).toEqual([{ tabla: "conversations", valores: { status: "resuelto" }, filtros: [["id", CONV]] }]);
+    expect(updates).toEqual([
+      { tabla: "conversations", valores: { status: "resuelto" }, filtros: [["id", CONV], ["deleted_at", null]] },
+    ]);
     expect(revalidatePathMock).toHaveBeenCalledWith("/studio/conversaciones");
   });
 
@@ -175,6 +184,20 @@ describe("setStatusAction · SDD-0586 1c-1", () => {
 
     expect(await setStatusAction({}, form())).toEqual({ error: "No se pudo leer la conversación. Vuelve a intentar." });
     expect(updates).toEqual([]);
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+
+  it("SDD-0586 1c-1b · un hilo borrado (o que la sesión no ve): «no encontrada» y no escribe", async () => {
+    for (const ch of ["portal", "email"]) {
+      configurar();
+      flagPortal = { enabled: true };
+      canal = ch;
+      hiloBorrado = true;
+      updates.length = 0;
+
+      expect(await setStatusAction({}, form()), ch).toEqual({ error: "Conversación no encontrada." });
+      expect(updates, ch).toEqual([]);
+    }
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
