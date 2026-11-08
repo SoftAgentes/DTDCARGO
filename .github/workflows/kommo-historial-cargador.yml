@@ -64,7 +64,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: sudo bash infra/ops/kommo-historial/pruebas/prueba-lanzador.sh
 
-      # SDD-0590 §10.19: lo que la documentación del lanzador tiene que decir (el token, la carga, el código 7).
+      # SDD-0590 §10.20: lo que la documentación del lanzador tiene que decir (el token, la carga, el código 7).
       - name: Documentación del lanzador
         if: ${{ !cancelled() }}
         run: bash infra/ops/kommo-historial/pruebas/prueba-docs-lanzador.sh

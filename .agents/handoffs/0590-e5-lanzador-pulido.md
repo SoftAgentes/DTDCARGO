@@ -3,7 +3,7 @@
 - **Owner:** Worker de Claude Code, sesión `95191146-c154-4468-af0e-d46ad5a1e391`. Lo encargó el Subdirector de Chatwoot (`local_535053f4-40c2-4124-a280-63f4fc882820`) el 2026-11-08, cuando el tren #441 ya se había fusionado.
 - **Ruta:** `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\0590-lanzador-pulido`.
 - **Rama:** `codex/0590-lanzador-pulido`, creada desde `main` en `146d5ea5e`.
-- **SDD:** [0590](../../docs/specs/0590-kommo-historial-e5/spec.md), §10.19.
+- **SDD:** [0590](../../docs/specs/0590-kommo-historial-e5/spec.md), §10.20.
 
 ## Alcance
 
@@ -36,7 +36,7 @@ PR en borrador, sin fusionar. Nada en producción ni en el VPS. Lo que lleva sys
 
 ## Impacto documental
 
-El README de `infra/ops/kommo-historial`, la spec 0590 (§10.18 y §10.19) y el handoff de la #432. Graphify y Obsidian los revisa el Director al integrar.
+El README de `infra/ops/kommo-historial`, la spec 0590 (§10.18 y §10.20) y el handoff de la #432. Graphify y Obsidian los revisa el Director al integrar.
 
 ## FUERA DE ALCANCE DETECTADO
 

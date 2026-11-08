@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # infra/ops/kommo-historial/pruebas/prueba-docs-lanzador.sh — lo que la documentación del lanzador tiene que decir
-# (SDD-0590 §10.19). Sin root ni contenedores: lee archivos del repo y nada más.
+# (SDD-0590 §10.20). Sin root ni contenedores: lee archivos del repo y nada más.
 #
 #   D1  el README y la cabecera de lanzar-unidad.sh dicen que el token nunca va por --env
 #   D2  ni el README ni lanzar-unidad.sh citan un «<guion de la carga>» que no existe; el README dice que el de la

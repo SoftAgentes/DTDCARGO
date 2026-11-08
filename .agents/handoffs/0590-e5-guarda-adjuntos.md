@@ -51,7 +51,7 @@ Graphify y Obsidian, sin cambios en esta tarea: los revisa el Director al integr
 
 ## Pendientes de esta tarea
 
-Ninguno. Los cinco puntos de la revisión, que no bloqueaban, van en su propia PR (`0590-e5-lanzador-pulido.md`, §10.19).
+Ninguno. Los cinco puntos de la revisión, que no bloqueaban, van en su propia PR (`0590-e5-lanzador-pulido.md`, §10.20).
 Con 43,5 de 75 minutos, el tope alcanza. Si pasa de unos 55, se parte el job antes de subirlo.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -60,4 +60,4 @@ Con 43,5 de 75 minutos, el tope alcanza. Si pasa de unos 55, se parte el job ant
 
 ## Estado
 
-Cerrada. La #432 quedó APPROVED sobre `a52034e20` y se fusionó en el tren #441 (2026-11-08 12:09Z, `main` en `146d5ea5e`). El worktree y la rama se quitaron con evidencia. Los runs se anotan aquí desde la PR de §10.19: la rama de la #432 estaba congelada.
+Cerrada. La #432 quedó APPROVED sobre `a52034e20` y se fusionó en el tren #441 (2026-11-08 12:09Z, `main` en `146d5ea5e`). El worktree y la rama se quitaron con evidencia. Los runs se anotan aquí desde la PR de §10.20: la rama de la #432 estaba congelada.

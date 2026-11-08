@@ -1171,7 +1171,7 @@ No se capturan, mueven ni borran datos personales. El lanzador imprime huellas y
 
 - El vigía de `lanzar-unidad.sh` es el `vigia-carga.sh` de `main`, que mira carga, `/dev/shm` y memoria. El del ensayo del 2026-11-07 miraba además la salud de cuatro contenedores y dos `curl`, y estaba fuera del repo. Traer esas comprobaciones al vigía del repo sería otra PR.
 
-### 10.19 Los cinco puntos que no bloqueaban la #432 (2026-11-08)
+### 10.20 Los cinco puntos que no bloqueaban la #432 (2026-11-08)
 
 La revisión aprobó la #432 sobre `a52034e20` y dejó cinco puntos que no bloqueaban. El Subdirector de Chatwoot los pidió en su propia PR, después del tren #441 (`main` en `146d5ea5e`). **No toca producción ni el VPS, y no se corrió nada allí.** Las pruebas usan solo datos inventados, y las que llevan systemd corren en GitHub Actions. Handoff: `.agents/handoffs/0590-e5-lanzador-pulido.md`.
 

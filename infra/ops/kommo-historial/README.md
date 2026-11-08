@@ -217,7 +217,7 @@ la unidad. Ahí lo ve cualquiera que corra `systemctl show`. El lanzador niega l
 | 7 | No arrancó el vigía: se paró la unidad principal, que nunca corre sin vigía |
 
 La prueba del lanzador, con systemd de verdad, va en el mismo workflow: `sudo bash pruebas/prueba-lanzador.sh`.
-Lo que esta documentación tiene que decir lo mira `pruebas/prueba-docs-lanzador.sh` (§10.19).
+Lo que esta documentación tiene que decir lo mira `pruebas/prueba-docs-lanzador.sh` (§10.20).
 
 **Cómo termina** (SDD-0590 §10.17). El veredicto está en el código de salida y en la última línea de la
 evidencia, `HECHO ensayo_codigo=<código>`:

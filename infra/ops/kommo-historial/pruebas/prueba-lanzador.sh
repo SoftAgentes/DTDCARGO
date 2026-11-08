@@ -9,10 +9,10 @@
 #   L3  con el ensayo activo, la carga también se niega (código 6): nunca corren las dos
 #   L4  una unidad que no es la del ensayo ni la de la carga se niega (código 2) sin lanzar nada
 #   L5  --sin-vigia: la carga corre sin vigía
-#   L6  una opción sin valor al final (--dir) sale con 2 y no lanza nada; antes giraba para siempre (§10.19)
-#   L7  si el vigía no arranca, se para la unidad principal y sale con 7: nunca corre sin vigía (§10.19)
+#   L6  una opción sin valor al final (--dir) sale con 2 y no lanza nada; antes giraba para siempre (§10.20)
+#   L7  si el vigía no arranca, se para la unidad principal y sale con 7: nunca corre sin vigía (§10.20)
 #   L8  una clave de --env con TOKEN, SECRET, PASSWORD, CLAVE o KEY se niega con 2, sin lanzar ni imprimir el
-#       valor: se vería en `systemctl show` (§10.19)
+#       valor: se vería en `systemctl show` (§10.20)
 #   M0  control: una copia sin cambios pasa todo
 #   MLA1–MLA6 mutantes: cada uno tiene que tumbar sus comprobaciones y dejar pasar las otras
 set -uo pipefail
