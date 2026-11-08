@@ -57,7 +57,8 @@ Antes de seguir: el blob, sus bytes y su md5 tienen que ser los de §1. Si cambi
 - **Los roles de Supabase reales.** En el servidor, `postgres` no es superusuario y los privilegios por defecto los fijan las migraciones viejas; en PGlite corre como superusuario.
 - **El ledger real.** Sus columnas `idempotency_key` y `rollback` no están en el falso.
 - **Que el md5 de D1 dé igual** con el envoltorio de `lib/migracion.sh`. Lo compara además la verificación de `aplicar.sh`.
-- **El nombre del contenedor de prueba** (`dtd-cargo-staging-db-1`): se confirma con `docker ps` el día del apply.
+
+**Verificado en el host:** el contenedor de la base de prueba es `dtd-cargo-staging-db-1`. Lo confirmó el Director General con `docker ps` en el VPS el 2026-11-08, cerca de las 00:55Z.
 
 ## 3 · Prueba (`dtd-cargo-staging`, `prueba.dtdcargo.com`): con el OK de Sam para prueba
 
@@ -69,7 +70,7 @@ Antes de seguir: el blob, sus bytes y su md5 tienen que ser los de §1. Si cambi
    infra/ops/migraciones/aplicar-remoto.sh --host <host> --proyecto dtd-cargo-staging --confirm dtd-cargo-staging --esperada 0519_chatwoot_portal --paquete <carpeta-0519-prueba> --paso previa
    ```
 
-2. **Antes:** se copian las dos mediciones, una vez, y se corre la de antes. El contenedor de prueba es `dtd-cargo-staging-db-1`; es inferencia por el nombre del proyecto, así que se confirma con `docker ps`. La salida queda en la carpeta del ensayo.
+2. **Antes:** se copian las dos mediciones, una vez, y se corre la de antes. El contenedor de prueba es `dtd-cargo-staging-db-1`, confirmado con `docker ps` por el Director General el 2026-11-08 (§2). La salida queda en la carpeta del ensayo.
 
    ```bash
    scp.exe docs/runbooks/chatwoot-portal-0519-antes.sql docs/runbooks/chatwoot-portal-0519-despues.sql <host>:/srv/ops/paquetes/
