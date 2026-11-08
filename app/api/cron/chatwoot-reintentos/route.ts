@@ -23,6 +23,9 @@
  * admins, con solo números, si algo lleva más de 15 min sin llegar (E10-D40). Con
  * el flag `chatwoot_portal` apagado o sin su configuración, ninguno hace nada.
  *
+ * Y concilia el portal (SDD-0586, 1c-2, E10-D40 punto 5): en los hilos vivos, relee el estado y
+ * trae las respuestas del equipo que un webhook perdido no llevó (`conciliarPortal`).
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera,
  * como push-drain. Sin la 0504 responde 200 con `omitido` y no rompe.
  */
@@ -33,6 +36,7 @@ import { matchesBearerSecret } from "@/lib/http/secret-compare";
 import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
 import { purgarEnrutamientoChatwoot } from "@/lib/studio/chatwoot/enrutar";
 import { avisarRezagoPortal, enviarPortalPendientes } from "@/lib/studio/chatwoot/portal";
+import { conciliarPortal } from "@/lib/studio/chatwoot/portal-conciliar";
 import { purgarBajasVencidas, purgarBandejaChatwoot } from "@/lib/studio/chatwoot/purga";
 import { reprocesarEventosChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
@@ -61,7 +65,9 @@ export async function GET(req: NextRequest) {
   // La ida del portal no tumba el cron: lo que falle se informa con un código.
   const portal = await enviarPortalPendientes(admin).catch(() => ({ omitido: "error" as const }));
   const avisoPortal = await avisarRezagoPortal(admin).catch(() => ({ omitido: "error" as const }));
-  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas, purgaEnrutamiento, portal, avisoPortal });
+  // SDD-0586 1c-2: la conciliación trae lo que se perdió por un webhook (E10-D40, punto 5).
+  const conciliacionPortal = await conciliarPortal(admin).catch(() => ({ omitido: "error" as const }));
+  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas, purgaEnrutamiento, portal, avisoPortal, conciliacionPortal });
 }
 
 export async function POST(req: NextRequest) {

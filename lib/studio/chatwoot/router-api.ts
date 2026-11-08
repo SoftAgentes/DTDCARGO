@@ -76,7 +76,8 @@ async function llamarCuenta(
 }
 
 export async function obtenerConversacion(
-  cfg: ChatwootRouterConfig,
+  // SDD-0586 1c-2: solo usa la cuenta; también la llama la conciliación del portal.
+  cfg: CuentaChatwoot,
   conversacionId: number,
 ): Promise<ChatwootResult<ConversacionChatwoot>> {
   const r = await llamar(cfg, String(conversacionId));
@@ -348,6 +349,24 @@ export async function leerMensaje(
   if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
   const fila = payload.find((m) => ENTERO((m as { id?: unknown } | null)?.id) === mensajeId);
   return { ok: true, data: fila ?? null };
+}
+
+/**
+ * Una página de mensajes de la conversación, los más nuevos primero, tal como los da Chatwoot
+ * (SDD-0586 1c-2, la conciliación). Sin `antes`, la última página; con `antes`, la anterior a ese
+ * id (`?before=<id>`). Una página vacía es el principio de la conversación. Los interpreta
+ * `interpretarMensajePortal`.
+ */
+export async function paginaMensajes(
+  cfg: CuentaChatwoot,
+  conversacionId: number,
+  antes: number | null = null,
+): Promise<ChatwootResult<unknown[]>> {
+  const r = await llamar(cfg, `${conversacionId}/messages${antes === null ? "" : `?before=${antes}`}`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  return { ok: true, data: payload };
 }
 
 /**
