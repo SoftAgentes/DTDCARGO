@@ -2,7 +2,17 @@
 
 > **Preparado y NO corrido.** Lo armó el Worker de la 10.5 el 2026-11-08, por pedido del Director General, comunicado por el Subdirector de Chatwoot. El orden del DG es: (1) publicar la web; (2) **encender `chatwoot_portal`**, primero en prueba con la punta a punta y después en producción; (3) la 0518. Este documento es el paso (2). **No enciende nada:** lo corre el DG. La web nueva ya está publicada en prueba y en producción desde ~04:20Z del 2026-11-08 (dato del Subdirector).
 >
-> **El OK de hoy para encender.** La fila 10.5 del checklist de la 0582 pide «Migración, bandeja y variables, y flag `chatwoot_portal`: un OK nominal de Sam cada uno». El del flag está dado. Sam eligió la opción «Encender el portal» y respondió, ~04:15Z del 2026-11-08: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» (comunicado por el Subdirector). Cubre encender el flag, en prueba y en producción. **En producción, además, espera a la 1c-1** (§0, decisión del DG).
+> **El OK de hoy para encender.** La fila 10.5 del checklist de la 0582 pide «Migración, bandeja y variables, y flag `chatwoot_portal`: un OK nominal de Sam cada uno». El del flag está dado, así (comunicado por el Subdirector):
+
+- A eso de las 04:15Z del 2026-11-08, el DG preguntó «¿para qué es el OK?» en un selector con cuatro opciones: «Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado».
+- **Sam no marcó ninguna.** Respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.»
+- El DG lo leyó como OK para las tres y fijó el orden: (1) publicar la web; (2) encender `chatwoot_portal`, primero en prueba y después en producción; (3) la 0518.
+
+Ese OK cubre encender el flag, en prueba y en producción. **En producción, además, espera a la 1c-1** (§0, decisión del DG).
+
+**Escrituras en la base, según el DG** (comunicado por el Subdirector):
+- **En prueba**, el corte (§2) y el atascado forzado del paso 9 (§3) **entran en el OK de encender en prueba**.
+- **En producción**, ninguna escritura en la base entra en ese OK. El corte, o P4, va con su propio OK nominal (§1 y §4), y el `update` del flag solo si el panel no se puede usar.
 >
 > Cada paso marcado **⛔ FUERA DEL OK DE HOY** pide un OK nominal de Sam aparte.
 
@@ -15,7 +25,7 @@
 | **T1 a T4 en `main` y publicados en producción** (E10-D42): la línea de Soporte del portal y el `/privacidad` nuevo con su fecha | ❌ **todavía no están en `main`**; los prepara la hija del correo en su PR | Se mira en la web publicada: Soporte del portal muestra T1, y `/privacidad` muestra T2, T3 y la fecha de T4 |
 | La vía del atascado publicada (1b, #434): la tarjeta «Portal → Chatwoot» con «Reintentar los atascados» | ✅ publicada en los dos entornos (~04:20Z) | La tarjeta aparece en `/studio/bandeja` para un admin, con la bandeja configurada |
 | La web nueva publicada en el entorno | ✅ en prueba y en producción desde ~04:20Z (dato del Subdirector) | La imagen que corre incluye `efd7e70f6` o posterior |
-| **Solo producción: la 1c-1 (Studio en solo lectura, E10-D41) fusionada y publicada en producción** | ❌ en su PR (rama `codex/0586-e10-5-1c-solo-lectura`) | La imagen de producción incluye el merge de la 1c-1. Con el flag encendido, un hilo del portal en Conversaciones de Studio muestra «Este hilo del portal se responde desde la Bandeja de Chatwoot.» y no tiene caja de respuesta |
+| **Solo producción: la 1c-1 (Studio en solo lectura, E10-D41) fusionada y publicada en producción** | ❌ en su PR, la #440 (rama `codex/0586-e10-5-1c-solo-lectura`) | La imagen de producción incluye el merge de la 1c-1. Con el flag encendido, un hilo del portal en Conversaciones de Studio muestra «Este hilo del portal se responde desde la Bandeja de Chatwoot.» y no tiene caja de respuesta |
 
 **Sin T1 a T4 publicados en producción, el flag no se enciende en producción.** En prueba se pueden publicar antes, con la misma PR.
 
@@ -40,7 +50,7 @@ Son las piezas de la 1c (§10.5.16). Por decisión del DG, la 1c-1 es condición
 | **El webhook de cuenta** a la URL pública de Studio, terminado en `/api/chatwoot/webhook`, con `message_created` | A `https://prueba.dtdcargo.com/api/chatwoot/webhook`, con la ruta abierta en el borde de prueba (autorizada por Sam el 2026-11-03; la abre el DG) | El de E2, que ya existe | Crearlo o tocarlo es **⛔ FUERA DEL OK DE HOY**. Mirarlo, no: la salud lo mide sola (§3, paso 2) |
 | **El corte** en `chatwoot_portal_estado`: sin corte, la cola no manda nada | El corte de §2, en la base de prueba | Lo fija la carga P4 (§10.5.10) | Ver la nota debajo |
 | **La carga P4** (las conversaciones que ya existen, también las archivadas) | No hace falta para la punta a punta: basta el corte | Decidida por Sam (decisión 6 b), pero **su código (PR 2) no está escrito** | **⛔ FUERA DEL OK DE HOY** |
-| **El panel de Chatwoot dentro de prueba** | **No hace falta:** en prueba el agente responde directo en la cuenta 2 de Chatwoot. El panel embebido pide agregar `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, y eso recrea `rails` (`chatwoot-bandeja.md`, «El panel dentro de prueba»); `docker restart` no toma la variable | No aplica | Recrear `rails` es **⛔ FUERA DEL OK DE HOY** |
+| **El panel de Chatwoot dentro de prueba** | **No hace falta:** en prueba el agente responde directo en la cuenta 2 de Chatwoot. El panel embebido pide agregar `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, y eso obliga a recrear `rails` (`chatwoot-bandeja.md`, «El panel dentro de prueba»): `docker restart` no toma la variable. Si algún día se hace, con el compose del VPS y solo ese servicio: `cd /srv/chatwoot && docker compose -f compose.yml up -d --no-deps --force-recreate rails`. **Nunca `compose up` a secas** | No aplica | Recrear `rails` es **⛔ FUERA DEL OK DE HOY** |
 
 **El corte sin P4 en producción es una decisión, no un paso técnico (I).** Si se fija `corte = now()` sin cargar P4, desde ese momento la cola manda lo nuevo. Pero los 24 hilos y 73 mensajes contados el 2026-11-07 no quedan en Chatwoot, y Sam eligió cargarlos todos, archivados incluidos (decisión 6 b). Además, fijar el corte en producción es escribir en la base. Va con su OK nominal y con la decisión de esperar o no a P4.
 
@@ -78,8 +88,11 @@ Solo si el panel no se puede usar, por SQL. **Es ESCRITURA**, con el superusuari
 ```sql
 -- ESCRITURA, sin auditoría D1: solo si el panel no se puede usar.
 update public.feature_flags set enabled = true, updated_at = pg_catalog.now()
-where tenant_id = '<tenant>' and key = 'chatwoot_portal';
+where tenant_id = '<tenant>' and key = 'chatwoot_portal'
+returning tenant_id, key, enabled, updated_at;
 ```
+
+Tiene que devolver una fila. Si no devuelve ninguna, el tenant no tiene la fila del flag y no se encendió nada.
 
 **Apagarlo** es el mismo interruptor del panel. Por SQL es el mismo `update` con `false`, con la misma advertencia.
 
@@ -145,7 +158,7 @@ rollback;
 | 10 | **La salud del webhook**, con sus cuatro alertas | Sin alertas en el estado normal (paso 2). Las cuatro (`webhook_falta`, `webhook_sin_mensajes`, `webhook_sin_ip_publica` y `webhook_no_medido`) están probadas en la PoC de Actions y en las pruebas unitarias. Provocarlas en prueba pide tocar el webhook de la cuenta 2 o las variables | Pantalla. **⛔ Provocarlas en prueba queda FUERA DEL OK DE HOY**: es un cambio en el Chatwoot vivo o en el VPS |
 | 11 | **Apagar el flag** y que el cliente escriba | El portal sigue sin error, y el mensaje **no** sale a Chatwoot mientras siga apagado | Bandeja y SQL: la cola no cambia |
 | 12 | Encender otra vez | El mensaje del paso 11 sale en la próxima corrida, porque es posterior al corte | Bandeja y SQL |
-| 13 | El cron de prueba | `curl … /api/cron/chatwoot-reintentos` da 200, con `portal` y `avisoPortal` sin errores. **En prueba se puede disparar; en producción no** (purga: N1 de la revisión de la #433) | Salida del curl |
+| 13 | El cron de prueba, disparado desde dentro de su contenedor (comando abajo) | `/api/cron/chatwoot-reintentos` da 200, con `portal` y `avisoPortal` sin errores. **En prueba se puede disparar; en producción no** (purga: N1 de la revisión de la #433) | Salida del comando |
 
 **Forzar un atascado en prueba** (paso 9). **ESCRITURA** en la base de prueba, solo sobre la fila del mensaje sintético del paso 8 y con más de 15 min desde que se escribió:
 
@@ -153,10 +166,19 @@ rollback;
 -- ESCRITURA (prueba): marca atascado un mensaje que ya llegó.
 update public.chatwoot_portal_salida
 set estado = 'atascado', proximo_at = null, error = 'prueba_atascado', updated_at = pg_catalog.now()
-where tenant_id = '<tenant de prueba>' and message_id = '<id del mensaje del paso 8>' and estado = 'enviado';
+where tenant_id = '<tenant de prueba>' and message_id = '<id del mensaje del paso 8>' and estado = 'enviado'
+returning message_id, estado, updated_at;
 ```
 
+Tiene que devolver exactamente una fila. Si no devuelve ninguna, el mensaje no estaba en `enviado` y no se tocó nada.
+
 Así queda «atascado» un mensaje que ya llegó. La prueba consiste en que, al reintentarlo, verifique y **no** lo mande otra vez.
+
+**Disparar el cron de prueba** (paso 13). Se corre dentro del contenedor del cron, que tiene `CRON_SECRET` en su entorno, igual que su crontab (`infra/dtd-cargo/cron/crontab`). La clave no pasa por el shell del host. La cabecera la escribe el `printf` interno de `sh` y `curl` la lee por stdin (`-H @-`), así que tampoco aparece en los argumentos que muestra `ps`. El nombre del contenedor sigue el patrón de compose de prueba; antes se confirma con `docker ps`:
+
+```bash
+docker exec dtd-cargo-staging-cron-1 sh -c 'printf "Authorization: Bearer %s\n" "$CRON_SECRET" | curl -fsS --max-time 290 -H @- http://web:3000/api/cron/chatwoot-reintentos'
+```
 
 **Leer el `source_id` sin el texto** (prueba). Se corre dentro del contenedor de la web, que ya tiene el token del usuario de servicio de la cuenta 2 en su entorno. El token no está en el shell del host, y así no aparece en `ps` ni en el historial. Se cambia solo `<n>`:
 
@@ -180,7 +202,7 @@ Solo después de:
 
 1. la punta a punta de §3 aprobada por Sam («aprobado en prueba»);
 2. T1 a T4 publicados en producción;
-3. **la 1c-1 (Studio en solo lectura) fusionada y publicada en producción** (decisión del DG del 2026-11-08);
+3. **la 1c-1 (Studio en solo lectura, la #440) fusionada y publicada en producción** (decisión del DG del 2026-11-08);
 4. la bandeja de la cuenta 1, las variables y el contenedor recreado, cada uno **⛔ con su OK nominal**;
 5. el corte, o P4, **⛔ con su OK nominal** y la decisión de §1.
 
@@ -212,7 +234,10 @@ Luego:
 
 ## 6 · Resumen: lo que queda FUERA del OK de hoy
 
-**Lo que SÍ cubre el OK de hoy:** encender el flag `chatwoot_portal`, en prueba y en producción. Sam eligió «Encender el portal» y respondió, ~04:15Z del 2026-11-08: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» (comunicado por el Subdirector). Se enciende desde el panel. En producción, solo con las condiciones de §4, incluida la 1c-1 publicada.
+**Lo que SÍ cubre el OK de hoy:** encender el flag `chatwoot_portal`, en prueba y en producción. A eso de las 04:15Z del 2026-11-08, el DG preguntó «¿para qué es el OK?» en un selector («Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado»). Sam no marcó ninguna opción y respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» El DG lo leyó como OK para las tres y fijó el orden: la web, el portal y la 0518 (comunicado por el Subdirector).
+- Se enciende desde el panel.
+- En prueba entran también las dos escrituras de la base de prueba: el corte y el atascado forzado del paso 9.
+- En producción, solo con las condiciones de §4, incluida la 1c-1 publicada, y sin escrituras en la base.
 
 **Lo que queda fuera:**
 

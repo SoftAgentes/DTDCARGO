@@ -34,7 +34,11 @@ Hechos medidos en el código para escribirlo:
 Corregido en un solo commit de docs:
 
 1. **Producción espera a la 1c-1:** una fila en §0, el texto de «Lo que la 10.5 todavía no hace» y la condición 3 de §4.
-2. **Encender el flag sí está cubierto por el OK de hoy.** Sam eligió «Encender el portal» y respondió, ~04:15Z: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» Se cita en la cabecera, en §3 paso 3, en §4 paso 2 y en §6. El guion prefiere el panel, que escribe por D1 (`executeD1Operation`, `feature_flag.toggle`) y deja auditoría. El `update` queda como alternativa, marcado como escritura sin auditoría.
+2. **Encender el flag sí está cubierto por el OK de hoy.** Se cita en la cabecera, en §3 paso 3, en §4 paso 2 y en §6.
+   - A eso de las 04:15Z, el DG preguntó «¿para qué es el OK?» en un selector con cuatro opciones: «Encender el portal», «Publicar la web», «Aplicar la 0518» y «Solo enterado».
+   - Sam no marcó ninguna. Respondió con texto libre: «Tú decides cuál va primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.»
+   - El DG lo leyó como OK para las tres y fijó el orden: la web, el portal y la 0518.
+   - (En `a547e6f7c` decía que Sam había elegido «Encender el portal». Era falso y se corrigió en la segunda revisión; el error vino en el mensaje que se le pasó al Worker.) El guion prefiere el panel, que escribe por D1 (`executeD1Operation`, `feature_flag.toggle`) y deja auditoría. El `update` queda como alternativa, marcado como escritura sin auditoría.
 3. **El smoke en producción con un cliente real** (§4, paso 3) queda ⛔ fuera del OK, con sus pantallas y roles, también en §6.
 4. **Paso 9:** esperar más de 15 min, porque `chatwoot_portal_rezagados` exige `sent_at <= now() - 15 min` (0519). El cron le manda el aviso de rezago a los admins del tenant de prueba.
 5. **§3:** se escribe que `entorno-prueba.md` §2.1 está desactualizado (IPv6). La ruta del webhook queda en una sola versión, la de `chatwoot-bandeja.md`: «sin la clave y con la misma lista de IP».
@@ -46,11 +50,20 @@ Corregido en un solo commit de docs:
 11. **La web:** publicada en los dos entornos desde ~04:20Z (cabecera y §0).
 12. **Los conteos en producción** van con su propio OK nominal, que nombre las consultas de §2. El de encender no los cubre (§2 y §4).
 
+## Segunda revisión, sobre `a547e6f7c` (cambios pedidos, comunicada por el Subdirector)
+
+- **B2, la cita del OK:** reescrita con el selector y sus cuatro opciones, la respuesta libre de Sam y la lectura del DG (cabecera y §6).
+- La #440 se nombra junto a su rama (§0 y §4).
+- Los dos `update`, el del flag y el del atascado, llevan `returning` y dicen cuántas filas tienen que devolver.
+- **Escrituras en la base, según el DG:** las de prueba (el corte y el atascado forzado) entran en el OK de encender en prueba. Las de producción, no.
+- **El cron de prueba** se dispara desde su contenedor, con la cabecera por stdin (`printf` interno de `sh` y `curl -H @-`). La clave no queda en el host ni en `ps`. El nombre `dtd-cargo-staging-cron-1` sale del patrón de compose y se confirma con `docker ps` (I).
+- **Recrear `rails`**, si algún día hace falta: `cd /srv/chatwoot && docker compose -f compose.yml up -d --no-deps --force-recreate rails`. Nunca `compose up` a secas.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - La PR de T1 a T4 la tiene la hija del correo (no se duplica).
 - La PR 2 (P4, la carga) no está escrita.
-- La 1c-1 está en su PR (rama `codex/0586-e10-5-1c-solo-lectura`). La 1c-2, la 1c-3 y la 1c-4 no están escritas.
+- La 1c-1 está en su PR, la #440 (rama `codex/0586-e10-5-1c-solo-lectura`). La 1c-2, la 1c-3 y la 1c-4 no están escritas.
 - **`docs/runbooks/entorno-prueba.md` §2.1 está desactualizado.** Dice que el 403 no se puede probar desde el VPS. El 2026-11-08, `curl` por DNS salió por IPv6 y dio 403 en todo, porque esa dirección no está en la lista. Corregirlo es otra PR de docs.
 
 ## Estado
