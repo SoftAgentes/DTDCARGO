@@ -100,7 +100,7 @@ begin
 
   -- ─── 2. Leads, del más reciente al más viejo: el primero de cada persona fija la etapa ──────────────────
   for l in
-    select kl.*, pg_catalog.greatest(kl.kommo_updated_at, kl.last_inbound_at, kl.last_outbound_at, kl.kommo_created_at) as act
+    select kl.*, greatest(kl.kommo_updated_at, kl.last_inbound_at, kl.last_outbound_at, kl.kommo_created_at) as act
     from public.kommo_leads kl
     where kl.tenant_id = p_tenant
     order by act desc nulls last, kl.id
@@ -191,7 +191,7 @@ begin
           end if;
         end if;
         update public.crm_tarjetas t
-        set ultima_actividad_at = pg_catalog.greatest(t.ultima_actividad_at, v_act)
+        set ultima_actividad_at = greatest(t.ultima_actividad_at, v_act)
         where t.id = v_tarjeta and t.ultima_actividad_at < v_act;
         if exists (select 1 from public.crm_ids_externos x where x.tarjeta_id = v_tarjeta and x.tipo = 'lead') then
           v_c := pg_catalog.jsonb_set(v_c, '{leads_misma_persona}', pg_catalog.to_jsonb(coalesce((v_c->>'leads_misma_persona')::bigint, 0) + 1));

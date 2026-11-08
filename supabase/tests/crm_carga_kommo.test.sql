@@ -1,4 +1,4 @@
-set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 
 -- SDD-0582 · E6, paso 6.5 · contrato del cargador supabase/cargas/crm-kommo/carga.sql.
 --
@@ -208,6 +208,7 @@ insert into public.kommo_contacts (tenant_id, id, name, phone) values
   ('10000000-0000-0000-0000-000000000001', 5009, 'Lead Nueve', '+584125550302'),
   ('10000000-0000-0000-0000-000000000001', 5010, 'Sin Telefono', null),
   ('10000000-0000-0000-0000-000000000001', 5011, 'Lead Once', '+584125550303'),
+  ('10000000-0000-0000-0000-000000000001', 5012, 'Lead Doce', '+584125550304'),
   ('10000000-0000-0000-0000-000000000002', 5001, 'Contacto T2', '+584125550201');
 
 -- Leads de T1. El corte es hace 1 día y la ventana, 180 días.
@@ -231,6 +232,8 @@ insert into public.kommo_leads
   ('10000000-0000-0000-0000-000000000001', 1015, 'L', 108343831, null, now() - interval '400 days', now() - interval '200 days', null, null, null),
   ('10000000-0000-0000-0000-000000000001', 1016, 'L', 99999, null, now() - interval '90 days', now() - interval '5 days', null, null, null),
   ('10000000-0000-0000-0000-000000000001', 1017, 'L', 108343827, null, now(), now(), null, null, null),
+  ('10000000-0000-0000-0000-000000000001', 1018, 'L', 142, null, now() - interval '90 days', now() - interval '5 days', null, null, null),
+  ('10000000-0000-0000-0000-000000000001', 1019, 'L', 108343831, 901, now() - interval '90 days', now() - interval '20 days', null, null, null),
   ('10000000-0000-0000-0000-000000000002', 2001, 'L', 108343827, 901, now() - interval '90 days', now() - interval '5 days', null, null, null);
 insert into public.kommo_lead_contacts (tenant_id, lead_id, contact_id, is_main) values
   ('10000000-0000-0000-0000-000000000001', 1001, 5001, true),
@@ -243,6 +246,7 @@ insert into public.kommo_lead_contacts (tenant_id, lead_id, contact_id, is_main)
   ('10000000-0000-0000-0000-000000000001', 1009, 5009, true),
   ('10000000-0000-0000-0000-000000000001', 1010, 5010, true),
   ('10000000-0000-0000-0000-000000000001', 1011, 5011, true),
+  ('10000000-0000-0000-0000-000000000001', 1019, 5012, true),
   ('10000000-0000-0000-0000-000000000002', 2001, 5001, true);
 -- Tareas: 7001 abierta; 7002 completada; 7003 sin texto y con vencimiento en milisegundos; 7004 del segundo
 -- lead de la misma persona; 7005 de un lead ambiguo; 7006 de un contacto, no de un lead.
@@ -259,8 +263,13 @@ insert into public.crm_tarjetas (tenant_id, nombre_visible, phone_last10, fuente
   ('10000000-0000-0000-0000-000000000001', 'Manual A', '4125550302', 'manual'),
   ('10000000-0000-0000-0000-000000000001', 'Manual B', '4125550302', 'manual');
 select * from public.crm_entrada_chatwoot(
-  '10000000-0000-0000-0000-000000000001', 77, null, '+584125550303', 'Chat Once', 'whatsapp_leads', null, null,
+  '10000000-0000-0000-0000-000000000001', 77, null, '4125550303', 'Chat Once', 'whatsapp_leads', null, null,
   now() - interval '30 days');
+-- Y otra de Chatwoot que ya tiene dueño (el admin 01): la carga no se lo cambia.
+select * from public.crm_entrada_chatwoot(
+  '10000000-0000-0000-0000-000000000001', 78, null, '4125550304', 'Chat Doce', 'whatsapp_leads', null, null,
+  now() - interval '30 days');
+update public.crm_tarjetas set asesor_id = '20000000-0000-0000-0000-000000000001' where chatwoot_contact_id = 78;
 
 \ir ../cargas/crm-kommo/carga.sql
 
@@ -326,19 +335,19 @@ declare
   v_t2 uuid := '10000000-0000-0000-0000-000000000002';
 begin
   -- Conteos del alcance (D4 a).
-  perform pg_temp.assert_true(pg_temp.c(1, 'leads_en_espejo') = 17, 'leads del espejo de T1: 17');
-  perform pg_temp.assert_true(pg_temp.c(1, 'leads_cerrados') = 3, 'ganado, perdido y cerrado quedan fuera');
+  perform pg_temp.assert_true(pg_temp.c(1, 'leads_en_espejo') = 19, 'leads del espejo de T1: 19');
+  perform pg_temp.assert_true(pg_temp.c(1, 'leads_cerrados') = 4, 'ganado, perdido y cerrado quedan fuera');
   perform pg_temp.assert_true(pg_temp.c(1, 'leads_despues_del_corte') = 1, 'el creado después del corte queda fuera');
   perform pg_temp.assert_true(pg_temp.c(1, 'leads_fuera_de_ventana') = 1, 'el quieto hace 200 días queda fuera');
   perform pg_temp.assert_true(pg_temp.c(1, 'leads_etapa_desconocida') = 1, 'una etapa sin mapa no se adivina');
-  perform pg_temp.assert_true(pg_temp.c(1, 'leads_en_alcance') = 11, 'en alcance: 11');
+  perform pg_temp.assert_true(pg_temp.c(1, 'leads_en_alcance') = 12, 'en alcance: 12');
   perform pg_temp.assert_true(pg_temp.c(1, 'leads_ambiguos') = 1, 'dos tarjetas con el mismo teléfono: no adivina');
   perform pg_temp.assert_true(pg_temp.c(1, 'leads_sin_ubicador') = 2, 'sin ficha viva ni teléfono no se carga');
   perform pg_temp.assert_true(pg_temp.c(1, 'tarjetas_creadas') = 6, 'tarjetas creadas: 6');
   perform pg_temp.assert_true(pg_temp.c(1, 'tarjetas_con_ficha') = 3 and pg_temp.c(1, 'tarjetas_sin_ficha') = 3, 'tres con ficha y tres sin ficha');
   perform pg_temp.assert_true(pg_temp.c(1, 'leads_misma_persona') = 1, 'dos leads de un contacto dan una tarjeta');
-  perform pg_temp.assert_true(pg_temp.c(1, 'tarjetas_existentes') = 1, 'la tarjeta de Chatwoot se reusa');
-  perform pg_temp.assert_true(pg_temp.c(1, 'mapeos_lead') = 8 and pg_temp.c(1, 'mapeos_contacto') = 6, 'mapeos: 8 leads y 6 contactos');
+  perform pg_temp.assert_true(pg_temp.c(1, 'tarjetas_existentes') = 2, 'las tarjetas de Chatwoot se reusan');
+  perform pg_temp.assert_true(pg_temp.c(1, 'mapeos_lead') = 9 and pg_temp.c(1, 'mapeos_contacto') = 7, 'mapeos: 9 leads y 7 contactos');
   perform pg_temp.assert_true(pg_temp.c(1, 'etapa_nuevo') = 2 and pg_temp.c(1, 'etapa_contactado') = 1
     and pg_temp.c(1, 'etapa_registrado_recontacto') = 1 and pg_temp.c(1, 'etapa_estimado_enviado') = 1
     and pg_temp.c(1, 'etapa_negociacion') = 1, 'conteo por etapa');
@@ -346,7 +355,7 @@ begin
     and pg_temp.c(1, 'usuarios_sin_par') = 3, 'asesores: solo el correo de un usuario activo');
   perform pg_temp.assert_true(pg_temp.c(1, 'tarjetas_con_asesor') = 2 and pg_temp.c(1, 'asesor_completado') = 1, 'asesor en 2 nuevas y 1 existente');
   perform pg_temp.assert_true(pg_temp.c(1, 'tareas_creadas') = 3 and pg_temp.c(1, 'tareas_sin_vencimiento') = 2, 'tareas abiertas: 3, dos sin vencimiento');
-  perform pg_temp.assert_true(pg_temp.c(1, 'total_mapeos_kommo') = 18 and pg_temp.c(1, 'total_tarjetas_kommo') = 6, 'totales del tenant');
+  perform pg_temp.assert_true(pg_temp.c(1, 'total_mapeos_kommo') = 20 and pg_temp.c(1, 'total_tarjetas_kommo') = 6, 'totales del tenant');
 
   -- Mapeo de asesores.
   perform pg_temp.assert_true((select x.usuario_id from public.crm_ids_externos x
@@ -409,6 +418,9 @@ begin
     'sin historial de migración en la existente');
   perform pg_temp.assert_true((select count(*) from public.crm_tarjetas x where x.phone_last10 = '4125550302') = 2
     and not exists (select 1 from public.crm_ids_externos x where x.id_externo = 1009), 'las manuales ambiguas quedan como estaban');
+  select * into t from public.crm_tarjetas where chatwoot_contact_id = 78;
+  perform pg_temp.assert_true(t.asesor_id = '20000000-0000-0000-0000-000000000001' and t.etapa_leads = 'nuevo',
+    'la tarjeta con dueño conserva su dueño y su etapa');
 
   -- Nada fuera de crm_*.
   perform pg_temp.assert_true(pg_temp.huella_ajena() = (select valor from pg_temp.huellas where cual = 'ajena_antes'),
@@ -426,10 +438,10 @@ do $segunda$
 begin
   perform pg_temp.assert_true(pg_temp.huella_crm() = (select valor from pg_temp.huellas where cual = 'crm_primera'),
     'la segunda corrida no cambia crm_*');
-  perform pg_temp.assert_true(pg_temp.c(2, 'leads_ya_migrados') = 8 and pg_temp.c(2, 'tarjetas_creadas') = 0
+  perform pg_temp.assert_true(pg_temp.c(2, 'leads_ya_migrados') = 9 and pg_temp.c(2, 'tarjetas_creadas') = 0
     and pg_temp.c(2, 'tareas_creadas') = 0 and pg_temp.c(2, 'mapeos_lead') = 0, 'todo ya migrado');
   perform pg_temp.assert_true(pg_temp.c(2, 'usuarios_ya_mapeados') = 1 and pg_temp.c(2, 'usuarios_mapeados') = 0, 'asesor ya mapeado');
-  perform pg_temp.assert_true(pg_temp.c(2, 'total_mapeos_kommo') = 18 and pg_temp.c(2, 'total_tarjetas_kommo') = 6, 'mismos totales');
+  perform pg_temp.assert_true(pg_temp.c(2, 'total_mapeos_kommo') = 20 and pg_temp.c(2, 'total_tarjetas_kommo') = 6, 'mismos totales');
 end;
 $segunda$;
 

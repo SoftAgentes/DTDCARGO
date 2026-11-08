@@ -116,13 +116,13 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       hacia:
         "where t.id = v_tarjeta and t.ultima_actividad_at < v_act;\n" +
         "        update public.crm_tarjetas t set etapa_leads = v_etapa where t.id = v_tarjeta;",
-      cae: /la tarjeta de Studio gana la etapa/,
+      cae: /la tarjeta de Studio gana la etapa|el lead más reciente fija la etapa/,
     },
     {
       nombre: "pisa el asesor de la tarjeta que ya existe",
       desde: "where t.id = v_tarjeta and t.asesor_id is null;",
       hacia: "where t.id = v_tarjeta;",
-      cae: /asesor_completado|asesor en 2 nuevas y 1 existente/,
+      cae: /la tarjeta con dueño conserva su dueño|asesor en 2 nuevas y 1 existente/,
     },
     {
       nombre: "asesor sin exigir que esté activo",
@@ -146,7 +146,7 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       nombre: "el lead más viejo fija la etapa",
       desde: "order by act desc nulls last, kl.id",
       hacia: "order by act asc nulls last, kl.id",
-      cae: /el lead más reciente fija la etapa/,
+      cae: /el lead más reciente fija la etapa|conteo por etapa/,
     },
     {
       nombre: "migra las tareas completadas",
@@ -164,7 +164,8 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       nombre: "repite las tareas en la segunda corrida",
       desde: "and x.tipo = 'tarea' and x.id_externo = kt.id)",
       hacia: "and x.tipo = 'tarea' and x.id_externo = -kt.id)",
-      cae: /la segunda corrida no cambia crm_\*|todo ya migrado/,
+      // Muere antes, en el insert del mapeo de la tarea repetida: la PK de crm_ids_externos lo frena.
+      cae: /la segunda corrida no cambia crm_\*|todo ya migrado|duplicate key value violates unique constraint "crm_ids_externos_pkey"/,
     },
     {
       nombre: "no salta los leads ya migrados",
@@ -176,7 +177,7 @@ describe("SDD-0582 6.5 · cargador de Kommo al CRM (PGlite)", () => {
       nombre: "ficha borrada cuenta",
       desde: "c.kommo_lead_id = l.id and c.deleted_at is null limit 1;",
       hacia: "c.kommo_lead_id = l.id limit 1;",
-      cae: /la ficha borrada no recibe tarjeta|sin ficha viva ni teléfono/,
+      cae: /la ficha borrada no recibe tarjeta|sin ficha viva ni teléfono|el seco cuenta lo mismo que la carga/,
     },
     {
       nombre: "acepta un corte en el futuro",
