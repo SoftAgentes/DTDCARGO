@@ -158,7 +158,7 @@ Pesos = días base de la etapa ÷ 129,5, redondeados a décimas por resto mayor 
 | 8.7 | E8 | Detener productores de Kommo (push del alta, writeback del cotizador, crons, webhook) y resolver o congelar la outbox | IA | 0,75 | — | — | pendiente | PR; despliegue: OK Sam | — |
 | 8.8 | E8 | Quitar el canal en Kommo y a Kommo como socio en Meta | S+IA | 0,25 | — | — | pendiente | Sin retorno; OK Sam | — |
 | 8.9 | E8 | Exportar cifradas fuera de Git las tablas y columnas Kommo; revisar-datos-ve del borrado con conteo de `entity_audit_log` y respaldos | IA | 0,75 | — | — | pendiente | OK Sam (lectura de PII) | — |
-| 8.10 | E8 | SDD de limpieza: vista y módulo Kommo, `lib/studio/kommo-*`, edge functions, crons, variables, secretos y scripts de ops; `clients` al vínculo propio; `git grep -i kommo` solo con historia | IA | 3,5 | — | — | pendiente | PR → OK Sam | — |
+| 8.10 | E8 | SDD de limpieza: vista y módulo Kommo, `lib/studio/kommo-*`, edge functions, crons, variables, secretos y scripts de ops; `clients` al vínculo propio; `git grep -i kommo` solo con historia | IA | 3,5 | — | — | en curso | PR → OK Sam | Diseño e inventario en la SDD-0619 (`docs/specs/0619-limpieza-kommo-inventario/spec.md`), sobre `main` en `3c14715ad`, sin borrar nada. Decisiones abiertas para Sam: D1, la clave RBAC `kommo` del módulo CRM, y D2 a D4 |
 | 8.11 | E8 | Migración de borrado de tablas y columnas Kommo | IA | 0,5 | — | — | pendiente | Migración: OK nominal Sam; sin retorno | — |
 | 8.12 | E8 | Cancelar la licencia de Kommo | S | 0,25 | — | — | pendiente | Sin retorno; OK Sam | — |
 | 8.13 | E8 | Runbooks, retrospectiva y handoff (cierre de PRG-01) | IA | 0,5 | — | — | pendiente | 100 % | — |
