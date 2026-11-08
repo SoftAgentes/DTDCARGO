@@ -490,7 +490,9 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 - **Archivos temporales · `CORRECTO` en el código; el ensayo lo mide en el VPS.**
   - `extraer.sh` crea `/dev/shm/portal-historial` con 0700 y el preparado con 0600 (`umask 077`). Un `trap` borra lo parcial si la extracción falla.
   - `vincular.sh` borra el directorio al salir bien. Si falla, lo deja para reintentar, y si no se reintenta se corre `limpiar.sh`.
-  - **Los tres scripts se niegan con un directorio fuera de `/dev/shm`, o con `..`**, antes de tocar nada. `vincular.sh` no lo hacía en `04ba08d5d`, y su `rm -rf` podía borrar fuera de `/dev/shm` (revisión del DG de la #456).
+  - **Los tres scripts aceptan un solo directorio, el nombre fijo `/dev/shm/portal-historial`, y se niegan con cualquier otro antes de tocar nada.**
+    - En `04ba08d5d`, el `rm -rf` de `vincular.sh` podía borrar fuera de `/dev/shm` (primera revisión del DG de la #456).
+    - En `202b5daea`, el patrón `/dev/shm/?*` aceptaba `/dev/shm//`, y `limpiar.sh` borraba con eso todo `/dev/shm`, que usan otros procesos. También aceptaba `/dev/shm/a/b` y `/dev/shm/.x` (segunda revisión).
   - **La prueba:** `infra/ops/tests/prueba-portal-historial.sh`, en Calidad, con un `docker` falso.
   - **Nunca en el disco ni en Git.**
 - **Logs · `CORRECTO` (diseño).** El cargador imprime solo `HECHO clave=valor`, con conteos (patrón de E5). Las consultas de control (`controles-studio.sql`) devuelven solo conteos y md5.

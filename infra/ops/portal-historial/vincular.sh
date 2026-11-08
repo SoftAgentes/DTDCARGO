@@ -20,12 +20,12 @@ DIR="${DIR:-/dev/shm/portal-historial}"
 P="$DIR/preparado.ndjson"
 V="$DIR/vinculos.ndjson"
 
-# Borra el directorio al terminar: solo uno dentro de /dev/shm, como extraer.sh y limpiar.sh.
-case "$DIR" in
-  *..*) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
-  /dev/shm/?*) ;;
-  *) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
-esac
+# Borra el directorio al terminar: solo /dev/shm/portal-historial, como extraer.sh y limpiar.sh.
+# Solo el nombre fijo: con un patrón, `/dev/shm//` o `/dev/shm/otro` borraban lo de otros procesos.
+if [ "$DIR" != /dev/shm/portal-historial ]; then
+  echo "HECHO error=dir_no_es_dev_shm_portal_historial" >&2
+  exit 2
+fi
 
 test -s "$P" || { echo "HECHO error=sin_preparado" >&2; exit 2; }
 test -s "$V" || { echo "HECHO error=sin_vinculos" >&2; exit 2; }

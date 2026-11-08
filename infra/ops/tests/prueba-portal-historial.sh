@@ -7,9 +7,13 @@
 #   · /dev/shm/<dir> queda con 0700 y el preparado con 0600;
 #   · si la extracción falla, no queda ni el preparado ni lo parcial;
 #   · si la vinculación sale bien, el directorio se borra; si falla, queda para repetir;
-#   · ninguno acepta un directorio fuera de /dev/shm (ni con `..`); la vinculación rechaza la barra invertida;
+#   · ninguno acepta otro directorio que /dev/shm/portal-historial (ni `/dev/shm//`, `/dev/shm/`,
+#     `/dev/shm/a/b`, `/dev/shm/.x` o `/dev/shm/../x`), ni borra nada con uno de ellos;
+#   · la vinculación rechaza la barra invertida;
 #   · la extracción pide la cuenta y la bandeja en números; la vinculación acepta un vinculos.ndjson sin
-#     salto de línea al final (revisión del DG de la #456).
+#     salto de línea al final (revisiones del DG de la #456).
+# Usa el nombre fijo de los scripts, /dev/shm/portal-historial: si ya existe (una carga de verdad en esta
+# máquina), la prueba se niega a correr y no lo toca.
 # Datos inventados: uuid y números sintéticos.
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -23,9 +27,15 @@ if [ ! -d /dev/shm ]; then
   exit 1
 fi
 
+D="/dev/shm/portal-historial"
+if [ -e "${D}" ]; then
+  echo "FALLÓ · ya existe ${D}: puede ser una carga de verdad, la prueba no lo toca"
+  exit 1
+fi
+# Algo de otro proceso en /dev/shm: ningún rechazo puede borrarlo.
+C="/dev/shm/ph-centinela-$$"
 T="$(mktemp -d)"
-D="/dev/shm/ph-prueba-$$"
-trap 'rm -rf "${T}" "${D}" "${D}-otro"' EXIT
+trap 'rm -rf "${T}" "${D}" "${C}"' EXIT
 
 # El docker falso: `docker exec -i <db> psql ... -f -` lee el SQL de la entrada y responde según lo que pida.
 mkdir -p "${T}/bin"
@@ -86,7 +96,7 @@ FALSO_FALLA_EXTRAER=1 DB=db-falso TENANT=t CUENTA=1 BANDEJA=9 DIR="${D}" bash "$
   || ko "quedó algo: $(ls -la "${D}" 2>&1)"
 
 DB=db-falso TENANT=t CUENTA=1 BANDEJA=9 DIR="${T}/fuera" bash "${PH}/extraer.sh" > "${T}/e4.log" 2>&1; rc=$?
-[ "${rc}" != 0 ] && grep -q 'dir_fuera_de_dev_shm' "${T}/e4.log" && [ ! -e "${T}/fuera" ] && ok "extraer.sh no acepta un directorio fuera de /dev/shm" || ko "aceptó un directorio fuera de /dev/shm"
+[ "${rc}" != 0 ] && grep -q 'dir_no_es_dev_shm_portal_historial' "${T}/e4.log" && [ ! -e "${T}/fuera" ] && ok "extraer.sh no acepta un directorio fuera de /dev/shm" || ko "aceptó un directorio fuera de /dev/shm"
 
 rm -rf "${D}"
 DB=db-falso TENANT=t CUENTA='1; select 1' BANDEJA=9 DIR="${D}" bash "${PH}/extraer.sh" > "${T}/e5.log" 2>&1; rc=$?
@@ -129,10 +139,10 @@ cp "${D}/preparado.ndjson" "${T}/fuera3/preparado.ndjson"
 printf '%s\n' '{"tipo":"cabecera"}' > "${T}/fuera3/vinculos.ndjson"
 : > "${FALSO_REGISTRO}"
 DB=db-falso TENANT=t DIR="${T}/fuera3" bash "${PH}/vincular.sh" > "${T}/v4.log" 2>&1; rc=$?
-[ "${rc}" != 0 ] && grep -q 'dir_fuera_de_dev_shm' "${T}/v4.log" && [ -f "${T}/fuera3/preparado.ndjson" ] && [ -f "${T}/fuera3/vinculos.ndjson" ] \
+[ "${rc}" != 0 ] && grep -q 'dir_no_es_dev_shm_portal_historial' "${T}/v4.log" && [ -f "${T}/fuera3/preparado.ndjson" ] && [ -f "${T}/fuera3/vinculos.ndjson" ] \
   && [ ! -s "${FALSO_REGISTRO}" ] && ok "vincular.sh no acepta un directorio fuera de /dev/shm ni lo borra" || ko "vincular.sh aceptó un directorio fuera de /dev/shm: ${rc}"
 DB=db-falso TENANT=t DIR="/dev/shm/../${T#/}/fuera3" bash "${PH}/vincular.sh" > "${T}/v5.log" 2>&1; rc=$?
-[ "${rc}" != 0 ] && grep -q 'dir_fuera_de_dev_shm' "${T}/v5.log" && [ -d "${T}/fuera3" ] \
+[ "${rc}" != 0 ] && grep -q 'dir_no_es_dev_shm_portal_historial' "${T}/v5.log" && [ -d "${T}/fuera3" ] \
   && ok "vincular.sh no acepta salir de /dev/shm con .." || ko "vincular.sh aceptó /dev/shm/..: ${rc}"
 
 # Un vinculos.ndjson sin salto de línea al final: su última línea entra entera al COPY.
@@ -145,6 +155,20 @@ DB=db-falso TENANT=10000000-0000-4000-8000-000000000001 DIR="${D}" bash "${PH}/v
 [ "${rc}" = 0 ] && grep -qx '{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d2","mensaje_id":90002}' "${FALSO_REGISTRO}" \
   && ok "vincular.sh acepta un vinculos.ndjson sin salto de línea al final" || ko "vinculos sin salto final: ${rc} $(grep -c 90002 "${FALSO_REGISTRO}")"
 mkdir -p -m 0700 "${D}"
+
+# ── El DIR: solo el nombre fijo, en los tres scripts ──
+# Con el patrón /dev/shm/?* de 202b5daea, `DIR=/dev/shm//` en limpiar.sh borraba todo /dev/shm.
+echo c > "${D}/centinela"
+echo c > "${C}"
+for s in extraer vincular limpiar; do
+  for d in '/dev/shm//' '/dev/shm/' '/dev/shm/a/b' '/dev/shm/.x' '/dev/shm/../x'; do
+    : > "${FALSO_REGISTRO}"
+    DB=db-falso TENANT=t CUENTA=1 BANDEJA=9 DIR="${d}" bash "${PH}/${s}.sh" > "${T}/dir.log" 2>&1; rc=$?
+    [ "${rc}" != 0 ] && grep -q 'dir_no_es_dev_shm_portal_historial' "${T}/dir.log" && [ -f "${D}/centinela" ] && [ -f "${C}" ] \
+      && [ ! -s "${FALSO_REGISTRO}" ] && ok "${s}.sh rechaza DIR=${d} sin borrar nada" || ko "${s}.sh con DIR=${d}: ${rc} $(cat "${T}/dir.log")"
+  done
+done
+rm -f "${C}"
 
 # ── limpiar.sh ──
 DIR="${D}" bash "${PH}/limpiar.sh" > /dev/null 2>&1

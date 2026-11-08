@@ -19,11 +19,11 @@ umask 077
 DIR="${DIR:-/dev/shm/portal-historial}"
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 
-case "$DIR" in
-  *..*) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
-  /dev/shm/?*) ;;
-  *) echo "HECHO error=dir_fuera_de_dev_shm" >&2; exit 2 ;;
-esac
+# Solo el nombre fijo: con un patrón, `/dev/shm//` o `/dev/shm/otro` borraban lo de otros procesos.
+if [ "$DIR" != /dev/shm/portal-historial ]; then
+  echo "HECHO error=dir_no_es_dev_shm_portal_historial" >&2
+  exit 2
+fi
 # La cuenta y la bandeja entran a extraer.sql como números (:cuenta, :bandeja): solo dígitos.
 for n in "$CUENTA" "$BANDEJA"; do
   case "$n" in
