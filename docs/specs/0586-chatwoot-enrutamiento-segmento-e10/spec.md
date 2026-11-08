@@ -710,12 +710,17 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
 - **No entra al ledger,** así que no es migrate-first.
 - **Imprime solo `HECHO clave=valor`,** con conteos, como los otros guiones de `portal-historial`.
 
-**Dónde va: `infra/ops/portal-historial/deshacer-vinculos.sql`** (decisión del Subdirector, 2026-11-08), junto a los guiones que deshace, con su contrato en `supabase/tests/`. **No va en `supabase/desarmes/`:** según su convención en `main`, los desarmes de esa carpeta se copian a `supabase/migrations/` con el siguiente número y deshacen esquema. Este guion borra filas de una carga y no entra al ledger.
+**Dónde va: en la carpeta `supabase/cargas/portal-historial-deshacer/`** (decisión del Subdirector, 2026-11-08), con el SQL, el `.sh` y su README.
+- **Por qué ahí:** Contratos SQL (`scripts/run-sql-tests.mjs:102`) monta solo `supabase/` en el contenedor, y `sql-tests.yml` corre con cambios en `supabase/cargas`. Es la convención de los guiones de una sola vez, como la carga de Kommo, con una función en `pg_temp` y un `.sh` que decide si se confirma.
+- **No va en `supabase/desarmes/`:** esos se copian a migraciones y deshacen esquema.
+- **No va en `infra/ops/portal-historial/`:** ahí el CI no lo alcanza.
+- **En el VPS** queda junto a los otros guiones (sub-paso 3.0).
 
 **Cuándo sirve: solo antes de la puerta 5.** Con el flag que nunca se encendió y la cola que nunca corrió, todas las filas del tenant salen de la carga. **Después de encender no se puede distinguir** lo que vinculó la cola de lo que vinculó la carga, porque no hay marca. Por eso el guion se niega, y ese caso queda fuera de alcance.
 
 **Entradas:**
 - `:tenant`, el uuid del tenant.
+- **El entorno,** con la guarda de la carga de Kommo: `copia` exige la marca `dtd.entorno = 'copia'` guardada para la base, y `produccion` exige que no haya marca y que el `system_identifier` sea el del runbook.
 - **Los conteos esperados,** sacados del conteo previo de solo lectura (el paso 1 de abajo):
   - `:esperados_salida`, las filas `cargado`;
   - `:esperados_hilos`;
@@ -759,7 +764,7 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
 
 **Qué no toca:** `conversations` ni `conversation_messages`. C-6 y C-7 quedan iguales.
 
-**El contrato:** `supabase/tests/<nombre>.test.sql` y su envoltorio de PGlite.
+**El contrato:** `supabase/tests/deshacer_vinculos_portal.test.sql`, que corre en Contratos SQL con Postgres 17, y su envoltorio de PGlite, `lib/studio/__tests__/deshacer-vinculos-portal.test.ts`. El `.sh` tiene sus casos en `infra/ops/tests/prueba-portal-historial.sh`.
 - **Sobre qué corre:** la 0519, la 0520, la 0523, la 0524 y la 0508, con un fixture de una carga hecha. Reusa el de la 0524.
 - **Casos:**
   - el camino feliz;

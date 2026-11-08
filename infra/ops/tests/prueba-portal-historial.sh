@@ -18,6 +18,7 @@
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PH="${R}/infra/ops/portal-historial"
+DS="${R}/supabase/cargas/portal-historial-deshacer"
 pass=0; fail=0
 ok() { echo "PASÓ  · $*"; pass=$((pass+1)); }
 ko() { echo "FALLÓ · $*"; fail=$((fail+1)); }
@@ -44,6 +45,7 @@ cat > "${T}/bin/docker" <<'FALSO'
 entrada="$(cat)"
 printf '%s\n' "${entrada}" >> "${FALSO_REGISTRO:?}"
 case "${entrada}" in
+  *deshacer_vinculos*) echo 'HECHO salida=1 hilos=1 espejo=1 contactos_vaciados=1 contactos_conservados=0 corte=nulo' ;;
   *chatwoot_portal_reservar_contactos*) echo 2 ;;
   *chatwoot_portal_carga_lineas*)
     if [ "${FALSO_FALLA_EXTRAER:-0}" = 1 ]; then
@@ -181,6 +183,38 @@ for s in extraer vincular limpiar; do
   done
 done
 rm -f "${C}"
+
+# ── deshacer-vinculos.sh (supabase/cargas/portal-historial-deshacer, el sub-paso 4.6b) ──
+TU=10000000-0000-4000-8000-000000000001
+dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA=1 ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" SISTEMA="${SISTEMA_DV-7234567890123456789}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   bash "${DS}/deshacer-vinculos.sh" > "${T}/dv.log" 2>&1; }
+mkdir -p -m 0700 "${D}"
+rm -f "${D}/contactos-conservados.ndjson"
+: > "${FALSO_REGISTRO}"
+dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'sin_contactos_conservados' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ] && ok "deshacer-vinculos.sh se niega sin el archivo de E5" || ko "deshacer sin archivo: ${rc} $(cat "${T}/dv.log")"
+printf '%s
+' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${D}/contactos-conservados.ndjson"
+MODO_DV=borrar dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'modo_invalido' "${T}/dv.log" && ok "deshacer-vinculos.sh pide MODO ensayo o aplicar" || ko "deshacer con modo inválido: ${rc}"
+ENTORNO_DV=otro dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'entorno_invalido' "${T}/dv.log" && ok "deshacer-vinculos.sh pide ENTORNO copia o produccion" || ko "deshacer con entorno inválido: ${rc}"
+SISTEMA_DV= dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'produccion_exige_sistema' "${T}/dv.log" && ok "deshacer-vinculos.sh en produccion exige SISTEMA" || ko "deshacer produccion sin sistema: ${rc}"
+TENANT_DV="t; select 1" dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'tenant_no_es_uuid' "${T}/dv.log" && ok "deshacer-vinculos.sh pide el tenant como uuid" || ko "deshacer con tenant no uuid: ${rc}"
+DIR_DV=/dev/shm/ dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'dir_no_es_dev_shm_portal_historial' "${T}/dv.log" && ok "deshacer-vinculos.sh solo acepta /dev/shm/portal-historial" || ko "deshacer con otro DIR: ${rc}"
+: > "${FALSO_REGISTRO}"
+dv; rc=$?
+[ "${rc}" = 0 ] && grep -q '^HECHO modo=ensayo fin=rollback$' "${T}/dv.log" && grep -qx 'rollback;' "${FALSO_REGISTRO}" && ! grep -qx 'commit;' "${FALSO_REGISTRO}"   && grep -q 'pg_temp.deshacer_vinculos()' "${FALSO_REGISTRO}" && ok "deshacer-vinculos.sh en ensayo termina en rollback" || ko "deshacer ensayo: ${rc} $(cat "${T}/dv.log")"
+: > "${FALSO_REGISTRO}"
+MODO_DV=aplicar dv; rc=$?
+[ "${rc}" = 0 ] && grep -qx 'commit;' "${FALSO_REGISTRO}" && ! grep -qx 'rollback;' "${FALSO_REGISTRO}" && ok "deshacer-vinculos.sh en aplicar termina en commit" || ko "deshacer aplicar: ${rc}"
+printf '%s' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${D}/contactos-conservados.ndjson"
+: > "${FALSO_REGISTRO}"
+dv; rc=$?
+[ "${rc}" = 0 ] && grep -qx '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' "${FALSO_REGISTRO}"   && ok "deshacer-vinculos.sh acepta el archivo de E5 sin salto de línea al final" || ko "deshacer sin salto final: ${rc}"
+rm -f "${D}/contactos-conservados.ndjson"
 
 # ── limpiar.sh ──
 DIR="${D}" bash "${PH}/limpiar.sh" > /dev/null 2>&1
