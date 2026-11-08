@@ -404,6 +404,56 @@ Es el camino del Archivo Kommo de E5 (SDD-0590 §10.3, §10.4 y §10.10), adapta
 3. **Cargar** con el cargador de E5 (Ruby, `rails runner` en el contenedor de Chatwoot), adaptado a esta bandeja. Escribe con `insert_all`, que no corre callbacks: ni webhooks, ni notificaciones, ni `SendReplyJob`, ni eventos de reportes. Salta lo que ya existe por `source_id`, y tiene un modo seco que solo cuenta. Devuelve un archivo de vínculos con **solo ids**: del hilo de Studio a la conversación y el contacto de Chatwoot, y de cada mensaje a su id en Chatwoot.
 4. **Vincular en Studio** con `chatwoot_portal_vincular_carga`. Guarda los vínculos, marca como `cargado` cada mensaje cargado, fija el corte de la cola y crea las filas de `chatwoot_conversations` (estado, bandeja y `client_id`), sin eventos. No crea tarjetas, ni tareas, ni avisos. Lo escrito entre la extracción y el encendido del flag sale por la cola, que empieza en el corte.
 
+**Los dos archivos entre la preparación y la carga (10.7, PR 2).** Lo propone el Worker de la 10.5 el 2026-11-08, para que E5 lo confirme antes de escribir código. La frontera la fijó el DG:
+- el Worker de la 10.5 hace la migración (`chatwoot_portal_vincular_carga`, la 0523), la extracción y la preparación;
+- E5 adapta su cargador y hace el ensayo, en su propia rama;
+- los dos trabajan en `infra/ops/portal-historial/` sin compartir archivos, y se comunican solo por estos dos archivos.
+
+Los dos viven en `/dev/shm` (0700) y se borran al terminar. Tienen un objeto JSON por línea, en UTF-8 y con LF. El campo `tipo` dice qué es cada línea, como en `carga.ndjson` de E5. Las fechas van en ISO 8601 con zona (`…Z`). Los ids de Studio son uuid en texto, y los de Chatwoot, enteros entre 1 y 2147483647. Un campo que no aplica va `null`, no se omite.
+
+**`preparado.ndjson`** (de la preparación al cargador). Lleva primero la cabecera, después todos los `contacto`, después todos los `conversacion` y al final todos los `mensaje`. Dentro de cada hilo, los mensajes van en el orden de Studio: `sent_at` y después `id`.
+
+| `tipo` | Campos | Notas |
+|---|---|---|
+| `cabecera` (1 línea) | `version` (1), `tenant_id`, `cuenta` (la de Chatwoot), `bandeja` (`CHATWOOT_INBOX_PORTAL_ID`), `corte` (la hora en que empezó la transacción de solo lectura de la extracción), `contactos`, `conversaciones` y `mensajes` (conteos) | El cargador rechaza el archivo si los conteos no coinciden con las líneas |
+| `contacto` (uno por cliente) | `cliente` (`clients.id`), `identificador` (uuid), `nombre` | `identificador`: el de `chatwoot_portal_contactos` si el cliente ya tiene uno, y si no, uno nuevo al azar (E10-D35). En Chatwoot es `dtd-portal:<identificador>`, sin teléfono ni correo (C-10). `nombre`: `clients.name` |
+| `conversacion` (una por hilo) | `hilo` (`conversations.id`), `cliente`, `estado` (`open`, `pending` o `resolved`), `creada_at`, `archivado_at` y `nota_archivo` | El estado se traduce así: `abierto` → `open`, `pendiente` → `pending` y `resuelto` → `resolved`. Un archivado va `resolved`, con `archivado_at` y una `nota_archivo` (`source_id` `dtd:archivado:<hilo>`, el texto de esta sección y `created_at` igual a `archivado_at`). Si no está archivado, `nota_archivo` va `null` |
+| `mensaje` (uno por mensaje) | `hilo`, `mensaje` (`conversation_messages.id`), `source_id` (`dtd:<mensaje>`), `sentido` (`entrante` o `saliente`), `texto`, `created_at` (el `sent_at` de Studio) y `agente` | `agente`: el `chatwoot_user_id` vinculado al autor (`chatwoot_agent_links`), solo en un saliente. Si no tiene vínculo, `null`, y el cargador firma con el usuario de servicio. En un entrante siempre va `null`: lo escribe el contacto |
+
+Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que **todavía no tienen vínculo** en `chatwoot_portal_hilos`; los que ya lo tienen los llevó la cola. Se toman todos sus mensajes, salvo los que vinieron de Chatwoot (`external_msg_id` que empieza con `chatwoot:`). No se llevan teléfono, correo, cédula, RIF ni Shipping Mark.
+
+**`vinculos.ndjson`** (del cargador a la vinculación). Lleva **solo ids**: ni nombres ni textos. Primero la cabecera, después los `contacto`, los `conversacion` y los `mensaje`. Con `MODO=seco` no se escribe.
+
+| `tipo` | Campos | Notas |
+|---|---|---|
+| `cabecera` (1 línea) | `version` (1), `tenant_id`, `cuenta`, `bandeja` y `corte`, copiados del `preparado.ndjson`; `contactos`, `conversaciones` y `mensajes` (conteos de lo vinculado) | `chatwoot_portal_vincular_carga` rechaza el archivo si `tenant_id`, `bandeja` o `corte` no son los del preparado, o si los conteos no coinciden con las líneas |
+| `contacto` | `cliente`, `identificador`, `contacto_id` (`contacts.id`) y `source_id` (el `source_id` del `contact_inbox` en la bandeja del portal) | Si el contacto ya existía, va su id. `source_id` nunca es un teléfono: es el chequeo de `chatwoot_portal_contactos` |
+| `conversacion` | `hilo` y `conversacion_id` | `conversacion_id` es el **`display_id`**, el número que usan la API y `chatwoot_portal_hilos`, no el id interno de la fila |
+| `mensaje` | `mensaje` (`conversation_messages.id`) y `mensaje_id` (`messages.id` en Chatwoot) | Va uno por mensaje cargado o ya existente por `source_id`. La nota de archivo no va: no es un mensaje de Studio |
+
+**Ejemplos inventados** (uuid y números sintéticos; los nombres y los textos son de muestra):
+
+```
+{"tipo":"cabecera","version":1,"tenant_id":"10000000-0000-4000-8000-000000000001","cuenta":1,"bandeja":9,"corte":"2026-11-10T14:00:00Z","contactos":1,"conversaciones":1,"mensajes":2}
+{"tipo":"contacto","cliente":"20000000-0000-4000-8000-0000000000a1","identificador":"30000000-0000-4000-8000-0000000000b1","nombre":"Cliente Sintético"}
+{"tipo":"conversacion","hilo":"40000000-0000-4000-8000-0000000000c1","cliente":"20000000-0000-4000-8000-0000000000a1","estado":"open","creada_at":"2026-10-01T12:00:00Z","archivado_at":null,"nota_archivo":null}
+{"tipo":"mensaje","hilo":"40000000-0000-4000-8000-0000000000c1","mensaje":"50000000-0000-4000-8000-0000000000d1","source_id":"dtd:50000000-0000-4000-8000-0000000000d1","sentido":"entrante","texto":"SINT ¿Llegó mi caja?","created_at":"2026-10-01T12:00:00Z","agente":null}
+{"tipo":"mensaje","hilo":"40000000-0000-4000-8000-0000000000c1","mensaje":"50000000-0000-4000-8000-0000000000d2","source_id":"dtd:50000000-0000-4000-8000-0000000000d2","sentido":"saliente","texto":"SINT Sí, llegó el lunes.","created_at":"2026-10-01T12:30:00Z","agente":7}
+```
+
+```
+{"tipo":"cabecera","version":1,"tenant_id":"10000000-0000-4000-8000-000000000001","cuenta":1,"bandeja":9,"corte":"2026-11-10T14:00:00Z","contactos":1,"conversaciones":1,"mensajes":2}
+{"tipo":"contacto","cliente":"20000000-0000-4000-8000-0000000000a1","identificador":"30000000-0000-4000-8000-0000000000b1","contacto_id":501,"source_id":"dtd-portal:30000000-0000-4000-8000-0000000000b1"}
+{"tipo":"conversacion","hilo":"40000000-0000-4000-8000-0000000000c1","conversacion_id":1201}
+{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d1","mensaje_id":90001}
+{"tipo":"mensaje","mensaje":"50000000-0000-4000-8000-0000000000d2","mensaje_id":90002}
+```
+
+**Para E5 confirmar o corregir:**
+1. Si al cargador le sirve el `tipo` `contacto` en lugar de `persona`, y `sentido` en lugar de su campo propio.
+2. Que devuelve el `display_id` en `conversacion_id`.
+3. Que en un contacto que ya existía devuelve el `source_id` del `contact_inbox` de esta bandeja.
+
 **El ensayo (5.6 de E5, adaptado).** Es una copia efímera de la base de Chatwoot, con el mismo guion y las mismas guardas de `ensayo-archivo.sh`: red interna, tmpfs, `pg_dump` en solo lectura, la marca de la copia y el borrado de las otras cuentas solo en la copia. El paso 4 corre contra una copia efímera de la base de Studio, con las mismas guardas. Todo se mide con conteos y huellas md5, sin datos de personas:
 
 | # | Medición | PASÓ si |
