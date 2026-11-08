@@ -7,57 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0586-portal-estado",
-      "primarySymbol": "chatwoot_portal_estado_hilo",
-      "migration": "0521_chatwoot_portal_estado",
-      "symbols": [
-        {
-          "name": "chatwoot_portal_estado_hilo",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal-manejadores.ts:240",
-            "lib/studio/chatwoot/portal-manejadores.ts:246"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_por_conciliar",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal-conciliar.ts:131",
-            "lib/studio/chatwoot/portal-conciliar.ts:138"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_marcar_conciliado",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/chatwoot/portal-conciliar.ts:115",
-            "lib/studio/chatwoot/portal-conciliar.ts:120"
-          ]
-        },
-        {
-          "name": "chatwoot_portal_hilos.conciliado_hasta",
-          "kind": "column",
-          "callSites": [
-            "lib/studio/chatwoot/portal-conciliar.ts:56",
-            "lib/studio/chatwoot/portal-conciliar.ts:77"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/chatwoot/portal-manejadores.ts:245",
-          "contains": "if (error.code === \"PGRST202\") return \"sin_migracion\";",
-          "degradation": "Sin la 0521, estadoAlPortal (el manejador del webhook) y la conciliación ven PGRST202 y siguen sin lanzar: el estado del hilo queda como hoy. La 0521 se aplica antes de fusionar (migrate-first)."
-        },
-        {
-          "site": "lib/studio/chatwoot/portal-conciliar.ts:137",
-          "contains": "if (error.code === \"PGRST202\") return { ...VACIO, omitido: \"sin_migracion\" };",
-          "degradation": "Sin la 0521, conciliarPortal no tiene hilos que mirar (chatwoot_portal_por_conciliar ausente) y el cron lo informa como sin_migracion; nunca llega a chatwoot_portal_marcar_conciliado ni lee conciliado_hasta."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
