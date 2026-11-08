@@ -46,6 +46,7 @@
 | ESLint sobre lo tocado | PASÓ (0 errores, 0 avisos; `infra/` lo ignora la configuración) |
 | `/ui-check` del aviso | PASÓ sin bloquear. Un hallazgo medio, aplicado: el `title` del selector deshabilitado. Uno bajo, que queda: el `padding` 12/14 es el del compositor que reemplaza |
 | Los 32 mutantes (`mutantes-solo-lectura.cjs`, turno del Subdirector, de 10:50:39Z a 10:52:53Z sobre `fc2bf7017`) | PASÓ: 32 de 32 mueren, cada uno en la prueba que lo nombra. Las 5 bases (M0) salieron verdes: 11, 18, 9, 5 y 10. Los 6 archivos quedaron restaurados, y `git status` salió vacío al empezar y al terminar |
+| CI «Calidad continua» sobre `a2a392e1a` (run 42473535583, paso «Unitarios») | FALLÓ 1 de 15.475: `app/api/studio/__tests__/route-auth.test.ts` comparaba exacto la respuesta del detalle con tres claves, y ahora trae `bandeja`. Busqué las pruebas por carpeta y esa importa la ruta desde `app/api/studio/__tests__/`. **Corregido** sin aflojar el `toEqual`: espera `bandeja: null` y no toca service_role en otro canal. Suma el caso del portal (`bandeja: 12`, filtrado por hilo y por tenant). Pasan los 11 archivos que importan o recorren lo tocado: 564 casos |
 | `pnpm verify` y el build local | NO EJECUTADO: por la regla de la máquina del encargo. Desde el 2026-11-07 el portón es el CI de GitHub con revisión independiente |
 
 ## Impacto documental
@@ -70,4 +71,5 @@
 ## FUERA DE ALCANCE DETECTADO
 
 - El riesgo residual (I) de la 0106: un `authenticated` del equipo puede escribir un saliente en un hilo del portal directo por PostgREST. Lo cierra el trigger de la 1c-2 (decisión del DG).
-- Un hilo borrado (`deleted_at`) no se lee en `setStatusAction`, así que el update sigue como hoy y no cambia filas. Es el comportamiento de antes, sin tocar.
+- **Esta frase estaba mal** y la corrige la 1c-1b. Decía que, en un hilo borrado (`deleted_at`), el update de `setStatusAction` «no cambia filas». En realidad el `update` filtra solo por `id`: cambia la fila, y en un hilo del portal borrado la traba no corre. La 1c-1b (decisión del DG) devuelve «no encontrada» y agrega `.is("deleted_at", null)`.
+- **`bandeja` en el detalle** lo recibe quien ve el hilo en Conversaciones, aunque no tenga acceso a la Bandeja. Es un número entero, sin PII. La 1c-1b muestra el enlace solo con acceso a la Bandeja (rol y flag `chatwoot_inbox`), y puede cortar también el campo.
