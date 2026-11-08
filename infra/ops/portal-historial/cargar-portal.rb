@@ -12,9 +12,17 @@
 # conversacion y mensaje. Salida: `vinculos.ndjson`, SOLO ids (cabecera, contacto, conversacion y mensaje), en la
 # ruta de VINCULOS. En MODO=seco no se escribe.
 #
-# El contrato con E10 en el VPS es VINCULOS=<ruta> (Subdirector, 2026-11-08): un ndjson limpio, que `vincular.sh`
-# lee tal cual. Con `docker exec chatwoot-rails-1`, la ruta es la del contenedor: va en su /dev/shm (tmpfs, así que
-# los ids no tocan disco), y después se copia con `docker cp` a la carpeta 0700 del VPS y se borra del contenedor.
+# El contrato con E10 en el VPS (Subdirector, 2026-11-08): el archivo termina en
+# /dev/shm/portal-historial/vinculos.ndjson del VPS, el nombre fijo que lee `vincular.sh` (`$DIR/vinculos.ndjson`).
+# Con `docker exec`, VINCULOS es una ruta DEL CONTENEDOR: se escribe en su /dev/shm (tmpfs: los ids no tocan disco),
+# se copia con `docker cp` y se borra del contenedor:
+#
+#   docker cp cargar-portal.rb chatwoot-rails-1:/tmp/cargar-portal.rb
+#   docker exec -i -e MODO=cargar -e CUENTA=<id> -e BANDEJA=<id> -e AGENTE_SERVICIO=<id> -e CARGA=- #     -e VINCULOS=/dev/shm/vinculos.ndjson chatwoot-rails-1 bundle exec rails runner /tmp/cargar-portal.rb #     < /dev/shm/portal-historial/preparado.ndjson
+#   docker cp chatwoot-rails-1:/dev/shm/vinculos.ndjson /dev/shm/portal-historial/vinculos.ndjson
+#   docker exec chatwoot-rails-1 rm -f /dev/shm/vinculos.ndjson
+#
+# Si el archivo queda en otra ruta, `vincular.sh` sale con `HECHO error=sin_vinculos` y no escribe nada.
 # VINCULOS=- es SOLO PARA PRUEBAS: cada línea sale con el prefijo `VINCULO ` en la salida estándar, que en el
 # contenedor también trae Bundler y los logs de los inicializadores. Un `sed` sobre esa mezcla no es un contrato.
 #

@@ -36,12 +36,20 @@ Son 7 archivos, todos nuevos, y ninguno lo comparte con E10. Las copias son adap
 
 ## El contrato de los vínculos en el VPS
 
-- **Es `VINCULOS=<ruta>`.** Lo decidió el Subdirector el 2026-11-08. `vincular.sh`, de E10, lee un ndjson limpio.
-  - Con `docker exec chatwoot-rails-1`, la ruta es la del contenedor: su `/dev/shm` es tmpfs, así que los ids no tocan disco.
-  - Después, `docker cp` a la carpeta 0700 del VPS y se borra del contenedor.
-  - Ese paso lo escribe E10 en su procedimiento.
+- **El archivo termina en `/dev/shm/portal-historial/vinculos.ndjson` del VPS.** Lo decidió el Subdirector el 2026-11-08, con lo que confirmó E10.
+  - Es el nombre fijo que lee `vincular.sh:21` (`$DIR/vinculos.ndjson`, con `DIR=/dev/shm/portal-historial`), en la misma carpeta 0700 de `preparado.ndjson`.
+  - Si queda en otra ruta, `vincular.sh` sale con `HECHO error=sin_vinculos` y no escribe nada.
+- **Con `docker exec`, `VINCULOS` es una ruta del contenedor, no del VPS.** Se escribe en el `/dev/shm` del contenedor, que es tmpfs, así que los ids no tocan disco. Después se copia y se borra:
+
+```sh
+docker cp cargar-portal.rb chatwoot-rails-1:/tmp/cargar-portal.rb
+docker exec -i -e MODO=cargar -e CUENTA=<id> -e BANDEJA=<id> -e AGENTE_SERVICIO=<id> -e CARGA=-   -e VINCULOS=/dev/shm/vinculos.ndjson chatwoot-rails-1 bundle exec rails runner /tmp/cargar-portal.rb   < /dev/shm/portal-historial/preparado.ndjson
+docker cp chatwoot-rails-1:/dev/shm/vinculos.ndjson /dev/shm/portal-historial/vinculos.ndjson
+docker exec chatwoot-rails-1 rm -f /dev/shm/vinculos.ndjson
+```
+
 - **`VINCULOS=-` queda solo para pruebas.** En el contenedor, la salida de `rails runner` también trae Bundler y los logs de los inicializadores (R3, run 42495310693). Los vínculos salen con el prefijo `VINCULO `, y un `sed` sobre esa mezcla no es un contrato.
-- **El README de `portal-historial/` es de E10,** así que no lo toco. El contrato queda escrito aquí y en la cabecera de `cargar-portal.rb`.
+- **El README de `portal-historial/` es de E10,** así que no lo toco. La línea de invocación queda aquí y en la cabecera de `cargar-portal.rb`.
 
 ## Permisos de los archivos
 
