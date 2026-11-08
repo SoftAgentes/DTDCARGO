@@ -8,11 +8,14 @@ import {
   crearContactoPortal,
   crearConversacionPortal,
   crearMensajeEntrante,
+  crearNotaPrivada,
   enviarMensaje,
   envioIncierto,
   leerEtiquetas,
+  leerMensaje,
   listarConversacionesContacto,
   listarMensajes,
+  listarWebhooksCuenta,
   obtenerConversacion,
   ponerEtiquetas,
 } from "../router-api";
@@ -278,5 +281,80 @@ describe("router-api · buscar el source_id página por página (revisión de la
   it("un error de una página se informa tal cual", async () => {
     fetchSpy.mockResolvedValueOnce(json(pagina(130, 111, T + 600))).mockResolvedValueOnce(json({}, 503));
     expect(await buscarMensajePorSourceId(CUENTA, 9001, S, DESDE)).toEqual({ ok: false, error: "http_503" });
+  });
+});
+
+describe("router-api · la vuelta del portal (SDD-0586, 10.5, PR 1b)", () => {
+  const CUENTA = { origin: CFG.origin, token: "tok-router", accountId: 1 };
+
+  it("leerMensaje pide la página que termina en ese mensaje y lo devuelve tal cual", async () => {
+    const fila = { id: 7001, content: TEXTO_SINTETICO, message_type: 1, private: false };
+    fetchSpy.mockResolvedValueOnce(json({ payload: [{ id: 6999 }, fila, { id: 7000 }] }));
+    const r = await leerMensaje(CUENTA, 9001, 7001);
+    expect(llamada().url).toBe(`${BASE}/9001/messages?before=7002`);
+    expect(llamada().headers.api_access_token).toBe("tok-router");
+    expect(r).toEqual({ ok: true, data: fila });
+  });
+
+  it("leerMensaje: si ya no está, null; una forma rara, respuesta_invalida; un error, tal cual", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(json({ payload: [{ id: 6999 }] }))
+      .mockResolvedValueOnce(json({ data: [] }))
+      .mockResolvedValueOnce(json({}, 404));
+    expect(await leerMensaje(CUENTA, 9001, 7001)).toEqual({ ok: true, data: null });
+    expect(await leerMensaje(CUENTA, 9001, 7001)).toEqual({ ok: false, error: "respuesta_invalida" });
+    expect(await leerMensaje(CUENTA, 9001, 7001)).toEqual({ ok: false, error: "no_encontrado" });
+  });
+
+  it("la nota privada sale saliente, privada y con su source_id", async () => {
+    fetchSpy.mockResolvedValueOnce(json({ id: 8001 }));
+    const r = await crearNotaPrivada(CUENTA, 9001, { texto: "Nota", sourceId: "dtd:nota:adjunto:7001" });
+    const { url, init, body } = llamada();
+    expect(url).toBe(`${BASE}/9001/messages`);
+    expect(init.method).toBe("POST");
+    expect(body).toEqual({ content: "Nota", message_type: "outgoing", private: true, source_id: "dtd:nota:adjunto:7001" });
+    expect(r).toEqual({ ok: true, data: 8001 });
+  });
+
+  it("la nota sin id en la respuesta es respuesta_invalida", async () => {
+    fetchSpy.mockResolvedValueOnce(json({}));
+    expect(await crearNotaPrivada(CUENTA, 9001, { texto: "Nota", sourceId: "dtd:nota:adjunto:7001" })).toEqual({
+      ok: false,
+      error: "respuesta_invalida",
+    });
+  });
+
+  it("los webhooks de la cuenta: URL, eventos y si es de bandeja, sin el secret", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      json({
+        payload: {
+          webhooks: [
+            { id: 1, url: "https://studio.ejemplo.test/api/chatwoot/webhook", subscriptions: ["message_created", 5], secret: "s3cr3t" },
+            { id: 2, url: "https://otro.ejemplo.test/hook", subscriptions: [], inbox: { id: 3, name: "x" } },
+            { id: 3, url: "" },
+          ],
+        },
+      }),
+    );
+    const r = await listarWebhooksCuenta(CUENTA);
+    expect(llamada().url).toBe("https://chat.ejemplo.test/api/v1/accounts/1/webhooks");
+    expect(r).toEqual({
+      ok: true,
+      data: [
+        { url: "https://studio.ejemplo.test/api/chatwoot/webhook", eventos: ["message_created"], deBandeja: false },
+        { url: "https://otro.ejemplo.test/hook", eventos: [], deBandeja: true },
+      ],
+    });
+    expect(JSON.stringify(r)).not.toContain("s3cr3t");
+  });
+
+  it("los webhooks: una lista suelta también vale; sin lista, respuesta_invalida; sin permiso, no_autorizado", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(json({ payload: [{ url: "https://s.ejemplo.test/api/chatwoot/webhook", subscriptions: ["message_created"] }] }))
+      .mockResolvedValueOnce(json({ payload: {} }))
+      .mockResolvedValueOnce(json({}, 401));
+    expect((await listarWebhooksCuenta(CUENTA)).ok).toBe(true);
+    expect(await listarWebhooksCuenta(CUENTA)).toEqual({ ok: false, error: "respuesta_invalida" });
+    expect(await listarWebhooksCuenta(CUENTA)).toEqual({ ok: false, error: "no_autorizado" });
   });
 });

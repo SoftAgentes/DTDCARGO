@@ -328,3 +328,74 @@ export async function crearMensajeEntrante(
   const id = ENTERO((r.data as { id?: unknown } | null)?.id);
   return id !== null ? { ok: true, data: id } : { ok: false, error: "respuesta_invalida" };
 }
+
+// ─── La vuelta del portal (SDD-0586, 10.5, PR 1b: E10-D37 y E10-D38) ────────
+
+/**
+ * Relee un mensaje de la conversación, para el reproceso (el evento guardado no tiene el texto,
+ * E10-D37). `?before=<id + 1>` trae la página que termina en ese mensaje. Devuelve el objeto tal
+ * como lo da Chatwoot, sin registrarlo: lo interpreta `interpretarMensajePortal`. `null` si ya no
+ * está (lo borraron en Chatwoot).
+ */
+export async function leerMensaje(
+  cfg: CuentaChatwoot,
+  conversacionId: number,
+  mensajeId: number,
+): Promise<ChatwootResult<unknown | null>> {
+  const r = await llamar(cfg, `${conversacionId}/messages?before=${mensajeId + 1}`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  const fila = payload.find((m) => ENTERO((m as { id?: unknown } | null)?.id) === mensajeId);
+  return { ok: true, data: fila ?? null };
+}
+
+/**
+ * Una nota privada en la conversación, con su propio `source_id` (`dtd:nota:…`), para que un
+ * reintento la busque antes de crear otra. Una nota privada no sale de Chatwoot (NV, PoC-6).
+ */
+export async function crearNotaPrivada(
+  cfg: CuentaChatwoot,
+  conversacionId: number,
+  datos: { texto: string; sourceId: string },
+): Promise<ChatwootResult<number>> {
+  const r = await llamar(cfg, `${conversacionId}/messages`, {
+    method: "POST",
+    body: { content: datos.texto, message_type: "outgoing", private: true, source_id: datos.sourceId },
+  });
+  if (!r.ok) return r;
+  const id = ENTERO((r.data as { id?: unknown } | null)?.id);
+  return id !== null ? { ok: true, data: id } : { ok: false, error: "respuesta_invalida" };
+}
+
+export interface WebhookCuenta {
+  url: string;
+  eventos: string[];
+  /** Un webhook de bandeja (`inbox`) no es el de cuenta: no recibe lo de las otras bandejas. */
+  deBandeja: boolean;
+}
+
+/**
+ * Los webhooks de la cuenta (`GET /webhooks`, solo administradores), para la salud: Chatwoot
+ * 4.19.1 no reintenta los webhooks de cuenta y no entrega a un host sin IP pública. Solo la URL,
+ * los eventos y si es de bandeja; el `secret` que firma no sale de aquí.
+ */
+export async function listarWebhooksCuenta(cfg: CuentaChatwoot): Promise<ChatwootResult<WebhookCuenta[]>> {
+  const r = await llamarCuenta(cfg, "webhooks");
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  const lista = Array.isArray(payload) ? payload : (payload as { webhooks?: unknown } | null)?.webhooks;
+  if (!Array.isArray(lista)) return { ok: false, error: "respuesta_invalida" };
+  const out: WebhookCuenta[] = [];
+  for (const w of lista) {
+    const fila = w as { url?: unknown; subscriptions?: unknown; inbox?: unknown; inbox_id?: unknown } | null;
+    const url = TEXTO(fila?.url);
+    if (!url) continue;
+    out.push({
+      url,
+      eventos: Array.isArray(fila?.subscriptions) ? fila.subscriptions.filter((e): e is string => typeof e === "string") : [],
+      deBandeja: (fila?.inbox !== null && typeof fila?.inbox === "object") || ENTERO(fila?.inbox_id) !== null,
+    });
+  }
+  return { ok: true, data: out };
+}

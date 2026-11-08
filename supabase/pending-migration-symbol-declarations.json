@@ -42,13 +42,16 @@
           "kind": "function",
           "callSites": [
             "lib/studio/chatwoot/portal.ts:304",
-            "lib/studio/chatwoot/portal.ts:306"
+            "lib/studio/chatwoot/portal.ts:306",
+            "lib/studio/chatwoot/portal.ts:362"
           ]
         },
         {
           "name": "chatwoot_portal_hilos",
           "kind": "table",
           "callSites": [
+            "lib/studio/chatwoot/portal-manejadores.ts:158",
+            "lib/studio/chatwoot/portal-manejadores.ts:163",
             "lib/studio/chatwoot/portal.ts:122",
             "lib/studio/chatwoot/portal.ts:126"
           ]
@@ -79,6 +82,56 @@
           "site": "app/api/cron/chatwoot-reintentos/route.ts:62",
           "contains": "const portal = await enviarPortalPendientes(admin).catch(() => ({ omitido: \"error\" as const }));",
           "degradation": "El cron chatwoot-reintentos no se cae por la ida del portal: lo informa con un código y sigue."
+        },
+        {
+          "site": "lib/studio/chatwoot/portal.ts:361",
+          "contains": "if (!flags.chatwoot_portal) return { encendido: false, sinLlegar: 0, atascados: 0 };",
+          "degradation": "La tarjeta «Portal → Chatwoot» de la Bandeja (PR 1b) no consulta chatwoot_portal_rezagados con el flag apagado: muestra «Apagado»."
+        },
+        {
+          "site": "lib/studio/chatwoot/portal-manejadores.ts:177",
+          "contains": "if (!flags.chatwoot_portal) return;",
+          "degradation": "La vuelta (PR 1b) no mira chatwoot_portal_hilos con el flag apagado: el webhook sigue como hoy."
+        }
+      ]
+    },
+    {
+      "id": "sdd-0586-portal-vuelta",
+      "primarySymbol": "chatwoot_portal_respuesta",
+      "migration": "0520_chatwoot_portal_vuelta",
+      "symbols": [
+        {
+          "name": "chatwoot_portal_respuesta",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/chatwoot/portal-manejadores.ts:193",
+            "lib/studio/chatwoot/portal-manejadores.ts:201"
+          ]
+        },
+        {
+          "name": "chatwoot_portal_destrabar",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/bandeja/actions.ts:471",
+            "app/studio/(app)/bandeja/actions.ts:473"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/chatwoot/portal-manejadores.ts:177",
+          "contains": "if (!flags.chatwoot_portal) return;",
+          "degradation": "Sin la 0520 (y sin la 0519, que va antes) no hay fila de chatwoot_portal y listFeatureFlags lo da apagado: responderAlPortal no llama a chatwoot_portal_respuesta ni a Chatwoot, y el webhook sigue como hoy."
+        },
+        {
+          "site": "app/studio/(app)/bandeja/_components/PortalChatwoot.tsx:46",
+          "contains": "{!resumen.encendido ? (",
+          "degradation": "Con el flag apagado la tarjeta muestra «Apagado» y no ofrece «Reintentar los atascados»: nadie llama a chatwoot_portal_destrabar."
+        },
+        {
+          "site": "app/studio/(app)/bandeja/actions.ts:474",
+          "contains": "return { ok: false, error: error.code === \"42501\" ? \"denied\" : \"base\" };",
+          "degradation": "Si igual se llamara, chatwoot_portal_destrabar ausente (PGRST202) devuelve el error «base» con su código en el log, sin lanzar."
         }
       ]
     }
