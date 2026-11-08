@@ -1,5 +1,5 @@
 /**
- * `dtd-bot` · reglas duras (SDD-NNNN §3.5, fila 7.4 de SDD-0582). Puro.
+ * `dtd-bot` · reglas duras (SDD-0618 §3.5, fila 7.4 de SDD-0582). Puro.
  *
  * NO son instrucciones al modelo: son comprobaciones deterministas sobre el texto que el
  * motor propone. Si una falla, la respuesta no sale y el turno pasa a una persona (falla

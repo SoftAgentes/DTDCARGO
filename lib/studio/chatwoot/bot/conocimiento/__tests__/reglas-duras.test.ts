@@ -1,5 +1,5 @@
 /**
- * SDD-NNNN · 7.4 · reglas duras de `dtd-bot`. Puro. Los textos de los casos rojos son
+ * SDD-0618 · 7.4 · reglas duras de `dtd-bot`. Puro. Los textos de los casos rojos son
  * inventados; los teléfonos de prueba usan el 555.
  */
 import { describe, expect, it } from "vitest";

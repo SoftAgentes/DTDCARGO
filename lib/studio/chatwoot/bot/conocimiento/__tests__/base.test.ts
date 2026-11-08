@@ -1,5 +1,5 @@
 /**
- * SDD-NNNN · 7.4 · contrato de la base canónica de `dtd-bot`.
+ * SDD-0618 · 7.4 · contrato de la base canónica de `dtd-bot`.
  *
  *  - El JSON está al día con la base v7 (`scripts/bot-conocimiento.mjs --check`).
  *  - Cada ficha cita su fuente y trae texto.
@@ -45,7 +45,8 @@ describe("base.json", () => {
 });
 
 describe("sin PII ni la dirección completa", () => {
-  const todo = JSON.stringify(base);
+  // Solo las fichas: la huella sha256 de la fuente parecería un teléfono.
+  const todo = JSON.stringify(base.fichas);
   const permitidos = [CONTACT.ve.whatsappRaw, CONTACT.ve.phoneRaw].map((t) => t.replace(/\D/g, ""));
 
   it("no trae el contacto de bodega ni el detalle de cargo", () => {

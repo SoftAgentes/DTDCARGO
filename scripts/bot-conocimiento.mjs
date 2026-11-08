@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Base canónica de conocimiento de `dtd-bot` (SDD-NNNN §5.2, fila 7.4 de SDD-0582).
+ * Base canónica de conocimiento de `dtd-bot` (SDD-0618 §5.2, fila 7.4 de SDD-0582).
  *
  * Genera `lib/studio/chatwoot/bot/conocimiento/base.json` desde la base v7 del repo
  * (`docs/specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md`), que es la
