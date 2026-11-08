@@ -12,7 +12,8 @@
 #   K    controles-studio.sql antes y después: C-6 y C-7 iguales; C-8 con los hilos vinculados y lo cargado
 #   E    (e) un mensaje por la API de Chatwoot a una conversación cargada: 0 reintentos y 0 muertos en Sidekiq
 #   F    (f) cargar.sh con fallos inyectados: el contenedor queda limpio y en el VPS no quedan vínculos
-#   B    (b) el contacto_id nulo: PENDIENTE, espera la 0524 (no se da por cubierto)
+#   B    (b) B1: un contacto con contacto_id nulo y source_id vacío; B2: solo source_id vacío. Los dos, 22023 sin
+#        cambiar Studio (0524, punto 5)
 #   M    mutantes de cargar.sh: cada uno tiene que tumbar su comprobación
 #
 # Uso:  bash infra/ops/portal-historial/pruebas/prueba-punta-a-punta.sh [--conservar] [--sin-mutantes]
@@ -177,22 +178,33 @@ exigir C1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_nuevas)" = 3
 exigir C2 '[ -s "$SHM/vinculos.ndjson" ] && [ "$(stat -c %a "$SHM/vinculos.ndjson")" = 600 ] && [ ! -e "$SHM/vinculos.ndjson.parcial" ] && [ "$(h "$F" contenedor_limpio)" = si ] && limpio_desde_afuera' \
   "los vínculos quedan en $SHM/vinculos.ndjson con 0600 y el contenedor, limpio"
 cp "$SHM/vinculos.ndjson" "$TRABAJO/vinculos-1.ndjson"
-# (a): sin la última línea de mensaje.
-# Los vínculos sin la última línea de mensaje: con la cabecera sin tocar (A2, el archivo se contradice) y con la
-# cabecera coherente (A1, el archivo es coherente pero no es el del preparado).
-menos_un_mensaje() { # cabecera_coherente(si|no) → $SHM/vinculos.ndjson
+# Los vínculos de la carga 1, alterados de cuatro maneras, y vincular.sh tiene que negarse sin cambiar Studio:
+#   (a) A2: sin la última línea de mensaje y la cabecera sin tocar (el archivo se contradice);
+#   (a) A1: sin la última línea de mensaje y la cabecera coherente (coherente, pero no es el del preparado);
+#   (b) B1: el primer contacto con contacto_id nulo y source_id vacío, los dos a la vez (0524, punto 5);
+#   (b) B2: el primer contacto con source_id vacío y su contacto_id intacto (0524, punto 5).
+vinculos_alterados() { # modo → $SHM/vinculos.ndjson
   python3 -I -c 'import json, sys
 lineas = open(sys.argv[1], encoding="utf-8").read().splitlines()
-u = max(i for i, l in enumerate(lineas) if json.loads(l)["tipo"] == "mensaje")
-del lineas[u]
-if sys.argv[2] == "si":
-    cab = json.loads(lineas[0]); cab["mensajes"] -= 1
-    lineas[0] = json.dumps(cab, separators=(",", ":"))
+modo = sys.argv[2]
+if modo in ("menos-sin-cabecera", "menos-con-cabecera"):
+    u = max(i for i, l in enumerate(lineas) if json.loads(l)["tipo"] == "mensaje")
+    del lineas[u]
+    if modo == "menos-con-cabecera":
+        cab = json.loads(lineas[0]); cab["mensajes"] -= 1
+        lineas[0] = json.dumps(cab, separators=(",", ":"))
+else:
+    c = min(i for i, l in enumerate(lineas) if json.loads(l)["tipo"] == "contacto")
+    fila = json.loads(lineas[c])
+    if modo == "contacto-nulos":
+        fila["contacto_id"] = None
+    fila["source_id"] = ""
+    lineas[c] = json.dumps(fila, separators=(",", ":"))
 open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) + "\n")' "$TRABAJO/vinculos-1.ndjson" "$1" "$SHM/vinculos.ndjson"
 }
-caso_a() { # id cabecera_coherente error esperado descripción
+caso_v() { # id modo error-esperado descripción
   local id="$1"
-  menos_un_mensaje "$2"
+  vinculos_alterados "$2"
   CTL "$TRABAJO/controles-$id-antes.txt"
   CORTE_ANTES="$(corte)"
   vincular "$TRABAJO/vincular-$id.txt"
@@ -204,8 +216,10 @@ caso_a() { # id cabecera_coherente error esperado descripción
   exigir "$id" '[ "$(h "$VA" salida_proceso)" != 0 ] && grep -qF -- "$ERR_A" "$VA" && cmp -s "$CA" "$CD" && [ "$(corte)" = "$CORTE_ANTES" ]' \
     "$4: vincular se niega («$ERR_A») y Studio no cambia, ni los controles ni el corte ($(corte))"
 }
-caso_a A2 no "los conteos de la cabecera no son los de las líneas" "(a) un mensaje menos y la cabecera sin tocar"
-caso_a A1 si "no son los del preparado" "(a) un mensaje menos con la cabecera coherente"
+caso_v A2 menos-sin-cabecera "los conteos de la cabecera no son los de las líneas" "(a) un mensaje menos y la cabecera sin tocar"
+caso_v A1 menos-con-cabecera "no son los del preparado" "(a) un mensaje menos con la cabecera coherente"
+caso_v B1 contacto-nulos "id de contacto inválido" "(b) un contacto con contacto_id nulo y source_id vacío"
+caso_v B2 contacto-sin-source "falta el source_id del contacto" "(b) un contacto con source_id vacío"
 
 # ── C. repetir desde la extracción, con un mensaje nuevo (d) ─────────────────
 log "== C. repetir desde la extracción, con un mensaje nuevo en hA"
@@ -285,7 +299,6 @@ f_corrida "$PH/cargar.sh"
 f_comprobar
 
 # ── B. el contacto_id nulo: espera la 0524 ───────────────────────────────────
-log "PENDIENTE B — (b) un contacto con contacto_id nulo tiene que dar 22023: espera la 0524 (E10), que todavía no está en main. NO CUBIERTO"
 
 # ── F (datos personales): ni nombres ni textos en las salidas de cargar.sh ───
 fugas=0
