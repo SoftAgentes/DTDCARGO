@@ -121,6 +121,21 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 
 Las tres situaciones están probadas de punta a punta, con la 0504 real en PGlite, en `lib/studio/chatwoot/__tests__/caida-webhook.scenario.test.ts`.
 
+## El webhook de cuenta y el chat del portal (SDD-0586, 10.5, PR 1b)
+
+Las respuestas al chat del portal llegan solo por el webhook de cuenta, y Chatwoot 4.19.1 no entrega a un host sin IP pública («has no public ip addresses», su protección contra SSRF). Por eso la salud de la Bandeja, en el cron diario `chatwoot-agentes` y al abrir la página, revisa ese webhook y avisa a los admins:
+
+| Alerta | Qué significa | Qué hacer |
+|---|---|---|
+| Falta el webhook de cuenta | Ningún webhook de cuenta apunta a `/api/chatwoot/webhook` | Crearlo en Chatwoot (paso 6), con `message_created` |
+| No recibe los mensajes | El webhook existe, pero sin `message_created` | Agregarle el evento en Chatwoot |
+| Servidor sin IP pública | El host de la URL no resuelve a ninguna IP pública, y Chatwoot no le entrega | Usar la URL pública de Studio |
+| No se pudo revisar | Falta `CHATWOOT_SERVICE_USER_ID` o Chatwoot no respondió | Variables del paso 3; si Chatwoot está caído, sale «el servidor de mensajes no responde» y esta no se repite |
+
+**Límite conocido.** La salud reconoce el webhook por su ruta, no por el host: un webhook a `/api/chatwoot/webhook` de otro sitio, como otro entorno, también cuenta. Además, el DNS lo resuelve el servidor de Studio, no la red de Chatwoot, y si las dos resuelven distinto, la alerta puede no coincidir con lo que hace Chatwoot. La entrega real se comprueba en la punta a punta en prueba.
+
+**Portal → Chatwoot** (tarjeta de la Bandeja, solo admin, con la bandeja del portal configurada) muestra cuántos mensajes del portal llevan más de 15 minutos sin llegar a Chatwoot y cuántos están atascados. Un atascado detiene su conversación. «Reintentar los atascados» los devuelve a la cola: antes de mandarlos se revisa si ya habían llegado, y tienen 24 h nuevas. Arreglar antes la causa: si no, se vuelven a atascar.
+
 ## Apagar
 
 - **Flag `chatwoot_inbox` apagado:** desaparecen la Bandeja, el contador y los avisos, y Chatwoot sigue funcionando solo.

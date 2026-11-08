@@ -116,12 +116,16 @@ insert into public.tenants values
 \ir ../migrations/0503_chatwoot_bandeja.sql
 \ir ../migrations/0504_chatwoot_eventos.sql
 
--- Usuarios de Studio: U1 (con nombre) y U2 (sin perfil) vinculados en T1; U3 solo en T2.
+-- Usuarios de Studio: U1 (con nombre, con espacios en los bordes), U2 (sin perfil) y U4 (con el
+-- nombre y el apellido vacíos) vinculados en T1; U3 solo en T2.
 -- AD es admin de T1, CO comercial de T1, AX admin desactivado de T1 y A2 admin de T2.
 insert into auth.users values
-  (pg_temp.id('U1')), (pg_temp.id('U2')), (pg_temp.id('U3')),
+  (pg_temp.id('U1')), (pg_temp.id('U2')), (pg_temp.id('U3')), (pg_temp.id('U4')),
   (pg_temp.id('AD')), (pg_temp.id('CO')), (pg_temp.id('AX')), (pg_temp.id('A2'));
-insert into public.user_profiles values (pg_temp.id('U1'), 'Ana', 'Pérez');
+-- Como `resolveAgent` (`${first} ${last}`.trim()): se recortan los bordes y el espacio doble del medio queda.
+insert into public.user_profiles values
+  (pg_temp.id('U1'), ' Ana ', 'Pérez '),
+  (pg_temp.id('U4'), '', '   ');
 insert into public.user_tenants values
   (pg_temp.id('AD'), pg_temp.id('T1'), 'admin', null),
   (pg_temp.id('CO'), pg_temp.id('T1'), 'commercial', null),
@@ -130,6 +134,7 @@ insert into public.user_tenants values
 insert into public.chatwoot_agent_links (tenant_id, user_id, chatwoot_user_id) values
   (pg_temp.id('T1'), pg_temp.id('U1'), 7),
   (pg_temp.id('T1'), pg_temp.id('U2'), 8),
+  (pg_temp.id('T1'), pg_temp.id('U4'), 11),
   (pg_temp.id('T2'), pg_temp.id('U3'), 10);
 
 -- Fichas: A y B vivas en T1, D borrada en T1, Z en T2.
@@ -256,7 +261,8 @@ begin
   perform pg_temp.assert_true((v ->> 'sent_at')::timestamptz = now() - interval '10 minutes',
     'con la hora de Chatwoot');
   perform pg_temp.assert_true(v ->> 'author_user_id' = pg_temp.id('U1')::text, 'el autor es el usuario vinculado');
-  perform pg_temp.assert_true(v ->> 'author_name' = 'Ana Pérez', 'con su nombre, como la respuesta de hoy');
+  perform pg_temp.assert_true(v ->> 'author_name' = 'Ana  Pérez',
+    'con su nombre recortado en los bordes, como la respuesta de hoy');
   v := pg_temp.hilo('hA');
   perform pg_temp.assert_true((v ->> 'unread_count')::int = 0, 'el unread_count del hilo queda en 0');
   perform pg_temp.assert_true((v ->> 'last_message_at')::timestamptz = now() - interval '10 minutes',
@@ -300,6 +306,13 @@ begin
   perform pg_temp.responder('T1', 100, 5005, 'Firma ajena', now() - interval '5 minutes', 10);
   perform pg_temp.assert_true(pg_temp.mensaje('chatwoot:5005') ->> 'author_user_id' is null,
     'el vínculo de otro tenant no firma');
+
+  -- Un perfil con el nombre y el apellido vacíos no firma '' (el portal mostraría « · » sin autor).
+  perform pg_temp.responder('T1', 100, 5006, 'Nombre vacío', now() - interval '4 minutes', 11);
+  perform pg_temp.assert_true(pg_temp.mensaje('chatwoot:5006') ->> 'author_user_id' = pg_temp.id('U4')::text,
+    'el vinculado con el nombre vacío es el autor');
+  perform pg_temp.assert_true(pg_temp.mensaje('chatwoot:5006') ->> 'author_name' = 'Agente DTD',
+    'un vinculado con el nombre vacío firma «Agente DTD»');
 end;
 $vuelta$;
 

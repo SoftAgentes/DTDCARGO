@@ -175,6 +175,25 @@ describe("SDD-0586 · 0520 la vuelta de Chatwoot al portal y destrabar (PGlite)"
       "      v_nombre := v_nombre;",
       /TEST 0520: un vinculado sin perfil firma «Agente DTD»/,
     ],
+    // Hallazgo de la revisión independiente de la #434: sin estos casos, quitar btrim y nullif no caía.
+    [
+      "sin btrim: los bordes del nombre quedan",
+      "      select nullif(pg_catalog.btrim(pg_catalog.concat_ws(' ', p.first_name, p.last_name)), '') into v_nombre",
+      "      select nullif(pg_catalog.concat_ws(' ', p.first_name, p.last_name), '') into v_nombre",
+      /TEST 0520: con su nombre recortado en los bordes/,
+    ],
+    [
+      "sin nullif: un nombre vacío firma ''",
+      "      select nullif(pg_catalog.btrim(pg_catalog.concat_ws(' ', p.first_name, p.last_name)), '') into v_nombre",
+      "      select pg_catalog.btrim(pg_catalog.concat_ws(' ', p.first_name, p.last_name)) into v_nombre",
+      /TEST 0520: un vinculado con el nombre vacío firma «Agente DTD»/,
+    ],
+    [
+      "sin btrim ni nullif",
+      "      select nullif(pg_catalog.btrim(pg_catalog.concat_ws(' ', p.first_name, p.last_name)), '') into v_nombre",
+      "      select pg_catalog.concat_ws(' ', p.first_name, p.last_name) into v_nombre",
+      /TEST 0520: con su nombre recortado en los bordes/,
+    ],
     // ── Destrabar (§10.5.20) ──
     [
       "destraba cualquiera",

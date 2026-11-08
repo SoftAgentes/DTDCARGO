@@ -132,7 +132,7 @@ export function esRespuestaDelEquipo(m: MensajePortal, inboxPortalId: number): b
 }
 
 export const NOTA_ARCHIVADO =
-  "Este hilo está archivado en el Studio: el cliente no ve esta respuesta. Escríbele en su otra conversación del portal.";
+  "Este hilo está archivado en el Studio: el cliente no ve esta respuesta. Si tiene otra conversación del portal abierta, escríbele allí; si no, por WhatsApp o por correo.";
 export const NOTA_ADJUNTO =
   "Este archivo no le llegó al cliente: el chat del portal solo lleva texto. Mándalo por WhatsApp o por correo.";
 
