@@ -39,13 +39,13 @@
 
 | Comprobación | Estado |
 |---|---|
-| Pruebas nuevas y tocadas, en vitest con `--maxWorkers=1`: `send-reply-gate` (15), `set-status-gate` (9), `thread-solo-lectura` (10, con la page), la ruta `[id]` (5) y `portal-solo-lectura` (11) | PASÓ |
+| Pruebas nuevas y tocadas, en vitest con `--maxWorkers=1`: `send-reply-gate` (18), `set-status-gate` (9), `thread-solo-lectura` (10, con la page), la ruta `[id]` (5) y `portal-solo-lectura` (11) | PASÓ |
 | El módulo (`conversaciones/**`), `lib/studio/chatwoot/**` y `rbac-actions-guard` (463) | PASÓ: 43 archivos y 1228 casos; se saltan las 2 PoC de Chatwoot, que corren en Actions |
 | Rojo previo sobre `main` (las 5 fuentes de `main` y las pruebas finales) | 14 fallan y 28 pasan, de 42. Los que pasan son los casos de «como antes». `portal-solo-lectura.test.ts` no carga en `main` porque la pieza es nueva |
 | `tsc --noEmit` | PASÓ |
 | ESLint sobre lo tocado | PASÓ (0 errores, 0 avisos; `infra/` lo ignora la configuración) |
 | `/ui-check` del aviso | PASÓ sin bloquear. Un hallazgo medio, aplicado: el `title` del selector deshabilitado. Uno bajo, que queda: el `padding` 12/14 es el del compositor que reemplaza |
-| Los 32 mutantes | PENDIENTE: piden turno al Subdirector |
+| Los 32 mutantes (`mutantes-solo-lectura.cjs`, turno del Subdirector, de 10:50:39Z a 10:52:53Z sobre `fc2bf7017`) | PASÓ: 32 de 32 mueren, cada uno en la prueba que lo nombra. Las 5 bases (M0) salieron verdes: 11, 18, 9, 5 y 10. Los 6 archivos quedaron restaurados, y `git status` salió vacío al empezar y al terminar |
 | `pnpm verify` y el build local | NO EJECUTADO: por la regla de la máquina del encargo. Desde el 2026-11-07 el portón es el CI de GitHub con revisión independiente |
 
 ## Impacto documental
@@ -53,11 +53,19 @@
 - La spec (§10.5.16, «1c-1 · diseño»): la decisión del DG, la etiqueta (I) de la 0106, la lectura fail-closed de `setStatusAction`, el texto del aviso «no se sabe», el `title`, la prueba de la page y la allowlist exacta.
 - Sin cambios en runbooks. El de encendido (#438) ya pide la 1c-1 publicada antes de encender en producción.
 
+### Qué prueba cae con cada mutante
+
+- **La pieza** (M1-M8): `trabaPortal` y `rechazoPortal`, en `portal-solo-lectura.test.ts`. Los cubre el fail-open al leer, ignorar la configuración o su tenant, no tener el tenant de la sesión, no filtrar el flag por tenant o por clave, no mirar el canal, y que «no se sabe» deje pasar.
+- **sendReply** (M9-M10): «rechaza sin insertar ni avisar» y «fail-closed», en `send-reply-gate.test.ts`.
+- **setStatus** (M11-M14): «no cambia el estado de un hilo del portal», «fail-closed», «si no se puede leer el hilo, no escribe» y «el hilo se lee por su id», en `set-status-gate.test.ts`.
+- **La ruta** (M15-M18): «otro canal no lee nada con service_role» y «leído por el hilo y su tenant», en `route.test.ts`.
+- **La pantalla** (M19-M29): el aviso y el enlace, el selector deshabilitado y explicado, el cambio de estado cortado, «no se sabe», otro canal, sin la prop, y el enlace sin número o sin conversación. Todos en `thread-solo-lectura.test.tsx`.
+- **El cableado** (M30-M32): «la page calcula la traba del tenant y el hilo del portal la muestra». Lo cubren el cliente que no la pasa, la page que no la pasa y la page que mira otro tenant.
+
 ## Pendientes de esta tarea
 
-- La tanda de mutantes, con turno.
-- Traer `main` (`3c14715ad`, la #437). El cruce está medido: no hay conflicto en la spec.
 - Push, PR en borrador, y el SHA, el numstat y los rojos previos al Subdirector.
+- `main` (`3c14715ad`, la #437) ya está traído en `fc2bf7017`, sin conflictos.
 
 ## FUERA DE ALCANCE DETECTADO
 
