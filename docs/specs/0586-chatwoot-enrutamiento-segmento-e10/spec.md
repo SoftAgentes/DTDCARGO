@@ -647,7 +647,8 @@ Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de 
 - **En producción, además, el guion de la puerta 4:** antes de extraer se confirma, con conteos de solo lectura dentro del OK de esa puerta, que el flag `chatwoot_portal` nunca se encendió para el tenant y que `chatwoot_portal_salida` está vacía para el tenant.
 
 **Punto 5 · `vincular_carga` rechaza lo incompleto y las fichas borradas.**
-- En los contactos (`0523:312-319`): `contacto_id` nulo o fuera de 1 a 2147483647, y `source_id` nulo o vacío, dan 22023. Hoy el `update` los guardaba en nulo.
+- En los contactos (`0523:312-319`): `contacto_id` nulo o fuera de 1 a 2147483647, y `source_id` nulo o vacío, dan 22023.
+  - **Medido en el rojo previo:** uno solo de los dos nulo, o fuera de rango, ya lo frenaba el `check` de la tabla (`0519`, `(chatwoot_contact_id is null) = (chatwoot_source_id is null)` y los rangos), con 23514. **El hueco eran los dos nulos a la vez,** que ese `check` deja pasar y la 0523 guardaba. La 0524 los rechaza a todos antes del `update`, con su nombre.
 - **Una ficha borrada** entre la extracción y la vinculación da 55000 y la vinculación no escribe nada. Se mira en los contactos (`clients.deleted_at`) y en las conversaciones (`0523:330-332`, el hilo se une con su ficha).
   - Lo que ya está en Chatwoot de esa ficha queda **sin vínculo**. El guion de la puerta 4 ya dice que se corre seguido. Si pasa igual, se borra a mano en Chatwoot, como una supresión (`0f100e2b3`), y se repite desde la extracción, que ya no trae esa ficha.
 - **Un hilo archivado** (con `conversations.deleted_at`) **se sigue cargando**, por la decisión 6 b. Solo cuenta la ficha.
@@ -689,7 +690,7 @@ Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de 
 - y el C-8 de `controles-studio.sql`.
 
 **Allowlist de la PR de la 0524:**
-- `supabase/migrations/0524_*.sql`, `supabase/tests/0524_*.test.sql` y su envoltorio de PGlite;
+- `supabase/migrations/0524_chatwoot_portal_puerta4.sql`, `supabase/tests/0524_chatwoot_portal_puerta4.test.sql` y su envoltorio, `lib/studio/__tests__/chatwoot-portal-puerta4.migration.test.ts`;
 - `supabase/migrations-baseline.json`, para la espera;
 - lo de `0f100e2b3`: `extraer.sh`, `prueba-portal-historial.sh`, el README de `portal-historial`, esta spec y el handoff.
 
