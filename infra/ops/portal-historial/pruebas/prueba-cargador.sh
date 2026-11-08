@@ -145,10 +145,14 @@ comprobar() {
   rechazo G10b rechazo-archivo 'la bandeja no es «Conversaciones del portal»' "la bandeja «Archivo Kommo», API y sin webhook, como la 8 de producción"
   rechazo G11 rechazo-ruta 'VINCULOS tiene que ser /dev/shm/portal-historial/vinculos.ndjson o -' "VINCULOS en otra ruta"
   rechazo G12 rechazo-candado 'otra carga del portal en curso' "otra carga con el candado tomado"
+  rechazo G15 rechazo-guarda-mensaje 'una conversación ya cargada cambió en Chatwoot (mensajes ajenos 1, asignadas 0, snoozed 0)' "R4: no actualiza el estado de una conversación con un mensaje de un agente"
+  rechazo G16 rechazo-guarda-asignada 'una conversación ya cargada cambió en Chatwoot (mensajes ajenos 0, asignadas 1, snoozed 0)' "R4: no actualiza el estado de una conversación asignada"
+  rechazo G17 rechazo-guarda-snoozed 'una conversación ya cargada cambió en Chatwoot (mensajes ajenos 0, asignadas 0, snoozed 1)' "R4: no actualiza el estado de una conversación en snoozed"
   rechazo G14 rechazo-movido 'un mensaje ya existe en otra conversación' "un mensaje ya cargado que llega en otro hilo"
   F="$O/concurrencia.txt"
-  exigir G13 '[ "$(h "$F" concurrencia_conversaciones)" = 4 ] && [ "$(h "$F" concurrencia_mensajes)" = 9 ] && [ "$(h "$F" concurrencia_negadas)" = 1 ] && [ "$(h "$F" concurrencia_ok)" = 1 ] && [ "$(h "$F" concurrencia_esperando)" -ge 1 ] 2>/dev/null' \
-    "dos cargas a la vez: una se niega por el candado y queda una sola copia ($(h "$F" concurrencia_conversaciones) conversaciones, $(h "$F" concurrencia_mensajes) mensajes y notas; negadas $(h "$F" concurrencia_negadas))"
+  exigir G13 '[ "$(h "$F" concurrencia_conversaciones)" = 4 ] && [ "$(h "$F" concurrencia_mensajes)" = 9 ] && [ "$(h "$F" concurrencia_negadas)" = 1 ] && [ "$(h "$F" concurrencia_ok)" = 1 ] && [ "$(h "$F" concurrencia_esperando)" -ge 1 ] 2>/dev/null && [ "$(h "$F" concurrencia_cancelados)" = 0 ]' \
+    "dos cargas a la vez: una se niega por el candado y queda una sola copia ($(h "$F" concurrencia_conversaciones) conversaciones, $(h "$F" concurrencia_mensajes) mensajes y notas; negadas $(h "$F" concurrencia_negadas), canceladas $(h "$F" concurrencia_cancelados), esperó $(h "$F" concurrencia_esperado_s) s de $(h "$F" concurrencia_tope_s), wait_event $(h "$F" concurrencia_wait_event))"
+  [ "$MODO_LOG" = 1 ] && log "MEDIDA G13 — statement_timeout de las conexiones: $(h "$F" concurrencia_statement_timeout_ms) ms; tope de la espera: $(h "$F" concurrencia_tope_s) s"
   F="$O/carga-estado.txt"
   exigir R4 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_estado_actualizado)" = 1 ] && [ "$(h "$O/estado.txt" estado_h1)" = resolved ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ]' \
     "repetir con otro estado en un hilo ya cargado: se actualiza ese estado y nada más ($(h "$F" conversaciones_estado_actualizado))"
@@ -178,7 +182,7 @@ comprobar() {
 
   for e in 2 3; do
     F="$O/carga-$e.txt"
-    exigir "R$e" '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && cero "$(h "$F" notas_nuevas)" && cero "$(h "$F" contactos_nuevos)" && cero "$(h "$F" contact_inboxes_nuevos)" && [ "$(h "$F" conversaciones_existentes)" = 4 ] && [ "$(h "$F" mensajes_existentes)" = 8 ] && [ "$(h "$F" notas_existentes)" = 1 ] && [ "$(h "$F" contactos_reusados)" = 3 ] && avance "$(h "$F" secuencia)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && cmp -s "$O/vinculos-carga-1.ndjson" "$O/vinculos-carga-$e.ndjson"' \
+    exigir "R$e" '[ "$(h "$F" carga)" = ok ] && cero "$(h "$F" conversaciones_nuevas)" && cero "$(h "$F" mensajes_nuevos)" && cero "$(h "$F" notas_nuevas)" && cero "$(h "$F" contactos_nuevos)" && cero "$(h "$F" contact_inboxes_nuevos)" && [ "$(h "$F" conversaciones_existentes)" = 4 ] && [ "$(h "$F" mensajes_existentes)" = 8 ] && [ "$(h "$F" notas_existentes)" = 1 ] && [ "$(h "$F" contactos_reusados)" = 3 ] && avance "$(h "$F" secuencia)" 0 && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && cero "$(h "$F" conversaciones_estado_actualizado)" && cmp -s "$O/vinculos-carga-1.ndjson" "$O/vinculos-carga-$e.ndjson"' \
       "C-3: la carga $e no agrega filas, ni números, ni trabajos, y devuelve los mismos vínculos$([ "$e" = 3 ] && echo ', con VINCULOS=- en la salida estándar')"
   done
 
@@ -188,7 +192,8 @@ comprobar() {
     "C-4 y C-5: desde la línea base hasta la verificación, la cola es la misma por clase y evento"
   exigir V2 '[ "$(h "$F" conversaciones)" = 4 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ] && [ "$(h "$F" notas)" = 1:1 ] && [ "$(h "$F" contactos_portal)" = 3 ]' \
     "C-2: 4 conversaciones, 8 mensajes (5 entrantes y 3 salientes), 1 nota de actividad con su texto, 3 contactos"
-  exigir V3 '[ "$(h "$F" estados)" = open,resolved,pending,resolved ] && [ "$(h "$F" nota_en_su_hilo)" = si ]' \
+  # C-13 se mide justo después de la carga 1 (estados-1.txt): una repetición ya no puede corregir un estado mal cargado.
+  exigir V3 '[ "$(h "$O/estados-1.txt" estados)" = open,resolved,pending,resolved ] && [ "$(h "$O/estados-1.txt" nota_en_su_hilo)" = si ]' \
     "C-13: los estados ($(h "$F" estados)), y la nota en el hilo archivado"
   exigir V4 '[ "$(h "$F" orden_diferencias)" = 0 ] && [ "$(h "$F" fechas_de_studio)" = si ]' \
     "C-12: el orden de cada hilo es el del preparado ($(h "$F" orden_diferencias) diferencias), con las fechas de Studio"
@@ -307,6 +312,7 @@ cargar seco preparado.ndjson MODO=seco
 # La carga 1, con el log de SQL en debug (F2), en el proceso de la sonda.
 rr "$R/sonda-con-log.txt" FASE=con-log "DIR=$RC" -- "$SONDA" </dev/null
 mover carga-1
+rr "$R/estados-1.txt" FASE=estados "DIR=$RC" -- "$SONDA" </dev/null
 cargar carga-2 preparado.ndjson
 # Con VINCULOS=-, la salida de rails runner trae también Bundler y los logs de los inicializadores: los vínculos se
 # extraen por su prefijo (solo en pruebas; en el VPS va la ruta fija).
@@ -321,6 +327,10 @@ rr "$R/sonda-verificar.txt" FASE=verificar "DIR=$RC" -- "$SONDA" </dev/null
 # Después de verificar: los dos encolan o cambian cosas que la verificación no espera.
 cargar carga-estado preparado-estado.ndjson
 rr "$R/estado.txt" FASE=estado "DIR=$RC" -- "$SONDA" </dev/null
+for cual in mensaje asignada snoozed; do # las guardas de R4, de a una
+  rr "$R/sonda-guarda-$cual.txt" FASE=guardas "DIR=$RC" "CUAL=$cual" -- "$SONDA" </dev/null
+  cargar "rechazo-guarda-$cual" "preparado-guarda-$cual.ndjson"
+done
 rr "$R/sonda-concurrencia.txt" FASE=concurrencia "DIR=$RC" -- "$SONDA" </dev/null
 comprobar "$R"
 F="$R/sin-modo.txt"
@@ -443,11 +453,18 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M26 "VINCULOS en cualquier ruta" "G11" "G1 S1"     "unless [RUTA_VINCULOS, '-'].include?(@ruta_vinculos)" "unless true"
   mutante M27 "sin el candado" "G12 G13" "G1 S1"     "raise 'otra carga del portal en curso' unless" "nil unless true ||"
   mutante M28 "sin apagar el log de SQL" "F2" "C1 F1"     "    ActiveRecord::Base.logger = nil" "    nil"
+  log "MEDIDA M27 — sin el candado, dos cargas a la vez dejan $(h "$D/estado/m/M27/concurrencia.txt" concurrencia_conversaciones) conversaciones (con el candado, 4) y esperaron $(h "$D/estado/m/M27/concurrencia.txt" concurrencia_esperando_max)"
   mutante M29 "contact_inbox sin pubsub_token" "V12" "C1" \
     "          pubsub_token: SecureRandom.base58(24), created_at: ahora, updated_at: ahora }" \
     "          created_at: ahora, updated_at: ahora }"
   mutante M30 "vincula un mensaje que ya existe en otra conversación" "G14" "C1" \
     "    raise 'un mensaje ya existe en otra conversación' if otra" "    nil"
+  mutante M32 "R4 sin mirar los mensajes ajenos" "G15" "C1 R4" \
+    "if ajenos.positive? || asignadas.positive? || dormidas.positive?" "if asignadas.positive? || dormidas.positive?"
+  mutante M33 "R4 sin mirar si está asignada" "G16" "C1 R4" \
+    "if ajenos.positive? || asignadas.positive? || dormidas.positive?" "if ajenos.positive? || dormidas.positive?"
+  mutante M34 "R4 sin mirar snoozed" "G17" "C1 R4" \
+    "if ajenos.positive? || asignadas.positive? || dormidas.positive?" "if ajenos.positive? || asignadas.positive?"
   mutante M31 "no actualiza el estado de un hilo ya cargado" "R4" "C1 R2" \
     "      Conversation.where(id: ids).update_all(status: Conversation.statuses.fetch(estado)) unless seco?" "      nil"
 else

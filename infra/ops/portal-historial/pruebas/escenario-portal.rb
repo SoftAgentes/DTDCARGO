@@ -51,6 +51,7 @@ mover.call('rechazo-candado')
 paso.call('seco', 'preparado.ndjson', 'MODO' => 'seco')
 SondaPortal.con_log(dir: dir)
 mover.call('carga-1')
+File.open(File.join(dir, 'estados-1.txt'), 'w') { |f| SondaPortal.estados(out: f, dir: dir) }
 paso.call('carga-2')
 # La tercera, con VINCULOS=-: los vínculos salen con el prefijo `VINCULO ` en la salida estándar, y se extraen.
 paso.call('carga-3', 'preparado.ndjson', 'VINCULOS' => '-')
@@ -65,5 +66,10 @@ end
 # Después de verificar: los dos encolan o cambian cosas que la verificación no espera.
 paso.call('carga-estado', 'preparado-estado.ndjson')
 File.open(File.join(dir, 'estado.txt'), 'w') { |f| SondaPortal.estado(out: f, dir: dir) }
+# Las guardas de R4, de a una: cada cambio en Chatwoot y su carga, que tiene que abortar.
+%w[mensaje asignada snoozed].each do |cual|
+  File.open(File.join(dir, "sonda-guarda-#{cual}.txt"), 'w') { |f| SondaPortal.guardas(out: f, dir: dir, cual: cual) }
+  paso.call("rechazo-guarda-#{cual}", "preparado-guarda-#{cual}.ndjson")
+end
 SondaPortal.concurrencia(dir: dir)
 puts 'HECHO escenario=ok'
