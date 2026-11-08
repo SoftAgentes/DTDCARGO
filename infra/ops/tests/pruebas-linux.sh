@@ -31,6 +31,7 @@ PRUEBAS=(
   infra/ops/tests/prueba-ips-prueba.sh   # SDD-0540: lista de IP del entorno de prueba
   infra/ops/tests/prueba-prompt-trim.sh  # SDD-0505: trim() de lib/prompt.sh
   infra/ops/tests/prueba-restore-event-triggers.sh # SDD-0594: restore.sh con ensure_rls y los demás event triggers
+  infra/ops/tests/prueba-portal-historial.sh # SDD-0586 10.7: extraer.sh y vincular.sh de la carga del portal, con /dev/shm
 )
 if [ -n "${PRUEBAS_LINUX_LISTA:-}" ]; then
   PRUEBAS=()
