@@ -569,6 +569,7 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
   - **Contar los administradores y los miembros** de la cuenta 1 y de la bandeja «Conversaciones del portal», sin nombres ni correos.
   - **Verificar que ninguno sea del equipo de China.** Un administrador ve todas las bandejas, y ahí aplicaría la PIPL. Si alguno lo es, no se carga y se le avisa al DG.
   - El resultado va en la evidencia solo como conteos.
+  - **Confirmar que la cola nunca corrió en producción:** el flag `chatwoot_portal` nunca se encendió para el tenant y `chatwoot_portal_salida` está vacía para el tenant. Son conteos de solo lectura, dentro del OK de la puerta. Si no da cero, no se extrae y se le avisa al DG.
 - **Seguidas, sin pausa:** `extraer.sh`, el cargador y `vincular.sh` corren uno detrás del otro.
   - Así no se cuela en el medio una ficha borrada, cuyo hilo ya estaría en Chatwoot.
   - Si hay que parar, se corre `limpiar.sh` y se vuelve a empezar desde la extracción.
@@ -640,9 +641,10 @@ Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de 
 - **Por qué solo sobre los hilos que se cargan y no sobre todo el tenant (pregunta para el DG).** El DG pidió «ninguna fila `pendiente`, `enviando` ni `enviado`» en todo el tenant. Pero en la base de prueba la cola ya corrió: la punta a punta dejó filas `enviado` en hilos **ya vinculados**, con el corte que el DG fijó por SQL. Con la regla de todo el tenant, el ensayo en prueba se negaría siempre, salvo que se borren esas filas.
   - En producción el flag nunca se encendió, así que las dos reglas dan lo mismo.
   - Los hilos ya vinculados no se cargan (`carga_hilos`), y sus filas no son un riesgo.
-  - **Se propone la regla acotada.** Si el DG prefiere la de todo el tenant, el cambio es una línea, y el ensayo en prueba necesita limpiar la salida antes.
+  - **Decisión del DG (2026-11-08): la regla acotada.** Solo frenan las filas sobre mensajes de hilos **sin vínculo** de los que se van a cargar.
 - **`atascado` se suma** a los tres estados que pidió el DG. Es un `enviando` que se rindió, y tiene el mismo riesgo.
-- **Su prueba:** con una fila `enviando`, otra `atascado`, otra `pendiente` o una `enviado` en un hilo por cargar, `carga_lineas` se niega. Con un `enviado` en un hilo ya vinculado (el caso de prueba, hC/c1 del contrato), no se niega. Lleva un mutante por estado, y uno que lo vuelve de todo el tenant (cae en el caso hC).
+- **Su prueba:** con una sola fila `enviando`, `atascado`, `pendiente` o `enviado` en un hilo sin vínculo, `carga_lineas` se niega. Con filas en hilos ya vinculados (el caso de prueba, hC/c1 del contrato), no se niega. Lleva un mutante por estado, y uno que lo vuelve de todo el tenant, que cae en el caso hC.
+- **En producción, además, el guion de la puerta 4:** antes de extraer se confirma, con conteos de solo lectura dentro del OK de esa puerta, que el flag `chatwoot_portal` nunca se encendió para el tenant y que `chatwoot_portal_salida` está vacía para el tenant.
 
 **Punto 5 · `vincular_carga` rechaza lo incompleto y las fichas borradas.**
 - En los contactos (`0523:312-319`): `contacto_id` nulo o fuera de 1 a 2147483647, y `source_id` nulo o vacío, dan 22023. Hoy el `update` los guardaba en nulo.

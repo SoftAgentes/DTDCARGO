@@ -42,6 +42,7 @@ DB=dtd-cargo-staging-db-1 TENANT=<uuid> bash infra/ops/portal-historial/vincular
   - **Contar los administradores y los miembros** de la cuenta 1 y de la bandeja «Conversaciones del portal», sin nombres ni correos.
   - **Verificar que ninguno sea del equipo de China.** Un administrador ve todas las bandejas, y ahí aplicaría la PIPL. Si alguno lo es, no se carga y se le avisa al DG.
   - El resultado va en la evidencia solo como conteos.
+  - **Confirmar que la cola nunca corrió en producción:** el flag `chatwoot_portal` nunca se encendió para el tenant y `chatwoot_portal_salida` está vacía para el tenant. Son conteos de solo lectura, dentro del OK de la puerta. Si no da cero, no se extrae y se le avisa al DG.
 - **Seguidas, sin pausa:** `extraer.sh`, el cargador y `vincular.sh` corren uno detrás del otro.
   - Así no se cuela en el medio una ficha borrada, cuyo hilo ya estaría en Chatwoot.
   - Si hay que parar, se corre `limpiar.sh` y se vuelve a empezar desde la extracción.
