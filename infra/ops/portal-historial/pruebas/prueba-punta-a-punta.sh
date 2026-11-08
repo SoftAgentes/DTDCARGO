@@ -217,7 +217,8 @@ log "== E. un mensaje por la API"
 rr "$TRABAJO/api.txt" FASE=api "CUENTA=$CUENTA" "BANDEJA=$BANDEJA" "HILO=$HA" "AGENTE=$AGENTE" -- /tmp/cargador/sonda-pap.rb </dev/null
 F="$TRABAJO/api.txt"
 exigir E1 '[ "$(h "$F" api)" = ok ] && [ "$(h "$F" api_codigo)" = 200 ] && [ "$(h "$F" mensaje_api)" = 1 ] && [ "$(h "$F" colas_vacias)" = si ] && [ "$(h "$F" reintentos_nuevos)" = 0 ] && [ "$(h "$F" muertos_nuevos)" = 0 ]' \
-  "(e) un mensaje del agente por la API a una conversación cargada: $(h "$F" api_codigo), Sidekiq vacía las colas con $(h "$F" reintentos_nuevos) reintentos y $(h "$F" muertos_nuevos) muertos"
+  "(e) un mensaje del agente por la API a una conversación cargada: $(h "$F" api_codigo), Sidekiq vacía las colas con $(h "$F" reintentos_nuevos) reintentos y $(h "$F" muertos_nuevos) muertos; programó $(h "$F" programados_nuevos)"
+log "MEDIDA E1 — lo que Chatwoot programó por el mensaje de la API, por clase: $(h "$F" programados_nuevos)"
 
 # ── F. cargar.sh con fallos inyectados ───────────────────────────────────────
 log "== F. fallos inyectados"

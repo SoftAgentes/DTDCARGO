@@ -77,6 +77,9 @@ module SondaPap
     host = URI(ENV.fetch('FRONTEND_URL')).host
     http = Net::HTTP.new('rails', 3000)
     http.read_timeout = 30
+    # Lo programado, por clase y sin argumentos (pueden traer ids o textos), antes y después del mensaje.
+    por_clase = -> { Sidekiq::ScheduledSet.new.map(&:display_class).tally }
+    programados_antes = por_clase.call
     reintentos_antes = Sidekiq::RetrySet.new.size
     muertos_antes = Sidekiq::DeadSet.new.size
     req = Net::HTTP::Post.new("/api/v1/accounts/#{cuenta}/conversations/#{conv.display_id}/messages")
@@ -94,7 +97,9 @@ module SondaPap
     end
     sleep 3 # lo que estaba en proceso termina o pasa a reintentos
     hecho('colas_vacias', vacio ? 'si' : 'no')
-    hecho('programados', Sidekiq::ScheduledSet.new.map(&:display_class).tally.map { |c, n| "#{c}:#{n}" }.sort.join(',').presence || 'ninguno')
+    despues = por_clase.call
+    nuevos = despues.filter_map { |c, n| "#{c}:#{n - programados_antes.fetch(c, 0)}" if n > programados_antes.fetch(c, 0) }.sort
+    hecho('programados_nuevos', nuevos.empty? ? 'ninguno' : nuevos.join(','))
     hecho('reintentos_nuevos', Sidekiq::RetrySet.new.size - reintentos_antes)
     hecho('muertos_nuevos', Sidekiq::DeadSet.new.size - muertos_antes)
     hecho('mensaje_api', Message.where(conversation_id: conv.id, content: 'SINT respuesta por la API').count)
