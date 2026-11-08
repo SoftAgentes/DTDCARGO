@@ -386,22 +386,32 @@ module SondaPortal
     esperando = 0
     esperando_max = 0
     eventos = []
+    tablas = []
     vueltas = 0
     reloj = -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }
     desde = reloj.call
     primera_espera = nil
     # El tope corre desde la PRIMERA espera vista: el statement_timeout corta la sentencia que espera, no al hilo.
-    # Hasta ver una espera, el tope es 120 s: con Redis lleno (los escenarios de mutantes encolan sin Sidekiq), cada
-    # carga tarda en llegar al insert (trabajos_por_clase recorre toda la cola) y un tope desde el arranque soltaba la
-    # tabla antes de verla esperar (run 42509944324: M27 dejó 8 conversaciones con esperando 0).
+    # Hasta ver una espera, el tope es 120 s: en los escenarios de mutantes, cada carga tarda más en llegar al insert.
+    # (Que el tope desde el arranque fuera la causa del rojo de G13 resultó falso: era la foto de pg_stat_activity,
+    # ver abajo y el run 42515706789.)
     loop do
       ahora = reloj.call
       break if primera_espera.nil? && ahora - desde >= 120
       break if primera_espera && ahora - primera_espera >= tope_s
 
       vueltas += 1
-      # La espera, por pid y por pg_stat_activity: pg_locks por relación no la veía (run 42506898392).
-      filas = lista.empty? ? [] : tabla.select_rows("SELECT wait_event FROM pg_stat_activity WHERE pid IN (#{lista}) AND wait_event_type = 'Lock'")
+      # La espera, por pid y por pg_stat_activity. `tabla` está DENTRO de una transacción (el BEGIN del LOCK TABLE), y ahí
+      # pg_stat_activity devuelve la foto de su primera lectura hasta el final de la transacción: si el hilo empezaba a
+      # esperar después de la primera vuelta, no se lo veía nunca (run 42515706789: 24 escenarios con
+      # hasta_la_espera_s=nunca y QueryCanceled a los 14 s). pg_stat_clear_snapshot() descarta la foto en cada vuelta.
+      unless lista.empty?
+        tabla.execute('SELECT pg_stat_clear_snapshot()')
+        filas = tabla.select_rows("SELECT wait_event FROM pg_stat_activity WHERE pid IN (#{lista}) AND wait_event_type = 'Lock'")
+        # La tabla que esperan, para la evidencia (pg_locks es en vivo).
+        tablas |= tabla.select_values("SELECT DISTINCT relation::regclass::text FROM pg_locks WHERE pid IN (#{lista}) AND NOT granted AND relation IS NOT NULL")
+      end
+      filas ||= []
       esperando = filas.size
       eventos |= filas.flatten.compact
       esperando_max = [esperando_max, esperando].max
@@ -432,6 +442,7 @@ module SondaPortal
       f.puts "HECHO concurrencia_esperado_s=#{esperado_s}"
       f.puts "HECHO concurrencia_hasta_la_espera_s=#{hasta_espera_s}"
       f.puts "HECHO concurrencia_wait_event=#{eventos.empty? ? 'ninguno' : eventos.sort.join(',')}"
+      f.puts "HECHO concurrencia_tabla_esperada=#{tablas.empty? ? 'ninguna' : tablas.sort.join(',')}"
       f.puts "HECHO concurrencia_cancelados=#{salidas.count { |s| s.string.include?('QueryCanceled') }}"
       # Las HECHO de cada hilo (solo conteos y errores propios del cargador), para leer la causa de un rojo.
       salidas.each_with_index do |s, i|
