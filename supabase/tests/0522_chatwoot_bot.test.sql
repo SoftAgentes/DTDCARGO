@@ -264,6 +264,22 @@ update public.chatwoot_bot_bandejas set modo = 'contesta_solo' where inbox_id = 
 delete from public.chatwoot_bot_excepciones where tenant_id = pg_temp.id('T1') and revocada_at is null and 3 = any (inbox_ids);
 select pg_temp.assert_true((select modo from public.chatwoot_bot_bandejas where inbox_id = 3) = 'sugerir', 'borrar la excepción también baja a sugerir');
 
+-- B1 (revisión del DG): cualquier cambio que deje la bandeja sin excepción vigente la baja.
+insert into public.chatwoot_bot_excepciones (tenant_id, inbox_ids, aprobada_por) values (pg_temp.id('T1'), array[3, 7]::bigint[], pg_temp.id('uAdmin1'));
+update public.chatwoot_bot_bandejas set modo = 'contesta_solo' where inbox_id = 3;
+update public.chatwoot_bot_excepciones set inbox_ids = array[7]::bigint[]
+where tenant_id = pg_temp.id('T1') and revocada_at is null and 3 = any (inbox_ids);
+select pg_temp.assert_true((select modo from public.chatwoot_bot_bandejas where inbox_id = 3) = 'sugerir', 'sacar la bandeja de la excepción baja a sugerir');
+insert into public.chatwoot_bot_excepciones (tenant_id, inbox_ids, aprobada_por) values (pg_temp.id('T1'), array[3]::bigint[], pg_temp.id('uAdmin1'));
+update public.chatwoot_bot_bandejas set modo = 'contesta_solo' where inbox_id = 3;
+update public.chatwoot_bot_excepciones set tenant_id = pg_temp.id('T2')
+where tenant_id = pg_temp.id('T1') and revocada_at is null and inbox_ids = array[3]::bigint[];
+select pg_temp.assert_true((select modo from public.chatwoot_bot_bandejas where inbox_id = 3) = 'sugerir', 'mover la excepción a otro tenant baja a sugerir');
+insert into public.chatwoot_bot_bandejas (tenant_id, inbox_id, modo) values (pg_temp.id('T1'), 11, 'sugerir');
+insert into public.chatwoot_bot_bandejas_excluidas (tenant_id, inbox_id, motivo) values (pg_temp.id('T1'), 12, 'otra');
+update public.chatwoot_bot_bandejas_excluidas set inbox_id = 11 where tenant_id = pg_temp.id('T1') and inbox_id = 12;
+select pg_temp.assert_true((select modo from public.chatwoot_bot_bandejas where inbox_id = 11) = 'apagado', 'mover una exclusión a una bandeja encendida la apaga');
+
 -- ─── Tomar, cerrar y soltar ──────────────────────────────────────────────────
 select pg_temp.assert_true(pg_temp.encolar(13, 3, 200, interval '30 seconds') = 'nuevo', 'un turno ya listo');
 select pg_temp.assert_true(pg_temp.tomar('w1') = 1, 'se reparte solo lo listo');
@@ -336,6 +352,13 @@ select public.chatwoot_bot_anotar_llamada(pg_temp.id('T2'), null, 'doble', 'dobl
 reset role;
 insert into public.chatwoot_bot_llamadas (tenant_id, proveedor, modelo, tokens_entrada, tokens_salida, costo_usd, costo_estimado, resultado, duracion_ms, created_at)
 values (pg_temp.id('T1'), 'doble', 'doble-1', 1, 1, 7, false, 'ok', 1, now() - interval '40 days');
+-- Dos horas antes de que empiece el mes en Caracas: con el mes en UTC entraría (UTC empieza 4 h antes).
+insert into public.chatwoot_bot_llamadas (tenant_id, proveedor, modelo, tokens_entrada, tokens_salida, costo_usd, costo_estimado, resultado, duracion_ms, created_at)
+values (pg_temp.id('T1'), 'doble', 'doble-1', 1, 1, 100, false, 'ok', 1,
+  (date_trunc('month', now() at time zone 'America/Caracas') at time zone 'America/Caracas') - interval '2 hours');
+select pg_temp.assert_falla(
+  format('select public.chatwoot_bot_anotar_llamada(%L, %s, ''doble'', ''doble-1'', 1, 1, 1, false, ''ok'', 1)', pg_temp.id('T2'), (pg_temp.turno(12)).id),
+  '22023', 'anotar una llamada con el turno de otro tenant se rechaza');
 set local role service_role;
 select pg_temp.assert_true(public.chatwoot_bot_gasto_mes(pg_temp.id('T1')) = 0.75, 'gasto del mes: solo este mes y este tenant');
 select pg_temp.assert_true(public.chatwoot_bot_gasto_mes(pg_temp.id('T2')) = 9, 'gasto de otro tenant aparte');
@@ -346,12 +369,14 @@ select pg_temp.assert_true((select count(*) from public.chatwoot_bot_latidos) = 
 select pg_temp.assert_falla('select public.chatwoot_bot_latir(''con espacios'')', '22023', 'trabajador inválido');
 
 update public.chatwoot_bot_turnos set cerrado_at = now() - interval '91 days' where conversation_id = 13;
+update public.chatwoot_bot_turnos set cerrado_at = now() - interval '30 days' where conversation_id = 15;
 update public.chatwoot_bot_llamadas set created_at = now() - interval '91 days' where costo_usd = 7;
 set local role service_role;
 select pg_temp.assert_true(public.chatwoot_bot_purgar() = 2, 'purga un turno y una llamada vencidos');
 reset role;
 select pg_temp.assert_true(not exists (select 1 from public.chatwoot_bot_turnos where conversation_id = 13), 'el turno vencido se fue');
-select pg_temp.assert_true((select count(*) from public.chatwoot_bot_llamadas where tenant_id = pg_temp.id('T1')) = 2, 'las llamadas del mes quedan (la del turno purgado, sin turno)');
+select pg_temp.assert_true(exists (select 1 from public.chatwoot_bot_turnos where conversation_id = 15), 'un turno cerrado hace 30 días se queda');
+select pg_temp.assert_true((select count(*) from public.chatwoot_bot_llamadas where tenant_id = pg_temp.id('T1')) = 3, 'las llamadas de menos de 90 días quedan (la del turno purgado, sin turno)');
 
 -- ─── Permisos ────────────────────────────────────────────────────────────────
 select pg_temp.assert_true(
