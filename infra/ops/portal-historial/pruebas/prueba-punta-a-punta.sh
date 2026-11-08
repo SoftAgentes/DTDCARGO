@@ -296,7 +296,10 @@ if [ "$MUTANTES" = 1 ]; then
   mutante MC1 "sin el trap" "F1 F2" 'trap limpiar_contenedor EXIT' ': trap limpiar_contenedor EXIT'
   mutante MC2 "no borra /tmp/cargar-portal.rb del contenedor" "F1 F2 F3" \
     'docker exec "$DB_CW" rm -rf -- "$EN_CW_DIR" "$EN_CW_RB"' 'docker exec "$DB_CW" rm -rf -- "$EN_CW_DIR"'
-  mutante MC3 "los vínculos sin 0600" "F3" 'cerrar() { chmod 0600 "$@"; }' 'cerrar() { :; }'
+  # Quitar el chmod sería un mutante equivalente: el umask 077 del guion (y el del traslado) ya crea los vínculos con
+  # 0600, y el chmod es defensa en profundidad (run 42509666073: «sin chmod» sobrevivió). El mutante pone un permiso
+  # MALO, 0644, para probar que F3 mira el permiso de verdad.
+  mutante MC3 "los vínculos con 0644" "F3" 'cerrar() { chmod 0600 "$@"; }' 'cerrar() { chmod 0644 "$@"; }'
 fi
 
 if [ "$FALLAS" -gt 0 ] && [ "${CI:-}" = true ]; then
