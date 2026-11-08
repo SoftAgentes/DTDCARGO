@@ -752,7 +752,7 @@ Editados:
 - `lib/studio/chatwoot/webhook-procesar.ts` (`responderAlPortal` en `MANEJADORES`, su nombre y `ctx.salientePortal`) y `lib/studio/chatwoot/__tests__/aviso-unico-por-evento.test.ts` (la lista de nombres)
 - `app/api/chatwoot/webhook/route.ts` (le pasa al contexto lo saliente de la bandeja del portal) y su prueba
 - `lib/studio/chatwoot/agentes-salud.ts` y `lib/studio/chatwoot/agentes-ciclo.ts` (las cuatro alertas del webhook y su texto del push), `app/api/cron/chatwoot-agentes/route.ts` y su prueba
-- `app/studio/(app)/bandeja/page.tsx`, `_components/BandejaClient.tsx` y `actions.ts` (`destrabarPortal`)
+- `app/studio/(app)/bandeja/page.tsx`, `_components/BandejaClient.tsx` y `actions.ts` (`destrabarPortal`), con `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones, 462 → 463)
 - `lib/i18n/es-VE/bandeja.ts` y `lib/i18n/zh-CN/bandeja.ts` (la tarjeta y las alertas)
 - `docs/runbooks/chatwoot-bandeja.md` (la tarjeta «Portal → Chatwoot», las alertas del webhook y su límite conocido)
 - `.github/workflows/chatwoot-portal-poc.yml`, `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh` y `sonda-portal-poc.rb` (la PoC de lo saliente en el mismo job; el webhook del arnés pasa a terminar en `/api/chatwoot/webhook`)
