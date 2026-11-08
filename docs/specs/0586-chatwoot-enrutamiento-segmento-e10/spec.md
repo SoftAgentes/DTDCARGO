@@ -731,6 +731,48 @@ No se tocan en la 1a: `webhook-procesar.ts`, `app/api/chatwoot/webhook/route.ts`
 - **Un hecho nuevo:** Chatwoot rechaza entregar un webhook a un host sin IP pública («has no public ip addresses»), una protección contra SSRF. En producción no cambia nada, porque la URL del webhook de Studio (2.3) es pública. En el arnés, la PoC-5b mide la carga que Chatwoot arma para el webhook de cuenta (`webhook_data`) en lugar de la entrega.
 - **Queda NV** la entrega por red hasta Studio, hasta la punta a punta en prueba (puerta 4 de §10.5.9).
 
+**PR 1b · allowlist exacta** (medida sobre `main` en `caca3438b`, la #424 fusionada).
+
+Nuevos:
+
+- `supabase/migrations/0520_chatwoot_portal_vuelta.sql` y `supabase/tests/0520_chatwoot_portal_vuelta.test.sql`
+- `lib/studio/__tests__/chatwoot-portal-vuelta.migration.test.ts` (el contrato en PGlite, con su control rojo y sus mutantes)
+- `lib/studio/chatwoot/portal-manejadores.ts` (`responderAlPortal`; `entrarPortal` queda para la 1c) y `lib/studio/chatwoot/__tests__/portal-manejadores.test.ts`
+- `lib/studio/chatwoot/webhook-salud.ts` (la salud del webhook de cuenta) y `lib/studio/chatwoot/__tests__/webhook-salud.test.ts`
+- `app/studio/(app)/bandeja/_components/PortalChatwoot.tsx` (la tarjeta «Portal → Chatwoot»), con `app/studio/(app)/bandeja/__tests__/PortalChatwoot.test.tsx` y `app/studio/(app)/bandeja/__tests__/destrabar-portal.test.ts`
+- `lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts` e `infra/chatwoot/pruebas/portal/carga-saliente-poc.rb` (la PoC de lo saliente)
+- `infra/chatwoot/pruebas/portal/mutantes-vuelta.cjs` (los 40 mutantes del código de la 1b, con el mismo ejecutor que `mutantes-ida.cjs`)
+- `.agents/handoffs/0586-e10-5-1b-vuelta.md`
+
+Editados:
+
+- `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json` (la 0520 en espera; la declaración de la 0519 suma los sitios nuevos de `chatwoot_portal_rezagados` y `chatwoot_portal_hilos`)
+- `lib/studio/chatwoot/router-api.ts` (`leerMensaje`, `crearNotaPrivada` y `listarWebhooksCuenta`) y su prueba. «Asignar agente» pasa a la 1c, con `entrarPortal`
+- `lib/studio/chatwoot/portal.ts` (`resumenPortal`, los números de la tarjeta)
+- `lib/studio/chatwoot/webhook-procesar.ts` (`responderAlPortal` en `MANEJADORES`, su nombre y `ctx.salientePortal`) y `lib/studio/chatwoot/__tests__/aviso-unico-por-evento.test.ts` (la lista de nombres)
+- `app/api/chatwoot/webhook/route.ts` (le pasa al contexto lo saliente de la bandeja del portal) y su prueba
+- `lib/studio/chatwoot/agentes-salud.ts` y `lib/studio/chatwoot/agentes-ciclo.ts` (las cuatro alertas del webhook y su texto del push), `app/api/cron/chatwoot-agentes/route.ts` y su prueba
+- `app/studio/(app)/bandeja/page.tsx`, `_components/BandejaClient.tsx` y `actions.ts` (`destrabarPortal`)
+- `lib/i18n/es-VE/bandeja.ts` y `lib/i18n/zh-CN/bandeja.ts` (la tarjeta y las alertas)
+- `.github/workflows/chatwoot-portal-poc.yml`, `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh` y `sonda-portal-poc.rb` (la PoC de lo saliente en el mismo job; el webhook del arnés pasa a terminar en `/api/chatwoot/webhook`)
+- `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md` y `docs/specs/README.md` (índice generado)
+
+No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/crm/**`, `lib/studio/crm-*.ts`, `app/portal/**`, `app/privacidad/page.tsx`, `lib/studio/conversation-reply-push.ts` (se reusa tal cual), `lib/studio/chatwoot/webhook-events.ts` (`interpretarEvento` sigue sin texto), `docs/specs/0582-chatwoot-piloto/checklist.md`, más lo que §10.5.16 ya excluye.
+
+**PR 1b · decisiones del Worker** (I, para la revisión):
+
+- **La vuelta lee el texto de la carga del webhook solo en la bandeja del portal.** La ruta pasa `salientePortal` solo si la conversación es de esa bandeja y el mensaje es saliente; si no, `null`, y el manejador no relee nada. En el reproceso, que no guardó el texto, el manejador mira primero en `chatwoot_portal_hilos` si la conversación es del portal y solo entonces la relee en Chatwoot (`?before=<id + 1>`).
+- **Quién firma.** Solo un remitente que la carga marca como usuario (`sender.type = "user"`, o `sender_type = "User"` en la API de cuenta). Un bot o un contacto nunca firman, aunque su id coincida con el de un agente vinculado: los bots tienen otra secuencia de ids. La PoC mide que la carga real de un agente trae ese `type` (V-1).
+- **Lo que no va al portal:** lo privado, la actividad, las plantillas, el contenido que no es texto (`input_csat`, tarjetas, formularios) y el eco nuestro (`source_id` que empieza con `dtd:`, también el de las notas).
+- **Una ficha borrada** (`clients.deleted_at`) no recibe la respuesta ni el push, y no se deja nota: es un caso que la spec no nombra y que hoy no se da con el flag apagado. Si el Director General quiere una nota también ahí, es una línea más en `responderAlPortal`.
+- **La hora** es la de Chatwoot, nunca en el futuro (un reloj adelantado queda en «ahora»), y una respuesta tardía no retrocede el `last_message_at` del hilo. El `unread_count` queda en 0, como pide el punto 4 de §10.5.15, también cuando la respuesta llega tarde.
+- **El push primero, la nota después.** Si la nota falla, el evento queda «fallido» y se reintenta; la respuesta ya está escrita, así que el reintento da «duplicado» y no avisa otra vez. Cada nota se busca por su `source_id` (`dtd:nota:archivado:<id>` o `dtd:nota:adjunto:<id>`) antes de crearla. Si la búsqueda no puede decidir (`busqueda_incompleta`), no se crea y se reintenta.
+- **Destrabar es para `authenticated`, con el admin comprobado dentro de la RPC** (`is_tenant_admin`, 0386), y el tenant sale de la sesión. Así la acción del Studio no necesita `service_role` y la regla vive en la base. Repite el procedimiento manual de la 0519: a «pendiente» ahora, con `verificar` encendido y un plazo nuevo de 24 h. Conserva los intentos y el último código de error.
+- **La salud del webhook** lee la lista con el token del usuario de servicio de E1, que es administrador de la cuenta, pedido por la Platform API como `obtenerTokenAgente`. Reconoce el webhook de Studio por su ruta (`/api/chatwoot/webhook`), no por su host. Resuelve el host con DNS y lo compara con las redes que rechaza la gema `ssrf_filter` de Chatwoot. Si no puede leer la lista, avisa con `webhook_no_medido`, salvo que Chatwoot ya no responda, que es la misma causa. Corre en el cron diario `chatwoot-agentes`, que ya avisa a los admins por push, y al abrir la Bandeja.
+- **PoC-6** se mide en lo que Studio controla: la nota privada guarda su `source_id`, se encuentra al buscarla, su carga dice `private: true` y la vuelta no la lleva al portal, y la bandeja API no tiene `webhook_url`. Que Chatwoot no la mande por ningún otro canal queda NV: la bandeja del portal no tiene otro.
+
+**PR 1b · qué prueba de §10.5.15 cubre.** Del contrato SQL, el punto 4 (`chatwoot_portal_respuesta`: idempotente, con `unread_count` a 0, la hora que llega y el autor del vínculo), más el hilo archivado, la ficha borrada, otro canal, otro tenant, el flag apagado, la respuesta sin texto, que la ida no tome las respuestas y destrabar (solo el admin del tenant, solo los atascados, verificando y con plazo nuevo). Los puntos 6 a 9 y 11 son de la 1c y de la PR 2. De TypeScript, la línea de `responderAlPortal` entera: deja pasar solo lo saliente, no privado y no propio; la nota del adjunto, una sola vez; el push, una sola vez; el reproceso relee el mensaje; a un hilo archivado no le escribe ni le avisa y deja su nota una sola vez. También que la ruta del webhook nunca registre el texto, y la salud del webhook. **PoC en Actions** (`chatwoot-portal-poc.yml`, job `poc`, el mismo de la 1a): V-1 a V-4 y PoC-6 contra el Chatwoot 4.19.1 efímero. El contrato de la 0520 en Postgres 17 real lo corre `sql-tests.yml`.
+
 ### 10.5.17 Lo que queda fuera
 
 - «Tus casos» (reclamos), en el CRM o en Chatwoot (P1).
