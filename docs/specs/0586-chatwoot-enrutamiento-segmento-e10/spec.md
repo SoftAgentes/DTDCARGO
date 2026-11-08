@@ -167,10 +167,10 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 
 La aplicó el Director General, primero en prueba y después en producción. Lo que antes en esta spec dice que la 0519 está en espera vale para su fecha. Es la ida del chat del portal a Chatwoot (paso 10.5, PR 1a, #424, fusionada el 2026-11-08 a las 00:25:11Z en `caca3438b`).
 
-| Proyecto | COMMIT | `version` del ledger | `created_by` | Evidencia, en `/srv/ops/evidencias/` |
-|---|---|---|---|---|
-| Prueba (`dtd-cargo-staging`) | 2026-11-08T02:09:22Z | `20261108020922` | `servidor-propio:psql:prueba:SDD-0586` | `apply-0519-dtd-cargo-staging-20261108T020921Z` y `ensayo-0519-dtd-cargo-staging/{antes,despues}.out` |
-| Producción (`dtd-cargo`) | 2026-11-08T02:11:18Z | `20261108021118` | `servidor-propio:psql:SDD-0586` | `apply-0519-dtd-cargo-20261108T021117Z` y `ensayo-0519-dtd-cargo/{antes,despues}.out` |
+| Proyecto | COMMIT | `version` del ledger | `created_by` | Filas del ledger después | Evidencia, en `/srv/ops/evidencias/` |
+|---|---|---|---|---|---|
+| Prueba (`dtd-cargo-staging`) | 2026-11-08T02:09:22Z | `20261108020922` | `servidor-propio:psql:prueba:SDD-0586` | 505 | `apply-0519-dtd-cargo-staging-20261108T020921Z` y `ensayo-0519-dtd-cargo-staging/{antes,despues}.out` |
+| Producción (`dtd-cargo`) | 2026-11-08T02:11:18Z | `20261108021118` | `servidor-propio:psql:SDD-0586` | 517 | `apply-0519-dtd-cargo-20261108T021117Z` y `ensayo-0519-dtd-cargo/{antes,despues}.out` |
 
 - **OK literal de Sam,** hacia las 02:05Z del 2026-11-08: «Sí, prueba y producción». Respondía a «¿Autorizas aplicar la 0519, primero en prueba.dtdcargo.com y luego en producción?». Registrado a nombre del Director General; lo comunicó el Subdirector de Chatwoot.
 - **Identidad:** blob `02b9d160285f640bdc6b2be63481119584a76f54`, md5 `f613559d5ca34b2932995c8ff051e97e` y 30710 bytes, con los paquetes de `preparar.mjs` sobre `main` en `caca3438b`. El sello del candado lleva sha256 `a04fc76c9e51e6ce11da036319a206983db84fea0685f02cbba1fb835c6143a2` y `ledger` exacta del 2026-11-08. El md5 y los bytes se comprobaron contra el archivo al sellar.
@@ -180,6 +180,7 @@ La aplicó el Director General, primero en prueba y después en producción. Lo 
 - **Smoke sin sesión:** el cron `chatwoot-reintentos` respondió 200 en los dos, las rutas dieron 200 o 307 y el log quedó sin errores. Las imágenes que corren hoy **no** traen el código de la #424, porque la publicación está congelada: el smoke con sesión del runbook queda para cuando se publique.
 - **El flag `chatwoot_portal` sigue apagado,** y encenderlo sigue siendo un OK nominal de Sam, con las condiciones de §10.5.9, paso 6.
 - **La 0520 (PR 1b, #434) no tiene OK de Sam.** Se lo pregunta el Director General.
+- **Filas del ledger** (runbook de producción §6.3): las midió el Director General a las 02:27Z del 2026-11-08 con un `count` de `supabase_migrations.schema_migrations`. Después de la 0519 había 517 en producción y 505 en prueba. Cuando las midió ya estaba aplicada también la 0520 (02:25:37Z en prueba y 02:26:32Z en producción, con su propio cierre), y había 518 y 506.
 - **Lectura de esta nota:** los datos vienen de la evidencia del Director General, comunicada por el Subdirector. Este cierre no consultó tablas de producción.
 - **Espera:** salió de `pendingBelowCutoff` y de las declaraciones de símbolos (`retirar-espera.mjs`), y quedó sellada. La cabecera «NO APLICADA A PRODUCCIÓN» de `0519_chatwoot_portal.sql` no se corrige: cambiar el archivo cambiaría el blob y el md5 que ya están en el ledger. La prueba que afirmaba la espera (`lib/studio/__tests__/chatwoot-portal.migration.test.ts`) ahora afirma que salió, con el md5 del sello. Los comentarios condicionales del código («sin la migración…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
 

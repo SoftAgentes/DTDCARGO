@@ -58,8 +58,8 @@ Antes de seguir: el blob, sus bytes y su md5 tienen que ser los de §1, y el md5
 
 **Las mediciones, probadas en PGlite** el 2026-11-08, con el turno del Subdirector y un worker. Se corrieron sobre el fixture del contrato de la 0519, con un ledger falso de la misma forma (`version`, `statements`, `name`, `created_by`):
 
-- **Antes:** A1 a A5 dieron lo esperado (0, 0, 23 sin portal y con inbox, 0, 2 tenants).
-- **Después**, con la 0519 aplicada y su fila con el archivo exacto: D1 a D7 dieron lo esperado (md5 `f613559d…` y 30710 bytes; 24 flags con el portal apagado; 2 filas de 2 tenants, ninguna encendida; 4 tablas con RLS y solo `service_role`; 4 políticas de `service_role`; 4 RPC definer con `search_path` vacío; la cola en ceros).
+- **Antes:** A1 a A5 dieron lo esperado (0, 0, 23 sin portal y con inbox, 0 y 2 tenants). Los 2 tenants son los del fixture de PGlite; en prueba y en producción, el 2026-11-08, A5 dio 1.
+- **Después**, con la 0519 aplicada y su fila con el archivo exacto: D1 a D7 dieron lo esperado (md5 `f613559d…` y 30710 bytes; 24 flags con el portal apagado; 2 filas de los 2 tenants del fixture, ninguna encendida (en prueba y en producción, 1 de 1); 4 tablas con RLS y solo `service_role`; 4 políticas de `service_role`; 4 RPC definer con `search_path` vacío; la cola en ceros).
 - **Control 1:** el «después» sin la 0519 falla (`relation "public.chatwoot_portal_estado" does not exist`).
 - **Control 2:** el «antes» con la 0519 aplicada ya no da lo esperado (4 tablas, 24 flags y 2 filas).
 

@@ -335,7 +335,10 @@ describe("SDD-0586 · 0519 la ida del portal a Chatwoot (PGlite)", () => {
 
   it("aplicada en producción el 2026-11-08: ya no es una espera y quedó sellada con el md5 del ledger", () => {
     expect(BASELINE.pendingBelowCutoff[NOMBRE]).toBeUndefined();
-    expect(BASELINE.cutoff).toBe(238);
+    // El corte no se fija aquí (era un 238 copiado, frágil; lo cuida migrations-baseline.json, que no se sube por
+    // reflejo). Lo que importa es que la 0519 quede por encima de él: así no se da por reconciliada, el control del
+    // ledger la vigila por su nombre exacto y el candado de abajo guarda su identidad.
+    expect(Number(NOMBRE.slice(0, 4))).toBeGreaterThan(BASELINE.cutoff);
     expect(DECLARATIONS.degradations.some((d) => d.migration === NOMBRE)).toBe(false);
     expect(LOCK.selladas[NOMBRE]).toMatchObject({
       md5: "f613559d5ca34b2932995c8ff051e97e",
