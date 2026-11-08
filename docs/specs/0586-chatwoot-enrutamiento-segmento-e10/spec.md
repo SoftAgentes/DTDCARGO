@@ -705,6 +705,15 @@ Editados:
 
 **Cruce con la 6.6:** comparten archivos y van en serie, primero la 10.5 (§10.5.19).
 
+**PR de textos (T1 a T4, 2026-11-08).** Publica sola los cuatro textos de §10.5.12, copiados palabra por palabra. Es la condición para encender `chatwoot_portal` (E10-D42), y no lleva nada del rediseño. Editados:
+
+- `app/portal/(app)/soporte/page.tsx` (T1, una línea) y su prueba nueva, `app/__tests__/soporte-plazo-respuesta.test.ts`;
+- `app/privacidad/page.tsx` (T2, T3 y T4) y `app/__tests__/privacidad-chat.test.ts`;
+- `app/__tests__/faq-seguimiento-coherente.test.tsx` y `app/__tests__/privacidad-mensajeria-interna.test.tsx` (solo la fecha, que las dos leen en la página renderizada);
+- esta spec (esta lista) y `.agents/handoffs/0586-textos-t1-t4.md`.
+
+La fecha de T4 es el día en que se publique: el Director General la confirma antes de fusionar.
+
 **Partición de la PR 1 (Worker de la ida, 2026-11-07).** La PR 1 se parte en dos, en serie, para que la primera lleve solo la ida, de Studio a Chatwoot (E10-D34, E10-D35 y el aviso de E10-D40). Medido sobre `main` en `7e75f7708`.
 
 - **PR 1a · la ida (esta).** Migración `0519_chatwoot_portal.sql` (número asignado por el Director General el 2026-11-07, comunicado por el Subdirector de Chatwoot; reserva local `refs/dtd/reservations/migraciones/0519`) con las cuatro tablas de §10.5.6, `chatwoot_portal_tomar`, `chatwoot_portal_marcar`, `chatwoot_portal_vincular`, `chatwoot_portal_rezagados` (el aviso, solo números) y `feature_flag_catalog()` con `chatwoot_portal` apagado. El envío en el servidor de Studio, el cron y el pedido sin bloquear del portal. Con el flag apagado, o sin `CHATWOOT_INBOX_PORTAL_ID`, el token o la cuenta, no hace nada. **No toca ninguno de los archivos que comparte con la 6.6** (`TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts` y `crm-ficha.ts`); solo cruza en `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
