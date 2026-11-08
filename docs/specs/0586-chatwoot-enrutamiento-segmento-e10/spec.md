@@ -500,16 +500,29 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
   - `chatwoot_portal_reservar_contactos(p_tenant_id)`: la reserva del riesgo 1. La firma cambia respecto de lo de arriba: toma los clientes de los hilos por cargar ella misma, y no los recibe.
   - `chatwoot_portal_carga_lineas(p_tenant_id, p_cuenta, p_bandeja)`: las líneas de `preparado.ndjson`. Solo corre en una transacción de solo lectura, exige la reserva y pone el corte 5 minutos antes.
   - `chatwoot_portal_vincular_carga(p_tenant_id, p_preparado, p_vinculos)`: el paso 4. Reemplaza la firma `(p_tenant, p_corte, p_filas)` de §10.5.6, porque compara las dos cabeceras. Nunca pisa un mensaje `enviado` ni mueve un corte que ya existe. Hace todo o nada.
-  - Los hilos de una **ficha borrada** no se cargan (I). Una ficha borrada no se copia a otro sistema, igual que en la vuelta de la 0520 (`ficha_borrada`).
+  - **Un corte que ya existe y es anterior a la foto** (pedido del Subdirector del 2026-11-08). En la base de prueba, el DG fijó un corte por SQL, como `service_role`, para la punta a punta. `chatwoot_portal_vincular_carga` no lo mueve, y queda anterior a la foto. **Eso es correcto:**
+    - los hilos de esa punta a punta ya tienen vínculo, así que la extracción no los trae y la cola sigue con ellos;
+    - lo que se carga queda `cargado`, y la cola lo salta (`0519:228`) aunque esté después de ese corte;
+    - lo que llegó después de la foto sale una sola vez por la cola.
+    - **El contrato lo prueba:** con el corte en 2026-01-01, la cola manda solo el mensaje posterior a la foto. Lo cargado (también el del margen) y lo ya `enviado` no salen.
+  - **Los archivos que quedan en `/dev/shm`.** Si la vinculación falla, `vincular.sh` deja `preparado.ndjson` y `vinculos.ndjson` para poder reintentar. Pero un tmpfs guarda los datos de clientes hasta que alguien los borre o se reinicie el VPS.
+    - **El guion de la puerta 4** dice que se corre `limpiar.sh` si no se reintenta.
+    - **El cierre de la carga** comprueba que `/dev/shm/portal-historial` ya no existe (`test ! -e`) y lo deja en la evidencia.
+  - **Los hilos de una ficha borrada no se cargan. Es una decisión aparte, para que el DG se la muestre a Sam** (pedido del Subdirector del 2026-11-08).
+    - **El «Sí, todos» de Sam (decisión 6 b, 2026-11-07 06:55Z) no la cubre.** Era sobre los hilos **archivados**: los que archiva la fusión de fichas, que siguen colgando de una ficha viva. Esos sí se cargan, como `resolved` y con su nota.
+    - **Una ficha borrada es otra cosa:** la ficha tiene `deleted_at`, por una baja o una supresión, y su hilo puede no estar archivado.
+    - **El motivo:** si una ficha se suprimió, sus datos no se mueven a un sistema nuevo (art. 28 CRBV, ver la revisión de datos personales). Es la misma regla de la vuelta de la 0520, que no escribe en el hilo de una ficha borrada (`ficha_borrada`).
+    - **En código:** `chatwoot_portal_carga_hilos` exige `clients.deleted_at is null`, y el contrato lo prueba con la ficha D y su hilo. Si Sam decide otra cosa, el cambio es esa condición.
 - **Los scripts** (`infra/ops/portal-historial/`, ver su README): `reservar.sql`, `extraer.sql`, `extraer.sh` (todo en `/dev/shm` con 0700, borra lo parcial si falla), `vincular.sh` (borra `/dev/shm` si sale bien), `limpiar.sh` y `controles-studio.sql` (C-6 a C-8, de solo lectura, los corre E5).
 - **Pruebas:**
   - el contrato `supabase/tests/0523_chatwoot_portal_carga.test.sql` y su envoltorio de PGlite, con el control rojo, los mutantes, la reaplicación, el preflight y la espera;
   - lo que prueba el contrato: la reserva (estable y sin fichas borradas), las líneas (el corte con margen, la minimización, el orden, los estados y la nota del archivado), la vinculación (los rechazos, que es idempotente, que no pisa un `enviado` ni mueve el corte, y la C-6) y la cola después (lo `cargado` no sale; lo que cayó en el margen sin estar en la foto sale una vez).
-  - Los scripts de shell no tienen prueba automática: los cubre el ensayo de E5.
+  - **los scripts de shell** tienen su prueba, `infra/ops/tests/prueba-portal-historial.sh`, con un `docker` falso que hace de psql (22 comprobaciones). Comprueba que `/dev/shm` queda con 0700 y el preparado con 0600, que lo parcial se borra si la extracción falla, y que el directorio se borra si la vinculación sale bien y queda si falla. Comprueba también los rechazos: fuera de `/dev/shm` y con barra invertida. Pide `/dev/shm`, así que la corre «Calidad continua» con `pruebas-linux.sh`.
 - **Allowlist 10.7 (este lado):**
   - `supabase/migrations/0523_chatwoot_portal_carga.sql`, su contrato y su envoltorio `lib/studio/__tests__/chatwoot-portal-carga.migration.test.ts`;
   - `supabase/migrations-baseline.json` (la espera; sin declaración de símbolos, porque no hay código de `app/` ni de `lib/` que llame a la 0523);
-  - `infra/ops/portal-historial/` (los siete archivos de arriba y el README);
+  - `infra/ops/portal-historial/` (los seis scripts de arriba y el README);
+  - `infra/ops/tests/prueba-portal-historial.sh` y su línea en `infra/ops/tests/pruebas-linux.sh`;
   - la spec y el handoff (`.agents/handoffs/0586-e10-7-p4-carga.md`).
   - Sin acciones exportadas ni código de la app.
 
