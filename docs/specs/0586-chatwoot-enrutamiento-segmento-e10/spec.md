@@ -798,7 +798,7 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
 
 **PR 1b · qué prueba de §10.5.15 cubre.** Del contrato SQL, el punto 4 (`chatwoot_portal_respuesta`: idempotente, con `unread_count` a 0, la hora que llega y el autor del vínculo), más el hilo archivado, la ficha borrada, otro canal, otro tenant, el flag apagado, la respuesta sin texto, que la ida no tome las respuestas y destrabar (solo el admin del tenant, solo los atascados, verificando y con plazo nuevo). Los puntos 6 a 9 y 11 son de la 1c y de la PR 2. De TypeScript, la línea de `responderAlPortal` entera: deja pasar solo lo saliente, no privado y no propio; la nota del adjunto, una sola vez; el push, una sola vez; el reproceso relee el mensaje; a un hilo archivado no le escribe ni le avisa y deja su nota una sola vez. También que la ruta del webhook nunca registre el texto, y la salud del webhook. **PoC en Actions** (`chatwoot-portal-poc.yml`, job `poc`, el mismo de la 1a): V-1 a V-4 y PoC-6 contra el Chatwoot 4.19.1 efímero. El contrato de la 0520 en Postgres 17 real lo corre `sql-tests.yml`.
 
-**PR 1c · partición propuesta** (Worker de la 10.5, 2026-11-08; **decide el DG**). Pedido del DG, comunicado por el Subdirector: en producción no se enciende `chatwoot_portal` hasta tener «Studio en solo lectura para los hilos del portal», y no se le pide a Sam que acepte ese riesgo. Por eso la 1c se parte en cuatro, en este orden, cada una en su rama y su PR desde `main`:
+**PR 1c · partición** (propuesta del Worker de la 10.5, 2026-11-08). **Decisión del DG del 2026-11-08, ~10:22Z** (comunicada por el Subdirector): sí a todo. Son cuatro piezas, cada una en su rama y su PR desde `main`, sin juntarlas, y la 1c-1 va primero. `assignAction` y `markCaseAction` no se traban. El riesgo residual de PostgREST queda aceptado para la 1c-1, y el trigger va en la migración de la 1c-2. Pedido del DG, comunicado por el Subdirector: en producción no se enciende `chatwoot_portal` hasta tener «Studio en solo lectura para los hilos del portal», y no se le pide a Sam que acepte ese riesgo. Por eso la 1c se parte en cuatro, en este orden, cada una en su rama y su PR desde `main`:
 
 | Pieza | Qué lleva | Migración | Cruza con la 6.6 | Por qué en este lugar |
 |---|---|---|---|---|
@@ -820,14 +820,15 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
   - `listFeatureFlags` no sirve aquí, porque ante un error cae al valor por defecto, apagado, y dejaría pasar.
 - **La traba en el servidor:**
   - `sendReplyAction` ya lee el `channel` del hilo. Después de `moduleEditDenial`, si la traba está activa, devuelve «Este hilo del portal se responde desde la Bandeja de Chatwoot.» y **no inserta ni manda el push**.
-  - `setStatusAction` hoy no lee el hilo. Pasa a leer su `channel` con la sesión y rechaza igual.
-  - **`assignAction` y `markCaseAction` no se traban** (propuesta, decide el DG): son metadatos internos que el cliente no ve, y que Chatwoot no pisa hasta la 1c-2 y la 1c-3.
+  - `setStatusAction` hoy no lee el hilo. Pasa a leer su `channel` con la sesión y rechaza igual. Si esa lectura falla, no escribe: no se sabe si el hilo es del portal (fail-closed). `sendReplyAction` ya cortaba sin hilo.
+  - **`assignAction` y `markCaseAction` no se traban** (decisión del DG del 2026-11-08, ~10:22Z): son metadatos internos que el cliente no ve, y que Chatwoot no pisa hasta la 1c-2 y la 1c-3.
 - **La pantalla:**
   - La page calcula una vez si la traba está activa en el tenant.
   - El detalle del hilo (`/api/studio/conversaciones/[id]`) suma el número de la conversación en Chatwoot. Lo lee de `chatwoot_portal_hilos`, que es solo de `service_role`, en el servidor y después de comprobar con la sesión que el hilo es del tenant.
   - En un hilo del portal con la traba activa:
-    - la caja de respuesta y las respuestas rápidas se cambian por un aviso interno: «Este hilo del portal se responde desde la Bandeja de Chatwoot.», con «Responder en la Bandeja →» (`/studio/bandeja?c=<n>`), o sin enlace si todavía no hay conversación;
-    - el selector de estado queda deshabilitado, con su explicación en `aria-describedby`;
+    - la caja de respuesta y las respuestas rápidas se cambian por un aviso interno: «Este hilo del portal se responde desde la Bandeja de Chatwoot. El estado también se cambia allá.», con «Responder en la Bandeja →» (`/studio/bandeja?c=<n>`), o sin enlace si todavía no hay conversación;
+    - si no se pudo comprobar la traba (fail-closed), el aviso dice «No se pudo comprobar si este hilo del portal se responde desde la Bandeja de Chatwoot. Recarga la página para volver a intentar.»;
+    - el selector de estado queda deshabilitado, con su explicación en `aria-describedby` y en `title`;
     - asignar y «caso» siguen como hoy.
   - Con la traba apagada, todo igual.
   - Es texto interno del Studio, sin aprobación de Sam. Pasa por `/ui-check`.
@@ -837,7 +838,7 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
     - portal con el flag apagado o sin configuración: como hoy;
     - otro canal con la traba activa: como hoy;
     - error al leer el flag: rechaza solo el portal.
-  - Una prueba nueva para `setStatusAction`, una para la pieza del flag y una de la pantalla: el aviso, el enlace, el selector deshabilitado y lo que sigue igual.
+  - Una prueba nueva para `setStatusAction`, una para la pieza del flag y una de la pantalla: el aviso, el enlace, el selector deshabilitado y lo que sigue igual. La de la pantalla monta también la page, para probar que la traba llega de la page al hilo.
   - Mutantes del código, con el ejecutor de la vuelta:
     - quitar la traba de cada acción;
     - no mirar el canal;
@@ -845,13 +846,13 @@ No se tocan en la 1b: `app/studio/(app)/conversaciones/**`, `app/studio/(app)/cr
     - ignorar la configuración;
     - mostrar la caja con la traba activa.
 - **Allowlist 1c-1:**
-  - `app/studio/(app)/conversaciones/actions.ts`, `page.tsx` y `_components/ConversationThread.tsx`;
-  - `app/studio/(app)/conversaciones/__tests__/send-reply-gate.test.ts`, con una prueba nueva para el estado y otra para la pantalla;
-  - `app/api/studio/conversaciones/[id]/route.ts` y su prueba;
+  - `app/studio/(app)/conversaciones/actions.ts`, `page.tsx`, `_components/ConversacionesClient.tsx` (le pasa la traba al hilo) y `_components/ConversationThread.tsx`;
+  - `app/studio/(app)/conversaciones/__tests__/send-reply-gate.test.ts`, con una prueba nueva para el estado (`set-status-gate.test.ts`) y otra para la pantalla (`thread-solo-lectura.test.tsx`);
+  - `app/api/studio/conversaciones/[id]/route.ts` y su prueba (`[id]/__tests__/route.test.ts`);
   - `lib/studio/chatwoot/portal-solo-lectura.ts` y su prueba;
-  - el ejecutor de mutantes, la spec y su handoff.
+  - el ejecutor de mutantes (`infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs`), la spec y su handoff (`.agents/handoffs/0586-e10-5-1c-solo-lectura.md`).
   - Sin migración y sin acciones exportadas nuevas: el inventario del RBAC no cambia.
-- **Riesgo residual (I).** Las policies de la 0106 (`"conversations by tenant"` y `"conversation_messages by tenant"`, FOR ALL por tenant, sin rol) dejan a `authenticated` escribir el hilo y sus mensajes directo por PostgREST, sin pasar por la acción. Es la postura de hoy para las cinco acciones de Conversaciones (lo anota la SDD-0497). Con la 1c-1, la pantalla y las acciones del Studio quedan trabadas, pero un cliente HTTP con la sesión de un usuario del equipo todavía podría insertar un saliente en un hilo del portal. Cerrarlo en la base es un trigger que rechace un `out` de `authenticated` en un hilo del portal con el flag encendido, y pide migración. Propuesta: sumarlo a la de la 1c-2.
+- **Riesgo residual.** (I) Las policies de la 0106 (`"conversations by tenant"` y `"conversation_messages by tenant"`, FOR ALL por tenant, sin rol) dejan a `authenticated` escribir el hilo y sus mensajes directo por PostgREST, sin pasar por la acción. Es la postura de hoy para las cinco acciones de Conversaciones (lo anota la SDD-0497). Con la 1c-1, la pantalla y las acciones del Studio quedan trabadas, pero un cliente HTTP con la sesión de un usuario del equipo todavía podría insertar un saliente en un hilo del portal. Cerrarlo en la base es un trigger que rechace un `out` de `authenticated` en un hilo del portal con el flag encendido, y pide migración. **Decisión del DG del 2026-11-08, ~10:22Z:** el riesgo queda aceptado para la 1c-1, y el trigger va en la migración de la 1c-2.
 
 ### 10.5.17 Lo que queda fuera
 
