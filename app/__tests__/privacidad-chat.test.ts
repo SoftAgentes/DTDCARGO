@@ -68,7 +68,23 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
     );
   });
 
-  it("la fecha de la política se movió con el cambio", () => {
-    expect(texto).toContain('const UPDATED = "6 de noviembre de 2026";');
+  // SDD-0586 §10.5.12: Sam aprobó T2 y T3 palabra por palabra el 2026-11-07 (04:48Z), por el Director
+  // General: «Apruebo los cuatro». Si esta prueba falla porque cambió una palabra, se le vuelve a
+  // preguntar; no se ajusta la prueba. Fijan también dónde va cada uno: una frase de más sale roja.
+  it("T2 cierra la fila «Portal del Cliente» con lo que Sam aprobó", () => {
+    expect(texto).toContain(
+      'pagos reportados y comunicaciones con nuestro equipo. Todos los mensajes del chat de Soporte, con tu nombre, quedan también en nuestro propio sistema de atención, alojado en nuestro servidor, donde nuestro equipo los lee y te responde.", ],',
+    );
+  });
+
+  it("T3 deja la finalidad «Gestionar tu cuenta» como Sam aprobó, y ya no termina en «Portal del Cliente.»", () => {
+    expect(texto).toContain(
+      "<li> <strong>Gestionar tu cuenta</strong> en el Portal del Cliente y atender lo que nos escribes por su chat de Soporte: saber si ya eres cliente para que te atienda el equipo que corresponde y darle seguimiento a tu consulta. </li>",
+    );
+    expect(texto).not.toContain("<strong>Gestionar tu cuenta</strong> en el Portal del Cliente. </li>");
+  });
+
+  it("la fecha de la política se movió con el cambio (T4)", () => {
+    expect(texto).toContain('const UPDATED = "8 de noviembre de 2026";');
   });
 });

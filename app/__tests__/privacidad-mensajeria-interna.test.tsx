@@ -63,6 +63,7 @@ describe("/privacidad · mensajería interna del equipo (SDD-0606, SDD-0608)", (
   it("no nombra a la herramienta y la fecha se movió", async () => {
     const texto = plano((await pagina()).textContent);
     expect(texto).not.toMatch(/discord/i);
-    expect(texto).toContain("Última actualización: 6 de noviembre de 2026");
+    // SDD-0586 (T4): la fecha se movió otra vez el 2026-11-08, con T2 y T3 del chat de Soporte.
+    expect(texto).toContain("Última actualización: 8 de noviembre de 2026");
   });
 });
