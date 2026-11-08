@@ -5,26 +5,36 @@
 # dentro del contenedor de Chatwoot. Es una copia adaptada de infra/ops/kommo-historial/cargar-archivo-kommo.rb
 # (SDD-0590 5.5): no depende de esa carpeta, que retira la 0619.
 #
-#   MODO=seco|cargar CUENTA=<id> BANDEJA=<id> AGENTE_SERVICIO=<user id> CARGA=- VINCULOS=<ruta>|- \
-#     bundle exec rails runner cargar-portal.rb < preparado.ndjson
+#   MODO=seco|cargar CUENTA=<id> BANDEJA=<CHATWOOT_INBOX_PORTAL_ID> AGENTE_SERVICIO=<user id> CARGA=- \
+#     VINCULOS=/dev/shm/portal-historial/vinculos.ndjson bundle exec rails runner cargar-portal.rb < preparado.ndjson
 #
 # Entrada: `preparado.ndjson`, el formato de E10 (SDD-0586 §10.5.10, «Los dos archivos»): cabecera, contacto,
-# conversacion y mensaje. Salida: `vinculos.ndjson`, SOLO ids (cabecera, contacto, conversacion y mensaje), en la
-# ruta de VINCULOS. En MODO=seco no se escribe.
+# conversacion y mensaje. Salida: `vinculos.ndjson`, SOLO ids (cabecera, contacto, conversacion y mensaje). En
+# MODO=seco no se escribe. Sin MODO, el script no hace nada y sale con error.
 #
-# El contrato con E10 en el VPS (Subdirector, 2026-11-08): el archivo termina en
-# /dev/shm/portal-historial/vinculos.ndjson del VPS, el nombre fijo que lee `vincular.sh` (`$DIR/vinculos.ndjson`).
-# Con `docker exec`, VINCULOS es una ruta DEL CONTENEDOR: se escribe en su /dev/shm (tmpfs: los ids no tocan disco),
-# se copia con `docker cp` y se borra del contenedor:
+# La bandeja (revisión del DG, B1): BANDEJA es el número que da quien opera, CHATWOOT_INBOX_PORTAL_ID, y el cargador lo
+# cruza con el nombre «Conversaciones del portal». Si no coinciden, no carga: otra bandeja API sin webhook, como la
+# del Archivo Kommo, no pasa.
 #
-#   docker cp cargar-portal.rb chatwoot-rails-1:/tmp/cargar-portal.rb
-#   docker exec -i -e MODO=cargar -e CUENTA=<id> -e BANDEJA=<id> -e AGENTE_SERVICIO=<id> -e CARGA=- #     -e VINCULOS=/dev/shm/vinculos.ndjson chatwoot-rails-1 bundle exec rails runner /tmp/cargar-portal.rb #     < /dev/shm/portal-historial/preparado.ndjson
-#   docker cp chatwoot-rails-1:/dev/shm/vinculos.ndjson /dev/shm/portal-historial/vinculos.ndjson
-#   docker exec chatwoot-rails-1 rm -f /dev/shm/vinculos.ndjson
+# Los vínculos (contrato con E10, Subdirector 2026-11-08): VINCULOS solo acepta la ruta fija
+# /dev/shm/portal-historial/vinculos.ndjson, el nombre que lee `vincular.sh` (`$DIR/vinculos.ndjson`), o `-`, que es
+# SOLO PARA PRUEBAS (cada línea sale con el prefijo `VINCULO ` entre los logs de Rails). Se valida antes de abrir la
+# transacción. Con `docker exec`, la ruta es la del contenedor, en su /dev/shm (tmpfs); el traslado a la misma ruta
+# del VPS, con `docker cp`, 0600 y el borrado en el contenedor, lo hace `cargar.sh` (segunda PR de E5):
+#
+#   docker exec chatwoot-rails-1 install -d -m 0700 /dev/shm/portal-historial
+#   docker exec -i -e MODO=cargar -e CUENTA=<id> -e BANDEJA=<id> -e AGENTE_SERVICIO=<id> -e CARGA=- \
+#     -e VINCULOS=/dev/shm/portal-historial/vinculos.ndjson chatwoot-rails-1 \
+#     bundle exec rails runner /tmp/cargar-portal.rb < /dev/shm/portal-historial/preparado.ndjson
+#   docker cp chatwoot-rails-1:/dev/shm/portal-historial/vinculos.ndjson /dev/shm/portal-historial/vinculos.ndjson
+#   chmod 0600 /dev/shm/portal-historial/vinculos.ndjson
+#   docker exec chatwoot-rails-1 rm -rf /dev/shm/portal-historial /tmp/cargar-portal.rb
 #
 # Si el archivo queda en otra ruta, `vincular.sh` sale con `HECHO error=sin_vinculos` y no escribe nada.
-# VINCULOS=- es SOLO PARA PRUEBAS: cada línea sale con el prefijo `VINCULO ` en la salida estándar, que en el
-# contenedor también trae Bundler y los logs de los inicializadores. Un `sed` sobre esa mezcla no es un contrato.
+#
+# Dos corridas no se pisan: la transacción toma un candado (pg_try_advisory_xact_lock(CANDADO)); si otra lo tiene,
+# no carga. El log de SQL de ActiveRecord se apaga mientras corre: con LOG_LEVEL=debug, el SQL de los insert_all
+# llevaría nombres y textos.
 #
 # Sin efectos quiere decir:
 #   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
@@ -48,6 +58,9 @@ class CargaPortal
   SALIENTE = 1 # Message.message_types[:outgoing]
   ACTIVIDAD = 2 # Message.message_types[:activity]
   ESTADOS = %w[open pending resolved].freeze
+  NOMBRE_BANDEJA = 'Conversaciones del portal'
+  RUTA_VINCULOS = '/dev/shm/portal-historial/vinculos.ndjson'
+  CANDADO = 58_610_510 # pg_try_advisory_xact_lock: una carga del portal a la vez
   SENTIDOS = %w[entrante saliente].freeze
   PREFIJO_CONTACTO = 'dtd-portal:'
   UUID = /\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/
@@ -59,6 +72,9 @@ class CargaPortal
     hechos = salida
     correos = 0
     suscripcion = ActiveSupport::Notifications.subscribe('deliver.action_mailer') { correos += 1 }
+    # Sin log de SQL mientras corre: en debug, los insert_all llevarían nombres y textos (revisión de datos personales).
+    log_sql = ActiveRecord::Base.logger
+    ActiveRecord::Base.logger = nil
     begin
       modo = env.fetch('MODO')
       cargador = new(env: env, modo: modo, entrada: entrada, hechos: hechos, vinculos: a_vinculos ? salida : nil)
@@ -73,6 +89,7 @@ class CargaPortal
       hechos.puts "HECHO correos_enviados=#{correos}"
       hechos.puts "HECHO rss_pico_kb=#{rss_pico_kb}"
       ActiveSupport::Notifications.unsubscribe(suscripcion)
+      ActiveRecord::Base.logger = log_sql
     end
   end
 
@@ -90,7 +107,12 @@ class CargaPortal
     @servicio_id = Integer(env.fetch('AGENTE_SERVICIO'))
     @ruta_carga = env.fetch('CARGA')
     @ruta_vinculos = env['VINCULOS']
-    raise 'falta VINCULOS' if modo == 'cargar' && @ruta_vinculos.blank?
+    # Antes de abrir la transacción: la ruta fija que lee vincular.sh, o `-` (solo pruebas).
+    unless [RUTA_VINCULOS, '-'].include?(@ruta_vinculos)
+      raise "VINCULOS tiene que ser #{RUTA_VINCULOS} o -"
+    end
+    # Sin la carpeta, la carga entraría y los vínculos no se podrían escribir después del commit.
+    raise 'falta la carpeta de VINCULOS' unless @ruta_vinculos == '-' || File.directory?(File.dirname(RUTA_VINCULOS))
 
     @modo = modo
     @entrada = entrada
@@ -173,6 +195,8 @@ class CargaPortal
     raise 'la bandeja no existe en esa cuenta' unless bandeja
     raise 'la bandeja no es de canal API' unless bandeja.channel_type == 'Channel::Api'
     raise 'la bandeja tiene webhook_url: no se carga' if bandeja.channel.webhook_url.present?
+    # B1: la del portal y ninguna otra. El número lo da quien opera; el nombre lo confirma.
+    raise 'la bandeja no es «Conversaciones del portal»' unless bandeja.name == NOMBRE_BANDEJA
 
     bandeja
   end
@@ -441,6 +465,10 @@ class CargaPortal
     secuencia_antes = secuencia
     resultado = nil
     ActiveRecord::Base.transaction do
+      # Una carga a la vez: el candado se suelta solo al terminar la transacción.
+      libre = ActiveRecord::Base.connection.select_value("SELECT pg_try_advisory_xact_lock(#{CANDADO})")
+      raise 'otra carga del portal en curso' unless libre == true || libre == 't'
+
       por_cliente = cargar_contactos(filas['contacto'])
       ci_de = cargar_contact_inboxes(por_cliente)
       conv_de = cargar_conversaciones(filas['conversacion'], filas['mensaje'], por_cliente, ci_de)
@@ -459,4 +487,13 @@ class CargaPortal
   end
 end
 
-exit(CargaPortal.principal(ENV)) if ENV['MODO']
+# Como biblioteca (la sonda y el escenario de la prueba) no corre. Como script, sin MODO sale con error.
+unless defined?(CARGA_PORTAL_COMO_BIBLIOTECA)
+  if ENV['MODO'].present?
+    exit(CargaPortal.principal(ENV))
+  else
+    puts 'HECHO carga=error'
+    puts 'HECHO error=falta MODO'
+    exit 2
+  end
+end

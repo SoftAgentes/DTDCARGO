@@ -424,6 +424,10 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M24 "los contactos con el teléfono del primero que exista" "V6" "C1" \
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident," \
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident, phone_number: '+58412#{rand(1_000_000..9_999_999)}',"
+  mutante M25 "acepta cualquier bandeja API sin webhook (B1)" "G10a G10b" "G1 S1"     "raise 'la bandeja no es «Conversaciones del portal»' unless" "nil unless true ||"
+  mutante M26 "VINCULOS en cualquier ruta" "G11" "G1 S1"     "unless [RUTA_VINCULOS, '-'].include?(@ruta_vinculos)" "unless true"
+  mutante M27 "sin el candado" "G12" "G1 S1"     "raise 'otra carga del portal en curso' unless" "nil unless true ||"
+  mutante M28 "sin apagar el log de SQL" "F2" "C1 F1"     "    ActiveRecord::Base.logger = nil" "    nil"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi
