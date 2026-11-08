@@ -15,6 +15,10 @@
 -- Termina siempre en ROLLBACK. Solo ids sintéticos.
 begin;
 
+-- La sesión en UTC, como en producción: así el mes de Caracas y el de UTC no coinciden y la
+-- prueba del gasto distingue uno del otro (PGlite no arranca en UTC).
+set local timezone = 'UTC';
+
 do $roles$
 begin
   if to_regclass('public.chatwoot_bot_turnos') is not null or to_regclass('public.clients') is not null then

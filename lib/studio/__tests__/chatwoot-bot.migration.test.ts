@@ -165,7 +165,7 @@ describe("SDD-0618 · 0522 la cola de dtd-bot (PGlite)", () => {
       "la purga borra lo de 1 día",
       "  delete from public.chatwoot_bot_turnos t where t.cerrado_at < pg_catalog.now() - interval '90 days';",
       "  delete from public.chatwoot_bot_turnos t where t.cerrado_at < pg_catalog.now() - interval '1 day';",
-      /TEST 0522: un turno cerrado hace 30 días se queda/,
+      /TEST 0522: un turno cerrado hace 30 días se queda|TEST 0522: purga un turno y una llamada vencidos/,
     ],
     [
       "el gasto del mes en UTC",
@@ -279,7 +279,7 @@ describe("SDD-0618 · 0522 la cola de dtd-bot (PGlite)", () => {
       "authenticated ejecuta encolar",
       "revoke all on function public.chatwoot_bot_encolar(uuid, bigint, bigint, bigint, timestamptz, integer, integer) from public, anon, authenticated;",
       "revoke all on function public.chatwoot_bot_encolar(uuid, bigint, bigint, bigint, timestamptz, integer, integer) from anon;",
-      /TEST 0522: las RPC son solo de service_role/,
+      /TEST 0522: las RPC son solo de service_role|0522: public\.chatwoot_bot_encolar\(.*no puede ser de anon ni de authenticated/,
     ],
   ];
 
