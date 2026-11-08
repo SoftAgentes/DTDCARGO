@@ -29,7 +29,9 @@ jobs:
   cargador:
     name: Cargador del Archivo Kommo (datos inventados)
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # 75 desde la §10.18 (regla del DG: con más de 35 min, 75). El rojo previo de la #432 tardó 43 min (42424887376), y
+    # el verde suma T4, N7, ME5, ME6 y el lanzador.
+    timeout-minutes: 75
     env:
       CI: "true"
     # Cada paso corre aunque haya fallado el anterior (`!cancelled()`): un rojo en uno no esconde el de los otros, y

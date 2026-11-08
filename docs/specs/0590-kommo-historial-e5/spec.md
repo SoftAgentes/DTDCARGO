@@ -1125,7 +1125,7 @@ Queda escrito en el README («Cómo pararlo»), en la cabecera de `ensayo-archiv
 - `infra/ops/kommo-historial/pruebas/prueba-ensayo.sh`
 - `infra/ops/kommo-historial/pruebas/prueba-lanzador.sh`, nuevo
 - `infra/ops/kommo-historial/pruebas/test_respaldar.py`
-- `.github/workflows/kommo-historial-cargador.yml`: el paso del lanzador, y cada paso corre aunque haya fallado el anterior (`!cancelled()`), para que un rojo no esconda otro. El job sigue en rojo si cualquiera falla
+- `.github/workflows/kommo-historial-cargador.yml`: el paso del lanzador, y cada paso corre aunque haya fallado el anterior (`!cancelled()`), para que un rojo no esconda otro. El job sigue en rojo si cualquiera falla. `timeout-minutes` pasa de 60 a 75 por la regla del DG para más de 35 min: el rojo previo tardó 43
 - `docs/specs/0590-kommo-historial-e5/spec.md`
 - `.agents/handoffs/0590-e5-estado.md`
 - `.agents/handoffs/0590-e5-guarda-adjuntos.md`
@@ -1137,7 +1137,7 @@ Queda escrito en el README («Cómo pararlo»), en la cabecera de `ensayo-archiv
     - un solo `FALLÓ CARGA (adjuntos-1)`;
     - `carga_vps_adjuntos-1=99.00`, sin `carga_vps_adjuntos-2` ni `carga_vps_despues`;
     - `ensayo_codigo=3` y la limpieza completa.
-    - **ME5** quita la línea de `PIPESTATUS` (el guion de antes) y tiene que tumbar N7 por `siguio`. Con el guion de antes, el ensayo sale con 3 igual, pero recién en `despues`: por eso N7 mira dónde paró, no solo el código.
+    - **ME5** quita la línea de `PIPESTATUS` del guion nuevo y tiene que tumbar N7 por `siguio`. Sin esa línea, con la carga inyectada, el `exit 3` solo se vería en la guarda siguiente del proceso principal, ya pasados adjuntos-2. Por eso N7 mira dónde paró, no solo el código. En `main`, N7 cae por `siguio` y sale con 0, porque ahí la carga no se podía inyectar. La línea la prueba ME5, no ese rojo.
   - **T4.** Una unidad lanzada a mano con los 90 s por defecto. La unidad tiene que terminar en `exit-code 1 5`, con `unidad_timeout_stop_s=90`, `FALLÓ G1`, `ensayo_codigo=5` y nada creado, ni siquiera una medida de carga. **ME6** quita la guarda y tiene que tumbar T4 por `siguio`.
   - **T1 a T3** se lanzan con el `TimeoutStopSec` del lanzador, leído de `lanzar-unidad.sh`. T1 y T2 exigen además `unidad_timeout_stop_s=600` y `limpieza_segundos` por debajo de 200.
   - **R6:** la línea de BQ1 dice «(el 3º, de hace 500 días)» y no «revisados si no hubo».
@@ -1160,7 +1160,7 @@ Queda escrito en el README («Cómo pararlo»), en la cabecera de `ensayo-archiv
 | El `exit 3` de una función en el último elemento de un pipeline, caso mínimo de bash en la PC | Confirmado: como en `main`, el guion sigue (`PIPESTATUS 0 3`) y sale con 0. Con `[ "${PIPESTATUS[1]}" = 3 ] && exit 3`, sale con 3 |
 | `segundos_systemd` y el `sed` del cgroup, en la PC | PASÓ: «1min 30s» da 90, «10min» 600, «4min 59s» 299 e «infinity» 999999, y lo ilegible queda vacío. Una unidad `.service` del cgroup v1 y del v2 sí cuenta; el cgroup de un runner (`…service/runner`) y una sesión `.scope`, no |
 | `bash -n` de los guiones y del lanzador | PASÓ |
-| CI del cargador sobre `4cfa0403f`, solo las pruebas nuevas con el código de `main` (rojo previo) | Ver la PR |
+| CI del cargador sobre `4cfa0403f`, solo las pruebas nuevas con el código de `main` (rojo previo, run 42424887376, 43 min) | FALLÓ, como se esperaba, solo en las pruebas nuevas. Python: `PruebasTexto403`. Lanzador: 0 de 9, porque no existe `lanzar-unidad.sh`. Ensayo: 11 fallas (T0, T1, T2, T4, ME2, ME3, ME5, ME6, N7, R6 y F5). R6 vio «el 3º, de hace 500 días;  revisados si no hubo». Siguen verdes las guardas de la completa (25), el vigía (15) y el cargador. Calidad continua sobre el mismo commit (42424887337): PASÓ |
 | CI con los arreglos | Ver la PR |
 
 #### revisar-datos-ve
