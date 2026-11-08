@@ -665,13 +665,20 @@ Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de 
   - Hace que la conciliación de la 0521 (`greatest(cc.last_activity_at, c.last_message_at) >= now() - 7 days`) concilie con la API, durante una semana, todos los hilos resueltos cargados, sin motivo.
   - Y, a los 12 meses de la carga, el problema vuelve igual.
 - **Opción B, elegida: la purga no borra el espejo de una conversación vinculada a un hilo del portal.** La 0524 redefine `chatwoot_purgar_bandeja` con un `and not exists (select 1 from public.chatwoot_portal_hilos hl where hl.tenant_id = c.tenant_id and hl.chatwoot_conversation_id = c.conversation_id)`.
+  - **De dónde se toma:** de la **0508**, que es su única definición. Lo medí con `git grep -l "function public.chatwoot_purgar_bandeja"` y con `purgar_bandeja` a secas, en `origin/main` y en todas las ramas remotas (2026-11-08, revisión del Subdirector). Antes de escribir el SQL se vuelve a medir sobre el main del que sale la rama, y si apareció otra definición se parte de la de número más alto.
+  - **Todo lo demás queda igual:** la borrada de eventos de 90 días, la condición de los 12 meses, el `returns table`, el `comment` y los grants.
+  - **El postflight comprueba** que la purga conserve la firma `chatwoot_purgar_bandeja()` y su `returns table (eventos integer, conversaciones integer)`, que siga en `security definer` con `search_path` vacío, y que la ejecute solo `service_role`.
   - `last_activity_at` sigue saliendo de `last_message_at`, con la actividad verdadera.
   - **La justificación de retención:** el chat del portal sigue el plazo de la cuenta del cliente, no el de 12 meses de la bandeja (§6 de la política de privacidad, plazos, en la lista de cambios de esta spec).
     - El espejo de un hilo del portal lleva solo ids, el estado y el `client_id`.
     - Cuando la ficha se borra, el hilo se borra en cascada, y con él su vínculo (`0519:98`). Desde ahí, su espejo vuelve a ser purgable a los 12 meses.
     - El espejo de las demás bandejas (WhatsApp) sigue con la purga de 12 meses, igual que hoy.
   - **El contrato de la 0508** (`chatwoot-bajas.migration.test.ts`) prueba la 0508 sola y la muta en su propio texto, así que no cambia. La purga redefinida la prueba el contrato de la 0524.
-  - **Su prueba:** un hilo cargado con `last_message_at` de hace 13 meses conserva su espejo después de `chatwoot_purgar_bandeja`. Una conversación de otra bandeja, con la misma antigüedad y sin vínculo, se purga. Cuando se borra la ficha, el espejo vuelve a purgarse. Lleva un mutante que quita el `not exists`.
+  - **Su prueba, con la purga de WhatsApp igual que hoy:**
+    - en la misma corrida, una conversación de WhatsApp de 13 meses **se purga**, y el espejo de un hilo del portal de 13 meses **no**;
+    - una de WhatsApp de 11 meses no se purga, y los eventos de 90 días se siguen borrando;
+    - cuando se borra la ficha, el espejo del portal vuelve a purgarse.
+    - **Mutantes:** uno quita el `not exists`, y cae en el portal. Otro lo vuelve un filtro por bandeja que deja también WhatsApp, y cae en WhatsApp.
 
 **Punto 7:** el `-O` y el `! -L` de `extraer.sh` ya están en `0f100e2b3`.
 
