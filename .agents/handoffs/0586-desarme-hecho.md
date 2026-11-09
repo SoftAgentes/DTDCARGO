@@ -295,7 +295,7 @@ Lo que se hizo:
 - **El mutante** cae porque llega a psql.
 
 **Lo demás de esta vuelta:**
-1. **Los pisos del runner:** respaldo-storage pasa a 90. Portal-historial pasa a **139**: el 129 medido por el DG en `65539df37`, más las 10 líneas PASÓ que suma esta vuelta (cuenta abajo). La línea de `:281`, que daba el 121 como «el último verde», se corrigió: salió de un run rojo.
+1. **Los pisos del runner:** respaldo-storage pasa a 90. Portal-historial pasa a **129**, el último verde medido (`65539df37`), como pidió el DG. La cuenta a mano de abajo da 139, pero el Subdirector la descartó: un error de una línea daría rojo por el piso. El piso se sube al conteo real de esta cabeza en el cierre. La línea de `:281`, que daba el 121 como «el último verde», se corrigió: salió de un run rojo.
 2. **`leer_sistema` exige uid 0** (`stat -c %u`), además de `-O` (`# guarda:sistema_root`). En la prueba, el uid esperado es el del runner (`DESHACER_SISTEMA_UID`, solo con `DESHACER_PRUEBA=1`). `caso_sistema_no_root` pide otro uid, y su mutante está en el bucle del desarme.
 3. **Los mutantes de las rutas fijas, aislados:**
    - `caso_durable_fijo` y `caso_sistema_fijo` corren con `ENTORNO=copia`, que no lee `SISTEMA`. `caso_durable_fijo` lleva además el `SISTEMA` fijo. Así, ninguna otra guarda frena a su mutante.
@@ -307,7 +307,7 @@ Lo que se hizo:
    - Su mutante, `sistema_argv`, devuelve el `-v sistema=` y cae.
 5. **Main:** merge de `2f3a77b7a`, sin conflictos.
 
-**La cuenta del piso (129 → 139):**
+**La cuenta a mano (129 → 139),** solo como referencia para el cierre; el piso queda en 129:
 
 | Cambio | Líneas PASÓ |
 |---|---|
