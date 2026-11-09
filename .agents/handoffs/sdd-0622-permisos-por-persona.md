@@ -34,12 +34,15 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - `quotes`, `sales_orders`, `suppliers`: RLS solo por tenant; alcanza con la capa de aplicación.
 - Nómina exige admin/accounting en SQL (`0160_nomina_employees.sql:71-85`): queda bloqueada.
 
+## Decisiones de Sam (2026-11-09, recogidas en la spec §9)
+- Extras por módulo; vencimiento opcional; «elegir módulos» para Alejandro.
+- Los extras SÍ pueden abrir módulos de dinero (p. ej. tesorería); NO los de control del sistema (users, admin, mailing, direccion, renditions, financiero-china, legal, no-olvidar) ni acciones destructivas.
+- Pidió una opción «Personalizado» (rol base custom + accesos a la carta), diseñada en §5.5.
+
 ## Pendientes de esta tarea
-- Sam debe confirmar §9: 9.1 módulos bloqueados nunca por extras, 9.2 granularidad por módulo,
-  9.3 vencimiento opcional (todas **pendiente de confirmar por Sam**), más las dos preguntas sin valor asumido.
-- La Fase 1 de la spec es una cota gruesa (conteos por grep). Falta el inventario exacto «cubierta / requiere
-  cambio / fuera» por módulo antes de la migración.
-- Cuando Sam apruebe, pasar la spec a `approved` y fijar la allowlist exacta de archivos (gobernanza Studio).
+- Confirmar con Sam: nómina y void_expense/fix_frozen_rate fuera de los extras; diseño de §5.5; si documents es transversal para custom; si clients con edición incluye la fusión de fichas.
+- La Fase 1 es una cota gruesa (grep); falta el inventario exacto por módulo, incluida la revisión de fachadas 0411–0413 ante el rol custom.
+- Al aprobar: spec a approved y allowlist exacta de archivos.
 - La reserva 0622 sigue sin publicar como rama de reserva; la PR lleva la spec.
 
 ## FUERA DE ALCANCE DETECTADO
