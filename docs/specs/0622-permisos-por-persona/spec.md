@@ -1,7 +1,7 @@
 ---
 sdd: "0622"
 title: "Rol base + accesos adicionales por persona en Studio"
-status: draft
+status: approved
 author: "Claude (sesión Worker sdd-permisos-persona) + Sam"
 created: 2026-11-09
 updated: 2026-11-09
@@ -17,7 +17,7 @@ confidencialidad: interno
 > y no hay forma de sumarle, por ejemplo, el CRM a quien lleva contabilidad. Esta spec agrega
 > «accesos adicionales» por persona, solo hacia arriba, con motivo, rastro y candados.
 
-**Estado:** borrador. Sam respondió el 2026-11-09 (ver §9): extras **por módulo**, **vencimiento opcional**,
+**Estado:** aprobada por Sam el 2026-11-09 (las preguntas abiertas de §9 se resuelven con los valores por defecto indicados, salvo que Sam diga otra cosa antes de cada tanda). Sam respondió el 2026-11-09 (ver §9): extras **por módulo**, **vencimiento opcional**,
 «elegir módulos» para Alejandro, **sí** pueden abrir módulos sensibles como tesorería (nunca los de control
 del sistema ni acciones destructivas), y pidió una opción **«Personalizado»** (§5.5) para crear un usuario
 totalmente a la carta. Lo que sigue sin confirmar está marcado **pendiente de confirmar por Sam**.
@@ -295,9 +295,32 @@ Pregunta abierta, **sin valor asumido**:
 - Permisos de Chatwoot dentro de la bandeja: los decide su propio rol (nota en `rbac.ts`, `bandeja`).
 - Acceso al portal de clientes, PWA de operarios y PINs (`operarios`).
 
-## 11. Archivos que se tocarían (informativo, sin implementar aquí)
+## 11. Allowlist exacta de archivos (aprobada 2026-11-09)
 
-`lib/studio/rbac.ts`, `lib/studio/rbac-guard.ts`, un `*-queries.ts` nuevo junto a
-`role-module-overrides-queries.ts`, módulo Usuarios (`app/studio/(app)/usuarios`), migraciones nuevas, pruebas
-`lib/studio/__tests__/` y `supabase/tests/`. La lista exacta (allowlist) se fija al aprobar la spec, como
-exige la gobernanza de cambios de comportamiento de Studio.
+Solo estos archivos pueden cambiar al implementar. Cualquier otro requiere enmendar esta spec primero. Los números de
+migración se asignan al implementar con `pnpm sdd:next` (hoy la siguiente libre es la 0525) y una migración
+aplicada nunca se renumera.
+
+**Aplicación**
+- `lib/studio/rbac.ts` — `SYSTEM_CONTROL_MODULES`, extras en `canAccessModule`/`canEditModule`, rol `custom`.
+- `lib/studio/rbac-guard.ts` — carga de extras en `getStudioAccess`.
+- `lib/studio/user-types.ts` — `StudioUserRole` y `STUDIO_USER_ROLES` con `custom`.
+- `lib/studio/user-module-grants-queries.ts` (nuevo) y su prueba.
+- `lib/studio/user-queries.ts` — lectura de extras para la pantalla.
+- `app/studio/(app)/usuarios/actions.ts`, `page.tsx` y componentes nuevos bajo `app/studio/(app)/usuarios/`.
+- `lib/studio/modules.ts` solo si hace falta marcar módulos «sensibles» (sin cambiar ids).
+- Pruebas: `lib/studio/rbac.test.ts`, `lib/studio/rbac-guard.test.ts`, `lib/studio/rbac-actions-guard.test.ts`
+  (solo para registrar las acciones nuevas con su guard) y pruebas nuevas en `lib/studio/__tests__/`.
+
+**Base de datos (migraciones nuevas, cada una con su prueba `.test.sql` en `supabase/tests/`)**
+- Tabla `studio_user_module_grants`, RPC de conceder/revocar, `user_has_module`, auditoría.
+- Rol `custom`: CHECK de `user_tenants` y `user_invitations` y las RPC de invitar/cambiar rol.
+- Reemplazo de `crm_puede_usar()` y `document_entity_authorized` y de las funciones que arroje el
+  inventario exacto (Fase 1), una migración por tanda.
+
+**Documentación**
+- Esta spec, su índice, el handoff de cada tanda y la cabecera de `lib/studio/rbac.ts` (actualizar el punto de
+  «overrides por usuario»).
+
+**Fuera de la allowlist, por decisión:** `supabase/migrations/` ya aplicadas, `.env*`, datos de producción,
+portal público, PWA de operarios, Chatwoot.
