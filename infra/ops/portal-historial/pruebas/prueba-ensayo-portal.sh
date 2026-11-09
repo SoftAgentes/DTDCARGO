@@ -265,8 +265,12 @@ guardas() { # carpeta prefijo
   # después: un docker que pasa al real hasta que existe el compose.yml del ensayo, y desde ahí falla. Las copias no
   # arrancan (P1, código 1) y la limpieza encuentra docker caído: tiene que borrar la carpeta igual, salir con 1 (no
   # con 6) y anotar docker_no_responde.
+  # El docker caído es pegajoso: la limpieza borra la carpeta antes de llamar a docker (N1), así que desde que ve el
+  # compose.yml deja una marca y sigue caído aunque la carpeta ya no esté (el rojo del job 129203440274). El centinela
+  # de la carga a medias se crea solo mientras existe el compose.yml, para no recrearlo después de la limpieza.
   mkdir -p "$TRABAJO/docker-se-cae"
-  printf '#!/bin/sh\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then mkdir -p /dev/shm/portal-historial; echo centinela >/dev/shm/portal-historial/centinela; exit 1; fi\nexec %s "$@"\n' "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
+  rm -f -- "$TRABAJO/docker-se-cae/caido"
+  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; echo centinela >/dev/shm/portal-historial/centinela; fi\n[ -e "$M" ] && exit 1\nexec %s "$@"\n' "$TRABAJO/docker-se-cae/caido" "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
   chmod +x "$TRABAJO/docker-se-cae/docker"
   ensayo "$C" "$TRABAJO/$X-g6.txt" "PATH=$TRABAJO/docker-se-cae:$PATH" --
   [ -e /dev/shm/portal-ensayo ] && echo "HECHO carpeta_ensayo=queda" >>"$TRABAJO/$X-g6.txt"
@@ -277,8 +281,11 @@ guardas() { # carpeta prefijo
   # G7 (N1 de la revisión del DG): docker se CUELGA en la limpieza (los conteos no vuelven). Con CREADO=1 las dos
   # carpetas se borran antes de llamar a docker, así que a los 15 s ya no están, aunque la limpieza siga esperando.
   # Después se mata el ensayo con SIGKILL, como lo haría un operador.
+  # Pegajoso, como el de G6: después del borrado previo los conteos se siguen colgando (si no, irían al docker real y
+  # G7 no mediría el cuelgue).
   mkdir -p "$TRABAJO/docker-se-cuelga"
-  printf '#!/bin/sh\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then mkdir -p /dev/shm/portal-historial; case " $* " in *" ps "*|*" ls "*) sleep 120 ;; esac; exit 1; fi\nexec %s "$@"\n' "$(command -v docker)" >"$TRABAJO/docker-se-cuelga/docker"
+  rm -f -- "$TRABAJO/docker-se-cuelga/colgado"
+  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; fi\nif [ -e "$M" ]; then case " $* " in *" ps "*|*" ls "*) sleep 120 ;; esac; exit 1; fi\nexec %s "$@"\n' "$TRABAJO/docker-se-cuelga/colgado" "$(command -v docker)" >"$TRABAJO/docker-se-cuelga/docker"
   chmod +x "$TRABAJO/docker-se-cuelga/docker"
   ( ensayo "$C" "$TRABAJO/$X-g7.txt" "PATH=$TRABAJO/docker-se-cuelga:$PATH" -- ) &
   local g7=$! _
