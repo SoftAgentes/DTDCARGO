@@ -135,3 +135,19 @@ Esta revisión no es asesoría legal.
 - `sin_hecho` deja las dos carpetas vacías de verdad: `rm -rf` de las dos y `mkdir -m 0700 ${D}`.
 - **Cada mutante cuenta solo si su caso pasa con el guion real y falla con el mutante.** Si su caso no pasa con el real, sale `ko «control: … no prueba nada»`. Vale en los dos bucles, el de `deshacer-vinculos.sh` y el de `limpiar.sh`, y en el del abandono.
 - El control final suma `caso_ensayo_ok` y `caso_ensayo_viejo`.
+
+## Adelanto de la revisión del DG: la base limpia en los tres bucles y el mutante del control (commit local, sin push)
+
+- **`probar_mutante <var> <guion real> <guarda> <caso>`:** una sola función, que usan los tres bucles: el desarme (11), el cierre (2) y el abandono (1). Devuelve:
+  - 0 si cae: su caso pasa con el guion real y falla con el mutante;
+  - 1 si sobrevive;
+  - 2 si el caso no pasa con el guion real: el mutante no prueba nada, y no cuenta para el PISO;
+  - 3 si la marca no está una sola vez.
+
+  La exigencia del guion real es la línea `# control:base`.
+- **`informar_mutante`** da el mismo texto en los tres bucles. El abandono tiene ahora su PISO: «cae el mutante del abandono».
+- **El MUTANTE DEL CONTROL:**
+  - saca `probar_mutante` de este mismo archivo sin la línea `# control:base` y la evalúa como `probar_mutante_sin_control`;
+  - con `caso_siempre_falla`, el control da 2 y sin control da 0, que sería un mutante vacío contado como caído. La prueba exige las dos cosas;
+  - exige además que la marca `control:base` esté una sola vez.
+- **Medido en local, sin la prueba entera** (no hay `/dev/shm` real en esta PC): `bash -n` PASÓ. Con un guion falso de una línea, `probar_mutante` da los 5 resultados esperados: 2, 0 sin control, 1, 0 y 3.

@@ -317,17 +317,49 @@ dv; rc=$?
 # MUTANTES: una copia del guion sin la línea de cada guarda (marcada `# guarda:<nombre>`); su caso tiene que fallar.
 mkdir -p "${T}/mut"
 cp "${DS}/deshacer-vinculos.sql" "${T}/mut/"
-# Cada mutante cuenta solo si su caso PASA con el guion real y FALLA con el mutante: si no, el mutante no prueba nada.
+# probar_mutante <variable del guion> <guion real> <guarda> <caso>. La regla de la base limpia vale igual en los tres
+# bucles (el desarme, el cierre y el abandono): el mutante solo cuenta si su caso PASA con el guion real y FALLA con
+# el mutante. Devuelve 0 si cae, 1 si sobrevive, 2 si su caso no pasa con el guion real (el mutante no prueba nada)
+# y 3 si la marca de la guarda no está una sola vez.
+probar_mutante() {
+  local var="$1" real="$2" g="$3" caso="$4" copia
+  copia="${T}/mut/$(basename "$real")"
+  [ "$(grep -c "# guarda:${g}\$" "$real")" = 1 ] || return 3
+  "$caso" || return 2 # control:base
+  grep -v "# guarda:${g}\$" "$real" > "$copia"
+  if ( export "$var=$copia"; "$caso" ); then return 1; fi
+  return 0
+}
+# informar_mutante <código de probar_mutante> <guarda> <caso> <guion>
+informar_mutante() {
+  case "$1" in
+    0) ok "mutante de $4 sin la guarda «$2» cae ($3)" ;;
+    1) ko "mutante de $4 sin la guarda «$2» sobrevive ($3)" ;;
+    2) ko "control: $3 no pasa con $4 real, así que el mutante «$2» no prueba nada" ;;
+    *) ko "mutante $2: la marca no está una sola vez en $4" ;;
+  esac
+}
+# MUTANTE DEL CONTROL: probar_mutante sin su línea `# control:base`, sacada de este mismo archivo. Con un caso que
+# ya falla con el guion real, el control lo rechaza (2); sin el control, el mutante contaría como «cae» (0).
+caso_siempre_falla() { return 1; }
+probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" seco caso_siempre_falla; rc_con=$?
+if [ "$(grep -c '# control:base$' "${BASH_SOURCE[0]}")" = 1 ]; then
+  eval "$(sed -n '/^probar_mutante() {$/,/^}$/p' "${BASH_SOURCE[0]}" | grep -v '# control:base$' | sed '1s/^probar_mutante()/probar_mutante_sin_control()/')"
+  probar_mutante_sin_control DV_GUION "${DS}/deshacer-vinculos.sh" seco caso_siempre_falla; rc_sin=$?
+  [ "${rc_con}" = 2 ] && [ "${rc_sin}" = 0 ] \
+    && ok "mutante del control: sin «el caso pasa primero con el guion real», un mutante vacío contaría como caído (${rc_sin}); con el control no cuenta (${rc_con})" \
+    || ko "mutante del control: con el control da ${rc_con} (se espera 2) y sin él da ${rc_sin} (se espera 0)"
+else
+  ko "mutante del control: la marca control:base no está una sola vez"
+fi
 mutantes=0
 for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_tenant viejo:caso_ensayo_viejo \
            ensayo:caso_aplicar_sin_ensayo borrar:caso_aplicar_sin_borrar despues:caso_cambian_durante \
            respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 durable_fijo:caso_durable_fijo; do
   g="${par%%:*}"; caso="${par#*:}"
-  [ "$(grep -c "# guarda:${g}\$" "${DS}/deshacer-vinculos.sh")" = 1 ] || { ko "mutante ${g}: la marca no está una sola vez"; continue; }
-  "${caso}" || { ko "control: ${caso} no pasa con el guion real, así que el mutante «${g}» no prueba nada"; continue; }
-  grep -v "# guarda:${g}\$" "${DS}/deshacer-vinculos.sh" > "${T}/mut/deshacer-vinculos.sh"
-  if DV_GUION="${T}/mut/deshacer-vinculos.sh" "${caso}"; then ko "mutante sin la guarda «${g}» sobrevive (${caso})"
-  else ok "mutante sin la guarda «${g}» cae (${caso})"; mutantes=$((mutantes+1)); fi
+  probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" "$g" "$caso"; r=$?
+  informar_mutante "$r" "$g" "$caso" deshacer-vinculos.sh
+  [ "$r" = 0 ] && mutantes=$((mutantes+1))
 done
 [ "${mutantes}" = 11 ] && ok "PISO: caen los 11 mutantes del orden y de la carpeta durable" || ko "caen ${mutantes} de 11 mutantes"
 # Control: el guion de verdad pasa los casos de los mutantes (cada uno se comprobó también dentro del bucle).
@@ -370,15 +402,13 @@ lc --otra; rc=$?
 [ "${rc}" != 0 ] && grep -q 'opcion_desconocida' "${T}/lc.log" && ok "limpiar.sh rechaza una opción desconocida" || ko "limpiar.sh con opción desconocida: ${rc}"
 rm -rf "${DUR}"; mkdir -p -m 0700 "${D}"; : > "${D}/x"; PRUEBA_DV= lc --cierre-4-6b; rc=$?
 [ "${rc}" != 0 ] && grep -q 'durable_no_es_srv_ops_portal_historial_deshacer' "${T}/lc.log" && [ -e "${D}/x" ] && ok "fuera de la prueba, el cierre usa solo la durable fija" || ko "cierre con durable no fija: $(cat "${T}/lc.log")"
-# MUTANTES del cierre: una copia de limpiar.sh sin la guarda; su caso tiene que fallar.
+# MUTANTES del cierre: una copia de limpiar.sh sin la guarda; su caso tiene que fallar (con la misma regla).
 mutantes_c=0
 for par in aplicar:caso_cierre_sin_aplicar sha_cierre:caso_cierre_otro_sha; do
   g="${par%%:*}"; caso="${par#*:}"
-  [ "$(grep -c "# guarda:${g}\$" "${PH}/limpiar.sh")" = 1 ] || { ko "mutante ${g}: la marca no está una sola vez"; continue; }
-  "${caso}" || { ko "control: ${caso} no pasa con limpiar.sh real, así que el mutante «${g}» no prueba nada"; continue; }
-  grep -v "# guarda:${g}\$" "${PH}/limpiar.sh" > "${T}/mut/limpiar.sh"
-  if LC_GUION="${T}/mut/limpiar.sh" "${caso}"; then ko "mutante de limpiar.sh sin la guarda «${g}» sobrevive (${caso})"
-  else ok "mutante de limpiar.sh sin la guarda «${g}» cae (${caso})"; mutantes_c=$((mutantes_c+1)); fi
+  probar_mutante LC_GUION "${PH}/limpiar.sh" "$g" "$caso"; r=$?
+  informar_mutante "$r" "$g" "$caso" limpiar.sh
+  [ "$r" = 0 ] && mutantes_c=$((mutantes_c+1))
 done
 [ "${mutantes_c}" = 2 ] && ok "PISO: caen los 2 mutantes del cierre" || ko "caen ${mutantes_c} de 2 mutantes del cierre"
 rm -rf "${D}" "${DUR}"
@@ -395,12 +425,10 @@ caso_abandono_con_borrar_tmpfs() { abandono_listo || return 1; hecho_cw chatwoot
 caso_abandono_ok && ok "limpiar.sh --abandono-4-6b sin chatwoot-borrar.hecho borra las dos carpetas y lo comprueba" || ko "abandono: $(cat "${T}/lc.log")"
 caso_abandono_con_borrar_durable && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en la durable (tras un reinicio) se niega y no toca nada" || ko "abandono con borrar en la durable: $(cat "${T}/lc.log")"
 caso_abandono_con_borrar_tmpfs && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en tmpfs se niega y no toca nada" || ko "abandono con borrar en tmpfs: $(cat "${T}/lc.log")"
-# MUTANTE del abandono: sin la guarda, borraría la durable después de un COMMIT de Chatwoot.
-[ "$(grep -c "# guarda:abandono\$" "${PH}/limpiar.sh")" = 1 ] || ko "mutante abandono: la marca no está una sola vez"
-caso_abandono_con_borrar_durable || ko "control: caso_abandono_con_borrar_durable no pasa con limpiar.sh real"
-grep -v "# guarda:abandono\$" "${PH}/limpiar.sh" > "${T}/mut/limpiar.sh"
-if LC_GUION="${T}/mut/limpiar.sh" caso_abandono_con_borrar_durable; then ko "mutante de limpiar.sh sin la guarda «abandono» sobrevive"
-else ok "mutante de limpiar.sh sin la guarda «abandono» cae (caso_abandono_con_borrar_durable)"; fi
+# MUTANTE del abandono: sin la guarda, borraría la durable después de un COMMIT de Chatwoot (con la misma regla).
+probar_mutante LC_GUION "${PH}/limpiar.sh" abandono caso_abandono_con_borrar_durable; r=$?
+informar_mutante "$r" abandono caso_abandono_con_borrar_durable limpiar.sh
+[ "$r" = 0 ] && ok "PISO: cae el mutante del abandono" || ko "el mutante del abandono no cae (${r})"
 rm -rf "${D}" "${DUR}"
 
 echo "== ${pass} PASÓ · ${fail} FALLÓ"
