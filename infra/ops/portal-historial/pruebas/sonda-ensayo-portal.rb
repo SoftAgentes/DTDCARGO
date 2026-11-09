@@ -8,7 +8,8 @@
 # volcado de las copias:
 #   · la bandeja «Conversaciones del portal» (API, sin webhook_url), con su hmac_token SINT-HMAC;
 #   · el usuario de servicio y un agente, con correos y nombres marcados (sint-servicio-real, sint-agente-real);
-#   · un contacto dtd-portal: con teléfono y correo marcados (+584127770002, sint-real-dtd@x.invalid);
+#   · un contacto dtd-portal: con teléfono y correo marcados (+584127770002, sint-real-dtd@x.invalid), y una
+#     conversación suya en la bandeja del portal con additional_attributes.browser marcado (SINT-NAVEGADOR);
 #   · otra bandeja API (SINT WhatsApp) con un contacto con teléfono (+584127770001) y correo marcados y un mensaje SINT-WHATSAPP;
 #   · el webhook de la cuenta con una URL marcada (sint-token);
 #   · otra cuenta con un contacto dtd-portal: SINT-OTRA-CUENTA, su bandeja y un mensaje SINT-OTRA-MENSAJE.
@@ -40,8 +41,13 @@ agente = usuario('SINT-AGENTE-REAL', 'sint-agente-real@x.invalid')
 AccountUser.create!(account: cuenta, user: agente, role: :agent)
 portal = bandeja(cuenta, 'Conversaciones del portal')
 portal.channel.update_columns(hmac_token: 'SINT-HMAC')
-Contact.create!(account: cuenta, name: 'SINT-DTD-NOMBRE', identifier: "dtd-portal:#{SecureRandom.uuid}",
-                phone_number: '+584127770002', email: 'sint-real-dtd@x.invalid')
+dtd = Contact.create!(account: cuenta, name: 'SINT-DTD-NOMBRE', identifier: "dtd-portal:#{SecureRandom.uuid}",
+                      phone_number: '+584127770002', email: 'sint-real-dtd@x.invalid')
+# Una conversación de la bandeja del portal con datos del navegador en additional_attributes: la copia trae solo
+# dtd_hilo (revisar-datos-ve de la #473, E1).
+ci_dtd = ContactInbox.create!(contact: dtd, inbox: portal, source_id: "dtd-portal:#{SecureRandom.uuid}")
+Conversation.create!(account: cuenta, inbox: portal, contact: dtd, contact_inbox: ci_dtd,
+                     additional_attributes: { 'dtd_hilo' => SecureRandom.uuid, 'browser' => { 'name' => 'SINT-NAVEGADOR' } })
 viva = bandeja(cuenta, 'SINT WhatsApp')
 x = Contact.create!(account: cuenta, name: 'SINT-WHATSAPP-NOMBRE', phone_number: '+584127770001', email: 'sint-real@x.invalid')
 ci = ContactInbox.create!(contact: x, inbox: viva, source_id: "sint-#{SecureRandom.hex(4)}")

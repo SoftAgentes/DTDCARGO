@@ -42,6 +42,6 @@ chatwoot	public.users	id;name='SINT usuario ' || id;email='sint-' || id || '@cop
 chatwoot	public.account_users	id;account_id;user_id;role;created_at;updated_at	account_id = :cuenta and user_id = any (string_to_array(:'usuarios', ',')::int[])
 chatwoot	public.contacts	id;account_id;identifier;name='SINT contacto ' || id;created_at;updated_at	account_id = :cuenta and identifier like 'dtd-portal:%'
 chatwoot	public.contact_inboxes	id;contact_id;inbox_id;source_id;pubsub_token;created_at;updated_at	inbox_id = :bandeja and inbox_id in (select i.id from public.inboxes i where i.account_id = :cuenta)
-chatwoot	public.conversations	id;account_id;inbox_id;contact_id;contact_inbox_id;display_id;status;assignee_id;additional_attributes;uuid;created_at;updated_at;last_activity_at	inbox_id = :bandeja and account_id = :cuenta
+chatwoot	public.conversations	id;account_id;inbox_id;contact_id;contact_inbox_id;display_id;status;assignee_id;additional_attributes=jsonb_build_object('dtd_hilo', additional_attributes->'dtd_hilo');uuid;created_at;updated_at;last_activity_at	inbox_id = :bandeja and account_id = :cuenta
 chatwoot	public.messages	id;account_id;inbox_id;conversation_id;message_type;source_id;sender_type;sender_id;created_at;updated_at	inbox_id = :bandeja and account_id = :cuenta
 chatwoot	public.webhooks	id;account_id;url='https://copia.invalid/hook';subscriptions;webhook_type;inbox_id;created_at;updated_at	account_id = :cuenta

@@ -85,6 +85,7 @@ PROHIBIDAS=(
   SINT-WHATSAPP 7770001 sint-real@x # la otra bandeja, su contacto y su mensaje
   sint-token              # webhooks.url
   SINT-HMAC               # channel_api.hmac_token
+  SINT-NAVEGADOR          # conversations.additional_attributes, fuera de dtd_hilo
   SINT-OTRA-CUENTA SINT-OTRA-MENSAJE # la otra cuenta
 )
 # Lo que sí se copia (piso: sin esto, un volcado vacío pasaría T2).
@@ -292,6 +293,7 @@ if [ "$MUTANTES" = 1 ]; then
     "chatwoot	public.messages	id;account_id;inbox_id;conversation_id;message_type;source_id;sender_type;sender_id;created_at;updated_at	account_id = :cuenta"
   mutante M13 "el nombre real de la cuenta" copia-columnas.tsv "T2" "T1 T4" \
     "id;name='SINT cuenta';locale" "id;name;locale"
+  mutante M17 "copia additional_attributes entero" copia-columnas.tsv "T2" "T1 T4"     "additional_attributes=jsonb_build_object('dtd_hilo', additional_attributes->'dtd_hilo')" "additional_attributes"
   mutante M14 "sin la guarda de DB_CW" ensayo-portal.sh "G1" "G2 G3" \
     'if [ -n "${DB_CW:-}" ] && [ "$DB_CW" != "$RAILS_COPIA" ]; then' 'if false; then' guardas
   mutante M15 "sin la guarda de /dev/shm/portal-historial" ensayo-portal.sh "G2" "G1 G3" \

@@ -43,7 +43,7 @@
     - T4: lo de otros tenants y cuentas;
     - T5: la producción simulada no cambió;
     - G1 a G3: las guardas.
-  - **Los mutantes:** M0 es el control. M1 a M13 mutan la lista: columnas personales, sintéticos y filtros. M14 a M16 mutan las guardas.
+  - **Los mutantes:** M0 es el control. M1 a M13 y M17 mutan la lista: columnas personales, sintéticos y filtros. M14 a M16 mutan las guardas.
 - **`.github/workflows/portal-historial-cargador.yml`:** el job `ensayo`, en su propio runner.
 
 ## Evidencia
@@ -57,7 +57,7 @@
 ## Pendientes de esta tarea
 
 - **El primer run de Actions.** Puede pedir ajustes del esquema de Chatwoot en la copia, como columnas NOT NULL de la imagen o secuencias.
-- **`revisar-datos-ve` sobre la PR.** La copia lleva `clients.name` y `conversation_messages.body`, que son los datos que la carga necesita.
+- **`revisar-datos-ve` sobre la PR:** hecho el 2026-11-08. El registro está en las notas del Subdirector, `0586-p4-2b-revisar-datos-ve.md`: 10 puntos CORRECTO, ninguno ENCONTRADO después de E1, y 3 NO VERIFICABLE que pasan al runbook.
 - **Lo que pidió el DG de la #468 y la #470** se hizo en la vuelta 5, con el merge del tren 9: el encabezado de `:301` y el mutante M39 del `SHOW`, con su comprobación L4.
 - **Las secciones de la #468 y la #470**, más abajo.
 - **El runbook (E10):**
@@ -83,6 +83,7 @@
 | 3 | `903e939a1` | 42538856924 (128909177961) | Verde: P1, T1 a T5, las once E-xx del modo completo, G1 a G3 y M0 a M16 cayendo cada uno en lo suyo. El cargador también pasó | El Subdirector no vio los pasos de la carga en el log: en `pruebas/prueba-ensayo-portal.sh:205`, las líneas del ensayo iban solo a resumen.txt (`>/dev/null`). Las saqué al log también cuando pasa. La cobertura no cambia |
 | 4 | `d84c9140f` | sin leer: lo reemplazó la vuelta 5 | — | El tren 9 (`e74cde6fc`) entró a main con la #468 y la #470 |
 | 5 | (el merge) | — | — | Un solo merge de `e74cde6fc`, sin conflictos (el workflow se mezcló solo). En el mismo commit: se quita el encabezado vencido «B. el contacto_id nulo: espera la 0524» de `pruebas/prueba-punta-a-punta.sh`, y se suman L4 y el mutante M39, que quita la comparación del `SHOW` en `cargar-portal.rb:186`. L4 hace que el `SHOW` de `log_*` devuelva otro valor dentro de la sonda, así que solo la comparación lo ve. Rojo previo de M39: no se puede tener sin romper el cargador, que ya está en main; el rojo es el del propio mutante |
+| 6 | (este commit) | — | — | La vuelta 5 dio verde en el cargador y en el ensayo (run 42546753563). `revisar-datos-ve` sobre la #473 encontró E1, de gravedad baja: `conversations.additional_attributes` se copiaba entero. Ahora se copia solo `jsonb_build_object('dtd_hilo', …)` (`copia-columnas.tsv:45`). La producción simulada suma una conversación del portal con `browser` marcado `SINT-NAVEGADOR`, y el mutante M17 vuelve a copiar el jsonb entero y tiene que caer en T2 |
 
 ## #468 · El caso (b) de la punta a punta
 
