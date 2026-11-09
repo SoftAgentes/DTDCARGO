@@ -419,6 +419,10 @@ function assertComandoDelPorton(c) {
   if (params.get("head_sha") !== "<sha>") throw new Error("falta head_sha=<sha>");
   if (params.get("event") !== "pull_request") throw new Error("falta event=pull_request");
   if (!/--jq '\.workflow_runs \| max_by\(\.id\) \|/.test(c)) throw new Error("falta max_by(.id) sobre workflow_runs");
+  const campos = c.match(/max_by\(\.id\) \| \[([^\]]*)\]/)?.[1].split(",").map((x) => x.trim()) ?? [];
+  if (campos[0] !== ".status" || campos[1] !== ".conclusion") {
+    throw new Error("el --jq imprime .status y .conclusion de esa corrida, en ese orden");
+  }
   if (/check-runs/.test(c)) throw new Error("check-runs trae una fila por corrida");
 }
 
@@ -471,6 +475,12 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     expect(runbook).toContain(regla);
     expect(workflow.replace(/\s*#\s*/g, " ")).toContain(regla);
     expect(runbook).toContain("Tampoco basta `gh pr checks`");
+    // Ya estaban en main (SDD-0621, #481): el remedio y cómo volver a borrador no se pueden borrar.
+    expect(runbook).toContain("gh pr ready <numero> --undo");
+    expect(runbook).toContain("gh pr ready <numero>");
+    // Un SHA corto devuelve dos tabuladores vacíos con exit 0; y cómo se sabe que apareció la corrida del push.
+    expect(runbook).toContain("`<sha>` va completo, de 40 caracteres");
+    expect(runbook).toContain("La corrida del push apareció cuando el comando de arriba, sobre la cabeza nueva");
     // Re-ejecutar no rescata el `skipped`, y la carrera de concurrencia ya pasó en la #482: el párrafo nuevo, no el
     // `gh pr ready --undo` que ya estaba en main.
     expect(runbook).toContain("re-ejecución usa el evento original, con `draft: true`, y vuelve a saltar");
@@ -494,6 +504,8 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
       c.replace("actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request", "commits/<sha>/check-runs")],
     ["otro workflow", (c) => c.replace("workflows/quality.yml/", "workflows/sql-tests.yml/")],
     ["sin la cabeza", (c) => c.replace("head_sha=<sha>&", "")],
+    ["sin .conclusion", (c) => c.replace("[.status, .conclusion, .check_suite_id]", "[.status, .check_suite_id]")],
+    [".conclusion cambiado por otro campo", (c) => c.replace(".conclusion", ".event")],
   ])("el comando del portón rechaza %s", (_nombre, mutar) => {
     expect(() => assertComandoDelPorton(mutar(comandoDelPorton(runbookCrudo())))).toThrow();
   });

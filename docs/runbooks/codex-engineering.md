@@ -204,8 +204,10 @@ fusiona: **`success`, no `skipped`, del check requerido, en una corrida
 gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request" --jq '.workflow_runs | max_by(.id) | [.status, .conclusion, .check_suite_id] | @tsv'
 ```
 
-Vale solo `completed` + `success`. Si una `success` vino antes de una
-`failure`, `cancelled` o `skipped`, manda la última. El filtro
+Vale solo `completed` + `success`. `<sha>` va completo, de 40 caracteres
+(`git rev-parse <rama>`): con un SHA corto la API no encuentra corridas y el
+comando imprime dos tabuladores vacíos y sale con 0. Si una `success` vino
+antes de una `failure`, `cancelled` o `skipped`, manda la última. El filtro
 `event=pull_request` deja fuera una corrida manual (`gh workflow run`) sobre la
 misma cabeza. No sirve leer `commits/<sha>/check-runs`: cada corrida es una
 check suite distinta y trae una fila por corrida (el `skipped` del borrador y
@@ -216,8 +218,10 @@ la posterior). **Tampoco basta `gh pr checks`**: muestra el `skipped` como
 el `skipped` termine.** La concurrencia es por rama: si la corrida del push en
 borrador entra a la cola después de la de `ready_for_review`, la cancela y la
 cabeza queda sin corrida real (pasó en `3c777e33e`, #482: `skipped` posterior,
-`cancelled` la real). El comando de arriba lo detecta; el remedio es el de la
-re-ejecución.
+`cancelled` la real). La corrida del push apareció cuando el comando de arriba,
+sobre la cabeza nueva, devuelve una fila con `check_suite_id`; el `skipped`
+terminó cuando esa fila dice `completed` y `skipped`. El mismo comando detecta
+la carrera después; el remedio es el de la re-ejecución.
 
 Re-ejecutar una corrida que nació en borrador no rescata el `skipped`: la
 re-ejecución usa el evento original, con `draft: true`, y vuelve a saltar. El
