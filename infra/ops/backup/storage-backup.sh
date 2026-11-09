@@ -31,7 +31,8 @@
 # de --min-pct (50) del último respaldo aceptado (`<proyecto>-storage.referencia`),
 # el respaldo se sube igual pero NO se aplica la retención (ni remota ni local) y
 # sale 1: sin latido, alguien mira. Lo mismo si la referencia no se puede leer.
-# Si falta, se compara contra el MÁXIMO de `archivos=` de los manifiestos locales.
+# Si falta, se compara contra el MÁXIMO de `archivos=` de los manifiestos locales y,
+# si tampoco hay manifiestos locales (disco nuevo, --out equivocado), de los del remoto.
 # Se repite cada día hasta que alguien corra a mano --aceptar-caida=<conteo>,
 # SOLO con OK nominal de Sam. Esa corrida exige que el conteo sea exactamente el
 # dicho y, antes de aplicar la retención, saca el último respaldo bueno de su
@@ -271,26 +272,32 @@ done
 rcl check "${ldir}/" "${remote_dir}" --one-way --include "/${base}*"
 
 # ── 5. Guarda contra un borrado masivo, y recién entonces la retención. ──
-# Falla cerrada: una referencia que no se puede leer frena la retención; si falta,
-# manda el MÁXIMO de los manifiestos locales anteriores (el más nuevo puede ser
-# ya el de después de la caída).
+# Falla cerrada. Una referencia que no se puede leer frena la retención. Sin referencia
+# confiable, manda el MÁXIMO de los manifiestos anteriores, locales y del remoto (que su
+# retención conserva 30 días): el más nuevo puede ser ya el de después de la caída, y en
+# un disco nuevo o con un --out equivocado no hay manifiestos locales.
 patron_base="^${PROJECT}-storage-[0-9]{8}T[0-9]{6}Z$"
 previo=""; bueno=""; ilegible=0
-# «<archivos> <base>» del manifiesto local anterior con más archivos (vacío si no hay).
-mejor="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" \
-  | while read -r m; do printf '%s %s\n' "$(sed -n 's/^archivos=//p' "${m}" | tail -n1)" "$(basename "${m}" .manifiesto)"; done \
-  | grep -E '^[0-9]+ ' | sort -n | tail -n1 || true)"
 if [[ -f "${referencia}" ]]; then
   # Sin permisos de lectura, sed falla: con pipefail saldría sin decir nada; así cae en «ilegible».
   previo="$(sed -n 's/^archivos=//p' "${referencia}" 2>/dev/null | tail -n1 || true)"
   bueno="$(sed -n 's/^base=//p' "${referencia}" 2>/dev/null | tail -n1 || true)"
-  if ! [[ "${previo}" =~ ^[1-9][0-9]*$ && "${bueno}" =~ ${patron_base} ]]; then
-    ilegible=1; previo=""; bueno=""
-    if [[ -n "${mejor}" ]]; then previo="${mejor%% *}"; bueno="${mejor#* }"; fi
+  if ! [[ "${previo}" =~ ^[1-9][0-9]*$ && "${bueno}" =~ ${patron_base} ]]; then ilegible=1; previo=""; bueno=""; fi
+fi
+if [[ ! -f "${referencia}" ]] || (( ilegible )); then
+  # «<archivos> <base>» de cada manifiesto anterior. Los del remoto van en claro y sin rutas;
+  # su base sale de `sello=`.
+  locales="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" \
+    | while read -r m; do printf '%s %s\n' "$(sed -n 's/^archivos=//p' "${m}" | tail -n1)" "$(basename "${m}" .manifiesto)"; done || true)"
+  remotos="$(rcl cat "${remote_dir}" --filter "- /${base}.manifiesto" --filter "+ /${PROJECT}-storage-*.manifiesto" --filter "- *")" \
+    || falla "sin referencia confiable y sin poder leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
+  mejor="$( { printf '%s\n' "${locales}"
+              printf '%s\n' "${remotos}" | awk -F= -v p="${PROJECT}" '/^sello=/ { s = $2 } /^archivos=/ { print $2 " " p "-storage-" s }'
+            } | grep -E '^[0-9]+ ' | sort -n | tail -n1 || true)"
+  if [[ -n "${mejor}" ]]; then
+    previo="${mejor%% *}"; bueno="${mejor#* }"
+    log "AVISO: sin referencia confiable; se compara contra el máximo de los manifiestos locales y del remoto (${previo} archivos, ${bueno})"
   fi
-elif [[ -n "${mejor}" ]]; then
-  previo="${mejor%% *}"; bueno="${mejor#* }"
-  log "AVISO: no hay referencia; se compara contra el máximo de los manifiestos locales (${previo} archivos, ${bueno})"
 fi
 if [[ -z "${ACEPTAR_CAIDA}" ]]; then
   if (( ilegible )); then
@@ -321,10 +328,15 @@ else
     || falla "en ${ret_remoto} hay ${en_retenido} de los 3 archivos de ${bueno}: no se aplica la retención"
   retenido="${OUT%/}/${PROJECT}/storage-retenido"
   mkdir -p "${retenido}"; chmod 700 "${retenido}"
+  movidos=0
   for f in "${dir}/${bueno}.tar.age" "${dir}/${bueno}-lista.age" "${dir}/${bueno}.manifiesto"; do
-    if [[ -f "${f}" ]]; then mv -- "${f}" "${retenido}/"; fi
+    if [[ -f "${f}" ]]; then mv -- "${f}" "${retenido}/"; movidos=$((movidos + 1)); fi
   done
-  log "último respaldo bueno (${bueno}, ${previo:-?} archivos) retenido en ${ret_remoto} y ${retenido}/; ninguna retención los toca"
+  if (( movidos == 3 )); then
+    log "último respaldo bueno (${bueno}, ${previo:-?} archivos) retenido en ${ret_remoto} y en ${retenido}/; ninguna retención los toca"
+  else
+    log "AVISO: último respaldo bueno (${bueno}, ${previo:-?} archivos) retenido y verificado en ${ret_remoto}; en disco solo estaban ${movidos} de sus 3 archivos y esos quedaron en ${retenido}/"
+  fi
   log "caída aceptada a mano: la referencia pasa de ${previo:-?} a ${archivos} archivos"
 fi
 printf 'archivos=%s\nbase=%s\nsello=%s\n' "${archivos}" "${base}" "${stamp}" > "${referencia}.part"
