@@ -22,6 +22,8 @@
 #   5. limpiar.sh --cierre-4-6b     LO CORRE SAM, de E10: exige studio-aplicar.hecho y borra el .ndjson y los .hecho
 #                                   de las dos copias.
 # Los .hecho son una línea HECHO, en 0600, escritos con .parcial + mv, sin seguir enlaces, y solo llevan ids y hashes.
+# El plazo (regla del DG): si el paso 4 no corre en 24 h desde el utc= de chatwoot-borrar.hecho, el DG avisa a Sam.
+# La copia durable nunca se borra sin que el paso 4 haya salido con 0.
 #
 # Antes de tocar Chatwoot, mira en Studio, en SOLO LECTURA (DB explícita, sin valor por defecto): la fila del flag
 # del tenant existe, no está encendido ni se encendió alguna vez, la cola no corrió, y los hilos del tenant tienen el
