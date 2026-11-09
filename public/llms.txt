@@ -41,18 +41,18 @@
 
 ## Contacto
 - WhatsApp (cotizaciones y atención): +58 412 166 8021
-- Sitio web: https://dtdcargo.com
+- [Sitio web](https://dtdcargo.com)
 
 ## Enlaces útiles
-- Versión ampliada para motores de IA (servicios, preguntas frecuentes y glosario): https://dtdcargo.com/llms-full.txt
-- Calcular tu envío y ver tarifas (CBM): https://dtdcargo.com/tarifas
-- Cotizar contenedor completo (FCL): https://dtdcargo.com/fcl
-- Servicios: https://dtdcargo.com/servicios
-- Brochure (PDF): https://dtdcargo.com/brochure
-- Shipping Mark (cómo identificamos tu carga): https://dtdcargo.com/shipping-mark
-- Portal del cliente: https://dtdcargo.com/portal
-- Glosario de términos de importación: https://dtdcargo.com/glosario
-- Noticias y guías de importación China-Venezuela: https://dtdcargo.com/noticias
+- [Versión ampliada para motores de IA (servicios, preguntas frecuentes y glosario)](https://dtdcargo.com/llms-full.txt)
+- [Calcular tu envío y ver tarifas (CBM)](https://dtdcargo.com/tarifas)
+- [Cotizar contenedor completo (FCL)](https://dtdcargo.com/fcl)
+- [Servicios](https://dtdcargo.com/servicios)
+- [Brochure (PDF)](https://dtdcargo.com/brochure)
+- [Shipping Mark (cómo identificamos tu carga)](https://dtdcargo.com/shipping-mark)
+- [Portal del cliente](https://dtdcargo.com/portal)
+- [Glosario de términos de importación](https://dtdcargo.com/glosario)
+- [Noticias y guías de importación China-Venezuela](https://dtdcargo.com/noticias)
 
 ## Notas
 - Idioma del sitio: español (es-VE).

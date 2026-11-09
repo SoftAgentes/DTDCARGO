@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 // (`html.dtd-cjk-sistema` en globals.css).
 import { archivo, archivoBlack } from "@/lib/fonts";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/public/site-meta";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
@@ -26,11 +27,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "DTD Cargo — Con Confianza, de China a tu puerta.",
+    default: SITE_TITLE,
     template: "%s · DTD Cargo",
   },
-  description:
-    "Logística de punta a punta China → Venezuela desde 2015. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
+  description: SITE_DESCRIPTION,
   applicationName: "DTD Cargo",
   authors: [{ name: "DTD Cargo" }],
   keywords: [
