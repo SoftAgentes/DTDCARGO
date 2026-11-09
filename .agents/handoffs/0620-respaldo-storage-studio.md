@@ -62,12 +62,19 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 - Runbook §5.1: un **bloque de valores** del `.env` (`PROYECTO`, `OPS_DIR`, `BACKUP_DIR`, `DTD_DATA_DIR`, `BACKUP_STORAGE_*`, `BACKUP_RETENTION_DAYS`, `BACKUP_AGE_RECIPIENTS_FILE` y `RCLONE_CONFIG_DIR`) con la misma regla de comillas que `envget`. Lo usan §5.1, el paso 5 y la vuelta atrás. También «Si el bloqueo no tiene salida»: cómo listar los manifiestos y apartarlos, con OK de Sam.
 - Textos vencidos corregidos: el encabezado del script, los mensajes del `--out` y la spec D2 y aceptación 4. M8 quedó reapuntado.
 
+**Seguimiento, tercera vuelta** (CHANGES_REQUESTED de la #486 sobre `a0a2fb07f`; el bloqueante era una regresión):
+- **Bloqueante.** Al aceptar una caída, un manifiesto fuera de formato se ignoraba sin avisar: si era el más grande, su respaldo quedaba sin retener y caía en la retención. Ahora `--aceptar-caida` sale 1 sin retener ni borrar mientras haya uno, y el aviso de «ilegible» también lo nombra. Prueba C14: el más grande con `archivos=0700`, referencia ilegible y después aceptación. Mutante M20.
+- Un solo filtro, `patron_linea` (`^<n> [^[:space:]]+$`, anclado a los dos lados), decide cuáles manifiestos valen y si alguno no vale. Así `archivos=5 999999` ya no pasa como 5 (va a C13). `n_re` y `patron_n` se definen una vez y los usan la referencia, `--aceptar-caida` y los manifiestos. Mutante M19 sobre el filtro; M17 reapuntado a `n_re`.
+- `--min-pct` va de 1 a 100, porque 0 apagaba la guarda.
+- Runbook: apartar con `${P:?}`, `${OUT:?}`, `${REMOTO:?}` y `${RC:?}`, y también cuando el máximo no tiene sus 3 archivos en el remoto (`lsf`). La vuelta atrás de la spec también usa `:?`.
+
 Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
+| Seguimiento, tercera vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo antes del commit | **PASÓ** 78 PASÓ · 0 FALLÓ en las dos; M1-M20 con base limpia |
 | Seguimiento, segunda vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo después del merge de main, antes del commit | **PASÓ** 72 PASÓ · 0 FALLÓ en las dos; M1-M18 con base limpia |
 | Seguimiento: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo de `claude/0620-seguimiento`, antes del commit | **PASÓ** 64 PASÓ · 0 FALLÓ en las dos; M1-M16 con base limpia |
 | Cuarta vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo de la cuarta vuelta, antes del commit | **PASÓ** 58 PASÓ · 0 FALLÓ en las dos; M1-M14 con base limpia |
@@ -95,7 +102,7 @@ Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.
 - Segunda vuelta: `7eac25d5e` fix(ops) y `39c2f7022` docs. Merge de main (#481): `3c777e33e`.
 - Tercera vuelta: `e84caee62` fix(ops) y `0fc4e96c4` docs.
 - Cuarta vuelta: `0773dcc02` fix(ops), `e72b703dc` docs y el merge de main `ddc427dfd` (APPROVED).
-- Seguimiento (rama `claude/0620-seguimiento`, PR #486): `57e9940fd` fix(ops) y `b7fd0f422` docs; merge de main con la #482; segunda vuelta con un commit `fix(ops)` (números acotados) y uno `docs`.
+- Seguimiento (rama `claude/0620-seguimiento`, PR #486): `57e9940fd` fix(ops) y `b7fd0f422` docs; merge de main con la #482; segunda vuelta `4012b8c93` fix(ops) y `a0a2fb07f` docs; tercera vuelta con un commit `fix(ops)` (aceptar con dudoso falla, filtro anclado) y uno `docs`.
 
 ## PR / BRANCH
 

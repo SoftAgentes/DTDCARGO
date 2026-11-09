@@ -499,27 +499,38 @@ la configuración. El script:
      los de después de la caída.
    - La referencia pasa al conteo nuevo.
 
-   **Si el bloqueo no tiene salida.** Un manifiesto anterior con `archivos=`
-   fuera de formato (vacío, con cero inicial o de más de 16 cifras) frena la
-   retención cada día. Lo mismo un manifiesto con el máximo que no tiene
-   `sello=` válido, porque entonces `--aceptar-caida` no encuentra un bueno. Esos
-   manifiestos solo los escribe el script, así que uno así es un daño o una
-   manipulación: se mira antes de tocar nada. Los manifiestos van en claro y sin
-   rutas, así que se pueden listar:
+   **Si el bloqueo no tiene salida.** Hay tres casos que frenan la retención cada
+   día y que `--aceptar-caida` tampoco destraba:
+   - un manifiesto anterior con `archivos=` fuera de formato: vacío, con cero
+     inicial, con algo más en la línea o de más de 16 cifras. Al aceptar, el
+     script se niega, porque no sabría cuál era el más grande;
+   - el manifiesto con el máximo no tiene un `sello=` válido, así que no hay un
+     bueno que retener;
+   - el respaldo de ese máximo ya no tiene sus 3 archivos en el remoto (el log
+     dice «hay N de los 3 archivos»).
+
+   Esos manifiestos solo los escribe el script, así que cualquiera de los tres es
+   un daño o una manipulación: se mira antes de tocar nada. Con el **bloque de
+   valores** cargado, que es lo que fija `P`, `OUT`, `REMOTO` y `RC`, se listan;
+   van en claro y sin rutas:
 
    ```bash
-   for m in "${OUT}/${P}/storage/"*.manifiesto; do printf '%s %s %s\n' "$(sed -n 's/^archivos=//p' "$m")" "$(sed -n 's/^sello=//p' "$m")" "$(basename "$m")"; done
-   docker run --rm -v "${RC}:/config/rclone:ro" rclone/rclone:1.75.1 cat "${REMOTO}/${P}/" --include "*.manifiesto" | grep -E '^(sello|archivos)='
+   for m in "${OUT:?}/${P:?}/storage/"*.manifiesto; do printf '%s %s %s\n' "$(sed -n 's/^archivos=//p' "$m")" "$(sed -n 's/^sello=//p' "$m")" "$(basename "$m")"; done
+   docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 cat "${REMOTO:?}/${P:?}/" --include "*.manifiesto" | grep -E '^(sello|archivos)='
+   # Cuántos archivos de un respaldo hay en el remoto (tienen que ser 3):
+   docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 lsf "${REMOTO:?}/${P:?}/" --files-only --include "/<base>*"
    ```
 
    Retirarlo es **solo con OK nominal de Sam**. Se aparta el respaldo entero, con
-   sus 3 archivos, fuera del prefijo, sin borrarlo: queda como evidencia, y
-   ninguna retención lo toca. `<base>` es el nombre del manifiesto sin
-   `.manifiesto`:
+   lo que tenga de sus 3 archivos, fuera del prefijo y sin borrarlo: queda como
+   evidencia, y ninguna retención lo toca. `<base>` es el nombre del manifiesto
+   sin `.manifiesto`. Los `:?` hacen que el comando no corra si el bloque de
+   valores no está cargado:
 
    ```bash
-   mkdir -m 700 -p "${OUT}/${P}/storage-apartado" && mv "${OUT}/${P}/storage/<base>".* "${OUT}/${P}/storage/<base>-lista.age" "${OUT}/${P}/storage-apartado/"
-   docker run --rm -v "${RC}:/config/rclone:ro" rclone/rclone:1.75.1 move "${REMOTO}/${P}/" "${REMOTO}/${P}-apartado/" --include "/<base>*"
+   mkdir -m 700 -p "${OUT:?}/${P:?}/storage-apartado" \
+     && mv -n "${OUT:?}/${P:?}/storage/<base>".* "${OUT:?}/${P:?}/storage/<base>-lista.age" "${OUT:?}/${P:?}/storage-apartado/" 2>/dev/null
+   docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 move "${REMOTO:?}/${P:?}/" "${REMOTO:?}/${P:?}-apartado/" --include "/<base>*"
    ```
 
    El respaldo siguiente vuelve a comparar sin ese manifiesto.
