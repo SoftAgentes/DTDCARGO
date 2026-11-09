@@ -239,3 +239,27 @@ Lo que se hizo:
 - **Verificado en local:** las dos expresiones de `sed` cambian justo la línea marcada.
 
 **El README del desarme** se actualizó.
+
+## El archivo de `SISTEMA` con un `\n` final (condición del DG al aprobar el 3.0; en local, sin push)
+
+**El lector:** antes de leer, `leer_sistema` cuenta los bytes con `tr`. Exige que no haya ningún byte que no sea cifra o salto de línea, y a lo sumo un salto. Después, `$(cat)` quita ese salto final y el `case` exige que quede un número.
+- **No se usa `read -r`,** porque tomaba solo la primera línea, y un archivo con dos líneas pasaba.
+- **Tampoco `grep -x`,** porque Git for Windows toma el CRLF como fin de línea.
+
+**Medido en local con el lector sacado del guion** (sin la guarda de `stat`, que en Windows no queda):
+
+| Contenido | Resultado |
+|---|---|
+| sin salto | acepta, `deb576f0d6` |
+| `\n` final | acepta, `deb576f0d6` |
+| `\r\n` | rechaza |
+| espacio | rechaza |
+| una segunda línea | rechaza |
+| `\n` al principio | rechaza |
+| dos `\n` finales | rechaza |
+
+**Los casos de la prueba bash:**
+- el `\n` final da el mismo sha;
+- un CR, un espacio o una segunda línea se rechazan sin llamar a psql y sin imprimir el valor.
+
+**Cuándo sale:** con la próxima vuelta de la #480, si la revisión pide algo, o en su cierre, junto con el piso.

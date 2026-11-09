@@ -353,6 +353,18 @@ caso_sistema_sin_archivo && ok "en produccion, sin el archivo de SISTEMA, se nie
 caso_sistema_abierto && ok "en produccion, con el archivo de SISTEMA en 0644, se niega sin llamar a psql" || ko "SISTEMA abierto: $(cat "${T}/dv.log")"
 caso_sistema_en_el_entorno && ok "SISTEMA en el entorno se rechaza: va en el archivo" || ko "SISTEMA en el entorno: $(cat "${T}/dv.log")"
 caso_sistema_copia_sin_archivo && ok "en la copia no pide ni imprime SISTEMA" || ko "copia sin SISTEMA: $(cat "${T}/dv.log")"
+# El archivo de SISTEMA con un \n final da el mismo sha (lo quita el lector); con CR, un espacio o una segunda línea se
+# rechaza (condición del DG al aprobar el 3.0).
+sistema_con() { ( umask 077; printf "$1" "${SISTEMA_VALOR}" > "${SIS}" ); chmod 0600 "${SIS}"; }
+caso_sistema_salto_final() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; sistema_con '%s\n'; dv; rc=$?
+  [ "${rc}" = 0 ] && grep -qx "HECHO sistema_sha256_corto=${SISTEMA_SHA}" "${T}/dv.log"; }
+caso_sistema_rechaza() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; sistema_con "$1"; : > "${FALSO_REGISTRO}"; dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'archivo_de_sistema_no_es_un_numero' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ] && ! grep -q "${SISTEMA_VALOR}" "${T}/dv.log"; }
+caso_sistema_salto_final && ok "SISTEMA con un salto de línea final da el mismo sha corto (${SISTEMA_SHA})" || ko "SISTEMA con salto final: $(cat "${T}/dv.log")"
+caso_sistema_rechaza '%s\r\n' && ok "SISTEMA con CR se rechaza sin llamar a psql" || ko "SISTEMA con CR: $(cat "${T}/dv.log")"
+caso_sistema_rechaza '%s \n' && ok "SISTEMA con un espacio se rechaza sin llamar a psql" || ko "SISTEMA con espacio: $(cat "${T}/dv.log")"
+caso_sistema_rechaza '%s\n1\n' && ok "SISTEMA con una segunda línea se rechaza sin llamar a psql" || ko "SISTEMA con dos líneas: $(cat "${T}/dv.log")"
+poner_sistema
 caso_durable_fijo && ok "fuera de la prueba, la durable es solo /srv/ops/portal-historial/deshacer" || ko "durable no fija: $(cat "${T}/dv.log")"
 sin_hecho
 printf '%s' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"

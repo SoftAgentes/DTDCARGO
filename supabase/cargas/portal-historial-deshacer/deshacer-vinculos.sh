@@ -55,7 +55,11 @@ sha_corto() { printf '%s' "$1" | sha256sum | cut -c1-10; } # guarda:sistema_prin
 leer_sistema() {
   local f="$SISTEMA_ARCHIVO" v=""
   [ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] && [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }
-  IFS= read -r v < "$f" || [ -n "$v" ] || { echo "HECHO error=archivo_de_sistema_vacio" >&2; return 1; }
+  # Solo cifras y a lo sumo un salto de línea, contado en los bytes con tr (un CR o un espacio cuentan como otros):
+  # se acepta un salto final, y un CR, un espacio o una segunda línea se rechazan (condición del DG). Después, $(cat)
+  # quita ese salto final y el case de abajo exige que quede un número.
+  [ "$(LC_ALL=C tr -d '0-9\n' < "$f" | wc -c)" -eq 0 ] && [ "$(LC_ALL=C tr -cd '\n' < "$f" | wc -c)" -le 1 ] || { echo "HECHO error=archivo_de_sistema_no_es_un_numero" >&2; return 1; }
+  v="$(cat -- "$f")"
   case "$v" in ''|*[!0-9]*) echo "HECHO error=archivo_de_sistema_no_es_un_numero" >&2; return 1 ;; esac
   printf '%s' "$v"
 }
