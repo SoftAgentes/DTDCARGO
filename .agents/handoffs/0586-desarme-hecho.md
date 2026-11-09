@@ -319,3 +319,8 @@ Lo que se hizo:
 | **Total** | **+10** |
 
 **Cómo se probó:** `bash -n` de los tres guiones, y cada marca está una sola vez. La prueba pide `/dev/shm` y la PC no tiene Docker, así que el conteo real lo da el CI.
+
+**El rojo de `6041f54e8` (run 42642070656, job 129245473561):** `prueba-portal-historial.sh` dio 122 PASÓ y 17 FALLÓ. Las 17 fallas son del cierre y del abandono.
+- **La causa:** al editar `lc()` se perdió el espacio entre `DESHACER_SISTEMA="${SIS_DV:-$SIS}"` y `DESHACER_DURABLE=…`. Pegados, `DESHACER_DURABLE` no llegaba a `limpiar.sh`, que entonces usaba la durable fija.
+- **El arreglo:** se devuelve el espacio.
+- **La cuenta a mano:** 122 + 17 = 139, lo mismo que daba. El piso sigue en 129 hasta el cierre.

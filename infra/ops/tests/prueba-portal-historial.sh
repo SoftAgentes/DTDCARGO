@@ -489,7 +489,7 @@ DIR="/dev/shm/../${T#/}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l2.log" 2>&1; rc
 [ "${rc}" != 0 ] && [ -e "${T}/fuera2" ] && ok "limpiar.sh no sale de /dev/shm con .." || ko "limpiar.sh borró con /dev/shm/.."
 
 # ── limpiar.sh --cierre-4-6b (el paso 5 del 4.6b) ──
-lc() { DIR="${D}" DESHACER_SISTEMA="${SIS_DV:-$SIS}"DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
+lc() { DIR="${D}" DESHACER_SISTEMA="${SIS_DV:-$SIS}" DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
 # cierre_listo [donde]: lo que queda después de un paso 4 bueno; [donde]=durable simula un reinicio después del 4.
 cierre_listo() { caso_reinicio || return 1; [ "${1:-}" = durable ] && reinicio; return 0; }
 caso_cierre_ok() { cierre_listo || return 1; lc --cierre-4-6b; rc=$?
