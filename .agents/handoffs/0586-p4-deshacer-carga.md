@@ -129,7 +129,17 @@
 
 ## Pendientes de esta tarea
 
-- El run de la vuelta 9.
+- **Al cierre del 2026-11-09 (todo parado hasta el sábado 2026-11-14, por orden del DG):**
+  - la cabeza publicada es `e64bfef6533e504d5543016ab109059f115d5262` (la vuelta 9 y main `27fac70db`);
+  - **el CI de `e64bfef65` terminó: un rojo, de la prueba y no del guion.**
+    - El cargador, run 42655332802: **failure**, solo por la parte a (job 129292212612, 47,0 min). La parte b (35,4 min), la c (42,6 min), el cargador (26,0 min) y el ensayo (16,7 min) dieron success.
+    - La calidad, run 42655332606 (job 129292211072): success, 49,0 min.
+    - **La causa:** la parte a tuvo una sola falla, MD38: «tienen que caer [D19d] — SOBREVIVEN: D19d(sistema) · cayeron: D19D». En `comprobar_sistema`, el id del caso se arma con `tr d D`, que cambia todas las «d», así que d19d queda como «D19D». El mutante sí tumbó su caso, pero bajo otro nombre, y la comparación no lo encuentra. Los demás casos y mutantes, la corrida real incluida, pasaron.
+    - **El arreglo, sin empezar:** armar el id con `"D${c#d}"` en vez de `tr d D`. Es solo de la prueba.
+  - **Cabeza de cierre en draft;** el verde que cuenta es el de `e64bfef65`, con el rojo de MD38 y su causa de arriba. Al volver: el arreglo de MD38, ready y CI sobre la cabeza nueva. Después, la revisión del DG;
+  - **la #489:** el handoff con N-a a N-d está en el commit local `f73c83cc5` de `codex/0586-ensayo-portal-nb`, sin subir. No va encima de la cabeza APPROVED mientras siga abierto el tren #494. Se sube al volver;
+  - **el DG aceptó la desviación de la prueba:** el sha esperado es el del `system_identifier` del Postgres efímero, no `deb576f0d6` fijo. `DESHACER_SISTEMA_SHA` (como `DESHACER_SISTEMA` y `DESHACER_SISTEMA_UID`) se ignora fuera de `DESHACER_PRUEBA=1` (`deshacer.sh:115-119`);
+  - N1 a N3 siguen en «Pendiente posterior», abajo.
 - **Para el runbook (E10):**
   - los comandos de 4.6b;
   - la lista de 3.0 suma `deshacer.sh` y `deshacer-carga.rb`;
