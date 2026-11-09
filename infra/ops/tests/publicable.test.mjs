@@ -333,6 +333,19 @@ describe("clientes HTTP", () => {
     expect(urls[0].auth).toBe("Bearer tok");
   });
 
+  it("GitHub: la corrida saltada de un borrador (SDD-0621) no cuenta como verde de la PR", async () => {
+    // En borrador el job de quality.yml sale por `if:` y la corrida termina `completed / skipped` (medido en la
+    // run 42426458584 de publicable.yml, mismo mecanismo). Aunque la API la devolviera, no es un verde.
+    const fetchImpl = async () =>
+      respuesta(200, {
+        workflow_runs: [
+          { head_sha: H2, conclusion: "skipped", event: "pull_request", path: ".github/workflows/quality.yml" },
+        ],
+      });
+    const gh = crearGitHub({ token: "tok", repo: "o/r", fetchImpl });
+    expect(await gh.corridasExitosas("quality.yml", H2, ["pull_request"])).toEqual([]);
+  });
+
   it("GitHub: commit y compare leen padres, árbol y atraso", async () => {
     const fetchImpl = async (url) => {
       if (url.endsWith(`/git/commits/${M2}`)) return respuesta(200, { sha: M2, tree: { sha: "t2" }, parents: [{ sha: M1 }, { sha: H2 }] });

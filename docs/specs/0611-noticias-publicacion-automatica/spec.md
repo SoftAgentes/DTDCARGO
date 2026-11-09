@@ -1,10 +1,10 @@
 ---
 sdd: "0611"
 title: "Publicación automática de noticias en /noticias, con filtros"
-status: approved
+status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-08
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -17,9 +17,13 @@ confidencialidad: interno
 > la noticia queda en revisión y Sam recibe el aviso. Es la única excepción a la regla de IA-01
 > que exige que una persona autorice cada publicación.
 
-**Esta spec es solo documento.** No trae código ni migraciones. Define la excepción, los
-filtros, los estados y las pruebas que tendrá que pasar la implementación. Mientras no esté
-aprobada **y** construida, vale la regla de hoy: toda noticia la publica una persona.
+**Esta spec define la excepción, los filtros, los estados y las pruebas, y su primera
+implementación (PR #417) trae código y la migración 0518.** La 0518 crea las tablas, las
+funciones y el interruptor, que nace apagado; ninguna ruta llama todavía a la vía automática.
+Lo único que cambia en el Studio al fusionar es que `publishPost` rechaza cualquier marca
+`[VERIFICAR` y que `verifyMarkers` cuenta también la marca vacía. Los archivos exactos están en
+§12. Mientras la 0518 no esté en producción **y** Sam no encienda el interruptor, vale la regla
+de hoy: toda noticia la publica una persona.
 
 ## 1. Contexto
 
@@ -524,6 +528,19 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 
 ## 11. Hallazgos que esta spec deja escritos
 
+### 11.1 Riesgo aceptado en la implementación (revisión del Director General, 2026-11-07)
+
+- **F3 confía en `seo_drafts.reviewer_verdict`, y cualquier admin del tenant puede escribir esa
+  columna** (policy de actualización de la 0053, sin restricción por columna). Un admin podría
+  poner a mano un veredicto «aprobado» atado a la huella correcta. Se acepta como riesgo porque:
+  - el admin ya puede publicar a mano;
+  - la vía automática solo corre con el interruptor que enciende Sam;
+  - cada publicación deja la auditoría con agente, modelo y versión;
+  - cada publicación avisa en `#noticias`.
+  Se cierra cuando la puerta de entrada de la oficina (§4.9) escriba el veredicto con su
+  credencial propia y la columna deje de poder editarse desde la sesión de un admin.
+
+
 - `publishPost` no exige en el servidor que no queden marcas; hoy una llamada directa a la
   acción publica un texto con `[VERIFICAR: …]`. Lo corrige la fase B y lo exige el criterio 3.
 - `verifyMarkers` no cuenta la marca vacía: `[VERIFICAR]` y `[VERIFICAR: ]` dan cero marcas.
@@ -533,3 +550,44 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 - La nota de la SDD-0605 marcó que el plan resume las líneas rojas como «precios, plazos
   prometidos, nombres de terceros» y `LINEAS_ROJAS` dice otra cosa. Esta spec usa las dos
   listas (§4.3.1).
+
+## 12. Allowlist exacta de la implementación (PR #417)
+
+Medida con `git diff --name-only origin/main...HEAD` después de traer `main` `3c14715ad`: 32
+archivos. Ningún otro archivo entra en la PR. La segunda PR (cron, pantalla de retiro, cola,
+interruptor en Ajustes) trae su propia allowlist.
+
+| Archivo | Cambio |
+|---|---|
+| `app/studio/(app)/marketing/noticias-web/actions.ts` | Modificado: `publishPost` rechaza cualquier marca `[VERIFICAR` en el titular o el cuerpo (cambio de comportamiento del Studio); extracto y tiempo de lectura salen de `lib/news/derivados.ts` |
+| `app/studio/(app)/marketing/noticias-web/__tests__/noticias-web-marcas-verificar.test.ts` | Nuevo: ocho formas de marca, la del titular y el control; en rojo antes del arreglo |
+| `lib/news/score.ts` | Modificado: `verifyMarkers` usa `listarMarcas` y cuenta también la marca vacía (cambio de comportamiento del Studio) |
+| `lib/news/derivados.ts` | Nuevo: `extraerExtracto` y `tiempoDeLectura`, sacados de `actions.ts` |
+| `lib/news/autopublicar/marcas.ts` | Nuevo: detección de marcas con NFKC e invisibles |
+| `lib/news/autopublicar/control.ts` | Nuevo: control determinista de líneas rojas (F5) |
+| `lib/news/autopublicar/puntaje.ts` | Nuevo: puntaje y límites de §5.1 (F6) |
+| `lib/news/autopublicar/ritmo.ts` | Nuevo: topes por día y semana en hora de Caracas (F7) |
+| `lib/news/autopublicar/huella.ts` | Nuevo: huella SHA-256 del texto revisado (F3) |
+| `lib/news/autopublicar/filtros.ts` | Nuevo: F1 a F10 con falla cerrada |
+| `lib/news/autopublicar/aviso.ts` | Nuevo: textos de los avisos a `#noticias` |
+| `lib/news/autopublicar/motivos.ts` | Nuevo: motivos de retiro y validación de la nota |
+| `lib/news/autopublicar/__tests__/fixture.ts` | Nuevo: datos sintéticos de las pruebas |
+| `lib/news/autopublicar/__tests__/filtros.test.ts` | Nuevo: un caso y un mutante por filtro |
+| `lib/news/autopublicar/__tests__/piezas.test.ts` | Nuevo: límites, avisos y motivos |
+| `lib/news/autopublicar/__tests__/noticias-0518.migration.test.ts` | Nuevo: contrato de la 0518 en PGlite, control rojo, mutantes SQL, gemelas TS/SQL y desarme |
+| `lib/studio/news/autopublicar.ts` | Nuevo: orquestador `evaluarBorradorAutomatico`; ninguna ruta lo llama todavía |
+| `lib/studio/news/__tests__/autopublicar.test.ts` | Nuevo: orquestador con base y Discord dobles |
+| `supabase/migrations/0518_noticias_publicacion_automatica.sql` | Nuevo: migración 0518, sin aplicar |
+| `supabase/tests/0518_noticias_publicacion_automatica.test.sql` | Nuevo: contrato SQL de la 0518 |
+| `supabase/desarmes/` | Nuevo: el desarme de la 0518, único archivo nuevo de esa carpeta. Se nombra por la carpeta porque `spec-migration-refs.test.ts` toma todo nombre `NNNN_…` con extensión `.sql` como migración |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0518 en `pendingBelowCutoff` |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): estado, §11.1 y esta allowlist |
+| `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Nuevo: revisión `revisar-datos-ve` |
+| `docs/specs/README.md` | Índice regenerado con `pnpm docs:index` |
+| `docs/governance/README.md` | Modificado: nota de la excepción a IA-01, aprobada y sin vigencia hasta encender |
+| `docs/legal/privacidad/inventario-terceros.md` | Modificado: fila de Discord con `#noticias` |
+| `docs/marketing/agente-seo-noticias.md` | Modificado: §9, la regla que manda |
+| `docs/organizacion/oficina-conocimiento/02-reglas-de-la-oficina.md` | Modificado: §9, la excepción para noticias |
+| `docs/organizacion/oficina-conocimiento/06-noticias.md` | Modificado: §9, lo que vale hoy |
+| `docs/organizacion/plan-maestro-oficina.md` | Modificado: §9, §7.8 y la fila de `#noticias` |
+| `.agents/handoffs/sdd-0611-implementacion.md` | Nuevo (handoff de la tarea) |

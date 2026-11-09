@@ -586,6 +586,28 @@ const EMPTY_AGENT_TOTALS = {
 };
 
 /**
+ * Reportes › Por agente, con Kommo oculto (SDD-0614 S0, D-6.6-1, P-9).
+ *
+ * No lee nada: la tabla salía del espejo `kommo_*` y Kommo queda fuera del
+ * Studio hasta la migración completa. La vista muestra el aviso y el CSV no
+ * sale. Entre S0 y S3 nadie ve desempeño por asesor en Reportes; R4 (S3) lo
+ * vuelve a llenar con las tarjetas del CRM propio. La lectura del espejo sigue
+ * en `commercialByAgentKommo`, sin consumidor, hasta 8.7.
+ *
+ * Conserva la firma de siempre (la página la llama con el cliente), pero no lo
+ * usa: por eso es una constante tipada y no recibe parámetros.
+ */
+export const commercialByAgent: (
+  supabase: SupabaseClient,
+  today?: Date,
+) => Promise<CommercialByAgent> = async () => ({
+  rows: [],
+  totals: { ...EMPTY_AGENT_TOTALS },
+  hasKommo: false,
+  oculto: true,
+});
+
+/**
  * Desempeño por agente comercial (asesor de Kommo). REUSA el espejo Kommo
  * (SDD-0078/0087): `getAnalyticsLeads` (leads con responsible_user_id + estado),
  * `listKommoUsers` (nombre real del asesor) y `allConvertedLeads` (leadId →
@@ -597,8 +619,11 @@ const EMPTY_AGENT_TOTALS = {
  * Snapshot del embudo actual (no filtra por período, igual que "Por cliente").
  * Resiliente: si el espejo Kommo no existe o está vacío → `hasKommo: false` →
  * EmptyState honesto. RLS filtra por tenant en cada lectura.
+ *
+ * Sin consumidor desde SDD-0614 S0: Reportes llama a `commercialByAgent`, que
+ * no lee el espejo. Se conserva (ocultar no es borrar) hasta 8.7.
  */
-export async function commercialByAgent(
+export async function commercialByAgentKommo(
   supabase: SupabaseClient,
   today?: Date,
 ): Promise<CommercialByAgent> {
@@ -611,10 +636,10 @@ export async function commercialByAgent(
     leads = (await getAnalyticsLeads(supabase)).rows;
   } catch {
     // kommo_leads ausente (gap deploy↔migración) → sin datos, honesto.
-    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false };
+    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false, oculto: false };
   }
   if (leads.length === 0) {
-    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false };
+    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false, oculto: false };
   }
 
   const [users, converted, billing] = await Promise.all([
@@ -689,7 +714,7 @@ export async function commercialByAgent(
   totals.convPct =
     totals.leads > 0 ? Math.round((totals.won / totals.leads) * 1000) / 10 : 0;
 
-  return { rows, totals, hasKommo: true };
+  return { rows, totals, hasKommo: true, oculto: false };
 }
 
 // ── Contables · Estado de resultados ───────────────────────────

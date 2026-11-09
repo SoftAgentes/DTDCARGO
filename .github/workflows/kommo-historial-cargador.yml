@@ -10,6 +10,8 @@ name: Cargador del Archivo Kommo
 
 on:
   pull_request:
+    # SDD-0621: no corre en borradores; corre al marcar la PR lista (`gh pr ready`). Mismo criterio que quality.yml.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "infra/ops/kommo-historial/**"
       - "infra/chatwoot/compose.yml"
@@ -28,10 +30,15 @@ concurrency:
 jobs:
   cargador:
     name: Cargador del Archivo Kommo (datos inventados)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # 75 desde la §10.18 (regla del DG: con más de 35 min, 75). El rojo previo de la #432 tardó 43 min (42424887376), y
+    # el verde suma T4, N7, ME5, ME6 y el lanzador.
+    timeout-minutes: 75
     env:
       CI: "true"
+    # Cada paso corre aunque haya fallado el anterior (`!cancelled()`): un rojo en uno no esconde el de los otros, y
+    # un run trae todo lo que falla (SDD-0590 §10.18). El job sigue en rojo si cualquiera falla.
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,22 +46,41 @@ jobs:
           persist-credentials: false
 
       - name: Pruebas del extractor (Python)
+        if: ${{ !cancelled() }}
         run: python3 -I infra/ops/kommo-historial/pruebas/test_respaldar.py
 
       # SDD-0590 5.5b: las guardas de completa.sh con systemd de verdad, un token falso, timers falsos y un
       # extractor falso (no le pide nada a Kommo), con control y mutantes.
       - name: Guardas de la completa (systemd y token falso)
+        if: ${{ !cancelled() }}
         run: sudo bash infra/ops/kommo-historial/pruebas/prueba-completa.sh
 
       # SDD-0590 5.5b: el vigía de la completa para la unidad por carga, por /dev/shm o por MemAvailable, con
       # systemd de verdad y medidas inyectadas, con control y mutantes.
       - name: Vigía de la completa (systemd y medidas inyectadas)
+        if: ${{ !cancelled() }}
         run: sudo bash infra/ops/kommo-historial/pruebas/prueba-vigia.sh
 
+      # SDD-0590 §10.18: lanzar-unidad.sh lanza el ensayo o la carga con TimeoutStopSec, Nice y su vigía, y se niega
+      # si ya corre una de las dos; con systemd de verdad y un comando que solo duerme, con control y mutantes.
+      - name: Lanzador de las unidades (systemd)
+        if: ${{ !cancelled() }}
+        run: sudo bash infra/ops/kommo-historial/pruebas/prueba-lanzador.sh
+
+      # SDD-0590 §10.20: lo que la documentación del lanzador tiene que decir (el token, la carga, el código 7).
+      - name: Documentación del lanzador
+        if: ${{ !cancelled() }}
+        run: bash infra/ops/kommo-historial/pruebas/prueba-docs-lanzador.sh
+
       - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
+        if: ${{ !cancelled() }}
         run: bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
 
       # SDD-0590 5.6: el guion del ensayo contra una «producción» simulada (el compose real como proyecto
       # chatwoot, con datos inventados): guardas, aislamiento, copia en solo lectura y borrado sin tocarla.
+      # §10.17: además, la parada con TERM en una unidad de systemd (usa sudo sin clave, como las de arriba), con
+      # mutantes, y la búsqueda con 650 conversaciones de relleno. §10.18: la guarda de carga en los adjuntos (N7),
+      # la de TimeoutStopSec (T4) y la línea de BQ1 (R6).
       - name: Ensayo contra una producción simulada
+        if: ${{ !cancelled() }}
         run: bash infra/ops/kommo-historial/pruebas/prueba-ensayo.sh

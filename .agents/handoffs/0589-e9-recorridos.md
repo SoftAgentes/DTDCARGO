@@ -22,7 +22,7 @@ El detalle está en `docs/specs/0589-guia-motor-studio/spec.md`, sección «2026
   - `actualizaciones`: A1–A3, solo admin.
 
   `recorridosParaRol` filtra con el rol del layout.
-- **9.5 · Sin arranque automático** (D11). La 0517 está aplicada en producción: sin este freno, fusionar abriría estas guías solas a todo el equipo. Se abren con `?guia=bandeja`, `?tab=embudos&guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`.
+- **9.5 · Sin arranque automático** (D11). La 0517 está aplicada en producción: sin este freno, fusionar abriría estas guías solas a todo el equipo. Se abren con `?guia=bandeja`, `?guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Para Embudo, hasta el P-13 hacía falta `?tab=embudos&guia=embudo`; desde el P-13 el motor pone la pestaña.
 - **Pendientes con su motivo, sin inventar pantallas:**
   - F2, I2 e I3: la Ficha DTD enmarcada no monta el motor;
   - F4: el contador está en el sidebar del rediseño;
@@ -71,15 +71,15 @@ Ver la PR. Commits selectivos con `git commit -F`.
   - encender `arranqueAutomatico` por recorrido, con OK de Sam;
   - arrancar U3 desde la ficha de la persona: la tarjeta tiene que quedar encima del cajón y dentro de su trampa de foco.
 - **S-1, S-3 y S-8,** cuando Sam conteste. S-2 se cerró el 2026-11-07 a las 07:00Z («También quien atiende») y ya cambió `ROLES_ASIGNAR`.
-- **P-13 (2026-11-07):** la guía tiene que llegar a Embudos sin `?tab=`. Es un paso aparte de la SDD-0589, con PR propia, después de la #408. No arranca hasta que el DG cierre esa revisión, y S3 de la 6.6 no se fusiona antes. Ya pasa hoy, con Dirección por defecto: `?guia=embudo` solo abre con `?tab=embudos`. Ver la spec, sección «2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)».
+- **P-13 (2026-11-07):** la guía tiene que llegar a Embudos sin `?tab=`. Es un paso aparte de la SDD-0589, con PR propia, después de la #408, y S3 de la 6.6 no se fusiona antes. **Abierto el 2026-11-07** en la rama `claude/0589-p13-embudo-pestana`, con su handoff `.agents/handoffs/0589-p13-embudo-pestana.md`: el recorrido pide `?tab=embudos` y el motor la pone, así que `/studio/crm?guia=embudo` abre con cualquier pestaña por defecto (R6). Ver la spec, sección «2026-11-07 · Paso P-13».
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **El Embudo vive en `/studio/crm?tab=embudos`.** El motor compara solo el `pathname`, así que cambiar de pestaña no vuelve a evaluar el arranque automático. No importa mientras D11 lo tenga apagado. Antes de encenderlo, el motor tendría que mirar la pestaña. Ahora es el P-13: ver Pendientes.
+- **El Embudo vive en `/studio/crm?tab=embudos`.** El motor comparaba solo el `pathname`, así que cambiar de pestaña no volvía a evaluar el arranque automático. Lo resuelve el P-13: el recorrido pide su pestaña y el arranque automático depende de la consulta. Ver Pendientes.
 - **La Ficha DTD dentro de Chatwoot** (`app/studio/(panel)/ficha-chat`) no monta el motor. Las tarjetas F2, I2 e I3 necesitan una decisión de diseño propia.
 
 ## HANDOFF AL DIRECTOR
 
 - Fusionar no enciende nada solo: los recorridos nuevos no arrancan sin `?guia=` y el script no está pegado.
-- El único efecto visible al publicar es que `?guia=<id>` funciona en esas cuatro pantallas. En Embudos hace falta además la pestaña: `/studio/crm?tab=embudos&guia=embudo`.
+- El único efecto visible al publicar es que `?guia=<id>` funciona en esas cuatro pantallas. En Embudos, hasta el P-13 hacía falta además la pestaña (`/studio/crm?tab=embudos&guia=embudo`); con el P-13 basta `/studio/crm?guia=embudo`.
 - Sin el script, las tarjetas de Chatwoot señalan el marco de la Bandeja.
