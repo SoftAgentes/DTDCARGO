@@ -504,8 +504,9 @@ la configuración. El script:
    - un manifiesto anterior con `archivos=` fuera de formato: vacío, con cero
      inicial, con algo más en la línea o de más de 16 cifras. Al aceptar, el
      script se niega, porque no sabría cuál era el más grande;
-   - el manifiesto con el máximo no tiene un `sello=` válido, así que no hay un
-     bueno que retener;
+   - un manifiesto cuyo nombre no es `<proyecto>-storage-<sello>.manifiesto`
+     (los del remoto se leen uno por uno, con la base sacada del nombre, igual
+     que los locales);
    - el respaldo de ese máximo ya no tiene sus 3 archivos en el remoto (el log
      dice «hay N de los 3 archivos»).
 
@@ -531,6 +532,10 @@ la configuración. El script:
    mkdir -m 700 -p "${OUT:?}/${P:?}/storage-apartado" \
      && mv -n "${OUT:?}/${P:?}/storage/<base>".* "${OUT:?}/${P:?}/storage/<base>-lista.age" "${OUT:?}/${P:?}/storage-apartado/" 2>/dev/null
    docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 move "${REMOTO:?}/${P:?}/" "${REMOTO:?}/${P:?}-apartado/" --include "/<base>*"
+   # Ni mv -n ni rclone move dicen qué movieron: se mira lo apartado y lo que quedó.
+   ls -l "${OUT:?}/${P:?}/storage-apartado/"; ls "${OUT:?}/${P:?}/storage/" | grep -F -- "<base>" || echo "(en disco ya no queda nada de <base>)"
+   docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 lsf "${REMOTO:?}/${P:?}-apartado/" --include "/<base>*"
+   docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 lsf "${REMOTO:?}/${P:?}/" --include "/<base>*" | grep . || echo "(en el remoto ya no queda nada de <base>)"
    ```
 
    El respaldo siguiente vuelve a comparar sin ese manifiesto.

@@ -68,6 +68,13 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 - `--min-pct` va de 1 a 100, porque 0 apagaba la guarda.
 - Runbook: apartar con `${P:?}`, `${OUT:?}`, `${REMOTO:?}` y `${RC:?}`, y también cuando el máximo no tiene sus 3 archivos en el remoto (`lsf`). La vuelta atrás de la spec también usa `:?`.
 
+**Seguimiento, cuarta vuelta** (CHANGES_REQUESTED de la #486 sobre `532098f16`: el remoto no pasaba por el filtro único):
+- **Bloqueante.** El `awk` sobre el `rclone cat` concatenado solo imprimía con `archivos=`. Un manifiesto remoto vacío o sin `archivos=` no generaba línea, y `archivos=5=700` se leía como 5. Ahora los del remoto se listan con `rclone lsf` y se leen uno por uno con `rclone cat`, con la misma lectura que los locales: la última línea `archivos=` y la base sacada del NOMBRE del archivo. El `awk` ya no existe.
+- `patron_linea` exige también `patron_base` (`base_re`), así que un nombre que pasa el glob pero no el patrón también frena.
+- Pruebas: C15 con cuatro variantes del remoto, todas con el disco vacío (vacío, sin `archivos=`, `archivos=5=700` y un nombre fuera de patrón): frenan la retención y la aceptación, sin `delete` ni retenido. Mutantes M21 (salta el vacío), M22 (salta el sin `archivos=`) y M23 (lee `5=700` como 5); M16 quedó reapuntado al `lsf`.
+- Runbook: después de apartar, un `ls`/`lsf` de lo apartado y de lo que quedó, porque `mv -n` y `rclone move` no dicen qué movieron.
+- **Autorización de Sam (vía DG, 2026-11-09):** «ok en seguimineto y intalar». Cubre la #486 hasta main y que el DG instale la SDD-0620 en el VPS siguiendo §Instalación, desde el SHA de main que ya traiga la #486. No cubre `--aceptar-caida`, apartar, purge ni la vuelta atrás con borrado en B2. Pendiente de esta tarea: pasarle al DG el guion resuelto para ese SHA.
+
 Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
