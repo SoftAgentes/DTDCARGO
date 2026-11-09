@@ -149,6 +149,12 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
     expect(hecho(await correr(COLA, "T2", preparar))).toEqual([OK]);
   }, SLOW);
 
+  it("PISO: las listas de casos y mutantes no se encogen en silencio", () => {
+    expect(CASOS).toHaveLength(4);
+    expect(MUTANTES).toHaveLength(4);
+    expect(MUTANTES_SIEMBRA).toHaveLength(5);
+  });
+
   for (const [nombre, preparar, espera] of CASOS) {
     it(`cola-y-flag.sql da NO con ${nombre}`, async () => {
       const lineas = hecho(await correr(COLA, "T2", preparar));
@@ -195,7 +201,9 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
     it(`MUTANTE «${nombre}»: sobrevive sin la siembra y cae con ella`, async () => {
       const mutante = once(COLA, from, to);
       expect(hecho(await correr(mutante, "T2")), "rojo previo: con el fixture de antes sobrevive").toEqual([OK]);
-      expect(hecho(await correr(mutante, "T2", SIEMBRA))[0]).toMatch(/cola_y_flag=NO$/);
+      const lineas = hecho(await correr(mutante, "T2", SIEMBRA));
+      expect(lineas).toHaveLength(1);
+      expect(lineas[0]).toMatch(/cola_y_flag=NO$/);
     }, SLOW);
   }
 
@@ -203,7 +211,12 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
     for (const guion of [COLA, CONTEO]) {
       expect(guion).toMatch(/^begin transaction read only;$/m);
       expect(guion).toMatch(/^rollback;$/m);
-      expect(guion.replace(/^\s*--.*$/gm, "")).not.toMatch(/\b(insert|update|delete|merge|create|alter|drop|grant|revoke|truncate|copy)\b/i);
+      const sinComentarios = guion.replace(/^\s*--.*$/gm, "");
+      expect(sinComentarios).not.toMatch(/\b(insert|update|delete|merge|create|alter|drop|grant|revoke|truncate|copy|commit|do)\b/i);
+      expect(sinComentarios).not.toMatch(/\bread\s+write\b/i);
+      expect(sinComentarios, "psql no abre shell ni redirige la salida").not.toMatch(/^\s*\\(!|o\b)/m);
+      // Ninguna llamada a las funciones de la carga o de la cola (chatwoot_portal_tomar, _marcar, _vincular, …), que escriben.
+      expect(sinComentarios).not.toMatch(/\bchatwoot_portal_[a-z_]+\s*\(/i);
     }
     expect(COLA).not.toMatch(/\|\|\s*corte\b/);
   });

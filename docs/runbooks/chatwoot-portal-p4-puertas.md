@@ -48,6 +48,13 @@
 **Reglas comunes a la 1a y la 1b:**
 - **Nada sale del VPS:** ni volcados, ni copias a la PC, ni al repo. La evidencia es solo `HECHO`, con conteos y md5.
 - **Adónde:** a tmpfs del VPS, con una red `internal` y sin puertos publicados. **Quién lo ve:** solo root. **Cuánto dura:** lo que dura la corrida del ensayo.
+- **Quién tiene root en el VPS mientras corre el ensayo:** Medido por el DG el 2026-11-09 ~02:10Z: root solo por la clave del DG; agentes aislados sin /srv/ops ni docker; consola del proveedor fuera de alcance.
+  - **El detalle:**
+    - solo `root` tiene uid 0, y entra solo por clave, sin contraseña;
+    - `ubuntu` tiene sudo y 0 claves;
+    - las cuentas de agentes tienen `ForceCommand` y `NoNewPrivileges`, sin grupos, y no llegan a `/srv/ops` (root:root 700) ni a docker;
+    - `orca-*` no tiene sudo ni docker.
+  - **Si eso cambia antes del ensayo**, el DG lo vuelve a medir. Si alguien del equipo de China tuviera root, aplicaría la PIPL a la copia (revisión `revisar-datos-ve` de la 2b), y la puerta 1 no sigue hasta que el DG lo resuelva con Sam.
 - **Producción** se mide antes y después, y tiene que quedar sin cambios (P1 a P3 del ensayo).
 - **El `trap`** borra la copia también si algo falla, y sale con 4 si no puede terminar la limpieza.
 - **Cómo se prueba el borrado:**
@@ -95,7 +102,7 @@
 | **Comando, la bandeja** | Panel de la cuenta 1: Ajustes → Bandejas → Nueva → canal **API**. **Va sin `webhook_url`,** sin saludo, sin asignación automática y sin encuesta (§10.5.9, puerta 3). La guarda G1 del cargador rechaza una bandeja con `webhook_url`. Los miembros son el usuario de servicio de E10 y **solo agentes de Venezuela** (E10-D36) |
 | **Comando, después** | `docker exec -i chatwoot-rails-1 bundle exec rails runner 'puts "HECHO miembros=#{Inbox.find(<id>).inbox_members.count}"'`. Se anota el id de la bandeja |
 | **Comando, el id de `AGENTE_SERVICIO`** | Solo lectura: `docker exec -i chatwoot-rails-1 bundle exec rails runner 'u = User.find_by(email: "<correo del usuario de servicio>"); puts "HECHO agente_servicio=#{u&.id} en_cuenta=#{u && AccountUser.exists?(account_id: 1, user_id: u.id)}"'`. El correo no va a la evidencia, solo el id y `en_cuenta=true` |
-| **Para seguir** | 0 del equipo de China, la bandeja sin `webhook_url`, los miembros que el DG espera, y `AGENTE_SERVICIO` con `en_cuenta=true` |
+| **Para seguir** | 0 del equipo de China **entre los administradores y entre los agentes de la cuenta 1**: los dos conteos de la lectura, y es la condición de la #455. Además, la bandeja sin `webhook_url`, los miembros que el DG espera, y `AGENTE_SERVICIO` con `en_cuenta=true` |
 | **Evidencia** | `/srv/ops/evidencias/p4-bandeja-<UTC>/`: los conteos, «verificado, 0 del equipo de China», el id de la bandeja y su configuración, sin nombres |
 | **Vuelta atrás** | Borrar la bandeja desde el panel, mientras no tenga conversaciones. Si ya las tiene, la de la puerta 4 |
 | **OK nominal** | «¿Autorizas crear la bandeja "Conversaciones del portal" en la cuenta 1 de Chatwoot, con la verificación de administradores y la lectura del id del usuario de servicio?» |
@@ -104,17 +111,23 @@
 
 ## Puerta 3 · El ensayo, en la copia efímera
 
-> **La PR 2b de E5 todavía no está escrita.** Lo que sigue es su contrato: el guion copia las guardas de `kommo-historial/ensayo-archivo.sh`. La 2b fija las opciones y los nombres de la evidencia, y este texto se actualiza cuando entre en `main`.
+> **La PR 2b de E5 es la #473, y todavía no está en `main`.** Lo que sigue de ella va marcado ‹por confirmar hasta que la #473 esté en `main`›. El guion copia las guardas de `kommo-historial/ensayo-archivo.sh`. Cuando la #473 entre, se quitan las marcas.
 
 **Sub-paso 3.0 · ⛔ OK propio · Crear `/srv/ops/portal-historial` y poner los scripts.**
 - **El punto de partida,** medido en el VPS por el DG: `/srv/ops/portal-historial` no existe, y `/srv/ops/kommo-historial` sí.
-- **Qué escribe:** crea la carpeta y copia `infra/ops/portal-historial/` de `main`.
+- **Qué escribe, todo en el VPS:**
+  1. crea `/srv/ops/portal-historial/` y copia ahí `infra/ops/portal-historial/` de `main`;
+  2. crea `/srv/ops/portal-historial/migraciones/` con `install -d -m 700` y copia ahí las 10 migraciones con un `scp` aparte;
+  3. copia `deshacer-vinculos.sql` y `deshacer-vinculos.sh` con su propio `scp`;
+  4. al final, deja todo sin permisos de grupo ni de otros con `chmod -R go-rwx`.
+
+  Ninguna otra cosa se escribe en el VPS. El OK cubre los cuatro pasos.
 - **La lista que se compara por sha256:**
   - `extraer.sh`, `vincular.sh`, `limpiar.sh`, `reservar.sql`, `extraer.sql` y `controles-studio.sql`;
   - `conteo-portal.sql` (4.2) y `cola-y-flag.sql` (4.3), las dos lecturas de la puerta 4;
   - `cargar.sh` y `cargar-portal.rb`, que ya están en `main` desde la #455 y la #461;
   - de la 2b (#473) ‹por confirmar hasta que la #473 esté en `main`›: `ensayo-portal.sh`, `copia-columnas.tsv` y `ensayo-studio-esquema.sql`, en `/srv/ops/portal-historial/`;
-  - **las 10 migraciones que exige la guarda G0 de `ensayo-portal.sh`**, copiadas de `supabase/migrations/` a `/srv/ops/portal-historial/migraciones/`. Esa carpeta es el valor por defecto de la variable `MIGRACIONES` del guion. La copia del esquema las aplica con `\i` desde `ensayo-studio-esquema.sql`, montadas en solo lectura. Son estas:
+  - ‹por confirmar hasta que la #473 esté en `main`› **las 10 migraciones que exige la guarda G0 de `ensayo-portal.sh`**, copiadas de `supabase/migrations/` a `/srv/ops/portal-historial/migraciones/`. Esa carpeta es el valor por defecto de la variable `MIGRACIONES` del guion, y la copia del esquema las aplica con `\i` desde `ensayo-studio-esquema.sql`, montadas en solo lectura. La G0, `MIGRACIONES` y el montaje son de la #473. Las 10 migraciones sí están en `main`. Son estas:
     - `supabase/migrations/0006_clients.sql`
     - `supabase/migrations/0106_conversaciones.sql`
     - `supabase/migrations/0337_feature_flags_seed_and_trigger.sql`
@@ -129,7 +142,7 @@
   - en Studio, desde `supabase/cargas/portal-historial-deshacer/`: `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, que van a la misma carpeta del VPS con su propio `scp` y su sha256.
   - **La lista crece con cada PR,** y se escribe aquí cuando entra en `main`.
   - El `scp -r` copia también `pruebas/`, que trae solo datos inventados. No está en la lista y no se usa en el VPS.
-- **Comando:** `scp -r infra/ops/portal-historial root@217.216.54.70:/srv/ops/ && ssh root@217.216.54.70 chmod -R go-rwx /srv/ops/portal-historial`. Es el patrón del Archivo Kommo (`infra/ops/kommo-historial/README.md:9` y `:41`).
+- **Comando, la carpeta:** `scp -r infra/ops/portal-historial root@217.216.54.70:/srv/ops/`. Es el patrón del Archivo Kommo (`infra/ops/kommo-historial/README.md:9` y `:41`). El `chmod` va al final, después de las migraciones.
 - **Las migraciones, con un comando aparte:**
 
   ```bash
@@ -141,11 +154,17 @@
   ```
 
   Sus sha256 se comparan con `git show origin/main:supabase/migrations/<archivo> | sha256sum`.
-- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/` o `supabase/migrations/`. Además, `stat -c %a` de la carpeta da `700` y en `migraciones/` están las 10.
+- **Al final, los permisos de todo lo copiado:**
+
+  ```bash
+  ssh root@217.216.54.70 chmod -R go-rwx /srv/ops/portal-historial
+  ```
+- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/` o `supabase/migrations/`. Además, `stat -c %a` da `700` en `/srv/ops/portal-historial` y en `migraciones/`. En `migraciones/` están las 10, y `find /srv/ops/portal-historial -perm /077 | wc -l` da `0`: ningún archivo ni carpeta con permisos de grupo u otros.
 - **Lo que el CI no puede probar y se comprueba a mano en el VPS antes de 3.1:**
-  - **La unidad de systemd del ensayo tiene `TimeoutStopSec` de 300 s o más.** La guarda G1 se niega con menos (`TIMEOUT_STOP_MIN_S=300` en `ensayo-portal.sh`).
-  - **Los nombres reales de producción** son los valores por defecto del guion: `dtd-cargo-db-1` (Studio), `chatwoot-postgres-1` (Chatwoot) y `/srv/chatwoot`. Si alguno no coincide, se para y se avisa al DG; no se cambia por una variable sin su OK.
-  - **Están las 10 migraciones** en `/srv/ops/portal-historial/migraciones/`. **Si falta alguna, la G0 se niega** y el ensayo no arranca.
+  - ‹por confirmar hasta que la #473 esté en `main`› **La unidad de systemd del ensayo tiene `TimeoutStopSec` de 300 s o más.** La guarda G1 se niega con menos (`TIMEOUT_STOP_MIN_S=300` en `ensayo-portal.sh`).
+  - ‹por confirmar hasta que la #473 esté en `main`› **Los nombres reales de producción** son los valores por defecto del guion: `dtd-cargo-db-1` (Studio), `chatwoot-postgres-1` (Chatwoot) y `/srv/chatwoot`. Si alguno no coincide, se para y se avisa al DG; no se cambia por una variable sin su OK.
+  - ‹por confirmar hasta que la #473 esté en `main`› **Están las 10 migraciones** en `/srv/ops/portal-historial/migraciones/`. **Si falta alguna, la G0 se niega** y el ensayo no arranca.
+  - ‹por confirmar hasta que la #473 esté en `main`› **Están los cuatro inicializadores de Rails que la G0 también exige,** en `$CHATWOOT_DIR/rails/` (por defecto `/srv/chatwoot/rails/`): `zz_dtd_redaccion_logs.rb`, `zz_dtd_proteccion_register.rb`, `zz_dtd_revocar_sesiones.rb` y `zz_dtd_correo.rb`. **Si falta alguno, la G0 se niega.** Se comprueba con `ls`, sin abrirlos.
 - **La evidencia:** las dos listas de sha256 y el commit de `main`.
 - **La vuelta atrás:** `rm -r /srv/ops/portal-historial`. No guarda datos.
 
@@ -155,9 +174,9 @@
 |---|---|
 | **Qué lee o escribe** | **Usa la copia de la puerta 1** (la 1a y la 1b). **Escribe solo en la copia efímera,** con red interna, en tmpfs y con la marca de la copia. **En producción no escribe nada** |
 | **Comando** | **Las entradas:** `TENANT=<uuid>`, `CUENTA=1`, `BANDEJA=<id de la puerta 2>` y `AGENTE_SERVICIO=<id>`. `bash /srv/ops/portal-historial/ensayo-portal.sh`, con las opciones de la 2b. **El ensayo no corre si `/dev/shm/portal-historial` ya existe,** para no pisar una carga real a medias, ni al revés. **Se niega con `DB_CW=chatwoot-rails-1`** o con cualquier contenedor que no sea de la copia: es una guarda de la 2b, con su mutante. Corre como unidad de systemd con su `TimeoutStopSec`, igual que el ensayo del Archivo Kommo. En la copia corre `extraer.sh`; `cargar.sh` con `MODO=seco` y después con `MODO=cargar`; `vincular.sh`; y `controles-studio.sql` antes y después |
-| **Para seguir** | <ul><li>el ensayo sale con 0;</li><li>pasan C-1 a C-14;</li><li>C-6 y C-7 dan igual antes y después;</li><li>C-8 trae un espejo por hilo vinculado;</li><li>`conversaciones_estado_actualizado=0`;</li><li>la limpieza deja 0 contenedores, 0 volúmenes y 0 redes;</li><li>producción sigue igual (P1 a P3);</li><li>**la evidencia dice que `DB_CW` era el contenedor de la copia, con su nombre y su red interna;**</li><li>**al terminar, `test ! -e /dev/shm/portal-historial && echo vacio`.**</li></ul>**Los casos provocados:**<ul><li>(a) un `vinculos.ndjson` con un mensaje menos, que da 22023 sin escribir;</li><li>(B1) `contacto_id` nulo y `source_id` vacío a la vez, que da 22023, «id de contacto inválido»;</li><li>(B2) solo el `source_id` vacío, que da 22023, «falta el source_id del contacto»;</li><li>(c) después de (a), repetir desde la extracción: no queda nada doble en Chatwoot, y en Studio queda un solo corte.</li></ul> |
+| **Para seguir** | <ul><li>el ensayo sale con 0;</li><li>pasan C-1 a C-14;</li><li>C-6 y C-7 dan igual antes y después;</li><li>C-8 trae un espejo por hilo vinculado;</li><li>`conversaciones_estado_actualizado=0`;</li><li>la limpieza deja 0 contenedores, 0 volúmenes y 0 redes;</li><li>producción sigue igual (P1 a P3);</li><li>**la evidencia dice que `DB_CW` era el contenedor de la copia, con su nombre y su red interna;**</li><li>**al terminar, `test ! -e /dev/shm/portal-historial && echo vacio`.**</li><li>**si el ensayo murió por KILL o sin que corriera su `trap`** (la unidad terminó por `SIGKILL`, o no salió la línea `HECHO ensayo_codigo`): no se sigue hasta correr `ensayo-portal.sh --limpiar` y repetir la prueba de borrado. Esa prueba es 0 contenedores, 0 volúmenes y 0 redes del proyecto del ensayo, más el `test ! -e` de arriba.</li></ul>**Los casos provocados:**<ul><li>(a) un `vinculos.ndjson` con un mensaje menos, que da 22023 sin escribir;</li><li>(B1) `contacto_id` nulo y `source_id` vacío a la vez, que da 22023, «id de contacto inválido»;</li><li>(B2) solo el `source_id` vacío, que da 22023, «falta el source_id del contacto»;</li><li>(c) después de (a), repetir desde la extracción: no queda nada doble en Chatwoot, y en Studio queda un solo corte.</li></ul> |
 | **Evidencia** | Las líneas `HECHO` con conteos y md5, sin datos de personas, y `HECHO ensayo_codigo=0`. **El DG la recibe antes de la puerta 4** |
-| **Vuelta atrás** | Borrar la copia (`ensayo-portal.sh --limpiar`, o lo que fije la 2b). En producción no hay nada que deshacer |
+| **Vuelta atrás** | Borrar la copia con `ensayo-portal.sh --limpiar` y hacer la prueba de borrado. **Si el ensayo murió por KILL, el `trap` no corrió:** las copias siguen en tmpfs, dentro de contenedores vivos, hasta el `--limpiar` o un reinicio. Por eso el `--limpiar` y la prueba de borrado van siempre antes de cualquier otro paso (revisión `revisar-datos-ve` de la 2b). En producción no hay nada que deshacer |
 | **OK nominal** | «¿Autorizas correr el ensayo de la carga P4 en la copia efímera?» |
 
 ---
@@ -167,7 +186,7 @@
 **Antes de la puerta 4** (condición del DG, 2026-11-08): **las dos vueltas atrás dirigidas, la de Studio (`supabase/cargas/portal-historial-deshacer/`) y la de Chatwoot (la pieza de E5), en `main` y ensayadas** por el DG con `rollback`. No hace falta para las puertas 1 a 3. Sin ellas, el DG no le pide a Sam la puerta 4.
 
 **Y, antes de la puerta 4, la prevención del log** (aprobada por el DG, 2026-11-08). Son dos condiciones, y sin las dos la puerta no sigue:
-- **El cargador tiene la prevención en `main`:** `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'` dentro de su transacción, y no carga si no puede fijarlos. **Confirmada:** entró con la #470, en el tren 9 (#476, `e74cde6fc`). Su run verde es el 42533753896, con L1 a L3 y M35 a M38 en PASÓ. En `cargar-portal.rb`, `DETALLE_DEL_LOG` (`:78`) fija los dos con `SET LOCAL` dentro de la transacción y los lee de vuelta con `SHOW` (`:181-185`). Se puede volver a comprobar con `git show origin/main:infra/ops/portal-historial/cargar-portal.rb`, buscando `log_min_error_statement`.
+- **El cargador tiene la prevención en `main`:** `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'` dentro de su transacción, y no carga si no puede fijarlos. **Confirmada:** entró con la #470, en el tren 9 (#476, `e74cde6fc`). El run verde del árbol de `main` es el 42542272642, sobre `0b749ac74`, cuyo árbol es idéntico al de `e74cde6fc`, con L1 a L3 y M35 a M38 en PASÓ. En `cargar-portal.rb`, `bajar_detalle_del_log!` fija con `SET LOCAL`, dentro de la transacción, los dos valores de `DETALLE_DEL_LOG`. Después los lee de vuelta con `SHOW`, y si no coinciden no carga. Se puede volver a comprobar con `git show origin/main:infra/ops/portal-historial/cargar-portal.rb`, buscando `log_min_error_statement`.
 - **El rol de Rails es superusuario,** porque esos dos parámetros lo piden. En `chatwoot-postgres-1`: `docker exec -i chatwoot-postgres-1 psql -X -At -v ON_ERROR_STOP=1 -U chatwoot -c 'SELECT rolsuper FROM pg_roles WHERE rolname = current_user'`. **Tiene que dar `t`;** si da `f`, la puerta no sigue. El DG midió `t` el 2026-11-08.
 
 **Todo seguido, el mismo día y con el DG, con `chatwoot_portal` apagado.** Se corre en el VPS como root, desde `/srv/ops/portal-historial/` (3.0).
