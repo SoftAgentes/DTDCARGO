@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+# infra/ops/tests/prueba-respaldo-storage.sh — respaldo y restore de los archivos del
+# Storage (SDD-0620): storage-backup.sh, storage-restore.sh y su paso en backup.sh.
+#
+# Sin VPS, sin bucket y sin la llave de Sam: el Storage es una carpeta sintética
+# con marcadores, `age` es un doble que cifra de verdad con openssl (y espía si hay
+# algo en claro en disco cuando arranca), rclone es un doble que copia a una
+# carpeta local, y docker es un doble que contesta «la base está corriendo».
+# Si en el PATH hay un `age` real, también se hace la ida y vuelta con él.
+#
+# Además de los contratos, corre mutantes: copias de los scripts con un defecto
+# sembrado que TIENEN que caer. M0 (sin mutar) es la corrida principal.
+# Pide Linux con GNU tar, openssl y flock: corre en pruebas-linux.sh (CI ubuntu).
+# Uso: bash infra/ops/tests/prueba-respaldo-storage.sh
+set -uo pipefail
+S="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+R="$(cd "${S}/../.." && pwd)"
+T="$(mktemp -d)"
+pass=0; fail=0
+ok() { echo "PASÓ  · $*"; pass=$((pass + 1)); }
+ko() { echo "FALLÓ · $*"; fail=$((fail + 1)); }
+trap 'rm -rf "${T}" /run/lock/backup-zzst.lock' EXIT
+
+MARCA="contenido-$(openssl rand -hex 8)"     # dentro de los archivos
+NOMBRE="nombre$(openssl rand -hex 4)"         # en un nombre de archivo
+export ESPIA_MARCA="${MARCA}" ESPIA_LOG="${T}/espia.log"
+
+echo "== preparación =="
+mkdir -p "${T}/bin" "${T}/ops/backup" "${T}/ops/lib" "${T}/remoto" "${T}/shm" "${T}/rc"
+: > "${ESPIA_LOG}"
+
+# Doble de age: cifra con openssl (aes-256-ctr) y una cabecera con la huella de
+# la llave, para que la llave equivocada falle como en age. Al cifrar, busca la
+# marca en las carpetas de ESPIA_DIRS: si hay un claro en disco, lo anota.
+cat > "${T}/bin/age" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+modo=cifrar; llave=""
+while [ $# -gt 0 ]; do
+  case "$1" in -R|-i) llave="$2"; shift 2 ;; -d) modo=descifrar; shift ;; *) echo "age doble: $1" >&2; exit 2 ;; esac
+done
+pase="$(grep -Eo 'age1[0-9a-z]+' "${llave}" | head -n1)"
+[ -n "${pase}" ] || { echo "age doble: sin llave" >&2; exit 1; }
+huella="$(printf '%s' "${pase}" | sha256sum | cut -c1-16)"
+if [ "${modo}" = cifrar ]; then
+  for d in ${ESPIA_DIRS:-}; do grep -rlsF -D skip -- "${ESPIA_MARCA}" "${d}" >> "${ESPIA_LOG}" || true; done
+  printf 'DOBLE-AGE %s\n' "${huella}"
+  exec openssl enc -aes-256-ctr -pbkdf2 -iter 1000 -pass "pass:${pase}"
+fi
+IFS= read -r cab || true
+[ "${cab}" = "DOBLE-AGE ${huella}" ] || { echo "age doble: no es para esta llave" >&2; exit 1; }
+exec openssl enc -d -aes-256-ctr -pbkdf2 -iter 1000 -pass "pass:${pase}"
+EOF
+# Doble de rclone: <remoto>:<ruta> es ${RCLONE_DOBLE_RAIZ}/<ruta>.
+cat > "${T}/bin/rclone" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+ruta() { printf '%s/%s' "${RCLONE_DOBLE_RAIZ}" "${1#*:}"; }
+printf '%s\n' "$*" >> "${RCLONE_DOBLE_RAIZ}/.llamadas"
+cmd="$1"; shift
+case "${cmd}" in
+  copy) mkdir -p "$(ruta "$2")"; cp -p "$1" "$(ruta "$2")/" ;;
+  check)
+    src="$1"; dst="$(ruta "$2")"; shift 2; inc=""
+    while [ $# -gt 0 ]; do case "$1" in --include) inc="${2#/}"; shift 2 ;; *) shift ;; esac; done
+    n=0; for f in "${src%/}"/${inc}; do n=$((n + 1)); cmp -s "${f}" "${dst}/$(basename "${f}")" || { echo "check: difiere ${f}" >&2; exit 1; }; done
+    [ "${n}" -gt 0 ] || { echo "check: nada que comparar" >&2; exit 1; } ;;
+  delete)
+    edad=""; while [ $# -gt 1 ]; do case "$1" in --min-age) edad="${2%d}"; shift 2 ;; *) shift ;; esac; done
+    [ -d "$(ruta "$1")" ] && find "$(ruta "$1")" -type f -mtime "+${edad}" -delete ;;
+  *) echo "rclone doble: ${cmd}" >&2; exit 2 ;;
+esac
+EOF
+printf '#!/usr/bin/env bash\n[ "$1" = ps ] && echo abc123\nexit 0\n' > "${T}/bin/docker"
+chmod 700 "${T}/bin/"*
+export PATH="${T}/bin:${PATH}" RCLONE_DOBLE_RAIZ="${T}/remoto" RCLONE_BIN="${T}/bin/rclone" AGE_BIN="${T}/bin/age"
+echo "age1pruebadoble$(openssl rand -hex 16)" > "${T}/rec"
+cp "${T}/rec" "${T}/id"   # el doble descifra con la misma línea
+
+# Storage sintético: anidado, binario, vacío, con espacios, uno grande y una carpeta vacía.
+SRC="${T}/storage"
+mkdir -p "${SRC}/stub/client-docs/u1" "${SRC}/stub/receipt-photos" "${SRC}/stub/documents" "${SRC}/stub/vacia"
+{ echo "${MARCA}"; openssl rand 4096; } > "${SRC}/stub/client-docs/u1/cedula-${NOMBRE}.jpg"
+{ echo "${MARCA}"; openssl rand 1000; } > "${SRC}/stub/receipt-photos/foto de recepción.png"
+: > "${SRC}/stub/documents/vacio.pdf"
+{ openssl rand 2097152; echo "${MARCA}"; } > "${SRC}/stub/documents/grande.bin"
+echo "${MARCA}" > "${SRC}/stub/client-docs/u1/notas.txt"
+N_SRC="$(find "${SRC}" -type f | wc -l | tr -d ' ')"
+indep() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum); }
+
+BK="${S}/backup/storage-backup.sh"
+RS="${S}/backup/storage-restore.sh"
+# respaldar <script> <out>: deja la salida en ${T}/bk.log y el código en ${rc}.
+respaldar() {
+  ESPIA_DIRS="$2 ${T}/shm ${T}/remoto" bash "$1" --project zzst --source "${SRC}" --remote zz:bucket/storage \
+    --age-recipients "${T}/rec" --out "$2" --work-dir "${T}/shm" --rclone-config "${T}/rc" "${@:3}" > "${T}/bk.log" 2>&1
+  rc=$?
+}
+ultima_base() { basename "$(ls "$1"/zzst/storage/*.manifiesto 2>/dev/null | sort | tail -n1)" .manifiesto; }
+
+# ── Contratos: cada uno sale 0 si se cumple. Los mutantes los tienen que romper. ──
+# C1 · el respaldo deja solo cifrados y un manifiesto sin rutas; nada en claro en disco.
+contrato_sin_claro() { # <script de respaldo> <out>
+  : > "${ESPIA_LOG}"; respaldar "$1" "$2"; [ "${rc}" = 0 ] || return 1
+  [ ! -s "${ESPIA_LOG}" ] || return 1
+  ! grep -rqsF -D skip -e "${MARCA}" -e "${NOMBRE}" "$2" "${T}/shm" "${T}/remoto" || return 1
+  [ -z "$(ls -A "${T}/shm")" ] || return 1
+  [ -z "$(find "$2" -type f ! -name '*.age' ! -name '*.manifiesto')" ]
+}
+# C2 · la restauración devuelve los mismos archivos, con los mismos sha256, que el origen.
+contrato_restaura() { # <script de respaldo> <script de restore> <out>
+  respaldar "$1" "$3"; [ "${rc}" = 0 ] || return 1
+  local b d; b="$(ultima_base "$3")"; d="${T}/restaurado-$RANDOM"
+  bash "$2" --dir "${T}/remoto/bucket/storage/zzst" --base "${b}" --age-identity "${T}/id" --destino "${d}" --work-dir "${T}/shm" > "${T}/rs.log" 2>&1 || return 1
+  [ "$(indep "${SRC}")" = "$(indep "${d}")" ] && diff -r "${SRC}" "${d}" > /dev/null
+}
+# C3 · un cifrado dañado se detecta por su sha256 ANTES de descifrar.
+contrato_sha_antes() { # <script de restore> <carpeta con el respaldo> <base>
+  local c="${T}/danado-$RANDOM"; mkdir -p "${c}"; cp "$2/$3".* "$2/$3"-lista.age "${c}/"
+  printf 'x' | dd of="${c}/$3.tar.age" bs=1 seek=200 conv=notrunc 2>/dev/null
+  bash "$1" --dir "${c}" --base "$3" --age-identity "${T}/id" --verificar --work-dir "${T}/shm" > "${T}/rs.log" 2>&1
+  [ $? = 1 ] && grep -q 'sha256 de los cifrados no coincide' "${T}/rs.log" && ! grep -q 'descifrado y tar' "${T}/rs.log"
+}
+# C4 · backup.sh respalda el Storage del proyecto (la carpeta de DTD_DATA_DIR) y lo sube.
+P="${T}/proyecto"
+mkdir -p "${P}/data"; cp -a "${SRC}" "${P}/data/storage"
+for s in pg-dump-to-s3.sh config-backup.sh; do printf '#!/usr/bin/env bash\nexit 0\n' > "${T}/ops/backup/${s}"; done
+cp "${S}/lib/storage-lista.sh" "${T}/ops/lib/"
+cat > "${P}/.env" <<EOF
+PROYECTO=zzst
+OPS_DIR=${T}/ops
+POSTGRES_PASSWORD='clave-de-prueba'
+BACKUP_HEARTBEAT_URL=
+BACKUP_DIR=${T}/out-integ
+RCLONE_CONFIG_DIR=${T}/rc
+BACKUP_AGE_RECIPIENTS_FILE=${T}/rec
+BACKUP_STORAGE_RCLONE_REMOTE=zz:bucket/integ
+EOF
+contrato_backup_sh() { # <backup.sh> <storage-backup.sh>
+  cp "$1" "${P}/backup.sh"; cp "$2" "${T}/ops/backup/storage-backup.sh"; chmod 700 "${P}/backup.sh" "${T}/ops/backup/"*
+  rm -rf "${T}/remoto/bucket/integ" "${T}/out-integ"
+  bash "${P}/backup.sh" > "${T}/integ.log" 2>&1 || return 1
+  grep -q 'RESULTADO: PASÓ' "${T}/integ.log" || return 1
+  local m; m="$(ls "${T}"/remoto/bucket/integ/zzst/zzst-storage-*.manifiesto 2>/dev/null | head -n1)"
+  [ -n "${m}" ] && grep -qx "archivos=${N_SRC}" "${m}" && ls "${T}"/remoto/bucket/integ/zzst/zzst-storage-*.tar.age > /dev/null 2>&1
+}
+
+echo; echo "== M0 · scripts sin mutar =="
+contrato_sin_claro "${BK}" "${T}/out" && ok "C1 · solo .age y manifiesto; ni la marca ni el nombre en disco, remoto ni /dev/shm; el espía no vio claros" \
+  || { ko "C1 sin claro (rc=${rc})"; tail -5 "${T}/bk.log"; cat "${ESPIA_LOG}"; }
+B="$(ultima_base "${T}/out")"
+M="${T}/out/zzst/storage/${B}.manifiesto"
+grep -qx "archivos=${N_SRC}" "${M}" && grep -qx "archivos_en_disco=${N_SRC}" "${M}" && grep -qx "bytes=$(find "${SRC}" -type f -printf '%s\n' | awk '{s+=$1} END {print s}')" "${M}" \
+  && ok "el manifiesto cuenta ${N_SRC} archivos y sus bytes" || { ko "manifiesto"; cat "${M}"; }
+[ "$(grep -cE '^[0-9a-f]{64}  zzst-storage-' "${M}")" = 2 ] && grep -qE '^flujo_sha256=[0-9a-f]{64}$' "${M}" \
+  && ok "el manifiesto trae la huella del flujo y el sha256 de los dos cifrados" || ko "huellas del manifiesto"
+[ -f "${T}/remoto/bucket/storage/zzst/${B}.tar.age" ] && [ -f "${T}/remoto/bucket/storage/zzst/${B}-lista.age" ] && [ -f "${T}/remoto/bucket/storage/zzst/${B}.manifiesto" ] \
+  && ok "los tres archivos llegan a <remoto>/zzst/" || ko "subida al remoto"
+grep -q '^check .* --one-way --include /zzst-storage-' "${T}/remoto/.llamadas" && grep -q '^delete --min-age 30d zz:bucket/storage/zzst/$' "${T}/remoto/.llamadas" \
+  && ! grep -q '^sync' "${T}/remoto/.llamadas" && ok "rclone: copy + check, retención acotada a zz:bucket/storage/zzst/ y nunca sync" || { ko "llamadas a rclone"; cat "${T}/remoto/.llamadas"; }
+
+bash "${RS}" --dir "${T}/remoto/bucket/storage/zzst" --age-identity "${T}/id" --verificar --work-dir "${T}/shm" > "${T}/rs.log" 2>&1
+[ $? = 0 ] && [ "$(grep -c '^PASÓ' "${T}/rs.log")" = 5 ] && [ -z "$(ls -A "${T}/shm")" ] \
+  && ok "--verificar: 5 comprobaciones PASÓ sin escribir archivos y sin restos en /dev/shm" || { ko "--verificar"; cat "${T}/rs.log"; }
+contrato_restaura "${BK}" "${RS}" "${T}/out" && ok "C2 · --destino devuelve los mismos ${N_SRC} archivos, sha256 y carpetas que el origen" || { ko "C2 restaura"; cat "${T}/rs.log"; }
+contrato_sha_antes "${RS}" "${T}/out/zzst/storage" "${B}" && ok "C3 · un byte cambiado en el .tar.age: FALLÓ por sha256 antes de descifrar" || { ko "C3 sha antes"; cat "${T}/rs.log"; }
+cp "${T}/rec" "${T}/otra"; sed -i 's/age1pruebadoble/age1pruebaotra/' "${T}/otra"
+bash "${RS}" --dir "${T}/out/zzst/storage" --base "${B}" --age-identity "${T}/otra" --verificar --work-dir "${T}/shm" > "${T}/rs.log" 2>&1
+[ $? = 1 ] && grep -q 'no se pudo descifrar la lista' "${T}/rs.log" && ok "con otra llave: FALLÓ sin descifrar nada" || { ko "otra llave"; cat "${T}/rs.log"; }
+mkdir -p "${T}/ocupada"; touch "${T}/ocupada/algo"
+bash "${RS}" --dir "${T}/out/zzst/storage" --age-identity "${T}/id" --destino "${T}/ocupada" > "${T}/rs.log" 2>&1
+[ $? = 2 ] && grep -q 'no está vacía' "${T}/rs.log" && ok "--destino ocupado: se niega (2) y no escribe encima" || ko "destino ocupado"
+mkdir -p /run/lock 2>/dev/null
+contrato_backup_sh "${R}/infra/dtd-cargo/backup.sh" "${BK}" && ok "C4 · backup.sh respalda data/storage del proyecto y lo sube a BACKUP_STORAGE_RCLONE_REMOTE" \
+  || { ko "C4 backup.sh"; tail -8 "${T}/integ.log"; }
+rm -rf "${P}/data/storage"
+bash "${P}/backup.sh" > "${T}/integ.log" 2>&1
+[ $? = 1 ] && grep -q 'storage-backup.sh salió 2' "${T}/integ.log" && grep -q 'RESULTADO: FALLÓ' "${T}/integ.log" \
+  && ok "backup.sh sin la carpeta del Storage: FALLÓ (no late)" || { ko "backup.sh sin storage"; tail -4 "${T}/integ.log"; }
+cp -a "${SRC}" "${P}/data/storage"   # los mutantes corren con el mismo origen que M0
+
+echo; echo "== validaciones del respaldo =="
+mkdir -p "${T}/vacio"
+bash "${BK}" --project zzst --source "${T}/vacio" --remote zz:bucket/storage --age-recipients "${T}/rec" --out "${T}/out-v" --work-dir "${T}/shm" > "${T}/v.log" 2>&1
+[ $? = 2 ] && grep -q 'tiene 0 archivos' "${T}/v.log" && [ ! -e "${T}/out-v" ] && ok "Storage vacío (carpeta equivocada): se niega sin escribir" || { ko "vacío"; cat "${T}/v.log"; }
+printf 'AGE-SECRET-KEY-1XXXX\n' > "${T}/priv"
+bash "${BK}" --project zzst --source "${SRC}" --remote zz:bucket/storage --age-recipients "${T}/priv" --out "${T}/out-v" > "${T}/v.log" 2>&1
+[ $? = 2 ] && grep -q 'clave PRIVADA' "${T}/v.log" && ok "destinatarios con una clave privada: se niega" || ko "clave privada"
+bash "${BK}" --project zzst --source "${SRC}" --remote zz:bucket --age-recipients "${T}/rec" --out "${T}/out-v" > "${T}/v.log" 2>&1
+[ $? = 2 ] && grep -q 'nunca la raíz del bucket' "${T}/v.log" && ok "remoto sin prefijo: se niega (la retención nunca corre en la raíz)" || ko "remoto sin prefijo"
+respaldar "${BK}" "${T}/out-v" --dry-run
+[ "${rc}" = 0 ] && grep -q "dry-run: ${N_SRC} archivos" "${T}/bk.log" && [ ! -e "${T}/out-v" ] && ok "--dry-run cuenta los archivos y no escribe nada" || { ko "dry-run"; cat "${T}/bk.log"; }
+for i in 1 2 3; do sleep 1; respaldar "${BK}" "${T}/out-ret"; done
+r="${T}/out-ret/zzst/storage"
+[ "$(ls "${r}"/*.manifiesto | wc -l)" = 2 ] && [ "$(ls "${r}"/*.tar.age | wc -l)" = 2 ] && [ "$(ls "${r}"/*-lista.age | wc -l)" = 2 ] \
+  && ok "tres respaldos: en disco local quedan los 2 más nuevos, con su lista" || { ko "retención local"; ls "${r}"; }
+
+if [ -x /usr/bin/age ] && command -v age-keygen > /dev/null 2>&1; then
+  echo; echo "== con age real =="
+  age-keygen -o "${T}/shm/k.txt" 2> /dev/null; age-keygen -y "${T}/shm/k.txt" > "${T}/rec-real"
+  AGE_BIN=/usr/bin/age bash "${BK}" --project zzst --source "${SRC}" --remote zz:bucket/real --age-recipients "${T}/rec-real" --out "${T}/out-real" --work-dir "${T}/shm" > "${T}/bk.log" 2>&1 \
+    && AGE_BIN=/usr/bin/age bash "${RS}" --dir "${T}/remoto/bucket/real/zzst" --age-identity "${T}/shm/k.txt" --verificar > "${T}/rs.log" 2>&1 \
+    && ok "ida y vuelta con age real: --verificar PASÓ" || { ko "age real"; tail -5 "${T}/bk.log" "${T}/rs.log"; }
+  rm -f "${T}/shm/k.txt"
+else
+  echo "age real no está instalado: la ida y vuelta corre solo con el doble"
+fi
+
+echo; echo "== mutantes: cada uno tiene que caer =="
+mkdir -p "${T}/mut"
+mutar() { # <nombre> <original> <expresión sed> → ruta de la copia; exige que sed cambie algo
+  local c="${T}/mut/$1-$(basename "$2")"
+  sed "$3" "$2" > "${c}"; chmod 700 "${c}"
+  if cmp -s "$2" "${c}"; then echo ""; else echo "${c}"; fi
+}
+detectado() { # <nombre> <descripción> <comando de contrato…>
+  local n="$1" d="$2"; shift 2
+  if "$@"; then ko "${n} NO detectado: ${d}"; else ok "${n} detectado: ${d}"; fi
+}
+# Base limpia: el mismo contrato, con los mismos argumentos y los scripts sin
+# mutar, tiene que pasar justo antes. Si no, el mutante «cae» por otra razón.
+limpio() { local n="$1"; shift; if "$@"; then ok "${n} · base limpia: el contrato pasa sin mutar"; else ko "${n} · base sucia: el contrato no pasa ni sin mutar"; fi; }
+# Los mutantes del respaldo viven en ${T}/mut y sacan la lista de ${T}/mut/../lib.
+mkdir -p "${T}/lib"; cp "${S}/lib/storage-lista.sh" "${T}/lib/"
+m="$(mutar M1 "${R}/infra/dtd-cargo/backup.sh" '/^"${storage_script}" \\$/,/storage-backup.sh salió/d')"
+limpio M1 contrato_backup_sh "${R}/infra/dtd-cargo/backup.sh" "${BK}"
+[ -n "${m}" ] && detectado M1 "backup.sh sin el paso del Storage" contrato_backup_sh "${m}" "${BK}" || ko "M1: sed no cambió nada"
+m="$(mutar M2 "${BK}" 's#| "${AGE_BIN}" -R "${AGE_RECIPIENTS}" > "${tar_age}.part"#> "${dir}/claro.tar"; "${AGE_BIN}" -R "${AGE_RECIPIENTS}" < "${dir}/claro.tar" > "${tar_age}.part"; rm -f "${dir}/claro.tar"#')"
+limpio M2 contrato_sin_claro "${BK}" "${T}/out-m2"
+[ -n "${m}" ] && detectado M2 "el tar pasa por disco en claro antes de cifrarse (y se borra)" contrato_sin_claro "${m}" "${T}/out-m2" || ko "M2: sed no cambió nada"
+m="$(mutar M3 "${BK}" 's#tar -C "${SOURCE}" --numeric-owner -cf - \.#tar -C "${SOURCE}" --numeric-owner --exclude=./stub/client-docs -cf - .#')"
+limpio M3 contrato_restaura "${BK}" "${RS}" "${T}/out-m3"
+[ -n "${m}" ] && detectado M3 "el tar deja fuera una carpeta del Storage" contrato_restaura "${m}" "${RS}" "${T}/out-m3" || ko "M3: sed no cambió nada"
+m="$(mutar M4 "${RS}" 's#sha256sum -c --quiet --status#cat#')"
+limpio M4 contrato_sha_antes "${RS}" "${T}/out/zzst/storage" "${B}"
+[ -n "${m}" ] && detectado M4 "el restore no compara el sha256 de los cifrados" contrato_sha_antes "${m}" "${T}/out/zzst/storage" "${B}" || ko "M4: sed no cambió nada"
+m="$(mutar M5 "${RS}" 's#if cmp -s "${work}/lista-respaldo" "${work}/lista-flujo"; then#if true; then#')"
+if [ -n "${m}" ]; then
+  # Respaldo con un archivo menos en la lista que en el tar: la lista miente.
+  mkdir -p "${T}/m5"; cp "${T}/out/zzst/storage/${B}".* "${T}/out/zzst/storage/${B}-lista.age" "${T}/m5/"
+  "${T}/bin/age" -d -i "${T}/id" < "${T}/m5/${B}-lista.age" | grep -v notas.txt | "${T}/bin/age" -R "${T}/rec" > "${T}/m5/l"
+  mv "${T}/m5/l" "${T}/m5/${B}-lista.age"
+  sed -i "/  ${B}-lista.age\$/d" "${T}/m5/${B}.manifiesto"; printf '%s  %s\n' "$(sha256sum < "${T}/m5/${B}-lista.age" | cut -c1-64)" "${B}-lista.age" >> "${T}/m5/${B}.manifiesto"
+  lista_cae() { bash "$1" --dir "${T}/m5" --base "${B}" --age-identity "${T}/id" --verificar --work-dir "${T}/shm" > "${T}/rs.log" 2>&1; [ $? = 1 ] && grep -q 'no coincide con la lista' "${T}/rs.log"; }
+  lista_cae "${RS}" && ok "una lista que no cuadra con el flujo: FALLÓ" || { ko "lista distinta"; cat "${T}/rs.log"; }
+  detectado M5 "el restore no compara la lista por archivo" lista_cae "${m}"
+else ko "M5: sed no cambió nada"; fi
+
+echo; echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
+[ "${fail}" = 0 ]
