@@ -114,7 +114,7 @@
 
 - **`docs/runbooks/backup-restore-servidor.md`:** las 4 apariciones de `r2:dtdcargo-backups/db`, en las líneas 85, 86, 185 y 187, pasan a `b2:dtdcargo-respaldos/db`.
   - Arriba del bloque va una nota con la medición: `rclone.conf` tiene solo `[b2]`, y `backup.sh` usa ese remoto por defecto.
-  - **La línea del `rclone sync r2:dtdcargo-storage`** (hoy la `:406`, la copia del storage) lleva la marca ‹vencido…›, medida por el DG. Va en FUERA DE ALCANCE.
+  - **La línea del `rclone sync r2:dtdcargo-storage`** llevó la marca ‹vencido…› hasta el merge de `main` después de la #482, que la reemplazó por el respaldo diario real (ver abajo).
 - **El 4.1 del runbook de las puertas:**
   - Studio corre `backup.sh` y sube a `b2:dtdcargo-respaldos/db`;
   - Chatwoot corre `respaldo.sh` y sube a `b2:dtdcargo-respaldos/chatwoot`;
@@ -166,7 +166,7 @@
 - **`SISTEMA`:** se lee en una variable sin imprimirlo, y solo sale `sistema_leido` o `sistema_no_leido`.
 - **El abandono:** `limpiar.sh --abandono-4-6b`, con su OK de Sam. La vuelta atrás del 3.0 es `find /srv/ops/portal-historial -mindepth 1 -maxdepth 1 ! -name deshacer -exec rm -r -- {} +`.
 - **El cierre del checkout:** se corre desde la carpeta del repo y se comprueba con `test ! -e ../portal-3-0 && echo borrado`.
-- **Las filas 1 y 1b** dicen solo lo que comprueba la #478. El 1b cita `7c4e0410b`, que ya está en la #478 remota.
+- **Las filas 1 y 1b** dicen lo que comprueba la #478. La revisión del DG en `e038f3a7e` pidió precisarlas. Ver «La revisión del DG en `e038f3a7e`», abajo.
 - **Lo no bloqueante:**
   - el control de la estática exige el motivo de cada caso, y son 18;
   - `sinComentarios()` respeta los literales;
@@ -182,3 +182,35 @@
 | `docs:check` | PASÓ. Ninguna tabla del runbook quedó con las celdas mal |
 | tsc del proyecto | NO EJECUTADO en la PC, por indicación del Subdirector. Lo mide «Calidad local» |
 | `pnpm verify` | NO EJECUTADO |
+
+### La revisión del DG en `e038f3a7e` (CHANGES_REQUESTED), preparada en local
+
+**Bloqueante 1, el B3 a medias:**
+- El 3.0 copia **por nombre**, sin `scp -r`. Crea la carpeta con `install -d -m 700` y copia los 10 scripts de `main`. Los de la #473 y la #478 van en sus propios `scp`, con su marca.
+- `README.md` y `pruebas/` no se copian.
+- «Para seguir» exige que `ls -A` liste solo lo de la lista y `migraciones/`.
+- El OK lo dice: «copiados por nombre y comparados por sha256, sin `README.md` ni `pruebas/`».
+
+**Bloqueante 2, las filas 1 y 1b, contra `deshacer.sh` de la #478 en `924db030b`:**
+- **La fila 1** lista toda su guarda de Studio (`:113-156`): la fila del flag, el flag nunca encendido, la cola sin correr, que haya hilos vinculados y que los espejos sean de esta bandeja. A eso se suma lo ajeno en Chatwoot.
+- **La fila 1b** va «solo antes del paso 3». Exige el `.ndjson` y la misma guarda.
+  - **Hoy** borra `chatwoot-borrar.hecho` de las dos copias al empezar (`:96-97`).
+  - Con el `.inicio` ‹por confirmar hasta la #478›, se niega con `ya_hay_un_borrado_en_la_copia_durable`.
+
+**Lo no bloqueante:**
+- **Dónde corre cada cosa:** los `ssh` y `scp` se corren dentro del checkout. La creación y el cierre, desde el repo.
+- **La vuelta atrás del 3.0:** quita la carpeta vacía con `rmdir` si no queda `deshacer/`.
+- **`SISTEMA`:** ya no se lee en la shell de Sam. Sale de `sistema-produccion`, y el guion imprime su sha corto para compararlo con la nota del DG: `b4fbe1b236` en producción y `76ebba046a` en prueba. Queda ‹por confirmar hasta la #480›, en su vuelta.
+- **La fila 4:** exige también `chatwoot-seco.hecho`.
+- **`DB_CW` y `DB`:** tienen valor por defecto, y en los comandos se escriben explícitos.
+- **`sinComentarios()`:** anota que no maneja `E'…'` ni `$$`.
+- **Este handoff:** se corrigieron las líneas vencidas sobre el storage y sobre las filas 1 y 1b.
+
+**N5, cuando el paso 4 confirmó pero no quedó `studio-aplicar.hecho`:**
+- El DG comprueba en solo lectura que los cuatro conteos del desarme dan 0.
+- Con el OK de Sam se repite el paso 4 con los `ESPERADOS_*` en 0. La SQL compara los conteos con lo esperado, así que no toca nada y escribe el `.hecho`.
+- Después, el cierre.
+
+**El `.inicio` sin `.hecho`:**
+- El DG mira en solo lectura si la bandeja del portal quedó vacía.
+- Con el OK de Sam, se sigue según lo que dio. Los comandos de cada caso los fija la #478.

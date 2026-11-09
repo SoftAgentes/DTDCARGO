@@ -117,7 +117,11 @@ const CASOS: [string, string, RegExp][] = [
  * Lo que una lectura de solo lectura no puede tener. Devuelve los motivos; vacío es «limpia».
  * Sin comentarios `--`. La única metaorden permitida es `\set ON_ERROR_STOP on` en su propia línea.
  */
-/** Quita los comentarios `--`, pero no un `--` dentro de un literal entre comillas simples (`'a--b'`). */
+/**
+ * Quita los comentarios `--`, pero no un `--` dentro de un literal entre comillas simples (`'a--b'`).
+ * No maneja los literales con escape `E'…\'…'` ni el dollar quoting `$$…$$`: las dos lecturas no los usan, y un `do $$`
+ * ya lo atrapa la palabra `do`.
+ */
 function sinComentarios(guion: string): string {
   let out = "";
   let enLiteral = false;
