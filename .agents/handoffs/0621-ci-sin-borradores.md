@@ -42,13 +42,22 @@ Ruleset de main consultado (solo metadatos): 22364692 «DTD main - PR y calidad 
 - **Un check `skipped` de un borrador no es un rojo.** Los vigías que cuentan como fallo cualquier corrida
   `completed` distinta de `success` sobre la cabeza tienen que ignorar `skipped` (lo ajusta el Director General).
 - **Tampoco es un verde.** El ruleset cuenta el `skipped` como aprobado, así que entre `gh pr ready` y el registro de
-  la corrida nueva la PR puede verse fusionable sin CI real. Regla: **success de una corrida `pull_request` sobre la
-  cabeza exacta, creada después del `ready_for_review`**. Está en el comentario del job, en el runbook y el contrato
-  falla si se pierde.
+  la corrida nueva la PR puede verse fusionable sin CI real. Regla: **`success`, no `skipped`, del check requerido, en
+  una corrida `pull_request` sobre la cabeza exacta**, leída en
+  `gh api repos/SoftAgentes/DTDCARGO/commits/<sha>/check-runs?check_name=Calidad%20local%20sin%20secretos`.
+  `gh pr checks` no basta (cuenta el `skipped` como «skipping» y sale con 0). Re-ejecutar una corrida de borrador no
+  la rescata: push nuevo, o `gh pr ready --undo` y `gh pr ready`. Está en el comentario del job, en el runbook y en la
+  skill Director, y el contrato falla si se pierde.
 - Trenes del Director General: se abren en borrador y se marcan listos con `gh pr ready`; ahí corre la Calidad. No
   hay excepción por nombre de rama.
 
 ## Pendientes de esta tarea
+
+- PR #481 (cambio principal) abierta lista, APPROVED por la revisión independiente sobre `0429fec83`; la fusiona el DG
+  con CI verde en esa cabeza.
+- Rama `claude/0621-porton-exacto` (seguimiento no bloqueante de la revisión: comprobación exacta, re-ejecución,
+  carrera de concurrencia, rutas exactas). Se publica y se abre **en borrador** cuando la #481 esté en main; así es
+  también la primera prueba real (`skipped` en borrador, corrida tras `gh pr ready`).
 
 - [ ] Cuando vuelva Actions: push de la rama y PR en borrador a main. Verificar que en borrador «Calidad continua»
       sale `skipped`, marcar con `gh pr ready` y comprobar que corre completa y que el ruleset toma esa corrida
@@ -70,4 +79,7 @@ Ruleset de main consultado (solo metadatos): 22364692 «DTD main - PR y calidad 
    `:publicable`; antes habría que cambiar esa fuente a la corrida de la PR fusionada.
 2. **Runner propio** en una máquina aparte (nunca en el VPS de producción): los minutos de un runner self-hosted no se
    cobran. Cuidado con un repo con PR de terceros y con dejar Docker y secretos al alcance de los jobs.
-3. Medir cuánto baja el gasto en la semana siguiente con la misma consulta de corridas (solo metadatos).
+3. `sql-tests.yml`, `chatwoot-correo-sistema.yml` y `chatwoot-portal-poc.yml` siguen corriendo en borradores.
+4. Sumar el estado de borrador al grupo de concurrencia para cerrar la carrera `synchronize`/`ready_for_review`
+   (documentada en la spec).
+5. Medir cuánto baja el gasto en la semana siguiente con la misma consulta de corridas (solo metadatos).

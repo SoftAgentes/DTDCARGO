@@ -443,19 +443,44 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     // El ruleset de main cuenta el `skipped` como aprobado: sin esta regla, la PR recién marcada lista se ve
     // fusionable antes de que exista la corrida que la prueba.
     const runbook = readFileSync(resolve("docs/runbooks/codex-engineering.md"), "utf8").replace(/\s+/g, " ");
-    expect(runbook).toContain(
-      "success de una corrida `pull_request` sobre la cabeza exacta, creada después del `ready_for_review`",
-    );
+    const regla = "`success`, no `skipped`, del check requerido, en una corrida `pull_request` sobre la cabeza exacta";
+    expect(runbook).toContain(regla);
+    expect(workflow.replace(/\s*#\s*/g, " ")).toContain(regla);
+    // La comprobación se lee en el check run; `gh pr checks` cuenta el `skipped` como «skipping» y sale con 0.
+    expect(runbook).toContain("commits/<sha>/check-runs?check_name=Calidad%20local%20sin%20secretos");
+    expect(runbook).toContain("No basta `gh pr checks`");
+    // Re-ejecutar no rescata el `skipped`: el remedio es push o --undo y ready.
+    expect(runbook).toContain("gh pr ready <numero> --undo");
     expect(runbook).toContain("gh pr ready <numero>");
-    expect(workflow.replace(/\s*#\s*/g, " ")).toContain("creada después del `ready_for_review`");
   });
 
-  it("los cargadores conservan su filtro de rutas", () => {
-    for (const archivo of ["kommo-historial-cargador.yml", "portal-historial-cargador.yml"]) {
-      const paths = leer(archivo).on.pull_request.paths;
-      expect(paths.length, archivo).toBeGreaterThanOrEqual(5);
-      expect(paths, archivo).toContain(`.github/workflows/${archivo}`);
-    }
+  it("los cargadores conservan su filtro de rutas, ruta por ruta", () => {
+    // Exactas y no «al menos N»: quitar una ruta deja de probar lo que cambia en ella sin que nada lo note.
+    const comunes = [
+      "infra/chatwoot/compose.yml",
+      "infra/chatwoot/pruebas/compose.local.yml",
+      "infra/chatwoot/rails/**",
+    ];
+    expect(leer("kommo-historial-cargador.yml").on.pull_request.paths).toEqual([
+      "infra/ops/kommo-historial/**",
+      ...comunes,
+      ".github/workflows/kommo-historial-cargador.yml",
+    ]);
+    expect(leer("portal-historial-cargador.yml").on.pull_request.paths).toEqual([
+      "infra/ops/portal-historial/**",
+      "supabase/migrations/0006_clients.sql",
+      "supabase/migrations/0106_conversaciones.sql",
+      "supabase/migrations/0337_feature_flags_seed_and_trigger.sql",
+      "supabase/migrations/0503_chatwoot_bandeja.sql",
+      "supabase/migrations/0504_chatwoot_eventos.sql",
+      "supabase/migrations/0519_chatwoot_portal.sql",
+      "supabase/migrations/0520_chatwoot_portal_vuelta.sql",
+      "supabase/migrations/0523_chatwoot_portal_carga.sql",
+      "supabase/migrations/0508_chatwoot_bajas_purga.sql",
+      "supabase/migrations/0524_chatwoot_portal_puerta4.sql",
+      ...comunes,
+      ".github/workflows/portal-historial-cargador.yml",
+    ]);
   });
 
   it.each([

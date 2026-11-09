@@ -196,9 +196,22 @@ sobre la cabeza; cada push posterior la repite. Para volver a iterar sin gastar,
 `gh pr ready <numero> --undo`. Un check `skipped` **no es verde** aunque el
 ruleset de main lo cuente como aprobado: entre `gh pr ready` y el registro de la
 corrida nueva, la PR puede verse fusionable sin CI real. Regla para quien
-fusiona: **success de una corrida `pull_request` sobre la cabeza exacta, creada
-después del `ready_for_review`**. Una corrida `skipped` de un borrador no es un
-rojo: los vigías no la cuentan como fallo.
+fusiona: **`success`, no `skipped`, del check requerido, en una corrida
+`pull_request` sobre la cabeza exacta**. Se lee el check run, no el resumen:
+
+```bash
+gh api "repos/SoftAgentes/DTDCARGO/commits/<sha>/check-runs?check_name=Calidad%20local%20sin%20secretos" --jq '.check_runs[] | [.status, .conclusion, .app.slug] | @tsv'
+```
+
+Vale solo `completed`, `success`, `github-actions` (el filtro por defecto,
+`latest`, trae la corrida más reciente de ese nombre). **No basta
+`gh pr checks`**: muestra el `skipped` como «skipping» y sale con 0.
+
+Re-ejecutar una corrida que nació en borrador no rescata el `skipped`: la
+re-ejecución usa el evento original, con `draft: true`, y vuelve a saltar. El
+remedio es un push nuevo con la PR lista, o `gh pr ready <numero> --undo` y
+`gh pr ready <numero>`. Una corrida `skipped` de un borrador no es un rojo: los
+vigías no la cuentan como fallo.
 `push` a `main` y `workflow_dispatch` corren siempre (para correr el CI de un
 borrador a propósito: `gh workflow run quality.yml --ref <rama>`; esa corrida
 prueba la rama sola y no reemplaza la de la PR, que prueba su fusión con `main`). El contrato

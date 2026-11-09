@@ -96,10 +96,18 @@ corridas en borrador no lo alimentan.
 - **Riesgo conocido: la ventana del `skipped`.** Si GitHub cuenta el `skipped`
   del borrador como aprobado, entre `gh pr ready` y el registro de la corrida
   nueva la PR puede verse «verde» y fusionarse sin CI real. Regla para quien
-  fusiona: **success de una corrida `pull_request` sobre la cabeza exacta, creada
-  después del `ready_for_review`**. Está en el comentario del job en
-  `quality.yml` y en el runbook `codex-engineering.md`; el contrato falla si el
-  runbook o el workflow la pierden.
+  fusiona: **`success`, no `skipped`, del check requerido, en una corrida
+  `pull_request` sobre la cabeza exacta**. (La primera redacción, «creada
+  después del `ready_for_review`», no servía para una PR abierta ya lista, que
+  nunca pasa por ese evento.) Se lee la `conclusion` del check run «Calidad local
+  sin secretos» con `gh api repos/SoftAgentes/DTDCARGO/commits/<sha>/check-runs`;
+  `gh pr checks` no basta, porque muestra el `skipped` como «skipping» y sale con
+  0. Está en el comentario del job en `quality.yml`, en el runbook
+  `codex-engineering.md` y en la skill Director; el contrato falla si el runbook
+  o el workflow la pierden.
+- **Re-ejecutar no rescata el `skipped`.** La re-ejecución de una corrida usa el
+  evento original, con `draft: true`, y vuelve a saltar. Remedio: un push nuevo
+  con la PR lista, o `gh pr ready <n> --undo` y `gh pr ready <n>`.
 - **Vigías.** Una corrida `skipped` de un borrador no es un rojo. Los vigías que
   cuentan como fallo cualquier `completed` distinto de `success` tienen que
   ignorar `skipped` (ajuste del Director General).
@@ -114,6 +122,19 @@ corridas en borrador no lo alimentan.
   `ready_for_review`.
 - Si una PR vuelve a borrador con una corrida en curso y se empuja, la corrida
   nueva (saltada) cancela la anterior por concurrencia. Es lo deseado.
+- **Carrera de concurrencia entre `synchronize` en borrador y `ready_for_review`.**
+  La concurrencia es por rama (`quality-<workflow>-<ref>`, `cancel-in-progress`),
+  sin distinguir borrador de lista. Si se empuja con la PR en borrador y casi a
+  la vez se marca lista, salen dos corridas sobre la misma cabeza: la de
+  `synchronize`, con `draft: true` (saltará), y la de `ready_for_review` (real).
+  GitHub no garantiza el orden en que entran a la cola. Si la de `synchronize`
+  entra segunda, cancela a la real y la cabeza queda solo con un `skipped`, que
+  el ruleset da por aprobado. La regla de arriba lo atrapa (no hay `success`) y
+  el remedio es el mismo: push nuevo, o `--undo` y `ready`. Para evitarlo, marcar
+  la PR lista después de que el push terminó y su corrida apareció, no en el
+  mismo comando. Opción no implementada: sumar el estado de borrador al grupo de
+  concurrencia (`…-${{ github.event.pull_request.draft }}`), para que una
+  corrida de borrador no cancele nunca a una de PR lista.
 - La corrida manual (`gh workflow run quality.yml --ref <rama>`) prueba la rama
   sola, no la fusión con main: no reemplaza la de la PR.
 - No toca producción, Vercel, secretos ni la corrida en push a main.
@@ -125,6 +146,8 @@ corridas en borrador no lo alimentan.
   busca corridas `push` en verde de `quality.yml`), así que exige cambiar esa
   fuente antes.
 - Runner propio en una máquina aparte, nunca en el VPS de producción.
+- `sql-tests.yml`, `chatwoot-correo-sistema.yml` y `chatwoot-portal-poc.yml`
+  siguen corriendo en borradores (no se tocaron en esta SDD).
 
 ## Aceptación
 
