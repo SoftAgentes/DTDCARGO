@@ -151,9 +151,13 @@ vincular() { DB="$PG" TENANT="$TENANT" bash "$PH/vincular.sh" >"$1" 2>&1; echo "
 deshacer() {
   local sal="$1" carpeta="$2" modo="$3"
   shift 3
-  env DB_CW="$CONT" DB="$PG" TENANT="$TENANT" CUENTA="$CUENTA" BANDEJA="$BANDEJA" MODO="$modo" "$@" bash "$carpeta/deshacer.sh" >"$sal" 2>&1
+  env DB_CW="$CONT" DB="$PG" TENANT="$TENANT" CUENTA="$CUENTA" BANDEJA="$BANDEJA" MODO="$modo" DESHACER_DURABLE="$DUR" \
+    "$@" bash "$carpeta/deshacer.sh" >"$sal" 2>&1
   echo "HECHO salida_proceso=$?" >>"$sal"
 }
+# La copia durable del paso 3 (Sam, la (a): «si protegidos»). En el VPS es /srv/ops/portal-historial/deshacer.
+DUR="$TRABAJO/durable/deshacer"
+H() { sed -n "s/.* $2=\([^ ]*\).*/\1/p" "$1" 2>/dev/null | head -n 1; } # H archivo campo: un campo de un .hecho
 sonda() { local sal="$1"; shift; rr "$sal" "CUENTA=$CUENTA" "BANDEJA=$BANDEJA" "OTRA=$OTRA" "$@" -- /tmp/cargador/sonda-deshacer.rb </dev/null; }
 
 # La carga real, con su vinculación.
@@ -201,6 +205,12 @@ parte_sh() { # carpeta salidas
   deshacer "$O/d6d.txt" "$K" seco
   rm -rf -- "$SHM"
   q "update public.chatwoot_portal_salida set estado = 'cargado', proximo_at = null where message_id = '$(head -n 1 "$O/salida.txt")'" >/dev/null
+  # D6i: una salida «enviado», con su chatwoot_message_id: también es la cola.
+  q "update public.chatwoot_portal_salida set estado = 'enviado', chatwoot_message_id = 4242
+     where message_id = '$(head -n 1 "$O/salida.txt")'" >/dev/null
+  deshacer "$O/d6i.txt" "$K" seco
+  rm -rf -- "$SHM"
+  q "update public.chatwoot_portal_salida set estado = 'cargado', chatwoot_message_id = null where message_id = '$(head -n 1 "$O/salida.txt")'" >/dev/null
   # D6e: otro tenant, que tiene su fila del flag pero ningún hilo vinculado.
   deshacer "$O/d6e.txt" "$K" seco "TENANT=$T2"
   rm -rf -- "$SHM"
@@ -230,36 +240,67 @@ parte_ajeno() { # carpeta salidas
   done
 }
 parte_borrar() { # carpeta salidas
-  local K="$1" O="$2"
+  local K="$1" O="$2" sha
+  rm -rf -- "$TRABAJO/durable"
   # El conservado de este escenario: después de un mutante que lo borró, la recarga crea otro contacto con otro id.
   sonda "$O/otra-bandeja.txt" FASE=otra-bandeja
   sonda "$O/contar-antes.txt" FASE=contar
-  # D2: el seco.
+  # D2: el seco (paso 1): el .ndjson y chatwoot-seco.hecho.
   deshacer "$O/d2.txt" "$K" seco
   [ -e "$SHM/contactos-conservados.ndjson" ] && cp "$SHM/contactos-conservados.ndjson" "$O/conservados.ndjson"
+  [ -e "$SHM/chatwoot-seco.hecho" ] && cp "$SHM/chatwoot-seco.hecho" "$O/chatwoot-seco.hecho"
   stat -c 'HECHO permiso=%a' "$SHM/contactos-conservados.ndjson" >>"$O/d2.txt" 2>/dev/null
+  stat -c 'HECHO permiso_hecho=%a' "$SHM/chatwoot-seco.hecho" >>"$O/d2.txt" 2>/dev/null
   limpio_desde_afuera && echo "HECHO limpio_desde_afuera=si" >>"$O/d2.txt"
   sonda "$O/contar-seco.txt" FASE=contar
-  # D9: los conservados de otro tenant.
+  sha="$(sha256sum "$O/conservados.ndjson" 2>/dev/null | cut -c1-64)"
+  # D9 y D3, con CONFIRMAR=no (el ensayo suelto del DG, que no exige los .hecho): las guardas del .rb.
   sed "s/\"tenant_id\":\"$TENANT\"/\"tenant_id\":\"$T2\"/" "$O/conservados.ndjson" >"$SHM/contactos-conservados.ndjson"
-  deshacer "$O/d9.txt" "$K" borrar CONFIRMAR=si
+  deshacer "$O/d9.txt" "$K" borrar CONFIRMAR=no
   sonda "$O/contar-d9.txt" FASE=contar
-  # D3: la lista cambió (sin el contacto conservado).
   printf '%s\n' "$(head -n 1 "$O/conservados.ndjson" | sed 's/"contactos":[0-9]*/"contactos":0/')" >"$SHM/contactos-conservados.ndjson"
-  deshacer "$O/d3.txt" "$K" borrar CONFIRMAR=si
+  deshacer "$O/d3.txt" "$K" borrar CONFIRMAR=no
   sonda "$O/contar-d3.txt" FASE=contar
   install -m 0600 "$O/conservados.ndjson" "$SHM/contactos-conservados.ndjson"
-  # D4: el ensayo con rollback.
+  # D4: el ensayo con rollback: no escribe chatwoot-borrar.hecho, ni crea la copia durable.
   deshacer "$O/d4.txt" "$K" borrar CONFIRMAR=no
+  [ -e "$SHM/chatwoot-borrar.hecho" ] && echo "HECHO hecho_borrar=si" >>"$O/d4.txt"
+  [ -e "$DUR" ] && echo "HECHO durable=si" >>"$O/d4.txt"
   sonda "$O/contar-d4.txt" FASE=contar
-  # D5: el borrado.
+  # D11: el borrado (paso 3) sin el ensayo de Studio, con otro sha256 y con otro tenant. D12: un chatwoot-borrar.hecho
+  # viejo, en las dos copias, se borra aunque el borrado se niegue.
+  deshacer "$O/d11a.txt" "$K" borrar CONFIRMAR=si
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+    "$(printf '%064d' 0)" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
+  install -d -m 0700 "$DUR" && echo viejo >"$DUR/chatwoot-borrar.hecho" && echo viejo >"$SHM/chatwoot-borrar.hecho"
+  deshacer "$O/d11b.txt" "$K" borrar CONFIRMAR=si
+  { [ -e "$SHM/chatwoot-borrar.hecho" ] || [ -e "$DUR/chatwoot-borrar.hecho" ]; } && echo "HECHO viejo=queda" >>"$O/d11b.txt"
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+    "$sha" "$T2" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
+  deshacer "$O/d11c.txt" "$K" borrar CONFIRMAR=si
+  sonda "$O/contar-d11.txt" FASE=contar
+  rm -rf -- "$TRABAJO/durable"
+  # El ensayo de Studio (paso 2), como lo escribe E10, con el sha256 del .ndjson del seco.
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+    "$sha" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
+  chmod 0600 "$SHM/studio-ensayo.hecho"
+  # D5: el borrado (paso 3): deja la copia durable, borra y escribe chatwoot-borrar.hecho en las dos copias.
   deshacer "$O/d5.txt" "$K" borrar CONFIRMAR=si
   limpio_desde_afuera && echo "HECHO limpio_desde_afuera=si" >>"$O/d5.txt"
   [ -e "$SHM/contactos-conservados.ndjson" ] && echo "HECHO archivo_despues=si" >>"$O/d5.txt"
+  stat -c 'HECHO durable_permiso=%a' "$DUR" >>"$O/d5.txt" 2>/dev/null
+  echo "HECHO durable_archivos=$(find "$DUR" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')" >>"$O/d5.txt"
+  echo "HECHO durable_permisos=$(find "$DUR" -maxdepth 1 -type f -printf '%m\n' 2>/dev/null | sort -u | tr '\n' ',')" >>"$O/d5.txt"
+  local f iguales=0
+  for f in contactos-conservados.ndjson chatwoot-seco.hecho studio-ensayo.hecho chatwoot-borrar.hecho; do
+    [ -s "$SHM/$f" ] && cmp -s "$SHM/$f" "$DUR/$f" && iguales=$((iguales + 1))
+  done
+  echo "HECHO durable_iguales=$iguales" >>"$O/d5.txt"
+  [ -e "$SHM/chatwoot-borrar.hecho" ] && cp "$SHM/chatwoot-borrar.hecho" "$O/chatwoot-borrar.hecho"
   sonda "$O/contar-d5.txt" FASE=contar
   # D7 (revisar-datos-ve, paso 3): las marcas de lo borrado, buscadas en toda la base de Chatwoot.
   docker exec "$P-postgres-1" pg_dump -U chatwoot -d chatwoot_production --data-only >"$O/volcado.sql" 2>/dev/null
-  rm -rf -- "$SHM"
+  rm -rf -- "$SHM" "$TRABAJO/durable"
 }
 escenario() { # carpeta salidas modo
   mkdir -p "$2"
@@ -281,6 +322,8 @@ comprobar_sh() {
     "sin la fila del flag del tenant (otro TENANT u otra base), no corre ($(err "$O/d6c.txt"))"
   exigir D6d '[ "$(h "$O/d6d.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d6d.txt")" = la_cola_corrio ]' \
     "con una salida que no está cargado (la cola corrió), no corre ($(err "$O/d6d.txt"))"
+  exigir D6i '[ "$(h "$O/d6i.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d6i.txt")" = la_cola_corrio ]' \
+    "con una salida «enviado» (la cola corrió), no corre ($(err "$O/d6i.txt"))"
   exigir D6e '[ "$(h "$O/d6e.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d6e.txt")" = el_tenant_no_tiene_hilos_vinculados ]' \
     "otro tenant, sin hilos vinculados: no corre ($(err "$O/d6e.txt"))"
   exigir D6f '[ "$(h "$O/d6f.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d6f.txt")" = un_hilo_del_tenant_no_es_de_esta_bandeja ]' \
@@ -304,22 +347,39 @@ comprobar_ajeno() {
   done
 }
 comprobar_borrar() {
-  local O="$1" A F fugas=0 f m cons
+  local O="$1" A F fugas=0 f m cons sha
   A="$(h "$O/contar-antes.txt" bandeja)"
   cons="$(h "$O/otra-bandeja.txt" conservado)"
+  sha="$(sha256sum "$O/conservados.ndjson" 2>/dev/null | cut -c1-64)"
   F="$O/d2.txt"
   exigir D2 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" deshacer)" = ok ] && [ "$(h "$F" contactos_conservados)" = 1 ] && [ "$(h "$F" permiso)" = 600 ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$O/contar-seco.txt" bandeja)" = "$A" ] && grep -q "\"contacto_id\":$cons}" "$O/conservados.ndjson" && grep -q "\"tenant_id\":\"$TENANT\"" "$O/conservados.ndjson" && [ "$(wc -l <"$O/conservados.ndjson")" = 2 ]' \
     "seco: no borra nada ($(h "$O/contar-seco.txt" bandeja)) y escribe en 0600 el contacto conservado ($cons): $(h "$F" contactos_de_la_bandeja) de la bandeja, $(h "$F" contactos_conservados) conservado, $(h "$F" contactos_a_borrar) a borrar"
+  F="$O/chatwoot-seco.hecho"
+  exigir D2b '[ "$(h "$O/d2.txt" permiso_hecho)" = 600 ] && grep -q "^HECHO chatwoot_seco=ok " "$F" && [ "$(H "$F" conservados_sha256)" = "$sha" ] && [ "$(H "$F" tenant)" = "$TENANT" ] && [ "$(H "$F" cuenta)" = "$CUENTA" ] && [ "$(H "$F" bandeja)" = "$BANDEJA" ] && [ "$(wc -l <"$F")" = 1 ]' \
+    "el seco escribe chatwoot-seco.hecho en 0600, con el sha256 del .ndjson, el tenant, la cuenta y la bandeja"
   exigir D9 '[ "$(h "$O/d9.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d9.txt")" = "los conservados no son de este tenant, cuenta y bandeja" ] && [ "$(h "$O/contar-d9.txt" bandeja)" = "$A" ]' \
     "los conservados de otro tenant: aborta sin borrar ($(err "$O/d9.txt"))"
   exigir D3 '[ "$(h "$O/d3.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d3.txt")" = "la lista de conservados cambió desde el seco" ] && [ "$(h "$O/contar-d3.txt" bandeja)" = "$A" ]' \
     "la lista cambió entre el seco y el borrado: aborta sin borrar ($(err "$O/d3.txt"))"
   F="$O/d4.txt"
-  exigir D4 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" confirmado)" = no ] && [ "$(h "$F" despues)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$O/contar-d4.txt" bandeja)" = "$A" ] && [ "$(h "$O/contar-d4.txt" contactos_dtd)" = "$(h "$O/contar-antes.txt" contactos_dtd)" ]' \
-    "CONFIRMAR=no: dentro de la transacción la bandeja queda en 0, y después del ROLLBACK, igual que antes ($(h "$O/contar-d4.txt" bandeja))"
+  exigir D4 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" confirmado)" = no ] && [ "$(h "$F" despues)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$O/contar-d4.txt" bandeja)" = "$A" ] && [ "$(h "$O/contar-d4.txt" contactos_dtd)" = "$(h "$O/contar-antes.txt" contactos_dtd)" ] && [ -z "$(h "$F" hecho_borrar)" ] && [ -z "$(h "$F" durable)" ]' \
+    "CONFIRMAR=no: dentro de la transacción la bandeja queda en 0, después del ROLLBACK igual que antes ($(h "$O/contar-d4.txt" bandeja)), sin chatwoot-borrar.hecho ni copia durable"
+  exigir D11a '[ "$(h "$O/d11a.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d11a.txt")" = falta_studio_ensayo_hecho ]' \
+    "el borrado sin el ensayo de Studio: se niega ($(err "$O/d11a.txt"))"
+  exigir D11b '[ "$(h "$O/d11b.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d11b.txt")" = el_sha256_de_los_conservados_no_coincide ]' \
+    "el borrado con otro sha256 en el ensayo de Studio: se niega ($(err "$O/d11b.txt"))"
+  exigir D11c '[ "$(h "$O/d11c.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d11c.txt")" = el_tenant_de_los_hecho_no_coincide ] && [ "$(h "$O/contar-d11.txt" bandeja)" = "$A" ]' \
+    "el borrado con otro tenant en el ensayo de Studio: se niega, y la bandeja sigue igual ($(err "$O/d11c.txt"))"
+  exigir D12 '[ -z "$(h "$O/d11b.txt" viejo)" ]' "un chatwoot-borrar.hecho viejo se borra de las dos copias aunque el borrado se niegue"
   F="$O/d5.txt"
   exigir D5 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" confirmado)" = si ] && [ "$(h "$O/contar-d5.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$O/contar-d5.txt" contactos_dtd)" = 1 ] && [ "$(h "$O/contar-d5.txt" otra)" = "$(h "$O/contar-antes.txt" otra)" ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$F" contenedor_limpio)" = si ] && [ "$(h "$F" archivo_despues)" = si ]' \
-    "CONFIRMAR=si: la bandeja vacía, queda solo el contacto conservado ($(h "$O/contar-d5.txt" contactos_dtd)), la otra bandeja igual ($(h "$O/contar-d5.txt" otra)), el contenedor limpio, y el archivo sigue para el desarme de Studio"
+    "CONFIRMAR=si: la bandeja vacía, queda solo el contacto conservado ($(h "$O/contar-d5.txt" contactos_dtd)), la otra bandeja igual ($(h "$O/contar-d5.txt" otra)), el contenedor limpio y el .ndjson sigue para Studio"
+  F="$O/chatwoot-borrar.hecho"
+  exigir D13 'grep -q "^HECHO chatwoot_borrar=ok " "$F" && [ "$(H "$F" conservados_sha256)" = "$sha" ] && [ "$(H "$F" tenant)" = "$TENANT" ] && [ "$(H "$F" cuenta)" = "$CUENTA" ] && [ "$(H "$F" bandeja)" = "$BANDEJA" ] && [ "$(H "$F" fin)" = commit ]' \
+    "el borrado escribe chatwoot-borrar.hecho, con el sha256, el tenant, la cuenta, la bandeja y fin=commit"
+  F="$O/d5.txt"
+  exigir D14 '[ "$(h "$F" durable_permiso)" = 700 ] && [ "$(h "$F" durable_archivos)" = 4 ] && [ "$(h "$F" durable_permisos)" = "600," ] && [ "$(h "$F" durable_iguales)" = 4 ]' \
+    "la copia durable: la carpeta en 0700 ($(h "$F" durable_permiso)), los 4 archivos en 0600 ($(h "$F" durable_permisos)) e iguales a los de tmpfs ($(h "$F" durable_iguales) de 4)"
   # D7: lo borrado ya no está en ninguna tabla de Chatwoot. El control: lo que no se borra sí está.
   # Los textos de los mensajes de la bandeja se borran todos; de los dos contactos de la carga queda uno, el conservado.
   local quedan=0 control=0 nombres=0
@@ -328,12 +388,12 @@ comprobar_borrar() {
   for m in 'Cliente A' 'Cliente B'; do grep -q -F -- "$m" "$O/volcado.sql" 2>/dev/null && nombres=$((nombres + 1)); done
   exigir D7 '[ -s "$O/volcado.sql" ] && [ "$quedan" = 0 ] && [ "$control" = 1 ] && [ "$nombres" = 1 ]' \
     "las marcas de lo borrado no están en ninguna tabla de Chatwoot ($quedan de 4 textos; $nombres de 2 nombres, el del conservado), y lo de la otra bandeja sí ($control)"
-  for f in "$O"/d*.txt "$O/conservados.ndjson"; do
+  for f in "$O"/d*.txt "$O/conservados.ndjson" "$O"/*.hecho; do
     for m in "${MARCAS[@]}"; do grep -q -F -- "$m" "$f" 2>/dev/null && { fugas=$((fugas + 1)); [ "$MODO_LOG" = 1 ] && log "   fuga: $m en $(basename "$f")"; }; done
   done
   # El control de F1: la marca sí está en el preparado, así que el grep encuentra lo que busca.
   exigir F1 '[ "$fugas" = 0 ] && [ -s "$O/d2.txt" ] && grep -q -F "Cliente A" "$TRABAJO/preparado.ndjson"' \
-    "cero de ${#MARCAS[@]} valores inventados en las salidas de deshacer.sh y en los conservados (control: el preparado sí los trae)"
+    "cero de ${#MARCAS[@]} valores inventados en las salidas de deshacer.sh, los conservados y los .hecho (control: el preparado sí los trae)"
 }
 comprobar() { # salidas modo
   case "$2" in
@@ -376,7 +436,7 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
 if [ "$MUTANTES" = 1 ]; then
   log "== M. mutantes"
   mutante MD0 "control: los guiones sin cambios, sobre una carga nueva" deshacer-carga.rb completo "" \
-    "D1a D1b D1c D1d D1e D1f D1g D2 D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D7 D8 D9 D10 F1" "require 'set'" "require 'set'"
+    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D7 D8 D9 D10 D11a D11b D11c D12 D13 D14 F1" "require 'set'" "require 'set'"
   # Lo ajeno (deshacer-carga.rb), con la parte ajeno sola.
   mutante MD1 "no mira los mensajes ajenos" deshacer-carga.rb ajeno "D1a" "D1b D1c" \
     "'mensajes' => mensajes.where(\"source_id IS NULL OR source_id NOT LIKE 'dtd:%'\").count," "'mensajes' => 0,"
@@ -403,6 +463,9 @@ if [ "$MUTANTES" = 1 ]; then
     "  sin_fila) mal el_tenant_no_tiene_la_fila_del_flag 1 ;;" "  sin_fila) ;;"
   mutante MD11 "no mira la cola" deshacer.sh sh "D6d" "D6a D6c" \
     "  cola) mal la_cola_corrio 1 ;;" "  cola) ;;"
+  mutante MD29 "la cola solo con pendiente" deshacer.sh sh "D6i" "D6a D6d" \
+    "when exists (select 1 from public.chatwoot_portal_salida s where s.tenant_id = :'tenant' and s.estado <> 'cargado') then 'cola'" \
+    "when exists (select 1 from public.chatwoot_portal_salida s where s.tenant_id = :'tenant' and s.estado = 'pendiente') then 'cola'"
   mutante MD12 "acepta un tenant sin hilos" deshacer.sh sh "D6e" "D6a D6f" \
     "  sin_hilos) mal el_tenant_no_tiene_hilos_vinculados 1 ;;" "  sin_hilos) ;;"
   mutante MD13 "no mira la bandeja del espejo" deshacer.sh sh "D6f D8" "D6a D6e" \
@@ -424,6 +487,21 @@ if [ "$MUTANTES" = 1 ]; then
     "raise DeshacerError, 'la lista de conservados cambió desde el seco' unless leer_conservados == conservados" "leer_conservados"
   mutante MD7 "CONFIRMAR=no confirma" deshacer-carga.rb completo "D4" "D2 D3" \
     "raise ActiveRecord::Rollback unless @confirmar == 'si'" "nil"
+  # Los .hecho y la copia durable (la secuencia del DG y la (a) de Sam).
+  mutante MD22 "CONFIRMAR=no escribe chatwoot-borrar.hecho" deshacer.sh completo "D4" "D2 D5" \
+    '[ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && escribir_hecho_borrar' '[ "$MODO" = borrar ] && escribir_hecho_borrar'
+  mutante MD23 "no borra el chatwoot-borrar.hecho viejo" deshacer.sh completo "D12" "D2 D5" \
+    'rm -f -- "$H_BORRAR" "$DURABLE/chatwoot-borrar.hecho"' ':'
+  mutante MD24 "borra sin el ensayo de Studio" deshacer.sh completo "D11a" "D2 D5" \
+    '[ -s "$H_ENSAYO" ] || mal falta_studio_ensayo_hecho' ':'
+  mutante MD25 "no compara el sha256" deshacer.sh completo "D11b" "D2 D5" \
+    '[ "$sha_seco" = "$sha_actual" ] && [ "$sha_ensayo" = "$sha_actual" ] || mal el_sha256_de_los_conservados_no_coincide' ':'
+  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh completo "D11c" "D2 D5" \
+    '[ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide' ':'
+  mutante MD27 "sin la copia durable" deshacer.sh completo "D14" "D2 D5" \
+    '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  :'
+  mutante MD28 "la copia durable con permisos abiertos" deshacer.sh completo "D14" "D2 D5" \
+    'install -d -m 0700 "$DURABLE"' 'install -d -m 0755 "$DURABLE"'
   mutante MD21 "no mira el tenant de los conservados" deshacer-carga.rb completo "D9" "D2" \
     "unless cab['tenant_id'] == @tenant && cab['cuenta'] == @cuenta_id && cab['bandeja'] == @bandeja_id" \
     "unless cab['cuenta'] == @cuenta_id && cab['bandeja'] == @bandeja_id"
