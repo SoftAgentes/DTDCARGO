@@ -116,6 +116,15 @@ A diferencia de las huellas de §4.2, esta IP se guarda en claro: el throttle
 cuenta por su texto exacto (`lib/public/verify-throttle.ts`). Base de licitud y
 aviso: ⬜.
 
+## 4.4 · Consulta de clientes desde Discord (SDD-0608, sin activar)
+
+| Destino | Dato | Minimización | Retención | Estado |
+|---|---|---|---|---|
+| Respuesta de `/cliente` en Discord | Nombre, Shipping Mark y enlace de hasta 10 clientes | la función de la base devuelve sólo `markbox` y `name`; respuesta efímera, sólo a quien tiene enlace y permiso de clientes en el Studio | la de Discord, **NO VERIFICABLE** | código en la PR #387; aplicación de Discord sin crear |
+| `discord_consultas_clientes` | ID de Discord de quien preguntó, su usuario del Studio, término buscado, resultado y hora | no guarda qué clientes se mostraron; finalidad documentada por columna (`comment on column`) | purga técnica a 180 días en cada registro | migración 0516 **sin aplicar** |
+
+Base de licitud y aviso: ⬜ (la línea de `/privacidad` la decide Sam; propuesta en `docs/specs/0608-discord-consulta-clientes/privacidad.md`).
+
 ## 5 · Titulares que no son usuarios
 
 | Quién | Qué se le captura | ¿Se le avisa? | ¿Cómo ejerce sus derechos? |
@@ -126,6 +135,8 @@ aviso: ⬜.
 | Referido | contacto que da un cliente | ✅ parcial (`/privacidad` §1) | ⬜ |
 | Pagador tercero | nombre y relación | ❌ (solo Acuerdo cl. 7.4) | ⬜ |
 | Quien escanea un QR en `/verificar` (almacén, destinatario) | IP y hora de la consulta (§4.3) | ⚠️ solo la política general: el pie de `/verificar` enlaza `/privacidad`, que menciona la IP «para prevenir usos indebidos» | ⬜ |
+| Miembro del servidor de Discord sin cuenta del Studio que prueba `/cliente` | su ID de Discord, el término y la hora (§4.4) | ❌ | ⬜ |
+| Persona cuyo nombre se busca sin ser cliente | el término, hasta 180 días (§4.4) | ❌ | ⬜ |
 
 ## 6 · A dónde van
 
