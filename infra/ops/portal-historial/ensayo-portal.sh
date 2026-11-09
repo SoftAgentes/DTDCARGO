@@ -676,7 +676,7 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
   exigir K1 '[ -n "$(ctl "$A" "C-6 conversations")" ] && [ "$(ctl "$A" "C-6 conversations")" = "$(ctl "$Z" "C-6 conversations")" ] && [ "$(ctl "$A" "C-6 conversation_messages")" = "$(ctl "$Z" "C-6 conversation_messages")" ]' \
     "C-6: los hilos y los mensajes de Studio, iguales antes y después"
   exigir K2 '[ "$(grep "^C-7" "$A")" = "$(grep "^C-7" "$Z")" ] && [ -n "$(grep "^C-7" "$A")" ]' "C-7: el CRM y los eventos, iguales antes y después"
-  c8() { sed -n "s/.*$2=\([0-9]*\).*/\1/p" "$Z" | head -n 1; }
+  c8() { sed -n "s/.*$1=\([0-9]*\).*/\1/p" "$Z" | head -n 1; } # c8 clave: el número de esa clave de C-8
   exigir K3 '[ "$(c8 hilos_vinculados)" -gt 0 ] 2>/dev/null && [ "$(c8 con_espejo)" = "$(c8 hilos_vinculados)" ] && [ "$(c8 client_id_distinto)" = 0 ]' \
     "C-8: $(c8 hilos_vinculados) hilos vinculados, con $(c8 con_espejo) espejos y $(c8 client_id_distinto) clientes distintos"
 else

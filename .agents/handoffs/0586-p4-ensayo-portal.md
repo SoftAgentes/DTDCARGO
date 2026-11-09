@@ -71,6 +71,7 @@
 | Vuelta | SHA | Run (job del ensayo) | Resultado | Qué cambió después |
 |---|---|---|---|---|
 | 1 | `c86e2b03a` | 42535639790 (128899213367) | Rojo: 8 fallas en el ensayo. Se copió una sola tabla por lado. Pasaron las guardas G1 a G3, el aislamiento, la limpieza, T4, T5 y los mutantes de marcas M1 a M4, M6 a M10, M13 y los de las guardas, M14 a M16. Cayeron M0, M5, M11 y M12 | Los `docker exec -i` de `copiar_tabla` leían la entrada estándar y se comían el resto de la lista. Ahora el bucle lee por el descriptor 3 |
+| 2 | `530e06386` | 42537233286 (128904191711) | Rojo: solo K3. Todo lo demás pasó: T1 a T5 salvo por K3, M0 a M16 cayendo cada uno en lo suyo, D2 con 16 tablas de Studio y 10 de Chatwoot, O1 en 0, y E1, E2, A2, B1, B2, C1 a C3, K1 y K2. Los datos de C-8 estaban bien (4 hilos y 4 espejos) | `c8` leía `$2` y no `$1`: no encontraba la clave. Lo corregí y lo comprobé con las líneas del run |
 
 ## #468 · El caso (b) de la punta a punta
 
