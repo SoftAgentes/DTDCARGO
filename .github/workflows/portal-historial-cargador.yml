@@ -10,6 +10,8 @@ name: Cargador del chat del portal
 
 on:
   pull_request:
+    # SDD-0621: no corre en borradores; corre al marcar la PR lista (`gh pr ready`). Mismo criterio que quality.yml.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "infra/ops/portal-historial/**"
       # Las migraciones que aplica el fixture de Studio de la punta a punta (pruebas/studio-fixture.sql).
@@ -26,6 +28,8 @@ on:
       - "infra/chatwoot/compose.yml"
       - "infra/chatwoot/pruebas/compose.local.yml"
       - "infra/chatwoot/rails/**"
+      # El ensayo monta infra/chatwoot/correo/views en la copia de Rails (la G0 lo exige).
+      - "infra/chatwoot/correo/**"
       - ".github/workflows/portal-historial-cargador.yml"
   workflow_dispatch:
 
@@ -39,6 +43,7 @@ concurrency:
 jobs:
   cargador:
     name: Cargador del chat del portal (datos inventados)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -57,6 +62,26 @@ jobs:
       - name: Punta a punta (Studio, cargar.sh y Chatwoot)
         if: ${{ !cancelled() }}
         run: bash infra/ops/portal-historial/pruebas/prueba-punta-a-punta.sh
+
+  # SDD-0586 10.7, PR 2b: el ensayo de la puerta 3 (ensayo-portal.sh) contra una «producción» simulada de Studio y de
+  # Chatwoot con marcas: la copia por columnas (copia-columnas.tsv) no trae ninguna, y los mutantes de la lista y de
+  # las guardas tienen que caer. En su propio runner, en paralelo con el cargador.
+  ensayo:
+    name: Ensayo del portal en copias (datos inventados)
+    # Como el job cargador desde la SDD-0621: no corre en borradores.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Ensayo, marcas y mutantes
+        run: bash infra/ops/portal-historial/pruebas/prueba-ensayo-portal.sh
 
   # SDD-0586 10.7, PR 2c: la vuelta atrás dirigida de la carga en Chatwoot (deshacer.sh y deshacer-carga.rb) sobre la
   # carga real de un Studio y un Chatwoot efímeros, con sus mutantes. En su propio runner.

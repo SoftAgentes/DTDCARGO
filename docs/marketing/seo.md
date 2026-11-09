@@ -25,6 +25,54 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-11-07 · Auditoría técnica de SEO, GEO y AEO (PR #422, en main desde el tren #483)
+
+Medida sobre el sitio publicado (43 URL del sitemap y 9 rutas fuera de él) y en el código. El detalle, los scripts y las tablas completas están en [`.agents/handoffs/seo-auditoria-tecnica-20261107.md`](../../.agents/handoffs/seo-auditoria-tecnica-20261107.md).
+
+**Sano, sin acción:**
+- un `<title>`, una descripción y un canónico propios en las 43 páginas indexables;
+- `og:*` completos y sitemap con las 43 URL en 200;
+- `robots.txt` correcto;
+- JSON-LD que parsea, sin huecos en las migas y con `FAQPage` donde corresponde;
+- SEO de Lighthouse en 100 en las 7 páginas medidas.
+
+**Arreglado en la PR, cada arreglo con una prueba que falló antes:**
+1. El nodo **`WebPage` en JSON-LD** de `/`, `/tarifas`, `/fcl`, `/puerta-a-puerta` y `/shipping-mark` ahora lleva `name` y `description`. Salen de la `metadata` de cada página; la portada los toma de `lib/public/site-meta.ts`.
+2. El **logo del `NewsArticle`** declara 741×764, las medidas reales del PNG, igual que el `#organization` del layout. Antes decía 512×512.
+3. **`llms.txt`** lleva sus 10 enlaces en formato Markdown (`- [etiqueta](url)`), con las mismas etiquetas. Lighthouse marcaba «no contiene ningún vínculo».
+4. El **menú móvil cerrado** lleva `inert` además de `aria-hidden`, para que sus enlaces invisibles no reciban el foco. La prueba (`components/Nav.drawer-inert.test.tsx`) mide los atributos, no el orden de tabulación en un navegador.
+
+**Core Web Vitals de laboratorio** (Lighthouse 13.6, 2026-11-07):
+
+| Página | Rendimiento móvil / escritorio | LCP móvil | CLS |
+|---|---|---|---|
+| `/` | 94 / 100 | 2,1 s | 0 |
+| `/tarifas` | 96 / 100 | 1,7 s | 0 |
+| `/puerta-a-puerta` | 96 / 100 | 1,7 s | 0 |
+| `/servicios` | 93 / 98 | 2,3 s | 0 |
+| `/faq` | 100 / 100 | 1,2 s | 0 |
+| `/importar-de-china/caracas` | 98 / 100 | 1,7 s | 0 |
+| `/noticias` | 99 / 94 | 1,7 s | 0 |
+
+- La accesibilidad móvil queda en 92–93 por el menú, que ya está arreglado, y por el contraste del pie (P-c).
+- `/fcl` no se pudo medir.
+- Datos de campo: CrUX dice «No hay datos» en todas las páginas, así que no hay INP ni LCP reales que afirmar.
+
+**Propuestas sin hacer:** cada una espera a Sam, al Director General o a su propia tarea.
+- P-a: apagar la ofuscación de correos de Cloudflare. Su enlace da 404 sin JavaScript en 45 páginas.
+- P-b: `/enlaces` no tiene `h1`.
+- P-c: el contraste del pie.
+- P-d: títulos largos.
+- P-e: descripciones largas (13 de 43).
+- P-f: migas en `/cookies`, `/registro` y `/brochure`.
+- P-g: el `publisher` del `VideoObject` redeclara `#organization`.
+- P-h: `/portal` responde 307 sin sesión.
+- P-i: JavaScript sin usar.
+- P-j: `NewsArticle` sin medir en vivo, porque no hay noticias publicadas.
+- P-k: `inLanguage` es `es` en `NewsArticle` y `es-VE` en `WebPage`.
+
+La corrección de las rutas de `WebPageJsonLd` en «Arquitectura SEO» de arriba es la P4 de la [SDD-0613](../specs/0613-seo-fase-b/spec.md) y queda para ella.
+
 ### 2026-11-05 · SEO, GEO y AEO: fase A (SDD-0604, local)
 
 - `llms.txt` sin razón social ni RIF, con 2015 como fundación, «puerta a puerta (DDP)» y sin hablar de seguimiento de envíos.

@@ -113,13 +113,39 @@
   - `extraer.sh`, `vincular.sh`, `limpiar.sh`, `reservar.sql`, `extraer.sql` y `controles-studio.sql`;
   - `conteo-portal.sql` (4.2) y `cola-y-flag.sql` (4.3), las dos lecturas de la puerta 4;
   - `cargar.sh` y `cargar-portal.rb`, que ya están en `main` desde la #455 y la #461;
-  - de la 2b: `ensayo-portal.sh` y los archivos que sume, como la lista de columnas;
+  - de la 2b (#473) ‹por confirmar hasta que la #473 esté en `main`›: `ensayo-portal.sh`, `copia-columnas.tsv` y `ensayo-studio-esquema.sql`, en `/srv/ops/portal-historial/`;
+  - **las 10 migraciones que exige la guarda G0 de `ensayo-portal.sh`**, copiadas de `supabase/migrations/` a `/srv/ops/portal-historial/migraciones/`. Esa carpeta es el valor por defecto de la variable `MIGRACIONES` del guion. La copia del esquema las aplica con `\i` desde `ensayo-studio-esquema.sql`, montadas en solo lectura. Son estas:
+    - `supabase/migrations/0006_clients.sql`
+    - `supabase/migrations/0106_conversaciones.sql`
+    - `supabase/migrations/0337_feature_flags_seed_and_trigger.sql`
+    - `supabase/migrations/0503_chatwoot_bandeja.sql`
+    - `supabase/migrations/0504_chatwoot_eventos.sql`
+    - `supabase/migrations/0508_chatwoot_bajas_purga.sql`
+    - `supabase/migrations/0519_chatwoot_portal.sql`
+    - `supabase/migrations/0520_chatwoot_portal_vuelta.sql`
+    - `supabase/migrations/0523_chatwoot_portal_carga.sql`
+    - `supabase/migrations/0524_chatwoot_portal_puerta4.sql`;
   - de la 2c: `deshacer.sh` y su `.rb`;
   - en Studio, desde `supabase/cargas/portal-historial-deshacer/`: `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, que van a la misma carpeta del VPS con su propio `scp` y su sha256.
   - **La lista crece con cada PR,** y se escribe aquí cuando entra en `main`.
   - El `scp -r` copia también `pruebas/`, que trae solo datos inventados. No está en la lista y no se usa en el VPS.
 - **Comando:** `scp -r infra/ops/portal-historial root@217.216.54.70:/srv/ops/ && ssh root@217.216.54.70 chmod -R go-rwx /srv/ops/portal-historial`. Es el patrón del Archivo Kommo (`infra/ops/kommo-historial/README.md:9` y `:41`).
-- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:infra/ops/portal-historial/<archivo> | sha256sum`, y `stat -c %a` de la carpeta da `700`.
+- **Las migraciones, con un comando aparte:**
+
+  ```bash
+  ssh root@217.216.54.70 install -d -m 700 /srv/ops/portal-historial/migraciones
+  ```
+
+  ```bash
+  scp supabase/migrations/0006_clients.sql supabase/migrations/0106_conversaciones.sql supabase/migrations/0337_feature_flags_seed_and_trigger.sql supabase/migrations/0503_chatwoot_bandeja.sql supabase/migrations/0504_chatwoot_eventos.sql supabase/migrations/0508_chatwoot_bajas_purga.sql supabase/migrations/0519_chatwoot_portal.sql supabase/migrations/0520_chatwoot_portal_vuelta.sql supabase/migrations/0523_chatwoot_portal_carga.sql supabase/migrations/0524_chatwoot_portal_puerta4.sql root@217.216.54.70:/srv/ops/portal-historial/migraciones/
+  ```
+
+  Sus sha256 se comparan con `git show origin/main:supabase/migrations/<archivo> | sha256sum`.
+- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/` o `supabase/migrations/`. Además, `stat -c %a` de la carpeta da `700` y en `migraciones/` están las 10.
+- **Lo que el CI no puede probar y se comprueba a mano en el VPS antes de 3.1:**
+  - **La unidad de systemd del ensayo tiene `TimeoutStopSec` de 300 s o más.** La guarda G1 se niega con menos (`TIMEOUT_STOP_MIN_S=300` en `ensayo-portal.sh`).
+  - **Los nombres reales de producción** son los valores por defecto del guion: `dtd-cargo-db-1` (Studio), `chatwoot-postgres-1` (Chatwoot) y `/srv/chatwoot`. Si alguno no coincide, se para y se avisa al DG; no se cambia por una variable sin su OK.
+  - **Están las 10 migraciones** en `/srv/ops/portal-historial/migraciones/`. **Si falta alguna, la G0 se niega** y el ensayo no arranca.
 - **La evidencia:** las dos listas de sha256 y el commit de `main`.
 - **La vuelta atrás:** `rm -r /srv/ops/portal-historial`. No guarda datos.
 
@@ -141,7 +167,7 @@
 **Antes de la puerta 4** (condición del DG, 2026-11-08): **las dos vueltas atrás dirigidas, la de Studio (`supabase/cargas/portal-historial-deshacer/`) y la de Chatwoot (la pieza de E5), en `main` y ensayadas** por el DG con `rollback`. No hace falta para las puertas 1 a 3. Sin ellas, el DG no le pide a Sam la puerta 4.
 
 **Y, antes de la puerta 4, la prevención del log** (aprobada por el DG, 2026-11-08). Son dos condiciones, y sin las dos la puerta no sigue:
-- **El cargador tiene la prevención en `main`:** `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'` dentro de su transacción, y no carga si no puede fijarlos. **‹por confirmar hasta la #470›:** el `cargar-portal.rb` de `main` todavía no tiene ningún `SET LOCAL`. Se comprueba con `git show origin/main:infra/ops/portal-historial/cargar-portal.rb`, buscando `log_min_error_statement`.
+- **El cargador tiene la prevención en `main`:** `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'` dentro de su transacción, y no carga si no puede fijarlos. **Confirmada:** entró con la #470, en el tren 9 (#476, `e74cde6fc`). Su run verde es el 42533753896, con L1 a L3 y M35 a M38 en PASÓ. En `cargar-portal.rb`, `DETALLE_DEL_LOG` (`:78`) fija los dos con `SET LOCAL` dentro de la transacción y los lee de vuelta con `SHOW` (`:181-185`). Se puede volver a comprobar con `git show origin/main:infra/ops/portal-historial/cargar-portal.rb`, buscando `log_min_error_statement`.
 - **El rol de Rails es superusuario,** porque esos dos parámetros lo piden. En `chatwoot-postgres-1`: `docker exec -i chatwoot-postgres-1 psql -X -At -v ON_ERROR_STOP=1 -U chatwoot -c 'SELECT rolsuper FROM pg_roles WHERE rolname = current_user'`. **Tiene que dar `t`;** si da `f`, la puerta no sigue. El DG midió `t` el 2026-11-08.
 
 **Todo seguido, el mismo día y con el DG, con `chatwoot_portal` apagado.** Se corre en el VPS como root, desde `/srv/ops/portal-historial/` (3.0).
@@ -159,7 +185,7 @@
 | **4.7 · Vincular** | **Escribe en Studio** los vínculos, el `cargado` de cada mensaje y el corte. Todo o nada | `DB=dtd-cargo-db-1 TENANT=<uuid> bash vincular.sh`, **sin pausa después de 4.6** | Código 0. `HECHO contactos=… hilos=… mensajes=…`, con los números del preparado. `HECHO borrado=/dev/shm/portal-historial` | Las líneas `HECHO` | **Si falla, Studio no cambió,** pero `vincular.sh` deja el preparado y los vínculos en `/dev/shm`. Hay dos caminos. **Correr `limpiar.sh` y después repetir desde 4.4.** Sin limpiar, `extraer.sh` se niega (`ya_hay_un_preparado`) y `cargar.sh` también (`ya_hay_vinculos_borrar_con_limpiar`), con código 2. En la repetición, la reserva da el mismo identificador y el cargador reconoce lo cargado. En la repetición, `conversaciones_existentes` es igual a lo cargado antes, y `conversaciones_estado_actualizado` solo puede dar más que 0 si el estado cambió en Studio entre las dos corridas; eso va a la evidencia con su motivo. **O correr `limpiar.sh` y no repetir.** Repetir dentro de la puerta 4 se confirma con el DG |
 | **4.8 · Los conteos** | Lee | `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -v tenant=<uuid> -U postgres -d postgres -f - < controles-studio.sql`, otra vez | C-6 y C-7 iguales a 4.2. C-8: `hilos_vinculados` igual a las conversaciones cargadas, y `salida_cargado` igual a los mensajes | La salida | No hace falta |
 | **4.9 · El cierre de los archivos** | Lee | `test ! -e /dev/shm/portal-historial && echo vacio` y `docker exec chatwoot-rails-1 sh -c 'test ! -e /dev/shm/portal-historial && test ! -e /tmp/cargar-portal.rb && echo limpio'` | `vacio` y `limpio` | Las dos líneas | Si no da `vacio`, `limpiar.sh`. Si no da `limpio`, `docker exec chatwoot-rails-1 rm -rf /dev/shm/portal-historial /tmp/cargar-portal.rb`, y otra vez |
-| **4.10 · El log de Postgres de Chatwoot** | **Solo lee.** El cargador previene que la fila llegue al log con sus `SET LOCAL` ‹por confirmar hasta la #470›, y las dos condiciones se comprueban antes de la puerta 4. Este paso comprueba que no aparece nada | Ver el bloque «4.10, el conteo del log», debajo de esta tabla. Cuenta **`Failing row`, `DETAIL:  Key` y `STATEMENT:  INSERT`** en el intervalo de la carga, con `grep -c` y sin copiar las líneas | **El número es 0,** y el paso termina en «revisado, 0 líneas». **El sub-paso 4.10a se abre solo si 4.6 dio `carga=error` y el conteo da más de 0** en la ventana. Con `carga=ok` no se abre aunque haya líneas: esas son errores ajenos a la carga | «Revisado; N líneas», solo el número | No hace falta |
+| **4.10 · El log de Postgres de Chatwoot** | **Solo lee.** El cargador previene que la fila llegue al log con sus `SET LOCAL`, en `main` desde la #470, y las dos condiciones se comprueban antes de la puerta 4. Este paso comprueba que no aparece nada | Ver el bloque «4.10, el conteo del log», debajo de esta tabla. Cuenta **`Failing row`, `DETAIL:  Key` y `STATEMENT:  INSERT`** en el intervalo de la carga, con `grep -c` y sin copiar las líneas | **El número es 0,** y el paso termina en «revisado, 0 líneas». **El sub-paso 4.10a se abre solo si 4.6 dio `carga=error` y el conteo da más de 0** en la ventana. Con `carga=ok` no se abre aunque haya líneas: esas son errores ajenos a la carga | «Revisado; N líneas», solo el número | No hace falta |
 
 **4.3, la cola y el flag:** el SQL está en `infra/ops/portal-historial/cola-y-flag.sql`. Imprime una sola línea:
 
@@ -381,7 +407,6 @@ Es una revisión con el método de `.claude/skills/revisar-datos-ve/SKILL.md`. *
 
 - **Las listas de tablas y columnas de la 1a y la 1b,** con su prueba: las cierra la 2b.
 - **Los comandos de 4.6b:** salen de la pieza de E5, en Chatwoot, y de la del Worker de la 10.5, en Studio.
-- **La prevención del log en el cargador** (`SET LOCAL log_min_error_statement` y `log_error_verbosity`): llega con la #470. Hasta que esté en `main`, la puerta 4 no se pide.
 - **El procedimiento de 4.10a:** se define con el DG.
 - **Los argumentos del respaldo externo a S3.**
 
