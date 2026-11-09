@@ -22,7 +22,7 @@ ENTORNO=produccion MODO=ensayo bash deshacer-vinculos.sh
 ```
 
 - **Los `ESPERADOS_*`** salen del conteo previo de solo lectura (4.6b).
-- **`SISTEMA`,** el `system_identifier` de producción, sale de `/srv/ops/portal-historial/sistema-produccion` (root 0600, de este usuario, sin enlace), que deja la puerta 1. No sale del entorno: si llega `SISTEMA=` se niega. El guion imprime solo `HECHO sistema_sha256_corto=<10>`, con la fórmula del DG (`printf '%s'` sin salto de línea, `sha256sum`, 10 caracteres), para compararlo con la nota de control del DG. El valor no se imprime nunca. Lo borran el cierre y el abandono del 4.6b.
+- **`SISTEMA`,** el `system_identifier` de producción, sale de `/srv/ops/portal-historial/sistema-produccion` (root 0600, de este usuario, sin enlace), que deja el sub-paso 3.0 del runbook. No sale del entorno: si llega `SISTEMA=` se niega. El guion imprime solo `HECHO sistema_sha256_corto=<10>`, con la fórmula del DG (`printf '%s'` sin salto de línea, `sha256sum`, 10 caracteres), para compararlo con la nota de control del DG. El valor no se imprime nunca. Lo borran el cierre y el abandono del 4.6b.
 - **En la copia del ensayo** va `ENTORNO=copia`, que exige la marca `dtd.entorno = 'copia'` guardada para la base.
 
 **El archivo de E5,** `/dev/shm/portal-historial/contactos-conservados.ndjson`, va en 0600 y lleva solo ids:

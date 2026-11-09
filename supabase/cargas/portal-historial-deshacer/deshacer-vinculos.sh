@@ -47,7 +47,8 @@ umask 077
 # SISTEMA (aprobado por el DG, 2026-11-09): el system_identifier de producción sale de un archivo de root, nunca del
 # entorno ni de la base que se protege. Se imprime solo su sha256 corto, con la fórmula del DG (printf '%s', sin salto
 # de línea, y los primeros 10 caracteres de sha256sum), para que el DG lo compare con su nota de control. El valor no
-# se imprime nunca. El archivo lo deja la puerta 1 y lo borran el cierre o el abandono del 4.6b (limpiar.sh).
+# se imprime nunca. El archivo lo deja el sub-paso 3.0 del runbook (aprobado por el DG; /srv/ops/portal-historial no
+# existe antes), y lo borran el cierre o el abandono del 4.6b (limpiar.sh).
 [ -z "${SISTEMA:-}" ] || { echo "HECHO error=sistema_va_en_el_archivo_no_en_el_entorno" >&2; exit 2; }
 SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-/srv/ops/portal-historial/sistema-produccion}"
 [ "$SISTEMA_ARCHIVO" = /srv/ops/portal-historial/sistema-produccion ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=sistema_no_es_el_archivo_fijo" >&2; exit 2; }
