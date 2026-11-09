@@ -269,23 +269,23 @@ guardas() { # carpeta prefijo
   # compose.yml deja una marca y sigue caído aunque la carpeta ya no esté (el rojo del job 129203440274). El centinela
   # de la carga a medias se crea solo mientras existe el compose.yml, para no recrearlo después de la limpieza.
   mkdir -p "$TRABAJO/docker-se-cae"
-  rm -f -- "$TRABAJO/docker-se-cae/caido"
-  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; echo centinela >/dev/shm/portal-historial/centinela; fi\n[ -e "$M" ] && exit 1\nexec %s "$@"\n' "$TRABAJO/docker-se-cae/caido" "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
+  rm -f -- "$TRABAJO/docker-se-cae/caido" "$TRABAJO/docker-se-cae/caido.sin_carpeta"
+  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; echo centinela >/dev/shm/portal-historial/centinela; fi\nif [ -e "$M" ]; then [ -e /dev/shm/portal-ensayo/compose.yml ] || : >"$M.sin_carpeta"; exit 1; fi\nexec %s "$@"\n' "$TRABAJO/docker-se-cae/caido" "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
   chmod +x "$TRABAJO/docker-se-cae/docker"
   ensayo "$C" "$TRABAJO/$X-g6.txt" "PATH=$TRABAJO/docker-se-cae:$PATH" --
   [ -e /dev/shm/portal-ensayo ] && echo "HECHO carpeta_ensayo=queda" >>"$TRABAJO/$X-g6.txt"
   [ -e /dev/shm/portal-historial ] && echo "HECHO carpeta_historial=queda" >>"$TRABAJO/$X-g6.txt"
   rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
-  exigir G6 '[ "$(h "$TRABAJO/$X-g6.txt" salida_proceso)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" ensayo_codigo)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" docker_no_responde)" = si ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_ensayo)" ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_historial)" ]' \
-    "un ensayo que termina con docker sin responder: borra sus carpetas igual y sale con su código ($(h "$TRABAJO/$X-g6.txt" salida_proceso), no 6)"
+  exigir G6 '[ "$(h "$TRABAJO/$X-g6.txt" salida_proceso)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" ensayo_codigo)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" docker_no_responde)" = si ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_ensayo)" ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_historial)" ] && [ -e "$TRABAJO/docker-se-cae/caido.sin_carpeta" ]' \
+    "un ensayo que termina con docker sin responder: borra sus carpetas igual y sale con su código ($(h "$TRABAJO/$X-g6.txt" salida_proceso), no 6); el falso siguió caído sin la carpeta: $([ -e "$TRABAJO/docker-se-cae/caido.sin_carpeta" ] && echo si || echo no)"
   # G7 (N1 de la revisión del DG): docker se CUELGA en la limpieza (los conteos no vuelven). Con CREADO=1 las dos
   # carpetas se borran antes de llamar a docker, así que a los 15 s ya no están, aunque la limpieza siga esperando.
   # Después se mata el ensayo con SIGKILL, como lo haría un operador.
   # Pegajoso, como el de G6: después del borrado previo los conteos se siguen colgando (si no, irían al docker real y
   # G7 no mediría el cuelgue).
   mkdir -p "$TRABAJO/docker-se-cuelga"
-  rm -f -- "$TRABAJO/docker-se-cuelga/colgado"
-  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; fi\nif [ -e "$M" ]; then case " $* " in *" ps "*|*" ls "*) sleep 120 ;; esac; exit 1; fi\nexec %s "$@"\n' "$TRABAJO/docker-se-cuelga/colgado" "$(command -v docker)" >"$TRABAJO/docker-se-cuelga/docker"
+  rm -f -- "$TRABAJO/docker-se-cuelga/colgado" "$TRABAJO/docker-se-cuelga/colgado.sin_carpeta"
+  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; fi\nif [ -e "$M" ]; then case " $* " in *" ps "*|*" ls "*) [ -e /dev/shm/portal-ensayo/compose.yml ] || : >"$M.sin_carpeta"; sleep 120 ;; esac; exit 1; fi\nexec %s "$@"\n' "$TRABAJO/docker-se-cuelga/colgado" "$(command -v docker)" >"$TRABAJO/docker-se-cuelga/docker"
   chmod +x "$TRABAJO/docker-se-cuelga/docker"
   ( ensayo "$C" "$TRABAJO/$X-g7.txt" "PATH=$TRABAJO/docker-se-cuelga:$PATH" -- ) &
   local g7=$! _
@@ -297,8 +297,10 @@ guardas() { # carpeta prefijo
   pkill -9 -f "sleep 120" 2>/dev/null
   wait "$g7" 2>/dev/null
   rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
-  exigir G7 '[ "$g7_quedan" = no ]' \
-    "docker colgado en la limpieza: las dos carpetas ya no están antes de que vuelvan los conteos (quedan: $g7_quedan)"
+  local g7_colgo=no
+  [ -e "$TRABAJO/docker-se-cuelga/colgado.sin_carpeta" ] && g7_colgo=si
+  exigir G7 '[ "$g7_quedan" = no ] && [ "$g7_colgo" = si ]' \
+    "docker colgado en la limpieza: las dos carpetas ya no están antes de que vuelvan los conteos (quedan: $g7_quedan; el falso se colgó sin la carpeta: $g7_colgo)"
   ensayo "$C" "$TRABAJO/$X-g3.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/no" PROD_PG=chatwoot-postgres-1 --
   exigir G3 '[ "$(h "$TRABAJO/$X-g3.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g3.txt.evidencia" error)" = volcado_fuera_de_la_prueba ] && [ ! -e "$TRABAJO/no" ]' \
     "ENSAYO_VOLCADO con el nombre real de producción: se niega ($(h "$TRABAJO/$X-g3.txt.evidencia" error))"
