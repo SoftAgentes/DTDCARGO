@@ -47,15 +47,15 @@ El plan completo está en la nota compartida del Subdirector (`plan-segunda-pr-0
 | eslint de las dos pruebas / `tsc --noEmit` | PASÓ / PASÓ |
 | docs:check, sdd:check, governance:check y `diff --check` | PASÓ |
 | `pnpm verify`, build, Docker y e2e | NO EJECUTADO, por orden del encargo |
-| CI de GitHub | NO EJECUTADO: la PR es un borrador y la Calidad no corre en borradores |
+| CI de GitHub | La #485 se marcó lista el 2026-11-09 para que corra la Calidad; la vigila el Subdirector |
 
 ## PENDIENTES DE ESTA TAREA
 
 - **C1:** la lista explícita de columnas en `lib/public/news-queries.ts` (4 llamadas).
   - Espera el catálogo de `news_posts` en producción (lectura del DG): hay seis columnas dudosas que el sitio usa y que ninguna migración crea.
   - La prueba ya está escrita, sin commit, en `lib/public/__tests__/news-queries-columnas.test.ts`. Contra el código de hoy da roja, como se espera.
-  - Entra junto con el arreglo.
-- **`NNNN`:** C2 con la opción A, el motivo obligatorio en `news_salida_motivo`, el revoke de EXECUTE a anon en `news_texto_tiene_marca` y `news_huella`, y el recálculo de `content_sha256` al editar. Espera el número del DG. El SQL en borrador está en el plan.
+  - **Va en una PR siguiente** (decisión del Subdirector del 2026-11-09, opción b: Sam pidió avanzar), junto con el arreglo. No entra en la #485.
+- **`NNNN`:** C2 con la opción A, el motivo obligatorio en `news_salida_motivo`, el revoke de EXECUTE a anon en `news_texto_tiene_marca` y `news_huella`, y el recálculo de `content_sha256` al editar. Espera el número del DG. El SQL en borrador está en el plan. **También va en la PR siguiente.**
 - Lo que sigue abierto en el handoff de la 0611 (C3, C4, C6 a C10, cron, pantalla de retiro y lo demás) no entra en esta PR, salvo que el DG lo pida.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -64,4 +64,4 @@ El plan completo está en la nota compartida del Subdirector (`plan-segunda-pr-0
 
 ## HANDOFF AL DIRECTOR
 
-La PR está en borrador y no enciende nada. Encender la publicación automática pide el OK de Sam. Se marca lista cuando entren C1 y `NNNN`, o cuando el Subdirector avise.
+La #485 trae documentos y pruebas, y no enciende nada. Se marcó lista por la opción (b) del Subdirector. C1 y `NNNN` van en una PR siguiente. Encender la publicación automática pide el OK de Sam.
