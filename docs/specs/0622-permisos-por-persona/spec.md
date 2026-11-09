@@ -324,3 +324,43 @@ aplicada nunca se renumera.
 
 **Fuera de la allowlist, por decisión:** `supabase/migrations/` ya aplicadas, `.env*`, datos de producción,
 portal público, PWA de operarios, Chatwoot.
+
+## 12. Anexo · Fase 1 — inventario de la base (solo lectura, 2026-11-09)
+
+Método: se recorrió `supabase/migrations` (0001–0524), se tomó la **última definición** de cada función y de cada
+policy vigente (descartando las que una migración posterior borra) y se buscó dónde compara el rol:
+`user_tenants.role`, `current_studio_role()`, `assert_studio_role()`, `is_tenant_admin()`, `v_role in (...)`,
+`role in ('…')` y `document_entity_authorized()`. No se leyó ningún dato de producción.
+
+**Límites del método (no es un veredicto):** es una lectura de texto, no del catálogo real de Postgres. Las
+policies creadas dentro de bloques `DO`/`EXECUTE` (p. ej. parte de la 0456) se ven de forma parcial; una función
+puede ser redefinida fuera de `supabase/migrations`; y «compara el rol» no dice si la comparación es correcta.
+Antes de la Fase 4 hay que repetirlo contra el catálogo de una base efímera (`pg_proc`/`pg_policy`).
+
+**Cifras:** 589 funciones y 685 policies vigentes; **235 objetos** con algún chequeo de rol. Un objeto puede
+sumar varios patrones: `user_tenants.role` 99 · `current_studio_role()` 63 · `is_tenant_admin()` 39 ·
+`role in ('…')` 33 · `document_entity_authorized()` 27 · `v_role in (...)` 12 · `assert_studio_role()` 9.
+
+| Grupo | Qué hay (archivo) | Efecto para extras / `custom` | Veredicto |
+|---|---|---|---|
+| **A · Control del sistema** (solo admin) | Mailing `0408`; bugs `0028`/`0029`; SEO y noticias `0053`–`0055`, `0518`; Telegram `0386`; Chatwoot admin `0503`–`0507`, `0509`, `0522`; etapas CRM `0506` (escritura); códigos de marca `0334`/`0339`; legal y rendiciones `0356`; ajustes fiscales/contables `0126`/`0133`; auditoría `0201`, `0270`, `0289`–`0301`, `0398` | No se conceden (§5.1 regla 2) | **Fuera** |
+| **B · Dinero por rol `accounting`** | Facturas `0407`/`0414`; conciliación `0409`; cobros y pagos a proveedores `0467`/`0468`/`0470`; cuentas y asientos `0510`/`0511`; libros fiscales y retenciones `0165`/`0166`; gastos `0074`; reportes de pago `0422`; nómina `0160` (`nomina_can_access`); cierre y edición contable `0493` | **Alejandro ya los tiene** por ser `accounting`. Un extra de dinero a quien no sea `accounting` (incluido `custom`) **no funcionaría** hasta migrar estas ~45 piezas | **Requiere cambio** solo para `custom` o roles distintos de contabilidad; **no** para Alejandro |
+| **C · Comercial con rol fijo** | `crm_puede_usar()` = `admin`/`commercial` (`0506:186-194`); `document_entity_authorized` y el mapa entidad→módulo (`0444`, escrituras de clientes `0456`); `update_shipment_plan` (`0305`); `rename_client_markbox` (`0371`); identidad de facturación (`0466`) | Sin cambio en la base, Alejandro **ve** el CRM en pantalla y la base se lo cierra | **Requiere cambio** (primera tanda) |
+| **C2 · Comercial ya compatible con contabilidad** | Fachadas `0411`/`0412`/`0413` y `merge_clients` (`0358`/`0361`) ya incluyen `accounting`; `client_outstanding` (`0492`) | Funcionan para Alejandro; **fallan cerrado** ante `custom` hasta incluirlo | Cubierta para Alejandro; **requiere cambio** para `custom` |
+| **D · Comercial sin rol en la base** | `quotes` (`0007`), `sales_orders` (`0125`), parte de proveedores (`0236`): RLS solo por tenant | Basta el cambio de aplicación | **Cubierta** |
+| **E · Operación y almacén** | Operarios `0475`; naviera `0477`/`0482`; SENIAT `0484`; TMS `0486`; entrega VE `0487`; despacho `0489`; tarifa congelada `0496`; funciones de operarios `bodeguero_*`/`camionero_*` (`0288`/`0336`) con `v_role` | No se necesitan para el caso de Alejandro | **Fuera de esta spec** (se revisan si se pide) |
+| **F · Acciones destructivas o gobernadas** | Anulaciones y borrados: `0316`, `0340`, `0470`, `0476`, `0497`, `0262` | Los extras no las otorgan (§5.1 regla 2) | **Fuera** por decisión |
+
+### Conclusión para el plan
+
+1. **Caso Alejandro (contabilidad + CRM + módulos sensibles):** la base ya lo deja trabajar en dinero y en lo
+   comercial que incluye `accounting`. El cambio mínimo en la base es el de **C**: `crm_puede_usar()` y, si se le
+   suman clientes con edición completa, `document_entity_authorized`/`0456`. Eso es una tanda pequeña.
+2. **Usuario `custom`:** es donde se concentra el trabajo grande. Sin migrar el grupo B y C2, un `custom` con
+   extras de dinero o de clientes vería módulos que la base le niega. Por eso en la Fase 5 un módulo solo se
+   ofrece a un `custom` cuando su grupo esté marcado «cubierto» (§5.3).
+3. **Orden sugerido de tandas:** (i) tabla, RPC y aplicación para roles existentes (Alejandro); (ii) base para
+   Comercial (grupo C); (iii) rol `custom` + C2; (iv) dinero para `custom` (grupo B), por submódulos y solo si Sam
+   lo confirma, pues es lo más extenso.
+4. **Pendiente de la Fase 1:** repetir el inventario contra el catálogo de una base efímera y fijar la lista
+   final «módulo → cubierto / requiere cambio» que alimenta la UI.
