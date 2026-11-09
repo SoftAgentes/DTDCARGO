@@ -5,10 +5,16 @@
 #
 #   FASE=otra-bandeja CUENTA BANDEJA OTRA  al primer contacto dtd-portal: de la bandeja le da un contact_inbox, una
 #                       conversación y un mensaje en la otra bandeja (OTRA): ese contacto se conserva. Idempotente.
-#   FASE=ajeno BANDEJA CUAL=mensaje|contact_inbox  pone en la bandeja algo que la carga no crea: un mensaje sin
-#                       source_id en una conversación cargada, o un contact_inbox de la cola (source_id cola-…).
-#   FASE=quitar-ajeno BANDEJA  lo quita.
-#   FASE=contar CUENTA BANDEJA OTRA  la bandeja, los contactos dtd-portal: de la cuenta, el conservado y la otra bandeja.
+#   FASE=ajeno BANDEJA CUAL=…  pone en la bandeja algo que la carga no crea, de a uno:
+#                       mensaje        un mensaje sin source_id en una conversación cargada;
+#                       contact_inbox  un contact_inbox de la cola (source_id cola-…);
+#                       sin-hilo       una conversación sin dtd_hilo;
+#                       asignada       una conversación cargada con un agente asignado;
+#                       snoozed        una conversación cargada en snoozed;
+#                       telefono       un contacto de la bandeja con teléfono (el cargador nunca lo pone);
+#                       nota           una nota de un contacto de la bandeja.
+#   FASE=quitar-ajeno BANDEJA  lo quita todo.
+#   FASE=contar CUENTA BANDEJA OTRA  la bandeja, los contactos dtd-portal: de la cuenta y la otra bandeja.
 # Salida: `HECHO clave=valor`, solo conteos e ids.
 
 require 'securerandom'
@@ -17,11 +23,13 @@ def hecho(k, v)
   puts "HECHO #{k}=#{v}"
 end
 
-cuenta = ENV['CUENTA'] && Integer(ENV['CUENTA'])
-bandeja = Integer(ENV.fetch('BANDEJA'))
-otra = ENV['OTRA'] && Integer(ENV['OTRA'])
+cuenta = ENV['CUENTA'] && Integer(ENV['CUENTA'], 10)
+bandeja = Integer(ENV.fetch('BANDEJA'), 10)
+otra = ENV['OTRA'] && Integer(ENV['OTRA'], 10)
 dtd = ->(c) { Contact.where(account_id: c).where("identifier LIKE 'dtd-portal:%'") }
-primero = -> { Contact.where(id: ContactInbox.where(inbox_id: bandeja).select(:contact_id)).where("identifier LIKE 'dtd-portal:%'").order(:id).first }
+de_la_bandeja = -> { Contact.where(id: ContactInbox.where(inbox_id: bandeja).select(:contact_id)).where("identifier LIKE 'dtd-portal:%'") }
+primero = -> { de_la_bandeja.call.order(:id).first }
+cargadas = -> { Conversation.where(inbox_id: bandeja).where("additional_attributes ? 'dtd_hilo'").order(:id) }
 
 case ENV.fetch('FASE')
 when 'otra-bandeja'
@@ -37,13 +45,29 @@ when 'ajeno'
   ahora = Time.zone.now
   case ENV.fetch('CUAL')
   when 'mensaje'
-    conv = Conversation.where(inbox_id: bandeja).order(:id).first or raise 'no hay conversación cargada'
+    conv = cargadas.call.first or raise 'no hay conversación cargada'
     Message.insert_all([{ account_id: conv.account_id, inbox_id: bandeja, conversation_id: conv.id, message_type: 1,
                           content: 'SINT ajeno', private: false, status: 0, source_id: nil, content_attributes: {},
                           created_at: ahora, updated_at: ahora }])
   when 'contact_inbox'
     x = Contact.create!(account_id: Inbox.find(bandeja).account_id, name: 'SINT cola')
     ContactInbox.create!(contact: x, inbox_id: bandeja, source_id: "cola-#{SecureRandom.hex(4)}")
+  when 'sin-hilo'
+    c = primero.call or raise 'no hay contacto cargado'
+    ci = ContactInbox.find_by!(contact_id: c.id, inbox_id: bandeja)
+    Conversation.insert_all([{ account_id: c.account_id, inbox_id: bandeja, contact_id: c.id, contact_inbox_id: ci.id,
+                               status: 0, additional_attributes: {}, created_at: ahora, updated_at: ahora,
+                               last_activity_at: ahora }])
+  when 'asignada'
+    agente = AccountUser.where(account_id: Inbox.find(bandeja).account_id).order(:user_id).first.user_id
+    cargadas.call.first.update_columns(assignee_id: agente)
+  when 'snoozed'
+    cargadas.call.where(status: Conversation.statuses.fetch('open')).first.update_columns(status: Conversation.statuses.fetch('snoozed'))
+  when 'telefono'
+    primero.call.update_columns(phone_number: '+584127770005')
+  when 'nota'
+    c = primero.call
+    Note.insert_all([{ content: 'SINT nota', account_id: c.account_id, contact_id: c.id, created_at: ahora, updated_at: ahora }])
   end
   hecho('ajeno', 'ok')
 when 'quitar-ajeno'
@@ -52,6 +76,11 @@ when 'quitar-ajeno'
   ids = cis.pluck(:contact_id)
   cis.delete_all
   Contact.where(id: ids).delete_all
+  Conversation.where(inbox_id: bandeja).where("NOT (coalesce(additional_attributes, '{}'::jsonb) ? 'dtd_hilo')").delete_all
+  Conversation.where(inbox_id: bandeja).where.not(assignee_id: nil).update_all(assignee_id: nil)
+  Conversation.where(inbox_id: bandeja, status: Conversation.statuses.fetch('snoozed')).update_all(status: Conversation.statuses.fetch('open'))
+  de_la_bandeja.call.where.not(phone_number: nil).update_all(phone_number: nil)
+  Note.where(contact_id: de_la_bandeja.call.select(:id)).delete_all
   hecho('quitar_ajeno', 'ok')
 when 'contar'
   hecho('bandeja', "conversaciones:#{Conversation.where(inbox_id: bandeja).count},mensajes:#{Message.where(inbox_id: bandeja).count},contact_inboxes:#{ContactInbox.where(inbox_id: bandeja).count}")
