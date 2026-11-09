@@ -1,14 +1,23 @@
 # Guion de ejecución: Paperclip 2026.1012.0 → 2026.1106.0 en la oficina
 
 Dueño: Sam (Junta de la oficina) · Estado: **escrito, sin ejecutar** · Escrito: 2026-11-07 ·
-review-by: 2026-12-07
+Corregido: 2026-11-09 · review-by: 2026-12-07
 
 Sirve para correr el paso 3 de la evaluación de la PR #409
-(`docs/organizacion/oficina-agentes/actualizacion-paperclip-hermes.md`: §3, §5 y §6). Este guion
-sigue el paso 3 tal como quedó tras la revisión del Director General (commit `fb3504059` de esa
-PR). Si los dos no coinciden, manda la #409 y este guion se corrige. Ese documento explica el
-porqué. Aquí van los comandos, el orden, lo que tiene que salir en cada paso y qué hace
-Sam en cada momento.
+(`docs/organizacion/oficina-agentes/actualizacion-paperclip-hermes.md`: §3, §5 y §6), que está en
+`main` desde el 2026-11-09. Ese documento explica el porqué. Aquí van los comandos, el orden, lo
+que tiene que salir en cada paso y qué hace Sam en cada momento.
+
+**Relación con la #409.**
+
+- Este guion sigue su paso 3.
+- La revisión del Director General sobre esta PR (2026-11-09) agregó cuatro cosas que la #409 no
+  tiene. Son más estrictas y no la contradicen:
+  - parar si existe `paperclipai.service` (§3.2);
+  - el script de lectura literal (§3.2);
+  - las skills, con su respaldo (§3.2, §4 y §8);
+  - apartar la configuración de la 1106 antes de restaurar (§8).
+- Si en otra cosa los dos no coinciden, manda la #409 y este guion se corrige.
 
 > ⚠️ **Nada de esto es automático.** Se corre en el VPS de la oficina de agentes, en una ventana
 > que Sam autoriza aparte y nombrando ese VPS. La autorización que Sam le dio a otra sesión no
@@ -54,13 +63,14 @@ CRM/datos y Analista de operaciones. Las 6 de agentes terminados no se tocan.
 | Momento | Qué hace Sam |
 |---|---|
 | El día antes o esa mañana | Lee el resultado de la revisión de issues (§3.1) y elige la hora de la ventana |
-| Al abrir la ventana | Da el OK nombrando el VPS de la oficina, en el chat de la sesión que va a ejecutar. Con ese OK acepta también el riesgo de presupuesto: sin corte duro, a los GLM solo los frena la cuota de z.ai (§6.4 de la PR #409). Abre el túnel y su sesión de Paperclip en `localhost:3100` |
+| A T-15 minutos | Da el OK nombrando el VPS de la oficina para las lecturas del §3.2, en el chat de la sesión que va a ejecutar. Son solo lecturas, pero en el VPS: sin ese OK no se entra. Puede ser el mismo mensaje que el OK de la ventana si dice las dos cosas |
+| Al abrir la ventana | Da el OK nombrando el VPS de la oficina, en el chat de la sesión que va a ejecutar. Con ese OK acepta también: (1) el riesgo de presupuesto, porque sin corte duro a los GLM solo los frena la cuota de z.ai (§6.4 de la PR #409); y (2) **la vuelta atrás completa del §8**, que restaura la base, el programa, la configuración y las skills desde la copia en frío y descarta lo escrito en la 1106. Abre el túnel y su sesión de Paperclip en `localhost:3100` |
 | Durante toda la ventana | No escribe en `#alfred` ni crea tareas. Lo que se cree en 1106 se pierde si hay que volver atrás |
 | §6 | Pone `unpricedUsagePolicy = allow` en las 8 políticas desde la pantalla de presupuestos, o autoriza que se haga por la API con su sesión, como en el cambio B |
 | §7 | Autoriza crear las tareas de prueba (por la API con su sesión, o las crea él) y presiona «Run now» en la rutina de 5.4. En 5.6 cancela la corrida desde la pantalla |
 | Al cierre | Escribe una línea en `#alfred` y confirma que la recepción contesta |
 | Si la caída pasa de 15 minutos | Decide si se espera hasta 30 o se vuelve atrás (§7.1) |
-| Si algo falla | Decide si se vuelve atrás (§8). Con el OK de la ventana alcanza: no hace falta otro |
+| Si algo falla | Decide si se vuelve atrás (§8). El OK de la ventana ya incluye esa vuelta atrás, con la restauración de la base: no hace falta otro OK |
 
 ## 3. Comprobaciones previas
 
@@ -95,6 +105,10 @@ con el túnel.
 
 ### 3.2 En el VPS, en solo lectura, a T-15 minutos
 
+**Antes de entrar:** el OK de Sam nombrando el VPS de la oficina para estas lecturas (§2). Se
+anota su texto literal. Aquí no se escribe nada en el VPS, salvo el script temporal de la base, que
+va a `/tmp` y se borra al terminar.
+
 Todo como el usuario administrador del VPS, con `sudo`. Para no repetir la forma de entrar como
 `agentes`:
 
@@ -107,7 +121,7 @@ A() { sudo -n -u agentes -H env XDG_RUNTIME_DIR=/run/user/$(id -u agentes) bash 
 ```bash
 A 'paperclipai --version'                                  # 2026.1012.0 (managed npm pinned; …)
 A 'systemctl --user is-active paperclip.service'           # active
-A 'systemctl --user status paperclipai.service --no-pager' # «could not be found»: ver §5
+A 'systemctl --user status paperclipai.service --no-pager' # «could not be found»; si existe, NO se abre la ventana
 A 'umask'                                                  # si da 0002, el §5 la corrige
 A 'node --version'                                         # 24.11.0 o más (la 1106 pide >=24.11.0)
 curl -s http://127.0.0.1:3100/api/health; echo             # "status":"ok" y versión 2026.1012.0
@@ -132,42 +146,101 @@ for f in /usr/local/libexec/dtd-motor /usr/local/libexec/dtd-agente-run \
 sudo -u agentes-run /opt/hermes/bin/hermes --version | head -1   # Hermes Agent v0.23.0
 ```
 
-**La base, en solo lectura.** Se usa un script de Node con el driver `postgres` que trae el propio
-Paperclip, igual que en la PR #409. La conexión es la de la base embebida, en `127.0.0.1:54329`,
-con usuario y clave por defecto; no se escribe aquí. Siempre con
-`default_transaction_read_only: "on"` en la conexión y, además, `SET default_transaction_read_only
-= on` antes de la primera consulta. El script se borra al terminar.
+**La base, en solo lectura: el script de lectura.** Es el mismo que se usó en la PR #409 para el
+cambio B [MEDIDO 2026-11-07], escrito aquí literal para no improvisar en la ventana.
+
+- Usa el driver `postgres` que trae el propio Paperclip.
+- Se conecta a la base embebida en `127.0.0.1:54329`, con el usuario y la clave por defecto de esa
+  base.
+- Va con `default_transaction_read_only: "on"` en la conexión y, además, `SET
+  default_transaction_read_only = on` antes de la primera consulta.
+- No imprime valores de `adapter_config->'env'`: la consulta 8 solo dice si existen dos nombres.
+- Se escribe en `/tmp`, corre como `agentes` y se borra al terminar.
+
+`V` es la versión cuyo driver se usa: `2026.1012.0` antes del §5 y en la vuelta atrás,
+`2026.1106.0` después del §5.
 
 ```bash
-DRV=$(sudo -u agentes find /home/agentes/.paperclip/cli/installs/npm -maxdepth 8 \
+V=2026.1012.0
+DRV=$(sudo -u agentes find "/home/agentes/.paperclip/cli/installs/npm/$V" -maxdepth 8 \
   -path '*node_modules/postgres/package.json' 2>/dev/null | head -1)
+[ -n "$DRV" ] && echo "driver: $DRV" || echo "SIN DRIVER para $V: parar y avisar"
+cat > /tmp/pc1106-lectura.cjs <<'JS'
+const { createRequire } = require("module");
+const postgres = createRequire(process.env.DRV)("postgres");
+const u = "paperclip"; // usuario, clave y base por defecto de la base embebida
+const sql = postgres({ host: "127.0.0.1", port: 54329, database: u, username: u, password: u, max: 1,
+  connection: { default_transaction_read_only: "on", application_name: "guion-1106-lectura" } });
+const consultas = [
+  ["0 solo lectura", "show default_transaction_read_only"],
+  ["1 corridas vivas o en cola (0 filas)",
+   "select status, count(*) from heartbeat_runs where status in ('queued','running') group by 1"],
+  ["2 politicas vivas (8, hard_stop_enabled false)",
+   "select a.name, bp.amount, bp.warn_percent, bp.hard_stop_enabled, bp.notify_enabled, bp.is_active from budget_policies bp join agents a on a.id = bp.scope_id where bp.scope_type = 'agent' and a.status <> 'terminated' order by a.name"],
+  ["3 incidentes (0 abiertos)", "select status, count(*) from budget_incidents group by 1"],
+  ["4 migraciones (304 en 1012, 373 en 1106)", "select count(*), max(created_at) from drizzle.__drizzle_migrations"],
+  ["5 proximos disparos de rutinas",
+   "select r.title, rt.next_run_at from routine_triggers rt join routines r on r.id = rt.routine_id where rt.enabled and r.status = 'active' order by rt.next_run_at"],
+  ["6 latidos por tiempo",
+   "select name, status, last_heartbeat_at, runtime_config->'heartbeat' as heartbeat from agents where status <> 'terminated' order by name"],
+  ["7 motores",
+   "select name, adapter_type, adapter_config->>'engine' as engine, adapter_config->>'command' as command from agents where status <> 'terminated' order by name"],
+  ["8 GLM con HOME o HERMES_HOME en su entorno (solo si existen, sin valores)",
+   "select name, coalesce(adapter_config->'env' ? 'HERMES_HOME', false) as hermes_home, coalesce(adapter_config->'env' ? 'HOME', false) as home from agents where adapter_type = 'hermes_local' and status <> 'terminated' order by name"],
+  ["9 retenciones (solo 1106; en 1012 da ERROR de columna)",
+   "select name, status, pause_reason, lifecycle_holds from agents where status <> 'terminated' order by name"],
+  ["10 uso sin precio (solo 1106; en 1012 da ERROR de columna)",
+   "select a.name, bp.hard_stop_enabled, bp.unpriced_usage_policy, bp.notify_enabled, bp.is_active from budget_policies bp join agents a on a.id = bp.scope_id where bp.scope_type = 'agent' and a.status <> 'terminated' order by a.name"],
+];
+(async () => {
+  await sql.unsafe("SET default_transaction_read_only = on");
+  for (const [t, s] of consultas) {
+    try { const r = await sql.unsafe(s); console.log("-- " + t); for (const f of r) console.log(JSON.stringify(f)); }
+    catch (e) { console.log("-- " + t + " ERROR " + e.message); }
+  }
+  await sql.end();
+})().catch(e => { console.log("ERROR " + e.message); process.exit(1); });
+JS
+chmod 644 /tmp/pc1106-lectura.cjs
+sudo -n -u agentes bash -lc "DRV='$DRV' node /tmp/pc1106-lectura.cjs" 2>&1 | cut -c1-400
+rm -f /tmp/pc1106-lectura.cjs
 ```
 
-```sql
-SET default_transaction_read_only = on;
--- 1. corridas vivas o en cola: 0 filas
-select status, count(*) from heartbeat_runs where status in ('queued','running') group by 1;
--- 2. políticas vivas: las 8 con hard_stop_enabled = false (cambio B)
-select a.name, bp.amount, bp.warn_percent, bp.hard_stop_enabled, bp.notify_enabled, bp.is_active
-from budget_policies bp join agents a on a.id = bp.scope_id
-where bp.scope_type = 'agent' and a.status <> 'terminated' order by a.name;
--- 3. incidentes: 0 abiertos
-select status, count(*) from budget_incidents group by 1;
--- 4. migraciones: 304
-select count(*) from drizzle.__drizzle_migrations;
--- 5. próximos disparos de rutinas: ninguno dentro de la ventana
-select r.title, rt.next_run_at from routine_triggers rt join routines r on r.id = rt.routine_id
-where rt.enabled and r.status = 'active' order by rt.next_run_at;
--- 6. latidos por tiempo de los agentes vivos
-select name, status, last_heartbeat_at, runtime_config->'heartbeat' as heartbeat
-from agents where status <> 'terminated' order by name;
--- 7. motores: adaptador, engine y comando de los agentes vivos (se repite después del §5)
-select name, adapter_type, adapter_config->>'engine' as engine, adapter_config->>'command' as command
-from agents where status <> 'terminated' order by name;
+Más abajo, «la consulta N» es la salida N de este script. El script hace todas las consultas cada
+vez que corre.
+
+**Skills, antes de tocar nada:**
+
+```bash
+sudo bash -c 'for p in /home/agentes-run/.hermes/profiles/*/; do printf "%s=%s " "$(basename "$p")" "$(ls "$p/skills" | wc -l)"; done'; echo
+A 'ls -A "$HOME/.hermes/skills" 2>/dev/null | wc -l; find "$HOME/.hermes/skills" -maxdepth 1 -type l -printf "%f -> %l\n" 2>/dev/null'
 ```
+
+**Dónde escribe Paperclip sus skills [CÓDIGO].**
+
+- **Quién escribe.** En cada corrida Hermes, el servidor de Paperclip (usuario `agentes`) enlaza
+  sus skills (`paperclip` y las que tenga asignadas el agente) en una carpeta de skills de Hermes
+  (`packages/adapters/hermes/src/server/skills.ts:216-256` de la 1106; `execute.ts:368-382`).
+- **Dónde.**
+  - Sin `HERMES_HOME` en el entorno del agente, la carpeta es `<HOME>/.hermes/skills` en las dos
+    versiones; con nuestra configuración, `~agentes/.hermes/skills`.
+  - **Con `HERMES_HOME`, la 1106 cambia de carpeta** a `$HERMES_HOME/skills`
+    (`skills.ts:28-36`), que sería la del perfil. La 1012 lo ignoraba.
+  - Nuestros GLM llevan solo `DTD_PERFIL` (hojas de alta en `configuracion-paperclip.md`).
+    `HERMES_HOME` lo fija `dtd-agente-run` después de `sudo`, y ahí Paperclip no mira. La
+    consulta 8 lo comprueba.
+- **Qué pasa en la vuelta atrás.** Un enlace que apunta a una carpeta que ya no existe se repara en
+  la corrida siguiente (`ensurePaperclipSkillSymlink`, igual en la 1012 y en la 1106). Así que la
+  vuelta atrás funciona aun sin restaurar `~agentes/.hermes/skills`. El §8 lo restaura igual.
 
 **Sigue si:**
 
+- La consulta 0 dice `on`.
+- `paperclipai.service` **no existe** («could not be found»).
+  - **Si existe, se para aquí y no se abre la ventana.**
+  - Con esa unidad, `update` la reinicia y la valida, y si la validación falla vuelve solo a la
+    1012 sobre una base que ya pudo haber migrado (§6.7 de la #409 y §5 de este guion).
+  - Se avisa a Sam y se evalúa aparte.
 - La consulta 1 da 0 filas.
 - Las 8 políticas tienen `hard_stop_enabled = false`.
 - No hay incidentes abiertos.
@@ -183,6 +256,17 @@ from agents where status <> 'terminated' order by name;
   - ALFRED en `claude_local`, `cli`, `/usr/local/bin/dtd-claude`;
   - el Auxiliar en `codex_local`, `cli`, `/usr/local/bin/dtd-codex`;
   - los GLM en `hermes_local`.
+- **La consulta 8** da `hermes_home = false` en todos los GLM. Si alguno da `true`, se para: con
+  la 1106 Paperclip escribiría en la carpeta de skills de ese perfil, y eso no se evaluó.
+- **Skills por perfil.**
+  - Se anota el número de cada uno de los 16 perfiles. El 2026-11-07 eran 13 en todos, antes y
+    después de Hermes 0.23 [MEDIDO, con este mismo `ls | wc -l`].
+  - Si hoy da otro número, el de hoy pasa a ser la referencia. No es motivo para parar, porque
+    Paperclip no los tocó.
+  - Se anotan también los enlaces de `~agentes/.hermes/skills`.
+    - Se espera que apunten dentro de `.paperclip/cli/installs/npm/2026.1012.0/`, porque la fuente
+      es la carpeta del adaptador instalado [INFERENCIA, no medido].
+    - Si apuntan a otro lado, se anota y se sigue: es la línea base.
 
 **El puente de ALFRED** (`dtd-alfred-bridge.service`) le habla a Paperclip con la llave de ALFRED.
 Su nombre viene del README de `infra/oficina/dtd-alfred` y no se ha comprobado en el VPS:
@@ -221,8 +305,18 @@ la actualización se perdería al volver atrás.
    tar -C "$HOME/.paperclip" -czf "$dest/cli.tgz" cli
    tar -C "$HOME" -czf "$dest/config.tgz" .config/paperclip/paperclip.env \
      .config/systemd/user/paperclip.service .local/bin/paperclipai .paperclip/auth.json
-   cd "$dest" && sha256sum instancia-default.tgz cli.tgz config.tgz > SHA256SUMS && sha256sum -c SHA256SUMS
+   if [ -d "$HOME/.hermes/skills" ]; then tar -C "$HOME" -czf "$dest/skills-agentes.tgz" .hermes/skills
+   else echo "no había .hermes/skills" > "$dest/skills-agentes.ausente"; fi
+   cd "$dest" && sha256sum *.tgz > SHA256SUMS && sha256sum -c SHA256SUMS
    echo "$dest"; cut -c1-16,65- SHA256SUMS'
+   ```
+
+   Y, como root, las skills de los perfiles de Hermes, que no son de `agentes`:
+
+   ```bash
+   sudo bash -c 'set -e; umask 077; f=/root/respaldo-paperclip-1106-skills-perfiles-$(date -u +%Y%m%dT%H%M%SZ).tgz
+   tar -C /home/agentes-run/.hermes -czf "$f" $(cd /home/agentes-run/.hermes && ls -d profiles/*/skills)
+   sha256sum "$f" > "$f.sha256" && sha256sum -c "$f.sha256"; echo "$f"; cut -c1-16 "$f.sha256"; du -h "$f"'
    ```
 
    - **Qué cubre:**
@@ -231,11 +325,17 @@ la actualización se perdería al volver atrás.
      - `paperclip.env` con sus secretos;
      - la unidad;
      - el lanzador;
-     - la sesión de la CLI.
-   - **Dónde queda:** `SHA256SUMS` cubre los tres `.tgz`. Todo queda en la casa de `agentes`, con
-     700 y 600, y no sale del VPS. El `cut` imprime solo la huella corta y el nombre.
-   - **Cuánto tarda:** la instancia pesa unos 420 MB [MEDIDO], así que tarda unos minutos.
-   - **Qué se anota:** la ruta de `dest` y las tres huellas cortas.
+     - la sesión de la CLI;
+     - los enlaces de skills de Paperclip en `~agentes/.hermes/skills` (§3.2);
+     - las skills de los 16 perfiles, aparte y como root.
+   - **Dónde queda:**
+     - `SHA256SUMS` cubre los `.tgz` de `dest`, que quedan en la casa de `agentes`, con 700 y 600.
+     - El de los perfiles queda en `/root`, con su `.sha256`.
+     - Nada sale del VPS. El `cut` imprime solo la huella corta y el nombre.
+   - **Cuánto tarda:** la instancia pesa unos 420 MB [MEDIDO], así que tarda unos minutos. El
+     tamaño de las skills de los perfiles no se midió: `du` lo muestra.
+   - **Qué se anota:** la ruta de `dest`, la del respaldo de los perfiles y todas las huellas
+     cortas.
 
 ## 5. Actualizar
 
@@ -255,8 +355,8 @@ la actualización se perdería al volver atrás.
 - Al terminar, el comando reinicia y valida solo el servicio que administra él, `paperclipai.service`
   (`cli/src/services/service-manager.ts:120`).
 - El nuestro es `paperclip.service`, hecho a mano en la SDD-0564.
-- Si `paperclipai.service` no existe (§3.2), el comando cambia la versión pero no reinicia, no
-  valida y tampoco vuelve solo a la 1012.
+- Como `paperclipai.service` no existe (el §3.2 lo exige para abrir la ventana), el comando cambia
+  la versión pero no reinicia, no valida y tampoco vuelve solo a la 1012.
 
 1. **Actualizar, con el servicio todavía detenido:**
 
@@ -293,12 +393,13 @@ la actualización se perdería al volver atrás.
    - **Pasa si:** la salud dice `ok` con `2026.1106.0`, el registro muestra las migraciones
      aplicadas y no hay errores.
 
-4. **Conteo de migraciones**, con la consulta 4 del §3.2: **373**.
+4. **Conteo de migraciones:** el script del §3.2, con `V=2026.1106.0`, tiene que dar **373** en
+   la consulta 4.
    - Es el número de archivos de `packages/db/src/migrations` de la `v2026.1106.0`, igual que las
      entradas de su `_journal.json` [CÓDIGO].
-   - La consulta busca el driver de nuevo, porque ahora también está el de la 1106.
+   - En esa misma corrida, las consultas 9 y 10 ya no dan error. Son las que miran el §6 y el §7.1.
 
-5. **ALFRED y el Auxiliar no cambiaron de runner**, con la consulta 7 del §3.2:
+5. **ALFRED y el Auxiliar no cambiaron de runner**, con la consulta 7 de esa misma corrida:
    - ALFRED sigue en `claude_local`, `engine` `cli`, `/usr/local/bin/dtd-claude`;
    - el Auxiliar, en `codex_local`, `cli`, `/usr/local/bin/dtd-codex`;
    - `ps -u agentes -o pid=,args=` no muestra procesos de Runner nuevos.
@@ -329,15 +430,7 @@ vez por política. Se mandan todos los valores actuales y solo cambia el último
 - En la 1106 un campo omitido conserva su valor (`server/src/services/budgets.ts:776-779`)
   [CÓDIGO]. Se repiten igual, para no depender de eso.
 
-**Comprobar en la base**, en solo lectura:
-
-```sql
-SET default_transaction_read_only = on;
-select a.name, bp.hard_stop_enabled, bp.unpriced_usage_policy, bp.notify_enabled, bp.is_active
-from budget_policies bp join agents a on a.id = bp.scope_id
-where bp.scope_type = 'agent' and a.status <> 'terminated' order by a.name;
-select status, count(*) from budget_incidents group by 1;
-```
+**Comprobar en la base:** el script del §3.2 con `V=2026.1106.0`, consultas 3 y 10.
 
 **Pasa si:** las 8 tienen `hard_stop_enabled = false` y `unpriced_usage_policy = 'allow'`, siguen
 activas con el aviso, y hay 0 incidentes.
@@ -381,6 +474,17 @@ p=$(pgrep -u agentes-alfred -n claude); sudo cat /proc/$p/environ | tr '\0' '\n'
   de la PR #409).
 - `DTD_PERFIL` sí aparece. Si no llegara, el envoltorio sale con 64 (#19887) y se vuelve atrás.
 
+**Skills, después de 5.3** (la primera corrida Hermes en la 1106): se repiten los dos comandos de
+skills del §3.2.
+
+**Pasan si:**
+
+- Cada uno de los 16 perfiles tiene el mismo número que se anotó en el §3.2.
+- `~agentes/.hermes/skills` tiene los mismos nombres, ahora apuntando dentro de la instalación de
+  la `2026.1106.0`, o en otra carpeta que exista.
+- El registro de la corrida de 5.3 no dice «Cannot start without the required Paperclip-managed
+  skills».
+
 **Al terminar las pruebas:**
 
 1. Encender el puente: `sudo systemctl start dtd-alfred-bridge.service`.
@@ -398,7 +502,9 @@ Cualquiera de estos lleva al §8:
   `lifecycle_holds` no vacío;
 - 5.1 o 5.3 fallan por la 1106 y no por la línea base. Por ejemplo, el envoltorio sale con 64 porque
   no llegó `DTD_PERFIL` (#19887);
-- ALFRED o el Auxiliar cambian de `adapter_type` o de `engine`, o aparece un proceso de Runner.
+- ALFRED o el Auxiliar cambian de `adapter_type` o de `engine`, o aparece un proceso de Runner;
+- el número de skills de algún perfil cambió, o la corrida de 5.3 no arranca por las skills de
+  Paperclip.
 
 **Si la caída pasa de 15 minutos** sin que la salud dé `ok`:
 
@@ -426,34 +532,64 @@ eso `paperclipai update --rollback` no es el primer paso: cambia el programa per
    Las dos lecturas dan `inactive`. Si el comando de actualización volvió solo a la 1012, también
    se detiene primero.
 3. **Comprobar el respaldo:** `A 'cd <dest> && sha256sum -c SHA256SUMS'` da todo OK.
-4. **Poner a un lado lo de la 1106, sin borrarlo:**
+4. **Poner a un lado lo de la 1106, sin borrarlo:** la base, el programa, la configuración y los
+   enlaces de skills.
 
    ```bash
-   A 's=$(date -u +%Y%m%dT%H%M%SZ); cd "$HOME/.paperclip" && mv instances/default "instances/default.1106-$s" && mv cli "cli.1106-$s"'
+   A 'set -e; umask 077; s=$(date -u +%Y%m%dT%H%M%SZ); cd "$HOME"
+   tar --ignore-failed-read -czf ".paperclip/config.1106-$s.tgz" .config/paperclip/paperclip.env \
+     .config/systemd/user/paperclip.service .local/bin/paperclipai .paperclip/auth.json
+   if [ -e .hermes/skills ]; then mv .hermes/skills ".hermes/skills.1106-$s"; fi
+   cd .paperclip && mv instances/default "instances/default.1106-$s" && mv cli "cli.1106-$s"
+   echo "$s"; ls -ld instances/default.1106-* cli.1106-* config.1106-*.tgz'
    ```
 
-5. **Restaurar la base, el programa y la configuración**, con `umask 077`:
+   - **La configuración de la 1106 se guarda en un `.tgz`**, y no con `mv`, para no dejar archivos
+     sueltos en `~/.config/systemd/user`. Así el `tar -xzf config.tgz` del punto 5 la reemplaza,
+     pero lo de la 1106 sigue guardado para mirarlo después.
+   - Se anota el sello `s` que imprime.
+
+5. **Restaurar la base, el programa, la configuración y los enlaces de skills**, con `umask 077`:
 
    ```bash
    A 'set -e; umask 077; tar -C "$HOME/.paperclip" -xzf <dest>/instancia-default.tgz
    tar -C "$HOME/.paperclip" -xzf <dest>/cli.tgz; tar -C "$HOME" -xzf <dest>/config.tgz
+   if [ -f <dest>/skills-agentes.tgz ]; then tar -C "$HOME" -xzf <dest>/skills-agentes.tgz; fi
    systemctl --user daemon-reload; paperclipai --version'
    ```
 
    Restaurar `cli.tgz` ya deja activa la 1012: `paperclipai --version` tiene que decir
    `2026.1012.0` **antes** de arrancar.
+
+   **Las skills de los perfiles se restauran solo si su número cambió** (§7). Como root, con la
+   ruta del respaldo del §4:
+
+   ```bash
+   sudo bash -c 'set -e; umask 077; f=<respaldo-de-perfiles>.tgz; s=$(date -u +%Y%m%dT%H%M%SZ)
+   sha256sum -c "$f.sha256"; cd /home/agentes-run/.hermes
+   for d in profiles/*/skills; do mv "$d" "$d.1106-$s"; done
+   tar -xzf "$f"; for p in profiles/*/; do printf "%s=%s " "$(basename "$p")" "$(ls "$p/skills" | wc -l)"; done; echo'
+   ```
+
+   Como root, `tar` conserva el dueño original de cada archivo. El conteo final tiene que dar el
+   número anotado en el §3.2.
 6. **Recién ahora, arrancar:** `A 'systemctl --user start paperclip.service'`.
    - La salud responde `ok` con `2026.1012.0`.
-   - La consulta 4 vuelve a dar **304**.
+   - El script del §3.2, con `V=2026.1012.0`, vuelve a dar **304** en la consulta 4.
    - La consulta 2 sigue con las 8 políticas en `hard_stop_enabled = false`, porque el respaldo es
      posterior al cambio B.
+   - Los dos comandos de skills del §3.2 dan lo mismo que antes de la ventana.
 7. **Repetir 5.1 a 5.4 contra la 1012**, con tareas nuevas.
 8. **Encender el puente** y que Sam confirme en `#alfred`.
 
 **Lo que se pierde:** lo escrito en Paperclip entre la copia en frío y la vuelta atrás. Con la
 ventana quieta, son solo las tareas de prueba.
 
-**Las carpetas `default.1106-…` y `cli.1106-…` se quedan** hasta que Sam decida qué hacer con ellas.
+**Se quedan** hasta que Sam decida qué hacer con ellos:
+
+- `default.1106-…`, `cli.1106-…` y `config.1106-….tgz`;
+- `~agentes/.hermes/skills.1106-…`;
+- las `skills.1106-…` de los perfiles, si se restauraron.
 
 ## 9. Lo que no se hace
 
@@ -469,19 +605,23 @@ ventana quieta, son solo las tareas de prueba.
 - Encender el corte duro de un presupuesto mientras siga abierto el #18956.
 - Correr `pnpm db:migrate` ni poner `PAPERCLIP_MIGRATION_AUTO_APPLY` a mano. El servidor migra solo
   al arrancar.
-- Leer filas de negocio de la base o imprimir valores de `paperclip.env`.
-- Borrar `default.1106-…`, `cli.1106-…`, los respaldos o la versión 1012 guardada.
+- Abrir la ventana si existe `paperclipai.service` (§3.2).
+- Leer filas de negocio de la base o imprimir valores de `paperclip.env` o de
+  `adapter_config->'env'`.
+- Borrar lo apartado de la 1106 (`default.1106-…`, `cli.1106-…`, `config.1106-….tgz`, las
+  `skills.1106-…`), los respaldos o la versión 1012 guardada.
 
 ## 10. Cierre
 
 Se anota en el handoff de la tarea que ejecute este guion:
 
-- la hora de cada paso y la ruta del respaldo con sus huellas cortas;
+- la hora de cada paso y la ruta de los dos respaldos con sus huellas cortas;
 - la salida de `paperclipai --version` y el conteo de migraciones;
+- el número de skills por perfil antes y después, y los enlaces de `~agentes/.hermes/skills`;
 - el resultado de cada prueba (PASÓ, FALLÓ o NO EJECUTADO);
-- el texto literal del OK de Sam.
+- el texto literal de los OK de Sam: el de las lecturas a T-15 y el de la ventana.
 
 Después se actualizan:
 
 - la unidad `paperclip.service`, cuya descripción todavía dice `2026.1012.0` (es solo el texto);
-- el estado de este guion y el de la PR #409.
+- el estado de este guion y el del documento de la #409 en `main`.
