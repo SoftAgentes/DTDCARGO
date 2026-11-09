@@ -93,6 +93,9 @@
   - b: el borrado;
   - c: lo ajeno y el corte.
 
+  En e4fd689e2 (run 42628321142), la parte b tardó 54 de 60 min, la a 28 y la c 42. Por eso MD27, MD28 y MD30, de
+  unos 4 min cada uno, pasaron de la b a la a. Los casos y los mutantes no cambian, y no hay job nuevo.
+
 ## El orden del sub-paso 4.6b (runbook, de E10)
 
 1. **`deshacer.sh` con `MODO=seco`.** Lo corre el DG. Escribe el `.ndjson` y `chatwoot-seco.hecho`.
