@@ -42,20 +42,28 @@ Ruleset de main consultado (solo metadatos): 22364692 «DTD main - PR y calidad 
 - **Un check `skipped` de un borrador no es un rojo.** Los vigías que cuentan como fallo cualquier corrida
   `completed` distinta de `success` sobre la cabeza tienen que ignorar `skipped` (lo ajusta el Director General).
 - **Tampoco es un verde.** El ruleset cuenta el `skipped` como aprobado, así que entre `gh pr ready` y el registro de
-  la corrida nueva la PR puede verse fusionable sin CI real. Regla: **success de una corrida `pull_request` sobre la
-  cabeza exacta, creada después del `ready_for_review`**. Está en el comentario del job, en el runbook y el contrato
-  falla si se pierde.
+  la corrida nueva la PR puede verse fusionable sin CI real. Regla: **`success`, no `skipped`, del check requerido, en
+  una corrida `pull_request` sobre la cabeza exacta**. Manda la corrida más reciente:
+  `gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request" --jq '.workflow_runs | max_by(.id) | [.status, .conclusion, .check_suite_id] | @tsv'`,
+  y vale solo `completed` + `success`. `commits/<sha>/check-runs` no sirve (una fila por corrida) y `gh pr checks`
+  tampoco (cuenta el `skipped` como «skipping» y sale con 0; medido en la #484). Re-ejecutar una corrida de borrador
+  no la rescata: push nuevo, o `gh pr ready --undo` y `gh pr ready`. La regla está en el comentario del job, en el
+  runbook y en la skill Director. El contrato cubre el workflow y el runbook (comando incluido), **no la skill**.
+- **Carrera de concurrencia, ya ocurrida** (#482, `3c777e33e`: un `skipped` posterior dejó `cancelled` la corrida
+  real). Marcar la PR lista después de que aparezca la corrida del push, o esperar a que el `skipped` termine.
 - Trenes del Director General: se abren en borrador y se marcan listos con `gh pr ready`; ahí corre la Calidad. No
   hay excepción por nombre de rama.
 
 ## Pendientes de esta tarea
 
-- [ ] Cuando vuelva Actions: push de la rama y PR en borrador a main. Verificar que en borrador «Calidad continua»
-      sale `skipped`, marcar con `gh pr ready` y comprobar que corre completa y que el ruleset toma esa corrida
-      (inferencia de la spec por medir). Avisar al Director General (`local_25e2dded-103b-4eaa-b10e-6527564b9cad`)
-      para la revisión independiente.
-- [ ] Publicar la reserva 0621 (`git push --no-follow-tags --force-with-lease=refs/heads/codex/sdd-reserve-0621: origin b150060a4000eb1ab79e8a5575b7826eeb04ca6d:refs/heads/codex/sdd-reserve-0621`) o dejar que la PR la lleve.
-- [ ] Al fusionar: aceptación pendiente en la spec («primera PR real»).
+- PR #481 (cambio principal): fusionada en main (`124796792`) por el DG, con los tres check runs en `success` sobre
+  `0429fec83`.
+- PR #484 (seguimiento de la revisión): primera prueba real. En borrador, `skipped` (corrida 42593499007); tras
+  `gh pr ready`, corrida 42593601563. La revisión de `d41e1e45c` pidió cambios (comando del portón); corregidos en el
+  commit siguiente.
+- [ ] Una corrida `pull_request` posterior al `ready_for_review` en `success` sobre la cabeza nueva, y avisar al DG.
+- [ ] Al fusionar: cerrar la aceptación de la spec.
+- [ ] Decidir la opción de concurrencia por estado de borrador (propuesta en la spec, no implementada).
 
 ## Impacto documental
 
@@ -70,4 +78,7 @@ Ruleset de main consultado (solo metadatos): 22364692 «DTD main - PR y calidad 
    `:publicable`; antes habría que cambiar esa fuente a la corrida de la PR fusionada.
 2. **Runner propio** en una máquina aparte (nunca en el VPS de producción): los minutos de un runner self-hosted no se
    cobran. Cuidado con un repo con PR de terceros y con dejar Docker y secretos al alcance de los jobs.
-3. Medir cuánto baja el gasto en la semana siguiente con la misma consulta de corridas (solo metadatos).
+3. `sql-tests.yml`, `chatwoot-correo-sistema.yml` y `chatwoot-portal-poc.yml` siguen corriendo en borradores.
+4. Sumar el estado de borrador al grupo de concurrencia para cerrar la carrera `synchronize`/`ready_for_review`
+   (documentada en la spec).
+5. Medir cuánto baja el gasto en la semana siguiente con la misma consulta de corridas (solo metadatos).

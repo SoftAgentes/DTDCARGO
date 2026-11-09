@@ -6,7 +6,7 @@ Diseño aprobado por Sam el 2026-11-05. Parte del tree [Marketing](README.md). S
 
 El agente trabaja solo hasta dejar el artículo listo. **Publicar lo aprueba una persona**: la política IA-01 trata la publicación en el sitio como acción externa con autorización humana por ejecución.
 
-**Excepción aprobada, todavía sin vigencia:** la [SDD-0611](../specs/0611-noticias-publicacion-automatica/spec.md) deja que una noticia de `/noticias` se publique sola si pasa los filtros F1 a F10. Está construida en código (`lib/news/autopublicar/`, migración 0518), pero rige solo cuando la 0518 esté aplicada en producción y Sam encienda el interruptor. Hasta entonces vale la regla de arriba. Desde ya, el servidor rechaza publicar un texto con marcas `[VERIFICAR]` por cualquier vía.
+**Excepción aprobada, todavía sin vigencia:** la [SDD-0611](../specs/0611-noticias-publicacion-automatica/spec.md) deja que una noticia de `/noticias` se publique sola si pasa los filtros F1 a F10. Está construida en código (`lib/news/autopublicar/`, migración 0518), y la 0518 está aplicada en producción desde el 2026-11-08, pero rige solo cuando Sam encienda el interruptor. Hasta entonces vale la regla de arriba. Desde ya, el servidor rechaza publicar un texto con marcas `[VERIFICAR]` por cualquier vía.
 
 ## Dónde vive
 

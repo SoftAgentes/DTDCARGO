@@ -96,10 +96,28 @@ corridas en borrador no lo alimentan.
 - **Riesgo conocido: la ventana del `skipped`.** Si GitHub cuenta el `skipped`
   del borrador como aprobado, entre `gh pr ready` y el registro de la corrida
   nueva la PR puede verse «verde» y fusionarse sin CI real. Regla para quien
-  fusiona: **success de una corrida `pull_request` sobre la cabeza exacta, creada
-  después del `ready_for_review`**. Está en el comentario del job en
-  `quality.yml` y en el runbook `codex-engineering.md`; el contrato falla si el
-  runbook o el workflow la pierden.
+  fusiona: **`success`, no `skipped`, del check requerido, en una corrida
+  `pull_request` sobre la cabeza exacta**. (La primera redacción, «creada
+  después del `ready_for_review`», no servía para una PR abierta ya lista, que
+  nunca pasa por ese evento.) Manda la corrida **más reciente** de
+  `pull_request` de `quality.yml` sobre la cabeza:
+  `gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request" --jq '.workflow_runs | max_by(.id) | [.status, .conclusion, .check_suite_id] | @tsv'`.
+  Vale solo `completed` + `success`; si una `success` vino antes de una
+  `failure`, manda la `failure`. `event=pull_request` deja fuera una corrida
+  manual sobre la misma cabeza. La primera versión de este seguimiento leía
+  `commits/<sha>/check-runs?check_name=…` y decía que el filtro `latest` traía la
+  corrida más reciente: es falso. Cada corrida es una check suite distinta y
+  `latest` no las junta; en `d41e1e45c` (#484) trajo 2 filas, el `skipped` del
+  borrador y la posterior `in_progress` (medido el 2026-11-09).
+  `gh pr checks` tampoco basta: en la #484 en borrador mostró «skipping» y salió
+  con 0 (medido). La regla está en el comentario del job en `quality.yml`, en el
+  runbook `codex-engineering.md` y en la skill Director. El contrato extrae el
+  comando del runbook y exige `event=pull_request`, `max_by(.id)` y el endpoint
+  de corridas de `quality.yml`, con un mutante para cada uno; la skill no la
+  cubre el contrato.
+- **Re-ejecutar no rescata el `skipped`.** La re-ejecución de una corrida usa el
+  evento original, con `draft: true`, y vuelve a saltar. Remedio: un push nuevo
+  con la PR lista, o `gh pr ready <n> --undo` y `gh pr ready <n>`.
 - **Vigías.** Una corrida `skipped` de un borrador no es un rojo. Los vigías que
   cuentan como fallo cualquier `completed` distinto de `success` tienen que
   ignorar `skipped` (ajuste del Director General).
@@ -114,6 +132,22 @@ corridas en borrador no lo alimentan.
   `ready_for_review`.
 - Si una PR vuelve a borrador con una corrida en curso y se empuja, la corrida
   nueva (saltada) cancela la anterior por concurrencia. Es lo deseado.
+- **Carrera de concurrencia entre `synchronize` en borrador y `ready_for_review`.**
+  La concurrencia es por rama (`quality-<workflow>-<ref>`, `cancel-in-progress`),
+  sin distinguir borrador de lista. Si se empuja con la PR en borrador y casi a
+  la vez se marca lista, salen dos corridas sobre la misma cabeza: la de
+  `synchronize`, con `draft: true` (saltará), y la de `ready_for_review` (real).
+  GitHub no garantiza el orden en que entran a la cola. Si la de `synchronize`
+  entra segunda, cancela a la real y la cabeza queda solo con un `skipped`, que
+  el ruleset da por aprobado. La regla de arriba lo atrapa (no hay `success`) y
+  el remedio es el mismo: push nuevo, o `--undo` y `ready`. **Ya pasó:** en
+  `3c777e33e` (#482) la corrida 42594555574 (`skipped`, 09:35Z) dejó `cancelled`
+  la 42593482952 (09:26Z). El runbook dice: marcar la PR lista después de que
+  aparezca la corrida del push, o esperar a que el `skipped` termine. Opción
+  propuesta, no implementada: sumar el estado de borrador al grupo de
+  concurrencia (`…-${{ github.event.pull_request.draft }}`), para que una corrida
+  de borrador no cancele nunca a una de PR lista. Costo: si una PR lista vuelve a
+  borrador y se empuja, su corrida en curso ya no se cancela y termina gastando.
 - La corrida manual (`gh workflow run quality.yml --ref <rama>`) prueba la rama
   sola, no la fusión con main: no reemplaza la de la PR.
 - No toca producción, Vercel, secretos ni la corrida en push a main.
@@ -125,11 +159,16 @@ corridas en borrador no lo alimentan.
   busca corridas `push` en verde de `quality.yml`), así que exige cambiar esa
   fuente antes.
 - Runner propio en una máquina aparte, nunca en el VPS de producción.
+- `sql-tests.yml`, `chatwoot-correo-sistema.yml` y `chatwoot-portal-poc.yml`
+  siguen corriendo en borradores (no se tocaron en esta SDD).
 
 ## Aceptación
 
 - [x] Los tres workflows con los tipos y la condición.
 - [x] Contrato con mutantes y control contra main.
 - [x] Regla documentada en runbook y skills.
-- [ ] Primera PR real: corrida `skipped` en borrador y corrida completa tras
-      `gh pr ready` (pendiente de que Actions vuelva).
+- [x] Primera PR real (#484, `d41e1e45c`): en borrador la corrida 42593499007
+      salió `completed / skipped` y su check run también; `gh pr ready` lanzó la
+      42593601563 sobre la misma cabeza.
+- [ ] Una corrida posterior al `ready_for_review` termina en `success` y el
+      ruleset deja fusionar con ella (no con el `skipped`).

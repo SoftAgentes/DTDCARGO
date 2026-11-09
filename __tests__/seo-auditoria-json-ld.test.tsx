@@ -25,6 +25,43 @@ function ldOf(html: string): Record<string, unknown> {
   return JSON.parse(m![1]) as Record<string, unknown>;
 }
 
+/**
+ * Recorre desde `desde` (que apunta a una `{`) hasta su `}` de cierre, contando
+ * llaves: un `${…}` o un objeto anidado no cortan el bloque antes de tiempo.
+ * Devuelve el texto de adentro, o null si la llave no cierra.
+ */
+function bloqueDeLlaves(src: string, desde: number): string | null {
+  let prof = 0;
+  for (let i = desde; i < src.length; i++) {
+    if (src[i] === "{") prof++;
+    else if (src[i] === "}" && --prof === 0) return src.slice(desde + 1, i);
+  }
+  return null;
+}
+
+/**
+ * Cada `<Nombre …/>` con props del archivo, sin importar el orden de las props:
+ * empieza en `<Nombre` seguido de un espacio (una mención `<Nombre>` en un
+ * comentario no cuenta) y termina en el primer `/>` fuera de llaves, así que no
+ * salta a otro elemento. Un `>` fuera de llaves corta la búsqueda.
+ */
+function elementosJsx(src: string, nombre: string): string[] {
+  const salida: string[] = [];
+  for (const m of src.matchAll(new RegExp(`<${nombre}\\s`, "g"))) {
+    let prof = 0;
+    for (let i = m.index; i < src.length; i++) {
+      const c = src[i];
+      if (c === "{") prof++;
+      else if (c === "}") prof--;
+      else if (prof === 0 && c === "/" && src[i + 1] === ">") {
+        salida.push(src.slice(m.index, i + 2));
+        break;
+      } else if (prof === 0 && c === ">") break;
+    }
+  }
+  return salida;
+}
+
 /** Ancho y alto reales de un PNG, leídos de su cabecera IHDR. */
 function pngSize(publicPath: string): { width: number; height: number } {
   const buf = readFileSync(join(root, "public", publicPath));
@@ -53,8 +90,7 @@ describe("WebPage JSON-LD lleva el nombre de la página", () => {
           if (e.name !== "__tests__" && e.name !== "node_modules") walk(rel);
         } else if (e.name.endsWith(".tsx")) {
           const src = readFileSync(join(root, rel), "utf8");
-          // `\s+path=` deja fuera las menciones en comentarios (`<WebPageJsonLd>`).
-          for (const m of src.matchAll(/<WebPageJsonLd\s+path=[\s\S]*?\/>/g)) usos.push(`${rel} ${m[0]}`);
+          for (const el of elementosJsx(src, "WebPageJsonLd")) usos.push(`${rel} ${el}`);
         }
       }
     };
@@ -99,9 +135,17 @@ describe("NewsArticle JSON-LD declara el logo con sus medidas reales", () => {
 
   it("coinciden con el logo del #organization en app/layout.tsx", () => {
     const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");
-    const m = layout.match(/logo:\s*\{[\s\S]*?width:\s*(\d+),\s*height:\s*(\d+)/);
-    expect(m, "no se encontró el logo del layout").not.toBeNull();
-    expect({ width: Number(m![1]), height: Number(m![2]) }).toEqual(
+    // Exactamente un bloque `logo: { … }`, y width y height leídos DENTRO de él:
+    // si el logo no los trae, no se toman de otro bloque.
+    const inicios = [...layout.matchAll(/logo:\s*\{/g)];
+    expect(inicios.length, "el layout debe tener un solo bloque logo").toBe(1);
+    const bloque = bloqueDeLlaves(layout, inicios[0].index! + inicios[0][0].length - 1);
+    expect(bloque, "el bloque logo no cierra").not.toBeNull();
+    const width = bloque!.match(/\bwidth:\s*(\d+)/);
+    const height = bloque!.match(/\bheight:\s*(\d+)/);
+    expect(width, "el logo del layout no declara width").not.toBeNull();
+    expect(height, "el logo del layout no declara height").not.toBeNull();
+    expect({ width: Number(width![1]), height: Number(height![1]) }).toEqual(
       pngSize("/brand/dtdcargo-isologo-primary.png"),
     );
   });
