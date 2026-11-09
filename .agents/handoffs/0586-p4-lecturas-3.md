@@ -283,3 +283,21 @@
 - **El camino B:** después de un reinicio se repiten antes los pasos 1 y 2.
 
 **Para la #480, fuera de esta PR:** el comentario de `deshacer-vinculos.sh:50` dice «puerta 1» y ahora es el 3.0.
+
+### El B1 de la #478 en `e64bfef65`, y el paso 3 del runbook
+
+**La #478 en `e64bfef6533e504d5543016ab109059f115d5262`** cambió dos cosas que toca el runbook.
+- **El paso 3** exige ahora que `studio-ensayo.hecho` diga `entorno=produccion` (`:218`), y la huella `SISTEMA` de Studio antes de escribir nada (`:220-227`). La huella es el archivo de root, el sha corto `b4fbe1b236` y el `pg_control_system()` de la base misma, que entra por stdin.
+- **`DB_CW` ya no tiene valor por defecto** (`:52`, `falta_db_cw` en `:98`).
+
+**Lo que se ajustó:**
+- La fila 3 de la tabla del 4.6b.
+- El bloque `SISTEMA`, ahora de los pasos 2, 3 y 4, también con el esperado y el uid 0 de la #480 en `1e2c94b93`.
+- La frase de `DB_CW` y `DB`.
+- Las citas de línea: de `25843e6b8` a `e64bfef65`, y `deshacer-vinculos.sh:43` a `:44`.
+
+**De dónde salen los mensajes de rechazo:** se copiaron con `git show e64bfef65:infra/ops/portal-historial/deshacer.sh`, solo los nombres:
+- `el_ensayo_de_studio_no_es_de_produccion`, `sistema_va_en_el_archivo_no_en_el_entorno`, `sin_archivo_de_sistema_0600`, `archivo_de_sistema_no_es_de_root`, `archivo_de_sistema_no_es_un_numero`, `sistema_no_es_el_de_produccion`, `la_base_de_studio_no_es_la_de_produccion`, `falta_db` y `falta_db_cw`;
+- las líneas `HECHO sistema_esperado=` y `HECHO studio_es_produccion=`.
+
+**Nota del punto 3 de arriba:** sus números (`deshacer.sh:50` y `:93-94`) son de `25843e6b8` y ya no valen. En `e64bfef65`, `DB_CW` no tiene valor por defecto.
