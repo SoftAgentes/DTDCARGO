@@ -66,12 +66,23 @@
   - la lista de 3.0 tiene que sumar `copia-columnas.tsv`, `ensayo-studio-esquema.sql`, `ensayo-portal.sh` y la carpeta `migraciones/`, con las 10 migraciones que lista la guarda G0;
   - el comando de 3.1 queda así: `TENANT=… CUENTA=1 BANDEJA=… AGENTE_SERVICIO=… bash /srv/ops/portal-historial/ensayo-portal.sh`.
 
+## Lo que se comprueba en la puerta 3, no en CI
+
+- **TimeoutStopSec:** en Actions no hay unidad de systemd, así que la guarda G1 no corre ahí.
+- **Los nombres reales de producción:** `dtd-cargo-db-1`, `chatwoot-postgres-1` y `/srv/chatwoot`.
+- **Las 10 migraciones** en `/srv/ops/portal-historial/migraciones`, que exige la guarda G0 (`ensayo-portal.sh:215` a `:217`):
+  - `0006_clients.sql`, `0106_conversaciones.sql`, `0337_feature_flags_seed_and_trigger.sql` y `0503_chatwoot_bandeja.sql`;
+  - `0504_chatwoot_eventos.sql`, `0508_chatwoot_bajas_purga.sql`, `0519_chatwoot_portal.sql` y `0520_chatwoot_portal_vuelta.sql`;
+  - `0523_chatwoot_portal_carga.sql` y `0524_chatwoot_portal_puerta4.sql`.
+- **Fuera del ensayo:** la parte E del modo completo corre en CI, pero sin mutantes de `cargar.sh` ni de `vincular.sh` dentro del ensayo. Esos los cubren la prueba del cargador y la punta a punta.
+
 ## Registro de las vueltas en Actions (#473)
 
 | Vuelta | SHA | Run (job del ensayo) | Resultado | Qué cambió después |
 |---|---|---|---|---|
 | 1 | `c86e2b03a` | 42535639790 (128899213367) | Rojo: 8 fallas en el ensayo. Se copió una sola tabla por lado. Pasaron las guardas G1 a G3, el aislamiento, la limpieza, T4, T5 y los mutantes de marcas M1 a M4, M6 a M10, M13 y los de las guardas, M14 a M16. Cayeron M0, M5, M11 y M12 | Los `docker exec -i` de `copiar_tabla` leían la entrada estándar y se comían el resto de la lista. Ahora el bucle lee por el descriptor 3 |
 | 2 | `530e06386` | 42537233286 (128904191711) | Rojo: solo K3. Todo lo demás pasó: T1 a T5 salvo por K3, M0 a M16 cayendo cada uno en lo suyo, D2 con 16 tablas de Studio y 10 de Chatwoot, O1 en 0, y E1, E2, A2, B1, B2, C1 a C3, K1 y K2. Los datos de C-8 estaban bien (4 hilos y 4 espejos) | `c8` leía `$2` y no `$1`: no encontraba la clave. Lo corregí y lo comprobé con las líneas del run |
+| 3 | `903e939a1` | 42538856924 (128909177961) | Verde: P1, T1 a T5, las once E-xx del modo completo, G1 a G3 y M0 a M16 cayendo cada uno en lo suyo. El cargador también pasó | El Subdirector no vio los pasos de la carga en el log: en `pruebas/prueba-ensayo-portal.sh:205`, las líneas del ensayo iban solo a resumen.txt (`>/dev/null`). Las saqué al log también cuando pasa. La cobertura no cambia |
 
 ## #468 · El caso (b) de la punta a punta
 

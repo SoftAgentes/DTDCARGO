@@ -202,7 +202,7 @@ log "== T. el ensayo completo sobre la producción simulada"
 LISTA_DE="$PH/copia-columnas.tsv"
 ensayo "$PH" "$TRABAJO/ensayo.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/volcado" --
 comprobar "$TRABAJO/ensayo.txt" "$TRABAJO/volcado"
-grep -E '^(PASÓ|FALLÓ) ' "$TRABAJO/ensayo.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN" >/dev/null
+grep -E '^(PASÓ|FALLÓ) ' "$TRABAJO/ensayo.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN" # también en el log del CI cuando pasa (el run 42538856924 no las mostraba)
 for c in E1 E2 A2 B1 B2 C1 C2 C3 K1 K2 K3; do
   exigir "E-$c" 'grep -q "^PASÓ  $c " "$TRABAJO/ensayo.txt"' "el ensayo midió $c en la copia"
 done
