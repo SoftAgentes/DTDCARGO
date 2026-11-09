@@ -148,3 +148,9 @@
 | ESLint del archivo de prueba | PASÓ, exit 0 |
 | `docs:check` | PASÓ (600 specs). Ninguna tabla del runbook quedó con las celdas mal |
 | `pnpm verify` | NO EJECUTADO. El cambio es de docs y de una prueba; el portón es el CI. |
+
+### Merge de `origin/main` `49f15594d`, después de que entró la #482
+
+- **El conflicto:** salió en `docs/runbooks/backup-restore-servidor.md` §5. Me quedé con la versión de la #482, que es el respaldo diario real del Storage (SDD-0620).
+- **La marca ‹vencido: el storage de Studio corre en file…›** desaparece con ese bloque, como pidió el Subdirector. El FUERA DE ALCANCE de arriba queda resuelto por la #482.
+- **La nota del B2 del §2** (`b2:dtdcargo-respaldos/db`, medido por el DG) sigue tal cual, sin conflicto.
