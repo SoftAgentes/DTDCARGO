@@ -301,3 +301,23 @@
 - las líneas `HECHO sistema_esperado=` y `HECHO studio_es_produccion=`.
 
 **Nota del punto 3 de arriba:** sus números (`deshacer.sh:50` y `:93-94`) son de `25843e6b8` y ya no valen. En `e64bfef65`, `DB_CW` no tiene valor por defecto.
+
+## CIERRE del 2026-11-09: todo parado hasta el sábado 2026-11-14 (orden del DG)
+
+- **La cabeza:** `225c19c02e76f97e13f21510df2c8c5fcdbded3d`. Al cierre, la Calidad 42655939677 seguía en curso.
+- **Su estado:** APPROVED en `eeb0646b9`. El DG la retiene para el tren con la #478 y la #480.
+- **Lo que falta:** que el DG revise el delta ya subido:
+  - `2a928aee2`, la nota del posible intermitente;
+  - `37907102d`, la cita pasa de `:43` a `:44`;
+  - `225c19c02`, el paso 3 con el B1 de la #478 en `e64bfef65`.
+
+  Si la #478 cambia de nuevo su paso 3, el runbook se ajusta por delta.
+- **Al volver:** primero se lee el CI de esta cabeza y se sube este commit de handoff.
+
+### El CI de `225c19c02`, al cierre
+
+**Las corridas:**
+- **Calidad continua 42655939677:** success.
+- **Calidad continua 42655878815:** skipped, porque corrió con la PR en draft.
+
+**Cabeza de cierre en draft.** El verde que cuenta es el de `225c19c02`. La aprobación del DG fue sobre `eeb0646b9`, y falta su revisión del delta `2a928aee2`, `37907102d` y `225c19c02`. **Al volver:** ready y CI sobre la cabeza nueva.
