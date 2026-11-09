@@ -59,7 +59,7 @@ Pedido: el guion de instalación de la 0609 en el VPS; una lista única de lo qu
 | `aviso-discord.sh` | `7e75f7708` | `70639acad24ef26b` |
 | `aviso-discord.sh` | `eef75ebef` | `70639acad24ef26b` |
 | `publicar-web.sh` (#403) | `451363eb8` | `467c5f634af842a8` |
-| `guardar-webhook-discord.sh` | `2cf8a60cc` | `fbe2b697bf3aecf1` |
+| `guardar-webhook-discord.sh` | `2cf8a60cc` | `fbe2b697bf3aecf1` (**vencida**: la de `b2d26ba80` era `ac56fa683fbca085`. Ya no se fija: ver la quinta vuelta) |
 
 Entre `ea8ca60d7` y `7e75f7708`, el único commit en `publicar-web.sh` es `f69d520b4`. Coincide con lo que dijo el Subdirector.
 
@@ -131,6 +131,8 @@ Get-Clipboard | C:\Windows\System32\OpenSSH\ssh.exe -o BatchMode=yes root@217.21
 
 Se pega sin Enter. Después se copia la URL del webhook en Discord y al final se pulsa Enter.
 
+> Desde la tercera vuelta el comando lleva el destino de cada fila, y desde la quinta hay una comprobación de `known_hosts` antes de la fila 1. Lo vigente está en el runbook, § 1 B.
+
 - **Sin `sudo`:** el acceso es como root con la llave del agente de Windows.
 - **Sin `-t`:** así la entrada estándar es el portapapeles.
 
@@ -145,3 +147,56 @@ Se pega sin Enter. Después se copia la URL del webhook en Discord y al final se
 - **Paso 2:** ahora es la función `instalar_guiones`, que vuelve al primer `PARAR`. Si el paquete no coincide con `SHA256SUMS`, no se instala nada. Si falla un guion, no se instala ni ese ni los que siguen, y la salida dice cuáles entraron. Usa `return` y no `exit`, para no cerrar la sesión de root.
 - **Prueba nueva:** `infra/ops/tests/prueba-runbook-avisos-discord.sh`, registrada en `pruebas-linux.sh`. Corre el bloque del runbook tal cual, ubicado por la marca `<!-- bloque:instalar-guiones -->` y con un piso de 10 líneas. Da 5 PASÓ · 0 FALLÓ.
 - **Mutantes sobre el runbook**, los tres MUERTOS: el bucle sigue después de PARAR (4/1), el paquete alterado no corta (4/1) y sin `cmp` ni `bash -n` (3/2).
+
+## QUINTA VUELTA · 2026-11-09 (CHANGES_REQUESTED de la revisión independiente del DG sobre `e618a61bb`)
+
+Escribe la sesión `heuristic-boyd-faed9b` (la de la #421), por encargo del Subdirector, como **único escritor** de la #404. Rama local `claude/0609-guardar-webhook`, desde `origin/codex/guardar-webhook-discord` `b2d26ba80`. El worktree de Codex no se tocó.
+
+**Bloqueantes:**
+
+1. **Huella vencida.** El runbook (`:140`) y este handoff (`:62`) decían `fbe2b697bf3aecf1`, la huella de `2cf8a60cc`. En `b2d26ba80` mide `ac56fa683fbca085`, y con esta vuelta vuelve a cambiar. Ya no se fija: la fila de la tabla dice «sin valor fijo», y el paso 0 imprime la huella desde `M` con `git cat-file`. El paso 0 también pide `git log 7e75f7708..$M -- aviso-discord.sh` vacío.
+2. **`known_hosts`, § 1 B antes de la fila 1:**
+   - `ssh-keygen -F 217.216.54.70`;
+   - si no aparece, un `ssh … exit` y comparar la huella con la que el DG lee en el VPS (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) y le pasa a Sam;
+   - **PARAR** con «REMOTE HOST IDENTIFICATION HAS CHANGED»;
+   - nunca `StrictHostKeyChecking=no` ni `accept-new`.
+3. **Alcance:**
+   - **SDD-0609:** alcance 6 y 7 (el guion escribe en `publicar.env` y en `/srv/dtd-cargo/.env`, solo las cinco `DISCORD_WEBHOOK_*`); lo fuera de alcance, desglosado; D8; criterios A10 a A14; un riesgo nuevo (los dos guiones a la vez).
+   - **SDD-0606:** en D1 y en el paso 3 del corte, el cambio de procedimiento. Las cinco direcciones se pegan con el guion; `DISCORD_TENANT_ID` sigue con `env-set.sh`, después de las cinco y nunca a la vez.
+
+**No bloqueantes:**
+
+1. **`trap`:** `limpiar` borra `${nuevo}`, el temporal con todas las llaves, además de `${T}`. Se quitó un `trap 'exit 1' INT TERM HUP`: el mutante que lo borraba sobrevivió, porque bash ya corre el trap de EXIT cuando recibe TERM (medido en Git Bash; el CI Linux lo vuelve a medir con la prueba «cortado»).
+2. **Vuelta atrás del `.env`:** el bloque `volver_env` del § 6, marcado `<!-- bloque:volver-env -->`.
+   - Elige el respaldo por el sha256 que anotó `antes.txt`, no por nombre ni por fecha.
+   - Avisa que se pierden también los cambios intermedios.
+   - Guarda el archivo de ese momento como `.antes-vuelta-<UTC>-<sufijo>`.
+   - Para sin tocar nada si falta la huella o el respaldo.
+   - Los respaldos del guion llevan ahora un sufijo de `mktemp`: dos corridas en el mismo segundo no se pisan.
+3. **Evidencia:** `antes.txt` y `despues.txt` incluyen `stat` y sha256 de `/srv/dtd-cargo/.env`. De los dos archivos de variables se guardan **solo los nombres**, con `grep -oE '^…[A-Za-z_][A-Za-z0-9_]*='`, sin valores ni comentarios.
+4. **Paquete al VPS:** comando literal con `scp.exe` de Windows a `/root/paquete-0609-<12 del sha>`, y en el VPS `install -m 600` a `$E/paquete` con `sha256sum -c` antes de borrar la copia.
+5. **`flock`:** se eligió el orden explícito (§ 2 «Un guion a la vez», pasos 3 y 7, D8). Un candado común obligaba a tocar `env-set.sh`, y Git Bash no trae `flock`.
+6. **`grep`:** en `prueba-guardar-webhook-discord.sh`, el `\|` de las líneas 110, 177 y 179 pasó a `grep -F -e … -e …`. `\|` en un patrón básico es extensión de GNU.
+7. **Historial de PowerShell:** un aviso en el § 1 B. Si la dirección se pegó en la línea de comandos, rotar ese webhook y borrar la línea del historial.
+8. **`:55`:** el guion se instala en el paso 2, no en el 1.
+9. Este handoff, puesto al día.
+
+**Validación** (Git Bash, en la PC; ni `verify` ni Docker ni el VPS):
+
+| Comprobación | Resultado |
+|---|---|
+| `bash infra/ops/tests/prueba-guardar-webhook-discord.sh` | **PASÓ**: 31 PASÓ · 0 FALLÓ · 1 NO VERIFICADO (los permisos 600 en Windows). Antes daba 29/0/1; las dos nuevas son «mismo segundo» y «cortado con TERM» |
+| `bash infra/ops/tests/prueba-runbook-avisos-discord.sh` | **PASÓ**: 12 PASÓ · 0 FALLÓ. Antes daba 5/0; las siete nuevas son del bloque `volver-env` |
+| Mutantes del guion | m1, `limpiar` sin `${nuevo}`: 30/1, **MUERTO**. m2, respaldo con nombre fijo: 30/1, **MUERTO**. m3, sin `trap 'exit 1' …`: 31/0, **SOBREVIVIÓ**, y la línea se quitó (no bloqueante 1) |
+| Mutantes del bloque `volver-env` | r1, el primer respaldo sin mirar la huella: 10/2. r2, sin AVISO: 10/2. r3, sin guardar el archivo actual: 11/1. r4, sin exigir la huella: 11/1. Los cuatro **MUERTOS**. El control sin mutación dio 12/0 |
+| `node scripts/build-docs-index.mjs --check` (`docs:check`) | **PASÓ**: 602 specs |
+| `node scripts/check-numbering.mjs` (`sdd:check`) | **PASÓ**: solo los choques históricos 0342, 0363 y 0394 |
+| `node scripts/build-governance-capsule.mjs --check` (`governance:check`) | **PASÓ**: 28 políticas, cápsula vigente |
+| `bash -n` del guion y de `pruebas-linux.sh`; `git diff --check` | **PASÓ** |
+| `ci-workflow-contract.test.mjs` | **NO DISPONIBLE** en la PC (sin `node_modules`). Lee la lista `PRUEBAS` sin los comentarios; solo cambió un comentario. Lo corre el CI |
+| Comandos del runbook en el VPS | **NO EJECUTADO**: la tarea prohíbe tocar producción |
+
+**Fuera de alcance detectado:**
+
+- **SDD-0606, «Vuelta atrás entre los pasos 3 y 7»:** dice «todo vuelve a Telegram», pero D8 retiró Telegram del Studio. No lo toqué: es de la 0606.
+- **`env-set.sh`** escribe los valores entre comillas simples; el guion los escribe sin comillas. Compose lee las dos formas y una dirección de webhook no tiene `$` ni comillas. No es un fallo; queda anotado por si alguien compara los archivos línea por línea.

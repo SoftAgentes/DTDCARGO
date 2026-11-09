@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# infra/ops/tests/prueba-runbook-avisos-discord.sh — corre, tal cual, el bloque del
-# paso 2 de docs/runbooks/avisos-servidor-discord.md (instalar los dos guiones nuevos
-# en el VPS), marcado con <!-- bloque:instalar-guiones -->, contra carpetas temporales
-# (SDD-0609).
+# infra/ops/tests/prueba-runbook-avisos-discord.sh — corre, tal cual, dos bloques de
+# docs/runbooks/avisos-servidor-discord.md contra carpetas temporales (SDD-0609):
+#   <!-- bloque:instalar-guiones -->  § 3 paso 2, instalar los dos guiones nuevos;
+#   <!-- bloque:volver-env -->        § 6, volver atrás publicar.env o el .env de la app.
 #
 #   bash infra/ops/tests/prueba-runbook-avisos-discord.sh
 #
-# Lo que cuida: al primer PARAR no se instala nada más; con el paquete alterado no se
-# instala nada; no quedan temporales. `install -o root -g root` es un doble que copia
-# (la prueba no corre como root). Corre en Linux y en Git Bash.
+# Lo que cuida:
+#   - instalar: al primer PARAR no se instala nada más; con el paquete alterado no se
+#     instala nada; no quedan temporales;
+#   - volver: elige el respaldo por la huella del paso 1 (no por nombre), avisa que se
+#     pierden los cambios intermedios, guarda el archivo de ese momento y, si falta la
+#     huella o el respaldo, para sin tocar nada.
+# `install -o root -g root` es un doble que copia (la prueba no corre como root).
+# Corre en Linux y en Git Bash.
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 RUNBOOK="${RUNBOOK_AVISOS:-${R}/docs/runbooks/avisos-servidor-discord.md}"
@@ -65,6 +70,51 @@ armar "${BIEN}" "${MAL}"; correr
 armar "${BIEN}" "${BIEN}"; printf '# tocado\n' >> "${T}/E/paquete/aviso-discord.sh"; correr
 [ "${RC}" != 0 ] && ! hay aviso-discord.sh && ! hay guardar-webhook-discord.sh && grep -q 'PARAR: el paquete no coincide con SHA256SUMS; no se instaló nada' "${T}/salida" \
   && ok "paquete alterado después del SHA256SUMS: no se instala nada" || { ko "paquete alterado rc=${RC}"; ver; }
+
+echo "== vuelta atrás del .env (§ 6, bloque:volver-env) =="
+awk '/<!-- bloque:volver-env -->/ { m = 1; next } m && /^```bash$/ { b = 1; next } b && /^```$/ { exit } b { print }' "${RUNBOOK}" > "${T}/volver.sh"
+n="$(grep -c . "${T}/volver.sh")"
+[ "${n}" -ge 15 ] && grep -q '^volver_env()' "${T}/volver.sh" && grep -q 'AVISO:' "${T}/volver.sh" \
+  && ok "el bloque de la vuelta atrás se encuentra por su marca (${n} líneas)" || ko "no encuentro el bloque volver-env (${n} líneas)"
+
+# Una ventana: el .env del paso 1 (A), la vuelta de Sam 1 (B) y la 2 (C). El guion
+# dejó un respaldo por vuelta: el de la 1 trae A y el de la 2 trae B. Por nombre, el
+# de B va primero: hay que elegir por la huella de antes.txt, no por el nombre.
+VIVO="${T}/V/.env"
+ventana() {
+  rm -rf "${T}/V"; mkdir -p "${T}/V/E"
+  printf 'APP_ENV=production\nCRON_SECRET=a\n' > "${T}/A"
+  printf 'APP_ENV=production\nCRON_SECRET=a\nDISCORD_WEBHOOK_REGISTRO=uno\n' > "${T}/B"
+  printf 'APP_ENV=production\nCRON_SECRET=a\nDISCORD_WEBHOOK_REGISTRO=uno\nDISCORD_WEBHOOK_BUGS=dos\n' > "${T}/C"
+  cp "${T}/A" "${T}/V/.env"; sha256sum "${VIVO}" > "${T}/V/E/antes.txt"
+  cp "${T}/A" "${T}/V/.env.antes-0606-20261109T120000Z-zzzzzz"
+  cp "${T}/B" "${T}/V/.env.antes-0606-20261109T120000Z-AAAAAA"
+  cp "${T}/C" "${T}/V/.env"
+}
+volver() { # $1 = archivo vivo → $RC, salida en ${T}/salida
+  ( cd "${T}" && PATH="${T}/bin:${PATH}" E="${T}/V/E" bash -c 'source "$1"; volver_env "$2"' _ "${T}/volver.sh" "$1" ) > "${T}/salida" 2>&1
+  RC=$?
+}
+archivos() { ls -A "${T}/V" | grep -v '^E$' | LC_ALL=C sort | tr '\n' ' '; }
+
+ventana; volver "${VIVO}"
+atras="$(ls -A "${T}/V" | grep '^\.env\.antes-vuelta-[0-9]\{8\}T[0-9]\{6\}Z-[A-Za-z0-9]\{6\}$')"
+[ "${RC}" = 0 ] && cmp -s "${VIVO}" "${T}/A" && grep -q "desde .env.antes-0606-20261109T120000Z-zzzzzz" "${T}/salida" \
+  && ok "vuelve al .env del paso 1 eligiendo el respaldo por su huella, no el primero por nombre" || { ko "elige rc=${RC}"; ver; }
+grep -q '^AVISO: .* vuelve ENTERO a como estaba en el paso 1. Se pierde todo lo que se escribió en él después' "${T}/salida" \
+  && ok "avisa que también se pierden los cambios intermedios" || { ko "sin aviso"; ver; }
+[ -n "${atras}" ] && cmp -s "${T}/V/${atras}" "${T}/C" && [ -z "$(ls -A "${T}/V" | grep '\.vuelta\.')" ] \
+  && ok "guarda el .env de recién como .antes-vuelta-<UTC>-<sufijo> y no deja temporales" || { ko "respaldo de la vuelta: $(archivos)"; ver; }
+
+ventana; rm -f "${T}/V/.env.antes-0606-20261109T120000Z-zzzzzz"; antes="$(archivos)"; volver "${VIVO}"
+[ "${RC}" != 0 ] && cmp -s "${VIVO}" "${T}/C" && [ "$(archivos)" = "${antes}" ] && grep -q '^PARAR: ningún respaldo' "${T}/salida" \
+  && ok "sin un respaldo con la huella del paso 1: PARAR y no toca nada" || { ko "sin respaldo rc=${RC}"; ver; }
+ventana; : > "${T}/V/E/antes.txt"; antes="$(archivos)"; volver "${VIVO}"
+[ "${RC}" != 0 ] && cmp -s "${VIVO}" "${T}/C" && [ "$(archivos)" = "${antes}" ] && grep -q '^PARAR: .*no tiene la huella' "${T}/salida" \
+  && ok "antes.txt sin la huella del archivo: PARAR y no toca nada" || { ko "sin huella rc=${RC}"; ver; }
+ventana; cp "${T}/A" "${VIVO}"; antes="$(archivos)"; volver "${VIVO}"
+[ "${RC}" = 0 ] && cmp -s "${VIVO}" "${T}/A" && [ "$(archivos)" = "${antes}" ] && grep -q 'nada que volver' "${T}/salida" \
+  && ok "ya está como en el paso 1: no hace nada" || { ko "igual rc=${RC}"; ver; }
 
 echo "RESUMEN: ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]

@@ -31,8 +31,9 @@
 #      1567954867878629406 · #conversaciones-portal 1567954948333768854 · #bugs
 #      1567955017237921883 · #reporte-diario 1567955085550428251 · #avisos-equipo
 #      1567955151493271785. El nombre del webhook no importa.
-#   4. Respalda el archivo como <archivo>.antes-<sdd>-<fecha UTC> (600, en la misma
-#      carpeta: lleva llaves), reemplaza solo su variable y deja el archivo en 600
+#   4. Respalda el archivo como <archivo>.antes-<sdd>-<fecha UTC>-<sufijo> (600, en la
+#      misma carpeta: lleva llaves; el sufijo de mktemp evita que dos corridas en el
+#      mismo segundo se pisen), reemplaza solo su variable y deja el archivo en 600
 #      root. En publicar.env además quita PUBLICAR_TELEGRAM_* (corte directo de la
 #      0609). En el .env de la app no toca nada más: retirar TELEGRAM_BOT_TOKEN es
 #      un paso aparte del Director General (SDD-0606).
@@ -85,8 +86,13 @@ LARGO="${#W}"
 HUELLA="$(printf '%s' "${W}" | sha256sum | cut -c1-12)"
 que() { printf '%s caracteres · sha256 %s' "${LARGO}" "${HUELLA}"; }
 
+# Al salir por cualquier camino (error, Ctrl+C, TERM: bash corre el trap de EXIT
+# también cuando lo corta una señal) se borran la respuesta de Discord y el archivo
+# nuevo a medio mover, que lleva TODAS las llaves del archivo.
+T=""; nuevo=""
+limpiar() { [ -n "${nuevo}" ] && rm -f "${nuevo}"; [ -n "${T}" ] && rm -rf "${T}"; }
+trap limpiar EXIT
 T="$(mktemp -d)" || no "sin directorio temporal"
-trap 'rm -rf "${T}"' EXIT
 chmod 700 "${T}"
 
 # GET al webhook: Discord responde el objeto del webhook (id, channel_id, guild_id…).
@@ -108,8 +114,8 @@ dir="$(dirname "${CONFIG}")"
 [ -d "${dir}" ] || no "no existe ${dir}"
 umask 077
 if [ -f "${CONFIG}" ]; then
-  respaldo="${CONFIG}.antes-${SDD}-$(date -u +%Y%m%dT%H%M%SZ)"
-  cp -p "${CONFIG}" "${respaldo}" && chmod 600 "${respaldo}" || no "no pude respaldar ${CONFIG}"
+  respaldo="$(mktemp "${CONFIG}.antes-${SDD}-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX")" || no "no pude crear el respaldo de ${CONFIG}"
+  cp -p "${CONFIG}" "${respaldo}" && chmod 600 "${respaldo}" || { rm -f "${respaldo}"; no "no pude respaldar ${CONFIG}"; }
 fi
 if [ "${DESTINO}" = publicaciones ]; then quitar="^(${CLAVE}|PUBLICAR_TELEGRAM_[A-Z_]*)="; else quitar="^${CLAVE}="; fi
 nuevo="$(mktemp "${dir}/.$(basename "${CONFIG}").XXXXXX")" || no "no pude crear el temporal en ${dir}"
@@ -118,5 +124,5 @@ nuevo="$(mktemp "${dir}/.$(basename "${CONFIG}").XXXXXX")" || no "no pude crear 
 chmod 600 "${nuevo}"
 [ "$(id -u)" = 0 ] && chown root:root "${nuevo}"
 mv -f "${nuevo}" "${CONFIG}" || { rm -f "${nuevo}"; no "no pude reemplazar ${CONFIG}"; }
-unset W
+nuevo=""; unset W
 echo "GUARDADA (${DESTINO}) · $(que) · canal ${CANAL_NOMBRE} ${canal} · ${CLAVE} en ${CONFIG} ($(stat -c '%a %U' "${CONFIG}" 2>/dev/null))${respaldo:+ · respaldo $(basename "${respaldo}")}"

@@ -52,7 +52,7 @@ reconoce el canal por su ID, no por el nombre. Se sugieren estos, con su foto:
 `Escritorio\avatares-discord`. A cada bot nuevo le va una foto.
 
 **B. Pegar seis direcciones en el servidor**, cuando el Director General avise que el
-guion está instalado (§ 3, paso 1). Una vuelta por fila, **en este orden**:
+guion está instalado (§ 3, paso 2). Una vuelta por fila, **en este orden**:
 
 | # | Destino | Copiar en Discord la URL de… |
 |---|---|---|
@@ -62,6 +62,34 @@ guion está instalado (§ 3, paso 1). Una vuelta por fila, **en este orden**:
 | 4 | `bugs` | `#bugs` → `Studio bugs` |
 | 5 | `reportes` | `#reporte-diario` → `Studio reporte diario` |
 | 6 | `equipo` | `#avisos-equipo` → `Studio avisos equipo` |
+
+**Antes de la fila 1, una sola vez: que la PC reconozca al servidor.** El comando
+usa `-o BatchMode=yes`, así que ssh no pregunta nada: si la PC no tiene guardada
+la huella del VPS, termina con «Host key verification failed» y no llega nada. En
+PowerShell:
+
+```powershell
+C:\Windows\System32\OpenSSH\ssh-keygen.exe -F 217.216.54.70
+```
+
+- **Muestra una línea:** la PC ya conoce al servidor. Sigue con la fila 1.
+- **No muestra nada:** entra una vez sin `BatchMode`:
+
+  ```powershell
+  C:\Windows\System32\OpenSSH\ssh.exe root@217.216.54.70 exit
+  ```
+
+  ssh muestra la huella (`ED25519 key fingerprint is SHA256:…`) y pregunta si
+  sigue. Responde `yes` **solo si** es igual, carácter por carácter, a la que te
+  pasa el Director General. Él la lee en el VPS con
+  `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`. Si no coincide, responde `no`
+  y avísale.
+- **Sale «REMOTE HOST IDENTIFICATION HAS CHANGED»:** **PARAR.** No pegues nada ni
+  borres la línea vieja de `known_hosts` hasta que el Director General confirme
+  que la llave del servidor cambió de verdad.
+
+Nunca `-o StrictHostKeyChecking=no` ni `accept-new`: el portapapeles lleva una
+llave, y así podría terminar en otro servidor.
 
 En cada vuelta, en PowerShell:
 
@@ -80,6 +108,12 @@ Sin `sudo` (se entra como root con la llave del agente de Windows) y sin `-t` (a
 la entrada estándar es el portapapeles). La fila 1 sin destino también sirve: es el
 valor por defecto.
 
+**Si la dirección se pegó en la línea de comandos** (por ejemplo, se pegó la URL
+en lugar del comando, o se pulsó Enter con la URL escrita), quedó en el historial
+de PowerShell (`(Get-PSReadLineOption).HistorySavePath`), aunque el guion la haya
+rechazado. Ese webhook ya no es secreto: bórralo en Discord, crea otro en el mismo
+canal y repite su fila. Después borra esa línea del historial.
+
 No es de Sam: `DISCORD_TENANT_ID` (el ID del tenant de DTD Cargo, no es una llave)
 lo pone la sesión de Contabo con `infra/ops/migrate/env-set.sh`.
 
@@ -96,12 +130,22 @@ lo pone la sesión de Contabo con `infra/ops/migrate/env-set.sh`.
    `https://discord.com/api/webhooks/<id>/<token>`.
 3. `GET` a Discord con la dirección por la entrada estándar de curl; exige 200 y el
    mismo `id`, y la regla del canal de la tabla.
-4. Respalda el archivo como `<archivo>.antes-<0609|0606>-<fecha UTC>` (600, en la
-   misma carpeta), reemplaza **solo su variable** y deja el archivo en `600 root`.
+4. Respalda el archivo como `<archivo>.antes-<0609|0606>-<fecha UTC>-<sufijo>` (600,
+   en la misma carpeta; el sufijo evita que dos corridas en el mismo segundo se
+   pisen), reemplaza **solo su variable** y deja el archivo en `600 root`. Si lo
+   cortan antes de mover el archivo nuevo, borra el temporal, que lleva todas las
+   llaves.
    En `publicar.env` además quita `PUBLICAR_TELEGRAM_*` (corte directo de la 0609).
    En el `.env` de la app no toca `TELEGRAM_BOT_TOKEN`: retirarlo es un paso aparte
    del Director General (0606).
 5. No reinicia nada.
+
+**Un guion a la vez sobre el `.env` de la app.** `guardar-webhook-discord.sh` y
+`infra/ops/migrate/env-set.sh` leen el archivo entero, lo reescriben en un
+temporal y lo mueven encima, sin un candado común: si corren a la vez, gana el
+último y se pierde lo que guardó el otro. El orden es: las seis filas de Sam
+(§ 1 B) y la comprobación de abajo; **después** `env-set.sh` para
+`DISCORD_TENANT_ID` (§ 3, paso 7). Nadie corre `env-set.sh` mientras Sam pega.
 
 | Salida | Qué hacer |
 |---|---|
@@ -137,12 +181,17 @@ Ningún paso publica la web ni la descongela.
 | `publicar-web.sh` en `main` (0609, sin relevo) | `7e75f7708` y `eef75ebef` | `1863b76e71e9f8f8` |
 | `publicar-web.sh` de la #403 (relevo + 0609) | `451363eb8` | `467c5f634af842a8` |
 | `aviso-discord.sh` | `7e75f7708` | `70639acad24ef26b` |
-| `guardar-webhook-discord.sh` de la #404 | `2cf8a60cc` | `fbe2b697bf3aecf1` |
+| `guardar-webhook-discord.sh` | `M` | **sin valor fijo**: la imprime el paso 0 desde `M` y queda en `SHA256SUMS` |
+
+`guardar-webhook-discord.sh` cambió en cada vuelta de la #404 (la huella anotada
+para `2cf8a60cc` ya no era la de la cabeza), así que no se fija aquí: la referencia
+es el blob del commit fusionado, que el paso 0 lee con `git cat-file`.
 
 Entre lo instalado y `7e75f7708`, `git log ea8ca60d7..7e75f7708 -- infra/ops/web/publicar-web.sh`
 da un solo commit: `f69d520b4` (0609, Discord). Con `M` se vuelve a correr:
-`git log ea8ca60d7..$M -- infra/ops/web/publicar-web.sh`. Si aparece otro commit, se
-lee antes de seguir.
+`git log ea8ca60d7..$M -- infra/ops/web/publicar-web.sh`, y
+`git log 7e75f7708..$M -- infra/ops/web/aviso-discord.sh` tiene que salir vacío. Si
+aparece otro commit, se lee antes de seguir.
 
 **La #403 (relevo sin corte) es aparte y la decide el Director General.** Cambia la
 publicación: durante un relevo corren dos web a la vez, con 2 GB de tope cada uno.
@@ -160,10 +209,14 @@ mkdir -p paquete-0609 && for f in aviso-discord.sh guardar-webhook-discord.sh pu
   git cat-file blob "$M:infra/ops/web/$f" > "paquete-0609/$f"; done
 ( cd paquete-0609 && sha256sum *.sh | tee SHA256SUMS ) && bash -n paquete-0609/*.sh
 git log --oneline ea8ca60d7.."$M" -- infra/ops/web/publicar-web.sh
+git log --oneline 7e75f7708.."$M" -- infra/ops/web/aviso-discord.sh
+echo "guardar-webhook-discord.sh en $M: $(git cat-file blob "$M:infra/ops/web/guardar-webhook-discord.sh" | sha256sum | cut -c1-16)"
 ```
 
-Las huellas del `SHA256SUMS` tienen que coincidir con la tabla (o con la del `M` que
-traiga la #403, si el DG la sumó).
+Las huellas de `aviso-discord.sh` y `publicar-web.sh` en `SHA256SUMS` tienen que
+coincidir con la tabla (o con la del `M` que traiga la #403, si el DG la sumó). La
+de `guardar-webhook-discord.sh` es la que imprime la última línea: se anota en el
+handoff de la ventana.
 
 **Paso 1 · lectura previa en el VPS** (solo lectura; como root). Si la huella del
 `publicar-web.sh` instalado no es `f71d27594e568f2b`, **se para** y se avisa al DG.
@@ -174,18 +227,40 @@ M=<el mismo sha completo del paso 0>   # se define también aquí: el MANIFIESTO
 E=/srv/ops/evidencias/instalar-avisos-discord-$(date -u +%Y%m%dT%H%M%SZ)
 install -d -m 700 "$E" && cd "$E"
 { date -u +%FT%TZ; echo "M=$M"
-  for f in /srv/ops/web/publicar-web.sh /srv/ops/web/aviso-discord.sh /srv/ops/web/guardar-webhook-discord.sh /srv/ops/web/publicar.env; do
+  for f in /srv/ops/web/publicar-web.sh /srv/ops/web/aviso-discord.sh /srv/ops/web/guardar-webhook-discord.sh /srv/ops/web/publicar.env /srv/dtd-cargo/.env; do
     if [ -e "$f" ]; then stat -c '%n %a %U %s %y' "$f"; sha256sum "$f"; else echo "$f NO EXISTE"; fi; done
   echo "CONGELADO: $(head -1 /srv/ops/web/CONGELADO 2>/dev/null || echo 'no')"
   echo "timer: $(systemctl is-enabled dtd-cargo-publicar.timer 2>&1) / $(systemctl is-active dtd-cargo-publicar.timer 2>&1)"
-  echo "variables de publicar.env (sin valores):"; cut -d= -f1 /srv/ops/web/publicar.env | sort
+  for v in /srv/ops/web/publicar.env /srv/dtd-cargo/.env; do   # solo nombres: ni valores ni comentarios
+    echo "variables de $v (solo nombres):"
+    grep -oE '^[[:space:]]*(export[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=' "$v" | sed -E 's/^[[:space:]]*(export[[:space:]]+)?//; s/=$//' | LC_ALL=C sort; done
 } > antes.txt
 cat antes.txt
 [ "$(sha256sum /srv/ops/web/publicar-web.sh | cut -c1-16)" = f71d27594e568f2b ] && echo "OK: es el instalado el 01-nov" || echo "PARAR: el instalado no es f71d…"
 ```
 
-**Paso 2 · instalar los dos guiones nuevos** (nadie los usa todavía). Con
-`paquete-0609/` copiado a `$E/paquete` (root/700). Cada temporal pasa `cmp` contra
+`antes.txt` guarda también el sha256 de `publicar.env` y del `.env` de la app (solo
+la huella, no el contenido). La vuelta atrás del § 6 elige el respaldo por esa
+huella.
+
+**Paso 2 · instalar los dos guiones nuevos** (nadie los usa todavía).
+
+Llevar el paquete, desde Git Bash en la carpeta del paso 0 (`ssh.exe`/`scp.exe` de
+Windows: el `ssh` de Git Bash no entra al VPS):
+
+```bash
+/c/Windows/System32/OpenSSH/scp.exe -o BatchMode=yes -r paquete-0609 "root@217.216.54.70:/root/paquete-0609-${M:0:12}"
+```
+
+En el VPS, en la misma sesión del paso 1 (con `$E` y `$M` definidos):
+
+```bash
+install -d -m 700 "$E/paquete" && install -m 600 "/root/paquete-0609-${M:0:12}"/* "$E/paquete/" \
+  && ( cd "$E/paquete" && sha256sum -c SHA256SUMS ) && rm -rf "/root/paquete-0609-${M:0:12}"
+cat "$E/paquete/SHA256SUMS"   # las mismas huellas que imprimió el paso 0 en la PC
+```
+
+Cada temporal pasa `cmp` contra
 el paquete y `bash -n` antes del `mv`. Al primer `PARAR` no se instala nada más (lo
 que ya entró queda dicho en la salida). Es una función con `return`, para no cerrar
 la sesión de root; la prueba `infra/ops/tests/prueba-runbook-avisos-discord.sh`
@@ -214,6 +289,7 @@ Avisar a Sam: puede hacer el § 1 B.
 **Paso 3 · Sam pega las seis direcciones** (§ 1 B) y la sesión corre la comprobación
 del § 2. Las líneas `PUBLICAR_TELEGRAM_*` que quita el guion no hacen perder
 ningún aviso: el 01-nov el script viejo ya decía «Telegram: SIN CONFIGURAR».
+Mientras Sam pega, nadie corre `env-set.sh` (§ 2, «Un guion a la vez»).
 
 **Paso 4 · prueba con un aviso real a `#publicaciones`** (no publica nada):
 
@@ -245,17 +321,21 @@ Director General descongele.
 
 **Paso 6 · cerrar la evidencia.** `despues.txt` igual que `antes.txt`, comparar y
 sellar. `CONGELADO` y el timer tienen que quedar como estaban. En `publicar.env`
-cambian solo `PUBLICAR_DISCORD_WEBHOOK` (entra) y `PUBLICAR_TELEGRAM_*` (salen):
+cambian solo `PUBLICAR_DISCORD_WEBHOOK` (entra) y `PUBLICAR_TELEGRAM_*` (salen). En
+el `.env` de la app cambian su huella y su tamaño, y en sus nombres entran solo los
+`DISCORD_WEBHOOK_*` que no estaban (y `DISCORD_TENANT_ID` si el paso 7 ya se hizo):
 
 ```bash
 cd "$E"
 : "${M:?M está vacío: defínelo como en el paso 1 (el mismo sha del paso 0) antes de cerrar}"
 { date -u +%FT%TZ; echo "M=$M"
-  for f in /srv/ops/web/publicar-web.sh /srv/ops/web/aviso-discord.sh /srv/ops/web/guardar-webhook-discord.sh /srv/ops/web/publicar.env; do
+  for f in /srv/ops/web/publicar-web.sh /srv/ops/web/aviso-discord.sh /srv/ops/web/guardar-webhook-discord.sh /srv/ops/web/publicar.env /srv/dtd-cargo/.env; do
     if [ -e "$f" ]; then stat -c '%n %a %U %s %y' "$f"; sha256sum "$f"; else echo "$f NO EXISTE"; fi; done
   echo "CONGELADO: $(head -1 /srv/ops/web/CONGELADO 2>/dev/null || echo 'no')"
   echo "timer: $(systemctl is-enabled dtd-cargo-publicar.timer 2>&1) / $(systemctl is-active dtd-cargo-publicar.timer 2>&1)"
-  echo "variables de publicar.env (sin valores):"; cut -d= -f1 /srv/ops/web/publicar.env | sort
+  for v in /srv/ops/web/publicar.env /srv/dtd-cargo/.env; do   # solo nombres: ni valores ni comentarios
+    echo "variables de $v (solo nombres):"
+    grep -oE '^[[:space:]]*(export[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=' "$v" | sed -E 's/^[[:space:]]*(export[[:space:]]+)?//; s/=$//' | LC_ALL=C sort; done
 } > despues.txt
 diff antes.txt despues.txt
 printf '%s\n' "M=${M:?M vacío: no se escribió el MANIFIESTO}" "paquete: $(cat paquete/SHA256SUMS | tr '\n' ' ')" "instalado por: ${SUDO_USER:-root}" > MANIFIESTO
@@ -269,7 +349,9 @@ una dirección.
 **Paso 7 · los cinco del Studio** se leen cuando el web se recrea, es decir, en la
 próxima publicación. Antes hacen falta:
 
-- `DISCORD_TENANT_ID` en `/srv/dtd-cargo/.env` (sesión de Contabo, `env-set.sh`);
+- `DISCORD_TENANT_ID` en `/srv/dtd-cargo/.env` (sesión de Contabo, `env-set.sh`),
+  **después** de las seis filas de Sam y de la comprobación del § 2, nunca a la vez
+  (los dos guiones reescriben el archivo entero);
 - la 0606 publicada.
 
 Después, probar un aviso por categoría, como pide el handoff de la 0606.
@@ -309,10 +391,40 @@ También en el journal de `dtd-cargo-publicar.service`.
 1. **`publicar-web.sh`:** reinstalar `$E/publicar-web.sh.antes-*`, con el paso 5 al
    revés: candado, temporal, `cmp`, `bash -n` y `mv`. La huella esperada después es
    `f71d27594e568f2b`.
-2. **`publicar.env`:** vuelve por un temporal en 600 y `mv`, desde
-   `/srv/ops/web/publicar.env.antes-0609-*`:
-   `install -o root -g root -m 600 <respaldo> /srv/ops/web/.publicar.env.nuevo && mv -f /srv/ops/web/.publicar.env.nuevo /srv/ops/web/publicar.env`.
-   El `.env` de la app vuelve igual, desde `/srv/dtd-cargo/.env.antes-0606-*`.
+2. **`publicar.env` y el `.env` de la app:** con `volver_env`, en la sesión de la
+   ventana (con `$E` definido). Elige el respaldo cuyo sha256 es el que anotó
+   `antes.txt` en el paso 1, no el más nuevo: cada vuelta de Sam deja un respaldo, y
+   el más nuevo ya trae las vueltas anteriores. Antes de reemplazar, guarda el
+   archivo de ese momento como `<archivo>.antes-vuelta-<UTC>-<sufijo>`, así que la
+   vuelta atrás también se puede deshacer. La prueba
+   `infra/ops/tests/prueba-runbook-avisos-discord.sh` corre este bloque tal cual:
+
+<!-- bloque:volver-env -->
+```bash
+volver_env() {  # $1 = el archivo vivo: /srv/ops/web/publicar.env o /srv/dtd-cargo/.env
+  local vivo="$1" h r f atras t
+  h="$(awk -v f="$vivo" '{ p = $2; sub(/^\*/, "", p) } p == f { print $1; exit }' "$E/antes.txt")"   # la línea de sha256sum del paso 1
+  [[ "$h" =~ ^[0-9a-f]{64}$ ]] || { echo "PARAR: $E/antes.txt no tiene la huella de $vivo; no se cambió nada"; return 1; }
+  if [ "$(sha256sum < "$vivo" | cut -d' ' -f1)" = "$h" ]; then echo "$vivo ya está como en el paso 1: nada que volver"; return 0; fi
+  r=""; for f in "$vivo".antes-*; do
+    [ -f "$f" ] && [ "$(sha256sum < "$f" | cut -d' ' -f1)" = "$h" ] && { r="$f"; break; }; done
+  [ -n "$r" ] || { echo "PARAR: ningún respaldo de $vivo tiene la huella del paso 1; no se cambió nada"; return 1; }
+  echo "AVISO: $vivo vuelve ENTERO a como estaba en el paso 1. Se pierde todo lo que se escribió en él después, no solo esta ventana (otras llaves, DISCORD_TENANT_ID, env-set.sh)."
+  atras="$(mktemp "$vivo.antes-vuelta-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX")" && cp -p "$vivo" "$atras" && chmod 600 "$atras" \
+    || { rm -f "$atras"; echo "PARAR: no pude guardar el archivo actual; no se cambió nada"; return 1; }
+  t="$(mktemp "$(dirname "$vivo")/.$(basename "$vivo").vuelta.XXXXXX")" || { echo "PARAR: sin temporal; no se cambió nada"; return 1; }
+  if install -o root -g root -m 600 "$r" "$t" && cmp -s "$r" "$t" && mv -f "$t" "$vivo"; then
+    echo "vuelto: $vivo desde $(basename "$r") · el de recién quedó en $(basename "$atras")"
+  else
+    rm -f "$t"; echo "PARAR: no se reemplazó $vivo"; return 1
+  fi
+}
+```
+
+   Después: `volver_env /srv/ops/web/publicar.env` y, si hace falta,
+   `volver_env /srv/dtd-cargo/.env`. El `.env` de la app lo lee el web cuando se
+   recrea, igual que al pegar. Nadie corre `env-set.sh` ni el guion de pegar
+   mientras tanto.
 3. **Avisos del script viejo:** sin `PUBLICAR_TELEGRAM_CHAT_ID`, el script viejo
    **no avisa**, aunque `TELEGRAM_BOT_TOKEN` siga en el `.env`. Ya era así el 01-nov:
    «Telegram: SIN CONFIGURAR». Con la vuelta atrás quedan los avisos de Kuma en

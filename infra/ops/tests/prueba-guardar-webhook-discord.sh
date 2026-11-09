@@ -57,7 +57,7 @@ reiniciar() {
   chmod 600 "${CFG}"; cp "${CFG}" "${T}/cfg-antes"
 }
 correr() { # lo pegado por stdin → $RC, salida en ${T}/salida
-  PATH="${T}/bin:${PATH}" DOBLE="${D}" bash "${SCRIPT}" --config "${CFG}" "$@" > "${T}/salida" 2>&1
+  PATH="${EXTRA:+${EXTRA}:}${T}/bin:${PATH}" DOBLE="${D}" bash "${SCRIPT}" --config "${CFG}" "$@" > "${T}/salida" 2>&1
   RC=$?; cat "${T}/salida" >> "${TODO}"
 }
 sin_cambios() { cmp -s "${CFG}" "${T}/cfg-antes" && [ -z "$(ls "${T}/srv/ops/web" | grep -v '^publicar.env$')" ]; }
@@ -103,11 +103,11 @@ reiniciar; printf '%s\r\n' "${BUENA}" | correr
   && ok "publicar.env: una línea PUBLICAR_DISCORD_WEBHOOK, sin PUBLICAR_TELEGRAM_*, el resto igual" || { ko "contenido: $(grep -c . "${CFG}") líneas"; }
 huella="$(printf '%s' "${BUENA}" | sha256sum | cut -c1-12)"
 grep -q "sha256 ${huella} " "${T}/salida" && ok "la huella es el sha256 de la dirección guardada" || ko "huella"
-r="$(ls "${T}/srv/ops/web" | grep '^publicar.env.antes-0609-[0-9]\{8\}T[0-9]\{6\}Z$')"
+r="$(ls "${T}/srv/ops/web" | grep '^publicar.env.antes-0609-[0-9]\{8\}T[0-9]\{6\}Z-[A-Za-z0-9]\{6\}$')"
 [ -n "${r}" ] && cmp -s "${T}/srv/ops/web/${r}" "${T}/cfg-antes" && grep -q "respaldo ${r}" "${T}/salida" \
-  && ok "respaldo publicar.env.antes-0609-<fecha> con el contenido de antes" || ko "respaldo: ${r:-ninguno}"
+  && ok "respaldo publicar.env.antes-0609-<fecha>-<sufijo> con el contenido de antes" || ko "respaldo: ${r:-ninguno}"
 [ -z "$(ls -a "${T}/srv/ops/web" | grep '^\.publicar\.env\.')" ] && ok "no deja temporales" || ko "temporales"
-grep -qx "STDIN url = \"${BUENA}\"" "${D}/curl.log" && ! grep '^ARGS' "${D}/curl.log" | grep -q "${TOK}\|webhooks" \
+grep -qx "STDIN url = \"${BUENA}\"" "${D}/curl.log" && ! grep '^ARGS' "${D}/curl.log" | grep -qF -e "${TOK}" -e webhooks \
   && grep '^ARGS' "${D}/curl.log" | grep -q -- '-A DiscordBot (https://dtdcargo.com, 1.0)' \
   && ok "GET a Discord con la dirección por stdin (-K -), nunca como argumento" || ko "curl: $(head -1 "${D}/curl.log" | cut -c1-80)"
 case "$(uname -s)" in
@@ -126,6 +126,24 @@ reiniciar; printf 'PUBLICAR_DISCORD_WEBHOOK=https://discord.com/api/webhooks/1/v
 [ "${RC}" = 0 ] && [ "$(grep -c '^PUBLICAR_DISCORD_WEBHOOK=' "${CFG}")" = 1 ] && [ "$(guardada)" = "${BUENA}" ] && ok "reemplaza una PUBLICAR_DISCORD_WEBHOOK anterior, sin duplicar" || { ko "reemplazo rc=${RC}"; ver; }
 reiniciar; rm -f "${CFG}"; printf '%s\n' "${BUENA}" | correr
 [ "${RC}" = 0 ] && [ "$(grep -c . "${CFG}")" = 1 ] && [ "$(guardada)" = "${BUENA}" ] && ! grep -q respaldo "${T}/salida" && ok "sin publicar.env: lo crea con la línea, sin respaldo" || { ko "sin archivo rc=${RC}"; ver; }
+
+echo "== respaldos y cortes =="
+# Dos corridas en el mismo segundo: `date` fijo. Cada una deja su respaldo y el de la
+# primera conserva el archivo de antes (es el que sirve para volver atrás).
+mkdir -p "${T}/mismo-segundo"
+printf '#!/usr/bin/env bash\necho 20261109T120000Z\n' > "${T}/mismo-segundo/date"; chmod +x "${T}/mismo-segundo/date"
+reiniciar; printf '%s\n' "${BUENA}" | EXTRA="${T}/mismo-segundo" correr; rc1="${RC}"; printf '%s\n' "${BUENA}" | EXTRA="${T}/mismo-segundo" correr
+mapfile -t resp < <(ls "${T}/srv/ops/web" | grep '^publicar.env.antes-0609-20261109T120000Z-[A-Za-z0-9]\{6\}$')
+iguales=0; for x in "${resp[@]}"; do cmp -s "${T}/srv/ops/web/${x}" "${T}/cfg-antes" && iguales=$((iguales + 1)); done
+[ "${rc1}" = 0 ] && [ "${RC}" = 0 ] && [ "${#resp[@]}" = 2 ] && [ "${iguales}" = 1 ] \
+  && ok "dos corridas en el mismo segundo: dos respaldos distintos, y uno guarda el archivo de antes" || { ko "mismo segundo rc=${rc1}/${RC} respaldos=${#resp[@]} iguales=${iguales}"; ver; }
+# Cortado justo antes de mover el archivo nuevo (que lleva todas las llaves): el
+# `mv` doble le manda TERM al guion. No puede quedar el temporal.
+mkdir -p "${T}/cortado"
+printf '#!/usr/bin/env bash\nkill -TERM "$PPID"; exit 1\n' > "${T}/cortado/mv"; chmod +x "${T}/cortado/mv"
+reiniciar; printf '%s\n' "${BUENA}" | EXTRA="${T}/cortado" correr
+[ "${RC}" != 0 ] && cmp -s "${CFG}" "${T}/cfg-antes" && [ -z "$(ls -A "${T}/srv/ops/web" | grep '^\.publicar\.env\.')" ] && ! grep -q '^GUARDADA' "${T}/salida" \
+  && ok "cortado con TERM antes del mv: no guarda, publicar.env igual y no queda el temporal con las llaves" || { ko "cortado rc=${RC}: $(ls -A "${T}/srv/ops/web" | tr '\n' ' ')"; ver; }
 
 echo "== destinos del Studio (SDD-0606) =="
 # Los cinco van al .env de la app, cada uno a su variable, con el channel_id exacto de
@@ -151,8 +169,8 @@ reiniciar; app_env; studio "${C_REG}"; printf '%s\n' "${REG}" | correr_app regis
 [ "${RC}" = 0 ] && grep -q "^GUARDADA (registro) · ${#REG} caracteres · sha256 [0-9a-f]\{12\} · canal #registro-clientes ${C_REG} · DISCORD_WEBHOOK_REGISTRO en " "${T}/salida" \
   && [ "$(grep -c '^DISCORD_WEBHOOK_REGISTRO=' "${APPENV}")" = 1 ] && grep -qx "DISCORD_WEBHOOK_REGISTRO=${REG}" "${APPENV}" \
   && grep -qx "TELEGRAM_BOT_TOKEN='123:SECRETO'" "${APPENV}" && grep -qx 'CRON_SECRET="x"' "${APPENV}" && grep -qx 'APP_ENV=production' "${APPENV}" \
-  && ls -A "${T}/srv/dtd-cargo" | grep -q '^\.env\.antes-0606-[0-9]\{8\}T[0-9]\{6\}Z$' \
-  && ok "registro: reemplaza solo DISCORD_WEBHOOK_REGISTRO en el .env de la app, no toca TELEGRAM_BOT_TOKEN ni lo demás, respaldo .env.antes-0606-<fecha>" \
+  && ls -A "${T}/srv/dtd-cargo" | grep -q '^\.env\.antes-0606-[0-9]\{8\}T[0-9]\{6\}Z-[A-Za-z0-9]\{6\}$' \
+  && ok "registro: reemplaza solo DISCORD_WEBHOOK_REGISTRO en el .env de la app, no toca TELEGRAM_BOT_TOKEN ni lo demás, respaldo .env.antes-0606-<fecha>-<sufijo>" \
   || { ko "registro rc=${RC}"; ver; }
 reiniciar; app_env; studio "${C_BUGS}"; printf '%s\n' "${REG}" | correr_app registro
 [ "${RC}" = 1 ] && grep -q "el webhook es del canal ${C_BUGS}, no de #registro-clientes (${C_REG})" "${T}/salida" && app_sin_cambios \
@@ -174,9 +192,11 @@ reiniciar; correr otro-destino < /dev/null
 [ "${RC}" = 64 ] && grep -q 'el destino es publicaciones, registro, conversaciones, bugs, reportes o equipo' "${T}/salida" && ok "un destino desconocido: error de uso (64)" || { ko "destino raro rc=${RC}"; ver; }
 
 echo "== la llave no sale =="
-! grep -q "${TOK}\|${TOKS}\|${TOKR}\|/api/webhooks/" "${TODO}" && [ "$(grep -c . "${TODO}")" -ge 15 ] \
+# Cadenas fijas (-F) con un -e por cada una: `\|` en un patrón básico es una
+# extensión de GNU grep y no alterna en otros grep.
+! grep -qF -e "${TOK}" -e "${TOKS}" -e "${TOKR}" -e /api/webhooks/ "${TODO}" && [ "$(grep -c . "${TODO}")" -ge 15 ] \
   && ok "en $(grep -c . "${TODO}") líneas de salida (con un error de curl que traía la dirección) no aparece ninguna dirección ni token" \
-  || ko "se escapó una dirección: $(grep -n "${TOK}\|${TOKS}\|${TOKR}\|/api/webhooks/" "${TODO}" | head -1 | cut -c1-60)"
+  || ko "se escapó una dirección: $(grep -nF -e "${TOK}" -e "${TOKS}" -e "${TOKR}" -e /api/webhooks/ "${TODO}" | head -1 | cut -c1-60)"
 
 echo "RESUMEN: ${pass} PASÓ · ${fail} FALLÓ · ${nv} NO VERIFICADO"
 [ "${fail}" = 0 ]
