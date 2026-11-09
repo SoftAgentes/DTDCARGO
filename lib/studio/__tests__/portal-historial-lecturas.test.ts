@@ -117,9 +117,31 @@ const CASOS: [string, string, RegExp][] = [
  * Lo que una lectura de solo lectura no puede tener. Devuelve los motivos; vacío es «limpia».
  * Sin comentarios `--`. La única metaorden permitida es `\set ON_ERROR_STOP on` en su propia línea.
  */
+/** Quita los comentarios `--`, pero no un `--` dentro de un literal entre comillas simples (`'a--b'`). */
+function sinComentarios(guion: string): string {
+  let out = "";
+  let enLiteral = false;
+  for (let i = 0; i < guion.length; i++) {
+    const c = guion[i];
+    if (enLiteral) {
+      out += c;
+      if (c === "'") enLiteral = false;
+    } else if (c === "'") {
+      enLiteral = true;
+      out += c;
+    } else if (c === "-" && guion[i + 1] === "-") {
+      while (i < guion.length && guion[i] !== "\n") i++;
+      out += "\n";
+    } else out += c;
+  }
+  return out;
+}
+
 function prohibiciones(guion: string): string[] {
-  const s = guion.replace(/--.*$/gm, "");
+  const s = sinComentarios(guion);
   const motivos: string[] = [];
+  if (/\bprepare\s+transaction\b/i.test(s)) motivos.push("prepare transaction");
+  if (/\b(nextval|setval)\s*\(/i.test(s)) motivos.push("nextval o setval(");
   const palabra = s.match(/\b(insert|update|delete|merge|create|alter|drop|grant|revoke|truncate|copy|commit|do|call|lock|vacuum|refresh|savepoint|abort)\b/i);
   if (palabra) motivos.push(`sentencia que escribe: ${palabra[1]}`);
   if (/\bend\s*;/i.test(s)) motivos.push("end;");
@@ -243,28 +265,32 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
   });
 
   // CONTROL de la prueba estática: un guion sintético por cada cosa que tiene que atrapar.
-  const PROHIBIDOS: [string, string][] = [
-    ["insert", "insert into public.chatwoot_portal_salida select 1;"],
-    ["commit", "commit;"],
-    ["end;", "end;"],
-    ["do", "do $$ begin perform 1; end $$;"],
-    ["read write", "set session characteristics as transaction read write;"],
-    ["transaction_read_only", "set transaction_read_only = off;"],
-    ["set_config", "select set_config('transaction_read_only', 'off', true);"],
-    ["\\w", "\\w /tmp/salida.sql"],
-    ["\\g", "select 1 \\g /tmp/salida"],
-    ["\\gexec", "select 'select 1' \\gexec"],
-    ["\\i", "\\i otro.sql"],
-    ["\\o a mitad de línea", "select 1; \\o /tmp/salida"],
-    ["\\!", "\\! ls /srv/ops"],
-    ["append_audit_event(", "select public.append_audit_event('feature_flag', 'x');"],
-    ["chatwoot_portal_*(", "select public.chatwoot_portal_tomar(1);"],
+  // [nombre, sentencia, el motivo que tiene que dar]: no basta con que dé algún motivo, tiene que ser el suyo.
+  const PROHIBIDOS: [string, string, string][] = [
+    ["insert", "insert into public.chatwoot_portal_salida select 1;", "sentencia que escribe: insert"],
+    ["commit", "commit;", "sentencia que escribe: commit"],
+    ["end;", "end;", "end;"],
+    ["do", "do $$ begin perform 1; end $$;", "sentencia que escribe: do"],
+    ["read write", "set session characteristics as transaction read write;", "read write"],
+    ["transaction_read_only", "set transaction_read_only = off;", "transaction_read_only"],
+    ["set_config", "select set_config('transaction_read_only', 'off', true);", "set_config("],
+    ["\\w", "\\w /tmp/salida.sql", "metaorden de psql"],
+    ["\\g", "select 1 \\g /tmp/salida", "metaorden de psql"],
+    ["\\gexec", "select 'select 1' \\gexec", "metaorden de psql"],
+    ["\\i", "\\i otro.sql", "metaorden de psql"],
+    ["\\o a mitad de línea", "select 1; \\o /tmp/salida", "metaorden de psql"],
+    ["\\!", "\\! ls /srv/ops", "metaorden de psql"],
+    ["append_audit_event(", "select public.append_audit_event('feature_flag', 'x');", "append_audit_event("],
+    ["chatwoot_portal_*(", "select public.chatwoot_portal_tomar(1);", "chatwoot_portal_*("],
+    ["prepare transaction", "prepare transaction 'x';", "prepare transaction"],
+    ["nextval(", "select nextval('public.conv_dpid_seq_1');", "nextval o setval("],
+    ["un insert detrás de un '--' dentro de un literal", "select '--'; insert into x select 1;", "sentencia que escribe: insert"],
   ];
-  it("CONTROL de la estática: atrapa cada guion sintético prohibido, y lo que va después del rollback", () => {
-    expect(PROHIBIDOS).toHaveLength(15);
-    for (const [nombre, sentencia] of PROHIBIDOS) {
+  it("CONTROL de la estática: atrapa cada guion sintético prohibido con su motivo, y lo que va después del rollback", () => {
+    expect(PROHIBIDOS).toHaveLength(18);
+    for (const [nombre, sentencia, motivo] of PROHIBIDOS) {
       const guion = `begin transaction read only;\n${sentencia}\nrollback;\n`;
-      expect(prohibiciones(guion), `se escapa: ${nombre}`).not.toEqual([]);
+      expect(prohibiciones(guion), `se escapa o da otro motivo: ${nombre}`).toContain(motivo);
     }
     expect(prohibiciones("begin transaction read only;\nselect 1;\nrollback;\nselect 2;\n")).toContain("algo después del rollback");
     expect(prohibiciones("begin transaction read only;\nselect 1;\n")).toContain("sin rollback");

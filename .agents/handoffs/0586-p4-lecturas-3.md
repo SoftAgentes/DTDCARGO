@@ -114,7 +114,7 @@
 
 - **`docs/runbooks/backup-restore-servidor.md`:** las 4 apariciones de `r2:dtdcargo-backups/db`, en las líneas 85, 86, 185 y 187, pasan a `b2:dtdcargo-respaldos/db`.
   - Arriba del bloque va una nota con la medición: `rclone.conf` tiene solo `[b2]`, y `backup.sh` usa ese remoto por defecto.
-  - **La línea 402,** `r2:dtdcargo-storage` (la copia del storage), **no se toca:** el DG no la midió. Va en FUERA DE ALCANCE.
+  - **La línea del `rclone sync r2:dtdcargo-storage`** (hoy la `:406`, la copia del storage) lleva la marca ‹vencido…›, medida por el DG. Va en FUERA DE ALCANCE.
 - **El 4.1 del runbook de las puertas:**
   - Studio corre `backup.sh` y sube a `b2:dtdcargo-respaldos/db`;
   - Chatwoot corre `respaldo.sh` y sube a `b2:dtdcargo-respaldos/chatwoot`;
@@ -154,3 +154,31 @@
 - **El conflicto:** salió en `docs/runbooks/backup-restore-servidor.md` §5. Me quedé con la versión de la #482, que es el respaldo diario real del Storage (SDD-0620).
 - **La marca ‹vencido: el storage de Studio corre en file…›** desaparece con ese bloque, como pidió el Subdirector. El FUERA DE ALCANCE de arriba queda resuelto por la #482.
 - **La nota del B2 del §2** (`b2:dtdcargo-respaldos/db`, medido por el DG) sigue tal cual, sin conflicto.
+
+### La vuelta de la revisión del delta (CHANGES_REQUESTED en `96c870eb8`)
+
+**Los bloqueantes:**
+1. **La copia durable:** el paso 3 la crea, el paso 4 le agrega `studio-aplicar.hecho` y nada antes del paso 3 toca el disco.
+2. **Los comandos de Chatwoot,** pasos 1, 1b y 3, van completos, con `DB_CW`, `DB`, `TENANT`, `CUENTA` y `BANDEJA`, como en la cabecera de `deshacer.sh` de la #478. El 1b es nuevo.
+3. **El 3.0** lista `deshacer.sh` y `deshacer-carga.rb` con su sha256, bajo el mismo OK.
+
+**Lo demás de esta vuelta:**
+- **`SISTEMA`:** se lee en una variable sin imprimirlo, y solo sale `sistema_leido` o `sistema_no_leido`.
+- **El abandono:** `limpiar.sh --abandono-4-6b`, con su OK de Sam. La vuelta atrás del 3.0 es `find /srv/ops/portal-historial -mindepth 1 -maxdepth 1 ! -name deshacer -exec rm -r -- {} +`.
+- **El cierre del checkout:** se corre desde la carpeta del repo y se comprueba con `test ! -e ../portal-3-0 && echo borrado`.
+- **Las filas 1 y 1b** dicen solo lo que comprueba la #478. El 1b cita `7c4e0410b`, que ya está en la #478 remota.
+- **Lo no bloqueante:**
+  - el control de la estática exige el motivo de cada caso, y son 18;
+  - `sinComentarios()` respeta los literales;
+  - se suman `prepare transaction` y `nextval(`;
+  - la 3.1 lista las cuatro imágenes;
+  - la línea 538 dice B2;
+  - y la :402 se corrigió en este handoff.
+
+| Comprobación | Estado |
+|---|---|
+| vitest `portal-historial-lecturas.test.ts` (`--pool=forks --maxWorkers=1`, reporter por defecto) | PASÓ. Test Files 1 passed (1), Tests 26 passed (26), 0 fallados |
+| ESLint del archivo de prueba | PASÓ, exit 0 |
+| `docs:check` | PASÓ. Ninguna tabla del runbook quedó con las celdas mal |
+| tsc del proyecto | NO EJECUTADO en la PC, por indicación del Subdirector. Lo mide «Calidad local» |
+| `pnpm verify` | NO EJECUTADO |

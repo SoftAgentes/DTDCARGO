@@ -149,7 +149,7 @@
     - `supabase/migrations/0520_chatwoot_portal_vuelta.sql`
     - `supabase/migrations/0523_chatwoot_portal_carga.sql`
     - `supabase/migrations/0524_chatwoot_portal_puerta4.sql`;
-  - de la 2c (#478) ‹por confirmar hasta que la #478 esté en `main`›: `deshacer.sh` y su `.rb`. **No están en `main` y no entran en este 3.0.** Se suman con su propio OK cuando entren;
+  - de la 2c (#478) ‹por confirmar hasta que la #478 esté en `main`›: `deshacer.sh` y `deshacer-carga.rb`. El `scp -r` de la carpeta los copia con el resto, así que van en esta misma lista, con su sha256, bajo el mismo OK;
   - en Studio, desde `supabase/cargas/portal-historial-deshacer/`: `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, que van a la misma carpeta del VPS con su propio `scp` (debajo) y su sha256.
   - **La lista crece con cada PR,** y se escribe aquí cuando entra en `main`.
   - El `scp -r` copia también `pruebas/`, que trae solo datos inventados. No está en la lista y no se usa en el VPS.
@@ -176,27 +176,37 @@
   ```bash
   ssh root@217.216.54.70 chmod -R go-rwx /srv/ops/portal-historial
   ```
-- **El cierre del checkout limpio,** después del `scp` y de comparar los sha256, en la PC del DG:
+- **El cierre del checkout limpio,** después del `scp` y de comparar los sha256, en la PC del DG. **Se corre desde la carpeta del repo,** la misma desde la que se creó, y nunca desde adentro de `../portal-3-0`: desde adentro, en Windows, sale con 255 y la carpeta queda.
 
   ```bash
   git worktree remove ../portal-3-0
   ```
 
-- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/`, `supabase/migrations/` o `supabase/cargas/portal-historial-deshacer/`. Además, `stat -c %a` da `700` en `/srv/ops/portal-historial` y en `migraciones/`. En `migraciones/` están las 10, y `find /srv/ops/portal-historial -perm /077 | wc -l` da `0`: ningún archivo ni carpeta con permisos de grupo u otros. Al final, `git worktree list` ya no muestra `portal-3-0`.
+  ```bash
+  test ! -e ../portal-3-0 && echo borrado
+  ```
+
+- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/`, `supabase/migrations/` o `supabase/cargas/portal-historial-deshacer/`. Además, `stat -c %a` da `700` en `/srv/ops/portal-historial` y en `migraciones/`. En `migraciones/` están las 10, y `find /srv/ops/portal-historial -perm /077 | wc -l` da `0`: ningún archivo ni carpeta con permisos de grupo u otros. Al final, `git worktree list` ya no muestra `portal-3-0`, y `test ! -e ../portal-3-0 && echo borrado` da `borrado`.
 - **Lo que el CI no puede probar y se comprueba a mano en el VPS antes de 3.1:**
   - ‹por confirmar hasta que la #473 esté en `main`› **La unidad de systemd del ensayo tiene `TimeoutStopSec` de 300 s o más.** La guarda G1 se niega con menos (`TIMEOUT_STOP_MIN_S=300` en `ensayo-portal.sh`).
   - ‹por confirmar hasta que la #473 esté en `main`› **Los nombres reales de producción** son los valores por defecto del guion: `dtd-cargo-db-1` (Studio), `chatwoot-postgres-1` (Chatwoot) y `/srv/chatwoot`. Si alguno no coincide, se para y se avisa al DG; no se cambia por una variable sin su OK.
   - ‹por confirmar hasta que la #473 esté en `main`› **Están las 10 migraciones** en `/srv/ops/portal-historial/migraciones/`. **Si falta alguna, la G0 se niega** y el ensayo no arranca.
   - ‹por confirmar hasta que la #473 esté en `main`› **Están los cuatro inicializadores de Rails que la G0 también exige,** en `$CHATWOOT_DIR/rails/` (por defecto `/srv/chatwoot/rails/`): `zz_dtd_redaccion_logs.rb`, `zz_dtd_proteccion_register.rb`, `zz_dtd_revocar_sesiones.rb` y `zz_dtd_correo.rb`. **Si falta alguno, la G0 se niega.** Se comprueba con `ls`, sin abrirlos.
 - **La evidencia:** las dos listas de sha256 y el SHA de `main` del checkout limpio.
-- **La vuelta atrás:** `rm -r /srv/ops/portal-historial`. No guarda datos.
-- **OK nominal:** «¿Autorizas crear `/srv/ops/portal-historial` en el VPS y copiar ahí, desde un checkout limpio de `main` en el SHA <SHA>, los scripts de `infra/ops/portal-historial/`, las 10 migraciones en `migraciones/` y `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, y dejarlo todo sin permisos de grupo ni de otros? No se escribe nada más en el VPS.»
+- **La vuelta atrás:** se borra todo lo que copió el 3.0, **menos `deshacer/`**:
+
+  ```bash
+  find /srv/ops/portal-historial -mindepth 1 -maxdepth 1 ! -name deshacer -exec rm -r -- {} +
+  ```
+
+  **`deshacer/` no se borra aquí.** Es la copia durable del 4.6b, y sale solo con `limpiar.sh --cierre-4-6b` o con `limpiar.sh --abandono-4-6b` ‹por confirmar hasta que la #480 esté en `main`›. Si no existe, no hay nada que cuidar.
+- **OK nominal:** «¿Autorizas crear `/srv/ops/portal-historial` en el VPS y copiar ahí, desde un checkout limpio de `main` en el SHA <SHA>, los scripts de `infra/ops/portal-historial/` (los de la lista de arriba, cada uno con su sha256), las 10 migraciones en `migraciones/` y `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, y dejarlo todo sin permisos de grupo ni de otros? No se escribe nada más en el VPS.»
 
 ### 3.1 · Correr el ensayo
 
 | | |
 |---|---|
-| **Qué lee o escribe** | **Usa la copia de la puerta 1** (la 1a y la 1b). **Escribe solo en la copia efímera,** con red interna, en tmpfs y con la marca de la copia. **En producción no escribe nada.** ‹por confirmar hasta que la #473 esté en `main`› **Además, en el VPS escribe:**<ul><li>la evidencia `HECHO` en `/srv/ops/portal-historial/`;</li><li>las imágenes de los contenedores de la copia (`postgres:17`, sin digest);</li><li>la unidad transitoria de systemd del ensayo.</li></ul> |
+| **Qué lee o escribe** | **Usa la copia de la puerta 1** (la 1a y la 1b). **Escribe solo en la copia efímera,** con red interna, en tmpfs y con la marca de la copia. **En producción no escribe nada.** ‹por confirmar hasta que la #473 esté en `main`› **Además, en el VPS escribe:**<ul><li>la evidencia `HECHO` en `/srv/ops/portal-historial/`;</li><li>las imágenes de los contenedores de la copia: `chatwoot/chatwoot:v4.19.1-ce`, `pgvector/pgvector:0.8.1-pg16` y `redis:7.2.11-alpine`, fijadas por digest, y `postgres:17`, sin digest (medido en `2585e945f`);</li><li>la unidad transitoria de systemd del ensayo.</li></ul> |
 | **Comando** | ‹por confirmar hasta que la #473 esté en `main`› **Las entradas:** `TENANT=<uuid>`, `CUENTA=1`, `BANDEJA=<id de la puerta 2>` y `AGENTE_SERVICIO=<id>`. `bash /srv/ops/portal-historial/ensayo-portal.sh`, con las opciones de la 2b. **El ensayo no corre si `/dev/shm/portal-historial` ya existe,** para no pisar una carga real a medias, ni al revés. **Se niega con `DB_CW=chatwoot-rails-1`** o con cualquier contenedor que no sea de la copia: es una guarda de la 2b, con su mutante. Corre como unidad de systemd con su `TimeoutStopSec`, igual que el ensayo del Archivo Kommo. En la copia corre `extraer.sh`; `cargar.sh` con `MODO=seco` y después con `MODO=cargar`; `vincular.sh`; y `controles-studio.sql` antes y después |
 | **Para seguir** | ‹por confirmar hasta que la #473 esté en `main`›<ul><li>el ensayo sale con 0;</li><li>`HECHO limpieza_completa=si`;</li><li>`HECHO unidad` no es `ninguna`: corrió como unidad de systemd;</li><li>salen en `PASÓ` todas las comprobaciones del ensayo, y ninguna en `FALLÓ` (la lista, debajo de esta tabla);</li><li>C-6 y C-7 dan igual antes y después;</li><li>C-8 trae un espejo por hilo vinculado;</li><li>`conversaciones_estado_actualizado=0`;</li><li>la limpieza deja 0 contenedores, 0 volúmenes y 0 redes;</li><li>producción sigue igual (P0, P2 y P3);</li><li>**la evidencia dice que `DB_CW` era el contenedor de la copia, con su nombre y su red interna;**</li><li>**al terminar, `test ! -e /dev/shm/portal-historial && echo vacio`.**</li><li>**si el ensayo murió por KILL o sin que corriera su `trap`** (la unidad terminó por `SIGKILL`, o no salió la línea `HECHO ensayo_codigo`): no se sigue hasta correr `ensayo-portal.sh --limpiar` y repetir la prueba de borrado. Esa prueba es 0 contenedores, 0 volúmenes y 0 redes del proyecto del ensayo, más el `test ! -e` de arriba.</li></ul>**Los casos provocados:**<ul><li>(a) un `vinculos.ndjson` con un mensaje menos, que da 22023 sin escribir;</li><li>(B1) `contacto_id` nulo y `source_id` vacío a la vez, que da 22023, «id de contacto inválido»;</li><li>(B2) solo el `source_id` vacío, que da 22023, «falta el source_id del contacto»;</li><li>(c) después de (a), repetir desde la extracción: no queda nada doble en Chatwoot, y en Studio queda un solo corte.</li></ul> |
 | **Evidencia** | Las líneas `HECHO` con conteos y md5, sin datos de personas, y `HECHO ensayo_codigo=0`. **El DG la recibe antes de la puerta 4** |
@@ -284,7 +294,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 **Sub-paso 4.6b · ⛔ OK propio · La vuelta atrás dirigida de la carga.** Es la vuelta atrás principal de 4.6 (decisión del DG). **Es un borrado permanente: lo corre Sam. El DG lo prepara y lo ensaya con rollback.**
 - **El orden lo imponen los archivos `.hecho`** (secuencia aprobada por el DG el 2026-11-09, escrita por E5 y revisada por el Subdirector). Cada paso exige la salida 0 del anterior y su `.hecho`, y **se niega si falta la evidencia** o si no trae el mismo sha256 del `.ndjson` y el mismo tenant. Las piezas son la 2c de E5 (`deshacer.sh`, ‹por confirmar hasta que la #478 esté en `main`›) y el desarme y el cierre del Worker de la 10.5 (`deshacer-vinculos.sh` y `limpiar.sh --cierre-4-6b`, ‹por confirmar hasta que la #480 esté en `main`›).
 - **Los archivos** van en `/dev/shm/portal-historial/`, en 0600, escritos con `.parcial` + `mv`. Cada `.hecho` es una línea `HECHO <paso>=ok conservados_sha256=<64 hex> tenant=<uuid> …`; los de Chatwoot llevan además `cuenta` y `bandeja`. Solo llevan ids, uuid seudónimos y hashes.
-- **La copia durable** (la opción (a) de Sam, «si protegidos»): `/srv/ops/portal-historial/deshacer/`, root 0700, archivos 0600. **La escribe solo el paso 3:** antes de borrar, el `.ndjson`, `chatwoot-seco.hecho` y `studio-ensayo.hecho`; después del borrado, `chatwoot-borrar.hecho`. **Si el VPS se reinicia entre el 3 y el 4,** el tmpfs se pierde y el paso 4 usa la copia durable, con el mismo sha256. El paso 5 borra las dos.
+- **La copia durable** (la opción (a) de Sam, «si protegidos»): `/srv/ops/portal-historial/deshacer/`, root 0700, archivos 0600. **La crea el paso 3:** antes de borrar, el `.ndjson`, `chatwoot-seco.hecho` y `studio-ensayo.hecho`; después del borrado, `chatwoot-borrar.hecho`. **El paso 4 le agrega `studio-aplicar.hecho`,** para que el 5 sobreviva a un reinicio entre el 4 y el 5. **Nada antes del paso 3 toca el disco** (decisión del DG). **Si el VPS se reinicia entre el 3 y el 4,** el tmpfs se pierde y el paso 4 usa la copia durable, con el mismo sha256. El paso 5 borra las dos.
   - **El plazo, una regla del DG:** si el paso 4 no corre dentro de las 24 h siguientes al paso 3, el DG avisa a Sam y deciden juntos si reintentar el 4 o cerrar. El plazo empieza en el `utc=` de `chatwoot-borrar.hecho`. **La copia durable nunca se borra sin que el 4 haya salido con 0.**
   - **Los respaldos,** medidos por el DG el 2026-11-09 hacia las 04:30Z:
     - los respaldos programados del VPS no incluyen `/srv/ops/portal-historial/`: `dtd-cargo-backup` y `config-backup.sh` respaldan la base, el `.env` y `db-config`, y `chatwoot-respaldo` respalda el dump y `/app/storage`;
@@ -294,8 +304,8 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
 | Paso | Quién | Qué hace | Qué exige | Si falla |
 |---|---|---|---|---|
-| **1 · El seco de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | El DG: no borra | Cuenta lo que se borraría, comprueba que no haya nada ajeno y escribe `contactos-conservados.ndjson` (los contactos `dtd-portal:` con otra bandeja, que no se borran) y `chatwoot-seco.hecho` | La guarda de Studio en solo lectura: la fila del flag, el flag nunca encendido, la cola sin correr y el espejo en la bandeja | No cambió nada. Se corre `limpiar.sh` y se repite |
-| **1b · El ensayo de Chatwoot, opcional** (‹por confirmar hasta que la #478 esté en `main`›) | El DG | Hace todo y termina en ROLLBACK | `chatwoot-seco.hecho` con el mismo sha256 | No cambió nada |
+| **1 · El seco de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | El DG: no borra | Cuenta lo que se borraría, comprueba que no haya nada ajeno y escribe `contactos-conservados.ndjson` (los contactos `dtd-portal:` con otra bandeja, que no se borran) y `chatwoot-seco.hecho` | En Studio, en solo lectura, que `chatwoot_portal` no esté encendido ni se haya encendido alguna vez para el tenant (`feature_flags` y `entity_audit_log`). Si no lo puede comprobar, no corre (cabecera de `deshacer.sh` de la #478) | No cambió nada. Se corre `limpiar.sh` y se repite |
+| **1b · El ensayo de Chatwoot, opcional** (‹por confirmar hasta que la #478 esté en `main`›) | El DG | Hace todo y termina en ROLLBACK | Nada: «ROLLBACK, no exige ni escribe `.hecho`» (cabecera de `deshacer.sh` en `7c4e0410b`, la rama de E5) | No cambió nada |
 | **2 · El ensayo de Studio** (‹por confirmar hasta que la #480 esté en `main`›) | El DG: rollback | Lee el `.ndjson`, ensaya el desarme y escribe `studio-ensayo.hecho`, solo en tmpfs | `chatwoot-seco.hecho` con el mismo sha256, el tenant, la cuenta y la bandeja | No cambió nada. Se repite |
 | **3 · El borrado de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | **Sam:** borrado permanente | Deja la copia durable, recalcula los conservados, borra y escribe `chatwoot-borrar.hecho` en las dos copias | Los dos `.hecho` en `=ok`, el mismo sha256 en los dos y en el `sha256sum` actual del `.ndjson`, y el mismo tenant | La transacción no se confirma: Chatwoot queda igual. Se borra cualquier `chatwoot-borrar.hecho` viejo de las dos copias y se repite el 3 |
 | **4 · Studio aplica** (‹por confirmar hasta que la #480 esté en `main`›) | **Sam:** borrado permanente | Desarma los vínculos y escribe `studio-aplicar.hecho` en tmpfs y en la durable | `studio-ensayo.hecho` y `chatwoot-borrar.hecho` (`fin=commit`), con el mismo sha256 y el mismo tenant. Usa la copia de tmpfs, o la durable si falta; si las dos están y no son iguales, se niega | Chatwoot ya está vacío y Studio sigue vinculado, sin daño con el flag apagado. **Se repite el 4 con el mismo `.ndjson`, sin volver a correr Chatwoot.** **Regla del DG: `chatwoot_portal` no se enciende hasta que el 4 salga con 0** |
@@ -310,30 +320,48 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   - **Lo medido por el DG el 2026-11-08,** que es solo metadata: en producción y en prueba, `postgres` tiene `rolsuper = f`, pero **`pg_control_system()` y `pg_db_role_setting` sí se pueden leer**. Así, la guarda de entorno del desarme funciona sin cambios.
   - **El comando:** `docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'select system_identifier is not null from pg_control_system()'`. **Tiene que dar `t`.** No se imprime el identificador.
   - **Si da 42501, se para:** sin esa lectura, el desarme aborta en `produccion`.
-- **Los comandos,** en el VPS como root. Los conteos `ESPERADOS_*` salen de la lectura de 4.2. Los de Chatwoot (pasos 1, 1b y 3) llevan las entradas que fije la #478 ‹por confirmar hasta que la #478 esté en `main`›.
+- **Los comandos,** en el VPS como root. Los conteos `ESPERADOS_*` salen de la lectura de 4.2. Los de Chatwoot (pasos 1, 1b y 3) son los de la cabecera de `deshacer.sh` de la #478 ‹por confirmar hasta que la #478 esté en `main`›, con los cinco valores. Sin ellos sale con 2. **Antes de copiar, se comparan con la cabecera del `deshacer.sh` que quedó en el VPS en 3.0.** El paso 3 es el borrado permanente de Sam: se corre tal como está escrito.
 
-  Paso 1, el DG:
+  **`SISTEMA`, sin imprimirlo:** se lee en una variable del shell, del mismo contenedor de Studio de producción. Solo se imprime si se leyó. La guarda de entorno del desarme lo compara con `pg_control_system()` dentro de su transacción.
 
   ```bash
-  MODO=seco bash /srv/ops/portal-historial/deshacer.sh
+  SISTEMA="$(docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'select system_identifier from pg_control_system()')"
+  ```
+
+  ```bash
+  case "$SISTEMA" in ''|*[!0-9]*) echo sistema_no_leido ;; *) echo sistema_leido ;; esac
+  ```
+
+  Tiene que dar `sistema_leido`. Si da `sistema_no_leido`, se para.
+
+  Paso 1, el DG (‹por confirmar hasta que la #478 esté en `main`›):
+
+  ```bash
+  DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=seco bash /srv/ops/portal-historial/deshacer.sh
+  ```
+
+  Paso 1b, opcional, el DG (‹por confirmar hasta que la #478 esté en `main`›):
+
+  ```bash
+  DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=borrar CONFIRMAR=no bash /srv/ops/portal-historial/deshacer.sh
   ```
 
   Paso 2, el DG (‹por confirmar hasta que la #480 esté en `main`›):
 
   ```bash
-  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion SISTEMA=<system_identifier> MODO=ensayo bash /srv/ops/portal-historial/deshacer-vinculos.sh
+  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion SISTEMA="$SISTEMA" MODO=ensayo bash /srv/ops/portal-historial/deshacer-vinculos.sh
   ```
 
-  Paso 3, Sam:
+  Paso 3, Sam (‹por confirmar hasta que la #478 esté en `main`›):
 
   ```bash
-  MODO=borrar CONFIRMAR=si bash /srv/ops/portal-historial/deshacer.sh
+  DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=borrar CONFIRMAR=si bash /srv/ops/portal-historial/deshacer.sh
   ```
 
   Paso 4, Sam (‹por confirmar hasta que la #480 esté en `main`›):
 
   ```bash
-  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion SISTEMA=<system_identifier> MODO=aplicar bash /srv/ops/portal-historial/deshacer-vinculos.sh
+  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion SISTEMA="$SISTEMA" MODO=aplicar bash /srv/ops/portal-historial/deshacer-vinculos.sh
   ```
 
   Después del 4, la comprobación del flag, en solo lectura. Tiene que dar `flag_encendido=0` y `encendidos_auditados=0`:
@@ -349,12 +377,21 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   ```
 
   `limpiar.sh` sin opción sigue siendo para abandonar una carga: borra solo tmpfs y no toca la durable.
+
+  **Si el 4.6b se abandona antes de que el paso 3 confirme** (el 3 falló, o no se corrió), Sam corre el abandono (‹por confirmar hasta que la #480 esté en `main`›). Borra las dos carpetas **solo si no hay `chatwoot-borrar.hecho`** en ninguna. Si lo hay, Chatwoot ya borró: se niega con `chatwoot_ya_borro_hay_que_terminar_el_paso_4`, y hay que terminar el 4.
+
+  ```bash
+  bash /srv/ops/portal-historial/limpiar.sh --abandono-4-6b
+  ```
+
+  Para seguir: `HECHO abandono_4_6b=ok tmpfs=vacio durable=vacio`.
 - **Para seguir:** cada paso sale con 0 y deja su `HECHO … =ok`. Los conteos de después dan 0 en lo borrado, **salvo los contactos conservados, que son exactamente los del archivo.** C-6 y C-7 quedan iguales a 4.2. El flag sigue apagado (`flag_encendido=0`). Al final, `HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio`.
 - **La evidencia:** solo conteos.
 - **Los OK nominales de Sam,** uno por paso que borra:
   - **Paso 3:** «¿Autorizas borrar de forma permanente, en la cuenta 1 de Chatwoot, las conversaciones, los mensajes y los `contact_inboxes` de la bandeja del portal y los contactos `dtd-portal:` sin otra bandeja, dejando antes la copia durable en `/srv/ops/portal-historial/deshacer/`?»
   - **Paso 4:** «¿Autorizas deshacer de forma permanente en Studio los vínculos de la carga P4, con el mismo `.ndjson` del ensayo y del borrado de Chatwoot?»
   - **Paso 5:** «¿Autorizas borrar el `.ndjson` y los `.hecho` de `/dev/shm/portal-historial/` y de `/srv/ops/portal-historial/deshacer/`, después de que el paso 4 salió con 0?»
+  - **El abandono:** «¿Autorizas abandonar la vuelta atrás 4.6b y borrar el `.ndjson` y los `.hecho` de `/dev/shm/portal-historial/` y de `/srv/ops/portal-historial/deshacer/`, sabiendo que el paso 3 no confirmó el borrado en Chatwoot?»
   - Los pasos 1, 1b y 2 los corre el DG sin OK de Sam, porque no borran.
 
 **Sub-paso 4.10a · ⛔ OK propio · Limpiar el log de Postgres de Chatwoot.**
@@ -535,7 +572,7 @@ Es una revisión con el método de `.claude/skills/revisar-datos-ve/SKILL.md`. *
 - **Las listas de tablas y columnas de la 1a y la 1b,** con su prueba: las cierra la 2b.
 - **Los comandos de 4.6b:** llegan con la #478 (Chatwoot, pasos 1, 1b y 3) y la #480 (Studio y el cierre, pasos 2, 4 y 5). Hasta entonces van marcados.
 - **El procedimiento de 4.10a:** se define con el DG.
-- **Los argumentos del respaldo externo a S3.**
+- **Los argumentos del respaldo externo a B2** (`pg-dump-to-s3.sh`, que sube a B2 aunque el nombre diga S3).
 
 ## De dónde sale cada cosa
 
