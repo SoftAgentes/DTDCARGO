@@ -67,17 +67,23 @@ class DeshacerPortal
   def self.principal(env, entrada: $stdin, salida: $stdout)
     log_sql = ActiveRecord::Base.logger
     ActiveRecord::Base.logger = nil
-    new(env: env, entrada: entrada, salida: salida).correr
+    deshacer = new(env: env, entrada: entrada, salida: salida)
+    deshacer.correr
     0
   rescue StandardError => e
     salida.puts 'HECHO deshacer=error'
     salida.puts "HECHO error=#{e.is_a?(DeshacerError) ? e.message : e.class.name}"
+    # Si la transacción confirmó antes del error, se dice: deshacer.sh retira el .inicio solo con fin=rollback.
+    salida.puts "HECHO fin=#{deshacer&.commit ? 'commit' : 'rollback'}"
     1
   ensure
     ActiveRecord::Base.logger = log_sql
   end
 
+  attr_reader :commit
+
   def initialize(env:, entrada:, salida:)
+    @commit = false
     @modo = env.fetch('MODO')
     raise DeshacerError, 'MODO tiene que ser seco o borrar' unless %w[seco borrar].include?(@modo)
 
@@ -256,6 +262,9 @@ class DeshacerPortal
       hecho('confirmado', @confirmar)
       raise ActiveRecord::Rollback unless @confirmar == 'si'
     end
+    # El bloque terminó sin excepción: con borrar y CONFIRMAR=si, la transacción confirmó; si no, terminó en ROLLBACK.
+    @commit = @modo == 'borrar' && @confirmar == 'si'
+    hecho('fin', @commit ? 'commit' : 'rollback')
     hecho('despues_de_la_transaccion', contar_bandeja)
     hecho('deshacer', 'ok')
   end

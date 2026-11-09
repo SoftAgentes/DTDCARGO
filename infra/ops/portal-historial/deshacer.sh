@@ -17,7 +17,9 @@
 #                                   .ndjson, y el mismo tenant. Antes de borrar deja la copia durable (la (a) de Sam,
 #                                   «si protegidos»): el .ndjson y los dos .hecho en /srv/ops/portal-historial/deshacer
 #                                   (root 0700, archivos 0600, comparados). Si sale con 0, escribe chatwoot-borrar.hecho
-#                                   en las dos copias. Al empezar borra cualquier chatwoot-borrar.hecho viejo;
+#                                   en las dos copias. Antes de la transacción deja chatwoot-borrar.inicio en la
+#                                   durable, que se retira solo con un ROLLBACK comprobado. Si ya hay un .hecho o un
+#                                   .inicio sin cerrar, no corre otro MODO=borrar;
 #   4. Studio con MODO=aplicar      LO CORRE SAM, de E10. Exige studio-ensayo.hecho y chatwoot-borrar.hecho;
 #   5. limpiar.sh --cierre-4-6b     LO CORRE SAM, de E10: exige studio-aplicar.hecho y borra el .ndjson y los .hecho
 #                                   de las dos copias.
@@ -54,8 +56,13 @@ EN_CW_RB=/tmp/deshacer-carga.rb
 H_SECO="$DIR/chatwoot-seco.hecho"
 H_ENSAYO="$DIR/studio-ensayo.hecho"
 H_BORRAR="$DIR/chatwoot-borrar.hecho"
-# La copia durable. DESHACER_DURABLE es solo para la prueba de Actions, y tiene que terminar en /deshacer.
-DURABLE="${DESHACER_DURABLE:-/srv/ops/portal-historial/deshacer}"
+# La copia durable. DESHACER_DURABLE vale solo con DESHACER_PRUEBA=1 (la prueba de Actions), como en E10, y tiene
+# que terminar en /deshacer. Sin eso, siempre /srv/ops/portal-historial/deshacer.
+if [ "${DESHACER_PRUEBA:-}" = 1 ] && [ -n "${DESHACER_DURABLE:-}" ]; then
+  DURABLE="$DESHACER_DURABLE"
+else
+  DURABLE=/srv/ops/portal-historial/deshacer
+fi
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 MODO="${MODO:-}"
 
@@ -93,8 +100,12 @@ printf '%s' "${TENANT:-}" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 case "$DURABLE" in /*/deshacer) ;; *) mal la_copia_durable_tiene_que_terminar_en_deshacer ;; esac
 if [ "$MODO" = borrar ]; then
   case "${CONFIRMAR:-}" in si | no) ;; *) mal confirmar_tiene_que_ser_si_o_no ;; esac
-  # Un chatwoot-borrar.hecho de un intento anterior no vale: se borra al empezar, en las dos copias.
-  rm -f -- "$H_BORRAR" "$DURABLE/chatwoot-borrar.hecho"
+  # La evidencia de un borrado anterior nunca se borra (revisión del DG de la #480, B1): con un chatwoot-borrar.hecho o
+  # un chatwoot-borrar.inicio sin cerrar en la copia durable, o un chatwoot-borrar.hecho en tmpfs, no corre otro
+  # MODO=borrar, ni siquiera con CONFIRMAR=no. Lo resuelve el runbook.
+  if [ -e "$DURABLE/chatwoot-borrar.hecho" ] || [ -e "$DURABLE/chatwoot-borrar.inicio" ] || [ -e "$H_BORRAR" ]; then
+    mal ya_hay_un_borrado_en_la_copia_durable
+  fi
   [ -s "$C" ] || mal sin_contactos_conservados_correr_el_seco_antes
   if grep -q '\\' "$C"; then mal barra_invertida_en_los_conservados; fi
 else
@@ -173,6 +184,9 @@ if [ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ]; then
   [ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide
   [ "$(campo "$H_SECO" cuenta)" = "$CUENTA" ] && [ "$(campo "$H_SECO" bandeja)" = "$BANDEJA" ] || mal la_cuenta_o_la_bandeja_del_seco_no_coinciden
   copiar_durable "$C" "$H_SECO" "$H_ENSAYO"
+  # El .inicio, antes de abrir la transacción: si el proceso se corta entre el COMMIT y chatwoot-borrar.hecho, la copia
+  # durable dice que el borrado empezó (B1 de la revisión del DG de la #480).
+  escribir_hecho "$DURABLE/chatwoot-borrar.inicio" "INICIO chatwoot_borrar=en_curso conservados_sha256=$sha_actual tenant=$TENANT cuenta=$CUENTA bandeja=$BANDEJA utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 fi
 
 limpio=no
@@ -200,7 +214,14 @@ else
     -e CONFIRMAR="$CONFIRMAR" "$DB_CW" bundle exec rails runner "$EN_CW_RB" <"$C" 2>&1)"
 fi
 printf '%s\n' "$salida" | grep '^HECHO ' | tr -d '\r'
-printf '%s\n' "$salida" | grep -qx 'HECHO deshacer=ok' || exit 1
+if ! printf '%s\n' "$salida" | grep -qx 'HECHO deshacer=ok'; then
+  # El .inicio se retira solo con un ROLLBACK comprobado (el .rb dice fin=rollback). Sin esa línea (un corte) o con
+  # fin=commit (un error después del COMMIT), se queda.
+  if [ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && printf '%s\n' "$salida" | grep -qx 'HECHO fin=rollback'; then
+    rm -f -- "$DURABLE/chatwoot-borrar.inicio"
+  fi
+  exit 1
+fi
 # Con CONFIRMAR=no nunca se escribe chatwoot-borrar.hecho: el ensayo no habilita el paso 4.
 [ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && escribir_hecho_borrar
 [ "$MODO" = seco ] || exit 0

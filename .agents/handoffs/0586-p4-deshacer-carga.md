@@ -68,6 +68,31 @@
 - **N8.** Lo de la caché de la cuenta queda como inferencia (FUERA DE ALCANCE).
 - **N2 y la copia durable, la (a) de Sam («si protegidos»).** Va en `/srv/ops/portal-historial/deshacer/`, root 0700 y archivos 0600, comparados con los de tmpfs. Lo prueban D14, MD27 y MD28. El `.ndjson` y los `.hecho` los borra el paso 5, `limpiar.sh --cierre-4-6b`, de E10.
 
+## B1 de la revisión del DG de la #480: el `.inicio` del paso 3
+
+- **El defecto:** el abandono de E10 borraba la durable si faltaba `chatwoot-borrar.hecho`, pero ese archivo podía faltar aunque Chatwoot ya hubiera confirmado. Pasaba por dos caminos:
+  - un corte entre el COMMIT y el `.hecho`;
+  - un segundo `MODO=borrar`, que al empezar borraba el `.hecho`.
+- **El arreglo:**
+  - **el `.inicio`:** el paso 3 escribe `chatwoot-borrar.inicio` en la durable antes de la transacción, con su línea `INICIO …` (el formato está en `0586-p4-2c-orden-4-6b.md`). Se retira solo si el `.rb` dice `fin=rollback`, un ROLLBACK comprobado;
+  - **el `.rb` dice si confirmó** (`HECHO fin=commit|rollback`), también cuando falla después del COMMIT;
+  - **la evidencia anterior nunca se borra:** con un `.hecho` o un `.inicio` sin cerrar, otro `MODO=borrar` se niega (`ya_hay_un_borrado_en_la_copia_durable`), aunque sea `CONFIRMAR=no`;
+  - **`DESHACER_DURABLE`** vale solo con `DESHACER_PRUEBA=1`, como en E10.
+- **Las pruebas:**
+
+  | Caso | Qué prueba | Mutante |
+  |---|---|---|
+  | D16 | el corte: la escritura del `.hecho` falla después del COMMIT | MD31 |
+  | D17b | otro `MODO=borrar` después del corte | MD31 |
+  | D17 | otro `MODO=borrar` después del borrado | MD32 |
+  | D15 | el `.inicio` se retira con un ROLLBACK comprobado | MD33 |
+
+  D12 y MD23 se fueron, porque el `.hecho` viejo ya no se borra.
+- **El job:** la prueba corre en tres partes, porque la parte a ya tardaba 59 min:
+  - a: la corrida real, el control y las guardas;
+  - b: el borrado;
+  - c: lo ajeno y el corte.
+
 ## El orden del sub-paso 4.6b (runbook, de E10)
 
 1. **`deshacer.sh` con `MODO=seco`.** Lo corre el DG. Escribe el `.ndjson` y `chatwoot-seco.hecho`.
