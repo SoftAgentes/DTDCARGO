@@ -594,6 +594,28 @@ select count(*) from public.news_posts
 Si da más de 0, el `VALIDATE` falla. Esas noticias se corrigen antes, con decisión de Sam. Una
 migración que valide el CHECK lleva este conteo en su preflight y aborta si da más de 0.
 
+### 11.3 Ajustes antes de encender: decisiones de Sam y migración 0525
+
+Las revisiones de la #417 dejaron dos preguntas, y Sam las decidió el 2026-11-08. Las
+transmitió el Subdirector:
+
+- **C2 · borrar un usuario que creó el borrador de una noticia automática.** Sam respondió
+  «Quedan sin autor». `seo_drafts.created_by` pasa a `on delete set null` y deja de ser NOT
+  NULL. Antes, borrar a esa persona en Auth fallaba, porque la cascada de la 0053 chocaba con
+  la FK `no action` de `news_posts.seo_draft_id`.
+- **Punto 13 · una noticia automática que edita una persona.** Sam respondió «Sí, sigue
+  contando». La noticia sigue siendo automática y cuenta en el tope semanal de F7. Solo se
+  recalcula `content_sha256`, y la guarda de origen no cambia.
+
+La migración `0525_noticias_ajustes_antes_de_encender.sql` aplica esas dos decisiones y suma
+dos ajustes más:
+- `news_salida_motivo` exige un motivo de la lista cerrada, y la nota cuando el motivo es
+  «otro», igual que `news_retirar`;
+- anon pierde EXECUTE sobre `news_texto_tiene_marca` y `news_huella`.
+
+Nace sin aplicar y declarada como espera. Aplicarla pide el OK de Sam nombrando el archivo, y
+no enciende nada.
+
 ## 12. Allowlist exacta de la implementación (PR #417)
 
 Medida con `git diff --name-only origin/main...HEAD` después de traer `main` `3c14715ad`: 32
