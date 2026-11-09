@@ -87,20 +87,12 @@ case "${cmd}" in
     # Falla simulada: el check de remoto a remoto encuentra una diferencia.
     case "${src}" in "${RCLONE_DOBLE_RAIZ}"/*) [ "${RCLONE_DOBLE_FALLA:-}" != check-remoto ] || { echo "check: 1 diferencia (simulada)" >&2; exit 1; } ;; esac ;;
   cat)
-    # Solo las reglas que usa storage-backup.sh: «- /<nombre>», «+ /<patrón>» y «- *».
-    dir_="$(ruta "$1")"; shift; fuera=""; dentro=""
+    # Un solo archivo, como lo usa storage-backup.sh. Falla simulada con RCLONE_DOBLE_FALLA=cat.
     [ "${RCLONE_DOBLE_FALLA:-}" != cat ] || { echo "cat: error simulado" >&2; exit 1; }
-    if [ -f "${dir_}" ]; then cat "${dir_}"; exit 0; fi
-    while [ $# -gt 0 ]; do
-      case "$1" in --filter) case "$2" in "- *") ;; "- /"*) fuera="${2#- /}" ;; "+ /"*) dentro="${2#+ /}" ;; esac; shift 2 ;; *) shift ;; esac
-    done
-    [ "${RCLONE_DOBLE_FALLA:-}" != cat ] || { echo "cat: error simulado" >&2; exit 1; }
-    for f in "${dir_%/}"/*; do
-      [ -f "${f}" ] || continue; nom="$(basename "${f}")"
-      [ "${nom}" = "${fuera}" ] && continue
-      case "${nom}" in ${dentro}) cat "${f}" ;; esac
-    done; exit 0 ;;
+    [ -f "$(ruta "$1")" ] || { echo "cat: no existe" >&2; exit 3; }
+    cat "$(ruta "$1")"; exit 0 ;;
   lsf)
+    [ "${RCLONE_DOBLE_FALLA:-}" != lsf ] || { echo "lsf: error simulado" >&2; exit 1; }
     dst="$(ruta "$1")"; shift; inc="*"
     while [ $# -gt 0 ]; do case "$1" in --include) inc="${2#/}"; shift 2 ;; *) shift ;; esac; done
     for f in "${dst%/}"/${inc}; do [ -f "${f}" ] && basename "${f}"; done; exit 0 ;;
@@ -425,6 +417,16 @@ contrato_remoto_raro() { # <script de respaldo> <vacio|sinarchivos|doble|nombre>
   ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
   [ ! -e "${T}/remoto/bucket/${g}/zzst-retenido" ]
 }
+# C16 · si el remoto no se puede listar o leer cuando la guarda lo necesita (sin referencia
+# confiable), sale 1 sin retención: no hay con qué comparar.
+contrato_remoto_falla() { # <script de respaldo> <cat|lsf>
+  local o1="${T}/out-x1-$RANDOM" o2="${T}/out-x2-$RANDOM" g="xfalla-$2-$RANDOM" llam
+  REMOTO="zz:bucket/${g}" respaldar "$1" "${o1}"; [ "${rc}" = 0 ] || return 1
+  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+  RCLONE_DOBLE_FALLA="$2" REMOTO="zz:bucket/${g}" respaldar "$1" "${o2}"
+  [ "${rc}" = 1 ] && grep -q 'sin referencia y sin poder leer los manifiestos del remoto' "${T}/bk.log" || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete'
+}
 
 echo; echo "== M0 · scripts sin mutar =="
 contrato_sin_claro "${BK}" "${T}/out" && ok "C1 · solo .age y manifiesto; ni la marca ni el nombre en disco, remoto ni /dev/shm; el espía no vio claros" \
@@ -464,6 +466,9 @@ contrato_aceptar_sin_bueno "${BK}" && ok "C8 · --aceptar-caida sin un respaldo 
 contrato_retener_falla "${BK}" && ok "C9 · rclone falla al retener el último bueno: sale 1 y no borra" || { ko "C9 retener falla"; cat "${T}/bk.log"; }
 contrato_check_retenido "${BK}" && ok "C11 · el check del retenido encuentra una diferencia: sale 1 y no borra" || { ko "C11 check retenido"; cat "${T}/bk.log"; }
 contrato_sin_estado_local "${BK}" && ok "C12 · sin estado local, la guarda usa los manifiestos del remoto: frena la caída dos días y al aceptarla retiene el bueno del remoto (avisa que en disco no estaba)" || { ko "C12 sin estado local"; cat "${T}/bk.log"; }
+for falla_r in cat lsf; do
+  contrato_remoto_falla "${BK}" "${falla_r}" && ok "C16 · rclone ${falla_r} falla sin referencia confiable: sale 1 y no borra" || { ko "C16 remoto ${falla_r}"; cat "${T}/bk.log"; }
+done
 for variante in vacio sinarchivos doble nombre; do
   contrato_remoto_raro "${BK}" "${variante}" && ok "C15 · manifiesto del remoto ${variante} (disco vacío): frena la retención y la aceptación, sin delete ni retenido" || { ko "C15 remoto ${variante}"; cat "${T}/bk.log"; }
 done
@@ -611,7 +616,7 @@ m="$(mutar M20 "${BK}" 's#if (( dudoso )); then falla "hay un manifiesto anterio
 limpio M20 contrato_aceptar_con_dudoso "${BK}"
 [ -n "${m}" ] && detectado M20 "aceptar ignora un manifiesto fuera de formato y retiene otro" contrato_aceptar_con_dudoso "${m}" || ko "M20: sed no cambió nada"
 
-m="$(mutar M21 "${BK}" 's#    contenido="$(rcl cat "${remote_dir}${n}")" || sin_remoto#&; [[ -n "${contenido}" ]] || continue#')"
+m="$(mutar M21 "${BK}" 's#    contenido="$(rcl cat "${remote_dir}${n}" </dev/null)" || sin_remoto#&; [[ -n "${contenido}" ]] || continue#')"
 limpio M21 contrato_remoto_raro "${BK}" vacio
 [ -n "${m}" ] && detectado M21 "un manifiesto vacío del remoto se salta" contrato_remoto_raro "${m}" vacio || ko "M21: sed no cambió nada"
 m="$(mutar M22 "${BK}" 's#    remotos+=#    [[ -n "${a_r}" ]] || continue; remotos+=#')"

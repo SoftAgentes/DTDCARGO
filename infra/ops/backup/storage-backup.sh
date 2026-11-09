@@ -309,7 +309,9 @@ if [[ ! -f "${referencia}" ]] || (( ilegible )); then
   remotos=""
   while IFS= read -r n; do
     [[ -n "${n}" && "${n}" != "${base}.manifiesto" ]] || continue
-    contenido="$(rcl cat "${remote_dir}${n}")" || sin_remoto
+    # </dev/null: si un día el docker run de rcl llevara -i, se tragaría los nombres que
+    # faltan del while y la guarda los saltaría sin decir nada.
+    contenido="$(rcl cat "${remote_dir}${n}" </dev/null)" || sin_remoto
     a_r="$(printf '%s\n' "${contenido}" | sed -n 's/^archivos=//p' | tail -n1)"
     remotos+="${a_r} ${n%.manifiesto}"$'\n'
   done <<< "${nombres}"
