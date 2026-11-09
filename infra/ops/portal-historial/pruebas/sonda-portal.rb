@@ -20,7 +20,8 @@
 #   FASE=log-postgres DIR=<carpeta>  4.10: un insert_all que falla por un CHECK inyectado, con un contacto de nombre
 #                                 SINT-LOG-<cuenta>-<sal>: la marca no puede salir en el log de Postgres (lo lee la prueba
 #                                 con `docker compose logs`). Un control fuera del cargador prueba que el log sí la
-#                                 escribiría. Después, la carga con un rol sin superusuario tiene que negarse.
+#                                 escribiría. Después, con un SHOW que no devuelve el valor fijado y con un rol sin
+#                                 superusuario, la carga tiene que negarse.
 #   Las tres últimas cargan el cargador como biblioteca (CARGADOR_RB, por defecto /tmp/cargador/cargar-portal.rb).
 #
 # escenario-portal.rb la carga sin FASE y llama a SondaPortal.preparar y .verificar en el mismo proceso. Cada
@@ -534,6 +535,17 @@ module SondaPortal
     nuevo = { 'tipo' => 'contacto', 'cliente' => SecureRandom.uuid, 'identificador' => SecureRandom.uuid, 'nombre' => marca }
     escribir(File.join(dir, 'preparado-log.ndjson'), [lineas[0], nuevo, *lineas.drop(1)])
     cargar_en_proceso(dir: dir, nombre: 'rechazo-log', archivo: 'preparado-log.ndjson')
+    # L4: si el SHOW no devuelve el valor fijado (un parámetro que no se aplicó), no carga. El SET no falla, así que
+    # solo la comparación del SHOW lo ve: aquí el SHOW de log_* devuelve otro valor, solo en esta carga.
+    leer = conexion.method(:select_value)
+    conexion.define_singleton_method(:select_value) do |sql, *args, **kw|
+      sql.to_s.start_with?('SHOW log_') ? 'error' : leer.call(sql, *args, **kw)
+    end
+    begin
+      cargar_en_proceso(dir: dir, nombre: 'rechazo-show', archivo: 'preparado-log.ndjson')
+    ensure
+      conexion.singleton_class.send(:remove_method, :select_value)
+    end
     # L3: con un rol que no es superusuario no se pueden fijar los dos parámetros, y la carga no entra. El rol lee
     # todo (las comprobaciones de antes de la transacción), pero no escribe.
     sin_super = 'sint_sin_super'
