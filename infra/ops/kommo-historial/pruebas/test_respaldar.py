@@ -7,6 +7,7 @@ informe ni el log las dejan pasar.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import io
 import json
@@ -1091,6 +1092,194 @@ def violaciones_de_solo_lectura(fuente: str) -> list[str]:
     if aperturas != 1:
         malas.append(f"se esperaba exactamente 1 apertura (self.abrir) y hay {aperturas}")
     return malas
+
+
+class PruebasInformeAntesDeEmpaquetar(unittest.TestCase):
+    """SDD-0590 §10.16, hallazgo 3: en la 5.7 se empaquetó sin correr `informe`, y el manifiesto no dijo cuántas
+    conversaciones quedaron fuera por 403. `empaquetar` borra el staging, así que sin `informe.json` se niega antes
+    de crear o cifrar nada, y el manifiesto lleva los conteos del informe. Con mutantes del extractor."""
+
+    FUENTE = open(RUTA, encoding="utf-8").read()
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="kommo-e5-informe-")
+        self.recipients = os.path.join(self.tmp, "recipients.txt")
+        with open(self.recipients, "w", encoding="utf-8") as f:
+            f.write("# Sam-prueba · creada hoy\nage1" + "q" * 58 + "\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    @staticmethod
+    def staging(M, ruta):
+        """Lo mínimo que deja una completa: una conversación leída, otra con 403 y un mensaje."""
+        st = M.Staging(ruta)
+        st.anexar_ndjson("talks.ndjson", [{"_http": 200, "_talk_id": 10, "talk": {"contact_id": 1, "origin": "waba",
+                                                                                  "created_at": AHORA - DIA, "updated_at": AHORA}},
+                                          {"_http": 403, "_talk_id": 16, "talk": None}])
+        st.anexar_ndjson("mensajes.ndjson", [mensaje("m1", 10, AHORA - DIA)])
+        st.marcar("talks-sin-acceso", "16")
+        with open(st.ruta_de("stamp.txt"), "w", encoding="utf-8") as f:
+            f.write("20261107T050000Z")
+        return st
+
+    def problemas(self, M) -> list[str]:
+        """Lo que el extractor M hace mal con y sin informe. El cifrado se reemplaza por una falla marcada: llegar
+        ahí quiere decir que pasó la guarda."""
+        problemas = []
+        original = subprocess.Popen
+        # Cada extractor, en su carpeta: lo que deja uno no puede tumbar al siguiente (un mutante caería por eso).
+        tmp = tempfile.mkdtemp(dir=self.tmp)
+
+        class LlegoACifrar(Exception):
+            pass
+
+        def popen_falso(*_a, **_k):
+            raise LlegoACifrar()
+
+        subprocess.Popen = popen_falso
+        try:
+            # 1. Sin informe.json, por la línea de comandos: código 2, sin carpeta de la corrida y el staging entero.
+            st = self.staging(M, os.path.join(tmp, "sin"))
+            destino = os.path.join(tmp, "destino-sin")
+            try:
+                rc = M.main(["empaquetar", "--staging", st.ruta, "--destino", destino, "--recipients", self.recipients])
+            except LlegoACifrar:
+                rc = "llegó a cifrar"
+            if rc != 2:
+                problemas.append(f"empaquetar sin informe.json dio {rc}, no 2")
+            if os.path.exists(destino):
+                problemas.append("sin informe.json creó la carpeta de la corrida")
+            if not (st.existe("mensajes.ndjson") and st.existe("talks-sin-acceso")):
+                problemas.append("sin informe.json tocó el staging")
+            # 2. Sin informe.json, llamando a empaquetar() directo (cmd_todo y las pruebas lo hacen así).
+            try:
+                M.empaquetar(st, os.path.join(tmp, "corrida-directa"), self.recipients, M.Log(None), conservar=True)
+                problemas.append("empaquetar() sin informe.json no se negó")
+            except M.ErrorFatal as e:
+                if "informe" not in str(e):
+                    problemas.append(f"la negativa no dice qué falta: {e}")
+            except LlegoACifrar:
+                problemas.append("empaquetar() sin informe.json llegó a cifrar")
+            # 2b. Con informe.md pero sin informe.json (el que lee el manifiesto): también se niega.
+            with open(st.ruta_de("informe.md"), "w", encoding="utf-8") as f:
+                f.write("# informe a medias\n")
+            try:
+                rc = M.main(["empaquetar", "--staging", st.ruta, "--destino", destino, "--recipients", self.recipients])
+            except LlegoACifrar:
+                rc = "llegó a cifrar"
+            if rc != 2:
+                problemas.append(f"con informe.md y sin informe.json, empaquetar dio {rc}, no 2")
+            # 3. --sin-informe empaqueta igual, y el manifiesto lo anota con informe: null.
+            try:
+                M.main(["empaquetar", "--staging", st.ruta, "--destino", destino, "--recipients", self.recipients,
+                        "--sin-informe"])
+                problemas.append("con --sin-informe no llegó a cifrar")
+            except LlegoACifrar:
+                pass
+            except SystemExit:
+                problemas.append("no entiende --sin-informe")
+            if M.construir_manifiesto(st, os.path.join(tmp, "corrida-sin"), "x", self.recipients).get("informe", "falta") is not None:
+                problemas.append("sin informe.json, el manifiesto no trae informe: null")
+            # 4. Con informe.json: pasa la guarda, y el manifiesto trae los 403 del informe con su huella.
+            con = self.staging(M, os.path.join(tmp, "con"))
+            M.informe(con, M.Log(None), ahora_ts=AHORA)
+            try:
+                M.main(["empaquetar", "--staging", con.ruta, "--destino", os.path.join(tmp, "destino-con"),
+                        "--recipients", self.recipients])
+                problemas.append("con informe.json no llegó a cifrar")
+            except LlegoACifrar:
+                pass
+            bloque = M.construir_manifiesto(con, os.path.join(tmp, "corrida-con"), "x", self.recipients).get("informe") or {}
+            esperado = {"sha256": M.sha256_archivo(con.ruta_de("informe.json")), "fecha": M.utc(AHORA),
+                        "conversaciones_sin_acceso_403": 1, "mensajes_sin_acceso_403": 0}
+            if bloque != esperado:
+                problemas.append(f"el manifiesto trae {bloque}, no {esperado}")
+        finally:
+            subprocess.Popen = original
+        return problemas
+
+    def cargar(self, fuente: str):
+        modulo = types.ModuleType("respaldar_mutante")
+        modulo.__file__ = RUTA
+        exec(compile(fuente, RUTA, "exec"), modulo.__dict__)
+        return modulo
+
+    def mutar(self, buscar: str, reemplazo: str) -> str:
+        self.assertEqual(self.FUENTE.count(buscar), 1, f"el texto a mutar tiene que aparecer una vez: {buscar}")
+        return self.FUENTE.replace(buscar, reemplazo)
+
+    def test_sin_informe_se_niega_y_con_informe_el_manifiesto_trae_los_403(self):
+        self.assertEqual(self.problemas(R), [])
+
+    def test_mutantes_caen(self):
+        mutantes = {
+            "la línea de comandos no mira el informe": (
+                "    exigir_informe(st, sin_informe)\n    carpeta = preparar_corrida(args, st)\n",
+                "    carpeta = preparar_corrida(args, st)\n"),
+            "empaquetar() no mira el informe": (
+                '    """tar | zstd | age del staging. Si `efimera` es una clave pública, también se cifra para ella (solo ensayos)."""\n'
+                "    exigir_informe(st, sin_informe)\n",
+                '    """tar | zstd | age del staging. Si `efimera` es una clave pública, también se cifra para ella (solo ensayos)."""\n'),
+            "mira informe.md en vez de informe.json": (
+                'if not sin_informe and not st.existe("informe.json"):', 'if not sin_informe and not st.existe("informe.md"):'),
+            "--sin-informe no deja pasar": ("if not sin_informe and not st.existe", "if not st.existe"),
+            "el manifiesto no lleva el informe": ('    manifiesto["informe"] = bloque_informe(st)\n', ""),
+            "el manifiesto cuenta los mensajes como conversaciones": (
+                '"conversaciones_sin_acceso_403": conversaciones.get("sin_acceso_403")',
+                '"conversaciones_sin_acceso_403": conversaciones.get("mensajes_sin_acceso_403")'),
+        }
+        for nombre, (buscar, poner) in mutantes.items():
+            with self.subTest(mutante=nombre):
+                self.assertTrue(self.problemas(self.cargar(self.mutar(buscar, poner))), f"el mutante «{nombre}» no se detectó")
+
+
+class PruebasTexto403(unittest.TestCase):
+    """SDD-0590 §10.18, punto 1 del Director General: el log de `empaquetar` decía «M mensajes sin acceso por 403»,
+    pero `mensajes_sin_acceso_403` cuenta conversaciones cuyos mensajes dieron 403 (`marcar("mensajes-sin-acceso",
+    tid)`). Tiene que decir lo mismo que `informe.md`: «conversaciones con mensajes sin acceso (HTTP 403)»."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="kommo-e5-texto403-")
+        self.recipients = os.path.join(self.tmp, "recipients.txt")
+        with open(self.recipients, "w", encoding="utf-8") as f:
+            f.write("# Sam-prueba · creada hoy\nage1" + "q" * 58 + "\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def log_de_empaquetar(self, informe):
+        """Lo que imprime `empaquetar` con un manifiesto que trae ese bloque de informe. El cifrado no corre: se
+        reemplaza `empaquetar()` por uno que devuelve el manifiesto."""
+        st = R.Staging(os.path.join(self.tmp, "st"))
+        st.escribir_json("informe.json", {"conversaciones": {}})
+        original = R.empaquetar
+        R.empaquetar = lambda *_a, **_k: {"archivos": [], "bytes_cifrados": 0, "informe": informe,
+                                          "destinatarios": {"etiquetas": ["Sam-prueba"], "claves_publicas": 1}}
+        salida = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(salida):
+                rc = R.main(["empaquetar", "--staging", st.ruta, "--destino", os.path.join(self.tmp, "destino"),
+                             "--recipients", self.recipients])
+        finally:
+            R.empaquetar = original
+        self.assertEqual(rc, 0, salida.getvalue())
+        return salida.getvalue()
+
+    def test_dice_conversaciones_con_mensajes_sin_acceso_como_el_informe(self):
+        texto = self.log_de_empaquetar({"conversaciones_sin_acceso_403": 12, "mensajes_sin_acceso_403": 1}).lower()
+        self.assertIn("conversaciones sin acceso (http 403): 12", texto)
+        self.assertIn("conversaciones con mensajes sin acceso (http 403): 1", texto)
+        self.assertNotIn("mensajes sin acceso por 403", texto)
+        # Las dos etiquetas son las mismas que usa informe.md (una sola fuente).
+        fuente = open(RUTA, encoding="utf-8").read()
+        self.assertIn('ETIQUETA_403_CONVERSACIONES = "Conversaciones sin acceso (HTTP 403)"', fuente)
+        self.assertIn('ETIQUETA_403_MENSAJES = "Conversaciones con mensajes sin acceso (HTTP 403)"', fuente)
+        self.assertIn("ETIQUETA_403_CONVERSACIONES: t[\"sin_acceso_403\"]", fuente)
+        self.assertIn("ETIQUETA_403_MENSAJES: t[\"mensajes_sin_acceso_403\"]", fuente)
+
+    def test_sin_informe_lo_dice(self):
+        self.assertIn("sin informe (--sin-informe)", self.log_de_empaquetar(None))
 
 
 class PruebasSoloLectura(unittest.TestCase):

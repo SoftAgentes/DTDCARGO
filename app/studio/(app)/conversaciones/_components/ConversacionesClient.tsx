@@ -25,6 +25,7 @@ import {
   type ConversationRow,
   type ConversationStatusFilter,
 } from "@/lib/studio/conversaciones/conversations-types";
+import type { EstadoTrabaPortal } from "@/lib/studio/chatwoot/portal-solo-lectura";
 
 interface Props {
   conversations: ConversationRow[];
@@ -33,6 +34,10 @@ interface Props {
   tenantId: string | null;
   /** Deep-link (SDD-0148 #1): hilo a preseleccionar (viene de `?c=<id>`). */
   initialSelectedId?: string | null;
+  /** SDD-0586 1c-1: traba de los hilos del portal en el tenant (la calcula la page). */
+  trabaPortal?: EstadoTrabaPortal;
+  /** SDD-0586 1c-1b: el rol ve la Bandeja y está encendida (la page lo calcula). */
+  puedeVerBandeja?: boolean;
 }
 
 export function ConversacionesClient({
@@ -41,6 +46,8 @@ export function ConversacionesClient({
   agents,
   tenantId,
   initialSelectedId = null,
+  trabaPortal = "apagada",
+  puedeVerBandeja = false,
 }: Props) {
   // Realtime: cualquier cambio en mensajes o hilos del tenant → refresh server.
   // msgTick además repuebla el hilo abierto (ConversationThread mantiene su
@@ -167,6 +174,8 @@ export function ConversacionesClient({
             conv={selected}
             agents={agents}
             realtimeTick={msgTick}
+            trabaPortal={trabaPortal}
+            puedeVerBandeja={puedeVerBandeja}
           />
         ) : (
           <div

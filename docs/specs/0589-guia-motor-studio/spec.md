@@ -381,7 +381,7 @@ El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
 
 B4 (asignar) la ven admin, commercial y support: `ROLES_ASIGNAR` en `preferencias.ts`. **S-2 quedó cerrada** el 2026-11-07 a las 07:00Z. Sam, literal: «También quien atiende». El permiso real de asignar lo da Chatwoot; la constante solo decide quién ve la tarjeta.
 
-**Embudo abre solo con la pestaña.** La URL completa es `/studio/crm?tab=embudos&guia=embudo`. `RECORRIDO_EMBUDO.ruta` es `/studio/crm` y `rutaCoincide` no mira la pestaña. La pestaña por defecto hoy es Dirección, y `page.tsx` monta el tablero solo con `tab === "embudos"`. Sin `?tab=embudos` no hay anclas `embudo.*`, y el recorrido no abre. El arreglo es el paso P-13 (sección del 2026-11-07, al final).
+**Embudo pide su pestaña (P-13).** `page.tsx` monta el tablero solo con `tab === "embudos"`, y sin tablero no hay anclas `embudo.*`. Hasta el P-13, el recorrido abría solo con `/studio/crm?tab=embudos&guia=embudo`. Desde el P-13, `RECORRIDO_EMBUDO` lleva `consulta: { tab: "embudos" }` y el motor pone la pestaña: `/studio/crm?guia=embudo` abre con cualquier pestaña por defecto. Ver la sección del 2026-11-07, al final.
 
 **Pendientes, sin inventar:**
 
@@ -422,7 +422,7 @@ Las huellas son el sha256 del texto entre « », 16 caracteres: U1 «Qué es», 
 - **D8 · Selectores en Studio, no en el script.** Arreglarlos tras una versión nueva es una PR normal. El script pegado cambia poco, y cada cambio suyo pide un OK.
 - **D9 · Respaldo al marco por paso** (`GuiaPaso.respaldo`). El motor salta un paso solo si faltan las dos anclas.
 - **D10 · Ubicadores registrables** (`lib/studio/guia/ubicadores.ts`). El motor no sabe de Chatwoot: pregunta a los ubicadores por las anclas que no están en su DOM. La Bandeja registra el suyo.
-- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?tab=embudos&guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
+- **D11 · Sin arranque automático para los recorridos nuevos** (`arranqueAutomatico: false`). La 0517 está aplicada en producción: sin esto, fusionar abriría estas guías solas a todo el equipo, con textos que prometen pasos que faltan y sin la 9.6. Se abren con `?guia=bandeja`, `?guia=embudo`, `?guia=cliente` y `?guia=actualizaciones`. Para Embudo, hasta el P-13 hacía falta además `?tab=embudos`; desde el P-13 la pone el motor. Encenderlo es cambiar ese campo, después de la 9.6 y con OK de Sam.
 - **D12 · Roles en los datos** (`roles` en el recorrido y en el paso), filtrados con `recorridosParaRol` antes del motor. Mostrar una tarjeta de más no es un agujero, porque cada pantalla tiene su gate, pero el guion fija quién ve cada tarjeta.
 - **D13 · zh-CN provisional,** como D3: las claves nuevas se traducen porque el tipo exige los dos idiomas. S-3 sigue abierta.
 - **D14 · Sin revisión aparte de datos personales.** No se captura, mueve ni guarda ningún dato nuevo: los ids de recorrido y de paso ya estaban en la 0517, y el puente solo mueve geometría.
@@ -461,7 +461,7 @@ Las huellas son el sha256 del texto entre « », 16 caracteres: U1 «Qué es», 
 | R3 | Filtro por rol: B4 para admin, commercial y support (S-2), U1 solo admin, Actualizaciones solo admin y Embudo sin support | `guia.test.ts` |
 | R4 | Ningún recorrido nuevo arranca solo | `GuiaMotor.test.tsx` y `GuiaStudio.test.tsx` |
 | R5 | El layout pasa el rol a la guía | `GuiaStudio.test.tsx` |
-| R6 | El recorrido Embudo abre en `/studio/crm?tab=embudos&guia=embudo`. `RECORRIDO_EMBUDO.ruta` es `/studio/crm` y `rutaCoincide` no mira la pestaña: sin `?tab=embudos` no abre, porque la pestaña por defecto hoy es Dirección. El arreglo es el paso P-13 | Las anclas en `CrmTableroKanban`: `anclas.test.ts`. Que el tablero solo se monta con `tab === "embudos"`: leído en `page.tsx`. Abrirlo en la página real: **NO EJECUTADO** |
+| R6 | El recorrido Embudo abre en `/studio/crm?guia=embudo`, sin `?tab=`, con la pestaña por defecto en Dirección (hoy), Embudos (S0 de la 6.6) o Resumen (S3). El motor pone `?tab=embudos` (P-13). Antes del P-13 abría solo con `/studio/crm?tab=embudos&guia=embudo` | Las anclas en `CrmTableroKanban`: `anclas.test.ts`. La pestaña y la apertura con cada pestaña por defecto: `GuiaEmbudoPestana.test.tsx`, roja sobre `main` `ecadbac91` y con mutantes (P-13, abajo). Que el tablero solo se monta con `tab === "embudos"`: leído en `page.tsx`. Abrirlo en la página real: **NO EJECUTADO** |
 | R7 | U1 y U3 llevan los textos aprobados, comprobados con su huella. El ancla de U1 está en Vínculos y la de U3, en el botón Suspender acceso de la ficha. U3 no entra en ningún recorrido hasta la 9.6 | `guia.test.ts` y `anclas.test.ts`. Abrir U1 en la página real: **NO EJECUTADO**. Arrancar U3 desde la ficha: 9.6 |
 
 ### Qué cambió frente al diseño
@@ -545,9 +545,9 @@ Evidencia de esta ronda:
 | `sdd:check` (`scripts/check-numbering.mjs`), `docs:check` y `git diff --check` | PASÓ |
 | `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
 
-## 2026-11-07 · Paso pendiente: la guía llega a Embudos con Resumen por defecto (P-13)
+## 2026-11-07 · Paso P-13: la guía llega a Embudos con cualquier pestaña por defecto
 
-> **Solo registro.** El paso no está abierto. Esta sección no trae diseño ni estimación: van cuando se abra.
+> **Paso abierto el 2026-11-07,** después de que la #408 entrara en `main`. El encargo lo trajo el Subdirector de Chatwoot. El registro original sigue tal cual; el diseño, la allowlist y la evidencia están al final de esta sección.
 
 **Fuente.** Decisión del Director General del 2026-11-07, hacia las 04:20Z. La propuesta es de E6, encontrada en la 6.6 (SDD-0614 §2.1), y la trajo el Subdirector de Chatwoot.
 
@@ -574,3 +574,203 @@ Evidencia de esta ronda:
 - Ningún enlace del código usa `?guia=embudo`.
 
 El P-13 no lo trae S3: ya existe. S3 cambia la pestaña por defecto, de Dirección a Resumen, y el resultado es el mismo. Por eso, la condición 4 pide que la prueba falle también hoy.
+
+### P-13 · Diseño (2026-11-07)
+
+**D15 · El recorrido pide su pestaña y el motor la pone.** De las dos salidas de la condición 4:
+
+- **Un `rutaCoincide` que mire la pestaña, solo, no abre nada.** Haría que la guía se niegue fuera de Embudos. Pero el tablero lo monta el servidor solo con `?tab=embudos`, así que alguien tiene que poner la pestaña en la URL.
+- **Que `crm/page.tsx` abra Embudos con `?guia=embudo`** toca `page.tsx` y `kommo-tabs.shared.ts`, que la 6.6 edita en S0 y S3 (SDD-0614 §2.1). La guía quedaría metida en el CRM, y tampoco cubriría el botón «Guía», que abre sin `?guia=`.
+- **Elegida:** un campo opcional, `GuiaRecorrido.consulta`. `RECORRIDO_EMBUDO` lleva `consulta: { tab: "embudos" }`. `rutaCoincide` sigue mirando solo el camino; `consultaCoincide` mira la consulta, y `urlConConsulta` arma la URL de destino. Todo queda en archivos de la guía: la 6.6 no toca la guía, y la guía no toca la 6.6.
+
+| Situación | Qué hace el motor |
+|---|---|
+| `?guia=embudo`, el botón o `iniciarGuia("embudo")` en `/studio/crm` sin `?tab=embudos` | `router.replace` a la misma ruta con `tab=embudos`, sin scroll y con los demás parámetros (`?guia=`, `?embudo=`). Cuando la URL ya tiene la pestaña, abre con reintentos de hasta 10 s (`REINTENTOS_TRAS_PESTANA`): el servidor tiene que leer el tablero, que llega detrás de su Suspense |
+| Ya en `?tab=embudos` | No navega. Abre como antes, con 2 s de reintentos |
+| Arranque automático, apagado por D11 | No cambia la pestaña de nadie. Abre solo si la persona ya está en Embudos, y entrar a la pestaña también cuenta |
+| La persona cambia de pestaña mientras la guía espera | La espera se cancela y la guía no la devuelve a Embudos. Solo el primer intento de cada pedido navega; los reintentos no |
+| La persona cambia de pestaña con la guía abierta | La guía cierra, igual que al cambiar de ruta |
+| Fuera de `/studio/crm` | Nada cambia: ni navega ni abre |
+
+No depende de la pestaña por defecto: Dirección (hoy), Embudos (S0) y Resumen (S3) dan lo mismo. Con Embudos por defecto y sin `?tab=`, el motor hace un `replace` de más, que deja la pestaña escrita en la URL y no cambia lo que se ve. `validarRecorrido` rechaza una consulta vacía, una con un valor vacío y una que fije `guia`.
+
+**Gobernanza:**
+
+- **A11Y-01:** cumplimiento. La tarjeta y su foco no cambian: al abrir, el foco pasa a la tarjeta, como antes. La barra de pestañas la sigue pintando `KommoClient` con la pestaña que resuelve el servidor.
+- **MOT-01:** cumplimiento. El `replace` va con `scroll: false` y no hay animación nueva.
+- **LOD-01:** no aplica. La carga del tablero sigue siendo la de `CrmEmbudosCargando`, sin cambios.
+- **CMP-01:** no aplica. No hay componente nuevo ni reemplazado.
+- **Datos personales:** no aplica, como D14. La consulta solo lleva el nombre de la pestaña.
+
+### Allowlist exacta del P-13
+
+- **Motor:** `lib/studio/guia/tipos.ts` (el campo `consulta` y su validación), `lib/studio/guia/recorridos.ts` (la consulta de `RECORRIDO_EMBUDO`, `consultaCoincide` y `urlConConsulta`) y `app/studio/_components/guia/GuiaMotor.tsx`.
+- **Pruebas:**
+  - `app/studio/_components/guia/GuiaEmbudoPestana.test.tsx` (nueva);
+  - `lib/studio/guia/__tests__/guia.test.ts`;
+  - una línea `useRouter` en el doble de `next/navigation` de `GuiaMotor.test.tsx`, `GuiaStudio.test.tsx`, `GuiaBoton.test.tsx` y `usePuenteChatwoot.test.tsx`, porque el motor ahora usa el router.
+- **Documentos:** esta spec (R6, D11, el párrafo de Embudo en 9.5 y esta sección), `.agents/handoffs/0589-e9-recorridos.md` (la URL de R6 y la de D11) y `.agents/handoffs/0589-p13-embudo-pestana.md` (nuevo).
+- **No toca:** nada de `app/studio/(app)/crm/` (`page.tsx`, `kommo-tabs.shared.ts`, `KommoClient.tsx`, el tablero), `app/studio/(app)/layout.tsx`, los textos de `lib/i18n/*/guide.ts`, el checklist del programa, producción, Chatwoot ni `DASHBOARD_SCRIPTS`.
+
+### Aceptación del P-13
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| P1 | `/studio/crm?guia=embudo` lleva a Embudos y abre en E1 con la pestaña por defecto en Dirección (hoy), Resumen (S3), Embudos (S0) y la que da `resolveKommoTab` en la rama | `GuiaEmbudoPestana.test.tsx`, 4 casos. Rojo sobre `main` con Dirección, Resumen y `resolveKommoTab` |
+| P2 | Cambia la pestaña con `replace`, sin scroll, y conserva `?guia=` y los demás parámetros | `GuiaEmbudoPestana.test.tsx` y `guia.test.ts` (`urlConConsulta`) |
+| P3 | Después de cambiar de pestaña espera al tablero: 2,7 s en total entre la URL y el tablero, y 6 s de tablero | `GuiaEmbudoPestana.test.tsx`, 2 casos |
+| P4 | El botón (`iniciarGuia` con origen `boton`) también lleva a Embudos | `GuiaEmbudoPestana.test.tsx` |
+| P5 | Ni el arranque automático ni un reintento cambian la pestaña, y si la persona se va mientras la guía espera, no la devuelve a Embudos | `GuiaEmbudoPestana.test.tsx`, 3 casos |
+| P6 | Cambiar de pestaña con la guía abierta la cierra | `GuiaEmbudoPestana.test.tsx` |
+| P7 | Ya en `?tab=embudos`, no navega; fuera de `/studio/crm`, ni navega ni abre | `GuiaEmbudoPestana.test.tsx`, 2 casos |
+| P8 | La pestaña que pide el recorrido existe en el CRM (`resolveKommoTab("embudos")`), y `consultaCoincide`, `urlConConsulta` y `validarRecorrido` cubren la consulta | `GuiaEmbudoPestana.test.tsx` y `guia.test.ts` |
+| P9 | Abrir `/studio/crm?guia=embudo` en la página real | **NO EJECUTADO:** la prueba simula la página, con el tablero montado solo con `tab === "embudos"`, como en `crm/page.tsx` |
+
+### Evidencia del P-13 (2026-11-07)
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo previo, antes de tocar el código, sobre `main` `ecadbac91`, con la primera versión de la prueba (12 casos) | FALLÓ, como se esperaba: 9 de 12. Con Dirección, Resumen y `resolveKommoTab`, «la guía no abrió». Pasaron los 3 que ya valían en `main`: Embudos por defecto, `?tab=embudos` en la URL y fuera de `/studio/crm` |
+| Prueba nueva con el arreglo | PASÓ: 15 de 15 |
+| 6 mutantes, de a uno, con turno del Subdirector (18:01Z a 18:03Z), sobre `GuiaEmbudoPestana.test.tsx` y `guia.test.ts` | PASÓ: base sin mutar en verde (47 de 47) y 6 de 6 muertos. M0, los tres archivos fuente como en `origin/main`: caen 14, entre ellos Dirección y Resumen; es el rojo de la versión final de la prueba. M1, sin `consulta`: caen 12. M2, un reintento que navega; M3, el arranque automático que navega; M4, los 2 s de siempre tras cambiar de pestaña; M5, sin cierre al cambiar de pestaña: cae 1 cada uno, el de su caso. Cada archivo vuelve a su huella y `git diff --stat` queda idéntico |
+| Pruebas de la guía: `lib/studio/guia`, `app/studio/_components/guia` y `guia-panel.test.ts`, con `--pool=threads --maxWorkers=1` | PASÓ: 164 de 164 en 10 archivos (reporte JSON de Vitest), 18 nuevas |
+| `tsc --noEmit` del proyecto | PASÓ, en el segundo intento. El primero dio TS2493 en la prueba nueva, que leía el segundo argumento de un doble declarado con uno. Se corrigió con `toHaveBeenLastCalledWith` y la prueba volvió a pasar 15 de 15 |
+| ESLint de los 9 archivos `.ts`/`.tsx` tocados, con `--max-warnings=0` | PASÓ |
+| `node scripts/check-numbering.mjs`, `node scripts/build-docs-index.mjs --check` y `git diff --check` | PASÓ |
+| `/ui-check` | OK para commit. Un hallazgo bajo: entre el `replace` y la tarjeta, la guía no da una señal propia; se ve la carga del tablero. Queda para la prueba en vivo de la 9.6 |
+| Ningún archivo de `app/studio/(app)/crm/` en el diff | PASÓ: `git diff --name-only origin/main -- "app/studio/(app)/crm"` sale vacío |
+| `GuiaEmbudoPestana.test.tsx` con el `kommo-tabs.shared.ts` de S0 de la SDD-0614 (`88d479ca2`, local de E6: Embudos por defecto y las pestañas de Kommo ocultas), puesto en su lugar y restaurado después con su huella | PASÓ: 15 de 15. Los casos de Dirección y Resumen simulan la pestaña por defecto y no leen la real. El que usa `resolveKommoTab` no depende de cuál sea |
+| Merge de `origin/main` `7e75f7708` con el driver de `main`, y el índice regenerado con `docs:index` | PASÓ: sin conflictos y sin cambios del índice tras regenerar (596 specs). `docs:check`, `check-numbering` y `git diff --check`, en verde. El merge no trae dependencias ni configuración de pruebas |
+| `pnpm verify` | **NO EJECUTADO:** lo corre el Director General en su turno |
+
+**Qué cambió mientras se hacía.** La primera corrida verde de la guía dio 141 de 142. El rojo era de la prueba: un solo `act` largo no deja que React pinte entre timers. Al corregirla, avanzando el reloj de a 50 ms, aparecieron dos riesgos del diseño, que se arreglaron con su prueba:
+
+- 2 s no alcanzan después de cambiar de pestaña, porque el servidor todavía lee el tablero. De ahí los 10 s de `REINTENTOS_TRAS_PESTANA`.
+- Un reintento podía devolver a Embudos a quien ya se había ido. Desde el arreglo, solo navega el primer intento de cada pedido.
+
+También salió del arranque automático una comprobación de la consulta que repetía la de `intentarAbrir`: un mutante sobre ella habría sobrevivido sin cambiar nada visible.
+
+### 2026-11-07 · Seguimiento del P-13: pedidos que quedan vivos (B1 y B2)
+
+**Fuente.** El Director General revisó la #416 (`a0b4457a4`) por su cuenta, la aprobó y dejó dos observaciones BAJAS que no bloquean. El Subdirector de Chatwoot las encargó en una PR aparte, después de que se fusione la #416. La rama es `claude/0589-p13-seguimiento` y sale de `a0b4457a4`.
+
+| # | Hallazgo | Arreglo |
+|---|---|---|
+| B1 | `GuiaMotor.tsx:345`: si la persona cambia de pestaña antes de que termine el `router.replace`, el pedido queda pendiente y la guía se abre sola minutos después, cuando la persona entra a Embudos | El pedido guarda la URL del momento en que se hizo (`consultaDelPedido`). Mientras la URL siga igual, el cambio de pestaña sigue en camino. Si cambia a otra URL sin la pestaña pedida, el pedido se olvida |
+| B2 | `:347` y `:385`: pulsar «Guía» dos veces durante la espera deja dos series de reintentos, y la segunda puede devolver la tarjeta al primer paso. `cerrarGuia` tampoco cancelaba la espera que deja un cambio de pestaña | Una sola espera a la vez (`esperaRef`): la nueva cancela la anterior, y `cerrarGuia` también la cancela. Además, el arranque automático no reemplaza un pedido de la persona que sigue en curso. Sin esa guarda, el arreglo mismo le quitaría la espera de 10 s al botón cuando la 9.6 encienda el arranque automático |
+
+### Allowlist exacta del seguimiento
+
+- **Motor:** `app/studio/_components/guia/GuiaMotor.tsx`.
+- **Pruebas:** `app/studio/_components/guia/GuiaEmbudoPestana.test.tsx`. El doble de `next/navigation` agrega `persona(query)`: como en Next, la navegación de la persona cancela el `replace` que el motor tenga en curso.
+- **Documentos:** esta spec y `.agents/handoffs/0589-p13-seguimiento.md` (nuevo).
+- **No toca:** `lib/studio/guia/` ni nada de `app/studio/(app)/crm/`, `app/studio/(app)/layout.tsx`, los textos de la guía, producción, Chatwoot ni `DASHBOARD_SCRIPTS`.
+
+### Aceptación del seguimiento
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S1 | B1: con el pedido por `?guia=` y por el botón, si la persona pasa a otra pestaña antes de que termine el cambio, la guía no se abre sola cuando vuelve a Embudos minutos después | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo sobre `a0b4457a4` |
+| S2 | B2: pedir la guía otra vez durante la espera, con el botón o desde el código, no reabre la tarjeta: sigue en el paso 2 después de 12 s y sin «Ver la guía desde el principio» | `GuiaEmbudoPestana.test.tsx`, 2 casos, con rojo previo |
+| S3 | B2: `cerrarGuia()` durante la espera la cancela, y la guía no abre cuando llega el tablero | `GuiaEmbudoPestana.test.tsx`, con rojo previo |
+| S4 | Con el arranque automático encendido, su efecto no reemplaza la espera del botón: un tablero de 4 s abre igual, y la tarjeta es la del botón, sin «No volver a mostrar» | `GuiaEmbudoPestana.test.tsx`. Sobre `a0b4457a4` pasaba: protege el arreglo de B2, y lo mata el mutante que quita la guarda |
+| S5 | Lo del P-13 sigue igual | Los 15 casos de la #416 y la suite de la guía |
+
+### Evidencia del seguimiento (2026-11-07)
+
+Con el turno de máquina que dio el Subdirector y la regla nueva de dos corridas medianas a la vez como máximo.
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo previo: las pruebas nuevas contra el `GuiaMotor.tsx` de `a0b4457a4`, la cabeza de la #416 (mutante M0) | FALLÓ, como se esperaba: 5 de 21. Caen B1 por URL, B1 por botón, B2 con el botón, B2 desde el código y B2 con `cerrarGuia` |
+| Las mismas pruebas con el arreglo | PASÓ: 21 de 21 |
+| 5 mutantes, de a uno, con base verde | PASÓ: 5 de 5 muertos. M0 tumba 5. MB1, sin olvidar el pedido, tumba los 2 de B1. MB2a, sin cancelar la espera anterior, tumba los 2 de la doble pedida. MB2b, con `cerrarGuia` sin cancelar, tumba 1. MB2c, sin la guarda del arranque automático, tumba 1 (S4). Todo restaurado, con `git diff --stat` igual |
+| Suite de la guía: `lib/studio/guia`, `app/studio/_components/guia` y `guia-panel.test.ts`, con 1 worker | PASÓ: 170 de 170 en 10 archivos |
+| `tsc --noEmit` | PASÓ |
+| ESLint de `GuiaMotor.tsx` y `GuiaEmbudoPestana.test.tsx`, con `--max-warnings=0` | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» de la PR |
+
+**Qué cambió mientras se hacía.** La primera versión de la prueba de la doble pulsación quedó viva frente a M0 y MB2a: pasaba sin el arreglo. Con el botón, la segunda apertura retoma el paso guardado y la tarjeta sigue en «2 de 4». El daño estaba, pero se veía de otra forma: el foco vuelve a la tarjeta y aparece «Ver la guía desde el principio». La prueba quedó parametrizada con el botón y desde el código (`programa`, que sí vuelve a «1 de 4»), y además exige que no aparezca «Ver la guía desde el principio».
+
+### 2026-11-07 · Revisión de la #418: pedir la guía otra vez acortaba la espera
+
+**Fuente.** Revisión independiente de la #418 sobre `ee22c804a`: CHANGES_REQUESTED. B1 y B2 quedaron cerrados, pero el arreglo de B2 trajo una regresión. Al pedir la guía otra vez mientras Embudos carga, el evento llama a `abrirCuandoHaya` con los 8 reintentos por defecto (unos 2 s). Esa llamada cancela la espera viva de 40 reintentos (unos 10 s). El revisor lo midió con una prueba temporal, con tableros de 3 s y 5 s y dos pulsaciones: la #418 no abría ninguno, y el motor de `a0b4457a4` sí.
+
+**Arreglo:**
+
+- La espera guarda cuántos intentos le quedan (`restantes`). Una espera nueva del mismo recorrido se queda con esos intentos, si son más que los suyos: pedir la guía otra vez no acorta la espera.
+- Además se arregló lo menor que señaló la revisión: con dos pulsaciones rápidas, antes de que cambie la pestaña, el motor pedía dos veces el `router.replace`. Ahora, si el mismo cambio de pestaña ya va en camino, el pedido nuevo solo reemplaza las opciones del anterior. El evento conserva el pedido en camino del mismo recorrido y olvida el de otro.
+- Con la herencia de intentos, el mutante que quita la guarda del arranque automático (MB2c) quedó vivo: el arranque automático heredaba los 10 s y la tarjeta abría igual. El daño se ve en que la abre como arranque automático, con «No volver a mostrar» y la guía anotada como vista. Por eso, S4 ahora exige que la tarjeta sea la del botón.
+
+**Allowlist:** la misma del seguimiento, `GuiaMotor.tsx` y `GuiaEmbudoPestana.test.tsx`, más esta spec y el handoff. Con esta subida va también el merge de `origin/main` `250e86f65`, que ya trae la #416 y la #415 (S0).
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S6 | Pedir la guía otra vez mientras carga un tablero de 4 s o de 6 s no acorta la espera: la tarjeta abre en E1 | `GuiaEmbudoPestana.test.tsx`, 2 casos, rojos contra `ee22c804a` |
+| S7 | Dos pulsaciones seguidas, antes de que cambie la pestaña, piden el cambio una sola vez y la guía abre | `GuiaEmbudoPestana.test.tsx`, rojo contra `ee22c804a` |
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo de la revisión: las pruebas contra el `GuiaMotor.tsx` de `ee22c804a` (M0r) | FALLÓ, como se esperaba: 3 de 24. Caen los dos tableros lentos y las dos pulsaciones seguidas |
+| Con el arreglo | PASÓ: 24 de 24 |
+| 8 mutantes, de a uno, con base verde | PASÓ: 8 de 8 muertos. M0r tumba 3. MH, la segunda pulsación con los 8 reintentos por defecto, tumba los 2 de tablero lento. MD, que pide otra vez el cambio en camino, y MD2, en el que el evento lo olvida, tumban 1 cada uno. MB1 tumba 2, MB2a tumba 2, MB2b tumba 1 y MB2c, sin la guarda, tumba 1 desde que S4 exige la tarjeta del botón. En la primera tanda MB2c quedó vivo. Todo restaurado |
+| ESLint de los 2 archivos, con `--max-warnings=0` | PASÓ |
+| Merge de `origin/main` `250e86f65` con el driver de `main`, y el índice regenerado | PASÓ: sin conflictos y sin cambios del índice tras regenerar (596 specs) |
+| Suite de la guía sobre el árbol fusionado, más `crm/__tests__/guia-se-queda.test.ts` de la S0, con 1 worker | PASÓ: 182 de 182 en 11 archivos |
+| `tsc --noEmit` sobre el árbol fusionado | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
+
+### 2026-11-07 · Segunda revisión de la #418: la espera heredada sobrevivía a un cambio de pestaña
+
+**Fuente.** Segunda revisión de la #418, sobre `ac50c6fca`. La regresión quedó cerrada, y B1 y B2 también. El Director General dijo que esta es la última vuelta si sale limpia. Queda un hallazgo menor CONFIRMADO y uno POSIBLE.
+
+- **CONFIRMADO, una variante de B1.** La espera heredada la crea el evento y no el efecto del pedido, así que ya no se cancelaba al cambiar la URL, como prometía su comentario. Pasos: tablero de 1,5 s, pulsar, llega Embudos, pulsar otra vez, ir a Asesor y volver a Embudos antes de 10 s. La guía se abría sola.
+  - **Arreglo:** un efecto nuevo, que depende de la consulta, cancela la espera viva cuando la URL deja la pestaña de su recorrido. Le da igual quién haya empezado la espera: el pedido, el evento o la URL. Un cambio dentro de la misma pestaña, como `?embudo=`, no la cancela.
+- **POSIBLE, cerrado en esta tanda.** Si el `replace` se pierde sin que cambie la URL, el pedido queda pegado, y las pulsaciones siguientes, que lo ven «en camino», no vuelven a pedir el cambio.
+  - **Arreglo:** el pedido guarda `pedidoEn`. Pasados 10 s (`VIGENCIA_PEDIDO_MS`, lo mismo que la espera tras cambiar de pestaña), se da por perdido y la pulsación siguiente lo vuelve a pedir. Son tres líneas. El doble de navegación agrega `perder`, un `replace` que no cambia la URL.
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S8 | Pedir otra vez, irse a otra pestaña y volver antes de 10 s: la guía no se abre sola y no se pide otro cambio | `GuiaEmbudoPestana.test.tsx`, rojo contra `ac50c6fca` |
+| S9 | Si el cambio de pestaña se pierde, una pulsación antes de 10 s no lo repite, y una pasados 10 s lo vuelve a pedir y la guía abre | `GuiaEmbudoPestana.test.tsx`, rojo contra `ac50c6fca` |
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo de la segunda revisión: las pruebas contra el `GuiaMotor.tsx` de `ac50c6fca` (M0s) | FALLÓ, como se esperaba: 2 de 26. Caen S8 y S9 |
+| Con el arreglo | PASÓ: 26 de 26 |
+| 10 mutantes, de a uno, con base verde | PASÓ: 10 de 10 muertos. M0s tumba 2. MC, sin la cancelación, tumba S8. MV, sin la vigencia, tumba S9. MH, MD, MD2, MB1, MB2a, MB2b y MB2c siguen muertos. Todo restaurado |
+| ESLint de los 2 archivos, con `--max-warnings=0` | PASÓ |
+| Suite de la guía más `crm/__tests__/guia-se-queda.test.ts`, con 1 worker y sin otro vitest vivo en la máquina | PASÓ: 184 de 184 en 11 archivos |
+| `tsc --noEmit` | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
+
+**Cierre de la #418.** La tercera revisión la aprobó sobre `9c7f38d63`. Sam la autorizó y entró en `main` con el tren #428 (`ce878289f`), el 2026-11-07 a las 22:14Z.
+
+## 2026-11-07 · P-13: el pedido vencido se borra
+
+**Fuente.** Dos pendientes de la tercera revisión de la #418, que se dejaron para una PR aparte desde `main`.
+
+- **El pedido vencido no se borraba al vencer** (`GuiaMotor.tsx:294-303` en `9c7f38d63`). El vencimiento de la #418 solo servía para volver a pedir el cambio. Si el `replace` se perdía y nadie volvía a pulsar, el pedido seguía ahí, y cuando la persona entraba después a Embudos con un clic, el efecto del pedido abría la guía sola, como si fuera del botón. Lo mismo reemplazaba el arranque automático (la guarda de `:432`).
+  - **Arreglo:** el efecto del pedido borra el pedido vencido (`VIGENCIA_PEDIDO_MS`, 10 s) antes de mirar la URL, y no abre la guía. El arranque automático, que corre después en el mismo cambio de URL, ya no lo encuentra.
+- **Las pruebas del seguimiento llevan su número** de la aceptación (S1 a S9), sin cambiar lo que comprueban. Para S1 hubo que cambiar algo más: volvía a Embudos «minutos después», y con el borrado el pedido ya habría vencido, así que la prueba pasaba sin B1 (el mutante MB1 quedó vivo). Ahora vuelve antes de 10 s, y lo de más tarde lo cubre S10.
+
+**Allowlist exacta:** `app/studio/_components/guia/GuiaMotor.tsx`, `app/studio/_components/guia/GuiaEmbudoPestana.test.tsx`, esta spec y `.agents/handoffs/0589-p13-pedido-vencido.md` (nuevo). No toca `lib/studio/guia/` ni nada de `app/studio/(app)/crm/`.
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| S10 | Si el cambio se perdió y nadie vuelve a pulsar, entrar a Embudos pasados los 10 s no abre la guía sola | `GuiaEmbudoPestana.test.tsx`, rojo contra `ce878289f` |
+| S11 | Con el arranque automático encendido, el pedido vencido no lo frena: al entrar a Embudos, la guía abre como arranque automático, con «No volver a mostrar» | `GuiaEmbudoPestana.test.tsx`. Pasa también sobre `ce878289f`, porque allí el arranque automático reabría la guía detrás del pedido. Comprueba que el pedido vencido se borra, y no solo se ignora: lo mata el mutante MVe2 |
+
+| Comprobación | Resultado |
+|---|---|
+| Rojo: las pruebas contra el `GuiaMotor.tsx` de `ce878289f`, que es `main` con la #418 (M0v) | FALLÓ, como se esperaba: 1 de 28. Cae S10 |
+| Con el arreglo | PASÓ: 28 de 28 |
+| 12 mutantes, de a uno, con base verde | PASÓ: 12 de 12 muertos. M0v y MVe (sin el borrado) tumban S10. MVe2 (el pedido vencido se ignora pero no se borra) tumba S11. MC, MV, MH, MD, MD2, MB1, MB2a, MB2b y MB2c siguen muertos. En la primera tanda MB1 quedó vivo; S1 se ajustó. Todo restaurado |
+| ESLint de los 2 archivos, con `--max-warnings=0` | PASÓ |
+| Suite de la guía más `crm/__tests__/guia-se-queda.test.ts`, con 1 worker y sin otro vitest vivo | PASÓ: 186 de 186 en 11 archivos |
+| `tsc --noEmit` | PASÓ |
+| `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
+| `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |

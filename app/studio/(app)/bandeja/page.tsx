@@ -13,10 +13,13 @@
 import { cookies } from "next/headers";
 
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
 import { listarMiembrosCuenta } from "@/lib/studio/chatwoot/platform-api";
 import { evaluarSalud, type SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
+import { revisarWebhookCuenta, sumarAlertasWebhook } from "@/lib/studio/chatwoot/webhook-salud";
+import { resumenPortal, type ResumenPortal } from "@/lib/studio/chatwoot/portal";
 import { getVinculoPropio, listVinculos } from "@/lib/studio/chatwoot/links-queries";
 import { listEventosDescartados, type EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 import { parseChatwootUserId, urlPanel } from "@/lib/studio/chatwoot/chatwoot-types";
@@ -57,13 +60,22 @@ export default async function BandejaPage({
   const inicioUrl =
     estado === "listo" && access.userId && ssoVigentePara(marca, access.userId) ? panelUrl : null;
 
-  let admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados: EventoDescartado[]; salud: SaludBandeja } | null = null;
+  let admin: {
+    vinculos: VinculoFila[];
+    miembros: MiembroOpcion[];
+    descartados: EventoDescartado[];
+    salud: SaludBandeja;
+    portal: ResumenPortal | null;
+  } | null = null;
   if (access.role === "admin" && access.tenantId && cfg) {
-    const [vinculos, miembros, descartados, cuenta] = await Promise.all([
+    const [vinculos, miembros, descartados, cuenta, webhook, portal] = await Promise.all([
       listVinculos(supabase, access.tenantId),
       listMembers(supabase, { tenantId: access.tenantId }),
       listEventosDescartados(supabase, access.tenantId),
       listarMiembrosCuenta(cfg),
+      revisarWebhookCuenta(cfg, chatwootServicioUserId()),
+      // SDD-0586 (10.5, PR 1b): la cola del portal es solo de service_role; el gate de admin es el de arriba.
+      resumenPortal(createAdminClient(), access.tenantId),
     ]);
     // Paso 2.5: la misma salud que mide el cron diario, leída al abrir la página.
     const salud = evaluarSalud({
@@ -71,6 +83,8 @@ export default async function BandejaPage({
       servicioId: chatwootServicioUserId(),
       vinculos: vinculos.map((v) => ({ userId: v.user_id, chatwootUserId: v.chatwoot_user_id })),
     });
+    // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
+    sumarAlertasWebhook(salud, webhook);
     const nombres = new Map(miembros.map((m) => [m.user_id, nombreDe(m.profile)]));
     admin = {
       vinculos: vinculos.map((v) => ({
@@ -87,6 +101,7 @@ export default async function BandejaPage({
         })),
       descartados,
       salud,
+      portal,
     };
   }
 

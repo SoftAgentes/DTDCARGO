@@ -7,7 +7,8 @@
  *     al momento; esto es la red para lo que se escapó (un override de rol, un
  *     fallo de Chatwoot en ese momento).
  *  2. La salud de la cuenta y, si hay alertas, un push a los admins (por
- *     ejemplo, si la cuenta queda sin ningún admin humano).
+ *     ejemplo, si la cuenta queda sin ningún admin humano). Desde la 10.5
+ *     (SDD-0586, PR 1b) suma el webhook de cuenta (`revisarWebhookCuenta`).
  *
  * Tenant: `CHATWOOT_TENANT_ID`, el mismo del webhook. Auth: CRON_SECRET en
  * `Authorization: Bearer <secret>`, solo por cabecera. Sin configuración de
@@ -20,6 +21,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
 import { chatwootConfig, chatwootServicioUserId, chatwootTenantId } from "@/lib/studio/chatwoot/config";
 import { avisarSaludAAdmins, sincronizarAgentes } from "@/lib/studio/chatwoot/agentes-ciclo";
+import { revisarWebhookCuenta, sumarAlertasWebhook } from "@/lib/studio/chatwoot/webhook-salud";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest) {
   const ctx = { admin: createAdminClient(), tenantId, cfg, servicioId: chatwootServicioUserId() };
   const r = await sincronizarAgentes(ctx);
   if (r.omitido) return NextResponse.json({ ok: true, omitido: true });
+  sumarAlertasWebhook(r.salud, await revisarWebhookCuenta(cfg, ctx.servicioId));
   const avisados = await avisarSaludAAdmins(ctx, r.salud);
   return NextResponse.json({
     ok: true,

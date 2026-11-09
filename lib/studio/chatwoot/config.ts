@@ -129,6 +129,43 @@ export function chatwootRouterConfig(): ChatwootRouterConfig | null {
 }
 
 /**
+ * Configuración de la ida del chat del portal a Chatwoot (SDD-0586, paso 10.5, §10.5.8).
+ *
+ * - `CHATWOOT_INBOX_PORTAL_ID`: la bandeja API «Conversaciones del portal».
+ * - `CHATWOOT_ROUTER_TOKEN`: el token del usuario de servicio de E10, que tiene que ser
+ *   miembro de esa bandeja. SECRETO.
+ * - `CHATWOOT_ACCOUNT_ID` y `CHATWOOT_TENANT_ID`: la cuenta y el tenant al que pertenece.
+ *   La cola solo manda mensajes de ese tenant a esa cuenta.
+ * - `CHATWOOT_URL`, como la Bandeja.
+ *
+ * Falta algo → `null`: nada del portal llama a Chatwoot, aunque el flag
+ * `chatwoot_portal` esté encendido. Cargarlas es un OK nominal de Sam, después de
+ * aplicar la migración de la 10.5.
+ */
+export interface ChatwootPortalConfig {
+  origin: string;
+  token: string;
+  accountId: number;
+  tenantId: string;
+  inboxPortalId: number;
+}
+
+export function chatwootPortalConfig(): ChatwootPortalConfig | null {
+  const token = firstConfiguredSecret(process.env.CHATWOOT_ROUTER_TOKEN);
+  const cuenta = (process.env.CHATWOOT_ACCOUNT_ID ?? "").trim();
+  const bandeja = (process.env.CHATWOOT_INBOX_PORTAL_ID ?? "").trim();
+  const tenantId = chatwootTenantId();
+  if (!token || !ID.test(cuenta) || !ID.test(bandeja) || !tenantId) return null;
+  return {
+    origin: chatwootOriginFromEnv(process.env.CHATWOOT_URL),
+    token,
+    accountId: Number(cuenta),
+    tenantId,
+    inboxPortalId: Number(bandeja),
+  };
+}
+
+/**
  * Bandejas de WhatsApp para la fuente de la tarjeta (SDD-0587, 6.4): las mismas
  * `CHATWOOT_INBOX_LEADS_ID` y `CHATWOOT_INBOX_CLIENTES_ID` de 2.7. Vacía o
  * inválida → `null`.
