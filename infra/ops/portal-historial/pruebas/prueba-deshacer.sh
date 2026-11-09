@@ -592,9 +592,10 @@ if [ "$MUTANTES" = 1 ]; then
     '[ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && escribir_hecho_borrar' '[ "$MODO" = borrar ] && escribir_hecho_borrar'
   mutante MD30 "escribe chatwoot-borrar.hecho antes del COMMIT" deshacer.sh borrar "D15" "D2 D5" \
     '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"; escribir_hecho_borrar'
-  mutante MD32 "otro MODO=borrar no se niega con la evidencia de un borrado" deshacer.sh borrar "D17" "D2 D5" \
+  # MD31 a MD33 (B1 de la #480): cada uno cae en su propio caso, y todo lo demás de su parte tiene que pasar.
+  mutante MD32 "otro MODO=borrar no se niega con la evidencia de un borrado" deshacer.sh borrar "D17" "D2 D2b D9 D3 D4 D11a D11b D11c D5 D13 D14 D15 D7 F1" \
     'if [ -e "$DURABLE/chatwoot-borrar.hecho" ] || [ -e "$DURABLE/chatwoot-borrar.inicio" ] || [ -e "$H_BORRAR" ]; then' 'if false; then'
-  mutante MD33 "no retira el .inicio con un ROLLBACK comprobado" deshacer.sh borrar "D15" "D2 D5" \
+  mutante MD33 "no retira el .inicio con un ROLLBACK comprobado" deshacer.sh borrar "D15" "D2 D2b D9 D3 D4 D11a D11b D11c D5 D13 D14 D17 D7 F1" \
     '    rm -f -- "$DURABLE/chatwoot-borrar.inicio"' '    :'
   mutante MD31 "sin el .inicio antes de la transacción" deshacer.sh corte "D16 D17b" "" \
     '  escribir_hecho "$DURABLE/chatwoot-borrar.inicio"' '  : escribir_hecho "$DURABLE/chatwoot-borrar.inicio"'
