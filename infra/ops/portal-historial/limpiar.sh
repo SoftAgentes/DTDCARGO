@@ -2,13 +2,59 @@
 # infra/ops/portal-historial/limpiar.sh — SDD-0586 10.7 (P4): borra de /dev/shm lo que haya quedado de la
 # carga (preparado.ndjson con datos de clientes y vinculos.ndjson). Se corre si la carga no terminó.
 #
-# Uso:  bash limpiar.sh   (solo borra /dev/shm/portal-historial: otro DIR se rechaza)
+# Uso:  bash limpiar.sh                 (solo borra /dev/shm/portal-historial: otro DIR se rechaza)
+#       bash limpiar.sh --cierre-4-6b   (el paso 5 de la vuelta atrás dirigida 4.6b; lo corre Sam)
+#       bash limpiar.sh --abandono-4-6b (abandonar el 4.6b antes de que el paso 3 confirme; lo corre Sam, con OK)
+#
+# --abandono-4-6b: la salida si el paso 3 falla (o no se corre) y la vuelta atrás se abandona. Borra las dos
+# carpetas SOLO si no hay chatwoot-borrar.hecho en ninguna: si lo hay, Chatwoot ya borró con COMMIT y hay que
+# terminar el paso 4, así que se niega y no toca nada.
+#
+# --cierre-4-6b: después de que el paso 4 (deshacer-vinculos.sh MODO=aplicar) salió con 0. Exige
+# studio-aplicar.hecho, en tmpfs o en la carpeta durable /srv/ops/portal-historial/deshacer/, con
+# `HECHO studio_aplicar=ok … fin=commit` y, si queda el contactos-conservados.ndjson, con su sha256. Borra las
+# dos carpetas y comprueba que no quedó ninguna. Sin el .hecho no borra nada: la durable es lo único que
+# permite correr el paso 4 después de un reinicio. La durable solo cambia en la prueba bash (DESHACER_PRUEBA=1).
 set -euo pipefail
 DIR="${DIR:-/dev/shm/portal-historial}"
+DURABLE="${DURABLE:-/srv/ops/portal-historial/deshacer}"
 # Solo el nombre fijo: con un patrón, `/dev/shm//` o `/dev/shm/otro` borraban lo de otros procesos.
 if [ "$DIR" != /dev/shm/portal-historial ]; then
   echo "HECHO error=dir_no_es_dev_shm_portal_historial" >&2
   exit 2
 fi
+case "${1:-}" in
+  '')
+    rm -rf -- "$DIR"
+    echo "HECHO borrado=$DIR"
+    exit 0 ;;
+  --cierre-4-6b|--abandono-4-6b) ;;
+  *) echo "HECHO error=opcion_desconocida" >&2; exit 2 ;;
+esac
+
+[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; }
+if [ -e "$DURABLE" ] && { [ ! -d "$DURABLE" ] || [ -L "$DURABLE" ] || [ "$(stat -c %a "$DURABLE")" != 700 ]; }; then
+  echo "HECHO error=durable_no_es_carpeta_0700" >&2
+  exit 2
+fi
+
+if [ "$1" = --abandono-4-6b ]; then
+  for d in "$DIR" "$DURABLE"; do [ ! -e "$d/chatwoot-borrar.hecho" ] || { echo "HECHO error=chatwoot_ya_borro_hay_que_terminar_el_paso_4" >&2; exit 2; }; done # guarda:abandono
+  rm -rf -- "$DIR"
+  [ ! -e "$DURABLE" ] || rm -rf -- "$DURABLE"
+  [ ! -e "$DIR" ] && [ ! -e "$DURABLE" ] || { echo "HECHO error=quedo_algo" >&2; exit 4; }
+  echo "HECHO abandono_4_6b=ok tmpfs=vacio durable=vacio"
+  exit 0
+fi
+# El studio-aplicar.hecho, de tmpfs o de la durable (un enlace no vale), y el .ndjson que quede, si queda.
+A=""; for d in "$DIR" "$DURABLE"; do [ -z "$A" ] && [ -f "$d/studio-aplicar.hecho" ] && [ ! -L "$d/studio-aplicar.hecho" ] && A="$d/studio-aplicar.hecho"; done
+N=""; for d in "$DIR" "$DURABLE"; do [ -z "$N" ] && [ -f "$d/contactos-conservados.ndjson" ] && N="$d/contactos-conservados.ndjson"; done
+l=""; [ -z "$A" ] || { IFS= read -r l < "$A" || true; }
+case "$l" in "HECHO studio_aplicar=ok "*" fin=commit "*) ;; *) l="" ;; esac
+[ -n "$l" ] || { echo "HECHO error=sin_aplicar_del_4_6b" >&2; exit 2; } # guarda:aplicar
+[ -z "$N" ] || case " $l " in *" conservados_sha256=$(sha256sum "$N" | cut -c1-64) "*) ;; *) echo "HECHO error=aplicar_de_otros_conservados" >&2; exit 2 ;; esac # guarda:sha_cierre
+
 rm -rf -- "$DIR"
-echo "HECHO borrado=$DIR"
+[ ! -e "$DURABLE" ] || rm -rf -- "$DURABLE"
+[ ! -e "$DIR" ] && [ ! -e "$DURABLE" ] || { echo "HECHO error=quedo_algo" >&2; exit 4; }
+echo "HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio"

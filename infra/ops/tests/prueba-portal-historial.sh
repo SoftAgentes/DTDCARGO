@@ -344,15 +344,16 @@ DIR="/dev/shm/../${T#/}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l2.log" 2>&1; rc
 lc() { DIR="${D}" DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
 # cierre_listo [donde]: lo que queda después de un paso 4 bueno; [donde]=durable simula un reinicio después del 4.
 cierre_listo() { caso_reinicio || return 1; [ "${1:-}" = durable ] && reinicio; return 0; }
-caso_cierre_ok() { cierre_listo; lc --cierre-4-6b; rc=$?
+caso_cierre_ok() { cierre_listo || return 1; lc --cierre-4-6b; rc=$?
   [ "${rc}" = 0 ] && grep -qx 'HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
-caso_cierre_tras_reinicio() { cierre_listo durable; lc --cierre-4-6b; rc=$?
-  [ "${rc}" = 0 ] && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
-caso_cierre_sin_aplicar() { cierre_listo; rm -f "${D}/studio-aplicar.hecho" "${DUR}/studio-aplicar.hecho"; lc --cierre-4-6b; rc=$?
+caso_cierre_tras_reinicio() { cierre_listo durable || return 1; [ ! -e "${D}" ] && [ -e "${DUR}/studio-aplicar.hecho" ] || return 1
+  lc --cierre-4-6b; rc=$?
+  [ "${rc}" = 0 ] && grep -qx 'HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
+caso_cierre_sin_aplicar() { cierre_listo || return 1; rm -f "${D}/studio-aplicar.hecho" "${DUR}/studio-aplicar.hecho"; lc --cierre-4-6b; rc=$?
   [ "${rc}" != 0 ] && grep -q 'sin_aplicar_del_4_6b' "${T}/lc.log" && [ -e "${DUR}/${CONS##*/}" ] && [ -e "${DUR}/chatwoot-borrar.hecho" ] && [ -e "${D}" ]; }
-caso_cierre_otro_sha() { cierre_listo; sed -i "s/conservados_sha256=[0-9a-f]*/conservados_sha256=${OTRO_SHA}/" "${D}/studio-aplicar.hecho"; lc --cierre-4-6b; rc=$?
+caso_cierre_otro_sha() { cierre_listo || return 1; sed -i "s/conservados_sha256=[0-9a-f]*/conservados_sha256=${OTRO_SHA}/" "${D}/studio-aplicar.hecho"; lc --cierre-4-6b; rc=$?
   [ "${rc}" != 0 ] && grep -q 'aplicar_de_otros_conservados' "${T}/lc.log" && [ -e "${DUR}" ] && [ -e "${D}" ]; }
-caso_cierre_durable_abierta() { cierre_listo; chmod 0755 "${DUR}"; lc --cierre-4-6b; rc=$?
+caso_cierre_durable_abierta() { cierre_listo || return 1; chmod 0755 "${DUR}"; lc --cierre-4-6b; rc=$?
   chmod 0700 "${DUR}"; [ "${rc}" != 0 ] && grep -q 'durable_no_es_carpeta_0700' "${T}/lc.log" && [ -e "${DUR}" ]; }
 caso_cierre_ok && ok "limpiar.sh --cierre-4-6b borra las dos carpetas y lo comprueba" || ko "cierre: $(cat "${T}/lc.log")"
 caso_cierre_tras_reinicio && ok "limpiar.sh --cierre-4-6b encuentra studio-aplicar.hecho en la durable después de un reinicio" || ko "cierre tras reinicio: $(cat "${T}/lc.log")"
@@ -375,6 +376,25 @@ for par in aplicar:caso_cierre_sin_aplicar sha_cierre:caso_cierre_otro_sha; do
   else ok "mutante de limpiar.sh sin la guarda «${g}» cae (${caso})"; mutantes_c=$((mutantes_c+1)); fi
 done
 [ "${mutantes_c}" = 2 ] && ok "PISO: caen los 2 mutantes del cierre" || ko "caen ${mutantes_c} de 2 mutantes del cierre"
+rm -rf "${D}" "${DUR}"
+
+# ── limpiar.sh --abandono-4-6b (abandonar el 4.6b antes de que el paso 3 confirme) ──
+# abandono_listo: lo que queda si el paso 3 empezó (dejó la durable) pero no confirmó: sin chatwoot-borrar.hecho.
+abandono_listo() { caso_ensayo_ok || return 1; mkdir -m 0700 "${DUR}" && cp "${CONS}" "${D}/chatwoot-seco.hecho" "${D}/studio-ensayo.hecho" "${DUR}/"; }
+caso_abandono_ok() { abandono_listo || return 1; lc --abandono-4-6b; rc=$?
+  [ "${rc}" = 0 ] && grep -qx 'HECHO abandono_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
+caso_abandono_con_borrar_durable() { abandono_listo || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; cp "${D}/chatwoot-borrar.hecho" "${DUR}/"; reinicio; lc --abandono-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'chatwoot_ya_borro_hay_que_terminar_el_paso_4' "${T}/lc.log" && [ -e "${DUR}/${CONS##*/}" ] && [ -e "${DUR}/chatwoot-borrar.hecho" ]; }
+caso_abandono_con_borrar_tmpfs() { abandono_listo || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; lc --abandono-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'chatwoot_ya_borro_hay_que_terminar_el_paso_4' "${T}/lc.log" && [ -e "${D}/${CONS##*/}" ] && [ -e "${DUR}/${CONS##*/}" ]; }
+caso_abandono_ok && ok "limpiar.sh --abandono-4-6b sin chatwoot-borrar.hecho borra las dos carpetas y lo comprueba" || ko "abandono: $(cat "${T}/lc.log")"
+caso_abandono_con_borrar_durable && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en la durable (tras un reinicio) se niega y no toca nada" || ko "abandono con borrar en la durable: $(cat "${T}/lc.log")"
+caso_abandono_con_borrar_tmpfs && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en tmpfs se niega y no toca nada" || ko "abandono con borrar en tmpfs: $(cat "${T}/lc.log")"
+# MUTANTE del abandono: sin la guarda, borraría la durable después de un COMMIT de Chatwoot.
+[ "$(grep -c "# guarda:abandono\$" "${PH}/limpiar.sh")" = 1 ] || ko "mutante abandono: la marca no está una sola vez"
+grep -v "# guarda:abandono\$" "${PH}/limpiar.sh" > "${T}/mut/limpiar.sh"
+if LC_GUION="${T}/mut/limpiar.sh" caso_abandono_con_borrar_durable; then ko "mutante de limpiar.sh sin la guarda «abandono» sobrevive"
+else ok "mutante de limpiar.sh sin la guarda «abandono» cae (caso_abandono_con_borrar_durable)"; fi
 rm -rf "${D}" "${DUR}"
 
 echo "== ${pass} PASÓ · ${fail} FALLÓ"
