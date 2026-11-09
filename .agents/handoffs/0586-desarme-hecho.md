@@ -122,3 +122,16 @@ Esta revisión no es asesoría legal.
   - «`--cierre-4-6b` encuentra `studio-aplicar.hecho` en la durable después de un reinicio» dio PASÓ contra el `limpiar.sh` de `main`, que no tiene esa opción.
   - **Por qué:** el caso no se detenía si su preparación fallaba. La durable nunca se creó, y «las dos carpetas ausentes» se cumplía igual.
   - **El arreglo, en la vuelta 2:** los casos del cierre llevan `cierre_listo … || return 1`. El del reinicio exige antes que haya `studio-aplicar.hecho` en la durable y tmpfs vacío, y después la línea `HECHO cierre_4_6b=ok …`.
+
+## La vuelta 2 en el CI (`8b7ac72b5`, run 42595523034, intento 2): 87 PASÓ y 12 FALLÓ, y su arreglo
+
+**Qué pasó:**
+- `caso_ensayo_ok` falló en su primera corrida, y con él todos los casos que se apoyan en él.
+- **La causa:** la sección de los DIR, más arriba en la prueba, deja `${D}/centinela`. `sin_hecho` solo borraba los `.hecho`, así que el control «en `${D}` quedan solo los 3 archivos esperados» fallaba.
+- Después del `limpiar.sh` de su sección, `${D}` ya estaba vacía, y por eso los casos del cierre y del abandono pasaron.
+- **Lo peor:** varios mutantes «cayeron» sin probar nada, porque su caso ya fallaba con el guion real. El control sin mutar sí lo detectó, pero solo miraba 4 casos.
+
+**El arreglo:**
+- `sin_hecho` deja las dos carpetas vacías de verdad: `rm -rf` de las dos y `mkdir -m 0700 ${D}`.
+- **Cada mutante cuenta solo si su caso pasa con el guion real y falla con el mutante.** Si su caso no pasa con el real, sale `ko «control: … no prueba nada»`. Vale en los dos bucles, el de `deshacer-vinculos.sh` y el de `limpiar.sh`, y en el del abandono.
+- El control final suma `caso_ensayo_ok` y `caso_ensayo_viejo`.

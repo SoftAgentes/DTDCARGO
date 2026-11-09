@@ -204,7 +204,9 @@ cabecera() { printf '%s\n' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'"
 sha_cons() { sha256sum "${CONS}" | cut -c1-64; }
 # hecho_cw <archivo> <paso> [sha] [tenant] [extra]: la evidencia sintética de un paso de Chatwoot.
 hecho_cw() { printf '%s\n' "HECHO $2=ok conservados_sha256=${3:-$(sha_cons)} tenant=${4:-$TU} cuenta=1 bandeja=9 ${5:-}utc=2026-11-09T03:00:00Z" > "${D}/$1"; }
-sin_hecho() { mkdir -p -m 0700 "${D}"; rm -f "${D}"/*.hecho "${D}"/*.hecho.parcial; rm -rf "${DUR}"; }
+# sin_hecho: las dos carpetas vacías de verdad. Las secciones de arriba dejan cosas en ${D} (la centinela de los DIR):
+# con solo borrar los .hecho, el primer caso_ensayo_ok fallaba y los mutantes que dependen de él «caían» sin probar nada.
+sin_hecho() { rm -rf "${D}" "${DUR}"; mkdir -m 0700 "${D}"; }
 # paso3_durable: lo que deja el paso 3 de E5 en la carpeta durable (el .ndjson y los tres .hecho), y el
 # «reinicio»: tmpfs vacío.
 paso3_durable() { mkdir -m 0700 "${DUR}" && cp "${CONS}" "${D}/chatwoot-seco.hecho" "${D}/studio-ensayo.hecho" "${D}/chatwoot-borrar.hecho" "${DUR}/"; }
@@ -315,19 +317,21 @@ dv; rc=$?
 # MUTANTES: una copia del guion sin la línea de cada guarda (marcada `# guarda:<nombre>`); su caso tiene que fallar.
 mkdir -p "${T}/mut"
 cp "${DS}/deshacer-vinculos.sql" "${T}/mut/"
+# Cada mutante cuenta solo si su caso PASA con el guion real y FALLA con el mutante: si no, el mutante no prueba nada.
 mutantes=0
 for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_tenant viejo:caso_ensayo_viejo \
            ensayo:caso_aplicar_sin_ensayo borrar:caso_aplicar_sin_borrar despues:caso_cambian_durante \
            respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 durable_fijo:caso_durable_fijo; do
   g="${par%%:*}"; caso="${par#*:}"
   [ "$(grep -c "# guarda:${g}\$" "${DS}/deshacer-vinculos.sh")" = 1 ] || { ko "mutante ${g}: la marca no está una sola vez"; continue; }
+  "${caso}" || { ko "control: ${caso} no pasa con el guion real, así que el mutante «${g}» no prueba nada"; continue; }
   grep -v "# guarda:${g}\$" "${DS}/deshacer-vinculos.sh" > "${T}/mut/deshacer-vinculos.sh"
   if DV_GUION="${T}/mut/deshacer-vinculos.sh" "${caso}"; then ko "mutante sin la guarda «${g}» sobrevive (${caso})"
   else ok "mutante sin la guarda «${g}» cae (${caso})"; mutantes=$((mutantes+1)); fi
 done
 [ "${mutantes}" = 11 ] && ok "PISO: caen los 11 mutantes del orden y de la carpeta durable" || ko "caen ${mutantes} de 11 mutantes"
-# Control: el guion de verdad pasa todos los casos que los mutantes rompen.
-DV_GUION="${DS}/deshacer-vinculos.sh" caso_seco_falta && caso_aplicar_sin_borrar && caso_reinicio && caso_copias_distintas && ok "control: el guion sin mutar pasa los casos de los mutantes" || ko "control del guion sin mutar"
+# Control: el guion de verdad pasa los casos de los mutantes (cada uno se comprobó también dentro del bucle).
+caso_seco_falta && caso_aplicar_sin_borrar && caso_reinicio && caso_copias_distintas && caso_ensayo_ok && caso_ensayo_viejo && ok "control: el guion sin mutar pasa los casos de los mutantes" || ko "control del guion sin mutar"
 sin_hecho; rm -rf "${DUR}"
 rm -f "${CONS}"
 
@@ -371,6 +375,7 @@ mutantes_c=0
 for par in aplicar:caso_cierre_sin_aplicar sha_cierre:caso_cierre_otro_sha; do
   g="${par%%:*}"; caso="${par#*:}"
   [ "$(grep -c "# guarda:${g}\$" "${PH}/limpiar.sh")" = 1 ] || { ko "mutante ${g}: la marca no está una sola vez"; continue; }
+  "${caso}" || { ko "control: ${caso} no pasa con limpiar.sh real, así que el mutante «${g}» no prueba nada"; continue; }
   grep -v "# guarda:${g}\$" "${PH}/limpiar.sh" > "${T}/mut/limpiar.sh"
   if LC_GUION="${T}/mut/limpiar.sh" "${caso}"; then ko "mutante de limpiar.sh sin la guarda «${g}» sobrevive (${caso})"
   else ok "mutante de limpiar.sh sin la guarda «${g}» cae (${caso})"; mutantes_c=$((mutantes_c+1)); fi
@@ -392,6 +397,7 @@ caso_abandono_con_borrar_durable && ok "limpiar.sh --abandono-4-6b con chatwoot-
 caso_abandono_con_borrar_tmpfs && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en tmpfs se niega y no toca nada" || ko "abandono con borrar en tmpfs: $(cat "${T}/lc.log")"
 # MUTANTE del abandono: sin la guarda, borraría la durable después de un COMMIT de Chatwoot.
 [ "$(grep -c "# guarda:abandono\$" "${PH}/limpiar.sh")" = 1 ] || ko "mutante abandono: la marca no está una sola vez"
+caso_abandono_con_borrar_durable || ko "control: caso_abandono_con_borrar_durable no pasa con limpiar.sh real"
 grep -v "# guarda:abandono\$" "${PH}/limpiar.sh" > "${T}/mut/limpiar.sh"
 if LC_GUION="${T}/mut/limpiar.sh" caso_abandono_con_borrar_durable; then ko "mutante de limpiar.sh sin la guarda «abandono» sobrevive"
 else ok "mutante de limpiar.sh sin la guarda «abandono» cae (caso_abandono_con_borrar_durable)"; fi
