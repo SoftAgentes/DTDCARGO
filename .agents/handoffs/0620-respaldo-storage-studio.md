@@ -28,7 +28,7 @@ Criterios de aceptación de la spec: 1, 2, 3 y 5 cumplidos en código y en la pr
 |---|---|---|
 | `prueba-respaldo-storage.sh` en Git Bash (Windows) | `9c2e01cb5`, copia de scratch con 3 adaptaciones solo locales: `/run/lock` → `/tmp/lock` en `backup.sh`, `WORK_ROOT` `/dev/shm` → `/tmp` y un `flock` doble (Windows no tiene ni `/run`, ni `/dev/shm` escribible, ni flock). El resto, idéntico a lo commiteado (verificado con `diff`) | **PASÓ** 27 PASÓ · 0 FALLÓ. Log: `side-session-notes/…/prueba-respaldo-storage-9c2e01cb5-windows.log` |
 | Misma prueba sin adaptar, en Git Bash | `9c2e01cb5` | 24 PASÓ · 3 FALLÓ. Los 3 fallos (C4, «backup.sh sin storage» y M1 base limpia) son `/run/lock` inexistente en Windows, no defectos |
-| Misma prueba en Linux (CI ubuntu o Docker) | — | **NO EJECUTADO**: GitHub Actions no corre desde 2026-11-09 03:36Z (facturación) y Docker Desktop está apagado, porque al encenderlo levanta los 5,3 GB de loop-3d y pide turno |
+| Misma prueba en Linux (CI ubuntu o Docker) | — | **NO EJECUTADO**: GitHub Actions no corre desde 2026-11-09 03:36Z (facturación). El DG dio turno de Docker local (`ubuntu:24.04` desechable, sin las adaptaciones), con la condición de no forzarlo si Docker Desktop no estaba levantado. No lo estaba (sin proceso `Docker Desktop.exe`, sin daemon), así que no se encendió: al encenderlo levanta los 5,3 GB de loop-3d |
 | `age` real (ida y vuelta) | — | **NO EJECUTADO**: no hay `age` en esta PC. La prueba lo usa sola si encuentra `/usr/bin/age` |
 | `prueba-backup-dtd.sh` (adaptada) | — | **NO EJECUTADO**: es del VPS, como root con Docker. No se toca el VPS |
 | `bash -n` de los 6 scripts tocados | HEAD | PASÓ |
@@ -63,7 +63,7 @@ Rama `claude/respaldo-storage-studio-4e17a7`, **sin publicar**. Actions está bl
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **La #479 no es la que nombró el DG.** La #479 abierta es «SDD-0586 · runbook de las puertas» y no toca `backup-restore-servidor.md`. Las líneas `r2:dtdcargo-backups/db…` de §2 y §3 siguen sin corregir en main. No las toqué.
+- **Las líneas r2 de la base no son de esta PR.** La #479 publicada no toca `backup-restore-servidor.md`. El DG confirmó que la vuelta de E10 que todavía no se publicó corrige `:84`-`:86`, `:185` y `:187`. Esta PR solo cambia §1 (la fila del Storage) y §5, para que las dos no choquen; si chocan, lo resuelve el DG en el tren.
 - `inventario-terceros.md:46` todavía dice que Backblaze está «todavía sin datos reales». Producción respalda allí desde octubre. Corregir el estado le toca a privacidad.
 - La credencial de subida a B2 es la misma que borra (H7 de la revisión del traslado). Sigue abierta.
 - El DPA de Backblaze sigue NO VERIFICABLE.
@@ -71,7 +71,7 @@ Rama `claude/respaldo-storage-studio-4e17a7`, **sin publicar**. Actions está bl
 
 ## HANDOFF AL DIRECTOR
 
-Listo en local (3 commits + handoff). Hace falta tu decisión: ¿publico la rama con un push para que corra el CI cuando vuelva Actions, o me das turno para correr la prueba en Docker local? Después, la revisión independiente y el OK nominal de Sam para el guion de instalación.
+Listo en local. Por orden del DG, no se publica hasta que él avise que Actions volvió. Entonces: push de la rama, PR en borrador, CI verde, revisión independiente que lanza el DG y, aparte, el OK nominal de Sam para el guion de instalación.
 
 ## Impacto documental
 
