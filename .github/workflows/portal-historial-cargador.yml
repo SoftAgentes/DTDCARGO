@@ -68,6 +68,8 @@ jobs:
   # las guardas tienen que caer. En su propio runner, en paralelo con el cargador.
   ensayo:
     name: Ensayo del portal en copias (datos inventados)
+    # Como el job cargador desde la SDD-0621: no corre en borradores.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:

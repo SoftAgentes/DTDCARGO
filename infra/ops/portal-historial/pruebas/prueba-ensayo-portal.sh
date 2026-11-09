@@ -16,6 +16,9 @@
 #   G3  ENSAYO_VOLCADO con los nombres reales de producción: se niega
 #   G4  --limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial
 #   G5  --limpiar con docker sin responder no borra nada y sale con 6
+#   G6  un ensayo que ya creó sus carpetas y termina con docker sin responder: las borra igual, conserva su código
+#       y anota docker_no_responde (revisión del DG de la vuelta 9, B1)
+#   N8  la comparación de los mutantes: un id que no existe sale como «(no existe)»
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
 #
 # Uso:  bash infra/ops/portal-historial/pruebas/prueba-ensayo-portal.sh [--conservar] [--sin-mutantes]
@@ -248,12 +251,26 @@ guardas() { # carpeta prefijo
   ensayo "$C" "$TRABAJO/$X-g4.txt" -- --limpiar
   exigir G4 '[ "$(cat /dev/shm/portal-historial/centinela 2>/dev/null)" = centinela ]' \
     "--limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial"
-  # G5: un docker que no responde (uno falso, primero en el PATH): ante la duda no se borra nada.
+  # G5: un docker que no responde (uno falso, primero en el PATH): ante la duda no se borra nada. Su propio centinela.
+  rm -rf -- /dev/shm/portal-historial
+  mkdir -m 700 /dev/shm/portal-historial && echo centinela >/dev/shm/portal-historial/centinela
   mkdir -p "$TRABAJO/docker-caido" && printf '#!/bin/sh\nexit 1\n' >"$TRABAJO/docker-caido/docker" && chmod +x "$TRABAJO/docker-caido/docker"
   ensayo "$C" "$TRABAJO/$X-g5.txt" "PATH=$TRABAJO/docker-caido:$PATH" -- --limpiar
   exigir G5 '[ "$(h "$TRABAJO/$X-g5.txt" salida_proceso)" = 6 ] && [ "$(h "$TRABAJO/$X-g5.txt.evidencia" error)" = docker_no_responde ] && [ "$(cat /dev/shm/portal-historial/centinela 2>/dev/null)" = centinela ]' \
     "--limpiar con docker sin responder: no borra nada y sale con 6 ($(h "$TRABAJO/$X-g5.txt" salida_proceso))"
   rm -rf -- /dev/shm/portal-historial
+  # G6: un ensayo de verdad que ya creó /dev/shm/portal-ensayo (CREADO=1) y en el que docker deja de responder justo
+  # después: un docker que pasa al real hasta que existe el compose.yml del ensayo, y desde ahí falla. Las copias no
+  # arrancan (P1, código 1) y la limpieza encuentra docker caído: tiene que borrar la carpeta igual, salir con 1 (no
+  # con 6) y anotar docker_no_responde.
+  mkdir -p "$TRABAJO/docker-se-cae"
+  printf '#!/bin/sh\n[ -e /dev/shm/portal-ensayo/compose.yml ] && exit 1\nexec %s "$@"\n' "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
+  chmod +x "$TRABAJO/docker-se-cae/docker"
+  ensayo "$C" "$TRABAJO/$X-g6.txt" "PATH=$TRABAJO/docker-se-cae:$PATH" --
+  [ -e /dev/shm/portal-ensayo ] && echo "HECHO carpeta_ensayo=queda" >>"$TRABAJO/$X-g6.txt"
+  rm -rf -- /dev/shm/portal-ensayo
+  exigir G6 '[ "$(h "$TRABAJO/$X-g6.txt" salida_proceso)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" ensayo_codigo)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" docker_no_responde)" = si ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_ensayo)" ]' \
+    "un ensayo que termina con docker sin responder: borra sus carpetas igual y sale con su código ($(h "$TRABAJO/$X-g6.txt" salida_proceso), no 6)"
   ensayo "$C" "$TRABAJO/$X-g3.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/no" PROD_PG=chatwoot-postgres-1 --
   exigir G3 '[ "$(h "$TRABAJO/$X-g3.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g3.txt.evidencia" error)" = volcado_fuera_de_la_prueba ] && [ ! -e "$TRABAJO/no" ]' \
     "ENSAYO_VOLCADO con el nombre real de producción: se niega ($(h "$TRABAJO/$X-g3.txt.evidencia" error))"
@@ -271,6 +288,22 @@ if n != 1:
 open(a, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$1" "$2" "$3"
 }
 cayeron_en() { local k; for k in "${!RES[@]}"; do [ "${RES[$k]}" = FALLÓ ] && echo "$k"; done | sort | tr '\n' ' '; }
+# no_cumplen estado id…: los ids cuyo resultado no es ese estado. Un id que no existe (mal escrito) no cuenta como caído
+# ni como pasado: sale como «id(no existe)» (N8 del DG).
+no_cumplen() {
+  local quiere="$1" c
+  shift
+  for c in "$@"; do
+    case "${RES[$c]:-}" in "$quiere") ;; FALLÓ | PASÓ) printf ' %s' "$c" ;; *) printf ' %s(no existe)' "$c" ;; esac
+  done
+}
+# N8: la prueba de la comparación, sin Docker: T1 cayó, T2 pasó, T9 no existe.
+RES=([T1]=FALLÓ [T2]=PASÓ)
+n8_caen="$(no_cumplen FALLÓ T1 T2 T9)"
+n8_pasan="$(no_cumplen PASÓ T2 T1 T9)"
+RES=()
+exigir N8 '[ "$n8_caen" = " T2 T9(no existe)" ] && [ "$n8_pasan" = " T1 T9(no existe)" ]' \
+  "la comparación de los mutantes: un id que no existe sale como «(no existe)» ([$n8_caen] y [$n8_pasan])"
 # mutante id qué archivo(copia-columnas.tsv|ensayo-portal.sh) caen pasan buscar reemplazo [guardas]
 mutante() {
   local id="$1" que="$2" arch="$3" caen="$4" pasan="$5" C="$TRABAJO/m/$1" faltan="" otro="" c
@@ -291,9 +324,8 @@ mutante() {
     comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
   fi
   MODO_LOG=1
-  # Un id que no existe (mal escrito) no cuenta como caído ni como pasado (N8 del DG).
-  for c in $caen; do case "${RES[$c]:-}" in FALLÓ) ;; PASÓ) faltan="$faltan $c" ;; *) faltan="$faltan $c(no existe)" ;; esac; done
-  for c in $pasan; do case "${RES[$c]:-}" in PASÓ) ;; FALLÓ) otro="$otro $c" ;; *) otro="$otro $c(no existe)" ;; esac; done
+  faltan="$(no_cumplen FALLÓ $caen)"
+  otro="$(no_cumplen PASÓ $pasan)"
   exigir "$id" '[ -z "$faltan" ] && [ -z "$otro" ]' \
     "$que: tienen que caer [$caen]${faltan:+ — SOBREVIVEN:$faltan}${otro:+ — CAEN POR OTRO CAMINO:$otro} · cayeron: $(cayeron_en)"
 }
@@ -351,6 +383,8 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M20 "el cargador pone teléfono a los contactos" cargar-portal.rb "E-V10" "T2 T4 E-E1 E-E2" \
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident," \
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident, phone_number: '+584127770009'," completo
+  mutante M27 "con docker caído, un ensayo de verdad no borra sus carpetas" ensayo-portal.sh "G6" "G1 G2 G3 G4 G5" \
+    'if [ "$CREADO" != 1 ]; then # --limpiar puro: ante la duda no se borra' 'if true; then' guardas
   mutante M25 "--limpiar borra aunque docker no responda" ensayo-portal.sh "G5" "G1 G2 G3 G4" \
     "case \"\$RECURSOS_ANTES\" in *'?'*)" "case \"\$RECURSOS_ANTES\" in *'nunca'*)" guardas
   mutante M26 "copia additional_attributes entero cuando no hay dtd_hilo" copia-columnas.tsv "T2" "T1 T4" \
