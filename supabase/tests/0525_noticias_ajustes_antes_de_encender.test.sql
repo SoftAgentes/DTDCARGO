@@ -221,6 +221,11 @@ begin
     and has_function_privilege('authenticated', 'public.news_texto_tiene_marca(text)', 'execute')
     and has_function_privilege('service_role', 'public.news_texto_tiene_marca(text)', 'execute'),
     '12: authenticated y service_role siguen ejecutando la marca y la huella');
+  -- create or replace conserva los grants de la 0518: solo un admin (authenticated) completa un motivo.
+  perform pg_temp.assert_true(
+    has_function_privilege('authenticated', 'public.news_salida_motivo(uuid,text,text)', 'execute')
+    and not has_function_privilege('anon', 'public.news_salida_motivo(uuid,text,text)', 'execute'),
+    '11: authenticated ejecuta news_salida_motivo y anon no');
 
   -- Una automática publicada.
   perform pg_temp.como('authenticated', sam, 'select public.news_autopublish_configurar(true, 1, 2)');

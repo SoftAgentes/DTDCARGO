@@ -6,13 +6,45 @@
  * expone `publish_via`, `seo_draft_id` y `content_sha256`, y
  * `publish_via = 'automatica'` declara la IA, contra §4.7. Esta prueba exige
  * a las cuatro lecturas de filas completas de `lib/public/news-queries.ts` una
- * lista explícita con exactamente las 19 columnas seguras del catálogo de
+ * lista explícita con exactamente las 18 columnas seguras del catálogo de
  * producción. No pide `created_by` ni `tenant_id`, ni las seis que `NewsPostRow`
  * declara y no existen en la base.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const pedidos: string[] = [];
+
+/** Archivos .ts/.tsx de una carpeta, sin pruebas. */
+function fuentes(dir: string): string[] {
+  const salida: string[] = [];
+  for (const e of readdirSync(join(process.cwd(), dir), { withFileTypes: true })) {
+    const rel = `${dir}/${e.name}`;
+    if (e.isDirectory()) {
+      if (e.name !== "__tests__") salida.push(...fuentes(rel));
+    } else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+      salida.push(rel);
+    }
+  }
+  return salida;
+}
+
+/**
+ * Cada `.from("news_posts")` con el `select` de su misma cadena: hasta el primer
+ * `;` o `.from(`, así no se toma el select de otra consulta.
+ */
+function lecturasDeNoticias(src: string): string[] {
+  const salida: string[] = [];
+  for (const m of src.matchAll(/\.from\(\s*["']news_posts["']\s*\)/g)) {
+    const resto = src.slice(m.index + m[0].length);
+    const fin = resto.search(/;|\.from\(/);
+    const cadena = fin === -1 ? resto : resto.slice(0, fin);
+    const sel = cadena.match(/\.select\(\s*([^)]*)\)/);
+    if (sel) salida.push(sel[1].trim());
+  }
+  return salida;
+}
 
 /** Doble encadenable del cliente: anota cada `select` y devuelve vacío. */
 function consulta() {
@@ -40,17 +72,17 @@ vi.mock("../supabase-anon", () => ({
  * Catálogo de producción de news_posts, leído por el DG el 2026-11-09 (estructura,
  * sin filas): 24 columnas, anon con SELECT en todas.
  *
- * SEGURAS: las 19 que el sitio puede leer.
+ * SEGURAS: las 18 que el sitio lee. `source` existe, pero ninguna página lo usa.
  */
 const SEGURAS = new Set([
   "id", "slug", "tipo", "categoria", "title", "excerpt", "body_markdown",
   "author_name", "author_role", "focus_keyword", "secondary_keywords",
   "meta_description", "pain_points", "date", "read_time_min", "published",
-  "source", "created_at", "updated_at",
+  "created_at", "updated_at",
 ]);
 
 /** Existen y no se piden: delatan la vía automática o son datos internos. */
-const PROHIBIDAS = ["publish_via", "seo_draft_id", "content_sha256", "tenant_id", "created_by"];
+const PROHIBIDAS = ["publish_via", "seo_draft_id", "content_sha256", "tenant_id", "created_by", "source"];
 
 /**
  * NO existen en producción, aunque lib/news/types.ts las declare opcionales:
@@ -83,7 +115,7 @@ describe("SDD-0611 C1 · columnas que lee el sitio público de news_posts", () =
     for (const p of pedidos) expect(p, p).not.toMatch(/(^|[:,\s])\*($|[,\s])/);
   });
 
-  it("ninguna pide publish_via, seo_draft_id, content_sha256, tenant_id ni created_by", async () => {
+  it("ninguna pide publish_via, seo_draft_id, content_sha256, tenant_id, created_by ni source", async () => {
     await leerTodo();
     for (const p of pedidos) {
       const columnas = p.split(":")[1].split(",").map((c) => c.trim());
@@ -99,7 +131,7 @@ describe("SDD-0611 C1 · columnas que lee el sitio público de news_posts", () =
     }
   });
 
-  it("las cuatro lecturas de filas completas piden exactamente las 19 seguras", async () => {
+  it("las cuatro lecturas de filas completas piden exactamente las 18 seguras", async () => {
     await leerTodo();
     const completas = pedidos.filter((p) => p.startsWith("news_posts:") && p !== "news_posts:slug");
     expect(completas.length).toBe(4);
@@ -107,5 +139,22 @@ describe("SDD-0611 C1 · columnas que lee el sitio público de news_posts", () =
       const columnas = p.split(":")[1].split(",").map((c) => c.trim());
       expect(new Set(columnas), p).toEqual(SEGURAS);
     }
+  });
+});
+
+describe("SDD-0611 C1 · ninguna lectura de news_posts pide `*` (estático)", () => {
+  it("lib/news, lib/public y lib/studio/news nunca hacen select(\"*\") sobre news_posts", () => {
+    const lecturas: string[] = [];
+    for (const dir of ["lib/news", "lib/public", "lib/studio/news"]) {
+      for (const f of fuentes(dir)) {
+        for (const sel of lecturasDeNoticias(readFileSync(join(process.cwd(), f), "utf8"))) {
+          lecturas.push(`${f}: ${sel}`);
+        }
+      }
+    }
+    // Piso: hoy son 10 (news-queries 5, autopublicar 3, slugify 1 y writers 1).
+    // Si el recorrido dejara de encontrarlas, no puede salir verde.
+    expect(lecturas.length, lecturas.join("\n")).toBeGreaterThanOrEqual(10);
+    for (const l of lecturas) expect(l, l).not.toMatch(/:\s*["'`]\s*\*\s*["'`]$/);
   });
 });

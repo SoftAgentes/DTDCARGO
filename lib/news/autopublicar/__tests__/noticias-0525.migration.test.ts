@@ -129,6 +129,16 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0525: C2: se puede borrar en Auth",
   },
   {
+    nombre: "news_salida_motivo queda ejecutable por anon",
+    sql: () =>
+      once(
+        FILE_0525,
+        "-- ─── 3. anon sin EXECUTE sobre las funciones de marca y huella ───────────────",
+        "grant execute on function public.news_salida_motivo(uuid, text, text) to anon;\n-- ─── 3. anon sin EXECUTE sobre las funciones de marca y huella ───────────────",
+      ),
+    cae: "TEST 0525: 11: authenticated ejecuta news_salida_motivo y anon no",
+  },
+  {
     nombre: "news_salida_motivo acepta un motivo nulo",
     sql: () => once(FILE_0525, "if p_motivo is null or p_motivo not in (", "if p_motivo not in ("),
     cae: "TEST 0525: 11: un motivo nulo se rechaza",
@@ -188,6 +198,6 @@ describe("SDD-0611 · 0525 ajustes antes de encender (PGlite)", () => {
   );
 
   it("hay un mutante por defecto protegido (piso)", () => {
-    expect(MUTANTES.length).toBeGreaterThanOrEqual(9);
+    expect(MUTANTES.length).toBeGreaterThanOrEqual(10);
   });
 });
