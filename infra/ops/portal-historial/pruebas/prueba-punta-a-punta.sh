@@ -298,8 +298,6 @@ f_comprobar() {
 f_corrida "$PH/cargar.sh"
 f_comprobar
 
-# ── B. el contacto_id nulo: espera la 0524 ───────────────────────────────────
-
 # ── F (datos personales): ni nombres ni textos en las salidas de cargar.sh ───
 fugas=0
 for f in "$TRABAJO"/seco.txt "$TRABAJO"/carga-1.txt "$TRABAJO"/carga-2.txt "$TRABAJO"/f1.txt "$TRABAJO"/f3.txt "$TRABAJO/vinculos-1.ndjson"; do
