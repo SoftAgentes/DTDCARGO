@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# infra/chatwoot/pruebas/portal/prueba-portal-poc.sh — prueba de concepto de la ida del chat del portal a Chatwoot
-# (SDD-0586, paso 10.5, §10.5.15: PoC-1, PoC-2, PoC-3 y PoC-5) contra una instancia EFÍMERA de Chatwoot
+# infra/chatwoot/pruebas/portal/prueba-portal-poc.sh — prueba de concepto de la ida y la vuelta del chat del portal
+# en Chatwoot (SDD-0586, paso 10.5, §10.5.15: PoC-1, PoC-2, PoC-3, PoC-5 y PoC-6; desde la PR 1b, también la
+# vuelta y la salud del webhook) contra una instancia EFÍMERA de Chatwoot
 # v4.19.1-ce: el compose real de infra/chatwoot (imagen fijada por digest) con su Postgres, su Redis, Rails y
 # Sidekiq. Corre en GitHub Actions (.github/workflows/chatwoot-portal-poc.yml) o en una PC con Docker; nunca en el
 # VPS. Solo datos inventados y secretos generados al azar para esta corrida, sin nada del repositorio.
@@ -8,8 +9,10 @@
 #   1. Levanta Postgres y Redis, migra (db:chatwoot_prepare) y prepara la cuenta con la sonda: administrador con
 #      token, bandeja API «Conversaciones del portal» y webhook de cuenta al receptor de la red interna.
 #   2. Levanta Rails (en 127.0.0.1:3000 del runner), Sidekiq y el receptor.
-#   3. Corre lib/studio/chatwoot/__tests__/portal.poc.test.ts con el cliente REAL de Studio (router-api.ts y
-#      portal.ts) contra esa instancia. Cada PoC es una prueba con su PASÓ o FALLÓ. La PoC-5b corre
+#   3. Corre lib/studio/chatwoot/__tests__/portal.poc.test.ts (la ida) y portal-vuelta.poc.test.ts (la vuelta, la
+#      nota privada y la salud del webhook, PR 1b) y portal-estado.poc.test.ts (la reapertura PoC-4, el estado y la
+#      conciliación, 1c-2) con el cliente REAL de Studio (router-api.ts, portal.ts,
+#      portal-manejadores.ts y webhook-salud.ts) contra esa instancia. Cada PoC es una prueba con su PASÓ o FALLÓ. La PoC-5b corre
 #      carga-webhook-poc.rb en la misma instancia: Chatwoot no entrega webhooks a un host sin IP pública, así que el
 #      receptor solo sirve para medir ese rechazo (MEDIDA al final).
 #
@@ -58,7 +61,7 @@ cp "$CW/compose.yml" "$D/"
 cp -r "$CW/rails" "$CW/marca" "$CW/correo" "$D/"
 cp "$CW/pruebas/compose.local.yml" "$D/compose.override.yml"
 cp "$AQUI/compose.portal-poc.yml" "$D/"
-cp "$AQUI/sonda-portal-poc.rb" "$AQUI/carga-webhook-poc.rb" "$AQUI/receptor-webhook.mjs" "$D/poc/"
+cp "$AQUI/sonda-portal-poc.rb" "$AQUI/carga-webhook-poc.rb" "$AQUI/carga-saliente-poc.rb" "$AQUI/receptor-webhook.mjs" "$D/poc/"
 chmod 0777 "$D/estado"
 cat >"$D/.env" <<EOF
 CHATWOOT_HOST=chat.prueba.test
@@ -84,14 +87,16 @@ BASE=(-f compose.yml -f compose.override.yml -f compose.portal-poc.yml)
 echo "== 1. Postgres, Redis, migración y sonda"
 dc up -d --wait postgres redis >"$TRABAJO/up-base.txt" 2>&1 || falla_arranque "Postgres/Redis no arrancaron" postgres redis
 dc run --rm -T prepare >"$TRABAJO/prepare.txt" 2>&1 </dev/null || { tail -n 60 "$TRABAJO/prepare.txt"; falla_arranque "db:chatwoot_prepare falló"; }
-dc run --rm -T -e SALIDA=/tmp/estado/sonda.txt -e WEBHOOK_URL=http://receptor:8080/webhook prepare \
+dc run --rm -T -e SALIDA=/tmp/estado/sonda.txt -e WEBHOOK_URL=http://receptor:8080/api/chatwoot/webhook prepare \
   bundle exec rails runner /tmp/poc/sonda-portal-poc.rb >"$TRABAJO/sonda.txt" 2>&1 </dev/null \
   || { tail -n 60 "$TRABAJO/sonda.txt"; falla_arranque "la sonda falló"; }
 grep -q '^HECHO sonda=ok' "$TRABAJO/sonda.txt" || { tail -n 40 "$TRABAJO/sonda.txt"; falla_arranque "la sonda no terminó"; }
 CUENTA="$(leer cuenta)"
 BANDEJA="$(leer bandeja)"
 TOKEN="$(leer token)"
-[ -n "$CUENTA" ] && [ -n "$BANDEJA" ] && [ -n "$TOKEN" ] || falla_arranque "la sonda no dejó cuenta, bandeja y token"
+USUARIO="$(leer usuario)"
+[ -n "$CUENTA" ] && [ -n "$BANDEJA" ] && [ -n "$TOKEN" ] && [ -n "$USUARIO" ] \
+  || falla_arranque "la sonda no dejó cuenta, bandeja, token y usuario"
 echo "   cuenta $CUENTA, bandeja $BANDEJA, webhook_url del canal: $(leer webhook_url_del_canal) (el token no se imprime)"
 
 echo "== 2. Rails, Sidekiq y el receptor"
@@ -109,9 +114,13 @@ CHATWOOT_POC_ORIGIN=http://127.0.0.1:3000 \
 CHATWOOT_POC_CUENTA="$CUENTA" \
 CHATWOOT_POC_BANDEJA="$BANDEJA" \
 CHATWOOT_POC_TOKEN="$TOKEN" \
+CHATWOOT_POC_USUARIO="$USUARIO" \
+CHATWOOT_POC_CANAL_CON_URL="$(leer webhook_url_del_canal)" \
 CHATWOOT_POC_STACK="$D" \
 CHATWOOT_POC_PROYECTO="$P" \
-  pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts --reporter=verbose --maxWorkers=1
+  pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts \
+    lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts \
+    --reporter=verbose --maxWorkers=1
 CODIGO=$?
 # MEDIDA de la PoC-5: Chatwoot 4.19.1 no entrega un webhook a un host sin IP pública (el receptor de la red interna).
 BLOQUEOS="$(dc logs --no-color sidekiq 2>/dev/null | grep -c 'has no public ip addresses')"

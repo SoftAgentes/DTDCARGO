@@ -54,7 +54,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.3.2"
+VERSION = "1.3.3"
+# Las dos etiquetas de los 403, las mismas en informe.md y en el log de empaquetar (SDD-0590 §10.18).
+# `mensajes_sin_acceso_403` cuenta conversaciones cuyos mensajes dieron 403, no mensajes.
+ETIQUETA_403_CONVERSACIONES = "Conversaciones sin acceso (HTTP 403)"
+ETIQUETA_403_MENSAJES = "Conversaciones con mensajes sin acceso (HTTP 403)"
 # 5.5b: copias en claro de los adjuntos, dentro del staging (tmpfs), solo para el cargador del Archivo Kommo.
 CARPETA_ADJUNTOS_CARGA = "adjuntos-carga"
 SOLAPE_HORAS_POR_DEFECTO = 24
@@ -1510,8 +1514,8 @@ def informe_md(r: dict) -> str:
               "## Resumen\n",
               _tabla({"Conversaciones (talks) consultadas": t["total_consultadas"],
                       "Conversaciones vistas en los eventos": t["en_eventos"],
-                      "Conversaciones sin acceso (HTTP 403)": t["sin_acceso_403"],
-                      "Conversaciones con mensajes sin acceso (HTTP 403)": t["mensajes_sin_acceso_403"],
+                      ETIQUETA_403_CONVERSACIONES: t["sin_acceso_403"],
+                      ETIQUETA_403_MENSAJES: t["mensajes_sin_acceso_403"],
                       "Conversaciones con mensajes": m["conversaciones_con_mensajes"],
                       "Conversaciones con actividad en los últimos 12 meses": m["conversaciones_con_actividad_12m"],
                       "Conversaciones con actividad en los últimos 24 meses": m["conversaciones_con_actividad_24m"],
@@ -1683,8 +1687,8 @@ def cmd_empaquetar(args, log: Log) -> int:
         f"{manifiesto['destinatarios']['etiquetas']} ({manifiesto['destinatarios']['claves_publicas']} claves)")
     inf = manifiesto["informe"]
     log("empaquetar: sin informe (--sin-informe), anotado en el manifiesto" if inf is None else
-        f"empaquetar: el manifiesto lleva el informe ({inf['conversaciones_sin_acceso_403']} conversaciones y "
-        f"{inf['mensajes_sin_acceso_403']} mensajes sin acceso por 403)")
+        f"empaquetar: el manifiesto lleva el informe ({ETIQUETA_403_CONVERSACIONES.lower()}: "
+        f"{inf['conversaciones_sin_acceso_403']}; {ETIQUETA_403_MENSAJES.lower()}: {inf['mensajes_sin_acceso_403']})")
     return 0
 
 

@@ -15,12 +15,17 @@
  *      (`Webhooks::Trigger#execute` rescata el error; solo reintenta agentes
  *      bot), así que el 500 sirve a una reentrega manual o a un reproceso propio.
  *
+ * SDD-0586 (10.5, PR 1b): con la bandeja del portal configurada, la ruta le pasa a
+ * `responderAlPortal` la respuesta del equipo en ESA bandeja (`salientePortalDelPayload`), con
+ * su texto. De las demás bandejas no lee el texto: `interpretarEvento` sigue sin llevarlo.
+ *
  * No se registra el cuerpo, ni cabeceras con la firma, ni el texto del mensaje.
  */
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/db/admin";
-import { chatwootWebhookConfig } from "@/lib/studio/chatwoot/config";
+import { chatwootPortalConfig, chatwootWebhookConfig } from "@/lib/studio/chatwoot/config";
+import { salientePortalDelPayload } from "@/lib/studio/chatwoot/portal-manejadores";
 import { leerCuerpoAcotado } from "@/lib/studio/chatwoot/webhook-body";
 import { verificarFirmaChatwoot } from "@/lib/studio/chatwoot/webhook-signature";
 import { interpretarContactoDelEvento, interpretarEvento } from "@/lib/studio/chatwoot/webhook-events";
@@ -55,9 +60,17 @@ export async function POST(req: Request) {
   if (!evento) return NextResponse.json({ ok: true, ignored: "evento" });
   if (evento.accountId !== cfg.accountId) return NextResponse.json({ ok: true, ignored: "cuenta" });
 
+  const portal = chatwootPortalConfig();
   try {
     const r = await procesarEventoChatwoot(
-      { admin: createAdminClient(), tenantId: cfg.tenantId, contacto: interpretarContactoDelEvento(payload) },
+      {
+        admin: createAdminClient(),
+        tenantId: cfg.tenantId,
+        contacto: interpretarContactoDelEvento(payload),
+        ...(portal && evento.evento === "message_created"
+          ? { salientePortal: salientePortalDelPayload(payload, portal.inboxPortalId) }
+          : {}),
+      },
       evento,
     );
     if (r.estado === "fallido") return NextResponse.json({ ok: false, error: "manejador" }, { status: 500 });

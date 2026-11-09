@@ -113,6 +113,8 @@ EOF
 then
   mkdir -p "$W/c4/supabase"
   cp -r "$REPO/supabase/migrations" "$REPO/supabase/tests" "$W/c4/supabase/"
+  # Los contratos de los cargadores de una sola vez (SDD-0616) incluyen su script con \ir ../cargas/…
+  if [ -d "$REPO/supabase/cargas" ]; then cp -r "$REPO/supabase/cargas" "$W/c4/supabase/"; fi
   correr c4 SQL_TEST_PG_IMAGE="$LENTA"
   if [ "$(rc c4)" = 0 ] && tiene c4 "contratos de SQL en verde"; then
     ok C4 "con la fase temporal del initdb alargada 8 s, $(grep -o '[0-9]* de [0-9]* contratos en verde' "$W/c4.log" | head -n 1): la espera no confunde el servidor temporal con el definitivo"
