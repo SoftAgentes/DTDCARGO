@@ -281,11 +281,16 @@ parte_borrar() { # carpeta salidas
   if [ "$(h "$O/contar-d11.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ]; then
     # recargar borra /dev/shm/portal-historial: el .ndjson y los .hecho del seco y del ensayo se guardan y se devuelven.
     rm -rf -- "$O/shm-guardado" && cp -a "$SHM" "$O/shm-guardado"
+    # El chatwoot-borrar.hecho que dejó el borrado colado no es del seco ni del ensayo: no se devuelve (si no, la guarda
+    # de la evidencia niega D15 y D5, el rojo del run 42618396536).
+    rm -f -- "$O/shm-guardado/chatwoot-borrar.hecho"
     recargar
     rm -rf -- "$SHM" && cp -a "$O/shm-guardado" "$SHM"
     echo "HECHO recargado_antes_de_d5=si" >>"$O/contar-d11.txt"
   fi
-  rm -rf -- "$TRABAJO/durable"
+  # D15 empieza sin la evidencia de un borrado: ni la durable ni chatwoot-borrar.hecho en tmpfs. En la corrida real no
+  # hay nada que quitar (D4 y D11 lo exigen).
+  rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   # El ensayo de Studio (paso 2), como lo escribe E10, con el sha256 del .ndjson del seco.
   printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
     "$sha" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
@@ -297,9 +302,10 @@ parte_borrar() { # carpeta salidas
   { [ -e "$SHM/chatwoot-borrar.hecho" ] || [ -e "$DUR/chatwoot-borrar.hecho" ]; } && echo "HECHO hecho_sin_commit=si" >>"$O/d15.txt"
   echo "HECHO durable_d15=$(find "$DUR" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort | tr '\n' ',')" >>"$O/d15.txt"
   sonda "$O/quitar-d15.txt" FASE=quitar-ajeno
-  # D5 empieza con la durable limpia: así un mutante que deja el .inicio en D15 (MD33) cae solo en D15, no en D5 por
-  # la guarda de la evidencia (condición del DG: cada mutante cae en su propio caso).
-  rm -rf -- "$TRABAJO/durable"
+  # D5 empieza con la durable limpia y sin chatwoot-borrar.hecho en tmpfs: así un mutante que deja el .inicio (MD33) o el
+  # .hecho (MD30) en D15 cae solo en D15, no en D5 por la guarda de la evidencia (condición del DG: cada mutante cae en
+  # su propio caso). En la corrida real D15 exige que el .hecho no exista.
+  rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   # D5: el borrado (paso 3): deja la copia durable, borra y escribe chatwoot-borrar.hecho en las dos copias.
   deshacer "$O/d5.txt" "$K" borrar CONFIRMAR=si
   limpio_desde_afuera && echo "HECHO limpio_desde_afuera=si" >>"$O/d5.txt"
@@ -606,8 +612,10 @@ if [ "$MUTANTES" = 1 ]; then
     '[ "$sha_seco" = "$sha_actual" ] && [ "$sha_ensayo" = "$sha_actual" ] || mal el_sha256_de_los_conservados_no_coincide' ':'
   mutante MD26 "no compara el tenant de los .hecho" deshacer.sh borrar "D11c" "D2 D5" \
     '[ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide' ':'
+  # MD27 crea la carpeta sin copiar los tres archivos: sin carpeta, el .inicio no se escribe y D5 aborta (bien), pero
+  # el mutante tiene que caer solo en D14.
   mutante MD27 "sin la copia durable" deshacer.sh borrar "D14" "D2 D5" \
-    '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  :'
+    '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  install -d -m 0700 "$DURABLE"'
   mutante MD28 "la copia durable con permisos abiertos" deshacer.sh borrar "D14" "D2 D5" \
     'install -d -m 0700 "$DURABLE"' 'install -d -m 0755 "$DURABLE"'
   mutante MD21 "no mira el tenant de los conservados" deshacer-carga.rb borrar "D9" "D2" \
