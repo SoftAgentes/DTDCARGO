@@ -72,4 +72,8 @@ File.open(File.join(dir, 'estado.txt'), 'w') { |f| SondaPortal.estado(out: f, di
   paso.call("rechazo-guarda-#{cual}", "preparado-guarda-#{cual}.ndjson")
 end
 SondaPortal.concurrencia(dir: dir)
+# 4.10: al final, porque deja una restricción en contacts (solo para los nombres SINT-LOG-<esta cuenta>).
+SondaPortal.log_postgres(dir: dir)
+mover.call('rechazo-log')
+mover.call('rechazo-sin-super')
 puts 'HECHO escenario=ok'

@@ -569,6 +569,7 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 5. encender el interruptor.
 
 **El guion de las puertas,** con las condiciones de la revisión de datos personales de la #455 y la #456, la 0524 y las decisiones del DG del 2026-11-08, **está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../runbooks/chatwoot-portal-p4-puertas.md).** Sam eligió, literal, «Esperar la carga» (2026-11-08): el portal se enciende después de P4. El camino corto «Encender sin el historial» queda como anexo del runbook. Esta spec no repite el guion.
+- **La prevención del log (#470):** el cargador fija con `SET LOCAL` `log_min_error_statement = 'panic'` y `log_error_verbosity = 'terse'` dentro de su transacción, antes del primer `insert_all`, y si no los puede fijar, no carga (`error=no_se_puede_bajar_el_detalle_del_log`). Lo aprobó el DG el 2026-11-08 (`rolsuper = t`, Postgres 16.12). La prueba del cargador lo mide con la marca `SINT-LOG-…` (L1 a L3, mutantes M35 a M38). El conteo del log sigue: ver el runbook, 4.10.
 
 **Conteo para el Director General.** Contar las conversaciones en producción pide su propio OK, así que aquí no se contó nada. La consulta queda lista y la corre el Director General: es de solo lectura y devuelve solo conteos y fechas, sin texto, nombres ni ids de clientes. Se corre en el contenedor de la base de Studio con `psql -v tenant=<uuid del tenant> -f <archivo>`:
 
