@@ -474,7 +474,9 @@ case "$PARTE" in todo | a | b | c) ;; *) echo "PARTE tiene que ser a, b, c o tod
 en_parte() { # id del mutante: ¿corre en esta parte?
   local suya=a
   case "$1" in
-    MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD27 | MD28 | MD30 | MD32 | MD33) suya=b ;;
+    # La parte b tardó 54 min de 60 (job 129163939032 y run 42628321142): MD27, MD28 y MD30 (unos 4 min cada uno) pasan
+    # a la parte a, que tardaba 28. Corren igual sobre el escenario del borrado.
+    MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD32 | MD33) suya=b ;;
     MD1 | MD2 | MD15 | MD16 | MD17 | MD18 | MD19 | MD31) suya=c ;;
   esac
   [ "$PARTE" = todo ] || [ "$PARTE" = "$suya" ]
