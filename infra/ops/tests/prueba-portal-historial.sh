@@ -295,6 +295,10 @@ caso_durable_no_0700() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.he
 caso_ensayo_no_usa_durable() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "
   paso3_durable || return 1; reinicio; : > "${FALSO_REGISTRO}"; dv; rc=$?
   [ "${rc}" != 0 ] && grep -q 'sin_contactos_conservados' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+# El simétrico de caso_durable_fijo: la durable es la fija y el archivo de SISTEMA no, sin DESHACER_PRUEBA. Sin la
+# guarda, el ensayo seguiría y llamaría a psql (la durable fija no existe en el runner, y el ensayo no la usa).
+caso_sistema_fijo() { [ ! -e /srv/ops/portal-historial/deshacer ] || return 1; sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; PRUEBA_DV= DURABLE_DV=/srv/ops/portal-historial/deshacer dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sistema_no_es_el_archivo_fijo' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
 caso_durable_fijo() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; PRUEBA_DV= dv; rc=$?
   [ "${rc}" != 0 ] && grep -q 'durable_no_es_srv_ops_portal_historial_deshacer' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
 
@@ -365,6 +369,7 @@ caso_sistema_rechaza '%s\r\n' && ok "SISTEMA con CR se rechaza sin llamar a psql
 caso_sistema_rechaza '%s \n' && ok "SISTEMA con un espacio se rechaza sin llamar a psql" || ko "SISTEMA con espacio: $(cat "${T}/dv.log")"
 caso_sistema_rechaza '%s\n1\n' && ok "SISTEMA con una segunda línea se rechaza sin llamar a psql" || ko "SISTEMA con dos líneas: $(cat "${T}/dv.log")"
 poner_sistema
+caso_sistema_fijo && ok "fuera de la prueba, el archivo de SISTEMA es solo /srv/ops/portal-historial/sistema-produccion" || ko "SISTEMA no fijo: $(cat "${T}/dv.log")"
 caso_durable_fijo && ok "fuera de la prueba, la durable es solo /srv/ops/portal-historial/deshacer" || ko "durable no fija: $(cat "${T}/dv.log")"
 sin_hecho
 printf '%s' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"
@@ -416,13 +421,13 @@ mutantes=0
 for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_tenant viejo:caso_ensayo_viejo \
            ensayo:caso_aplicar_sin_ensayo borrar:caso_aplicar_sin_borrar despues:caso_cambian_durante \
            respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 durable_fijo:caso_durable_fijo \
-           viejo_durable:caso_aplicar_viejo; do
+           viejo_durable:caso_aplicar_viejo sistema_fijo:caso_sistema_fijo; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" deshacer-vinculos.sh
   [ "$r" = 0 ] && mutantes=$((mutantes+1))
 done
-[ "${mutantes}" = 12 ] && ok "PISO: caen los 12 mutantes del orden y de la carpeta durable" || ko "caen ${mutantes} de 12 mutantes"
+[ "${mutantes}" = 13 ] && ok "PISO: caen los 13 mutantes del orden, de la carpeta durable y de la ruta de SISTEMA" || ko "caen ${mutantes} de 13 mutantes"
 # MUTANTES de SISTEMA (con la misma regla): uno calcula el sha corto con echo (con salto de línea), otro imprime el
 # valor en lugar del sha. Los dos tienen que caer en caso_sistema_sha_corto.
 mutantes_s=0
@@ -474,15 +479,19 @@ lc --otra; rc=$?
 [ "${rc}" != 0 ] && grep -q 'opcion_desconocida' "${T}/lc.log" && ok "limpiar.sh rechaza una opción desconocida" || ko "limpiar.sh con opción desconocida: ${rc}"
 rm -rf "${DUR}"; mkdir -p -m 0700 "${D}"; : > "${D}/x"; PRUEBA_DV= lc --cierre-4-6b; rc=$?
 [ "${rc}" != 0 ] && grep -q 'durable_no_es_srv_ops_portal_historial_deshacer' "${T}/lc.log" && [ -e "${D}/x" ] && ok "fuera de la prueba, el cierre usa solo la durable fija" || ko "cierre con durable no fija: $(cat "${T}/lc.log")"
+# Si la durable real existe (en el VPS), estos dos casos no corren: el mutante de limpiar.sh la borraría.
+caso_limpiar_sistema_fijo() { [ ! -e /srv/ops/portal-historial/deshacer ] || return 1; sin_hecho; : > "${D}/x"; PRUEBA_DV= DURABLE_DV=/srv/ops/portal-historial/deshacer lc --abandono-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sistema_no_es_el_archivo_fijo' "${T}/lc.log" && [ -e "${D}/x" ] && [ -e "${SIS}" ]; }
+caso_limpiar_sistema_fijo && ok "fuera de la prueba, limpiar.sh usa solo el archivo de SISTEMA fijo, y no borra nada" || ko "limpiar con SISTEMA no fijo: $(cat "${T}/lc.log")"
 # MUTANTES del cierre: una copia de limpiar.sh sin la guarda; su caso tiene que fallar (con la misma regla).
 mutantes_c=0
-for par in aplicar:caso_cierre_sin_aplicar_ni_ndjson sha_cierre:caso_cierre_otro_sha; do
+for par in aplicar:caso_cierre_sin_aplicar_ni_ndjson sha_cierre:caso_cierre_otro_sha sistema_fijo:caso_limpiar_sistema_fijo; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante LC_GUION "${PH}/limpiar.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" limpiar.sh
   [ "$r" = 0 ] && mutantes_c=$((mutantes_c+1))
 done
-[ "${mutantes_c}" = 2 ] && ok "PISO: caen los 2 mutantes del cierre" || ko "caen ${mutantes_c} de 2 mutantes del cierre"
+[ "${mutantes_c}" = 3 ] && ok "PISO: caen los 3 mutantes del cierre y de la ruta de SISTEMA" || ko "caen ${mutantes_c} de 3 mutantes del cierre"
 rm -rf "${D}" "${DUR}"
 
 # ── limpiar.sh --abandono-4-6b (abandonar el 4.6b antes de que el paso 3 confirme) ──

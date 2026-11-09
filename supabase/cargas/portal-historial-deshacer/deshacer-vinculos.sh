@@ -51,7 +51,6 @@ umask 077
 # existe antes), y lo borran el cierre o el abandono del 4.6b (limpiar.sh).
 [ -z "${SISTEMA:-}" ] || { echo "HECHO error=sistema_va_en_el_archivo_no_en_el_entorno" >&2; exit 2; }
 SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-/srv/ops/portal-historial/sistema-produccion}"
-[ "$SISTEMA_ARCHIVO" = /srv/ops/portal-historial/sistema-produccion ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=sistema_no_es_el_archivo_fijo" >&2; exit 2; }
 sha_corto() { printf '%s' "$1" | sha256sum | cut -c1-10; } # guarda:sistema_printf
 leer_sistema() {
   local f="$SISTEMA_ARCHIVO" v=""
@@ -77,6 +76,8 @@ if [ "$DIR" != /dev/shm/portal-historial ]; then
   exit 2
 fi
 [ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || { [ "${DESHACER_PRUEBA:-}" = 1 ] && [ "${DURABLE%/deshacer}" != "$DURABLE" ]; } || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; } # guarda:durable_fijo
+# La ruta de SISTEMA, después de la de la durable: cada guarda se prueba sola (revisión del rojo de be22af8a3).
+[ "$SISTEMA_ARCHIVO" = /srv/ops/portal-historial/sistema-produccion ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=sistema_no_es_el_archivo_fijo" >&2; exit 2; } # guarda:sistema_fijo
 case "$MODO" in
   ensayo) FIN=rollback; PROPIA=studio-ensayo.hecho; PASO=studio_ensayo ;;
   aplicar) FIN=commit; PROPIA=studio-aplicar.hecho; PASO=studio_aplicar ;;

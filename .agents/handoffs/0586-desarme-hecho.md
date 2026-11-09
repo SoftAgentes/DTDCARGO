@@ -265,3 +265,21 @@ Lo que se hizo:
 **Cuándo sale:** con la próxima vuelta de la #480, si la revisión pide algo, o en su cierre, junto con el piso.
 
 **El hueco encontrado en `8a1b1043b`:** el lector de `SISTEMA` usaba `IFS= read -r v`, que toma solo la primera línea. Un `sistema-produccion` con dos líneas, por ejemplo el valor bueno y algo más debajo, pasaba la guarda. `d1462319e` lo cierra: cuenta los bytes y acepta a lo sumo un salto de línea. El Subdirector pidió publicarlo antes de la revisión del DG, para que el DG no revise una cabeza con ese hueco.
+
+## El rojo de `be22af8a3` (run 42625844829): el orden de las guardas
+
+**El resultado:** `prueba-portal-historial.sh` dio 121 PASÓ y 4 FALLÓ.
+- Fallaron `durable no fija` y `cierre con durable no fija`, los dos con `sistema_no_es_el_archivo_fijo`.
+- El mutante `durable_fijo` «no prueba nada», y por eso cayeron 11 de 12.
+
+**La causa:** la guarda de la ruta de `SISTEMA` (8a1b1043b) quedó **antes** que la de la durable, en los dos guiones. Los casos de «durable no fija» corren sin `DESHACER_PRUEBA`. Así, su archivo de `SISTEMA`, `${T}/…`, tampoco es el fijo, y esa guarda se niega primero.
+
+**El arreglo,** con el OK del Subdirector y sin aflojar ningún caso:
+- La guarda de la ruta de `SISTEMA` va después de la de la durable, con `# guarda:sistema_fijo`, en `deshacer-vinculos.sh` y en `limpiar.sh`.
+- **El caso simétrico:** la durable es la fija y el `SISTEMA` no. Es `caso_sistema_fijo`, para el ensayo, y `caso_limpiar_sistema_fijo`, para el abandono. Los dos tienen su mutante y se niegan a correr si existe la durable real.
+- Los PISOS pasan a 13 en el desarme y a 3 en el cierre.
+- El piso de portal-historial en el runner pasa a 121, el último verde.
+
+**El mismo push** lleva también:
+- el merge de `main` `b5669b1a5`;
+- `4bad0c203`, donde el comentario y el README dicen «lo deja el 3.0».
