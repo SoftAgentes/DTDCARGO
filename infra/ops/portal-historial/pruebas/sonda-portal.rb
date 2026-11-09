@@ -17,6 +17,10 @@
 #                                 negarse sin escribir (G12).
 #   FASE=concurrencia DIR=<carpeta>  dos cargas a la vez, en dos hilos, sobre una cuenta nueva cuyos contactos ya
 #                                 existen: con el candado, una se niega y queda una sola copia (G13).
+#   FASE=log-postgres DIR=<carpeta>  4.10: un insert_all que falla por un CHECK inyectado, con un contacto de nombre
+#                                 SINT-LOG-<cuenta>-<sal>: la marca no puede salir en el log de Postgres (lo lee la prueba
+#                                 con `docker compose logs`). Un control fuera del cargador prueba que el log sí la
+#                                 escribiría. Después, la carga con un rol sin superusuario tiene que negarse.
 #   Las tres últimas cargan el cargador como biblioteca (CARGADOR_RB, por defecto /tmp/cargador/cargar-portal.rb).
 #
 # escenario-portal.rb la carga sin FASE y llama a SondaPortal.preparar y .verificar en el mismo proceso. Cada
@@ -494,6 +498,64 @@ module SondaPortal
     out.puts "HECHO estado_h1=#{Conversation.statuses.key(st) || st}"
   end
 
+  # L1 a L3 (SDD-0586 4.10). La restricción se nombra por la cuenta y compara md5: ni la marca ni el control quedan
+  # escritos en el DDL, y en el log cada escenario tiene su propio nombre de restricción.
+  def log_postgres(dir:)
+    cargador!
+    b = JSON.parse(File.read(File.join(dir, 'base.json')))
+    cuenta = Integer(b['cuenta'])
+    sal = SecureRandom.hex(4) # con la cuenta sola, SINT-LOG-4 se encontraría dentro de SINT-LOG-40
+    marca = "SINT-LOG-#{cuenta}-#{sal}"
+    control = "SINT-LOG-CONTROL-#{cuenta}-#{sal}"
+    restriccion = "sint_log_#{cuenta}"
+    conexion = ActiveRecord::Base.connection
+    conexion.execute("ALTER TABLE contacts ADD CONSTRAINT #{restriccion} CHECK (md5(name) NOT IN " \
+                     "(#{conexion.quote(Digest::MD5.hexdigest(marca))}, #{conexion.quote(Digest::MD5.hexdigest(control))}))")
+    File.open(File.join(dir, 'log-postgres.txt'), 'w') do |out|
+      out.puts "HECHO log_restriccion=#{restriccion}"
+      out.puts "HECHO log_marca=#{marca}"
+      out.puts "HECHO log_control=#{control}"
+      # Control: el mismo insert_all, fuera del cargador y sin los SET LOCAL. Tiene que fallar y quedar en el log.
+      control_fallo = begin
+        ActiveRecord::Base.transaction(requires_new: true) do
+          ahora = Time.zone.now
+          Contact.insert_all([{ account_id: cuenta, name: control, identifier: "dtd-portal:#{SecureRandom.uuid}",
+                                created_at: ahora, updated_at: ahora }])
+        end
+        'no'
+      rescue ActiveRecord::StatementInvalid
+        'si'
+      end
+      out.puts "HECHO log_control_fallo=#{control_fallo}"
+    end
+    # Un contacto nuevo con la marca en el nombre: el primer insert_all de la carga falla por la restricción.
+    lineas = File.readlines(File.join(dir, 'preparado.ndjson'), chomp: true).map { |l| JSON.parse(l) }
+    lineas[0]['contactos'] += 1
+    nuevo = { 'tipo' => 'contacto', 'cliente' => SecureRandom.uuid, 'identificador' => SecureRandom.uuid, 'nombre' => marca }
+    escribir(File.join(dir, 'preparado-log.ndjson'), [lineas[0], nuevo, *lineas.drop(1)])
+    cargar_en_proceso(dir: dir, nombre: 'rechazo-log', archivo: 'preparado-log.ndjson')
+    # L3: con un rol que no es superusuario no se pueden fijar los dos parámetros, y la carga no entra. El rol lee
+    # todo (las comprobaciones de antes de la transacción), pero no escribe.
+    sin_super = 'sint_sin_super'
+    unless conexion.select_value("SELECT 1 FROM pg_roles WHERE rolname = '#{sin_super}'")
+      conexion.execute("CREATE ROLE #{sin_super} NOLOGIN NOSUPERUSER")
+    end
+    conexion.execute("GRANT SELECT ON ALL TABLES IN SCHEMA public TO #{sin_super}")
+    conexion.execute("GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO #{sin_super}")
+    begin
+      conexion.execute("SET ROLE #{sin_super}")
+      cargar_en_proceso(dir: dir, nombre: 'rechazo-sin-super', archivo: 'preparado-log.ndjson')
+    ensure
+      conexion.execute('RESET ROLE')
+    end
+    File.open(File.join(dir, 'log-postgres.txt'), 'a') do |out|
+      out.puts "HECHO log_contactos_marca=#{Contact.where(account_id: cuenta, name: [marca, control]).count}"
+      out.puts 'HECHO log_postgres=ok'
+    end
+  rescue StandardError, ScriptError => e
+    File.open(File.join(dir, 'log-postgres.txt'), 'a') { |out| out.puts "HECHO log_postgres=error:#{e.class}" }
+  end
+
   # G12: el candado de la carga, tomado desde otra conexión.
   def candado(dir:)
     cargador!
@@ -519,5 +581,6 @@ when 'candado' then SondaPortal.candado(dir: ENV.fetch('DIR'))
 when 'concurrencia' then SondaPortal.concurrencia(dir: ENV.fetch('DIR'))
 when 'estado' then SondaPortal.estado(out: $stdout, dir: ENV.fetch('DIR'))
 when 'estados' then SondaPortal.estados(out: $stdout, dir: ENV.fetch('DIR'))
+when 'log-postgres' then SondaPortal.log_postgres(dir: ENV.fetch('DIR'))
 when 'guardas' then SondaPortal.guardas(out: $stdout, dir: ENV.fetch('DIR'), cual: ENV.fetch('CUAL'))
 end

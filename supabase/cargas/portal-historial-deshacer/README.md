@@ -39,6 +39,7 @@ ENTORNO=produccion SISTEMA=<system_identifier> MODO=ensayo bash deshacer-vinculo
 - **Solo sirve antes de encender `chatwoot_portal`:** se niega si el flag está encendido o se encendió alguna vez, o si la cola corrió.
   - **Ojo: un encendido por SQL directo no deja auditoría.** «Se encendió alguna vez» se lee en `entity_audit_log`, que solo escribe el panel. Si alguien encendió y apagó por SQL, esa guarda no lo ve. Lo cubre solo en parte la guarda de la salida: si la cola alcanzó a correr, deja filas que no están `cargado`. Por eso el paso 4.3 del runbook exige las cuatro condiciones juntas, y el flag se enciende solo desde el panel.
   - **La fila del flag queda tomada** (`for update`) mientras dura la transacción, para que nadie la encienda a mitad de la corrida.
+- **La guarda de entorno funciona con el rol `postgres` del VPS** (medido el 2026-11-08 por el DG, solo metadata). En producción y en prueba, `postgres` tiene `rolsuper = f`, pero puede leer `pg_control_system()` y `pg_db_role_setting`. El runbook lo comprueba antes del ensayo del 4.6b: si da 42501, se para.
 - **Las guardas, que abortan sin escribir:**
   - el entorno;
   - los parámetros;
