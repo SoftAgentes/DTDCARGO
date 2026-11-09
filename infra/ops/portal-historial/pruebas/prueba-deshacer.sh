@@ -282,14 +282,14 @@ parte_borrar() { # carpeta salidas
     # recargar borra /dev/shm/portal-historial: el .ndjson y los .hecho del seco y del ensayo se guardan y se devuelven.
     rm -rf -- "$O/shm-guardado" && cp -a "$SHM" "$O/shm-guardado"
     # El chatwoot-borrar.hecho que dejó el borrado colado no es del seco ni del ensayo: no se devuelve (si no, la guarda
-    # de la evidencia niega D15 y D5, el rojo del run 42618396536).
+    # de la evidencia niega D15 y D5, el rojo del run 42618396536). En la corrida real D4 y D15 ya exigen que no exista.
     rm -f -- "$O/shm-guardado/chatwoot-borrar.hecho"
     recargar
     rm -rf -- "$SHM" && cp -a "$O/shm-guardado" "$SHM"
     echo "HECHO recargado_antes_de_d5=si" >>"$O/contar-d11.txt"
   fi
   # D15 empieza sin la evidencia de un borrado: ni la durable ni chatwoot-borrar.hecho en tmpfs. En la corrida real no
-  # hay nada que quitar (D4 y D11 lo exigen).
+  # hay nada que quitar: D4 y D15 ya exigen que no exista.
   rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   # El ensayo de Studio (paso 2), como lo escribe E10, con el sha256 del .ndjson del seco.
   printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
@@ -304,7 +304,7 @@ parte_borrar() { # carpeta salidas
   sonda "$O/quitar-d15.txt" FASE=quitar-ajeno
   # D5 empieza con la durable limpia y sin chatwoot-borrar.hecho en tmpfs: así un mutante que deja el .inicio (MD33) o el
   # .hecho (MD30) en D15 cae solo en D15, no en D5 por la guarda de la evidencia (condición del DG: cada mutante cae en
-  # su propio caso). En la corrida real D15 exige que el .hecho no exista.
+  # su propio caso). En la corrida real D4 y D15 ya exigen que no exista.
   rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   # D5: el borrado (paso 3): deja la copia durable, borra y escribe chatwoot-borrar.hecho en las dos copias.
   deshacer "$O/d5.txt" "$K" borrar CONFIRMAR=si
