@@ -2,30 +2,41 @@
 # infra/ops/backup/storage-backup.sh — respaldo CIFRADO de los archivos del Storage de Studio (SDD-0620).
 #
 # Con STORAGE_BACKEND=file, storage-api guarda los objetos en
-# /srv/<proyecto>/data/storage (bind a /var/lib/storage). El dump de la base solo
-# trae la metadata (`storage.objects`); los bytes viven en esa carpeta y sin esto
-# no están en ningún respaldo propio.
+# /srv/<proyecto>/data/storage (bind a /var/lib/storage), y en los xattrs
+# `user.supabase.*` de cada archivo su Content-Type y su Cache-Control. El dump
+# de la base solo trae la metadata (`storage.objects`): los bytes y esos xattrs
+# viven en esa carpeta y sin esto no están en ningún respaldo propio.
 #
 # Qué hace:
 #   1. comprueba origen, destinatarios, espacio en disco y que haya archivos
-#   2. un solo `tar` del origen alimenta, por tuberías, tres consumidores:
-#        · age → <base>.tar.age                 (el respaldo)
-#        · tar --to-command → age → <base>-lista.age  (sha256, bytes y ruta de
-#          cada archivo, sacados de los MISMOS bytes que se cifran)
+#   2. un solo `tar --format=posix --xattrs` del origen alimenta, por tuberías,
+#      tres consumidores:
+#        · age → <base>.tar.age                       (el respaldo)
+#        · storage-lista.py → age → <base>-lista.age  (sha256, bytes, huella de
+#          xattrs y ruta de cada archivo, sacados de los MISMOS bytes que se cifran)
 #        · sha256sum → huella del flujo en claro (va al manifiesto)
 #      Nada en claro toca el disco: el contenido pasa por tuberías y FIFOs
 #      (en --work-dir, /dev/shm por omisión); solo se escriben `.age`.
 #   3. <base>.manifiesto, en claro y sin datos personales: sello, conteo, bytes,
 #      huella del flujo y sha256 de los dos `.age`. Sin rutas: los nombres de
-#      archivo pueden traer nombres de personas, por eso la lista va cifrada.
+#      archivo pueden traer nombres de personas y el Shipping Mark.
 #   4. rclone copy de los tres a <remoto>/<proyecto>/ (nunca sync) y rclone check
 #   5. retención: rclone delete --min-age <N>d SOLO dentro de <remoto>/<proyecto>/;
 #      en disco local quedan los --keep-local respaldos más nuevos
 #
+# Rutas fuera del log: lo que tar o la lista escriben en stderr (avisos que
+# nombran archivos) queda en --work-dir y se borra; el log solo dice cuántos.
+#
+# Guarda contra un borrado masivo: si el conteo cae por debajo de --min-pct (50)
+# del último respaldo aceptado (`<proyecto>-storage.referencia`), el respaldo se
+# sube igual pero NO se aplica la retención (ni remota ni local) y sale 1: sin
+# latido, alguien mira. Sigue así cada día hasta que una persona lo acepte con
+# --aceptar-caida (runbook §5.1).
+#
 # Consistencia: storage-api sigue sirviendo mientras corre. Un archivo que cambia
-# a mitad de lectura hace que tar salga 1 («file changed as we read it»): se
-# avisa en el log y en el manifiesto (aviso_tar=1) y el respaldo sigue, igual que
-# la lista, que sale del mismo flujo. tar ≥ 2 es fallo.
+# a mitad de lectura hace que tar salga 1: se avisa (aviso_tar=1 en el
+# manifiesto) y el respaldo sigue, igual que la lista, que sale del mismo flujo.
+# tar ≥ 2 es fallo.
 #
 # Restaurar o comprobar: storage-restore.sh (mismo directorio).
 #
@@ -33,18 +44,18 @@
 #   storage-backup.sh --project <nombre> --source /srv/<proyecto>/data/storage \
 #       --remote <remoto>:<bucket>/<prefijo> --age-recipients <archivo> \
 #       [--out /srv/backups] [--work-dir /dev/shm] [--rclone-config /srv/ops/backup/rclone] \
-#       [--retention-days 30] [--keep-local 2] [--min-files 1] [--aviso-gb 10] [--dry-run]
+#       [--retention-days 30] [--keep-local 2] [--min-files 1] [--min-pct 50] \
+#       [--aviso-gb 10] [--aceptar-caida] [--dry-run]
 #
 # --dry-run valida todo, cuenta archivos y bytes del origen (solo metadatos) y no
 # escribe nada. `AGE_BIN` y `RCLONE_BIN` cambian los binarios (las pruebas usan
 # dobles); sin RCLONE_BIN, rclone corre en contenedor como en pg-dump-to-s3.sh.
-# Códigos: 0 hecho · 1 fallo durante el respaldo · 2 argumentos o entorno inválidos.
+# Necesita en el host: age, GNU tar, python3 y Docker (para rclone).
+# Códigos: 0 hecho · 1 fallo, o caída del conteo · 2 argumentos o entorno inválidos.
 set -euo pipefail
 umask 077
 
-# STORAGE_LISTA_CMD (la lista por archivo, la misma que usa el restore).
-# shellcheck source=../lib/storage-lista.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/storage-lista.sh"
+LISTA="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/storage-lista.py"
 
 PROJECT=""
 SOURCE=""
@@ -57,12 +68,14 @@ RCLONE_IMAGE="rclone/rclone:1.75.1"
 RETENTION_DAYS="30"
 KEEP_LOCAL="2"
 MIN_FILES="1"
+MIN_PCT="50"
 AVISO_GB="10"
+ACEPTAR_CAIDA=0
 DRY_RUN=0
 AGE_BIN="${AGE_BIN:-age}"
 RCLONE_BIN="${RCLONE_BIN:-}"
 
-usage() { sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,55p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 die() { echo "storage-backup: $*" >&2; exit 2; }
 falla() { echo "storage-backup: $*" >&2; exit 1; }
@@ -81,7 +94,9 @@ while [[ $# -gt 0 ]]; do
     --retention-days) setopt RETENTION_DAYS "${2-}"; shift 2 ;;
     --keep-local) setopt KEEP_LOCAL "${2-}"; shift 2 ;;
     --min-files) setopt MIN_FILES "${2-}"; shift 2 ;;
+    --min-pct) setopt MIN_PCT "${2-}"; shift 2 ;;
     --aviso-gb) setopt AVISO_GB "${2-}"; shift 2 ;;
+    --aceptar-caida) ACEPTAR_CAIDA=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
@@ -98,6 +113,7 @@ SOURCE="$(readlink -f "${SOURCE}")"
 for n in RETENTION_DAYS KEEP_LOCAL MIN_FILES AVISO_GB; do
   [[ "${!n}" =~ ^[1-9][0-9]*$ ]] || die "--$(tr '[:upper:]_' '[:lower:]-' <<< "${n}") debe ser un entero ≥ 1"
 done
+[[ "${MIN_PCT}" =~ ^[0-9]+$ ]] && (( MIN_PCT <= 100 )) || die "--min-pct debe ser un entero entre 0 y 100"
 [[ "${RCLONE_IMAGE}" != *:latest && "${RCLONE_IMAGE}" == *:* ]] || die "--rclone-image debe llevar tag fijo"
 # El cifrado se valida también en dry-run: un timer mal configurado tiene que
 # fallar en la prueba, no la primera noche.
@@ -109,7 +125,9 @@ fi
 grep -Eq '^[[:space:]]*(age1[0-9a-z]{20,}|ssh-(ed25519|rsa) [A-Za-z0-9+/=]{20,})' "${AGE_RECIPIENTS}" \
   || die "${AGE_RECIPIENTS} no tiene ninguna clave pública age válida"
 command -v "${AGE_BIN}" >/dev/null || die "age no está instalado (${AGE_BIN})"
-tar --version 2>/dev/null | grep -q 'GNU tar' || die "hace falta GNU tar (--to-command)"
+tar --version 2>/dev/null | grep -q 'GNU tar' || die "hace falta GNU tar (--xattrs)"
+command -v python3 >/dev/null || die "hace falta python3 (la lista por archivo)"
+[[ -f "${LISTA}" ]] || die "no encuentro ${LISTA}; ¿está desplegado infra/ops/lib?"
 [[ -d "${WORK_ROOT}" && -w "${WORK_ROOT}" ]] || die "--work-dir ${WORK_ROOT} no existe o no se puede escribir"
 if [[ -z "${RCLONE_BIN}" ]] && (( ! DRY_RUN )); then
   [[ -f "${RCLONE_CONFIG}/rclone.conf" ]] || die "no existe ${RCLONE_CONFIG}/rclone.conf"
@@ -117,8 +135,10 @@ if [[ -z "${RCLONE_BIN}" ]] && (( ! DRY_RUN )); then
 fi
 
 # Solo metadatos: cuántos archivos y cuántos bytes. No se lee ningún contenido.
-en_disco="$(find "${SOURCE}" -type f | wc -l | tr -d ' ')"
-bytes_disco="$(du -sb "${SOURCE}" | cut -f1)"
+# Sin stderr: un archivo que desaparece a mitad del conteo se nombraría en el log.
+en_disco="$(find "${SOURCE}" -type f 2>/dev/null | wc -l | tr -d ' ')"
+bytes_disco="$(du -sb "${SOURCE}" 2>/dev/null | cut -f1 || true)"
+[[ "${bytes_disco}" =~ ^[0-9]+$ ]] || die "no se pudo medir el tamaño de ${SOURCE}"
 (( en_disco >= MIN_FILES )) || die "el Storage tiene ${en_disco} archivos en ${SOURCE} y se esperaban al menos ${MIN_FILES}: ¿es la carpeta correcta?"
 if (( bytes_disco > AVISO_GB * 1024 * 1024 * 1024 )); then
   log "AVISO: el Storage pasa de ${AVISO_GB} GB ($(( bytes_disco / 1024 / 1024 )) MB): revisar la estrategia (spec 0620, «Si el Storage crece»)"
@@ -132,6 +152,7 @@ base="${PROJECT}-storage-${stamp}"
 tar_age="${dir}/${base}.tar.age"
 lista_age="${dir}/${base}-lista.age"
 manif="${dir}/${base}.manifiesto"
+referencia="${dir}/${PROJECT}-storage.referencia"
 
 if (( DRY_RUN )); then
   log "dry-run: ${en_disco} archivos, $(( bytes_disco / 1024 / 1024 )) MB en ${SOURCE}"
@@ -172,31 +193,33 @@ fi
 log "respaldo del Storage de ${PROJECT}: ${en_disco} archivos, $(( bytes_disco / 1024 / 1024 )) MB → ${dir} y ${remote_dir}"
 
 # ── 2. Un tar, tres consumidores. Los FIFOs no guardan datos: solo conectan. ──
+# El stderr de tar y de la lista nombra archivos: va a ${work} (RAM) y se borra.
 log "1/4 tar | age (sin copia en claro; FIFOs en ${WORK_ROOT})"
 mkfifo -m 600 "${work}/a-lista" "${work}/a-sha" "${work}/b-cuenta"
 awk '{ n++; b += $2 } END { printf "%d %d\n", n, b }' < "${work}/b-cuenta" > "${work}/cuenta" &
 p_cuenta=$!
-# Desde ${work}: --to-command no crea nada, pero si algún tar lo hiciera, caería en RAM.
-( cd "${work}" && LC_ALL=C tar -xf - --to-command="${STORAGE_LISTA_CMD}" < "${work}/a-lista" \
+( python3 -I "${LISTA}" flujo < "${work}/a-lista" 2> "${work}/lista.err" \
     | tee "${work}/b-cuenta" | "${AGE_BIN}" -R "${AGE_RECIPIENTS}" > "${lista_age}.part" ) &
 p_lista=$!
 ( sha256sum < "${work}/a-sha" | cut -c1-64 > "${work}/flujo.sha" ) &
 p_sha=$!
 set +e
-LC_ALL=C tar -C "${SOURCE}" --numeric-owner -cf - . | tee "${work}/a-lista" "${work}/a-sha" | "${AGE_BIN}" -R "${AGE_RECIPIENTS}" > "${tar_age}.part"
+LC_ALL=C tar -C "${SOURCE}" --format=posix --xattrs --xattrs-include='user.*' --numeric-owner -cf - . 2> "${work}/tar.err" | tee "${work}/a-lista" "${work}/a-sha" | "${AGE_BIN}" -R "${AGE_RECIPIENTS}" > "${tar_age}.part"
 st=("${PIPESTATUS[@]}")
 wait "${p_lista}"; r_lista=$?
 wait "${p_sha}"; r_sha=$?
 wait "${p_cuenta}"; r_cuenta=$?
 set -e
+avisos="$(grep -c . "${work}/tar.err" || true)"
+(( avisos == 0 )) || log "AVISO: tar escribió ${avisos} línea(s) de aviso; no se copian al log porque nombran archivos"
 aviso_tar=0
 case "${st[0]}" in
   0) ;;
   1) aviso_tar=1; log "AVISO: tar salió 1 (un archivo cambió o desapareció mientras se leía); la lista sale del mismo flujo y el respaldo sigue" ;;
-  *) falla "tar salió ${st[0]}" ;;
+  *) falla "tar salió ${st[0]} (${avisos} línea(s) de aviso, omitidas del log)" ;;
 esac
 (( st[1] == 0 && st[2] == 0 )) || falla "la tubería del respaldo falló (tee ${st[1]}, age ${st[2]})"
-(( r_lista == 0 )) || falla "la lista por archivo falló (${r_lista})"
+(( r_lista == 0 )) || falla "la lista por archivo falló (${r_lista}): $(grep -m1 '^storage-lista:' "${work}/lista.err" || echo 'sin detalle')"
 (( r_sha == 0 && r_cuenta == 0 )) || falla "la huella o el conteo del flujo fallaron (${r_sha}/${r_cuenta})"
 read -r archivos bytes < "${work}/cuenta"
 flujo_sha="$(cat "${work}/flujo.sha")"
@@ -224,12 +247,30 @@ log "2/4 manifiesto y sha256"
 } > "${manif}.part"
 mv "${manif}.part" "${manif}"
 
-# ── 4. Subida (copy, nunca sync), comprobación y retención acotada al prefijo. ──
+# ── 4. Subida (copy, nunca sync) y comprobación. ──
 log "3/4 rclone copy + check → ${remote_dir}"
 for f in "${tar_age}" "${lista_age}" "${manif}"; do
   rcl copy "${ldir}/$(basename "${f}")" "${remote_dir}"
 done
 rcl check "${ldir}/" "${remote_dir}" --one-way --include "/${base}*"
+
+# ── 5. Guarda contra un borrado masivo, y recién entonces la retención. ──
+# Referencia: el último respaldo aceptado; si no hay, el manifiesto local anterior.
+previo=""
+if [[ -f "${referencia}" ]]; then
+  previo="$(sed -n 's/^archivos=//p' "${referencia}" | tail -n1)"
+else
+  m_prev="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" -printf '%T@ %p\n' | sort -rn | head -n1 | cut -d' ' -f2-)"
+  [[ -n "${m_prev}" ]] && previo="$(sed -n 's/^archivos=//p' "${m_prev}" | tail -n1)"
+fi
+if [[ "${previo}" =~ ^[1-9][0-9]*$ ]] && (( archivos * 100 < previo * MIN_PCT )) && (( ! ACEPTAR_CAIDA )); then
+  log "✗ el Storage cayó de ${previo} a ${archivos} archivos (menos del ${MIN_PCT} %): el respaldo ${base} se subió, pero NO se aplica la retención para no perder los respaldos buenos"
+  log "  si la caída es legítima, una persona corre este script con --aceptar-caida (runbook §5.1)"
+  falla "caída del conteo del Storage: ${previo} → ${archivos}"
+fi
+printf 'archivos=%s\nsello=%s\n' "${archivos}" "${stamp}" > "${referencia}"
+if (( ACEPTAR_CAIDA )); then log "caída aceptada a mano: la referencia pasa a ${archivos} archivos"; fi
+
 log "4/4 retención: ${RETENTION_DAYS} d en ${remote_dir}, ${KEEP_LOCAL} respaldos en ${dir}"
 rcl delete --min-age "${RETENTION_DAYS}d" "${remote_dir}"
 find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" -printf '%T@ %p\n' \

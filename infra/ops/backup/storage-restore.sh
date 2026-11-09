@@ -7,20 +7,25 @@
 #
 # Dos modos, los dos con las mismas comprobaciones:
 #   --verificar          descifra y recorre el flujo SIN escribir ningún archivo:
-#                        la lista por archivo sale del flujo con tar --to-command
-#   --destino <carpeta>  restaura en esa carpeta (vacía o inexistente) y lee la
-#                        lista de lo que quedó en disco. Para la prueba mensual,
-#                        una carpeta desechable en /dev/shm; para un restore real,
-#                        una carpeta nueva al lado de data/storage (§5).
+#                        la lista por archivo sale del flujo (storage-lista.py)
+#   --destino <carpeta>  restaura en esa carpeta (vacía o inexistente), con los
+#                        xattrs `user.*` (Content-Type y Cache-Control de
+#                        storage-api), y lee la lista de lo que quedó en disco.
+#                        Para la prueba mensual, una carpeta desechable en
+#                        /dev/shm; para un restore real, una carpeta nueva al
+#                        lado de data/storage (§5.3).
 #
 # Comprobaciones (cada una imprime PASÓ o FALLÓ):
 #   1. sha256 de los dos .age contra el manifiesto, ANTES de descifrar
-#   2. huella sha256 del flujo descifrado = flujo_sha256 del manifiesto
-#   3. lista restaurada = lista cifrada del respaldo (mismos archivos, mismos sha256)
-#   4. conteo y bytes = los del manifiesto
+#   2. descifrado y tar sin errores
+#   3. huella sha256 del flujo descifrado = flujo_sha256 del manifiesto
+#   4. lista restaurada = lista cifrada del respaldo: mismas rutas, bytes,
+#      sha256 y xattrs `user.*` (comparados por huella; los valores no se imprimen)
+#   5. conteo y bytes = los del manifiesto
 #
-# La lista descifrada (rutas que pueden traer nombres de personas) y la clave
-# viven solo en --work-dir (/dev/shm); un trap borra la carpeta al salir.
+# La lista descifrada (rutas que pueden traer nombres de personas), los avisos
+# de tar (que nombran archivos) y la clave viven solo en --work-dir (/dev/shm);
+# un trap borra la carpeta al salir. La salida solo trae cifras.
 #
 # Uso:
 #   storage-restore.sh --dir <carpeta> --age-identity /dev/shm/clave.txt \
@@ -30,8 +35,7 @@
 set -euo pipefail
 umask 077
 
-# shellcheck source=../lib/storage-lista.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/storage-lista.sh"
+LISTA="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/storage-lista.py"
 
 DIR=""
 BASE=""
@@ -41,7 +45,7 @@ DESTINO=""
 WORK_ROOT="/dev/shm"
 AGE_BIN="${AGE_BIN:-age}"
 
-usage() { sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 die() { echo "storage-restore: $*" >&2; exit 2; }
 pass=0; fail=0
 ok() { echo "PASÓ  · $*"; pass=$((pass + 1)); }
@@ -64,6 +68,9 @@ done
 [[ -d "${DIR}" ]] || die "--dir no es una carpeta: '${DIR}'"
 [[ -f "${IDENTITY}" ]] || die "--age-identity no existe: '${IDENTITY}'"
 [[ -n "${MODO}" ]] || die "falta --verificar o --destino <carpeta>"
+# Rutas absolutas: el modo --verificar trabaja desde --work-dir.
+DIR="$(readlink -f "${DIR}")"
+IDENTITY="$(readlink -f "${IDENTITY}")"
 if [[ "${MODO}" == destino ]]; then
   [[ -n "${DESTINO}" ]] || die "--destino necesita una carpeta"
   if [[ -e "${DESTINO}" ]]; then
@@ -71,9 +78,12 @@ if [[ "${MODO}" == destino ]]; then
   else
     mkdir -m 700 -p "${DESTINO}"
   fi
+  DESTINO="$(readlink -f "${DESTINO}")"
 fi
 [[ -d "${WORK_ROOT}" && -w "${WORK_ROOT}" ]] || die "--work-dir ${WORK_ROOT} no existe o no se puede escribir"
-tar --version 2>/dev/null | grep -q 'GNU tar' || die "hace falta GNU tar (--to-command)"
+tar --version 2>/dev/null | grep -q 'GNU tar' || die "hace falta GNU tar (--xattrs)"
+command -v python3 >/dev/null || die "hace falta python3 (la lista por archivo)"
+[[ -f "${LISTA}" ]] || die "no encuentro ${LISTA}; ¿está desplegado infra/ops/lib?"
 if [[ -z "${BASE}" ]]; then
   m="$(find "${DIR}" -maxdepth 1 -type f -name '*-storage-*.manifiesto' | sort | tail -n1)"
   [[ -n "${m}" ]] || die "no hay ningún *-storage-*.manifiesto en ${DIR}"
@@ -100,8 +110,8 @@ else
   termina
 fi
 
-# 2-4. Descifrar la lista (a RAM) y el flujo (a tuberías, o a --destino).
-if ! "${AGE_BIN}" -d -i "${IDENTITY}" < "${lista_age}" | LC_ALL=C sort > "${work}/lista-respaldo"; then
+# 2-5. Descifrar la lista (a RAM) y el flujo (a tuberías, o a --destino).
+if ! "${AGE_BIN}" -d -i "${IDENTITY}" < "${lista_age}" > "${work}/lista-respaldo" 2> "${work}/age.err"; then
   ko "no se pudo descifrar la lista con esa clave"; termina
 fi
 mkfifo -m 600 "${work}/a-sha"
@@ -110,23 +120,29 @@ p_sha=$!
 set +e
 if [[ "${MODO}" == verificar ]]; then
   (cd "${work}" && "${AGE_BIN}" -d -i "${IDENTITY}" < "${tar_age}" | tee "${work}/a-sha" \
-    | LC_ALL=C tar -xf - --to-command="${STORAGE_LISTA_CMD}" > "${work}/lista-flujo")
+    | python3 -I "${LISTA}" flujo > "${work}/lista-flujo") 2> "${work}/flujo.err"
 else
-  "${AGE_BIN}" -d -i "${IDENTITY}" < "${tar_age}" | tee "${work}/a-sha" | LC_ALL=C tar -C "${DESTINO}" --numeric-owner -xf -
+  "${AGE_BIN}" -d -i "${IDENTITY}" < "${tar_age}" 2> "${work}/age.err" | tee "${work}/a-sha" \
+    | LC_ALL=C tar -C "${DESTINO}" --xattrs --xattrs-include='user.*' --numeric-owner -xf - 2> "${work}/flujo.err"
 fi
 r=$?
 wait "${p_sha}"; r_sha=$?
 set -e
-if (( r == 0 && r_sha == 0 )); then ok "descifrado y tar sin errores"; else ko "descifrado o tar fallaron (${r}/${r_sha})"; fi
-if [[ "${MODO}" == destino ]]; then storage_lista_de_carpeta "${DESTINO}" > "${work}/lista-flujo"; fi
-LC_ALL=C sort -o "${work}/lista-flujo" "${work}/lista-flujo"
+avisos="$(grep -c . "${work}/flujo.err" || true)"
+if (( r == 0 && r_sha == 0 )); then ok "descifrado y tar sin errores"; else ko "descifrado o tar fallaron (${r}/${r_sha}; ${avisos} línea(s) de error, omitidas porque nombran archivos)"; fi
+if [[ "${MODO}" == destino ]]; then
+  python3 -I "${LISTA}" carpeta "${DESTINO}" > "${work}/lista-flujo" 2> "${work}/carpeta.err" \
+    || ko "no se pudo leer la carpeta restaurada: $(grep -m1 '^storage-lista:' "${work}/carpeta.err" || echo 'sin detalle')"
+fi
 
 [[ "$(cat "${work}/flujo.sha" 2>/dev/null)" == "${m_sha}" ]] \
   && ok "huella del flujo descifrado = la del manifiesto" || ko "huella del flujo descifrado distinta de la del manifiesto"
 if cmp -s "${work}/lista-respaldo" "${work}/lista-flujo"; then
-  ok "los archivos restaurados son los del respaldo: mismas rutas, bytes y sha256"
+  ok "los archivos restaurados son los del respaldo: mismas rutas, bytes, sha256 y xattrs user.*"
 else
-  ko "lo restaurado no coincide con la lista del respaldo: $(LC_ALL=C comm -23 "${work}/lista-respaldo" "${work}/lista-flujo" | wc -l) faltan o cambian, $(LC_ALL=C comm -13 "${work}/lista-respaldo" "${work}/lista-flujo" | wc -l) sobran"
+  faltan="$(LC_ALL=C comm -23 "${work}/lista-respaldo" "${work}/lista-flujo" | wc -l)"
+  sobran="$(LC_ALL=C comm -13 "${work}/lista-respaldo" "${work}/lista-flujo" | wc -l)"
+  ko "lo restaurado no coincide con la lista del respaldo: ${faltan} faltan o cambian (contenido o xattrs), ${sobran} sobran"
 fi
 n="$(wc -l < "${work}/lista-flujo" | tr -d ' ')"
 b="$(awk '{ s += $2 } END { printf "%d", s }' "${work}/lista-flujo")"

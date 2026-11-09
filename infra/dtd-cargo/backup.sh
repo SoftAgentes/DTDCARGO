@@ -2,7 +2,7 @@
 # infra/dtd-cargo/backup.sh — respaldo diario CIFRADO de DTD Cargo en el servidor (SDD-0505).
 #
 # Lo corre el timer de systemd (systemd/dtd-cargo-backup.timer, 06:00 UTC = 02:00
-# en Caracas) desde /srv/dtd-cargo. Envuelve los dos scripts de /srv/ops/backup
+# en Caracas) desde /srv/dtd-cargo. Envuelve los tres scripts de /srv/ops/backup
 # con los valores del `.env` que está al lado:
 #   1. pg-dump-to-s3.sh: dump de la base + roles + permisos de public, cifrados
 #      con age para la clave pública de Sam, al bucket de Backblaze; retención
