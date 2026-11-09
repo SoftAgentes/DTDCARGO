@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { runDaily, spawnRunner, summarizeCheck, parseArgs, EXIT } from '../knowledge-daily.mjs';
+import { runDaily, spawnRunner, summarizeCheck, parseArgs, mechanicalSteps, EXIT } from '../knowledge-daily.mjs';
 
 // Git real en carpetas temporales; Graphify, Archify y la bóveda son dobles:
 // cada paso mecánico es un `node -e` que deja constancia en un archivo.
@@ -205,6 +205,126 @@ test('el guion nunca invoca commit, push, reset, stash, clean ni rm', (t) => {
   const gitVerbs = calls.filter(([command]) => command === 'git').map(([, verb]) => verb);
   for (const verb of ['commit', 'push', 'reset', 'stash', 'clean', 'rm', 'checkout', 'restore']) assert.ok(!gitVerbs.includes(verb), verb);
   assert.deepEqual([...new Set(gitVerbs)].sort(), ['fetch', 'merge', 'merge-base', 'rev-parse', 'status', 'symbolic-ref']);
+});
+
+test('fetch que falla: para sin merge ni pasos', (t) => {
+  const f = fixture(t);
+  g(f.root, 'remote', 'set-url', 'origin', path.join(f.base, 'no-existe.git'));
+  const before = snapshot(f.root);
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.PRECONDITION);
+  assert.match(result.line, /resultado=STOPPED .*FETCH_FAILED/);
+  assert.deepEqual(snapshot(f.root), before);
+  assert.deepEqual(steps(f.trace), []);
+});
+
+test('fast-forward rechazado (pisaría un archivo sin seguimiento): para y lo conserva', (t) => {
+  const f = fixture(t);
+  fs.writeFileSync(path.join(f.root, 'nuevo.txt'), 'mío, sin seguimiento\n');
+  // origin trae ese mismo nombre: HEAD es ancestro, pero el merge lo pisaría.
+  const seed = path.join(f.base, 'seed');
+  fs.writeFileSync(path.join(seed, 'nuevo.txt'), 'de origin\n');
+  g(seed, 'add', 'nuevo.txt');
+  g(seed, 'commit', '--quiet', '-m', 'nuevo');
+  g(seed, 'push', '--quiet', 'origin', 'main');
+  const head = g(f.root, 'rev-parse', 'HEAD');
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.PRECONDITION);
+  assert.match(result.line, /resultado=STOPPED .*FF_FAILED/);
+  assert.doesNotMatch(result.line, /\\n/, 'el motivo es una sola línea');
+  assert.equal(g(f.root, 'rev-parse', 'HEAD'), head);
+  assert.equal(fs.readFileSync(path.join(f.root, 'nuevo.txt'), 'utf8'), 'mío, sin seguimiento\n');
+  assert.deepEqual(steps(f.trace), []);
+});
+
+test('git status que falla: para sin pasos', (t) => {
+  const f = fixture(t);
+  const runner = (command, args, opts) => (command === 'git' && args[0] === 'status'
+    ? { status: 128, stdout: '', stderr: 'fatal: índice roto' } : spawnRunner(command, args, opts));
+  const result = runDaily({ root: f.root, log: f.log }, { runner, steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.PRECONDITION);
+  assert.match(result.line, /GIT_STATUS_FAILED: fatal: índice roto/);
+  assert.deepEqual(steps(f.trace), []);
+});
+
+for (const [label, resolvePython, expected] of [['lanza', () => { throw new Error('ruta de uv inexistente'); }, /PYTHON: ruta de uv inexistente/], ['devuelve vacío', () => null, /PYTHON: Graphify Python no localizado/]]) {
+  test(`Python no localizado (${label}): salida 1 sin pasos`, (t) => {
+    const f = fixture(t);
+    const calls = [];
+    const runner = (command, args, opts) => { calls.push(command); return spawnRunner(command, args, opts); };
+    const result = runDaily({ root: f.root, log: f.log }, { runner, resolvePython, now });
+    assert.equal(result.code, EXIT.STEP_FAILED);
+    assert.match(result.line, /resultado=FAILED /);
+    assert.match(result.line, expected);
+    assert.deepEqual([...new Set(calls)], ['git']);
+  });
+}
+
+for (const lock of ['graphify-out/knowledge-manual.lock', 'graphify-out/knowledge-record.lock', 'DTD Cargo/.knowledge-publish.lock', 'DTD Cargo/.knowledge-reaper.lock']) {
+  test(`trabajo manual en curso (${lock}): salida 3 sin fetch ni pasos`, (t) => {
+    const f = fixture(t);
+    f.advanceOrigin();
+    fs.mkdirSync(path.join(f.root, path.dirname(lock)), { recursive: true });
+    fs.writeFileSync(path.join(f.root, lock), '4242');
+    const before = snapshot(f.root);
+    const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+    assert.equal(result.code, EXIT.LOCKED);
+    assert.match(result.line, /resultado=LOCKED .*MANUAL_LOCK/);
+    assert.deepEqual(snapshot(f.root), before, 'ni fetch ni merge');
+    assert.deepEqual(steps(f.trace), []);
+    assert.equal(fs.readFileSync(path.join(f.root, lock), 'utf8'), '4242', 'el candado ajeno sigue');
+  });
+}
+
+test('candado manual que aparece durante el fetch: salida 3 sin pasos', (t) => {
+  const f = fixture(t);
+  f.advanceOrigin();
+  const runner = (command, args, opts) => {
+    const result = spawnRunner(command, args, opts);
+    if (command === 'git' && args[0] === 'merge') {
+      fs.mkdirSync(path.join(f.root, 'graphify-out'), { recursive: true });
+      fs.writeFileSync(path.join(f.root, 'graphify-out', 'knowledge-manual.lock'), 'sam');
+    }
+    return result;
+  };
+  const result = runDaily({ root: f.root, log: f.log }, { runner, steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.LOCKED);
+  assert.deepEqual(steps(f.trace), []);
+});
+
+test('candado viejo de un proceso muerto: se aparta y la corrida sigue', (t) => {
+  const f = fixture(t);
+  fs.mkdirSync(path.dirname(f.log), { recursive: true });
+  fs.writeFileSync(f.log + '.lock', '2147483646');
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.OK, result.line);
+  assert.ok(!fs.existsSync(f.log + '.lock'), 'se libera al terminar');
+  assert.deepEqual(fs.readdirSync(path.dirname(f.log)).filter((name) => name.includes('.lock')), []);
+});
+
+test('el update falló: el resumen lo dice aunque check mida otra cosa', (t) => {
+  const f = fixture(t);
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace, { fail: 'structure' }), now });
+  assert.equal(result.code, EXIT.STEP_FAILED);
+  assert.deepEqual(steps(f.trace), ['structure', 'check']);
+  assert.match(result.line, /estructura=UPDATE_FAILED\(check=CURRENT\) /);
+  assert.match(result.line, /STRUCTURE_FAILED/);
+});
+
+test('un paso colgado se corta por tiempo y no deja el candado', (t) => {
+  const f = fixture(t);
+  const plan = fakeSteps(f.trace);
+  plan[1] = { name: 'visual', command: process.execPath, args: ['-e', 'setTimeout(() => {}, 60000)'], timeout: 500 };
+  const result = runDaily({ root: f.root, log: f.log }, { steps: plan, now });
+  assert.equal(result.code, EXIT.STEP_FAILED);
+  assert.match(result.line, /VISUAL_FAILED: TIMEOUT/);
+  assert.ok(!fs.existsSync(f.log + '.lock'));
+});
+
+test('el Python fijado llega a los cuatro pasos', () => {
+  const plan = mechanicalSteps({ root: 'R', python: 'C:\\py\\python.exe' });
+  assert.equal(plan[0].command, 'C:\\py\\python.exe');
+  for (const step of plan.slice(1)) assert.deepEqual(step.args.slice(-2), ['--python', 'C:\\py\\python.exe'], step.name);
 });
 
 test('CLI: checkout sucio sale con 2 y escribe el log indicado', (t) => {

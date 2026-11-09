@@ -38,6 +38,13 @@ después de la integración; esta SDD no la crea.
    rastreados o si el fast-forward no es posible.
 6. Tras la primera falla salta los pasos que escriben, corre `knowledge:check` para informar y sale con 1.
    También falla, sin revertir, si algún paso dejó cambios rastreados. Otra corrida viva → salida 3.
+   Trabajo manual en curso → salida 3, sin fetch ni pasos. Cuenta como trabajo manual cualquiera de estos
+   candados: `graphify-out/knowledge-manual.lock`, `knowledge-record.lock`, o los de publicación y
+   recuperación de la bóveda. La comprobación se hace antes del fetch y otra vez antes de los pasos.
+   Si el update falla, el resumen dice `UPDATE_FAILED` aunque `check` mida otra cosa.
+6b. Tope de tiempo por comando: git a los 5 min, cada paso a los 30 min, con `GIT_TERMINAL_PROMPT=0`. El
+    Python fijado de Graphify llega a los cuatro pasos. Un candado muerto se aparta con `rename` y se toma
+    con `wx`.
 7. Escribe una línea por corrida en un log fuera del repo (`%LOCALAPPDATA%\dtd-cargo\knowledge-daily.log`
    por defecto) con fecha, revisión, resultado, estructura, Archify, Obsidian y pendientes semánticos
    (piloto y global).

@@ -54,7 +54,14 @@ El guion `scripts/knowledge-daily.mjs`:
 - tras la primera falla salta los pasos que escriben, pero corre `knowledge:check` para informar (salida 1);
 - falla también si un paso dejó cambios rastreados, y no los revierte;
 - nunca hace commit, push, stash, reset, clean ni borra archivos rastreados;
-- usa un candado junto al log; si otra corrida sigue viva, sale con 3;
+- usa un candado junto al log; si otra corrida sigue viva, sale con 3. Uno de un proceso muerto se aparta
+  con `rename` y se vuelve a tomar con `wx`;
+- sale con 3, sin fetch ni pasos, si encuentra trabajo manual en el checkout principal:
+  `graphify-out/knowledge-manual.lock`, `graphify-out/knowledge-record.lock`, o los candados de
+  publicación y recuperación de la bóveda (`.knowledge-publish.lock` y `.knowledge-reaper.lock`).
+  Lo comprueba antes del fetch y otra vez antes de los pasos;
+- corta por tiempo cada comando: git a los 5 min, cada paso a los 30 min. Corre con `GIT_TERMINAL_PROMPT=0`;
+- pasa el mismo Python de Graphify (`--python`, `GRAPHIFY_PYTHON` o el resuelto) a los cuatro pasos;
 - escribe una línea por corrida en `%LOCALAPPDATA%\dtd-cargo\knowledge-daily.log` (fuera del repo, o la
   ruta de `--log`/`KNOWLEDGE_DAILY_LOG`): fecha, revisión, resultado, estructura, Archify, Obsidian y
   pendientes semánticos del piloto y globales. `--dry-run` solo comprueba las precondiciones.
@@ -63,6 +70,13 @@ La parte semántica **no** se programa: el Director corre `$graphify . --update`
 las 16 fuentes del piloto, o una vez por semana. Mientras tanto la corrida diaria puede terminar en salida 1 por
 piloto PENDING; la línea del log lo dice, y el Director lo recoge en su siguiente sesión. Un resultado
 `STOPPED` nunca se arregla desde la tarea programada: el checkout principal se revisa a mano.
+
+**Durante la ventana de las 22:00 no se trabaja Graphify a mano en el checkout principal.** Quien lo haga en
+esa ventana, o en una sesión larga que pueda cruzarla, crea antes `graphify-out/knowledge-manual.lock` con su
+nombre o PID, y lo quita al terminar. La corrida diaria no lo borra nunca. Se usa un candado propio y no
+`knowledge-record.lock`, porque `knowledge-graph.py record` toma ese con creación exclusiva y fallaría si
+alguien lo dejara puesto a mano. `record` y `knowledge:publish` toman sus propios candados, y la corrida
+diaria también los respeta.
 
 ## Cierre de una tarea y revisión de la bóveda
 

@@ -41,28 +41,57 @@ export function parseArgs(argv, env = process.env) {
   return options;
 }
 
-/** Ejecutor real: sin shell, salida capturada. Los dobles de prueba lo reemplazan. */
-export function spawnRunner(command, args, { cwd }) {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', windowsHide: true, maxBuffer: 256 * 1024 * 1024 });
-  return { status: result.error ? null : result.status, stdout: result.stdout ?? '', stderr: result.error ? String(result.error.message) : (result.stderr ?? '') };
+/** Topes: un cuelgue no deja el candado tomado noche tras noche. */
+export const TIMEOUT_MS = Object.freeze({ git: 5 * 60 * 1000, step: 30 * 60 * 1000 });
+
+/**
+ * Ejecutor real: sin shell, salida capturada, con tope de tiempo y sin
+ * pedir credenciales por terminal. Los dobles de prueba lo reemplazan.
+ */
+export function spawnRunner(command, args, { cwd, timeout = TIMEOUT_MS.step }) {
+  const result = spawnSync(command, args, { cwd, encoding: 'utf8', windowsHide: true, maxBuffer: 256 * 1024 * 1024, timeout, killSignal: 'SIGKILL',
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
+  if (result.error) {
+    const timedOut = result.error.code === 'ETIMEDOUT';
+    return { status: null, stdout: result.stdout ?? '', stderr: timedOut ? 'TIMEOUT tras ' + Math.round(timeout / 1000) + ' s' : String(result.error.message) };
+  }
+  return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
 
 const lastLine = (text) => (text || '').trim().split(/\r?\n/).pop().slice(0, 300);
 
 function git(runner, root, args) {
-  const result = runner('git', args, { cwd: root });
+  const result = runner('git', args, { cwd: root, timeout: TIMEOUT_MS.git });
   return { ...result, out: (result.stdout || '').trim() };
 }
 
-/** Los cuatro pasos mecánicos. `graphify` corre con el Python fijado del runbook. */
+/** Los cuatro pasos mecánicos. Todos reciben el mismo Python fijado de Graphify. */
 export function mechanicalSteps({ root, python }) {
   const node = process.execPath;
+  const withPython = ['--python', python];
   return [
     { name: 'structure', command: python, args: ['-m', 'graphify', 'update', '.'] },
-    { name: 'visual', command: node, args: [path.join(root, 'scripts', 'knowledge-visual.mjs'), 'build'] },
-    { name: 'publish', command: node, args: [path.join(root, 'scripts', 'knowledge-sync.mjs'), 'publish'] },
-    { name: 'check', command: node, args: [path.join(root, 'scripts', 'knowledge-sync.mjs'), 'check'] },
+    { name: 'visual', command: node, args: [path.join(root, 'scripts', 'knowledge-visual.mjs'), 'build', ...withPython] },
+    { name: 'publish', command: node, args: [path.join(root, 'scripts', 'knowledge-sync.mjs'), 'publish', ...withPython] },
+    { name: 'check', command: node, args: [path.join(root, 'scripts', 'knowledge-sync.mjs'), 'check', ...withPython] },
   ];
+}
+
+/**
+ * Candados del trabajo manual en el checkout principal: el recibo semántico
+ * (`knowledge-graph.py record`), la publicación y la recuperación de la
+ * bóveda (`lib/knowledge-vault.mjs`), y el aviso explícito de quien trabaja
+ * Graphify a mano. Si alguno existe, la corrida no empieza.
+ */
+export function foreignLocks(root) {
+  let vault = 'DTD Cargo';
+  try { vault = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'knowledge-policy.json'), 'utf8').replace(/^﻿/, '')).vaultDirectory || vault; } catch { /* política ausente: valor por defecto */ }
+  return [
+    path.join(root, 'graphify-out', 'knowledge-manual.lock'),
+    path.join(root, 'graphify-out', 'knowledge-record.lock'),
+    path.join(root, vault, '.knowledge-publish.lock'),
+    path.join(root, vault, '.knowledge-reaper.lock'),
+  ].filter((file) => fs.existsSync(file)).map((file) => path.relative(root, file));
 }
 
 /** Toma del JSON de `knowledge:check` los campos del resumen; tolera salida inválida. */
@@ -98,19 +127,35 @@ function pidAlive(pid) {
   try { process.kill(pid, 0); return true; } catch (error) { return error.code === 'EPERM'; }
 }
 
-/** Candado junto al log, fuera del repo. Un candado de un proceso vivo nunca se toca. */
-function acquireLock(logFile) {
+/**
+ * Candado junto al log, fuera del repo, siempre tomado con `wx`. Un candado
+ * de un proceso vivo nunca se toca. Uno muerto se aparta con `rename`
+ * (atómico) y se vuelve a intentar `wx`: si dos corridas lo ven muerto a la
+ * vez, solo una gana el `wx`. Si lo apartado ya no era el candado muerto que
+ * se leyó, se devuelve a su sitio sin pisar y la corrida no empieza.
+ */
+export function acquireLock(logFile) {
   const lock = logFile + '.lock';
   fs.mkdirSync(path.dirname(lock), { recursive: true });
-  try {
-    fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
-  } catch (error) {
-    if (error.code !== 'EEXIST') throw error;
-    const holder = Number.parseInt(fs.readFileSync(lock, 'utf8'), 10);
-    if (pidAlive(holder)) return null;
-    fs.writeFileSync(lock, String(process.pid));
+  const take = () => { fs.writeFileSync(lock, String(process.pid), { flag: 'wx' }); return true; };
+  const release = () => { try { if (fs.readFileSync(lock, 'utf8') === String(process.pid)) fs.unlinkSync(lock); } catch { /* ya no está */ } };
+  try { if (take()) return release; } catch (error) { if (error.code !== 'EEXIST') throw error; }
+  let seen;
+  try { seen = fs.readFileSync(lock, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (seen !== undefined && pidAlive(Number.parseInt(seen, 10))) return null;
+  if (seen !== undefined) {
+    const aside = lock + '.muerto-' + process.pid;
+    try { fs.renameSync(lock, aside); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (fs.existsSync(aside)) {
+      if (fs.readFileSync(aside, 'utf8') !== seen) {
+        try { fs.linkSync(aside, lock); fs.unlinkSync(aside); } catch { /* el sitio ya tiene otro dueño; lo apartado queda para revisión */ }
+        return null;
+      }
+      fs.unlinkSync(aside);
+    }
   }
-  return () => { try { if (fs.readFileSync(lock, 'utf8') === String(process.pid)) fs.unlinkSync(lock); } catch { /* ya no está */ } };
+  try { if (take()) return release; } catch (error) { if (error.code !== 'EEXIST') throw error; }
+  return null;
 }
 
 /**
@@ -151,6 +196,8 @@ export function runDaily(options, { runner = spawnRunner, steps, now = () => new
     const before = preflight(runner, root);
     if (!before.ok) return finish(EXIT.PRECONDITION, 'STOPPED', before.reason);
     record.revision = before.head.slice(0, 12);
+    const held = foreignLocks(root);
+    if (held.length) return finish(EXIT.LOCKED, 'LOCKED', 'MANUAL_LOCK: trabajo de conocimiento en curso (' + held.join(', ') + ')');
 
     const fetched = git(runner, root, ['fetch', '--quiet', 'origin', 'main']);
     if (fetched.status !== 0) return finish(EXIT.PRECONDITION, 'STOPPED', 'FETCH_FAILED: ' + lastLine(fetched.stderr));
@@ -170,14 +217,23 @@ export function runDaily(options, { runner = spawnRunner, steps, now = () => new
       if (!python) return finish(EXIT.STEP_FAILED, 'FAILED', 'PYTHON: Graphify Python no localizado');
       plan = mechanicalSteps({ root, python });
     }
+    // El trabajo manual pudo empezar mientras se traía main.
+    const heldLate = foreignLocks(root);
+    if (heldLate.length) return finish(EXIT.LOCKED, 'LOCKED', 'MANUAL_LOCK: trabajo de conocimiento en curso (' + heldLate.join(', ') + ')');
+
     // Tras la primera falla se saltan los pasos que escriben, pero `check`
     // (lectura) corre siempre para que el resumen diga en qué estado quedó.
     let failure = null;
+    let updateFailed = false;
     for (const step of plan) {
       if (failure && step.name !== 'check') continue;
-      const result = runner(step.command, step.args, { cwd: root });
-      if (step.name === 'check') Object.assign(record, summarizeCheck(result.stdout));
-      if (step.name === 'structure' && result.status !== 0) record.structure = 'UPDATE_FAILED';
+      const result = runner(step.command, step.args, { cwd: root, timeout: step.timeout ?? TIMEOUT_MS.step });
+      if (step.name === 'structure' && result.status !== 0) { updateFailed = true; record.structure = 'UPDATE_FAILED'; }
+      if (step.name === 'check') {
+        Object.assign(record, summarizeCheck(result.stdout));
+        // Lo que mide check no tapa que el update de esta noche falló.
+        if (updateFailed) record.structure = 'UPDATE_FAILED(check=' + record.structure + ')';
+      }
       if (result.status !== 0 && !failure) {
         const tail = (result.stderr || result.stdout || '').trim().split(/\r?\n/).slice(-1)[0] || 'exit ' + result.status;
         failure = step.name.toUpperCase() + '_FAILED: ' + tail.slice(0, 300);

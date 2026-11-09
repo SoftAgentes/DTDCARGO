@@ -45,13 +45,38 @@ Sam, 2026-11-09, transmitida por el DG: «Sí, a las 22:00». Cubre una corrida 
 | Mutante: quitar el corte por checkout sucio | Detectado: 2 rojos |
 | Mutante: saltar el corte de ancestro (FF) | Detectado: 1 rojo |
 | Mutante: forzar la rama a `main` | Detectado: 2 rojos |
-| `pnpm harness:test` (Windows) | PASÓ: 261 pruebas, 256 pasan, 0 fallan, 5 saltadas. Las saltadas ya existían: son de `run-sql-tests-salida`, cuyo doble de docker es sh. Linux queda a la CI |
+| `pnpm harness:test` (Windows) | PASÓ: 275 pruebas, 270 pasan, 0 fallan, 5 saltadas. Las saltadas ya existían: son de `run-sql-tests-salida`, cuyo doble de docker es sh. Linux queda a la CI |
 | `docs:check` (tras `docs:index`) | PASÓ, 603 specs |
 | `skills:check` | PASÓ |
 | `sdd:check` | PASÓ (solo choques históricos de migraciones) |
 | `git diff --check` | PASÓ |
 | Corrida real con Graphify en el checkout principal | NO EJECUTADO: el encargo prohíbe tocar la bóveda y `graphify-out/` del principal |
 | `pnpm verify` / build / E2E | NO APLICA: el cambio es de harness y docs, no de producto |
+
+## Segunda vuelta: revisión del DG sobre `16de2bc27`, que pidió cambios
+
+Traje main: merge `fe61c5c0c`, sin conflictos.
+
+**Bloqueantes:**
+1. Agregué pruebas de `FETCH_FAILED`, con un origin que no existe, y de `FF_FAILED`, con un archivo sin seguimiento que el merge pisaría; el archivo se conserva. También de `GIT_STATUS_FAILED` y de Python no localizado, en sus dos formas: cuando lanza y cuando devuelve vacío.
+2. La corrida sale con 3 si encuentra cualquiera de estos candados:
+   - `graphify-out/knowledge-manual.lock`, que es nuevo; el runbook explica por qué no se usa `knowledge-record.lock`;
+   - `graphify-out/knowledge-record.lock`;
+   - `DTD Cargo/.knowledge-publish.lock`;
+   - `DTD Cargo/.knowledge-reaper.lock`.
+
+   Lo comprueba antes del fetch y otra vez antes de los pasos. El runbook prohíbe trabajar Graphify a mano en la ventana de las 22:00.
+
+**No bloqueantes:**
+- Timeouts de 5 min para git y 30 min por paso, con `GIT_TERMINAL_PROMPT=0`.
+- El candado muerto se aparta con `rename` y se vuelve a tomar con `wx`.
+- El resumen dice `UPDATE_FAILED(check=…)` cuando el update falla.
+- `--python` llega a visual, publish y check.
+
+| Comprobación | Resultado |
+|---|---|
+| `node --test scripts/tests/knowledge-daily.node.mjs` | PASÓ 30/30 |
+| Mutantes (14 + M0 verde) | PASÓ: los 14 detectados. Cubren los cortes de fetch y ff, `git status`, Python vacío y lanzado, los candados ajenos inicial y tardío, `record.lock`, `publish.lock`, `UPDATE_FAILED`, el timeout, el candado muerto y el vivo, y `--python`. El primer «Python lanza» sobrevivió por un mensaje equivalente; la prueba ya distingue el mensaje |
 
 ## Impacto documental y conocimiento
 
