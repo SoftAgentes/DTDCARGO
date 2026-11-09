@@ -3,7 +3,7 @@
 Spec: `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`, §10.5.10. Ahí están el formato cerrado con E5, los dos riesgos con su arreglo y la revisión de datos personales.
 
 **Dos dueños y ningún archivo compartido.** Cada uno tiene sus archivos en esta carpeta, en su propia rama:
-- **El Worker de la 10.5:** la migración 0523 y lo de este README (`reservar.sql`, `extraer.sql`, `extraer.sh`, `vincular.sh`, `limpiar.sh` y `controles-studio.sql`).
+- **El Worker de la 10.5:** la migración 0523 y lo de este README (`reservar.sql`, `extraer.sql`, `extraer.sh`, `vincular.sh`, `limpiar.sh` y `controles-studio.sql`), y las dos lecturas de la puerta 4: `conteo-portal.sql` (4.2) y `cola-y-flag.sql` (4.3), solo lectura.
 - **E5:** el cargador de Chatwoot y el ensayo, adaptados de `infra/ops/kommo-historial/`.
 
 Se pasan dos archivos, en `/dev/shm/portal-historial/` (tmpfs, 0700):
