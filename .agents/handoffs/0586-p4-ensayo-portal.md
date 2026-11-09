@@ -132,6 +132,14 @@
 - **N2:** este handoff, con las vueltas 10, 11 y 12 y sus runs.
 - **N3,** el código 6 y «correr `--limpiar` apenas vuelva Docker»: va en el runbook de la #479. **Le toca a E10.**
 
+## Pendiente posterior: lo no bloqueante de la revisión del DG de la #489 (APPROVED en `0ea0a6279`)
+
+Al cierre del 2026-11-09 (todo parado hasta el sábado 2026-11-14) siguen pendientes:
+- **N-a:** ninguna prueba ejercita el `timeout 30` de `ensayo-portal.sh:111-112`. Si se quita, G7 sigue en verde.
+- **N-b:** la limpieza todavía espera a Docker sin tope en `:161-167` y en `:186-187`.
+- **N-c:** la sección de lo no bloqueante dice que G7 y M28 prueban el timeout. En realidad solo prueban el borrado previo.
+- **N-d:** a la tabla de vueltas le faltan los runs de la #489: 42629974099 y 42629974124 (`da431b7f9`, el rojo de G6), y 42636138617 y 42636140766 (`0ea0a6279`, APPROVED).
+
 ## Lo que se comprueba en la puerta 3, no en CI
 
 - **TimeoutStopSec:** en Actions no hay unidad de systemd, así que la guarda G1 no corre ahí.
