@@ -199,14 +199,20 @@ CONS="${D}/contactos-conservados.ndjson"
 export FALSO_CONSERVADOS="${CONS}"
 # La carpeta durable (Sam eligió la opción a, 2026-11-09): en la prueba vive en el temporal, con DESHACER_PRUEBA=1.
 DUR="${T}/deshacer"
-dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" SISTEMA="${SISTEMA_DV-7234567890123456789}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}"   bash "${DV_GUION:-${DS}/deshacer-vinculos.sh}" > "${T}/dv.log" 2>&1; }
+# SISTEMA: un archivo 0600 de este usuario, con un system_identifier de mentira de 19 cifras.
+SIS="${T}/sistema-produccion"
+SISTEMA_VALOR=7234567890123456789
+SISTEMA_SHA=deb576f0d6
+poner_sistema() { ( umask 077; printf '%s' "${SISTEMA_VALOR}" > "${SIS}" ); chmod 0600 "${SIS}"; }
+poner_sistema
+dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" DESHACER_SISTEMA="${SIS}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}"   bash "${DV_GUION:-${DS}/deshacer-vinculos.sh}" > "${T}/dv.log" 2>&1; }
 cabecera() { printf '%s\n' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"; }
 sha_cons() { sha256sum "${CONS}" | cut -c1-64; }
 # hecho_cw <archivo> <paso> [sha] [tenant] [extra]: la evidencia sintética de un paso de Chatwoot.
 hecho_cw() { printf '%s\n' "HECHO $2=ok conservados_sha256=${3:-$(sha_cons)} tenant=${4:-$TU} cuenta=1 bandeja=9 ${5:-}utc=2026-11-09T03:00:00Z" > "${D}/$1"; }
 # sin_hecho: las dos carpetas vacías de verdad. Las secciones de arriba dejan cosas en ${D} (la centinela de los DIR):
 # con solo borrar los .hecho, el primer caso_ensayo_ok fallaba y los mutantes que dependen de él «caían» sin probar nada.
-sin_hecho() { rm -rf "${D}" "${DUR}"; mkdir -m 0700 "${D}"; }
+sin_hecho() { rm -rf "${D}" "${DUR}"; mkdir -m 0700 "${D}"; poner_sistema; }
 # paso3_durable: lo que deja el paso 3 de E5 en la carpeta durable (el .ndjson y los tres .hecho), y el
 # «reinicio»: tmpfs vacío.
 paso3_durable() { mkdir -m 0700 "${DUR}" && cp "${CONS}" "${D}/chatwoot-seco.hecho" "${D}/studio-ensayo.hecho" "${D}/chatwoot-borrar.hecho" "${DUR}/"; }
@@ -222,8 +228,9 @@ MODO_DV=borrar dv; rc=$?
 [ "${rc}" != 0 ] && grep -q 'modo_invalido' "${T}/dv.log" && ok "deshacer-vinculos.sh pide MODO ensayo o aplicar" || ko "deshacer con modo inválido: ${rc}"
 ENTORNO_DV=otro dv; rc=$?
 [ "${rc}" != 0 ] && grep -q 'entorno_invalido' "${T}/dv.log" && ok "deshacer-vinculos.sh pide ENTORNO copia o produccion" || ko "deshacer con entorno inválido: ${rc}"
-SISTEMA_DV= dv; rc=$?
-[ "${rc}" != 0 ] && grep -q 'produccion_exige_sistema' "${T}/dv.log" && ok "deshacer-vinculos.sh en produccion exige SISTEMA" || ko "deshacer produccion sin sistema: ${rc}"
+rm -f "${SIS}"; dv; rc=$?
+[ "${rc}" != 0 ] && grep -q 'sin_archivo_de_sistema_0600' "${T}/dv.log" && ok "deshacer-vinculos.sh en produccion exige el archivo de SISTEMA" || ko "deshacer produccion sin sistema: ${rc}"
+poner_sistema
 TENANT_DV="t; select 1" dv; rc=$?
 [ "${rc}" != 0 ] && grep -q 'tenant_no_es_uuid' "${T}/dv.log" && ok "deshacer-vinculos.sh pide el tenant como uuid" || ko "deshacer con tenant no uuid: ${rc}"
 ESPERADOS_SALIDA_DV=1x dv; rc=$?
@@ -327,6 +334,25 @@ caso_seco_otra_bandeja && ok "paso 2 con un seco de otra bandeja: se niega" || k
 caso_aplicar_ensayo_otro_entorno && ok "paso 4 con un ensayo de otro entorno: se niega" || ko "ensayo de otro entorno: $(cat "${T}/dv.log")"
 caso_aplicar_borrar_sin_fin_commit && ok "paso 4 con un chatwoot-borrar.hecho sin fin=commit: se niega" || ko "borrar sin fin=commit: $(cat "${T}/dv.log")"
 caso_aplicar_viejo && ok "un paso 4 que falla borra el studio-aplicar.hecho anterior de las dos carpetas" || ko "aplicar fallido deja el .hecho viejo: $(cat "${T}/dv.log")"
+# SISTEMA (aprobado por el DG): el system_identifier sale de un archivo 0600 y se imprime solo su sha256 corto, con
+# la fórmula del DG (printf '%s', sin salto de línea). El valor de mentira tiene 19 cifras, como el real; su sha
+# corto con printf es deb576f0d6 (con echo daría 937fa3b5f9).
+caso_sistema_sha_corto() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; dv; rc=$?
+  [ "${rc}" = 0 ] && grep -qx "HECHO sistema_sha256_corto=${SISTEMA_SHA}" "${T}/dv.log" && ! grep -q "${SISTEMA_VALOR}" "${T}/dv.log"; }
+caso_sistema_sin_archivo() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; rm -f "${SIS}"; : > "${FALSO_REGISTRO}"; dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_archivo_de_sistema_0600' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+caso_sistema_abierto() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; chmod 0644 "${SIS}"; : > "${FALSO_REGISTRO}"; dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_archivo_de_sistema_0600' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+caso_sistema_en_el_entorno() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; SISTEMA="${SISTEMA_VALOR}" dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sistema_va_en_el_archivo_no_en_el_entorno' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+caso_sistema_copia_sin_archivo() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; rm -f "${SIS}"; ENTORNO_DV=copia dv; rc=$?
+  [ "${rc}" = 0 ] && ! grep -q 'sistema_sha256_corto' "${T}/dv.log"; }
+[ "$(printf '%s' "${SISTEMA_VALOR}" | sha256sum | cut -c1-10)" = "${SISTEMA_SHA}" ] && ok "la fórmula del DG: printf '%s' de 19 cifras da ${SISTEMA_SHA}" || ko "la fórmula del sha corto no da ${SISTEMA_SHA}"
+caso_sistema_sha_corto && ok "en produccion imprime solo el sha256 corto de SISTEMA, nunca el valor" || ko "sha corto de SISTEMA: $(cat "${T}/dv.log")"
+caso_sistema_sin_archivo && ok "en produccion, sin el archivo de SISTEMA, se niega sin llamar a psql" || ko "sin archivo de SISTEMA: $(cat "${T}/dv.log")"
+caso_sistema_abierto && ok "en produccion, con el archivo de SISTEMA en 0644, se niega sin llamar a psql" || ko "SISTEMA abierto: $(cat "${T}/dv.log")"
+caso_sistema_en_el_entorno && ok "SISTEMA en el entorno se rechaza: va en el archivo" || ko "SISTEMA en el entorno: $(cat "${T}/dv.log")"
+caso_sistema_copia_sin_archivo && ok "en la copia no pide ni imprime SISTEMA" || ko "copia sin SISTEMA: $(cat "${T}/dv.log")"
 caso_durable_fijo && ok "fuera de la prueba, la durable es solo /srv/ops/portal-historial/deshacer" || ko "durable no fija: $(cat "${T}/dv.log")"
 sin_hecho
 printf '%s' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"
@@ -343,11 +369,12 @@ cp "${DS}/deshacer-vinculos.sql" "${T}/mut/"
 # el mutante. Devuelve 0 si cae, 1 si sobrevive, 2 si su caso no pasa con el guion real (el mutante no prueba nada)
 # y 3 si la marca de la guarda no está una sola vez.
 probar_mutante() {
-  local var="$1" real="$2" g="$3" caso="$4" copia
+  local var="$1" real="$2" g="$3" caso="$4" cambio="${5:-}" copia
   copia="${T}/mut/$(basename "$real")"
   [ "$(grep -c "# guarda:${g}\$" "$real")" = 1 ] || return 3
   "$caso" || return 2 # control:base
-  grep -v "# guarda:${g}\$" "$real" > "$copia"
+  if [ -n "$cambio" ]; then sed "/# guarda:${g}\$/ ${cambio}" "$real" > "$copia"; cmp -s "$real" "$copia" && return 3
+  else grep -v "# guarda:${g}\$" "$real" > "$copia"; fi
   if ( export "$var=$copia"; "$caso" ); then return 1; fi
   return 0
 }
@@ -384,6 +411,14 @@ for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_ten
   [ "$r" = 0 ] && mutantes=$((mutantes+1))
 done
 [ "${mutantes}" = 12 ] && ok "PISO: caen los 12 mutantes del orden y de la carpeta durable" || ko "caen ${mutantes} de 12 mutantes"
+# MUTANTES de SISTEMA (con la misma regla): uno calcula el sha corto con echo (con salto de línea), otro imprime el
+# valor en lugar del sha. Los dos tienen que caer en caso_sistema_sha_corto.
+mutantes_s=0
+probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" sistema_printf caso_sistema_sha_corto 's/printf .%s. "\$1"/echo "$1"/'; r=$?
+informar_mutante "$r" sistema_printf caso_sistema_sha_corto deshacer-vinculos.sh; [ "$r" = 0 ] && mutantes_s=$((mutantes_s+1))
+probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" sistema_corto caso_sistema_sha_corto 's/\$(sha_corto "\$SISTEMA")/$SISTEMA/'; r=$?
+informar_mutante "$r" sistema_corto caso_sistema_sha_corto deshacer-vinculos.sh; [ "$r" = 0 ] && mutantes_s=$((mutantes_s+1))
+[ "${mutantes_s}" = 2 ] && ok "PISO: caen los 2 mutantes de SISTEMA (echo, y el valor en vez del sha)" || ko "caen ${mutantes_s} de 2 mutantes de SISTEMA"
 # Control: el guion de verdad pasa los casos de los mutantes (cada uno se comprobó también dentro del bucle).
 caso_seco_falta && caso_aplicar_sin_borrar && caso_reinicio && caso_copias_distintas && caso_ensayo_ok && caso_ensayo_viejo && ok "control: el guion sin mutar pasa los casos de los mutantes" || ko "control del guion sin mutar"
 sin_hecho; rm -rf "${DUR}"
@@ -399,11 +434,11 @@ DIR="/dev/shm/../${T#/}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l2.log" 2>&1; rc
 [ "${rc}" != 0 ] && [ -e "${T}/fuera2" ] && ok "limpiar.sh no sale de /dev/shm con .." || ko "limpiar.sh borró con /dev/shm/.."
 
 # ── limpiar.sh --cierre-4-6b (el paso 5 del 4.6b) ──
-lc() { DIR="${D}" DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
+lc() { DIR="${D}" DESHACER_SISTEMA="${SIS}" DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
 # cierre_listo [donde]: lo que queda después de un paso 4 bueno; [donde]=durable simula un reinicio después del 4.
 cierre_listo() { caso_reinicio || return 1; [ "${1:-}" = durable ] && reinicio; return 0; }
 caso_cierre_ok() { cierre_listo || return 1; lc --cierre-4-6b; rc=$?
-  [ "${rc}" = 0 ] && grep -qx 'HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
+  [ "${rc}" = 0 ] && grep -qx 'HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && grep -qx 'HECHO sistema=borrado' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ] && [ ! -e "${SIS}" ]; }
 caso_cierre_tras_reinicio() { cierre_listo durable || return 1; [ ! -e "${D}" ] && [ -e "${DUR}/studio-aplicar.hecho" ] || return 1
   lc --cierre-4-6b; rc=$?
   [ "${rc}" = 0 ] && grep -qx 'HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
@@ -442,7 +477,7 @@ rm -rf "${D}" "${DUR}"
 # abandono_listo: lo que queda si el paso 3 empezó (dejó la durable) pero no confirmó: sin chatwoot-borrar.hecho.
 abandono_listo() { caso_ensayo_ok || return 1; mkdir -m 0700 "${DUR}" && cp "${CONS}" "${D}/chatwoot-seco.hecho" "${D}/studio-ensayo.hecho" "${DUR}/"; }
 caso_abandono_ok() { abandono_listo || return 1; lc --abandono-4-6b; rc=$?
-  [ "${rc}" = 0 ] && grep -qx 'HECHO abandono_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ]; }
+  [ "${rc}" = 0 ] && grep -qx 'HECHO abandono_4_6b=ok tmpfs=vacio durable=vacio' "${T}/lc.log" && grep -qx 'HECHO sistema=borrado' "${T}/lc.log" && [ ! -e "${D}" ] && [ ! -e "${DUR}" ] && [ ! -e "${SIS}" ]; }
 caso_abandono_con_borrar_durable() { abandono_listo || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; cp "${D}/chatwoot-borrar.hecho" "${DUR}/"; reinicio; lc --abandono-4-6b; rc=$?
   [ "${rc}" != 0 ] && grep -q 'chatwoot_ya_borro_hay_que_terminar_el_paso_4' "${T}/lc.log" && [ -e "${DUR}/${CONS##*/}" ] && [ -e "${DUR}/chatwoot-borrar.hecho" ]; }
 caso_abandono_con_borrar_tmpfs() { abandono_listo || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; lc --abandono-4-6b; rc=$?

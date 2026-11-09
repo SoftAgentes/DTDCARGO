@@ -22,6 +22,8 @@ DIR="${DIR:-/dev/shm/portal-historial}"
 # La copia durable, con la misma variable que deshacer.sh de la #478: DESHACER_DURABLE vale solo con
 # DESHACER_PRUEBA=1 (la prueba bash) y tiene que terminar en /deshacer; si no, es siempre la fija.
 DURABLE="${DESHACER_DURABLE:-/srv/ops/portal-historial/deshacer}"
+# El archivo de SISTEMA (deshacer-vinculos.sh): lo borran el cierre y el abandono del 4.6b. Fijo, salvo en la prueba.
+SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-/srv/ops/portal-historial/sistema-produccion}"
 # Solo el nombre fijo: con un patrón, `/dev/shm//` o `/dev/shm/otro` borraban lo de otros procesos.
 if [ "$DIR" != /dev/shm/portal-historial ]; then
   echo "HECHO error=dir_no_es_dev_shm_portal_historial" >&2
@@ -36,6 +38,7 @@ case "${1:-}" in
   *) echo "HECHO error=opcion_desconocida" >&2; exit 2 ;;
 esac
 
+[ "$SISTEMA_ARCHIVO" = /srv/ops/portal-historial/sistema-produccion ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=sistema_no_es_el_archivo_fijo" >&2; exit 2; }
 [ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || { [ "${DESHACER_PRUEBA:-}" = 1 ] && [ "${DURABLE%/deshacer}" != "$DURABLE" ]; } || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; }
 # Las dos carpetas, si existen: de verdad, de este usuario (-O) y, la durable, en 0700. Si no, no se toca nada.
 if [ -e "$DURABLE" ] && { [ ! -d "$DURABLE" ] || [ -L "$DURABLE" ] || [ ! -O "$DURABLE" ] || [ "$(stat -c %a "$DURABLE")" != 700 ]; }; then
@@ -55,8 +58,10 @@ if [ "$1" = --abandono-4-6b ]; then
   for d in "$DIR" "$DURABLE"; do [ ! -e "$d/chatwoot-borrar.hecho" ] || { echo "HECHO error=chatwoot_ya_borro_hay_que_terminar_el_paso_4" >&2; exit 2; }; done # guarda:abandono
   rm -rf -- "$DIR"
   [ ! -e "$DURABLE" ] || rm -rf -- "$DURABLE"
-  [ ! -e "$DIR" ] && [ ! -e "$DURABLE" ] || { echo "HECHO error=quedo_algo" >&2; exit 4; }
+  rm -f -- "$SISTEMA_ARCHIVO"
+  [ ! -e "$DIR" ] && [ ! -e "$DURABLE" ] && [ ! -e "$SISTEMA_ARCHIVO" ] || { echo "HECHO error=quedo_algo" >&2; exit 4; }
   echo "HECHO abandono_4_6b=ok tmpfs=vacio durable=vacio"
+  echo "HECHO sistema=borrado"
   exit 0
 fi
 # El studio-aplicar.hecho, de tmpfs o de la durable (un enlace no vale), y el .ndjson que quede, si queda.
@@ -69,5 +74,7 @@ case "$l" in "HECHO studio_aplicar=ok "*" fin=commit "*) ;; *) l="" ;; esac
 
 rm -rf -- "$DIR"
 [ ! -e "$DURABLE" ] || rm -rf -- "$DURABLE"
-[ ! -e "$DIR" ] && [ ! -e "$DURABLE" ] || { echo "HECHO error=quedo_algo" >&2; exit 4; }
+rm -f -- "$SISTEMA_ARCHIVO"
+[ ! -e "$DIR" ] && [ ! -e "$DURABLE" ] && [ ! -e "$SISTEMA_ARCHIVO" ] || { echo "HECHO error=quedo_algo" >&2; exit 4; }
 echo "HECHO cierre_4_6b=ok tmpfs=vacio durable=vacio"
+echo "HECHO sistema=borrado"

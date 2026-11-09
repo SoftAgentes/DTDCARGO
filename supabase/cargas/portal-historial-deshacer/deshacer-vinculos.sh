@@ -31,8 +31,10 @@
 #
 # Uso:  DB=<contenedor de la base de Studio> TENANT=<uuid> CUENTA=<n> BANDEJA=<n> \
 #       ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> \
-#       ENTORNO=copia|produccion [SISTEMA=<system_identifier, solo produccion>] \
+#       ENTORNO=copia|produccion \
 #       MODO=ensayo|aplicar bash deshacer-vinculos.sh
+#
+# En produccion, el system_identifier sale de /srv/ops/portal-historial/sistema-produccion (root 0600), no del entorno.
 #
 # El VPS lo tiene en /srv/ops/portal-historial/ (sub-paso 3.0 del runbook), junto a deshacer-vinculos.sql.
 set -euo pipefail
@@ -42,7 +44,21 @@ umask 077
 : "${ESPERADOS_SALIDA:?falta ESPERADOS_SALIDA}" "${ESPERADOS_HILOS:?falta ESPERADOS_HILOS}"
 : "${ESPERADOS_CONTACTOS:?falta ESPERADOS_CONTACTOS}" "${ESPERADOS_ESPEJO:?falta ESPERADOS_ESPEJO}"
 : "${MODO:?falta MODO (ensayo o aplicar)}" "${ENTORNO:?falta ENTORNO (copia o produccion)}"
-SISTEMA="${SISTEMA:-}"
+# SISTEMA (aprobado por el DG, 2026-11-09): el system_identifier de producción sale de un archivo de root, nunca del
+# entorno ni de la base que se protege. Se imprime solo su sha256 corto, con la fórmula del DG (printf '%s', sin salto
+# de línea, y los primeros 10 caracteres de sha256sum), para que el DG lo compare con su nota de control. El valor no
+# se imprime nunca. El archivo lo deja la puerta 1 y lo borran el cierre o el abandono del 4.6b (limpiar.sh).
+[ -z "${SISTEMA:-}" ] || { echo "HECHO error=sistema_va_en_el_archivo_no_en_el_entorno" >&2; exit 2; }
+SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-/srv/ops/portal-historial/sistema-produccion}"
+[ "$SISTEMA_ARCHIVO" = /srv/ops/portal-historial/sistema-produccion ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=sistema_no_es_el_archivo_fijo" >&2; exit 2; }
+sha_corto() { printf '%s' "$1" | sha256sum | cut -c1-10; } # guarda:sistema_printf
+leer_sistema() {
+  local f="$SISTEMA_ARCHIVO" v=""
+  [ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] && [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }
+  IFS= read -r v < "$f" || [ -n "$v" ] || { echo "HECHO error=archivo_de_sistema_vacio" >&2; return 1; }
+  case "$v" in ''|*[!0-9]*) echo "HECHO error=archivo_de_sistema_no_es_un_numero" >&2; return 1 ;; esac
+  printf '%s' "$v"
+}
 DIR="${DIR:-/dev/shm/portal-historial}"
 # La copia durable, con la misma variable que deshacer.sh de la #478: DESHACER_DURABLE vale solo con
 # DESHACER_PRUEBA=1 (la prueba bash) y tiene que terminar en /deshacer; si no, es siempre la fija.
@@ -62,11 +78,11 @@ case "$MODO" in
   *) echo "HECHO error=modo_invalido" >&2; exit 2 ;;
 esac
 case "$ENTORNO" in
-  copia) ;;
+  copia) SISTEMA="" ;;
   produccion)
-    case "$SISTEMA" in
-      ''|*[!0-9]*) echo "HECHO error=produccion_exige_sistema" >&2; exit 2 ;;
-    esac ;;
+    SISTEMA="$(leer_sistema)" || exit 2
+    echo "HECHO sistema_sha256_corto=$(sha_corto "$SISTEMA")" # guarda:sistema_corto
+    ;;
   *) echo "HECHO error=entorno_invalido" >&2; exit 2 ;;
 esac
 case "$TENANT" in

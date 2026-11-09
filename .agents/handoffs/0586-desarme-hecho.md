@@ -209,3 +209,33 @@ Lo que se hizo:
   - el mutante sin piso: exit 0.
 - **El piso de portal-historial** queda en 99. Se sube al conteo real en la próxima vuelta que toque la #480, o en el cierre.
 - **`SISTEMA`, aprobado por el DG con sus ajustes:** va en la vuelta siguiente, no en esta. Falta saber cómo calculó el DG el sha256 corto de su nota (`b4fbe1b236` para producción y `76ebba046a` para prueba): con o sin salto de línea. Hay que saberlo para imprimir el mismo.
+
+## `SISTEMA`, aprobado por el DG (la vuelta después del verde de `29c75c9e7`)
+
+**`deshacer-vinculos.sh`:**
+- **De dónde sale:** en `produccion`, `SISTEMA` sale de `/srv/ops/portal-historial/sistema-produccion`. Tiene que ser un archivo regular, sin enlace, de este usuario (`-O`), en 0600 y con un número. Otra ruta solo vale con `DESHACER_PRUEBA=1`.
+- **Por el entorno:** si llega `SISTEMA=`, se niega con `sistema_va_en_el_archivo_no_en_el_entorno`.
+- **Qué imprime:** solo `HECHO sistema_sha256_corto=<10>`, con la fórmula literal del DG, `printf '%s' "$v" | sha256sum | cut -c1-10`, sin salto de línea. Nunca imprime el valor.
+- **La nota de control del DG:** `dtd-cargo-db-1` → `b4fbe1b236` y `dtd-cargo-staging-db-1` → `76ebba046a`.
+- **En `copia`:** no lo pide ni lo imprime.
+
+**`limpiar.sh`:** `--cierre-4-6b` y `--abandono-4-6b` borran también el archivo de `SISTEMA`, comprueban que no quede y escriben `HECHO sistema=borrado`.
+
+**La prueba:**
+- **El valor de mentira** tiene 19 cifras, `7234567890123456789`. Su sha corto es `deb576f0d6`; con `echo` daría `937fa3b5f9`.
+- **Los casos:**
+  - la fórmula;
+  - que imprima solo el sha corto;
+  - sin el archivo;
+  - el archivo en 0644;
+  - `SISTEMA` en el entorno;
+  - la copia sin el archivo;
+  - y que el cierre y el abandono borren el archivo.
+- **Los dos mutantes de cambio,** con `probar_mutante` y una expresión de `sed`:
+  - `sistema_printf`: usa `echo` en vez de `printf`;
+  - `sistema_corto`: imprime el valor en vez del sha.
+
+  Los dos tienen que caer en `caso_sistema_sha_corto`. Su PISO es 2.
+- **Verificado en local:** las dos expresiones de `sed` cambian justo la línea marcada.
+
+**El README del desarme** se actualizó.
