@@ -214,3 +214,8 @@
 **El `.inicio` sin `.hecho`:**
 - El DG mira en solo lectura si la bandeja del portal quedó vacía.
 - Con el OK de Sam, se sigue según lo que dio. Los comandos de cada caso los fija la #478.
+
+**El N3 de la aprobación de la #473:** la vuelta atrás de la 3.1 nombra el código 6 de `ensayo-portal.sh` (`b35595f30`, `:131-141`).
+- **Qué significa:** un `--limpiar` encontró Docker sin responder, así que no borra nada, tampoco `/dev/shm/portal-historial`, y deja `HECHO error=docker_no_responde` y `HECHO ensayo_codigo=6`.
+- **Qué se hace:** no se sigue. Apenas Docker vuelva a responder, se corre `--limpiar` otra vez y la prueba de borrado.
+- Lleva su marca ‹por confirmar hasta la #473›.
