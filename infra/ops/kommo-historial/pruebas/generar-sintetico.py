@@ -9,6 +9,13 @@ Lo esperado (lo comprueba prueba-cargador.sh):
   3 adjuntos con copia en claro para el cargador (5.5b): una imagen PNG (m5, sin texto), un PDF (m6) y un audio OGG
   (m8), como los dejaría `extraer --adjuntos-para-carga`.
   En Chatwoot ya existen X1 (+584120000001) y X2 (sint.existente@example.test): se reusan, no se duplican.
+
+Con `--relleno N` (solo prueba-ensayo.sh), lo que la corrida real de E5 tenía y estos datos no (SDD-0590 §10.16):
+  · N conversaciones más, cada una con su persona (teléfono +584123000000 en adelante) y un mensaje con la palabra
+    frecuente SINTFRECUENTE, todas más nuevas que la más vieja. El número de la más vieja sale en el teléfono de
+    todas: la búsqueda por número trae más de N resultados, y la más vieja queda en la última página;
+  · en la conversación más vieja, dos mensajes antes de m1: uno sin palabras de 6 letras («SINT ok sí») y otro
+    con solo la frecuente. BQ1 tiene que saltarlos y buscar SINTVIEJO, del tercero.
 """
 import hashlib
 import json
@@ -37,7 +44,7 @@ ADJUNTOS = {
 }
 
 
-def main(carpeta: str) -> None:
+def main(carpeta: str, relleno: int = 0) -> None:
     os.makedirs(carpeta, exist_ok=True)
     ahora = int(time.time())
 
@@ -55,8 +62,8 @@ def main(carpeta: str) -> None:
         return {"id": cid, "name": nombre, "avatar_url": "https://kommo.example/SINT-AVATAR.png",
                 "custom_fields_values": cf or None}
 
-    def talk(tid, contacto_id, origen, hace_dias):
-        creada = ahora - hace_dias * DIA
+    def talk(tid, contacto_id, origen, hace_dias, antes=0):
+        creada = ahora - hace_dias * DIA - antes
         return {"_http": 200, "_talk_id": tid,
                 "talk": {"contact_id": contacto_id, "origin": origen, "created_at": creada, "updated_at": creada + 3600}}
 
@@ -67,29 +74,35 @@ def main(carpeta: str) -> None:
             m["attachment"] = adjunto
         return m
 
+    # El relleno: personas, conversaciones de entre 11 y 400 días y un mensaje cada una (--relleno).
+    rel_contactos = [contacto(5000 + i, f"SINT-RELLENO {i}", telefonos=[f"0412300{i:04d}"]) for i in range(relleno)]
+    rel_dias = [400 - (i % 390) for i in range(relleno)]
     escribir("contactos.ndjson", [
         contacto(1001, "SINT-NOMBRE-A Uno", telefonos=["04120000001"]),           # X1 por teléfono
         contacto(1002, "SINT-NOMBRE-B Dos", telefonos=["0412-000-0002"]),         # 1002 y 1003: misma persona
         contacto(1003, "SINT-NOMBRE-B Bis", telefonos=["+58 412 0000002"]),
         contacto(1004, "SINT-NOMBRE-C", correos=["SINT.Existente@Example.test"]),  # X2 por correo
         contacto(1005, "SINT-NOMBRE-D"),                                          # sin teléfono ni correo
-    ])
+    ] + rel_contactos)
     escribir("clientes.ndjson", [
         {"client_id": "SINT-C1", "phone_last10": ["4120000002"], "correos": []},
         {"client_id": "SINT-C2", "phone_last10": [], "correos": ["otra@example.test"]},
     ])
     escribir("talks.ndjson", [
-        talk(2001, 1001, "waba", 500),
+        talk(2001, 1001, "waba", 500, antes=300 if relleno else 0),  # con relleno, antes que m0
         talk(2002, 1003, "waba", 200),
         talk(2003, 1004, "instagram_business", 100),
         talk(2004, 1005, "waba", 50),
         talk(2005, 9999, "waba", 2),                     # contacto que no está en contactos: «sin contacto»
         {"_http": 403, "_talk_id": 2006, "talk": None},  # no se pudo leer: no entra
-    ])
+    ] + [talk(6000 + i, 5000 + i, "waba", rel_dias[i]) for i in range(relleno)])
     asesora = {"id": "s", "type": "internal", "name": "SINT-Asesora Pérez"}
     bot = {"id": "b", "type": "bot", "name": "SINT-Salesbot"}
     m1 = mensaje("m1", 2001, ahora - 500 * DIA, texto="SINT-TEXTO-1 SINTVIEJO")
-    escribir("mensajes.ndjson", [
+    # Con relleno, los dos mensajes con texto más viejos no tienen una palabra apta para BQ1 (sonda-ensayo.rb).
+    viejos = [mensaje("m0", 2001, ahora - 500 * DIA - 180, texto="SINT ok sí"),
+              mensaje("m0b", 2001, ahora - 500 * DIA - 120, texto="SINT-TEXTO SINTFRECUENTE")] if relleno else []
+    escribir("mensajes.ndjson", viejos + [
         m1,
         mensaje("m2", 2001, ahora - 500 * DIA + 60, "outgoing", "SINT-TEXTO-2", asesora),
         mensaje("m3", 2001, ahora - 499 * DIA, "outgoing", "SINT-TEXTO-3", bot),
@@ -103,7 +116,8 @@ def main(carpeta: str) -> None:
                 adjunto={"type": "voice", "file_name": "SINT.ogg", "link": "https://drive.kommo.example/SINT8?sig=SINT"}),
         mensaje("m9", 2006, ahora - DIA, texto="SINT-TEXTO-9"),  # de la conversación 403: no entra
         dict(m1),                                              # repetido: entra una vez
-    ])
+    ] + [mensaje(f"r{i}", 6000 + i, ahora - rel_dias[i] * DIA + 30, texto="SINT-TEXTO SINTFRECUENTE")
+         for i in range(relleno)])
     # Como los deja `extraer --adjuntos-para-carga`: el .age del respaldo (aquí no hace falta el archivo) y la copia
     # en claro en adjuntos-carga/, con tipo, extensión, bytes y sha256.
     os.makedirs(os.path.join(carpeta, "adjuntos-carga"), exist_ok=True)
@@ -118,4 +132,6 @@ def main(carpeta: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    if len(sys.argv) not in (2, 4) or (len(sys.argv) == 4 and sys.argv[2] != "--relleno"):
+        sys.exit("uso: generar-sintetico.py <carpeta> [--relleno N]")
+    main(sys.argv[1], int(sys.argv[3]) if len(sys.argv) == 4 else 0)

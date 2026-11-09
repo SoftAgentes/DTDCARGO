@@ -4,8 +4,8 @@
  * Va dentro de un `<Suspense>` en la página, con `CrmEmbudosCargando` mientras
  * lee.
  *
- * Convive con las pestañas de Kommo durante F2: Kommo sigue mandando en sus
- * leads hasta el corte y 6.6 reemplaza Dirección, Tablero y Asesor.
+ * Desde SDD-0614 S0 las pestañas de Kommo están ocultas: Embudos es la pestaña
+ * por defecto del CRM hasta que llegue Resumen (S3).
  */
 
 import { createClient } from "@/lib/db/server";
@@ -44,7 +44,7 @@ export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmTa
       <EmptyState
         eyebrow="CRM propio"
         title="Los embudos todavía no están activos."
-        description="Falta aplicar la migración 0506 en esta base. Mientras tanto, los leads siguen en las otras pestañas del CRM."
+        description="Falta aplicar la migración 0506 en esta base."
       />
     ) : (
       <EmptyState
