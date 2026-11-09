@@ -3196,6 +3196,15 @@
         "forma": "exacta"
       }
     },
+    "0516_discord_consulta_clientes": {
+      "sha256": "5a77cf078d9de7598fdbc086b97d6673231d20614a11695f0d1329e06a3286d5",
+      "md5": "e65bdf2c5a4226b344f147019453631a",
+      "bytes": 12090,
+      "ledger": {
+        "fecha": "2026-11-09",
+        "forma": "exacta"
+      }
+    },
     "0517_user_guide_prefs": {
       "sha256": "ab7e09eae3ae17295cd1b40f7e02419301df4fe39eb801a5a15807bba2766d24",
       "md5": "22769e1bb0280481c5fd0b7b201a314f",

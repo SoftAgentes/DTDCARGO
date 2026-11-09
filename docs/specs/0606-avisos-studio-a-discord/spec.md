@@ -4,7 +4,7 @@ title: "Avisos del Studio: de Telegram a Discord"
 status: in-progress
 author: "Claude"
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-09
 supersedes: null
 superseded_by: null
 related: ["0036", "0146", "0271", "0544"]
@@ -42,6 +42,7 @@ Por qué no una columna protegida en la base:
 
 - La dirección es una llave: quien la tenga escribe en el canal. En la base quedaría en cada respaldo (los respaldos salen cifrados a Backblaze, pero el dump la tendría), la leería cualquier consulta con `service_role` y habría que ocultarla con una tabla aparte sin `SELECT` o con cifrado. Es más superficie para proteger lo mismo.
 - Las demás llaves del Studio (Telegram, Resend, Anthropic) ya viven en el `.env` del servidor y se cargan con `infra/ops/migrate/env-set.sh`. Una llave más sigue el camino conocido.
+  - **Cambio de procedimiento (2026-11-09, SDD-0609 D8):** las cinco direcciones ya no se cargan con `env-set.sh`. Las pega Sam con `infra/ops/web/guardar-webhook-discord.sh <destino>`, que valida cada una contra Discord por el `channel_id` de su canal. El lugar y los nombres de las variables no cambian: siguen en el `.env` del servidor.
 - Cambiarla exige entrar al servidor. Es un costo aceptado: se cambia sólo si se filtra o si se recrea el canal.
 
 La dirección se valida ENTERA antes de usarla: `https`, uno de los hosts de Discord (`discord.com`, `discordapp.com`, `canary.` y `ptb.`), sin usuario, puerto, query ni fragmento, y la ruta exacta `/api[/vN]/webhooks/<id de 17 a 20 dígitos>/<token>`. Un valor con otra forma cuenta como ausente: una errata no termina en un envío de datos a otro servidor. No aparece en errores, en registros ni en la pantalla.
@@ -222,6 +223,10 @@ Nada de esto lo ejecuta esta spec. Es el orden para cuando Sam descongele la pub
 1b. **Publicar el texto de `/privacidad`** que cubre los avisos a Discord (aprobado por Sam; PR aparte). Sin eso no se ponen las direcciones del paso 3: los avisos a Discord no se encienden antes.
 2. **Crear en Discord** los cinco canales y un webhook por canal (Ajustes del canal › Integraciones › Webhooks).
 3. **Poner las cinco direcciones y `DISCORD_TENANT_ID`** (el ID del tenant de DTD Cargo) en el servidor con `infra/ops/migrate/env-set.sh` y reiniciar la web. Desde ese momento los avisos por categoría de ese tenant salen a Discord y dejan de salir por Telegram.
+   - **Cambio de procedimiento (2026-11-09, SDD-0609 D8):**
+     - Las cinco direcciones las pega Sam con `guardar-webhook-discord.sh` ([runbook § 1 B](../../runbooks/avisos-servidor-discord.md)), no con `env-set.sh`.
+     - `DISCORD_TENANT_ID` sigue con `env-set.sh`, **después** de las cinco y nunca a la vez: los dos guiones reescriben el archivo entero.
+     - El guion no reinicia la web: las variables entran cuando la web se recrea (runbook § 3, paso 7).
 4. **Probar** un aviso por categoría y mirar Ajustes › Alertas del equipo: las cinco deben decir «Sale a #canal».
 5. **Aplicar las migraciones 0514 y 0515**, de a una (OK nominal de Sam para cada una, pasando por el Director General, y runbook): la 0514 para que cada persona pueda enlazar su ID; la 0515 para la cola. Pueden ir antes o después del paso 3.
 6. **Cada persona enlaza su ID de Discord** en su perfil.

@@ -41,7 +41,7 @@ out="$SALIDA_FALSA"
   echo "BIN=$0"
   for a in "$@"; do echo "ARG=$a"; done
   if pwd -W >/dev/null 2>&1; then echo "ENV PWD=$(pwd -W)"; else echo "ENV PWD=$(pwd)"; fi
-  for v in DTD_PERFIL CLAUDE_CONFIG_DIR CODEX_HOME HERMES_HOME HOME; do
+  for v in DTD_PERFIL CLAUDE_CONFIG_DIR CODEX_HOME HERMES_HOME HOME PATH; do
     if [ -n "${!v+x}" ]; then echo "ENV $v=${!v}"; fi
   done
   for v in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN HERMES_EPHEMERAL_SYSTEM_PROMPT; do
@@ -435,6 +435,77 @@ class Motor(Base):
         self.rechazada(["--settings", _barra(futura)])
         self.rechazada([f"--plugin-dir={_barra(self.trabajo_glm / 'nueva')}"])
 
+    # Riesgos BAJOS de la aprobación de la #407 (2026-11-07). Riesgo 2: el motor puede expandir ~
+    # a la casa de su usuario; dtd-motor la leería como una relativa dentro de su carpeta.
+    def test_ruta_que_empieza_por_virgulilla_no_corre(self):
+        for herramienta, perfil in (("claude", "ceo"), ("codex", "auxiliar")):
+            for args in (
+                ["--add-dir", "~/../../srv/oficina/trabajo"],
+                ["--settings=~/../../srv/oficina/trabajo/ceo/.claude/settings.json"],
+                ["--add-dir", "~agentes-run/x"],
+                # En Windows, MSYS expande una ~ suelta antes de que llegue a bash.
+                *([["~"]] if POSIX else []),
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.salida.unlink(missing_ok=True)
+                    r = self.motor(herramienta, perfil, args)
+                    self.assertEqual(r.returncode, 66, r.stderr)
+                    self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+
+    def test_virgulilla_que_no_va_al_inicio_si_corre(self):
+        r = self.motor("claude", "ceo", ["--add-dir", "notas/~viejo", "-p", "hola ~"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["claude", "--add-dir", "notas/~viejo", "-p", "hola ~"])
+
+    # Riesgo 3: Codex 0.163.0 resuelve -C/--cd desde su cwd, lo vuelve la raíz del proyecto y
+    # resuelve desde ahí las --add-dir relativas. dtd-agente-run solo revisa motores/<perfil>.
+    def test_codex_no_acepta_cambiar_de_carpeta(self):
+        for args in (
+            ["-C", "notas"],
+            ["-C/tmp/x"],
+            ["-C=/tmp/x"],
+            ["--cd", "/tmp/x"],
+            ["--cd=/tmp/x"],
+            ["exec", "--json", "-C", "notas", "--add-dir", "../../../trabajo"],
+        ):
+            with self.subTest(args=args):
+                self.salida.unlink(missing_ok=True)
+                r = self.motor("codex", "auxiliar", args)
+                self.assertEqual(r.returncode, 66, r.stderr)
+                self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+
+    def test_codex_sin_cambio_de_carpeta_si_corre(self):
+        args = ["exec", "--json", "-c", "model_reasoning_effort=high", "--add-dir", "notas", "-"]
+        r = self.motor("codex", "auxiliar", args)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["codex", *args])
+
+    # Revisión del DG sobre dbe4a5576 (2026-11-07): una opción corta con la ruta pegada se revisa
+    # igual que si viniera aparte. Hoy no es explotable; se cierra como -C.
+    def test_opcion_corta_con_ruta_pegada_no_corre(self):
+        f = self.glm()
+        for herramienta, perfil in (("claude", "ceo"), ("codex", "auxiliar")):
+            for args in (
+                [f"-i{_barra(f)}"],
+                [f"-i={_barra(f)}"],
+                [f"-i{_barra(self.trabajo_glm)}"],
+                ["-i../../trabajo/ceo/.claude/settings.json"],
+                ["-i~/x.png"],
+                ["-i=~/x.png"],
+                ["-i~agentes-run/x"],
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.salida.unlink(missing_ok=True)
+                    r = self.motor(herramienta, perfil, args)
+                    self.assertEqual(r.returncode, 66, r.stderr)
+                    self.assertIsNone(self.leer(), "no debe llegar a dtd-agente-run")
+
+    def test_opcion_corta_sin_ruta_de_los_glm_si_corre(self):
+        args = ["-p", "-inotas/x.png", "-i=notas/~viejo.png", "-v"]
+        r = self.motor("claude", "ceo", args)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], ["claude", *args])
+
     def test_corridas_viejas_se_borran_y_las_nuevas_no(self):
         base = self.staging / "ceo"
         vieja = base / "run.viejo0001"
@@ -467,8 +538,18 @@ class AgenteRun(Base):
         if POSIX:
             self.trabajo.chmod(0o755)
             self.tmp.chmod(0o755)
+        # La carpeta que escriben los GLM (/srv/oficina/trabajo), aparte de la de los motores.
+        # Con la ruta larga: en Windows, bash resuelve las relativas con ella y no con la 8.3.
+        (self.tmp / "trabajo-glm" / "ceo" / ".claude").mkdir(parents=True)
+        self.glm = Path(os.path.realpath(self.tmp / "trabajo-glm"))
+        (self.glm / "ceo" / ".claude" / "settings.json").write_text("{}")
         for nombre in ("claude", "codex", "opencode", "hermes"):
             self.falso(nombre)
+        # Las herramientas de Hermes (/opt/hermes/tools), con la forma de Hermes 0.23.
+        self.herramientas = self.tmp / "hermes-tools"
+        # ripgrep no se crea: en el VPS (2026-11-07) su carpeta no trae bin/rg.
+        for carpeta in ("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"):
+            self.herramienta(carpeta, "node")
         texto = (RAIZ / "dtd-agente-run").read_text()
         for viejo, nuevo in {
             "/opt/agentes-cli/bin": _barra(self.bin),
@@ -476,6 +557,8 @@ class AgenteRun(Base):
             'casa="/home/$yo"': f'casa="{_barra(self.home)}/$yo"',
             "/home/agentes-run": _barra(self.home / "agentes-run"),
             "MOTORES=/srv/oficina/motores": f"MOTORES={_barra(self.trabajo)}",
+            "TRABAJO=/srv/oficina/trabajo": f'TRABAJO="{_barra(self.glm)}"',
+            "HERRAMIENTAS_HERMES=/opt/hermes/tools": f"HERRAMIENTAS_HERMES={_barra(self.herramientas)}",
             "TOPE=/": f"TOPE={_barra(self.tmp)}",
             "DUENO_SEGURO=0": "DUENO_SEGURO=$(id -u)",
             '"$(id -un)"': '"$USUARIO_FALSO"',
@@ -485,7 +568,15 @@ class AgenteRun(Base):
         self.script = self.tmp / "dtd-agente-run"
         self.script.write_text(texto, newline="\n")
 
-    def run_(self, herramienta, perfil, usuario):
+    def herramienta(self, carpeta, binario):
+        b = self.herramientas / carpeta / "bin"
+        b.mkdir(parents=True, exist_ok=True)
+        f = b / binario
+        f.write_text("#!/bin/sh\n", newline="\n")
+        f.chmod(0o755)
+        return f
+
+    def run_(self, herramienta, perfil, usuario, args=("--version",)):
         env = {"DTD_PERFIL": perfil} if perfil is not None else {}
         env.update(
             {
@@ -498,7 +589,7 @@ class AgenteRun(Base):
             }
         )
         self.salida.unlink(missing_ok=True)
-        return self.correr(self.script, [herramienta, "--version"], env)
+        return self.correr(self.script, [herramienta, *args], env)
 
     def rechazado(self, herramienta, perfil, usuario):
         r = self.run_(herramienta, perfil, usuario)
@@ -653,6 +744,118 @@ class AgenteRun(Base):
         shutil.rmtree(self.trabajo / "ceo")
         self.insegura("claude", "ceo", "agentes-alfred")
 
+    # Riesgo BAJO 1 de la aprobación de la #407 (2026-11-07): dtd-motor corre como agentes y no ve
+    # los enlaces dentro de motores/<perfil> (700 del usuario del motor). Un enlace notas ->
+    # trabajo/ceo, creado por el motor, le pasaría. dtd-agente-run lo revisa como ese usuario.
+    def con_args(self, herramienta, perfil, usuario, args):
+        r = self.run_(herramienta, perfil, usuario, args)
+        self.assertEqual(r.returncode, 66, f"{herramienta} {args}: {r.stderr}")
+        self.assertIsNone(self.leer(), "no debe arrancar el motor")
+
+    def test_enlace_dentro_de_la_carpeta_del_motor_hacia_los_glm_no_arranca(self):
+        if not POSIX:
+            self.skipTest("los enlaces se prueban en Linux")
+        for herramienta, perfil, usuario in self.MOTORES:
+            os.symlink(self.glm / "ceo", self.trabajo / perfil / "notas")
+            for args in (
+                ["--add-dir", "notas"],
+                ["--settings", "notas/.claude/settings.json"],
+                ["--settings=./notas/.claude/settings.json"],
+                ["--add-dir", "notas/nueva"],
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.con_args(herramienta, perfil, usuario, args)
+
+    def test_ruta_hacia_los_glm_no_arranca_aunque_no_pase_por_dtd_motor(self):
+        for herramienta, perfil, usuario in self.MOTORES:
+            for args in (
+                ["--add-dir", _barra(self.glm)],
+                [f"--settings={_barra(self.glm / 'ceo' / '.claude' / 'settings.json')}"],
+                # En Windows bash resuelve el cwd con la ruta 8.3; la relativa se prueba en Linux.
+                *([["--add-dir", "../../trabajo-glm/ceo"]] if POSIX else []),
+            ):
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.con_args(herramienta, perfil, usuario, args)
+
+    def test_opcion_corta_con_ruta_pegada_hacia_los_glm_no_arranca(self):
+        casos = [
+            [f"-i{_barra(self.glm / 'ceo' / 'x.png')}"],
+            [f"-i={_barra(self.glm)}"],
+        ]
+        if POSIX:
+            # El enlace solo lo ve el usuario del motor; la relativa, solo con la ruta larga.
+            for _, perfil, _ in self.MOTORES:
+                os.symlink(self.glm / "ceo", self.trabajo / perfil / "notas")
+            casos += [["-inotas/x.png"], ["-i=notas"], ["-i../../trabajo-glm/ceo"]]
+        for herramienta, perfil, usuario in self.MOTORES:
+            for args in casos:
+                with self.subTest(herramienta=herramienta, args=args):
+                    self.con_args(herramienta, perfil, usuario, args)
+
+    def test_argumentos_comunes_si_arrancan(self):
+        if POSIX:
+            (self.trabajo / "ceo" / "notas").mkdir()
+        args = ["-p", "hola", "--effort", "high", "--add-dir", "notas", "--settings=./x.json", "",
+                "-inotas/x.png", "-v"]
+        for herramienta, perfil, usuario in self.MOTORES:
+            with self.subTest(herramienta=herramienta):
+                r = self.run_(herramienta, perfil, usuario, args)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(self.leer()[0], args)
+
+    # Pedido del co-CEO (2026-11-07): Hermes 0.23 trae node 26.12.1 y el PATH tenía fija la carpeta
+    # de node 26.7.0, que se rompería el día que alguien la borre. Lista cerrada, la primera que exista.
+    def path_de_hermes(self):
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return self.leer()[1]["PATH"]
+
+    def test_hermes_usa_el_node_de_hermes_023(self):
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("aviso", r.stderr, "con el node nuevo no hay nada que avisar")
+        path = self.leer()[1]["PATH"]
+        nuevo = _barra(self.herramientas / "node-26.12.1-linux-x64" / "bin")
+        rg = _barra(self.herramientas / "ripgrep-15.2.0-linux-x64" / "bin")
+        self.assertTrue(path.startswith(f"{nuevo}:{rg}:"), path)
+        self.assertNotIn("node-26.7.0-linux-x64", path)
+
+    def test_hermes_vuelve_al_node_viejo_si_falta_el_nuevo(self):
+        viejo = _barra(self.herramientas / "node-26.7.0-linux-x64" / "bin") + ":"
+        shutil.rmtree(self.herramientas / "node-26.12.1-linux-x64")
+        self.assertTrue(self.path_de_hermes().startswith(viejo))
+        # Una carpeta sin el binario no cuenta.
+        (self.herramientas / "node-26.12.1-linux-x64" / "bin").mkdir(parents=True)
+        self.assertTrue(self.path_de_hermes().startswith(viejo))
+
+    # Revisión del DG sobre dbe4a5576: volver al node viejo no puede ser silencioso.
+    def test_hermes_avisa_cuando_vuelve_al_node_viejo(self):
+        shutil.rmtree(self.herramientas / "node-26.12.1-linux-x64")
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        avisos = [l for l in r.stderr.splitlines() if l.startswith("dtd-agente-run: aviso:")]
+        self.assertEqual(len(avisos), 1, r.stderr)
+        self.assertIn("node-26.12.1-linux-x64/bin/node", avisos[0])
+        self.assertIn("node-26.7.0-linux-x64", avisos[0])
+
+    def test_hermes_sin_node_no_arranca(self):
+        for carpeta in ("node-26.12.1-linux-x64", "node-26.7.0-linux-x64"):
+            shutil.rmtree(self.herramientas / carpeta)
+        r = self.run_("hermes", "seo", "agentes-run")
+        self.assertEqual(r.returncode, 69, r.stderr)
+        self.assertIsNone(self.leer(), "Hermes no debe arrancar sin node")
+
+    def test_hermes_arranca_aunque_su_ripgrep_no_traiga_rg(self):
+        # Así está el VPS de la oficina (2026-11-07): exigir rg dejaría a todos los GLM sin arrancar.
+        self.assertFalse((self.herramientas / "ripgrep-15.2.0-linux-x64" / "bin" / "rg").exists())
+        self.path_de_hermes()
+
+    def test_hermes_si_trabaja_en_la_carpeta_de_los_glm(self):
+        args = ["--cwd", _barra(self.glm / "ceo")]
+        r = self.run_("hermes", "ceo", "agentes-run", args)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.leer()[0], args)
+
 
 class Archivos(unittest.TestCase):
     """Lo que no se ejecuta en las pruebas pero sí se instala."""
@@ -713,6 +916,16 @@ class Archivos(unittest.TestCase):
                 texto = ruta.read_text(encoding="utf-8")
                 self.assertNotRegex(texto, r"(?i)ni (ver )?(sus|los) procesos")
                 self.assertNotRegex(texto, r"(?i)no (puede|pueden) ver (sus|los) procesos")
+
+    def test_herramientas_de_hermes_sin_comodines(self):
+        texto = (RAIZ / "dtd-agente-run").read_text()
+        lineas = [l for l in texto.splitlines() if l.startswith(("NODES_HERMES=", "RIPGREP_HERMES="))]
+        self.assertEqual(len(lineas), 2, lineas)
+        for l in lineas:
+            with self.subTest(linea=l):
+                # Ni comodines (* ? [) ni llaves ni variables: solo nombres fijos.
+                self.assertNotRegex(l, r"[*?\[{$]")
+        self.assertNotIn("node-26.7.0-linux-x64/bin:", texto, "el PATH no fija una versión de node")
 
     def test_dtd_claude_y_dtd_codex_solo_llaman_al_motor(self):
         for nombre, herramienta in (("dtd-claude", "claude"), ("dtd-codex", "codex")):
