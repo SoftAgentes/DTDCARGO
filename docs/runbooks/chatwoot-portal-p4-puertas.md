@@ -197,10 +197,22 @@
   ssh root@217.216.54.70 "umask 077; docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'select system_identifier from pg_control_system()' | tr -d '\n' > /srv/ops/portal-historial/sistema-produccion.parcial && chmod 0600 /srv/ops/portal-historial/sistema-produccion.parcial && mv -f /srv/ops/portal-historial/sistema-produccion.parcial /srv/ops/portal-historial/sistema-produccion"
   ```
 
+  **El archivo tiene que traer solo las cifras.** `tr -d '\n'` quita el salto de línea final, y no puede quedar ningún otro carácter: ni CR ni espacios. Solo así da lo mismo que la fórmula del DG, `printf '%s' "$v" | sha256sum | cut -c1-10`. Se comprueba sin imprimir el valor; tiene que dar `solo_cifras`:
+
+  ```bash
+  ssh root@217.216.54.70 'grep -qxE "[0-9]+" /srv/ops/portal-historial/sistema-produccion && echo solo_cifras || echo no_son_solo_cifras'
+  ```
+
   Su sha corto, con la fórmula del DG; tiene que dar `b4fbe1b236`:
 
   ```bash
   ssh root@217.216.54.70 'v=$(cat /srv/ops/portal-historial/sistema-produccion); printf "%s" "$v" | sha256sum | cut -c1-10'
+  ```
+
+  **Si no da `b4fbe1b236`, o si no dio `solo_cifras`, se PARA y se borra el archivo.** No se sigue con el 3.0, y se avisa al DG:
+
+  ```bash
+  ssh root@217.216.54.70 rm -f /srv/ops/portal-historial/sistema-produccion
   ```
 
 - **Al final, los permisos de todo lo copiado:**
@@ -225,7 +237,7 @@
   - ‹por confirmar hasta que la #473 esté en `main`› **Están las 10 migraciones** en `/srv/ops/portal-historial/migraciones/`. **Si falta alguna, la G0 se niega** y el ensayo no arranca.
   - ‹por confirmar hasta que la #473 esté en `main`› **Están los cuatro inicializadores de Rails que la G0 también exige,** en `$CHATWOOT_DIR/rails/` (por defecto `/srv/chatwoot/rails/`): `zz_dtd_redaccion_logs.rb`, `zz_dtd_proteccion_register.rb`, `zz_dtd_revocar_sesiones.rb` y `zz_dtd_correo.rb`. **Si falta alguno, la G0 se niega.** Se comprueba con `ls`, sin abrirlos.
 - **La evidencia:** las dos listas de sha256 y el SHA de `main` del checkout limpio.
-- **La vuelta atrás:** se borra todo lo que copió el 3.0, **menos `deshacer/`**:
+- **La vuelta atrás:** se borra todo lo que copió el 3.0, **menos `deshacer/`**. **Borra también `sistema-produccion`:** su valor es de este 3.0, y si se repite el 3.0 se vuelve a leer y a comparar con `b4fbe1b236`.
 
   ```bash
   find /srv/ops/portal-historial -mindepth 1 -maxdepth 1 ! -name deshacer -exec rm -r -- {} +
@@ -359,7 +371,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   **`SISTEMA`** (aprobado por el DG; `deshacer-vinculos.sh` de la #480 en `8a1b1043b`, ‹por confirmar hasta que la #480 esté en `main`›): **no se lee en la shell de Sam ni va en el comando.**
   - Los pasos 2 y 4, en `produccion`, lo leen de `/srv/ops/portal-historial/sistema-produccion`, que deja el 3.0. Tiene que ser root 0600, de este usuario y sin enlace. Si llega `SISTEMA=` por el entorno, se niegan.
   - Imprimen solo `HECHO sistema_sha256_corto=<10>`, con la fórmula del DG: `printf '%s'` sin salto de línea, `sha256sum` y los 10 primeros caracteres.
-  - **Para seguir:** ese sha corto es el de la nota de control del DG, `b4fbe1b236` en producción y `76ebba046a` en prueba. Si no coincide, se para.
+  - **Para seguir, en el paso 2 y otra vez en el paso 4:** el sha corto que imprime cada uno es el de la nota de control del DG, `b4fbe1b236` en producción y `76ebba046a` en prueba. Se compara contra esa nota, fuera del VPS, y no solo contra la evidencia del VPS. Si no coincide, se para.
   - El valor nunca se imprime ni entra en Git; en la evidencia, en `/srv/ops/evidencias` (root 0700, archivos 0600), va solo el sha corto.
   - `limpiar.sh --cierre-4-6b` y `--abandono-4-6b` borran el archivo y escriben `HECHO sistema=borrado`.
 

@@ -246,3 +246,12 @@
   - el OK del 3.0 y su «Para seguir» lo nombran.
 
   Se lo avisé al Subdirector.
+
+### El DG aprobó el 3.0 para `sistema-produccion`, con cuatro condiciones (todas escritas)
+
+1. **Si el sha corto no da `b4fbe1b236`,** o si no dio `solo_cifras`, se PARA y se borra el archivo, con su comando.
+2. **La vuelta atrás del 3.0 borra también `sistema-produccion`,** y lo dice. Su valor es de ese 3.0, y si se repite se vuelve a leer y a comparar.
+3. **Los pasos 2 y 4** comparan cada uno su sha corto contra la nota del DG (`b4fbe1b236`), fuera del VPS, y no solo contra la evidencia.
+4. **El archivo trae solo las cifras.** `tr -d '\n'` quita el salto final, y no puede quedar ni CR ni espacios. Se comprueba sin imprimir con `grep -qxE "[0-9]+"`, que tiene que dar `solo_cifras`.
+
+**El caso con `\n` final y el de CR o espacio** son de `deshacer-vinculos.sh`. Van en la #480, en local, y no en esta PR.
