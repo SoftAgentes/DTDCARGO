@@ -149,7 +149,6 @@ vincular "$TRABAJO/vincular.txt"
 exigir P1 '[ "$(h "$TRABAJO/carga.txt" carga)" = ok ] && [ "$(h "$TRABAJO/vincular.txt" salida_proceso)" = 0 ] && [ ! -e "$SHM" ]' \
   "la carga real: $(h "$TRABAJO/carga.txt" conversaciones_nuevas) conversaciones y $(h "$TRABAJO/carga.txt" contactos_nuevos) contactos, vinculados en Studio"
 sonda "$TRABAJO/otra-bandeja.txt" FASE=otra-bandeja
-CONSERVADO="$(h "$TRABAJO/otra-bandeja.txt" conservado)"
 [ "$FALLAS" = 0 ] || { tail -n 20 "$TRABAJO"/*.txt; exit 1; }
 # Para cada escenario (la corrida real y cada mutante), la carga entera de nuevo. La primera vez ya está.
 recargar() {
@@ -165,6 +164,8 @@ recargar() {
 escenario() { # carpeta salidas
   local K="$1" O="$2"
   mkdir -p "$O"
+  # El conservado de este escenario: después de un mutante que lo borró, la recarga crea otro contacto con otro id.
+  sonda "$O/otra-bandeja.txt" FASE=otra-bandeja
   sonda "$O/contar-antes.txt" FASE=contar
   # D1: algo ajeno, de a uno.
   sonda "$O/ajeno-m.txt" FASE=ajeno CUAL=mensaje
@@ -222,8 +223,8 @@ comprobar() { # salidas
   exigir D6b '[ "$(h "$O/d6b.txt" salida_proceso)" = 1 ] && [ "$(h "$O/d6b.txt" error)" = chatwoot_portal_se_encendio_alguna_vez ]' \
     "con chatwoot_portal encendido alguna vez (entity_audit_log), no corre ($(h "$O/d6b.txt" error))"
   F="$O/d2.txt"
-  exigir D2 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" deshacer)" = ok ] && [ "$(h "$F" contactos_conservados)" = 1 ] && [ "$(h "$F" permiso)" = 600 ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$O/contar-seco.txt" bandeja)" = "$A" ] && grep -q "\"contacto_id\":$CONSERVADO}" "$O/conservados.ndjson" && grep -q "\"tenant_id\":\"$TENANT\"" "$O/conservados.ndjson" && [ "$(wc -l <"$O/conservados.ndjson")" = 2 ]' \
-    "seco: no borra nada ($(h "$O/contar-seco.txt" bandeja)) y escribe en 0600 el contacto conservado ($CONSERVADO): $(h "$F" contactos_de_la_bandeja) de la bandeja, $(h "$F" contactos_conservados) conservado, $(h "$F" contactos_a_borrar) a borrar"
+  exigir D2 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" deshacer)" = ok ] && [ "$(h "$F" contactos_conservados)" = 1 ] && [ "$(h "$F" permiso)" = 600 ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$O/contar-seco.txt" bandeja)" = "$A" ] && grep -q "\"contacto_id\":$(h "$O/otra-bandeja.txt" conservado)}" "$O/conservados.ndjson" && grep -q "\"tenant_id\":\"$TENANT\"" "$O/conservados.ndjson" && [ "$(wc -l <"$O/conservados.ndjson")" = 2 ]' \
+    "seco: no borra nada ($(h "$O/contar-seco.txt" bandeja)) y escribe en 0600 el contacto conservado ($(h "$O/otra-bandeja.txt" conservado)): $(h "$F" contactos_de_la_bandeja) de la bandeja, $(h "$F" contactos_conservados) conservado, $(h "$F" contactos_a_borrar) a borrar"
   exigir D3 '[ "$(h "$O/d3.txt" salida_proceso)" = 1 ] && [ "$(h "$O/d3.txt" error)" = "la lista de conservados cambió desde el seco" ] && [ "$(h "$O/contar-d3.txt" bandeja)" = "$A" ]' \
     "la lista cambió entre el seco y el borrado: aborta sin borrar ($(h "$O/d3.txt" error))"
   F="$O/d4.txt"
@@ -276,7 +277,7 @@ if [ "$MUTANTES" = 1 ]; then
     "'mensajes' => mensajes.where(\"source_id IS NULL OR source_id NOT LIKE 'dtd:%'\").count," "'mensajes' => 0,"
   mutante MD2 "no mira los contact_inboxes ajenos" deshacer-carga.rb "D1b" "D1a D2 D5" \
     "'contact_inboxes' => contact_inboxes.where(\"source_id NOT LIKE 'dtd-portal:%'\").count," "'contact_inboxes' => 0,"
-  mutante MD3 "borra el contacto que tiene otra bandeja" deshacer-carga.rb "D2 D5" "D1a D4" \
+  mutante MD3 "borra el contacto que tiene otra bandeja" deshacer-carga.rb "D2 D5" "D1a" \
     "conservados = todos.select { |_, id| con_otra.include?(id) }.sort" "conservados = []"
   mutante MD4 "borra mensajes fuera de la bandeja" deshacer-carga.rb "D5" "D2 D4" \
     "hecho('borrados_mensajes', mensajes.delete_all)" "hecho('borrados_mensajes', Message.where(account_id: @cuenta_id).delete_all)"

@@ -40,6 +40,12 @@
 - **PASÓ:** cada texto que cambian los mutantes aparece una sola vez en su archivo.
 - **NO EJECUTADO en la PC:** Ruby y Docker. La prueba corre en Actions, y el run todavía está pendiente.
 
+## Registro de las vueltas en Actions (#478)
+
+| Vuelta | SHA | Run (job) | Resultado | Qué cambió después |
+|---|---|---|---|---|
+| 1 | `65402ca0c` | job 128935328323 | La corrida real salió verde: P1, D1a, D1b, D6a, D6b, D2 a D5 y F1. De los mutantes, MD0, MD1, MD2 y MD5 pasaron. MD3, MD4 y MD6 a MD9 cayeron además en D2, y MD3 también en D4 | El error era de la prueba, no del guion: `CONSERVADO` estaba fijo desde la primera corrida, y después de que MD3 borra ese contacto, la recarga crea otro con otro id. Ahora cada escenario lee su propio conservado (`otra-bandeja.txt`). MD3 ya no exige D4, que cae en cascada después de D3 |
+
 ## El orden del sub-paso 4.6b (runbook, de E10)
 
 1. `deshacer.sh` con `MODO=seco` escribe `/dev/shm/portal-historial/contactos-conservados.ndjson`.
