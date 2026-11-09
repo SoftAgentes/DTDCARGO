@@ -276,6 +276,48 @@ for (const lock of ['graphify-out/knowledge-manual.lock', 'graphify-out/knowledg
   });
 }
 
+const publishLock = (overrides = {}) => JSON.stringify({ publisher: 'dtd-knowledge-v1', pid: 2147483646, host: os.hostname(), token: 'abc', ...overrides });
+
+function putVaultLock(root, name, content) {
+  fs.mkdirSync(path.join(root, 'DTD Cargo'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'DTD Cargo', name), content);
+}
+
+test('candado de publicación de un publicador muerto (matado por el tope de tiempo): no bloquea, se anota y se conserva', (t) => {
+  const f = fixture(t);
+  putVaultLock(f.root, '.knowledge-publish.lock', publishLock());
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.OK, result.line);
+  assert.deepEqual(steps(f.trace), ['structure', 'visual', 'publish', 'check']);
+  assert.ok(result.line.includes('candados_huerfanos=') && result.line.includes('.knowledge-publish.lock(pid 2147483646 muerto)'), result.line);
+  assert.ok(fs.existsSync(path.join(f.root, 'DTD Cargo', '.knowledge-publish.lock')), 'el guion no lo borra: lo recupera publish');
+});
+
+test('candado de publicación con PID vivo: bloquea', (t) => {
+  const f = fixture(t);
+  putVaultLock(f.root, '.knowledge-publish.lock', publishLock({ pid: process.pid }));
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.LOCKED);
+  assert.deepEqual(steps(f.trace), []);
+});
+
+test('candado de publicación de otra máquina o de otro publicador: bloquea aunque el PID no exista aquí', (t) => {
+  for (const overrides of [{ host: 'otra-maquina-' + os.hostname() }, { publisher: 'otro' }, { token: undefined }, { pid: -3 }]) {
+    const f = fixture(t);
+    putVaultLock(f.root, '.knowledge-publish.lock', publishLock(overrides));
+    const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+    assert.equal(result.code, EXIT.LOCKED, JSON.stringify(overrides));
+  }
+});
+
+test('mutex de recuperación de un proceso muerto: bloquea, publish no puede recuperarlo', (t) => {
+  const f = fixture(t);
+  putVaultLock(f.root, '.knowledge-reaper.lock', publishLock());
+  const result = runDaily({ root: f.root, log: f.log }, { steps: fakeSteps(f.trace), now });
+  assert.equal(result.code, EXIT.LOCKED);
+  assert.deepEqual(steps(f.trace), []);
+});
+
 test('candado manual que aparece durante el fetch: salida 3 sin pasos', (t) => {
   const f = fixture(t);
   f.advanceOrigin();

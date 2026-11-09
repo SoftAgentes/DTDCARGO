@@ -83,15 +83,28 @@ export function mechanicalSteps({ root, python }) {
  * bóveda (`lib/knowledge-vault.mjs`), y el aviso explícito de quien trabaja
  * Graphify a mano. Si alguno existe, la corrida no empieza.
  */
-export function foreignLocks(root) {
+export function inspectLocks(root) {
   let vault = 'DTD Cargo';
   try { vault = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'knowledge-policy.json'), 'utf8').replace(/^﻿/, '')).vaultDirectory || vault; } catch { /* política ausente: valor por defecto */ }
-  return [
-    path.join(root, 'graphify-out', 'knowledge-manual.lock'),
-    path.join(root, 'graphify-out', 'knowledge-record.lock'),
-    path.join(root, vault, '.knowledge-publish.lock'),
-    path.join(root, vault, '.knowledge-reaper.lock'),
-  ].filter((file) => fs.existsSync(file)).map((file) => path.relative(root, file));
+  const rel = (file) => path.relative(root, file);
+  const blocking = [];
+  const stale = [];
+  for (const file of [path.join(root, 'graphify-out', 'knowledge-manual.lock'), path.join(root, 'graphify-out', 'knowledge-record.lock'), path.join(root, vault, '.knowledge-reaper.lock')]) {
+    if (fs.existsSync(file)) blocking.push(rel(file));
+  }
+  // El candado de publicación de un publicador muerto (por ejemplo, matado por
+  // el tope de tiempo) no bloquea: `publish` lo recupera con su propio mutex.
+  // Solo cuenta como huérfano si es JSON de este publicador, de esta máquina y
+  // con un PID que ya no existe; cualquier otra cosa se conserva y bloquea.
+  const publish = path.join(root, vault, '.knowledge-publish.lock');
+  if (fs.existsSync(publish)) {
+    let owner = null;
+    try { owner = JSON.parse(fs.readFileSync(publish, 'utf8')); } catch { /* ilegible: bloquea */ }
+    const attributable = owner && owner.publisher === 'dtd-knowledge-v1' && owner.host === os.hostname() && Number.isSafeInteger(owner.pid) && owner.pid > 0 && typeof owner.token === 'string';
+    if (attributable && !pidAlive(owner.pid)) stale.push(rel(publish) + '(pid ' + owner.pid + ' muerto)');
+    else blocking.push(rel(publish));
+  }
+  return { blocking, stale };
 }
 
 /** Toma del JSON de `knowledge:check` los campos del resumen; tolera salida inválida. */
@@ -113,6 +126,7 @@ export function formatLine(record) {
   const fields = [record.date, 'rev=' + (record.revision || '-'), 'resultado=' + record.outcome,
     'estructura=' + record.structure, 'archify=' + record.archify, 'obsidian=' + record.obsidian,
     'semantico_pendiente=' + record.semanticPending];
+  if (record.staleLocks?.length) fields.push('candados_huerfanos=' + JSON.stringify(record.staleLocks.join(',')));
   if (record.reason) fields.push('motivo=' + JSON.stringify(record.reason));
   return fields.join(' ');
 }
@@ -196,8 +210,9 @@ export function runDaily(options, { runner = spawnRunner, steps, now = () => new
     const before = preflight(runner, root);
     if (!before.ok) return finish(EXIT.PRECONDITION, 'STOPPED', before.reason);
     record.revision = before.head.slice(0, 12);
-    const held = foreignLocks(root);
-    if (held.length) return finish(EXIT.LOCKED, 'LOCKED', 'MANUAL_LOCK: trabajo de conocimiento en curso (' + held.join(', ') + ')');
+    const first = inspectLocks(root);
+    if (first.blocking.length) return finish(EXIT.LOCKED, 'LOCKED', 'MANUAL_LOCK: trabajo de conocimiento en curso (' + first.blocking.join(', ') + ')');
+    if (first.stale.length) record.staleLocks = first.stale;
 
     const fetched = git(runner, root, ['fetch', '--quiet', 'origin', 'main']);
     if (fetched.status !== 0) return finish(EXIT.PRECONDITION, 'STOPPED', 'FETCH_FAILED: ' + lastLine(fetched.stderr));
@@ -218,8 +233,9 @@ export function runDaily(options, { runner = spawnRunner, steps, now = () => new
       plan = mechanicalSteps({ root, python });
     }
     // El trabajo manual pudo empezar mientras se traía main.
-    const heldLate = foreignLocks(root);
-    if (heldLate.length) return finish(EXIT.LOCKED, 'LOCKED', 'MANUAL_LOCK: trabajo de conocimiento en curso (' + heldLate.join(', ') + ')');
+    const late = inspectLocks(root);
+    if (late.blocking.length) return finish(EXIT.LOCKED, 'LOCKED', 'MANUAL_LOCK: trabajo de conocimiento en curso (' + late.blocking.join(', ') + ')');
+    if (late.stale.length) record.staleLocks = late.stale;
 
     // Tras la primera falla se saltan los pasos que escriben, pero `check`
     // (lectura) corre siempre para que el resumen diga en qué estado quedó.

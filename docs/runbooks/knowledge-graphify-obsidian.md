@@ -59,8 +59,14 @@ El guion `scripts/knowledge-daily.mjs`:
 - sale con 3, sin fetch ni pasos, si encuentra trabajo manual en el checkout principal:
   `graphify-out/knowledge-manual.lock`, `graphify-out/knowledge-record.lock`, o los candados de
   publicación y recuperación de la bóveda (`.knowledge-publish.lock` y `.knowledge-reaper.lock`).
-  Lo comprueba antes del fetch y otra vez antes de los pasos;
-- corta por tiempo cada comando: git a los 5 min, cada paso a los 30 min. Corre con `GIT_TERMINAL_PROMPT=0`;
+  Lo comprueba antes del fetch y otra vez antes de los pasos.
+  Excepción: el candado de publicación de un publicador de esta máquina cuyo PID ya no existe (por ejemplo,
+  matado por el tope de tiempo) no bloquea. La corrida lo anota como `candados_huerfanos=` y deja que
+  `knowledge:publish` lo recupere con su propio mutex; el guion nunca lo borra. El mutex de recuperación
+  (`.knowledge-reaper.lock`) de un proceso muerto sí bloquea: `publish` no puede recuperarlo y hay que revisarlo a mano;
+- corta por tiempo cada comando: git a los 5 min, cada paso a los 30 min. Corre con `GIT_TERMINAL_PROMPT=0`.
+  El tope mata solo al proceso directo: sus procesos hijos (por ejemplo el Python que lanza `knowledge-sync`)
+  pueden quedar huérfanos y se revisan a mano si un paso termina en `TIMEOUT`;
 - pasa el mismo Python de Graphify (`--python`, `GRAPHIFY_PYTHON` o el resuelto) a los cuatro pasos;
 - escribe una línea por corrida en `%LOCALAPPDATA%\dtd-cargo\knowledge-daily.log` (fuera del repo, o la
   ruta de `--log`/`KNOWLEDGE_DAILY_LOG`): fecha, revisión, resultado, estructura, Archify, Obsidian y

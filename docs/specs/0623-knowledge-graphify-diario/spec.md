@@ -42,6 +42,8 @@ después de la integración; esta SDD no la crea.
    candados: `graphify-out/knowledge-manual.lock`, `knowledge-record.lock`, o los de publicación y
    recuperación de la bóveda. La comprobación se hace antes del fetch y otra vez antes de los pasos.
    Si el update falla, el resumen dice `UPDATE_FAILED` aunque `check` mida otra cosa.
+   El candado de publicación de un publicador muerto de esta máquina no bloquea: se anota y lo recupera `publish`.
+   Un timeout mata solo al proceso directo; los hijos pueden quedar huérfanos y se revisan a mano.
 6b. Tope de tiempo por comando: git a los 5 min, cada paso a los 30 min, con `GIT_TERMINAL_PROMPT=0`. El
     Python fijado de Graphify llega a los cuatro pasos. Un candado muerto se aparta con `rename` y se toma
     con `wx`.

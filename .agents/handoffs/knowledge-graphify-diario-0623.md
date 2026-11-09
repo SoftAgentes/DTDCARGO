@@ -78,6 +78,16 @@ Traje main: merge `fe61c5c0c`, sin conflictos.
 | `node --test scripts/tests/knowledge-daily.node.mjs` | PASÓ 30/30 |
 | Mutantes (14 + M0 verde) | PASÓ: los 14 detectados. Cubren los cortes de fetch y ff, `git status`, Python vacío y lanzado, los candados ajenos inicial y tardío, `record.lock`, `publish.lock`, `UPDATE_FAILED`, el timeout, el candado muerto y el vivo, y `--python`. El primer «Python lanza» sobrevivió por un mensaje equivalente; la prueba ya distingue el mensaje |
 
+## Tercera vuelta: delta `a4e26e603` con CHANGES_REQUESTED por un solo punto
+
+**Bloqueante:** un timeout en `publish` mataba al proceso sin liberar `DTD Cargo/.knowledge-publish.lock`, y las noches siguientes la corrida salía con 3 sin pasos.
+- `inspectLocks` (antes `foreignLocks`) separa los candados que bloquean de los huérfanos.
+- Es huérfano el candado de publicación que es JSON de `dtd-knowledge-v1`, de esta máquina, con token y PID que ya no existe. No bloquea, se anota como `candados_huerfanos=` y lo recupera `publish`; el guion no lo borra.
+- Bloquea todo lo demás: PID vivo, otra máquina u otro publicador, JSON ilegible o PID inválido. El mutex `.knowledge-reaper.lock` de un proceso muerto también bloquea, porque `publish` no puede recuperarlo.
+- Pruebas nuevas: 34 en total, y todas pasan.
+
+**No bloqueante:** documenté en el runbook y en la spec que el timeout mata solo al proceso directo y que sus hijos pueden quedar huérfanos. No lancé los pasos en grupo de procesos propio: en Windows no sale fácil con `spawnSync`.
+
 ## Impacto documental y conocimiento
 
 - Cambian dos fuentes del piloto semántico: el runbook de conocimiento y la skill Director.
