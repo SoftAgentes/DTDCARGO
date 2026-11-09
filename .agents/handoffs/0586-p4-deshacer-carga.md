@@ -2,7 +2,7 @@
 
 - **Worker:** E5, bajo el Subdirector Chatwoot.
 - **Rama:** `codex/0586-deshacer-carga`, desde main `e74cde6fc` (el tren 9).
-- **Estado:** en curso. No se fusiona desde aquí: la fusiona el DG.
+- **Estado:** en borrador. La revisión independiente del DG sobre `78231bed3` dio CHANGES_REQUESTED, y la vuelta 3 la atiende. No se fusiona desde aquí: la fusiona el DG.
 - **Cuándo se usa:** antes de la puerta 4 tiene que estar en main y ensayada. En producción, el borrado lo corre Sam.
 
 ## Qué trae
@@ -45,17 +45,44 @@
 | Vuelta | SHA | Run (job) | Resultado | Qué cambió después |
 |---|---|---|---|---|
 | 1 | `65402ca0c` | job 128935328323 | La corrida real salió verde: P1, D1a, D1b, D6a, D6b, D2 a D5 y F1. De los mutantes, MD0, MD1, MD2 y MD5 pasaron. MD3, MD4 y MD6 a MD9 cayeron además en D2, y MD3 también en D4 | El error era de la prueba, no del guion: `CONSERVADO` estaba fijo desde la primera corrida, y después de que MD3 borra ese contacto, la recarga crea otro con otro id. Ahora cada escenario lee su propio conservado (`otra-bandeja.txt`). MD3 ya no exige D4, que cae en cascada después de D3 |
+| 2 | `78231bed3` | 42550597299 (el cargador y el deshacer) y 42550597297 (la calidad) | Verde entero: D1a, D1b, D2 a D6b y F1, y MD0 a MD9 cayendo cada uno en lo suyo. La revisión del DG dio CHANGES_REQUESTED | La vuelta 3 |
+| 3 | `1fcc54216` y `26892869b` (las pruebas, para el rojo previo) y la implementación | (pendiente: Actions está parado por facturación) | — | La revisión del DG, la secuencia de 4.6b y la copia durable (ver abajo) |
+
+## La revisión del DG sobre `78231bed3` (CHANGES_REQUESTED) y lo que la atiende
+
+- **B1, la guarda de `deshacer.sh`.** Mira en Studio, en solo lectura:
+  - que exista la fila de `chatwoot_portal` del tenant;
+  - el flag encendido ahora o alguna vez;
+  - que la cola no haya corrido (ninguna salida que no esté `cargado`; también vale «enviado», D6i);
+  - que el tenant tenga hilos vinculados;
+  - que el espejo de cada hilo tenga `inbox_id = BANDEJA`.
+
+  `DB` no tiene valor por defecto. Lo prueban D6a a D6i y D8, con MD8 a MD14 y MD29.
+- **B2, `revisar-datos-ve`.** El registro está en las notas del Subdirector, `0586-p4-2c-revisar-datos-ve.md`. Su paso 3 es D7, que busca las marcas de lo borrado en toda la base de Chatwoot.
+- **N1, lo ajeno.** Suma notas, etiquetas, encuestas, adjuntos de contacto y contactos con teléfono o correo. Lo prueban D1a a D1g, con MD1, MD2 y MD15 a MD19.
+- **N4.** Las conversaciones de la bandeja se toman `FOR UPDATE` antes de mirar lo ajeno.
+- **N5, la secuencia de 4.6b que aprobó el DG.** Los cinco pasos y sus `.hecho` están en «El orden» más abajo, con lo que prueban D2b, D11a a D11c, D12 y D13 y MD22 a MD26.
+- **N6.** `Integer(x, 10)`, y el shell rechaza los ceros a la izquierda. Lo prueban D10 y MD20.
+- **N7.** Los errores propios son `DeshacerError`; de los demás, solo se imprime la clase.
+- **N8.** Lo de la caché de la cuenta queda como inferencia (FUERA DE ALCANCE).
+- **N2 y la copia durable, la (a) de Sam («si protegidos»).** Va en `/srv/ops/portal-historial/deshacer/`, root 0700 y archivos 0600, comparados con los de tmpfs. Lo prueban D14, MD27 y MD28. El `.ndjson` y los `.hecho` los borra el paso 5, `limpiar.sh --cierre-4-6b`, de E10.
 
 ## El orden del sub-paso 4.6b (runbook, de E10)
 
-1. `deshacer.sh` con `MODO=seco` escribe `/dev/shm/portal-historial/contactos-conservados.ndjson`.
-2. El desarme de Studio (`supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sh`) lee ese archivo.
-3. `deshacer.sh` con `MODO=borrar`: primero `CONFIRMAR=no` (el ensayo del DG) y después `CONFIRMAR=si`, que lo corre Sam.
+1. **`deshacer.sh` con `MODO=seco`.** Lo corre el DG. Escribe el `.ndjson` y `chatwoot-seco.hecho`.
+   - (1b, opcional) `MODO=borrar CONFIRMAR=no`, el ensayo suelto del DG. No exige ni escribe `.hecho`.
+2. **El ensayo de Studio de E10** (`deshacer-vinculos.sh MODO=ensayo`). Lo corre el DG. Escribe `studio-ensayo.hecho`.
+3. **`deshacer.sh` con `MODO=borrar CONFIRMAR=si`. Lo corre Sam.**
+   - Exige los dos `.hecho`, con el mismo sha256 y el mismo tenant.
+   - Deja la copia durable, borra y escribe `chatwoot-borrar.hecho`.
+4. **Studio con `MODO=aplicar`** (E10). Lo corre Sam.
+5. **`limpiar.sh --cierre-4-6b`** (E10). Lo corre Sam.
+
+`chatwoot_portal` no se enciende hasta que el paso 4 salga con 0. El detalle está en las notas del Subdirector, en `0586-p4-2c-orden-4-6b.md`.
 
 ## Pendientes de esta tarea
 
-- El primer run de Actions.
-- Pasarla por `revisar-datos-ve`. El archivo de conservados lleva solo ids.
+- El run de la vuelta 3: primero el rojo previo de las pruebas, después la implementación.
 - **Para el runbook (E10):**
   - los comandos de 4.6b;
   - la lista de 3.0 suma `deshacer.sh` y `deshacer-carga.rb`.
@@ -64,4 +91,5 @@
 
 - **El arranque de los dos stacks está tres veces:** en `prueba-deshacer.sh`, en `prueba-punta-a-punta.sh` y en `prueba-ensayo-portal.sh`. Se puede llevar a una función compartida cuando entren la 2b y la 2c.
 - **El workflow choca con la 2b:** la 2b y la 2c agregan cada una un job al final de `portal-historial-cargador.yml`. La que entre segunda tiene que traer main.
-- **La caché de la cuenta en Chatwoot:** `delete_all` no corre callbacks, así que la caché puede mostrar conteos viejos hasta que venza.
+- **La caché de la cuenta en Chatwoot (inferencia, no medida):** `delete_all` no corre callbacks, así que la caché puede mostrar conteos viejos hasta que venza.
+- **Una carrera que no tiene mutante:** el `FOR UPDATE` de N4 no tiene prueba, porque provocarla en CI sería frágil.
