@@ -113,6 +113,10 @@
 - **B1, una regresión de N2.** La guarda de Docker sin responder también corría con `CREADO=1`, así que un ensayo real que terminaba con Docker caído salía con 6 sin borrar `/dev/shm/portal-ensayo` ni `/dev/shm/portal-historial`. En la puerta 3, esas carpetas tienen datos de la copia de producción.
   - **Ahora:** el «ante la duda no se borra» vale solo para un `--limpiar` puro. Un ensayo que corrió borra sus dos carpetas igual, conserva su código (o queda en 4, porque la limpieza no se pudo comprobar) y anota `docker_no_responde=si`.
   - **La prueba:** G6 usa un `docker` que pasa al real hasta que existe el `compose.yml` del ensayo, y desde ahí falla. Lo acompaña el mutante M27.
+- **`revisar-datos-ve` sobre el arreglo de B1** (cambia un borrado de datos personales):
+  - **CORRECTO:** al terminar, un ensayo que corrió borra `/dev/shm/portal-ensayo` y `/dev/shm/portal-historial`, que llevan el preparado de la copia, con nombres y textos, también con Docker caído (`ensayo-portal.sh`, `limpiar()`). Eso cumple el «borrado al terminar» de la spec. Lo prueban G6 y M27.
+  - **CORRECTO:** un `--limpiar` puro con Docker caído no borra nada, y sale con 6. Así no toca una carga real a medias. Lo prueban G5 y M25.
+  - **NO VERIFICABLE:** si Docker no responde, los contenedores de la copia, con sus tmpfs, pueden seguir vivos hasta que Docker vuelva. El guion no los puede bajar, y deja `limpieza_completa=no` (código 4 si no había otro). El runbook tiene que pedir `--limpiar` apenas vuelva Docker. **Le toca a E10.**
 - **G5** siembra su propio centinela.
 - **N8** tiene su prueba: la comparación es la función `no_cumplen`, y se prueba sin Docker.
 - **El job `ensayo`** no corre en borradores, como el cargador desde la SDD-0621.
