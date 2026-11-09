@@ -27,11 +27,16 @@
 # Rutas fuera del log: lo que tar o la lista escriben en stderr (avisos que
 # nombran archivos) queda en --work-dir y se borra; el log solo dice cuántos.
 #
-# Guarda contra un borrado masivo: si el conteo cae por debajo de --min-pct (50)
-# del último respaldo aceptado (`<proyecto>-storage.referencia`), el respaldo se
-# sube igual pero NO se aplica la retención (ni remota ni local) y sale 1: sin
-# latido, alguien mira. Sigue así cada día hasta que una persona lo acepte con
-# --aceptar-caida (runbook §5.1).
+# Guarda contra un borrado masivo, que falla cerrada: si el conteo cae por debajo
+# de --min-pct (50) del último respaldo aceptado (`<proyecto>-storage.referencia`),
+# el respaldo se sube igual pero NO se aplica la retención (ni remota ni local) y
+# sale 1: sin latido, alguien mira. Lo mismo si la referencia no se puede leer.
+# Si falta, se compara contra el MÁXIMO de `archivos=` de los manifiestos locales.
+# Se repite cada día hasta que alguien corra a mano --aceptar-caida=<conteo>,
+# SOLO con OK nominal de Sam. Esa corrida exige que el conteo sea exactamente el
+# dicho y, antes de aplicar la retención, saca el último respaldo bueno de su
+# alcance: en disco a <out>/<proyecto>/storage-retenido/ y en el remoto a
+# <remoto>/<proyecto>-retenido/, prefijos que ninguna retención toca (runbook §5.1).
 #
 # Consistencia: storage-api sigue sirviendo mientras corre. Un archivo que cambia
 # a mitad de lectura hace que tar salga 1: se avisa (aviso_tar=1 en el
@@ -45,7 +50,7 @@
 #       --remote <remoto>:<bucket>/<prefijo> --age-recipients <archivo> \
 #       [--out /srv/backups] [--work-dir /dev/shm] [--rclone-config /srv/ops/backup/rclone] \
 #       [--retention-days 30] [--keep-local 2] [--min-files 1] [--min-pct 50] \
-#       [--aviso-gb 10] [--aceptar-caida] [--dry-run]
+#       [--aviso-gb 10] [--aceptar-caida=<conteo>] [--dry-run]
 #
 # --dry-run valida todo, cuenta archivos y bytes del origen (solo metadatos) y no
 # escribe nada. `AGE_BIN` y `RCLONE_BIN` cambian los binarios (las pruebas usan
@@ -70,12 +75,12 @@ KEEP_LOCAL="2"
 MIN_FILES="1"
 MIN_PCT="50"
 AVISO_GB="10"
-ACEPTAR_CAIDA=0
+ACEPTAR_CAIDA=""
 DRY_RUN=0
 AGE_BIN="${AGE_BIN:-age}"
 RCLONE_BIN="${RCLONE_BIN:-}"
 
-usage() { sed -n '2,55p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,60p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 die() { echo "storage-backup: $*" >&2; exit 2; }
 falla() { echo "storage-backup: $*" >&2; exit 1; }
@@ -96,7 +101,8 @@ while [[ $# -gt 0 ]]; do
     --min-files) setopt MIN_FILES "${2-}"; shift 2 ;;
     --min-pct) setopt MIN_PCT "${2-}"; shift 2 ;;
     --aviso-gb) setopt AVISO_GB "${2-}"; shift 2 ;;
-    --aceptar-caida) ACEPTAR_CAIDA=1; shift ;;
+    --aceptar-caida=*) ACEPTAR_CAIDA="${1#*=}"; shift ;;
+    --aceptar-caida) die "--aceptar-caida exige el conteo esperado: --aceptar-caida=<archivos> (y el OK nominal de Sam)" ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
@@ -114,6 +120,7 @@ for n in RETENTION_DAYS KEEP_LOCAL MIN_FILES AVISO_GB; do
   [[ "${!n}" =~ ^[1-9][0-9]*$ ]] || die "--$(tr '[:upper:]_' '[:lower:]-' <<< "${n}") debe ser un entero ≥ 1"
 done
 [[ "${MIN_PCT}" =~ ^[0-9]+$ ]] && (( MIN_PCT <= 100 )) || die "--min-pct debe ser un entero entre 0 y 100"
+[[ -z "${ACEPTAR_CAIDA}" || "${ACEPTAR_CAIDA}" =~ ^[1-9][0-9]*$ ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1: '${ACEPTAR_CAIDA}'"
 [[ "${RCLONE_IMAGE}" != *:latest && "${RCLONE_IMAGE}" == *:* ]] || die "--rclone-image debe llevar tag fijo"
 # El cifrado se valida también en dry-run: un timer mal configurado tiene que
 # fallar en la prueba, no la primera noche.
@@ -136,7 +143,9 @@ fi
 
 # Solo metadatos: cuántos archivos y cuántos bytes. No se lee ningún contenido.
 # Sin stderr: un archivo que desaparece a mitad del conteo se nombraría en el log.
-en_disco="$(find "${SOURCE}" -type f 2>/dev/null | wc -l | tr -d ' ')"
+# Con pipefail, un find que no pudo leer algo saldría 1 sin decir nada: se avisa y sigue.
+en_disco="$(find "${SOURCE}" -type f 2>/dev/null | wc -l | tr -d ' ')" \
+  || log "AVISO: find no pudo recorrer todo el Storage (archivos que cambiaron o sin permiso): el conteo previo es aproximado"
 bytes_disco="$(du -sb "${SOURCE}" 2>/dev/null | cut -f1 || true)"
 [[ "${bytes_disco}" =~ ^[0-9]+$ ]] || die "no se pudo medir el tamaño de ${SOURCE}"
 (( en_disco >= MIN_FILES )) || die "el Storage tiene ${en_disco} archivos en ${SOURCE} y se esperaban al menos ${MIN_FILES}: ¿es la carpeta correcta?"
@@ -174,7 +183,7 @@ cleanup() {
     docker ps -q --filter "label=${run_label}" | xargs -r docker rm -f >/dev/null 2>&1 || true
   fi
   rm -rf -- "${work}"
-  rm -f -- "${tar_age}.part" "${lista_age}.part" "${manif}.part"
+  rm -f -- "${tar_age}.part" "${lista_age}.part" "${manif}.part" "${referencia}.part"
 }
 trap cleanup EXIT
 
@@ -211,7 +220,10 @@ wait "${p_sha}"; r_sha=$?
 wait "${p_cuenta}"; r_cuenta=$?
 set -e
 avisos="$(grep -c . "${work}/tar.err" || true)"
-(( avisos == 0 )) || log "AVISO: tar escribió ${avisos} línea(s) de aviso; no se copian al log porque nombran archivos"
+if (( avisos > 0 )); then
+  log "AVISO: tar escribió ${avisos} línea(s) de aviso; van solo sus tipos, sin la ruta («tar: <ruta>: <tipo>»):"
+  sed -E 's/^tar: .*: //' "${work}/tar.err" | sort | uniq -c | sed 's/^/      /'
+fi
 aviso_tar=0
 case "${st[0]}" in
   0) ;;
@@ -255,21 +267,59 @@ done
 rcl check "${ldir}/" "${remote_dir}" --one-way --include "/${base}*"
 
 # ── 5. Guarda contra un borrado masivo, y recién entonces la retención. ──
-# Referencia: el último respaldo aceptado; si no hay, el manifiesto local anterior.
-previo=""
+# Falla cerrada: una referencia que no se puede leer frena la retención; si falta,
+# manda el MÁXIMO de los manifiestos locales anteriores (el más nuevo puede ser
+# ya el de después de la caída).
+patron_base="^${PROJECT}-storage-[0-9]{8}T[0-9]{6}Z$"
+previo=""; bueno=""; ilegible=0
+# «<archivos> <base>» del manifiesto local anterior con más archivos (vacío si no hay).
+mejor="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" \
+  | while read -r m; do printf '%s %s\n' "$(sed -n 's/^archivos=//p' "${m}" | tail -n1)" "$(basename "${m}" .manifiesto)"; done \
+  | grep -E '^[0-9]+ ' | sort -n | tail -n1 || true)"
 if [[ -f "${referencia}" ]]; then
   previo="$(sed -n 's/^archivos=//p' "${referencia}" | tail -n1)"
+  bueno="$(sed -n 's/^base=//p' "${referencia}" | tail -n1)"
+  if ! [[ "${previo}" =~ ^[1-9][0-9]*$ && "${bueno}" =~ ${patron_base} ]]; then
+    ilegible=1; previo=""; bueno=""
+    if [[ -n "${mejor}" ]]; then previo="${mejor%% *}"; bueno="${mejor#* }"; fi
+  fi
+elif [[ -n "${mejor}" ]]; then
+  previo="${mejor%% *}"; bueno="${mejor#* }"
+  log "AVISO: no hay referencia; se compara contra el máximo de los manifiestos locales (${previo} archivos, ${bueno})"
+fi
+if [[ -z "${ACEPTAR_CAIDA}" ]]; then
+  if (( ilegible )); then
+    log "✗ la referencia ${referencia} no se puede leer: el respaldo ${base} se subió, pero NO se aplica la retención"
+    log "  hace falta revisarla y correr a mano --aceptar-caida=<archivos> con OK nominal de Sam (runbook §5.1)"
+    falla "referencia del Storage ilegible"
+  fi
+  if [[ -n "${previo}" ]] && (( archivos * 100 < previo * MIN_PCT )); then
+    log "✗ el Storage cayó de ${previo} a ${archivos} archivos (menos del ${MIN_PCT} %): el respaldo ${base} se subió, pero NO se aplica la retención para no perder los respaldos buenos"
+    log "  si la caída es legítima, se acepta a mano con --aceptar-caida=${archivos}, SOLO con OK nominal de Sam (runbook §5.1)"
+    falla "caída del conteo del Storage: ${previo} → ${archivos}"
+  fi
 else
-  m_prev="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" -printf '%T@ %p\n' | sort -rn | head -n1 | cut -d' ' -f2-)"
-  [[ -n "${m_prev}" ]] && previo="$(sed -n 's/^archivos=//p' "${m_prev}" | tail -n1)"
+  (( archivos == ACEPTAR_CAIDA )) \
+    || falla "--aceptar-caida=${ACEPTAR_CAIDA} no coincide con los ${archivos} archivos de este respaldo: no se acepta nada ni se aplica la retención"
+  # Antes de la retención, el último respaldo bueno sale de su alcance, en disco y en el remoto.
+  if [[ "${bueno}" =~ ${patron_base} ]]; then
+    retenido="${OUT%/}/${PROJECT}/storage-retenido"
+    mkdir -p "${retenido}"; chmod 700 "${retenido}"
+    for f in "${dir}/${bueno}.tar.age" "${dir}/${bueno}-lista.age" "${dir}/${bueno}.manifiesto"; do
+      if [[ -f "${f}" ]]; then mv -- "${f}" "${retenido}/"; fi
+    done
+    rcl copy "${remote_dir}" "${REMOTE}/${PROJECT}-retenido/" --include "/${bueno}*" \
+      || falla "no se pudo retener ${bueno} en ${REMOTE}/${PROJECT}-retenido/: no se aplica la retención"
+    rcl check "${remote_dir}" "${REMOTE}/${PROJECT}-retenido/" --one-way --include "/${bueno}*" \
+      || falla "la copia retenida de ${bueno} no coincide: no se aplica la retención"
+    log "último respaldo bueno (${bueno}, ${previo:-?} archivos) retenido en ${retenido}/ y ${REMOTE}/${PROJECT}-retenido/; ninguna retención los toca"
+  else
+    log "AVISO: no hay un respaldo bueno identificado que retener (referencia ilegible y sin manifiestos anteriores)"
+  fi
+  log "caída aceptada a mano: la referencia pasa de ${previo:-?} a ${archivos} archivos"
 fi
-if [[ "${previo}" =~ ^[1-9][0-9]*$ ]] && (( archivos * 100 < previo * MIN_PCT )) && (( ! ACEPTAR_CAIDA )); then
-  log "✗ el Storage cayó de ${previo} a ${archivos} archivos (menos del ${MIN_PCT} %): el respaldo ${base} se subió, pero NO se aplica la retención para no perder los respaldos buenos"
-  log "  si la caída es legítima, una persona corre este script con --aceptar-caida (runbook §5.1)"
-  falla "caída del conteo del Storage: ${previo} → ${archivos}"
-fi
-printf 'archivos=%s\nsello=%s\n' "${archivos}" "${stamp}" > "${referencia}"
-if (( ACEPTAR_CAIDA )); then log "caída aceptada a mano: la referencia pasa a ${archivos} archivos"; fi
+printf 'archivos=%s\nbase=%s\nsello=%s\n' "${archivos}" "${base}" "${stamp}" > "${referencia}.part"
+mv -- "${referencia}.part" "${referencia}"
 
 log "4/4 retención: ${RETENTION_DAYS} d en ${remote_dir}, ${KEEP_LOCAL} respaldos en ${dir}"
 rcl delete --min-age "${RETENTION_DAYS}d" "${remote_dir}"

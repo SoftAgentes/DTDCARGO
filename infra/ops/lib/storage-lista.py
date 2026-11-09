@@ -4,9 +4,16 @@
 La usan storage-backup.sh y storage-restore.sh, y los dos la escriben con esta
 misma función, así que la comparación del restore significa algo.
 
-Una línea por archivo regular, ordenada por bytes de la ruta:
+Una línea por archivo regular. Las líneas se ordenan por sus bytes completos, y
+como empiezan por el sha256, el orden no sigue la ruta: es solo para que las dos
+listas se comparen con `cmp`.
 
     <sha256 del contenido> <bytes> <huella de los xattr user.*> <ruta>
+
+· Enlaces duros: storage-api no los crea. Si apareciera uno, el flujo lo trae
+  como enlace (una sola línea, la del primer nombre) y la carpeta restaurada lo
+  ve como dos archivos, así que el restore lo marca como diferencia. No se
+  pierde nada en silencio.
 
 · La ruta es relativa, como la guarda `tar -C <origen> -cf - .` («./tenant/bucket/…»).
 · La huella de xattrs es el sha256 de las parejas `nombre=valor-en-hex`
