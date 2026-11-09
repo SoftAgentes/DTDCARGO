@@ -18,8 +18,10 @@
 # Cada prueba tiene un tope de 600 s (PRUEBAS_LINUX_TOPE_S); al vencer es FALLÓ
 # con exit 124.
 #
-# PRUEBAS_LINUX_LISTA (una ruta por línea, relativa a la raíz o absoluta) y
-# PRUEBAS_LINUX_TOPE_S los usa sólo la prueba de este runner,
+# Además, cada prueba con piso en PISO tiene que escribir al menos ese número de «PASÓ».
+#
+# PRUEBAS_LINUX_LISTA (una ruta por línea, relativa a la raíz o absoluta),
+# PRUEBAS_LINUX_PISOS y PRUEBAS_LINUX_TOPE_S los usa sólo la prueba de este runner,
 # infra/ops/tests/pruebas-linux.test.mjs. El CI no los define.
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -33,6 +35,21 @@ PRUEBAS=(
   infra/ops/tests/prueba-restore-event-triggers.sh # SDD-0594: restore.sh con ensure_rls y los demás event triggers
   infra/ops/tests/prueba-portal-historial.sh # SDD-0586 10.7: extraer.sh y vincular.sh de la carga del portal, con /dev/shm
 )
+# Piso de «PASÓ» por prueba (revisión del DG de la #480, N4): una prueba que pierde casos en silencio, aunque salga 0
+# y sin «FALLÓ», es FALLÓ. Cada piso es el conteo medido en el CI; una prueba nueva sin piso exige solo uno o más.
+declare -A PISO=(
+  [infra/ops/tests/prueba-publicar-web.sh]=228
+  [infra/ops/tests/prueba-aviso-discord.sh]=39
+  [infra/ops/tests/prueba-aplicar-lote.sh]=23
+  [infra/ops/tests/prueba-ips-prueba.sh]=24
+  [infra/ops/tests/prueba-prompt-trim.sh]=13
+  [infra/ops/tests/prueba-restore-event-triggers.sh]=78
+  [infra/ops/tests/prueba-portal-historial.sh]=99
+)
+# PRUEBAS_LINUX_PISOS («ruta=n» por línea) la usa sólo pruebas-linux.test.mjs, para probar el piso con pruebas de mentira.
+if [ -n "${PRUEBAS_LINUX_PISOS:-}" ]; then
+  while IFS='=' read -r k v; do [ -n "${k}" ] && PISO["${k}"]="${v}"; done <<< "${PRUEBAS_LINUX_PISOS}"
+fi
 if [ -n "${PRUEBAS_LINUX_LISTA:-}" ]; then
   PRUEBAS=()
   while IFS= read -r l; do [ -n "${l}" ] && PRUEBAS+=("${l}"); done <<< "${PRUEBAS_LINUX_LISTA}"
@@ -53,11 +70,13 @@ for p in "${PRUEBAS[@]}"; do
   fi
   pasaron="$(grep -c '^PASÓ' "${log}")"; fallaron="$(grep -c '^FALLÓ' "${log}")"
   seg=$((SECONDS - inicio))
-  if [ "${rc}" = 0 ] && [ "${fallaron}" = 0 ] && [ "${pasaron}" -gt 0 ]; then
+  piso="${PISO[${p}]:-1}"
+  if [ "${rc}" = 0 ] && [ "${fallaron}" = 0 ] && [ "${pasaron}" -gt 0 ] && [ "${pasaron}" -ge "${piso}" ]; then
     echo "PASÓ  · ${p} · ${pasaron} PASÓ · ${seg} s"
   else
     fallas=$((fallas + 1))
-    echo "FALLÓ · ${p} · exit ${rc} · ${pasaron} PASÓ · ${fallaron} FALLÓ · ${seg} s"
+    bajo=""; [ "${pasaron}" -ge "${piso}" ] || bajo=" · bajo el piso de ${piso} PASÓ"
+    echo "FALLÓ · ${p} · exit ${rc} · ${pasaron} PASÓ · ${fallaron} FALLÓ · ${seg} s${bajo}"
     grep '^FALLÓ' "${log}" | head -n 20 | sed 's/^/    /'
     echo "    --- últimas líneas ---"
     tail -n 40 "${log}" | sed 's/^/    /'

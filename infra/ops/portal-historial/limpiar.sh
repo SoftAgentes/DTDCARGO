@@ -7,8 +7,10 @@
 #       bash limpiar.sh --abandono-4-6b (abandonar el 4.6b antes de que el paso 3 confirme; lo corre Sam, con OK)
 #
 # --abandono-4-6b: la salida si el paso 3 falla (o no se corre) y la vuelta atrás se abandona. Borra las dos
-# carpetas SOLO si no hay chatwoot-borrar.hecho en ninguna: si lo hay, Chatwoot ya borró con COMMIT y hay que
-# terminar el paso 4, así que se niega y no toca nada.
+# carpetas SOLO si no hay chatwoot-borrar.hecho en ninguna NI chatwoot-borrar.inicio en la durable: con el .hecho,
+# Chatwoot ya borró con COMMIT y hay que terminar el paso 4; con el .inicio (lo escribe el paso 3 antes de abrir
+# su transacción y lo retira solo si comprobó el ROLLBACK), no se sabe si confirmó. En los dos casos se niega y no
+# toca nada.
 #
 # --cierre-4-6b: después de que el paso 4 (deshacer-vinculos.sh MODO=aplicar) salió con 0. Exige
 # studio-aplicar.hecho, en tmpfs o en la carpeta durable /srv/ops/portal-historial/deshacer/, con
@@ -17,7 +19,9 @@
 # permite correr el paso 4 después de un reinicio. La durable solo cambia en la prueba bash (DESHACER_PRUEBA=1).
 set -euo pipefail
 DIR="${DIR:-/dev/shm/portal-historial}"
-DURABLE="${DURABLE:-/srv/ops/portal-historial/deshacer}"
+# La copia durable, con la misma variable que deshacer.sh de la #478: DESHACER_DURABLE vale solo con
+# DESHACER_PRUEBA=1 (la prueba bash) y tiene que terminar en /deshacer; si no, es siempre la fija.
+DURABLE="${DESHACER_DURABLE:-/srv/ops/portal-historial/deshacer}"
 # Solo el nombre fijo: con un patrón, `/dev/shm//` o `/dev/shm/otro` borraban lo de otros procesos.
 if [ "$DIR" != /dev/shm/portal-historial ]; then
   echo "HECHO error=dir_no_es_dev_shm_portal_historial" >&2
@@ -32,13 +36,22 @@ case "${1:-}" in
   *) echo "HECHO error=opcion_desconocida" >&2; exit 2 ;;
 esac
 
-[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; }
-if [ -e "$DURABLE" ] && { [ ! -d "$DURABLE" ] || [ -L "$DURABLE" ] || [ "$(stat -c %a "$DURABLE")" != 700 ]; }; then
+[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || { [ "${DESHACER_PRUEBA:-}" = 1 ] && [ "${DURABLE%/deshacer}" != "$DURABLE" ]; } || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; }
+# Las dos carpetas, si existen: de verdad, de este usuario (-O) y, la durable, en 0700. Si no, no se toca nada.
+if [ -e "$DURABLE" ] && { [ ! -d "$DURABLE" ] || [ -L "$DURABLE" ] || [ ! -O "$DURABLE" ] || [ "$(stat -c %a "$DURABLE")" != 700 ]; }; then
   echo "HECHO error=durable_no_es_carpeta_0700" >&2
+  exit 2
+fi
+if [ -e "$DIR" ] && { [ ! -d "$DIR" ] || [ -L "$DIR" ] || [ ! -O "$DIR" ]; }; then
+  echo "HECHO error=dir_no_es_carpeta_de_este_usuario" >&2
   exit 2
 fi
 
 if [ "$1" = --abandono-4-6b ]; then
+  # B1 (revisión del DG de la #480): chatwoot-borrar.hecho puede faltar aunque Chatwoot ya confirmó (el guion se
+  # cortó entre el COMMIT y el .hecho). Por eso el abandono también se niega con un chatwoot-borrar.inicio de la
+  # durable: el paso 3 empezó y no se sabe si confirmó. Eso se resuelve con el runbook, mirando la bandeja.
+  [ ! -e "$DURABLE/chatwoot-borrar.inicio" ] || { echo "HECHO error=borrado_de_chatwoot_empezado_ver_runbook" >&2; exit 2; } # guarda:abandono_inicio
   for d in "$DIR" "$DURABLE"; do [ ! -e "$d/chatwoot-borrar.hecho" ] || { echo "HECHO error=chatwoot_ya_borro_hay_que_terminar_el_paso_4" >&2; exit 2; }; done # guarda:abandono
   rm -rf -- "$DIR"
   [ ! -e "$DURABLE" ] || rm -rf -- "$DURABLE"

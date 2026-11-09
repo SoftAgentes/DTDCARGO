@@ -198,8 +198,8 @@ OTRO_T=10000000-0000-4000-8000-000000000002
 CONS="${D}/contactos-conservados.ndjson"
 export FALSO_CONSERVADOS="${CONS}"
 # La carpeta durable (Sam eligió la opción a, 2026-11-09): en la prueba vive en el temporal, con DESHACER_PRUEBA=1.
-DUR="${T}/durable"
-dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" SISTEMA="${SISTEMA_DV-7234567890123456789}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}"   bash "${DV_GUION:-${DS}/deshacer-vinculos.sh}" > "${T}/dv.log" 2>&1; }
+DUR="${T}/deshacer"
+dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" SISTEMA="${SISTEMA_DV-7234567890123456789}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}"   bash "${DV_GUION:-${DS}/deshacer-vinculos.sh}" > "${T}/dv.log" 2>&1; }
 cabecera() { printf '%s\n' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"; }
 sha_cons() { sha256sum "${CONS}" | cut -c1-64; }
 # hecho_cw <archivo> <paso> [sha] [tenant] [extra]: la evidencia sintética de un paso de Chatwoot.
@@ -282,7 +282,8 @@ caso_copias_distintas() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.h
   paso3_durable || return 1; sed -i 's/utc=2026-11-09T03:00:00Z/utc=2026-11-09T03:00:01Z/' "${DUR}/chatwoot-borrar.hecho"; : > "${FALSO_REGISTRO}"; MODO_DV=aplicar dv; rc=$?
   [ "${rc}" != 0 ] && grep -q 'copias_distintas' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
 caso_durable_no_0700() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "
-  paso3_durable || return 1; chmod 0755 "${DUR}"; reinicio; : > "${FALSO_REGISTRO}"; MODO_DV=aplicar dv; rc=$?
+  paso3_durable || return 1; chmod 0755 "${DUR}"; : > "${FALSO_REGISTRO}"; MODO_DV=aplicar dv; rc=$?
+  # tmpfs está completa: sin la guarda, el paso 4 seguiría con tmpfs y llamaría a psql. Con ella, no.
   chmod 0700 "${DUR}"; [ "${rc}" != 0 ] && grep -q 'durable_no_es_carpeta_0700' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
 caso_ensayo_no_usa_durable() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "
   paso3_durable || return 1; reinicio; : > "${FALSO_REGISTRO}"; dv; rc=$?
@@ -304,8 +305,28 @@ caso_cambian_durante && ok "si el .ndjson cambia durante la corrida, no deja evi
 caso_reinicio && ok "reinicio entre el 3 y el 4: el paso 4 corre con la copia durable y deja su evidencia en las dos carpetas" || ko "reinicio: $(cat "${T}/dv.log")"
 caso_durable_alterada && ok "la copia durable alterada: el paso 4 se niega sin llamar a psql" || ko "durable alterada: $(cat "${T}/dv.log")"
 caso_copias_distintas && ok "un archivo distinto en tmpfs y en la durable: el paso 4 se niega" || ko "copias distintas: $(cat "${T}/dv.log")"
-caso_durable_no_0700 && ok "la carpeta durable sin 0700: el paso 4 se niega" || ko "durable sin 0700: $(cat "${T}/dv.log")"
+caso_durable_no_0700 && ok "la carpeta durable sin 0700: el paso 4 se niega sin llamar a psql, aunque tmpfs esté completa" || ko "durable sin 0700: $(cat "${T}/dv.log")"
 caso_ensayo_no_usa_durable && ok "el ensayo no lee la carpeta durable" || ko "ensayo con durable: $(cat "${T}/dv.log")"
+# N2 (revisión del DG de la #480): cada campo que el guion exige, con su caso.
+caso_seco_otra_cuenta() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; sed -i 's/ cuenta=1 / cuenta=2 /' "${D}/chatwoot-seco.hecho"; : > "${FALSO_REGISTRO}"; dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_seco_de_chatwoot' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+caso_seco_otra_bandeja() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; sed -i 's/ bandeja=9 / bandeja=8 /' "${D}/chatwoot-seco.hecho"; : > "${FALSO_REGISTRO}"; dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_seco_de_chatwoot' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+caso_aplicar_ensayo_otro_entorno() { caso_ensayo_ok || return 1; sed -i 's/ entorno=produccion / entorno=copia /' "${D}/studio-ensayo.hecho"
+  hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; : > "${FALSO_REGISTRO}"; MODO_DV=aplicar dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_ensayo_previo' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+caso_aplicar_borrar_sin_fin_commit() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar; : > "${FALSO_REGISTRO}"; MODO_DV=aplicar dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_borrado_de_chatwoot' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+# Un paso 4 que falla después de uno bueno no deja el studio-aplicar.hecho viejo en ninguna de las dos carpetas.
+caso_aplicar_viejo() { caso_ensayo_ok || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; mkdir -m 0700 "${DUR}" || return 1
+  MODO_DV=aplicar dv || return 1; [ -e "${D}/studio-aplicar.hecho" ] && [ -e "${DUR}/studio-aplicar.hecho" ] || return 1
+  MODO_DV=aplicar FALSO_FALLA_DESHACER=1 dv; rc=$?
+  [ "${rc}" != 0 ] && [ ! -e "${D}/studio-aplicar.hecho" ] && [ ! -e "${DUR}/studio-aplicar.hecho" ]; }
+caso_seco_otra_cuenta && ok "paso 2 con un seco de otra cuenta: se niega" || ko "seco de otra cuenta: $(cat "${T}/dv.log")"
+caso_seco_otra_bandeja && ok "paso 2 con un seco de otra bandeja: se niega" || ko "seco de otra bandeja: $(cat "${T}/dv.log")"
+caso_aplicar_ensayo_otro_entorno && ok "paso 4 con un ensayo de otro entorno: se niega" || ko "ensayo de otro entorno: $(cat "${T}/dv.log")"
+caso_aplicar_borrar_sin_fin_commit && ok "paso 4 con un chatwoot-borrar.hecho sin fin=commit: se niega" || ko "borrar sin fin=commit: $(cat "${T}/dv.log")"
+caso_aplicar_viejo && ok "un paso 4 que falla borra el studio-aplicar.hecho anterior de las dos carpetas" || ko "aplicar fallido deja el .hecho viejo: $(cat "${T}/dv.log")"
 caso_durable_fijo && ok "fuera de la prueba, la durable es solo /srv/ops/portal-historial/deshacer" || ko "durable no fija: $(cat "${T}/dv.log")"
 sin_hecho
 printf '%s' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"
@@ -355,13 +376,14 @@ fi
 mutantes=0
 for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_tenant viejo:caso_ensayo_viejo \
            ensayo:caso_aplicar_sin_ensayo borrar:caso_aplicar_sin_borrar despues:caso_cambian_durante \
-           respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 durable_fijo:caso_durable_fijo; do
+           respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 durable_fijo:caso_durable_fijo \
+           viejo_durable:caso_aplicar_viejo; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" deshacer-vinculos.sh
   [ "$r" = 0 ] && mutantes=$((mutantes+1))
 done
-[ "${mutantes}" = 11 ] && ok "PISO: caen los 11 mutantes del orden y de la carpeta durable" || ko "caen ${mutantes} de 11 mutantes"
+[ "${mutantes}" = 12 ] && ok "PISO: caen los 12 mutantes del orden y de la carpeta durable" || ko "caen ${mutantes} de 12 mutantes"
 # Control: el guion de verdad pasa los casos de los mutantes (cada uno se comprobó también dentro del bucle).
 caso_seco_falta && caso_aplicar_sin_borrar && caso_reinicio && caso_copias_distintas && caso_ensayo_ok && caso_ensayo_viejo && ok "control: el guion sin mutar pasa los casos de los mutantes" || ko "control del guion sin mutar"
 sin_hecho; rm -rf "${DUR}"
@@ -377,7 +399,7 @@ DIR="/dev/shm/../${T#/}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l2.log" 2>&1; rc
 [ "${rc}" != 0 ] && [ -e "${T}/fuera2" ] && ok "limpiar.sh no sale de /dev/shm con .." || ko "limpiar.sh borró con /dev/shm/.."
 
 # ── limpiar.sh --cierre-4-6b (el paso 5 del 4.6b) ──
-lc() { DIR="${D}" DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
+lc() { DIR="${D}" DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
 # cierre_listo [donde]: lo que queda después de un paso 4 bueno; [donde]=durable simula un reinicio después del 4.
 cierre_listo() { caso_reinicio || return 1; [ "${1:-}" = durable ] && reinicio; return 0; }
 caso_cierre_ok() { cierre_listo || return 1; lc --cierre-4-6b; rc=$?
@@ -393,6 +415,9 @@ caso_cierre_durable_abierta() { cierre_listo || return 1; chmod 0755 "${DUR}"; l
   chmod 0700 "${DUR}"; [ "${rc}" != 0 ] && grep -q 'durable_no_es_carpeta_0700' "${T}/lc.log" && [ -e "${DUR}" ]; }
 caso_cierre_ok && ok "limpiar.sh --cierre-4-6b borra las dos carpetas y lo comprueba" || ko "cierre: $(cat "${T}/lc.log")"
 caso_cierre_tras_reinicio && ok "limpiar.sh --cierre-4-6b encuentra studio-aplicar.hecho en la durable después de un reinicio" || ko "cierre tras reinicio: $(cat "${T}/lc.log")"
+caso_cierre_sin_aplicar_ni_ndjson() { cierre_listo || return 1; rm -f "${D}/studio-aplicar.hecho" "${DUR}/studio-aplicar.hecho" "${D}/${CONS##*/}" "${DUR}/${CONS##*/}"; lc --cierre-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'sin_aplicar_del_4_6b' "${T}/lc.log" && [ -e "${DUR}" ] && [ -e "${D}" ]; }
+caso_cierre_sin_aplicar_ni_ndjson && ok "limpiar.sh --cierre-4-6b sin studio-aplicar.hecho ni .ndjson no borra nada" || ko "cierre sin aplicar ni ndjson: $(cat "${T}/lc.log")"
 caso_cierre_sin_aplicar && ok "limpiar.sh --cierre-4-6b sin studio-aplicar.hecho no borra nada" || ko "cierre sin aplicar: $(cat "${T}/lc.log")"
 caso_cierre_otro_sha && ok "limpiar.sh --cierre-4-6b con un aplicar de otro sha256 no borra nada" || ko "cierre otro sha: $(cat "${T}/lc.log")"
 caso_cierre_durable_abierta && ok "limpiar.sh --cierre-4-6b con la durable sin 0700 no borra nada" || ko "cierre durable abierta: $(cat "${T}/lc.log")"
@@ -404,7 +429,7 @@ rm -rf "${DUR}"; mkdir -p -m 0700 "${D}"; : > "${D}/x"; PRUEBA_DV= lc --cierre-4
 [ "${rc}" != 0 ] && grep -q 'durable_no_es_srv_ops_portal_historial_deshacer' "${T}/lc.log" && [ -e "${D}/x" ] && ok "fuera de la prueba, el cierre usa solo la durable fija" || ko "cierre con durable no fija: $(cat "${T}/lc.log")"
 # MUTANTES del cierre: una copia de limpiar.sh sin la guarda; su caso tiene que fallar (con la misma regla).
 mutantes_c=0
-for par in aplicar:caso_cierre_sin_aplicar sha_cierre:caso_cierre_otro_sha; do
+for par in aplicar:caso_cierre_sin_aplicar_ni_ndjson sha_cierre:caso_cierre_otro_sha; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante LC_GUION "${PH}/limpiar.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" limpiar.sh
@@ -425,10 +450,29 @@ caso_abandono_con_borrar_tmpfs() { abandono_listo || return 1; hecho_cw chatwoot
 caso_abandono_ok && ok "limpiar.sh --abandono-4-6b sin chatwoot-borrar.hecho borra las dos carpetas y lo comprueba" || ko "abandono: $(cat "${T}/lc.log")"
 caso_abandono_con_borrar_durable && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en la durable (tras un reinicio) se niega y no toca nada" || ko "abandono con borrar en la durable: $(cat "${T}/lc.log")"
 caso_abandono_con_borrar_tmpfs && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.hecho en tmpfs se niega y no toca nada" || ko "abandono con borrar en tmpfs: $(cat "${T}/lc.log")"
-# MUTANTE del abandono: sin la guarda, borraría la durable después de un COMMIT de Chatwoot (con la misma regla).
-probar_mutante LC_GUION "${PH}/limpiar.sh" abandono caso_abandono_con_borrar_durable; r=$?
-informar_mutante "$r" abandono caso_abandono_con_borrar_durable limpiar.sh
-[ "$r" = 0 ] && ok "PISO: cae el mutante del abandono" || ko "el mutante del abandono no cae (${r})"
+# B1 (revisión del DG de la #480): el .hecho puede faltar aunque Chatwoot confirmó. Queda el chatwoot-borrar.inicio
+# que el paso 3 escribe en la durable antes de abrir su transacción (formato de E5, 0586-p4-2c-orden-4-6b.md).
+inicio_cw() { printf '%s\n' "INICIO chatwoot_borrar=en_curso conservados_sha256=$(sha256sum "${DUR}/${CONS##*/}" | cut -c1-64) tenant=${TU} cuenta=1 bandeja=9 utc=2026-11-09T03:00:00Z" > "${DUR}/chatwoot-borrar.inicio"; }
+# Camino 1: el guion se cortó entre el COMMIT y la escritura del .hecho. Queda el .inicio, sin .hecho en ninguna.
+caso_abandono_corte_tras_commit() { abandono_listo || return 1; inicio_cw; lc --abandono-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'borrado_de_chatwoot_empezado_ver_runbook' "${T}/lc.log" && [ -e "${DUR}/${CONS##*/}" ] && [ -e "${DUR}/chatwoot-borrar.inicio" ] && [ -e "${D}" ]; }
+# Camino 2: el borrado confirmó (el .inicio se queda) y después alguien borró el .hecho de las dos copias, y el VPS
+# se reinició. La durable conserva el .inicio.
+caso_abandono_hecho_borrado() { abandono_listo || return 1; hecho_cw chatwoot-borrar.hecho chatwoot_borrar "" "" "fin=commit "; cp "${D}/chatwoot-borrar.hecho" "${DUR}/"; inicio_cw
+  rm -f "${D}/chatwoot-borrar.hecho" "${DUR}/chatwoot-borrar.hecho"; reinicio; lc --abandono-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'borrado_de_chatwoot_empezado_ver_runbook' "${T}/lc.log" && [ -e "${DUR}/${CONS##*/}" ] && [ -e "${DUR}/chatwoot-borrar.inicio" ]; }
+caso_abandono_corte_tras_commit && ok "limpiar.sh --abandono-4-6b con chatwoot-borrar.inicio y sin .hecho (corte tras el COMMIT) se niega y no toca nada" || ko "abandono con .inicio: $(cat "${T}/lc.log")"
+caso_abandono_hecho_borrado && ok "limpiar.sh --abandono-4-6b con el .hecho borrado de las dos copias y el .inicio en la durable se niega y no toca nada" || ko "abandono con .hecho borrado: $(cat "${T}/lc.log")"
+# MUTANTES del abandono (con la misma regla): sin la guarda del .hecho, borraría la durable después de un COMMIT de
+# Chatwoot; sin la del .inicio, la borraría en los dos caminos del B1.
+mutantes_a=0
+for par in abandono:caso_abandono_con_borrar_durable abandono_inicio:caso_abandono_corte_tras_commit abandono_inicio:caso_abandono_hecho_borrado; do
+  g="${par%%:*}"; caso="${par#*:}"
+  probar_mutante LC_GUION "${PH}/limpiar.sh" "$g" "$caso"; r=$?
+  informar_mutante "$r" "$g" "$caso" limpiar.sh
+  [ "$r" = 0 ] && mutantes_a=$((mutantes_a+1))
+done
+[ "${mutantes_a}" = 3 ] && ok "PISO: caen los 3 mutantes del abandono" || ko "caen ${mutantes_a} de 3 mutantes del abandono"
 rm -rf "${D}" "${DUR}"
 
 echo "== ${pass} PASÓ · ${fail} FALLÓ"

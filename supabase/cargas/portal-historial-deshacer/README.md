@@ -29,10 +29,18 @@ ENTORNO=produccion SISTEMA=<system_identifier> MODO=ensayo bash deshacer-vinculo
 - una cabecera: `{"tipo":"cabecera","version":1,"tenant_id","cuenta","bandeja","contactos"}`;
 - y una línea por cada contacto `dtd-portal:` que E5 no borra: `{"tipo":"contacto","identificador","contacto_id"}`.
 
-**El orden con E5:**
-1. la 2c de E5 corre en seco y escribe el archivo;
-2. este guion lo lee;
-3. la 2c borra en Chatwoot, recalcula los conservados, y aborta si no coinciden.
+**El orden del 4.6b lo imponen los archivos `.hecho`** (secuencia aprobada por el DG el 2026-11-09; el detalle está en el 4.6b del runbook y en las notas de E5):
+1. **el seco de Chatwoot** (la 2c de E5, la #478) escribe el archivo y `chatwoot-seco.hecho`;
+2. **este guion con `MODO=ensayo`** exige `chatwoot-seco.hecho` con el mismo sha256 del `.ndjson`, el tenant, la cuenta y la bandeja, y escribe `studio-ensayo.hecho`, solo en tmpfs;
+3. **el borrado de Chatwoot** (la 2c) escribe `chatwoot-borrar.inicio` en la durable antes de su transacción, y `chatwoot-borrar.hecho` en las dos copias si confirma;
+4. **este guion con `MODO=aplicar`** exige `studio-ensayo.hecho` (el mismo `entorno`) y `chatwoot-borrar.hecho` (`fin=commit`), y escribe `studio-aplicar.hecho` en tmpfs y en la durable;
+5. **el cierre:** `limpiar.sh --cierre-4-6b` exige `studio-aplicar.hecho` y borra las dos carpetas. Si se abandona antes de que el paso 3 confirme, `limpiar.sh --abandono-4-6b`, que se niega si hay `chatwoot-borrar.hecho` o `chatwoot-borrar.inicio`.
+
+Cada `.hecho` es una línea `HECHO <paso>=ok conservados_sha256=<64 hex> tenant=<uuid> …`, en 0600, escrita con `.parcial` + `mv`; solo ids, uuid seudónimos y hashes. A psql entra una foto del `.ndjson` con su sha256: si el archivo cambia durante la corrida, no queda evidencia. Un intento que falla borra su propio `.hecho` anterior.
+
+**La copia durable,** `/srv/ops/portal-historial/deshacer/` (root, 0700, archivos 0600; la opción (a) de Sam): la crea el paso 3, el paso 4 le agrega `studio-aplicar.hecho`, y nada antes del paso 3 toca el disco. Solo el paso 4 la lee, y solo para lo que falta en tmpfs después de un reinicio; se niega si un archivo está en las dos y no son iguales, o si la carpeta no es de este usuario, no está en 0700 o es un enlace. La variable es `DESHACER_DURABLE`, la misma de la #478, y vale solo con `DESHACER_PRUEBA=1` (la prueba bash) y terminada en `/deshacer`.
+
+**Las pruebas** están en `infra/ops/tests/prueba-portal-historial.sh` (Linux, «Calidad continua»): los casos del orden, de la durable, del cierre y del abandono, y un mutante por guarda (`# guarda:<nombre>`), que cuenta solo si su caso pasa antes con el guion real.
 
 ## Qué hace y qué no
 

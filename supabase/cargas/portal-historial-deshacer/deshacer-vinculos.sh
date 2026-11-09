@@ -44,7 +44,9 @@ umask 077
 : "${MODO:?falta MODO (ensayo o aplicar)}" "${ENTORNO:?falta ENTORNO (copia o produccion)}"
 SISTEMA="${SISTEMA:-}"
 DIR="${DIR:-/dev/shm/portal-historial}"
-DURABLE="${DURABLE:-/srv/ops/portal-historial/deshacer}"
+# La copia durable, con la misma variable que deshacer.sh de la #478: DESHACER_DURABLE vale solo con
+# DESHACER_PRUEBA=1 (la prueba bash) y tiene que terminar en /deshacer; si no, es siempre la fija.
+DURABLE="${DESHACER_DURABLE:-/srv/ops/portal-historial/deshacer}"
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 CONS=contactos-conservados.ndjson
 
@@ -53,7 +55,7 @@ if [ "$DIR" != /dev/shm/portal-historial ]; then
   echo "HECHO error=dir_no_es_dev_shm_portal_historial" >&2
   exit 2
 fi
-[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; } # guarda:durable_fijo
+[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || { [ "${DESHACER_PRUEBA:-}" = 1 ] && [ "${DURABLE%/deshacer}" != "$DURABLE" ]; } || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; } # guarda:durable_fijo
 case "$MODO" in
   ensayo) FIN=rollback; PROPIA=studio-ensayo.hecho; PASO=studio_ensayo ;;
   aplicar) FIN=commit; PROPIA=studio-aplicar.hecho; PASO=studio_aplicar ;;
@@ -77,8 +79,8 @@ for n in "$CUENTA" "$BANDEJA" "$ESPERADOS_SALIDA" "$ESPERADOS_HILOS" "$ESPERADOS
   esac
 done
 
-# La carpeta durable, si existe y es el paso 4: una carpeta de verdad, en 0700.
-durable_ok() { [ -d "$DURABLE" ] && [ ! -L "$DURABLE" ] && [ "$(stat -c %a "$DURABLE")" = 700 ]; }
+# La carpeta durable, si existe y es el paso 4: una carpeta de verdad, de este usuario (-O) y en 0700.
+durable_ok() { [ -d "$DURABLE" ] && [ ! -L "$DURABLE" ] && [ -O "$DURABLE" ] && [ "$(stat -c %a "$DURABLE")" = 700 ]; }
 [ "$MODO" != aplicar ] || [ ! -e "$DURABLE" ] || durable_ok || { echo "HECHO error=durable_no_es_carpeta_0700" >&2; exit 2; } # guarda:durable0700
 
 # fuente <nombre>: la ruta del archivo en tmpfs; si falta y es el paso 4, la de la carpeta durable. O nada.
@@ -99,7 +101,7 @@ distintas() {
 
 # La evidencia propia de un intento anterior no vale: se borra antes de empezar, y solo vuelve si este sale con 0.
 rm -f "$DIR/$PROPIA" "$DIR/$PROPIA.parcial" # guarda:viejo
-if [ "$MODO" = aplicar ] && durable_ok; then rm -f "$DURABLE/$PROPIA" "$DURABLE/$PROPIA.parcial"; fi
+[ "$MODO" != aplicar ] || ! durable_ok || rm -f "$DURABLE/$PROPIA" "$DURABLE/$PROPIA.parcial" # guarda:viejo_durable
 C="$(fuente "$CONS")"
 [ -n "$C" ] && [ ! -L "$C" ] && test -s "$C" || { echo "HECHO error=sin_contactos_conservados" >&2; exit 2; }
 # El archivo entra a psql por COPY de texto, que interpreta la barra invertida: solo lleva ids.

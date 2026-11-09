@@ -22,6 +22,7 @@ Todo con `chatwoot_portal` **apagado**: la 0523 se niega si está encendido.
    - **El puente entre el contenedor de Chatwoot y el VPS es de E5**, en su segunda PR y en un archivo suyo: `docker exec -i`, `VINCULOS` en el `/dev/shm` del contenedor, `docker exec … cat` a esta carpeta (`docker cp` no copia desde un tmpfs) y el borrado del contenedor con `trap`. Va entre `extraer.sh` y `vincular.sh`.
 3. **`vincular.sh`** **escribe** en Studio los vínculos, marca `cargado` los mensajes y fija el corte (`chatwoot_portal_vincular_carga`). Si sale bien, borra `/dev/shm/portal-historial`.
 4. **Si algo quedó a medias:** `limpiar.sh`. Si la vinculación falla, los archivos quedan en `/dev/shm` para poder reintentar. **Si no se reintenta, se corre `limpiar.sh`:** en un tmpfs, los datos de clientes siguen ahí hasta que alguien los borre o se reinicie el VPS.
+   `limpiar.sh` sin opción borra solo `/dev/shm/portal-historial`. Sus dos modos del 4.6b, `--cierre-4-6b` y `--abandono-4-6b`, borran también la copia durable `/srv/ops/portal-historial/deshacer/`, con sus guardas: ver `supabase/cargas/portal-historial-deshacer/README.md`.
 5. **El cierre:** comprobar que `/dev/shm/portal-historial` ya no existe (`test ! -e /dev/shm/portal-historial && echo vacio`) y dejarlo en la evidencia.
 
 **En el ensayo**, `controles-studio.sql` (solo lectura, con conteos y md5) se corre antes y después: C-6 y C-7 tienen que dar igual, y C-8, lo nuevo.

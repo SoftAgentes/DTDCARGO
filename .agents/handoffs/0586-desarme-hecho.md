@@ -151,3 +151,46 @@ Esta revisión no es asesoría legal.
   - con `caso_siempre_falla`, el control da 2 y sin control da 0, que sería un mutante vacío contado como caído. La prueba exige las dos cosas;
   - exige además que la marca `control:base` esté una sola vez.
 - **Medido en local, sin la prueba entera** (no hay `/dev/shm` real en esta PC): `bash -n` PASÓ. Con un guion falso de una línea, `probar_mutante` da los 5 resultados esperados: 2, 0 sin control, 1, 0 y 3.
+
+## La revisión del DG de la #480 en `dfccd5a9b` (CHANGES_REQUESTED)
+
+**B1, que es de E10 y de E5:** `chatwoot-borrar.hecho` puede faltar aunque Chatwoot ya confirmó. Hay dos caminos:
+- **camino 1:** el guion se corta entre el COMMIT y el `.hecho`;
+- **camino 2:** un segundo `MODO=borrar` borraba el `.hecho` de las dos copias.
+
+Lo que se hizo:
+- **`limpiar.sh --abandono-4-6b`** se niega ahora también si en la durable hay `chatwoot-borrar.inicio`. El error es `borrado_de_chatwoot_empezado_ver_runbook`, y lo marca la guarda `abandono_inicio`. El formato del `.inicio` sale de E5, en `0586-p4-2c-orden-4-6b.md`: `INICIO chatwoot_borrar=en_curso conservados_sha256=… tenant=… cuenta=… bandeja=… utc=…`.
+- **Los casos:** uno por camino.
+  - `caso_abandono_corte_tras_commit`: hay `.inicio` y no hay `.hecho`.
+  - `caso_abandono_hecho_borrado`: el `.hecho` se borró de las dos copias, el VPS se reinició y queda el `.inicio`.
+- **Los mutantes:** `abandono_inicio` en cada uno de los dos caminos, más el de `abandono`. Su PISO es 3.
+
+**N1:**
+- `caso_cierre_sin_aplicar_ni_ndjson`: sin `studio-aplicar.hecho` ni `.ndjson`, el cierre no borra nada. El mutante `aplicar` cae ahí por su guarda: borraría.
+- `caso_durable_no_0700`: tmpfs está completa y la durable en 0755, y el paso 4 se niega sin llamar a psql. El mutante `durable0700` cae por su guarda, porque llamaría a psql, y no por el texto del error.
+
+**N2:** casos nuevos para:
+- un seco de otra `cuenta`;
+- un seco de otra `bandeja`;
+- un ensayo de otro `entorno`;
+- un `chatwoot-borrar.hecho` sin `fin=commit`;
+- un paso 4 que falla después de uno bueno y no deja el `studio-aplicar.hecho` viejo en ninguna de las dos carpetas. Esa es la guarda nueva `viejo_durable`, con su mutante. El PISO del desarme pasa a 12.
+
+**N3:**
+- La variable de la durable es `DESHACER_DURABLE`, como en la #478. Vale solo con `DESHACER_PRUEBA=1` y terminada en `/deshacer`. La prueba usa `${T}/deshacer`.
+- `-O` se exige en `durable_ok` y, en `limpiar.sh`, en las dos carpetas.
+
+**N4:** `pruebas-linux.sh` tiene un `PISO` de PASÓ por suite.
+- Los pisos son los conteos medidos en el CI: publicar-web 228, aviso 39, aplicar-lote 23, ips 24, prompt-trim 13, restore 78 y portal-historial 99.
+- Una suite bajo su piso sale FALLÓ, con «bajo el piso de N PASÓ».
+- `PRUEBAS_LINUX_PISOS` la usa solo `pruebas-linux.test.mjs`, que suma dos casos: el piso, y que cada prueba real tenga el suyo.
+- **El piso de portal-historial queda en 99,** el último verde medido. Se sube al conteo nuevo cuando el CI lo dé.
+
+**N6 y N7:** este handoff, y los README del desarme y de `infra/ops/portal-historial/`.
+
+| Comprobación | Estado |
+|---|---|
+| `bash -n` de `deshacer-vinculos.sh`, `limpiar.sh`, `prueba-portal-historial.sh` y `pruebas-linux.sh` | PASÓ |
+| El piso del runner, con dos suites de mentira en bash | PASÓ: con piso 3 da FALLÓ «bajo el piso de 3 PASÓ», y con piso 2 o sin piso da PASÓ |
+| `prueba-portal-historial.sh` y `pruebas-linux.test.mjs` | NO EJECUTADO en la PC: no hay `/dev/shm` real, y vitest es pesado. Los corre «Calidad continua» |
+| `docs:check` | PASÓ |
