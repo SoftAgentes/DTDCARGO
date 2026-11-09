@@ -122,8 +122,14 @@ SOURCE="$(readlink -f "${SOURCE}")"
 for n in RETENTION_DAYS KEEP_LOCAL MIN_FILES AVISO_GB; do
   [[ "${!n}" =~ ^[1-9][0-9]{0,8}$ ]] || die "--$(tr '[:upper:]_' '[:lower:]-' <<< "${n}") debe ser un entero ≥ 1, sin cero inicial y de hasta 9 cifras"
 done
-[[ "${MIN_PCT}" =~ ^(100|[1-9]?[0-9])$ ]] || die "--min-pct debe ser un entero entre 0 y 100, sin cero inicial"
-(( ! ACEPTAR_DADA )) || [[ "${ACEPTAR_CAIDA}" =~ ^[1-9][0-9]{0,15}$ ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1, sin cero inicial: '${ACEPTAR_CAIDA}'"
+# Un conteo válido: sin cero inicial y de hasta 16 cifras. Uno enorme desbordaría las
+# cuentas y uno con cero inicial bash lo leería como octal (la guarda no saltaría).
+n_re='[1-9][0-9]{0,15}'
+patron_n="^${n_re}$"
+patron_linea="^${n_re} [^[:space:]]+$"   # «<archivos> <base>», anclado a los dos lados
+# 0 apagaría la guarda contra un borrado masivo: va de 1 a 100.
+[[ "${MIN_PCT}" =~ ^(100|[1-9][0-9]?)$ ]] || die "--min-pct debe ser un entero entre 1 y 100, sin cero inicial"
+(( ! ACEPTAR_DADA )) || [[ "${ACEPTAR_CAIDA}" =~ ${patron_n} ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1, sin cero inicial: '${ACEPTAR_CAIDA}'"
 [[ "${RCLONE_IMAGE}" != *:latest && "${RCLONE_IMAGE}" == *:* ]] || die "--rclone-image debe llevar tag fijo"
 # El cifrado se valida también en dry-run: un timer mal configurado tiene que
 # fallar en la prueba, no la primera noche.
@@ -277,11 +283,10 @@ rcl check "${ldir}/" "${remote_dir}" --one-way --include "/${base}*"
 # confiable, manda el MÁXIMO de los manifiestos anteriores, locales y del remoto (que su
 # retención conserva 30 días): el más nuevo puede ser ya el de después de la caída, y en
 # un disco nuevo o con un --out equivocado no hay manifiestos locales.
-# Los conteos valen solo como ^[1-9][0-9]{0,15}$ y se comparan en base 10: un «archivos=»
-# enorme desbordaría la cuenta y uno con cero inicial bash lo leería como octal; en los
-# dos casos la guarda no saltaría. Un manifiesto con «archivos=» fuera de formato frena.
+# Los conteos valen solo con ${patron_n} y se comparan en base 10 (10#). Un manifiesto
+# con «archivos=» fuera de formato frena, también al aceptar una caída: si fuera el más
+# grande, ignorarlo dejaría su respaldo sin retener.
 patron_base="^${PROJECT}-storage-[0-9]{8}T[0-9]{6}Z$"
-patron_n='^[1-9][0-9]{0,15}$'
 previo=""; bueno=""; ilegible=0; dudoso=0
 if [[ -f "${referencia}" ]]; then
   # Sin permisos de lectura, sed falla: con pipefail saldría sin decir nada; así cae en «ilegible».
@@ -303,8 +308,10 @@ if [[ ! -f "${referencia}" ]] || (( ilegible )); then
   todos="$( { printf '%s\n' "${locales}"
               printf '%s\n' "${remotos}" | awk -F= -v p="${PROJECT}" '/^sello=/ { s = $2 } /^archivos=/ { print $2 " " p "-storage-" s; s = "" }'
             } | grep -v '^[[:space:]]*$' || true)"
-  if [[ -n "${todos}" ]] && printf '%s\n' "${todos}" | grep -vqE '^[1-9][0-9]{0,15} '; then dudoso=1; fi
-  mejor="$(printf '%s\n' "${todos}" | grep -E '^[1-9][0-9]{0,15} ' | sort -n | tail -n1 || true)"
+  # Un solo filtro decide las dos cosas: cuáles valen y si alguno no vale.
+  validas="$(printf '%s\n' "${todos}" | grep -E "${patron_linea}" || true)"
+  if (( $(grep -c . <<< "${todos}") != $(grep -c . <<< "${validas}") )); then dudoso=1; fi
+  mejor="$(printf '%s\n' "${validas}" | sort -n | tail -n1 || true)"
   if [[ -n "${mejor}" ]]; then
     previo="${mejor%% *}"; bueno="${mejor#* }"
     log "AVISO: sin referencia confiable; se compara contra el máximo de los manifiestos locales y del remoto (${previo} archivos, ${bueno})"
@@ -313,11 +320,12 @@ fi
 if [[ -z "${ACEPTAR_CAIDA}" ]]; then
   if (( ilegible )); then
     log "✗ la referencia ${referencia} no se puede leer: el respaldo ${base} se subió, pero NO se aplica la retención"
+    if (( dudoso )); then log "  además, un manifiesto anterior trae «archivos=» fuera de formato: hay que apartarlo antes de aceptar (runbook §5.1, «Si el bloqueo no tiene salida»)"; fi
     log "  hace falta revisarla y correr a mano --aceptar-caida=<archivos> con OK nominal de Sam (runbook §5.1)"
     falla "referencia del Storage ilegible"
   fi
   if (( dudoso )); then
-    log "✗ un manifiesto anterior trae «archivos=» fuera de formato (vacío, con cero inicial o de más de 16 cifras): el respaldo ${base} se subió, pero NO se aplica la retención"
+    log "✗ un manifiesto anterior trae «archivos=» fuera de formato (vacío, con cero inicial, con algo más en la línea o de más de 16 cifras): el respaldo ${base} se subió, pero NO se aplica la retención"
     log "  hace falta revisarlo; si hay que retirarlo, solo con OK nominal de Sam (runbook §5.1, «Si el bloqueo no tiene salida»)"
     falla "manifiesto anterior del Storage fuera de formato"
   fi
@@ -329,6 +337,8 @@ if [[ -z "${ACEPTAR_CAIDA}" ]]; then
 else
   (( 10#${archivos} == 10#${ACEPTAR_CAIDA} )) \
     || falla "--aceptar-caida=${ACEPTAR_CAIDA} no coincide con los ${archivos} archivos de este respaldo: no se acepta nada ni se aplica la retención"
+  # Con un manifiesto fuera de formato no se sabe cuál era el más grande: no se acepta nada.
+  if (( dudoso )); then falla "hay un manifiesto anterior fuera de formato: apártalo (runbook §5.1, «Si el bloqueo no tiene salida») antes de aceptar; no se acepta nada ni se aplica la retención"; fi
   # Antes de la retención, el último respaldo bueno sale de su alcance, en el remoto y en disco.
   # Sin uno identificado (ni en la referencia ni en los manifiestos, locales o del remoto) no se acepta nada.
   [[ "${bueno}" =~ ${patron_base} ]] \

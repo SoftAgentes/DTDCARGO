@@ -365,12 +365,14 @@ contrato_numeros_raros() { # <script de respaldo>
     ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
   done
   rm -f "${ref}"
-  # Un manifiesto local con cero inicial…
-  sed 's/^archivos=.*/archivos=0999/' "${o}/zzst/storage/${b1}.manifiesto" > "${o}/zzst/storage/zzst-storage-20990101T000000Z.manifiesto"
-  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
-  REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"
-  [ "${rc}" = 1 ] && grep -q 'fuera de formato' "${T}/bk.log" || return 1
-  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  # Un manifiesto local con cero inicial, o con algo más después del número…
+  for val in '0999' '5 999999'; do
+    sed "s/^archivos=.*/archivos=${val}/" "${o}/zzst/storage/${b1}.manifiesto" > "${o}/zzst/storage/zzst-storage-20990101T000000Z.manifiesto"
+    sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+    REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"
+    [ "${rc}" = 1 ] && grep -q 'fuera de formato' "${T}/bk.log" || return 1
+    ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  done
   # …y uno enorme en el remoto.
   rm -f "${o}/zzst/storage/zzst-storage-20990101T000000Z.manifiesto"
   printf 'sello=20990102T000000Z\nproyecto=zzst\narchivos=200000000000000000\n' > "${T}/remoto/bucket/${g}/zzst/zzst-storage-20990102T000000Z.manifiesto"
@@ -378,6 +380,26 @@ contrato_numeros_raros() { # <script de respaldo>
   REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"
   [ "${rc}" = 1 ] && grep -q 'fuera de formato' "${T}/bk.log" || return 1
   ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete'
+}
+# C14 · con un manifiesto fuera de formato no se sabe cuál era el más grande: aceptar la
+# caída sale 1 sin retener nada ni borrar, y el aviso de «ilegible» lo nombra.
+contrato_aceptar_con_dudoso() { # <script de respaldo>
+  local o="${T}/out-d-$RANDOM" g="dudoso-$RANDOM" ref b1 llam
+  ref="${o}/zzst/storage/zzst-storage.referencia"
+  REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 0 ] || return 1
+  b1="$(ultima_base "${o}")"
+  sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 1 ] || return 1
+  # El «más grande» tiene archivos=0700: si se ignorara, se retendría otro y este se perdería.
+  sed 's/^archivos=.*/archivos=0700/' "${o}/zzst/storage/${b1}.manifiesto" > "${o}/zzst/storage/zzst-storage-20990101T000000Z.manifiesto"
+  printf 'basura\n' > "${ref}"
+  sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"
+  [ "${rc}" = 1 ] && grep -q 'no se puede leer' "${T}/bk.log" && grep -q 'además, un manifiesto anterior trae «archivos=» fuera de formato' "${T}/bk.log" || return 1
+  rm -f "${ref}"
+  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+  FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}" --aceptar-caida=2
+  [ "${rc}" = 1 ] && grep -q 'manifiesto anterior fuera de formato: apártalo' "${T}/bk.log" || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  [ ! -e "${T}/remoto/bucket/${g}/zzst-retenido" ] && [ ! -e "${o}/zzst/storage-retenido" ] && [ -f "${o}/zzst/storage/${b1}.tar.age" ]
 }
 
 echo; echo "== M0 · scripts sin mutar =="
@@ -418,8 +440,9 @@ contrato_aceptar_sin_bueno "${BK}" && ok "C8 · --aceptar-caida sin un respaldo 
 contrato_retener_falla "${BK}" && ok "C9 · rclone falla al retener el último bueno: sale 1 y no borra" || { ko "C9 retener falla"; cat "${T}/bk.log"; }
 contrato_check_retenido "${BK}" && ok "C11 · el check del retenido encuentra una diferencia: sale 1 y no borra" || { ko "C11 check retenido"; cat "${T}/bk.log"; }
 contrato_sin_estado_local "${BK}" && ok "C12 · sin estado local, la guarda usa los manifiestos del remoto: frena la caída dos días y al aceptarla retiene el bueno del remoto (avisa que en disco no estaba)" || { ko "C12 sin estado local"; cat "${T}/bk.log"; }
+contrato_aceptar_con_dudoso "${BK}" && ok "C14 · aceptar con un manifiesto fuera de formato (el más grande, 0700): sale 1, no retiene ni borra; el aviso de «ilegible» lo nombra" || { ko "C14 aceptar con dudoso"; cat "${T}/bk.log"; }
 contrato_numeros_raros "${BK}" && ok "C13 · «archivos=» enorme o con cero inicial, en la referencia, en un manifiesto local o en uno del remoto: sale 1 y no borra" || { ko "C13 números raros"; cat "${T}/bk.log"; }
-for malo in '--aceptar-caida=0999' '--min-pct 050' '--keep-local 2000000000'; do
+for malo in '--aceptar-caida=0999' '--min-pct 050' '--min-pct 0' '--keep-local 2000000000'; do
   # shellcheck disable=SC2086
   bash "${BK}" --project zzst --source "${SRC}" --remote zz:bucket/storage --age-recipients "${T}/rec" --out "${T}/out-v1" ${malo} > "${T}/v.log" 2>&1
   [ $? = 2 ] && [ ! -e "${T}/out-v1" ] && ok "${malo}: se niega (2) sin escribir" || { ko "${malo}"; cat "${T}/v.log"; }
@@ -547,12 +570,19 @@ m="$(mutar M16 "${BK}" 's#printf '"'"'%s\\n'"'"' "${remotos}" | awk#printf '"''"
 limpio M16 contrato_sin_estado_local "${BK}"
 [ -n "${m}" ] && detectado M16 "sin referencia confiable, la guarda no mira los manifiestos del remoto" contrato_sin_estado_local "${m}" || ko "M16: sed no cambió nada"
 
-m="$(mutar M17 "${BK}" "s#^patron_n='.*'#patron_n='^[0-9]+\$'#")"
+m="$(mutar M17 "${BK}" "s#^n_re='.*'#n_re='[0-9]+'#")"
 limpio M17 contrato_numeros_raros "${BK}"
 [ -n "${m}" ] && detectado M17 "la referencia acepta cualquier cantidad de cifras y ceros iniciales" contrato_numeros_raros "${m}" || ko "M17: sed no cambió nada"
 m="$(mutar M18 "${BK}" 's#then dudoso=1; fi#then :; fi#')"
 limpio M18 contrato_numeros_raros "${BK}"
 [ -n "${m}" ] && detectado M18 "un manifiesto con «archivos=» fuera de formato se ignora en vez de frenar" contrato_numeros_raros "${m}" || ko "M18: sed no cambió nada"
+
+m="$(mutar M19 "${BK}" 's#grep -E "${patron_linea}"#grep -E '"'"'^[0-9]'"'"'#')"
+limpio M19 contrato_numeros_raros "${BK}"
+[ -n "${m}" ] && detectado M19 "el filtro de los manifiestos deja pasar números fuera de formato" contrato_numeros_raros "${m}" || ko "M19: sed no cambió nada"
+m="$(mutar M20 "${BK}" 's#if (( dudoso )); then falla "hay un manifiesto anterior#if false; then falla "hay un manifiesto anterior#')"
+limpio M20 contrato_aceptar_con_dudoso "${BK}"
+[ -n "${m}" ] && detectado M20 "aceptar ignora un manifiesto fuera de formato y retiene otro" contrato_aceptar_con_dudoso "${m}" || ko "M20: sed no cambió nada"
 
 echo; echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]
