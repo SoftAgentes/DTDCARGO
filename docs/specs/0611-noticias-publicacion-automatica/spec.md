@@ -554,7 +554,12 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 ### 11.2 La 0518 en producción y el conteo de marcas
 
 **La 0518 está aplicada desde el 2026-11-08**, con OK de Sam (~04:15Z, en el chat del Director
-General). Los datos de la aplicación:
+General). El selector «¿para qué es el OK?» ofrecía «Encender el portal», «Publicar la web»,
+«Aplicar la 0518» y «Solo enterado», y Sam respondió en texto libre: «Tú decides cuál va
+primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» Es el
+texto tal como lo registró el Director General en
+[`cierre-migraciones-20261108.md`](../../../.agents/handoffs/cierre-migraciones-20261108.md)
+(línea 44). Los datos de la aplicación:
 
 | Entorno | version | COMMIT | Evidencia |
 |---|---|---|---|
