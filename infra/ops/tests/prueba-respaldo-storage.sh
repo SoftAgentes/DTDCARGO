@@ -89,6 +89,8 @@ case "${cmd}" in
   cat)
     # Solo las reglas que usa storage-backup.sh: «- /<nombre>», «+ /<patrón>» y «- *».
     dir_="$(ruta "$1")"; shift; fuera=""; dentro=""
+    [ "${RCLONE_DOBLE_FALLA:-}" != cat ] || { echo "cat: error simulado" >&2; exit 1; }
+    if [ -f "${dir_}" ]; then cat "${dir_}"; exit 0; fi
     while [ $# -gt 0 ]; do
       case "$1" in --filter) case "$2" in "- *") ;; "- /"*) fuera="${2#- /}" ;; "+ /"*) dentro="${2#+ /}" ;; esac; shift 2 ;; *) shift ;; esac
     done
@@ -401,6 +403,28 @@ contrato_aceptar_con_dudoso() { # <script de respaldo>
   ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
   [ ! -e "${T}/remoto/bucket/${g}/zzst-retenido" ] && [ ! -e "${o}/zzst/storage-retenido" ] && [ -f "${o}/zzst/storage/${b1}.tar.age" ]
 }
+# C15 · un manifiesto raro en el REMOTO pasa por el mismo filtro que uno local, también con
+# el disco vacío (C12), donde el remoto es la única fuente: vacío, sin «archivos=» o con
+# «archivos=5=700» frena la retención y la aceptación.
+contrato_remoto_raro() { # <script de respaldo> <vacio|sinarchivos|doble|nombre>
+  local o1="${T}/out-r1-$RANDOM" o2="${T}/out-r2-$RANDOM" g="raro-$2-$RANDOM" llam f
+  REMOTO="zz:bucket/${g}" respaldar "$1" "${o1}"; [ "${rc}" = 0 ] || return 1
+  f="${T}/remoto/bucket/${g}/zzst/zzst-storage-20990103T000000Z.manifiesto"
+  case "$2" in
+    vacio) : > "${f}" ;;
+    sinarchivos) printf 'sello=20990103T000000Z\nproyecto=zzst\n' > "${f}" ;;
+    doble) printf 'sello=20990103T000000Z\nproyecto=zzst\narchivos=5=700\n' > "${f}" ;;
+    # Pasa el glob de lsf pero no el patrón de la base: si se aceptara, sería un «bueno» sin respaldo.
+    nombre) printf 'proyecto=zzst\narchivos=700\n' > "${T}/remoto/bucket/${g}/zzst/zzst-storage-raro.manifiesto" ;;
+  esac
+  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+  FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o2}"
+  [ "${rc}" = 1 ] && grep -q 'fuera de formato' "${T}/bk.log" || return 1
+  sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o2}" --aceptar-caida=2
+  [ "${rc}" = 1 ] && grep -q 'manifiesto anterior fuera de formato: apártalo' "${T}/bk.log" || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  [ ! -e "${T}/remoto/bucket/${g}/zzst-retenido" ]
+}
 
 echo; echo "== M0 · scripts sin mutar =="
 contrato_sin_claro "${BK}" "${T}/out" && ok "C1 · solo .age y manifiesto; ni la marca ni el nombre en disco, remoto ni /dev/shm; el espía no vio claros" \
@@ -440,6 +464,9 @@ contrato_aceptar_sin_bueno "${BK}" && ok "C8 · --aceptar-caida sin un respaldo 
 contrato_retener_falla "${BK}" && ok "C9 · rclone falla al retener el último bueno: sale 1 y no borra" || { ko "C9 retener falla"; cat "${T}/bk.log"; }
 contrato_check_retenido "${BK}" && ok "C11 · el check del retenido encuentra una diferencia: sale 1 y no borra" || { ko "C11 check retenido"; cat "${T}/bk.log"; }
 contrato_sin_estado_local "${BK}" && ok "C12 · sin estado local, la guarda usa los manifiestos del remoto: frena la caída dos días y al aceptarla retiene el bueno del remoto (avisa que en disco no estaba)" || { ko "C12 sin estado local"; cat "${T}/bk.log"; }
+for variante in vacio sinarchivos doble nombre; do
+  contrato_remoto_raro "${BK}" "${variante}" && ok "C15 · manifiesto del remoto ${variante} (disco vacío): frena la retención y la aceptación, sin delete ni retenido" || { ko "C15 remoto ${variante}"; cat "${T}/bk.log"; }
+done
 contrato_aceptar_con_dudoso "${BK}" && ok "C14 · aceptar con un manifiesto fuera de formato (el más grande, 0700): sale 1, no retiene ni borra; el aviso de «ilegible» lo nombra" || { ko "C14 aceptar con dudoso"; cat "${T}/bk.log"; }
 contrato_numeros_raros "${BK}" && ok "C13 · «archivos=» enorme o con cero inicial, en la referencia, en un manifiesto local o en uno del remoto: sale 1 y no borra" || { ko "C13 números raros"; cat "${T}/bk.log"; }
 for malo in '--aceptar-caida=0999' '--min-pct 050' '--min-pct 0' '--keep-local 2000000000'; do
@@ -566,7 +593,7 @@ limpio M14 contrato_bueno_ausente "${BK}"
 m="$(mutar M15 "${BK}" 's#|| falla "la copia retenida .*#|| true#')"
 limpio M15 contrato_check_retenido "${BK}"
 [ -n "${m}" ] && detectado M15 "solo el check del retenido se ignora" contrato_check_retenido "${m}" || ko "M15: sed no cambió nada"
-m="$(mutar M16 "${BK}" 's#printf '"'"'%s\\n'"'"' "${remotos}" | awk#printf '"''"' | awk#')"
+m="$(mutar M16 "${BK}" 's#nombres="$(rcl lsf "${remote_dir}"#nombres="$(true "${remote_dir}"#')"
 limpio M16 contrato_sin_estado_local "${BK}"
 [ -n "${m}" ] && detectado M16 "sin referencia confiable, la guarda no mira los manifiestos del remoto" contrato_sin_estado_local "${m}" || ko "M16: sed no cambió nada"
 
@@ -583,6 +610,16 @@ limpio M19 contrato_numeros_raros "${BK}"
 m="$(mutar M20 "${BK}" 's#if (( dudoso )); then falla "hay un manifiesto anterior#if false; then falla "hay un manifiesto anterior#')"
 limpio M20 contrato_aceptar_con_dudoso "${BK}"
 [ -n "${m}" ] && detectado M20 "aceptar ignora un manifiesto fuera de formato y retiene otro" contrato_aceptar_con_dudoso "${m}" || ko "M20: sed no cambió nada"
+
+m="$(mutar M21 "${BK}" 's#    contenido="$(rcl cat "${remote_dir}${n}")" || sin_remoto#&; [[ -n "${contenido}" ]] || continue#')"
+limpio M21 contrato_remoto_raro "${BK}" vacio
+[ -n "${m}" ] && detectado M21 "un manifiesto vacío del remoto se salta" contrato_remoto_raro "${m}" vacio || ko "M21: sed no cambió nada"
+m="$(mutar M22 "${BK}" 's#    remotos+=#    [[ -n "${a_r}" ]] || continue; remotos+=#')"
+limpio M22 contrato_remoto_raro "${BK}" sinarchivos
+[ -n "${m}" ] && detectado M22 "un manifiesto del remoto sin «archivos=» se salta" contrato_remoto_raro "${m}" sinarchivos || ko "M22: sed no cambió nada"
+m="$(mutar M23 "${BK}" "s#sed -n 's/^archivos=//p' | tail -n1)\"#sed -n 's/^archivos=//p' | tail -n1 | cut -d= -f1)\"#")"
+limpio M23 contrato_remoto_raro "${BK}" doble
+[ -n "${m}" ] && detectado M23 "«archivos=5=700» del remoto se lee como 5" contrato_remoto_raro "${m}" doble || ko "M23: sed no cambió nada"
 
 echo; echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]

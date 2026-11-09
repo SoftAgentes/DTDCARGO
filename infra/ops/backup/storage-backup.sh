@@ -126,7 +126,9 @@ done
 # cuentas y uno con cero inicial bash lo leería como octal (la guarda no saltaría).
 n_re='[1-9][0-9]{0,15}'
 patron_n="^${n_re}$"
-patron_linea="^${n_re} [^[:space:]]+$"   # «<archivos> <base>», anclado a los dos lados
+base_re="${PROJECT}-storage-[0-9]{8}T[0-9]{6}Z"
+patron_base="^${base_re}$"
+patron_linea="^${n_re} ${base_re}$"   # «<archivos> <base>», anclado a los dos lados
 # 0 apagaría la guarda contra un borrado masivo: va de 1 a 100.
 [[ "${MIN_PCT}" =~ ^(100|[1-9][0-9]?)$ ]] || die "--min-pct debe ser un entero entre 1 y 100, sin cero inicial"
 (( ! ACEPTAR_DADA )) || [[ "${ACEPTAR_CAIDA}" =~ ${patron_n} ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1, sin cero inicial: '${ACEPTAR_CAIDA}'"
@@ -286,7 +288,6 @@ rcl check "${ldir}/" "${remote_dir}" --one-way --include "/${base}*"
 # Los conteos valen solo con ${patron_n} y se comparan en base 10 (10#). Un manifiesto
 # con «archivos=» fuera de formato frena, también al aceptar una caída: si fuera el más
 # grande, ignorarlo dejaría su respaldo sin retener.
-patron_base="^${PROJECT}-storage-[0-9]{8}T[0-9]{6}Z$"
 previo=""; bueno=""; ilegible=0; dudoso=0
 if [[ -f "${referencia}" ]]; then
   # Sin permisos de lectura, sed falla: con pipefail saldría sin decir nada; así cae en «ilegible».
@@ -295,19 +296,24 @@ if [[ -f "${referencia}" ]]; then
   if ! [[ "${previo}" =~ ${patron_n} && "${bueno}" =~ ${patron_base} ]]; then ilegible=1; previo=""; bueno=""; fi
 fi
 if [[ ! -f "${referencia}" ]] || (( ilegible )); then
-  # «<archivos> <base>» de cada manifiesto anterior. Los del remoto van en claro y sin rutas;
-  # su base sale de `sello=`, que se vacía después de cada uno para no pasar al siguiente.
+  # «<archivos> <base>» de cada manifiesto anterior, local o del remoto, leído igual en los
+  # dos lados: la última línea «archivos=» y la base del NOMBRE del archivo. Un manifiesto
+  # vacío, sin «archivos=» o con otra cosa en esa línea da una línea que el filtro rechaza.
+  sin_remoto() {
+    if (( ilegible )); then falla "referencia del Storage ilegible, y además no se pudieron leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"; fi
+    falla "sin referencia y sin poder leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
+  }
   locales="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" \
     | while read -r m; do printf '%s %s\n' "$(sed -n 's/^archivos=//p' "${m}" | tail -n1)" "$(basename "${m}" .manifiesto)"; done || true)"
-  if ! remotos="$(rcl cat "${remote_dir}" --filter "- /${base}.manifiesto" --filter "+ /${PROJECT}-storage-*.manifiesto" --filter "- *")"; then
-    if (( ilegible )); then
-      falla "referencia del Storage ilegible, y además no se pudieron leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
-    fi
-    falla "sin referencia y sin poder leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
-  fi
-  todos="$( { printf '%s\n' "${locales}"
-              printf '%s\n' "${remotos}" | awk -F= -v p="${PROJECT}" '/^sello=/ { s = $2 } /^archivos=/ { print $2 " " p "-storage-" s; s = "" }'
-            } | grep -v '^[[:space:]]*$' || true)"
+  nombres="$(rcl lsf "${remote_dir}" --files-only --include "/${PROJECT}-storage-*.manifiesto")" || sin_remoto
+  remotos=""
+  while IFS= read -r n; do
+    [[ -n "${n}" && "${n}" != "${base}.manifiesto" ]] || continue
+    contenido="$(rcl cat "${remote_dir}${n}")" || sin_remoto
+    a_r="$(printf '%s\n' "${contenido}" | sed -n 's/^archivos=//p' | tail -n1)"
+    remotos+="${a_r} ${n%.manifiesto}"$'\n'
+  done <<< "${nombres}"
+  todos="$(printf '%s\n%s\n' "${locales}" "${remotos}" | grep -v '^[[:space:]]*$' || true)"
   # Un solo filtro decide las dos cosas: cuáles valen y si alguno no vale.
   validas="$(printf '%s\n' "${todos}" | grep -E "${patron_linea}" || true)"
   if (( $(grep -c . <<< "${todos}") != $(grep -c . <<< "${validas}") )); then dudoso=1; fi
