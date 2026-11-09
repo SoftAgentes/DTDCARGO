@@ -125,6 +125,9 @@ limpiar() {
     evidencia "HECHO ensayo_codigo=$rc"
     exit "$rc"
   fi
+  # ¿Hay un ensayo que limpiar? Se mide antes de borrar nada: la carpeta del ensayo o recursos del proyecto.
+  HABIA_ENSAYO=no
+  { [ -e "$DIR" ] || [ "$(recursos_del_ensayo)" != "$SIN_RESTOS" ]; } && HABIA_ENSAYO=si
   if [ "$PROYECTO" != portal-ensayo ] || [ "$PROYECTO" = "$PROD_PROYECTO" ]; then
     mal L0 "proyecto inesperado ($PROYECTO frente a $PROD_PROYECTO): no se borra nada"
     evidencia "HECHO limpieza_completa=no" "HECHO ensayo_codigo=1"
@@ -143,12 +146,18 @@ limpiar() {
     [ "$(recursos_del_ensayo)" = "$SIN_RESTOS" ] && break
     [ "$intento" = 3 ] || sleep 2
   done
-  # /dev/shm/portal-historial: la guarda del principio exige que no exista, así que lo que haya ahora es del ensayo.
-  rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
+  rm -rf -- /dev/shm/portal-ensayo
+  # /dev/shm/portal-historial, solo si este ensayo corrió (la guarda del principio exige que no existiera, así que lo
+  # que haya es suyo) o si quedó un ensayo que limpiar. Un --limpiar sin ensayo no toca una carga real a medias.
+  historial=no_tocada
+  if [ "$CREADO" = 1 ] || [ "$HABIA_ENSAYO" = si ]; then
+    rm -rf -- /dev/shm/portal-historial
+    historial="$([ -e /dev/shm/portal-historial ] && echo presente || echo ausente)"
+  fi
   restos="$(recursos_del_ensayo)"
-  carpetas="$([ -e /dev/shm/portal-ensayo ] && echo presente || echo ausente),$([ -e /dev/shm/portal-historial ] && echo presente || echo ausente)"
+  carpetas="$([ -e /dev/shm/portal-ensayo ] && echo presente || echo ausente),$historial"
   completa=si
-  [ "$restos" = "$SIN_RESTOS" ] && [ "$carpetas" = ausente,ausente ] || completa=no
+  [ "$restos" = "$SIN_RESTOS" ] && [ "${carpetas%%,*}" = ausente ] && [ "$historial" != presente ] || completa=no
   evidencia "HECHO limpieza=$(echo "$restos" | tr ' ' ',')" \
             "HECHO limpieza_carpetas=$carpetas" \
             "HECHO limpieza_completa=$completa" \
@@ -220,6 +229,8 @@ done
 for f in zz_dtd_redaccion_logs.rb zz_dtd_proteccion_register.rb zz_dtd_revocar_sesiones.rb zz_dtd_correo.rb; do
   [ -r "$CHATWOOT_DIR/rails/$f" ] || { mal G0 "falta $CHATWOOT_DIR/rails/$f"; exit 2; }
 done
+# Se monta en la copia de Rails: si faltara, Docker crearía en el VPS una carpeta vacía con ese nombre.
+[ -d "$CHATWOOT_DIR/correo/views" ] || { mal G0 "falta $CHATWOOT_DIR/correo/views"; exit 2; }
 if [ -e "$DIR" ]; then
   mal G0 "$DIR ya existe: quedó un ensayo anterior; revísalo y corre --limpiar"
   exit 1
@@ -627,6 +638,52 @@ if [ "$SOLO_COPIA" = 0 ]; then
   exigir E2 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" carga)" = ok ] && [ "$(h "$F" conversaciones_nuevas)" = "$(h "$S" conversaciones_nuevas)" ] && [ "$(h "$F" mensajes_nuevos)" = "$(h "$S" mensajes_nuevos)" ] && [ "$(h "$F" contactos_nuevos)" = "$(h "$S" contactos_nuevos)" ] && avance "$(h "$F" secuencia)" "$(h "$F" conversaciones_nuevas)" && [ "$(h "$F" trabajos_nuevos)" = ninguno ] && [ "$(h "$F" correos_enviados)" = 0 ] && cero "$(h "$F" conversaciones_estado_actualizado)" && [ "$(stat -c %a "$SHM/vinculos.ndjson" 2>/dev/null)" = 600 ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
     "carga: $(h "$F" conversaciones_nuevas) conversaciones, $(h "$F" mensajes_nuevos) mensajes, $(h "$F" contactos_nuevos) contactos, lo mismo que el seco; la secuencia avanza eso ($(h "$F" secuencia)); vínculos en 0600"
   cp "$SHM/vinculos.ndjson" "$DIR/vinculos-1.ndjson" 2>/dev/null
+  # C-10, C-12 y C-13 sobre lo cargado en la copia (revisión del DG de la #473): de la copia de Chatwoot salen solo ids,
+  # estados y source_id; el preparado se lee en tmpfs y del cruce salen solo conteos.
+  cw_copia -F '|' -c "select additional_attributes->>'dtd_hilo', status from public.conversations
+    where inbox_id = $BANDEJA and additional_attributes ? 'dtd_hilo'" >"$DIR/cw-estados.txt" 2>&1
+  cw_copia -F '|' -c "select c.additional_attributes->>'dtd_hilo', m.source_id from public.messages m
+    join public.conversations c on c.id = m.conversation_id
+    where m.inbox_id = $BANDEJA and m.source_id like 'dtd:%' and m.source_id not like 'dtd:archivado:%'
+    order by c.id, m.created_at, m.id" >"$DIR/cw-orden.txt" 2>&1
+  python3 -I -c 'import json, sys
+estado, orden = {}, {}
+for linea in open(sys.argv[1], encoding="utf-8"):
+    f = json.loads(linea)
+    if f["tipo"] == "conversacion":
+        estado[f["hilo"]] = f["estado"]
+    elif f["tipo"] == "mensaje":
+        orden.setdefault(f["hilo"], []).append(f["source_id"])
+nombre = {"0": "open", "1": "resolved", "2": "pending", "3": "snoozed"}
+real_estado, real_orden = {}, {}
+for linea in open(sys.argv[2], encoding="utf-8"):
+    h, _, s = linea.strip().partition("|")
+    real_estado[h] = nombre.get(s, s)
+for linea in open(sys.argv[3], encoding="utf-8"):
+    h, _, s = linea.strip().partition("|")
+    real_orden.setdefault(h, []).append(s)
+print("HECHO c13_hilos=%d" % len(estado))
+print("HECHO c13_diferencias=%d" % sum(1 for h, e in estado.items() if real_estado.get(h) != e))
+print("HECHO c12_hilos=%d" % len(orden))
+print("HECHO c12_diferencias=%d" % sum(1 for h, o in orden.items() if real_orden.get(h) != o))' \
+    "$SHM/preparado.ndjson" "$DIR/cw-estados.txt" "$DIR/cw-orden.txt" >"$DIR/c12-c13.txt" 2>&1
+  rm -f -- "$DIR/cw-estados.txt" "$DIR/cw-orden.txt"
+  cw_copia -c "select 'HECHO c10_contactos=' || count(*) || E'\nHECHO c10_con_datos=' || count(*) filter (where phone_number is not null or email is not null)
+    from public.contacts where account_id = $CUENTA and identifier like 'dtd-portal:%'
+      and id in (select contact_id from public.contact_inboxes where inbox_id = $BANDEJA)" >"$DIR/c10.txt" 2>&1
+  cw_copia -c "select 'HECHO c10_huerfanos=' || (
+      (select count(*) from public.messages m where m.inbox_id = $BANDEJA and not exists (select 1 from public.conversations c where c.id = m.conversation_id))
+    + (select count(*) from public.conversations c where c.inbox_id = $BANDEJA and not exists (select 1 from public.contacts k where k.id = c.contact_id))
+    + (select count(*) from public.contact_inboxes i where i.inbox_id = $BANDEJA and not exists (select 1 from public.contacts k where k.id = i.contact_id)))" >>"$DIR/c10.txt" 2>&1
+  evidencia "$(grep '^HECHO ' "$DIR/c10.txt")" "$(grep '^HECHO ' "$DIR/c12-c13.txt")"
+  F="$DIR/c10.txt"
+  exigir V10 '[ "$(h "$F" c10_contactos)" -gt 0 ] 2>/dev/null && [ "$(h "$F" c10_con_datos)" = 0 ] && [ "$(h "$F" c10_huerfanos)" = 0 ]' \
+    "C-10: los $(h "$F" c10_contactos) contactos de la bandeja, sin teléfono ni correo ($(h "$F" c10_con_datos)), y 0 huérfanos ($(h "$F" c10_huerfanos))"
+  F="$DIR/c12-c13.txt"
+  exigir V12 '[ "$(h "$F" c12_hilos)" -gt 0 ] 2>/dev/null && [ "$(h "$F" c12_diferencias)" = 0 ]' \
+    "C-12: el orden de los mensajes de los $(h "$F" c12_hilos) hilos es el del preparado ($(h "$F" c12_diferencias) diferencias)"
+  exigir V13 '[ "$(h "$F" c13_hilos)" -gt 0 ] 2>/dev/null && [ "$(h "$F" c13_diferencias)" = 0 ]' \
+    "C-13: el estado de las $(h "$F" c13_hilos) conversaciones es el del preparado ($(h "$F" c13_diferencias) diferencias)"
   # Los casos provocados: vínculos alterados que vincular.sh tiene que negar sin cambiar Studio (22023).
   alterar() { # modo → $SHM/vinculos.ndjson
     python3 -I -c 'import json, sys
@@ -654,7 +711,7 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
     exigir "$id" '[ "$(h "$VC" salida_proceso)" != 0 ] && grep -qF -- "$ERR_C" "$VC" && cmp -s "$CA" "$CD" && [ "$(corte)" = "$CORTE_ANTES" ]' \
       "$4: vincular se niega («$ERR_C») y Studio no cambia ($(corte))"
   }
-  caso A2 menos-sin-cabecera "los conteos de la cabecera no son los de las líneas" "(a) un mensaje menos"
+  caso CA menos-sin-cabecera "los conteos de la cabecera no son los de las líneas" "(a) un mensaje menos"
   caso B1 contacto-nulos "id de contacto inválido" "(B1) contacto_id nulo y source_id vacío"
   caso B2 contacto-sin-source "falta el source_id del contacto" "(B2) solo el source_id vacío"
   # (c) repetir desde la extracción: limpiar.sh (4.7), extraer, cargar y vincular.

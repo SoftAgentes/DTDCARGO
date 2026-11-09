@@ -14,7 +14,9 @@
 # Lo que no está aquí no sale: columnas fuera de la lista quedan en NULL o en su valor por defecto.
 #
 # Datos personales que sí salen, porque la carga los lleva (preparado.ndjson): clients.name y conversation_messages.body.
-# Nada más: ni teléfonos, ni correos, ni el Shipping Mark, ni author_name, ni nombres o correos de Chatwoot.
+# Nada más: ni teléfonos, ni correos, ni el Shipping Mark, ni author_name, ni nombres o correos de Chatwoot, ni
+# credenciales (pubsub_token, hmac_token, secretos de webhooks). El espejo y los eventos de Chatwoot que guarda Studio,
+# solo los de los hilos del portal (chatwoot_portal_hilos): C-7 y C-8 no necesitan más (revisión del DG de la #473).
 #
 # ── Studio (la base de producción de Studio, en solo lectura) ────────────────
 studio	public.tenants	id	id = :'tenant'
@@ -24,7 +26,7 @@ studio	public.clients	id;tenant_id;name;deleted_at;markbox='SINT-' || left(md5(i
 studio	public.conversations	id;tenant_id;client_id;channel;status;deleted_at;last_message_at;created_at	tenant_id = :'tenant' and channel = 'portal'
 studio	public.conversation_messages	id;tenant_id;conversation_id;direction;body;sent_at;external_msg_id;author_user_id	tenant_id = :'tenant' and conversation_id in (select c.id from public.conversations c where c.tenant_id = :'tenant' and c.channel = 'portal')
 studio	public.chatwoot_agent_links	tenant_id;user_id;chatwoot_user_id	tenant_id = :'tenant'
-studio	public.chatwoot_conversations	tenant_id;conversation_id;inbox_id;status;client_id;last_activity_at;source_updated_at	tenant_id = :'tenant'
+studio	public.chatwoot_conversations	tenant_id;conversation_id;inbox_id;status;client_id;last_activity_at;source_updated_at	tenant_id = :'tenant' and conversation_id in (select h.chatwoot_conversation_id from public.chatwoot_portal_hilos h where h.tenant_id = :'tenant')
 studio	public.chatwoot_portal_contactos	tenant_id;client_id;identificador;chatwoot_contact_id;chatwoot_source_id;created_at;updated_at	tenant_id = :'tenant'
 studio	public.chatwoot_portal_hilos	conversation_id;tenant_id;chatwoot_conversation_id;created_at	tenant_id = :'tenant'
 studio	public.chatwoot_portal_salida	message_id;tenant_id;conversation_id;estado;intentos;verificar;proximo_at;chatwoot_message_id;error;created_at;updated_at	tenant_id = :'tenant'
@@ -32,7 +34,7 @@ studio	public.chatwoot_portal_estado	tenant_id;corte;cargado_at;updated_at	tenan
 studio	public.crm_tarjetas	id;tenant_id	tenant_id = :'tenant'
 studio	public.crm_tareas	id;tenant_id	tenant_id = :'tenant'
 studio	public.crm_historial_etapas	id;tenant_id	tenant_id = :'tenant'
-studio	public.chatwoot_webhook_events	tenant_id;event_key='sint-' || md5(event_key);event;conversation_id;status;received_at	tenant_id = :'tenant'
+studio	public.chatwoot_webhook_events	tenant_id;event_key='sint-' || md5(event_key);event;conversation_id;status;received_at	tenant_id = :'tenant' and conversation_id in (select h.chatwoot_conversation_id from public.chatwoot_portal_hilos h where h.tenant_id = :'tenant')
 #
 # ── Chatwoot (la base de producción de Chatwoot, en solo lectura): solo la cuenta y la bandeja del portal ─────
 chatwoot	public.accounts	id;name='SINT cuenta';locale;created_at;updated_at	id = :cuenta
@@ -41,7 +43,7 @@ chatwoot	public.inboxes	id;account_id;name;channel_type;channel_id;created_at;up
 chatwoot	public.users	id;name='SINT usuario ' || id;email='sint-' || id || '@copia.invalid';uid='sint-' || id || '@copia.invalid';confirmed_at;created_at;updated_at	id = any (string_to_array(:'usuarios', ',')::int[]) and id in (select au.user_id from public.account_users au where au.account_id = :cuenta)
 chatwoot	public.account_users	id;account_id;user_id;role;created_at;updated_at	account_id = :cuenta and user_id = any (string_to_array(:'usuarios', ',')::int[])
 chatwoot	public.contacts	id;account_id;identifier;name='SINT contacto ' || id;created_at;updated_at	account_id = :cuenta and identifier like 'dtd-portal:%'
-chatwoot	public.contact_inboxes	id;contact_id;inbox_id;source_id;pubsub_token;created_at;updated_at	inbox_id = :bandeja and inbox_id in (select i.id from public.inboxes i where i.account_id = :cuenta)
-chatwoot	public.conversations	id;account_id;inbox_id;contact_id;contact_inbox_id;display_id;status;assignee_id;additional_attributes=jsonb_build_object('dtd_hilo', additional_attributes->'dtd_hilo');uuid;created_at;updated_at;last_activity_at	inbox_id = :bandeja and account_id = :cuenta
+chatwoot	public.contact_inboxes	id;contact_id;inbox_id;source_id;pubsub_token=md5(random()::text || id::text);created_at;updated_at	inbox_id = :bandeja and inbox_id in (select i.id from public.inboxes i where i.account_id = :cuenta)
+chatwoot	public.conversations	id;account_id;inbox_id;contact_id;contact_inbox_id;display_id;status;assignee_id;additional_attributes=case when additional_attributes ? 'dtd_hilo' then jsonb_build_object('dtd_hilo', additional_attributes->'dtd_hilo') else '{}'::jsonb end;uuid;created_at;updated_at;last_activity_at	inbox_id = :bandeja and account_id = :cuenta
 chatwoot	public.messages	id;account_id;inbox_id;conversation_id;message_type;source_id;sender_type;sender_id;created_at;updated_at	inbox_id = :bandeja and account_id = :cuenta
 chatwoot	public.webhooks	id;account_id;url='https://copia.invalid/hook';subscriptions;webhook_type;inbox_id;created_at;updated_at	account_id = :cuenta

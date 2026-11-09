@@ -2,7 +2,7 @@
 
 - **Worker:** E5, bajo el Subdirector Chatwoot.
 - **Rama:** `codex/0586-ensayo-portal`, que sale de main `04a295e1d`.
-- **Estado:** en curso. La PR va en borrador. Ya trae main `e74cde6fc` (el tren 9, con la #468 y la #470).
+- **Estado:** lista para revisión desde `a43b4267b`. La revisión independiente del DG dio CHANGES_REQUESTED; las vueltas 7 y 8 lo atienden. Ya trae main `e74cde6fc` (el tren 9, con la #468 y la #470).
 - **Fusión:** no se fusiona desde aquí; la fusiona el DG.
 
 ## Qué trae
@@ -64,6 +64,31 @@
   - la lista de 3.0 tiene que sumar `copia-columnas.tsv`, `ensayo-studio-esquema.sql`, `ensayo-portal.sh` y la carpeta `migraciones/`, con las 10 migraciones que lista la guarda G0;
   - el comando de 3.1 queda así: `TENANT=… CUENTA=1 BANDEJA=… AGENTE_SERVICIO=… bash /srv/ops/portal-historial/ensayo-portal.sh`.
 
+## La revisión independiente del DG sobre `a43b4267b` (CHANGES_REQUESTED) y lo que la atiende
+
+1. **Bloqueante: C-10, C-12 y C-13 no se medían sobre la copia real.** Ahora `ensayo-portal.sh` los mide después de la primera carga:
+   - V10: los contactos de la bandeja, sin teléfono ni correo, y 0 huérfanos;
+   - V12: el orden de los mensajes de cada hilo, igual al del preparado;
+   - V13: el estado de cada conversación, igual al del preparado.
+
+   De la copia de Chatwoot salen solo ids, estados y `source_id`, y del cruce con el preparado (en tmpfs) salen solo conteos. Las comprobaciones son E-V10, E-V12 y E-V13, y los mutantes M18 a M20 mutan el cargador en el modo completo.
+2. **`contact_inboxes.pubsub_token`,** que es una credencial, sale sintético (`md5(random())`). Lo prueban la marca SINTPUBSUB en T2 y el mutante M21.
+3. **Minimización:** el espejo (`chatwoot_conversations`) y los eventos (`chatwoot_webhook_events`) de Studio se copian solo para los hilos de `chatwoot_portal_hilos`. Lo prueban T6, M23 y M24.
+4. **`--limpiar`** borra `/dev/shm/portal-historial` solo si este ensayo corrió o quedó uno que limpiar (`HABIA_ENSAYO`). Lo prueban G4 y M22.
+5. **`additional_attributes`:** con `case … ? 'dtd_hilo' … else '{}'`, ya no aparece un `dtd_hilo: null` donde no lo había.
+6. **El caso (a)** se llama CA, para que no choque con A2 del aislamiento.
+7. **La G0** exige `$CHATWOOT_DIR/correo/views`.
+8. **Los nombres de producción en el guion:** P0 es la foto de antes, P0b el flag, P2 Studio después y P3 Chatwoot después. El runbook tiene que usar esos mismos nombres, no «P1 a P3».
+
+**Lo que no bloquea, para la próxima (FUERA DE ALCANCE de esta vuelta):**
+- **El swap de 2 GB del VPS frente a «nada pasa por el disco»:** el tmpfs puede ir a parar al swap.
+- **`$EVIDENCIA.prod-antes`** se escribe un momento en disco. Lleva solo conteos y md5.
+- **La guarda de `ENSAYO_VOLCADO`** compara por nombre, así que con el ID del contenedor se saltaría.
+- **MEM0, CARGA y P0b** no tienen prueba.
+- **Una foto por tabla** puede dejar huérfanos con actividad, porque los `COPY` son por separado.
+- **T3** tiene una comprobación negativa débil, y D2 usa «>0».
+- **Hecho en esta vuelta:** el `grep` con `\|` de T3 pasó a `-E`.
+
 ## Lo que se comprueba en la puerta 3, no en CI
 
 - **TimeoutStopSec:** en Actions no hay unidad de systemd, así que la guarda G1 no corre ahí.
@@ -83,7 +108,10 @@
 | 3 | `903e939a1` | 42538856924 (128909177961) | Verde: P1, T1 a T5, las once E-xx del modo completo, G1 a G3 y M0 a M16 cayendo cada uno en lo suyo. El cargador también pasó | El Subdirector no vio los pasos de la carga en el log: en `pruebas/prueba-ensayo-portal.sh:205`, las líneas del ensayo iban solo a resumen.txt (`>/dev/null`). Las saqué al log también cuando pasa. La cobertura no cambia |
 | 4 | `d84c9140f` | sin leer: lo reemplazó la vuelta 5 | — | El tren 9 (`e74cde6fc`) entró a main con la #468 y la #470 |
 | 5 | (el merge) | — | — | Un solo merge de `e74cde6fc`, sin conflictos (el workflow se mezcló solo). En el mismo commit: se quita el encabezado vencido «B. el contacto_id nulo: espera la 0524» de `pruebas/prueba-punta-a-punta.sh`, y se suman L4 y el mutante M39, que quita la comparación del `SHOW` en `cargar-portal.rb:186`. L4 hace que el `SHOW` de `log_*` devuelva otro valor dentro de la sonda, así que solo la comparación lo ve. Rojo previo de M39: no se puede tener sin romper el cargador, que ya está en main; el rojo es el del propio mutante |
-| 6 | (este commit) | — | — | La vuelta 5 dio verde en el cargador y en el ensayo (run 42546753563). `revisar-datos-ve` sobre la #473 encontró E1, de gravedad baja: `conversations.additional_attributes` se copiaba entero. Ahora se copia solo `jsonb_build_object('dtd_hilo', …)` (`copia-columnas.tsv:45`). La producción simulada suma una conversación del portal con `browser` marcado `SINT-NAVEGADOR`, y el mutante M17 vuelve a copiar el jsonb entero y tiene que caer en T2 |
+| 6 | `a43b4267b` | 42549137387 (el cargador y el ensayo) y 42549137368 (la calidad) | Verde entero: T2 con 22 marcas y M17 cayendo en T2 (38 PASÓ en el ensayo). La revisión independiente del DG dio CHANGES_REQUESTED | Las vueltas 7 y 8 |
+| 7 | `d31737045` | 42553336609 (job 128953531107) | El rojo previo esperado: T2 (la fuga de SINTPUBSUB), T6 (2 filas de espejo y 2 de eventos), E-CA, E-V10, E-V12, E-V13 y G4. M17 y M21 a M24 no se pudieron aplicar. M0 cayó en T2 y T6, y M18 a M20 cayeron además en T2, por el pubsub | Solo las pruebas de la revisión |
+| 8 | (este commit) | — | — | La implementación de la revisión del DG (ver abajo) |
+| 6, el detalle | — | — | — | La vuelta 5 dio verde en el cargador y en el ensayo (run 42546753563). `revisar-datos-ve` sobre la #473 encontró E1, de gravedad baja: `conversations.additional_attributes` se copiaba entero. Ahora se copia solo `jsonb_build_object('dtd_hilo', …)` (`copia-columnas.tsv:45`). La producción simulada suma una conversación del portal con `browser` marcado `SINT-NAVEGADOR`, y el mutante M17 vuelve a copiar el jsonb entero y tiene que caer en T2 |
 
 ## #468 · El caso (b) de la punta a punta
 
