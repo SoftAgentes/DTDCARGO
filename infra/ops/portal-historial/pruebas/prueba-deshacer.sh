@@ -279,6 +279,15 @@ parte_borrar() { # carpeta salidas
     "$sha" "$T2" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   deshacer "$O/d11c.txt" "$K" borrar CONFIRMAR=si
   sonda "$O/contar-d11.txt" FASE=contar
+  # Un mutante que deja pasar el borrado de D11b o D11c (MD25, MD26) vacía la bandeja: se recarga, para que D5 mida de
+  # verdad y no caiga en cascada. En la corrida real la bandeja sigue llena (D11c lo exige) y no se recarga nada.
+  if [ "$(h "$O/contar-d11.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ]; then
+    # recargar borra /dev/shm/portal-historial: el .ndjson y los .hecho del seco y del ensayo se guardan y se devuelven.
+    rm -rf -- "$O/shm-guardado" && cp -a "$SHM" "$O/shm-guardado"
+    recargar
+    rm -rf -- "$SHM" && cp -a "$O/shm-guardado" "$SHM"
+    echo "HECHO recargado_antes_de_d5=si" >>"$O/contar-d11.txt"
+  fi
   rm -rf -- "$TRABAJO/durable"
   # El ensayo de Studio (paso 2), como lo escribe E10, con el sha256 del .ndjson del seco.
   printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
@@ -442,6 +451,16 @@ if n != 1:
 open(a, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$1" "$2" "$3"
 }
 cayeron_en() { local k; for k in "${!RES[@]}"; do [ "${RES[$k]}" = FALLÓ ] && echo "$k"; done | sort | tr '\n' ' '; }
+# Los casos de cada parte del escenario: corre_en id → «sh», «ajeno», «borrar» o «no existe».
+CASOS_SH="D6a D6b D6c D6d D6i D6e D6f D8 D6g D6h D10"
+CASOS_AJENO="D1a D1b D1c D1d D1e D1f D1g"
+CASOS_BORRAR="D2 D2b D9 D3 D4 D11a D11b D11c D12 D5 D13 D14 D15 D7 F1"
+corre_en() {
+  case " $CASOS_SH " in *" $1 "*) echo sh; return ;; esac
+  case " $CASOS_AJENO " in *" $1 "*) echo ajeno; return ;; esac
+  case " $CASOS_BORRAR " in *" $1 "*) echo borrar; return ;; esac
+  echo "no existe"
+}
 mutante() { # id qué archivo modo caen pasan buscar reemplazo
   local id="$1" que="$2" arch="$3" modo="$4" caen="$5" pasan="$6" K="$TRABAJO/m/$1" faltan="" otro="" c
   en_parte "$id" || return 0
@@ -455,8 +474,18 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
   escenario "$K" "$TRABAJO/$id" "$modo"
   comprobar "$TRABAJO/$id" "$modo"
   MODO_LOG=1
-  for c in $caen; do [ "${RES[$c]:-FALLÓ}" = FALLÓ ] || faltan="$faltan $c"; done
-  for c in $pasan; do [ "${RES[$c]:-FALLÓ}" = PASÓ ] || otro="$otro $c"; done
+  # Solo los casos que corren en este modo: uno de otro modo no cuenta; uno que no existe en ningún modo, sí (mal
+  # escrito). Lo pidió el Subdirector después del run de la parte b: que la prueba haga sola esa cuenta.
+  for c in $caen; do
+    case "${RES[$c]:-}" in FALLÓ) ;; PASÓ) faltan="$faltan $c" ;; *) faltan="$faltan $c($(corre_en "$c"))" ;; esac
+  done
+  for c in $pasan; do
+    case "${RES[$c]:-}" in
+      PASÓ) ;;
+      FALLÓ) otro="$otro $c" ;;
+      *) [ "$(corre_en "$c")" = "no existe" ] && otro="$otro $c(no existe)" ;;
+    esac
+  done
   exigir "$id" '[ -z "$faltan" ] && [ -z "$otro" ]' \
     "$que ($modo): tienen que caer [$caen]${faltan:+ — SOBREVIVEN:$faltan}${otro:+ — CAEN POR OTRO CAMINO:$otro} · cayeron: $(cayeron_en)"
 }
@@ -506,7 +535,7 @@ if [ "$MUTANTES" = 1 ]; then
     "conservados = todos.select { |_, id| con_otra.include?(id) }.sort" "conservados = []"
   mutante MD4 "borra mensajes fuera de la bandeja" deshacer-carga.rb borrar "D5" "D2 D4" \
     "hecho('borrados_mensajes', mensajes.delete_all)" "hecho('borrados_mensajes', Message.where(account_id: @cuenta_id).delete_all)"
-  # MD5, MD25 y MD26 dejan pasar un borrado que vacía la bandeja: lo de después cae en cascada, no por otro camino.
+  # MD5 confirma el borrado ya en el seco: lo de después cae en cascada, y no se exige.
   mutante MD5 "el seco confirma lo que borra" deshacer-carga.rb borrar "D2" "" \
     "        escribir_conservados(conservados)
         raise ActiveRecord::Rollback" "        escribir_conservados(conservados)
@@ -524,9 +553,10 @@ if [ "$MUTANTES" = 1 ]; then
     'rm -f -- "$H_BORRAR" "$DURABLE/chatwoot-borrar.hecho"' ':'
   mutante MD24 "borra sin el ensayo de Studio" deshacer.sh borrar "D11a" "D2 D5" \
     '[ -s "$H_ENSAYO" ] || mal falta_studio_ensayo_hecho' ':'
-  mutante MD25 "no compara el sha256" deshacer.sh borrar "D11b" "D2" \
+  # MD25 y MD26 dejan pasar el borrado de D11b y D11c; la prueba recarga antes de D5, así que D5 tiene que pasar.
+  mutante MD25 "no compara el sha256" deshacer.sh borrar "D11b" "D2 D5" \
     '[ "$sha_seco" = "$sha_actual" ] && [ "$sha_ensayo" = "$sha_actual" ] || mal el_sha256_de_los_conservados_no_coincide' ':'
-  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh borrar "D11c" "D2" \
+  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh borrar "D11c" "D2 D5" \
     '[ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide' ':'
   mutante MD27 "sin la copia durable" deshacer.sh borrar "D14" "D2 D5" \
     '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  :'
