@@ -33,12 +33,19 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 - **Textos viejos:** encabezado de `backup.sh` («tres scripts»), comentario de `compose.supabase.yml` (el overlay S3 no está activo) y este handoff.
 - **No bloqueante:** el `age` espía de la prueba ahora mira al empezar y al terminar.
 
+**Tercera vuelta, por la segunda revisión** (CHANGES_REQUESTED sobre `39c2f7022`, dos bloqueantes en la guarda):
+- **B1.** `--aceptar-caida` exige `=<conteo exacto>` (sin él, sale 2; con otro conteo, sale 1 sin tocar nada), y el runbook dice «solo con OK nominal de Sam» y qué borra. Antes de la retención retiene el último bueno: en disco lo mueve a `storage-retenido/`; en el remoto lo copia a `<proyecto>-retenido/` con `rclone check`. Si eso falla, no borra nada.
+- **B2.** La guarda falla cerrada: una referencia ilegible o vacía sale 1 sin retención; sin referencia, compara contra el máximo de los manifiestos locales. La referencia guarda `archivos=` y `base=` y se escribe con `.part` + `mv`.
+- Pruebas: C6 ampliado (sin conteo, conteo equivocado, retención del bueno en disco y en el remoto) y C7 nuevo (referencia ilegible y vacía; máximo sin referencia). Mutantes M9 (ilegible no frena), M10 (mínimo en vez de máximo) y M11 (acepta sin retener).
+- No bloqueantes: `find` con `|| aviso`; tipos de error de tar sin ruta en el log y en el restore; docstring de `storage-lista.py` (orden y enlaces duros); guion con `merge-base --is-ancestor` y `sha256sum -c` automático (paso 0), lectura del `.env` y del prefijo en B2 (paso 1), comprobación de kernel, tar y xattrs en `/dev/shm` (paso 4b) y un paso 6 que no depende de `$F`.
+
 Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
+| Tercera vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 (`/run/lock` 1777) | árbol de trabajo de la tercera vuelta, antes del commit | **PASÓ** 48 PASÓ · 0 FALLÓ en las dos; M1-M11 con base limpia |
 | `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, **como root**, árbol de trabajo de esta vuelta (todas las comprobaciones, mutantes M1-M8 con base limpia) | rama antes del commit de esta vuelta; GNU tar 1.35, Python 3.12.3, kernel 6.18 WSL2, `/tmp` en tmpfs | **PASÓ** 41 PASÓ · 0 FALLÓ; por el runner del CI, 1 PASÓ · 0 FALLÓ en 19 s |
 | La misma, **sin root** (uid 1001, `/run/lock` 1777 como en el runner de GitHub, `/tmp` en overlay) | idem | **PASÓ** 41 PASÓ · 0 FALLÓ |
 | Primera vuelta en `ubuntu:24.04` | `5881e98e7` | PASÓ 27 · 0 (histórico) |
@@ -59,7 +66,8 @@ Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.
 - `9c2e01cb5` feat(ops): scripts, `backup.sh`, unidad, pruebas.
 - `4080a9344` docs(ops): spec, índice, runbook, READMEs, inventario de terceros.
 - `51c13c3b2`, `5881e98e7`, `282a692e0`: handoff.
-- Segunda vuelta: un commit `fix(ops)` (xattrs, log sin rutas, guarda, restore absoluto, pruebas) y un commit `docs` (spec con guion literal, runbook, READMEs, handoff).
+- Segunda vuelta: `7eac25d5e` fix(ops) y `39c2f7022` docs. Merge de main (#481): `3c777e33e`.
+- Tercera vuelta: un commit `fix(ops)` (guarda cerrada y retención del bueno) y un commit `docs` (spec, runbook y handoff).
 
 ## PR / BRANCH
 
@@ -83,7 +91,7 @@ Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.
 
 ## HANDOFF AL DIRECTOR
 
-Segunda vuelta lista y publicada en la #482 (sigue en borrador): B1 y los pedidos 1 a 6 atendidos, con pruebas y mutantes nuevos (M6a, M6b, M7 y M8). 41 PASÓ · 0 FALLÓ en Linux, con root y sin root. Falta el CI de la cabeza nueva y tu nueva revisión. El guion de instalación literal está en la spec, para pedirle el OK a Sam.
+Tercera vuelta lista en la #482: los dos bloqueantes de la guarda y los ocho no bloqueantes. 48 PASÓ · 0 FALLÓ en Linux, con root y sin root. La PR se marca lista al publicar, para que corra la Calidad. El DG revisa el delta desde `39c2f7022`.
 
 ## Impacto documental
 

@@ -436,13 +436,41 @@ la configuración. El script:
    personas, por eso la lista va cifrada.
 4. `rclone copy` (nunca `sync`) de los tres a
    `b2:dtdcargo-respaldos/storage/dtd-cargo/` y `rclone check --one-way`.
-5. **Guarda contra un borrado masivo.** Compara el conteo con el del último
-   respaldo aceptado (`/srv/backups/dtd-cargo/storage/dtd-cargo-storage.referencia`).
-   Si cae por debajo del 50 %, el respaldo **se sube igual**, pero no se aplica la
-   retención (ni remota ni local), y el script sale 1: no hay latido y alguien
-   mira. Se repite cada día hasta que una persona, después de comprobar que la
-   caída es legítima, corre una vez:
-   `/srv/ops/backup/storage-backup.sh --project dtd-cargo --source /srv/dtd-cargo/data/storage --remote b2:dtdcargo-respaldos/storage --age-recipients /srv/ops/backup/age-recipients.txt --aceptar-caida`.
+5. **Guarda contra un borrado masivo, que falla cerrada.** Compara el conteo con
+   el del último respaldo aceptado
+   (`/srv/backups/dtd-cargo/storage/dtd-cargo-storage.referencia`, escrita con
+   `.part` + `mv`). Si cae por debajo del 50 %, el respaldo **se sube igual**,
+   pero no se aplica la retención (ni remota ni local), y el script sale 1: no hay
+   latido y alguien mira. Lo mismo si la referencia no se puede leer (vacía, sin
+   `archivos=` o a medias). Si la referencia falta, compara contra el **máximo**
+   de `archivos=` de los manifiestos locales, no contra el más nuevo, que puede
+   ser ya el de después de la caída. Se repite cada día hasta que se acepte a mano.
+
+   **Aceptar la caída: solo con OK nominal de Sam.** Antes, alguien comprueba en
+   el Studio que la caída es legítima, por ejemplo una limpieza autorizada. La
+   corrida exige el conteo exacto, para que no se corra por accidente:
+
+   ```bash
+   /srv/ops/backup/storage-backup.sh --project dtd-cargo --source /srv/dtd-cargo/data/storage \
+     --remote b2:dtdcargo-respaldos/storage --age-recipients /srv/ops/backup/age-recipients.txt \
+     --rclone-config /srv/ops/backup/rclone --aceptar-caida=<archivos que dice el log>
+   ```
+
+   **Qué hace y qué borra.** Si el conteo no es exactamente el dicho, sale 1 sin
+   tocar nada. Si coincide:
+   - Primero **retiene el último respaldo bueno**, el de la referencia o, si es
+     ilegible, el manifiesto local con más archivos. En disco lo mueve a
+     `/srv/backups/dtd-cargo/storage-retenido/`; en el remoto lo copia a
+     `b2:dtdcargo-respaldos/storage/dtd-cargo-retenido/` y lo comprueba con
+     `rclone check`. Ninguna retención toca esos dos prefijos: se quedan hasta que
+     Sam autorice borrarlos.
+   - Recién después aplica la retención normal: en el remoto,
+     `rclone delete --min-age 30d` dentro de `…/storage/dtd-cargo/`, que borra los
+     respaldos de más de 30 días; en disco, deja en `storage/` solo los 2 más
+     nuevos, que son los de después de la caída.
+   - La referencia pasa al conteo nuevo.
+
+   Si falla la retención del último bueno, no se borra nada.
 6. Retención: `rclone delete --min-age 30d` acotado a ese prefijo, con
    `hard_delete` del remoto (borrado real), y en disco local los 2 respaldos más
    nuevos (`BACKUP_STORAGE_KEEP_LOCAL`).
