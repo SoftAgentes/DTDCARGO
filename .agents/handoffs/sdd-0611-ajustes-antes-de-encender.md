@@ -49,14 +49,48 @@ El plan completo está en la nota compartida del Subdirector (`plan-segunda-pr-0
 | `pnpm verify`, build, Docker y e2e | NO EJECUTADO, por orden del encargo |
 | CI de GitHub | La #485 se marcó lista el 2026-11-09 para que corra la Calidad; la vigila el Subdirector |
 
+## PR siguiente: rama `claude/noticias-antes-de-encender-2` (2026-11-09)
+
+La #485 entró en main con el tren #487 (`b5669b1a5`). La rama nueva sale de main `ad50537f1`. Lleva un merge local de la cabeza congelada de la #485 (`876914d6e`), porque los ajustes de su revisión tocan ese contenido.
+
+**Hecho, con commit local y sin push:**
+- `71bb01948`, pendientes no bloqueantes de la revisión de la #485:
+  - `elementosJsx` salta el texto entre comillas;
+  - los usos de `WebPageJsonLd` se cuentan de verdad.
+- `929b5d7ee`: la spec §11.2 cita literal el OK de Sam para aplicar la 0518, tomado de `cierre-migraciones-20261108.md:44`.
+- `7cef323e6` (C1): `lib/public/news-queries.ts` pide en sus 4 lecturas de filas completas las 19 columnas seguras. La lista es un literal, porque supabase-js tipa el resultado leyendo el texto del `select`.
+  - Se apoya en el catálogo de producción que leyó el DG el 2026-11-09, solo la estructura: tiene 24 columnas.
+  - No pide `publish_via`, `seo_draft_id`, `content_sha256`, `created_by` ni `tenant_id`.
+  - `content_kind`, `cover_image_url`, `cover_alt`, `featured`, `reviewer_name` y `reviewer_role` **no existen** en producción y no se piden. El sitio ya las trata como opcionales (`lib/news/editorial.ts`, `app/noticias/[slug]/page.tsx`, `NewsArticleJsonLd.tsx`, `ActualidadHub.tsx`). Hoy tampoco llegan con `*`, así que el resultado es el mismo.
+  - La prueba (`lib/public/__tests__/news-queries-columnas.test.ts`) dio roja antes del arreglo, 2 de 5. Tres mutantes caen: volver a `*`, sumar `created_by` y sumar una columna inexistente.
+  - Las vecinas de `/noticias` y SEO pasan 84 de 84.
+
+**Escrito y sin commit, hasta confirmar el número:**
+- la migración `0525_noticias_ajustes_antes_de_encender.sql` (C2-A y los puntos 11, 12 y 13);
+- su contrato SQL y su prueba en PGlite (13 de 13);
+- la espera en el baseline;
+- la spec §11.3.
+
+El número 0525 es el que propone `sdd:next`.
+
 ## PENDIENTES DE ESTA TAREA
 
-- **C1:** la lista explícita de columnas en `lib/public/news-queries.ts` (4 llamadas).
-  - Espera el catálogo de `news_posts` en producción (lectura del DG): hay seis columnas dudosas que el sitio usa y que ninguna migración crea.
-  - La prueba ya está escrita, sin commit, en `lib/public/__tests__/news-queries-columnas.test.ts`. Contra el código de hoy da roja, como se espera.
-  - **Va en una PR siguiente** (decisión del Subdirector del 2026-11-09, opción b: Sam pidió avanzar), junto con el arreglo. No entra en la #485.
-- **`NNNN`:** C2 con la opción A, el motivo obligatorio en `news_salida_motivo`, el revoke de EXECUTE a anon en `news_texto_tiene_marca` y `news_huella`, y el recálculo de `content_sha256` al editar. Espera el número del DG. El SQL en borrador está en el plan. **También va en la PR siguiente.**
-- Lo que sigue abierto en el handoff de la 0611 (C3, C4, C6 a C10, cron, pantalla de retiro y lo demás) no entra en esta PR, salvo que el DG lo pida.
+- **El número de la migración:** confirmarlo y hacer commit de lo que depende de él.
+- **Defensa en la base para C1:** una migración **aparte y app-first**, distinta de la 0525. Se aplica **después** de desplegar el código con `COLUMNAS_PUBLICAS`: con permisos por columna, un `select("*")` de anon falla y vaciaría `/noticias`. SQL en borrador:
+  ```sql
+  -- App-first: solo con el código de C1 ya desplegado.
+  revoke select on public.news_posts from anon;
+  grant select (id, slug, tipo, categoria, title, excerpt, body_markdown,
+                author_name, author_role, focus_keyword, secondary_keywords,
+                meta_description, pain_points, date, read_time_min, published,
+                source, created_at, updated_at)
+     on public.news_posts to anon;
+  ```
+  Antes de aplicarla hay que medir tres cosas:
+  - que ninguna otra lectura con anon pida una columna de fuera de la lista (`lib/news/slugify.ts` y `lib/news/writers.ts`, por ejemplo: ver con qué cliente leen);
+  - que la policy `news_posts_public_select` (`published = true`) siga funcionando;
+  - el contrato, con un mutante que devuelva `created_by` a anon.
+- Lo que sigue abierto en el handoff de la 0611 (C3, C4, C6 a C10, cron, pantalla de retiro y lo demás) no entra, salvo que el DG lo pida.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -64,4 +98,4 @@ El plan completo está en la nota compartida del Subdirector (`plan-segunda-pr-0
 
 ## HANDOFF AL DIRECTOR
 
-La #485 trae documentos y pruebas, y no enciende nada. Se marcó lista por la opción (b) del Subdirector. C1 y `NNNN` van en una PR siguiente. Encender la publicación automática pide el OK de Sam.
+La #485 trajo documentos y pruebas y está en main (tren #487). La PR siguiente, desde `claude/noticias-antes-de-encender-2`, trae C1 y la 0525. Sigue sin publicar hasta que el Subdirector avise. Nada se enciende: encender la publicación automática pide el OK de Sam, y aplicar la 0525 pide su OK nombrando el archivo.
