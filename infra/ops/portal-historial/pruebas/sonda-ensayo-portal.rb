@@ -46,6 +46,8 @@ dtd = Contact.create!(account: cuenta, name: 'SINT-DTD-NOMBRE', identifier: "dtd
 # Una conversación de la bandeja del portal con datos del navegador en additional_attributes: la copia trae solo
 # dtd_hilo (revisar-datos-ve de la #473, E1).
 ci_dtd = ContactInbox.create!(contact: dtd, inbox: portal, source_id: "dtd-portal:#{SecureRandom.uuid}")
+# pubsub_token es una credencial (el canal de ActionCable del contacto): la copia lo trae sintético (revisión del DG).
+ci_dtd.update_columns(pubsub_token: 'SINTPUBSUB0000000000000a')
 Conversation.create!(account: cuenta, inbox: portal, contact: dtd, contact_inbox: ci_dtd,
                      additional_attributes: { 'dtd_hilo' => SecureRandom.uuid, 'browser' => { 'name' => 'SINT-NAVEGADOR' } })
 viva = bandeja(cuenta, 'SINT WhatsApp')

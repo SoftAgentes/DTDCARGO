@@ -9,8 +9,12 @@
 #   T3  la evidencia: el md5 de la lista, una línea copia_* por tabla de la lista, y sin nombres ni textos
 #   T4  0 filas de otros tenants y otras cuentas en las copias (O1)
 #   T5  la producción simulada no cambió (P2 y P3 del ensayo, y la foto de la prueba)
+#   T6  minimización: el espejo y los eventos de Chatwoot de Studio, solo los de los hilos del portal
+#   E   el modo completo, sobre la copia: E1, E2, CA (el caso a), B1, B2, C1 a C3, K1 a K3 y, sobre lo cargado,
+#       V10 (C-10), V12 (C-12) y V13 (C-13)
 #   G1  DB_CW de producción: se niega · G2 /dev/shm/portal-historial ya existe: se niega y no lo toca
 #   G3  ENSAYO_VOLCADO con los nombres reales de producción: se niega
+#   G4  --limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
 #
 # Uso:  bash infra/ops/portal-historial/pruebas/prueba-ensayo-portal.sh [--conservar] [--sin-mutantes]
@@ -86,6 +90,7 @@ PROHIBIDAS=(
   sint-token              # webhooks.url
   SINT-HMAC               # channel_api.hmac_token
   SINT-NAVEGADOR          # conversations.additional_attributes, fuera de dtd_hilo
+  SINTPUBSUB              # contact_inboxes.pubsub_token, una credencial
   SINT-OTRA-CUENTA SINT-OTRA-MENSAJE # la otra cuenta
 )
 # Lo que sí se copia (piso: sin esto, un volcado vacío pasaría T2).
@@ -151,6 +156,11 @@ exigir P1 '[ "$(h "$TRABAJO/sim.txt" preparar)" = ok ] && [ -n "$TENANT" ] && do
 qs "insert into public.chatwoot_agent_links (tenant_id, user_id, chatwoot_user_id) values ('$TENANT', md5('0523-sintetico-U1')::uuid, $AGENTE);
     insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id)
     values ('$TENANT', 1100, $BANDEJA, 'open', md5('0523-sintetico-C')::uuid) on conflict do nothing;" >/dev/null
+# T6: un espejo y un evento de una conversación de Chatwoot que no es del portal (2200), y un evento de hC (1100).
+qs "insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id)
+    values ('$TENANT', 2200, 99, 'open', md5('0523-sintetico-A')::uuid);
+    insert into public.chatwoot_webhook_events (tenant_id, event_key, event, conversation_id)
+    values ('$TENANT', 'sim-1100', 'message_created', 1100), ('$TENANT', 'sim-2200', 'message_created', 2200);" >/dev/null
 foto_sim() {
   qs "select count(*) || ':' || md5(string_agg(t::text, ',' order by t::text)) from (
         select row(c.*)::text t from public.clients c union all select row(m.*)::text from public.conversation_messages m
@@ -188,11 +198,16 @@ comprobar() { # salida volcado
   exigir T2 '[ "$fugas" = 0 ] && [ "$piso" = $(( ${#PERMITIDAS_STUDIO[@]} + ${#PERMITIDAS_CW[@]} )) ]' \
     "ninguna de las ${#PROHIBIDAS[@]} marcas prohibidas en el volcado de las copias ($fugas), y lo que sí se copia está ($piso)"
   tablas="$(grep -vE '^(#|$)' "$PH/copia-columnas.tsv" | grep -c .)"
-  exigir T3 '[ "$(h "$E" lista_md5)" = "$(md5sum "$LISTA_DE" | cut -c1-32)" ] && [ "$(grep -c "^HECHO copia_\(studio\|chatwoot\)_[a-z]*\.[a-z_]*=filas:" "$E")" = "$tablas" ] && ! grep -q -F -e "Cliente A" -e "SINT pregunta" -e "SINT respuesta" "$E"' \
+  exigir T3 '[ "$(h "$E" lista_md5)" = "$(md5sum "$LISTA_DE" | cut -c1-32)" ] && [ "$(grep -cE "^HECHO copia_(studio|chatwoot)_[a-z]*\.[a-z_]*=filas:" "$E")" = "$tablas" ] && ! grep -q -F -e "Cliente A" -e "SINT pregunta" -e "SINT respuesta" "$E"' \
     "la evidencia trae el md5 de la lista y $tablas líneas copia_* (filas y md5 de columnas), sin nombres ni textos"
   exigir T4 '[ "$(h "$E" otras_filas_studio)" = 0 ] && [ "$(h "$E" otras_filas_chatwoot)" = 0 ]' \
     "0 filas de otros tenants y cuentas en las copias ($(h "$E" otras_filas_studio), $(h "$E" otras_filas_chatwoot))"
   foto_sim >"$S.sim-despues" 2>&1
+  local espejo eventos
+  espejo="$(h "$E" copia_studio_public.chatwoot_conversations)"
+  eventos="$(h "$E" copia_studio_public.chatwoot_webhook_events)"
+  exigir T6 '[ "${espejo%%,*}" = filas:1 ] && [ "${eventos%%,*}" = filas:1 ]' \
+    "minimización: del espejo y de los eventos de Studio, solo los del hilo del portal ($espejo · $eventos)"
   exigir T5 'cmp -s "$TRABAJO/sim-antes.txt" "$S.sim-despues" && grep -q "^PASÓ  P2" "$S" && grep -q "^PASÓ  P3" "$S"' \
     "la producción simulada no cambió (foto de la prueba, y P2 y P3 del ensayo)"
   return 0
@@ -204,9 +219,15 @@ LISTA_DE="$PH/copia-columnas.tsv"
 ensayo "$PH" "$TRABAJO/ensayo.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/volcado" --
 comprobar "$TRABAJO/ensayo.txt" "$TRABAJO/volcado"
 grep -E '^(PASÓ|FALLÓ) ' "$TRABAJO/ensayo.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN" # también en el log del CI cuando pasa (el run 42538856924 no las mostraba)
-for c in E1 E2 A2 B1 B2 C1 C2 C3 K1 K2 K3; do
-  exigir "E-$c" 'grep -q "^PASÓ  $c " "$TRABAJO/ensayo.txt"' "el ensayo midió $c en la copia"
-done
+# Lo que el ensayo completo tiene que haber medido en la copia (y pasado).
+E_LISTA="E1 E2 CA B1 B2 C1 C2 C3 K1 K2 K3 V10 V12 V13"
+comprobar_e() { # salida del ensayo
+  local c SAL="$1" # dentro del eval de exigir, $1 sería el id
+  for c in $E_LISTA; do
+    exigir "E-$c" 'grep -q "^PASÓ  $c " "$SAL"' "el ensayo midió $c en la copia"
+  done
+}
+comprobar_e "$TRABAJO/ensayo.txt"
 
 # ── G. Las guardas de entrada ────────────────────────────────────────────────
 log "== G. las guardas"
@@ -219,6 +240,12 @@ guardas() { # carpeta prefijo
   ensayo "$C" "$TRABAJO/$X-g2.txt" TENANT=no-es-uuid --
   exigir G2 '[ "$(h "$TRABAJO/$X-g2.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g2.txt.evidencia" error)" = ya_existe_portal_historial ] && [ "$(cat /dev/shm/portal-historial/centinela 2>/dev/null)" = centinela ]' \
     "/dev/shm/portal-historial ya existe: se niega y no lo toca ($(h "$TRABAJO/$X-g2.txt.evidencia" error))"
+  rm -rf -- /dev/shm/portal-historial
+  # G4: --limpiar sin un ensayo que limpiar (sin /dev/shm/portal-ensayo ni contenedores del proyecto) no toca la carpeta.
+  mkdir -m 700 /dev/shm/portal-historial && echo centinela >/dev/shm/portal-historial/centinela
+  ensayo "$C" "$TRABAJO/$X-g4.txt" -- --limpiar
+  exigir G4 '[ "$(cat /dev/shm/portal-historial/centinela 2>/dev/null)" = centinela ]' \
+    "--limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial"
   rm -rf -- /dev/shm/portal-historial
   ensayo "$C" "$TRABAJO/$X-g3.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/no" PROD_PG=chatwoot-postgres-1 --
   exigir G3 '[ "$(h "$TRABAJO/$X-g3.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g3.txt.evidencia" error)" = volcado_fuera_de_la_prueba ] && [ ! -e "$TRABAJO/no" ]' \
@@ -248,6 +275,10 @@ mutante() {
   LISTA_DE="$C/copia-columnas.tsv"
   if [ "${8:-}" = guardas ]; then
     guardas "$C" "$id"
+  elif [ "${8:-}" = completo ]; then
+    ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/$id-volcado" --
+    comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
+    comprobar_e "$TRABAJO/$id.txt"
   else
     ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/$id-volcado" -- --solo-copia
     comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
@@ -293,7 +324,27 @@ if [ "$MUTANTES" = 1 ]; then
     "chatwoot	public.messages	id;account_id;inbox_id;conversation_id;message_type;source_id;sender_type;sender_id;created_at;updated_at	account_id = :cuenta"
   mutante M13 "el nombre real de la cuenta" copia-columnas.tsv "T2" "T1 T4" \
     "id;name='SINT cuenta';locale" "id;name;locale"
-  mutante M17 "copia additional_attributes entero" copia-columnas.tsv "T2" "T1 T4"     "additional_attributes=jsonb_build_object('dtd_hilo', additional_attributes->'dtd_hilo')" "additional_attributes"
+  mutante M17 "copia additional_attributes entero" copia-columnas.tsv "T2" "T1 T4" \
+    "additional_attributes=case when additional_attributes ? 'dtd_hilo' then jsonb_build_object('dtd_hilo', additional_attributes->'dtd_hilo') else '{}'::jsonb end" \
+    "additional_attributes"
+  # Revisión del DG de la #473 (a43b4267b): pubsub_token es una credencial; minimización del espejo y los eventos.
+  mutante M21 "copia el pubsub_token real" copia-columnas.tsv "T2" "T1 T4" \
+    "pubsub_token=md5(random()::text || id::text)" "pubsub_token"
+  mutante M23 "copia el espejo de todo el tenant" copia-columnas.tsv "T6" "T1 T2 T4" \
+    "client_id;last_activity_at;source_updated_at	tenant_id = :'tenant' and conversation_id in" \
+    "client_id;last_activity_at;source_updated_at	tenant_id = :'tenant' or conversation_id in"
+  mutante M24 "copia los eventos de todo el tenant" copia-columnas.tsv "T6" "T1 T2 T4" \
+    "status;received_at	tenant_id = :'tenant' and conversation_id in" "status;received_at	tenant_id = :'tenant' or conversation_id in"
+  # El modo completo, con el cargador mutado: C-10, C-12 y C-13 se miden sobre la copia real (bloqueante del DG).
+  mutante M18 "el cargador carga todo como resolved" cargar-portal.rb "E-V13" "T2 T4" \
+    "status: Conversation.statuses.fetch(c['estado'])," "status: Conversation.statuses.fetch('resolved')," completo
+  mutante M19 "el cargador invierte el orden de los mensajes" cargar-portal.rb "E-V12" "T2 T4" \
+    "cuando = instante(m['created_at'])" "cuando = Time.zone.now - mensajes.index(m)" completo
+  mutante M20 "el cargador pone teléfono a los contactos" cargar-portal.rb "E-V10" "T2 T4" \
+    "name: c['nombre'].presence || 'Cliente del portal', identifier: ident," \
+    "name: c['nombre'].presence || 'Cliente del portal', identifier: ident, phone_number: '+584127770009'," completo
+  mutante M22 "--limpiar borra /dev/shm/portal-historial sin un ensayo" ensayo-portal.sh "G4" "G1 G2 G3" \
+    'if [ "$CREADO" = 1 ] || [ "$HABIA_ENSAYO" = si ]; then' 'if true; then' guardas
   mutante M14 "sin la guarda de DB_CW" ensayo-portal.sh "G1" "G2 G3" \
     'if [ -n "${DB_CW:-}" ] && [ "$DB_CW" != "$RAILS_COPIA" ]; then' 'if false; then' guardas
   mutante M15 "sin la guarda de /dev/shm/portal-historial" ensayo-portal.sh "G2" "G1 G3" \
