@@ -454,6 +454,8 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     ["quality.yml", "quality"],
     ["kommo-historial-cargador.yml", "cargador"],
     ["portal-historial-cargador.yml", "cargador"],
+    // SDD-0586, la 2b: el job del ensayo en copias, en el mismo workflow, tampoco corre en borradores.
+    ["portal-historial-cargador.yml", "ensayo"],
   ];
   const leer = (archivo) => loadYaml(readFileSync(resolve(".github/workflows", archivo), "utf8"));
 
@@ -535,6 +537,9 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
       "supabase/migrations/0508_chatwoot_bajas_purga.sql",
       "supabase/migrations/0524_chatwoot_portal_puerta4.sql",
       ...comunes,
+      // SDD-0586, la 2b (N7 de la revisión del DG de la #473): el ensayo monta infra/chatwoot/correo/views en la copia
+      // de Rails, así que un cambio ahí tiene que disparar la prueba. Solo en el portal: el cargador kommo no lo monta.
+      "infra/chatwoot/correo/**",
       ".github/workflows/portal-historial-cargador.yml",
     ]);
   });
@@ -556,6 +561,17 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     const parsed = structuredClone(leer("quality.yml"));
     mutar(parsed);
     expect(() => assertNoCorreEnBorrador(parsed, "quality")).toThrow();
+  });
+
+  it.each([
+    ["condición quitada", (j) => { delete j.if; }],
+    ["condición invertida", (j) => { j.if = "github.event.pull_request.draft"; }],
+    ["error del job ignorado", (j) => { j["continue-on-error"] = true; }],
+  ])("rechaza en el job ensayo del portal: %s", (_nombre, mutar) => {
+    // El mutante del DG (SDD-0586, la 2b): sin el if: de borrador en el job ensayo, el contrato tiene que dar rojo.
+    const parsed = structuredClone(leer("portal-historial-cargador.yml"));
+    mutar(parsed.jobs.ensayo);
+    expect(() => assertNoCorreEnBorrador(parsed, "ensayo")).toThrow();
   });
 
   it.each([

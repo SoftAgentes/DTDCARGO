@@ -6,7 +6,7 @@ Owner / sesión escritora: Worker Claude Code `local_suspicious-gates-seo-audit`
 - **Worktree:** `.claude/worktrees/suspicious-gates-9ec92d`. `guard` y `claim` pasaron sobre el árbol limpio.
 - **Rama:** `claude/suspicious-gates-9ec92d`, nacida en main `7e75f7708`.
 - **SDD:** no se asignó número. Es una auditoría con arreglos técnicos de metadatos, datos estructurados, accesibilidad y `llms.txt`; no cambia comportamiento del Studio. Si el Director General quiere SDD para esto, la asigna él.
-- **Estado:** PR en borrador. No fusionada ni publicada. Merge y publicación son del Director General.
+- **Estado:** fusionada en main con el tren #483 (`7f01a3bb5`), desde la cabeza `4b368826f`. La revisión independiente del DG sobre esa cabeza salió APPROVED. Los pendientes no bloqueantes de esa revisión pasaron a la PR de `claude/noticias-ajustes-0611`. Al escribirse este handoff, el estado era: PR en borrador, sin fusionar ni publicar.
 
 ## OBJETIVO ORIGINAL
 
@@ -125,7 +125,7 @@ En la PC, solo lo tocado, como pidió el encargo. Nada de `verify` ni `build`.
 
 ## PR / BRANCH
 
-[PR #422](https://github.com/SoftAgentes/DTDCARGO/pull/422), en borrador contra `main`. Rama `claude/suspicious-gates-9ec92d`, publicada con la autorización del encargo. Sin merge con el `main` nuevo (`eef75ebef`): `git merge-tree` lo da limpio, así que no hizo falta.
+[PR #422](https://github.com/SoftAgentes/DTDCARGO/pull/422), en borrador contra `main`. Rama `claude/suspicious-gates-9ec92d`, publicada con la autorización del encargo. La cabeza final, `4b368826f`, es un merge de `origin/main` `e74cde6fc`. Al escribirse este párrafo todavía no se había traído main: con `eef75ebef`, `git merge-tree` daba limpio. La PR entró en el tren #483 (`7f01a3bb5`) y su rama ya está borrada.
 
 ## PENDIENTES DE ESTA TAREA
 

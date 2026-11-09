@@ -272,10 +272,10 @@ disfraza elevando el estado normativo.
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | 0.1.2 repo/team reproducible: cache sincronizable, runner Node 7/7, read-only y sin capacidades remotas | [REV-SGE-025](reviews/plg-01-durable-runner-2026-07-31.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 
-**Estado de la excepción (2026-11-08):** la SDD-0611 está aprobada y su implementación espera
-integración; la migración 0518 no está aplicada y el interruptor nace apagado. La nota de abajo
-toma el texto de SDD-0611 §2.1 y empieza a regir **cuando** la 0518 esté en producción y Sam
-encienda el interruptor; antes de eso no hay excepción y vale I4.
+**Estado de la excepción (2026-11-08):** la SDD-0611 está aprobada y su implementación está
+integrada (PR #417). La migración 0518 está aplicada en producción desde el 2026-11-08 (SDD-0611
+§11.2) y el interruptor sigue apagado. La nota de abajo toma el texto de SDD-0611 §2.1 y
+empieza a regir **cuando** Sam encienda el interruptor; antes de eso no hay excepción y vale I4.
 
 > **Excepción aprobada a IA-01 (I4), sin vigencia hasta que Sam encienda el interruptor:
 > publicación automática de noticias en `/noticias`.**
