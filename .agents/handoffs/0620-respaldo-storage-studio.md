@@ -75,6 +75,8 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 - Runbook: después de apartar, un `ls`/`lsf` de lo apartado y de lo que quedó, porque `mv -n` y `rclone move` no dicen qué movieron.
 - **Autorización de Sam (vía DG, 2026-11-09):** «ok en seguimineto y intalar». Cubre la #486 hasta main y que el DG instale la SDD-0620 en el VPS siguiendo §Instalación, desde el SHA de main que ya traiga la #486. No cubre `--aceptar-caida`, apartar, purge ni la vuelta atrás con borrado en B2. Pendiente de esta tarea: pasarle al DG el guion resuelto para ese SHA.
 
+**Seguimiento, vuelta corta** (APPROVED de la #486 sobre `ab83ece79`; el ruleset exige estar al día con main): `rcl cat … </dev/null` dentro del `while read <<< nombres`; C16 con `rclone cat` y `rclone lsf` fallando sin referencia confiable (sale 1 sin `delete`); el doble deja la rama `--filter` que ya no se usaba; merge de main. Prueba sobre el commit exacto `4cfb235e6` (`git archive`): 90 PASÓ · 0 FALLÓ, como root y como uid 1001.
+
 Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
