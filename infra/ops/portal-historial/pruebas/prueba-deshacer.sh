@@ -506,7 +506,8 @@ if [ "$MUTANTES" = 1 ]; then
     "conservados = todos.select { |_, id| con_otra.include?(id) }.sort" "conservados = []"
   mutante MD4 "borra mensajes fuera de la bandeja" deshacer-carga.rb borrar "D5" "D2 D4" \
     "hecho('borrados_mensajes', mensajes.delete_all)" "hecho('borrados_mensajes', Message.where(account_id: @cuenta_id).delete_all)"
-  mutante MD5 "el seco confirma lo que borra" deshacer-carga.rb borrar "D2" "D1a" \
+  # MD5, MD25 y MD26 dejan pasar un borrado que vacía la bandeja: lo de después cae en cascada, no por otro camino.
+  mutante MD5 "el seco confirma lo que borra" deshacer-carga.rb borrar "D2" "" \
     "        escribir_conservados(conservados)
         raise ActiveRecord::Rollback" "        escribir_conservados(conservados)
         mensajes.delete_all"
@@ -523,9 +524,9 @@ if [ "$MUTANTES" = 1 ]; then
     'rm -f -- "$H_BORRAR" "$DURABLE/chatwoot-borrar.hecho"' ':'
   mutante MD24 "borra sin el ensayo de Studio" deshacer.sh borrar "D11a" "D2 D5" \
     '[ -s "$H_ENSAYO" ] || mal falta_studio_ensayo_hecho' ':'
-  mutante MD25 "no compara el sha256" deshacer.sh borrar "D11b" "D2 D5" \
+  mutante MD25 "no compara el sha256" deshacer.sh borrar "D11b" "D2" \
     '[ "$sha_seco" = "$sha_actual" ] && [ "$sha_ensayo" = "$sha_actual" ] || mal el_sha256_de_los_conservados_no_coincide' ':'
-  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh borrar "D11c" "D2 D5" \
+  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh borrar "D11c" "D2" \
     '[ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide' ':'
   mutante MD27 "sin la copia durable" deshacer.sh borrar "D14" "D2 D5" \
     '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  :'
