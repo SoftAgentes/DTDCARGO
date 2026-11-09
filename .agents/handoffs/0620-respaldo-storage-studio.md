@@ -46,12 +46,23 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 - Pruebas: C7 ampliado (`archivos=` sin `base=`; sin permisos, si no es root; aceptar sin referencia), C8 (aceptar sin bueno, en dos variantes), C9 (rclone falla al retener), C10 (el bueno ya no está en el remoto) y `--aceptar-caida=` vacío. Mutantes M12 (sin bueno solo avisa), M13 (`|| falla` → `|| true`) y M14 (sin conteo de los 3), y M11 reapuntado a la copia local.
 - No bloqueantes: log de tar con `sed -nE …p` y un contador de «otros avisos» (respaldo y restore); `--aceptar-caida=` vacío sale 2; una línea sobre el crecimiento de `storage-retenido/`; el paso 0 en un subshell con `set -euo pipefail`.
 
+**Seguimiento, después de la aprobación** (APPROVED sobre `ddc427dfd`; rama `claude/0620-seguimiento`, PR aparte, antes de pedirle a Sam el OK de instalación):
+- **N1.** Si en disco no estaban los 3 archivos del bueno, el log lo dice; el retenido verificado es el del remoto.
+- **N3.** `flock -n -E 75 … || { …candado tomado… }` en §5.1, y `set -o pipefail` en el paso 5, que pasa por `| tee`.
+- **N4.** §5.1 toma del `.env` todo lo que usa `backup.sh`: `BACKUP_DIR`, `BACKUP_STORAGE_DIR`, `BACKUP_STORAGE_RCLONE_REMOTE`, `BACKUP_AGE_RECIPIENTS_FILE`, `RCLONE_CONFIG_DIR`, `BACKUP_RETENTION_DAYS`, `BACKUP_STORAGE_KEEP_LOCAL` y `BACKUP_STORAGE_MIN_FILES`.
+- **N5.** Las rutas pasan a `${OUT}/dtd-cargo/…` en vez de la ruta fija.
+- **N6.** C11, un `check` del retenido con una diferencia simulada, más el mutante M15, que quita solo su `|| falla`.
+- **N7, decidido que va.** Sin referencia confiable, la guarda compara contra el máximo de los manifiestos locales y del remoto (`rclone cat`). Un disco nuevo o un `--out` equivocado ya no pasan por una primera corrida. Va con C12 (dos días de caída sin estado local y la aceptación) y el mutante M16. Primero lo hice solo «sin locales», pero C12 mostró que al otro día el manifiesto local de después de la caída ganaba, así que ahora siempre es local ∪ remoto.
+- **N2, decidido que no.** `lsf … || true`: si `lsf` falla, el conteo da 0 y la aceptación falla. El `|| true` no abre nada y evita que `pipefail` corte sin mensaje. Queda anotado en la spec.
+- M9 y M11, reapuntados a las líneas nuevas.
+
 Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
+| Seguimiento: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo de `claude/0620-seguimiento`, antes del commit | **PASÓ** 64 PASÓ · 0 FALLÓ en las dos; M1-M16 con base limpia |
 | Cuarta vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo de la cuarta vuelta, antes del commit | **PASÓ** 58 PASÓ · 0 FALLÓ en las dos; M1-M14 con base limpia |
 | Tercera vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 (`/run/lock` 1777) | árbol de trabajo de la tercera vuelta, antes del commit | **PASÓ** 48 PASÓ · 0 FALLÓ en las dos; M1-M11 con base limpia |
 | `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, **como root**, árbol de trabajo de esta vuelta (todas las comprobaciones, mutantes M1-M8 con base limpia) | rama antes del commit de esta vuelta; GNU tar 1.35, Python 3.12.3, kernel 6.18 WSL2, `/tmp` en tmpfs | **PASÓ** 41 PASÓ · 0 FALLÓ; por el runner del CI, 1 PASÓ · 0 FALLÓ en 19 s |
@@ -76,7 +87,8 @@ Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.
 - `51c13c3b2`, `5881e98e7`, `282a692e0`: handoff.
 - Segunda vuelta: `7eac25d5e` fix(ops) y `39c2f7022` docs. Merge de main (#481): `3c777e33e`.
 - Tercera vuelta: `e84caee62` fix(ops) y `0fc4e96c4` docs.
-- Cuarta vuelta: un commit `fix(ops)` (aceptar sin bueno falla, conteo del retenido, referencia sin permisos) y un commit `docs`.
+- Cuarta vuelta: `0773dcc02` fix(ops), `e72b703dc` docs y el merge de main `ddc427dfd` (APPROVED).
+- Seguimiento (rama `claude/0620-seguimiento`): un commit `fix(ops)` (N1, N6 y N7) y uno `docs` (N3, N4, N5 y N2).
 
 ## PR / BRANCH
 

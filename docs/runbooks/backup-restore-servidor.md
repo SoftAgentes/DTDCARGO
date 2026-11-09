@@ -438,52 +438,57 @@ la configuración. El script:
    `b2:dtdcargo-respaldos/storage/dtd-cargo/` y `rclone check --one-way`.
 5. **Guarda contra un borrado masivo, que falla cerrada.** Compara el conteo con
    el del último respaldo aceptado
-   (`/srv/backups/dtd-cargo/storage/dtd-cargo-storage.referencia`, escrita con
+   (`${OUT}/dtd-cargo/storage/dtd-cargo-storage.referencia`, escrita con
    `.part` + `mv`). Si cae por debajo del 50 %, el respaldo **se sube igual**,
    pero no se aplica la retención (ni remota ni local), y el script sale 1: no hay
    latido y alguien mira. Lo mismo si la referencia no se puede leer (vacía, sin
-   `archivos=` o a medias). Si la referencia falta, compara contra el **máximo**
-   de `archivos=` de los manifiestos locales, no contra el más nuevo, que puede
-   ser ya el de después de la caída. Se repite cada día hasta que se acepte a mano.
+   `archivos=` o `base=`, a medias o sin permisos). Si la referencia falta o es
+   ilegible, compara contra el **máximo** de `archivos=` de los manifiestos
+   anteriores, los locales **y los del remoto**, que la retención conserva 30 días:
+   el más nuevo puede ser ya el de después de la caída, y en un disco nuevo, o con
+   un `--out` equivocado, no hay manifiestos locales. Se repite cada día hasta que
+   se acepte a mano.
 
    **Aceptar la caída: solo con OK nominal de Sam.** Antes, alguien comprueba en
    el Studio que la caída es legítima, por ejemplo una limpieza autorizada. La
-   corrida exige el conteo exacto, para que no se corra por accidente:
-
-   Toma el mismo candado que el timer, para no correr a la vez que el respaldo de
-   la noche, y la misma carpeta de salida que el `.env`: con otra, no encontraría
-   el respaldo bueno y saldría 1 sin hacer nada.
+   corrida exige el conteo exacto, para que no se corra por accidente. Toma el
+   mismo candado que el timer, para no correr a la vez que el respaldo de la
+   noche, y los mismos valores del `.env` que usa `backup.sh`:
 
    ```bash
    cd /srv/dtd-cargo
-   OUT="$(sed -n "s/^BACKUP_DIR=//p" .env | tail -n1 | tr -d "'\"")"; OUT="${OUT:-/srv/backups}"; echo "--out ${OUT}"
-   flock -n /run/lock/backup-dtd-cargo.lock /srv/ops/backup/storage-backup.sh --project dtd-cargo \
-     --source /srv/dtd-cargo/data/storage --remote b2:dtdcargo-respaldos/storage \
-     --age-recipients /srv/ops/backup/age-recipients.txt --rclone-config /srv/ops/backup/rclone \
-     --out "${OUT}" --aceptar-caida=<archivos que dice el log>
+   v() { local x; x="$(sed -n "s/^$1=//p" .env | tail -n1 | tr -d "'\"")"; printf '%s' "${x:-$2}"; }
+   OUT="$(v BACKUP_DIR /srv/backups)"; echo "--out ${OUT}"
+   flock -n -E 75 /run/lock/backup-dtd-cargo.lock /srv/ops/backup/storage-backup.sh --project dtd-cargo \
+     --source "$(v BACKUP_STORAGE_DIR /srv/dtd-cargo/data/storage)" \
+     --remote "$(v BACKUP_STORAGE_RCLONE_REMOTE b2:dtdcargo-respaldos/storage)" \
+     --age-recipients "$(v BACKUP_AGE_RECIPIENTS_FILE /srv/ops/backup/age-recipients.txt)" \
+     --rclone-config "$(v RCLONE_CONFIG_DIR /srv/ops/backup/rclone)" --out "${OUT}" \
+     --retention-days "$(v BACKUP_RETENTION_DAYS 30)" --keep-local "$(v BACKUP_STORAGE_KEEP_LOCAL 2)" \
+     --min-files "$(v BACKUP_STORAGE_MIN_FILES 1)" \
+     --aceptar-caida=<archivos que dice el log> \
+     || { rc=$?; [ "${rc}" = 75 ] && echo "✗ candado tomado: el respaldo de la noche está corriendo; esperar a que termine y repetir" || echo "✗ salió ${rc}: leer el log, no se aceptó nada"; }
    ```
 
-   Si `flock` no consigue el candado, sale 1 sin correr nada: el respaldo de la
-   noche está en curso y se espera a que termine.
-
    **Qué hace y qué borra.** Sale 1 sin tocar nada si el conteo no es exactamente
-   el dicho o si no encuentra un respaldo bueno: referencia ilegible sin
-   manifiestos, o un `--out` equivocado. Si coincide:
-   - Primero **retiene el último respaldo bueno**, el de la referencia o, si es
-     ilegible, el manifiesto local con más archivos. En disco lo mueve a
-     `/srv/backups/dtd-cargo/storage-retenido/`; en el remoto lo copia a
-     `b2:dtdcargo-respaldos/storage/dtd-cargo-retenido/` y lo comprueba con
-     `rclone check` y contando que estén sus 3 archivos, porque rclone sale 0 aunque
-     no haya copiado nada. Ninguna retención toca esos dos prefijos: se quedan
-     hasta que Sam autorice borrarlos. Cada aceptación suma un respaldo completo,
-     hoy ~515 MB, en cada uno.
+   el dicho o si no encuentra un respaldo bueno: referencia ilegible y ningún
+   manifiesto anterior, ni local ni en el remoto. Si coincide:
+   - Primero **retiene el último respaldo bueno**: el de la referencia o, si es
+     ilegible o falta, el manifiesto con más archivos, local o del remoto. En el
+     remoto lo copia a `b2:dtdcargo-respaldos/storage/dtd-cargo-retenido/`, lo
+     comprueba con `rclone check` y cuenta que estén sus 3 archivos, porque rclone
+     sale 0 aunque no haya copiado nada. Si cualquiera de esos pasos falla, no se
+     borra nada. Recién después mueve a `${OUT}/dtd-cargo/storage-retenido/` lo
+     que de ese respaldo haya en disco; si en disco no estaba completo, lo dice el
+     log, y el retenido verificado es el del remoto. Ninguna retención toca esos
+     dos prefijos: se quedan hasta que Sam autorice borrarlos. Cada aceptación
+     suma un respaldo completo, hoy ~515 MB, en cada uno.
    - Recién después aplica la retención normal: en el remoto,
-     `rclone delete --min-age 30d` dentro de `…/storage/dtd-cargo/`, que borra los
-     respaldos de más de 30 días; en disco, deja en `storage/` solo los 2 más
-     nuevos, que son los de después de la caída.
+     `rclone delete --min-age <BACKUP_RETENTION_DAYS>d` dentro de
+     `…/storage/dtd-cargo/`, que borra los respaldos más viejos que eso; en disco,
+     deja en `storage/` solo los `BACKUP_STORAGE_KEEP_LOCAL` más nuevos, que son
+     los de después de la caída.
    - La referencia pasa al conteo nuevo.
-
-   Si falla la retención del último bueno, no se borra nada.
 6. Retención: `rclone delete --min-age 30d` acotado a ese prefijo, con
    `hard_delete` del remoto (borrado real), y en disco local los 2 respaldos más
    nuevos (`BACKUP_STORAGE_KEEP_LOCAL`).
