@@ -28,7 +28,7 @@ Criterios de aceptación de la spec: 1, 2, 3 y 5 cumplidos en código y en la pr
 |---|---|---|
 | `prueba-respaldo-storage.sh` en Git Bash (Windows) | `9c2e01cb5`, copia de scratch con 3 adaptaciones solo locales: `/run/lock` → `/tmp/lock` en `backup.sh`, `WORK_ROOT` `/dev/shm` → `/tmp` y un `flock` doble (Windows no tiene ni `/run`, ni `/dev/shm` escribible, ni flock). El resto, idéntico a lo commiteado (verificado con `diff`) | **PASÓ** 27 PASÓ · 0 FALLÓ. Log: `side-session-notes/…/prueba-respaldo-storage-9c2e01cb5-windows.log` |
 | Misma prueba sin adaptar, en Git Bash | `9c2e01cb5` | 24 PASÓ · 3 FALLÓ. Los 3 fallos (C4, «backup.sh sin storage» y M1 base limpia) son `/run/lock` inexistente en Windows, no defectos |
-| Misma prueba en Linux (CI ubuntu o Docker) | — | **NO EJECUTADO**: GitHub Actions no corre desde 2026-11-09 03:36Z (facturación). El DG dio turno de Docker local (`ubuntu:24.04` desechable, sin las adaptaciones), con la condición de no forzarlo si Docker Desktop no estaba levantado. No lo estaba (sin proceso `Docker Desktop.exe`, sin daemon), así que no se encendió: al encenderlo levanta los 5,3 GB de loop-3d |
+| Misma prueba en Linux, **sin adaptaciones** | `5881e98e7` exportado con `git archive`, en `ubuntu:24.04` desechable (`--rm`, repo de solo lectura, trabajo en tmpfs, root, GNU tar 1.35, OpenSSL 3.0.13, flock; sin `age` real, como el CI). Pedido por Sam el 2026-11-09, con turno del DG | **PASÓ** 27 PASÓ · 0 FALLÓ, exit 0; por el runner del CI (`pruebas-linux.sh` con `PRUEBAS_LINUX_LISTA`): 1 PASÓ · 0 FALLÓ en 7 s. Log: `side-session-notes/…/prueba-respaldo-storage-5881e98e7-ubuntu2404.log`. Docker Desktop ya estaba encendido (22 contenedores) y se dejó así; la imagen `ubuntu:24.04` se borró al terminar |
 | `age` real (ida y vuelta) | — | **NO EJECUTADO**: no hay `age` en esta PC. La prueba lo usa sola si encuentra `/usr/bin/age` |
 | `prueba-backup-dtd.sh` (adaptada) | — | **NO EJECUTADO**: es del VPS, como root con Docker. No se toca el VPS |
 | `bash -n` de los 6 scripts tocados | HEAD | PASÓ |
@@ -56,7 +56,7 @@ Rama `claude/respaldo-storage-studio-4e17a7`, **sin publicar**. Actions está bl
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Correr `prueba-respaldo-storage.sh` en Linux: el CI de la PR, o `docker run … node:24` con turno del DG.
+1. ~~Correr la prueba en Linux~~: hecho en Docker local (27 PASÓ · 0 FALLÓ). Falta que la corra el CI de la PR cuando vuelva Actions.
 2. Abrir la PR en borrador y avisar al DG cuando el CI esté verde, para la revisión independiente.
 3. Instalación en producción, con OK nominal de Sam: guion en la spec, §Instalación (lo pide el DG).
 4. Después de instalar: primer registro en el runbook §8 (conteo del manifiesto frente a `storage.objects`).
