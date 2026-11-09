@@ -521,8 +521,8 @@ Discord con los agentes actuales.
 - Los nombres «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»,
   confirmados al revisar la SDD-0605.
 - Las noticias se publican solas, con filtros. Su SDD es la 0611 (aprobada) y la excepción a
-  IA-01 quedó anotada en `docs/governance/README.md`. No está vigente hasta que la migración
-  0518 esté en producción y Sam encienda el interruptor.
+  IA-01 quedó anotada en `docs/governance/README.md`. La migración 0518 está en producción desde
+  el 2026-11-08; la excepción no está vigente hasta que Sam encienda el interruptor.
 
 **Pendientes:**
 

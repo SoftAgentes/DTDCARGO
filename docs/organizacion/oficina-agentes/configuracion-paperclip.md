@@ -158,12 +158,25 @@ hermana queda bloqueada (#9668). La prueba cubre por separado cuatro ramas:
 
 Se aprueba solo si cada campo coincide. Si algo no coincide, se rechaza.
 
+**Runner (desde Paperclip 1106).** Los agentes nuevos de Claude, Codex, OpenCode y Pi nacen en el
+Paperclip Runner, y el VPS califica.
+
+- **Por qué no sirve:** el Runner no pasa por `dtd-claude` ni por `dtd-codex`. Correría como
+  `agentes`, sin el aislamiento por usuario.
+- **En cada alta de Claude o Codex** se elige **Legacy runner** en Advanced.
+- **Nunca se presiona «Upgrade runner»** en ALFRED, en el Auxiliar ni en otro agente con
+  envoltorio.
+- **Los GLM (Hermes) no cambian:** el Runner no los toca.
+
+El detalle está en `actualizacion-paperclip-hermes.md`, §2.3.
+
 ### ALFRED: cambio de motor
 
 Antes de empezar se guarda el JSON actual, para poder volver a Hermes.
 
 - **Harness:**
   - motor: Claude Code;
+  - runner: **Legacy runner**, en Advanced (desde Paperclip 1106; ver la regla de arriba);
   - `engine`: `cli`;
   - comando: `/usr/local/bin/dtd-claude`;
   - carpeta: `/srv/oficina/trabajo/ceo`;
@@ -187,6 +200,7 @@ Antes de empezar se guarda el JSON actual, para poder volver a Hermes.
   - reporta a ALFRED.
 - **Harness:**
   - motor: Codex;
+  - runner: **Legacy runner**, en Advanced (desde Paperclip 1106);
   - `engine`: `cli`;
   - comando: `/usr/local/bin/dtd-codex`;
   - carpeta: `/srv/oficina/trabajo/auxiliar`;
@@ -242,9 +256,13 @@ Antes de empezar se guarda el JSON actual, para poder volver a Hermes.
 - Apagar `requireBoardApprovalForNewAgents`.
 - Fijar `command`, `cwd` o `env` por la API.
 - Crear llaves de Junta.
-- Actualizar Paperclip a v2026.1023.0 o más mientras siga abierto el #18956. Esa versión
-  bloquea el uso sin precio, y Paperclip no le pone precio a Hermes.
-- Actualizar Hermes a 0.22.4 o más mientras siga abierto el #18314, que impide reanudar
-  sesiones.
+- **Actualizar Paperclip o Hermes sin seguir `actualizacion-paperclip-hermes.md`.** Esta regla
+  reemplaza a las anteriores, que prohibían Paperclip 1023 o más y Hermes 0.22.4 o más.
+  - Hermes 0.23.0 ya está instalado desde el 2026-11-07. El #18314 no frena, porque no hay
+    sesiones guardadas.
+  - Paperclip 1106 va solo con los cambios A, B y C hechos, con su §6 cumplido el mismo día y con
+    el OK de Sam.
+- Encender el corte duro de un presupuesto mientras siga abierto el #18956.
+- Presionar «Upgrade runner» en un agente con envoltorio.
 - Poner llaves de producción o datos de clientes en la oficina.
 - Aprobar o contratar en nombre de Sam.
