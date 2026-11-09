@@ -14,6 +14,10 @@
 #        llega en otro hilo: aborta · R4 repetir con otro estado en un hilo: se actualiza
 #   N4   sin MODO, el script sale con error
 #   F2   con el log de SQL en debug, nada de lo cargado sale en él
+#   L    4.10, el log de Postgres: L1 control, el log escribe la fila y la sentencia de un insert que falla · L2 un
+#        insert_all del cargador que falla deja el error en el log, pero no la marca SINT-LOG-<cuenta>-<sal> · L3 con un rol
+#        sin superusuario, no carga (no_se_puede_bajar_el_detalle_del_log) · L4 si el SHOW no devuelve el valor fijado,
+#        no carga
 #   S    seco: cuenta lo que cargará, no escribe nada, ni vínculos, ni consume números de conversación
 #   C    carga: conteos, filas, números de conversación y cola de Sidekiq
 #   R    repetir la carga (C-3): 0 filas nuevas y los mismos vínculos, también con VINCULOS=- (a la salida estándar,
@@ -227,6 +231,27 @@ comprobar() {
   for m in "${MARCAS[@]}"; do grep -q -F -- "$m" "$O/sql.log" 2>/dev/null && fugas_log=$((fugas_log + 1)); done
   exigir F2 '[ -r "$O/sql.log" ] && grep -q SINT-CONTROL-LOG "$O/sql.log" && [ "$fugas_log" = 0 ]' \
     "con el log de SQL en debug, la consulta de control sale y ninguno de los ${#MARCAS[@]} valores inventados ($fugas_log)"
+  # L: el log de Postgres del escenario (docker compose logs, después del escenario). La restricción es de esta cuenta.
+  F="$O/log-postgres.txt"
+  PGL="$O.postgres.log" # junto a la carpeta: la carpeta del escenario la crea el contenedor
+  RESTR="$(h "$F" log_restriccion)"
+  MARCA_L="$(h "$F" log_marca)"
+  CONTROL_L="$(h "$F" log_control)"
+  local errores_l=0 marca_l=0
+  if [ -n "$RESTR" ] && [ -n "$MARCA_L" ] && [ -r "$PGL" ]; then
+    errores_l="$(grep -c -F -- "violates check constraint \"$RESTR\"" "$PGL")"
+    marca_l="$(grep -c -F -- "$MARCA_L" "$PGL")"
+  fi
+  exigir L1 '[ "$(h "$F" log_postgres)" = ok ] && [ "$(h "$F" log_control_fallo)" = si ] && grep -F -- "$CONTROL_L" "$PGL" | grep -q "DETAIL:" && grep -F -- "$CONTROL_L" "$PGL" | grep -q "STATEMENT:"' \
+    "control: un insert que falla, sin los SET LOCAL, deja en el log de Postgres la fila (DETAIL) y la sentencia (STATEMENT)"
+  F="$O/rechazo-log.txt"
+  exigir L2 '[ "$(h "$F" carga)" = error ] && [ "$errores_l" -ge 2 ] 2>/dev/null && [ "$marca_l" = 0 ] && ! grep -q -F -- "$MARCA_L" "$F" && [ "$(h "$O/log-postgres.txt" log_contactos_marca)" = 0 ] && [ ! -e "$O/vinculos-rechazo-log.ndjson" ]' \
+    "4.10: un insert_all del cargador que falla llega al log de Postgres ($errores_l errores de $RESTR) sin la fila ni la sentencia (la marca sale $marca_l veces), y no carga nada ($(h "$F" error))"
+  F="$O/rechazo-show.txt"
+  exigir L4 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = no_se_puede_bajar_el_detalle_del_log ] && [ ! -e "$O/vinculos-rechazo-show.ndjson" ]'     "4.10: si el SHOW no devuelve el valor fijado, no carga ($(h "$F" error))"
+  F="$O/rechazo-sin-super.txt"
+  exigir L3 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = no_se_puede_bajar_el_detalle_del_log ] && [ ! -e "$O/vinculos-rechazo-sin-super.ndjson" ]' \
+    "4.10: con un rol sin superusuario no puede bajar el detalle del log y no carga ($(h "$F" error))"
   return 0
 }
 
@@ -332,6 +357,12 @@ for cual in mensaje asignada snoozed; do # las guardas de R4, de a una
   cargar "rechazo-guarda-$cual" "preparado-guarda-$cual.ndjson"
 done
 rr "$R/sonda-concurrencia.txt" FASE=concurrencia "DIR=$RC" -- "$SONDA" </dev/null
+# 4.10, al final: deja en contacts una restricción que solo toca los nombres SINT-LOG-<esta cuenta>.
+rr "$R/sonda-log-postgres.txt" FASE=log-postgres "DIR=$RC" -- "$SONDA" </dev/null
+mover rechazo-log
+mover rechazo-show
+mover rechazo-sin-super
+dc "${BASE[@]}" logs --no-color --no-log-prefix postgres >"$R.postgres.log" 2>&1
 comprobar "$R"
 F="$R/sin-modo.txt"
 exigir N4 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = "falta MODO" ] && [ "$(h "$F" salida_proceso)" != 0 ] && [ ! -e "$R/vinculos-sin-modo.ndjson" ]' \
@@ -353,6 +384,8 @@ open(d, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$(win "$1"
 escenario() { # id → salidas en $D/estado/m/<id>/
   dc "${BASE[@]}" run --rm -T -e "CARGADOR_RB=/tmp/estado/m/$1.rb" -e "SALIDAS=/tmp/estado/m/$1" \
     prepare bundle exec rails runner /tmp/cargador/escenario-portal.rb >"$D/estado/m/$1.log" 2>&1 </dev/null
+  # El log de Postgres hasta aquí: L1 y L2 miran solo la restricción y las marcas de la cuenta de este escenario.
+  dc "${BASE[@]}" logs --no-color --no-log-prefix postgres >"$D/estado/m/$1.postgres.log" 2>&1
 }
 cayeron_en() { local k; for k in "${!RES[@]}"; do [ "${RES[$k]}" = FALLÓ ] && echo "$k"; done | sort | tr '\n' ' '; }
 # mutante <id> <qué rompe> <tienen que caer> <tienen que pasar> <texto> <reemplazo>
@@ -473,6 +506,23 @@ if [ "$MUTANTES" = 1 ]; then
     "if ajenos.positive? || asignadas.positive? || dormidas.positive?" "if ajenos.positive? || asignadas.positive?"
   mutante M31 "no actualiza el estado de un hilo ya cargado" "R4" "C1 R2" \
     "      Conversation.where(id: ids).update_all(status: Conversation.statuses.fetch(estado)) unless seco?" "      nil"
+  # 4.10. M35 es el que pidió el DG: sin los SET LOCAL, la marca sale en el log. M36 y M37, de a uno.
+  mutante M35 "sin los SET LOCAL del log de Postgres" "L2 L3" "C1 L1" \
+    "      bajar_detalle_del_log!
+" ""
+  mutante M36 "sin bajar log_min_error_statement (sale la sentencia)" "L2" "C1 L1 L3" \
+    "'log_min_error_statement' => 'panic'" "'log_min_error_statement' => 'error'"
+  mutante M37 "sin bajar log_error_verbosity (sale la fila)" "L2" "C1 L1 L3" \
+    "'log_error_verbosity' => 'terse'" "'log_error_verbosity' => 'default'"
+  # M39 (revisión del DG de la #470): sin la comparación del SHOW, un parámetro que no se aplicó pasaría.
+  mutante M39 "sin comparar el SHOW" "L4" "C1 L1 L2 L3"     "      raise 'no_se_puede_bajar_el_detalle_del_log' unless conexion.select_value(\"SHOW #{parametro}\") == valor
+" ""
+  mutante M38 "si no puede fijarlos, sigue" "L3" "C1 L1 L2" \
+    "  rescue ActiveRecord::StatementInvalid
+    raise 'no_se_puede_bajar_el_detalle_del_log'
+" "  rescue ActiveRecord::StatementInvalid
+    nil
+"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi

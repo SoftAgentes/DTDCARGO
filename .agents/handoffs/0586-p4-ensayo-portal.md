@@ -2,7 +2,7 @@
 
 - **Worker:** E5, bajo el Subdirector Chatwoot.
 - **Rama:** `codex/0586-ensayo-portal`, que sale de main `04a295e1d`.
-- **Estado:** en curso. La PR va en borrador.
+- **Estado:** en curso. La PR va en borrador. Ya trae main `e74cde6fc` (el tren 9, con la #468 y la #470).
 - **Fusión:** no se fusiona desde aquí; la fusiona el DG.
 
 ## Qué trae
@@ -58,9 +58,7 @@
 
 - **El primer run de Actions.** Puede pedir ajustes del esquema de Chatwoot en la copia, como columnas NOT NULL de la imagen o secuencias.
 - **`revisar-datos-ve` sobre la PR.** La copia lleva `clients.name` y `conversation_messages.body`, que son los datos que la carga necesita.
-- **El DG pidió dos cosas de la #468 y la #470** que están en archivos que todavía no están en main. Se hacen aquí cuando entre el tren 8:
-  - `prueba-punta-a-punta.sh:301`: el encabezado vencido «B. el contacto_id nulo: espera la 0524»;
-  - un mutante que quite la comparación del `SHOW` en `cargar-portal.rb:186`, con una comprobación que lo haga caer: por ejemplo, un `SHOW` que devuelva otro valor dentro de la sonda.
+- **Lo que pidió el DG de la #468 y la #470** se hizo en la vuelta 5, con el merge del tren 9: el encabezado de `:301` y el mutante M39 del `SHOW`, con su comprobación L4.
 - **Las secciones de la #468 y la #470**, más abajo.
 - **El runbook (E10):**
   - la lista de 3.0 tiene que sumar `copia-columnas.tsv`, `ensayo-studio-esquema.sql`, `ensayo-portal.sh` y la carpeta `migraciones/`, con las 10 migraciones que lista la guarda G0;
@@ -83,6 +81,8 @@
 | 1 | `c86e2b03a` | 42535639790 (128899213367) | Rojo: 8 fallas en el ensayo. Se copió una sola tabla por lado. Pasaron las guardas G1 a G3, el aislamiento, la limpieza, T4, T5 y los mutantes de marcas M1 a M4, M6 a M10, M13 y los de las guardas, M14 a M16. Cayeron M0, M5, M11 y M12 | Los `docker exec -i` de `copiar_tabla` leían la entrada estándar y se comían el resto de la lista. Ahora el bucle lee por el descriptor 3 |
 | 2 | `530e06386` | 42537233286 (128904191711) | Rojo: solo K3. Todo lo demás pasó: T1 a T5 salvo por K3, M0 a M16 cayendo cada uno en lo suyo, D2 con 16 tablas de Studio y 10 de Chatwoot, O1 en 0, y E1, E2, A2, B1, B2, C1 a C3, K1 y K2. Los datos de C-8 estaban bien (4 hilos y 4 espejos) | `c8` leía `$2` y no `$1`: no encontraba la clave. Lo corregí y lo comprobé con las líneas del run |
 | 3 | `903e939a1` | 42538856924 (128909177961) | Verde: P1, T1 a T5, las once E-xx del modo completo, G1 a G3 y M0 a M16 cayendo cada uno en lo suyo. El cargador también pasó | El Subdirector no vio los pasos de la carga en el log: en `pruebas/prueba-ensayo-portal.sh:205`, las líneas del ensayo iban solo a resumen.txt (`>/dev/null`). Las saqué al log también cuando pasa. La cobertura no cambia |
+| 4 | `d84c9140f` | sin leer: lo reemplazó la vuelta 5 | — | El tren 9 (`e74cde6fc`) entró a main con la #468 y la #470 |
+| 5 | (el merge) | — | — | Un solo merge de `e74cde6fc`, sin conflictos (el workflow se mezcló solo). En el mismo commit: se quita el encabezado vencido «B. el contacto_id nulo: espera la 0524» de `pruebas/prueba-punta-a-punta.sh`, y se suman L4 y el mutante M39, que quita la comparación del `SHOW` en `cargar-portal.rb:186`. L4 hace que el `SHOW` de `log_*` devuelva otro valor dentro de la sonda, así que solo la comparación lo ve. Rojo previo de M39: no se puede tener sin romper el cargador, que ya está en main; el rojo es el del propio mutante |
 
 ## #468 · El caso (b) de la punta a punta
 

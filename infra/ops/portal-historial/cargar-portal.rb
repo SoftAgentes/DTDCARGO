@@ -36,6 +36,15 @@
 # no carga. El log de SQL de ActiveRecord se apaga mientras corre: con LOG_LEVEL=debug, el SQL de los insert_all
 # llevaría nombres y textos.
 #
+# El log del SERVIDOR también se baja (SDD-0586 4.10, aprobado por el DG el 2026-11-08): si un insert_all falla, Postgres
+# escribiría en su log la fila entera (`DETAIL: Failing row contains (…)`) y la sentencia (`STATEMENT: INSERT …`), con
+# nombres y textos. Dentro de la transacción, antes del primer insert_all, el cargador fija con SET LOCAL
+# log_min_error_statement = panic (sin STATEMENT) y log_error_verbosity = terse (sin DETAIL, HINT, QUERY ni CONTEXT).
+# Son parámetros de superusuario: el usuario de Rails de Chatwoot lo es (POSTGRES_USER, rolsuper = t, medido por el
+# DG en el VPS, Postgres 16.12). Si no los puede fijar, no carga: `HECHO error=no_se_puede_bajar_el_detalle_del_log`.
+# Límite: el mensaje principal de un error de tipo (`invalid input syntax for type …: "<valor>"`) sí trae el valor;
+# las columnas de texto que llevan nombres y mensajes no dan ese error.
+#
 # Sin efectos quiere decir:
 #   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
 #     SendReplyJob, ni eventos de reportes. Nada sale a un cliente ni a Studio;
@@ -65,6 +74,8 @@ class CargaPortal
   SENTIDOS = %w[entrante saliente].freeze
   PREFIJO_CONTACTO = 'dtd-portal:'
   UUID = /\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/
+  # SDD-0586 4.10: lo que el log de Postgres deja de escribir mientras dura la transacción de la carga.
+  DETALLE_DEL_LOG = { 'log_min_error_statement' => 'panic', 'log_error_verbosity' => 'terse' }.freeze
 
   # Punto de entrada: el script lo llama con ENV, $stdin y $stdout; el escenario de mutantes, con un Hash y archivos.
   # Devuelve el código de salida.
@@ -165,6 +176,17 @@ class CargaPortal
 
     nuevos = despues.filter_map { |clase, n| "#{clase}:#{n - antes[clase]}" if n > antes[clase] }.sort
     nuevos.empty? ? 'ninguno' : nuevos.join(',')
+  end
+
+  # SET LOCAL: vale solo hasta el fin de la transacción, en esta conexión. Cada valor se lee de vuelta con SHOW.
+  def bajar_detalle_del_log!
+    conexion = ActiveRecord::Base.connection
+    DETALLE_DEL_LOG.each do |parametro, valor|
+      conexion.execute("SET LOCAL #{parametro} = '#{valor}'")
+      raise 'no_se_puede_bajar_el_detalle_del_log' unless conexion.select_value("SHOW #{parametro}") == valor
+    end
+  rescue ActiveRecord::StatementInvalid
+    raise 'no_se_puede_bajar_el_detalle_del_log'
   end
 
   def secuencia
@@ -495,6 +517,8 @@ class CargaPortal
     secuencia_antes = secuencia
     resultado = nil
     ActiveRecord::Base.transaction do
+      # Antes de cualquier escritura: si un insert_all falla, el log de Postgres no lleva la fila ni la sentencia.
+      bajar_detalle_del_log!
       # Una carga a la vez: el candado se suelta solo al terminar la transacción.
       libre = ActiveRecord::Base.connection.select_value("SELECT pg_try_advisory_xact_lock(#{CANDADO})")
       raise 'otra carga del portal en curso' unless libre == true || libre == 't'
