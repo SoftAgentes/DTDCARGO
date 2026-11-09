@@ -34,6 +34,7 @@ PRUEBAS=(
   infra/ops/tests/prueba-prompt-trim.sh  # SDD-0505: trim() de lib/prompt.sh
   infra/ops/tests/prueba-restore-event-triggers.sh # SDD-0594: restore.sh con ensure_rls y los demás event triggers
   infra/ops/tests/prueba-portal-historial.sh # SDD-0586 10.7: extraer.sh y vincular.sh de la carga del portal, con /dev/shm
+  infra/ops/tests/prueba-respaldo-storage.sh # SDD-0620: respaldo cifrado y restore de los archivos del Storage, con mutantes
 )
 # Piso de «PASÓ» por prueba (revisión del DG de la #480, N4): una prueba que pierde casos en silencio, aunque salga 0
 # y sin «FALLÓ», es FALLÓ. Cada piso es el conteo medido en el CI; una prueba nueva sin piso exige solo uno o más.
@@ -45,6 +46,7 @@ declare -A PISO=(
   [infra/ops/tests/prueba-prompt-trim.sh]=13
   [infra/ops/tests/prueba-restore-event-triggers.sh]=78
   [infra/ops/tests/prueba-portal-historial.sh]=99
+  [infra/ops/tests/prueba-respaldo-storage.sh]=58
 )
 # PRUEBAS_LINUX_PISOS («ruta=n» por línea) la usa sólo pruebas-linux.test.mjs, para probar el piso con pruebas de mentira.
 if [ -n "${PRUEBAS_LINUX_PISOS:-}" ]; then
