@@ -8,7 +8,7 @@
 | Rama | `claude/wizardly-murdock-7db565`, base `main` `ecadbac91` |
 | Fecha | 2026-11-07 |
 | SDD | 0611, `docs/specs/0611-noticias-publicacion-automatica/spec.md` (pasa de `approved` a `in-progress`) |
-| Migración | **0518** `supabase/migrations/0518_noticias_publicacion_automatica.sql`. **NO APLICADA**. Está declarada en `pendingBelowCutoff` y no está sellada |
+| Migración | **0518** `supabase/migrations/0518_noticias_publicacion_automatica.sql`. **APLICADA el 2026-11-08** en prueba y en producción, y sellada en la #463. Ver «Estado de la 0518» |
 
 ## OBJETIVO ORIGINAL
 
@@ -28,7 +28,7 @@ Si cualquiera falla, el artículo queda retenido. Respeta las decisiones de Sam:
 - una diaria a mano hasta el 2026-11-15 y después dos automáticas por semana;
 - revisión a los 60 días.
 
-Migración sin aplicar, con su paquete para el Director General. PR en borrador.
+Migración sin aplicar, con su paquete para el Director General. PR en borrador. Ese era el encargo del 2026-11-07; el estado actual está en «Estado de la 0518».
 
 ## COMPLETADO
 
@@ -168,9 +168,22 @@ Merge (no rebase) con el driver `dtd-generated-records`. Entró sin conflictos y
 - `spec.md`: el párrafo «solo documento, sin migraciones» ahora dice que la implementación trae código y la 0518.
 - La 0518 no cambió. Los puntos de SQL del DG van en la sección de abajo, para una migración nueva.
 
+## Estado de la 0518 (2026-11-08)
+
+**Hecho:**
+- La #417 entró en el tren #457 (`9019d3997`, 2026-11-08T16:38:01Z) desde la cabeza `3d382bf3d`.
+- El DG aplicó la 0518 con OK de Sam (~04:15Z, en el chat del DG):
+  - en prueba: version `20261108143112`, COMMIT 2026-11-08T14:31:12.259Z, evidencia `apply-0518-dtd-cargo-staging-20261108T143111Z`;
+  - en producción: version `20261108143204`, COMMIT 2026-11-08T14:32:04.484Z, evidencia `apply-0518-dtd-cargo-20261108T143201Z`.
+- El ledger tiene md5 `c692dfa9c4ad31e3352721400c3e3ceb` y 44.672 bytes, y los 13 cuerpos son iguales al archivo.
+- La espera se retiró y la 0518 se selló en la #463 (rama E10 del DG). El registro está en [`cierre-migraciones-20261108.md`](cierre-migraciones-20261108.md).
+- El interruptor sigue **apagado**. Encenderlo es otro OK de Sam.
+
+**Falta:** lo de la sección siguiente y los «PENDIENTES DE ESTA TAREA». Nada de eso toca la 0518: lo de SQL va en una migración nueva.
+
 ## Pendiente de la segunda PR, antes de encender
 
-Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bloqueos, y de la revisión del DG sobre la misma cabeza. Nada de esto cambia la 0518 aplicada: lo que toque la base va en una migración nueva.
+Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bloqueos, y de la revisión del DG sobre la misma cabeza. La segunda PR se trabaja en la rama `claude/noticias-ajustes-0611`, con su propio handoff.
 
 1. **(C)1 · El público ve cómo se publicó la noticia.**
    - `lib/public/news-queries.ts:12` y `:32` hacen `select("*")` con anon, y anon tiene SELECT sobre `news_posts` (0055).
@@ -179,7 +192,7 @@ Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bl
 2. **(C)2 · No se puede borrar un usuario.**
    - `seo_drafts.created_by` borra en cascada (0053), pero la FK `seo_draft_id … on delete no action` (0518) corta esa cascada.
    - Borrar en Auth a quien creó el borrador de una noticia publicada da «Database error deleting user».
-   - **Arreglo:** lo decide Sam antes de enganchar `news_publicar_manual`. Las opciones son `created_by` en `set null`, anonimizar al dar de baja o no permitir el borrado.
+   - **Decisión de Sam (2026-11-08):** «Quedan sin autor». `seo_drafts.created_by` pasa a `on delete set null` y deja de ser NOT NULL.
 3. **(C)3 · Las pruebas del titular retenido no separan las dos condiciones.**
    - Falta el caso de un titular limpio con el motivo `linea_roja:datos_personales`.
    - Falta el caso de un titular con PII sin ese motivo.
@@ -191,7 +204,8 @@ Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bl
    - **Arreglo:** un doble que filtre y una prueba que caiga sin ese `.eq`, o pasar F8 a la base.
 5. **(C)5 · El conteo de la espera mide menos que el CHECK.**
    - La consulta de `migrations-baseline.json` no mira `meta_description`, no normaliza con NFKC, no quita invisibles y dice `draft_id` en vez de `seo_draft_id`.
-   - **Arreglo:** contar con `news_texto_tiene_marca`, la misma expresión que `news_posts_sin_marca_verificar`, antes de `VALIDATE CONSTRAINT`.
+   - La espera ya se retiró en la #463, y esa consulta salió del baseline. La consulta correcta quedó en la spec §11.2.
+   - **Arreglo:** antes de cualquier `VALIDATE CONSTRAINT`, contar con `news_texto_tiene_marca`, la misma expresión que `news_posts_sin_marca_verificar`.
 6. **(C)6 · service_role cambia el interruptor sin dejar registro.**
    - Tiene INSERT, UPDATE y DELETE sobre `news_autopublish_settings`, la auditoría y las salidas.
    - Puede encender sin pasar por `news_autopublish_configurar`, y entonces no queda nada en `_settings_log`.
@@ -217,14 +231,14 @@ Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bl
     - **Arreglo:** `revoke execute … from anon` explícito.
 13. **(DG, SQL) `content_sha256` queda viejo si un admin edita el cuerpo (0518:409-421).**
     - La guarda impide cambiar el origen a mano, pero no recalcula la huella cuando cambian el titular o el cuerpo de una automática.
-    - **Arreglo:** recalcularla en el disparador, o tratar la edición como una salida de la vía automática.
+    - **Decisión de Sam (2026-11-08):** «Sí, sigue contando». Una automática que una persona edita sigue contando en F7. Un disparador nuevo recalcula `content_sha256` y la guarda no cambia.
 
 ## PENDIENTES DE ESTA TAREA
 
 - Plazo de retención y purga de `news_publication_audit`, `news_post_exits` y `news_autopublish_settings_log`. Lo decide Sam; va en la segunda PR.
 
 - `pnpm verify` con turno del Director General.
-- **Segunda PR, después de aplicar la 0518** (migrate-first; si va antes, el gate de símbolos se pone rojo):
+- **Enganche de la vía automática.** La 0518 ya está aplicada, así que el gate de símbolos ya no lo frena:
   - ruta de cron que llame a `evaluarBorradorAutomatico` con service_role;
   - pantalla de retiro (`/studio/marketing/noticias-web/retirar/[id]`, con `ConfirmDialog`, motivo obligatorio y `/ui-check`);
   - cola de retenidos en Noticias Web;
@@ -258,8 +272,8 @@ Salen de la revisión independiente sobre `0f087def4`, que fue APPROVED y sin bl
 
 ## COMMITS
 
-PR en borrador [SoftAgentes/DTDCARGO#417](https://github.com/SoftAgentes/DTDCARGO/pull/417). Ver `git log main..claude/wizardly-murdock-7db565`.
+[SoftAgentes/DTDCARGO#417](https://github.com/SoftAgentes/DTDCARGO/pull/417), fusionada en el tren #457 (`9019d3997`) desde la cabeza `3d382bf3d`.
 
 ## HANDOFF AL DIRECTOR
 
-El código es seguro de fusionar antes de aplicar la 0518. Lo único alcanzable desde rutas es el bloqueo de `[VERIFICAR]` en `publishPost`, sin dependencia de la base; el gate de símbolos da 0 rojos. La 0518 se aplica con OK nominal y el paquete de arriba. La segunda PR engancha la vía automática.
+La #417 está fusionada y la 0518 está aplicada y sellada (ver «Estado de la 0518»). En producción, al fusionar, solo cambió el bloqueo de `[VERIFICAR]` en `publishPost` y el conteo de `verifyMarkers`. El interruptor sigue apagado. La segunda PR (`claude/noticias-ajustes-0611`) trae los ajustes de la sección de pendientes, antes de encender o de enganchar `news_publicar_manual`.

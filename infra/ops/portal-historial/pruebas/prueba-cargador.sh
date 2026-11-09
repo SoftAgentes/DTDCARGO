@@ -16,7 +16,8 @@
 #   F2   con el log de SQL en debug, nada de lo cargado sale en él
 #   L    4.10, el log de Postgres: L1 control, el log escribe la fila y la sentencia de un insert que falla · L2 un
 #        insert_all del cargador que falla deja el error en el log, pero no la marca SINT-LOG-<cuenta>-<sal> · L3 con un rol
-#        sin superusuario, no carga (no_se_puede_bajar_el_detalle_del_log)
+#        sin superusuario, no carga (no_se_puede_bajar_el_detalle_del_log) · L4 si el SHOW no devuelve el valor fijado,
+#        no carga
 #   S    seco: cuenta lo que cargará, no escribe nada, ni vínculos, ni consume números de conversación
 #   C    carga: conteos, filas, números de conversación y cola de Sidekiq
 #   R    repetir la carga (C-3): 0 filas nuevas y los mismos vínculos, también con VINCULOS=- (a la salida estándar,
@@ -246,6 +247,8 @@ comprobar() {
   F="$O/rechazo-log.txt"
   exigir L2 '[ "$(h "$F" carga)" = error ] && [ "$errores_l" -ge 2 ] 2>/dev/null && [ "$marca_l" = 0 ] && ! grep -q -F -- "$MARCA_L" "$F" && [ "$(h "$O/log-postgres.txt" log_contactos_marca)" = 0 ] && [ ! -e "$O/vinculos-rechazo-log.ndjson" ]' \
     "4.10: un insert_all del cargador que falla llega al log de Postgres ($errores_l errores de $RESTR) sin la fila ni la sentencia (la marca sale $marca_l veces), y no carga nada ($(h "$F" error))"
+  F="$O/rechazo-show.txt"
+  exigir L4 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = no_se_puede_bajar_el_detalle_del_log ] && [ ! -e "$O/vinculos-rechazo-show.ndjson" ]'     "4.10: si el SHOW no devuelve el valor fijado, no carga ($(h "$F" error))"
   F="$O/rechazo-sin-super.txt"
   exigir L3 '[ "$(h "$F" carga)" = error ] && [ "$(h "$F" error)" = no_se_puede_bajar_el_detalle_del_log ] && [ ! -e "$O/vinculos-rechazo-sin-super.ndjson" ]' \
     "4.10: con un rol sin superusuario no puede bajar el detalle del log y no carga ($(h "$F" error))"
@@ -357,6 +360,7 @@ rr "$R/sonda-concurrencia.txt" FASE=concurrencia "DIR=$RC" -- "$SONDA" </dev/nul
 # 4.10, al final: deja en contacts una restricción que solo toca los nombres SINT-LOG-<esta cuenta>.
 rr "$R/sonda-log-postgres.txt" FASE=log-postgres "DIR=$RC" -- "$SONDA" </dev/null
 mover rechazo-log
+mover rechazo-show
 mover rechazo-sin-super
 dc "${BASE[@]}" logs --no-color --no-log-prefix postgres >"$R.postgres.log" 2>&1
 comprobar "$R"
@@ -510,6 +514,9 @@ if [ "$MUTANTES" = 1 ]; then
     "'log_min_error_statement' => 'panic'" "'log_min_error_statement' => 'error'"
   mutante M37 "sin bajar log_error_verbosity (sale la fila)" "L2" "C1 L1 L3" \
     "'log_error_verbosity' => 'terse'" "'log_error_verbosity' => 'default'"
+  # M39 (revisión del DG de la #470): sin la comparación del SHOW, un parámetro que no se aplicó pasaría.
+  mutante M39 "sin comparar el SHOW" "L4" "C1 L1 L2 L3"     "      raise 'no_se_puede_bajar_el_detalle_del_log' unless conexion.select_value(\"SHOW #{parametro}\") == valor
+" ""
   mutante M38 "si no puede fijarlos, sigue" "L3" "C1 L1 L2" \
     "  rescue ActiveRecord::StatementInvalid
     raise 'no_se_puede_bajar_el_detalle_del_log'
