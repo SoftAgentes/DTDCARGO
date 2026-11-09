@@ -36,7 +36,17 @@ const DESC =
 // Sale con la tanda D. Esta fecha lleva el día de publicar: si no sale el 5, se mueve.
 // Si `KOMMO_PUSH_DRY_RUN` pasa a "false", el proveedor recibe además cédula o RIF y
 // este texto ya no alcanza: eso vuelve a Sam antes de cambiar ese valor.
-const UPDATED = "5 de noviembre de 2026";
+// El 2026-11-06 Sam aprobó, por el Director General, el párrafo «Mensajería interna
+// del equipo» de §4 y la frase final del primer párrafo de §5 (SDD-0606 avisos a
+// Discord y SDD-0608 `/cliente`). Los avisos y `/cliente` no se encienden hasta que
+// esto esté publicado. Esta fecha lleva el día de publicar: si no sale el 6, se mueve.
+// El 2026-11-07 (04:48Z) Sam aprobó, por el Director General, los textos T1 a T4 de la
+// 10.5 (SDD-0586 §10.5.12), palabra por palabra: «Apruebo los cuatro». T2 cierra la fila
+// «Portal del Cliente» y T3 amplía la finalidad «Gestionar tu cuenta», porque el chat de
+// Soporte del portal pasa a leerse y responderse en nuestro propio sistema de atención.
+// Ese chat no se conecta hasta que esto esté publicado (E10-D42). Si cambia una palabra,
+// se le vuelve a preguntar. Esta fecha lleva el día de publicar: si no sale el 8, se mueve.
+const UPDATED = "8 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -73,7 +83,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Portal del Cliente",
-    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo.",
+    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo. Todos los mensajes del chat de Soporte, con tu nombre, quedan también en nuestro propio sistema de atención, alojado en nuestro servidor, donde nuestro equipo los lee y te responde.",
   ],
   [
     "Seguimiento de envío",
@@ -205,7 +215,10 @@ export default function PrivacidadPage() {
                   elijas a su nombre. Esos datos quedan en cada factura emitida.
                 </li>
                 <li>
-                  <strong>Gestionar tu cuenta</strong> en el Portal del Cliente.
+                  <strong>Gestionar tu cuenta</strong> en el Portal del Cliente y
+                  atender lo que nos escribes por su chat de Soporte: saber si ya
+                  eres cliente para que te atienda el equipo que corresponde y
+                  darle seguimiento a tu consulta.
                 </li>
                 <li>
                   <strong>Cumplir obligaciones</strong> administrativas, contables
@@ -292,6 +305,26 @@ export default function PrivacidadPage() {
                   <strong>Autoridades</strong>, únicamente cuando la ley lo exija.
                 </li>
               </ul>
+              {/* SDD-0606 y SDD-0608 · texto exacto aprobado por Sam el 2026-11-06.
+                  Ese mismo día, al sumar la búsqueda por código a /cliente, Sam
+                  aprobó cambiar «por su nombre» por «por su nombre o por su
+                  Shipping Mark» («Sí, cámbialo»).
+                  Va fuera de la lista: la lista promete «obligación de
+                  confidencialidad» y con esta herramienta no hay contrato que la
+                  respalde. Si cambia una palabra, se le vuelve a preguntar. */}
+              <p className={P}>
+                <strong>Mensajería interna del equipo.</strong> Nuestro equipo
+                usa una herramienta de mensajería con servidores en Estados
+                Unidos. Ahí recibe avisos internos con tu Shipping Mark y un
+                enlace a nuestro sistema, sin tu nombre ni tus datos de contacto.
+                Cuando alguien del equipo con permiso para ver clientes busca un
+                cliente por su nombre o por su Shipping Mark, la herramienta le
+                muestra solo a esa persona el nombre y el Shipping Mark de los
+                clientes que
+                coinciden. Tus datos de contacto, tus envíos y tus pagos se
+                consultan solo en nuestro sistema. Esa herramienta se rige por
+                sus propios términos de servicio.
+              </p>
               <p className={P}>
                 No compartimos la información de tu Portal con plataformas de
                 publicidad. La analítica del sitio y tus datos de cliente están{" "}
@@ -312,7 +345,9 @@ export default function PrivacidadPage() {
                 abrirlas. Mientras terminamos ese cambio, lo que pasa por ese
                 proveedor también se guarda en sus servidores y en los de quienes
                 le prestan servicio, que pueden estar en Estados Unidos o en otros
-                países.
+                países. El nombre y el Shipping Mark que ve nuestro equipo en su
+                herramienta de mensajería interna también pasan por servidores en
+                Estados Unidos.
               </p>
               <p className={P}>
                 Nuestro equipo en China trabaja con tu{" "}

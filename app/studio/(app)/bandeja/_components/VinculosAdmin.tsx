@@ -160,6 +160,7 @@ export function VinculosAdmin({
   return (
     <section
       aria-labelledby="bandeja-vinculos"
+      data-guia="usuarios.acceso-bandeja"
       style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "var(--s-6)", display: "flex", flexDirection: "column", gap: "var(--s-4)" }}
     >
       <div>

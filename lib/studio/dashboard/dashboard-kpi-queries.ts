@@ -241,6 +241,8 @@ export async function nominaKpis(supabase: SupabaseClient): Promise<NominaKpis> 
 }
 
 // ── Leads (Kommo) ─────────────────────────────────────────────
+// SDD-0614 S0b: sin llamada. El KPI `newLeads` está oculto en el catálogo, así
+// que la página no pide la fuente «leads». Se conserva hasta 8.7.
 export async function leadsKpi(supabase: SupabaseClient): Promise<KpiValue> {
   const { count, error } = await supabase
     .from("kommo_leads")

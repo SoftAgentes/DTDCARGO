@@ -21,8 +21,11 @@ import { useT } from "@/lib/i18n";
 import type { I18nKey } from "@/lib/i18n/dict";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { origenDe, usePuenteChatwoot } from "@/app/studio/_components/guia/usePuenteChatwoot";
 import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode } from "../actions";
 import { VinculosAdmin, type MiembroOpcion, type VinculoFila } from "./VinculosAdmin";
+import { PortalChatwoot } from "./PortalChatwoot";
+import type { ResumenPortal } from "@/lib/studio/chatwoot/portal";
 import type { EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 import type { SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
 
@@ -34,7 +37,14 @@ interface Props {
   inicioUrl: string | null;
   /** `?c=N`: conversación a abrir (E2-D24). */
   conversacion?: number | null;
-  admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados?: EventoDescartado[]; salud?: SaludBandeja | null } | null;
+  admin: {
+    vinculos: VinculoFila[];
+    miembros: MiembroOpcion[];
+    descartados?: EventoDescartado[];
+    salud?: SaludBandeja | null;
+    /** SDD-0586 (10.5, PR 1b): la ida del chat del portal; null sin la bandeja del portal configurada. */
+    portal?: ResumenPortal | null;
+  } | null;
 }
 
 type Fase = { tipo: "pidiendo" } | { tipo: "abriendo" } | { tipo: "abierto" } | { tipo: "error"; codigo: BandejaErrorCode };
@@ -45,6 +55,10 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   const [fase, setFase] = useState<Fase>(inicioUrl ? { tipo: "abriendo" } : { tipo: "pidiendo" });
   const pidioAlMontar = useRef(false);
   const reconcilio = useRef(false);
+  // Guía dentro del panel (SDD-0589, 9.4): el marco es el ancla de respaldo y el
+  // puente le pregunta al script del panel dónde está cada ancla de Chatwoot.
+  const marcoRef = useRef<HTMLIFrameElement | null>(null);
+  usePuenteChatwoot(marcoRef, origenDe(panelUrl));
 
   const pedir = useCallback(async () => {
     setFase({ tipo: "pidiendo" });
@@ -136,6 +150,8 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
           {src ? (
             <iframe
               key={src}
+              ref={marcoRef}
+              data-guia="bandeja.marco"
               src={src}
               title={t("bandeja.frame.title")}
               allow="microphone"
@@ -155,6 +171,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
       )}
 
       {admin ? <VinculosAdmin vinculos={admin.vinculos} miembros={admin.miembros} salud={admin.salud} /> : null}
+      {admin?.portal ? <PortalChatwoot resumen={admin.portal} /> : null}
       {admin?.descartados?.length ? (
         <section
           aria-labelledby="bandeja-descartados"

@@ -31,7 +31,8 @@ import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
 import { Suspense } from "react";
 import { DeniedToast } from "./_components/DeniedToast";
-import { GuiaMotor } from "../_components/guia/GuiaMotor";
+import { GuiaStudio } from "../_components/guia/GuiaStudio";
+import { leerEstadoGuia } from "@/lib/studio/guia/estado-queries";
 
 export default async function StudioAppLayout({
   children,
@@ -145,6 +146,7 @@ export default async function StudioAppLayout({
     initialUnreadConversations,
     roleModuleOverrides,
     bandejaNoLeidas,
+    estadoGuia,
   ] = await Promise.all([
     listFeatureFlags(supabase),
     countActiveAlerts(supabase),
@@ -166,6 +168,9 @@ export default async function StudioAppLayout({
     tenantLink?.tenant_id
       ? listNoLeidasBandeja(supabase, tenantLink.tenant_id).catch(() => [] as ConversacionNoLeida[])
       : Promise.resolve([] as ConversacionNoLeida[]),
+    // Estado de la guía por usuario (SDD-0589, 9.3). Nunca lanza: sin la 0517
+    // devuelve null y la guía sigue como en 9.2.
+    leerEstadoGuia(supabase, user.id),
   ]);
 
   return (
@@ -229,9 +234,9 @@ export default async function StudioAppLayout({
           <Suspense fallback={null}>
             <DeniedToast />
           </Suspense>
-          {/* Guía «Antes en Kommo → Ahora aquí» · SDD-0589 (9.2). */}
+          {/* Guía «Antes en Kommo → Ahora aquí» · SDD-0589 (9.2 a 9.5). */}
           <Suspense fallback={null}>
-            <GuiaMotor />
+            <GuiaStudio estadoInicial={estadoGuia} rol={role} />
           </Suspense>
         </WiringProvider>
       </ToastProvider>

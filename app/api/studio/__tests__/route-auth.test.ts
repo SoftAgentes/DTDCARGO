@@ -12,6 +12,12 @@ const mocks = vi.hoisted(() => ({
   listMessages: vi.fn(),
   getClientContext: vi.fn(),
   listClientConversationDigests: vi.fn(),
+  // SDD-0586 1c-1: el detalle del hilo del portal lee `chatwoot_portal_hilos` con service_role.
+  adminFrom: vi.fn(),
+}));
+
+vi.mock("@/lib/db/admin", () => ({
+  createAdminClient: () => ({ from: mocks.adminFrom }),
 }));
 
 vi.mock("@/lib/db/server", () => ({
@@ -82,6 +88,10 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
     mocks.listMessages.mockReset();
     mocks.getClientContext.mockReset();
     mocks.listClientConversationDigests.mockReset();
+    mocks.adminFrom.mockReset();
+    mocks.adminFrom.mockImplementation(() => {
+      throw new Error("service_role no debe usarse fuera de un hilo del portal visible");
+    });
     mocks.authorizeAttachmentDownload.mockReset();
     mocks.authorizeAttachmentDownload.mockResolvedValue("https://files.example.test/clean");
   });
@@ -187,7 +197,7 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
       eq: () => chain,
       is: () => chain,
       maybeSingle: async () => ({
-        data: { id: "conversation-1", client_id: "client-1" },
+        data: { id: "conversation-1", client_id: "client-1", channel: "email", tenant_id: "tenant-1" },
         error: null,
       }),
     };
@@ -201,11 +211,16 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
     });
 
     expect(response.status).toBe(200);
+    // SDD-0586 1c-1: `bandeja` (el número de la conversación en Chatwoot) solo
+    // existe para un hilo del portal; en cualquier otro canal es null y no se
+    // toca service_role.
     await expect(response.json()).resolves.toEqual({
       messages: [{ id: "message-1" }],
       context: { markbox: "DTD-0001" },
       digests: [],
+      bandeja: null,
     });
+    expect(mocks.adminFrom).not.toHaveBeenCalled();
     // SDD-0558: el saldo se pide por el CLIENTE del hilo (leído bajo RLS), no
     // por el id del hilo; el hilo va aparte para la fachada de 0412.
     expect(mocks.getClientContext).toHaveBeenCalledWith(
@@ -213,6 +228,54 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
       "client-1",
       "conversation-1",
     );
+  });
+
+  it("un hilo del portal visible trae el número de su conversación en Chatwoot (SDD-0586 1c-1)", async () => {
+    mocks.user = { id: "user-1" };
+    const chain: Record<string, unknown> = {
+      select: () => chain,
+      eq: () => chain,
+      is: () => chain,
+      maybeSingle: async () => ({
+        data: { id: "conversation-1", client_id: "client-1", channel: "portal", tenant_id: "tenant-1" },
+        error: null,
+      }),
+    };
+    mocks.from.mockReturnValue(chain);
+    const filtros: [string, unknown][] = [];
+    const tablas: string[] = [];
+    mocks.adminFrom.mockImplementation((tabla: string) => {
+      tablas.push(tabla);
+      const q: Record<string, unknown> = {
+        select: () => q,
+        eq: (col: string, val: unknown) => {
+          filtros.push([col, val]);
+          return q;
+        },
+        maybeSingle: async () => ({ data: { chatwoot_conversation_id: 12 }, error: null }),
+      };
+      return q;
+    });
+    mocks.listMessages.mockResolvedValue([{ id: "message-1" }]);
+    mocks.getClientContext.mockResolvedValue({ markbox: "DTD-0001" });
+    mocks.listClientConversationDigests.mockResolvedValue([]);
+
+    const response = await getConversation({} as Request, {
+      params: Promise.resolve({ id: "conversation-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      messages: [{ id: "message-1" }],
+      context: { markbox: "DTD-0001" },
+      digests: [],
+      bandeja: 12,
+    });
+    expect(tablas).toEqual(["chatwoot_portal_hilos"]);
+    expect(filtros).toEqual([
+      ["conversation_id", "conversation-1"],
+      ["tenant_id", "tenant-1"],
+    ]);
   });
 
   it("preserva la descarga de un adjunto limpio para Expenses", async () => {

@@ -1,0 +1,79 @@
+#!/bin/bash
+# dtd-agente-run · SDD-0564 fase B y SDD-0615. Lo llama sudo desde dtd-hermes (como agentes-run) y desde
+# dtd-motor (como agentes-alfred para Claude y agentes-auxiliar para Codex).
+# Entorno: sudo ya lo limpió (env_reset) y solo dejó las PAPERCLIP_ nombradas en el sudoers,
+# HERMES_EPHEMERAL_SYSTEM_PROMPT, DTD_PERFIL, CLAUDE_CODE_OAUTH_TOKEN, TERM y LANG/LC_*.
+set -euo pipefail
+umask 007
+herramienta="${1:-}"; shift || true
+perfil="${DTD_PERFIL:-}"
+yo="$(id -un)"
+# Cada herramienta, con su perfil y su usuario. Fuera de esta tabla no corre nada.
+case "$herramienta:$perfil:$yo" in
+  claude:ceo:agentes-alfred | codex:auxiliar:agentes-auxiliar) casa="/home/$yo" ;;
+  hermes:*:agentes-run | opencode:*:agentes-run) casa=/home/agentes-run ;;
+  *) echo "dtd-agente-run: herramienta, perfil o usuario no permitido" >&2; exit 64 ;;
+esac
+export HOME="$casa" SHELL=/bin/bash
+export PATH=/opt/agentes-cli/bin:/usr/local/bin:/usr/bin:/bin
+export CODEX_HOME="$casa/.codex"
+export CLAUDE_CONFIG_DIR="$casa/.claude"
+export DISABLE_TELEMETRY=1 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+export XDG_CONFIG_HOME="$casa/.config" XDG_DATA_HOME="$casa/.local/share"
+export XDG_CACHE_HOME="$casa/.cache" XDG_STATE_HOME="$casa/.local/state"
+export OPENCODE_DISABLE_PROJECT_CONFIG=true OPENCODE_DISABLE_AUTOUPDATE=true
+# Nunca se cobra por API: los motores nuevos usan la suscripción.
+unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY
+# El token de la suscripción de Claude solo lo recibe Claude.
+[ "$herramienta" = claude ] || unset CLAUDE_CODE_OAUTH_TOKEN
+# Las instrucciones que Paperclip 1023+ manda a Hermes solo las recibe Hermes.
+[ "$herramienta" = hermes ] || unset HERMES_EPHEMERAL_SYSTEM_PROMPT
+
+# Los motores de suscripción trabajan fuera de /srv/oficina/trabajo, que escribe agentes-run: Claude y
+# Codex cargan de su carpeta hooks, MCP e instrucciones (.claude/, .mcp.json, CLAUDE.md, .codex/,
+# AGENTS.md) y los correrían con el token de Sam. Antes de arrancar se comprueba que nadie más que el
+# usuario del motor o root pueda escribir la carpeta, lo que carga de ella ni sus padres.
+MOTORES=/srv/oficina/motores
+TOPE=/
+DUENO_SEGURO=0
+ajeno() { # imprime algo si $1 lo puede escribir alguien que no es el dueño, o el dueño no sirve
+  find "$1" -maxdepth 0 \( -perm /022 -o ! \( -uid "$2" -o -uid "$DUENO_SEGURO" \) \) -print
+}
+# find no sigue el enlace de partida: un enlace tiene permisos 777, así que -perm /022 ya lo marca,
+# sea la carpeta o un archivo de configuración.
+carpeta_segura() {
+  local d="$1" yo_uid p rel
+  yo_uid="$(id -u)"
+  [ -d "$d" ] || return 1
+  [ -z "$(ajeno "$d" "$yo_uid")" ] || return 1
+  for rel in .claude .mcp.json CLAUDE.md CLAUDE.local.md .codex AGENTS.md AGENTS.override.md; do
+    [ -e "$d/$rel" ] || [ -L "$d/$rel" ] || continue
+    [ -z "$(find "$d/$rel" \( -perm /022 -o ! \( -uid "$yo_uid" -o -uid "$DUENO_SEGURO" \) \) -print -quit)" ] || return 1
+  done
+  p="$d"
+  while [ "$p" != "$TOPE" ] && [ "$p" != / ]; do
+    p="$(dirname -- "$p")"
+    [ -z "$(ajeno "$p" "$DUENO_SEGURO")" ] || return 1
+  done
+}
+motor_en() {
+  carpeta_segura "$1" || { echo "dtd-agente-run: carpeta de trabajo insegura o ausente: $1" >&2; exit 66; }
+  cd -- "$1"
+}
+
+case "$herramienta" in
+  codex)
+    motor_en "$MOTORES/auxiliar"
+    exec /opt/agentes-cli/bin/codex "$@" ;;
+  claude)
+    motor_en "$MOTORES/ceo"
+    exec /opt/agentes-cli/bin/claude "$@" ;;
+  opencode)
+    exec /opt/agentes-cli/bin/opencode "$@" ;;
+  hermes)
+    case "$perfil" in ceo|gabinete|ingenieria|contenido|prueba|director|asesor|operaciones|crm|community|revisor|director-contenido|seo|tiktok|youtube) ;; *) echo "dtd-agente-run: perfil de Hermes no permitido" >&2; exit 64 ;; esac
+    export HERMES_HOME="/home/agentes-run/.hermes/profiles/$perfil"
+    if [ "$perfil" = director ] && [ -r "$HERMES_HOME/paperclip.env" ]; then set -a; . "$HERMES_HOME/paperclip.env"; set +a; fi
+    export PATH="/opt/hermes/tools/node-26.7.0-linux-x64/bin:/opt/hermes/tools/ripgrep-15.2.0-linux-x64/bin:$PATH"
+    exec /opt/hermes/bin/hermes "$@" ;;
+esac

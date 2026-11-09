@@ -1,0 +1,171 @@
+#!/bin/bash
+# dtd-motor · SDD-0615. Lo llaman dtd-claude y dtd-codex como el usuario agentes (Paperclip).
+# Cada motor nuevo corre con su propio usuario de Linux (agentes-alfred, agentes-auxiliar), aparte de
+# agentes-run, para que los agentes GLM no puedan leer sus credenciales. Los procesos sí se ven con ps:
+# /proc no se monta con hidepid.
+# Copia lo que Paperclip pasa como rutas de su instancia (que esos usuarios no pueden leer) a una
+# carpeta que solo lee el usuario del motor. Solo copia las subrutas que Paperclip usa para eso, ya
+# resueltas (sin .. ni enlaces que salgan de ellas). No lee ni imprime credenciales.
+set -euo pipefail
+umask 027
+
+RAIZ_STAGING=/srv/oficina/staging
+PROTEGIDO=/home/agentes/
+AGENTE_RUN=/usr/local/libexec/dtd-agente-run
+SUDO=(sudo -n -u)
+ACL=(setfacl)
+TRABAJO=/srv/oficina/trabajo
+MOTORES=/srv/oficina/motores
+MINUTOS_VIDA=180
+
+herramienta="${1:-}"
+shift || true
+perfil="${DTD_PERFIL:-}"
+
+# Lista cerrada: cada motor nuevo tiene un solo perfil y un solo usuario.
+case "$herramienta:$perfil" in
+  claude:ceo) usuario=agentes-alfred ;;
+  codex:auxiliar) usuario=agentes-auxiliar ;;
+  *) echo "dtd-motor: herramienta o perfil no permitido" >&2; exit 64 ;;
+esac
+
+# La carpeta del perfil la crea la instalación: agentes, grupo del usuario del motor, 750.
+base="$RAIZ_STAGING/$perfil"
+[ -d "$base" ] || { echo "dtd-motor: falta $base" >&2; exit 65; }
+
+# Prefijos ya resueltos, para comparar contra rutas resueltas.
+protegido_real="$(realpath -m -- "$PROTEGIDO")/"
+trabajo_real="$(realpath -m -- "$TRABAJO")"
+
+# Ningún argumento puede llevar al motor a la carpeta de los GLM: Claude cargaría de ahí hooks,
+# settings o skills (--settings, --add-dir, --plugin-dir...) con el token de Sam. Cada argumento se
+# resuelve como lo haría el motor: si es relativo, desde su carpeta de trabajo (dtd-agente-run lo
+# lleva a $MOTORES/<perfil>). Exista o no: una ruta creada después también cuenta.
+de_los_glm() {
+  local ruta="$1" real
+  case "$ruta" in
+    /*) ;;
+    # Solo en Git Bash (pruebas en Windows) una ruta C:/... es absoluta; en Linux es relativa.
+    [A-Za-z]:/*) case "${OSTYPE:-}" in msys*|cygwin*) ;; *) ruta="$MOTORES/$perfil/$ruta" ;; esac ;;
+    *) ruta="$MOTORES/$perfil/$ruta" ;;
+  esac
+  real="$(realpath -m -- "$ruta")"
+  case "$real" in
+    "$trabajo_real"|"$trabajo_real"/*) return 0 ;;
+  esac
+  return 1
+}
+
+# Lo único que se copia, relativo a la casa de agentes (Paperclip 2026.1012.0, medido el 2026-11-07):
+# - el paquete de instrucciones y skills de Claude: companies/<id>/claude-prompt-cache/<sha>;
+# - las instrucciones del agente: companies/<id>/agents/<id>/instructions;
+# - las skills a las que apuntan sus enlaces: las de la instancia y las que trae la instalación.
+permitida() {
+  local real="$1" resto
+  case "$real" in
+    "$protegido_real"*) resto="${real#"$protegido_real"}" ;;
+    *) return 1 ;;
+  esac
+  [[ "$resto" =~ ^\.paperclip/instances/default/companies/[^/]+/(claude-prompt-cache/[^/]+|agents/[^/]+/instructions)(/.*)?$ ]] && return 0
+  [[ "$resto" =~ ^\.paperclip/instances/default/skills/[^/]+(/.*)?$ ]] && return 0
+  [[ "$resto" =~ ^\.paperclip/cli/installs/npm/[^/]+/node_modules/@paperclipai/(server/skills|skills-catalog)/[^/]+(/.*)?$ ]] && return 0
+  return 1
+}
+
+# Una ruta protegida solo se copia si ella y todo lo que alcanza (también por enlaces) está en la lista.
+revisar() {
+  local origen="$1" real entrada destino_real
+  real="$(realpath -e -- "$origen")" || return 1
+  permitida "$real" || return 1
+  if [ -d "$real" ]; then
+    # Todo lo que cp -L va a leer, resuelto: un enlace roto, a un secreto o fuera de la casa corta.
+    while IFS= read -r -d '' entrada; do
+      destino_real="$(realpath -e -- "$entrada")" || return 1
+      permitida "$destino_real" || return 1
+    done < <(find -L "$real" -mindepth 1 -print0 2>/dev/null)
+  fi
+  return 0
+}
+
+protegida() {
+  case "$1" in
+    "$PROTEGIDO"*|"${PROTEGIDO%/}") [ -e "$1" ] ;;
+    *) return 1 ;;
+  esac
+}
+
+# Primero se revisan todas las rutas que se van a copiar (las de --mcp-config se descartan abajo):
+# si una no está en la lista, no se copia nada y el motor no corre.
+pendientes=("$@")
+i=0
+while [ "$i" -lt "${#pendientes[@]}" ]; do
+  a="${pendientes[$i]}"
+  i=$((i + 1))
+  case "$a" in
+    --mcp-config) i=$((i + 1)); continue ;;
+    --mcp-config=*) continue ;;
+    --*=*) candidato="${a#*=}" ;;
+    *) candidato="$a" ;;
+  esac
+  if protegida "$candidato" && ! revisar "$candidato"; then
+    echo "dtd-motor: ruta protegida fuera de la lista: $candidato" >&2
+    exit 66
+  fi
+  if de_los_glm "$candidato"; then
+    echo "dtd-motor: ruta en la carpeta de los GLM: $candidato" >&2
+    exit 66
+  fi
+done
+
+# Corridas viejas: se borran al empezar la siguiente (el exec no deja limpiar al final).
+find "$base" -mindepth 1 -maxdepth 1 -type d -name 'run.*' -mmin +"$MINUTOS_VIDA" -exec rm -rf -- {} + 2>/dev/null || true
+corrida="$(mktemp -d "$base/run.XXXXXXXX")"
+chmod 750 -- "$corrida"
+# agentes no es miembro del grupo del motor: lo que copia queda con el grupo agentes. Por eso la
+# lectura del usuario del motor se da con una ACL explícita.
+"${ACL[@]}" -m "u:$usuario:rX" -- "$corrida"
+
+n=0
+copiar() {
+  local origen="$1" destino
+  n=$((n + 1))
+  destino="$corrida/$n-$(basename -- "$origen")"
+  # -L: las skills de Paperclip son enlaces a su instalación; se copian los archivos reales,
+  # ya revisados contra la lista.
+  cp -RL -- "$(realpath -e -- "$origen")" "$destino"
+  chmod -R u+rwX,g+rX,g-w,o-rwx -- "$destino"
+  "${ACL[@]}" -R -m "u:$usuario:rX" -- "$destino"
+  RESULTADO="$destino"
+}
+
+args=()
+while [ $# -gt 0 ]; do
+  a="$1"
+  shift
+  case "$a" in
+    # El servidor MCP de Paperclip vive en su instalación y el usuario del motor no lo puede ejecutar.
+    # El agente usa la API con curl y la skill paperclip; --strict-mcp-config se conserva.
+    --mcp-config)
+      [ $# -gt 0 ] && shift
+      continue
+      ;;
+    --mcp-config=*) continue ;;
+    --*=*)
+      clave="${a%%=*}"
+      valor="${a#*=}"
+      if protegida "$valor"; then
+        copiar "$valor"
+        a="$clave=$RESULTADO"
+      fi
+      ;;
+    *)
+      if protegida "$a"; then
+        copiar "$a"
+        a="$RESULTADO"
+      fi
+      ;;
+  esac
+  args+=("$a")
+done
+
+exec "${SUDO[@]}" "$usuario" "$AGENTE_RUN" "$herramienta" "${args[@]}"

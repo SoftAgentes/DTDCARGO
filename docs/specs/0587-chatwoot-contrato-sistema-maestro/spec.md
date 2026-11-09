@@ -105,6 +105,8 @@ Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [fila 6.1](.
 
 La etapa 6 es nueva: Kommo daba el lead por ganado al aceptar el estimado, pero con la regla de 0.8 la persona no es cliente hasta tener carga.
 
+> **Enmienda del 2026-11-06** (Sam, en el chat del Director General): la etapa 3 se llama **«Recontacto»**, con la misma clave `registrado_recontacto`. «Con código» deja de ser etapa: se ve como tipo de lead en la tarjeta («Interesado» o «Interesado con código»). Entra también el lead que escribe después de 30 días callado; si ya va por la etapa 4 o más adelante, no retrocede y recibe solo una marca y una tarea. Diseño en la [SDD-0614 §2.9](../0614-crm-reemplazos-kommo/spec.md), sin aplicar.
+
 ### 4.4 Tablero Clientes (etapas propuestas, decisión D2)
 
 El estado operativo (en almacén, en tránsito, en aduana, entregado) **no se repite como etapa**: ya lo tiene el envío del ERP y la tarjeta lo muestra como insignia. El tablero sigue la relación comercial, como el bucle de recompra de [`embudo-ventas.md` §5](../../marketing/embudo-ventas.md).
@@ -243,6 +245,8 @@ Studio **no** escribe en Chatwoot nombres, teléfonos, códigos ni notas. La Fic
 | D9 | Asesor | (a) Dueño de la tarjeta separado del asignado del chat, con valor inicial (§5.4) · (b) sincronizarlos siempre | **(a)**: evita un ida y vuelta de eventos y conflictos |
 | D10 | Análisis de llamadas con IA (widget NOVA) | (a) Sin reemplazo · (b) buscar uno | **(a)**: Chatwoot no maneja llamadas en el alcance del 100 % |
 
+> **Enmienda de D6 del 2026-11-06** (Sam, en el chat del Director General): la tarjeta del lead sin ficha guarda también el **teléfono completo**, para Recuperación (D-6.6-8 = b), y la anonimización a los 12 meses sin actividad alcanza a toda tarjeta de quien no es cliente, en cualquier etapa, no solo en «Perdido» (D-6.6-9 = a). Con ficha no se copia nada, como antes. Diseño, migración propia y textos de `/privacidad` en la [SDD-0614 §2.10, §6.1 y §14](../0614-crm-reemplazos-kommo/spec.md). Nada de eso está aplicado ni publicado.
+
 ### Lecturas vivas propuestas (no se hicieron)
 
 El «si» de Sam cubre D1–D10, **no** estas lecturas: cada una sigue pidiendo su OK. L3 hace falta antes de aplicar D7 en 6.4, y L1 confirma D4 antes de 6.5.
@@ -325,6 +329,8 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `.agents/handoffs/0587-privacidad-proveedor-crm.md`
 
 Los pasos 6.5 en adelante suman aquí su allowlist al empezar.
+
+**6.6** vive en su propia SDD, la [0614](../0614-crm-reemplazos-kommo/spec.md), por asignación del Director General (2026-11-06): su diseño y su allowlist están allí, y este contrato sigue mandando.
 
 ## 11. Aceptación de 6.1
 

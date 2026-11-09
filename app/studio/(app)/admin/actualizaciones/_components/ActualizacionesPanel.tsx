@@ -229,7 +229,10 @@ export function ActualizacionesPanel({ revision, pedidos, analisis = null }: Pro
             <BotonRevisar variante="ghost" onError={setError} />
           </div>
 
-          <dl style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--s-4)", margin: 0 }}>
+          <dl
+            data-guia="actualizaciones.version"
+            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--s-4)", margin: 0 }}
+          >
             <div>
               <dt style={etiqueta}>Instalada</dt>
               <dd style={{ margin: 0, font: "600 20px/1.2 var(--f-mono)", color: "var(--ink)" }}>{revision.instalada ?? "—"}</dd>
@@ -266,23 +269,25 @@ export function ActualizacionesPanel({ revision, pedidos, analisis = null }: Pro
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-3)", alignItems: "center", justifyContent: "flex-end" }}>
             {(!analisis || analisis.motor === "sin_ia") && (
-              <ActionButton
-                variant="ghost"
-                size="sm"
-                idleLabel={analisis ? "Intentar con IA otra vez" : "Analizar con IA"}
-                loadingLabel="Analizando…"
-                successLabel="Analizado"
-                successIcon={Icon.check(14)}
-                onAction={async () => {
-                  setError(null);
-                  const fd = new FormData();
-                  fd.set("from_version", revision.instalada ?? "");
-                  fd.set("to_version", revision.disponible ?? "");
-                  return aResultado(await analizarConIa(INICIAL, fd));
-                }}
-                onSuccess={() => toast.success("Análisis listo. Es un informe: no se instaló nada.")}
-                onError={setError}
-              />
+              <span data-guia="actualizaciones.analizar" style={{ display: "inline-flex" }}>
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  idleLabel={analisis ? "Intentar con IA otra vez" : "Analizar con IA"}
+                  loadingLabel="Analizando…"
+                  successLabel="Analizado"
+                  successIcon={Icon.check(14)}
+                  onAction={async () => {
+                    setError(null);
+                    const fd = new FormData();
+                    fd.set("from_version", revision.instalada ?? "");
+                    fd.set("to_version", revision.disponible ?? "");
+                    return aResultado(await analizarConIa(INICIAL, fd));
+                  }}
+                  onSuccess={() => toast.success("Análisis listo. Es un informe: no se instaló nada.")}
+                  onError={setError}
+                />
+              </span>
             )}
             {yaPedida ? (
               <p style={{ ...cuerpo, display: "flex", gap: "var(--s-2)", alignItems: "center", color: "var(--ink)" }}>
@@ -290,22 +295,24 @@ export function ActualizacionesPanel({ revision, pedidos, analisis = null }: Pro
                 Pedida el {yaPedida.pedidoTexto} {yaPedida.propio ? "por ti" : "por otro administrador"}.
               </p>
             ) : (
-              <ActionButton
-                variant="primary"
-                size="sm"
-                idleLabel={`Pedir actualización a ${revision.disponible}`}
-                loadingLabel="Pidiendo…"
-                successLabel="Pedida"
-                successIcon={Icon.check(14)}
-                onAction={async () => {
-                  setError(null);
-                  const fd = new FormData();
-                  fd.set("to_version", revision.disponible ?? "");
-                  return aResultado(await pedirActualizacion(INICIAL, fd));
-                }}
-                onSuccess={() => toast.success(`Actualización a ${revision.disponible} pedida. Queda registrada; no se instaló nada.`)}
-                onError={setError}
-              />
+              <span data-guia="actualizaciones.pedir" style={{ display: "inline-flex" }}>
+                <ActionButton
+                  variant="primary"
+                  size="sm"
+                  idleLabel={`Pedir actualización a ${revision.disponible}`}
+                  loadingLabel="Pidiendo…"
+                  successLabel="Pedida"
+                  successIcon={Icon.check(14)}
+                  onAction={async () => {
+                    setError(null);
+                    const fd = new FormData();
+                    fd.set("to_version", revision.disponible ?? "");
+                    return aResultado(await pedirActualizacion(INICIAL, fd));
+                  }}
+                  onSuccess={() => toast.success(`Actualización a ${revision.disponible} pedida. Queda registrada; no se instaló nada.`)}
+                  onError={setError}
+                />
+              </span>
             )}
           </div>
           {analisis && <InformeAnalisis analisis={analisis} />}

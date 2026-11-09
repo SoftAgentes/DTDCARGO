@@ -17,6 +17,8 @@ import { useActionState, useEffect, useState, useTransition, type CSSProperties,
 import { useRouter } from "next/navigation";
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import {
+  getMyDiscordUserIdAction,
+  saveMyDiscordUserIdAction,
   linkTelegramAccountAction,
   unlinkTelegramAccountAction,
   updateMyPreferencesAction,
@@ -686,6 +688,9 @@ function PrefsTabContent({
         initialUsername={initialData.telegramUsername}
         botUsername={initialData.telegramBotUsername}
       />
+
+      {/* Discord · ID para las menciones en los canales de avisos (SDD-0606) */}
+      <DiscordSection />
 
       {/* Notificaciones · canales + eventos (SDD-0036 Fase 5) */}
       <div
@@ -1642,6 +1647,198 @@ function Footer({
         Cancelar
       </button>
       {primary}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Discord section (sub-component de Preferencias) · SDD-0606
+//
+// En Discord no hay chat privado: los avisos por persona son una mención en el
+// canal. Acá cada quien pega su ID de usuario de Discord. Se lee al abrir (no
+// viaja en el layout) para no depender de que la columna ya exista.
+// ─────────────────────────────────────────────────────────────
+
+function DiscordSection() {
+  const [loaded, setLoaded] = useState(false);
+  const [disponible, setDisponible] = useState(true);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const [pending, startSaving] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    getMyDiscordUserIdAction()
+      .then((res) => {
+        if (cancelled) return;
+        setDisponible(res.disponible);
+        setSaved(res.discordUserId);
+        setValue(res.discordUserId ?? "");
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDisponible(false);
+        setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const linked = !!saved;
+  const dirty = value.trim() !== (saved ?? "");
+
+  const save = (next: string) => {
+    setError(null);
+    setJustSaved(false);
+    startSaving(async () => {
+      const fd = new FormData();
+      fd.set("discord_user_id", next);
+      const res = await saveMyDiscordUserIdAction(fd);
+      if (!res.ok) {
+        setError(res.error ?? "No se pudo guardar.");
+        return;
+      }
+      setSaved(res.discordUserId ?? null);
+      setValue(res.discordUserId ?? "");
+      setJustSaved(true);
+    });
+  };
+
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        background: "var(--bg-elevated)",
+        borderRadius: 7,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ font: "600 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+            Menciones en Discord
+          </div>
+          <div
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 2,
+            }}
+          >
+            Los avisos que son para ti te mencionan en el canal del equipo. Sin tu
+            ID, el aviso no te suena.
+          </div>
+        </div>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            height: 20,
+            padding: "0 8px",
+            background: linked ? "var(--success-bg)" : "var(--bg-base)",
+            color: linked ? "var(--success)" : "var(--ink-soft)",
+            borderRadius: 4,
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {!loaded ? "cargando…" : linked ? "enlazado" : "sin enlazar"}
+        </span>
+      </div>
+
+      {loaded && !disponible ? (
+        <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
+          Todavía no se puede guardar el ID desde aquí. Se activa cuando el
+          administrador termine de preparar Discord.
+        </div>
+      ) : (
+        <>
+          <label
+            htmlFor="profile-discord-user-id"
+            className="studio-label"
+            style={{ margin: 0 }}
+          >
+            Tu ID de usuario de Discord
+          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              id="profile-discord-user-id"
+              className="studio-input studio-input-mono"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="123456789012345678"
+              maxLength={20}
+              value={value}
+              disabled={!loaded || pending}
+              onChange={(e) => {
+                setValue(e.target.value.replace(/[^0-9]/g, ""));
+                setJustSaved(false);
+              }}
+              aria-describedby="profile-discord-user-id-hint"
+              style={{ flex: "1 1 200px", minWidth: 0 }}
+            />
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary studio-btn-sm"
+              disabled={!loaded || pending || !dirty}
+              aria-busy={pending}
+              onClick={() => save(value.trim())}
+            >
+              {pending ? "Guardando…" : "Guardar"}
+            </button>
+            {linked && (
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+                disabled={pending}
+                onClick={() => save("")}
+              >
+                Quitar
+              </button>
+            )}
+          </div>
+          <div
+            id="profile-discord-user-id-hint"
+            style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}
+          >
+            En Discord: Ajustes › Avanzado › activa «Modo desarrollador». Luego haz
+            clic derecho sobre tu nombre y elige «Copiar ID de usuario». Es un
+            número de 17 a 20 dígitos, no tu nombre de usuario.
+          </div>
+        </>
+      )}
+
+      <div role="status" aria-live="polite" style={{ minHeight: 0 }}>
+        {justSaved && (
+          <span style={{ font: "600 11.5px/1.4 var(--f-sans)", color: "var(--success)" }}>
+            {saved ? "ID guardado" : "ID quitado"}
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }

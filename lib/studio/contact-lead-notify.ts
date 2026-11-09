@@ -22,7 +22,7 @@ import {
   resolveAdminEntries,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 
 export interface ContactLeadPayload {
   /** Código de referencia del lead (DTD-XXXX). */
@@ -64,9 +64,21 @@ export async function notifyContactLeadToAdmin(
 
   // Telegram: UNA vez por CHAT, no una por admin (SDD-0271). El bucle de
   // antes duplicaba el aviso cuando dos cuentas admin comparten chat.
-  await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
-    logTag: "contact-lead-notify",
-  });
+  await dispatchAlert(
+    supabaseAdmin,
+    tenantId,
+    "equipo",
+    {
+      telegramText,
+      // El detalle del contacto va en el correo al equipo; a Discord sólo el
+      // código (SDD-0606).
+      discord: {
+        titulo: "Contacto nuevo desde la web · detalle en el correo del equipo",
+        codigo: payload.code,
+      },
+    },
+    { logTag: "contact-lead-notify" },
+  );
 
   return { ok: emailedOk };
 }

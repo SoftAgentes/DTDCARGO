@@ -78,7 +78,11 @@ no convierte los perfiles de `agentes-run` en usuarios aislados entre sí.
 - **Dónde se envía:** `POST $PAPERCLIP_API_URL/companies/<empresa>/agent-hires`. Queda «pending»
   hasta que Sam apruebe.
 - **Herramienta `web`:** solo se agrega (`,web`) a quien investiga internet: contenido y
-  community.
+  community. Para los perfiles nuevos, el
+  [plan de entrenamiento §2](oficina-agentes/entrenamiento.md#2-quién-necesita-internet)
+  **propone** sumarla a `tiktok`, `youtube`, `seo` y a `ingenieria` solo para la Vigía de
+  mejoras; lo decide Sam en cada contratación, y cada perfil con web exige aprobar su memoria
+  a mano.
 - **Perfiles ordinarios registrados:** `ceo`, `gabinete`, `ingenieria`, `contenido`, `asesor`,
   `operaciones`, `crm` y `community`. Cada uno corresponde a su agente; no son perfiles libres
   para reutilizar en otra contratación.
@@ -384,6 +388,7 @@ aparte.
 | Operación | `#bugs` | Studio |
 | Operación | `#reporte-diario` | Studio |
 | Operación | `#avisos-equipo` | Studio |
+| Noticias | `#noticias` | Studio: noticias publicadas (solas o por una persona), retenidas y retiradas (SDD-0611). Lo ven solo las personas que Sam autoriza |
 | Servidor | `#publicaciones` | Script de publicación |
 | Servidor | `#salud` | Herramienta de vigilancia y avisos de correo |
 
@@ -515,8 +520,9 @@ Discord con los agentes actuales.
 - Arranque de Discord solo con Sam.
 - Los nombres «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»,
   confirmados al revisar la SDD-0605.
-- Las noticias se publican solas, con filtros. No está vigente: necesita su SDD y el registro
-  de la excepción a IA-01.
+- Las noticias se publican solas, con filtros. Su SDD es la 0611 (aprobada) y la excepción a
+  IA-01 quedó anotada en `docs/governance/README.md`. No está vigente hasta que la migración
+  0518 esté en producción y Sam encienda el interruptor.
 
 **Pendientes:**
 

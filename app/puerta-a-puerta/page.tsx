@@ -33,8 +33,11 @@ import { serializeJsonLd } from "@/lib/public/json-ld";
 const DESC =
   "Puerta a puerta (DDP): tu mercancía de China llega hasta tu dirección en Venezuela con flete, aduana e impuestos incluidos. Pagas cuando tu carga llega — sujeto a aprobación.";
 
+/** El mismo título va en `metadata` y en el nodo `WebPage`. */
+const TITLE = "Puerta a puerta";
+
 export const metadata: Metadata = {
-  title: "Puerta a puerta",
+  title: TITLE,
   description: DESC,
   keywords: [
     "puerta a puerta China Venezuela",
@@ -115,6 +118,8 @@ export default async function PuertaAPuertaPage() {
       )}
       <WebPageJsonLd
         path="/puerta-a-puerta"
+        name={TITLE}
+        description={DESC}
         speakableSelectors={["#respuesta-rapida"]}
       />
       <BreadcrumbJsonLd

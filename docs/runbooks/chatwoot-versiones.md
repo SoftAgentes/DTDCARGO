@@ -14,6 +14,7 @@ Chatwoot está fijado por etiqueta **y** digest (`infra/chatwoot/compose.yml`, s
 | Marca de DTD | `aplicar-marca.rb` | solo cosmético |
 | Correos de DTD (SDD-0583) | `rails/zz_dtd_correo.rb` y `correo/views/` | vuelven las plantillas de Chatwoot, en inglés y sin la marca, y los avisos a agentes copian otra vez el nombre del contacto y el texto de los mensajes |
 | Integración con Studio | SSO (Platform API), webhook firmado, Dashboard App | la Bandeja, el contador o la ficha dejan de andar |
+| Guía de Studio dentro del panel (SDD-0589, paso 9.4) | `panel/guia-panel.html` (en `DASHBOARD_SCRIPTS`) y, en Studio, `lib/studio/guia/chatwoot-selectores.json` | las tarjetas de la guía de la Bandeja dejan de señalar el composer, la nota privada, las plantillas, el buscador, el filtro, el asignar y la pestaña «Ficha DTD», y se ponen sobre el marco. El chat no se rompe. Los selectores se arreglan con una PR de Studio, sin volver a pegar el script |
 
 Los initializers del candado, la redacción y la revocación se montan en **solo lectura** sobre `/app/config/initializers/`. Una imagen nueva no los borra, pero **sí** puede dejarlos sin efecto en silencio: un método renombrado (`Whatsapp::FacebookApiClient#register_phone_number`), un formateador de Sidekiq cambiado, un `RoomChannel` distinto o una carga en otro orden. Por eso §4 los comprueba **por comportamiento**, con sus controles en rojo, y no solo por la línea de arranque. Los correos se montan igual, pero no tienen corrida en §4: se comprueban con la vista previa de [§2 ter del servidor](chatwoot-servidor.md#2-ter--correos-con-la-marca-de-dtd-cargo).
 
@@ -57,8 +58,20 @@ En la rama de la subida, **nada en el VPS todavía**:
      config/initializers/filter_parameter_logging.rb app/controllers/platform/ \
      app/controllers/api_controller.rb app/models/channel/whatsapp.rb config/routes.rb \
      app/channels/ app/models/user.rb Gemfile.lock \
-     app/mailers/ app/views/mailers/ app/views/devise/mailer/ app/views/layouts/mailer/
+     app/mailers/ app/views/mailers/ app/views/devise/mailer/ app/views/layouts/mailer/ \
+     app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue \
+     app/javascript/dashboard/components/widgets/conversation/ConversationBox.vue \
+     app/javascript/dashboard/components/widgets/conversation/ConversationSidebar.vue \
+     app/javascript/dashboard/components/widgets/WootWriter/ \
+     app/javascript/dashboard/components/ChatListHeader.vue \
+     app/javascript/dashboard/components/ui/Tabs/ \
+     app/javascript/dashboard/components-next/sidebar/Sidebar.vue \
+     app/javascript/dashboard/routes/dashboard/conversation/ConversationAction.vue \
+     app/javascript/shared/components/ui/MultiselectDropdown.vue \
+     app/views/layouts/vueapp.html.erb
    ```
+
+   Los `.vue` de la lista son de donde salen los selectores de la guía (`lib/studio/guia/chatwoot-selectores.json`, campo `fuente` de cada ancla). Si cambió alguno, **los selectores se revisan a mano** y el smoke de la guía de §4 dice cuáles se rompieron. Si cambió `vueapp.html.erb`, se revisa que `DASHBOARD_SCRIPTS` siga entrando al final del `<body>`: de eso dependen el cierre de sesión de 2.7 y la guía.
 
    **Apoyo:** Studio › Administración › Actualizaciones › «Analizar con IA» (paso 3.4) da un informe con el riesgo por pieza propia y una recomendación. Es una ayuda para leer el diff, no lo reemplaza: un «seguro» del motor no salta este paso ni §4, y un informe «sin IA» solo dice qué piezas tienen archivos cambiados.
 
@@ -70,7 +83,7 @@ En la rama de la subida, **nada en el VPS todavía**:
 
 ## 4 · Prueba en copia (local, nunca en el VPS)
 
-Cinco corridas pesadas de Docker, **una a la vez** y con turno del Director. Solo datos sintéticos.
+Cinco corridas pesadas de Docker, **una a la vez** y con turno del Director, más el smoke de la guía, que corre contra el mismo ensayo. Solo datos sintéticos.
 
 | Corrida | Qué demuestra | Exigencia |
 |---|---|---|
@@ -79,6 +92,7 @@ Cinco corridas pesadas de Docker, **una a la vez** y con turno del Director. Sol
 | `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` | la ruta `POST /platform/api/v1/users/:id/dtd_revocar_sesiones` existe y exige el token de la Platform App (R0–R2), rechaza al usuario de servicio y al último admin humano (R3, R4), cierra las sesiones del panel y rota los tokens (R5–R8), falla cerrado sin `DTD_CHATWOOT_SERVICIO_ID` (R9) y `RoomChannel` corta el tiempo real (R10) | 0 fallas. **El control C1 (sin el initializer) tiene que salir en rojo: la ruta da 404 y las sesiones siguen vivas.** Si `RoomChannel` cambió de forma, el arranque se cae a propósito con «[DTD] revocar sesiones: faltan …»: eso no se arregla en la ventana, se adapta el initializer en la rama |
 | `bash infra/chatwoot/pruebas/prueba-redaccion-canales.sh` | las líneas de Instagram, Messenger y WhatsApp que guardan remitente o texto quedan tapadas en la imagen nueva (T0, T1), la línea `Parameters:` de los webhooks de Meta no trae el `entry` (T1w) y el resto del log sigue igual (T2) | 0 fallas. **El control C1 (sin el initializer) tiene que encontrar todos los valores inventados y cada mutante M tiene que hacer reaparecer el suyo.** `HECHO falta=` o un T1 en rojo quiere decir que la versión nueva cambió el texto de una línea: se busca y se ajusta el patrón, no se quita la comprobación. La lista de patrones se revisa contra las líneas nuevas de la versión, porque la prueba no ve las que no conoce |
 | Restauración del respaldo de la versión vieja sobre la imagen nueva | `prepare` migra una base real de 4.19.1 (la de P5, en otro proyecto) | `restaurar.sh` sale 0; `sobres=0`; `GET /api` da la versión nueva |
+| `node infra/chatwoot/pruebas/smoke-guia.mjs`, con `CHATWOOT_URL`, `SMOKE_EMAIL`, `SMOKE_CLAVE`, `SMOKE_CUENTA` y `SMOKE_CONVERSACION` de un agente y una conversación **sintéticos** del ensayo | cada ancla de la guía (SDD-0589, 9.4) aparece en el panel de la versión nueva, con la misma regla que el script del panel | exit 0: ninguna ancla obligatoria falta. Las condicionales (plantillas sin bandeja de WhatsApp, pestaña «Ficha DTD» sin la Dashboard App) se anotan en el handoff. Una obligatoria que falta **no frena la subida**, porque la tarjeta cae al marco y el chat sigue, pero se arregla el selector en `chatwoot-selectores.json` con su propia PR antes de cerrar la ventana |
 
 La cuarta es la «prueba en copia» de verdad: una copia de la base de producción **no** sale del VPS. Se hace **en el VPS, en el proyecto `chatwoot-ensayo`** (el mismo procedimiento de la puerta P5, §3b del [respaldo](chatwoot-respaldo-restauracion.md#3--restauración)), con la imagen nueva en su `compose.yml`, **sin Traefik y sin DNS**, y se baja con `down -v` al terminar. Es otra puerta: lleva su propio OK, que se pide junto con el de la subida. Mide cuánto tarda `prepare` con los datos reales: ese número decide si la ventana alcanza.
 
@@ -144,6 +158,7 @@ docker compose logs prepare | tail -n 20                  # migraciones aplicada
 | S10 | Studio: abrir **Bandeja** con un usuario vinculado (SSO), ver una conversación, mandar una respuesta de prueba **a la bandeja de prueba**, nunca a un cliente | entra sin pedir clave; la respuesta sale |
 | S11 | Ficha DTD dentro de Chatwoot y contador de Studio | la ficha carga; el contador se mueve con la respuesta de S8 |
 | S12 | La web de DTD: `infra/ops/web/smoke-web.sh` y Uptime Kuma de DTD | igual que antes |
+| S13 | Guía dentro del panel (SDD-0589, 9.4), solo si `guia-panel.html` está en `DASHBOARD_SCRIPTS`: Studio › Bandeja con `?guia=bandeja`, con una conversación **de la bandeja de prueba** abierta | B1 (composer) y B6 (nota privada) señalan su elemento dentro del chat, no el marco. Si una cae al marco, el selector cambió: se anota y se arregla con una PR de Studio. No es vuelta atrás |
 
 ```bash
 # 6. Uptime Kuma: el monitor «Chatwoot · versión» busca "version":"4.19.1". Se cambia en su UI a la
@@ -167,7 +182,7 @@ docker compose exec -T rails bundle exec rails runner '
 
 **Studio.** El webhook de Chatwoot a Studio (paso 2.3) guarda cada evento y reintenta lo pendiente con el cron `chatwoot-reintentos` (cada 5 min). Después de la subida, el contador de Studio y la reconciliación quedan al día en ≤ 10 min. Si no, se revisan los pendientes por conteo (nunca el contenido).
 
-**Cierre de la ventana:** el handoff con S1–S12, los conteos de Sidekiq antes y después, el sello del respaldo, la versión y el digest nuevos, y una fila en el **Registro** de abajo. Studio deja de mostrar la versión como pendiente en la siguiente corrida del vigilante.
+**Cierre de la ventana:** el handoff con S1–S13, los conteos de Sidekiq antes y después, el sello del respaldo, la versión y el digest nuevos, y una fila en el **Registro** de abajo. Studio deja de mostrar la versión como pendiente en la siguiente corrida del vigilante.
 
 ### Vuelta atrás
 
