@@ -263,3 +263,5 @@ Lo que se hizo:
 - un CR, un espacio o una segunda línea se rechazan sin llamar a psql y sin imprimir el valor.
 
 **Cuándo sale:** con la próxima vuelta de la #480, si la revisión pide algo, o en su cierre, junto con el piso.
+
+**El hueco encontrado en `8a1b1043b`:** el lector de `SISTEMA` usaba `IFS= read -r v`, que toma solo la primera línea. Un `sistema-produccion` con dos líneas, por ejemplo el valor bueno y algo más debajo, pasaba la guarda. `d1462319e` lo cierra: cuenta los bytes y acepta a lo sumo un salto de línea. El Subdirector pidió publicarlo antes de la revisión del DG, para que el DG no revise una cabeza con ese hueco.
