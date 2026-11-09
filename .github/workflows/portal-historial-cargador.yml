@@ -57,3 +57,20 @@ jobs:
       - name: Punta a punta (Studio, cargar.sh y Chatwoot)
         if: ${{ !cancelled() }}
         run: bash infra/ops/portal-historial/pruebas/prueba-punta-a-punta.sh
+
+  # SDD-0586 10.7, PR 2c: la vuelta atrás dirigida de la carga en Chatwoot (deshacer.sh y deshacer-carga.rb) sobre la
+  # carga real de un Studio y un Chatwoot efímeros, con sus mutantes. En su propio runner.
+  deshacer:
+    name: Vuelta atrás dirigida del portal (datos inventados)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Deshacer la carga, guardas y mutantes
+        run: bash infra/ops/portal-historial/pruebas/prueba-deshacer.sh
