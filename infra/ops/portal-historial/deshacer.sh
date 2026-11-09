@@ -14,7 +14,9 @@
 #   2. el ensayo de Studio de E10   lo corre el DG (rollback). Escribe studio-ensayo.hecho;
 #   3. MODO=borrar CONFIRMAR=si     LO CORRE SAM (borrado permanente). Exige chatwoot-seco.hecho y studio-ensayo.hecho
 #                                   con =ok, el mismo conservados_sha256 en los dos y en el sha256sum actual del
-#                                   .ndjson, y el mismo tenant. Antes de borrar deja la copia durable (la (a) de Sam,
+#                                   .ndjson, y el mismo tenant; el ensayo de Studio con entorno=produccion, y la
+#                                   huella SISTEMA de Studio (el archivo de root, su sha corto b4fbe1b236 y la base
+#                                   misma, como la #480; B1 de la revisión del DG). Antes de borrar deja la copia durable (la (a) de Sam,
 #                                   «si protegidos»): el .ndjson y los dos .hecho en /srv/ops/portal-historial/deshacer
 #                                   (root 0700, archivos 0600, comparados). Si sale con 0, escribe chatwoot-borrar.hecho
 #                                   en las dos copias. Antes de la transacción deja chatwoot-borrar.inicio en la
@@ -47,7 +49,7 @@
 set -uo pipefail
 umask 077
 
-DB_CW="${DB_CW:-chatwoot-rails-1}"
+DB_CW="${DB_CW:-}"
 DIR=/dev/shm/portal-historial
 C="$DIR/contactos-conservados.ndjson"
 EN_CW_DIR=/dev/shm/portal-historial
@@ -92,12 +94,40 @@ escribir_hecho_borrar() {
 case "$MODO" in seco | borrar) ;; *) mal modo_tiene_que_ser_seco_o_borrar ;; esac
 # DB sin valor por defecto: con la base equivocada (staging, otra), la guarda del flag no vería nada (revisión del DG).
 [ -n "${DB:-}" ] || mal falta_db
+# DB_CW tampoco tiene valor por defecto (N4 de la revisión del DG de la #478): las dos bases se nombran siempre.
+[ -n "$DB_CW" ] || mal falta_db_cw
 # Sin ceros a la izquierda: Ruby leería «010» en octal (N6).
 for n in "${CUENTA:-}" "${BANDEJA:-}"; do
   case "$n" in '' | 0[0-9]* | *[!0-9]*) mal cuenta_o_bandeja_no_numerica ;; esac
 done
 printf '%s' "${TENANT:-}" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || mal tenant_no_es_uuid
 case "$DURABLE" in /*/deshacer) ;; *) mal la_copia_durable_tiene_que_terminar_en_deshacer ;; esac
+# SISTEMA (B1 de la revisión del DG de la #478, igual que deshacer-vinculos.sh de la #480): el paso 3 borra Chatwoot de
+# producción, así que exige que la base de Studio sea la de producción, la misma en la que el paso 4 aplica. El
+# system_identifier sale de un archivo de root (0600, uid 0), nunca del entorno, y se imprime solo su sha256 corto, con
+# la fórmula del DG (printf '%s', sin salto de línea, y los primeros 10 caracteres de sha256sum). El valor no se
+# imprime nunca y entra a psql por la entrada estándar (\set), no por un argumento que se vea en `ps`. El archivo, el
+# sha esperado y el uid solo cambian en la prueba bash (DESHACER_PRUEBA=1).
+[ -z "${SISTEMA:-}" ] || mal sistema_va_en_el_archivo_no_en_el_entorno
+SISTEMA_ARCHIVO=/srv/ops/portal-historial/sistema-produccion
+SISTEMA_SHA_ESPERADO=b4fbe1b236
+SISTEMA_UID=0
+if [ "${DESHACER_PRUEBA:-}" = 1 ]; then
+  SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-$SISTEMA_ARCHIVO}"
+  SISTEMA_SHA_ESPERADO="${DESHACER_SISTEMA_SHA:-$SISTEMA_SHA_ESPERADO}"
+  SISTEMA_UID="${DESHACER_SISTEMA_UID:-$SISTEMA_UID}"
+fi
+sha_corto() { printf '%s' "$1" | sha256sum | cut -c1-10; }
+leer_sistema() {
+  local f="$SISTEMA_ARCHIVO" v=""
+  [ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] && [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }
+  [ "$(stat -c %u "$f")" = "$SISTEMA_UID" ] || { echo "HECHO error=archivo_de_sistema_no_es_de_root" >&2; return 1; }
+  # Solo cifras y a lo sumo un salto de línea (contados en los bytes, como en la #480); después, que quede un número.
+  [ "$(LC_ALL=C tr -d '0-9\n' < "$f" | wc -c)" -eq 0 ] && [ "$(LC_ALL=C tr -cd '\n' < "$f" | wc -c)" -le 1 ] || { echo "HECHO error=archivo_de_sistema_no_es_un_numero" >&2; return 1; }
+  v="$(cat -- "$f")"
+  case "$v" in ''|*[!0-9]*) echo "HECHO error=archivo_de_sistema_no_es_un_numero" >&2; return 1 ;; esac
+  printf '%s' "$v"
+}
 if [ "$MODO" = borrar ]; then
   case "${CONFIRMAR:-}" in si | no) ;; *) mal confirmar_tiene_que_ser_si_o_no ;; esac
   # La evidencia de un borrado anterior nunca se borra (revisión del DG de la #480, B1): con un chatwoot-borrar.hecho o
@@ -183,6 +213,18 @@ if [ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ]; then
   [ "$sha_seco" = "$sha_actual" ] && [ "$sha_ensayo" = "$sha_actual" ] || mal el_sha256_de_los_conservados_no_coincide
   [ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide
   [ "$(campo "$H_SECO" cuenta)" = "$CUENTA" ] && [ "$(campo "$H_SECO" bandeja)" = "$BANDEJA" ] || mal la_cuenta_o_la_bandeja_del_seco_no_coinciden
+  # B1 de la revisión del DG de la #478: un ensayo de Studio sobre una copia no habilita borrar Chatwoot de producción
+  # (el paso 4 de la #480 exige el mismo entorno y se negaría, y quedaría el estado partido).
+  [ "$(campo "$H_ENSAYO" entorno)" = produccion ] || mal el_ensayo_de_studio_no_es_de_produccion
+  # La huella: el sha corto del archivo de root, y después la base de Studio misma, antes de escribir nada.
+  SISTEMA="$(leer_sistema)" || exit 2
+  echo "HECHO sistema_sha256_corto=$(sha_corto "$SISTEMA")"
+  [ "$(sha_corto "$SISTEMA")" = "$SISTEMA_SHA_ESPERADO" ] || { echo "HECHO sistema_esperado=$SISTEMA_SHA_ESPERADO"; mal sistema_no_es_el_de_produccion; }
+  huella="$( { printf '%s\n' "\\set sistema '$SISTEMA'"
+    printf '%s\n' "select case when (select s.system_identifier::text from pg_catalog.pg_control_system() s) = :'sistema' then 'si' else 'no' end;"
+  } | studio 2>/dev/null)"
+  echo "HECHO studio_es_produccion=${huella:-ilegible}"
+  [ "$huella" = si ] || mal la_base_de_studio_no_es_la_de_produccion 1
   copiar_durable "$C" "$H_SECO" "$H_ENSAYO"
   # El .inicio, antes de abrir la transacción: si el proceso se corta entre el COMMIT y chatwoot-borrar.hecho, la copia
   # durable dice que el borrado empezó (B1 de la revisión del DG de la #480).

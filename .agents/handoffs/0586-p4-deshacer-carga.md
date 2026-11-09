@@ -2,7 +2,7 @@
 
 - **Worker:** E5, bajo el Subdirector Chatwoot.
 - **Rama:** `codex/0586-deshacer-carga`, desde main `e74cde6fc` (el tren 9).
-- **Estado:** en borrador. La revisión independiente del DG sobre `78231bed3` dio CHANGES_REQUESTED, y la vuelta 3 la atiende. No se fusiona desde aquí: la fusiona el DG.
+- **Estado:** lista para revisión, no en borrador. La revisión del DG sobre `b2508e726` (verde entero) pidió cambios: un bloqueante (B1, el entorno y la huella del paso 3) y cinco no bloqueantes, que atiende la vuelta de abajo. No se fusiona desde aquí: la fusiona el DG.
 - **Cuándo se usa:** antes de la puerta 4 tiene que estar en main y ensayada. En producción, el borrado lo corre Sam.
 
 ## Qué trae
@@ -14,7 +14,7 @@
     - `CONFIRMAR=si` confirma.
   - **Aborta** cuando:
     - la bandeja no es la del portal;
-    - hay algo ajeno: un mensaje con `source_id` nulo o que no es `dtd:%`, una conversación sin `dtd_hilo`, un contact_inbox sin `dtd-portal:`, una conversación asignada o en snoozed, o actividad que la carga no crea (adjuntos, menciones, participantes, eventos de reportes o notificaciones);
+    - hay algo ajeno: un mensaje con `source_id` nulo o que no es `dtd:%`, una conversación sin `dtd_hilo`, un contact_inbox sin `dtd-portal:`, una conversación asignada o en snoozed, un contacto con teléfono o correo, o actividad que la carga no crea (adjuntos, menciones, participantes, eventos de reportes, encuestas, notificaciones, etiquetas, notas y adjuntos de contacto; `deshacer-carga.rb:24-28`);
     - un contacto no es `dtd-portal:<uuid>`;
     - el archivo es de otro tenant, de otra cuenta o de otra bandeja.
   - **Como el cargador,** toma el mismo candado y baja el detalle del log de Postgres.
@@ -38,7 +38,7 @@
 
 - **PASÓ:** `bash -n` de los dos guiones.
 - **PASÓ:** cada texto que cambian los mutantes aparece una sola vez en su archivo.
-- **NO EJECUTADO en la PC:** Ruby y Docker. La prueba corre en Actions, y el run todavía está pendiente.
+- **NO EJECUTADO en la PC:** Ruby y Docker. La prueba corre en Actions; los runs están en la tabla de abajo.
 
 ## Registro de las vueltas en Actions (#478)
 
@@ -47,7 +47,9 @@
 | 1 | `65402ca0c` | job 128935328323 | La corrida real salió verde: P1, D1a, D1b, D6a, D6b, D2 a D5 y F1. De los mutantes, MD0, MD1, MD2 y MD5 pasaron. MD3, MD4 y MD6 a MD9 cayeron además en D2, y MD3 también en D4 | El error era de la prueba, no del guion: `CONSERVADO` estaba fijo desde la primera corrida, y después de que MD3 borra ese contacto, la recarga crea otro con otro id. Ahora cada escenario lee su propio conservado (`otra-bandeja.txt`). MD3 ya no exige D4, que cae en cascada después de D3 |
 | 2 | `78231bed3` | 42550597299 (el cargador y el deshacer) y 42550597297 (la calidad) | Verde entero: D1a, D1b, D2 a D6b y F1, y MD0 a MD9 cayendo cada uno en lo suyo. La revisión del DG dio CHANGES_REQUESTED | La vuelta 3 |
 | 3 | `1fcc54216` y `26892869b` (las pruebas, para el rojo previo) | 42588248456 (el job deshacer es el 129063191391) | El rojo previo que se esperaba, con 43 fallas: D6c a D6g, D6i, D8, D10, D1f, D1g, D2b y D11a a D14 cayeron; los mutantes de los textos nuevos no se pudieron aplicar. Además, los mutantes de lo ajeno corrían sobre la bandeja vacía, porque no recargaban. El job del cargador cayó en E1 de la punta a punta, con «-1 reintentos», que es ajeno a la 2c | Recargar antes de los mutantes de lo ajeno. Después, la implementación |
-| 4 | `7c4e0410b`, `6d20c2555`, `a059725d6` y el arreglo de la recarga | (pendiente) | — | La revisión del DG, la secuencia de 4.6b y la copia durable (ver abajo) |
+| 4 a 6 | de `7c4e0410b` a `25843e6b8` | 42603611740, 42618396536 y 42618396542 | La parte b cayó por arrastre de la prueba (D5 por otro camino en MD25, MD26, MD27 y MD30) | La limpieza de tmpfs antes de D15 y D5, y MD27 con la carpeta sin los archivos |
+| 7 | `38e76b761` y `e4fd689e2` | 42628321142 (el cargador y las partes a, b y c) y 42628320972 (la calidad) | Verde entero. La parte b tardó 54 de 60 min | El merge de main `b5669b1a5` y el reparto de MD27, MD28 y MD30 a la parte a |
+| 8 | `7c5121132`, `7b001a601` y `b2508e726` | 42637555397 (el cargador, el ensayo y las partes a, b y c) y 42637555182 (la calidad) | Verde entero: a 35,7 min, b 45,5, c 43,7. La revisión del DG pidió cambios (B1 y N1 a N5) | La vuelta 9 |
 
 ## La revisión del DG sobre `78231bed3` (CHANGES_REQUESTED) y lo que la atiende
 
@@ -62,7 +64,7 @@
 - **B2, `revisar-datos-ve`.** El registro está en las notas del Subdirector, `0586-p4-2c-revisar-datos-ve.md`. Su paso 3 es D7, que busca las marcas de lo borrado en toda la base de Chatwoot.
 - **N1, lo ajeno.** Suma notas, etiquetas, encuestas, adjuntos de contacto y contactos con teléfono o correo. Lo prueban D1a a D1g, con MD1, MD2 y MD15 a MD19.
 - **N4.** Las conversaciones de la bandeja se toman `FOR UPDATE` antes de mirar lo ajeno.
-- **N5, la secuencia de 4.6b que aprobó el DG.** Los cinco pasos y sus `.hecho` están en «El orden» más abajo, con lo que prueban D2b, D11a a D11c, D12 y D13 y MD22 a MD26.
+- **N5, la secuencia de 4.6b que aprobó el DG.** Los cinco pasos y sus `.hecho` están en «El orden» más abajo, con lo que prueban D2b, D11a a D11c y D13 y MD22, MD24, MD25 y MD26 (D12 y MD23 se fueron; ver más abajo).
 - **N6.** `Integer(x, 10)`, y el shell rechaza los ceros a la izquierda. Lo prueban D10 y MD20.
 - **N7.** Los errores propios son `DeshacerError`; de los demás, solo se imprime la clase.
 - **N8.** Lo de la caché de la cuenta queda como inferencia (FUERA DE ALCANCE).
@@ -96,13 +98,29 @@
   En e4fd689e2 (run 42628321142), la parte b tardó 54 de 60 min, la a 28 y la c 42. Por eso MD27, MD28 y MD30, de
   unos 4 min cada uno, pasaron de la b a la a. Los casos y los mutantes no cambian, y no hay job nuevo.
 
+## La revisión del DG sobre `b2508e726` (vuelta 9)
+
+- **B1, el paso 3 con un ensayo de copia y sin huella.** `deshacer.sh` no leía `entorno=` de `studio-ensayo.hecho`, así que un ensayo sobre una copia habilitaba borrar Chatwoot de producción, y después el paso 4 de la #480 se negaba: el estado partido. El arreglo, en el paso 3 y antes de escribir nada:
+  - el ensayo de Studio tiene que decir `entorno=produccion` (D18, MD34);
+  - **la huella SISTEMA de Studio, igual que la #480:**
+    - el archivo de root `/srv/ops/portal-historial/sistema-produccion`, en 0600 y de uid 0, con solo cifras y a lo sumo un salto (D19a a D19d, MD35 a MD38);
+    - su sha corto, con la fórmula del DG (printf), igual a `b4fbe1b236` (D19e, MD39), y la línea impresa con printf y no con echo (D19f, MD42);
+    - la base de Studio misma: `pg_control_system()` tiene que dar ese valor, que entra a psql por la entrada estándar (`\set`) (D19f, MD40);
+    - `SISTEMA` en el entorno se rechaza (D19g, MD41).
+  - **En la prueba:** con `DESHACER_PRUEBA=1` el archivo, el sha esperado y el uid son los de la prueba. El valor es el `system_identifier` del Postgres efímero de Studio, porque la guarda lo compara con la base de verdad. El valor de mentira de la #480 (sha corto `deb576f0d6`) es «otra base» en D19f.
+  - **Los casos que fijaban el defecto se invirtieron:** los ensayos de Studio de la prueba (D11, D15, D5 y el corte) ahora dicen `entorno=produccion`, y D5 exige además el sha corto esperado, `studio_es_produccion=si` y que el valor no se imprima.
+  - **Los casos de la huella son livianos:** no necesitan la carga, porque arman un `.ndjson` de mentira cuya cabecera no cuadra. Si un mutante deja pasar una guarda, el `.rb` aborta sin borrar y el caso cae, porque se creó la durable.
+- **N4:** `DB_CW` ya no tiene valor por defecto, igual que `DB` (D6j, MD43).
+- **N5:** este handoff al día, y la spec 0586 ya no dice «‹por confirmar›» sobre el formato de los conservados.
+- **El reparto de los mutantes nuevos:** MD34 a MD38 y MD43 van en la parte a, y MD39 a MD42 en la c. La b no cambia.
+
 ## El orden del sub-paso 4.6b (runbook, de E10)
 
 1. **`deshacer.sh` con `MODO=seco`.** Lo corre el DG. Escribe el `.ndjson` y `chatwoot-seco.hecho`.
    - (1b, opcional) `MODO=borrar CONFIRMAR=no`, el ensayo suelto del DG. No exige ni escribe `.hecho`.
 2. **El ensayo de Studio de E10** (`deshacer-vinculos.sh MODO=ensayo`). Lo corre el DG. Escribe `studio-ensayo.hecho`.
 3. **`deshacer.sh` con `MODO=borrar CONFIRMAR=si`. Lo corre Sam.**
-   - Exige los dos `.hecho`, con el mismo sha256 y el mismo tenant.
+   - Exige los dos `.hecho`, con el mismo sha256 y el mismo tenant, el ensayo de Studio con `entorno=produccion`, y la huella SISTEMA de Studio (B1 de la vuelta 9).
    - Deja la copia durable, borra y escribe `chatwoot-borrar.hecho`.
 4. **Studio con `MODO=aplicar`** (E10). Lo corre Sam.
 5. **`limpiar.sh --cierre-4-6b`** (E10). Lo corre Sam.
@@ -111,14 +129,26 @@
 
 ## Pendientes de esta tarea
 
-- El run de la vuelta 3: primero el rojo previo de las pruebas, después la implementación.
+- El run de la vuelta 9.
 - **Para el runbook (E10):**
   - los comandos de 4.6b;
-  - la lista de 3.0 suma `deshacer.sh` y `deshacer-carga.rb`.
+  - la lista de 3.0 suma `deshacer.sh` y `deshacer-carga.rb`;
+  - el paso 3 exige el archivo de SISTEMA del sub-paso 3.0, el mismo que usa el paso 4 de la #480.
+
+### Pendiente posterior (no bloqueante de la revisión del DG sobre `b2508e726`)
+
+No caben en esta vuelta sin inflar el CI o sin cambiar el `.rb` más allá de B1:
+- **N1, los pisos en Chatwoot:** comparar `borrados_*` con los conteos de antes y las conversaciones con los hilos de Studio, y guardar esos conteos en `chatwoot-seco.hecho` (`deshacer.sh`, el `escribir_hecho` del seco).
+- **N2, las guardas sin mutante:**
+  - en `deshacer-carga.rb`: `:121-127` (la bandeja; D8 no llega), `:177`, `:181`, `:258-259`, `:230-231`, `:111-119`, 9 de las 10 tablas de actividad (`:51-65`) y `:213-220`;
+  - en `deshacer.sh`: las líneas que citó el DG sobre `b2508e726` (`:177`, `:179`, `:185`, `:110/:232`, `:112`, `:72/:79-84` y `:201`). Las de `:179-185` ganaron caso y mutante con B1, en lo que toca al entorno y a la huella.
+
+  Cada mutante del `.rb` necesita la carga (unos 4 min), así que suman más de una parte entera.
+- **N3, la carrera:** el `FOR UPDATE` (`deshacer-carga.rb:235`) no impide que entre una conversación nueva entre la mirada a lo ajeno y el `delete_all`. La detectaría N1.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - **El arranque de los dos stacks está tres veces:** en `prueba-deshacer.sh`, en `prueba-punta-a-punta.sh` y en `prueba-ensayo-portal.sh`. Se puede llevar a una función compartida cuando entren la 2b y la 2c.
 - **El workflow choca con la 2b:** la 2b y la 2c agregan cada una un job al final de `portal-historial-cargador.yml`. La que entre segunda tiene que traer main.
 - **La caché de la cuenta en Chatwoot (inferencia, no medida):** `delete_all` no corre callbacks, así que la caché puede mostrar conteos viejos hasta que venza.
-- **Una carrera que no tiene mutante:** el `FOR UPDATE` de N4 no tiene prueba, porque provocarla en CI sería frágil.
+- **Una carrera que no tiene mutante:** el `FOR UPDATE` de N4 no tiene prueba, porque provocarla en CI sería frágil. El DG la volvió a marcar sobre `b2508e726` (N3): va en «Pendiente posterior».

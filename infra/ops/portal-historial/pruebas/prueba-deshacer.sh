@@ -10,6 +10,11 @@
 #   D6a-h  las guardas de deshacer.sh, en Studio y en solo lectura: el flag encendido, encendido alguna vez, sin la
 #          fila del flag del tenant, la cola corrió, un tenant sin hilos, el espejo en otra bandeja, sin DB, un DB que
 #          no es Studio · D8 BANDEJA de otra bandeja · D10 un número con un cero adelante
+#   D6j sin DB_CW (N4: tampoco tiene valor por defecto)
+#   D18 el paso 3 con un ensayo de Studio sobre una copia (entorno=copia): se niega antes de escribir (B1 del DG)
+#   D19a-g la huella SISTEMA de Studio en el paso 3 (B1 del DG, igual que la #480): sin el archivo 0600, de otro uid,
+#          con dos saltos de línea, vacío, con otro sha corto, con el sha esperado pero otra base, SISTEMA en el
+#          entorno. Todos se niegan antes de escribir nada, y el valor nunca se imprime
 #   D2  seco: no borra nada y escribe contactos-conservados.ndjson (0600) con el contacto que tiene otra bandeja
 #   D9  los conservados de otro tenant · D3 la lista cambió entre el seco y el borrado: abortan sin borrar
 #   D4  borrar con CONFIRMAR=no: hace todo y termina en ROLLBACK; la bandeja queda igual
@@ -97,6 +102,16 @@ docker exec -i "$PG" psql -X -q -U postgres -d postgres -f - <"$AQUI/studio-fixt
 # La auditoría del flag (entity_audit_log), que el fixture no trae: deshacer.sh la exige.
 q "create table public.entity_audit_log (id bigserial primary key, tenant_id uuid, entity_type text, event_type text, after_data jsonb)" >/dev/null
 TENANT="$(q "select md5('0523-sintetico-T1')::uuid")"
+# SISTEMA (B1 del DG): el system_identifier de este Postgres de Studio, en un archivo 0600 de este usuario. Su sha corto,
+# con la fórmula del DG, es el esperado de la prueba (DESHACER_SISTEMA_SHA, que vale solo con DESHACER_PRUEBA=1). El
+# valor de mentira de la #480 (19 cifras, sha corto deb576f0d6) es «otra base»: pasa el sha corto si se lo dan como
+# esperado, y la base lo rechaza (D19f).
+SIS="$TRABAJO/sistema-produccion"
+SISTEMA_VALOR="$(q "select system_identifier from pg_control_system()")"
+( umask 077; printf '%s' "$SISTEMA_VALOR" >"$SIS" ); chmod 0600 "$SIS"
+SIS_SHA="$(printf '%s' "$SISTEMA_VALOR" | sha256sum | cut -c1-10)"
+FALSO_VALOR=7234567890123456789
+FALSO_SHA="$(printf '%s' "$FALSO_VALOR" | sha256sum | cut -c1-10)"
 U1="$(q "select md5('0523-sintetico-U1')::uuid")"
 mkdir -p "$D/cargador" "$D/estado/shm"
 cp "$CW/compose.yml" "$D/"
@@ -152,7 +167,7 @@ deshacer() {
   local sal="$1" carpeta="$2" modo="$3"
   shift 3
   env DB_CW="$CONT" DB="$PG" TENANT="$TENANT" CUENTA="$CUENTA" BANDEJA="$BANDEJA" MODO="$modo" DESHACER_PRUEBA=1 DESHACER_DURABLE="$DUR" \
-    "$@" bash "$carpeta/deshacer.sh" >"$sal" 2>&1
+    DESHACER_SISTEMA="$SIS" DESHACER_SISTEMA_SHA="$SIS_SHA" DESHACER_SISTEMA_UID="$(id -u)" "$@" bash "$carpeta/deshacer.sh" >"$sal" 2>&1
   echo "HECHO salida_proceso=$?" >>"$sal"
 }
 # La copia durable del paso 3 (Sam, la (a): «si protegidos»). En el VPS es /srv/ops/portal-historial/deshacer.
@@ -228,6 +243,42 @@ parte_sh() { # carpeta salidas
   rm -rf -- "$SHM"
   deshacer "$O/d10.txt" "$K" seco "CUENTA=0$CUENTA"
   rm -rf -- "$SHM"
+  deshacer "$O/d6j.txt" "$K" seco DB_CW=
+  rm -rf -- "$SHM"
+}
+# Las guardas de la huella y del entorno del paso 3 (B1 del DG), sin la carga: cada caso arma un .ndjson y los dos
+# .hecho de mentira que cuadran entre sí. La cabecera dice un contacto y no trae ninguno, así que si un mutante deja
+# pasar la guarda, el .rb aborta antes de borrar (la bandeja no cambia) y el caso cae porque se creó la durable.
+sistema_caso() { # carpeta salida [VAR=valor...]: el paso 3 con los .hecho de mentira
+  local K="$1" sal="$2" entorno="${ENTORNO_CASO:-produccion}" sha
+  shift 2
+  rm -rf -- "$SHM" "$TRABAJO/durable"
+  install -d -m 0700 "$SHM"
+  printf '{"tipo":"cabecera","version":1,"tenant_id":"%s","cuenta":%s,"bandeja":%s,"contactos":1}\n' "$TENANT" "$CUENTA" "$BANDEJA" >"$SHM/contactos-conservados.ndjson"
+  sha="$(sha256sum "$SHM/contactos-conservados.ndjson" | cut -c1-64)"
+  printf 'HECHO chatwoot_seco=ok conservados_sha256=%s tenant=%s cuenta=%s bandeja=%s utc=%s\n' "$sha" "$TENANT" "$CUENTA" "$BANDEJA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/chatwoot-seco.hecho"
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=%s fin=rollback utc=%s\n' "$sha" "$TENANT" "$entorno" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
+  chmod 0600 "$SHM"/*
+  deshacer "$sal" "$K" borrar CONFIRMAR=si "$@"
+  [ -e "$DUR" ] && echo "HECHO durable=si" >>"$sal"
+  grep -qF -- "$SISTEMA_VALOR" "$sal" && echo "HECHO valor_impreso=si" >>"$sal"
+  grep -qF -- "$FALSO_VALOR" "$sal" && echo "HECHO valor_impreso=si" >>"$sal"
+  rm -rf -- "$SHM" "$TRABAJO/durable"
+}
+parte_sistema() { # carpeta salidas
+  local K="$1" O="$2" f="$TRABAJO/sistema-caso"
+  ENTORNO_CASO=copia sistema_caso "$K" "$O/d18.txt"
+  sistema_caso "$K" "$O/d19a.txt" "DESHACER_SISTEMA=$TRABAJO/no-existe"
+  sistema_caso "$K" "$O/d19b.txt" DESHACER_SISTEMA_UID=12345
+  ( umask 077; printf '%s\n\n' "$SISTEMA_VALOR" >"$f" ); chmod 0600 "$f"
+  sistema_caso "$K" "$O/d19c.txt" "DESHACER_SISTEMA=$f"
+  ( umask 077; : >"$f" ); chmod 0600 "$f"
+  sistema_caso "$K" "$O/d19d.txt" "DESHACER_SISTEMA=$f"
+  ( umask 077; printf '%s' "$FALSO_VALOR" >"$f" ); chmod 0600 "$f"
+  sistema_caso "$K" "$O/d19e.txt" "DESHACER_SISTEMA=$f"
+  sistema_caso "$K" "$O/d19f.txt" "DESHACER_SISTEMA=$f" "DESHACER_SISTEMA_SHA=$FALSO_SHA"
+  sistema_caso "$K" "$O/d19g.txt" SISTEMA=123
+  rm -f -- "$f"
 }
 parte_ajeno() { # carpeta salidas
   local K="$1" O="$2" cual
@@ -269,10 +320,10 @@ parte_borrar() { # carpeta salidas
   sonda "$O/contar-d4.txt" FASE=contar
   # D11: el borrado (paso 3) sin el ensayo de Studio, con otro sha256 y con otro tenant.
   deshacer "$O/d11a.txt" "$K" borrar CONFIRMAR=si
-  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=produccion fin=rollback utc=%s\n' \
     "$(printf '%064d' 0)" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   deshacer "$O/d11b.txt" "$K" borrar CONFIRMAR=si
-  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=produccion fin=rollback utc=%s\n' \
     "$sha" "$T2" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   deshacer "$O/d11c.txt" "$K" borrar CONFIRMAR=si
   sonda "$O/contar-d11.txt" FASE=contar
@@ -292,7 +343,7 @@ parte_borrar() { # carpeta salidas
   # hay nada que quitar: D4 y D15 ya exigen que no exista.
   rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   # El ensayo de Studio (paso 2), como lo escribe E10, con el sha256 del .ndjson del seco.
-  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=produccion fin=rollback utc=%s\n' \
     "$sha" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   chmod 0600 "$SHM/studio-ensayo.hecho"
   # D15: con los .hecho válidos, el borrado aborta antes del COMMIT (algo ajeno en la bandeja): la copia durable queda
@@ -336,7 +387,7 @@ parte_corte() { # carpeta salidas
   rm -rf -- "$TRABAJO/durable" "$SHM"
   deshacer "$O/c-seco.txt" "$K" seco
   sha="$(sha256sum "$SHM/contactos-conservados.ndjson" 2>/dev/null | cut -c1-64)"
-  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
+  printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=produccion fin=rollback utc=%s\n' \
     "$sha" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   chmod 0600 "$SHM/studio-ensayo.hecho"
   mkdir "$SHM/chatwoot-borrar.hecho.parcial"
@@ -353,10 +404,11 @@ escenario() { # carpeta salidas modo
   mkdir -p "$2"
   case "$3" in
     sh) parte_sh "$1" "$2" ;;
+    sistema) parte_sistema "$1" "$2" ;;
     ajeno) parte_ajeno "$1" "$2" ;;
     borrar) parte_borrar "$1" "$2" ;;
     corte) parte_corte "$1" "$2" ;;
-    completo) parte_sh "$1" "$2"; parte_ajeno "$1" "$2"; parte_borrar "$1" "$2"; parte_corte "$1" "$2" ;;
+    completo) parte_sh "$1" "$2"; parte_sistema "$1" "$2"; parte_ajeno "$1" "$2"; parte_borrar "$1" "$2"; parte_corte "$1" "$2" ;;
   esac
 }
 
@@ -385,6 +437,24 @@ comprobar_sh() {
     "con DB que no es una base de Studio, el flag no se puede leer y no corre ($(err "$O/d6h.txt"))"
   exigir D10 '[ "$(h "$O/d10.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d10.txt")" = cuenta_o_bandeja_no_numerica ]' \
     "CUENTA con un cero adelante: no corre ($(err "$O/d10.txt"))"
+  exigir D6j '[ "$(h "$O/d6j.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d6j.txt")" = falta_db_cw ]' \
+    "sin DB_CW, no corre: no hay valor por defecto ($(err "$O/d6j.txt"))"
+}
+comprobar_sistema() {
+  local O="$1" c e s F
+  # caso:código:error, todos sin durable y sin el valor impreso.
+  for c in d18:2:el_ensayo_de_studio_no_es_de_produccion d19a:2:sin_archivo_de_sistema_0600 \
+           d19b:2:archivo_de_sistema_no_es_de_root d19c:2:archivo_de_sistema_no_es_un_numero \
+           d19d:2:archivo_de_sistema_no_es_un_numero d19e:2:sistema_no_es_el_de_produccion \
+           d19g:2:sistema_va_en_el_archivo_no_en_el_entorno; do
+    F="$O/${c%%:*}.txt"; s="${c#*:}"; s="${s%%:*}"; e="${c##*:}"
+    exigir "$(printf '%s' "${c%%:*}" | tr d D)" '[ "$(h "$F" salida_proceso)" = "$s" ] && [ "$(err "$F")" = "$e" ] && [ -z "$(h "$F" durable)" ] && [ -z "$(h "$F" valor_impreso)" ]' \
+      "el paso 3 se niega antes de escribir ($(err "$F"), salida $(h "$F" salida_proceso)), sin copia durable y sin imprimir el valor"
+  done
+  # D19f, además: el sha corto que imprime es el del valor con printf (la fórmula del DG), y la base lo rechazó.
+  F="$O/d19f.txt"
+  exigir D19f '[ "$(h "$F" salida_proceso)" = 1 ] && [ "$(err "$F")" = la_base_de_studio_no_es_la_de_produccion ] && [ "$(h "$F" sistema_sha256_corto)" = "$FALSO_SHA" ] && [ "$(h "$F" studio_es_produccion)" = no ] && [ -z "$(h "$F" durable)" ] && [ -z "$(h "$F" valor_impreso)" ]' \
+    "con el sha corto esperado pero otra base: imprime el sha con printf ($(h "$F" sistema_sha256_corto)), la base dice $(h "$F" studio_es_produccion) y se niega sin escribir"
 }
 comprobar_ajeno() {
   local O="$1" cual clave F
@@ -423,8 +493,8 @@ comprobar_borrar() {
   exigir D15 '[ "$(h "$F" salida_proceso)" = 1 ] && grep -q "^HECHO error=algo ajeno en la bandeja" "$F" && [ -z "$(h "$F" hecho_sin_commit)" ] && [ "$(h "$F" durable_d15)" = "chatwoot-seco.hecho,contactos-conservados.ndjson,studio-ensayo.hecho," ]' \
     "el borrado aborta antes del COMMIT: sin chatwoot-borrar.hecho en ninguna carpeta, y la copia durable con el .ndjson y los dos .hecho ($(h "$F" durable_d15))"
   F="$O/d5.txt"
-  exigir D5 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" confirmado)" = si ] && [ "$(h "$O/contar-d5.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$O/contar-d5.txt" contactos_dtd)" = 1 ] && [ "$(h "$O/contar-d5.txt" otra)" = "$(h "$O/contar-antes.txt" otra)" ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$F" contenedor_limpio)" = si ] && [ "$(h "$F" archivo_despues)" = si ]' \
-    "CONFIRMAR=si: la bandeja vacía, queda solo el contacto conservado ($(h "$O/contar-d5.txt" contactos_dtd)), la otra bandeja igual ($(h "$O/contar-d5.txt" otra)), el contenedor limpio y el .ndjson sigue para Studio"
+  exigir D5 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" confirmado)" = si ] && [ "$(h "$O/contar-d5.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$O/contar-d5.txt" contactos_dtd)" = 1 ] && [ "$(h "$O/contar-d5.txt" otra)" = "$(h "$O/contar-antes.txt" otra)" ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$F" contenedor_limpio)" = si ] && [ "$(h "$F" archivo_despues)" = si ] && [ "$(h "$F" sistema_sha256_corto)" = "$SIS_SHA" ] && [ "$(h "$F" studio_es_produccion)" = si ] && ! grep -qF -- "$SISTEMA_VALOR" "$F"' \
+    "CONFIRMAR=si: la huella de Studio es la esperada ($(h "$F" sistema_sha256_corto), $(h "$F" studio_es_produccion)); la bandeja vacía, queda solo el contacto conservado ($(h "$O/contar-d5.txt" contactos_dtd)), la otra bandeja igual ($(h "$O/contar-d5.txt" otra)), el contenedor limpio y el .ndjson sigue para Studio"
   F="$O/chatwoot-borrar.hecho"
   exigir D13 'grep -q "^HECHO chatwoot_borrar=ok " "$F" && [ "$(H "$F" conservados_sha256)" = "$sha" ] && [ "$(H "$F" tenant)" = "$TENANT" ] && [ "$(H "$F" cuenta)" = "$CUENTA" ] && [ "$(H "$F" bandeja)" = "$BANDEJA" ] && [ "$(H "$F" fin)" = commit ]' \
     "el borrado escribe chatwoot-borrar.hecho, con el sha256, el tenant, la cuenta, la bandeja y fin=commit"
@@ -461,10 +531,11 @@ comprobar_corte() {
 comprobar() { # salidas modo
   case "$2" in
     sh) comprobar_sh "$1" ;;
+    sistema) comprobar_sistema "$1" ;;
     ajeno) comprobar_ajeno "$1" ;;
     borrar) comprobar_borrar "$1" ;;
     corte) comprobar_corte "$1" ;;
-    completo) comprobar_sh "$1"; comprobar_ajeno "$1"; comprobar_borrar "$1"; comprobar_corte "$1" ;;
+    completo) comprobar_sh "$1"; comprobar_sistema "$1"; comprobar_ajeno "$1"; comprobar_borrar "$1"; comprobar_corte "$1" ;;
   esac
   return 0
 }
@@ -477,7 +548,8 @@ en_parte() { # id del mutante: ¿corre en esta parte?
     # La parte b tardó 54 min de 60 (job 129163939032 y run 42628321142): MD27, MD28 y MD30 (unos 4 min cada uno) pasan
     # a la parte a, que tardaba 28. Corren igual sobre el escenario del borrado.
     MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD32 | MD33) suya=b ;;
-    MD1 | MD2 | MD15 | MD16 | MD17 | MD18 | MD19 | MD31) suya=c ;;
+    # B1 del DG: los mutantes de la huella (sin la carga, unos 1 a 2 min) se reparten entre la a y la c.
+    MD1 | MD2 | MD15 | MD16 | MD17 | MD18 | MD19 | MD31 | MD39 | MD40 | MD41 | MD42) suya=c ;;
   esac
   [ "$PARTE" = todo ] || [ "$PARTE" = "$suya" ]
 }
@@ -501,12 +573,14 @@ open(a, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$1" "$2" "
 }
 cayeron_en() { local k; for k in "${!RES[@]}"; do [ "${RES[$k]}" = FALLÓ ] && echo "$k"; done | sort | tr '\n' ' '; }
 # Los casos de cada parte del escenario: corre_en id → «sh», «ajeno», «borrar» o «no existe».
-CASOS_SH="D6a D6b D6c D6d D6i D6e D6f D8 D6g D6h D10"
+CASOS_SH="D6a D6b D6c D6d D6i D6e D6f D8 D6g D6h D10 D6j"
+CASOS_SISTEMA="D18 D19a D19b D19c D19d D19e D19f D19g"
 CASOS_AJENO="D1a D1b D1c D1d D1e D1f D1g"
 CASOS_BORRAR="D2 D2b D9 D3 D4 D11a D11b D11c D5 D13 D14 D15 D17 D7 F1"
 CASOS_CORTE="D16 D17b"
 corre_en() {
   case " $CASOS_SH " in *" $1 "*) echo sh; return ;; esac
+  case " $CASOS_SISTEMA " in *" $1 "*) echo sistema; return ;; esac
   case " $CASOS_AJENO " in *" $1 "*) echo ajeno; return ;; esac
   case " $CASOS_BORRAR " in *" $1 "*) echo borrar; return ;; esac
   case " $CASOS_CORTE " in *" $1 "*) echo corte; return ;; esac
@@ -520,7 +594,7 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
   # Lo ajeno y el borrado necesitan la carga en la bandeja: la corrida de antes (o un mutante completo) la dejó vacía
   # (el rojo previo del run 42588248456: los mutantes de lo ajeno corrían sobre la bandeja vacía). Las guardas de
   # deshacer.sh (sh) no llegan a la bandeja.
-  [ "$modo" = sh ] || recargar
+  case "$modo" in sh | sistema) ;; *) recargar ;; esac
   RES=(); MODO_LOG=0
   escenario "$K" "$TRABAJO/$id" "$modo"
   comprobar "$TRABAJO/$id" "$modo"
@@ -543,7 +617,7 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
 if [ "$MUTANTES" = 1 ]; then
   log "== M. mutantes"
   mutante MD0 "control: los guiones sin cambios, sobre una carga nueva" deshacer-carga.rb completo "" \
-    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D7 D8 D9 D10 D11a D11b D11c D13 D14 D15 D16 D17 D17b F1" "require 'set'" "require 'set'"
+    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D6j D7 D8 D9 D10 D11a D11b D11c D13 D14 D15 D16 D17 D17b D18 D19a D19b D19c D19d D19e D19f D19g F1" "require 'set'" "require 'set'"
   # Lo ajeno (deshacer-carga.rb), con la parte ajeno sola.
   mutante MD1 "no mira los mensajes ajenos" deshacer-carga.rb ajeno "D1a" "D1b D1c" \
     "'mensajes' => mensajes.where(\"source_id IS NULL OR source_id NOT LIKE 'dtd:%'\").count," "'mensajes' => 0,"
@@ -579,6 +653,28 @@ if [ "$MUTANTES" = 1 ]; then
     "  otra_bandeja) mal un_hilo_del_tenant_no_es_de_esta_bandeja 1 ;;" "  otra_bandeja) ;;"
   mutante MD14 "DB con valor por defecto" deshacer.sh sh "D6g" "D6a D6h" \
     '[ -n "${DB:-}" ] || mal falta_db' 'DB="${DB:-dtd-cargo-db-1}"'
+  mutante MD43 "DB_CW con valor por defecto" deshacer.sh sh "D6j" "D6a D6g" \
+    '[ -n "$DB_CW" ] || mal falta_db_cw' 'DB_CW="${DB_CW:-chatwoot-rails-1}"'
+  S_TODOS="D18 D19a D19b D19c D19d D19e D19f D19g"
+  sin() { local x out=""; for x in $S_TODOS; do [ "$x" = "$1" ] || out="$out $x"; done; echo "${out# }"; }
+  mutante MD34 "el paso 3 no mira el entorno del ensayo de Studio" deshacer.sh sistema "D18" "$(sin D18)" \
+    '[ "$(campo "$H_ENSAYO" entorno)" = produccion ] || mal el_ensayo_de_studio_no_es_de_produccion' ':'
+  mutante MD35 "acepta un archivo de SISTEMA que no está en 0600" deshacer.sh sistema "D19a" "$(sin D19a)" \
+    '[ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] && [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }' ':'
+  mutante MD36 "acepta un archivo de SISTEMA de otro uid" deshacer.sh sistema "D19b" "$(sin D19b)" \
+    '[ "$(stat -c %u "$f")" = "$SISTEMA_UID" ] || { echo "HECHO error=archivo_de_sistema_no_es_de_root" >&2; return 1; }' ':'
+  mutante MD37 "no cuenta los saltos de línea del archivo de SISTEMA" deshacer.sh sistema "D19c" "$(sin D19c)" \
+    "[ \"\$(LC_ALL=C tr -d '0-9\\n' < \"\$f\" | wc -c)\" -eq 0 ] && [ \"\$(LC_ALL=C tr -cd '\\n' < \"\$f\" | wc -c)\" -le 1 ] || { echo \"HECHO error=archivo_de_sistema_no_es_un_numero\" >&2; return 1; }" ':'
+  mutante MD38 "acepta un archivo de SISTEMA vacío" deshacer.sh sistema "D19d" "$(sin D19d)" \
+    "case \"\$v\" in ''|*[!0-9]*) echo \"HECHO error=archivo_de_sistema_no_es_un_numero\" >&2; return 1 ;; esac" ':'
+  mutante MD39 "no compara el sha corto con el esperado" deshacer.sh sistema "D19e" "$(sin D19e)" \
+    '[ "$(sha_corto "$SISTEMA")" = "$SISTEMA_SHA_ESPERADO" ] || { echo "HECHO sistema_esperado=$SISTEMA_SHA_ESPERADO"; mal sistema_no_es_el_de_produccion; }' ':'
+  mutante MD40 "no compara SISTEMA con la base de Studio" deshacer.sh sistema "D19f" "$(sin D19f)" \
+    '[ "$huella" = si ] || mal la_base_de_studio_no_es_la_de_produccion 1' ':'
+  mutante MD41 "acepta SISTEMA en el entorno" deshacer.sh sistema "D19g" "$(sin D19g)" \
+    '[ -z "${SISTEMA:-}" ] || mal sistema_va_en_el_archivo_no_en_el_entorno' ':'
+  mutante MD42 "el sha corto con echo (con salto de línea)" deshacer.sh sistema "D19f" "$(sin D19f)" \
+    "sha_corto() { printf '%s' \"\$1\" | sha256sum | cut -c1-10; }" "sha_corto() { echo \"\$1\" | sha256sum | cut -c1-10; }"
   mutante MD20 "acepta ceros a la izquierda" deshacer.sh sh "D10" "D6a" \
     "'' | 0[0-9]* | *[!0-9]*) mal cuenta_o_bandeja_no_numerica ;;" "'' | *[!0-9]*) mal cuenta_o_bandeja_no_numerica ;;"
   # El seco, la lista y CONFIRMAR (deshacer-carga.rb), con el escenario completo.
