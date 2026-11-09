@@ -12,66 +12,78 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 
 ## COMPLETADO
 
-- `infra/ops/backup/storage-backup.sh` (nuevo): un `tar` de `data/storage` alimenta por tuberías y FIFOs a `age` (`.tar.age`), a la lista por archivo (`tar --to-command`, cifrada) y a la huella del flujo. El manifiesto va sin rutas. Hace `rclone copy` + `check` a `b2:dtdcargo-respaldos/storage/<proyecto>/` y aplica retención de 30 días acotada al prefijo y de 2 respaldos locales. Guardas: carpeta con ≥ 1 archivo, destinatarios sin clave privada, espacio libre y GNU tar.
-- `infra/ops/backup/storage-restore.sh` (nuevo): `--verificar` (sin escribir) y `--destino` (carpeta vacía). Comprueba el sha256 de los `.age` antes de descifrar, la huella del flujo, la lista por archivo, el conteo y los bytes.
-- `infra/ops/lib/storage-lista.sh` (nuevo): la lista que comparten los dos scripts.
-- `infra/dtd-cargo/backup.sh`: tercer paso, después del dump y la configuración. Si falla, el respaldo sale FALLÓ y no late. La descripción de la unidad systemd ahora nombra el Storage.
-- Pruebas: `infra/ops/tests/prueba-respaldo-storage.sh` (nueva, agregada a `pruebas-linux.sh` → CI «Calidad continua») con contratos C1 a C4 y mutantes M1 a M5, cada uno con base limpia. `prueba-backup-dtd.sh` (VPS) queda adaptada al tercer paso.
-- Documentación: runbook `backup-restore-servidor.md`. En §1, la fila del Storage. La §5 se reescribió: lo medido, el respaldo diario, la comprobación mensual, el restore en producción y qué hacer si crece. Ya no aparece el `rclone sync r2:… b2:…-copia` que no existía. También `infra/ops/README.md`, `infra/dtd-cargo/README.md` (el overlay S3 no está activo) y la fila de Backblaze en `inventario-terceros.md`.
-- La spec trae el diseño (D1 a D5), la revisión `revisar-datos-ve` y el **guion de instalación** para el OK nominal de Sam.
+**Primera vuelta** (cabeza `282a692e0`):
+- `storage-backup.sh`: un tar por tuberías a `age`, lista por archivo cifrada, manifiesto sin rutas, `copy` + `check` y retención acotada al prefijo.
+- `storage-restore.sh`: `--verificar` y `--destino`.
+- Tercer paso en `backup.sh`.
+- `prueba-respaldo-storage.sh` con los mutantes M1 a M5.
+- Runbook §1 y §5, READMEs e inventario de terceros.
 
-Criterios de aceptación de la spec: 1, 2, 3 y 5 cumplidos en código y en la prueba local. El 4 (que corra en el CI) espera a Actions. El 6, por diseño, queda fuera de esta PR.
+**Segunda vuelta, por la revisión independiente** (CHANGES_REQUESTED sobre `282a692e0`):
+- **B1, xattrs.** En el VPS, 714 de 714 archivos tienen `user.supabase.content-type` y `user.supabase.cache-control`.
+  - El tar ahora es `--format=posix --xattrs --xattrs-include='user.*'` al crear y al extraer.
+  - La lista pasa a `infra/ops/lib/storage-lista.py` (`tarfile`), porque `--to-command` no ve los xattrs. Lleva por archivo una huella de sus `user.*` (nombre y valor), sin imprimir los valores.
+  - Se retira `storage-lista.sh`.
+  - C2 siembra los xattrs y los compara después de restaurar. `--verificar` detecta una huella de xattrs cambiada. Mutantes nuevos: M6a (respaldo sin `--xattrs`) y M6b (restore sin `--xattrs`).
+- **Rutas fuera del log.** El stderr de tar y de la lista va a `/dev/shm` y se borra; el log solo dice cuántas líneas hubo. `find` y `du` callan su stderr. La salida del restore no trae rutas. Prueba C5: un socket con nombre sembrado provoca un aviso de tar. Mutante M7.
+- **Guarda contra un borrado masivo.** Si el conteo cae por debajo del 50 % de la referencia aceptada, el respaldo se sube, pero no corre la retención (ni remota ni local) y sale 1, cada día, hasta `--aceptar-caida`. Prueba C6 (dos días seguidos y la aceptación). Mutante M8.
+- **Guion de instalación literal** en la spec, §Instalación: `git archive | ssh`, comprobación de sha256, `.bak` de `backup.sh`, `install` con modo 700, primero `/srv/ops` y después `backup.sh`, dry-run, primera subida solo del Storage, `systemctl start` (avisa que también hace el dump de la base y de la configuración), `lsl` del remoto, restore de prueba y vuelta atrás con sus comandos.
+- **Runbook** en presente: «desde la instalación (pendiente de OK de Sam)» en §1 y §5; §5.1 explica la guarda y `--aceptar-caida`; §5.2 y §5.3 cubren los xattrs.
+- `storage-restore.sh` normaliza `--dir`, `--age-identity` y `--destino` a rutas absolutas (prueba con rutas relativas).
+- **Textos viejos:** encabezado de `backup.sh` («tres scripts»), comentario de `compose.supabase.yml` (el overlay S3 no está activo) y este handoff.
+- **No bloqueante:** el `age` espía de la prueba ahora mira al empezar y al terminar.
+
+Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
-| `prueba-respaldo-storage.sh` en Git Bash (Windows) | `9c2e01cb5`, copia de scratch con 3 adaptaciones solo locales: `/run/lock` → `/tmp/lock` en `backup.sh`, `WORK_ROOT` `/dev/shm` → `/tmp` y un `flock` doble (Windows no tiene ni `/run`, ni `/dev/shm` escribible, ni flock). El resto, idéntico a lo commiteado (verificado con `diff`) | **PASÓ** 27 PASÓ · 0 FALLÓ. Log: `side-session-notes/…/prueba-respaldo-storage-9c2e01cb5-windows.log` |
-| Misma prueba sin adaptar, en Git Bash | `9c2e01cb5` | 24 PASÓ · 3 FALLÓ. Los 3 fallos (C4, «backup.sh sin storage» y M1 base limpia) son `/run/lock` inexistente en Windows, no defectos |
-| Misma prueba en Linux, **sin adaptaciones** | `5881e98e7` exportado con `git archive`, en `ubuntu:24.04` desechable (`--rm`, repo de solo lectura, trabajo en tmpfs, root, GNU tar 1.35, OpenSSL 3.0.13, flock; sin `age` real, como el CI). Pedido por Sam el 2026-11-09, con turno del DG | **PASÓ** 27 PASÓ · 0 FALLÓ, exit 0; por el runner del CI (`pruebas-linux.sh` con `PRUEBAS_LINUX_LISTA`): 1 PASÓ · 0 FALLÓ en 7 s. Log: `side-session-notes/…/prueba-respaldo-storage-5881e98e7-ubuntu2404.log`. Docker Desktop ya estaba encendido (22 contenedores) y se dejó así; la imagen `ubuntu:24.04` se borró al terminar |
-| `age` real (ida y vuelta) | — | **NO EJECUTADO**: no hay `age` en esta PC. La prueba lo usa sola si encuentra `/usr/bin/age` |
-| `prueba-backup-dtd.sh` (adaptada) | — | **NO EJECUTADO**: es del VPS, como root con Docker. No se toca el VPS |
-| `bash -n` de los 6 scripts tocados | HEAD | PASÓ |
-| `node scripts/build-docs-index.mjs --check` (docs:check) | HEAD | PASÓ (601 specs) |
-| `node scripts/check-numbering.mjs` (sdd:check) | HEAD | PASÓ (solo advisories históricos) |
-| `node scripts/build-governance-capsule.mjs --check` | HEAD | PASÓ |
-| `git diff --check` | HEAD | PASÓ |
-| `ci-workflow-contract.test.mjs` (clasificación de pruebas bash) | — | **NO EJECUTADO** local (sin `node_modules`). La prueba nueva está en `PRUEBAS=( … )` de `pruebas-linux.sh`, que es lo que esa prueba lee |
-| `shellcheck` | — | NO DISPONIBLE en la PC |
-| `pnpm verify` | — | NO EJECUTADO: el cambio es de operaciones en bash y documentación, sin producto. Las comprobaciones que aplican son las de arriba |
-| Graphify / Archify / `knowledge:status` | — | NO EJECUTADO (sin `node_modules`; los publica el Director desde main) |
+| `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, **como root**, árbol de trabajo de esta vuelta (todas las comprobaciones, mutantes M1-M8 con base limpia) | rama antes del commit de esta vuelta; GNU tar 1.35, Python 3.12.3, kernel 6.18 WSL2, `/tmp` en tmpfs | **PASÓ** 41 PASÓ · 0 FALLÓ; por el runner del CI, 1 PASÓ · 0 FALLÓ en 19 s |
+| La misma, **sin root** (uid 1001, `/run/lock` 1777 como en el runner de GitHub, `/tmp` en overlay) | idem | **PASÓ** 41 PASÓ · 0 FALLÓ |
+| Primera vuelta en `ubuntu:24.04` | `5881e98e7` | PASÓ 27 · 0 (histórico) |
+| Docker al terminar | — | la imagen `ubuntu:24.04` se borró; ningún contenedor propio; los mismos 22 de antes. Docker Desktop ya estaba encendido y se dejó así |
+| `age` real (ida y vuelta) | — | **NO EJECUTADO**: no está en el CI ni en la PC. La prueba lo usa si encuentra `/usr/bin/age` |
+| `prueba-backup-dtd.sh` (adaptada) | — | **NO EJECUTADO**: es del VPS, como root con Docker |
+| xattrs en `/dev/shm` del VPS | — | NO VERIFICABLE hasta la primera prueba (tmpfs los admite desde el kernel 6.6; el VPS corre Ubuntu 24.04) |
+| `bash -n`, docs:check, sdd:check, governance:check, `git diff --check` | HEAD de esta vuelta | ver el commit; registrados en el aviso al DG |
+| `ci-workflow-contract.test.mjs` | — | NO EJECUTADO local (sin `node_modules`); lo corre el CI |
+| `pnpm verify` | — | NO EJECUTADO: cambio de operaciones en bash y Python, sin producto |
+| Graphify / Archify / `knowledge:status` | — | NO EJECUTADO (los publica el Director desde main) |
 
-Mutantes (en la corrida local): **M1** `backup.sh` sin el paso del Storage cae en C4. **M2**, el tar pasa por disco en claro y se borra: lo atrapa el `age` espía de C1. **M3**, el tar excluye `client-docs`: cae C2. **M4**, el restore no compara el sha256: cae C3. **M5**, el restore no compara la lista: cae con una lista adulterada. Antes de cada uno, el contrato pasó sin mutar.
+Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.log` (primera vuelta).
 
 ## COMMITS
 
-- `d5305d3eb` chore(sdd): reserva SDD-0620 (de la reserva).
+- `d5305d3eb` chore(sdd): reserva SDD-0620.
 - `9c2e01cb5` feat(ops): scripts, `backup.sh`, unidad, pruebas.
 - `4080a9344` docs(ops): spec, índice, runbook, READMEs, inventario de terceros.
-- (este handoff, commit propio).
+- `51c13c3b2`, `5881e98e7`, `282a692e0`: handoff.
+- Segunda vuelta: un commit `fix(ops)` (xattrs, log sin rutas, guarda, restore absoluto, pruebas) y un commit `docs` (spec con guion literal, runbook, READMEs, handoff).
 
 ## PR / BRANCH
 
-Rama `claude/respaldo-storage-studio-4e17a7`, **sin publicar**. Actions está bloqueado y el encargo pide no gastar pushes. La PR en borrador se abre con un solo push cuando el DG lo diga o cuando Actions vuelva.
+- PR [SoftAgentes/DTDCARGO#482](https://github.com/SoftAgentes/DTDCARGO/pull/482), **en borrador**, base `main`, rama `claude/respaldo-storage-studio-4e17a7`.
+- Revisión independiente sobre `282a692e0`: CHANGES_REQUESTED (B1 y los pedidos 1 a 6). Esta vuelta los atiende y mueve la cabeza; el DG decide si revisa de nuevo.
+- Auto-fix está encendido en la PR.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. ~~Correr la prueba en Linux~~: hecho en Docker local (27 PASÓ · 0 FALLÓ). Falta que la corra el CI de la PR cuando vuelva Actions.
-2. Abrir la PR en borrador y avisar al DG cuando el CI esté verde, para la revisión independiente.
-3. Instalación en producción, con OK nominal de Sam: guion en la spec, §Instalación (lo pide el DG).
-4. Después de instalar: primer registro en el runbook §8 (conteo del manifiesto frente a `storage.objects`).
+1. CI verde sobre la cabeza nueva; marcar la PR lista; nueva revisión, que lanza el DG.
+2. Instalación en producción, con OK nominal de Sam: guion literal en la spec, §Instalación (lo pide el DG).
+3. Después de instalar: primer registro en el runbook §8 (conteo del manifiesto frente a `storage.objects`) y comprobar xattrs en `/dev/shm`.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Las líneas r2 de la base no son de esta PR.** La #479 publicada no toca `backup-restore-servidor.md`. El DG confirmó que la vuelta de E10 que todavía no se publicó corrige `:84`-`:86`, `:185` y `:187`. Esta PR solo cambia §1 (la fila del Storage) y §5, para que las dos no choquen; si chocan, lo resuelve el DG en el tren.
+- La #479 (E10) corrige las líneas `r2:` de §2/§3 del runbook y choca en §5. El DG decidió que esta PR entra primero y E10 se acomoda después.
 - `inventario-terceros.md:46` todavía dice que Backblaze está «todavía sin datos reales». Producción respalda allí desde octubre. Corregir el estado le toca a privacidad.
 - La credencial de subida a B2 es la misma que borra (H7 de la revisión del traslado). Sigue abierta.
 - El DPA de Backblaze sigue NO VERIFICABLE.
-- `config-backup.sh --include` no tiene uso; se puede quitar o documentar.
+- `config-backup.sh --include` no tiene uso.
 
 ## HANDOFF AL DIRECTOR
 
-Listo en local. Por orden del DG, no se publica hasta que él avise que Actions volvió. Entonces: push de la rama, PR en borrador, CI verde, revisión independiente que lanza el DG y, aparte, el OK nominal de Sam para el guion de instalación.
+Segunda vuelta lista y publicada en la #482 (sigue en borrador): B1 y los pedidos 1 a 6 atendidos, con pruebas y mutantes nuevos (M6a, M6b, M7 y M8). 41 PASÓ · 0 FALLÓ en Linux, con root y sin root. Falta el CI de la cabeza nueva y tu nueva revisión. El guion de instalación literal está en la spec, para pedirle el OK a Sam.
 
 ## Impacto documental
 

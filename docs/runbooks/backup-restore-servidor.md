@@ -15,7 +15,7 @@ corrió (§2.3).
 | Qué | Dónde vive | Cómo se respalda | Frecuencia | Destino |
 |---|---|---|---|---|
 | Base de datos completa (`public`, `auth`, `storage` (metadata), `vault`, `cron`, `supabase_migrations`) | contenedor `db` de `/srv/dtd-cargo` | `pg-dump-to-s3.sh`: `pg_dump -Fc` + roles, **cifrados con `age`** (los claros solo en `/dev/shm`) | diaria | bucket de backups fuera de Contabo (R2 o B2) |
-| Archivos de Storage (cédulas, fotos, POD, comprobantes, documentos) | disco del VPS: `/srv/dtd-cargo/data/storage` (storage-api con `STORAGE_BACKEND=file`; el overlay `compose.supabase.s3.yml` **no** está activo) | `storage-backup.sh` desde `backup.sh`: `tar` por tuberías a `age`, **sin copia en claro**, lista por archivo cifrada y manifiesto sin rutas (§5, SDD-0620) | diaria, completa | `b2:dtdcargo-respaldos/storage/dtd-cargo/`, 30 días |
+| Archivos de Storage (cédulas, fotos, POD, comprobantes, documentos) | disco del VPS: `/srv/dtd-cargo/data/storage` (storage-api con `STORAGE_BACKEND=file`; el overlay `compose.supabase.s3.yml` **no** está activo) | `storage-backup.sh` desde `backup.sh`: `tar` con los xattrs `user.*` por tuberías a `age`, **sin copia en claro**, lista por archivo cifrada y manifiesto sin rutas (§5, SDD-0620) | diaria, completa, **desde la instalación (pendiente de OK de Sam)**; hasta entonces, solo el Auto Backup de Contabo | `b2:dtdcargo-respaldos/storage/dtd-cargo/`, 30 días |
 | Adjuntos con archivo inmutable (SDD-0224/0235) | R2 `dtdcargo-attachments-archive-prod` con Bucket Lock | ya cubierto por [adjuntos-backup-antivirus-restore.md](adjuntos-backup-antivirus-restore.md) | continuo | — |
 | `.env` del proyecto y **clave raíz de Vault** (`pgsodium_root.key`, volumen `<proyecto>_db-config`) | `/srv/<proyecto>/.env` y el volumen | `config-backup.sh`: `tar` en `/dev/shm` + `age` (§4) | diaria, sube solo si cambió | `<remoto>/<proyecto>-config/` + copia del `.env` en el gestor de contraseñas de Sam |
 | Repo y plantillas de correo | GitHub | — | — | ya está versionado |
@@ -399,10 +399,15 @@ Además:
 `dtd-cargo-storage-1` corre con `STORAGE_BACKEND=file`, con el bind de
 `/srv/dtd-cargo/data/storage` a `/var/lib/storage` (~515 MB, 714 archivos). El
 overlay `compose.supabase.s3.yml` no está activo. El dump de §2 trae solo la
-metadata (`storage.objects`); los bytes están en esa carpeta. Hasta la SDD-0620
-ningún respaldo propio los copiaba: solo el Auto Backup de Contabo, que es el
-mismo proveedor (§6). Este runbook describía un `rclone sync` semanal de R2 a
-B2 que **nunca existió**.
+metadata (`storage.objects`); los bytes están en esa carpeta, y el Content-Type y
+el Cache-Control de cada objeto, en sus xattrs `user.supabase.*` (714 de 714
+archivos los tienen, medido el mismo día). Sin esos xattrs, una restauración
+serviría los PDF y las imágenes sin su tipo.
+
+Hoy ningún respaldo propio los copia: la única copia está en el Auto Backup de
+Contabo, que es el mismo proveedor (§6). La SDD-0620 los respalda **desde su
+instalación, pendiente del OK de Sam**. Este runbook describía un `rclone sync`
+semanal de R2 a B2 que **nunca existió**.
 
 El Storage guarda lo más sensible del sistema (cédulas y RIF, fotos de
 recepción, POD y firmas, fachadas, comprobantes de pago; inventario en
@@ -410,7 +415,7 @@ recepción, POD y firmas, fachadas, comprobantes de pago; inventario en
 Por eso sale de Contabo igual que la base: cifrado con `age` antes de salir, y
 Backblaze solo guarda archivos ilegibles.
 
-### 5.1 Respaldo diario
+### 5.1 Respaldo diario (desde la instalación, pendiente de OK)
 
 `backup.sh` llama a `infra/ops/backup/storage-backup.sh` después del dump y de
 la configuración. El script:
@@ -419,17 +424,26 @@ la configuración. El script:
    destinatarios `age`, el espacio libre en `/srv/backups` y que haya al menos
    `BACKUP_STORAGE_MIN_FILES` archivos (1 por omisión). Una carpeta vacía o
    equivocada hace **fallar** el respaldo, y sin respaldo no hay latido.
-2. Hace un solo `tar` de la carpeta y lo reparte por tuberías a tres consumidores:
-   `age` (el `.tar.age`), la **lista por archivo** (sha256, bytes y ruta, sacada
-   de los mismos bytes con `tar --to-command`, y también cifrada) y la huella
-   sha256 del flujo. **Nada en claro toca el disco**: el contenido pasa por
-   tuberías y FIFOs en `/dev/shm`.
+2. Hace un solo `tar --format=posix --xattrs --xattrs-include='user.*'` de la
+   carpeta y lo reparte por tuberías a tres consumidores: `age` (el `.tar.age`),
+   la **lista por archivo** (sha256, bytes, huella de los xattrs `user.*` y ruta,
+   sacada de los mismos bytes por `infra/ops/lib/storage-lista.py`, y también
+   cifrada) y la huella sha256 del flujo. **Nada en claro toca el disco**: el
+   contenido pasa por tuberías y FIFOs en `/dev/shm`. Los avisos de tar, que
+   nombran archivos, quedan en `/dev/shm` y se borran: el log solo dice cuántos.
 3. Escribe `<base>.manifiesto` en claro, **sin rutas**: sello, conteo, bytes,
    huella del flujo y sha256 de los dos `.age`. Las rutas pueden traer nombres de
    personas, por eso la lista va cifrada.
 4. `rclone copy` (nunca `sync`) de los tres a
    `b2:dtdcargo-respaldos/storage/dtd-cargo/` y `rclone check --one-way`.
-5. Retención: `rclone delete --min-age 30d` acotado a ese prefijo, con
+5. **Guarda contra un borrado masivo.** Compara el conteo con el del último
+   respaldo aceptado (`/srv/backups/dtd-cargo/storage/dtd-cargo-storage.referencia`).
+   Si cae por debajo del 50 %, el respaldo **se sube igual**, pero no se aplica la
+   retención (ni remota ni local), y el script sale 1: no hay latido y alguien
+   mira. Se repite cada día hasta que una persona, después de comprobar que la
+   caída es legítima, corre una vez:
+   `/srv/ops/backup/storage-backup.sh --project dtd-cargo --source /srv/dtd-cargo/data/storage --remote b2:dtdcargo-respaldos/storage --age-recipients /srv/ops/backup/age-recipients.txt --aceptar-caida`.
+6. Retención: `rclone delete --min-age 30d` acotado a ese prefijo, con
    `hard_delete` del remoto (borrado real), y en disco local los 2 respaldos más
    nuevos (`BACKUP_STORAGE_KEEP_LOCAL`).
 
@@ -458,7 +472,11 @@ rm -rf /dev/shm/storage-restaurado /dev/shm/clave.txt /srv/restores/storage
 
 Cada modo termina con `RESULTADO: N PASÓ · M FALLÓ` y comprueba: sha256 de los
 dos `.age` **antes** de descifrar, huella del flujo, lista por archivo (mismas
-rutas, bytes y sha256) y conteo y bytes contra el manifiesto. Se anota en §8 el
+rutas, bytes, sha256 y xattrs `user.*`, comparados por huella) y conteo y bytes
+contra el manifiesto. La salida no trae rutas. `--destino` en `/dev/shm` restaura
+también los xattrs; tmpfs los admite desde el kernel 6.6 (el VPS corre Ubuntu
+24.04: NO VERIFICABLE hasta la primera prueba). Si fallara, basta `--verificar`,
+que compara los xattrs sin escribir nada. Se anota en §8 el
 conteo del manifiesto junto al de `storage.objects` del restore de la base: si
 difieren por más de las subidas de un día, algo falta.
 
@@ -474,7 +492,8 @@ mv data/storage data/storage-antes-$(date -u +%Y%m%dT%H%M%SZ) && mv data/storage
 docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml start storage imgproxy
 ```
 
-Como root, `tar --numeric-owner` conserva los dueños originales. La carpeta
+Como root, `tar --numeric-owner --xattrs` conserva los dueños originales y los
+xattrs `user.supabase.*` (Content-Type y Cache-Control). La carpeta
 `storage-antes-*` se borra solo después de comprobar la web y el Studio, y con
 el visto bueno de Sam.
 
@@ -493,8 +512,8 @@ revisar la estrategia en una SDD nueva, sin improvisar en el servidor:
 - **Disco:** el `.tar.age` pesa lo mismo que el origen (las fotos y los PDF no se
   comprimen). El script se niega a empezar si `/srv/backups` no tiene el tamaño
   del origen + 10 % + 100 MB libres.
-- **Muchos archivos:** la lista corre un `sha256sum` por archivo. Con 714 tarda
-  segundos; con cientos de miles hay que medirla.
+- **Muchos archivos:** la lista lee cada archivo una vez, en Python, del mismo
+  flujo. Con 714 tarda segundos; con cientos de miles hay que medirla.
 
 Los adjuntos con recibo inmutable siguen bajo su runbook propio
 ([adjuntos-backup-antivirus-restore.md](adjuntos-backup-antivirus-restore.md));
