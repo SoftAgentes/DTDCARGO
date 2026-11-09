@@ -208,7 +208,7 @@ La aplicó el Director General, primero en prueba y después en producción, con
 
 ## 2026-11-08 · La 0521, la 0523 y la 0524 aplicadas: cierre
 
-Las tres las aplicó el DG en prueba y en producción el 2026-11-08, con el OK nominal de Sam. Lo que antes en esta spec dice que están en espera vale para su fecha. **El registro del runbook §6, paso 3** (COMMIT, `version`, md5 y bytes, filas, evidencia, OK literal y merge) está en [`.agents/handoffs/cierre-migraciones-20261108.md`](../../../.agents/handoffs/cierre-migraciones-20261108.md), junto con la 0518 y la 0522. La 0521 y la 0523 quedan selladas en la #463; la 0524, en un cierre chico después del tren 6.
+Las tres las aplicó el DG en prueba y en producción el 2026-11-08, con el OK nominal de Sam. Lo que antes en esta spec dice que están en espera vale para su fecha. **El registro del runbook §6, paso 3** (COMMIT, `version`, md5 y bytes, filas, evidencia, OK literal y merge) está en [`.agents/handoffs/cierre-migraciones-20261108.md`](../../../.agents/handoffs/cierre-migraciones-20261108.md), junto con la 0518 y la 0522. La 0521 y la 0523 quedaron selladas en la #463, y la 0524 en su cierre chico, después del tren 6.
 
 ## Paso 10.5 — Conversaciones del portal en Chatwoot y en los embudos (rediseño, 2026-11-06)
 
@@ -568,22 +568,8 @@ Qué se extrae: los hilos del canal `portal` del tenant, vivos y archivados, que
 4. producción: respaldo de Chatwoot y de Studio antes, lectura previa, de a una y conteos después, con el Director General, que recibe la evidencia del ensayo antes. **Entre la foto y el encendido, el equipo no responde desde Studio:** la cola solo manda entrantes, y lo que escriba ahí no llegaría a Chatwoot (se cruza con la 1c-4). Si la vinculación falla y no se reintenta, se corre `limpiar.sh` y se comprueba que `/dev/shm/portal-historial` ya no existe;
 5. encender el interruptor.
 
-**El guion de la puerta 4** (condiciones de la revisión de datos personales de la #455 y la #456, 2026-11-08):
-- **Antes:**
-  - **Contar los administradores y los miembros** de la cuenta 1 y de la bandeja «Conversaciones del portal», sin nombres ni correos.
-  - **Verificar que ninguno sea del equipo de China.** Un administrador ve todas las bandejas, y ahí aplicaría la PIPL. Si alguno lo es, no se carga y se le avisa al DG.
-  - El resultado va en la evidencia solo como conteos.
-  - **Confirmar que la cola nunca corrió en producción:** el flag `chatwoot_portal` nunca se encendió para el tenant y `chatwoot_portal_salida` está vacía para el tenant. Son conteos de solo lectura, dentro del OK de la puerta. Si no da cero, no se extrae y se le avisa al DG.
-- **Seguidas, sin pausa:** `extraer.sh`, el cargador y `vincular.sh` corren uno detrás del otro.
-  - Así no se cuela en el medio una ficha borrada, cuyo hilo ya estaría en Chatwoot.
-  - Si hay que parar, se corre `limpiar.sh` y se vuelve a empezar desde la extracción.
-  - Entre la foto y el encendido, el equipo no responde desde Studio.
-- **Si falla un `insert_all` del cargador:** el log de Postgres del contenedor de Chatwoot registra la fila completa (`DETAIL: Failing row contains (…)`), con nombres y textos de clientes.
-  - **Dónde queda:** se mira con `SHOW logging_collector`. Si está apagado, el log es la salida del contenedor (`docker inspect --format '{{.LogPath}}' <contenedor de Postgres>`). Si está encendido, son los archivos de `log_directory` dentro de `PGDATA`.
-  - **Cómo se limpia:** se borran solo las líneas del intervalo de la carga, o se trunca ese archivo (`truncate -s 0`, como root) si no guarda otra cosa que haga falta. Se deja en la evidencia que se hizo, sin copiar las líneas.
-  - Lo mismo vale para el ensayo.
-  - **La prevención** (aprobada por el DG el 2026-11-08, después de medir en el VPS que el usuario de Rails es `POSTGRES_USER`, con `rolsuper = t`, en Postgres 16.12): dentro de su transacción, antes del primer `insert_all`, el cargador fija `SET LOCAL log_min_error_statement = 'panic'` y `SET LOCAL log_error_verbosity = 'terse'`. Así el log no lleva ni `STATEMENT:` ni `DETAIL:`. Si no los puede fijar, no carga (`error=no_se_puede_bajar_el_detalle_del_log`). La prueba del cargador lo mide con un fallo inyectado y la marca `SINT-LOG-…` (L1 a L3, mutantes M35 a M38). La revisión del log de arriba se sigue haciendo: un error de tipo (`invalid input syntax for type …`) trae el valor en el mensaje principal.
-- **Supresión:** hasta que exista la pieza aparte, el procedimiento manual de supresión de una ficha incluye Chatwoot. Se borran a mano el contacto `dtd-portal:<identificador>` y sus conversaciones de la bandeja del portal, y se registra.
+**El guion de las puertas,** con las condiciones de la revisión de datos personales de la #455 y la #456, la 0524 y las decisiones del DG del 2026-11-08, **está en [`docs/runbooks/chatwoot-portal-p4-puertas.md`](../../runbooks/chatwoot-portal-p4-puertas.md).** Sam eligió, literal, «Esperar la carga» (2026-11-08): el portal se enciende después de P4. El camino corto «Encender sin el historial» queda como anexo del runbook. Esta spec no repite el guion.
+- **La prevención del log (#470):** el cargador fija con `SET LOCAL` `log_min_error_statement = 'panic'` y `log_error_verbosity = 'terse'` dentro de su transacción, antes del primer `insert_all`, y si no los puede fijar, no carga (`error=no_se_puede_bajar_el_detalle_del_log`). Lo aprobó el DG el 2026-11-08 (`rolsuper = t`, Postgres 16.12). La prueba del cargador lo mide con la marca `SINT-LOG-…` (L1 a L3, mutantes M35 a M38). El conteo del log sigue: ver el runbook, 4.10.
 
 **Conteo para el Director General.** Contar las conversaciones en producción pide su propio OK, así que aquí no se contó nada. La consulta queda lista y la corre el Director General: es de solo lectura y devuelve solo conteos y fechas, sin texto, nombres ni ids de clientes. Se corre en el contenedor de la base de Studio con `psql -v tenant=<uuid del tenant> -f <archivo>`:
 
@@ -698,6 +684,100 @@ Las dos de la 0523 llevan cada una su preflight: la 0524 exige su firma y la de 
 - `supabase/migrations/0524_chatwoot_portal_puerta4.sql`, `supabase/tests/0524_chatwoot_portal_puerta4.test.sql` y su envoltorio, `lib/studio/__tests__/chatwoot-portal-puerta4.migration.test.ts`;
 - `supabase/migrations-baseline.json`, para la espera;
 - lo de `0f100e2b3`: `extraer.sh`, `prueba-portal-historial.sh`, el README de `portal-historial`, esta spec y el handoff.
+
+#### 10.7 · Deshacer la carga en Studio (la vuelta atrás dirigida, 4.6b): diseño para revisar antes del SQL
+
+**El DG lo aprobó el 2026-11-08,** con lo que sumó el Subdirector. La condición de orden es que **esté en `main` y ensayado antes de que el DG le pida a Sam la puerta 4.** No hace falta para las puertas 1 a 3.
+
+Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas.md`](../../runbooks/chatwoot-portal-p4-puertas.md). La mitad de Chatwoot es la pieza de E5. **Es un borrado permanente en producción: lo corre Sam, y el DG lo prepara y lo ensaya con `rollback`.**
+
+**Qué es: un guion, no una migración.**
+- **No hace falta una RPC nueva:** todo lo que toca son tablas que `postgres` escribe directo.
+- **Va en una sola transacción.** El DG lo ensaya con `rollback` y Sam lo corre con `commit`.
+- **No entra al ledger,** así que no es migrate-first.
+- **Imprime solo `HECHO clave=valor`,** con conteos, como los otros guiones de `portal-historial`.
+
+**Dónde va: en la carpeta `supabase/cargas/portal-historial-deshacer/`** (decisión del Subdirector, 2026-11-08), con el SQL, el `.sh` y su README.
+- **Por qué ahí:** Contratos SQL (`scripts/run-sql-tests.mjs:102`) monta solo `supabase/` en el contenedor, y `sql-tests.yml` corre con cambios en `supabase/cargas`. Es la convención de los guiones de una sola vez, como la carga de Kommo, con una función en `pg_temp` y un `.sh` que decide si se confirma.
+- **No va en `supabase/desarmes/`:** esos se copian a migraciones y deshacen esquema.
+- **No va en `infra/ops/portal-historial/`:** ahí el CI no lo alcanza.
+- **En el VPS** queda junto a los otros guiones (sub-paso 3.0).
+
+**Cuándo sirve: solo antes de la puerta 5.** Con el flag que nunca se encendió y la cola que nunca corrió, todas las filas del tenant salen de la carga. **Después de encender no se puede distinguir** lo que vinculó la cola de lo que vinculó la carga, porque no hay marca. Por eso el guion se niega, y ese caso queda fuera de alcance.
+
+**Entradas:**
+- `:tenant`, el uuid del tenant.
+- **El entorno,** con la guarda de la carga de Kommo: `copia` exige la marca `dtd.entorno = 'copia'` guardada para la base, y `produccion` exige que no haya marca y que el `system_identifier` sea el del runbook.
+- **Los conteos esperados,** sacados del conteo previo de solo lectura (el paso 1 de abajo):
+  - `:esperados_salida`, las filas `cargado`;
+  - `:esperados_hilos`;
+  - `:esperados_contactos`, los que tienen `chatwoot_contact_id`;
+  - `:esperados_espejo`, las filas de `chatwoot_conversations` de los hilos vinculados.
+- **`/dev/shm/portal-historial/contactos-conservados.ndjson`,** que escribe la pieza de E5. Va en 0600 y lleva solo ids, como `vinculos.ndjson`. El formato está propuesto y **lo confirma E5** ‹por confirmar›:
+  - **la cabecera:** `{"tipo":"cabecera","version":1,"tenant_id":"<uuid>","cuenta":<n>,"bandeja":<n>,"contactos":<n>}`;
+  - **una línea por contacto `dtd-portal:` que E5 no borró** porque tenía otra bandeja: `{"tipo":"contacto","identificador":"<uuid>","contacto_id":<n>}`;
+  - **si E5 no conservó ninguno,** el archivo trae solo la cabecera, con `"contactos":0`;
+  - entra a psql por `COPY`, igual que en `vincular.sh`.
+
+**Los pasos, en una transacción:**
+1. **Lectura previa,** con su `HECHO`: los cuatro conteos y el de `entity_audit_log` del tenant.
+2. **Guardas: aborta sin escribir nada** si se cumple cualquiera de estas condiciones.
+   - **El flag:** está encendido, o `entity_audit_log` tiene un encendido de `chatwoot_portal` (`entity_type = 'feature_flag'`, `event_type = 'feature_flag_changed'`, `after_data->>'enabled' = 'true'`). Son las mismas guardas de 4.3.
+   - **La cola:** hay una fila de `chatwoot_portal_salida` del tenant que no está `cargado`. Eso quiere decir que la cola corrió.
+   - **Los triggers:** una de las cinco tablas tiene un trigger que no es interno (`pg_trigger`, `not tgisinternal`). Las cinco tablas son `chatwoot_portal_salida`, `chatwoot_portal_hilos`, `chatwoot_portal_contactos`, `chatwoot_portal_estado` y `chatwoot_conversations`. **En `main` no tienen ninguno** (medido el 2026-11-08). Si producción se desvió, podrían dejar rastro en la auditoría.
+   - **Los conteos:** no son los esperados.
+   - **El archivo de E5:**
+     - falta;
+     - su cabecera no es la del tenant, la cuenta o la bandeja;
+     - su conteo no cuadra con sus líneas;
+     - un `identificador` no está reservado;
+     - o su `contacto_id` no es el que Studio tiene guardado.
+3. **Escrituras:**
+   - **borra** las filas `cargado` de `chatwoot_portal_salida` del tenant;
+   - **borra** las filas de `chatwoot_conversations` del tenant cuya `conversation_id` está en `chatwoot_portal_hilos`, es decir, el espejo que creó la vinculación;
+   - **borra** `chatwoot_portal_hilos` del tenant;
+   - **deja el corte en nulo** en `chatwoot_portal_estado`, junto con `cargado_at`;
+   - **en `chatwoot_portal_contactos` no borra ninguna fila.** Pone en nulo `chatwoot_contact_id` y `chatwoot_source_id`, salvo en los contactos del archivo de E5, que conservan los dos. El `check` de la 0519 admite los dos nulos juntos.
+4. **Verificación,** con `raise` si algo no cuadra:
+   - las filas borradas son las esperadas;
+   - quedan 0 hilos, 0 salidas y el corte nulo;
+   - los contactos conservados son los del archivo, y el resto tiene los dos ids en nulo;
+   - **`entity_audit_log` del tenant queda con el mismo número que en el paso 1.**
+5. **El cierre:** `HECHO salida=… hilos=… espejo=… contactos_vaciados=… contactos_conservados=… corte=nulo auditoria_antes=… auditoria_despues=…`. Lo corre Sam con `commit`, y el DG en el ensayo con `rollback`.
+
+**Por qué los contactos no se borran.** El `identificador` es la reserva del riesgo 1. Si se borra la fila, una carga nueva crearía otro identificador, y un contacto `dtd-portal:` que E5 dejó vivo, porque tenía otra bandeja, quedaría duplicado en Chatwoot.
+
+**Por qué el corte va siempre en nulo: el riesgo con la cola.** Al borrar la fila `cargado`, un mensaje queda sin salida. Con un corte, la cola lo tomaría al encender (`0519:226` y `:228`: entrantes con `sent_at >= corte` que no estén `enviado` ni `cargado`), y lo mandaría. **Con el corte en nulo, la cola no manda nada,** y ningún mensaje queda `pendiente`. Una carga nueva vuelve a fijar el corte.
+
+**Qué no toca:** `conversations` ni `conversation_messages`. C-6 y C-7 quedan iguales.
+
+**El contrato:** `supabase/tests/deshacer_vinculos_portal.test.sql`, que corre en Contratos SQL con Postgres 17, y su envoltorio de PGlite, `lib/studio/__tests__/deshacer-vinculos-portal.test.ts`. El `.sh` tiene sus casos en `infra/ops/tests/prueba-portal-historial.sh`.
+- **Sobre qué corre:** la 0519, la 0520, la 0523, la 0524 y la 0508, con un fixture de una carga hecha. Reusa el de la 0524.
+- **Casos:**
+  - el camino feliz;
+  - el que conserva contactos según el archivo de E5;
+  - una guarda por cada aborto, sin nada escrito;
+  - la cola después de deshacer: `chatwoot_portal_tomar` no devuelve nada, aunque se encienda el flag;
+  - **una carga nueva después de deshacer reusa los mismos identificadores.**
+- **Mutantes**, de 8 a 10:
+  - borra contactos en vez de vaciarlos;
+  - no deja el corte en nulo;
+  - no mira el flag ni su auditoría;
+  - acepta una salida que no está `cargado`;
+  - ignora el archivo de E5;
+  - no compara los conteos;
+  - no borra el espejo;
+  - no mira los triggers.
+- **Control rojo:** sin el guion, el contrato cae.
+
+**`revisar-datos-ve`:** es un borrado de datos personales en producción. Pasa por la skill, y su resultado va en la PR.
+- **Lo que borra son ids y estados,** sin nombres ni textos.
+- **No borra nada de lo que el cliente ve en el portal.**
+- **Los textos y los nombres** que la carga llevó a Chatwoot los borra la pieza de E5.
+
+**El tamaño:** unas 100 líneas de SQL, un contrato de unas 250 y un envoltorio de unas 150. Es una PR, con su handoff y la línea de 4.6b en el runbook.
+
+**El orden con E5:** primero Chatwoot y después Studio. Si la de Chatwoot falla, la de Studio no se corre. Como el flag sigue apagado y el corte queda en nulo, ningún orden hace daño a la cola.
 
 ### 10.5.11 El plazo de respuesta: lunes y feriados (P5 y P7)
 
