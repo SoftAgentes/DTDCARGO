@@ -32,7 +32,7 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - `document_entity_authorized` (`0444_unlinked_document_entity_rbac.sql:73-150`) ya consulta
   `studio_role_module_overrides`: punto central para sumar los accesos por persona.
 - `quotes`, `sales_orders`, `suppliers`: RLS solo por tenant; alcanza con la capa de aplicación.
-- Nómina exige admin/accounting en SQL (`0160_nomina_employees.sql:71-85`): queda bloqueada.
+- Nómina exige admin/accounting en SQL (`0160_nomina_employees.sql:71-85`): la base la sigue exigiendo por rol; si se concede por extra hay que cubrirla (por confirmar con Sam).
 
 ## Decisiones de Sam (2026-11-09, recogidas en la spec §9)
 - Extras por módulo; vencimiento opcional; «elegir módulos» para Alejandro.
