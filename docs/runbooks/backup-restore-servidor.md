@@ -453,42 +453,76 @@ la configuración. El script:
    el Studio que la caída es legítima, por ejemplo una limpieza autorizada. La
    corrida exige el conteo exacto, para que no se corra por accidente. Toma el
    mismo candado que el timer, para no correr a la vez que el respaldo de la
-   noche, y los mismos valores del `.env` que usa `backup.sh`:
+   noche, y los mismos valores del `.env` que usa `backup.sh`. Este **bloque de
+   valores** sirve también para el paso 5 del guion de instalación y para la
+   vuelta atrás (spec 0620):
 
    ```bash
    cd /srv/dtd-cargo
-   v() { local x; x="$(sed -n "s/^$1=//p" .env | tail -n1 | tr -d "'\"")"; printf '%s' "${x:-$2}"; }
-   OUT="$(v BACKUP_DIR /srv/backups)"; echo "--out ${OUT}"
-   flock -n -E 75 /run/lock/backup-dtd-cargo.lock /srv/ops/backup/storage-backup.sh --project dtd-cargo \
-     --source "$(v BACKUP_STORAGE_DIR /srv/dtd-cargo/data/storage)" \
-     --remote "$(v BACKUP_STORAGE_RCLONE_REMOTE b2:dtdcargo-respaldos/storage)" \
-     --age-recipients "$(v BACKUP_AGE_RECIPIENTS_FILE /srv/ops/backup/age-recipients.txt)" \
-     --rclone-config "$(v RCLONE_CONFIG_DIR /srv/ops/backup/rclone)" --out "${OUT}" \
-     --retention-days "$(v BACKUP_RETENTION_DAYS 30)" --keep-local "$(v BACKUP_STORAGE_KEEP_LOCAL 2)" \
-     --min-files "$(v BACKUP_STORAGE_MIN_FILES 1)" \
+   # Los mismos valores y la misma regla que envget de backup.sh: la última línea de la
+   # clave, sin las comillas simples o dobles que la rodean; vacío = valor por omisión.
+   v() { local x; x="$(grep -E "^$1=" .env | tail -n1 | cut -d= -f2- || true)"
+         case "${x}" in \'*\'|\"*\") x="${x:1:${#x}-2}" ;; esac; printf '%s' "${x:-$2}"; }
+   P="$(v PROYECTO dtd-cargo)"; OPS="$(v OPS_DIR /srv/ops)"; OUT="$(v BACKUP_DIR /srv/backups)"
+   DATOS="$(v DTD_DATA_DIR ./data)"; case "${DATOS}" in /*) ;; *) DATOS="/srv/dtd-cargo/${DATOS#./}" ;; esac
+   REMOTO="$(v BACKUP_STORAGE_RCLONE_REMOTE b2:dtdcargo-respaldos/storage)"; RC="$(v RCLONE_CONFIG_DIR /srv/ops/backup/rclone)"
+   ARGS=(--project "${P}" --source "$(v BACKUP_STORAGE_DIR "${DATOS%/}/storage")" --remote "${REMOTO}"
+         --age-recipients "$(v BACKUP_AGE_RECIPIENTS_FILE /srv/ops/backup/age-recipients.txt)" --rclone-config "${RC}"
+         --out "${OUT}" --retention-days "$(v BACKUP_RETENTION_DAYS 30)" --keep-local "$(v BACKUP_STORAGE_KEEP_LOCAL 2)"
+         --min-files "$(v BACKUP_STORAGE_MIN_FILES 1)")
+   printf '%q ' "${OPS}/backup/storage-backup.sh" "${ARGS[@]}"; echo   # revisar antes de seguir: rutas y remoto, ningún secreto
+   ```
+
+   ```bash
+   flock -n -E 75 "/run/lock/backup-${P}.lock" "${OPS}/backup/storage-backup.sh" "${ARGS[@]}" \
      --aceptar-caida=<archivos que dice el log> \
      || { rc=$?; [ "${rc}" = 75 ] && echo "✗ candado tomado: el respaldo de la noche está corriendo; esperar a que termine y repetir" || echo "✗ salió ${rc}: leer el log, no se aceptó nada"; }
    ```
 
    **Qué hace y qué borra.** Sale 1 sin tocar nada si el conteo no es exactamente
-   el dicho o si no encuentra un respaldo bueno: referencia ilegible y ningún
-   manifiesto anterior, ni local ni en el remoto. Si coincide:
+   el dicho o si no encuentra un respaldo bueno: ni la referencia ni ningún
+   manifiesto anterior, local o del remoto, da uno válido. Si coincide:
    - Primero **retiene el último respaldo bueno**: el de la referencia o, si es
      ilegible o falta, el manifiesto con más archivos, local o del remoto. En el
-     remoto lo copia a `b2:dtdcargo-respaldos/storage/dtd-cargo-retenido/`, lo
+     remoto lo copia a `${REMOTO}/${P}-retenido/`, lo
      comprueba con `rclone check` y cuenta que estén sus 3 archivos, porque rclone
      sale 0 aunque no haya copiado nada. Si cualquiera de esos pasos falla, no se
-     borra nada. Recién después mueve a `${OUT}/dtd-cargo/storage-retenido/` lo
+     borra nada. Recién después mueve a `${OUT}/${P}/storage-retenido/` lo
      que de ese respaldo haya en disco; si en disco no estaba completo, lo dice el
      log, y el retenido verificado es el del remoto. Ninguna retención toca esos
      dos prefijos: se quedan hasta que Sam autorice borrarlos. Cada aceptación
      suma un respaldo completo, hoy ~515 MB, en cada uno.
    - Recién después aplica la retención normal: en el remoto,
      `rclone delete --min-age <BACKUP_RETENTION_DAYS>d` dentro de
-     `…/storage/dtd-cargo/`, que borra los respaldos más viejos que eso; en disco,
+     `${REMOTO}/${P}/`, que borra los respaldos más viejos que eso; en disco,
      deja en `storage/` solo los `BACKUP_STORAGE_KEEP_LOCAL` más nuevos, que son
      los de después de la caída.
    - La referencia pasa al conteo nuevo.
+
+   **Si el bloqueo no tiene salida.** Un manifiesto anterior con `archivos=`
+   fuera de formato (vacío, con cero inicial o de más de 16 cifras) frena la
+   retención cada día. Lo mismo un manifiesto con el máximo que no tiene
+   `sello=` válido, porque entonces `--aceptar-caida` no encuentra un bueno. Esos
+   manifiestos solo los escribe el script, así que uno así es un daño o una
+   manipulación: se mira antes de tocar nada. Los manifiestos van en claro y sin
+   rutas, así que se pueden listar:
+
+   ```bash
+   for m in "${OUT}/${P}/storage/"*.manifiesto; do printf '%s %s %s\n' "$(sed -n 's/^archivos=//p' "$m")" "$(sed -n 's/^sello=//p' "$m")" "$(basename "$m")"; done
+   docker run --rm -v "${RC}:/config/rclone:ro" rclone/rclone:1.75.1 cat "${REMOTO}/${P}/" --include "*.manifiesto" | grep -E '^(sello|archivos)='
+   ```
+
+   Retirarlo es **solo con OK nominal de Sam**. Se aparta el respaldo entero, con
+   sus 3 archivos, fuera del prefijo, sin borrarlo: queda como evidencia, y
+   ninguna retención lo toca. `<base>` es el nombre del manifiesto sin
+   `.manifiesto`:
+
+   ```bash
+   mkdir -m 700 -p "${OUT}/${P}/storage-apartado" && mv "${OUT}/${P}/storage/<base>".* "${OUT}/${P}/storage/<base>-lista.age" "${OUT}/${P}/storage-apartado/"
+   docker run --rm -v "${RC}:/config/rclone:ro" rclone/rclone:1.75.1 move "${REMOTO}/${P}/" "${REMOTO}/${P}-apartado/" --include "/<base>*"
+   ```
+
+   El respaldo siguiente vuelve a comparar sin ese manifiesto.
 6. Retención: `rclone delete --min-age 30d` acotado a ese prefijo, con
    `hard_delete` del remoto (borrado real), y en disco local los 2 respaldos más
    nuevos (`BACKUP_STORAGE_KEEP_LOCAL`).
