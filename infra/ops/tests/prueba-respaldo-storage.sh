@@ -73,14 +73,21 @@ case "${cmd}" in
         while [ $# -gt 0 ]; do case "$1" in --include) inc="${2#/}"; shift 2 ;; *) shift ;; esac; done
         mkdir -p "${dst}"; n=0
         for f in "${src%/}"/${inc}; do [ -f "${f}" ] || continue; cp -p "${f}" "${dst}/"; n=$((n + 1)); done
-        [ "${n}" -gt 0 ] || { echo "copy: nada que copiar" >&2; exit 1; } ;;
+        # Como el rclone real: sin coincidencias sale 0 («nada que transferir»).
+        [ "${n}" -gt 0 ] || echo "copy: nada que transferir" >&2
+        # Falla simulada: copia y después sale 1, como un rclone que agotó sus reintentos.
+        [ "${RCLONE_DOBLE_FALLA:-}" != copy-remoto ] || { echo "copy: error simulado" >&2; exit 1; } ;;
       *) mkdir -p "$(ruta "$2")"; cp -p "$1" "$(ruta "$2")/" ;;
     esac ;;
   check)
     src="$(local_o_remoto "$1")"; dst="$(ruta "$2")"; shift 2; inc=""
     while [ $# -gt 0 ]; do case "$1" in --include) inc="${2#/}"; shift 2 ;; *) shift ;; esac; done
     n=0; for f in "${src%/}"/${inc}; do [ -f "${f}" ] || continue; n=$((n + 1)); cmp -s "${f}" "${dst}/$(basename "${f}")" || { echo "check: difiere" >&2; exit 1; }; done
-    [ "${n}" -gt 0 ] || { echo "check: nada que comparar" >&2; exit 1; } ;;
+    [ "${n}" -gt 0 ] || echo "check: 0 archivos que comparar" >&2 ;;
+  lsf)
+    dst="$(ruta "$1")"; shift; inc="*"
+    while [ $# -gt 0 ]; do case "$1" in --include) inc="${2#/}"; shift 2 ;; *) shift ;; esac; done
+    for f in "${dst%/}"/${inc}; do [ -f "${f}" ] && basename "${f}"; done; exit 0 ;;
   delete)
     edad=""; while [ $# -gt 1 ]; do case "$1" in --min-age) edad="${2%d}"; shift 2 ;; *) shift ;; esac; done
     [ -d "$(ruta "$1")" ] && find "$(ruta "$1")" -type f -mtime "+${edad}" -delete ;;
@@ -229,24 +236,74 @@ contrato_guarda() { # <script de respaldo>
   done
   cmp -s "${retl}/${b1}.tar.age" "${retr}/${b1}.tar.age"
 }
-# C7 · la guarda falla cerrada: una referencia ilegible o vacía frena la retención; sin
-# referencia, manda el MÁXIMO de los manifiestos locales, no el más nuevo.
+# C7 · la guarda falla cerrada: una referencia ilegible, vacía o sin base= frena la retención;
+# sin referencia, manda el MÁXIMO de los manifiestos locales, y así también se acepta la caída.
 contrato_guarda_cerrada() { # <script de respaldo>
-  local o="${T}/out-c-$RANDOM" ref llam g
-  ref="${o}/zzst/storage/zzst-storage.referencia"; g="cerrada-$RANDOM"
+  local o="${T}/out-c-$RANDOM" ref llam g basura retr
+  ref="${o}/zzst/storage/zzst-storage.referencia"; g="cerrada-$RANDOM"; retr="${T}/remoto/bucket/${g}/zzst-retenido"
   REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 0 ] || return 1
-  for basura in 'basura' 'archivos='; do
+  for basura in 'basura' 'archivos=' "archivos=${N_SRC}"; do
     printf '%s\n' "${basura}" > "${ref}"
     sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
     REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"
     [ "${rc}" = 1 ] && grep -q 'no se puede leer' "${T}/bk.log" || return 1
     ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
   done
+  if [ "$(id -u)" != 0 ]; then   # como root se lee igual: el caso solo existe sin root
+    printf 'archivos=%s\nbase=zzst-storage-20260101T000000Z\n' "${N_SRC}" > "${ref}"; chmod 000 "${ref}"
+    sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+    REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; chmod 600 "${ref}"
+    [ "${rc}" = 1 ] && grep -q 'no se puede leer' "${T}/bk.log" || return 1
+    ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  fi
   rm -f "${ref}"
   for vuelta in 1 2; do
     sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"
     [ "${rc}" = 1 ] && grep -q "cayó de ${N_SRC} a 2 archivos" "${T}/bk.log" || return 1
   done
+  # Aceptar sin referencia: retiene el manifiesto local con más archivos.
+  sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}" --aceptar-caida=2
+  [ "${rc}" = 0 ] && grep -qx "archivos=2" "${ref}" && [ "$(ls "${retr}" | wc -l)" = 3 ] && grep -qx "archivos=${N_SRC}" "${retr}"/*.manifiesto
+}
+# C8 · aceptar sin un respaldo bueno identificado no borra nada: referencia ilegible sin
+# manifiestos, o un --out sin nada (el de una carpeta equivocada).
+contrato_aceptar_sin_bueno() { # <script de respaldo>
+  local o="${T}/out-s-$RANDOM" o2="${T}/out-s2-$RANDOM" ref llam g="sinbueno-$RANDOM"
+  ref="${o}/zzst/storage/zzst-storage.referencia"
+  mkdir -p "${o}/zzst/storage"; printf 'basura\n' > "${ref}"
+  llam="$(wc -l < "${T}/remoto/.llamadas" 2>/dev/null || echo 0)"
+  FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}" --aceptar-caida=2
+  [ "${rc}" = 1 ] && grep -q 'no hay un respaldo bueno' "${T}/bk.log" && grep -qx basura "${ref}" || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+  FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o2}" --aceptar-caida=2
+  [ "${rc}" = 1 ] && grep -q 'no hay un respaldo bueno' "${T}/bk.log" && [ ! -e "${o2}/zzst/storage/zzst-storage.referencia" ] || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete' || return 1
+  [ ! -e "${T}/remoto/bucket/${g}/zzst-retenido" ]
+}
+# C9 · si rclone falla al retener el último bueno (aunque haya copiado algo), no se borra nada.
+contrato_retener_falla() { # <script de respaldo>
+  local o="${T}/out-f-$RANDOM" ref llam g="falla-$RANDOM"
+  ref="${o}/zzst/storage/zzst-storage.referencia"
+  REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 0 ] || return 1
+  sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 1 ] || return 1
+  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+  RCLONE_DOBLE_FALLA=copy-remoto FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}" --aceptar-caida=2
+  [ "${rc}" = 1 ] && grep -q 'no se pudo retener' "${T}/bk.log" && grep -qx "archivos=${N_SRC}" "${ref}" || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete'
+}
+# C10 · si el último bueno ya no está en el remoto, rclone «copia» cero archivos y sale 0:
+# el conteo del destino lo ataja y no se borra nada.
+contrato_bueno_ausente() { # <script de respaldo>
+  local o="${T}/out-a-$RANDOM" llam g="ausente-$RANDOM" b1
+  REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 0 ] || return 1
+  b1="$(ultima_base "${o}")"
+  sleep 1; FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}"; [ "${rc}" = 1 ] || return 1
+  rm -f "${T}/remoto/bucket/${g}/zzst/${b1}"*
+  sleep 1; llam="$(wc -l < "${T}/remoto/.llamadas")"
+  FUENTE="${SRC_POCO}" REMOTO="zz:bucket/${g}" respaldar "$1" "${o}" --aceptar-caida=2
+  [ "${rc}" = 1 ] && grep -q 'hay 0 de los 3 archivos' "${T}/bk.log" || return 1
+  ! tail -n "+$((llam + 1))" "${T}/remoto/.llamadas" | grep -q '^delete'
 }
 
 echo; echo "== M0 · scripts sin mutar =="
@@ -282,7 +339,12 @@ bash "${RS}" --dir "${T}/out/zzst/storage" --age-identity "${T}/id" --destino "$
 [ $? = 2 ] && grep -q 'no está vacía' "${T}/rs.log" && ok "--destino ocupado: se niega (2) y no escribe encima" || ko "destino ocupado"
 contrato_log_sin_rutas "${BK}" "${T}/out-sock" && ok "C5 · un aviso de tar que nombra un archivo: el log dice cuántos, no la ruta" || { ko "C5 log sin rutas"; cat "${T}/bk.log"; }
 contrato_guarda "${BK}" && ok "C6 · caída de ${N_SRC} a 2: sube, sin retención, sale 1 dos días seguidos; --aceptar-caida sin conteo o con otro no acepta; con =2 retiene el último bueno y acepta" || { ko "C6 guarda"; cat "${T}/bk.log"; }
-contrato_guarda_cerrada "${BK}" && ok "C7 · referencia ilegible o vacía: sale 1 sin retención; sin referencia, compara contra el máximo de los manifiestos" || { ko "C7 guarda cerrada"; cat "${T}/bk.log"; }
+contrato_guarda_cerrada "${BK}" && ok "C7 · referencia ilegible, vacía o sin base= (y sin permisos, si no es root): sale 1 sin retención; sin referencia, compara y acepta contra el máximo" || { ko "C7 guarda cerrada"; cat "${T}/bk.log"; }
+contrato_aceptar_sin_bueno "${BK}" && ok "C8 · --aceptar-caida sin un respaldo bueno (referencia ilegible sin manifiestos, o --out vacío): sale 1 y no borra" || { ko "C8 aceptar sin bueno"; cat "${T}/bk.log"; }
+contrato_retener_falla "${BK}" && ok "C9 · rclone falla al retener el último bueno: sale 1 y no borra" || { ko "C9 retener falla"; cat "${T}/bk.log"; }
+contrato_bueno_ausente "${BK}" && ok "C10 · el último bueno ya no está en el remoto (rclone copia 0 y sale 0): el conteo lo ataja y no borra" || { ko "C10 bueno ausente"; cat "${T}/bk.log"; }
+bash "${BK}" --project zzst --source "${SRC}" --remote zz:bucket/storage --age-recipients "${T}/rec" --out "${T}/out-v0" --aceptar-caida= > "${T}/v.log" 2>&1
+[ $? = 2 ] && grep -q 'necesita un entero' "${T}/v.log" && [ ! -e "${T}/out-v0" ] && ok "--aceptar-caida= vacío: se niega (2) sin escribir" || { ko "aceptar vacío"; cat "${T}/v.log"; }
 mkdir -p /run/lock 2>/dev/null
 contrato_backup_sh "${R}/infra/dtd-cargo/backup.sh" "${BK}" && ok "C4 · backup.sh respalda data/storage del proyecto y lo sube a BACKUP_STORAGE_RCLONE_REMOTE" \
   || { ko "C4 backup.sh"; tail -8 "${T}/integ.log"; }
@@ -382,9 +444,19 @@ limpio M9 contrato_guarda_cerrada "${BK}"
 m="$(mutar M10 "${BK}" 's#| sort -n | tail -n1 || true#| sort -n | head -n1 || true#')"
 limpio M10 contrato_guarda_cerrada "${BK}"
 [ -n "${m}" ] && detectado M10 "sin referencia, compara contra el mínimo (el de después de la caída)" contrato_guarda_cerrada "${m}" || ko "M10: sed no cambió nada"
-m="$(mutar M11 "${BK}" 's#if \[\[ "${bueno}" =~ ${patron_base} \]\]; then#if false; then#')"
+m="$(mutar M11 "${BK}" 's#then mv -- "${f}" "${retenido}/"; fi#then true; fi#')"
 limpio M11 contrato_guarda "${BK}"
-[ -n "${m}" ] && detectado M11 "--aceptar-caida aplica la retención sin retener el último respaldo bueno" contrato_guarda "${m}" || ko "M11: sed no cambió nada"
+[ -n "${m}" ] && detectado M11 "--aceptar-caida no saca de la retención local el último respaldo bueno" contrato_guarda "${m}" || ko "M11: sed no cambió nada"
+
+m="$(mutar M12 "${BK}" 's#|| falla "no hay un respaldo bueno#|| log "no hay un respaldo bueno#')"
+limpio M12 contrato_aceptar_sin_bueno "${BK}"
+[ -n "${m}" ] && detectado M12 "--aceptar-caida sin respaldo bueno solo avisa y borra" contrato_aceptar_sin_bueno "${m}" || ko "M12: sed no cambió nada"
+m="$(mutar M13 "${BK}" 's#|| falla "no se pudo retener .*#|| true#; s#|| falla "la copia retenida .*#|| true#')"
+limpio M13 contrato_retener_falla "${BK}"
+[ -n "${m}" ] && detectado M13 "un error de rclone al retener se ignora" contrato_retener_falla "${m}" || ko "M13: sed no cambió nada"
+m="$(mutar M14 "${BK}" 's#\[\[ "${en_retenido}" == 3 \]\]#true#')"
+limpio M14 contrato_bueno_ausente "${BK}"
+[ -n "${m}" ] && detectado M14 "sin contar los 3 archivos retenidos (rclone sale 0 sin copiar nada)" contrato_bueno_ausente "${m}" || ko "M14: sed no cambió nada"
 
 echo; echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]

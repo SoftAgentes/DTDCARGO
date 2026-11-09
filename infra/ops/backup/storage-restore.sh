@@ -130,7 +130,11 @@ wait "${p_sha}"; r_sha=$?
 set -e
 avisos="$(grep -c . "${work}/flujo.err" || true)"
 if (( r == 0 && r_sha == 0 )); then ok "descifrado y tar sin errores"; else ko "descifrado o tar fallaron (${r}/${r_sha}; ${avisos} línea(s) de error; van solo sus tipos, sin la ruta)"; fi
-if (( avisos > 0 )); then sed -E 's/^tar: .*: //' "${work}/flujo.err" | sort | uniq -c | sed 's/^/      /'; fi
+if (( avisos > 0 )); then
+  sed -nE 's/^tar: .*: //p' "${work}/flujo.err" | sort | uniq -c | sed 's/^/      /'
+  otros="$(grep -cvE '^tar: .*: ' "${work}/flujo.err" || true)"
+  if (( otros > 0 )); then printf '      %s otro(s) aviso(s) fuera de formato, omitidos\n' "${otros}"; fi
+fi
 if [[ "${MODO}" == destino ]]; then
   python3 -I "${LISTA}" carpeta "${DESTINO}" > "${work}/lista-flujo" 2> "${work}/carpeta.err" \
     || ko "no se pudo leer la carpeta restaurada: $(grep -m1 '^storage-lista:' "${work}/carpeta.err" || echo 'sin detalle')"

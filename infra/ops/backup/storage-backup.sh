@@ -76,6 +76,7 @@ MIN_FILES="1"
 MIN_PCT="50"
 AVISO_GB="10"
 ACEPTAR_CAIDA=""
+ACEPTAR_DADA=0
 DRY_RUN=0
 AGE_BIN="${AGE_BIN:-age}"
 RCLONE_BIN="${RCLONE_BIN:-}"
@@ -101,7 +102,7 @@ while [[ $# -gt 0 ]]; do
     --min-files) setopt MIN_FILES "${2-}"; shift 2 ;;
     --min-pct) setopt MIN_PCT "${2-}"; shift 2 ;;
     --aviso-gb) setopt AVISO_GB "${2-}"; shift 2 ;;
-    --aceptar-caida=*) ACEPTAR_CAIDA="${1#*=}"; shift ;;
+    --aceptar-caida=*) ACEPTAR_CAIDA="${1#*=}"; ACEPTAR_DADA=1; shift ;;
     --aceptar-caida) die "--aceptar-caida exige el conteo esperado: --aceptar-caida=<archivos> (y el OK nominal de Sam)" ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -120,7 +121,7 @@ for n in RETENTION_DAYS KEEP_LOCAL MIN_FILES AVISO_GB; do
   [[ "${!n}" =~ ^[1-9][0-9]*$ ]] || die "--$(tr '[:upper:]_' '[:lower:]-' <<< "${n}") debe ser un entero ≥ 1"
 done
 [[ "${MIN_PCT}" =~ ^[0-9]+$ ]] && (( MIN_PCT <= 100 )) || die "--min-pct debe ser un entero entre 0 y 100"
-[[ -z "${ACEPTAR_CAIDA}" || "${ACEPTAR_CAIDA}" =~ ^[1-9][0-9]*$ ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1: '${ACEPTAR_CAIDA}'"
+(( ! ACEPTAR_DADA )) || [[ "${ACEPTAR_CAIDA}" =~ ^[1-9][0-9]*$ ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1: '${ACEPTAR_CAIDA}'"
 [[ "${RCLONE_IMAGE}" != *:latest && "${RCLONE_IMAGE}" == *:* ]] || die "--rclone-image debe llevar tag fijo"
 # El cifrado se valida también en dry-run: un timer mal configurado tiene que
 # fallar en la prueba, no la primera noche.
@@ -222,7 +223,10 @@ set -e
 avisos="$(grep -c . "${work}/tar.err" || true)"
 if (( avisos > 0 )); then
   log "AVISO: tar escribió ${avisos} línea(s) de aviso; van solo sus tipos, sin la ruta («tar: <ruta>: <tipo>»):"
-  sed -E 's/^tar: .*: //' "${work}/tar.err" | sort | uniq -c | sed 's/^/      /'
+  # Solo las líneas con ese formato; las demás se cuentan, porque podrían traer una ruta.
+  sed -nE 's/^tar: .*: //p' "${work}/tar.err" | sort | uniq -c | sed 's/^/      /'
+  otros="$(grep -cvE '^tar: .*: ' "${work}/tar.err" || true)"
+  if (( otros > 0 )); then printf '      %s otro(s) aviso(s) fuera de formato, omitidos\n' "${otros}"; fi
 fi
 aviso_tar=0
 case "${st[0]}" in
@@ -277,8 +281,9 @@ mejor="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiest
   | while read -r m; do printf '%s %s\n' "$(sed -n 's/^archivos=//p' "${m}" | tail -n1)" "$(basename "${m}" .manifiesto)"; done \
   | grep -E '^[0-9]+ ' | sort -n | tail -n1 || true)"
 if [[ -f "${referencia}" ]]; then
-  previo="$(sed -n 's/^archivos=//p' "${referencia}" | tail -n1)"
-  bueno="$(sed -n 's/^base=//p' "${referencia}" | tail -n1)"
+  # Sin permisos de lectura, sed falla: con pipefail saldría sin decir nada; así cae en «ilegible».
+  previo="$(sed -n 's/^archivos=//p' "${referencia}" 2>/dev/null | tail -n1 || true)"
+  bueno="$(sed -n 's/^base=//p' "${referencia}" 2>/dev/null | tail -n1 || true)"
   if ! [[ "${previo}" =~ ^[1-9][0-9]*$ && "${bueno}" =~ ${patron_base} ]]; then
     ilegible=1; previo=""; bueno=""
     if [[ -n "${mejor}" ]]; then previo="${mejor%% *}"; bueno="${mejor#* }"; fi
@@ -301,21 +306,25 @@ if [[ -z "${ACEPTAR_CAIDA}" ]]; then
 else
   (( archivos == ACEPTAR_CAIDA )) \
     || falla "--aceptar-caida=${ACEPTAR_CAIDA} no coincide con los ${archivos} archivos de este respaldo: no se acepta nada ni se aplica la retención"
-  # Antes de la retención, el último respaldo bueno sale de su alcance, en disco y en el remoto.
-  if [[ "${bueno}" =~ ${patron_base} ]]; then
-    retenido="${OUT%/}/${PROJECT}/storage-retenido"
-    mkdir -p "${retenido}"; chmod 700 "${retenido}"
-    for f in "${dir}/${bueno}.tar.age" "${dir}/${bueno}-lista.age" "${dir}/${bueno}.manifiesto"; do
-      if [[ -f "${f}" ]]; then mv -- "${f}" "${retenido}/"; fi
-    done
-    rcl copy "${remote_dir}" "${REMOTE}/${PROJECT}-retenido/" --include "/${bueno}*" \
-      || falla "no se pudo retener ${bueno} en ${REMOTE}/${PROJECT}-retenido/: no se aplica la retención"
-    rcl check "${remote_dir}" "${REMOTE}/${PROJECT}-retenido/" --one-way --include "/${bueno}*" \
-      || falla "la copia retenida de ${bueno} no coincide: no se aplica la retención"
-    log "último respaldo bueno (${bueno}, ${previo:-?} archivos) retenido en ${retenido}/ y ${REMOTE}/${PROJECT}-retenido/; ninguna retención los toca"
-  else
-    log "AVISO: no hay un respaldo bueno identificado que retener (referencia ilegible y sin manifiestos anteriores)"
-  fi
+  # Antes de la retención, el último respaldo bueno sale de su alcance, en el remoto y en disco.
+  # Sin uno identificado (referencia ilegible y sin manifiestos, o un --out equivocado) no se acepta nada.
+  [[ "${bueno}" =~ ${patron_base} ]] \
+    || falla "no hay un respaldo bueno identificado que retener (¿--out correcto? ¿referencia y manifiestos en ${dir}?): no se acepta nada ni se aplica la retención"
+  ret_remoto="${REMOTE}/${PROJECT}-retenido/"
+  rcl copy "${remote_dir}" "${ret_remoto}" --include "/${bueno}*" \
+    || falla "no se pudo retener ${bueno} en ${ret_remoto}: no se aplica la retención"
+  rcl check "${remote_dir}" "${ret_remoto}" --one-way --include "/${bueno}*" \
+    || falla "la copia retenida de ${bueno} no coincide: no se aplica la retención"
+  # rclone sale 0 si no había nada que copiar: se cuentan los tres archivos en el destino.
+  en_retenido="$(rcl lsf "${ret_remoto}" --files-only --include "/${bueno}*" | grep -c . || true)"
+  [[ "${en_retenido}" == 3 ]] \
+    || falla "en ${ret_remoto} hay ${en_retenido} de los 3 archivos de ${bueno}: no se aplica la retención"
+  retenido="${OUT%/}/${PROJECT}/storage-retenido"
+  mkdir -p "${retenido}"; chmod 700 "${retenido}"
+  for f in "${dir}/${bueno}.tar.age" "${dir}/${bueno}-lista.age" "${dir}/${bueno}.manifiesto"; do
+    if [[ -f "${f}" ]]; then mv -- "${f}" "${retenido}/"; fi
+  done
+  log "último respaldo bueno (${bueno}, ${previo:-?} archivos) retenido en ${ret_remoto} y ${retenido}/; ninguna retención los toca"
   log "caída aceptada a mano: la referencia pasa de ${previo:-?} a ${archivos} archivos"
 fi
 printf 'archivos=%s\nbase=%s\nsello=%s\n' "${archivos}" "${base}" "${stamp}" > "${referencia}.part"
