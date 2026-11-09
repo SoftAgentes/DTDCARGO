@@ -187,6 +187,24 @@ destino main. `gh pr create --base main --head <rama> --draft --body-file <archi
 para revisión parcial; conserva base distinta cuando se asignó explícitamente.
 Revisa el efecto de push en CI/previews del proveedor; no ejecutes deploy manual.
 
+**El CI corre al marcar la PR lista para revisión** (SDD-0621). En borrador,
+«Calidad continua» (`quality.yml`) y los cargadores Kommo y portal no corren:
+el job sale `skipped` y no gasta minutos, así que el Worker puede empujar las
+veces que necesite. Cuando el trabajo está terminado y la rama publicada, se
+marca con `gh pr ready <numero>`: el evento `ready_for_review` lanza la corrida
+sobre la cabeza; cada push posterior la repite. Para volver a iterar sin gastar,
+`gh pr ready <numero> --undo`. Un check `skipped` **no es verde** aunque el
+ruleset de main lo cuente como aprobado: entre `gh pr ready` y el registro de la
+corrida nueva, la PR puede verse fusionable sin CI real. Regla para quien
+fusiona: **success de una corrida `pull_request` sobre la cabeza exacta, creada
+después del `ready_for_review`**. Una corrida `skipped` de un borrador no es un
+rojo: los vigías no la cuentan como fallo.
+`push` a `main` y `workflow_dispatch` corren siempre (para correr el CI de un
+borrador a propósito: `gh workflow run quality.yml --ref <rama>`; esa corrida
+prueba la rama sola y no reemplaza la de la PR, que prueba su fusión con `main`). El contrato
+`scripts/__tests__/ci-workflow-contract.test.mjs` exige los cuatro tipos de
+`pull_request` y la condición exacta del job.
+
 Antes del merge, Director inspecciona diff completo, commits ajenos, SDD/allowlist,
 criterios, checks efectivos y permisos. Decide orden por dependencias, no edad.
 Si hay solapamiento pide actualización al Worker; no escribe en su árbol activo.

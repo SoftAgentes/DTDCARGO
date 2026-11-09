@@ -90,8 +90,18 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
 const fromEslint = createRequire(createRequire(import.meta.url).resolve("eslint/package.json"));
 const { load: loadYaml } = fromEslint("js-yaml");
 
+/**
+ * SDD-0621: la única condición que puede llevar un job de PR es la que lo salta en borrador. Cualquier otra
+ * (`false`, solo en push, invertida) apaga el portón; por eso se compara el texto exacto y no «tiene un if».
+ */
+const SOLO_FUERA_DE_BORRADOR = "github.event_name != 'pull_request' || !github.event.pull_request.draft";
+
+function condicionDelJobPermitida(job) {
+  return !Object.hasOwn(job, "if") || job.if === SOLO_FUERA_DE_BORRADOR;
+}
+
 function assertRequiredHarness(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const steps = job.steps?.filter((step) => step.run?.trim() === "pnpm harness:test") ?? [];
@@ -145,7 +155,7 @@ describe("SDD-0444 · el harness es obligatorio en CI", () => {
 });
 
 function assertRequiredPendingMigrationSymbols(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const command = "node scripts/check-pending-migration-symbols.mjs";
@@ -196,7 +206,7 @@ const UNITARIOS = "pnpm test --maxWorkers=100%";
  * worker por vCPU (en serie excedió el tope el 2026-10-20) y sin tolerar fallos.
  */
 function assertFullUnitSuite(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const steps = job.steps?.filter((step) => /^pnpm test\b/.test(step.run?.trim() ?? "")) ?? [];
@@ -241,7 +251,7 @@ describe("CI · los unitarios corren completos y en paralelo", () => {
 const OPS_BASH = "bash infra/ops/tests/pruebas-linux.sh";
 
 function assertRequiredOpsBash(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const steps = job.steps?.filter((step) => step.run?.trim() === OPS_BASH) ?? [];
@@ -385,5 +395,98 @@ describe("SDD-0550 · toda prueba bash de infra/ops/tests tiene dónde correr", 
     const c = { todas: [...todas], vitest: { ...EN_VITEST }, linux: [...linuxNombres], fuera: { ...FUERA_DEL_CI } };
     mutar(c);
     expect(clasificar(c.todas, c).join("\n")).toMatch(problema);
+  });
+});
+
+/**
+ * SDD-0621: el CI de PR no corre en borrador y corre al marcar la PR lista (`gh pr ready`). `ready_for_review`
+ * es lo que sostiene el portón: sin él, una PR que pasa de borrador a lista no tiene corrida sobre su cabeza hasta el
+ * próximo push. Los tipos por defecto de `pull_request` no lo incluyen, así que quitar `types:` también lo rompe.
+ */
+const TIPOS_DE_PR = ["opened", "ready_for_review", "reopened", "synchronize"];
+
+function assertNoCorreEnBorrador(parsed, jobId) {
+  const pr = parsed?.on?.pull_request;
+  if (!pr || typeof pr !== "object") throw new Error("Falta el disparador pull_request");
+  const tipos = Array.isArray(pr.types) ? [...pr.types].sort() : null;
+  if (JSON.stringify(tipos) !== JSON.stringify(TIPOS_DE_PR)) {
+    throw new Error(`pull_request.types debe ser exactamente ${TIPOS_DE_PR.join(", ")}; es ${JSON.stringify(pr.types)}`);
+  }
+  if (!Object.hasOwn(parsed.on, "workflow_dispatch")) throw new Error("Falta workflow_dispatch");
+  const job = parsed.jobs?.[jobId];
+  if (!job) throw new Error(`Falta el job ${jobId}`);
+  if (job.if !== SOLO_FUERA_DE_BORRADOR) {
+    throw new Error(`El job ${jobId} debe llevar exactamente if: ${SOLO_FUERA_DE_BORRADOR}`);
+  }
+  if (Object.hasOwn(job, "continue-on-error")) throw new Error(`El job ${jobId} no puede tolerar errores`);
+}
+
+describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista", () => {
+  const casos = [
+    ["quality.yml", "quality"],
+    ["kommo-historial-cargador.yml", "cargador"],
+    ["portal-historial-cargador.yml", "cargador"],
+  ];
+  const leer = (archivo) => loadYaml(readFileSync(resolve(".github/workflows", archivo), "utf8"));
+
+  it.each(casos)("%s salta en borrador, corre al pasar a lista y en manual", (archivo, jobId) => {
+    expect(() => assertNoCorreEnBorrador(leer(archivo), jobId)).not.toThrow();
+  });
+
+  it("quality.yml sigue corriendo en push a main y solo contra main en la PR", () => {
+    const parsed = leer("quality.yml");
+    expect(parsed.on.push.branches).toEqual(["main"]);
+    expect(parsed.on.pull_request.branches).toEqual(["main"]);
+  });
+
+  it("el runbook de integración conserva la regla para fusionar tras el skipped del borrador", () => {
+    // El ruleset de main cuenta el `skipped` como aprobado: sin esta regla, la PR recién marcada lista se ve
+    // fusionable antes de que exista la corrida que la prueba.
+    const runbook = readFileSync(resolve("docs/runbooks/codex-engineering.md"), "utf8").replace(/\s+/g, " ");
+    expect(runbook).toContain(
+      "success de una corrida `pull_request` sobre la cabeza exacta, creada después del `ready_for_review`",
+    );
+    expect(runbook).toContain("gh pr ready <numero>");
+    expect(workflow.replace(/\s*#\s*/g, " ")).toContain("creada después del `ready_for_review`");
+  });
+
+  it("los cargadores conservan su filtro de rutas", () => {
+    for (const archivo of ["kommo-historial-cargador.yml", "portal-historial-cargador.yml"]) {
+      const paths = leer(archivo).on.pull_request.paths;
+      expect(paths.length, archivo).toBeGreaterThanOrEqual(5);
+      expect(paths, archivo).toContain(`.github/workflows/${archivo}`);
+    }
+  });
+
+  it.each([
+    ["sin ready_for_review", (p) => { p.on.pull_request.types = ["opened", "synchronize", "reopened"]; }],
+    ["sin synchronize", (p) => { p.on.pull_request.types = ["opened", "reopened", "ready_for_review"]; }],
+    ["types quitado (los de defecto no traen ready_for_review)", (p) => { delete p.on.pull_request.types; }],
+    ["un tipo de más", (p) => { p.on.pull_request.types.push("labeled"); }],
+    ["sin workflow_dispatch", (p) => { delete p.on.workflow_dispatch; }],
+    ["condición quitada (vuelve a correr en borrador)", (p) => { delete p.jobs.quality.if; }],
+    ["condición invertida", (p) => { p.jobs.quality.if = "github.event.pull_request.draft"; }],
+    ["job desactivado", (p) => { p.jobs.quality.if = false; }],
+    ["solo en PR (se salta el push a main)", (p) => {
+      p.jobs.quality.if = "github.event_name == 'pull_request' && !github.event.pull_request.draft";
+    }],
+    ["error del job ignorado", (p) => { p.jobs.quality["continue-on-error"] = true; }],
+  ])("rechaza %s", (_nombre, mutar) => {
+    const parsed = structuredClone(leer("quality.yml"));
+    mutar(parsed);
+    expect(() => assertNoCorreEnBorrador(parsed, "quality")).toThrow();
+  });
+
+  it.each([
+    ["condición solo en push", "github.event_name == 'push'"],
+    ["condición invertida", "github.event.pull_request.draft"],
+    ["condición siempre falsa", false],
+  ])("los asertos de obligatoriedad rechazan %s en el job de calidad", (_nombre, condicion) => {
+    const job = structuredClone(loadYaml(workflow).jobs.quality);
+    job.if = condicion;
+    expect(() => assertRequiredHarness(job)).toThrow();
+    expect(() => assertRequiredPendingMigrationSymbols(job)).toThrow();
+    expect(() => assertFullUnitSuite(job)).toThrow();
+    expect(() => assertRequiredOpsBash(job)).toThrow();
   });
 });
