@@ -388,6 +388,7 @@ aparte.
 | Operación | `#bugs` | Studio |
 | Operación | `#reporte-diario` | Studio |
 | Operación | `#avisos-equipo` | Studio |
+| Noticias | `#noticias` | Studio: noticias publicadas (solas o por una persona), retenidas y retiradas (SDD-0611). Lo ven solo las personas que Sam autoriza |
 | Servidor | `#publicaciones` | Script de publicación |
 | Servidor | `#salud` | Herramienta de vigilancia y avisos de correo |
 
@@ -519,8 +520,9 @@ Discord con los agentes actuales.
 - Arranque de Discord solo con Sam.
 - Los nombres «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»,
   confirmados al revisar la SDD-0605.
-- Las noticias se publican solas, con filtros. No está vigente: necesita su SDD y el registro
-  de la excepción a IA-01.
+- Las noticias se publican solas, con filtros. Su SDD es la 0611 (aprobada) y la excepción a
+  IA-01 quedó anotada en `docs/governance/README.md`. La migración 0518 está en producción desde
+  el 2026-11-08; la excepción no está vigente hasta que Sam encienda el interruptor.
 
 **Pendientes:**
 

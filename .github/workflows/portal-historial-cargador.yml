@@ -1,0 +1,84 @@
+name: Cargador del chat del portal
+
+# SDD-0586 §10.5.10, paso 3: prueba del cargador del chat del portal a Chatwoot con datos INVENTADOS, sobre la
+# imagen real de Chatwoot (fijada por digest en infra/chatwoot/compose.yml) con su Postgres y su Redis. Mide C-2 a
+# C-5 y C-9 a C-14, los vínculos, y corre el control M0 y los mutantes (prueba-cargador.sh).
+#
+# Sin secretos ni variables del repositorio, y sin pedirle nada a internet desde Rails: el servicio `prepare` vive
+# en la red `interna` (internal: true) del compose. No toca Studio ni producción.
+# No reemplaza a «Calidad continua» (quality.yml).
+
+on:
+  pull_request:
+    # SDD-0621: no corre en borradores; corre al marcar la PR lista (`gh pr ready`). Mismo criterio que quality.yml.
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "infra/ops/portal-historial/**"
+      # Las migraciones que aplica el fixture de Studio de la punta a punta (pruebas/studio-fixture.sql).
+      - "supabase/migrations/0006_clients.sql"
+      - "supabase/migrations/0106_conversaciones.sql"
+      - "supabase/migrations/0337_feature_flags_seed_and_trigger.sql"
+      - "supabase/migrations/0503_chatwoot_bandeja.sql"
+      - "supabase/migrations/0504_chatwoot_eventos.sql"
+      - "supabase/migrations/0519_chatwoot_portal.sql"
+      - "supabase/migrations/0520_chatwoot_portal_vuelta.sql"
+      - "supabase/migrations/0523_chatwoot_portal_carga.sql"
+      - "supabase/migrations/0508_chatwoot_bajas_purga.sql"
+      - "supabase/migrations/0524_chatwoot_portal_puerta4.sql"
+      - "infra/chatwoot/compose.yml"
+      - "infra/chatwoot/pruebas/compose.local.yml"
+      - "infra/chatwoot/rails/**"
+      # El ensayo monta infra/chatwoot/correo/views en la copia de Rails (la G0 lo exige).
+      - "infra/chatwoot/correo/**"
+      - ".github/workflows/portal-historial-cargador.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-cargador-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargador:
+    name: Cargador del chat del portal (datos inventados)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
+        run: bash infra/ops/portal-historial/pruebas/prueba-cargador.sh
+
+      # SDD-0586 10.7, PR 2a: la prueba que une los dos lados: extraer.sh y vincular.sh (E10) contra un Postgres de
+      # Studio desechable, y cargar.sh con el cargador contra un Chatwoot desechable. Corre aunque falle el paso anterior.
+      - name: Punta a punta (Studio, cargar.sh y Chatwoot)
+        if: ${{ !cancelled() }}
+        run: bash infra/ops/portal-historial/pruebas/prueba-punta-a-punta.sh
+
+  # SDD-0586 10.7, PR 2b: el ensayo de la puerta 3 (ensayo-portal.sh) contra una «producción» simulada de Studio y de
+  # Chatwoot con marcas: la copia por columnas (copia-columnas.tsv) no trae ninguna, y los mutantes de la lista y de
+  # las guardas tienen que caer. En su propio runner, en paralelo con el cargador.
+  ensayo:
+    name: Ensayo del portal en copias (datos inventados)
+    # Como el job cargador desde la SDD-0621: no corre en borradores.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Ensayo, marcas y mutantes
+        run: bash infra/ops/portal-historial/pruebas/prueba-ensayo-portal.sh

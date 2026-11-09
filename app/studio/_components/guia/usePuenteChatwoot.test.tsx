@@ -15,6 +15,8 @@ import { origenDe, usePuenteChatwoot } from "./usePuenteChatwoot";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/studio/bandeja",
   useSearchParams: () => new URLSearchParams(""),
+  // El motor cambia la pestaña con replace (P-13); estos recorridos no tienen consulta.
+  useRouter: () => ({ replace: () => undefined }),
 }));
 
 const CHAT = "https://chat.dtdcargo.com";

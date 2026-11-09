@@ -40,7 +40,13 @@ const DESC =
 // del equipo» de §4 y la frase final del primer párrafo de §5 (SDD-0606 avisos a
 // Discord y SDD-0608 `/cliente`). Los avisos y `/cliente` no se encienden hasta que
 // esto esté publicado. Esta fecha lleva el día de publicar: si no sale el 6, se mueve.
-const UPDATED = "6 de noviembre de 2026";
+// El 2026-11-07 (04:48Z) Sam aprobó, por el Director General, los textos T1 a T4 de la
+// 10.5 (SDD-0586 §10.5.12), palabra por palabra: «Apruebo los cuatro». T2 cierra la fila
+// «Portal del Cliente» y T3 amplía la finalidad «Gestionar tu cuenta», porque el chat de
+// Soporte del portal pasa a leerse y responderse en nuestro propio sistema de atención.
+// Ese chat no se conecta hasta que esto esté publicado (E10-D42). Si cambia una palabra,
+// se le vuelve a preguntar. Esta fecha lleva el día de publicar: si no sale el 8, se mueve.
+const UPDATED = "8 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -77,7 +83,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Portal del Cliente",
-    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo.",
+    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo. Todos los mensajes del chat de Soporte, con tu nombre, quedan también en nuestro propio sistema de atención, alojado en nuestro servidor, donde nuestro equipo los lee y te responde.",
   ],
   [
     "Seguimiento de envío",
@@ -209,7 +215,10 @@ export default function PrivacidadPage() {
                   elijas a su nombre. Esos datos quedan en cada factura emitida.
                 </li>
                 <li>
-                  <strong>Gestionar tu cuenta</strong> en el Portal del Cliente.
+                  <strong>Gestionar tu cuenta</strong> en el Portal del Cliente y
+                  atender lo que nos escribes por su chat de Soporte: saber si ya
+                  eres cliente para que te atienda el equipo que corresponde y
+                  darle seguimiento a tu consulta.
                 </li>
                 <li>
                   <strong>Cumplir obligaciones</strong> administrativas, contables

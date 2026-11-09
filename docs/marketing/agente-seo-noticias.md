@@ -6,6 +6,8 @@ Diseño aprobado por Sam el 2026-11-05. Parte del tree [Marketing](README.md). S
 
 El agente trabaja solo hasta dejar el artículo listo. **Publicar lo aprueba una persona**: la política IA-01 trata la publicación en el sitio como acción externa con autorización humana por ejecución.
 
+**Excepción aprobada, todavía sin vigencia:** la [SDD-0611](../specs/0611-noticias-publicacion-automatica/spec.md) deja que una noticia de `/noticias` se publique sola si pasa los filtros F1 a F10. Está construida en código (`lib/news/autopublicar/`, migración 0518), y la 0518 está aplicada en producción desde el 2026-11-08, pero rige solo cuando Sam encienda el interruptor. Hasta entonces vale la regla de arriba. Desde ya, el servidor rechaza publicar un texto con marcas `[VERIFICAR]` por cualquier vía.
+
 ## Dónde vive
 
 En el **Studio, sobre el VPS de producción, disparado por el contenedor cron**. Ahí ya están `news_posts`, `seo_drafts`, los prompts de `lib/news/`, los presupuestos por agente, los permisos para aprobar y el patrón de cron de `app/api/cron/ceo-brief/route.ts`. Publicar es escribir una fila, así que no requiere despliegue.
