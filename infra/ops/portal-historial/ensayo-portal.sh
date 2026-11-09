@@ -27,8 +27,8 @@
 # Salida: PASÓ/FALLÓ por comprobación. La evidencia (EVIDENCIA, 0600) guarda solo líneas HECHO: conteos, md5 y
 # nombres de contenedores; nunca nombres de personas ni textos. Códigos (también `HECHO ensayo_codigo`): 0 pasó todo;
 # 1 fallas; 2 opción o entrada mala; 3 carga o memoria; 4 la limpieza no terminó (y nada más falló); 5 la unidad de
-# systemd tiene TimeoutStopSec de menos de 300 s; 6 docker no respondió al limpiar, y no se borró nada; 143, 130 y 129
-# parado por TERM, INT y HUP.
+# systemd tiene TimeoutStopSec de menos de 300 s; 6 --limpiar con docker sin responder, y no se borró nada (un ensayo
+# que corrió borra sus carpetas igual y conserva su código); 143, 130 y 129 parado por TERM, INT y HUP.
 #
 # Copia las guardas de infra/ops/kommo-historial/ensayo-archivo.sh (SDD-0590): el trap que sale con 4, la salida
 # del guion en 7 y 8 para los traps, TimeoutStopSec, la carga del VPS y la memoria.
@@ -127,12 +127,20 @@ limpiar() {
     exit "$rc"
   fi
   # ¿Hay un ensayo que limpiar? Se mide antes de borrar nada: la carpeta del ensayo o recursos del proyecto. Si docker
-  # no responde, el conteo da «?»: ante la duda no se borra nada, tampoco /dev/shm/portal-historial (revisión del DG, N2).
+  # no responde, el conteo da «?».
+  #   · En un --limpiar puro (este proceso no creó nada), ante la duda no se borra nada, tampoco /dev/shm/portal-historial,
+  #     y sale con 6 (revisión del DG, N2).
+  #   · En un ensayo que corrió (CREADO=1), las dos carpetas son suyas y llevan datos de la copia: se borran igual, el
+  #     código del ensayo se conserva (o queda en 4, porque la limpieza no se pudo comprobar) y se anota
+  #     docker_no_responde (revisión del DG de la vuelta 9, B1).
   RECURSOS_ANTES="$(recursos_del_ensayo)"
   case "$RECURSOS_ANTES" in *'?'*)
-    mal L0 "docker no responde ($RECURSOS_ANTES): no se borra nada, tampoco $SHM. Revísalo y corre --limpiar"
-    evidencia "HECHO limpieza_completa=no" "HECHO error=docker_no_responde" "HECHO ensayo_codigo=6"
-    exit 6 ;;
+    if [ "$CREADO" != 1 ]; then # --limpiar puro: ante la duda no se borra
+      mal L0 "docker no responde ($RECURSOS_ANTES): no se borra nada, tampoco $SHM. Revísalo y corre --limpiar"
+      evidencia "HECHO limpieza_completa=no" "HECHO error=docker_no_responde" "HECHO ensayo_codigo=6"
+      exit 6
+    fi
+    evidencia "HECHO docker_no_responde=si" ;;
   esac
   HABIA_ENSAYO=no
   { [ -e "$DIR" ] || [ "$RECURSOS_ANTES" != "$SIN_RESTOS" ]; } && HABIA_ENSAYO=si

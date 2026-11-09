@@ -65,7 +65,7 @@
 
 ## Pendientes de esta tarea
 
-- **La vuelta 9.** Son las correcciones no bloqueantes de la segunda revisión del DG (N1, N2, N4, N6, N7 y N8), más traer main. Se publica cuando Actions vuelva, porque se paró por facturación.
+- **La vuelta 10.** La revisión del DG del delta de la vuelta 9 (`2585e945f..aa03979a6`) dio CHANGES_REQUESTED, con B1, G5, N8, el `if:` del job `ensayo` y este handoff. Va primero el rojo previo (`c7d1f6f33`) y después el arreglo.
 - **`revisar-datos-ve` sobre la PR:** hecho el 2026-11-08. El registro está en las notas del Subdirector, `0586-p4-2b-revisar-datos-ve.md`: 10 puntos CORRECTO, ninguno ENCONTRADO después de E1, y 3 NO VERIFICABLE que pasan al runbook.
 - **Lo que pidió el DG de la #468 y la #470** se hizo en la vuelta 5, con el merge del tren 9: el encabezado de `:301` y el mutante M39 del `SHOW`, con su comprobación L4.
 - **Las secciones de la #468 y la #470**, más abajo.
@@ -108,6 +108,16 @@
 - **N8.** En `mutante`, un id mal escrito en `caen` o en `pasan` ya no cuenta como caído ni como pasado: sale como `(no existe)`.
 - **N6.** Este handoff, al día.
 
+## La vuelta 10: la revisión del DG del delta de la vuelta 9 (CHANGES_REQUESTED)
+
+- **B1, una regresión de N2.** La guarda de Docker sin responder también corría con `CREADO=1`, así que un ensayo real que terminaba con Docker caído salía con 6 sin borrar `/dev/shm/portal-ensayo` ni `/dev/shm/portal-historial`. En la puerta 3, esas carpetas tienen datos de la copia de producción.
+  - **Ahora:** el «ante la duda no se borra» vale solo para un `--limpiar` puro. Un ensayo que corrió borra sus dos carpetas igual, conserva su código (o queda en 4, porque la limpieza no se pudo comprobar) y anota `docker_no_responde=si`.
+  - **La prueba:** G6 usa un `docker` que pasa al real hasta que existe el `compose.yml` del ensayo, y desde ahí falla. Lo acompaña el mutante M27.
+- **G5** siembra su propio centinela.
+- **N8** tiene su prueba: la comparación es la función `no_cumplen`, y se prueba sin Docker.
+- **El job `ensayo`** no corre en borradores, como el cargador desde la SDD-0621.
+- **El código 6** (`--limpiar` con Docker sin responder) tiene que figurar en el runbook, en 3.1. **Lo escribe E10.**
+
 ## Lo que se comprueba en la puerta 3, no en CI
 
 - **TimeoutStopSec:** en Actions no hay unidad de systemd, así que la guarda G1 no corre ahí.
@@ -130,7 +140,9 @@
 | 6 | `a43b4267b` | 42549137387 (el cargador y el ensayo) y 42549137368 (la calidad) | Verde entero: T2 con 22 marcas y M17 cayendo en T2 (38 PASÓ en el ensayo). La revisión independiente del DG dio CHANGES_REQUESTED | Las vueltas 7 y 8 |
 | 7 | `d31737045` | 42553336609 (job 128953531107) | El rojo previo esperado: T2 (la fuga de SINTPUBSUB), T6 (2 filas de espejo y 2 de eventos), E-CA, E-V10, E-V12, E-V13 y G4. M17 y M21 a M24 no se pudieron aplicar. M0 cayó en T2 y T6, y M18 a M20 cayeron además en T2, por el pubsub | Solo las pruebas de la revisión |
 | 8 | `2585e945f` | 42555105883 (cargador y ensayo) y 42555105808 (calidad) | Verde entero. T2 revisó 23 marcas; pasaron T6, E-CA, E-V10, E-V12, E-V13 y G4; M17 y M20 a M24 cayeron cada uno en lo suyo, y M39 en L4. La revisión del DG dio APPROVED | La vuelta 9: las correcciones no bloqueantes |
-| 9 | (este commit, sin publicar mientras Actions esté parado) | — | — | Va abajo, en «La vuelta 9» |
+| 9 | `aa03979a6` | 42588214175 (cargador y ensayo) y 42588213978 (calidad) | Verde entero. La revisión del DG del delta dio CHANGES_REQUESTED: B1, una regresión de N2 | La vuelta 10 |
+| 10 | `d3541ef57`, el merge de main `49f15594d`, y `c7d1f6f33`, las pruebas (el rojo previo) | (pendiente) | Rojo previo esperado: G6 y M27 (sin aplicar) | El arreglo de B1 |
+| 11 | (el arreglo de B1) | — | — | — |
 | 6, el detalle | — | — | — | La vuelta 5 dio verde en el cargador y en el ensayo (run 42546753563). `revisar-datos-ve` sobre la #473 encontró E1, de gravedad baja: `conversations.additional_attributes` se copiaba entero. Ahora se copia solo `jsonb_build_object('dtd_hilo', …)` (`copia-columnas.tsv:45`). La producción simulada suma una conversación del portal con `browser` marcado `SINT-NAVEGADOR`, y el mutante M17 vuelve a copiar el jsonb entero y tiene que caer en T2 |
 
 ## #468 · El caso (b) de la punta a punta
