@@ -75,11 +75,12 @@ Consistencia: storage-api sigue sirviendo mientras corre. Si tar sale 1, el resp
 - **Subida:** `rclone copy` de los tres archivos (nunca `sync`) y `rclone check --one-way --include "/<base>*"`.
 - **Guarda contra un borrado masivo, que falla cerrada.** Con `MIN_FILES=1`, un borrado de casi todo pasaría, y en 30 días la retención se llevaría los respaldos buenos. Por eso, después de subir y antes de la retención, el script compara el conteo con el del último respaldo **aceptado**: `archivos=` y `base=` de `<out>/<proyecto>/storage/<proyecto>-storage.referencia`, escrita con `.part` + `mv`.
   - Si el conteo cae por debajo de `--min-pct` (50), el respaldo queda subido, pero no se aplica la retención, ni remota ni local, la referencia no cambia y el script sale 1: sin latido.
-  - Si la referencia no se puede leer (vacía, sin `archivos=` o sin `base=` válida), lo mismo.
-  - Si falta, se compara contra el **máximo** de `archivos=` de los manifiestos locales anteriores, no contra el más nuevo, que puede ser ya el de después de la caída.
-  - Se repite cada día hasta que una persona corra `--aceptar-caida=<conteo>`, **solo con OK nominal de Sam**. El conteo tiene que ser exactamente el del respaldo; si no, sale 1 sin tocar nada. Si no hay un respaldo bueno identificado (referencia ilegible sin manifiestos, o un `--out` equivocado), sale 1 sin tocar nada. Antes de aplicar la retención, esa corrida **retiene el último respaldo bueno**:
+  - Si la referencia no se puede leer (vacía, sin `archivos=` o sin `base=` válida, sin permisos), lo mismo. Los conteos valen solo como `^[1-9][0-9]{0,15}$` y se comparan en base 10 (`10#`): un `archivos=` enorme desbordaría la cuenta, y uno con cero inicial bash lo leería como octal; en los dos casos la guarda no saltaría. Un manifiesto anterior con `archivos=` fuera de formato (también con algo más en la línea: el filtro está anclado a los dos lados) frena la retención, y también una aceptación: si fuera el más grande, ignorarlo dejaría su respaldo sin retener. `--min-pct` va de 1 a 100, porque 0 apagaría la guarda.
+  - Si falta o es ilegible, se compara contra el **máximo** de `archivos=` de los manifiestos anteriores, locales y del remoto, que la retención conserva 30 días; van en claro y sin rutas. Los del remoto se listan con `rclone lsf` y se leen uno por uno con `rclone cat`, con la misma lectura que los locales: la última línea `archivos=` y la base sacada del **nombre** del archivo. Así, un manifiesto vacío, sin `archivos=`, con `archivos=5=700` o con un nombre que no casa con `<proyecto>-storage-<sello>` da una línea que el filtro rechaza. No se usa el más nuevo, que puede ser ya el de después de la caída. Con el remoto, un disco nuevo o un `--out` equivocado no se pasan por una primera corrida. Si el remoto no se puede leer, sale 1 sin retención.
+  - `lsf … | grep -c . || true`: si `lsf` fallara, el conteo da 0 y la aceptación falla, así que el `|| true` no abre nada; está para que `pipefail` no corte el script sin mensaje.
+  - Se repite cada día hasta que una persona corra `--aceptar-caida=<conteo>`, **solo con OK nominal de Sam**. El conteo tiene que ser exactamente el del respaldo; si no, sale 1 sin tocar nada. Si no hay un respaldo bueno identificado (ni la referencia ni ningún manifiesto anterior, local o del remoto, da uno válido), sale 1 sin tocar nada; la salida de ese bloqueo, con OK de Sam, está en el runbook §5.1. Antes de aplicar la retención, esa corrida **retiene el último respaldo bueno**:
     - en el remoto lo copia a `<remoto>/<proyecto>-retenido/`, lo comprueba con `rclone check` y cuenta sus 3 archivos con `rclone lsf`, porque rclone sale 0 aunque no haya copiado nada;
-    - recién entonces, en disco, lo mueve a `<out>/<proyecto>/storage-retenido/`.
+    - recién entonces, en disco, mueve a `<out>/<proyecto>/storage-retenido/` lo que de ese respaldo haya; si no estaba completo, lo avisa en el log, y el retenido verificado es el del remoto.
 
     Ninguna retención toca esos prefijos. Si cualquier paso falla, no se borra nada. El comando de §5.1 toma el candado del timer (`/run/lock/backup-dtd-cargo.lock`) y el `--out` del `.env`. Qué borra después: runbook §5.1.
 - **Retención:** `rclone delete --min-age 30d` acotado al prefijo, la misma que la base (decisión de Sam en la revisión del traslado; borrado real por `hard_delete`). En disco local, los 2 respaldos más nuevos (`BACKUP_STORAGE_KEEP_LOCAL`), porque cada uno pesa lo que el origen.
@@ -116,7 +117,7 @@ Se copian datos personales a un tercero, Backblaze. El inventario del Storage ya
 | Nada en claro en disco local (ni el tar ni la lista) | CORRECTO | prueba C1 (marcas buscadas en disco, remoto y `/dev/shm`, más un `age` espía al empezar y al terminar) y mutante M2 |
 | Rutas (pueden traer nombres y el Shipping Mark) fuera del claro | CORRECTO | la lista va cifrada y el manifiesto no tiene rutas (C1); el log y la salida del restore tampoco (C5, M7) |
 | Retención 30 días con borrado real | CORRECTO en el script / NO VERIFICABLE en el bucket | `rclone delete --min-age 30d`; el `hard_delete` del remoto es configuración del VPS (`set-remote.sh`), no del repo |
-| Un borrado masivo no se lleva los respaldos buenos | CORRECTO | guarda de D2, que falla cerrada; pruebas C6 a C10; mutantes M8 a M14 |
+| Un borrado masivo no se lleva los respaldos buenos | CORRECTO | guarda de D2, que falla cerrada; pruebas C6 a C15; mutantes M8 a M23 |
 | Clave privada fuera del servidor | CORRECTO | el script rechaza destinatarios con `AGE-SECRET-KEY-` |
 | Supresión (CRBV art. 28) | igual que la base | un archivo borrado en vivo desaparece de los respaldos a los 30 días |
 | DPA de Backblaze | NO VERIFICABLE | sigue sin leerse ni archivarse (`inventario-terceros.md`) |
@@ -129,7 +130,7 @@ El Worker no leyó el contenido de ningún archivo del Storage. Las cifras de pr
 1. `backup.sh` corre `storage-backup.sh` con la carpeta de `DTD_DATA_DIR` y su remoto, y falla sin latido si ese paso falla (pruebas C4 y M1; `prueba-backup-dtd.sh` en el VPS).
 2. El respaldo deja en disco y en el remoto solo `.age` y un manifiesto sin rutas, sin claro intermedio (C1, M2), y el log no trae rutas (C5, M7).
 3. La restauración devuelve los mismos archivos, con los mismos sha256 y xattrs `user.*`, que el origen (C2, M3, M6a, M6b). Detecta un cifrado dañado antes de descifrar (C3, M4), una lista que no cuadra (M5) y xattrs distintos en `--verificar`.
-4. Una caída del conteo de más de la mitad, o una referencia ilegible, sube el respaldo, no aplica la retención y sale 1 hasta que se acepte con `--aceptar-caida=<conteo exacto>`, con OK nominal de Sam. Esa corrida retiene antes el último respaldo bueno fuera de la retención, en disco y en el remoto. Sin referencia, la comparación es contra el máximo de los manifiestos locales. Sin un respaldo bueno, o si rclone falla o no deja los 3 archivos en el retenido, no se borra nada (C6 a C10, M8 a M14).
+4. Una caída del conteo de más de la mitad, o una referencia ilegible, sube el respaldo, no aplica la retención y sale 1 hasta que se acepte con `--aceptar-caida=<conteo exacto>`, con OK nominal de Sam. Esa corrida retiene antes el último respaldo bueno fuera de la retención, en disco y en el remoto. Sin referencia, la comparación es contra el máximo de los manifiestos locales y del remoto, y un `archivos=` fuera de formato frena. Sin un respaldo bueno, o si rclone falla o no deja los 3 archivos en el retenido, no se borra nada (C6 a C15, M8 a M23).
 5. `prueba-respaldo-storage.sh` corre en el CI Linux (`pruebas-linux.sh`) y está clasificada en el contrato del workflow.
 6. Runbook §1 y §5 describen lo que existe y lo que existirá desde la instalación. Ya no hablan del `rclone sync` de R2 que no existe.
 7. Instalación en producción **fuera de esta PR**: queda el guion literal para el OK nominal de Sam.
@@ -158,16 +159,17 @@ Va en un subshell con `set -euo pipefail`: si algo falla, para ahí y no sigue a
 **1 · En el VPS (`ssh root@217.216.54.70`), solo lectura.** Se para aquí en cualquiera de estos casos:
 - falta `age`, `python3` o GNU tar;
 - el timer se dispara en menos de 30 min;
-- en el `.env` hay alguna de las cuatro claves con un valor distinto del esperado (abajo);
+- en el `.env`, `PROYECTO` u `OPS_DIR` tienen un valor distinto de `dtd-cargo` y `/srv/ops` (el guion copia ahí), o alguna clave tiene un valor inesperado (abajo);
 - ya hay algo bajo `b2:dtdcargo-respaldos/storage/`.
 
 ```bash
 command -v age python3 && tar --version | head -1 && df -h /srv/backups /dev/shm
 ls -l /srv/ops/backup/ /srv/ops/lib/ /srv/dtd-cargo/backup.sh
 systemctl list-timers dtd-cargo-backup.timer --no-pager
-# Solo estas cuatro claves, que no son secretos. Lo esperado: BACKUP_DIR ausente o
-# /srv/backups; DTD_DATA_DIR ausente o ./data; BACKUP_STORAGE_* ausentes.
-grep -E '^(BACKUP_DIR|BACKUP_STORAGE_RCLONE_REMOTE|BACKUP_STORAGE_DIR|DTD_DATA_DIR)=' /srv/dtd-cargo/.env || echo "(ninguna de las cuatro: valores por omisión)"
+# Solo estas claves, que no son secretos. Lo esperado: PROYECTO y OPS_DIR ausentes o
+# dtd-cargo y /srv/ops; BACKUP_DIR ausente o /srv/backups; DTD_DATA_DIR ausente o ./data;
+# BACKUP_STORAGE_* ausentes; BACKUP_RETENTION_DAYS ausente o 30.
+grep -E '^(PROYECTO|OPS_DIR|BACKUP_DIR|DTD_DATA_DIR|BACKUP_STORAGE_[A-Z_]+|BACKUP_RETENTION_DAYS|BACKUP_AGE_RECIPIENTS_FILE|RCLONE_CONFIG_DIR)=' /srv/dtd-cargo/.env || echo "(ninguna: valores por omisión)"
 # El prefijo del Storage tiene que estar vacío antes de la primera retención.
 docker run --rm -v /srv/ops/backup/rclone:/config/rclone:ro rclone/rclone:1.75.1 lsf -R b2:dtdcargo-respaldos/storage/ | head
 ```
@@ -204,15 +206,26 @@ tar --help | grep -q -- '--xattrs-include' && echo "✓ tar con xattrs" || echo 
 python3 -c 'import os; p="/dev/shm/zz-xattr-0620"; open(p, "w").close(); os.setxattr(p, "user.prueba", b"1"); assert os.getxattr(p, "user.prueba") == b"1"; os.remove(p); print("✓ /dev/shm admite xattrs user.*")'
 ```
 
-**5 · Primera subida, solo del Storage.** No toca la base ni manda latido. Toma el candado del timer y el `--out` del `.env`. Tiene que terminar en `listo: dtd-cargo-storage-…`:
+**5 · Primera subida, solo del Storage.** No toca la base ni manda latido. Toma el candado del timer y los valores del `.env` con el mismo **bloque de valores** del runbook §5.1. Tiene que terminar en `listo: dtd-cargo-storage-…`:
 
 ```bash
 cd /srv/dtd-cargo
-OUT="$(sed -n "s/^BACKUP_DIR=//p" .env | tail -n1 | tr -d "'\"")"; OUT="${OUT:-/srv/backups}"; echo "--out ${OUT}"
-flock -n /run/lock/backup-dtd-cargo.lock /srv/ops/backup/storage-backup.sh --project dtd-cargo \
-  --source /srv/dtd-cargo/data/storage --remote b2:dtdcargo-respaldos/storage \
-  --age-recipients /srv/ops/backup/age-recipients.txt --rclone-config /srv/ops/backup/rclone \
-  --out "${OUT}" 2>&1 | tee -a /var/log/backup-dtd-cargo.log
+# Los mismos valores y la misma regla que envget de backup.sh: la última línea de la
+# clave, sin las comillas simples o dobles que la rodean; vacío = valor por omisión.
+v() { local x; x="$(grep -E "^$1=" .env | tail -n1 | cut -d= -f2- || true)"
+      case "${x}" in \'*\'|\"*\") x="${x:1:${#x}-2}" ;; esac; printf '%s' "${x:-$2}"; }
+P="$(v PROYECTO dtd-cargo)"; OPS="$(v OPS_DIR /srv/ops)"; OUT="$(v BACKUP_DIR /srv/backups)"
+DATOS="$(v DTD_DATA_DIR ./data)"; case "${DATOS}" in /*) ;; *) DATOS="/srv/dtd-cargo/${DATOS#./}" ;; esac
+REMOTO="$(v BACKUP_STORAGE_RCLONE_REMOTE b2:dtdcargo-respaldos/storage)"; RC="$(v RCLONE_CONFIG_DIR /srv/ops/backup/rclone)"
+ARGS=(--project "${P}" --source "$(v BACKUP_STORAGE_DIR "${DATOS%/}/storage")" --remote "${REMOTO}"
+      --age-recipients "$(v BACKUP_AGE_RECIPIENTS_FILE /srv/ops/backup/age-recipients.txt)" --rclone-config "${RC}"
+      --out "${OUT}" --retention-days "$(v BACKUP_RETENTION_DAYS 30)" --keep-local "$(v BACKUP_STORAGE_KEEP_LOCAL 2)"
+      --min-files "$(v BACKUP_STORAGE_MIN_FILES 1)")
+printf '%q ' "${OPS}/backup/storage-backup.sh" "${ARGS[@]}"; echo   # revisar antes de seguir: rutas y remoto, ningún secreto
+set -o pipefail   # si no, el `| tee` se quedaría con el código de salida
+flock -n -E 75 "/run/lock/backup-${P}.lock" "${OPS}/backup/storage-backup.sh" "${ARGS[@]}" 2>&1 \
+  | tee -a /var/log/backup-dtd-cargo.log \
+  || { rc=$?; [ "${rc}" = 75 ] && echo "✗ candado tomado: el respaldo de la noche está corriendo; esperar y repetir" || echo "✗ salió ${rc}: PARAR y leer el log"; }
 ```
 
 **6 · Después, `backup.sh`.** No depende de lo que se definió en el paso 3:
@@ -248,13 +261,17 @@ rm -f /srv/ops/backup/storage-backup.sh /srv/ops/backup/storage-restore.sh /srv/
 /srv/dtd-cargo/backup.sh --dry-run   # vuelve a ser el de dos pasos
 ```
 
-Lo ya subido (cifrado) queda en `b2:dtdcargo-respaldos/storage/dtd-cargo/` y en `/srv/backups/dtd-cargo/storage/`, junto con la referencia y, si se llegó a aceptar una caída, los prefijos `…-retenido/`. Sin el script no corre su retención, así que no se borra solo. Borrarlo es un borrado permanente, con OK de Sam y prefijo por prefijo:
+Lo ya subido (cifrado) queda en `${REMOTO}/${P}/` y en `${OUT}/${P}/storage/`, junto con la referencia y, si se llegó a aceptar una caída o a apartar un manifiesto, los prefijos `…-retenido/` y `…-apartado/`. Sin el script no corre su retención, así que no se borra solo. Borrarlo es un borrado permanente, con OK de Sam y prefijo por prefijo:
 
 ```bash
-docker run --rm -v /srv/ops/backup/rclone:/config/rclone:ro rclone/rclone:1.75.1 purge b2:dtdcargo-respaldos/storage/dtd-cargo/
-rm -rf /srv/backups/dtd-cargo/storage
-# Solo si existen y Sam lo autoriza aparte: guardan el último respaldo bueno de antes de una caída.
-# docker run … purge b2:dtdcargo-respaldos/storage/dtd-cargo-retenido/ ; rm -rf /srv/backups/dtd-cargo/storage-retenido
+# Con el bloque de valores del runbook §5.1 cargado (P, OUT, REMOTO, RC). Los `:?` hacen
+# que no corra nada si falta alguno: sin ellos, `rm -rf "${OUT}/${P}/storage"` sería `//storage`.
+docker run --rm -v "${RC:?}:/config/rclone:ro" rclone/rclone:1.75.1 purge "${REMOTO:?}/${P:?}/"
+rm -rf -- "${OUT:?}/${P:?}/storage"
+# Solo si existen y Sam lo autoriza aparte: guardan el último respaldo bueno de antes de una caída
+# y los manifiestos apartados.
+# docker run … purge "${REMOTO:?}/${P:?}-retenido/" ; rm -rf -- "${OUT:?}/${P:?}/storage-retenido"
+# docker run … purge "${REMOTO:?}/${P:?}-apartado/" ; rm -rf -- "${OUT:?}/${P:?}/storage-apartado"
 ```
 
 La unidad `dtd-cargo-backup.service` no se reinstala: en esta PR solo cambia su `Description`.
