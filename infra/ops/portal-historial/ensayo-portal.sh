@@ -27,7 +27,8 @@
 # Salida: PASÓ/FALLÓ por comprobación. La evidencia (EVIDENCIA, 0600) guarda solo líneas HECHO: conteos, md5 y
 # nombres de contenedores; nunca nombres de personas ni textos. Códigos (también `HECHO ensayo_codigo`): 0 pasó todo;
 # 1 fallas; 2 opción o entrada mala; 3 carga o memoria; 4 la limpieza no terminó (y nada más falló); 5 la unidad de
-# systemd tiene TimeoutStopSec de menos de 300 s; 143, 130 y 129 parado por TERM, INT y HUP.
+# systemd tiene TimeoutStopSec de menos de 300 s; 6 docker no respondió al limpiar, y no se borró nada; 143, 130 y 129
+# parado por TERM, INT y HUP.
 #
 # Copia las guardas de infra/ops/kommo-historial/ensayo-archivo.sh (SDD-0590): el trap que sale con 4, la salida
 # del guion en 7 y 8 para los traps, TimeoutStopSec, la carga del VPS y la memoria.
@@ -125,9 +126,16 @@ limpiar() {
     evidencia "HECHO ensayo_codigo=$rc"
     exit "$rc"
   fi
-  # ¿Hay un ensayo que limpiar? Se mide antes de borrar nada: la carpeta del ensayo o recursos del proyecto.
+  # ¿Hay un ensayo que limpiar? Se mide antes de borrar nada: la carpeta del ensayo o recursos del proyecto. Si docker
+  # no responde, el conteo da «?»: ante la duda no se borra nada, tampoco /dev/shm/portal-historial (revisión del DG, N2).
+  RECURSOS_ANTES="$(recursos_del_ensayo)"
+  case "$RECURSOS_ANTES" in *'?'*)
+    mal L0 "docker no responde ($RECURSOS_ANTES): no se borra nada, tampoco $SHM. Revísalo y corre --limpiar"
+    evidencia "HECHO limpieza_completa=no" "HECHO error=docker_no_responde" "HECHO ensayo_codigo=6"
+    exit 6 ;;
+  esac
   HABIA_ENSAYO=no
-  { [ -e "$DIR" ] || [ "$(recursos_del_ensayo)" != "$SIN_RESTOS" ]; } && HABIA_ENSAYO=si
+  { [ -e "$DIR" ] || [ "$RECURSOS_ANTES" != "$SIN_RESTOS" ]; } && HABIA_ENSAYO=si
   if [ "$PROYECTO" != portal-ensayo ] || [ "$PROYECTO" = "$PROD_PROYECTO" ]; then
     mal L0 "proyecto inesperado ($PROYECTO frente a $PROD_PROYECTO): no se borra nada"
     evidencia "HECHO limpieza_completa=no" "HECHO ensayo_codigo=1"
@@ -724,7 +732,7 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
     "(c) repetir: no entra nada nuevo ($(h "$F" conversaciones_existentes) conversaciones existentes)"
   exigir C2 '[ "$(h "$DIR/vincular.txt" salida_proceso)" = 0 ] && [ ! -e "$SHM" ] && [ "$(corte)" = 1:1 ]' \
     "vincular entra, borra $SHM, y queda un solo corte ($(corte))"
-  dobles="$(cw_copia -c "select (select count(*) - count(distinct additional_attributes->>'dtd_hilo') from public.conversations where inbox_id = $BANDEJA) + (select count(*) - count(distinct source_id) from public.messages where inbox_id = $BANDEJA)")"
+  dobles="$(cw_copia -c "select (select count(*) - count(distinct additional_attributes->>'dtd_hilo') from public.conversations where inbox_id = $BANDEJA and additional_attributes ? 'dtd_hilo') + (select count(*) - count(distinct source_id) from public.messages where inbox_id = $BANDEJA)")"
   evidencia "HECHO dobles_chatwoot=$dobles"
   exigir C3 '[ "$dobles" = 0 ]' "en Chatwoot no quedó nada doble ($dobles)"
   CTL "$DIR/controles-despues.txt"

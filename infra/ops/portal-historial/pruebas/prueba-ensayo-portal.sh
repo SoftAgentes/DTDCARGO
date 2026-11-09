@@ -15,6 +15,7 @@
 #   G1  DB_CW de producción: se niega · G2 /dev/shm/portal-historial ya existe: se niega y no lo toca
 #   G3  ENSAYO_VOLCADO con los nombres reales de producción: se niega
 #   G4  --limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial
+#   G5  --limpiar con docker sin responder no borra nada y sale con 6
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
 #
 # Uso:  bash infra/ops/portal-historial/pruebas/prueba-ensayo-portal.sh [--conservar] [--sin-mutantes]
@@ -91,6 +92,7 @@ PROHIBIDAS=(
   SINT-HMAC               # channel_api.hmac_token
   SINT-NAVEGADOR          # conversations.additional_attributes, fuera de dtd_hilo
   SINTPUBSUB              # contact_inboxes.pubsub_token, una credencial
+  SINT-SIN-HILO           # additional_attributes de una conversación del portal sin dtd_hilo
   SINT-OTRA-CUENTA SINT-OTRA-MENSAJE # la otra cuenta
 )
 # Lo que sí se copia (piso: sin esto, un volcado vacío pasaría T2).
@@ -246,6 +248,11 @@ guardas() { # carpeta prefijo
   ensayo "$C" "$TRABAJO/$X-g4.txt" -- --limpiar
   exigir G4 '[ "$(cat /dev/shm/portal-historial/centinela 2>/dev/null)" = centinela ]' \
     "--limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial"
+  # G5: un docker que no responde (uno falso, primero en el PATH): ante la duda no se borra nada.
+  mkdir -p "$TRABAJO/docker-caido" && printf '#!/bin/sh\nexit 1\n' >"$TRABAJO/docker-caido/docker" && chmod +x "$TRABAJO/docker-caido/docker"
+  ensayo "$C" "$TRABAJO/$X-g5.txt" "PATH=$TRABAJO/docker-caido:$PATH" -- --limpiar
+  exigir G5 '[ "$(h "$TRABAJO/$X-g5.txt" salida_proceso)" = 6 ] && [ "$(h "$TRABAJO/$X-g5.txt.evidencia" error)" = docker_no_responde ] && [ "$(cat /dev/shm/portal-historial/centinela 2>/dev/null)" = centinela ]' \
+    "--limpiar con docker sin responder: no borra nada y sale con 6 ($(h "$TRABAJO/$X-g5.txt" salida_proceso))"
   rm -rf -- /dev/shm/portal-historial
   ensayo "$C" "$TRABAJO/$X-g3.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/no" PROD_PG=chatwoot-postgres-1 --
   exigir G3 '[ "$(h "$TRABAJO/$X-g3.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g3.txt.evidencia" error)" = volcado_fuera_de_la_prueba ] && [ ! -e "$TRABAJO/no" ]' \
@@ -284,8 +291,9 @@ mutante() {
     comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
   fi
   MODO_LOG=1
-  for c in $caen; do [ "${RES[$c]:-FALLÓ}" = FALLÓ ] || faltan="$faltan $c"; done
-  for c in $pasan; do [ "${RES[$c]:-FALLÓ}" = PASÓ ] || otro="$otro $c"; done
+  # Un id que no existe (mal escrito) no cuenta como caído ni como pasado (N8 del DG).
+  for c in $caen; do case "${RES[$c]:-}" in FALLÓ) ;; PASÓ) faltan="$faltan $c" ;; *) faltan="$faltan $c(no existe)" ;; esac; done
+  for c in $pasan; do case "${RES[$c]:-}" in PASÓ) ;; FALLÓ) otro="$otro $c" ;; *) otro="$otro $c(no existe)" ;; esac; done
   exigir "$id" '[ -z "$faltan" ] && [ -z "$otro" ]' \
     "$que: tienen que caer [$caen]${faltan:+ — SOBREVIVEN:$faltan}${otro:+ — CAEN POR OTRO CAMINO:$otro} · cayeron: $(cayeron_en)"
 }
@@ -336,13 +344,17 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M24 "copia los eventos de todo el tenant" copia-columnas.tsv "T6" "T1 T2 T4" \
     "status;received_at	tenant_id = :'tenant' and conversation_id in" "status;received_at	tenant_id = :'tenant' or conversation_id in"
   # El modo completo, con el cargador mutado: C-10, C-12 y C-13 se miden sobre la copia real (bloqueante del DG).
-  mutante M18 "el cargador carga todo como resolved" cargar-portal.rb "E-V13" "T2 T4" \
+  mutante M18 "el cargador carga todo como resolved" cargar-portal.rb "E-V13" "T2 T4 E-E1 E-E2" \
     "status: Conversation.statuses.fetch(c['estado'])," "status: Conversation.statuses.fetch('resolved')," completo
-  mutante M19 "el cargador invierte el orden de los mensajes" cargar-portal.rb "E-V12" "T2 T4" \
+  mutante M19 "el cargador invierte el orden de los mensajes" cargar-portal.rb "E-V12" "T2 T4 E-E1 E-E2" \
     "cuando = instante(m['created_at'])" "cuando = Time.zone.now - mensajes.index(m)" completo
-  mutante M20 "el cargador pone teléfono a los contactos" cargar-portal.rb "E-V10" "T2 T4" \
+  mutante M20 "el cargador pone teléfono a los contactos" cargar-portal.rb "E-V10" "T2 T4 E-E1 E-E2" \
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident," \
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident, phone_number: '+584127770009'," completo
+  mutante M25 "--limpiar borra aunque docker no responda" ensayo-portal.sh "G5" "G1 G2 G3 G4" \
+    "case \"\$RECURSOS_ANTES\" in *'?'*)" "case \"\$RECURSOS_ANTES\" in *'nunca'*)" guardas
+  mutante M26 "copia additional_attributes entero cuando no hay dtd_hilo" copia-columnas.tsv "T2" "T1 T4" \
+    "else '{}'::jsonb end" "else additional_attributes end"
   mutante M22 "--limpiar borra /dev/shm/portal-historial sin un ensayo" ensayo-portal.sh "G4" "G1 G2 G3" \
     'if [ "$CREADO" = 1 ] || [ "$HABIA_ENSAYO" = si ]; then' 'if true; then' guardas
   mutante M14 "sin la guarda de DB_CW" ensayo-portal.sh "G1" "G2 G3" \

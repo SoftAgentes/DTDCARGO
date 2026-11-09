@@ -50,6 +50,9 @@ ci_dtd = ContactInbox.create!(contact: dtd, inbox: portal, source_id: "dtd-porta
 ci_dtd.update_columns(pubsub_token: 'SINTPUBSUB0000000000000a')
 Conversation.create!(account: cuenta, inbox: portal, contact: dtd, contact_inbox: ci_dtd,
                      additional_attributes: { 'dtd_hilo' => SecureRandom.uuid, 'browser' => { 'name' => 'SINT-NAVEGADOR' } })
+# Y otra sin dtd_hilo: la copia la trae con additional_attributes vacío (la rama else de la lista, N4 del DG).
+Conversation.create!(account: cuenta, inbox: portal, contact: dtd, contact_inbox: ci_dtd,
+                     additional_attributes: { 'browser' => { 'name' => 'SINT-SIN-HILO' } })
 viva = bandeja(cuenta, 'SINT WhatsApp')
 x = Contact.create!(account: cuenta, name: 'SINT-WHATSAPP-NOMBRE', phone_number: '+584127770001', email: 'sint-real@x.invalid')
 ci = ContactInbox.create!(contact: x, inbox: viva, source_id: "sint-#{SecureRandom.hex(4)}")

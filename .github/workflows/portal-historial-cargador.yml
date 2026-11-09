@@ -26,6 +26,8 @@ on:
       - "infra/chatwoot/compose.yml"
       - "infra/chatwoot/pruebas/compose.local.yml"
       - "infra/chatwoot/rails/**"
+      # El ensayo monta infra/chatwoot/correo/views en la copia de Rails (la G0 lo exige).
+      - "infra/chatwoot/correo/**"
       - ".github/workflows/portal-historial-cargador.yml"
   workflow_dispatch:
 

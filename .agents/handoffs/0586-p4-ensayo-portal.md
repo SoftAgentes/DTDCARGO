@@ -42,8 +42,14 @@
     - T3: la evidencia;
     - T4: lo de otros tenants y cuentas;
     - T5: la producción simulada no cambió;
-    - G1 a G3: las guardas.
-  - **Los mutantes:** M0 es el control. M1 a M13 y M17 mutan la lista: columnas personales, sintéticos y filtros. M14 a M16 mutan las guardas.
+    - T6: la minimización, que deja del espejo y de los eventos de Studio solo los del portal;
+    - E-xx: lo que mide el modo completo sobre la copia, que es E1, E2, CA, B1, B2, C1 a C3 y K1 a K3, y además V10, V12 y V13, que son C-10, C-12 y C-13 sobre lo cargado;
+    - G1 a G5: las guardas. G4 es `--limpiar` sin un ensayo, y G5 es `--limpiar` con Docker sin responder.
+  - **Los mutantes:**
+    - M0 es el control;
+    - M1 a M13, M17, M21, M23, M24 y M26 mutan la lista: columnas personales, sintéticos, credenciales y filtros;
+    - M14 a M16, M22 y M25 mutan las guardas;
+    - M18 a M20 mutan el cargador, en el modo completo.
 - **`.github/workflows/portal-historial-cargador.yml`:** el job `ensayo`, en su propio runner.
 
 ## Evidencia
@@ -51,12 +57,15 @@
 - **PASÓ:** `bash -n` de los dos guiones.
 - **PASÓ:** cada texto a mutar aparece una vez en su archivo, medido con un doble de `mutante`.
 - **PASÓ:** las columnas de Chatwoot de la lista existen en el `db/schema.rb` de Chatwoot v4.19.1, la versión de la imagen fijada.
-- **NO EJECUTADO en la PC:** Ruby y Docker. La prueba corre en Actions. Pendiente: el run, y el rojo o verde de cada mutante.
-- **Rojo previo:** no aplica en el sentido de la #468 y la #470, porque todo el código es nuevo. El control son los mutantes.
+- **NO EJECUTADO en la PC:** Ruby y Docker. La prueba corre en Actions, y cada vuelta está en el registro de abajo.
+- **El verde de la vuelta 8** (`2585e945f`): los runs 42555105883 (cargador y ensayo) y 42555105808 (calidad). La revisión del DG sobre esa cabeza dio APPROVED, sin bloqueantes.
+- **Rojo previo:**
+  - en la vuelta 1 no aplicaba, porque todo el código era nuevo: el control eran los mutantes;
+  - las correcciones de la revisión tienen su rojo previo en la vuelta 7.
 
 ## Pendientes de esta tarea
 
-- **El primer run de Actions.** Puede pedir ajustes del esquema de Chatwoot en la copia, como columnas NOT NULL de la imagen o secuencias.
+- **La vuelta 9.** Son las correcciones no bloqueantes de la segunda revisión del DG (N1, N2, N4, N6, N7 y N8), más traer main. Se publica cuando Actions vuelva, porque se paró por facturación.
 - **`revisar-datos-ve` sobre la PR:** hecho el 2026-11-08. El registro está en las notas del Subdirector, `0586-p4-2b-revisar-datos-ve.md`: 10 puntos CORRECTO, ninguno ENCONTRADO después de E1, y 3 NO VERIFICABLE que pasan al runbook.
 - **Lo que pidió el DG de la #468 y la #470** se hizo en la vuelta 5, con el merge del tren 9: el encabezado de `:301` y el mutante M39 del `SHOW`, con su comprobación L4.
 - **Las secciones de la #468 y la #470**, más abajo.
@@ -89,6 +98,16 @@
 - **T3** tiene una comprobación negativa débil, y D2 usa «>0».
 - **Hecho en esta vuelta:** el `grep` con `\|` de T3 pasó a `-E`.
 
+## La vuelta 9: lo no bloqueante de la segunda revisión del DG, sobre `2585e945f`
+
+- **N2.** Si Docker no responde, el conteo de recursos da `?`. Ahora `--limpiar` no borra nada, ni siquiera `/dev/shm/portal-historial`, y sale con 6 (`docker_no_responde`). Lo prueban G5, con un `docker` falso al principio del `PATH`, y M25.
+- **N1.** En M18, M19 y M20, E-E1 y E-E2 tienen que pasar.
+- **N4.** La producción simulada suma una conversación del portal sin `dtd_hilo` y con `browser` marcado `SINT-SIN-HILO`. La copia la trae con `{}`, que es la rama `else`. Lo prueban T2, con 24 marcas, y M26.
+  - C3 tenía un falso rojo con esa conversación, porque un `dtd_hilo` nulo no cuenta en `count(distinct …)`. Ahora cuenta solo las que tienen `dtd_hilo`.
+- **N7.** Los `paths` del workflow suman `infra/chatwoot/correo/**`.
+- **N8.** En `mutante`, un id mal escrito en `caen` o en `pasan` ya no cuenta como caído ni como pasado: sale como `(no existe)`.
+- **N6.** Este handoff, al día.
+
 ## Lo que se comprueba en la puerta 3, no en CI
 
 - **TimeoutStopSec:** en Actions no hay unidad de systemd, así que la guarda G1 no corre ahí.
@@ -110,7 +129,8 @@
 | 5 | (el merge) | — | — | Un solo merge de `e74cde6fc`, sin conflictos (el workflow se mezcló solo). En el mismo commit: se quita el encabezado vencido «B. el contacto_id nulo: espera la 0524» de `pruebas/prueba-punta-a-punta.sh`, y se suman L4 y el mutante M39, que quita la comparación del `SHOW` en `cargar-portal.rb:186`. L4 hace que el `SHOW` de `log_*` devuelva otro valor dentro de la sonda, así que solo la comparación lo ve. Rojo previo de M39: no se puede tener sin romper el cargador, que ya está en main; el rojo es el del propio mutante |
 | 6 | `a43b4267b` | 42549137387 (el cargador y el ensayo) y 42549137368 (la calidad) | Verde entero: T2 con 22 marcas y M17 cayendo en T2 (38 PASÓ en el ensayo). La revisión independiente del DG dio CHANGES_REQUESTED | Las vueltas 7 y 8 |
 | 7 | `d31737045` | 42553336609 (job 128953531107) | El rojo previo esperado: T2 (la fuga de SINTPUBSUB), T6 (2 filas de espejo y 2 de eventos), E-CA, E-V10, E-V12, E-V13 y G4. M17 y M21 a M24 no se pudieron aplicar. M0 cayó en T2 y T6, y M18 a M20 cayeron además en T2, por el pubsub | Solo las pruebas de la revisión |
-| 8 | (este commit) | — | — | La implementación de la revisión del DG (ver abajo) |
+| 8 | `2585e945f` | 42555105883 (cargador y ensayo) y 42555105808 (calidad) | Verde entero. T2 revisó 23 marcas; pasaron T6, E-CA, E-V10, E-V12, E-V13 y G4; M17 y M20 a M24 cayeron cada uno en lo suyo, y M39 en L4. La revisión del DG dio APPROVED | La vuelta 9: las correcciones no bloqueantes |
+| 9 | (este commit, sin publicar mientras Actions esté parado) | — | — | Va abajo, en «La vuelta 9» |
 | 6, el detalle | — | — | — | La vuelta 5 dio verde en el cargador y en el ensayo (run 42546753563). `revisar-datos-ve` sobre la #473 encontró E1, de gravedad baja: `conversations.additional_attributes` se copiaba entero. Ahora se copia solo `jsonb_build_object('dtd_hilo', …)` (`copia-columnas.tsv:45`). La producción simulada suma una conversación del portal con `browser` marcado `SINT-NAVEGADOR`, y el mutante M17 vuelve a copiar el jsonb entero y tiene que caer en T2 |
 
 ## #468 · El caso (b) de la punta a punta
