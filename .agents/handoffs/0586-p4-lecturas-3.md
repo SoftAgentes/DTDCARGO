@@ -274,7 +274,7 @@
    - «Qué escribe» dice «por nombre» y suma el quinto paso, `sistema-produccion`;
    - el OK cubre los cinco;
    - salió «el `scp -r`».
-3. **`DB` no tiene valor por defecto;** solo lo tiene `DB_CW` (`deshacer.sh:50`). Si falta, `deshacer.sh:93-94` y `deshacer-vinculos.sh:43` se niegan.
+3. **`DB` no tiene valor por defecto;** solo lo tiene `DB_CW` (`deshacer.sh:50`). Si falta, `deshacer.sh:93-94` y `deshacer-vinculos.sh:44` se niegan (era `:43`; se corrió una línea en `6041f54e8` de la #480).
 
 **Lo no bloqueante:**
 - **El abandono** se niega del todo con el `.inicio`, en los dos lugares.
