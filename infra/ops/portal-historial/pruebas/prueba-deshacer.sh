@@ -297,6 +297,9 @@ parte_borrar() { # carpeta salidas
   { [ -e "$SHM/chatwoot-borrar.hecho" ] || [ -e "$DUR/chatwoot-borrar.hecho" ]; } && echo "HECHO hecho_sin_commit=si" >>"$O/d15.txt"
   echo "HECHO durable_d15=$(find "$DUR" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort | tr '\n' ',')" >>"$O/d15.txt"
   sonda "$O/quitar-d15.txt" FASE=quitar-ajeno
+  # D5 empieza con la durable limpia: así un mutante que deja el .inicio en D15 (MD33) cae solo en D15, no en D5 por
+  # la guarda de la evidencia (condición del DG: cada mutante cae en su propio caso).
+  rm -rf -- "$TRABAJO/durable"
   # D5: el borrado (paso 3): deja la copia durable, borra y escribe chatwoot-borrar.hecho en las dos copias.
   deshacer "$O/d5.txt" "$K" borrar CONFIRMAR=si
   limpio_desde_afuera && echo "HECHO limpio_desde_afuera=si" >>"$O/d5.txt"
