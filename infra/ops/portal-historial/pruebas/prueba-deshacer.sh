@@ -284,6 +284,13 @@ parte_borrar() { # carpeta salidas
   printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=copia fin=rollback utc=%s\n' \
     "$sha" "$TENANT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   chmod 0600 "$SHM/studio-ensayo.hecho"
+  # D15: con los .hecho válidos, el borrado aborta antes del COMMIT (algo ajeno en la bandeja): la copia durable queda
+  # con el .ndjson y los dos .hecho, y sin chatwoot-borrar.hecho en ninguna de las dos carpetas.
+  sonda "$O/ajeno-d15.txt" FASE=ajeno CUAL=mensaje
+  deshacer "$O/d15.txt" "$K" borrar CONFIRMAR=si
+  { [ -e "$SHM/chatwoot-borrar.hecho" ] || [ -e "$DUR/chatwoot-borrar.hecho" ]; } && echo "HECHO hecho_sin_commit=si" >>"$O/d15.txt"
+  echo "HECHO durable_d15=$(find "$DUR" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort | tr '\n' ',')" >>"$O/d15.txt"
+  sonda "$O/quitar-d15.txt" FASE=quitar-ajeno
   # D5: el borrado (paso 3): deja la copia durable, borra y escribe chatwoot-borrar.hecho en las dos copias.
   deshacer "$O/d5.txt" "$K" borrar CONFIRMAR=si
   limpio_desde_afuera && echo "HECHO limpio_desde_afuera=si" >>"$O/d5.txt"
@@ -371,6 +378,9 @@ comprobar_borrar() {
   exigir D11c '[ "$(h "$O/d11c.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d11c.txt")" = el_tenant_de_los_hecho_no_coincide ] && [ "$(h "$O/contar-d11.txt" bandeja)" = "$A" ]' \
     "el borrado con otro tenant en el ensayo de Studio: se niega, y la bandeja sigue igual ($(err "$O/d11c.txt"))"
   exigir D12 '[ -z "$(h "$O/d11b.txt" viejo)" ]' "un chatwoot-borrar.hecho viejo se borra de las dos copias aunque el borrado se niegue"
+  F="$O/d15.txt"
+  exigir D15 '[ "$(h "$F" salida_proceso)" = 1 ] && grep -q "^HECHO error=algo ajeno en la bandeja" "$F" && [ -z "$(h "$F" hecho_sin_commit)" ] && [ "$(h "$F" durable_d15)" = "chatwoot-seco.hecho,contactos-conservados.ndjson,studio-ensayo.hecho," ]' \
+    "el borrado aborta antes del COMMIT: sin chatwoot-borrar.hecho en ninguna carpeta, y la copia durable con el .ndjson y los dos .hecho ($(h "$F" durable_d15))"
   F="$O/d5.txt"
   exigir D5 '[ "$(h "$F" salida_proceso)" = 0 ] && [ "$(h "$F" confirmado)" = si ] && [ "$(h "$O/contar-d5.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ] && [ "$(h "$O/contar-d5.txt" contactos_dtd)" = 1 ] && [ "$(h "$O/contar-d5.txt" otra)" = "$(h "$O/contar-antes.txt" otra)" ] && [ "$(h "$F" limpio_desde_afuera)" = si ] && [ "$(h "$F" contenedor_limpio)" = si ] && [ "$(h "$F" archivo_despues)" = si ]' \
     "CONFIRMAR=si: la bandeja vacía, queda solo el contacto conservado ($(h "$O/contar-d5.txt" contactos_dtd)), la otra bandeja igual ($(h "$O/contar-d5.txt" otra)), el contenedor limpio y el .ndjson sigue para Studio"
@@ -436,7 +446,7 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
 if [ "$MUTANTES" = 1 ]; then
   log "== M. mutantes"
   mutante MD0 "control: los guiones sin cambios, sobre una carga nueva" deshacer-carga.rb completo "" \
-    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D7 D8 D9 D10 D11a D11b D11c D12 D13 D14 F1" "require 'set'" "require 'set'"
+    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D7 D8 D9 D10 D11a D11b D11c D12 D13 D14 D15 F1" "require 'set'" "require 'set'"
   # Lo ajeno (deshacer-carga.rb), con la parte ajeno sola.
   mutante MD1 "no mira los mensajes ajenos" deshacer-carga.rb ajeno "D1a" "D1b D1c" \
     "'mensajes' => mensajes.where(\"source_id IS NULL OR source_id NOT LIKE 'dtd:%'\").count," "'mensajes' => 0,"
@@ -490,6 +500,8 @@ if [ "$MUTANTES" = 1 ]; then
   # Los .hecho y la copia durable (la secuencia del DG y la (a) de Sam).
   mutante MD22 "CONFIRMAR=no escribe chatwoot-borrar.hecho" deshacer.sh completo "D4" "D2 D5" \
     '[ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && escribir_hecho_borrar' '[ "$MODO" = borrar ] && escribir_hecho_borrar'
+  mutante MD30 "escribe chatwoot-borrar.hecho antes del COMMIT" deshacer.sh completo "D15" "D2 D5" \
+    '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"; escribir_hecho_borrar'
   mutante MD23 "no borra el chatwoot-borrar.hecho viejo" deshacer.sh completo "D12" "D2 D5" \
     'rm -f -- "$H_BORRAR" "$DURABLE/chatwoot-borrar.hecho"' ':'
   mutante MD24 "borra sin el ensayo de Studio" deshacer.sh completo "D11a" "D2 D5" \

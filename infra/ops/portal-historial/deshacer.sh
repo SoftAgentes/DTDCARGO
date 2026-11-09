@@ -3,9 +3,9 @@
 # (sub-paso 4.6b del runbook). Hermano de cargar.sh: corre deshacer-carga.rb con `docker exec` en el contenedor de
 # Chatwoot y mueve contactos-conservados.ndjson entre el contenedor y la carpeta 0700 de E10.
 #
-#   DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=seco bash deshacer.sh
-#   … MODO=borrar CONFIRMAR=no bash deshacer.sh   # el ensayo del DG: todo, y ROLLBACK
-#   … MODO=borrar CONFIRMAR=si bash deshacer.sh   # el borrado permanente: lo corre Sam
+#   paso 1:  DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=seco bash deshacer.sh
+#   paso 1b: DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=borrar CONFIRMAR=no bash deshacer.sh
+#   paso 3:  DB_CW=chatwoot-rails-1 DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> MODO=borrar CONFIRMAR=si bash deshacer.sh
 #
 # La secuencia de 4.6b (aprobada por el DG, 2026-11-09). Cada paso exige el .hecho del anterior:
 #   1. MODO=seco                    lo corre el DG (no borra). Escribe contactos-conservados.ndjson y
@@ -22,6 +22,10 @@
 #   5. limpiar.sh --cierre-4-6b     LO CORRE SAM, de E10: exige studio-aplicar.hecho y borra el .ndjson y los .hecho
 #                                   de las dos copias.
 # Los .hecho son una línea HECHO, en 0600, escritos con .parcial + mv, sin seguir enlaces, y solo llevan ids y hashes.
+# El disco: nada antes del paso 3 lo toca. El paso 3 crea la copia durable con el .ndjson, chatwoot-seco.hecho y
+# studio-ensayo.hecho ANTES de borrar, y suma chatwoot-borrar.hecho solo DESPUÉS del COMMIT (el .rb dio deshacer=ok
+# después de confirmar). Si el paso 3 falla o aborta antes del COMMIT, la copia durable queda sin chatwoot-borrar.hecho:
+# la borra limpiar.sh --abandono-4-6b (E10). El paso 4 suma studio-aplicar.hecho.
 # El plazo (regla del DG): si el paso 4 no corre en 24 h desde el utc= de chatwoot-borrar.hecho, el DG avisa a Sam.
 # La copia durable nunca se borra sin que el paso 4 haya salido con 0.
 #
