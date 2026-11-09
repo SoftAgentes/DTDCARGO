@@ -113,6 +113,28 @@ const CASOS: [string, string, RegExp][] = [
   ["un corte fijado", T2("insert into public.chatwoot_portal_estado (tenant_id, corte) values (@T2, now());"), /corte=fijado cola_y_flag=NO$/],
 ];
 
+/**
+ * Lo que una lectura de solo lectura no puede tener. Devuelve los motivos; vacío es «limpia».
+ * Sin comentarios `--`. La única metaorden permitida es `\set ON_ERROR_STOP on` en su propia línea.
+ */
+function prohibiciones(guion: string): string[] {
+  const s = guion.replace(/--.*$/gm, "");
+  const motivos: string[] = [];
+  const palabra = s.match(/\b(insert|update|delete|merge|create|alter|drop|grant|revoke|truncate|copy|commit|do|call|lock|vacuum|refresh|savepoint|abort)\b/i);
+  if (palabra) motivos.push(`sentencia que escribe: ${palabra[1]}`);
+  if (/\bend\s*;/i.test(s)) motivos.push("end;");
+  if (/\bread\s+write\b/i.test(s)) motivos.push("read write");
+  if (/\btransaction_read_only\b/i.test(s)) motivos.push("transaction_read_only");
+  if (/\bset_config\s*\(/i.test(s)) motivos.push("set_config(");
+  if (/\\[a-z!]/i.test(s.replace(/^\\set ON_ERROR_STOP on$/gm, ""))) motivos.push("metaorden de psql");
+  if (/\bappend_audit_event\s*\(/i.test(s)) motivos.push("append_audit_event(");
+  if (/\bchatwoot_portal_[a-z_]+\s*\(/i.test(s)) motivos.push("chatwoot_portal_*(");
+  const fin = s.lastIndexOf("rollback;");
+  if (fin < 0) motivos.push("sin rollback");
+  else if (s.slice(fin + "rollback;".length).trim() !== "") motivos.push("algo después del rollback");
+  return motivos;
+}
+
 describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
   it("conteo-portal.sql es el bloque literal que corrió el DG (md5 a5da1251…)", () => {
     expect(createHash("md5").update(readFileSync(resolve(ROOT, "infra/ops/portal-historial/conteo-portal.sql"))).digest("hex")).toBe(
@@ -141,7 +163,9 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
   }, SLOW);
 
   it("la siembra sí pone T1 en NO por las tres tablas", async () => {
-    expect(hecho(await correr(COLA, "T1", SIEMBRA))[0]).toMatch(/flag_encendido=1 encendidos_auditados=1 corte=fijado cola_y_flag=NO$/);
+    const lineas = hecho(await correr(COLA, "T1", SIEMBRA));
+    expect(lineas).toHaveLength(1);
+    expect(lineas[0]).toMatch(/flag_encendido=1 encendidos_auditados=1 corte=fijado cola_y_flag=NO$/);
   }, SLOW);
 
   it("cola-y-flag.sql da corte=nulo y ok con una fila de estado de T2 con corte nulo", async () => {
@@ -164,7 +188,9 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
   }
 
   it("cola-y-flag.sql da NO en el tenant del fixture, donde la cola ya mandó un mensaje", async () => {
-    expect(hecho(await correr(COLA, "T1"))[0]).toMatch(/salida=1 .* cola_y_flag=NO$/);
+    const lineas = hecho(await correr(COLA, "T1"));
+    expect(lineas).toHaveLength(1);
+    expect(lineas[0]).toMatch(/salida=1 .* cola_y_flag=NO$/);
   }, SLOW);
 
   it("CONTROL ROJO: sin el guion no sale ninguna línea HECHO", async () => {
@@ -181,6 +207,7 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
     it(`MUTANTE «${nombre}» cae`, async () => {
       const [, preparar] = CASOS[caso];
       const lineas = hecho(await correr(once(COLA, from, to), "T2", preparar));
+      expect(lineas).toHaveLength(1);
       expect(lineas[0]).toMatch(/cola_y_flag=ok$/);
     }, SLOW);
   }
@@ -207,17 +234,40 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
     }, SLOW);
   }
 
-  it("las dos lecturas son de solo lectura, sin DML ni DDL, y cola-y-flag.sql no imprime la hora del corte", () => {
+  it("las dos lecturas son de solo lectura: ninguna prohibición, una transacción read only y nada después del rollback", () => {
     for (const guion of [COLA, CONTEO]) {
       expect(guion).toMatch(/^begin transaction read only;$/m);
-      expect(guion).toMatch(/^rollback;$/m);
-      const sinComentarios = guion.replace(/^\s*--.*$/gm, "");
-      expect(sinComentarios).not.toMatch(/\b(insert|update|delete|merge|create|alter|drop|grant|revoke|truncate|copy|commit|do)\b/i);
-      expect(sinComentarios).not.toMatch(/\bread\s+write\b/i);
-      expect(sinComentarios, "psql no abre shell ni redirige la salida").not.toMatch(/^\s*\\(!|o\b)/m);
-      // Ninguna llamada a las funciones de la carga o de la cola (chatwoot_portal_tomar, _marcar, _vincular, …), que escriben.
-      expect(sinComentarios).not.toMatch(/\bchatwoot_portal_[a-z_]+\s*\(/i);
+      expect(prohibiciones(guion)).toEqual([]);
     }
-    expect(COLA).not.toMatch(/\|\|\s*corte\b/);
+    expect(COLA, "no imprime la hora del corte").not.toMatch(/\|\|\s*corte\b/);
+  });
+
+  // CONTROL de la prueba estática: un guion sintético por cada cosa que tiene que atrapar.
+  const PROHIBIDOS: [string, string][] = [
+    ["insert", "insert into public.chatwoot_portal_salida select 1;"],
+    ["commit", "commit;"],
+    ["end;", "end;"],
+    ["do", "do $$ begin perform 1; end $$;"],
+    ["read write", "set session characteristics as transaction read write;"],
+    ["transaction_read_only", "set transaction_read_only = off;"],
+    ["set_config", "select set_config('transaction_read_only', 'off', true);"],
+    ["\\w", "\\w /tmp/salida.sql"],
+    ["\\g", "select 1 \\g /tmp/salida"],
+    ["\\gexec", "select 'select 1' \\gexec"],
+    ["\\i", "\\i otro.sql"],
+    ["\\o a mitad de línea", "select 1; \\o /tmp/salida"],
+    ["\\!", "\\! ls /srv/ops"],
+    ["append_audit_event(", "select public.append_audit_event('feature_flag', 'x');"],
+    ["chatwoot_portal_*(", "select public.chatwoot_portal_tomar(1);"],
+  ];
+  it("CONTROL de la estática: atrapa cada guion sintético prohibido, y lo que va después del rollback", () => {
+    expect(PROHIBIDOS).toHaveLength(15);
+    for (const [nombre, sentencia] of PROHIBIDOS) {
+      const guion = `begin transaction read only;\n${sentencia}\nrollback;\n`;
+      expect(prohibiciones(guion), `se escapa: ${nombre}`).not.toEqual([]);
+    }
+    expect(prohibiciones("begin transaction read only;\nselect 1;\nrollback;\nselect 2;\n")).toContain("algo después del rollback");
+    expect(prohibiciones("begin transaction read only;\nselect 1;\n")).toContain("sin rollback");
+    expect(prohibiciones("\\set ON_ERROR_STOP on\nbegin transaction read only;\nselect 1;\nrollback;\n"), "el guion limpio no da falsos positivos").toEqual([]);
   });
 });
