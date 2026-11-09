@@ -324,3 +324,30 @@ Lo que se hizo:
 - **La causa:** al editar `lc()` se perdió el espacio entre `DESHACER_SISTEMA="${SIS_DV:-$SIS}"` y `DESHACER_DURABLE=…`. Pegados, `DESHACER_DURABLE` no llegaba a `limpiar.sh`, que entonces usaba la durable fija.
 - **El arreglo:** se devuelve el espacio.
 - **La cuenta a mano:** 122 + 17 = 139, lo mismo que daba. El piso sigue en 129 hasta el cierre.
+
+## CIERRE del 2026-11-09: todo parado hasta el sábado 2026-11-14 (orden del DG)
+
+- **La cabeza:** `1e2c94b931a4e222b6c45d90beda87d3f3412d14`. Al cierre, la Calidad 42654667056 y el Cargador 42654666977 seguían en curso. Contratos SQL, 42654608605, dio success.
+- **Lo que falta:**
+  1. el verde de esta cabeza;
+  2. la revisión del DG por delta, sobre `65539df37..1e2c94b93`;
+  3. en el cierre, subir el piso de portal-historial de 129 al conteo real del verde (la cuenta a mano da 139).
+- **El tren:** va con la #478 y la #479.
+- **Al volver:** primero se lee el CI de esta cabeza y se sube este commit de handoff. Nada de fusiones, puertas, VPS, Chatwoot ni Supabase hasta entonces.
+
+### El CI de `1e2c94b93`, al cierre (ajuste de Sam por el DG: hasta un punto limpio)
+
+**Las corridas:**
+- **Calidad continua 42654667056:** failure. Falló el job 129289837573, «Calidad local sin secretos».
+- **Cargador del chat del portal 42654666977:** success.
+- **Contratos SQL 42654608605:** success.
+
+**La causa del rojo:** el merge de `main` (`2f3a77b7a`) trajo `infra/ops/tests/prueba-guardar-webhook-discord.sh` (SDD-0609) a la lista de `pruebas-linux.sh`, sin piso en `PISO`.
+- El contrato de esta PR exige un piso para cada prueba que corre (`# guarda:piso_declarado`). Por eso cayó en Vitest, en `pruebas-linux.test.mjs`, el caso «las pruebas reales tienen su piso en el runner»: 1 de 16 327.
+- El paso «Pruebas bash de operaciones» no llegó a correr, así que **no hay conteo de portal-historial** en esta cabeza. El piso queda en 129.
+
+**El arreglo: sin empezar,** por la orden de no arreglar durante el congelamiento. Hay que agregar a `PISO` la prueba de SDD-0609, con el conteo de su último verde en `main`, y volver a correr.
+- Ese conteo se mide en el log de `main`; no se inventa.
+- Después, el piso de portal-historial sube al conteo real.
+
+**Cabeza de cierre en draft.** No hay verde que cuente: la última cabeza medida, `1e2c94b93`, dio rojo por la causa de arriba. **Al volver:** el arreglo del piso de SDD-0609, ready y CI sobre la cabeza nueva.
