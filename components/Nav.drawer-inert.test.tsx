@@ -6,6 +6,11 @@
  * hacia enlaces invisibles, y Lighthouse lo marca en Accesibilidad y en
  * «Navegación con agentes» (árbol de accesibilidad mal formado). `inert` saca el
  * cajón cerrado del orden de foco sin cambiar nada de lo que se ve.
+ *
+ * Esta prueba mide los ATRIBUTOS (`inert` y `aria-hidden`), no el orden de
+ * tabulación. Que el navegador saque del foco un elemento `inert` es comportamiento
+ * de la plataforma; medirlo pediría un navegador real (Tab con Playwright), que
+ * aquí no corre.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -25,14 +30,14 @@ function drawer(): HTMLElement {
   return el!;
 }
 
-describe("menú móvil · fuera del foco mientras está cerrado", () => {
-  it("cerrado: oculto para lectores y fuera del orden de tabulación", () => {
+describe("menú móvil · atributos del cajón según esté cerrado o abierto", () => {
+  it("cerrado: aria-hidden=\"true\" e inert", () => {
     render(<Nav />);
     expect(drawer()).toHaveAttribute("aria-hidden", "true");
     expect(drawer()).toHaveAttribute("inert");
   });
 
-  it("abierto: vuelve a ser interactivo", async () => {
+  it("abierto: sin inert y con aria-hidden=\"false\"", async () => {
     const user = userEvent.setup();
     render(<Nav />);
     await user.click(screen.getByRole("button", { name: /abrir menú/i }));
