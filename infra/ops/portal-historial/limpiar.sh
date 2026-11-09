@@ -38,7 +38,7 @@ case "${1:-}" in
   *) echo "HECHO error=opcion_desconocida" >&2; exit 2 ;;
 esac
 
-[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || { [ "${DESHACER_PRUEBA:-}" = 1 ] && [ "${DURABLE%/deshacer}" != "$DURABLE" ]; } || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; }
+[ "$DURABLE" = /srv/ops/portal-historial/deshacer ] || { [ "${DESHACER_PRUEBA:-}" = 1 ] && [ "${DURABLE%/deshacer}" != "$DURABLE" ]; } || { echo "HECHO error=durable_no_es_srv_ops_portal_historial_deshacer" >&2; exit 2; } # guarda:durable_fijo
 # La ruta de SISTEMA, después de la de la durable: cada guarda se prueba sola (revisión del rojo de be22af8a3).
 [ "$SISTEMA_ARCHIVO" = /srv/ops/portal-historial/sistema-produccion ] || [ "${DESHACER_PRUEBA:-}" = 1 ] || { echo "HECHO error=sistema_no_es_el_archivo_fijo" >&2; exit 2; } # guarda:sistema_fijo
 # Las dos carpetas, si existen: de verdad, de este usuario (-O) y, la durable, en 0700. Si no, no se toca nada.

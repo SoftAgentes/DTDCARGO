@@ -46,6 +46,8 @@ cat > "${T}/bin/docker" <<'FALSO'
 #!/usr/bin/env bash
 entrada="$(cat)"
 printf '%s\n' "${entrada}" >> "${FALSO_REGISTRO:?}"
+# Los argumentos, como los vería `ps`: SISTEMA no tiene que estar aquí.
+printf '%s\n' "$*" >> "${FALSO_ARGS:-/dev/null}"
 case "${entrada}" in
   *deshacer_vinculos*)
     # El .ndjson cambia mientras corre psql: deshacer-vinculos.sh no tiene que dejar evidencia.
@@ -205,7 +207,7 @@ SISTEMA_VALOR=7234567890123456789
 SISTEMA_SHA=deb576f0d6
 poner_sistema() { ( umask 077; printf '%s' "${SISTEMA_VALOR}" > "${SIS}" ); chmod 0600 "${SIS}"; }
 poner_sistema
-dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" DESHACER_SISTEMA="${SIS}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}"   bash "${DV_GUION:-${DS}/deshacer-vinculos.sh}" > "${T}/dv.log" 2>&1; }
+dv() { DB=db-falso TENANT="${TENANT_DV:-$TU}" CUENTA=1 BANDEJA=9 ESPERADOS_SALIDA="${ESPERADOS_SALIDA_DV:-1}" ESPERADOS_HILOS=1 ESPERADOS_CONTACTOS=1 ESPERADOS_ESPEJO=1   ENTORNO="${ENTORNO_DV:-produccion}" DESHACER_SISTEMA="${SIS_DV:-$SIS}" DESHACER_SISTEMA_SHA="${SISTEMA_SHA_DV:-$SISTEMA_SHA}" DESHACER_SISTEMA_UID="${UID_DV:-$(id -u)}" MODO="${MODO_DV:-ensayo}" DIR="${DIR_DV:-$D}"   DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}"   bash "${DV_GUION:-${DS}/deshacer-vinculos.sh}" > "${T}/dv.log" 2>&1; }
 cabecera() { printf '%s\n' '{"tipo":"cabecera","version":1,"tenant_id":"'"$TU"'","cuenta":1,"bandeja":9,"contactos":0}' > "${CONS}"; }
 sha_cons() { sha256sum "${CONS}" | cut -c1-64; }
 # hecho_cw <archivo> <paso> [sha] [tenant] [extra]: la evidencia sintética de un paso de Chatwoot.
@@ -297,9 +299,11 @@ caso_ensayo_no_usa_durable() { caso_ensayo_ok || return 1; hecho_cw chatwoot-bor
   [ "${rc}" != 0 ] && grep -q 'sin_contactos_conservados' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
 # El simétrico de caso_durable_fijo: la durable es la fija y el archivo de SISTEMA no, sin DESHACER_PRUEBA. Sin la
 # guarda, el ensayo seguiría y llamaría a psql (la durable fija no existe en el runner, y el ensayo no la usa).
-caso_sistema_fijo() { [ ! -e /srv/ops/portal-historial/deshacer ] || return 1; sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; PRUEBA_DV= DURABLE_DV=/srv/ops/portal-historial/deshacer dv; rc=$?
+# Los dos corren con ENTORNO=copia, que no lee SISTEMA: así, el mutante de cada guarda no lo frena otra guarda (la de
+# la otra ruta, o el uid 0 de leer_sistema) y llega a psql (revisión del DG de la #480 en 65539df37).
+caso_sistema_fijo() { [ ! -e /srv/ops/portal-historial/deshacer ] || return 1; sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; PRUEBA_DV= ENTORNO_DV=copia DURABLE_DV=/srv/ops/portal-historial/deshacer dv; rc=$?
   [ "${rc}" != 0 ] && grep -q 'sistema_no_es_el_archivo_fijo' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
-caso_durable_fijo() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; PRUEBA_DV= dv; rc=$?
+caso_durable_fijo() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; PRUEBA_DV= ENTORNO_DV=copia SIS_DV=/srv/ops/portal-historial/sistema-produccion dv; rc=$?
   [ "${rc}" != 0 ] && grep -q 'durable_no_es_srv_ops_portal_historial_deshacer' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
 
 caso_seco_falta && ok "paso 2 sin chatwoot-seco.hecho: se niega sin llamar a psql" || ko "ensayo sin seco: $(cat "${T}/dv.log")"
@@ -368,6 +372,25 @@ caso_sistema_salto_final && ok "SISTEMA con un salto de línea final da el mismo
 caso_sistema_rechaza '%s\r\n' && ok "SISTEMA con CR se rechaza sin llamar a psql" || ko "SISTEMA con CR: $(cat "${T}/dv.log")"
 caso_sistema_rechaza '%s \n' && ok "SISTEMA con un espacio se rechaza sin llamar a psql" || ko "SISTEMA con espacio: $(cat "${T}/dv.log")"
 caso_sistema_rechaza '%s\n1\n' && ok "SISTEMA con una segunda línea se rechaza sin llamar a psql" || ko "SISTEMA con dos líneas: $(cat "${T}/dv.log")"
+# B1 (revisión del DG de la #480 en 65539df37): un archivo con otro identificador (el de staging, por ejemplo) se niega
+# antes de psql, sin imprimir el valor. Fuera de la prueba, el esperado es el sha corto de producción.
+OTRO_SISTEMA=7111111111111111111
+caso_sistema_otro() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; ( umask 077; printf '%s' "${OTRO_SISTEMA}" > "${SIS}" ); chmod 0600 "${SIS}"
+  : > "${FALSO_REGISTRO}"; dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q "sistema_no_es_el_de_produccion esperado=${SISTEMA_SHA}" "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ] \
+    && ! grep -q "${OTRO_SISTEMA}" "${T}/dv.log"; }
+# El archivo de SISTEMA tiene que ser de root (uid 0, «root 0600» del DG). En la prueba, el uid esperado es otro que el del runner.
+caso_sistema_no_root() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; UID_DV=$(( $(id -u) + 1 )) dv; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'archivo_de_sistema_no_es_de_root' "${T}/dv.log" && [ ! -s "${FALSO_REGISTRO}" ]; }
+# SISTEMA entra a psql por la entrada (\set), no por -v: los argumentos se ven en `ps`.
+export FALSO_ARGS="${T}/args.txt"
+caso_sistema_por_stdin() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; : > "${FALSO_ARGS}"; dv; rc=$?
+  [ "${rc}" = 0 ] && grep -qxF "\\set sistema '${SISTEMA_VALOR}'" "${FALSO_REGISTRO}" && [ -s "${FALSO_ARGS}" ] && ! grep -q "${SISTEMA_VALOR}" "${FALSO_ARGS}"; }
+caso_sistema_otro && ok "en produccion, un archivo de SISTEMA con otro identificador se niega antes de psql y no imprime el valor" || ko "SISTEMA de otro sistema: $(cat "${T}/dv.log")"
+caso_sistema_no_root && ok "en produccion, un archivo de SISTEMA que no es de root se niega sin llamar a psql" || ko "SISTEMA no de root: $(cat "${T}/dv.log")"
+caso_sistema_por_stdin && ok "SISTEMA entra a psql por la entrada (\\set), no por los argumentos" || ko "SISTEMA por argumentos: $(cat "${FALSO_ARGS}" | sed "s/${SISTEMA_VALOR}/<valor>/g")"
+grep -qx 'SISTEMA_SHA_ESPERADO=b4fbe1b236' "${DS}/deshacer-vinculos.sh" && grep -qx 'SISTEMA_UID=0' "${DS}/deshacer-vinculos.sh" \
+  && ok "fuera de la prueba, el sha corto esperado es b4fbe1b236 (producción) y el uid del archivo es 0" || ko "el esperado de SISTEMA fuera de la prueba no es b4fbe1b236 y uid 0"
 poner_sistema
 caso_sistema_fijo && ok "fuera de la prueba, el archivo de SISTEMA es solo /srv/ops/portal-historial/sistema-produccion" || ko "SISTEMA no fijo: $(cat "${T}/dv.log")"
 caso_durable_fijo && ok "fuera de la prueba, la durable es solo /srv/ops/portal-historial/deshacer" || ko "durable no fija: $(cat "${T}/dv.log")"
@@ -420,14 +443,26 @@ fi
 mutantes=0
 for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_tenant viejo:caso_ensayo_viejo \
            ensayo:caso_aplicar_sin_ensayo borrar:caso_aplicar_sin_borrar despues:caso_cambian_durante \
-           respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 durable_fijo:caso_durable_fijo \
-           viejo_durable:caso_aplicar_viejo sistema_fijo:caso_sistema_fijo; do
+           respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 \
+           viejo_durable:caso_aplicar_viejo sistema_root:caso_sistema_no_root; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" deshacer-vinculos.sh
   [ "$r" = 0 ] && mutantes=$((mutantes+1))
 done
-[ "${mutantes}" = 13 ] && ok "PISO: caen los 13 mutantes del orden, de la carpeta durable y de la ruta de SISTEMA" || ko "caen ${mutantes} de 13 mutantes"
+[ "${mutantes}" = 12 ] && ok "PISO: caen los 12 mutantes del orden, de la carpeta durable y del uid de SISTEMA" || ko "caen ${mutantes} de 12 mutantes"
+# MUTANTES que tienen que caer PORQUE LLEGAN A PSQL (revisión del DG de la #480 en 65539df37): no basta con que su caso
+# falle, porque otra guarda podría frenarlos con otro texto. Después del mutante, el registro del docker falso tiene
+# que tener la llamada.
+mutantes_p=0
+for par in durable_fijo:caso_durable_fijo sistema_fijo:caso_sistema_fijo sistema_esperado:caso_sistema_otro; do
+  g="${par%%:*}"; caso="${par#*:}"
+  probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" "$g" "$caso"; r=$?
+  if [ "$r" = 0 ] && [ -s "${FALSO_REGISTRO}" ]; then ok "mutante de deshacer-vinculos.sh sin la guarda «$g» cae porque llega a psql ($caso)"; mutantes_p=$((mutantes_p+1))
+  elif [ "$r" = 0 ]; then ko "mutante sin la guarda «$g» cae, pero sin llegar a psql: lo frena otra guarda ($caso)"
+  else informar_mutante "$r" "$g" "$caso" deshacer-vinculos.sh; fi
+done
+[ "${mutantes_p}" = 3 ] && ok "PISO: caen llegando a psql los 3 mutantes de las rutas fijas y del SISTEMA esperado" || ko "caen llegando a psql ${mutantes_p} de 3 mutantes"
 # MUTANTES de SISTEMA (con la misma regla): uno calcula el sha corto con echo (con salto de línea), otro imprime el
 # valor en lugar del sha. Los dos tienen que caer en caso_sistema_sha_corto.
 mutantes_s=0
@@ -435,7 +470,10 @@ probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" sistema_printf caso_sistema
 informar_mutante "$r" sistema_printf caso_sistema_sha_corto deshacer-vinculos.sh; [ "$r" = 0 ] && mutantes_s=$((mutantes_s+1))
 probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" sistema_corto caso_sistema_sha_corto 's/\$(sha_corto "\$SISTEMA")/$SISTEMA/'; r=$?
 informar_mutante "$r" sistema_corto caso_sistema_sha_corto deshacer-vinculos.sh; [ "$r" = 0 ] && mutantes_s=$((mutantes_s+1))
-[ "${mutantes_s}" = 2 ] && ok "PISO: caen los 2 mutantes de SISTEMA (echo, y el valor en vez del sha)" || ko "caen ${mutantes_s} de 2 mutantes de SISTEMA"
+# El tercero vuelve a pasar SISTEMA por -v (a la vista en `ps`): cae en caso_sistema_por_stdin.
+probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" sistema_argv caso_sistema_por_stdin 's/-f -/-v sistema="$SISTEMA" -f -/'; r=$?
+informar_mutante "$r" sistema_argv caso_sistema_por_stdin deshacer-vinculos.sh; [ "$r" = 0 ] && mutantes_s=$((mutantes_s+1))
+[ "${mutantes_s}" = 3 ] && ok "PISO: caen los 3 mutantes de SISTEMA (echo, el valor en vez del sha, y por argumentos)" || ko "caen ${mutantes_s} de 3 mutantes de SISTEMA"
 # Control: el guion de verdad pasa los casos de los mutantes (cada uno se comprobó también dentro del bucle).
 caso_seco_falta && caso_aplicar_sin_borrar && caso_reinicio && caso_copias_distintas && caso_ensayo_ok && caso_ensayo_viejo && ok "control: el guion sin mutar pasa los casos de los mutantes" || ko "control del guion sin mutar"
 sin_hecho; rm -rf "${DUR}"
@@ -451,7 +489,7 @@ DIR="/dev/shm/../${T#/}/fuera2" bash "${PH}/limpiar.sh" > "${T}/l2.log" 2>&1; rc
 [ "${rc}" != 0 ] && [ -e "${T}/fuera2" ] && ok "limpiar.sh no sale de /dev/shm con .." || ko "limpiar.sh borró con /dev/shm/.."
 
 # ── limpiar.sh --cierre-4-6b (el paso 5 del 4.6b) ──
-lc() { DIR="${D}" DESHACER_SISTEMA="${SIS}" DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
+lc() { DIR="${D}" DESHACER_SISTEMA="${SIS_DV:-$SIS}"DESHACER_DURABLE="${DURABLE_DV:-$DUR}" DESHACER_PRUEBA="${PRUEBA_DV-1}" bash "${LC_GUION:-${PH}/limpiar.sh}" "$@" > "${T}/lc.log" 2>&1; }
 # cierre_listo [donde]: lo que queda después de un paso 4 bueno; [donde]=durable simula un reinicio después del 4.
 cierre_listo() { caso_reinicio || return 1; [ "${1:-}" = durable ] && reinicio; return 0; }
 caso_cierre_ok() { cierre_listo || return 1; lc --cierre-4-6b; rc=$?
@@ -483,15 +521,21 @@ rm -rf "${DUR}"; mkdir -p -m 0700 "${D}"; : > "${D}/x"; PRUEBA_DV= lc --cierre-4
 caso_limpiar_sistema_fijo() { [ ! -e /srv/ops/portal-historial/deshacer ] || return 1; sin_hecho; : > "${D}/x"; PRUEBA_DV= DURABLE_DV=/srv/ops/portal-historial/deshacer lc --abandono-4-6b; rc=$?
   [ "${rc}" != 0 ] && grep -q 'sistema_no_es_el_archivo_fijo' "${T}/lc.log" && [ -e "${D}/x" ] && [ -e "${SIS}" ]; }
 caso_limpiar_sistema_fijo && ok "fuera de la prueba, limpiar.sh usa solo el archivo de SISTEMA fijo, y no borra nada" || ko "limpiar con SISTEMA no fijo: $(cat "${T}/lc.log")"
+# La guarda de la durable fija, aislada: el SISTEMA es el fijo (no existe en el runner), así que la guarda de SISTEMA
+# no frena al mutante, y el abandono borraría tmpfs (la x).
+caso_limpiar_durable_fijo() { [ ! -e /srv/ops/portal-historial/sistema-produccion ] || return 1; sin_hecho; : > "${D}/x"
+  PRUEBA_DV= SIS_DV=/srv/ops/portal-historial/sistema-produccion lc --abandono-4-6b; rc=$?
+  [ "${rc}" != 0 ] && grep -q 'durable_no_es_srv_ops_portal_historial_deshacer' "${T}/lc.log" && [ -e "${D}/x" ]; }
+caso_limpiar_durable_fijo && ok "fuera de la prueba, el abandono usa solo la durable fija, y no borra nada" || ko "abandono con durable no fija: $(cat "${T}/lc.log")"
 # MUTANTES del cierre: una copia de limpiar.sh sin la guarda; su caso tiene que fallar (con la misma regla).
 mutantes_c=0
-for par in aplicar:caso_cierre_sin_aplicar_ni_ndjson sha_cierre:caso_cierre_otro_sha sistema_fijo:caso_limpiar_sistema_fijo; do
+for par in aplicar:caso_cierre_sin_aplicar_ni_ndjson sha_cierre:caso_cierre_otro_sha sistema_fijo:caso_limpiar_sistema_fijo durable_fijo:caso_limpiar_durable_fijo; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante LC_GUION "${PH}/limpiar.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" limpiar.sh
   [ "$r" = 0 ] && mutantes_c=$((mutantes_c+1))
 done
-[ "${mutantes_c}" = 3 ] && ok "PISO: caen los 3 mutantes del cierre y de la ruta de SISTEMA" || ko "caen ${mutantes_c} de 3 mutantes del cierre"
+[ "${mutantes_c}" = 4 ] && ok "PISO: caen los 4 mutantes del cierre y de las rutas fijas" || ko "caen ${mutantes_c} de 4 mutantes del cierre"
 rm -rf "${D}" "${DUR}"
 
 # ── limpiar.sh --abandono-4-6b (abandonar el 4.6b antes de que el paso 3 confirme) ──

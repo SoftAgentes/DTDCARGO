@@ -278,8 +278,44 @@ Lo que se hizo:
 - La guarda de la ruta de `SISTEMA` va después de la de la durable, con `# guarda:sistema_fijo`, en `deshacer-vinculos.sh` y en `limpiar.sh`.
 - **El caso simétrico:** la durable es la fija y el `SISTEMA` no. Es `caso_sistema_fijo`, para el ensayo, y `caso_limpiar_sistema_fijo`, para el abandono. Los dos tienen su mutante y se niegan a correr si existe la durable real.
 - Los PISOS pasan a 13 en el desarme y a 3 en el cierre.
-- El piso de portal-historial en el runner pasa a 121, el último verde.
+- El piso de portal-historial en el runner pasó a 121. **Corregido en la revisión del DG en `65539df37`:** ese 121 no era «el último verde», porque salió de este run rojo (121 PASÓ y 4 FALLÓ). El primer verde medido fue el de `65539df37`, con 129.
 
 **El mismo push** lleva también:
 - el merge de `main` `b5669b1a5`;
 - `4bad0c203`, donde el comentario y el README dicen «lo deja el 3.0».
+
+## La revisión del DG de la #480 en `65539df37` (CHANGES_REQUESTED, un bloqueante)
+
+**Lo que el DG dejó bien:** el B1 del abandono, N1, N2, N3, N6 y N7, el lector de `SISTEMA`, la coherencia con la #478 y `probar_mutante` con base limpia.
+
+**B1. El sha de `SISTEMA` no se comparaba con el de producción.** El guion imprimía el sha y seguía. Como la SQL compara contra la misma base a la que se conecta, un archivo de staging corrido contra staging con `ENTORNO=produccion` pasaba.
+- **El arreglo:** con `ENTORNO=produccion`, el sha corto tiene que ser `b4fbe1b236`. Si no lo es, sale con 2 antes de psql, con `sistema_no_es_el_de_produccion esperado=…` y sin el valor (`# guarda:sistema_esperado`).
+- **En la prueba:** el esperado solo cambia con `DESHACER_PRUEBA=1` (`DESHACER_SISTEMA_SHA`), y la prueba usa `deb576f0d6`.
+- **El caso:** `caso_sistema_otro`, con otro identificador de 19 cifras: no llama a psql ni imprime el valor. Una línea estática comprueba que fuera de la prueba el esperado es `b4fbe1b236` y el uid es 0.
+- **El mutante** cae porque llega a psql.
+
+**Lo demás de esta vuelta:**
+1. **Los pisos del runner:** respaldo-storage pasa a 90. Portal-historial pasa a **139**: el 129 medido por el DG en `65539df37`, más las 10 líneas PASÓ que suma esta vuelta (cuenta abajo). La línea de `:281`, que daba el 121 como «el último verde», se corrigió: salió de un run rojo.
+2. **`leer_sistema` exige uid 0** (`stat -c %u`), además de `-O` (`# guarda:sistema_root`). En la prueba, el uid esperado es el del runner (`DESHACER_SISTEMA_UID`, solo con `DESHACER_PRUEBA=1`). `caso_sistema_no_root` pide otro uid, y su mutante está en el bucle del desarme.
+3. **Los mutantes de las rutas fijas, aislados:**
+   - `caso_durable_fijo` y `caso_sistema_fijo` corren con `ENTORNO=copia`, que no lee `SISTEMA`. `caso_durable_fijo` lleva además el `SISTEMA` fijo. Así, ninguna otra guarda frena a su mutante.
+   - Un bucle nuevo exige, después de cada mutante, que el registro del docker falso tenga la llamada: «cae porque llega a psql». Corre para `durable_fijo`, `sistema_fijo` y `sistema_esperado`.
+   - En `limpiar.sh`, la guarda de la durable lleva su marca `# guarda:durable_fijo`. Su caso es `caso_limpiar_durable_fijo`: el abandono con el `SISTEMA` fijo, y su mutante cae porque borra tmpfs. El caso no corre si existe el archivo real.
+4. **`SISTEMA` entra a psql por la entrada** (`\set sistema '…'`), no por `-v`, que se ve en `ps`.
+   - El docker falso guarda sus argumentos en `FALSO_ARGS`.
+   - `caso_sistema_por_stdin` exige el `\set` en la entrada y el valor fuera de los argumentos.
+   - Su mutante, `sistema_argv`, devuelve el `-v sistema=` y cae.
+5. **Main:** merge de `2f3a77b7a`, sin conflictos.
+
+**La cuenta del piso (129 → 139):**
+
+| Cambio | Líneas PASÓ |
+|---|---|
+| Bucle del desarme: de 13 a 12 mutantes | −1 |
+| Bucle «llega a psql»: 3 mutantes y su PISO | +4 |
+| `caso_sistema_otro`, `caso_sistema_no_root`, `caso_sistema_por_stdin` y la línea estática | +4 |
+| Mutante `sistema_argv` | +1 |
+| `caso_limpiar_durable_fijo` y su mutante | +2 |
+| **Total** | **+10** |
+
+**Cómo se probó:** `bash -n` de los tres guiones, y cada marca está una sola vez. La prueba pide `/dev/shm` y la PC no tiene Docker, así que el conteo real lo da el CI.

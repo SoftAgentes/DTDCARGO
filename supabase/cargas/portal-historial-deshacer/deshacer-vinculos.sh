@@ -34,7 +34,8 @@
 #       ENTORNO=copia|produccion \
 #       MODO=ensayo|aplicar bash deshacer-vinculos.sh
 #
-# En produccion, el system_identifier sale de /srv/ops/portal-historial/sistema-produccion (root 0600), no del entorno.
+# En produccion, el system_identifier sale de /srv/ops/portal-historial/sistema-produccion (root 0600, uid 0), no del
+# entorno, y su sha corto tiene que ser b4fbe1b236 (producción) antes de llamar a psql.
 #
 # El VPS lo tiene en /srv/ops/portal-historial/ (sub-paso 3.0 del runbook), junto a deshacer-vinculos.sql.
 set -euo pipefail
@@ -51,10 +52,21 @@ umask 077
 # existe antes), y lo borran el cierre o el abandono del 4.6b (limpiar.sh).
 [ -z "${SISTEMA:-}" ] || { echo "HECHO error=sistema_va_en_el_archivo_no_en_el_entorno" >&2; exit 2; }
 SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-/srv/ops/portal-historial/sistema-produccion}"
+# El sha corto esperado es el de producción (dtd-cargo-db-1, nota de control del DG), y el archivo es de root (uid 0).
+# Los dos solo cambian en la prueba bash (DESHACER_PRUEBA=1), que usa su valor de mentira y el uid del runner. Así, un
+# archivo con el identificador de staging no pasa aunque la base a la que se conecta sea la de staging (revisión del
+# DG de la #480 en 65539df37: la SQL compara contra la misma base que protege).
+SISTEMA_SHA_ESPERADO=b4fbe1b236
+SISTEMA_UID=0
+if [ "${DESHACER_PRUEBA:-}" = 1 ]; then
+  SISTEMA_SHA_ESPERADO="${DESHACER_SISTEMA_SHA:-$SISTEMA_SHA_ESPERADO}"
+  SISTEMA_UID="${DESHACER_SISTEMA_UID:-$SISTEMA_UID}"
+fi
 sha_corto() { printf '%s' "$1" | sha256sum | cut -c1-10; } # guarda:sistema_printf
 leer_sistema() {
   local f="$SISTEMA_ARCHIVO" v=""
   [ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] && [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }
+  [ "$(stat -c %u "$f")" = "$SISTEMA_UID" ] || { echo "HECHO error=archivo_de_sistema_no_es_de_root" >&2; return 1; } # guarda:sistema_root
   # Solo cifras y a lo sumo un salto de línea, contado en los bytes con tr (un CR o un espacio cuentan como otros):
   # se acepta un salto final, y un CR, un espacio o una segunda línea se rechazan (condición del DG). Después, $(cat)
   # quita ese salto final y el case de abajo exige que quede un número.
@@ -88,6 +100,8 @@ case "$ENTORNO" in
   produccion)
     SISTEMA="$(leer_sistema)" || exit 2
     echo "HECHO sistema_sha256_corto=$(sha_corto "$SISTEMA")" # guarda:sistema_corto
+    # Antes de psql: si no es el de producción, se niega. Imprime el esperado, nunca el valor.
+    [ "$(sha_corto "$SISTEMA")" = "$SISTEMA_SHA_ESPERADO" ] || { echo "HECHO error=sistema_no_es_el_de_produccion esperado=$SISTEMA_SHA_ESPERADO" >&2; exit 2; } # guarda:sistema_esperado
     ;;
   *) echo "HECHO error=entorno_invalido" >&2; exit 2 ;;
 esac
@@ -166,6 +180,8 @@ fi
 {
   # Sin DETAIL ni CONTEXT: un error o un deadlock no imprime filas (como crm-kommo/correr.sh).
   printf '%s\n' '\set ON_ERROR_STOP on' '\set VERBOSITY terse' 'begin;'
+  # SISTEMA entra por la entrada de psql, no por -v: un argumento se ve en `ps`. Son solo cifras (o vacío en la copia).
+  printf '%s\n' "\\set sistema '$SISTEMA'"
   printf '%s\n' 'create temp table deshacer_param (tenant uuid, cuenta bigint, bandeja bigint, esperados_salida integer, esperados_hilos integer, esperados_contactos integer, esperados_espejo integer, entorno text, sistema text);'
   printf '%s\n' "insert into deshacer_param values (:'tenant', :cuenta, :bandeja, :esperados_salida, :esperados_hilos, :esperados_contactos, :esperados_espejo, :'entorno', nullif(:'sistema', ''));"
   printf '%s\n' 'create temp table conservados (n serial, linea text);' 'copy conservados (linea) from stdin;'
@@ -180,7 +196,7 @@ fi
       -v tenant="$TENANT" -v cuenta="$CUENTA" -v bandeja="$BANDEJA" \
       -v esperados_salida="$ESPERADOS_SALIDA" -v esperados_hilos="$ESPERADOS_HILOS" \
       -v esperados_contactos="$ESPERADOS_CONTACTOS" -v esperados_espejo="$ESPERADOS_ESPEJO" \
-      -v entorno="$ENTORNO" -v sistema="$SISTEMA" -f -
+      -v entorno="$ENTORNO" -f - # guarda:sistema_argv
 
 echo "HECHO modo=$MODO fin=$FIN"
 # El .ndjson tiene que seguir igual que la copia que entró: si no, esta corrida no deja evidencia.
