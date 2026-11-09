@@ -22,8 +22,8 @@ implementación (PR #417) trae código y la migración 0518.** La 0518 crea las 
 funciones y el interruptor, que nace apagado; ninguna ruta llama todavía a la vía automática.
 Lo único que cambia en el Studio al fusionar es que `publishPost` rechaza cualquier marca
 `[VERIFICAR` y que `verifyMarkers` cuenta también la marca vacía. Los archivos exactos están en
-§12. Mientras la 0518 no esté en producción **y** Sam no encienda el interruptor, vale la regla
-de hoy: toda noticia la publica una persona.
+§12. La 0518 ya está en producción (§11.2). Mientras Sam no encienda el interruptor, vale la
+regla de hoy: toda noticia la publica una persona.
 
 ## 1. Contexto
 
@@ -551,6 +551,44 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
   prometidos, nombres de terceros» y `LINEAS_ROJAS` dice otra cosa. Esta spec usa las dos
   listas (§4.3.1).
 
+### 11.2 La 0518 en producción y el conteo de marcas
+
+**La 0518 está aplicada desde el 2026-11-08**, con OK de Sam (~04:15Z, en el chat del Director
+General). Los datos de la aplicación:
+
+| Entorno | version | COMMIT | Evidencia |
+|---|---|---|---|
+| Prueba | `20261108143112` | 2026-11-08T14:31:12.259Z | `apply-0518-dtd-cargo-staging-20261108T143111Z` |
+| Producción | `20261108143204` | 2026-11-08T14:32:04.484Z | `apply-0518-dtd-cargo-20261108T143201Z` |
+
+El archivo `0518_noticias_publicacion_automatica.sql` tiene md5
+`c692dfa9c4ad31e3352721400c3e3ceb` y 44.672 bytes. La espera se retiró y la migración se selló
+en la PR #463; el registro del cierre está en
+[`.agents/handoffs/cierre-migraciones-20261108.md`](../../../.agents/handoffs/cierre-migraciones-20261108.md).
+El interruptor sigue apagado: encenderlo es otro OK de Sam.
+
+**El conteo de noticias con marca se hace con la misma expresión que el CHECK.** El CHECK
+`news_posts_sin_marca_verificar` es NOT VALID. La consulta que figuraba en la espera de la 0518
+buscaba con una expresión regular en el título, el cuerpo y el extracto. Esa consulta:
+- no miraba `meta_description`;
+- no normalizaba con NFKC;
+- no quitaba los caracteres invisibles.
+
+Mide menos que el CHECK y no sirve para decidir un `VALIDATE CONSTRAINT`. Antes de validarlo,
+se cuenta (solo el número, sin filas) con la función de la 0518:
+
+```sql
+select count(*) from public.news_posts
+ where published
+   and (public.news_texto_tiene_marca(title)
+        or public.news_texto_tiene_marca(body_markdown)
+        or public.news_texto_tiene_marca(excerpt)
+        or public.news_texto_tiene_marca(coalesce(meta_description, '')));
+```
+
+Si da más de 0, el `VALIDATE` falla. Esas noticias se corrigen antes, con decisión de Sam. Una
+migración que valide el CHECK lleva este conteo en su preflight y aborta si da más de 0.
+
 ## 12. Allowlist exacta de la implementación (PR #417)
 
 Medida con `git diff --name-only origin/main...HEAD` después de traer `main` `3c14715ad`: 32
@@ -577,7 +615,7 @@ interruptor en Ajustes) trae su propia allowlist.
 | `lib/news/autopublicar/__tests__/noticias-0518.migration.test.ts` | Nuevo: contrato de la 0518 en PGlite, control rojo, mutantes SQL, gemelas TS/SQL y desarme |
 | `lib/studio/news/autopublicar.ts` | Nuevo: orquestador `evaluarBorradorAutomatico`; ninguna ruta lo llama todavía |
 | `lib/studio/news/__tests__/autopublicar.test.ts` | Nuevo: orquestador con base y Discord dobles |
-| `supabase/migrations/0518_noticias_publicacion_automatica.sql` | Nuevo: migración 0518, sin aplicar |
+| `supabase/migrations/0518_noticias_publicacion_automatica.sql` | Nuevo: migración 0518, sin aplicar al fusionar (aplicada el 2026-11-08, §11.2) |
 | `supabase/tests/0518_noticias_publicacion_automatica.test.sql` | Nuevo: contrato SQL de la 0518 |
 | `supabase/desarmes/` | Nuevo: el desarme de la 0518, único archivo nuevo de esa carpeta. Se nombra por la carpeta porque `spec-migration-refs.test.ts` toma todo nombre `NNNN_…` con extensión `.sql` como migración |
 | `supabase/migrations-baseline.json` | Modificado: espera de la 0518 en `pendingBelowCutoff` |
