@@ -450,20 +450,33 @@ la configuración. El script:
    el Studio que la caída es legítima, por ejemplo una limpieza autorizada. La
    corrida exige el conteo exacto, para que no se corra por accidente:
 
+   Toma el mismo candado que el timer, para no correr a la vez que el respaldo de
+   la noche, y la misma carpeta de salida que el `.env`: con otra, no encontraría
+   el respaldo bueno y saldría 1 sin hacer nada.
+
    ```bash
-   /srv/ops/backup/storage-backup.sh --project dtd-cargo --source /srv/dtd-cargo/data/storage \
-     --remote b2:dtdcargo-respaldos/storage --age-recipients /srv/ops/backup/age-recipients.txt \
-     --rclone-config /srv/ops/backup/rclone --aceptar-caida=<archivos que dice el log>
+   cd /srv/dtd-cargo
+   OUT="$(sed -n "s/^BACKUP_DIR=//p" .env | tail -n1 | tr -d "'\"")"; OUT="${OUT:-/srv/backups}"; echo "--out ${OUT}"
+   flock -n /run/lock/backup-dtd-cargo.lock /srv/ops/backup/storage-backup.sh --project dtd-cargo \
+     --source /srv/dtd-cargo/data/storage --remote b2:dtdcargo-respaldos/storage \
+     --age-recipients /srv/ops/backup/age-recipients.txt --rclone-config /srv/ops/backup/rclone \
+     --out "${OUT}" --aceptar-caida=<archivos que dice el log>
    ```
 
-   **Qué hace y qué borra.** Si el conteo no es exactamente el dicho, sale 1 sin
-   tocar nada. Si coincide:
+   Si `flock` no consigue el candado, sale 1 sin correr nada: el respaldo de la
+   noche está en curso y se espera a que termine.
+
+   **Qué hace y qué borra.** Sale 1 sin tocar nada si el conteo no es exactamente
+   el dicho o si no encuentra un respaldo bueno: referencia ilegible sin
+   manifiestos, o un `--out` equivocado. Si coincide:
    - Primero **retiene el último respaldo bueno**, el de la referencia o, si es
      ilegible, el manifiesto local con más archivos. En disco lo mueve a
      `/srv/backups/dtd-cargo/storage-retenido/`; en el remoto lo copia a
      `b2:dtdcargo-respaldos/storage/dtd-cargo-retenido/` y lo comprueba con
-     `rclone check`. Ninguna retención toca esos dos prefijos: se quedan hasta que
-     Sam autorice borrarlos.
+     `rclone check` y contando que estén sus 3 archivos, porque rclone sale 0 aunque
+     no haya copiado nada. Ninguna retención toca esos dos prefijos: se quedan
+     hasta que Sam autorice borrarlos. Cada aceptación suma un respaldo completo,
+     hoy ~515 MB, en cada uno.
    - Recién después aplica la retención normal: en el remoto,
      `rclone delete --min-age 30d` dentro de `…/storage/dtd-cargo/`, que borra los
      respaldos de más de 30 días; en disco, deja en `storage/` solo los 2 más

@@ -77,7 +77,11 @@ Consistencia: storage-api sigue sirviendo mientras corre. Si tar sale 1, el resp
   - Si el conteo cae por debajo de `--min-pct` (50), el respaldo queda subido, pero no se aplica la retención, ni remota ni local, la referencia no cambia y el script sale 1: sin latido.
   - Si la referencia no se puede leer (vacía, sin `archivos=` o sin `base=` válida), lo mismo.
   - Si falta, se compara contra el **máximo** de `archivos=` de los manifiestos locales anteriores, no contra el más nuevo, que puede ser ya el de después de la caída.
-  - Se repite cada día hasta que una persona corra `--aceptar-caida=<conteo>`, **solo con OK nominal de Sam**. El conteo tiene que ser exactamente el del respaldo; si no, sale 1 sin tocar nada. Antes de aplicar la retención, esa corrida **retiene el último respaldo bueno**: en disco lo mueve a `<out>/<proyecto>/storage-retenido/` y en el remoto lo copia a `<remoto>/<proyecto>-retenido/` y lo comprueba con `rclone check`. Ninguna retención toca esos prefijos. Si la retención del bueno falla, no se borra nada. Qué borra después: runbook §5.1.
+  - Se repite cada día hasta que una persona corra `--aceptar-caida=<conteo>`, **solo con OK nominal de Sam**. El conteo tiene que ser exactamente el del respaldo; si no, sale 1 sin tocar nada. Si no hay un respaldo bueno identificado (referencia ilegible sin manifiestos, o un `--out` equivocado), sale 1 sin tocar nada. Antes de aplicar la retención, esa corrida **retiene el último respaldo bueno**:
+    - en el remoto lo copia a `<remoto>/<proyecto>-retenido/`, lo comprueba con `rclone check` y cuenta sus 3 archivos con `rclone lsf`, porque rclone sale 0 aunque no haya copiado nada;
+    - recién entonces, en disco, lo mueve a `<out>/<proyecto>/storage-retenido/`.
+
+    Ninguna retención toca esos prefijos. Si cualquier paso falla, no se borra nada. El comando de §5.1 toma el candado del timer (`/run/lock/backup-dtd-cargo.lock`) y el `--out` del `.env`. Qué borra después: runbook §5.1.
 - **Retención:** `rclone delete --min-age 30d` acotado al prefijo, la misma que la base (decisión de Sam en la revisión del traslado; borrado real por `hard_delete`). En disco local, los 2 respaldos más nuevos (`BACKUP_STORAGE_KEEP_LOCAL`), porque cada uno pesa lo que el origen.
 - **Otras guardas:** destinatarios válidos y sin clave privada, también en `--dry-run`. Al menos `BACKUP_STORAGE_MIN_FILES` (1) archivos: una carpeta vacía o equivocada **falla** y no late. Espacio libre ≥ origen + 10 % + 100 MB. GNU tar y `python3`.
 - **Fallo:** si `storage-backup.sh` sale ≠ 0, `backup.sh` termina en FALLÓ y no manda el latido. Un Storage sin respaldo se nota igual que una base sin respaldo.
@@ -112,7 +116,7 @@ Se copian datos personales a un tercero, Backblaze. El inventario del Storage ya
 | Nada en claro en disco local (ni el tar ni la lista) | CORRECTO | prueba C1 (marcas buscadas en disco, remoto y `/dev/shm`, más un `age` espía al empezar y al terminar) y mutante M2 |
 | Rutas (pueden traer nombres y el Shipping Mark) fuera del claro | CORRECTO | la lista va cifrada y el manifiesto no tiene rutas (C1); el log y la salida del restore tampoco (C5, M7) |
 | Retención 30 días con borrado real | CORRECTO en el script / NO VERIFICABLE en el bucket | `rclone delete --min-age 30d`; el `hard_delete` del remoto es configuración del VPS (`set-remote.sh`), no del repo |
-| Un borrado masivo no se lleva los respaldos buenos | CORRECTO | guarda de D2, que falla cerrada; pruebas C6 y C7; mutantes M8 a M11 |
+| Un borrado masivo no se lleva los respaldos buenos | CORRECTO | guarda de D2, que falla cerrada; pruebas C6 a C10; mutantes M8 a M14 |
 | Clave privada fuera del servidor | CORRECTO | el script rechaza destinatarios con `AGE-SECRET-KEY-` |
 | Supresión (CRBV art. 28) | igual que la base | un archivo borrado en vivo desaparece de los respaldos a los 30 días |
 | DPA de Backblaze | NO VERIFICABLE | sigue sin leerse ni archivarse (`inventario-terceros.md`) |
@@ -125,7 +129,7 @@ El Worker no leyó el contenido de ningún archivo del Storage. Las cifras de pr
 1. `backup.sh` corre `storage-backup.sh` con la carpeta de `DTD_DATA_DIR` y su remoto, y falla sin latido si ese paso falla (pruebas C4 y M1; `prueba-backup-dtd.sh` en el VPS).
 2. El respaldo deja en disco y en el remoto solo `.age` y un manifiesto sin rutas, sin claro intermedio (C1, M2), y el log no trae rutas (C5, M7).
 3. La restauración devuelve los mismos archivos, con los mismos sha256 y xattrs `user.*`, que el origen (C2, M3, M6a, M6b). Detecta un cifrado dañado antes de descifrar (C3, M4), una lista que no cuadra (M5) y xattrs distintos en `--verificar`.
-4. Una caída del conteo de más de la mitad, o una referencia ilegible, sube el respaldo, no aplica la retención y sale 1 hasta que se acepte con `--aceptar-caida=<conteo exacto>`, con OK nominal de Sam. Esa corrida retiene antes el último respaldo bueno fuera de la retención, en disco y en el remoto. Sin referencia, la comparación es contra el máximo de los manifiestos locales (C6, C7, M8 a M11).
+4. Una caída del conteo de más de la mitad, o una referencia ilegible, sube el respaldo, no aplica la retención y sale 1 hasta que se acepte con `--aceptar-caida=<conteo exacto>`, con OK nominal de Sam. Esa corrida retiene antes el último respaldo bueno fuera de la retención, en disco y en el remoto. Sin referencia, la comparación es contra el máximo de los manifiestos locales. Sin un respaldo bueno, o si rclone falla o no deja los 3 archivos en el retenido, no se borra nada (C6 a C10, M8 a M14).
 5. `prueba-respaldo-storage.sh` corre en el CI Linux (`pruebas-linux.sh`) y está clasificada en el contrato del workflow.
 6. Runbook §1 y §5 describen lo que existe y lo que existirá desde la instalación. Ya no hablan del `rclone sync` de R2 que no existe.
 7. Instalación en producción **fuera de esta PR**: queda el guion literal para el OK nominal de Sam.
@@ -136,14 +140,19 @@ Lo pide el Director General **después** de fusionar la PR, con el texto del OK 
 
 **0 · En la PC (Git Bash), desde el checkout de main actualizado.** Lleva al VPS solo los cuatro archivos, desde `main` y no desde la rama, y comprueba sus sha256 en el VPS sin mirarlos a ojo. Si algo sale ✗ o `FAILED`, se para aquí:
 
+Va en un subshell con `set -euo pipefail`: si algo falla, para ahí y no sigue al paso siguiente.
+
 ```bash
-git fetch origin && SHA=<SHA>
-git merge-base --is-ancestor "$SHA" origin/main && echo "✓ $SHA está en origin/main" || echo "✗ $SHA NO está en origin/main: PARAR"
-ARCH="infra/ops/backup/storage-backup.sh infra/ops/backup/storage-restore.sh infra/ops/lib/storage-lista.py infra/dtd-cargo/backup.sh"
-for f in $ARCH; do printf '%s  %s\n' "$(git show "$SHA:$f" | sha256sum | cut -c1-64)" "$f"; done > "$HOME/instalar-0620.sha256"
-git archive "$SHA" $ARCH \
-  | ssh root@217.216.54.70 'rm -rf /root/instalar-0620 && mkdir -m 700 /root/instalar-0620 && tar -x -C /root/instalar-0620'
-ssh root@217.216.54.70 'cd /root/instalar-0620 && sha256sum -c -' < "$HOME/instalar-0620.sha256"   # cuatro «OK»
+( set -euo pipefail
+  SHA=<SHA>
+  git fetch origin
+  git merge-base --is-ancestor "$SHA" origin/main || { echo "✗ $SHA NO está en origin/main: PARAR"; exit 1; }
+  ARCH="infra/ops/backup/storage-backup.sh infra/ops/backup/storage-restore.sh infra/ops/lib/storage-lista.py infra/dtd-cargo/backup.sh"
+  for f in $ARCH; do printf '%s  %s\n' "$(git show "$SHA:$f" | sha256sum | cut -c1-64)" "$f"; done > "$HOME/instalar-0620.sha256"
+  git archive "$SHA" $ARCH \
+    | ssh root@217.216.54.70 'rm -rf /root/instalar-0620 && mkdir -m 700 /root/instalar-0620 && tar -x -C /root/instalar-0620'
+  ssh root@217.216.54.70 'cd /root/instalar-0620 && sha256sum -c -' < "$HOME/instalar-0620.sha256"   # cuatro «OK»
+  echo "✓ paso 0 completo" )
 ```
 
 **1 · En el VPS (`ssh root@217.216.54.70`), solo lectura.** Se para aquí en cualquiera de estos casos:
@@ -195,12 +204,15 @@ tar --help | grep -q -- '--xattrs-include' && echo "✓ tar con xattrs" || echo 
 python3 -c 'import os; p="/dev/shm/zz-xattr-0620"; open(p, "w").close(); os.setxattr(p, "user.prueba", b"1"); assert os.getxattr(p, "user.prueba") == b"1"; os.remove(p); print("✓ /dev/shm admite xattrs user.*")'
 ```
 
-**5 · Primera subida, solo del Storage.** No toca la base ni manda latido. Tiene que terminar en `listo: dtd-cargo-storage-…`; si el paso 1 mostró un `BACKUP_DIR` distinto, se agrega `--out <ese valor>`:
+**5 · Primera subida, solo del Storage.** No toca la base ni manda latido. Toma el candado del timer y el `--out` del `.env`. Tiene que terminar en `listo: dtd-cargo-storage-…`:
 
 ```bash
-/srv/ops/backup/storage-backup.sh --project dtd-cargo --source /srv/dtd-cargo/data/storage \
-  --remote b2:dtdcargo-respaldos/storage --age-recipients /srv/ops/backup/age-recipients.txt \
-  --rclone-config /srv/ops/backup/rclone 2>&1 | tee -a /var/log/backup-dtd-cargo.log
+cd /srv/dtd-cargo
+OUT="$(sed -n "s/^BACKUP_DIR=//p" .env | tail -n1 | tr -d "'\"")"; OUT="${OUT:-/srv/backups}"; echo "--out ${OUT}"
+flock -n /run/lock/backup-dtd-cargo.lock /srv/ops/backup/storage-backup.sh --project dtd-cargo \
+  --source /srv/dtd-cargo/data/storage --remote b2:dtdcargo-respaldos/storage \
+  --age-recipients /srv/ops/backup/age-recipients.txt --rclone-config /srv/ops/backup/rclone \
+  --out "${OUT}" 2>&1 | tee -a /var/log/backup-dtd-cargo.log
 ```
 
 **6 · Después, `backup.sh`.** No depende de lo que se definió en el paso 3:

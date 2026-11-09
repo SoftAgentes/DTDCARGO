@@ -39,12 +39,20 @@ Que los archivos del Storage de Studio en producción (modo `file`, ~515 MB) se 
 - Pruebas: C6 ampliado (sin conteo, conteo equivocado, retención del bueno en disco y en el remoto) y C7 nuevo (referencia ilegible y vacía; máximo sin referencia). Mutantes M9 (ilegible no frena), M10 (mínimo en vez de máximo) y M11 (acepta sin retener).
 - No bloqueantes: `find` con `|| aviso`; tipos de error de tar sin ruta en el log y en el restore; docstring de `storage-lista.py` (orden y enlaces duros); guion con `merge-base --is-ancestor` y `sha256sum -c` automático (paso 0), lectura del `.env` y del prefijo en B2 (paso 1), comprobación de kernel, tar y xattrs en `/dev/shm` (paso 4b) y un paso 6 que no depende de `$F`.
 
+**Cuarta vuelta, por la tercera revisión** (CHANGES_REQUESTED sobre `0fc4e96c4`, un bloqueante):
+- **B1'.** Sin un respaldo bueno identificado (referencia ilegible sin manifiestos, o un `--out` equivocado), `--aceptar-caida` sale 1 sin tocar nada. Después del `copy` y del `check` cuenta con `lsf` los 3 archivos en `<proyecto>-retenido/`, porque rclone sale 0 aunque no haya copiado nada, y recién entonces mueve la copia local. El doble de rclone sale 0 con cero coincidencias, como el real, y aprende `lsf` y una falla simulada.
+- §5.1 y el paso 5 del guion toman el candado del timer (`flock -n /run/lock/backup-dtd-cargo.lock`) y el `--out` del `.env`.
+- **La prueba destapó un fallo propio:** sin permisos de lectura en la referencia, `sed` fallaba bajo `pipefail` y el script salía sin mensaje. Era seguro, porque no borraba nada, pero no decía por qué. Ahora cae en «ilegible».
+- Pruebas: C7 ampliado (`archivos=` sin `base=`; sin permisos, si no es root; aceptar sin referencia), C8 (aceptar sin bueno, en dos variantes), C9 (rclone falla al retener), C10 (el bueno ya no está en el remoto) y `--aceptar-caida=` vacío. Mutantes M12 (sin bueno solo avisa), M13 (`|| falla` → `|| true`) y M14 (sin conteo de los 3), y M11 reapuntado a la copia local.
+- No bloqueantes: log de tar con `sed -nE …p` y un contador de «otros avisos» (respaldo y restore); `--aceptar-caida=` vacío sale 2; una línea sobre el crecimiento de `storage-retenido/`; el paso 0 en un subshell con `set -euo pipefail`.
+
 Criterios de aceptación de la spec: del 1 al 4 y el 6, cumplidos en código y en la prueba en Linux. El 5 espera el CI de la PR. El 7, por diseño, queda fuera de esta PR.
 
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
+| Cuarta vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 | árbol de trabajo de la cuarta vuelta, antes del commit | **PASÓ** 58 PASÓ · 0 FALLÓ en las dos; M1-M14 con base limpia |
 | Tercera vuelta: `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, como root y como uid 1001 (`/run/lock` 1777) | árbol de trabajo de la tercera vuelta, antes del commit | **PASÓ** 48 PASÓ · 0 FALLÓ en las dos; M1-M11 con base limpia |
 | `prueba-respaldo-storage.sh` en `ubuntu:24.04` desechable, **como root**, árbol de trabajo de esta vuelta (todas las comprobaciones, mutantes M1-M8 con base limpia) | rama antes del commit de esta vuelta; GNU tar 1.35, Python 3.12.3, kernel 6.18 WSL2, `/tmp` en tmpfs | **PASÓ** 41 PASÓ · 0 FALLÓ; por el runner del CI, 1 PASÓ · 0 FALLÓ en 19 s |
 | La misma, **sin root** (uid 1001, `/run/lock` 1777 como en el runner de GitHub, `/tmp` en overlay) | idem | **PASÓ** 41 PASÓ · 0 FALLÓ |
@@ -67,7 +75,8 @@ Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.
 - `4080a9344` docs(ops): spec, índice, runbook, READMEs, inventario de terceros.
 - `51c13c3b2`, `5881e98e7`, `282a692e0`: handoff.
 - Segunda vuelta: `7eac25d5e` fix(ops) y `39c2f7022` docs. Merge de main (#481): `3c777e33e`.
-- Tercera vuelta: un commit `fix(ops)` (guarda cerrada y retención del bueno) y un commit `docs` (spec, runbook y handoff).
+- Tercera vuelta: `e84caee62` fix(ops) y `0fc4e96c4` docs.
+- Cuarta vuelta: un commit `fix(ops)` (aceptar sin bueno falla, conteo del retenido, referencia sin permisos) y un commit `docs`.
 
 ## PR / BRANCH
 
@@ -91,7 +100,7 @@ Logs en `side-session-notes/…`: `prueba-respaldo-storage-5881e98e7-ubuntu2404.
 
 ## HANDOFF AL DIRECTOR
 
-Tercera vuelta lista en la #482: los dos bloqueantes de la guarda y los ocho no bloqueantes. 48 PASÓ · 0 FALLÓ en Linux, con root y sin root. La PR se marca lista al publicar, para que corra la Calidad. El DG revisa el delta desde `39c2f7022`.
+Cuarta vuelta lista en la #482: B1' y los cinco no bloqueantes. 58 PASÓ · 0 FALLÓ en Linux, con root y sin root. La PR se marca lista al publicar, para que corra la Calidad. El DG revisa el delta desde `0fc4e96c4`.
 
 ## Impacto documental
 
