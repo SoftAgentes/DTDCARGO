@@ -66,6 +66,11 @@
 ## FUERA DE ALCANCE DETECTADO
 
 - **Un resto en disco** de la limpieza de la #477: `DTD-worktrees/0586-p4-lecturas-2`, por «Filename too long». Ya no está registrado, y su rama se borró local y remota. Lo purga el Subdirector.
+- **Un posible intermitente ajeno a la PR:** `lib/studio/chatwoot/__tests__/guia-panel.test.ts`, en «vuelve a contestar solo cuando algo cambió» (`:185`).
+  - **Dónde cayó:** en la Calidad continua de `eeb0646b9`, run 42632059079 (job 129210569575). Fue el único rojo de 16 250 tests.
+  - **Qué dio:** el test esperaba 2 cajas recibidas y llegó 1, en 92 ms.
+  - **Por qué es ajeno:** la #479 no toca ese archivo ni el panel de la guía.
+  - **Qué se hizo:** el Subdirector lanzó el reintento. Lo anota aquí por orden del DG, como posible intermitente, aunque el reintento salga verde. Arreglarlo no le toca a esta PR.
 
 ## Vuelta de la revisión (CHANGES_REQUESTED en 998bdd6e7), preparada en local
 
