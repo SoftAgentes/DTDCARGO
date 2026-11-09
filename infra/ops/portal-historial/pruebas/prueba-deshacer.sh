@@ -433,7 +433,10 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
   local id="$1" que="$2" arch="$3" modo="$4" caen="$5" pasan="$6" K="$TRABAJO/m/$1" faltan="" otro="" c
   rm -rf -- "$K"; mkdir -p "$K"; cp -r "$PH/." "$K/"
   if ! mutar "$K/$arch" "$7" "$8" >"$K.mutar.txt" 2>&1; then mal "$id" "$que: no se pudo aplicar ($(cat "$K.mutar.txt"))"; return 0; fi
-  [ "$modo" = completo ] && recargar
+  # Lo ajeno y el borrado necesitan la carga en la bandeja: la corrida de antes (o un mutante completo) la dejó vacía
+  # (el rojo previo del run 42588248456: los mutantes de lo ajeno corrían sobre la bandeja vacía). Las guardas de
+  # deshacer.sh (sh) no llegan a la bandeja.
+  [ "$modo" = sh ] || recargar
   RES=(); MODO_LOG=0
   escenario "$K" "$TRABAJO/$id" "$modo"
   comprobar "$TRABAJO/$id" "$modo"

@@ -46,7 +46,8 @@
 |---|---|---|---|---|
 | 1 | `65402ca0c` | job 128935328323 | La corrida real salió verde: P1, D1a, D1b, D6a, D6b, D2 a D5 y F1. De los mutantes, MD0, MD1, MD2 y MD5 pasaron. MD3, MD4 y MD6 a MD9 cayeron además en D2, y MD3 también en D4 | El error era de la prueba, no del guion: `CONSERVADO` estaba fijo desde la primera corrida, y después de que MD3 borra ese contacto, la recarga crea otro con otro id. Ahora cada escenario lee su propio conservado (`otra-bandeja.txt`). MD3 ya no exige D4, que cae en cascada después de D3 |
 | 2 | `78231bed3` | 42550597299 (el cargador y el deshacer) y 42550597297 (la calidad) | Verde entero: D1a, D1b, D2 a D6b y F1, y MD0 a MD9 cayendo cada uno en lo suyo. La revisión del DG dio CHANGES_REQUESTED | La vuelta 3 |
-| 3 | `1fcc54216` y `26892869b` (las pruebas, para el rojo previo) y la implementación | (pendiente: Actions está parado por facturación) | — | La revisión del DG, la secuencia de 4.6b y la copia durable (ver abajo) |
+| 3 | `1fcc54216` y `26892869b` (las pruebas, para el rojo previo) | 42588248456 (el job deshacer es el 129063191391) | El rojo previo que se esperaba, con 43 fallas: D6c a D6g, D6i, D8, D10, D1f, D1g, D2b y D11a a D14 cayeron; los mutantes de los textos nuevos no se pudieron aplicar. Además, los mutantes de lo ajeno corrían sobre la bandeja vacía, porque no recargaban. El job del cargador cayó en E1 de la punta a punta, con «-1 reintentos», que es ajeno a la 2c | Recargar antes de los mutantes de lo ajeno. Después, la implementación |
+| 4 | `7c4e0410b`, `6d20c2555`, `a059725d6` y el arreglo de la recarga | (pendiente) | — | La revisión del DG, la secuencia de 4.6b y la copia durable (ver abajo) |
 
 ## La revisión del DG sobre `78231bed3` (CHANGES_REQUESTED) y lo que la atiende
 
