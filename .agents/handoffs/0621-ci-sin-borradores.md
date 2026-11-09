@@ -43,28 +43,27 @@ Ruleset de main consultado (solo metadatos): 22364692 «DTD main - PR y calidad 
   `completed` distinta de `success` sobre la cabeza tienen que ignorar `skipped` (lo ajusta el Director General).
 - **Tampoco es un verde.** El ruleset cuenta el `skipped` como aprobado, así que entre `gh pr ready` y el registro de
   la corrida nueva la PR puede verse fusionable sin CI real. Regla: **`success`, no `skipped`, del check requerido, en
-  una corrida `pull_request` sobre la cabeza exacta**, leída en
-  `gh api repos/SoftAgentes/DTDCARGO/commits/<sha>/check-runs?check_name=Calidad%20local%20sin%20secretos`.
-  `gh pr checks` no basta (cuenta el `skipped` como «skipping» y sale con 0). Re-ejecutar una corrida de borrador no
-  la rescata: push nuevo, o `gh pr ready --undo` y `gh pr ready`. Está en el comentario del job, en el runbook y en la
-  skill Director, y el contrato falla si se pierde.
+  una corrida `pull_request` sobre la cabeza exacta**. Manda la corrida más reciente:
+  `gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request" --jq '.workflow_runs | max_by(.id) | [.status, .conclusion, .check_suite_id] | @tsv'`,
+  y vale solo `completed` + `success`. `commits/<sha>/check-runs` no sirve (una fila por corrida) y `gh pr checks`
+  tampoco (cuenta el `skipped` como «skipping» y sale con 0; medido en la #484). Re-ejecutar una corrida de borrador
+  no la rescata: push nuevo, o `gh pr ready --undo` y `gh pr ready`. La regla está en el comentario del job, en el
+  runbook y en la skill Director. El contrato cubre el workflow y el runbook (comando incluido), **no la skill**.
+- **Carrera de concurrencia, ya ocurrida** (#482, `3c777e33e`: un `skipped` posterior dejó `cancelled` la corrida
+  real). Marcar la PR lista después de que aparezca la corrida del push, o esperar a que el `skipped` termine.
 - Trenes del Director General: se abren en borrador y se marcan listos con `gh pr ready`; ahí corre la Calidad. No
   hay excepción por nombre de rama.
 
 ## Pendientes de esta tarea
 
-- PR #481 (cambio principal) abierta lista, APPROVED por la revisión independiente sobre `0429fec83`; la fusiona el DG
-  con CI verde en esa cabeza.
-- Rama `claude/0621-porton-exacto` (seguimiento no bloqueante de la revisión: comprobación exacta, re-ejecución,
-  carrera de concurrencia, rutas exactas). Se publica y se abre **en borrador** cuando la #481 esté en main; así es
-  también la primera prueba real (`skipped` en borrador, corrida tras `gh pr ready`).
-
-- [ ] Cuando vuelva Actions: push de la rama y PR en borrador a main. Verificar que en borrador «Calidad continua»
-      sale `skipped`, marcar con `gh pr ready` y comprobar que corre completa y que el ruleset toma esa corrida
-      (inferencia de la spec por medir). Avisar al Director General (`local_25e2dded-103b-4eaa-b10e-6527564b9cad`)
-      para la revisión independiente.
-- [ ] Publicar la reserva 0621 (`git push --no-follow-tags --force-with-lease=refs/heads/codex/sdd-reserve-0621: origin b150060a4000eb1ab79e8a5575b7826eeb04ca6d:refs/heads/codex/sdd-reserve-0621`) o dejar que la PR la lleve.
-- [ ] Al fusionar: aceptación pendiente en la spec («primera PR real»).
+- PR #481 (cambio principal): fusionada en main (`124796792`) por el DG, con los tres check runs en `success` sobre
+  `0429fec83`.
+- PR #484 (seguimiento de la revisión): primera prueba real. En borrador, `skipped` (corrida 42593499007); tras
+  `gh pr ready`, corrida 42593601563. La revisión de `d41e1e45c` pidió cambios (comando del portón); corregidos en el
+  commit siguiente.
+- [ ] Una corrida `pull_request` posterior al `ready_for_review` en `success` sobre la cabeza nueva, y avisar al DG.
+- [ ] Al fusionar: cerrar la aceptación de la spec.
+- [ ] Decidir la opción de concurrencia por estado de borrador (propuesta en la spec, no implementada).
 
 ## Impacto documental
 

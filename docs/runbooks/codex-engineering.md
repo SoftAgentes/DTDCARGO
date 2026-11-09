@@ -197,15 +197,27 @@ sobre la cabeza; cada push posterior la repite. Para volver a iterar sin gastar,
 ruleset de main lo cuente como aprobado: entre `gh pr ready` y el registro de la
 corrida nueva, la PR puede verse fusionable sin CI real. Regla para quien
 fusiona: **`success`, no `skipped`, del check requerido, en una corrida
-`pull_request` sobre la cabeza exacta**. Se lee el check run, no el resumen:
+`pull_request` sobre la cabeza exacta**. Manda la corrida **más reciente** de
+`pull_request` de `quality.yml` sobre esa cabeza:
 
 ```bash
-gh api "repos/SoftAgentes/DTDCARGO/commits/<sha>/check-runs?check_name=Calidad%20local%20sin%20secretos" --jq '.check_runs[] | [.status, .conclusion, .app.slug] | @tsv'
+gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request" --jq '.workflow_runs | max_by(.id) | [.status, .conclusion, .check_suite_id] | @tsv'
 ```
 
-Vale solo `completed`, `success`, `github-actions` (el filtro por defecto,
-`latest`, trae la corrida más reciente de ese nombre). **No basta
-`gh pr checks`**: muestra el `skipped` como «skipping» y sale con 0.
+Vale solo `completed` + `success`. Si una `success` vino antes de una
+`failure`, `cancelled` o `skipped`, manda la última. El filtro
+`event=pull_request` deja fuera una corrida manual (`gh workflow run`) sobre la
+misma cabeza. No sirve leer `commits/<sha>/check-runs`: cada corrida es una
+check suite distinta y trae una fila por corrida (el `skipped` del borrador y
+la posterior). **Tampoco basta `gh pr checks`**: muestra el `skipped` como
+«skipping» y sale con 0.
+
+**Marca la PR lista después de que aparezca la corrida del push, o espera a que
+el `skipped` termine.** La concurrencia es por rama: si la corrida del push en
+borrador entra a la cola después de la de `ready_for_review`, la cancela y la
+cabeza queda sin corrida real (pasó en `3c777e33e`, #482: `skipped` posterior,
+`cancelled` la real). El comando de arriba lo detecta; el remedio es el de la
+re-ejecución.
 
 Re-ejecutar una corrida que nació en borrador no rescata el `skipped`: la
 re-ejecución usa el evento original, con `draft: true`, y vuelve a saltar. El

@@ -398,6 +398,30 @@ describe("SDD-0550 · toda prueba bash de infra/ops/tests tiene dónde correr", 
   });
 });
 
+const runbookCrudo = () => readFileSync(resolve("docs/runbooks/codex-engineering.md"), "utf8");
+
+/** El único bloque `bash` del runbook que lee las corridas de quality.yml para fusionar. */
+function comandoDelPorton(texto) {
+  const bloques = [...texto.matchAll(/```bash\r?\n([\s\S]*?)```/g)]
+    .map((m) => m[1].trim())
+    .filter((c) => /quality\.yml\/runs|check-runs/.test(c));
+  if (bloques.length !== 1) throw new Error(`esperaba un bloque bash del portón; hay ${bloques.length}`);
+  return bloques[0];
+}
+
+/** Manda la corrida más reciente de `pull_request` de quality.yml sobre la cabeza exacta. */
+function assertComandoDelPorton(c) {
+  if (!c.includes('gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?')) {
+    throw new Error("el portón lee las corridas de quality.yml, no check-runs ni otro workflow");
+  }
+  const query = c.match(/runs\?([^"]+)"/)?.[1] ?? "";
+  const params = new URLSearchParams(query);
+  if (params.get("head_sha") !== "<sha>") throw new Error("falta head_sha=<sha>");
+  if (params.get("event") !== "pull_request") throw new Error("falta event=pull_request");
+  if (!/--jq '\.workflow_runs \| max_by\(\.id\) \|/.test(c)) throw new Error("falta max_by(.id) sobre workflow_runs");
+  if (/check-runs/.test(c)) throw new Error("check-runs trae una fila por corrida");
+}
+
 /**
  * SDD-0621: el CI de PR no corre en borrador y corre al marcar la PR lista (`gh pr ready`). `ready_for_review`
  * es lo que sostiene el portón: sin él, una PR que pasa de borrador a lista no tiene corrida sobre su cabeza hasta el
@@ -446,12 +470,32 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     const regla = "`success`, no `skipped`, del check requerido, en una corrida `pull_request` sobre la cabeza exacta";
     expect(runbook).toContain(regla);
     expect(workflow.replace(/\s*#\s*/g, " ")).toContain(regla);
-    // La comprobación se lee en el check run; `gh pr checks` cuenta el `skipped` como «skipping» y sale con 0.
-    expect(runbook).toContain("commits/<sha>/check-runs?check_name=Calidad%20local%20sin%20secretos");
-    expect(runbook).toContain("No basta `gh pr checks`");
-    // Re-ejecutar no rescata el `skipped`: el remedio es push o --undo y ready.
-    expect(runbook).toContain("gh pr ready <numero> --undo");
-    expect(runbook).toContain("gh pr ready <numero>");
+    expect(runbook).toContain("Tampoco basta `gh pr checks`");
+    // Re-ejecutar no rescata el `skipped`, y la carrera de concurrencia ya pasó en la #482: el párrafo nuevo, no el
+    // `gh pr ready --undo` que ya estaba en main.
+    expect(runbook).toContain("re-ejecución usa el evento original, con `draft: true`, y vuelve a saltar");
+    expect(runbook).toContain(
+      "Marca la PR lista después de que aparezca la corrida del push, o espera a que el `skipped` termine.",
+    );
+    // La frase falsa sobre `latest` no vuelve: `check-runs` trae una fila por corrida.
+    expect(runbook).not.toMatch(/`latest`, trae la corrida más reciente/);
+  });
+
+  it("el comando del portón elige la corrida más reciente de pull_request", () => {
+    expect(() => assertComandoDelPorton(comandoDelPorton(runbookCrudo()))).not.toThrow();
+  });
+
+  it.each([
+    ["sin event=pull_request (pasaría un gh workflow run)", (c) => c.replace("&event=pull_request", "")],
+    ["con otro evento", (c) => c.replace("event=pull_request", "event=workflow_dispatch")],
+    ["sin max_by(.id) (primera fila)", (c) => c.replace("max_by(.id)", ".[0]")],
+    ["la más vieja", (c) => c.replace("max_by(.id)", "min_by(.id)")],
+    ["por check-runs (una fila por corrida)", (c) =>
+      c.replace("actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request", "commits/<sha>/check-runs")],
+    ["otro workflow", (c) => c.replace("workflows/quality.yml/", "workflows/sql-tests.yml/")],
+    ["sin la cabeza", (c) => c.replace("head_sha=<sha>&", "")],
+  ])("el comando del portón rechaza %s", (_nombre, mutar) => {
+    expect(() => assertComandoDelPorton(mutar(comandoDelPorton(runbookCrudo())))).toThrow();
   });
 
   it("los cargadores conservan su filtro de rutas, ruta por ruta", () => {
