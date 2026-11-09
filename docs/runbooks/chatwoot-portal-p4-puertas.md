@@ -191,6 +191,18 @@
   scp supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sql supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sh root@217.216.54.70:/srv/ops/portal-historial/
   ```
 
+- **El archivo de `SISTEMA`** (‹por confirmar hasta que la #480 esté en `main`›): en el VPS, el DG lee el `system_identifier` de producción una sola vez, sin imprimirlo, y lo deja en `/srv/ops/portal-historial/sistema-produccion`, root 0600.
+
+  ```bash
+  ssh root@217.216.54.70 "umask 077; docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'select system_identifier from pg_control_system()' | tr -d '\n' > /srv/ops/portal-historial/sistema-produccion.parcial && chmod 0600 /srv/ops/portal-historial/sistema-produccion.parcial && mv -f /srv/ops/portal-historial/sistema-produccion.parcial /srv/ops/portal-historial/sistema-produccion"
+  ```
+
+  Su sha corto, con la fórmula del DG; tiene que dar `b4fbe1b236`:
+
+  ```bash
+  ssh root@217.216.54.70 'v=$(cat /srv/ops/portal-historial/sistema-produccion); printf "%s" "$v" | sha256sum | cut -c1-10'
+  ```
+
 - **Al final, los permisos de todo lo copiado:**
 
   ```bash
@@ -206,7 +218,7 @@
   test ! -e ../portal-3-0 && echo borrado
   ```
 
-- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/`, `supabase/migrations/` o `supabase/cargas/portal-historial-deshacer/`. Además, `stat -c %a` da `700` en `/srv/ops/portal-historial` y en `migraciones/`. En `migraciones/` están las 10. `ssh root@217.216.54.70 ls -A /srv/ops/portal-historial` lista solo los archivos de la lista y `migraciones/`, sin `README.md` ni `pruebas/`. `find /srv/ops/portal-historial -perm /077 | wc -l` da `0`: ningún archivo ni carpeta con permisos de grupo u otros. Al final, `git worktree list` ya no muestra `portal-3-0`, y `test ! -e ../portal-3-0 && echo borrado` da `borrado`.
+- **Para seguir:** el `sha256sum` de cada archivo de la lista en el VPS es igual al de `git show origin/main:<ruta> | sha256sum`, con `<ruta>` bajo `infra/ops/portal-historial/`, `supabase/migrations/` o `supabase/cargas/portal-historial-deshacer/`. Además, `stat -c %a` da `700` en `/srv/ops/portal-historial` y en `migraciones/`. En `migraciones/` están las 10. `ssh root@217.216.54.70 ls -A /srv/ops/portal-historial` lista solo los archivos de la lista, `migraciones/` y `sistema-produccion`, sin `README.md` ni `pruebas/`. El sha corto de `sistema-produccion` dio `b4fbe1b236`. `find /srv/ops/portal-historial -perm /077 | wc -l` da `0`: ningún archivo ni carpeta con permisos de grupo u otros. Al final, `git worktree list` ya no muestra `portal-3-0`, y `test ! -e ../portal-3-0 && echo borrado` da `borrado`.
 - **Lo que el CI no puede probar y se comprueba a mano en el VPS antes de 3.1:**
   - ‹por confirmar hasta que la #473 esté en `main`› **La unidad de systemd del ensayo tiene `TimeoutStopSec` de 300 s o más.** La guarda G1 se niega con menos (`TIMEOUT_STOP_MIN_S=300` en `ensayo-portal.sh`).
   - ‹por confirmar hasta que la #473 esté en `main`› **Los nombres reales de producción** son los valores por defecto del guion: `dtd-cargo-db-1` (Studio), `chatwoot-postgres-1` (Chatwoot) y `/srv/chatwoot`. Si alguno no coincide, se para y se avisa al DG; no se cambia por una variable sin su OK.
@@ -222,7 +234,7 @@
   Si después no queda `deshacer/`, la carpeta vacía también se quita: `ssh root@217.216.54.70 rmdir /srv/ops/portal-historial`. Si queda, se deja.
 
   **`deshacer/` no se borra aquí.** Es la copia durable del 4.6b, y sale solo con `limpiar.sh --cierre-4-6b` o con `limpiar.sh --abandono-4-6b` ‹por confirmar hasta que la #480 esté en `main`›. Si no existe, no hay nada que cuidar.
-- **OK nominal:** «¿Autorizas crear `/srv/ops/portal-historial` en el VPS y copiar ahí, desde un checkout limpio de `main` en el SHA <SHA>, los scripts de `infra/ops/portal-historial/` (los de la lista de arriba, cada uno con su sha256), las 10 migraciones en `migraciones/` y `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, todos copiados por nombre y comparados por sha256, sin `README.md` ni `pruebas/`, y dejarlo todo sin permisos de grupo ni de otros? No se escribe nada más en el VPS.»
+- **OK nominal:** «¿Autorizas crear `/srv/ops/portal-historial` en el VPS y copiar ahí, desde un checkout limpio de `main` en el SHA <SHA>, los scripts de `infra/ops/portal-historial/` (los de la lista de arriba, cada uno con su sha256), las 10 migraciones en `migraciones/` y `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, todos copiados por nombre y comparados por sha256, sin `README.md` ni `pruebas/`; dejar el `system_identifier` de producción en `sistema-produccion`, root 0600, sin imprimirlo y con su sha corto comparado con la nota del DG; y dejarlo todo sin permisos de grupo ni de otros? No se escribe nada más en el VPS.»
 
 ### 3.1 · Correr el ensayo
 
@@ -344,12 +356,12 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   - **Si da 42501, se para:** sin esa lectura, el desarme aborta en `produccion`.
 - **Los comandos,** en el VPS como root. Los conteos `ESPERADOS_*` salen de la lectura de 4.2. Los de Chatwoot (pasos 1, 1b y 3) son los de la cabecera de `deshacer.sh` de la #478 ‹por confirmar hasta que la #478 esté en `main`›, con los cinco valores. `DB_CW` y `DB` tienen valor por defecto en el guion (`chatwoot-rails-1` y `dtd-cargo-db-1`), pero aquí se escriben explícitos. Sin `TENANT`, `CUENTA` o `BANDEJA` sale con 2. **Antes de copiar, se comparan con la cabecera del `deshacer.sh` que quedó en el VPS en 3.0.** El paso 3 es el borrado permanente de Sam: se corre tal como está escrito.
 
-  **`SISTEMA`** (aprobado por el DG; ‹por confirmar hasta que la #480 esté en `main`›, en la vuelta de `SISTEMA`): **no se lee en la shell de Sam.**
-  - En la puerta 1, el DG lo lee una vez de `dtd-cargo-db-1` (solo metadata) y lo guarda en `/srv/ops/portal-historial/sistema-produccion`, root 0600, sin imprimirlo.
-  - Los pasos 2 y 4 lo toman de ese archivo e imprimen solo su sha256 corto, 10 caracteres. El DG lo compara con su nota de control: producción `b4fbe1b236`, prueba `76ebba046a`. Si no coincide, se para.
-  - El valor nunca se imprime ni entra en Git; en la evidencia, en `/srv/ops/evidencias` (root 0700, archivos 0600), va solo el sha256.
-  - El archivo se borra en el cierre o en el abandono del 4.6b.
-  - Hasta esa vuelta, los comandos de abajo llevan `SISTEMA="$SISTEMA"`, y su origen se ajusta cuando entre.
+  **`SISTEMA`** (aprobado por el DG; `deshacer-vinculos.sh` de la #480 en `8a1b1043b`, ‹por confirmar hasta que la #480 esté en `main`›): **no se lee en la shell de Sam ni va en el comando.**
+  - Los pasos 2 y 4, en `produccion`, lo leen de `/srv/ops/portal-historial/sistema-produccion`, que deja el 3.0. Tiene que ser root 0600, de este usuario y sin enlace. Si llega `SISTEMA=` por el entorno, se niegan.
+  - Imprimen solo `HECHO sistema_sha256_corto=<10>`, con la fórmula del DG: `printf '%s'` sin salto de línea, `sha256sum` y los 10 primeros caracteres.
+  - **Para seguir:** ese sha corto es el de la nota de control del DG, `b4fbe1b236` en producción y `76ebba046a` en prueba. Si no coincide, se para.
+  - El valor nunca se imprime ni entra en Git; en la evidencia, en `/srv/ops/evidencias` (root 0700, archivos 0600), va solo el sha corto.
+  - `limpiar.sh --cierre-4-6b` y `--abandono-4-6b` borran el archivo y escriben `HECHO sistema=borrado`.
 
   Paso 1, el DG (‹por confirmar hasta que la #478 esté en `main`›):
 
@@ -366,7 +378,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   Paso 2, el DG (‹por confirmar hasta que la #480 esté en `main`›):
 
   ```bash
-  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion SISTEMA="$SISTEMA" MODO=ensayo bash /srv/ops/portal-historial/deshacer-vinculos.sh
+  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion MODO=ensayo bash /srv/ops/portal-historial/deshacer-vinculos.sh
   ```
 
   Paso 3, Sam (‹por confirmar hasta que la #478 esté en `main`›):
@@ -378,7 +390,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   Paso 4, Sam (‹por confirmar hasta que la #480 esté en `main`›):
 
   ```bash
-  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion SISTEMA="$SISTEMA" MODO=aplicar bash /srv/ops/portal-historial/deshacer-vinculos.sh
+  DB=dtd-cargo-db-1 TENANT=<uuid> CUENTA=1 BANDEJA=<id> ESPERADOS_SALIDA=<n> ESPERADOS_HILOS=<n> ESPERADOS_CONTACTOS=<n> ESPERADOS_ESPEJO=<n> ENTORNO=produccion MODO=aplicar bash /srv/ops/portal-historial/deshacer-vinculos.sh
   ```
 
   Después del 4, la comprobación del flag, en solo lectura. Tiene que dar `flag_encendido=0` y `encendidos_auditados=0`:

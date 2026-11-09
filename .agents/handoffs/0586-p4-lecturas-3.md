@@ -236,3 +236,13 @@
   - con un ROLLBACK comprobado, retira el `.inicio`;
   - ya no borra el `.hecho` viejo.
 - **Las marcas:** salieron las que hablaban del `.inicio`. Quedan solo las de «hasta que esté en `main`».
+
+### `SISTEMA` como quedó en la #480 (`8a1b1043b`)
+
+- **El 4.6b:** los pasos 2 y 4 ya no llevan `SISTEMA="$SISTEMA"`. La #480 lo rechaza por el entorno, y el guion lo lee de `sistema-produccion`. Imprime solo `HECHO sistema_sha256_corto=<10>`. «Para seguir» exige el sha corto de la nota del DG, `b4fbe1b236`. El cierre y el abandono borran el archivo.
+- **Un cambio respecto del diseño aprobado:** el archivo no puede quedar en la puerta 1, porque `/srv/ops/portal-historial` recién existe desde el 3.0. Su creación va en el 3.0:
+  - se lee de `dtd-cargo-db-1` con `tr -d '\n'`, sin imprimir, y se escribe con `.parcial` + `mv` en 0600;
+  - después se calcula el sha corto con la fórmula del DG, y tiene que dar `b4fbe1b236`;
+  - el OK del 3.0 y su «Para seguir» lo nombran.
+
+  Se lo avisé al Subdirector.
