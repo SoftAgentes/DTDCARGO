@@ -13,6 +13,12 @@
  *
  * CONTROL ROJO: sin el guion no sale ninguna línea HECHO. MUTANTES: cada condición del veredicto, el
  * filtro del tenant y, en el conteo, el filtro del tenant.
+ *
+ * SIEMBRA (pedido del DG en la revisión de la #475): el fixture no tiene flag, auditoría ni corte de T1. Sin
+ * eso, quitar el tenant del flag, de la auditoría o del corte, o quitar `->>'key'` o `->>'enabled'`, no
+ * cambia nada. La siembra pone en T1 un flag encendido, un encendido auditado y un corte, y en T2 un
+ * apagado auditado y un encendido de otra clave. Nada de eso cuenta para T2. Cada mutante de la siembra
+ * corre dos veces: sin la siembra sobrevive (el rojo previo) y con ella cae.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -84,6 +90,21 @@ function once(text: string, from: string, to: string): string {
 }
 
 const OK = "HECHO salida=0 flag_encendido=0 encendidos_auditados=0 corte=nulo cola_y_flag=ok";
+const SIEMBRA = `
+do $$
+declare n int;
+begin
+  update public.feature_flags set enabled = true where tenant_id = pg_temp.id('T1') and key = 'chatwoot_portal';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'la siembra no encendió el flag de T1 (% filas)', n; end if;
+end $$;
+insert into public.entity_audit_log values
+  (pg_temp.id('T1'), 'feature_flag', 'feature_flag_changed', '{"key":"chatwoot_portal","enabled":true}'),
+  (pg_temp.id('T2'), 'feature_flag', 'feature_flag_changed', '{"key":"chatwoot_portal","enabled":false}'),
+  (pg_temp.id('T2'), 'feature_flag', 'feature_flag_changed', '{"key":"otra_clave","enabled":true}');
+insert into public.chatwoot_portal_estado (tenant_id, corte) values (pg_temp.id('T1'), now())
+  on conflict (tenant_id) do update set corte = excluded.corte;
+`;
 const T2 = (s: string) => s.split("@T2").join("pg_temp.id('T2')");
 const CASOS: [string, string, RegExp][] = [
   ["una salida del tenant", T2("insert into public.chatwoot_portal_salida (message_id, tenant_id, conversation_id, estado) values (pg_temp.id('z1'), @T2, pg_temp.id('hZ'), 'cargado');"), /salida=1 .* cola_y_flag=NO$/],
@@ -113,6 +134,19 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
 
   it("cola-y-flag.sql da ok en un tenant donde la cola nunca corrió", async () => {
     expect(hecho(await correr(COLA, "T2"))).toEqual([OK]);
+  }, SLOW);
+
+  it("cola-y-flag.sql sigue en ok para T2 con la siembra de T1 y los dos ruidos de T2", async () => {
+    expect(hecho(await correr(COLA, "T2", SIEMBRA))).toEqual([OK]);
+  }, SLOW);
+
+  it("la siembra sí pone T1 en NO por las tres tablas", async () => {
+    expect(hecho(await correr(COLA, "T1", SIEMBRA))[0]).toMatch(/flag_encendido=1 encendidos_auditados=1 corte=fijado cola_y_flag=NO$/);
+  }, SLOW);
+
+  it("cola-y-flag.sql da corte=nulo y ok con una fila de estado de T2 con corte nulo", async () => {
+    const preparar = T2("insert into public.chatwoot_portal_estado (tenant_id, corte) values (@T2, null);");
+    expect(hecho(await correr(COLA, "T2", preparar))).toEqual([OK]);
   }, SLOW);
 
   for (const [nombre, preparar, espera] of CASOS) {
@@ -150,10 +184,27 @@ describe("SDD-0586 · las lecturas del runbook de las puertas (PGlite)", () => {
     expect(lineas[0]).not.toBe(OK);
   }, SLOW);
 
-  it("cola-y-flag.sql es de solo lectura y no imprime la hora del corte", () => {
-    expect(COLA).toMatch(/^begin transaction read only;$/m);
-    expect(COLA).toMatch(/^rollback;$/m);
-    expect(COLA.replace(/^\s*--.*$/gm, "")).not.toMatch(/\b(insert|update|delete)\b/i);
+  const MUTANTES_SIEMBRA: [string, string, string][] = [
+    ["la auditoría sin ->>'enabled'", " and a.after_data ->> 'enabled' = 'true'", ""],
+    ["la auditoría sin ->>'key'", "and a.after_data ->> 'key' = 'chatwoot_portal' and ", "and "],
+    ["el flag sin el tenant", "f.tenant_id = :'tenant'::uuid and f.key", "f.key"],
+    ["la auditoría sin el tenant", "a.tenant_id = :'tenant'::uuid and a.entity_type", "a.entity_type"],
+    ["el corte sin el tenant", "e.tenant_id = :'tenant'::uuid and e.corte", "e.corte"],
+  ];
+  for (const [nombre, from, to] of MUTANTES_SIEMBRA) {
+    it(`MUTANTE «${nombre}»: sobrevive sin la siembra y cae con ella`, async () => {
+      const mutante = once(COLA, from, to);
+      expect(hecho(await correr(mutante, "T2")), "rojo previo: con el fixture de antes sobrevive").toEqual([OK]);
+      expect(hecho(await correr(mutante, "T2", SIEMBRA))[0]).toMatch(/cola_y_flag=NO$/);
+    }, SLOW);
+  }
+
+  it("las dos lecturas son de solo lectura, sin DML ni DDL, y cola-y-flag.sql no imprime la hora del corte", () => {
+    for (const guion of [COLA, CONTEO]) {
+      expect(guion).toMatch(/^begin transaction read only;$/m);
+      expect(guion).toMatch(/^rollback;$/m);
+      expect(guion.replace(/^\s*--.*$/gm, "")).not.toMatch(/\b(insert|update|delete|merge|create|alter|drop|grant|revoke|truncate|copy)\b/i);
+    }
     expect(COLA).not.toMatch(/\|\|\s*corte\b/);
   });
 });
