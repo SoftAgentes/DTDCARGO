@@ -31,8 +31,9 @@
 # de --min-pct (50) del último respaldo aceptado (`<proyecto>-storage.referencia`),
 # el respaldo se sube igual pero NO se aplica la retención (ni remota ni local) y
 # sale 1: sin latido, alguien mira. Lo mismo si la referencia no se puede leer.
-# Si falta, se compara contra el MÁXIMO de `archivos=` de los manifiestos locales y,
-# si tampoco hay manifiestos locales (disco nuevo, --out equivocado), de los del remoto.
+# Si falta o no se puede leer, se compara contra el MÁXIMO de `archivos=` de los
+# manifiestos anteriores, locales Y del remoto (un disco nuevo o un --out equivocado no
+# tienen locales); un manifiesto con `archivos=` fuera de formato también frena.
 # Se repite cada día hasta que alguien corra a mano --aceptar-caida=<conteo>,
 # SOLO con OK nominal de Sam. Esa corrida exige que el conteo sea exactamente el
 # dicho y, antes de aplicar la retención, saca el último respaldo bueno de su
@@ -119,10 +120,10 @@ SOURCE="$(readlink -f "${SOURCE}")"
 # Exige un prefijo detrás del bucket: la retención nunca corre en la raíz.
 [[ "${REMOTE}" =~ ^[A-Za-z0-9_-]+:[^/[:space:]]+/[^[:space:]]+$ ]] || die "--remote debe ser <remoto>:<bucket>/<prefijo> (nunca la raíz del bucket): '${REMOTE}'"
 for n in RETENTION_DAYS KEEP_LOCAL MIN_FILES AVISO_GB; do
-  [[ "${!n}" =~ ^[1-9][0-9]*$ ]] || die "--$(tr '[:upper:]_' '[:lower:]-' <<< "${n}") debe ser un entero ≥ 1"
+  [[ "${!n}" =~ ^[1-9][0-9]{0,8}$ ]] || die "--$(tr '[:upper:]_' '[:lower:]-' <<< "${n}") debe ser un entero ≥ 1, sin cero inicial y de hasta 9 cifras"
 done
-[[ "${MIN_PCT}" =~ ^[0-9]+$ ]] && (( MIN_PCT <= 100 )) || die "--min-pct debe ser un entero entre 0 y 100"
-(( ! ACEPTAR_DADA )) || [[ "${ACEPTAR_CAIDA}" =~ ^[1-9][0-9]*$ ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1: '${ACEPTAR_CAIDA}'"
+[[ "${MIN_PCT}" =~ ^(100|[1-9]?[0-9])$ ]] || die "--min-pct debe ser un entero entre 0 y 100, sin cero inicial"
+(( ! ACEPTAR_DADA )) || [[ "${ACEPTAR_CAIDA}" =~ ^[1-9][0-9]{0,15}$ ]] || die "--aceptar-caida=<archivos> necesita un entero ≥ 1, sin cero inicial: '${ACEPTAR_CAIDA}'"
 [[ "${RCLONE_IMAGE}" != *:latest && "${RCLONE_IMAGE}" == *:* ]] || die "--rclone-image debe llevar tag fijo"
 # El cifrado se valida también en dry-run: un timer mal configurado tiene que
 # fallar en la prueba, no la primera noche.
@@ -276,24 +277,34 @@ rcl check "${ldir}/" "${remote_dir}" --one-way --include "/${base}*"
 # confiable, manda el MÁXIMO de los manifiestos anteriores, locales y del remoto (que su
 # retención conserva 30 días): el más nuevo puede ser ya el de después de la caída, y en
 # un disco nuevo o con un --out equivocado no hay manifiestos locales.
+# Los conteos valen solo como ^[1-9][0-9]{0,15}$ y se comparan en base 10: un «archivos=»
+# enorme desbordaría la cuenta y uno con cero inicial bash lo leería como octal; en los
+# dos casos la guarda no saltaría. Un manifiesto con «archivos=» fuera de formato frena.
 patron_base="^${PROJECT}-storage-[0-9]{8}T[0-9]{6}Z$"
-previo=""; bueno=""; ilegible=0
+patron_n='^[1-9][0-9]{0,15}$'
+previo=""; bueno=""; ilegible=0; dudoso=0
 if [[ -f "${referencia}" ]]; then
   # Sin permisos de lectura, sed falla: con pipefail saldría sin decir nada; así cae en «ilegible».
   previo="$(sed -n 's/^archivos=//p' "${referencia}" 2>/dev/null | tail -n1 || true)"
   bueno="$(sed -n 's/^base=//p' "${referencia}" 2>/dev/null | tail -n1 || true)"
-  if ! [[ "${previo}" =~ ^[1-9][0-9]*$ && "${bueno}" =~ ${patron_base} ]]; then ilegible=1; previo=""; bueno=""; fi
+  if ! [[ "${previo}" =~ ${patron_n} && "${bueno}" =~ ${patron_base} ]]; then ilegible=1; previo=""; bueno=""; fi
 fi
 if [[ ! -f "${referencia}" ]] || (( ilegible )); then
   # «<archivos> <base>» de cada manifiesto anterior. Los del remoto van en claro y sin rutas;
-  # su base sale de `sello=`.
+  # su base sale de `sello=`, que se vacía después de cada uno para no pasar al siguiente.
   locales="$(find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-storage-*.manifiesto" ! -name "${base}.manifiesto" \
     | while read -r m; do printf '%s %s\n' "$(sed -n 's/^archivos=//p' "${m}" | tail -n1)" "$(basename "${m}" .manifiesto)"; done || true)"
-  remotos="$(rcl cat "${remote_dir}" --filter "- /${base}.manifiesto" --filter "+ /${PROJECT}-storage-*.manifiesto" --filter "- *")" \
-    || falla "sin referencia confiable y sin poder leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
-  mejor="$( { printf '%s\n' "${locales}"
-              printf '%s\n' "${remotos}" | awk -F= -v p="${PROJECT}" '/^sello=/ { s = $2 } /^archivos=/ { print $2 " " p "-storage-" s }'
-            } | grep -E '^[0-9]+ ' | sort -n | tail -n1 || true)"
+  if ! remotos="$(rcl cat "${remote_dir}" --filter "- /${base}.manifiesto" --filter "+ /${PROJECT}-storage-*.manifiesto" --filter "- *")"; then
+    if (( ilegible )); then
+      falla "referencia del Storage ilegible, y además no se pudieron leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
+    fi
+    falla "sin referencia y sin poder leer los manifiestos del remoto (${remote_dir}): no se aplica la retención"
+  fi
+  todos="$( { printf '%s\n' "${locales}"
+              printf '%s\n' "${remotos}" | awk -F= -v p="${PROJECT}" '/^sello=/ { s = $2 } /^archivos=/ { print $2 " " p "-storage-" s; s = "" }'
+            } | grep -v '^[[:space:]]*$' || true)"
+  if [[ -n "${todos}" ]] && printf '%s\n' "${todos}" | grep -vqE '^[1-9][0-9]{0,15} '; then dudoso=1; fi
+  mejor="$(printf '%s\n' "${todos}" | grep -E '^[1-9][0-9]{0,15} ' | sort -n | tail -n1 || true)"
   if [[ -n "${mejor}" ]]; then
     previo="${mejor%% *}"; bueno="${mejor#* }"
     log "AVISO: sin referencia confiable; se compara contra el máximo de los manifiestos locales y del remoto (${previo} archivos, ${bueno})"
@@ -305,18 +316,23 @@ if [[ -z "${ACEPTAR_CAIDA}" ]]; then
     log "  hace falta revisarla y correr a mano --aceptar-caida=<archivos> con OK nominal de Sam (runbook §5.1)"
     falla "referencia del Storage ilegible"
   fi
-  if [[ -n "${previo}" ]] && (( archivos * 100 < previo * MIN_PCT )); then
+  if (( dudoso )); then
+    log "✗ un manifiesto anterior trae «archivos=» fuera de formato (vacío, con cero inicial o de más de 16 cifras): el respaldo ${base} se subió, pero NO se aplica la retención"
+    log "  hace falta revisarlo; si hay que retirarlo, solo con OK nominal de Sam (runbook §5.1, «Si el bloqueo no tiene salida»)"
+    falla "manifiesto anterior del Storage fuera de formato"
+  fi
+  if [[ -n "${previo}" ]] && (( 10#${archivos} * 100 < 10#${previo} * MIN_PCT )); then
     log "✗ el Storage cayó de ${previo} a ${archivos} archivos (menos del ${MIN_PCT} %): el respaldo ${base} se subió, pero NO se aplica la retención para no perder los respaldos buenos"
     log "  si la caída es legítima, se acepta a mano con --aceptar-caida=${archivos}, SOLO con OK nominal de Sam (runbook §5.1)"
     falla "caída del conteo del Storage: ${previo} → ${archivos}"
   fi
 else
-  (( archivos == ACEPTAR_CAIDA )) \
+  (( 10#${archivos} == 10#${ACEPTAR_CAIDA} )) \
     || falla "--aceptar-caida=${ACEPTAR_CAIDA} no coincide con los ${archivos} archivos de este respaldo: no se acepta nada ni se aplica la retención"
   # Antes de la retención, el último respaldo bueno sale de su alcance, en el remoto y en disco.
-  # Sin uno identificado (referencia ilegible y sin manifiestos, o un --out equivocado) no se acepta nada.
+  # Sin uno identificado (ni en la referencia ni en los manifiestos, locales o del remoto) no se acepta nada.
   [[ "${bueno}" =~ ${patron_base} ]] \
-    || falla "no hay un respaldo bueno identificado que retener (¿--out correcto? ¿referencia y manifiestos en ${dir}?): no se acepta nada ni se aplica la retención"
+    || falla "no hay un respaldo bueno identificado que retener: ni la referencia ni los manifiestos de ${dir} ni los de ${remote_dir} dan uno válido (runbook §5.1): no se acepta nada ni se aplica la retención"
   ret_remoto="${REMOTE}/${PROJECT}-retenido/"
   rcl copy "${remote_dir}" "${ret_remoto}" --include "/${bueno}*" \
     || falla "no se pudo retener ${bueno} en ${ret_remoto}: no se aplica la retención"
