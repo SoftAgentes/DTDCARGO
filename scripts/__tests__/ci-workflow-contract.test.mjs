@@ -535,6 +535,9 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
       "supabase/migrations/0508_chatwoot_bajas_purga.sql",
       "supabase/migrations/0524_chatwoot_portal_puerta4.sql",
       ...comunes,
+      // SDD-0586, la 2b (N7 de la revisión del DG de la #473): el ensayo monta infra/chatwoot/correo/views en la copia
+      // de Rails, así que un cambio ahí tiene que disparar la prueba. Solo en el portal: el cargador kommo no lo monta.
+      "infra/chatwoot/correo/**",
       ".github/workflows/portal-historial-cargador.yml",
     ]);
   });
