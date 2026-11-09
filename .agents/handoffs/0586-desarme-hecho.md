@@ -194,3 +194,18 @@ Lo que se hizo:
 | El piso del runner, con dos suites de mentira en bash | PASÓ: con piso 3 da FALLÓ «bajo el piso de 3 PASÓ», y con piso 2 o sin piso da PASÓ |
 | `prueba-portal-historial.sh` y `pruebas-linux.test.mjs` | NO EJECUTADO en la PC: no hay `/dev/shm` real, y vitest es pesado. Los corre «Calidad continua» |
 | `docs:check` | PASÓ |
+
+## N4 ajustado por el DG, y el merge de main
+
+- **La suite 8:** traje `main` `fc6a726bb` una vez (merge `0d707536d`), porque la #482 suma la suite 8, `prueba-respaldo-storage.sh`. Le di su piso de **58**, el conteo del CI de `dfccd5a9b`.
+- **Cada suite que corre tiene que tener su piso declarado en `PISO`.** Si no, es FALLÓ «sin piso declarado», aunque pase. Esa es la guarda `piso_declarado`.
+- **En `pruebas-linux.test.mjs`:**
+  - `correr()` da piso 1 a cada prueba de mentira;
+  - el caso nuevo corre una prueba sin piso y exige FALLÓ;
+  - **su mutante** es una copia del runner sin la línea `# guarda:piso_declarado`, y tiene que dar verde. Así se prueba que esa guarda es la que la frena.
+- **Medido en bash, con una suite de mentira:**
+  - sin piso: exit 1 y «sin piso declarado»;
+  - con piso 1: exit 0;
+  - el mutante sin piso: exit 0.
+- **El piso de portal-historial** queda en 99. Se sube al conteo real en la próxima vuelta que toque la #480, o en el cierre.
+- **`SISTEMA`, aprobado por el DG con sus ajustes:** va en la vuelta siguiente, no en esta. Falta saber cómo calculó el DG el sha256 corto de su nota (`b4fbe1b236` para producción y `76ebba046a` para prueba): con o sin salto de línea. Hay que saberlo para imprimir el mismo.

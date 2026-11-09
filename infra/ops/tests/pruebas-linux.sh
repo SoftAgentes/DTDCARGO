@@ -37,7 +37,8 @@ PRUEBAS=(
   infra/ops/tests/prueba-respaldo-storage.sh # SDD-0620: respaldo cifrado y restore de los archivos del Storage, con mutantes
 )
 # Piso de «PASÓ» por prueba (revisión del DG de la #480, N4): una prueba que pierde casos en silencio, aunque salga 0
-# y sin «FALLÓ», es FALLÓ. Cada piso es el conteo medido en el CI; una prueba nueva sin piso exige solo uno o más.
+# y sin «FALLÓ», es FALLÓ. Cada piso es el conteo medido en el CI. Cada prueba que corre tiene que estar aquí: una
+# sin piso declarado es FALLÓ, aunque pase.
 declare -A PISO=(
   [infra/ops/tests/prueba-publicar-web.sh]=228
   [infra/ops/tests/prueba-aviso-discord.sh]=39
@@ -72,13 +73,16 @@ for p in "${PRUEBAS[@]}"; do
   fi
   pasaron="$(grep -c '^PASÓ' "${log}")"; fallaron="$(grep -c '^FALLÓ' "${log}")"
   seg=$((SECONDS - inicio))
-  piso="${PISO[${p}]:-1}"
-  if [ "${rc}" = 0 ] && [ "${fallaron}" = 0 ] && [ "${pasaron}" -gt 0 ] && [ "${pasaron}" -ge "${piso}" ]; then
+  # Cada prueba que corre tiene que tener su piso declarado en PISO: si no, es FALLÓ (revisión del DG de la #480).
+  piso="${PISO[${p}]:-}"; sin_piso=""
+  [ -n "${piso}" ] || sin_piso=" · sin piso declarado" # guarda:piso_declarado
+  [ -n "${piso}" ] || piso=1
+  if [ "${rc}" = 0 ] && [ "${fallaron}" = 0 ] && [ "${pasaron}" -gt 0 ] && [ "${pasaron}" -ge "${piso}" ] && [ -z "${sin_piso}" ]; then
     echo "PASÓ  · ${p} · ${pasaron} PASÓ · ${seg} s"
   else
     fallas=$((fallas + 1))
     bajo=""; [ "${pasaron}" -ge "${piso}" ] || bajo=" · bajo el piso de ${piso} PASÓ"
-    echo "FALLÓ · ${p} · exit ${rc} · ${pasaron} PASÓ · ${fallaron} FALLÓ · ${seg} s${bajo}"
+    echo "FALLÓ · ${p} · exit ${rc} · ${pasaron} PASÓ · ${fallaron} FALLÓ · ${seg} s${bajo}${sin_piso}"
     grep '^FALLÓ' "${log}" | head -n 20 | sed 's/^/    /'
     echo "    --- últimas líneas ---"
     tail -n 40 "${log}" | sed 's/^/    /'

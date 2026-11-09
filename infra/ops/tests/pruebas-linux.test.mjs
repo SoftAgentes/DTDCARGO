@@ -44,10 +44,12 @@ const FALLO_TEMPRANO = prueba(
   'echo "FALLÓ · la primera"; for i in $(seq 1 60); do echo "PASÓ  · relleno $i"; done; exit 1',
 );
 
-function correr(lista, extra = {}) {
+// Cada prueba de mentira lleva piso 1, salvo que el caso diga otro: el runner exige un piso declarado por prueba.
+function correr(lista, extra = {}, runner = RUNNER) {
   return new Promise((done) => {
-    const env = { ...process.env, LC_ALL: "C.UTF-8", PRUEBAS_LINUX_LISTA: lista.join("\n"), ...extra };
-    const hijo = spawn(BASH, [RUNNER], { cwd: path.resolve("."), env });
+    const pisos = lista.map((r) => `${r}=1`).join("\n");
+    const env = { ...process.env, LC_ALL: "C.UTF-8", PRUEBAS_LINUX_LISTA: lista.join("\n"), PRUEBAS_LINUX_PISOS: pisos, ...extra };
+    const hijo = spawn(BASH, [runner], { cwd: path.resolve("."), env });
     let salida = "";
     hijo.stdout.on("data", (d) => (salida += d));
     hijo.stderr.on("data", (d) => (salida += d));
@@ -77,6 +79,18 @@ describe("SDD-0550 · pruebas-linux.sh", () => {
     const justo = await correr([PASA], { PRUEBAS_LINUX_PISOS: `${PASA}=2` });
     expect(justo.codigo, justo.salida).toBe(0);
     expect(linea(justo.salida, PASA)).toMatch(/^PASÓ {2}· .*pasa\.sh · 2 PASÓ · \d+ s$/);
+  }, 60_000);
+
+  it("FALLÓ si una prueba corre sin piso declarado, aunque pase; y su mutante (sin la guarda) daría verde", async () => {
+    const sin = await correr([PASA], { PRUEBAS_LINUX_PISOS: "" });
+    expect(sin.codigo, sin.salida).toBe(1);
+    expect(linea(sin.salida, PASA)).toMatch(/ · sin piso declarado$/);
+    const texto = readFileSync(RUNNER, "utf8");
+    expect(texto.match(/# guarda:piso_declarado$/gm), "la marca está una sola vez").toHaveLength(1);
+    const mutante = path.join(dir, "pruebas-linux-sin-piso-declarado.sh");
+    writeFileSync(mutante, texto.split("\n").filter((l) => !l.endsWith("# guarda:piso_declarado")).join("\n"));
+    const mut = await correr([PASA], { PRUEBAS_LINUX_PISOS: "" }, mutante.replace(/\\/g, "/"));
+    expect(mut.codigo, "sin la guarda, la prueba sin piso pasaría: la guarda es la que la frena").toBe(0);
   }, 60_000);
 
   it("las pruebas reales tienen su piso en el runner", () => {
