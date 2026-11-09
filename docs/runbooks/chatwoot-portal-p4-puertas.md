@@ -326,10 +326,10 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
 | Paso | Quién | Qué hace | Qué exige | Si falla |
 |---|---|---|---|---|
-| **1 · El seco de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | El DG: no borra | Cuenta lo que se borraría, comprueba que no haya nada ajeno y escribe `contactos-conservados.ndjson` (los contactos `dtd-portal:` con otra bandeja, que no se borran) y `chatwoot-seco.hecho` | En Studio, en solo lectura (`deshacer.sh` de la #478, en `924db030b`): que el tenant tenga la fila del flag `chatwoot_portal`; que no esté encendido ni se haya encendido alguna vez (`feature_flags` y `entity_audit_log`); que la cola no haya corrido (ninguna salida que no sea `cargado`); que haya hilos vinculados; y que todos sus espejos sean de esta bandeja. Si no lo puede comprobar, no corre. En Chatwoot, que no haya nada ajeno (debajo) | No cambió nada. Se corre `limpiar.sh` y se repite |
-| **1b · El ensayo de Chatwoot, opcional** (‹por confirmar hasta que la #478 esté en `main`›) | El DG, **solo antes del paso 3** | Hace todo y termina en ROLLBACK; no escribe `.hecho` | El `.ndjson` del paso 1 y la misma guarda de Studio del paso 1. **Hoy** (`924db030b`, `deshacer.sh:96-97`) borra al empezar el `chatwoot-borrar.hecho` de las dos copias, así que **nunca se corre después del 3**. ‹por confirmar hasta que la #478 esté en `main`›: con el `.inicio`, si ya hay `chatwoot-borrar.hecho` o un `chatwoot-borrar.inicio` sin cerrar, se niega (`ya_hay_un_borrado_en_la_copia_durable`) | No cambió nada |
+| **1 · El seco de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | El DG: no borra | Cuenta lo que se borraría, comprueba que no haya nada ajeno y escribe `contactos-conservados.ndjson` (los contactos `dtd-portal:` con otra bandeja, que no se borran) y `chatwoot-seco.hecho` | En Studio, en solo lectura (`deshacer.sh` de la #478, en `25843e6b8`, `:161-166`): que el tenant tenga la fila del flag `chatwoot_portal`; que no esté encendido ni se haya encendido alguna vez (`feature_flags` y `entity_audit_log`); que la cola no haya corrido (ninguna salida que no sea `cargado`); que haya hilos vinculados; y que todos sus espejos sean de esta bandeja. Si no lo puede comprobar, no corre. En Chatwoot, que no haya nada ajeno (debajo) | No cambió nada. Se corre `limpiar.sh` y se repite |
+| **1b · El ensayo de Chatwoot, opcional** (‹por confirmar hasta que la #478 esté en `main`›) | El DG, **solo antes del paso 3** | Hace todo y termina en ROLLBACK; no escribe `.hecho` | El `.ndjson` del paso 1 y la misma guarda de Studio del paso 1. **Después del paso 3 se niega:** si en la durable hay `chatwoot-borrar.hecho` o `chatwoot-borrar.inicio`, o en tmpfs un `chatwoot-borrar.hecho`, sale con `ya_hay_un_borrado_en_la_copia_durable` y no borra nada (`deshacer.sh` en `25843e6b8`, `:104-107`) | No cambió nada |
 | **2 · El ensayo de Studio** (‹por confirmar hasta que la #480 esté en `main`›) | El DG: rollback | Lee el `.ndjson`, ensaya el desarme y escribe `studio-ensayo.hecho`, solo en tmpfs | `chatwoot-seco.hecho` con el mismo sha256, el tenant, la cuenta y la bandeja | No cambió nada. Se repite |
-| **3 · El borrado de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | **Sam:** borrado permanente | Deja la copia durable, recalcula los conservados, borra y escribe `chatwoot-borrar.hecho` en las dos copias | Los dos `.hecho` en `=ok`, el mismo sha256 en los dos y en el `sha256sum` actual del `.ndjson`, y el mismo tenant | La transacción no se confirma: Chatwoot queda igual. Se borra cualquier `chatwoot-borrar.hecho` viejo de las dos copias y se repite el 3 |
+| **3 · El borrado de Chatwoot** (‹por confirmar hasta que la #478 esté en `main`›) | **Sam:** borrado permanente | Deja la copia durable, escribe ahí `chatwoot-borrar.inicio` antes de abrir su transacción, recalcula los conservados, borra y escribe `chatwoot-borrar.hecho` en las dos copias. El `.inicio` se queda al lado del `.hecho` (`deshacer.sh` en `25843e6b8`, `:189`) | Los dos `.hecho` en `=ok`, el mismo sha256 en los dos y en el `sha256sum` actual del `.ndjson`, y el mismo tenant. Que no haya ya un borrado: ni `chatwoot-borrar.hecho` ni `chatwoot-borrar.inicio` en la durable (`:104-107`) | Con un ROLLBACK comprobado, retira el `.inicio` y Chatwoot queda igual: se repite el 3. Si queda `.inicio` sin `.hecho`, ver «`chatwoot-borrar.inicio` sin `chatwoot-borrar.hecho`», debajo |
 | **4 · Studio aplica** (‹por confirmar hasta que la #480 esté en `main`›) | **Sam:** borrado permanente | Desarma los vínculos y escribe `studio-aplicar.hecho` en tmpfs y en la durable | `chatwoot-seco.hecho`, `studio-ensayo.hecho` (el mismo `entorno`) y `chatwoot-borrar.hecho` (`fin=commit`), con el mismo sha256 y el mismo tenant, y los de Chatwoot con la misma cuenta y bandeja. Usa la copia de tmpfs, o la durable si falta; si las dos están y no son iguales, se niega | Chatwoot ya está vacío y Studio sigue vinculado, sin daño con el flag apagado. **Se repite el 4 con el mismo `.ndjson`, sin volver a correr Chatwoot.** **Regla del DG: `chatwoot_portal` no se enciende hasta que el 4 salga con 0** |
 | **5 · El cierre** (‹por confirmar hasta que la #480 esté en `main`›) | **Sam** | Borra el `.ndjson` y los `.hecho` de las dos carpetas y comprueba que no quedó ninguna | `studio-aplicar.hecho` con `fin=commit`, en tmpfs o en la durable, y el sha256 del `.ndjson` que quede | Se repite el 5 |
 
@@ -400,9 +400,53 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   2. **Con el OK nominal de Sam,** se repite el paso 4 con `ESPERADOS_SALIDA=0 ESPERADOS_HILOS=0 ESPERADOS_CONTACTOS=0 ESPERADOS_ESPEJO=0`. No toca nada, porque ya no queda qué, y escribe `studio-aplicar.hecho` en las dos carpetas. Si un conteo no da 0, el desarme se niega y se para.
   3. Después, el paso 5.
 
-  **Si en la durable hay `chatwoot-borrar.inicio` sin `chatwoot-borrar.hecho`** (‹por confirmar hasta que la #478 esté en `main`›): el paso 3 empezó y no se sabe si confirmó. `--abandono-4-6b` se niega (‹por confirmar hasta que la #480 esté en `main`›) y el 1b también. Para salir:
-  1. **El DG mira en solo lectura** si la bandeja del portal de la cuenta 1 quedó vacía: las conversaciones y los `contact_inboxes` de esa bandeja. Si está vacía, el COMMIT pasó; si no, no pasó.
-  2. **Con el OK nominal de Sam,** se sigue según lo que dio. Los comandos de cada caso los fija la #478 ‹por confirmar hasta que la #478 esté en `main`›; aquí no se improvisan.
+  **Si en la durable hay `chatwoot-borrar.inicio` sin `chatwoot-borrar.hecho`:** el paso 3 empezó y no se sabe si confirmó; pudo haber un corte entre el COMMIT y el `.hecho`. Mientras tanto, `deshacer.sh` se niega a correr otro `MODO=borrar` (`ya_hay_un_borrado_en_la_copia_durable`), y `limpiar.sh --abandono-4-6b` no borra la durable. Los comandos son los de E5, para `deshacer.sh` de la #478 en `25843e6b89bceb71f375dccf39f8666b66b24316` (‹por confirmar hasta que la #478 esté en `main`›).
+
+  **1. La comprobación de solo lectura, que corre el DG.** Lee la bandeja del portal en Chatwoot y compara el sha256 del `.ndjson` de la durable con el del `.inicio`. Saca solo conteos y hashes:
+
+  ```bash
+  D=/srv/ops/portal-historial/deshacer
+  echo "sha_ndjson=$(sha256sum "$D/contactos-conservados.ndjson" | cut -c1-64)"
+  echo "sha_inicio=$(sed -n 's/.* conservados_sha256=\([^ ]*\).*/\1/p' "$D/chatwoot-borrar.inicio")"
+  docker exec -i -e PGOPTIONS='-c default_transaction_read_only=on' chatwoot-postgres-1 \
+    psql -X -q -At -v ON_ERROR_STOP=1 -U chatwoot -d chatwoot_production -v bandeja=<BANDEJA> -f - <<'SQL'
+  select 'bandeja=conversaciones:' || (select count(*) from public.conversations where inbox_id = :bandeja)
+    || ',mensajes:' || (select count(*) from public.messages where inbox_id = :bandeja)
+    || ',contact_inboxes:' || (select count(*) from public.contact_inboxes where inbox_id = :bandeja);
+  SQL
+  ```
+
+  **Cómo se lee:**
+  - **`sha_ndjson` distinto de `sha_inicio`:** se para y se avisa al DG. La durable no es la de ese borrado.
+  - **`bandeja=conversaciones:0,mensajes:0,contact_inboxes:0`:** el COMMIT pasó. Hay que cerrar el `.hecho`: es el camino A.
+  - **La bandeja con los mismos conteos del seco:** el borrado no confirmó. Los conteos del seco están en la línea `HECHO antes=` de la salida del paso 1, que va en su evidencia; `chatwoot-seco.hecho` no la trae. Hay que retirar el `.inicio`: es el camino B.
+  - **Otra cosa:** se para y se avisa al DG. El borrado es atómico, así que una bandeja a medias no es de este guion.
+
+  **2. Lo que corre Sam después, con su OK nominal, según lo que salió.**
+
+  **Camino A: el COMMIT pasó.** Se escribe `chatwoot-borrar.hecho` en la durable, y también en `/dev/shm/portal-historial` si todavía existe, con el formato del paso 3. Después se sigue con el paso 4.
+
+  ```bash
+  D=/srv/ops/portal-historial/deshacer
+  S="$(sha256sum "$D/contactos-conservados.ndjson" | cut -c1-64)"
+  L="HECHO chatwoot_borrar=ok conservados_sha256=$S tenant=<TENANT> cuenta=1 bandeja=<BANDEJA> fin=commit utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  for d in "$D" /dev/shm/portal-historial; do
+    [ -d "$d" ] || continue
+    ( umask 077; printf '%s\n' "$L" >"$d/chatwoot-borrar.hecho.parcial" ) && mv -f -- "$d/chatwoot-borrar.hecho.parcial" "$d/chatwoot-borrar.hecho"
+  done
+  ```
+
+  **Camino B: el borrado no confirmó.** Se retira el `.inicio` de la durable. Después se repite el paso 3 (`MODO=borrar CONFIRMAR=si`), con los mismos `.hecho` del 1 y del 2.
+
+  ```bash
+  rm -f -- /srv/ops/portal-historial/deshacer/chatwoot-borrar.inicio
+  ```
+
+  **La evidencia:** solo la salida de la comprobación, con conteos y hashes, y cuál de los dos caminos se tomó.
+
+  **Los OK nominales:**
+  - **Camino A:** «¿Autorizas escribir `chatwoot-borrar.hecho` en la copia durable, con la bandeja del portal vacía según la comprobación de solo lectura, para seguir con el paso 4?»
+  - **Camino B:** «¿Autorizas retirar `chatwoot-borrar.inicio` de la copia durable, con la bandeja del portal igual a la del seco, y repetir el paso 3?»
 
   **Si el 4.6b se abandona antes de que el paso 3 confirme** (el 3 falló, o no se corrió), Sam corre el abandono (‹por confirmar hasta que la #480 esté en `main`›). Borra las dos carpetas **solo si no hay `chatwoot-borrar.hecho`** en ninguna. Si lo hay, Chatwoot ya borró: se niega con `chatwoot_ya_borro_hay_que_terminar_el_paso_4`, y hay que terminar el 4.
 

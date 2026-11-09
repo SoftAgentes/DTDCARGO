@@ -219,3 +219,20 @@
 - **Qué significa:** un `--limpiar` encontró Docker sin responder, así que no borra nada, tampoco `/dev/shm/portal-historial`, y deja `HECHO error=docker_no_responde` y `HECHO ensayo_codigo=6`.
 - **Qué se hace:** no se sigue. Apenas Docker vuelva a responder, se corre `--limpiar` otra vez y la prueba de borrado.
 - Lleva su marca ‹por confirmar hasta la #473›.
+
+### El `.inicio` sin `.hecho`, con los comandos de E5 (la #478 en `25843e6b89bceb71f375dccf39f8666b66b24316`)
+
+- **Los comandos:** se copiaron tal cual de `0586-p4-2c-orden-4-6b.md`:
+  - la comprobación de solo lectura del DG: los sha256 del `.ndjson` y del `.inicio`, y los conteos de la bandeja con `default_transaction_read_only=on`, con sus cuatro lecturas;
+  - el camino A, que escribe `chatwoot-borrar.hecho` con el formato del paso 3;
+  - el camino B, que retira el `.inicio` y repite el 3.
+
+  Se suman los dos OK nominales de Sam, uno para cada camino.
+- **La fila 1** cita la guarda en `25843e6b8`, `:161-166`.
+- **La fila 1b:** después del paso 3 se niega con `ya_hay_un_borrado_en_la_copia_durable` y no borra nada (`:104-107`).
+- **La fila 3:**
+  - escribe el `.inicio` antes de su transacción (`:189`) y lo deja al lado del `.hecho`;
+  - exige que no haya ya un borrado;
+  - con un ROLLBACK comprobado, retira el `.inicio`;
+  - ya no borra el `.hecho` viejo.
+- **Las marcas:** salieron las que hablaban del `.inicio`. Quedan solo las de «hasta que esté en `main`».
