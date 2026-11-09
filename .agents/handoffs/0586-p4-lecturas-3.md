@@ -202,13 +202,13 @@
 - **La vuelta atrás del 3.0:** quita la carpeta vacía con `rmdir` si no queda `deshacer/`.
 - **`SISTEMA`:** ya no se lee en la shell de Sam. Sale de `sistema-produccion`, y el guion imprime su sha corto para compararlo con la nota del DG: `b4fbe1b236` en producción y `76ebba046a` en prueba. Queda ‹por confirmar hasta la #480›, en su vuelta.
 - **La fila 4:** exige también `chatwoot-seco.hecho`.
-- **`DB_CW` y `DB`:** tienen valor por defecto, y en los comandos se escriben explícitos.
+- **`DB_CW` y `DB`:** `DB_CW` tiene valor por defecto (`chatwoot-rails-1`) y `DB` no. En los comandos se escriben los dos. (Corregido en la revisión del DG en `0d8475e23`.)
 - **`sinComentarios()`:** anota que no maneja `E'…'` ni `$$`.
 - **Este handoff:** se corrigieron las líneas vencidas sobre el storage y sobre las filas 1 y 1b.
 
 **N5, cuando el paso 4 confirmó pero no quedó `studio-aplicar.hecho`:**
 - El DG comprueba en solo lectura que los cuatro conteos del desarme dan 0.
-- Con el OK de Sam se repite el paso 4 con los `ESPERADOS_*` en 0. La SQL compara los conteos con lo esperado, así que no toca nada y escribe el `.hecho`.
+- Con el OK de Sam se repite el paso 4 con `ESPERADOS_CONTACTOS` igual a los conservados de la cabecera y los demás en 0. Corregido en la revisión del DG en `0d8475e23`: los conservados conservan su `chatwoot_contact_id`, y la SQL exige `vaciados + conservados = esperados`. No borra nada; reescribe el `updated_at` del estado y escribe el `.hecho`.
 - Después, el cierre.
 
 **El `.inicio` sin `.hecho`:**
@@ -255,3 +255,26 @@
 4. **El archivo trae solo las cifras.** `tr -d '\n'` quita el salto final, y no puede quedar ni CR ni espacios. Se comprueba sin imprimir con `grep -qxE "[0-9]+"`, que tiene que dar `solo_cifras`.
 
 **El caso con `\n` final y el de CR o espacio** son de `deshacer-vinculos.sh`. Van en la #480, en local, y no en esta PR.
+
+### La revisión del DG en `0d8475e23` (CHANGES_REQUESTED)
+
+**Main:** traje `b5669b1a5` una vez (merge `ae8aa2cf5`), después de la #473, tren #487. Salen sus 17 marcas, y lo que se citaba de sus cabezas viejas (`2585e945f` y `b35595f30`) se cita ahora en `main`, en `b5669b1a5`. Lo comprobé: los ids, las líneas de limpieza, las imágenes, `MIGRACIONES`, `TIMEOUT_STOP_MIN_S`, los `zz_dtd_*.rb` y el código 6 en `:131-141`.
+
+**Los bloqueantes:**
+1. **N5 con contactos conservados.** Después de un paso 4 confirmado, los contactos con `chatwoot_contact_id` son exactamente los conservados, no 0. La SQL exige `vaciados + conservados = esperados`.
+   - Ahora se espera, y se repite el paso 4, con `ESPERADOS_CONTACTOS = el contactos de la cabecera del .ndjson`.
+   - Salió «no toca nada»: reescribe el `updated_at` de `chatwoot_portal_estado`.
+   - N5 tiene ahora su OK nominal literal.
+2. **El 3.0, contra el B3:**
+   - «Qué escribe» dice «por nombre» y suma el quinto paso, `sistema-produccion`;
+   - el OK cubre los cinco;
+   - salió «el `scp -r`».
+3. **`DB` no tiene valor por defecto;** solo lo tiene `DB_CW` (`deshacer.sh:50`). Si falta, `deshacer.sh:93-94` y `deshacer-vinculos.sh:43` se niegan.
+
+**Lo no bloqueante:**
+- **El abandono** se niega del todo con el `.inicio`, en los dos lugares.
+- **La #480** se cita en `be22af8a3`.
+- **El `find`** de la vuelta atrás va por `ssh` en el VPS.
+- **El camino B:** después de un reinicio se repiten antes los pasos 1 y 2.
+
+**Para la #480, fuera de esta PR:** el comentario de `deshacer-vinculos.sh:50` dice «puerta 1» y ahora es el 3.0.
