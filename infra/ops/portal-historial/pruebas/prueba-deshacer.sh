@@ -314,6 +314,7 @@ escenario() { # carpeta salidas modo
   case "$3" in
     sh) parte_sh "$1" "$2" ;;
     ajeno) parte_ajeno "$1" "$2" ;;
+    borrar) parte_borrar "$1" "$2" ;;
     completo) parte_sh "$1" "$2"; parte_ajeno "$1" "$2"; parte_borrar "$1" "$2" ;;
   esac
 }
@@ -409,14 +410,26 @@ comprobar() { # salidas modo
   case "$2" in
     sh) comprobar_sh "$1" ;;
     ajeno) comprobar_ajeno "$1" ;;
+    borrar) comprobar_borrar "$1" ;;
     completo) comprobar_sh "$1"; comprobar_ajeno "$1"; comprobar_borrar "$1" ;;
   esac
   return 0
 }
 
-log "== D. la vuelta atrás, sobre la carga real"
-escenario "$PH" "$TRABAJO/real" completo
-comprobar "$TRABAJO/real" completo
+PARTE="${PARTE:-todo}"
+case "$PARTE" in todo | a | b) ;; *) echo "PARTE tiene que ser a, b o todo"; exit 2 ;; esac
+en_parte() { # id del mutante: ¿corre en esta parte?
+  local suya=a
+  case "$1" in MD5 | MD6 | MD7 | MD21 | MD22 | MD23 | MD24 | MD25 | MD26 | MD27 | MD28 | MD30) suya=b ;; esac
+  [ "$PARTE" = todo ] || [ "$PARTE" = "$suya" ]
+}
+if [ "$PARTE" != b ]; then
+  log "== D. la vuelta atrás, sobre la carga real"
+  escenario "$PH" "$TRABAJO/real" completo
+  comprobar "$TRABAJO/real" completo
+else
+  log "== D. la corrida real va en la parte a; esta parte corre solo los mutantes del borrado"
+fi
 
 # ── M. Mutantes ──────────────────────────────────────────────────────────────
 mutar() { # archivo buscar reemplazo
@@ -431,6 +444,7 @@ open(a, "w", encoding="utf-8", newline="\n").write(t.replace(b, r))' "$1" "$2" "
 cayeron_en() { local k; for k in "${!RES[@]}"; do [ "${RES[$k]}" = FALLÓ ] && echo "$k"; done | sort | tr '\n' ' '; }
 mutante() { # id qué archivo modo caen pasan buscar reemplazo
   local id="$1" que="$2" arch="$3" modo="$4" caen="$5" pasan="$6" K="$TRABAJO/m/$1" faltan="" otro="" c
+  en_parte "$id" || return 0
   rm -rf -- "$K"; mkdir -p "$K"; cp -r "$PH/." "$K/"
   if ! mutar "$K/$arch" "$7" "$8" >"$K.mutar.txt" 2>&1; then mal "$id" "$que: no se pudo aplicar ($(cat "$K.mutar.txt"))"; return 0; fi
   # Lo ajeno y el borrado necesitan la carga en la bandeja: la corrida de antes (o un mutante completo) la dejó vacía
@@ -488,36 +502,36 @@ if [ "$MUTANTES" = 1 ]; then
   mutante MD20 "acepta ceros a la izquierda" deshacer.sh sh "D10" "D6a" \
     "'' | 0[0-9]* | *[!0-9]*) mal cuenta_o_bandeja_no_numerica ;;" "'' | *[!0-9]*) mal cuenta_o_bandeja_no_numerica ;;"
   # El seco, la lista y CONFIRMAR (deshacer-carga.rb), con el escenario completo.
-  mutante MD3 "borra el contacto que tiene otra bandeja" deshacer-carga.rb completo "D2 D5" "D1a D6a" \
+  mutante MD3 "borra el contacto que tiene otra bandeja" deshacer-carga.rb borrar "D2 D5" "D4" \
     "conservados = todos.select { |_, id| con_otra.include?(id) }.sort" "conservados = []"
-  mutante MD4 "borra mensajes fuera de la bandeja" deshacer-carga.rb completo "D5" "D2 D4" \
+  mutante MD4 "borra mensajes fuera de la bandeja" deshacer-carga.rb borrar "D5" "D2 D4" \
     "hecho('borrados_mensajes', mensajes.delete_all)" "hecho('borrados_mensajes', Message.where(account_id: @cuenta_id).delete_all)"
-  mutante MD5 "el seco confirma lo que borra" deshacer-carga.rb completo "D2" "D1a" \
+  mutante MD5 "el seco confirma lo que borra" deshacer-carga.rb borrar "D2" "D1a" \
     "        escribir_conservados(conservados)
         raise ActiveRecord::Rollback" "        escribir_conservados(conservados)
         mensajes.delete_all"
-  mutante MD6 "no compara la lista de conservados" deshacer-carga.rb completo "D3" "D2" \
+  mutante MD6 "no compara la lista de conservados" deshacer-carga.rb borrar "D3" "D2" \
     "raise DeshacerError, 'la lista de conservados cambió desde el seco' unless leer_conservados == conservados" "leer_conservados"
-  mutante MD7 "CONFIRMAR=no confirma" deshacer-carga.rb completo "D4" "D2 D3" \
+  mutante MD7 "CONFIRMAR=no confirma" deshacer-carga.rb borrar "D4" "D2 D3" \
     "raise ActiveRecord::Rollback unless @confirmar == 'si'" "nil"
   # Los .hecho y la copia durable (la secuencia del DG y la (a) de Sam).
-  mutante MD22 "CONFIRMAR=no escribe chatwoot-borrar.hecho" deshacer.sh completo "D4" "D2 D5" \
+  mutante MD22 "CONFIRMAR=no escribe chatwoot-borrar.hecho" deshacer.sh borrar "D4" "D2 D5" \
     '[ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && escribir_hecho_borrar' '[ "$MODO" = borrar ] && escribir_hecho_borrar'
-  mutante MD30 "escribe chatwoot-borrar.hecho antes del COMMIT" deshacer.sh completo "D15" "D2 D5" \
+  mutante MD30 "escribe chatwoot-borrar.hecho antes del COMMIT" deshacer.sh borrar "D15" "D2 D5" \
     '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"; escribir_hecho_borrar'
-  mutante MD23 "no borra el chatwoot-borrar.hecho viejo" deshacer.sh completo "D12" "D2 D5" \
+  mutante MD23 "no borra el chatwoot-borrar.hecho viejo" deshacer.sh borrar "D12" "D2 D5" \
     'rm -f -- "$H_BORRAR" "$DURABLE/chatwoot-borrar.hecho"' ':'
-  mutante MD24 "borra sin el ensayo de Studio" deshacer.sh completo "D11a" "D2 D5" \
+  mutante MD24 "borra sin el ensayo de Studio" deshacer.sh borrar "D11a" "D2 D5" \
     '[ -s "$H_ENSAYO" ] || mal falta_studio_ensayo_hecho' ':'
-  mutante MD25 "no compara el sha256" deshacer.sh completo "D11b" "D2 D5" \
+  mutante MD25 "no compara el sha256" deshacer.sh borrar "D11b" "D2 D5" \
     '[ "$sha_seco" = "$sha_actual" ] && [ "$sha_ensayo" = "$sha_actual" ] || mal el_sha256_de_los_conservados_no_coincide' ':'
-  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh completo "D11c" "D2 D5" \
+  mutante MD26 "no compara el tenant de los .hecho" deshacer.sh borrar "D11c" "D2 D5" \
     '[ "$(campo "$H_SECO" tenant)" = "$TENANT" ] && [ "$(campo "$H_ENSAYO" tenant)" = "$TENANT" ] || mal el_tenant_de_los_hecho_no_coincide' ':'
-  mutante MD27 "sin la copia durable" deshacer.sh completo "D14" "D2 D5" \
+  mutante MD27 "sin la copia durable" deshacer.sh borrar "D14" "D2 D5" \
     '  copiar_durable "$C" "$H_SECO" "$H_ENSAYO"' '  :'
-  mutante MD28 "la copia durable con permisos abiertos" deshacer.sh completo "D14" "D2 D5" \
+  mutante MD28 "la copia durable con permisos abiertos" deshacer.sh borrar "D14" "D2 D5" \
     'install -d -m 0700 "$DURABLE"' 'install -d -m 0755 "$DURABLE"'
-  mutante MD21 "no mira el tenant de los conservados" deshacer-carga.rb completo "D9" "D2" \
+  mutante MD21 "no mira el tenant de los conservados" deshacer-carga.rb borrar "D9" "D2" \
     "unless cab['tenant_id'] == @tenant && cab['cuenta'] == @cuenta_id && cab['bandeja'] == @bandeja_id" \
     "unless cab['cuenta'] == @cuenta_id && cab['bandeja'] == @bandeja_id"
 else
