@@ -110,6 +110,15 @@ describe("0516 · consulta de clientes desde Discord (PGlite)", () => {
     expect(await run(inline(CONTRACT, { transform: sinOrden }))).toMatch(/CONTRATO 1\/2: el código no fue primero/);
   }, 60_000);
 
+  // Revisión independiente de la #387: el filtro de tenant (`0516…sql:221`) no
+  // tenía mutante. Sin él, el Pedro Pérez del tenant 2 sale en la búsqueda del 1.
+  it("mutante: sin filtrar por tenant, aparece el cliente de otro tenant", async () => {
+    const sinTenant = mutar("where c.tenant_id = p_tenant_id\n", "where true\n");
+    expect(await run(inline(CONTRACT, { transform: sinTenant }))).toMatch(
+      /CONTRATO 1\/2: búsqueda «pedro perez» \(palabras sin acento\) dio \[DTD-0001,DTD-0002,DTD-0003,DTD-0010\]/,
+    );
+  }, 60_000);
+
   it("mutante: sin filtrar eliminados, aparece el Pedro Pérez borrado", async () => {
     const conBorrados = mutar("and c.deleted_at is null", "");
     expect(await run(inline(CONTRACT, { transform: conBorrados }))).toMatch(

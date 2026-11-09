@@ -80,7 +80,7 @@ async function autorizar(
     .eq("discord_user_id", discordUserId)
     .limit(2);
   if (perfiles.error || !perfiles.data) {
-    // Incluye la columna ausente (0514 sin aplicar).
+    // Incluye la columna ausente (una base sin la 0514).
     return { resultado: "no_disponible", userId: null, tenantId: null };
   }
   if (perfiles.data.length === 0) return { resultado: "sin_enlace", userId: null, tenantId: null };

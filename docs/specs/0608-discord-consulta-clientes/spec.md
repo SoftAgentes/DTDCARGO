@@ -4,7 +4,7 @@ title: "Consulta de clientes desde Discord: /cliente"
 status: in-progress
 author: "Claude"
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-09
 supersedes: null
 superseded_by: null
 related: ["0606", "0085", "0252", "0509"]
@@ -116,8 +116,9 @@ Pruebas:
 
 Contratos y configuración:
 
-- `supabase/migrations-baseline.json` (espera de la 0516)
-- `supabase/pending-migration-symbol-declarations.json` (declaración `sdd-0608-discord-consulta-clientes`)
+- `supabase/migrations-baseline.json` (espera de la 0516, retirada al sellarla)
+- `supabase/pending-migration-symbol-declarations.json` (declaración `sdd-0608-discord-consulta-clientes`, retirada al sellarla)
+- `supabase/migrations.lock.json` (sello de la 0516)
 - `.env.example`, `infra/dtd-cargo/.env.example` (`DISCORD_CONSULTA_PUBLIC_KEY`, `DISCORD_TENANT_ID`; y en la raíz las dos del script)
 
 Documentos:
@@ -148,6 +149,31 @@ Fuera: pantallas del Studio, la 0606 y sus archivos, la búsqueda del listado de
 
 Pruebas focales (`firma.test.ts`, `respuesta.test.ts`, `route.test.ts`, `consulta-clientes.migration.test.ts` con control rojo y mutantes en PGlite), `typecheck`, `lint`, `docs:check`, `sdd:check`, gate de símbolos pendientes y `pnpm verify` con turno del Director General. Resultado por comprobación en el handoff.
 
+## Aplicación en producción (2026-11-07)
+
+La aplicó el Director General con el runbook, desde la cabeza `610ad67762315da1767fa167a9f51bf6b8285402`. Pasó la lectura previa (16:31:57Z), el apply con su fila en el ledger y la verificación: una fila con el md5 y los bytes del archivo, y cuerpos vivos iguales al archivo. Los valores se copiaron de `IDENTIDAD.txt`, `registro.txt` y `verificar.out` de cada evidencia.
+
+| Base | COMMIT (UTC) | Versión del ledger | md5 del blob | Bytes | Ledger después | Evidencia en el servidor |
+|---|---|---|---|---|---|---|
+| Prueba (`dtd-cargo-staging`) | 2026-11-07 15:33:39Z | `20261107153339` | `e65bdf2c5a4226b344f147019453631a` | 12090 | 504 filas | `/srv/ops/evidencias/apply-0516-dtd-cargo-staging-20261107T153337Z` |
+| Producción (`dtd-cargo`) | 2026-11-07 16:32:39Z | `20261107163239` | `e65bdf2c5a4226b344f147019453631a` | 12090 | 516 filas | `/srv/ops/evidencias/apply-0516-dtd-cargo-20261107T163239Z` |
+
+- En la base viva, `discord_buscar_clientes` y `discord_consulta_registrar` no son `security definer` y tienen `search_path=""`. Ni `anon` ni `authenticated` las pueden ejecutar.
+- El ensayo en prueba lo corrió la sesión de esta spec, con lectura previa a las 15:33:12Z.
+  - La tabla quedó con RLS activa, sin policies, y sin privilegios para `anon` ni `authenticated`.
+  - El diff del esquema solo agrega la tabla, las dos funciones y sus comentarios, índices y RLS.
+  - Evidencia: `/srv/ops/evidencias/previa-0516-dtd-cargo-staging-20261107T153311Z` y `/srv/ops/evidencias/esquema-0516-dtd-cargo-staging/`.
+- El 2026-11-09, el Director General volvió a medir las dos bases antes de la revisión independiente: estaban aplicadas con el mismo md5 y no aplicó nada nuevo.
+
+Autorizaciones de Sam, literales:
+
+- «Sí, prueba y producción», 2026-11-06 ~18:10Z, en el chat del Director General, ante «¿Autorizas aplicar la 0516, primero en prueba y luego en producción?».
+- «Sí, en prueba», 2026-11-07 ~15:30Z, en la sesión de esta spec, ante «¿Ensayo la 0516 en el servidor de prueba (prueba.dtdcargo.com, dtd-cargo-staging)?».
+- Según `AUTORIZACION.txt` de la evidencia, también «Sí, en ese servidor», 2026-11-07 15:25Z, en el chat del Director General.
+- Activar `/cliente` es aparte: estas autorizaciones no lo cubren.
+
+Quedó sellada en `supabase/migrations.lock.json` y fuera de las esperas (`infra/ops/migraciones/retirar-espera.mjs`) en esta misma PR #387, por pedido del Director General. La cabecera «NO APLICADA» del `.sql` no se toca: el ledger guarda el texto exacto y la identidad se prueba por md5.
+
 ## Lo que activa Sam (fuera del repositorio)
 
-Crear la aplicación, instalarla en el servidor, poner `DISCORD_CONSULTA_PUBLIC_KEY` y `DISCORD_TENANT_ID` en el servidor, registrar el comando, guardar la URL de interacciones, habilitar el comando para el rol «Equipo» en Operación, OK nominal de la 0516 (y de la 0514) y descongelar la publicación. Paso a paso en el handoff.
+Crear la aplicación, instalarla en el servidor, poner `DISCORD_CONSULTA_PUBLIC_KEY` y `DISCORD_TENANT_ID` en el servidor, registrar el comando, guardar la URL de interacciones, habilitar el comando para el rol «Equipo» en Operación, OK nominal de la 0516 y de la 0514 (hechos y aplicadas, ver «Aplicación en producción») y descongelar la publicación. Paso a paso en el handoff.

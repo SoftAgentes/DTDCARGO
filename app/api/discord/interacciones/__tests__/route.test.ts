@@ -155,7 +155,7 @@ describe("autorización", () => {
     ]);
   });
 
-  it("columna discord_user_id ausente (0514 sin aplicar) → no disponible, sin búsqueda", async () => {
+  it("columna discord_user_id ausente (una base sin la 0514) → no disponible, sin búsqueda", async () => {
     const f = preparar(BASE, { busqueda: PEDROS, conError: ["user_profiles"] });
     const json = await contenido(await POST(pedido(interaccion())));
     expect(json.data.content).toMatch(/no está disponible/);
@@ -237,7 +237,7 @@ describe("autorización", () => {
 });
 
 describe("registro y límite", () => {
-  it("si no se puede registrar (0516 sin aplicar), no busca", async () => {
+  it("si no se puede registrar (una base sin la 0516), no busca", async () => {
     const f = preparar(BASE, { busqueda: PEDROS, errorRegistro: true });
     const json = await contenido(await POST(pedido(interaccion())));
     expect(json.data.content).toMatch(/no está disponible/);

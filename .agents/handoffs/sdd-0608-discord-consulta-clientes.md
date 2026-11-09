@@ -62,7 +62,7 @@ Veredicto propuesto: **adelante con tres condiciones**, ninguna resuelta en esta
 2. **Agregar `discord_consultas_clientes` al mapa de borrado** (`docs/legal/privacidad/mapa-de-borrado.md`): el término puede ser el nombre de un cliente y se guarda 180 días.
 3. **La línea de `/privacidad`** que declare que el equipo ve nombre y código del cliente en su mensajería interna. **El texto lo decide Sam**; se coordina con la línea que proponga la SDD-0606.
 
-## Autorización de la 0516 (registrada, no aplicada por esta sesión)
+## Autorización de la 0516 (aplicada por el Director General el 2026-11-07; ver «Aplicación y sello de la 0516»)
 
 Sam autorizó la 0516 en el **chat del Director General** (sesión `local_25e2dded-103b-4eaa-b10e-6527564b9cad`), el 2026-11-06 a las ~18:10Z. Lo transmitió a esta sesión el Subdirector (`local_61442abe-3b66-423e-9af4-8008d5457aa3`). **Esta sesión no leyó ese chat:** el texto es el que citó el Subdirector.
 
@@ -72,10 +72,50 @@ Sam autorizó la 0516 en el **chat del Director General** (sesión `local_25e2dd
 
 El archivo de autorización para `aplicar-remoto.sh --autorizacion` (nombra `0516`) va con el paquete, fuera del repositorio; su ruta y las huellas están en la descripción de la PR #387. **Aplica el Director General**, primero en prueba y después en producción, en el orden 0514 → 0515 → 0516. La vuelta atrás es `supabase/desarmes/0516_desarme.sql`: no se aplica sin otro OK nominal.
 
+## Aplicación y sello de la 0516
+
+La aplicó el Director General con el runbook, desde la cabeza `610ad67762315da1767fa167a9f51bf6b8285402`. Los valores están copiados de `IDENTIDAD.txt`, `registro.txt` y `verificar.out` de cada evidencia.
+
+| Base | Lectura previa | COMMIT (UTC) | Versión del ledger | md5 del blob | Bytes | Ledger | Evidencia |
+|---|---|---|---|---|---|---|---|
+| Prueba (`dtd-cargo-staging`), ensayo de esta sesión | PASÓ 15:33:12Z | 2026-11-07 15:33:39Z | `20261107153339` | `e65bdf2c5a4226b344f147019453631a` | 12090 | 503 → 504 filas | `/srv/ops/evidencias/previa-0516-dtd-cargo-staging-20261107T153311Z`, `/srv/ops/evidencias/apply-0516-dtd-cargo-staging-20261107T153337Z`, `/srv/ops/evidencias/esquema-0516-dtd-cargo-staging/` |
+| Producción (`dtd-cargo`), Director General | PASÓ 16:31:57Z | 2026-11-07 16:32:39Z | `20261107163239` | `e65bdf2c5a4226b344f147019453631a` | 12090 | 516 filas | `/srv/ops/evidencias/previa-0516-dtd-cargo-20261107T163157Z`, `/srv/ops/evidencias/apply-0516-dtd-cargo-20261107T163239Z` |
+
+**Verificación en las dos bases: PASÓ.**
+- Una fila de `0516_discord_consulta_clientes` con ese md5 y esos bytes, y los cuerpos vivos iguales al archivo.
+- md5 vivo: `discord_buscar_clientes` `67231132937ffcdfcf46cf0427ddd1f4` y `discord_consulta_registrar` `f9ee711de692761ef9e7a1df8963d38b`.
+- Las dos funciones no son `security definer`, tienen `search_path=""` y no tienen EXECUTE para `anon` ni para `authenticated`.
+
+**Solo en prueba:**
+- La tabla quedó con RLS activa y sin policies.
+- El diff del esquema solo agrega la tabla, las funciones y sus comentarios, índices y RLS; lo único que quita son los tokens aleatorios de `estrict`.
+
+El 2026-11-09 el Director General volvió a medir las dos bases: las dos estaban aplicadas con el mismo md5 y no aplicó nada nuevo.
+
+**Autorizaciones literales de Sam:**
+- «Sí, prueba y producción», 2026-11-06 ~18:10Z, en el chat del Director General.
+- «Sí, en prueba», 2026-11-07 ~15:30Z, en esta sesión, ante «¿Ensayo la 0516 en el servidor de prueba (prueba.dtdcargo.com, dtd-cargo-staging)?».
+- Según `AUTORIZACION.txt`, también «Sí, en ese servidor», 2026-11-07 15:25Z, en el chat del Director General.
+- Activar `/cliente` es aparte: estas autorizaciones no lo cubren.
+
+**Sello, en esta misma PR por pedido del Director General (2026-11-09):**
+- Se corrió `node infra/ops/migraciones/retirar-espera.mjs 0516_discord_consulta_clientes --md5 e65bdf2c5a4226b344f147019453631a` y salió con 0.
+  - Retiró la espera y 1 declaración, y selló con sha256 `5a77cf078d9de7598fdbc086b97d6673231d20614a11695f0d1329e06a3286d5`.
+  - Su lista `revisarAMano` salió vacía.
+- `node scripts/migrations-lock.mjs` salió con 0: 511 selladas y 2 esperas (0422 y 0423).
+- La cabecera «NO APLICADA» del `.sql` no se toca.
+- A mano, dos títulos de `route.test.ts` y un comentario de `consulta.ts` dejan de decir «sin aplicar». Las pruebas siguen midiendo qué pasa sin la migración.
+
+**Lo que no bloqueaba de la revisión independiente (APPROVED sobre `9723f300b`):**
+- Hecho: un mutante del filtro de tenant (`0516…sql:221`) en `consulta-clientes.migration.test.ts`. Sin el filtro, «pedro perez» trae el `DTD-0010` del tenant 2, y el contrato lo detecta.
+- Queda para otra spec: el ID de Discord enlazado no se verifica contra Discord.
+
+**Hora del merge:** la anota el Director General al fusionar.
+
 ## Condiciones para activar `/cliente`
 
 - Publicado el texto de `/privacidad` que Sam aprobó el 2026-11-06 (PR #399).
-- Aplicadas la 0514 (SDD-0606) y la 0516.
+- ~~Aplicadas la 0514 (SDD-0606) y la 0516.~~ Hecho: la 0514 el 2026-11-07 a las 07:49:56Z (#412) y la 0516 el 2026-11-07 a las 16:32:39Z.
 - Hecha la configuración de Discord (pasos de abajo).
 - **Nadie enlaza la cuenta compartida «DTD Cargo»** a un perfil del Studio.
 
@@ -84,7 +124,7 @@ El archivo de autorización para `aplicar-remoto.sh --autorizacion` (nombra `051
 1. **Crear la aplicación** en https://discord.com/developers/applications → «New Application» (por ejemplo «DTD Cargo Studio»). No hace falta bot.
 2. **Instalarla en el servidor:** OAuth2 → URL Generator → alcance sólo `applications.commands` → abrir la URL y elegir «DTD Cargo». O directo: `https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=applications.commands&guild_id=1534936818951262390`.
 3. **Llave pública al servidor:** copiar «Public Key» (General Information) y ponerla como `DISCORD_CONSULTA_PUBLIC_KEY` en `/srv/dtd-cargo/.env` con `infra/ops/migrate/env-set.sh`. Poner también `DISCORD_TENANT_ID` (uuid del tenant de DTD; la misma de la 0606) si todavía no está.
-4. **OK nominal de migraciones**, por el Director General y el runbook: `0514_user_profiles_discord_user_id` (SDD-0606) y `0516_discord_consulta_clientes`. Sin la 0514 el comando contesta «no disponible».
+4. ~~**OK nominal de migraciones**~~ (hecho, 2026-11-07), por el Director General y el runbook: `0514_user_profiles_discord_user_id` (SDD-0606) y `0516_discord_consulta_clientes`. Sin la 0514 el comando contesta «no disponible».
 5. **Descongelar la publicación** y publicar la web con esta PR fusionada (fusionar es del Director General).
 6. **Registrar el comando** desde su PC (no en el servidor), con «Application ID» y el secreto de OAuth2 («Reset Secret»):
    ```
@@ -109,4 +149,4 @@ El archivo de autorización para `aplicar-remoto.sh --autorizacion` (nombra `051
 
 ## HANDOFF AL DIRECTOR
 
-Integrar **después** de la PR de la SDD-0606, trayendo `main` una vez y haciendo los tres ajustes de «Pendientes» punto 2. Migraciones en orden 0514 → 0515 → 0516, cada una con OK nominal. Fusionar no autoriza aplicar ni publicar.
+Integrar **después** de la PR de la SDD-0606, trayendo `main` una vez y haciendo los tres ajustes de «Pendientes» punto 2. Migraciones en orden 0514 → 0515 → 0516, cada una con OK nominal: las tres están aplicadas, y la 0516 queda sellada en esta misma PR. Fusionar no autoriza aplicar ni publicar.
