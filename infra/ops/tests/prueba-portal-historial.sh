@@ -48,6 +48,8 @@ entrada="$(cat)"
 printf '%s\n' "${entrada}" >> "${FALSO_REGISTRO:?}"
 # Los argumentos, como los vería `ps`: SISTEMA no tiene que estar aquí.
 printf '%s\n' "$*" >> "${FALSO_ARGS:-/dev/null}"
+# El entorno de docker: SISTEMA no tiene que llegar exportado (N1).
+printf '%s\n' "${SISTEMA-__sin_sistema__}" >> "${FALSO_ENV:-/dev/null}"
 case "${entrada}" in
   *deshacer_vinculos*)
     # El .ndjson cambia mientras corre psql: deshacer-vinculos.sh no tiene que dejar evidencia.
@@ -360,6 +362,12 @@ caso_sistema_sha_corto && ok "en produccion imprime solo el sha256 corto de SIST
 caso_sistema_sin_archivo && ok "en produccion, sin el archivo de SISTEMA, se niega sin llamar a psql" || ko "sin archivo de SISTEMA: $(cat "${T}/dv.log")"
 caso_sistema_abierto && ok "en produccion, con el archivo de SISTEMA en 0644, se niega sin llamar a psql" || ko "SISTEMA abierto: $(cat "${T}/dv.log")"
 caso_sistema_en_el_entorno && ok "SISTEMA en el entorno se rechaza: va en el archivo" || ko "SISTEMA en el entorno: $(cat "${T}/dv.log")"
+# N1 (revisión del DG de la #480 en a0c32c9cc): un SISTEMA= vacío y exportado pasa la guarda del entorno. El guion lo
+# quita (unset), así que el valor leído del archivo no llega exportado al entorno de docker.
+export FALSO_ENV="${T}/env.txt"
+caso_sistema_no_exportado() { sin_hecho; cabecera; hecho_cw chatwoot-seco.hecho chatwoot_seco; : > "${FALSO_REGISTRO}"; : > "${FALSO_ENV}"; SISTEMA= dv; rc=$?
+  [ "${rc}" = 0 ] && [ -s "${FALSO_REGISTRO}" ] && grep -qx '__sin_sistema__' "${FALSO_ENV}" && ! grep -q "${SISTEMA_VALOR}" "${FALSO_ENV}"; }
+caso_sistema_no_exportado && ok "un SISTEMA= vacío y exportado no deja el valor del archivo en el entorno de docker" || ko "SISTEMA exportado: $(sed "s/${SISTEMA_VALOR}/<valor>/g" "${FALSO_ENV}")"
 caso_sistema_copia_sin_archivo && ok "en la copia no pide ni imprime SISTEMA" || ko "copia sin SISTEMA: $(cat "${T}/dv.log")"
 # El archivo de SISTEMA con un \n final da el mismo sha (lo quita el lector); con CR, un espacio o una segunda línea se
 # rechaza (condición del DG al aprobar el 3.0).
@@ -444,13 +452,27 @@ mutantes=0
 for par in seco:caso_seco_falta sha:caso_seco_otro_sha tenant:caso_seco_otro_tenant viejo:caso_ensayo_viejo \
            ensayo:caso_aplicar_sin_ensayo borrar:caso_aplicar_sin_borrar despues:caso_cambian_durante \
            respaldo:caso_reinicio distintas:caso_copias_distintas durable0700:caso_durable_no_0700 \
-           viejo_durable:caso_aplicar_viejo sistema_root:caso_sistema_no_root; do
+           viejo_durable:caso_aplicar_viejo sistema_root:caso_sistema_no_root \
+           sistema_entorno:caso_sistema_en_el_entorno sistema_0600:caso_sistema_abierto sistema_unset:caso_sistema_no_exportado; do
   g="${par%%:*}"; caso="${par#*:}"
   probar_mutante DV_GUION "${DS}/deshacer-vinculos.sh" "$g" "$caso"; r=$?
   informar_mutante "$r" "$g" "$caso" deshacer-vinculos.sh
   [ "$r" = 0 ] && mutantes=$((mutantes+1))
 done
-[ "${mutantes}" = 12 ] && ok "PISO: caen los 12 mutantes del orden, de la carpeta durable y del uid de SISTEMA" || ko "caen ${mutantes} de 12 mutantes"
+[ "${mutantes}" = 15 ] && ok "PISO: caen los 15 mutantes del orden, de la carpeta durable y de SISTEMA (uid, entorno, 0600 y unset)" || ko "caen ${mutantes} de 15 mutantes"
+# N2 (revisión del DG de la #480 en a0c32c9cc): DESHACER_SISTEMA_SHA y DESHACER_SISTEMA_UID solo aparecen dentro del
+# `if [ "${DESHACER_PRUEBA:-}" = 1 ]; then … fi`. Fuera de él, el esperado y el uid de producción no se pueden cambiar.
+# El contrato exige al menos dos apariciones adentro (para que no pase vacío) y ninguna afuera.
+contrato_solo_en_prueba() { awk -v si='if [ "${DESHACER_PRUEBA:-}" = 1 ]; then' '
+  $0 == si { dentro = 1; next }
+  dentro && $0 == "fi" { dentro = 0; next }
+  index($0, "DESHACER_SISTEMA_SHA") || index($0, "DESHACER_SISTEMA_UID") { if (dentro) d++; else f++ }
+  END { exit !(d >= 2 && f == 0) }' "$1"; }
+contrato_solo_en_prueba "${DS}/deshacer-vinculos.sh" && ok "DESHACER_SISTEMA_SHA y DESHACER_SISTEMA_UID solo aparecen dentro del if de DESHACER_PRUEBA=1" || ko "DESHACER_SISTEMA_SHA o _UID fuera del if de la prueba, o no están"
+# Su mutante: una copia con una línea más, fuera del if, que cambia el uid desde el entorno. El contrato la rechaza.
+cp "${DS}/deshacer-vinculos.sh" "${T}/mut/n2-afuera.sh"
+printf '%s\n' 'SISTEMA_UID="${DESHACER_SISTEMA_UID:-0}"' >> "${T}/mut/n2-afuera.sh"
+! contrato_solo_en_prueba "${T}/mut/n2-afuera.sh" && ok "mutante del contrato N2: un DESHACER_SISTEMA_UID fuera del if se detecta" || ko "mutante del contrato N2: un DESHACER_SISTEMA_UID fuera del if pasa"
 # MUTANTES que tienen que caer PORQUE LLEGAN A PSQL (revisión del DG de la #480 en 65539df37): no basta con que su caso
 # falle, porque otra guarda podría frenarlos con otro texto. Después del mutante, el registro del docker falso tiene
 # que tener la llamada.
