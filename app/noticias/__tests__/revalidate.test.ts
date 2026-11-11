@@ -4,11 +4,12 @@ import { describe, expect, it } from "vitest";
 
 // Las páginas de /noticias leen news_posts con la anon. Sin `revalidate` Next las
 // prerrenderiza estáticas en el build y una lectura fallida queda horneada.
-const PAGINAS = ["page.tsx", join("[slug]", "page.tsx")];
+// Rutas relativas a app/noticias. El sitemap también lee news_posts.
+const PAGINAS = ["page.tsx", join("[slug]", "page.tsx"), join("..", "sitemap.ts")];
 
 describe("/noticias no se hornea vacía en el build", () => {
-  it("hay dos páginas que vigilar", () => {
-    expect(PAGINAS).toHaveLength(2);
+  it("hay tres archivos que vigilar", () => {
+    expect(PAGINAS).toHaveLength(3);
   });
   for (const rel of PAGINAS) {
     it(`${rel} exporta revalidate finito`, () => {
