@@ -26,6 +26,7 @@ import { GastosKpis } from "./_components/GastosKpis";
 import { attachmentsPilotState } from "@/lib/studio/attachments/pilot-gate";
 import { canSpecial } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Gastos" };
 
@@ -41,6 +42,10 @@ export default async function GastosPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("expenses");
+
   const rawParams = await searchParams;
   const scope = parseScope(rawParams.scope);
   const month = asString(rawParams.month);

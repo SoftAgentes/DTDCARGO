@@ -171,6 +171,16 @@ const EXCEPCIONES: Lista = {
   "mis-bugs/actions.ts::createBugAction":
     "Bugs propios del usuario: reportar está abierto por diseño a todo el staff.",
 
+  // SDD-0624 · perfil PROPIO, alcance verificado leyendo el código y la base.
+  "usuarios/actions.ts::updateMyProfileAction":
+    "SDD-0624: sólo `update` de `user_profiles` con `.eq(\"user_id\", <auth.uid() de la sesión>)` (`usuarios/actions.ts`, updateMyProfileAction), y la policy `user_profiles_owner_update` (0019:360) exige `user_id = auth.uid()` en USING y WITH CHECK. No toca datos de negocio ni de otros usuarios.",
+  "usuarios/actions.ts::updateMyPreferencesAction":
+    "SDD-0624: mismo `update` propio de `user_profiles` y un `upsert` de `user_notification_prefs` con `user_id` = el de la sesión, que las policies owner de la 0028 (:682, :686) atan a `auth.uid()`.",
+  "usuarios/actions.ts::linkTelegramAccountAction":
+    "SDD-0624: pasa por `audit_d1_execute` ('notification_channel.link'), cuya única definición (0289:317-333) escribe sobre `user_id = v_actor_id` (auth.uid()), no sobre el target que mande el cliente.",
+  "usuarios/actions.ts::unlinkTelegramAccountAction":
+    "SDD-0624: `audit_d1_execute` ('notification_channel.unlink', 0289:335-348) actualiza la fila de `v_actor_id`; mismo alcance propio que el link.",
+
   "usuarios/actions.ts::sendAccessLinkBulkAction":
     "Delega ÍNTEGRAMENTE en `sendAccessLinkAction`, que lleva `moduleEditDenial(supabase, \"users\")` al tope (`:444`). El contrato no lo ve porque la delegación va dentro de un callback, y un guard dentro de un callback no domina EN GENERAL — la regla se conserva y la excepción se escribe acá.",
 };
@@ -195,57 +205,16 @@ const EXCEPCIONES: Lista = {
  * archivos del repo.
  */
 const DEUDA: Lista = {
-  // ── gate artesanal fail-closed: getStudioRole + canAccessModule sin overrides ──
-  "academia/actions.ts::loadCourseEditorTreeAction":
-    "Gate artesanal de vista: `getStudioRole` + `canAccessModule(role, MODULE)` SIN overrides. Migrar a `moduleViewDenial(supabase, \"academia\")`.",
-  "academia/actions.ts::lookupStudentCiAction":
-    "Gate artesanal de vista (mismo patrón); el lookup devuelve nombre y Shipping Mark a partir de una cédula. Migrar a `moduleViewDenial(supabase, \"academia\")`.",
-  "club/actions.ts::lookupMemberCiAction":
-    "Gate artesanal de vista (mismo patrón que Academia). Migrar a `moduleViewDenial(supabase, \"club\")`.",
-  "reclamos/actions.ts::updateClaimFinancialsAction":
-    "Gate artesanal de producto: `getStudioRole` + `role !== \"accounting\" && role !== \"admin\"` inline. Es fail-closed a `disabled_at`, pero es una cuarta forma de decidir permisos. La regla («solo Contabilidad edita la resolución financiera») NO es la fila del módulo `reclamos`, así que migrarla exige decidir su gate — no es mecánico.",
-
-  // ── sólo sesión: cualquier miembro del tenant pasa ──
-  "clientes/actions.ts::geocodeClientAddressAction":
-    "Sólo `auth.getUser()`. No toca datos del tenant —llama a Nominatim—, pero gasta la cuota de geocodificación de la casa sin mirar el rol.",
-  "gastos/actions.ts::resolveExpenseAlertAction":
-    "Sólo `auth.getUser()`: resuelve a mano una alerta de gastos sin comprobar el módulo `expenses`.",
-  "gastos/actions.ts::exportExpensesCsvAction":
-    "Sólo `auth.getUser()`, y lo que sale es un ARCHIVO con los gastos del mes. Mismo razonamiento que `exportRecoverySmsCsvAction` en SDD-0497: una exportación es tan invocable como una mutación.",
-  "documentos/actions.ts::addDocumentVersion":
-    "Sesión + `resolveTenant` a mano (`rpc(\"get_user_tenant_id\")`); sin gate de módulo antes de subir una versión nueva al bucket.",
-  "bitacora/collab-actions.ts::getTaskCommentsAction":
-    "Sesión + `getUserTenantId()` a mano; sin gate del módulo `bitacora`.",
-  "bitacora/collab-actions.ts::listTaskAttachmentsAction":
-    "Sesión + tenant a mano, y FIRMA URLs del bucket de bitácora. Valida el shape del path antes de firmar, pero no el rol.",
-  "usuarios/actions.ts::updateMyProfileAction":
-    "Edición del perfil PROPIO. Probablemente excepción legítima (como `dashboard`), pero el alcance al propio `user_id` no se verificó en esta tarea: queda en DEUDA hasta comprobarlo, no en EXCEPCIONES.",
-  "usuarios/actions.ts::updateMyPreferencesAction":
-    "Preferencias PROPIAS; mismo pendiente de verificación que `updateMyProfileAction`.",
-  "usuarios/actions.ts::linkTelegramAccountAction":
-    "Vincula la cuenta de Telegram del PROPIO usuario; mismo pendiente de verificación.",
-  "usuarios/actions.ts::unlinkTelegramAccountAction":
-    "Desvincula la cuenta de Telegram del PROPIO usuario; mismo pendiente de verificación.",
+  // SDD-0624 (2026-11-11) vació esta lista salvo las tres de tarifas, que son
+  // de la SDD-0622 (permisos por persona, tablas comerciales). Las del perfil
+  // propio pasaron a EXCEPCIONES con el alcance verificado; el resto tiene ya
+  // su gate central.
 
   // ── sin candado de aplicación: sólo queda la RLS ──
-  "bugs/actions.ts::updateBugAdminAction":
-    "Sin gate de aplicación: hace `from(\"bug_reports\").update(...)` directo. El candado vive en la DB —policy `bug_reports_admin_update` más el grant por columna de migr 0394 (`:80`)—, y el propio código lo delata al tratar el error `42501`. Defensa en profundidad perdida, no agujero.",
   "cotizador/actions.ts::lookupSuggestedRate":
     "Sin candado: resuelve la tarifa sugerida de un cliente (`clientIdByMarkbox` + `resolveRateForClient`). Lo que devuelve es precio.",
   "tracking/[id]/actions.ts::lookupRateForNewDestination":
     "Sin candado: busca tarifa por destino. Mismo caso que `lookupSuggestedRate`.",
-  "facturacion/actions.ts::lookupShipmentForInvoice":
-    "Sin candado: `from(\"shipments\").select` por código. Lectura acotada sólo por la RLS de tenant.",
-  "facturacion/actions.ts::lookupInvoiceBillingOptions":
-    "Sin candado: `from(\"clients\").select` con los datos de facturación del cliente.",
-  "documentos/actions.ts::signDocumentUrl":
-    "Sin candado de módulo. Desde SDD-0508 recibe el id de la fila, no un path: firma el `storage_path` de una fila de `documents` que la RLS deje leer, en el bucket que dice la fila (sólo `documents` o `bitacora`). Lo que acota es la RLS de `documents` y la de `storage.objects`.",
-  "documentos/actions.ts::listDocumentVersionsAction":
-    "Sin candado: lista el historial de versiones de una cadena documental.",
-  "nomina/actions.ts::listPayrollRunLinesAction":
-    "Sin candado, en un módulo que es dinero Y PII de empleados. El comentario del código dice «la RLS por tenant+rol ya restringe» — puede ser cierto y aun así el gate de aplicación falta.",
-  "nomina/actions.ts::listSettlementLinesAction":
-    "Sin candado; mismo caso que `listPayrollRunLinesAction`.",
   "tarifas/actions.ts::previewRatesImportAction":
     "Sin candado, pero NO toca datos: `return parseRatesCsv(csv)` sobre el texto que mandó el propio llamante. El riesgo es el menor de la lista; se deja acá para no cambiar comportamiento fuera del encargo.",
 };
@@ -381,10 +350,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   it("el tamaño de las dos listas está congelado", () => {
     // Bajar estos números es progreso y hay que actualizarlos; subirlos exige
     // defender por escrito cada entrada nueva en una PR.
+    // SDD-0624: DEUDA 24 → 3 (17 con gate central; las 4 del perfil propio,
+    // verificadas, a EXCEPCIONES 20 → 24). Quedan las 3 de tarifas (SDD-0622).
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 20, deuda: 24 });
+    }).toEqual({ excepciones: 24, deuda: 3 });
   });
 
   for (const { rel, r } of reportes) {

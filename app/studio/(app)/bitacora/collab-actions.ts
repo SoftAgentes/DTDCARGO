@@ -24,6 +24,7 @@ import { getUser, getUserTenantId } from "@/lib/auth/session";
 import {
   getStudioRole,
   moduleEditDenial,
+  moduleViewDenial,
 } from "@/lib/studio/rbac-guard";
 import { canSpecial } from "@/lib/studio/rbac";
 import {
@@ -71,12 +72,16 @@ export type TaskCommentsPayload = {
 export async function getTaskCommentsAction(
   taskId: string,
 ): Promise<TaskCommentsPayload | { error: string }> {
+  const supabase = await createClient();
+  // SDD-0624: gate del módulo además de la sesión y el tenant.
+  const denial = await moduleViewDenial(supabase, "bitacora");
+  if (denial) return { error: denial };
+
   const user = await getUser();
   const tenantId = await getUserTenantId();
   if (!user || !tenantId) return { error: "No autenticado." };
   if (!UUID_RE.test(taskId)) return { error: "Tarea inválida." };
 
-  const supabase = await createClient();
   const users = await loadTenantUsers(tenantId);
   const comments = await listComments(
     supabase,
@@ -125,10 +130,13 @@ export type TaskAttachment = {
 export async function listTaskAttachmentsAction(
   taskId: string,
 ): Promise<TaskAttachment[]> {
+  const supabase = await createClient();
+  // SDD-0624: esta acción FIRMA URLs del bucket; exige ver la bitácora.
+  if (await moduleViewDenial(supabase, "bitacora")) return [];
+
   const tenantId = await getUserTenantId();
   if (!tenantId || !UUID_RE.test(taskId)) return [];
 
-  const supabase = await createClient();
   const docs = await listDocumentsByEntity(supabase, "bitacora_task", taskId);
 
   return Promise.all(

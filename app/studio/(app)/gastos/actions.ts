@@ -14,7 +14,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import {
+  capabilityDenial,
+  moduleEditDenial,
+  moduleViewDenial,
+} from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   autoResolveAlertForShipment,
@@ -346,6 +350,11 @@ export async function resolveExpenseAlertAction(
   alertId: string,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  // SDD-0624: cerrar una alerta es editar gastos (accounting, operations y
+  // warehouse —el equipo CN que la atiende— + admin). Antes bastaba la sesión.
+  const denial = await moduleEditDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 
@@ -387,6 +396,11 @@ export async function exportExpensesCsvAction(
   month?: string,
 ): Promise<ExportResult> {
   const supabase = await createClient();
+  // SDD-0624: una exportación es tan invocable como una mutación; exige ver
+  // el módulo de gastos.
+  const denial = await moduleViewDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 

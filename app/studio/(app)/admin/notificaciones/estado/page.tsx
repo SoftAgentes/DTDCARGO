@@ -27,6 +27,7 @@ import {
   type NotificationStatus,
   type StaffNotificationItem,
 } from "@/lib/studio/notifications/notification-staff-queries";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Estado del motor de avisos · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -52,6 +53,10 @@ function formatDateTime(iso: string | null): string {
 }
 
 export default async function EstadoAvisosPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin");
+
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();

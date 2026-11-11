@@ -32,6 +32,7 @@ import type {
   MailLogStatus,
   SignatureTeamMember,
 } from "./_components/mailing-types";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Mailing · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -79,6 +80,10 @@ export default async function MailingAdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("mailing");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");

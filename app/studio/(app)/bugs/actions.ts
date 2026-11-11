@@ -15,6 +15,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { tenantAdminGate } from "@/lib/studio/rbac-guard";
 import {
   validatePostBugMessageInput,
   type BugActionState,
@@ -225,6 +226,14 @@ export async function updateBugAdminAction(
   }
 
   const supabase = await createClient();
+  // SDD-0624: el candado vivía sólo en la base (policy bug_reports_admin_update
+  // + grant por columna de la 0394). Se suma el de aplicación, con el mismo
+  // criterio: sólo un administrador activo del tenant.
+  const gate = await tenantAdminGate(supabase, {
+    denied: "Solo admins pueden editar bugs.",
+  });
+  if (!gate.ok) return { error: gate.denied };
+
   const { error } = await supabase
     .from("bug_reports")
     .update(update)

@@ -20,10 +20,15 @@ import {
 } from "@/lib/studio/payment-queries";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { CobranzasClient } from "./_components/CobranzasClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Cobranzas" };
 
 export default async function CobranzasPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("collections");
+
   const supabase = await createClient();
 
   // SDD-0558: «hoy» es la fecha de Caracas, la misma de `client_outstanding`

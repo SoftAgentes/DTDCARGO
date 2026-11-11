@@ -16,8 +16,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { getStudioRole, moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { canAccessModule } from "@/lib/studio/rbac";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   findPersonByCedula,
   getPersonCargoMarkbox,
@@ -237,8 +236,8 @@ export async function lookupMemberCiAction(rawCi: string): Promise<{
   normalized?: string;
 }> {
   const supabase = await createClient();
-  const role = await getStudioRole(supabase);
-  if (!canAccessModule(role, MODULE)) return { status: "empty" };
+  // SDD-0624: gate central (overrides, alcance y disabled_at) en vez del artesanal.
+  if (await moduleViewDenial(supabase, MODULE)) return { status: "empty" };
 
   const trimmed = (rawCi ?? "").trim();
   if (!trimmed) return { status: "empty" };

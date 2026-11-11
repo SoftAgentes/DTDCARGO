@@ -43,6 +43,7 @@ import {
   type ReceiptTemplateInvoice,
 } from "@/lib/studio/receipts/receipt-template";
 import { PrintButton } from "./PrintButton";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Recibo de cobranza · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -75,6 +76,10 @@ export default async function ReceiptPrintPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("collections");
+
   const { code: raw } = await params;
   const code = decodeURIComponent(raw ?? "").trim();
 
