@@ -67,3 +67,11 @@
 - **`lanzar-unidad.sh:31`** pasa a `:32` (`readonly TIMEOUT_STOP_S=600`).
 - **La prueba de borrado** incluye `/tmp` del Chatwoot de producción: el conteo de `ls -A /tmp` en `chatwoot-rails-1` y en `chatwoot-postgres-1`, anotado antes de la corrida y comparado después. El ensayo no escribe ahí: lee por `COPY … TO STDOUT`, y `ensayo-portal.sh` no nombra `/tmp`.
 - **El merge-tree** se mide contra el `main` que traiga la #504, antes de subir.
+
+## Main `8f2029a80`, con la #504 en main (tren Z, #508)
+
+- **El merge:** `b39af3bd0`. El merge-tree contra `8f2029a80` se midió antes y dio limpio.
+- **Lo que trae main en la zona del runbook:** solo la #504.
+  - En el runbook de puertas, la #504 cambió 4 líneas (el 3.0 y la tabla del 4.6b), sin cruce con esta PR.
+  - En `infra/ops/portal-historial/` cambió `deshacer.sh`, `deshacer-carga.rb` y `pruebas/`. No hay ningún archivo nuevo que copiar al VPS: la lista de 27 del 3.0 sigue igual, y sus sha256 ahora son los de `main` después de la #504.
+- **El cierre de docs:** `docs:check` y `sdd:check` dan PASÓ después del merge.
