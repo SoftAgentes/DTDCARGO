@@ -351,3 +351,13 @@ Lo que se hizo:
 - Después, el piso de portal-historial sube al conteo real.
 
 **Cabeza de cierre en draft.** No hay verde que cuente: la última cabeza medida, `1e2c94b93`, dio rojo por la causa de arriba. **Al volver:** el arreglo del piso de SDD-0609, ready y CI sobre la cabeza nueva.
+
+## La reanudación del 2026-11-11 (Sam)
+
+- **El handoff del cierre:** `dd7387fd9` entró en `fa27fc217`. El `git diff dd7387fd9 fa27fc217` es solo la nota del CI del cierre, +17 líneas, porque se rehízo en un commit con `reset --soft`.
+- **Main:** merge de `09e6b279f` (`ebc45c494`). El merge-tree se midió antes y dio limpio. Main no tiene el contrato de pisos (`git grep piso_declarado origin/main`: 0); el contrato llega con esta PR.
+- **El arreglo del rojo de `1e2c94b93`:** `PISO` declara las dos suites de SDD-0609 que no tenían piso: `prueba-guardar-webhook-discord.sh`=32 y `prueba-runbook-avisos-discord.sh`=12. `prueba-aviso-discord.sh` ya estaba en 39.
+  - **De dónde salen los conteos:** del run verde de `quality.yml` en `main` 42644759076, en `27fac70db`, job 129255129752, leído con `gh api …/jobs/129255129752/logs`. Ahí dan 39, 32 y 12 PASÓ.
+  - **Por qué vale ese run:** entre `27fac70db` y `09e6b279f`, `pruebas-linux.sh` lista las mismas tres suites de Discord.
+- **Cada prueba de la lista tiene su piso,** comprobado con un bucle sobre `PRUEBAS`.
+- **El piso de portal-historial** sigue en 129 hasta el verde de esta cabeza. En el cierre sube al conteo real.
