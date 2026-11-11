@@ -173,7 +173,11 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
      con dueño `agentes`, el grupo del usuario del motor y permisos 750. Sin ella sale con 65;
      además rechaza con 66 todo argumento que, resuelto, caiga en `/srv/oficina/trabajo`, la
      carpeta que escriben los GLM. Las rutas relativas las resuelve desde la carpeta donde
-     trabaja el motor (`/srv/oficina/motores/<perfil>`), y las revisa aunque todavía no existan;
+     trabaja el motor (`/srv/oficina/motores/<perfil>`), y las revisa aunque todavía no existan.
+     También sale con 66 si un argumento, o el valor de `--opción=valor`, empieza por `~`, y si
+     a Codex le llega `-C` o `--cd` en cualquiera de sus formas. Una opción corta con la ruta
+     pegada (`-i<ruta>`, `-i=<ruta>`) se revisa igual: sale con 66 si esa ruta empieza por `~` o
+     cae en `/srv/oficina/trabajo`;
   3. quita `--mcp-config` y su valor, y conserva `--strict-mcp-config`;
   4. borra las corridas de más de 3 horas y ejecuta `sudo -n -u <usuario> dtd-agente-run`.
 - **`dtd-agente-run`** parte del `dtd-agente-run` vivo, medido el 2026-11-06 a las 15:22 UTC.
@@ -185,9 +189,21 @@ Los archivos están en `infra/oficina/envoltorios/`. El detalle, en su
     Antes comprueba que nadie más que el usuario del motor o root pueda escribirla, ni lo que
     cargan de ella (`.claude`, `.mcp.json`, `CLAUDE.md`, `.codex`, `AGENTS.md`), ni un padre. Si
     no, sale con 66.
+  - Ya en esa carpeta y como el usuario del motor, revisa otra vez los argumentos de Claude y
+    Codex, también el valor pegado a una opción corta. Si uno, resuelto con sus enlaces, cae en
+    `/srv/oficina/trabajo`, sale con 66.
+  - **Diseño conocido:** quien llame a `dtd-agente-run` directo se salta las revisiones de
+    `dtd-motor` (la lista de copias, `~` y `-C`). No agrega riesgo: el sudoers solo deja llamarlo
+    a `agentes`, que es quien corre `dtd-motor`, y `agentes` ya podría pasarle esos argumentos a
+    `dtd-motor`. `dtd-agente-run` conserva sus propias revisiones: la tabla cerrada, la carpeta
+    segura y las rutas de los GLM.
   - Hace `unset` de `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` y `OPENAI_API_KEY`, y solo
     Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-  - La rama `hermes` no cambia.
+  - La rama `hermes` solo cambia en el `PATH`. Toma el primer node que exista de una lista
+    cerrada y sin comodines: `node-26.12.1-linux-x64` (Hermes 0.23) y después
+    `node-26.7.0-linux-x64`, que se queda para volver atrás. Si vuelve al viejo, deja una línea
+    de aviso en stderr, que queda en el registro de la corrida. Si no hay node, sale con 69. ripgrep
+    sigue como estaba: en el VPS su carpeta no trae `bin/rg` (medido el 2026-11-07).
 - **El sudoers suma tres cosas:**
   - `CLAUDE_CODE_OAUTH_TOKEN` en `env_keep`;
   - `!log_allowed` y los dos usuarios nuevos como destino;
@@ -342,7 +358,7 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
    usuario.
 4. Claude y Codex nunca reciben `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` ni `OPENAI_API_KEY`.
    Solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`.
-5. Las pruebas pasan sin saltos en Linux, con un piso de 46 en el harness, y todos los mutantes
+5. Las pruebas pasan sin saltos en Linux, con un piso de 63 en el harness, y todos los mutantes
    mueren.
 6. La guía y las instrucciones no traen llaves, IP ni datos de clientes.
 
@@ -405,6 +421,34 @@ siguiente.
   `extraArgs`, `command`, `cwd` ni `env` (`routes/agents.js`,
   `assertNoAgentLocalAdapterHostCommandMutation`).
 - **Reinstalar lo decide Sam por medio del DG.**
+
+## Riesgos BAJOS de la aprobación (2026-11-07)
+
+El DG aprobó la #407 sobre la cabeza `1388a7ef4` y dejó tres riesgos BAJOS. Ninguno es explotable
+hoy: una llave de agente no puede cambiar `args`, `extraArgs`, `command`, `cwd` ni `env`. Los
+corrige una PR aparte, que parte de `main`.
+
+| # | Riesgo | Medido | Arreglo |
+|---|---|---|---|
+| 1 | `dtd-motor` corre como `agentes` y no ve los enlaces dentro de `motores/<perfil>` (700) | En el VPS de la oficina, en `/tmp`: un enlace `notas` → `trabajo/ceo` en una carpeta 700. El dueño lo resuelve hacia `trabajo/ceo`; `agentes` devuelve `motores/ceo/notas` | `dtd-agente-run` revisa otra vez los argumentos como el usuario del motor y desde su carpeta. Rechazar en `dtd-motor` las relativas que `agentes` no resuelve las rechazaría todas, también `high` o `hola` |
+| 2 | `~` no se expande: `~/../../srv/oficina/trabajo` pasaba como `motores/srv/oficina/trabajo` | Mismo VPS, como `agentes` | `dtd-motor` sale con 66 si un argumento, o el valor de `--opción=valor`, empieza por `~`. Paperclip le manda el prompt a Claude por stdin (`adapter-claude-local`, `execute.js`) |
+| 3 | `codex -C <carpeta>` cambia desde dónde se resuelven las relativas | Codex 0.163.0: `-C` se resuelve desde el cwd del proceso y pasa a ser la carpeta de la sesión, de donde salen las `--add-dir` relativas y el proyecto activo | `dtd-motor` rechaza `-C`, `-C<carpeta>`, `-C=<carpeta>`, `--cd` y `--cd=<carpeta>`. Revisar solo la carpeta no alcanza: `-C /tmp/x` mudaría la raíz del proyecto fuera de la carpeta que revisa `dtd-agente-run`. `codex_local` 2026.1012.0 no pasa `-C` |
+
+En la misma PR, a pedido del co-CEO, el `PATH` de Hermes deja de tener fija la carpeta de
+node 26.7.0. Hermes 0.23 trae 26.12.1, y la carpeta vieja se rompería el día que alguien la borre.
+
+La revisión del DG sobre `dbe4a5576` (2026-11-07) pidió, además:
+
+- cerrar las opciones cortas con la ruta pegada (`-i/srv/oficina/trabajo/x.png`, `-i~/…`). Hoy no
+  son explotables, porque ninguna opción corta de Claude o Codex que pasa Paperclip toma una ruta
+  así. `dtd-motor` revisa el valor pegado como si viniera aparte (`~` y carpeta de los GLM), y
+  `dtd-agente-run` lo revisa otra vez como el usuario del motor;
+- que la vuelta a node 26.7.0 avise con una línea en stderr en vez de ser silenciosa;
+- anotar como diseño conocido que llamar a `dtd-agente-run` directo se salta las revisiones de
+  `dtd-motor` (ver arriba).
+
+El detalle, con las líneas de Codex, está en el README de los envoltorios. Lo instalado todavía no
+tiene estos arreglos. **Reinstalar lo decide Sam por medio del DG.**
 
 ## Qué no autoriza
 

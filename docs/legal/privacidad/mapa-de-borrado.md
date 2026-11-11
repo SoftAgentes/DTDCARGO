@@ -187,6 +187,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | `public_track_log` | — | 🔴 IP de quien consulta un envío |
 | `operario_pin_attempts` | — | 🟢 BORRA — huella anti-abuso; purga técnica a 48 h |
 | `public_verify_throttle` | — | 🟢 BORRA — IP en claro de `/verificar`; purga técnica de filas con más de 60 min en el cron diario (SDD-0455) |
+| `discord_consultas_clientes` (SDD-0608, migración 0516 **sin aplicar**) | — | Purga técnica a **180 días** en cada registro (`supabase/migrations/0516_discord_consulta_clientes.sql`). Guarda el ID de Discord de quien preguntó, su usuario del Studio y el **término buscado, que puede ser el nombre de un cliente**. 🔴 Supresión a pedido del titular (borrar las filas cuyo término sea su nombre antes de los 180 días): **sin decidir** — decide Sam |
 | `outbox_push_events` | 0 | 🟢 BORRA — transitoria por diseño |
 | `kommo_writeback_outbox` | — | 🔴 payloads con datos del cliente |
 | `sync_logs` · `user_role_audit` | — | 🔴 sin revisar |
@@ -203,6 +204,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | **Google (GA4)** | Sin PII — verificado | 🟢 no aplica |
 | **Nominatim** | Direcciones enviadas a geocodificar | 🔴 sin contrato |
 | **Supabase / Vercel** | Todo / logs de request | 🔴 retención no verificada |
+| **Discord** (SDD-0608, `/cliente`, propuesto) | Respuestas efímeras con nombre, Shipping Mark y enlace de hasta 10 clientes, más el término que escribió quien preguntó | 🔴 retención de Discord no verificada; el Studio no puede borrar una respuesta efímera |
 
 > ⚠️ **Nota del 2026-10-19:** desde el corte del 2026-10-14 (02:00Z) los datos
 > vivos están en el servidor propio de Contabo. La fila de Supabase / Vercel

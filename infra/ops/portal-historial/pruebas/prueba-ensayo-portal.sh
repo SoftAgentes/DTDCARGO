@@ -16,8 +16,10 @@
 #   G3  ENSAYO_VOLCADO con los nombres reales de producción: se niega
 #   G4  --limpiar sin un ensayo que limpiar no toca /dev/shm/portal-historial
 #   G5  --limpiar con docker sin responder no borra nada y sale con 6
-#   G6  un ensayo que ya creó sus carpetas y termina con docker sin responder: las borra igual, conserva su código
+#   G6  un ensayo que ya creó sus carpetas y termina con docker sin responder: borra las dos (también
+#       /dev/shm/portal-historial), conserva su código
 #       y anota docker_no_responde (revisión del DG de la vuelta 9, B1)
+#   G7  docker colgado en la limpieza: las carpetas se borran antes de esperarlo
 #   N8  la comparación de los mutantes: un id que no existe sale como «(no existe)»
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
 #
@@ -263,14 +265,42 @@ guardas() { # carpeta prefijo
   # después: un docker que pasa al real hasta que existe el compose.yml del ensayo, y desde ahí falla. Las copias no
   # arrancan (P1, código 1) y la limpieza encuentra docker caído: tiene que borrar la carpeta igual, salir con 1 (no
   # con 6) y anotar docker_no_responde.
+  # El docker caído es pegajoso: la limpieza borra la carpeta antes de llamar a docker (N1), así que desde que ve el
+  # compose.yml deja una marca y sigue caído aunque la carpeta ya no esté (el rojo del job 129203440274). El centinela
+  # de la carga a medias se crea solo mientras existe el compose.yml, para no recrearlo después de la limpieza.
   mkdir -p "$TRABAJO/docker-se-cae"
-  printf '#!/bin/sh\n[ -e /dev/shm/portal-ensayo/compose.yml ] && exit 1\nexec %s "$@"\n' "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
+  rm -f -- "$TRABAJO/docker-se-cae/caido" "$TRABAJO/docker-se-cae/caido.sin_carpeta"
+  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; echo centinela >/dev/shm/portal-historial/centinela; fi\nif [ -e "$M" ]; then [ -e /dev/shm/portal-ensayo/compose.yml ] || : >"$M.sin_carpeta"; exit 1; fi\nexec %s "$@"\n' "$TRABAJO/docker-se-cae/caido" "$(command -v docker)" >"$TRABAJO/docker-se-cae/docker"
   chmod +x "$TRABAJO/docker-se-cae/docker"
   ensayo "$C" "$TRABAJO/$X-g6.txt" "PATH=$TRABAJO/docker-se-cae:$PATH" --
   [ -e /dev/shm/portal-ensayo ] && echo "HECHO carpeta_ensayo=queda" >>"$TRABAJO/$X-g6.txt"
-  rm -rf -- /dev/shm/portal-ensayo
-  exigir G6 '[ "$(h "$TRABAJO/$X-g6.txt" salida_proceso)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" ensayo_codigo)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" docker_no_responde)" = si ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_ensayo)" ]' \
-    "un ensayo que termina con docker sin responder: borra sus carpetas igual y sale con su código ($(h "$TRABAJO/$X-g6.txt" salida_proceso), no 6)"
+  [ -e /dev/shm/portal-historial ] && echo "HECHO carpeta_historial=queda" >>"$TRABAJO/$X-g6.txt"
+  rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
+  exigir G6 '[ "$(h "$TRABAJO/$X-g6.txt" salida_proceso)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" ensayo_codigo)" = 1 ] && [ "$(h "$TRABAJO/$X-g6.txt.evidencia" docker_no_responde)" = si ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_ensayo)" ] && [ -z "$(h "$TRABAJO/$X-g6.txt" carpeta_historial)" ] && [ -e "$TRABAJO/docker-se-cae/caido.sin_carpeta" ]' \
+    "un ensayo que termina con docker sin responder: borra sus carpetas igual y sale con su código ($(h "$TRABAJO/$X-g6.txt" salida_proceso), no 6); el falso siguió caído sin la carpeta: $([ -e "$TRABAJO/docker-se-cae/caido.sin_carpeta" ] && echo si || echo no)"
+  # G7 (N1 de la revisión del DG): docker se CUELGA en la limpieza (los conteos no vuelven). Con CREADO=1 las dos
+  # carpetas se borran antes de llamar a docker, así que a los 15 s ya no están, aunque la limpieza siga esperando.
+  # Después se mata el ensayo con SIGKILL, como lo haría un operador.
+  # Pegajoso, como el de G6: después del borrado previo los conteos se siguen colgando (si no, irían al docker real y
+  # G7 no mediría el cuelgue).
+  mkdir -p "$TRABAJO/docker-se-cuelga"
+  rm -f -- "$TRABAJO/docker-se-cuelga/colgado" "$TRABAJO/docker-se-cuelga/colgado.sin_carpeta"
+  printf '#!/bin/sh\nM=%s\nif [ -e /dev/shm/portal-ensayo/compose.yml ]; then : >"$M"; mkdir -p /dev/shm/portal-historial; fi\nif [ -e "$M" ]; then case " $* " in *" ps "*|*" ls "*) [ -e /dev/shm/portal-ensayo/compose.yml ] || : >"$M.sin_carpeta"; sleep 120 ;; esac; exit 1; fi\nexec %s "$@"\n' "$TRABAJO/docker-se-cuelga/colgado" "$(command -v docker)" >"$TRABAJO/docker-se-cuelga/docker"
+  chmod +x "$TRABAJO/docker-se-cuelga/docker"
+  ( ensayo "$C" "$TRABAJO/$X-g7.txt" "PATH=$TRABAJO/docker-se-cuelga:$PATH" -- ) &
+  local g7=$! _
+  for _ in $(seq 1 60); do [ -e /dev/shm/portal-ensayo/compose.yml ] && break; sleep 1; done
+  sleep 15
+  local g7_quedan=no
+  { [ -e /dev/shm/portal-ensayo ] || [ -e /dev/shm/portal-historial ]; } && g7_quedan=si
+  pkill -9 -f "$C/ensayo-portal.sh" 2>/dev/null
+  pkill -9 -f "sleep 120" 2>/dev/null
+  wait "$g7" 2>/dev/null
+  rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
+  local g7_colgo=no
+  [ -e "$TRABAJO/docker-se-cuelga/colgado.sin_carpeta" ] && g7_colgo=si
+  exigir G7 '[ "$g7_quedan" = no ] && [ "$g7_colgo" = si ]' \
+    "docker colgado en la limpieza: las dos carpetas ya no están antes de que vuelvan los conteos (quedan: $g7_quedan; el falso se colgó sin la carpeta: $g7_colgo)"
   ensayo "$C" "$TRABAJO/$X-g3.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/no" PROD_PG=chatwoot-postgres-1 --
   exigir G3 '[ "$(h "$TRABAJO/$X-g3.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g3.txt.evidencia" error)" = volcado_fuera_de_la_prueba ] && [ ! -e "$TRABAJO/no" ]' \
     "ENSAYO_VOLCADO con el nombre real de producción: se niega ($(h "$TRABAJO/$X-g3.txt.evidencia" error))"
@@ -385,6 +415,12 @@ if [ "$MUTANTES" = 1 ]; then
     "name: c['nombre'].presence || 'Cliente del portal', identifier: ident, phone_number: '+584127770009'," completo
   mutante M27 "con docker caído, un ensayo de verdad no borra sus carpetas" ensayo-portal.sh "G6" "G1 G2 G3 G4 G5" \
     'if [ "$CREADO" != 1 ]; then # --limpiar puro: ante la duda no se borra' 'if true; then' guardas
+  mutante M28 "con docker colgado, borra las carpetas después de esperarlo" ensayo-portal.sh "G7" "G1 G2 G3 G4 G5 G6" \
+    '    rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
+  fi
+  RECURSOS_ANTES=' '    :
+  fi
+  RECURSOS_ANTES=' guardas
   mutante M25 "--limpiar borra aunque docker no responda" ensayo-portal.sh "G5" "G1 G2 G3 G4" \
     "case \"\$RECURSOS_ANTES\" in *'?'*)" "case \"\$RECURSOS_ANTES\" in *'nunca'*)" guardas
   mutante M26 "copia additional_attributes entero cuando no hay dtd_hilo" copia-columnas.tsv "T2" "T1 T4" \
