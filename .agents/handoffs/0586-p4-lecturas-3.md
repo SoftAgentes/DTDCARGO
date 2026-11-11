@@ -321,3 +321,9 @@
 - **Calidad continua 42655878815:** skipped, porque corrió con la PR en draft.
 
 **Cabeza de cierre en draft.** El verde que cuenta es el de `225c19c02`. La aprobación del DG fue sobre `eeb0646b9`, y falta su revisión del delta `2a928aee2`, `37907102d` y `225c19c02`. **Al volver:** ready y CI sobre la cabeza nueva.
+
+## La reanudación del 2026-11-11 (Sam)
+
+- **El handoff del cierre:** `8af88c3c5` entró en `44fa76b5c`. El `git diff 8af88c3c5 44fa76b5c` es solo la nota del CI del cierre, +8 líneas, porque se rehízo en un commit con `reset --soft`.
+- **Main:** merge de `09e6b279f` (`4967d52ed`). El merge-tree se midió antes y dio limpio.
+- **Lo que falta:** la revisión del DG por delta desde `eeb0646b9`, cuando esta cabeza esté verde. El delta es `2a928aee2`, `37907102d` y `225c19c02`, más los handoffs y el merge.
