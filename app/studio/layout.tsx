@@ -6,8 +6,11 @@
  *
  * Los route groups (auth) y (app) tienen sus propios sub-layouts.
  *
- * Script inline de FOUC: aplica `data-theme="dark"` antes del primer paint
- * cuando localStorage.studio_theme === "dark". Evita parpadeo light → dark.
+ * Script inline de FOUC: aplica tema y densidad antes del primer paint. Por defecto,
+ * oscuro y compacto (BD-037), salvo que la persona haya elegido otra cosa.
+ *
+ * Los paneles que viven dentro de Chatwoot no reciben ni tema ni densidad: siguen a
+ * Chatwoot (SDD-0603). Lo impreso pasa a claro por CSS, en `tokens.css`.
  */
 
 import "./studio.css";
@@ -38,10 +41,14 @@ export const metadata: Metadata = {
 
 const THEME_FOUC_SCRIPT = `
 try {
-  var t = localStorage.getItem('studio_theme');
-  if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-  var d = localStorage.getItem('studio_density');
-  if (d === 'compact' || d === 'spacious') document.documentElement.setAttribute('data-density', d);
+  var h = document.documentElement;
+  var p = location.pathname;
+  if (p.indexOf('/studio/ficha-chat') !== 0 && p.indexOf('/studio/cerrar-chat') !== 0) {
+    if (localStorage.getItem('studio_theme') !== 'light') h.setAttribute('data-theme', 'dark');
+    var d = localStorage.getItem('studio_density');
+    if (d === 'spacious') h.setAttribute('data-density', 'spacious');
+    else if (d !== 'normal') h.setAttribute('data-density', 'compact');
+  }
 } catch (e) {}
 `.trim();
 

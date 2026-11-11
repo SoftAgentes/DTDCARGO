@@ -28,8 +28,12 @@
 #   2. cambia SOLO la línea DTD_WEB_IMAGE del .env (copia previa; se conservan las
 #      3 últimas .env.bak-publicar-*, las demás copias no se tocan) a
 #      `…:sha-<sha>@sha256:<digest>`: lo que corre es exactamente lo que se revisó.
-#   3. `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`
-#      (nunca cron ni Supabase), espera healthy y corre smoke-web.sh --host dtdcargo.com --www.
+#   3. relevo sin corte (2026-11-06): levanta el web nuevo AL LADO del que sirve
+#      (`… up -d --no-deps --no-recreate --scale web=2 web`, nunca cron ni Supabase),
+#      espera que el nuevo esté healthy y que Traefik lo sume, retira el viejo, espera
+#      que Traefik lo saque y recién entonces corre smoke-web.sh --host dtdcargo.com --www.
+#      Antes era `up -d --no-deps web`: compose bajaba el viejo primero y la web daba
+#      404 hasta que el nuevo quedaba healthy (unos 30 s) y Traefik lo tomaba.
 #   4. si algo falla, vuelve al valor anterior de DTD_WEB_IMAGE y lo prueba; esa
 #      imagen queda rechazada hasta el próximo merge. Si la vuelta atrás también
 #      falla, congela la publicación automática y avisa como urgente.
@@ -81,6 +85,14 @@ DOCKER_RAIZ="${PUBLICAR_DOCKER_RAIZ:-/var/lib/docker}"
 ESPERA_SALUD="${PUBLICAR_ESPERA_SALUD:-150}"
 PASO_SALUD="${PUBLICAR_PASO_SALUD:-3}"
 PAUSA_REINTENTO="${PUBLICAR_PAUSA_REINTENTO:-15}"
+# Traefik (infra/ops/traefik/compose.yml) lee los eventos de Docker y no enruta a un
+# contenedor «starting»; aplica cada cambio con el throttle por defecto de 2 s. Se
+# espera más que eso después de que el nuevo queda healthy (para que ya reciba
+# pedidos) y después de retirar el viejo (para que la prueba rápida no le pegue).
+ESPERA_TRAEFIK="${PUBLICAR_ESPERA_TRAEFIK:-5}"
+[[ "${ESPERA_TRAEFIK}" =~ ^[0-9]+(\.[0-9]+)?$ ]] || ESPERA_TRAEFIK=5
+GRACIA_WEB="${PUBLICAR_GRACIA_WEB:-20}"   # docker stop -t: lo que tiene el viejo para terminar sus pedidos
+[[ "${GRACIA_WEB}" =~ ^[0-9]+$ ]] || GRACIA_WEB=20
 C=(docker compose -p "${PROYECTO}" -f compose.yml -f compose.supabase.yml)
 
 # La misma prueba que corre el Dockerfile en la etapa build: sin libvips,
@@ -268,9 +280,10 @@ digest_de() {
   docker image inspect -f '{{range .RepoDigests}}{{println .}}{{end}}' "$1" 2>/dev/null \
     | grep -m1 "^${IMAGEN}@sha256:" | cut -d@ -f2
 }
-contenedor() {
-  docker ps -q --filter "label=com.docker.compose.project=${PROYECTO}" --filter "label=com.docker.compose.service=$1" | head -1
+contenedores() { # $1 = servicio → los ids de sus contenedores en marcha, uno por línea
+  docker ps -q --filter "label=com.docker.compose.project=${PROYECTO}" --filter "label=com.docker.compose.service=$1"
 }
+contenedor() { contenedores "$1" | head -1; }
 imagen_que_corre() { local id; id="$(contenedor web)"; [ -n "${id}" ] && docker inspect -f '{{.Image}}' "${id}" 2>/dev/null; }
 bajar() { # $1 = referencia
   if timeout 600 docker pull -q "$1" > "${TMP}/pull" 2>&1; then return 0; fi
@@ -415,10 +428,10 @@ cambiar_imagen() { # $1 = valor nuevo de DTD_WEB_IMAGE. Solo esa línea; nunca l
 
 # ─── publicar ────────────────────────────────────────────────────────────────
 
-esperar_web() { # $1 = id de imagen esperado
+esperar_web() { # $1 = id de imagen esperado, $2 = contenedor (si no, el web que haya)
   local t=0 id="" st="" img=""
   while [ "${t}" -le "${ESPERA_SALUD}" ]; do
-    id="$(contenedor web)"
+    id="${2:-$(contenedor web)}"
     if [ -n "${id}" ]; then
       img="$(docker inspect -f '{{.Image}}' "${id}" 2>/dev/null)"
       st="$(docker inspect -f '{{.State.Health.Status}}' "${id}" 2>/dev/null)"
@@ -441,15 +454,65 @@ prueba_rapida() { # $1 = nombre del intento
   return "${rc}"
 }
 
+retirar() { # $1 = contenedor. Tiene ${GRACIA_WEB} s para terminar lo que esté sirviendo.
+  docker stop -t "${GRACIA_WEB}" "$1" > /dev/null 2>&1
+  if docker rm -f "$1" > /dev/null 2>&1; then log "contenedor retirado: $1"; else log "no pude retirar el contenedor $1"; fi
+}
+
+# Relevo sin corte (2026-11-06). Antes, `up -d --no-deps web` hacía que compose
+# bajara el web viejo y recién después creara el nuevo; Traefik no enruta a un
+# contenedor «starting» y el HEALTHCHECK del Dockerfile (interval 30 s) tarda unos
+# 30 s en declararlo healthy: la web daba 404 todo ese rato, y la prueba rápida, que
+# arrancaba apenas el nuevo quedaba healthy, se encontraba con Traefik sin el router.
+# Ahora el nuevo arranca al lado del que sirve, y el viejo se retira recién cuando el
+# nuevo está healthy y Traefik ya lo sumó. Si el nuevo no queda healthy, se retira
+# el nuevo y el viejo nunca dejó de servir.
+relevar() { # $1 = id de imagen esperado, $2 = nueva | vuelta → 0 sirve solo la imagen $1 · 1 falló (MOTIVO)
+  local viejos nuevos id n iguales=1
+  viejos="$(contenedores web)"
+  for id in ${viejos}; do [ "$(docker inspect -f '{{.Image}}' "${id}" 2>/dev/null)" = "$1" ] || iguales=0; done
+  if [ -n "${viejos}" ] && [ "${iguales}" = 1 ]; then
+    # Por ejemplo la vuelta atrás cuando la nueva no llegó a healthy: el viejo sigue ahí.
+    log "relevo: ya corre esa imagen, no hace falta levantar otra"
+    return 0
+  fi
+  n=$(( $(printf '%s\n' ${viejos} | grep -c .) + 1 ))
+  log "docker compose -p ${PROYECTO} -f compose.yml -f compose.supabase.yml up -d --no-deps --no-recreate --scale web=${n} web (relevo: el viejo sigue sirviendo)"
+  if ! ( cd "${DIR}" && "${C[@]}" up -d --no-deps --no-recreate --scale "web=${n}" web ) > "${EVID}/compose-up-$2.txt" 2>&1; then
+    MOTIVO="docker compose up falló ($(tail -1 "${EVID}/compose-up-$2.txt" | cut -c1-200))"; CODIGO=compose
+    for id in $(contenedores web); do grep -qxF "${id}" <<< "${viejos}" || retirar "${id}"; done
+    return 1
+  fi
+  nuevos=""
+  for id in $(contenedores web); do grep -qxF "${id}" <<< "${viejos}" || nuevos="${nuevos} ${id}"; done
+  if [ "$(printf '%s\n' ${nuevos} | grep -c .)" != 1 ]; then
+    MOTIVO="compose no dejó un contenedor web nuevo (dejó:${nuevos:- ninguno})"; CODIGO=compose
+    for id in ${nuevos}; do retirar "${id}"; done
+    return 1
+  fi
+  nuevos="${nuevos# }"
+  if ! esperar_web "$1" "${nuevos}"; then
+    MOTIVO="la web nueva no quedó healthy (la de antes siguió sirviendo)"; CODIGO=salud
+    retirar "${nuevos}"
+    return 1
+  fi
+  log "relevo: ${nuevos} healthy; ${ESPERA_TRAEFIK} s para que Traefik lo sume antes de retirar el viejo"
+  sleep "${ESPERA_TRAEFIK}"   # Traefik suma al nuevo
+  for id in ${viejos}; do retirar "${id}"; done
+  if [ -n "${viejos}" ]; then log "relevo: ${ESPERA_TRAEFIK} s para que Traefik saque al viejo"; sleep "${ESPERA_TRAEFIK}"; fi
+  # Que quede uno solo; que sea la imagen esperada lo comprueba esperar_web después.
+  if [ "$(contenedores web | grep -c .)" != 1 ]; then
+    MOTIVO="después del relevo no quedó un solo web ($(contenedores web | tr '\n' ' '))"; CODIGO=compose
+    return 1
+  fi
+}
+
 desplegar() { # $1 = valor de DTD_WEB_IMAGE, $2 = id esperado, $3 = nueva | vuelta → 0 bien · 3 no cambió nada · 1 falló
   cambiar_imagen "$1" || return 3
   if ! ( cd "${DIR}" && "${C[@]}" config -q ) > "${EVID}/compose-config-$3.txt" 2>&1; then
     MOTIVO="docker compose config falló"; CODIGO=compose; return 1
   fi
-  log "docker compose -p ${PROYECTO} -f compose.yml -f compose.supabase.yml up -d --no-deps web"
-  if ! ( cd "${DIR}" && "${C[@]}" up -d --no-deps web ) > "${EVID}/compose-up-$3.txt" 2>&1; then
-    MOTIVO="docker compose up falló ($(tail -1 "${EVID}/compose-up-$3.txt" | cut -c1-200))"; CODIGO=compose; return 1
-  fi
+  relevar "$2" "$3" || return 1
   esperar_web "$2" || { MOTIVO="la web no quedó healthy"; CODIGO=salud; return 1; }
   prueba_rapida "$3-1" && return 0
   sleep "${PAUSA_REINTENTO}"
