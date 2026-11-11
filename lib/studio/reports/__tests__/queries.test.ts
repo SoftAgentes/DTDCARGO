@@ -32,7 +32,7 @@ import {
 } from "../queries";
 import { describirIngreso, ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
 import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
-import { RANGO_MES, control } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
+import { RANGO_MES, control, tablasDeControl } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 /** Tope por request del doble: el `db-max-rows` de Supabase. */
 const SERVER_CAP = 1000;
@@ -129,8 +129,11 @@ describe("0572 · lectura completa del ingreso con conversión incompleta", () =
   const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
 
   it("lee la segunda página sin perder contador, monto oficial ni filtros", async () => {
-    const { client, calls } = stub({ invoices: [usd, cny] }, { serverCap: 1 });
-    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1000, 1000, true, ["u1"]) });
+    // Con el contexto I2 íntegro (SDD-0573), lo único que falta es la conversión.
+    const mayor = control(1000, 1000, true, ["u1"]);
+    const tablas = tablasDeControl([usd, cny] as unknown as Parameters<typeof tablasDeControl>[0], RANGO_MES, mayor);
+    const { client, calls } = stub(tablas, { serverCap: 1 });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor });
     expect(i).toMatchObject({ facturado: { total: 1000 }, sinConvertir: 1, diferenciaUsd: null });
     expect(describirIngreso(i).estado).toBe("conversion_incompleta");
     expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
