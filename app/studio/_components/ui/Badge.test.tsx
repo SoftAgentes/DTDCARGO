@@ -17,4 +17,9 @@ describe("Badge · API sin dot", () => {
     expect(markup.match(/<svg/g)).toHaveLength(1);
     expect(markup).toContain('d="m7 12 3 3 7-7"');
   });
+
+  it("es texto con icono, sin cajón: no debe parecer un botón", () => {
+    const markup = renderToStaticMarkup(<Badge tone="danger" size="md">Alerta</Badge>);
+    expect(markup).not.toMatch(/background|padding|border-radius/);
+  });
 });
