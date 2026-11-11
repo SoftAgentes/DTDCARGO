@@ -1,0 +1,200 @@
+/*
+ * Accesos por persona (SDD-0622) · estilos de la ficha y de la lista.
+ * Solo tokens de `app/studio/tokens.css`: claro y oscuro salen solos.
+ * Prefijo `perm-` para no chocar con `studio.css`.
+ */
+
+/* ── Chips ───────────────────────────────────────────────── */
+.perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 1px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink);
+  font: 550 11.5px/1.4 var(--f-sans);
+  white-space: nowrap;
+}
+.perm-chip[data-kind="role"] { background: var(--neutral-bg); color: var(--ink); }
+.perm-chip[data-kind="extra"] { background: var(--info-bg); border-color: transparent; color: var(--info); }
+.perm-chip[data-kind="sens"] { background: var(--warning-bg); border-color: transparent; color: var(--ink); }
+.perm-chip[data-kind="off"] { background: transparent; border-style: dashed; color: var(--ink-mute); }
+.perm-chip[data-kind="expired"] { background: transparent; color: var(--ink-mute); text-decoration: line-through; }
+.perm-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ── Filtros de excepción (lista) ────────────────────────── */
+.perm-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 var(--s-3); }
+.perm-filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 30px; padding: 4px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-soft);
+  font: 550 12.5px/1 var(--f-sans);
+  cursor: pointer;
+}
+.perm-filter:hover { color: var(--ink); border-color: var(--border-strong); }
+.perm-filter:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.perm-filter[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--ink-inv); }
+.perm-filter-n { font: 600 11px/1 var(--f-mono); opacity: .7; }
+
+/* ── Pestañas de la ficha ────────────────────────────────── */
+.perm-tabs {
+  display: flex; gap: var(--s-5);
+  padding: 0 var(--s-4);
+  border-bottom: 1px solid var(--border);
+}
+.perm-tab {
+  padding: 10px 0;
+  border: 0; background: none; cursor: pointer;
+  color: var(--ink-soft);
+  font: 550 13px/1 var(--f-sans);
+  box-shadow: inset 0 -2px 0 transparent;
+}
+.perm-tab:hover { color: var(--ink); }
+.perm-tab:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; border-radius: var(--r-xs); }
+.perm-tab[aria-selected="true"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--wine); }
+
+/* ── Bloques de la pestaña Acceso ────────────────────────── */
+.perm-label {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  font: 600 11px/1 var(--f-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.perm-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+/* Selector segmentado del rol base */
+.perm-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.perm-seg-btn {
+  min-height: 32px; padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-soft);
+  font: 550 12.5px/1 var(--f-sans);
+  cursor: pointer;
+}
+.perm-seg-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--border-strong); }
+.perm-seg-btn:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.perm-seg-btn[aria-checked="true"] { border-color: var(--wine); background: var(--wine-tint); color: var(--wine-text); }
+.perm-seg-btn:disabled { cursor: not-allowed; opacity: .55; }
+
+/* Buscador «Agregar módulo o área…» */
+.perm-add { position: relative; border-bottom: 1px solid var(--border); }
+.perm-add input {
+  width: 100%; border: 0; outline: 0; background: transparent;
+  padding: 10px 12px 10px 34px;
+  font: 400 13px/1.3 var(--f-sans);
+  color: var(--ink);
+}
+.perm-add input::placeholder { color: var(--ink-mute); }
+.perm-add:focus-within { box-shadow: inset 0 0 0 2px var(--wine); }
+.perm-add-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-mute); pointer-events: none; }
+.perm-add-kbd {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font: 500 10.5px/1 var(--f-mono); color: var(--ink-mute);
+  border: 1px solid var(--border); border-radius: var(--r-xs); padding: 2px 5px;
+}
+.perm-options { max-height: 260px; overflow: auto; border-bottom: 1px solid var(--border); background: var(--bg-elevated); }
+.perm-opt-group { padding: 8px 12px 4px; font: 600 10.5px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.perm-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 12px; border: 0; background: none; text-align: left; cursor: pointer;
+  font: 500 13px/1.3 var(--f-sans); color: var(--ink);
+}
+.perm-opt:hover:not(:disabled), .perm-opt[data-active="true"] { background: var(--surface-sel); }
+.perm-opt:disabled { cursor: not-allowed; color: var(--ink-mute); }
+.perm-opt-note { margin-left: auto; font: 400 11.5px/1.2 var(--f-sans); color: var(--ink-soft); }
+
+/* Fila de un acceso adicional */
+.perm-grant {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.perm-grant:last-child { border-bottom: 0; }
+.perm-grant-title { font: 600 13px/1.3 var(--f-sans); color: var(--ink); display: flex; gap: 6px; align-items: center; }
+.perm-grant-sub { font: 400 12px/1.4 var(--f-sans); color: var(--ink-soft); margin-top: 2px; }
+.perm-grant[data-expired="true"] .perm-grant-title { color: var(--ink-mute); }
+
+/* Control Ver / Editar */
+.perm-mini { display: inline-flex; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+.perm-mini button {
+  min-width: 52px; min-height: 28px; padding: 3px 10px; border: 0; background: var(--bg-surface);
+  color: var(--ink-soft); font: 550 12px/1 var(--f-sans); cursor: pointer;
+}
+.perm-mini button + button { border-left: 1px solid var(--border); }
+.perm-mini button[aria-checked="true"] { background: var(--ink); color: var(--ink-inv); }
+.perm-mini button:disabled { cursor: not-allowed; opacity: .55; }
+.perm-mini button:focus-visible { outline: 2px solid var(--wine); outline-offset: -2px; }
+
+.perm-icon-btn {
+  display: grid; place-items: center; width: 32px; height: 32px;
+  border: 0; border-radius: var(--r-sm); background: none; color: var(--ink-soft); cursor: pointer;
+}
+.perm-icon-btn:hover:not(:disabled) { background: var(--danger-bg); color: var(--danger); }
+.perm-icon-btn:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+
+/* Formulario de alta en línea */
+.perm-form { padding: 12px; display: grid; gap: 10px; background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+.perm-form-row { display: grid; grid-template-columns: 1fr 160px; gap: 10px; }
+.perm-empty { padding: 14px 12px; font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); }
+
+/* «Lo que puede ver» */
+.perm-legend { display: flex; gap: 12px; text-transform: none; letter-spacing: 0; font: 400 11.5px/1 var(--f-sans); }
+.perm-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.perm-areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.perm-area { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; background: var(--bg-surface); }
+.perm-area h4 { display: flex; justify-content: space-between; margin: 0 0 6px; font: 650 12.5px/1.3 var(--f-sans); color: var(--ink); }
+.perm-area h4 small { font: 500 11px/1.3 var(--f-mono); color: var(--ink-soft); }
+.perm-mods { display: flex; flex-wrap: wrap; gap: 4px; }
+.perm-m { font: 500 11.5px/1.4 var(--f-sans); padding: 2px 7px; border-radius: var(--r-xs); background: var(--neutral-bg); color: var(--ink); }
+.perm-m[data-src="grant"] { background: var(--info-bg); color: var(--info); }
+.perm-m[data-sens="true"] { box-shadow: inset 0 0 0 1px var(--warning); }
+.perm-m[data-edit="false"]::after { content: " · ver"; color: var(--ink-soft); }
+
+/* Doble aviso */
+.perm-dialog-scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 1000; display: grid; place-items: center; padding: var(--s-4); }
+.perm-dialog {
+  width: min(480px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+  background: var(--bg-surface); color: var(--ink);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+}
+.perm-dialog-head { display: flex; gap: 12px; padding: 20px 22px 6px; }
+.perm-dialog-icon { flex: none; width: 36px; height: 36px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--warning-bg); color: var(--warning); font: 800 18px/1 var(--f-sans); }
+.perm-dialog h2 { margin: 0; font: 650 16px/1.3 var(--f-sans); }
+.perm-dialog-head p { margin: 2px 0 0; font: 400 13px/1.45 var(--f-sans); color: var(--ink-soft); }
+.perm-dialog-body { padding: 10px 22px 16px; display: grid; gap: 12px; }
+.perm-effects { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 6px; border-radius: var(--r-md); background: var(--warning-bg); }
+.perm-effects li { display: flex; gap: 8px; font: 400 13px/1.45 var(--f-sans); color: var(--ink); }
+.perm-effects li::before { content: "•"; color: var(--warning); font-weight: 800; }
+.perm-check { display: flex; gap: 8px; align-items: flex-start; font: 500 13px/1.45 var(--f-sans); }
+.perm-check input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--wine); }
+.perm-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 22px; border-top: 1px solid var(--border); background: var(--bg-elevated); }
+
+/* Actividad */
+.perm-activity { list-style: none; margin: 0; padding: 0; display: grid; }
+.perm-activity li { display: grid; grid-template-columns: 10px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.perm-activity li:last-child { border-bottom: 0; }
+.perm-activity-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--info); }
+.perm-activity-dot[data-kind="revoked"] { background: var(--ink-mute); }
+.perm-activity-title { font: 600 13px/1.35 var(--f-sans); color: var(--ink); }
+.perm-activity-meta { font: 400 12px/1.4 var(--f-sans); color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+  .perm-form-row { grid-template-columns: 1fr; }
+  .perm-grant { grid-template-columns: 1fr auto; }
+  .perm-grant .perm-mini { grid-column: 1 / -1; justify-self: start; }
+}

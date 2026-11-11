@@ -40,7 +40,11 @@ export interface UserModuleGrantView {
   sensitive: boolean;
   updatedAt: string;
   expired: boolean;
+  /** Vence en los próximos 7 días (calculado en el servidor, al leer). */
+  expiringSoon: boolean;
 }
+
+const POR_VENCER_MS = 7 * 86_400_000;
 
 const COLUMNS =
   "user_id, module_id, can_view, can_edit, reason, expires_at, granted_by, sensitive_confirmed_at, effects_version, created_at, updated_at";
@@ -98,6 +102,8 @@ export function grantViewsFromRows(
     sensitive: isSensitive(r.module_id),
     updatedAt: r.updated_at,
     expired: isExpired(r.expires_at, now),
+    expiringSoon:
+      r.expires_at !== null && !isExpired(r.expires_at, now) && Date.parse(r.expires_at) - now < POR_VENCER_MS,
   }));
 }
 

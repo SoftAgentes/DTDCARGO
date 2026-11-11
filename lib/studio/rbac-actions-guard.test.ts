@@ -374,8 +374,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate` antes de leer nada; escribe solo por la RPC
   // `chatwoot_portal_destrabar` (0520) con el cliente de sesión, que repite el admin
   // del tenant (`is_tenant_admin`) y toma el tenant de la sesión.
+  // SDD-0622 sumó `usuarios/actions.ts::grantUserModuleAction`,
+  // `::revokeUserModuleGrantAction` y `::listUserAccessActivityAction` (463 → 466):
+  // `tenantAdminGate` antes de leer o escribir nada; escriben SOLO por las RPC
+  // de la 0526 (`studio_grant_user_module`, `studio_revoke_user_module_grant`),
+  // que repiten el rol admin de la base, y la lectura de la bitácora la limita
+  // la RLS del tenant.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(463);
+    expect(reportes.length).toBe(466);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
