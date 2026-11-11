@@ -1,53 +1,35 @@
-# DTDCargo — sitio web público
+# DTDCargo
 
-Sitio comercial e institucional de **DTDCargo** (operador logístico China → Venezuela).
-Cliente del ERP **HailuWay** — consume sus APIs públicas vía HTTP, **sin código compartido**.
+Plataforma de **DTDCargo** (operador logístico China → Venezuela): sitio web público,
+Studio ERP, portal de clientes y PWA.
 
-## Aislamiento del ERP
+## Qué contiene este repo
 
-Este proyecto vive en su **propia carpeta** (`C:\Users\Trabajo\Desktop\DTDCargo\`),
-totalmente separado del repo `hailuway-erp`. No hay imports cruzados, no hay DB
-compartida, no hay specs compartidas. La comunicación es **solo HTTP** contra los
-endpoints `*/api/public/*` que el ERP expone.
+- **Sitio web público** (comercial e institucional).
+- **Studio ERP** (`app/studio`), con Supabase propio.
+- **Portal de clientes** (`/portal`).
+- **PWA** para operarios.
 
-```
-┌──────────────────────┐    HTTPS     ┌──────────────────────┐
-│  DTDCargo (este)     │  ─────────▶  │  hailuway-erp        │
-│  dtdcargo.com        │              │  erp.hailuway.com    │
-└──────────────────────┘              └──────────────────────┘
-```
+El sitio público no importa `@/lib/studio`, `@/lib/db` ni `@supabase/*`: habla con el
+ERP solo por HTTP (`NEXT_PUBLIC_HAILUWAY_API`). El puente compartido vive en `lib/shared/`.
+Las reglas de arquitectura y dominio están en
+[`docs/engineering/project-rules.md`](docs/engineering/project-rules.md).
 
 ## Stack
 
 - **Next.js 16** App Router + **TypeScript** + **Tailwind v4** + **React 19**
 - **pnpm** para packages
-- **Servidor propio** (VPS de Contabo) para deploy desde el 2026-10-16: cada merge
-  a `main` se publica solo cuando su imagen y el CI quedan en verde
+- **Servidor propio** (VPS de Contabo): cada merge a `main` se publica solo cuando
+  su imagen y el CI quedan en verde
   ([`docs/runbooks/publicacion-automatica-web.md`](docs/runbooks/publicacion-automatica-web.md)).
   Antes era Vercel, hoy en pausa.
-- Cero dependencias del repo HailuWay
-
-## Estructura
-
-```
-DTDCargo/
-├── README.md              ← este archivo
-├── docs/
-│   └── specs/             ← SDD propio (correlativo desde 0001)
-│       ├── README.md
-│       └── 0001-mvp-public-web/
-│           └── spec.md
-└── (scaffold Next.js viene después de aprobar spec 0001)
-```
 
 ## Estado
 
-🟡 **Pre-MVP** — spec 0001 en draft. Sin código todavía.
+Producción corre en el VPS propio (Contabo) con la publicación congelada desde el
+2026-11-01. El índice de specs está en [`docs/specs/README.md`](docs/specs/README.md).
 
-## Variables de entorno (cuando arranquemos)
+## Más información
 
-```
-NEXT_PUBLIC_HAILUWAY_API=https://erp.hailuway.com
-DTD_API_KEY=<provista por HailuWay como tenant cliente>
-WHATSAPP_BUSINESS_NUMBER=<número público>
-```
+- Reglas del repositorio y flujo Director/Worker: [`AGENTS.md`](AGENTS.md)
+- Documentación: [`docs/README.md`](docs/README.md)

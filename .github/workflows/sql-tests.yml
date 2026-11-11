@@ -1,0 +1,70 @@
+name: Contratos SQL
+
+# Los contratos de SQL (supabase/tests/*.test.sql: RLS, GRANT, triggers y las carreras con dblink) contra un
+# PostgreSQL desechable en Docker, con scripts/run-sql-tests.mjs: la misma imagen (postgres:17), el mismo contenedor
+# efímero y las mismas migraciones (`\ir`) que el paso `sql-tests` de `pnpm verify`. Hasta ahora solo corrían ahí, y
+# desde que el portón es el CI no los corría nadie en las PR.
+#
+# Sin secretos ni variables del repositorio. El contenedor no publica puertos: psql entra con `docker exec` y las
+# carreras usan dblink por el socket local. Cada contrato termina en ROLLBACK.
+# scripts/ci-sql-tests.sh lee el resultado: solo vale el código 0, sin [SKIP] y con un ✓ por contrato. Un SKIP (sin
+# Docker, Postgres que no arranca, VERIFY_SKIP_SQL) da rojo. El paso de control prueba antes que el job da rojo con un
+# contrato mutado, con una migración sin su REVOKE y con un salto, y que la espera de run-sql-tests no da por listo al
+# servidor temporal del initdb (C4, el rojo intermitente del tren #427).
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      # Los cargadores de una sola vez (supabase/cargas/, sin número) los prueba su contrato en supabase/tests/.
+      - "supabase/cargas/**"
+      - "scripts/run-sql-tests.mjs"
+      - "scripts/ci-sql-tests.sh"
+      - "scripts/ci-sql-tests-control.sh"
+      - ".github/workflows/sql-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sql-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contratos:
+    name: Contratos SQL en Postgres desechable
+    runs-on: ubuntu-24.04
+    # 10: el primer run (42413378934, 2026-11-07) tardó 1,6 min en el job, con 53 s para los 263 contratos y 8 s
+    # para el control. Con C4, que corre los contratos otra vez con el initdb alargado, las 5 corridas de la matriz
+    # (42416143382) tardaron entre 2,3 y 3,0 min. Deja margen a que crezcan los contratos y a un runner lento, y corta
+    # pronto un cuelgue (una carrera con dblink que se traba). Si una corrida verde pasa de 5 min, se revisa el tope.
+    timeout-minutes: 10
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar Node 24
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          version: 11.19.0
+          runtime: node@24.22.1
+          cache: false
+          install: false
+
+      - name: Imagen de Postgres
+        # La deja en caché antes del control y anota su digest: postgres:17 va por etiqueta, como en `pnpm verify`.
+        run: |
+          docker pull --quiet postgres:17
+          docker image inspect --format 'postgres:17 = {{index .RepoDigests 0}}' postgres:17
+
+      - name: Control (el job da rojo con un contrato mutado, una migración sin su REVOKE y un salto)
+        run: bash scripts/ci-sql-tests-control.sh
+
+      - name: Contratos SQL
+        run: bash scripts/ci-sql-tests.sh

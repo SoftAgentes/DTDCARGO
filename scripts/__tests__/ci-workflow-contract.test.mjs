@@ -90,8 +90,18 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
 const fromEslint = createRequire(createRequire(import.meta.url).resolve("eslint/package.json"));
 const { load: loadYaml } = fromEslint("js-yaml");
 
+/**
+ * SDD-0621: la única condición que puede llevar un job de PR es la que lo salta en borrador. Cualquier otra
+ * (`false`, solo en push, invertida) apaga el portón; por eso se compara el texto exacto y no «tiene un if».
+ */
+const SOLO_FUERA_DE_BORRADOR = "github.event_name != 'pull_request' || !github.event.pull_request.draft";
+
+function condicionDelJobPermitida(job) {
+  return !Object.hasOwn(job, "if") || job.if === SOLO_FUERA_DE_BORRADOR;
+}
+
 function assertRequiredHarness(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const steps = job.steps?.filter((step) => step.run?.trim() === "pnpm harness:test") ?? [];
@@ -145,7 +155,7 @@ describe("SDD-0444 · el harness es obligatorio en CI", () => {
 });
 
 function assertRequiredPendingMigrationSymbols(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const command = "node scripts/check-pending-migration-symbols.mjs";
@@ -196,7 +206,7 @@ const UNITARIOS = "pnpm test --maxWorkers=100%";
  * worker por vCPU (en serie excedió el tope el 2026-10-20) y sin tolerar fallos.
  */
 function assertFullUnitSuite(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const steps = job.steps?.filter((step) => /^pnpm test\b/.test(step.run?.trim() ?? "")) ?? [];
@@ -241,7 +251,7 @@ describe("CI · los unitarios corren completos y en paralelo", () => {
 const OPS_BASH = "bash infra/ops/tests/pruebas-linux.sh";
 
 function assertRequiredOpsBash(job) {
-  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+  if (!job || !condicionDelJobPermitida(job) || Object.hasOwn(job, "continue-on-error")) {
     throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
   }
   const steps = job.steps?.filter((step) => step.run?.trim() === OPS_BASH) ?? [];
@@ -385,5 +395,208 @@ describe("SDD-0550 · toda prueba bash de infra/ops/tests tiene dónde correr", 
     const c = { todas: [...todas], vitest: { ...EN_VITEST }, linux: [...linuxNombres], fuera: { ...FUERA_DEL_CI } };
     mutar(c);
     expect(clasificar(c.todas, c).join("\n")).toMatch(problema);
+  });
+});
+
+const runbookCrudo = () => readFileSync(resolve("docs/runbooks/codex-engineering.md"), "utf8");
+
+/** El único bloque `bash` del runbook que lee las corridas de quality.yml para fusionar. */
+function comandoDelPorton(texto) {
+  const bloques = [...texto.matchAll(/```bash\r?\n([\s\S]*?)```/g)]
+    .map((m) => m[1].trim())
+    .filter((c) => /quality\.yml\/runs|check-runs/.test(c));
+  if (bloques.length !== 1) throw new Error(`esperaba un bloque bash del portón; hay ${bloques.length}`);
+  return bloques[0];
+}
+
+/** Manda la corrida más reciente de `pull_request` de quality.yml sobre la cabeza exacta. */
+function assertComandoDelPorton(c) {
+  if (!c.includes('gh api "repos/SoftAgentes/DTDCARGO/actions/workflows/quality.yml/runs?')) {
+    throw new Error("el portón lee las corridas de quality.yml, no check-runs ni otro workflow");
+  }
+  const query = c.match(/runs\?([^"]+)"/)?.[1] ?? "";
+  const params = new URLSearchParams(query);
+  if (params.get("head_sha") !== "<sha>") throw new Error("falta head_sha=<sha>");
+  if (params.get("event") !== "pull_request") throw new Error("falta event=pull_request");
+  if (!/--jq '\.workflow_runs \| max_by\(\.id\) \|/.test(c)) throw new Error("falta max_by(.id) sobre workflow_runs");
+  const campos = c.match(/max_by\(\.id\) \| \[([^\]]*)\]/)?.[1].split(",").map((x) => x.trim()) ?? [];
+  if (campos[0] !== ".status" || campos[1] !== ".conclusion") {
+    throw new Error("el --jq imprime .status y .conclusion de esa corrida, en ese orden");
+  }
+  if (/check-runs/.test(c)) throw new Error("check-runs trae una fila por corrida");
+}
+
+/**
+ * SDD-0621: el CI de PR no corre en borrador y corre al marcar la PR lista (`gh pr ready`). `ready_for_review`
+ * es lo que sostiene el portón: sin él, una PR que pasa de borrador a lista no tiene corrida sobre su cabeza hasta el
+ * próximo push. Los tipos por defecto de `pull_request` no lo incluyen, así que quitar `types:` también lo rompe.
+ */
+const TIPOS_DE_PR = ["opened", "ready_for_review", "reopened", "synchronize"];
+
+function assertNoCorreEnBorrador(parsed, jobId) {
+  const pr = parsed?.on?.pull_request;
+  if (!pr || typeof pr !== "object") throw new Error("Falta el disparador pull_request");
+  const tipos = Array.isArray(pr.types) ? [...pr.types].sort() : null;
+  if (JSON.stringify(tipos) !== JSON.stringify(TIPOS_DE_PR)) {
+    throw new Error(`pull_request.types debe ser exactamente ${TIPOS_DE_PR.join(", ")}; es ${JSON.stringify(pr.types)}`);
+  }
+  if (!Object.hasOwn(parsed.on, "workflow_dispatch")) throw new Error("Falta workflow_dispatch");
+  const job = parsed.jobs?.[jobId];
+  if (!job) throw new Error(`Falta el job ${jobId}`);
+  if (job.if !== SOLO_FUERA_DE_BORRADOR) {
+    throw new Error(`El job ${jobId} debe llevar exactamente if: ${SOLO_FUERA_DE_BORRADOR}`);
+  }
+  if (Object.hasOwn(job, "continue-on-error")) throw new Error(`El job ${jobId} no puede tolerar errores`);
+}
+
+describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista", () => {
+  const casos = [
+    ["quality.yml", "quality"],
+    ["kommo-historial-cargador.yml", "cargador"],
+    ["portal-historial-cargador.yml", "cargador"],
+    // SDD-0586, la 2b: el job del ensayo en copias, en el mismo workflow, tampoco corre en borradores.
+    ["portal-historial-cargador.yml", "ensayo"],
+    // SDD-0586, la 2c: la vuelta atrás dirigida (sus tres partes), en el mismo workflow.
+    ["portal-historial-cargador.yml", "deshacer"],
+  ];
+  const leer = (archivo) => loadYaml(readFileSync(resolve(".github/workflows", archivo), "utf8"));
+
+  it.each(casos)("%s salta en borrador, corre al pasar a lista y en manual", (archivo, jobId) => {
+    expect(() => assertNoCorreEnBorrador(leer(archivo), jobId)).not.toThrow();
+  });
+
+  it("quality.yml sigue corriendo en push a main y solo contra main en la PR", () => {
+    const parsed = leer("quality.yml");
+    expect(parsed.on.push.branches).toEqual(["main"]);
+    expect(parsed.on.pull_request.branches).toEqual(["main"]);
+  });
+
+  it("el runbook de integración conserva la regla para fusionar tras el skipped del borrador", () => {
+    // El ruleset de main cuenta el `skipped` como aprobado: sin esta regla, la PR recién marcada lista se ve
+    // fusionable antes de que exista la corrida que la prueba.
+    const runbook = readFileSync(resolve("docs/runbooks/codex-engineering.md"), "utf8").replace(/\s+/g, " ");
+    const regla = "`success`, no `skipped`, del check requerido, en una corrida `pull_request` sobre la cabeza exacta";
+    expect(runbook).toContain(regla);
+    expect(workflow.replace(/\s*#\s*/g, " ")).toContain(regla);
+    expect(runbook).toContain("Tampoco basta `gh pr checks`");
+    // Ya estaban en main (SDD-0621, #481): el remedio y cómo volver a borrador no se pueden borrar.
+    expect(runbook).toContain("gh pr ready <numero> --undo");
+    expect(runbook).toContain("gh pr ready <numero>");
+    // Un SHA corto devuelve dos tabuladores vacíos con exit 0; y cómo se sabe que apareció la corrida del push.
+    expect(runbook).toContain("`<sha>` va completo, de 40 caracteres");
+    expect(runbook).toContain("La corrida del push apareció cuando el comando de arriba, sobre la cabeza nueva");
+    // Re-ejecutar no rescata el `skipped`, y la carrera de concurrencia ya pasó en la #482: el párrafo nuevo, no el
+    // `gh pr ready --undo` que ya estaba en main.
+    expect(runbook).toContain("re-ejecución usa el evento original, con `draft: true`, y vuelve a saltar");
+    expect(runbook).toContain(
+      "Marca la PR lista después de que aparezca la corrida del push, o espera a que el `skipped` termine.",
+    );
+    // La frase falsa sobre `latest` no vuelve: `check-runs` trae una fila por corrida.
+    expect(runbook).not.toMatch(/`latest`, trae la corrida más reciente/);
+  });
+
+  it("el comando del portón elige la corrida más reciente de pull_request", () => {
+    expect(() => assertComandoDelPorton(comandoDelPorton(runbookCrudo()))).not.toThrow();
+  });
+
+  it.each([
+    ["sin event=pull_request (pasaría un gh workflow run)", (c) => c.replace("&event=pull_request", "")],
+    ["con otro evento", (c) => c.replace("event=pull_request", "event=workflow_dispatch")],
+    ["sin max_by(.id) (primera fila)", (c) => c.replace("max_by(.id)", ".[0]")],
+    ["la más vieja", (c) => c.replace("max_by(.id)", "min_by(.id)")],
+    ["por check-runs (una fila por corrida)", (c) =>
+      c.replace("actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request", "commits/<sha>/check-runs")],
+    ["otro workflow", (c) => c.replace("workflows/quality.yml/", "workflows/sql-tests.yml/")],
+    ["sin la cabeza", (c) => c.replace("head_sha=<sha>&", "")],
+    ["sin .conclusion", (c) => c.replace("[.status, .conclusion, .check_suite_id]", "[.status, .check_suite_id]")],
+    [".conclusion cambiado por otro campo", (c) => c.replace(".conclusion", ".event")],
+  ])("el comando del portón rechaza %s", (_nombre, mutar) => {
+    expect(() => assertComandoDelPorton(mutar(comandoDelPorton(runbookCrudo())))).toThrow();
+  });
+
+  it("los cargadores conservan su filtro de rutas, ruta por ruta", () => {
+    // Exactas y no «al menos N»: quitar una ruta deja de probar lo que cambia en ella sin que nada lo note.
+    const comunes = [
+      "infra/chatwoot/compose.yml",
+      "infra/chatwoot/pruebas/compose.local.yml",
+      "infra/chatwoot/rails/**",
+    ];
+    expect(leer("kommo-historial-cargador.yml").on.pull_request.paths).toEqual([
+      "infra/ops/kommo-historial/**",
+      ...comunes,
+      ".github/workflows/kommo-historial-cargador.yml",
+    ]);
+    expect(leer("portal-historial-cargador.yml").on.pull_request.paths).toEqual([
+      "infra/ops/portal-historial/**",
+      "supabase/migrations/0006_clients.sql",
+      "supabase/migrations/0106_conversaciones.sql",
+      "supabase/migrations/0337_feature_flags_seed_and_trigger.sql",
+      "supabase/migrations/0503_chatwoot_bandeja.sql",
+      "supabase/migrations/0504_chatwoot_eventos.sql",
+      "supabase/migrations/0519_chatwoot_portal.sql",
+      "supabase/migrations/0520_chatwoot_portal_vuelta.sql",
+      "supabase/migrations/0523_chatwoot_portal_carga.sql",
+      "supabase/migrations/0508_chatwoot_bajas_purga.sql",
+      "supabase/migrations/0524_chatwoot_portal_puerta4.sql",
+      ...comunes,
+      // SDD-0586, la 2b (N7 de la revisión del DG de la #473): el ensayo monta infra/chatwoot/correo/views en la copia
+      // de Rails, así que un cambio ahí tiene que disparar la prueba. Solo en el portal: el cargador kommo no lo monta.
+      "infra/chatwoot/correo/**",
+      ".github/workflows/portal-historial-cargador.yml",
+    ]);
+  });
+
+  it.each([
+    ["sin ready_for_review", (p) => { p.on.pull_request.types = ["opened", "synchronize", "reopened"]; }],
+    ["sin synchronize", (p) => { p.on.pull_request.types = ["opened", "reopened", "ready_for_review"]; }],
+    ["types quitado (los de defecto no traen ready_for_review)", (p) => { delete p.on.pull_request.types; }],
+    ["un tipo de más", (p) => { p.on.pull_request.types.push("labeled"); }],
+    ["sin workflow_dispatch", (p) => { delete p.on.workflow_dispatch; }],
+    ["condición quitada (vuelve a correr en borrador)", (p) => { delete p.jobs.quality.if; }],
+    ["condición invertida", (p) => { p.jobs.quality.if = "github.event.pull_request.draft"; }],
+    ["job desactivado", (p) => { p.jobs.quality.if = false; }],
+    ["solo en PR (se salta el push a main)", (p) => {
+      p.jobs.quality.if = "github.event_name == 'pull_request' && !github.event.pull_request.draft";
+    }],
+    ["error del job ignorado", (p) => { p.jobs.quality["continue-on-error"] = true; }],
+  ])("rechaza %s", (_nombre, mutar) => {
+    const parsed = structuredClone(leer("quality.yml"));
+    mutar(parsed);
+    expect(() => assertNoCorreEnBorrador(parsed, "quality")).toThrow();
+  });
+
+  it.each([
+    ["condición quitada", (j) => { delete j.if; }],
+    ["condición invertida", (j) => { j.if = "github.event.pull_request.draft"; }],
+    ["error del job ignorado", (j) => { j["continue-on-error"] = true; }],
+  ])("rechaza en el job ensayo del portal: %s", (_nombre, mutar) => {
+    // El mutante del DG (SDD-0586, la 2b): sin el if: de borrador en el job ensayo, el contrato tiene que dar rojo.
+    const parsed = structuredClone(leer("portal-historial-cargador.yml"));
+    mutar(parsed.jobs.ensayo);
+    expect(() => assertNoCorreEnBorrador(parsed, "ensayo")).toThrow();
+  });
+
+  it.each([
+    ["condición quitada", (j) => { delete j.if; }],
+    ["condición invertida", (j) => { j.if = "github.event.pull_request.draft"; }],
+    ["error del job ignorado", (j) => { j["continue-on-error"] = true; }],
+  ])("rechaza en el job deshacer del portal: %s", (_nombre, mutar) => {
+    // El mutante de la 2c (SDD-0586): sin el if: de borrador en el job deshacer, el contrato tiene que dar rojo.
+    const parsed = structuredClone(leer("portal-historial-cargador.yml"));
+    mutar(parsed.jobs.deshacer);
+    expect(() => assertNoCorreEnBorrador(parsed, "deshacer")).toThrow();
+  });
+
+  it.each([
+    ["condición solo en push", "github.event_name == 'push'"],
+    ["condición invertida", "github.event.pull_request.draft"],
+    ["condición siempre falsa", false],
+  ])("los asertos de obligatoriedad rechazan %s en el job de calidad", (_nombre, condicion) => {
+    const job = structuredClone(loadYaml(workflow).jobs.quality);
+    job.if = condicion;
+    expect(() => assertRequiredHarness(job)).toThrow();
+    expect(() => assertRequiredPendingMigrationSymbols(job)).toThrow();
+    expect(() => assertFullUnitSuite(job)).toThrow();
+    expect(() => assertRequiredOpsBash(job)).toThrow();
   });
 });

@@ -81,6 +81,11 @@ x-entorno: &entorno
   DISABLE_GRAVATAR: "true"
   # Sin IP_LOOKUP_API_KEY no se descarga la base de MaxMind ni se geolocaliza la IP de
   # nadie (app/services/geocoder/setup_service.rb). No se declara a propósito.
+  # Phone Number IDs de WhatsApp a los que Chatwoot NO puede hacer /register ni
+  # /deregister (rails/zz_dtd_proteccion_register.rb, SDD-0584). Separados por coma.
+  # Sin valor llega "" y el inicializador bloquea esas dos llamadas para todos los
+  # números (falla cerrado), que es lo seguro mientras no haya bandejas de WhatsApp.
+  DTD_WHATSAPP_IDS_PROTEGIDOS: ${CHATWOOT_WHATSAPP_IDS_PROTEGIDOS:-}
   POSTGRES_HOST: postgres
   POSTGRES_PORT: "5432"
   POSTGRES_USERNAME: chatwoot
@@ -114,6 +119,9 @@ x-entorno: &entorno
   SMTP_AUTHENTICATION: ${CHATWOOT_SMTP_AUTHENTICATION:-login}
   SMTP_ENABLE_STARTTLS_AUTO: ${CHATWOOT_SMTP_ENABLE_STARTTLS_AUTO:-true}
   SMTP_OPENSSL_VERIFY_MODE: ${CHATWOOT_SMTP_OPENSSL_VERIFY_MODE:-peer}
+  # Búsqueda de mensajes: cuántos días hacia atrás mira (lib/limits.rb; 90 sin la variable). 3650 cubre el
+  # historial de Kommo del Archivo, desde el 2023-08-23, hasta 2033 (SDD-0590 §10.14).
+  SEARCH_TIME_RANGE_LIMIT_DAYS: ${CHATWOOT_SEARCH_TIME_RANGE_LIMIT_DAYS:-3650}
 
 x-chatwoot: &chatwoot
   <<: *imagen
@@ -129,14 +137,23 @@ x-chatwoot: &chatwoot
     # contacto de los logs de Rails y Sidekiq. Se monta solo lectura sobre la imagen
     # sin modificarla; el runbook de versiones (E3) lo vuelve a probar en cada subida.
     - ./rails/zz_dtd_redaccion_logs.rb:/app/config/initializers/zz_dtd_redaccion_logs.rb:ro
+    # Protección de /register y /deregister de WhatsApp (SDD-0584, paso 4.2): el número
+    # principal se comparte con Kommo (decisión B) y un /register de Chatwoot podría
+    # desconectarlo. Lee DTD_WHATSAPP_IDS_PROTEGIDOS; vacía o mal formada, bloquea todo.
+    - ./rails/zz_dtd_proteccion_register.rb:/app/config/initializers/zz_dtd_proteccion_register.rb:ro
     # Revocación de sesiones desde Studio (SDD-0585, paso 2.7): ruta privada de la Platform
     # API que cierra todas las sesiones de un agente dado de baja. Sin DTD_CHATWOOT_SERVICIO_ID
     # responde 503 y no revoca a nadie. El runbook de versiones (E3) lo prueba en cada subida.
     - ./rails/zz_dtd_revocar_sesiones.rb:/app/config/initializers/zz_dtd_revocar_sesiones.rb:ro
     # Marca de DTD (paso 1.3): logos e ícono oficiales servidos por el propio chat en
     # /dtd-marca/. Carpeta aparte para no tapar /app/public/brand-assets de Chatwoot.
-    # Los valores que los usan están en marca/aplicar-marca.rb (InstallationConfig).
+    # Los valores que los usan están en aplicar-marca.rb (InstallationConfig), fuera de
+    # marca/ para que el chat no lo publique (todo lo de marca/ se sirve en /dtd-marca/).
     - ./marca:/app/public/dtd-marca:ro
+    # Correos de DTD (SDD-0583): diseño, firma y textos en español (correo/views) y los
+    # asuntos (rails/zz_dtd_correo.rb). Sin estas dos líneas vuelven los de Chatwoot.
+    - ./rails/zz_dtd_correo.rb:/app/config/initializers/zz_dtd_correo.rb:ro
+    - ./correo/views:/app/dtd-correo/views:ro
 
 services:
   prepare:

@@ -1,0 +1,80 @@
+<%#
+  SDD-0583 · bloque común de los correos de cuenta (contraseña, invitación, confirmación).
+  Misma estructura que el diseño de Chatwoot (devise/mailer/_confirmation_body.html.erb)
+  con colores de DTD. Va dentro de la tabla del layout: por eso son filas <tr>. Locales:
+  etiqueta, titulo, saludo, parrafos (lista), detalles (pares), boton, url, nota_titulo, nota.
+%>
+<tr>
+  <td style="padding: 0 0 16px;">
+    <span style="display: inline-block; padding: 6px 12px; border-radius: 999px; background-color: #F2F0EC; color: #7F0F1A; font-size: 12px; line-height: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;"><%= etiqueta %></span>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 14px;">
+    <h1 class="dtd-titulo" style="margin: 0; font-size: 32px; line-height: 38px; font-weight: 800; color: #0F1E3D;"><%= titulo %></h1>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 10px;">
+    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #0F1E3D;"><%= saludo %></p>
+  </td>
+</tr>
+<% parrafos.each_with_index do |parrafo, i| %>
+  <tr>
+    <td style="padding: 0 0 <%= i == parrafos.size - 1 ? '20px' : '10px' %>;">
+      <p style="margin: 0; font-size: 15px; line-height: 23px; color: #333333;"><%= parrafo %></p>
+    </td>
+  </tr>
+<% end %>
+<% if detalles.any? %>
+  <tr>
+    <td style="padding: 0 0 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #E8E6E2; border-radius: 16px; background-color: #FBFAF7;" bgcolor="#FBFAF7">
+        <% detalles.each_with_index do |(nombre, valor), indice| %>
+          <tr>
+            <td style="padding: 16px 18px;<%= ' border-top: 1px solid #E8E6E2;' unless indice.zero? %>">
+              <p style="margin: 0 0 4px; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B;"><%= nombre %></p>
+              <p style="margin: 0; font-size: 15px; line-height: 21px; font-weight: 600; color: #0F1E3D;"><%= valor %></p>
+            </td>
+          </tr>
+        <% end %>
+      </table>
+    </td>
+  </tr>
+<% end %>
+<% if url.present? %>
+  <tr>
+    <td style="padding: 0 0 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; margin: 0;">
+        <tr>
+          <td bgcolor="#7F0F1A" style="border-radius: 14px; background-color: #7F0F1A;">
+            <%= link_to(boton, url, style: 'display:block; width:100%; box-sizing:border-box; padding:14px 24px; font-size:15px; line-height:20px; font-weight:700; color:#FFFFFF; text-align:center; text-decoration:none; border-radius:14px;') %>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 0 0 20px;">
+      <p style="margin: 0; font-size: 14px; line-height: 21px; color: #6B6B6B;">
+        Si el botón no funciona, abre <%= link_to('este enlace seguro', url, style: 'color:#7F0F1A; font-weight:600; text-decoration:none;') %>.
+      </p>
+    </td>
+  </tr>
+<% end %>
+<% if nota.present? %>
+  <tr>
+    <td style="padding: 0 0 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #E8E6E2; border-radius: 16px; background-color: #F2F0EC;" bgcolor="#F2F0EC">
+        <tr>
+          <td style="padding: 16px 18px;">
+            <% if nota_titulo.present? %>
+              <p style="margin: 0 0 6px; font-size: 15px; line-height: 21px; font-weight: 700; color: #0F1E3D;"><%= nota_titulo %></p>
+            <% end %>
+            <p style="margin: 0; font-size: 14px; line-height: 21px; color: #333333;"><%= nota %></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+<% end %>

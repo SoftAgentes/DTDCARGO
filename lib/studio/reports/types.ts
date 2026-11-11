@@ -786,6 +786,12 @@ export type CommercialByAgent = {
    * la UI muestra un EmptyState honesto en vez de una tabla vacía.
    */
   hasKommo: boolean;
+  /**
+   * true desde SDD-0614 S0 (D-6.6-1, P-9): la tabla del espejo de Kommo está
+   * oculta. La vista muestra el aviso «se está pasando al CRM del Studio» y el
+   * CSV no sale. R4 (S3) vuelve a llenar el reporte con las tarjetas del CRM.
+   */
+  oculto: boolean;
 };
 
 // ── Contables · Posición de IVA ────────────────────────────────

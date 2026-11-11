@@ -35,6 +35,7 @@ export function ChatwootConversacionesCard({ conversaciones }: { conversaciones:
   return (
     <section
       aria-labelledby="ficha-chatwoot"
+      data-guia="cliente.conversaciones"
       style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-3)" }}
     >
       <h2 id="ficha-chatwoot" style={{ font: "800 15px/1.2 var(--f-display)", color: "var(--ink)", margin: 0 }}>

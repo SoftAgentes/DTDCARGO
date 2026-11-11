@@ -25,7 +25,7 @@ import {
   listAltasSinAcceso,
 } from "@/lib/studio/alta-health";
 import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
@@ -83,9 +83,21 @@ export async function GET(req: NextRequest) {
       // convive con fallas de correo (ver mail-health). UNA vez por CHAT, fuera
       // del bucle de admins (SDD-0271): adentro, dos cuentas admin con el mismo
       // telegram_chat_id recibían el aviso dos veces.
-      await dispatchTelegramAlert(admin, t.id, "equipo", text, {
-        logTag: "alta-health",
-      });
+      await dispatchAlert(
+        admin,
+        t.id,
+        "equipo",
+        {
+          telegramText: text,
+          // Sin la lista de clientes: cuántos son y dónde se arregla (SDD-0606).
+          discord: {
+            titulo: "Clientes con Shipping Mark y sin acceso al portal",
+            conteos: [{ etiqueta: "Clientes sin acceso", valor: rotos.length }],
+            url: `${SITE_URL}/studio/admin`,
+          },
+        },
+        { logTag: "alta-health" },
+      );
 
       const admins = await resolveAdminEntries(admin, t.id);
       for (const a of admins) {

@@ -311,7 +311,7 @@ Están en la fila 2.3 del checklist.
 ## Metodología de avance
 
 - **Fórmula:** `avance = Σ días base de pasos aceptados ÷ Σ días base del alcance aprobado`, y **falta = 100 − avance**. Unidad: persona-día de 8 h.
-- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
+- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). La **v4 del 2026-11-07** son 129,5 días, por el rediseño de la 6.6 y la 10.5, con cinco filas nuevas (ver el checklist, «Cambio de alcance v4»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
 - **Esfuerzo aparte.** El real y el restante reestimado se informan aparte y no mueven el %. Las esperas pesan 0 y bloquean.
 - **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`. Solo `aceptado` suma.
 - **Cálculo:** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
@@ -333,15 +333,16 @@ Están en la fila 2.3 del checklist.
 
 ## Allowlist de esta SDD
 
-- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md}`
+- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md,e4-correo.md}`
 - `docs/specs/README.md` (índice regenerado)
 - `scripts/avance-checklist.mjs`
 - `scripts/__tests__/avance-checklist.test.mjs`
 - `.agents/handoffs/0582-chatwoot-piloto.md`
 - `.agents/handoffs/0582-e0-preparacion.md`
 - `.agents/handoffs/0582-e9-guion.md`
+- Paso 4.8, correo, que no tiene SDD hija (detalle en `e4-correo.md` §10): `infra/chatwoot/correo/{bandeja-prueba.rb,bandeja-vzla.rb,zz_dtd_correo_sistema.rb}`, `infra/chatwoot/pruebas/{prueba-correo-sistema.sh,sonda-correo-sistema.rb,sonda-bandeja-vzla.rb,compose.correo-sistema.yml,compose.correo-sistema-control.yml}`, `.github/workflows/chatwoot-correo-sistema.yml`, `docs/legal/privacidad/{revision-chatwoot-correo-2026-10-31.md,inventario-terceros.md}` y `.agents/handoffs/0582-e4-correo.md`
 
-El código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
+Fuera del paso 4.8, el código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
 
 ## Fuera de alcance detectado (se informa, no se toca)
 
@@ -367,3 +368,14 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 - **2026-10-29 (línea base v3):** Sam aprobó el análisis comparativo del Director («aprobación del análisis comparativo del Director, 2026-10-29»). Alcance 109,25 → 115,5 días (114,5 sin el 2.8 opcional). Avance en la rama de E0 4,6 % → 4,3 %, y con las otras ramas 7,1 % → 6,7 %. Se corrigen el costo de Meta (cobro desde el 2026-10-01) y la guía del PIN. 0.8 suma dos decisiones y la 2.3 no se acepta hasta arreglar la idempotencia.
 - **2026-10-30 (0.8):** Sam respondió por el selector: la carga recibida en China cuenta como cliente, quien pierde su único envío vuelve a lead y el bot responde en 1 mensaje. 0.8 aceptado y E0 completa. Sin cambio de línea base: avance en la rama de E0 4,3 % → 4,8 %, y con las otras ramas 6,7 % → 7,1 %.
 - **2026-10-30 (enmienda del 0.8):** Sam cambió el reparto de números («este whatapp va ser para cliente y el numero viejo paraleeds y leed registrados con numero de markbox»): clientes al número nuevo en «DTD Cargo Clientes»; leads nuevos y registrados al viejo, que sigue en Kommo hasta el corte. La web no cambia, 10.4 se achica al portal, 10.2 opera en automático solo con el viejo en Chatwoot y E10 solo intercambia configuración. Sin cambio de días ni de %.
+- **2026-11-04 a 2026-11-06 (publicación por tandas):** con el mandato de Sam al Director General («Doy el mandato», 2026-11-03 ~20:10Z), lo integrado de E1 a E10 salió a producción en cuatro tandas. Imágenes y evidencias, según él:
+
+  | Tanda | Hora | Imagen | Anterior | Evidencia, en `/srv/ops/evidencias/` |
+  |---|---|---|---|---|
+  | A | 2026-11-04 12:41:54Z | `fe35eb2d1` | `dac99762e` | Guion: `.agents/handoffs/0582-guion-publicacion-tanda-a.md` |
+  | B | 2026-11-04 22:53:29Z | `sha-92e2bb706` | `fe35eb2d1` | `ventana-tanda-b-20261104T225143Z` |
+  | C | 2026-11-05, antes de las 16:15Z | `sha-1aafa150e` | — | — |
+  | D | 2026-11-06 02:01Z | `sha-7a8afdd2c` | `sha-1aafa150e` | `ventana-tanda-d-20261106T015919Z` |
+
+  En la D pasaron el respaldo, las puertas (269 migraciones en el ledger, con huellas iguales) y la prueba rápida, 14 de 14. El webhook de Chatwoot responde 401 sin firma, el cron 403, y el log no tiene errores. No cambió el crontab ni el compose. El Subdirector comprobó a las 02:04Z, desde fuera, que `/privacidad` publica el texto de SDD-0587 con fecha del 5 de noviembre. **Con la D, todo lo de Chatwoot del mandato está en producción.** Lo que sigue abierto está en el checklist: 4.4 y 4.6 en espera de Meta, 4.5, 4.8, 4.9, y de E6 a E9.
+- **2026-11-05 (capacitación, pedida por Sam, todavía sin orden de empezar):** lo dijo Sam en el chat del Director General: «Hay que hacer un entrenamiento al personal para que entiendan cómo manejar esta herramienta comparada con Kommo. Hay que preparar diferencias entre Kommo y Chatwoot. Lo hacía de una manera ya en el pipeline, en el embudo, y aquí lo va a hacer casi de la misma manera o diferente.» Y: «El bug del ERP hay que ponerlo visible dentro de la herramienta cuando trabajen los empleados, o recordarles que cualquier mejora puede hacerlo en el book.» La capacitación ya es parte de 8.1 y sale de [`guia-guion.md`](guia-guion.md). De 9.2 a 9.6, lo del botón de bugs cae en 9.5. **No se empieza hasta que Sam la ordene.**
