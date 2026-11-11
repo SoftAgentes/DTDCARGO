@@ -194,3 +194,6 @@ outputs/
 # Caché del adaptador Python de conocimiento
 __pycache__/
 *.pyc
+
+# Almacén local de pnpm
+/.pnpm-store/

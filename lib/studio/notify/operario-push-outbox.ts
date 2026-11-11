@@ -80,6 +80,7 @@ export async function enqueueUserPush(
         url: payload.url ?? "/studio",
         tag: payload.tag ?? null,
         requireInteraction: payload.requireInteraction ?? false,
+        ...(payload.claveEvento ? { clave_evento: payload.claveEvento } : {}),
       },
     });
     if (error) {

@@ -1061,6 +1061,17 @@ function agentInitials(name: string): string {
 }
 
 function ByAgentView({ data }: { data: CommercialByAgent }) {
+  // SDD-0614 S0 (D-6.6-1, P-9): la tabla del espejo de Kommo está oculta. El
+  // texto lo aprobó tal cual el Subdirector el 2026-11-06; R4 (S3) la reemplaza.
+  if (data.oculto) {
+    return (
+      <EmptyState
+        eyebrow="Por agente"
+        title="El desempeño por asesor se está pasando al CRM del Studio."
+        description="Vuelve a aparecer aquí cuando esté listo."
+      />
+    );
+  }
   if (!data.hasKommo || data.rows.length === 0) {
     return (
       <EmptyState
@@ -1403,9 +1414,13 @@ export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
   // SDD-0557 · con facturas en bolívares o yuanes asentadas por su nominal, el
   // mayor mezcla monedas: la tarjeta lo dice en vez de llamarlo USD funcional.
   const mezclado = notaDelMayorMezclado(income.ingreso);
+  const unidadSinVerificar = income.ingreso.controlI2.unidadMayor === "sin_verificar";
+  const aviso = unidadSinVerificar
+    ? "No se ha verificado la unidad monetaria del mayor. Sus montos y porcentajes no están disponibles. Revisa el control de Ingreso del período antes de usar este reporte."
+    : mezclado;
   return (
-    <Card eyebrow="Estado de resultados" title="Gerencial · USD funcional · desde el mayor" style={{ maxWidth: 680, padding: 0 }}>
-      {mezclado ? (
+    <Card eyebrow="Estado de resultados" title={unidadSinVerificar ? "Gerencial · unidad monetaria sin verificar" : "Gerencial · USD funcional · desde el mayor"} style={{ maxWidth: 680, padding: 0 }}>
+      {aviso ? (
         <p
           role="note"
           style={{
@@ -1418,7 +1433,7 @@ export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
             color: "var(--ink)",
           }}
         >
-          {mezclado}
+          {aviso}
         </p>
       ) : null}
       <div style={{ padding: "0 0 var(--s-2)" }}>
@@ -1447,18 +1462,20 @@ export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
               style={{
                 font: `${row.emphasis ? "900" : "700"} 14px/1 var(--f-mono)`,
                 color:
-                  row.amount < 0
-                    ? "var(--danger)"
-                    : row.emphasis
-                      ? "var(--ink)"
-                      : "var(--ink-soft)",
+                  unidadSinVerificar
+                    ? "var(--ink-soft)"
+                    : row.amount < 0
+                      ? "var(--danger)"
+                      : row.emphasis
+                        ? "var(--ink)"
+                        : "var(--ink-soft)",
                 textAlign: "right",
               }}
             >
-              {fmtUsd(row.amount)}
+              {unidadSinVerificar ? "No disponible" : fmtUsd(row.amount)}
             </span>
             <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
-              {row.pct != null ? `${row.pct}%` : "—"}
+              {!unidadSinVerificar && row.pct != null ? `${row.pct}%` : "—"}
             </span>
           </div>
         ))}

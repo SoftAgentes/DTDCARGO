@@ -44,6 +44,8 @@ import {
   type RoleModuleOverrides,
 } from "@/lib/studio/rbac";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
+import { BandejaBadge } from "./BandejaBadge";
+import type { ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 
 const STORAGE_KEY = "studio_sidebar_collapsed";
 const OPEN_GROUP_KEY = "studio_sidebar_opengroup";
@@ -67,6 +69,11 @@ interface Props {
   /** Alertas de gastos activas (badge en el item "Gastos"). */
   expenseAlertCount?: number;
   /**
+   * Conversaciones de Chatwoot abiertas con no leídos (SDD-0585, E2-D21): badge del
+   * item "Bandeja", vivo por Realtime. Solo se pinta si el item se ve (rol + flag).
+   */
+  bandeja?: { tenantId: string | null; initial: ConversacionNoLeida[] };
+  /**
    * Rol del user en su tenant. El sidebar esconde los módulos que el rol no
    * puede ver (matriz `ROLE_MODULE_ACCESS`, SDD-0085). El gate real lo hace la
    * page server-side; esto solo evita mostrar un link que daría redirect.
@@ -88,6 +95,7 @@ interface Props {
 export function StudioSidebar({
   featureFlags,
   expenseAlertCount = 0,
+  bandeja,
   role = null,
   warehouseScope = "all",
   overrides,
@@ -356,6 +364,9 @@ export function StudioSidebar({
             {moduleLabel}
           </span>
         )}
+        {!collapsed && m.id === "bandeja" && bandeja?.tenantId ? (
+          <BandejaBadge tenantId={bandeja.tenantId} initial={bandeja.initial} />
+        ) : null}
         {!collapsed && m.id === "expenses" && expenseAlertCount > 0 && (
           <span
             aria-label={`${expenseAlertCount}`}

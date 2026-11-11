@@ -19,6 +19,36 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
+import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com").replace(/\/+$/, "");
+
+/**
+ * El reporte diario para Discord (SDD-0606): conteos del día y el enlace al
+ * Studio. SIN montos —los gastos van como cantidad de registros, no como
+ * total— y sin el texto redactado por el modelo, que sí trae cifras de dinero.
+ */
+export function buildDiscordBrief(kpis?: CeoBriefKpis): MinimalAlert {
+  const base: MinimalAlert = {
+    titulo: "Reporte diario de operaciones",
+    url: `${SITE_URL}/studio`,
+  };
+  if (!kpis) return base;
+  return {
+    ...base,
+    codigo: kpis.date_iso,
+    conteos: [
+      { etiqueta: "Recepciones en China", valor: kpis.receipts_cn_count },
+      { etiqueta: "Recepciones con incidencia", valor: kpis.receipts_cn_incidents },
+      { etiqueta: "Despachos listos", valor: kpis.od_lista },
+      { etiqueta: "Despachos en ruta", valor: kpis.od_en_ruta },
+      { etiqueta: "Despachos entregados", valor: kpis.od_entregada },
+      { etiqueta: "Gastos cargados", valor: kpis.expenses_count },
+      { etiqueta: "Incidencias sin resolver", valor: kpis.incidents_open },
+    ],
+  };
+}
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -238,7 +268,24 @@ export async function sendCeoBriefToTenant(
   supabase: SupabaseClient,
   tenantId: string,
   brief: string,
+  kpis?: CeoBriefKpis,
 ): Promise<{ ok: boolean; sentTo?: string; error?: string }> {
+  // SDD-0606 · Discord primero. Si entrega, el texto con montos no sale por
+  // ningún lado: a Discord van sólo los conteos.
+  const enDiscord = await sendDiscordCategoryAlert(
+    supabase,
+    tenantId,
+    "reportes",
+    buildDiscordBrief(kpis),
+    { logTag: "ceo-brief" },
+  );
+  if (enDiscord.handled) {
+    return {
+      ok: true,
+      sentTo: enDiscord.outcome === "en-cola" ? "discord (en cola)" : "discord",
+    };
+  }
+
   const routed = await dispatchTelegramAlert(
     supabase,
     tenantId,

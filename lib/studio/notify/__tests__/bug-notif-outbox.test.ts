@@ -17,6 +17,7 @@ const sendTelegramMessage = vi.fn();
 const getBugDetail = vi.fn();
 const resolveUserEmail = vi.fn();
 const resolveUserDisplayName = vi.fn();
+const sendDiscordMentionToUser = vi.fn();
 
 vi.mock("@/lib/studio/mail/send-email", () => ({
   sendEmail: (...a: unknown[]) => sendEmail(...a),
@@ -26,6 +27,10 @@ vi.mock("@/lib/studio/telegram/send-message", () => ({
 }));
 vi.mock("@/lib/studio/bug-queries", () => ({
   getBugDetail: (...a: unknown[]) => getBugDetail(...a),
+}));
+// SDD-0606 · la mención en Discord se controla desde cada caso.
+vi.mock("@/lib/studio/alerts/user-alert", () => ({
+  sendDiscordMentionToUser: (...a: unknown[]) => sendDiscordMentionToUser(...a),
 }));
 vi.mock("../resolve-recipient", () => ({
   resolveUserEmail: (...a: unknown[]) => resolveUserEmail(...a),
@@ -145,6 +150,9 @@ beforeEach(() => {
   resolveUserEmail.mockResolvedValue("user@example.com");
   resolveUserDisplayName.mockResolvedValue("Usuario Test");
   getBugDetail.mockResolvedValue(BUG);
+  sendDiscordMentionToUser.mockReset();
+  // Por defecto Discord no aplica: los casos de Telegram de siempre.
+  sendDiscordMentionToUser.mockResolvedValue({ attempted: false, ok: false });
 });
 
 describe("drain · email", () => {
@@ -234,6 +242,51 @@ describe("drain · telegram", () => {
     await drainBugNotificationOutbox(admin);
     expect(sendTelegramMessage).not.toHaveBeenCalled();
     expect(updates[0].patch.telegram_attempts).toBe(MAX_BUG_NOTIF_ATTEMPTS + 1);
+  });
+});
+
+describe("drain · Discord (SDD-0606)", () => {
+  it("la mención confirmada cierra la fila sin Telegram, con el tenant del bug", async () => {
+    sendDiscordMentionToUser.mockResolvedValue({ attempted: true, ok: true, outcome: "entregado" });
+    const { admin, updates } = makeAdmin({ telegramRows: [row({})], telegramChatId: "123456" });
+    const r = await drainBugNotificationOutbox(admin);
+    expect(r.telegram).toEqual({ processed: 1, delivered: 1, failed: 0 });
+    expect(sendDiscordMentionToUser.mock.calls[0][1]).toBe("t1");
+    expect(sendTelegramMessage).not.toHaveBeenCalled();
+    expect(updates[0].patch).toEqual(expect.objectContaining({ delivered_telegram_at: expect.any(String) }));
+  });
+
+  it("A4: si Discord no la guardó y la persona no tiene Telegram, la fila sigue viva para reintentar", async () => {
+    sendDiscordMentionToUser.mockResolvedValue({
+      attempted: true,
+      ok: false,
+      outcome: "no-entregado",
+      error: "Discord respondió HTTP 503",
+    });
+    const { admin, updates } = makeAdmin({
+      telegramRows: [row({ telegram_attempts: 2 })],
+      telegramChatId: null,
+    });
+    const r = await drainBugNotificationOutbox(admin);
+    expect(r.telegram).toEqual({ processed: 1, delivered: 0, failed: 1 });
+    expect(updates).toEqual([
+      { id: "n1", patch: { telegram_attempts: 3, telegram_last_error: "Discord respondió HTTP 503" } },
+    ]);
+    expect(sendTelegramMessage).not.toHaveBeenCalled();
+  });
+
+  it("M2: una mención incierta cierra la fila sin repetir por Telegram", async () => {
+    sendDiscordMentionToUser.mockResolvedValue({
+      attempted: true,
+      ok: false,
+      outcome: "incierto",
+      error: "sin respuesta de Discord (TimeoutError)",
+    });
+    const { admin, updates } = makeAdmin({ telegramRows: [row({})], telegramChatId: "123456" });
+    const r = await drainBugNotificationOutbox(admin);
+    expect(r.telegram).toEqual({ processed: 1, delivered: 1, failed: 0 });
+    expect(sendTelegramMessage).not.toHaveBeenCalled();
+    expect(updates[0].patch).toEqual(expect.objectContaining({ delivered_telegram_at: expect.any(String) }));
   });
 });
 

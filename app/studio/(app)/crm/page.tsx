@@ -3,6 +3,9 @@
  * Server component: resuelve la pestaña, computa la analítica (Dirección) en una
  * pasada y deriva los mapas del worklist (Asesor) sin queries extra. No muta nada
  * (ni Kommo ni el mirror).
+ *
+ * SDD-0614 · S0: las pestañas de Kommo están ocultas. La página pinta Embudos
+ * (CRM propio, SDD-0587 · 6.3) sin leer el espejo; ver el `return` temprano.
  */
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial, requireModuleView } from "@/lib/studio/rbac-guard";
@@ -34,7 +37,8 @@ import type {
   KommoCustomFieldRow,
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { resolverTablero } from "@/lib/studio/crm-tablero";
 import {
   filterRecoveryRows,
   getRecoveryUniverse,
@@ -45,7 +49,8 @@ import { DireccionTab } from "./_components/DireccionTab";
 import { KommoBoardView } from "./_components/KommoBoardView";
 import { KommoClient } from "./_components/KommoClient";
 import { RecoveryTab } from "./_components/RecoveryTab";
-import { resolveKommoTab } from "./_components/kommo-tabs.shared";
+import { CrmEmbudosCargando, CrmEmbudosSlot } from "./_components/CrmEmbudosSlot";
+import { KOMMO_TABS_OCULTAS, resolveKommoTab } from "./_components/kommo-tabs.shared";
 
 /** Tope de leads traídos por embudo para el Tablero kanban. */
 const BOARD_CAP = 2000;
@@ -66,6 +71,45 @@ export default async function KommoPage({
   };
   const tab = resolveKommoTab(single("tab"));
   const filters = parseKommoFiltersFromSearchParams(raw);
+
+  // Embudos del CRM propio (SDD-0587 · 6.3): se lee dentro de su Suspense, así
+  // la pestaña muestra su estado de carga en vez de congelar la página.
+  const embudos: ReactNode =
+    tab === "embudos" ? (
+      <Suspense fallback={<CrmEmbudosCargando />}>
+        <CrmEmbudosSlot tableroInicial={resolverTablero(single("embudo"))} />
+      </Suspense>
+    ) : null;
+
+  // SDD-0614 · S0 (D-6.6-1): Kommo está oculto del Studio hasta la migración
+  // completa. `resolveKommoTab` ya no devuelve sus pestañas, así que la página
+  // pinta la pestaña propia y vuelve ANTES de leer el espejo `kommo_*`. Lo que
+  // sigue es el camino de las pestañas de Kommo: queda sin uso, no borrado, y
+  // se retira en 8.7 con su OK aparte.
+  if (!KOMMO_TABS_OCULTAS.has(tab)) {
+    return (
+      <KommoClient
+        tab={tab}
+        direccion={null}
+        tablero={null}
+        recuperacion={null}
+        embudos={embudos}
+        overview={null}
+        pipelines={[]}
+        statuses={[]}
+        leads={[]}
+        filters={filters}
+        convertedLeads={{}}
+        valueByLead={{}}
+        contactByLead={{}}
+        pendingOpsByLead={{}}
+        staleOpsByLead={{}}
+        // Solo lo usa el worklist de Kommo (oculto); Embudos resuelve su permiso.
+        canEdit={false}
+        responsibleUsers={[]}
+      />
+    );
+  }
 
   const supabase = await createClient();
 
@@ -249,6 +293,7 @@ export default async function KommoPage({
       }
       tablero={tablero}
       recuperacion={recuperacion}
+      embudos={embudos}
       overview={overview}
       pipelines={pipelines}
       statuses={statuses}

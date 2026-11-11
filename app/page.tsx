@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { WebPageJsonLd } from "@/components/WebPageJsonLd";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/public/site-meta";
 import { OperationGallery } from "@/components/OperationGallery";
 import { CicloDTD } from "@/components/CicloDTD";
 import { ShippingMarkCta } from "@/components/ShippingMarkCta";
@@ -50,7 +51,7 @@ export default function HomePage() {
   return (
     <>
       <Nav />
-      <WebPageJsonLd path="/" speakableSelectors={["#respuesta-rapida"]} />
+      <WebPageJsonLd path="/" name={SITE_TITLE} description={SITE_DESCRIPTION} speakableSelectors={["#respuesta-rapida"]} />
       <main className="home-surface">
         {/* ── Hero ── */}
         <section className="hero" aria-label="Presentación">

@@ -9,6 +9,12 @@
  *
  * Convención del Studio: "use server" + useActionState + parsing manual de
  * FormData + validate*Input() (sin Zod) + revalidatePath().
+ *
+ * SDD-0586 (10.5, 1c-1, E10-D41): con `chatwoot_portal` encendido y la bandeja del portal
+ * configurada, un hilo del portal se responde desde la Bandeja de Chatwoot. `sendReplyAction` y
+ * `setStatusAction` lo rechazan en el servidor (`rechazoPortal`), después del gate de edición y
+ * sin escribir nada. `assignAction` y `markCaseAction` no se traban: son metadatos internos
+ * (decisión del DG del 2026-11-08, ~10:22Z).
  */
 
 "use server";
@@ -19,6 +25,7 @@ import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { insertOutboundMessage } from "@/lib/studio/conversaciones/messages-queries";
 import { notifyClientReplyPush } from "@/lib/studio/conversation-reply-push";
+import { rechazoPortal } from "@/lib/studio/chatwoot/portal-solo-lectura";
 import { runConversationDigestsForTenant } from "@/lib/studio/conversaciones/monthly-digest";
 import {
   validateAssignInput,
@@ -122,6 +129,10 @@ export async function sendReplyAction(
       external_ref: string | null;
     }>();
   if (!conv) return { error: "Conversación no encontrada." };
+
+  // SDD-0586 1c-1: un hilo del portal con la integración encendida se responde desde la Bandeja.
+  const rechazo = await rechazoPortal(supabase, tenantId, conv.channel);
+  if (rechazo) return { error: rechazo };
 
   const inserted = await insertOutboundMessage(supabase, {
     tenantId,
@@ -228,10 +239,29 @@ export async function setStatusAction(
   const denial = await moduleEditDenial(supabase, "conversaciones");
   if (denial) return { error: denial };
 
+  // SDD-0586 1c-1: el estado de un hilo del portal con la integración encendida lo decide
+  // Chatwoot (E10-D39). Se lee el canal con la sesión (la RLS lo deja ver solo en el tenant).
+  // Si la lectura falla no se sabe si es del portal: no se escribe (fail-closed).
+  const { data: hilo, error: errorHilo } = await supabase
+    .from("conversations")
+    .select("id, channel")
+    .eq("id", input!.conversation_id)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string; channel: string }>();
+  if (errorHilo) return { error: "No se pudo leer la conversación. Vuelve a intentar." };
+  // SDD-0586 1c-1b: un hilo borrado (o de otro tenant) no existe para la acción, como en
+  // sendReplyAction. Antes seguía al update, y en un hilo del portal borrado la traba no corría.
+  if (!hilo) return { error: "Conversación no encontrada." };
+  if (hilo.channel === "portal") {
+    const rechazo = await rechazoPortal(supabase, await resolveTenantId(supabase), hilo.channel);
+    if (rechazo) return { error: rechazo };
+  }
+
   const { error } = await supabase
     .from("conversations")
     .update({ status: input!.status })
-    .eq("id", input!.conversation_id);
+    .eq("id", input!.conversation_id)
+    .is("deleted_at", null);
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
 
   revalidatePath("/studio/conversaciones");

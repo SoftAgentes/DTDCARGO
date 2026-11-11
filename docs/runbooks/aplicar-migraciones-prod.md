@@ -255,7 +255,7 @@ falló:
 | Se aplicó y la verificación no coincide (7) | No repitas. Lee `verificar.err`: ¿fila duplicada, md5 distinto, cuerpo vivo distinto? Avisa al Director y a Sam antes de fusionar |
 | Se aplicó y la PR todavía no se fusionó | Decide con Sam si se fusiona igual. Si la migración rompe la web vieja, fusionar es lo que la arregla |
 | Se aplicó y la web nueva falla | `publicar-web.sh volver` devuelve la web a la imagen anterior (no toca la base) y `congelar` para la publicación automática (`publicacion-automatica-web.md`). La base nueva tiene que ser compatible con la web vieja: lo exige migrate-first |
-| Hay que deshacer el cambio de la base | Una **migración nueva**, numerada, que revierta, con su PR, sus pruebas y el mismo procedimiento con OK nominal. Evalúa la compatibilidad caso por caso: el único ejemplo de rollback escrito es `docs/runbooks/deploy-orden-venta-0072.md` |
+| Hay que deshacer el cambio de la base | Una **migración nueva**, numerada, que revierta, con su PR, sus pruebas y el mismo procedimiento con OK nominal. Evalúa la compatibilidad caso por caso. Hay dos escritos: `docs/runbooks/deploy-orden-venta-0072.md` y, para la 0497, `supabase/desarmes/0497_desarme.sql`, que dice en su cabecera lo que se pierde |
 | Último recurso | Restaurar un respaldo (`backup-restore-servidor.md`, `restore.sh` con su guarda): pierde lo escrito desde el dump. Solo con decisión de Sam |
 
 **Nunca**: borrar o editar la fila del ledger para «reintentar», editar una
@@ -360,6 +360,7 @@ no se eximen»). Consecuencias:
 | `bash infra/ops/tests/prueba-migraciones-produccion.sh` | Con dobles de docker, ssh y scp: rechazos de `preparar.mjs`, guardas de `aplicar.sh`, en seco, el orden previa → apply → verificación, los códigos 5/6/7, la evidencia, el candado, la autorización nominal, el lote y ssh caído |
 | `bash … --mutantes` | Control rojo (scripts vacíos) y cada guarda quitada tiene que hacer caer la suite |
 | `pnpm vitest run infra/ops/tests/migraciones.test.mjs` | Las funciones de `preparar.mjs`; paridad byte a byte con `lib/migracion.sh`; contra PostgreSQL embebido (PGlite) la lectura previa, la deriva, el apply y la verificación; el cuerpo extraído igual al `prosrc` en funciones reales; `retirar-espera.mjs`, con el sello y su md5 |
+| `node infra/ops/tests/prueba-0497-rol-real.mjs --paquetes <carpeta>` | Docker, **corrida pesada**. La 0496 y la 0497 con el rol de producción (`postgres` sin superusuario, imagen real, esquema completo): paquetes reales, RPC con filas sembradas, salidas con excepción, legado, el desarme y contratos. PGlite y `postgres:17` corren como superusuario y no ven esto |
 | `node --test scripts/tests/migrations-lock.node.mjs` (también en `pnpm harness:test`) | El candado sobre el repo real y su ancla de creación; cada regla (`FORMATO`, `FALTA`, `CAMBIADA`, `ESPERA`, `SIN_SELLO`, `HISTORIA`) sobre copias; `sellar`, `excepcion`, `ledger` (exacta, variantes de Cloud, contradicciones), `crear` y los códigos de la CLI |
 
 Nada de esto se conecta al servidor ni a una base real.

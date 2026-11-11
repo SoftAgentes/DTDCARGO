@@ -20,6 +20,7 @@ import {
   softDeleteContractorAction,
 } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "prestador-form";
 const initial: NominaActionState = {};
@@ -51,7 +52,7 @@ export function PrestadorDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",

@@ -264,11 +264,22 @@ describe("lo que el asistente no resuelve", () => {
     expect(enlace).toHaveAttribute("href", "/studio/reclamos");
   });
 
-  it("asiento vivo (B1): bloqueado, con el porqué", async () => {
+  it("un borrador con asiento vivo: bloqueado, con el porqué (SDD-0573)", async () => {
+    // Una emitida con asiento ya se anula (la 0497 revierte el asiento); el
+    // bloqueo queda para el borrador, que el asistente elimina y no revierte.
+    m.leer.mockResolvedValue({
+      ok: true,
+      plan: plan({ invoices: 1 }, { facturas: [{ ...FACTURA, estado: "borrador", asientoVivo: true }] }),
+    });
+    abrir();
+    expect(await within(panel()).findByText("El borrador F-2026-0007 tiene un asiento vivo")).toBeTruthy();
+    expect(within(panel()).queryByRole("button", { name: /Eliminar|Anular/ })).toBeNull();
+  });
+
+  it("una emitida con asiento vivo: se ofrece anularla (SDD-0573)", async () => {
     m.leer.mockResolvedValue({ ok: true, plan: plan({ invoices: 1 }, { facturas: [{ ...FACTURA, asientoVivo: true }] }) });
     abrir();
-    expect(await within(panel()).findByText("La factura F-2026-0007 tiene su asiento de venta vivo")).toBeTruthy();
-    expect(within(panel()).queryByRole("button", { name: "Anular factura…" })).toBeNull();
+    expect(await within(panel()).findByRole("button", { name: "Anular factura…" })).toBeTruthy();
   });
 
   it("un paso de otro módulo: abre el módulo en otra pestaña y revisa de nuevo al volver", async () => {

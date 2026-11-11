@@ -7,6 +7,11 @@
  * - Pestañas (?tab=): **Dirección** (slot server con el diagnóstico + cruce ERP)
  *   y **Asesor** (worklist accionable: tabla de leads + filtros + convertir).
  * - SOLO LECTURA del espejo: esta pantalla no modifica nada en Kommo.
+ *
+ * SDD-0614 · S0 (D-6.6-1): las pestañas de Kommo están ocultas (ver
+ * `kommo-tabs.shared.ts`). Con `overview` nulo el encabezado no pinta el estado
+ * de conexión ni el último sync del espejo. Las ramas de Kommo quedan sin uso,
+ * no borradas, hasta 8.7.
  */
 
 import Link from "next/link";
@@ -33,7 +38,7 @@ import {
   type KommoPipelineRow,
   type KommoStatusRow,
 } from "@/lib/studio/kommo-types";
-import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
+import { CRM_TAB_POR_DEFECTO, KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 import { LeadActionsButton } from "./LeadActionsButton";
 import { StageControl } from "./StageControl";
@@ -94,6 +99,7 @@ export function KommoClient({
   direccion,
   tablero,
   recuperacion,
+  embudos,
   overview,
   pipelines,
   statuses,
@@ -114,7 +120,10 @@ export function KommoClient({
   tablero: ReactNode;
   /** Slot server-renderizado con la campaña de recuperación (SDD-0157). */
   recuperacion: ReactNode;
-  overview: KommoOverview;
+  /** Slot server-renderizado con los embudos del CRM propio (SDD-0587 · 6.3). */
+  embudos: ReactNode;
+  /** Estado del espejo de Kommo. `null` con Kommo oculto (SDD-0614 S0): no se lee. */
+  overview: KommoOverview | null;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
   leads: KommoLeadRow[];
@@ -220,7 +229,7 @@ export function KommoClient({
   const goTab = (key: KommoTabKey) => {
     if (key === tab) return;
     startTransition(() => {
-      router.push(key === "direccion" ? "/studio/crm" : `/studio/crm?tab=${key}`);
+      router.push(key === CRM_TAB_POR_DEFECTO ? "/studio/crm" : `/studio/crm?tab=${key}`);
     });
   };
 
@@ -248,7 +257,7 @@ export function KommoClient({
         }}
       >
         <div>
-          <span className="studio-eyebrow">Comercial · Integración</span>
+          <span className="studio-eyebrow">Comercial</span>
           <h1
             className="studio-display"
             style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
@@ -263,28 +272,30 @@ export function KommoClient({
               maxWidth: "64ch",
             }}
           >
-            Tablero <strong>solo lectura</strong> del embudo comercial, cruzado
-            con la plata real del ERP. Se sincroniza una vez al día. Esta
-            pantalla todavía no modifica nada.
+            Leads y clientes, por etapa. En Embudos, lo que mueves o guardas
+            queda en Studio.
           </p>
         </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 6,
-          }}
-        >
-          <Badge tone={connTone(overview.connStatus)}>
-            {connLabel(overview.connStatus)}
-          </Badge>
-          <span
-            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}
+        {/* Estado del espejo: solo en las pestañas de Kommo, ocultas desde SDD-0614 S0. */}
+        {overview && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 6,
+            }}
           >
-            Último sync: {fmtDateTime(overview.lastSyncAt)}
-          </span>
-        </div>
+            <Badge tone={connTone(overview.connStatus)}>
+              {connLabel(overview.connStatus)}
+            </Badge>
+            <span
+              style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}
+            >
+              Último sync: {fmtDateTime(overview.lastSyncAt)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Pestañas */}
@@ -334,6 +345,8 @@ export function KommoClient({
         tablero
       ) : tab === "recuperacion" ? (
         recuperacion
+      ) : tab === "embudos" ? (
+        embudos
       ) : (
         <>
           {/* Toolbar del worklist */}
@@ -468,7 +481,7 @@ export function KommoClient({
                 leads={leads}
                 statuses={statuses}
                 statusName={statusName}
-                subdomain={overview.subdomain}
+                subdomain={overview?.subdomain ?? null}
                 converted={converted}
                 valueByLead={valueByLead}
                 contactByLead={contactByLead}

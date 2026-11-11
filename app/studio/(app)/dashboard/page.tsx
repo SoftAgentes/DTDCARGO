@@ -25,8 +25,7 @@ import { getDashboardConfig } from "@/lib/studio/dashboard/dashboard-prefs-queri
 import {
   accessibleCatalog,
   defaultConfigForAccess,
-  isEmptyConfig,
-  validateDashboardConfigInput,
+  resolverConfigDashboard,
 } from "@/lib/studio/dashboard/dashboard-types";
 import { KPI_CATALOG } from "@/lib/studio/dashboard/dashboard-catalog";
 import {
@@ -106,11 +105,12 @@ export default async function DashboardPage() {
   const tenant = link?.tenants ?? null;
   const canAccess = (moduleId: string | null) => (moduleId === null ? true : canAccessModule(role, moduleId));
 
-  // Config del usuario (DB manda) → filtrada por RBAC. Vacía / usuario nuevo → default.
+  // Config del usuario (DB manda) → filtrada por RBAC y por lo oculto. Vacía /
+  // usuario nuevo → default. Sin KPI por un KPI oculto → los KPI del default del
+  // rol (SDD-0614 S0b-bis). Solo lectura: la fila de `user_dashboard_prefs` no se toca.
   const rawConfig = userId ? await getDashboardConfig(supabase, userId) : null;
-  let config = validateDashboardConfigInput(rawConfig, canAccess);
+  const config = resolverConfigDashboard(rawConfig, canAccess);
   const defaultConfig = defaultConfigForAccess(canAccess);
-  if (isEmptyConfig(config)) config = defaultConfig;
 
   // Catálogo accesible (para el editor) + qué fuentes de datos hacen falta.
   const { kpis: accessibleKpis, widgets: accessibleWidgets } = accessibleCatalog(canAccess);
@@ -294,6 +294,7 @@ export default async function DashboardPage() {
           mono-light, .055) es decorativa y va detrás del texto (el contenido va en
           un wrapper relative/zIndex:1). */}
       <div
+        data-guia="dashboard.bienvenida"
         style={{
           position: "relative",
           overflow: "hidden",

@@ -1,0 +1,17 @@
+# CONTROL de la prueba de redacción (SDD-0583). Nunca en el VPS.
+#
+# Tapa el inicializador de redacción con un archivo vacío: el mismo stack, sin la
+# redacción. prueba-redaccion.sh tiene que ENCONTRAR los datos sintéticos en los
+# logs con este overlay; si no los encuentra, la prueba no sabe detectar la fuga y
+# su «cero» con la redacción no vale nada.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas/vacio.rb:/app/config/initializers/zz_dtd_redaccion_logs.rb:ro
+  rails:
+    volumes:
+      - ./pruebas/vacio.rb:/app/config/initializers/zz_dtd_redaccion_logs.rb:ro
+  sidekiq:
+    volumes:
+      - ./pruebas/vacio.rb:/app/config/initializers/zz_dtd_redaccion_logs.rb:ro
