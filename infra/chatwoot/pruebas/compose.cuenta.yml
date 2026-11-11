@@ -1,0 +1,10 @@
+# Overlay del ensayo de la cuenta de prueba (SDD-0587, 6.4). Nunca en el VPS.
+#
+# prueba-cuenta-prueba.sh corre la sonda con `rails runner` en el servicio `prepare`, que solo
+# está en la red `interna` (sin salida a internet). Monta la sonda y lo que se va a correr.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas/sonda-cuenta-prueba.rb:/tmp/sonda-cuenta-prueba.rb:ro
+      - ./crear-cuenta-prueba.rb:/tmp/crear-cuenta-prueba.rb:ro

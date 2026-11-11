@@ -23,6 +23,9 @@ import { NewsArticleJsonLd } from "./_components/NewsArticleJsonLd";
 
 type Props = { params: Promise<{ slug: string }> };
 
+// ISR: ver app/noticias/page.tsx. Un 404 o una lectura vacía no deben quedar cacheados.
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);

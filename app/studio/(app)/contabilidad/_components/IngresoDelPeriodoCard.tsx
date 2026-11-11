@@ -23,6 +23,7 @@ import { fmtUsd } from "@/lib/money";
 import {
   CUENTA_VENTAS,
   describirIngreso,
+  causaDelControlI2,
   type EstadoDelIngreso,
   type IngresoPeriodo,
 } from "@/lib/studio/accounting/ingreso-periodo";
@@ -36,6 +37,7 @@ export const TONO_DEL_CONTROL: Record<EstadoDelIngreso, "success" | "warning" | 
   mayor_menor: "warning",
   mayor_mayor: "warning",
   sin_cuenta: "warning",
+  requiere_revision: "warning",
   no_comparable: "neutral",
   conversion_incompleta: "neutral",
   sin_movimiento: "neutral",
@@ -56,9 +58,10 @@ export const NOMINAL_MIXTO = "nominal mixto (no USD)";
  * comparable» ese saldo mezcla el nominal en bolívares o yuanes (B2): no se
  * pinta con signo de dólar.
  */
-function cifraDelMayor(estado: EstadoDelIngreso, ventas: number | null): string {
+function cifraDelMayor(unidad: IngresoPeriodo["controlI2"]["unidadMayor"], ventas: number | null): string {
   if (ventas == null) return "—";
-  if (estado === "no_comparable") return NOMINAL_MIXTO;
+  if (unidad === "nominal_mixto") return NOMINAL_MIXTO;
+  if (unidad === "sin_verificar") return "unidad sin verificar";
   return fmtUsd(ventas);
 }
 
@@ -125,11 +128,19 @@ export function IngresoDelPeriodoCard({
           <span>
             En el mayor (cuenta {CUENTA_VENTAS}, asientos de factura):{" "}
             <strong data-testid="ingreso-mayor-ventas" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {cifraDelMayor(d.estado, ingreso.mayor.ventas)}
+              {cifraDelMayor(ingreso.controlI2.unidadMayor, ingreso.mayor.ventas)}
             </strong>
             . {d.diferenciaTexto}
           </span>
         </p>
+      )}
+      {ingreso.mayor && (
+        <div style={{ ...linea, flexDirection: "column" }} data-testid="ingreso-puente">
+          <span>Ajuste documental por anulaciones (USD): <strong>{ingreso.ajusteAnulacionesUsd == null ? "No disponible" : fmtUsd(ingreso.ajusteAnulacionesUsd)}</strong></span>
+          <span>Base comparada · facturado + ajuste (USD): <strong>{ingreso.baseComparacionUsd == null ? "No disponible" : fmtUsd(ingreso.baseComparacionUsd)}</strong></span>
+          <span>Diferencia base − mayor (USD): <strong>{ingreso.diferenciaUsd == null ? "No disponible" : fmtUsd(ingreso.diferenciaUsd)}</strong></span>
+          {causaDelControlI2(ingreso) && <span>{causaDelControlI2(ingreso)}</span>}
+        </div>
       )}
       {d.avisoTerceros && (
         <p style={linea}>

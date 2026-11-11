@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { ShareProviderButton } from "../../../_components/ShareProviderButton";
@@ -15,6 +15,7 @@ import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { createPrealertaAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -34,9 +35,11 @@ export function NewPurchaseForm({
   addons: PrealertaAddon[];
   preselected: SupplierView | null;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createPrealertaAction,
     prealertaInitial,
+    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Intenta de nuevo: no se registrará dos veces.",
+    { requestId: true },
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
@@ -48,6 +51,11 @@ export function NewPurchaseForm({
   if (done) {
     return (
       <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
+        {state.replayed && (
+          <p role="status" className="mb-4 text-[13px] text-grey-700 leading-[1.5]">
+            Ya estaba registrada desde tu primer envío. Si cambiaste algo después, escríbele a tu asesor.
+          </p>
+        )}
         <PurchaseDone code={state.prealertaCode!} shareToken={state.shareToken} />
       </div>
     );
@@ -65,7 +73,7 @@ export function NewPurchaseForm({
       />
 
       {/* Form de la compra */}
-      <form action={action} className="mt-5 flex flex-col gap-4">
+      <form {...formProps} className="mt-5 flex flex-col gap-4">
         <input type="hidden" name="supplierId" value={supplierId} />
 
         {/* WeChat del proveedor: ID/número O captura del contacto */}

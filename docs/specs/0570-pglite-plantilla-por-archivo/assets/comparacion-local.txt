@@ -1,0 +1,165 @@
+SDD-0570 — A/B local completo, aceptado por el Director (2026-10-20)
+HEAD medido: 1077ff216956d2062f3ce281971f68d084fe0a92
+Estado: COMPLETE_VALID_PAIR. Criterio 5: COMPLETO_REVISADO_DIRECTOR.
+A = instancia nueva por caso. B = bytes originales, plantilla post-initdb.
+33 afectados / 846 casos + helper intacto / 8 casos = 34 archivos / 854 casos por lado.
+A y B: 854 aprobados, 0 fallidos, 0 pendientes/omitidos; firmas completas iguales en 34/34 archivos.
+Node v24.20.0; Vitest 4.1.7; PGlite 0.5.8; Windows x64.
+2 workers/forks; isolate=true; cache=false; semilla 570; CI=true; TZ=UTC; NO_COLOR=1.
+Watchdog fijado antes de arrancar: 45 minutos por fase; no se activó ni hubo reintentos.
+
+Tiempo de pared A: 641.565 s; B: 361.750 s; reducción: 43.61 %.
+Suma de los 33 afectados A: 1212.711 s; B: 630.722 s; reducción: 47.99 %.
+Suma de los 34 con helper A: 1229.385 s; B: 651.630 s.
+Las sumas por archivo no equivalen al tiempo de pared con dos workers.
+
+Archivo | casos A/B | A (s) | B (s) | reducción (%) | firmas
+__tests__/anon-privilegios-residuales.migration.test.ts | 26/26 | 36.334 | 18.482 | 49.13 | IGUALES
+app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts | 9/9 | 11.047 | 4.877 | 55.85 | IGUALES
+app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts | 26/26 | 23.276 | 9.255 | 60.24 | IGUALES
+infra/ops/tests/migraciones.test.mjs | 30/30 | 86.661 | 79.644 | 8.10 | IGUALES
+lib/portal/__tests__/billing-identity.migration.test.ts | 12/12 | 19.352 | 11.483 | 40.66 | IGUALES
+lib/portal/__tests__/identity-photo-replacement.migration.test.ts | 4/4 | 5.088 | 3.208 | 36.96 | IGUALES
+lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts | 15/15 | 24.615 | 19.791 | 19.60 | IGUALES
+lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts | 48/48 | 61.923 | 24.120 | 61.05 | IGUALES
+lib/portal/__tests__/profile-direct-edit.migration.test.ts | 10/10 | 13.074 | 5.496 | 57.96 | IGUALES
+lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts | 87/87 | 153.920 | 72.989 | 52.58 | IGUALES
+lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts | 15/15 | 16.646 | 6.414 | 61.47 | IGUALES
+lib/studio/__tests__/cierre-contable-superclave.migration.test.ts | 38/38 | 91.873 | 59.441 | 35.30 | IGUALES
+lib/studio/__tests__/client-outstanding.migration.test.ts | 25/25 | 29.459 | 14.205 | 51.78 | IGUALES
+lib/studio/__tests__/cobro-factura-atomico.migration.test.ts | 7/7 | 11.200 | 7.225 | 35.50 | IGUALES
+lib/studio/__tests__/credito-referido-atomico.migration.test.ts | 12/12 | 18.325 | 10.638 | 41.95 | IGUALES
+lib/studio/__tests__/credito-referido-candado.migration.test.ts | 50/50 | 75.815 | 42.235 | 44.29 | IGUALES
+lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts | 26/26 | 24.661 | 11.032 | 55.26 | IGUALES
+lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts | 20/20 | 17.028 | 6.565 | 61.45 | IGUALES
+lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts | 14/14 | 11.985 | 5.008 | 58.21 | IGUALES
+lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts | 26/26 | 24.148 | 10.187 | 57.81 | IGUALES
+lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts | 19/19 | 24.117 | 10.450 | 56.67 | IGUALES
+lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts | 26/26 | 24.531 | 8.941 | 63.55 | IGUALES
+lib/studio/__tests__/kommo-functions-base-url.migration.test.ts | 12/12 | 14.565 | 3.558 | 75.57 | IGUALES
+lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts | 25/25 | 31.451 | 14.897 | 52.64 | IGUALES
+lib/studio/__tests__/operarios-editar-por-region.migration.test.ts | 46/46 | 68.589 | 36.902 | 46.20 | IGUALES
+lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts | 10/10 | 17.616 | 10.162 | 42.32 | IGUALES
+lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts | 87/87 | 145.718 | 71.768 | 50.75 | IGUALES
+lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts | 26/26 | 23.575 | 9.616 | 59.21 | IGUALES
+lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts | 12/12 | 19.045 | 10.938 | 42.57 | IGUALES
+lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts | 26/26 | 24.118 | 8.405 | 65.15 | IGUALES
+lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts | 26/26 | 30.662 | 8.580 | 72.02 | IGUALES
+lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts | 26/26 | 26.338 | 8.865 | 66.34 | IGUALES
+scripts/__tests__/radiografia-referidos.test.ts | 5/5 | 5.954 | 5.345 | 10.23 | IGUALES
+vitest/pglite-limpio.test.ts | 8/8 | 16.675 | 20.909 | -25.39 | IGUALES
+
+Helper intacto: 16.675 -> 20.909 s; fue más lento. Se excluye del agregado de 33 afectados.
+Control: 27 archivos / 36 constructores, mismos cuerpos/aserciones/SQL salvo imports y constructor.
+Respaldo de bytes: 36/36. Restauración después de A y final: 36/36 SHA-256, cero discrepancias.
+Verificación independiente: 36 fuentes + 6 configuración/lockfile + 3 entradas de runtime iguales.
+Cierre: árbol limpio, cero procesos propios y consumidores visibles; claim liberado; turno devuelto a las 2026-10-20T19:54:13.609Z.
+
+Reproducción: comparacion-local.json contiene commonArgs con las 34 rutas exactas, versiones, condiciones, control y hashes.
+Comando: node node_modules/vitest/vitest.mjs run <34 rutas de rows> --maxWorkers=2 --pool=forks --isolate --no-cache --sequence.shuffle.files --sequence.seed=570 --reporter=default --reporter=json --outputFile.json=<evidencia>/<fase>.json
+Los logs/JSON crudos y el arnés quedan fuera de Git; aquí se guardan resúmenes y sus hashes.
+
+Límites:
+- Una fase A seguida de una B; sin repeticiones AB/BA ni intervalo de confianza estadístico.
+- Misma máquina Windows y dos workers; las duraciones absolutas no son comparables directamente con CI histórico en Linux.
+- Semilla y argumentos iguales no garantizan el mismo orden temporal de ejecución entre dos workers.
+- Cachés del sistema, antivirus, temperatura y carga incidental no se eliminan; el turno pesado debe ser exclusivo.
+- Los hashes de archivos de entrada y versiones instaladas no certifican cada byte transitivo de node_modules.
+- Un resultado parcial, firmas diferentes o fallo de restauración impide publicar porcentajes de mejora.
+- La comparación no ejecuta SQL real ni prueba producción; no autoriza merge, despliegue ni cierre automático de criterios.
+- Los 33 archivos afectados mejoraron en este par; el helper intacto pasó de 16,675 a 20,909 s. Ese ruido observable impide convertir un solo par en una garantía general.
+- El A/B histórico de CI usa Linux y un worker; se conserva como evidencia independiente. No se mezclan porcentajes ni tiempos absolutos con este par Windows de dos workers.
+
+Hashes de evidencia cruda conservada fuera de Git:
+20261020T193515078Z/manifest.json SHA-256 381baad61af33013d3bf47b64be225e62d2bb7ff9b4b8f8b1ea4f12d2be8ff21
+20261020T193515078Z/comparacion-local.json SHA-256 c96139535505af4f6d6373c2909e21fcaea0313933636e0160c29eb17cca2f69
+20261020T193515078Z/comparacion-local.txt SHA-256 a87741d0a68e8d0fa3972a8540f54045061e850b3b98c2316ccecc016bbabb1a
+20261020T193515078Z/verificacion-final.json SHA-256 f8462c121ddbc5e092335a09eb4169690ec2b145b7a7b2d9bf8cbe117958bc3e
+20261020T193515078Z/procesos-final.json SHA-256 1bc0ad20a0fc75cd97f189933fd980059f6b9f7879e772bf9923429896d52f4c
+20261020T193515078Z/liberacion.json SHA-256 e32fdf5ef971b538871daa9802809eccc38a31977d41e2cd5f3505c3bfd7dc60
+0570-ab-local-reintento/run-ab.cjs SHA-256 e1bb7d394bae09a87e62ca28f18fad3bd4ec97810a14b55a9dc55ca89e10e9fe
+0570-ab-local-reintento/compare-ab.cjs SHA-256 85c6ea978a08cf1d59a0906387665fe7d95d77a2308289d0118b1e4113ff5e8a
+0570-ab-local-reintento/plan.json SHA-256 8208dcf6dadf0fc7e7031e1dd33235f6034f7aec5cdd8cd3e7d817598884df9c
+0570-ab-local-reintento/execution-authorization.json SHA-256 da9dc6514706de4ca874972625bcc363e9ab07990ca1ce2e09c94a13888f242c
+
+HISTÓRICO — PRIMER INTENTO PARCIAL (no determina el estado actual del criterio 5)
+Asset JSON original SHA-256: d92d2279d3c1d9cfc8670290d7ad29d8cceff282769646b41161505af9f63e26
+Asset TXT original SHA-256: c9b7a413bf93e85ffc722f884f4e53d9f3ed2cf2d9b2e1c1d08a6d819a6805c9
+Versión original recuperable en HEAD 1077ff216956d2062f3ce281971f68d084fe0a92.
+
+SDD-0570 — intento A/B local PARCIAL (2026-10-20)
+HEAD observado: 59e8491b4842e92678509ca7d1b4788718f7243d
+Criterio 5 local: PENDIENTE. B: NO EJECUTADO. No se prueba mejora de rendimiento.
+
+Conjunto exacto: 33 contratos afectados (846 casos) + helper intacto (8 casos) = 34 archivos / 854 casos previstos por lado.
+A: new PGlite por caso, reversión temporal de imports/constructores del commit 4b05a262.
+B previsto: bytes originales de 59e8491b, pgliteLimpio. No llegó a iniciarse.
+Runtime: v24.20.0; Vitest 4.1.7; PGlite 0.5.8; win32/x64.
+Dos workers/forks, isolate=true, cache=false, semilla de archivos=570; CI=true, TZ=UTC, NO_COLOR=1.
+Entorno: lista de variables de ejecución Windows; sin variables heredadas de aplicación, Supabase ni credenciales, ni lectura de .env.
+
+Resultado: watchdog de 20 min por fase; A terminó por el arnés con exit 1 a 1200,846 s.
+A: 26/34 archivos completos; 649 casos reportados en verde (25/33 contratos, 641 casos, más helper 8/8).
+Los ocho archivos sin resultado completo NO se cuentan como fallidos ni como aprobados.
+El reporter JSON no se emitió antes del corte. Las filas siguientes provienen del log de consola de A.
+La columna B queda NO EJECUTADO en las 34 filas; no hay delta de tiempos.
+
+Archivo | casos previstos | casos A completos | tiempo A (s) | B
+__tests__/anon-privilegios-residuales.migration.test.ts | 26 | 26 | 87.932 | NO EJECUTADO
+app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts | 9 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts | 26 | 26 | 64.924 | NO EJECUTADO
+infra/ops/tests/migraciones.test.mjs | 30 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/portal/__tests__/billing-identity.migration.test.ts | 12 | 12 | 49.460 | NO EJECUTADO
+lib/portal/__tests__/identity-photo-replacement.migration.test.ts | 4 | 4 | 11.813 | NO EJECUTADO
+lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts | 15 | 15 | 55.463 | NO EJECUTADO
+lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts | 48 | 48 | 157.482 | NO EJECUTADO
+lib/portal/__tests__/profile-direct-edit.migration.test.ts | 10 | 10 | 31.430 | NO EJECUTADO
+lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts | 87 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts | 15 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/studio/__tests__/cierre-contable-superclave.migration.test.ts | 38 | 38 | 155.262 | NO EJECUTADO
+lib/studio/__tests__/client-outstanding.migration.test.ts | 25 | 25 | 75.208 | NO EJECUTADO
+lib/studio/__tests__/cobro-factura-atomico.migration.test.ts | 7 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/studio/__tests__/credito-referido-atomico.migration.test.ts | 12 | 12 | 47.316 | NO EJECUTADO
+lib/studio/__tests__/credito-referido-candado.migration.test.ts | 50 | 50 | 198.186 | NO EJECUTADO
+lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts | 26 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts | 20 | 20 | 41.673 | NO EJECUTADO
+lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts | 14 | 14 | 31.565 | NO EJECUTADO
+lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts | 26 | 26 | 62.629 | NO EJECUTADO
+lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts | 19 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts | 26 | 26 | 68.988 | NO EJECUTADO
+lib/studio/__tests__/kommo-functions-base-url.migration.test.ts | 12 | 12 | 9.794 | NO EJECUTADO
+lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts | 25 | 25 | 77.676 | NO EJECUTADO
+lib/studio/__tests__/operarios-editar-por-region.migration.test.ts | 46 | 46 | 171.771 | NO EJECUTADO
+lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts | 10 | 10 | 43.869 | NO EJECUTADO
+lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts | 87 | 87 | 343.543 | NO EJECUTADO
+lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts | 26 | 26 | 64.217 | NO EJECUTADO
+lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts | 12 | NO COMPLETADO | NO DISPONIBLE | NO EJECUTADO
+lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts | 26 | 26 | 64.911 | NO EJECUTADO
+lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts | 26 | 26 | 66.179 | NO EJECUTADO
+lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts | 26 | 26 | 65.943 | NO EJECUTADO
+scripts/__tests__/radiografia-referidos.test.ts | 5 | 5 | 15.307 | NO EJECUTADO
+vitest/pglite-limpio.test.ts | 8 | 8 | 18.745 | NO EJECUTADO
+
+Integridad: 27 archivos de imports/constructores con cuerpos normalizados iguales; 9 protegidos intactos; restauración 36/36 SHA-256 originales, cero diferencias.
+Al devolver el turno pesado a 0569: cero procesos Node visibles asociados al worktree; no se reinició A.
+
+CI vigente del código observado: PASÓ, 59e8491b, run 39460332474, job 118776457014, 17:23:59Z–17:48:05Z.
+https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39460332474/job/118776457014
+La comparación histórica del CI permanece en comparacion-ci.txt. La PR #304 conserva borrador.
+
+Incidencias:
+- Preflight inicial rechazó el import relativo de infra/ops/tests/migraciones.test.mjs porque el normalizador solo contemplaba alias; ningún test fue lanzado. Restauró 36/36 hashes. Se corrigió solo el comprobador y se repitió el preflight con éxito.
+- knowledge:status corrió durante el control A y terminó por sí solo con exit 0, ok=false, estructura INVALID. No es evidencia del estado final restaurado. El intento posterior de detener su espera no encontró el proceso y no terminó ninguno.
+- El watchdog por fase permaneció en 20 minutos aunque el Director amplió el turno total a 35. El Director ordenó conservar ese límite y no reiniciar automáticamente si cortaba.
+
+Límites:
+- No comparación de tiempos A/B ni inferencia de mejora local: A incompleto y B no ejecutado.
+- Los tiempos A solo corresponden a los 26 archivos terminados, extraídos de sus líneas verdes del reporter; no hay JSON final ni resumen global de Vitest.
+- No se atribuye resultado a casos o archivos interrumpidos, aunque pudieran haber ejecutado parte de sus pruebas.
+- La identidad completa de casos entre A y B queda sin comprobar; los cuerpos fuente sí se verificaron iguales salvo imports/constructores.
+- Concurrencia prevista de dos workers en Windows; no comparar estos tiempos absolutos directamente con CI Linux de un worker.
+- No suite completa, nuevo ciclo de mutantes separado, producto, base real, migraciones, merge, deploy ni publicación de conocimiento.
+
+Comando previsto idéntico A/B: node node_modules/vitest/vitest.mjs run <los 34 paths de rows> --maxWorkers=2 --pool=forks --isolate --no-cache --sequence.shuffle.files --sequence.seed=570 --reporter=default --reporter=json --outputFile.json=<A-fresco.json o B-plantilla.json>
+Logs, manifiesto, respaldo de bytes, patch y orquestador: [archivo local del primer intento, fuera de Git]
+Siguiente paso requiere un nuevo turno del Director y corregir el límite del arnés antes de relanzar un par comparable; no hay corrida pendiente en segundo plano.

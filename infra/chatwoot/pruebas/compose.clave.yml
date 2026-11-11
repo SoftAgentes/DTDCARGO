@@ -1,0 +1,10 @@
+# Overlay de PRUEBA LOCAL para prueba-regla-clave.sh (SDD-0585, paso 2.7). Nunca en el VPS.
+#
+# El compose real deja SMTP_AUTHENTICATION=login, y sin esto Mailpit contesta 502 al AUTH:
+# el correo falla (Net::SMTPSyntaxError) aunque la ruta dé 200, y «0 correos» no mide nada.
+
+services:
+  mailpit:
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"

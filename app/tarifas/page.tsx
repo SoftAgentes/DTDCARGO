@@ -32,8 +32,11 @@ export const revalidate = 300;
 const DESC =
   "Calcula tu envío China → Venezuela por volumen (CBM) al instante: puerta a puerta todo incluido, o LCL consolidado hasta puerto con tu propio Bill of Lading. Sin registro. El precio en firme lo cierra un asesor por WhatsApp.";
 
+/** El mismo título va en `metadata` y en el nodo `WebPage`. */
+const TITLE = "Tarifas y calculadora de envíos (CBM · LCL)";
+
 export const metadata: Metadata = {
-  title: "Tarifas y calculadora de envíos (CBM · LCL)",
+  title: TITLE,
   description: DESC,
   keywords: [
     "calculadora envío China Venezuela",
@@ -73,7 +76,7 @@ export default async function TarifasPage() {
           { name: "Tarifas", path: "/tarifas" },
         ]}
       />
-      <WebPageJsonLd path="/tarifas" speakableSelectors={["#respuesta-rapida"]} />
+      <WebPageJsonLd path="/tarifas" name={TITLE} description={DESC} speakableSelectors={["#respuesta-rapida"]} />
       {/* Revestido al Norte (`Tarifas · DTD-Cargo.html`): banda navy +
           las TRES tarjetas de modalidad que el mockup abre antes de la
           calculadora y que producción no tenía. */}

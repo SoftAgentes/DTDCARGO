@@ -26,8 +26,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import { resolveAdminEntries, escapeHtml } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import type { ClienteSinAcceso } from "./sin-acceso";
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com").replace(/\/+$/, "");
 
 const SUBJECT_CLIENTE = "Sobre tu acceso al portal · DTD Cargo";
 
@@ -134,11 +136,19 @@ export async function avisarClienteSinAcceso(
       else console.error("[sin-acceso-aviso] correo al equipo:", res.error);
     }
 
-    await dispatchTelegramAlert(
+    await dispatchAlert(
       supabaseAdmin,
       tenantId,
       "registro",
-      equipoTelegram(cliente, email),
+      {
+        telegramText: equipoTelegram(cliente, email),
+        // Sin nombre ni correo: el Shipping Mark y su ficha (SDD-0606).
+        discord: {
+          titulo: "Pidió entrar al portal y no tiene acceso",
+          codigo: cliente.markbox,
+          url: `${SITE_URL}/studio/clientes/${cliente.markbox}`,
+        },
+      },
       { logTag: "portal-sin-acceso" },
     );
   } catch (err) {

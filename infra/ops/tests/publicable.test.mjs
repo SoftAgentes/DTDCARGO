@@ -23,6 +23,7 @@ import {
   etiquetas,
   evaluarCommit,
   formatoLista,
+  IMAGEN,
   migracionesDelCommit,
   promover,
   resumen,
@@ -281,11 +282,11 @@ describe("clientes HTTP", () => {
     expect(m.digest).toBe(digest);
     expect(await reg.etiquetar(ETIQUETA, m)).toBe(digest);
     const put = pedidos.find((p) => p.opts.method === "PUT");
-    expect(put.url).toBe(`https://ghcr.io/v2/hailuwaycom-sketch/dtdcargo/manifests/${ETIQUETA}`);
+    expect(put.url).toBe(`https://ghcr.io/v2/softagentes/dtdcargo/manifests/${ETIQUETA}`);
     expect(put.opts.headers["content-type"]).toBe("application/vnd.oci.image.manifest.v1+json");
     expect(Buffer.compare(put.opts.body, cuerpo)).toBe(0);
     expect(pedidos[0].opts.headers.authorization).toBe(`Basic ${Buffer.from("actor:tok").toString("base64")}`);
-    expect(pedidos[0].url).toContain("scope=repository:hailuwaycom-sketch/dtdcargo:pull,push");
+    expect(pedidos[0].url).toContain("scope=repository:softagentes/dtdcargo:pull,push");
   });
 
   it("si el registro dice que la etiqueta quedó con otro digest, etiquetar falla", async () => {
@@ -330,6 +331,19 @@ describe("clientes HTTP", () => {
     expect(r).toHaveLength(1);
     expect(urls[0].url).toBe(`https://api.github.com/repos/o/r/actions/workflows/quality.yml/runs?head_sha=${M2}&status=success&per_page=50`);
     expect(urls[0].auth).toBe("Bearer tok");
+  });
+
+  it("GitHub: la corrida saltada de un borrador (SDD-0621) no cuenta como verde de la PR", async () => {
+    // En borrador el job de quality.yml sale por `if:` y la corrida termina `completed / skipped` (medido en la
+    // run 42426458584 de publicable.yml, mismo mecanismo). Aunque la API la devolviera, no es un verde.
+    const fetchImpl = async () =>
+      respuesta(200, {
+        workflow_runs: [
+          { head_sha: H2, conclusion: "skipped", event: "pull_request", path: ".github/workflows/quality.yml" },
+        ],
+      });
+    const gh = crearGitHub({ token: "tok", repo: "o/r", fetchImpl });
+    expect(await gh.corridasExitosas("quality.yml", H2, ["pull_request"])).toEqual([]);
   });
 
   it("GitHub: commit y compare leen padres, árbol y atraso", async () => {
@@ -393,4 +407,40 @@ describe("etiquetas de migraciones", () => {
     expect(["si", "Sí", "1", "TRUE"].map(activado)).toEqual([true, true, true, true]);
     expect(["", "no", undefined, "0"].map(activado)).toEqual([false, false, false, false]);
   });
+});
+
+/**
+ * El workflow construye en una dirección, el promotor mueve la etiqueta en otra y
+ * el servidor baja de una tercera. Si una se queda atrás, nada falla en GitHub: el
+ * servidor deja de ver imágenes nuevas (2026-10-25: «manifest unknown»).
+ */
+describe("la dirección de la imagen", () => {
+  const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const leer = (ruta) => fs.readFileSync(path.join(raiz, ruta), "utf8");
+  const DIRECCION = "ghcr.io/softagentes/dtdcargo";
+
+  it.each([
+    [".github/workflows/build-image.yml", /^\s*IMAGE:\s*(\S+)\s*$/m],
+    [".github/workflows/build-image-prueba.yml", /^\s*IMAGE:\s*(\S+)\s*$/m],
+    ["infra/ops/web/publicar-web.sh", /^IMAGEN=(\S+)$/m],
+    ["infra/ops/staging/lib-prueba.sh", /^PRUEBA_IMAGE_REPO="(\S+)"$/m],
+    ["infra/ops/staging/verificar-aislamiento.sh", /^IMAGE_REPO="(\S+)"$/m],
+    // Valores por defecto: producción no los usa, pero un servidor nuevo sí.
+    ["infra/dtd-cargo/compose.yml", /^\s*image:\s*\$\{DTD_WEB_IMAGE:-([^:}\s]+):main\}\s*$/m],
+    ["infra/dtd-cargo/.env.example", /^DTD_WEB_IMAGE=([^:\s]+):main$/m],
+  ])("%s usa la misma dirección que el promotor", (ruta, patron) => {
+    expect(`ghcr.io/${IMAGEN}`).toBe(DIRECCION);
+    expect(leer(ruta).match(patron)?.[1]).toBe(DIRECCION);
+  });
+
+  it.each([".github/workflows", "infra/ops/web", "infra/ops/staging", "infra/dtd-cargo"])(
+    "%s ya no nombra el registro de la dirección vieja",
+    (carpeta) => {
+      const con = fs
+        .readdirSync(path.join(raiz, carpeta), { withFileTypes: true })
+        .filter((e) => e.isFile() && leer(path.join(carpeta, e.name)).includes("ghcr.io/hailuwaycom-sketch"))
+        .map((e) => e.name);
+      expect(con).toEqual([]);
+    },
+  );
 });
