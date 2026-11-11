@@ -620,13 +620,26 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
      - **Al terminar,** `shred -u /dev/shm/router-antes.env`.
 
-  **La vuelta atrás:** volver la línea guardada, comprobar que quedó una sola vez y con valor, y hacer el mismo recreado.
+  **La vuelta atrás:** volver la línea guardada, comprobar que quedó una sola vez y con la huella de antes, y hacer el mismo recreado.
+
+  **Por qué `awk` y no `sed`:** un token con `&` o `|` rompe un `sed "s|…|$v|"`. El `awk` lee la línea guardada como archivo (`NR == FNR`), así que no interpreta nada de su valor. El `.env` se reescribe con `cat >`, que conserva el dueño y los permisos, como `pegar-secretos-web.sh`.
 
   ```bash
-  v=$(cat /dev/shm/router-antes.env); sed -i "s|^CHATWOOT_ROUTER_TOKEN=.*|$v|" /srv/dtd-cargo/.env; unset v; grep -c '^CHATWOOT_ROUTER_TOKEN=.' /srv/dtd-cargo/.env
+  awk 'NR == FNR { l = $0; next } /^CHATWOOT_ROUTER_TOKEN=/ { print l; next } { print }' /dev/shm/router-antes.env /srv/dtd-cargo/.env > /dev/shm/env-vuelta && cat /dev/shm/env-vuelta > /srv/dtd-cargo/.env && shred -u /dev/shm/env-vuelta; grep -c '^CHATWOOT_ROUTER_TOKEN=.' /srv/dtd-cargo/.env
   ```
 
-  **Para seguir:** `1`.
+  ```bash
+  v=$(sed -n 's/^CHATWOOT_ROUTER_TOKEN=//p' /srv/dtd-cargo/.env | head -n 1 | tr -d "'\""); printf 'HECHO env sha8=%s\n' "$(printf '%s' "$v" | sha256sum | cut -c1-8)"; unset v
+  ```
+
+  **Para seguir:**
+  - `1`;
+  - el `sha8` es el mismo `HECHO env sha8=` del punto 1, el de antes del arreglo. **Si no lo es, se para:** el `.env` no volvió a como estaba.
+
+  **Probado en local el 2026-11-11,** con Git Bash, con `CHATWOOT_ROUTER_TOKEN='a&b|c\d'`:
+  - la línea vuelve byte a byte (`cmp` contra la guardada da igual);
+  - `grep -c` da 1, y el `sha8` es el de antes;
+  - con el `sed` de antes, ese mismo valor sale con `unknown option to 's'` y deja la línea vacía.
 
   **El OK nominal:** «¿Autorizas reemplazar en `/srv/dtd-cargo/.env` el `CHATWOOT_ROUTER_TOKEN` viejo por el token vigente del usuario de servicio 1 (con `pegar-secretos-web.sh`, sin mostrarlo), en el mismo recreado de la web del 5a y con la misma imagen que corre?»
 - **Recrear la web:** `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`.
