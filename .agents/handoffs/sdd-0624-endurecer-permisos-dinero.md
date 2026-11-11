@@ -32,6 +32,7 @@
 | `entorno-prueba-scripts` y `migraciones.test.mjs`: timeout de 600 s | Coincidieron con un verify ajeno lanzado en paralelo. Reintento aislado sobre `29c9c8671`: PASÓ 32/32 |
 | `migrations-applied`, `sql-tests`, `schema-rebuild` | NO DISPONIBLE: worktree sin `.env.local` y sin Docker. El contrato SQL corre en su lugar en PGlite |
 | `docs:check`, `sdd:check` | PASÓ |
+| `pnpm verify` completo sobre `5422a1716`, tras la revisión | exit 0, 14/17 PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, test, docs, numbering, feature-constants, components, governance, pending-migration-symbols, e2e (233 pasaron, 5 inestables y 0 fallaron, con el aviso conocido de WebKit en Windows) y build. NO DISPONIBLE: migrations-applied, sql-tests y schema-rebuild |
 
 ## Revisión independiente (2026-11-11): APROBAR
 
