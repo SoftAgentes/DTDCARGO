@@ -73,10 +73,24 @@ const REQUIEREN_SUPABASE = {
     "Portal: /entrar ofrece las dos puertas, y crear cuenta es un botón",
   ],
   "global-search.spec.ts": ["sin sesión, /studio rebota al login (⌘K no expuesto)"],
+  // SDD-0585 (2.6): la Ficha DTD vive en /studio, que pasa por el matcher de proxy.ts.
+  "ficha-chat.spec.ts": [
+    "sin sesión: no redirige, avisa y ofrece abrir Studio en otra pestaña",
+    "cabeceras: solo el chat la enmarca, sin X-Frame-Options",
+    "enmarcada desde otro origen: el navegador no la muestra",
+  ],
 };
 
-/** Reporte JSON de Playwright con las 15 omisiones del inventario (5 casos × 3 proyectos). */
-function reporteQuince(motivo) {
+/**
+ * Cuántos casos y cuántas omisiones salen del inventario. Se calculan para que
+ * una spec nueva que se declare no deje cuentas viejas escritas a mano (pasó con
+ * la Ficha DTD de SDD-0585: 5 casos fijos, 8 reales).
+ */
+const CASOS = Object.values(REQUIEREN_SUPABASE).flat().length;
+const OMISIONES = CASOS * PROYECTOS.length;
+
+/** Reporte JSON de Playwright con TODAS las omisiones del inventario (cada caso × 3 proyectos). */
+function reporteDelInventario(motivo) {
   return {
     suites: Object.entries(REQUIEREN_SUPABASE).map(([archivo, titulos]) => ({
       title: archivo,
@@ -432,12 +446,12 @@ test("evaluarPasos con pasos falsos: omitido, fallido y ok llegan al veredicto",
   assert.doesNotMatch(ok.verdict.message, /TODO VERDE/);
 });
 
-test("con migrations-applied medido y las 15 omisiones, verify NO cierra TODO VERDE", async (t) => {
+test("con migrations-applied medido y las omisiones del inventario, verify NO cierra TODO VERDE", async (t) => {
   const raiz = raizTemporal(t);
   const deteccion = detectarSupabasePublico({ env: {}, raiz });
   const motivo = omisionSinSupabase({ env: {}, raiz, baseURL: LOCAL });
   // Los 17 pasos reales del gate, sin correrlos: todos salen ok y el e2e trae
-  // las 15 omisiones del inventario contadas con el código real.
+  // las omisiones del inventario contadas con el código real.
   const conReporte = (reporte) =>
     STEPS.map((step) =>
       step.name === "e2e"
@@ -447,8 +461,8 @@ test("con migrations-applied medido y las 15 omisiones, verify NO cierra TODO VE
   const correr = async () => ({ outcome: "ok", attempts: 1 });
   const { out, texto } = salida();
 
-  const r = await evaluarPasos(conReporte(reporteQuince(motivo)), { out, correr });
-  const reason = `15 prueba(s) omitidas sin Supabase público (falta ${URL_VAR}, ${KEY_VAR})`;
+  const r = await evaluarPasos(conReporte(reporteDelInventario(motivo)), { out, correr });
+  const reason = `${OMISIONES} prueba(s) omitidas sin Supabase público (falta ${URL_VAR}, ${KEY_VAR})`;
   assert.ok(STEPS.some((step) => step.name === "migrations-applied"));
   assert.deepEqual(r.skipped, [], "migrations-applied quedó medido");
   assert.deepEqual(r.failures, []);
@@ -463,10 +477,10 @@ test("con migrations-applied medido y las 15 omisiones, verify NO cierra TODO VE
       `No hubo fallos en lo medido (${STEPS.length}/${STEPS.length}, con cobertura parcial: e2e); exit 0 NO equivale a cierre verde completo.`,
   );
   assert.doesNotMatch(r.verdict.message, /TODO VERDE/);
-  assert.equal(texto().match(/^ {3}omitida: /gm)?.length, 5);
+  assert.equal(texto().match(/^ {3}omitida: /gm)?.length, CASOS);
 
   // Control: el mismo gate sin esas omisiones sí cierra completo. La diferencia
-  // son las 15 pruebas, no otra cosa.
+  // son las omisiones del inventario, no otra cosa.
   const completo = await evaluarPasos(conReporte(reporteDePrueba("otro motivo")), { out: salida().out, correr });
   assert.equal(completo.verdict.kind, "complete");
   assert.equal(completo.verdict.message, `verify: TODO VERDE ✓ (${STEPS.length}/${STEPS.length} pasos medidos)`);
@@ -481,11 +495,11 @@ test("el paso e2e real de STEPS lee el reporte de su corrida y declara la cobert
   t.after(() => rmSync(destino, { force: true }));
 
   const motivo = omisionSinSupabase({ env: {}, raiz: raizTemporal(t), baseURL: LOCAL });
-  writeFileSync(destino, JSON.stringify(reporteQuince(motivo)));
+  writeFileSync(destino, JSON.stringify(reporteDelInventario(motivo)));
   const parcial = e2e.partialCoverage();
-  // Con o sin Supabase en quien corre la prueba, las 15 marcadas cuentan.
-  assert.match(parcial.reason, /^15 prueba\(s\) omitidas /);
-  assert.equal(parcial.casos.length, 5);
+  // Con o sin Supabase en quien corre la prueba, las marcadas del inventario cuentan.
+  assert.match(parcial.reason, new RegExp(`^${OMISIONES} prueba\\(s\\) omitidas `));
+  assert.equal(parcial.casos.length, CASOS);
 });
 
 test("verify cablea la recolección y usa la misma raíz de detección que los specs", async () => {

@@ -1,7 +1,8 @@
 # Handoff · SDD-0577 · contratos de pruebas Portal/Embarques
 
-Fecha: 2026-10-21. Estado: checkpoint funcional preparado para revisión;
-aceptación canónica de composición C3 pendiente. SDD: in-progress.
+Fecha: 2026-10-21. Estado: checkpoint c4 aceptado para PR DRAFT/composición;
+GO3 receptor aceptado en 16 pasos medidos, CIERRE INCOMPLETO 16/17.
+Conocimiento y liberación del claim pendientes de GO expreso. SDD: in-progress.
 Worker: /root/revision_fixtures, adopción explícita como Worker independiente
 después de terminar la revisión read-only; reglas actuales del principal.
 
@@ -22,7 +23,9 @@ después de terminar la revisión read-only; reglas actuales del principal.
 - Director asignó 0577 con inventario/fetch de 497 refs y worktrees. Sin SQL.
 - GO pesado recibido después de devolución expresa de 0574 a 09:15:44Z.
 - Permitidos: commits/push propios, checkpoint para revisión y PR DRAFT base main.
-  Canónica general se ejecutará en composición C3 con un GO nuevo.
+  La canónica general se ejecutó con GO3 en receptor 22bd5192, registrada por su SHA.
+  Este cierre ligero autoriza solo spec/handoff/índice generado, checks documentales
+  y commit/push selectivo; sin repetir pruebas ni ejecutar conocimiento todavía.
 - Sin main, merge de PR, deploy, VPS, DB real, PII, secretos, cuentas ni otros Workers.
 
 Allowlist exacta: los dos tests, la spec 0577, docs/specs/README.md generado y este
@@ -62,6 +65,12 @@ No modificar producto ni atribuir causa del timeout sin medición.
 - Lint focal de los dos tests PASÓ, sin warnings ni archivos ignorados.
 - Numeración PASÓ: 556 specs, 488 migraciones; 11 colisiones históricas congeladas
   reconocidas por el script, ninguna colisión nueva. No se consultó ni escribió DB.
+- Director aceptó c4b2e72dabbdde80ec7fe5c8a7f128966b6494be para PR DRAFT y
+  composición local revisada. Revisó delta completo, metadata/driver/lint y los
+  13 artefactos por hash/bytes; revisión independiente sin hallazgo obligatorio,
+  SHA-256 e48f432cd469f299ef8f9db1d5ebee569f7941a554a8b810a680b0584592c057.
+- PR 315 creada OPEN/DRAFT y adjunta al chat. La evidencia receptora GO3 se detalla
+  abajo; este cierre no cambia los dos blobs de tests del checkpoint c4.
 
 Blobs de tests ejecutados en el candidato:
 
@@ -84,7 +93,8 @@ Blobs de tests ejecutados en el candidato:
 | Índice / docs:check final | PASÓ | Índice generado, 556 specs; docs-check-01.log; exit 0 |
 | Diff-check / allowlist final | PASÓ | Cinco rutas exactas; sin cambios de producto/package/lock/config |
 | Pares adicionales / perfil CPU | NO EJECUTADO | No se afirma mejora estable ni se necesitó atribuir causa para el cambio acotado |
-| Canónica general corepack pnpm verify | NO EJECUTADO | Composición C3 receptora, con GO nuevo |
+| Canónica propia sobre base histórica | NO EJECUTADO | No se repite producto intacto; la receta GO3 pertenece al receptor 22bd5192 |
+| Canónica receptora GO3 | CIERRE INCOMPLETO 16/17 | Exit 0 sobre 22bd5192, 16 pasos medidos aceptados; ledger OMITIDO y avisos conservados |
 | Knowledge/Graphify/Archify/preview | NO EJECUTADO | Director indicó no ejecutarlos todavía |
 | UI/SQL/build propios | NO EJECUTADO | Sin producto/UI/SQL nuevos; build incluido en canónica receptora |
 
@@ -128,6 +138,72 @@ Embarques 17 = 66a9d5dded14c60a21d4570ebe0a073c322e41381702bdc12b99dd3aa4375f39.
 Los JSON nativos también contienen exactamente los mismos 40 nombres únicos,
 40 PASÓ, 0 FALLÓ, 0 pendientes.
 
+### Composición receptora C3 · GO3, separada del focal propio
+
+Receptor aprobado/ejecutado: 22bd5192825199aeafd0cf5e3625606ff77657b0,
+rama codex/sdd-0576-fechas-caracas-movil, incorporando c4b2e72d.
+Comando normal corepack pnpm verify de 2026-10-21 09:58:37.0499811Z a
+10:36:15.3461774Z, exit 0. Solo dos banderas Corepack de proceso; sin VERIFY*,
+NODE_OPTIONS, credenciales ni cambios de workers/timeouts/runner.
+Los manifests sellados antes/después del EXIT conservan 43 rutas únicas, sus
+43 hashes y bytes, HEAD intacto, bytecheck 10:36:15.5742581Z antes de documentos.
+El Director aceptó los 16 pasos medidos; la salida literal conserva
+CIERRE INCOMPLETO 16/17, sin verde completo ni autorización de release.
+
+| Comprobación receptora | Estado | Resultado y límite |
+|---|---|---|
+| Harness | PASÓ | 237/237, sin omisiones |
+| Lint, RSC, tipos y cuatro Edge | PASÓ | Lint 0 errores/15 avisos conservados |
+| Unitario, primer intento | FALLÓ / PARCIAL | Exit 1; 12823 PASÓ/1 SKIP de 12936, 886 archivos PASÓ/1 SKIP de 889; 2 errores del pool tras ZoneOOM; 519.63 s; no acredita lo no reportado |
+| Unitario, único retry nativo | PASÓ CON OMISIÓN | 12935 PASÓ/1 SKIP de 12936; 888 archivos PASÓ/1 SKIP de 889; 647.26 s; no se suman intentos |
+| Identidad nativa del SKIP unitario | NO DISPONIBLE | Stdout informa 1 skipped sin nombre; corpus.test.ts:31 es correspondencia estática/inferencia, no resultado nominal nativo |
+| Docs, numeración, constantes, componentes, gobernanza y manifiesto pendiente | PASÓ | Manifiesto conserva 0 ROJO/2 AMARILLO declarados/3 homónimos descartados |
+| migrations-applied / ledger productivo | OMITIDO / NO MEDIDO | Faltan URL/SERVICE_ROLE; sin lectura ni aplicación de DB real |
+| SQL y reconstrucción efímeros | PASÓ | 249 contratos con rollback; 492 migraciones = 474 DDL desde cero + 18 solo-ledger; 219 tablas/2 tenants sintéticos |
+| E2E | PASÓ CON AVISOS/OMISIONES | Original 198 únicos = 177 expected + 20 skipped + 1 flaky, 0 unexpected; duración 557377.402 ms; error global del worker conservado |
+| Build normal | PASÓ | tsconfig restaurado por el runner; sin edición manual |
+
+El corpus real de proformas depende de DOCUMENT_IMPORT_CORPUS/carpeta disponible;
+su correspondencia estática no prueba el nombre de la omisión en esta corrida.
+No se leyó el corpus ni se reconstruyeron casos nativos desde caché.
+
+Flaky E2E real: Chromium company-photo-carousel.spec.ts:93, aserción línea 103
+sobre #operacion video, expected 2/received 1. Primer resultado failed 20335 ms;
+retry 1 passed 20753 ms. Es distinto del auth de las dos recetas históricas.
+Error global literal: worker-17 process did not exit within 300000ms after stop,
+force-killed it. El runner lo convirtió en e2e OK con aviso y lo describe como
+WebKit/Windows; esa interpretación no acredita causalidad independiente.
+
+Omisiones E2E nativas: comments-lifecycle 3 por Preview aislado/credenciales/seed;
+carousel móvil 2 porque capturas 390/1440 se hacen una vez; gastos 6 por
+accounting/admin y gasto vivo de fixture; búsqueda global 6 por credenciales
+Studio/branch/seed; nómina 3 por admin y finiquito desechable del seed.
+La navegación sintética deny-only no prueba sesiones/RLS/filas reales ni
+dispositivo físico. SQL efímero y build tampoco certifican aislamiento productivo.
+
+Las recetas C3 históricas conservan FALLÓ y CIERRE ADEMÁS INCOMPLETO:
+a732bcb0221ad821c671b0ee18d52ab928da26eb, exit 1, env-contract en ambos intentos
+y timeout Portal añadido en el retry; d1a7cca287fafcfe978ac74a58c40040889193c2,
+exit 1, Portal timeout en el primer intento y búsqueda del botón de Embarques en
+el retry. Sus reintentos, SKIPs y avisos se preservan; no se suman ni se sustituyen
+por GO3. No se demuestra causa del timeout Portal ni mejora temporal estable.
+
+Revisión íntegra del Director leída y cotejada:
+C:/tmp/director-traspaso-20261020/caracas-c3-revision-director-go3-terminada.md,
+SHA-256 e46a0136ac34387f18ad5ddcb09238f167d305717658dac96dbe74901b697334.
+Se cotejaron bytes/hash de los seis artefactos nativos de
+C:/tmp/director-traspaso-20261020/0576-c3-next/canonical-3/; se parsearon ambos
+manifests sellados y el JSON E2E completo, sin tocar el árbol escritor C3.
+
+| Artefacto receptor | Bytes | SHA-256 |
+|---|---:|---|
+| verify-canonical.json | 511 | 3b7fb1b1c2d0e2e8fb2ae063f7b050445cf2b6a1788251fdbcbe313eb6a18022 |
+| verify-canonical.log | 165915 | f4e8d39ee407d231b35836b889a4db39b30fefcb00d2c3a025e6ca95b40a5d14 |
+| verify-manifest-before.json | 7531 | 61c8e2eb51762659cd6f5ef005289aaa6af42283df9341d74a448ee30772dda8 |
+| verify-bytecheck-after.json | 7588 | ec9d2c3cb8ae8919321bec345900e0a439c857e0a83319a83b54e95deac39797 |
+| e2e-c3-original-54192.json | 270339 | 455ae60e2a70281f0f87ff808b3e96cc82369a774e3fba68476d70115059b437 |
+| e2e-c3-observer-final.json | 442 | 75a2afac0f19512496e55f31ab42f517fb9c0d53f5dcea0f8e6218c9db4212a5 |
+
 ### Evidencia externa propia
 
 Raíz: C:/tmp/director-traspaso-20261020/0577-fixtures-validation/.
@@ -142,6 +218,17 @@ Raíz: C:/tmp/director-traspaso-20261020/0577-fixtures-validation/.
 - checkpoint-validation-01.json: recibo final externo con SHA del checkpoint,
   hashes y recursos atribuibles; se sella después del commit/push.
 
+Cierre documental ligero actual: índice regenerado y docs:check PASÓ con 556 specs;
+numeración PASÓ con 488 migraciones y las 11 colisiones históricas congeladas,
+sin nuevas. Node directo v24.20.0; sin instalación, tests, SQL, knowledge ni navegador.
+Outputs nuevos: cierre-documental-index-01.log, cierre-documental-docs-check-01.log,
+cierre-documental-numbering-01.log y cierre-documental-checks-01.json. Este último
+conserva también el error de preparación PowerShell de una consulta de hashes
+(pipe tras foreach, sin validación ni escritura); la consulta corregida cotejó
+los seis originales C3. No es fallo de instalación ni corrida de pruebas.
+Diff-check y allowlist de tres rutas se verifican antes del commit D; su recibo
+externo posterior fija SHA/remoto, hashes, PR y claim retenido.
+
 Hashes SHA-256 ya comprobados:
 
 | Evidencia | SHA-256 |
@@ -153,23 +240,28 @@ Hashes SHA-256 ya comprobados:
 ## COMMITS
 
 - 8e1d2765d7b51db811d4a367ea2f2cc13aa3e73b: reserva SDD/handoff/índice, publicada.
-- Implementación: commit que contiene esta versión del documento. SHA y respaldo
-  remoto se entregan al Director en el recibo posterior; no se crea recursión
-  de commits para insertar su propio hash.
+- c4b2e72dabbdde80ec7fe5c8a7f128966b6494be: implementación focal revisada y publicada;
+  original/candidato ejecutados sobre bytes locales de reserva 8e1d2765, vinculados
+  a los blobs de c4 por el recibo 2824, sin atribuir una ejecución iniciada en c4.
+- Cierre documental D: commit que contiene esta versión, limitado a tres rutas
+  documentales. SHA/remoto/checks constan en cierre-documental-01.receipt.json
+  externo después de commit/push; no se crea recursión para insertar su propio hash.
 
 ## PR / BRANCH
 
-Rama propia indicada arriba. Checkpoint/push para revisión inmutable del Director
-y peer antes de PR DRAFT base main. No se integró ni desplegó.
-La aceptación general se registra por separado sobre el SHA de composición C3.
+PR https://github.com/SoftAgentes/DTDCARGO/pull/315 OPEN/DRAFT, base main;
+rama propia indicada arriba. c4 fue aceptado para composición y el cierre documental
+actualiza su head sin cambiar tests. Nuevo body/readback pr-draft-02, externos;
+pr-draft-01 permanece intacto. No se integró ni desplegó. La receta general se
+registra por separado sobre el receptor 22bd5192, sin atribuirla a c4 o D.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Commit/push y recibo final para revisión del Director.
-- Revisión inmutable Director/peer y PR DRAFT con pendiente canónico explícito.
-- Ciclo de conocimiento solo cuando el Director asigne turno.
-- Composición C3 receptora, canónica general con GO nuevo y evidencia por SHA;
-  no se declara cerrada antes de ejecutarse.
+- Revisión del cierre documental D, su recibo nuevo y actualización PR DRAFT.
+- Un único ciclo nativo de conocimiento después de D limpio, solo cuando el Director
+  asigne GO pesado; no está ejecutado ni certificado en este documento.
+- Integración y publicación compartida corresponden al Director sobre main comprobado;
+  ledger release OMITIDO, conocimiento y claim release conservan sus fronteras.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -180,15 +272,25 @@ nueva: no aplica, solo pruebas/documentación sin cambio de experiencia o datos 
 
 ## HANDOFF AL DIRECTOR
 
-Revisar el checkpoint inmutable y su delta de cinco rutas. No atribuir la validación
-local del candidato a una composición todavía no ejecutada. No se transporta producto
-de C2; specs/índice receptor se preservan y regeneran al componer.
+Revisar el cierre documental D y su delta de tres rutas respecto de c4; el delta
+acumulado de la tarea sigue en cinco rutas. Tests conservan los blobs c4 probados;
+GO3 corresponde al receptor 22bd, con CIERRE INCOMPLETO 16/17 y todos sus avisos.
+No se transporta producto de C2; specs/índice receptor se preservan al componer.
 
 El claim continúa adquirido hasta instrucción explícita. Los procesos focales y
 ESLint terminaron; no se abrió servidor ni se reclamó puerto. Consulta Win32_Process de Node por ruta propia: cero procesos atribuibles tras los checks. El recibo final revalida esta observación, preservando cualquier atribución incierta.
 
 Impacto documental: spec 0577 y este handoff dentro de la rama, índice generado.
 Integración, estructura Graphify, cobertura semántica, Archify y preview Obsidian
-siguen pendientes por turno; sin publicación compartida. No se escribió memoria.
+siguen pendientes por turno; sin publicación compartida. Plan externo v02 aceptado,
+cierre-documental-knowledge-plan-02.md, SHA-256
+216b710da194568997e59715968c54d199ce318f40b870b53b870882081b7deb, inmutable.
+El ciclo futuro usará runtime oficial Archify 2.16.0 con ZIP/tree lock en ignorados
+propios y un único update Graphify 0.9.61 nativo, según ese plan; resultados externos
+nuevos en knowledge-native-01/closure-receipt-01.json, sin autocitación tracked
+posterior ni cobertura semántica inventada. Knowledge y claim release esperan GO.
+Los 13 originales y checkpoint-validation-01.json SHA-256
+2824bd5df16ac699c101024dcecace19de8577f7d1727c4fbfb499449c8f2d8e se conservan.
+No se escribió memoria.
 El índice de la base histórica muestra 0569-0576 como huecos locales; no significa
 que estén libres. Al componer se preservan las specs de la rama receptora.

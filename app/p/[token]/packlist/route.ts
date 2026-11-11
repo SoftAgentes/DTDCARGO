@@ -7,8 +7,11 @@
  * shipping mark (sale solo de la cuenta del cliente).
  *
  * Lee la compra por `share_token` con admin client (visitante anónimo). El template
- * base se trae por su URL estática (CDN) — fiable en Vercel, sin depender de fs.
+ * base se lee del disco, trazado en next.config.ts: traerlo por su URL salía a
+ * `https://0.0.0.0:3000` en el contenedor y la descarga moría con 500 (SDD-0602).
  */
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import {
@@ -29,7 +32,6 @@ import { portalEnabled } from "@/lib/studio/document-import/access";
 
 export const runtime = "nodejs";
 
-const TEMPLATE_PATH = "/templates/dtd-packing-list-invoice.xlsx";
 const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -62,13 +64,14 @@ export async function GET(
     return new NextResponse(filled as BodyInit,{headers:{"Content-Type":XLSX_MIME,"Content-Disposition":`attachment; filename="PackingList-${data.code}.xlsx"`,"Cache-Control":"no-store"}});
   }
 
-  // Template base desde el CDN (mismo origen). Fiable en serverless (no fs).
-  const tplUrl = new URL(TEMPLATE_PATH, req.nextUrl.origin);
-  const tplRes = await fetch(tplUrl, { cache: "no-store" });
-  if (!tplRes.ok) {
+  let templateBytes: Uint8Array;
+  try {
+    templateBytes = new Uint8Array(
+      await readFile(path.join(process.cwd(), "public", "templates", "dtd-packing-list-invoice.xlsx")),
+    );
+  } catch {
     return new NextResponse("Template no disponible", { status: 502 });
   }
-  const templateBytes = new Uint8Array(await tplRes.arrayBuffer());
 
   let filled: Uint8Array;
   try {

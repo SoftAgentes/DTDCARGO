@@ -58,7 +58,7 @@ describe("rutas de baja firmada", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "https://preview.example/email/baja?estado=actualidad",
+      "/email/baja?estado=actualidad",
     );
     expect(updates).toHaveLength(1);
     expect(updates[0]).toMatchObject({
@@ -81,7 +81,7 @@ describe("rutas de baja firmada", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "https://preview.example/email/baja?estado=actualidad",
+      "/email/baja?estado=actualidad",
     );
     expect(updates).toHaveLength(1);
   });

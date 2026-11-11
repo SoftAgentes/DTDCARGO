@@ -16,6 +16,7 @@
  * lib/studio/reports/types.ts (server-safe).
  */
 
+import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import {
   operationalOverview,
@@ -98,15 +99,24 @@ export default async function ReportesPage({
       ivaPosition(supabase, period),
     ]);
     return (
-      <ReportesClient
-        period={period}
-        category="con"
-        rep={rep}
-        income={income}
-        aging={aging}
-        cashflow={cashflow}
-        iva={iva}
-      />
+      <>
+        {/* SDD-0574: «Embarques sin facturar» vive en su propia página. */}
+        <p style={{ margin: "0 0 var(--s-3)", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+          ¿Qué falta por facturar?{" "}
+          <Link href="/studio/reportes/embarques-sin-facturar" style={{ color: "var(--wine-text)", fontWeight: 600 }}>
+            Ver embarques sin facturar →
+          </Link>
+        </p>
+        <ReportesClient
+          period={period}
+          category="con"
+          rep={rep}
+          income={income}
+          aging={aging}
+          cashflow={cashflow}
+          iva={iva}
+        />
+      </>
     );
   }
 

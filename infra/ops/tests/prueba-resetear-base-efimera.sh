@@ -27,7 +27,7 @@ R="$(cd "${S}/../.." && pwd)"
 IMG="supabase/postgres:17.6.1.136"
 # Las de compose.supabase.yml (se leen de ahí para no desalinearlas).
 IMG_AUTH="$(grep -oE 'image: supabase/gotrue:[^ ]+' "${R}/infra/dtd-cargo/compose.supabase.yml" | cut -d' ' -f2)"
-IMG_STORAGE="$(grep -oE 'image: supabase/storage-api:[^ ]+' "${R}/infra/dtd-cargo/compose.supabase.yml" | cut -d' ' -f2)"
+IMG_STORAGE="$(grep -oE 'supabase/storage-api:[^ }]+' "${R}/infra/dtd-cargo/compose.supabase.yml")"
 P=zz540r-staging
 DB="${P}-db-1"
 AUTH="${P}-auth-1"

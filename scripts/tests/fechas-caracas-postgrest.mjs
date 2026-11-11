@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-export const contractPath = resolve(root, 'supabase/tests/0499_fechas_caracas_operaciones.test.sql');
+export const contractPath = resolve(root, 'supabase/tests/0533_fechas_caracas_operaciones.test.sql');
 export function inlineContract(vars = {}, replacements = {}) {
   const state = { ...vars }, out = [];
   function run(file) {
@@ -57,7 +57,7 @@ export function clockFixtureSql() {
 }
 
 const hash = value => createHash('sha256').update(value).digest('hex');
-function uuid(label,prefix='0499-synthetic-') {
+function uuid(label,prefix='0533-synthetic-') {
   const hex=createHash('md5').update(prefix+label).digest('hex');
   return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
 }
@@ -124,7 +124,7 @@ insert into public.warehouse_receipts_cn(id,tenant_id,receipt_code,client_markbo
   };
   try {
     receipt.head=(await run('git',['rev-parse','HEAD'])).stdout.trim();
-    receipt.migrationSha256=hash(readFileSync(resolve(root,'supabase/migrations/0499_fechas_caracas_operaciones.sql')));
+    receipt.migrationSha256=hash(readFileSync(resolve(root,'supabase/migrations/0533_fechas_caracas_operaciones.sql')));
     receipt.dockerVersion=(await docker(['version','--format','{{.Server.Version}}'])).stdout.trim();
     receipt.existingResources=(await docker(['ps','--format','{{.Names}}|{{.Status}}'])).stdout.trim();
     receipt.resourceLoad=(await docker(['stats','--no-stream','--format','{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}'])).stdout.trim();
@@ -136,13 +136,13 @@ insert into public.warehouse_receipts_cn(id,tenant_id,receipt_code,client_markbo
     if(!process.argv.includes('--http-only')){
       const closingOnly=process.argv.includes('--closing-only');
       const selection=closingOnly?['-v','run_defaults=false','-v','run_operations=false','-v','run_auto_invoice=false','-v','run_portal=false']:[];
-      const contract=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1',...selection,'-U','postgres','-d','postgres','-f','/sb/tests/0499_fechas_caracas_operaciones.test.sql']);
+      const contract=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1',...selection,'-U','postgres','-d','postgres','-f','/sb/tests/0533_fechas_caracas_operaciones.test.sql']);
       await save('postgres-contract.log',contract.stdout+'\n'+contract.stderr);
-      assert.match(contract.stdout,/TEST0499 GREEN: \d+ aserciones/);assert.match(contract.stdout,/ROLLBACK/);
-      check(closingOnly?'PostgreSQL17: composición0493 + guardas gasto C1 y ROLLBACK':'PostgreSQL17: contrato real completo y ROLLBACK',{marker:contract.stdout.match(/TEST0499 GREEN: \d+ aserciones/)[0]});
-      if(closingOnly){receipt.http='NO EJECUTADO: suplemento0493 sin cambio0499/API';receipt.result='PASÓ';return;}
+      assert.match(contract.stdout,/TEST0533 GREEN: \d+ aserciones/);assert.match(contract.stdout,/ROLLBACK/);
+      check(closingOnly?'PostgreSQL17: composición0493 + guardas gasto C1 y ROLLBACK':'PostgreSQL17: contrato real completo y ROLLBACK',{marker:contract.stdout.match(/TEST0533 GREEN: \d+ aserciones/)[0]});
+      if(closingOnly){receipt.http='NO EJECUTADO: suplemento0493 sin cambio0533/API';receipt.result='PASÓ';return;}
     }else receipt.sqlContract='NO EJECUTADO: --http-only';
-    const fixture=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-v','fixture_only=true','-v','apply_fix=false','-U','postgres','-d','postgres','-f','/sb/tests/0499_fechas_caracas_operaciones.test.sql']);
+    const fixture=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-v','fixture_only=true','-v','apply_fix=false','-U','postgres','-d','postgres','-f','/sb/tests/0533_fechas_caracas_operaciones.test.sql']);
     await save('http-fixture.log',fixture.stdout+'\n'+fixture.stderr);
     // Adaptador explícito de PostgREST14: claims JSON, no Supabase Auth real.
     await psql(`create or replace function auth.uid() returns uuid language sql stable set search_path='' as $$
@@ -165,8 +165,8 @@ grant execute on function c1_fixture.http_context() to anon,authenticated,servic
     check('HTTP antes del DDL:0128 legado sin issued_at',{response:before});
     receipt.restStartedBeforeDdl=(await docker(['inspect','--format','{{.State.StartedAt}}',rest])).stdout.trim();
     const beforeDdl=await snapshot();receipt.ddlStartedAt=new Date().toISOString();
-    const ddl=await docker(['exec',pg,'psql','-X','-1','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/migrations/0499_fechas_caracas_operaciones.sql']);
-    await save('http-ddl-0499.log',ddl.stdout+'\n'+ddl.stderr);receipt.ddlCommittedAt=new Date().toISOString();assert.equal(await snapshot(),beforeDdl,'DDL sin DML');
+    const ddl=await docker(['exec',pg,'psql','-X','-1','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/migrations/0533_fechas_caracas_operaciones.sql']);
+    await save('http-ddl-0533.log',ddl.stdout+'\n'+ddl.stderr);receipt.ddlCommittedAt=new Date().toISOString();assert.equal(await snapshot(),beforeDdl,'DDL sin DML');
     const after=await rpc('sales_order_claim_and_invoice','accounting-A',await seedOrder('after'),'service_role');
     assert.equal(after.status,200);assert.equal(after.data.outcome,'invoiced');assert.match(after.data.issued_at,/^\d{4}-\d{2}-\d{2}$/);
     assert.equal(after.data.issued_at,await scalar(`select issued_at from public.invoices where id=${quote(after.data.invoice_id)};`));
@@ -174,9 +174,9 @@ grant execute on function c1_fixture.http_context() to anon,authenticated,servic
     await psql(`update c1_fixture.real_definitions set definition=pg_get_functiondef(signature::regprocedure);
 update c1_fixture.real_defaults r set expression=pg_get_expr(d.adbin,d.adrelid) from pg_attribute a join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid=('public.'||r.relname)::regclass and a.attname=r.attname;`);
     await save('http-real-catalog.json',JSON.parse(await scalar("select jsonb_build_object('functions',(select jsonb_agg(to_jsonb(t)) from c1_fixture.real_definitions t),'defaults',(select jsonb_agg(to_jsonb(t)) from c1_fixture.real_defaults t))::text;")));
-    check('DDL0499 real/COMMIT/NOTIFY y HTTP nuevo en mismo PostgREST',{startedAt:receipt.restStartedAfterDdl,issuedAt:after.data.issued_at,migrationSha256:receipt.migrationSha256});
+    check('DDL0533 real/COMMIT/NOTIFY y HTTP nuevo en mismo PostgREST',{startedAt:receipt.restStartedAfterDdl,issuedAt:after.data.issued_at,migrationSha256:receipt.migrationSha256});
     await psql('begin;\n'+clockFixtureSql()+"\ncreate table c1_fixture.http_clock(instant timestamptz not null,sequenced boolean not null);insert into c1_fixture.http_clock values('2026-10-21T02:30Z',true);commit;");
-    check('Inicio fase separada con reloj de fixture; fuente0499 intacta');
+    check('Inicio fase separada con reloj de fixture; fuente0533 intacta');
     const collect=await rpc('register_collection_receipt','accounting-A',collection());assert.equal(collect.status,200);
     assert.equal(await scalar(`select received_at from public.payment_receipts where id=${quote(collect.data.receipt_id)};`),'2026-10-20');assert.equal(await scalar('select last_value from c1_fixture.clock_reads;'),'1');
     assert.equal(collect.data.amount,10.25);

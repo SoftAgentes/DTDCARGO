@@ -626,6 +626,8 @@ export type PrealertaActionState = {
   prealertaCode?: string;
   /** Token del link público del proveedor (para "Compartir con mi proveedor"). */
   shareToken?: string;
+  /** La compra ya existía: un reintento del mismo envío (SDD-0599). */
+  replayed?: boolean;
 };
 
 /**

@@ -3051,6 +3051,249 @@
         "fecha": "2026-10-20",
         "forma": "exacta"
       }
+    },
+    "0495_fx_rates_conversor_usd": {
+      "sha256": "964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7",
+      "md5": "c0c9dac855a516179085950a187737d7",
+      "bytes": 28118,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0496_tarifa_congelada_por_embarque": {
+      "sha256": "1856b60aae8f4d382e3b4ad618ec51fe0c70a5041a0ad1d3db7973e4d4718755",
+      "md5": "075eab7fae8d9dfb2b06f88335087f8d",
+      "bytes": 45610,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0497_reverso_al_anular_factura": {
+      "sha256": "056811e9e2b7cf74dc3cc01b0e24e95ec4eb1c9dd47caa7e1e718f1094392e3e",
+      "md5": "77d3ad861b328bfa5e67dcf7b7fa42cf",
+      "bytes": 78448,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0503_chatwoot_bandeja": {
+      "sha256": "988bbe6b9a59044a6a9dc8a3144880095856afed9bd3191b4393caadb240194b",
+      "md5": "b299cef31e10591a2f48cf7477941ecf",
+      "bytes": 7436,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0504_chatwoot_eventos": {
+      "sha256": "ca649f526fa7d4176a80f4494ae5348c76b4c40e114c3e90806b982021fdea93",
+      "md5": "ca421e6a5688b56e9b492646da3faaf8",
+      "bytes": 16088,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0505_chatwoot_segmento": {
+      "sha256": "28147026c69de141b5abaa58706ed7ce82adf2992a5c80dce7ec46d639d59168",
+      "md5": "6d26a4f8ac027c0fa981abe2676491a4",
+      "bytes": 18170,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0506_crm_modelo": {
+      "sha256": "ec85f43c23d74dd2b27bac32e4ca85b5f35011dced4080ec1091d18a32d0ec0b",
+      "md5": "f44ed0afecfd58b22b23a1022d5d54c2",
+      "bytes": 40916,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0507_chatwoot_versiones": {
+      "sha256": "852d9adac1653ccefb88da730182d53b0a4cb753b2d8851387c1405d5fbdf489",
+      "md5": "a04d4f7a18f700146e8cf7580da01d0a",
+      "bytes": 6532,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0508_chatwoot_bajas_purga": {
+      "sha256": "5174fb2d63ed8b1d02e268d70bbb8094a295f69057dbe30950e121f6c63eff5b",
+      "md5": "3439930d2ee8d7b055fc43f7c2f83270",
+      "bytes": 5295,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0509_chatwoot_version_analyses": {
+      "sha256": "081a57aa5d6107a1cbf18dd11b11a800ca06cd984c15f6eead1cedbe119906d3",
+      "md5": "563f4ce0987a33876d5340000b28c90c",
+      "bytes": 4966,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0510_rls_escritura_accounts": {
+      "sha256": "f236c923b22a11886ef2d780a3206243929a410e1c0daf294fb390f9c41dde20",
+      "md5": "53c078ff06e1b1b889a1f79295ac10e1",
+      "bytes": 12056,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0511_rls_escritura_asientos_y_bancos": {
+      "sha256": "819e9912e1fb005cfcc1fd52cd3b7178be4a0966bf4d2bd4750154a0f8535be7",
+      "md5": "f9522a5b7550940e1fc96cc3bcba776e",
+      "bytes": 16896,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0512_portal_intento_sin_duplicar": {
+      "sha256": "2ae37ec09f0fdaf2eaf71179a514319c7053aeb85b82fdd8194bc3efbc1566c4",
+      "md5": "bdf2326d98f8fe993aedc19235d7ae00",
+      "bytes": 11817,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0513_crm_entrada_leads": {
+      "sha256": "26ce0b5ee550ee8d4ea688d60912dcb95c45cb0c1705a87d6575c170b5ba3c60",
+      "md5": "034b50b506c77f909ccf4f67aa6468fe",
+      "bytes": 20623,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0514_user_profiles_discord_user_id": {
+      "sha256": "f2a0317f7b3646761e051b1d5e39a50784bf2b814b9a45b51f86b95be0c4a7cb",
+      "md5": "fb6d4d68b0ed528ab4803ae974571966",
+      "bytes": 3766,
+      "ledger": {
+        "fecha": "2026-11-07",
+        "forma": "exacta"
+      }
+    },
+    "0515_studio_alert_outbox": {
+      "sha256": "24add6f0e259301b9ca4f346eecf0a051645748bf7f8a083f50cf058974621b7",
+      "md5": "1ae7c1ac3cfbd9381285595e82f8a3e3",
+      "bytes": 5766,
+      "ledger": {
+        "fecha": "2026-11-07",
+        "forma": "exacta"
+      }
+    },
+    "0516_discord_consulta_clientes": {
+      "sha256": "5a77cf078d9de7598fdbc086b97d6673231d20614a11695f0d1329e06a3286d5",
+      "md5": "e65bdf2c5a4226b344f147019453631a",
+      "bytes": 12090,
+      "ledger": {
+        "fecha": "2026-11-09",
+        "forma": "exacta"
+      }
+    },
+    "0517_user_guide_prefs": {
+      "sha256": "ab7e09eae3ae17295cd1b40f7e02419301df4fe39eb801a5a15807bba2766d24",
+      "md5": "22769e1bb0280481c5fd0b7b201a314f",
+      "bytes": 3676,
+      "ledger": {
+        "fecha": "2026-11-06",
+        "forma": "exacta"
+      }
+    },
+    "0518_noticias_publicacion_automatica": {
+      "sha256": "b68cb178485a149cbd23055b5f86644013ce6207e4ba2b097e7a09e480aa49c9",
+      "md5": "c692dfa9c4ad31e3352721400c3e3ceb",
+      "bytes": 44672,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0519_chatwoot_portal": {
+      "sha256": "a04fc76c9e51e6ce11da036319a206983db84fea0685f02cbba1fb835c6143a2",
+      "md5": "f613559d5ca34b2932995c8ff051e97e",
+      "bytes": 30710,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0520_chatwoot_portal_vuelta": {
+      "sha256": "5814f9a905a03222460c399e70c867b05a04adfa7aa8ba41e0f867f374aeb80a",
+      "md5": "03bcee54616204644a6981d33ec7764c",
+      "bytes": 12500,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0521_chatwoot_portal_estado": {
+      "sha256": "a5fdd44d901ce5a1716db55db12e6ea35a6e00c3dac0c074b2a6be43c0146836",
+      "md5": "9613db9ca81059c4f6b308a0d84cb6e5",
+      "bytes": 18458,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0522_chatwoot_bot": {
+      "sha256": "26afe93ac4604dbb7b72776171189ca41f61d58a425c8d836995bb7cf42b81a7",
+      "md5": "042eacc23862df84138ddbbd7f02503a",
+      "bytes": 35074,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0523_chatwoot_portal_carga": {
+      "sha256": "07b8a71086c6e45b9a38c6cb0b37f8fc4181cbc22a305f15e6295594d04fb0f3",
+      "md5": "83b016e0ac8aa2fe24172ae07642a60c",
+      "bytes": 23960,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0524_chatwoot_portal_puerta4": {
+      "sha256": "a73023c3b62818883e5c0e4528ace39547eae7d9625929dc9be89cfca8f70d65",
+      "md5": "8891e2a4cda6197eec57653ec178d40a",
+      "bytes": 22764,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0525_noticias_ajustes_antes_de_encender": {
+      "sha256": "faaf59b29ad9080e542cc4af27d51d8397b093113ede4ff967b898bd8e126efb",
+      "md5": "03698ca2155e4f2f03623f2a39901b6e",
+      "bytes": 8957,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0526_noticias_anon_solo_columnas_publicas": {
+      "sha256": "1baa79e38e6eac85349d63386c580490ef7f3ecc36ec30791cad37a484e68855",
+      "md5": "f58d4595160b45559882f1adb5ee909a",
+      "bytes": 6731,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
     }
   }
 }

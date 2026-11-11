@@ -50,7 +50,11 @@ import type { PriceBookOption } from "@/lib/studio/price-books/price-book-types"
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 import type { MarkboxHistoryEntry } from "@/lib/studio/markbox-history-types";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
-import { canEditModule } from "@/lib/studio/rbac";
+import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
+import { listConversacionesDeCliente, type ConversacionDeCliente } from "@/lib/studio/chatwoot/conversations-queries";
+import { ChatwootConversacionesCard } from "../_components/ChatwootConversacionesCard";
 import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
 import { ClientBillingCard, type ClientBillingIdentityRow } from "../_components/ClientBillingCard";
@@ -177,6 +181,21 @@ export default async function ClienteDetallePage({
     billingIdentity = error ? null : data ?? null;
   } catch {
     billingIdentity = null;
+  }
+
+  // SDD-0585 E2-D23: conversaciones de Chatwoot de ESTE cliente. El client_id
+  // solo existe si el teléfono del contacto cruzó con un único cliente (0504):
+  // un cruce ambiguo no aparece acá. Solo con acceso a la Bandeja y el flag
+  // encendido; sin 0504 o con error, no hay tarjeta.
+  let conversacionesChatwoot: ConversacionDeCliente[] | null = null;
+  if (tenantLink?.tenant_id && canAccessModule(studioRole, "bandeja", studioAccess.overrides)) {
+    try {
+      if (isModuleEnabled("bandeja", await listFeatureFlags(supabase))) {
+        conversacionesChatwoot = await listConversacionesDeCliente(supabase, tenantLink.tenant_id, client.id);
+      }
+    } catch {
+      conversacionesChatwoot = null;
+    }
   }
 
   // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
@@ -643,6 +662,7 @@ export default async function ClienteDetallePage({
               izquierda; ahora también lleva lo del aliado, que es donde de
               verdad hace falta espacio para las sub-insignias y el acuerdo. */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {conversacionesChatwoot ? <ChatwootConversacionesCard conversaciones={conversacionesChatwoot} /> : null}
           <AliadoCard
             clientId={client.id}
             clientName={client.name}

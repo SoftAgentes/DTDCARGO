@@ -1,7 +1,7 @@
 // @vitest-environment node
 /** C1: handlers y delegados reales; sólo sesión, almacenamiento y poster son E/S sintética.
  * No prueba transacciones SQL ni RLS: la fixture valida argumentos y cardinalidad,
- * y el contrato 0499/HTTP comprueba esos límites por separado. */
+ * y el contrato 0533/HTTP comprueba esos límites por separado. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isCalendarDate } from "@/lib/shared/fechas-caracas";

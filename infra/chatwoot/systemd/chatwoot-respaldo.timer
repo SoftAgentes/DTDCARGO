@@ -1,0 +1,11 @@
+# 06:30 UTC con la zona explícita: el reloj del VPS está en Europe/Berlin. Media hora
+# después del respaldo de DTD (06:00 UTC, dtd-cargo-backup.timer) para no solaparse.
+[Unit]
+Description=Respaldo diario de Chatwoot
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

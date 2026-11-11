@@ -21,9 +21,14 @@ import {
 import { listCities } from "@/lib/studio/dispatch-routes-queries";
 import { canSeeClientNames as reglaNombresDeClientes } from "@/lib/studio/privacidad-cn";
 import { activeAlertShipmentIds } from "@/lib/studio/expense-alerts-queries";
+import { listLiveRatesForReceipts } from "@/lib/studio/rate-snapshots/queries";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
-import { AlmacenCnClient, type EliminacionRecepciones } from "./_components/AlmacenCnClient";
+import {
+  AlmacenCnClient,
+  type EliminacionRecepciones,
+  type TarifasCn,
+} from "./_components/AlmacenCnClient";
 import { HeaderActions } from "./_components/HeaderActions";
 import { WarehouseKpis } from "./_components/WarehouseKpis";
 
@@ -87,6 +92,17 @@ export default async function CnPage({
       // Shipments con alerta de gastos activa → chip "Pendiente gastos" en la row.
       activeAlertShipmentIds(supabase),
     ]);
+
+  // SDD-0571: la tarifa congelada de cada recepción. Sin la 0496, «No disponible».
+  const vivas = await listLiveRatesForReceipts(
+    supabase,
+    receipts.map((r) => r.id),
+  );
+  const tarifas: TarifasCn = vivas.disponible
+    ? { disponible: true, porRecepcion: vivas.porRecepcion }
+    : { disponible: false, porRecepcion: {} };
+  const puedeCongelarTarifas =
+    role === "admin" || role === "operations" || role === "warehouse" || role === "accounting";
 
   let eliminacion: EliminacionRecepciones | undefined;
   if (puedeEliminar) {
@@ -167,6 +183,8 @@ export default async function CnPage({
         alertShipmentIds={Array.from(alertShipmentSet)}
         canSeeClientNames={canSeeClientNames}
         eliminacion={eliminacion}
+        tarifas={tarifas}
+        puedeCongelarTarifas={puedeCongelarTarifas}
       />
     </div>
   );

@@ -51,7 +51,7 @@ export {
   type DateStyle,
 } from "./format";
 
-export { t, type I18nKey } from "./dict";
+export { t, hasI18nKey, type I18nKey } from "./dict";
 
 export {
   LocaleProvider,

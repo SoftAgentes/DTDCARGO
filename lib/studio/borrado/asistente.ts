@@ -468,9 +468,9 @@ function pasoAnularFactura(f: FacturaDep): PasoAsistente {
     objetivoId: f.id,
     codigo: f.codigo,
     titulo: `Anular la factura ${f.codigo}`,
-    queEs: `Factura ${estado} en Facturación, sin cobros ni asiento contable vivo.`,
+    queEs: `Factura ${estado} en Facturación, sin cobros.`,
     consecuencia:
-      "Deja de sumar en el libro de ventas. No se borra, porque es un documento fiscal: se conserva anulada, con tu motivo. Si tenía créditos de referido aplicados, vuelven al cliente.",
+      "Deja de sumar en el libro de ventas, y su asiento de venta se revierte con un contra-asiento en el período abierto. No se borra, porque es un documento fiscal: se conserva anulada, con tu motivo. Si tenía créditos de referido aplicados, vuelven al cliente.",
     modulo: "Facturación",
     enlace: enlaceFactura(f.codigo),
     permanencia: "P3",
@@ -616,19 +616,23 @@ export function calcularPlan(e: EntradaPlan): PlanBorrado {
       bloqueos.push(sinConfirmar("invoices", nFacturas, "las facturas", { href: RUTA.facturacion, etiqueta: "Abrir Facturación" }));
     } else {
       for (const f of lista) {
-        if (f.asientoVivo === null) {
+        // SDD-0573 (0497): anular una factura emitida revierte su asiento de
+        // venta en la misma transacción (B1 resuelto), así que su asiento ya no
+        // la bloquea. Un BORRADOR sí: el asistente lo elimina, no lo anula, y
+        // eliminarlo no revierte un asiento que no debería tener.
+        if (f.estado === "borrador" && f.asientoVivo === null) {
           bloqueos.push({
             clave: `asiento_sin_comprobar:${f.id}`,
             titulo: `No se pudo comprobar el asiento de la factura ${f.codigo}`,
-            detalle: "Sin saber si tiene un asiento de venta vivo, el asistente no ofrece anularla. Vuelve a revisar.",
+            detalle: "Sin saber si este borrador tiene un asiento vivo, el asistente no ofrece eliminarlo. Vuelve a revisar.",
             enlace: enlaceFactura(f.codigo),
           });
-        } else if (f.asientoVivo) {
+        } else if (f.estado === "borrador" && f.asientoVivo) {
           bloqueos.push({
             clave: `asiento_vivo:${f.id}`,
-            titulo: `La factura ${f.codigo} tiene su asiento de venta vivo`,
+            titulo: `El borrador ${f.codigo} tiene un asiento vivo`,
             detalle:
-              "Anularla hoy no revierte ese asiento en Contabilidad (hallazgo B1 del diagnóstico contable). El asistente no la anula: ese paso se hace en Facturación cuando esté integrada la reparación del reverso contable.",
+              "Un borrador no debería tener asiento, y eliminarlo no lo revierte. El asistente no lo elimina: revisa ese asiento en Contabilidad.",
             enlace: enlaceFactura(f.codigo),
           });
         } else if (tieneCobros(f.pagado) || f.estado === "parcial" || f.estado === "pagada") {

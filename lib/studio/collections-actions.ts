@@ -131,6 +131,48 @@ function collectionRejection(
   return overrides[code] ?? COLLECTION_REJECTIONS[code] ?? fallback;
 }
 
+/**
+ * SDD-0601 · Los motivos con que `i3_assert_invoice_final` (0497) frena un cobro
+ * porque el asiento de venta de la factura no es válido. Se comparan enteros y
+ * no se muestran. Los otros dos textos de esa función son de facturas anuladas,
+ * y a esas ya las frena PAYMENT_STATE.
+ */
+const MOTIVOS_DE_VENTA_INVALIDA = new Set([
+  "La venta original requiere revisión.",
+  "La relación contable de la factura requiere revisión.",
+  "Estado de factura y par contable incompatibles.",
+]);
+
+/** Código de Postgres o de PostgREST: la base respondió y el pedido no dejó nada. */
+const CODIGO_DE_LA_BASE = /^(?:PGRST\d+|[0-9A-Z]{5})$/;
+
+/**
+ * SDD-0601 · Lo que ve quien cobra si la RPC no devuelve un recibo: por qué, qué
+ * pasó con la factura y a quién acudir (ERR-01). Sin una respuesta de la base no
+ * se afirma que el cobro no entró: la respuesta pudo perderse después del COMMIT.
+ * En el servidor queda la factura y el código, nunca el texto de la base.
+ */
+function avisoDeCobroNoRegistrado(
+  invoiceCode: string,
+  error: { message?: string; code?: string } | null,
+  status: number,
+): string {
+  const conocido = collectionRejection(error, "");
+  if (conocido) return conocido;
+
+  console.error(
+    `[cobranzas] cobro no registrado en ${invoiceCode}:`,
+    error?.code || `sin código, HTTP ${status}`,
+  );
+  if (MOTIVOS_DE_VENTA_INVALIDA.has(error?.message?.trim() ?? "")) {
+    return `No se registró el cobro y la factura ${invoiceCode} sigue igual: su asiento de venta tiene un problema. Intentarlo otra vez no lo arregla. Avísale a un administrador con el número de factura.`;
+  }
+  if (status >= 400 && CODIGO_DE_LA_BASE.test(error?.code ?? "")) {
+    return `No se registró el cobro y la factura ${invoiceCode} sigue igual: el sistema lo rechazó por un motivo que no reconoce. Avísale a un administrador con el número de factura.`;
+  }
+  return `No se pudo confirmar si el cobro entró: se perdió la comunicación con el sistema. Recarga la página y revisa la factura ${invoiceCode} antes de intentarlo otra vez. Si sigue fallando, avísale a un administrador.`;
+}
+
 export type RegisterCollectionResult = {
   ok?: boolean;
   error?: string;
@@ -183,7 +225,7 @@ export async function registerCollectionFor(
   // serializado por tenant, recibo (pagador decisión #7 + fund_class HEREDADA
   // de la factura, decisión #5 — el sin-ref es el único camino que no hereda)
   // y paid_amount + status, todo en la misma transacción.
-  const { data, error: rpcErr } = await supabase.rpc("register_collection_receipt", {
+  const { data, error: rpcErr, status } = await supabase.rpc("register_collection_receipt", {
     p_invoice_id: inv.id,
     p_amount: input!.amount,
     p_cash_account_id: input!.cashAccountId,
@@ -198,7 +240,7 @@ export async function registerCollectionFor(
   });
   const receipt = data as CollectionRpcResult | null;
   if (rpcErr || !receipt?.receipt_id) {
-    return { error: collectionRejection(rpcErr, "No se pudo registrar el cobro.") };
+    return { error: avisoDeCobroNoRegistrado(inv.invoice_code, rpcErr, status) };
   }
   const receiptCode = receipt.receipt_code;
 

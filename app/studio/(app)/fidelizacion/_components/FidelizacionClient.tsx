@@ -248,7 +248,7 @@ export function FidelizacionClient({
       {(!portfolioAvailable || clients.some((c) => !c.tier)) && <p role="status" style={{ color: "var(--ink-soft)", font: "500 13px/1.5 var(--f-sans)" }}>
         {!portfolioAvailable ? "Cartera y facturación anual no disponibles." : `${clients.filter((c) => !c.tier).length} clientes con nivel Por revisar. La distribución solo incluye niveles verificables.`}
       </p>}
-      {tab === "niveles" && <NivelesTab tierCounts={tierCounts} />}
+      {tab === "niveles" && <NivelesTab tierCounts={tierCounts} portfolioAvailable={portfolioAvailable} />}
       {tab === "referidos" && (
         <ReferidosTab
           referrals={referrals}
@@ -257,7 +257,7 @@ export function FidelizacionClient({
         />
       )}
       {tab === "clientes" && (
-        <ClientesTab clients={clients} referrals={referrals} />
+        <ClientesTab clients={clients} referrals={referrals} portfolioAvailable={portfolioAvailable} />
       )}
 
       {/* Drawers */}
@@ -766,9 +766,9 @@ function DashboardTab({
 // Tab: Niveles
 // ════════════════════════════════════════════════════════════════
 
-function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
+function NivelesTab({ tierCounts, portfolioAvailable }: { tierCounts: TierCount[]; portfolioAvailable: boolean }) {
   const countOf = (id: Tier["id"]) =>
-    tierCounts.find((c) => c.tier.id === id)?.count ?? 0;
+    portfolioAvailable ? tierCounts.find((c) => c.tier.id === id)?.count ?? 0 : null;
 
   return (
     <div
@@ -810,7 +810,7 @@ function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
                 {t.label}
               </span>
               <Badge tone={t.tone} size="sm">
-                {count} {count === 1 ? "cliente" : "clientes"}
+                {count === null ? "Cartera no disponible" : `${count} ${count === 1 ? "cliente" : "clientes"}`}
               </Badge>
             </div>
             <div
@@ -1081,9 +1081,11 @@ const CLIENT_GRID = "minmax(180px, 1fr) 110px minmax(200px, 1fr) minmax(160px, 1
 function ClientesTab({
   clients,
   referrals,
+  portfolioAvailable,
 }: {
   clients: ClientWithTier[];
   referrals: Referral[];
+  portfolioAvailable: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -1109,6 +1111,16 @@ function ClientesTab({
         c.markbox.toLowerCase().includes(q),
     );
   }, [clients, search]);
+
+  if (!portfolioAvailable) {
+    return (
+      <EmptyState
+        eyebrow="Cartera no disponible"
+        title="No se pudo cargar la cartera de clientes."
+        description="No se puede confirmar si hay clientes para clasificar. La información de referidos y créditos sigue disponible."
+      />
+    );
+  }
 
   if (clients.length === 0) {
     return (
