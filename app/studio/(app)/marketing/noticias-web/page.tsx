@@ -27,6 +27,7 @@ import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { NoticiasWebClient } from "./_components/NoticiasWebClient";
+import { NoticiasTabs } from "./_components/NoticiasTabs";
 
 export const metadata = { title: "Noticias Web · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -75,6 +76,7 @@ export default async function NoticiasWebPage() {
         maxWidth: 1480,
       }}
     >
+      <NoticiasTabs activa="nueva" />
       <div style={{ marginBottom: 32 }}>
         <span
           className="eyebrow"
