@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 558 specs)
+### Índice de specs (generado · 606 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -564,7 +564,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0537 | Tarifario de transportistas editable por ciudad, con rutas y … | in-progress | interno |
 | 0538 | Contrato 0475: el bloque 5 lee el último restablecimiento por… | in-progress | interno |
 | 0539 | Transportistas: lote sin ids en la URL, escrituras honestas y… | in-progress | interno |
-| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | proposed | interno |
+| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | approved | interno |
 | 0541 | Publicación automática de la web en el servidor propio | in-progress | interno |
 | 0542 | Dashboard: los enlaces internos llevan a una pantalla que existe | in-progress | interno |
 | 0543 | Consolidados en camino: carga de contenedores desde el packin… | in-progress | interno |
@@ -594,8 +594,56 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0567 | El crédito de referido no nace sin venta ni se aplica dos veces | in-progress | interno |
 | 0568 | La ficha de un cliente eliminado dice que está eliminado y no… | in-progress | interno |
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
+| 0570 | Pruebas PGlite sin initdb por caso: plantilla del cluster rec… | in-progress | interno |
+| 0571 | Tarifa congelada por embarque: el precio por CBM queda guarda… | in-progress | interno |
 | 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
+| 0573 | Anular una factura revierte su asiento de venta, en la misma … | in-progress | interno |
+| 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
 | 0576 | Fechas de operaciones en America/Caracas — C1 | in-progress | interno |
+| 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
+| 0579 | Promesas de seguimiento coherentes en FAQ y fuentes locales | done | interno |
+| 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
+| 0581 | Diagnóstico local de medición Ads y CSP | done | interno |
+| 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
+| 0583 | Chatwoot CE en el VPS del ERP (etapa E1 del programa SDD-0582) | in-progress | interno |
+| 0584 | Protección de /register y /deregister de WhatsApp en Chatwoot… | in-progress | interno |
+| 0585 | Bandeja de Chatwoot dentro de Studio, usuarios y permisos (et… | in-progress | interno |
+| 0586 | Enrutamiento por segmento desde el ERP (etapa E10 del program… | in-progress | interno |
+| 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
+| 0588 | Actualizaciones de Chatwoot desde Studio (etapa E3 del progra… | in-progress | interno |
+| 0589 | Motor de guía propio y liviano en Studio (E9 del programa SDD… | in-progress | interno |
+| 0590 | Historial de Kommo: respaldo cifrado fuera de Git y medición … | in-progress | interno |
+| 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
+| 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
+| 0593 | Escribir asientos queda para accounting y admin; las cuentas … | in-progress | interno |
+| 0594 | restore.sh recrea ensure_rls y compara los event triggers con… | in-progress | interno |
+| 0595 | El primer error recibe el foco: primer tramo en Nómina y flota | in-progress | interno |
+| 0596 | Un error no borra lo que la persona escribió | in-progress | interno |
+| 0597 | /entrar no dice que salió un correo que no salió | in-progress | interno |
+| 0598 | Un corte de red no borra el formulario | in-progress | interno |
+| 0599 | Reintentar un envío del portal no lo duplica | in-progress | interno |
+| 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
+| 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
+| 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
+| 0604 | SEO, GEO y AEO: fase A, mejoras estáticas del sitio público | in-progress | interno |
+| 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
+| 0606 | Avisos del Studio: de Telegram a Discord | in-progress | interno |
+| 0607 | Puente de ALFRED en el repositorio y corte de la oficina a Di… | proposed | interno |
+| 0608 | Consulta de clientes desde Discord: /cliente | in-progress | interno |
+| 0609 | Avisos del servidor: de Telegram a Discord | in-progress | interno |
+| 0610 | Resumen semanal agregado del CRM para marketing, sin datos pe… | proposed | interno |
+| 0611 | Publicación automática de noticias en /noticias, con filtros | in-progress | interno |
+| 0612 | Avisos de Paperclip a #actividad-oficina y resumen diario de … | proposed | interno |
+| 0613 | SEO, GEO y AEO: fase B, revisión en servidor, Search Console … | proposed | interno |
+| 0614 | Reemplazos de Kommo en el ERP: vista CRM nueva, ficha desde l… | draft | interno |
+| 0615 | ALFRED con Claude Code, un crítico con Codex y envoltorios ai… | proposed | interno |
+| 0616 | Carga de leads, etapas, tareas, asesores e IDs de Kommo al CR… | draft | interno |
+| 0617 | Reemplazo de los 15 Salesbots de Kommo y costo de los «Ping 2… | draft | interno |
+| 0618 | dtd-bot: el bot propio de Chatwoot, apagado de nacimiento (E7… | draft | interno |
+| 0619 | Inventario para la limpieza de Kommo (paso 8.10 de la SDD-0582) | draft | interno |
+| 0620 | Respaldo cifrado de los archivos del Storage de Studio | in-progress | interno |
+| 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
+| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0570, 0571, 0573, 0574, 0575 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0603, 0622 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

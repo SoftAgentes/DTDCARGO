@@ -9,10 +9,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getQuoteByCode } from "@/lib/studio/quote-queries";
-import { findKommoContactsByPhone } from "@/lib/studio/kommo-convert";
 import {
   isExpired,
-  isUnlinkedWebEstimate,
   packagingLabel,
   statusBadgeTone,
   statusLabel,
@@ -44,15 +42,10 @@ export default async function QuoteDetailPage({
 
   const expired = isExpired(quote);
   const displayStatus = expired ? "expired" : quote.status;
-  const unlinkedWeb = isUnlinkedWebEstimate(quote);
 
-  // SDD-0061 Slice 4 — para un estimado web sin vincular, cruzar el teléfono del
-  // prospecto con el espejo de Kommo (advisory; evita abrir bandeja duplicada).
-  const kommoMatches = unlinkedWeb
-    ? await findKommoContactsByPhone(supabase, quote.prospect_whatsapp).catch(
-        () => [],
-      )
-    : [];
+  // SDD-0614 S0 (D-6.6-1, H13): el detalle ya no cruza el teléfono del prospecto
+  // con los contactos del espejo de Kommo (era SDD-0061 Slice 4). En S2, R3 pone
+  // aquí la línea de la tarjeta del CRM propio.
 
   // Teléfono para el botón de WhatsApp: el del prospecto (estimado web) o el del
   // cliente vinculado (por Shipping Mark). RLS filtra por tenant.
@@ -87,7 +80,7 @@ export default async function QuoteDetailPage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <QuoteDetailClient quote={quote} kommoMatches={kommoMatches} contactPhone={contactPhone} />
+      <QuoteDetailClient quote={quote} contactPhone={contactPhone} />
 
       {/* Header */}
       <div

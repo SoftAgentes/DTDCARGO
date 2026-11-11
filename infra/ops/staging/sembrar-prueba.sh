@@ -84,7 +84,7 @@ web_host="$(prueba_env_valor "${PROJECT_DIR}/.env" DTD_WEB_HOST)"; web_host="${w
   printf 'url=https://%s\n' "${web_host}"
   printf 'admin_correo=admin@prueba.example.test\nclave_admin=%s\n' "${clave_admin}"
   printf 'pin_ve=%s\npin_cn=%s\n' "${pin_ve}" "${pin_cn}"
-  printf 'portal_correo=cliente@prueba.example.test (enlace mágico: https://%s/correo/)\n' "${web_host}"
+  printf 'portal_correo=cliente@prueba.example.test (enlace mágico en https://%s/correo/: uno por minuto, y se abre en el mismo navegador que lo pidió)\n' "${web_host}"
   printf 'proveedor_link=https://%s/p/05400000-0000-4000-8000-000000000303\n' "${web_host}"
 } > "${CRED}.tmp"
 chmod 600 "${CRED}.tmp"; mv -f -- "${CRED}.tmp" "${CRED}"

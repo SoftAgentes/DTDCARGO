@@ -70,6 +70,22 @@
 -- 2 y 3 corren sólo con el código nuevo: no hay defecto que un control pueda
 -- mostrar.
 --
+-- SDD-0573 (migr 0497): anular una factura con recibos vivos, o con pagado sin
+-- recibo, se RECHAZA (hint dtd-anular), y anular crea el contra-asiento. Como
+-- cada escenario arranca con un cobro de 300, el fixture aplica ahora la 0133, la
+-- 0493 y la 0497, y los escenarios DESPUÉS miden el código vivo:
+--   · 1, 2, 5 y 6 primero intentan anular con el recibo vivo y EXIGEN el rechazo
+--     nuevo; después anulan el recibo (y en 1, revierten el crédito) y corren la
+--     misma carrera, sobre una factura que ya se puede anular. La propiedad de
+--     cada uno no cambia.
+--   · 3: la anulación espera al cobro en curso en la fila de la factura y, al
+--     entrar, lo ve: sale rechazada por los dos recibos vivos. Es la misma regla
+--     de antes (la anulación no puede ignorar un cobro en vuelo), ahora con su
+--     consecuencia nueva.
+--   · Las fases ANTES y el escenario 4 son el registro de la generación vieja:
+--     anulan con la sentencia de la 0294 (anulacion_0294_sql), copiada aquí como
+--     las otras sentencias viejas, porque la RPC ya no hace eso.
+--
 -- FIXTURE (SDD-0496): encima de lo de abajo van los referidos —las migraciones
 -- 0098, 0197, 0237 y 0238, leídas de su archivo— con los cascarones de `clients`
 -- y `fiscal_settings` que ésas tocan y el contrato 0467 no trae, y después la
@@ -254,6 +270,29 @@ begin
     pg_read_file('/sb/migrations/0237_referral_credit_apply.sql'),
     pg_read_file('/sb/migrations/0238_referrals_accredited_at.sql'),
     pg_read_file('/sb/migrations/0471_credito_referido_atomico.sql'),
+    -- SDD-0573: el cierre de período y el cierre con superclave, que la 0497 exige,
+    -- y la 0497. Como en su contrato, la 0493 pide la matriz de módulos de 0357 y
+    -- los triggers del cierre con el search_path de 0210.
+    'create table public.studio_role_module_overrides (tenant_id uuid not null references public.tenants(id),'
+      || ' role text not null, module_id text not null, can_view boolean, can_edit boolean,'
+      || ' primary key (tenant_id, role, module_id));',
+    pg_read_file('/sb/migrations/0133_period_close.sql'),
+    'alter function public.journal_entries_validate_closing() set search_path = public;',
+    'alter function public.journal_lines_validate_closing() set search_path = public;',
+    pg_read_file('/sb/migrations/0493_cierre_contable_superclave.sql'),
+    pg_read_file('/sb/migrations/0497_reverso_al_anular_factura.sql'),
+    -- ANTES · la anulación de la 0294 tal cual, con otro nombre: la 0497 la
+    -- reemplazó, y las fases viejas la siguen corriendo.
+    $f$create function public.anular_como_0294(p_id uuid) returns boolean
+language plpgsql set search_path = '' as $b$
+begin
+  perform pg_catalog.set_config('dtd.audit_reason', 'Anulación de la carrera 0490', true);
+  update public.invoices set status = 'anulada'
+   where id = p_id and status <> 'pagada' and status <> 'anulada';
+  return found;
+end;
+$b$;
+grant execute on function public.anular_como_0294(uuid) to authenticated;$f$,
     'commit;');
 end;
 $$;
@@ -312,6 +351,32 @@ $$;
 create function pg_temp.anulacion_sql(p_label text) returns text language sql as $$
   select format($q$select public.void_invoice_with_audit_reason(%L, 'Anulación de la carrera 0490')::text$q$,
     pg_temp.id(p_label))
+$$;
+
+-- ANTES · la anulación de la 0294, tal cual: sólo cambia el estado. La 0497 la
+-- reemplazó, así que las fases viejas la corren con su copia del fixture.
+create function pg_temp.anulacion_0294_sql(p_label text) returns text language sql as $$
+  select format($q$select public.anular_como_0294(%L)::text$q$, pg_temp.id(p_label))
+$$;
+
+-- Corre una operación como contabilidad y devuelve 'ok' o el error: el rechazo
+-- de la 0497 es un resultado esperado, no una falla del archivo.
+create function pg_temp.intentar(p_sql text) returns text language plpgsql as $$
+begin
+  perform pg_temp.como_contabilidad(p_sql);
+  return 'ok';
+exception when others then
+  perform dblink_exec('c0490_s', 'rollback', false);
+  return sqlerrm;
+end;
+$$;
+
+-- Anula el único recibo vivo de la factura, como Cobranzas.
+create function pg_temp.anular_recibo(p_label text) returns void language plpgsql as $$
+begin
+  perform pg_temp.como_contabilidad(format($q$select public.void_collection_receipt(r.id, 'Anulación de la carrera 0490')::text
+    from public.payment_receipts r where r.invoice_id = %L and r.deleted_at is null$q$, pg_temp.id(p_label)));
+end;
 $$;
 
 -- El abono no-monetario del crédito (80 USD), como lo deja applyReferralCredit.
@@ -570,6 +635,7 @@ declare
   v_leido jsonb;
   v_recibo uuid;
   v_r jsonb;
+  v_rechazo text;
 begin
   perform pg_temp.factura(v_f);
   perform pg_temp.como_contabilidad(pg_temp.cobro_sql(v_f, 300));
@@ -577,30 +643,42 @@ begin
   when 1 then
     if p_fase = 'antes' then
       perform pg_temp.abono_credito(v_f);          -- 380 = 300 + 80, como lo dejaba la app
+      perform pg_temp.como_contabilidad(pg_temp.anulacion_0294_sql(v_f));  -- voidInvoice de la 0294
     else
       -- Con la 0471 el abono lo pone la RPC, junto al claim del crédito.
       perform pg_temp.credito(v_f);
       perform pg_temp.como_contabilidad(pg_temp.aplicacion_rpc(v_f));
+      -- SDD-0573: con el recibo vivo, la anulación se rechaza.
+      v_rechazo := pg_temp.intentar(pg_temp.anulacion_sql(v_f));
     end if;
-    perform pg_temp.como_contabilidad(pg_temp.anulacion_sql(v_f));  -- voidInvoice
     v_leido := pg_temp.leer(v_f);                                   -- la reversión vieja lee 380
     v_recibo := pg_temp.ver(format('select id::text from public.payment_receipts where invoice_id = %L',
       pg_temp.id(v_f)))::uuid;
+    -- La misma carrera: anular el recibo mientras la reversión baja el crédito.
+    -- DESPUÉS corre sobre la factura viva: es lo que hace quien quiere anularla.
     v_r := pg_temp.carrera('authenticated',
       format($q$select public.void_collection_receipt(%L, 'Anulación de la carrera 0490')::text$q$, v_recibo),
       case when p_fase = 'antes' then 'service_role' else 'authenticated' end,
       case when p_fase = 'antes' then pg_temp.reversion_vieja(v_f, v_leido)
            else pg_temp.reversion_rpc(v_f) end);
+    if p_fase = 'despues' then
+      -- Sin recibos y sin abono, ahora sí se anula.
+      v_r := v_r || jsonb_build_object('anulo', pg_temp.intentar(pg_temp.anulacion_sql(v_f)));
+    end if;
   when 2 then
+    -- SDD-0573: con el recibo vivo no se anula; se anula el recibo y la carrera
+    -- es la misma: un cobro llega mientras se anula la factura.
+    v_rechazo := pg_temp.intentar(pg_temp.anulacion_sql(v_f));
+    perform pg_temp.anular_recibo(v_f);
     v_r := pg_temp.carrera('authenticated', pg_temp.anulacion_sql(v_f),
       'authenticated', pg_temp.cobro_sql(v_f, 200));
   when 3 then
     perform pg_temp.credito(v_f);
     perform pg_temp.como_contabilidad(pg_temp.aplicacion_rpc(v_f));  -- 380 = 300 + 80
+    -- La anulación espera al cobro en la fila de la factura y, al entrar, ve los
+    -- dos recibos vivos: sale rechazada (SDD-0573). No se le escapa el cobro.
     v_r := pg_temp.carrera('authenticated', pg_temp.cobro_sql(v_f, 200),
       'authenticated', pg_temp.anulacion_sql(v_f));
-    -- Después de anular corre la reversión, que toma la factura y lee bajo el lock.
-    perform pg_temp.como_contabilidad(pg_temp.reversion_rpc(v_f));
   when 4 then
     -- ┌─ GENERACIÓN SDD-0490 · NO describe el camino vivo ────────────────────┐
     -- │ Las dos fases corren el UPDATE final de applyReferralCredit con su    │
@@ -612,8 +690,10 @@ begin
     -- │ Se conserva como el registro de por qué aquel guard hizo falta. Si    │
     -- │ alguien lo edita creyendo que mide la app de hoy, se equivoca.        │
     -- └───────────────────────────────────────────────────────────────────────┘
+    -- SDD-0573: como es el registro de la generación 0490, anula con la
+    -- sentencia de la 0294 en las dos fases.
     v_leido := pg_temp.leer(v_f);                                   -- la aplicación leyó 300, parcial
-    v_r := pg_temp.carrera('authenticated', pg_temp.anulacion_sql(v_f),
+    v_r := pg_temp.carrera('authenticated', pg_temp.anulacion_0294_sql(v_f),
       'authenticated', pg_temp.aplicacion(v_f, v_leido, p_fase = 'despues'));
   when 5 then
     -- VENTANA 1: la anulación cae entre el claim de la aplicación y su UPDATE final.
@@ -621,15 +701,19 @@ begin
     if p_fase = 'antes' then
       perform pg_temp.claim_viejo(v_f);            -- crédito 'aplicado'; la factura sigue en 300
       v_leido := pg_temp.leer(v_f);                -- lo que la aplicación leyó antes del claim
-      perform pg_temp.como_contabilidad(pg_temp.anulacion_sql(v_f));  -- voidInvoice anula…
+      perform pg_temp.como_contabilidad(pg_temp.anulacion_0294_sql(v_f));  -- voidInvoice (0294) anula…
       perform pg_temp.reversion_0490(v_f);         -- …y revierte un abono que nunca llegó: 220
       -- El UPDATE final de la aplicación llega tarde: 0 filas, y compensa el
       -- crédito. La plata, en cambio, ya no vuelve sola.
       v_r := jsonb_build_object('b',
         pg_temp.ver_como_contabilidad(pg_temp.aplicacion(v_f, v_leido, true)));
     else
-      -- Con la 0471 el claim y el abono son la misma transacción: la aplicación
-      -- espera a la anulación en la fila de la factura y sale rechazada.
+      -- SDD-0573: con el recibo vivo no se anula. Se anula el recibo y la ventana
+      -- es la misma: con la 0471 el claim y el abono son la misma transacción, así
+      -- que la aplicación espera a la anulación en la fila de la factura y sale
+      -- rechazada.
+      v_rechazo := pg_temp.intentar(pg_temp.anulacion_sql(v_f));
+      perform pg_temp.anular_recibo(v_f);
       v_r := pg_temp.carrera('authenticated', pg_temp.anulacion_sql(v_f),
         'authenticated', pg_temp.aplicacion_rpc(v_f));
       perform pg_temp.como_contabilidad(pg_temp.reversion_rpc(v_f));
@@ -639,19 +723,23 @@ begin
     perform pg_temp.credito(v_f);
     if p_fase = 'antes' then
       perform pg_temp.claim_viejo(v_f);            -- el claim confirmó y nadie vuelve
-      perform pg_temp.como_contabilidad(pg_temp.anulacion_sql(v_f));
+      perform pg_temp.como_contabilidad(pg_temp.anulacion_0294_sql(v_f));
       perform pg_temp.reversion_0490(v_f);         -- 300 − 80 = 220
       v_r := '{}'::jsonb;
     else
       -- La 0471 muere adentro de su transacción: el rollback se lleva las dos
       -- escrituras, así que la reversión no encuentra nada que bajar.
       v_r := jsonb_build_object('a', pg_temp.muere_aplicando(v_f));
+      -- SDD-0573: con el recibo vivo no se anula; se anula el recibo, y entonces
+      -- la factura sí, sin nada de crédito que revertir.
+      v_rechazo := pg_temp.intentar(pg_temp.anulacion_sql(v_f));
+      perform pg_temp.anular_recibo(v_f);
       perform pg_temp.como_contabilidad(pg_temp.anulacion_sql(v_f));
       v_r := v_r || jsonb_build_object('b',
         pg_temp.ver_como_contabilidad(pg_temp.reversion_rpc(v_f)));
     end if;
   end case;
-  return v_r || jsonb_build_object('leido', v_leido, 'final', pg_temp.estado(v_f),
+  return v_r || jsonb_build_object('leido', v_leido, 'final', pg_temp.estado(v_f), 'rechazo', v_rechazo,
     -- 5 y 6 miden el crédito en las dos fases (la pérdida se ve con el crédito
     -- ya devuelto); 1 y 3 sólo tienen fila de crédito en el camino nuevo.
     'credito', case when p_n in (5, 6) or (p_n in (1, 3) and p_fase = 'despues')
@@ -683,32 +771,43 @@ $$;
 -- PAYMENT_STATE; en 3, la anulación esperó al cobro y la reversión dejó el
 -- pagado igual a lo cobrado (500); en 4, 0 filas y la factura sigue anulada.
 create function pg_temp.correcto(p_n integer, p_r jsonb) returns boolean language sql immutable as $$
-  select p_r -> 'final' ->> 'estado' = 'anulada'
+  -- SDD-0573: 3 termina con la factura viva (la anulación se rechazó); las demás,
+  -- anulada. 1, 2, 5 y 6 exigen además el rechazo de la anulación con el recibo
+  -- vivo, antes de su carrera.
+  select p_r -> 'final' ->> 'estado' = case when p_n = 3 then 'parcial' else 'anulada' end
+    and (p_n not in (1, 2, 5, 6)
+      or coalesce(p_r ->> 'rechazo' like 'La factura tiene 1 cobro(s) vivo(s): anúlalos primero en Cobranzas.%', false))
     -- El 6 no es una carrera: nadie espera a nadie porque la transacción que
     -- muere no deja rastro. Los demás sí exigen que `b` haya esperado a `a`.
     and (p_n = 6 or ((p_r ->> 'espero')::boolean and p_r ->> 'lock' = 'transactionid'))
     and case p_n
       -- Ya no hay contador de reintentos: con la factura tomada FOR UPDATE, la
       -- reversión lee UNA vez y lo que lee ya es lo que dejó la anulación del
-      -- recibo. El reintento de la SDD-0490 existía porque no había lock.
+      -- recibo. El reintento de la SDD-0490 existía porque no había lock. Sin
+      -- recibos ni abono, la anulación del final pasa.
       when 1 then p_r ->> 'error_b' is null and (p_r -> 'final' ->> 'pagado')::numeric = 0
         and (p_r -> 'final' ->> 'recibos')::int = 0 and p_r ->> 'credito' = 'acreditado'
+        and p_r ->> 'anulo' = 'ok'
+      -- 2: el recibo de 300 se anuló antes de la carrera; el cobro que llega
+      -- mientras se anula espera y sale PAYMENT_STATE.
       when 2 then coalesce(p_r ->> 'error_b' like '%PAYMENT_STATE%', false)
-        and (p_r -> 'final' ->> 'pagado')::numeric = 300 and (p_r -> 'final' ->> 'recibos')::int = 1
-      when 3 then p_r ->> 'error_b' is null and p_r ->> 'b' = 'true'
-        and (p_r -> 'final' ->> 'pagado')::numeric = 500
+        and (p_r -> 'final' ->> 'pagado')::numeric = 0 and (p_r -> 'final' ->> 'recibos')::int = 0
+      -- 3: la anulación esperó al cobro y lo vio: dos recibos vivos, rechazada.
+      when 3 then coalesce(p_r ->> 'error_b' like '%La factura tiene 2 cobro(s) vivo(s)%', false)
+        and (p_r -> 'final' ->> 'pagado')::numeric = 580
         and (p_r -> 'final' ->> 'cobrado')::numeric = 500
+        and p_r ->> 'credito' = 'aplicado'
       when 4 then p_r ->> 'error_b' is null and p_r ->> 'b' = '0'
         and (p_r -> 'final' ->> 'pagado')::numeric = 300
-      -- 5 y 6: el pagado coincide con lo cobrado en recibos vigentes, así que a
-      -- la factura no se le restó nada que no hubiera entrado, y el crédito
-      -- sigue disponible para otra factura.
+      -- 5 y 6: el pagado coincide con lo cobrado en recibos vigentes (0, porque
+      -- el recibo se anuló antes), así que a la factura no se le restó nada que
+      -- no hubiera entrado, y el crédito sigue disponible para otra factura.
       when 5 then coalesce(p_r ->> 'error_b' like '%REFERRAL_CREDIT_INVOICE_STATE%', false)
-        and (p_r -> 'final' ->> 'pagado')::numeric = 300
-        and (p_r -> 'final' ->> 'cobrado')::numeric = 300
+        and (p_r -> 'final' ->> 'pagado')::numeric = 0
+        and (p_r -> 'final' ->> 'cobrado')::numeric = 0
         and p_r ->> 'credito' = 'acreditado'
-      when 6 then (p_r -> 'final' ->> 'pagado')::numeric = 300
-        and (p_r -> 'final' ->> 'cobrado')::numeric = 300
+      when 6 then (p_r -> 'final' ->> 'pagado')::numeric = 0
+        and (p_r -> 'final' ->> 'cobrado')::numeric = 0
         and p_r ->> 'credito' = 'acreditado'
         and coalesce(p_r ->> 'b', '') like '%"count": 0%'
     end
@@ -718,7 +817,7 @@ create function pg_temp.nombre(p_n integer) returns text language sql immutable 
   select (array[
     'se anula un recibo mientras la reversión baja el crédito',
     'un cobro llega mientras se anula la factura',
-    'se anula la factura mientras un cobro está en curso',
+    'se anula la factura mientras un cobro está en curso [SDD-0573: la anulación lo ve y se rechaza]',
     'una aplicación del crédito en vuelo cuando se anula la factura'
       || ' [generación 0490, no es el camino vivo; sucesor: escenario 5]',
     'VENTANA 1: la anulación cae entre el claim de la aplicación y su UPDATE final',

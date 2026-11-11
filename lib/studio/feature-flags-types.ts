@@ -33,6 +33,11 @@ export type FeatureFlagKey =
   | "backup_auto"
   | "sso"
   | "marketing_news"
+  // SDD-0585: Bandeja de Chatwoot. Sembrado por el catálogo de 0503.
+  | "chatwoot_inbox"
+  // SDD-0586 (10.5): el chat del portal en Chatwoot. Sembrado apagado por el
+  // catálogo de la 0519; encenderlo es un OK nominal de Sam (E10-D42).
+  | "chatwoot_portal"
   // Sembrado por 0066 y por el catálogo de 0337, y LEÍDO por la PWA de
   // bodeguero. Faltaba acá, así que el panel de admin nunca lo mostró: la
   // migración dice "para que el panel pueda tocarlo" y el panel no lo veía.
@@ -79,6 +84,8 @@ export const FEATURE_FLAG_DEFAULTS: FeatureFlags = {
   // Default off · habilitar manualmente cuando migrations 0053-0056
   // (seo_drafts, news_writers, news_posts, seed) estén aplicadas a prod.
   marketing_news: false,
+  chatwoot_inbox: false,
+  chatwoot_portal: false,
   "dispatch.show_warehouse_location": false,
 };
 
@@ -111,6 +118,8 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlagKey, string> = {
   backup_auto: "Backup automático",
   sso: "Single Sign-On",
   marketing_news: "Marketing · Generador de Noticias Web",
+  chatwoot_inbox: "Bandeja de Chatwoot dentro de Studio",
+  chatwoot_portal: "Conversaciones del portal en Chatwoot",
   "dispatch.show_warehouse_location":
     "Bodeguero · mostrar pasillo/zona/estante del paquete",
 };
@@ -128,6 +137,7 @@ export const MODULE_FLAG_MAP: Partial<Record<string, FeatureFlagKey>> = {
   qrqueue: "mobile_operator",
   operarios: "mobile_operator",
   "noticias-web": "marketing_news",
+  bandeja: "chatwoot_inbox",
   // Cuando se porten estos módulos del v1.7, los enchufamos:
   // "audit-log": "audit_log",
   // "conciliacion": "audit_log", // o flag propio si crece
@@ -174,6 +184,11 @@ export type FeatureFlagEffect =
    * PWA sí respeta habría que marcarlo "ninguno" — una mentira.
    */
   | "movil"
+  /**
+   * Lo consume el servidor, sin pantalla propia: una cola, un cron o un manejador en
+   * `lib/**` o `app/api/**` (SDD-0586, 10.5). Al apagarlo, esa integración se detiene.
+   */
+  | "servidor"
   /** Nada. El interruptor se mueve y el sistema no cambia. */
   | "ninguno";
 
@@ -203,10 +218,14 @@ export const FEATURE_FLAG_EFFECT: Record<FeatureFlagKey, FeatureFlagEffect> = {
   mobile_operator: "ruta",
   /** `marketing/noticias-web/page.tsx:62` lee `flags.marketing_news` directo. */
   marketing_news: "ruta",
+  /** `bandeja/layout.tsx` → requireFeatureEnabled("bandeja") (SDD-0585). */
+  chatwoot_inbox: "ruta",
   /** Sólo esconde "no-olvidar" del sidebar; la ruta no lo consulta. */
   vault: "sidebar",
   /** `app/m/ve/bodeguero/page.tsx` lo consulta por `.eq("key", …)`. */
   "dispatch.show_warehouse_location": "movil",
+  /** `lib/studio/chatwoot/portal.ts` lo lee antes de mandar nada a Chatwoot (SDD-0586). */
+  chatwoot_portal: "servidor",
 
   // ── Los que hoy no hacen nada ──
   // Sembrados y visibles en el panel, sin un solo consumidor en el código.

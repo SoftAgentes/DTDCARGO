@@ -7,9 +7,9 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const CONTRACT = resolve(ROOT, "supabase/tests/0498_annual_billing_fx_v2.test.sql");
-const M0498 = "0498_annual_billing_fx_v2.sql";
-const MIGRATION = readFileSync(resolve(ROOT, "supabase/migrations", M0498), "utf8");
+const CONTRACT = resolve(ROOT, "supabase/tests/0527_annual_billing_fx_v2.test.sql");
+const M0527 = "0527_annual_billing_fx_v2.sql";
+const MIGRATION = readFileSync(resolve(ROOT, "supabase/migrations", M0527), "utf8");
 const SLOW = 240_000;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
@@ -66,14 +66,14 @@ function inline(file: string, vars: Record<string, string>, replace: Record<stri
 
 async function contract(options: { applyFix?: boolean; migration?: string; replace?: Record<string, string> } = {}) {
   const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) },
-    { ...(options.migration ? { [M0498]: options.migration } : {}), ...(options.replace ?? {}) });
+    { ...(options.migration ? { [M0527]: options.migration } : {}), ...(options.replace ?? {}) });
   const db = new PGlite({ extensions: { pgcrypto } });
   try {
     const source0453 = readFileSync(resolve(ROOT, "supabase/migrations/0453_portal_helpers_principal_determinista.sql"), "utf8");
     const executable = sql.replace("pg_read_file('/sb/migrations/0453_portal_helpers_principal_determinista.sql')", () => "'" + source0453.replaceAll("'", "''") + "'");
     const results = await db.exec(executable);
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
-    const green = rows.map((row) => String(row.resultado ?? "")).find((text) => text.startsWith("TEST 0498 GREEN"));
+    const green = rows.map((row) => String(row.resultado ?? "")).find((text) => text.startsWith("TEST 0527 GREEN"));
     const measurement = rows.find((row) => row.medicion)?.medicion as { clasificaciones: number; facturas_elegibles: number } | undefined;
     return { error: null as string | null, green, measurement };
   } catch (error) {
@@ -83,23 +83,23 @@ async function contract(options: { applyFix?: boolean; migration?: string; repla
   }
 }
 
-describe("0498 annual billing v2 · contrato PostgreSQL embebido", () => {
+describe("0527 annual billing v2 · contrato PostgreSQL embebido", () => {
   it("contrato real compatible, filtros y seguridad", async () => {
     const result = await contract();
     expect(result.error).toBeNull();
-    expect(result.green).toMatch(/^TEST 0498 GREEN: \d+ aserciones$/);
+    expect(result.green).toMatch(/^TEST 0527 GREEN: \d+ aserciones$/);
     expect(result.measurement?.facturas_elegibles).toBe(1201);
     expect(result.measurement?.clasificaciones).toBeGreaterThan(0);
     expect(result.measurement?.clasificaciones).toBeLessThanOrEqual(1201);
   }, SLOW);
   it("control sin expansión falla cerrado", async () => {
     const result = await contract({ applyFix: false });
-    expect(result.error).toBe("TEST 0498: existe RPC v2 sin retirar v1");
+    expect(result.error).toBe("TEST 0527: existe RPC v2 sin retirar v1");
   }, SLOW);
   it.each([
-    ["instalación parcial", "create schema annual_billing_private;\n" + MIGRATION, "0498: instalación previa o parcial; revisar antes de aplicar"],
-    ["reaplicación", MIGRATION + "\n" + MIGRATION, "0498: instalación previa o parcial; revisar antes de aplicar"],
-    ["frontera vieja", "drop policy invoices_accounting_select on public.invoices;\n" + MIGRATION, "0498: requiere frontera de lectura actual 0414"],
+    ["instalación parcial", "create schema annual_billing_private;\n" + MIGRATION, "0527: instalación previa o parcial; revisar antes de aplicar"],
+    ["reaplicación", MIGRATION + "\n" + MIGRATION, "0527: instalación previa o parcial; revisar antes de aplicar"],
+    ["frontera vieja", "drop policy invoices_accounting_select on public.invoices;\n" + MIGRATION, "0527: requiere frontera de lectura actual 0414"],
   ])("preflight aborta %s", async (_name, migration, message) => {
     const result = await contract({ migration });
     expect(result.error).toBe(message);
@@ -123,6 +123,6 @@ describe("0498 annual billing v2 · contrato PostgreSQL embebido", () => {
   ])("mata mutante funcional: %s", async (_name, anchor, replacement, assertion) => {
     expect(MIGRATION).toContain(anchor);
     const result = await contract({ migration: MIGRATION.replace(anchor, replacement) });
-    expect(result.error).toBe("TEST 0498: " + assertion);
+    expect(result.error).toBe("TEST 0527: " + assertion);
   }, SLOW);
 });

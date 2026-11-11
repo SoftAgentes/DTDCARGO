@@ -1,3 +1,4 @@
+import { dobleListados as dobleListadosPnlI2 } from "../../__tests__/listados-double";
 /**
  * Tests de queries de Reportes & Analytics (SDD-0052 · Slice A).
  *
@@ -32,14 +33,7 @@ import {
 } from "../queries";
 import { describirIngreso, ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
 import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
-import {
-  ASIENTOS_EN_OTRA_MONEDA,
-  ESPERADO,
-  FACTURAS_DEL_MES,
-  FACTURAS_EN_USD,
-  RANGO_MES,
-  control,
-} from "@/lib/studio/accounting/__tests__/ingreso-fixture";
+import { RANGO_MES, control } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 /** Tope por request del doble: el `db-max-rows` de Supabase. */
 const SERVER_CAP = 1000;
@@ -531,32 +525,248 @@ describe("commercialByClient", () => {
 });
 
 // ── incomeStatement (reusa profitAndLoss 0040, NO recalcula) ───
+/**
+ * FICCIÓN ORIGINAL SDD-0573/0557, aislada de ingreso-fixture.
+ * UUIDs, fechas, cuentas y documentos se definen aquí; no representan datos reales.
+ * El doble sólo admite las consultas leídas del contrato actual y aplica cada
+ * filtro ANTES de proyectar/paginar. Dos filas por página obligan a continuar.
+ */
+type FictIncomeTable = "accounts" | "journal_entries" | "journal_lines" | "invoices";
+type FictIncomeRows = Record<FictIncomeTable, readonly Record<string, unknown>[]>;
+type FictIncomeFilter = { method: "eq" | "is" | "in" | "gte" | "lte"; column: string; value: unknown };
+type FictIncomeRead = {
+  role: string; table: FictIncomeTable; columns: string; filters: FictIncomeFilter[];
+  range: [number, number] | null; returnedIds: string[];
+};
+const fictIncomeId = (n: number) => "fa573000-0000-4000-8000-" + n.toString(16).padStart(12, "0");
+const FICT_INCOME = {
+  tenant: fictIncomeId(1), foreignTenant: fictIncomeId(2),
+  income: fictIncomeId(10), sales: fictIncomeId(11), other: fictIncomeId(12),
+  assets: fictIncomeId(20), receivable: fictIncomeId(21),
+  manual: fictIncomeId(400), missingDocument: fictIncomeId(999),
+  today: "2025-03-18T12:00:00.000Z",
+  range: { from: "2025-03-01", to: "2025-03-18" },
+};
+const FICT_OFFICIAL_USD = 1000;
+const FICT_OFFICIAL_NOMINAL = 200; // 700 VES / 7 + 500 VES / 5; CNY no se convierte.
+type FictIncomeDocument = {
+  n: number; currency: "USD" | "VES" | "CNY"; base: number; fx: number | null; posting: number;
+};
+
+function fictIncomeRows(documents: readonly FictIncomeDocument[], manual: { account: string; amount: number }): FictIncomeRows {
+  const tenant_id = FICT_INCOME.tenant;
+  const account = (id: string, code: string, type: string, parent_id: string | null, is_postable: boolean) =>
+    ({ id, tenant_id, code, type, parent_id, is_postable, name: "FICT_CUENTA_" + code,
+      qbo_type: null, subtype: null, notes: "FICTICIO", created_at: FICT_INCOME.today, updated_at: FICT_INCOME.today });
+  const accounts = [
+    account(FICT_INCOME.income, "4", "I", null, false),
+    account(FICT_INCOME.sales, "4.5", "I", FICT_INCOME.income, true),
+    account(FICT_INCOME.other, "4.6", "I", FICT_INCOME.income, true),
+    account(FICT_INCOME.assets, "1", "A", null, false),
+    account(FICT_INCOME.receivable, "1.1", "A", FICT_INCOME.assets, true),
+    { ...account(fictIncomeId(90), "4", "I", null, false), tenant_id: FICT_INCOME.foreignTenant },
+  ];
+  const invoice = (id: string, currency: string, base_amount: number, fx_rate: number | null) =>
+    ({ id, tenant_id, currency, base_amount, fx_rate, status: "emitida", issued_at: "2025-03-07",
+      fund_class: "local_revenue", deleted_at: null });
+  const invoices: Record<string, unknown>[] = documents.map(d =>
+    invoice(fictIncomeId(d.n), d.currency, d.base, d.fx));
+  // Distractores FICTICIOS: cada filtro tiene consecuencias observables.
+  invoices.push(
+    { ...invoice(fictIncomeId(800), "USD", 777, null), issued_at: "2025-02-28" },
+    { ...invoice(fictIncomeId(801), "USD", 555, null), issued_at: "2025-03-19" },
+    { ...invoice(fictIncomeId(802), "USD", 333, null), status: "borrador" },
+    { ...invoice(fictIncomeId(803), "USD", 222, null), deleted_at: FICT_INCOME.today },
+    { ...invoice(fictIncomeId(804), "USD", 111, null), status: "anulada" },
+    { ...invoice(fictIncomeId(805), "USD", 99999, null), tenant_id: FICT_INCOME.foreignTenant },
+  );
+  const journal_entries: Record<string, unknown>[] = [];
+  const journal_lines: Record<string, unknown>[] = [];
+  const post = (n: number, invoice_id: string | null, source: string, amount: number, account_id: string,
+    entry_date = "2025-03-07", scope = tenant_id) => {
+    const entry_id = fictIncomeId(n);
+    journal_entries.push({ id: entry_id, tenant_id: scope, status: "asentado", source,
+      deleted_at: null, invoice_id, entry_date, reverses_entry_id: null, memo: "FICT_ASIENTO" });
+    journal_lines.push(
+      { id: fictIncomeId(n * 10), tenant_id: scope, entry_id, account_id, debit: 0, credit: amount },
+      { id: fictIncomeId(n * 10 + 1), tenant_id: scope, entry_id, account_id: FICT_INCOME.receivable, debit: amount, credit: 0 },
+    );
+  };
+  for (const d of documents) post(d.n + 100, fictIncomeId(d.n), "invoice", d.posting, FICT_INCOME.sales);
+  post(400, null, "manual", manual.amount, manual.account);
+  post(600, fictIncomeId(800), "invoice", 777, FICT_INCOME.sales, "2025-02-28");
+  post(601, fictIncomeId(801), "invoice", 555, FICT_INCOME.sales, "2025-03-19");
+  post(602, fictIncomeId(805), "invoice", 99999, FICT_INCOME.sales, "2025-03-07", FICT_INCOME.foreignTenant);
+  return { accounts, journal_entries, journal_lines, invoices };
+}
+
+// Los tres universos completos y sus expectativas existen antes de los callbacks.
+const FICT_USD_INCOME = fictIncomeRows(
+  [{ n: 100, currency: "USD", base: FICT_OFFICIAL_USD, fx: null, posting: 600 }],
+  { account: FICT_INCOME.sales, amount: 300 },
+);
+const FICT_NOMINAL_INCOME = fictIncomeRows(
+  [{ n: 110, currency: "VES", base: 700, fx: 7, posting: 700 },
+    { n: 111, currency: "VES", base: 500, fx: 5, posting: 500 },
+    { n: 112, currency: "CNY", base: 300, fx: null, posting: 300 }],
+  { account: FICT_INCOME.other, amount: 200 },
+);
+const FICT_INCOMPLETE_INCOME: FictIncomeRows = {
+  ...FICT_USD_INCOME,
+  // Cabecera huérfana explícita: el documento referido no está en este universo.
+  // No se finge un error ni un [] genérico: la consulta por id no puede hallarlo.
+  journal_entries: FICT_USD_INCOME.journal_entries.map(row =>
+    row.id === fictIncomeId(200) ? { ...row, invoice_id: FICT_INCOME.missingDocument } : { ...row }),
+};
+
+function fictIncomeStub(rowsByTable: FictIncomeRows): {
+  client: SupabaseClient; calls: Record<string, Recorded>; reads: FictIncomeRead[];
+} {
+  const calls: Record<string, Recorded> = {};
+  const reads: FictIncomeRead[] = [];
+  const fullAccounts = "id,tenant_id,code,name,type,parent_id,qbo_type,subtype,is_postable,notes,created_at,updated_at";
+  const headers = "id,tenant_id,status,source,deleted_at,invoice_id,entry_date,reverses_entry_id";
+  const official = "id,status,issued_at,currency,fx_rate,base_amount,fund_class,deleted_at";
+  const rules: { table: FictIncomeTable; columns: string; filters: string[]; role: string }[] = [
+    { table: "accounts", columns: fullAccounts, filters: [], role: "FICT_catalog" },
+    { table: "accounts", columns: "id,tenant_id,code,type,parent_id", filters: ["in:id"], role: "FICT_ancestry" },
+    { table: "journal_entries", columns: "id", filters: ["eq:status", "is:deleted_at", "gte:entry_date", "lte:entry_date"], role: "FICT_balance_entries" },
+    { table: "journal_entries", columns: "id,status,source,deleted_at,invoice_id", filters: ["eq:status", "is:deleted_at", "in:source", "gte:entry_date", "lte:entry_date"], role: "FICT_sales_entries" },
+    { table: "journal_entries", columns: headers, filters: ["in:source", "gte:entry_date", "lte:entry_date"], role: "FICT_candidates" },
+    { table: "journal_entries", columns: headers, filters: ["in:invoice_id", "in:source"], role: "FICT_document_entries" },
+    { table: "journal_entries", columns: headers, filters: ["in:id"], role: "FICT_original_links" },
+    { table: "journal_entries", columns: headers, filters: ["in:reverses_entry_id"], role: "FICT_reverse_links" },
+    { table: "journal_lines", columns: "id,account_id,debit,credit", filters: ["in:entry_id"], role: "FICT_balance_lines" },
+    { table: "journal_lines", columns: "id,entry_id,account_id,debit,credit", filters: ["in:entry_id"], role: "FICT_evidence_lines" },
+    { table: "invoices", columns: official, filters: ["is:deleted_at", "in:status", "gte:issued_at", "lte:issued_at"], role: "FICT_official" },
+    { table: "invoices", columns: "id,tenant_id,status,issued_at,currency,fx_rate,base_amount,fund_class,deleted_at", filters: ["in:id"], role: "FICT_document_metadata" },
+  ];
+  const signature = (keys: string[]) => [...keys].sort().join("|");
+  const client = {
+    from(name: string) {
+      if (!Object.prototype.hasOwnProperty.call(rowsByTable, name)) throw new Error("FICT unexpected table: " + name);
+      const table = name as FictIncomeTable;
+      const rec = calls[table] ??= { gte: [], lte: [], eq: [], is: [], not: [], neq: [], in: [] };
+      const filters: FictIncomeFilter[] = [];
+      let columns: string[] = [];
+      let order: { column: string; ascending: boolean } | null = null;
+      let range: [number, number] | null = null;
+      let limit: number | null = null;
+      const filter = (method: FictIncomeFilter["method"], column: string, value: unknown): Record<string, unknown> => {
+        filters.push({ method, column, value });
+        rec[method].push([column, value]);
+        return chain;
+      };
+      const execute = () => {
+        const cols = columns.join(",");
+        const keys = filters.filter(f => f.column !== "tenant_id").map(f => f.method + ":" + f.column);
+        const rule = rules.find(r => r.table === table && r.columns === cols && signature(r.filters) === signature(keys));
+        if (!rule) throw new Error("FICT unexpected query: " + table + "/" + cols + "/" + signature(keys));
+        if (rule.role === "FICT_catalog") {
+          if (limit !== 1000 || range !== null || order !== null) throw new Error("FICT catalog contract changed");
+        } else if (limit !== null || range === null || order?.column !== "id" || order.ascending !== true) {
+          throw new Error("FICT expected stable order and real range: " + rule.role);
+        }
+        for (const f of filters) {
+          if (f.column === "source" && (f.method !== "in" || JSON.stringify(f.value) !== '["invoice","invoice_reversal"]')) throw new Error("FICT unexpected source scope");
+          if (f.column === "status" && f.method === "eq" && f.value !== "asentado") throw new Error("FICT unexpected posting status");
+          if (f.column === "status" && f.method === "in" && JSON.stringify(f.value) !== '["emitida","parcial","pagada","vencida","anulada"]') throw new Error("FICT unexpected invoice states");
+          if (f.method === "gte" && f.value !== FICT_INCOME.range.from) throw new Error("FICT unexpected start date");
+          if (f.method === "lte" && f.value !== FICT_INCOME.range.to) throw new Error("FICT unexpected end date");
+        }
+        // Sesión/RLS FICTICIA más TODOS los filtros reales del builder.
+        let rows = rowsByTable[table].filter(row => row.tenant_id === FICT_INCOME.tenant);
+        rows = rows.filter(row => filters.every(f => {
+          if (!(f.column in row)) throw new Error("FICT absent filter column: " + f.column);
+          const value = row[f.column];
+          if (f.method === "eq" || f.method === "is") return value === f.value;
+          if (f.method === "in") {
+            if (!Array.isArray(f.value)) throw new Error("FICT in requires an array");
+            return f.value.includes(value);
+          }
+          if (typeof value !== "string" || typeof f.value !== "string") throw new Error("FICT date filter requires strings");
+          return f.method === "gte" ? value >= f.value : value <= f.value;
+        }));
+        if (order !== null) rows = [...rows].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+        const page = range === null ? rows.slice(0, limit ?? rows.length)
+          : rows.slice(range[0], range[0] + Math.min(range[1] - range[0] + 1, 2));
+        reads.push({ role: rule.role, table, columns: cols, filters: filters.map(f => ({ ...f })),
+          range: range === null ? null : [...range], returnedIds: page.map(row => String(row.id)) });
+        const data = page.map(row => Object.fromEntries(columns.map(column => {
+          if (!(column in row)) throw new Error("FICT absent projected column: " + column);
+          return [column, row[column]];
+        })));
+        return { data, error: null };
+      };
+      const chain: Record<string, unknown> = {
+        select: (value: string) => { columns = value.split(",").map(c => c.trim()); return chain; },
+        eq: (c: string, v: unknown) => filter("eq", c, v),
+        is: (c: string, v: unknown) => filter("is", c, v),
+        in: (c: string, v: readonly unknown[]) => filter("in", c, [...v]),
+        gte: (c: string, v: unknown) => filter("gte", c, v),
+        lte: (c: string, v: unknown) => filter("lte", c, v),
+        order: (column: string, opts: { ascending: boolean }) => { order = { column, ascending: opts.ascending }; return chain; },
+        limit: (n: number) => { limit = n; return chain; },
+        range: (from: number, to: number) => {
+          if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < from) throw new Error("FICT invalid page range");
+          range = [from, to]; return Promise.resolve(execute());
+        },
+        then: (resolve: (result: { data: Record<string, unknown>[]; error: null }) => unknown) => Promise.resolve(execute()).then(resolve),
+      };
+      return chain;
+    },
+    rpc() { throw new Error("FICT read-only income double forbids RPC"); },
+  } as unknown as SupabaseClient; // Doble deliberadamente acotado; nunca cliente real.
+  return { client, calls, reads };
+}
+
 describe("incomeStatement", () => {
   it("aplica el rango del período a journal_entries y formatea las filas del P&L", async () => {
+    // FICTICIO: asiento manual en USD; no representa una factura ni entra al puente I2.
     // Cuentas raíz por tipo (I ingresos, CGS costo, G gasto) + sub-cuentas.
     const accounts = [
-      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
-      { id: "i1", code: "4.1", type: "I", parent_id: "i", is_postable: true },
-      { id: "c", code: "5", type: "CGS", parent_id: null, is_postable: false },
-      { id: "c1", code: "5.1", type: "CGS", parent_id: "c", is_postable: true },
-      { id: "g", code: "6", type: "G", parent_id: null, is_postable: false },
-      { id: "g1", code: "6.1", type: "G", parent_id: "g", is_postable: true },
+      { id: "i", tenant_id: "t", code: "4", type: "I", parent_id: null, is_postable: false },
+      { id: "i1", tenant_id: "t", code: "4.1", type: "I", parent_id: "i", is_postable: true },
+      { id: "c", tenant_id: "t", code: "5", type: "CGS", parent_id: null, is_postable: false },
+      { id: "c1", tenant_id: "t", code: "5.1", type: "CGS", parent_id: "c", is_postable: true },
+      { id: "g", tenant_id: "t", code: "6", type: "G", parent_id: null, is_postable: false },
+      { id: "g1", tenant_id: "t", code: "6.1", type: "G", parent_id: "g", is_postable: true },
+      { id: "a", tenant_id: "t", code: "1", type: "A", parent_id: null, is_postable: false },
+      { id: "a1", tenant_id: "t", code: "1.1", type: "A", parent_id: "a", is_postable: true },
     ];
-    const journal_entries = [{ id: "e1" }];
+    const journal_entries = [{
+      id: "e1", tenant_id: "t", entry_code: "FICT-PNL-1", entry_date: "2026-06-01",
+      memo: "P&L manual ficticio USD", status: "asentado", source: "manual",
+      invoice_id: null, reverses_entry_id: null, deleted_at: null,
+      receipt_id: null, bill_id: null, supplier_payment_id: null,
+    }];
     const journal_lines = [
       // Ingreso 10000 (crédito en cuenta I → saldo natural acreedor).
-      { account_id: "i1", debit: 0, credit: 10000 },
+      { id: "l1", entry_id: "e1", account_id: "i1", debit: 0, credit: 10000 },
       // Costo 4000 (débito en cuenta CGS).
-      { account_id: "c1", debit: 4000, credit: 0 },
+      { id: "l2", entry_id: "e1", account_id: "c1", debit: 4000, credit: 0 },
       // Gasto 2000 (débito en cuenta G).
-      { account_id: "g1", debit: 2000, credit: 0 },
+      { id: "l3", entry_id: "e1", account_id: "g1", debit: 2000, credit: 0 },
+      // Contrapartida FICTICIA explícita: debe=haber=10000, sin alterar el P&L.
+      { id: "l4", entry_id: "e1", account_id: "a1", debit: 4000, credit: 0 },
     ];
-    const { client, calls } = stub({ accounts, journal_entries, journal_lines });
+    const { client, filtros } = dobleListadosPnlI2(
+      { accounts, journal_entries, journal_lines, invoices: [] },
+      { serverCap: SERVER_CAP, proyectar: true },
+    );
     const out = await incomeStatement(client, "YTD", NOW);
+    // Adaptación fiel del registro real de filtros; no fabrica consultas.
+    const calls = {
+      journal_entries: {
+        gte: filtros.filter((f) => f.table === "journal_entries" && f.op === "gte").map((f) => [f.col, f.val]),
+        lte: filtros.filter((f) => f.table === "journal_entries" && f.op === "lte").map((f) => [f.col, f.val]),
+      },
+    };
 
     // El rango YTD (1° enero) se aplica a entry_date de journal_entries.
     expect(calls.journal_entries.gte).toContainEqual(["entry_date", "2026-01-01"]);
     expect(calls.journal_entries.lte).toContainEqual(["entry_date", "2026-06-15"]);
+    expect(filtros).toContainEqual({ table: "journal_entries", op: "in", col: "source", val: ["invoice", "invoice_reversal"] });
 
     // P&L: ingresos 10000, cgs 4000, bruta 6000, gastos 2000, neta 4000.
     expect(out.income).toBe(10000);
@@ -568,60 +778,61 @@ describe("incomeStatement", () => {
   });
 
   it("SDD-0557 · trae la cifra oficial del MISMO período; con bolívares o yuanes, el control no es comparable", async () => {
-    const accounts = [
-      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
-      { id: "v", code: "4.5", type: "I", parent_id: "i", is_postable: true },
-      { id: "x", code: "4.6", type: "I", parent_id: "i", is_postable: true },
-    ];
-    const journal_lines = [
-      { entry_id: "e1", account_id: "v", debit: 0, credit: 1500 },
-      { entry_id: "e1", account_id: "x", debit: 0, credit: 200 },
-    ];
-    // El doble no filtra: la borrada (F8), la de enero (F5), el borrador y la
-    // anulada llegan igual, y es la regla en memoria la que las deja afuera.
-    const { client, calls } = stub({
-      accounts,
-      // e1 trae las líneas; F2, F6, F7 y F9 tienen su asiento de factura vivo
-      // (sin líneas), así cuentan en «no comparable» (decisión 7).
-      journal_entries: [{ id: "e1", status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
-      journal_lines,
-      invoices: FACTURAS_DEL_MES,
-    });
-    const out = await incomeStatement(client, "MES", new Date("2025-03-18T12:00:00Z"));
-    expect(out.range).toEqual(RANGO_MES);
-    expect(out.ingreso.facturado.total).toBe(ESPERADO.total);
+    const { client, calls, reads } = fictIncomeStub(FICT_NOMINAL_INCOME);
+    const out = await incomeStatement(client, "MES", new Date(FICT_INCOME.today));
+    expect(out.range).toEqual(FICT_INCOME.range);
+    expect(out.ingreso.facturado.total).toBe(FICT_OFFICIAL_NOMINAL);
     expect(out.ingreso.mayor).toEqual({ ventas: 1500, ventasConMovimiento: true, ingresos: out.income, otrosIngresos: 200 });
-    expect(out.ingreso.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
+    expect(out.income).toBe(1700);
+    expect(out.ingreso.enOtraMoneda).toBe(3);
     expect(out.ingreso.diferenciaUsd).toBeNull();
+    expect(out.ingreso.controlI2).toMatchObject({ verificacion: "completa", unidadMayor: "nominal_mixto", incidencias: [] });
     expect(describirIngreso(out.ingreso).estado).toBe("no_comparable");
     expect(calls.invoices.gte).toContainEqual(["issued_at", "2025-03-01"]);
     expect(calls.invoices.lte).toContainEqual(["issued_at", "2025-03-18"]);
     expect(calls.invoices.in).toContainEqual(["status", [...ESTADOS_DE_INGRESO, "anulada"]]);
     expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
-    // El control lee solo los asientos de factura del mismo rango.
-    expect(calls.journal_entries.eq).toContainEqual(["source", "invoice"]);
+    // Se conservan origen, reversos y exclusión del manual, no un eq obsoleto.
+    expect(calls.journal_entries.in).toContainEqual(["source", ["invoice", "invoice_reversal"]]);
+    const candidates = reads.filter(r => r.role === "FICT_candidates");
+    expect(candidates.map(r => r.range?.[0])).toEqual([0, 2, 3]);
+    expect(candidates.flatMap(r => r.returnedIds)).toEqual([210, 211, 212].map(fictIncomeId));
+    expect(candidates.flatMap(r => r.returnedIds)).not.toContain(FICT_INCOME.manual);
+    expect(reads.filter(r => r.role === "FICT_evidence_lines").some(r => r.range?.[0] === 4)).toBe(true);
+    expect(reads.some(r => r.role === "FICT_ancestry" && r.returnedIds.includes(FICT_INCOME.income))).toBe(true);
   });
 
   it("SDD-0557 · solo USD: el control contra la 4.5 de los asientos de factura; un manual a 4.5 no es diferencia", async () => {
-    const accounts = [
-      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
-      { id: "v", code: "4.5", type: "I", parent_id: "i", is_postable: true },
-    ];
-    const { client } = stub({
-      accounts,
-      journal_entries: [
-        { id: "e1", status: "asentado", source: "invoice", deleted_at: null },
-        { id: "e2", status: "asentado", source: "manual", deleted_at: null },
-      ],
-      journal_lines: [
-        { entry_id: "e1", account_id: "v", debit: 0, credit: 600 },
-        { entry_id: "e2", account_id: "v", debit: 0, credit: 300 },
-      ],
-      invoices: FACTURAS_EN_USD,
-    });
-    const out = await incomeStatement(client, "MES", new Date("2025-03-18T12:00:00Z"));
+    const { client, reads } = fictIncomeStub(FICT_USD_INCOME);
+    const out = await incomeStatement(client, "MES", new Date(FICT_INCOME.today));
+    expect(out.ingreso.facturado.total).toBe(FICT_OFFICIAL_USD);
     expect(out.ingreso.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 900, otrosIngresos: 300 });
     expect(out.ingreso.diferenciaUsd).toBe(400);
+    expect(out.ingreso.controlI2).toMatchObject({ verificacion: "completa", unidadMayor: "usd", incidencias: [] });
+    const balances = reads.filter(r => r.role === "FICT_balance_entries").flatMap(r => r.returnedIds);
+    const sales = reads.filter(r => r.role === "FICT_sales_entries").flatMap(r => r.returnedIds);
+    expect(balances).toContain(FICT_INCOME.manual);
+    expect(sales).toEqual([fictIncomeId(200)]);
+    expect(sales).not.toContain(FICT_INCOME.manual);
+    const metadata = reads.filter(r => r.role === "FICT_document_metadata").flatMap(r => r.returnedIds);
+    expect(metadata).toContain(fictIncomeId(100));
+    expect(reads.filter(r => r.role === "FICT_official").flatMap(r => r.returnedIds))
+      .toEqual([100, 804].map(fictIncomeId));
+  });
+
+  it("SDD-0573 · evidencia documental incompleta conserva el subtotal y exige revisión", async () => {
+    const { client, reads } = fictIncomeStub(FICT_INCOMPLETE_INCOME);
+    const out = await incomeStatement(client, "MES", new Date(FICT_INCOME.today));
+    expect(out.ingreso.facturado.total).toBe(FICT_OFFICIAL_USD);
+    expect(out.ingreso.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 900, otrosIngresos: 300 });
+    expect(out.ingreso.diferenciaUsd).toBeNull();
+    expect(out.ingreso.baseComparacionUsd).toBeNull();
+    expect(out.ingreso.controlI2.verificacion).toBe("requiere_revision");
+    expect(out.ingreso.controlI2.unidadMayor).toBe("sin_verificar");
+    expect(out.ingreso.controlI2.incidencias).toContainEqual({ codigo: "documento_no_disponible", cantidad: 1 });
+    expect(describirIngreso(out.ingreso).estado).toBe("requiere_revision");
+    expect(reads.filter(r => r.role === "FICT_document_metadata").flatMap(r => r.returnedIds))
+      .not.toContain(FICT_INCOME.missingDocument);
   });
 
   it("sin movimiento contable → income/netIncome 0 (EmptyState honesto)", async () => {

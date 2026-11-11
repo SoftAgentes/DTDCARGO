@@ -15,12 +15,18 @@
  * es un detalle de permisos.
  *
  * Se usan el guard y la matriz REALES; sólo se reemplazan los bordes.
+ *
+ * SDD-0586 (10.5, 1c-1): con `chatwoot_portal` encendido y la bandeja del portal configurada,
+ * un hilo del portal se responde desde la Bandeja de Chatwoot: la acción lo rechaza en el
+ * servidor, sin insertar ni avisar. Si no se puede leer el flag, también (fail-closed), y solo
+ * en el portal. Con el flag apagado o sin configuración, todo como antes.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
 
-const TENANT = "tn-1";
+// Un uuid: `chatwootPortalConfig()` exige que CHATWOOT_TENANT_ID lo sea.
+const TENANT = "10000000-0000-4000-8000-000000000001";
 const CONV = "conv-1";
 const DENIAL = "No tienes permiso para realizar esta acción.";
 
@@ -57,11 +63,16 @@ const sessionReads: string[] = [];
 
 type Query = {
   select: () => Query;
-  eq: () => Query;
+  eq: (col: string, val: unknown) => Query;
   is: () => Query;
   limit: () => Query;
-  maybeSingle: () => Promise<{ data: unknown; error: null }>;
+  maybeSingle: () => Promise<{ data: unknown; error: { code: string } | null }>;
 };
+
+/** SDD-0586 1c-1: la fila del flag `chatwoot_portal` del tenant, o un error al leerla. */
+let flagPortal: { enabled: boolean } | null | "error" = null;
+/** Los filtros con que se leyó `feature_flags`: un doble que no filtra daría verde sin mirar el tenant. */
+const filtrosFlag: [string, unknown][] = [];
 
 const CONVERSACION = {
   id: CONV,
@@ -69,6 +80,7 @@ const CONVERSACION = {
   channel: "portal",
   external_ref: null,
 };
+let canal = "portal";
 const PERFIL = { first_name: "Ana", last_name: "Pérez" };
 
 function sessionClient() {
@@ -84,14 +96,24 @@ function sessionClient() {
           : table === "user_profiles"
             ? PERFIL
             : table === "conversations"
-              ? CONVERSACION
-              : null;
+              ? { ...CONVERSACION, channel: canal }
+              : table === "feature_flags"
+                ? flagPortal === "error"
+                  ? null
+                  : flagPortal
+                : null;
       const query: Query = {
         select: () => query,
-        eq: () => query,
+        eq: (col, val) => {
+          if (table === "feature_flags") filtrosFlag.push([col, val]);
+          return query;
+        },
         is: () => query,
         limit: () => query,
-        maybeSingle: async () => ({ data: row, error: null }),
+        maybeSingle: async () =>
+          table === "feature_flags" && flagPortal === "error"
+            ? { data: null, error: { code: "XX000" } }
+            : { data: row, error: null },
       };
       return query;
     },
@@ -125,7 +147,12 @@ beforeEach(() => {
   role = "commercial";
   insertOutboundMessageMock.mockResolvedValue({ ok: true });
   notifyClientReplyPushMock.mockResolvedValue(undefined);
+  flagPortal = null;
+  filtrosFlag.length = 0;
+  canal = "portal";
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 /** `conversaciones` la ven commercial, operations y support (+admin). */
 const ROLES_SIN_CONVERSACIONES = STUDIO_USER_ROLES.filter(
@@ -218,5 +245,102 @@ describe("sendReplyAction · lado positivo", () => {
     await sendReplyAction({}, form());
 
     expect(sessionReads).toEqual(["user_tenants"]);
+  });
+});
+
+describe("SDD-0586 1c-1 · un hilo del portal se responde desde la Bandeja", () => {
+  const SOLO_LECTURA = "Este hilo del portal se responde desde la Bandeja de Chatwoot.";
+  const configurar = () => {
+    vi.stubEnv("CHATWOOT_ROUTER_TOKEN", "tok-router-sintetico");
+    vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+    vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "9");
+    vi.stubEnv("CHATWOOT_TENANT_ID", TENANT);
+  };
+  const nadaEscrito = () => {
+    expect(insertOutboundMessageMock).not.toHaveBeenCalled();
+    expect(notifyClientReplyPushMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  };
+
+  it("con el flag encendido y la bandeja configurada: rechaza sin insertar ni avisar", async () => {
+    configurar();
+    flagPortal = { enabled: true };
+
+    expect(await sendReplyAction({}, form())).toEqual({ error: SOLO_LECTURA });
+    nadaEscrito();
+    // La fila del flag es la del tenant de la sesión.
+    expect(filtrosFlag).toEqual(expect.arrayContaining([["tenant_id", TENANT], ["key", "chatwoot_portal"]]));
+  });
+
+  it("si no se puede leer el flag, el hilo del portal también se traba (fail-closed)", async () => {
+    configurar();
+    flagPortal = "error";
+
+    const res = await sendReplyAction({}, form());
+
+    expect(res.error).toMatch(/No se pudo comprobar/);
+    nadaEscrito();
+  });
+
+  it("con el flag apagado responde como antes", async () => {
+    configurar();
+    flagPortal = { enabled: false };
+
+    expect(await sendReplyAction({}, form())).toEqual({ ok: true });
+    expect(insertOutboundMessageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sin la fila del flag responde como antes (apagado)", async () => {
+    configurar();
+    flagPortal = null;
+
+    expect(await sendReplyAction({}, form())).toEqual({ ok: true });
+  });
+
+  // SDD-0586 1c-2 (decisión del DG, opción b): solo el flag decide, aunque falte la configuración,
+  // para que la pantalla diga lo mismo que la guarda de la 0521.
+  it("sin la bandeja del portal configurada y con el flag encendido, también rechaza (fail-closed)", async () => {
+    configurar();
+    vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "");
+    flagPortal = { enabled: true };
+
+    expect(await sendReplyAction({}, form())).toEqual({ error: SOLO_LECTURA });
+    nadaEscrito();
+  });
+
+  it("con la configuración de otro tenant, el flag de la sesión decide: rechaza", async () => {
+    configurar();
+    vi.stubEnv("CHATWOOT_TENANT_ID", "10000000-0000-4000-8000-000000000002");
+    flagPortal = { enabled: true };
+
+    expect(await sendReplyAction({}, form())).toEqual({ error: SOLO_LECTURA });
+    nadaEscrito();
+  });
+
+  it("sin la bandeja configurada y con el flag apagado responde como antes", async () => {
+    configurar();
+    vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "");
+    flagPortal = { enabled: false };
+
+    expect(await sendReplyAction({}, form())).toEqual({ ok: true });
+  });
+
+  it("un hilo de otro canal responde como antes, aunque el flag esté encendido o no se pueda leer", async () => {
+    configurar();
+    canal = "email";
+    flagPortal = { enabled: true };
+    expect(await sendReplyAction({}, form())).toEqual({ ok: true });
+    flagPortal = "error";
+    expect(await sendReplyAction({}, form())).toEqual({ ok: true });
+    expect(sessionReads).not.toContain("feature_flags");
+  });
+
+  it("el gate de rol sigue primero: support no llega ni a mirar el flag", async () => {
+    configurar();
+    flagPortal = { enabled: true };
+    role = "support";
+
+    expect(await sendReplyAction({}, form())).toEqual({ error: DENIAL });
+    expect(sessionReads).not.toContain("feature_flags");
   });
 });

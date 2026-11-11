@@ -597,14 +597,56 @@ export async function commercialByClient(
 
 // ── Comerciales · Por agente ───────────────────────────────────
 
-/** Atribución histórica por lead; el contador se deduplica por cliente en cada ámbito. */
-export async function commercialByAgent(
+/** Totales vacíos: sin lectura, la facturación queda «no disponible», nunca cero. */
+const EMPTY_AGENT_TOTALS: CommercialByAgent["totals"] = {
+  leads: 0,
+  won: 0,
+  lost: 0,
+  clients: null,
+  revenueUsd: null,
+  billing: BILLING_UNAVAILABLE,
+  convPct: 0,
+};
+
+/**
+ * Reportes › Por agente, con Kommo oculto (SDD-0614 S0, D-6.6-1, P-9).
+ *
+ * No lee nada: la tabla salía del espejo `kommo_*` y Kommo queda fuera del
+ * Studio hasta la migración completa. La vista muestra el aviso y el CSV no
+ * sale. Entre S0 y S3 nadie ve desempeño por asesor en Reportes; R4 (S3) lo
+ * vuelve a llenar con las tarjetas del CRM propio. La lectura del espejo sigue
+ * en `commercialByAgentKommo`, sin consumidor, hasta 8.7.
+ *
+ * Conserva la firma de siempre (la página la llama con el cliente), pero no lo
+ * usa: por eso es una constante tipada y no recibe parámetros.
+ */
+export const commercialByAgent: (
+  supabase: SupabaseClient,
+  today?: Date,
+) => Promise<CommercialByAgent> = async () => ({
+  rows: [],
+  totals: { ...EMPTY_AGENT_TOTALS },
+  hasKommo: false,
+  oculto: true,
+});
+
+/**
+ * Desempeño por agente comercial (asesor de Kommo), sin consumidor desde
+ * SDD-0614 S0 (ocultar no es borrar) hasta 8.7.
+ *
+ * Atribución histórica por lead; el contador se deduplica por cliente en cada
+ * ámbito. El revenue es la facturación anual real del ERP (`clientAnnualBilling`)
+ * con su completitud (SDD-0572-b): si falta la página completa, los convertidos o
+ * la facturación, el monto queda «no disponible» y no se presenta como cero.
+ */
+export async function commercialByAgentKommo(
   supabase: SupabaseClient,
   today?: Date,
 ): Promise<CommercialByAgent> {
-  const empty = { leads: 0, won: 0, lost: 0, clients: null, revenueUsd: null, billing: BILLING_UNAVAILABLE, convPct: 0 };
   const page = await getAnalyticsLeads(supabase).catch(() => null);
-  if (!page || !page.rows.length) return { rows: [], totals: empty, hasKommo: false };
+  if (!page || !page.rows.length) {
+    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false, oculto: false };
+  }
   const [users, converted, billingMap] = await Promise.all([
     listKommoUsers(supabase).catch(() => [] as KommoUserRow[]),
     allConvertedLeads(supabase).catch(() => null),
@@ -637,7 +679,7 @@ export async function commercialByAgent(
   const billing = available ? sumAnnualBilling(all) : BILLING_UNAVAILABLE;
   const leads = page.rows.length;
   const won = rows.reduce((n, r) => n + r.won, 0);
-  return { rows, hasKommo: true, totals: { leads, won, lost: rows.reduce((n,r) => n+r.lost,0),
+  return { rows, hasKommo: true, oculto: false, totals: { leads, won, lost: rows.reduce((n,r) => n+r.lost,0),
     clients: converted === null ? null : rows.reduce((n,r) => n+(r.clients ?? 0),0),
     revenueUsd: billingNumber(billing), billing, convPct: Math.round(won/leads*1000)/10 } };
 }

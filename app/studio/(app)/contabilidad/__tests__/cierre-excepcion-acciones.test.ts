@@ -39,6 +39,7 @@ vi.mock("@/lib/db/server", () => ({
 
 vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: async () => null,
+  moduleEditGate: async () => ({ ok: true, tenantId: "t1", userId: "u1", role: "admin" }),
   tenantAdminGate: async () => ({ ok: true, tenantId: "t1", userId: "u1" }),
 }));
 
@@ -63,7 +64,7 @@ const AVISO =
   "Este período ya cerró contablemente (cierre al 31/01/2026). Para cambiarlo, ingresa la superclave y el motivo.";
 
 function asiento(id: string, code: string, status: string, entry_date: string): Fila {
-  return { id, tenant_id: "t1", entry_code: code, status, source: "manual", entry_date, deleted_at: null };
+  return { id, tenant_id: "t1", entry_code: code, status, source: "manual", invoice_id: null, reverses_entry_id: null, entry_date, deleted_at: null };
 }
 
 /** Las RPC de operación responden `ok` salvo que el caso diga otra cosa. */
