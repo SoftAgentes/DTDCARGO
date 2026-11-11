@@ -25,7 +25,9 @@
 #   4. Studio con MODO=aplicar      LO CORRE SAM, de E10. Exige studio-ensayo.hecho y chatwoot-borrar.hecho;
 #   5. limpiar.sh --cierre-4-6b     LO CORRE SAM, de E10: exige studio-aplicar.hecho y borra el .ndjson y los .hecho
 #                                   de las dos copias.
-# Los .hecho son una línea HECHO, en 0600, escritos con .parcial + mv, sin seguir enlaces, y solo llevan ids y hashes.
+# Los .hecho son una línea HECHO, en 0600, escritos con .parcial + mv, sin seguir enlaces, y solo llevan ids, hashes y
+# conteos. chatwoot-seco.hecho suma antes=conversaciones:N,mensajes:N,contact_inboxes:N y contactos_a_borrar=N: el
+# paso 3 se los pasa al .rb, que no confirma si la bandeja cambió o si lo borrado no es eso (N1 y N3 del DG).
 # El disco: nada antes del paso 3 lo toca. El paso 3 crea la copia durable con el .ndjson, chatwoot-seco.hecho y
 # studio-ensayo.hecho ANTES de borrar, y suma chatwoot-borrar.hecho solo DESPUÉS del COMMIT (el .rb dio deshacer=ok
 # después de confirmar). Si el paso 3 falla o aborta antes del COMMIT, la copia durable queda sin chatwoot-borrar.hecho:
@@ -253,12 +255,20 @@ trap limpiar_contenedor EXIT
 docker cp "$AQUI/deshacer-carga.rb" "$DB_CW:$EN_CW_RB" >/dev/null || mal no_se_pudo_copiar_el_guion 1
 docker exec "$DB_CW" install -d -m 0700 "$EN_CW_DIR" || mal no_se_pudo_crear_la_carpeta_en_el_contenedor 1
 
+# Los pisos del seco (N1 de la revisión del DG): el paso 3 le pasa al .rb lo que contó el seco.
+esp_antes=""
+esp_contactos=""
+if [ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ]; then
+  esp_antes="$(campo "$H_SECO" antes)"
+  esp_contactos="$(campo "$H_SECO" contactos_a_borrar)"
+fi
 if [ "$MODO" = seco ]; then
   salida="$(docker exec -i -e MODO=seco -e TENANT="$TENANT" -e CUENTA="$CUENTA" -e BANDEJA="$BANDEJA" \
     -e CONSERVADOS="$EN_CW_C" "$DB_CW" bundle exec rails runner "$EN_CW_RB" </dev/null 2>&1)"
 else
   salida="$(docker exec -i -e MODO=borrar -e TENANT="$TENANT" -e CUENTA="$CUENTA" -e BANDEJA="$BANDEJA" \
-    -e CONFIRMAR="$CONFIRMAR" "$DB_CW" bundle exec rails runner "$EN_CW_RB" <"$C" 2>&1)"
+    -e CONFIRMAR="$CONFIRMAR" -e ESPERADO_ANTES="$esp_antes" -e ESPERADO_CONTACTOS_A_BORRAR="$esp_contactos" \
+    "$DB_CW" bundle exec rails runner "$EN_CW_RB" <"$C" 2>&1)"
 fi
 printf '%s\n' "$salida" | grep '^HECHO ' | tr -d '\r'
 if ! printf '%s\n' "$salida" | grep -qx 'HECHO deshacer=ok'; then
@@ -281,4 +291,8 @@ mv -f -- "$C.parcial" "$C"
 chmod 0600 "$C"
 echo "HECHO conservados=$C"
 echo "HECHO conservados_lineas=$(wc -l <"$C" | tr -d ' ')"
-escribir_hecho "$H_SECO" "HECHO chatwoot_seco=ok conservados_sha256=$(sha256sum "$C" | cut -c1-64) tenant=$TENANT cuenta=$CUENTA bandeja=$BANDEJA utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+# Los conteos del seco van en su .hecho (N1): la bandeja y los contactos a borrar. Solo cifras.
+antes="$(printf '%s\n' "$salida" | sed -n 's/^HECHO antes=//p' | tr -d '\r' | tail -n 1)"
+a_borrar="$(printf '%s\n' "$salida" | sed -n 's/^HECHO contactos_a_borrar=//p' | tr -d '\r' | tail -n 1)"
+printf '%s' "$antes" | grep -qE '^conversaciones:[0-9]+,mensajes:[0-9]+,contact_inboxes:[0-9]+$' && printf '%s' "$a_borrar" | grep -qE '^[0-9]+$' || mal el_seco_no_dio_los_conteos 1
+escribir_hecho "$H_SECO" "HECHO chatwoot_seco=ok conservados_sha256=$(sha256sum "$C" | cut -c1-64) tenant=$TENANT cuenta=$CUENTA bandeja=$BANDEJA antes=$antes contactos_a_borrar=$a_borrar utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"

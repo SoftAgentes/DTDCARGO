@@ -151,6 +151,7 @@
   - los comandos de 4.6b;
   - la lista de 3.0 suma `deshacer.sh` y `deshacer-carga.rb`;
   - el paso 3 exige el archivo de SISTEMA del sub-paso 3.0, el mismo que usa el paso 4 de la #480.
+  - con la rama `codex/0586-deshacer-pisos`, `chatwoot-seco.hecho` suma dos campos, `antes=` y `contactos_a_borrar=` (el formato está en `0586-p4-2c-orden-4-6b.md`). `deshacer-vinculos.sh` y su prueba leen los campos por nombre, así que no cambian.
 
 ### Después del tren #499: la PR de los pendientes
 
@@ -164,16 +165,34 @@ Atiende lo no bloqueante del DG sobre `602d5200e` y el patrón N1 de la #480. E1
 - **Los mutantes nuevos (MD44 a MD46) van en la parte b,** la más corta (35,4 min en `e64bfef65`). N9 suma N10 a sus listas.
 - **En local:** `bash -n` pasó; los 46 textos de los mutantes aparecen una sola vez; el awk de N10 da 3 y 0, y con MD45 aplicado, 1 afuera; `campo()` da vacío con la clave repetida.
 
+### Después del tren #503: N1 a N3, en la rama `codex/0586-deshacer-pisos` (desde `836b2cf19`)
+
+Preparada en local, sin subir: el DG quiere que vaya «cuando convenga».
+- **N1, los pisos del seco:**
+  - `chatwoot-seco.hecho` suma `antes=conversaciones:N,mensajes:N,contact_inboxes:N` y `contactos_a_borrar=N`, sacados de la salida del `.rb` (solo cifras; si no vienen, el seco sale con `el_seco_no_dio_los_conteos`);
+  - el paso 3 se los pasa al `.rb` (`ESPERADO_ANTES` y `ESPERADO_CONTACTOS_A_BORRAR`), que con `CONFIRMAR=si` los exige;
+  - **el `.rb` no confirma** si la bandeja dentro de la transacción no es la que contó el seco, o si lo borrado no es exactamente eso.
+  - Lo prueban D2b (el seco guarda los conteos), D20 (la bandeja cambió), D21 (lo borrado no cuadra) y D22 (un seco sin conteos), con MD47, MD48 y MD49.
+  - **Lo que no hice: comparar las conversaciones con los hilos de Studio.** En el fixture, hC tiene un hilo que vinculó la cola (`studio-fixture.sql:149`, la conversación 1100), así que Studio tendría un hilo más que la bandeja de Chatwoot. En producción, antes de la puerta 4, la cola nunca corrió y serían iguales. Queda a decisión del DG: cambiar el fixture, o comparar solo los hilos cargados.
+- **N3, la carrera:** una conversación que entra entre la mirada a lo ajeno y el `delete_all` sobra en `borrados_conversaciones`, así que lo detecta el piso de D21.
+- **N2, las guardas del `.rb`:** el guion nuevo `pruebas/guardas-deshacer.rb` carga el `.rb` como biblioteca y corre cada caso dentro de una transacción que siempre termina en ROLLBACK. Ni la preparación ni un mutante dejan nada, y no necesita la carga. Es un solo arranque de Rails para todos los casos.
+  - R1 a R4 (la bandeja: que no exista, que no sea API, el webhook, el nombre), R5 (el candado tomado por otra sesión), R6 (un contacto de otra cuenta), R7 (un contacto sin `dtd-portal:`), R8 a R10 (los conservados: sin cabecera, un tipo desconocido, la cabecera que no cuadra).
+  - A1 a A9: una fila en cada tabla de actividad, menos `notes`, que ya prueba D1g. Las filas se arman con las columnas obligatorias de cada tabla y sus llaves foráneas.
+  - Los mutantes son MD50 a MD68, uno por guarda.
+  - **Lo que queda sin caso:** `:111-119` (bajar el detalle del log; provocar que `SET LOCAL` falle exige romper Postgres) y `:258-259` (la verificación final, que no se alcanza sin otra guarda rota). Las de `deshacer.sh` que citó el DG sobre `b2508e726` siguen como estaban, salvo las de B1.
+- **Las partes:** se suma la parte d, con MD49, MD50 a MD68 y MD30, que sale de la a. MD47 va en la b y MD48 en la c.
+- **En local:** `bash -n` pasó, y los textos de los mutantes aparecen una sola vez. **NO EJECUTADO:** `ruby -c` (no hay Ruby en la PC) y la prueba con Docker.
+
 ### Pendiente posterior (no bloqueante de la revisión del DG sobre `b2508e726`)
 
 No caben en esta vuelta sin inflar el CI o sin cambiar el `.rb` más allá de B1:
-- **N1, los pisos en Chatwoot:** comparar `borrados_*` con los conteos de antes y las conversaciones con los hilos de Studio, y guardar esos conteos en `chatwoot-seco.hecho` (`deshacer.sh`, el `escribir_hecho` del seco).
-- **N2, las guardas sin mutante:**
+- **N1, los pisos en Chatwoot** (hecho en `codex/0586-deshacer-pisos`, salvo los hilos de Studio): comparar `borrados_*` con los conteos de antes y las conversaciones con los hilos de Studio, y guardar esos conteos en `chatwoot-seco.hecho` (`deshacer.sh`, el `escribir_hecho` del seco).
+- **N2, las guardas sin mutante** (las del `.rb`, en `codex/0586-deshacer-pisos`):
   - en `deshacer-carga.rb`: `:121-127` (la bandeja; D8 no llega), `:177`, `:181`, `:258-259`, `:230-231`, `:111-119`, 9 de las 10 tablas de actividad (`:51-65`) y `:213-220`;
   - en `deshacer.sh`: las líneas que citó el DG sobre `b2508e726` (`:177`, `:179`, `:185`, `:110/:232`, `:112`, `:72/:79-84` y `:201`). Las de `:179-185` ganaron caso y mutante con B1, en lo que toca al entorno y a la huella.
 
   Cada mutante del `.rb` necesita la carga (unos 4 min), así que suman más de una parte entera.
-- **N3, la carrera:** el `FOR UPDATE` (`deshacer-carga.rb:235`) no impide que entre una conversación nueva entre la mirada a lo ajeno y el `delete_all`. La detectaría N1.
+- **N3, la carrera** (lo detecta D21, en `codex/0586-deshacer-pisos`): el `FOR UPDATE` (`deshacer-carga.rb:235`) no impide que entre una conversación nueva entre la mirada a lo ajeno y el `delete_all`. La detectaría N1.
 
 ## FUERA DE ALCANCE DETECTADO
 
