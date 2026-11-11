@@ -500,7 +500,7 @@ parcial. La retoma posterior de esta sección registra su reproducción y repara
 
 **IMPLEMENTACIÓN LOCAL COMPLETA; cierre canónico y revisión financiera pendientes.** Base a30d8585, rama
 `codex/sdd-0572-conversor-usd-sql`, worktree aislado propio. El Director aprobó
-la alternativa A y asignó `0498_annual_billing_fx_v2` tras inventario. El handoff
+la alternativa A y asignó `0527_annual_billing_fx_v2` tras inventario. El handoff
 propio es `.agents/handoffs/0572-conversor-usd-sql.md`; conserva el contrato
 completo. No se modifica el handoff de a ni sus migraciones aplicadas.
 
@@ -533,13 +533,13 @@ completo. No se modifica el handoff de a ni sus migraciones aplicadas.
 - Validación autorizada serial: rojos funcionales, SQL PostgreSQL17, PGlite,
   PostgREST14.17 local con JWT sintéticos, paginación >1000/límite500, mutantes,
   tipos/lint, UI real con fixtures y verify. Preservar JSON E2E antes de build.
-- 0495 ya aplicada por Director; baseline solo agrega espera0498. No DB real,
+- 0495 ya aplicada por Director; baseline solo agrega espera0527. No DB real,
   secretos, merge, deploy, 2.3/G, BCV/Caracas, cambios históricos ni KPI global.
   PR propia en borrador apilada sobre #310, con integración final coordinada.
 
 ### Allowlist exclusiva de b — 41 rutas aprobadas
 
-Checkpoint SQL 2026-10-21 00:50 UTC: implementación de0498 y contrato PGlite
+Checkpoint SQL 2026-10-21 00:50 UTC: implementación de0527 y contrato PGlite
 PASÓ17/17, sinSKIPs (contrato, control sin expansión,3preflights,12mutantes).
 PostgreSQL/HTTP y cierre general permanecen NO EJECUTADOS en este checkpoint;
 evidencia externa y límites de identidad/carga en el handoff propio de b.
@@ -568,7 +568,7 @@ idénticas a a30 permanecen fuera del delta. Gate de símbolos detectó homónim
 del nombre privado convertir en textos UI, sin llamadas reales al helper;
 resolución propuesta y evidencia en handoff. Cierre canónico aún no ejecutado.
 
-Decisión Director01:20UTC: renombrar únicamente el helper privado de0498 aún
+Decisión Director01:20UTC: renombrar únicamente el helper privado de0527 aún
 no aplicada a convertir_factura_anual_usd para evitar el homónimo textual del
 detector. Se conservan esquema/cuerpo/ACL/API; se actualizan las cuatro rutas
 SQL/contratos/arnés y se exige suplemento PGlite/mutantes/PostgreSQL/HTTP y
@@ -601,7 +601,7 @@ compatible: mantener v1/legado hasta retiro aprobado; atribución por lead no
 equivale a facturación única del tenant. Previa/paquete/OK nominal, caché y
 rollback compatible descritos en handoff propio; release NO EJECUTADO.
 
-Suplemento del identificador privado (21oct01:24UTC):0498 usa
+Suplemento del identificador privado (21oct01:24UTC):0527 usa
 `annual_billing_private.convertir_factura_anual_usd`, sin cambio de fórmula,
 cuerpo ni ACL/API. Sobre blob `5b302b5cad00529fcc5731aa570fd620794c4689`
 pasaron PGlite18/18 (13mutantes), PostgreSQL37aserciones y HTTP real con
@@ -644,7 +644,7 @@ cierre de proceso; no se atribuye causalidad WebKit/Windows por el mensaje
 automático. JSON E2E original **NO DISPONIBLE**; se conserva log, clasificación
 y fallo separado del capturador auxiliar, sin repetir suite ni cambiar gates.
 
-Producto/SQL no cambian en el cierre documental posterior.0498 conserva
+Producto/SQL no cambian en el cierre documental posterior.0527 conserva
 blob `5b302b5cad00529fcc5731aa570fd620794c4689`, probado en PostgreSQL17.11 y
 PostgREST14.17 con recarga caliente en el mismo proceso, además del canónico.
 Los recibos y la tabla17controles están en el handoff propio de b; no sumar
@@ -655,12 +655,12 @@ estructural/semántica global INVALID (grafo ausente,0/1325verificados), piloto
 PENDING0/16, Archify runtime2.16.0 ausente. Preview/publicación/lectura visible
 Obsidian NO EJECUTADAS; no hubo regeneración masiva ni publicación compartida.
 Turno pesado devuelto tras cero procesos propios. Integración,CI,paquete/
-previa/OK nominal0498,release y recuperación de derivados siguen pendientes,
+previa/OK nominal0527,release y recuperación de derivados siguen pendientes,
 coordinados por Director; ninguna aplicación de DB real ocurrió en b.
 
 ```text
-supabase/migrations/0498_annual_billing_fx_v2.sql
-supabase/tests/0498_annual_billing_fx_v2.test.sql
+supabase/migrations/0527_annual_billing_fx_v2.sql
+supabase/tests/0527_annual_billing_fx_v2.test.sql
 supabase/migrations-baseline.json
 supabase/pending-migration-symbol-declarations.json
 lib/studio/__tests__/annual-billing-fx-v2.migration.test.ts
@@ -724,3 +724,18 @@ previos de anual. Ejecución local NO DISPONIBLE / NO INVOCADA: el checkout aisl
 no contiene node_modules ni el entrypoint Vitest. No acredita UI real, aplicación
 de DB, aceptación financiera ni cierre de 2.1/QPG17/B. Handoff de esta reparación:
 .agents/handoffs/0572-fidelizacion-cartera-no-disponible-20261026.md.
+
+## Renumeración 0498 → 0527 (2026-11-11)
+
+Main llegó a la 0526 antes de integrar esta pila y la 0498 no está aplicada en
+ningún entorno (ledger de prueba y producción medidos por el revisor del DG). La
+migración pasa a `0527_annual_billing_fx_v2` con su contrato
+`supabase/tests/0527_annual_billing_fx_v2.test.sql`; también se renumeraron sus
+literales internos (`0527: …`, `annual_billing_0527_before`, `TEST 0527 …`),
+la espera de `migrations-baseline.json` (sigue sin aplicar) y su grupo en
+`pending-migration-symbol-declarations.json`. Cambia sólo el número: el blob
+anterior `5b302b5cad00529fcc5731aa570fd620794c4689` pasa a
+`bea43b92caa9505ed29abd0dbb0d513ed1f5fa5d` (SHA-256
+`492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229`). Los
+blobs y evidencias anteriores a esta nota describen el archivo con número 0498.
+La rama `claude/sdd-0572-conversor-usd-sql` reemplaza a la PR #311.

@@ -18,14 +18,14 @@
           "kind": "function"
         }
       ],
-      "migration": "0498_annual_billing_fx_v2",
+      "migration": "0527_annual_billing_fx_v2",
       "id": "sdd-0572b-annual-billing-fx-v2",
       "primarySymbol": "studio_client_annual_billing_v2",
       "evidence": [
         {
           "site": "lib/studio/fidelizacion/queries.ts:38",
           "contains": "if (page.error) throw new AnnualBillingError(\"rpc\");",
-          "degradation": "Sin0498 o con caché anterior, PGRST202 se rechaza como lectura anual no disponible. No fallback a v1, cero ni invoices desde app."
+          "degradation": "Sin0527 o con caché anterior, PGRST202 se rechaza como lectura anual no disponible. No fallback a v1, cero ni invoices desde app."
         },
         {
           "site": "lib/studio/fidelizacion/queries.ts:100",

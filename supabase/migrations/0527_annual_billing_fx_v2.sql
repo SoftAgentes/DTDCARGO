@@ -1,4 +1,4 @@
--- 0498 · SDD-0572-b · Expansión compatible, MIGRATE-FIRST; no aplicar sin OK nominal.
+-- 0527 · SDD-0572-b · Expansión compatible, MIGRATE-FIRST; no aplicar sin OK nominal.
 -- Solo DDL. No recalcula ni escribe facturas. Conserva v1 y campos Portal legados.
 -- Requiere 0404/0411, la frontera actual 0414, tenant inequívoco 0453 y to_usd 0495.
 -- Ejecutar en una transacción. Postflight no sustituye comprobación HTTP de caché.
@@ -10,33 +10,33 @@ declare v_signature text;
 begin
   if pg_catalog.to_regnamespace('annual_billing_private') is not null
      or pg_catalog.to_regprocedure('public.studio_client_annual_billing_v2(date)') is not null then
-    raise exception '0498: instalación previa o parcial; revisar antes de aplicar';
+    raise exception '0527: instalación previa o parcial; revisar antes de aplicar';
   end if;
   foreach v_signature in array array['public.to_usd(numeric,text,numeric)', 'public.get_user_tenant_id()', 'public.current_studio_role()', 'auth.uid()'] loop
-    if pg_catalog.to_regprocedure(v_signature) is null then raise exception '0498: falta prerrequisito %', v_signature; end if;
+    if pg_catalog.to_regprocedure(v_signature) is null then raise exception '0527: falta prerrequisito %', v_signature; end if;
   end loop;
   if pg_catalog.to_regclass('public.studio_role_module_overrides') is null
      or not exists (select 1 from pg_catalog.pg_policies where schemaname='public' and tablename='invoices' and policyname='invoices_accounting_select' and cmd='SELECT')
      or exists (select 1 from pg_catalog.pg_policies where schemaname='public' and tablename='invoices' and policyname='invoices_team_select') then
-    raise exception '0498: requiere frontera de lectura actual 0414';
+    raise exception '0527: requiere frontera de lectura actual 0414';
   end if;
   foreach v_signature in array array['public.get_portal_referral_program()', 'public.studio_client_annual_billing(date)'] loop
     if not exists (select 1 from pg_catalog.pg_proc where oid=pg_catalog.to_regprocedure(v_signature)
       and prosecdef and provolatile='s' and proowner='postgres'::regrole and proconfig @> array['search_path=""']) then
-      raise exception '0498: fachada previa con forma o propietario inesperado: %', v_signature;
+      raise exception '0527: fachada previa con forma o propietario inesperado: %', v_signature;
     end if;
   end loop;
   if pg_catalog.pg_get_function_result('public.studio_client_annual_billing(date)'::regprocedure) <> 'TABLE(client_markbox text, billed_usd numeric)'
      or pg_catalog.pg_get_function_result('public.get_portal_referral_program()'::regprocedure) <> 'jsonb' then
-    raise exception '0498: retorno legado inesperado';
+    raise exception '0527: retorno legado inesperado';
   end if;
   if (select pg_catalog.md5(prosrc) from pg_catalog.pg_proc where oid='public.get_portal_referral_program()'::regprocedure) <> 'd023e42273069a42f5d6a45705560378' then
-    raise exception '0498: cuerpo Portal distinto de 0404; revisar compatibilidad';
+    raise exception '0527: cuerpo Portal distinto de 0404; revisar compatibilidad';
   end if;
 end;
 $preflight$;
 
-create temporary table annual_billing_0498_before on commit drop as
+create temporary table annual_billing_0527_before on commit drop as
 select oid, proowner, proacl, pg_catalog.pg_get_functiondef(oid) as definition
 from pg_catalog.pg_proc where oid in ('public.get_portal_referral_program()'::regprocedure, 'public.studio_client_annual_billing(date)'::regprocedure);
 
@@ -231,24 +231,24 @@ do $postflight$
 declare v_role text;
 begin
   if exists (
-    select 1 from annual_billing_0498_before b left join pg_catalog.pg_proc p on p.oid=b.oid
+    select 1 from annual_billing_0527_before b left join pg_catalog.pg_proc p on p.oid=b.oid
     where p.oid is null or p.proowner <> b.proowner or p.proacl is distinct from b.proacl
       or (b.oid='public.studio_client_annual_billing(date)'::regprocedure and pg_catalog.pg_get_functiondef(p.oid) <> b.definition)
-  ) then raise exception '0498: identidad, ACL o definición v1 alterada'; end if;
+  ) then raise exception '0527: identidad, ACL o definición v1 alterada'; end if;
   foreach v_role in array array['anon', 'service_role'] loop
     if pg_catalog.has_function_privilege(v_role,'public.studio_client_annual_billing_v2(date)','EXECUTE') then
-      raise exception '0498: ACL pública v2 inválida';
+      raise exception '0527: ACL pública v2 inválida';
     end if;
   end loop;
   foreach v_role in array array['anon','authenticated','service_role'] loop
     if pg_catalog.has_schema_privilege(v_role,'annual_billing_private','USAGE')
        or pg_catalog.has_function_privilege(v_role,'annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric)','EXECUTE') then
-      raise exception '0498: clasificador privado expuesto';
+      raise exception '0527: clasificador privado expuesto';
     end if;
   end loop;
   if not pg_catalog.has_function_privilege('authenticated','public.studio_client_annual_billing_v2(date)','EXECUTE')
      or pg_catalog.pg_get_function_result('public.studio_client_annual_billing_v2(date)'::regprocedure) <> 'TABLE(client_markbox text, subtotal_usd text, sin_tasa_count bigint, conversion_state text)' then
-    raise exception '0498: forma o ACL v2 inválida';
+    raise exception '0527: forma o ACL v2 inválida';
   end if;
 end;
 $postflight$;

@@ -3,7 +3,7 @@
 -- tasas. Fixture sintético aislado; no ejecutar sobre una DB real. Aplica con
 -- \ir las migraciones REALES de la auditoría (0267, 0294), facturas (0077),
 -- contabilidad (0078) y tesorería (0088), y después 0495. Termina en ROLLBACK.
--- RED: psql -v apply_fix=false -f /sb/tests/0498_annual_billing_fx_v2.test.sql
+-- RED: psql -v apply_fix=false -f /sb/tests/0527_annual_billing_fx_v2.test.sql
 \if :{?apply_fix}
 \else
 \set apply_fix true
@@ -13,7 +13,7 @@ set local timezone='UTC';
 do $fixture_guard$
 begin
   if to_regclass('public.entity_audit_log') is not null or to_regclass('public.invoices') is not null then
-    raise exception 'TEST 0498: fixture rechazada, la base ya contiene objetos de aplicación';
+    raise exception 'TEST 0527: fixture rechazada, la base ya contiene objetos de aplicación';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -110,7 +110,7 @@ do $tenant_source$
 declare src text := pg_read_file('/sb/migrations/0453_portal_helpers_principal_determinista.sql'); definition text;
 begin
   definition := substring(src from '(create or replace function public.get_user_tenant_id\(\)[\s\S]*?\$\$;)');
-  if definition is null then raise exception 'TEST 0498: no se encontró helper real 0453'; end if;
+  if definition is null then raise exception 'TEST 0527: no se encontró helper real 0453'; end if;
   execute definition;
 end;
 $tenant_source$;
@@ -137,8 +137,8 @@ create function public.conversation_client_outstanding(uuid) returns numeric lan
 create function public.sales_order_invoice_refs(uuid[]) returns jsonb language sql stable security definer set search_path='' as $$select '[]'::jsonb$$;
 \ir ../migrations/0414_invoices_read_rbac.sql
 
-create function pg_temp.fixture_id(label text) returns uuid language sql immutable as $$select md5('0498-synthetic-'||label)::uuid$$;
-insert into public.tenants values(pg_temp.fixture_id('A'),'fixture-0498-a','Sintético A'),(pg_temp.fixture_id('B'),'fixture-0498-b','Sintético B');
+create function pg_temp.fixture_id(label text) returns uuid language sql immutable as $$select md5('0527-synthetic-'||label)::uuid$$;
+insert into public.tenants values(pg_temp.fixture_id('A'),'fixture-0527-a','Sintético A'),(pg_temp.fixture_id('B'),'fixture-0527-b','Sintético B');
 insert into auth.users(id) select pg_temp.fixture_id(u) from unnest(array['admin','accounting','commercial','support','operations','disabled','ambiguous','other','portal','revoked','incoherent']) u;
 insert into public.user_tenants(user_id,tenant_id,role,disabled_at) select pg_temp.fixture_id(u),pg_temp.fixture_id(t),r,case when u='disabled' then now() end from (values
  ('admin','A','admin'),('accounting','A','accounting'),('commercial','A','commercial'),('support','A','support'),('operations','A','operations'),('disabled','A','commercial'),('ambiguous','A','commercial'),('ambiguous','B','commercial'),('other','B','commercial'))v(u,t,r);
@@ -165,7 +165,7 @@ select pg_temp.fixture_id(label),pg_temp.fixture_id(tenant),label,mark,'Cliente 
 -- Total de factura (incluye IVA) es el contrato anual legado; no sustituir por base.
 update public.invoices set base_amount=80,iva_amount=20,iva_rate=25 where invoice_code='usd';
 
--- HTTP reutiliza SOLO este fixture confirmado; arranca PostgREST antes del DDL0498.
+-- HTTP reutiliza SOLO este fixture confirmado; arranca PostgREST antes del DDL0527.
 \if :{?fixture_only}
 \else
 \set fixture_only false
@@ -175,7 +175,7 @@ commit;
 \else
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(value boolean,label text) returns void language plpgsql as $$begin
- if value is distinct from true then raise exception 'TEST 0498: %',label; end if; perform nextval('pg_temp.assertion_count'); end$$;
+ if value is distinct from true then raise exception 'TEST 0527: %',label; end if; perform nextval('pg_temp.assertion_count'); end$$;
 create function pg_temp.actor(actor text,sql text,role_name text default 'authenticated') returns jsonb language plpgsql as $$declare result jsonb; begin
  perform set_config('request.jwt.claim.sub',coalesce(pg_temp.fixture_id(actor)::text,''),true);
  execute format('set local role %I',role_name); execute sql into result; reset role; return result;
@@ -185,7 +185,7 @@ create function pg_temp.err(actor text,sql text,role_name text default 'authenti
 create temporary table legacy_v1 as select oid,proowner,proacl,pg_get_functiondef(oid) def from pg_proc where oid='public.studio_client_annual_billing(date)'::regprocedure;
 create temporary table legacy_portal as select oid,proowner,proacl,pg_temp.actor('portal','select public.get_portal_referral_program()') payload from pg_proc where oid='public.get_portal_referral_program()'::regprocedure;
 \if :apply_fix
-\ir ../migrations/0498_annual_billing_fx_v2.sql
+\ir ../migrations/0527_annual_billing_fx_v2.sql
 \endif
 select pg_temp.assert_true(to_regprocedure('public.studio_client_annual_billing_v2(date)') is not null,'existe RPC v2 sin retirar v1');
 select pg_temp.assert_true((select bool_and(p.oid=b.oid and p.proowner=b.proowner and p.proacl is not distinct from b.proacl and pg_get_functiondef(p.oid)=b.def) from legacy_v1 b join pg_proc p on p.oid=b.oid),'v1 identidad ACL y definición intactas');
@@ -250,7 +250,7 @@ begin
 end;
 $instrument$;
 insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,fx_rate,base_amount,total_amount,status,issued_at)
-select md5('0498-load-'||g)::uuid,pg_temp.fixture_id('B'),'load-'||g,'LOAD-'||lpad(g::text,5,'0'),'Sintético','CNY',7,g,g,'emitida',current_date from generate_series(1,1200) g;
+select md5('0527-load-'||g)::uuid,pg_temp.fixture_id('B'),'load-'||g,'LOAD-'||lpad(g::text,5,'0'),'Sintético','CNY',7,g,g,'emitida',current_date from generate_series(1,1200) g;
 select setval('conversion_calls',1,false);
 select pg_temp.assert_true(pg_temp.actor('other','select to_jsonb(count(*)) from public.studio_client_annual_billing_v2(current_date)')='1201'::jsonb,'carga mayor de1000 grupos conserva todos');
 select pg_temp.assert_true((select last_value from conversion_calls)<=1201 and (select last_value from conversion_calls)>0,'clasificador no recalcula por cada agregado');
@@ -263,6 +263,6 @@ create or replace function public.to_usd(p_amount numeric,p_currency text,p_rate
 select pg_temp.assert_true(pg_temp.err('admin','select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x') like '22023|FX_RATE_MISSING','mensaje conocido con hint ajeno se relanza');
 create or replace function public.to_usd(p_amount numeric,p_currency text,p_rate numeric) returns numeric language plpgsql immutable set search_path='' as $$begin raise exception 'FX_RATE_MISSING' using errcode='P0001',hint='dtd-fx'; end$$;
 select pg_temp.assert_true(pg_temp.err('admin','select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x') like 'P0001|FX_RATE_MISSING','mensaje y hint conocidos con SQLSTATE ajeno se relanza');
-select 'TEST 0498 GREEN: '||last_value||' aserciones' as resultado from assertion_count;
+select 'TEST 0527 GREEN: '||last_value||' aserciones' as resultado from assertion_count;
 rollback;
 \endif
