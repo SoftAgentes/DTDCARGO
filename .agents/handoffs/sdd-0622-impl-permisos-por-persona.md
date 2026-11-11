@@ -182,6 +182,26 @@ compartidas del grupo, `sdd-0622-capturas/`:
   Tocarlo es del carril de Chatwoot.
 - **Rol `custom` (fase 6 de la spec):** no está en esta PR.
 
+## Revisión independiente (cabeza 92d9ee38f) — aprobada, con dos arreglos aplicados
+
+- **M1 (decisión del Director):** `lookupRateForNewDestination` exige editar Tracking y ver el Cotizador **o** la CN,
+  con el mismo criterio que la RLS de `rates` en la 0531. Almacén con scope CN conserva la tarifa sugerida.
+  Prueba: `app/studio/(app)/tracking/[id]/__tests__/tarifa-sugerida-gate.test.ts` (almacén CN la recibe; almacén VE y
+  marketing con Tracking concedido no).
+- **Errores de red en el panel:** cada `startTransition` de `AccesoPanel.tsx` pasa por `llamar()`, que traduce una
+  acción que lanza al error del panel. También la carga de Actividad. Pruebas en `AccesoPanel.test.tsx`.
+
+**Hallazgos bajos: pendientes que se deciden más adelante, sin código en esta PR.**
+
+- **La RPC concede módulos que la base todavía no cubre.** La UI solo ofrece los cubiertos, pero un admin que llame
+  `studio_grant_user_module` directo puede conceder, por ejemplo, Tesorería a comercial: la app le muestra el módulo y la
+  base le niega los datos. ¿Hay que limitar la RPC a la lista cubierta?
+- **Revocar no exige superadmin**, ni siquiera sobre los 4 módulos del superadmin. Quitar solo resta; ¿alcanza un admin?
+- **Los extras reviven al reactivar a la persona.** Suspender no los borra, y al reactivar vuelven los vigentes.
+  ¿Deben vencer o quitarse al suspender?
+- **`getMyModuleGrants` no filtra por tenant**, solo por `user_id`. Hoy es un tenant por persona y la RLS limita al
+  tenant de la sesión, pero con varios tenants por usuario habría que filtrar por el tenant activo.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - **El borrado lógico con la sesión ya fallaba antes de esta PR** en rates, quotes, conversations, purchase_orders y
