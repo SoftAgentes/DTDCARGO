@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -44,10 +44,12 @@ const FALLO_TEMPRANO = prueba(
   'echo "FALLÓ · la primera"; for i in $(seq 1 60); do echo "PASÓ  · relleno $i"; done; exit 1',
 );
 
-function correr(lista, extra = {}) {
+// Cada prueba de mentira lleva piso 1, salvo que el caso diga otro: el runner exige un piso declarado por prueba.
+function correr(lista, extra = {}, runner = RUNNER) {
   return new Promise((done) => {
-    const env = { ...process.env, LC_ALL: "C.UTF-8", PRUEBAS_LINUX_LISTA: lista.join("\n"), ...extra };
-    const hijo = spawn(BASH, [RUNNER], { cwd: path.resolve("."), env });
+    const pisos = lista.map((r) => `${r}=1`).join("\n");
+    const env = { ...process.env, LC_ALL: "C.UTF-8", PRUEBAS_LINUX_LISTA: lista.join("\n"), PRUEBAS_LINUX_PISOS: pisos, ...extra };
+    const hijo = spawn(BASH, [runner], { cwd: path.resolve("."), env });
     let salida = "";
     hijo.stdout.on("data", (d) => (salida += d));
     hijo.stderr.on("data", (d) => (salida += d));
@@ -68,6 +70,35 @@ describe("SDD-0550 · pruebas-linux.sh", () => {
     expect(linea(r.salida, PASA)).toMatch(/^PASÓ {2}· .*pasa\.sh · 2 PASÓ · \d+ s$/);
     expect(r.salida).toMatch(/^RESULTADO: 2 PASÓ · 0 FALLÓ · 2 pruebas en \d+ s$/m);
   }, 60_000);
+
+  // El piso de PASÓ por prueba (revisión del DG de la #480, N4): menos PASÓ que el piso es FALLÓ, aunque salga 0.
+  it("FALLÓ si la prueba escribe menos PASÓ que su piso, y PASÓ si llega justo", async () => {
+    const bajo = await correr([PASA], { PRUEBAS_LINUX_PISOS: `${PASA}=3` });
+    expect(bajo.codigo, bajo.salida).toBe(1);
+    expect(linea(bajo.salida, PASA)).toMatch(/^FALLÓ · .*pasa\.sh · exit 0 · 2 PASÓ · 0 FALLÓ · \d+ s · bajo el piso de 3 PASÓ$/);
+    const justo = await correr([PASA], { PRUEBAS_LINUX_PISOS: `${PASA}=2` });
+    expect(justo.codigo, justo.salida).toBe(0);
+    expect(linea(justo.salida, PASA)).toMatch(/^PASÓ {2}· .*pasa\.sh · 2 PASÓ · \d+ s$/);
+  }, 60_000);
+
+  it("FALLÓ si una prueba corre sin piso declarado, aunque pase; y su mutante (sin la guarda) daría verde", async () => {
+    const sin = await correr([PASA], { PRUEBAS_LINUX_PISOS: "" });
+    expect(sin.codigo, sin.salida).toBe(1);
+    expect(linea(sin.salida, PASA)).toMatch(/ · sin piso declarado$/);
+    const texto = readFileSync(RUNNER, "utf8");
+    expect(texto.match(/# guarda:piso_declarado$/gm), "la marca está una sola vez").toHaveLength(1);
+    const mutante = path.join(dir, "pruebas-linux-sin-piso-declarado.sh");
+    writeFileSync(mutante, texto.split("\n").filter((l) => !l.endsWith("# guarda:piso_declarado")).join("\n"));
+    const mut = await correr([PASA], { PRUEBAS_LINUX_PISOS: "" }, mutante.replace(/\\/g, "/"));
+    expect(mut.codigo, "sin la guarda, la prueba sin piso pasaría: la guarda es la que la frena").toBe(0);
+  }, 60_000);
+
+  it("las pruebas reales tienen su piso en el runner", () => {
+    const texto = readFileSync(RUNNER, "utf8");
+    for (const p of texto.matchAll(/^ {2}(infra\/ops\/tests\/prueba-[\w-]+\.sh)/gm)) {
+      expect(texto, `${p[1]} no tiene piso`).toMatch(new RegExp(`\\[${p[1].replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\]=\\d+`));
+    }
+  });
 
   it.each([
     ["sale ≠ 0 aunque diga 0 FALLÓ", SALE_1, /exit 1 · 1 PASÓ · 0 FALLÓ/],
