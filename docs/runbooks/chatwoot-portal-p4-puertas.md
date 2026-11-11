@@ -553,16 +553,38 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   - el valor de `/srv/dtd-cargo/.env`, de 24 caracteres, no coincide con ningún `AccessToken` de Chatwoot;
   - `GET /api/v1/profile` con él da 401.
 
-  **Qué rompe:** sin arreglarlo, cada envío del portal daría `mensaje_no_autorizado` (`lib/studio/chatwoot/portal.ts:258`). Hoy no rompe nada, porque solo lo usan `chatwootRouterConfig()` y `chatwootPortalConfig()` (`lib/studio/chatwoot/config.ts:110` y `:154`), y las dos dan `null` mientras falten sus variables. **Se arregla en este 5a, antes del recreado de abajo,** para que la web se recree una sola vez. **El `.env` no se toca antes de este OK.**
-  1. **Leer, sin imprimir el token:**
-     - `pegar-secretos-web.sh:79` usa el sha256 de 8 caracteres. Se comparan el del `.env`, el del contenedor y el del token del usuario de servicio 1 en Chatwoot.
-     - Los `updated_at` de los `AccessToken` dicen si hubo rotación.
-     - Los comandos están en la nota del diagnóstico del Worker de la 10.5 (notas compartidas, `0586-token-router-diagnostico-worker-10.5.md`).
-  2. **Guardar la línea de ahora para la vuelta atrás,** sin imprimirla:
+  **Qué rompe:** sin arreglarlo, cada envío del portal fallaría con `<paso>_no_autorizado`. El código es el paso más el error (`codigo()`, `lib/studio/chatwoot/portal.ts:79-81`), así que el que sale depende del primer paso que llama a Chatwoot:
+  - `contacto_no_autorizado`, si el hilo no tiene contacto;
+  - `conversacion_no_autorizado`, si no tiene conversación;
+  - `mensaje_no_autorizado`, si ya tiene las dos, como los hilos que vincula la puerta 4.
+
+  Se registra como `[chatwoot-portal] envío falló: <código>` (`:258`). Hoy no rompe nada, porque solo lo usan `chatwootRouterConfig()` y `chatwootPortalConfig()` (`lib/studio/chatwoot/config.ts:110` y `:154`), y las dos dan `null` mientras falten sus variables. **Se arregla en este 5a, antes del recreado de abajo,** para que la web se recree una sola vez. **El `.env` no se toca antes de este OK.**
+  1. **Leer, sin imprimir el token.** La huella es la de `pegar-secretos-web.sh:79`: `printf '%s'`, sin salto de línea, y los 8 primeros caracteres de `sha256sum`. Se comparan el `.env`, el contenedor y los `AccessToken` de Chatwoot. Los `updated_at` dicen si hubo rotación. Los tres comandos son de solo lectura y van sin `docker exec -i`.
 
      ```bash
-     umask 077; grep '^CHATWOOT_ROUTER_TOKEN=' /srv/dtd-cargo/.env > /dev/shm/router-antes.env; wc -c /dev/shm/router-antes.env
+     docker exec chatwoot-rails-1 bundle exec rails runner 'AccessToken.order(:id).each { |t| puts "HECHO token id=#{t.id} owner=#{t.owner_type}:#{t.owner_id} largo=#{t.token.to_s.length} sha8=#{Digest::SHA256.hexdigest(t.token.to_s)[0,8]} created_at=#{t.created_at&.utc&.iso8601} updated_at=#{t.updated_at&.utc&.iso8601}" }' 2>/dev/null | grep '^HECHO'
      ```
+
+     ```bash
+     v=$(sed -n 's/^CHATWOOT_ROUTER_TOKEN=//p' /srv/dtd-cargo/.env | head -n 1 | tr -d "'\""); printf 'HECHO env largo=%s sha8=%s\n' "${#v}" "$(printf '%s' "$v" | sha256sum | cut -c1-8)"; unset v; echo "HECHO contenedor sha8=$(docker exec dtd-cargo-web-1 printenv CHATWOOT_ROUTER_TOKEN | tr -d '\n' | sha256sum | cut -c1-8)"
+     ```
+
+     ```bash
+     sed -n 's/^CHATWOOT_SERVICE_USER_ID=//p' /srv/chatwoot/secretos/platform-app.env; sed -n 's/^DTD_CHATWOOT_SERVICIO_ID=//p' /srv/chatwoot/.env
+     ```
+
+     **Para seguir:**
+     - el último comando da `1` y `1`;
+     - el `sha8` de `owner=User:1` en el primero es el token vigente; si su `updated_at` es posterior a `created_at`, se rotó en esa fecha.
+
+     **Si el `sha8` del `.env` o el del contenedor ya es el de `User:1`,** no hay nada que reemplazar: se para y se avisa al DG.
+  2. **Guardar la línea de ahora para la vuelta atrás,** sin imprimirla. La línea tiene que estar una sola vez:
+
+     ```bash
+     grep -c '^CHATWOOT_ROUTER_TOKEN=' /srv/dtd-cargo/.env; umask 077; grep '^CHATWOOT_ROUTER_TOKEN=' /srv/dtd-cargo/.env > /dev/shm/router-antes.env; wc -l < /dev/shm/router-antes.env
+     ```
+
+     **Para seguir:** `1` y `1`. Con otra cosa, se para: la vuelta atrás supone una sola línea.
 
   3. **Vaciar la línea,** porque `pegar-secretos-web.sh` no pisa un valor que ya existe (`:85`):
 
@@ -584,11 +606,27 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
      **Para seguir:** `misma_imagen=si`. Después va el recreado de abajo, el mismo de este 5a.
   6. **Después del recreado:**
-     - el sha8 del contenedor (`docker exec dtd-cargo-web-1 printenv CHATWOOT_ROUTER_TOKEN`, pasado por la misma huella y sin imprimirlo) tiene que ser el del token del usuario 1;
-     - `GET /api/v1/profile` con ese token tiene que dar 200. Se mide desde el contenedor si tiene `curl`, con la cabecera tomada de su entorno y nunca en un argumento visible;
-     - al terminar, `shred -u /dev/shm/router-antes.env`.
+     - **La huella del contenedor.** `printenv` agrega un salto de línea, y `tr` lo quita para que dé lo mismo que la huella del guion. Tiene que ser el `sha8` de `owner=User:1` del punto 1.
 
-  **La vuelta atrás:** `v=$(cat /dev/shm/router-antes.env); sed -i "s|^CHATWOOT_ROUTER_TOKEN=.*|$v|" /srv/dtd-cargo/.env; unset v`, y el mismo recreado.
+       ```bash
+       docker exec dtd-cargo-web-1 printenv CHATWOOT_ROUTER_TOKEN | tr -d '\n' | sha256sum | cut -c1-8
+       ```
+
+     - **`GET /api/v1/profile` con ese token.** Se hace desde el contenedor, con `node` y las variables de su propio entorno, así que el token no va en ningún argumento ni se imprime. Tiene que dar `HECHO perfil=200`.
+
+       ```bash
+       docker exec dtd-cargo-web-1 node -e 'fetch(process.env.CHATWOOT_URL + "/api/v1/profile", { headers: { api_access_token: process.env.CHATWOOT_ROUTER_TOKEN } }).then((r) => console.log("HECHO perfil=" + r.status)).catch(() => console.log("HECHO perfil=error"))'
+       ```
+
+     - **Al terminar,** `shred -u /dev/shm/router-antes.env`.
+
+  **La vuelta atrás:** volver la línea guardada, comprobar que quedó una sola vez y con valor, y hacer el mismo recreado.
+
+  ```bash
+  v=$(cat /dev/shm/router-antes.env); sed -i "s|^CHATWOOT_ROUTER_TOKEN=.*|$v|" /srv/dtd-cargo/.env; unset v; grep -c '^CHATWOOT_ROUTER_TOKEN=.' /srv/dtd-cargo/.env
+  ```
+
+  **Para seguir:** `1`.
 
   **El OK nominal:** «¿Autorizas reemplazar en `/srv/dtd-cargo/.env` el `CHATWOOT_ROUTER_TOKEN` viejo por el token vigente del usuario de servicio 1 (con `pegar-secretos-web.sh`, sin mostrarlo), en el mismo recreado de la web del 5a y con la misma imagen que corre?»
 - **Recrear la web:** `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`.

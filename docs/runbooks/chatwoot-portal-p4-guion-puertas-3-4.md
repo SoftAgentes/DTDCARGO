@@ -31,7 +31,7 @@
 
 - [ ] **La puerta 2 está hecha:** `BANDEJA=10` y `AGENTE_SERVICIO=1`, con su evidencia.
 - [ ] **Los dos OK de la puerta 1 están dados,** el 1a y después el 1b, antes de la primera corrida. Los textos están en el runbook, en la puerta 1.
-- [ ] **La #504 ya está en `main`, o se decidió no esperarla.** Cambia `deshacer.sh` y `deshacer-carga.rb`. Si entra después del 3.0, esos dos archivos se vuelven a copiar y a comparar, con su propio OK.
+- [ ] **La #504 está en `main`.** El orden es fijo: primero la #504, porque cambia `deshacer.sh` y `deshacer-carga.rb`, y después el 3.0, desde un `main` que la incluya. Sin ella no se empieza.
 
 ### 3.0 · ⛔ Los scripts en el VPS
 
@@ -104,18 +104,20 @@ Es el texto del runbook, puerta 3, sub-paso 3.0, con su OK nominal.
 - [ ] **Comparar los sha256 de los 27 archivos**: 15 de `infra/ops/portal-historial/`, 2 de `supabase/cargas/portal-historial-deshacer/` y las 10 migraciones. Se hace en la PC del DG, dentro de `../portal-3-0`, con el SHA anotado. Cada lado se lista como «sha256 nombre», ordenado, y `diff` no tiene que mostrar nada.
 
   ```bash
-  sha256sum infra/ops/portal-historial/{extraer.sh,vincular.sh,limpiar.sh,reservar.sql,extraer.sql,controles-studio.sql,conteo-portal.sql,cola-y-flag.sql,cargar.sh,cargar-portal.rb,ensayo-portal.sh,copia-columnas.tsv,ensayo-studio-esquema.sql,deshacer.sh,deshacer-carga.rb} supabase/cargas/portal-historial-deshacer/deshacer-vinculos.{sql,sh} supabase/migrations/{0006_clients,0106_conversaciones,0337_feature_flags_seed_and_trigger,0503_chatwoot_bandeja,0504_chatwoot_eventos,0508_chatwoot_bajas_purga,0519_chatwoot_portal,0520_chatwoot_portal_vuelta,0523_chatwoot_portal_carga,0524_chatwoot_portal_puerta4}.sql | sed 's|  .*/|  |' | sort > /tmp/portal-3-0-repo.txt; wc -l < /tmp/portal-3-0-repo.txt
+  sha256sum infra/ops/portal-historial/{extraer.sh,vincular.sh,limpiar.sh,reservar.sql,extraer.sql,controles-studio.sql,conteo-portal.sql,cola-y-flag.sql,cargar.sh,cargar-portal.rb,ensayo-portal.sh,copia-columnas.tsv,ensayo-studio-esquema.sql,deshacer.sh,deshacer-carga.rb} supabase/cargas/portal-historial-deshacer/deshacer-vinculos.{sql,sh} supabase/migrations/{0006_clients,0106_conversaciones,0337_feature_flags_seed_and_trigger,0503_chatwoot_bandeja,0504_chatwoot_eventos,0508_chatwoot_bajas_purga,0519_chatwoot_portal,0520_chatwoot_portal_vuelta,0523_chatwoot_portal_carga,0524_chatwoot_portal_puerta4}.sql | sed -E 's#^([0-9a-f]{64}) [ *](.*/)?#\1  #' | sort > /tmp/portal-3-0-repo.txt; wc -l < /tmp/portal-3-0-repo.txt
   ```
 
   ```bash
-  ssh root@217.216.54.70 'cd /srv/ops/portal-historial && sha256sum $(ls -A | grep -vx -e migraciones -e sistema-produccion -e deshacer) migraciones/*' | sed 's|  .*/|  |' | sort > /tmp/portal-3-0-vps.txt; diff /tmp/portal-3-0-repo.txt /tmp/portal-3-0-vps.txt && echo iguales
+  ssh root@217.216.54.70 'cd /srv/ops/portal-historial && sha256sum $(ls -A | grep -vx -e migraciones -e sistema-produccion -e deshacer) migraciones/*' | sed -E 's#^([0-9a-f]{64}) [ *](.*/)?#\1  #' | sort > /tmp/portal-3-0-vps.txt; diff /tmp/portal-3-0-repo.txt /tmp/portal-3-0-vps.txt && echo iguales
   ```
 
   **Para seguir:**
   - el primero da `27`;
   - el `diff` da `iguales`, sin ninguna línea antes. Una línea de más en el VPS, por ejemplo un `README.md`, también es una diferencia y se para.
 
-  El nombre `/tmp/portal-3-0-*.txt` es de la PC del DG; con Git Bash, se puede cambiar por la carpeta temporal de la sesión.
+  **Por qué ese `sed`:** el `sha256sum` de Git Bash escribe `hash *ruta`, y el de Linux, `hash  ruta`. El `sed` deja los dos como `hash  nombre`, sin la carpeta. El nombre `/tmp/portal-3-0-*.txt` es de la PC del DG; se puede cambiar por la carpeta temporal de la sesión.
+
+  **Probado el 2026-11-11 en la PC, con Git Bash** (`sha256sum (GNU coreutils) 8.32`): el lado del repo da `27`. Un «VPS simulado», que es una carpeta local con los 27 archivos, `migraciones/`, `sistema-produccion` y `deshacer/`, da `iguales`. Con un `README.md` de más, o con un archivo cambiado, el `diff` muestra la diferencia. El lado del VPS no se probó en el VPS.
 
 - [ ] **Lo que se mira en el VPS:**
 
@@ -159,6 +161,12 @@ Es el runbook, puerta 3, «Lo que el CI no puede probar».
 
   **Para seguir:** `libre`, y la unidad en `inactive` o desconocida.
 
+  Se anota cuántos archivos hay en `/tmp` del Chatwoot de producción, para compararlo en la prueba de borrado:
+
+  ```bash
+  for c in chatwoot-rails-1 chatwoot-postgres-1; do echo "HECHO tmp_$c=$(docker exec "$c" sh -c 'ls -A /tmp | wc -l')"; done
+  ```
+
 ### 1 · La comprobación `--solo-copia`, con los OK 1a y 1b
 
 Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de systemd, igual que el ensayo:
@@ -195,10 +203,10 @@ Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de syste
 - [ ] **La prueba de borrado:**
 
   ```bash
-  test ! -e /dev/shm/portal-historial && test ! -e /dev/shm/portal-ensayo && echo vacio; docker ps -aq --filter label=com.docker.compose.project=portal-ensayo | wc -l; docker volume ls -q --filter label=com.docker.compose.project=portal-ensayo | wc -l; docker network ls -q --filter label=com.docker.compose.project=portal-ensayo | wc -l
+  test ! -e /dev/shm/portal-historial && test ! -e /dev/shm/portal-ensayo && echo vacio; docker ps -aq --filter label=com.docker.compose.project=portal-ensayo | wc -l; docker volume ls -q --filter label=com.docker.compose.project=portal-ensayo | wc -l; docker network ls -q --filter label=com.docker.compose.project=portal-ensayo | wc -l; for c in chatwoot-rails-1 chatwoot-postgres-1; do echo "HECHO tmp_$c=$(docker exec "$c" sh -c 'ls -A /tmp | wc -l')"; done
   ```
 
-  **Para seguir:** `vacio` y tres `0`.
+  **Para seguir:** `vacio`, tres `0`, y los dos `tmp_` iguales a los que se anotaron antes de la corrida, en «No hay una carga ni un ensayo a medias». Es la parte de la prueba de borrado del runbook que pide «nada en `/tmp` del Chatwoot de producción». El ensayo lee producción por un tubo (`COPY … TO STDOUT`), sin dejar archivos ahí: el conteo lo comprueba.
 
   **Si el journal se cortó sin la línea `HECHO ensayo_codigo`** (la unidad murió por KILL, sin `trap`): se corre `bash /srv/ops/portal-historial/ensayo-portal.sh --limpiar` y esta misma prueba, antes de cualquier otro paso. Con el código 6, Docker no responde: se espera a que vuelva y se repite el `--limpiar` (runbook, 3.1, «Vuelta atrás»).
 
@@ -243,7 +251,7 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
 Son las condiciones del runbook, puerta 4. Sin todas, el DG no le pide la puerta a Sam.
 
 - [ ] **La puerta 3 salió con `ensayo_codigo=0`,** y el DG tiene su evidencia.
-- [ ] **Las dos vueltas atrás dirigidas están en `main` y ensayadas** por el DG con `rollback`: la de Studio (`deshacer-vinculos.sh`) y la de Chatwoot (`deshacer.sh`, con la #504 si ya entró).
+- [ ] **Las dos vueltas atrás dirigidas están en `main` y ensayadas** por el DG con `rollback`: la de Studio (`deshacer-vinculos.sh`) y la de Chatwoot (`deshacer.sh`, con la #504, que ya está en `main` desde antes del 3.0).
 - [ ] **El cargador tiene la prevención del log en `main`.** La línea tiene que estar:
 
   ```bash
@@ -420,6 +428,6 @@ Los cubre un solo OK: el de la puerta 4 del runbook. **No cubre la 4.10a.** Se c
   - la comparación de los sha256 del 3.0;
   - el lanzamiento con `systemd-run`, sus lecturas del journal y de la evidencia;
   - la prueba de borrado por etiqueta de compose.
-- **El lanzamiento como unidad:** el ensayo exige `TimeoutStopSec` de 300 s o más si corre como unidad (`ensayo-portal.sh:77` y `:290-305`). El valor y el Nice son los de `infra/ops/kommo-historial/lanzar-unidad.sh:31` y `:84`. **Ese lanzador no se reusa:** solo acepta las unidades del Archivo Kommo (`:60-63`).
+- **El lanzamiento como unidad:** el ensayo exige `TimeoutStopSec` de 300 s o más si corre como unidad (`ensayo-portal.sh:77` y `:290-305`). El valor y el Nice son los de `infra/ops/kommo-historial/lanzar-unidad.sh:32` y `:84`. **Ese lanzador no se reusa:** solo acepta las unidades del Archivo Kommo (`:60-63`).
 - **El proyecto del ensayo:** `portal-ensayo` (`ensayo-portal.sh:10`), y la evidencia `evidencia-ensayo-portal-<UTC>.txt` en la carpeta del guion (`:79`).
 - **La puerta 2:** la evidencia del DG del 2026-11-11, pasada por el Subdirector.
