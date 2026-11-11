@@ -50,6 +50,8 @@
 | 4 a 6 | de `7c4e0410b` a `25843e6b8` | 42603611740, 42618396536 y 42618396542 | La parte b cayó por arrastre de la prueba (D5 por otro camino en MD25, MD26, MD27 y MD30) | La limpieza de tmpfs antes de D15 y D5, y MD27 con la carpeta sin los archivos |
 | 7 | `38e76b761` y `e4fd689e2` | 42628321142 (el cargador y las partes a, b y c) y 42628320972 (la calidad) | Verde entero. La parte b tardó 54 de 60 min | El merge de main `b5669b1a5` y el reparto de MD27, MD28 y MD30 a la parte a |
 | 8 | `7c5121132`, `7b001a601` y `b2508e726` | 42637555397 (el cargador, el ensayo y las partes a, b y c) y 42637555182 (la calidad) | Verde entero: a 35,7 min, b 45,5, c 43,7. La revisión del DG pidió cambios (B1 y N1 a N5) | La vuelta 9 |
+| 9 | `fff675c82` y el merge de main `27fac70db` (`e64bfef65`) | 42655332802 (el cargador, el ensayo y las partes a, b y c) y 42655332606 (la calidad) | La calidad, la b (35,4 min), la c (42,6 min), el cargador y el ensayo, verdes. La parte a (job 129292212612, 47,0 min) cayó solo en MD38: el id «D19D» de la prueba | El cierre del 2026-11-09 (`2960df5c2`, en draft, sin CI) y la vuelta 10 |
+| 10 | `670623dcb` (el id sin `tr d D` y N9) y el merge de main `09e6b279f` | (en este push) | — | — |
 
 ## La revisión del DG sobre `78231bed3` (CHANGES_REQUESTED) y lo que la atiende
 
@@ -136,8 +138,13 @@
     - La calidad, run 42655332606 (job 129292211072): success, 49,0 min.
     - **La causa:** la parte a tuvo una sola falla, MD38: «tienen que caer [D19d] — SOBREVIVEN: D19d(sistema) · cayeron: D19D». En `comprobar_sistema`, el id del caso se arma con `tr d D`, que cambia todas las «d», así que d19d queda como «D19D». El mutante sí tumbó su caso, pero bajo otro nombre, y la comparación no lo encuentra. Los demás casos y mutantes, la corrida real incluida, pasaron.
     - **El arreglo, sin empezar:** armar el id con `"D${c#d}"` en vez de `tr d D`. Es solo de la prueba.
-  - **Cabeza de cierre en draft;** el verde que cuenta es el de `e64bfef65`, con el rojo de MD38 y su causa de arriba. Al volver: el arreglo de MD38, ready y CI sobre la cabeza nueva. Después, la revisión del DG;
-  - **la #489:** el handoff con N-a a N-d está en el commit local `f73c83cc5` de `codex/0586-ensayo-portal-nb`, sin subir. No va encima de la cabeza APPROVED mientras siga abierto el tren #494. Se sube al volver;
+  - la cabeza de cierre fue `2960df5c2`, en draft y sin CI (sus runs dieron skipped);
+- **La reanudación (2026-11-11, Sam; main `09e6b279f`, con el tren #494 y la #489 fusionada), vuelta 10:**
+  - el arreglo de MD38: el id se arma con `"D${c#d}"`, y `comprobar_sistema` era el único lugar que armaba ids así;
+  - **N9 (nuevo):** después de la corrida real, cada caso de las listas tiene que tener su resultado con el nombre exacto. Un id mal armado cae ahí, y no como un mutante que «sobrevive». Con el `tr d D` viejo, N9 habría dado rojo por D19d;
+  - el merge de main `09e6b279f`: merge-tree limpio. De lo de P4 solo trae la #489 (`ensayo-portal.sh`, su prueba y su handoff), que esta rama no toca;
+  - después de subir: ready, CI sobre la cabeza nueva y la revisión del DG;
+  - **la #489:** su handoff con N-a a N-d (el commit local `f73c83cc5`) va en una PR chica de docs, desde main;
   - **el DG aceptó la desviación de la prueba:** el sha esperado es el del `system_identifier` del Postgres efímero, no `deb576f0d6` fijo. `DESHACER_SISTEMA_SHA` (como `DESHACER_SISTEMA` y `DESHACER_SISTEMA_UID`) se ignora fuera de `DESHACER_PRUEBA=1` (`deshacer.sh:115-119`);
   - N1 a N3 siguen en «Pendiente posterior», abajo.
 - **Para el runbook (E10):**
