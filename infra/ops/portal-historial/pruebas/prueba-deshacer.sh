@@ -390,8 +390,13 @@ parte_borrar() { # carpeta salidas
   chmod 0600 "$SHM/studio-ensayo.hecho"
   sed 's/ antes=[^ ]*/ antes=conversaciones:999,mensajes:999,contact_inboxes:999/' "$O/chatwoot-seco.hecho" >"$SHM/chatwoot-seco.hecho"
   deshacer "$O/d20.txt" "$K" borrar CONFIRMAR=si
+  # D21 y D22 empiezan sin la evidencia de un borrado: si un mutante deja pasar el de D20 o el de D21 (MD48), su .hecho
+  # y su .inicio no tumban el caso siguiente por ya_hay_un_borrado (el rojo de MD48 en el run 43017658601). En la
+  # corrida real no hay nada que quitar: D20 y D21 exigen fin=rollback.
+  rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   sed 's/ contactos_a_borrar=[^ ]*/ contactos_a_borrar=999/' "$O/chatwoot-seco.hecho" >"$SHM/chatwoot-seco.hecho"
   deshacer "$O/d21.txt" "$K" borrar CONFIRMAR=si
+  rm -rf -- "$TRABAJO/durable" "$SHM/chatwoot-borrar.hecho"
   sed 's/ antes=[^ ]*//; s/ contactos_a_borrar=[^ ]*//' "$O/chatwoot-seco.hecho" >"$SHM/chatwoot-seco.hecho"
   deshacer "$O/d22.txt" "$K" borrar CONFIRMAR=si
   install -m 0600 "$O/chatwoot-seco.hecho" "$SHM/chatwoot-seco.hecho"
@@ -516,8 +521,9 @@ comprobar_sh() {
     "sin DB_CW, no corre: no hay valor por defecto ($(err "$O/d6j.txt"))"
 }
 comprobar_hilos() {
-  local F="$1/d24.txt"
-  exigir D24 '[ "$(h "$F" salida_proceso)" = 1 ] && [ "$(err "$F")" = las_conversaciones_no_son_los_hilos_cargados ] && [ -z "$(h "$F" archivo)" ] && [ "$(h "$1/hilo-restaurado.txt" hilo_restaurado)" = ok ]' \
+  # La carpeta en O: dentro de exigir, el eval lee $1 como el id del caso (el rojo de D24 en el run 43017658601).
+  local O="$1" F="$1/d24.txt"
+  exigir D24 '[ "$(h "$F" salida_proceso)" = 1 ] && [ "$(err "$F")" = las_conversaciones_no_son_los_hilos_cargados ] && [ -z "$(h "$F" archivo)" ] && [ "$(h "$O/hilo-restaurado.txt" hilo_restaurado)" = ok ]' \
     "una conversación de la bandeja que no es un hilo de Studio: el seco se niega, sin archivo ($(err "$F"); cargados $(h "$F" hilos_cargados))"
 }
 comprobar_rb() {
