@@ -37,3 +37,7 @@ Publicar de la #311 a la #317, una por turno, después de cada fusión. Antes de
 
 ## FUERA DE ALCANCE DETECTADO
 - #312: el readback de `issued_at` en `lib/studio/sales-orders/actions.ts` (+1 lectura de invoices con el cliente admin) quedó redundante, porque la RPC atómica de la 0497 ya fecha el asiento con `issued_at` persistido. No lo quité: es una decisión para quien revise.
+
+## Deuda declarada en la revisión de la #520
+- `lib/studio/sales-orders/actions.ts:637-661`: el readback de `issued_at` sobra cuando la 0533 está aplicada, porque la RPC atómica de la 0497 fecha el asiento con `issued_at` persistido. Retirarlo (y bajar en 1 el inventario de `invoice-read-boundary`) es una tarea aparte, después de aplicar la 0533.
+- Contrato de la 0533 bajo la RLS de la 0511: NO DISPONIBLE. El fixture no monta la 0511 ni la 0497. Lo intenté y montar la 0511 arrastra 0190, 0294 y la cadena de auditoría D2 (`append_audit_event_v1`); quedó como deuda.
