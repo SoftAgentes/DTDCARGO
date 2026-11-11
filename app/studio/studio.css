@@ -1425,8 +1425,12 @@ details[open] > .calc-why-summary .calc-why-chev {
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s;
 }
-.studio-tab:hover {
+.studio-tab:hover:not(:disabled):not([data-activa="true"]) {
   background: var(--bg-elevated);
+}
+/* Dentro del contenedor el fondo ya es --bg-elevated: el hover sube a la tarjeta. */
+.studio-tabs .studio-tab:hover:not(:disabled):not([data-activa="true"]) {
+  background: var(--bg-surface);
 }
 .studio-tab:focus-visible {
   outline: 2px solid var(--info);
