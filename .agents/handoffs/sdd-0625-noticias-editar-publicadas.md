@@ -87,6 +87,7 @@ PR contra `main`, no draft. No fusionar ni aplicar 0532 sin el OK nominal de Sam
   no se llama RPC ni se revalida; control con el flag encendido. Mutante sin la comprobación: caen 2.
 - Mutante de `noticias-0532.migration.test.ts` renombrado: prueba `auth.uid()` → null, no un actor de formulario.
 - La 0532 no se tocó.
+- Anti-drift de RBAC (`lib/studio/rbac-actions-guard.test.ts`), rojo en CI sobre 0346af408: inventario 463 → 466 y superficie 81 → 82 (exactos 57 → 58), con `guardarEdicion`, `retirarNoticia` y `volverAPublicar` nombradas y su gate real (`tenantAdminGate` + `marketing_news`). Las tres pasan el veredicto por acción sin entrar en EXCEPCIONES ni DEUDA.
 
 ## HANDOFF AL DIRECTOR
 

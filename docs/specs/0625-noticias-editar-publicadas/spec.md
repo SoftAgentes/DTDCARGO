@@ -151,6 +151,7 @@ corren en el mismo despliegue, el cambio se ve en el siguiente pedido; si no, **
 | `app/studio/(app)/marketing/noticias-web/retirar/[id]/page.tsx` | Nuevo: pantalla de retiro (destino del enlace de `#noticias`) |
 | `app/studio/(app)/marketing/noticias-web/__tests__/noticias-publicadas-actions.test.ts` | Nuevo: actions con el doble que honra filtros |
 | `lib/news/edicion.ts` | Nuevo: qué se edita y cómo se valida |
+| `lib/studio/rbac-actions-guard.test.ts` | Modificado: anti-drift de RBAC, 81 → 82 archivos (exactos 57 → 58) y 463 → 466 acciones, con las tres nombradas |
 | `lib/studio/news-publicadas-queries.ts` | Nuevo: lecturas de la lista y del formulario |
 | `lib/news/__tests__/noticias-0532.migration.test.ts` | Nuevo: contrato de la 0532 en PGlite, control rojo y mutantes |
 | `supabase/migrations/0532_noticias_edicion_auditada.sql` | Nuevo: migración 0532, **sin aplicar** |
