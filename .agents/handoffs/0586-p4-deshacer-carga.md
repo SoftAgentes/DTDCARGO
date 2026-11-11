@@ -38,7 +38,7 @@
 
 - **PASÓ:** `bash -n` de los dos guiones.
 - **PASÓ:** cada texto que cambian los mutantes aparece una sola vez en su archivo.
-- **NO EJECUTADO en la PC:** Ruby y Docker. La prueba corre en Actions; los runs están en la tabla de abajo.
+- **En Actions:** Ruby y Docker corren en la prueba, y los runs están en la tabla de abajo. **El `ruby -c` lo hizo el CI** (run 43023914456, en `ff66d774f`): `deshacer-carga.rb` y `guardas-deshacer.rb` cargan en la corrida real y en los 19 mutantes rb, MD50 a MD68, que pasaron. En la PC no hay Ruby.
 
 ## Registro de las vueltas en Actions (#478)
 
@@ -183,8 +183,12 @@ Preparada en local, sin subir: el DG quiere que vaya «cuando convenga».
   - A1 a A9: una fila en cada tabla de actividad, menos `notes`, que ya prueba D1g. Las filas se arman con las columnas obligatorias de cada tabla y sus llaves foráneas.
   - Los mutantes son MD50 a MD68, uno por guarda.
   - **Lo que queda sin caso:** `:111-119` (bajar el detalle del log; provocar que `SET LOCAL` falle exige romper Postgres) y `:258-259` (la verificación final, que no se alcanza sin otra guarda rota). Las de `deshacer.sh` que citó el DG sobre `b2508e726` siguen como estaban, salvo las de B1.
-- **Las partes:** se suma la parte d, con MD49, MD50 a MD68, MD30 (sale de la a), y MD32 y MD33 (salen de la b). MD69 va en la b y MD70 en la c. Cada mutante del borrado suma D20 a D22, alrededor de 1 min. MD47 va en la b y MD48 en la c. **La estimación, sin medir:** a ~51 min, b ~45, c ~48, d ~50.
-- **En local:** `bash -n` pasó, y los textos de los mutantes aparecen una sola vez. **NO EJECUTADO:** `ruby -c` (no hay Ruby en la PC) y la prueba con Docker.
+- **Las partes:** se suma la parte d, con MD49, MD50 a MD68, MD30 (sale de la a), y MD32 y MD33 (salen de la b). MD69 va en la b y MD70 en la c. Cada mutante del borrado suma D20 a D22, alrededor de 1 min. MD47 va en la b y MD48 en la c. MD71 va en la c. **Lo medido en el run 43023914456** (`ff66d774f`, con el rojo de la recarga, así que a, b y d terminaron antes de lo normal): a 43,5 min, b 42,5, c 46,1 (verde) y d 25,9. Los tiempos de la cabeza verde se anotan en la vuelta siguiente.
+- **En local:** `bash -n` pasó, y los textos de los 71 mutantes aparecen una sola vez.
+- **La revisión independiente del DG sobre `ff66d774f`** (CHANGES_REQUESTED):
+  - **el bloqueante, el arnés:** `recargar` dejaba los hilos de Studio sin recablear, porque `docker exec -i` se comía el bucle. Ahora la lista entra por el descriptor 3, y además se cuenta lo recableado: si no da las conversaciones de la carga, la prueba se corta con R0;
+  - **N3 con caso propio:** D21b, en el modo `carrera`. Un trigger mete en la bandeja la conversación de la otra bandeja cuando se borran los mensajes. Lo borrado sobra en las conversaciones y no confirma. MD71 saca las conversaciones de la comparación;
+  - **este handoff,** con el `ruby -c` del CI y los minutos medidos.
 
 ### Pendiente posterior (no bloqueante de la revisión del DG sobre `b2508e726`)
 
