@@ -353,7 +353,7 @@ contrato ejecutable incorporado íntegro en el handoff propio
 `.agents/handoffs/0576-fechas-caracas-anuales.md`, fuente externa
 `C:/tmp/director-traspaso-20261020/0576-caracas-c2-asignacion-worker.md`, SHA256
 `825ab8194a63ad542f2eb7c377f4e68ac5089cde0b352174a4d3771039c53943`.
-Migración asignada **0500_annual_billing_caracas**: solo archivo y fixtures
+Migración asignada **0534_annual_billing_caracas**: solo archivo y fixtures
 locales, nunca aplicación real desde esta tarea.
 
 ### Contrato anual y alcance C2
@@ -369,8 +369,8 @@ locales, nunca aplicación real desde esta tarea.
 - `clientAnnualBilling` llama a `fechaCaracas(now)` antes del primer await y
   mantiene el mismo `p_as_of` hasta la página vacía. Reutiliza el helper C1,
   la RPCv2, decodificador decimal, claves únicas y paginador vigentes.
-- 0500 redefine completas exclusivamente las tres funciones anuales. Preflight
-  comprueba cuerpos0411/0498 actuales y catálogo; postflight conserva OID,
+- 0534 redefine completas exclusivamente las tres funciones anuales. Preflight
+  comprueba cuerpos0411/0527 actuales y catálogo; postflight conserva OID,
   owner, firma/retorno, STABLE/DEFINER/search_path y ACL efectiva diferenciada.
   v1 conserva el defaultservice_role histórico0033; Portal y v2 lo revocaron.
   No cambia grants, helpers privados, tenant, roles, overrides, RLS, importes,
@@ -390,19 +390,19 @@ lib/studio/__tests__/annual-billing-caracas.migration.test.ts
 supabase/migrations-baseline.json
 supabase/pending-migration-symbol-declarations.json
 docs/specs/README.md
-supabase/migrations/0500_annual_billing_caracas.sql
-supabase/tests/0500_annual_billing_caracas.test.sql
+supabase/migrations/0534_annual_billing_caracas.sql
+supabase/tests/0534_annual_billing_caracas.test.sql
 docs/specs/0576-fechas-caracas/spec.md
 .agents/handoffs/0576-fechas-caracas-anuales.md
 scripts/tests/annual-billing-caracas-postgrest.mjs
 app/p/[token]/standard-format.test.tsx
 ```
 
-No es obligatorio modificar las trece. Históricos0411/0498/0499, helper C1,
+No es obligatorio modificar las trece. Históricos0411/0527/0533, helper C1,
 paginador, conversor, readerPortal y arneses históricos solo se leen y prueban.
-No existe degradación automática por ausencia0500: las RPC previas pueden
+No existe degradación automática por ausencia0534: las RPC previas pueden
 responder200 con semántica anterior. Se conserva únicamente la degradación
-real por RPCv2 ausente de0498 y se ajustan sus anclas desplazadas.
+real por RPCv2 ausente de0527 y se ajustan sus anclas desplazadas.
 
 ### Aceptación y evidencia C2
 
@@ -411,7 +411,7 @@ caller y Portal en el árbol de implementación. Se mantiene NOW original de
 medianocheUTC y los tres oráculos cambian al literal2026-06-02. No se mueve la
 fixture a mediodía ni se calcula la expectativa con el helper bajo prueba.
 
-Contrato SQL propio: DDL0500 íntegra primero, catálogo antes/después y hashes
+Contrato SQL propio: DDL0534 íntegra primero, catálogo antes/después y hashes
 de cuerpos medidos, cero DML, helpers/policies/ACL intactos; luego copias
 acotadas del reloj con dos anclas por cuerpo y aborto ante deriva. Oráculos
 independientes por v1/v2/Portal, lower exacto/un día antes, upperStudio y
@@ -436,7 +436,7 @@ El primer verify canónico C2 sobreb309,05:04:27.386–05:36:16.981Z, FALLÓexit
 
 Director autorizó `C:/tmp/director-traspaso-20261020/0576-c2-addendum-test-standard-format.md`, SHA25665e50085e3d38ba9497cc1598fc2debc4f9862bf76e93ee6faa5a72cda28ed7d, condicionado a EXIT real, integridad, cleanup y focal original. Esas condiciones se cumplieron antes de escribir la ruta nueva. La propuesta af4d9c07ae2f0c4d7098eca706db1d44721c2ff74e80182a986be9a76165e9a1 solo acota consultas a tabla/editor identificados por rol/nombre, reutiliza el botón entre su aserción/clic y conserva la espera de foco del heading localizado una vez. Mantiene siete casos, todas las aserciones/acciones, hidratación, oráculos, consultas globales de ausencia/unicidad, roundtrip y consulta final fresca. No cambia producto del proveedor, fixtures, mocks, tiempos20s, configuración, runners, gates ni dependencias.
 
-El focal ORIGINAL intacto PASÓ7/7/0SKIP05:37:44.634–05:37:58.598Z con maxWorkers1 solo diagnóstico; caso1 1224ms, tests10,21s/total11,60s. CANDIDATO PASÓ7/7/0SKIP05:39:00.172–05:39:13.502Z con la misma receta/20s; caso1 1108ms, tests10,72s/total12,10s. El caso1 fue116ms menor y el archivo completo0,50s mayor en estas observaciones; no se demuestra ahorro estable ni causa de los timeouts globales. Checkpoint0f2bc5362669ffc41d1c7abcbdefcc283c5cb03a PASÓ revisión del Director, dictamen65fa05e434996750b25466515bba9800805df200d2154c32a15a669518972e92, y recibió GO para la corrida completa siguiente. Caller/0500/arnés/contratoSQL conservan bytesb309, por lo que sus recibos no se repiten por este delta exclusivo de test/docs.
+El focal ORIGINAL intacto PASÓ7/7/0SKIP05:37:44.634–05:37:58.598Z con maxWorkers1 solo diagnóstico; caso1 1224ms, tests10,21s/total11,60s. CANDIDATO PASÓ7/7/0SKIP05:39:00.172–05:39:13.502Z con la misma receta/20s; caso1 1108ms, tests10,72s/total12,10s. El caso1 fue116ms menor y el archivo completo0,50s mayor en estas observaciones; no se demuestra ahorro estable ni causa de los timeouts globales. Checkpoint0f2bc5362669ffc41d1c7abcbdefcc283c5cb03a PASÓ revisión del Director, dictamen65fa05e434996750b25466515bba9800805df200d2154c32a15a669518972e92, y recibió GO para la corrida completa siguiente. Caller/0534/arnés/contratoSQL conservan bytesb309, por lo que sus recibos no se repiten por este delta exclusivo de test/docs.
 
 ### Resultado canónico final de producto C2
 
@@ -453,7 +453,7 @@ Bytecheck 06:11:48.509Z confirmó veinte fuentes y dos auxiliares iguales, árbo
 | SGE-00.01 | Cumplimiento | Única semántica de día Caracas, ventanas deliberadamente distintas y oráculos por consumidor |
 | SGE-00.02 | Cumplimiento | Solo lecturas; errores/shape/duplicados/paginación incompleta conservan indisponibilidad explícita |
 | SGE-00.03 | No aplica mutación | Sin acción irreversible ni pasos/confirmaciones nuevos; DDL real requiere OK nominal aparte |
-| SGE-00.04 | No aplica evento nuevo | No cambia documentos/asientos ni eventos; snapshot local comprueba cero DML durante0500 |
+| SGE-00.04 | No aplica evento nuevo | No cambia documentos/asientos ni eventos; snapshot local comprueba cero DML durante0534 |
 | SGE-00.05 | Cumplimiento acotado | Catálogo/ACL diferenciada, tenant/roles/overrides/RLS negativos en fixtures reales |
 | SGE-00.06 | Cumplimiento | Instante inválido antes deRPC, NULL/±2SQL siguenerror; issued_at conserva prioridad |
 | SGE-00.07 | Cumplimiento | Se conserva DTO/no_disponible y total completo; no éxito financiero por HTTP200 aislado |
@@ -473,7 +473,7 @@ NO EJECUTADOS por no aplicar al delta; no es una aprobación visual global.
 ### Convivencia y pendientes globales
 
 MIGRATE-FIRST conserva firmas, pero una app antigua puede enviarUTC dentro de±1
-y seguir leyendo otra ventana. La validación futura requiere SQL0500 aprobado,
+y seguir leyendo otra ventana. La validación futura requiere SQL0534 aprobado,
 OK nominal de Sam, callerCaracas activo y smoke por SHA servido. PR/merge,
 migración, deploy y producción siguen siendo permisos/resultados distintos.
 C3móvil y demás tareas siguen fuera; SDD0576 permanece **in-progress**.
@@ -507,3 +507,14 @@ El asiento de factura ya no lo inserta JS: la RPC atómica de la 0497 lo fecha c
 (RLS de escritura de asientos); su contrato `.test.sql` en el CI es la prueba de
 los asientos bajo esa RLS. La rama `claude/sdd-0576-fechas-caracas-operaciones`
 reemplaza a la PR #312.
+
+## Renumeración 0500 → 0534 (2026-11-11)
+
+La migración C2 pasa a `0534_annual_billing_caracas` (contrato
+`supabase/tests/0534_annual_billing_caracas.test.sql`) por la misma razón que la
+C1: main llegó a la 0526, la 0500 no está aplicada en ningún entorno y 0528-0532
+están ocupadas. Sus dependencias pasan a 0527 (antes 0498) y 0533 (antes 0499).
+El preflight que compara el md5 de los cuerpos de 0411/0527 sigue valiendo: la
+renumeración de la 0527 sólo tocó literales del preflight, el postflight y la tabla
+temporal, no los cuerpos de las funciones. SHA-256 anterior `bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf`, nuevo
+`4ea257be32704d24b4ed06871c50a86cce6bac9f8d1c8f63ca4bbc923e5c7c45`. La rama `claude/sdd-0576-fechas-caracas-anuales` reemplaza a la PR #313.

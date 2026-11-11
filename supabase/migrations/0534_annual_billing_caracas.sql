@@ -1,4 +1,4 @@
--- 0500 · SDD-0576 C2 · Día civil Caracas para lecturas anuales.
+-- 0534 · SDD-0576 C2 · Día civil Caracas para lecturas anuales.
 -- Solo las tres fachadas completas; reloj de transacción, sin DML ni grants.
 -- MIGRATE-FIRST después de revisión y OK nominal. Las RPC ya existen:
 -- una app anterior puede enviar UTC válido por ±1 y leer otra ventana.
@@ -19,7 +19,7 @@ begin
       and p.proconfig @> array['search_path=""']
       and pg_catalog.pg_get_function_result(p.oid)=item.result_type
       and pg_catalog.md5(p.prosrc)=item.body_md5) then
-      raise exception '0500: fachada previa distinta de base 0411/0498: %', item.signature;
+      raise exception '0534: fachada previa distinta de base 0411/0527: %', item.signature;
     end if;
   end loop;
   if pg_catalog.to_regprocedure('annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric)') is null
@@ -28,12 +28,12 @@ begin
      or pg_catalog.to_regprocedure('public.current_studio_role()') is null
      or not exists (select 1 from pg_catalog.pg_policies where schemaname='public' and tablename='invoices' and policyname='invoices_accounting_select' and cmd='SELECT')
      or exists (select 1 from pg_catalog.pg_policies where schemaname='public' and tablename='invoices' and policyname='invoices_team_select') then
-    raise exception '0500: faltan prerrequisitos de base anual vigente';
+    raise exception '0534: faltan prerrequisitos de base anual vigente';
   end if;
 end;
 $preflight$;
 
-create temporary table annual_billing_0500_before on commit drop as
+create temporary table annual_billing_0534_before on commit drop as
 select p.oid, p.proowner, p.proacl, p.prosecdef, p.provolatile, p.proconfig, p.prolang,
        pg_catalog.pg_get_function_result(p.oid) as result_type,
        pg_catalog.pg_get_function_identity_arguments(p.oid) as arguments,
@@ -43,7 +43,7 @@ from pg_catalog.pg_proc p where p.oid in (
  'public.studio_client_annual_billing(date)'::regprocedure,
  'public.studio_client_annual_billing_v2(date)'::regprocedure,
  'public.get_portal_referral_program()'::regprocedure);
-create temporary table annual_billing_0500_helpers on commit drop as
+create temporary table annual_billing_0534_helpers on commit drop as
 select oid, pg_catalog.pg_get_functiondef(oid) as definition, proowner, proacl
 from pg_catalog.pg_proc where oid in (
  'public.to_usd(numeric,text,numeric)'::regprocedure,
@@ -305,15 +305,15 @@ $function$;
 -- service_role de0033; Portal/v2 lo revocaron. No se homogeneizan privilegios.
 do $postflight$
 begin
-  if exists (select 1 from annual_billing_0500_before b left join pg_catalog.pg_proc p on p.oid=b.oid
+  if exists (select 1 from annual_billing_0534_before b left join pg_catalog.pg_proc p on p.oid=b.oid
     where p.oid is null or (p.proowner,p.prosecdef,p.provolatile,p.prolang) is distinct from (b.proowner,b.prosecdef,b.provolatile,b.prolang)
       or p.proacl is distinct from b.proacl or p.proconfig is distinct from b.proconfig
       or pg_catalog.pg_get_function_result(p.oid)<>b.result_type
       or pg_catalog.pg_get_function_identity_arguments(p.oid)<>b.arguments
       or array(select pg_catalog.has_function_privilege(r,p.oid,'EXECUTE') from unnest(array['anon','authenticated','service_role']) r) is distinct from b.effective_acl)
-    or exists (select 1 from annual_billing_0500_helpers b left join pg_catalog.pg_proc p on p.oid=b.oid
+    or exists (select 1 from annual_billing_0534_helpers b left join pg_catalog.pg_proc p on p.oid=b.oid
       where p.oid is null or pg_catalog.pg_get_functiondef(p.oid)<>b.definition or p.proowner<>b.proowner or p.proacl is distinct from b.proacl) then
-    raise exception '0500: identidad, contrato, seguridad o helpers alterados';
+    raise exception '0534: identidad, contrato, seguridad o helpers alterados';
   end if;
 end;
 $postflight$;

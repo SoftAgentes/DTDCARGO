@@ -3,7 +3,7 @@
 -- tasas. Fixture sintético aislado; no ejecutar sobre una DB real. Aplica con
 -- \ir las migraciones REALES de la auditoría (0267, 0294), facturas (0077),
 -- contabilidad (0078) y tesorería (0088), y después 0495. Termina en ROLLBACK.
--- RED: psql -v apply_fix=false -f /sb/tests/0498_annual_billing_fx_v2.test.sql
+-- RED: psql -v apply_fix=false -f /sb/tests/0527_annual_billing_fx_v2.test.sql
 \if :{?apply_fix}
 \else
 \set apply_fix true
@@ -13,7 +13,7 @@ set local timezone='UTC';
 do $fixture_guard$
 begin
   if to_regclass('public.entity_audit_log') is not null or to_regclass('public.invoices') is not null then
-    raise exception 'TEST 0500: fixture rechazada, la base ya contiene objetos de aplicación';
+    raise exception 'TEST 0534: fixture rechazada, la base ya contiene objetos de aplicación';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -112,7 +112,7 @@ do $tenant_source$
 declare src text := pg_read_file('/sb/migrations/0453_portal_helpers_principal_determinista.sql'); definition text;
 begin
   definition := substring(src from '(create or replace function public.get_user_tenant_id\(\)[\s\S]*?\$\$;)');
-  if definition is null then raise exception 'TEST 0498: no se encontró helper real 0453'; end if;
+  if definition is null then raise exception 'TEST 0527: no se encontró helper real 0453'; end if;
   execute definition;
 end;
 $tenant_source$;
@@ -121,7 +121,7 @@ do $role_source$
 declare src text := pg_read_file('/sb/migrations/0200_rbac_disabled_enforcement.sql'); definition text;
 begin
  definition := substring(src from '(create or replace function public.current_studio_role\(\)[\s\S]*?\$\$;)');
- if definition is null then raise exception 'TEST 0500: falta current_studio_role real'; end if;
+ if definition is null then raise exception 'TEST 0534: falta current_studio_role real'; end if;
  execute definition;
 end;
 $role_source$;
@@ -148,8 +148,8 @@ create function public.conversation_client_outstanding(uuid) returns numeric lan
 create function public.sales_order_invoice_refs(uuid[]) returns jsonb language sql stable security definer set search_path='' as $$select '[]'::jsonb$$;
 \ir ../migrations/0414_invoices_read_rbac.sql
 
-create function pg_temp.fixture_id(label text) returns uuid language sql immutable as $$select md5('0498-synthetic-'||label)::uuid$$;
-insert into public.tenants values(pg_temp.fixture_id('A'),'fixture-0498-a','Sintético A'),(pg_temp.fixture_id('B'),'fixture-0498-b','Sintético B');
+create function pg_temp.fixture_id(label text) returns uuid language sql immutable as $$select md5('0527-synthetic-'||label)::uuid$$;
+insert into public.tenants values(pg_temp.fixture_id('A'),'fixture-0527-a','Sintético A'),(pg_temp.fixture_id('B'),'fixture-0527-b','Sintético B');
 insert into auth.users(id) select pg_temp.fixture_id(u) from unnest(array['admin','accounting','commercial','support','operations','disabled','ambiguous','other','portal','revoked','incoherent']) u;
 insert into public.user_tenants(user_id,tenant_id,role,disabled_at) select pg_temp.fixture_id(u),pg_temp.fixture_id(t),r,case when u='disabled' then now() end from (values
  ('admin','A','admin'),('accounting','A','accounting'),('commercial','A','commercial'),('support','A','support'),('operations','A','operations'),('disabled','A','commercial'),('ambiguous','A','commercial'),('ambiguous','B','commercial'),('other','B','commercial'))v(u,t,r);
@@ -177,8 +177,8 @@ select pg_temp.fixture_id(label),pg_temp.fixture_id(tenant),label,mark,'Cliente 
 update public.invoices set base_amount=80,iva_amount=20,iva_rate=25 where invoice_code='usd';
 
 
--- Base anual vigente en C1: estas funciones no cambiaron en0499.
-\ir ../migrations/0498_annual_billing_fx_v2.sql
+-- Base anual vigente en C1: estas funciones no cambiaron en0533.
+\ir ../migrations/0527_annual_billing_fx_v2.sql
 -- Todo lo siguiente pertenece solo a este fixture sintético y termina en rollback.
 \if :{?fixture_only}
 \else
@@ -189,7 +189,7 @@ commit;
 \else
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(value boolean,label text) returns void language plpgsql as $$begin
- if value is distinct from true then raise exception 'TEST 0500: %',label; end if; perform nextval('pg_temp.assertion_count'); end$$;
+ if value is distinct from true then raise exception 'TEST 0534: %',label; end if; perform nextval('pg_temp.assertion_count'); end$$;
 create function pg_temp.actor(actor text,sql text,role_name text default 'authenticated') returns jsonb language plpgsql as $$declare result jsonb; begin
  perform set_config('request.jwt.claim.sub',coalesce(pg_temp.fixture_id(actor)::text,''),true);
  execute format('set local role %I',role_name); execute sql into result; reset role; return result;
@@ -209,7 +209,7 @@ create temporary table c2_state as select
  (select jsonb_agg(to_jsonb(p) order by tablename,policyname) from pg_policies p where schemaname='public') policies;
 -- DDL íntegra y real PRIMERO: ninguna sustitución del reloj hasta el marcador.
 \if :apply_fix
-\ir ../migrations/0500_annual_billing_caracas.sql
+\ir ../migrations/0534_annual_billing_caracas.sql
 \endif
 create temporary table c2_after as
 select p.oid,p.proname,p.proowner,p.proacl,p.prosecdef,p.provolatile,p.proconfig,p.prolang,
@@ -227,7 +227,7 @@ select pg_temp.assert_true(pg_temp.actor('commercial',$q$select to_jsonb(x) from
 select pg_temp.assert_true((pg_temp.actor('commercial',$q$select to_jsonb(x) from public.studio_client_annual_billing((transaction_timestamp() at time zone 'America/Caracas')::date) x where client_markbox='DTD-BASE'$q$)->>'billed_usd')::numeric=110,'fase real v1 legada compatible');
 select pg_temp.assert_true(pg_temp.actor('portal','select public.get_portal_referral_program()')->'billing_v2'='{"version":2,"subtotal_usd":"215.00","sin_tasa_count":1,"conversion_state":"sin_tasa"}'::jsonb,'fase real Portal conserva futuro');
 select pg_temp.assert_true((pg_temp.actor('portal','select public.get_portal_referral_program()')->>'billed_usd')::numeric=115,'fase real Portal legado conserva futuro');
-select 'FASE REAL 0500 COMPLETA; solo después se instrumenta el reloj' as fase;
+select 'FASE REAL 0534 COMPLETA; solo después se instrumenta el reloj' as fase;
 
 -- Transformación SOLO en copias pg_temp de las tres definiciones medidas.
 -- Dos anclas por cuerpo: se aborta ante ausencia, cantidad extra o deriva.
@@ -240,10 +240,10 @@ begin
    if n=0 then
      anchor := 'current_date';
      n := (length(f.definition)-length(replace(f.definition,anchor,'')))/length(anchor);
-     if n<>2 then raise exception 'TEST 0500: deriva reloj histórico %: %',f.proname,n; end if;
+     if n<>2 then raise exception 'TEST 0534: deriva reloj histórico %: %',f.proname,n; end if;
      def := replace(f.definition,anchor,format('(%L::timestamptz at time zone current_setting(''TimeZone''))::date',instant));
    else
-     if n<>2 then raise exception 'TEST 0500: deriva reloj Caracas %: %',f.proname,n; end if;
+     if n<>2 then raise exception 'TEST 0534: deriva reloj Caracas %: %',f.proname,n; end if;
      def := replace(f.definition,anchor,format('%L::timestamptz',instant));
    end if;
    execute def;
@@ -384,6 +384,6 @@ $permissions$;
 \endif
 select pg_temp.assert_true((select bool_and(pg_get_functiondef(a.oid)=a.definition) from c2_after a),'copias de reloj restauradas íntegramente');
 select pg_temp.assert_true((select bool_and(pg_get_functiondef(h.oid)=h.definition) from c2_untouched h),'helpers originales restaurados sin instrumentación');
-select 'TEST 0500 GREEN: '||last_value||' aserciones' as resultado from assertion_count;
+select 'TEST 0534 GREEN: '||last_value||' aserciones' as resultado from assertion_count;
 rollback;
 \endif
