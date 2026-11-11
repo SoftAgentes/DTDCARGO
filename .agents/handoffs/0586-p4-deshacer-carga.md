@@ -180,7 +180,7 @@ Preparada en local, sin subir: el DG quiere que vaya «cuando convenga».
   - A1 a A9: una fila en cada tabla de actividad, menos `notes`, que ya prueba D1g. Las filas se arman con las columnas obligatorias de cada tabla y sus llaves foráneas.
   - Los mutantes son MD50 a MD68, uno por guarda.
   - **Lo que queda sin caso:** `:111-119` (bajar el detalle del log; provocar que `SET LOCAL` falle exige romper Postgres) y `:258-259` (la verificación final, que no se alcanza sin otra guarda rota). Las de `deshacer.sh` que citó el DG sobre `b2508e726` siguen como estaban, salvo las de B1.
-- **Las partes:** se suma la parte d, con MD49, MD50 a MD68 y MD30, que sale de la a. MD47 va en la b y MD48 en la c.
+- **Las partes:** se suma la parte d, con MD49, MD50 a MD68, MD30 (sale de la a), y MD32 y MD33 (salen de la b). Cada mutante del borrado suma D20 a D22, alrededor de 1 min. MD47 va en la b y MD48 en la c. **La estimación, sin medir:** a ~51 min, b ~45, c ~48, d ~50.
 - **En local:** `bash -n` pasó, y los textos de los mutantes aparecen una sola vez. **NO EJECUTADO:** `ruby -c` (no hay Ruby en la PC) y la prueba con Docker.
 
 ### Pendiente posterior (no bloqueante de la revisión del DG sobre `b2508e726`)

@@ -623,10 +623,11 @@ en_parte() { # id del mutante: ¿corre en esta parte?
   case "$1" in
     # La parte b tardó 54 min de 60 (job 129163939032 y run 42628321142): MD27, MD28 y MD30 (unos 4 min cada uno) pasan
     # a la parte a, que tardaba 28. Corren igual sobre el escenario del borrado.
-    MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD32 | MD33 | MD44 | MD45 | MD46 | MD47) suya=b ;;
+    MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD44 | MD45 | MD46 | MD47) suya=b ;;
     # La parte d (N1 a N3 del DG): los mutantes de las guardas del .rb (modo rb, sin la carga), MD49 y MD30, que sale
     # de la a para que la a no pase de ~55 min con los casos nuevos de la corrida real.
-    MD30 | MD49 | MD5[0-9] | MD6[0-8]) suya=d ;;
+    # MD32 y MD33 también: cada mutante del borrado suma D20 a D22 (~1 min), y la b se acercaba a 55.
+    MD30 | MD32 | MD33 | MD49 | MD5[0-9] | MD6[0-8]) suya=d ;;
     # B1 del DG: los mutantes de la huella (sin la carga, unos 1 a 2 min) se reparten entre la a y la c.
     MD1 | MD2 | MD15 | MD16 | MD17 | MD18 | MD19 | MD31 | MD39 | MD40 | MD41 | MD42 | MD48) suya=c ;;
   esac
