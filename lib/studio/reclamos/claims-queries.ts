@@ -194,19 +194,37 @@ export async function listClaimEntryCodes(
   const out = new Map<string, string>();
   if (claimIds.length === 0) return out;
 
-  const { data, error } = await supabase
-    .from("journal_entries")
-    .select("claim_id, entry_code")
-    .in("claim_id", claimIds)
-    .eq("status", "asentado")
-    .is("deleted_at", null);
-
-  if (error || !data) return out;
+  // SDD-0624: la 0528 cierra la lectura de `journal_entries` a quien no tiene
+  // el dinero, pero Reclamos lo ven commercial, operations y support. La RPC
+  // devuelve sólo (claim_id, entry_code), sin montos.
+  const rpc = await supabase.rpc("claim_indemnity_entry_codes", {
+    p_claim_ids: claimIds,
+  });
+  let data = rpc.data as { claim_id: string | null; entry_code: string }[] | null;
+  if (rpc.error && esFuncionAusente(rpc.error)) {
+    // Base sin la 0528 todavía: la lectura cruda sigue abierta ahí.
+    const viejo = await supabase
+      .from("journal_entries")
+      .select("claim_id, entry_code")
+      .in("claim_id", claimIds)
+      .eq("status", "asentado")
+      .is("deleted_at", null);
+    if (viejo.error) return out;
+    data = viejo.data as { claim_id: string | null; entry_code: string }[] | null;
+  } else if (rpc.error) {
+    return out;
+  }
+  if (!data) return out;
 
   for (const r of data) {
     if (r.claim_id) out.set(r.claim_id as string, r.entry_code as string);
   }
   return out;
+}
+
+/** PostgREST no encuentra la función (migración sin aplicar en esa base). */
+function esFuncionAusente(error: { code?: string; message?: string }): boolean {
+  return error.code === "PGRST202" || error.code === "42883";
 }
 
 /** Ejecuta el pago R3 gobernado de SDD-0229. */
