@@ -21,15 +21,15 @@
 
 ## 0 · Condiciones previas (todas, en cada entorno, antes de encender)
 
-| Condición | Estado el 2026-11-08 | Cómo se comprueba |
+| Condición | Estado el 2026-11-08 (T1 a T4, la 1c-1 y la 1c-1b: el 2026-11-11) | Cómo se comprueba |
 |---|---|---|
 | La 0519 aplicada | ✅ en prueba y en producción (cierre en la #435) | Ledger: `name = '0519_chatwoot_portal'` |
 | La 0520 aplicada | ✅ en prueba y en producción (cierre en la #437) | Ledger: `name = '0520_chatwoot_portal_vuelta'` |
-| **T1 a T4 en `main` y publicados en producción** (E10-D42): la línea de Soporte del portal y el `/privacidad` nuevo con su fecha | ❌ **todavía no están en `main`**; los prepara la hija del correo en su PR | Se mira en la web publicada: Soporte del portal muestra T1, y `/privacidad` muestra T2, T3 y la fecha de T4 |
+| **T1 a T4 en `main` y publicados en producción** (E10-D42): la línea de Soporte del portal y el `/privacidad` nuevo con su fecha | ✅ **verificado:** entraron a `main` en el tren #441 (`146d5ea5e`). `https://dtdcargo.com/privacidad` muestra «8 de noviembre de 2026», la fecha de T4, medido por el Subdirector el 2026-11-11 | Se mira en la web publicada: Soporte del portal muestra T1, y `/privacidad` muestra T2, T3 y la fecha de T4 |
 | La vía del atascado publicada (1b, #434): la tarjeta «Portal → Chatwoot» con «Reintentar los atascados» | ✅ publicada en los dos entornos (~04:20Z) | La tarjeta aparece en `/studio/bandeja` para un admin, con la bandeja configurada |
 | La web nueva publicada en el entorno | ✅ en prueba y en producción desde ~04:20Z (dato del Subdirector) | La imagen que corre incluye `efd7e70f6` o posterior |
-| **Solo producción: la 1c-1 (Studio en solo lectura, E10-D41) fusionada y publicada en producción** | ❌ en su PR, la #440 (rama `codex/0586-e10-5-1c-solo-lectura`) | La imagen de producción incluye el merge de la 1c-1. Con el flag encendido, un hilo del portal en Conversaciones de Studio muestra «Este hilo del portal se responde desde la Bandeja de Chatwoot.» y no tiene caja de respuesta |
-| **Solo producción: la 1c-1b (el hilo borrado) fusionada y publicada en producción** | ❌ sin escribir; arranca cuando la #440 esté en `main` | La imagen de producción incluye el merge de la 1c-1b. `setStatusAction` sobre un hilo borrado da «Conversación no encontrada.» y no escribe: el `update` lleva `deleted_at is null`. Antes, en un hilo del portal borrado, la traba de la 1c-1 no corría |
+| **Solo producción: la 1c-1 (Studio en solo lectura, E10-D41) fusionada y publicada en producción** | ✅ **verificado:** la #440 entró a `main` en el tren #441 (`146d5ea5e`). El DG midió en el VPS, el 2026-11-11, que la web de producción corre la revisión `2e2ddeb34` exacta, que la incluye | La imagen de producción incluye el merge de la 1c-1. Con el flag encendido, un hilo del portal en Conversaciones de Studio muestra «Este hilo del portal se responde desde la Bandeja de Chatwoot.» y no tiene caja de respuesta |
+| **Solo producción: la 1c-1b (el hilo borrado) fusionada y publicada en producción** | ✅ **verificado:** la #451 entró a `main` en el tren #452 (`2e2ddeb34`). El DG midió en el VPS, el 2026-11-11, que la web de producción corre esa revisión exacta | La imagen de producción incluye el merge de la 1c-1b. `setStatusAction` sobre un hilo borrado da «Conversación no encontrada.» y no escribe: el `update` lleva `deleted_at is null`. Antes, en un hilo del portal borrado, la traba de la 1c-1 no corría |
 
 **Sin T1 a T4 publicados en producción, el flag no se enciende en producción.** En prueba se pueden publicar antes, con la misma PR.
 
