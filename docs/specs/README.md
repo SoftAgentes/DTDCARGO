@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 582 specs)
+### Índice de specs (generado · 605 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -604,9 +604,13 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0581 | Diagnóstico local de medición Ads y CSP | done | interno |
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
 | 0583 | Chatwoot CE en el VPS del ERP (etapa E1 del programa SDD-0582) | in-progress | interno |
+| 0584 | Protección de /register y /deregister de WhatsApp en Chatwoot… | in-progress | interno |
 | 0585 | Bandeja de Chatwoot dentro de Studio, usuarios y permisos (et… | in-progress | interno |
 | 0586 | Enrutamiento por segmento desde el ERP (etapa E10 del program… | in-progress | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
+| 0588 | Actualizaciones de Chatwoot desde Studio (etapa E3 del progra… | in-progress | interno |
+| 0589 | Motor de guía propio y liviano en Studio (E9 del programa SDD… | in-progress | interno |
+| 0590 | Historial de Kommo: respaldo cifrado fuera de Git y medición … | in-progress | interno |
 | 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
 | 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
 | 0593 | Escribir asientos queda para accounting y admin; las cuentas … | in-progress | interno |
@@ -620,6 +624,25 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
 | 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
 | 0603 | Claridad de controles: qué se oprime, qué avisa y qué solo se… | in-progress | interno |
+| 0604 | SEO, GEO y AEO: fase A, mejoras estáticas del sitio público | in-progress | interno |
+| 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
+| 0606 | Avisos del Studio: de Telegram a Discord | in-progress | interno |
+| 0607 | Puente de ALFRED en el repositorio y corte de la oficina a Di… | proposed | interno |
+| 0608 | Consulta de clientes desde Discord: /cliente | in-progress | interno |
+| 0609 | Avisos del servidor: de Telegram a Discord | in-progress | interno |
+| 0610 | Resumen semanal agregado del CRM para marketing, sin datos pe… | proposed | interno |
+| 0611 | Publicación automática de noticias en /noticias, con filtros | in-progress | interno |
+| 0612 | Avisos de Paperclip a #actividad-oficina y resumen diario de … | proposed | interno |
+| 0613 | SEO, GEO y AEO: fase B, revisión en servidor, Search Console … | proposed | interno |
+| 0614 | Reemplazos de Kommo en el ERP: vista CRM nueva, ficha desde l… | draft | interno |
+| 0615 | ALFRED con Claude Code, un crítico con Codex y envoltorios ai… | proposed | interno |
+| 0616 | Carga de leads, etapas, tareas, asesores e IDs de Kommo al CR… | draft | interno |
+| 0617 | Reemplazo de los 15 Salesbots de Kommo y costo de los «Ping 2… | draft | interno |
+| 0618 | dtd-bot: el bot propio de Chatwoot, apagado de nacimiento (E7… | draft | interno |
+| 0619 | Inventario para la limpieza de Kommo (paso 8.10 de la SDD-0582) | draft | interno |
+| 0620 | Respaldo cifrado de los archivos del Storage de Studio | in-progress | interno |
+| 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
+| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0584, 0588, 0589, 0590 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0622 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

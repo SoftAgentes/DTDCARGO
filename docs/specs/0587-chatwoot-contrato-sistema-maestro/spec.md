@@ -105,6 +105,8 @@ Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [fila 6.1](.
 
 La etapa 6 es nueva: Kommo daba el lead por ganado al aceptar el estimado, pero con la regla de 0.8 la persona no es cliente hasta tener carga.
 
+> **Enmienda del 2026-11-06** (Sam, en el chat del Director General): la etapa 3 se llama **«Recontacto»**, con la misma clave `registrado_recontacto`. «Con código» deja de ser etapa: se ve como tipo de lead en la tarjeta («Interesado» o «Interesado con código»). Entra también el lead que escribe después de 30 días callado; si ya va por la etapa 4 o más adelante, no retrocede y recibe solo una marca y una tarea. Diseño en la [SDD-0614 §2.9](../0614-crm-reemplazos-kommo/spec.md), sin aplicar.
+
 ### 4.4 Tablero Clientes (etapas propuestas, decisión D2)
 
 El estado operativo (en almacén, en tránsito, en aduana, entregado) **no se repite como etapa**: ya lo tiene el envío del ERP y la tarjeta lo muestra como insignia. El tablero sigue la relación comercial, como el bucle de recompra de [`embudo-ventas.md` §5](../../marketing/embudo-ventas.md).
@@ -243,6 +245,8 @@ Studio **no** escribe en Chatwoot nombres, teléfonos, códigos ni notas. La Fic
 | D9 | Asesor | (a) Dueño de la tarjeta separado del asignado del chat, con valor inicial (§5.4) · (b) sincronizarlos siempre | **(a)**: evita un ida y vuelta de eventos y conflictos |
 | D10 | Análisis de llamadas con IA (widget NOVA) | (a) Sin reemplazo · (b) buscar uno | **(a)**: Chatwoot no maneja llamadas en el alcance del 100 % |
 
+> **Enmienda de D6 del 2026-11-06** (Sam, en el chat del Director General): la tarjeta del lead sin ficha guarda también el **teléfono completo**, para Recuperación (D-6.6-8 = b), y la anonimización a los 12 meses sin actividad alcanza a toda tarjeta de quien no es cliente, en cualquier etapa, no solo en «Perdido» (D-6.6-9 = a). Con ficha no se copia nada, como antes. Diseño, migración propia y textos de `/privacidad` en la [SDD-0614 §2.10, §6.1 y §14](../0614-crm-reemplazos-kommo/spec.md). Nada de eso está aplicado ni publicado.
+
 ### Lecturas vivas propuestas (no se hicieron)
 
 El «si» de Sam cubre D1–D10, **no** estas lecturas: cada una sigue pidiendo su OK. L3 hace falta antes de aplicar D7 en 6.4, y L1 confirma D4 antes de 6.5.
@@ -251,7 +255,7 @@ El «si» de Sam cubre D1–D10, **no** estas lecturas: cada una sigue pidiendo 
 |---|---|---|---|
 | L1 | Conteo de `kommo_leads` por etapa y por antigüedad de la última actividad, en el espejo de producción. Solo conteos | Dimensionar 6.5 y confirmar D4 | OK de Sam: es lectura de producción, aunque sin PII |
 | L2 | Nombres y cantidad de las etiquetas de Kommo (`GET /api/v4/leads/tags`) | Decidir D5 y el mapeo | OK de Sam; los nombres van a la nota cifrada si nombran personas |
-| L3 | Si `KOMMO_PUSH_DRY_RUN` vale `"false"` en la función de Supabase (solo sí o no) | D7 | OK de Sam |
+| L3 | Si `KOMMO_PUSH_DRY_RUN` vale `"false"` en la función de Supabase (solo sí o no) | D7 | **Leída el 2026-11-05: no vale `"false"`.** OK de Sam: «Sí, léelo». Ver la sección de esa fecha, al final |
 | L4 | Si WhatsApp Lite, Google Business Messages y Twilio tienen tráfico en Kommo | §6.2 | OK de Sam; lectura en la interfaz |
 
 ## 9. Reestimación de 6.2 a 6.7
@@ -310,7 +314,23 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts` (solo la frase de la campaña, §16.8 punto 7, con el OK de Sam del 2026-11-03)
 - `app/studio/(app)/crm/_components/KommoClient.tsx` y `app/studio/(app)/crm/__tests__/stage-control.test.ts` (solo el encabezado: decía «solo lectura» y «todavía no modifica nada» con Embudos ya guardando. Lo pidió el Director General, 2026-11-04)
 
+**`/privacidad` con Instagram** (2026-11-05, encargo del Director General con el texto que aprobó Sam):
+
+- `app/privacidad/page.tsx` (solo los dos textos, la fecha y su comentario), `app/__tests__/privacidad-chat.test.ts` y `app/__tests__/faq-seguimiento-coherente.test.tsx` (solo la fecha)
+- `docs/legal/privacidad/inventario-terceros.md` (la fila de Meta y la frase de «datos reales» de la sección 2 bis)
+- `.agents/handoffs/0587-privacidad-instagram.md`
+
+**`/privacidad` con el proveedor de gestión de clientes** (2026-11-05, encargo del Director General con el texto que aprobó Sam):
+
+- `app/privacidad/page.tsx` (solo los tres textos y su comentario), `app/__tests__/privacidad-chat.test.ts` y `app/__tests__/faq-seguimiento-coherente.test.tsx` (solo ese texto)
+- `docs/legal/privacidad/inventario-terceros.md` (la fila de Kommo)
+- `docs/legal/privacidad/revision-0487-perfil-empresa-2026-09-19.md` (solo la corrección de `doc_kind`)
+- `docs/runbooks/deploy-kommo-push-client.md` (solo el aviso del paso 3; lo autorizó el Director General, 2026-11-05)
+- `.agents/handoffs/0587-privacidad-proveedor-crm.md`
+
 Los pasos 6.5 en adelante suman aquí su allowlist al empezar.
+
+**6.6** vive en su propia SDD, la [0614](../0614-crm-reemplazos-kommo/spec.md), por asignación del Director General (2026-11-06): su diseño y su allowlist están allí, y este contrato sigue mandando.
 
 ## 11. Aceptación de 6.1
 
@@ -512,7 +532,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 
 ### 16.4 D7: dejar de empujar a Kommo
 
-**Puerta sin abrir.** `CRM_ALTA_WEB_SIN_KOMMO` (`altaWebSinKommo`, `lib/studio/crm-alta-web.ts`) está apagado: solo `"1"` lo enciende, y vacío o cualquier otro valor deja la conducta de hoy, probado valor por valor. **Falta, en este orden:** la lectura L3 con OK de Sam (si `KOMMO_PUSH_DRY_RUN` vale `"false"`, solo sí o no); decidir con ese resultado; cargar la variable en el `.env` del servidor. Mientras esté apagado, un alta web de F2 nace con dos maestros, que es lo que D7 evita al encenderlo.
+**Puerta sin abrir.** `CRM_ALTA_WEB_SIN_KOMMO` (`altaWebSinKommo`, `lib/studio/crm-alta-web.ts`) está apagado: solo `"1"` lo enciende, y vacío o cualquier otro valor deja la conducta de hoy, probado valor por valor. **Falta, en este orden:** ~~la lectura L3 con OK de Sam (si `KOMMO_PUSH_DRY_RUN` vale `"false"`, solo sí o no);~~ **hecha el 2026-11-05: no vale `"false"`, el alta web simula (sección de esa fecha, al final);** decidir con ese resultado; cargar la variable en el `.env` del servidor. Mientras esté apagado, un alta web de F2 nace con dos maestros, que es lo que D7 evita al encenderlo. Eso vale si `KOMMO_PUSH_DRY_RUN` cambia: hoy el alta invoca la función y la función no escribe.
 
 ### 16.5 Límites conocidos
 
@@ -522,6 +542,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 - **UTM solo si llegan a `/registro`, y hoy casi ninguno llega.** Ningún enlace del sitio los lleva: los que apuntan ahí usan `?origen=`, `?est=` o `?ref=`, y los UTM de `/enlaces` van a otras páginas. Así que, por ahora, la atribución guardada es sobre todo el `origen`, salvo que un anuncio apunte directo a `/registro`. Conservarlos mientras la persona navega es una decisión aparte (cookie o almacenamiento del navegador, con su análisis de privacidad): **no se hizo**.
 - **`conversation_updated` puede llegar antes que la tarjeta:** no hace nada, y el asesor llega con el siguiente mensaje, que trae el asignado.
 - **Canales fuera del mapa** (`Channel::WebWidget`, Telegram, SMS y otros) no crean tarjeta. Si se conecta uno, hay que sumarlo a `fuenteDeCanal` y al `check` de `crm_tarjetas.fuente`.
+- **Una conversación que abre DTD también crea tarjeta:** visto en producción el 2026-11-04. Está al final de esta spec, en «Pendiente de E6», y lo decide Sam.
 
 ### 16.6 Aceptación de 6.4
 
@@ -536,7 +557,8 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 - [x] Control rojo y mutantes (§16.7): 43 de 43 del contrato y 7 de 7 de `/registro` y del manejador caen.
 - [ ] `pnpm verify` (§16.7).
 - [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo. Sam cambió cómo se hace el 2026-11-03, en el chat del Director General: «Probar WhatsApp al publicar». En prueba, con cuenta aparte y sin datos reales: entrega firmada, conversación creada → tarjeta, asignar asesor, mensaje entrante (contador y aviso) y enrutamiento. En producción, justo después de publicar la tanda A, desde su teléfono al número de prueba: tarjeta por primer mensaje, volver desde «Perdido», fuente WhatsApp, teléfono y BSUID reales. Si falla la tarjeta, se quita el webhook.
-- [ ] L3, y con ella D7: puerta de Sam.
+- [x] L3: leída el 2026-11-05, con «Sí, léelo» de Sam. No vale `"false"`.
+- [ ] D7, encender `CRM_ALTA_WEB_SIN_KOMMO`: puerta de Sam, ya con ese resultado.
 - [ ] Aplicar la 0513: puerta de Sam.
 - [x] Aceptación de Sam de la fila 6.4 (2026-11-03, en el chat del Director General, por el selector, a «¿Aceptas el paso 6.4? Sus pruebas de código pasan, pero nunca corrió contra un Chatwoot real»: «Acepto, con ese límite»; lo registra el Subdirector según la nota del Director General). Queda aceptado el código. El límite: sin probar contra un Chatwoot real, y esa prueba se hace en prueba antes de llevarlo a producción; dos tarjetas de la misma persona no se fusionan (§16.5); crear o ligar una tarjeta no deja rastro en la auditoría (AUD-01, abajo). No aplica ninguna migración: la 0513 lleva su propio OK.
 
@@ -612,6 +634,216 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **OK literal de Sam:** «Doy el mandato», en el chat del Director General, a «¿Das el mandato para terminar las fases 2, 3 y 4 sin detenerme?», 2026-11-03 ~20:10Z. Punto 2 del texto que vio: «Aplicar, primero en prueba y luego en dtd-cargo, de a una y con lectura previa». Registrado a nombre del Director General; el texto íntegro está en `AUTORIZACION.txt` de cada evidencia.
 - **Ensayo en prueba:** las seis aplicadas de a una el 2026-11-04 sobre `5fbb25045`. Sobre la imagen de `56cb9f6d5`, sin cambio de blobs, `prueba-punta-a-punta.sh` dio 48 PASÓ y `prueba-reproceso.sh` 35 PASÓ, con 0 fallas. Evidencia en `/srv/ops/evidencias/chatwoot-e2e-prueba/`. Lo que depende de un WhatsApp real se prueba al publicar (`docs/runbooks/chatwoot-bandeja.md`).
 - **Respaldo previo:** no se tomó uno antes de este apply. Fue una omisión del Director General, no una decisión. El más reciente es `dtd-cargo-20261103T170055Z`, unas 11,5 horas antes, el que tomó para la 0510 y la 0511. Él lo acepta porque las seis son objetos nuevos y aditivos y la marcha atrás no depende de restaurar. El automático corre a las 06:00Z y la publicación lleva el suyo.
-- **Merge:** lo hace el Director General después de leer el CI; su hora se registra al fusionar.
+- **Merge:** #336, 2026-11-04T08:19:50Z, `6cc14bd9c`; #337 (el tablero), 2026-11-04T09:05:05Z, `60d265fbc`; #364, 2026-11-04T09:55:14Z, `d62b06f6b`. Todas por el Director General.
 - **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
+
+## 2026-11-04 · Al publicar: la prueba de WhatsApp y un pendiente de E6
+
+Publicada en `dtd-cargo` la imagen de `fe35eb2d1` a las 12:41:54Z, con el webhook de la cuenta 1 creado por Sam a las 12:37:58Z; las dos horas son las que reportó el Director General. Lo de abajo son conteos y horas, sin contenido de mensajes ni datos de personas.
+
+### La prueba desde el 5202
+
+| # | Medida | Estado |
+|---|---|---|
+| W1 | 2 `message_created`, 13:08:07Z y 13:08:41Z, `procesado` al primer intento | PASÓ |
+| W2 | 1 tarjeta a las 13:08:08Z: `whatsapp_clientes`, etapa `nuevo`, con teléfono y contacto, sin ficha | PASÓ |
+| W3 | Bandeja 2, 2 no leídos | PASÓ |
+| W4 | Sam ve su tarjeta en Embudos. Contestó «Sí, la veo»; es su ojo, sin medida aparte | PASÓ, según Sam |
+| W5 | Pasar la tarjeta a Perdido con motivo. A las 21:49Z no se ha hecho. Sí hay 2 cambios `manual` con actor y sin motivo: 21:02:28Z, la de Instagram, `nuevo` → `negociacion`; 21:02:31Z, la de WhatsApp, `nuevo` → `aceptado_esperando_carga`. Prueban que mover deja historial | PENDIENTE |
+| W6 | Volver a escribir desde Perdido: depende de W5. 0 tareas de recontacto a las 21:49Z | PENDIENTE |
+| W7 | El segundo mensaje no duplicó la tarjeta. Falta repetirlo después de W6 | Parcial |
+| W8 | Sin agentes vinculados; el asesor ya se probó en prueba | NO APLICA |
+| BSUID | Solo se guarda de un usuario sin teléfono, y este lo trae | NO VERIFICABLE |
+
+**W5 a W7, el 2026-11-06: pendientes sin medir.** Ni el Director General ni el Subdirector contaron esas tablas después de las 21:49Z del 2026-11-04, y no hay hora de ninguno de los tres pasos. Para cerrarlos, cada uno con su hora de inicio y solo conteos, sin datos de personas:
+
+| # | Lo que hace Sam | Qué se cuenta, desde esa hora | Condición para PASÓ |
+|---|---|---|---|
+| W5 | En Embudos, pasa su tarjeta a **Perdido**, con motivo | `crm_historial_etapas`, filas de su tarjeta | Una fila nueva hacia Perdido, con motivo |
+| W6 | Escribe otro mensaje al 5202 | `crm_tarjetas`, la etapa de su tarjeta; `crm_tareas`, tareas de esa tarjeta | La tarjeta vuelve a **Registrado / recontacto**, y hay una tarea «Volvió a escribir: recontactar» |
+| W7 | Escribe un mensaje más | `crm_tarjetas`, tarjetas de su contacto | Sigue una sola |
+
+**Contar en producción pide un OK de Sam para esa consulta en concreto.** El Director General lo pone en la lista de Sam.
+
+La conversación existía desde 2026-10-30T17:01:12Z, así que la tarjeta nació del mensaje entrante y no de `conversation_created`. Es el camino que prueba no podía cubrir (`docs/runbooks/chatwoot-bandeja.md`). Que esos dos mensajes sean de Sam es inferencia por la hora y la bandeja, hasta que lo confirme.
+
+### Pendiente de E6: una conversación que abre DTD crea una tarjeta de lead
+
+**Lo medido** (Chatwoot y `dtd-cargo`, 19:50Z). En la bandeja 5, Instagram, desde el corte de `rails` de las 08:29:22Z hay 0 entrantes, 2 salientes sin remitente (18:22:02Z y 19:33:20Z) y 1 mensaje de actividad (19:33:23Z). El último entrante es de 2026-11-03T14:31:08Z. El saliente de las 19:33:20Z abrió una conversación nueva, y a las 19:33:22Z nació una tarjeta `instagram`, etapa `nuevo`, sin teléfono ni ficha y con contacto. Esa persona no había escrito en esa conversación.
+
+**Lo leído.**
+- `lib/studio/chatwoot/entrada-leads.ts:25` deja entrar todo `conversation_created`, sin mirar quién escribió. Pasa igual con una conversación que un agente abra desde Chatwoot en una bandeja con fuente.
+- En Chatwoot 4.19.1, `app/jobs/webhooks/instagram_events_job.rb` trata `is_echo` como un saliente de la cuenta.
+- En WhatsApp, `app/jobs/webhooks/whatsapp_events_job.rb` hace lo mismo con el campo `smb_message_echoes`, y `app/services/whatsapp/incoming_message_base_service.rb:172` deja el remitente vacío.
+
+**Lo inferido.** Alguien de DTD escribió desde la app de Instagram y a Chatwoot le llegó el eco. Sale de ver saliente sin remitente; no se comprobó en Meta. Si es así, la entrada de Meta a Chatwoot sigue viva tras el corte.
+
+**Lo no medido.**
+- Si el 5202 o cualquier otra bandeja con eco crearía una tarjeta igual cuando alguien de DTD escribe desde el teléfono. El código de Chatwoot lo permite en WhatsApp si Meta entrega `smb_message_echoes`; no se sabe si los entrega para ese número.
+- El primer entrante real de Instagram tras el corte: sigue sin llegar.
+
+**La decisión es de Sam:** si alguien a quien DTD le escribió primero cuenta como lead. Se la presenta el Director General. El código no cambia hasta que decida, y las sesiones no borran ni mueven esa tarjeta. Sam la movió a `negociacion` a las 21:02:28Z; eso no se toma como su decisión.
+
+**2026-11-05, lo que dijo Sam, por el Director General:** «Déjalo como pendiente para más adelante.» **No es una decisión tomada, y el código no cambia.** Adelantó un criterio que él mismo no da por definitivo:
+
+- Si es un cliente no registrado, es lead.
+- «si es otra cosa, tenemos que analizarlo».
+- Con plantilla, «sería lead automáticamente, pero puedo obtener la opción de ponerle si es otro asunto. Yo creo que sí entraría en lead.»
+
+Para decidir faltan dos cosas: la opción de marcar «otro asunto», que hoy no existe, y lo no medido del 5202.
+
+**Primer entrante real de Instagram después del corte**, medido el 2026-11-05 a las 01:10Z, con hora y dirección y sin contenido:
+
+- Dos entrantes, a las 00:29:48Z en la conversación 31 y a las 00:54:17Z en la 32. Los dos `incoming` con remitente `Contact`, no eco.
+- Tarjetas `instagram` en `nuevo` a las 00:29:50Z y 00:54:21Z, 2 y 4 s después, según el Director General. El vínculo por id no está comprobado, solo la hora.
+
+Así que la entrada de Meta a Chatwoot siguió viva después del corte de `rails`.
+
+## 2026-11-05 · `/privacidad` nombra Instagram
+
+**Por qué.** La bandeja 5 tiene 10 entrantes de 9 remitentes desde 2026-10-31T22:36Z (conteo del Director General, sin nombres ni contenido). Sam dijo «Son clientes», a «¿Quién escribió por Instagram?»: es dicho por Sam, no medido. `/privacidad` no nombraba Instagram y entre los proveedores nombraba a Meta solo por WhatsApp.
+
+**Decisiones de Sam, por el selector, en el chat del Director General; las registra el Subdirector:**
+
+- A «Instagram ya recibe clientes reales sin la revisión de Meta. ¿Cómo queda?»: «Dejarlo conectado (Recommended)». Messenger y el envío a App Review siguen como estaban.
+- A «/privacidad no nombra Instagram y ya entran datos de clientes por ahí. ¿Apruebas este cambio de texto?»: «Apruebo este texto (Recommended)». La opción decía: «Entra a main con estas palabras y se publica con la tanda C, con la fecha de actualización nueva.»
+- A la pregunta sobre si ajustar el texto, después de ver lo que guarda Chatwoot del perfil: «Apruebo el texto ajustado (Recommended)». Ese párrafo reemplaza al de la respuesta anterior.
+
+**Lo que trajo el ajuste** (conteos del Director General, 2026-11-05, sin leer valores). De los 9 contactos de la bandeja 5: 9 con foto, 9 con usuario, 9 con número de seguidores, 4 con «sigue a la cuenta», 9 con ID en `contact_inboxes`, 0 con teléfono, 0 con correo y 0 desconocidos.
+
+**Texto aprobado**, palabra por palabra:
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Párrafo «Mensajes por WhatsApp y chat» | «Si nos escribes por WhatsApp u otro canal de chat: tu nombre y tu teléfono tal como aparecen en ese canal y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.» | «Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal, los datos de tu perfil que ese canal nos entrega (en Instagram, por ejemplo: un código de tu cuenta, tu foto, tu número de seguidores y si sigues nuestra cuenta) y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.» |
+| Lista de proveedores | «**Meta (WhatsApp)**, que transporta los mensajes que nos envías y te enviamos por WhatsApp.» | «**Meta (WhatsApp e Instagram)**, que transporta los mensajes que nos envías y te enviamos por esos canales.» |
+| Fecha, `UPDATED` | «4 de noviembre de 2026» | «5 de noviembre de 2026» |
+
+La frase del sistema de atención no cambia. `privacidad-chat.test.ts` fija los dos textos completos. La fila de Meta de `docs/legal/privacidad/inventario-terceros.md` queda con Instagram activo y Messenger pendiente.
+
+**Evidencia:**
+
+| Comprobación | Resultado |
+|---|---|
+| `privacidad-chat.test.ts` y `faq-seguimiento-coherente.test.tsx` | PASÓ: 17 de 17 |
+| Mutantes del texto: Instagram fuera del párrafo, «tu usuario o» fuera, los datos del perfil fuera, «tu foto» fuera, «si lo tenemos» fuera, fila de Meta vieja, «por esos canales», «propio sistema», fecha vieja | PASÓ: 9 de 9 caen, con el control en verde antes y después |
+| Citas del texto viejo | Las 2 pruebas de arriba y `.agents/handoffs/0582-guion-publicacion-tanda-a.md`, que es historia y no se toca. Ningún guion ni `scripts/` lo cita |
+| `pnpm verify` | NO EJECUTADO: necesita turno; el cambio son textos y sus pruebas |
+
+### revisar-datos-ve de este cambio
+
+Sobre lo que suma Instagram. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal. Lo de Chatwoot se leyó en el contenedor del VPS, imagen 4.19.1, sin datos de personas.
+
+**Resumen:** 3 ENCONTRADO, 3 CORRECTO, 5 NO VERIFICABLE y 1 no aplica.
+
+**Inventario que suma Instagram:**
+
+| Dato | Dónde | De quién | Retención |
+|---|---|---|---|
+| Contenido de la conversación y adjuntos | Chatwoot | Quien escribe por Instagram | Sin definir en Chatwoot (§14.3, punto 8) |
+| Nombre, usuario, foto, seguidores, si sigue a la cuenta, si la cuenta lo sigue y si está verificado. Meta los entrega: ver los conteos de arriba | Contacto de Chatwoot: nombre, avatar y `additional_attributes` | Igual | Igual |
+| ID de Instagram de esa persona para la app; si Meta niega el perfil, va también en el nombre, «Unknown (IG: …)» | `contact_inboxes.source_id` y nombre del contacto, en Chatwoot | Igual | Igual |
+| Nombre visible e ID de contacto, sin teléfono | `crm_tarjetas`, fuente `instagram` | Lead sin ficha | 12 meses sin actividad si está perdido (§14.3) |
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | Tabla de arriba. `fetch_instagram_user` (`app/services/instagram/message_text.rb:10`), `webhooks_base_service.rb:26` y `:40-54`; `entrada-leads.ts:50-60` |
+| 2 | Minimización | ENCONTRADO | Chatwoot pide y guarda foto, seguidores y las banderas de seguimiento, y Studio no los lee: `git grep` no halla `social_instagram`, `follower_count` ni `profile_pic` en `lib/`, `app/` ni `components/`. Es código de Chatwoot. Meta los entrega hoy, según los conteos de arriba, y la política ya lo dice. Arreglo posible: un `zz_dtd_*` que limite los campos, con SDD propia |
+| 3 | Consentimiento | NO VERIFICABLE | Sigue el punto 3 de §14.3: la tarjeta se crea sola con el primer mensaje. La base de licitud la decide Sam con su asesor |
+| 4 | Derechos | NO VERIFICABLE | Depende de «Anonimizar ahora» de 6.6 (§14.3). Para Instagram no hay teléfono con el que encontrar a la persona si lo pide: se busca por usuario, si Meta lo entregó |
+| 5 | Borrado | NO VERIFICABLE | En la tarjeta es igual para todas las fuentes: `crm_anonimizar_leads_perdidos` no filtra por fuente (`0506_crm_modelo.sql:768-774`); falta su cron, de 6.6. En Chatwoot sigue sin plazo (§14.3, punto 8), y la conversación queda también en la cuenta de Instagram, en Meta. No se probó contra una base real |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3 |
+| 7 | Política pública | ENCONTRADO | **Corregido:** Instagram, los datos del perfil, el código de la cuenta y el «si lo tenemos» del teléfono (`app/privacidad/page.tsx:57` y `:257`). **Quedan dos puntos sin corregir, en la lista del Director General para Sam:** (a) «nuestro propio sistema de atención», cuando las 5 respuestas reales de la bandeja 5 se escribieron por fuera de Chatwoot, y ninguna por la API, según el conteo del Director General, que filtra las 2 notas privadas; (b) la bandeja 4 de Messenger está conectada y la fila de Meta no la nombra. Lo publicado obliga por haberse publicado |
+| 8 | Terceros | CORRECTO | Fila de Meta en `inventario-terceros.md`. El contrato con Meta y sus términos no se revisaron. Si los salientes por fuera pasan por otra herramienta conectada, sería otro tercero: sin medir |
+| 9 | Transferencia internacional | NO VERIFICABLE | Meta recibe estas conversaciones como las de WhatsApp. Dónde las procesa no se revisó; sigue el punto 9 de SDD-0585 |
+| 10 | Decisiones automatizadas | CORRECTO | La respuesta automática de E10 no toca Instagram: `enrutar.ts:43` solo sigue en la bandeja de leads. La auto-asignación a una cuenta no decide sobre la persona |
+| 11 | Aceptación electrónica | No aplica | Este cambio no registra aceptaciones |
+| 12 | Titulares que no son usuarios | ENCONTRADO | Quien escribe por Instagram no pasó por ningún registro ni recibe aviso al escribir. Desde 2026-10-31 hasta que salga este texto, `/privacidad` no lo nombró; lo cubría solo «otro canal de chat», desde la tanda A. Si hace falta un aviso en el canal lo decide Sam con su asesor |
+| — | Logs | ENCONTRADO fuera del conteo | Son dos líneas de código de Chatwoot. (1) `instagram_events_job.rb:53` escribe a nivel `info` todo lo que entrega Meta de cada mensaje, con ID del remitente y texto (`LOG_LEVEL` por defecto `info`, `infra/chatwoot/compose.yml:105`, rotación de 10 MB por 5 archivos). Corre en cada entrante. (2) Si un envío falla, `base_send_service.rb:65` escribe el destinatario y el texto. `zz_dtd_redaccion_logs.rb` tapa `payload=`, correos y teléfonos, no esto. El valor vivo de `LOG_LEVEL` y las líneas reales no se leyeron |
+| — | Fixtures | CORRECTO fuera del conteo | Las pruebas nuevas solo contienen el texto de la política |
+
+La skill recomienda una segunda opinión: otro modelo puede auditar este mismo diff. **Lo que hace falta de un abogado:** la base de licitud y el pase de la política, que sigue sin hacerse.
+
+## 2026-11-05 · Lectura L3 y `/privacidad` con el proveedor de gestión de clientes
+
+**Por qué.** Sam aclaró el 2026-11-05 que Instagram sigue conectado a Kommo y que las contestaciones salen por ahí: «Por ahorita, el Instagram está conectado a Kommo también». `/privacidad` decía que las conversaciones se atienden «en nuestro propio sistema de atención» y no mencionaba a ese proveedor. Es el punto (a) de §«`/privacidad` nombra Instagram», punto 7.
+
+### Lectura L3
+
+**Autorización de Sam, en el chat del Director General; la registra el Subdirector.** A «¿Autorizas leer en producción si el envío a Kommo escribe de verdad?»: «Sí, léelo». La leyó el Director General a las 16:30Z, solo sí o no:
+
+| Qué | Resultado | Qué significa |
+|---|---|---|
+| `KOMMO_PUSH_DRY_RUN` en `dtd-cargo-functions-1` | Definida y **no** vale `"false"` | El alta web simula: invoca `kommo-push-client` y la función no escribe (`supabase/functions/kommo-push-client/index.ts:109-110`) |
+| `kommo_connections` | 1 fila, `writeback_enabled=true`, `writeback_dry_run=false` | **Studio escribe de verdad** en Kommo |
+| `contact_saldo_field_id` y `contact_transito_field_id` en esa fila | **Ninguno configurado** | Hoy el cron `kommo-contact-status` no marca saldo ni carga |
+
+Esos dos campos los cubre otra respuesta de Sam. A «El Subdirector encontró otro envío a Kommo: un cron diario puede marcar si cada cliente tiene saldo pendiente y carga en tránsito, solo si esos dos campos están configurados. ¿Autorizas leer si lo están (sí o no por campo, sin datos de clientes)?»: «Sí, léelos (Recommended)». Los leyó el Director General a las 18:15Z, solo sí o no. **Llenarlos obliga a volver con Sam**, igual que cambiar `KOMMO_PUSH_DRY_RUN`: el aviso está en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`.
+
+**No se midió** si la cola tiene envíos, ni qué había antes de la mudanza. L1, L2 y L4 siguen sin OK. Este resultado es la base de D7 en 6.4; encender `CRM_ALTA_WEB_SIN_KOMMO` sigue siendo una puerta aparte (§16.4).
+
+### Decisión de Sam y texto aprobado
+
+Por el selector, en el chat del Director General; las registra el Subdirector:
+
+- Primero: «Sin nombrar a Kommo (Recommended)», de acuerdo con su decisión de julio de dejar a los proveedores en genérico.
+- Con L3 y las comprobaciones de abajo, a «¿Apruebas este texto para /privacidad?»: «Apruebo este texto (Recommended)». Sustituye al texto de la primera respuesta.
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| §4, Meta | «…por esos canales. Las conversaciones las atendemos en nuestro propio sistema de atención, alojado en nuestro servidor.» | «**Meta (WhatsApp e Instagram)**, que transporta los mensajes que nos envías y te enviamos por esos canales.» |
+| §4, punto nuevo | — | «**Proveedor de gestión de clientes**, que todavía usamos para llevar el seguimiento de clientes y atender parte de las conversaciones por WhatsApp e Instagram. Recibe tu nombre, tu correo, tu teléfono o usuario y esos mensajes. Si te atendemos como cliente o te preparamos un estimado, también puede recibir tu Shipping Mark, el valor del estimado y las notas de seguimiento. Estamos pasando esa atención a nuestro propio sistema, alojado en nuestro servidor.» |
+| §5, al final del primer párrafo | — | «Mientras terminamos ese cambio, lo que pasa por ese proveedor también se guarda en sus servidores y en los de quienes le prestan servicio, que pueden estar en Estados Unidos o en otros países.» |
+| Fecha, `UPDATED` | «5 de noviembre de 2026» | La del día de publicar. Si sale el 5, no cambia |
+
+### Qué recibe Kommo, por el código
+
+| Vía | Qué manda | Estado en producción |
+|---|---|---|
+| `kommo-push-client`, alta web | Contacto: nombre, teléfono, correo. Lead: nombre más Shipping Mark y, si esos campos existen en Kommo, Shipping Mark, cédula o RIF y nivel. `doc_kind` se lee y no se envía (`_shared/kommo-outbound.ts:117-155`) | **Simula** (L3) |
+| `kommo-writeback`, desde Studio | Notas y tareas en texto libre, etapa, responsable, etiquetas, valor del estimado y Shipping Mark (`lib/studio/kommo-writeback.ts:23-29`, `:109`, `:164`) | **Escribe** |
+| `kommo-writeback`, `patch_contact` por el cron `kommo-contact-status` | «Tiene saldo pendiente: Sí/No» y «Carga en tránsito: Sí/No», solo si `contact_saldo_field_id` y `contact_transito_field_id` están llenos (`lib/studio/kommo-contact-status.ts:17`, `:215-216`; `infra/dtd-cargo/cron/crontab:10`) | **Hoy no manda nada:** ninguno de los dos está configurado |
+| Canales conectados a Kommo | Las conversaciones de esos canales | Dicho por Sam, no medido |
+
+### Dónde guarda Kommo
+
+Producto de QSOFT LLC, ley de California. Su política dice que puede guardar «anywhere in the world, including but not limited to, in the United States», en servidores propios, de filiales o de proveedores. No nombra centros de datos, ni encontré DPA ni lista de subencargados. Leído en `kommo.com/privacy/` y `kommo.com/terms/` el 2026-11-05. Por eso el texto dice «pueden estar en Estados Unidos o en otros países» y el contrato queda en ❓ en `docs/legal/privacidad/inventario-terceros.md`.
+
+### Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| `privacidad-chat.test.ts` y `faq-seguimiento-coherente.test.tsx` | PASÓ: 20 de 20 |
+| Mutantes de la prueba literal: fila de Meta vieja, Meta solo con WhatsApp, proveedor con nombre, sin «todavía», sin «parte de», sin Instagram, sin correo, sin usuario, sin la frase del estimado, sin Shipping Mark, sin notas, cédula de más, sin el sistema propio, §5 fuera, §5 sin «quienes le prestan servicio», §5 con «fuera de Venezuela», fecha vieja | PASÓ: 17 de 17 caen por la prueba esperada, con el control en verde antes y después |
+| Mutantes de la prueba renderizada: proveedor con nombre, sin la frase del estimado, §5 fuera | PASÓ: 3 de 3 caen, con el control en verde antes |
+| eslint de la página y las dos pruebas | PASÓ |
+| Citas del texto viejo: «propio sistema de atención» en `app/`, `components/`, `lib/`, `docs/legal/` y `scripts/` | Solo la página y sus pruebas, ya cambiadas |
+| Numeración e índice de docs | PASÓ |
+| Secretos en el diff, patrones | 0. Correos en lo añadido: 0 |
+| `pnpm verify` | NO EJECUTADO: el Director General pidió no correrlo, y son textos con sus pruebas |
+| `tsc` | NO EJECUTADO |
+| Con `main` traído en `fff7249fc` (2026-11-05 19:58Z), sin conflictos y sin cambios de `main` en estos archivos | Pruebas 20 de 20; eslint, candado, gate, numeración, índice (585 specs) y gobierno: PASÓ. El diff contra `main` son los 8 archivos de la allowlist. Los mutantes no se repitieron: `main` no tocó la página ni sus pruebas |
+
+### revisar-datos-ve de este cambio
+
+Sobre lo que dice la política de un tercero que ya recibía estos datos. No cambia qué se recoge ni a quién va. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal.
+
+**Resumen:** 3 ENCONTRADO, 1 CORRECTO, 4 NO VERIFICABLE y 4 no aplica.
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | Fila de Kommo y la tabla de arriba, leída en el código. Las filas reales no se leyeron |
+| 2 | Minimización | No aplica | El cambio no agrega datos. Encender `KOMMO_PUSH_DRY_RUN` sí los agregaría: ver el punto 7 |
+| 3 | Consentimiento | No aplica | Este cambio no recoge nada. Sigue el punto 3 de §14.3 |
+| 4 | Derechos | NO VERIFICABLE | Un pedido de acceso o borrado también tendría que llegar a Kommo. No revisé si hay camino para eso |
+| 5 | Borrado | ENCONTRADO | Los plazos de §6 no se cumplen solos en Kommo, según `mapa-de-borrado.md` §D. La política los promete sin esa salvedad. Se lo cuenta el Director General a Sam |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3 |
+| 7 | Política pública | ENCONTRADO | **Corregido:** el proveedor ya aparece en §4 y §5, y Meta deja de decir que todo se atiende en el sistema propio (`app/privacidad/page.tsx`). **Quedan abiertos, con el Director General:** (a) «Solo acceden a lo necesario y bajo obligación de confidencialidad», con el contrato en ❓: lo anota él para la revisión legal; (b) tareas, etapa, responsable y etiquetas frente a «las notas de seguimiento»: se lo dice él a Sam. **Dos cambios harían que el texto no alcance:** `KOMMO_PUSH_DRY_RUN` en `"false"`, porque Kommo recibiría además cédula o RIF y nivel, y llenar `contact_saldo_field_id` o `contact_transito_field_id`, porque recibiría saldo o carga en tránsito, sí o no. **Los dos vuelven a Sam antes:** va como aviso en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`, pero nada falla si alguien los cambia |
+| 8 | Terceros | ENCONTRADO | Sin contrato ni DPA leídos con Kommo. `registro-tratamiento.md` no lo lista como destinatario del Shipping Mark ni del valor del estimado |
+| 9 | Transferencia internacional | NO VERIFICABLE | El texto lo dice. El mecanismo que la ampara y dónde guarda de verdad, no se sabe |
+| 10 | Decisiones automatizadas | No aplica | Este cambio no decide nada. El agente de IA de Kommo leería el saldo y la carga si esos campos se llenaran; hoy no lo están |
+| 11 | Aceptación electrónica | No aplica | Este cambio no registra aceptaciones |
+| 12 | Titulares que no son usuarios | NO VERIFICABLE | Quien escribe por esos canales no recibe aviso al escribir, igual que en Instagram. Lo decide Sam con su asesor |
+
+**Lo que hace falta de un abogado:** el pase de la política y el mecanismo de la transferencia, que siguen sin hacerse.

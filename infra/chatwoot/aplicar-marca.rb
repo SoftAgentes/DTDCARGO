@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Marca de DTD Cargo en Chatwoot (SDD-0583, paso 1.3; «Autorizo la marca» de Sam, 2026-10-29).
-#   docker compose cp marca/aplicar-marca.rb rails:/tmp/marca.rb
+#   docker compose cp aplicar-marca.rb rails:/tmp/marca.rb
 #   docker compose exec -T rails bundle exec rails runner /tmp/marca.rb
 #
 # Escribe en InstallationConfig (la base manda sobre el entorno) y limpia la caché de

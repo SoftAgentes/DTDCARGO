@@ -22,7 +22,6 @@ import {
   quoteWhatsappHref,
   type Quote,
 } from "@/lib/studio/quote-types";
-import type { KommoContactPick } from "@/lib/studio/kommo-convert";
 import {
   convertQuoteToShipment,
   duplicateQuote,
@@ -37,11 +36,9 @@ const SENT_SUCCESS_MS = 2500;
 
 export function QuoteDetailClient({
   quote,
-  kommoMatches = [],
   contactPhone = null,
 }: {
   quote: Quote;
-  kommoMatches?: KommoContactPick[];
   contactPhone?: string | null;
 }) {
   const router = useRouter();
@@ -130,31 +127,6 @@ export function QuoteDetailClient({
               {linking ? "Vinculando…" : "Vincular"}
             </button>
           </div>
-
-          {kommoMatches.length > 0 && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 12px",
-                background: "var(--bg-elevated)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-sm)",
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              <strong style={{ color: "var(--ink)" }}>
-                Coincide con el CRM:
-              </strong>{" "}
-              este teléfono ya figura en {kommoMatches.length} contacto
-              {kommoMatches.length > 1 ? "s" : ""} del CRM
-              {" ("}
-              {kommoMatches.slice(0, 3).map((c) => c.name).join(", ")}
-              {kommoMatches.length > 3 ? "…" : ""}
-              {"). "}
-              Revisa antes de crear un cliente duplicado.
-            </div>
-          )}
 
           {linkError && (
             <p

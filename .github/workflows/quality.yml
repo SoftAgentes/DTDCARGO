@@ -2,6 +2,9 @@ name: Calidad continua
 
 on:
   pull_request:
+    # SDD-0621: no corre en borradores. `ready_for_review` lo lanza al marcar la PR lista (`gh pr ready`); en
+    # borrador, el `if:` del job lo salta y la corrida no gasta minutos. Ver docs/runbooks/codex-engineering.md.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
   push:
@@ -19,6 +22,9 @@ concurrency:
 jobs:
   quality:
     name: Calidad local sin secretos
+    # En borrador el job sale «skipped» y el ruleset de main lo cuenta como aprobado. Regla para fusionar: `success`,
+    # no `skipped`, del check requerido, en una corrida `pull_request` sobre la cabeza exacta. Ver codex-engineering.md.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     # 60 y no 45: el 2026-10-20 la PR #298 se cortó a los 45 min sin error de
     # código (run 39417924823) y un push a main cerró en 43,7. Margen ante el

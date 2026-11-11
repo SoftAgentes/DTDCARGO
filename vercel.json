@@ -85,6 +85,10 @@
     {
       "path": "/api/cron/chatwoot-agentes",
       "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/chatwoot-versiones",
+      "schedule": "15 13 * * *"
     }
   ]
 }

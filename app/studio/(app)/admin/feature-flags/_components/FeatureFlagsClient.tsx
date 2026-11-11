@@ -210,6 +210,14 @@ function FlagCard({
             </strong>{" "}
             — el Studio no lo consulta.
           </>
+        ) : efecto === "servidor" ? (
+          <>
+            Al apagar:{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              se detiene una integración del servidor
+            </strong>{" "}
+            — no tiene pantalla propia.
+          </>
         ) : (
           <>
             Al apagar: oculta del menú{" "}

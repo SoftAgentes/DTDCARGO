@@ -44,8 +44,11 @@ import { serializeJsonLd } from "@/lib/public/json-ld";
 const DESC =
   "El Shipping Mark (唛头) de DTD Cargo es el código único que identifica tus cajas desde el proveedor en China hasta tu puerta en Venezuela.";
 
+/** El mismo título va en `metadata` y en el nodo `WebPage`. */
+const TITLE = "Shipping Mark · 唛头";
+
 export const metadata: Metadata = {
-  title: "Shipping Mark · 唛头",
+  title: TITLE,
   description: DESC,
   keywords: [
     "Shipping Mark",
@@ -117,6 +120,8 @@ export default function ShippingMarkPage() {
       )}
       <WebPageJsonLd
         path="/shipping-mark"
+        name={TITLE}
+        description={DESC}
         speakableSelectors={["#respuesta-rapida"]}
       />
       <BreadcrumbJsonLd
