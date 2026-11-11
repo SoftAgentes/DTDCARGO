@@ -50,7 +50,10 @@ umask 077
 # de línea, y los primeros 10 caracteres de sha256sum), para que el DG lo compare con su nota de control. El valor no
 # se imprime nunca. El archivo lo deja el sub-paso 3.0 del runbook (aprobado por el DG; /srv/ops/portal-historial no
 # existe antes), y lo borran el cierre o el abandono del 4.6b (limpiar.sh).
-[ -z "${SISTEMA:-}" ] || { echo "HECHO error=sistema_va_en_el_archivo_no_en_el_entorno" >&2; exit 2; }
+[ -z "${SISTEMA:-}" ] || { echo "HECHO error=sistema_va_en_el_archivo_no_en_el_entorno" >&2; exit 2; } # guarda:sistema_entorno
+# Un SISTEMA= vacío y exportado pasa la guarda de arriba. Sin el unset, seguiría exportado, y el valor que se lee del
+# archivo quedaría en el entorno de los hijos (docker, psql), visible en /proc/<pid>/environ. N1 de la revisión del DG.
+unset SISTEMA # guarda:sistema_unset
 SISTEMA_ARCHIVO="${DESHACER_SISTEMA:-/srv/ops/portal-historial/sistema-produccion}"
 # El sha corto esperado es el de producción (dtd-cargo-db-1, nota de control del DG), y el archivo es de root (uid 0).
 # Los dos solo cambian en la prueba bash (DESHACER_PRUEBA=1), que usa su valor de mentira y el uid del runner. Así, un
@@ -65,7 +68,9 @@ fi
 sha_corto() { printf '%s' "$1" | sha256sum | cut -c1-10; } # guarda:sistema_printf
 leer_sistema() {
   local f="$SISTEMA_ARCHIVO" v=""
-  [ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] && [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }
+  [ -f "$f" ] && [ ! -L "$f" ] && [ -O "$f" ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; }
+  # El 0600, en su propia línea, para que su mutante quite solo esa condición (N4 de la revisión del DG).
+  [ "$(stat -c %a "$f")" = 600 ] || { echo "HECHO error=sin_archivo_de_sistema_0600" >&2; return 1; } # guarda:sistema_0600
   [ "$(stat -c %u "$f")" = "$SISTEMA_UID" ] || { echo "HECHO error=archivo_de_sistema_no_es_de_root" >&2; return 1; } # guarda:sistema_root
   # Solo cifras y a lo sumo un salto de línea, contado en los bytes con tr (un CR o un espacio cuentan como otros):
   # se acepta un salto final, y un CR, un espacio o una segunda línea se rechazan (condición del DG). Después, $(cat)
