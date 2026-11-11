@@ -713,7 +713,7 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
   - `:esperados_hilos`;
   - `:esperados_contactos`, los que tienen `chatwoot_contact_id`;
   - `:esperados_espejo`, las filas de `chatwoot_conversations` de los hilos vinculados.
-- **`/dev/shm/portal-historial/contactos-conservados.ndjson`,** que escribe la pieza de E5. Va en 0600 y lleva solo ids, como `vinculos.ndjson`. El formato está propuesto y **lo confirma E5** ‹por confirmar›:
+- **`/dev/shm/portal-historial/contactos-conservados.ndjson`,** que escribe la pieza de E5. Va en 0600 y lleva solo ids, como `vinculos.ndjson`. El formato es el que escribe `deshacer-carga.rb` (confirmado por E5 en la #478):
   - **la cabecera:** `{"tipo":"cabecera","version":1,"tenant_id":"<uuid>","cuenta":<n>,"bandeja":<n>,"contactos":<n>}`;
   - **una línea por contacto `dtd-portal:` que E5 no borró** porque tenía otra bandeja: `{"tipo":"contacto","identificador":"<uuid>","contacto_id":<n>}`;
   - **si E5 no conservó ninguno,** el archivo trae solo la cabecera, con `"contactos":0`;

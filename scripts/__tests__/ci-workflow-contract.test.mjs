@@ -456,6 +456,8 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     ["portal-historial-cargador.yml", "cargador"],
     // SDD-0586, la 2b: el job del ensayo en copias, en el mismo workflow, tampoco corre en borradores.
     ["portal-historial-cargador.yml", "ensayo"],
+    // SDD-0586, la 2c: la vuelta atrás dirigida (sus tres partes), en el mismo workflow.
+    ["portal-historial-cargador.yml", "deshacer"],
   ];
   const leer = (archivo) => loadYaml(readFileSync(resolve(".github/workflows", archivo), "utf8"));
 
@@ -572,6 +574,17 @@ describe("SDD-0621 · el CI de PR no corre en borrador y sí al marcarla lista",
     const parsed = structuredClone(leer("portal-historial-cargador.yml"));
     mutar(parsed.jobs.ensayo);
     expect(() => assertNoCorreEnBorrador(parsed, "ensayo")).toThrow();
+  });
+
+  it.each([
+    ["condición quitada", (j) => { delete j.if; }],
+    ["condición invertida", (j) => { j.if = "github.event.pull_request.draft"; }],
+    ["error del job ignorado", (j) => { j["continue-on-error"] = true; }],
+  ])("rechaza en el job deshacer del portal: %s", (_nombre, mutar) => {
+    // El mutante de la 2c (SDD-0586): sin el if: de borrador en el job deshacer, el contrato tiene que dar rojo.
+    const parsed = structuredClone(leer("portal-historial-cargador.yml"));
+    mutar(parsed.jobs.deshacer);
+    expect(() => assertNoCorreEnBorrador(parsed, "deshacer")).toThrow();
   });
 
   it.each([
