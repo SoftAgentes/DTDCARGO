@@ -18,6 +18,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mocks (antes de importar el SUT) ───────────────────────────────
 const getStudioRoleMock = vi.fn<() => Promise<string | null>>();
+// Extras de la persona (SDD-0622) que devuelve el doble de getStudioAccess.
+let grantsMock: Record<string, { view: boolean; edit: boolean }> = {};
 const listClientsMock = vi.fn(async () => [] as unknown[]);
 const getClientByCedulaMock = vi.fn(async () => null as unknown);
 const listShipmentsMock = vi.fn(async () => [] as unknown[]);
@@ -30,6 +32,14 @@ vi.mock("@/lib/db/server", () => ({
 }));
 vi.mock("@/lib/studio/rbac-guard", () => ({
   getStudioRole: () => getStudioRoleMock(),
+  getStudioAccess: async () => ({
+    role: await getStudioRoleMock(),
+    tenantId: null,
+    userId: null,
+    warehouseScope: "all",
+    overrides: {},
+    grants: grantsMock,
+  }),
 }));
 vi.mock("@/lib/studio/client-queries", () => ({
   listClients: (...a: unknown[]) => listClientsMock(...(a as [])),
@@ -52,6 +62,7 @@ import { searchGlobalAction } from "./search-action";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  grantsMock = {};
   listClientsMock.mockResolvedValue([]);
   getClientByCedulaMock.mockResolvedValue(null);
   listShipmentsMock.mockResolvedValue([]);
@@ -88,6 +99,16 @@ describe("gate de dinero: roles sin módulo de dinero NO tocan invoices/receipts
     expect(listInvoicesMock).toHaveBeenCalled();
     expect(searchReceiptsMock).toHaveBeenCalled();
     expect(res.locked).toEqual([]);
+  });
+});
+
+describe("SDD-0622: un acceso adicional abre la faceta de su módulo", () => {
+  it("marketing con extra de Cotizaciones corre la faceta de cotizaciones", async () => {
+    getStudioRoleMock.mockResolvedValue("marketing");
+    grantsMock = { quotes: { view: true, edit: false } };
+    await searchGlobalAction("Distribuidora XYZ");
+    expect(listQuotesMock).toHaveBeenCalled();
+    expect(listInvoicesMock).not.toHaveBeenCalled();
   });
 });
 

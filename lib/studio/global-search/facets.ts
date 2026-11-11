@@ -27,7 +27,11 @@
  */
 
 import type { StudioUserRole } from "@/lib/studio/user-types";
-import { canAccessModule } from "@/lib/studio/rbac";
+import {
+  canAccessModule,
+  type RoleModuleOverrides,
+  type UserModuleGrants,
+} from "@/lib/studio/rbac";
 import type { FacetGroup, GlobalSearchFacetId } from "./types";
 
 export interface FacetDef {
@@ -76,12 +80,16 @@ export function getFacet(id: GlobalSearchFacetId): FacetDef {
  *   - permiso de módulo (`canAccessModule`), o
  *   - viewerRoles read-only (excepción marketing→Cliente).
  * Fail-closed: rol nulo/desconocido = no. NUNCA consulta datos.
+ *
+ * `access` (opcional) trae los desvíos por rol y los extras de la persona
+ * (SDD-0622): con ellos la búsqueda ⌘K abre las mismas facetas que el sidebar.
  */
 export function canRunFacet(
   role: StudioUserRole | null | undefined,
   facet: FacetDef,
+  access?: { overrides?: RoleModuleOverrides; grants?: UserModuleGrants },
 ): boolean {
-  if (canAccessModule(role, facet.module)) return true;
+  if (canAccessModule(role, facet.module, access?.overrides, access?.grants)) return true;
   if (role && facet.viewerRoles?.includes(role)) return true;
   return false;
 }

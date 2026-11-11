@@ -38,8 +38,8 @@ export async function GET(
 
   const supabase = await createClient();
 
-  const { role, overrides } = await getStudioAccess(supabase);
-  if (!canAccessModule(role, "invoices", overrides)) return noEncontrado("Factura");
+  const { role, overrides, grants } = await getStudioAccess(supabase);
+  if (!canAccessModule(role, "invoices", overrides, grants)) return noEncontrado("Factura");
 
   const inv = await getInvoiceByCode(supabase, code);
   if (!inv) return noEncontrado("Factura");

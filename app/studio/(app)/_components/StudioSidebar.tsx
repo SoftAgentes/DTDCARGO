@@ -42,6 +42,7 @@ import {
   canAccessModule,
   scopeAllowsModule,
   type RoleModuleOverrides,
+  type UserModuleGrants,
 } from "@/lib/studio/rbac";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { BandejaBadge } from "./BandejaBadge";
@@ -90,6 +91,8 @@ interface Props {
    * ya lo deje entrar (y viceversa con uno revocado).
    */
   overrides?: RoleModuleOverrides;
+  /** Accesos adicionales de la persona (SDD-0622): suman módulos al rol. */
+  grants?: UserModuleGrants;
 }
 
 export function StudioSidebar({
@@ -99,6 +102,7 @@ export function StudioSidebar({
   role = null,
   warehouseScope = "all",
   overrides,
+  grants,
 }: Props = {}) {
   const pathname = usePathname();
   const t = useT();
@@ -474,7 +478,7 @@ export function StudioSidebar({
     (m) =>
       !m.hidden &&
       isModuleEnabled(m.id, flags) &&
-      canAccessModule(role, m.id, overrides) &&
+      canAccessModule(role, m.id, overrides, grants) &&
       (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),
   );
 

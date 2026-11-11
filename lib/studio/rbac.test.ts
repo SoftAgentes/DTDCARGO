@@ -17,6 +17,8 @@ import {
   moduleIdForPath,
   scopeAllowsModule,
   type RoleModuleOverrides,
+  effectiveModuleAccess,
+  type UserModuleGrants,
 } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
 
@@ -403,5 +405,103 @@ describe("RBAC: overrides de la matriz editable (SDD-0252, migr 0357)", () => {
     const overrides: RoleModuleOverrides = { "admin:users": { view: false, edit: false } };
     expect(canAccessModule("admin", "users", overrides)).toBe(true);
     expect(canEditModule("admin", "users", overrides)).toBe(true);
+  });
+});
+
+// ─── Accesos adicionales por persona (SDD-0622) ────────────────────────────
+describe("SDD-0622 · accesos adicionales por persona", () => {
+  const crmEditar: UserModuleGrants = { kommo: { view: true, edit: true } };
+  const crmVer: UserModuleGrants = { kommo: { view: true, edit: false } };
+
+  it("caso Alejandro: contabilidad + CRM editar ve y edita el CRM", () => {
+    expect(canAccessModule("accounting", "kommo")).toBe(false);
+    expect(canAccessModule("accounting", "kommo", undefined, crmEditar)).toBe(true);
+    expect(canEditModule("accounting", "kommo", undefined, crmEditar)).toBe(true);
+    // Sigue sin módulos que ni su rol ni su extra traen.
+    expect(canAccessModule("accounting", "users", undefined, crmEditar)).toBe(false);
+    expect(canAccessModule("accounting", "legal", undefined, crmEditar)).toBe(false);
+  });
+
+  it("solo suma: un extra nunca reduce lo que el rol ya da", () => {
+    const vacio: UserModuleGrants = {};
+    for (const [moduleId, roles] of Object.entries(ROLE_MODULE_ACCESS)) {
+      for (const role of roles) {
+        expect(canAccessModule(role, moduleId, undefined, vacio), `${role}×${moduleId}`).toBe(true);
+        expect(canAccessModule(role, moduleId, undefined, crmVer), `${role}×${moduleId}`).toBe(true);
+      }
+    }
+  });
+
+  it("un extra de solo ver no da edición", () => {
+    expect(canAccessModule("accounting", "kommo", undefined, crmVer)).toBe(true);
+    expect(canEditModule("accounting", "kommo", undefined, crmVer)).toBe(false);
+  });
+
+  it("support sigue de solo lectura aunque el extra diga editar", () => {
+    expect(canAccessModule("support", "kommo", undefined, crmEditar)).toBe(true);
+    expect(canEditModule("support", "kommo", undefined, crmEditar)).toBe(false);
+  });
+
+  it("un extra vencido no cuenta", () => {
+    const vencido: UserModuleGrants = {
+      kommo: { view: true, edit: true, expiresAt: new Date(Date.now() - 60_000).toISOString() },
+    };
+    const vigente: UserModuleGrants = {
+      kommo: { view: true, edit: true, expiresAt: new Date(Date.now() + 86_400_000).toISOString() },
+    };
+    expect(canAccessModule("accounting", "kommo", undefined, vencido)).toBe(false);
+    expect(canAccessModule("accounting", "kommo", undefined, vigente)).toBe(true);
+  });
+
+  it("un extra sí abre un módulo sensible (la tabla exige la confirmación)", () => {
+    const tesoreria: UserModuleGrants = { treasury: { view: true, edit: false } };
+    expect(canAccessModule("commercial", "treasury", undefined, tesoreria)).toBe(true);
+    expect(canEditModule("commercial", "treasury", undefined, tesoreria)).toBe(false);
+  });
+
+  it("R1: Usuarios y Admin por extra son solo lectura", () => {
+    const usuarios: UserModuleGrants = { users: { view: true, edit: true }, admin: { view: true, edit: true } };
+    expect(canAccessModule("commercial", "users", undefined, usuarios)).toBe(true);
+    expect(canEditModule("commercial", "users", undefined, usuarios)).toBe(false);
+    expect(canEditModule("commercial", "admin", undefined, usuarios)).toBe(false);
+  });
+
+  it("un extra no abre capabilities (siguen atadas al rol)", () => {
+    // canSpecial no recibe extras: la firma no los acepta.
+    expect(canSpecial("commercial", "delete_shipments")).toBe(false);
+    expect(canSpecial("commercial", "void_expense")).toBe(false);
+  });
+
+  it("módulo desconocido falla cerrado aunque haya fila", () => {
+    expect(canAccessModule("accounting", "no-existe", undefined, { "no-existe": { view: true, edit: true } })).toBe(false);
+  });
+
+  it("el desvío por rol y el extra conviven en el orden de §5.2", () => {
+    const quita: RoleModuleOverrides = { "accounting:clients": { view: false, edit: false } };
+    expect(canAccessModule("accounting", "clients", quita)).toBe(false);
+    expect(
+      canAccessModule("accounting", "clients", quita, { clients: { view: true, edit: true } }),
+    ).toBe(true);
+  });
+
+  it("effectiveModuleAccess dice de dónde sale cada permiso", () => {
+    expect(effectiveModuleAccess("accounting", "treasury").source).toBe("role");
+    expect(effectiveModuleAccess("accounting", "kommo", undefined, crmEditar)).toMatchObject({
+      source: "grant",
+      view: true,
+      edit: true,
+      viewByRole: false,
+    });
+    expect(effectiveModuleAccess("accounting", "kommo").source).toBe("none");
+    expect(effectiveModuleAccess("admin", "kommo").source).toBe("admin");
+  });
+
+  it("sin extras, las firmas viejas dan exactamente lo mismo", () => {
+    for (const moduleId of Object.keys(ROLE_MODULE_ACCESS)) {
+      for (const role of ["commercial", "operations", "accounting", "warehouse", "support", "marketing"] as const) {
+        expect(canAccessModule(role, moduleId, {}, {})).toBe(canAccessModule(role, moduleId));
+        expect(canEditModule(role, moduleId, {}, {})).toBe(canEditModule(role, moduleId));
+      }
+    }
   });
 });

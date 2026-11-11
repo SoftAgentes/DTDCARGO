@@ -39,8 +39,8 @@ export async function GET(
 
   const supabase = await createClient();
 
-  const { role, overrides } = await getStudioAccess(supabase);
-  if (!canAccessModule(role, "invoices", overrides)) {
+  const { role, overrides, grants } = await getStudioAccess(supabase);
+  if (!canAccessModule(role, "invoices", overrides, grants)) {
     return noEncontrado("Estado de cuenta");
   }
 

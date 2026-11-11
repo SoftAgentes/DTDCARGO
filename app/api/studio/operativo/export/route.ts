@@ -67,10 +67,10 @@ export async function GET(req: Request) {
 
     // El rol NO sale de `sesion.role`: `getStudioAccess` además resuelve los
     // overrides por rol (SDD-0085), que `canAccessModule` necesita.
-    const { role, overrides } = await getStudioAccess(supabase);
+    const { role, overrides, grants } = await getStudioAccess(supabase);
 
     if (tipo === "clientes") {
-      if (!canAccessModule(role, "clients", overrides)) {
+      if (!canAccessModule(role, "clients", overrides, grants)) {
         return apiError("No tienes acceso a Clientes.", null, 403, "operativo-export");
       }
       const clientes = await listarClientesParaExport(supabase);
@@ -78,7 +78,7 @@ export async function GET(req: Request) {
     }
 
     if (tipo === "cobranzas") {
-      if (!canAccessModule(role, "collections", overrides)) {
+      if (!canAccessModule(role, "collections", overrides, grants)) {
         return apiError("No tienes acceso a Cobranzas.", null, 403, "operativo-export");
       }
       const cola = await receivablesQueue(supabase);
@@ -86,7 +86,7 @@ export async function GET(req: Request) {
     }
 
     if (tipo === "embarques") {
-      if (!canAccessModule(role, "tracking", overrides)) {
+      if (!canAccessModule(role, "tracking", overrides, grants)) {
         return apiError("No tienes acceso a Tracking.", null, 403, "operativo-export");
       }
       const embarques = segunVisibilidad(
