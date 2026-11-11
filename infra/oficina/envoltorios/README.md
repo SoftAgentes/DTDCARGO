@@ -32,11 +32,53 @@ hooks, `.mcp.json`, `CLAUDE.md`, `.codex/` y `AGENTS.md`. Un hook así correría
 |---|---|---|
 | `dtd-claude` | `/usr/local/bin/dtd-claude` (root, 755) | `command` de ALFRED (`claude_local`). Llama a `dtd-motor claude` |
 | `dtd-codex` | `/usr/local/bin/dtd-codex` (root, 755) | `command` del Auxiliar (`codex_local`). Llama a `dtd-motor codex` |
-| `dtd-motor` | `/usr/local/libexec/dtd-motor` (root, 755) | Corre como `agentes`. Revisa la lista cerrada (`claude:ceo` → `agentes-alfred`, `codex:auxiliar` → `agentes-auxiliar`). Quita `--mcp-config`. Copia a `/srv/oficina/staging/<perfil>/run.*` (750) lo que Paperclip pasa como rutas de `/home/agentes/`, pero solo si la ruta, resuelta con `realpath` y con todo lo que alcanzan sus enlaces, cae en una lista cerrada: el paquete `companies/<id>/claude-prompt-cache/<sha>`, las instrucciones `companies/<id>/agents/<id>/instructions` y las skills de la instancia o de la instalación. Si una ruta protegida cae fuera, por ejemplo un secreto, `..`, un enlace o la casa sola, no copia nada y sale con 66. También sale con 66 si cualquier argumento, una vez resuelto, cae en `/srv/oficina/trabajo`, la carpeta que escriben los GLM (`--settings`, `--add-dir`, `--plugin-dir`…), exista la ruta o no. Las rutas relativas las resuelve desde la carpeta donde trabaja el motor (`/srv/oficina/motores/<perfil>`), que es desde donde las abriría Claude o Codex. Le da lectura al usuario del motor con una ACL (`setfacl u:<usuario>:rX`), porque `agentes` no es de su grupo. Después ejecuta `sudo -n -u <usuario> dtd-agente-run`. Sin la carpeta de staging del perfil sale con 65 |
-| `dtd-agente-run` | `/usr/local/libexec/dtd-agente-run` (root, 755) | Tiene una tabla cerrada de herramienta, perfil y usuario. Toma `HOME`, `CLAUDE_CONFIG_DIR` y `CODEX_HOME` del usuario. Lleva a Claude y a Codex a `/srv/oficina/motores/<perfil>` después de comprobar que nadie más la puede escribir; si no, sale con 66. Borra las llaves de API; solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`. La rama `hermes` es la misma que la del VPS al 2026-11-06 15:22 UTC |
+| `dtd-motor` | `/usr/local/libexec/dtd-motor` (root, 755) | Corre como `agentes`. Revisa la lista cerrada (`claude:ceo` → `agentes-alfred`, `codex:auxiliar` → `agentes-auxiliar`). Quita `--mcp-config`. Copia a `/srv/oficina/staging/<perfil>/run.*` (750) lo que Paperclip pasa como rutas de `/home/agentes/`, pero solo si la ruta, resuelta con `realpath` y con todo lo que alcanzan sus enlaces, cae en una lista cerrada: el paquete `companies/<id>/claude-prompt-cache/<sha>`, las instrucciones `companies/<id>/agents/<id>/instructions` y las skills de la instancia o de la instalación. Si una ruta protegida cae fuera, por ejemplo un secreto, `..`, un enlace o la casa sola, no copia nada y sale con 66. También sale con 66 si cualquier argumento, una vez resuelto, cae en `/srv/oficina/trabajo`, la carpeta que escriben los GLM (`--settings`, `--add-dir`, `--plugin-dir`…), exista la ruta o no. Las rutas relativas las resuelve desde la carpeta donde trabaja el motor (`/srv/oficina/motores/<perfil>`), que es desde donde las abriría Claude o Codex. También sale con 66 si un argumento, o el valor de `--opción=valor`, empieza por `~`, y si a Codex le llega `-C` o `--cd` en cualquiera de sus formas. Le da lectura al usuario del motor con una ACL (`setfacl u:<usuario>:rX`), porque `agentes` no es de su grupo. Después ejecuta `sudo -n -u <usuario> dtd-agente-run`. Sin la carpeta de staging del perfil sale con 65 |
+| `dtd-agente-run` | `/usr/local/libexec/dtd-agente-run` (root, 755) | Tiene una tabla cerrada de herramienta, perfil y usuario. Toma `HOME`, `CLAUDE_CONFIG_DIR` y `CODEX_HOME` del usuario. Lleva a Claude y a Codex a `/srv/oficina/motores/<perfil>` después de comprobar que nadie más la puede escribir; si no, sale con 66. Ya en esa carpeta y como el usuario del motor, vuelve a revisar los argumentos de Claude y Codex: si uno, resuelto con sus enlaces, cae en `/srv/oficina/trabajo`, sale con 66. Borra las llaves de API; solo Claude recibe `CLAUDE_CODE_OAUTH_TOKEN`. La rama `hermes` es la del VPS al 2026-11-06 15:22 UTC, salvo el `PATH`: toma el primer node que exista de una lista cerrada y sin comodines (`node-26.12.1-linux-x64`, el de Hermes 0.23, y después `node-26.7.0-linux-x64`, que se queda para volver atrás) y la carpeta `ripgrep-15.2.0-linux-x64/bin`, como antes. Si vuelve al viejo, deja una línea de aviso en stderr. Si no hay node, Hermes no arranca y sale con 69. En el VPS (2026-11-07) la carpeta de ripgrep no trae `bin/rg`, así que no se exige |
 | `91-agentes-run` | `/etc/sudoers.d/91-agentes-run` (root, 440) | Con `env_reset`, deja pasar solo 14 variables `PAPERCLIP_` nombradas una por una (las que usan las skills de Paperclip y el adaptador de Hermes), `HERMES_EPHEMERAL_SYSTEM_PROMPT` (preparación para Paperclip 1023+, que manda por ahí las instrucciones de los GLM; `dtd-agente-run` la borra para Claude, Codex y OpenCode), `DTD_PERFIL`, `CLAUDE_CODE_OAUTH_TOKEN` y las de idioma. Nunca `PAPERCLIP_*`: el servidor tiene `PAPERCLIP_AGENT_JWT_SECRET` y `PAPERCLIP_TOOL_ACTION_SIGNING_SECRET`, que con el comodín llegaban a todos los agentes. Con `!log_allowed`, sudo deja de copiar el prompt al registro. `agentes` puede cambiar solo a los tres usuarios, y solo para `dtd-agente-run` |
 
 `dtd-hermes` no cambia.
+
+## Riesgos BAJOS de la aprobación de la #407 (2026-11-07)
+
+El DG aprobó la #407 y dejó tres riesgos BAJOS. Ninguno es explotable hoy: una llave de agente no
+puede cambiar `args`, `extraArgs`, `command`, `cwd` ni `env`. Esta corrección es endurecimiento.
+
+1. **Enlaces dentro de la carpeta del motor.** `dtd-motor` corre como `agentes`, que no puede leer
+   `/srv/oficina/motores/<perfil>` (700 del usuario del motor). `realpath -m` no ve los enlaces de
+   adentro y devuelve la ruta tal cual. Medido en el VPS de la oficina el 2026-11-07, con un
+   enlace `notas` → `trabajo/ceo` en una carpeta 700 de `/tmp`: el dueño la resuelve hacia
+   `trabajo/ceo` y `agentes` devuelve `motores/ceo/notas`. **Arreglo:** `dtd-agente-run` revisa
+   otra vez los argumentos de Claude y Codex, como el usuario del motor y desde su carpeta, que es
+   como los abriría el motor. Lo que esa revisión no pueda resolver, el motor tampoco lo puede
+   abrir. La alternativa era rechazar en `dtd-motor` las relativas que `agentes` no puede
+   resolver. Se descartó porque `dtd-motor` revisa todos los argumentos, también `high` o `hola`,
+   y todos pasan por esa carpeta: se habría rechazado todo.
+2. **`~` no se expande.** `~/../../srv/oficina/trabajo` se resolvía como una relativa dentro de la
+   carpeta del motor (`motores/srv/oficina/trabajo`) y pasaba. El motor puede expandirla a la casa
+   de su usuario. **Arreglo:** `dtd-motor` sale con 66 si un argumento, o el valor de
+   `--opción=valor`, empieza por `~`. Una `~` en otra parte del argumento no cuenta.
+3. **`codex -C <carpeta>`.** En Codex 0.163.0, `-C`/`--cd` es global
+   (`codex-rs/utils/cli/src/shared_options.rs:67`). Se resuelve desde el cwd del proceso
+   (`codex-rs/exec/src/lib.rs:359-365`) y pasa a ser la carpeta de la sesión. Desde ella se
+   resuelven las `--add-dir` relativas y se elige el proyecto activo
+   (`codex-rs/core/src/config/mod.rs:3520-3545`). Revisar solo que la carpeta no caiga en
+   `/srv/oficina/trabajo` no alcanza: `-C /tmp/x` mudaría la raíz del proyecto fuera de la
+   carpeta que revisa `dtd-agente-run`, a un lugar que un GLM puede escribir. **Arreglo:**
+   `dtd-motor` sale con 66 si a Codex le llega `-C`, `-C<carpeta>`, `-C=<carpeta>`, `--cd` o
+   `--cd=<carpeta>`. El adaptador `codex_local` de Paperclip 2026.1012.0 no pasa `-C` ni `--cd`
+   (medido en el VPS de la oficina el 2026-11-07).
+4. **Opciones cortas con la ruta pegada** (revisión del DG sobre `dbe4a5576`). `-i/srv/oficina/trabajo/x.png`
+   o `-i~/x.png` pasaban, porque se revisaba el argumento entero y no la ruta pegada. Hoy no son
+   explotables: ninguna opción corta de Claude o Codex que pasa Paperclip toma una ruta así.
+   **Arreglo:** `dtd-motor` revisa el valor pegado (`-i<ruta>` o `-i=<ruta>`) igual que si viniera
+   aparte y sale con 66 si empieza por `~` o cae en `/srv/oficina/trabajo`. `dtd-agente-run` lo
+   revisa otra vez como el usuario del motor, con sus enlaces.
+
+**Diseño conocido.** Quien llame a `dtd-agente-run` directo se salta las revisiones de `dtd-motor`.
+No agrega riesgo: el sudoers solo deja llamarlo a `agentes`, que es quien corre `dtd-motor`.
+
+Lo instalado en el VPS todavía no tiene estos arreglos. **Reinstalar lo decide Sam por medio del
+DG.**
 
 ## Por qué hace falta copiar archivos
 

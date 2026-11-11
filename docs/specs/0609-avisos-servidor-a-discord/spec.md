@@ -4,7 +4,7 @@ title: "Avisos del servidor: de Telegram a Discord"
 status: in-progress
 author: "Claude"
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-09
 supersedes: null
 superseded_by: null
 related: ["0505", "0541", "0547", "0606", "0607"]
@@ -38,8 +38,17 @@ Datos de Discord (no son llaves): servidor «DTD Cargo» `1534936818951262390`; 
 3. `infra/ops/uptime-kuma/`: documentar el paso manual de Sam para apuntar la notificación nativa de Kuma a `#salud` y retirar Telegram de lo que dice la carpeta.
 4. Runbook del corte: [docs/runbooks/avisos-servidor-discord.md](../../runbooks/avisos-servidor-discord.md).
 5. Pruebas sin red: `infra/ops/tests/prueba-aviso-discord.sh` (nueva) y `infra/ops/tests/prueba-publicar-web.sh` (adaptada).
+6. `infra/ops/web/guardar-webhook-discord.sh` (nuevo, PR #404): Sam guarda en el servidor la dirección de un webhook sin que pase por un chat (D8). Escribe en dos archivos:
+   - `/srv/ops/web/publicar.env`, destino `publicaciones`: `PUBLICAR_DISCORD_WEBHOOK`, y quita `PUBLICAR_TELEGRAM_*`;
+   - `/srv/dtd-cargo/.env`, el `.env` de la app, destinos `registro`, `conversaciones`, `bugs`, `reportes` y `equipo`: **solo** las cinco `DISCORD_WEBHOOK_*` de la SDD-0606, una por destino. No toca ninguna otra variable de ese archivo.
+7. Pruebas sin red del punto 6: `infra/ops/tests/prueba-guardar-webhook-discord.sh` y `infra/ops/tests/prueba-runbook-avisos-discord.sh`, que corre tal cual los bloques del runbook para instalar los guiones y para volver atrás los dos archivos.
 
-Fuera de alcance: instalar en el VPS, crear los webhooks, configurar Kuma (son pasos de Sam y de la sesión de Contabo con el runbook); los avisos del Studio (SDD-0606); el bot de Telegram de la app y su webhook entrante.
+Fuera de alcance:
+
+- Instalar en el VPS, crear los webhooks y configurar Kuma: son pasos de Sam y de la sesión de Contabo con el runbook.
+- Los avisos del Studio (SDD-0606), salvo el **procedimiento** para cargar sus cinco direcciones (punto 6). Qué variable lee el Studio y qué hace con ella sigue siendo de la 0606.
+- `DISCORD_TENANT_ID` y las demás variables del `.env` de la app: siguen con `infra/ops/migrate/env-set.sh`.
+- El bot de Telegram de la app y su webhook entrante.
 
 ## Decisiones
 
@@ -96,6 +105,17 @@ Registra a qué URL entrega Telegram los mensajes **entrantes** del bot de la ap
 
 La publicación está congelada desde el 2026-11-01. `congelar` reescribe el motivo de `CONGELADO` y `descongelar` lo borra, así que la prueba del runbook usa `aviso-discord.sh --estado`, `aviso-discord.sh --probar` y `publicar-web.sh estado`.
 
+### D8 · Un guion para pegar las seis direcciones, también las del Studio
+
+La 0606 mandaba cargar sus cinco direcciones con `env-set.sh`, que las lee con `read -s` dentro de `ssh -t`. Ese camino falló en la oficina el 2026-11-05: pegar desde la consola de Windows no llegó bien a `read -s`. Lo que sí funcionó fue mandar el portapapeles por la entrada estándar: `Get-Clipboard | ssh.exe … guardar-webhook-discord.sh <destino>`.
+
+- **Un solo guion para los seis destinos:** Sam recibe un solo pedido, y cada dirección se valida igual.
+- **Validación contra Discord:** antes de escribir, un `GET` al webhook tiene que dar 200, el mismo `id` y el `channel_id` exacto del destino. `env-set.sh` no comprueba ni la forma ni el canal.
+- **Qué escribe:** solo su variable. Respalda el archivo antes (600, con un sufijo único) y escribe por un temporal con `mv`, que borra si lo cortan.
+- **Qué no tiene:** un candado común con `env-set.sh`. Los dos reescriben el archivo entero, así que el runbook fija el orden: primero las seis filas de Sam y después `env-set.sh`, nunca a la vez.
+
+Costo: un guion más en `/srv/ops/web/` que conoce los seis IDs de canal. Si se recrea un canal, hay que cambiar su ID aquí.
+
 ## Diseño
 
 ```
@@ -120,11 +140,17 @@ Uptime Kuma ──notificación nativa──► Discord #salud
 | A7 | Kuma documentado hacia `#salud`; la carpeta `uptime-kuma/` ya no dice Telegram como canal vigente | `infra/ops/uptime-kuma/README.md`, comentario de `compose.yml` |
 | A8 | Runbook con lo que crea Sam, dónde pega la llave, prueba de ida y vuelta y vuelta atrás | [avisos-servidor-discord.md](../../runbooks/avisos-servidor-discord.md) |
 | A9 | Las pruebas corren en el CI Linux | `prueba-aviso-discord.sh` en `infra/ops/tests/pruebas-linux.sh` (contrato de `scripts/__tests__/ci-workflow-contract.test.mjs`) |
+| A10 | `guardar-webhook-discord.sh` guarda solo una dirección que Discord reconoce, con el `channel_id` exacto de su destino. Con cualquier otra cosa dice NO GUARDADA y no cambia nada | `prueba-guardar-webhook-discord.sh` § lo que no sirve y § destinos del Studio |
+| A11 | Cambia solo su variable: en `publicar.env` además quita `PUBLICAR_TELEGRAM_*`; en el `.env` de la app no toca `TELEGRAM_BOT_TOKEN` ni ninguna otra. Respalda antes, en 600, sin pisar un respaldo del mismo segundo. Si lo cortan antes del `mv`, no queda el temporal | `prueba-guardar-webhook-discord.sh` § la correcta, § destinos del Studio y § respaldos y cortes |
+| A12 | La dirección no aparece en ninguna salida ni en los argumentos de curl | `prueba-guardar-webhook-discord.sh` § la llave no sale |
+| A13 | El runbook instala los guiones y vuelve atrás los dos archivos con bloques probados tal cual. La vuelta atrás elige el respaldo por la huella del paso 1 | `prueba-runbook-avisos-discord.sh` |
+| A14 | Las dos pruebas del guion corren en el CI Linux | las dos en `infra/ops/tests/pruebas-linux.sh` |
 
 `done` exige además la instalación en el VPS, la prueba de ida y vuelta de Sam en los dos canales y la configuración de Kuma. Se registran en el handoff y en el runbook, no en esta PR.
 
 ## Riesgos
 
 - **Discord caído durante un incidente.** Kuma sigue con su propio estado en el panel, y el journal tiene cada aviso. El corte directo fue decisión de Sam.
-- **Webhook borrado o filtrado.** Un 401/404 sale como «rechazado (HTTP …)» en el log. Rotar = borrar el webhook en Discord, crear otro y pegarlo (runbook § 2).
+- **Webhook borrado o filtrado.** Un 401/404 sale como «rechazado (HTTP …)» en el log. Rotar = borrar el webhook en Discord, crear otro y pegarlo (runbook § 1 B).
+- **`guardar-webhook-discord.sh` y `env-set.sh` a la vez** sobre el `.env` de la app: gana el último y se pierde lo que guardó el otro. No hay candado común; el runbook fija el orden (D8).
 - **Vuelta atrás a Telegram** depende de que el bot de la app siga vivo (SDD-0606).
