@@ -68,3 +68,9 @@ Los dos se corrieron con `node` directo, sin `pnpm install`.
 - **«49 líneas»** pasa a «49 líneas, 26 de datos (16 de Studio y 10 de Chatwoot) y el resto comentarios», medido con `awk`: 23 comentarios y 0 líneas vacías.
 - **Las cabezas fusionadas:** `602d5200e` (#478) y `a0c32c9cc` (#480). Las dos son ancestro de `3c14dde83`. Se citan en la leyenda, en el 3.0 y en el bloque `SISTEMA`.
 - **El cierre de docs:** `docs:check` y `sdd:check` dan PASÓ.
+
+## Main `019170c90`, con la #500 fusionada
+
+- **El verde de `c1ce965c4`:** Calidad 42999653292 success (job 130452338284).
+- **El merge:** `95a5456e5`, merge de `019170c90`. El merge-tree se midió antes y dio limpio.
+- **Lo que cruza:** nada. `3c14dde83..019170c90` toca 4 archivos (+78 −5), los de la #500, y ninguno es de esta PR. El DG puede revisar este delta corto.
