@@ -713,7 +713,7 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
   - `:esperados_hilos`;
   - `:esperados_contactos`, los que tienen `chatwoot_contact_id`;
   - `:esperados_espejo`, las filas de `chatwoot_conversations` de los hilos vinculados.
-- **`/dev/shm/portal-historial/contactos-conservados.ndjson`,** que escribe la pieza de E5. Va en 0600 y lleva solo ids, como `vinculos.ndjson`. El formato está propuesto y **lo confirma E5** ‹por confirmar›:
+- **`/dev/shm/portal-historial/contactos-conservados.ndjson`,** que escribe la pieza de E5. Va en 0600 y lleva solo ids, como `vinculos.ndjson`. El formato es el que escribe `deshacer-carga.rb` (confirmado por E5 en la #478):
   - **la cabecera:** `{"tipo":"cabecera","version":1,"tenant_id":"<uuid>","cuenta":<n>,"bandeja":<n>,"contactos":<n>}`;
   - **una línea por contacto `dtd-portal:` que E5 no borró** porque tenía otra bandeja: `{"tipo":"contacto","identificador":"<uuid>","contacto_id":<n>}`;
   - **si E5 no conservó ninguno,** el archivo trae solo la cabecera, con `"contactos":0`;
@@ -777,7 +777,7 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
 
 **El tamaño:** unas 100 líneas de SQL, un contrato de unas 250 y un envoltorio de unas 150. Es una PR, con su handoff y la línea de 4.6b en el runbook.
 
-**El orden con E5:** primero Chatwoot y después Studio. Si la de Chatwoot falla, la de Studio no se corre. Como el flag sigue apagado y el corte queda en nulo, ningún orden hace daño a la cola.
+**El orden con E5** (aprobado por el DG el 2026-11-09; el detalle va en el 4.6b de `docs/runbooks/chatwoot-portal-p4-puertas.md`): 1, el seco de Chatwoot (el DG); 2, el ensayo de Studio con rollback (el DG); 3, el borrado de Chatwoot (Sam); 4, el desarme de Studio (Sam); 5, el cierre con `limpiar.sh --cierre-4-6b` (Sam). **El orden lo imponen los archivos `.hecho`:** cada paso exige el del anterior, con el mismo sha256 de `contactos-conservados.ndjson` y el mismo tenant, y se niega si falta. Así un aborto del borrado de Chatwoot no deja a Studio desarmado. **Si el 4 falla después del 3,** Chatwoot ya está vacío y Studio sigue vinculado: se repite el 4 con el mismo archivo, y `chatwoot_portal` no se enciende hasta que el 4 salga con 0. **Si el VPS se reinicia entre el 3 y el 4,** el 4 usa la copia durable que deja el paso 3 en `/srv/ops/portal-historial/deshacer/` (root 0700, solo ids, uuid seudónimos y hashes; la opción (a) que eligió Sam), y el 5 la borra. Las piezas: la 2c de E5 (#478) y la #480, ‹por confirmar hasta que estén en `main`›.
 
 ### 10.5.11 El plazo de respuesta: lunes y feriados (P5 y P7)
 
