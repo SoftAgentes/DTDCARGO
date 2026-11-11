@@ -38,7 +38,7 @@
  * con el 'empleado 4-5' o el primer pedido real del founder, como spec propia");
  * los overrides por usuario exigían una spec que supersede a 0139. Esa spec es
  * la SDD-0622 (2026-11-11): reemplaza SOLO el punto D. Ahora hay accesos
- * adicionales por PERSONA (migr 0526, `UserModuleGrants` más abajo) que solo
+ * adicionales por PERSONA (migr 0529, `UserModuleGrants` más abajo) que solo
  * suman al rol, con motivo, vencimiento opcional y auditoría.
  *
  * El test anti-drift (`rbac.test.ts`) garantiza que la matriz y el registro de
@@ -384,7 +384,7 @@ function overrideKey(role: string, moduleId: string): string {
   return `${role}:${moduleId}`;
 }
 
-// ─── Accesos adicionales por persona (SDD-0622, migr 0526) ──────────────
+// ─── Accesos adicionales por persona (SDD-0622, migr 0529) ──────────────
 // Reemplaza SOLO el punto D de la SDD-0139 («overrides por usuario: no»). El
 // rol sigue siendo la plantilla; una persona puede tener extras que SOLO
 // SUMAN, por módulo (ver / ver y editar), con motivo y vencimiento opcional.

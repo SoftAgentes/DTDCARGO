@@ -6,7 +6,7 @@
  * la PANTALLA necesita para no prometer lo que la base niega (§5.3):
  *
  *   - `GRANT_COVERAGE`: qué módulos se pueden conceder HOY porque su capa de base
- *     ya acepta el extra (migr 0526/0527, o RLS solo por tenant). El resto se
+ *     ya acepta el extra (migr 0529/0530, o RLS solo por tenant). El resto se
  *     muestra con el motivo por el que todavía no.
  *   - `grantableStatus`: el estado de un módulo para UNA persona concreta (ya lo
  *     da su rol, sensible, bloqueado por la fase de dinero…).
@@ -38,8 +38,8 @@ export type GrantCoverage = "covered" | "money_phase" | "admin_base" | "superadm
 
 /**
  * Módulos cubiertos en la base (SDD-0622 §12, grupos C y D, más `users`):
- *   - kommo: `crm_puede_usar()`/`crm_puede_editar()` usan `user_has_module` (0527).
- *   - clients: `document_entity_authorized` suma los extras (0527). La fusión de
+ *   - kommo: `crm_puede_usar()`/`crm_puede_editar()` usan `user_has_module` (0530).
+ *   - clients: `document_entity_authorized` suma los extras (0530). La fusión de
  *     fichas (0358/0361) y el cambio de código (0371) siguen pidiendo su rol.
  *   - quotes, sales-orders, purchase-orders, conversaciones, rates, suppliers:
  *     RLS solo por tenant (0007, 0012, 0106, 0124, 0125, 0236).
@@ -133,7 +133,7 @@ export const COMMERCIAL_COVERED = MODULES.filter(
   (m) => m.group === "COMERCIAL" && COVERED.has(m.id),
 ).map((m) => m.id);
 
-/** Validación de motivo idéntica a la RPC (0526): 5 a 500 caracteres sin bordes. */
+/** Validación de motivo idéntica a la RPC (0529): 5 a 500 caracteres sin bordes. */
 export function reasonError(reason: string): string | null {
   const len = reason.trim().length;
   if (len < 5) return "Escribe el motivo (mínimo 5 caracteres).";

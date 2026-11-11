@@ -12,7 +12,7 @@
  *      alguien tiene algo: la pantalla lo dice (objeción de la SDD-0139).
  *
  * Toda escritura va por `grantUserModuleAction` / `revokeUserModuleGrantAction`
- * (admin + RPC de la 0526). La ficha no se cierra: `revalidatePath` la redibuja.
+ * (admin + RPC de la 0529). La ficha no se cierra: `revalidatePath` la redibuja.
  */
 
 import { useRef, useState, useTransition } from "react";
@@ -371,6 +371,9 @@ function AccesosExtra({
           const soloVer = grantViewOnly(g.moduleId, member.role);
           const dadoPor = g.grantedBy ? (nombres[g.grantedBy] ?? "un admin") : "un admin";
           const vence = g.expiresAt ? `${g.expired ? "venció" : "vence"} ${fechaCorta.format(new Date(g.expiresAt))}` : null;
+          // Un extra que el rol ya cubre no suma nada hoy (p. ej. tras un cambio de rol): se dice.
+          const porRol = effectiveModuleAccess(member.role, g.moduleId, overrides);
+          const redundante = porRol.viewByRole && (porRol.editByRole || !g.canEdit);
           return (
             <div key={g.moduleId} className="perm-grant" data-expired={g.expired ? "true" : undefined}>
               <div>
@@ -384,6 +387,11 @@ function AccesosExtra({
                   {g.expired && (
                     <span className="perm-chip" data-kind="expired">
                       Vencido
+                    </span>
+                  )}
+                  {!g.expired && redundante && (
+                    <span className="perm-chip" data-kind="off" title="Su rol ya da este permiso; puedes quitar el extra.">
+                      Su rol ya lo da
                     </span>
                   )}
                 </div>
@@ -610,7 +618,7 @@ function LoQuePuedeVer({
             Rol
           </span>
           <span>
-            <i style={{ background: "var(--info-bg)" }} />
+            <i style={{ background: "var(--cat-2-bg)", boxShadow: "inset 0 0 0 1px var(--cat-2)" }} />
             Extra
           </span>
           <span>

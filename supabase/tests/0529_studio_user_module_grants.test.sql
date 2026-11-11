@@ -1,25 +1,25 @@
 \set ON_ERROR_STOP on
 
--- SDD-0622 · contrato de la 0526 (accesos adicionales por persona).
+-- SDD-0622 · contrato de la 0529 (accesos adicionales por persona).
 --
--- Monta lo mínimo que la 0526 da por sentado, con la forma de las migraciones
+-- Monta lo mínimo que la 0529 da por sentado, con la forma de las migraciones
 -- reales: tenants, auth.users, user_tenants con warehouse_scope (0202),
 -- get_user_tenant_id (0453), is_tenant_admin (0386), is_platform_admin
 -- (platform_admins), audit_entity_types (0258) y entity_audit_log. Aplica la
--- 0357 REAL (desvíos por rol) y la 0526 REAL.
+-- 0357 REAL (desvíos por rol) y la 0529 REAL.
 --
 -- `append_audit_event` es un doble con la MISMA firma y las validaciones que
 -- importan aquí (tipo de entidad activo y motivo de 4 a 1000 caracteres); el
 -- writer real (0267/0294) tiene su propio contrato.
 --
--- CONTROL ROJO: sin 0526 cae en la primera aserción (la RPC no existe).
+-- CONTROL ROJO: sin 0529 cae en la primera aserción (la RPC no existe).
 -- Termina siempre en ROLLBACK. Solo ids y correos sintéticos.
 begin;
 
 do $roles$
 begin
   if to_regclass('public.studio_user_module_grants') is not null then
-    raise exception 'Fixture 0526 rechazada: el objeto real ya existe';
+    raise exception 'Fixture 0529 rechazada: el objeto real ya existe';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -150,12 +150,12 @@ insert into public.user_tenants (user_id, tenant_id, role, disabled_at, warehous
 insert into public.platform_admins values ('a0000000-0000-0000-0000-0000000000a2');
 
 \ir ../migrations/0357_role_module_overrides.sql
-\ir ../migrations/0526_studio_user_module_grants.sql
+\ir ../migrations/0529_studio_user_module_grants.sql
 
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
 begin
-  if p_value is distinct from true then raise exception 'TEST 0526: %', p_label; end if;
+  if p_value is distinct from true then raise exception 'TEST 0529: %', p_label; end if;
   perform nextval('pg_temp.assertion_count');
 end;
 $$;
@@ -401,6 +401,6 @@ select pg_temp.assert_true(not has_function_privilege('anon', 'public.user_has_m
 select pg_temp.assert_true(not has_table_privilege('authenticated', 'public.studio_user_module_grants', 'update'),
   '10b: authenticated no actualiza la tabla');
 
-select 'TEST 0526: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
+select 'TEST 0529: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 
 rollback;

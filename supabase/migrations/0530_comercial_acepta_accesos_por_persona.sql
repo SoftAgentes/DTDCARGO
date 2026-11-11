@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────
--- 0527 · SDD-0622 · Comercial en la base acepta los accesos por persona
+-- 0530 · SDD-0622 · Comercial en la base acepta los accesos por persona
 --
--- QUÉ RESUELVE: con la 0526 la pantalla ya suma los accesos adicionales, pero la
+-- QUÉ RESUELVE: con la 0529 la pantalla ya suma los accesos adicionales, pero la
 -- base seguía comparando el rol suelto en Comercial (§12, grupo C):
 --   · `crm_puede_usar()` = admin o commercial (0506:186) → a alguien de
 --     contabilidad con el CRM concedido la RLS le cerraba las tablas.
@@ -34,33 +34,33 @@ declare
 begin
   if pg_catalog.to_regprocedure('public.user_has_module(text,boolean)') is null
      or to_regclass('public.studio_user_module_grants') is null then
-    raise exception '0527 requiere la 0526 (user_has_module y studio_user_module_grants)';
+    raise exception '0530 requiere la 0529 (user_has_module y studio_user_module_grants)';
   end if;
   if pg_catalog.to_regprocedure('public.crm_puede_usar()') is null
      or pg_catalog.to_regprocedure('public.crm_mover_etapa(uuid,text,text,text)') is null
      or to_regclass('public.crm_tarjetas') is null
      or to_regclass('public.crm_tareas') is null
      or to_regclass('public.crm_notas') is null then
-    raise exception '0527 requiere el CRM propio de la 0506';
+    raise exception '0530 requiere el CRM propio de la 0506';
   end if;
   if pg_catalog.to_regprocedure('public.document_entity_authorized(text,uuid,text)') is null
      or pg_catalog.to_regprocedure('public.document_entity_module_contract(text)') is null then
-    raise exception '0527 requiere el contrato documental de la 0444';
+    raise exception '0530 requiere el contrato documental de la 0444';
   end if;
   if pg_catalog.to_regprocedure('public.crm_puede_editar()') is not null then
-    raise exception '0527 no aplica: crm_puede_editar ya existe';
+    raise exception '0530 no aplica: crm_puede_editar ya existe';
   end if;
 
   select pg_catalog.pg_get_functiondef('public.crm_puede_usar()'::regprocedure) into v_puede;
   if v_puede not like '%current_studio_role()) in (''admin'', ''commercial'')%' then
-    raise exception '0527: crm_puede_usar no tiene el cuerpo de la 0506 (drift)';
+    raise exception '0530: crm_puede_usar no tiene el cuerpo de la 0506 (drift)';
   end if;
   select pg_catalog.pg_get_functiondef('public.document_entity_authorized(text,uuid,text)'::regprocedure) into v_doc;
   if v_doc not like '%else false%'
      or v_doc like '%studio_user_module_grants%'
      or pg_catalog.obj_description('public.document_entity_authorized(text,uuid,text)'::regprocedure, 'pg_proc')
         not like 'SDD-0412:%' then
-    raise exception '0527: document_entity_authorized no es el de la 0444 (drift)';
+    raise exception '0530: document_entity_authorized no es el de la 0444 (drift)';
   end if;
 end;
 $preflight$;
@@ -280,23 +280,23 @@ grant execute on function public.document_entity_authorized(text,uuid,text)
 do $post$
 begin
   if pg_catalog.pg_get_functiondef('public.crm_puede_usar()'::regprocedure) not like '%user_has_module(''kommo'', false)%' then
-    raise exception '0527: crm_puede_usar no quedó con user_has_module';
+    raise exception '0530: crm_puede_usar no quedó con user_has_module';
   end if;
   if pg_catalog.pg_get_functiondef('public.crm_mover_etapa(uuid,text,text,text)'::regprocedure) not like '%crm_puede_editar()%' then
-    raise exception '0527: crm_mover_etapa no pide edición';
+    raise exception '0530: crm_mover_etapa no pide edición';
   end if;
   if (select pg_catalog.count(*) from pg_catalog.pg_policy
       where polrelid in ('public.crm_tarjetas'::regclass, 'public.crm_tareas'::regclass, 'public.crm_notas'::regclass)
         and polcmd in ('a', 'w')
         and pg_catalog.pg_get_expr(coalesce(polwithcheck, polqual), polrelid) like '%crm_puede_editar()%') <> 5 then
-    raise exception '0527: las 5 policies de escritura del CRM no piden edición';
+    raise exception '0530: las 5 policies de escritura del CRM no piden edición';
   end if;
   if pg_catalog.pg_get_functiondef('public.document_entity_authorized(text,uuid,text)'::regprocedure) not like '%studio_user_module_grants%' then
-    raise exception '0527: document_entity_authorized no suma los accesos adicionales';
+    raise exception '0530: document_entity_authorized no suma los accesos adicionales';
   end if;
   if pg_catalog.has_function_privilege('anon', 'public.crm_puede_editar()', 'EXECUTE')
      or pg_catalog.has_function_privilege('anon', 'public.document_entity_authorized(text,uuid,text)', 'EXECUTE') then
-    raise exception '0527: anon no debe ejecutar las funciones de acceso';
+    raise exception '0530: anon no debe ejecutar las funciones de acceso';
   end if;
 end;
 $post$;

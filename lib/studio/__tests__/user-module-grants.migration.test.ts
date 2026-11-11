@@ -1,9 +1,9 @@
 // @vitest-environment node
 /**
- * SDD-0622 · Las migraciones 0526 y 0527 corridas de verdad sobre PostgreSQL
+ * SDD-0622 · Las migraciones 0529 y 0530 corridas de verdad sobre PostgreSQL
  * embebido, más el anti-drift entre la copia SQL de la matriz y `rbac.ts`.
  *
- * - Contratos `supabase/tests/0526_*.test.sql` y `0527_*.test.sql` con los `.sql`
+ * - Contratos `supabase/tests/0529_*.test.sql` y `0530_*.test.sql` con los `.sql`
  *   REALES inlineados (lo que se prueba es el texto que se aplicará).
  * - CONTROL ROJO: sin la migración, el contrato cae.
  * - MUTANTES: cada uno rompe UN candado y el contrato tiene que caer con la
@@ -32,12 +32,15 @@ import type { StudioUserRole } from "@/lib/studio/user-types";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
-const M0526 = "0526_studio_user_module_grants.sql";
-const M0527 = "0527_comercial_acepta_accesos_por_persona.sql";
-const FILE_0526 = read(resolve(ROOT, "supabase/migrations", M0526));
-const FILE_0527 = read(resolve(ROOT, "supabase/migrations", M0527));
-const C0526 = resolve(ROOT, "supabase/tests/0526_studio_user_module_grants.test.sql");
-const C0527 = resolve(ROOT, "supabase/tests/0527_comercial_acepta_accesos_por_persona.test.sql");
+const M0529 = "0529_studio_user_module_grants.sql";
+const M0530 = "0530_comercial_acepta_accesos_por_persona.sql";
+const FILE_0529 = read(resolve(ROOT, "supabase/migrations", M0529));
+const FILE_0530 = read(resolve(ROOT, "supabase/migrations", M0530));
+const C0529 = resolve(ROOT, "supabase/tests/0529_studio_user_module_grants.test.sql");
+const C0530 = resolve(ROOT, "supabase/tests/0530_comercial_acepta_accesos_por_persona.test.sql");
+const M0531 = "0531_comercial_rls_por_modulo.sql";
+const FILE_0531 = read(resolve(ROOT, "supabase/migrations", M0531));
+const C0531 = resolve(ROOT, "supabase/tests/0531_comercial_rls_por_modulo.test.sql");
 const SLOW = 180_000;
 
 /** psql → SQL plano: quita \set e inlinea \ir. `replace` sustituye un archivo por el final de su ruta. */
@@ -80,11 +83,11 @@ function once(text: string, from: string, to: string): string {
 }
 
 // ─── Anti-drift: la copia SQL de la matriz = rbac.ts ─────────────────────
-describe("SDD-0622 · la 0526 copia exacta de rbac.ts", () => {
+describe("SDD-0622 · la 0529 copia exacta de rbac.ts", () => {
   it("studio_module_default_roles = ROLE_MODULE_ACCESS (mismos módulos, mismos roles)", () => {
-    const body = FILE_0526.slice(
-      FILE_0526.indexOf("create function public.studio_module_default_roles"),
-      FILE_0526.indexOf("comment on function public.studio_module_default_roles"),
+    const body = FILE_0529.slice(
+      FILE_0529.indexOf("create function public.studio_module_default_roles"),
+      FILE_0529.indexOf("comment on function public.studio_module_default_roles"),
     );
     const sql: Record<string, string[]> = {};
     for (const m of body.matchAll(/\('([a-z-]+)', array\[([^\]]*)\]::text\[\]\)/g)) {
@@ -97,25 +100,25 @@ describe("SDD-0622 · la 0526 copia exacta de rbac.ts", () => {
     expect(sql).toEqual(code);
   });
 
-  it("los sensibles de la 0526 = LOCKED_MODULES, en la función y en el CHECK", () => {
+  it("los sensibles de la 0529 = LOCKED_MODULES, en la función y en el CHECK", () => {
     const locked = [...LOCKED_MODULES].sort();
-    const fn = FILE_0526.slice(
-      FILE_0526.indexOf("create function public.studio_module_is_sensitive"),
-      FILE_0526.indexOf("comment on function public.studio_module_is_sensitive"),
+    const fn = FILE_0529.slice(
+      FILE_0529.indexOf("create function public.studio_module_is_sensitive"),
+      FILE_0529.indexOf("comment on function public.studio_module_is_sensitive"),
     );
-    const check = FILE_0526.slice(
-      FILE_0526.indexOf("constraint studio_user_module_grants_sensitive_confirmed"),
-      FILE_0526.indexOf("constraint studio_user_module_grants_keystone_read_only"),
+    const check = FILE_0529.slice(
+      FILE_0529.indexOf("constraint studio_user_module_grants_sensitive_confirmed"),
+      FILE_0529.indexOf("constraint studio_user_module_grants_keystone_read_only"),
     );
     const ids = (s: string) => [...s.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]).sort();
     expect(ids(fn)).toEqual(locked);
     expect(ids(check)).toEqual(locked);
   });
 
-  it("los del superadministrador de la 0526 = SUPERADMIN_ONLY_MODULES", () => {
-    const fn = FILE_0526.slice(
-      FILE_0526.indexOf("create function public.studio_module_is_superadmin_only"),
-      FILE_0526.indexOf("comment on function public.studio_module_is_superadmin_only"),
+  it("los del superadministrador de la 0529 = SUPERADMIN_ONLY_MODULES", () => {
+    const fn = FILE_0529.slice(
+      FILE_0529.indexOf("create function public.studio_module_is_superadmin_only"),
+      FILE_0529.indexOf("comment on function public.studio_module_is_superadmin_only"),
     );
     const ids = [...fn.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]).sort();
     expect(ids).toEqual([...SUPERADMIN_ONLY_MODULES].sort());
@@ -129,114 +132,179 @@ describe("SDD-0622 · la 0526 copia exacta de rbac.ts", () => {
 });
 
 // ─── Contratos ───────────────────────────────────────────────────────────
-const MUTANTES_0526: { nombre: string; sql: () => string; cae: string }[] = [
+const MUTANTES_0529: { nombre: string; sql: () => string; cae: string }[] = [
   {
     nombre: "cualquier miembro concede",
-    sql: () => once(FILE_0526, "  if v_actor_role is distinct from 'admin' then\n    raise exception 'Solo un administrador concede", "  if false then\n    raise exception 'Solo un administrador concede"),
-    cae: "TEST 0526: 1: contabilidad no concede",
+    sql: () => once(FILE_0529, "  if v_actor_role is distinct from 'admin' then\n    raise exception 'Solo un administrador concede", "  if false then\n    raise exception 'Solo un administrador concede"),
+    cae: "TEST 0529: 1: contabilidad no concede",
   },
   {
     nombre: "sin doble aviso en la RPC",
-    sql: () => once(FILE_0526, "if v_sensitive and p_confirm_sensitive is distinct from true then", "if false then"),
-    cae: "TEST 0526: 4a: tesorería sin confirmación rechazada",
+    sql: () => once(FILE_0529, "if v_sensitive and p_confirm_sensitive is distinct from true then", "if false then"),
+    cae: "TEST 0529: 4a: tesorería sin confirmación rechazada",
   },
   {
     nombre: "support edita con extra",
-    sql: () => once(FILE_0526, "  if v_edit and v_role = 'support' then\n    return false;\n  end if;\n", ""),
-    cae: "TEST 0526: 6b: support nunca edita",
+    sql: () => once(FILE_0529, "  if v_edit and v_role = 'support' then\n    return false;\n  end if;\n", ""),
+    cae: "TEST 0529: 6b: support nunca edita",
   },
   {
     nombre: "el vencimiento no cuenta",
-    sql: () => once(FILE_0526, "      and (g.expires_at is null or g.expires_at > pg_catalog.now())\n      and (not public", "      and (not public"),
-    cae: "TEST 0526: 6d: vencido",
+    sql: () => once(FILE_0529, "      and (g.expires_at is null or g.expires_at > pg_catalog.now())\n      and (not public", "      and (not public"),
+    cae: "TEST 0529: 6d: vencido",
   },
   {
     nombre: "el extra salta el scope de almacén",
-    sql: () => once(FILE_0526, "  if v_side is not null and coalesce(v_scope, 'all') not in ('all', v_side) then\n    return false;\n  end if;\n", ""),
-    cae: "TEST 0526: 6e: un extra no salta el scope",
+    sql: () => once(FILE_0529, "  if v_side is not null and coalesce(v_scope, 'all') not in ('all', v_side) then\n    return false;\n  end if;\n", ""),
+    cae: "TEST 0529: 6e: un extra no salta el scope",
   },
   {
     nombre: "auto-concesión",
-    sql: () => once(FILE_0526, "if p_user_id is null or p_user_id = v_actor then", "if p_user_id is null then"),
-    cae: "TEST 0526: 3e: nadie se concede a sí mismo",
+    sql: () => once(FILE_0529, "if p_user_id is null or p_user_id = v_actor then", "if p_user_id is null then"),
+    cae: "TEST 0529: 3e: nadie se concede a sí mismo",
   },
   {
     nombre: "cualquier admin concede módulos del superadmin",
-    sql: () => once(FILE_0526, "if public.studio_module_is_superadmin_only(v_module) and not (select public.is_platform_admin()) then", "if false then"),
-    cae: "TEST 0526: 5e:",
+    sql: () => once(FILE_0529, "if public.studio_module_is_superadmin_only(v_module) and not (select public.is_platform_admin()) then", "if false then"),
+    cae: "TEST 0529: 5e:",
   },
   {
     nombre: "la RPC acepta Usuarios con edición",
-    sql: () => once(FILE_0526, "if coalesce(p_can_edit, false) and v_module in ('users', 'admin') then", "if false then"),
-    cae: "TEST 0526: 5a: Usuarios no se concede con edición",
+    sql: () => once(FILE_0529, "if coalesce(p_can_edit, false) and v_module in ('users', 'admin') then", "if false then"),
+    cae: "TEST 0529: 5a: Usuarios no se concede con edición",
   },
 ];
 
-const MUTANTES_0527: { nombre: string; sql: () => string; cae: string }[] = [
+const MUTANTES_0530: { nombre: string; sql: () => string; cae: string }[] = [
   {
     nombre: "la escritura de tarjetas solo pide ver",
     sql: () =>
       once(
-        FILE_0527,
+        FILE_0530,
         "with check (tenant_id = (select public.get_user_tenant_id()) and (select public.crm_puede_editar()) and fuente = 'manual');",
         "with check (tenant_id = (select public.get_user_tenant_id()) and (select public.crm_puede_usar()) and fuente = 'manual');",
-      ).replace("<> 5 then\n    raise exception '0527: las 5 policies", "<> 4 then\n    raise exception '0527: las 5 policies"),
-    cae: "TEST 0527: 4b: con solo ver no crea tarjetas",
+      ).replace("<> 5 then\n    raise exception '0530: las 5 policies", "<> 4 then\n    raise exception '0530: las 5 policies"),
+    cae: "TEST 0530: 4b: con solo ver no crea tarjetas",
   },
   {
     nombre: "document_entity_authorized ignora el extra",
-    sql: () => once(FILE_0527, "        or coalesce(d.grant_view, false)\n", "\n"),
-    cae: "TEST 0527: 6e:",
+    sql: () => once(FILE_0530, "        or coalesce(d.grant_view, false)\n", "\n"),
+    cae: "TEST 0530: 6e:",
   },
 ];
 
-describe("SDD-0622 · contratos 0526 y 0527 (PGlite)", () => {
-  it("el contrato de la 0526 pasa entero", async () => {
-    const run = await contract(C0526, "TEST 0526");
+const MUTANTES_0531: { nombre: string; sql: () => string; cae: string }[] = [
+  {
+    nombre: "crear cotizaciones solo pide ver",
+    sql: () =>
+      once(
+        FILE_0531,
+        "with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('quotes', true)));",
+        "with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('quotes', false)));",
+      ),
+    cae: "TEST 0531: 1b: support no crea cotizaciones",
+  },
+  {
+    nombre: "marketing lee tarifas (lectura sin módulo)",
+    sql: () =>
+      once(
+        FILE_0531,
+        "and (select public.user_has_any_module(array['rates', 'quotes', 'clients', 'sales-orders', 'cn'])));",
+        ");",
+      ),
+    // La postcondición de la propia 0531 ya lo frena antes de las aserciones.
+    cae: "0531: quedan policies de authenticated sin módulo: rates::rates_select_por_modulo",
+  },
+  {
+    nombre: "la CN no lee tarifas (rompe la propuesta de la recepción)",
+    sql: () => once(FILE_0531, "array['rates', 'quotes', 'clients', 'sales-orders', 'cn']", "array['rates', 'quotes', 'clients', 'sales-orders']"),
+    cae: "TEST 0531: 3a: almacén CN lee tarifas",
+  },
+  {
+    nombre: "mensajes sin candado de edición",
+    sql: () =>
+      once(
+        FILE_0531,
+        "create policy conversation_messages_insert_por_modulo on public.conversation_messages\n  for insert to authenticated\n  with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('conversaciones', true)));",
+        "create policy conversation_messages_insert_por_modulo on public.conversation_messages\n  for insert to authenticated\n  with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('conversaciones', false)));",
+      ),
+    cae: "TEST 0531: 1f: support no escribe mensajes",
+  },
+];
+
+describe("SDD-0622 · contrato 0531 (RLS comercial por módulo, PGlite)", () => {
+  it("el contrato de la 0531 pasa entero", async () => {
+    const run = await contract(C0531, "TEST 0531");
     expect(run.error).toBeNull();
-    expect(run.green).toMatch(/^TEST 0526: \d+ aserciones OK$/);
+    expect(run.green).toMatch(/^TEST 0531: \d+ aserciones OK$/);
+    expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(25);
+  }, SLOW);
+
+  it("CONTROL ROJO: sin la 0531 support escribe cotizaciones", async () => {
+    const run = await contract(C0531, "TEST 0531", { [M0531]: "select 1;" });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toContain("TEST 0531: 1b: support no crea cotizaciones");
+  }, SLOW);
+
+  it("la 0531 no se aplica dos veces (preflight)", async () => {
+    const run = await contract(C0531, "TEST 0531", { [M0531]: `${FILE_0531}\n${FILE_0531}` });
+    expect(run.error).toContain("0531: faltan las policies que reemplaza");
+  }, SLOW);
+
+  it.each(MUTANTES_0531)("MUTANTE 0531 «$nombre» cae", async ({ sql, cae }) => {
+    const run = await contract(C0531, "TEST 0531", { [M0531]: sql() });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toContain(cae);
+  }, SLOW);
+});
+
+describe("SDD-0622 · contratos 0529 y 0530 (PGlite)", () => {
+  it("el contrato de la 0529 pasa entero", async () => {
+    const run = await contract(C0529, "TEST 0529");
+    expect(run.error).toBeNull();
+    expect(run.green).toMatch(/^TEST 0529: \d+ aserciones OK$/);
     expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(50);
   }, SLOW);
 
-  it("CONTROL ROJO: sin la 0526 cae en la primera aserción", async () => {
-    const run = await contract(C0526, "TEST 0526", { [M0526]: "select 1;" });
+  it("CONTROL ROJO: sin la 0529 cae en la primera aserción", async () => {
+    const run = await contract(C0529, "TEST 0529", { [M0529]: "select 1;" });
     expect(run.green).toBeUndefined();
-    expect(run.error).toContain("TEST 0526: 1: contabilidad no concede");
+    expect(run.error).toContain("TEST 0529: 1: contabilidad no concede");
   }, SLOW);
 
-  it("la 0526 no se aplica dos veces (preflight)", async () => {
-    const run = await contract(C0526, "TEST 0526", { [M0526]: `${FILE_0526}\n${FILE_0526}` });
-    expect(run.error).toContain("0526 no aplica");
+  it("la 0529 no se aplica dos veces (preflight)", async () => {
+    const run = await contract(C0529, "TEST 0529", { [M0529]: `${FILE_0529}\n${FILE_0529}` });
+    expect(run.error).toContain("0529 no aplica");
   }, SLOW);
 
-  it.each(MUTANTES_0526)("MUTANTE 0526 «$nombre» cae", async ({ sql, cae }) => {
-    const run = await contract(C0526, "TEST 0526", { [M0526]: sql() });
+  it.each(MUTANTES_0529)("MUTANTE 0529 «$nombre» cae", async ({ sql, cae }) => {
+    const run = await contract(C0529, "TEST 0529", { [M0529]: sql() });
     expect(run.green).toBeUndefined();
     expect(run.error).toContain(cae);
   }, SLOW);
 
-  it("el contrato de la 0527 pasa entero (caso Alejandro de punta a punta)", async () => {
-    const run = await contract(C0527, "TEST 0527");
+  it("el contrato de la 0530 pasa entero (caso Alejandro de punta a punta)", async () => {
+    const run = await contract(C0530, "TEST 0530");
     expect(run.error).toBeNull();
-    expect(run.green).toMatch(/^TEST 0527: \d+ aserciones OK$/);
+    expect(run.green).toMatch(/^TEST 0530: \d+ aserciones OK$/);
     expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(30);
   }, SLOW);
 
-  it("CONTROL ROJO: sin la 0527 la base le cierra el CRM a contabilidad con extra", async () => {
-    const run = await contract(C0527, "TEST 0527", { [M0527]: "select 1;" });
+  it("CONTROL ROJO: sin la 0530 la base le cierra el CRM a contabilidad con extra", async () => {
+    const run = await contract(C0530, "TEST 0530", { [M0530]: "select 1;" });
     expect(run.green).toBeUndefined();
-    expect(run.error).toMatch(/TEST 0527: 3a|TEST 0527: 3b/);
+    expect(run.error).toMatch(/TEST 0530: 3a|TEST 0530: 3b/);
   }, SLOW);
 
-  it.each(MUTANTES_0527)("MUTANTE 0527 «$nombre» cae", async ({ sql, cae }) => {
-    const run = await contract(C0527, "TEST 0527", { [M0527]: sql() });
+  it.each(MUTANTES_0530)("MUTANTE 0530 «$nombre» cae", async ({ sql, cae }) => {
+    const run = await contract(C0530, "TEST 0530", { [M0530]: sql() });
     expect(run.green).toBeUndefined();
     expect(run.error).toContain(cae);
   }, SLOW);
 
   it("hay mutantes de cada candado (piso)", () => {
-    expect(MUTANTES_0526.length).toBeGreaterThanOrEqual(8);
-    expect(MUTANTES_0527.length).toBeGreaterThanOrEqual(2);
+    expect(MUTANTES_0529.length).toBeGreaterThanOrEqual(8);
+    expect(MUTANTES_0530.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -258,7 +326,7 @@ describe("SDD-0622 · paridad canAccessModule/canEditModule ↔ user_has_module"
   it("mismo resultado en código y en base para cada rol × módulo × extra", async () => {
     const db = await pgliteLimpio();
     try {
-      const setup = inline(C0526).split("create temporary sequence assertion_count;")[0];
+      const setup = inline(C0529).split("create temporary sequence assertion_count;")[0];
       await db.exec(setup);
       const tenant = "11111111-1111-1111-1111-111111111111";
       const users = ROLES.map((role, i) => ({

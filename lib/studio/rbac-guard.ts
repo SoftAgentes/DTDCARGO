@@ -68,8 +68,8 @@ export interface StudioAccess {
    */
   overrides: RoleModuleOverrides;
   /**
-   * Accesos adicionales VIGENTES de esta persona (SDD-0622, migr 0526). `{}` sin
-   * sesión, con rol `admin` o si la lectura falla (p. ej. la 0526 sin aplicar):
+   * Accesos adicionales VIGENTES de esta persona (SDD-0622, migr 0529). `{}` sin
+   * sesión, con rol `admin` o si la lectura falla (p. ej. la 0529 sin aplicar):
    * igual que `overrides`, nunca abre más de lo que el rol ya daba. Solo suman.
    */
   grants: UserModuleGrants;

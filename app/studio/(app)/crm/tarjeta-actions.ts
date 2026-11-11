@@ -7,7 +7,7 @@
  * maestro: se escribe directo en las tablas de la 0506 con la sesión del
  * usuario, y la RLS vuelve a exigir el módulo CRM del tenant.
  *
- * Un solo candado desde la SDD-0622 (migr 0527): el del módulo `kommo`, con sus
+ * Un solo candado desde la SDD-0622 (migr 0530): el del módulo `kommo`, con sus
  * desvíos por rol y los accesos adicionales de la persona. La RLS y
  * `crm_mover_etapa` repiten la MISMA decisión con `user_has_module('kommo')`
  * (ver) y `crm_puede_editar()` (editar), así que pantalla y base no se

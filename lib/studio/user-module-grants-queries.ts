@@ -1,5 +1,5 @@
 /**
- * Lectura de `studio_user_module_grants` (SDD-0622, migr 0526).
+ * Lectura de `studio_user_module_grants` (SDD-0622, migr 0529).
  *
  * Funciones puras que reciben el `SupabaseClient` (patrón `*-queries.ts`), sin
  * `"use server"`. La escritura NO vive aquí: solo por las RPC
@@ -7,7 +7,7 @@
  * `app/studio/(app)/usuarios/actions.ts` después de su guard.
  *
  * Fail-closed suave, igual que los desvíos por rol: cualquier error (por ejemplo,
- * la 0526 todavía sin aplicar) devuelve vacío. Nunca abre más de lo que el rol
+ * la 0529 todavía sin aplicar) devuelve vacío. Nunca abre más de lo que el rol
  * ya permitía.
  */
 
@@ -64,7 +64,7 @@ export function grantsFromRows(rows: readonly UserModuleGrantRow[], now = Date.n
 }
 
 /**
- * Extras vigentes de la persona de la sesión. La RLS de la 0526 ya deja leer solo
+ * Extras vigentes de la persona de la sesión. La RLS de la 0529 ya deja leer solo
  * las filas propias (o todas a un admin): el filtro por `user_id` hace que no
  * dependa de eso, igual que `getStudioAccess` con `user_tenants`.
  */

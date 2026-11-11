@@ -231,7 +231,7 @@ export function tieneSaldoAbierto(rows: readonly ClientOutstandingRow[]): boolea
  * ¿El rol ve el saldo, el vencido y el último pago del cliente? Es el MISMO
  * criterio que la 0492 (decisión 14 de Sam: «Todo el que ve clientes»): admin o
  * accounting, o la vista efectiva de `clients` con sus overrides y, desde la
- * SDD-0622, los extras de la persona (la 0527 los suma también en SQL). Una
+ * SDD-0622, los extras de la persona (la 0530 los suma también en SQL). Una
  * prueba anti-deriva lo compara con la función SQL en PGlite.
  */
 export function puedeVerSaldoCliente(

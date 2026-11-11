@@ -22,7 +22,7 @@ export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmTa
   const supabase = await createClient();
   const access = await getStudioAccess(supabase);
 
-  // La RLS de la 0527 decide con el MISMO acceso que la pantalla (módulo
+  // La RLS de la 0530 decide con el MISMO acceso que la pantalla (módulo
   // `kommo`: rol, desvío por rol o acceso adicional de la persona, SDD-0622).
   if (!canAccessModule(access.role, "kommo", access.overrides, access.grants) || !access.tenantId) {
     return (

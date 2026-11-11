@@ -26,6 +26,7 @@ import { StudioTopbar } from "./_components/StudioTopbar";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
 import { getMyModuleGrants } from "@/lib/studio/user-module-grants-queries";
+import { canAccessModule } from "@/lib/studio/rbac";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
@@ -165,7 +166,7 @@ export default async function StudioAppLayout({
     // Matriz editable (SDD-0252, migr 0357): sólo importa para no-admin — el
     // sidebar sólo ESCONDE módulos (UX), el gate real es requireModuleView.
     role && role !== "admin" ? getRoleModuleOverrides(supabase) : Promise.resolve({}),
-    // Accesos adicionales de la persona (SDD-0622, migr 0526): el sidebar muestra
+    // Accesos adicionales de la persona (SDD-0622, migr 0529): el sidebar muestra
     // también los módulos que solo tiene por extra. Mismo carácter: solo UX.
     role && role !== "admin" ? getMyModuleGrants(supabase, user.id) : Promise.resolve({}),
     // Badge de la Bandeja de Chatwoot (SDD-0585, E2-D21). RLS scopea al tenant;
@@ -216,6 +217,7 @@ export default async function StudioAppLayout({
                 initialNotifications={initialNotifications}
                 conversationsTenantId={tenantLink?.tenant_id ?? null}
                 initialUnreadConversations={initialUnreadConversations}
+                showConversations={canAccessModule(role, "conversaciones", roleModuleOverrides, myModuleGrants)}
               />
               <div
                 style={{

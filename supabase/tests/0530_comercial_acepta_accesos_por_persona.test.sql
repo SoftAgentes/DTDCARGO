@@ -1,24 +1,24 @@
 \set ON_ERROR_STOP on
 
--- SDD-0622 · contrato de la 0527 (Comercial en la base acepta los accesos por persona).
+-- SDD-0622 · contrato de la 0530 (Comercial en la base acepta los accesos por persona).
 --
--- Monta lo mínimo que 0505, 0506, 0357, 0526 y 0527 dan por sentado, con la forma
--- de las migraciones reales (ver el contrato de la 0506 y el de la 0526), y copia
+-- Monta lo mínimo que 0505, 0506, 0357, 0529 y 0530 dan por sentado, con la forma
+-- de las migraciones reales (ver el contrato de la 0506 y el de la 0529), y copia
 -- LITERAL de la 0444 para document_entity_module_contract y
 -- document_entity_authorized (su cadena 0438–0444 tiene contrato propio). Aplica
--- la 0505, 0506, 0357, 0526 y 0527 REALES.
+-- la 0505, 0506, 0357, 0529 y 0530 REALES.
 --
 -- Caso de aceptación obligatorio (SDD-0622 §7.1): alguien de contabilidad con el
 -- extra «CRM editar» ve y edita el CRM de punta a punta; sin el extra, no.
 --
--- CONTROL ROJO: sin 0527 cae en «3b: con extra de edición ve las tarjetas».
+-- CONTROL ROJO: sin 0530 cae en «3b: con extra de edición ve las tarjetas».
 -- Termina siempre en ROLLBACK. Solo ids, códigos y teléfonos sintéticos (555).
 begin;
 
 do $roles$
 begin
   if to_regclass('public.crm_tarjetas') is not null then
-    raise exception 'Fixture 0527 rechazada: el objeto real ya existe';
+    raise exception 'Fixture 0530 rechazada: el objeto real ya existe';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -272,17 +272,17 @@ insert into public.clients (id, tenant_id, markbox, phone) values
 
 \ir ../migrations/0505_chatwoot_segmento.sql
 \ir ../migrations/0506_crm_modelo.sql
-\ir ../migrations/0526_studio_user_module_grants.sql
+\ir ../migrations/0529_studio_user_module_grants.sql
 
 insert into public.crm_tarjetas (id, tenant_id, client_id, fuente) values
   ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'whatsapp_clientes');
 
-\ir ../migrations/0527_comercial_acepta_accesos_por_persona.sql
+\ir ../migrations/0530_comercial_acepta_accesos_por_persona.sql
 
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
 begin
-  if p_value is distinct from true then raise exception 'TEST 0527: %', p_label; end if;
+  if p_value is distinct from true then raise exception 'TEST 0530: %', p_label; end if;
   perform nextval('pg_temp.assertion_count');
 end;
 $$;
@@ -465,6 +465,6 @@ select pg_temp.assert_true(pg_temp.tarjetas('06') = 3, '8a: el desvío por rol s
 select pg_temp.assert_true(not pg_temp.valor(pg_temp.u('06'), 'public.crm_puede_editar()')::boolean,
   '8b: y no la edición');
 
-select 'TEST 0527: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
+select 'TEST 0530: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 
 rollback;

@@ -75,7 +75,7 @@ export default async function UsuariosPage() {
     // «Roles y permisos» de este módulo. Mismo gate: los dos eran admin-only.
     getRoleModuleOverrides(supabase),
     // SDD-0622: accesos extra del tenant (vigentes y vencidos). La RLS de la
-    // 0526 deja leer todas al admin con su sesión; sin la 0526 llega vacío.
+    // 0529 deja leer todas al admin con su sesión; sin la 0529 llega vacío.
     listTenantModuleGrants(supabase, isSensitiveModule),
   ]);
 

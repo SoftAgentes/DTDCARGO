@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- 0526 · SDD-0622 · Accesos adicionales por persona (rol base + extras)
+-- 0529 · SDD-0622 · Accesos adicionales por persona (rol base + extras)
 --
 -- QUÉ RESUELVE: cada persona tiene un solo rol (`user_tenants.role`) y la
 -- matriz rol×módulo (`lib/studio/rbac.ts`, desvíos por rol de la 0357) no
@@ -54,7 +54,7 @@ begin
      or to_regclass('public.studio_role_module_overrides') is null
      or to_regclass('public.audit_entity_types') is null
      or to_regclass('public.entity_audit_log') is null then
-    raise exception '0526 requiere tenants, user_tenants, studio_role_module_overrides (0357), audit_entity_types (0258) y entity_audit_log';
+    raise exception '0529 requiere tenants, user_tenants, studio_role_module_overrides (0357), audit_entity_types (0258) y entity_audit_log';
   end if;
   if pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null
      or pg_catalog.to_regprocedure('public.is_tenant_admin()') is null
@@ -62,17 +62,17 @@ begin
      or pg_catalog.to_regprocedure(
        'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'
      ) is null then
-    raise exception '0526 requiere get_user_tenant_id(), is_tenant_admin(), is_platform_admin() y append_audit_event (0294)';
+    raise exception '0529 requiere get_user_tenant_id(), is_tenant_admin(), is_platform_admin() y append_audit_event (0294)';
   end if;
   if not exists (
     select 1 from pg_catalog.pg_attribute
     where attrelid = 'public.user_tenants'::regclass
       and attname = 'warehouse_scope' and not attisdropped
   ) then
-    raise exception '0526 requiere user_tenants.warehouse_scope (0202)';
+    raise exception '0529 requiere user_tenants.warehouse_scope (0202)';
   end if;
   if to_regclass('public.studio_user_module_grants') is not null then
-    raise exception '0526 no aplica: studio_user_module_grants ya existe';
+    raise exception '0529 no aplica: studio_user_module_grants ya existe';
   end if;
 end;
 $preflight$;
@@ -151,7 +151,7 @@ as $$
 $$;
 
 comment on function public.studio_module_default_roles(text) is
-  'SDD-0622: copia SQL de ROLE_MODULE_ACCESS (lib/studio/rbac.ts). null = módulo desconocido. La prueba de la 0526 la compara con el código.';
+  'SDD-0622: copia SQL de ROLE_MODULE_ACCESS (lib/studio/rbac.ts). null = módulo desconocido. La prueba de la 0529 la compara con el código.';
 
 -- Módulos sensibles = LOCKED_MODULES (MONEY_MODULES ∪ ADMIN_ONLY_MODULES).
 create function public.studio_module_is_sensitive(p_module_id text)
@@ -262,7 +262,7 @@ grant all on public.studio_user_module_grants to service_role;
 insert into public.audit_entity_types (
   entity_type, status, domain_code, contract_version, introduced_by_ref
 )
-values ('studio_user_module_grant', 'active', 'governance', 1, 'migration:0526')
+values ('studio_user_module_grant', 'active', 'governance', 1, 'migration:0529')
 on conflict (entity_type) do update
 set status = excluded.status,
     domain_code = excluded.domain_code,
@@ -592,27 +592,27 @@ begin
     select 1 from pg_catalog.pg_tables
     where schemaname = 'public' and tablename = 'studio_user_module_grants' and rowsecurity
   ) then
-    raise exception '0526: la RLS no quedó activa';
+    raise exception '0529: la RLS no quedó activa';
   end if;
   if pg_catalog.has_table_privilege('authenticated', 'public.studio_user_module_grants', 'INSERT')
      or pg_catalog.has_table_privilege('authenticated', 'public.studio_user_module_grants', 'UPDATE')
      or pg_catalog.has_table_privilege('authenticated', 'public.studio_user_module_grants', 'DELETE') then
-    raise exception '0526: authenticated no debe escribir directo en la tabla';
+    raise exception '0529: authenticated no debe escribir directo en la tabla';
   end if;
   if pg_catalog.has_function_privilege('anon', 'public.user_has_module(text, boolean)', 'EXECUTE')
      or pg_catalog.has_function_privilege('anon', 'public.studio_grant_user_module(uuid, text, boolean, boolean, text, timestamptz, boolean, text)', 'EXECUTE')
      or pg_catalog.has_function_privilege('anon', 'public.studio_revoke_user_module_grant(uuid, text, text)', 'EXECUTE') then
-    raise exception '0526: anon no debe ejecutar las funciones de accesos';
+    raise exception '0529: anon no debe ejecutar las funciones de accesos';
   end if;
   if not exists (
     select 1 from public.audit_entity_types
     where entity_type = 'studio_user_module_grant' and status = 'active'
   ) then
-    raise exception '0526: falta el tipo de entidad de auditoría';
+    raise exception '0529: falta el tipo de entidad de auditoría';
   end if;
   if public.studio_module_default_roles('kommo') is distinct from array['commercial']::text[]
      or public.studio_module_default_roles('no-existe') is not null then
-    raise exception '0526: el catálogo de módulos no quedó bien';
+    raise exception '0529: el catálogo de módulos no quedó bien';
   end if;
 end;
 $post$;
