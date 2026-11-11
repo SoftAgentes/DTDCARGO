@@ -670,7 +670,8 @@ describe("I2 · evidencia independiente del saldo", () => {
   });
   it("sin mayor conserva el oficial y no exige evidencia contable al Dashboard", () => {
     const i = resumirIngresoSinContexto(FACTURAS_DEL_MES, RANGO_MES, null);
-    expect(i.facturado.total).toBe(2000);
+    // SDD-0572: F6 (CNY con tasa) ya suma; el oficial es el del fixture.
+    expect(i.facturado.total).toBe(ESPERADO.total);
     expect(describirIngreso(i).estado).toBe("sin_mayor");
     expect(i.controlI2).toMatchObject({ verificacion: "no_leida", incidencias: [] });
   });
