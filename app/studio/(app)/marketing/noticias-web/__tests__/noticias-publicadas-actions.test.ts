@@ -15,7 +15,7 @@
  *   - los errores de la base se traducen sin mostrar el texto de Postgres.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { supabaseDouble, type DoubleHandle, type MembershipRow } from "@/lib/studio/__tests__/user-tenants-double";
+import { supabaseDouble, type DoubleHandle, type DoubleOptions, type MembershipRow } from "@/lib/studio/__tests__/user-tenants-double";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const TENANT = "33333333-3333-4333-8333-333333333333";
@@ -56,7 +56,7 @@ function admin(extra: Partial<MembershipRow> = {}): MembershipRow {
   return { user_id: USER, tenant_id: TENANT, role: "admin", disabled_at: null, warehouse_scope: "all", ...extra };
 }
 
-function montar(opts: { membership?: MembershipRow; filas?: Record<string, unknown>[]; rpc?: Parameters<typeof supabaseDouble>[0]["rpc"] } = {}) {
+function montar(opts: { membership?: MembershipRow; filas?: Record<string, unknown>[]; rpc?: DoubleOptions["rpc"] } = {}) {
   db = supabaseDouble({
     userId: USER,
     memberships: [opts.membership ?? admin()],
