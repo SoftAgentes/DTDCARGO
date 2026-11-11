@@ -713,8 +713,9 @@ sitemap piden las 18 columnas o solo `slug`.
   - la gemela: el `GRANT` de la 0526 es exactamente `COLUMNAS_PUBLICAS`. Si el sitio pide una
     columna más sin migración, la prueba cae antes de que /noticias quede vacía en producción.
 
-**Estado.** Nace sin aplicar y declarada como espera en `supabase/migrations-baseline.json`.
-Aplicarla pide el OK de Sam nombrando el archivo y el runbook `aplicar-migraciones-prod`.
+**Estado.** Nació sin aplicar y declarada como espera en `supabase/migrations-baseline.json`.
+Se aplicó el 2026-11-11 con el OK nominal de Sam y el runbook `aplicar-migraciones-prod`: en prueba
+a las 14:41:58Z y en producción a las 14:43:54Z, con verificación PASÓ. Se selló en el tren Z.
 - Antes de aplicarla, la web desplegada tiene que ser una que ya pida columnas explícitas: la C1
   está en `main`.
 - Deshacer: `grant select on public.news_posts to anon;`.

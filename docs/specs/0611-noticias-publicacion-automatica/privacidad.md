@@ -63,8 +63,8 @@ Los titulares del personal son Sam, Alejandro y los admins. No hay datos de clie
 | `news_posts.publish_via` | `manual` o `automatica` | Ídem | Ídem |
 | `news_posts.seo_draft_id`, `.content_sha256`, `.tenant_id`, `.source` | Datos internos del flujo | Ídem | Ídem |
 
-anon conserva solo las 18 columnas que pide el sitio (`COLUMNAS_PUBLICAS`). La 0526 está **sin
-aplicar**; mientras no se aplique vale la columna del medio. La retención de `actor_id` y de las
+anon conserva solo las 18 columnas que pide el sitio (`COLUMNAS_PUBLICAS`). La 0526 está **aplicada**
+desde el 2026-11-11 en prueba y en producción, así que vale la última columna. La retención de `actor_id` y de las
 otras columnas con uuid del personal sigue abierta para Sam (spec §11.4.1, hallazgo 7).
 
 ## 3 · Hallazgos y puntos
