@@ -122,6 +122,15 @@ Rama `codex/0603-t2-pestanas`, partiendo del tramo 1. Sin PR hasta que el tramo 
 
 **No es solo visual.** En esos 12 grupos cambia lo que anuncia un lector de pantalla: antes eran botones sin estado, y ahora se anuncian como grupo con nombre y botones presionados o no. Es una mejora, pero un cambio de lo que oye quien lo usa. No cambia el orden de foco ni el teclado.
 
+**Nombres accesibles nuevos.** Son el único texto que agrega el tramo, y solo lo oye un lector de pantalla; no se ve. A11Y-01 pide nombre para todo grupo y `tablist`, y estos no lo tenían:
+
+- Grupos (`role="group"`): «Secciones de contabilidad», «Secciones del editor» (Dashboard), «Embarques por estado», «Facturas por estado», «Secciones de fidelización», «Tipo de gasto», «Secciones del informe» (Inspecciones), «Secciones de naviera», «Secciones de nómina», «Compras y prealertas», «Secciones de proveedores», «Secciones de tesorería».
+- `tablist` que ya existían sin nombre: «Secciones de rutas», «Secciones del bug», «Secciones de la cola de QR», «Secciones de costeo y margen», «Secciones del financiero China», «Líneas por estado de conciliación», «Reportes de la categoría», «Secciones de SENIAT», «Secciones de transporte» (TMS), «Secciones del perfil».
+
+El contrato exige nombre en cada contenedor `.studio-tabs`.
+
+**Foco.** El anillo de `.studio-tab` va por fuera, separado 2 px: la activa va rellena con `--ink`, igual que el anillo, y por dentro no se veía (WCAG 2.4.7, hallado en la revisión independiente de la PR).
+
 **Los tramos se ven juntos, se fusionan por separado.** La imagen de prueba sale de esta rama, que contiene el tramo 1: Sam ve los dos a la vez, y el tramo 1 solo no lo ve nadie. Cada tramo lleva su `verify` sobre su SHA final.
 
 **Fuera, a propósito:**
@@ -180,7 +189,7 @@ Rama `codex/0603-t2-pestanas`, partiendo del tramo 1. Sin PR hasta que el tramo 
 - Ningún grupo nuevo se declara `tablist` sin cumplir A11Y-01 §11.
 - La activa se distingue por relleno de tinta y por `aria-selected` o `aria-pressed`, no solo por color.
 - Las pestañas envuelven en pantallas angostas, sin recorte (A11Y-01 §13).
-- No cambia ningún `onClick`, texto, orden ni ruta.
+- No cambia ningún `onClick`, texto visible, orden ni ruta. Los únicos textos nuevos son los nombres accesibles de la lista de arriba.
 
 ## Límites
 

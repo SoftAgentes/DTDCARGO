@@ -33,6 +33,13 @@ La migración mecánica la hizo un subagente, solo editando, en 39 archivos. La 
 - `docs:check`, `sdd:check`, `governance:check`, `components:check` y `git diff --check`: PASARON con `node`. Tipos, ESLint, Vitest y build: los corre el CI de la PR. `pnpm verify`: NO EJECUTADO.
 - **PR:** apunta a `main`, porque el CI de calidad solo corre contra `main`. Incluye los commits del tramo 1; lo propio del tramo se revisa con `git diff <cabeza del tramo 1>...<cabeza del tramo 2>`.
 
+## Revisión independiente de #511, 2026-11-11 (CHANGES_REQUESTED, atendida)
+
+- Foco invisible en la pestaña activa (anillo `--info` = `--ink` por dentro, sobre relleno `--ink`): el anillo pasa por fuera con `outline-offset: 2px`. Prueba nueva en el contrato.
+- El contrato miraba archivo por archivo: ahora etiqueta por etiqueta, con pisos (25 `tablist`, 25 pestañas formales, 12 grupos, 12 botones `aria-pressed`), nombre obligatorio en cada contenedor y estado en cada pestaña (`role="tab"`, `aria-pressed` o `aria-current`).
+- Mutantes, corridos con `node` y un sustituto mínimo de Vitest: 4 de 4 muertos (foco por dentro; segundo `tablist` de `NuevaReunionClient` sin clase, que el contrato viejo dejaba pasar; grupo sin `aria-pressed`; grupo sin `role`). Base limpia: 6 de 6.
+- El `aria-label` de TMS no era el único: 12 grupos y 10 `tablist` ganaron nombre. Declarados todos en la spec, sección del tramo 2.
+
 ## Pendientes de esta tarea
 
 - Verlo en una imagen de prueba, en especial selectores compactos, Nómina y el hover dentro del grupo.
