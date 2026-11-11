@@ -29,6 +29,8 @@ R="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PRUEBAS=(
   infra/ops/tests/prueba-publicar-web.sh # SDD-0541: publicación automática de la web
   infra/ops/tests/prueba-aviso-discord.sh # SDD-0609: aviso del servidor a Discord
+  infra/ops/tests/prueba-guardar-webhook-discord.sh # SDD-0609: guardar el webhook de #publicaciones
+  infra/ops/tests/prueba-runbook-avisos-discord.sh # SDD-0609: el paso 2 del runbook corta al primer PARAR; la vuelta atrás elige por huella
   infra/ops/tests/prueba-aplicar-lote.sh # SDD-0543: carga de consolidados en prueba
   infra/ops/tests/prueba-ips-prueba.sh   # SDD-0540: lista de IP del entorno de prueba
   infra/ops/tests/prueba-prompt-trim.sh  # SDD-0505: trim() de lib/prompt.sh

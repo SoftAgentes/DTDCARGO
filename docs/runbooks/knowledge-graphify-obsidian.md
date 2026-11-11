@@ -1,6 +1,6 @@
 # Conocimiento con Director, Graphify, Archify y Obsidian
 
-Dueño: Director de ingeniería · Estado: vigente al integrarse · Actualizado: 2026-09-19 · SDD: 0471.
+Dueño: Director de ingeniería · Estado: vigente al integrarse · Actualizado: 2026-11-09 · SDD: 0471, 0623.
 
 ## Autoridad y conservación
 
@@ -33,8 +33,56 @@ Worker escribe en su rama y Director coordina o documenta en su propia rama; no 
 6. Tras integración autorizada, desde el checkout principal actualizado y limpio: `pnpm knowledge:publish` y `pnpm knowledge:check`.
 7. Cierra distinguiendo: guardado en la tarea, integración pendiente, estructura del grafo, cobertura semántica y revisión visible en Obsidian.
 
-No hay ejecución en segundo plano. Si una sesión termina con pendientes, se detectan al iniciar la siguiente.
-Un archivo AGENTS no es un scheduler. No instalar hooks ni modificar instalaciones globales para este flujo.
+La única ejecución en segundo plano permitida es la corrida diaria mecánica de abajo. Fuera de ella, si una
+sesión termina con pendientes, se detectan al iniciar la siguiente. Un archivo AGENTS no es un scheduler.
+No instalar hooks de Git ni modificar instalaciones globales para este flujo.
+
+### Corrida diaria mecánica (SDD-0623)
+
+Sam autorizó el 2026-11-09 **una** corrida programada al día, a las 22:00 hora de Venezuela (UTC-4),
+en su PC y desde el checkout principal. Solo hace la parte mecánica: `graphify update .` (estructura),
+`knowledge:visual`, `knowledge:publish` y `knowledge:check`. La crea el Director como tarea programada
+del usuario en Windows después de que esta regla entre a main; no se instala nada global ni ningún hook.
+
+    node scripts/knowledge-daily.mjs [--log <archivo>] [--python <ruta absoluta>] [--dry-run]
+
+El guion `scripts/knowledge-daily.mjs`:
+
+- se niega en un worktree enlazado, en otra rama o con HEAD separado, con cambios rastreados o si
+  `origin/main` no es un fast-forward de main; en esos casos para sin tocar nada (salida 2);
+- hace `git fetch origin main` y `git merge --ff-only origin/main`, y después los cuatro pasos;
+- tras la primera falla salta los pasos que escriben, pero corre `knowledge:check` para informar (salida 1);
+- falla también si un paso dejó cambios rastreados, y no los revierte;
+- nunca hace commit, push, stash, reset, clean ni borra archivos rastreados;
+- usa un candado junto al log; si otra corrida sigue viva, sale con 3. Uno de un proceso muerto se aparta
+  con `rename` y se vuelve a tomar con `wx`;
+- sale con 3, sin fetch ni pasos, si encuentra trabajo manual en el checkout principal:
+  `graphify-out/knowledge-manual.lock`, `graphify-out/knowledge-record.lock`, o los candados de
+  publicación y recuperación de la bóveda (`.knowledge-publish.lock` y `.knowledge-reaper.lock`).
+  Lo comprueba antes del fetch y otra vez antes de los pasos.
+  Excepción: el candado de publicación de un publicador de esta máquina cuyo PID ya no existe (por ejemplo,
+  matado por el tope de tiempo) no bloquea. La corrida lo anota como `candados_huerfanos=` y deja que
+  `knowledge:publish` lo recupere con su propio mutex; el guion nunca lo borra. El mutex de recuperación
+  (`.knowledge-reaper.lock`) de un proceso muerto sí bloquea: `publish` no puede recuperarlo y hay que revisarlo a mano;
+- corta por tiempo cada comando: git a los 5 min, cada paso a los 30 min. Corre con `GIT_TERMINAL_PROMPT=0`.
+  El tope mata solo al proceso directo: sus procesos hijos (por ejemplo el Python que lanza `knowledge-sync`)
+  pueden quedar huérfanos y se revisan a mano si un paso termina en `TIMEOUT`;
+- pasa el mismo Python de Graphify (`--python`, `GRAPHIFY_PYTHON` o el resuelto) a los cuatro pasos;
+- escribe una línea por corrida en `%LOCALAPPDATA%\dtd-cargo\knowledge-daily.log` (fuera del repo, o la
+  ruta de `--log`/`KNOWLEDGE_DAILY_LOG`): fecha, revisión, resultado, estructura, Archify, Obsidian y
+  pendientes semánticos del piloto y globales. `--dry-run` solo comprueba las precondiciones.
+
+La parte semántica **no** se programa: el Director corre `$graphify . --update` a mano cuando cambie alguna de
+las 16 fuentes del piloto, o una vez por semana. Mientras tanto la corrida diaria puede terminar en salida 1 por
+piloto PENDING; la línea del log lo dice, y el Director lo recoge en su siguiente sesión. Un resultado
+`STOPPED` nunca se arregla desde la tarea programada: el checkout principal se revisa a mano.
+
+**Durante la ventana de las 22:00 no se trabaja Graphify a mano en el checkout principal.** Quien lo haga en
+esa ventana, o en una sesión larga que pueda cruzarla, crea antes `graphify-out/knowledge-manual.lock` con su
+nombre o PID, y lo quita al terminar. La corrida diaria no lo borra nunca. Se usa un candado propio y no
+`knowledge-record.lock`, porque `knowledge-graph.py record` toma ese con creación exclusiva y fallaría si
+alguien lo dejara puesto a mano. `record` y `knowledge:publish` toman sus propios candados, y la corrida
+diaria también los respeta.
 
 ## Cierre de una tarea y revisión de la bóveda
 
@@ -52,7 +100,8 @@ knowledge:publish y knowledge:check. El manifest de la bóveda compara revisión
 artefacto visual y hashes de cada Markdown/JSON/HTML/SVG administrado. El resultado CURRENT demuestra
 que los archivos locales corresponden a esa revisión; abrirlos en Obsidian confirma adicionalmente la lectura
 en su interfaz. Si hay cambios pendientes, cada capa se informa por separado y se recupera en la siguiente
-sesión Director. No hay sincronización automática al cerrar una conversación ni publicación web implícita.
+sesión Director. No hay sincronización automática al cerrar una conversación ni publicación web implícita;
+la corrida diaria mecánica es la única actualización programada.
 
 Obsidian detecta cambios de archivos de la bóveda sin lanzar este flujo. Obsidian Publish y Obsidian Sync
 son productos aparte y no forman parte de esta tarea. Una nota Markdown nueva en Git se hace visible
@@ -321,6 +370,7 @@ El servidor MCP opcional de Graphify 0.9.61 recarga el grafo por mtime/tamaño; 
 
 Pruebas del harness: piloto 16/16 y 15/16, pendiente fuera de alcance, cambio de cuerpo/YAML, código, renombrado,
 eliminación/exclusión, stubs de importación huérfanos por colisión de IDs, notas de `graphify-out/memory`, idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
+La corrida diaria tiene su contrato en `scripts/tests/knowledge-daily.node.mjs`, con Git real y dobles en lugar de Graphify.
 Verificar enlaces, hashes, etiquetas de evidencia y ocho temas del JSON.
 Ejecutar `pnpm harness:test`, `pnpm docs:check`, `pnpm skills:check`, `pnpm sdd:check` y `git diff --check`.
 Build/DB/E2E de producto no aplican a esta herramienta de documentación.

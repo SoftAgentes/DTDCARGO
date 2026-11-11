@@ -107,8 +107,9 @@ vigilar_carga() {
 contar_del_ensayo() { # ps | volume | network: cuántos hay del proyecto, o «?» si docker no responde
   local ids
   case "$1" in
-    ps) ids="$(docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" 2>/dev/null)" ;;
-    *) ids="$(docker "$1" ls -q --filter "label=com.docker.compose.project=$PROYECTO" 2>/dev/null)" ;;
+    # Con tope de tiempo (N1 de la revisión del DG): un docker colgado, y no solo caído, también da «?».
+    ps) ids="$(timeout 30 docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" 2>/dev/null)" ;;
+    *) ids="$(timeout 30 docker "$1" ls -q --filter "label=com.docker.compose.project=$PROYECTO" 2>/dev/null)" ;;
   esac || { echo '?'; return 0; }
   printf '%s' "$ids" | grep -c .
 }
@@ -133,6 +134,11 @@ limpiar() {
   #   · En un ensayo que corrió (CREADO=1), las dos carpetas son suyas y llevan datos de la copia: se borran igual, el
   #     código del ensayo se conserva (o queda en 4, porque la limpieza no se pudo comprobar) y se anota
   #     docker_no_responde (revisión del DG de la vuelta 9, B1).
+  # Un ensayo que corrió borra primero sus dos carpetas, antes de llamar a docker: si docker se cuelga y llega un
+  # SIGKILL, los datos de la copia ya no están (N1 de la revisión del DG).
+  if [ "$CREADO" = 1 ]; then
+    rm -rf -- /dev/shm/portal-ensayo /dev/shm/portal-historial
+  fi
   RECURSOS_ANTES="$(recursos_del_ensayo)"
   case "$RECURSOS_ANTES" in *'?'*)
     if [ "$CREADO" != 1 ]; then # --limpiar puro: ante la duda no se borra

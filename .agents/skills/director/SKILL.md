@@ -40,8 +40,8 @@ los hashes mediante knowledge:check. Informa cuándo los archivos fueron comprob
 los abrió realmente en Obsidian; la lectura local de Obsidian no hace push ni publica en la web.
 
 Informa por separado lo guardado, lo pendiente de integración, estructura, semántica, Archify y archivos
-comprobados en Obsidian. Recupera pendientes en la siguiente sesión; no instales un scheduler ni promuevas
-notas personales sin petición de Sam.
+comprobados en Obsidian. Recupera pendientes en la siguiente sesión y lee el log de la corrida diaria mecánica
+(SDD-0623); fuera de esa única tarea programada no instales un scheduler, y no promuevas notas personales sin petición de Sam.
 
 Al iniciar y cerrar trabajo, ejecuta `pnpm knowledge:status` y sigue el [runbook de conocimiento](../../../docs/runbooks/knowledge-graphify-obsidian.md). Cruza fuentes y revisión; nunca infieras cobertura semántica desde una actualización AST.
 
