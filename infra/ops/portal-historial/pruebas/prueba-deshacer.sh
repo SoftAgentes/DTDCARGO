@@ -199,6 +199,21 @@ recargar() {
   install -d -m 0700 "$SHM"
   install -m 0600 "$TRABAJO/preparado.ndjson" "$SHM/preparado.ndjson"
   cargar "$TRABAJO/recarga.txt" cargar
+  # Después de un borrado (un mutante que lo deja pasar), la recarga crea las conversaciones de nuevo, con otro
+  # display_id. Studio sigue con los viejos: se le ponen los nuevos al hilo y a su espejo, con el vinculos.ndjson de esta
+  # recarga, para que el seco compare los hilos cargados de verdad (el rojo de la parte d del run 43017658601). Solo
+  # arnés: en producción no hay recarga. hC (de la cola, 1100) no está en el archivo y no se toca.
+  local linea hilo nuevo
+  while IFS= read -r linea; do
+    hilo="$(printf '%s' "$linea" | sed -n 's/.*"hilo":"\([0-9a-f-]\{36\}\)".*/\1/p')"
+    nuevo="$(printf '%s' "$linea" | sed -n 's/.*"conversacion_id":\([0-9]\{1,10\}\).*/\1/p')"
+    [ -n "$hilo" ] && [ -n "$nuevo" ] || continue
+    q "with h as (select chatwoot_conversation_id as viejo from public.chatwoot_portal_hilos where tenant_id = '$TENANT' and conversation_id = '$hilo')
+       update public.chatwoot_conversations c set conversation_id = $nuevo from h
+       where c.tenant_id = '$TENANT' and c.conversation_id = h.viejo and h.viejo <> $nuevo" >/dev/null
+    q "update public.chatwoot_portal_hilos set chatwoot_conversation_id = $nuevo
+       where tenant_id = '$TENANT' and conversation_id = '$hilo' and chatwoot_conversation_id <> $nuevo" >/dev/null
+  done < <(grep '"tipo":"conversacion"' "$SHM/vinculos.ndjson" 2>/dev/null)
   rm -rf -- "$SHM"
   sonda "$TRABAJO/otra-bandeja.txt" FASE=otra-bandeja
 }
@@ -367,6 +382,7 @@ parte_borrar() { # carpeta salidas
   printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=produccion fin=rollback utc=%s\n' \
     "$sha" "$T2" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHM/studio-ensayo.hecho"
   deshacer "$O/d11c.txt" "$K" borrar CONFIRMAR=si
+  sonda "$O/contar-d11.txt" FASE=contar
   # D20 a D22, los pisos del seco (N1 y N3 del DG): con el ensayo de Studio válido y el seco cambiado. Un mutante que
   # deja pasar el borrado vacía la bandeja: la recarga de abajo lo arregla para D15 y D5.
   printf 'HECHO studio_ensayo=ok conservados_sha256=%s tenant=%s entorno=produccion fin=rollback utc=%s\n' \
@@ -380,10 +396,12 @@ parte_borrar() { # carpeta salidas
   deshacer "$O/d22.txt" "$K" borrar CONFIRMAR=si
   install -m 0600 "$O/chatwoot-seco.hecho" "$SHM/chatwoot-seco.hecho"
   rm -f -- "$SHM/chatwoot-borrar.hecho"
-  sonda "$O/contar-d11.txt" FASE=contar
+  # D11c mira el conteo de antes de D20 a D22: un borrado que deja pasar MD49 en D22 no lo tumba (el rojo de MD49 en la
+  # parte d del run 43017658601). La recarga mira este otro, después de D22.
+  sonda "$O/contar-d22.txt" FASE=contar
   # Un mutante que deja pasar el borrado de D11b o D11c (MD25, MD26) vacía la bandeja: se recarga, para que D5 mida de
   # verdad y no caiga en cascada. En la corrida real la bandeja sigue llena (D11c lo exige) y no se recarga nada.
-  if [ "$(h "$O/contar-d11.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ]; then
+  if [ "$(h "$O/contar-d22.txt" bandeja)" = "conversaciones:0,mensajes:0,contact_inboxes:0" ]; then
     # recargar borra /dev/shm/portal-historial: el .ndjson y los .hecho del seco y del ensayo se guardan y se devuelven.
     rm -rf -- "$O/shm-guardado" && cp -a "$SHM" "$O/shm-guardado"
     # El chatwoot-borrar.hecho que dejó el borrado colado no es del seco ni del ensayo: no se devuelve (si no, la guarda
@@ -391,7 +409,7 @@ parte_borrar() { # carpeta salidas
     rm -f -- "$O/shm-guardado/chatwoot-borrar.hecho"
     recargar
     rm -rf -- "$SHM" && cp -a "$O/shm-guardado" "$SHM"
-    echo "HECHO recargado_antes_de_d5=si" >>"$O/contar-d11.txt"
+    echo "HECHO recargado_antes_de_d5=si" >>"$O/contar-d22.txt"
   fi
   # D15 empieza sin la evidencia de un borrado: ni la durable ni chatwoot-borrar.hecho en tmpfs. En la corrida real no
   # hay nada que quitar: D4 y D15 ya exigen que no exista.
