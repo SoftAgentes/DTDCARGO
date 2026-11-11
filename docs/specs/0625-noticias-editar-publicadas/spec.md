@@ -61,7 +61,7 @@ publicar una marca `[VERIFICAR`. El aviso de `#noticias` ya enlaza a
 
 | Regla | Dónde |
 |---|---|
-| Solo admin **activo** (`tenantAdminGate`, que mira `disabled_at`; las policies de 0055 no lo miran). Es la misma puerta de `publishPost`. La página además exige el flag `marketing_news` y el layout `requireModuleView("noticias-web")` | `publicadas/actions.ts`, `publicadas/_gate.ts` |
+| Solo admin **activo** (`tenantAdminGate`, que mira `disabled_at`; las policies de 0055 no lo miran). Es la misma puerta de `publishPost`. Las páginas **y las actions** exigen además el flag `marketing_news` (con el módulo apagado, una llamada directa tampoco escribe); el layout, `requireModuleView("noticias-web")` | `publicadas/actions.ts`, `publicadas/_gate.ts` |
 | Se escriben **solo** `title`, `excerpt`, `body_markdown`, `categoria`, `meta_description`, `focus_keyword` y `read_time_min` (derivado). Nunca `slug`, `published`, `publish_via`, `seo_draft_id` ni `content_sha256` | `lib/news/edicion.ts` (`CambiosNoticia`) |
 | Una marca `[VERIFICAR` en cualquiera de los cinco textos bloquea guardar, igual que publicar (misma `tieneMarca` de la 0611) | `validarEdicion` |
 | Cuerpo de al menos 200 caracteres (lo mismo que exige `publishPost`); titular y bajada no vacíos; topes de largo | `validarEdicion` |
@@ -118,7 +118,7 @@ corren en el mismo despliegue, el cambio se ve en el siguiente pedido; si no, **
 |---|---|---|
 | 1 | Un admin activo corrige una publicada y solo se escriben las 7 columnas permitidas | `noticias-publicadas-actions.test.ts` |
 | 2 | Un slug enviado en el formulario no llega a la base | idem |
-| 3 | Admin suspendido, `marketing` o `commercial` no editan, no retiran y no vuelven a publicar | idem |
+| 3 | Admin suspendido, `marketing` o `commercial` no editan, no retiran y no vuelven a publicar; con el flag `marketing_news` apagado, tampoco un admin | idem |
 | 4 | Una marca `[VERIFICAR` en cualquiera de los 5 campos bloquea guardar | idem (5 casos) |
 | 5 | La categoría no cambia de tipo; cuerpo corto o titular vacío no se guardan | idem |
 | 6 | Otro tenant o una retirada no se editan | idem |

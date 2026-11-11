@@ -23,6 +23,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import type { NewsTipo } from "@/lib/news/categories";
 import { validarEdicion, type EdicionNoticia } from "@/lib/news/edicion";
 import { validarRetiro, type ErrorRetiro } from "@/lib/news/autopublicar/motivos";
@@ -64,10 +65,20 @@ function revalidarSitio(slug: string) {
   revalidatePath("/studio/marketing/noticias-web/publicadas");
 }
 
+const FLAG_MSG = "Noticias web está apagado para tu equipo";
+
+/**
+ * Admin activo Y el flag `marketing_news` encendido, igual que la puerta de la
+ * página (`_gate.ts`): con el módulo apagado, una llamada directa a la action
+ * tampoco escribe.
+ */
 async function gateAdmin() {
   const supabase = await createClient();
-  const gate = await tenantAdminGate(supabase, { denied: ADMIN_MSG, noTenant: ADMIN_MSG });
-  return { supabase, gate };
+  const admin = await tenantAdminGate(supabase, { denied: ADMIN_MSG, noTenant: ADMIN_MSG });
+  if (!admin.ok) return { supabase, gate: admin };
+  const flags = await listFeatureFlags(supabase, admin.tenantId);
+  if (!flags.marketing_news) return { supabase, gate: { ok: false as const, denied: FLAG_MSG } };
+  return { supabase, gate: admin };
 }
 
 const esUuid = (v: unknown): v is string =>

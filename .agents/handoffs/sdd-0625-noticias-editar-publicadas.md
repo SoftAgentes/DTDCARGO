@@ -74,6 +74,19 @@ PR contra `main`, no draft. No fusionar ni aplicar 0532 sin el OK nominal de Sam
 3. Cambiar el slug con redirección 301: otra SDD.
 4. La página del generador (`page.tsx`) lee `user_tenants` sin `disabled_at` para su redirect (la action sí
    usa `tenantAdminGate`); las páginas nuevas usan `tenantAdminGate`.
+5. La policy `news_posts_admin_update` de la 0055 (igual que insert/delete) exige `role = 'admin'` pero
+   **no mira `disabled_at`**: un admin suspendido con JWT vigente podría editar por PostgREST directo,
+   saltando la action. Las actions cierran el paso con `tenantAdminGate` (y ahora también el flag), pero
+   la base no. Arreglarlo pide una migración que reescriba las policies con `is_tenant_admin()`; queda
+   fuera de esta SDD por indicación del Director General (2026-11-11).
+
+## AJUSTES DE REVISIÓN (Director General, 2026-11-11)
+
+- Las tres actions comprueban también el flag `marketing_news` (`listFeatureFlags` con el tenant del gate),
+  igual que `_gate.ts`. Prueba: con el flag apagado, o sin fila (default apagado), no se lee, no se escribe,
+  no se llama RPC ni se revalida; control con el flag encendido. Mutante sin la comprobación: caen 2.
+- Mutante de `noticias-0532.migration.test.ts` renombrado: prueba `auth.uid()` → null, no un actor de formulario.
+- La 0532 no se tocó.
 
 ## HANDOFF AL DIRECTOR
 

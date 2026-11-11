@@ -56,11 +56,17 @@ function admin(extra: Partial<MembershipRow> = {}): MembershipRow {
   return { user_id: USER, tenant_id: TENANT, role: "admin", disabled_at: null, warehouse_scope: "all", ...extra };
 }
 
-function montar(opts: { membership?: MembershipRow; filas?: Record<string, unknown>[]; rpc?: DoubleOptions["rpc"] } = {}) {
+function montar(
+  opts: { membership?: MembershipRow; filas?: Record<string, unknown>[]; rpc?: DoubleOptions["rpc"]; flag?: boolean } = {},
+) {
   db = supabaseDouble({
     userId: USER,
     memberships: [opts.membership ?? admin()],
-    tables: { news_posts: opts.filas ?? [FILA] },
+    tables: {
+      news_posts: opts.filas ?? [FILA],
+      // `marketing_news` nace apagado (FEATURE_FLAG_DEFAULTS): se siembra encendido.
+      feature_flags: [{ tenant_id: TENANT, key: "marketing_news", enabled: opts.flag ?? true }],
+    },
     rpc: opts.rpc,
   });
 }
@@ -197,5 +203,34 @@ describe("SDD-0625 · volverAPublicar", () => {
     montar({ membership: admin({ disabled_at: "2026-11-01T00:00:00Z" }) });
     expect((await volverAPublicar(POST)).ok).toBe(false);
     expect(db.rpcCalls).toEqual([]);
+  });
+});
+
+describe("SDD-0625 · el flag marketing_news también manda en el servidor", () => {
+  const ok = { data: FILA.slug, error: null };
+
+  it("con el flag apagado, un admin activo no corrige, no retira ni vuelve a publicar", async () => {
+    montar({ flag: false, rpc: { news_retirar: ok, news_volver_a_publicar: ok } });
+    const r1 = await guardarEdicion(POST, EDICION);
+    const r2 = await retirarNoticia(POST, "tono", "");
+    const r3 = await volverAPublicar(POST);
+    for (const r of [r1, r2, r3]) {
+      expect(r).toEqual({ ok: false, error: "Noticias web está apagado para tu equipo" });
+    }
+    expect(escrituras()).toEqual([]);
+    expect(db.rpcCalls).toEqual([]);
+    expect(db.reads).not.toContain("news_posts");
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("sin fila del flag vale el valor por defecto (apagado)", async () => {
+    db = supabaseDouble({ userId: USER, memberships: [admin()], tables: { news_posts: [FILA] } });
+    expect((await guardarEdicion(POST, EDICION)).ok).toBe(false);
+    expect(escrituras()).toEqual([]);
+  });
+
+  it("control: con el flag encendido la misma llamada guarda", async () => {
+    montar({ flag: true });
+    expect((await guardarEdicion(POST, EDICION)).ok).toBe(true);
   });
 });

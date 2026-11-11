@@ -73,7 +73,7 @@ function once(text: string, from: string, to: string): string {
 
 const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
   {
-    nombre: "el actor sale del formulario y no del JWT (siempre system)",
+    nombre: "el actor no sale del JWT (auth.uid() reemplazado por null: siempre system)",
     sql: () => once(FILE_0532, "v_actor_id uuid := auth.uid();", "v_actor_id uuid := null;"),
     cae: "TEST 0532: E1: el evento lleva al admin como actor",
   },
