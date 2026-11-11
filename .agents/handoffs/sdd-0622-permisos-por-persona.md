@@ -57,3 +57,15 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - Spec nueva e índice de specs actualizado. Graphify, Archify y vista Obsidian: NO EJECUTADOS en esta tarea;
   el Director los revisa al cierre. `pnpm knowledge:status`: NO EJECUTADO.
 - Sin secretos, PII ni datos de negocio; la auditoría de la base fue solo lectura de archivos de migración.
+
+## Enmienda 2026-11-11 (encargo del Director, tras la revisión de la PR #509)
+- Spec enmendada para coincidir con lo implementado: allowlist exacta (57 archivos, calculada de
+  `git diff --name-only origin/main...origin/claude/impl-permisos-por-persona-10d044`, cabeza a44b77066), migraciones
+  definitivas 0529 (grants + user_has_module), 0530 (CRM + document_entity_authorized) y 0531 (RLS por módulo),
+  nombres definitivos de las RPC (`studio_grant_user_module`) y §13 con el estado de la implementación.
+- R1, R2 y R3 quedan registradas como decididas por el Director el 2026-11-11 con la autorización de Sam
+  («hazlo como creas tú»), según lo informó la sesión coordinadora; no las confirmé con Sam directamente.
+- Siguen a decisión de Sam (§13.3): revocar sin superadmin; extras al reactivar a la persona; RPC que concede módulos
+  aún no cubiertos. Y de antes: nómina, `documents` para `custom`, fusión de fichas, diseño de §5.5.
+- Validación: docs:check PASÓ, sdd:check PASÓ, git diff --check PASÓ. No se verificó el contenido de la PR #509 más
+  allá de su handoff y de la lista de archivos del diff.

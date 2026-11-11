@@ -21,7 +21,7 @@ confidencialidad: interno
 sensibles (§9.1): los extras **sí** pueden abrir dinero y módulos solo de administrador, con **doble aviso**
 obligatorio (también exigido por la RPC) y concedidos por un admin o un superadmin. Siguen vigentes: acceso por
 módulo, vencimiento opcional, «elegir módulos» para Alejandro y el usuario «Personalizado» (§5.5). Las acciones
-destructivas o gobernadas (`CAPABILITIES`) quedan fuera. Los riesgos R1 a R3 de §8 están **pendientes de Sam**.
+destructivas o gobernadas (`CAPABILITIES`) quedan fuera. R1, R2 y R3 de §8 las resolvió el Director el 2026-11-11 con la autorización de Sam («hazlo como creas tú»). La implementación está en la PR #509 y esta spec se enmendó el 2026-11-11 para coincidir con ella (§11 y §13); lo que queda a decisión de Sam está en §9 y §13.3.
 
 ## 1. Pedido que la origina
 
@@ -122,12 +122,12 @@ Reglas:
      Incluirlas sería otra decisión de Sam, con su propia spec. Sam lo pidió así: «no puede borrar archivos ni
      bases de datos».
 3. **`support` sigue read-only.** Un extra no le da edición a `support` (`canEditModule` ya lo corta antes).
-4. **Concede un admin o un superadmin.** RPC `studio_set_user_module_grant(p_user_id, p_module_id, p_can_view,
+4. **Concede un admin o un superadmin.** RPC `studio_grant_user_module(p_user_id, p_module_id, p_can_view,
    p_can_edit, p_reason, p_expires_at, p_confirm_sensitive)` y `studio_revoke_user_module_grant(...)`.
    `SECURITY DEFINER`, `search_path` fijo, `assert_studio_role(array['admin'])` al principio (helper de `0351`),
    tenant tomado de `get_user_tenant_id()`, destino validado como miembro **activo** (`disabled_at is null`).
    Quien tenga `users` o `admin` solo por extra **no** puede ejecutar estas RPC, porque la base sigue exigiendo
-   rol `admin` (mitigación de R1, §8; pendiente de Sam).
+   rol `admin` (mitigación de R1, §8; resuelta; firma y nombres definitivos en §13.1).
 5. **Sin escritura directa.** RLS activa; `authenticated` sin INSERT/UPDATE/DELETE; solo `service_role` y
    las RPC. SELECT solo para admin y para la propia persona (para que vea qué tiene y por qué).
 6. **Auditoría.** Cada concesión, cambio y revocación escribe en `entity_audit_log` con actor, destino,
@@ -234,7 +234,7 @@ Sam quiere poder **crear un usuario totalmente personalizado**, sin partir de un
 | **5 · Pantalla** | «Agregar acceso», «Accesos efectivos», «Personas con excepciones» | PR + `/ui-check` |
 | **6 · Personalizado** | Rol base `custom` (§5.5): CHECK, invitación, cambio de rol, revisión de fachadas que comparan roles | Migración aparte + PR |
 | **7 · Alejandro** | Concederle Comercial y los módulos sensibles que Sam indique (p. ej. tesorería), cada uno con motivo; comprobar por pantallas y roles | Smoke con Sam |
-| **8 · Dinero para quien no es contabilidad** | Migrar las funciones y RLS de dinero que hoy exigen rol (§12.2) para que un extra de dinero funcione a un `custom` u otro rol. Fase **propia**, con su migración y su OK nominal de Sam, separada de Comercial | Migración aparte + PR; OK de Sam |
+| **8 · Dinero para quien no es contabilidad** | Migrar las funciones y RLS de dinero que hoy exigen rol (§12.2) para que un extra de dinero funcione a un `custom` u otro rol. Fase **propia**, con su migración y su OK nominal de Sam, separada de Comercial. Decisión del Director 2026-11-11: se suma **redefiniendo `studio_can_read_money()`** (migración 0528, SDD-0624, PR #515) con `user_has_module`, en lugar de tocar cada función | Migración aparte + PR; OK de Sam |
 
 Ninguna migración se aplica a producción sin OK nominal de Sam y el runbook
 `docs/runbooks/aplicar-migraciones-prod.md`; el ledger de producción es validación de release, no motivo para
@@ -276,21 +276,21 @@ aplicar antes de aprobar la PR.
   `rbac-actions-guard.test.ts`): nada se mueve de «deuda» a «excepción». Abrir módulos sensibles por persona está
   permitido por decisión de Sam, así que cada concesión sensible exige doble aviso, queda con motivo y aparece
   resaltada en «Personas con excepciones»; las capabilities destructivas no son concedibles.
-- **R1 · Escalada de privilegios (pendiente de Sam).** Un extra sobre `users` o `admin` podría servir para dar
+- **R1 · Escalada de privilegios (decidido por el Director el 2026-11-11, con autorización de Sam).** Un extra sobre `users` o `admin` podría servir para dar
   accesos a otros o a uno mismo. Mitigación propuesta: (a) conceder/revocar extras, cambiar roles y desactivar
   personas siguen exigiendo rol `admin` en la base; (b) un extra sobre `users`/`admin` queda de **solo lectura
   efectiva**; (c) la RPC rechaza que alguien se conceda extras sensibles a sí mismo; (d) el doble aviso dice
-  expresamente «esta persona verá la gestión de usuarios». **Pendiente de Sam.**
-- **R2 · Módulos del superadministrador (pendiente de Sam).** `financiero-china`, `legal`, `no-olvidar` y
+  expresamente «esta persona verá la gestión de usuarios». **Resolución adoptada:** un extra sobre `users`/`admin` da solo lectura (CHECK `studio_user_module_grants_keystone_read_only`) y nadie se concede extras a sí mismo; conceder sigue exigiendo el rol `admin` en la base.
+- **R2 · Módulos del superadministrador (decidido por el Director el 2026-11-11, con autorización de Sam).** `financiero-china`, `legal`, `no-olvidar` y
   `renditions` exigen además `is_platform_admin()` (`rbac.ts`, `SUPERADMIN_ONLY_MODULES`; en la base `0355`/`0356`).
   Preguntas: ¿quién puede otorgarlos? Propuesta: solo quien cumpla `is_platform_admin()`, no cualquier admin. ¿Debe
   el receptor pasar el segundo candado? Hoy el guard lo exige en cada vista y acción, así que un extra a quien no es
   superadmin de plataforma **no abriría nada**. Opción A: mantenerlo (el extra casi no tiene efecto). Opción B:
   reemplazar el segundo candado por una confirmación reforzada, lo que cambia `0355`/`0356` y requiere spec
-  aparte. **Pendiente de Sam.**
-- **R3 · Dinero por persona exige cambiar la base (pendiente de Sam).** Abrir dinero a quien no es contabilidad
+  aparte. **Resolución adoptada:** los 4 módulos del superadministrador solo los otorga quien cumpla `is_platform_admin()`, y el segundo candado del receptor se mantiene (opción A).
+- **R3 · Dinero por persona exige cambiar la base (decidido por el Director el 2026-11-11, con autorización de Sam).** Abrir dinero a quien no es contabilidad
   obliga a cambiar funciones y RLS que hoy comparan el rol (inventario con archivo:línea en §12.2). Se propone una
-  **fase propia** (§6, fase 8), con su migración y su OK de Sam, separada de Comercial.
+  **fase propia** (§6, fase 8), con su migración y su OK de Sam, separada de Comercial. **Resolución adoptada:** fase propia; se suma redefiniendo `studio_can_read_money()` de la 0528 (SDD-0624, PR #515).
 - **Acumulación de excepciones** (la objeción de la 0139) → motivo, vencimiento opcional, lista visible.
 - **Borrado no limpia el rastro**: borrar un extra no borra `entity_audit_log`; contar antes de ensayar.
 - **Preview comparte Supabase con producción**: no probar concesiones reales en Preview.
@@ -302,14 +302,14 @@ aplicar antes de aprobar la PR.
 
 | # | Decisión | Resultado | Estado |
 |---|---|---|---|
-| 9.1 | ¿Los extras abren módulos sensibles (dinero y solo-administrador)? | **Sí.** Los puede conceder un admin o un superadmin, con **doble aviso obligatorio** que liste en concreto lo que esa persona podrá hacer y confirmación explícita, exigida también por la RPC y registrada en auditoría (§5.1 regla 2). El CHECK de la 0357 no se toca. Las capabilities quedan fuera | Decidido por Sam 2026-11-11 (reemplaza la decisión del 2026-11-09). **Pendiente de Sam:** nómina y R1 a R3 |
+| 9.1 | ¿Los extras abren módulos sensibles (dinero y solo-administrador)? | **Sí.** Los puede conceder un admin o un superadmin, con **doble aviso obligatorio** que liste en concreto lo que esa persona podrá hacer y confirmación explícita, exigida también por la RPC y registrada en auditoría (§5.1 regla 2). El CHECK de la 0357 no se toca. Las capabilities quedan fuera | Decidido por Sam 2026-11-11 (reemplaza la decisión del 2026-11-09). **Pendiente de Sam:** nómina |
 | 9.2 | Granularidad | **Por módulo** (ver / ver y editar). Acciones finas quedan para fase 2 | Decidido por Sam 2026-11-09 |
 | 9.3 | Vencimiento | **Opcional** | Decidido por Sam 2026-11-09 |
 | 9.4 | Alcance de «parte de Comercial» | **Elegir módulos** (p. ej. CRM sí, Cotizaciones no). Filtrar etapas o embudos dentro del CRM sería otra spec | Decidido por Sam 2026-11-09 |
 | 9.5 | Usuario **Personalizado** | Rol base `custom` + accesos módulo a módulo (§5.5) | Pedido de Sam 2026-11-09; **pendiente de confirmar por Sam** que el diseño de §5.5 es lo que quiere |
-| 9.6 | R1 · Escalada con `users`/`admin` | Propuesta de §8 (solo lectura efectiva, rol `admin` en la base para conceder, sin auto-concesión) | **Pendiente de Sam** |
-| 9.7 | R2 · Módulos del superadministrador | Propuesta: otorga solo `is_platform_admin()`; el receptor sigue pasando el segundo candado (opción A) | **Pendiente de Sam** |
-| 9.8 | R3 · Fase propia para dinero | Fase 8, con migración y OK de Sam | **Pendiente de Sam** |
+| 9.6 | R1 · Escalada con `users`/`admin` | Solo lectura y sin auto-concesión (§8) | Decidido por el Director 2026-11-11, con autorización de Sam |
+| 9.7 | R2 · Módulos del superadministrador | Solo los otorga `is_platform_admin()`; el receptor sigue pasando el segundo candado (opción A) | Decidido por el Director 2026-11-11, con autorización de Sam |
+| 9.8 | R3 · Fase propia para dinero | Fase 8, redefiniendo `studio_can_read_money()` (0528, SDD-0624, PR #515) | Decidido por el Director 2026-11-11, con autorización de Sam |
 
 Pregunta abierta, **sin valor asumido**:
 
@@ -327,35 +327,88 @@ Pregunta abierta, **sin valor asumido**:
 - Permisos de Chatwoot dentro de la bandeja: los decide su propio rol (nota en `rbac.ts`, `bandeja`).
 - Acceso al portal de clientes, PWA de operarios y PINs (`operarios`).
 
-## 11. Allowlist exacta de archivos (aprobada 2026-11-09)
+## 11. Allowlist exacta de archivos (enmendada el 2026-11-11 para coincidir con la implementación)
 
-Solo estos archivos pueden cambiar al implementar. Cualquier otro requiere enmendar esta spec primero. Los números de
-migración se asignan al implementar con `pnpm sdd:next` (hoy la siguiente libre es la 0525) y una migración
-aplicada nunca se renumera.
+La allowlist original (2026-11-09) se quedó corta: la implementación (PR #509, rama
+`claude/impl-permisos-por-persona-10d044`, cabeza `a44b77066`) toca archivos que la spec no nombraba, porque los
+extras tienen que verse y funcionar en **todos** los sitios donde se evalúa a la persona de la sesión (sidebar,
+⌘K, exportaciones, PDF, dashboard, CRM, gates de acciones). La lista de abajo sale de
+`git diff --name-only origin/main...origin/claude/impl-permisos-por-persona-10d044` y es la **exacta**; cualquier otro
+archivo requiere enmendar esta spec primero.
 
-**Aplicación**
-- `lib/studio/rbac.ts` — `SENSITIVE_MODULE_EFFECTS`, extras en `canAccessModule`/`canEditModule`, rol `custom`.
-- `lib/studio/rbac-guard.ts` — carga de extras en `getStudioAccess`.
-- `lib/studio/user-types.ts` — `StudioUserRole` y `STUDIO_USER_ROLES` con `custom`.
-- `lib/studio/user-module-grants-queries.ts` (nuevo) y su prueba.
-- `lib/studio/user-queries.ts` — lectura de extras para la pantalla.
-- `app/studio/(app)/usuarios/actions.ts`, `page.tsx` y componentes nuevos bajo `app/studio/(app)/usuarios/`.
-- `lib/studio/modules.ts` solo si hace falta marcar módulos «sensibles» (sin cambiar ids).
-- Pruebas: `lib/studio/rbac.test.ts`, `lib/studio/rbac-guard.test.ts`, `lib/studio/rbac-actions-guard.test.ts`
-  (solo para registrar las acciones nuevas con su guard) y pruebas nuevas en `lib/studio/__tests__/`.
+**Migraciones definitivas** (las tres sin aplicar en ningún entorno remoto; las numeraciones previas 0526 y 0527 de esta tarea ya no valen (0526 es de la #507 y 0528 de la SDD-0624) y la
+numeración original de esta spec tampoco):
+- `supabase/migrations/0529_studio_user_module_grants.sql`
+- `supabase/migrations/0530_comercial_acepta_accesos_por_persona.sql`
+- `supabase/migrations/0531_comercial_rls_por_modulo.sql`
 
-**Base de datos (migraciones nuevas, cada una con su prueba `.test.sql` en `supabase/tests/`)**
-- Tabla `studio_user_module_grants` (con `sensitive_confirmed_at` y su CHECK), RPC de conceder/revocar con `p_confirm_sensitive`, `user_has_module`, auditoría. **No** se modifica `0357`.
-- Rol `custom`: CHECK de `user_tenants` y `user_invitations` y las RPC de invitar/cambiar rol.
-- Reemplazo de `crm_puede_usar()` y `document_entity_authorized` y de las funciones que arroje el
-  inventario exacto (Fase 1), una migración por tanda.
+**Contratos SQL**
+- `supabase/tests/0529_studio_user_module_grants.test.sql`
+- `supabase/tests/0530_comercial_acepta_accesos_por_persona.test.sql`
+- `supabase/tests/0531_comercial_rls_por_modulo.test.sql`
+
+**Biblioteca (`lib/`)**
+- `lib/studio/__tests__/user-module-grants.migration.test.ts`
+- `lib/studio/client-account.ts`
+- `lib/studio/crm-tablero.ts`
+- `lib/studio/discord/consulta/consulta.ts`
+- `lib/studio/global-search/facets.ts`
+- `lib/studio/global-search/search-action.test.ts`
+- `lib/studio/global-search/search-action.ts`
+- `lib/studio/rbac-actions-guard.test.ts`
+- `lib/studio/rbac-guard.ts`
+- `lib/studio/rbac.test.ts`
+- `lib/studio/rbac.ts`
+- `lib/studio/user-module-grants-queries.ts`
+- `lib/studio/user-module-grants.ts`
+
+**Aplicación (`app/`)**
+- `app/api/studio/comercial/export/route.ts`
+- `app/api/studio/operativo/export/route.ts`
+- `app/studio/(app)/_components/StudioSidebar.tsx`
+- `app/studio/(app)/_components/StudioTopbar.tsx`
+- `app/studio/(app)/bandeja/actions.ts`
+- `app/studio/(app)/clientes/[markbox]/estado-de-cuenta/pdf/route.ts`
+- `app/studio/(app)/clientes/[markbox]/page.tsx`
+- `app/studio/(app)/cobranzas/__tests__/receivable-history-gate.test.ts`
+- `app/studio/(app)/conversaciones/__tests__/send-reply-gate.test.ts`
+- `app/studio/(app)/cotizador/[code]/pdf/route.ts`
+- `app/studio/(app)/cotizador/actions.ts`
+- `app/studio/(app)/crm/__tests__/lecturas-y-conversion-gate.test.ts`
+- `app/studio/(app)/crm/__tests__/tarjeta-actions-gate.test.ts`
+- `app/studio/(app)/crm/_components/CrmEmbudosSlot.tsx`
+- `app/studio/(app)/crm/tarjeta-actions.ts`
+- `app/studio/(app)/dashboard/__tests__/kpi-respaldo.test.ts`
+- `app/studio/(app)/dashboard/page.tsx`
+- `app/studio/(app)/facturacion/[code]/pdf/route.ts`
+- `app/studio/(app)/financiero-china/__tests__/lecturas-socio-gate.test.ts`
+- `app/studio/(app)/layout.tsx`
+- `app/studio/(app)/operarios/__tests__/reset-pin-actions.test.ts`
+- `app/studio/(app)/operarios/__tests__/update-operario-actions.test.ts`
+- `app/studio/(app)/tarifas/actions.ts`
+- `app/studio/(app)/tracking/[id]/__tests__/tarifa-sugerida-gate.test.ts`
+- `app/studio/(app)/tracking/[id]/actions.ts`
+- `app/studio/(app)/usuarios/_components/MembersTable.tsx`
+- `app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx`
+- `app/studio/(app)/usuarios/_components/UsersClient.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/AccesoPanel.test.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/AccesoPanel.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/ActividadAcceso.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/DobleAvisoDialog.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/permisos.css`
+- `app/studio/(app)/usuarios/_components/ficha/RolYAlcanceCard.test.tsx`
+- `app/studio/(app)/usuarios/_components/ficha/RolYAlcanceCard.tsx`
+- `app/studio/(app)/usuarios/actions.ts`
+- `app/studio/(app)/usuarios/page.tsx`
 
 **Documentación**
-- Esta spec, su índice, el handoff de cada tanda y la cabecera de `lib/studio/rbac.ts` (actualizar el punto de
-  «overrides por usuario»).
+- `.agents/handoffs/sdd-0622-impl-permisos-por-persona.md`
+- Esta spec y su índice.
+- La cabecera de `lib/studio/rbac.ts` (ya actualizada por la implementación: «la SDD-0622 reemplaza el punto D de la 0139»).
 
-**Fuera de la allowlist, por decisión:** `supabase/migrations/` ya aplicadas, `.env*`, datos de producción,
-portal público, PWA de operarios, Chatwoot.
+**Fuera de la allowlist, por decisión:** `supabase/migrations/` ya aplicadas, `.env*`, datos de producción, portal
+público, PWA de operarios, Chatwoot (incluido `lib/studio/chatwoot/agentes-*` y `bandeja/page.tsx`), las funciones y RLS
+de dinero (fase 8) y el rol `custom` (fase 6).
 
 ## 12. Anexo · Fase 1 — inventario de la base (solo lectura, 2026-11-09)
 
@@ -424,3 +477,67 @@ Políticas de dinero por rol `accounting` (por migración, sin línea individual
 Conclusión: para **Alejandro** (ya contabilidad) el dinero funciona sin tocar nada. Para cualquier otro receptor de un
 extra de dinero hay que migrar las piezas marcadas «Requiere cambio» y las familias de políticas anteriores, y por eso
 es una fase propia (§6, fase 8; R3).
+
+## 13. Estado de la implementación (PR #509, 2026-11-11)
+
+Esta sección enmienda la spec para que describa lo que se construyó. La PR #509 depende de esta (#488), sigue sin
+fusionar y sus migraciones no se han aplicado en ningún entorno remoto.
+
+### 13.1 Migraciones y nombres definitivos
+
+| Pieza | Nombre definitivo (lo que dice el código) | Difiere de §5 |
+|---|---|---|
+| Tabla y RPC (0529) | `studio_user_module_grants`, `studio_grant_user_module`, `studio_revoke_user_module_grant`, `user_has_module(p_module, p_edit)`; ayudantes `studio_module_default_roles`, `studio_module_is_sensitive`, `studio_module_is_superadmin_only` | La RPC de conceder se llama `studio_grant_user_module`, no `studio_set_user_module_grant`; hay ayudantes SQL que §5 no nombraba |
+| CRM (0530) | `crm_puede_usar()` pasa a `user_has_module('kommo')`; `crm_puede_editar()` nueva (la usan las 5 políticas de escritura del CRM y `crm_mover_etapa`); `document_entity_authorized` suma el extra vigente, y las entidades de dinero siguen por rol | `crm_puede_editar()` es nueva |
+| RLS por módulo (0531) | En rates, quotes, conversations, conversation_messages, purchase_orders, purchase_order_items y sales_orders la política `for all` por tenant pasa a cuatro: escribir exige editar el módulo dueño, leer exige ver alguno de los que la consumen; `chatwoot_conversations` la lee quien ve Bandeja o CRM; ayudante `user_has_any_module(text[], boolean)` | **No estaba en la spec** (§12 las daba por «solo tenant»; la implementación las endureció por módulo) |
+
+Detalles de diseño que se fijaron al construir:
+
+- **Revocar = borrar la fila**, con motivo obligatorio; el rastro append-only queda en `entity_audit_log`. Un extra
+  vencido no se borra: deja de contar solo y aparece en el filtro «vencidos».
+- La tabla garantiza por CHECK que `can_view` siempre es verdadero, que editar implica ver, motivo de 5 a 500
+  caracteres, confirmación de sensibles (`sensitive_confirmed_at` + `effects_version`) sobre la lista literal de
+  `LOCKED_MODULES`, y solo lectura para `users` y `admin` (R1).
+- La RPC de conceder: solo el rol admin de la base; nunca a uno mismo, a un admin, a una persona desactivada ni de
+  otro tenant; módulo conocido; vencimiento futuro; confirma sensibles con `p_confirm_sensitive` y versión de
+  efectos; los 4 del superadministrador solo si `is_platform_admin()` (R2). Ambas RPC escriben en
+  `entity_audit_log` (entidad nueva `studio_user_module_grant`, dominio `governance`).
+- Orden de decisión en SQL y en TypeScript, probado con paridad: admin → support sin edición → alcance de almacén →
+  desvío por rol (nunca sobre sensibles) → default de código → extra vigente.
+- Una copia SQL de la matriz de módulos (`studio_module_default_roles`) replica `ROLE_MODULE_ACCESS` con una prueba
+  anti-drift.
+
+### 13.2 Cobertura y límites de esta entrega
+
+- **Dinero (R3):** no se tocó ninguna función ni política de dinero. En la pantalla los módulos de dinero salen como
+  «Requiere fase de dinero» y no se ofrecen. La suma de extras se hará redefiniendo `studio_can_read_money()`
+  (0528, SDD-0624, PR #515).
+- **Doble aviso:** el diálogo está hecho y probado, pero hoy ningún módulo sensible está «cubierto», así que la
+  pantalla no lo abre; la RPC sí lo acepta con confirmación. Abrir uno es mover su entrada en `GRANT_COVERAGE`
+  cuando su base acepte el extra.
+- **Bandeja:** no se ofrece; el ciclo de agentes de Chatwoot decide solo por rol y es del carril de Chatwoot.
+- **Rol `custom` (fase 6):** no está en la #509.
+- **Acciones sacadas de DEUDA** del anti-drift: `lookupSuggestedRate`, `lookupRateForNewDestination` y
+  `previewRatesImportAction`.
+
+### 13.3 Pendientes que decide Sam (sin código)
+
+1. **Revocar sin superadmin:** hoy revocar no exige superadmin, ni siquiera sobre los 4 módulos del superadministrador.
+   Quitar solo resta; ¿alcanza un admin?
+2. **Reactivar a una persona:** los extras viven aunque se suspenda a la persona y vuelven vigentes al reactivarla.
+   ¿Deben vencer o quitarse al suspender?
+3. **La RPC concede módulos que la base aún no cubre:** la pantalla solo ofrece los cubiertos, pero un admin que
+   llame la RPC directo puede dar, por ejemplo, Tesorería a comercial y la base le negaría los datos. ¿Se limita la
+   RPC a la lista cubierta?
+
+Pendiente técnico menor (no requiere decisión de Sam): `getMyModuleGrants` filtra solo por `user_id`; con varios
+tenants por persona habría que filtrar por el tenant activo.
+
+### 13.4 Fuera de alcance detectado por la implementación
+
+- El borrado lógico con la sesión ya fallaba antes en rates, quotes, conversations, purchase_orders y sales_orders
+  (`cotizador/actions.ts:499`, `tarifas/actions.ts:260`); la 0531 no lo arregla ni lo empeora.
+- La propuesta de tarifa de la CN (`cn/rate-snapshot-actions.ts`) lee con la sesión de almacén; es del carril CN.
+- `bandeja/page.tsx:100` y `lib/studio/chatwoot/agentes-ciclo.ts:87` evalúan la Bandeja de terceros solo por rol y
+  desvío; habrá que tocarlos si se abre.
+- `listUnreadConversationsForBadge` sigue consultando aunque no se pinte el indicador (costo menor).
