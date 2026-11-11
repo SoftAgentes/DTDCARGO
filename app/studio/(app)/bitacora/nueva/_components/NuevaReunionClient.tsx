@@ -198,13 +198,7 @@ export function NuevaReunionClient({
           <div
             role="tablist"
             aria-label="Tipo de conversación"
-            style={{
-              display: "inline-flex",
-              gap: "var(--s-1)",
-              padding: "var(--s-1)",
-              background: "var(--bg-elevated)",
-              borderRadius: "var(--r-md)",
-            }}
+            className="studio-tabs"
           >
             {(
               [
@@ -219,17 +213,9 @@ export function NuevaReunionClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-activa={active ? "true" : undefined}
                   onClick={() => setTipo(v)}
-                  style={{
-                    padding: "var(--s-2) var(--s-4)",
-                    borderRadius: "var(--r-sm)",
-                    background: active ? "var(--bg-surface)" : "transparent",
-                    color: active ? "var(--ink)" : "var(--ink-soft)",
-                    border: 0,
-                    font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                    boxShadow: active ? "var(--shadow-xs)" : "none",
-                    cursor: "pointer",
-                  }}
+                  className="studio-tab"
                 >
                   {label}
                 </button>
@@ -284,13 +270,7 @@ export function NuevaReunionClient({
           <div
             role="tablist"
             aria-label="Cómo aportar la conversación"
-            style={{
-              display: "inline-flex",
-              gap: "var(--s-1)",
-              padding: "var(--s-1)",
-              background: "var(--bg-elevated)",
-              borderRadius: "var(--r-md)",
-            }}
+            className="studio-tabs"
           >
             {(
               [
@@ -305,17 +285,9 @@ export function NuevaReunionClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-activa={active ? "true" : undefined}
                   onClick={() => setMode(v)}
-                  style={{
-                    padding: "var(--s-2) var(--s-4)",
-                    borderRadius: "var(--r-sm)",
-                    background: active ? "var(--bg-surface)" : "transparent",
-                    color: active ? "var(--ink)" : "var(--ink-soft)",
-                    border: 0,
-                    font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                    boxShadow: active ? "var(--shadow-xs)" : "none",
-                    cursor: "pointer",
-                  }}
+                  className="studio-tab"
                 >
                   {label}
                 </button>
