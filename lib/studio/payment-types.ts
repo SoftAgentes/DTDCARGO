@@ -546,6 +546,11 @@ export function validateUnidentifiedPaymentInput(
   if (currency === "VES" && !fxRate) {
     errors.fxRate = "Indica la tasa BCV para registrar un pago en bolívares.";
   }
+  // SDD-0572 (decisión del Director, 2026-10-20): sin tasa no se asienta, así
+  // que el cobro en yuanes también la exige.
+  if (currency === "CNY" && !fxRate) {
+    errors.fxRate = "Indica la tasa para registrar un pago en yuanes.";
+  }
 
   const method: PaymentMethod = VALID_METHODS.has(input.method ?? "")
     ? (input.method as PaymentMethod)

@@ -526,17 +526,19 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     const client = makeClient({
       tables: {
         accounts: { data: PLAN_DIR },
-        // je1 trae las líneas; F2, F6 y F7 tienen su asiento de factura vivo
+        // je1 trae las líneas; F2, F6, F7 y F9 tienen su asiento de factura vivo
         // (sin líneas), así cuentan en «no comparable» (decisión 7).
         journal_entries: {
           data: [{ id: "je1", tenant_id: "t", entry_date: "2025-03-05", reverses_entry_id: null, status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
         },
         journal_lines: {
           data: [
-            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1497 },
+            // 4.5 = 1500: je1 aporta 1496 y cada uno de los cuatro asientos en otra
+            // moneda (F2, F6, F7 y F9 desde la 0572) aporta 1.
+            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1496 },
             { id: "je1-fx", entry_id: "je1", account_id: "fx", debit: 0, credit: 200 },
             { id: "je1-g", entry_id: "je1", account_id: "g1", debit: 700, credit: 0 },
-            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 997, credit: 0 },
+            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 996, credit: 0 },
             ...ASIENTOS_EN_OTRA_MONEDA.flatMap(a => [
               { id: `${a.id}-ar`, entry_id: a.id, account_id: "ar", debit: 1, credit: 0 },
               { id: `${a.id}-v`, entry_id: a.id, account_id: "ven", debit: 0, credit: 1 },
@@ -599,6 +601,17 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
     resumirIngreso(facturas, RANGO_MES, ctl);
   const textos = (i: ReturnType<typeof ingreso>, utilidad = 400, margenPct = 40) =>
     textosFinancieros({ ingreso: i, utilidad, margenPct });
+
+  it("0572 · USD conocido y CNY sin tasa: conserva cifra oficial y avisa subtotal sin decir cuadra", () => {
+    const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+    const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+    const t = textos(ingreso([usd, cny], control(1000, 1000, true, ["u1"])));
+    expect(t.ingreso.valor).toBe("$1,000.00");
+    expect(t.ingreso.periodo).toMatch(/subtotal/i);
+    expect(t.ingreso.detalle).toMatch(/1 sin convertir/);
+    expect(t.ingreso.detalle).not.toMatch(/cuadra|no comparable/);
+    expect(t.utilidad.sub).not.toMatch(/nominal/);
+  });
 
   it("«sin IVA» con el rango y «libro» en la utilidad", () => {
     const t = textos(ingreso(FACTURAS_EN_USD, control(1000)));

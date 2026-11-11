@@ -13,9 +13,9 @@
  *   `emitida | parcial | pagada | vencida`, con `issued_at` en [desde, hasta]
  *   (los dos extremos entran).
  *
- * La conversión es la vigente (`invoiceUsdAmount`): USD y USDT 1:1, VES entre
- * la tasa de la factura. VES sin tasa y CNY NO suman: se cuentan aparte como
- * «sin convertir». El IVA es un pasivo (2.1.5), no ingreso.
+ * La conversión es la canónica (`invoiceUsdAmount` sobre `toUsd`, SDD-0572): USD y
+ * USDT 1:1, VES y CNY entre la tasa de la factura. Sin tasa NO suman: se cuentan
+ * aparte como «sin convertir». El IVA es un pasivo (2.1.5), no ingreso.
  *
  * El mayor queda como CONTROL, contra las líneas de la cuenta 4.5 de los
  * asientos de FACTURA (`source = 'invoice'`, la que acredita el asiento de
@@ -108,11 +108,11 @@ export type IngresoPeriodo = {
   baseComparacionUsd: number | null;
   controlI2: ControlI2;
   rango: RangoFechas;
-  /** Facturado sin IVA en USD: propio (`local_revenue`), terceros y total. */
+  /** Facturado sin IVA convertido a USD; subtotal si sinConvertir > 0. */
   facturado: { propio: number; terceros: number; total: number };
   /** Facturas que suman. */
   facturas: number;
-  /** Facturas del período que NO suman: VES sin tasa o CNY. */
+  /** Facturas del período que NO suman: VES o CNY sin tasa (SDD-0572). */
   sinConvertir: number;
   /**
    * Documentos distintos con movimiento nominal VES/CNY relevante acreditado
@@ -134,6 +134,7 @@ export type IngresoPeriodo = {
    * acreditada, base conocida y mayor coherente con neto/movimiento raw.
    * Una cabecera huérfana, unidad nominal/desconocida o contradicción del
    * mayor mantiene null; un saldo cero por sí solo no certifica comparación.
+   * SDD-0572: con alguna factura sin convertir la base no se conoce y es null.
    */
   diferenciaUsd: number | null;
 };
@@ -362,7 +363,7 @@ function puenteDelPeriodo(
     // Una sola conversión y redondeo documental: el reverso usa exactamente
     // los mismos centavos, sin importar el nominal registrado en el par.
     const usd = round2(invoiceUsdAmount({ currency: doc.currency as InvoiceCurrency,
-      total_amount: Number(base), fx_rate: doc.fx_rate == null ? null : Number(doc.fx_rate) }));
+      total_amount: Number(base), fx_rate: doc.fx_rate == null ? null : Number(doc.fx_rate) }) ?? Number.NaN);
     if (!Number.isFinite(usd) || !Number.isSafeInteger(Math.round(usd * 100))) { avisar("importe_sin_convertir"); continue; }
     ajusteCentavos += (Number(suma) - Number(resta)) * Math.round(usd * 100);
   }
@@ -463,14 +464,14 @@ function esDeIngreso(status: string): boolean {
   return (ESTADOS_DE_INGRESO as readonly string[]).includes(status);
 }
 
-/** ¿La regla vigente sabe pasar esta moneda a USD? */
+
+/** ¿El conversor canónico (SDD-0572) sabe pasar esta moneda a USD? */
 function convertible(currency: string, fxRate: number | string | null): boolean {
-  if (currency === "USD" || currency === "USDT") return true;
-  if (currency === "VES") {
-    const fx = Number(fxRate);
-    return Number.isFinite(fx) && fx > 0;
-  }
-  return false;
+  return invoiceUsdAmount({
+    currency: currency as InvoiceCurrency,
+    total_amount: 1,
+    fx_rate: fxRate == null ? null : Number(fxRate),
+  }) !== null;
 }
 
 /** VES o CNY: la factura se asienta hoy por el nominal en esa moneda (B2). */
@@ -483,6 +484,8 @@ function enOtraMonedaDelAsiento(currency: string): boolean {
  * oficial en memoria; el contexto adicional no amplía ese oficial. El puente
  * y su unidad se acreditan con filas crudas, también con mayor precalculado;
  * el Set de cabeceras no establece comparabilidad ni movimiento nominal.
+ * SDD-0572: la diferencia solo se cuantifica si se convirtió el conjunto
+ * completo; el subtotal conocido conserva la cifra oficial.
  */
 export function resumirIngreso(
   facturas: readonly FacturaDeIngreso[],
@@ -501,18 +504,19 @@ export function resumirIngreso(
     const dia = f.issued_at.slice(0, 10);
     if (dia < rango.from || dia > rango.to) continue;
     if (!esDeIngreso(f.status)) continue;
-    if (!convertible(f.currency, f.fx_rate)) {
+    // SDD-0572: el conversor canónico. VES y CNY por su tasa; sin tasa (o con
+    // una moneda que no se convierte), a «sin convertir».
+    const base = Number(f.base_amount);
+    const enUsd = invoiceUsdAmount({
+      currency: f.currency as InvoiceCurrency,
+      total_amount: Number.isFinite(base) ? base : 0,
+      fx_rate: f.fx_rate == null ? null : Number(f.fx_rate),
+    });
+    if (enUsd === null) {
       sinConvertir += 1;
       continue;
     }
-    const base = Number(f.base_amount);
-    const usd = round2(
-      invoiceUsdAmount({
-        currency: f.currency as InvoiceCurrency,
-        total_amount: Number.isFinite(base) ? base : 0,
-        fx_rate: f.fx_rate == null ? null : Number(f.fx_rate),
-      }),
-    );
+    const usd = round2(enUsd);
     cuenta += 1;
     if (f.fund_class === "local_revenue") propio += usd;
     else terceros += usd;
@@ -527,10 +531,9 @@ export function resumirIngreso(
         otrosIngresos: round2(mayor.ingresos - (mayor.ventas ?? 0)),
       }
     : null;
-  // Contra 4.5 vacía y sin facturado en USD, lo único que hay son facturas sin
-  // convertir: falta el asiento, pero el monto en USD no se conoce.
-  const sinMontoConocido =
-    control != null && !control.ventasConMovimiento && Math.abs(total) < 0.005 && sinConvertir > 0;
+  // SDD-0572: con alguna factura sin convertir el facturado es un subtotal y el
+  // monto total en USD no se conoce (incluye el caso de 4.5 vacía y nada en USD).
+  const sinMontoConocido = sinConvertir > 0;
 
   const puente = mayor ? puenteDelPeriodo(rango, mayor, contexto, facturas) : null;
   const controlI2: ControlI2 = puente?.control ?? {
@@ -565,6 +568,7 @@ export type EstadoDelIngreso =
   | "mayor_menor"
   | "mayor_mayor"
   | "no_comparable"
+  | "conversion_incompleta"
   | "sin_movimiento"
   | "sin_cuenta"
   | "sin_mayor"
@@ -576,6 +580,7 @@ export const ETIQUETA_ESTADO_INGRESO: Record<EstadoDelIngreso, string> = {
   mayor_menor: "El mayor tiene menos",
   mayor_mayor: "El mayor tiene más",
   no_comparable: "No comparable",
+  conversion_incompleta: "Conversión incompleta",
   sin_movimiento: "Sin movimiento",
   sin_cuenta: "Sin cuenta 4.5",
   sin_mayor: "Sin mayor",
@@ -641,16 +646,21 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
     } else if (!conAsientos && (hayFacturado || i.sinConvertir > 0)) {
       // B3 gana sobre «no comparable»: contra 4.5 vacía no hay monedas que mezclar.
       estado = "mayor_menor";
-      diferenciaTexto = hayFacturado
+      diferenciaTexto = hayFacturado && i.sinConvertir === 0
         ? `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(i.facturado.total)} menos que lo facturado: no tiene ningún asiento de factura en el período.`
+        : hayFacturado
+          ? `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período; falta convertir ${i.sinConvertir === 1 ? "1 factura" : `${i.sinConvertir} facturas`} para conocer la diferencia total en USD.`
         : `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período; ${
             i.sinConvertir === 1
-              ? "la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo"
-              : `las ${i.sinConvertir} facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo`
+              ? "la factura del período (en bolívares o yuanes sin tasa) debería tenerlo"
+              : `las ${i.sinConvertir} facturas del período (en bolívares o yuanes sin tasa) deberían tenerlo`
           }.`;
     } else if (!conAsientos && i.facturas === 0 && !i.controlI2.hayActividad) {
       estado = "sin_movimiento";
       diferenciaTexto = `Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta ${CUENTA_VENTAS}. No hay nada que comparar.`;
+    } else if (i.sinConvertir > 0) {
+      estado = "conversion_incompleta";
+      diferenciaTexto = `Conversión incompleta: falta convertir ${i.sinConvertir === 1 ? "1 factura" : `${i.sinConvertir} facturas`} con su tasa para comparar el total con el mayor (cuenta ${CUENTA_VENTAS}).`;
     } else {
       // Con 4.5 en el plan y comparable, `resumirIngreso` siempre la calcula.
       const dif = i.diferenciaUsd;
@@ -679,8 +689,8 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
     n === 0
       ? null
       : n === 1
-        ? "1 factura no suma: está en bolívares sin tasa o en yuanes."
-        : `${n} facturas no suman: están en bolívares sin tasa o en yuanes.`;
+        ? "1 factura no suma: está en bolívares o yuanes sin tasa."
+        : `${n} facturas no suman: están en bolívares o yuanes sin tasa.`;
 
   const avisoTerceros =
     i.facturado.terceros > 0

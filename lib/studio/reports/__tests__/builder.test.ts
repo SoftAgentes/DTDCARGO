@@ -62,9 +62,11 @@ describe("REPORT_SOURCES", () => {
   it("toda dim/filtro de embarques produce una key que builderRows resuelve", () => {
     // Sanity: las keys declaradas en el catálogo son las que la query aplana.
     const dimKeys = SRC.dims.map((d) => d.key).sort();
-    expect(dimKeys).toEqual(["client", "route", "service", "status"]);
+    expect(dimKeys).toEqual(["client", "route", "service", "status", "tasa"]);
     const filterKeys = SRC.filters.map((f) => f.key).sort();
-    expect(filterKeys).toEqual(["service", "status"]);
+    expect(filterKeys).toEqual(["service", "status", "tasa"]);
+    expect(REPORT_SOURCES.invoices.dims.map((d) => d.key).sort()).toEqual(["client", "currency", "status", "tasa"]);
+    expect(REPORT_SOURCES.invoices.filters.map((f) => f.key).sort()).toEqual(["currency", "status", "tasa"]);
   });
 
   it("asSourceId normaliza valores crudos (default shipments)", () => {
@@ -87,8 +89,8 @@ describe("buildReport · count", () => {
     const out = buildReport(rows, { dim: dimClient, metric: metCount });
     expect(out.agg).toBe("count");
     expect(out.rows).toEqual([
-      { label: "Acme", value: 2, count: 2 },
-      { label: "Beta", value: 1, count: 1 },
+      { label: "Acme", value: 2, count: 2, subtotal: 2, sinTasa: 0 },
+      { label: "Beta", value: 1, count: 1, subtotal: 1, sinTasa: 0 },
     ]);
     expect(out.total).toBe(3);
   });
@@ -111,8 +113,8 @@ describe("buildReport · sum", () => {
 
   it("suma la métrica por grupo, ordena desc por valor, total = Σ", () => {
     const out = buildReport(rows, { dim: dimClient, metric: metCbmSum });
-    expect(out.rows[0]).toEqual({ label: "Beta", value: 40, count: 1 });
-    expect(out.rows[1]).toEqual({ label: "Acme", value: 15, count: 2 });
+    expect(out.rows[0]).toEqual({ label: "Beta", value: 40, count: 1, subtotal: 40, sinTasa: 0 });
+    expect(out.rows[1]).toEqual({ label: "Acme", value: 15, count: 2, subtotal: 15, sinTasa: 0 });
     expect(out.total).toBe(55);
   });
 
@@ -120,8 +122,8 @@ describe("buildReport · sum", () => {
     const out = buildReport(rows, { dim: dimClient, metric: metRevenue });
     expect(out.money).toBe(true);
     // Acme = 8000 + 2000 = 10000 > Beta 9000 → Acme primero.
-    expect(out.rows[0]).toEqual({ label: "Acme", value: 10000, count: 2 });
-    expect(out.rows[1]).toEqual({ label: "Beta", value: 9000, count: 1 });
+    expect(out.rows[0]).toEqual({ label: "Acme", value: 10000, count: 2, subtotal: 10000, sinTasa: 0 });
+    expect(out.rows[1]).toEqual({ label: "Beta", value: 9000, count: 1, subtotal: 9000, sinTasa: 0 });
     expect(out.total).toBe(19000);
   });
 
@@ -175,8 +177,8 @@ describe("buildReport · filtro", () => {
     });
     // Solo Acme(10) + Beta(40).
     expect(out.rows).toEqual([
-      { label: "Beta", value: 40, count: 1 },
-      { label: "Acme", value: 10, count: 1 },
+      { label: "Beta", value: 40, count: 1, subtotal: 40, sinTasa: 0 },
+      { label: "Acme", value: 10, count: 1, subtotal: 10, sinTasa: 0 },
     ]);
     expect(out.total).toBe(50);
   });
@@ -211,7 +213,8 @@ describe("buildReportCsv", () => {
       metric: metRevenue,
     });
     const csvMoney = buildReportCsv(money, { dim: "Cliente", metric: "Revenue USD" });
-    expect(csvMoney.split("\r\n")[1]).toBe("X,1,1235");
+    // Contrato Director: conserva el entero histórico y añade el subtotal con centavos.
+    expect(csvMoney.split("\r\n")[1]).toBe("X,1,1235,Completo,0,1234.56");
 
     const avg = buildReport(
       [row({ client: "X" }, { cbm: 10 }), row({ client: "X" }, { cbm: 5 })],
@@ -330,6 +333,7 @@ describe("builderRows · embarques", () => {
     expect(a1.dims.route).toBe("Yiwu → Pto Cabello");
     expect(a1.dims.status).toBe("En tránsito"); // label, no el enum crudo
     expect(a1.dims.service).toBe("Consolidado LCL");
+    expect(a1.dims.tasa).toBe("Todas con tasa");
     expect(a1.metrics.cbm).toBe(10);
     expect(a1.metrics.revenue).toBe(8000); // del join por shipment_code
 
@@ -341,6 +345,7 @@ describe("builderRows · embarques", () => {
     // Filtros usan el mismo label que la dim.
     expect(a1.filters.status).toBe("En tránsito");
     expect(a1.filters.service).toBe("Consolidado LCL");
+    expect(a1.filters.tasa).toBe(a1.dims.tasa);
   });
 
   it("agregar sobre las filas crudas reproduce el revenue por cliente", async () => {
@@ -398,6 +403,8 @@ describe("builderRows · facturas", () => {
     const acme = rows.find((r) => r.dims.client === "Acme")!;
     expect(acme.dims.status).toBe("Parcial");
     expect(acme.dims.currency).toBe("USD · Dólar");
+    expect(acme.dims.tasa).toBe("Con tasa");
+    expect(acme.filters.tasa).toBe(acme.dims.tasa);
     expect(acme.metrics.amount).toBe(5000);
     expect(acme.metrics.balance).toBe(3000); // 5000 - 2000
 
@@ -420,5 +427,68 @@ describe("builderRows · facturas", () => {
     expect(byCurrency["USD · Dólar"]).toBe(3000);
     expect(byCurrency["VES · Bolívar"]).toBe(2000);
     expect(out.total).toBe(5000);
+  });
+});
+
+describe("0572 revisión · completitud del Constructor por métrica y grupo", () => {
+  const invoice = { client_name: "Cliente", currency: "USD", fx_rate: null, total_amount: 100, paid_amount: 0, status: "emitida", issued_at: "2026-05-10", created_at: "2026-05-10" };
+  const money: SourceMetric = { key: "amount", label: "Monto USD", agg: "sum", money: true };
+  const dim = REPORT_SOURCES.invoices.dims.find((d) => d.key === "client")!;
+
+  it.each([
+    { name: "parcial", invoices: [invoice, { ...invoice, currency: "CNY", total_amount: 700 }], total: 100, subtotal: 100, sinTasa: 1 },
+    { name: "solo excluidas", invoices: [{ ...invoice, currency: "CNY", total_amount: 700 }], total: null, subtotal: 0, sinTasa: 1 },
+    { name: "cero conocido", invoices: [{ ...invoice, total_amount: 0 }], total: 0, subtotal: 0, sinTasa: 0 },
+  ])("$name no se convierte en cero definitivo al agrupar por Cliente", async ({ invoices, total, subtotal, sinTasa }) => {
+    const { client } = stub({ invoices });
+    const rows = await builderRows(client, "invoices", "1A", TODAY);
+    const out = buildReport(rows, { dim, metric: money });
+    expect(out).toMatchObject({ total, subtotal, sinTasa, rows: [{ label: "Cliente", value: total, subtotal, sinTasa, count: invoices.length }] });
+    const csv = buildReportCsv(out, { dim: "Cliente", metric: "Monto USD" });
+    expect(csv).toContain("Estado de conversión,Documentos sin tasa,Subtotal conocido USD");
+    expect(csv).toContain(sinTasa ? ",Conversión incompleta,1," : ",Completo,0,");
+    if (total === null) expect(csv.split("\r\n")[1].split(",")[2]).toBe("");
+  });
+
+  it("promedio monetario incompleto no se certifica; cantidad sigue contando documentos y filtro conserva significado", async () => {
+    const { client } = stub({ invoices: [invoice, { ...invoice, currency: "CNY", total_amount: 700 }] });
+    const rows = await builderRows(client, "invoices", "1A", TODAY);
+    expect(rows[1]).toMatchObject({ dims: { tasa: "Sin tasa" }, filters: { tasa: "Sin tasa" } });
+    const average = buildReport(rows, { dim, metric: { ...money, agg: "avg" } });
+    expect(average).toMatchObject({ total: null, subtotal: 100, sinTasa: 1, rows: [{ value: null, subtotal: 100, count: 2 }] });
+    expect(buildReportCsv(average, { dim: "Cliente", metric: "Promedio USD" })).toContain("Cliente,2,,Conversión incompleta,1,100");
+    expect(buildReport(rows, { dim, metric: { key: "count", label: "Cantidad", agg: "count" } })).toMatchObject({ total: 2, sinTasa: 0 });
+    expect(buildReport(rows, { dim, metric: money, filter: { key: "tasa", value: "Con tasa" } })).toMatchObject({ total: 100, sinTasa: 0 });
+    expect(buildReport(rows, { dim: REPORT_SOURCES.invoices.dims.find((d) => d.key === "status")!, metric: money })).toMatchObject({ total: 100, sinTasa: 1, rows: [{ value: 100, sinTasa: 1, count: 2 }] });
+  });
+
+  it("embarque parcial conserva revenue conocido y CBM calculable, incluso agrupando por Cliente", async () => {
+    const shipments = [{ id: "s1", code: "A1", client_name: "Cliente", volume_m3: 10, created_at: "2026-03-01" }];
+    const invoices = [{ ...invoice, id: "i1", shipment_code: "A1" }, { ...invoice, id: "i2", shipment_code: "A1", currency: "CNY", total_amount: 700 }];
+    const { client } = stub({ shipments, invoices });
+    const rows = await builderRows(client, "shipments", "1A", TODAY);
+    expect(rows[0]).toMatchObject({ dims: { tasa: "Alguna sin tasa" }, filters: { tasa: "Alguna sin tasa" }, metrics: { revenue: 100, cbm: 10 } });
+    expect(buildReport(rows, { dim: dimClient, metric: metRevenue })).toMatchObject({ total: 100, sinTasa: 1, rows: [{ value: 100, sinTasa: 1 }] });
+    expect(buildReport(rows, { dim: dimClient, metric: metCbmAvg })).toMatchObject({ total: 10, sinTasa: 0 });
+  });
+
+  it.each([false, true])("embarque con solo factura sin tasa y cero conocido=%s conserva la distinción", async (withKnownZero) => {
+    const shipments = [{ id: "s1", code: "A1", client_name: "Cliente", volume_m3: 10, created_at: "2026-03-01" }];
+    const invoices = [{ ...invoice, id: "i2", shipment_code: "A1", currency: "CNY", total_amount: 700 }, ...(withKnownZero ? [{ ...invoice, id: "i1", shipment_code: "A1", total_amount: 0 }] : [])];
+    const { client } = stub({ shipments, invoices });
+    const rows = await builderRows(client, "shipments", "1A", TODAY);
+    expect(buildReport(rows, { dim: dimClient, metric: metRevenue })).toMatchObject({ total: withKnownZero ? 0 : null, subtotal: 0, sinTasa: 1 });
+    expect(buildReport(rows, { dim: dimClient, metric: metCbmSum })).toMatchObject({ total: 10, sinTasa: 0 });
+  });
+
+  it("conserva el total CBM redondeado a dos decimales y las filas físicas sin redondeo de suma", () => {
+    const rows: BuilderRow[] = [
+      { dims: { client: "A" }, metrics: { cbm: 0.1234 }, filters: {} },
+      { dims: { client: "B" }, metrics: { cbm: 0.2345 }, filters: {} },
+    ];
+    const out = buildReport(rows, { dim: dimClient, metric: metCbmSum });
+    expect(out).toMatchObject({ total: 0.36, sinTasa: 0 });
+    expect(out.rows.map((row) => row.value)).toEqual([0.2345, 0.1234]);
+    expect(buildReport(rows, { dim: dimClient, metric: { key: "count", label: "Cantidad", agg: "count" } })).toMatchObject({ total: 2, sinTasa: 0 });
   });
 });

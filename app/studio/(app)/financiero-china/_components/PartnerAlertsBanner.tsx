@@ -27,7 +27,9 @@ export function PartnerAlertsBanner({ alerts }: { alerts: PartnerBillAlert[] }) 
   const [expanded, setExpanded] = useState(false);
   if (alerts.length === 0) return null;
 
-  const totalUsd = alerts.reduce((s, a) => s + a.balanceUsd, 0);
+  // SDD-0572: la CxP sin tasa no suma (antes una CNY con tasa daba 0).
+  const totalUsd = alerts.reduce((s, a) => s + (a.balanceUsd ?? 0), 0);
+  const sinTasa = alerts.filter((a) => a.balanceUsd === null).length;
   const shown = expanded ? alerts : alerts.slice(0, PREVIEW);
   const hidden = alerts.length - shown.length;
 
@@ -48,6 +50,7 @@ export function PartnerAlertsBanner({ alerts }: { alerts: PartnerBillAlert[] }) 
           <p style={{ margin: 0, font: "700 13px/1.4 var(--f-sans)", color: "var(--danger)" }}>
             {alerts.length} pago{alerts.length === 1 ? "" : "s"} PP/CA vencido
             {alerts.length === 1 ? "" : "s"} al socio · {fmtMoney(totalUsd, "USD")} pendiente
+            {sinTasa > 0 ? ` · ${sinTasa} sin tasa, fuera del total` : ""}
           </p>
           <p style={{ margin: "var(--s-1) 0 0", font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
             Pre-pagos y saldos con crédito comercial (30-45 días) que pasaron su
