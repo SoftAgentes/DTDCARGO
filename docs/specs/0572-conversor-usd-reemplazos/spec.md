@@ -17,7 +17,7 @@ confidencialidad: interno
 
 **Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3. 0572-b ya está implementada y revisada localmente en rama separada, con verify16/17 y PR311 en borrador, según su subsección.
 
-El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress`: la validación local de a/b no sustituye CI, revalidación de la base final, integración, aplicación0498 ni las capas de conocimiento pendientes.
+El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress`: la validación local de a/b no sustituye CI, revalidación de la base final, integración, aplicación0527 ni las capas de conocimiento pendientes.
 
 El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam informó el rechazo de pago y aclaró que las 48 horas son la espera para cambiar la tarjeta, sin garantía de habilitación de Actions; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
 
@@ -739,3 +739,11 @@ anterior `5b302b5cad00529fcc5731aa570fd620794c4689` pasa a
 `492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229`). Los
 blobs y evidencias anteriores a esta nota describen el archivo con número 0498.
 La rama `claude/sdd-0572-conversor-usd-sql` reemplaza a la PR #311.
+
+## Cambio de texto visible declarado (revisión de la #516, 2026-11-11)
+
+La 0572-a (commit `4f24a1db0`) cambió una palabra de la descripción de Costing
+en `app/studio/(app)/costing/_components/CostingClient.tsx:312`: «los que dejan
+plata sobre la mesa» pasa a «los que dejan dinero sobre la mesa». Es el único
+cambio de copy visible de esta entrega fuera de los rótulos de conversión; no
+cambia comportamiento ni datos.

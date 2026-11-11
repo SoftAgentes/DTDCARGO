@@ -44,25 +44,8 @@ export function ConversationsIndicator({
       aria-label={
         count > 0 ? `${label} · ${count} sin leer` : label
       }
-      style={{
-        position: "relative",
-        width: 36,
-        height: 36,
-        borderRadius: "var(--r-md)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--ink-soft)",
-        background: "transparent",
-        cursor: "pointer",
-        transition: "background var(--dur-fast) var(--ease)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "var(--bg-elevated)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent";
-      }}
+      className="studio-icono-btn"
+      style={{ position: "relative" }}
     >
       {Icon.mail(16)}
       {count > 0 && (

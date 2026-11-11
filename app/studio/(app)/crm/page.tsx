@@ -102,6 +102,9 @@ export default async function KommoPage({
         filters={filters}
         convertedLeads={{}}
         valueByLead={{}}
+        // Sin lectura del espejo ni de la facturación: no disponible, nunca cero (SDD-0572-b).
+        convertedAvailable={false}
+        billingAvailable={false}
         contactByLead={{}}
         pendingOpsByLead={{}}
         staleOpsByLead={{}}
