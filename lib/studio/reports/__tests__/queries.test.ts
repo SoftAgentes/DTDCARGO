@@ -24,7 +24,7 @@ import {
   cashflowReport,
   combinedReport,
   commercialByClient,
-  commercialByAgent,
+  commercialByAgentKommo,
   incomeStatement,
   operationalOverview,
   reportByCarrier,
@@ -1118,7 +1118,7 @@ describe("0572-b · agregados anuales comerciales reales", () => {
       { id: 2, price: 99, responsible_user_id: 10, status_id: 143 },
       { id: 3, price: 99, responsible_user_id: 20, status_id: 142 },
     ], clients: [{ kommo_lead_id: 1, markbox: "A" }, { kommo_lead_id: 2, markbox: "A" }, { kommo_lead_id: 3, markbox: "A" }], studio_client_annual_billing_v2: [annual("A", "100.01", 2)] });
-    const result = await commercialByAgent(client);
+    const result = await commercialByAgentKommo(client);
     expect(result.rows[0].billing).toEqual({ subtotalUsd: "200.02", sinTasaCount: 2, state: "sin_tasa" });
     expect(result.rows[1].billing.subtotalUsd).toBe("100.01");
     expect(result.totals.billing).toEqual({ subtotalUsd: "300.03", sinTasaCount: 2, state: "sin_tasa" });
@@ -1131,7 +1131,7 @@ describe("0572-b · agregados anuales comerciales reales", () => {
   it("cruce fallido o truncado no borra leads ni lo llama sin Kommo", async () => {
     for (const options of [{ errorTable: "clients" }, { serverCap: 1 }]) {
       const { client } = stub({ kommo_leads: [{ id: 1, responsible_user_id: 10, status_id: 142 }], clients: Array.from({ length: 61 }, (_, n) => ({ kommo_lead_id: n+1, markbox: `C${n}` })) }, options);
-      const result = await commercialByAgent(client);
+      const result = await commercialByAgentKommo(client);
       expect(result.hasKommo).toBe(true);
       expect(result.totals.leads).toBe(1);
       expect(result.totals.clients).toBeNull();
