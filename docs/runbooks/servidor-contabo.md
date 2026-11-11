@@ -314,12 +314,13 @@ El entorno de prueba usa 3.072 MiB de límites en total:
 Con prueba, DTD Cargo suma unos 12,5 GiB de límites. Sam decide si acepta ese medio GB (D10 de la SDD-0540).
 
 Imagen de la app: la construye CI en GHCR
-(`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>` y `:main`). La de prueba sale
+(`ghcr.io/softagentes/dtdcargo:sha-<sha>` y `:main`). La de prueba sale
 de otro workflow (`build-image-prueba.yml`, solo a mano) como
-`ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha>`: nunca se despliega en
+`ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>`: nunca se despliega en
 producción, y los scripts de prueba no aceptan otra etiqueta. El servidor
 necesita `docker login ghcr.io` con un token de solo lectura de paquetes
-(`read:packages`), guardado en Dokploy (Registries) o en el keyring de
+(`read:packages`) porque el paquete es **privado** (medido el 2026-11-02: un
+pedido anónimo de token a GHCR da 401, y a una imagen pública 200). El token está guardado en Dokploy (Registries) o en el keyring de
 `deploy`, nunca en el `.env` del compose. Desplegar es fijar el tag en `.env`
 (la variable está en `infra/dtd-cargo/.env.example`) y correr
 `docker compose pull web && docker compose up -d web cron`.
@@ -741,6 +742,7 @@ sea secreto.
 | 20:35-21:00 | Prueba con mantenimiento | Enlace de entrada abierto **directo en Chrome** con un script (pegarlo fallaba: una captura de pantalla pisa el portapapeles). Studio, Portal, archivos de embarques y enlace por correo: PASÓ. **Subir con sesión daba RLS**: faltaban las **44 policies de storage** y **2 disparadores de auth** (`supabase db dump` no los trae); se copiaron de Cloud con huella igual (ahora lo hace el import). La subida en «Prueba de avance» de la bitácora falla también en Cloud (error previo, tarea aparte). |
 | 21:04 | Mantenimiento OFF | Redeploy. El aviso del Portal se apagó con `MAINTENANCE_NOTICE_END` = hora real de fin (21:11). |
 | 21:35-21:51 | Llave de respaldos | La llave age del 12-10 no apareció: se creó otra (`new-age-key.sh`, huella `f4aab8d9…`), `age-recipients.txt` quedó solo con ella, y la prueba de restauración con la llave pegada por Sam dio 5 PASÓ, RTO 34 s. **Regla:** la prueba de restauración con la llave de Sam va el mismo día que se crea la llave, no un mes después. |
+| 2026-10-29 18:16-18:41Z | Llave de respaldos (2.ª pérdida) | La del 14-10 (`f4aab8d9…`) no apareció. Copia de los respaldos viejos a `archivo-llave-2026-10-14/` (115 objetos, 0 diferencias). Dos llaves nuevas generadas en la PC de Sam: `Sam-2026-10-29` (`f0bdbaa9…`, gestor) y `Emergencia-2026-10-29` (`f2b06f66…`, fuera de línea). Respaldos nuevos de DTD y Chatwoot y pruebas el mismo día: DTD 5 PASÓ (RTO 52 s), Chatwoot P5 PASÓ, la llave del gestor descifra los 7 archivos. Detalle: backup-restore-servidor.md, «Registro · 2026-10-29». |
 | 21:15 | Paridad | `ensure_rls` (event trigger de Cloud que activa RLS en tablas nuevas de public) recreado **con `set role postgres`** (supautils rechaza un superusuario disparando una función de un rol que no lo es). Funciones de public/auth/storage, publicación de Realtime y event triggers iguales a Cloud. |
 
  (pg_cron de Cloud en pausa). Lunes 19: `restore-test.sh` con el dump real de la noche (registro en `backup-restore-servidor.md` §8). Se vigila el latido y `supabase.dtdcargo.com` en Kuma.

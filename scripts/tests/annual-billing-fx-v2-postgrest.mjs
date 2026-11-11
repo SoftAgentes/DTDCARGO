@@ -4,7 +4,7 @@
  * Uso: node scripts/tests/annual-billing-fx-v2-postgrest.mjs --evidence C:/tmp/...
  * Requiere Docker activo. No arranca Desktop, no env/productivo ni recursos ajenos.
  * Ejecuta contrato SQL con rollback; fixture HTTP confirmado antes de arrancar
- * PostgREST -> 0498 real/COMMIT -> NOTIFY en caliente -> HTTP posterior.
+ * PostgREST -> 0527 real/COMMIT -> NOTIFY en caliente -> HTTP posterior.
  * auth.uid es adaptador sintético; get_user_tenant_id procede de 0453 REAL.
  * current_studio_role/otras dependencias de catálogo son fixtures declaradas.
  * No demuestra Auth de Supabase ni conexiones/sesiones productivas.
@@ -59,7 +59,7 @@ const save = (name, data) => writeFile(resolve(evidence, name), typeof data === 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 const check = (name, details = {}) => { receipt.checks.push({ name, at: new Date().toISOString(), ...details }); console.log("PASÓ: " + name); };
 const id = (label) => {
-  const hex = createHash("md5").update("0498-synthetic-" + label).digest("hex");
+  const hex = createHash("md5").update("0527-synthetic-" + label).digest("hex");
   return hex.slice(0,8)+"-"+hex.slice(8,12)+"-"+hex.slice(12,16)+"-"+hex.slice(16,20)+"-"+hex.slice(20);
 };
 const token = (actor, role = "authenticated") => {
@@ -96,7 +96,7 @@ async function eventually(operation, predicate, ms = 30000) {
 }
 try {
   receipt.head = (await run("git", ["rev-parse", "HEAD"])).stdout.trim();
-  receipt.migrationSha256 = createHash("sha256").update(await readFile(resolve(root, "supabase/migrations/0498_annual_billing_fx_v2.sql"))).digest("hex");
+  receipt.migrationSha256 = createHash("sha256").update(await readFile(resolve(root, "supabase/migrations/0527_annual_billing_fx_v2.sql"))).digest("hex");
   receipt.dockerVersion = (await docker(["version", "--format", "{{.Server.Version}}"])).stdout.trim();
   await docker(["network", "create", "--label", "dtd.task=0572b", network]); hasNetwork = true;
   await docker(["run", "-d", "--name", pg, "--label", "dtd.task=0572b", "--network", network, "--network-alias", "db", "--mount", "type=bind,source=" + resolve(root, "supabase") + ",target=/sb,readonly", "-e", "POSTGRES_PASSWORD=" + syntheticPassword, imagePg], { timeout: 300000 });
@@ -106,13 +106,13 @@ try {
   receipt.postgresVersion = (await psql("select version();")).stdout.trim();
   assert.match(receipt.postgresVersion, /PostgreSQL 17\./);
   if (!httpOnly) {
-  const sql = await docker(["exec", pg, "psql", "-X", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-f", "/sb/tests/0498_annual_billing_fx_v2.test.sql"]);
+  const sql = await docker(["exec", pg, "psql", "-X", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-f", "/sb/tests/0527_annual_billing_fx_v2.test.sql"]);
   await save("postgres-contract.log", sql.stdout + "\n" + sql.stderr);
-  assert.match(sql.stdout, /TEST 0498 GREEN: \d+ aserciones/);
-  check("contrato SQL real y rollback", { marker: sql.stdout.match(/TEST 0498 GREEN: \d+ aserciones/)[0] });
+  assert.match(sql.stdout, /TEST 0527 GREEN: \d+ aserciones/);
+  check("contrato SQL real y rollback", { marker: sql.stdout.match(/TEST 0527 GREEN: \d+ aserciones/)[0] });
   } else receipt.sqlContract = "NO EJECUTADO en esta corrida --http-only";
 
-  const fixture = await docker(["exec", pg, "psql", "-X", "-v", "ON_ERROR_STOP=1", "-v", "fixture_only=true", "-U", "postgres", "-d", "postgres", "-f", "/sb/tests/0498_annual_billing_fx_v2.test.sql"]);
+  const fixture = await docker(["exec", pg, "psql", "-X", "-v", "ON_ERROR_STOP=1", "-v", "fixture_only=true", "-U", "postgres", "-d", "postgres", "-f", "/sb/tests/0527_annual_billing_fx_v2.test.sql"]);
   await save("http-fixture.log", fixture.stdout + "\n" + fixture.stderr);
   await psql("create role authenticator login noinherit password '" + syntheticPassword + "'; grant anon,authenticated,service_role to authenticator;");
   const asOf = (await psql("select current_date::text;")).stdout.trim();
@@ -137,13 +137,13 @@ try {
   const restStarted = (await docker(["inspect", "--format", "{{.State.StartedAt}}", rest])).stdout.trim();
   receipt.postgrestStartedAtBeforeDdl = restStarted;
   receipt.ddlStartedAt = new Date().toISOString();
-  const ddl = await docker(["exec", pg, "psql", "-X", "-1", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-f", "/sb/migrations/0498_annual_billing_fx_v2.sql"]);
-  await save("http-migration-0498.log", ddl.stdout + "\n" + ddl.stderr);
+  const ddl = await docker(["exec", pg, "psql", "-X", "-1", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-f", "/sb/migrations/0527_annual_billing_fx_v2.sql"]);
+  await save("http-migration-0527.log", ddl.stdout + "\n" + ddl.stderr);
   receipt.ddlCommittedAt = new Date().toISOString();
   const after = await eventually(() => rpc("studio_client_annual_billing_v2", "commercial", { p_as_of: asOf }), (r) => r.status === 200);
   receipt.postgrestStartedAtAfterDdl = (await docker(["inspect", "--format", "{{.State.StartedAt}}", rest])).stdout.trim();
   assert.equal(receipt.postgrestStartedAtAfterDdl, restStarted);
-  check("DDL0498 confirmado y recarga en caliente en el mismo PostgREST");
+  check("DDL0527 confirmado y recarga en caliente en el mismo PostgREST");
   assert.deepEqual(after.data.find((r) => r.client_markbox === "DTD-BASE"), { client_markbox: "DTD-BASE", subtotal_usd: "210.00", sin_tasa_count: 1, conversion_state: "sin_tasa" });
   const portal = await rpc("get_portal_referral_program", "portal");
   const { billing_v2, ...legacy } = portal.data;
@@ -186,7 +186,7 @@ try {
   await psql("delete from public.studio_role_module_overrides;");
   check("HTTP permisos OR y false explícito");
 
-  await psql("insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,fx_rate,base_amount,total_amount,status,issued_at) select md5('0498-http-'||g)::uuid,'" + id("B") + "','http-'||g,'Z-'||lpad(g::text,5,'0'),'Sintético','CNY',case when g=1201 then null else 7 end,g,g,'emitida',current_date from generate_series(1,1201) g;");
+  await psql("insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,fx_rate,base_amount,total_amount,status,issued_at) select md5('0527-http-'||g)::uuid,'" + id("B") + "','http-'||g,'Z-'||lpad(g::text,5,'0'),'Sintético','CNY',case when g=1201 then null else 7 end,g,g,'emitida',current_date from generate_series(1,1201) g;");
   const rows = [], pages = []; let offset = 0;
   for (let page = 0; page < 10; page++) {
     // Como PostgrestTransformBuilder.range del SDK: offset/limit por query,
@@ -205,7 +205,7 @@ try {
   await save("http-pagination.json", { asOf, pages, count: rows.length, last: rows.at(-1) });
   check("HTTP >1000 grupos/cap500 hasta página vacía, último solo sin tasa", { pages });
 
-  await psql("insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,fx_rate,base_amount,total_amount,status,issued_at) values(md5('0498-http-large')::uuid,'" + id("B") + "','http-large','ZZ-LARGE','Sintético','VES',0.00000001,999999999999.99,999999999999.99,'emitida',current_date);");
+  await psql("insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,fx_rate,base_amount,total_amount,status,issued_at) values(md5('0527-http-large')::uuid,'" + id("B") + "','http-large','ZZ-LARGE','Sintético','VES',0.00000001,999999999999.99,999999999999.99,'emitida',current_date);");
   const huge = await fetch(base + "/rpc/studio_client_annual_billing_v2?client_markbox=eq.ZZ-LARGE", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token("other") }, body: JSON.stringify({ p_as_of: asOf }), signal: AbortSignal.timeout(15000) });
   const hugeData = await huge.json(); assert.equal(huge.status,200); assert.equal(hugeData[0].subtotal_usd,"99999999999999000000.00");
   check("HTTP importe grande conserva decimal exacto");

@@ -100,6 +100,31 @@ type Lista = Record<string, string>;
  * analizador reconozca. No se espera que esta lista se vacíe.
  */
 const EXCEPCIONES: Lista = {
+  // SDD-0571 · Las dos LEEN: `moduleViewDenial(supabase, "cn")` va al tope y
+  // domina todo. Lo único que el analizador cuenta como escritura es
+  // `rpc("congelar_tarifa_recepcion")` con `p_dry_run = true`, que NO escribe:
+  // la RPC (migr 0496) devuelve la fila calculada antes de cualquier UPDATE o
+  // INSERT, sin bloquear filas, y su contrato lo afirma («la vista previa no
+  // escribe»). La RPC además repite el candado de rol (admin, operations,
+  // warehouse, support, accounting) y de tenant.
+  "cn/rate-snapshot-actions.ts::loadRateDrawerAction":
+    "SDD-0571: gate de vista `cn` al tope; la única «escritura» es la RPC en p_dry_run, que no escribe (contrato 0496: «la vista previa no escribe») y repite rol y tenant.",
+  "cn/rate-snapshot-actions.ts::previewRateAction":
+    "SDD-0571: gate de vista `cn` al tope; la RPC va con p_dry_run=true (freezeRpcArgs(input, true)), no escribe y repite rol y tenant.",
+
+  // SDD-0606 · Las dos tocan SÓLO la fila propia de `user_profiles`, y sólo la
+  // columna `discord_user_id`. No hay módulo que pedir: es el perfil de cada
+  // quien. El candado es `getStudioAccess` al tope —miembro ACTIVO, falla
+  // cerrado ante `disabled_at`— y el `.eq("user_id", acceso.userId)` sobre la
+  // sesión. Verificado, no supuesto: `usuarios/__tests__/discord-user-id.test.ts`
+  // mide que sin membresía activa no se lee ni se escribe y que el filtro lleva
+  // el usuario de la sesión; el contrato de la migr 0514 mide en PostgreSQL que
+  // un usuario no puede cambiar el ID de otro.
+  "usuarios/actions.ts::getMyDiscordUserIdAction":
+    "SDD-0606: lee el ID de Discord PROPIO. `getStudioAccess` al tope (miembro activo) y `.eq(\"user_id\", acceso.userId)`; medido en `usuarios/__tests__/discord-user-id.test.ts`.",
+  "usuarios/actions.ts::saveMyDiscordUserIdAction":
+    "SDD-0606: guarda o quita el ID de Discord PROPIO. `getStudioAccess` al tope (miembro activo), formato validado antes de tocar la base y `.eq(\"user_id\", acceso.userId)`; medido en `usuarios/__tests__/discord-user-id.test.ts` y en el contrato de la migr 0514.",
+
   "actions.ts::signOut":
     "Cierra la sesión del PROPIO usuario (`supabase.auth.signOut()`); no hay privilegio de módulo que pedir.",
 
@@ -127,6 +152,12 @@ const EXCEPCIONES: Lista = {
     "SDD-0114: cada usuario edita SU PROPIA config de dashboard (fila `user_dashboard_prefs`, RLS por dueño). No muta datos de negocio ni de otros usuarios, y además filtra los ids con `canAccessModule` antes de persistir.",
   "dashboard/actions.ts::resetDashboardConfigAction":
     "SDD-0114: borra la config propia del usuario; ver `saveDashboardConfigAction`.",
+
+  // SDD-0589 (paso 9.3) · Misma razón que el Dashboard: cada usuario guarda el
+  // estado de SU guía. Un gate de módulo no aplica, porque la guía es de todo
+  // Studio y cualquier usuario con acceso la ve.
+  "_actions/guia-actions.ts::guardarEstadoGuiaAction":
+    "SDD-0589: cada usuario guarda el estado de SU guía (fila `user_guide_prefs`, migr 0517). La RLS exige user_id = auth.uid() y un tenant del usuario con disabled_at null, y `validarEstadoGuia` descarta lo que no esté en el catálogo. No muta datos de negocio ni de otros usuarios.",
 
   "bugs/actions.ts::markBugNotificationsReadAction":
     "Marca leídas las notificaciones PROPIAS: el update lleva `.eq(\"user_id\", userResp.user.id)` sobre la sesión, así que el alcance es el propio usuario.",
@@ -243,13 +274,23 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // antes de tocar nada y pasa el veredicto sin entrar en ninguna lista.
   // SDD-0531 sumó `tracking/[id]/datos-reservados-actions.ts` (75 → 76, con
   // prefijo 20 → 21) con una sola acción, `updateShipmentSinUbicacion`.
-  it("la superficie escaneada es la esperada (76 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0571 sumó `cn/rate-snapshot-actions.ts` (76 → 77, con prefijo 21 → 22):
+  // la tarifa congelada por recepción.
+  // SDD-0585 sumó `bandeja/actions.ts` (77 → 78, exactos 55 → 56): la Bandeja
+  // de Chatwoot.
+  // SDD-0587 (paso 6.3) sumó `crm/tarjeta-actions.ts` (78 → 79, con prefijo
+  // 22 → 23): el tablero de los dos embudos y la ficha de la tarjeta.
+  // SDD-0588 sumó `admin/actualizaciones/actions.ts` (79 → 80, exactos 56 → 57):
+  // las versiones de Chatwoot.
+  // SDD-0589 (9.3) sumó `_actions/guia-actions.ts` (80 → 81, con prefijo 23 → 24):
+  // el estado de la guía por usuario.
+  it("la superficie escaneada es la esperada (81 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 76,
-      exactos: 55,
-      conPrefijo: 21,
+      total: 81,
+      exactos: 57,
+      conPrefijo: 24,
     });
   });
 
@@ -285,8 +326,56 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // del cierre y la superclave. Las tres llaman a `tenantAdminGate` antes de
   // tocar nada, como `setClosingDateAction`; la RLS admin-only de 0133
   // (accounting_settings) y las RPC de 0493 (`cierre_es_admin`) repiten el candado.
+  // SDD-0571 sumó las seis de `cn/rate-snapshot-actions.ts` (438 → 444):
+  // `freezeRateAction` y `freezePendingRatesAction` con `moduleEditDenial(…, "cn")`
+  // al tope; `freezeElevatedRateAction` y `previewElevatedRateAction` con
+  // `capabilityDenial(…, "fix_frozen_rate")` al tope (la vía excepcional de
+  // accounting y admin, sin tocar la matriz de `cn`); y `loadRateDrawerAction`
+  // y `previewRateAction`, de lectura con gate de vista, en EXCEPCIONES por la
+  // RPC en p_dry_run. La RPC de la 0496 repite rol y tenant en todas.
+  // SDD-0585 sumó las tres de `bandeja/actions.ts` (444 → 447):
+  // `pedirEnlaceSso` lleva `moduleViewDenial(supabase, "bandeja")` al tope
+  // (lee el vínculo propio y solo escribe la cookie de la marca), y
+  // `vincularAgente` y `desvincularAgente` llaman a `tenantAdminGate` antes de
+  // leer nada; la RLS de 0503 repite el candado de admin del tenant.
+  // SDD-0585 (paso 2.3) sumó `bandeja/actions.ts::reconciliarBandeja` (447 → 448):
+  // `moduleViewDenial(supabase, "bandeja")` al tope; lee el vínculo propio y escribe
+  // solo por la RPC `chatwoot_registrar_evento` (0504, únicamente service_role) en el
+  // tenant de la sesión, con lo que el propio agente ve en Chatwoot.
+  // SDD-0585 (paso 2.4) sumó `bandeja/actions.ts::pedirFichaDtd` (448 → 449):
+  // `moduleViewDenial(supabase, "bandeja")` al tope; lee con el cliente de sesión
+  // y escribe solo por `aplicarConversacion` (la RPC de 0504, únicamente
+  // service_role), igual que `reconciliarBandeja`.
+  // SDD-0585 (paso 2.5) sumó `bandeja/actions.ts::altaAgente` (449 → 450):
+  // `tenantAdminGate` antes de leer nada; lee con service_role el miembro, su
+  // correo y los overrides del MISMO tenant, y escribe el vínculo con el cliente
+  // de sesión (la RLS de 0503 repite el candado de admin).
+  // SDD-0587 (paso 6.3) sumó las seis de `crm/tarjeta-actions.ts` (450 → 456):
+  // `moverTarjetaAction`, `agregarNotaTarjetaAction`, `agregarTareaTarjetaAction`,
+  // `completarTareaTarjetaAction` y `cambiarDuenoTarjetaAction` llaman a
+  // `moduleEditGate(supabase, "kommo")` antes de tocar nada, y
+  // `cargarFichaTarjetaAction` a `moduleViewDenial(supabase, "kommo")`; las seis
+  // exigen además el rol de `crm_puede_usar()` (admin o commercial), que la RLS
+  // y la RPC `crm_mover_etapa` de la 0506 repiten.
+  // SDD-0588 sumó `admin/actualizaciones/actions.ts::revisarVersionesAhora` y
+  // `::pedirActualizacion` (456 → 458): `tenantAdminGate` antes de leer nada; la
+  // revisión la escribe service_role (como el cron) y el pedido el cliente de
+  // sesión (la RLS de 0507 repite admin, tenant y requested_by = auth.uid()).
+  // SDD-0588 (paso 3.4) sumó `::analizarConIa` (458 → 459): `tenantAdminGate`
+  // antes de leer nada; solo analiza el salto que muestra la última revisión del
+  // tenant y el informe lo escribe service_role (la 0509 no da INSERT a authenticated).
+  // SDD-0589 (paso 9.3) sumó `_actions/guia-actions.ts::guardarEstadoGuiaAction`
+  // (459 → 460), en EXCEPCIONES (17 → 18) con la razón del Dashboard: guarda la
+  // fila propia del usuario y la RLS de la 0517 lo repite.
+  // SDD-0606 sumó `usuarios/actions.ts::getMyDiscordUserIdAction` y
+  // `::saveMyDiscordUserIdAction` (460 → 462): perfil propio, miembro activo por
+  // `getStudioAccess`; van en EXCEPCIONES (18 → 20) con su verificación.
+  // SDD-0586 (10.5, PR 1b) sumó `bandeja/actions.ts::destrabarPortal` (462 → 463):
+  // `tenantAdminGate` antes de leer nada; escribe solo por la RPC
+  // `chatwoot_portal_destrabar` (0520) con el cliente de sesión, que repite el admin
+  // del tenant (`is_tenant_admin`) y toma el tenant de la sesión.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(438);
+    expect(reportes.length).toBe(463);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -295,7 +384,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 15, deuda: 24 });
+    }).toEqual({ excepciones: 20, deuda: 24 });
   });
 
   for (const { rel, r } of reportes) {

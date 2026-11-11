@@ -17,9 +17,11 @@
  *    pain point aparecen en el markdown)
  *  - hasNutGraf (proxy: al menos 1 párrafo de 2-4 oraciones en los
  *    primeros 3 párrafos no-heading)
- *  - verifyMarkers (lista de los `[VERIFICAR: ...]` encontrados; bloquean
- *    publish si tienen contenido)
+ *  - verifyMarkers (lista de las marcas `[VERIFICAR` encontradas, en cualquier
+ *    forma; bloquean publish, también la vacía — SDD-0611)
  */
+
+import { listarMarcas } from "./autopublicar/marcas";
 
 export interface ArticleScore {
   wordCount: number;
@@ -102,12 +104,10 @@ export function computeArticleScore(
     return sentences.length >= 2 && sentences.length <= 4;
   });
 
-  // [VERIFICAR: ...] markers
-  const verifyMarkers = Array.from(
-    md.matchAll(/\[VERIFICAR:?\s*([^\]]+)\]/gi),
-  )
-    .map((m) => m[1].trim())
-    .filter((s) => s.length > 0);
+  // [VERIFICAR: ...] markers. SDD-0611: la marca vacía (`[VERIFICAR]`,
+  // `[VERIFICAR: ]`), en minúsculas, sin cerrar o en un enlace también cuenta,
+  // con la misma regla que el servidor (lib/news/autopublicar/marcas.ts).
+  const verifyMarkers = listarMarcas(md);
 
   return {
     wordCount,

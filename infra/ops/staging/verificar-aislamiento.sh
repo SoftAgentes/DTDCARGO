@@ -19,22 +19,22 @@
 #   5. El .env no tiene líneas `X=` vacías ni marcas `<...>`: con "" el `??` de
 #      la app no cae al respaldo (runbook servidor-contabo §3.6, 2026-10-15).
 #   6. La puerta del web (PRUEBA_WEB_USUARIOS) tiene usuarios con bcrypt.
-#   7. La imagen es `ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<40 hex>`.
+#   7. La imagen es `ghcr.io/softagentes/dtdcargo:prueba-sha-<40 hex>`.
 #   8. Vault de prueba sin kommo_cron_key, kommo_token_dtd_v1 ni
 #      functions_base_url, y sin filas en kommo_connections (salvo --sin-base).
 #   9. El bundle de la imagen nombra el host de prueba y no el de producción ni
 #      la ref de Cloud, y lleva la anon de este .env (salvo --sin-bundle): una
 #      imagen construida con otra anon da 401 en el navegador. Google Analytics y
 #      Ads: decide /app/.next/static, que es lo único que llega al navegador. Si
-#      están ahí, sale AVISO, o FALLÓ con --exigir-sin-ga (imagen de la Fase 2,
-#      SDD-0544). Si solo los nombra el código del servidor, sale PASÓ con un
+#      están ahí, FALLÓ (imagen de la Fase 2, SDD-0544); --tolerar-ga lo baja a
+#      AVISO para una imagen anterior a esa fase. Si solo los nombra el código del servidor, sale PASÓ con un
 #      aviso, y se confirma en el HTML con smoke-web.sh --sin-ga.
 #
 # Uso (en el VPS):
 #   verificar-aislamiento.sh --env /srv/dtd-cargo-staging/.env --prod-env /srv/dtd-cargo/.env \
 #       [--project dtd-cargo-staging] [--example /srv/dtd-cargo-staging/.env.example] \
-#       [--image ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha>] \
-#       [--permitir CLAVE]… [--sin-base] [--sin-bundle] [--exigir-sin-ga] [--evidence <archivo>]
+#       [--image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>] \
+#       [--permitir CLAVE]… [--sin-base] [--sin-bundle] [--tolerar-ga] [--evidence <archivo>]
 #
 # Códigos: 0 todo PASÓ (puede haber AVISO) · 1 algo FALLÓ · 2 uso inválido.
 set -uo pipefail
@@ -48,10 +48,10 @@ IMAGE=""
 PERMITIDAS=()
 SIN_BASE=0
 SIN_BUNDLE=0
-EXIGIR_SIN_GA=0
+TOLERAR_GA=0
 EVIDENCE=""
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
-IMAGE_REPO="ghcr.io/hailuwaycom-sketch/dtdcargo"
+IMAGE_REPO="ghcr.io/softagentes/dtdcargo"
 CLOUD_REF="xpfuzqombmjmxvprjgmi"
 
 usage() { sed -n '2,36p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
@@ -68,7 +68,8 @@ while [[ $# -gt 0 ]]; do
     --permitir) [[ "${2-}" =~ ^[A-Z_][A-Z0-9_]*$ ]] || die "--permitir espera un nombre de variable: '${2-}'"; PERMITIDAS+=("$2"); shift 2 ;;
     --sin-base) SIN_BASE=1; shift ;;
     --sin-bundle) SIN_BUNDLE=1; shift ;;
-    --exigir-sin-ga) EXIGIR_SIN_GA=1; shift ;;
+    --tolerar-ga) TOLERAR_GA=1; shift ;;
+    --exigir-sin-ga) shift ;; # alias: exigirlo ya es el comportamiento por defecto
     --evidence) setopt EVIDENCE "${2-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
@@ -187,6 +188,20 @@ INTEGRACIONES_EXTRA=(SMTP_HOST SMTP_USER SMTP_PASS KOMMO_WEBHOOK_SECRET KOMMO_PU
   NEXT_PUBLIC_VAPID_PUBLIC_KEY NEXT_PUBLIC_TELEGRAM_BOT_USERNAME NEXT_PUBLIC_GA_ID NEXT_PUBLIC_HAILUWAY_API
   STORAGE_S3_BUCKET STORAGE_S3_ENDPOINT STORAGE_S3_REGION STORAGE_S3_ACCESS_KEY_ID STORAGE_S3_SECRET_ACCESS_KEY
   BACKUP_HEARTBEAT_URL JWT_KEYS JWT_JWKS ANON_KEY_ASYMMETRIC SERVICE_ROLE_KEY_ASYMMETRIC SUPABASE_PUBLISHABLE_KEY SUPABASE_SECRET_KEY)
+# Chatwoot sí puede tener valor: prueba usa su propia cuenta en el mismo chat (decisión de
+# Sam, 2026-11-03; runbook chatwoot-bandeja). Lo que no puede es la cuenta real ni su número:
+# se exige abajo, y que los tokens no sean los de producción lo cubre el punto 1.
+CHATWOOT_DE_PRUEBA=(CHATWOOT_URL CHATWOOT_PLATFORM_TOKEN CHATWOOT_ACCOUNT_ID CHATWOOT_WEBHOOK_SECRET CHATWOOT_TENANT_ID
+  CHATWOOT_SERVICE_USER_ID CHATWOOT_INBOX_CLIENTES_ID CHATWOOT_INBOX_LEADS_ID CHATWOOT_TEAM_CLIENTES_ID
+  CHATWOOT_TEAM_LEADS_ID CHATWOOT_ROUTER_TOKEN WHATSAPP_NUMERO_CLIENTES)
+if [[ -n "${PV[CHATWOOT_ACCOUNT_ID]-}" ]]; then
+  # Sin el dato en producción vale 1: la cuenta «DTD Cargo», medida en el VPS.
+  if [[ "${PV[CHATWOOT_ACCOUNT_ID]}" == "${PRV[CHATWOOT_ACCOUNT_ID]:-1}" ]]; then ko "CHATWOOT_ACCOUNT_ID es la cuenta real de Chatwoot"
+  else ok "cuenta de Chatwoot propia de prueba"; fi
+fi
+if [[ -n "${PV[WHATSAPP_NUMERO_CLIENTES]-}" && "${PV[WHATSAPP_NUMERO_CLIENTES]}" == "${PRV[WHATSAPP_NUMERO_CLIENTES]-}" ]]; then
+  ko "WHATSAPP_NUMERO_CLIENTES es el número real de clientes"
+fi
 if [[ ! -f "${EXAMPLE}" ]]; then
   ko "no encuentro ${EXAMPLE}: sin el bloque de integraciones no se puede comprobar"
 else
@@ -201,6 +216,7 @@ else
     encendidas=()
     for k in "${bloque[@]}" "${INTEGRACIONES_EXTRA[@]}"; do
       [[ -n "${PV[${k}]-}" ]] || continue
+      [[ " ${CHATWOOT_DE_PRUEBA[*]} " == *" ${k} "* ]] && continue
       permitida=0
       for p in ${PERMITIDAS[@]+"${PERMITIDAS[@]}"}; do [[ "${p}" == "${k}" ]] && permitida=1; done
       (( permitida )) && av "${k} tiene valor y está permitida con --permitir" || encendidas+=("${k}")
@@ -299,8 +315,8 @@ else
     if (( s_ga + s_ads == 0 )); then
       ok "bundle del navegador (.next/static) sin Google Analytics ni Ads"
       (( c_ga + c_ads > 0 )) && av "el servidor (.next fuera de static) nombra GA (${c_ga}) o Ads (${c_ads}): no llega al navegador; confirmar en el HTML con smoke-web.sh --sin-ga"
-    elif (( EXIGIR_SIN_GA )); then ko "bundle del navegador con Google Analytics (${s_ga}) o Ads (${s_ads})"
-    else av "bundle del navegador con Google Analytics (${s_ga}) y Ads (${s_ads}): apagarlos es la Fase 2 de la SDD-0540"; fi
+    elif (( TOLERAR_GA )); then av "bundle del navegador con Google Analytics (${s_ga}) y Ads (${s_ads}): tolerado con --tolerar-ga; la imagen de la Fase 2 (SDD-0544) no los trae"
+    else ko "bundle del navegador con Google Analytics (${s_ga}) o Ads (${s_ads}): la imagen de prueba tiene que construirse con NEXT_PUBLIC_GA_ID=off"; fi
   fi
 fi
 

@@ -142,3 +142,99 @@ describe("regla E · «Gastos hoy» suma amount_usd", () => {
     }
   });
 });
+
+/**
+ * Reparación #310, 2026-10-26: sólo documentos FICTICIOS, sin posting ni DB.
+ * Los oráculos son decimales/enteros literales independientes del helper.
+ */
+describe("sumarEnUsd · agregación exacta y rango de salida", () => {
+  const mensajeRango = "sumarEnUsd: total fuera de rango para conservar centavos";
+  const usd = (amount: string) => Object.freeze({ amount, currency: "USD" });
+  const bloque = Object.freeze(Array.from({ length: 90 }, () => usd("999999999999.00")));
+  const prefijo = Object.freeze([...bloque, usd("70000000000.00")]);
+  const ultimo = usd("1992547499.93");
+  const fueraDeRango = Object.freeze([...prefijo, ultimo]);
+  // 90 × 99_999_999_999_900 + 7_000_000_000_000 + 199_254_749_993.
+  const centavosEsperados = BigInt("9007199254740993");
+  const opuestos = Object.freeze(fueraDeRango.map((item) => usd("-" + item.amount)));
+  const compensados = Object.freeze([...fueraDeRango, ...opuestos, usd("0.01")]);
+  const bordeBase = Object.freeze(Array.from({ length: 70 }, () => usd("999999999999.00")));
+
+  it("conserva 25.35 USD + 700.00 CNY / 7.00 + cero", () => {
+    expect(sumarEnUsd([
+      usd("25.35"),
+      { amount: "700.00", currency: "CNY", rate: "7.00" },
+      usd("0.00"),
+    ])).toEqual({ usd: 125.35, sinConvertir: 0 });
+  });
+
+  it("rechaza el total exacto 2^53 + 1 centavos con RangeError específico", () => {
+    expect(centavosEsperados).toBe(BigInt(2) ** BigInt(53) + BigInt(1));
+    expect(BigInt(90) * BigInt("99999999999900") + BigInt("7000000000000") + BigInt("199254749993"))
+      .toBe(centavosEsperados);
+    expect(() => sumarEnUsd(fueraDeRango)).toThrowError(RangeError);
+    expect(() => sumarEnUsd(fueraDeRango)).toThrowError(mensajeRango);
+  });
+
+  it("cada documento y el prefijo convierten; sólo una falta real de tasa se cuenta", () => {
+    for (const item of fueraDeRango) {
+      expect(sumarEnUsd([item]).sinConvertir).toBe(0);
+    }
+    expect(sumarEnUsd(prefijo)).toEqual({ usd: 90_069_999_999_910, sinConvertir: 0 });
+    expect(sumarEnUsd([ultimo])).toEqual({ usd: 1_992_547_499.93, sinConvertir: 0 });
+    expect(sumarEnUsd([...prefijo, { amount: "7.00", currency: "CNY", rate: null }]))
+      .toEqual({ usd: 90_069_999_999_910, sinConvertir: 1 });
+  });
+
+  it.each([
+    ["orden original", compensados, 0.01],
+    ["orden inverso", [...compensados].reverse(), 0.01],
+    ["signos opuestos", compensados.map((item) => usd(item.amount.startsWith("-") ? item.amount.slice(1) : "-" + item.amount)), -0.01],
+  ] as const)("permite cancelación final exacta: %s", (_nombre, items, esperado) => {
+    expect(sumarEnUsd(items)).toEqual({ usd: esperado, sinConvertir: 0 });
+  });
+
+  it.each([1, -1])("no toma como verdad un USD individual ya redondeado a number, signo %s", (signo) => {
+    const positivo = { amount: signo === 1 ? "1" : "-1", currency: "CNY", rate: "0.000000000000000003" };
+    const negativo = { amount: signo === 1 ? "-0.99999999999999999997" : "0.99999999999999999997", currency: "CNY", rate: "0.000000000000000003" };
+    // Cada cociente se redondea por documento: quedan exactamente ±1 centavo.
+    expect(sumarEnUsd([positivo, negativo])).toEqual({ usd: signo === 1 ? 0.01 : -0.01, sinConvertir: 0 });
+    expect(sumarEnUsd([negativo, positivo])).toEqual({ usd: signo === 1 ? 0.01 : -0.01, sinConvertir: 0 });
+  });
+
+  it.each([
+    ["positivo anterior", "368744177733.99", false, 70_368_744_177_663.99],
+    ["positivo exacto", "368744177734.00", false, 70_368_744_177_664],
+    ["negativo anterior", "368744177733.99", true, -70_368_744_177_663.99],
+    ["negativo exacto", "368744177734.00", true, -70_368_744_177_664],
+  ] as const)("conserva el borde de representación: %s", (_nombre, cola, negativo, esperado) => {
+    const items = [...bordeBase, usd(cola)].map((item) => negativo ? usd("-" + item.amount) : item);
+    expect(sumarEnUsd(items)).toEqual({ usd: esperado, sinConvertir: 0 });
+  });
+
+  it.each([false, true])("rechaza un centavo no representable tras el borde, negativo=%s", (negativo) => {
+    const items = [...bordeBase, usd("368744177734.01")].map((item) => negativo ? usd("-" + item.amount) : item);
+    expect(() => sumarEnUsd(items)).toThrowError(mensajeRango);
+  });
+
+  it("comprueba también dos decimales cuando el texto corto de number oculta pérdida", () => {
+    const items = [...Array.from({ length: 1000 }, () => usd("999999999999.00")), usd("1000.10")];
+    // Total exacto 1000000000000000.10: el double cercano se presenta a 2 decimales como .13.
+    expect(() => sumarEnUsd(items)).toThrowError(mensajeRango);
+  });
+
+  it("no impone MAX_SAFE_INTEGER al acumulador de centavos si la salida sí es exacta", () => {
+    const items = [...Array.from({ length: 100 }, () => usd("999999999999.00")), usd("100.00")];
+    expect(sumarEnUsd(items)).toEqual({ usd: 100_000_000_000_000, sinConvertir: 0 });
+  });
+
+  it("acepta un iterable de una pasada sin mutar documentos, incluso al rechazar el total", () => {
+    const antes = JSON.stringify(compensados);
+    function* unaPasada() { yield* compensados; }
+    expect(sumarEnUsd(unaPasada())).toEqual({ usd: 0.01, sinConvertir: 0 });
+    expect(JSON.stringify(compensados)).toBe(antes);
+    const antesFallo = JSON.stringify(fueraDeRango);
+    expect(() => sumarEnUsd(fueraDeRango)).toThrowError(mensajeRango);
+    expect(JSON.stringify(fueraDeRango)).toBe(antesFallo);
+  });
+});

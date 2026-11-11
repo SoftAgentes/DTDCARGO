@@ -4,12 +4,26 @@ import type { NewsPostRow } from "@/lib/news/types";
 
 export type { NewsPostRow } from "@/lib/news/types";
 
+/**
+ * Columnas de `news_posts` que lee el sitio público (SDD-0611 C1).
+ *
+ * anon tiene SELECT en toda la tabla. Con `select("*")` saldrían `publish_via`,
+ * `seo_draft_id` y `content_sha256` (`publish_via = 'automatica'` declararía la
+ * IA, contra §4.7), `created_by` (uuid de un usuario del Studio) y `tenant_id`.
+ * `source` tampoco: ninguna página lo usa. Catálogo de producción leído por el DG el 2026-11-09 (estructura, sin filas):
+ * 24 columnas. `content_kind`, `cover_image_url`, `cover_alt`, `featured`,
+ * `reviewer_name` y `reviewer_role` NO existen: pedirlas vaciaría /noticias.
+ */
+// Un literal y no un join: supabase-js lee el texto del select para tipar la fila.
+const COLUMNAS_PUBLICAS =
+  "id,slug,tipo,categoria,title,excerpt,body_markdown,author_name,author_role,focus_keyword,secondary_keywords,meta_description,pain_points,date,read_time_min,published,created_at,updated_at";
+
 export async function listPublishedPosts(limit?: number): Promise<NewsPostRow[]> {
   try {
     const supabase = getAnonClient();
     let query = supabase
       .from("news_posts")
-      .select("*")
+      .select(COLUMNAS_PUBLICAS)
       .eq("published", true)
       .order("date", { ascending: false })
       .order("created_at", { ascending: false });
@@ -29,7 +43,7 @@ export async function getPostBySlug(slug: string): Promise<NewsPostRow | null> {
   try {
     const { data, error } = await getAnonClient()
       .from("news_posts")
-      .select("*")
+      .select(COLUMNAS_PUBLICAS)
       .eq("slug", slug)
       .eq("published", true)
       .maybeSingle<NewsPostRow>();
@@ -50,7 +64,7 @@ export async function getRelatedPosts(
     const supabase = getAnonClient();
     const { data: same, error: sameError } = await supabase
       .from("news_posts")
-      .select("*")
+      .select(COLUMNAS_PUBLICAS)
       .eq("published", true)
       .eq("categoria", categoria)
       .neq("slug", currentSlug)
@@ -63,7 +77,7 @@ export async function getRelatedPosts(
 
     const { data: others, error: otherError } = await supabase
       .from("news_posts")
-      .select("*")
+      .select(COLUMNAS_PUBLICAS)
       .eq("published", true)
       .neq("slug", currentSlug)
       .neq("categoria", categoria)

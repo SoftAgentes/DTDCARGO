@@ -8,8 +8,8 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const CONTRACT = resolve(ROOT, "supabase/tests/0500_annual_billing_caracas.test.sql");
-const NAME = "0500_annual_billing_caracas.sql";
+const CONTRACT = resolve(ROOT, "supabase/tests/0534_annual_billing_caracas.test.sql");
+const NAME = "0534_annual_billing_caracas.sql";
 const MIGRATION = readFileSync(resolve(ROOT, "supabase/migrations", NAME), "utf8");
 const SLOW = 240_000;
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -63,7 +63,7 @@ async function contract(options: { apply?: boolean; groups?: Group[]; migration?
   try {
     const results = await db.exec(sql);
     const rows = results.flatMap((r) => r.rows as Record<string, unknown>[]);
-    return { error: null as string | null, rows, green: rows.find((r) => String(r.resultado).startsWith("TEST 0500 GREEN"))?.resultado };
+    return { error: null as string | null, rows, green: rows.find((r) => String(r.resultado).startsWith("TEST 0534 GREEN"))?.resultado };
   } catch (error) { return { error: error instanceof Error ? error.message : String(error), rows: [], green: undefined };
   } finally { await db.close(); }
 }
@@ -79,13 +79,13 @@ function mutate(group: keyof typeof functions, anchor: string, replacement: stri
   expect(original.split(anchor).length - 1, "ancla exacta " + group).toBe(count);
   return MIGRATION.replace(original, () => original.replaceAll(anchor, replacement));
 }
-const temporalFailure = (group: Group) => group === "portal" ? /^TEST 0500: portal legado lower calendario/ : new RegExp("^TEST 0500: " + group + " lower y upper inclusivos");
-const realFailure = (group: Group) => "TEST 0500: fase real " + (group === "portal" ? "Portal conserva futuro" : group === "v1" ? "v1 legada compatible" : "v2 completa compatible");
+const temporalFailure = (group: Group) => group === "portal" ? /^TEST 0534: portal legado lower calendario/ : new RegExp("^TEST 0534: " + group + " lower y upper inclusivos");
+const realFailure = (group: Group) => "TEST 0534: fase real " + (group === "portal" ? "Portal conserva futuro" : group === "v1" ? "v1 legada compatible" : "v2 completa compatible");
 
-describe("0500 · anuales Caracas, DDL real antes de copias de reloj", () => {
+describe("0534 · anuales Caracas, DDL real antes de copias de reloj", () => {
   it("las tres definiciones completas solo difieren en las seis expresiones de día y seis fallbacks", () => {
     for (const group of ["v1", "v2", "portal"] as const) {
-      const file = group === "v1" ? "0411_client_annual_billing_facade.sql" : "0498_annual_billing_fx_v2.sql";
+      const file = group === "v1" ? "0411_client_annual_billing_facade.sql" : "0527_annual_billing_fx_v2.sql";
       const oldSource = readFileSync(resolve(ROOT, "supabase/migrations", file), "utf8").replaceAll("\r\n", "\n").replace("create function public.studio_client_annual_billing_v2", "create or replace function public.studio_client_annual_billing_v2");
       const oldDefinition = oldSource.match(functions[group])?.[0];
       const current = MIGRATION.match(functions[group])?.[0];
@@ -99,7 +99,7 @@ describe("0500 · anuales Caracas, DDL real antes de copias de reloj", () => {
   it("contrato íntegro, catálogo medido, IANA/calendario/DTO/seguridad y restauración", async () => {
     const result = await contract();
     expect(result.error).toBeNull();
-    expect(result.green).toMatch(/^TEST 0500 GREEN: \d+ aserciones$/);
+    expect(result.green).toMatch(/^TEST 0534 GREEN: \d+ aserciones$/);
     const catalog = result.rows.find((r) => r.catalogo_real)?.catalogo_real as {
       fase: string; antes: { proname: string; body_md5: string }[]; despues: { definition: string; body_md5: string }[];
     };
@@ -123,7 +123,7 @@ describe("0500 · anuales Caracas, DDL real antes de copias de reloj", () => {
 
   it.each(["v1", "v2", "portal"] as const)("VERDE independiente %s, sin interferencia de otro consumidor", async (group) => {
     const result = await contract({ groups: [group] });
-    expect(result.error).toBeNull(); expect(result.green).toMatch(/^TEST 0500 GREEN:/);
+    expect(result.error).toBeNull(); expect(result.green).toMatch(/^TEST 0534 GREEN:/);
   }, SLOW);
 
   it.each(["v1", "v2", "portal"] as const)("mata UTC en fallback de %s", async (group) => {
@@ -151,7 +151,7 @@ describe("0500 · anuales Caracas, DDL real antes de copias de reloj", () => {
     const occurrence = field === "v2" ? 0 : 1;
     const changed = parts.map((part, n) => n < 2 ? part + (n === occurrence ? "where true " + expression : "where i.tenant_id = p.tenant_id") : part).join("");
     const result = await contract({ groups: ["portal"], migration: MIGRATION.replace(definition, () => changed) });
-    expect(result.error).toBe(field === "v2" ? "TEST 0500: fase real Portal conserva futuro" : "TEST 0500: fase real Portal legado conserva futuro");
+    expect(result.error).toBe(field === "v2" ? "TEST 0534: fase real Portal conserva futuro" : "TEST 0534: fase real Portal legado conserva futuro");
   }, SLOW);
   it.each(["v1", "v2"] as const)("mata quitar upper de Studio %s", async (group) => {
     const result = await contract({ groups: [group], migration: mutate(group, ") <= p_as_of", ") <= date '9999-12-31'", 1) });
@@ -160,17 +160,17 @@ describe("0500 · anuales Caracas, DDL real antes de copias de reloj", () => {
 
   it.each(["v1", "v2", "portal"] as const)("mata reloj UTC de %s conservando fallback Caracas", async (group) => {
     const result = await contract({ groups: [group], migration: mutate(group, "(pg_catalog.transaction_timestamp() at time zone 'America/Caracas')::date", "(pg_catalog.transaction_timestamp() at time zone 'UTC')::date", 2) });
-    expect(result.error).toMatch(group === "portal" ? temporalFailure(group) : new RegExp("^TEST 0500: " + group + " tolerancia extremo -1"));
+    expect(result.error).toMatch(group === "portal" ? temporalFailure(group) : new RegExp("^TEST 0534: " + group + " tolerancia extremo -1"));
   }, SLOW);
   it.each(["v1", "v2"] as const)("mata retirar validación ±1 de %s", async (group) => {
     const start = "if p_as_of is null\n     or p_as_of < (pg_catalog.transaction_timestamp() at time zone 'America/Caracas')::date - 1\n     or p_as_of > (pg_catalog.transaction_timestamp() at time zone 'America/Caracas')::date + 1 then";
     const removed = "if false\n     or (pg_catalog.transaction_timestamp() at time zone 'America/Caracas')::date is null\n     or (pg_catalog.transaction_timestamp() at time zone 'America/Caracas')::date is null then";
     const result = await contract({ groups: [group], migration: mutate(group, start, removed, 1) });
-    expect(result.error).toMatch(new RegExp("^TEST 0500: " + group + " rechaza ±2"));
+    expect(result.error).toMatch(new RegExp("^TEST 0534: " + group + " rechaza ±2"));
   }, SLOW);
 
   it("preflight falla ante deriva real de fachada previa", async () => {
     const migration = "create or replace function public.get_portal_referral_program() returns jsonb language sql stable security definer set search_path='' as $$select null::jsonb$$;\n" + MIGRATION;
-    expect((await contract({ migration })).error).toBe("0500: fachada previa distinta de base 0411/0498: public.get_portal_referral_program()");
+    expect((await contract({ migration })).error).toBe("0534: fachada previa distinta de base 0411/0527: public.get_portal_referral_program()");
   }, SLOW);
 });

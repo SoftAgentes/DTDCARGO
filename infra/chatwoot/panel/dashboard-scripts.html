@@ -1,0 +1,74 @@
+<!--
+  DTD Cargo · SDD-0585, paso 2.7 (E2-D13) · Cierre de sesión pedido por Studio.
+
+  Va en Chatwoot › Super Admin › Settings › «Dashboard Scripts»
+  (`DASHBOARD_SCRIPTS`). Chatwoot 4.19.1 lo pone al final del <body> de cada
+  página del panel (`vueapp.html.erb`), salvo la de cambiar la clave.
+
+  Qué hace: cuando la persona sale de Studio, Studio abre esta página del chat
+  en un marco oculto (`/studio/cerrar-chat`) y le manda
+  {"evento":"dtd:cerrar-sesion"} por postMessage. El script:
+    1. acepta el mensaje SOLO si viene de Studio y de la ventana que lo enmarca;
+    2. llama al logout de Chatwoot (`DELETE /auth/sign_out`, el mismo del menú)
+       con las credenciales de la cookie `cw_d_session_info`;
+    3. borra las cookies de sesión del panel, como `clearBrowserSessionCookies`;
+    4. le avisa a Studio {"evento":"dtd:sesion-cerrada"}.
+  No lee ni manda nada más. Sin la cookie, solo avisa.
+
+  Desplegarlo es una puerta de integración con OK de Sam. Lo prueba
+  `lib/studio/chatwoot/__tests__/dashboard-scripts.test.ts`, que lee este archivo.
+-->
+<script>
+(function () {
+  var STUDIO = ["https://dtdcargo.com", "https://www.dtdcargo.com"];
+  var COOKIES = ["cw_d_session_info", "auth_data", "user"];
+
+  function leerSesion() {
+    var m = document.cookie.match(/(?:^|;\s*)cw_d_session_info=([^;]*)/);
+    if (!m) return null;
+    try {
+      return JSON.parse(decodeURIComponent(m[1]));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function borrarCookies() {
+    for (var i = 0; i < COOKIES.length; i += 1) {
+      document.cookie = COOKIES[i] + "=; Max-Age=0; path=/";
+    }
+  }
+
+  window.addEventListener("message", function (e) {
+    if (STUDIO.indexOf(e.origin) < 0) return;
+    if (window.parent === window || e.source !== window.parent) return;
+    var datos;
+    try {
+      datos = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+    } catch (x) {
+      return;
+    }
+    if (!datos || datos.evento !== "dtd:cerrar-sesion") return;
+
+    var origen = e.origin;
+    var listo = function () {
+      borrarCookies();
+      window.parent.postMessage(JSON.stringify({ evento: "dtd:sesion-cerrada" }), origen);
+    };
+    var sesion = leerSesion();
+    if (!sesion || !sesion["access-token"]) {
+      listo();
+      return;
+    }
+    fetch("/auth/sign_out", {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: {
+        "access-token": String(sesion["access-token"]),
+        client: String(sesion.client || ""),
+        uid: String(sesion.uid || "")
+      }
+    }).then(listo, listo);
+  });
+})();
+</script>

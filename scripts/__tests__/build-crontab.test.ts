@@ -61,8 +61,10 @@ describe("SDD-0505 · crontab generado desde vercel.json", () => {
     }
   });
 
-  it("conserva los 19 crons y SeaRates semanal, con BCV único cada hora al minuto 5", () => {
-    expect(vercelCrons).toHaveLength(19);
+  // SDD-0585 sumó /api/cron/chatwoot-reintentos (19 → 20): el reintento propio de
+  // los eventos de Chatwoot, cada 5 minutos (Chatwoot 4.19.1 no reintenta webhooks).
+  it("cubre los 22 crons de vercel.json con su mismo horario, más searates-refresh semanal y BCV único cada hora al minuto 5", () => {
+    expect(vercelCrons).toHaveLength(22);
     const jobs = jobLines(committed);
     expect(jobs).toHaveLength(vercelCrons.length + EXTRA_CRONS.length);
 

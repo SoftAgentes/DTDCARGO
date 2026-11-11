@@ -164,6 +164,16 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     }
   });
 
+  it("fix_frozen_rate (SDD-0571): SOLO accounting entre los no-admin, como exige la 0496", () => {
+    expect(CAPABILITIES.fix_frozen_rate).toEqual(["accounting"]);
+    expect(canSpecial("admin", "fix_frozen_rate")).toBe(true);
+    expect(canSpecial("accounting", "fix_frozen_rate")).toBe(true);
+    for (const r of NON_ADMIN.filter((x) => x !== "accounting")) {
+      expect(canSpecial(r, "fix_frozen_rate"), `${r} no debe fijar tarifas excepcionales`).toBe(false);
+    }
+    expect(canSpecial(null, "fix_frozen_rate")).toBe(false);
+  });
+
   it("escucha_activa (SDD-0150): SOLO admin hoy (extensible por rol)", () => {
     expect(canSpecial("admin", "escucha_activa")).toBe(true);
     for (const r of NON_ADMIN) {

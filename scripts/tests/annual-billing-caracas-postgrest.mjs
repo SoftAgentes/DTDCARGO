@@ -4,7 +4,7 @@
  * Uso: node scripts/tests/annual-billing-caracas-postgrest.mjs --evidence C:/tmp/...
  * Requiere Docker activo. No arranca Desktop, no env/productivo ni recursos ajenos.
  * Ejecuta contrato SQL con rollback; fixture HTTP confirmado antes de arrancar
- * Tres RPC existentes -> PostgREST -> 0500 real/COMMIT -> NOTIFY en caliente -> HTTP posterior.
+ * Tres RPC existentes -> PostgREST -> 0534 real/COMMIT -> NOTIFY en caliente -> HTTP posterior.
  * auth.uid es adaptador sintético; get_user_tenant_id procede de 0453 REAL.
  * current_studio_role procede de0200 REAL; otras dependencias son fixtures declaradas.
  * No demuestra Auth de Supabase ni conexiones/sesiones productivas.
@@ -59,7 +59,7 @@ const save = (name, data) => writeFile(resolve(evidence, name), typeof data === 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 const check = (name, details = {}) => { receipt.checks.push({ name, at: new Date().toISOString(), ...details }); console.log("PASÓ: " + name); };
 const id = (label) => {
-  const hex = createHash("md5").update("0498-synthetic-" + label).digest("hex");
+  const hex = createHash("md5").update("0527-synthetic-" + label).digest("hex");
   return hex.slice(0,8)+"-"+hex.slice(8,12)+"-"+hex.slice(12,16)+"-"+hex.slice(16,20)+"-"+hex.slice(20);
 };
 const token = (actor, role = "authenticated") => {
@@ -98,7 +98,7 @@ async function eventually(operation, predicate, ms = 30000) {
 // Recursos propios: hasta 20 min, cada comando <=120s (arranque <=300s),
 // HTTP15s, espera30/60s. PG2CPU/1GiB/128pids; REST1CPU/512MiB/128pids.
 // No lee .env, no conecta cuentas; el SQL de negocio de este fixture es sintético.
-const migrationPath = resolve(root,'supabase/migrations/0500_annual_billing_caracas.sql');
+const migrationPath = resolve(root,'supabase/migrations/0534_annual_billing_caracas.sql');
 const sha = (text) => createHash('sha256').update(text).digest('hex');
 const started = Date.now();
 const ensureBudget = () => assert(Date.now()-started < 20*60*1000,'presupuesto de20min agotado');
@@ -140,8 +140,8 @@ try {
   const originalMigration=await readFile(migrationPath,'utf8');
   receipt.migrationSha256=sha(originalMigration);
   receipt.sourceFiles={};
-  for(const file of ['0411_client_annual_billing_facade.sql','0498_annual_billing_fx_v2.sql','0500_annual_billing_caracas.sql']) receipt.sourceFiles[file]=sha(await readFile(resolve(root,'supabase/migrations',file),'utf8'));
-  for(const file of ['supabase/tests/0500_annual_billing_caracas.test.sql','scripts/tests/annual-billing-caracas-postgrest.mjs']) receipt.sourceFiles[file]=sha(await readFile(resolve(root,file),'utf8'));
+  for(const file of ['0411_client_annual_billing_facade.sql','0527_annual_billing_fx_v2.sql','0534_annual_billing_caracas.sql']) receipt.sourceFiles[file]=sha(await readFile(resolve(root,'supabase/migrations',file),'utf8'));
+  for(const file of ['supabase/tests/0534_annual_billing_caracas.test.sql','scripts/tests/annual-billing-caracas-postgrest.mjs']) receipt.sourceFiles[file]=sha(await readFile(resolve(root,file),'utf8'));
   receipt.dockerVersion=(await docker(['version','--format','{{.Server.Version}}'])).stdout.trim();
   await docker(['network','create','--label','dtd.task=0576c2',network]);hasNetwork=true;
   await docker(['run','-d','--name',pg,'--label','dtd.task=0576c2','--network',network,'--network-alias','db','--cpus','2','--memory','1g','--pids-limit','128','--mount','type=bind,source='+resolve(root,'supabase')+',target=/sb,readonly','-e','POSTGRES_PASSWORD='+syntheticPassword,imagePg],{timeout:300000});created.push(pg);
@@ -149,15 +149,15 @@ try {
   receipt.images.postgres=(await docker(['inspect','--format','{{.Image}}',pg])).stdout.trim();
   receipt.postgresVersion=(await psql('select version();')).stdout.trim();assert.match(receipt.postgresVersion,/PostgreSQL 17\./);
   if(!httpOnly){
-    const result=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/tests/0500_annual_billing_caracas.test.sql']);
+    const result=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/tests/0534_annual_billing_caracas.test.sql']);
     await save('postgres-contract.log',result.stdout+'\n'+result.stderr);
-    assert.match(result.stdout,/TEST 0500 GREEN: \d+ aserciones/);
-    check('PG17 contrato SQL íntegro y rollback',{marker:result.stdout.match(/TEST 0500 GREEN: \d+ aserciones/)[0]});
+    assert.match(result.stdout,/TEST 0534 GREEN: \d+ aserciones/);
+    check('PG17 contrato SQL íntegro y rollback',{marker:result.stdout.match(/TEST 0534 GREEN: \d+ aserciones/)[0]});
   } else receipt.sqlContract='NO EJECUTADO en --http-only';
   ensureBudget();
-  const fixture=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-v','fixture_only=true','-U','postgres','-d','postgres','-f','/sb/tests/0500_annual_billing_caracas.test.sql']);
+  const fixture=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-v','fixture_only=true','-U','postgres','-d','postgres','-f','/sb/tests/0534_annual_billing_caracas.test.sql']);
   await save('http-fixture.log',fixture.stdout+'\n'+fixture.stderr);
-  // 0033, 0404, 0411, 0414, 0498 y dependencias reales anuales ya están cargados.
+  // 0033, 0404, 0411, 0414, 0527 y dependencias reales anuales ya están cargados.
   // Un documento fallback exactamente en el lower UTC cambia solo por fecha.
   const asOf=(await psql("select (transaction_timestamp() at time zone 'America/Caracas')::date::text;")).stdout.trim();
   const oldDay=(await psql('select current_date::text;')).stdout.trim();
@@ -185,8 +185,8 @@ try {
   const reloadLog=async()=>{const r=await docker(['logs',rest]);const text=r.stdout+r.stderr;return {text,messages:(text.match(/Received a schema cache reload message/g)??[]).length,loads:(text.match(/Schema cache loaded in /g)??[]).length};};
   const reloadBefore=await reloadLog();
   receipt.ddlStartedAt=new Date().toISOString();
-  const ddl=await docker(['exec',pg,'psql','-X','-1','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/migrations/0500_annual_billing_caracas.sql']);
-  await save('http-migration-0500.log',ddl.stdout+'\n'+ddl.stderr);receipt.ddlCommittedAt=new Date().toISOString();
+  const ddl=await docker(['exec',pg,'psql','-X','-1','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/migrations/0534_annual_billing_caracas.sql']);
+  await save('http-migration-0534.log',ddl.stdout+'\n'+ddl.stderr);receipt.ddlCommittedAt=new Date().toISOString();
   const reloadAfter=await eventually(reloadLog,r=>r.messages>reloadBefore.messages&&r.loads>reloadBefore.loads);
   receipt.schemaReload={messagesBefore:reloadBefore.messages,messagesAfter:reloadAfter.messages,loadsBefore:reloadBefore.loads,loadsAfter:reloadAfter.loads,observedAt:new Date().toISOString()};
   await save('real-schema-reload.log',reloadAfter.text);
@@ -210,7 +210,7 @@ try {
   for(const name of ['studio_client_annual_billing','studio_client_annual_billing_v2']) assert.deepEqual(after[name].data.find(r=>r.client_markbox==='DTD-INSIDE'),before[name].data.find(r=>r.client_markbox==='DTD-INSIDE'));
   const nonAnnual=row=>omit(row,['billed_usd','billing_v2']);
   assert.deepEqual(nonAnnual(after.get_portal_referral_program.data),nonAnnual(before.get_portal_referral_program.data));
-  check('DDL0500 REAL/COMMIT/recarga mismo proceso; borde fallback cambia17 y Portal según reloj civil, interior/campos/ACL/helpers/RLS/filas intactos');
+  check('DDL0534 REAL/COMMIT/recarga mismo proceso; borde fallback cambia17 y Portal según reloj civil, interior/campos/ACL/helpers/RLS/filas intactos');
   realDefinitions=catalogAfter;
   // SOLO AHORA se permite congelar copias de reloj para bordes reproducibles.
   await psql(`update public.clients set markbox='TIME-HTTP' where id='${id('client-A')}';

@@ -2,7 +2,7 @@
   "name": "dtdcargo-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Sitio web público de DTD Cargo — cliente del ERP HailuWay, totalmente aislado.",
+  "description": "DTD Cargo: sitio web público, Studio ERP, portal de clientes y PWA.",
   "engines": {
     "node": ">=24"
   },
@@ -53,6 +53,7 @@
     "knowledge:status": "node scripts/knowledge-sync.mjs status",
     "knowledge:publish": "node scripts/knowledge-sync.mjs publish",
     "knowledge:check": "node scripts/knowledge-sync.mjs check",
+    "knowledge:daily": "node scripts/knowledge-daily.mjs",
     "knowledge:visual": "node scripts/knowledge-visual.mjs build",
     "knowledge:visual:check": "node scripts/knowledge-visual.mjs check"
   },

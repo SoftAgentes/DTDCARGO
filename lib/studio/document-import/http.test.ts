@@ -172,6 +172,19 @@ describe("Puerta HTTP de importación documental", () => {
     }
   });
 
+  it.each(["https://0.0.0.0:3000", "https://[::]:3000"])("la dirección donde escucha el servidor no abre nada: %s (SDD-0602)", async (escucha) => {
+    // En el contenedor, `req.nextUrl.origin` es esa dirección. Sumarla le daba
+    // las cookies del cliente a un origen que no es el portal.
+    const contenedor = (origin: string) =>
+      documentImportRequest(new NextRequest(`${escucha}/api/document-import?action=capabilities`, { headers: { origin } }));
+
+    expect((await contenedor(SITE)).headers.get("access-control-allow-origin")).toBe(SITE);
+    const denied = await contenedor(escucha);
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ code: "origin_denied" });
+    expect(denied.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
   it("niega toda escritura que llegue sin Origin, antes de tocar la base", async () => {
     const res = await call({ method: "POST", body: JSON.stringify({ action: "save", workspaceId: WORKSPACE_ID }) });
     expect(res.status).toBe(403);

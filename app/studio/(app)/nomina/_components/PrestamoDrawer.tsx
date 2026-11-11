@@ -16,6 +16,7 @@ import type { Employee } from "@/lib/studio/nomina/employee-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createLoanAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "prestamo-form";
 const initial: NominaActionState = {};
@@ -44,7 +45,7 @@ export function PrestamoDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",
