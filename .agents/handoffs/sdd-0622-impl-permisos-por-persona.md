@@ -204,6 +204,16 @@ compartidas del grupo, `sdd-0622-capturas/`:
   - el índice de specs al fusionar.
 - **Graphify, Archify y Obsidian:** NO EJECUTADOS. Los publica el Director desde main integrado (regla de la casa).
 
+## Cruce previsto con SDD-0624 (`claude/endurecer-permisos-dinero`, aviso del Director 2026-11-11)
+
+Quien integre segunda resuelve:
+- `app/studio/(app)/usuarios/page.tsx`: hay que conservar el `await requireModuleView("users")` de la 0624 (su contrato
+  `page-gates-sensibles.test.ts` lo exige) junto con mi carga de extras (`listTenantModuleGrants`).
+- `lib/studio/rbac-actions-guard.test.ts`: la 0624 deja `{ excepciones: 24, deuda: 3 }`, y las 3 de DEUDA son las que
+  saca esta PR. Con las dos ramas juntas: borrar esas 3 entradas y dejar `{ excepciones: 24, deuda: 0 }`; el
+  inventario, 466 más lo que sume la 0624.
+- `lib/studio/rbac-view-guard.test.ts`: esta PR no lo toca.
+
 ## HANDOFF AL DIRECTOR
 
 PR contra main en borrador; depende de la #488. No fusionar sin aplicar las tres migraciones (o sin decidir con Sam
