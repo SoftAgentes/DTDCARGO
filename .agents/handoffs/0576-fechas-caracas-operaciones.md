@@ -546,6 +546,9 @@ Composición con main: ninguna de las cinco funciones que redefine
 El asiento de factura ya no lo inserta JS: la RPC atómica de la 0497 lo fecha con
 `issued_at` persistido, así que el default `fechaCaracas()` de
 `invoice-posting.ts` se retiró al traer main. La 0533 corre después de la 0511
-(RLS de escritura de asientos); su contrato `.test.sql` en el CI es la prueba de
-los asientos bajo esa RLS. La rama `claude/sdd-0576-fechas-caracas-operaciones`
+(RLS de escritura de asientos). Prueba de los asientos bajo esa RLS: NO DISPONIBLE,
+el contrato no monta la 0511 (su fixture carga 0078, 0470 y 0493, no 0511 ni 0497;
+montarla arrastra 0190, 0294 y la cadena de auditoría D2). Las RPC son DEFINER de
+postgres y la tabla no tiene FORCE RLS, así que la 0511 no las alcanza por diseño,
+pero eso no está medido aquí. La rama `claude/sdd-0576-fechas-caracas-operaciones`
 reemplaza a la PR #312.
