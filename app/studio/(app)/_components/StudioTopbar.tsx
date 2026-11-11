@@ -46,6 +46,12 @@ interface StudioTopbarProps {
   conversationsTenantId: string | null;
   /** Conversaciones con mensajes sin leer (badge del topbar · SDD-0148). */
   initialUnreadConversations: { id: string; unread_count: number }[];
+  /**
+   * ¿La persona ve el módulo Conversaciones? (SDD-0622: rol, desvío o acceso
+   * adicional). Sin él no se pinta el indicador: era un atajo a una pantalla
+   * que la iba a rebotar, con un conteo que la RLS (0531) ya no le da.
+   */
+  showConversations?: boolean;
 }
 
 export function StudioTopbar({
@@ -54,6 +60,7 @@ export function StudioTopbar({
   initialNotifications,
   conversationsTenantId,
   initialUnreadConversations,
+  showConversations = true,
 }: StudioTopbarProps) {
   const pathname = usePathname();
   const locale = useLocale();
@@ -200,10 +207,12 @@ export function StudioTopbar({
 
           {/* Conversaciones · badge de mensajes del cliente sin leer (SDD-0148),
               al lado de la campana → siempre visible en cada pantalla. */}
-          <ConversationsIndicator
-            tenantId={conversationsTenantId}
-            initial={initialUnreadConversations}
-          />
+          {showConversations && (
+            <ConversationsIndicator
+              tenantId={conversationsTenantId}
+              initial={initialUnreadConversations}
+            />
+          )}
 
           {/* Notifications · campanita in-app (SDD-0036 Fase 5) */}
           <NotificationBell userId={userId} initial={initialNotifications} />

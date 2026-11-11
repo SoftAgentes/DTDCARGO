@@ -39,6 +39,17 @@ vi.mock("@/lib/db/server", () => ({
     }),
   })),
 }));
+// SDD-0622: el rol (con desvíos y accesos adicionales) sale de getStudioAccess.
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  getStudioAccess: vi.fn(async () => ({
+    role: estado.rol,
+    tenantId: "tenant-prueba",
+    userId: "usuario-prueba",
+    warehouseScope: "all",
+    overrides: {},
+    grants: {},
+  })),
+}));
 vi.mock("@/lib/studio/dashboard/dashboard-prefs-queries", () => ({
   getDashboardConfig: vi.fn(async () => estado.guardada),
 }));

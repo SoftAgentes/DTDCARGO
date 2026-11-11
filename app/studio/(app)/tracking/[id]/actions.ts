@@ -16,7 +16,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   mensajeResultadoEmbarques,
@@ -524,6 +524,12 @@ export async function lookupRateForNewDestination(
   if (!destination?.trim()) return { rate: null };
 
   const supabase = await createClient();
+  // SDD-0622: cambiar el destino es editar el envío, y la tarifa es precio:
+  // pide editar Tracking Y ver el cotizador. La RLS de `rates` (0531) repite
+  // lo segundo; sin esto, quien solo opera envíos recibiría un null mudo.
+  if ((await moduleEditDenial(supabase, "tracking")) || (await moduleViewDenial(supabase, "quotes"))) {
+    return { rate: null };
+  }
   try {
     const rate = await findRateForDestination(supabase, service, destination);
     return { rate };
