@@ -3,14 +3,28 @@
  * navegación con anclas faltantes, colocación de la tarjeta y almacén.
  */
 
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { hasI18nKey, t } from "@/lib/i18n";
 import { guide as guideES } from "@/lib/i18n/es-VE/guide";
 import { guide as guideCN } from "@/lib/i18n/zh-CN/guide";
 import { crearAlmacenLocal, crearAlmacenMemoria } from "../almacen";
-import { contador, pasoAnterior, pasoSiguiente, primerPaso } from "../motor";
+import { anclaEfectiva, contador, pasoAnterior, pasoPresente, pasoSiguiente, primerPaso } from "../motor";
 import { colocarTarjeta, MARGEN, SEPARACION } from "../posicion";
-import { buscarRecorrido, RECORRIDOS, RECORRIDO_DASHBOARD, rutaCoincide } from "../recorridos";
+import { ROLES_ASIGNAR } from "../preferencias";
+import {
+  buscarRecorrido,
+  PASO_QUITAR_ACCESO,
+  RECORRIDOS,
+  RECORRIDO_ACTUALIZACIONES,
+  RECORRIDO_BANDEJA,
+  RECORRIDO_DASHBOARD,
+  RECORRIDO_EMBUDO,
+  consultaCoincide,
+  recorridosParaRol,
+  rutaCoincide,
+  urlConConsulta,
+} from "../recorridos";
 import { esAnclaValida, textoDe, validarRecorrido, type GuiaPaso } from "../tipos";
 
 const pasos: GuiaPaso[] = [
@@ -39,6 +53,20 @@ describe("recorridos como datos", () => {
           expect(t("zh-CN", k)).not.toBe(t("es-VE", k));
         }
       }
+    }
+  });
+
+  it("U1 y U3 llevan, palabra por palabra, los textos que aprobó Sam (2026-11-07 07:02Z)", () => {
+    const huella = (texto: string) => createHash("sha256").update(texto, "utf8").digest("hex").slice(0, 16);
+    expect(huella(guideES["guide.users.grant.what"])).toBe("d5654c7bab073a82");
+    expect(huella(guideES["guide.users.grant.now"])).toBe("ceae585ea7ba8997");
+    expect(huella(guideES["guide.users.revoke.now"])).toBe("c8036fae1eaf9340");
+    expect(validarRecorrido({ id: "u3", ruta: "/studio/usuarios", pasos: [PASO_QUITAR_ACCESO] })).toEqual([]);
+    for (const sufijo of ["title", "what", "before", "now"] as const) {
+      const k = `${PASO_QUITAR_ACCESO.clave}.${sufijo}` as keyof typeof guideES;
+      expect(hasI18nKey(k), k).toBe(true);
+      expect(guideES[k], k).toBeTruthy();
+      expect(guideCN[k], k).not.toBe(guideES[k]);
     }
   });
 
@@ -87,6 +115,44 @@ describe("recorridos como datos", () => {
     expect(rutaCoincide(RECORRIDO_DASHBOARD, "/studio/dashboard-otro")).toBe(false);
     expect(rutaCoincide(RECORRIDO_DASHBOARD, "/studio/bandeja")).toBe(false);
   });
+
+  // P-13: la pestaña es parte de la pantalla del recorrido Embudo.
+  it("consultaCoincide mira cada parámetro de la consulta; sin consulta, siempre coincide", () => {
+    const q = (s: string) => new URLSearchParams(s);
+    expect(RECORRIDO_EMBUDO.consulta).toEqual({ tab: "embudos" });
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("tab=embudos&guia=embudo"))).toBe(true);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("guia=embudo"))).toBe(false);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("tab=direccion"))).toBe(false);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, q("tab=Embudos"))).toBe(false);
+    expect(consultaCoincide(RECORRIDO_EMBUDO, null)).toBe(false);
+    expect(consultaCoincide(RECORRIDO_DASHBOARD, q(""))).toBe(true);
+    expect(consultaCoincide(RECORRIDO_DASHBOARD, null)).toBe(true);
+    const dos = { ...RECORRIDO_EMBUDO, consulta: { tab: "embudos", embudo: "leads" } };
+    expect(consultaCoincide(dos, q("tab=embudos"))).toBe(false);
+    expect(consultaCoincide(dos, q("embudo=leads&tab=embudos"))).toBe(true);
+  });
+
+  it("urlConConsulta pone la pestaña, conserva lo demás y no navega si ya está", () => {
+    const destino = urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", new URLSearchParams("guia=embudo&embudo=clientes"));
+    expect(destino).not.toBeNull();
+    const url = new URL(destino!, "http://studio.test");
+    expect(url.pathname).toBe("/studio/crm");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ guia: "embudo", embudo: "clientes", tab: "embudos" });
+    expect(urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", new URLSearchParams("tab=asesor&q=x"))).toBe(
+      "/studio/crm?tab=embudos&q=x",
+    );
+    expect(urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", null)).toBe("/studio/crm?tab=embudos");
+    expect(urlConConsulta(RECORRIDO_EMBUDO, "/studio/crm", new URLSearchParams("tab=embudos&guia=embudo"))).toBeNull();
+    expect(urlConConsulta(RECORRIDO_DASHBOARD, "/studio/dashboard", new URLSearchParams("guia=dashboard"))).toBeNull();
+  });
+
+  it("validarRecorrido rechaza una consulta vacía, incompleta o que pisa ?guia=", () => {
+    const base = { id: "x", ruta: "/studio/x" as const, pasos: [pasos[0]] };
+    expect(validarRecorrido({ ...base, consulta: { tab: "embudos" } })).toEqual([]);
+    expect(validarRecorrido({ ...base, consulta: {} })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, consulta: { tab: "" } })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, consulta: { guia: "otra" } })).toHaveLength(1);
+  });
 });
 
 describe("navegación con anclas faltantes", () => {
@@ -115,6 +181,87 @@ describe("navegación con anclas faltantes", () => {
     expect(pasoSiguiente(pasos, 99, todo)).toBeNull();
     expect(pasoAnterior(pasos, -5, todo)).toBeNull();
     expect(pasoSiguiente(pasos, -10, todo)).toBe(0);
+  });
+});
+
+describe("9.4 · ancla de respaldo", () => {
+  const conRespaldo: GuiaPaso[] = [
+    { id: "A", ancla: "chat.a", clave: "guide.inbox.reply", respaldo: "bandeja.marco" },
+    { id: "B", ancla: "demo.b", clave: "guide.dashboard.kpis" },
+    { id: "C", ancla: "chat.c", clave: "guide.inbox.note", respaldo: "bandeja.marco" },
+  ];
+
+  it("un paso sigue presente con su respaldo; sin los dos, se salta", () => {
+    expect(pasoPresente(conRespaldo[0], presentes("bandeja.marco"))).toBe(true);
+    expect(pasoPresente(conRespaldo[0], presentes())).toBe(false);
+    expect(primerPaso(conRespaldo, presentes("bandeja.marco"))).toBe(0);
+    expect(pasoSiguiente(conRespaldo, 0, presentes("bandeja.marco"))).toBe(2);
+    expect(contador(conRespaldo, 0, presentes("bandeja.marco"))).toEqual({ n: 1, total: 2 });
+  });
+
+  it("la tarjeta va a su ancla si está; si no, al respaldo", () => {
+    expect(anclaEfectiva(conRespaldo[0], presentes("chat.a", "bandeja.marco"))).toBe("chat.a");
+    expect(anclaEfectiva(conRespaldo[0], presentes("bandeja.marco"))).toBe("bandeja.marco");
+    expect(anclaEfectiva(conRespaldo[0], presentes())).toBeNull();
+    expect(anclaEfectiva(conRespaldo[1], presentes("bandeja.marco"))).toBeNull();
+  });
+
+  it("validarRecorrido revisa el respaldo y las listas de roles", () => {
+    const base = { id: "x", ruta: "/studio/x" as const };
+    expect(validarRecorrido({ ...base, pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply", respaldo: "X" }] })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply", respaldo: "x.a" }] })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply", roles: [] }] })).toHaveLength(1);
+    expect(validarRecorrido({ ...base, roles: [], pasos: [{ id: "A", ancla: "x.a", clave: "guide.inbox.reply" }] })).toHaveLength(1);
+  });
+});
+
+describe("9.5 · recorridos por rol", () => {
+  const ids = (rol: Parameters<typeof recorridosParaRol>[1]) => recorridosParaRol(RECORRIDOS, rol).map((r) => r.id);
+  const pasosDe = (rol: Parameters<typeof recorridosParaRol>[1], id: string) =>
+    recorridosParaRol(RECORRIDOS, rol)
+      .find((r) => r.id === id)
+      ?.pasos.map((p) => p.id);
+
+  it("admin ve todos los recorridos y todos los pasos", () => {
+    expect(ids("admin")).toEqual(RECORRIDOS.map((r) => r.id));
+    expect(pasosDe("admin", "bandeja")).toEqual(RECORRIDO_BANDEJA.pasos.map((p) => p.id));
+  });
+
+  it("B4 (asignar) la ven admin, commercial y support: S-2 cerrada (Sam, 2026-11-07 07:00Z)", () => {
+    expect(pasosDe("commercial", "bandeja")).toEqual(["B1", "B2", "B3", "B4", "B5", "B6", "F1"]);
+    expect(pasosDe("support", "bandeja")).toEqual(["B1", "B2", "B3", "B4", "B5", "B6", "F1"]);
+    expect(pasosDe("admin", "bandeja")).toContain("B4");
+    // Sin el módulo Bandeja no la ve, aunque el recorrido le llegue.
+    expect(pasosDe("accounting", "bandeja")).not.toContain("B4");
+    expect(ROLES_ASIGNAR).toEqual(["admin", "commercial", "support"]);
+  });
+
+  it("U1 (Vínculos) va al final de la Bandeja y solo la ve admin; U3 también es de admin", () => {
+    expect(pasosDe("admin", "bandeja")?.at(-1)).toBe("U1");
+    for (const rol of ["commercial", "support", "accounting"] as const) {
+      expect(pasosDe(rol, "bandeja"), rol).not.toContain("U1");
+    }
+    expect(PASO_QUITAR_ACCESO.roles).toEqual(["admin"]);
+  });
+
+  it("Embudo es de admin y commercial; Actualizaciones, solo de admin", () => {
+    expect(RECORRIDO_EMBUDO.roles).toEqual(["admin", "commercial"]);
+    expect(RECORRIDO_ACTUALIZACIONES.roles).toEqual(["admin"]);
+    expect(ids("commercial")).toEqual(["dashboard", "bandeja", "embudo", "cliente"]);
+    expect(ids("support")).toEqual(["dashboard", "bandeja", "cliente"]);
+    expect(ids("accounting")).toEqual(["dashboard", "bandeja", "cliente"]);
+  });
+
+  it("sin rol, solo lo que no pide ninguno; un recorrido sin pasos para el rol desaparece", () => {
+    expect(ids(null)).toEqual(["dashboard", "bandeja", "cliente"]);
+    const soloAdmin = [{ ...RECORRIDO_DASHBOARD, pasos: RECORRIDO_DASHBOARD.pasos.map((p) => ({ ...p, roles: ["admin" as const] })) }];
+    expect(recorridosParaRol(soloAdmin, "support")).toEqual([]);
+    // Sin filtrar nada, devuelve el mismo objeto.
+    expect(recorridosParaRol([RECORRIDO_DASHBOARD], "support")[0]).toBe(RECORRIDO_DASHBOARD);
+  });
+
+  it("solo el Dashboard arranca solo; los recorridos de 9.5 esperan a la 9.6 (D11)", () => {
+    expect(RECORRIDOS.filter((r) => r.arranqueAutomatico !== false).map((r) => r.id)).toEqual(["dashboard"]);
   });
 });
 

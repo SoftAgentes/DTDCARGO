@@ -67,7 +67,7 @@ async function runForAllTenants(targetTenantId?: string) {
     try {
       const kpis = await fetchCeoBriefKpis(admin, t.id);
       const brief = await generateBriefText(kpis);
-      const sendResult = await sendCeoBriefToTenant(admin, t.id, brief);
+      const sendResult = await sendCeoBriefToTenant(admin, t.id, brief, kpis);
       results.push({
         tenant_id: t.id,
         tenant_slug: t.slug,

@@ -26,6 +26,7 @@ const h = vi.hoisted(() => ({
   subidas: [] as string[],
   avisoCotizacion: vi.fn(),
   avisoMensaje: vi.fn(),
+  pedirEnvio: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -34,6 +35,7 @@ vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => h.db }));
 vi.mock("@/lib/studio/workflow/workflow-rule-engine", () => ({ fireWorkflowEvent: vi.fn() }));
 vi.mock("@/lib/studio/cotizacion-request-notify", () => ({ notifyCotizacionRequestToAdmin: h.avisoCotizacion }));
 vi.mock("@/lib/studio/conversation-inbound-notify", () => ({ notifyConversationInbound: h.avisoMensaje }));
+vi.mock("@/lib/studio/chatwoot/portal", () => ({ pedirEnvioPortal: h.pedirEnvio }));
 
 import { createPrealertaAction, updatePrealertaDetalleAction } from "./(app)/proveedores/actions";
 import { requestCotizacionAction } from "./(app)/cotizaciones/actions";
@@ -194,6 +196,7 @@ beforeEach(() => {
   h.subidas.length = 0;
   h.avisoCotizacion.mockReset();
   h.avisoMensaje.mockReset();
+  h.pedirEnvio.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -540,6 +543,8 @@ describe("mensajes", () => {
     expect(resultado).toEqual({ ok: true });
     expect(rpcDe(double, "portal_post_message")[0].args).toEqual({ p_body: "Hola", p_request_id: INTENTO });
     expect(h.avisoMensaje).toHaveBeenCalledOnce();
+    // SDD-0586 (10.5): pide el envío a Chatwoot de su hilo, sin esperarlo.
+    expect(h.pedirEnvio).toHaveBeenCalledExactlyOnceWith("conv-1");
   });
 
   it("si ya había llegado, lo dice y no avisa otra vez", async () => {
@@ -548,6 +553,16 @@ describe("mensajes", () => {
 
     expect(resultado).toEqual({ ok: true, replayed: true });
     expect(h.avisoMensaje).not.toHaveBeenCalled();
+    // La cola no duplica: pedir otra vez el envío solo manda lo que falte.
+    expect(h.pedirEnvio).toHaveBeenCalledExactlyOnceWith("conv-1");
+  });
+
+  it("SDD-0586 (10.5): si pedir el envío lanzara, el mensaje del cliente igual sale bien", async () => {
+    conRespuesta({ conversation_id: "conv-1", replayed: false });
+    h.pedirEnvio.mockImplementationOnce(() => {
+      throw new Error("caída");
+    });
+    expect(await sendPortalMessageAction({}, form({ body: "Hola", request_id: INTENTO }))).toEqual({ ok: true });
   });
 
   it("sin identificador usa la firma de siempre", async () => {
@@ -584,6 +599,7 @@ describe("mensajes", () => {
     expect(resultado.error).toBeTruthy();
     expect(llamadas).toEqual([{ p_body: "Hola", p_request_id: INTENTO }]);
     expect(h.avisoMensaje).not.toHaveBeenCalled();
+    expect(h.pedirEnvio).not.toHaveBeenCalled();
   });
 });
 

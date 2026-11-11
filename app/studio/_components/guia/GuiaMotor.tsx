@@ -16,21 +16,77 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { hasI18nKey, useT } from "@/lib/i18n";
 import { crearAlmacenLocal, type GuiaAlmacen } from "@/lib/studio/guia/almacen";
-import { contador, pasoAnterior, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
+import { anclaEfectiva, contador, pasoAnterior, pasoPresente, pasoSiguiente, primerPaso } from "@/lib/studio/guia/motor";
 import { colocarTarjeta, type Caja } from "@/lib/studio/guia/posicion";
-import { buscarRecorrido, RECORRIDOS, rutaCoincide } from "@/lib/studio/guia/recorridos";
-import { esAnclaValida, textoDe, type GuiaRecorrido } from "@/lib/studio/guia/tipos";
+import { ARRANQUE_AUTOMATICO, type ModoArranque } from "@/lib/studio/guia/preferencias";
+import {
+  buscarRecorrido,
+  consultaCoincide,
+  RECORRIDOS,
+  rutaCoincide,
+  urlConConsulta,
+} from "@/lib/studio/guia/recorridos";
+import { esAnclaValida, textoDe, type GuiaPaso, type GuiaRecorrido } from "@/lib/studio/guia/tipos";
+import { suscribirUbicadores, ubicarRemota } from "@/lib/studio/guia/ubicadores";
 import { GuiaTarjeta } from "./GuiaTarjeta";
 
 export const EVENTO_GUIA = "dtd:guia";
 
+/**
+ * Quién pidió abrir (9.3):
+ * - `auto`: la primera vez en la pantalla; el primer paso ofrece «No volver a mostrar».
+ * - `boton`: el usuario; si dejó la guía a medias, sigue donde quedó.
+ * - `url`: `?guia=<id>`; siempre desde el primer paso.
+ * - `programa`: `iniciarGuia(id)` sin origen, desde el código; desde el primer paso,
+ *   o desde `desde`, como en 9.2.
+ */
+export type OrigenGuia = "auto" | "boton" | "url" | "programa";
+
+export interface OpcionesGuia {
+  /** Paso donde abrir, si su ancla está; si no, el primero presente. */
+  desde?: string;
+  origen?: OrigenGuia;
+}
+
 /** Pide al motor montado que abra un recorrido de la pantalla actual. */
-export function iniciarGuia(recorridoId: string): void {
+export function iniciarGuia(recorridoId: string, opciones: OpcionesGuia = {}): void {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(EVENTO_GUIA, { detail: { id: recorridoId } }));
+  window.dispatchEvent(
+    new CustomEvent(EVENTO_GUIA, {
+      detail: { id: recorridoId, desde: opciones.desde, origen: opciones.origen ?? "programa" },
+    }),
+  );
+}
+
+/** Pide al motor montado que cierre la guía abierta (el botón «Guía» la alterna). */
+export function cerrarGuia(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(EVENTO_GUIA, { detail: { cerrar: true } }));
+}
+
+// Si hay una guía abierta, para el `aria-pressed` del botón. Un almacén mínimo
+// fuera de React: el motor lo escribe y el botón lo lee.
+let guiaAbierta = false;
+const oyentesAbierta = new Set<() => void>();
+
+function fijarGuiaAbierta(valor: boolean): void {
+  if (guiaAbierta === valor) return;
+  guiaAbierta = valor;
+  for (const avisar of oyentesAbierta) avisar();
+}
+
+export function useGuiaAbierta(): boolean {
+  return useSyncExternalStore(
+    (avisar) => {
+      oyentesAbierta.add(avisar);
+      return () => oyentesAbierta.delete(avisar);
+    },
+    () => guiaAbierta,
+    () => false,
+  );
 }
 
 /** Elemento visible con `data-guia` = ancla, o `null`. Nunca lanza. */
@@ -41,7 +97,26 @@ export function buscarAncla(ancla: string): HTMLElement | null {
   return el;
 }
 
-const existeAncla = (ancla: string) => buscarAncla(ancla) !== null;
+/**
+ * El ancla está en esta página (`data-guia`) o la conoce un ubicador (9.4: el
+ * panel de Chatwoot dentro del marco de la Bandeja), aunque esté fuera de la vista.
+ */
+const existeAncla = (ancla: string) => buscarAncla(ancla) !== null || ubicarRemota(ancla) !== null;
+
+/** Caja visible del ancla en la página, o `null` si no está o está fuera de la vista. */
+function cajaDeAncla(ancla: string): Caja | null {
+  const el = buscarAncla(ancla);
+  if (el) {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, left: r.left, width: r.width, height: r.height };
+  }
+  return ubicarRemota(ancla)?.caja ?? null;
+}
+
+/** Caja del paso: la de su ancla y, si no se ve, la de su respaldo (9.4, D9). */
+function cajaDePaso(paso: GuiaPaso): Caja | null {
+  return cajaDeAncla(paso.ancla) ?? (paso.respaldo !== undefined ? cajaDeAncla(paso.respaldo) : null);
+}
 
 const CONSULTA_MOVIMIENTO = "(prefers-reduced-motion: reduce)";
 
@@ -64,7 +139,18 @@ function usePrefiereMenosMovimiento(): boolean {
 
 /** Reintentos de arranque mientras la pantalla termina de pintar sus anclas. */
 const REINTENTOS = 8;
+/**
+ * Después de cambiar de pestaña (P-13), 10 s: el servidor vuelve a pintar el CRM y
+ * lee el tablero, que llega detrás de su Suspense. Si la URL cambia otra vez antes,
+ * la espera se cancela.
+ */
+const REINTENTOS_TRAS_PESTANA = 40;
 const ESPERA_MS = 250;
+/**
+ * Un cambio de pestaña pedido hace más de 10 s se da por perdido (la navegación se
+ * abortó sin cambiar la URL): la pulsación siguiente lo vuelve a pedir.
+ */
+const VIGENCIA_PEDIDO_MS = REINTENTOS_TRAS_PESTANA * ESPERA_MS;
 /** Tamaño de referencia antes de medir la tarjeta real. */
 const TARJETA_ESTIMADA = { width: 360, height: 240 };
 
@@ -73,6 +159,9 @@ interface Activo {
   indice: number;
   /** Ruta donde se abrió: cambiar de pantalla cierra la guía. */
   ruta: string;
+  origen: OrigenGuia;
+  /** Abrió en un paso guardado: la tarjeta ofrece «Ver la guía desde el principio». */
+  reanudado: boolean;
 }
 
 interface Geometria {
@@ -84,15 +173,27 @@ interface Geometria {
 export function GuiaMotor({
   catalogo = RECORRIDOS,
   almacen,
+  autoArranque = false,
+  modoArranque = ARRANQUE_AUTOMATICO,
 }: {
   catalogo?: readonly GuiaRecorrido[];
   /** 9.3 inyecta aquí el almacén por usuario. */
   almacen?: GuiaAlmacen;
+  /**
+   * Abre sola la primera vez (9.3). Solo con estado de la base: sin él no se sabe si
+   * la persona ya la vio en otro equipo, y la guía no le aparece a nadie de golpe.
+   */
+  autoArranque?: boolean;
+  /** S-6, pendiente de Sam: ver `ARRANQUE_AUTOMATICO`. */
+  modoArranque?: ModoArranque;
 } = {}) {
   const t = useT();
   const pathname = usePathname() ?? "";
   const params = useSearchParams();
   const pedidoUrl = params?.get("guia") ?? null;
+  // La consulta como texto: un valor estable para dependencias y comparaciones (P-13).
+  const consultaUrl = params?.toString() ?? "";
+  const router = useRouter();
   const reducido = usePrefiereMenosMovimiento();
 
   const almacenRef = useRef<GuiaAlmacen | null>(almacen ?? null);
@@ -109,9 +210,10 @@ export function GuiaMotor({
   const enfocarAlAbrir = useRef(false);
 
   // Cambiar de pantalla cierra la guía: sus anclas ya no son de esta ruta.
+  // La pestaña que pide el recorrido cuenta como pantalla (P-13).
   // Se ajusta durante el render (patrón de React para estado derivado de
   // props previas), sin efecto ni render intermedio con la tarjeta vieja.
-  if (activo && activo.ruta !== pathname) {
+  if (activo && (activo.ruta !== pathname || !consultaCoincide(activo.recorrido, params))) {
     setActivo(null);
     setGeo(null);
   }
@@ -131,40 +233,149 @@ export function GuiaMotor({
     },
     [activo, obtenerAlmacen, t],
   );
+  // El oyente del evento vive fuera del render: lee lo último por referencia.
+  const cerrarRef = useRef(cerrar);
+  const activoRef = useRef(activo);
+  // El router y la consulta van por referencia: si fueran dependencias, cada cambio
+  // de la URL volvería a disparar el arranque por `?guia=` y la guía empezaría de nuevo.
+  const routerRef = useRef(router);
+  const consultaRef = useRef(consultaUrl);
+  /**
+   * Pedido que fue a buscar su pantalla (P-13): se abre cuando la URL la tenga.
+   * `consultaDelPedido` es la URL de cuando se pidió: mientras no cambie, el cambio de
+   * pestaña sigue en camino; si cambia a otra sin la pestaña, la persona se fue.
+   * `pedidoEn` sirve para no esperar para siempre un cambio que se perdió.
+   */
+  const pendiente = useRef<{
+    id: string;
+    opciones: OpcionesGuia;
+    consultaDelPedido: string;
+    pedidoEn: number;
+  } | null>(null);
+  /**
+   * La espera con reintentos en curso: hay una sola a la vez (P-13, B2). `restantes`
+   * dice cuántos intentos le quedan, para que una espera nueva del mismo recorrido no
+   * la acorte.
+   */
+  const esperaRef = useRef<{ id: string; restantes: () => number; cancelar: () => void } | null>(null);
+  useLayoutEffect(() => {
+    cerrarRef.current = cerrar;
+    activoRef.current = activo;
+    routerRef.current = router;
+    consultaRef.current = consultaUrl;
+  });
 
-  /** Intenta abrir; devuelve false si el recorrido no aplica o no hay anclas. */
+  // El botón «Guía» lee si hay una guía abierta.
+  useEffect(() => {
+    fijarGuiaAbierta(activo !== null);
+  }, [activo]);
+  useEffect(() => () => fijarGuiaAbierta(false), []);
+
+  /**
+   * Intenta abrir. Devuelve false si el recorrido no aplica o no hay anclas, y true si
+   * abrió o si fue a buscar la pestaña de su pantalla (P-13). Solo cambia la pestaña
+   * con `navegar`: un reintento no devuelve a nadie a una pestaña que acaba de dejar.
+   */
   const intentarAbrir = useCallback(
-    (id: string): boolean => {
+    (id: string, opciones: OpcionesGuia, navegar: boolean): boolean => {
       const recorrido = buscarRecorrido(id, catalogo);
       if (!recorrido || !rutaCoincide(recorrido, pathname)) return false;
-      const indice = primerPaso(recorrido.pasos, existeAncla);
-      if (indice === null) return false;
+      const origen = opciones.origen ?? "programa";
+
+      // P-13: la pantalla pide parámetros que la URL no tiene (la pestaña Embudos). El
+      // arranque automático no cambia la pestaña de nadie. Los demás pedidos la ponen
+      // y abren cuando la URL la tenga, con sus reintentos.
+      const destino = urlConConsulta(recorrido, pathname, new URLSearchParams(consultaRef.current));
+      if (destino !== null) {
+        if (origen === "auto" || !navegar) return false;
+        // El mismo cambio de pestaña ya va en camino: no se pide dos veces. El pedido
+        // nuevo reemplaza las opciones del anterior. Pasada la vigencia, se da por
+        // perdido y se pide otra vez.
+        const enCamino = pendiente.current;
+        if (
+          enCamino &&
+          enCamino.id === id &&
+          enCamino.consultaDelPedido === consultaRef.current &&
+          Date.now() - enCamino.pedidoEn < VIGENCIA_PEDIDO_MS
+        ) {
+          pendiente.current = { ...enCamino, opciones: { ...opciones, origen } };
+          return true;
+        }
+        pendiente.current = {
+          id,
+          opciones: { ...opciones, origen },
+          consultaDelPedido: consultaRef.current,
+          pedidoEn: Date.now(),
+        };
+        routerRef.current.replace(destino, { scroll: false });
+        return true;
+      }
+
+      const primero = primerPaso(recorrido.pasos, existeAncla);
+      if (primero === null) return false;
+      const almacenActual = obtenerAlmacen();
+
+      // El botón sigue donde quedó una guía a medias; la URL y el arranque automático no.
+      let desde = opciones.desde;
+      if (!desde && origen === "boton") {
+        const previo = almacenActual.leer(recorrido.id);
+        if (previo && !previo.terminado && previo.pasoId) desde = previo.pasoId;
+      }
+      let indice = primero;
+      if (desde) {
+        const j = recorrido.pasos.findIndex((p) => p.id === desde);
+        // Como el resto del motor: un paso de Chatwoot cuenta si está su respaldo (9.4).
+        if (j > primero && pasoPresente(recorrido.pasos[j], existeAncla)) indice = j;
+      }
+
+      // La primera vez queda anotada al abrir, antes de pintar: recargar no la repite.
+      if (origen === "auto") almacenActual.guardar(recorrido.id, { vistoEn: new Date().toISOString() });
+
       const enfocado = document.activeElement;
       if (!tarjetaRef.current?.contains(enfocado)) {
         focoPrevio.current = enfocado instanceof HTMLElement ? enfocado : null;
       }
       enfocarAlAbrir.current = true;
-      setActivo({ recorrido, indice, ruta: pathname });
+      setActivo({ recorrido, indice, ruta: pathname, origen, reanudado: indice !== primero });
       return true;
     },
-    [catalogo, pathname],
+    [catalogo, pathname, obtenerAlmacen],
   );
 
-  /** Abre con reintentos cortos: un ancla puede pintarse después del motor. */
+  /**
+   * Abre con reintentos cortos: un ancla puede pintarse después del motor. Solo el
+   * primer intento de cada pedido puede cambiar la pestaña (P-13). Una espera nueva
+   * cancela la anterior: dos esperas vivas abrirían la tarjeta dos veces, y la segunda
+   * la devolvería al primer paso (B2). Si la anterior era del mismo recorrido, la nueva
+   * se queda con los intentos que le faltaban, cuando son más que los suyos: pedir la
+   * guía otra vez mientras carga el tablero no acorta la espera de 10 s.
+   */
   const abrirCuandoHaya = useCallback(
-    (id: string) => {
+    (id: string, opciones: OpcionesGuia, reintentos: number = REINTENTOS) => {
+      const previa = esperaRef.current;
+      const total = previa && previa.id === id ? Math.max(reintentos, previa.restantes()) : reintentos;
+      previa?.cancelar();
       let intentos = 0;
       let timer: ReturnType<typeof setTimeout> | null = null;
+      const soltar = () => {
+        if (esperaRef.current === espera) esperaRef.current = null;
+      };
+      const cancelar = () => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        soltar();
+      };
+      const espera = { id, restantes: () => total - intentos, cancelar };
       const probar = () => {
         timer = null;
-        if (intentarAbrir(id)) return;
+        if (intentarAbrir(id, opciones, intentos === 0)) return soltar();
         intentos += 1;
-        if (intentos < REINTENTOS) timer = setTimeout(probar, ESPERA_MS);
+        if (intentos < total) timer = setTimeout(probar, ESPERA_MS);
+        else soltar();
       };
+      esperaRef.current = espera;
       probar();
-      return () => {
-        if (timer) clearTimeout(timer);
-      };
+      return cancelar;
     },
     [intentarAbrir],
   );
@@ -172,17 +383,92 @@ export function GuiaMotor({
   // Arranque por URL.
   useEffect(() => {
     if (!pedidoUrl) return;
-    return abrirCuandoHaya(pedidoUrl);
+    return abrirCuandoHaya(pedidoUrl, { origen: "url" });
   }, [pedidoUrl, abrirCuandoHaya]);
 
-  // Arranque programático.
+  // Una espera viva se cancela si la URL deja la pestaña de su recorrido, la haya
+  // empezado el efecto del pedido o el evento (la que hereda intentos en B2): quien se
+  // va a otra pestaña no recibe la guía sola al volver (B1). Un cambio dentro de la
+  // misma pestaña, como `?embudo=`, no la cancela.
+  useEffect(() => {
+    const espera = esperaRef.current;
+    if (!espera) return;
+    const recorrido = buscarRecorrido(espera.id, catalogo);
+    if (recorrido && !consultaCoincide(recorrido, new URLSearchParams(consultaUrl))) espera.cancelar();
+  }, [consultaUrl, catalogo]);
+
+  // P-13: el pedido que fue a buscar su pestaña abre cuando la URL ya la tiene. Los
+  // reintentos empiezan aquí, no en el pedido, y esperan más: cambiar de pestaña
+  // también tarda. Si la URL vuelve a cambiar, la limpieza del efecto los cancela.
+  useEffect(() => {
+    const p = pendiente.current;
+    if (!p) return;
+    // Un pedido vencido (el cambio de pestaña se perdió) se borra y no abre la guía:
+    // si la persona llega después a Embudos por su cuenta, no se la encuentra abierta,
+    // y el arranque automático tampoco queda frenado por él.
+    if (Date.now() - p.pedidoEn >= VIGENCIA_PEDIDO_MS) {
+      pendiente.current = null;
+      return;
+    }
+    const recorrido = buscarRecorrido(p.id, catalogo);
+    if (!recorrido || !rutaCoincide(recorrido, pathname)) {
+      pendiente.current = null;
+      return;
+    }
+    if (!consultaCoincide(recorrido, new URLSearchParams(consultaUrl))) {
+      // La URL cambió, pero no a la pestaña pedida: la persona se fue a otra antes de
+      // que llegara. El pedido se olvida y no abre solo cuando ella vuelva (B1).
+      if (consultaUrl !== p.consultaDelPedido) pendiente.current = null;
+      return;
+    }
+    pendiente.current = null;
+    return abrirCuandoHaya(p.id, p.opciones, REINTENTOS_TRAS_PESTANA);
+  }, [consultaUrl, pathname, catalogo, abrirCuandoHaya]);
+
+  // Arranque automático (9.3): la primera vez en la pantalla, si nunca la vio.
+  // Con `por_pantalla` cuenta cada recorrido; con `una_vez`, cualquiera visto basta.
+  // La pantalla incluye su pestaña (P-13): por eso depende de la consulta, y entrar a
+  // la pestaña también cuenta. Fuera de ella, `intentarAbrir` no abre ni navega.
+  useEffect(() => {
+    if (!autoArranque || pedidoUrl) return;
+    const recorrido = catalogo.find((r) => rutaCoincide(r, pathname));
+    // Los recorridos de 9.5 no abren solos hasta la 9.6 (D11).
+    if (!recorrido || recorrido.arranqueAutomatico === false) return;
+    // Un pedido de la persona en curso manda: la espera es una sola y el arranque
+    // automático no la reemplaza (B2).
+    if (esperaRef.current || pendiente.current) return;
+    const almacenActual = obtenerAlmacen();
+    if (almacenActual.leer(recorrido.id)) return;
+    if (modoArranque === "una_vez" && catalogo.some((r) => almacenActual.leer(r.id))) return;
+    return abrirCuandoHaya(recorrido.id, { origen: "auto" });
+  }, [autoArranque, modoArranque, pedidoUrl, pathname, consultaUrl, catalogo, obtenerAlmacen, abrirCuandoHaya]);
+
+  // Arranque y cierre programáticos.
   useEffect(() => {
     let cancelar: (() => void) | null = null;
     const onEvento = (e: Event) => {
-      const id = (e as CustomEvent<{ id?: unknown }>).detail?.id;
+      const detalle = (e as CustomEvent<{ id?: unknown; desde?: unknown; origen?: unknown; cerrar?: unknown }>).detail;
+      if (detalle?.cerrar === true) {
+        cancelar?.();
+        cancelar = null;
+        // También la espera que dejó un cambio de pestaña (B2).
+        esperaRef.current?.cancelar();
+        pendiente.current = null;
+        if (activoRef.current) cerrarRef.current(false);
+        return;
+      }
+      const id = detalle?.id;
       if (typeof id !== "string") return;
+      const origen: OrigenGuia =
+        detalle?.origen === "auto" || detalle?.origen === "url" || detalle?.origen === "boton"
+          ? detalle.origen
+          : "programa";
+      const desde = typeof detalle?.desde === "string" ? detalle.desde : undefined;
       cancelar?.();
-      cancelar = abrirCuandoHaya(id);
+      // Un cambio de pestaña en camino para este mismo recorrido se conserva: así no se
+      // pide dos veces. El de otro recorrido se olvida.
+      if (pendiente.current?.id !== id) pendiente.current = null;
+      cancelar = abrirCuandoHaya(id, { origen, desde });
     };
     window.addEventListener(EVENTO_GUIA, onEvento);
     return () => {
@@ -199,14 +485,28 @@ export function GuiaMotor({
     obtenerAlmacen().guardar(activo.recorrido.id, { pasoId: pasoActual.id, terminado: false });
   }, [activo, pasoActual, obtenerAlmacen]);
 
-  // Llevar el ancla a la vista al cambiar de paso.
+  // Llevar el ancla a la vista al cambiar de paso. Un ancla remota la mueve su
+  // ubicador dentro de su documento; el elemento de Studio que la contiene (el
+  // respaldo, si lo hay) se trae a la vista aquí.
   useEffect(() => {
     if (!pasoActual) return;
-    const el = buscarAncla(pasoActual.ancla);
-    if (!el || typeof el.scrollIntoView !== "function") return;
-    const r = el.getBoundingClientRect();
-    const fuera = r.top < 0 || r.bottom > window.innerHeight || r.left < 0 || r.right > window.innerWidth;
-    if (fuera) el.scrollIntoView({ block: "center", inline: "nearest", behavior: reducido ? "auto" : "smooth" });
+    const traer = (el: HTMLElement | null) => {
+      if (!el || typeof el.scrollIntoView !== "function") return;
+      const r = el.getBoundingClientRect();
+      const fuera = r.top < 0 || r.bottom > window.innerHeight || r.left < 0 || r.right > window.innerWidth;
+      if (fuera) el.scrollIntoView({ block: "center", inline: "nearest", behavior: reducido ? "auto" : "smooth" });
+    };
+    const propia = buscarAncla(pasoActual.ancla);
+    if (propia) {
+      traer(propia);
+      return;
+    }
+    const remota = ubicarRemota(pasoActual.ancla);
+    remota?.ubicador.mostrar?.(pasoActual.ancla, { suave: !reducido });
+    const efectiva = anclaEfectiva(pasoActual, existeAncla);
+    if (pasoActual.respaldo !== undefined && (remota || efectiva === pasoActual.respaldo)) {
+      traer(buscarAncla(pasoActual.respaldo));
+    }
   }, [pasoActual, reducido]);
 
   // Medir y colocar: al abrir, al cambiar de paso, con scroll, resize y
@@ -216,9 +516,7 @@ export function GuiaMotor({
     let raf = 0;
     const medir = () => {
       raf = 0;
-      const el = buscarAncla(pasoActual.ancla);
-      const r = el?.getBoundingClientRect();
-      const ancla: Caja | null = el && r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null;
+      const ancla = cajaDePaso(pasoActual);
       const card = tarjetaRef.current;
       const tam =
         card && card.offsetWidth > 0
@@ -242,11 +540,14 @@ export function GuiaMotor({
       attributes: true,
       attributeFilter: ["data-guia", "hidden", "inert", "aria-hidden"],
     });
+    // Un ubicador avisa cuando llegan cajas nuevas del otro documento (9.4).
+    const bajaUbicadores = suscribirUbicadores(programar);
     return () => {
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("resize", programar);
       window.removeEventListener("scroll", programar, true);
       mo?.disconnect();
+      bajaUbicadores();
     };
   }, [pasoActual]);
 
@@ -269,6 +570,20 @@ export function GuiaMotor({
     if (!activo) return;
     const j = pasoAnterior(activo.recorrido.pasos, activo.indice, existeAncla);
     if (j !== null) setActivo({ ...activo, indice: j });
+  }, [activo]);
+
+  /** «No volver a mostrar»: apaga el arranque automático de esta pantalla, no el botón. */
+  const noMostrar = useCallback(() => {
+    if (!activo) return;
+    obtenerAlmacen().guardar(activo.recorrido.id, { noMostrar: true });
+    cerrar(false);
+  }, [activo, obtenerAlmacen, cerrar]);
+
+  /** «Ver la guía desde el principio». */
+  const desdeElPrincipio = useCallback(() => {
+    if (!activo) return;
+    const primero = primerPaso(activo.recorrido.pasos, existeAncla);
+    if (primero !== null) setActivo({ ...activo, indice: primero, reanudado: false });
   }, [activo]);
 
   const posicion = activo ? contador(activo.recorrido.pasos, activo.indice, existeAncla) : null;
@@ -334,6 +649,10 @@ export function GuiaMotor({
         onSiguiente={siguiente}
         onAnterior={anterior}
         onCerrar={() => cerrar(false)}
+        onNoMostrar={
+          activo.origen === "auto" && activo.indice === primerPaso(pasos, existeAncla) ? noMostrar : undefined
+        }
+        onDesdeElPrincipio={activo.reanudado ? desdeElPrincipio : undefined}
       />
     </>
   );

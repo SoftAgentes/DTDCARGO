@@ -159,6 +159,9 @@
   --sb-collapsed: 64px;
   --topbar-h: 60px;
   --content-max: 1440px;
+  /* SDD-0603: medidas de estilos en línea que siguen a la densidad. */
+  --sb-item-y: 12px;
+  --kpi-fs: 30px;
 
   /* ── Typography ────────────────────────────────────────── */
   /* SISTEMA (Norte): Nunito Sans (cuerpo) + Sora (títulos). El switch de marca
@@ -337,6 +340,87 @@
   --scrim: rgba(0,0,0,0.65);
 }
 
+/* ── Impresión · SDD-0603 ─────────────────────────────────────
+   El Studio abre en oscuro por defecto, y en oscuro la letra es clara: sobre papel
+   blanco no se lee. Al imprimir, cada token que el tema oscuro sobrescribe vuelve a
+   su valor claro. Lo vigila apariencia-predeterminada.test.ts. */
+@media print {
+  [data-theme="dark"] {
+    --wine: #7F0F1A;
+    --wine-soft: #C2747F;
+    --wine-tint: rgba(127,15,26,0.08);
+    --wine-text: #7F0F1A;
+    --on-warning: #0F1E3D;
+    --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.72), rgba(255,255,255,0.44));
+    --glass-border: rgba(255,255,255,0.9);
+    --glass-hi: inset 0 1px 0 rgba(255,255,255,0.9);
+    --glass-ink: #0F1E3D;
+    --glass-shadow: 0 24px 60px rgba(15,30,61,0.16);
+    --glass-key: rgba(255,255,255,0.55);
+    --glass-inset: rgba(255,255,255,0.5);
+    --grad-wine: linear-gradient(135deg,#AE1A28 0%,#7F0F1A 50%,#4A0710 100%);
+    --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#AE1A28 0%,#7F0F1A 40%,#3C060B 100%);
+    --grad-navy: radial-gradient(120% 125% at 18% -20%,#2B4A85 0%,#0F1E3D 48%,#050A16 100%);
+    --grad-page: radial-gradient(90% 70% at 100% 0%,rgba(158,21,34,.09),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
+    --grad-card: linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
+    --bg-base: #FBFAF7;
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #F2F0EC;
+    --bg-sidebar: #0F1E3D;
+    --bg-sidebar-hover: rgba(255,255,255,0.06);
+    --bg-sidebar-active: rgba(194,116,127,0.12);
+    --ink: #0F1E3D;
+    --ink-soft: #6B6B6B;
+    --ink-mute: #9B9B9B;
+    --ink-inv: #FBFAF7;
+    --ink-inv-soft: rgba(255,255,255,0.75);
+    --ink-inv-mute: rgba(255,255,255,0.5);
+    --ink-side: rgba(255,255,255,0.85);
+    --ink-side-soft: rgba(255,255,255,0.55);
+    --border: #E8E6E2;
+    --border-strong: #D8D4CE;
+    --border-side: rgba(255,255,255,0.08);
+    --success: #1F8A5B;
+    --success-bg: rgba(31,138,91,0.10);
+    --warning: #B8893A;
+    --warning-bg: rgba(184,137,58,0.12);
+    --danger: #A8323E;
+    --danger-text: var(--danger);
+    --danger-bg: rgba(168,50,62,0.10);
+    --info: var(--ink);
+    --info-bg: var(--neutral-bg);
+    --neutral: #6B6B6B;
+    --neutral-bg: rgba(107,107,107,0.10);
+    --cat-1: #1F5F6B;
+    --cat-2: #3A4E8C;
+    --cat-3: #5A7A34;
+    --cat-4: #A85A3C;
+    --cat-5: #6B3A5E;
+    --cat-6: #4A6270;
+    --cat-1-bg: rgba(31,95,107,0.10);
+    --cat-2-bg: rgba(58,78,140,0.10);
+    --cat-3-bg: rgba(90,122,52,0.10);
+    --cat-4-bg: rgba(168,90,60,0.10);
+    --cat-5-bg: rgba(107,58,94,0.10);
+    --cat-6-bg: rgba(74,98,112,0.10);
+    --face-top-tint: rgba(255,255,255,0.14);
+    --face-left-tint: rgba(0,0,0,0.20);
+    --shell-wall: rgba(15,30,61,0.06);
+    --shell-floor: rgba(15,30,61,0.04);
+    --shell-corr: rgba(15,30,61,0.07);
+    --cal-cn-soft: rgba(168,50,62,0.07);
+    --cal-cn-critical: rgba(168,50,62,0.22);
+    --cal-ve-soft: rgba(31,138,91,0.08);
+    --cal-weekend: rgba(15,30,61,0.025);
+    --shadow-xs: 0 1px 2px rgba(15,30,61,0.04);
+    --shadow-sm: 0 1px 3px rgba(15,30,61,0.06), 0 1px 2px rgba(15,30,61,0.04);
+    --shadow-md: 0 2px 6px rgba(15,30,61,0.06), 0 8px 16px rgba(15,30,61,0.08);
+    --shadow-lg: 0 4px 12px rgba(15,30,61,0.10), 0 12px 32px rgba(15,30,61,0.12);
+    --shadow-pop: 0 12px 40px rgba(15,30,61,0.18), 0 4px 12px rgba(15,30,61,0.08);
+    --scrim: rgba(15,30,61,0.55);
+  }
+}
+
 /* ── Density modifiers ────────────────────────────────────── */
 [data-density="compact"] {
   --s-3: 8px;
@@ -345,6 +429,8 @@
   --s-6: 18px;
   --s-8: 24px;
   --topbar-h: 52px;
+  --sb-item-y: 8px;
+  --kpi-fs: 24px;
 }
 [data-density="spacious"] {
   --s-3: 16px;

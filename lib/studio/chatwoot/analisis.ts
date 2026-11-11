@@ -19,7 +19,7 @@
  * informe determinista que solo compara qué archivos cambian. Nada aquí despliega.
  */
 
-export type PiezaId = "candado_register" | "redaccion_logs" | "revocar_sesiones" | "integracion_studio" | "marca";
+export type PiezaId = "candado_register" | "redaccion_logs" | "revocar_sesiones" | "integracion_studio" | "marca" | "correo";
 export type Riesgo = "bajo" | "medio" | "alto";
 export type Recomendacion = "seguro" | "revisar" | "no_actualizar";
 export type MotivoRespaldo = "motor_apagado" | "motor_no_responde" | "motor_formato" | "diff_no_responde" | "diff_formato";
@@ -84,6 +84,25 @@ export const PIEZAS: readonly Pieza[] = [
     nombre: "Marca de DTD",
     descripcion: "aplicar-marca.rb: logos e ícono de DTD en InstallationConfig. Solo cosmético.",
     depende: ["app/models/installation_config.rb", "config/installation_config.yml"],
+  },
+  {
+    // SDD-0583: montada en el VPS desde el 2026-10-30 y en `main` desde la #373. Sin
+    // esta pieza, el informe no avisaba si una versión cambia los correos.
+    id: "correo",
+    nombre: "Correos de DTD (SDD-0583)",
+    descripcion:
+      "rails/zz_dtd_correo.rb y correo/views: antepone las plantillas de DTD a las de Chatwoot (ApplicationMailer.prepend_view_path, que también le gana a EmailTemplate.resolver) y pone los asuntos en español con un prepend sobre ApplicationMailer#mail, del que hereda Devise por parent_mailer. Si deja de cargar, vuelven los correos de Chatwoot en inglés y los avisos a agentes copian otra vez el nombre del contacto y el texto de los mensajes.",
+    depende: [
+      "app/mailers/",
+      "app/views/mailers/administrator_notifications/",
+      "app/views/mailers/agent_notifications/",
+      "app/views/mailers/email_delivery_test_mailer/",
+      "app/views/devise/mailer/",
+      "app/views/layouts/mailer/",
+      "app/models/email_template.rb",
+      "config/initializers/devise.rb",
+      "Gemfile.lock",
+    ],
   },
 ];
 

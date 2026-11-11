@@ -1,0 +1,546 @@
+# frozen_string_literal: true
+
+# infra/ops/kommo-historial/cargar-archivo-kommo.rb — SDD-0590 paso 5.5: carga el historial de Kommo en la
+# bandeja «Archivo Kommo» de Chatwoot SIN EFECTOS. Corre con `rails runner` dentro del contenedor de Chatwoot.
+# El archivo de carga entra por la entrada estándar, para que los datos no se copien al disco del contenedor:
+#
+#   MODO=crear-bandeja CUENTA=1 NOMBRE='Archivo Kommo' bundle exec rails runner cargar-archivo-kommo.rb
+#   MODO=seco|cargar   CUENTA=1 BANDEJA=<id> CARGA=-  bundle exec rails runner cargar-archivo-kommo.rb < carga.ndjson
+#   MODO=adjuntos[-seco] CUENTA=1 BANDEJA=<id> CARGA=- bundle exec rails runner cargar-archivo-kommo.rb < flujo
+#     (5.5b: el flujo lo da `respaldar-historial.py flujo-adjuntos`, una línea JSON con base64 por adjunto)
+#   MODO=miembros[-seco] CUENTA=1 BANDEJA=<id>         bundle exec rails runner cargar-archivo-kommo.rb
+#     (Sam, 2026-11-06: «todo el equipo»: todos los usuarios de la cuenta, con Inbox#add_members, como el panel)
+#
+# Sin efectos quiere decir:
+#   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
+#     SendReplyJob, ni eventos de reportes. Nada sale a un cliente ni a Studio;
+#   · la bandeja tiene que ser de canal API y sin `webhook_url`; si no, no carga nada;
+#   · no toca conversaciones ni mensajes que ya existían: salta lo cargado por `source_id` (`kommo:<id>`)
+#     y por `kommo_talk_id`, así que correrlo dos veces no duplica nada;
+#   · reusa el contacto que ya existe en la cuenta con el mismo teléfono o correo, para no duplicar personas;
+#   · MODO=seco no escribe nada, ni siquiera consume la secuencia de números de conversación: solo cuenta.
+#
+# Salida: líneas `HECHO clave=valor` con conteos. Nunca nombres, teléfonos, correos ni textos.
+# Sin `--adjuntos-para-carga` en la extracción, los adjuntos quedan pendientes (SDD-0590 §10.6). Con ella, MODO=adjuntos
+# los sube a ActiveStorage sin analizar ni generar variantes y los liga a su mensaje con `insert_all` (§10.12).
+
+require 'json'
+require 'set'
+
+class CargaArchivoKommo
+  LOTE = 200
+  SIN_CONTACTO = 'kommo:sin-contacto'
+  ENTRANTE = 0 # Message.message_types[:incoming]
+  SALIENTE = 1 # Message.message_types[:outgoing]
+
+  # Punto de entrada: el script lo llama con ENV, $stdin y $stdout; la prueba de mutantes, con un Hash y archivos.
+  # Devuelve el código de salida.
+  def self.principal(env, entrada: $stdin, salida: $stdout)
+    # Correos que este proceso entregue (ActionMailer avisa cada entrega). Tiene que dar 0.
+    correos = 0
+    suscripcion = ActiveSupport::Notifications.subscribe('deliver.action_mailer') { correos += 1 }
+    begin
+      modo = env.fetch('MODO')
+      cargador = new(cuenta_id: env.fetch('CUENTA'), bandeja_id: env['BANDEJA'].presence, modo: modo,
+                     entrada: entrada, salida: salida)
+      if modo == 'crear-bandeja'
+        cargador.crear_bandeja(env.fetch('NOMBRE', 'Archivo Kommo'))
+      elsif %w[adjuntos adjuntos-seco].include?(modo)
+        cargador.cargar_adjuntos(env.fetch('CARGA'))
+      elsif %w[miembros miembros-seco].include?(modo)
+        cargador.agregar_miembros
+      else
+        cargador.cargar(env.fetch('CARGA'))
+      end
+      0
+    rescue StandardError => e
+      # Solo los mensajes propios; de los demás, la clase: los errores de la base pueden traer valores de la fila.
+      salida.puts 'HECHO carga=error'
+      salida.puts "HECHO error=#{e.instance_of?(RuntimeError) ? e.message : e.class.name}"
+      1
+    ensure
+      salida.puts "HECHO correos_enviados=#{correos}"
+      # El pico de memoria de este proceso (VmHWM), en todos los modos. En producción corre dentro de
+      # chatwoot-rails-1, en el mismo cgroup que el panel: es la medida de la puerta de memoria (SDD-0590 §10.15).
+      salida.puts "HECHO rss_pico_kb=#{rss_pico_kb}"
+      ActiveSupport::Notifications.unsubscribe(suscripcion)
+    end
+  end
+
+  def self.rss_pico_kb
+    File.read('/proc/self/status')[/^VmHWM:\s+(\d+)/, 1] || 'desconocido'
+  rescue StandardError
+    'desconocido'
+  end
+
+  def initialize(cuenta_id:, bandeja_id: nil, modo: 'seco', entrada: $stdin, salida: $stdout)
+    @cuenta_id = Integer(cuenta_id)
+    @bandeja_id = bandeja_id && Integer(bandeja_id)
+    @modo = modo
+    @entrada = entrada
+    @salida = salida
+    @cuenta = Hash.new(0)
+    @falso = 0
+    @contacto_de_conv = {}
+  end
+
+  def hecho(clave, valor)
+    @salida.puts "HECHO #{clave}=#{valor}"
+  end
+
+  def seco?
+    @modo == 'seco'
+  end
+
+  # Ids negativos para el modo seco: nunca chocan con uno real.
+  def falso
+    @falso -= 1
+  end
+
+  # Trabajos esperando en Sidekiq. En la prueba local no hay Sidekiq corriendo y el número es exacto; en el
+  # servidor, con Sidekiq vivo, solo orienta.
+  def trabajos_en_cola
+    require 'sidekiq/api'
+    Sidekiq::Queue.all.sum(&:size) + Sidekiq::ScheduledSet.new.size + Sidekiq::RetrySet.new.size
+  rescue StandardError
+    -1
+  end
+
+  # Trabajos esperando en Sidekiq, por clase y evento: `ActionCableBroadcastJob(account.cache_invalidated)`.
+  # De los argumentos solo se toma el nombre de evento de Chatwoot (palabras en minúscula separadas por
+  # puntos). Nada más: los argumentos llevan tokens de los agentes y datos de la cuenta.
+  EVENTO = /\A[a-z_]+(\.[a-z_]+)+\z/
+
+  def trabajos_por_clase
+    require 'sidekiq/api'
+    cuenta = Hash.new(0)
+    [*Sidekiq::Queue.all, Sidekiq::ScheduledSet.new, Sidekiq::RetrySet.new].each do |cola|
+      cola.each do |trabajo|
+        evento = Array(trabajo.display_args).find { |a| a.is_a?(String) && a.match?(EVENTO) }
+        cuenta[evento ? "#{trabajo.display_class}(#{evento})" : trabajo.display_class] += 1
+      end
+    end
+    cuenta
+  rescue StandardError
+    nil
+  end
+
+  def self.formato_trabajos(mapa)
+    return 'desconocido' unless mapa
+
+    lista = mapa.select { |_, n| n.positive? }.map { |clase, n| "#{clase}:#{n}" }.sort
+    lista.empty? ? 'ninguno' : lista.join(',')
+  end
+
+  def trabajos_nuevos(antes, despues)
+    return 'desconocido' unless antes && despues
+
+    nuevos = despues.filter_map { |clase, n| "#{clase}:#{n - antes[clase]}" if n > antes[clase] }.sort
+    nuevos.empty? ? 'ninguno' : nuevos.join(',')
+  end
+
+  def secuencia
+    ActiveRecord::Base.connection.select_value("SELECT last_value FROM conv_dpid_seq_#{@cuenta_id}").to_i
+  end
+
+  def leer(ruta)
+    personas = []
+    conversaciones = []
+    mensajes = []
+    fuente = ruta == '-' ? @entrada : File.open(ruta, encoding: 'UTF-8')
+    fuente.each_line do |linea|
+      next if linea.strip.empty?
+
+      fila = JSON.parse(linea)
+      case fila['tipo']
+      when 'persona' then personas << fila
+      when 'conversacion' then conversaciones << fila
+      when 'mensaje' then mensajes << fila
+      end
+    end
+    [personas, conversaciones, mensajes]
+  ensure
+    fuente.close if fuente.is_a?(File)
+  end
+
+  def comprobar_bandeja!
+    bandeja = Inbox.find_by(id: @bandeja_id, account_id: @cuenta_id)
+    raise 'la bandeja no existe en esa cuenta' unless bandeja
+    raise 'la bandeja no es de canal API' unless bandeja.channel_type == 'Channel::Api'
+    raise 'la bandeja tiene webhook_url: no se carga' if bandeja.channel.webhook_url.present?
+
+    bandeja
+  end
+
+  def instante(segundos)
+    segundos ? Time.zone.at(segundos.to_i) : Time.zone.now
+  end
+
+  # Personas: reusa por teléfono, por correo o por una carga anterior; si no, crea. { grupo => contact_id }.
+  def cargar_personas(personas)
+    ahora = Time.zone.now
+    por_grupo = {}
+    nuevas = []
+    personas.each do |p|
+      telefono = p['telefono'].presence
+      correo = p['correo'].presence&.downcase
+      existente = nil
+      existente = Contact.where(account_id: @cuenta_id, phone_number: telefono).order(:id).pick(:id) if telefono
+      existente ||= Contact.where(account_id: @cuenta_id).where('LOWER(email) = ?', correo).order(:id).pick(:id) if correo
+      existente ||= Contact.where(account_id: @cuenta_id, identifier: "kommo:#{p['grupo']}").pick(:id)
+      if existente
+        por_grupo[p['grupo']] = existente
+        @cuenta[:personas_reusadas] += 1
+      else
+        nuevas << { account_id: @cuenta_id, name: p['nombre'].presence || 'Contacto de Kommo',
+                    phone_number: telefono, email: correo, identifier: "kommo:#{p['grupo']}",
+                    additional_attributes: { 'kommo_contact_ids' => p['kommo_contact_ids'], 'client_id' => p['client_id'] }.compact,
+                    created_at: ahora, updated_at: ahora }
+      end
+    end
+    nuevas.each_slice(LOTE) do |lote|
+      filas = if seco?
+                lote.map { |f| { 'id' => falso, 'identifier' => f[:identifier] } }
+              else
+                Contact.insert_all(lote, returning: %w[id identifier]).to_a
+              end
+      filas.each { |f| por_grupo[f['identifier'].delete_prefix('kommo:').to_i] = f['id'].to_i }
+      @cuenta[:personas_nuevas] += filas.size
+      @cuenta[:personas_omitidas] += lote.size - filas.size
+    end
+    por_grupo
+  end
+
+  def contacto_sin_contacto
+    id = Contact.where(account_id: @cuenta_id, identifier: SIN_CONTACTO).pick(:id)
+    return id if id
+
+    @cuenta[:personas_nuevas] += 1
+    return falso if seco?
+
+    ahora = Time.zone.now
+    Contact.insert_all([{ account_id: @cuenta_id, name: 'Sin contacto en Kommo', identifier: SIN_CONTACTO,
+                          created_at: ahora, updated_at: ahora }], returning: %w[id]).first['id'].to_i
+  end
+
+  # Un contact_inbox por contacto en la bandeja Archivo. { contact_id => contact_inbox_id }.
+  def cargar_contact_inboxes(contact_ids)
+    reales = contact_ids.select(&:positive?)
+    existentes = ContactInbox.where(inbox_id: @bandeja_id, contact_id: reales).pluck(:contact_id, :id).to_h
+    faltan = contact_ids.uniq - existentes.keys
+    ahora = Time.zone.now
+    faltan.each_slice(LOTE) do |lote|
+      filas = lote.map { |cid| { contact_id: cid, inbox_id: @bandeja_id, source_id: "kommo:#{cid}", created_at: ahora, updated_at: ahora } }
+      creadas = if seco?
+                  filas.map { |f| { 'id' => falso, 'contact_id' => f[:contact_id] } }
+                else
+                  ContactInbox.insert_all(filas, returning: %w[id contact_id]).to_a
+                end
+      creadas.each { |f| existentes[f['contact_id'].to_i] = f['id'].to_i }
+      @cuenta[:contact_inboxes_nuevos] += creadas.size
+      @cuenta[:contact_inboxes_omitidos] += filas.size - creadas.size
+    end
+    existentes
+  end
+
+  # Conversaciones cerradas, una por conversación de Kommo, en orden de creación para que los números
+  # sigan el tiempo. { kommo_talk_id => conversation_id }.
+  def cargar_conversaciones(conversaciones, contacto_de, ci_de, sin_contacto)
+    ya = {}
+    Conversation.where(inbox_id: @bandeja_id).where("additional_attributes ? 'kommo_talk_id'")
+                .pluck(Arel.sql("(additional_attributes->>'kommo_talk_id')::bigint"), :id, :contact_id)
+                .each do |tid, id, cid|
+      ya[tid.to_i] = id
+      @contacto_de_conv[id] = cid
+    end
+    ahora = Time.zone.now
+    nuevas = []
+    conversaciones.sort_by { |c| [c['creada'].to_i, c['kommo_talk_id'].to_i] }.each do |c|
+      tid = Integer(c['kommo_talk_id'])
+      if ya.key?(tid)
+        @cuenta[:conversaciones_existentes] += 1
+        next
+      end
+      contacto = c['grupo'] ? contacto_de[c['grupo']] : nil
+      if contacto.nil?
+        contacto = sin_contacto
+        @cuenta[:conversaciones_sin_contacto] += 1
+      end
+      ultima = instante(c['actualizada'] || c['creada'])
+      # agent_last_seen_at = ahora: sin eso, cada entrante viejo cuenta como no leído en la bandeja.
+      nuevas << { account_id: @cuenta_id, inbox_id: @bandeja_id, contact_id: contacto, contact_inbox_id: ci_de[contacto],
+                  status: Conversation.statuses[:resolved], created_at: instante(c['creada']), updated_at: ultima,
+                  last_activity_at: ultima, agent_last_seen_at: ahora,
+                  additional_attributes: { 'kommo_talk_id' => tid, 'kommo_origen' => c['origen'] }.compact }
+    end
+    nuevas.each_slice(LOTE) do |lote|
+      contacto_por_tid = lote.to_h { |f| [f[:additional_attributes]['kommo_talk_id'], f[:contact_id]] }
+      filas = if seco?
+                lote.map { |f| { 'id' => falso, 'tid' => f[:additional_attributes]['kommo_talk_id'] } }
+              else
+                Conversation.insert_all(lote, returning: Arel.sql("id, (additional_attributes->>'kommo_talk_id')::bigint AS tid")).to_a
+              end
+      filas.each do |f|
+        tid = f['tid'].to_i
+        ya[tid] = f['id'].to_i
+        @contacto_de_conv[ya[tid]] = contacto_por_tid[tid]
+      end
+      @cuenta[:conversaciones_nuevas] += filas.size
+      @cuenta[:conversaciones_omitidas] += lote.size - filas.size
+    end
+    ya
+  end
+
+  def cargar_mensajes(mensajes, conv_de)
+    ya = Set.new
+    mensajes.map { |m| m['source_id'] }.each_slice(5_000) do |lote|
+      ya.merge(Message.where(inbox_id: @bandeja_id, source_id: lote).pluck(:source_id))
+    end
+    procesado = Message.column_names.include?('processed_message_content')
+    filas = []
+    orden = mensajes.sort_by { |m| [m['kommo_talk_id'].to_i, m['creado'].to_i, m['source_id'].to_s] }
+    orden.each do |m|
+      if ya.include?(m['source_id'])
+        @cuenta[:mensajes_existentes] += 1
+        next
+      end
+      conv = conv_de[m['kommo_talk_id'].to_i]
+      unless conv
+        @cuenta[:mensajes_sin_conversacion] += 1
+        next
+      end
+      ya << m['source_id']
+      entrante = m['entrante'] == true
+      cuando = instante(m['creado'])
+      @cuenta[:adjuntos_pendientes] += 1 if m['adjunto'].present?
+      @cuenta[:mensajes_sin_texto] += 1 if m['texto'].blank?
+      fila = { account_id: @cuenta_id, inbox_id: @bandeja_id, conversation_id: conv,
+               message_type: entrante ? ENTRANTE : SALIENTE, content: m['texto'], private: false,
+               status: Message.statuses[:delivered], source_id: m['source_id'],
+               sender_type: entrante ? 'Contact' : nil, sender_id: entrante ? @contacto_de_conv[conv] : nil,
+               content_attributes: entrante ? {} : { 'kommo_autor' => m['autor'] },
+               created_at: cuando, updated_at: cuando }
+      fila[:processed_message_content] = m['texto']&.truncate(150_000) if procesado
+      filas << fila
+    end
+    filas.each_slice(LOTE) do |lote|
+      n = seco? ? lote.size : Message.insert_all(lote, returning: %w[id]).length
+      @cuenta[:mensajes_nuevos] += n
+      @cuenta[:mensajes_omitidos] += lote.size - n
+    end
+  end
+
+  def filas_en_bandeja
+    "conversaciones:#{Conversation.where(inbox_id: @bandeja_id).count}," \
+      "mensajes:#{Message.where(inbox_id: @bandeja_id).count}," \
+      "contact_inboxes:#{ContactInbox.where(inbox_id: @bandeja_id).count}"
+  end
+
+  def cargar(ruta)
+    raise 'MODO tiene que ser seco o cargar' unless %w[seco cargar].include?(@modo)
+
+    comprobar_bandeja!
+    personas, conversaciones, mensajes = leer(ruta)
+    hecho('leidas', "personas:#{personas.size},conversaciones:#{conversaciones.size},mensajes:#{mensajes.size}")
+    hecho('antes', filas_en_bandeja)
+    cola_antes = trabajos_en_cola
+    clases_antes = trabajos_por_clase
+    secuencia_antes = secuencia
+    ActiveRecord::Base.transaction do
+      contacto_de = cargar_personas(personas)
+      sin_grupo = conversaciones.any? { |c| c['grupo'].nil? || !contacto_de.key?(c['grupo']) }
+      sin_contacto = sin_grupo ? contacto_sin_contacto : nil
+      ci_de = cargar_contact_inboxes((contacto_de.values + [sin_contacto].compact).uniq)
+      conv_de = cargar_conversaciones(conversaciones, contacto_de, ci_de, sin_contacto)
+      cargar_mensajes(mensajes, conv_de)
+      raise ActiveRecord::Rollback if seco? # por si acaso: en seco no se escribió nada
+    end
+    @cuenta.sort.each { |k, v| hecho(k, v) }
+    hecho('despues', filas_en_bandeja)
+    hecho('secuencia', "#{secuencia_antes}->#{secuencia}")
+    hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
+    hecho('modo', @modo)
+    hecho('carga', 'ok')
+  end
+
+  # 5.5b: los adjuntos de Kommo, por la entrada estándar, una línea NDJSON por adjunto con source_id, tipo, ext,
+  # content_type, bytes, sha256 y b64 (`respaldar-historial.py flujo-adjuntos`). Solo a mensajes de la bandeja Archivo
+  # que todavía no tienen adjunto, así que correrlo dos veces no duplica. El archivo se sube con
+  # ActiveStorage::Blob.create_and_upload! (sin identificar ni analizar); las filas de `attachments` y de
+  # `active_storage_attachments` van con insert_all, sin callbacks: ni análisis, ni variantes, ni eventos.
+  # MODO=adjuntos-seco cuenta lo que haría, sin subir ni escribir nada.
+  TIPOS_KOMMO = { 'picture' => :image, 'sticker' => :image, 'voice' => :audio, 'audio' => :audio,
+                  'video' => :video, 'file' => :file }.freeze
+
+  # Una línea del flujo pesa 4/3 del adjunto (base64). Para no tener varias copias vivas a la vez: sin `strip`
+  # (chomp al leer), la línea se suelta apenas se parsea, el base64 apenas se decodifica, y con un adjunto grande se
+  # llama al GC antes de seguir. En producción esto corre dentro de chatwoot-rails-1 (SDD-0590 §10.15).
+  ADJUNTO_GRANDE = 8 * 1024 * 1024
+
+  def cargar_adjuntos(ruta)
+    require 'base64'
+    require 'digest'
+    seco = @modo == 'adjuntos-seco'
+    comprobar_bandeja!
+    cola_antes = trabajos_en_cola
+    clases_antes = trabajos_por_clase
+    inicio = Time.zone.now
+    blobs_antes = ActiveStorage::Blob.count
+    # Los blobs de este cargador se llaman kommo-<mensaje>.<ext>: con tráfico vivo, el total de blobs también
+    # cuenta los de WhatsApp e Instagram que lleguen mientras corre.
+    blobs_kommo_antes = ActiveStorage::Blob.where('filename LIKE ?', 'kommo-%').count
+    fuente = ruta == '-' ? @entrada : File.open(ruta, encoding: 'UTF-8')
+    fuente.each_line(chomp: true) do |linea|
+      next if linea.empty?
+
+      unless linea.start_with?('{')
+        @cuenta[:lineas_ignoradas] += 1
+        next
+      end
+      a = JSON.parse(linea)
+      linea = nil # rubocop:disable Lint/UselessAssignment -- suelta la línea para el GC
+      b64 = a.delete('b64').to_s
+      @cuenta[:adjuntos_leidos] += 1
+      mensaje = Message.where(inbox_id: @bandeja_id, source_id: a['source_id']).pick(:id, :account_id)
+      unless mensaje
+        @cuenta[:adjuntos_sin_mensaje] += 1
+        next
+      end
+      if Attachment.where(message_id: mensaje[0]).exists?
+        @cuenta[:adjuntos_existentes] += 1
+        next
+      end
+      grande = b64.bytesize > ADJUNTO_GRANDE
+      GC.start if grande
+      datos = Base64.strict_decode64(b64)
+      b64 = nil # rubocop:disable Lint/UselessAssignment -- suelta el base64 para el GC
+      if datos.bytesize != a['bytes'].to_i || Digest::SHA256.hexdigest(datos) != a['sha256']
+        @cuenta[:adjuntos_no_coinciden] += 1
+        next
+      end
+      if seco
+        @cuenta[:adjuntos_nuevos] += 1
+        @cuenta[:bytes_nuevos] += datos.bytesize
+      else
+        subir_adjunto(mensaje[0], mensaje[1], a, datos)
+      end
+      @cuenta[:bytes_adjunto_max] = [@cuenta[:bytes_adjunto_max], datos.bytesize].max
+      datos = nil # rubocop:disable Lint/UselessAssignment -- suelta los bytes para el GC
+      GC.start if grande
+    end
+    @cuenta.sort.each { |k, v| hecho(k, v) }
+    hecho('blobs', "#{blobs_antes}->#{ActiveStorage::Blob.count}")
+    hecho('blobs_kommo', "#{blobs_kommo_antes}->#{ActiveStorage::Blob.where('filename LIKE ?', 'kommo-%').count}")
+    # Un blob subido en esta corrida que quedó sin su fila (por ejemplo, el proceso murió entre la subida y el
+    # insert): repetir la corrida no lo limpia, así que se cuenta aparte. Tiene que dar 0.
+    hecho('blobs_huerfanos_nuevos', ActiveStorage::Blob.where('created_at >= ?', inicio).where('filename LIKE ?', 'kommo-%')
+                                                        .where.not(id: ActiveStorage::Attachment.select(:blob_id)).count)
+    hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
+    hecho('modo', @modo)
+    hecho('carga', 'ok')
+  ensure
+    fuente.close if fuente.is_a?(File)
+  end
+
+  def subir_adjunto(message_id, account_id, adj, datos)
+    tipo = Attachment.file_types[TIPOS_KOMMO.fetch(adj['tipo'].to_s, :file)]
+    ext = adj['ext'].to_s[/\A[a-z0-9]{1,10}\z/] || 'bin'
+    blob = ActiveStorage::Blob.create_and_upload!(io: StringIO.new(datos), filename: "kommo-#{message_id}.#{ext}",
+                                                  content_type: adj['content_type'].presence || 'application/octet-stream',
+                                                  identify: false)
+    ahora = Time.zone.now
+    ActiveRecord::Base.transaction do
+      fila = Attachment.insert_all([{ account_id: account_id, message_id: message_id, file_type: tipo, extension: ext,
+                                      created_at: ahora, updated_at: ahora }], returning: %w[id]).first
+      ActiveStorage::Attachment.insert_all([{ name: 'file', record_type: 'Attachment', record_id: fila['id'], blob_id: blob.id, created_at: ahora }])
+    end
+    @cuenta[:adjuntos_nuevos] += 1
+    @cuenta[:bytes_nuevos] += datos.bytesize
+  rescue StandardError
+    # Sin las filas, el archivo subido sería un huérfano en el almacenamiento: se borra con su blob.
+    blob&.purge
+    @cuenta[:adjuntos_fallidos] += 1
+  end
+
+  # La bandeja «Archivo Kommo»: canal API sin webhook_url, sin asignación automática, sin saludo ni encuesta.
+  # Si ya existe una bandeja API con ese nombre en la cuenta, la devuelve sin tocarla.
+  # Se crea con los modelos, como desde el panel. En Chatwoot 4.19.1 eso encola dos trabajos y ninguno sale de
+  # Chatwoot hacia un cliente ni hacia Studio (SDD-0590 §10.9):
+  #   · AccountCacheRevalidator invalida la caché de la cuenta (`account.cache_invalidated`).
+  #     ActionCableListener avisa por ActionCableBroadcastJob a los navegadores de agentes y administradores,
+  #     para que recarguen la lista de bandejas. El EventDispatcherJob del mismo evento no tiene oyente
+  #     asíncrono, así que no hace nada.
+  #   · `inbox_created` no se emite: Inbox#dispatch_create_event sale si ENABLE_INBOX_EVENTS está vacía, y
+  #     el compose no la define.
+  # Crearla sin callbacks dejaría la caché vieja, y la bandeja no aparecería en el panel hasta que venciera.
+  def crear_bandeja(nombre)
+    raise 'falta NOMBRE' if nombre.blank?
+
+    existente = Inbox.where(account_id: @cuenta_id, name: nombre, channel_type: 'Channel::Api').order(:id).first
+    cola_antes = trabajos_en_cola
+    clases_antes = trabajos_por_clase
+    if existente
+      hecho('bandeja_existia', 'si')
+      bandeja = existente
+    else
+      cuenta = Account.find(@cuenta_id)
+      bandeja = nil
+      ActiveRecord::Base.transaction do
+        canal = Channel::Api.create!(account: cuenta)
+        bandeja = Inbox.create!(account: cuenta, channel: canal, name: nombre, enable_auto_assignment: false,
+                                greeting_enabled: false, csat_survey_enabled: false)
+      end
+      hecho('bandeja_existia', 'no')
+    end
+    hecho('bandeja', bandeja.id)
+    hecho('webhook_url', bandeja.channel.webhook_url.present? ? 'si' : 'no')
+    # Chatwoot crea las bandejas con asignación automática; con ella, InboxMember#add_agent_to_round_robin mete a
+    # cada miembro en la rueda, y lo que entrara a la bandeja se le asignaría a alguien. Se lee de la base.
+    bandeja.reload
+    hecho('asignacion_automatica', bandeja.enable_auto_assignment ? 'si' : 'no')
+    hecho('saludo', bandeja.greeting_enabled ? 'si' : 'no')
+    hecho('encuesta', bandeja.csat_survey_enabled ? 'si' : 'no')
+    hecho('miembros', InboxMember.where(inbox_id: bandeja.id).count)
+    hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
+    clases_despues = trabajos_por_clase
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, clases_despues))
+    # Todo lo que queda en cola, por clase y evento: la línea base de la carga (prueba-cargador.sh, E45).
+    hecho('trabajos_despues', CargaArchivoKommo.formato_trabajos(clases_despues))
+    hecho('carga', 'ok')
+  end
+
+  # MODO=miembros (Sam, 2026-11-06: «todo el equipo»): agrega como miembros del Archivo a todos los usuarios de la
+  # cuenta que todavía no lo son, con Inbox#add_members, igual que el panel. Inbox#add_members crea los InboxMember
+  # con sus callbacks y llama a update_account_cache: la invalidación de caché de la cuenta (E-10f). Con la
+  # asignación automática apagada (crear_bandeja), InboxMember#add_agent_to_round_robin no reparte nada, y si
+  # estuviera encendida no se agrega a nadie. Solo agrega: no quita a nadie. MODO=miembros-seco solo cuenta.
+  # Salida: conteos por rol, nunca nombres ni correos.
+  def agregar_miembros
+    bandeja = comprobar_bandeja!
+    raise 'la bandeja tiene asignación automática: no se agregan miembros' if bandeja.reload.enable_auto_assignment
+
+    seco = @modo == 'miembros-seco'
+    usuarios = AccountUser.where(account_id: @cuenta_id)
+    ya = InboxMember.where(inbox_id: bandeja.id).pluck(:user_id).to_set
+    nuevos = usuarios.pluck(:user_id).uniq.reject { |id| ya.include?(id) }.sort
+    hecho('modo', @modo)
+    hecho('usuarios_cuenta', usuarios.count)
+    hecho('administradores', usuarios.where(role: :administrator).count)
+    hecho('agentes', usuarios.where(role: :agent).count)
+    hecho('miembros_antes', ya.size)
+    clases_antes = trabajos_por_clase
+    notificaciones = Notification.where(account_id: @cuenta_id).count
+    asignadas = Conversation.where(inbox_id: bandeja.id).where.not(assignee_id: nil).count
+    bandeja.add_members(nuevos) unless seco || nuevos.empty?
+    hecho('miembros_nuevos', nuevos.size)
+    hecho('miembros_despues', InboxMember.where(inbox_id: bandeja.id).count)
+    hecho('notificaciones_nuevas', Notification.where(account_id: @cuenta_id).count - notificaciones)
+    hecho('asignadas', "#{asignadas}->#{Conversation.where(inbox_id: bandeja.id).where.not(assignee_id: nil).count}")
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
+    hecho('carga', 'ok')
+  end
+end
+
+exit(CargaArchivoKommo.principal(ENV)) if ENV['MODO']
