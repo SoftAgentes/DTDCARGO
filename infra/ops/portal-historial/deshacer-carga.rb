@@ -253,6 +253,10 @@ class DeshacerPortal
       hecho('contactos_conservados', conservados.size)
       hecho('contactos_a_borrar', borrar.size)
       if @modo == 'seco'
+        # Los hilos cargados (N1 del DG): cada conversación de la bandeja, con su dtd_hilo y su display_id. Solo ids;
+        # deshacer.sh los compara con los hilos de Studio y no los imprime.
+        conversaciones.pluck(Arel.sql("additional_attributes->>'dtd_hilo'"), :display_id).sort_by(&:to_s)
+                      .each { |hilo, did| @salida.puts "HILO #{hilo} #{did}" }
         escribir_conservados(conservados)
         raise ActiveRecord::Rollback
       end

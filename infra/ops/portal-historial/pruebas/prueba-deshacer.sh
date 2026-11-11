@@ -19,6 +19,8 @@
 #   D19h un SISTEMA= vacío y exportado: el valor no llega exportado a docker (el patrón N1 de la #480)
 #   D20-22 los pisos del seco (N1 y N3 del DG): la bandeja cambió desde el seco, lo borrado no cuadra con el seco
 #          (lo que haría una conversación que entra a mitad del borrado), y un seco sin los conteos
+#   D23 los hilos cargados (N1, decisión del DG): el seco compara solo lo cargado; hC, que vinculó la cola, queda fuera
+#   D24 (hilos) una conversación de la bandeja que no es un hilo de Studio: el seco se niega, sin archivo
 #   R1-R10, A1-A9 (rb) las guardas de deshacer-carga.rb, de a una, con guardas-deshacer.rb (N2 del DG)
 #   N10 (estático) DESHACER_SISTEMA, _SHA y _UID solo dentro del if DESHACER_PRUEBA ((a) del DG)
 #   D2  seco: no borra nada y escribe contactos-conservados.ndjson (0600) con el contacto que tiene otra bandeja
@@ -273,6 +275,16 @@ sistema_caso() { # carpeta salida [VAR=valor...]: el paso 3 con los .hecho de me
   rm -rf -- "$SHM" "$TRABAJO/durable"
 }
 # N10, estático ((a) del DG): DESHACER_SISTEMA, _SHA y _UID aparecen solo dentro del if DESHACER_PRUEBA de deshacer.sh.
+# D24: una conversación cargada con otro dtd_hilo; el seco se niega, y después se le devuelve el suyo.
+parte_hilos() { # carpeta salidas
+  local K="$1" O="$2"
+  rm -rf -- "$SHM"
+  sonda "$O/hilo-cambiado.txt" FASE=hilo-cambiado
+  deshacer "$O/d24.txt" "$K" seco
+  [ -e "$SHM/contactos-conservados.ndjson" ] && echo "HECHO archivo=si" >>"$O/d24.txt"
+  rm -rf -- "$SHM"
+  sonda "$O/hilo-restaurado.txt" FASE=hilo-restaurar "CONV=$(h "$O/hilo-cambiado.txt" conv)" "HILO=$(h "$O/hilo-cambiado.txt" hilo)"
+}
 parte_estatico() { # carpeta salidas
   local K="$1" O="$2" fuera dentro
   fuera="$(awk '$0 == "if [ \"${DESHACER_PRUEBA:-}\" = 1 ]; then" {d=1; next} d && $0 == "fi" {d=0; next} !d && !/^[[:space:]]*#/ && /DESHACER_SISTEMA/ {n++} END {print n+0}' "$K/deshacer.sh")"
@@ -449,10 +461,11 @@ escenario() { # carpeta salidas modo
     sistema) parte_sistema "$1" "$2" ;;
     estatico) parte_estatico "$1" "$2" ;;
     rb) parte_rb "$1" "$2" ;;
+    hilos) parte_hilos "$1" "$2" ;;
     ajeno) parte_ajeno "$1" "$2" ;;
     borrar) parte_borrar "$1" "$2" ;;
     corte) parte_corte "$1" "$2" ;;
-    completo) parte_estatico "$1" "$2"; parte_rb "$1" "$2"; parte_sh "$1" "$2"; parte_sistema "$1" "$2"; parte_ajeno "$1" "$2"; parte_borrar "$1" "$2"; parte_corte "$1" "$2" ;;
+    completo) parte_estatico "$1" "$2"; parte_rb "$1" "$2"; parte_sh "$1" "$2"; parte_sistema "$1" "$2"; parte_hilos "$1" "$2"; parte_ajeno "$1" "$2"; parte_borrar "$1" "$2"; parte_corte "$1" "$2" ;;
   esac
 }
 
@@ -483,6 +496,11 @@ comprobar_sh() {
     "CUENTA con un cero adelante: no corre ($(err "$O/d10.txt"))"
   exigir D6j '[ "$(h "$O/d6j.txt" salida_proceso)" = 2 ] && [ "$(err "$O/d6j.txt")" = falta_db_cw ]' \
     "sin DB_CW, no corre: no hay valor por defecto ($(err "$O/d6j.txt"))"
+}
+comprobar_hilos() {
+  local F="$1/d24.txt"
+  exigir D24 '[ "$(h "$F" salida_proceso)" = 1 ] && [ "$(err "$F")" = las_conversaciones_no_son_los_hilos_cargados ] && [ -z "$(h "$F" archivo)" ] && [ "$(h "$1/hilo-restaurado.txt" hilo_restaurado)" = ok ]' \
+    "una conversación de la bandeja que no es un hilo de Studio: el seco se niega, sin archivo ($(err "$F"); cargados $(h "$F" hilos_cargados))"
 }
 comprobar_rb() {
   local F="$1/rb.txt" c id esperado
@@ -544,6 +562,9 @@ comprobar_borrar() {
   F="$O/chatwoot-seco.hecho"
   exigir D2b '[ "$(h "$O/d2.txt" permiso_hecho)" = 600 ] && grep -q "^HECHO chatwoot_seco=ok " "$F" && [ "$(H "$F" conservados_sha256)" = "$sha" ] && [ "$(H "$F" tenant)" = "$TENANT" ] && [ "$(H "$F" cuenta)" = "$CUENTA" ] && [ "$(H "$F" bandeja)" = "$BANDEJA" ] && [ "$(H "$F" antes)" = "$(h "$O/d2.txt" antes)" ] && [ "$(H "$F" contactos_a_borrar)" = "$(h "$O/d2.txt" contactos_a_borrar)" ] && [ "$(wc -l <"$F")" = 1 ]' \
     "el seco escribe chatwoot-seco.hecho en 0600, con el sha256 del .ndjson, el tenant, la cuenta, la bandeja y sus conteos ($(H "$F" antes), $(H "$F" contactos_a_borrar) a borrar)"
+  local conv_d2; conv_d2="$(h "$O/d2.txt" antes)"; conv_d2="${conv_d2#conversaciones:}"; conv_d2="${conv_d2%%,*}"
+  exigir D23 '[ -n "$conv_d2" ] && [ "$(h "$O/d2.txt" hilos_cargados)" = "$conv_d2" ] && [ "$(h "$O/d2.txt" hilos_del_tenant)" -gt "$conv_d2" ] && [ "$(H "$O/chatwoot-seco.hecho" hilos_cargados)" = "$conv_d2" ]' \
+    "el seco compara solo los hilos cargados: $(h "$O/d2.txt" hilos_cargados) de $conv_d2 conversaciones; el tenant tiene $(h "$O/d2.txt" hilos_del_tenant) (hC, de la cola, queda fuera)"
   exigir D9 '[ "$(h "$O/d9.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d9.txt")" = "los conservados no son de este tenant, cuenta y bandeja" ] && [ "$(h "$O/contar-d9.txt" bandeja)" = "$A" ]' \
     "los conservados de otro tenant: aborta sin borrar ($(err "$O/d9.txt"))"
   exigir D3 '[ "$(h "$O/d3.txt" salida_proceso)" = 1 ] && [ "$(err "$O/d3.txt")" = "la lista de conservados cambió desde el seco" ] && [ "$(h "$O/contar-d3.txt" bandeja)" = "$A" ]' \
@@ -608,10 +629,11 @@ comprobar() { # salidas modo
     sistema) comprobar_sistema "$1" ;;
     estatico) comprobar_estatico "$1" ;;
     rb) comprobar_rb "$1" ;;
+    hilos) comprobar_hilos "$1" ;;
     ajeno) comprobar_ajeno "$1" ;;
     borrar) comprobar_borrar "$1" ;;
     corte) comprobar_corte "$1" ;;
-    completo) comprobar_estatico "$1"; comprobar_rb "$1"; comprobar_sh "$1"; comprobar_sistema "$1"; comprobar_ajeno "$1"; comprobar_borrar "$1"; comprobar_corte "$1" ;;
+    completo) comprobar_estatico "$1"; comprobar_rb "$1"; comprobar_sh "$1"; comprobar_sistema "$1"; comprobar_hilos "$1"; comprobar_ajeno "$1"; comprobar_borrar "$1"; comprobar_corte "$1" ;;
   esac
   return 0
 }
@@ -623,13 +645,13 @@ en_parte() { # id del mutante: ¿corre en esta parte?
   case "$1" in
     # La parte b tardó 54 min de 60 (job 129163939032 y run 42628321142): MD27, MD28 y MD30 (unos 4 min cada uno) pasan
     # a la parte a, que tardaba 28. Corren igual sobre el escenario del borrado.
-    MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD44 | MD45 | MD46 | MD47) suya=b ;;
+    MD5 | MD6 | MD7 | MD21 | MD22 | MD24 | MD25 | MD26 | MD44 | MD45 | MD46 | MD47 | MD69) suya=b ;;
     # La parte d (N1 a N3 del DG): los mutantes de las guardas del .rb (modo rb, sin la carga), MD49 y MD30, que sale
     # de la a para que la a no pase de ~55 min con los casos nuevos de la corrida real.
     # MD32 y MD33 también: cada mutante del borrado suma D20 a D22 (~1 min), y la b se acercaba a 55.
     MD30 | MD32 | MD33 | MD49 | MD5[0-9] | MD6[0-8]) suya=d ;;
     # B1 del DG: los mutantes de la huella (sin la carga, unos 1 a 2 min) se reparten entre la a y la c.
-    MD1 | MD2 | MD15 | MD16 | MD17 | MD18 | MD19 | MD31 | MD39 | MD40 | MD41 | MD42 | MD48) suya=c ;;
+    MD1 | MD2 | MD15 | MD16 | MD17 | MD18 | MD19 | MD31 | MD39 | MD40 | MD41 | MD42 | MD48 | MD70) suya=c ;;
   esac
   [ "$PARTE" = todo ] || [ "$PARTE" = "$suya" ]
 }
@@ -657,7 +679,8 @@ CASOS_SH="D6a D6b D6c D6d D6i D6e D6f D8 D6g D6h D10 D6j"
 CASOS_SISTEMA="D18 D18b D19a D19b D19c D19d D19e D19f D19g D19h"
 CASOS_ESTATICO="N10"
 CASOS_AJENO="D1a D1b D1c D1d D1e D1f D1g"
-CASOS_BORRAR="D2 D2b D9 D3 D4 D11a D11b D11c D20 D21 D22 D5 D13 D14 D15 D17 D7 F1"
+CASOS_HILOS="D24"
+CASOS_BORRAR="D2 D2b D23 D9 D3 D4 D11a D11b D11c D20 D21 D22 D5 D13 D14 D15 D17 D7 F1"
 CASOS_RB="R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 A1 A2 A3 A4 A5 A6 A7 A8 A9"
 CASOS_CORTE="D16 D17b"
 corre_en() {
@@ -665,6 +688,7 @@ corre_en() {
   case " $CASOS_SISTEMA " in *" $1 "*) echo sistema; return ;; esac
   case " $CASOS_ESTATICO " in *" $1 "*) echo estatico; return ;; esac
   case " $CASOS_RB " in *" $1 "*) echo rb; return ;; esac
+  case " $CASOS_HILOS " in *" $1 "*) echo hilos; return ;; esac
   case " $CASOS_AJENO " in *" $1 "*) echo ajeno; return ;; esac
   case " $CASOS_BORRAR " in *" $1 "*) echo borrar; return ;; esac
   case " $CASOS_CORTE " in *" $1 "*) echo corte; return ;; esac
@@ -706,13 +730,13 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
 # del job 129292212612) cae aquí, y no como un mutante que «sobrevive».
 if [ "$PARTE" = a ] || [ "$PARTE" = todo ]; then
   sin_resultado=""
-  for c in $CASOS_ESTATICO $CASOS_RB $CASOS_SH $CASOS_SISTEMA $CASOS_AJENO $CASOS_BORRAR $CASOS_CORTE; do [ -n "${RES[$c]:-}" ] || sin_resultado="$sin_resultado $c"; done
+  for c in $CASOS_ESTATICO $CASOS_RB $CASOS_HILOS $CASOS_SH $CASOS_SISTEMA $CASOS_AJENO $CASOS_BORRAR $CASOS_CORTE; do [ -n "${RES[$c]:-}" ] || sin_resultado="$sin_resultado $c"; done
   exigir N9 '[ -z "$sin_resultado" ]' "cada caso de las listas tiene su resultado con el nombre exacto (sin resultado:${sin_resultado:- ninguno})"
 fi
 if [ "$MUTANTES" = 1 ]; then
   log "== M. mutantes"
   mutante MD0 "control: los guiones sin cambios, sobre una carga nueva" deshacer-carga.rb completo "" \
-    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D6j D7 D8 D9 D10 D11a D11b D11c D13 D14 D15 D16 D17 D17b D18 D18b D19a D19b D19c D19d D19e D19f D19g D19h N10 D20 D21 D22 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 A1 A2 A3 A4 A5 A6 A7 A8 A9 F1" "require 'set'" "require 'set'"
+    "D1a D1b D1c D1d D1e D1f D1g D2 D2b D3 D4 D5 D6a D6b D6c D6d D6e D6f D6g D6h D6i D6j D7 D8 D9 D10 D11a D11b D11c D13 D14 D15 D16 D17 D17b D18 D18b D19a D19b D19c D19d D19e D19f D19g D19h N10 D20 D21 D22 D23 D24 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 A1 A2 A3 A4 A5 A6 A7 A8 A9 F1" "require 'set'" "require 'set'"
   # Lo ajeno (deshacer-carga.rb), con la parte ajeno sola.
   mutante MD1 "no mira los mensajes ajenos" deshacer-carga.rb ajeno "D1a" "D1b D1c" \
     "'mensajes' => mensajes.where(\"source_id IS NULL OR source_id NOT LIKE 'dtd:%'\").count," "'mensajes' => 0,"
@@ -778,7 +802,7 @@ if [ "$MUTANTES" = 1 ]; then
   mutante MD46 "campo() se queda con la última clave repetida" deshacer.sh sistema "D18b" "$(sin D18b)" \
     '[ "$(grep -o " $2=" "$1" 2>/dev/null | wc -l)" = 1 ] || return 0; ' ''
   # N1 y N3 del DG: los pisos del seco.
-  B_TODOS="D2 D2b D9 D3 D4 D11a D11b D11c D20 D21 D22 D5 D13 D14 D15 D17 D7 F1"
+  B_TODOS="D2 D2b D23 D9 D3 D4 D11a D11b D11c D20 D21 D22 D5 D13 D14 D15 D17 D7 F1"
   sin_b() { local x y out="" fuera; for x in $B_TODOS; do fuera=0; for y in "$@"; do [ "$x" = "$y" ] && fuera=1; done; [ "$fuera" = 1 ] || out="$out $x"; done; echo "${out# }"; }
   mutante MD47 "no compara la bandeja con la del seco" deshacer-carga.rb borrar "D20" "$(sin_b D20)" \
     "      raise DeshacerError, 'la bandeja cambió desde el seco' if @modo == 'borrar' && @pisos && antes != @esperado_antes" ''
@@ -786,6 +810,13 @@ if [ "$MUTANTES" = 1 ]; then
     "        raise DeshacerError, 'lo borrado no cuadra con el seco' unless borrados == [msg, conv, ci, Integer(@esperado_contactos, 10)]" ''
   mutante MD49 "CONFIRMAR=si sin los conteos del seco" deshacer-carga.rb borrar "D22" "$(sin_b D22)" \
     "      raise DeshacerError, 'el seco no trae los conteos' if @confirmar == 'si' && !@pisos" ''
+  # Los hilos cargados (N1, decisión del DG). MD69 cuenta todos los hilos del tenant, hC incluido: el seco se niega y
+  # cae todo lo de después (como MD5), así que solo se exige D2 y D23.
+  mutante MD69 "cuenta también los hilos de la cola" deshacer.sh borrar "D2 D23" "" \
+    "  sql_cargados=\"select count(*) from (values \$valores) w (hilo, cid) join public.chatwoot_portal_hilos h on h.tenant_id = :'tenant' and h.conversation_id = w.hilo and h.chatwoot_conversation_id = w.cid join public.chatwoot_conversations c on c.tenant_id = h.tenant_id and c.conversation_id = h.chatwoot_conversation_id and c.inbox_id = :bandeja;\"" \
+    "  sql_cargados=\"select count(*) from public.chatwoot_portal_hilos h where h.tenant_id = :'tenant';\""
+  mutante MD70 "no compara las conversaciones con los hilos" deshacer.sh hilos "D24" "" \
+    '[ "$cargados" = "$lineas_hilo" ] && [ "$lineas_hilo" = "$conv_antes" ] || mal las_conversaciones_no_son_los_hilos_cargados 1' ':'
   # N2 del DG: las guardas de deshacer-carga.rb, de a una (modo rb).
   R_TODOS="R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 A1 A2 A3 A4 A5 A6 A7 A8 A9"
   sin_r() { local x out=""; for x in $R_TODOS; do [ "$x" = "$1" ] || out="$out $x"; done; echo "${out# }"; }

@@ -14,6 +14,9 @@
 #                       telefono       un contacto de la bandeja con teléfono (el cargador nunca lo pone);
 #                       nota           una nota de un contacto de la bandeja.
 #   FASE=quitar-ajeno BANDEJA  lo quita todo.
+#   FASE=hilo-cambiado BANDEJA  a la primera conversación cargada le pone otro dtd_hilo (que no es un hilo de Studio);
+#                       imprime la conversación y su dtd_hilo de antes.
+#   FASE=hilo-restaurar CONV HILO  le devuelve su dtd_hilo.
 #   FASE=contar CUENTA BANDEJA OTRA  la bandeja, los contactos dtd-portal: de la cuenta y la otra bandeja.
 # Salida: `HECHO clave=valor`, solo conteos e ids.
 
@@ -82,6 +85,16 @@ when 'quitar-ajeno'
   de_la_bandeja.call.where.not(phone_number: nil).update_all(phone_number: nil)
   Note.where(contact_id: de_la_bandeja.call.select(:id)).delete_all
   hecho('quitar_ajeno', 'ok')
+when 'hilo-cambiado'
+  conv = cargadas.call.first or raise 'no hay conversación cargada'
+  hecho('conv', conv.id)
+  hecho('hilo', conv.additional_attributes['dtd_hilo'])
+  conv.update_columns(additional_attributes: conv.additional_attributes.merge('dtd_hilo' => SecureRandom.uuid))
+  hecho('hilo_cambiado', 'ok')
+when 'hilo-restaurar'
+  conv = Conversation.find(Integer(ENV.fetch('CONV'), 10))
+  conv.update_columns(additional_attributes: conv.additional_attributes.merge('dtd_hilo' => ENV.fetch('HILO')))
+  hecho('hilo_restaurado', 'ok')
 when 'contar'
   hecho('bandeja', "conversaciones:#{Conversation.where(inbox_id: bandeja).count},mensajes:#{Message.where(inbox_id: bandeja).count},contact_inboxes:#{ContactInbox.where(inbox_id: bandeja).count}")
   hecho('contactos_dtd', dtd.call(cuenta).count)

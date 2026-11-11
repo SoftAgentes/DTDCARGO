@@ -283,6 +283,27 @@ fi
 [ "$MODO" = borrar ] && [ "$CONFIRMAR" = si ] && escribir_hecho_borrar
 [ "$MODO" = seco ] || exit 0
 
+# Los conteos del seco van en su .hecho (N1): la bandeja y los contactos a borrar. Solo cifras.
+antes="$(printf '%s\n' "$salida" | sed -n 's/^HECHO antes=//p' | tr -d '\r' | tail -n 1)"
+a_borrar="$(printf '%s\n' "$salida" | sed -n 's/^HECHO contactos_a_borrar=//p' | tr -d '\r' | tail -n 1)"
+printf '%s' "$antes" | grep -qE '^conversaciones:[0-9]+,mensajes:[0-9]+,contact_inboxes:[0-9]+$' && printf '%s' "$a_borrar" | grep -qE '^[0-9]+$' || mal el_seco_no_dio_los_conteos 1
+# Los hilos cargados (N1, decisión del DG): cada conversación de la bandeja tiene que ser un hilo de Studio del
+# tenant, con ese display_id y su espejo en esta bandeja. Se compara solo lo cargado: un hilo que vinculó la cola y no
+# tiene conversación en la bandeja (hC en la prueba) queda fuera de la cuenta. En Studio y en solo lectura; la lista
+# entra como VALUES (en una transacción de solo lectura no se crea ni una tabla temporal), con los ids validados.
+conv_antes="${antes#conversaciones:}"; conv_antes="${conv_antes%%,*}"
+lineas_hilo="$(printf '%s\n' "$salida" | tr -d '\r' | grep -c '^HILO ')"
+valores="$(printf '%s\n' "$salida" | tr -d '\r' | sed -n "s/^HILO \([0-9a-f]\{8\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{12\}\) \([0-9]\{1,10\}\)$/('\1'::uuid,\2)/p" | paste -sd, -)"
+cargados=0
+if [ -n "$valores" ]; then
+  sql_cargados="select count(*) from (values $valores) w (hilo, cid) join public.chatwoot_portal_hilos h on h.tenant_id = :'tenant' and h.conversation_id = w.hilo and h.chatwoot_conversation_id = w.cid join public.chatwoot_conversations c on c.tenant_id = h.tenant_id and c.conversation_id = h.chatwoot_conversation_id and c.inbox_id = :bandeja;"
+  cargados="$(printf '%s\n' "$sql_cargados" | studio 2>/dev/null)"
+fi
+del_tenant="$(printf '%s\n' "select count(*) from public.chatwoot_portal_hilos h where h.tenant_id = :'tenant';" | studio 2>/dev/null)"
+echo "HECHO hilos_cargados=${cargados:-ilegible}"
+echo "HECHO hilos_del_tenant=${del_tenant:-ilegible}"
+[ "$cargados" = "$lineas_hilo" ] && [ "$lineas_hilo" = "$conv_antes" ] || mal las_conversaciones_no_son_los_hilos_cargados 1
+
 ( umask 077; docker exec "$DB_CW" cat "$EN_CW_C" >"$C.parcial" ) 2>/dev/null || mal no_se_pudieron_traer_los_conservados 1
 chmod 0600 "$C.parcial"
 head -n 1 "$C.parcial" | grep -q '"tipo":"cabecera"' || mal conservados_sin_cabecera 1
@@ -291,8 +312,4 @@ mv -f -- "$C.parcial" "$C"
 chmod 0600 "$C"
 echo "HECHO conservados=$C"
 echo "HECHO conservados_lineas=$(wc -l <"$C" | tr -d ' ')"
-# Los conteos del seco van en su .hecho (N1): la bandeja y los contactos a borrar. Solo cifras.
-antes="$(printf '%s\n' "$salida" | sed -n 's/^HECHO antes=//p' | tr -d '\r' | tail -n 1)"
-a_borrar="$(printf '%s\n' "$salida" | sed -n 's/^HECHO contactos_a_borrar=//p' | tr -d '\r' | tail -n 1)"
-printf '%s' "$antes" | grep -qE '^conversaciones:[0-9]+,mensajes:[0-9]+,contact_inboxes:[0-9]+$' && printf '%s' "$a_borrar" | grep -qE '^[0-9]+$' || mal el_seco_no_dio_los_conteos 1
-escribir_hecho "$H_SECO" "HECHO chatwoot_seco=ok conservados_sha256=$(sha256sum "$C" | cut -c1-64) tenant=$TENANT cuenta=$CUENTA bandeja=$BANDEJA antes=$antes contactos_a_borrar=$a_borrar utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+escribir_hecho "$H_SECO" "HECHO chatwoot_seco=ok conservados_sha256=$(sha256sum "$C" | cut -c1-64) tenant=$TENANT cuenta=$CUENTA bandeja=$BANDEJA antes=$antes contactos_a_borrar=$a_borrar hilos_cargados=$cargados utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
