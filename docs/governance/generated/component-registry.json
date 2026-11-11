@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "generatedAt": "2026-08-14T00:00:00.000Z",
-  "sourceCommit": "77c9a6afe79d8ef8e31d985f8a7f202bcb53eb26",
+  "sourceCommit": "05d35f421ab306048d17acd1d20c082367ad7d31",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -441,15 +441,20 @@
       },
       "tokens": [
         "--bg-elevated",
-        "--r-pill",
-        "--border",
+        "--r-lg",
+        "--border-strong",
         "--bg-surface",
         "--wine",
+        "--wine-text",
         "--ink-soft",
-        "--shadow-xs",
+        "--ink-inv",
+        "--shadow-sm",
         "--r-md",
         "--wine-tint",
-        "--ink"
+        "--ink",
+        "--s-1",
+        "--s-3",
+        "--s-4"
       ],
       "accessibility": {
         "keyboard": "verified",

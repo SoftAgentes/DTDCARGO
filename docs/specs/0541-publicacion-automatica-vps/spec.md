@@ -4,7 +4,7 @@ title: "Publicación automática de la web en el servidor propio"
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-10-16
-updated: 2026-11-01
+updated: 2026-11-06
 supersedes: null
 superseded_by: null
 related: ["0505"]
@@ -692,3 +692,22 @@ publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exa
 - `docs/runbooks/publicacion-automatica-web.md`
 - `docs/specs/0541-publicacion-automatica-vps/spec.md`
 - `.agents/handoffs/0541-publicar-commit-exacto.md` (nuevo)
+
+## Enmienda 2026-11-06 · relevo sin corte
+
+El paso 5 de la publicación (`up -d --no-deps web`) dejaba la web en 404 desde que
+compose bajaba el contenedor viejo hasta que Traefik enrutaba al nuevo. Eso es
+unos 30 s: Traefik no enruta a un contenedor `starting` y el `HEALTHCHECK` del
+`Dockerfile` tiene `interval=30s`. La prueba rápida llegaba al final de ese corte:
+tandas D y E del 2026-11-06, 5 a 7 páginas en 404 en el primer intento.
+
+Desde esta enmienda, `desplegar()` llama a `relevar()`:
+
+- El nuevo arranca al lado del que sirve, con `up -d --no-deps --no-recreate --scale web=2 web`.
+- Espera a que el nuevo quede healthy y deja `PUBLICAR_ESPERA_TRAEFIK` (5 s) para que Traefik lo sume.
+- Retira el viejo con `stop -t PUBLICAR_GRACIA_WEB` y `rm`, y deja la misma espera antes de la prueba rápida.
+- Si el nuevo no queda healthy, se retira el nuevo y el viejo sigue sirviendo. La vuelta atrás también es un relevo.
+
+La prueba es `infra/ops/tests/prueba-publicar-web.sh`, sección «relevo sin corte».
+Su doble de Docker anota cada corte, y el de la prueba rápida da 404 mientras
+Traefik no enruta, como en producción.
