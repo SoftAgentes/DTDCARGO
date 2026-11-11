@@ -8,7 +8,7 @@
 | Rama | `claude/noticias-n1-revoke-anon-a3ccc9`, nacida en main `836b2cf19` |
 | Fecha | 2026-11-11 |
 | SDD | 0611 (§7 punto 6, §11.4) |
-| Migración | **0526** `supabase/migrations/0526_noticias_anon_solo_columnas_publicas.sql`. **NO APLICADA**, en ningún entorno; declarada como espera. md5 `f58d4595160b45559882f1adb5ee909a`, 6.731 bytes (LF) |
+| Migración | **0526** `supabase/migrations/0526_noticias_anon_solo_columnas_publicas.sql`. **APLICADA** el 2026-11-11 en prueba (14:41:58Z) y en producción (14:43:54Z) por el Director General, con el OK nominal de Sam; espera retirada y sellada en el tren Z. md5 `f58d4595160b45559882f1adb5ee909a`, 6.731 bytes (LF) |
 
 ## OBJETIVO ORIGINAL
 

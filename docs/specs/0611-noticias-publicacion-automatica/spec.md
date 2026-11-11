@@ -663,7 +663,7 @@ archivos. Ningún otro archivo entra en la PR.
 |---|---|
 | `lib/public/news-queries.ts` | Modificado (C1): las 4 lecturas de filas completas piden 18 columnas explícitas, sin `publish_via`, `seo_draft_id`, `content_sha256`, `created_by`, `tenant_id` ni `source` |
 | `lib/public/__tests__/news-queries-columnas.test.ts` | Nuevo: la prueba de C1 y la prueba estática de que ninguna lectura de `news_posts` pide `*` |
-| `supabase/migrations/0525_noticias_ajustes_antes_de_encender.sql` | Nuevo: la migración 0525, sin aplicar (cambio de comportamiento del Studio cuando se aplique) |
+| `supabase/migrations/0525_noticias_ajustes_antes_de_encender.sql` | Nuevo: la migración 0525, sin aplicar al fusionar (aplicada el 2026-11-11; cambio de comportamiento del Studio cuando se aplique) |
 | `supabase/tests/0525_noticias_ajustes_antes_de_encender.test.sql` | Nuevo: contrato SQL de la 0525 |
 | `lib/news/autopublicar/__tests__/noticias-0525.migration.test.ts` | Nuevo: el contrato en PGlite, el control rojo y los mutantes |
 | `supabase/migrations-baseline.json` | Modificado: espera de la 0525 en `pendingBelowCutoff` |
@@ -741,10 +741,10 @@ Antes de encender, el plazo tiene que estar decidido (§11.3.1).
 
 | Archivo | Cambio |
 |---|---|
-| `supabase/migrations/0526_noticias_anon_solo_columnas_publicas.sql` | Nuevo: la migración 0526, sin aplicar |
+| `supabase/migrations/0526_noticias_anon_solo_columnas_publicas.sql` | Nuevo: la migración 0526, sin aplicar al fusionar (aplicada el 2026-11-11 en prueba y producción) |
 | `supabase/tests/0526_noticias_anon_solo_columnas_publicas.test.sql` | Nuevo: contrato SQL de la 0526 |
 | `lib/news/autopublicar/__tests__/noticias-0526.migration.test.ts` | Nuevo: el contrato en PGlite, el control rojo, los mutantes y la gemela |
-| `supabase/migrations-baseline.json` | Modificado: espera de la 0526 en `pendingBelowCutoff` |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0526 en `pendingBelowCutoff`, retirada al sellarla en el tren Z |
 | `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §7 y este §11.4 |
 | `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
 | `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
