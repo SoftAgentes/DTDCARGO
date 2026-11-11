@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-09
+updated: 2026-11-11
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -496,6 +496,12 @@ el merge lo decide el Director.
    Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
    revisó cuando la revisión esté registrada.
 
+**Abierta desde el 2026-11-11 (N1, §11.4.1):**
+
+6. **Retención de `actor_id`.** Plazo de las cuatro columnas con uuid del personal de §11.3.1 (b),
+   qué se hace al vencer y en qué PR va la purga. La PR de N1 no lo decide. Tiene que estar
+   decidido antes de encender.
+
 ## 8. Dependencias
 
 | Necesita | Dónde | Estado al 2026-11-06 |
@@ -664,6 +670,84 @@ archivos. Ningún otro archivo entra en la PR.
 | `__tests__/seo-auditoria-json-ld.test.tsx` | Modificado: `elementosJsx` salta cadenas y cuenta los usos de verdad |
 | `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §11.2 con la cita del OK y este §11.3 |
 | `.agents/handoffs/sdd-0611-ajustes-antes-de-encender.md` | Modificado: el handoff de la tarea |
+
+### 11.4 N1 · El público no ve quién creó la noticia ni por qué vía (migración 0526)
+
+**La condición.** Para avanzar con las noticias automáticas, la primera condición de Sam es que
+el público no vea quién creó la noticia ni por qué vía se publicó: `created_by` y `publish_via`
+son datos internos. La transmitió el Director General el 2026-11-11; el texto literal de Sam no
+está en esta rama.
+
+**El problema.** La 0055 dio a anon `SELECT` sobre toda `news_posts`. La C1 (PR #492) hizo que el
+sitio pida 18 columnas explícitas, pero eso solo cuida lo que pide el sitio: la clave anon es
+pública y cualquiera puede pedir a PostgREST `select=created_by,publish_via`, o filtrar con
+`publish_via=eq.automatica` y contar las automáticas. Un `REVOKE` de columna no alcanza mientras
+exista el `GRANT` de tabla, porque el de tabla cubre todas las columnas.
+
+**Lo que hace la 0526** (`0526_noticias_anon_solo_columnas_publicas.sql`):
+- quita a anon el `SELECT` de tabla sobre `news_posts`;
+- le devuelve `SELECT` solo sobre las 18 columnas de `COLUMNAS_PUBLICAS`
+  (`lib/public/news-queries.ts`). Quedan fuera `created_by`, `publish_via`, `seo_draft_id`,
+  `content_sha256`, `tenant_id` y `source`;
+- una columna que se agregue en el futuro nace invisible para anon hasta que una migración la
+  nombre.
+
+No toca las filas, la policy `news_posts_public_select` ni los privilegios de authenticated y
+service_role. El Studio lee igual.
+
+**Efecto visible.** `select=*` con la clave anon pasa a dar 42501. Ninguna lectura pública lo
+usa: lo prueba la prueba estática de la C1. /noticias, /noticias/[slug], su imagen OG y el
+sitemap piden las 18 columnas o solo `slug`.
+
+**Pruebas.**
+- Contrato `supabase/tests/0526_noticias_anon_solo_columnas_publicas.test.sql`, sobre las
+  migraciones reales 0053, 0055, 0057, 0140, 0518, 0525 y 0526:
+  - anon no lee `created_by`, `publish_via` ni las otras cuatro, no filtra por ellas y no pide `*`;
+  - las cuatro lecturas de `lib/public/news-queries.ts` siguen trayendo filas, y la RLS sigue
+    escondiendo la no publicada;
+  - authenticated y service_role siguen leyendo las columnas internas.
+- `lib/news/autopublicar/__tests__/noticias-0526.migration.test.ts` lo corre en PGlite, con:
+  - el control rojo: sin la 0526 cae en la primera aserción;
+  - el preflight que impide aplicarla dos veces;
+  - seis mutantes;
+  - la gemela: el `GRANT` de la 0526 es exactamente `COLUMNAS_PUBLICAS`. Si el sitio pide una
+    columna más sin migración, la prueba cae antes de que /noticias quede vacía en producción.
+
+**Estado.** Nace sin aplicar y declarada como espera en `supabase/migrations-baseline.json`.
+Aplicarla pide el OK de Sam nombrando el archivo y el runbook `aplicar-migraciones-prod`.
+- Antes de aplicarla, la web desplegada tiene que ser una que ya pida columnas explícitas: la C1
+  está en `main`.
+- Deshacer: `grant select on public.news_posts to anon;`.
+
+#### 11.4.1 Decisión abierta para Sam: retención de `actor_id`
+
+**No la decide esta PR.** Las columnas de §11.3.1 (b) siguen guardando el uuid de una persona del
+Studio sin plazo:
+- `news_post_exits.actor_id`;
+- `news_publication_audit.actor_id`;
+- `news_autopublish_settings.updated_by`;
+- `news_autopublish_settings_log.changed_by`.
+
+Ninguna es legible por anon: la 0518 les quitó todo. N1 no cambia esa situación, y la 0526 no
+toca esas tablas. Falta que Sam fije:
+- el plazo de retención de esas columnas, o de sus filas: por ejemplo, 24 meses, como propone el
+  hallazgo 7 de [`privacidad.md`](privacidad.md);
+- si al vencer se borra la fila o solo se vacía el uuid;
+- si la purga va en la PR del cron, como dice §11.3.1.
+
+Antes de encender, el plazo tiene que estar decidido (§11.3.1).
+
+#### 11.4.2 Allowlist exacta de esta PR (N1)
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0526_noticias_anon_solo_columnas_publicas.sql` | Nuevo: la migración 0526, sin aplicar |
+| `supabase/tests/0526_noticias_anon_solo_columnas_publicas.test.sql` | Nuevo: contrato SQL de la 0526 |
+| `lib/news/autopublicar/__tests__/noticias-0526.migration.test.ts` | Nuevo: el contrato en PGlite, el control rojo, los mutantes y la gemela |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0526 en `pendingBelowCutoff` |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §7 y este §11.4 |
+| `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
+| `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 

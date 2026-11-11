@@ -55,6 +55,18 @@ El transporte es el de la 0606:
 
 Los titulares del personal son Sam, Alejandro y los admins. No hay datos de clientes en ninguna columna nueva.
 
+### `news_posts`: lo que lee el público (N1, migración 0526, 2026-11-11)
+
+| Tabla.campo | Qué es | Quién lo ve hasta la 0526 | Quién lo ve con la 0526 |
+|---|---|---|---|
+| `news_posts.created_by` | uuid de la persona del Studio que creó la noticia | Cualquiera con la clave anon (GRANT de tabla de la 0055) | Sesiones del Studio (authenticated; la RLS les deja ver las publicadas) y service_role |
+| `news_posts.publish_via` | `manual` o `automatica` | Ídem | Ídem |
+| `news_posts.seo_draft_id`, `.content_sha256`, `.tenant_id`, `.source` | Datos internos del flujo | Ídem | Ídem |
+
+anon conserva solo las 18 columnas que pide el sitio (`COLUMNAS_PUBLICAS`). La 0526 está **sin
+aplicar**; mientras no se aplique vale la columna del medio. La retención de `actor_id` y de las
+otras columnas con uuid del personal sigue abierta para Sam (spec §11.4.1, hallazgo 7).
+
 ## 3 · Hallazgos y puntos
 
 | # | Punto del checklist | Estado | Evidencia y comentario |
