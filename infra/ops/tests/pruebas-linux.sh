@@ -53,7 +53,7 @@ declare -A PISO=(
   [infra/ops/tests/prueba-restore-event-triggers.sh]=78
   [infra/ops/tests/prueba-portal-historial.sh]=139
   [infra/ops/tests/prueba-respaldo-storage.sh]=90
-  [infra/ops/tests/prueba-vigilar-chatwoot.sh]=101
+  [infra/ops/tests/prueba-vigilar-chatwoot.sh]=102
 )
 # PRUEBAS_LINUX_PISOS («ruta=n» por línea) la usa sólo pruebas-linux.test.mjs, para probar el piso con pruebas de mentira.
 if [ -n "${PRUEBAS_LINUX_PISOS:-}" ]; then

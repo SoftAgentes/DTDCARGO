@@ -95,6 +95,7 @@ mutantes() {
   mutar vigilar "sin el control de días" '[ $((IG_VENCE - IG_TS)) -lt $((U_IG_DIAS * 86400)) ] && MOTIVOS' 'false && MOTIVOS'
   mutar vigilar "días medidos contra la hora actual (suena en cada ciclo)" '[ $((IG_VENCE - IG_TS)) -lt' '[ $((IG_VENCE - AHORA)) -lt'
   mutar vigilar "días fijos, sin UMBRAL_INSTAGRAM_DIAS" 'U_IG_DIAS="${UMBRAL_INSTAGRAM_DIAS:-10}"' 'U_IG_DIAS=10'
+  mutar vigilar "cero canales de Instagram cuenta como verde" 'MOTIVOS+=("token Instagram: ningún canal de Instagram")' ':'
   mutar vigilar "vencimiento ilegible cuenta como verde" 'else
       MOTIVOS+=("token Instagram sin lectura")' 'else
       :'
@@ -276,7 +277,8 @@ down_con "le quedaban 50 días al renovar" && ok "UMBRAL_INSTAGRAM_DIAS=60: 50 d
 base; ig_estado ok 23 245 1; vigilar --sin-latido
 up && [ "$(col ig_dias)" = 9 ] && ok "renovado hace 23 h con 10,2 días: hoy le quedan 9 (ig_dias=9) y sigue up, sin falsa alarma" || { ko "falsa alarma: «${LINEA}» ig_dias=$(col ig_dias)"; ver; }
 base; printf 'ts_epoch=%s\nresultado=ok\ncanales=0\nvence_min_epoch=\n' "$(date +%s)" > "${IG}"; vigilar --sin-latido
-up && [ "$(col ig_dias)" = "" ] && ok "cero canales de Instagram: up, ig_dias vacío" || { ko "cero canales: «${LINEA}»"; ver; }
+down_con "token Instagram: ningún canal de Instagram" && [ "$(col ig_dias)" = "" ] \
+  && ok "cero canales de Instagram: down «ningún canal de Instagram» (DTD tiene uno: es una lectura rota o una bandeja borrada), ig_dias vacío" || { ko "cero canales: «${LINEA}»"; ver; }
 base; printf 'ts_epoch=%s\nresultado=ok\ncanales=1\nvence_min_epoch=\n' "$(date +%s)" > "${IG}"; vigilar --sin-latido
 down_con "token Instagram sin lectura" && ok "un canal sin fecha de vencimiento: sin lectura" || { ko "sin vencimiento: «${LINEA}»"; ver; }
 

@@ -41,7 +41,7 @@ Los monitores HTTP se crean en la UI de Uptime Kuma (no hay API de escritura que
 | — | — | `psql` falla o devuelve algo que no son tres números («cupo WhatsApp sin lectura»), o no hay ninguna bandeja de WhatsApp («ninguna bandeja de WhatsApp»): un hueco no cuenta como verde |
 | `UMBRAL_INSTAGRAM_DIAS` | 10 | al terminar la última renovación le quedaban menos de 10 días al token: «le quedaban D días al renovar» |
 | `UMBRAL_INSTAGRAM_HORAS` | 26 | la última renovación fue hace más de 26 h: «sin renovar hace H h» |
-| — | — | la renovación salió `falla` («la renovación falló (motivo)»), o falta el estado o no se puede leer («token Instagram sin lectura») |
+| — | — | la renovación salió `falla` («la renovación falló (motivo)»), o falta el estado o no se puede leer («token Instagram sin lectura»), o la renovación no encontró ningún canal («ningún canal de Instagram»): DTD tiene uno, la bandeja 5, así que cero es una lectura rota o una bandeja borrada |
 
 **Columnas nuevas del CSV:** `wa_salientes_max` (la bandeja con más salientes del mes), `wa_fallas_24h` (la suma de fallas) e `ig_dias` (días que le quedan hoy al token). Las de WhatsApp quedan vacías si no hubo lectura: un hueco no es un 0. Si el CSV existente tiene otra cabecera, de la versión anterior, `vigilar.sh` lo renombra a `chatwoot-vigilancia.csv.hasta-<fecha>` y empieza otro: mezclar las dos formas descuadra `--resumen`. El viejo se sigue resumiendo con `--resumen --csv <ese archivo>`.
 
@@ -59,7 +59,7 @@ El estado queda en `/var/lib/chatwoot-vigilancia/instagram-token.estado`, en for
 
 ### 2 ter · Instalar las alarmas de 2026-11-06 en el VPS
 
-Lo revisa e instala el Director General; no es parte de la PR. El orden importa: si `vigilar.sh` se instala antes de que exista un estado de Instagram, el monitor pasa a `down` («token Instagram sin lectura») hasta la primera renovación.
+Lo revisa e instala el Director General; no es parte de la PR. **Instalarlo en producción necesita el OK nominal de Sam**: aprobar o fusionar la PR no lo cubre. **Desde el 2026-12-20**, cuando al token le quedan menos de 10 días antes del 2026-12-30, cada corrida diaria llama a `graph.instagram.com/refresh_access_token` hasta que el token se renueva. Ese es el único contacto de este guion con Meta. El orden importa: si `vigilar.sh` se instala antes de que exista un estado de Instagram, el monitor pasa a `down` («token Instagram sin lectura») hasta la primera renovación.
 
 ```bash
 # 1. Copiar las piezas (desde el checkout de main integrado), con su huella

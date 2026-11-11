@@ -33,7 +33,7 @@ El tercer punto de 4.9, el escalado del tope inicial de mensajes que inicia DTD,
 1. **Los días del token se miden al renovar, no contra la hora actual (E1-D11).** Lo acordado fue una «alarma si a `expires_at` le quedan menos de 10 días». Chatwoot renueva justo cuando faltan menos de 10 días. Con una corrida diaria, un token sano baja hasta ~9 días entre dos corridas, así que medirlo contra la hora actual haría sonar la alarma hasta 24 h en cada ciclo de ~50 días. `vigilar.sh` toma los días que le quedaban **al terminar la última renovación**, que es cuando tuvo su oportunidad de renovarse. Lo complementa con `resultado=falla` y con «sin renovar hace más de 26 h». La prueba lo fija: renovado hace 23 h con 10,2 días, hoy le quedan 9 y sigue `up`. El mutante «días medidos contra la hora actual» muere ahí. Cambiarlo es una línea.
 2. **Una renovación fallida no sale como error.** Leído en el código de v4.19.1: `Instagram::RefreshOauthTokenService#attempt_token_refresh` tiene `rescue StandardError` y devuelve el token viejo. Por eso `renovar-instagram.sh` marca `falla` si después de intentarlo a algún canal le quedan menos de 10 días. Lo mismo vale si leer el token lanzó una excepción, si rails no corre, si `rails runner` sale distinto de 0 o si el resumen no cuadra.
 3. **La consulta usa `now()` pasado a UTC también en la ventana de 24 h (E1-D12).** La del handoff de 4.9 hacía `m.created_at >= now() - interval '24 hours'`. `created_at` es timestamp sin zona en UTC, así que con la sesión de Postgres en otra zona el resultado cambia: con la sesión en Caracas, una falla de hace 25 h contaba. Hoy la sesión del contenedor está en UTC por omisión de la imagen (I, no medido en el VPS), así que en la práctica daba lo mismo. La prueba tiene ese mutante y lo mata.
-4. **Cero bandejas de WhatsApp es `down`** («ninguna bandeja de WhatsApp»). DTD tiene dos, la 1 de prueba y la 2 de Clientes, así que cero filas significa una lectura rota, por ejemplo otro `channel_type` tras una versión. La especificación no lo decía; va en la misma línea de «un hueco no cuenta como verde».
+4. **Cero bandejas de WhatsApp es `down`** («ninguna bandeja de WhatsApp»). DTD tiene dos, la 1 de prueba y la 2 de Clientes, así que cero filas significa una lectura rota, por ejemplo otro `channel_type` tras una versión. La especificación no lo decía; va en la misma línea de «un hueco no cuenta como verde». **Desde el 2026-11-11, cero canales de Instagram también es `down`** («ningún canal de Instagram»). DTD tiene uno, la bandeja 5. Antes de ese ajuste quedaba en verde, y lo marcó la revisión del DG.
 5. **El mismo monitor Push** («Chatwoot · recursos del host», #7) recibe los dos controles nuevos en `MOTIVOS`, como permitía la especificación. Si Sam prefiere un monitor propio para WhatsApp o para Instagram, lo crea él en Uptime Kuma y el guion necesita un segundo latido.
 
 ### Privacidad
@@ -54,11 +54,27 @@ El tercer punto de 4.9, el escalado del tope inicial de mensajes que inicia DTD,
 | `vitest run infra/ops/tests/vigilar-whatsapp.test.mjs scripts/__tests__/ci-workflow-contract.test.mjs` | PASÓ, 71 de 71 (23 de PGlite, con 13 mutantes de SQL muertos, y el contrato del CI con la prueba nueva clasificada) |
 | `node scripts/build-docs-index.mjs --check` · `node scripts/check-numbering.mjs` · `git diff --check` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: es un cambio de infraestructura y documentación, sin producto. El CI de la PR corre lint, typecheck, unitarios, bash de operaciones, docs y build |
-| CI de la PR | ver el cierre |
+| CI de la PR sobre `a91585e5f` (2026-11-06) | PASÓ, job 128076393935. `prueba-vigilar-chatwoot.sh`: 101 PASÓ en 62 s, es decir 54 de la suite (Ruby real incluido), 2 controles rojos y 45 mutantes muertos. `vigilar-whatsapp.test.mjs`: 23 tests |
+| CI de la PR sobre `e462324de`, con `main` fusionado (2026-11-11) | PASÓ, Calidad 130667128558, de 16:49:57Z a 17:35:44Z. `prueba-vigilar-chatwoot.sh`: 101 PASÓ contra el piso de 101, en 45 s; las 11 pruebas bash en verde. `vigilar-whatsapp.test.mjs`: 23 tests |
+| El ajuste en local (2026-11-11, Git Bash, un proceso) | PASÓ. Con `PRUEBA_SECCIONES="vigilar e2e"`: 36 PASÓ · 0 FALLÓ, con el caso de cero canales en verde sobre el guion real. Con `MUTANTES_SOLO="cero canales de Instagram"`: los 2 controles rojos y el mutante caen, y el mutante cae justo en ese caso («vigilar: up · ok»). En seco, los 46 mutantes están bien armados. `bash -n`, `docs:check` y `git diff --check` pasaron |
+| CI del ajuste de la revisión (2026-11-11) | NO DISPONIBLE: GitHub Actions está bloqueado por facturación desde las 17:24Z, según el Subdirector. El conteo esperado es 102: la suite no cambia de tamaño, porque el caso de cero canales se reescribió, y se suma un mutante |
+
+## Integración con `main` (2026-11-11)
+
+- Encargo del DG, por el Subdirector: traer `main` (`e1fd0e2be`, con la #403, la #420 y la #510) con merge, sin rebase. Merge `e462324de`.
+- `merge-tree` mostró un solo choque, en `infra/ops/tests/pruebas-linux.sh`. Se conservaron la lista y los pisos de `main` (#480 N4: portal-historial 139 y respaldo-storage 90). Se sumó `prueba-vigilar-chatwoot.sh` con piso 101, el conteo medido en el job 128076393935. El diff contra `main` en ese archivo son esas dos líneas.
+- Se subió con el orden de la 0621: push con la PR en borrador (16:46:43Z), `skipped` terminado (16:47:03Z) y `gh pr ready` (16:48:00Z). La corrida real no se canceló.
+- El DG aprobó `e462324de`: datos personales, fallo cerrado, el choque de `pruebas-linux.sh`, los mutantes y que no haya instalación automática.
+
+## Ajustes de la revisión del DG (2026-11-11, un commit)
+
+- (a) `vigilar.sh`: cero canales de Instagram pasa a `down` («token Instagram: ningún canal de Instagram»), igual que cero bandejas de WhatsApp. El caso de la prueba se reescribió: antes exigía `up`, y ahora exige `down` con ese motivo y `ig_dias` vacío. Se agregó el mutante «cero canales de Instagram cuenta como verde». Base limpia: el caso pasa con el guion real y cae con el mutante. El piso sube a 102.
+- (b) Runbook §2 ter: la instalación en producción necesita el OK nominal de Sam. Desde el 2026-12-20, cada corrida llama a `graph.instagram.com/refresh_access_token` hasta que el token se renueva.
+- (c) SDD-0583, allowlist: `pruebas-linux.sh` lleva dos líneas (la ruta y el piso).
 
 ## Pendientes de esta tarea
 
-- Que el CI de la PR quede en verde, con los 45 mutantes y el Ruby real en el runner.
+- Que el CI corra sobre la cabeza del ajuste cuando se levante el bloqueo de facturación, y que `prueba-vigilar-chatwoot.sh` dé 102 PASÓ contra su piso.
 - **Instalación en el VPS: la revisa y la corre el Director General**, en el orden del runbook §2 ter: primero la renovación y su estado, después `vigilar.sh`. No se instaló nada.
 - Filas del checklist de la SDD-0582: 4.9 (puerta 7 hecha en PR, sin instalar), 4.5 y 8.2 (la condición queda cumplida al instalar) y 4.6 (el cron del token y su alarma, antes del 2026-12-20). No las toqué: son filas largas que otras sesiones editan, y el estado real cambia al instalar. Las actualiza el Subdirector o el Director General al integrar.
 
@@ -76,4 +92,4 @@ El tercer punto de 4.9, el escalado del tope inicial de mensajes que inicia DTD,
 
 ## Handoff al Director General
 
-Rama `claude/jolly-tesla-14031c`, PR en borrador. Para instalar: runbook §2 ter, en orden. La decisión 1 (días al renovar) es la que más conviene mirar antes de fusionar.
+Rama `claude/jolly-tesla-14031c`, PR #402 lista. `e462324de` está aprobada por el DG. El delta del ajuste (a, b, c) va en un solo commit y lo revisa él. Para instalar: runbook §2 ter, en orden, con el OK nominal de Sam para producción.

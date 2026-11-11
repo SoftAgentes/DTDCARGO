@@ -191,6 +191,10 @@ else
     else
       MOTIVOS+=("token Instagram sin lectura")
     fi
+  else
+    # DTD tiene un canal de Instagram (bandeja 5): cero canales es una lectura rota o una
+    # bandeja borrada, no un verde. Igual que cero bandejas de WhatsApp.
+    MOTIVOS+=("token Instagram: ningún canal de Instagram")
   fi
 fi
 
