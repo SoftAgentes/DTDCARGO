@@ -24,13 +24,43 @@ import {
   type CotizacionFieldErrors,
 } from "@/lib/portal/cotizacion-request";
 import { notifyCotizacionRequestToAdmin } from "@/lib/studio/cotizacion-request-notify";
+import {
+  isClientRequestConflict,
+  isMissingClientRequestColumn,
+  readClientRequestId,
+} from "@/lib/shared/client-request";
 
 export type CotizacionRequestState = {
   ok?: boolean;
   createdCode?: string;
+  /** La cotización ya existía: un reintento del mismo envío (SDD-0599). */
+  replayed?: boolean;
   error?: string;
   fieldErrors?: CotizacionFieldErrors;
 };
+
+/** El código de la cotización que ya creó este intento. Sin 0512 la columna no existe, y sigue como un envío nuevo. */
+async function findQuoteCodeByRequest(
+  admin: ReturnType<typeof createAdminClient>,
+  args: { tenantId: string; markbox: string; requestId: string },
+): Promise<string | null> {
+  const { data, error } = await admin
+    .from("quotes")
+    .select("quote_code")
+    .eq("tenant_id", args.tenantId)
+    .eq("client_markbox", args.markbox)
+    .eq("client_request_id", args.requestId)
+    .is("deleted_at", null)
+    .maybeSingle<{ quote_code: string }>();
+  return error ? null : (data?.quote_code ?? null);
+}
+
+/** Un reintento del mismo envío responde lo mismo que el primero, sin otro correlativo ni otro aviso al asesor. */
+function replayCotizacion(createdCode: string): CotizacionRequestState {
+  revalidatePath("/portal/cotizaciones");
+  revalidatePath("/portal");
+  return { ok: true, createdCode, replayed: true };
+}
 
 export async function requestCotizacionAction(
   _prev: CotizacionRequestState,
@@ -67,6 +97,14 @@ export async function requestCotizacionAction(
     };
   }
 
+  // Antes de gastar un correlativo: si este intento ya creó la cotización, no crea otra.
+  const requestId = readClientRequestId(formData);
+  const scope = { tenantId, markbox: client.markbox };
+  if (requestId) {
+    const existing = await findQuoteCodeByRequest(admin, { ...scope, requestId });
+    if (existing) return replayCotizacion(existing);
+  }
+
   // 4. Correlativo EST-YYYY-NNNN (misma serie que el resto de estimados/cotizaciones).
   const { data: codeData, error: codeErr } = await admin.rpc(
     "next_estimate_code",
@@ -82,11 +120,22 @@ export async function requestCotizacionAction(
     clientMarkbox: client.markbox,
     clientName: client.name,
   });
-  const { error: insertErr } = await admin.from("quotes").insert({
-    tenant_id: tenantId,
-    quote_code: code,
-    ...row,
-  });
+  const fila = { tenant_id: tenantId, quote_code: code, ...row };
+  const insertar = (valores: typeof fila & { client_request_id?: string }) =>
+    admin.from("quotes").insert(valores);
+
+  let { error: insertErr } = await insertar(
+    requestId ? { ...fila, client_request_id: requestId } : fila,
+  );
+  // Sin 0512 la columna no existe: la cotización entra sin candado, como antes.
+  if (isMissingClientRequestColumn(insertErr)) {
+    ({ error: insertErr } = await insertar(fila));
+  }
+  if (requestId && isClientRequestConflict(insertErr)) {
+    // Otro intento del mismo envío ganó la carrera: esa es la cotización.
+    const existing = await findQuoteCodeByRequest(admin, { ...scope, requestId });
+    if (existing) return replayCotizacion(existing);
+  }
   if (insertErr) {
     return { error: "No pudimos registrar tu cotización. Intenta de nuevo." };
   }

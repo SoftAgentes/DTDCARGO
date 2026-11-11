@@ -39,6 +39,9 @@ export function ShippingMarkCta({
       className={className}
       // El botón se apila para que el tachado quede DEBAJO, no al lado.
       style={{
+        // Dos renglones + tachado: la altura fija de .btn no contiene el par.
+        // Crece con el texto y el padding en ambos CTA, también al ampliarlo.
+        height: "auto",
         flexDirection: "column",
         gap: 2,
         lineHeight: 1.2,

@@ -20,8 +20,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -49,7 +49,7 @@ function inline(file: string): string {
 }
 
 async function radiografia(siembra: "limpio" | "sucio" | null, consulta = CONSULTA): Promise<string[]> {
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   try {
     await db.exec(inline(FIXTURE));
     if (siembra) await db.exec(`select pg_temp.sembrar_${siembra}();`);

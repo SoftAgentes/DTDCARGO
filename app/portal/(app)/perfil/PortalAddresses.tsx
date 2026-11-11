@@ -15,6 +15,7 @@ import {
 } from "./address-actions";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const initial: AddressActionState = {};
 
@@ -336,7 +337,11 @@ function AddForm({
   onDone: () => void;
   cities: AddressCity[];
 }) {
-  const [state, action, pending] = useActionState(addAddressAction, initial);
+  const [state, formProps, pending] = useActionKeepingDraft(
+    addAddressAction,
+    initial,
+    "No pudimos confirmar si la dirección se guardó. Lo que escribiste sigue aquí. Intenta de nuevo: no se guardará dos veces.",
+  );
   const fe = state.fieldErrors;
 
   // Al confirmarse, cerramos el form (la lista ya se revalidó server-side).
@@ -346,7 +351,7 @@ function AddForm({
 
   return (
     <form
-      action={action}
+      {...formProps}
       className="mt-4 rounded-[12px] border border-grey-200 bg-white p-4 flex flex-col gap-3"
     >
       <AddressFields cities={cities} errors={fe} />
@@ -386,14 +391,18 @@ function EditForm({
   cities: AddressCity[];
   onDone: () => void;
 }) {
-  const [state, action, pending] = useActionState(updateAddressAction, initial);
+  const [state, formProps, pending] = useActionKeepingDraft(
+    updateAddressAction,
+    initial,
+    "No pudimos confirmar si los cambios se guardaron. Lo que escribiste sigue aquí. Intenta de nuevo.",
+  );
 
   useEffect(() => {
     if (state.ok) onDone();
   }, [state.ok, onDone]);
 
   return (
-    <form action={action} className="flex w-full flex-col gap-3">
+    <form {...formProps} className="flex w-full flex-col gap-3">
       <input type="hidden" name="addressId" value={address.id} />
       <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
         Editar dirección

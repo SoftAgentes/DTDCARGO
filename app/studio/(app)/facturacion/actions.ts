@@ -792,16 +792,17 @@ export async function voidInvoice(
   if (denial) return { error: denial };
 
   // Anular es accounting/admin: gate del módulo "invoices" (SDD-0085) — resuelve
-  // el viejo TODO de permisos.
+  // el viejo TODO de permisos. La RPC (0497) vuelve a exigirlo en la base.
   const { data: current, error: readErr } = await supabase
     .from("invoices")
-    .select("id, tenant_id, status, invoice_code")
+    .select("id, tenant_id, status, invoice_code, paid_amount")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       tenant_id: string;
       status: string;
       invoice_code: string;
+      paid_amount: number | string | null;
     }>();
   if (readErr || !current) return { error: "Factura no encontrada." };
   if (current.status === "pagada") {
@@ -809,6 +810,59 @@ export async function voidInvoice(
   }
   if (current.status === "anulada") {
     return { error: "Esta factura ya está anulada." };
+  }
+
+  // SDD-0573: con cobros vivos la base no la anula. Se mira ANTES de revertir el
+  // crédito, para no liberarlo en una anulación que igual se va a rechazar. La
+  // RPC lo vuelve a contar bajo el lock de la factura, que es lo que manda.
+  // Un conteo desconocido no habilita efectos; sólo cuentan los recibos del tenant actual.
+  const { count: recibosVivos, error: recibosError } = await supabase
+    .from("payment_receipts")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", current.tenant_id)
+    .eq("invoice_id", id)
+    .is("deleted_at", null);
+  if (recibosError || recibosVivos == null) {
+    return {
+      error:
+        "No se pudieron comprobar los cobros de esta factura. Intenta de nuevo antes de anularla.",
+    };
+  }
+  if (recibosVivos > 0) {
+    return { error: `La factura tiene ${recibosVivos} cobro(s) vivo(s): anúlalos primero en Cobranzas.` };
+  }
+
+  // SDD-0573: la base no anula una factura con abono sin recibo (decisión del
+  // Director, 2026-10-20). El abono de un crédito de referido se revierte
+  // PRIMERO, por la RPC revert_referral_credits (0471, factura FOR UPDATE), que
+  // no exige la factura anulada. Antes (SDD-0137 §3.6 y 0495/0496) la reversión
+  // corría después de anular y era best-effort; ahora, si el crédito no vuelve,
+  // la factura no se anula: no queda un crédito pegado a una anulada.
+  let warning: string | undefined;
+  let liberados = 0;
+  if (Number(current.paid_amount ?? 0) > 0) {
+    const revert = await revertReferralCreditsForInvoice(
+      supabase,
+      current.tenant_id,
+      current.id,
+    );
+    if (!revert.ok) {
+      console.error(
+        `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
+        revert.error,
+      );
+      if (revert.failure !== "entries") {
+        return {
+          error:
+            "No se pudo liberar el crédito de referido aplicado a esta factura, así que no se anuló. Intenta de nuevo; si sigue, pásaselo a contabilidad con el código de la factura.",
+        };
+      }
+      // "entries": la plata volvió entera; lo que quedó vivo es el asiento del
+      // crédito. La anulación sigue, con su aviso (SDD-0496).
+      warning = voidReferralRevertWarning(revert.failure);
+    }
+    liberados = revert.reverted;
+    if (liberados > 0 || warning) revalidatePath("/studio/fidelizacion");
   }
 
   const { data: changed, error } = await supabase.rpc(
@@ -819,49 +873,32 @@ export async function voidInvoice(
     },
   );
 
-  if (error) return { error: error.message };
-  if (!changed) return { error: "La factura ya no admite anulación." };
-
-  // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
-  // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no
-  // se "quema" por una factura anulada. Best-effort: no bloquea la anulación.
-  // SDD-0496: la reversión va por la RPC revert_referral_credits (0471), con la
-  // factura FOR UPDATE, y corre con el cliente del usuario (ya pasó el gate de
-  // dinero de "invoices", que es el mismo accounting/admin que la RPC exige).
-  const revert = await revertReferralCreditsForInvoice(
-    supabase,
-    current.tenant_id,
-    current.id,
-  );
-  let warning: string | undefined;
-  if (!revert.ok) {
-    console.error(
-      `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
-      revert.error,
-    );
-    // SDD-0495: el log era lo ÚNICO que pasaba. Quien anulaba veía un éxito
-    // limpio mientras el crédito quedaba colgado de una factura anulada. Ahora
-    // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
-    // y la de Fidelización) porque sus roles no se solapan.
-    //
-    // SDD-0496: el aviso se elige por QUÉ falló, no por cuántos se liberaron.
-    // Cuando la 0495 lo escribió, la reversión recorría los créditos de a uno y
-    // `reverted > 0` con `ok: false` quería decir «unos sí y otros no». Ahora es
-    // UNA transacción (revert_referral_credits, migr 0471): todos o ninguno. Lo
-    // que `reverted > 0` significa hoy con `ok: false` es lo CONTRARIO —la plata
-    // volvió entera y lo que quedó colgado es el asiento—, así que elegir por el
-    // conteo diría que hay créditos varados justo cuando no queda ninguno.
-    warning = voidReferralRevertWarning(revert.failure);
-    // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
-    // el crédito varado: las dos vistas dependen del estado que acaba de
-    // quedar inconsistente, así que las dos se revalidan.
-    revalidatePath("/studio/fidelizacion");
-  } else if (revert.reverted > 0) {
-    revalidatePath("/studio/fidelizacion");
+  // SDD-0573: solo los mensajes propios de la 0497 (hint dtd-anular) y el del
+  // motivo; nunca el texto crudo de la base (ERR-01).
+  const yaLiberado = liberados > 0
+    ? " El crédito de referido que tenía aplicado ya volvió a estar disponible."
+    : "";
+  if (error) {
+    if (error.hint === "dtd-anular" && error.message) return { error: error.message + yaLiberado };
+    if (error.code === "22023" && error.message?.startsWith("audit: reason")) {
+      return { error: "El motivo debe tener entre 4 y 1000 caracteres." + yaLiberado };
+    }
+    console.error("[facturacion] anular:", error.code, error.message);
+    return { error: "No se pudo anular la factura. Intenta de nuevo." + yaLiberado };
   }
+  // Sólo null en el transporte y un booleano acreditan el ACK. Un valor
+  // inesperado no demuestra rechazo ni permite afirmar que no hubo efectos.
+  if (error !== null || (changed !== true && changed !== false)) {
+    return {
+      error:
+        "No se pudo confirmar la anulación de la factura. Revisa su estado antes de volver a intentar." + yaLiberado,
+    };
+  }
+  if (changed === false) return { error: "La factura ya no admite anulación." + yaLiberado };
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
+  revalidatePath("/studio/contabilidad");
   return warning ? { ok: true, warning } : { ok: true };
 }
 

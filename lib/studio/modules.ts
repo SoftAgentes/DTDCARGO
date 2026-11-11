@@ -122,6 +122,8 @@ export const MODULES: ModuleDef[] = [
   { id: "clients", group: "COMERCIAL", label: "Clientes", labelKey: "chrome.sidebar.clients", icon: "users", slug: "/studio/clientes" },
   // CRM / relación
   { id: "conversaciones", group: "COMERCIAL", label: "Conversaciones", icon: "mail", slug: "/studio/conversaciones" },
+  // Bandeja de Chatwoot dentro de Studio (SDD-0585). Detrás del flag `chatwoot_inbox`.
+  { id: "bandeja", group: "COMERCIAL", label: "Bandeja", labelKey: "chrome.sidebar.inbox", icon: "chat", slug: "/studio/bandeja" },
   // Una sola entrada de CRM (founder 2026-08-11). El rótulo es neutro respecto
   // al proveedor: si mañana cambiamos de herramienta, sobrevive. El `id` sigue
   // siendo "kommo" a propósito — es la clave de RBAC y de las tablas, plomería.

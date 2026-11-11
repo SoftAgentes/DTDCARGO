@@ -7,7 +7,7 @@
 #
 # Pasos:
 #   1. Guardas: proyecto `*-staging` y nunca producción; imagen
-#      ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha>, exactamente la del --sha.
+#      ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>, exactamente la del --sha.
 #   2. `docker pull` de la imagen.
 #   3. verificar-aislamiento.sh completo (secretos, integraciones, Vault, bundle):
 #      si algo FALLA, no se cambia nada.
@@ -23,7 +23,7 @@
 #
 # Uso (en el VPS):
 #   desplegar-prueba.sh --project dtd-cargo-staging --sha <40 hex> \
-#       --image ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<40 hex> \
+#       --image ghcr.io/softagentes/dtdcargo:prueba-sha-<40 hex> \
 #       [--pr <número>] [--quien <texto>] [--project-dir /srv/dtd-cargo-staging] \
 #       [--prod-env /srv/dtd-cargo/.env] [--ip 127.0.0.1] [--evidence-dir /srv/ops/evidencias] [--dry-run]
 #

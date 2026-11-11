@@ -15,7 +15,7 @@ async function execute(vars: Record<string,string>) {
   catch (error) { return error instanceof Error ? error.message : String(error); }
   finally { await db.close(); }
 }
-describe("0499 · migración REAL, luego solo reloj instrumentado", () => {
+describe("0533 · migración REAL, luego solo reloj instrumentado", () => {
   it("composición0493: OLD/NEW, excepción real y tres guardas de gasto C1", async () => {
     expect(await execute({ ...off, apply_fix:"true", run_expenses:"true", run_closing:"true" })).toBeNull();
   },240_000);
@@ -23,10 +23,10 @@ describe("0499 · migración REAL, luego solo reloj instrumentado", () => {
     expect(await execute({ apply_fix:"true", run_portal:"false" })).toBeNull();
   },240_000);
   it.each([
-    ["defaults","TEST0499: default journal Caracas independiente de sesión"],
-    ["operations","TEST0499: cobro null captura Caracas una vez"],
-    ["auto_invoice","TEST0499: 0128 retorna fecha persistida misma ancla y vencimiento"],
-    ["expenses","TEST0499: origen Caracas cerrado sin asiento rechazado"],
+    ["defaults","TEST0533: default journal Caracas independiente de sesión"],
+    ["operations","TEST0533: cobro null captura Caracas una vez"],
+    ["auto_invoice","TEST0533: 0128 retorna fecha persistida misma ancla y vencimiento"],
+    ["expenses","TEST0533: origen Caracas cerrado sin asiento rechazado"],
   ])("control rojo permanente anterior: %s", async (group,message) => {
     expect(await execute({ ...off, apply_fix:"false", [`run_${group}`]:"true" })).toBe(message);
   },240_000);

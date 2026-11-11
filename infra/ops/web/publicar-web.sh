@@ -14,7 +14,7 @@
 # el 2026-10-16 (primera publicación sin Vercel) y conserva su interfaz:
 # `publicar-web.sh <sha>`.
 #
-# Qué hace `vigilar`: baja ghcr.io/hailuwaycom-sketch/dtdcargo:publicable (la
+# Qué hace `vigilar`: baja ghcr.io/softagentes/dtdcargo:publicable (la
 # etiqueta que mueve el workflow publicable.yml solo con imagen y CI en verde),
 # lee el commit de la etiqueta org.opencontainers.image.revision y, si no es lo
 # que corre, lo publica:
@@ -36,8 +36,11 @@
 #
 # Interruptor: el archivo /srv/ops/web/CONGELADO (`congelar`). Un candado (flock)
 # impide dos publicaciones a la vez. Evidencia de cada publicación en
-# /srv/ops/evidencias/publicar-web-*/ con SHA256SUMS. Avisos: Telegram y el
-# monitor push de Uptime Kuma de /srv/ops/web/publicar.env (root, 600). Nunca
+# /srv/ops/evidencias/publicar-web-*/ con SHA256SUMS. Avisos: el canal #publicaciones
+# de Discord por aviso-discord.sh (SDD-0609; reemplazó a Telegram el 2026-11-05,
+# corte directo) y el monitor push de Uptime Kuma, los dos con su dirección en
+# /srv/ops/web/publicar.env (root, 600). Un aviso que no sale queda en el log y
+# nunca cambia el resultado de la publicación. Nunca
 # imprime secretos ni escribe líneas `X=` vacías en el .env.
 #
 # Estado para el Studio (SDD-0547): al final de vigilar, publicar, volver,
@@ -52,11 +55,14 @@
 # · 3 uso · 4 entorno (flock, permisos).
 set -uo pipefail
 
-IMAGEN=ghcr.io/hailuwaycom-sketch/dtdcargo
+IMAGEN=ghcr.io/softagentes/dtdcargo
 ETIQUETA=publicable
 PROYECTO=dtd-cargo
 HOST_WEB=dtdcargo.com
-FUENTE=https://github.com/hailuwaycom-sketch/DTDCARGO
+# Cambio de nombre del perfil (2026-10-20), mismo repo ID 1246490707.
+# Dos fuentes exactas: canónica actual y alias para las imágenes históricas.
+readonly FUENTE=https://github.com/SoftAgentes/DTDCARGO
+readonly FUENTE_HISTORICA=https://github.com/hailuwaycom-sketch/DTDCARGO
 # Si difieren, el servidor quedó atrás del repo y cambiar la imagen no alcanza.
 BLOQUEAN="compose.yml compose.supabase.yml cron/Dockerfile cron/crontab cron/entrypoint.sh"
 
@@ -116,9 +122,9 @@ digest_de_ref() { printf '%s' "$1" | sed -nE 's/.*@(sha256:[0-9a-f]{64})$/\1/p';
 commit_url() { printf '%s/commit/%s' "${FUENTE}" "$1"; }
 
 cargar_config() {
-  CHAT="$(conf PUBLICAR_TELEGRAM_CHAT_ID)"
-  TG_TOKEN="$(conf PUBLICAR_TELEGRAM_BOT_TOKEN)"
-  [ -n "${TG_TOKEN}" ] || TG_TOKEN="$(envval TELEGRAM_BOT_TOKEN)"
+  # La dirección del webhook (PUBLICAR_DISCORD_WEBHOOK) la lee aviso-discord.sh del
+  # mismo archivo: no pasa por este script ni por su entorno.
+  AVISO="${PUBLICAR_AVISO_DISCORD:-${OPS}/aviso-discord.sh}"
   KUMA="$(conf PUBLICAR_KUMA_PUSH_URL)"; KUMA="${KUMA%%\?*}"
   CONSERVAR="$(conf PUBLICAR_CONSERVAR_IMAGENES)"; CONSERVAR="${CONSERVAR:-5}"
   MIN_LIBRE="$(conf PUBLICAR_MIN_LIBRE_GB)"; MIN_LIBRE="${MIN_LIBRE:-10}"
@@ -142,16 +148,16 @@ cerrar_evidencia() { # Después de SHA256SUMS ya no se escribe nada en la carpet
 
 # ─── avisos ──────────────────────────────────────────────────────────────────
 
-telegram() { # $1 = texto. El token viaja por stdin (-K -), nunca en la línea de comandos.
-  if [ -z "${CHAT}" ] || [ -z "${TG_TOKEN}" ]; then log "aviso por Telegram: sin configurar"; return 0; fi
-  local c
-  # Telegram corta en 4096 caracteres: con muchas migraciones faltantes el motivo
-  # completo no entra (la lista entera queda en la salida, es decir en el journal).
-  c="$(printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "${TG_TOKEN}" \
-    | curl -s -m 20 -o /dev/null -w '%{http_code}' -K - \
-        --data-urlencode "chat_id=${CHAT}" --data-urlencode "text=${1:0:3500}" --data-urlencode "disable_web_page_preview=true")"
-  log "aviso por Telegram: HTTP ${c:-sin respuesta}"
+enviar_discord() { # $1 = texto → 0 si salió (entregado, o incierto: pudo llegar); 1 si no salió.
+  # aviso-discord.sh valida la dirección, recorta a 2.000, respeta los 429 y nunca
+  # imprime la dirección; aquí solo se anota su única línea de resultado.
+  local salida rc
+  if [ ! -f "${AVISO}" ]; then log "aviso NO enviado: falta ${AVISO} (SDD-0609)"; return 1; fi
+  salida="$(printf '%s' "$1" | bash "${AVISO}" --config "${CONFIG}" 2>&1)"; rc=$?
+  log "${salida:-aviso por Discord: sin salida (código ${rc})}"
+  [ "${rc}" = 0 ] || [ "${rc}" = 5 ]
 }
+avisar() { enviar_discord "$1" || true; } # un aviso que no sale nunca cambia el resultado de la publicación
 kuma() { # $1 = up | down, $2 = mensaje. En cada vuelta: el monitor también vigila que el timer corra.
   [ -n "${KUMA}" ] || return 0
   printf 'url = "%s"\n' "${KUMA}" | curl -s -m 10 -o /dev/null -G -K - \
@@ -160,8 +166,9 @@ kuma() { # $1 = up | down, $2 = mensaje. En cada vuelta: el monitor también vig
 avisar_una_vez() { # $1 = clase, $2 = texto. Un aviso por motivo, no uno por minuto.
   local clave; clave="$1|$(printf '%s' "$2" | sha256sum | cut -c1-16)"
   if [ "$(cat "${ESTADO}/ultimo-aviso" 2>/dev/null)" = "${clave}" ]; then log "aviso ya enviado antes: $1"; return 0; fi
-  telegram "$2"
-  printf '%s\n' "${clave}" > "${ESTADO}/ultimo-aviso"
+  # Se recuerda solo si salió: sin Discord, el aviso se intenta otra vez en la vuelta siguiente.
+  enviar_discord "$2" && printf '%s\n' "${clave}" > "${ESTADO}/ultimo-aviso"
+  return 0
 }
 olvidar_aviso() { rm -f "${ESTADO}/ultimo-aviso" "${ESTADO}/ultimo-retenida"; }
 
@@ -284,7 +291,7 @@ validar_imagen() { # $1 = referencia local, $2 = revisión, $3 = digest
   [[ "$2" =~ ^[0-9a-f]{40}$ ]] || { MOTIVO="$1 no trae un commit válido en org.opencontainers.image.revision («$(printf '%s' "$2" | cut -c1-60)»)"; CODIGO=imagen; return 1; }
   [[ "$3" =~ ^sha256:[0-9a-f]{64}$ ]] || { MOTIVO="$1 no tiene digest de ${IMAGEN}"; CODIGO=imagen; return 1; }
   local f; f="$(etiqueta_de "$1" org.opencontainers.image.source)"
-  [ "${f,,}" = "${FUENTE,,}" ] || { MOTIVO="$1 no viene de ${FUENTE} (source «${f}»)"; CODIGO=imagen; return 1; }
+  [[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] || { MOTIVO="$1 no viene de ${FUENTE} ni de su alias histórico ${FUENTE_HISTORICA} (source «${f}»)"; CODIGO=imagen; return 1; }
 }
 
 # ─── puertas ─────────────────────────────────────────────────────────────────
@@ -546,7 +553,7 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
     # que corría): las protege por id, no por fecha.
     limpiar_imagenes "${nuevo_id}" "${previo_id}" "${corria_id}"
     olvidar_aviso
-    telegram "DTD Cargo · publicada $(corto "${sha}") en ${HOST_WEB} (${origen}). Prueba rápida: ${resumen:-sin resumen}. Antes: $(corto "$(sha_de_ref "${previo}")"). $(commit_url "${sha}")$( [ -n "${AVISOS_HUELLAS}" ] && printf ' · OJO, el servidor difiere del repo en:%s (no frena la web; revisar)' "${AVISOS_HUELLAS}")"
+    avisar "DTD Cargo · publicada $(corto "${sha}") en ${HOST_WEB} (${origen}). Prueba rápida: ${resumen:-sin resumen}. Antes: $(corto "$(sha_de_ref "${previo}")"). $(commit_url "${sha}")$( [ -n "${AVISOS_HUELLAS}" ] && printf ' · OJO, el servidor difiere del repo en:%s (no frena la web; revisar)' "${AVISOS_HUELLAS}")"
     kuma up "publicada $(corto "${sha}")"
     cerrar_evidencia
     return 0
@@ -559,7 +566,7 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
     printf '%s\n' "${previo}" > "${ESTADO}/publicada"
     log "vuelta atrás bien: la web sigue en $(corto "$(sha_de_ref "${previo}")"); $(corto "${sha}") queda rechazada"
     olvidar_aviso
-    telegram "DTD Cargo · vuelta atrás: $(corto "${sha}") falló (${fallo}). La web volvió a $(corto "$(sha_de_ref "${previo}")") y pasó la prueba rápida. Se publica sola de nuevo con el próximo merge. Evidencia: ${EVID}"
+    avisar "DTD Cargo · vuelta atrás: $(corto "${sha}") falló (${fallo}). La web volvió a $(corto "$(sha_de_ref "${previo}")") y pasó la prueba rápida. Se publica sola de nuevo con el próximo merge. Evidencia: ${EVID}"
     kuma down "$(corto "${sha}") falló y volvió: ${fallo}"
     cerrar_evidencia
     return 1
@@ -570,7 +577,7 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
   # El motivo del evento es el de la versión nueva: es lo que desató todo (el de
   # la vuelta atrás queda en el aviso urgente y en la evidencia).
   evento vuelta-atras-fallida "${sha}" "${origen}" "${fallo_codigo}"
-  telegram "URGENTE · DTD Cargo: falló la publicación de $(corto "${sha}") (${fallo}) y TAMBIÉN la vuelta atrás a $(corto "$(sha_de_ref "${previo}")") (${MOTIVO}). Publicación automática CONGELADA. Revisar ${HOST_WEB} ya. Evidencia: ${EVID}"
+  avisar "URGENTE · DTD Cargo: falló la publicación de $(corto "${sha}") (${fallo}) y TAMBIÉN la vuelta atrás a $(corto "$(sha_de_ref "${previo}")") (${MOTIVO}). Publicación automática CONGELADA. Revisar ${HOST_WEB} ya. Evidencia: ${EVID}"
   kuma down "URGENTE: vuelta atrás fallida"
   cerrar_evidencia
   return 2
@@ -676,7 +683,7 @@ volver() {
     marcar_rechazo "${dact}" "$(sha_de_ref "${actual}")" "vuelta atrás a mano"
     printf '%s\n' "${anterior}" > "${ESTADO}/publicada"
     evento vuelta-atras-a-mano "$(sha_de_ref "${anterior}")" a-mano ""
-    telegram "DTD Cargo · vuelta atrás a mano: la web volvió a $(corto "$(sha_de_ref "${anterior}")") y pasó la prueba rápida. Evidencia: ${EVID}"
+    avisar "DTD Cargo · vuelta atrás a mano: la web volvió a $(corto "$(sha_de_ref "${anterior}")") y pasó la prueba rápida. Evidencia: ${EVID}"
     kuma down "vuelta atrás a mano a $(corto "$(sha_de_ref "${anterior}")")"
     cerrar_evidencia; return 0
   fi
@@ -684,7 +691,7 @@ volver() {
   printf 'vuelta atrás a mano fallida a %s (%s) · %s\n' "${anterior}" "${MOTIVO}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${CONGELADO}"
   touch "${ESTADO}/congelado-automatico"   # lo congeló el script, no una persona
   evento vuelta-atras-fallida "$(sha_de_ref "${anterior}")" a-mano "${CODIGO}"
-  telegram "URGENTE · DTD Cargo: la vuelta atrás a $(corto "$(sha_de_ref "${anterior}")") falló (${MOTIVO}). Publicación automática CONGELADA. Evidencia: ${EVID}"
+  avisar "URGENTE · DTD Cargo: la vuelta atrás a $(corto "$(sha_de_ref "${anterior}")") falló (${MOTIVO}). Publicación automática CONGELADA. Evidencia: ${EVID}"
   kuma down "URGENTE: vuelta atrás fallida"
   cerrar_evidencia; return 2
 }
@@ -715,7 +722,11 @@ estado() {
   echo "rechazadas:  ${n:-0}"
   if [ -f "${ESTADO}/rechazados" ]; then sed 's/^/  /' "${ESTADO}/rechazados"; fi
   echo "esperas aceptadas a mano: $(tr '\n' ' ' < "${ESTADO}/pendientes-aceptadas" 2>/dev/null)"
-  echo "Telegram:    $([ -n "${CHAT}" ] && [ -n "${TG_TOKEN}" ] && echo configurado || echo 'SIN CONFIGURAR')"
+  if [ -f "${AVISO}" ]; then
+    echo "Discord:     $(bash "${AVISO}" --estado --config "${CONFIG}" 2>&1 | sed 's/^Discord: //')"
+  else
+    echo "Discord:     SIN INSTALAR (falta ${AVISO})"
+  fi
   echo "Uptime Kuma: $([ -n "${KUMA}" ] && echo configurado || echo 'SIN CONFIGURAR')"
   echo "última evidencia: $(find "${EVIDENCIAS}" -maxdepth 1 -name 'publicar-web-*' -printf '%f\n' 2>/dev/null | LC_ALL=C sort | tail -1)"
 }
@@ -733,14 +744,14 @@ case "${MODO}" in
     printf '%s · %s · %s\n' "$(printf '%s' "$1" | tr '\n' ' ')" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${SUDO_USER:-${USER:-root}}" > "${CONGELADO}"
     rm -f "${ESTADO}/congelado-automatico"   # este lo congeló una persona
     log "congelado: $(head -1 "${CONGELADO}")"
-    telegram "DTD Cargo · publicación automática congelada: $1"
+    avisar "DTD Cargo · publicación automática congelada: $1"
     ;;
   descongelar)
     [ -f "${CONGELADO}" ] || { echo "no estaba congelado"; exit 0; }
     ESCRIBIR_ESTADO=1
     log "descongelado (estaba: $(head -1 "${CONGELADO}"))"
     rm -f "${CONGELADO}" "${ESTADO}/congelado-automatico"
-    telegram "DTD Cargo · publicación automática descongelada: vuelve a seguir :${ETIQUETA}"
+    avisar "DTD Cargo · publicación automática descongelada: vuelve a seguir :${ETIQUETA}"
     ;;
   aceptar-pendiente)
     [[ "${1:-}" =~ ^[0-9]{4}[a-z]?_[a-z0-9_]+$ ]] || { echo "uso: aceptar-pendiente <nombre exacto de la migración, sin .sql>" >&2; exit 3; }

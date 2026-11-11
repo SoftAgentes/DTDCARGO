@@ -60,8 +60,11 @@ export function InvoiceDetailClient({
   defaultIvaMode = "sin_iva",
   ivaRateGeneral = 16,
   cashAccounts,
+  cobrosVivos = 0,
 }: {
   invoice: Invoice;
+  /** SDD-0573: los recibos vivos de la factura. Con alguno, no se anula. */
+  cobrosVivos?: number;
   ivaOn: boolean;
   fiscalModuleEnabled?: boolean;
   defaultIvaMode?: InvoiceIvaMode;
@@ -168,7 +171,26 @@ export function InvoiceDetailClient({
           </button>
         )}
 
-        {canVoid(invoice.status) && (
+        {canVoid(invoice.status) && cobrosVivos > 0 && (
+          // SDD-0573: con cobros vivos la base no anula. Se dice por qué y dónde.
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-2)" }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              disabled
+              aria-describedby="inv-anular-bloqueo"
+            >
+              Anular
+            </button>
+            <span
+              id="inv-anular-bloqueo"
+              style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
+            >
+              {`Tiene ${cobrosVivos} cobro(s) vivo(s): para anularla, anúlalos primero en Cobranzas.`}
+            </span>
+          </span>
+        )}
+        {canVoid(invoice.status) && cobrosVivos === 0 && (
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -385,7 +407,7 @@ export function InvoiceDetailClient({
         holdToConfirm
         initialFocus="reason"
         title="Anular factura"
-        message={`La factura ${invoice.invoice_code} quedará anulada en el historial. Indica el motivo.`}
+        message={`La factura ${invoice.invoice_code} quedará anulada en el historial y su asiento de venta se revierte con un contra-asiento en el período abierto. Indica el motivo.`}
         confirmLabel="Anular factura"
         holdLabel="Mantén presionado para anular"
         holdAlternativeLabel="Entiendo que la factura quedará anulada y prefiero confirmar con un clic"

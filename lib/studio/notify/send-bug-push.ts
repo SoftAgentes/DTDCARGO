@@ -28,6 +28,11 @@ export interface PushPayload {
   url?: string; // a dónde llevar al hacer click
   tag?: string; // dedup tag (mismas tag se reemplazan)
   requireInteraction?: boolean;
+  /**
+   * Qué hecho originó el aviso. Solo vive en el outbox, para que un reintento lo
+   * encuentre y no lo repita (`enqueueUserPush`): al dispositivo no se le manda.
+   */
+  claveEvento?: string;
 }
 
 /**

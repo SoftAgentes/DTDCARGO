@@ -146,6 +146,7 @@ export default async function InvoiceDetailPage({
           code: a.code,
           name: a.name,
         }))}
+        cobrosVivos={receipts.length}
       />
 
       <StrandedCreditsNotice credits={strandedCredits} />

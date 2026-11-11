@@ -11,6 +11,11 @@
 > **El criterio de conversación** (cómo leer el mensaje entrante, qué preguntar y qué mata el hilo)
 > vive en [`docs/marketing/conversacion-crm.md`](../../../marketing/conversacion-crm.md).
 
+> **SDD-0579 · 2026-10-23:** fuente preparada **localmente**, sin convertir ni subir a Kommo.
+> Mientras el seguimiento del Portal esté en construcción, el estado de la carga se consulta con
+> nuestro equipo por WhatsApp. Esta fuente es estática: no cambia automáticamente al apagar
+> `TRACKING_EN_CONSTRUCCION`; deberá revisarse antes de una futura carga autorizada.
+
 ## ⚠️ Cambio 2026-08-03 — terminología retirada
 
 Tres cosas que este documento decía y **ya no se dicen**. Estaban desincronizadas con el código
@@ -103,7 +108,7 @@ Nuestro servicio principal es el **Puerta a Puerta**: un solo precio que ya incl
 ### 3. Tiempos de tránsito
 **Preguntas:** ¿Cuánto tarda en llegar de China a Venezuela? · ¿Cuánto tiempo demora el envío? · ¿En cuánto tiempo llega mi carga? · ¿Cuántos días tarda el barco? · ¿Cuánto se demora la mercancía? · ¿Cuánto tiempo de tránsito marítimo? · Cuánto dura el envío.
 
-**Respuesta (aprobada · corta):** ¡Hola! Sin cuentos: tu carga va en **barco**, así que tarda **60 a 90 días** (flete interno en China + la espera de la próxima salida, cada 15-21 días + la travesía marítima). Puede variar por aduana o clima. Si quieres seguir tu envío paso a paso, regístrate en **dtdcargo.com/registro** y lo ves en tu portal.
+**Respuesta (aprobada · corta):** ¡Hola! Sin cuentos: tu carga va en **barco**, así que tarda **60 a 90 días** (flete interno en China + la espera de la próxima salida, cada 15-21 días + la travesía marítima). Puede variar por aduana o clima. El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo.
 
 **Pregunta de continuación:** *"¿Para cuándo necesitas tener la mercancía aquí?"*
 
@@ -184,11 +189,11 @@ En resumen: con FOB lo cubre el proveedor; con EXW lo cubres tú. Saberlo te ayu
 
 **Respuesta (aprobada):** ¡Hola! Te la ubico enseguida. Para eso necesito **tu Shipping Mark** (el código DTD-XXXX) **o el número de tu envío** — con ese dato un asesor te dice exactamente en qué punto va tu carga.
 
-Y si ya estás registrado, entra a **dtdcargo.com/portal**, sección **Envíos**: ahí sigues tus compras y tus envíos sin tener que preguntarnos. Estamos terminando la vista de seguimiento paso a paso, así que muy pronto lo vas a ver todo ahí tú mismo.
+El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo.
 
 **Pregunta de continuación:** *"¿Cuál es tu Shipping Mark?"* — sin ese dato no se puede ubicar nada, así que es la única pregunta que va.
 
-> *Nota interna: ⚠️ **`dtdcargo.com/track` YA NO EXISTE** — `next.config.ts:388-389` lo redirige con **301 a `/portal/login`**. Esta sección lo seguía recomendando: un lead sin cuenta caía en una pantalla de login. Enlace retirado el 2026-08-05. El seguimiento del cliente vive en el portal (`app/portal/(app)/envios/`, con detalle en `envios/[code]/`). **No prometer fecha** de la vista paso a paso: el founder dice "muy pronto" y eso es lo que se comunica, sin comprometer un día. La RPC pública `public_track_shipment` sigue existiendo en `lib/public/tracking-queries.ts`, pero **sin ruta pública que la use** — si alguien la reactiva, actualizar acá.*
+> *Nota interna: ⚠️ **`dtdcargo.com/track` YA NO EXISTE** — `next.config.ts:388-389` lo redirige con **301 a `/portal/login`**. Esta sección lo seguía recomendando: un lead sin cuenta caía en una pantalla de login. Enlace retirado el 2026-08-05. Las pantallas del seguimiento del cliente están en el portal (`app/portal/(app)/envios/`, con detalle en `envios/[code]/`), pero mientras `TRACKING_EN_CONSTRUCCION` siga encendido no se promete que el cliente vea eventos. **No prometer fecha**: se conserva «Te avisaremos apenas esté activo», aprobado en SDD-0521; no define canal ni autoriza enviar avisos. La RPC pública `public_track_shipment` sigue existiendo en `lib/public/tracking-queries.ts`, pero **sin ruta pública que la use** — si alguien la reactiva, actualizar acá.*
 
 ---
 
@@ -289,7 +294,7 @@ Calcula tu base en **dtdcargo.com/tarifas** y un asesor te arma la tarifa con tu
 
 **Respuesta:** ¡Hola! Por ahora **no manejamos boletín ni newsletter** por correo, así que no hay nada a qué suscribirse ni de qué darte de baja. Para novedades, visita **https://dtdcargo.com/noticias**. Si en algún momento no deseas recibir nuestros mensajes, avísanos por aquí y lo gestionamos.
 
-**Pregunta de continuación:** *"¿Y tú ya estás registrado con nosotros? Con el registro te queda el portal de seguimiento de tus propios envíos."*
+**Pregunta de continuación:** *"¿Y tú ya estás registrado con nosotros? Con el registro tienes tu portal del cliente para cargar tus compras y pre-alertas."*
 
 ---
 
@@ -388,7 +393,7 @@ Si tienes mucho volumen sí te conviene el **contenedor completo (FCL)**, que se
 
 **Se responde en DOS pasos. No pegues la dirección en el primer mensaje.**
 
-**Paso 1 — primera vez que la piden:** ¡Hola! Te la puedo dar sin problema, pero déjame decirte lo que de verdad te conviene: **regístrate gratis en dtdcargo.com/registro** y carga tu compra con su **pre-alerta**. Ahí pasan dos cosas que valen oro: a tu proveedor le llega un **enlace con todo lo que necesita** para despacharte, y tú le **haces seguimiento** a esa compra desde tu portal en vez de andar preguntando. Y hay un detalle práctico: **la dirección sola no sirve** — el destinatario tiene que llevar **tu Shipping Mark**, porque si no, la caja llega a la bodega y no sabemos de quién es.
+**Paso 1 — primera vez que la piden:** ¡Hola! Te la puedo dar sin problema, pero déjame decirte lo que de verdad te conviene: **regístrate gratis en dtdcargo.com/registro** y carga tu compra con su **pre-alerta**. Ahí pasan dos cosas que valen oro: a tu proveedor le llega un **enlace con todo lo que necesita** para despacharte, y tu compra queda **registrada en tu portal** desde el primer día. Y hay un detalle práctico: **la dirección sola no sirve** — el destinatario tiene que llevar **tu Shipping Mark**, porque si no, la caja llega a la bodega y no sabemos de quién es.
 
 **Pregunta de continuación:** *"¿Te ayudo a sacar tu Shipping Mark ahora? Es un minuto."*
 

@@ -18,7 +18,7 @@ import {
   resolveAdminEntries,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 
 export interface PackingListNotifyPayload {
   /** Folio del documento (DTD-PL-YYYY-NNNN). */
@@ -75,9 +75,21 @@ export async function notifyPackingListToAdmin(
   }
 
   // Telegram: UNA vez por CHAT, no una por admin (SDD-0271).
-  await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
-    logTag: "packing-list-notify",
-  });
+  await dispatchAlert(
+    supabaseAdmin,
+    tenantId,
+    "equipo",
+    {
+      telegramText,
+      // Sin proveedor, contactos ni montos: sólo el folio (SDD-0606).
+      discord: {
+        titulo: isUpdate ? "Packing list actualizado" : "Packing list nuevo",
+        codigo: payload.folio,
+        url: `${siteUrl()}/studio/proveedores`,
+      },
+    },
+    { logTag: "packing-list-notify" },
+  );
 
   return { ok: emailedOk };
 }

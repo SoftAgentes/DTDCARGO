@@ -1,0 +1,478 @@
+"use server";
+
+/**
+ * Server actions de la Bandeja de Chatwoot (SDD-0585, paso 2.2).
+ *
+ *  - `pedirEnlaceSso`: enlace de un solo uso para el iframe (E2-D12). Lo pide el
+ *    servidor con el token de la Platform App; el cliente solo recibe el enlace
+ *    ya validado (origen del chat, `/app/login`). Deja la marca `dtd_cw_sso`.
+ *    Con `conversacion`, el enlace lleva `sso_account_id` y `sso_conversation_id`
+ *    y Chatwoot redirige a esa conversación tras el login (E2-D24).
+ *  - `reconciliarBandeja`: al abrir la Bandeja, lee con el token del PROPIO
+ *    agente las conversaciones recientes y aplica su estado (E2-D22).
+ *  - `vincularAgente` / `desvincularAgente`: solo admin (E2-D10). El vínculo
+ *    exige que el agente de Chatwoot sea de la cuenta de la empresa y tenga el
+ *    MISMO correo que el usuario de Studio: el SSO entra como ese agente.
+ *  - `pedirFichaDtd`: la ficha del cliente para la Dashboard App «Ficha DTD»
+ *    (paso 2.4, E2-D30 a E2-D32). Recibe solo los dos ids del contexto de
+ *    Chatwoot; el cliente sale de la base, nunca del teléfono del contexto.
+ *  - `altaAgente`: solo admin (paso 2.5). Da de alta en Chatwoot a un usuario
+ *    de Studio que ve la Bandeja: crea (o adopta por correo) su usuario, lo mete
+ *    en la cuenta como agente y guarda el vínculo. La baja la hacen Usuarios y
+ *    el cron `chatwoot-agentes` (`lib/studio/chatwoot/agentes-ciclo.ts`).
+ *  - `destrabarPortal`: solo admin (SDD-0586, 10.5, PR 1b, §10.5.20). «Reintentar los
+ *    atascados» de la ida del chat del portal a Chatwoot. La RPC vuelve a exigir admin con
+ *    la sesión y toma el tenant de ella.
+ *
+ * Nunca se registra el enlace, el token ni un correo.
+ */
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+
+import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { getStudioAccess, moduleViewDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
+import { chatwootConfig } from "@/lib/studio/chatwoot/config";
+import {
+  agregarACuenta,
+  crearAgente,
+  fijarClaveAleatoria,
+  obtenerAgente,
+  obtenerEnlaceSso,
+  obtenerTokenAgente,
+} from "@/lib/studio/chatwoot/platform-api";
+import { contarEnviadosWhatsapp, listarConversacionesRecientes, obtenerConversacion } from "@/lib/studio/chatwoot/account-api";
+import { estimarCosto, type CostoChat } from "@/lib/studio/chatwoot/costo-chat";
+import { aplicarConversacion } from "@/lib/studio/chatwoot/webhook-procesar";
+import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
+import { rolChatwootDe } from "@/lib/studio/chatwoot/matriz";
+import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
+import { isUuid, mismoCorreo, parseChatwootUserId } from "@/lib/studio/chatwoot/chatwoot-types";
+import { SSO_COOKIE, SSO_COOKIE_OPTIONS } from "@/lib/studio/chatwoot/sso-cookie";
+import { canAccessModule } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
+import { puedeVerSaldoCliente, type EstadoCuentaCliente } from "@/lib/studio/client-account";
+import { getClientAccountState } from "@/lib/studio/client-queries";
+import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
+
+/** Códigos de error; el cliente los traduce con `bandeja.error.<código>`. */
+export type BandejaErrorCode =
+  | "denied"
+  | "invalid"
+  | "not_member"
+  | "agent_not_found"
+  | "agent_other_account"
+  | "email_mismatch"
+  | "duplicate"
+  | "unconfigured"
+  | "unlinked"
+  | "sin_bandeja"
+  | "service"
+  | "base";
+
+export type EnlaceSsoResult = { ok: true; url: string } | { ok: false; error: BandejaErrorCode };
+
+export type VinculoState = { ok: boolean; error: BandejaErrorCode | null };
+
+export type ReconciliarResult = { ok: true; aplicadas: number } | { ok: false; error: BandejaErrorCode };
+
+export type DestrabarState = { ok: boolean; error: BandejaErrorCode | null; destrabados?: number };
+
+export async function pedirEnlaceSso(conversacion?: number): Promise<EnlaceSsoResult> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "bandeja");
+  if (denial) return { ok: false, error: "denied" };
+  // La ruta deja pasar si el flag no se puede leer (fail-open de
+  // requireFeatureEnabled); acá, que entra a otro sistema, se corta si está apagado.
+  if (!isModuleEnabled("bandeja", await listFeatureFlags(supabase))) {
+    return { ok: false, error: "denied" };
+  }
+  const { tenantId, userId } = await getStudioAccess(supabase);
+  if (!tenantId || !userId) return { ok: false, error: "denied" };
+
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+  const vinculo = await getVinculoPropio(supabase, tenantId, userId);
+  if (!vinculo) return { ok: false, error: "unlinked" };
+
+  const enlace = await obtenerEnlaceSso(vinculo.chatwoot_user_id, cfg);
+  if (!enlace.ok) {
+    console.warn(`[bandeja] SSO no disponible: ${enlace.error}`);
+    return { ok: false, error: "service" };
+  }
+  const url = new URL(enlace.data);
+  const destino = parseChatwootUserId(conversacion);
+  if (destino !== null) {
+    url.searchParams.set("sso_account_id", String(cfg.accountId));
+    url.searchParams.set("sso_conversation_id", String(destino));
+  }
+  (await cookies()).set(SSO_COOKIE, userId, SSO_COOKIE_OPTIONS);
+  return { ok: true, url: url.toString() };
+}
+
+export async function reconciliarBandeja(): Promise<ReconciliarResult> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "bandeja");
+  if (denial) return { ok: false, error: "denied" };
+  if (!isModuleEnabled("bandeja", await listFeatureFlags(supabase))) {
+    return { ok: false, error: "denied" };
+  }
+  const { tenantId, userId } = await getStudioAccess(supabase);
+  if (!tenantId || !userId) return { ok: false, error: "denied" };
+
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+  const vinculo = await getVinculoPropio(supabase, tenantId, userId);
+  if (!vinculo) return { ok: false, error: "unlinked" };
+
+  // El token del agente se usa acá y se descarta: no se devuelve ni se registra.
+  const token = await obtenerTokenAgente(vinculo.chatwoot_user_id, cfg);
+  if (!token.ok) return { ok: false, error: "service" };
+  const conversaciones = await listarConversacionesRecientes(cfg, token.data);
+  if (!conversaciones.ok) {
+    console.warn(`[bandeja] reconciliación no disponible: ${conversaciones.error}`);
+    return { ok: false, error: "service" };
+  }
+
+  // Escribe con service_role por la RPC de 0504 (solo service_role), en el
+  // tenant de la sesión. Lo que se aplica es lo que el agente ve en Chatwoot.
+  const ctx = { admin: createAdminClient(), tenantId };
+  let aplicadas = 0;
+  try {
+    for (const c of conversaciones.data) {
+      if ((await aplicarConversacion(ctx, c, null)).aplicado) aplicadas += 1;
+    }
+  } catch {
+    return { ok: false, error: "service" };
+  }
+  return { ok: true, aplicadas };
+}
+
+export async function vincularAgente(_prev: VinculoState, formData: FormData): Promise<VinculoState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+
+  const userId = formData.get("user_id");
+  const chatwootUserId = parseChatwootUserId(formData.get("chatwoot_user_id"));
+  if (!isUuid(userId) || chatwootUserId === null) return { ok: false, error: "invalid" };
+
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+
+  // El correo del usuario vive en auth.users: hace falta service_role, como en
+  // Usuarios. La membresía se comprueba en el MISMO tenant del admin.
+  const admin = createAdminClient();
+  const { data: miembro } = await admin
+    .from("user_tenants")
+    .select("user_id, role")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId)
+    .is("disabled_at", null)
+    .maybeSingle<{ user_id: string; role: StudioUserRole }>();
+  if (!miembro) return { ok: false, error: "not_member" };
+  const { data: auth, error: authError } = await admin.auth.admin.getUserById(userId);
+  const correo = auth?.user?.email;
+  if (authError || !correo) return { ok: false, error: "not_member" };
+
+  const agente = await obtenerAgente(chatwootUserId, cfg);
+  if (!agente.ok) {
+    return {
+      ok: false,
+      error: agente.error === "no_encontrado" || agente.error === "no_autorizado" ? "agent_not_found" : "service",
+    };
+  }
+  if (!agente.data.accountIds.includes(cfg.accountId)) return { ok: false, error: "agent_other_account" };
+  if (!mismoCorreo(agente.data.email, correo)) return { ok: false, error: "email_mismatch" };
+
+  const { error } = await supabase.from("chatwoot_agent_links").insert({
+    tenant_id: gate.tenantId,
+    user_id: userId,
+    chatwoot_user_id: chatwootUserId,
+    created_by: gate.userId,
+  });
+  if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
+  // SDD-0585 2.7: un vínculo manual también cierra el acceso directo, salvo a un
+  // admin. Si el usuario no lo creó la Platform App, Chatwoot no deja cambiarle
+  // la clave: se avisa y el vínculo queda igual.
+  if (miembro.role !== "admin") {
+    const clave = await fijarClaveAleatoria(chatwootUserId, cfg);
+    if (!clave.ok) console.warn(`[bandeja] vínculo sin clave nueva: ${clave.error}`);
+  }
+  await despuesDelVinculo(admin, gate.tenantId, userId, chatwootUserId);
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null };
+}
+
+/**
+ * Después de un vínculo nuevo (SDD-0585, 2.7): una baja vieja de ese agente ya
+ * no vale (no se borra a los 12 meses), y la matriz le pone sus bandejas y
+ * equipos. Nada de esto cambia el resultado: el cron diario lo repite.
+ */
+async function despuesDelVinculo(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  userId: string,
+  chatwootUserId: number,
+): Promise<void> {
+  const { error } = await admin
+    .from("chatwoot_agent_bajas")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("chatwoot_user_id", chatwootUserId);
+  if (error) console.warn(`[bandeja] baja anterior sin borrar: ${error.code ?? "sin código"}`);
+  await sincronizarAgenteDeUsuario(userId);
+}
+
+export async function desvincularAgente(_prev: VinculoState, formData: FormData): Promise<VinculoState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+
+  const userId = formData.get("user_id");
+  if (!isUuid(userId)) return { ok: false, error: "invalid" };
+
+  const { error } = await supabase
+    .from("chatwoot_agent_links")
+    .delete()
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId);
+  if (error) return { ok: false, error: "service" };
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null };
+}
+
+export async function altaAgente(_prev: VinculoState, formData: FormData): Promise<VinculoState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+
+  const userId = formData.get("user_id");
+  if (!isUuid(userId)) return { ok: false, error: "invalid" };
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+
+  // Miembro activo del MISMO tenant del admin, con acceso a la Bandeja (rol y
+  // overrides de ese tenant). Correo y nombre: service_role, como en Usuarios.
+  const admin = createAdminClient();
+  const { data: miembro } = await admin
+    .from("user_tenants")
+    .select("user_id, role")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId)
+    .is("disabled_at", null)
+    .maybeSingle<{ user_id: string; role: StudioUserRole }>();
+  if (!miembro) return { ok: false, error: "not_member" };
+  const { data: filasOverride } = await admin
+    .from("studio_role_module_overrides")
+    .select("role, module_id, can_view, can_edit")
+    .eq("tenant_id", gate.tenantId);
+  const overrides: Record<string, { view: boolean; edit: boolean }> = {};
+  for (const o of (filasOverride ?? []) as { role: string; module_id: string; can_view: boolean; can_edit: boolean }[]) {
+    overrides[`${o.role}:${o.module_id}`] = { view: o.can_view, edit: o.can_edit };
+  }
+  if (!canAccessModule(miembro.role, "bandeja", overrides)) return { ok: false, error: "sin_bandeja" };
+
+  const { data: yaVinculado, error: errorVinculos } = await admin
+    .from("chatwoot_agent_links")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  // Sin la 0503 (o con la base caída) no se toca Chatwoot: crear el agente y
+  // después no poder guardar el vínculo lo dejaría en la cuenta sin dueño.
+  if (errorVinculos) return { ok: false, error: "service" };
+  if (yaVinculado) return { ok: false, error: "duplicate" };
+
+  const { data: auth, error: authError } = await admin.auth.admin.getUserById(userId);
+  const correo = auth?.user?.email;
+  if (authError || !correo) return { ok: false, error: "not_member" };
+  const { data: perfil } = await admin
+    .from("user_profiles")
+    .select("first_name, last_name")
+    .eq("user_id", userId)
+    .maybeSingle<{ first_name: string | null; last_name: string | null }>();
+  const nombre = `${perfil?.first_name ?? ""} ${perfil?.last_name ?? ""}`.trim() || correo.split("@")[0];
+
+  const creado = await crearAgente({ nombre, correo }, cfg);
+  if (!creado.ok) {
+    console.warn(`[bandeja] alta en Chatwoot no disponible: ${creado.error}`);
+    return { ok: false, error: "service" };
+  }
+  // `users#create` adopta un usuario existente por correo: si ese agente ya
+  // está vinculado a otra persona, no se toca la cuenta.
+  const { data: deOtro } = await admin
+    .from("chatwoot_agent_links")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("chatwoot_user_id", creado.data)
+    .maybeSingle();
+  if (deOtro) return { ok: false, error: "duplicate" };
+
+  // SDD-0585 2.7, cierre del acceso directo: `users#create` adopta por correo a
+  // un usuario existente SIN cambiarle la clave. Cada alta pone una aleatoria
+  // que nadie conoce; se entra por Studio. A un admin no: es la entrada de
+  // respaldo cuando Studio no responde.
+  if (miembro.role !== "admin") {
+    const clave = await fijarClaveAleatoria(creado.data, cfg);
+    if (!clave.ok) {
+      console.warn(`[bandeja] alta sin clave nueva: ${clave.error}`);
+      return { ok: false, error: "service" };
+    }
+  }
+  const enCuenta = await agregarACuenta(creado.data, cfg, rolChatwootDe(miembro.role));
+  if (!enCuenta.ok) {
+    console.warn(`[bandeja] no se pudo meter al agente en la cuenta: ${enCuenta.error}`);
+    return { ok: false, error: "service" };
+  }
+  const { error } = await supabase.from("chatwoot_agent_links").insert({
+    tenant_id: gate.tenantId,
+    user_id: userId,
+    chatwoot_user_id: creado.data,
+    created_by: gate.userId,
+  });
+  if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
+  await despuesDelVinculo(admin, gate.tenantId, userId, creado.data);
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null };
+}
+
+/** Errores de la Ficha DTD; el cliente los traduce con `bandeja.ficha.error.<código>`. */
+export type FichaDtdError =
+  | "denied"
+  | "invalid"
+  | "unconfigured"
+  | "unlinked"
+  | "otro_agente"
+  | "sin_clientes"
+  | "sin_acceso"
+  | "service";
+
+/** Segmento de SDD-0582 §«Regla de segmentos». Hoy siempre null: lo llena E10 (E2-D33). */
+export type SegmentoFicha = "cliente" | "lead_registrado";
+
+export interface FichaDtd {
+  markbox: string;
+  segmento: SegmentoFicha | null;
+  /** La misma cuenta que la cabecera de la ficha (SDD-0558): sin permiso, no trae dinero. */
+  cuenta: EstadoCuentaCliente;
+  enlace: string;
+}
+
+/**
+ * `ficha: null` es «sin ficha»: sin cruce, cruce ambiguo o cliente que la RLS no deja ver.
+ * `costo` (paso 2.8) es el costo de referencia del chat, también sin ficha: null si no se
+ * pudo leer o si el contacto no tiene un teléfono del que salga el mercado.
+ */
+export type FichaDtdResult =
+  | { ok: true; ficha: FichaDtd | null; costo: CostoChat | null }
+  | { ok: false; error: FichaDtdError };
+
+const idDeContexto = (v: unknown): number | null => (typeof v === "number" ? parseChatwootUserId(v) : null);
+
+export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown): Promise<FichaDtdResult> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "bandeja");
+  if (denial) return { ok: false, error: "denied" };
+  if (!isModuleEnabled("bandeja", await listFeatureFlags(supabase))) {
+    return { ok: false, error: "denied" };
+  }
+  const conversacion = idDeContexto(conversacionId);
+  const agente = idDeContexto(agenteId);
+  if (conversacion === null || agente === null) return { ok: false, error: "invalid" };
+
+  const { tenantId, userId, role, overrides } = await getStudioAccess(supabase);
+  if (!tenantId || !userId) return { ok: false, error: "denied" };
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+
+  // E2-D30 (3): el agente del contexto tiene que ser el de ESTA sesión de Studio.
+  const vinculo = await getVinculoPropio(supabase, tenantId, userId);
+  if (!vinculo) return { ok: false, error: "unlinked" };
+  if (vinculo.chatwoot_user_id !== agente) return { ok: false, error: "otro_agente" };
+  if (!canAccessModule(role, "clients", overrides)) return { ok: false, error: "sin_clientes" };
+
+  // E2-D30 (4): Chatwoot decide si ese agente ve esa conversación. El token se
+  // usa acá y se descarta.
+  const token = await obtenerTokenAgente(vinculo.chatwoot_user_id, cfg);
+  if (!token.ok) {
+    console.warn(`[ficha-dtd] token del agente no disponible: ${token.error}`);
+    return { ok: false, error: "service" };
+  }
+  const leida = await obtenerConversacion(cfg, token.data, conversacion);
+  if (!leida.ok) {
+    if (leida.error === "no_autorizado" || leida.error === "no_encontrado") return { ok: false, error: "sin_acceso" };
+    console.warn(`[ficha-dtd] conversación no disponible: ${leida.error}`);
+    return { ok: false, error: "service" };
+  }
+
+  // Paso 2.8: costo de referencia del chat. Informativo: si falla, la ficha sale igual.
+  // El teléfono solo elige el mercado y no sale de `estimarCosto`.
+  const enviados = await contarEnviadosWhatsapp(cfg, token.data, conversacion);
+  if (!enviados.ok) console.warn(`[ficha-dtd] costo del chat no disponible: ${enviados.error}`);
+  const costo = enviados.ok ? estimarCosto(enviados.data) : null;
+
+  // E2-D31: la misma RPC de la reconciliación; el cruce con el cliente lo decide la base.
+  try {
+    await aplicarConversacion({ admin: createAdminClient(), tenantId }, leida.data, null);
+  } catch (e) {
+    console.warn(`[ficha-dtd] ${e instanceof Error ? e.message : "no se pudo aplicar"}`);
+    return { ok: false, error: "service" };
+  }
+
+  // E2-D30 (5) y E2-D32: todo lo que sigue se lee con el cliente de SESIÓN.
+  const { data: fila } = await supabase
+    .from("chatwoot_conversations")
+    .select("client_id")
+    .eq("tenant_id", tenantId)
+    .eq("conversation_id", conversacion)
+    .maybeSingle<{ client_id: string | null }>();
+  if (!fila?.client_id) return { ok: true, ficha: null, costo };
+  const { data: cliente } = await supabase
+    .from("clients")
+    .select("id, markbox, deleted_at")
+    .eq("id", fila.client_id)
+    .maybeSingle<{ id: string; markbox: string; deleted_at: string | null }>();
+  if (!cliente) return { ok: true, ficha: null, costo };
+
+  let codigosConocidos: string[] = [];
+  try {
+    codigosConocidos = (await listMarkboxHistory(supabase, cliente.id)).map((h) => h.markbox);
+  } catch {
+    codigosConocidos = [];
+  }
+  const cuenta = await getClientAccountState(supabase, cliente, {
+    puedeVerSaldo: puedeVerSaldoCliente(role, overrides),
+    codigosConocidos,
+  });
+  return {
+    ok: true,
+    ficha: {
+      markbox: cliente.markbox,
+      segmento: null,
+      cuenta,
+      enlace: `/studio/clientes/${encodeURIComponent(cliente.markbox)}`,
+    },
+    costo,
+  };
+}
+
+/**
+ * «Reintentar los atascados» del chat del portal (SDD-0586, 10.5, PR 1b, §10.5.20). Cada uno
+ * vuelve a la cola ahora, verificando antes si ya había llegado, con un plazo nuevo de 24 h.
+ * Solo admin: aquí y otra vez en `chatwoot_portal_destrabar`, con la sesión del admin.
+ */
+export async function destrabarPortal(): Promise<DestrabarState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+  const { data, error } = await supabase.rpc("chatwoot_portal_destrabar");
+  if (error) {
+    console.warn(`[bandeja] chatwoot_portal_destrabar: ${error.code ?? "sin código"}`);
+    return { ok: false, error: error.code === "42501" ? "denied" : "base" };
+  }
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null, destrabados: Number(data ?? 0) };
+}

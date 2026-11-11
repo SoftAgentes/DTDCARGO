@@ -65,7 +65,11 @@ const BASELINE = {
   //     facturas no borrador para «Por contabilizar» (Contabilidad, layout
   //     `accounting`). Al cliente cruzan código, fecha, moneda y monto; sin
   //     nombre ni RIF del cliente.
-  "lib/studio/accounting/libro-control-queries.ts": 2,
+  // SDD-0573 I2: +1 metadata por IDs fuera de emisión en contextoDelIngreso,
+  // llamado siempre por ingresoDelPeriodo con mayor (también precalculado).
+  // Sesión/RLS, tenant en documentos/headers/cuentas y validación relacional;
+  // layouts accounting/reports y Dirección admin-only. Sólo agregados al cliente.
+  "lib/studio/accounting/libro-control-queries.ts": 3,
   // SDD-0572: −1 al eliminar latestVesFxRate (display desde facturas).
   // Revenue conserva cliente de sesión, candados de Costing y RLS del tenant.
   // El display usa ultimaTasa/fx_rates con ese mismo cliente, nunca admin.
@@ -108,6 +112,20 @@ const BASELINE = {
   // `client_outstanding` (0492), la definición única del saldo por cliente, por
   // `listClientOutstanding` en `client-queries.ts`. No nombra `invoices`.
   "lib/studio/payment-queries.ts": 1,
+  // SDD-0574: +1 archivo y +1 lectura. `reporteSinFacturar` («Embarques sin
+  // facturar», 4.5 del plan contable) lee `id, invoice_code, shipment_id,
+  // client_markbox, status` de las facturas vivas de un lote de envíos, para
+  // saber qué recepción ya tiene factura fiscal. Revisión del contrato:
+  //   · candado: la llaman SOLO dos server components — la página del reporte,
+  //     bajo el layout de Reportes (`requireModuleView("reports")`: accounting
+  //     + admin), y Dirección (`requireModuleView("direccion")` + rol admin);
+  //   · tenant: cliente de SESIÓN bajo `invoices_accounting_select` (0414,
+  //     accounting/admin del propio tenant); nunca el admin client;
+  //   · uso: solo lectura (ni escribe `invoices` ni toca `lib/studio/accounting`);
+  //     decide «facturada / pre-factura / sin factura» por envío y Shipping Mark.
+  //     Al cliente cruza el código de la pre-factura, nunca montos de factura.
+  // Columnas avisadas a la sesión «Contabilidad» el 2026-10-20 (pedido del Director).
+  "lib/studio/rate-snapshots/sin-facturar.ts": 1,
   "lib/studio/renditions/queries.ts": 3,
   "lib/studio/reports/queries.ts": 4,
   // SDD-0576: cliente ADMIN ya recibido por el motor Warehouse, detrás de sus
@@ -191,8 +209,9 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0560: 18 → 19. Entra `lib/studio/borrado/asistente-servidor.ts`.
     // SDD-0557: 19 → 20. Entra `lib/studio/accounting/libro-control-queries.ts`.
     // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
-    // SDD-0576: 19 → 20 por el readback de fecha persistida de Warehouse.
-    expect(Object.keys(actual)).toHaveLength(20);
+    // SDD-0574: 19 → 20. Entra `lib/studio/rate-snapshots/sin-facturar.ts`.
+    // SDD-0576: 20 → 21 por el readback de fecha persistida de Warehouse.
+    expect(Object.keys(actual)).toHaveLength(21);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -207,10 +226,11 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0557: 43 → 45 por `ingresoDelPeriodo` y `cuadreDelLibro`.
     // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
-    // SDD-0572: 44 → 43, solo sale la lectura de display latestVesFxRate.
-    // Se mantienen 19 rutas y comparación exacta de todo el inventario.
-    // SDD-0576: 43 → 44, exclusivamente issued_at ausente tras emisión real.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
+    // SDD-0574: 44 → 45 por la lectura de `reporteSinFacturar`.
+    // SDD-0573 I2: una lectura literal de metadata adicional, mismas 20 rutas del compuesto.
+    // SDD-0572: 46 → 45, solo sale la lectura de display latestVesFxRate.
+    // SDD-0576: 45 → 46, exclusivamente issued_at ausente tras emisión real.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

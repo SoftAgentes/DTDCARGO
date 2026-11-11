@@ -50,6 +50,14 @@ const PRIVADAS = new Set([
   "track", // noindex deliberado (ver robots.ts)
 ]);
 
+/**
+ * SDD-0604 · Solo cuenta el código. `/privacidad` y `/cookies` son indexables,
+ * pero la palabra `noindex` en un comentario las sacaba de esta auditoría.
+ */
+function sinComentarios(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
+}
+
 function paginas(dir: string, base = ""): { ruta: string; abs: string }[] {
   const out: { ruta: string; abs: string }[] = [];
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -88,7 +96,7 @@ describe("Cobertura del sitemap", () => {
   it("toda página pública indexable está en el sitemap", () => {
     const faltan: string[] = [];
     for (const p of publicas) {
-      const src = readFileSync(p.abs, "utf8");
+      const src = sinComentarios(readFileSync(p.abs, "utf8"));
       // `noindex` explícito = exclusión deliberada, no hueco.
       if (/noindex|index:\s*false/.test(src)) continue;
       if (!sitemap.includes(`${p.ruta}\``) && !sitemap.includes(`${p.ruta}"`)) {
@@ -109,7 +117,7 @@ describe("Cobertura del sitemap", () => {
     // no indexe. Señal contradictoria.
     const contradictorias: string[] = [];
     for (const p of publicas) {
-      const src = readFileSync(p.abs, "utf8");
+      const src = sinComentarios(readFileSync(p.abs, "utf8"));
       if (!/noindex|index:\s*false/.test(src)) continue;
       if (sitemap.includes(`${p.ruta}\``) || sitemap.includes(`${p.ruta}"`)) {
         contradictorias.push(p.ruta);

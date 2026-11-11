@@ -39,6 +39,7 @@ import {
   type SupplierActionState,
 } from "@/lib/studio/prealertas/types";
 import { createSupplierAction } from "../../proveedores/actions";
+import { actionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const supplierInitial: SupplierActionState = {};
@@ -270,7 +271,10 @@ export function SupplierPicker({
   const listboxId = `${uid}-listbox`;
   const optionId = (i: number) => `${uid}-opt-${i}`;
   const [newSupplierState, newSupplierAction, newSupplierPending] =
-    useActionState(createSupplierAction, supplierInitial);
+    useActionState(
+      actionKeepingDraft(createSupplierAction, "No pudimos confirmar si el proveedor se guardó. Lo que escribiste sigue aquí. Intenta de nuevo: si ya quedó, te lo avisaremos."),
+      supplierInitial,
+    );
   const newFormRef = useRef<HTMLDivElement>(null);
 
   /**

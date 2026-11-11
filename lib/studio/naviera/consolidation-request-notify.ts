@@ -15,7 +15,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import { sendPushToOperario } from "@/lib/studio/notify/send-operario-push";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -38,9 +38,21 @@ export async function notifyConsolidationRequestToOffice(
     ].join("\n");
 
     // UNA vez por CHAT, no una por admin (SDD-0271).
-    await dispatchTelegramAlert(admin, tenantId, "equipo", text, {
-      logTag: "consolidation-request-notify",
-    });
+    await dispatchAlert(
+      admin,
+      tenantId,
+      "equipo",
+      {
+        telegramText: text,
+        // Sin el nombre del operario: sólo el tipo de contenedor (SDD-0606).
+        discord: {
+          titulo: "Solicitud de consolidado",
+          codigo: payload.containerType,
+          url: `${SITE_URL}/studio/naviera`,
+        },
+      },
+      { logTag: "consolidation-request-notify" },
+    );
   } catch (err) {
     console.error("[consolidation-request-notify] office falló:", err);
   }

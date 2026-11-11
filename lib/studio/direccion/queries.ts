@@ -16,7 +16,9 @@
  *  - CxP + caja: treasuryKpis (treasury/bill-queries) + listBills para el forecast
  *  - Naviera: navieraKpis (naviera/queries) + listSailings para el próximo cut-off
  *  - Operación: getOperationalCounts (dashboard-queries · RPC)
- *  - Pipeline comercial: listKommoLeads (kommo-queries · etapas abiertas)
+ *  - Pipeline comercial: oculto desde SDD-0614 S0b (D-6.6-1). Salía del espejo de
+ *    Kommo (listKommoLeads); la cuenta se conserva en `resumenComercialKommo`,
+ *    sin consumidor, hasta 8.7.
  *
  * Las alertas se DERIVAN en composición (no se persisten, §4.4): cada una con
  * su href de deep-link al módulo de origen.
@@ -30,6 +32,7 @@ import { profitAndLoss } from "../accounting/reports";
 import {
   CUENTA_VENTAS,
   describirIngreso,
+  causaDelControlI2,
   type IngresoPeriodo,
 } from "../accounting/ingreso-periodo";
 import {
@@ -42,7 +45,6 @@ import { listBills, treasuryKpis } from "../treasury/bill-queries";
 import { billBalance } from "../treasury/types";
 import { navieraKpis, listSailings } from "../naviera/queries";
 import { getOperationalCounts } from "../dashboard-queries";
-import { listKommoLeads } from "../kommo-queries";
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -113,7 +115,30 @@ export type CommercialSummary = {
   pipeline: number;
   /** Cantidad de leads activos (abiertos). */
   leadsActivos: number;
+  /**
+   * true desde SDD-0614 S0b (D-6.6-1): Kommo está oculto del Studio y la tarjeta
+   * «Comercial» de Dirección no se pinta. R5 (S3) trae los KPI del CRM propio.
+   */
+  oculto: boolean;
 };
+
+/** El resumen comercial con Kommo oculto: no se lee ni se muestra (SDD-0614 S0b). */
+const COMERCIAL_OCULTO: CommercialSummary = { pipeline: 0, leadsActivos: 0, oculto: true };
+
+/**
+ * Pipeline comercial desde el espejo de Kommo: leads abiertos (sin closed_at).
+ * Sin consumidor desde SDD-0614 S0b; se conserva (ocultar no es borrar) hasta 8.7.
+ */
+export function resumenComercialKommo(
+  leads: ReadonlyArray<{ price: unknown; closed_at: string | null }>,
+): CommercialSummary {
+  const openLeads = leads.filter((l) => !l.closed_at);
+  return {
+    pipeline: round2(openLeads.reduce((s, l) => s + (Number(l.price) || 0), 0)),
+    leadsActivos: openLeads.length,
+    oculto: false,
+  };
+}
 
 /** Una barra del forecast de salidas (CxP venciendo en una semana). */
 export type ForecastWeek = {
@@ -192,7 +217,7 @@ export function textosFinancieros(
   const i = f.ingreso;
   const d = describirIngreso(i);
   // Con «tiene más», «tiene menos» o «cuadra» la cuenta 4.5 existe: `ventas` no es null.
-  const deFacturas = `${CUENTA_VENTAS} de facturas: ${fmtUsd(i.mayor?.ventas ?? 0)}`;
+  const deFacturas = `${CUENTA_VENTAS} de facturas: ${i.controlI2.unidadMayor === "usd" && i.mayor?.ventas != null ? fmtUsd(i.mayor.ventas) : i.controlI2.unidadMayor === "nominal_mixto" ? "nominal mixto (no USD)" : "unidad sin verificar"}`;
   const sinAsientos = `sin asientos de factura en ${CUENTA_VENTAS}`;
   const vacio = i.mayor != null && !i.mayor.ventasConMovimiento;
   const libro: Record<typeof d.estado, string | null> = {
@@ -204,10 +229,14 @@ export function textosFinancieros(
     sin_movimiento: sinAsientos,
     sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el plan de cuentas`,
     sin_mayor: null,
+    requiere_revision: `${deFacturas}; requiere revisión del puente documental`,
   };
   const otros = i.mayor?.otrosIngresos ?? 0;
   const partes = [
     libro[d.estado],
+    i.controlI2.contribucionesAjuste > 0 || i.controlI2.incidencias.length > 0
+      ? `ajuste por anulaciones: ${i.ajusteAnulacionesUsd == null ? "no disponible" : fmtUsd(i.ajusteAnulacionesUsd)}; base comparada: ${i.baseComparacionUsd == null ? "no disponible" : fmtUsd(i.baseComparacionUsd)}; diferencia: ${i.diferenciaUsd == null ? "no disponible" : fmtUsd(i.diferenciaUsd)}` : null,
+    causaDelControlI2(i),
     Math.abs(otros) >= 0.005 ? `otros ingresos del libro: ${fmtUsd(otros)}` : null,
     i.facturado.terceros > 0 ? "incluye fondos de terceros" : null,
     i.sinConvertir > 0 ? `${i.sinConvertir} sin convertir` : null,
@@ -224,7 +253,7 @@ export function textosFinancieros(
       valor: fmtUsd(f.utilidad),
       sub:
         `Margen ${f.margenPct.toFixed(1)}% sobre los ingresos del libro` +
-        (d.estado === "no_comparable" ? " · mezcla el nominal de facturas en bolívares o yuanes" : ""),
+        (i.controlI2.unidadMayor === "nominal_mixto" ? " · mezcla el nominal de facturas en bolívares o yuanes" : ""),
     },
   };
 }
@@ -420,7 +449,6 @@ export async function getDireccionData(
     naviera,
     openSailingsList,
     opsCounts,
-    leads,
   ] = await Promise.all([
     listAccounts(supabase),
     accountBalances(supabase, { fromDate: monthStart, upToDate: today }),
@@ -431,7 +459,6 @@ export async function getDireccionData(
     navieraKpis(supabase),
     listSailings(supabase, { status: "abierto" }),
     getOperationalCounts(supabase),
-    listKommoLeads(supabase),
   ]);
 
   // P&L del mes (ingresos + utilidad) — reusa el cálculo de Contabilidad.
@@ -493,12 +520,9 @@ export async function getDireccionData(
     cutoffVessel,
   };
 
-  // Pipeline comercial = leads abiertos (sin closed_at).
-  const openLeads = leads.filter((l) => !l.closed_at);
-  const commercial: CommercialSummary = {
-    pipeline: round2(openLeads.reduce((s, l) => s + (Number(l.price) || 0), 0)),
-    leadsActivos: openLeads.length,
-  };
+  // SDD-0614 S0b (D-6.6-1): Kommo está oculto del Studio. El pipeline salía del
+  // espejo (`resumenComercialKommo`); no se lee ni se muestra.
+  const commercial: CommercialSummary = { ...COMERCIAL_OCULTO };
 
   const forecast = buildForecast(
     bills.map((b) => ({

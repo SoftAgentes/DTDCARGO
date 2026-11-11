@@ -23,6 +23,8 @@
  * sesiones reales, `scripts/qa/cobro-factura-race.mjs`.
  */
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -69,6 +71,12 @@ function makeStub(opts: {
   userTenants?: Row[];
   nextReceiptCode?: string;
   rpcError?: string;
+  /** SDD-0601: el código que acompaña a `rpcError`. Por defecto, 23514. */
+  rpcErrorCode?: string;
+  /** SDD-0601: lo que devuelve postgrest-js si el pedido no recibe respuesta. */
+  rpcSinRespuesta?: boolean;
+  /** SDD-0601: una respuesta 200 sin recibo. */
+  rpcSinRecibo?: boolean;
 }) {
   const updates: Captured[] = [];
   const inserts: { table: string; payload: Row }[] = [];
@@ -164,8 +172,14 @@ function makeStub(opts: {
     from,
     rpc: async (fn: string, args: Row) => {
       rpcCalls.push({ fn, args });
-      if (opts.rpcError) return { data: null, error: { message: opts.rpcError, code: "23514" } };
-      return { data: rpcResult(fn, args), error: null };
+      if (opts.rpcSinRespuesta) {
+        return { data: null, error: { message: "TypeError: fetch failed", details: "", hint: "", code: "" }, status: 0 };
+      }
+      if (opts.rpcSinRecibo) return { data: null, error: null, status: 200 };
+      if (opts.rpcError) {
+        return { data: null, error: { message: opts.rpcError, code: opts.rpcErrorCode ?? "23514" }, status: 400 };
+      }
+      return { data: rpcResult(fn, args), error: null, status: 200 };
     },
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
   } as unknown as SupabaseClient;
@@ -482,7 +496,7 @@ describe("registerCollectionFor · SDD-0068 + SDD-0488", () => {
       ["PAYMENT_INVOICE_PAID", /ya está pagada/],
       ["PAYMENT_STATE", /emitidas o parciales/],
       ["PAYMENT_FORBIDDEN", /rol/],
-      ["error interno cualquiera", /^No se pudo registrar el cobro\.$/],
+      ["error interno cualquiera", /^No se registró el cobro y la factura .+ sigue igual: el sistema lo rechazó/],
     ] as const) {
       postReceiptMock.mockClear();
       const { client } = makeStub({ invoices: [INVOICE], rpcError: code });
@@ -492,6 +506,84 @@ describe("registerCollectionFor · SDD-0068 + SDD-0488", () => {
       expect(r.error).not.toContain(code === "error interno cualquiera" ? code : "PAYMENT_");
       expect(postReceiptMock).not.toHaveBeenCalled();
     }
+  });
+
+  // SDD-0601: quien cobra sabe por qué no entró, qué pasó con la factura y a quién acudir.
+  describe("aviso del cobro no registrado · SDD-0601", () => {
+    const CODIGO = String(INVOICE.invoice_code);
+    const VENTA = `No se registró el cobro y la factura ${CODIGO} sigue igual: su asiento de venta tiene un problema. Intentarlo otra vez no lo arregla. Avísale a un administrador con el número de factura.`;
+    const OTRO_MOTIVO = `No se registró el cobro y la factura ${CODIGO} sigue igual: el sistema lo rechazó por un motivo que no reconoce. Avísale a un administrador con el número de factura.`;
+    const SIN_RESPUESTA = `No se pudo confirmar si el cobro entró: se perdió la comunicación con el sistema. Recarga la página y revisa la factura ${CODIGO} antes de intentarlo otra vez. Si sigue fallando, avísale a un administrador.`;
+    const MOTIVOS_DE_VENTA = [
+      "La venta original requiere revisión.",
+      "La relación contable de la factura requiere revisión.",
+      "Estado de factura y par contable incompatibles.",
+    ];
+
+    it.each(MOTIVOS_DE_VENTA)("motivo de la 0497 «%s» ⇒ dice que es el asiento de venta y que reintentar no sirve", async (motivo) => {
+      postReceiptMock.mockClear();
+      const { client } = makeStub({ invoices: [INVOICE], rpcError: motivo });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.error).toBe(VENTA);
+      expect(postReceiptMock).not.toHaveBeenCalled();
+    });
+
+    // Se comparan enteros: si la 0497 cambia un texto, el aviso caería sin ruido en «otro motivo».
+    it.each(MOTIVOS_DE_VENTA)("«%s» es el texto exacto de la 0497", (motivo) => {
+      const sql = readFileSync(resolve(process.cwd(), "supabase/migrations/0497_reverso_al_anular_factura.sql"), "utf8");
+      expect(sql).toContain(`raise exception '${motivo}'`);
+    });
+
+    it("la base rechaza por un motivo sin traducir ⇒ afirma que no entró, sin el texto de la base", async () => {
+      const crudo = 'new row for relation "payment_receipts" violates check constraint "x"';
+      const { client } = makeStub({ invoices: [INVOICE], rpcError: crudo });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.error).toBe(OTRO_MOTIVO);
+      expect(r.error).not.toContain("payment_receipts");
+    });
+
+    it("un error de PostgREST también es un rechazo: el pedido no corrió", async () => {
+      const { client } = makeStub({ invoices: [INVOICE], rpcError: "Could not find the function", rpcErrorCode: "PGRST202" });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.error).toBe(OTRO_MOTIVO);
+    });
+
+    it("sin respuesta ⇒ NO afirma que la factura sigue igual: el cobro pudo haber entrado", async () => {
+      postReceiptMock.mockClear();
+      const { client } = makeStub({ invoices: [INVOICE], rpcSinRespuesta: true });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.error).toBe(SIN_RESPUESTA);
+      expect(r.error).not.toContain("sigue igual");
+      expect(r.error).not.toContain("fetch failed");
+      expect(postReceiptMock).not.toHaveBeenCalled();
+    });
+
+    it("un 200 sin recibo ⇒ tampoco afirma que no entró", async () => {
+      const { client } = makeStub({ invoices: [INVOICE], rpcSinRecibo: true });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.error).toBe(SIN_RESPUESTA);
+    });
+
+    it("los rechazos con su propio mensaje no pasan por el aviso ni por el registro", async () => {
+      const errorDeConsola = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { client } = makeStub({ invoices: [INVOICE], rpcError: "PAYMENT_FORBIDDEN", rpcErrorCode: "42501" });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.error).toBe("Tu rol no puede registrar ni anular cobros.");
+      expect(errorDeConsola).not.toHaveBeenCalled();
+      errorDeConsola.mockRestore();
+    });
+
+    it("queda rastro en el servidor con la factura y el código, nunca con el texto de la base", async () => {
+      const errorDeConsola = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { client } = makeStub({ invoices: [INVOICE], rpcError: "dato sensible de la base", rpcErrorCode: "23505" });
+      await registerCollectionFor(client, "i1", payload);
+      expect(errorDeConsola).toHaveBeenCalledTimes(1);
+      const linea = errorDeConsola.mock.calls[0].join(" ");
+      expect(linea).toContain(CODIGO);
+      expect(linea).toContain("23505");
+      expect(linea).not.toContain("dato sensible");
+      errorDeConsola.mockRestore();
+    });
   });
 });
 

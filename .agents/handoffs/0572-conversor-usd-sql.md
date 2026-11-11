@@ -26,20 +26,20 @@ Completar localmente la transición compatible de los dos agregados anuales a la
 - Claim propio propuesto: `worker-0572b-01a15a4e-ddf0-7d82-8656-d9dc56b58468`. Ejecuta guard y claim desde este árbol antes de editar; verifica raíz/rama. No reclames ni edites el árbol 0572-a, que se conserva.
 - SDD reutilizada: `docs/specs/0572-conversor-usd-reemplazos/spec.md`, sección b con estado de implementación local separado de a e integración.
 - Handoff propio: `.agents/handoffs/0572-conversor-usd-sql.md`. Guarda este contrato y allowlist antes del primer cambio de producto; conserva historia/validaciones de a.
-- Migración asignada por Director tras inventario de 480 refs más worktrees: **0498_annual_billing_fx_v2**. No tomar otro número ni editar migraciones aplicadas. La secuencia de nombres propia del repositorio prevalece sobre el formato genérico de una skill.
+- Migración asignada por Director tras inventario de 480 refs más worktrees: **0527_annual_billing_fx_v2**. No tomar otro número ni editar migraciones aplicadas. La secuencia de nombres propia del repositorio prevalece sobre el formato genérico de una skill.
 
 ## Autorización y límites
 
 Sam autorizó continuar localmente la 2.1, hacer push de entregas y abrir PR en borrador durante el bloqueo de Actions. Se permiten preparación de dependencias sin secretos, datos sintéticos, PostgreSQL/PostgREST desechables locales, pruebas, commits y push selectivos de esta rama. PR en borrador contra `codex/sdd-0572-conversor-usd-reemplazos`, para que muestre solo el delta b y declare dependencia de #310. No marcar lista para merge; el Director revisa cabeza y base finales. Adjunta cualquier PR creada y comunica URL/SHA.
 
-**No merge, auto-merge, publicación de web, VPS, cambios de cuenta/pagos, datos reales, lecturas de filas productivas, migraciones reales, credenciales productivas, instalación del publicador ni env copiados.** 0495 ya se aplicó una vez: no repetirla, renumerarla ni sellarla aquí. 0496/0497/0498 siguen sin aprobación nominal de aplicación. Se conserva el orden humano de integración #301 → #304/#306 → #307 → 0573 y sellos; esta PR local no lo elude. No usar main como árbol escritor, no reset, add -A, force push ni limpieza de recursos ajenos.
+**No merge, auto-merge, publicación de web, VPS, cambios de cuenta/pagos, datos reales, lecturas de filas productivas, migraciones reales, credenciales productivas, instalación del publicador ni env copiados.** 0495 ya se aplicó una vez: no repetirla, renumerarla ni sellarla aquí. 0496/0497/0527 siguen sin aprobación nominal de aplicación. Se conserva el orden humano de integración #301 → #304/#306 → #307 → 0573 y sellos; esta PR local no lo elude. No usar main como árbol escritor, no reset, add -A, force push ni limpieza de recursos ajenos.
 
 ## Diseño aprobado y contratos de aceptación
 
 Alternativa A de `C:\tmp\director-traspaso-20261020\0572b-transicion-compatible-codex.md`, revalidada contra d410/a30: Portal conserva nombre sin argumentos, jsonb, identidad, propietario, ACL y campos legados, y añade `billing_v2`. Studio v1 se conserva íntegra; nueva `studio_client_annual_billing_v2(p_as_of date)` tabular, sin parámetros de tenant/cliente. No usar overload ambiguo ni drop/recreate de v1. La retención temporal de conversiones legadas y su retiro posterior se declara como deuda de compatibilidad; no afirmar eliminación universal de CASE históricas.
 
 1. Portal v2: `{version:2, subtotal_usd:string|null, sin_tasa_count:bigint, conversion_state:'completo'|'sin_tasa'|'datos_invalidos'}`. Studio v2: TABLE `client_markbox text, subtotal_usd text, sin_tasa_count bigint, conversion_state text`. Decimal canónico con exactamente dos decimales; contador seguro no negativo. DTO ausente, mal formado, incoherente o duplicación de clave no se vuelve cero.
-2. Conversión exclusivamente por `to_usd` de0495 y la tasa congelada de cada factura. Sin catálogo de respaldo, nuevas divisiones ni fórmula paralela. Se aprueba un ayudante puro interno de0498 en esquema privado, con visibilidad/nombre declarados en la spec y sin USAGE/EXECUTE para roles API. Puede invocar el helper canónico y capturar únicamente la terna exacta SQLSTATE22023 + hint dtd-fx + mensajes FX_AMOUNT_INVALID/FX_RATE_MISSING/FX_CURRENCY_UNKNOWN, preservando la prioridad del conversor. Cualquier otro error se relanza. No duplicar la fórmula ni capturar todo22023/WHEN OTHERS como falta de tasa. Suma conversiones redondeadas por factura, dos decimales half away from zero. Conserva signo y cero válido. Una factura se cuenta una vez, antes de joins multiplicadores.
+2. Conversión exclusivamente por `to_usd` de0495 y la tasa congelada de cada factura. Sin catálogo de respaldo, nuevas divisiones ni fórmula paralela. Se aprueba un ayudante puro interno de0527 en esquema privado, con visibilidad/nombre declarados en la spec y sin USAGE/EXECUTE para roles API. Puede invocar el helper canónico y capturar únicamente la terna exacta SQLSTATE22023 + hint dtd-fx + mensajes FX_AMOUNT_INVALID/FX_RATE_MISSING/FX_CURRENCY_UNKNOWN, preservando la prioridad del conversor. Cualquier otro error se relanza. No duplicar la fórmula ni capturar todo22023/WHEN OTHERS como falta de tasa. Suma conversiones redondeadas por factura, dos decimales half away from zero. Conserva signo y cero válido. Una factura se cuenta una vez, antes de joins multiplicadores.
 3. `completo`: subtotal válido y contador0; `sin_tasa`: subtotal válido y contador>0, incluso subtotal0 si todas excluidas. `datos_invalidos`: subtotal null y contador solo de faltas de tasa válidamente clasificadas. Error de transporte/permisos/SQL/caché/páginas/shape es lectura `no_disponible`, distinto de ausencia de principal y de falta de tasa. Diagnóstico sanitizado, no detalles sensibles a UI.
 4. Helper compartido nuevo `lib/shared/annual-billing.ts`: valida y conserva decimal/céntimos exactos. No amplíes fx.ts. Un importe grande conserva su string exacto; solo usa un motor/formateador numérico existente si demuestra recuperar los centavos. Si no, el derivado monetario queda no disponible y el subtotal exacto permanece consultable. No `Number(...) || 0`, clamp que borre negativos ni bigint en props que Next no pueda serializar.
 5. Studio conserva filtros y permisos efectivos de0411, incluidos defaults/overrides y miembros deshabilitados; v2 EXECUTE solo authenticated, revoca PUBLIC/anon/service_role. No ampliar RLS, leer facturas desde app ni elevar sesión. Portal conserva principal activo, cliente vivo, mismo tenant y minimización. Guarda STABLE/SECURITY DEFINER/search_path vacío y nombres calificados. Comparar catálogo/ACL efectiva de v1 antes/después, no presumir service_role revocado en0411.
@@ -56,8 +56,8 @@ Alternativa A de `C:\tmp\director-traspaso-20261020\0572b-transicion-compatible-
 Solo estas 41 rutas. Se acepta el arnés HTTP durable propuesto por el Worker, sin incorporarlo a los gates ni cambiar su política de omisiones. No es necesario modificarlas todas si una no lo requiere; cualquier ampliación se propone al Director con causa y evidencia antes de escribir.
 
 ```text
-supabase/migrations/0498_annual_billing_fx_v2.sql
-supabase/tests/0498_annual_billing_fx_v2.test.sql
+supabase/migrations/0527_annual_billing_fx_v2.sql
+supabase/tests/0527_annual_billing_fx_v2.test.sql
 supabase/migrations-baseline.json
 supabase/pending-migration-symbol-declarations.json
 lib/studio/__tests__/annual-billing-fx-v2.migration.test.ts
@@ -99,7 +99,7 @@ docs/specs/README.md
 .agents/handoffs/0572-conversor-usd-sql.md
 ```
 
-Baseline solo añade espera0498; no falsear sello0495 ni exenciones existentes. Declaración de símbolos solo la nueva degradación de la RPC si el gate la requiere y la conducta real la respalda; no modificar excepciones ajenas. Índice solo generado. No modificar las pruebas SQL antiguas para que cambien su resultado histórico ni inventar nuevas reglas de producto global.
+Baseline solo añade espera0527; no falsear sello0495 ni exenciones existentes. Declaración de símbolos solo la nueva degradación de la RPC si el gate la requiere y la conducta real la respalda; no modificar excepciones ajenas. Índice solo generado. No modificar las pruebas SQL antiguas para que cambien su resultado histórico ni inventar nuevas reglas de producto global.
 
 ## Validación y turno exclusivo
 
@@ -107,7 +107,7 @@ El Director completó knowledge:status de main a00:22:44Z, salida0/ok=false, y c
 
 Antes de producto lee la skill Worker y normas actuales, backend/Norte, BRAND/diseño para UI, governance-check y políticas normativas. Matriz SGE-00 por12 principios, NUM-01, ERR-01 y aplicables; no declarar conforme solo por gate. El validador de plugin ya pasó sobre la base, 28 políticas/5 componentes; es consistencia, no prueba del producto. Clasifica cumplimiento/no aplica/excepción/no conformidad con evidencias. Cambio de comportamiento R3 requiere SDD, alcance y revisión visible proporcional; no inventar un rediseño general.
 
-Pruebas relevantes: fixture sintético antes/después para reproducir conversión nominal/CNY/falta de tasa/pérdida de contador; SQL real con migraciones requeridas y nueva0498, identidad/firma/ACL/legado, aislamiento tenants/roles/overrides, cero/signo/medio centavo/tasa8decimales/no finitos/límites/importe inválido/moneda desconocida, ventanas/límites/año bisiesto. PGlite complementa y no sustituye PostgreSQL ni HTTP. No añadir pgTAP: el arnés vigente usa DO/RAISE y rollback.
+Pruebas relevantes: fixture sintético antes/después para reproducir conversión nominal/CNY/falta de tasa/pérdida de contador; SQL real con migraciones requeridas y nueva0527, identidad/firma/ACL/legado, aislamiento tenants/roles/overrides, cero/signo/medio centavo/tasa8decimales/no finitos/límites/importe inválido/moneda desconocida, ventanas/límites/año bisiesto. PGlite complementa y no sustituye PostgreSQL ni HTTP. No añadir pgTAP: el arnés vigente usa DO/RAISE y rollback.
 
 HTTP PostgREST local v14.17 con PostgreSQL17: POST p_as_of, RPC nueva/ausente/caché, tipo decimal/contador reales, grants/tenant y paginación con más de1.000 grupos/límite500. Fixtures/JWT de prueba únicamente. Si falta arnés, puedes preparar scripts efímeros fuera deGit en el directorio de evidencia; si se necesita una ruta persistente nueva, proponla antes. Puerto127.0.0.1, nombres/labels propios, no conectar ni reutilizar DB real. Docker Desktop puede iniciarse para estas pruebas; registra estado inicial y restaura solo lo que inicies. No borres contenedores/volúmenes/recursos ajenos ni hagas prune.
 
@@ -137,7 +137,7 @@ Directorio de evidencia propio: `C:\tmp\director-traspaso-20261020\0572b-codex-v
 Estado: **EN PROGRESO**. Candidato SQL separado de la app todavía sin commit;
 no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
 
-- 0498 añade la RPC Studio v2 y billing_v2 Portal; mantiene v1 íntegra y compara
+- 0527 añade la RPC Studio v2 y billing_v2 Portal; mantiene v1 íntegra y compara
   OID/owner/ACL y payload legado. Clasificador privado sin grants API, conversor
   canónico, decimal exacto, sin DML ni modificación de las migraciones anteriores.
 - Preflight exige la frontera 0414 actual (no la policy invoices_team_select),
@@ -156,7 +156,7 @@ no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
 - **PostgreSQL17/HTTP14.17, tipos/lint finales, UI en navegador y verify:
   NO EJECUTADOS** en este checkpoint. Arnés HTTP en preparación no incluido
   aún. El SQL no está aprobado para producción.
-- Baseline agrega exclusivamente espera0498. Se conserva la espera0495 que
+- Baseline agrega exclusivamente espera0527. Se conserva la espera0495 que
   heredó la base; el Director ya aplicó0495, pero su sello no pertenece a b.
 - App en preparación: rojo funcional inicial5/32 y primer verde lectores31/31
   (el caso RPC-error dejó de esperar null y ahora exige rechazo; no se perdió
@@ -173,10 +173,10 @@ no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
 - Checkpoint publicado: f9cc1dd101fc4e06ed7007b1a6a14c1bd5471cff.
   PR311 abierta por Director, en borrador y apilada sobre #310:
   https://github.com/SoftAgentes/DTDCARGO/pull/311 .
-- Migración0498 **idéntica** a f9cc1dd. Contrato corregido tras primer PostgreSQL:
+- Migración0527 **idéntica** a f9cc1dd. Contrato corregido tras primer PostgreSQL:
   el test cambiaba current_date al cambiar zona después de medianoche UTC.
   Ahora fija fecha antes de SET TIMEZONE y sitúa created_at en límite inferior;
-  un mutante que usa fecha de sesión es detectado. No fue defecto de0498.
+  un mutante que usa fecha de sesión es detectado. No fue defecto de0527.
 - Focal ampliado **PASÓ247/247 en18archivos,0SKIP,exit0**,00:54:39–00:56:18Z,
   focal-all-1.log/json/receipt. Incluye PGlite18/18 con13mutantes funcionales.
 - PostgreSQL17.11 **PASÓ37aserciones y ROLLBACK**, postgrest-2/postgres-contract.log.
@@ -184,7 +184,7 @@ no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
   contrato y seis hitosHTTP, pero falló paginación del arnés: Range header no
   pagina POST RPC. Corregido a offset/limit/order en query como SDK real.
 - HTTP PostgREST14.17 **PASÓ**, postgrest-3/receipt.json, exit0:
-  función ausente404/PGRST202 antes del DDL;0498 real con COMMIT; NOTIFY y
+  función ausente404/PGRST202 antes del DDL;0527 real con COMMIT; NOTIFY y
   recarga en caliente en el mismo contenedor; compatibilidad v1/Portal;
   tenant/roles/ambigüedad0453/ACL/overrideOR;1202grupos en500/500/202/0,
   último solo sin tasa; importe99999999999999000000.00 exacto.
@@ -278,12 +278,12 @@ medición y captura. No se tocó recompensa, créditos ni su diseño.
 
 ### Release y conocimiento pendientes
 
-La futura aplicación de0498 requiere paquete desde SHA revisado, previa de
+La futura aplicación de0527 requiere paquete desde SHA revisado, previa de
 solo metadatos y OK nominal de Sam por el Director. Ejecutar preflight, DDL en
 transacción, postflight de identidad/ACL/shape, recarga de caché y comprobación
 con roles autorizados antes de publicar app. Nunca aplicar aquí por un gate.
 Rollback de app es compatible con DB nueva por campos/v1 preservados; no se
-propone borrar0498 aplicada ni restaurar conversiones mediante DML. Ante falla
+propone borrar0527 aplicada ni restaurar conversiones mediante DML. Ante falla
 del preflight, detener y reconstruir paquete; no saltar huellas ni permisos.
 
 Documentación queda en spec/handoff propios, sin inventar regla nueva. Graphify
@@ -294,7 +294,7 @@ regeneración masiva ni publicación compartida desde rama no integrada.
 ## Renombre privado autorizado · 2026-10-21 01:21 UTC
 
 Director aprobó cambiar SOLO annual_billing_private.convertir por
-annual_billing_private.convertir_factura_anual_usd en0498 no aplicada y sus
+annual_billing_private.convertir_factura_anual_usd en0527 no aplicada y sus
 contratos/arnés. Son17 referencias en15 líneas de4rutas, sin cambiar fórmula/cuerpo/ACL/
 esquema ni las fachadas API. Evita declarar como degradación textos que no
 llaman SQL y conserva el detector sin modificaciones. Se exige revalidar
@@ -310,7 +310,7 @@ seguirán teniendo nombres/labels propios y limpieza limitada a esos recursos.
 ### Suplemento validado del renombre
 
 - `rename-proof.json` acredita que las cuatro rutas de SQL/contrato/arnés solo
-  sustituyen el identificador privado respecto de a734. El blob de0498 es
+  sustituyen el identificador privado respecto de a734. El blob de0527 es
   `5b302b5cad00529fcc5731aa570fd620794c4689`, SHA256
   `dbbae6fc8b61489acc0c1fa4ada2790ae992bcc834181ef7e9e8c0c612f85315`.
   Las siete fuentes de la fixture visual siguen idénticas a a734.
@@ -318,13 +318,13 @@ seguirán teniendo nombres/labels propios y limpieza limitada a esos recursos.
   01:21:34 y01:22:15Z; incluye los13 mutantes SQL y su restauración.
 - PostgreSQL17.11 y PostgREST14.17 `postgrest-4` **PASÓ exit0**, entre
   01:22:54.525 y01:23:11.463Z:37 aserciones SQL con ROLLBACK; HTTP antes de
-  crear0498, DDL confirmado, recarga en caliente y respuestas posteriores.
+  crear0527, DDL confirmado, recarga en caliente y respuestas posteriores.
   StartedAt antes/después es el mismo `2026-10-21T01:23:04.129331339Z`.
   El recibo conserva12 respuestas negativas sintéticas, páginas500/500/202/0,
   importe grande exacto y versiones/digests. Los dos contenedores y la red
   propios se limpiaron correctamente; no se intervino Loop3D.
 - `pending-symbols-rename` **PASÓ exit0** a01:24:10Z:0 rojos y2 amarillos
-  declarados (0495 heredada y0498). Sin cambiar detector, inventar callSites
+  declarados (0495 heredada y0527). Sin cambiar detector, inventar callSites
   ni declarar textos de UI como fallbacks SQL. El fallo anterior se conserva
   como histórico, no se sobrescribe su evidencia.
 - Lectura de capacidad antes de PG4: CPU host3%, memoria libre aproximada6GiB,
@@ -425,7 +425,7 @@ auditoría WCAG integral. El Director aceptó esa evidencia acotada.
 `2026-10-21T01:35:58.749Z` hasta `2026-10-21T02:02:55.354Z`:
 26min56.605s. Resultado literal: **CIERRE INCOMPLETO — 16/17 medidos;
 migrations-applied sin medir**. El ledger productivo es validación de release;
-su omisión no autoriza aplicar0498 ni invalida los contratos locales ejecutados.
+su omisión no autoriza aplicar0527 ni invalida los contratos locales ejecutados.
 
 | Control | Resultado observado | Evidencia y límite |
 |---|---|---|
@@ -442,7 +442,7 @@ su omisión no autoriza aplicar0498 ni invalida los contratos locales ejecutados
 | governance:check | PASÓ | Cápsula coherente; no sustituye matriz ni revisión. |
 | migrations-applied | NO EJECUTADO / SKIP | Sin URL/credenciales de producción; ningún acceso productivo para poner verde. |
 | pending-migration-symbols | PASÓ | 0 rojos,2 amarillos declarados y3 homónimos descartados. |
-| sql-tests | PASÓ | 247/247 contratos PostgreSQL efímero, incluido0498 vigente. |
+| sql-tests | PASÓ | 247/247 contratos PostgreSQL efímero, incluido0527 vigente. |
 | schema-rebuild | PASÓ | 490 migraciones:472 aplicadas+18 ledger-only;219 tablas y2 tenants sintéticos. |
 | e2e | PASÓ con aviso según política vigente | 177 aprobadas,1 flaky recuperado,20 omitidas y1 error global de cierre;9.7min. No es una salida limpia de Playwright. |
 | build | PASÓ | Build de producción completo y tsconfig restaurado;30.5s corresponde solo a compilación Turbopack. |
@@ -519,7 +519,7 @@ migraciones aplicadas ni datos reales, como PR en borrador revisable.
 
 Implementación local, regresiones rojas/verdes, mutantes, SQL/HTTP reales
 efímeros, UI sintética, dos reparaciones de revisión y cierre canónico con
-omisiones registradas.0498 conserva blob
+omisiones registradas.0527 conserva blob
 `5b302b5cad00529fcc5731aa570fd620794c4689` y SHA256
 `dbbae6fc8b61489acc0c1fa4ada2790ae992bcc834181ef7e9e8c0c612f85315`.
 
@@ -527,7 +527,7 @@ omisiones registradas.0498 conserva blob
 
 La tabla anterior delimita17 controles; no sumar focales históricos como casos
 únicos. Los rojos y problemas de fixture/captura permanecen documentados.
-Integración, aplicación0498, pruebas con Auth/datos productivos y despliegue
+Integración, aplicación0527, pruebas con Auth/datos productivos y despliegue
 **NO EJECUTADOS**. CI remoto **NO DISPONIBLE como evidencia de aprobación**:
 las corridas de3b1de986 terminaron startup_failure; no se supone que el pago
 o el cambio de tarjeta haya habilitado Actions.
@@ -550,7 +550,7 @@ al finalizar esa escritura/publicación; el recibo final confirma su resultado.
 
 Revisión del cierre documental por Director; CI recuperado; actualización de
 base/revalidación final según orden humano y dependencia0573; integración
-autorizada; paquete0498 desde SHA revisado, previa y OK nominal para release;
+autorizada; paquete0527 desde SHA revisado, previa y OK nominal para release;
 ejecución de ledger/cache/Auth/journeys productivos solo con sus permisos.
 Recuperación de Graphify/Archify/preview y revisión visible de Obsidian en
 ventana coordinada. La SDD general sigue in-progress, no se declara aceptación
@@ -572,3 +572,18 @@ cambia. Usar los recibos originales para aprobación local y los permisos
 separados para integración/release. Owner histórico de esta tarea:
 worker-0572b-01a15a4e-ddf0-7d82-8656-d9dc56b58468; comprobar liberación efectiva
 en el recibo final/harness, no inferir liveness por el historial de esta nota.
+
+## Renumeración 0498 → 0527 (2026-11-11)
+
+Main llegó a la 0526 antes de integrar esta pila y la 0498 no está aplicada en
+ningún entorno (ledger de prueba y producción medidos por el revisor del DG). La
+migración pasa a `0527_annual_billing_fx_v2` con su contrato
+`supabase/tests/0527_annual_billing_fx_v2.test.sql`; también se renumeraron sus
+literales internos (`0527: …`, `annual_billing_0527_before`, `TEST 0527 …`),
+la espera de `migrations-baseline.json` (sigue sin aplicar) y su grupo en
+`pending-migration-symbol-declarations.json`. Cambia sólo el número: el blob
+anterior `5b302b5cad00529fcc5731aa570fd620794c4689` pasa a
+`bea43b92caa9505ed29abd0dbb0d513ed1f5fa5d` (SHA-256
+`492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229`). Los
+blobs y evidencias anteriores a esta nota describen el archivo con número 0498.
+La rama `claude/sdd-0572-conversor-usd-sql` reemplaza a la PR #311.

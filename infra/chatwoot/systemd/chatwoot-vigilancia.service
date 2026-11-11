@@ -1,0 +1,12 @@
+# Vigilancia de Chatwoot y del ERP en el mismo host (SDD-0583 · paso 1.6).
+# docs/runbooks/chatwoot-vigilancia.md §2.
+[Unit]
+Description=Vigilancia de recursos de Chatwoot y de la web de DTD
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/chatwoot/vigilar.sh --dir /srv/chatwoot --csv /var/log/chatwoot-vigilancia.csv
+StandardOutput=append:/var/log/chatwoot-vigilancia.log
+StandardError=append:/var/log/chatwoot-vigilancia.log
+Nice=10
