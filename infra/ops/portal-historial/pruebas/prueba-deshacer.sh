@@ -203,17 +203,19 @@ recargar() {
   # display_id. Studio sigue con los viejos: se le ponen los nuevos al hilo y a su espejo, con el vinculos.ndjson de esta
   # recarga, para que el seco compare los hilos cargados de verdad (el rojo de la parte d del run 43017658601). Solo
   # arnés: en producción no hay recarga. hC (de la cola, 1100) no está en el archivo y no se toca.
+  # La lista entra por el descriptor 3: q usa docker exec -i, que se comería la entrada del bucle y dejaría todo menos
+  # el primer hilo sin actualizar (el rojo de ff66d774f, el mismo de la 2b).
   local linea hilo nuevo
-  while IFS= read -r linea; do
+  while IFS= read -r linea <&3; do
     hilo="$(printf '%s' "$linea" | sed -n 's/.*"hilo":"\([0-9a-f-]\{36\}\)".*/\1/p')"
     nuevo="$(printf '%s' "$linea" | sed -n 's/.*"conversacion_id":\([0-9]\{1,10\}\).*/\1/p')"
     [ -n "$hilo" ] && [ -n "$nuevo" ] || continue
     q "with h as (select chatwoot_conversation_id as viejo from public.chatwoot_portal_hilos where tenant_id = '$TENANT' and conversation_id = '$hilo')
        update public.chatwoot_conversations c set conversation_id = $nuevo from h
-       where c.tenant_id = '$TENANT' and c.conversation_id = h.viejo and h.viejo <> $nuevo" >/dev/null
+       where c.tenant_id = '$TENANT' and c.conversation_id = h.viejo and h.viejo <> $nuevo" </dev/null >/dev/null
     q "update public.chatwoot_portal_hilos set chatwoot_conversation_id = $nuevo
-       where tenant_id = '$TENANT' and conversation_id = '$hilo' and chatwoot_conversation_id <> $nuevo" >/dev/null
-  done < <(grep '"tipo":"conversacion"' "$SHM/vinculos.ndjson" 2>/dev/null)
+       where tenant_id = '$TENANT' and conversation_id = '$hilo' and chatwoot_conversation_id <> $nuevo" </dev/null >/dev/null
+  done 3< <(grep '"tipo":"conversacion"' "$SHM/vinculos.ndjson" 2>/dev/null)
   rm -rf -- "$SHM"
   sonda "$TRABAJO/otra-bandeja.txt" FASE=otra-bandeja
 }
