@@ -25,10 +25,12 @@ import { useIsMac } from "../../_components/ui/usePlatformMod";
 import { GlobalSearchModal } from "../../_components/wiring/GlobalSearchModal";
 import { NotificationBell } from "./NotificationBell";
 import { ConversationsIndicator } from "./ConversationsIndicator";
+import { DensityToggle } from "./DensityToggle";
 import type { BugNotification } from "@/lib/studio/bug-types";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   APPEARANCE_EVENT,
+  DEFAULT_THEME,
   applyTheme,
   readTheme,
 } from "@/app/studio/_components/appearance-prefs";
@@ -59,7 +61,7 @@ export function StudioTopbar({
   const locale = useLocale();
   const t = useT();
   const moduleLabel = pathToModuleLabel(pathname, locale);
-  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "light");
+  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => DEFAULT_THEME);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // Modifier según OS: ⌘ en Mac, Ctrl en Windows/Linux (hook compartido).
@@ -150,11 +152,11 @@ export function StudioTopbar({
               display: "flex",
               alignItems: "center",
               gap: 10,
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--ink-soft)",
               borderRadius: "var(--r-md)",
-              color: "var(--ink-soft)",
-              font: "500 13px/1 var(--f-sans)",
+              color: "var(--ink)",
+              font: "500 14px/1 var(--f-sans)",
               textAlign: "left",
               cursor: "pointer",
             }}
@@ -189,6 +191,8 @@ export function StudioTopbar({
         <div
           className="studio-topbar__actions"
         >
+          <DensityToggle />
+
           {/* Theme toggle */}
           <IconButton
             onClick={toggleTheme}
@@ -217,7 +221,8 @@ export function StudioTopbar({
               aria-expanded={userMenuOpen}
               style={{
                 borderRadius: "var(--r-pill)",
-                background: "var(--bg-elevated)",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--ink-soft)",
                 cursor: "pointer",
               }}
             >
@@ -276,24 +281,7 @@ function IconButton({
       onClick={onClick}
       title={title}
       aria-label={ariaLabel}
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: "var(--r-md)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--ink-soft)",
-        background: "transparent",
-        cursor: "pointer",
-        transition: "background var(--dur-fast) var(--ease)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "var(--bg-elevated)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent";
-      }}
+      className="studio-icono-btn"
     >
       {children}
     </button>
