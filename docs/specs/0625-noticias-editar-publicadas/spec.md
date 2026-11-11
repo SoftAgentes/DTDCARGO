@@ -44,7 +44,7 @@ publicar una marca `[VERIFICAR`. El aviso de `#noticias` ya enlaza a
 5. **Retirar** (`/studio/marketing/noticias-web/retirar/[id]`): la lista cerrada de motivos de
    §4.11 de la 0611, motivo obligatorio, nota obligatoria con «Otro» y sin datos personales.
 6. **Volver a publicar** una retirada.
-7. Auditoría de quién y cuándo: migración **0532**, sin aplicar, declarada como espera.
+7. Auditoría de quién y cuándo: migración **0532**, aplicada el 2026-11-11 en prueba (16:03Z) y producción (17:22Z) con el OK nominal de Sam; sellada en el tren AC.
 
 ### Fuera de alcance
 
@@ -131,7 +131,7 @@ corren en el mismo despliegue, el cambio se ve en el siguiente pedido; si no, **
 | 13 | Si el writer falla, la edición se revierte | idem |
 | 14 | La API no ejecuta la función del disparador; un commercial y anon no editan | idem |
 | 15 | Control rojo sin 0532 y 7 mutantes caen con su mensaje | idem |
-| 16 | La 0532 está declarada como espera y su cabecera dice NO APLICADA | idem |
+| 16 | La 0532 quedó sellada en el candado tras aplicarse (antes: espera con cabecera NO APLICADA) | idem |
 | 17 | `/ui-check` sin bloqueantes | handoff |
 
 ## 8. Allowlist exacta
@@ -154,7 +154,7 @@ corren en el mismo despliegue, el cambio se ve en el siguiente pedido; si no, **
 | `lib/studio/rbac-actions-guard.test.ts` | Modificado: anti-drift de RBAC, 81 → 82 archivos (exactos 57 → 58) y 463 → 466 acciones, con las tres nombradas |
 | `lib/studio/news-publicadas-queries.ts` | Nuevo: lecturas de la lista y del formulario |
 | `lib/news/__tests__/noticias-0532.migration.test.ts` | Nuevo: contrato de la 0532 en PGlite, control rojo y mutantes |
-| `supabase/migrations/0532_noticias_edicion_auditada.sql` | Nuevo: migración 0532, **sin aplicar** |
+| `supabase/migrations/0532_noticias_edicion_auditada.sql` | Nuevo: migración 0532, sin aplicar al fusionar (aplicada el 2026-11-11 en prueba y producción) |
 | `supabase/tests/0532_noticias_edicion_auditada.test.sql` | Nuevo: contrato SQL de la 0532 |
 | `supabase/migrations-baseline.json` | Modificado: espera de la 0532 en `pendingBelowCutoff` |
 | `docs/specs/0625-noticias-editar-publicadas/spec.md` | Nuevo (esta spec) |

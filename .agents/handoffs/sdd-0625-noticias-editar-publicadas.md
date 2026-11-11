@@ -4,7 +4,7 @@
 - **Ruta:** `.claude/worktrees/upbeat-sutherland-4cb3a5` · **rama:** `claude/noticias-editar-studio-75790c`.
 - **Base:** `origin/main` `b63de1527` (PR #505).
 - **SDD:** `docs/specs/0625-noticias-editar-publicadas/spec.md` (reserva `refs/heads/codex/sdd-reserve-0625`, commit `0b17009fd`).
-- **Migración:** `0532_noticias_edicion_auditada.sql`, **SIN APLICAR**, declarada como espera en `migrations-baseline.json`.
+- **Migración:** `0532_noticias_edicion_auditada.sql`, **APLICADA** el 2026-11-11 en prueba (16:03:45Z) y producción (17:22:06Z) por el Director General con el OK nominal de Sam; espera retirada y sellada en el tren AC.
 
 ## OBJETIVO ORIGINAL
 

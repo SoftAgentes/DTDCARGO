@@ -10,7 +10,8 @@
  * CONTROL ROJO: sin 0532 el contrato cae en la primera aserción de evento.
  * MUTANTES: cada uno es una 0532 con UN defecto y tiene que caer con el mensaje
  * que lo nombra.
- * ESPERA: la 0532 está declarada en migrations-baseline.json › pendingBelowCutoff.
+ * SELLO: la 0532 se aplicó el 2026-11-11 y quedó sellada en migrations.lock.json
+ * (antes estuvo declarada en migrations-baseline.json › pendingBelowCutoff).
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -174,8 +175,15 @@ describe("SDD-0625 · 0532 edición de noticias auditada (PGlite)", () => {
     expect(MUTANTES.length).toBeGreaterThanOrEqual(7);
   });
 
-  it("la 0532 está declarada como espera y su cabecera dice que no está aplicada", () => {
-    expect(BASELINE.pendingBelowCutoff).toHaveProperty("0532_noticias_edicion_auditada");
+  it("la 0532 está sellada en el candado y ya no figura como espera", () => {
+    // Aplicada el 2026-11-11 en prueba (16:03Z) y producción (17:22Z) con el OK de Sam;
+    // el sello la saca de pendingBelowCutoff y la deja en migrations.lock.json con su md5.
+    // La cabecera del archivo conserva «NO APLICADA A PRODUCCIÓN» porque el md5 sellado no
+    // permite editarla: es texto histórico del momento de la PR.
+    expect(BASELINE.pendingBelowCutoff).not.toHaveProperty("0532_noticias_edicion_auditada");
+    const LOCK = read(resolve(ROOT, "supabase/migrations.lock.json"));
+    expect(LOCK).toContain("0532_noticias_edicion_auditada");
+    expect(LOCK).toContain("bd81ad586d236fd165af6f7efdb73c58");
     expect(FILE_0532).toContain("NO APLICADA A PRODUCCIÓN");
   });
 });
