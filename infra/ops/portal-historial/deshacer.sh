@@ -69,7 +69,9 @@ AQUI="$(cd "$(dirname "$0")" && pwd)"
 MODO="${MODO:-}"
 
 mal() { echo "HECHO error=$1" >&2; exit "${2:-2}"; }
-campo() { sed -n "s/.* $2=\([^ ]*\).*/\1/p" "$1" 2>/dev/null | head -n 1; } # campo archivo clave: de un .hecho
+# campo archivo clave: de un .hecho. Una clave repetida no se lee (vacío), así que la guarda que la usa falla cerrada
+# ((b) de la revisión del DG sobre 602d5200e: antes se quedaba con la última).
+campo() { [ "$(grep -o " $2=" "$1" 2>/dev/null | wc -l)" = 1 ] || return 0; sed -n "s/.* $2=\([^ ]*\).*/\1/p" "$1" 2>/dev/null | head -n 1; }
 escribir_hecho() { # archivo línea: 0600, con .parcial + mv, sin seguir un enlace; la línea sale también por stdout
   [ -L "$1" ] || [ -L "$1.parcial" ] && mal hecho_es_un_enlace 1
   ( umask 077; printf '%s\n' "$2" >"$1.parcial" ) && chmod 0600 "$1.parcial" && mv -f -- "$1.parcial" "$1" || mal no_se_pudo_escribir_el_hecho 1
@@ -109,6 +111,9 @@ case "$DURABLE" in /*/deshacer) ;; *) mal la_copia_durable_tiene_que_terminar_en
 # imprime nunca y entra a psql por la entrada estándar (\set), no por un argumento que se vea en `ps`. El archivo, el
 # sha esperado y el uid solo cambian en la prueba bash (DESHACER_PRUEBA=1).
 [ -z "${SISTEMA:-}" ] || mal sistema_va_en_el_archivo_no_en_el_entorno
+# El patrón N1 de la #480: un SISTEMA= vacío y exportado pasa la guarda de arriba, y lo que lea después leer_sistema
+# quedaría exportado a los procesos hijos (docker, psql). Sin la variable, la asignación del paso 3 no se exporta.
+unset SISTEMA
 SISTEMA_ARCHIVO=/srv/ops/portal-historial/sistema-produccion
 SISTEMA_SHA_ESPERADO=b4fbe1b236
 SISTEMA_UID=0
