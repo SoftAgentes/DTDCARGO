@@ -44,10 +44,15 @@ export function ActividadAcceso({
 
   useEffect(() => {
     let cancelled = false;
-    void listUserAccessActivityAction(userId).then((res) => {
-      if (cancelled) return;
-      setEstado("error" in res ? { kind: "error", msg: res.error } : { kind: "ok", events: res.events });
-    });
+    void listUserAccessActivityAction(userId)
+      .then((res) => {
+        if (cancelled) return;
+        setEstado("error" in res ? { kind: "error", msg: res.error } : { kind: "ok", events: res.events });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEstado({ kind: "error", msg: "No se pudo cargar la actividad: se cortó la conexión. Intenta de nuevo." });
+      });
     return () => {
       cancelled = true;
     };

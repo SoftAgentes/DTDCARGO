@@ -171,14 +171,16 @@ function AccesosExtra({
 
   function guardar(input: { moduleId: string; canEdit: boolean; reason: string; expiresOn: string | null; confirm: boolean }, alTerminar?: () => void) {
     startTransition(async () => {
-      const res = await grantUserModuleAction({
-        targetUserId: member.user_id,
-        moduleId: input.moduleId,
-        canEdit: input.canEdit,
-        reason: input.reason,
-        expiresOn: input.expiresOn,
-        confirmSensitive: input.confirm,
-      });
+      const res = await llamar(() =>
+        grantUserModuleAction({
+          targetUserId: member.user_id,
+          moduleId: input.moduleId,
+          canEdit: input.canEdit,
+          reason: input.reason,
+          expiresOn: input.expiresOn,
+          confirmSensitive: input.confirm,
+        }),
+      );
       if (res.error) {
         setError(res.error);
         setErrorDialogo(res.error);
@@ -338,14 +340,16 @@ function AccesosExtra({
               const ids = borrador.moduleId.split(",");
               startTransition(async () => {
                 for (const id of ids) {
-                  const res = await grantUserModuleAction({
-                    targetUserId: member.user_id,
-                    moduleId: id,
-                    canEdit: borrador.canEdit && !grantViewOnly(id, member.role),
-                    reason: borrador.reason,
-                    expiresOn: borrador.expiresOn || null,
-                    confirmSensitive: false,
-                  });
+                  const res = await llamar(() =>
+                    grantUserModuleAction({
+                      targetUserId: member.user_id,
+                      moduleId: id,
+                      canEdit: borrador.canEdit && !grantViewOnly(id, member.role),
+                      reason: borrador.reason,
+                      expiresOn: borrador.expiresOn || null,
+                      confirmSensitive: false,
+                    }),
+                  );
                   if (res.error) {
                     setError(`${moduleLabel(id)}: ${res.error}`);
                     return;
@@ -486,11 +490,13 @@ function AccesosExtra({
           }
           const g = quitar;
           startTransition(async () => {
-            const res = await revokeUserModuleGrantAction({
-              targetUserId: member.user_id,
-              moduleId: g.moduleId,
-              reason: motivo.trim(),
-            });
+            const res = await llamar(() =>
+              revokeUserModuleGrantAction({
+                targetUserId: member.user_id,
+                moduleId: g.moduleId,
+                reason: motivo.trim(),
+              }),
+            );
             if (res.error) {
               setError(res.error);
               return;
@@ -668,6 +674,21 @@ function LoQuePuedeVer({
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+const SIN_CONEXION = "No se pudo guardar: se cortó la conexión. Revisa tu red e intenta de nuevo.";
+
+/**
+ * Una acción de servidor que LANZA (corte de red, servidor caído) no devuelve
+ * `{ error }`: sin esto el usuario no vería nada. Se traduce al mismo formato
+ * de error del panel.
+ */
+async function llamar(fn: () => Promise<{ ok?: true; error?: string }>): Promise<{ ok?: true; error?: string }> {
+  try {
+    return await fn();
+  } catch {
+    return { error: SIN_CONEXION };
+  }
+}
 
 function nota(e: GrantableStatus): string {
   if (e.kind === "role_full") return "Ya lo da su rol";

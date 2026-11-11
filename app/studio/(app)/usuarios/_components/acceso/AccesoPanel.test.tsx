@@ -109,6 +109,28 @@ describe("AccesoPanel · buscador de módulos", () => {
     });
   });
 
+  it("si la acción lanza (corte de red), se ve el error y no se pierde lo escrito", async () => {
+    const u = userEvent.setup();
+    grantMock.mockRejectedValueOnce(new Error("Failed to fetch"));
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
+    await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
+    await u.click(screen.getByRole("option", { name: /^CRM/ }));
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Atiende leads con comercial");
+    await u.click(screen.getByRole("button", { name: "Agregar acceso" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/se cortó la conexión/);
+    expect((screen.getByLabelText("Motivo (obligatorio)") as HTMLInputElement).value).toBe("Atiende leads con comercial");
+  });
+
+  it("si quitar lanza, el error se ve dentro del diálogo", async () => {
+    const u = userEvent.setup();
+    revokeMock.mockRejectedValueOnce(new Error("Failed to fetch"));
+    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
+    await u.click(screen.getByRole("button", { name: "Quitar CRM" }));
+    await u.type(screen.getByRole("textbox"), "Ya no atiende el CRM");
+    await u.click(screen.getByRole("button", { name: "Quitar acceso" }));
+    expect(await screen.findByText(/se cortó la conexión/)).toBeTruthy();
+  });
+
   it("a un admin no se le ofrecen extras", () => {
     render(<AccesoPanel member={miembro({ role: "admin" })} grants={[]} overrides={{}} nombres={{}} />);
     expect(screen.queryByRole("combobox", { name: "Agregar módulo o área" })).toBeNull();
