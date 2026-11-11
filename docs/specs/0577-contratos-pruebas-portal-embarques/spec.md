@@ -12,11 +12,11 @@ confidencialidad: interno
 ---
 
 # SDD-0577 · Reintento de borrado y consultas de archivos del Portal
+
 Los apartados desde «Objetivo y reserva» hasta «Evidencia de composición C3 · GO3»
 conservan el alcance y la evidencia de la entrega original de 40 casos / PR #315.
 La subfase diagnóstica GO05B al final de este documento tiene otro aislamiento,
 base y aceptación. Sus resultados no se transfieren entre ambas variantes.
-
 
 ## Objetivo y reserva
 
@@ -350,7 +350,11 @@ composición o conocimiento de la entrega original.
 ### Traslado a main (2026-11-11)
 
 La pila contable quedó atrás de main. Para no arrastrar la pila BCV, los dos
-documentos de esta subfase se trasladaron sin cambios de contenido a una PR nueva
-contra main, rama `claude/sdd-0577-diagnostico-go05b`, que reemplaza a la #321.
+documentos de esta subfase se trasladaron a una PR nueva contra main, rama
+`claude/sdd-0577-diagnostico-go05b`, que reemplaza a la #321. El handoff y la
+sección GO05B se copiaron sin cambios. La spec de main sí cambió en dos puntos:
+el párrafo inicial se adaptó para cubrir hasta «Evidencia de composición C3 ·
+GO3», que la #321 no tenía, y se agregó esta nota. El título se mantiene como
+está en main.
 Los párrafos anteriores que hablan de la base `codex/sdd-0569-bcv-carga-diaria`
 describen la entrega original y se conservan como evidencia fechada.
