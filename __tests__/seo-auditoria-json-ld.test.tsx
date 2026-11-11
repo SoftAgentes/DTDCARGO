@@ -39,27 +39,46 @@ function bloqueDeLlaves(src: string, desde: number): string | null {
   return null;
 }
 
+/** Índice de la comilla que cierra la cadena que abre `src[desde]`, saltando escapes. */
+function finDeCadena(src: string, desde: number): number {
+  const q = src[desde];
+  for (let i = desde + 1; i < src.length; i++) {
+    if (src[i] === "\\") i++;
+    else if (src[i] === q) return i;
+  }
+  return src.length;
+}
+
 /**
  * Cada `<Nombre …/>` con props del archivo, sin importar el orden de las props:
  * empieza en `<Nombre` seguido de un espacio (una mención `<Nombre>` en un
- * comentario no cuenta) y termina en el primer `/>` fuera de llaves, así que no
- * salta a otro elemento. Un `>` fuera de llaves corta la búsqueda.
+ * comentario no cuenta) y termina en el primer `/>` que no esté dentro de llaves
+ * ni de una cadena (`"…"`, `'…'` o `` `…` ``), así que un `>` en un texto no lo
+ * corta y no salta a otro elemento.
+ *
+ * Devuelve también los `<Nombre …` que no cierran con `/>` (un `>` suelto fuera
+ * de llaves y cadenas): un uso que el recorrido no reconoce no puede pasar callado.
  */
-function elementosJsx(src: string, nombre: string): string[] {
-  const salida: string[] = [];
+function elementosJsx(src: string, nombre: string): { elementos: string[]; sinCerrar: string[] } {
+  const elementos: string[] = [];
+  const sinCerrar: string[] = [];
   for (const m of src.matchAll(new RegExp(`<${nombre}\\s`, "g"))) {
     let prof = 0;
+    let cerrado = false;
     for (let i = m.index; i < src.length; i++) {
       const c = src[i];
-      if (c === "{") prof++;
+      if (c === '"' || c === "'" || c === "`") i = finDeCadena(src, i);
+      else if (c === "{") prof++;
       else if (c === "}") prof--;
       else if (prof === 0 && c === "/" && src[i + 1] === ">") {
-        salida.push(src.slice(m.index, i + 2));
+        elementos.push(src.slice(m.index, i + 2));
+        cerrado = true;
         break;
       } else if (prof === 0 && c === ">") break;
     }
+    if (!cerrado) sinCerrar.push(src.slice(m.index, m.index + 80));
   }
-  return salida;
+  return { elementos, sinCerrar };
 }
 
 /** Ancho y alto reales de un PNG, leídos de su cabecera IHDR. */
@@ -83,6 +102,8 @@ describe("WebPage JSON-LD lleva el nombre de la página", () => {
 
   it("todas las páginas que lo usan le pasan name y description", () => {
     const usos: string[] = [];
+    const sinReconocer: string[] = [];
+    const importanSinUsar: string[] = [];
     const walk = (dir: string) => {
       for (const e of readdirSync(join(root, dir), { withFileTypes: true })) {
         const rel = `${dir}/${e.name}`;
@@ -90,12 +111,22 @@ describe("WebPage JSON-LD lleva el nombre de la página", () => {
           if (e.name !== "__tests__" && e.name !== "node_modules") walk(rel);
         } else if (e.name.endsWith(".tsx")) {
           const src = readFileSync(join(root, rel), "utf8");
-          for (const el of elementosJsx(src, "WebPageJsonLd")) usos.push(`${rel} ${el}`);
+          const { elementos, sinCerrar } = elementosJsx(src, "WebPageJsonLd");
+          for (const el of elementos) usos.push(`${rel} ${el}`);
+          for (const s of sinCerrar) sinReconocer.push(`${rel} ${s}`);
+          // Conteo real: quien importa el componente tiene que usarlo al menos una vez.
+          if (/from\s+["']@\/components\/WebPageJsonLd["']/.test(src) && elementos.length === 0) {
+            importanSinUsar.push(rel);
+          }
         }
       }
     };
     walk("app");
-    // Piso: si el patrón dejara de encontrar los usos, la prueba no puede salir verde.
+    // Todo `<WebPageJsonLd ` tiene que reconocerse como elemento: si el recorrido se
+    // pierde uno, la prueba cae aquí, sin depender de un piso fijo.
+    expect(sinReconocer, sinReconocer.join("\n")).toEqual([]);
+    expect(importanSinUsar, importanSinUsar.join("\n")).toEqual([]);
+    // Piso de cordura: las 5 páginas de la auditoría del 2026-11-07.
     expect(usos.length).toBeGreaterThanOrEqual(5);
     for (const uso of usos) {
       expect(uso, uso).toMatch(/\sname=\{/);
