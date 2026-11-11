@@ -53,3 +53,18 @@ Los dos se corrieron con `node` directo, sin `pnpm install`.
 
 - **El código 6 de la 3.1** (`ensayo-portal.sh` en `main` desde `b5669b1a5`, `:131-141`): esa línea no se volvió a medir en `3c14dde83`, porque no la pidieron.
 - **La #500** (el piso de 139, N1, N2 y N4) sigue aparte: su rama es otra y no toca estos archivos.
+
+## La revisión del DG en `8ac635426` (CHANGES_REQUESTED, un bloqueante)
+
+- **El bloqueante:** `copia-columnas.tsv:32` saca `chatwoot_portal_salida.error`, y el OK 1b decía «lo demás son ids, estados y fechas».
+  - **El arreglo:** el texto del OK 1b es el nuevo del Subdirector, y agrega «, y el código de error técnico de la salida (un código fijo como mensaje_red o contacto_http_401, nunca texto)». La lista no cambia.
+  - **La nota debajo,** con sus fuentes comprobadas en `3c14dde83`:
+    - el `check` de `0519_chatwoot_portal.sql:117`;
+    - el 22023 de `:332-333`;
+    - el único que escribe la columna, `portal.ts:206`, con `codigo()` en `:79-81`;
+    - los valores de `chatwoot-types.ts:9-16`;
+    - `base` en `:251`.
+    `git grep chatwoot_portal_marcar` confirma que ningún otro lo llama. `chatwoot_portal_marcar_conciliado` no escribe `error`.
+- **«49 líneas»** pasa a «49 líneas, 26 de datos (16 de Studio y 10 de Chatwoot) y el resto comentarios», medido con `awk`: 23 comentarios y 0 líneas vacías.
+- **Las cabezas fusionadas:** `602d5200e` (#478) y `a0c32c9cc` (#480). Las dos son ancestro de `3c14dde83`. Se citan en la leyenda, en el 3.0 y en el bloque `SISTEMA`.
+- **El cierre de docs:** `docs:check` y `sdd:check` dan PASÓ.

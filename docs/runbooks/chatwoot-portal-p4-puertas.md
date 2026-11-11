@@ -10,6 +10,8 @@
 > - **«medido en el VPS por el DG»:** el DG lo midió.
 > - **«según main, sin medir en el VPS»:** sale del repo, y el compose del VPS no es el de `main`.
 > - **‹por confirmar›:** todavía no está.
+>
+> **«en `main` desde `3c14dde83`»** es el tren #499: la #478 entró con su cabeza `602d5200e` y la #480 con la suya, `a0c32c9cc`.
 
 ## Antes de la primera puerta
 
@@ -80,7 +82,7 @@
 |---|---|
 | **Qué lee o escribe** | **Lee producción en solo lectura:** `COPY (SELECT <lista> … WHERE account_id = :cuenta …)`. **El esquema lo crea la imagen de Chatwoot fijada por digest,** con `db:chatwoot_prepare` en el stack efímero. **Las otras cuentas no entran nunca:** la consulta ya filtra la cuenta. No escribe nada en producción |
 | **Qué va** | <ul><li>solo la bandeja del portal;</li><li>el usuario de servicio y los agentes vinculados, con correo y nombre **sintéticos**;</li><li>los contactos `dtd-portal:`, **sin teléfono, correo ni `additional_attributes`**, y con el nombre sintético;</li><li>sus `contact_inboxes`;</li><li>las conversaciones y los mensajes **de la bandeja del portal, sin `content`**;</li><li>los webhooks de la cuenta, con la URL **sintética**;</li><li>la secuencia `conv_dpid_seq_<cuenta>`, por `setval`.</li></ul>**No va:** nada de WhatsApp ni de Instagram, el `hmac_token`, la URL real de un webhook, `access_tokens`, `inbox_members` ni adjuntos |
-| **Tablas y columnas** | Las de `infra/ops/portal-historial/copia-columnas.tsv`, con md5 `cc1534a8a223e37ab9485451d5ee922c` (49 líneas; medido con `git show 3c14dde83:infra/ops/portal-historial/copia-columnas.tsv \| md5sum`). El ensayo la imprime como `HECHO lista_md5=` (`ensayo-portal.sh:269-270`). Si el md5 medido en el VPS no es ese, no se sigue |
+| **Tablas y columnas** | Las de `infra/ops/portal-historial/copia-columnas.tsv`, con md5 `cc1534a8a223e37ab9485451d5ee922c` (49 líneas, 26 de datos (16 de Studio y 10 de Chatwoot) y el resto comentarios; medido con `git show 3c14dde83:infra/ops/portal-historial/copia-columnas.tsv \| md5sum`). El ensayo la imprime como `HECHO lista_md5=` (`ensayo-portal.sh:269-270`). Si el md5 medido en el VPS no es ese, no se sigue |
 | **Comando** | En el VPS como root, desde `/srv/ops/portal-historial/` (`ensayo-portal.sh:23-25`, en `main` desde `3c14dde83`). **La 1a y la 1b van en la misma corrida.** La comprobación, que copia y comprueba sin cargar: `TENANT=<uuid> CUENTA=1 BANDEJA=<id de la puerta 2> AGENTE_SERVICIO=<id> bash ensayo-portal.sh --solo-copia`. El ensayo completo es la puerta 3: lo mismo, sin `--solo-copia`. Para limpiar un ensayo que quedó a medias: `bash ensayo-portal.sh --limpiar` |
 | **Para seguir** | Sale con 0. La otra cuenta tiene 0 filas en todas las tablas de la copia, medido antes de cualquier otro paso. Producción queda sin cambios |
 | **Evidencia** | `HECHO` con las filas por tabla y el md5 de la lista de columnas. Sin datos de personas |
@@ -93,12 +95,17 @@
 |---|---|
 | **Qué lee o escribe** | **Lee producción en solo lectura, filtrado al tenant:** `COPY (SELECT <lista> … WHERE tenant_id = :tenant …)`. **El esquema sale de las migraciones del repo,** aplicadas en el Postgres efímero. No viaja ningún `pg_dump --schema-only` de producción. No escribe nada en producción |
 | **Qué va** | <ul><li>**Los únicos datos personales: `clients.name` y `conversation_messages.body`**, este último solo de los hilos `portal`.</li><li>`clients` va **sin `phone`, `email`, cédula, RIF ni el `markbox` real**, y el `markbox` va sintético.</li><li>`conversation_messages` va **sin `author_name`**.</li><li>Lo demás son ids, estados y fechas: `tenants`, `conversations` del portal, los `chatwoot_portal_*`, `chatwoot_conversations`, `chatwoot_agent_links`, los `id` de `auth.users`, `feature_flags` (`chatwoot_portal`), y los `id` del CRM de C-7 y de `chatwoot_webhook_events`.</li></ul> |
-| **Tablas y columnas** | Las de `infra/ops/portal-historial/copia-columnas.tsv`, con md5 `cc1534a8a223e37ab9485451d5ee922c` (49 líneas; medido con `git show 3c14dde83:infra/ops/portal-historial/copia-columnas.tsv \| md5sum`). El ensayo la imprime como `HECHO lista_md5=` (`ensayo-portal.sh:269-270`). Si el md5 medido en el VPS no es ese, no se sigue |
+| **Tablas y columnas** | Las de `infra/ops/portal-historial/copia-columnas.tsv`, con md5 `cc1534a8a223e37ab9485451d5ee922c` (49 líneas, 26 de datos (16 de Studio y 10 de Chatwoot) y el resto comentarios; medido con `git show 3c14dde83:infra/ops/portal-historial/copia-columnas.tsv \| md5sum`). El ensayo la imprime como `HECHO lista_md5=` (`ensayo-portal.sh:269-270`). Si el md5 medido en el VPS no es ese, no se sigue |
 | **Comando** | En el VPS como root, desde `/srv/ops/portal-historial/` (`ensayo-portal.sh:23-25`, en `main` desde `3c14dde83`). **La 1a y la 1b van en la misma corrida.** La comprobación, que copia y comprueba sin cargar: `TENANT=<uuid> CUENTA=1 BANDEJA=<id de la puerta 2> AGENTE_SERVICIO=<id> bash ensayo-portal.sh --solo-copia`. El ensayo completo es la puerta 3: lo mismo, sin `--solo-copia`. Para limpiar un ensayo que quedó a medias: `bash ensayo-portal.sh --limpiar` |
 | **Para seguir** | Sale con 0. Producción queda sin cambios. Los conteos de la copia son los del tenant (C-1) |
 | **Evidencia** | `HECHO` con las filas por tabla y el md5 de la lista de columnas. Sin datos de personas |
 | **Vuelta atrás** | Igual que la 1a |
-| **OK nominal** | «¿Autorizas copiar de Studio de producción, en solo lectura y filtrado al tenant, las tablas y columnas de `copia-columnas.tsv` (md5 cc1534a8a223e37ab9485451d5ee922c), a la misma copia efímera y en las mismas corridas? De datos personales salen solo el nombre de la ficha del cliente y el texto de los mensajes del portal, sin teléfono, correo, cédula, RIF ni Shipping Mark real. Lo demás son ids, estados y fechas.» |
+| **OK nominal** | «¿Autorizas copiar de Studio de producción, en solo lectura y filtrado al tenant, las tablas y columnas de `copia-columnas.tsv` (md5 cc1534a8a223e37ab9485451d5ee922c), a la misma copia efímera y en las mismas corridas? De datos personales salen solo el nombre de la ficha del cliente y el texto de los mensajes del portal, sin teléfono, correo, cédula, RIF ni Shipping Mark real. Lo demás son ids, estados y fechas, y el código de error técnico de la salida (un código fijo como mensaje_red o contacto_http_401, nunca texto).» |
+
+**El código de error de la salida** (`copia-columnas.tsv:32` saca `chatwoot_portal_salida.error`), medido en `main` (`3c14dde83`):
+- **La columna solo acepta un código:** `0519_chatwoot_portal.sql:117` la declara con `check (error ~ '^[a-z0-9_]{1,40}$')`, y `chatwoot_portal_marcar` (`:332-333`) rechaza con 22023 cualquier `p_error` que no lo cumpla.
+- **El único que la escribe** es `lib/studio/chatwoot/portal.ts:206` (`p_error`), por `chatwoot_portal_marcar`. El código sale de `codigo()` (`:79-81`): el paso (`contacto`, `conversacion` o `mensaje`) más un `ChatwootError` (`chatwoot-types.ts:9-16`: `sin_configurar`, `no_autorizado`, `no_encontrado`, `origen_invalido`, `respuesta_invalida`, `red` o `http_<n>`) o `busqueda_incompleta`. Si falla la base, va `base` (`:251`).
+- **Por eso la lista no cambia:** el código se nombra en el OK.
 
 Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos antes de la primera corrida. Si en el VPS el md5 de la lista no es `cc1534a8a223e37ab9485451d5ee922c`, los OK no cubren la corrida.
 
@@ -162,7 +169,7 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
     - `supabase/migrations/0520_chatwoot_portal_vuelta.sql`
     - `supabase/migrations/0523_chatwoot_portal_carga.sql`
     - `supabase/migrations/0524_chatwoot_portal_puerta4.sql`;
-  - de la 2c (#478, en `main` desde `3c14dde83`): `deshacer.sh` y `deshacer-carga.rb`. Se copian por nombre con su propio `scp` (debajo), y van en esta misma lista, con su sha256, bajo el mismo OK;
+  - de la 2c (#478, en `main` desde `3c14dde83`, cabeza `602d5200e`): `deshacer.sh` y `deshacer-carga.rb`. Se copian por nombre con su propio `scp` (debajo), y van en esta misma lista, con su sha256, bajo el mismo OK;
   - en Studio, desde `supabase/cargas/portal-historial-deshacer/`: `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, que van a la misma carpeta del VPS con su propio `scp` (debajo) y su sha256.
   - **La lista crece con cada PR,** y se escribe aquí cuando entra en `main`.
   - **No se copian** `README.md` ni `pruebas/`: la copia va por nombre, y en el VPS queda solo lo de esta lista.
@@ -182,7 +189,7 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
   scp infra/ops/portal-historial/ensayo-portal.sh infra/ops/portal-historial/copia-columnas.tsv infra/ops/portal-historial/ensayo-studio-esquema.sql root@217.216.54.70:/srv/ops/portal-historial/
   ```
 
-  Los dos de la 2c (#478, en `main` desde `3c14dde83`):
+  Los dos de la 2c (#478, en `main` desde `3c14dde83`, cabeza `602d5200e`):
 
   ```bash
   scp infra/ops/portal-historial/deshacer.sh infra/ops/portal-historial/deshacer-carga.rb root@217.216.54.70:/srv/ops/portal-historial/
@@ -204,7 +211,7 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
   scp supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sql supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sh root@217.216.54.70:/srv/ops/portal-historial/
   ```
 
-- **El archivo de `SISTEMA`** (en `main` desde `3c14dde83`): en el VPS, el DG lee el `system_identifier` de producción una sola vez, sin imprimirlo, y lo deja en `/srv/ops/portal-historial/sistema-produccion`, root 0600.
+- **El archivo de `SISTEMA`** (#480, en `main` desde `3c14dde83`, cabeza `a0c32c9cc`): en el VPS, el DG lee el `system_identifier` de producción una sola vez, sin imprimirlo, y lo deja en `/srv/ops/portal-historial/sistema-produccion`, root 0600.
 
   ```bash
   ssh root@217.216.54.70 "umask 077; docker exec -i dtd-cargo-db-1 psql -X -q -At -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'select system_identifier from pg_control_system()' | tr -d '\n' > /srv/ops/portal-historial/sistema-produccion.parcial && chmod 0600 /srv/ops/portal-historial/sistema-produccion.parcial && mv -f /srv/ops/portal-historial/sistema-produccion.parcial /srv/ops/portal-historial/sistema-produccion"
@@ -381,7 +388,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   - **Si da 42501, se para:** sin esa lectura, el desarme aborta en `produccion`.
 - **Los comandos,** en el VPS como root. Los conteos `ESPERADOS_*` salen de la lectura de 4.2. Los de Chatwoot (pasos 1, 1b y 3) son los de la cabecera de `deshacer.sh` de la #478 (en `main` desde `3c14dde83`), con los cinco valores. Ni `DB_CW` ni `DB` tienen valor por defecto (`deshacer.sh` de la #478, en `main` desde `3c14dde83`, `:52`). Si falta `DB`, `deshacer.sh` se niega con `falta_db` (`:96`), y `deshacer-vinculos.sh` también se niega (`:44`). Si falta `DB_CW`, `deshacer.sh` se niega con `falta_db_cw` (`:98`). Sin `DB`, `DB_CW`, `TENANT`, `CUENTA` o `BANDEJA` sale con 2. **Antes de copiar, se comparan con la cabecera del `deshacer.sh` que quedó en el VPS en 3.0.** El paso 3 es el borrado permanente de Sam: se corre tal como está escrito.
 
-  **`SISTEMA`** (aprobado por el DG; `deshacer-vinculos.sh` de la #480 y `deshacer.sh` de la #478, las dos en `main` desde `3c14dde83`): **no se lee en la shell de Sam ni va en el comando.**
+  **`SISTEMA`** (aprobado por el DG; `deshacer-vinculos.sh` de la #480 (cabeza `a0c32c9cc`) y `deshacer.sh` de la #478 (cabeza `602d5200e`), las dos en `main` desde `3c14dde83`): **no se lee en la shell de Sam ni va en el comando.**
   - **Lo leen los pasos 2 y 4, en `produccion`, y el paso 3,** de `/srv/ops/portal-historial/sistema-produccion`, el archivo que deja el 3.0. Si llega `SISTEMA=` por el entorno, se niegan con `sistema_va_en_el_archivo_no_en_el_entorno`.
   - **El archivo:** tiene que ser root 0600, uid 0, de este usuario y sin enlace, y traer solo cifras. Si no:
     - `sin_archivo_de_sistema_0600`, si falta, no es un archivo, es un enlace o no está en 0600;
