@@ -506,9 +506,10 @@ El asiento de factura ya no lo inserta JS: la RPC atómica de la 0497 lo fecha c
 `invoice-posting.ts` se retiró al traer main. La 0533 corre después de la 0511
 (RLS de escritura de asientos). Prueba de los asientos bajo esa RLS: NO DISPONIBLE,
 el contrato no monta la 0511 (su fixture carga 0078, 0470 y 0493, no 0511 ni 0497;
-montarla arrastra 0190, 0294 y la cadena de auditoría D2). Las RPC son DEFINER de
-postgres y la tabla no tiene FORCE RLS, así que la 0511 no las alcanza por diseño,
-pero eso no está medido aquí. La rama `claude/sdd-0576-fechas-caracas-operaciones`
+montarla arrastra 0190, 0294 y la cadena de auditoría D2). Seguridad de las cinco
+funciones (preflight de la 0533): 0340, 0464 y 0128 son DEFINER; 0467 y 0468 son
+INVOKER y no escriben asientos. De las DEFINER, sólo `void_expense_governed` (0340)
+toca `journal_entries`/`journal_lines`; que la 0511 no la alcance no está medido aquí. La rama `claude/sdd-0576-fechas-caracas-operaciones`
 reemplaza a la PR #312.
 
 ## Renumeración 0500 → 0534 (2026-11-11)
