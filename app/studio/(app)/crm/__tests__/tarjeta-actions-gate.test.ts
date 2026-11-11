@@ -23,6 +23,12 @@ let overrides: Record<string, { view: boolean; edit: boolean }> = {};
 vi.mock("@/lib/studio/role-module-overrides-queries", () => ({
   getRoleModuleOverrides: async () => overrides,
 }));
+// Accesos adicionales de la persona (SDD-0622).
+let grants: Record<string, { view: boolean; edit: boolean }> = {};
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({
+  getMyModuleGrants: async () => grants,
+  getTenantGrantsByUser: async () => new Map(),
+}));
 
 let role: StudioUserRole | null = "commercial";
 let rpcRespuesta: { data: unknown; error: { code?: string; message?: string } | null } = {
@@ -68,6 +74,7 @@ const { moverTarjetaAction, agregarNotaTarjetaAction, cargarFichaTarjetaAction }
 );
 
 beforeEach(() => {
+  grants = {};
   vi.clearAllMocks();
   overrides = {};
   role = "commercial";
@@ -87,11 +94,27 @@ describe("moverTarjetaAction", () => {
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  it("operations con el módulo abierto por desvío sigue sin mover: la RLS no lo deja", async () => {
+  // SDD-0622 (migr 0527): la RLS y `crm_mover_etapa` deciden con
+  // user_has_module('kommo'), así que el desvío por rol y el acceso adicional
+  // valen igual en la pantalla y en la base.
+  it("operations con el módulo abierto por desvío mueve: la base decide igual (0527)", async () => {
     role = "operations" as StudioUserRole;
     overrides = { "operations:kommo": { view: true, edit: true } };
     const res = await moverTarjetaAction(TARJETA, "leads", "contactado");
-    expect(res).toEqual({ error: expect.stringContaining("Tu rol no usa el CRM propio") });
+    expect(res).toEqual({ ok: true, movida: true });
+    expect(rpcMock).toHaveBeenCalled();
+  });
+
+  it("contabilidad con el CRM concedido para editar mueve (caso Alejandro)", async () => {
+    role = "accounting" as StudioUserRole;
+    grants = { kommo: { view: true, edit: true } };
+    expect(await moverTarjetaAction(TARJETA, "leads", "contactado")).toEqual({ ok: true, movida: true });
+  });
+
+  it("contabilidad con el CRM solo para ver no mueve", async () => {
+    role = "accounting" as StudioUserRole;
+    grants = { kommo: { view: true, edit: false } };
+    expect(await moverTarjetaAction(TARJETA, "leads", "contactado")).toHaveProperty("error");
     expect(rpcMock).not.toHaveBeenCalled();
   });
 

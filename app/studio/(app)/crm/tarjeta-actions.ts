@@ -5,12 +5,14 @@
  *
  * A diferencia de `actions.ts`, que encola órdenes a Kommo, aquí Studio es el
  * maestro: se escribe directo en las tablas de la 0506 con la sesión del
- * usuario, y la RLS vuelve a exigir admin o commercial del tenant.
+ * usuario, y la RLS vuelve a exigir el módulo CRM del tenant.
  *
- * Dos candados, a propósito (SDD-0497): el del módulo (`kommo`, con sus
- * desvíos por rol) y el rol de la RLS (`rolUsaCrm`). Un permiso extra por
- * usuario no abre las tablas (§14.1 del contrato), así que la pantalla tiene
- * que decir que no antes de que lo diga la base con un error crudo.
+ * Un solo candado desde la SDD-0622 (migr 0527): el del módulo `kommo`, con sus
+ * desvíos por rol y los accesos adicionales de la persona. La RLS y
+ * `crm_mover_etapa` repiten la MISMA decisión con `user_has_module('kommo')`
+ * (ver) y `crm_puede_editar()` (editar), así que pantalla y base no se
+ * contradicen. Antes había un segundo candado por rol fijo (`rolUsaCrm`),
+ * porque la 0506 solo dejaba pasar a admin y commercial.
  *
  * La etapa nunca se escribe con UPDATE: no tiene GRANT. Solo cambia por
  * `crm_mover_etapa`, que deja historial y fija `etapa_*_manual_at` (gana el
@@ -27,12 +29,14 @@ import {
 } from "@/lib/studio/rbac-guard";
 import { listTenantAdvisors } from "@/lib/studio/user-queries";
 import { esTablero, rolUsaCrm, type CrmTablero } from "@/lib/studio/crm-tablero";
+import { getTenantGrantsByUser } from "@/lib/studio/user-module-grants-queries";
+import { canEditModule } from "@/lib/studio/rbac";
 import type { CrmFichaTarjeta } from "@/lib/studio/crm-ficha";
 
 /** Mismo contrato que `VerbResult` de `actions.ts` y que `ActionButton`. */
 type Resultado = { ok?: true; error?: string };
 
-const SIN_ROL = "Tu rol no usa el CRM propio. Lo usan administración y comercial.";
+const SIN_ROL = "No tienes acceso al CRM. Pídele a un administrador que te lo conceda.";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -43,7 +47,6 @@ async function puertaEdicion(
 ): Promise<{ tenantId: string; userId: string } | { error: string }> {
   const gate = await moduleEditGate(supabase, "kommo");
   if (!gate.ok) return { error: gate.denied };
-  if (!rolUsaCrm(gate.role)) return { error: SIN_ROL };
   return { tenantId: gate.tenantId, userId: gate.userId };
 }
 
@@ -53,7 +56,7 @@ async function puertaLectura(
   const denial = await moduleViewDenial(supabase, "kommo");
   if (denial) return { error: denial };
   const access = await getStudioAccess(supabase);
-  if (!rolUsaCrm(access.role) || !access.tenantId) return { error: SIN_ROL };
+  if (!access.tenantId) return { error: SIN_ROL };
   return { tenantId: access.tenantId };
 }
 
@@ -99,18 +102,28 @@ export async function moverTarjetaAction(
   return { ok: true, movida: data === true };
 }
 
-/** Nombre legible de cada miembro activo del tenant (admin y commercial primero). */
+/**
+ * Nombre legible de cada miembro activo del tenant. Asesores = quien puede
+ * trabajar el CRM: admin y commercial por rol, o un acceso adicional de edición
+ * sobre el CRM (SDD-0622). Los extras de terceros se leen con service_role del
+ * MISMO tenant y se evalúan persona por persona.
+ */
 async function nombresDelEquipo(tenantId: string): Promise<{
   porId: Map<string, string>;
   asesores: { userId: string; nombre: string }[];
 }> {
-  const miembros = await listTenantAdvisors(createAdminClient(), tenantId);
+  const admin = createAdminClient();
+  const [miembros, extras] = await Promise.all([
+    listTenantAdvisors(admin, tenantId),
+    getTenantGrantsByUser(admin, tenantId),
+  ]);
   const porId = new Map<string, string>();
   const asesores: { userId: string; nombre: string }[] = [];
   for (const m of miembros) {
     const nombre = m.name ?? "Sin nombre en el perfil";
     porId.set(m.userId, nombre);
-    if (rolUsaCrm(m.role)) asesores.push({ userId: m.userId, nombre });
+    const conExtra = canEditModule(m.role, "kommo", undefined, extras.get(m.userId));
+    if (rolUsaCrm(m.role) || conExtra) asesores.push({ userId: m.userId, nombre });
   }
   return { porId, asesores };
 }
