@@ -31,6 +31,11 @@ const CONV = "conv-1";
 const DENIAL = "No tienes permiso para realizar esta acción.";
 
 const insertOutboundMessageMock = vi.fn();
+// SDD-0622: los accesos adicionales de la persona se leen aparte, como los
+// desvíos por rol; aquí no son el objeto de la prueba.
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({
+  getMyModuleGrants: async () => ({}),
+}));
 vi.mock("@/lib/studio/conversaciones/messages-queries", () => ({
   insertOutboundMessage: (...a: unknown[]) => insertOutboundMessageMock(...a),
 }));
