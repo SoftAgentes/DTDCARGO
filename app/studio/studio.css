@@ -1432,9 +1432,12 @@ details[open] > .calc-why-summary .calc-why-chev {
 .studio-tabs .studio-tab:hover:not(:disabled):not([data-activa="true"]) {
   background: var(--bg-surface);
 }
+/* El anillo va por fuera, separado 2 px: así se ve también sobre la activa, que va
+   rellena con --ink, igual que el anillo (WCAG 2.4.7). El relleno del contenedor
+   (--s-1) le deja lugar. */
 .studio-tab:focus-visible {
   outline: 2px solid var(--info);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 .studio-tab[data-activa="true"] {
   background: var(--ink);
