@@ -3276,6 +3276,24 @@
         "fecha": "2026-11-08",
         "forma": "exacta"
       }
+    },
+    "0525_noticias_ajustes_antes_de_encender": {
+      "sha256": "faaf59b29ad9080e542cc4af27d51d8397b093113ede4ff967b898bd8e126efb",
+      "md5": "03698ca2155e4f2f03623f2a39901b6e",
+      "bytes": 8957,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0526_noticias_anon_solo_columnas_publicas": {
+      "sha256": "1baa79e38e6eac85349d63386c580490ef7f3ecc36ec30791cad37a484e68855",
+      "md5": "f58d4595160b45559882f1adb5ee909a",
+      "bytes": 6731,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
     }
   }
 }

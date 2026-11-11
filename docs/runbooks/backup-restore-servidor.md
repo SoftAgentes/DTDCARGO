@@ -77,13 +77,17 @@ bucket, sin borrado masivo cuando el proveedor lo permite: un atacante dentro de
 VPS no debe poder vaciar el bucket (en R2/B2, una regla de ciclo de vida del
 propio bucket puede sustituir al `rclone delete`).
 
-DTD Cargo (red interna `dtd-cargo_dtd_internal`, `.env` en `/srv/dtd-cargo`):
+DTD Cargo (red interna `dtd-cargo_dtd_internal`, `.env` en `/srv/dtd-cargo`). **El remoto es `b2:dtdcargo-respaldos/db`**, medido por el DG el 2026-11-09:
+- `/srv/ops/backup/rclone/rclone.conf` tiene un solo remoto, `[b2]`, de `type = b2`;
+- `/srv/dtd-cargo/backup.sh` usa ese remoto por defecto, y el `.env` no lo cambia.
+
+El `r2:dtdcargo-backups/db` que figuraba antes estaba vencido:
 
 ```bash
 PGPASSWORD="$(grep -E '^POSTGRES_PASSWORD=' /srv/dtd-cargo/.env | cut -d= -f2-)" \
   /srv/ops/backup/pg-dump-to-s3.sh --project dtd-cargo --network dtd-cargo_dtd_internal \
-  --remote r2:dtdcargo-backups/db --age-recipients /srv/ops/backup/age-recipients.txt
-/srv/ops/backup/config-backup.sh --project dtd-cargo --remote r2:dtdcargo-backups/db \
+  --remote b2:dtdcargo-respaldos/db --age-recipients /srv/ops/backup/age-recipients.txt
+/srv/ops/backup/config-backup.sh --project dtd-cargo --remote b2:dtdcargo-respaldos/db \
   --age-recipients /srv/ops/backup/age-recipients.txt
 ```
 
@@ -182,9 +186,9 @@ Fase 1 de la 0540, 2026-10-16.
 cd /srv/restores && umask 077
 # 1. Bajar el ÚLTIMO dump DESDE EL BUCKET (no la copia local): prueba toda la cadena.
 docker run --rm -v /srv/ops/backup/rclone:/config/rclone:ro -v /srv/restores:/data rclone/rclone:1.75.1 \
-  copy r2:dtdcargo-backups/db/dtd-cargo/ /data/ --max-age 26h
+  copy b2:dtdcargo-respaldos/db/dtd-cargo/ /data/ --max-age 26h
 docker run --rm -v /srv/ops/backup/rclone:/config/rclone:ro -v /srv/restores:/data rclone/rclone:1.75.1 \
-  copy r2:dtdcargo-backups/db/dtd-cargo-config/ /data/ --max-age 32d
+  copy b2:dtdcargo-respaldos/db/dtd-cargo-config/ /data/ --max-age 32d
 # 2. La clave privada SOLO en memoria, y solo mientras dura la prueba.
 install -m 600 /dev/null /dev/shm/clave.txt   # pegar la privada de Sam
 # 3. Restore en el contenedor desechable, con la raíz de Vault respaldada.

@@ -82,3 +82,30 @@ jobs:
 
       - name: Ensayo, marcas y mutantes
         run: bash infra/ops/portal-historial/pruebas/prueba-ensayo-portal.sh
+
+  # SDD-0586 10.7, PR 2c: la vuelta atrás dirigida de la carga en Chatwoot (deshacer.sh y deshacer-carga.rb) sobre la
+  # carga real de un Studio y un Chatwoot efímeros, con sus mutantes. En su propio runner.
+  deshacer:
+    name: Vuelta atrás dirigida del portal (datos inventados, parte ${{ matrix.parte }})
+    # Como los demás jobs desde la SDD-0621: no corre en borradores.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # Cuatro partes en paralelo: a (la corrida real, el control y los mutantes de las guardas), b (los mutantes del
+    # borrado), c (los de lo ajeno y del corte) y d (los de las guardas del .rb, N2 del DG). Juntas no caben en el tope
+    # del job: la parte a, con lo ajeno, ya tardaba 59 min (job 129113941811).
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: [a, b, c, d]
+    env:
+      CI: "true"
+      PARTE: ${{ matrix.parte }}
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Deshacer la carga, guardas y mutantes
+        run: bash infra/ops/portal-historial/pruebas/prueba-deshacer.sh

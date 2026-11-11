@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-08
+updated: 2026-11-11
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -496,6 +496,12 @@ el merge lo decide el Director.
    Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
    revisó cuando la revisión esté registrada.
 
+**Abierta desde el 2026-11-11 (N1, §11.4.1):**
+
+6. **Retención de `actor_id`.** Plazo de las cuatro columnas con uuid del personal de §11.3.1 (b),
+   qué se hace al vencer y en qué PR va la purga. La PR de N1 no lo decide. Tiene que estar
+   decidido antes de encender.
+
 ## 8. Dependencias
 
 | Necesita | Dónde | Estado al 2026-11-06 |
@@ -554,7 +560,12 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 ### 11.2 La 0518 en producción y el conteo de marcas
 
 **La 0518 está aplicada desde el 2026-11-08**, con OK de Sam (~04:15Z, en el chat del Director
-General). Los datos de la aplicación:
+General). El selector «¿para qué es el OK?» ofrecía «Encender el portal», «Publicar la web»,
+«Aplicar la 0518» y «Solo enterado», y Sam respondió en texto libre: «Tú decides cuál va
+primero. O decide si las tres van al mismo tiempo o cuál va primero, o aplica las tres.» Es el
+texto tal como lo registró el Director General en
+[`cierre-migraciones-20261108.md`](../../../.agents/handoffs/cierre-migraciones-20261108.md)
+(línea 44). Los datos de la aplicación:
 
 | Entorno | version | COMMIT | Evidencia |
 |---|---|---|---|
@@ -589,11 +600,161 @@ select count(*) from public.news_posts
 Si da más de 0, el `VALIDATE` falla. Esas noticias se corrigen antes, con decisión de Sam. Una
 migración que valide el CHECK lleva este conteo en su preflight y aborta si da más de 0.
 
+### 11.3 Ajustes antes de encender: decisiones de Sam y migración 0525
+
+Las revisiones de la #417 dejaron dos preguntas, y Sam las decidió el 2026-11-08. Las
+transmitió el Subdirector:
+
+- **C2 · borrar un usuario que creó el borrador de una noticia automática.** Sam respondió
+  «Quedan sin autor». `seo_drafts.created_by` pasa a `on delete set null` y deja de ser NOT
+  NULL. Antes, borrar a esa persona en Auth fallaba, porque la cascada de la 0053 chocaba con
+  la FK `no action` de `news_posts.seo_draft_id`.
+- **Punto 13 · una noticia automática que edita una persona.** Sam respondió «Sí, sigue
+  contando». La noticia sigue siendo automática y cuenta en el tope semanal de F7. Solo se
+  recalcula `content_sha256`, y la guarda de origen no cambia.
+
+La migración `0525_noticias_ajustes_antes_de_encender.sql` aplica esas dos decisiones y suma
+dos ajustes más:
+- `news_salida_motivo` exige un motivo de la lista cerrada, y la nota cuando el motivo es
+  «otro», igual que `news_retirar`;
+- anon pierde EXECUTE sobre `news_texto_tiene_marca` y `news_huella`.
+
+Nace sin aplicar y declarada como espera. Aplicarla pide el OK de Sam nombrando el archivo, y
+no enciende nada.
+
+**Cambio de comportamiento en el Studio cuando se aplique:**
+- `news_salida_motivo` rechaza con 22023 un motivo nulo, uno fuera de la lista y «otro» sin
+  nota;
+- si una persona edita el texto de una noticia automática, el disparador reescribe
+  `content_sha256`.
+
+#### 11.3.1 Datos personales (`revisar-datos-ve`)
+
+- **(a) Alcance real de C2.** La FK nueva no distingue el tipo de borrador. Al borrar a una
+  persona en Auth, **todos** sus `seo_drafts` quedan con `created_by` vacío: los de noticias
+  automáticas, los manuales y los que nunca se publicaron.
+  - Antes, la cascada de la 0053 los borraba todos. Ahora se conservan sin autor.
+  - El uuid de la persona sale de esas filas; el contenido del borrador, que es trabajo de la
+    empresa, queda.
+  - Sam aprobó «Quedan sin autor» pensando en las noticias automáticas. **El OK de aplicación
+    de la 0525 tiene que nombrar este alcance:** todos los borradores de la persona borrada
+    quedan sin autor, no solo los de noticias automáticas.
+- **(b) Retención del uuid sin FK.** Cuatro columnas de la 0518 guardan el uuid de una persona
+  y **no tienen FK** a `auth.users`, así que lo conservan después de que esa persona se borre:
+  - `news_post_exits.actor_id` (lo escriben los disparadores de salida, 0518:451 y :462);
+  - `news_publication_audit.actor_id`;
+  - `news_autopublish_settings.updated_by`;
+  - `news_autopublish_settings_log.changed_by`.
+
+  La 0525 no las toca. Se declaran **excepción temporal**:
+  - IA-01 exige dejar quién publicó, retiró o encendió el interruptor, y un uuid sin la fila
+    de Auth ya no se puede resolver a un nombre dentro de la base;
+  - la excepción vence cuando Sam fije el plazo de retención de esas tablas (hallazgo 7 de
+    [`privacidad.md`](privacidad.md));
+  - ese plazo y su purga van en la PR del cron. Antes de encender, el plazo tiene que estar
+    decidido.
+
+#### 11.3.2 Allowlist exacta de la PR #492
+
+Medida con `git diff --name-only origin/main...HEAD` después de traer `main` `2f3a77b7a`: 9
+archivos. Ningún otro archivo entra en la PR.
+
+| Archivo | Cambio |
+|---|---|
+| `lib/public/news-queries.ts` | Modificado (C1): las 4 lecturas de filas completas piden 18 columnas explícitas, sin `publish_via`, `seo_draft_id`, `content_sha256`, `created_by`, `tenant_id` ni `source` |
+| `lib/public/__tests__/news-queries-columnas.test.ts` | Nuevo: la prueba de C1 y la prueba estática de que ninguna lectura de `news_posts` pide `*` |
+| `supabase/migrations/0525_noticias_ajustes_antes_de_encender.sql` | Nuevo: la migración 0525, sin aplicar al fusionar (aplicada el 2026-11-11; cambio de comportamiento del Studio cuando se aplique) |
+| `supabase/tests/0525_noticias_ajustes_antes_de_encender.test.sql` | Nuevo: contrato SQL de la 0525 |
+| `lib/news/autopublicar/__tests__/noticias-0525.migration.test.ts` | Nuevo: el contrato en PGlite, el control rojo y los mutantes |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0525 en `pendingBelowCutoff` |
+| `__tests__/seo-auditoria-json-ld.test.tsx` | Modificado: `elementosJsx` salta cadenas y cuenta los usos de verdad |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §11.2 con la cita del OK y este §11.3 |
+| `.agents/handoffs/sdd-0611-ajustes-antes-de-encender.md` | Modificado: el handoff de la tarea |
+
+### 11.4 N1 · El público no ve quién creó la noticia ni por qué vía (migración 0526)
+
+**La condición.** Para avanzar con las noticias automáticas, la primera condición de Sam es que
+el público no vea quién creó la noticia ni por qué vía se publicó: `created_by` y `publish_via`
+son datos internos. La transmitió el Director General el 2026-11-11; el texto literal de Sam no
+está en esta rama.
+
+**El problema.** La 0055 dio a anon `SELECT` sobre toda `news_posts`. La C1 (PR #492) hizo que el
+sitio pida 18 columnas explícitas, pero eso solo cuida lo que pide el sitio: la clave anon es
+pública y cualquiera puede pedir a PostgREST `select=created_by,publish_via`, o filtrar con
+`publish_via=eq.automatica` y contar las automáticas. Un `REVOKE` de columna no alcanza mientras
+exista el `GRANT` de tabla, porque el de tabla cubre todas las columnas.
+
+**Lo que hace la 0526** (`0526_noticias_anon_solo_columnas_publicas.sql`):
+- quita a anon el `SELECT` de tabla sobre `news_posts`;
+- le devuelve `SELECT` solo sobre las 18 columnas de `COLUMNAS_PUBLICAS`
+  (`lib/public/news-queries.ts`). Quedan fuera `created_by`, `publish_via`, `seo_draft_id`,
+  `content_sha256`, `tenant_id` y `source`;
+- una columna que se agregue en el futuro nace invisible para anon hasta que una migración la
+  nombre.
+
+No toca las filas, la policy `news_posts_public_select` ni los privilegios de authenticated y
+service_role. El Studio lee igual.
+
+**Efecto visible.** `select=*` con la clave anon pasa a dar 42501. Ninguna lectura pública lo
+usa: lo prueba la prueba estática de la C1. /noticias, /noticias/[slug], su imagen OG y el
+sitemap piden las 18 columnas o solo `slug`.
+
+**Pruebas.**
+- Contrato `supabase/tests/0526_noticias_anon_solo_columnas_publicas.test.sql`, sobre las
+  migraciones reales 0053, 0055, 0057, 0140, 0518, 0525 y 0526:
+  - anon no lee `created_by`, `publish_via` ni las otras cuatro, no filtra por ellas y no pide `*`;
+  - las cuatro lecturas de `lib/public/news-queries.ts` siguen trayendo filas, y la RLS sigue
+    escondiendo la no publicada;
+  - authenticated y service_role siguen leyendo las columnas internas.
+- `lib/news/autopublicar/__tests__/noticias-0526.migration.test.ts` lo corre en PGlite, con:
+  - el control rojo: sin la 0526 cae en la primera aserción;
+  - el preflight que impide aplicarla dos veces;
+  - seis mutantes;
+  - la gemela: el `GRANT` de la 0526 es exactamente `COLUMNAS_PUBLICAS`. Si el sitio pide una
+    columna más sin migración, la prueba cae antes de que /noticias quede vacía en producción.
+
+**Estado.** Nació sin aplicar y declarada como espera en `supabase/migrations-baseline.json`.
+Se aplicó el 2026-11-11 con el OK nominal de Sam y el runbook `aplicar-migraciones-prod`: en prueba
+a las 14:41:58Z y en producción a las 14:43:54Z, con verificación PASÓ. Se selló en el tren Z.
+- Antes de aplicarla, la web desplegada tiene que ser una que ya pida columnas explícitas: la C1
+  está en `main`.
+- Deshacer: `grant select on public.news_posts to anon;`.
+
+#### 11.4.1 Decisión abierta para Sam: retención de `actor_id`
+
+**No la decide esta PR.** Las columnas de §11.3.1 (b) siguen guardando el uuid de una persona del
+Studio sin plazo:
+- `news_post_exits.actor_id`;
+- `news_publication_audit.actor_id`;
+- `news_autopublish_settings.updated_by`;
+- `news_autopublish_settings_log.changed_by`.
+
+Ninguna es legible por anon: la 0518 les quitó todo. N1 no cambia esa situación, y la 0526 no
+toca esas tablas. Falta que Sam fije:
+- el plazo de retención de esas columnas, o de sus filas: por ejemplo, 24 meses, como propone el
+  hallazgo 7 de [`privacidad.md`](privacidad.md);
+- si al vencer se borra la fila o solo se vacía el uuid;
+- si la purga va en la PR del cron, como dice §11.3.1.
+
+Antes de encender, el plazo tiene que estar decidido (§11.3.1).
+
+#### 11.4.2 Allowlist exacta de esta PR (N1)
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0526_noticias_anon_solo_columnas_publicas.sql` | Nuevo: la migración 0526, sin aplicar al fusionar (aplicada el 2026-11-11 en prueba y producción) |
+| `supabase/tests/0526_noticias_anon_solo_columnas_publicas.test.sql` | Nuevo: contrato SQL de la 0526 |
+| `lib/news/autopublicar/__tests__/noticias-0526.migration.test.ts` | Nuevo: el contrato en PGlite, el control rojo, los mutantes y la gemela |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0526 en `pendingBelowCutoff`, retirada al sellarla en el tren Z |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §7 y este §11.4 |
+| `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
+| `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
+
 ## 12. Allowlist exacta de la implementación (PR #417)
 
 Medida con `git diff --name-only origin/main...HEAD` después de traer `main` `3c14715ad`: 32
-archivos. Ningún otro archivo entra en la PR. La segunda PR (cron, pantalla de retiro, cola,
-interruptor en Ajustes) trae su propia allowlist.
+archivos. Ningún otro archivo entra en la PR. Las PR siguientes dejan su allowlist en §11, como
+la de la #492 en §11.3.2.
 
 | Archivo | Cambio |
 |---|---|
