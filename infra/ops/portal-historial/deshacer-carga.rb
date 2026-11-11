@@ -27,7 +27,10 @@
 #     teléfono o correo (el cargador nunca los pone), o actividad que la carga no crea (adjuntos, menciones,
 #     participantes, eventos de reportes, encuestas, notificaciones, etiquetas, notas y adjuntos de contacto);
 #   · un contacto de la bandeja no es dtd-portal:<uuid>;
-#   · (borrar) el archivo de conservados no es de este tenant, cuenta y bandeja, o la lista cambió.
+#   · (borrar) el archivo de conservados no es de este tenant, cuenta y bandeja, o la lista cambió;
+#   · (borrar CONFIRMAR=si) los pisos del seco (N1 y N3 de la revisión del DG): ESPERADO_ANTES (la bandeja que contó
+#     el seco) y ESPERADO_CONTACTOS_A_BORRAR. Si la bandeja cambió desde el seco, o lo borrado no es exactamente
+#     eso (una conversación que entró entre la mirada a lo ajeno y el delete_all), no confirma.
 # El flag chatwoot_portal, la cola y el espejo viven en Studio: los mira deshacer.sh antes de llamar a este.
 #
 # Toma el candado de la carga (no corre a la vez que una carga) y baja el detalle del log de Postgres como el
@@ -46,6 +49,7 @@ class DeshacerPortal
   CANDADO = 58_610_510 # el de cargar-portal.rb: una carga o un deshacer a la vez
   PREFIJO_CONTACTO = 'dtd-portal:'
   UUID = /\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/
+  CONTEO = /\Aconversaciones:\d+,mensajes:\d+,contact_inboxes:\d+\z/
   DETALLE_DEL_LOG = { 'log_min_error_statement' => 'panic', 'log_error_verbosity' => 'terse' }.freeze
   # Lo que la carga no crea, por tabla: [tabla, columna, de qué ids] (N1 de la revisión del DG).
   ACTIVIDAD = [
@@ -95,6 +99,11 @@ class DeshacerPortal
     if @modo == 'borrar'
       @confirmar = env['CONFIRMAR']
       raise DeshacerError, 'CONFIRMAR tiene que ser si o no' unless %w[si no].include?(@confirmar)
+      # Los pisos del seco (N1): con CONFIRMAR=si son obligatorios; con no, se miran si vienen.
+      @esperado_antes = env['ESPERADO_ANTES'].to_s
+      @esperado_contactos = env['ESPERADO_CONTACTOS_A_BORRAR'].to_s
+      @pisos = @esperado_antes.match?(CONTEO) && @esperado_contactos.match?(/\A\d+\z/)
+      raise DeshacerError, 'el seco no trae los conteos' if @confirmar == 'si' && !@pisos
     else
       @conservados = env['CONSERVADOS']
       raise DeshacerError, "CONSERVADOS tiene que ser #{RUTA_CONSERVADOS} o -" unless [RUTA_CONSERVADOS, '-'].include?(@conservados)
@@ -233,14 +242,21 @@ class DeshacerPortal
       # N4 (revisión del DG): en READ COMMITTED, entre mirar lo ajeno y borrar podría entrar algo. Las conversaciones de
       # la bandeja quedan tomadas hasta el fin de la transacción: un mensaje nuevo a una de ellas espera.
       conversaciones.lock('FOR UPDATE').pluck(:id)
-      hecho('antes', contar_bandeja)
+      antes = contar_bandeja
+      hecho('antes', antes)
       comprobar_ajeno!
+      # El piso, después de lo ajeno: algo ajeno que entró después del seco se informa como ajeno (D15).
+      raise DeshacerError, 'la bandeja cambió desde el seco' if @modo == 'borrar' && @pisos && antes != @esperado_antes
       todos, conservados = contactos
       borrar = todos - conservados
       hecho('contactos_de_la_bandeja', todos.size)
       hecho('contactos_conservados', conservados.size)
       hecho('contactos_a_borrar', borrar.size)
       if @modo == 'seco'
+        # Los hilos cargados (N1 del DG): cada conversación de la bandeja, con su dtd_hilo y su display_id. Solo ids;
+        # deshacer.sh los compara con los hilos de Studio y no los imprime.
+        conversaciones.pluck(Arel.sql("additional_attributes->>'dtd_hilo'"), :display_id).sort_by(&:to_s)
+                      .each { |hilo, did| @salida.puts "HILO #{hilo} #{did}" }
         escribir_conservados(conservados)
         raise ActiveRecord::Rollback
       end
@@ -248,10 +264,15 @@ class DeshacerPortal
       raise DeshacerError, 'la lista de conservados cambió desde el seco' unless leer_conservados == conservados
 
       ids_borrar = borrar.map(&:last)
-      hecho('borrados_mensajes', mensajes.delete_all)
-      hecho('borrados_conversaciones', conversaciones.delete_all)
-      hecho('borrados_contact_inboxes', contact_inboxes.delete_all)
-      hecho('borrados_contactos', Contact.where(id: ids_borrar, account_id: @cuenta_id).delete_all)
+      borrados = [mensajes.delete_all, conversaciones.delete_all, contact_inboxes.delete_all,
+                  Contact.where(id: ids_borrar, account_id: @cuenta_id).delete_all]
+      %w[mensajes conversaciones contact_inboxes contactos].zip(borrados).each { |k, v| hecho("borrados_#{k}", v) }
+      # Los pisos (N1 y N3): lo borrado es exactamente lo que contó el seco. Si entró algo entre la mirada a lo ajeno
+      # y el delete_all, sobra, y no se confirma.
+      if @pisos
+        conv, msg, ci = @esperado_antes.scan(/\d+/).map { |x| Integer(x, 10) }
+        raise DeshacerError, 'lo borrado no cuadra con el seco' unless borrados == [msg, conv, ci, Integer(@esperado_contactos, 10)]
+      end
       # La verificación, dentro de la transacción: si no cuadra, no se confirma.
       quedan = contar_bandeja
       vivos = Contact.where(id: conservados.map(&:last)).count
