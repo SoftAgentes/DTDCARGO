@@ -34,15 +34,16 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - `quotes`, `sales_orders`, `suppliers`: RLS solo por tenant; alcanza con la capa de aplicación.
 - Nómina exige admin/accounting en SQL (`0160_nomina_employees.sql:71-85`): la base la sigue exigiendo por rol; si se concede por extra hay que cubrirla (por confirmar con Sam).
 
-## Decisiones de Sam (2026-11-09, recogidas en la spec §9)
-- Extras por módulo; vencimiento opcional; «elegir módulos» para Alejandro.
-- Los extras SÍ pueden abrir módulos de dinero (p. ej. tesorería); NO los de control del sistema (users, admin, mailing, direccion, renditions, financiero-china, legal, no-olvidar) ni acciones destructivas.
-- Pidió una opción «Personalizado» (rol base custom + accesos a la carta), diseñada en §5.5.
+## Decisiones de Sam (recogidas en la spec §9)
+- 2026-11-09: extras por módulo; vencimiento opcional; «elegir módulos» para Alejandro; opción «Personalizado» (§5.5).
+- **2026-11-11 (cambia lo anterior):** los extras SÍ pueden abrir módulos sensibles (dinero y solo-administrador), concedidos por admin o superadmin, con **doble aviso** («Esta persona puede hacer estas modificaciones, ¿estás seguro?»). La RPC exige `p_confirm_sensitive` y registra la confirmación en `entity_audit_log`. No se toca el CHECK de la 0357. Las capabilities (`CAPABILITIES`) quedan fuera.
 
-## Pendientes de esta tarea
-- Confirmar con Sam: nómina y void_expense/fix_frozen_rate fuera de los extras; diseño de §5.5; si documents es transversal para custom; si clients con edición incluye la fusión de fichas.
-- La Fase 1 es una cota gruesa (grep); falta el inventario exacto por módulo, incluida la revisión de fachadas 0411–0413 ante el rol custom.
-- Al aprobar: spec a approved y allowlist exacta de archivos.
+## Pendientes de esta tarea (de Sam)
+- R1 escalada con `users`/`admin` (mitigación propuesta en §8).
+- R2 módulos del superadministrador: quién los otorga y si el receptor pasa `is_platform_admin()`.
+- R3 dinero por persona como fase propia (fase 8), con migración y OK de Sam; inventario con archivo:línea en §12.2.
+- Nómina; si `documents` es transversal para `custom`; si `clients` con edición incluye la fusión de fichas; diseño de §5.5.
+- La Fase 1 sigue siendo lectura de texto: repetir contra el catálogo de una base efímera.
 - La reserva 0622 sigue sin publicar como rama de reserva; la PR lleva la spec.
 
 ## FUERA DE ALCANCE DETECTADO

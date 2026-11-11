@@ -4,7 +4,7 @@ title: "Rol base + accesos adicionales por persona en Studio"
 status: approved
 author: "Claude (sesión Worker sdd-permisos-persona) + Sam"
 created: 2026-11-09
-updated: 2026-11-09
+updated: 2026-11-11
 supersedes: null
 superseded_by: null
 related: ["0024", "0085", "0139", "0252", "0412", "0587"]
@@ -17,10 +17,11 @@ confidencialidad: interno
 > y no hay forma de sumarle, por ejemplo, el CRM a quien lleva contabilidad. Esta spec agrega
 > «accesos adicionales» por persona, solo hacia arriba, con motivo, rastro y candados.
 
-**Estado:** aprobada por Sam el 2026-11-09 (las preguntas abiertas de §9 se resuelven con los valores por defecto indicados, salvo que Sam diga otra cosa antes de cada tanda). Sam respondió el 2026-11-09 (ver §9): extras **por módulo**, **vencimiento opcional**,
-«elegir módulos» para Alejandro, **sí** pueden abrir módulos sensibles como tesorería (nunca los de control
-del sistema ni acciones destructivas), y pidió una opción **«Personalizado»** (§5.5) para crear un usuario
-totalmente a la carta. Lo que sigue sin confirmar está marcado **pendiente de confirmar por Sam**.
+**Estado:** aprobada por Sam el 2026-11-09 y **actualizada el 2026-11-11** con su decisión sobre módulos
+sensibles (§9.1): los extras **sí** pueden abrir dinero y módulos solo de administrador, con **doble aviso**
+obligatorio (también exigido por la RPC) y concedidos por un admin o un superadmin. Siguen vigentes: acceso por
+módulo, vencimiento opcional, «elegir módulos» para Alejandro y el usuario «Personalizado» (§5.5). Las acciones
+destructivas o gobernadas (`CAPABILITIES`) quedan fuera. Los riesgos R1 a R3 de §8 están **pendientes de Sam**.
 
 ## 1. Pedido que la origina
 
@@ -96,32 +97,41 @@ Reglas:
 
 1. **Solo suma.** Una fila nunca quita un permiso que el rol ya da. No existe «quitar acceso» por persona
    en esta spec (si algo hay que quitar, se cambia el rol).
-2. **Candado de gobernanza (decidido por Sam 2026-11-09, ver §9.1).** Los extras **sí pueden abrir módulos
-   de dinero** (tesorería, contabilidad, facturación, cobranzas, costing, reportes, fiscal; nómina por
-   confirmar, §9.1), porque Alejandro necesita un acceso amplio al arrancar. **No** pueden abrir los
-   módulos de control del sistema (`users`, `admin`, `mailing`, `direccion`) ni los reservados al
-   superadministrador (`renditions`, `financiero-china`, `legal`, `no-olvidar`): abrir `users` le
-   permitiría a alguien darse a sí mismo el rol admin. Un CHECK de la tabla y el helper de TypeScript
-   (doble capa, como la 0357) rechazan/ignoran esos módulos aunque una fila se colara. Los **módulos de
-   dinero dejan de ser «inmutables»**: pasan de `LOCKED_MODULES` a un conjunto nuevo
-   `SYSTEM_CONTROL_MODULES` para efectos de los extras; la lista de dinero (`MONEY_MODULES`) se conserva
-   porque otros candados la usan.
-   **Acciones destructivas no se conceden nunca** (Sam: «no puede borrar archivos ni bases de datos»): las
-   `CAPABILITIES` de borrar/anular/restaurar/revelar auditoría (`delete_shipments`,
-   `delete_warehouse_receipts`, `void_payroll_settlement`, `moderate_comments`, `restore_comments`,
-   `audit_view`, `audit_view_sensitive`, `escucha_activa`) siguen exactamente como están y los extras por
-   módulo **no las otorgan**. Un extra de «Ver y editar» sobre un módulo de dinero da lo que hoy da el rol
-   `accounting` en ese módulo, no más. `void_expense` y `fix_frozen_rate` siguen atados al rol `accounting`
-   (+ admin): un extra no las concede (decisión de diseño; confirmar en §9.1).
+2. **Módulos sensibles: sí se conceden, con doble aviso (decidido por Sam el 2026-11-11, §9.1).** Un extra
+   puede abrir también los módulos hoy «bloqueados»: dinero (`MONEY_MODULES`) y solo-administrador
+   (`ADMIN_ONLY_MODULES`), o sea el conjunto `LOCKED_MODULES` de `lib/studio/rbac.ts`. Lo concede un **admin o un
+   superadmin** (los límites que quedan por decidir están en R1 y R2 de §8). Condiciones:
+   - **Doble aviso obligatorio.** Al conceder un módulo sensible, la pantalla muestra una alerta que lista en
+     concreto lo que esa persona podrá hacer («Esta persona podrá hacer estas modificaciones, ¿estás seguro?») y
+     pide confirmación explícita.
+   - **El aviso no es solo de interfaz.** La RPC recibe `p_confirm_sensitive boolean` (por defecto `false`): si el
+     módulo es sensible y no llega `true`, falla con error de confirmación. Al aceptar, escribe en
+     `entity_audit_log` que se confirmó y con qué versión de la lista de efectos se le mostró. Esa lista vive en
+     código (un mapa `SENSITIVE_MODULE_EFFECTS`) para que la pantalla y el registro usen el mismo texto.
+   - **Doble candado en la tabla.** La tabla lleva `sensitive_confirmed_at`, y un CHECK exige que no sea nula
+     cuando `module_id` está en la lista sensible: la base misma impide una fila sensible sin confirmación.
+   - **El candado de la 0357 no se toca.** `studio_role_module_overrides_locked_check` queda como está: los
+     desvíos **por rol** siguen sin abrir módulos bloqueados. La tabla nueva no lleva ese CHECK; lleva el de
+     confirmación. `LOCKED_MODULES`, `MONEY_MODULES` y `ADMIN_ONLY_MODULES` no cambian de contenido; solo
+     `canAccessModule`/`canEditModule` aceptan extras sobre ellos.
+   - **Las capabilities quedan fuera.** Un extra por módulo no otorga `CAPABILITIES` (`delete_shipments`,
+     `delete_warehouse_receipts`, `void_payroll_settlement`, `void_expense`, `fix_frozen_rate`,
+     `approve_money`, `view_defense_file`, `moderate_comments`, `restore_comments`, `audit_view`,
+     `audit_view_sensitive`, `escucha_activa`): siguen atadas a su rol o a admin, y sus funciones en la base
+     (`void_expense_governed`, `congelar_tarifa_recepcion`, `soft_delete_admin_tenant_internal`…) no cambian.
+     Incluirlas sería otra decisión de Sam, con su propia spec. Sam lo pidió así: «no puede borrar archivos ni
+     bases de datos».
 3. **`support` sigue read-only.** Un extra no le da edición a `support` (`canEditModule` ya lo corta antes).
-4. **Solo admin concede.** RPC `studio_set_user_module_grant(p_user_id, p_module_id, p_can_view, p_can_edit,
-   p_reason, p_expires_at)` y `studio_revoke_user_module_grant(...)`. `SECURITY DEFINER`, `search_path`
-   fijo, `assert_studio_role(array['admin'])` al principio (helper de `0351`), tenant tomado de
-   `get_user_tenant_id()`, destino validado como miembro **activo** (`disabled_at is null`).
+4. **Concede un admin o un superadmin.** RPC `studio_set_user_module_grant(p_user_id, p_module_id, p_can_view,
+   p_can_edit, p_reason, p_expires_at, p_confirm_sensitive)` y `studio_revoke_user_module_grant(...)`.
+   `SECURITY DEFINER`, `search_path` fijo, `assert_studio_role(array['admin'])` al principio (helper de `0351`),
+   tenant tomado de `get_user_tenant_id()`, destino validado como miembro **activo** (`disabled_at is null`).
+   Quien tenga `users` o `admin` solo por extra **no** puede ejecutar estas RPC, porque la base sigue exigiendo
+   rol `admin` (mitigación de R1, §8; pendiente de Sam).
 5. **Sin escritura directa.** RLS activa; `authenticated` sin INSERT/UPDATE/DELETE; solo `service_role` y
    las RPC. SELECT solo para admin y para la propia persona (para que vea qué tiene y por qué).
 6. **Auditoría.** Cada concesión, cambio y revocación escribe en `entity_audit_log` con actor, destino,
-   módulo, permisos y motivo. Requiere registrar la entidad en el catálogo de auditoría (precedente:
+   módulo, permisos, motivo y, en módulos sensibles, la confirmación y la versión de la lista de efectos. Requiere registrar la entidad en el catálogo de auditoría (precedente:
    `0258`, `0291`, `0293`). Ver nota en §8 sobre borrado.
 7. **Anti-lockout no aplica**, pues solo suma; no puede dejar al tenant sin admin.
 
@@ -134,9 +144,10 @@ expires_at > now()`), y se pasan a `canAccessModule` / `canEditModule` (`lib/stu
 Orden de decisión para un no-admin:
 
 1. `admin` → permitido (sin cambios).
-2. Módulo de **control del sistema** (`SYSTEM_CONTROL_MODULES`: `users`, `admin`, `mailing`, `direccion`,
-   `renditions`, `financiero-china`, `legal`, `no-olvidar`) → solo lo que dé el rol por default; **extras
-   e overrides se ignoran**. Los módulos de dinero ya no se cortan aquí: aceptan extras (§5.1 regla 2).
+2. Módulo **sensible** (`LOCKED_MODULES`): se resuelve igual que los demás, con dos precisiones. Los desvíos
+   **por rol** siguen ignorándose en estos módulos (candado de la 0357), y un extra solo vale si la fila trae
+   `sensitive_confirmed_at`. Para los 4 `SUPERADMIN_ONLY_MODULES` el segundo candado `is_platform_admin()` de
+   `rbac-guard.ts` **sigue aplicándose** hasta que Sam decida R2 (§8).
 3. Acceso por rol (default de código o desvío por rol, como hoy) → si lo da, permitido.
 4. Si no, ¿hay acceso adicional vigente de la persona para ese módulo? → ver/editar según la fila.
 5. El scope de almacén (`scopeAllowsModule`) **sigue aplicando encima**: un extra no salta el lado CN/VE.
@@ -179,8 +190,9 @@ confusos. Por eso un módulo **no se puede conceder** desde la UI hasta que su c
 - En la ficha de la persona: botón **«Agregar acceso»** → elegir módulo(s) de una lista **agrupada por
   área** (Comercial: CRM, Cotizaciones, Clientes, Conversaciones, Bandeja…), cada uno con «Solo ver» o «Ver
   y editar», **motivo obligatorio** y vencimiento opcional. Atajo: «Agregar todo Comercial».
-- Solo se ofrecen módulos que **no sean de control del sistema** (§5.1 regla 2) y **ya cubiertos en la base**
-  (§5.3). Los de dinero se marcan con una etiqueta «Sensible» y piden confirmar al concederlos.
+- Se ofrecen los módulos **ya cubiertos en la base** (§5.3). Los sensibles llevan la etiqueta «Sensible» y al
+  concederlos aparece el **doble aviso** con la lista concreta de efectos y una confirmación explícita (§5.1
+  regla 2). `users`, `admin` y los 4 módulos del superadministrador solo se ofrecen cuando Sam resuelva R1 y R2.
 - Panel **«Accesos efectivos»**: rol base + extras, indicando de dónde viene cada permiso («por rol» o
   «adicional · motivo · quién · cuándo · vence»).
 - Lista **«Personas con excepciones»** en Usuarios, con filtro de por vencer y vencidos.
@@ -200,8 +212,8 @@ Sam quiere poder **crear un usuario totalmente personalizado**, sin partir de un
   módulo con los mismos accesos adicionales de §5.1 (ver / ver y editar, motivo, vencimiento opcional).
 - En la invitación y en «Cambiar rol» aparece la opción **Personalizado**; al elegirla se abre directamente el
   selector «Agregar acceso» (§5.4), con atajos por área («todo Comercial», «todo Operaciones», etc.).
-- Aplican las mismas reglas: solo admin concede, módulos de control del sistema fuera, nada destructivo, todo
-  auditado. `custom` **nunca** da edición implícita: sin extra no hay acceso.
+- Aplican las mismas reglas: concede admin o superadmin, doble aviso en módulos sensibles, capabilities fuera,
+  todo auditado. `custom` **nunca** da edición implícita: sin extra no hay acceso.
 - Impacto técnico (a medir en la Fase 1, no a adivinar): el rol está duplicado en CHECK de `user_tenants` y
   `user_invitations`, en las RPC que validan listas de roles (`studio_invite_user`, `studio_change_user_role` y
   sus reemplazos: 0189, 0200, 0203, 0355…) y en funciones con `v_role not in (...)` (0411–0413). Un rol
@@ -222,6 +234,7 @@ Sam quiere poder **crear un usuario totalmente personalizado**, sin partir de un
 | **5 · Pantalla** | «Agregar acceso», «Accesos efectivos», «Personas con excepciones» | PR + `/ui-check` |
 | **6 · Personalizado** | Rol base `custom` (§5.5): CHECK, invitación, cambio de rol, revisión de fachadas que comparan roles | Migración aparte + PR |
 | **7 · Alejandro** | Concederle Comercial y los módulos sensibles que Sam indique (p. ej. tesorería), cada uno con motivo; comprobar por pantallas y roles | Smoke con Sam |
+| **8 · Dinero para quien no es contabilidad** | Migrar las funciones y RLS de dinero que hoy exigen rol (§12.2) para que un extra de dinero funcione a un `custom` u otro rol. Fase **propia**, con su migración y su OK nominal de Sam, separada de Comercial | Migración aparte + PR; OK de Sam |
 
 Ninguna migración se aplica a producción sin OK nominal de Sam y el runbook
 `docs/runbooks/aplicar-migraciones-prod.md`; el ledger de producción es validación de release, no motivo para
@@ -232,15 +245,16 @@ aplicar antes de aprobar la PR.
 1. **Caso Alejandro:** rol `accounting` + extra `kommo` (ver y editar) → ve y usa CRM; sigue sin ver módulos
    que su rol ni su extra incluyen (p. ej. `users`, `legal`).
 2. **Solo suma:** un extra nunca reduce lo que el rol ya da.
-3. **Candados:** insertar un extra sobre un módulo de **control del sistema** (`users`, `admin`, `mailing`,
-   `direccion`, `renditions`, `financiero-china`, `legal`, `no-olvidar`) falla en la base (CHECK) y, si se
-   colara una fila, `canAccessModule` la ignora. Misma prueba para la RPC. **Sí** se acepta un extra sobre
-   `treasury` (caso Alejandro) y se verifica que con él **no** obtiene ninguna capability destructiva
-   (`delete_shipments`, `void_payroll_settlement`, `moderate_comments`, `audit_view_sensitive`, …).
+3. **Doble aviso y candados:** (a) la RPC rechaza un módulo sensible sin `p_confirm_sensitive = true` y la tabla
+   rechaza por CHECK una fila sensible sin `sensitive_confirmed_at`; (b) con confirmación se acepta `treasury`
+   (caso Alejandro) y queda una fila en `entity_audit_log` con la confirmación y la versión de efectos; (c) el CHECK
+   de la 0357 sigue rechazando desvíos **por rol** sobre módulos bloqueados (no se tocó); (d) con un extra de dinero
+   **no** se obtiene ninguna capability (`delete_shipments`, `void_payroll_settlement`, `moderate_comments`,
+   `audit_view_sensitive`, …); (e) un extra sobre `users` no permite llamar a las RPC de conceder ni cambiar roles.
 4. **`support`:** un extra de edición no le da edición.
 5. **Vencimiento:** pasada `expires_at`, el acceso desaparece sin tocar nada; antes de vencer funciona.
 6. **Persona desactivada:** sin `disabled_at is null` no hay acceso ni extra (ya cubierto en `getStudioAccess`).
-7. **Solo admin concede:** un no-admin que llama la RPC directo recibe `42501`; la tabla no acepta escritura
+7. **Concede solo admin o superadmin:** un no-admin que llama la RPC directo recibe `42501`; la tabla no acepta escritura
    directa de `authenticated`.
 8. **Base y aplicación coinciden:** para cada módulo concedible, el mismo (rol, extra) da el mismo resultado
    en `canAccessModule` y en `user_has_module`. Contrato en PGlite (patrón `.test.sql`) y un mutante que
@@ -259,9 +273,24 @@ aplicar antes de aprobar la PR.
 
 - **Interfaz que promete lo que la base niega** → mitigado con la lista «cubierta» de §5.3.
 - **Ampliar permisos por error** (el error más caro de este carril, ver cabecera de
-  `rbac-actions-guard.test.ts`): nada se mueve de «deuda» a «excepción»; los módulos de control del sistema y las capabilities destructivas no
-  son concedibles. **Sensibilidad nueva:** abrir dinero por persona sí está permitido (decisión de Sam), así que
-  cada concesión sobre esos módulos queda con motivo y aparece resaltada en «Personas con excepciones».
+  `rbac-actions-guard.test.ts`): nada se mueve de «deuda» a «excepción». Abrir módulos sensibles por persona está
+  permitido por decisión de Sam, así que cada concesión sensible exige doble aviso, queda con motivo y aparece
+  resaltada en «Personas con excepciones»; las capabilities destructivas no son concedibles.
+- **R1 · Escalada de privilegios (pendiente de Sam).** Un extra sobre `users` o `admin` podría servir para dar
+  accesos a otros o a uno mismo. Mitigación propuesta: (a) conceder/revocar extras, cambiar roles y desactivar
+  personas siguen exigiendo rol `admin` en la base; (b) un extra sobre `users`/`admin` queda de **solo lectura
+  efectiva**; (c) la RPC rechaza que alguien se conceda extras sensibles a sí mismo; (d) el doble aviso dice
+  expresamente «esta persona verá la gestión de usuarios». **Pendiente de Sam.**
+- **R2 · Módulos del superadministrador (pendiente de Sam).** `financiero-china`, `legal`, `no-olvidar` y
+  `renditions` exigen además `is_platform_admin()` (`rbac.ts`, `SUPERADMIN_ONLY_MODULES`; en la base `0355`/`0356`).
+  Preguntas: ¿quién puede otorgarlos? Propuesta: solo quien cumpla `is_platform_admin()`, no cualquier admin. ¿Debe
+  el receptor pasar el segundo candado? Hoy el guard lo exige en cada vista y acción, así que un extra a quien no es
+  superadmin de plataforma **no abriría nada**. Opción A: mantenerlo (el extra casi no tiene efecto). Opción B:
+  reemplazar el segundo candado por una confirmación reforzada, lo que cambia `0355`/`0356` y requiere spec
+  aparte. **Pendiente de Sam.**
+- **R3 · Dinero por persona exige cambiar la base (pendiente de Sam).** Abrir dinero a quien no es contabilidad
+  obliga a cambiar funciones y RLS que hoy comparan el rol (inventario con archivo:línea en §12.2). Se propone una
+  **fase propia** (§6, fase 8), con su migración y su OK de Sam, separada de Comercial.
 - **Acumulación de excepciones** (la objeción de la 0139) → motivo, vencimiento opcional, lista visible.
 - **Borrado no limpia el rastro**: borrar un extra no borra `entity_audit_log`; contar antes de ensayar.
 - **Preview comparte Supabase con producción**: no probar concesiones reales en Preview.
@@ -273,11 +302,14 @@ aplicar antes de aprobar la PR.
 
 | # | Decisión | Resultado | Estado |
 |---|---|---|---|
-| 9.1 | ¿Los extras abren módulos sensibles? | **Sí, los de dinero** (p. ej. tesorería), porque Alejandro necesita un acceso amplio al arrancar y Sam irá recortando con el tiempo. **No** los de control del sistema ni acciones destructivas: «no puede borrar archivos ni bases de datos». Detalle en §5.1 regla 2 | Decidido por Sam 2026-11-09 en lo general. **Pendiente de confirmar por Sam:** nómina (dinero + datos personales de empleados) y `void_expense`/`fix_frozen_rate`, que esta spec deja fuera de los extras |
+| 9.1 | ¿Los extras abren módulos sensibles (dinero y solo-administrador)? | **Sí.** Los puede conceder un admin o un superadmin, con **doble aviso obligatorio** que liste en concreto lo que esa persona podrá hacer y confirmación explícita, exigida también por la RPC y registrada en auditoría (§5.1 regla 2). El CHECK de la 0357 no se toca. Las capabilities quedan fuera | Decidido por Sam 2026-11-11 (reemplaza la decisión del 2026-11-09). **Pendiente de Sam:** nómina y R1 a R3 |
 | 9.2 | Granularidad | **Por módulo** (ver / ver y editar). Acciones finas quedan para fase 2 | Decidido por Sam 2026-11-09 |
 | 9.3 | Vencimiento | **Opcional** | Decidido por Sam 2026-11-09 |
 | 9.4 | Alcance de «parte de Comercial» | **Elegir módulos** (p. ej. CRM sí, Cotizaciones no). Filtrar etapas o embudos dentro del CRM sería otra spec | Decidido por Sam 2026-11-09 |
 | 9.5 | Usuario **Personalizado** | Rol base `custom` + accesos módulo a módulo (§5.5) | Pedido de Sam 2026-11-09; **pendiente de confirmar por Sam** que el diseño de §5.5 es lo que quiere |
+| 9.6 | R1 · Escalada con `users`/`admin` | Propuesta de §8 (solo lectura efectiva, rol `admin` en la base para conceder, sin auto-concesión) | **Pendiente de Sam** |
+| 9.7 | R2 · Módulos del superadministrador | Propuesta: otorga solo `is_platform_admin()`; el receptor sigue pasando el segundo candado (opción A) | **Pendiente de Sam** |
+| 9.8 | R3 · Fase propia para dinero | Fase 8, con migración y OK de Sam | **Pendiente de Sam** |
 
 Pregunta abierta, **sin valor asumido**:
 
@@ -288,7 +320,7 @@ Pregunta abierta, **sin valor asumido**:
 
 - Crear **roles nombrados** reutilizables (plantillas propias) o editar la matriz base desde la UI. El
   «Personalizado» de §5.5 es por persona, no una plantilla compartida.
-- Abrir módulos de control del sistema o conceder acciones destructivas por persona.
+- Conceder `CAPABILITIES` (acciones destructivas o gobernadas) por persona: siguen por rol o admin.
 - Quitar permisos por persona (solo se suma).
 - Acciones finas dentro de un módulo (fase 2).
 - Reescribir en bloque las ~71 migraciones con chequeos de rol.
@@ -302,7 +334,7 @@ migración se asignan al implementar con `pnpm sdd:next` (hoy la siguiente libre
 aplicada nunca se renumera.
 
 **Aplicación**
-- `lib/studio/rbac.ts` — `SYSTEM_CONTROL_MODULES`, extras en `canAccessModule`/`canEditModule`, rol `custom`.
+- `lib/studio/rbac.ts` — `SENSITIVE_MODULE_EFFECTS`, extras en `canAccessModule`/`canEditModule`, rol `custom`.
 - `lib/studio/rbac-guard.ts` — carga de extras en `getStudioAccess`.
 - `lib/studio/user-types.ts` — `StudioUserRole` y `STUDIO_USER_ROLES` con `custom`.
 - `lib/studio/user-module-grants-queries.ts` (nuevo) y su prueba.
@@ -313,7 +345,7 @@ aplicada nunca se renumera.
   (solo para registrar las acciones nuevas con su guard) y pruebas nuevas en `lib/studio/__tests__/`.
 
 **Base de datos (migraciones nuevas, cada una con su prueba `.test.sql` en `supabase/tests/`)**
-- Tabla `studio_user_module_grants`, RPC de conceder/revocar, `user_has_module`, auditoría.
+- Tabla `studio_user_module_grants` (con `sensitive_confirmed_at` y su CHECK), RPC de conceder/revocar con `p_confirm_sensitive`, `user_has_module`, auditoría. **No** se modifica `0357`.
 - Rol `custom`: CHECK de `user_tenants` y `user_invitations` y las RPC de invitar/cambiar rol.
 - Reemplazo de `crm_puede_usar()` y `document_entity_authorized` y de las funciones que arroje el
   inventario exacto (Fase 1), una migración por tanda.
@@ -343,7 +375,7 @@ sumar varios patrones: `user_tenants.role` 99 · `current_studio_role()` 63 · `
 
 | Grupo | Qué hay (archivo) | Efecto para extras / `custom` | Veredicto |
 |---|---|---|---|
-| **A · Control del sistema** (solo admin) | Mailing `0408`; bugs `0028`/`0029`; SEO y noticias `0053`–`0055`, `0518`; Telegram `0386`; Chatwoot admin `0503`–`0507`, `0509`, `0522`; etapas CRM `0506` (escritura); códigos de marca `0334`/`0339`; legal y rendiciones `0356`; ajustes fiscales/contables `0126`/`0133`; auditoría `0201`, `0270`, `0289`–`0301`, `0398` | No se conceden (§5.1 regla 2) | **Fuera** |
+| **A · Control del sistema** (solo admin) | Mailing `0408`; bugs `0028`/`0029`; SEO y noticias `0053`–`0055`, `0518`; Telegram `0386`; Chatwoot admin `0503`–`0507`, `0509`, `0522`; etapas CRM `0506` (escritura); códigos de marca `0334`/`0339`; legal y rendiciones `0356`; ajustes fiscales/contables `0126`/`0133`; auditoría `0201`, `0270`, `0289`–`0301`, `0398` | Concedibles con doble aviso (§5.1 regla 2), sujetos a R1 y R2. En la base, los gates de rol `admin` siguen mandando | **Depende de R1/R2** |
 | **B · Dinero por rol `accounting`** | Facturas `0407`/`0414`; conciliación `0409`; cobros y pagos a proveedores `0467`/`0468`/`0470`; cuentas y asientos `0510`/`0511`; libros fiscales y retenciones `0165`/`0166`; gastos `0074`; reportes de pago `0422`; nómina `0160` (`nomina_can_access`); cierre y edición contable `0493` | **Alejandro ya los tiene** por ser `accounting`. Un extra de dinero a quien no sea `accounting` (incluido `custom`) **no funcionaría** hasta migrar estas ~45 piezas | **Requiere cambio** solo para `custom` o roles distintos de contabilidad; **no** para Alejandro |
 | **C · Comercial con rol fijo** | `crm_puede_usar()` = `admin`/`commercial` (`0506:186-194`); `document_entity_authorized` y el mapa entidad→módulo (`0444`, escrituras de clientes `0456`); `update_shipment_plan` (`0305`); `rename_client_markbox` (`0371`); identidad de facturación (`0466`) | Sin cambio en la base, Alejandro **ve** el CRM en pantalla y la base se lo cierra | **Requiere cambio** (primera tanda) |
 | **C2 · Comercial ya compatible con contabilidad** | Fachadas `0411`/`0412`/`0413` y `merge_clients` (`0358`/`0361`) ya incluyen `accounting`; `client_outstanding` (`0492`) | Funcionan para Alejandro; **fallan cerrado** ante `custom` hasta incluirlo | Cubierta para Alejandro; **requiere cambio** para `custom` |
@@ -359,8 +391,36 @@ sumar varios patrones: `user_tenants.role` 99 · `current_studio_role()` 63 · `
 2. **Usuario `custom`:** es donde se concentra el trabajo grande. Sin migrar el grupo B y C2, un `custom` con
    extras de dinero o de clientes vería módulos que la base le niega. Por eso en la Fase 5 un módulo solo se
    ofrece a un `custom` cuando su grupo esté marcado «cubierto» (§5.3).
-3. **Orden sugerido de tandas:** (i) tabla, RPC y aplicación para roles existentes (Alejandro); (ii) base para
-   Comercial (grupo C); (iii) rol `custom` + C2; (iv) dinero para `custom` (grupo B), por submódulos y solo si Sam
-   lo confirma, pues es lo más extenso.
+3. **Orden sugerido de tandas:** (i) tabla, RPC (con doble aviso) y aplicación para roles existentes (Alejandro);
+   (ii) base para Comercial (grupo C); (iii) rol `custom` + C2; (iv) **fase propia de dinero** (grupo B y §12.2), con
+   su migración y su OK de Sam, pues es lo más extenso.
 4. **Pendiente de la Fase 1:** repetir el inventario contra el catálogo de una base efímera y fijar la lista
    final «módulo → cubierto / requiere cambio» que alimenta la UI.
+
+### 12.2 Inventario de funciones que gatean dinero y control por rol (2026-11-11)
+
+Pedido de Sam por mensaje de la sesión coordinadora: cada pieza con archivo:línea. Líneas leídas del repo al
+2026-11-11 (se vencen si se edita arriba; ver el método de §12). «Capability» = acto destructivo o gobernado que
+**no** se abre con extras (§5.1 regla 2).
+
+| Pieza | Archivo:línea | Quién pasa hoy | Si se abre el módulo por extra |
+|---|---|---|---|
+| `nomina_can_access()` | `0160_nomina_employees.sql:71` | admin, accounting | Requiere cambio (módulo `nomina`: dinero + datos personales de empleados) |
+| `contabilidad_edicion_autorizada()` | `0493_cierre_contable_superclave.sql:253` | accounting, admin, support | Requiere cambio |
+| `cierre_es_admin()` | `0493_cierre_contable_superclave.sql:291` | admin | Se queda admin (cierre contable) |
+| `registrar_tasa_de_cambio` | `0495_fx_rates_conversor_usd.sql:233` | admin, accounting | Requiere cambio |
+| `void_expense_governed` | `0340_expense_void_governance.sql:100` | accounting, admin | **Capability** (`void_expense`): no cambia |
+| `congelar_tarifa_recepcion` | `0496_tarifa_congelada_por_embarque.sql:80` | admin, operations, warehouse, support, accounting | **Capability** (`fix_frozen_rate`): no cambia |
+| `void_invoice_with_audit_reason` | `0497_reverso_al_anular_factura.sql:740` | admin, accounting | **Capability** (anular): no cambia |
+| `void_payroll_settlement_governed` | `0316_nomina_settlement_void_governance.sql:128` | admin | **Capability**: no cambia |
+| `soft_delete_admin_tenant_internal` | `0476_borrado_embarques_recepciones.sql:379` | admin | **Capability** (`delete_shipments`, `delete_warehouse_receipts`): no cambia |
+| `crm_puede_usar()` | `0506_crm_modelo.sql:186` | admin, commercial | Requiere cambio (Comercial, primera tanda) |
+
+Políticas de dinero por rol `accounting` (por migración, sin línea individual porque son familias de políticas):
+`0407`/`0414` facturas, `0409` conciliación, `0470` cobros y pagos a proveedores, `0510` cuentas, `0511` asientos,
+`0165`/`0166` libros fiscales y retenciones, `0074` gastos, `0422` reportes de pago. Lo de solo-administrador usa
+`is_tenant_admin()` (39 objetos, ver cifras de §12) y `0356` para los 4 módulos del superadministrador.
+
+Conclusión: para **Alejandro** (ya contabilidad) el dinero funciona sin tocar nada. Para cualquier otro receptor de un
+extra de dinero hay que migrar las piezas marcadas «Requiere cambio» y las familias de políticas anteriores, y por eso
+es una fase propia (§6, fase 8; R3).
