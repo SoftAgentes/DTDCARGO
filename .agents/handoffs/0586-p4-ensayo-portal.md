@@ -122,6 +122,16 @@
 - **El job `ensayo`** no corre en borradores, como el cargador desde la SDD-0621.
 - **El código 6** (`--limpiar` con Docker sin responder) tiene que figurar en el runbook, en 3.1. **Lo escribe E10.**
 
+## Lo no bloqueante de la última revisión del DG (PR siguiente, después del tren)
+
+- **N1:** si Docker se cuelga (no solo si falla), la limpieza ya no se queda esperando con los datos en el disco:
+  - con `CREADO=1`, las dos carpetas se borran antes de llamar a Docker;
+  - los conteos tienen `timeout 30`;
+  - lo prueban G7, con un `docker` que se cuelga en `ps` y `ls`, y M28, que quita el borrado previo.
+- **N4:** G6 también exige que desaparezca `/dev/shm/portal-historial`. El `docker` falso la crea con un centinela, como una carga a medias.
+- **N2:** este handoff, con las vueltas 10, 11 y 12 y sus runs.
+- **N3,** el código 6 y «correr `--limpiar` apenas vuelva Docker»: va en el runbook de la #479. **Le toca a E10.**
+
 ## Lo que se comprueba en la puerta 3, no en CI
 
 - **TimeoutStopSec:** en Actions no hay unidad de systemd, así que la guarda G1 no corre ahí.
@@ -145,8 +155,9 @@
 | 7 | `d31737045` | 42553336609 (job 128953531107) | El rojo previo esperado: T2 (la fuga de SINTPUBSUB), T6 (2 filas de espejo y 2 de eventos), E-CA, E-V10, E-V12, E-V13 y G4. M17 y M21 a M24 no se pudieron aplicar. M0 cayó en T2 y T6, y M18 a M20 cayeron además en T2, por el pubsub | Solo las pruebas de la revisión |
 | 8 | `2585e945f` | 42555105883 (cargador y ensayo) y 42555105808 (calidad) | Verde entero. T2 revisó 23 marcas; pasaron T6, E-CA, E-V10, E-V12, E-V13 y G4; M17 y M20 a M24 cayeron cada uno en lo suyo, y M39 en L4. La revisión del DG dio APPROVED | La vuelta 9: las correcciones no bloqueantes |
 | 9 | `aa03979a6` | 42588214175 (cargador y ensayo) y 42588213978 (calidad) | Verde entero. La revisión del DG del delta dio CHANGES_REQUESTED: B1, una regresión de N2 | La vuelta 10 |
-| 10 | `d3541ef57`, el merge de main `49f15594d`, y `c7d1f6f33`, las pruebas (el rojo previo) | (pendiente) | Rojo previo esperado: G6 y M27 (sin aplicar) | El arreglo de B1 |
-| 11 | (el arreglo de B1) | — | — | — |
+| 10 | `d3541ef57`, el merge de main `49f15594d`, y `c7d1f6f33`, las pruebas (el rojo previo) | 42604422810 (el cargador y el ensayo; el job del ensayo es el 129116610390) y 42604423156 (la calidad, success) | El rojo previo esperado: solo G6 (sale con 6 y deja la carpeta) y M27 (sin aplicar) | El arreglo de B1 |
+| 11 | `15048ea39`, el arreglo de B1 y `revisar-datos-ve` | 42610897775 (el cargador y el ensayo) y 42610897665 (la calidad) | El ensayo pasó. La calidad cayó por el contrato de la 0621 que trajo la #484 (las rutas exactas): N7 suma `infra/chatwoot/correo/**` | La vuelta 12 |
+| 12 | `5906d532a`, el merge de main `fc6a726bb`; `f411eaa00`, el contrato con la ruta; y `b35595f30`, el contrato mira el job `ensayo` | 42615048451 (el cargador y el ensayo) y 42615048513 (la calidad) | Verde. La revisión del DG dio APPROVED | La PR siguiente: lo no bloqueante (N1, N2 y N4) |
 | 6, el detalle | — | — | — | La vuelta 5 dio verde en el cargador y en el ensayo (run 42546753563). `revisar-datos-ve` sobre la #473 encontró E1, de gravedad baja: `conversations.additional_attributes` se copiaba entero. Ahora se copia solo `jsonb_build_object('dtd_hilo', …)` (`copia-columnas.tsv:45`). La producción simulada suma una conversación del portal con `browser` marcado `SINT-NAVEGADOR`, y el mutante M17 vuelve a copiar el jsonb entero y tiene que caer en T2 |
 
 ## #468 · El caso (b) de la punta a punta
