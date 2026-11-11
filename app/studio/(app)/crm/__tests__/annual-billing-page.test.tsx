@@ -1,3 +1,7 @@
+// CAMINO SIN USO HOY (SDD-0614 S0): estas pruebas recorren la lectura de Kommo
+// del CRM, que en producción está oculta. Se conservan como contrato de la 0572-b
+// hasta la 8.7 o la R4, que las borran o las convierten en contrato de lo que la
+// reemplace (ver .agents/handoffs/pila-contable-al-dia-20261111.md).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
