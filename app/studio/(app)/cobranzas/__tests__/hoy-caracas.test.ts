@@ -23,6 +23,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: async () => null,
   moduleViewDenial: async () => null,
+  // SDD-0624: la página llama su propio gate de vista (además del layout).
+  requireModuleView: async () => "accounting",
 }));
 vi.mock("@/lib/studio/payment-queries", () => ({
   receivablesQueue: mocks.receivablesQueue,
