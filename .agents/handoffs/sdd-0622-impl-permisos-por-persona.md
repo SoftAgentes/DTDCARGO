@@ -141,7 +141,8 @@ función con `user_has_module`.
 | `check-pending-migration-symbols` (0 ROJO) y `migrations-lock` (3 nuevas sin sellar, ninguna con número viejo) | PASÓ |
 | Contratos SQL en Postgres 17 real (`scripts/ci-sql-tests.sh`, Docker) | NO EJECUTADO en local; lo corre el workflow «Contratos SQL» de la PR |
 | `/ui-check` | PASÓ con ajustes menores aplicados (targets de 32 px, contraste de chips) |
-| `pnpm verify` | ver «Cierre» al final |
+| `pnpm verify` (2.ª corrida, con turno del Director) | exit 0, cierre INCOMPLETO por lo no medido. PASÓ (14): harness, lint, rsc-boundary, typecheck, edge-functions, test (1047 archivos · 16381 casos), docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO), e2e, build. NO DISPONIBLE (3): migrations-applied (sin `.env.local`), sql-tests y schema-rebuild (sin Docker) |
+| `pnpm verify` (1.ª corrida) | FALLÓ con 20 rojos. 18 eran míos: 5 pruebas de gates contaban la nueva lectura de extras, más la consulta de Discord, cuyo doble no conoce la tabla. Arreglados con un doble igual al de los desvíos por rol y una lectura tolerante en Discord. Los otros 2 eran timeouts de 600 s (`entorno-prueba-scripts`, `migraciones`), cruzados con el verify de la 0624; aislados pasan 32/32 |
 
 Capturas (Chrome headless a 1440×960, render real de los componentes con datos ficticios), en la carpeta de notas
 compartidas del grupo, `sdd-0622-capturas/`:
