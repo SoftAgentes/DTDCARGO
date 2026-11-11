@@ -17,11 +17,11 @@ async function execute(vars:Record<string,string>) {
   finally { await db.close(); }
 }
 describe("Portal C1 · frescura nueva y recibo histórico", () => {
-  it("0499 real: futura nueva falla; replay autorizado conserva identidad/hash/auditoría/saldo", async () => {
+  it("0533 real: futura nueva falla; replay autorizado conserva identidad/hash/auditoría/saldo", async () => {
     expect(await execute({apply_fix:"true"})).toBeNull();
   },240_000);
   it("control rojo anterior: acepta fecha futura Caracas", async () => {
-    expect(await execute({apply_fix:"false"})).toBe("TEST0499: Portal futuro nuevo Caracas aun con objeto presente rechazado");
+    expect(await execute({apply_fix:"false"})).toBe("TEST0533: Portal futuro nuevo Caracas aun con objeto presente rechazado");
   },240_000);
   it("control rojo anterior: rechaza recuperación idéntica por frescura", async () => {
     expect(await execute({apply_fix:"false",run_portal_replay_only:"true"})).toBe("PAYMENT_INPUT");

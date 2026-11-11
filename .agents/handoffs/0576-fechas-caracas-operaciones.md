@@ -27,7 +27,7 @@ $worker
 - **Base inmutable:** 8729f7f4a3349b9b553c045c15a6adb37c943b98, cierre de 0572-b / PR #311.
 - **Base de la futura PR apilada:** codex/sdd-0572-conversor-usd-sql. Conservar PR en borrador; no integrar.
 - **SDD reutilizada:** docs/specs/0576-fechas-caracas/spec.md. Adoptar únicamente el stub reservado por commit 58beb2ce3bfb37cdddf070876e54468e0b5a6d2f, después de verificar guard y reclamar claim. No mover la rama de reserva ni copiar otros cambios.
-- **Migración asignada por el Director:** 0499_fechas_caracas_operaciones. No aplicada; no autoriza producción.
+- **Migración asignada por el Director:** 0533_fechas_caracas_operaciones. No aplicada; no autoriza producción.
 - **Handoff propio obligatorio antes de producto:** .agents/handoffs/0576-fechas-caracas-operaciones.md. Conservar aquí el contrato completo y su aceptación.
 - **Turno pesado:** concedido exclusivamente a C1. 0572-b devolvió su turno a las 02:07:40Z; la consulta de conocimiento del Director terminó a las 02:13:33Z. Una instalación/prueba/build/SQL/Docker/knowledge pesado a la vez. Los revisores solo leen. Informar antes y después de cada fase, limpiar solo procesos propios y devolver turno expresamente.
 
@@ -39,11 +39,11 @@ Primera entrega de la hora Caracas de 2.1: operaciones nuevas y sus lectores inm
 
 La base final b es 8729f7f4a3349b9b553c045c15a6adb37c943b98. Producto, SQL y pruebas son idénticos al candidato 3b1de9861de7bf15e614d89eb13cd2de6cb54fb0; el último delta es solo spec y handoff, cotejado independientemente. Su verify terminó con salida 0 real y **CIERRE INCOMPLETO, 16/17**: build, 12.538 unitarias y contratos SQL locales aprobados; una unitaria y 20 navegaciones omitidas, una navegación recuperada y un aviso de cierre forzado; ledger productivo sin medir y CI sin aprobación por startup_failure. Se admite continuar localmente, sin aprobar release. 0571 ba43747a conserva el caller autoInvoiceForReceipt en cn/actions.ts:573; se mantienen sus dos rutas permitidas sin cambiar ni reactivar el disparador. La integración futura exige revalidar la base final, especialmente después de 0573.
 
-Inventario remoto/local final completado por next-number: **486 refs más worktrees; siguiente SDD 0577, migración 0499**. Log C:/tmp/director-traspaso-20261020/numeracion-caracas-c1-asignacion-final.txt. Confirma la reserva existente 0576 y permite asignar 0499 a esta única tarea. Conserva advertencias históricas; no se renumeran migraciones.
+Inventario remoto/local final completado por next-number: **486 refs más worktrees; siguiente SDD 0577, migración 0533**. Log C:/tmp/director-traspaso-20261020/numeracion-caracas-c1-asignacion-final.txt. Confirma la reserva existente 0576 y permite asignar 0533 a esta única tarea. Conserva advertencias históricas; no se renumeran migraciones.
 
 **SDD0576 reservada y publicada** por el procedimiento create-only del repositorio: refs/heads/codex/sdd-reserve-0576-fechas-caracas, commit58beb2ce3bfb37cdddf070876e54468e0b5a6d2f; remoto canónico refs/heads/codex/sdd-reserve-0576. Stub docs/specs/0576-fechas-caracas/spec.md. Reserva de metadata, sin implementación ni integración. Log C:/tmp/director-traspaso-20261020/reserva-caracas-0576.txt. El futuro Worker adopta el stub en su árbol después de claim, sin mover ramas ajenas.
 
-Migración C1 asignada: **0499_fechas_caracas_operaciones**. C2 tomará un número posterior tras inventario nuevo; no está reservado aquí. El handoff de C1 no se comparte con otro escritor.
+Migración C1 asignada: **0533_fechas_caracas_operaciones**. C2 tomará un número posterior tras inventario nuevo; no está reservado aquí. El handoff de C1 no se comparte con otro escritor.
 
 ## Decisiones y aceptación
 
@@ -122,8 +122,8 @@ scripts/tests/fechas-caracas-postgrest.mjs
 supabase/migrations-baseline.json
 supabase/pending-migration-symbol-declarations.json
 docs/specs/README.md
-supabase/migrations/0499_fechas_caracas_operaciones.sql
-supabase/tests/0499_fechas_caracas_operaciones.test.sql
+supabase/migrations/0533_fechas_caracas_operaciones.sql
+supabase/tests/0533_fechas_caracas_operaciones.test.sql
 docs/specs/0576-fechas-caracas/spec.md
 .agents/handoffs/0576-fechas-caracas-operaciones.md
 ```
@@ -147,7 +147,7 @@ Este encargo autoriza commits selectivos, push de la rama propia y PR **en borra
 - Dictamen C1 de diseño **recibido y aceptado**, sin bloqueante estructural identificado: C:/tmp/director-traspaso-20261020/caracas-c1-revision-diseno-codex.md, actualizado SHA2565643ac1f8831464f92d6361a7e228398149ff8f92ffe92c0255468c45e686b6d. Su addendum coteja el borrador60rutas hash a312fe261d067fee39d1628f5663a74d7d0bae504c55a7edc87302bdba6b956a contra3b1de986:47rutas existentes/13nuevas previstas; contratos Portal/gastos/posting/SQL sin cambio respecto de a30; las dos metadata conservan0498 y esperas anteriores. Campos/ACL/replay/0128/reloj precisados arriba. No aprueba implementación futura ni disponibilidad global de0499.
 - Base final, dictamen documental y devolución del turno de b comprobados. Informe financiero/UI final SHA256 6cdc54ad1632baeddce8c81342c204875162506e86ff52976b588ce70c756484. El Director acepta el cierre local con límites, no integración/producción.
 - Árbol/rama/base creados mediante harness y comprobados limpios en 8729f7f4; owner designado arriba. Claim y adopción del stub corresponden al Worker antes de editar producto.
-- Allowlist de 60 rutas cotejada en preparación; el delta 3b→8729 es únicamente documental. Inventario nuevo confirma 0499, asignada aquí. Worker verifica su árbol y registra cualquier deriva sin inventar otra numeración.
+- Allowlist de 60 rutas cotejada en preparación; el delta 3b→8729 es únicamente documental. Inventario nuevo confirma 0533, asignada aquí. Worker verifica su árbol y registra cualquier deriva sin inventar otra numeración.
 - Firma JS de recuperación, fallback de 0128, lectura estricta de cierre y ACL precisadas arriba son aceptación obligatoria; no quedan decisiones aplazadas sobre esos contratos.
 - Ejecutar en este orden: adopción y contrato → pruebas funcionales ROJO → implementación acotada → VERDE y mutantes → SQL/HTTP sintético → checkpoint de SHA y revisión independiente → reparaciones necesarias → verify canónico serial → documentación/knowledge/limpieza/push/PR/handoff. No ejecutar verify con hallazgos materiales conocidos todavía abiertos.
 - Informar al Director el primer checkpoint de adopción (raíz/rama/claim/stub/contrato/allowlist), el ROJO funcional y el candidato de revisión. Durante ejecución completar la tarea con autonomía dentro de esta aceptación. No absorbas hallazgos ajenos ni adelantes C2 o BCV.
@@ -197,7 +197,7 @@ El Director autoriza una única ruta adicional a las 64 ya permitidas:
 scripts/__tests__/invoice-read-boundary.test.mjs
 ```
 
-Se conserva el contrato original `f4c55bb8c97ac57d9b0c8ce0206d2aabe524e3009320be6c7c974674cfde76ff` y el addendum de acciones `1d82124240dd1ad7f3666591d572219d23ded116ecabd871ddd88a364e4d86a6`. La allowlist vigente queda en **65 rutas**, misma tarea/owner/rama/turno/0499. Guardar este addendum antes de editar la ruta nueva.
+Se conserva el contrato original `f4c55bb8c97ac57d9b0c8ce0206d2aabe524e3009320be6c7c974674cfde76ff` y el addendum de acciones `1d82124240dd1ad7f3666591d572219d23ded116ecabd871ddd88a364e4d86a6`. La allowlist vigente queda en **65 rutas**, misma tarea/owner/rama/turno/0533. Guardar este addendum antes de editar la ruta nueva.
 
 ## Causa y cambio permitido
 
@@ -213,7 +213,7 @@ Autorizaciones de publicación local/draft vigentes; sin merge, despliegue, VPS,
 
 ## Checkpoint APP · 2026-10-21, previo a SQL
 
-Implementación APP en el árbol sobre eecfbbb1 (base8729): helper puro IANA y calendario/instante estrictos; captura de día antes de awaits; fallbacks de nueve posters; readback estricto de issued_at; guarda histórica de gastos; contexto obligatorio Portal nuevo/recovery, bytes anteriores sin recrear evidencia y formularios existentes. No se ha implementado todavía0499 ni medido SQL/HTTP/browser/verify.
+Implementación APP en el árbol sobre eecfbbb1 (base8729): helper puro IANA y calendario/instante estrictos; captura de día antes de awaits; fallbacks de nueve posters; readback estricto de issued_at; guarda histórica de gastos; contexto obligatorio Portal nuevo/recovery, bytes anteriores sin recrear evidencia y formularios existentes. No se ha implementado todavía0533 ni medido SQL/HTTP/browser/verify.
 
 Evidencia externa: C:/tmp/director-traspaso-20261020/0576-codex-validation/. Cada corrida tiene .log, .json de Vitest cuando corresponde y -receipt.json con PID, inicio/fin y salida. Estas corridas pertenecen al árbol previo al primer commit de APP, no a la base sin cambios; el ROJO conserva su producto anterior en los recibos.
 
@@ -248,7 +248,7 @@ app/studio/(app)/cn/actions.ts
 app/studio/(app)/cn/__tests__/auto-invoice-caracas-event.test.ts
 ```
 
-La allowlist pasa a **68 rutas**, misma tarea/owner/rama/turno/migración0499. Conservar contrato original y addenda previos; guardar este documento en spec/handoff antes de las tres nuevas ediciones.
+La allowlist pasa a **68 rutas**, misma tarea/owner/rama/turno/migración0533. Conservar contrato original y addenda previos; guardar este documento en spec/handoff antes de las tres nuevas ediciones.
 
 ## Hallazgo demostrado por lectura
 
@@ -273,7 +273,7 @@ Addendum68 leído completo y hash04c5fc420ac77b7c018e21e3572c61fc2f21c9220addd3f
 - green-cn-event-1: PASÓ48/48 en3archivos,0SKIP; suplemento del foco697, no suma de cobertura distinta. Fecha presente inválida/readback fallido, éxito, error RPC, no aplicable, guard denegado y tenant ausente; cero segunda emisión/poster indebido.
 - typecheck-app-4: PASÓ salida0,02:58:17.489–02:58:44.335Z.
 - pending-symbols-app-2: PASÓ salida0,02:54:36.771–02:55:17.477Z, con2grupos de esperas amarillas declaradas.69anclas reales ajustadas; no estado aplicado nuevo.
-- docs-app-1: PASÓ salida0. Scope medido62rutas cambiadas de68permitidas, outside=[]; diff8729→árbol sin whitespace errors. SQL0499 continúa solo preparado fueraGit, NO EJECUTADO.
+- docs-app-1: PASÓ salida0. Scope medido62rutas cambiadas de68permitidas, outside=[]; diff8729→árbol sin whitespace errors. SQL0533 continúa solo preparado fueraGit, NO EJECUTADO.
 
 Matriz SGE: .01/.02/.06/.07/.09/.11 cuentan con evidencia APP focal descrita; .04/.05 quedan pendientes de SQL/HTTP, .10 de navegador y .12 conserva límite de autorización. NUM-01: importes/IVA/monedas intactos por diff y controles de flujo, no aceptación financiera nueva. La guardia histórica de gastos no promete atomicidad0575.
 Lint-app-delta-3 PASÓ salida0 sin warnings,02:59:15.716–23.363Z, únicamente las5rutas del delta tipo/copy/test/inventario. Primer checkpoint APP listo para revisión independiente; SQL/HTTP, mutantes y verify permanecen pendientes.
@@ -291,14 +291,14 @@ Evidencia externa en `C:/tmp/director-traspaso-20261020/0576-codex-validation/`:
 - `lint-expense-malformed-1`: PASÓ salida0 sin warnings, 03:04:43.039–03:04:51.253Z.
 - `typecheck-app-malformed-1`: FALLÓ salida2 únicamente por declaración de import del arnés SQL aún en preparación; no defecto de este handler. Se tipó el enlace del test al arnés sin silenciar reglas. `typecheck-app-malformed-2`: PASÓ salida0, 03:07:34.007–03:07:49.665Z.
 
-El ajuste se guarda en commit separado sin reescribir5dad. SQL sigue en preparación y su primer ROJO funcional de default Caracas se conserva separado; no se ha incorporado ni aplicado0499 al checkpoint APP. No se amplía la allowlist68 ni se certifica atomicidad0575.
+El ajuste se guarda en commit separado sin reescribir5dad. SQL sigue en preparación y su primer ROJO funcional de default Caracas se conserva separado; no se ha incorporado ni aplicado0533 al checkpoint APP. No se amplía la allowlist68 ni se certifica atomicidad0575.
 ## Checkpoint SQL C1 · revisión parcial, sin aplicar
 
-0499 contiene las cinco definiciones completas anteriores (0467/0468/0340/0464/0128), con delta temporal acotado, y los cuatro defaults. No incorpora helper SQL productivo. El día de negocio se captura antes de autorización/locks; los timestamps de auditoría no cambian. La fecha explícita se conserva, incluso si el caller anterior la deriva de UTC. El motor privado0464 devuelve el recibo idéntico autorizado antes de validar frescura de una nueva creación; sigue comprobando actor/tenant/request/report/verb/hash y bloqueando filas. SQL no comprueba bytes actuales de Storage: esa garantía pertenece a la action y su helper.
+0533 contiene las cinco definiciones completas anteriores (0467/0468/0340/0464/0128), con delta temporal acotado, y los cuatro defaults. No incorpora helper SQL productivo. El día de negocio se captura antes de autorización/locks; los timestamps de auditoría no cambian. La fecha explícita se conserva, incluso si el caller anterior la deriva de UTC. El motor privado0464 devuelve el recibo idéntico autorizado antes de validar frescura de una nueva creación; sigue comprobando actor/tenant/request/report/verb/hash y bloqueando filas. SQL no comprueba bytes actuales de Storage: esa garantía pertenece a la action y su helper.
 
-La migración exige una transacción, lock_timeout5s/statement_timeout60s; ALTER DEFAULT toma ACCESS EXCLUSIVE en cuatro tablas hasta COMMIT, sin backfill. Preflight compara firmas, cuerpos, ACL/owner/defaults/cierre/auditoría; postflight exige cuerpos y catálogo conservados. No GRANT nuevo ni cambio RLS.0467/0468 siguen INVOKER authenticated;0464 privado mantiene EXECUTE authenticated preexistente;0128 sigue service_role. La espera0499 es MIGRATE-FIRST: paquete/previa/OK nominal antes de DB, despliegue posterior. Rollback de app mantiene SQL compatible; rollback SQL requiere solo restaurar cinco cuerpos y cuatro defaults revisados, sin ejecutar migraciones históricas completas ni re-fechar filas.
+La migración exige una transacción, lock_timeout5s/statement_timeout60s; ALTER DEFAULT toma ACCESS EXCLUSIVE en cuatro tablas hasta COMMIT, sin backfill. Preflight compara firmas, cuerpos, ACL/owner/defaults/cierre/auditoría; postflight exige cuerpos y catálogo conservados. No GRANT nuevo ni cambio RLS.0467/0468 siguen INVOKER authenticated;0464 privado mantiene EXECUTE authenticated preexistente;0128 sigue service_role. La espera0533 es MIGRATE-FIRST: paquete/previa/OK nominal antes de DB, despliegue posterior. Rollback de app mantiene SQL compatible; rollback SQL requiere solo restaurar cinco cuerpos y cuatro defaults revisados, sin ejecutar migraciones históricas completas ni re-fechar filas.
 
-El contrato carga0499 REAL sin alterarla y toma catálogo/filas antes y después. Después instrumenta exclusivamente anclas exactas de reloj en copias de los cuerpos/defaults, abortando ante deriva; conserva hash, locks, autorización y prueba. Fecha fija02:30Z, límites03:59:59.999/04:00, mes/año/bisiesto e IANA2010; sesiones UTC/Caracas/Shanghai; reloj secuenciado confirma una captura por operación. Fechas explícitas/centavos, gasto original y asiento histórico/cierre, cero nuevas mutaciones en negativos, replay autorizado y cada campo/actor/tenant/revocación/verb están cubiertos.
+El contrato carga0533 REAL sin alterarla y toma catálogo/filas antes y después. Después instrumenta exclusivamente anclas exactas de reloj en copias de los cuerpos/defaults, abortando ante deriva; conserva hash, locks, autorización y prueba. Fecha fija02:30Z, límites03:59:59.999/04:00, mes/año/bisiesto e IANA2010; sesiones UTC/Caracas/Shanghai; reloj secuenciado confirma una captura por operación. Fechas explícitas/centavos, gasto original y asiento histórico/cierre, cero nuevas mutaciones en negativos, replay autorizado y cada campo/actor/tenant/revocación/verb están cubiertos.
 
 Fuentes de la fixture: estructura sintética0421 con auditoría real0258/0261/0267/0294/0351; cuerpos reales0464/0467/0468/0128/0340; políticas actuales de0414 extraídas íntegramente desde su DDL/postflight (no se certifica su preflight de release0411–0413); helpers completos get_user_tenant_id0453/current_studio_role0200;0230 y0470 completas para las cuatro tablas financieras. auth.uid es adaptador de claims sintéticos, no Auth alojado. Privilegios estándar service_role de las tablas añadidas se declaran en bootstrap; no se simula permiso con true. La prueba ejecuta acciones bajo SET ROLE authenticated/service_role/anon y evalúa aislamiento/tenant ambiguo, no solo postgres. HTTP/JWT queda pendiente en este checkpoint.
 
@@ -308,40 +308,40 @@ Evidencia externa en C:/tmp/director-traspaso-20261020/0576-codex-validation/:
 - green-sql-final-1 PASÓ7/8 y FALLÓ el nuevo fixture de otro actor por constraint real de principal único; se corrigió usando reasignación sintética conservando el constraint. green-sql-portal-final-2 PASÓ3/3.
 - lint-sql-checkpoint-1 y typecheck-sql-checkpoint-1 PASÓ salida0. La incorporación posterior de0470 es únicamente fixture SQL; su suplemento se registra en el handoff.
 
-Los controles rojos permanentes esperan el error funcional exacto de la base sin0499; un error de infraestructura no los hace pasar. PostgreSQL/HTTP, mutantes, navegador, verify y revisión SQL siguen pendientes. Este checkpoint no certifica C1 completa ni autorización de integración/producción.
+Los controles rojos permanentes esperan el error funcional exacto de la base sin0533; un error de infraestructura no los hace pasar. PostgreSQL/HTTP, mutantes, navegador, verify y revisión SQL siguen pendientes. Este checkpoint no certifica C1 completa ni autorización de integración/producción.
 
 FUERA DE ALCANCE DETECTADO: app/m/erp/actions.ts mantiene occurred_at.slice(0,10) y guardas anteriores (blob9f10b23265c8273e9a2f543ac04092d1c7beea86; líneas95/195/260/354 cotejadas por Director). No se modifica dentro de68. Requiere slice móvil posterior antes de afirmar toda la hora Caracas unificada.
 
 Revisión APP independiente recibida por Director: financiera5dad SHA256dda463a1f60037f81eb85f36d9d0da0963e5ae7a5ee9f48c8d15720f38640743 sin material nuevo; Portal/Gastos5dad SHA25640643e978d1761afec5d8bf95ee44ed3a66607940087137f98c74f7b50bfc81e con el P2 reparado en d5f28fdede9295c60b8eaaa700d0b42c9f7ca3ad. Director confirmó cierre independiente996ecb86. Archivos externos caracas-c1-revision-app-{financiera,portal-gastos}-5dadb103.md. Actions de5dad: startup_failure39536119461/39536106357; no aprobación CI. Estas lecturas/corridas no reemplazan verify final sobre SHA congelado.
 
-Suplemento de fixture0470: green-sql-policies-1 FALLÓ por privilegio estándar service_role ausente en las tablas añadidas después del bootstrap0421. Se declaró exclusivamente ese bootstrap; no se alteró0470 ni authenticated. green-sql-policies-2 PASÓ8/8 en2archivos,0SKIP,03:14:44.715–03:14:58.589Z (incluye controles rojos permanentes y tenant ambiguo con helper0453 real). Archivo0499 SHA256fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef. Scope68/68, outside=[]; diff8729→árbol sin whitespace errors;69anclas pendientes coherentes. Utilidad común de contrato guardada, HTTP aún NO EJECUTADO/pendiente de implementar en la misma ruta autorizada. Revisión SQL solicitada sobre este checkpoint parcial.
+Suplemento de fixture0470: green-sql-policies-1 FALLÓ por privilegio estándar service_role ausente en las tablas añadidas después del bootstrap0421. Se declaró exclusivamente ese bootstrap; no se alteró0470 ni authenticated. green-sql-policies-2 PASÓ8/8 en2archivos,0SKIP,03:14:44.715–03:14:58.589Z (incluye controles rojos permanentes y tenant ambiguo con helper0453 real). Archivo0533 SHA256fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef. Scope68/68, outside=[]; diff8729→árbol sin whitespace errors;69anclas pendientes coherentes. Utilidad común de contrato guardada, HTTP aún NO EJECUTADO/pendiente de implementar en la misma ruta autorizada. Revisión SQL solicitada sobre este checkpoint parcial.
 
 ## Suplemento PostgreSQL/HTTP y mutantes SQL
 
-Checkpoint SQL `b7148218394523a3cca46a47181ac13d17815ff9` publicado, revisión en curso. El arnés HTTP posterior no cambia0499 ni producto APP: fuente realmente ejecutada `scripts/tests/fechas-caracas-postgrest.mjs` SHA2567c6511cd388f8f2d2fd0717cd671aa740ff969ab37dc506b2751cc4d2b43eea3.
+Checkpoint SQL `b7148218394523a3cca46a47181ac13d17815ff9` publicado, revisión en curso. El arnés HTTP posterior no cambia0533 ni producto APP: fuente realmente ejecutada `scripts/tests/fechas-caracas-postgrest.mjs` SHA2567c6511cd388f8f2d2fd0717cd671aa740ff969ab37dc506b2751cc4d2b43eea3.
 
 `postgres-http-1` PASÓ salida0,03:17:38.312–03:18:19.341Z. PostgreSQL17.11 ejecutó95aserciones del contrato completo y ROLLBACK. PostgREST14.17 ejecutó39comprobaciones, con41respuestas/request sintéticos guardados individualmente. Recibo `C:/tmp/director-traspaso-20261020/0576-codex-validation/postgres-http-1/receipt.json`, contrato `postgres-contract.log`, respuestas `http-responses.json`, catálogo de definiciones/defaults reales `http-real-catalog.json` y log deDDL en ese directorio.
 
-Antes0128 devolvió JSON legado sin issued_at; luego0499 REAL se ejecutó en transacción/COMMIT/NOTIFY, sin DML, y la misma instancia devolvió la fecha efectivamente persistida. StartedAt antes/después idéntico2026-10-21T03:17:51.397728928Z; hash0499 igualb714. Después se instrumentó exclusivamente el reloj para probar medianoche/captura única, fechas explícitas, roles/tenant ambiguo, replay futuro idéntico y negativos por campo/request/actor/tenant/revocación/verb/ACL. Se conserva la fase real separada de la instrumentada. No Auth alojado ni bytes actuales de Storage probados por SQL; éstos siguen cubiertos separadamente por acciones/helpers locales. Recursos con etiqueta propia dtd.task=0576c1 eliminados; remainingOwn vacío. No recursos ajenos tocados ni Docker Desktop detenido.
+Antes0128 devolvió JSON legado sin issued_at; luego0533 REAL se ejecutó en transacción/COMMIT/NOTIFY, sin DML, y la misma instancia devolvió la fecha efectivamente persistida. StartedAt antes/después idéntico2026-10-21T03:17:51.397728928Z; hash0533 igualb714. Después se instrumentó exclusivamente el reloj para probar medianoche/captura única, fechas explícitas, roles/tenant ambiguo, replay futuro idéntico y negativos por campo/request/actor/tenant/revocación/verb/ACL. Se conserva la fase real separada de la instrumentada. No Auth alojado ni bytes actuales de Storage probados por SQL; éstos siguen cubiertos separadamente por acciones/helpers locales. Recursos con etiqueta propia dtd.task=0576c1 eliminados; remainingOwn vacío. No recursos ajenos tocados ni Docker Desktop detenido.
 
-`sql-mutants-1` PASÓ14/14 muertos por la condición funcional esperada,03:20:00.569–03:20:26.027Z; no cambió ningún archivo productivo. Se cargó0499 real intacta, completó sus pre/postflights y luego se mutaron copias de definiciones instaladas en PGlite; recibo `sql-mutants-1/result.json`. Cubre UTC/defaults/cobro/pago, segunda captura,0128 fecha devuelta/vencimiento, origen y cierre histórico, frescura/replay/hash/actor Portal. El mutante09 demuestra la ausencia de la guarda explícita de cierre: el trigger heredado todavía rechaza, pero produce otro error; no implica que ese mutante pueda persistir un cambio cerrado. SHA0499 intacto en14/14. Lint-http-1 PASÓ salida0. Mutantes APP, UI real y verify siguen pendientes.
+`sql-mutants-1` PASÓ14/14 muertos por la condición funcional esperada,03:20:00.569–03:20:26.027Z; no cambió ningún archivo productivo. Se cargó0533 real intacta, completó sus pre/postflights y luego se mutaron copias de definiciones instaladas en PGlite; recibo `sql-mutants-1/result.json`. Cubre UTC/defaults/cobro/pago, segunda captura,0128 fecha devuelta/vencimiento, origen y cierre histórico, frescura/replay/hash/actor Portal. El mutante09 demuestra la ausencia de la guarda explícita de cierre: el trigger heredado todavía rechaza, pero produce otro error; no implica que ese mutante pueda persistir un cambio cerrado. SHA0533 intacto en14/14. Lint-http-1 PASÓ salida0. Mutantes APP, UI real y verify siguen pendientes.
 
 ## Suplemento de composición 0493 y mutantes · 21oct03:28Z
 
-Producto APP/0499 permanecen idénticos a b714; este suplemento añade pruebas y arnés dentro de las68rutas. La fixture anterior cargaba0133. La actual carga0357 y0493 REALES completas antes0499 (preflight/ACL intactos), con los dos pins search_path de0210;0453 ypgcrypto ya eran reales. Compara hashes, ACL, owner y config de ambos triggers y excepcion_al_cierre_vigente antes/después0499, además de policies/triggers/filas.
+Producto APP/0533 permanecen idénticos a b714; este suplemento añade pruebas y arnés dentro de las68rutas. La fixture anterior cargaba0133. La actual carga0357 y0493 REALES completas antes0533 (preflight/ACL intactos), con los dos pins search_path de0210;0453 ypgcrypto ya eran reales. Compara hashes, ACL, owner y config de ambos triggers y excepcion_al_cierre_vigente antes/después0533, además de policies/triggers/filas.
 
 - green-0493-composition-1: PASÓ un caso focal PGlite, cinco omitidos únicamente por selección -t. No se presenta como suite completa. Incluye las tres guardas C1 de gasto, OLD cerrado→NEW abierto, inverso, DELETE cerrado, traslado de línea, abierto permitido y cero efectos negativos.
-- postgres-0493-composition-1: PASÓ33aserciones yROLLBACK en PostgreSQL17.11,03:27:19.212–03:27:25.099Z; salida0, recursos propios eliminados/remainingOwn vacío. HTTP NO EJECUTADO en este suplemento; la API/0499 no cambiaron y sigue el recibo HTTP41respuestas del checkpoint de8. No Auth alojado ni DB real.
-- Excepción mediante RPC0493 real con accounting, motivo, nonce/txid/actor/importes y limpieza. GUC inventado, nonce de otro asiento y txid previo no autorizan. Un nonce real válido para el asiento tampoco vence el bloqueo explícito de void_expense0499. La modificación sintética del txid solo prueba antigüedad: no supone que una API pueda escribir la tabla privada.
-- sql-mutants-0493: PASÓ5/5 muertos por aserción funcional esperada,03:27:39.209–03:27:47.493Z; fuente0499 intacta. El nuevo15 demuestra que quitar el bloqueo explícito permitiría la anulación con nonce válido en ese contexto, complementando el09 anterior (otro mensaje de trigger, sin persistencia). No cambia el permiso productivo.
+- postgres-0493-composition-1: PASÓ33aserciones yROLLBACK en PostgreSQL17.11,03:27:19.212–03:27:25.099Z; salida0, recursos propios eliminados/remainingOwn vacío. HTTP NO EJECUTADO en este suplemento; la API/0533 no cambiaron y sigue el recibo HTTP41respuestas del checkpoint de8. No Auth alojado ni DB real.
+- Excepción mediante RPC0493 real con accounting, motivo, nonce/txid/actor/importes y limpieza. GUC inventado, nonce de otro asiento y txid previo no autorizan. Un nonce real válido para el asiento tampoco vence el bloqueo explícito de void_expense0533. La modificación sintética del txid solo prueba antigüedad: no supone que una API pueda escribir la tabla privada.
+- sql-mutants-0493: PASÓ5/5 muertos por aserción funcional esperada,03:27:39.209–03:27:47.493Z; fuente0533 intacta. El nuevo15 demuestra que quitar el bloqueo explícito permitiría la anulación con nonce válido en ese contexto, complementando el09 anterior (otro mensaje de trigger, sin persistencia). No cambia el permiso productivo.
 - app-mutants-1: resultado inicial exit1,25/29 clasificados muertos,29restaurados. Dos fallos UI eran funcionales pero el clasificador no reconocía los matchers DOM: evidencia íntegra y reclasificación en app-mutants-ui-classification.json, sin repetirlos. Dos supervivientes reales mostraban huecos de prueba: bytes distintos del mismo tamaño y recibo recovery con replayed=false. Nuevas regresiones PASÓ265/265 en2archivos,0SKIP; app-mutants-supplement-1 PASÓ2/2 muertos/restaurados, sin cambiar producto. Resultado final29casos cubiertos; se conserva el historial inicial, no se reescribe su exit.
 - CxP incluye prueba sin today inyectado a03:59:59.999/04:00 y mutante de default UTC muerto. typecheck-supplements-1 PASÓ salida0; lint-supplements-1 PASÓ salida0 sin warnings.
 
 Recibos/logs/JSON externos en C:/tmp/director-traspaso-20261020/0576-codex-validation/. SHA2560499 continúa fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef. Navegador real, verify final y cierre de conocimiento siguen pendientes. Revisiones por b714/de8 conservan sus límites; este suplemento se entrega como nuevo objeto para cotejo independiente. No merge, despliegue ni migración real.
 
-Suplemento mínimo tras revisión fd6: se añade negativa de editar importe/descripción de una línea manteniendo su asiento cerrado (rama específica del trigger), y RPC0493 en modo default superclave sin clave antes de habilitar advertencia. postgres-0493-composition-2 PASÓ37aserciones+ROLLBACK, salida0,03:30:28.126–03:30:34.518Z; mismos producto/0499/arnés, cero recursos propios restantes. No se repite HTTP ni los cinco mutantes intactos. No consta un defecto de producto; cierra cobertura de las dos negativas requeridas.
+Suplemento mínimo tras revisión fd6: se añade negativa de editar importe/descripción de una línea manteniendo su asiento cerrado (rama específica del trigger), y RPC0493 en modo default superclave sin clave antes de habilitar advertencia. postgres-0493-composition-2 PASÓ37aserciones+ROLLBACK, salida0,03:30:28.126–03:30:34.518Z; mismos producto/0533/arnés, cero recursos propios restantes. No se repite HTTP ni los cinco mutantes intactos. No consta un defecto de producto; cierra cobertura de las dos negativas requeridas.
 
-Cierre de orquestación de pruebas: red-composed-orchestration-1 reprodujo2fallos/9 (7PASÓ,0SKIP): los controles Portal sin0499 alcanzaban antes el nuevo grupo de cierre que exige0499. Se aisló run_closing:false en el ejecutor Portal, sin cambiar sus oráculos ni la composición Studio. green-composed-orchestration-1 PASÓ9/9 en2archivos,0SKIP,03:31:19.712–03:31:34.235Z; incluye todos los positivos y negativos permanentes de ambos módulos. Lint-portal-composition-1 salida0. Es reparación propia de orquestación TEST, no producto. Se conserva ROJO original. SQL0499/APP/arnés iguales al checkpoint previo.
+Cierre de orquestación de pruebas: red-composed-orchestration-1 reprodujo2fallos/9 (7PASÓ,0SKIP): los controles Portal sin0533 alcanzaban antes el nuevo grupo de cierre que exige0533. Se aisló run_closing:false en el ejecutor Portal, sin cambiar sus oráculos ni la composición Studio. green-composed-orchestration-1 PASÓ9/9 en2archivos,0SKIP,03:31:19.712–03:31:34.235Z; incluye todos los positivos y negativos permanentes de ambos módulos. Lint-portal-composition-1 salida0. Es reparación propia de orquestación TEST, no producto. Se conserva ROJO original. SQL0533/APP/arnés iguales al checkpoint previo.
 
 
 ## Adopción de ampliación 69 · recibos0068
@@ -350,7 +350,7 @@ Leído íntegro antes de editar, SHA256834810d04b4c4eb0525e031885372c30894b84379
 
 # C1 — addendum del contrato heredado de recibos0068
 
-Fecha: 2026-10-20, Caracas. Decisión del Director dentro del mandato local vigente de Sam. Misma tarea C1, rama, worktree, owner y migración0499; ninguna nueva operación de producto o producción.
+Fecha: 2026-10-20, Caracas. Decisión del Director dentro del mandato local vigente de Sam. Misma tarea C1, rama, worktree, owner y migración0533; ninguna nueva operación de producto o producción.
 
 ## Motivo y alcance exacto
 
@@ -381,7 +381,7 @@ Guardar este addendum completo y su hash en el handoff antes de editar. Guard, r
 
 ## Checkpoint test de recibos0068 y evidencia visual final
 
-La ampliación69 no modifica producto APP,0499, arnés ni gates. El primer verify de46c comenzó03:39:19.150Z y fue INTERRUMPIDO/INCOMPLETO por decisión Director al detectar la expectativa heredada vacío→hoy. Harness237/237, lint con0errores/15advertencias de seis archivos idénticos a8729, fronteras1708módulos, tipos y cuatroEdgeFunctions habían pasado. La suite general no terminó; no se le atribuye verde global. Recibo verify-candidate-interruption.json:remaining=[]/unknownChildren=[]; wrapper terminó03:46:15.650Z por cierre controlado, exit forzado4294967295. E2E/build no alcanzados. El observador nativo fs.watch falló por aserción Windows; su sustituto de lectura exacta terminó0 sin captura al retirar la corrida. Son incidencias de captura separadas del producto.
+La ampliación69 no modifica producto APP,0533, arnés ni gates. El primer verify de46c comenzó03:39:19.150Z y fue INTERRUMPIDO/INCOMPLETO por decisión Director al detectar la expectativa heredada vacío→hoy. Harness237/237, lint con0errores/15advertencias de seis archivos idénticos a8729, fronteras1708módulos, tipos y cuatroEdgeFunctions habían pasado. La suite general no terminó; no se le atribuye verde global. Recibo verify-candidate-interruption.json:remaining=[]/unknownChildren=[]; wrapper terminó03:46:15.650Z por cierre controlado, exit forzado4294967295. E2E/build no alcanzados. El observador nativo fs.watch falló por aserción Windows; su sustituto de lectura exacta terminó0 sin captura al retirar la corrida. Son incidencias de captura separadas del producto.
 
 ROJO original completo red-receipts-0068-original:33PASÓ/1FALLÓ/0SKIP,03:46:49.406–03:46:53.508Z; toMatch recibióundefined porque vacío fue rechazado. La prueba conserva moneda desconocida→USD, fecha malformada, importes, fondos, mandatos y builders; ahora exige error/input ausente para vacío. Dos casos con timers restaurados comprueban omisión/undefined a03:59:59.999Z→20 y04:00Z→21, preservando fecha explícita, importe y moneda. green-receipts-0068 PASÓ36/36,0SKIP,03:47:12.712–03:47:15.434Z. Lint focal PASÓ salida0 sin advertencias; typecheck-receipts-0068 PASÓ salida0,03:47:38.163–03:47:53.688Z. No se cambió el validador para acomodar la prueba. Siguiente cierre canónico sobre nuevoSHA congelado, separado del intento46c.
 
@@ -398,7 +398,7 @@ Leído íntegro y hash506d24fb1d35334877c320a7ee81e2cfa3a4b5c56a5cf1fc796628c767
 
 # C1 — adaptación del doble de GastosUSD0572
 
-Fecha: 2026-10-20, Caracas. Decisión del Director dentro del alcance local autorizado. Misma tarea, worktree, rama, owner y0499; sin cambio de producto o permiso de producción.
+Fecha: 2026-10-20, Caracas. Decisión del Director dentro del alcance local autorizado. Misma tarea, worktree, rama, owner y0533; sin cambio de producto o permiso de producción.
 
 ## Evidencia y única ruta adicional
 
@@ -431,7 +431,7 @@ Verify2 sobre9cbe, iniciado03:49:03.165Z, fue INTERRUMPIDO/INCOMPLETO por autori
 
 red-gastos-usd-original reprodujo el archivo original completo:9PASÓ/1FALLÓ/0SKIP,04:00:57.862–04:00:59.858Z. Error exacto TypeError: .lt is not a function en el doble; no es fallo de cálculo ni un ROJO funcional del producto. La adaptación autorizada solo añade lt encadenable y registro/aserción exacta de ambos límites: a2026-10-21T03:59:59.999Z, gte occurred_at2026-10-20T04:00:00.000Z y lt occurred_at2026-10-21T04:00:00.000Z. Conserva select amount_usd, respuesta original y total127/count3; los nueve casos restantes de monedas/centavos/signo/null siguen intactos. Reloj restaurado en finally.
 
-green-gastos-usd-compat PASÓ17/17 en2archivos completos,0SKIP,04:01:18.302–04:01:20.825Z, incluyendo expense-queries-caracas real que ejecuta filtros contra filas de borde. Lint focal PASÓ salida0 sin advertencias,04:01:25.413–04:01:31.340Z; typecheck-gastos-usd-compat PASÓ salida0,04:01:36.490–04:01:47.322Z. Producto APP/0499/arnés/gates siguen idénticos; el checkpoint contiene únicamente este test y los dos documentos propios. Alcance70rutas exactas. Nueva verificación canónica y cierre de conocimiento aún pendientes sobre el siguienteSHA congelado.
+green-gastos-usd-compat PASÓ17/17 en2archivos completos,0SKIP,04:01:18.302–04:01:20.825Z, incluyendo expense-queries-caracas real que ejecuta filtros contra filas de borde. Lint focal PASÓ salida0 sin advertencias,04:01:25.413–04:01:31.340Z; typecheck-gastos-usd-compat PASÓ salida0,04:01:36.490–04:01:47.322Z. Producto APP/0533/arnés/gates siguen idénticos; el checkpoint contiene únicamente este test y los dos documentos propios. Alcance70rutas exactas. Nueva verificación canónica y cierre de conocimiento aún pendientes sobre el siguienteSHA congelado.
 
 ## Cierre local C1 · 21oct2026 · evidencia por264e0531
 
@@ -444,7 +444,7 @@ Usar el día de operaciones America/Caracas en C1 web/SQL, capturado antes de es
 - Primitiva compartida IANA/calendario estricto; ancla única y defaults en facturas, cobros, CxP/pagos, posters y formularios. Fechas explícitas conservadas; vacío/null no se convierten en hoy.
 - Gastos usa rango Caracas completo, muestra el día correcto y rechaza lecturas ambiguas/malformadas o reposteo que cambie la fecha histórica. El P2 de filas falsy quedó cerrado por regresión real, sin prometer atomicidad0575.
 - Portal separa creación futura prohibida de recuperación autorizada de un intento idéntico; conserva IDs/payload/prueba y comprueba bytes existentes. Emisión0128 devuelve fecha persistida; readback legado solo ante ausencia estricta; CN distingue emisión confirmada de asiento pendiente.
-- 0499 conserva las cinco fronteras SQL, cuatro defaults, RLS/ACL, locks y auditoría; composición con0493 real comprobada. No aplicada a DB real, sin GRANT ni backfill.
+- 0533 conserva las cinco fronteras SQL, cuatro defaults, RLS/ACL, locks y auditoría; composición con0493 real comprobada. No aplicada a DB real, sin GRANT ni backfill.
 - Revisión independiente APP/SQL/Portal y suplementos cerrados sin hallazgo material conocido pendiente. Los dos ajustes finales fueron exclusivamente contratos de pruebas consumidoras heredadas, con ROJO/VERDE y cotejo Director.
 
 ### VALIDACIÓN
@@ -466,7 +466,7 @@ Evidencia externa: C:/tmp/director-traspaso-20261020/0576-codex-validation/. No 
 | feature-constants | PASÓ |6 banderas coinciden |
 | components:check | PASÓ |Consistencia del registro, no aprobación global de conducta |
 | governance:check | PASÓ |Consistencia de cápsula, no aprobación global de políticas |
-| migrations-applied | NO EJECUTADO / SKIP |Sin URL/key de producción; validación de release pendiente, no motivo para aplicar0499 |
+| migrations-applied | NO EJECUTADO / SKIP |Sin URL/key de producción; validación de release pendiente, no motivo para aplicar0533 |
 | pending-migration-symbols | PASÓ |0rojo,2amarillos declarados,3homónimos descartados |
 | sql-tests | PASÓ |248 contratos locales, rollback total |
 | schema-rebuild | PASÓ |473 migraciones desde cero+18solo-ledger=491;219tablas/2tenants sintéticos; controles locales de integridad |
@@ -483,7 +483,7 @@ El runner no proporciona tiempos separados para todos los gates; no se infieren 
 
 **JSON original E2E: NO DISPONIBLE.** Observador17856 terminó0 con captures=[]/incompleteReads=0; el archivo exacto dtd-e2e-50896.json ya no estaba al iniciar build. El runner elimina ese reporte antes del siguiente paso. El observador también descarta silenciosamente un rootDir que no empieza por WT largo+'/'; no registra esos descartes. Es un límite de captura futura, no prueba de que ocurrió ni explicación de la falta del archivo. No se reconstruyó JSON ni se repitió la suite. La incidencia fs.watch del primer intento permanece separada de verify/producto.
 
-**Focales y SQL/HTTP:** historial de697/697 en19archivos,18/18 del P2Gastos,265/265 de recuperación,36/36 de recibos y17/17 de compatibilidad Gastos conserva recibos y solapamientos. PGlite final9/9 en2archivos,0SKIP. PostgreSQL17.11/PostgREST14.17:95 aserciones SQL+ROLLBACK,39checksHTTP/41respuestas, instancia antes→DDL0499 real→después con mismo StartedAt; suplemento0493 con37aserciones+ROLLBACK. JWT sintético y adaptador auth.uid identificado; no se certifica Auth alojado ni Storage real. Mutantes APP29 cubiertos (25clasificados inicialmente,2fallosUI reclasificados y2repetidos tras fortalecer casos); SQL14+composición0493cinco, todos con restauración. Primer exit1 de clasificación conservado. Hash0499 intacto: fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef.
+**Focales y SQL/HTTP:** historial de697/697 en19archivos,18/18 del P2Gastos,265/265 de recuperación,36/36 de recibos y17/17 de compatibilidad Gastos conserva recibos y solapamientos. PGlite final9/9 en2archivos,0SKIP. PostgreSQL17.11/PostgREST14.17:95 aserciones SQL+ROLLBACK,39checksHTTP/41respuestas, instancia antes→DDL0533 real→después con mismo StartedAt; suplemento0493 con37aserciones+ROLLBACK. JWT sintético y adaptador auth.uid identificado; no se certifica Auth alojado ni Storage real. Mutantes APP29 cubiertos (25clasificados inicialmente,2fallosUI reclasificados y2repetidos tras fortalecer casos); SQL14+composición0493cinco, todos con restauración. Primer exit1 de clasificación conservado. Hash0533 intacto: fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef.
 
 **Visual:** PASÓ alcance local de visual-final-receipt.json, con componentes/CSS/wrappers reales, datos/acciones/reloj sintéticos.35controles/29mediciones y suplemento de selector conservan resultado original y corrección externa.390/1280,claro/oscuro,Shanghai, recuperación con fecha aparentemente futura, nueva futura rechazada, fecha explícita/vacía, defaults, CxP sin today inyectado, foco/Escape; Director cotejó con IAB. Capturas anteriores a studio.css son provisionales. NO DISPONIBLE zoom200%nativo; NO EJECUTADOS lector de pantalla/A11Y integral, teléfono físico, Auth/Studio real y alta/duplicación de factura en navegador. Invoice fixture acredita RegistrarPago. Sin atribuir esas limitaciones a un defecto material demostrado ni aprobar excepción.
 
@@ -493,7 +493,7 @@ El runner no proporciona tiempos separados para todos los gates; no se infieren 
 
 ### COMMITS
 
-Checkpoints publicados: eecfbbb1(stub),5dadb103(APP),d5f28fde(P2Gastos),b7148218(SQL),de8b1961(HTTP),fd6e8146(composición0493),b127886d(dosnegativas0493),46c64bd0(orquestaciónPortal),9cbe8749(recibos),264e0531(dobleGastos). Producto APP/0499 no cambió después de b714; los suplementos posteriores son pruebas/arnés/documentación. El SHA documental final se coteja en Git/PR y en el recibo final externo, con delta exclusivo de estos documentos y el índice generado.
+Checkpoints publicados: eecfbbb1(stub),5dadb103(APP),d5f28fde(P2Gastos),b7148218(SQL),de8b1961(HTTP),fd6e8146(composición0493),b127886d(dosnegativas0493),46c64bd0(orquestaciónPortal),9cbe8749(recibos),264e0531(dobleGastos). Producto APP/0533 no cambió después de b714; los suplementos posteriores son pruebas/arnés/documentación. El SHA documental final se coteja en Git/PR y en el recibo final externo, con delta exclusivo de estos documentos y el índice generado.
 
 ### PR / BRANCH
 
@@ -509,7 +509,7 @@ governance-plugin-final terminó04:30:06.142Z,salida0: PLG-01 válido read-only,
 
 ### PENDIENTES DE ESTA TAREA
 
-- Revalidación contra la base coordinada por Director, integración según orden humano, CI real por SHA, paquete/previa y OK nominal de0499, migración MIGRATE-FIRST y despliegue/smoke autorizado. Nada de esto se ejecutó ni se autoriza por esta entrega.
+- Revalidación contra la base coordinada por Director, integración según orden humano, CI real por SHA, paquete/previa y OK nominal de0533, migración MIGRATE-FIRST y despliegue/smoke autorizado. Nada de esto se ejecutó ni se autoriza por esta entrega.
 - Ledger de release, recorridos autenticados/fixtures omitidos y límites A11Y declarados; JSON original de esta corrida no recuperado. No hay defecto material de C1 conocido abierto tras las revisiones y correcciones.
 - Derivados Graphify/Archify/preview/Obsidian según coordinación Director. Mantener separado del funcionamiento y de los16gates locales medidos.
 
@@ -524,3 +524,28 @@ governance-plugin-final terminó04:30:06.142Z,salida0: PLG-01 válido read-only,
 Verify y observador terminaron realmente; verify3-process-cleanup-final.json acredita cero procesos/puertos/recursos Docker propios. Dos procesos de otro encargo fueron incluidos inicialmente por enlace numérico de PID; sus CreationDate anteriores al verify y rutas ajenas los excluyen de ownership y NO fueron detenidos. El recibo intermedio de clasificación con error cultural de PowerShell se conserva como inválido; el final usa comparación temporal tipada. No se apagó Docker Desktop ni se tocó recurso ajeno.
 
 Knowledge/plugin finalizaron antes de devolver explícitamente el turno pesado al Director, quien lo recibió. Writer/claim se conserva solo hasta concluir documentos/índice, commit/push y lectura de PR. La liberación posterior se registra en final-receipt.json externo y se comunica expresamente al Director, después de comprobar remoto/árbol limpio. No se elimina worktree ni rama. C2 no se inicia desde esta sesión.
+
+## Renumeración 0499 → 0533 (2026-11-11)
+
+Main llegó a la 0526 antes de integrar esta pila, la 0499 no está aplicada en
+ningún entorno y de la 0528 a la 0532 ya las ocupan otras PR. La migración pasa a
+`0533_fechas_caracas_operaciones` con su contrato
+`supabase/tests/0533_fechas_caracas_operaciones.test.sql`; se renumeraron sus
+literales internos, la espera de `migrations-baseline.json` (sigue sin aplicar),
+pruebas, arnés HTTP y citas. Cambia sólo el número: el SHA-256 anterior
+`fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef` (blob
+`ba9d4b4cae90ea65406bbc63e5a1425dafcffea5`) pasa a
+`da9343c22d38a2cffce7d7118c090a8e6c412ae0956979d2dc315754cc1e85e0` (blob
+`9c70be6e81a143502b1cdb03133fe96d343950fd`). Las evidencias anteriores a esta
+nota describen el archivo con número 0499.
+
+Composición con main: ninguna de las cinco funciones que redefine
+(`register_collection_receipt` 0467, `register_supplier_payment_order` 0468,
+`void_expense_governed` 0340, `payment_private.run_report_command` 0464,
+`sales_order_claim_and_invoice` 0128) cambió en main después de esas versiones.
+El asiento de factura ya no lo inserta JS: la RPC atómica de la 0497 lo fecha con
+`issued_at` persistido, así que el default `fechaCaracas()` de
+`invoice-posting.ts` se retiró al traer main. La 0533 corre después de la 0511
+(RLS de escritura de asientos); su contrato `.test.sql` en el CI es la prueba de
+los asientos bajo esa RLS. La rama `claude/sdd-0576-fechas-caracas-operaciones`
+reemplaza a la PR #312.

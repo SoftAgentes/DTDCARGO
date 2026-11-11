@@ -627,7 +627,7 @@ export async function autoInvoiceForReceipt(args: {
 
     // ── 4. Asiento contable (0040) — FUERA de la tx, best-effort e idempotente por
     //       invoice_id (mismo modo de fallo que la emisión manual de 0021). ──
-    // 0499 añade la fecha realmente persistida. En una DB anterior, la única
+    // 0533 añade la fecha realmente persistida. En una DB anterior, la única
     // convivencia admitida es leer esa factura; nunca se usa el reloj del caller.
     const pendingPosting: AutoInvoiceResult = {
       ok: false,

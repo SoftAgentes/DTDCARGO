@@ -70,7 +70,7 @@ do $read_boundary$
 declare source text:=pg_read_file('/sb/migrations/0414_invoices_read_rbac.sql'); start_at int;
 begin
  start_at:=strpos(source,'drop policy invoices_team_select on public.invoices;');
- if start_at=0 then raise exception 'TEST0499: deriva fuente0414'; end if;
+ if start_at=0 then raise exception 'TEST0533: deriva fuente0414'; end if;
  execute substring(source from start_at);
 end;
 $read_boundary$;
@@ -81,11 +81,11 @@ do $identity$
 declare source text := pg_read_file('/sb/migrations/0453_portal_helpers_principal_determinista.sql'); definition text;
 begin
   definition := substring(source from '(?s)(create or replace function public\.get_user_tenant_id\(\).*?\$\$;)');
-  if definition is null then raise exception 'TEST0499: no se encontró helper real0453'; end if;
+  if definition is null then raise exception 'TEST0533: no se encontró helper real0453'; end if;
   execute definition;
   source:=pg_read_file('/sb/migrations/0200_rbac_disabled_enforcement.sql');
   definition:=substring(source from '(?s)(create or replace function public\.current_studio_role\(\).*?\$\$;)');
-  if definition is null then raise exception 'TEST0499: no se encontró rol real0200'; end if;
+  if definition is null then raise exception 'TEST0533: no se encontró rol real0200'; end if;
   execute definition;
 end;
 $identity$;
@@ -120,9 +120,9 @@ create table public.warehouse_receipts_cn(id uuid primary key default gen_random
 
 create schema c1_fixture;
 create sequence c1_fixture.assertions;
-create function c1_fixture.id(label text) returns uuid language sql immutable as $$select md5('0499-synthetic-'||label)::uuid$$;
+create function c1_fixture.id(label text) returns uuid language sql immutable as $$select md5('0533-synthetic-'||label)::uuid$$;
 create function c1_fixture.assert_true(value boolean,label text) returns void language plpgsql as $$
-begin if value is distinct from true then raise exception 'TEST0499: %',label; end if; perform nextval('c1_fixture.assertions'); end;
+begin if value is distinct from true then raise exception 'TEST0533: %',label; end if; perform nextval('c1_fixture.assertions'); end;
 $$;
 create function c1_fixture.actor(label text,statement text,api_role text default 'authenticated') returns jsonb language plpgsql as $$
 declare result jsonb;
@@ -153,7 +153,7 @@ begin
  begin perform c1_fixture.actor(actor,statement,api_role);
  exception when others then get stacked diagnostics code=returned_sqlstate,message=message_text;
   if code<>expected_state or (expected_message is not null and message<>expected_message) then
-   raise exception 'TEST0499: % esperaba % %, obtuvo % %',label,expected_state,expected_message,code,message; end if;
+   raise exception 'TEST0533: % esperaba % %, obtuvo % %',label,expected_state,expected_message,code,message; end if;
   denied:=true;
  end;
  perform c1_fixture.assert_true(denied,label||' rechazado');
@@ -167,7 +167,7 @@ insert into public.suppliers(id,tenant_id,supplier_code,name) values(c1_fixture.
 insert into public.supplier_bills(id,tenant_id,bill_code,supplier_id,supplier_name,expense_account_id,total_amount,due_date)
 values(c1_fixture.id('bill'),pg_temp.fixture_id('tenant-A'),'CXP-C1',c1_fixture.id('supplier'),'Proveedor sintético',c1_fixture.id('expense-account'),1000,'2026-12-31');
 
--- Guardar catálogo/filas antes de cargar0499 REAL, sin instrumentar su archivo.
+-- Guardar catálogo/filas antes de cargar0533 REAL, sin instrumentar su archivo.
 create temporary table c1_before_functions as select oid,proowner,proacl,prosecdef,proconfig,prorettype,proargtypes,proargnames,provolatile,
  pg_get_functiondef(oid) definition from pg_proc where oid in('public.register_collection_receipt(uuid,numeric,uuid,text,date,text,text,text,text,text,boolean)'::regprocedure,
  'public.register_supplier_payment_order(uuid,numeric,uuid,text,date,text,text)'::regprocedure,'public.void_expense_governed(uuid,text,text)'::regprocedure,
@@ -179,7 +179,7 @@ create temporary table c1_before_closing_functions as select oid,proacl,proowner
 create temporary table c1_before_triggers as select to_jsonb(t) value from pg_trigger t where not tgisinternal;
 create temporary table c1_before_state as select c1_fixture.state() value;
 \if :apply_fix
-\ir ../migrations/0499_fechas_caracas_operaciones.sql
+\ir ../migrations/0533_fechas_caracas_operaciones.sql
 \endif
 select c1_fixture.assert_true((select c1_fixture.state()=value from c1_before_state),'DDL no toca filas');
 select c1_fixture.assert_true(not exists(select 1 from c1_before_functions b left join pg_proc p on p.oid=b.oid where p.oid is null
@@ -191,7 +191,7 @@ select c1_fixture.assert_true(not exists((select value from c1_before_triggers e
  union all(select to_jsonb(t) from pg_trigger t where not tgisinternal except select value from c1_before_triggers)),'triggers idénticos');
 select c1_fixture.assert_true(not exists(select 1 from c1_before_closing_functions b left join pg_proc p on p.oid=b.oid
  where p.oid is null or (p.proacl,p.proowner,p.proconfig,md5(p.prosrc)) is distinct from(b.proacl,b.proowner,b.proconfig,b.body_md5)),
- '0493 conserva hashes ACL owner config de ambos triggers y excepción después0499');
+ '0493 conserva hashes ACL owner config de ambos triggers y excepción después0533');
 
 -- Captura durable de fuentes REALES antes de instrumentar exclusivamente reloj.
 create table c1_fixture.real_definitions as select oid::regprocedure::text signature,pg_get_functiondef(oid) definition from c1_before_functions;
@@ -220,14 +220,14 @@ begin
   original:=r.definition; changed:=original;
   if position('America/Caracas' in original)>0 and r.signature not like '%void_expense%' then
    count_hits:=(length(original)-length(replace(original,'pg_catalog.clock_timestamp() at time zone ''America/Caracas''','')))/length('pg_catalog.clock_timestamp() at time zone ''America/Caracas''');
-   if count_hits<>1 then raise exception 'TEST0499: deriva de ancla de reloj %',r.signature; end if;
+   if count_hits<>1 then raise exception 'TEST0533: deriva de ancla de reloj %',r.signature; end if;
    changed:=replace(original,'pg_catalog.clock_timestamp() at time zone ''America/Caracas''','c1_fixture.clock() at time zone ''America/Caracas''');
   elsif r.signature like '%run_report_command%' then
-   if (length(original)-length(replace(original,'pg_catalog.clock_timestamp() at time zone ''UTC''','')))/length('pg_catalog.clock_timestamp() at time zone ''UTC''')<>1 then raise exception 'TEST0499: deriva reloj previo Portal'; end if;
+   if (length(original)-length(replace(original,'pg_catalog.clock_timestamp() at time zone ''UTC''','')))/length('pg_catalog.clock_timestamp() at time zone ''UTC''')<>1 then raise exception 'TEST0533: deriva reloj previo Portal'; end if;
    changed:=replace(original,'pg_catalog.clock_timestamp() at time zone ''UTC''','c1_fixture.clock() at time zone ''UTC''');
   elsif r.signature not like '%void_expense%' then
    count_hits:=(length(original)-length(replace(original,'current_date','')))/length('current_date');
-   if count_hits<>(case when r.signature like '%sales_order%' then 2 else 1 end) then raise exception 'TEST0499: deriva current_date %',r.signature; end if;
+   if count_hits<>(case when r.signature like '%sales_order%' then 2 else 1 end) then raise exception 'TEST0533: deriva current_date %',r.signature; end if;
    changed:=replace(original,'current_date','(c1_fixture.clock() at time zone current_setting(''TimeZone''))::date');
   end if;
   execute changed;
@@ -235,7 +235,7 @@ begin
  for r in select * from c1_fixture.real_defaults loop
   if r.expression='CURRENT_DATE' then changed:='(c1_fixture.clock() at time zone current_setting(''TimeZone''))::date';
   elsif r.expression in('(statement_timestamp() AT TIME ZONE ''America/Caracas''::text)::date','((statement_timestamp() AT TIME ZONE ''America/Caracas''::text))::date') then changed:='(c1_fixture.clock() at time zone ''America/Caracas'')::date';
-  else raise exception 'TEST0499: deriva default %.%',r.relname,r.attname; end if;
+  else raise exception 'TEST0533: deriva default %.%',r.relname,r.attname; end if;
   execute format('alter table public.%I alter column %I set default %s',r.relname,r.attname,changed);
  end loop;
 end;
@@ -411,7 +411,7 @@ begin
  -- El nonce real de ESTA transacción pasa el trigger para su asiento; la
  -- guarda específica C1 de void_expense se mantiene incluso en ese contexto.
  perform c1_fixture.assert_true(public.excepcion_al_cierre_vigente(entry_closed),'0493 nonce real válido para su asiento');
- perform c1_fixture.denied('0499 void mantiene bloqueo con nonce válido','accounting-A',format('select to_jsonb(public.void_expense_governed(%L,''No anular historia'',''c1-valid-nonce''))',c1_fixture.id('expense-governed')),
+ perform c1_fixture.denied('0533 void mantiene bloqueo con nonce válido','accounting-A',format('select to_jsonb(public.void_expense_governed(%L,''No anular historia'',''c1-valid-nonce''))',c1_fixture.id('expense-governed')),
  'expenses: período contable cerrado','23514');
  -- Simular únicamente antigüedad de una fila autorizada prueba el contrato de
  -- txid, sin declarar que una API pueda escribir esta tabla privada.
@@ -480,6 +480,6 @@ begin
 end;
 $portal$;
 \endif
-select 'TEST0499 GREEN: '||(select last_value from c1_fixture.assertions)||' aserciones' resultado;
+select 'TEST0533 GREEN: '||(select last_value from c1_fixture.assertions)||' aserciones' resultado;
 rollback;
 \endif

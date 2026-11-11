@@ -1,4 +1,4 @@
--- 0499 · SDD-0576/C1 · MIGRATE-FIRST. Requiere OK nominal; no aplicada.
+-- 0533 · SDD-0576/C1 · MIGRATE-FIRST. Requiere OK nominal; no aplicada.
 -- Ejecutar en UNA transacción. Cambia solo el calendario de operaciones nuevas.
 -- Sin backfill: fecha explícita y timestamps de auditoría conservados.
 -- Copias completas vigentes de 0467/0468/0340/0464/0128; ACL/OID/owner intactos.
@@ -25,11 +25,11 @@ begin
        or pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')
        or pg_catalog.has_function_privilege(case e.role_name when 'authenticated' then 'service_role' else 'authenticated' end, p.oid, 'EXECUTE')
        or exists(select 1 from pg_catalog.aclexplode(p.proacl) a where a.grantee=0 and a.privilege_type='EXECUTE') then
-      raise exception '0499: firma, seguridad, owner o ACL inesperada: %', e.signature;
+      raise exception '0533: firma, seguridad, owner o ACL inesperada: %', e.signature;
     end if;
     if pg_catalog.md5(pg_catalog.replace(p.prosrc,E'\r\n',E'\n')) <> e.body_md5
        and pg_catalog.md5(pg_catalog.regexp_replace(p.prosrc,'\s','','g')) <> e.normalized_md5 then
-      raise exception '0499: cuerpo previo inesperado o reaplicación: %', e.signature;
+      raise exception '0533: cuerpo previo inesperado o reaplicación: %', e.signature;
     end if;
   end loop;
   for e in select * from (values ('journal_entries','entry_date'),('payment_receipts','received_at'),('supplier_bills','issue_date'),('supplier_payments','paid_at')) x(rel,col) loop
@@ -37,19 +37,19 @@ begin
     from pg_catalog.pg_attribute a join pg_catalog.pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum
     where a.attrelid=pg_catalog.to_regclass('public.'||e.rel) and a.attname=e.col
       and a.atttypid='date'::regtype and a.attnotnull and not a.attisdropped;
-    if v_default is distinct from 'CURRENT_DATE' then raise exception '0499: default previo inesperado: %.%',e.rel,e.col; end if;
+    if v_default is distinct from 'CURRENT_DATE' then raise exception '0533: default previo inesperado: %.%',e.rel,e.col; end if;
   end loop;
   if pg_catalog.to_regprocedure('public.get_accounting_closing_date(uuid)') is null
      or not exists(select 1 from pg_catalog.pg_trigger where tgrelid='public.journal_entries'::regclass
        and tgfoid='public.journal_entries_validate_closing()'::regprocedure and tgenabled='O' and not tgisinternal)
      or not exists(select 1 from pg_catalog.pg_trigger where tgrelid='public.journal_entries'::regclass
        and tgname='audit_d2_journal_entries' and tgenabled='O' and not tgisinternal) then
-    raise exception '0499: cierre o auditoría de asientos ausente';
+    raise exception '0533: cierre o auditoría de asientos ausente';
   end if;
 end;
 $preflight$;
 
-create temporary table caracas_0499_before on commit drop as
+create temporary table caracas_0533_before on commit drop as
 select oid,proowner,proacl,prosecdef,proconfig,prorettype,proargtypes,proargnames,provolatile
 from pg_catalog.pg_proc where oid in ('public.register_collection_receipt(uuid,numeric,uuid,text,date,text,text,text,text,text,boolean)'::regprocedure,'public.register_supplier_payment_order(uuid,numeric,uuid,text,date,text,text)'::regprocedure,'public.void_expense_governed(uuid,text,text)'::regprocedure,'payment_private.run_report_command(uuid,uuid,text,jsonb)'::regprocedure,'public.sales_order_claim_and_invoice(uuid,uuid)'::regprocedure);
 
@@ -900,10 +900,10 @@ $$;
 do $postflight$
 declare e record; v_default text;
 begin
-  if exists(select 1 from caracas_0499_before b left join pg_catalog.pg_proc p on p.oid=b.oid
+  if exists(select 1 from caracas_0533_before b left join pg_catalog.pg_proc p on p.oid=b.oid
     where p.oid is null or (p.proowner,p.proacl,p.prosecdef,p.proconfig,p.prorettype,p.proargtypes,p.proargnames,p.provolatile)
     is distinct from (b.proowner,b.proacl,b.prosecdef,b.proconfig,b.prorettype,b.proargtypes,b.proargnames,b.provolatile)) then
-    raise exception '0499: cambió identidad, firma o privilegios';
+    raise exception '0533: cambió identidad, firma o privilegios';
   end if;
   for e in select * from (values
     ('public.register_collection_receipt(uuid,numeric,uuid,text,date,text,text,text,text,text,boolean)', 'd3fc3f564e04b725861094903df99a04'),
@@ -913,7 +913,7 @@ begin
     ('public.sales_order_claim_and_invoice(uuid,uuid)', 'c0f506f44cda20909a430befc240a8b3')
   ) x(signature,body_md5) loop
     if (select pg_catalog.md5(pg_catalog.replace(prosrc,E'\r\n',E'\n')) from pg_catalog.pg_proc where oid=e.signature::regprocedure) is distinct from e.body_md5 then
-      raise exception '0499: cuerpo nuevo inesperado: %',e.signature;
+      raise exception '0533: cuerpo nuevo inesperado: %',e.signature;
     end if;
   end loop;
   for e in select * from (values ('journal_entries','entry_date'),('payment_receipts','received_at'),('supplier_bills','issue_date'),('supplier_payments','paid_at')) x(rel,col) loop
@@ -924,7 +924,7 @@ begin
     -- Ambas formas exactas tienen el mismo reloj, zona y cast; nada genérico.
     if v_default is null or v_default not in ('(statement_timestamp() AT TIME ZONE ''America/Caracas''::text)::date',
       '((statement_timestamp() AT TIME ZONE ''America/Caracas''::text))::date') then
-      raise exception '0499: default Caracas no instalado: %.% = %',e.rel,e.col,v_default;
+      raise exception '0533: default Caracas no instalado: %.% = %',e.rel,e.col,v_default;
     end if;
   end loop;
 end;
