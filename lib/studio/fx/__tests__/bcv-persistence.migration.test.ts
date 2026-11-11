@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const CONTRACT = resolve(ROOT, "supabase/tests/bcv_rates_system_audit.test.sql");
-const MIGRATION = "0501_bcv_rates_system_audit.sql";
+const MIGRATION = "0535_bcv_rates_system_audit.sql";
 const SQL = readFileSync(resolve(ROOT, "supabase/migrations", MIGRATION), "utf8");
 const SLOW = 240_000;
 const INSTALL_CATALOG = `select pg_catalog.jsonb_build_object(
@@ -67,7 +67,7 @@ async function contract(options: { file?: string; applyFix?: boolean; migration?
     const results = await db.exec(inline(options.file ?? CONTRACT, { apply_fix: String(options.applyFix ?? true), fixture_only: "false" },
       { ...(options.migration ? { [MIGRATION]: options.migration } : {}), ...options.replace }));
     const rows = results.flatMap(result => result.rows as Record<string, unknown>[]);
-    return { error: null, green: rows.map(row => String(row.resultado ?? "")).find(value => /^(TEST BCV0501 GREEN|TEST 0495 GREEN)/.test(value)),
+    return { error: null, green: rows.map(row => String(row.resultado ?? "")).find(value => /^(TEST BCV0535 GREEN|TEST 0495 GREEN)/.test(value)),
       initialContext: rows.find(row => row.fixture_initial_context)?.fixture_initial_context,
       restoredContext: rows.find(row => row.fixture_restored_context)?.fixture_restored_context };
   } catch (error) { return { error: error instanceof Error ? error.message : String(error), green: undefined,
@@ -88,15 +88,15 @@ function reapproveMutant(original: string, changed: string): string {
   return result;
 }
 
-describe("R1–R10 · auditoríaBCV0501 real en PGlite, HTTP separado", () => {
+describe("R1–R10 · auditoríaBCV0535 real en PGlite, HTTP separado", () => {
   it("contrato real confirma SYSTEM/job/motivo/rollback y drift", async () => {
-    const result = await contract(); expect(result.error).toBeNull(); expect(result.green).toMatch(/^TEST BCV0501 GREEN: \d+ aserciones$/);
+    const result = await contract(); expect(result.error).toBeNull(); expect(result.green).toMatch(/^TEST BCV0535 GREEN: \d+ aserciones$/);
     expect(result.initialContext).toMatchObject({ effective_user: "postgres", login_user: "postgres", superuser: "on" });
     expect(result.restoredContext).toMatchObject({ effective_user: "postgres", login_user: "postgres", superuser: "on" });
     console.info("Contexto inicial/restaurado de fixture:", JSON.stringify({ initial: result.initialContext, restored: result.restoredContext }));
   }, SLOW);
-  it("ausencia0501 cae en aserción funcional, no en missing-import", async () => {
-    expect((await contract({ applyFix: false })).error).toContain("capability0501 instalada, no fallback");
+  it("ausencia0535 cae en aserción funcional, no en missing-import", async () => {
+    expect((await contract({ applyFix: false })).error).toContain("capability0535 instalada, no fallback");
   }, SLOW);
   it("R7 · contrato0495 original intacto sobre la cadena nueva conserva manual/CNY/frozen", async () => {
     const old = readFileSync(resolve(ROOT, "supabase/migrations/0495_fx_rates_conversor_usd.sql"), "utf8");

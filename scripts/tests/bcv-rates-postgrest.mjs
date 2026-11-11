@@ -98,7 +98,7 @@ async function main() {
   try {
     receipt.versions.sdk = packageVersion('@supabase/supabase-js'); assert.equal(receipt.versions.sdk, '2.106.1');
     receipt.sourceHashes = Object.fromEntries(['supabase/migrations/0495_fx_rates_conversor_usd.sql',
-      'supabase/migrations/0501_bcv_rates_system_audit.sql','supabase/tests/bcv_rates_system_audit.test.sql',
+      'supabase/migrations/0535_bcv_rates_system_audit.sql','supabase/tests/bcv_rates_system_audit.test.sql',
       'lib/studio/fx/bcv-sync.ts'].map(name => [name, SHA(readFileSync(resolve(ROOT,name)))]));
     const { createBcvServiceClient,syncBcvRates } = await tsImport(pathToFileURL(resolve(ROOT,'lib/studio/fx/bcv-sync.ts')).href, import.meta.url);
     const { fetchBcvObservation } = await tsImport(pathToFileURL(resolve(ROOT,'lib/studio/fx/bcv-source.ts')).href, import.meta.url);
@@ -119,7 +119,7 @@ async function main() {
     await save('fixture-commit.log',setup.stdout+setup.stderr);
     assert.match(setup.stdout,/COMMIT/);
     await psql("alter role authenticator login password '"+password+"';");
-    const migration=readFileSync(resolve(ROOT,'supabase/migrations/0501_bcv_rates_system_audit.sql'),'utf8');
+    const migration=readFileSync(resolve(ROOT,'supabase/migrations/0535_bcv_rates_system_audit.sql'),'utf8');
     const installation=supplemental?await measureInstall({pg,nonce,run,scalar,psql,migration,receipt,save,check,eventually}):withdrawalOnly?{
       before:JSON.parse(await scalar(INSTALL_CATALOG)),
       oldDefinition:await scalar("select pg_get_functiondef('public.audit_fx_rate_change()'::regprocedure);")}:undefined;

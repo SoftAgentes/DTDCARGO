@@ -976,6 +976,6 @@ vuelve atrás entera y deja la clave anterior funcionando.
 
 ## BCV diario · continuación0569 todavía no activada
 
-La carga acotada VES por1USD, sus estados, capability0501, scope, ensayo y gates de producción se documentan en [BCV: tasas diarias](bcv-tasas-diarias.md). El candidato local está en autoría/pruebas pendientes: esta referencia no instala una agenda, configura tenants o activa el flag.
+La carga acotada VES por1USD, sus estados, capability0535, scope, ensayo y gates de producción se documentan en [BCV: tasas diarias](bcv-tasas-diarias.md). El candidato local está en autoría/pruebas pendientes: esta referencia no instala una agenda, configura tenants o activa el flag.
 
-La agenda aprobada para generar después de su baseline es una única entrada5 * * * * de `/api/cron/bcv-rates`.0501 requiere revisión y OK nominal futuro de Sam;0495 aplicada no se repite. Configuración/scope/recreaciónweb/cron instalado y activación requieren aprobación concreta posterior. Sin cambios de Compose o credenciales por este enlace.
+La agenda aprobada para generar después de su baseline es una única entrada5 * * * * de `/api/cron/bcv-rates`.0535 requiere revisión y OK nominal futuro de Sam;0495 aplicada no se repite. Configuración/scope/recreaciónweb/cron instalado y activación requieren aprobación concreta posterior. Sin cambios de Compose o credenciales por este enlace.

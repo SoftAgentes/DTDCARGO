@@ -327,11 +327,11 @@ Ver el handoff `.agents/handoffs/0569-conversor-usd-tasas.md`.
 
 ## Continuación BCV diario · 2026-10-21 · Worker aislado
 
-**EN PROGRESO: GO05B sobre ce7e628e FALLÓ e INCOMPLETO, exit 1 y 16/17 pasos ejecutados; test falló en sus dos intentos nativos y ledger crítico quedó omitido. Build PASÓ; E2E PASÓ CON AVISO NATIVO, con original y límites conservados. Conocimiento NO EJECUTADO y sin GO; sin aceptación global BCV.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0501 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
+**EN PROGRESO: GO05B sobre ce7e628e FALLÓ e INCOMPLETO, exit 1 y 16/17 pasos ejecutados; test falló en sus dos intentos nativos y ledger crítico quedó omitido. Build PASÓ; E2E PASÓ CON AVISO NATIVO, con original y límites conservados. Conocimiento NO EJECUTADO y sin GO; sin aceptación global BCV.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0535 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
 
 Raíz propia `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`, rama `codex/sdd-0569-bcv-carga-diaria`, base literal C3 `1905aef75680a80055621cffd717198915d089f9`, owner `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`. El handoff propio `.agents/handoffs/0569-bcv-carga-diaria.md` conserva íntegros encargo c477, addendum87589 y activación93c4. No incluye0573 ni carril de embarques.
 
-Inventario nativo actualizado antes de stub:502refs+worktrees, siguienteSQL0501 y spec0578, exit0, sin aviso de fetch incompleto. Recibo externo `0569-bcv-validation/inventario-0501-antes-stub.txt`, SHA256 `bce71f1d1d907de38a2ef820272a70c488a9e4d4dd11d3d5d079ed51d0d91dfb`.0501 queda reservada localmente con stub en esta rama; no es implementación, aplicación ni respaldo remoto. Reutiliza0569; no reserva0578.
+Inventario nativo actualizado antes de stub:502refs+worktrees, siguienteSQL0535 y spec0578, exit0, sin aviso de fetch incompleto. Recibo externo `0569-bcv-validation/inventario-0535-antes-stub.txt`, SHA256 `bce71f1d1d907de38a2ef820272a70c488a9e4d4dd11d3d5d079ed51d0d91dfb`.0535 queda reservada localmente con stub en esta rama; no es implementación, aplicación ni respaldo remoto. Reutiliza0569; no reserva0578.
 
 ### Resultado y aceptación de esta continuación
 
@@ -339,7 +339,7 @@ Inventario nativo actualizado antes de stub:502refs+worktrees, siguienteSQL0501 
 - Fecha exactamente hoyCaracas capturada; futura espera, anterior no satisface hoy y día cambiado detiene pendientes. Fuente20s/1MiB/hasta2redirects canónicos, deadline común50s/cancelación/retry(false),24ticks nominales5 * * * * sin cron instalado.
 - Bearer y query estrictos antes de IO; normalOFF ceroIO. Scope servidor UUIDúnicos/cap25, SELECTid exacto y snapshotBCV/VES/hoy íntegro textual antes de fuente. DryRun exige capability válida inclusoOFF antes de fetch/candidata y nunca muta.
 - INSERT directo sin upsert, correcciónCAS por identidad/clave/rate/set_at observados y nuevo set_at explícito. UNCHANGED requiere relectura; incertidumbre solo reconcilia por lectura o UNKNOWN, detiene lo restante y conserva conteos. Sin garantíaABA/exactly-once/frescura editorial/cuota global.
-- SQL0501 conserva trigger/append real atómico y cuatro claves auditadas sin note/set_by; contexto rol nativo+claimsJSONsin sub+auth.uidNULL, motifijo/sourcejob solo BCV/VES/SYSTEM. Motivos humanos y manual/operacion/CNY/documentos intactos. Capability no inmovilizaDDL ni atesta exclusividad del cron.
+- SQL0535 conserva trigger/append real atómico y cuatro claves auditadas sin note/set_by; contexto rol nativo+claimsJSONsin sub+auth.uidNULL, motifijo/sourcejob solo BCV/VES/SYSTEM. Motivos humanos y manual/operacion/CNY/documentos intactos. Capability no inmovilizaDDL ni atesta exclusividad del cron.
 - B1–B19 del prevuelo y R1–R14 de auditoría obligatorios con B10 sourcejob/motivo y B16 ensayo estricto del addendum. SDK real con proxy404/503/truncado/ACKperdido, SQL/PGlite/HTTPPG17.11/PostgREST14.17, compatibilidad0495, focales/mutantes/UI y revisión independiente porSHA. No ROJO por módulos nuevos ausentes.
 
 Primero instalación congelada propia y baseline cron/UI bajo turno; después gate pequeño HTTP del contexto dentro del trigger definer con servicio sin sub positivo, humano positivo y negativos. Si no acredita la candidata, detener esa parte y volver al Director. Cron/UI/package/lock existentes se preservan hasta sus gates. Ese fue el orden inicial; los recibos GO01/01B/01C del handoff actualizan su avance.
@@ -375,7 +375,7 @@ docs/specs/0569-conversor-usd-tasas/spec.md
 .agents/handoffs/0569-bcv-carga-diaria.md
 supabase/pending-migration-symbol-declarations.json
 .env.example
-supabase/migrations/0501_bcv_rates_system_audit.sql
+supabase/migrations/0535_bcv_rates_system_audit.sql
 supabase/tests/bcv_rates_system_audit.test.sql
 supabase/migrations-baseline.json
 infra/dtd-cargo/.env.example
@@ -390,7 +390,7 @@ La allowlist histórica de 39 rutas pertenece a la entrega anterior. La continua
 |01 predecible|no conformidad todavía verificable: estados/casos B5/B9/B15 pendientes de ejecutar.|
 |02 conservación|no conformidad todavía verificable: CAS/manual/frozen B11/B14 pendientes.|
 |03 riesgo/fricción|cumplimiento del encargo: productoR3, autorización de automatización separada de producción; ejecución pendiente.|
-|04 auditoría|no conformidad del nuevo job hasta0501/R4/R5/R9; no se hereda conformidad histórica.|
+|04 auditoría|no conformidad del nuevo job hasta0535/R4/R5/R9; no se hereda conformidad histórica.|
 |05 permisos/tenant|no conformidad todavía verificable: bearer/scope/contexto/ACL B7/B8/R3 pendientes.|
 |06 prevención|no conformidad todavía verificable: parser/fecha/capability antes de DML pendientes.|
 |07 estado verdadero|no conformidad todavía verificable: UNKNOWN/reconciliación/conteos B12/B15 pendientes.|
@@ -402,9 +402,9 @@ La allowlist histórica de 39 rutas pertenece a la entrega anterior. La continua
 
 Validación de esta continuación: harness/claim/guard y preimágenes31 PASARON como metadatos. Módulos ausentes inicialmente son AUSENTES. Instalación/baselines/producto/tests/SQLHTTP/UI/verify/conocimiento: **NO EJECUTADOS**. No interpretar el stub o la matriz como entrega funcional. Handoff y recibos externos conservan omisiones y límites.
 
-Actualización acotada21oct: instalación inicial congelada y baseline válido2archivos/12casos/0omisiones PASARON sobreD; preparación del primer shim y dos promociones offline fallaron por separado, sin ROJO funcional. Promoción parse5 directo8.0.1 exacto en9cd35b1ef y enlace/importación mínimos GO01C PASARON;31fuentes sin reescritura. Todavía no se han ejecutado módulos/testsBCV ni SQLHTTP/UI/canónica/conocimiento. GO02 autoriza solo contextoHTTP y después focalpersistencia0501, con inputs congelados/recibos nuevos; no acredita cierre global ni levanta el resto de fronteras.
+Actualización acotada21oct: instalación inicial congelada y baseline válido2archivos/12casos/0omisiones PASARON sobreD; preparación del primer shim y dos promociones offline fallaron por separado, sin ROJO funcional. Promoción parse5 directo8.0.1 exacto en9cd35b1ef y enlace/importación mínimos GO01C PASARON;31fuentes sin reescritura. Todavía no se han ejecutado módulos/testsBCV ni SQLHTTP/UI/canónica/conocimiento. GO02 autoriza solo contextoHTTP y después focalpersistencia0535, con inputs congelados/recibos nuevos; no acredita cierre global ni levanta el resto de fronteras.
 
-Cierre GO02: PASÓ contexto HTTP acotado con PG17.11/PostgREST14.17/SDK2.106.1, siete controles y 26 negativos INSERT/PATCH observados (24 rechazos sin efectos y 2 humanos user/rpc, nunca job). Focal 0501 PASÓ 10/10 sin omisiones en f1061d2ea: cuatro mutantes funcionales, compatibilidad 0495 y rollback poscreación/catálogo exacto en la misma DB. Recibos, fallos materiales de preparación, diagnóstico de 1 caso con 9 omisiones y límites están en el handoff; no se suman a cobertura. 41 entradas base por corrida, 44 con soporte focal, 0 diferencias tras EXIT. F01/F02/F03 siguen primero oráculos/ROJO futuro antes de corregir parser/source; importador amplio, cron/UI/canónica/conocimiento continúan pendientes. 0501 aplicada solo en fixtures propias, sin producción ni release aprobado.
+Cierre GO02: PASÓ contexto HTTP acotado con PG17.11/PostgREST14.17/SDK2.106.1, siete controles y 26 negativos INSERT/PATCH observados (24 rechazos sin efectos y 2 humanos user/rpc, nunca job). Focal 0535 PASÓ 10/10 sin omisiones en f1061d2ea: cuatro mutantes funcionales, compatibilidad 0495 y rollback poscreación/catálogo exacto en la misma DB. Recibos, fallos materiales de preparación, diagnóstico de 1 caso con 9 omisiones y límites están en el handoff; no se suman a cobertura. 41 entradas base por corrida, 44 con soporte focal, 0 diferencias tras EXIT. F01/F02/F03 siguen primero oráculos/ROJO futuro antes de corregir parser/source; importador amplio, cron/UI/canónica/conocimiento continúan pendientes. 0535 aplicada solo en fixtures propias, sin producción ni release aprobado.
 
 Respaldo parcial DRAFT autorizado el 21 de octubre sobre la rama C3 exacta; no es cierre completo ni permiso de integración/producción. Nuevos casos F01/F02 autorados y NO EJECUTADOS, con parser/source productivos conservados para medir primero ROJO. F03 sigue pendiente; candidato Content-Range del SDK permanece en revisión por lectura, sin reproducción. El cuerpo de la PR y el handoff separan esos pendientes de baseline/HTTP/focal medidos.
 
@@ -414,7 +414,7 @@ Autoría ligera posterior: F03 ya tiene oráculos de cancel diferido con liberac
 
 Preparación GO03: texto íntegro `8410d224c3a7f3581a9d0a3d97f6d340c743a8afe998c76d2d313bc1ffcccdc1` leído, con turno todavía en 0574. Peer de oráculos `368aefb9abbd28a6c65e3b9cf0bf15fd5329b63cea5535870ea02424ef3acdab` no identifica bloqueo material por lectura; F01 .001 es regresión previa, no cuarto ROJO nuevo. Cron/UI autorados tras su baseline: una entrada BCV horaria en el generador, derivado pendiente de generación nativa, aviso veraz con fecha/fuente completas y formulario manual conservado. Casos DOM/foco/error/pending autorados, NO EJECUTADOS. Sin reparación anticipada de parser/source/sync ni ampliación de rutas. Cumplimiento estático del aviso revisado con gobernanza/marca/Norte; ejecución y /ui-check real siguen pendientes.
 
-GO03 efectivo a 2026-10-21 13:27:50.1825184 UTC, después de devolución de 0574. Guard nativo pasó en e9a65db2; crontab generado y check pasó con 21 entradas. Índice regenerado sin delta. Checkpoint previo a ROJOS conserva parser/source/sync/types/0501 idénticos a f106 y los oráculos de 8b4. Pruebas funcionales nuevas aún pendientes en este corte; instalación/baseline no se repiten. Canónica/build/conocimiento separados del GO funcional.
+GO03 efectivo a 2026-10-21 13:27:50.1825184 UTC, después de devolución de 0574. Guard nativo pasó en e9a65db2; crontab generado y check pasó con 21 entradas. Índice regenerado sin delta. Checkpoint previo a ROJOS conserva parser/source/sync/types/0535 idénticos a f106 y los oráculos de 8b4. Pruebas funcionales nuevas aún pendientes en este corte; instalación/baseline no se repiten. Canónica/build/conocimiento separados del GO funcional.
 
 Corte posterior GO03, producto `16eab3620aba3acfd1f7676453d3f30c37be5779`: ROJO inicial 23/129 funcional, reparaciones F01/F02/F03/S01 y residual inline F02 ROJO 1/46 → parser/fuente 79/79 PASÓ; sync ampliado 75/75 y UI DOM 19/19 PASARON. La focal de seis archivos tuvo 176/177 con un fallo del select tras error, conservado y reparado; el intento onReset delegado insuficiente y el positivo asíncrono mal esperado se separan en el handoff. HTTP full 01 falló preparación por colisión de fecha ficticia con legado humano; full 02 PASÓ 18 controles/27 escenarios/26 negativos, dos sesiones DML reales, strings extremos/auditoría, CAS/relectura, transporte/ACK perdido/UNKNOWN, ensayo, rollback y preservación manual/CNY/frozen/tenant. Receipt `5ad79026ec2c4d65707b73a6b648e0bd0f520008be5bb04c7bca99bc3d1dc954`, freeze129/0 diferencias y cleanup propio completo. No sumar intentos como cobertura distinta. UI real, mutantes TS, regresiones/gates, matriz integral, GET oficial condicionado y aceptación global siguen pendientes. Canónica/build/conocimiento/producción no acreditados ni ejecutados por este bloque.
 
@@ -459,14 +459,14 @@ La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición l
 | B17 | `scripts/__tests__/build-crontab.test.ts`; generador/crontab f32cb6503 | PASÓ A;21 entradas,19 previas+SeaRates intactas,1 BCV `5 * * * *`, LF/secreto literal/determinismo.24 ticks nominales, sin cron instalado |
 | B18 | `ExchangeRatesSection.test.tsx`19DOM; UI07 helper/acción/toast ficticios, componente/CSS/fonts reales Edge155 | PASÓ U acotado:24 estados DOM/53 controles/14 PNG; Director inspeccionó8. Touch390/coarse/maxTouch1 cinco 48px, reflow320, teclado/pending/error/éxito/zoom nativo2x. PNG zoom viewport parcial, sinSSR/AT/dispositivo físico |
 | B19 | `bcv-sync.test.ts:419`, nueva invocación al día siguiente obtiene fuente otra vez y falla; UI no infiere último cron | PASÓ S; sin caché futura, replay o timer durable. No reinicio de VPS acreditado |
-| R1 | `bcv-sync.test.ts:116`; Q ausencia0501; W app después de retirada real | PASÓ S/Q/W; SQL_CONTRACT_UNAVAILABLE antes de fetch/DML, también dryRun, sin fallback0495 |
+| R1 | `bcv-sync.test.ts:116`; Q ausencia0535; W app después de retirada real | PASÓ S/Q/W; SQL_CONTRACT_UNAVAILABLE antes de fetch/DML, también dryRun, sin fallback0495 |
 | R2 | driver H/W y Q: GET service-only version1/readytrue y ausencia efecto; catálogo íntegro | PASÓ H/Q/W; no se atribuye lock/lease a GET |
 | R3 | HTTP02/fullH: roleGUC/service_role, current_user postgres, session_user authenticator, auth.uidNULL/claims sin sub; 26 intentos DML (24 rechazos y 2 humanos legítimos) | PASÓ H y GO02:24 rechazos sin cambios+2 humanos user/rpc, nunca job. No claim aislado ni current_user definer como caller; secreto de servicio no atesta exclusividad cron |
 | R4 | Q/H INSERT directo; auditoría system/NULL/job/motivo fijo, cuatro campos y note fuera | PASÓ Q/H; razón generada DB, no note/header humano inventado |
 | R5 | Q/H corrección CAS7, rate::text/microsegundos/before-after/motivo; cero CAS sin evento | PASÓ Q/H/S; no token monotónico universal |
 | R6 | S/H repetición equivalente y relectura | PASÓ, sin nota/token/motivo/evento nuevo |
-| R7 | `bcv-persistence.migration.test.ts:101`, contrato0495 original intacto sobre0501; regresiones69/69 | PASÓ Q y regresiones en 71ea1132b; source/motivo manual, CNY, DELETE y documentos históricos sin ampliación de alcance |
-| R8 | contrato SQL0501 motivo transaccional ajeno no vacío y control humano | PASÓ Q; branch nuevo rechaza, no hereda reason0294 ni cambia manual |
+| R7 | `bcv-persistence.migration.test.ts:101`, contrato0495 original intacto sobre0535; regresiones69/69 | PASÓ Q y regresiones en 71ea1132b; source/motivo manual, CNY, DELETE y documentos históricos sin ampliación de alcance |
+| R8 | contrato SQL0535 motivo transaccional ajeno no vacío y control humano | PASÓ Q; branch nuevo rechaza, no hereda reason0294 ni cambia manual |
 | R9 | Q/H fallo append real por catálogo o trigger acotado; X corrección23514 | PASÓ Q/H y parcial X; INSERT y PATCH revierten fila/evento/contexto, sin stub exitoso |
 | R10 | S shapes/version/ready; Q trigger drift; `bcv-persistence.migration.test.ts:140` readiness constante | PASÓ Q/S y M-readiness02:1seleccionado/10 omitidos; se reaprueban solo huellas fixture, falla assert SQL `trigger disabled cierra capability`. Readiness01 seleccionó0/11 omitidos=NO EJECUTADO |
 | R11 | S/H capability falsa entre tenants después del primer confirmado | PASÓ,1confirmado conservado/1diferido/cero segunda DML; no rollback global ni lease |
@@ -493,7 +493,7 @@ Los rótulos históricos «26 negativos» o «26 intentos negativos» son inexac
 |09 patrón|Cumplimiento local: helper Caracas, cliente SDK dedicado, generador canónico, tokens/icono existente; gates de5 componentes/28 políticas validan registro, no conformidad total.|
 |10 accesibilidad|Cumplimiento acotado del aviso/flujo medido U: teclado, foco, neutral>=4.5,16px,320px/2x / cinco 48px. No certificación A11Y integral, AT o teléfono físico. NC táctil06 corregida antes de UI07.|
 |11 lenguaje|Cumplimiento local A/U: no se confirmó, fecha/fuente atribuibles, siguiente acción manual; sin secretos/IDs/SQL crudos en summary.|
-|12 autoridad|Cumplimiento de límites: propia rama/DRAFT,0501 solo fixtures,0495 intacta; canónica/conocimiento/merge/release/producción siguen separados.|
+|12 autoridad|Cumplimiento de límites: propia rama/DRAFT,0535 solo fixtures,0495 intacta; canónica/conocimiento/merge/release/producción siguen separados.|
 
 Typecheck delta03 PASÓ en 390227699; lint delta02 cuatro archivos,0 errores/3 avisos `_note` conservados. Primer gate conjunto FALLÓ por declaración pendiente; seis pasos verdes conservados y reintento único beaa5350 PASÓ 0 ROJO/3 AMARILLO/3 homónimos. No nuevas repeticiones por rutina. Cinco warnings del lint anterior y cada fallo de preparación se conservan en handoff.
 
@@ -509,11 +509,11 @@ Freeze completo: 6447 entradas, 0 diferencias, HEAD y árbol limpios; captura/su
 
 Original E2E: 268459 bytes, SHA256 0363dc645e9484960f92ae2715453a2bef852c7496bb2306eef16ea65f23c40c; 177 aprobados, 20 omitidos y 1 flaky `auth.spec.ts:81/chromium` recuperado por su reintento nativo, 0 inesperados finales. No cobertura integral; 2 omisiones visuales duplicadas y 18 por fixture/seed ausente. Preparaciones de captura y dos fallos del lector/ensamblaje posterior al EXIT se conservan sin alterar el original ni repetir E2E.
 
-GO05A amplía sólo a `infra/dtd-cargo/.env.example`, con las cinco líneas literales del contrato siguiente: OFF false, scope vacío y tres comentarios; resto de bytes idéntico. Test, raíz, Compose, módulos, 0495/0501, lock y receta intactos. La única focal nativa de tres casos PASÓ 3/3 sobre fd09677f8, sin omisiones ni retry agregado; GO04B conserva su fallo histórico. No GO05B ni conocimiento. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior, sin otro GET.
+GO05A amplía sólo a `infra/dtd-cargo/.env.example`, con las cinco líneas literales del contrato siguiente: OFF false, scope vacío y tres comentarios; resto de bytes idéntico. Test, raíz, Compose, módulos, 0495/0535, lock y receta intactos. La única focal nativa de tres casos PASÓ 3/3 sobre fd09677f8, sin omisiones ni retry agregado; GO04B conserva su fallo histórico. No GO05B ni conocimiento. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior, sin otro GET.
 
 ### GO05A · resultado focal medido, sin nueva canónica
 
-Checkpoint de ejecución `fd09677f83908c5ba0a9ea033220e37e1308d1af`: una invocación normal de Vitest 4.1.7 al test intacto `scripts/__tests__/infra-env-example.test.ts`, 18:07:02–18:07:16 UTC: **PASÓ, exit 0, 1 archivo y 3/3 casos, sin omisiones ni retry agregado**. El cambio funcional es únicamente la inserción literal de cinco líneas autorizadas en la plantilla de infra; el resto de bytes reconstruye exactamente su preimagen. Raíz, test, Compose, producto, 0495/0501 y lock conservados.
+Checkpoint de ejecución `fd09677f83908c5ba0a9ea033220e37e1308d1af`: una invocación normal de Vitest 4.1.7 al test intacto `scripts/__tests__/infra-env-example.test.ts`, 18:07:02–18:07:16 UTC: **PASÓ, exit 0, 1 archivo y 3/3 casos, sin omisiones ni retry agregado**. El cambio funcional es únicamente la inserción literal de cinco líneas autorizadas en la plantilla de infra; el resto de bytes reconstruye exactamente su preimagen. Raíz, test, Compose, producto, 0495/0535 y lock conservados.
 
 Freeze completo: 6451 entradas antes/después, 0 diferencias, HEAD y árbol limpios hasta EXIT y comparación. Tres identidades nativas conocidas y launcher ya ausentes por PID/ticks UTC, sin Kill ni censo universal. Native stdout SHA256 `5078a1a2d8bd81f842e6e3b6ef950787c258176aec5a8f3559a6d64d377332bc`; result `f3abaae08b601d551a82fed4a28550af7e37241dd703e23c7aec4a28e3e5f4f2`; postflight `b0a5a58c2ba986f69ccf9856e584aed7bb047e09096049bb03af62f5d1c3fd07`, en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go05a-parity-native-01/`.
 
@@ -534,7 +534,7 @@ Original E2E de 198 casos: **176 esperados, 20 omitidos, 2 flaky y 0 inesperados
 
 Evidencia externa en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go05b-canonical-native-01/`: recibo `go05b-terminal-receipt-01.json` SHA256 `689a95faf068868c79265c5637209aec493c08702508ebe82e88705334108f5e`; original E2E 276532 bytes/fileID `d88e71b7-002000000000bbbd`, SHA256 `b8bd7f0c978148eccd7b8678b484ef8f36acf1cfebf58b639ed978200e4b3153`. Interpretación completa de 198 casos `e2e-readonly-interpretation-01.json`, SHA256 `94cb918941e77f59e4447d75e4a6eef3715f5ded9710f71a3136c9ac36b49cf0`. Original capturado por handle propio, JSON completo y sin reconstrucción; streams conservados, supervisor/observador sin errores.
 
-Freeze 6447 entradas antes/después/actuales y 11 extras: 0 diferencias en el cotejo Director, slices solapados sin sumar como únicos; Git completo fuera del store raíz y entradas runtime propias fijadas, no todo node_modules transitivo. Director aceptó integridad y recursos con prueba SHA256 `482a900a6858799ba3fb67094d2787450234d022bf876303efa746afc96ac963`: 772 identidades conocidas, 0 vivas/0 UNKNOWN, cuatro puertos libres y dos nombres/dos IDs Docker propios ausentes. Turno pesado devuelto, claim retenido. Sólo tres documentos y el mismo DRAFT317 autorizados después; producto/pruebas del checkpoint 390227699, 0501, 0495, plantillas, Compose, lock y receta intactos. GO04B conserva FALLÓ/INCOMPLETO y GO05A su focal 3/3. No aceptación global BCV, nueva receta, focal, SQL, GET o conocimiento; preparación 02 UNBOUND/NO GO. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior. No integración, merge, deploy ni producción.
+Freeze 6447 entradas antes/después/actuales y 11 extras: 0 diferencias en el cotejo Director, slices solapados sin sumar como únicos; Git completo fuera del store raíz y entradas runtime propias fijadas, no todo node_modules transitivo. Director aceptó integridad y recursos con prueba SHA256 `482a900a6858799ba3fb67094d2787450234d022bf876303efa746afc96ac963`: 772 identidades conocidas, 0 vivas/0 UNKNOWN, cuatro puertos libres y dos nombres/dos IDs Docker propios ausentes. Turno pesado devuelto, claim retenido. Sólo tres documentos y el mismo DRAFT317 autorizados después; producto/pruebas del checkpoint 390227699, 0535, 0495, plantillas, Compose, lock y receta intactos. GO04B conserva FALLÓ/INCOMPLETO y GO05A su focal 3/3. No aceptación global BCV, nueva receta, focal, SQL, GET o conocimiento; preparación 02 UNBOUND/NO GO. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior. No integración, merge, deploy ni producción.
 
 ### Addendum Director32 y GO05A · original íntegro d73e2afc
 ~~~~~~markdown
@@ -564,7 +564,7 @@ BCV_RATE_TENANT_IDS=
 # Reutiliza CRON_SECRET; ver docs/runbooks/bcv-tasas-diarias.md para ensayo/activación.
 ```
 
-No poner true, tenant real o ficticio, credenciales ni valores operativos. Conservar todos los demás bytes y asignaciones de la plantilla. El ensayo autenticado estricto ya documentado sigue siendo modalidad distinta de OFF normal; esta inserción no activa job, instala cron, aplica0501 o autoriza ensayo. No editar `.env` vivo ni configuración de Docker/Compose.
+No poner true, tenant real o ficticio, credenciales ni valores operativos. Conservar todos los demás bytes y asignaciones de la plantilla. El ensayo autenticado estricto ya documentado sigue siendo modalidad distinta de OFF normal; esta inserción no activa job, instala cron, aplica0535 o autoriza ensayo. No editar `.env` vivo ni configuración de Docker/Compose.
 
 ## Allowlist acumulada32, sin obligación de editar todas
 
@@ -597,7 +597,7 @@ docs/specs/0569-conversor-usd-tasas/spec.md
 .agents/handoffs/0569-bcv-carga-diaria.md
 supabase/pending-migration-symbol-declarations.json
 .env.example
-supabase/migrations/0501_bcv_rates_system_audit.sql
+supabase/migrations/0535_bcv_rates_system_audit.sql
 supabase/tests/bcv_rates_system_audit.test.sql
 supabase/migrations-baseline.json
 infra/dtd-cargo/.env.example
@@ -606,7 +606,7 @@ infra/dtd-cargo/.env.example
 ## Secuencia GO05A
 
 1. Leer íntegro y confirmar SHA de este addendum; copiar contrato íntegro al handoff/spec propios con autorización32 y fuente31 conservada. Revalidar raíz/rama/HEAD62/claim/guard y limpieza antes de editar. Si hay cambio ajeno o nueva diferencia, conservar y comunicar antes de tocarla.
-2. Aplicar únicamente la inserción anterior y actualización documental de alcance/evidencia ya autorizada. Registrar diff literal y hashes antes/después. Confirmar originales test/raíz/Compose/producto/SQL/lock/receta sin cambio. 0495 aplicada y0501 local permanecen inmutables.
+2. Aplicar únicamente la inserción anterior y actualización documental de alcance/evidencia ya autorizada. Registrar diff literal y hashes antes/después. Confirmar originales test/raíz/Compose/producto/SQL/lock/receta sin cambio. 0495 aplicada y0535 local permanecen inmutables.
 3. Concedido turno para **una ejecución focal** de la suite nativa intacta `scripts/__tests__/infra-env-example.test.ts`, mediante el Vitest instalado y su configuración normal, sin filtros de casos, cambios de timeout/worker/CI/retries/configuración ni flags de omisión. Esperadas3 comprobaciones originales; registrar total real, stdout/stderr/exit y recursos conocidos. No repetir automáticamente ante fallo.
 4. Congelar inputs antes/después de esa ejecución, cotejar bytes y HEAD, conservar salidas nativas, ausencia de procesos propios por identidad. Guard y diffcheck; commits selectivos coherentes de la reparación/documentación, push de rama propia y actualización de PR317DRAFT ya autorizados. Ningún git add global.
 5. Entregar SHA local/remoto/DRAFT, diff completo, artefactos y límites. **No invocar otra canónica aún.** Director revisará el checkpoint corregido y el plan de nueva canónica. El fallo concreto de GO04B justifica repetir el cierre canónico una vez revisada la corrección; no lo justifica una preferencia por resultados verdes ni documentación sola.
@@ -631,3 +631,15 @@ La 0495 se aplicó el 2026-10-20 y hasta hoy seguía declarada como espera. Este
 | Sello en el candado | sha256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`, `ledger` exacta |
 
 La 0495 salió de `pendingBelowCutoff` y de las declaraciones de símbolos, que quedan vacías. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Una base sin la 0495 sigue respondiendo «sin tasa cargada»; ese camino no se quitó.
+
+## Renumeración 0501 → 0535 (2026-11-11)
+
+La migración de auditoría BCV pasa a `0535_bcv_rates_system_audit` (contrato
+`supabase/tests/bcv_rates_system_audit.test.sql`, sin número en el nombre): main
+llegó a la 0526, la 0501 no está aplicada en ningún entorno y 0528-0532 están
+ocupadas. Se renumeraron sus literales, la espera de `migrations-baseline.json`
+(sigue sin aplicar), el grupo de símbolos, pruebas, arnés HTTP, runbooks,
+`.env.example` y citas. Los UUID sintéticos `…-000000000501` del contrato no son
+el número de la migración y no cambian. SHA-256 anterior `bf265183a6c483cd2aae0412b330cbccc2e3804de7423b00664e89ae8c046d2e`, nuevo
+`5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75`. La entrega sigue PARCIAL como la #317 que reemplaza
+(rama `claude/sdd-0569-bcv-carga-diaria`).

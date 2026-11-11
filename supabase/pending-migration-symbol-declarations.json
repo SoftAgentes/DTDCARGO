@@ -11,7 +11,7 @@
     {
       "id": "sdd-0569-bcv-system-audit",
       "primarySymbol": "bcv_rates_write_capability",
-      "migration": "0501_bcv_rates_system_audit",
+      "migration": "0535_bcv_rates_system_audit",
       "symbols": [
         {
           "name": "bcv_rates_write_capability",
@@ -25,7 +25,7 @@
         {
           "site": "lib/studio/fx/bcv-sync.ts:120",
           "contains": "throw new BcvError(\"SQL_CONTRACT_UNAVAILABLE\")",
-          "degradation": "Sin 0501/caché nueva o con contexto/huellas/shape incompatibles, capability GET no habilita el importador ni el ensayo: antes del fetch oficial y de cada DML real se exige ready/version válidos. No fallback 0495 ni candidata de solo fuente. Si falla después de tenants confirmados, se detienen pendientes y se conservan sus conteos; una escritura ya incierta conserva reconciliación/UNKNOWN, nunca rollback o cero escrituras por inferencia. GET no inmoviliza DDL. Contexto y persistencia fueron medidos en fixtures HTTP locales; no acredita instalación productiva."
+          "degradation": "Sin 0535/caché nueva o con contexto/huellas/shape incompatibles, capability GET no habilita el importador ni el ensayo: antes del fetch oficial y de cada DML real se exige ready/version válidos. No fallback 0495 ni candidata de solo fuente. Si falla después de tenants confirmados, se detienen pendientes y se conservan sus conteos; una escritura ya incierta conserva reconciliación/UNKNOWN, nunca rollback o cero escrituras por inferencia. GET no inmoviliza DDL. Contexto y persistencia fueron medidos en fixtures HTTP locales; no acredita instalación productiva."
         }
       ]
     },

@@ -1,6 +1,6 @@
--- SDD-0569 · contrato adicional0501. Fixture sintética, jamás DB real.
+-- SDD-0569 · contrato adicional0535. Fixture sintética, jamás DB real.
 -- La base de fixture1–119 se deriva del contrato0495 sin editar ese original.
--- apply_fix controla SOLO0501;0495/cadena real siempre están presentes.
+-- apply_fix controla SOLO0535;0495/cadena real siempre están presentes.
 -- fixture_only=true COMMIT prepara HTTP en otra conexión; contrato normal ROLLBACK.
 -- SQL directo no sustituye el gate HTTP del rol dentro del trigger.
 \set ON_ERROR_STOP on
@@ -33,7 +33,7 @@ select pg_temp.assert_fixture_reader();
 do $fixture_guard$
 begin
   if to_regclass('public.entity_audit_log') is not null or to_regclass('public.invoices') is not null then
-    raise exception 'TEST BCV0501: fixture rechazada, la base ya contiene objetos de aplicación';
+    raise exception 'TEST BCV0535: fixture rechazada, la base ya contiene objetos de aplicación';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -132,7 +132,7 @@ select pg_temp.fixture_id(u), pg_temp.fixture_id(t), r from (values
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
 begin
-  if p_value is distinct from true then raise exception 'TEST BCV0501: %', p_label; end if;
+  if p_value is distinct from true then raise exception 'TEST BCV0535: %', p_label; end if;
   perform nextval('pg_temp.assertion_count');
 end;
 $$;
@@ -175,7 +175,7 @@ $$;
 grant execute on function bcv_fixture.error_sql(text) to service_role;
 
 -- Solo la fixture efímera puede inyectar claims para separar GUC nativo y claim.
--- No se instala en0501 ni se expone el schema como API.
+-- No se instala en0535 ni se expone el schema como API.
 create function bcv_fixture.http_context() returns void language plpgsql set search_path='' as $$
 declare v_override text := nullif(pg_catalog.current_setting('request.headers',true),'')::jsonb->>'x-bcv-fixture-claims';
 begin
@@ -185,14 +185,14 @@ $$;
 grant execute on function bcv_fixture.http_context() to anon,authenticated,service_role;
 
 \if :apply_fix
-\ir ../migrations/0501_bcv_rates_system_audit.sql
+\ir ../migrations/0535_bcv_rates_system_audit.sql
 \endif
 
 \if :fixture_only
 commit;
 \else
 select pg_temp.assert_true(to_regprocedure('public.bcv_rates_write_capability()') is not null,
-  'capability0501 instalada, no fallback al contrato0495');
+  'capability0535 instalada, no fallback al contrato0495');
 select pg_temp.assert_true((public.bcv_rates_write_capability()->>'version')='1'
   and (public.bcv_rates_write_capability()->>'ready')='false', 'postgres directo no acredita contexto HTTP');
 select pg_temp.assert_true(not has_function_privilege('anon','public.bcv_rates_write_capability()','EXECUTE')
@@ -310,6 +310,6 @@ alter table public.fx_rates enable trigger audit_fx_rates;
 select pg_temp.assert_true((select value->>'ready'='false' from bcv_drift_result), 'trigger disabled cierra capability');
 select pg_temp.assert_true((select count(*)=2 from entity_audit_log
   where entity_id='00000000-0000-4000-8000-000000000501'), 'solo alta y corrección confirmadas');
-select 'TEST BCV0501 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
+select 'TEST BCV0535 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;
 \endif

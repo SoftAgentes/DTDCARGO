@@ -1,4 +1,4 @@
--- 0501 · SDD-0569 · auditoría R3 del nuevo job BCV/VES.
+-- 0535 · SDD-0569 · auditoría R3 del nuevo job BCV/VES.
 -- Ejecutar íntegra en UNA transacción; no aplicar sobre DB real desde Worker.
 -- Sin DML/backfill ni modificación de0495/0267/0294. Motivos/manual/CNY intactos.
 -- Contexto role/claims dentro del definer exige gate HTTP PG17.11/PostgREST14.17.
@@ -19,7 +19,7 @@ declare
 begin
   if exists (select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace
              where n.nspname='public' and p.proname='bcv_rates_write_capability') then
-    raise exception '0501: capability ya existe; no reaplicar ni sobrescribir instalación parcial';
+    raise exception '0535: capability ya existe; no reaplicar ni sobrescribir instalación parcial';
   end if;
   select pg_catalog.to_jsonb(p) into v_before from pg_catalog.pg_proc p
   where p.oid=pg_catalog.to_regprocedure('public.audit_fx_rate_change()')
@@ -29,7 +29,7 @@ begin
   if v_before is null or (select count(*) from pg_catalog.pg_proc p
       join pg_catalog.pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.proname='audit_fx_rate_change') <> 1 then
-    raise exception '0501: auditoría previa distinta de0495; revisar preimagen/catálogo';
+    raise exception '0535: auditoría previa distinta de0495; revisar preimagen/catálogo';
   end if;
   if exists (select 1 from pg_catalog.pg_proc p,
       lateral pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
@@ -37,7 +37,7 @@ begin
      or pg_catalog.has_function_privilege('anon','public.audit_fx_rate_change()','EXECUTE')
      or pg_catalog.has_function_privilege('authenticated','public.audit_fx_rate_change()','EXECUTE')
      or pg_catalog.has_function_privilege('service_role','public.audit_fx_rate_change()','EXECUTE') then
-    raise exception '0501: ACL previa de trigger incompatible';
+    raise exception '0535: ACL previa de trigger incompatible';
   end if;
   for v_signature,v_expected_md5,v_service_execute in select * from (values
     ('public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)',
@@ -54,7 +54,7 @@ begin
       and not pg_catalog.has_function_privilege('authenticated',p.oid,'EXECUTE')
       and not exists(select 1 from pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
                      where a.grantee=0 and a.privilege_type='EXECUTE')) then
-      raise exception '0501: cadena append0267/0294 incompatible';
+      raise exception '0535: cadena append0267/0294 incompatible';
     end if;
   end loop;
   select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(p) order by p.oid) into v_append_before
@@ -69,7 +69,7 @@ begin
     and t.tgfoid='public.audit_fx_rate_change()'::regprocedure and t.tgtype=29
     and t.tgenabled='O' and not t.tgisinternal;
   if v_table_before is null or v_trigger_before is null then
-    raise exception '0501: tabla/trigger0495 incompatibles';
+    raise exception '0535: tabla/trigger0495 incompatibles';
   end if;
 
   -- CREATE OR REPLACE conserva OID/owner/ACL. Solo cambia el cuerpo del trigger.
@@ -234,17 +234,17 @@ $capability_definition$;
   where p.oid='public.audit_fx_rate_change()'::regprocedure
     and pg_catalog.md5(p.prosrc)='1526ee264a46bb9a4dfc5562d4685bc7';
   if v_after is null or (v_before-'prosrc') is distinct from (v_after-'prosrc') then
-    raise exception '0501: cambió identidad/seguridad/ACL del trigger o cuerpo inesperado';
+    raise exception '0535: cambió identidad/seguridad/ACL del trigger o cuerpo inesperado';
   end if;
   select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(p) order by p.oid) into v_after
   from pg_catalog.pg_proc p where p.oid in (
     'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure,
     'public.append_audit_event_v1(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure);
-  if v_append_before is distinct from v_after then raise exception '0501: cadena append global alterada'; end if;
+  if v_append_before is distinct from v_after then raise exception '0535: cadena append global alterada'; end if;
   if v_table_before is distinct from (select pg_catalog.to_jsonb(c) from pg_catalog.pg_class c where c.oid='public.fx_rates'::regclass)
      or v_trigger_before is distinct from (select pg_catalog.to_jsonb(t) from pg_catalog.pg_trigger t
        where t.tgrelid='public.fx_rates'::regclass and t.tgname='audit_fx_rates') then
-    raise exception '0501: tabla/RLS/grants/trigger alterados';
+    raise exception '0535: tabla/RLS/grants/trigger alterados';
   end if;
   if not exists (select 1 from pg_catalog.pg_proc p
       where p.oid='public.bcv_rates_write_capability()'::regprocedure and p.proowner='postgres'::regrole
@@ -256,7 +256,7 @@ $capability_definition$;
         and not pg_catalog.has_function_privilege('authenticated',p.oid,'EXECUTE')
         and not exists (select 1 from pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
                         where a.grantee=0 and a.privilege_type='EXECUTE')) then
-    raise exception '0501: capability/ACL postflight incompatible';
+    raise exception '0535: capability/ACL postflight incompatible';
   end if;
 end;
 $install$;
