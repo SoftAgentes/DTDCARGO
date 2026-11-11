@@ -53,6 +53,7 @@
     "knowledge:status": "node scripts/knowledge-sync.mjs status",
     "knowledge:publish": "node scripts/knowledge-sync.mjs publish",
     "knowledge:check": "node scripts/knowledge-sync.mjs check",
+    "knowledge:daily": "node scripts/knowledge-daily.mjs",
     "knowledge:visual": "node scripts/knowledge-visual.mjs build",
     "knowledge:visual:check": "node scripts/knowledge-visual.mjs check"
   },
