@@ -39,12 +39,11 @@ export function ErrorAlert({ state, compact = false }: ErrorAlertProps) {
     <div
       role="alert"
       style={{
-        padding: compact ? "8px 10px" : "10px 12px",
-        background: "var(--bg-surface)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm, 6px)",
+        padding: compact ? "var(--s-2) var(--s-3)" : "var(--s-3) var(--s-4)",
+        background: "var(--danger-bg)",
+        borderRadius: "var(--r-md)",
         color: "var(--ink)",
-        font: `500 ${compact ? "11.5px" : "12.5px"}/1.4 var(--f-sans)`,
+        font: `500 ${compact ? "13px" : "14px"}/1.45 var(--f-sans)`,
         margin: 0,
       }}
     >

@@ -130,19 +130,11 @@ export function DrawerShell({
             onClick={onClose}
             disabled={pending}
             aria-label={closeLabel ?? t("chrome.action.close")}
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: pending ? "wait" : "pointer",
-            }}
+            className="studio-cerrar-panel"
+            style={{ cursor: pending ? "wait" : undefined }}
           >
             {Icon.close(14)}
+            {closeLabel ?? t("chrome.action.close")}
           </button>
         </header>
         {children}
