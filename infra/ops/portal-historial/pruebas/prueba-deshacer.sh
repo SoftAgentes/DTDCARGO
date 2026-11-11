@@ -22,6 +22,7 @@
 #       carga se borran, la otra bandeja no cambia, el contenedor queda limpio y el archivo sigue (para Studio)
 #   D7  (revisar-datos-ve, paso 3) las marcas de lo borrado no están en ninguna tabla de Chatwoot; lo conservado sí
 #   F   ni nombres ni textos en las salidas, con su control
+#   N9  cada caso de las listas tiene su resultado en la corrida real, con el nombre exacto
 #   M   mutantes de deshacer-carga.rb y de deshacer.sh: cada uno tiene que tumbar lo suyo
 #
 # Uso:  bash infra/ops/portal-historial/pruebas/prueba-deshacer.sh [--conservar] [--sin-mutantes]
@@ -447,8 +448,9 @@ comprobar_sistema() {
            d19b:2:archivo_de_sistema_no_es_de_root d19c:2:archivo_de_sistema_no_es_un_numero \
            d19d:2:archivo_de_sistema_no_es_un_numero d19e:2:sistema_no_es_el_de_produccion \
            d19g:2:sistema_va_en_el_archivo_no_en_el_entorno; do
-    F="$O/${c%%:*}.txt"; s="${c#*:}"; s="${s%%:*}"; e="${c##*:}"
-    exigir "$(printf '%s' "${c%%:*}" | tr d D)" '[ "$(h "$F" salida_proceso)" = "$s" ] && [ "$(err "$F")" = "$e" ] && [ -z "$(h "$F" durable)" ] && [ -z "$(h "$F" valor_impreso)" ]' \
+    c="${c#d}"; F="$O/d${c%%:*}.txt"; s="${c#*:}"; s="${s%%:*}"; e="${c##*:}"
+    # El id es D más el resto: tr d D cambiaba todas las d (d19d daba D19D, el rojo de MD38 en el job 129292212612).
+    exigir "D${c%%:*}" '[ "$(h "$F" salida_proceso)" = "$s" ] && [ "$(err "$F")" = "$e" ] && [ -z "$(h "$F" durable)" ] && [ -z "$(h "$F" valor_impreso)" ]' \
       "el paso 3 se niega antes de escribir ($(err "$F"), salida $(h "$F" salida_proceso)), sin copia durable y sin imprimir el valor"
   done
   # D19f, además: el sha corto que imprime es el del valor con printf (la fórmula del DG), y la base lo rechazó.
@@ -614,6 +616,13 @@ mutante() { # id qué archivo modo caen pasan buscar reemplazo
   exigir "$id" '[ -z "$faltan" ] && [ -z "$otro" ]' \
     "$que ($modo): tienen que caer [$caen]${faltan:+ — SOBREVIVEN:$faltan}${otro:+ — CAEN POR OTRO CAMINO:$otro} · cayeron: $(cayeron_en)"
 }
+# N9: cada caso de las listas tiene su resultado en la corrida real, con el nombre exacto. Un id mal armado (el D19D
+# del job 129292212612) cae aquí, y no como un mutante que «sobrevive».
+if [ "$PARTE" = a ] || [ "$PARTE" = todo ]; then
+  sin_resultado=""
+  for c in $CASOS_SH $CASOS_SISTEMA $CASOS_AJENO $CASOS_BORRAR $CASOS_CORTE; do [ -n "${RES[$c]:-}" ] || sin_resultado="$sin_resultado $c"; done
+  exigir N9 '[ -z "$sin_resultado" ]' "cada caso de las listas tiene su resultado con el nombre exacto (sin resultado:${sin_resultado:- ninguno})"
+fi
 if [ "$MUTANTES" = 1 ]; then
   log "== M. mutantes"
   mutante MD0 "control: los guiones sin cambios, sobre una carga nueva" deshacer-carga.rb completo "" \
