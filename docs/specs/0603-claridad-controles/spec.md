@@ -62,7 +62,7 @@ AGENT-BRIEF prohíbe el barrido masivo: la adopción avanza por tramos, cada uno
 | Tramo | Qué | Alcance |
 |---|---|---|
 | **1** | Piezas compartidas del Studio | Este documento |
-| 2 | Pestañas (el siguiente, por decisión de Sam) | Componente único; hoy hay 30 archivos con `role="tab"` y otros hechos a mano |
+| 2 | Pestañas (el siguiente, por decisión de Sam) | Una sola clase, `.studio-tab`, que ya existía (SDD-0274). Ver abajo; el CRM va después |
 | 3 | Portal del cliente | `.btn-ghost`, campos, estados, sub-pestañas, filtros y enlaces, solo bajo `.portal-sys` |
 | 4 | Avisos | Componente único; 59 archivos pintan avisos con fondo de estado y 116 usan `role="alert"` |
 | 5 | Filas y pantallas propias | «Abrir» en Embarques y Cobranzas, Dashboard, Contabilidad, Tracking, Almacén CN, Documentos y CRM |
@@ -111,6 +111,85 @@ Sin migraciones, rutas, acciones de servidor, permisos ni dependencias nuevas. N
 | Light/dark | Cumple en contrato. Falta recorrer en oscuro todas las pantallas: ver Límites. |
 | Móvil | **No conformidad previa, sin resolver:** a 375 px el menú lateral del Studio ocupa casi toda la pantalla y el CRM desborda 145 px. Este tramo no cambia su ancho. |
 | Movimiento reducido | Cumple: la transición es de color; `transform` de 1 px al oprimir. |
+
+## Tramo 2 · Pestañas
+
+Rama `codex/0603-t2-pestanas`, partiendo del tramo 1. Sin PR hasta que el tramo 1 esté en `main`.
+
+**Sin componente nuevo.** Reutiliza `.studio-tab`, y agrega el contenedor `.studio-tabs`. Así no suma una pieza a CMP-01.
+
+**Dos semánticas, una forma.** Los grupos que ya eran `tablist` siguen siéndolo. Los 12 hechos a mano nunca lo fueron y no tienen flechas ni `tabpanel`, que A11Y-01 §11 exige a un `tablist`: quedan como `role="group"` con botones `aria-pressed`. Se ven igual. Ser pestañas formales sería otro cambio, de comportamiento.
+
+**No es solo visual.** En esos 12 grupos cambia lo que anuncia un lector de pantalla: antes eran botones sin estado, y ahora se anuncian como grupo con nombre y botones presionados o no. Es una mejora, pero un cambio de lo que oye quien lo usa. No cambia el orden de foco ni el teclado.
+
+**Nombres accesibles nuevos.** Son el único texto que agrega el tramo, y solo lo oye un lector de pantalla; no se ve. A11Y-01 pide nombre para todo grupo y `tablist`, y estos no lo tenían:
+
+- Grupos (`role="group"`): «Secciones de contabilidad», «Secciones del editor» (Dashboard), «Embarques por estado», «Facturas por estado», «Secciones de fidelización», «Tipo de gasto», «Secciones del informe» (Inspecciones), «Secciones de naviera», «Secciones de nómina», «Compras y prealertas», «Secciones de proveedores», «Secciones de tesorería».
+- `tablist` que ya existían sin nombre: «Secciones de rutas», «Secciones del bug», «Secciones de la cola de QR», «Secciones de costeo y margen», «Secciones del financiero China», «Líneas por estado de conciliación», «Reportes de la categoría», «Secciones de SENIAT», «Secciones de transporte» (TMS), «Secciones del perfil».
+
+El contrato exige nombre en cada contenedor `.studio-tabs`.
+
+**Foco.** El anillo de `.studio-tab` va por fuera, separado 2 px: la activa va rellena con `--ink`, igual que el anillo, y por dentro no se veía (WCAG 2.4.7, hallado en la revisión independiente de la PR).
+
+**Los tramos se ven juntos, se fusionan por separado.** La imagen de prueba sale de esta rama, que contiene el tramo 1: Sam ve los dos a la vez, y el tramo 1 solo no lo ve nadie. Cada tramo lleva su `verify` sobre su SHA final.
+
+**Fuera, a propósito:**
+- CRM: `KommoClient.tsx`, `KommoBoardView.tsx`, `LeadDrawer.tsx`, hasta que termine Chatwoot. Son las pestañas de la captura de Sam, y este tramo no las cambia todavía.
+- Parecen pestañas pero son otro patrón, sin decidir: `ReportesClient.tsx:363` (nivel 1, con opciones deshabilitadas), `InventarioClient.tsx:72`, `ConversationList.tsx:123`, `DocumentosHubClient.tsx:365`, `DiplomasClient.tsx:90`, `ComposeView.tsx:243`, `DispatchDashboardClient.tsx:72`, `LangToggle.tsx:69`.
+
+**Riesgo visual, sin medir todavía:** los selectores compactos, como período del Dashboard, vista del Calendario, Bitácora, Bugs y Mailing, crecen con `.studio-tab`. Las pestañas de Nómina son 11 o más y ahora envuelven en varias líneas. Se revisa en una imagen de prueba antes de fusionar.
+
+### Allowlist del tramo 2
+
+- `app/studio/studio.css`, `app/studio/_components/__tests__/pestanas-contract.test.ts`
+- `docs/specs/0603-claridad-controles/spec.md`, `docs/specs/README.md`, `.agents/handoffs/0603-t2-pestanas.md`
+- `app/studio/(app)/academia/_components/AcademiaClient.tsx`
+- `app/studio/(app)/admin/_components/PortalBackfillSection.tsx`
+- `app/studio/(app)/admin/_components/calculator/CalculatorSection.tsx`
+- `app/studio/(app)/admin/agentes/page.tsx`
+- `app/studio/(app)/admin/rutas/_components/RoutesClient.tsx`
+- `app/studio/(app)/bitacora/_components/BitacoraClient.tsx`
+- `app/studio/(app)/bitacora/_components/BoardList.tsx`
+- `app/studio/(app)/bitacora/nueva/_components/NuevaReunionClient.tsx`
+- `app/studio/(app)/bugs/_components/BugDrawer.tsx`
+- `app/studio/(app)/bugs/_components/BugsAdminClient.tsx`
+- `app/studio/(app)/calendario/_components/CalendarClient.tsx`
+- `app/studio/(app)/club/_components/ClubClient.tsx`
+- `app/studio/(app)/cola-qr/_components/QrQueueClient.tsx`
+- `app/studio/(app)/contabilidad/_components/ContabilidadClient.tsx`
+- `app/studio/(app)/costing/_components/CostingClient.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardEditorDrawer.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardWidgets.tsx`
+- `app/studio/(app)/debug/_components/DebugTabs.tsx`
+- `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
+- `app/studio/(app)/facturacion/_components/FacturacionClient.tsx`
+- `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx`
+- `app/studio/(app)/financiero-china/_components/FinancieroChinaClient.tsx`
+- `app/studio/(app)/financiero-china/_components/StatementDetail.tsx`
+- `app/studio/(app)/fiscal/_components/FiscalClient.tsx`
+- `app/studio/(app)/gastos/_components/GastosClient.tsx`
+- `app/studio/(app)/inspecciones/_components/ReportEditor.tsx`
+- `app/studio/(app)/mailing/_components/MailingClient.tsx`
+- `app/studio/(app)/mailing/_components/TemplateEditorDrawer.tsx`
+- `app/studio/(app)/naviera/_components/NavieraClient.tsx`
+- `app/studio/(app)/nomina/_components/NominaClient.tsx`
+- `app/studio/(app)/ordenes-compra/_components/OrdenesCompraClient.tsx`
+- `app/studio/(app)/proveedores/_components/ProveedoresClient.tsx`
+- `app/studio/(app)/reportes/_components/ReportesClient.tsx`
+- `app/studio/(app)/seniat/_components/SeniatClient.tsx`
+- `app/studio/(app)/servicios/_components/ServicioDrawer.tsx`
+- `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx`
+- `app/studio/(app)/tms/_components/TmsClient.tsx`
+- `app/studio/(app)/usuarios/_components/UsersClient.tsx`
+- `app/studio/_components/wiring/ProfileModal.tsx`
+
+### Aceptación del tramo 2
+
+- Todo `tablist` del Studio, salvo el CRM, usa `.studio-tabs`, y cada pestaña formal usa `.studio-tab` sin estilo en línea. Lo vigila `pestanas-contract.test.ts`.
+- Ningún grupo nuevo se declara `tablist` sin cumplir A11Y-01 §11.
+- La activa se distingue por relleno de tinta y por `aria-selected` o `aria-pressed`, no solo por color.
+- Las pestañas envuelven en pantallas angostas, sin recorte (A11Y-01 §13).
+- No cambia ningún `onClick`, texto visible, orden ni ruta. Los únicos textos nuevos son los nombres accesibles de la lista de arriba.
 
 ## Límites
 
