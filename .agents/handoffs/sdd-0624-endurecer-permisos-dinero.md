@@ -33,6 +33,17 @@
 | `migrations-applied`, `sql-tests`, `schema-rebuild` | NO DISPONIBLE: worktree sin `.env.local` y sin Docker. El contrato SQL corre en su lugar en PGlite |
 | `docs:check`, `sdd:check` | PASÓ |
 
+## Revisión independiente (2026-11-11): APROBAR
+
+Hallazgos bajos atendidos:
+- El contrato de páginas ahora ignora los comentarios. Con eso aparecieron
+  cuatro páginas que solo nombraban el gate en un comentario; ya lo llaman.
+- Prueba unitaria de `listClaimEntryCodes`.
+- Mensaje claro del ERP móvil para `support`.
+
+Queda abierto: `claim_indemnity_entry_codes` usa una lista fija de roles y no
+los overrides por rol. La SDD-0622 lo puede alinear con `user_has_module`.
+
 ## Pendiente de esta tarea
 
 - **Aplicar la 0528 a producción.** Necesita un OK de Sam que nombre el archivo,

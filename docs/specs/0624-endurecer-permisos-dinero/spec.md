@@ -88,7 +88,16 @@ antes (`docs/runbooks/aplicar-migraciones-prod.md`).
   `journal_lines` ya pasa por la RLS de `journal_entries`.
 - `lib/studio/__tests__/page-gates-sensibles.test.ts`: contrato nuevo; el
   módulo sale de la ruta (`moduleIdForPath`), con piso y control de
-  excepciones muertas. Detectó solo la página de Usuarios sin gate.
+  excepciones muertas. Detectó la página de Usuarios sin gate y, tras la
+  revisión independiente (que pidió ignorar comentarios), otras cuatro que
+  solo mencionaban el gate en un comentario: `admin/actualizaciones`,
+  `admin/alertas-telegram`, `facturacion/[code]` y
+  `reportes/embarques-sin-facturar`.
+- `lib/studio/reclamos/__tests__/claim-entry-codes.test.ts`: la RPC, el
+  respaldo sin la 0528 y el error genérico.
+- El ERP móvil (`app/m/erp/actions.ts`) le dice a `support` que su rol es de
+  solo lectura antes de gastar correlativo o subir la foto, en vez de dejarle
+  el 42501 crudo de la base.
 - `app/api/studio/agents/run/__tests__/route-gate.test.ts`: 403 sin Admin.
 - `rbac-actions-guard.test.ts` y `rbac-view-guard.test.ts` actualizados
   (listas congeladas y allowlist).

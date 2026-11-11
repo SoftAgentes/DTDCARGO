@@ -24,7 +24,7 @@ import {
   type ExpenseCategory,
   type ExpenseMethod,
 } from "@/lib/studio/expense-types";
-import { capabilityDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, getStudioRole } from "@/lib/studio/rbac-guard";
 import {
   expenseVoidErrorMessage,
   validateExpenseVoidInput,
@@ -59,6 +59,20 @@ function extFromMime(mime: string): string {
   }
 }
 
+/**
+ * SDD-0624 · `support` es de solo lectura: la 0528 le niega escribir gastos en
+ * la base. Devuelve el mensaje claro (o null si puede escribir) para no llegar
+ * a un 42501 crudo después de haber gastado correlativo y subido la foto.
+ */
+async function rolSoloLectura(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const role = await getStudioRole(supabase);
+  return role === "support"
+    ? "Tu rol es de solo lectura: no puedes cargar ni editar gastos."
+    : null;
+}
+
 export async function createExpenseAction(
   _prev: ExpenseActionState,
   formData: FormData,
@@ -67,6 +81,10 @@ export async function createExpenseAction(
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
+  // SDD-0624: la base (0528) ya no deja escribir gastos a support; se lo
+  // decimos claro ANTES de gastar un correlativo o subir la foto.
+  const soloLectura = await rolSoloLectura(supabase);
+  if (soloLectura) return { error: soloLectura };
 
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
@@ -213,6 +231,8 @@ export async function updateExpenseAction(
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
+  const soloLectura = await rolSoloLectura(supabase);
+  if (soloLectura) return { error: soloLectura };
 
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),

@@ -67,8 +67,11 @@ describe("SDD-0624 · páginas sensibles con gate propio", () => {
     const faltan = sensibles
       .filter((p) => !(p.rel in EXCEPCIONES))
       .filter((p) => {
-        const src = readFileSync(p.abs, "utf8");
-        return !src.includes(`requireModuleView("${p.modulo}")`);
+        // Sin comentarios: un `// requireModuleView("x")` no es un gate.
+        const src = readFileSync(p.abs, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/^\s*\/\/.*$/gm, "");
+        return !src.includes(`await requireModuleView("${p.modulo}")`);
       })
       .map((p) => `${p.rel} → requireModuleView("${p.modulo}")`);
     expect(faltan).toEqual([]);

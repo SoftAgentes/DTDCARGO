@@ -42,6 +42,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { fmtUsd } from "@/lib/money";
 import { InvoiceDetailClient } from "../_components/InvoiceDetailClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Detalle factura" };
 
@@ -57,6 +58,10 @@ export default async function InvoiceDetailPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("invoices");
+
   const { code } = await params;
   const supabase = await createClient();
 
