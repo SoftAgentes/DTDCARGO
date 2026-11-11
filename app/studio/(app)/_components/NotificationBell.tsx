@@ -209,27 +209,8 @@ export function NotificationBell({ userId, initial }: NotificationBellProps) {
             : t("chrome.topbar.notifications")
         }
         aria-expanded={open}
-        style={{
-          position: "relative",
-          width: 36,
-          height: 36,
-          borderRadius: "var(--r-md)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--ink-soft)",
-          background: open ? "var(--bg-elevated)" : "transparent",
-          cursor: "pointer",
-          transition: "background var(--dur-fast) var(--ease)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--bg-elevated)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = open
-            ? "var(--bg-elevated)"
-            : "transparent";
-        }}
+        className="studio-icono-btn"
+        style={{ position: "relative" }}
       >
         {Icon.bell(16)}
         {unreadCount > 0 && (
