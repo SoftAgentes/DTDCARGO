@@ -2,7 +2,7 @@
 
 - **Worker:** E5, bajo el Subdirector Chatwoot.
 - **Rama:** `codex/0586-deshacer-carga`, desde main `e74cde6fc` (el tren 9).
-- **Estado:** lista para revisión, no en borrador. La revisión del DG sobre `b2508e726` (verde entero) pidió cambios: un bloqueante (B1, el entorno y la huella del paso 3) y cinco no bloqueantes, que atiende la vuelta de abajo. No se fusiona desde aquí: la fusiona el DG.
+- **Estado:** la #478 entró a main con el tren #499 (`3c14dde83`), APPROVED en `602d5200e`. Lo que sigue va en la PR de los pendientes (rama `codex/0586-deshacer-pendientes`, desde `3c14dde83`; ver «Después del tren #499»). No se fusiona desde aquí: la fusiona el DG.
 - **Cuándo se usa:** antes de la puerta 4 tiene que estar en main y ensayada. En producción, el borrado lo corre Sam.
 
 ## Qué trae
@@ -151,6 +151,18 @@
   - los comandos de 4.6b;
   - la lista de 3.0 suma `deshacer.sh` y `deshacer-carga.rb`;
   - el paso 3 exige el archivo de SISTEMA del sub-paso 3.0, el mismo que usa el paso 4 de la #480.
+
+### Después del tren #499: la PR de los pendientes
+
+Atiende lo no bloqueante del DG sobre `602d5200e` y el patrón N1 de la #480. E10 hace lo mismo en `deshacer-vinculos.sh`, en otra PR: cada archivo tiene un solo escritor.
+- **El patrón N1 de la #480:** un `SISTEMA=` vacío y exportado pasaba la guarda, y lo que leía después `leer_sistema` quedaba exportado a los procesos hijos. Ahora `deshacer.sh` hace `unset SISTEMA` después de la guarda.
+  - **D19h:** un `docker` falso anota si recibe `SISTEMA` con valor en su entorno. El caso exige que llegue a la huella (`studio_es_produccion=si`) y que no lo reciba.
+  - **MD44** quita el `unset`. MD42 (el sha con echo) también tumba D19h, porque D19h pasa por la huella.
+- **(a), N10, estático:** `DESHACER_SISTEMA`, `_SHA` y `_UID` aparecen solo dentro del `if DESHACER_PRUEBA` de `deshacer.sh` (3 adentro y 0 afuera, sin contar comentarios). MD45 saca `_SHA` del `if`. Va en un modo nuevo, «estatico», que no levanta nada.
+- **(b), `campo()`:** una clave repetida en un `.hecho` ya no se lee. Da vacío, así que la guarda falla cerrada. Lo prueban D18b (`entorno=copia … entorno=produccion`) y MD46, que vuelve al `campo()` viejo.
+- **(c), la comparación de mutantes:** un caso de «pasan» que corre en el modo del mutante y no tiene resultado se marca «(sin resultado)».
+- **Los mutantes nuevos (MD44 a MD46) van en la parte b,** la más corta (35,4 min en `e64bfef65`). N9 suma N10 a sus listas.
+- **En local:** `bash -n` pasó; los 46 textos de los mutantes aparecen una sola vez; el awk de N10 da 3 y 0, y con MD45 aplicado, 1 afuera; `campo()` da vacío con la clave repetida.
 
 ### Pendiente posterior (no bloqueante de la revisión del DG sobre `b2508e726`)
 
