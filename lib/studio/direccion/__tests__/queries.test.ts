@@ -533,10 +533,12 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
         },
         journal_lines: {
           data: [
-            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1497 },
+            // 4.5 = 1500: je1 aporta 1496 y cada uno de los cuatro asientos en otra
+            // moneda (F2, F6, F7 y F9 desde la 0572) aporta 1.
+            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1496 },
             { id: "je1-fx", entry_id: "je1", account_id: "fx", debit: 0, credit: 200 },
             { id: "je1-g", entry_id: "je1", account_id: "g1", debit: 700, credit: 0 },
-            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 997, credit: 0 },
+            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 996, credit: 0 },
             ...ASIENTOS_EN_OTRA_MONEDA.flatMap(a => [
               { id: `${a.id}-ar`, entry_id: a.id, account_id: "ar", debit: 1, credit: 0 },
               { id: `${a.id}-v`, entry_id: a.id, account_id: "ven", debit: 0, credit: 1 },

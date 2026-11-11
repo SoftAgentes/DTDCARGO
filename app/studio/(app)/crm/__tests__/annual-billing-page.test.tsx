@@ -28,6 +28,14 @@ vi.mock("@/lib/studio/kommo-queries", async (importOriginal) => ({
   getKommoStatusCounts: async () => ({ 142: 1 }), getLeadContactInfo: async () => ({}),
   parseKommoFiltersFromSearchParams: () => ({}),
 }));
+// SDD-0614 S0 oculta las pestañas de Kommo: el resolver real ya no las devuelve
+// y la página vuelve antes de leer el espejo. El camino de lectura de Kommo se
+// conserva en page.tsx hasta 8.7; esta prueba lo sigue ejercitando dejando pasar
+// la pestaña pedida. El ocultamiento se prueba en su propio archivo.
+vi.mock("../_components/kommo-tabs.shared", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../_components/kommo-tabs.shared")>();
+  return { ...real, resolveKommoTab: (raw: string | undefined | null) => (real.isKommoTab(raw) ? raw : real.resolveKommoTab(raw)) };
+});
 vi.mock("../_components/DireccionTab", () => ({ DireccionTab: () => null }));
 vi.mock("../_components/RecoveryTab", () => ({ RecoveryTab: () => null }));
 import Page from "../page";
