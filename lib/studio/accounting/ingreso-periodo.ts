@@ -363,7 +363,7 @@ function puenteDelPeriodo(
     // Una sola conversión y redondeo documental: el reverso usa exactamente
     // los mismos centavos, sin importar el nominal registrado en el par.
     const usd = round2(invoiceUsdAmount({ currency: doc.currency as InvoiceCurrency,
-      total_amount: Number(base), fx_rate: doc.fx_rate == null ? null : Number(doc.fx_rate) }));
+      total_amount: Number(base), fx_rate: doc.fx_rate == null ? null : Number(doc.fx_rate) }) ?? Number.NaN);
     if (!Number.isFinite(usd) || !Number.isSafeInteger(Math.round(usd * 100))) { avisar("importe_sin_convertir"); continue; }
     ajusteCentavos += (Number(suma) - Number(resta)) * Math.round(usd * 100);
   }
