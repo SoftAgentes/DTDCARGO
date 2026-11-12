@@ -8,7 +8,7 @@
 | Custodia | Producto + Diseño + Ingeniería |
 | Estado | aprobada (cambio 2026-11-12, ver CAMBIO-2026-11-12-sge-v8-ag-01.md) |
 | Reemplaza a | v7.0 (archivada como evidencia, no se sobrescribe) |
-| Línea base vigente | generada desde el registro (`governance-capsule.json`) (planeado · SDD-0612) |
+| Línea base vigente | generada desde el registro (`governance-capsule.json`) (planeado · SDD-0626) |
 
 > **Principios del sistema v8.0**
 > 1. **Proporcionalidad:** la ceremonia de un cambio mide lo mismo que su impacto (tiers L0–L3).
@@ -42,7 +42,7 @@ No guarda mockups, archivos de marca ni contratos técnicos detallados.
 | Políticas (cuerpo normativo) | `docs/governance/policies/` |
 | Especificaciones e implementación | `docs/specs/<sdd-XXXX>/` |
 | Revisiones consolidadas | `docs/governance/reviews/` (actas agrupadas; los REVs cerrados permanecen aquí) |
-| Evidencia histórica | `docs/archive/` (solo baselines > 90 días; mover REVs cerrados: planeado · SDD-0612) |
+| Evidencia histórica | `docs/archive/` (solo baselines > 90 días; mover REVs cerrados: planeado · SDD-0626) |
 | Registro único de estados | `generated/governance-capsule.json` |
 
 > **Regla de frontera:** `BRAND.md` y el Norte gobiernan **cómo se ve**; este
@@ -92,7 +92,7 @@ elevando el estado normativo. Lo que no aplica hoy se marca
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox; matriz integral pendiente · no aplica a agentes | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | LNK-01 | Enlaces y cambio de contexto | aprobada v1.0 | Adoptada en glosario | [TerminoGlosario.test.tsx](../../components/TerminoGlosario.test.tsx) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | "IA propone"; excepción noticias (revisión 60 días) | SDD-0611 · excepción noticias |
-| SGE-AG-01 | Comportamiento de agentes autónomos | aprobada v0.2 (12/11/2026) | nada construido — rige la oficina desde su primer piloto | [CAMBIO-2026-11-12](CAMBIO-2026-11-12-sge-v8-ag-01.md) · SDD-0612 (próximo gate) |
+| SGE-AG-01 | Comportamiento de agentes autónomos | aprobada v0.2 (12/11/2026) | nada construido — rige la oficina desde su primer piloto | [CAMBIO-2026-11-12](CAMBIO-2026-11-12-sge-v8-ag-01.md) · SDD-0626 (próximo gate) |
 | CMP-01 | Ciclo de vida de componentes | aprobada v1.1 | ConfirmDialog/SegmentedControl/NumericInput canónicos | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) · [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | 0.1.2 repo/team reproducible, read-only | [REV-SGE-025](reviews/plg-01-durable-runner-2026-07-31.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |
 
@@ -149,7 +149,7 @@ hay delegación.
 ## 9 · Línea base y archivo
 
 La línea base vigente es una sola, generada desde el registro
-(planeado · SDD-0612; hoy son documentos fechados BASELINE-YYYY-MM-DD.md).
+(planeado · SDD-0626; hoy son documentos fechados BASELINE-YYYY-MM-DD.md).
 Las históricas se conservan inmutables, pero a partir de los 90 días
 pasan a docs/archive/ (nunca se borran, solo se ordenan).
 Un cambio material genera una nueva BASELINE-YYYY-MM-DD.md; las anteriores
@@ -159,7 +159,7 @@ no se sobrescriben.
 
 generated/governance-capsule.json es la única fuente de estados.
 Este README y la tabla del registro se generan desde el registro
-(planeado · SDD-0612; hoy solo la cápsula se genera y governance:check
+(planeado · SDD-0626; hoy solo la cápsula se genera y governance:check
 valida políticas ↔ cápsula).
 Prohibida la edición manual del índice: se corrige el registro y se
 regenera.
@@ -175,7 +175,7 @@ regenera.
 | AGENT-BRIEF | Enrutar Codex, Claude Code, Studio y Cloud Design a la misma fuente |
 | governance:check | Verificar el agregado reproducible de políticas aprobadas |
 | components:check | Verificar ciclo, evidencia, consumidores y reemplazos CMP-01 |
-| governance:kpi (planeado · SDD-0612) | Reporte de salud de la gobernanza (§12) |
+| governance:kpi (planeado · SDD-0626) | Reporte de salud de la gobernanza (§12) |
 
 ## 12 · KPIs de la gobernanza
 

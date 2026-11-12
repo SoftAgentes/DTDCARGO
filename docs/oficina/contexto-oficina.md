@@ -27,7 +27,7 @@ Repo: github.com/SoftAgentes/DTDCARGO (Studio ERP con Supabase, SGE v8.0).
 | Prototipo visual V3 | ✅ trabajo/oficina-dtd.html |
 | Organigrama 35 interactivo | ✅ trabajo/organigrama-35.html |
 | Gobernanza SGE v8.0 + SGE-AG-01 v0.2 | ✅ Aprobada en contenido (este cambio) |
-| SDD-0612 «oficina-runtime» | ⏳ Por redactar |
+| SDD-0626 «oficina-runtime» | ⏳ Por redactar |
 | Construcción (tablas, despachador, eventos) | ⬜ Nada construido |
 
 ## 4 · Arquitectura — 6 piezas
@@ -95,7 +95,7 @@ teaming, incidentes, madurez N1–N4). Políticas UI "no aplica a agentes".
 Una conversación real de Chatwoot atendida de principio a fin por
 soporte-chatwoot sin la mano de Sam, visible en la V3.
 
-1. Hermes redacta la SDD-0612 → 2. Rama+PR en el repo → 3. Director
+1. Hermes redacta la SDD-0626 → 2. Rama+PR en el repo → 3. Director
 construye el cable (3 tablas + webhook + corrida glm-5.3) → 4. Prueba
 interna, luego real → 5. Revisión conjunta.
 
@@ -122,7 +122,7 @@ separado. 5. Token mínimo privilegio en el gestor de secretos.
 ## 12 · Entregables
 
 trabajo/oficina-dtd.html (V3) · trabajo/organigrama-35.html ·
-trabajo/contexto-oficina.md · gobernanza (este cambio) · SDD-0612 (próxima).
+trabajo/contexto-oficina.md · gobernanza (este cambio) · SDD-0626 (próxima).
 
 ## 13 · Convenciones de nombres
 
@@ -138,7 +138,7 @@ Act · NN/g affordances · Smallville/AI Town.
 
 ## 15 · Próximos pasos
 
-1. SDD-0612 «oficina-runtime» (con SGE-AG-01 v0.2 integrada).
+1. SDD-0626 «oficina-runtime» (con SGE-AG-01 v0.2 integrada).
 2. Commit de este cambio de gobernanza (rama aparte).
-3. PR de la SDD-0612 → Director construye el cable.
+3. PR de la SDD-0626 → Director construye el cable.
 4. Prueba real → Fase 1 terminada → Fases A–D → encendido.
