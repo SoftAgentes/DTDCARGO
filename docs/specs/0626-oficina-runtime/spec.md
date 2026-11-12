@@ -19,7 +19,7 @@ confidencialidad: interno
 | Dueño | Sam (aprobación) · construcción: Director/Worker · redacción: Hermes |
 | Estado | borrador → pendiente aprobación de Sam |
 | Gobernanza | SGE v8.0 · SGE-AG-01 v0.2 (niveles L0/L1, kill switch, presupuestos) |
-| Depende de | SDD-0020 (SkillDef) · SDD-0021 (agent_approvals) · PR gobernanza (en curso) |
+| Depende de | SDD-0020 (SkillDef) · política agent_approvals (docs/agents — NO la spec 0021-facturación de main) · rama origin/governance/sge-v8-ag-01 (en curso) |
 | No toca | producción, main, ni tareas abiertas de otras ramas |
 
 ## 1 · Objetivo y alcance
