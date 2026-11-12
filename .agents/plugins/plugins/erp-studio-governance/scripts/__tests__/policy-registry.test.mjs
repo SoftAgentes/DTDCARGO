@@ -17,7 +17,7 @@ describe("PLG-01 policy registry", () => {
   it("sólo contiene fuentes aprobadas y es read-only", async () => {
     const registry = await buildPolicyRegistry();
     expect(registry.readOnly).toBe(true);
-    expect(registry.policies).toHaveLength(28);
+    expect(registry.policies).toHaveLength(29);
     expect(
       registry.policies.every(({ state }) =>
         /\b(?:aprobada|implementada|verificada)\b/i.test(state),
