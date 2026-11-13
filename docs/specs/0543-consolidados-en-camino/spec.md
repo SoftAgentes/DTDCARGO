@@ -4,7 +4,7 @@ title: "Consolidados en camino: carga de contenedores desde el packing list"
 status: in-progress
 author: "founder"
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-11-13
 supersedes: null
 superseded_by: null
 related: ["0047", "0054", "0101", "0156", "0170", "0255", "0258", "0522", "0524", "0530", "0532", "0540"]
@@ -60,6 +60,19 @@ Lo que ya existe y se reutiliza, con su evidencia, está en el handoff (`.agents
 - Producción (base oficial), `TRACKING_EN_CONSTRUCCION`, la emisión automática de facturas al aceptar y la modalidad del contenedor 60 (FCL de un aliado con 5,7 CBM DDP adentro): se deciden con Sam después del 59.
 - Pantalla de importación en el Studio (segunda fase).
 - Comisiones por agente del Excel (`Agente`, `GANANCIA POR ENVIO`): no tienen entidad en el ERP.
+
+### Extensión F2 (2026-11-13): camino a producción de `aplicar-lote.sh`
+
+Pedido del Subdirector Portal para preparar la carga de los contenedores 61, 62 y 63 en la base oficial. **El script queda listo, pero no se corre.** Cada lote necesita el OK nominal de Sam.
+
+- `--project dtd-cargo` (o `--proyecto`, o el `PROD_COMPOSE_PROJECT`) acepta solo lotes generados con `--entorno produccion`. Un `*-staging` acepta solo lotes de prueba.
+- En producción, **cada paso** exige `AUTORIZACION.txt`, en la carpeta del lote o con `--autorizacion <archivo>`. Tiene que traer el OK literal de Sam y nombrar el número del contenedor del lote: el 61 no nombra el 610. Aplica también a la previa, porque leer producción también requiere permiso. El archivo se copia a la evidencia.
+- Previa, simulacro, aplicar y verificar van de a uno, cada uno con su evidencia de conteos y huellas. `aplicar` exige un simulacro PASÓ del mismo lote en la misma base.
+- **Idempotente.** Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, se niega (código 3) sin tocar la base. Sin esa evidencia, el preflight de `aplicar.sql` aborta en la base: si el contenedor, los envíos o las facturas ya existen, sale con 6 y no deja nada escrito.
+- En producción, `deshacer` y `purgar` están deshabilitados (código 3), aunque vengan confirmados: el borrado lo corre Sam.
+- **Un lote de producción no crea clientes ni aliados.** El generador no acepta `--crear-clientes-faltantes` y `aplicar.sql` aborta si una marca no resuelve. Además, `previa.sql` termina con un corte (`do $corte$`): si alguna marca no resuelve a un cliente vivo, aborta con el conteo y las etiquetas, sin texto del Excel. Así la previa se niega antes del simulacro. Se probó en PGlite con tres casos: sin cliente corta, cliente borrado corta, cliente vivo pasa.
+- Consulta mínima del 2026-11-13, corrida por el Subdirector con el OK de Sam: `DTD-9038` (63) resuelve; `MG-0019`/`MG-019` (61) y `MG-0020`/`MG-020` (62) no resuelven, y el aliado `MG` no existe en producción. Con estos lotes, la previa del 61 y la del 62 se cortarían hasta que Sam diga a qué cliente real corresponden.
+- No hay prueba en una base real; la cobertura es `infra/ops/tests/prueba-aplicar-lote.sh` con un doble de docker.
 
 ## Diseño
 

@@ -32,6 +32,18 @@ Listar las marcas y los remitentes de los lotes 61, 62 y 63 que en producción n
   - Devuelve candidato, canónico, redirigido, vivo y aliado. Sin nombres ni ids.
   - **No se corrió.**
 
+### Segunda parte · camino a producción de `aplicar-lote.sh` (pedido del Subdirector Portal, 2026-11-13)
+
+- **`aplicar-lote.sh`.**
+  - Acepta `--project`/`--proyecto dtd-cargo` solo con lotes de `--entorno produccion`, y un `*-staging` solo con lotes de prueba.
+  - En producción, cada paso exige `AUTORIZACION.txt` (en el lote o con `--autorizacion`), no vacío y nombrando el número del contenedor. Se copia a la evidencia.
+  - `deshacer` y `purgar` están deshabilitados en producción.
+  - Un segundo `aplicar` se niega si la evidencia ya tiene un `aplicar` PASÓ del lote. Además queda el preflight del SQL.
+- **Generador.** En producción, `previa.sql` termina con un corte (`do $corte$`) que aborta si alguna marca no resuelve a un cliente vivo. Cita solo el conteo y las etiquetas. El lote de producción nunca crea clientes ni aliados.
+- **Prueba bash.** 40 casos (antes 23); el piso de `pruebas-linux.sh` sube a 40. Prueba vitest nueva en `consolidados-sql.test.ts`.
+- **Spec y runbook.** Spec 0543 con la sección «Extensión F2» y runbook con el §2b de producción.
+- **Consulta mínima.** La corrió el Subdirector con el OK de Sam: `DTD-9038` resuelve; `MG-0019`/`MG-019` y `MG-0020`/`MG-020` no resuelven, y el aliado `MG` no existe. Con esos lotes, la previa del 61 y la del 62 se cortan hasta que Sam dé el cliente real. Corregí en la consulta la columna `vivo`: antes daba `t` sin cliente, por `null is null`.
+
 ## VALIDACIÓN
 
 | Comprobación | Resultado |
