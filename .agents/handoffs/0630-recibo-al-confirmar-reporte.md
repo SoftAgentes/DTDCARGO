@@ -56,7 +56,9 @@ confirmaciones a la vez. Está escrito en la spec (§ Asiento).
 | PGlite: fixture 0533 + 0537 + casos + 0422/0423 | PASÓ: 70 aserciones en los casos y 75 con «después»; el preflight aborta sin la 0533 y al reaplicar | una corrida puntual de node con el script de diagnóstico, ~10 s |
 | PGlite `payment-report-receipt.migration.test.ts` (vitest, con mutantes) | NO EJECUTADO en local; lo corre el CI de la PR («Calidad») | portón = CI de GitHub (cambio del DG, 2026-11-13) |
 | Vitest `payment-report-commands.test.ts`, `payment-report-ui.test.tsx` y `PendingReportsNotice.test.tsx` | NO EJECUTADO en local; lo corre el CI de la PR | ídem |
-| Gate de símbolos pendientes | PASÓ: 0 ROJO, 3 AMARILLO declarados | `node scripts/check-pending-migration-symbols.mjs` |
+| Vitest focal de los 5 archivos que el CI de 58233ddf6 dio en rojo (RBAC, comandos, consumidores, denegación, fechas Caracas) | PASÓ: 5 archivos, 775 de 775 | corrida local con turno del Subdirector, 2026-11-13, después de las correcciones |
+| Contrato del RPC viejo `confirm_payment_report` (vivo antes de la 0422, sin EXECUTE después) | NO EJECUTADO en local; corre en los contratos SQL del CI | casos (sección 11) y «después» |
+| Gate de símbolos pendientes | PASÓ: 0 ROJO, 2 AMARILLO declarados (corrida del 2026-11-13 sobre la cabeza nueva) | `node scripts/check-pending-migration-symbols.mjs` |
 | `sdd:check` (numeración) | PASÓ | `node scripts/check-numbering.mjs` |
 | `pnpm verify` | NO EJECUTADO (portón = CI de GitHub + revisión independiente) | instrucción del Subdirector, 2026-11-13 |
 | CI de la PR | PENDIENTE: lo lee el Subdirector al pasar la PR a lista | |
@@ -157,11 +159,22 @@ migración (0533 → 0537 → despliegue de la app → 0422 → 0423) y el runbo
 
 ## PR / BRANCH
 
-`claude/sdd-0630-recibo-al-confirmar-0e4534` publicada. PR: pendiente.
+`claude/sdd-0630-recibo-al-confirmar-0e4534` publicada. PR: https://github.com/SoftAgentes/DTDCARGO/pull/533
+(lista para revisión; el DG la aprobó con observaciones, atendidas en el commit de correcciones).
 
 ## PENDIENTES DE ESTA TAREA
 
-- Resultados de PGlite, vitest focal, `pnpm verify` y el CI de la PR (tabla de arriba).
+- CI de la PR sobre la cabeza con las correcciones del DG (lo lee el Subdirector).
+- Traer main una vez cuando la #531 (SDD-0629) entre, y volver a medir el cruce.
+
+## RECOMENDACIÓN OPERATIVA PARA SAM
+
+- **Confirmar solo desde reportes; Cobranzas manual solo sin reporte.** Si el cliente reportó el
+  pago en el portal, se confirma desde la factura, que crea el recibo. Cobranzas se usa solo para
+  pagos que no tienen reporte. Así no se cuenta dos veces.
+- **Hasta aplicar la 0422 sigue vivo el camino viejo** (`confirm_payment_report` de la 0359 y la
+  policy ALL de `payment_reports`), que confirma sin recibo. La app nueva no lo usa, pero el cierre
+  completo llega con la 0422. El contrato SQL lo documenta antes y después.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -176,6 +189,16 @@ migración (0533 → 0537 → despliegue de la app → 0422 → 0423) y el runbo
   decisión de contabilidad con Sam.
 - **Anular el recibo de un reporte confirmado** baja el pagado y deja el reporte «confirmado».
   Falta una regla, por ejemplo devolver el reporte o marcarlo.
+- **Un reintento puede duplicar el asiento del recibo.** `postReceiptJournalEntry`
+  (`lib/studio/accounting/receipt-posting.ts`) cuenta si ya hay asiento y después inserta, en dos
+  llamadas de PostgREST; `je_receipt_idx` (0079) no es único. Dos intentos simultáneos sobre el
+  mismo recibo pueden crear dos asientos. Pasa igual en Cobranzas. No se arregla en la app: las
+  llamadas no comparten transacción, así que un `for update` o un advisory lock no sirven ahí.
+  Seguimiento: una migración con un índice único parcial en `journal_entries(receipt_id) where
+  deleted_at is null` y el insert que lo respete (observación BAJA del DG, 2026-11-13).
+- **Avisar en Cobranzas si hay un reporte pendiente del mismo monto.** Hoy el aviso cuenta los
+  reportes sin revisar de la factura y su total; no compara montos con el cobro que se está
+  registrando. Seguimiento sugerido por el DG.
 - **`payment_receipts` tiene UPDATE para accounting por PostgREST** (0470). El guard de la 0537
   protege sólo el vínculo. Los otros campos siguen el hueco que ya anotó la 0467.
 

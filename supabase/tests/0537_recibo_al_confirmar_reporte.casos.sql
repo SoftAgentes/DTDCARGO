@@ -253,6 +253,32 @@ begin
   perform r0537.ok(v ->> 'status' = 'confirmado' and r0537.recibos('inv-c') = 1 and r0537.pagado('inv-c') = 100,
     'la confirmación válida de rep-c1 crea su recibo');
 
+  -- 11. Documenta el hueco que la 0537 NO cierra sola: hasta aplicar la 0422
+  -- sigue vivo el RPC viejo public.confirm_payment_report (0359), que confirma
+  -- sumando paid_amount a mano, SIN recibo. La 0422 le quita el EXECUTE (ver el
+  -- archivo «después»). Se prueba dentro de un bloque que se revierte, para no
+  -- tocar los casos de «después» ni las invariantes de abajo.
+  perform r0537.ok(has_function_privilege('authenticated',
+      'public.confirm_payment_report(uuid,public.payment_report_status,text)', 'EXECUTE'),
+    'antes de la 0422 el RPC viejo confirm_payment_report sigue ejecutable por authenticated');
+  declare v_viejo jsonb; v_recibos bigint; v_pagado numeric;
+  begin
+    begin
+      v_viejo := r0537.como('accounting-A', format(
+        'select to_jsonb(public.confirm_payment_report(%L, ''confirmado''::public.payment_report_status, %L))',
+        r0537.cid('rep-d1'), 'Camino viejo, sin recibo'));
+      v_recibos := r0537.recibos('inv-d');
+      v_pagado := r0537.pagado('inv-d');
+      raise exception 'r0537-revertir' using errcode = 'P0537';
+    exception when sqlstate 'P0537' then null;
+    end;
+    perform r0537.ok(v_viejo ->> 'status' = 'confirmado' and v_recibos = 0 and v_pagado = 200,
+      'antes de la 0422 el RPC viejo confirma SIN recibo (hueco cerrado sólo por la 0422): ' || coalesce((v_viejo)::text, 'null'));
+    perform r0537.ok((select status from public.payment_reports where id = r0537.cid('rep-d1')) = 'reportado'
+      and r0537.recibos('inv-d') = 0 and coalesce(r0537.pagado('inv-d'), 0) = 0,
+      'la prueba del RPC viejo se revirtió sin efectos');
+  end;
+
   -- Invariante de las facturas de estos casos (F-0630-A a D). La carrera agrega
   -- F-0630-K-*, entre ellas el control que reproduce el defecto sin la 0537.
   perform r0537.ok(not exists (select 1 from public.invoices i where i.client_markbox = 'DUP' and i.invoice_code like 'F-0630-_'

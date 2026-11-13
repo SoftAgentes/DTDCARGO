@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(), createAdminClient: vi.fn(), notify: vi.fn(), revalidate: vi.fn(),
-  notifyClient: vi.fn(), after: vi.fn(), scheduled: [] as Array<() => unknown>,
+  notifyClient: vi.fn(), after: vi.fn(), scheduled: [] as Array<() => unknown>, post: vi.fn(),
 }));
 vi.mock("@/lib/db/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: mocks.createAdminClient }));
@@ -19,6 +19,8 @@ vi.mock("@/lib/studio/payment-report-resolution-notify", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/server", () => ({ after: mocks.after }));
+// SDD-0630: el asiento del recibo es frontera (su lógica se prueba en Cobranzas).
+vi.mock("@/lib/studio/collections-actions", () => ({ postCollectionReceiptEntry: mocks.post }));
 import { reportPaymentAction, cancelPaymentReportAction } from "@/app/portal/(app)/facturas/[code]/reportar/actions";
 import { resolvePaymentReport } from "@/app/studio/(app)/facturacion/payment-report-actions";
 
@@ -37,7 +39,18 @@ const PRIVATE = "synthetic_private_db_detail";
 type Row = Record<string, unknown>;
 type Reply = { data?: unknown; error: { code: string; message: string } | null; count?: number | null };
 type Outcome = { ok?: boolean; error?: string; uncertain?: boolean; receipt?: Row; fieldErrors?: Record<string, string> };
-const resolveAction = resolvePaymentReport;
+const CASH = "99000000-0000-4000-8000-000000000009";
+const RECEIPT = "aa000000-0000-4000-8000-00000000000a";
+/** SDD-0630: confirmar lleva la cuenta de caja; rechazar, no. */
+const resolveAction = (reportId: string, action: "confirmado" | "rechazado", reason: string, requestId: string) =>
+  resolvePaymentReport(reportId, action, reason, requestId, action === "confirmado" ? CASH : undefined);
+/** El recibo de cobro que la 0537 crea al confirmar (montos inventados). */
+const wireCollection = { id: RECEIPT, code: "R-2026-0042", tenant_id: TENANT, amount: 45.5, currency: "USD",
+  fx_rate: null, cash_account_id: CASH, received_at: "2026-09-01", paid_amount: 65.5,
+  invoice_status: "parcial", fully_paid: false };
+const appCollection = { id: RECEIPT, code: "R-2026-0042", tenantId: TENANT, amount: 45.5, currency: "USD",
+  fxRate: null, cashAccountId: CASH, receivedAt: "2026-09-01", paidAmount: 65.5,
+  invoiceStatus: "parcial", fullyPaid: false };
 
 function wire(status = "reportado", cancelled = false): Row {
   return { request_id: REQUEST, report_id: REPORT, invoice_id: INVOICE, invoice_code: CODE,
@@ -45,7 +58,8 @@ function wire(status = "reportado", cancelled = false): Row {
 }
 function receipt(status = "reportado", cancelled = false): Row {
   return { requestId: REQUEST, reportId: REPORT, invoiceId: INVOICE, invoiceCode: CODE,
-    status, cancelled, auditEventId: AUDIT, replayed: false };
+    status, cancelled, auditEventId: AUDIT, replayed: false,
+    ...(status === "confirmado" ? { collection: appCollection } : {}) };
 }
 function form(overrides: Record<string, string> = {}): FormData {
   const value = new FormData();
@@ -105,8 +119,10 @@ function io(options: { portal?: boolean; role?: string | null; disabled?: boolea
     state.commands.push({ name, args });
     const previous = state.receipts.get(String(args.p_request_id));
     if (previous) return { data: { ...previous, replayed: true }, error: null };
-    const status = name === "resolve_payment_report" ? String(args.p_action) : "reportado";
-    const value = { ...wire(status, name === "cancel_portal_payment_report"), request_id: args.p_request_id, report_id: args.p_report_id };
+    const status = name === "resolve_payment_report" ? String(args.p_action)
+      : name === "confirm_payment_report_with_receipt" ? "confirmado" : "reportado";
+    const value = { ...wire(status, name === "cancel_portal_payment_report"), request_id: args.p_request_id, report_id: args.p_report_id,
+      ...(name === "confirm_payment_report_with_receipt" ? { receipt: { ...wireCollection, cash_account_id: args.p_cash_account_id } } : {}) };
     if ((!options.commandReply && !options.commandThrow) || options.commitBeforeError) {
       state.receipts.set(String(args.p_request_id), value);
       if (name === "create_portal_payment_report") state.reports.push({ id: args.p_report_id, tenant_id: TENANT,
@@ -179,9 +195,21 @@ describe("consumidores de comandos auditados", () => {
   it.each(["confirmado", "rechazado"] as const)("Studio %s usa permiso vigente y la RPC nueva", async (action) => {
     const { state } = io();
     expect(await resolveAction(REPORT, action, REASON, REQUEST)).toMatchObject({ ok: true, receipt: receipt(action) });
-    expect(state.commands).toEqual([{ name: "resolve_payment_report", args: {
-      p_request_id: REQUEST, p_report_id: REPORT, p_action: action, p_reason: REASON,
-    } }]);
+    // SDD-0630: confirmar va por la RPC que crea el recibo, con la cuenta elegida;
+    // rechazar sigue por `resolve_payment_report`.
+    expect(state.commands).toEqual([action === "confirmado"
+      ? { name: "confirm_payment_report_with_receipt", args: {
+        p_request_id: REQUEST, p_report_id: REPORT, p_cash_account_id: CASH, p_reason: REASON } }
+      : { name: "resolve_payment_report", args: {
+        p_request_id: REQUEST, p_report_id: REPORT, p_action: action, p_reason: REASON } }]);
+    // El asiento se intenta sólo para el recibo que devolvió la confirmación.
+    if (action === "confirmado") {
+      expect(mocks.post).toHaveBeenCalledOnce();
+      expect(mocks.post.mock.calls[0][1]).toEqual({ tenantId: TENANT, receiptId: RECEIPT, receiptCode: "R-2026-0042",
+        cashAccountId: CASH, amount: 45.5, currency: "USD", fxRate: null, entryDate: "2026-09-01" });
+    } else {
+      expect(mocks.post).not.toHaveBeenCalled();
+    }
     expect(state.legacy).toEqual([]);
     expect(state.dml).toEqual([]);
     // SDD-0556: el comando y la respuesta corren SÓLO con la sesión. El aviso
@@ -200,10 +228,14 @@ describe("consumidores de comandos auditados", () => {
   });
 
   it("Studio: un replay del mismo intento no programa otro aviso", async () => {
-    io();
+    const { state } = io();
     expect(await resolveAction(REPORT, "confirmado", REASON, REQUEST)).toMatchObject({ ok: true });
     const replay = await resolveAction(REPORT, "confirmado", REASON, REQUEST);
     expect(replay).toMatchObject({ ok: true, receipt: { ...receipt("confirmado"), replayed: true } });
+    // El replay devuelve el MISMO recibo y la orden al servidor es idéntica.
+    expect(state.commands).toHaveLength(2);
+    expect(state.commands[1]).toEqual(state.commands[0]);
+    expect((replay.receipt as Row).collection).toEqual(appCollection);
     expect(mocks.after).toHaveBeenCalledOnce();
     await correrAfter();
     expect(mocks.notifyClient).toHaveBeenCalledOnce();
@@ -266,6 +298,19 @@ describe("consumidores · permiso, entrada y preflight fail-closed", () => {
     expect(mocks.after).not.toHaveBeenCalled();
   });
 
+  it("Studio exige la cuenta de caja para confirmar, antes de cualquier efecto", async () => {
+    const { state } = io();
+    for (const cash of [undefined, ""]) {
+      const result = await resolvePaymentReport(REPORT, "confirmado", REASON, REQUEST, cash);
+      expect(result.ok).not.toBe(true);
+      expect(result.error).toMatch(/cuenta/i);
+    }
+    expect(state.commands).toEqual([]);
+    expect(state.legacy).toEqual([]);
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.after).not.toHaveBeenCalled();
+  });
+
   it("Studio exige requestId y motivo antes de resolver", async () => {
     const { state } = io();
     for (const [reason, request] of [[REASON, ""], ["abc", REQUEST]]) {
@@ -308,8 +353,9 @@ describe("consumidores · resultado comprobable y recuperación", () => {
     expect(remove).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
     expect(mocks.revalidate).not.toHaveBeenCalled();
-    // SDD-0556: un resultado incierto no avisa al cliente.
+    // SDD-0556: un resultado incierto no avisa al cliente. SDD-0630: ni asienta.
     expect(mocks.after).not.toHaveBeenCalled();
+    expect(mocks.post).not.toHaveBeenCalled();
     expect(mocks.notifyClient).not.toHaveBeenCalled();
   });
 

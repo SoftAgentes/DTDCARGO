@@ -75,6 +75,10 @@ begin
   perform r0537.ok(not has_table_privilege('authenticated', 'public.payment_reports', 'UPDATE')
     and not has_table_privilege('authenticated', 'public.payment_reports', 'INSERT'),
     'la frontera de la 0422 quedó puesta');
+  -- Con la 0422 el RPC viejo, que confirmaba sin recibo, ya no es ejecutable.
+  perform r0537.ok(not has_function_privilege('authenticated',
+      'public.confirm_payment_report(uuid,public.payment_report_status,text)', 'EXECUTE'),
+    'después de la 0422 authenticated ya no ejecuta confirm_payment_report: confirmar sin recibo queda cerrado');
 
   -- Confirmar con la frontera puesta: recibo, vínculo y saldo.
   v := r0537.como('accounting-A', r0537.confirmar('req-d1', 'rep-d1', v_caja));

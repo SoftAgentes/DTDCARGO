@@ -73,8 +73,11 @@ producción que nunca se hizo. El guion nuevo cubre las tres.
 3. **Wrapper.** `public.confirm_payment_report_with_receipt(request, report,
    cuenta, motivo)`, `SECURITY INVOKER`, con EXECUTE sólo para `authenticated`.
    `resolve_payment_report` queda intacto, porque la 0422 lo exige y el Studio lo
-   usa para rechazar. Si alguien confirma por ahí, recibe `PAYMENT_CASH_ACCOUNT`:
-   no queda ningún camino que confirme sin recibo.
+   usa para rechazar. Si alguien confirma por ahí, recibe `PAYMENT_CASH_ACCOUNT`.
+   **Cerrado solo después de aplicar la 0422.** Entre la 0537 y la 0422 siguen
+   vivos `public.confirm_payment_report` (0359) y la policy ALL de
+   `payment_reports`, que permiten confirmar sin recibo. La 0422 revoca los dos;
+   el contrato SQL documenta que el RPC viejo sigue vivo hasta entonces.
 4. **Preflight y postflight.** El preflight exige el cuerpo exacto que deja la
    0533 en `run_report_command` y en `register_collection_receipt`, con su firma,
    owner, config y ACL. También aborta si la migración ya se aplicó. El

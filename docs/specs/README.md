@@ -646,7 +646,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
 | 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
 | 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
-| 0630 | Confirmar un reporte de pago crea su recibo de cobro | draft | interno |
+| 0630 | Confirmar un reporte de pago crea su recibo de cobro | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0622, 0624, 0626, 0627, 0628, 0629 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

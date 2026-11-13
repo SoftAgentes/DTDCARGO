@@ -383,8 +383,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // sin entrar en ninguna lista. `guardarEdicion` escribe con el cliente de sesión
   // (la policy de UPDATE de 0055 repite admin y tenant); retiro y vuelta, por las
   // RPC `news_retirar` y `news_volver_a_publicar` (0518), que repiten `is_tenant_admin`.
+  // SDD-0630 sumó `cobranzas/actions.ts::getPendingPaymentReports` (466 → 467):
+  // solo LEE. `moduleViewDenial(supabase, "collections")` va al tope, antes de
+  // leer nada, como `getReceivableHistory`; la lectura de `payment_reports` usa el
+  // cliente de sesión, así que la RLS de la tabla repite el tenant. Pasa el
+  // veredicto por acción sin entrar en ninguna lista.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(466);
+    expect(reportes.length).toBe(467);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

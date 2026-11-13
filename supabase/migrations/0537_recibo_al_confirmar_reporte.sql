@@ -47,7 +47,10 @@
 --    el wrapper nuevo, INVOKER, como los tres de la 0421. resolve_payment_report
 --    se conserva intacto (la 0422 lo exige y la app lo sigue usando para
 --    rechazar): con 'confirmado' ahora devuelve PAYMENT_CASH_ACCOUNT, porque no
---    trae cuenta. Así no queda un camino que confirme sin recibo.
+--    trae cuenta. Ese camino queda cerrado; el cierre COMPLETO llega sólo
+--    después de aplicar la 0422: hasta entonces siguen vivos el RPC viejo
+--    public.confirm_payment_report (0359) y la policy ALL de payment_reports,
+--    que confirman sin recibo. La 0422 los revoca. El contrato lo documenta.
 --
 -- ── Asiento contable ────────────────────────────────────────
 -- Igual que en Cobranzas (SDD-0041/0068/0488): el asiento DR caja / CR 1.1.2 lo

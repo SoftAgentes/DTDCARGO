@@ -115,6 +115,9 @@ function wireReceipt(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+/** SDD-0630: una confirmación sin su recibo no es éxito; estos dobles lo traen. */
+const wireCollectionFor = (status: string) => (status === "confirmado" ? { receipt: wireCollection() } : {});
+const appCollectionFor = (status: string) => (status === "confirmado" ? { collection: appCollection } : {});
 function appReceipt(overrides: Record<string, unknown> = {}) {
   return {
     requestId: REQUEST_ID, reportId: REPORT_ID, invoiceId: INVOICE_ID, invoiceCode: INVOICE_CODE,
@@ -276,7 +279,7 @@ describe("runPaymentReportCommand · validar antes de enviar", () => {
   }))))("normaliza y acepta motivo $label", async ({ make, reason }) => {
     const command = { ...make(), reason: ` \n${reason}\t ` };
     const status = command.verb === "confirm" ? "confirmado" : command.verb === "reject" ? "rechazado" : "reportado";
-    const { session, rpc } = sessionIo({ data: wireReceipt({ status, cancelled: command.verb === "cancel" }), error: null });
+    const { session, rpc } = sessionIo({ data: wireReceipt({ status, cancelled: command.verb === "cancel", ...wireCollectionFor(status) }), error: null });
     const result = await runPaymentReportCommand(session, command);
     expect(result.ok).toBe(true);
     expect(rpc).toHaveBeenCalledTimes(1);
@@ -461,15 +464,15 @@ describe("runPaymentReportCommand · identidad estable e idempotencia del consum
     Object.freeze(command);
     if ("input" in command) Object.freeze(command.input);
     const { session, rpc, forbidden } = sessionIo();
-    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled }), error: null });
-    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled, replayed: true }), error: null });
+    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled, ...wireCollectionFor(status) }), error: null });
+    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled, replayed: true, ...wireCollectionFor(status) }), error: null });
 
     await expect(runPaymentReportCommand(session, command)).resolves.toEqual({
-      ok: true, receipt: appReceipt({ status, cancelled }),
+      ok: true, receipt: appReceipt({ status, cancelled, ...appCollectionFor(status) }),
     });
     expect(rpc).toHaveBeenCalledTimes(1);
     await expect(runPaymentReportCommand(session, command)).resolves.toEqual({
-      ok: true, receipt: appReceipt({ status, cancelled, replayed: true }),
+      ok: true, receipt: appReceipt({ status, cancelled, replayed: true, ...appCollectionFor(status) }),
     });
     expect(rpc).toHaveBeenCalledTimes(2);
     expect(rpc.mock.calls[0]).toEqual(rpc.mock.calls[1]);
