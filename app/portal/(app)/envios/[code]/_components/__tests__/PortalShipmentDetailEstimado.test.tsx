@@ -31,18 +31,19 @@ const stepDates = {
   shipped: "2026-11-01T12:00:00Z",
 };
 
-function montar(conEstimado: boolean) {
+function montar(conEstimado: boolean, ahoraIso?: string, shipment = envio) {
   const estimado = conEstimado
     ? estimarSeguimiento({
-        status: envio.status,
-        service: envio.service,
+        status: shipment.status,
+        service: shipment.service,
         stepDates,
         itinerario: { transitDays: 30, pod: "PBL" },
+        ahoraIso,
       })
     : null;
   render(
     <PortalShipmentDetailNorte
-      shipment={envio}
+      shipment={shipment}
       documents={[]}
       signedUrls={{}}
       naviera={null}
@@ -70,7 +71,8 @@ describe("SDD-0627 · stepper con fechas estimadas", () => {
     montar(true);
     const nota = screen.getByTestId("seguimiento-estimado-nota");
     expect(nota.textContent).toMatch(/Fechas estimadas\./);
-    expect(nota.textContent).toMatch(/desde el zarpe con los días de tránsito del zarpe/);
+    expect(nota.textContent).toMatch(/desde el zarpe, con los días de tránsito del zarpe/);
+    expect(nota.textContent).toMatch(/Llegada estimada a puerto: /);
     expect(nota.textContent).not.toMatch(/te avisamos/i);
   });
 
@@ -78,5 +80,27 @@ describe("SDD-0627 · stepper con fechas estimadas", () => {
     montar(false);
     expect(screen.queryAllByText(/^Est\. /)).toEqual([]);
     expect(screen.queryByTestId("seguimiento-estimado-nota")).toBeNull();
+  });
+});
+
+describe("SDD-0627 · revisión: fechas vencidas y terrestre", () => {
+  it("M1 · con la ETA ya pasada no muestra fechas vencidas: «Por confirmar» y entrega pendiente", () => {
+    // Zarpe 01-nov + 30 = puerto 01-dic; entrega 15-dic. «Hoy» = 2027-01-10.
+    montar(true, "2027-01-10T12:00:00Z");
+    expect(screen.queryAllByText(/^Est\. /)).toEqual([]);
+    for (const etapa of ["in_transit", "in_customs", "arrived_destination", "delivered"]) {
+      expect(screen.getByTestId(`stepper-por-confirmar-${etapa}`).textContent).toBe("Por confirmar");
+    }
+    expect(screen.getByText("Pendiente de confirmar")).toBeTruthy();
+    const nota = screen.getByTestId("seguimiento-estimado-nota");
+    expect(nota.textContent).toMatch(/La llegada a puerto está por confirmar\./);
+    expect(nota.textContent).not.toMatch(/Llegada estimada a puerto: /);
+  });
+
+  it("M3 · terrestre: la nota habla del despacho, sin zarpe ni puerto", () => {
+    montar(true, undefined, { ...envio, service: "transporte_terrestre" });
+    const nota = screen.getByTestId("seguimiento-estimado-nota");
+    expect(nota.textContent).toMatch(/desde el despacho/);
+    expect(nota.textContent).not.toMatch(/zarpe|puerto|naviera/);
   });
 });

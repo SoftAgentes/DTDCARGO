@@ -86,8 +86,10 @@ export function PortalShipmentDetailNorte({
       ? `${shipment.origin ?? "—"} → ${shipment.destination ?? "—"}`
       : null;
   // SDD-0627 · después del zarpe manda la estimación desde el zarpe; antes, la
-  // heurística de siempre por servicio.
+  // heurística de siempre por servicio. Una entrega estimada que ya pasó no se
+  // muestra con su fecha vencida: dice «Pendiente de confirmar».
   const eta = estimado ? estimado.entregaIso : estimatePortalEta(shipment);
+  const entregaPorConfirmar = estimado?.entregaVencida ?? false;
   const waLink = buildWhatsAppLink(
     `Hola DTD Cargo, tengo una consulta sobre mi envío ${shipment.code}.`,
   );
@@ -155,6 +157,7 @@ export function PortalShipmentDetailNorte({
           service={shipment.service}
           stepDates={stepDates}
           estimatedDates={estimado?.porEtapa}
+          overdueSteps={estimado?.vencidas}
           hiddenStatuses={hiddenStatuses}
         />
         {estimado ? (
@@ -163,9 +166,19 @@ export function PortalShipmentDetailNorte({
             data-testid="seguimiento-estimado-nota"
           >
             <span className="font-bold">Fechas estimadas.</span> Las marcadas
-            «Est.» las calculamos desde el zarpe {rotuloFuente(estimado.fuente)}.
-            Llegada estimada a puerto: {formatDate(estimado.etaPuertoIso)}. Pueden
-            moverse con la naviera y la aduana.
+            «Est.» las calculamos {rotuloFuente(estimado.fuente)}.
+            {estimado.fuente === "terrestre" ? (
+              <> Pueden moverse con la ruta.</>
+            ) : (
+              <>
+                {estimado.puertoReal
+                  ? null
+                  : estimado.etaPuertoIso
+                    ? ` Llegada estimada a puerto: ${formatDate(estimado.etaPuertoIso)}.`
+                    : " La llegada a puerto está por confirmar."}{" "}
+                Pueden moverse con la naviera y la aduana.
+              </>
+            )}
           </p>
         ) : null}
         <p
@@ -211,6 +224,13 @@ export function PortalShipmentDetailNorte({
                 value={formatDate(shipment.arrivedDestinationAt)}
                 highlight
               />
+            ) : entregaPorConfirmar ? (
+              <Field
+                label="Entrega estimada"
+                value="Pendiente de confirmar"
+                highlight
+                hint="La fecha estimada ya pasó; se actualiza cuando tu carga avance."
+              />
             ) : eta ? (
               <Field
                 label="Entrega estimada"
@@ -250,13 +270,26 @@ export function PortalShipmentDetailNorte({
   );
 }
 
+/**
+ * Instante a mostrar. Una `date` pura ('YYYY-MM-DD', como `sailings.eta`) se
+ * ancla a mediodía UTC: con la zona de Caracas, la medianoche UTC caería en el
+ * día anterior.
+ */
+function instante(iso: string): Date {
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00Z` : iso);
+}
+
 /** Fecha del hito (ISO) → "12 jun" corto para el stepper, o null si no parseable. */
 function formatStepDate(iso: string | undefined): string | null {
   if (!iso) return null;
   try {
-    return new Date(iso).toLocaleDateString("es-VE", {
+    const d = instante(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    // SDD-0627 · en hora de Caracas: el servidor corre en UTC.
+    return d.toLocaleDateString("es-VE", {
       day: "2-digit",
       month: "short",
+      timeZone: "America/Caracas",
     });
   } catch {
     return null;
@@ -273,6 +306,7 @@ function Stepper({
   service,
   stepDates,
   estimatedDates,
+  overdueSteps,
   hiddenStatuses,
 }: {
   status: ShipmentStatus;
@@ -280,6 +314,8 @@ function Stepper({
   stepDates?: Partial<Record<ShipmentStatus, string>>;
   /** Fecha ESTIMADA de las etapas que faltan (SDD-0627). */
   estimatedDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Etapas cuya fecha estimada ya pasó sin ocurrir (SDD-0627): «Por confirmar». */
+  overdueSteps?: readonly ShipmentStatus[];
   hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
   const steps = buildTimeline(status, service, hiddenStatuses);
@@ -371,6 +407,15 @@ function Stepper({
                   data-testid={`stepper-estimado-${step.status}`}
                 >
                   Est. {formatStepDate(estimatedDates?.[step.status])}
+                </span>
+              ) : !reached && overdueSteps?.includes(step.status) ? (
+                // SDD-0627 · la fecha estimada ya pasó y la etapa no ocurrió: no
+                // se muestra una fecha vencida.
+                <span
+                  className="mt-0.5 text-[9.5px] italic text-grey-500 leading-tight"
+                  data-testid={`stepper-por-confirmar-${step.status}`}
+                >
+                  Por confirmar
                 </span>
               ) : null}
             </div>
@@ -585,10 +630,13 @@ function cityOf(loc: string | null): string {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString("es-VE", {
+    const d = instante(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("es-VE", {
       day: "2-digit",
       month: "short",
       year: "numeric",
+      timeZone: "America/Caracas",
     });
   } catch {
     return "—";

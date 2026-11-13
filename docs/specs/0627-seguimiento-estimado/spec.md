@@ -56,17 +56,27 @@ Conclusión: **no hace falta tabla nueva ni migración.**
    (1–120) → default por puerto de descarga (`LGU` 67) → default general 67. Los 67 días son el punto
    medio del rastreo real de DTD a La Guaira (CMA CGM, 59–75 días de la carga a la ETA). Un zarpe
    atrasado corre la ETA: se suma a la fecha real, no al ETD.
-3. **Etapas después del puerto:** aduana el día del arribo; bodega VE +10; reparto +12; última milla
+3. **Llegada a puerto, con la precedencia de `resolve-shipment-eta`** (revisión independiente, M2):
+   fecha real de aduana → ETA conocida (SeaRates `pod_eta`, luego `sailings.eta`: la misma que
+   muestra la tarjeta Naviera) → zarpe + días de mar, como último recurso. Así el Portal y los
+   avisos no dan dos llegadas distintas.
+4. **Etapas después del puerto:** aduana el día del arribo; bodega VE +10; reparto +12; última milla
    +13; entregado +14. Si la aduana ya tiene fecha real, el resto se ancla ahí. Terrestre: entrega a
    3 días del despacho, sin aduana. Son constantes de oficina en
    `lib/portal/seguimiento-estimado.ts`, para calibrar con la operación.
-4. **En el Portal, siempre rotulado.** Sólo las etapas que faltan llevan fecha estimada, como
+5. **Fechas vencidas** (M1): la página pasa «hoy»; una etapa cuya fecha estimada ya pasó sin
+   ocurrir no muestra la fecha vencida sino «Por confirmar», y la entrega dice «Pendiente de
+   confirmar». Se compara por día de Caracas; las fechas se muestran en `America/Caracas` (B2).
+6. **Terrestre** (M3): sin puerto ni días de mar; la nota habla del despacho, sin «zarpe» ni
+   «puerto».
+7. **En el Portal, siempre rotulado.** Sólo las etapas que faltan llevan fecha estimada, como
    «Est. 12 dic» con `aria-label` «Fecha estimada: …». Una nota dice «Fechas estimadas», desde dónde
    se calcularon y la llegada estimada a puerto. No promete avisos (la bandera está apagada y
    `TRACKING_EN_CONSTRUCCION` sigue encendido). «Entrega estimada» usa la estimación desde el zarpe
    cuando existe y la heurística de siempre antes.
-5. **Avisos apagados detrás de `AVISOS_POR_HITO_LIVE = false`** (declarada en
-   `scripts/feature-constants.json`). Encendida:
+8. **Avisos apagados detrás de `AVISOS_POR_HITO_LIVE = false`**, en su propio módulo
+   `avisos-por-hito-flag.ts` para no cerrar el ciclo `schedule-client-notifications` →
+   `resolve-shipment-eta` → `avisos-por-hito` (B1); declarada en `scripts/feature-constants.json`. Encendida:
    - al marcar «zarpado» (`avanzarContenedor`, sólo con `outcome = transitioned`), un
      `carga_en_camino` por cliente y contenedor, anclado al envío de código menor del cliente
      (SDD-0543: «un aviso por cliente, no por envío»). Canal según la regla del tenant;
@@ -75,10 +85,13 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 
    Apagada, ninguno de los dos lee ni escribe nada. El catálogo conserva `gancho: "pendiente"`
    mientras la bandera siga en false.
-6. **Ensayo en seco** (`ensayarAvisosZarpe`, acción de Naviera): con la bandera apagada, cuenta
+9. **Ensayo en seco** (`ensayarAvisosZarpe`, acción de Naviera): con la bandera apagada, cuenta
    envíos vivos, destinatarios (uno por cliente), envíos sin Shipping Mark y lo que haría la regla
    del tenant. No inserta en la agenda, no llama al drain, no envía. Devuelve sólo números. Exige
    edición de Naviera y que el contenedor sea del tenant de la sesión.
+
+10. **La vista estimada va sin bandera** (decisión del DG, 2026-11-13): fusionar no publica la web
+    y Sam la ve primero en prueba. Los avisos siguen apagados.
 
 ## Gobernanza
 
@@ -107,7 +120,8 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 | `app/portal/(app)/envios/[code]/page.tsx` | calcula `estimado` y lo pasa |
 | `app/portal/(app)/envios/[code]/_components/PortalShipmentDetailNorte.tsx` | «Est.» en el stepper, nota y entrega estimada |
 | `app/portal/(app)/envios/[code]/_components/__tests__/PortalShipmentDetailEstimado.test.tsx` (nuevo) | jsdom |
-| `lib/studio/notifications/avisos-por-hito.ts` (nuevo) | bandera, plan, ensayo y programación |
+| `lib/studio/notifications/avisos-por-hito.ts` (nuevo) | plan, ensayo y programación |
+| `lib/studio/notifications/avisos-por-hito-flag.ts` (nuevo) | `AVISOS_POR_HITO_LIVE` |
 | `lib/studio/notifications/__tests__/avisos-por-hito.test.ts` (nuevo) | puro y doble |
 | `lib/studio/notifications/resolve-shipment-eta.ts` | cuarta fuente, con bandera |
 | `lib/studio/notifications/__tests__/resolve-shipment-eta.test.ts` | casos de la cuarta fuente |
@@ -149,9 +163,8 @@ Conclusión: **no hace falta tabla nueva ni migración.**
   esos días.
 - Las constantes de aduana y reparto son de partida: la estimación puede quedar corta o larga hasta
   calibrarlas con la operación. La pantalla lo dice («Pueden moverse»).
-- Las fechas estimadas se ven apenas se integre (no hay bandera para la vista), en todo envío
-  embarcado o más adelante que tenga evento `shipped` o un zarpe con ETD. Si Sam prefiere esperar,
-  la vista necesita su propia bandera (decisión para el DG).
+- Las fechas estimadas no tienen bandera: decisión del DG (fusionar no publica la web; Sam la ve
+  primero en prueba).
 - El ensayo cuenta con la regla por defecto del tenant; un override por cliente puede cambiar el
   canal de ese cliente y no se cuenta aparte.
 - Encender `AVISOS_POR_HITO_LIVE` necesita una regla activa para `carga_en_camino` en el tenant

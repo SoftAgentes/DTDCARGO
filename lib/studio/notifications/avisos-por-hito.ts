@@ -20,14 +20,10 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { scheduleClientNotifications } from "./schedule-client-notifications";
+import { AVISOS_POR_HITO_LIVE } from "./avisos-por-hito-flag";
 
-/**
- * 🔴 Cambia lo que recibe el cliente. En false (estado de entrega) no sale
- * ningún aviso por hito. Encenderla es decisión de Sam, con el ensayo en seco
- * corrido antes sobre el contenedor real. Declarada en
- * scripts/feature-constants.json.
- */
-export const AVISOS_POR_HITO_LIVE = false;
+// La bandera vive en su propio módulo (sin ciclo con resolve-shipment-eta).
+export { AVISOS_POR_HITO_LIVE };
 
 export const EVENTO_CARGA_EN_CAMINO = "carga_en_camino";
 

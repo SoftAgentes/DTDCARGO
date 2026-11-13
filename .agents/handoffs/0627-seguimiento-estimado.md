@@ -46,9 +46,21 @@ Se completa en el commit final y en la PR. Pruebas focalizadas ya corridas (PAS�
 - `node scripts/check-feature-constants.mjs` — PASÓ (7 banderas)
 - `pnpm docs:index` — regenerado
 
+### Revisión independiente (sobre 23c6a7420), atendida
+
+- M1: la página pasa «hoy»; las etapas vencidas dicen «Por confirmar» y la entrega «Pendiente de
+  confirmar». Pruebas pura y jsdom con la ETA ya pasada.
+- M2: llegada a puerto con la precedencia de `resolve-shipment-eta` (aduana real → `pod_eta` /
+  `sailings.eta` → estimada).
+- M3: terrestre con nota propia, sin zarpe ni puerto.
+- B1: bandera en `avisos-por-hito-flag.ts` (sin ciclo). B2: fechas en `America/Caracas`, con las
+  `date` puras ancladas a mediodía UTC. B3: rótulos distintos para «puerto» y «default».
+- Por decisión del DG, la vista estimada va sin bandera. Ya no se corre `pnpm verify` local: lo
+  reemplazan el CI de GitHub y la revisión independiente.
+
 ## PENDIENTES DE ESTA TAREA
 
-- `pnpm verify`: espera turno de la PC (regla del DG; lo coordina el Subdirector Portal).
+- CI de Calidad verde sobre la cabeza final y aprobación de la revisión independiente (portón del DG). `pnpm verify` local: NO EJECUTADO por decisión del DG.
 - Calibrar con la operación aduana (+10) y reparto (+12/+14). Días de mar ya calibrados a La Guaira.
 - **Límites (anotados en la spec, sin ampliar):** un solo puerto calibrado (La Guaira); Maracaibo
   (63–71) y Barranquilla (46–49) no tienen código en `ports` y caen al default de 67. El ancla es el

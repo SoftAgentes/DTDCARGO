@@ -2,8 +2,16 @@
  * Seguimiento estimado (SDD-0627): «cuando salga el envío, estimamos los
  * tiempos y sobre eso le vamos avisando al cliente» (Sam, 2026-11-13).
  *
- * Todo puro: sin DB, sin React, sin reloj. Recibe lo que ya existe y devuelve
- * una fecha ESTIMADA por etapa del stepper.
+ * Todo puro: sin DB, sin React y sin leer el reloj. «Hoy» lo pasa quien llama
+ * (`ahoraIso`): una fecha estimada que ya pasó no se muestra como si siguiera
+ * en pie. Recibe lo que ya existe y devuelve una fecha ESTIMADA por etapa del
+ * stepper.
+ *
+ * ── Precedencia de la llegada a puerto (la misma de resolve-shipment-eta) ────
+ * 1. Fecha real de aduana (el evento `in_customs`).
+ * 2. ETA conocida: la de SeaRates (`pod_eta`) o la del itinerario
+ *    (`sailings.eta`), la que el Portal ya muestra en la tarjeta Naviera.
+ * 3. Estimada: zarpe + días de mar. Último recurso.
  *
  * ── De dónde sale cada dato (medido antes de crear nada) ─────────────────────
  * · Fecha del zarpe: el evento `shipped` del historial del envío. La 0477
@@ -63,24 +71,43 @@ export type ZarpeItinerario = {
   transitDays?: number | null;
 };
 
-export type FuenteTransito = "zarpe" | "itinerario" | "puerto" | "default";
+export type FuenteTransito =
+  | "aduana"
+  | "naviera"
+  | "zarpe"
+  | "itinerario"
+  | "puerto"
+  | "default"
+  | "terrestre";
 
 export type SeguimientoEstimado = {
-  /** Fecha del zarpe usada como ancla (ISO). */
+  /** Fecha del zarpe (o del despacho, en terrestre) usada como ancla (ISO). */
   zarpeIso: string;
-  /** Llegada estimada a puerto venezolano (ISO). */
-  etaPuertoIso: string;
+  /**
+   * Llegada a puerto venezolano (ISO). null en terrestre (no hay puerto) y
+   * cuando la estimación ya venció sin que se confirmara la llegada.
+   */
+  etaPuertoIso: string | null;
+  /** true si la llegada a puerto es la fecha real de aduana, no una estimación. */
+  puertoReal: boolean;
   /** Días de mar usados. */
   diasTransito: number;
-  /** De dónde salieron los días de mar (para decirlo con honestidad). */
+  /** De dónde salió la llegada a puerto (para decirlo con honestidad). */
   fuente: FuenteTransito;
+  /**
+   * Etapas cuya fecha estimada ya pasó sin que ocurrieran: se muestran como
+   * «Por confirmar», nunca con la fecha vencida.
+   */
+  vencidas: ShipmentStatus[];
   /**
    * Fecha estimada de las etapas que TODAVÍA no ocurrieron. Las cumplidas no
    * aparecen: para esas manda la fecha real del historial.
    */
   porEtapa: Partial<Record<ShipmentStatus, string>>;
-  /** Fecha estimada de entrega (la última etapa del flujo), si no ocurrió. */
+  /** Fecha estimada de entrega (la última etapa del flujo), si no ocurrió ni venció. */
   entregaIso: string | null;
+  /** true si la entrega estimada ya pasó: la pantalla dice «Pendiente de confirmar». */
+  entregaVencida: boolean;
 };
 
 /** 'YYYY-MM-DD' o ISO completo → ms; null si no se puede leer. */
@@ -123,17 +150,28 @@ const SIN_ESTIMACION: ReadonlySet<ShipmentStatus> = new Set<ShipmentStatus>([
   "exception",
 ]);
 
+/** Día de calendario en Caracas ('YYYY-MM-DD') de un instante. */
+export function diaCaracas(ms: number): string {
+  // en-CA formatea como YYYY-MM-DD.
+  return new Date(ms).toLocaleDateString("en-CA", { timeZone: "America/Caracas" });
+}
+
 /**
  * Seguimiento estimado del envío, o null si todavía no zarpó (no se estima
  * antes del zarpe: es la decisión de Sam) o si ya no aplica.
  *
  * @param stepDates fecha real por estado (el primer evento de cada uno).
+ * @param etaPuertoConocida ETA de SeaRates o del itinerario, si existe.
+ * @param ahoraIso «hoy»; sin él no se marca nada como vencido (lo usan los
+ *   avisos, que anclan contra su propio reloj).
  */
 export function estimarSeguimiento(input: {
   status: ShipmentStatus;
   service: ShipmentService;
   stepDates?: Partial<Record<ShipmentStatus, string>> | null;
   itinerario?: ZarpeItinerario | null;
+  etaPuertoConocida?: string | null;
+  ahoraIso?: string | null;
 }): SeguimientoEstimado | null {
   const { status, service } = input;
   if (SIN_ESTIMACION.has(status)) return null;
@@ -148,16 +186,37 @@ export function estimarSeguimiento(input: {
   const zarpeMs = leerFecha(stepDates.shipped) ?? leerFecha(input.itinerario?.etd);
   if (zarpeMs == null) return null;
 
+  const ahoraMs = leerFecha(input.ahoraIso);
+  const hoy = ahoraMs == null ? null : diaCaracas(ahoraMs);
+  const vencida = (ms: number) => hoy != null && diaCaracas(ms) < hoy;
+
   const terrestre = service === "transporte_terrestre";
-  const { dias, fuente } = terrestre
-    ? { dias: 0, fuente: "default" as FuenteTransito }
-    : diasDeTransito(input.itinerario);
-  // Si la carga ya llegó a puerto (aduana con fecha real), el resto se ancla
-  // en esa fecha y no en el estimado de mar.
-  const aduanaReal = leerFecha(stepDates.in_customs);
-  const puertoMs = aduanaReal ?? zarpeMs + dias * DIA_MS;
+
+  // Llegada a puerto: aduana real → ETA conocida → zarpe + días de mar.
+  let puertoMs: number | null = null;
+  let fuente: FuenteTransito = "terrestre";
+  let dias = 0;
+  let puertoReal = false;
+  if (!terrestre) {
+    const aduanaReal = leerFecha(stepDates.in_customs);
+    const etaConocida = leerFecha(input.etaPuertoConocida);
+    const mar = diasDeTransito(input.itinerario);
+    dias = mar.dias;
+    if (aduanaReal != null) {
+      puertoMs = aduanaReal;
+      fuente = "aduana";
+      puertoReal = true;
+    } else if (etaConocida != null) {
+      puertoMs = etaConocida;
+      fuente = "naviera";
+    } else {
+      puertoMs = zarpeMs + dias * DIA_MS;
+      fuente = mar.fuente;
+    }
+  }
 
   const porEtapa: Partial<Record<ShipmentStatus, string>> = {};
+  const vencidas: ShipmentStatus[] = [];
   for (let i = idxActual + 1; i < flow.length; i++) {
     const etapa = flow[i];
     let ms: number | null = null;
@@ -169,34 +228,46 @@ export function estimarSeguimiento(input: {
       else if (etapa === "delivered") ms = zarpeMs + DIAS_TERRESTRE * DIA_MS;
     } else if (etapa === "in_transit") {
       ms = zarpeMs + 1 * DIA_MS;
-    } else {
+    } else if (puertoMs != null) {
       const offset = DIAS_DESDE_PUERTO[etapa];
       if (offset != null) ms = puertoMs + offset * DIA_MS;
     }
-    if (ms != null) porEtapa[etapa] = new Date(ms).toISOString();
+    if (ms == null) continue;
+    if (vencida(ms)) vencidas.push(etapa);
+    else porEtapa[etapa] = new Date(ms).toISOString();
   }
 
   const ultima = flow[flow.length - 1];
+  const puertoVencido = !puertoReal && puertoMs != null && vencida(puertoMs);
   return {
     zarpeIso: new Date(zarpeMs).toISOString(),
-    etaPuertoIso: new Date(puertoMs).toISOString(),
+    etaPuertoIso: puertoMs == null || puertoVencido ? null : new Date(puertoMs).toISOString(),
+    puertoReal,
     diasTransito: dias,
     fuente,
+    vencidas,
     porEtapa,
     entregaIso: porEtapa[ultima] ?? null,
+    entregaVencida: vencidas.includes(ultima),
   };
 }
 
-/** Rótulo honesto de la fuente para el pie del stepper. */
+/** Rótulo honesto de la fuente para la nota del stepper. */
 export function rotuloFuente(fuente: FuenteTransito): string {
   switch (fuente) {
+    case "aduana":
+      return "desde la llegada real a puerto";
+    case "naviera":
+      return "con la llegada a puerto que informó la naviera";
     case "zarpe":
-      return "con los días de tránsito del zarpe";
+      return "desde el zarpe, con los días de tránsito del zarpe";
     case "itinerario":
-      return "con el itinerario de la naviera";
+      return "desde el zarpe, con el itinerario de la naviera";
     case "puerto":
-      return "con el tiempo habitual de la ruta";
+      return "desde el zarpe, con el tiempo habitual hasta ese puerto";
     case "default":
-      return "con el tiempo habitual de la ruta";
+      return "desde el zarpe, con el tiempo habitual de la ruta principal";
+    case "terrestre":
+      return "desde el despacho, con el tiempo habitual del transporte terrestre";
   }
 }

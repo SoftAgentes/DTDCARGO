@@ -41,7 +41,7 @@
     },
     {
       "name": "AVISOS_POR_HITO_LIVE",
-      "file": "lib/studio/notifications/avisos-por-hito.ts",
+      "file": "lib/studio/notifications/avisos-por-hito-flag.ts",
       "value": false,
       "significa": "SDD-0627. En false no sale ningún aviso por hito del seguimiento estimado: al zarpar el contenedor no se programa `carga_en_camino` y las reglas ancladas en ETA no usan la ETA estimada desde el zarpe. En true, al marcar zarpado sale un `carga_en_camino` por cliente y contenedor (correo o push según la regla del tenant) y las reglas ancladas en ETA usan la estimada cuando no hay ETA de la naviera ni de la bodega. Encenderla es decisión de Sam, con el ensayo en seco corrido antes sobre el contenedor real."
     },

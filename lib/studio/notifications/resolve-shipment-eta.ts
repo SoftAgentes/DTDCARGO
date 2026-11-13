@@ -27,7 +27,7 @@ import {
 } from "@/lib/studio/naviera-tracking/queries";
 import { estimarSeguimiento } from "@/lib/portal/seguimiento-estimado";
 import type { ShipmentService, ShipmentStatus } from "@/lib/shared/shipment-public";
-import { AVISOS_POR_HITO_LIVE } from "./avisos-por-hito";
+import { AVISOS_POR_HITO_LIVE } from "./avisos-por-hito-flag";
 
 /**
  * Parsea una fecha de fuente heterogénea (ISO de SeaRates o `date` 'YYYY-MM-DD'

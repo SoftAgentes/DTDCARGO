@@ -109,8 +109,12 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   }
 
   // Seguimiento estimado (SDD-0627): desde el zarpe, fecha estimada de cada
-  // etapa que falta. Puro, sobre lo que ya se leyó; null antes del zarpe.
+  // etapa que falta. Puro, sobre lo que ya se leyó; null antes del zarpe. La
+  // llegada a puerto usa la misma ETA que la tarjeta Naviera (SeaRates, luego
+  // el itinerario) antes que la estimada, y «hoy» descarta fechas vencidas.
   const estimado = estimarSeguimiento({
+    etaPuertoConocida: live?.podEta ?? naviera?.eta ?? null,
+    ahoraIso: new Date().toISOString(),
     status: shipment.status,
     service: shipment.service,
     stepDates,

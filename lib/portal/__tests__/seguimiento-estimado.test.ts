@@ -6,9 +6,10 @@ import {
   diasDeTransito,
   estimarSeguimiento,
   leerFecha,
+  rotuloFuente,
 } from "@/lib/portal/seguimiento-estimado";
 
-const dia = (iso: string) => iso.slice(0, 10);
+const dia = (iso: string | null | undefined) => (iso ?? "").slice(0, 10);
 
 describe("SDD-0627 · días de tránsito", () => {
   it("usa los días del zarpe cuando vienen cargados", () => {
@@ -152,5 +153,76 @@ describe("SDD-0627 · estimarSeguimiento", () => {
       stepDates: { shipped: "2026-11-01T00:00:00Z" },
     };
     expect(estimarSeguimiento(input)).toEqual(estimarSeguimiento(input));
+  });
+});
+
+describe("SDD-0627 · revisión: vencidas, ETA conocida, terrestre y rótulos", () => {
+  const base = {
+    status: "shipped" as const,
+    service: "consolidado_lcl" as const,
+    stepDates: { shipped: "2026-09-01T12:00:00Z" },
+    itinerario: { transitDays: 30 },
+  };
+
+  it("M1 · con «hoy» después de las fechas, las vencidas no se muestran como estimadas", () => {
+    // Zarpe 01-sep + 30 = puerto 01-oct; bodega 11-oct; entrega 15-oct.
+    const r = estimarSeguimiento({ ...base, ahoraIso: "2026-10-12T15:00:00Z" })!;
+    expect(r.vencidas).toEqual(["in_transit", "in_customs", "arrived_destination"]);
+    expect(r.porEtapa.in_transit).toBeUndefined();
+    expect(r.porEtapa.arrived_destination).toBeUndefined();
+    expect(dia(r.porEtapa.delivered)).toBe("2026-10-15");
+    expect(r.etaPuertoIso).toBeNull();
+    expect(r.entregaVencida).toBe(false);
+  });
+
+  it("M1 · entrega vencida: sin fecha y marcada para «Pendiente de confirmar»", () => {
+    const r = estimarSeguimiento({ ...base, ahoraIso: "2027-01-01T00:00:00Z" })!;
+    expect(r.entregaIso).toBeNull();
+    expect(r.entregaVencida).toBe(true);
+    expect(Object.keys(r.porEtapa)).toEqual([]);
+  });
+
+  it("M1 · el mismo día no vence (se compara por día de Caracas)", () => {
+    // Puerto estimado 01-oct 12:00 UTC; «hoy» 01-oct 23:30 en Caracas (02-oct 03:30 UTC).
+    const r = estimarSeguimiento({ ...base, ahoraIso: "2026-10-02T03:30:00Z" })!;
+    expect(r.vencidas).not.toContain("in_customs");
+    expect(dia(r.etaPuertoIso)).toBe("2026-10-01");
+  });
+
+  it("M2 · una ETA conocida (SeaRates o itinerario) manda sobre la estimada desde el zarpe", () => {
+    const r = estimarSeguimiento({ ...base, etaPuertoConocida: "2026-10-20" })!;
+    expect(r.fuente).toBe("naviera");
+    expect(dia(r.etaPuertoIso)).toBe("2026-10-20");
+    expect(dia(r.porEtapa.in_customs)).toBe("2026-10-20");
+  });
+
+  it("M2 · la aduana real manda sobre la ETA conocida", () => {
+    const r = estimarSeguimiento({
+      ...base,
+      status: "in_customs",
+      stepDates: { ...base.stepDates, in_customs: "2026-10-25T12:00:00Z" },
+      etaPuertoConocida: "2026-10-20",
+    })!;
+    expect(r.fuente).toBe("aduana");
+    expect(r.puertoReal).toBe(true);
+    expect(dia(r.porEtapa.arrived_destination)).toBe("2026-11-04");
+  });
+
+  it("M3 · terrestre: sin puerto ni días de mar, con su propia fuente", () => {
+    const r = estimarSeguimiento({
+      status: "shipped",
+      service: "transporte_terrestre",
+      stepDates: { shipped: "2026-11-01T12:00:00Z" },
+      etaPuertoConocida: "2026-12-01",
+    })!;
+    expect(r.fuente).toBe("terrestre");
+    expect(r.etaPuertoIso).toBeNull();
+    expect(r.diasTransito).toBe(0);
+    expect(rotuloFuente(r.fuente)).toMatch(/despacho/);
+    expect(rotuloFuente(r.fuente)).not.toMatch(/zarpe|puerto/);
+  });
+
+  it("B3 · los rótulos de «puerto» y «default» son distintos", () => {
+    expect(rotuloFuente("puerto")).not.toBe(rotuloFuente("default"));
   });
 });
