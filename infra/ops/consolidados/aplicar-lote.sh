@@ -31,8 +31,11 @@
 # Candado: simulacro, aplicar, deshacer y purgar toman
 # LOTES_CANDADO (por defecto /run/lock/dtd-lotes.lock.d), un directorio que se
 # crea con mkdir (atómico), igual que el de migraciones/aplicar.sh: dos pasos
-# que escriben no corren a la vez. Si quedó de una corrida muerta, se borra a
-# mano después de revisar que no haya otra en curso.
+# que escriben no corren a la vez. Adentro queda `pid` con el dueño; al salir
+# (también por HUP, INT o TERM: 129, 130, 143) sólo se suelta si sigue siendo
+# suyo. Si quedó de una corrida muerta, se borra a mano después de revisar con
+# ese pid que no haya otra en curso. La autorización no puede ser un enlace
+# simbólico.
 #
 # Uso:
 #   aplicar-lote.sh --project dtd-cargo-staging|dtd-cargo --confirm <el mismo> \
@@ -104,7 +107,11 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   # vacío y citar el id COMPLETO del lote (un número suelto lo cumplen una
   # fecha o «no autorizo el 61»; el id además fija el packing exacto).
   AUTORIZACION="${AUTORIZACION:-${LOTE}/AUTORIZACION.txt}"
-  [[ -s "${AUTORIZACION}" ]] || refuse "producción exige ${AUTORIZACION} con el OK literal de Sam para este lote"
+  # Un enlace simbólico podría apuntar a cualquier archivo (el manifiesto de este
+  # u otro lote, que cita el id y lleva nombres) y saltarse la guarda de abajo,
+  # que mira la ruta del enlace y no la del destino. Sólo un archivo regular.
+  [[ -L "${AUTORIZACION}" ]] && refuse "la autorización ${AUTORIZACION} es un enlace simbólico: tiene que ser un archivo regular"
+  [[ -f "${AUTORIZACION}" && -s "${AUTORIZACION}" ]] || refuse "producción exige ${AUTORIZACION} con el OK literal de Sam para este lote"
   # Dentro de la carpeta del lote sólo vale AUTORIZACION.txt: cualquier otro
   # archivo (manifiesto.json, resumen.md) cita el id y lleva nombres, y se
   # copiaría a la evidencia.
@@ -133,8 +140,19 @@ if [[ ${DRY_RUN} -eq 0 && " simulacro aplicar deshacer purgar " == *" ${PASO} "*
   # aplicar previo» y el aplicar mismo.
   CANDADO="${LOTES_CANDADO:-/run/lock/dtd-lotes.lock.d}"
   [[ -d "$(dirname -- "${CANDADO}")" ]] || die "no existe $(dirname -- "${CANDADO}") para el candado (LOTES_CANDADO)"
-  mkdir -- "${CANDADO}" 2> /dev/null || refuse "otro paso de un lote está en curso (candado ${CANDADO}); si no hay ninguno, revisa y borra el candado a mano"
-  trap 'rmdir -- "${CANDADO}" 2> /dev/null' EXIT
+  mkdir -- "${CANDADO}" 2> /dev/null \
+    || refuse "otro paso de un lote está en curso (candado ${CANDADO}, dueño pid $(cat -- "${CANDADO}/pid" 2> /dev/null || echo '?')); si no hay ninguno, revisa y borra el candado a mano"
+  # El dueño queda escrito adentro: al salir sólo se suelta si sigue siendo
+  # nuestro (nunca un candado ajeno, aunque alguien lo haya rehecho a mano).
+  printf '%s\n' "$$" > "${CANDADO}/pid"
+  soltar_candado() {
+    [[ "$(cat -- "${CANDADO}/pid" 2> /dev/null)" == "$$" ]] || return 0
+    rm -f -- "${CANDADO}/pid" && rmdir -- "${CANDADO}" 2> /dev/null
+  }
+  trap soltar_candado EXIT
+  # Si ssh se cae (HUP) o alguien corta, sale por EXIT y suelta el candado. La
+  # transacción en curso la resuelve Postgres: COMMIT completo o nada.
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 fi
 if [[ "${PASO}" == "aplicar" ]]; then
   # Un simulacro PASÓ del MISMO lote en la MISMA base: su evidencia tiene el

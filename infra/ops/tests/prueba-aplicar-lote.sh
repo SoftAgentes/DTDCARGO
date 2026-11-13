@@ -26,6 +26,11 @@ if [[ -n "${DOBLE_FALLA-}" && "${script}" == *"${DOBLE_FALLA}"* ]]; then
   echo "psql:stdin:9: ERROR:  preflight: el contenedor ABCU1234567 ya está cargado" >&2
   exit 3
 fi
+# Candado: el doble anota quién lo tiene mientras «psql» corre, puede robarlo
+# (otro dueño rehízo el candado a mano) o dormir para dar tiempo a una señal.
+if [[ -n "${DOBLE_VER_CANDADO-}" ]]; then cat "${LOTES_CANDADO}/pid" > "${DOBLE_VER_CANDADO}" 2> /dev/null; fi
+if [[ -n "${DOBLE_ROBA_CANDADO-}" ]]; then echo 1 > "${LOTES_CANDADO}/pid"; fi
+if [[ -n "${DOBLE_DORMIR-}" ]]; then sleep "${DOBLE_DORMIR}"; fi
 # Fuga plantada: lo que psql escriba, con nombre y todo, llega a la evidencia tal cual.
 if [[ -n "${DOBLE_FUGA-}" ]]; then
   echo "psql:stdin:12: NOTICE:  marca sin resolver: NOMBRE SECRETO PRUEBA" >&2
@@ -203,6 +208,52 @@ PROD_COMPOSE_PROJECT=otra-prod bash "${APLICAR}" --proyecto otra-prod --confirm 
 PROD_COMPOSE_PROJECT=otra-prod bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "con PROD_COMPOSE_PROJECT=otra-prod, dtd-cargo deja de ser destino válido (3)" || ko "dtd-cargo aceptado con otra producción"
 bash "${APLICAR}" --proyecto DTD-CARGO --confirm DTD-CARGO --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "DTD-CARGO en mayúsculas no es producción (3)" || ko "DTD-CARGO aceptado"
 bash "${APLICAR}" --project ZZ-STAGING --confirm ZZ-STAGING --lote "${L}" --evidence-dir "${T}/evid" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "ZZ-STAGING en mayúsculas no es prueba (3)" || ko "ZZ-STAGING aceptado"
+
+# 10. La autorización no puede ser un enlace simbólico (seguimiento de la #534).
+# En Git Bash para Windows `ln -s` copia en vez de enlazar: ahí estos dos casos no
+# se pueden montar y salen OMITIDOS (no cuentan como PASÓ); el CI Linux sí los corre.
+EP4="${T}/evid-prod-4"; mkdir -p "${EP4}"
+ln -s "${P}/manifiesto.json" "${T}/enlace-aut.txt" 2> /dev/null
+if [[ -L "${T}/enlace-aut.txt" ]]; then
+  out="$(prod_ep4() { bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP4}" "$@"; }; prod_ep4 --paso previa --autorizacion "${T}/enlace-aut.txt" 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"enlace simbólico"* && -z "$(ls -A "${EP4}")" ]] && ok "--autorizacion como enlace simbólico (al manifiesto) rechazada sin dejar evidencia (3)" || ko "enlace externo rc=${rc}: ${out}"
+  ln -s "${T}/ok-61.txt" "${P}/AUTORIZACION.txt"
+  out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP4}" --paso previa 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"enlace simbólico"* ]] && ok "AUTORIZACION.txt del lote como enlace simbólico rechazada, aunque apunte a un OK válido (3)" || ko "enlace en el lote rc=${rc}: ${out}"
+  rm -f "${P}/AUTORIZACION.txt"
+else
+  echo "OMITIDA · --autorizacion como enlace simbólico (este bash no crea enlaces: ln -s copia)"
+  echo "OMITIDA · AUTORIZACION.txt del lote como enlace simbólico (este bash no crea enlaces: ln -s copia)"
+fi
+rm -f "${T}/enlace-aut.txt"
+
+# 11. Candado con dueño: el pid queda adentro mientras corre, una señal lo suelta
+# por EXIT, y nunca se suelta uno que ya no es suyo.
+# `exec`: en segundo plano, $! es el pid del guion mismo y no el de una subshell.
+lento() { DOBLE_DORMIR="${DOBLE_DORMIR:-3}" exec bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP4}" --autorizacion "${T}/ok-61.txt" --paso simulacro "$@"; }
+espera_candado() { local i; for i in $(seq 1 100); do [[ -s "${LOTES_CANDADO}/pid" ]] && return 0; sleep 0.1; done; return 1; }
+# Sin control de trabajos, bash arranca los procesos de `&` con SIGINT ignorado y
+# el trap no podría verlo; `set -m` sólo para esta sección.
+set -m
+for senal in TERM:143 HUP:129 INT:130; do
+  nombre="${senal%%:*}"; esperado="${senal##*:}"
+  (lento > /dev/null 2>&1) &
+  pid=$!
+  espera_candado
+  dueno="$(cat "${LOTES_CANDADO}/pid" 2> /dev/null)"
+  kill -"${nombre}" "${pid}" 2> /dev/null
+  wait "${pid}"; rc=$?
+  [[ "${dueno}" == "${pid}" && ${rc} -eq ${esperado} && ! -e "${LOTES_CANDADO}" ]] \
+    && ok "${nombre} durante el paso: sale ${esperado} y suelta su candado (dueño pid ${pid})" \
+    || ko "${nombre}: dueño='${dueno}' pid=${pid} rc=${rc} candado=$([[ -e "${LOTES_CANDADO}" ]] && echo tomado || echo libre)"
+  rm -rf "${LOTES_CANDADO}"; sleep 1
+done
+set +m
+(DOBLE_DORMIR=0 DOBLE_ROBA_CANDADO=1 lento > /dev/null 2>&1)
+[[ -d "${LOTES_CANDADO}" && "$(cat "${LOTES_CANDADO}/pid" 2> /dev/null)" == "1" ]] && ok "un candado que cambió de dueño durante el paso no se suelta al salir" || ko "se soltó un candado ajeno"
+out="$(DOBLE_DORMIR=0 lento 2>&1)"; rc=$?  # $(…) ya es una subshell: el exec no se lleva la prueba
+[[ ${rc} -eq 3 && "${out}" == *"dueño pid 1"* ]] && ok "el rechazo por candado tomado nombra el pid del dueño (3)" || ko "rechazo sin dueño rc=${rc}: ${out}"
+rm -rf "${LOTES_CANDADO}"
 
 echo "${pass} PASÓ · ${fail} FALLÓ"
 [[ ${fail} -eq 0 ]]
