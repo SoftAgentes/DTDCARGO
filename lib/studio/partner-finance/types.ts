@@ -16,6 +16,7 @@
  * manuales (no Zod, patrón del repo). Montos `numeric` llegan de Supabase como
  * string → se coercen a number en las queries.
  */
+import { usdOrNull } from "@/lib/shared/fx";
 
 // ── Tonos de badge (set del sistema) ──────────────────────────
 export type BadgeTone =
@@ -345,17 +346,9 @@ export function amountToUsd(args: {
   currency: PartnerCurrency;
   fxRate?: number | null;
 }): { ok: true; usd: number } | { ok: false; reason: "missing-fx-rate" } {
-  const amount = num(args.amount);
-  // USD y USDT (par) → ya está en USD funcional, sin tasa.
-  if (args.currency === "USD" || args.currency === "USDT") {
-    return { ok: true, usd: round2(amount) };
-  }
-  // RMB / VES → exige una tasa <currency>/USD válida.
-  const fx = args.fxRate == null ? NaN : Number(args.fxRate);
-  if (!Number.isFinite(fx) || fx <= 0) {
-    return { ok: false, reason: "missing-fx-rate" };
-  }
-  return { ok: true, usd: round2(amount / fx) };
+  // SDD-0572: el conversor canónico (RMB es CNY; cuenta exacta, como `to_usd`).
+  const usd = usdOrNull(num(args.amount), args.currency, args.fxRate);
+  return usd === null ? { ok: false, reason: "missing-fx-rate" } : { ok: true, usd };
 }
 
 /**
