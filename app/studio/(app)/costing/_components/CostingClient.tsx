@@ -181,13 +181,9 @@ export function CostingClient({
       {/* Tabs */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 4,
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 24,
-          flexWrap: "wrap",
-        }}
+        aria-label="Secciones de costeo y margen"
+        className="studio-tabs"
+        style={{ marginBottom: 24 }}
       >
         {TABS.map((t) => {
           const on = t.value === tab;
@@ -197,18 +193,9 @@ export function CostingClient({
               type="button"
               role="tab"
               aria-selected={on}
+              data-activa={on ? "true" : undefined}
               onClick={() => setTab(t.value)}
-              style={{
-                appearance: "none",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${on ? "var(--wine)" : "transparent"}`,
-                padding: "8px 14px",
-                cursor: "pointer",
-                font: `${on ? "700" : "500"} 13px/1 var(--f-sans)`,
-                color: on ? "var(--ink)" : "var(--ink-soft)",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>

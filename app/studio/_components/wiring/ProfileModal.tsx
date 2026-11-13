@@ -64,12 +64,9 @@ export function ProfileModal({
       {/* Tabs */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 2,
-          borderBottom: "1px solid var(--border)",
-          padding: "0 22px",
-        }}
+        aria-label="Secciones del perfil"
+        className="studio-tabs"
+        style={{ margin: "0 22px" }}
       >
         {(["profile", "password", "prefs"] as ProfileTab[]).map((t) => {
           const active = tab === t;
@@ -78,19 +75,10 @@ export function ProfileModal({
               key={t}
               role="tab"
               type="button"
+              aria-selected={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(t)}
-              style={{
-                padding: "12px 14px",
-                background: "transparent",
-                border: 0,
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t === "profile"
                 ? "Datos personales"

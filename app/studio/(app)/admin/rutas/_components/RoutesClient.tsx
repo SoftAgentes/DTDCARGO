@@ -101,12 +101,9 @@ export function RoutesClient({ routes, cities, citiesCount, veCatalog }: Props) 
       {/* Tabs */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 2,
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-        }}
+        aria-label="Secciones de rutas"
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {[
           { value: "routes" as Tab, label: "Rutas", count: routes.length },
@@ -118,31 +115,13 @@ export function RoutesClient({ routes, cities, citiesCount, veCatalog }: Props) 
               key={t.value}
               role="tab"
               type="button"
+              aria-selected={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => changeTab(t.value)}
-              style={{
-                padding: "12px 18px",
-                background: "transparent",
-                border: 0,
-                borderBottom: active ? "2px solid var(--wine)" : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
-              <span
-                style={{
-                  marginLeft: 8,
-                  padding: "2px 7px",
-                  background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                  color: active ? "var(--wine)" : "var(--ink-mute)",
-                  borderRadius: "var(--r-pill)",
-                  font: "700 10.5px/1 var(--f-mono)",
-                }}
-              >
-                {t.count}
-              </span>
+              <span className="studio-tab-n">{t.count}</span>
             </button>
           );
         })}
