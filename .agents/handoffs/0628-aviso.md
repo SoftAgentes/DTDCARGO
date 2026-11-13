@@ -42,6 +42,10 @@
 
 PRs abiertas que tocan la allowlist: solo `docs/specs/README.md`, que es índice generado y lo tocan #530, #529, #527, #526, #525, #521, #520, #519, #515, #488, #318, #314, #313 y #312. Al integrar se regenera; ver la memoria sobre merge del índice de specs.
 
+## Ampliación por el CI (2026-11-13)
+
+El CI de la #536 (cabeza `ea7e24333`) falló en Unitarios: 2 de 17192, porque las pruebas del registro fijaban 5 componentes. El Subdirector Rebrand autorizó tres archivos más: `scripts/__tests__/component-registry.test.ts`, `.agents/plugins/plugins/erp-studio-governance/scripts/__tests__/policy-registry.test.mjs` y `references/policy-registry.json`, este último regenerado. Resultados: vitest focal 11/11, components:check y governance:check, todos PASÓ. `governance:plugin:check` FALLÓ: compara la caché del plugin instalado en la PC con el repo, no corre en el CI, y reinstalar el plugin queda fuera de esta tarea.
+
 ## Pendientes de esta tarea
 
 - Leer el CI de GitHub de la PR y corregir en esta rama si sale rojo. La revisión independiente la lanza el DG. No se fusiona desde aquí.

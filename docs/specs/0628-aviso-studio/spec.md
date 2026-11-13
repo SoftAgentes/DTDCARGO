@@ -118,6 +118,12 @@ El margen más corto es el icono de éxito en claro sobre la superficie elevada:
 - `docs/specs/0628-aviso-studio/spec.md`, `docs/specs/README.md`
 - `.agents/handoffs/0628-aviso.md`
 
+**Ampliación del 2026-11-13, autorizada por el Subdirector Rebrand.** El CI de la PR falló porque dos pruebas fijan a propósito la lista de componentes de CMP-01, que pasa de 5 a 6 con `aviso`. Se suman, con el mismo patrón que SDD-0263 (`38665ff5a`):
+
+- `scripts/__tests__/component-registry.test.ts`: el conteo pasa a 6 y `aviso` entra en la lista explícita de ids.
+- `.agents/plugins/plugins/erp-studio-governance/scripts/__tests__/policy-registry.test.mjs`: el conteo pasa a 6.
+- `.agents/plugins/plugins/erp-studio-governance/references/policy-registry.json`, regenerado con `build-policy-registry.mjs`. Al regenerar entra también SGE-AG-01, que ya estaba aprobada en `main` pero faltaba en este derivado.
+
 No se editan `tokens.css` ni `docs/specs/0603-claridad-controles/spec.md`. Sin migraciones, rutas, acciones de servidor, permisos ni dependencias nuevas. **Ninguna pantalla adopta el componente en este tramo.**
 
 ## Aceptación
@@ -130,7 +136,7 @@ No se editan `tokens.css` ni `docs/specs/0603-claridad-controles/spec.md`. Sin m
 - En claro y oscuro, sobre página, tarjeta y superficie elevada: texto ≥ 4,5:1 e icono ≥ 3:1 en los cuatro tonos (24 mediciones).
 - La franja no declara contorno ni sombra, y ninguna regla `.studio-aviso*` lleva un color literal.
 - `avisos-contract.test.ts` cuenta lo que mide (piso de 24 mediciones y 13 reglas) y trae cinco mutantes que lo rompen: el dorado vuelve al icono en claro, el texto pasa a tinta apagada, la franja gana contorno y sombra, un tono usa un color literal, la excepción oscura sale de `@media screen`.
-- `aviso.json` válido en `pnpm components:check`; `docs/governance/generated/` regenerado.
+- `aviso.json` válido en `pnpm components:check`; `docs/governance/generated/` y el derivado del plugin, regenerados; las pruebas del registro cuentan 6 componentes.
 
 ## Gate VIS-01
 
