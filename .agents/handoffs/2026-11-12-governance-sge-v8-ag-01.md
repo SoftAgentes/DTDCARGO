@@ -66,3 +66,12 @@ Tarea completada hasta PR abierto con checks locales en verde y evidencia public
 - PR #524 fusionado en main el 2026-11-12 a las 22:01 UTC por Sam (cuenta SoftAgentes). Commit de merge: dcccddee611b674828309aedcec9101863357e7a.
 - Este archivo quedó sin commit en el worktree Orca/DTDCARGO/governance-sge-v8-ag-01. Se copia byte a byte (verificado con cmp) en la rama del PR #525 como el «mini-commit de handoff» del encargo del Director (Hermes); solo se agrega esta sección.
 - Pendiente que sigue abierto: los puntos de FUERA DE ALCANCE DETECTADO que viajan en la SDD-0626 no se resuelven con este archivo.
+
+## A3 Y CORRIDA DE CONOCIMIENTO 2026-11-13 (autorizadas por Sam en el chat: «Empuja y haz A3»)
+- A3 HECHO: el checkout principal `Developer/DTDCARGO` pasó de HEAD separado (09e6b279f) a la rama `main`, sin cambios rastreados. Solo había `.pnpm-store/` sin rastrear.
+- Corrida de conocimiento (`node scripts/knowledge-daily.mjs`, SDD-0623) desde el checkout principal:
+  - dry-run: precondiciones cumplidas.
+  - corrida real: fast-forward de `main` a e5169e86e. Luego, en el log `%LOCALAPPDATA%\dtd-cargo\knowledge-daily.log`: `resultado=FAILED estructura=UPDATE_FAILED(check=PENDING) archify=PENDING obsidian=PENDING semantico_pendiente=piloto=10 global=1460 motivo="STRUCTURE_FAILED: TIMEOUT tras 1800 s"`, salida 1.
+  - Tras el timeout no quedaron procesos de Graphify huérfanos ni cambios rastreados.
+- Antes de la corrida, `knowledge:status` ya marcaba `structural/semantic UNAVAILABLE` («Respuesta inválida del adaptador Graphify»). El Python fijado (`uv tools graphifyy`) sí importa graphify.
+- PENDIENTE (para el Director): por qué `graphify update .` no termina en 30 min sobre main. Archify y Obsidian quedan sin actualizar hasta resolverlo.
