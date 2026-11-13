@@ -153,6 +153,31 @@ describe("generarSql", () => {
     expect(prod.aplicar).toContain("'produccion'");
   });
 
+  it("producción (F2): la previa se corta si una marca no resuelve a un cliente vivo y aplicar no crea clientes ni aliados", () => {
+    const prod = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const corte = prod.previa.indexOf("do $corte$");
+    expect(corte).toBeGreaterThan(prod.previa.indexOf("=== resumen de marcas"));
+    expect(corte).toBeLessThan(prod.previa.lastIndexOf("rollback;"));
+    expect(prod.previa).toContain("raise exception 'previa: % marca(s) sin resolver a un cliente vivo en producción (%)");
+    expect(prod.previa).toContain("where x.client_id is null or cl.deleted_at is not null;");
+    // El corte lista etiquetas, no el texto del Excel: termina en la evidencia.
+    const bloque = prod.previa.slice(corte);
+    expect(bloque).toContain("('DTD-J031', array['DTD-J031']::text[])");
+    expect(bloque).not.toContain("PRUEBA O''HIGGINS");
+    expect(bloque).not.toContain("ALIADO PRUEBA MM");
+    expect(prod.previa.trimEnd().endsWith("rollback;")).toBe(true);
+    // aplicar de un lote de producción no puede crear: la guarda corre antes de resolver marcas.
+    expect(prod.aplicar).toContain("'Por confirmar', false, true, 'produccion'");
+    expect(prod.aplicar).toContain("if cab.crear_faltantes and cab.entorno <> 'prueba' then");
+    expect(prod.aplicar).toContain("raise exception 'lote: la marca % no resuelve a ningún cliente; mapéala en marcas-mapa.json (ver resumen.md)', c.etiqueta;");
+    // Un lote de prueba no lleva el corte: ahí se crean las fichas sintéticas.
+    expect(generarSql(lote(), OPCIONES, FUENTES).previa).not.toContain("$corte$");
+    // Y el generador no deja pedir clientes nuevos fuera de prueba.
+    expect(() =>
+      parsearArgumentos(["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "61", "--eta", "2026-10-25", "--salida", "x", "--entorno", "produccion", "--crear-clientes-faltantes"]),
+    ).toThrow(/sólo se permite con --entorno prueba/);
+  });
+
   it("cada línea de la factura lleva el código de su embarque (shipmentCode): el Portal lista los embarques y suma su medida", () => {
     const s = generarSql(lote(), OPCIONES, FUENTES);
     expect(s.aplicar).toContain(
