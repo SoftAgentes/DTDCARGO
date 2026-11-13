@@ -59,7 +59,7 @@ Sin cambios en `app/globals.css`, páginas del portal, rutas, datos, acciones de
 
 ## Límites y pendientes
 
-- **Avisos con estilo en línea.** Los que pintan su borde completo en línea (página de error del portal) o su fondo de estado en línea conservan ese fondo o borde: la hoja no mira el estilo en línea. Los resuelve el tramo 4 (componente único de avisos).
+- **Avisos con estilo en línea.** Los que pintan su borde completo en línea (página de error del portal) o su fondo de estado en línea conservan ese fondo o borde: la hoja no mira el estilo en línea. Quedan para un tramo aparte, «T4e · avisos del portal», después de fusionar este; el tramo 4 (T4a, componente de avisos) es solo del Studio y no toca `app/portal`.
 - **`PrealertaStatusBadge`** pinta su píldora en línea: sigue como píldora. Pasarlo a texto con icono pide tocar ese componente, fuera de esta allowlist.
 - **Etiquetas de campo** (`FieldLabel`, mayúsculas en `--color-grey-500`, 5,33:1) no cambian: ya cumplen AA; el prototipo las cambiaba, pero no son parte de la regla.
 - **Primario en oscuro.** El vino del portal oscuro (`--color-wine` #c24450) mide 3,00:1 contra la tarjeta (#16264a), justo en el mínimo de un control; el borde propio de la enmienda de elevación del Studio no se trae aquí. Queda para una decisión aparte.

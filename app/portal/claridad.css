@@ -147,8 +147,9 @@
    y sombra y quedan como franja de `--color-grey-100`. Un fondo de estado
    puesto en línea (rojo suave de un error) sigue mandando, porque el estilo en
    línea gana a esta hoja; tampoco se toca el aviso que pinta su borde completo
-   en línea (`border: …`): eso lo resuelve el tramo 4, componente único de
-   avisos. El texto suelto con `role="alert"` (error bajo un campo) no lleva
+   en línea (`border: …`). Esos avisos con estilo en línea quedan para un
+   tramo aparte, «T4e · avisos del portal», después de este; el tramo 4 del
+   Studio no toca el portal. El texto suelto con `role="alert"` (error bajo un campo) no lleva
    cajón y no cambia. */
 .portal-sys main :is([role="alert"], [role="status"])[class*="border"] {
   background: var(--color-grey-100);

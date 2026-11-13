@@ -25,7 +25,7 @@ Ver tabla «Qué cambia» de `tramo-3.md`. En corto: `.btn-ghost` con contorno d
 ## FUERA DE ALCANCE DETECTADO
 
 - `PrealertaStatusBadge.tsx` pinta su píldora en línea: sigue como píldora. Componente fuera de la allowlist.
-- Avisos con borde o fondo en línea (`CotizacionRequestForm.tsx`, `app/portal/(app)/error.tsx`): pertenecen al tramo 4.
+- Avisos con borde o fondo en línea (`CotizacionRequestForm.tsx`, `app/portal/(app)/error.tsx`): quedan para un tramo aparte, «T4e · avisos del portal», después de fusionar esta PR (corrección del Subdirector Rebrand: el T4a es solo del Studio).
 - Primario vino en el portal oscuro: 3,00:1 contra la tarjeta (`#c24450` sobre `#16264a`), justo en el mínimo; el Studio lo resolvió con `--ctl-edge-hi` en la enmienda de elevación. Requiere decisión y tocar `globals.css`.
 - Hipótesis sin comprobar: `vitest.config` excluye `**/.claude/**`; al correr desde un worktree del harness se confirma si el contrato se recoge (el conteo de pruebas lo dirá).
 
