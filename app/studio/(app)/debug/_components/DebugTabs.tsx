@@ -78,14 +78,8 @@ export function DebugTabs({
       <div
         role="tablist"
         aria-label="Torre de control"
-        style={{
-          display: "flex",
-          gap: "var(--s-2)",
-          flexWrap: "wrap",
-          borderBottom: "1px solid var(--border)",
-          paddingBottom: "var(--s-2)",
-          opacity: isPending ? 0.7 : 1,
-        }}
+        className="studio-tabs"
+        style={{ opacity: isPending ? 0.7 : 1 }}
       >
         {DEBUG_TABS.map((t) => {
           const isActive = t.key === active;
@@ -97,19 +91,9 @@ export function DebugTabs({
               aria-selected={isActive}
               data-tab={t.key}
               data-active={isActive ? "true" : "false"}
+              data-activa={isActive ? "true" : undefined}
               onClick={() => go(t.key)}
-              className="studio-btn studio-btn-sm"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: isActive ? "var(--bg-elevated)" : "transparent",
-                border: isActive
-                  ? "1px solid var(--border)"
-                  : "1px solid transparent",
-                color: isActive ? "var(--ink)" : "var(--ink-soft)",
-                fontWeight: isActive ? 700 : 500,
-              }}
+              className="studio-tab"
             >
               {t.label}
               <span
