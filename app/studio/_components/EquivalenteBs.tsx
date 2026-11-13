@@ -34,7 +34,7 @@ export function EquivalenteBs({ eq, tono = "claro", leyenda = false, align = "le
     <div
       data-testid="equivalente-bs"
       data-estado={eq.estado}
-      style={{ marginTop: 6, textAlign: align, display: "grid", gap: 2 }}
+      style={{ marginTop: "var(--s-1)", textAlign: align, display: "grid", gap: "var(--s-1)" }}
     >
       <span
         style={{

@@ -43,7 +43,7 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 | vitest focal con turno: `app/studio/(app)/cobranzas` + `app/portal/(app)/facturas` | PASÓ: 11 archivos, 63 pruebas |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub más la revisión independiente (cambio del DG, 2026-11-13) |
 | CI de GitHub | ver la PR #531 (registrado al cierre) |
-| `/ui-check` (revisión del diff, sin levantar la app) | PASÓ con 3 ajustes menores de prioridad baja: px sueltos en vez de `--s-*` en `EquivalenteBs.tsx` y en la leyenda de la factura, y un rótulo que podría usar `studio-eyebrow`. No se aplicaron: es advisory y el 0630 comparte esos archivos |
+| `/ui-check` (revisión del diff, sin levantar la app) | PASÓ con 3 ajustes menores de prioridad baja. Aplicado: `--s-1` en lugar de px sueltos en `EquivalenteBs.tsx`. Quedan como seguimiento, porque el 0630 comparte esos archivos: el margen de la leyenda en `facturacion/[code]/page.tsx` y el rótulo «Por cobrar en USD» de `CobranzasClient.tsx` (`studio-eyebrow`) |
 
 > **Nota de turno.** El install, la focal, el typecheck y el lint se corrieron SIN turno, por una lectura equivocada de la orden. Pudieron cruzarse con el verify del 0631. Si se quiere una corrida limpia, se repite con turno. Después el DG cambió el portón: verify ya no se exige localmente y `/ui-check` se corrió como revisión del diff.
 >
@@ -66,6 +66,11 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 ## Impacto documental
 
 Spec nueva e índice regenerado. Graphify, Archify y la preview de Obsidian no se tocaron: los aplaza la coordinación del Subdirector y quedan como pendiente global, no de esta rama.
+
+## SEGUIMIENTO (después de que entre el 0630)
+
+- `app/studio/(app)/facturacion/[code]/page.tsx`: la leyenda de Bs usa `margin: "12px 0 0"`; pasar a `var(--s-3)`.
+- `app/studio/(app)/cobranzas/_components/CobranzasClient.tsx` (`BsPorCobrar`): el rótulo «Por cobrar en USD» puede usar `studio-eyebrow`.
 
 ## FUERA DE ALCANCE DETECTADO
 
