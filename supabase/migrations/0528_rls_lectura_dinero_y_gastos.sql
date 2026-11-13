@@ -3,9 +3,9 @@
 -- Soporte deja de escribir gastos.
 --
 -- ⚠️ NO APLICADA A PRODUCCIÓN. Aplicar exige OK de Sam NOMBRANDO este archivo
---    (docs/runbooks/aplicar-migraciones-prod.md). Depende de la 0470 y la 0511
---    (también sin aplicar según sus cabeceras): el preflight aborta si sus
---    policies `*_team_select` no existen. Medir el ledger antes.
+--    (docs/runbooks/aplicar-migraciones-prod.md). Depende de la 0470 y la 0511,
+--    ya aplicadas y selladas en supabase/migrations.lock.json: el preflight
+--    aborta si sus policies `*_team_select` no existen. Medir el ledger antes.
 --
 -- ── El hueco ────────────────────────────────────────────────
 -- La 0470 y la 0511 cerraron la ESCRITURA de asientos, cobros y cuentas por

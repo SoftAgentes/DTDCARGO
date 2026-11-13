@@ -47,8 +47,9 @@ Crear el gasto propio sigue abierto al staff no-support a propósito: el ERP
 móvil (`/m/erp`) deja a comercial y operaciones cargar sus gastos de calle, y
 la tabla lo dice desde la 0047 («cada user del tenant carga los suyos»).
 
-**Depende de la 0470 y la 0511**, que según sus cabeceras no están aplicadas
-en producción. El preflight de la 0528 aborta si sus policies `*_team_select`
+**Depende de la 0470 y la 0511**, ya aplicadas y selladas en
+`supabase/migrations.lock.json`. La 0528 es una espera declarada en
+`supabase/migrations-baseline.json`. El preflight de la 0528 aborta si sus policies `*_team_select`
 no existen. Aplicar exige OK de Sam nombrando el archivo y medir el ledger
 antes (`docs/runbooks/aplicar-migraciones-prod.md`).
 

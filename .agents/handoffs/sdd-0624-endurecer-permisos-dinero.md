@@ -47,9 +47,15 @@ los overrides por rol. La SDD-0622 lo puede alinear con `user_has_module`.
 
 ## Pendiente de esta tarea
 
-- **Aplicar la 0528 a producción.** Necesita un OK de Sam que nombre el archivo,
-  y antes la 0470 y la 0511, que según sus cabeceras no están aplicadas. Hay
-  que medir el ledger primero.
+- **Aplicar la 0528 a producción.** Necesita un OK de Sam que nombre el archivo.
+  La 0470 y la 0511 ya están aplicadas y selladas (candado, 2026-10-19 y
+  2026-11-03), aunque sus cabeceras digan otra cosa. Hay que medir el ledger
+  primero. Al aplicarla se retira su espera con
+  `infra/ops/migraciones/retirar-espera.mjs`, que también la sella.
+- **2026-11-13, tras traer main (0532 sellada):** la 0528 quedó por debajo de la
+  mayor sellada y el candado la marcó `SIN_SELLO`. Se declaró como espera en
+  `migrations-baseline.json`, con la degradación de
+  `claim_indemnity_entry_codes` en `pending-migration-symbol-declarations.json`.
 - **Ver el CI de GitHub en la PR.** Es el portón de integración.
 
 ## Coordinación con SDD-0622 (PR #509)
