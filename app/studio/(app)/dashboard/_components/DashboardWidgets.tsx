@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import { STATUS_LABELS } from "@/lib/shared/shipment-public";
 import { TONE_TO_VALUE_COLOR, type ChartPeriod, type KpiTone } from "@/lib/studio/dashboard/dashboard-catalog";
 import { CHART_PERIODS } from "@/lib/studio/dashboard/dashboard-catalog";
@@ -164,7 +165,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
             {items.length} activo(s) · recientes primero
           </div>
         </div>
-        <Link href="/studio/tracking" style={{ font: "600 12px/1 var(--f-sans)", color: "var(--wine-text)", textDecoration: "none" }}>
+        <Link href="/studio/tracking" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>
           Ver todos →
         </Link>
       </div>
@@ -178,11 +179,12 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
             <Link
               key={s.id}
               href={`/studio/tracking/${s.id}`}
+              className="studio-tracking-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "130px 1fr 120px",
                 gap: 12,
-                padding: "13px 20px",
+                padding: "13px 28px 13px 20px",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
                 textDecoration: "none",
@@ -197,8 +199,8 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
                   {s.destination ?? "Destino —"}
                 </div>
               </div>
-              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", textAlign: "right" }}>
-                {STATUS_LABELS[s.status] ?? s.status}
+              <div style={{ textAlign: "right" }}>
+                <Badge tone="neutral" size="xs">{STATUS_LABELS[s.status] ?? s.status}</Badge>
               </div>
             </Link>
           ))}
@@ -217,7 +219,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
         <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           PRÓXIMOS POR LLEGAR
         </div>
-        <Link href="/studio/calendario" style={{ font: "600 11px/1 var(--f-sans)", color: "var(--wine-text)", textDecoration: "none" }}>
+        <Link href="/studio/calendario" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>
           Calendario →
         </Link>
       </div>
@@ -229,12 +231,12 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
             <Link
               key={s.id}
               href={`/studio/tracking/${s.id}`}
+              className="studio-tracking-row"
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                padding: "9px 11px",
-                background: "var(--bg-elevated)",
+                padding: "9px 28px 9px 11px",
                 borderRadius: "var(--r-md)",
                 textDecoration: "none",
               }}
@@ -246,7 +248,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
                   {s.clientName ?? "Sin cliente"}
                 </div>
               </div>
-              <span style={{ font: "600 10.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}>{STATUS_LABELS[s.status] ?? s.status}</span>
+              <Badge tone="neutral" size="xs">{STATUS_LABELS[s.status] ?? s.status}</Badge>
             </Link>
           ))}
         </div>
@@ -319,23 +321,24 @@ export function QuickActionsWidget() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {items.map((a) => (
+          // SDD-0603 · tramo 5a: se oprime, así que lleva contorno de tinta
+          // (secundario). El color lo pone la clase, también al invertirse.
           <Link
             key={a.label}
             href={a.href}
+            className="studio-btn studio-btn-ghost"
             style={{
-              display: "flex",
               flexDirection: "column",
+              alignItems: "flex-start",
               gap: 6,
               padding: "12px 14px",
-              borderRadius: "var(--r-md)",
-              background: "var(--bg-elevated)",
               textDecoration: "none",
             }}
           >
-            <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>
+            <span style={{ display: "inline-flex" }}>
               {(Icon as Record<string, ((n?: number) => React.ReactNode) | undefined>)[a.icon]?.(16)}
             </span>
-            <span style={{ font: "600 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>{a.label}</span>
+            <span style={{ font: "700 12.5px/1.2 var(--f-sans)" }}>{a.label}</span>
           </Link>
         ))}
       </div>
@@ -358,13 +361,13 @@ export function NominaResumenWidget({ summary }: { summary: NominaSummary }) {
         <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           NÓMINA · RESUMEN
         </div>
-        <Link href="/studio/nomina" style={{ font: "600 11px/1 var(--f-sans)", color: "var(--wine-text)", textDecoration: "none" }}>
+        <Link href="/studio/nomina" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>
           Ir a nómina →
         </Link>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {stats.map((s) => (
-          <div key={s.label} style={{ padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--bg-elevated)" }}>
+          <div key={s.label} style={{ padding: "10px 0" }}>
             <div style={{ font: "800 17px/1 var(--f-display)", color: TONE_TO_VALUE_COLOR[s.v.tone ?? "neutral"] }}>{s.v.value}</div>
             <div style={{ font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-mute)", marginTop: 5 }}>{s.label}</div>
           </div>
