@@ -58,6 +58,19 @@ los overrides por rol. La SDD-0622 lo puede alinear con `user_has_module`.
   `claim_indemnity_entry_codes` en `pending-migration-symbol-declarations.json`.
 - **Ver el CI de GitHub en la PR.** Es el portón de integración.
 
+## Cruce con SDD-0576 (fechas Caracas), 2026-11-13
+
+Al traer main (`e5169e86e`), la SDD-0576 agregó dos comprobaciones que leen el
+asiento vivo de un gasto en `journal_entries` antes de editarlo: el cierre del
+período y la fecha histórica. Estaban en `app/m/erp/actions.ts` y en
+`app/studio/(app)/gastos/actions.ts`. Con la 0528, comercial, operaciones y
+almacén ya no leen esa tabla: verían 0 filas y la comprobación pasaría en falso.
+Luego el cliente de servicio anula el asiento y lo vuelve a asentar, y el
+disparador de cierre puede negar la anulación sin que nadie se entere. Las dos
+lecturas pasan a `createAdminClient()`. Siguen filtradas por tenant y por el id
+del gasto, que ya se leyó con la sesión del usuario. Los dobles de sus pruebas
+devuelven el mismo cliente.
+
 ## Coordinación con SDD-0622 (PR #509)
 
 - La SDD-0622 usa las migraciones 0529 a 0531. La 0528 es de esta tarea.

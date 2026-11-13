@@ -21,6 +21,7 @@
  */
 
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 /** Gasto del finiquito (cargas sociales / nómina · CoA seed 0078). */
 export const SETTLEMENT_EXPENSE_CODE = "6.5.3";
@@ -111,6 +112,7 @@ export async function postSettlementJournalEntry(
   input: SettlementPostingInput,
 ): Promise<SettlementPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     const netUsd = round2(input.netUsd);
@@ -130,7 +132,6 @@ export async function postSettlementJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     const { data: insertedEntry, error: entryErr } = await admin
       .from("journal_entries")

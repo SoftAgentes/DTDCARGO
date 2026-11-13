@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAnalyticsLeads, getContactEmailFlags } from "../kommo-analytics";
+import { allConvertedLeads, getAnalyticsLeads, getContactEmailFlags } from "../kommo-analytics";
 
 type Call = { table: string; from: number; to: number };
 
@@ -28,6 +28,8 @@ function fakeSupabase(
       const q = {
         select: () => q,
         order: () => q,
+        is: () => q,
+        not: () => q,
         range: (from: number, to: number) => {
           calls.push({ table, from, to });
           const all = rowsByTable[table] ?? [];
@@ -51,6 +53,15 @@ const leadRows = (n: number) =>
     responsible_user_id: 9976747,
     kommo_updated_at: "2026-08-01T00:00:00Z",
   }));
+
+describe("allConvertedLeads · cruce completo", () => {
+  it("rechaza el tope de páginas en vez de certificar el mapa parcial", async () => {
+    const clients = Array.from({ length: 61 }, (_, i) => ({ kommo_lead_id: i + 1, markbox: `DTD-${i + 1}` }));
+    const { client, calls } = fakeSupabase({ clients }, 1);
+    await expect(allConvertedLeads(client)).rejects.toThrow();
+    expect(calls).toHaveLength(60);
+  });
+});
 
 describe("getAnalyticsLeads · lee el espejo COMPLETO", () => {
   it("trae las 3.145 filas de prod pese al tope de 1000 del servidor", async () => {
