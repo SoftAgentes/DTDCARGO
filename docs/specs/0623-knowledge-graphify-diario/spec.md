@@ -1,17 +1,19 @@
 ---
 sdd: "0623"
 title: "Corrida diaria mecánica de Graphify, Archify y Obsidian"
-status: in-progress
+status: superseded
 author: "Claude (Worker)"
 created: 2026-11-09
-updated: 2026-11-09
+updated: 2026-11-13
 supersedes: null
-superseded_by: null
+superseded_by: "0632"
 related: ["0471"]
 confidencialidad: interno
 ---
 
 # SDD-0623 — Corrida diaria mecánica de conocimiento
+
+> **Superada por SDD-0632 (2026-11-13).** Sam retiró Graphify, Archify y la publicación a Obsidian. Este documento queda como registro histórico.
 
 ## Problema
 
