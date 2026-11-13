@@ -13,6 +13,10 @@
  *   3. `warehouse_receipts_ve.eta`   — ETA anunciada al recibir en VE (SDD-0067),
  *                                      resuelta por el Shipping Mark del envío.
  *
+ *   4. ETA estimada desde el zarpe (SDD-0627) — sólo con `AVISOS_POR_HITO_LIVE`:
+ *      fecha del evento `shipped` + días de tránsito del zarpe. Es estimada:
+ *      va última, detrás de toda fecha que venga de la naviera o de la bodega.
+ *
  * Sin ninguna fuente → null: la regla anclada en ETA se salta (no rompe), tal
  * como documenta la spec.
  */
@@ -21,6 +25,9 @@ import {
   getShipmentNaviera,
   getShipmentTrackingSnapshot,
 } from "@/lib/studio/naviera-tracking/queries";
+import { estimarSeguimiento } from "@/lib/portal/seguimiento-estimado";
+import type { ShipmentService, ShipmentStatus } from "@/lib/shared/shipment-public";
+import { AVISOS_POR_HITO_LIVE } from "./avisos-por-hito";
 
 /**
  * Parsea una fecha de fuente heterogénea (ISO de SeaRates o `date` 'YYYY-MM-DD'
@@ -49,7 +56,9 @@ export function parseFlexibleDate(value: string | null | undefined): Date | null
 export async function resolveShipmentEta(
   admin: SupabaseClient,
   shipmentId: string,
+  opts: { estimadaDesdeZarpe?: boolean } = {},
 ): Promise<Date | null> {
+  const estimada = opts.estimadaDesdeZarpe ?? AVISOS_POR_HITO_LIVE;
   // 1) SeaRates vivo (pod_eta) por consolidación.
   try {
     const snap = await getShipmentTrackingSnapshot(admin, shipmentId);
@@ -73,10 +82,64 @@ export async function resolveShipmentEta(
     const fromReceipt = await resolveReceiptVeEta(admin, shipmentId);
     if (fromReceipt) return fromReceipt;
   } catch {
-    /* sin ETA */
+    /* degrada a la estimada */
+  }
+
+  // 4) SDD-0627 · estimada desde el zarpe, sólo con la bandera encendida.
+  if (estimada) {
+    try {
+      const fromZarpe = await resolveEstimatedEta(admin, shipmentId);
+      if (fromZarpe) return fromZarpe;
+    } catch {
+      /* sin ETA */
+    }
   }
 
   return null;
+}
+
+/**
+ * ETA de puerto estimada desde el zarpe (SDD-0627): estado y servicio del
+ * envío, su primer evento `shipped` y el itinerario del contenedor. null antes
+ * del zarpe o si falta el ancla.
+ */
+export async function resolveEstimatedEta(
+  admin: SupabaseClient,
+  shipmentId: string,
+): Promise<Date | null> {
+  const { data: shipment } = await admin
+    .from("shipments")
+    .select("status, shipment_service")
+    .eq("id", shipmentId)
+    .is("deleted_at", null)
+    .maybeSingle<{ status: ShipmentStatus; shipment_service: ShipmentService }>();
+  if (!shipment) return null;
+
+  const { data: ev } = await admin
+    .from("shipment_events")
+    .select("occurred_at")
+    .eq("shipment_id", shipmentId)
+    .eq("status", "shipped")
+    .is("deleted_at", null)
+    .order("occurred_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ occurred_at: string }>();
+
+  const naviera = await getShipmentNaviera(admin, shipmentId);
+  const est = estimarSeguimiento({
+    status: shipment.status,
+    service: shipment.shipment_service,
+    stepDates: ev?.occurred_at ? { shipped: ev.occurred_at } : {},
+    itinerario: naviera
+      ? {
+          pod: naviera.pod,
+          etd: naviera.etd,
+          eta: naviera.eta,
+          transitDays: naviera.transitDays ?? null,
+        }
+      : null,
+  });
+  return parseFlexibleDate(est?.etaPuertoIso ?? null);
 }
 
 /**
