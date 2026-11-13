@@ -15,6 +15,10 @@ import "server-only";
  * un tenant de la URL. `fx_rate_on` filtra `f.tenant_id = p_tenant_id`, así que
  * solo vuelven tasas de ese tenant. Solo lectura de `fx_rates`, sin migración.
  *
+ * Decisión aceptada por el DG (SDD-0629, revisión de la #531). Este admin
+ * client existe SOLO para esta lectura de la tasa: no se reutiliza ni se
+ * exporta para otra consulta del portal.
+ *
  * El admin client se crea DENTRO del try: si falta la variable de entorno, la
  * página sigue con «tasa no disponible». `admin` se inyecta sólo en pruebas.
  */

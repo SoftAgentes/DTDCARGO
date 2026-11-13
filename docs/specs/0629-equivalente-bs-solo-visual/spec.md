@@ -60,6 +60,15 @@ Propuesta: el equivalente **no** entra en el PDF de la factura, en el estado de 
 - El admin client se crea dentro del `try`; sin tenant no se crea. Cualquier fallo es «tasa no disponible».
 - Prueba: `lib/portal/__tests__/tasa-referencial.test.ts`. Con un doble que guarda tasas de dos tenants, la única llamada es `fx_rate_on` con el tenant dado, la tasa del otro tenant no aparece, un tenant sin tasas da null, sin tenant no se crea el admin client y un fallo al crearlo da el mapa vacío.
 
+**Decisión aceptada por el DG (revisión de la #531 sobre `fe4a52170`, 2026-11-13).** El admin client se acepta por cuatro razones:
+
+- el tenant sale del principal resuelto en el servidor;
+- la única llamada es `fx_rate_on`, filtrada por `p_tenant_id`;
+- lo que devuelve es una tasa, no datos de cliente;
+- hay una prueba con dos tenants.
+
+**Ese admin client no se reutiliza fuera de esta lectura.** Cualquier otra lectura del portal con service_role necesita su propia decisión y su propia prueba.
+
 **Alternativa descartada por ahora.** Una RPC `SECURITY DEFINER` acotada al tenant de `get_portal_client_markbox()`, o una policy de lectura de `fx_rates` para clientes del portal. Daría lo mismo con migración, número y aplicación en producción con OK. Si el revisor la prefiere, el cambio en la app se limita a `tasa-referencial.ts`.
 
 ## Allowlist exacta
