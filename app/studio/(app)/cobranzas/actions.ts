@@ -239,6 +239,21 @@ export async function getReceivableHistory(invoiceId: string): Promise<{
   return { receipts, activities };
 }
 
+/**
+ * SDD-0630 · Reportes de pago del portal sin revisar de una factura, para el
+ * aviso del cobro. Misma puerta de VISTA que el historial. null = no se pudo leer.
+ */
+export async function getPendingPaymentReports(invoiceId: string): Promise<{
+  pending: import("@/lib/studio/payment-queries").PendingReportsSummary | null;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "collections");
+  if (denial) return { pending: null, error: denial };
+  const { pendingReportsForInvoice } = await import("@/lib/studio/payment-queries");
+  return { pending: await pendingReportsForInvoice(supabase, invoiceId) };
+}
+
 // ─────────────────────────────────────────────────────────────
 // SDD-0306 · Recordatorio de cobranza
 //

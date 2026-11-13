@@ -757,33 +757,31 @@ export async function receiptCodesByReport(
 export type PendingReportsSummary = { count: number; amount: number };
 
 /**
- * Reportes de pago del portal que siguen `reportado` (sin cancelar ni borrar),
- * agrupados por factura. Cobranzas avisa con esto antes de registrar un cobro:
- * ese pago se confirma desde la factura, que crea el recibo; registrarlo
- * también en Cobranzas lo contaría dos veces. null si no se pudo leer: la
- * pantalla lo dice en vez de callar.
+ * Reportes de pago del portal que siguen `reportado` (sin cancelar ni borrar)
+ * de una factura. Cobranzas avisa con esto antes de registrar un cobro: ese
+ * pago se confirma desde la factura, que crea el recibo; registrarlo también en
+ * Cobranzas lo contaría dos veces. null si no se pudo leer: la pantalla lo dice
+ * en vez de callar.
  */
-export async function pendingReportsByInvoice(
+export async function pendingReportsForInvoice(
   supabase: SupabaseClient,
-): Promise<Map<string, PendingReportsSummary> | null> {
+  invoiceId: string,
+): Promise<PendingReportsSummary | null> {
   try {
     const { data, error } = await supabase
       .from("payment_reports")
-      .select("invoice_id, amount")
+      .select("amount")
+      .eq("invoice_id", invoiceId)
       .eq("status", "reportado")
       .is("cancelled_at", null)
       .is("deleted_at", null)
-      .limit(1000);
+      .limit(100);
     if (error || !Array.isArray(data)) return null;
-    const out = new Map<string, PendingReportsSummary>();
-    for (const row of data as { invoice_id: string; amount: number | string }[]) {
-      const prev = out.get(row.invoice_id) ?? { count: 0, amount: 0 };
-      out.set(row.invoice_id, {
-        count: prev.count + 1,
-        amount: Math.round((prev.amount + Number(row.amount)) * 100) / 100,
-      });
-    }
-    return out;
+    const rows = data as { amount: number | string }[];
+    return {
+      count: rows.length,
+      amount: Math.round(rows.reduce((sum, r) => sum + Number(r.amount), 0) * 100) / 100,
+    };
   } catch {
     return null;
   }

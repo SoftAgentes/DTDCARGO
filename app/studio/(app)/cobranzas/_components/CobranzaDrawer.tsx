@@ -14,6 +14,7 @@ import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PendingReportsNotice } from "./PendingReportsNotice";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
@@ -37,7 +38,7 @@ import {
   type PaymentMethod,
   type PaymentReceipt,
 } from "@/lib/studio/payment-types";
-import type { PendingReportsSummary, Receivable } from "@/lib/studio/payment-queries";
+import type { Receivable } from "@/lib/studio/payment-queries";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   getReceivableHistory,
@@ -59,16 +60,10 @@ function fmt(n: number): string {
 export function CobranzaDrawer({
   receivable,
   cashAccounts,
-  pendingReports = null,
   onClose,
 }: {
   receivable: Receivable;
   cashAccounts: CashAccountOption[];
-  /**
-   * SDD-0630: reportes de pago del portal sin revisar en esta factura. null si
-   * no hay; "desconocido" si no se pudieron leer.
-   */
-  pendingReports?: PendingReportsSummary | null | "desconocido";
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -219,37 +214,7 @@ export function CobranzaDrawer({
           </div>
         </div>
 
-        {/* SDD-0630: un pago reportado por el cliente se confirma desde la
-            factura, que crea su recibo. Registrarlo también acá lo contaría
-            dos veces. */}
-        {pendingReports === "desconocido" ? (
-          <div role="note" style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-            No pudimos revisar si el cliente reportó pagos en esta factura. Míralo en la factura{" "}
-            <Link href={`/studio/facturacion/${encodeURIComponent(inv.invoice_code)}`}>{inv.invoice_code}</Link>{" "}
-            antes de registrar un cobro, para no contarlo dos veces.
-          </div>
-        ) : pendingReports && pendingReports.count > 0 ? (
-          <div
-            role="note"
-            style={{
-              background: "var(--warning-bg)",
-              borderLeft: "4px solid var(--warning)",
-              borderRadius: "var(--r-md)",
-              padding: "var(--s-2) var(--s-3)",
-              font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
-            {pendingReports.count === 1
-              ? "El cliente reportó un pago"
-              : `El cliente reportó ${pendingReports.count} pagos`}{" "}
-            por {inv.currency} ${fmt(pendingReports.amount)} que siguen sin revisar. Confírmalos desde la
-            factura: al confirmar se crea el recibo. Si registras aquí ese mismo pago, se contará dos veces.{" "}
-            <Link href={`/studio/facturacion/${encodeURIComponent(inv.invoice_code)}`}>
-              Ir a la factura {inv.invoice_code}
-            </Link>
-          </div>
-        ) : null}
+        <PendingReportsNotice invoiceId={inv.id} invoiceCode={inv.invoice_code} currency={inv.currency} />
 
         {/* Cobro */}
         {!showCobro ? (

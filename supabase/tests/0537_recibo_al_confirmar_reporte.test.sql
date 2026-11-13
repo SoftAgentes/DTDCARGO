@@ -353,8 +353,13 @@ begin
     format('R4: la segunda espera el correlativo y sale con otro código R-: %s', v_r));
 
   -- Los casos de una sesión y la 0422/0423 encima, en Postgres 17 real.
-  perform dblink_exec('c0537_s', pg_read_file('/sb/tests/0537_recibo_al_confirmar_reporte.casos.sql'));
-  perform dblink_exec('c0537_s', pg_read_file('/sb/tests/0537_recibo_al_confirmar_reporte.despues.sql'));
+  -- Terminan en un SELECT de resultado: dblink (no dblink_exec) devuelve la última fila.
+  perform pg_temp.afirmar((select r from dblink('c0537_s',
+      pg_read_file('/sb/tests/0537_recibo_al_confirmar_reporte.casos.sql')) as t(r text)) like 'TEST0537 casos OK:%',
+    'los casos de una sesión terminan en verde');
+  perform pg_temp.afirmar((select r from dblink('c0537_s',
+      pg_read_file('/sb/tests/0537_recibo_al_confirmar_reporte.despues.sql')) as t(r text)) like 'TEST0537 después de 0422/0423 OK:%',
+    'la 0422 y la 0423 encima terminan en verde');
   perform pg_temp.afirmar((select r::bigint from dblink('c0537_s', 'select last_value::text from r0537.aserciones') as t(r text)) > 40,
     'los casos de una sesión corrieron enteros');
 
