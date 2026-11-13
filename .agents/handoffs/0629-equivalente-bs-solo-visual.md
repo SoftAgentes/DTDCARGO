@@ -41,11 +41,11 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 | eslint `--max-warnings 0` sobre los .ts/.tsx del diff | PASÓ |
 | CI #531 en `6385a4828` | FALLÓ: 1 de 17 201. `hoy-caracas.test.ts` → `supabase.from is not a function`; la página leía `user_tenants` y el doble no trae `.from`. Corregido: el tenant sale de la cola (`queue[0].invoice.tenant_id`, ya acotada por la RLS) y sin casos no se lee ninguna tasa. La prueba no se debilitó: suma dos casos de la 0629 |
 | vitest focal con turno: `app/studio/(app)/cobranzas` + `app/portal/(app)/facturas` | PASÓ: 11 archivos, 63 pruebas |
-| `pnpm verify` | NO EJECUTADO: el turno de la PC no se dio; el portón es el CI de GitHub |
+| `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub más la revisión independiente (cambio del DG, 2026-11-13) |
 | CI de GitHub | ver la PR #531 (registrado al cierre) |
-| `/ui-check` | NO EJECUTADO: sin turno para levantar la app; la spec documenta tokens y jerarquía |
+| `/ui-check` (revisión del diff, sin levantar la app) | PASÓ con 3 ajustes menores de prioridad baja: px sueltos en vez de `--s-*` en `EquivalenteBs.tsx` y en la leyenda de la factura, y un rótulo que podría usar `studio-eyebrow`. No se aplicaron: es advisory y el 0630 comparte esos archivos |
 
-> **Nota de turno.** El install, la focal, el typecheck y el lint se corrieron SIN turno, por una lectura equivocada de la orden. Pudieron cruzarse con el verify del 0631. Si se quiere una corrida limpia, se repite con turno. `pnpm verify` y `/ui-check` van en la cola después del 0627.
+> **Nota de turno.** El install, la focal, el typecheck y el lint se corrieron SIN turno, por una lectura equivocada de la orden. Pudieron cruzarse con el verify del 0631. Si se quiere una corrida limpia, se repite con turno. Después el DG cambió el portón: verify ya no se exige localmente y `/ui-check` se corrió como revisión del diff.
 >
 > **Cruce con el 0630.** El 0630 también toca `facturacion/[code]/page.tsx`, `cobranzas/page.tsx`, `CobranzasClient.tsx` y `CobranzaDrawer.tsx`. Esta rama entra primero al tren y no amplía sus cambios en esos archivos.
 
@@ -60,7 +60,7 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` y `/ui-check`, si el Subdirector da turno; si no, el portón es el CI.
+1. CI verde de la cabeza vigente (lo lee el Subdirector).
 2. Revisión independiente (la lanza el DG).
 
 ## Impacto documental
