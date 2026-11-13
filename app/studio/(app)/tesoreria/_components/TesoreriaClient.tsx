@@ -29,6 +29,10 @@ import type {
   Payable,
   TreasuryKpis,
 } from "@/lib/studio/treasury/bill-queries";
+import type { CostLinkData } from "@/lib/studio/treasury/cost-link-queries";
+
+/** SDD-0631: sin datos de vínculo (prueba o base sin la 0536) no hay selector. */
+const NO_COST_LINKS: CostLinkData = { available: false, containers: [], links: {} };
 import {
   BillDrawer,
   NewBillDrawer,
@@ -64,6 +68,7 @@ export function TesoreriaClient({
   suppliers,
   expenseAccounts,
   cashAccounts,
+  costLinks = NO_COST_LINKS,
 }: {
   payables: Payable[];
   kpis: TreasuryKpis;
@@ -71,6 +76,7 @@ export function TesoreriaClient({
   suppliers: Supplier[];
   expenseAccounts: AccountOption[];
   cashAccounts: AccountOption[];
+  costLinks?: CostLinkData;
 }) {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("payables");
@@ -281,6 +287,7 @@ export function TesoreriaClient({
           payable={selectedPayable}
           supplier={supplierById.get(selectedPayable.bill.supplier_id) ?? null}
           cashAccounts={cashAccounts}
+          costLinks={costLinks}
           onClose={closeDrawer}
         />
       )}
@@ -289,6 +296,7 @@ export function TesoreriaClient({
         <NewBillDrawer
           suppliers={suppliers}
           expenseAccounts={expenseAccounts}
+          costLinks={costLinks}
           onClose={() => setShowNewBill(false)}
         />
       )}

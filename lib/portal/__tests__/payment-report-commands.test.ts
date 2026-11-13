@@ -42,6 +42,8 @@ const KNOWN_SQL_ERRORS = [
   // SDD-0484 · 0464: confirmar sobre factura pagada o por encima del saldo.
   { code: "23514", message: "PAYMENT_INVOICE_PAID" },
   { code: "23514", message: "PAYMENT_EXCEEDS_BALANCE" },
+  // SDD-0630 · 0537: confirmar exige cuenta de caja o banco.
+  { code: "22023", message: "PAYMENT_CASH_ACCOUNT" },
 ] as const;
 
 const createCommand = () => ({
@@ -87,9 +89,24 @@ describe("C1 · contexto interno de creación", () => {
 const cancelCommand = () => ({
   verb: "cancel" as const, requestId: REQUEST_ID, reportId: REPORT_ID, invoiceCode: INVOICE_CODE, reason: REASON,
 });
-const resolveCommand = (verb: "confirm" | "reject" = "confirm") => ({
-  verb, requestId: REQUEST_ID, reportId: REPORT_ID, reason: REASON,
-});
+const CASH_ID = "88000000-0000-4000-8000-000000000008";
+const RECEIPT_ID = "99000000-0000-4000-8000-000000000009";
+const resolveCommand = (verb: "confirm" | "reject" = "confirm") => (verb === "confirm"
+  ? { verb, requestId: REQUEST_ID, reportId: REPORT_ID, reason: REASON, cashAccountId: CASH_ID }
+  : { verb, requestId: REQUEST_ID, reportId: REPORT_ID, reason: REASON });
+/** SDD-0630: el recibo de cobro que devuelve la 0537 al confirmar (montos inventados). */
+function wireCollection(overrides: Record<string, unknown> = {}) {
+  return {
+    id: RECEIPT_ID, code: "R-2026-0042", tenant_id: TENANT_ID, amount: 45.5, currency: "USD",
+    fx_rate: null, cash_account_id: CASH_ID, received_at: "2026-09-01", paid_amount: 145.5,
+    invoice_status: "parcial", fully_paid: false, ...overrides,
+  };
+}
+const appCollection = {
+  id: RECEIPT_ID, code: "R-2026-0042", tenantId: TENANT_ID, amount: 45.5, currency: "USD",
+  fxRate: null, cashAccountId: CASH_ID, receivedAt: "2026-09-01", paidAmount: 145.5,
+  invoiceStatus: "parcial", fullyPaid: false,
+};
 
 function wireReceipt(overrides: Record<string, unknown> = {}) {
   return {
@@ -98,6 +115,9 @@ function wireReceipt(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+/** SDD-0630: una confirmación sin su recibo no es éxito; estos dobles lo traen. */
+const wireCollectionFor = (status: string) => (status === "confirmado" ? { receipt: wireCollection() } : {});
+const appCollectionFor = (status: string) => (status === "confirmado" ? { collection: appCollection } : {});
 function appReceipt(overrides: Record<string, unknown> = {}) {
   return {
     requestId: REQUEST_ID, reportId: REPORT_ID, invoiceId: INVOICE_ID, invoiceCode: INVOICE_CODE,
@@ -150,16 +170,68 @@ describe("runPaymentReportCommand · tres RPC de sesión, sin escritores alterna
     expect(forbidden).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { verb: "confirm" as const, status: "confirmado" },
-    { verb: "reject" as const, status: "rechazado" },
-  ])("$verb usa resolve_payment_report con acción y motivo", async ({ verb, status }) => {
-    const { session, rpc, forbidden } = sessionIo({ data: wireReceipt({ status }), error: null });
-    await expect(runPaymentReportCommand(session, resolveCommand(verb))).resolves.toEqual({ ok: true, receipt: appReceipt({ status }) });
+  it("reject usa resolve_payment_report con acción y motivo", async () => {
+    const { session, rpc, forbidden } = sessionIo({ data: wireReceipt({ status: "rechazado" }), error: null });
+    await expect(runPaymentReportCommand(session, resolveCommand("reject"))).resolves.toEqual({ ok: true, receipt: appReceipt({ status: "rechazado" }) });
     expect(rpc.mock.calls).toEqual([["resolve_payment_report", {
-      p_request_id: REQUEST_ID, p_report_id: REPORT_ID, p_action: status, p_reason: REASON,
+      p_request_id: REQUEST_ID, p_report_id: REPORT_ID, p_action: "rechazado", p_reason: REASON,
     }]]);
     expect(forbidden).not.toHaveBeenCalled();
+  });
+
+  it("SDD-0630 · confirm usa confirm_payment_report_with_receipt con la cuenta y decodifica el recibo", async () => {
+    const { session, rpc, forbidden } = sessionIo({ data: wireReceipt({ status: "confirmado", receipt: wireCollection() }), error: null });
+    await expect(runPaymentReportCommand(session, resolveCommand("confirm"))).resolves.toEqual({
+      ok: true, receipt: appReceipt({ status: "confirmado", collection: appCollection }),
+    });
+    expect(rpc.mock.calls).toEqual([["confirm_payment_report_with_receipt", {
+      p_request_id: REQUEST_ID, p_report_id: REPORT_ID, p_cash_account_id: CASH_ID, p_reason: REASON,
+    }]]);
+    expect(forbidden).not.toHaveBeenCalled();
+  });
+
+  it("SDD-0630 · un replay de la confirmación devuelve el mismo recibo", async () => {
+    const { session } = sessionIo({ data: wireReceipt({ status: "confirmado", replayed: true, receipt: wireCollection() }), error: null });
+    await expect(runPaymentReportCommand(session, resolveCommand("confirm"))).resolves.toEqual({
+      ok: true, receipt: appReceipt({ status: "confirmado", replayed: true, collection: appCollection }),
+    });
+  });
+});
+
+describe("runPaymentReportCommand · SDD-0630 confirmación con recibo", () => {
+  it.each([undefined, "", "no-es-uuid", 42])("sin cuenta válida (%j) no envía", async (cashAccountId) => {
+    const io = sessionIo();
+    const result = await runPaymentReportCommand(io.session, { ...resolveCommand("confirm"), cashAccountId } as unknown as Command);
+    expectSafeFailure(result, false);
+    expect((result as { error: string }).error).toContain("PAGO-CUENTA");
+    expect(io.rpc).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["sin recibo", wireReceipt({ status: "confirmado" })],
+    ["recibo de otra cuenta", wireReceipt({ status: "confirmado", receipt: wireCollection({ cash_account_id: OTHER_ID }) })],
+    ["recibo sin código R-", wireReceipt({ status: "confirmado", receipt: wireCollection({ code: "X-1" }) })],
+    ["recibo con monto cero", wireReceipt({ status: "confirmado", receipt: wireCollection({ amount: 0 }) })],
+    ["recibo con una llave de más", wireReceipt({ status: "confirmado", receipt: { ...wireCollection(), extra: 1 } })],
+    ["recibo en un rechazo", wireReceipt({ status: "rechazado", receipt: wireCollection() })],
+  ])("%s: resultado incierto, nunca éxito", async (label, data) => {
+    const io = sessionIo({ data, error: null });
+    const verb = label === "recibo en un rechazo" ? "reject" : "confirm";
+    expectSafeFailure(await runPaymentReportCommand(io.session, resolveCommand(verb)), true);
+  });
+
+  it("PGRST202 (sin la 0537) dice que no está disponible y no es incierto", async () => {
+    const io = sessionIo({ data: null, error: { code: "PGRST202", message: PRIVATE_DETAIL } });
+    const result = await runPaymentReportCommand(io.session, resolveCommand("confirm"));
+    expectSafeFailure(result, false);
+    expect((result as { error: string }).error).toContain("PAGO-NO-DISPONIBLE");
+  });
+
+  it("PAYMENT_CASH_ACCOUNT de la base se traduce sin detalle", async () => {
+    const io = sessionIo({ data: null, error: { code: "22023", message: "PAYMENT_CASH_ACCOUNT", details: PRIVATE_DETAIL } });
+    const result = await runPaymentReportCommand(io.session, resolveCommand("confirm"));
+    expectSafeFailure(result, false);
+    expect((result as { error: string }).error).toContain("PAGO-CUENTA");
   });
 });
 
@@ -207,7 +279,7 @@ describe("runPaymentReportCommand · validar antes de enviar", () => {
   }))))("normaliza y acepta motivo $label", async ({ make, reason }) => {
     const command = { ...make(), reason: ` \n${reason}\t ` };
     const status = command.verb === "confirm" ? "confirmado" : command.verb === "reject" ? "rechazado" : "reportado";
-    const { session, rpc } = sessionIo({ data: wireReceipt({ status, cancelled: command.verb === "cancel" }), error: null });
+    const { session, rpc } = sessionIo({ data: wireReceipt({ status, cancelled: command.verb === "cancel", ...wireCollectionFor(status) }), error: null });
     const result = await runPaymentReportCommand(session, command);
     expect(result.ok).toBe(true);
     expect(rpc).toHaveBeenCalledTimes(1);
@@ -392,15 +464,15 @@ describe("runPaymentReportCommand · identidad estable e idempotencia del consum
     Object.freeze(command);
     if ("input" in command) Object.freeze(command.input);
     const { session, rpc, forbidden } = sessionIo();
-    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled }), error: null });
-    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled, replayed: true }), error: null });
+    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled, ...wireCollectionFor(status) }), error: null });
+    rpc.mockResolvedValueOnce({ data: wireReceipt({ status, cancelled, replayed: true, ...wireCollectionFor(status) }), error: null });
 
     await expect(runPaymentReportCommand(session, command)).resolves.toEqual({
-      ok: true, receipt: appReceipt({ status, cancelled }),
+      ok: true, receipt: appReceipt({ status, cancelled, ...appCollectionFor(status) }),
     });
     expect(rpc).toHaveBeenCalledTimes(1);
     await expect(runPaymentReportCommand(session, command)).resolves.toEqual({
-      ok: true, receipt: appReceipt({ status, cancelled, replayed: true }),
+      ok: true, receipt: appReceipt({ status, cancelled, replayed: true, ...appCollectionFor(status) }),
     });
     expect(rpc).toHaveBeenCalledTimes(2);
     expect(rpc.mock.calls[0]).toEqual(rpc.mock.calls[1]);
