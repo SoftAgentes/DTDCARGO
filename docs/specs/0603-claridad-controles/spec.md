@@ -202,7 +202,8 @@ Con los tramos 1 y 2 en `main` (#510 y #511, 2026-11-11), Sam aprobó el 2026-11
 | Nivel | Sombra en reposo | Al pasar el cursor | Al oprimir | Controles |
 |---|---|---|---|---|
 | 0 · plano | ninguna | — | — | Avisos, `Badge`, texto, deshabilitado, confirmación (`.studio-btn-success`) |
-| 1 · contorno | `--shadow-xs` | `--shadow-md` | `--shadow-xs` | Secundario (`.studio-btn-ghost`), con contorno de 1,5 px en `--ctl-border`; controles de icono, cierre de panel y densidad |
+| 1 · contorno | `--shadow-xs` | `--shadow-md` | `--shadow-xs` | Secundario (`.studio-btn-ghost`), con contorno de 1,5 px en `--ctl-border` |
+| 1 · icono | `--shadow-xs` | `--shadow-xs`; se invierte a relleno `--ink` | `--shadow-xs` | Controles de icono, cierre de panel y densidad. No son `.studio-btn`: el hover los invierte, como desde el tramo 1, y la sombra no cambia. La enmienda que aprobó Sam no les pide subir |
 | 2 · relleno | `--shadow-sm` | `--shadow-md` | `--shadow-xs` | `.studio-btn-dark`, `.studio-btn-warning`, `.studio-btn-danger` |
 | 3 · principal | `--shadow-md` | `--shadow-lg` | `--shadow-xs` | `.studio-btn-primary`, una por contexto (VIS-01 §5) |
 

@@ -182,6 +182,13 @@ describe("claridad de controles · SDD-0603", () => {
       }
     });
 
+    it("al imprimir, --ctl-edge-hi vuelve al valor claro y no pinta aro", () => {
+      const impresion = tokensCss.slice(tokensCss.indexOf("@media print {"), tokensCss.indexOf('[data-density="compact"]'));
+      expect(impresion.length).toBeGreaterThan(0);
+      expect(valor(impresion, "--ctl-edge-hi")).toBe(valor(bloqueClaro, "--ctl-edge-hi"));
+      expect(valor(impresion, "--ctl-edge-hi")).toBe("0 0 0 0 transparent");
+    });
+
     it("los tokens nuevos no traen colores literales", () => {
       const valores = [...tokensCss.matchAll(/--ctl-(?:border|edge-hi)\s*:\s*([^;]+);/g)].map((m) => m[1]);
       expect(valores.length).toBeGreaterThanOrEqual(4); // claro y oscuro, más la impresión

@@ -95,12 +95,13 @@ Aplicar sobre `main` la Enmienda de elevación de SDD-0603: sombra por nivel, bo
 ### VALIDACIÓN
 
 - `docs:check`, `sdd:check`, `governance:check`, `components:check` y `git diff --check`: PASÓ, corridos con `node`.
+- Lo que sigue, hasta `/ui-check` incluido, se corrió en local y no deja artefacto en el repositorio: el registro está en esta sesión, no en un archivo versionado.
 - Contrato con un mini-runner en node que imita lo que usa de vitest: PASÓ, 23 de 23. La prueba de impresión, recalculada con la misma lógica, da claves iguales y valores claros: PASÓ.
-- Mutantes: 14 de 14 muertos. Cada uno rompe una regla: primario sin `md`, hover sin `lg`, secundario de 1 px, secundario sin `xs`, peligro sin borde, sombra base fija, aro pálido, aro con color literal, borde que pinta en claro, `--ctl-border` pálido, selector de archivo en 600, botón en 600, deshabilitado con sombra e icono sin nivel.
-- `/ui-check`: OK con ajustes menores, que se miran en la imagen de prueba.
+- Mutantes, corridos en local con el mini-runner: 14 de 14 muertos. Cada uno rompe una regla: primario sin `md`, hover sin `lg`, secundario de 1 px, secundario sin `xs`, peligro sin borde, sombra base fija, aro pálido, aro con color literal, borde que pinta en claro, `--ctl-border` pálido, selector de archivo en 600, botón en 600, deshabilitado con sombra e icono sin nivel.
+- `/ui-check`, corrido en local: OK con ajustes menores, que se miran en la imagen de prueba.
 - `pnpm install --frozen-lockfile`, con turno del DG: OK.
-- Vitest focal, con vitest real (contrato, apariencia, `DensityToggle` y pestañas): PASÓ, 4 archivos y 40 pruebas.
-- `pnpm verify` sobre `39b08570c`: exit 0, con 14 de 17 pasos medidos. Por comprobación:
+- Vitest focal, con vitest real y en local (contrato, apariencia, `DensityToggle` y pestañas): PASÓ, 4 archivos y 40 pruebas.
+- `pnpm verify` se midió sobre `39b08570ce9c2c1cb439e0d1f86617ebd975edda`. Los commits posteriores solo cambian este handoff, la spec (documentación) y una aserción del contrato, que se corrió aparte. Salió con exit 0, con 14 de 17 pasos medidos. Ese exit 0 convive con el e2e, cuyo proceso salió distinto de 0: el `verify` lo acepta como aviso, porque es el worker de WebKit que no cierra en Windows. Por comprobación:
   - harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols y build: PASÓ.
   - test: PASÓ, 1051 archivos y 16 383 pruebas, con 4 archivos y 26 pruebas omitidos.
   - e2e: PASÓ con aviso. 237 pruebas pasaron y una salió flaky; pasó al reintentar (`e2e/auth.spec.ts:81`, token inválido, ajena a este cambio). El proceso salió distinto de 0 por el worker de WebKit, que no cierra en Windows.
@@ -133,3 +134,10 @@ Rama `claude/0603-enmienda-elevacion-b4a07e`, publicada con un solo push. Base `
 ### HANDOFF AL DIRECTOR
 
 PR lista para revisar, sin fusionar. La cabeza es el commit de este handoff, sobre `dcccddee6`. El `verify` local dio verde en lo medido, con 3 críticos sin medir por falta de `.env.local` y Docker. La revisión independiente y la imagen de prueba para Sam las lanza el DG.
+
+### Revisión independiente, 2026-11-13
+
+APPROVED con observaciones, según el DG. Arreglado en un commit:
+- La tabla de niveles decía que los controles de icono, cierre y densidad subían a `--shadow-md` al pasar el cursor, y `studio.css` no lo hace. Se corrige la spec, no el CSS: la enmienda que aprobó Sam pide sombra para primario, secundario y rellenos, no para esos controles, que se invierten al pasar el cursor desde el tramo 1. Así la imagen de prueba armada con `ffa7f512c` sigue valiendo.
+- Este handoff aclara sobre qué SHA corrió el `verify` y qué se corrió solo en local.
+- Contrato: aserción nueva, la de que `--ctl-edge-hi` vuelve a su valor claro al imprimir. Vitest focal, en local: PASÓ, 4 archivos y 41 pruebas. Su mutante (impresión con aro) muere.
