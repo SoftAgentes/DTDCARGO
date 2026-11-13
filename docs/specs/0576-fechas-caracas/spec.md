@@ -484,7 +484,7 @@ El último refresco de derivados, knowledge:visual/check y publish/status/check 
 
 ## C3 — alta, edición y fila de gastos móviles
 
-Asignación activada del Director2026-10-21, reproducida íntegra antes de producto en .agents/handoffs/0576-fechas-caracas-movil.md. Fuente externa C:/tmp/director-traspaso-20261020/0576-caracas-c3-asignacion-worker.md, SHA2566b94cd33764fd13b05efe2881ce99d0ac579c563491f54f75b82c60894293c66. Base final C2:0e630ede760dbc369ddf60133c18c4a77f2d8692; rama codex/sdd-0576-fechas-caracas-movil, PR DRAFT sobre codex/sdd-0576-fechas-caracas-anuales. No nueva migración, reparación histórica ni cambio0575.
+Asignación activada del Director2026-10-21, reproducida íntegra antes de producto en .agents/handoffs/0576-fechas-caracas-movil.md. Fuente externa C:/tmp/director-traspaso-20261020/0576-caracas-c3-asignacion-worker.md, SHA2566b94cd33764fd13b05efe2881ce99d0ac579c563491f54f75b82c60894293c66. Base final C2:0e630ede760dbc369ddf60133c18c4a77f2d8692; rama codex/sdd-0576-fechas-caracas-movil, PR DRAFT sobre codex/sdd-0576-fechas-caracas-anuales (histórico: hoy la C3 es la #526 contra main). No nueva migración, reparación histórica ni cambio0575.
 
 ### Alcance exacto y aceptación C3
 
@@ -499,6 +499,8 @@ Siete rutas permitidas: app/m/erp/actions.ts; app/m/erp/_components/MobileErpCli
 - N1: botón y fondo del alta no desmontan durante pending; vuelven a permitir cierre voluntario tras rechazo. N2: mensaje general persistente con rolealert/tabIndex−1 y foco local solo en respuesta nueva; no mueve foco al teclear/cambiar foto. Reintento por teclado medido en ambos forms.
 
 ### Evidencia funcional C3 y límites
+
+> **Evidencia histórica de la #314** sobre la base C2 `0e630ede760dbc369ddf60133c18c4a77f2d8692`, no de la cabeza de la #526. Los conteos 168/168 y 248/248, «tipos PASÓ» y los 12 mutantes se midieron allí. **Sobre la cabeza de la #526** (`15e35ee7d` y siguientes): vitest, tipos y mutantes locales NO EJECUTADOS; los cubre el CI.
 
 Recibos externos bajo C:/tmp/director-traspaso-20261020/0576-c3-validation; sus identidades y hashes están en el handoff. ROJO puro de acciones sobre base intacta:117 FALLÓ/28 PASÓ,145 casos. ROJO UI real:13 FALLÓ/8 PASÓ,21 casos. Intentos con import/selección File de fixture incompleta se preservan aparte y no cuentan como ROJO funcional.
 
@@ -527,7 +529,7 @@ Suplemento visual: Chrome headless, componente/forms/ToastProvider/CSS reales y 
 | .09 Reutilización | Cumplimiento: helper, componente y forms existentes; sin exports/duplicación |
 | .10 Accesibilidad | Cumplimiento de DOM/foco/teclado/reflow observado; integral NO VERIFICABLE por límites |
 | .11 Lenguaje | Cumplimiento de nuevas guardas: error persistente sanitizado y vía de recuperación |
-| .12 Autoridad humana | No aplica IA nueva; PR DRAFT autorizada y límites merge/producción preservados |
+| .12 Autoridad humana | No aplica IA nueva; PR #526 contra main (antes #314 DRAFT) y límites merge/producción preservados |
 
 DAT-01v1.0: día/calendario coherente, sin selector nuevo. ERR-01v1.0 y FRM-01v1.1: bloqueo visible, foco nuevo, preservación de trabajo y pending medidos. NUM-01v1.1: conversión/validación vigentes preservadas, no adopción global NumericInput. A11Y-01v1.1: DOM/teclado/foco/reflow medidos; lector/zoom/teléfono no certificados. MP-01v1.1: máximoR3 por historia financiera, sin fricción añadida ni promesa transaccional. Ninguna excepción creada; aprobación de políticas y conteos estáticos no certifican el producto.
 
@@ -641,3 +643,20 @@ El preflight que compara el md5 de los cuerpos de 0411/0527 sigue valiendo: la
 renumeración de la 0527 sólo tocó literales del preflight, el postflight y la tabla
 temporal, no los cuerpos de las funciones. SHA-256 anterior `bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf`, nuevo
 `4ea257be32704d24b4ed06871c50a86cce6bac9f8d1c8f63ca4bbc923e5c7c45`. La rama `claude/sdd-0576-fechas-caracas-anuales` reemplaza a la PR #313.
+
+## Desviaciones declaradas de la C3 (revisión de la #526, 2026-11-13)
+
+- **Copy de la edición de un gasto ajeno.** Antes, editar un gasto de otra persona
+  devolvía «Solo puedes editar tus propios gastos.». Ahora `ownExpense`
+  (`app/m/erp/actions.ts`) busca el gasto filtrando por id, tenant y `user_id` en una
+  sola lectura y falla cerrado, así que un gasto ajeno y uno inexistente dan el mismo
+  mensaje genérico: «No se pudo comprobar el gasto propio y su fecha histórica.
+  Reintenta.». Se mantiene porque no revela si el gasto existe. Pendiente menor de
+  copy: para un gasto ajeno, «Reintenta» no ayuda. Restaurar el texto anterior no es
+  un cambio de una línea, porque exige separar la lectura por dueño.
+- **`disabled={isPending}` en «Cerrar».** `NewExpenseModal` deshabilita el botón
+  «Cerrar» y el clic del fondo mientras se guarda, para que el envío en curso no
+  pierda el formulario ni el archivo. `app/m/CLAUDE.md` pide no usar
+  `disabled={isPending}` a mano y dejarlo a `<ActionButton>`; aquí no aplica porque
+  «Cerrar» no es una acción con efecto, pero es una desviación de esa guía y queda
+  declarada.
