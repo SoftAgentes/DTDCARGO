@@ -88,7 +88,12 @@ export type SeguimientoEstimado = {
    * cuando la estimación ya venció sin que se confirmara la llegada.
    */
   etaPuertoIso: string | null;
-  /** true si la llegada a puerto es la fecha real de aduana, no una estimación. */
+  /**
+   * true si la carga YA pasó por el puerto: hay fecha real de aduana, o el
+   * envío está en aduana o más adelante aunque falte ese evento (un salto de
+   * estado o un lote cargado por SQL). Entonces el puerto nunca sale «por
+   * confirmar».
+   */
   puertoReal: boolean;
   /** Días de mar usados. */
   diasTransito: number;
@@ -218,6 +223,9 @@ export function estimarSeguimiento(input: {
   let dias = 0;
   let puertoReal = false;
   if (!terrestre) {
+    const idxAduana = flow.indexOf("in_customs");
+    // En aduana o más adelante, el puerto ya ocurrió, con o sin su evento.
+    const pasoPuerto = idxAduana >= 0 && idxActual >= idxAduana;
     const aduanaReal = leerFecha(stepDates.in_customs);
     const etaConocida = leerFecha(input.etaPuertoConocida);
     const mar = diasDeTransito(input.itinerario);
@@ -233,6 +241,7 @@ export function estimarSeguimiento(input: {
       puertoMs = zarpeMs + dias * DIA_MS;
       fuente = mar.fuente;
     }
+    if (pasoPuerto) puertoReal = true;
   }
 
   const porEtapa: Partial<Record<ShipmentStatus, string>> = {};

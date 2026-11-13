@@ -15,6 +15,7 @@ import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 const h = vi.hoisted(() => ({
   naviera: null as unknown,
   live: null as unknown,
+  status: "in_transit",
 }));
 
 vi.mock("next/navigation", () => ({
@@ -30,7 +31,7 @@ vi.mock("@/lib/portal/portal-queries", () => ({
     id: "ship-a",
     code,
     service: "consolidado_lcl",
-    status: "in_transit",
+    status: h.status,
     origin: null,
     destination: null,
     volumeM3: null,
@@ -121,6 +122,7 @@ async function montar() {
 beforeEach(() => {
   h.naviera = null;
   h.live = null;
+  h.status = "in_transit";
 });
 afterEach(cleanup);
 
@@ -160,6 +162,18 @@ describe("SDD-0627 · una sola llegada a puerto en la página", () => {
     h.naviera = naviera("2099-12-01");
     const { tarjeta } = await montar();
     expect(tarjeta).toMatch(/01 dic/);
+    const nota = screen.getByTestId("seguimiento-estimado-nota").textContent ?? "";
+    expect(nota).toMatch(/01 dic/);
     expect(tarjeta).not.toMatch(/30 nov/);
+  });
+
+  it("ya en bodega VE sin evento de aduana y con la ETA vencida: el puerto no sale «por confirmar»", async () => {
+    // Salto de estado o lote SQL: status arrived_destination, sin in_customs en el historial.
+    h.status = "arrived_destination";
+    h.naviera = naviera("2020-01-15");
+    h.live = live("ok", "2020-01-15T12:00:00Z");
+    const { nota, tarjeta } = await montar();
+    expect(nota).not.toMatch(/por confirmar/);
+    expect(tarjeta).not.toMatch(/por confirmar/);
   });
 });

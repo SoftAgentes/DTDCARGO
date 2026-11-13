@@ -59,7 +59,11 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 3. **Llegada a puerto, con la precedencia de `resolve-shipment-eta`** (revisión independiente, M2):
    fecha real de aduana → ETA conocida (SeaRates `pod_eta`, luego `sailings.eta`: la misma que
    muestra la tarjeta Naviera) → zarpe + días de mar, como último recurso. Así el Portal y los
-   avisos no dan dos llegadas distintas.
+   avisos no dan dos llegadas distintas. SeaRates cuenta sólo con `fetch_status = ok`; ese filtro
+   corre **sin bandera** en `resolve-shipment-eta`, así que también cambia las reglas con ancla en
+   la ETA de la SDD-0156, que ya están activas: con SeaRates en error, se anclan en `sailings.eta`
+   en vez del `pod_eta` viejo. Si el envío ya está en aduana o más adelante, el puerto cuenta como
+   ocurrido aunque falte su evento, y nunca sale «por confirmar».
 4. **Etapas después del puerto:** aduana el día del arribo; bodega VE +10; reparto +12; última milla
    +13; entregado +14. Si la aduana ya tiene fecha real, el resto se ancla ahí. Terrestre: entrega a
    3 días del despacho, sin aduana. Son constantes de oficina en
@@ -124,7 +128,7 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 | `lib/studio/notifications/avisos-por-hito.ts` (nuevo) | plan, ensayo y programación |
 | `lib/studio/notifications/avisos-por-hito-flag.ts` (nuevo) | `AVISOS_POR_HITO_LIVE` |
 | `lib/studio/notifications/__tests__/avisos-por-hito.test.ts` (nuevo) | puro y doble |
-| `lib/studio/notifications/resolve-shipment-eta.ts` | cuarta fuente, con bandera |
+| `lib/studio/notifications/resolve-shipment-eta.ts` | cuarta fuente, con bandera; filtro de `fetch_status` en `pod_eta`, sin bandera (afecta también las reglas con ancla en la ETA de la SDD-0156) |
 | `lib/studio/notifications/__tests__/resolve-shipment-eta.test.ts` | casos de la cuarta fuente |
 | `app/studio/(app)/naviera/actions.ts` | gancho del zarpe y `ensayarAvisosZarpe` |
 | `app/studio/(app)/naviera/__tests__/ensayo-avisos-zarpe.test.ts` (nuevo) | acción real con el doble que filtra |

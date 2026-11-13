@@ -201,6 +201,7 @@ export function PortalShipmentDetailNorte({
           live={live}
           puertoPorConfirmar={
             estimado != null &&
+            !estimado.puertoReal &&
             estimado.fuente === "naviera" &&
             estimado.etaPuertoIso == null
           }
