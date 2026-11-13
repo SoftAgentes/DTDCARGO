@@ -599,7 +599,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
 | 0573 | Anular una factura revierte su asiento de venta, en la misma … | in-progress | interno |
 | 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
-| 0576 | Fechas de operaciones y lecturas anuales en America/Caracas —… | in-progress | interno |
+| 0576 | Fechas Caracas — operaciones, anuales y móvil — C1/C2/C3 | in-progress | interno |
 | 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
 | 0579 | Promesas de seguimiento coherentes en FAQ y fuentes locales | done | interno |
 | 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |

@@ -35,6 +35,10 @@ Publicar de la #311 a la #317, una por turno, después de cada fusión. Antes de
 - (a) Los totales de la 0572-a siguen sumando en coma flotante con `round2`. `sumarEnUsd` (`lib/shared/fx.ts`, suma exacta en centavos) solo lo usan sus pruebas; adoptarlo en los agregadores es una tarea aparte.
 - (b) `lib/studio/accounting/subdiario.ts:163` falla abierto a propósito: una CxP histórica sin tasa se suma al nominal para cuadrar con su asiento. Es una decisión declarada en el comentario, no un descuido.
 
+## Caminos sin uso desde la SDD-0614 (revisión de la #519)
+- Los anuales v2 hoy se ven solo en Fidelización y en el Portal. El CRM (Asesor/Tablero) y Reportes › Por agente están ocultos; sus lectores (`crm/page.tsx` en las pestañas de Kommo y `commercialByAgentKommo`) se conservan sin uso.
+- `app/studio/(app)/crm/__tests__/annual-billing-page.test.tsx` y los casos 0572-b de `commercialByAgentKommo` en `lib/studio/reports/__tests__/queries.test.ts` recorren ese camino. **En la 8.7 o en la R4 se borran o se convierten en contrato de lo que los reemplace.**
+
 ## FUERA DE ALCANCE DETECTADO
 - #312: el readback de `issued_at` en `lib/studio/sales-orders/actions.ts` (+1 lectura de invoices con el cliente admin) quedó redundante, porque la RPC atómica de la 0497 ya fecha el asiento con `issued_at` persistido. No lo quité: es una decisión para quien revise.
 

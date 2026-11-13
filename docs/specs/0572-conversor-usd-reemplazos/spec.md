@@ -747,3 +747,13 @@ en `app/studio/(app)/costing/_components/CostingClient.tsx:312`: «los que dejan
 plata sobre la mesa» pasa a «los que dejan dinero sobre la mesa». Es el único
 cambio de copy visible de esta entrega fuera de los rótulos de conversión; no
 cambia comportamiento ni datos.
+
+## Visible hoy (desde la SDD-0614, 2026-11-11)
+
+La SDD-0614 S0 ocultó Kommo del Studio. Por eso, de los consumidores de la
+facturación anual v2 (0527) **hoy solo se ven Fidelización y el Portal**
+(referidos, `billing_v2`). El CRM (pestañas Asesor y Tablero) y Reportes › Por
+agente no la muestran: la página del CRM vuelve antes de leer el espejo y
+`commercialByAgent` devuelve el reporte oculto. Sus caminos de lectura
+(`app/studio/(app)/crm/page.tsx` y `commercialByAgentKommo`) se conservan sin uso
+hasta la 8.7 o la R4, junto con las pruebas que los recorren.

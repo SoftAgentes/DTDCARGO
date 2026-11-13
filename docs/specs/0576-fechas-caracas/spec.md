@@ -1,6 +1,6 @@
 ---
 sdd: "0576"
-title: "Fechas de operaciones y lecturas anuales en America/Caracas — C1/C2"
+title: "Fechas Caracas — operaciones, anuales y móvil — C1/C2/C3"
 status: in-progress
 author: "Codex"
 created: 2026-10-21
@@ -11,7 +11,7 @@ related: []
 confidencialidad: interno
 ---
 
-# SDD-0576 — Fechas de operaciones y lecturas anuales en America/Caracas — C1/C2
+# SDD-0576 — Fechas de operaciones, lecturas anuales y móvil en America/Caracas — C1/C2/C3
 
 ## Objetivo y autoridad
 
@@ -481,6 +481,127 @@ C3móvil y demás tareas siguen fuera; SDD0576 permanece **in-progress**.
 El cierre local distingue guardado, integración, estructura, semántica/piloto, Archify, preview y UI de Obsidian. Por autorización específica del Director se ejecutó Graphify nativo0.9.61 sin instalación global/APIs: 44.261nodos/80.956relaciones/2.666comunidades, HTML agregado bajo5.000nodos. Se conservan avisos de extracción parcial en dos archivos de Legal; CURRENT estructural no demuestra semántica. Primera generación Archify2.16.0 PASÓ9/9 sin errores/advertencias, con ZIP y treehash fijados cotejados antes de extraer/ejecutar. Global0/1.328 y piloto0/16 del inventario inicial no se elevan a CURRENT por AST; no se copiaron recibos de main.
 
 El último refresco de derivados, knowledge:visual/check y publish/status/check --preview se ejecuta después del commit documental estable, con recibo externo final y readback de PR313 ligados a su SHA definitivo. Preview fija y propia en graphify-out/obsidian-preview; no publicación compartida. Semántica masiva, revisión visible en Obsidian, integración, ledger y producción conservan sus estados no medidos o pendientes. El handoff propio contiene comandos, huellas, intentos históricos y límites; no se alteran reglas globales para completar esta entrega.
+
+## C3 — alta, edición y fila de gastos móviles
+
+Asignación activada del Director2026-10-21, reproducida íntegra antes de producto en .agents/handoffs/0576-fechas-caracas-movil.md. Fuente externa C:/tmp/director-traspaso-20261020/0576-caracas-c3-asignacion-worker.md, SHA2566b94cd33764fd13b05efe2881ce99d0ac579c563491f54f75b82c60894293c66. Base final C2:0e630ede760dbc369ddf60133c18c4a77f2d8692; rama codex/sdd-0576-fechas-caracas-movil, PR DRAFT sobre codex/sdd-0576-fechas-caracas-anuales (histórico: hoy la C3 es la #526 contra main). No nueva migración, reparación histórica ni cambio0575.
+
+### Alcance exacto y aceptación C3
+
+Siete rutas permitidas: app/m/erp/actions.ts; app/m/erp/_components/MobileErpClient.tsx; app/m/erp/__tests__/fechas-caracas.test.ts; app/m/erp/_components/MobileErpClient.fechas-caracas.test.tsx; esta spec; docs/specs/README.md generado; .agents/handoffs/0576-fechas-caracas-movil.md. Helpers compartidos, CSS/layout, todos los tests previos, SQL, dependencias y gates quedan fuera de la escritura.
+
+- Alta captura un instante antes del PRIMER await, deriva su día IANA Caracas y persiste exactamente ese occurred_at. Guard y poster usan el mismo día, aun si sesión cruza04:00Z o el insert devuelve otro timestamp. La numeración conserva su RPC y reloj propios; no se afirma anclaje de su correlativo.
+- Ambas acciones resuelven tenant desde la sesión mediante get_user_tenant_id() sin argumentos y UUID escalar canónico estricto, sin fallback ni tenant de formulario. Solo arrays íntegros de0/1 settings con tenant coherente y closing_dateNULL/calendario válido pueden habilitar; errores, shapes o cardinalidad inesperados bloquean.
+- Edición carga exactamente un origen propio/tenant/activo, límite2, y valida identidad y occurred_at histórico sin reemplazarlo. Resuelve cuenta y conserva la comparación real amount_usd/cuenta/método antes de foto. Solo para cambio contable lee0/1 asiento vivo estricto con límite2; cierre o fecha histórica distinta bloquean antes de upload/remove/UPDATE/void/post. Cambio descriptivo abierto no consulta innecesariamente ese asiento ni repostea.
+- No se re-fecha historia, occurred_at ni created_at. Se preservan UTC de auditoría, importes/monedas/FX, permiso móvil propio, cuentaNULL legada, MIME/5MB y anulación gobernada.
+- Fila usa Intl real, localees-VE y timeZoneAmerica/Caracas explícita, incluidos02:30Z, corte04:00Z, mes/año/bisiesto y Caracas histórico−04:30.
+- El MISMO form conserva campos y File ante rechazo recuperable. Manejo local onSubmit/preventDefault→FormData nativo→useActionState en transición evita reset del form tras el error, sin caché/ref de File, exports ni form copiado. Retirar/sustituir/cancelar/cerrar realmente respeta la decisión del usuario.
+- N1: botón y fondo del alta no desmontan durante pending; vuelven a permitir cierre voluntario tras rechazo. N2: mensaje general persistente con rolealert/tabIndex−1 y foco local solo en respuesta nueva; no mueve foco al teclear/cambiar foto. Reintento por teclado medido en ambos forms.
+
+### Evidencia funcional C3 y límites
+
+> **Evidencia histórica de la #314** sobre la base C2 `0e630ede760dbc369ddf60133c18c4a77f2d8692`, no de la cabeza de la #526. Los conteos 168/168 y 248/248, «tipos PASÓ» y los 12 mutantes se midieron allí. **Sobre la cabeza de la #526** (`15e35ee7d` y siguientes): vitest, tipos y mutantes locales NO EJECUTADOS; los cubre el CI.
+
+Recibos externos bajo C:/tmp/director-traspaso-20261020/0576-c3-validation; sus identidades y hashes están en el handoff. ROJO puro de acciones sobre base intacta:117 FALLÓ/28 PASÓ,145 casos. ROJO UI real:13 FALLÓ/8 PASÓ,21 casos. Intentos con import/selección File de fixture incompleta se preservan aparte y no cuentan como ROJO funcional.
+
+La comparación global inicial E01/E03 solo mostraba método transfer→cash. La aserción independiente File de JSDOM PASÓ2/2 con21 omitidas por filtro, por lo que no demostraba pérdida de archivo. El navegador nativo posterior sí reprodujo, en alta y edición, primer File íntegro y segundo ausente tanto en FD cliente como en multipart parseado por handler real, con mismo form y rechazo inicial sin efectos. Se conserva esa diferencia de entorno.
+
+El VERDE nativo usa exactamente el mismo fixture de transporte11bytes: segundo File conserva name/type/size/bytes/SHA en ambos extremos y método transfer; todos los campos iguales. Base native/base-multipart.json SHA256c1126322305176ceeecc0f8339d280142a81e2e8804c3cee0cafc17223718db1; candidato native/candidate-multipart.json SHA2563e18370ef781902c35b163821503e264942cd0b809cc61b408c0fcfe6d902129. No se usa previewURL o input.files aislado como prueba de payload.
+
+Primer VERDE conjunto168/168 (145 acciones+23 UI). Regresión ampliada posterior248/248 en9archivos, cero omisiones:151 acciones C3+25 UI C3 y72 previas de anulación móvil/gobernada, Caracas, FX, cierre, posting y consultas. Incluye fieldErrors reales MIME y frontera de fallo posterior de upload/UPDATE; esto conserva, no elimina, la incertidumbre de escritura entre Storage/DB/posting. Tipos PASÓ tras corregir únicamente el tipo de una tabla del test; el primer falloTS se conserva.
+
+Mutantes focales seriales M1–M9/M11 y N1/N2 murieron por aserciones previstas; M10 nativo, al restaurar form action con reset, murió por aserción independiente del segundo File en ambos forms. Cada fuente se restauró por SHA256 exacto; fallos iniciales de invocación/clasificador se preservan como arnés, no como muerte funcional. No se tocaron controles, tiempos, pools, gates ni dependencias.
+
+Suplemento visual: Chrome headless, componente/forms/ToastProvider/CSS reales y fronteras sintéticas;390×844 y1280×900, teclado/foco/error/reintento/scroll/último control. PNG ficticio válido240×160/4421bytes/SHA2560e6d2f8ca3f566e34692303b1d8cf58ae963ba25d64fb3b443786f0c23af055c, distinto del fixture11bytes preservado para transporte. Preview decodificada y bytes/hash iguales en ambos envíos y extremos; documento sin desborde horizontal y forms390/480px. native/review.json SHA256714a9b80c6300cf1c6a8b8a2e2dde443786b53e036525e07a601e37dc1ca6ea5. Oscuro es suplemento sintético: layout real claro. Native200% NO DISPONIBLE; viewport fuente restringe zoom. Teléfono/Auth/RLS vivos, lector de pantalla y WCAG integral NO EJECUTADOS.
+
+### Gobernanza C3 — riesgo máximo R3 financiero
+
+| SGE-00v1.0 | Clasificación y evidencia acotada |
+|---|---|
+| .01 Predecibilidad | Cumplimiento: mismo Guardar, rechazo real sin cierre/refresh |
+| .02 No perder trabajo | Cumplimiento medido: File/método ROJO→VERDE nativo; N1 y cierre voluntario |
+| .03 Riesgo/fricción | Cumplimiento: guardas financieras sin confirmación nueva; anulación P3/R3 intacta |
+| .04 Auditoría | Cumplimiento del delta: ancla persistida, historia y UTC de auditoría preservados |
+| .05 Permisos/tenant/estado | Cumplimiento sintético/fuente: tenant escalar, owner y estados estrictos; no RLS vivo |
+| .06 Prevenir errores | Cumplimiento: guardas previas a foto/documento/void/post y calendario IANA |
+| .07 Estado verdadero | Cumplimiento: solo array vacío es ausencia; error no equivale a abierto; no atomicidad0575 |
+| .08 Frecuencia | Cumplimiento: no campos, permisos ni pasos nuevos |
+| .09 Reutilización | Cumplimiento: helper, componente y forms existentes; sin exports/duplicación |
+| .10 Accesibilidad | Cumplimiento de DOM/foco/teclado/reflow observado; integral NO VERIFICABLE por límites |
+| .11 Lenguaje | Cumplimiento de nuevas guardas: error persistente sanitizado y vía de recuperación |
+| .12 Autoridad humana | No aplica IA nueva; PR #526 contra main (antes #314 DRAFT) y límites merge/producción preservados |
+
+DAT-01v1.0: día/calendario coherente, sin selector nuevo. ERR-01v1.0 y FRM-01v1.1: bloqueo visible, foco nuevo, preservación de trabajo y pending medidos. NUM-01v1.1: conversión/validación vigentes preservadas, no adopción global NumericInput. A11Y-01v1.1: DOM/teclado/foco/reflow medidos; lector/zoom/teléfono no certificados. MP-01v1.1: máximoR3 por historia financiera, sin fricción añadida ni promesa transaccional. Ninguna excepción creada; aprobación de políticas y conteos estáticos no certifican el producto.
+
+UI-check advisory del delta: sin color/spacing/CSS nuevo; error enfocado visible. Deuda fuera de alcance: layout móvil hereda Archivo/ArchivoBlack (medido, archivos locales cargados) frente al split operativo Nunito/Sora de la rúbrica; restricciones de zoom y legibilidad oscura heredadas. No se cambia layout ni se declara esa deuda conforme.
+
+Privacidad técnica del delta File: ENCONTRADO FormData nativo limitado al mismo input/form; CORRECTO sin caché global/durable, retirar/sustituir/cerrar y guardas antes de Storage medidos con datos ficticios; NO VERIFICABLE borrado físico de memoria/objetos históricos, vida completa de blobURLs y cumplimiento jurídico global. Sin filas reales, secretos o PII; no se promete borrado forense.
+
+### Primera receta C3 y reparación acotada del fixture TZ
+
+Primera receta normal sobre a732bcb0221ad821c671b0ee18d52ab928da26eb,07:28:01.8197424–08:03:24.5892194Z,exit1: **FALLÓ y CIERRE ADEMÁS INCOMPLETO**.16/17pasos medidos; test falló y migrations-applied quedó OMITIDO por URL/SERVICE_ROLE_KEY ausentes. Primer intento unitario12.934PASÓ/1FALLÓ/1OMITIDO,543,34s; reintento normal12.933/2/1,553,31s. Ambos detectaron TZ por acceso directo nuevo del fixture UI; solo el reintento agregó timeout20000ms del Portal supplier-flow.test.tsx:287. Ese caso pasó antes; su causa no se demuestra ni se amplía alcance para repararlo. El corpus real de proformas sigue OMITIDO. No se suman ni sustituyen los intentos.
+
+Harness237/237,lint0errores/15advertencias,RSC/tipos/cuatroEdgeFunctions/docs/numeración/componentes/gobernanza,SQL249contratos con rollback,reconstrucción492 (474DDL+18historial) en DB efímera y build PASARON. E2E quedó OK con AVISO del runner:177expected/20skipped/0unexpected/1flaky,198casos. auth.spec.ts:81/chromium registró ERR_ABORTED y aprobó el reintento; error global worker-17 sin salir en300000ms y forzado. La interpretación del runner WebKit/no-regresión no acredita causa. JSON original268808bytes/SHA2560ff365f96a63595b19bbb5db7138ff1c289a01c7f7fe6bf130d1603409a95114, capturado por observador externo con ancestry/PID/tiempo, sin hooks ni filtro rootDir ni reconstrucción. Las20omisiones y motivos exactos se conservan en el original.
+
+Bytecheck automático08:03:24.6738369Z confirmó39fuentes únicas con hashes/bytes idénticos, HEADa732estable y árbol limpio antes de docs; SHA2564b74d8c2ec1bdd99298f01e11c6595c1eb1a10692e6bc956ccbf94e7191cb31b. Log completo3e97bb3cb16752106a9eaebfa33dab81c2bad6338f0f2a360e47e4cef60bc47a y metadata9541981d5ccfc1213d0ff21696f0116f841166b03b0c6866b96bd10bdccfd54d quedan inmutables en0576-c3-validation. Revisión formal del Director bdc113f6e3497e97685071b76bff47bb3ceae3430f72e10aee2e1bf5dd5de7e9 autorizó únicamente la reparación causal del fixture, después de EXIT/integridad.
+
+Se sustituyeron almacenamiento/asignación/restauración directos de TZ por vi.stubEnv("TZ",tz)/vi.unstubAllEnvs(). Se conservan Intl/resolvedOptions real,25casos UI, aserciones, filtros y límites; no se edita .env.example, scanner, producto, Portal ni runner. Focal completo UI+env-contract26/26PASÓ,0OMITIDO,08:07:27.756–08:07:56.240Z; recibo38b439f5609844183b5d3c5cad1d5442fac07408bdc95fe0ca3fb2d215daa506 en0576-c3-tz-fixture. M9 repitió únicamente el control afectado:6FALLÓ/1PASÓ/18omitidos por filtro D01-D04, por día visible incorrecto; recibo8eed3ef4d8374c3bf8d3fb78cecbe00b8a32655559fbdf70cc18c921c5bf1ddb. Fuente UI restaurada exacta al SHA6ab337a12cfe6e82018cbc1baf45a7d248e5c8a45ef17046eae6ea5fef33ed6a. No se repiten navegador/regresiones intactas por este cambio exclusivo de fixture.
+
+### Segunda receta C3 y espera de baseline independiente
+
+GO2 explícito tras devolución del turno pesado, con revisión del Director7085550f50e6b32709aa061476dda97cf5e10d2b99b4b461305edb835b5f145b y candidato exacto d1a7cca287fafcfe978ac74a58c40040889193c2/base0e630. Una receta normal corepack pnpm verify, 08:25:18.8874801–09:03:45.1958957Z, exit 1: **FALLÓ y CIERRE ADEMÁS INCOMPLETO**, 16/17 pasos medidos, test fallido y ledger OMITIDO. Se conservan los fallos de la primera receta; este resultado no los reemplaza.
+
+| Intento unitario de segunda receta | Resultado separado | Diagnóstico original |
+|---|---|---|
+| Primero, 562,82 s | 12.934 PASÓ / 1 FALLÓ / 1 OMITIDO | supplier-flow.test.tsx:287, timeout 20000 ms, caso 20377 ms |
+| Reintento nativo, 567,73 s | 12.934 PASÓ / 1 FALLÓ / 1 OMITIDO | EmbarquesClient.borrado.test.tsx:184, botón «Eliminar embarques» no disponible; DOM submit disabled «Procesando…» |
+
+Ambos intentos tuvieron 887 archivos aprobados, uno fallido y uno omitido. TZ no figuró entre fallos; Portal no figuró entre fallos del reintento y embarques no figuró entre los del primero. Eso no demuestra causa ni certifica flake. C3 no modifica esos fixtures, sus productos, configuración, tiempos o gates. El rótulo «flaky conocido» se preserva como texto del runner. El corpus real de proformas continúa OMITIDO.
+
+Harness 237/237, lint 0 errores/15 advertencias, RSC/tipos/cuatro Edge Functions/docs/numeración/componentes/gobernanza, SQL 249 con rollback, reconstrucción 492 (474 DDL+18 historial) en DB efímera y build PASARON. E2E fue OK con AVISO: 177 expected / 20 skipped / 0 unexpected / 1 flaky, 198 casos; auth Chromium ERR_ABORTED 14231 ms y reintento aprobado 13593 ms. Se conserva el error global literal de worker-17 forzado después de 300000 ms. La atribución del runner a WebKit/no-regresión no demuestra causalidad.
+
+JSON E2E original de 268802 bytes capturado a 09:01:54.279Z; inicio propio 08:52:33.075Z y duración 561169,744 ms, SHA4bb1943ae2400f1b70dd6b782b7e7060661da764c40cb8c7192633028d263e3e. No hooks, filtro rootDir, reconstrucción o E2E adicional. Bytecheck automático a 09:03:45.2883911Z, SHA7516cf1f673805edd5c09218b5c11060301cbc79aeb18e75b963e37aa1b0ebb0: 39/39 rutas únicas, hashes/bytes iguales, HEAD d1a7 estable y árbol limpio antes de documentos. Director contrastó también los 39 archivos actuales; los trece primeros originales siguen intactos. Log completo6bf8fd29c0550453391b6a3965ac09165d9e073236b7a1df8db1373cd23ea53f y metadata7f9eb200e8187810cf30ffaee4573758fb9f62c6bb28636c3fd82f08a6d0ffe0 permanecen en la carpeta separada0576-c3-next/canonical-2.
+
+Cierre atribuible de recursos: 89 identidades observadas cerradas, sin listeners propios 3149/13149 ni contenedores exactos de SQL/reconstrucción. Ningún proceso terminado por el Worker; cuatro WebKit anteriores no atribuidos se preservaron. Recibo heavy-release.json SHA68bdbefd98eef50f544688f7135116989ab69c3bcebfefab6fe52c7d18d42de3. Turno devuelto expresamente al Director, claim C3 conservado. No limpieza global ni validación nueva por esa inspección.
+
+### Composición local de baseline 0577 revisada
+
+Director autorizó composición local, sin canónica, mediante C:/tmp/director-traspaso-20261020/0576-c3-baseline-0577-autorizada.md, SHAa8702feb4301de42ff694a19a47d62c9dd262856126b1391cd802d24016cd41e, leído íntegro y preservado en handoff propio. Receptor55138b9cca4d304802337b50f353569531f9993e, donantec4b2e72dabbdde80ec7fe5c8a7f128966b6494be, ancestro común eafbd910d1c082c9b416b558f8c3db5847b994a6. PR314 y315 OPEN/DRAFT/remotos exactos comprobados; mismo owner/claim/rama C3. Merge Git local normal sin conflictos; no main ni merge de PR.
+
+La allowlist acumulada pasa de siete a once rutas por cuatro heredadas: los tests Portal/Embarques, spec0577 y handoff0577. README compartido ya estaba permitido y se regenera preservando ambas specs;559specs/18huecos y docs:check PASÓ en el árbol previo al commit. No se reescriben producto/tests C3 ni archivos0577 heredados. Se mantienen blobs del receptor para las cuatro rutas TS/TSX C3 y del donante para las cuatro rutas heredadas; sus identidades se cotejan en recibo externo de composición.
+
+Tests heredados exactos: Portal8112f1d2d1d98623830e31855e67c0bf97b325d3 y Embarques64c357737fd383078ce3b68594f816561f93bed5. Las preimágenes del receptor coinciden con eaf. Revisión independiente e48f432cd469f299ef8f9db1d5ebee569f7941a554a8b810a680b0584592c057 aceptada por Director; recibo donante2824bd5df16ac699c101024dcecace19de8577f7d1727c4fbfb499449c8f2d8e cotejado junto con sus13artefactos. Los40casos originales/candidatos pasaron antes, con171oráculos/29negativas y38cuerpos preservados, más2aserciones de disponibilidad. Se vinculan por blobs a la baseline; no se atribuyen retrospectivamente a una ejecución sobreHEADc4 ni a la composición. El original ya pasaba focalmente: no demuestra causa del timeout Portal ni estabilidad bajo concurrencia general.
+
+Se preservan ambas canónicas C3 FALLÓ+INCOMPLETO. La incorporación por sí sola no inició pruebas ni transfirió una canónica histórica de0577: la aceptación receptora se midió después mediante el GO3 descrito abajo. Los13primeros originales,32del segundo sobre y13artefactos del donante permanecen íntegros por hash/bytes. El sobre nuevo registró43fuentes únicas, las39previas más dos tests/spec/handoff heredados, approvedHead explícito y protección de los recibos previos. Sin focal/UI/SQL extra por la composición.
+
+### Tercera receta C3 sobre composición revisada
+
+Composición publicada y revisada **22bd5192825199aeafd0cf5e3625606ff77657b0**, con padres55138b9cca4d304802337b50f353569531f9993e y c4b2e72dabbdde80ec7fe5c8a7f128966b6494be. GO3 del Director autorizó una sola receta normal `corepack pnpm verify`, sin instalación ni cambios de workers/config/tiempos/gates. Node24.20.0/pnpm12.14.0, solo COREPACK_ENABLE_AUTO_PIN=0 y COREPACK_ENABLE_DOWNLOAD_PROMPT=0 en el proceso; package/lock idénticos antes/después, sin credenciales ni overrides VERIFY/NODE_OPTIONS.
+
+Inicio09:58:37.0499811Z, EXIT10:36:15.3461774Z, **exit0 y CIERRE INCOMPLETO16/17**. Los16pasos medidos fueron aceptados por Director en caracas-c3-revision-director-go3-terminada.md, SHAe46a0136ac34387f18ad5ddcb09238f167d305717658dac96dbe74901b697334, leído íntegro. El ledger migrations-applied quedó OMITIDO por ausencia de URL/SERVICE_ROLE_KEY; no se consultó DB real. No es cierre verde completo ni prueba de producción. Las dos recetas anteriores FALLÓ+INCOMPLETO se conservan y no se suman ni reemplazan.
+
+| Intento unitario GO3 | Resultado nativo separado | Límite |
+|---|---|---|
+| Primero,519.63s,exit1 | 886archivos PASÓ/1OMITIDO de889;12823casos PASÓ/1OMITIDO de12936;2errores de pool | PARCIAL: dos errores nativos ZoneOOM y Worker exited unexpectedly; faltan archivos/casos sin resultado, sin causa establecida |
+| Reintento nativo único,647.26s | 888archivos PASÓ/1OMITIDO de889;12935casos PASÓ/1OMITIDO de12936; paso testOK | No borra el primer intento ni demuestra estabilidad por una receta |
+
+El stdout solo nombra1skipped: identidad individual acreditada por reporte nativo **NO DISPONIBLE**. La fuente lib/studio/document-import/corpus.test.ts:31 contiene el único skip explícito encontrado, describe.skipIf para corpus real de proformas dependiente de DOCUMENT_IMPORT_CORPUS/carpeta disponible. Esa correspondencia es **estática/inferencia**, no un nombre obtenido del reporte nativo. No se leyó corpus real ni cache ni se fabricó JSON de casos. Los muestreos de memoria fueron posteriores al OOM y no causales; el intento de comparación de fechas mal tipadas se conserva como diagnóstico inválido del recibo, sin confundirlo con una falla del producto.
+
+Harness237/237,lint0errores/15warnings,RSC/tipos/cuatroEdgeFunctions/docs/numeración/constantes/componentes/gobernanza/manifiesto pendiente,SQL249contratos con rollback total,rebuild492migraciones (474DDL+18solo-ledger) y build PASARON. El manifiesto pendiente conserva0ROJO/2AMARILLO declarados/3homónimos descartados. Rebuild y aislamiento sintético de219tablas/2tenants son locales; no RLS o datos productivos. Se preservan warnings y choques históricos declarados. El build restauró tsconfig automáticamente; no hubo reparación manual.
+
+E2E original capturado a10:34:16.933Z,270339bytes, SHA455ae60e2a70281f0f87ff808b3e96cc82369a774e3fba68476d70115059b437: **198únicos=177expected+20skipped+1flaky,0unexpected**,557377.402ms. Flaky actual distinto del auth anterior: Chromium company-photo-carousel.spec.ts:93, aserción103 sobre #operacion video expected2/received1, failed20335ms→retry1passed20753ms. Sus dos adjuntos reales, contexto y trace, se copiaron exactos con hash/bytes. Error global literal: `worker-17 process did not exit within 300000ms after stop, force-killed it`. El aviso WebKitWindows/no-regresión es interpretación del runner, no causalidad independiente demostrada. Sin reejecutar ni reconstruir E2E.
+
+Las20omisiones conservan anotaciones nativas: comments3 por Preview/credenciales/seed; capturas carousel móvil2; gastos6 poraccounting/admin+gasto vivo; búsqueda6 porcredenciales/branch+seed; nómina3 poradmin+finiquito desechable. No prueban sesiones/RLS/filas reales, dispositivo físico o cobertura integral.
+
+Bytecheck automático10:36:15.5742581Z, **43/43rutas únicas, hashes y bytes iguales antes/después/actuales, HEAD22bd intacto y árbol limpio**, antes de documentos; SHAec9d2c3cb8ae8919321bec345900e0a439c857e0a83319a83b54e95deac39797. Carpeta C:/tmp/director-traspaso-20261020/0576-c3-next/canonical-3 inmutable:40archivos sellados en documentation-3/canonical-3-originals-seal.json, SHA9b960b6289d4f59a86250d048b270ffe15cbc0359eb282b7e5dce694cad3747a. Hashes de originales/proyecciones/adjuntos y límites están en el handoff.
+
+Recursos propios observados cerrados:135identidades atribuidas temporalmente,0restantes; cada intento unitario tuvo28identidades observadas y0restantes. Puertos3149/13149 libres y contenedores exactos SQL/rebuild ausentes. Ningún proceso matado por el Worker;19932 y su conhost37612 previos al GO3 se excluyeron por creación/parentesco temporal pese al PPID reutilizado. No se afirma inventario universal entre snapshots ni limpieza global. Turno pesado devuelto expresamente a10:41:50Z; claim retenido para el cierre acordado.
+
+### Cierre e integración C3
+
+PR314 OPEN/DRAFT sobre la base asignada0e630. Composición22bd con0577 heredada revisada y receta receptora aceptada con sus límites; once rutas acumuladas, cuatro fuentes móviles exactas del receptor55138 y cuatro heredadas exactas del donantec4. Este cierre cambia solo spec/handoff propios; título/status in-progress de la SDD no cambian y el índice generado conserva su fila vigente. Se preservan ambas corridas fallidas, el primer intento parcial de GO3 y todos sus originales. Ledger vivo sigue validación release y no autoriza consultar DB para completar un gate;0495 no se repite y0496/0500 siguen sin aplicar a producción.
+
+Al corte documental, conocimiento C3 **NO EJECUTADO**, pendiente de fijar este commit estable y turno expreso. Se realizará un único ciclo nativo: Graphify0.9.61, Archify2.16.0 con ZIP/hash verificado antes de extraer, visual/check y preview/publish/status/check locales. Sus resultados postcommit irán a C:/tmp/director-traspaso-20261020/0576-c3-next/knowledge-final y PR314; no se hará un primer ciclo para autocitarlo ni publicación compartida. Si no hay corrección material, no se reescriben estos documentos para insertar su propio SHA o los resultados de ese ciclo. Semántica/piloto/global, revisión visible Obsidian, integración, deploy, migraciones y producción conservan estados separados. Aceptación local final y liberación de claim se acreditarán mediante recibo externo/PR. SDD0576 sigue in-progress; este slice no cierra por sí solo2.1global.
 green-gastos-usd-compat PASÓ17/17 en2archivos completos,0SKIP,04:01:18.302–04:01:20.825Z, incluyendo expense-queries-caracas real que ejecuta filtros contra filas de borde. Lint focal PASÓ salida0 sin advertencias,04:01:25.413–04:01:31.340Z; typecheck-gastos-usd-compat PASÓ salida0,04:01:36.490–04:01:47.322Z. Producto APP/0533/arnés/gates siguen idénticos; el checkpoint contiene únicamente este test y los dos documentos propios. Alcance70rutas exactas. Nueva verificación canónica y cierre de conocimiento aún pendientes sobre el siguienteSHA congelado.
 
 ## Renumeración 0499 → 0533 (2026-11-11)
@@ -522,3 +643,20 @@ El preflight que compara el md5 de los cuerpos de 0411/0527 sigue valiendo: la
 renumeración de la 0527 sólo tocó literales del preflight, el postflight y la tabla
 temporal, no los cuerpos de las funciones. SHA-256 anterior `bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf`, nuevo
 `4ea257be32704d24b4ed06871c50a86cce6bac9f8d1c8f63ca4bbc923e5c7c45`. La rama `claude/sdd-0576-fechas-caracas-anuales` reemplaza a la PR #313.
+
+## Desviaciones declaradas de la C3 (revisión de la #526, 2026-11-13)
+
+- **Copy de la edición de un gasto ajeno.** Antes, editar un gasto de otra persona
+  devolvía «Solo puedes editar tus propios gastos.». Ahora `ownExpense`
+  (`app/m/erp/actions.ts`) busca el gasto filtrando por id, tenant y `user_id` en una
+  sola lectura y falla cerrado, así que un gasto ajeno y uno inexistente dan el mismo
+  mensaje genérico: «No se pudo comprobar el gasto propio y su fecha histórica.
+  Reintenta.». Se mantiene porque no revela si el gasto existe. Pendiente menor de
+  copy: para un gasto ajeno, «Reintenta» no ayuda. Restaurar el texto anterior no es
+  un cambio de una línea, porque exige separar la lectura por dueño.
+- **`disabled={isPending}` en «Cerrar».** `NewExpenseModal` deshabilita el botón
+  «Cerrar» y el clic del fondo mientras se guarda, para que el envío en curso no
+  pierda el formulario ni el archivo. `app/m/CLAUDE.md` pide no usar
+  `disabled={isPending}` a mano y dejarlo a `<ActionButton>`; aquí no aplica porque
+  «Cerrar» no es una acción con efecto, pero es una desviación de esa guía y queda
+  declarada.
