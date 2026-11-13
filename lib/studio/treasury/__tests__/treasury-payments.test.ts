@@ -17,7 +17,7 @@
  * sesiones reales, `supabase/tests/0468_pago_proveedor_carrera.test.sql`.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const postPaymentMock = vi.fn();
@@ -44,7 +44,7 @@ type RpcCall = { fn: string; args: Row };
  * terminal (captura el payload), insert (lo captura) y rpc (captura la llamada y
  * responde como las RPC de 0468, o con `rpcError`).
  */
-function makeStub(opts: { bills?: Row[]; payments?: Row[]; rpcError?: string }) {
+function makeStub(opts: { bills?: Row[]; payments?: Row[]; rpcError?: string; afterRead?: () => void }) {
   const updates: Captured[] = [];
   const inserts: { table: string; payload: Row }[] = [];
   const rpcCalls: RpcCall[] = [];
@@ -81,7 +81,7 @@ function makeStub(opts: { bills?: Row[]; payments?: Row[]; rpcError?: string }) 
         }
         return chain;
       },
-      maybeSingle: () => Promise.resolve({ data: match(), error: null }),
+      maybeSingle: () => { opts.afterRead?.(); return Promise.resolve({ data: match(), error: null }); },
     };
     return chain;
   }
@@ -147,6 +147,15 @@ const PAYMENT: Row = {
 beforeEach(() => {
   postPaymentMock.mockReset().mockResolvedValue({ ok: true, entryId: "je-nuevo" });
   voidPaymentEntryMock.mockReset().mockResolvedValue({ ok: true });
+});
+afterEach(() => vi.useRealTimers());
+
+it("C1: captura paidAt omitida antes de leer CxP y conserva la misma fecha en RPC/asiento", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));
+  const state = makeStub({ bills: [BILL], afterRead: () => vi.setSystemTime(new Date("2026-10-21T04:00:00Z")) });
+  expect(await registerPaymentFor(state.client, "b1", { amount: 10.25, cashAccountId: "cash", method: "zelle" })).toMatchObject({ ok: true });
+  expect(state.rpcCalls[0].args.p_paid_at).toBe("2026-10-20");
+  expect(postPaymentMock).toHaveBeenCalledWith(expect.objectContaining({ entryDate: "2026-10-20", amount: 10.25 }));
 });
 
 // ── registerPaymentFor · RPC atómica (SDD-0489) ───────────────

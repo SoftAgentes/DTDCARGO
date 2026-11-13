@@ -3294,6 +3294,42 @@
         "fecha": "2026-11-11",
         "forma": "exacta"
       }
+    },
+    "0527_annual_billing_fx_v2": {
+      "sha256": "492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229",
+      "md5": "422a371de0ae02c74c1ad46c4f83ed28",
+      "bytes": 12529,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0532_noticias_edicion_auditada": {
+      "sha256": "4e6dc6d380c4fc12805da663f4b125381cb53c947e36a2afaba3fa0f3df8b9c9",
+      "md5": "bd81ad586d236fd165af6f7efdb73c58",
+      "bytes": 11203,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0533_fechas_caracas_operaciones": {
+      "sha256": "da9343c22d38a2cffce7d7118c090a8e6c412ae0956979d2dc315754cc1e85e0",
+      "md5": "ef1805bd799471fe4c453276639c7b27",
+      "bytes": 42657,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0534_annual_billing_caracas": {
+      "sha256": "4ea257be32704d24b4ed06871c50a86cce6bac9f8d1c8f63ca4bbc923e5c7c45",
+      "md5": "9b16d8aaf26282e4db3ddf4930e64981",
+      "bytes": 14183,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
     }
   }
 }

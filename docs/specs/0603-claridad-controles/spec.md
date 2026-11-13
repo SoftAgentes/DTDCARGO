@@ -4,7 +4,7 @@ title: "Claridad de controles: qué se oprime, qué avisa y qué solo se lee"
 status: in-progress
 author: "Claude"
 created: 2026-11-04
-updated: 2026-11-04
+updated: 2026-11-13
 supersedes: null
 superseded_by: null
 related: ["0120", "0441"]
@@ -190,6 +190,71 @@ El contrato exige nombre en cada contenedor `.studio-tabs`.
 - La activa se distingue por relleno de tinta y por `aria-selected` o `aria-pressed`, no solo por color.
 - Las pestañas envuelven en pantallas angostas, sin recorte (A11Y-01 §13).
 - No cambia ningún `onClick`, texto visible, orden ni ruta. Los únicos textos nuevos son los nombres accesibles de la lista de arriba.
+
+## Enmienda de elevación (2026-11-12, aprobada por Sam)
+
+Con los tramos 1 y 2 en `main` (#510 y #511, 2026-11-11), Sam aprobó el 2026-11-12 que los controles se vean todavía más oprimibles: sombra por nivel, borde propio en oscuro y verbos en negrita. Es un delta sobre `main`; no rehace el tramo 1. Rama `claude/0603-enmienda-elevacion-b4a07e`, desde `origin/main` `dcccddee6`.
+
+**Por qué el borde en oscuro.** El primario vino mide 10,58:1 contra la tarjeta en claro, pero solo 2,26:1 en oscuro (`--wine` #A8323E sobre `--bg-surface` #16264A), y 1,98:1 sobre `--bg-elevated`. En oscuro, un botón relleno se distingue hoy por su texto, no por su forma.
+
+### Niveles por control
+
+| Nivel | Sombra en reposo | Al pasar el cursor | Al oprimir | Controles |
+|---|---|---|---|---|
+| 0 · plano | ninguna | — | — | Avisos, `Badge`, texto, deshabilitado, confirmación (`.studio-btn-success`) |
+| 1 · contorno | `--shadow-xs` | `--shadow-md` | `--shadow-xs` | Secundario (`.studio-btn-ghost`), con contorno de 1,5 px en `--ctl-border` |
+| 1 · icono | `--shadow-xs` | `--shadow-xs`; se invierte a relleno `--ink` | `--shadow-xs` | Controles de icono, cierre de panel y densidad. No son `.studio-btn`: el hover los invierte, como desde el tramo 1, y la sombra no cambia. La enmienda que aprobó Sam no les pide subir |
+| 2 · relleno | `--shadow-sm` | `--shadow-md` | `--shadow-xs` | `.studio-btn-dark`, `.studio-btn-warning`, `.studio-btn-danger` |
+| 3 · principal | `--shadow-md` | `--shadow-lg` | `--shadow-xs` | `.studio-btn-primary`, una por contexto (VIS-01 §5) |
+
+En oscuro, los niveles 2 y 3 suman `--ctl-edge-hi`. Las pestañas y el `SegmentedControl` son selección, no verbo: siguen como los dejó el tramo 2.
+
+### Tokens nuevos
+
+En `app/studio/tokens.css`. Son de medida y forma: ningún color nuevo de paleta, solo referencias a tokens que ya existen.
+
+| Token | Claro | Oscuro | Para qué |
+|---|---|---|---|
+| `--ctl-border` | `var(--ink)` | `var(--ink)` (se resuelve a #F2F0EC) | Contorno de los controles con contorno |
+| `--ctl-edge-hi` | `0 0 0 0 transparent`, sin efecto | `inset 0 1px 0 var(--border-strong), 0 0 0 1px var(--ink-soft)` | Borde propio de los controles con relleno: luz arriba y aro exterior |
+
+El aro exterior, `--ink-soft` en oscuro, mide 6,86:1 sobre `--bg-surface`, 6,00:1 sobre `--bg-elevated` y 8,26:1 sobre `--bg-base`. Al imprimir, `--ctl-edge-hi` vuelve a su valor claro, como cada token que el tema oscuro sobrescribe.
+
+**Espejo del Norte: no aplica en el código.** El Norte es copia de Cloud Design y solo cambia por NORTE-SYNC; no tiene `tokens.css` propio. La decisión queda anotada en BD-037 y en `BRAND.md` §Controles, y el próximo NORTE-SYNC la lleva al Brand Book.
+
+### Peso
+
+Los verbos de botón van en 700 o más: `.studio-btn` (ya estaba), los controles de icono, cierre y densidad (ya estaban) y `.studio-file::file-selector-button`, que pasa de 600 a 700.
+
+### Allowlist de la enmienda
+
+- `app/studio/tokens.css`, `app/studio/studio.css`
+- `app/studio/_components/__tests__/claridad-controles-contract.test.ts`
+- `app/studio/CLAUDE.md`, `BRAND.md`, `docs/design/studio/_norte/BRAND-DECISIONS.md`
+- `docs/specs/0603-claridad-controles/spec.md`, `.agents/handoffs/0603-claridad-controles.md`
+
+### Aceptación de la enmienda
+
+Todo lo del tramo 1 sigue valiendo: contornos de al menos 3:1, texto de relleno de al menos 4,5:1, nada oprimible bajo 32 px, `Badge` sin cajón, compacto y oscuro por defecto y recordados, impresión en claro y las rutas de Chatwoot sin tema ni densidad. Además, `claridad-controles-contract.test.ts` vigila:
+
+- el primario reposa en `--shadow-md` y sube a `--shadow-lg`;
+- el secundario lleva contorno de 1,5 px en `--ctl-border`, que se resuelve a `--ink` y mide al menos 3:1 en los dos temas, y reposa en `--shadow-xs`;
+- cada control con relleno (primario, oscuro, advertencia, peligro) lleva `--ctl-edge-hi`, que en claro no pinta nada y en oscuro trae un aro de al menos 3:1 contra la tarjeta y la superficie elevada;
+- todo selector de verbo de botón declara peso 700 o más;
+- los tokens nuevos no traen colores literales;
+- deshabilitado y confirmación quedan planos.
+
+Cada regla nueva tiene piso (cuenta mínima de lo que mide) y al menos un mutante que la rompe.
+
+### Gate VIS-01 de la enmienda
+
+| Punto | Clasificación |
+|---|---|
+| Presupuesto de énfasis | Cumple: el primario sigue siendo el único relleno vino y ahora también el de más sombra. |
+| Semántica de color | Cumple: ningún color nuevo; el aro usa `--ink-soft`. |
+| Contraste | Cumple: medido y vigilado por contrato en los dos temas. |
+| Light/dark | Cumple en contrato. El recorrido visual en oscuro sigue pendiente en la imagen de prueba, como en el tramo 1. |
+| Movimiento reducido | Cumple: cambia la sombra; el `transform` de 1 px ya se apagaba con `prefers-reduced-motion`. |
 
 ## Límites
 

@@ -153,6 +153,7 @@ function renderTesoreria(payables: Payable[]) {
         vencidoUsd: 1000,
         pagadoMes: 400,
         proveedoresActivos: 1,
+        cxpSinTasa: 0,
       }}
       payments={[ORDEN]}
       suppliers={[PROVEEDOR]}
@@ -335,6 +336,7 @@ describe("TesoreriaClient · la CxP saldada se abre desde «Pagos» (SDD-0494)",
           vencidoUsd: 1400,
           pagadoMes: 0,
           proveedoresActivos: 1,
+          cxpSinTasa: 0,
         }}
         payments={[]}
         suppliers={[PROVEEDOR]}

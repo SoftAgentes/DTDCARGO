@@ -104,6 +104,14 @@ export async function emitRenditionFor(
         "No hay recibos de terceros aplicados en este período (nada que rendir).",
     };
   }
+  // SDD-0572 (decisión del Director, 2026-10-20): con un cobro o una factura
+  // local sin tasa, los totales no están completos en USD: no se emite.
+  const sinTasa = (preview.recibosSinTasa ?? 0) + (preview.facturasLocalesSinTasa ?? 0);
+  if (sinTasa > 0) {
+    return {
+      error: `No se puede emitir: ${preview.recibosSinTasa ?? 0} cobro(s) y ${preview.facturasLocalesSinTasa ?? 0} factura(s) local(es) del período no tienen tasa. Cárgala y vuelve a emitir.`,
+    };
+  }
 
   // 3. Generar rendition_code con reintento ante choque de unique (patrón 0054).
   let lastError = "No se pudo emitir la rendición.";
@@ -151,11 +159,13 @@ export async function emitRenditionFor(
     // 5. Insertar el puente (un row por recibo elegible). Si falla, rollback
     //    manual de la cabecera (el delete del rol normal lo bloquea el trigger
     //    de inmutabilidad → se usa el admin client).
+    // SDD-0572: el chequeo de arriba no deja emitir con un cobro sin tasa, así
+    // que aquí ninguna línea trae amountUsd null.
     const bridgeRows = preview.lines.map((l) => ({
       tenant_id: tenantId,
       rendition_id: renditionId,
       receipt_id: l.receiptId,
-      amount_usd: l.amountUsd,
+      amount_usd: l.amountUsd ?? 0,
       rendition_voided: false,
     }));
     const { error: bridgeErr } = await supabase

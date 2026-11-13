@@ -14,7 +14,12 @@
  * lógica de elegibilidad/monto + revisión).
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
+const posting=vi.hoisted(()=>vi.fn(async()=>({ok:true})));
+vi.mock("@/lib/studio/accounting/invoice-posting",()=>({postInvoiceJournalEntry:posting}));
+vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));
+import { autoInvoiceForReceipt } from "../actions";
 import {
   canAutoInvoice,
   computeReceiptInvoiceAmount,
@@ -22,6 +27,65 @@ import {
   salesOrderAcceptsInvoicing,
   type ReceiptForInvoicing,
 } from "../invoicing";
+
+const TENANT="11111111-1111-4111-8111-111111111111";
+const INVOICE="22222222-2222-4222-8222-222222222222";
+function invoiceIo(payload:Record<string,unknown>,readRows:unknown[]=[],readError:unknown=null){
+  const reads:{columns:string;filters:[string,unknown][]}[]=[];
+  const rpc=vi.fn(async()=>{vi.setSystemTime(new Date("2026-10-21T04:00:00Z"));return {data:payload,error:null};});
+  const admin={rpc,from(table:string){
+    let columns="";const filters:[string,unknown][]=[];
+    const reply=()=>{
+      if(table==="warehouse_receipts_cn")return {data:{receipt_code:"R",is_orphan:false,boxes:1,total_cbm:1,total_weight_kg:10,prealerta_id:"p",invoice_verified_at:"2026-10-20T12:00:00Z"},error:null};
+      if(table==="prealerta_documents")return {data:[{doc_type:"packing"}],error:null};
+      if(table==="invoices"){reads.push({columns,filters:[...filters]});return {data:readRows,error:readError};}
+      throw Error("unexpected table "+table);
+    };
+    const q={select:(value:string)=>{columns=value;return q;},eq:(k:string,v:unknown)=>{filters.push([k,v]);return q;},is:(k:string,v:unknown)=>{filters.push([k,v]);return q;},limit:()=>q,maybeSingle:async()=>reply(),then:(r:(v:ReturnType<typeof reply>)=>unknown)=>Promise.resolve(reply()).then(r)};return q;
+  }} as unknown as SupabaseClient;
+  return {admin,rpc,reads};
+}
+const emitted={outcome:"invoiced",invoice_id:INVOICE,invoice_code:"F-C1",base_amount:10.25,iva_amount:0,total_amount:10.25};
+afterEach(()=>{vi.useRealTimers();posting.mockClear();});
+describe("C1 · asiento de orden conserva fecha persistida",()=>{
+  it("usa issued_at aditivo aunque el RPC termine otro día",async()=>{
+    vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));
+    const state=invoiceIo({...emitted,issued_at:"2026-10-20"});
+    expect(await autoInvoiceForReceipt({admin:state.admin,tenantId:TENANT,receiptId:"r"})).toMatchObject({ok:true});
+    expect(posting).toHaveBeenCalledWith(expect.objectContaining({entryDate:"2026-10-20",totalAmount:10.25}));
+    expect(state.reads).toEqual([]);expect(state.rpc).toHaveBeenCalledOnce();
+  });
+  it("DB anterior: sólo campo ausente habilita readback mínimo de esa factura",async()=>{
+    const state=invoiceIo(emitted,[{id:INVOICE,tenant_id:TENANT,issued_at:"2026-09-10"}]);
+    expect(await autoInvoiceForReceipt({admin:state.admin,tenantId:TENANT,receiptId:"r"})).toMatchObject({ok:true});
+    expect(posting).toHaveBeenCalledWith(expect.objectContaining({entryDate:"2026-09-10"}));
+    expect(state.reads).toEqual([{columns:"id, tenant_id, issued_at",filters:[["id",INVOICE],["tenant_id",TENANT],["deleted_at",null]]}]);
+    expect(state.rpc).toHaveBeenCalledOnce();
+  });
+  it.each([null,"","2026-02-30","2026-10-20T00:00:00Z",42])("campo presente inválido %j no cae a reloj/readback",async issued_at=>{
+    const state=invoiceIo({...emitted,issued_at});
+    const result=await autoInvoiceForReceipt({admin:state.admin,tenantId:TENANT,receiptId:"r"});
+    expect(result).toMatchObject({ok:false,reason:expect.stringMatching(/emitida.*asiento pendiente/i)});
+    expect(posting).not.toHaveBeenCalled();expect(state.reads).toEqual([]);expect(state.rpc).toHaveBeenCalledOnce();
+  });
+  it.each([
+    {label:"ausente",rows:[]},
+    {label:"múltiple",rows:[{id:INVOICE,tenant_id:TENANT,issued_at:"2026-10-20"},{id:INVOICE,tenant_id:TENANT,issued_at:"2026-10-20"}]},
+    {label:"tenant ajeno",rows:[{id:INVOICE,tenant_id:"otro",issued_at:"2026-10-20"}]},
+    {label:"id ajeno",rows:[{id:"otro",tenant_id:TENANT,issued_at:"2026-10-20"}]},
+    {label:"fecha inválida",rows:[{id:INVOICE,tenant_id:TENANT,issued_at:"2026-02-30"}]},
+    {label:"error",rows:[],error:{code:"57014"}},
+  ])("readback $label deja asiento pendiente sin segunda emisión",async({rows,error})=>{
+    const state=invoiceIo(emitted,rows,error);
+    expect(await autoInvoiceForReceipt({admin:state.admin,tenantId:TENANT,receiptId:"r"})).toMatchObject({ok:false,reason:expect.stringMatching(/emitida.*asiento pendiente/i)});
+    expect(posting).not.toHaveBeenCalled();expect(state.rpc).toHaveBeenCalledOnce();
+  });
+  it("already_invoiced conserva resultado y no inicia readback/posting",async()=>{
+    const state=invoiceIo({...emitted,outcome:"already_invoiced"});
+    expect(await autoInvoiceForReceipt({admin:state.admin,tenantId:TENANT,receiptId:"r"})).toMatchObject({ok:false,notApplicable:true});
+    expect(posting).not.toHaveBeenCalled();expect(state.reads).toEqual([]);
+  });
+});
 
 // ── canAutoInvoice (GATING §3.5) ───────────────────────────────
 

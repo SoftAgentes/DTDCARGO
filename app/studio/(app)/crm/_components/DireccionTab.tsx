@@ -1,3 +1,4 @@
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 /**
  * Tablero CRM · pestaña Dirección (SDD-0078).
  *
@@ -315,7 +316,7 @@ export function DireccionTab({
           sub={`${conversion.won} ganados · ${conversion.lost} perdidos · ${conversion.open} abiertos`}
         />
         <KpiCard
-          value={convertedCount}
+          value={convertedCount ?? "—"}
           label="Convertidos a cliente"
           valueColor="var(--wine-text)"
           sub="Leads que ya son cliente DTD"
@@ -327,10 +328,11 @@ export function DireccionTab({
           sub={`${email.withEmail} de ${email.total} contactos`}
         />
         <KpiCard
-          value={fmtUsd(value.erpBilledUsd)}
-          label="Valor real ERP"
-          valueColor="var(--success)"
-          sub="Facturado (12m) de leads convertidos"
+          value={formatAnnualUsd(value.billing.subtotalUsd)}
+          label="Facturación ERP atribuida"
+          valueColor={value.billing.state === "completo" ? "var(--success)" : "var(--ink-soft)"}
+          sub={billingStatus(value.billing)}
+          style={{ overflowWrap: "anywhere" }}
         />
       </div>
 
@@ -471,16 +473,16 @@ export function DireccionTab({
                   Σ price de los leads
                 </div>
               </div>
-              <div style={{ flex: "1 1 130px" }}>
+              <div style={{ flex: "1 1 130px", minWidth: 0, overflowWrap: "anywhere" }}>
                 <div
                   style={{
                     font: "900 26px/1 var(--f-display)",
                     fontVariantNumeric: "tabular-nums",
-                    color: "var(--success)",
+                    color: value.billing.state === "completo" ? "var(--success)" : "var(--ink-soft)",
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  {fmtUsd(value.erpBilledUsd)}
+                  {formatAnnualUsd(value.billing.subtotalUsd)}
                 </div>
                 <div
                   style={{
@@ -491,10 +493,10 @@ export function DireccionTab({
                     marginTop: 6,
                   }}
                 >
-                  Facturado en el ERP
+                  {billingStatus(value.billing)}
                 </div>
                 <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-                  {value.convertedWithBilling} de {value.convertedCount} leads convertidos facturan
+                  {value.convertedWithBilling ?? "—"} de {value.convertedCount ?? "—"} leads convertidos tienen facturación positiva completa. Atribución por lead; no es facturación única del tenant.
                 </div>
               </div>
             </div>

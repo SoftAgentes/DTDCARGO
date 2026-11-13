@@ -1,5 +1,7 @@
 "use client";
 
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
+
 /**
  * Orquestador client del módulo Reportes & Analytics (SDD-0052 · Slices A+B).
  *
@@ -106,6 +108,13 @@ const CATEGORIES: {
 ];
 
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
+
+function ConversionNote({ count, unit = "documento" }: { count: number; unit?: "documento" | "factura" | "embarque" }) {
+  if (count <= 0) return null;
+  return <div style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+    Conversión incompleta · subtotal conocido · {count} {unit}{count === 1 ? "" : "s"} sin tasa
+  </div>;
+}
 
 // Resuelve el rep activo dentro de la categoría (default = primer tab).
 // El Constructor no tiene tabs nivel-2 → "" (la vista no depende del rep).
@@ -507,14 +516,19 @@ function Card({
   title,
   children,
   style,
+  scrollLabel,
 }: {
   eyebrow?: string;
   title?: string;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  scrollLabel?: string;
 }) {
   return (
     <div
+      role={scrollLabel ? "region" : undefined}
+      aria-label={scrollLabel}
+      tabIndex={scrollLabel ? 0 : undefined}
       style={{
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
@@ -559,6 +573,8 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
   // cuando hay algo que reportar (no ensuciar la vista limpia).
   const showUnassigned = overview.unassigned.count > 0;
   const showOrphan = overview.orphanRevenueUsd > 0;
+  // SDD-0572: facturas que no convierten a USD (sin tasa), fuera del revenue.
+  const sinTasa = overview.facturasSinTasa ?? 0;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
@@ -574,7 +590,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
       </div>
 
-      {(showUnassigned || showOrphan) && (
+      {(showUnassigned || showOrphan || sinTasa > 0) && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: -10 }}>
           {showUnassigned && (
             <span
@@ -613,6 +629,24 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
               <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
                 {fmtUsdCompact(overview.orphanRevenueUsd)}
               </strong>
+            </span>
+          )}
+          {sinTasa > 0 && (
+            <span
+              data-testid="overview-sin-tasa"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "var(--s-2)",
+                padding: "var(--s-2) var(--s-3)",
+                borderRadius: "var(--r-md)",
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                font: "500 12px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {`Sin tasa · ${fmtNum(sinTasa)} ${sinTasa === 1 ? "factura" : "facturas"} fuera del revenue (cárgala en Contabilidad › Tasas de cambio)`}
             </span>
           )}
         </div>
@@ -754,12 +788,17 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
             <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
               {fmtUsdCompact(r.revenue)}
             </span>
+            {(r.facturasSinTasa ?? 0) > 0 && (
+              <span style={{ display: "block", marginTop: 3, font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-soft)" }}>
+                {`Subtotal conocido · ${r.facturasSinTasa} factura(s) sin tasa`}
+              </span>
+            )}
             <div style={{ marginTop: 5 }}>
-              <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />
+              {(r.facturasSinTasa ?? 0) === 0 && <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />}
             </div>
           </div>
           <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
-            ${r.rate}/CBM
+            {(r.facturasSinTasa ?? 0) > 0 ? "—" : `$${r.rate}/CBM`}
           </span>
         </div>
       ))}
@@ -853,14 +892,15 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
                   {fmtUsdCompact(s.revenue)}
                 </span>
               </div>
-              <Progress
+              {(s.facturasSinTasa ?? 0) === 0 && <Progress
                 value={(s.revenue / maxRev) * 100}
                 tone={palette[i % palette.length]}
                 height={10}
-              />
+              />}
               <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {s.count} {s.count === 1 ? "embarque" : "embarques"} · {fmtNum(s.cbm)} CBM
                 {s.avgTransit != null ? ` · ${s.avgTransit} días prom.` : ""}
+                {(s.facturasSinTasa ?? 0) > 0 ? ` · Subtotal conocido · ${s.facturasSinTasa} factura(s) sin tasa` : ""}
               </div>
             </div>
           ))}
@@ -874,6 +914,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
 // Slice B — Comerciales · Por cliente
 // ═══════════════════════════════════════════════════════════════
 function ByClientView({ data }: { data: CommercialByClient }) {
+  if (data.totalClients === null) return <p role="status">Cartera y facturación anual no disponibles.</p>;
   if (data.totalClients === 0) {
     return (
       <EmptyState
@@ -884,9 +925,9 @@ function ByClientView({ data }: { data: CommercialByClient }) {
     );
   }
 
-  const ranked = data.ranking.filter((r) => r.billedUsd > 0);
-  const maxBilled = Math.max(1, ...ranked.map((r) => r.billedUsd));
-  const top = ranked.slice(0, 15);
+  const ranked = data.ranking;
+  const maxBilled = Math.max(1, ...ranked.map((r) => r.billedUsd ?? 0));
+  const top = ranked;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -899,28 +940,29 @@ function ByClientView({ data }: { data: CommercialByClient }) {
         }}
       >
         <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtNum(ranked.length)} label="Con facturación" sub="últimos 12 meses" />
-        <KpiCard value={fmtUsdCompact(data.totalBilledUsd)} label="Facturado" sub="trailing 12m · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtNum(ranked.filter((r) => r.billing.state === "completo" && r.billing.subtotalUsd !== "0.00").length)} label="Facturación verificable" sub="últimos 12 meses" />
+        <KpiCard value={formatAnnualUsd(data.billing.subtotalUsd)} label={data.billing.state === "completo" ? "Facturado" : "Subtotal conocido"} sub={billingStatus(data.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(360px, 2fr) minmax(240px, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
           gap: 16,
           alignItems: "start",
         }}
       >
         {/* Ranking */}
-        <Card eyebrow="Ranking por facturación" style={{ padding: 0 }}>
+        <Card eyebrow="Facturación por cliente · pendientes al final" scrollLabel="Facturación por cliente" style={{ padding: 0, overflowX: "auto" }}>
           {ranked.length === 0 ? (
             <div style={{ padding: "18px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
               Hay clientes pero ninguno con facturación en los últimos 12 meses.
             </div>
           ) : (
             <>
+              <div style={{ minWidth: 560 }}>
               <HeaderRow
-                cols="40px 1fr 90px 1fr"
+                cols="40px minmax(140px, 1fr) 90px minmax(180px, 1fr)"
                 labels={["#", "Cliente", "Nivel", "Facturado 12m"]}
                 rightFrom={3}
                 rightTo={3}
@@ -930,7 +972,8 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                   key={r.markbox || r.name || i}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "40px 1fr 90px 1fr",
+                    gridTemplateColumns: "40px minmax(140px, 1fr) 90px minmax(180px, 1fr)",
+                    minWidth: 560,
                     gap: 14,
                     alignItems: "center",
                     padding: "12px 18px",
@@ -938,7 +981,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                   }}
                 >
                   <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-                    {i + 1}
+                    {r.billing.state === "completo" ? i + 1 : "—"}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -955,16 +998,16 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                       {r.tierLabel}
                     </Badge>
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                     <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                      {fmtUsdCompact(r.billedUsd)}
+                      {formatAnnualUsd(r.billing.subtotalUsd)}
                     </span>
-                    <div style={{ marginTop: 5 }}>
-                      <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />
-                    </div>
+                    <div style={{ marginTop: 5, font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(r.billing)}</div>
+                    {r.billedUsd !== null && <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />}
                   </div>
                 </div>
               ))}
+              </div>
             </>
           )}
         </Card>
@@ -1037,7 +1080,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
   }
 
   const rows = data.rows;
-  const maxRev = Math.max(1, ...rows.map((r) => r.revenueUsd));
+  const maxRev = Math.max(1, ...rows.map((r) => r.revenueUsd ?? 0));
   const t = data.totals;
 
   return (
@@ -1052,13 +1095,14 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
       >
         <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
-        <KpiCard value={fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
-        <KpiCard value={fmtUsdCompact(t.revenueUsd)} label="Revenue equipo" sub="facturado 12m · USD" valueColor="var(--success)" />
+        <KpiCard value={t.clients === null ? "—" : fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
+        <KpiCard value={formatAnnualUsd(t.billing.subtotalUsd)} label="Facturación atribuida" sub={billingStatus(t.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
 
-      <Card eyebrow="Performance por agente" style={{ padding: 0 }}>
+      <Card eyebrow="Performance por agente" scrollLabel="Facturación por agente" style={{ padding: 0, overflowX: "auto" }}>
+        <div style={{ minWidth: 690 }}>
         <HeaderRow
-          cols="44px 1fr 70px 70px 70px 1.2fr"
+          cols="44px minmax(130px, 1fr) 70px 70px 70px minmax(180px, 1.2fr)"
           labels={["", "Agente", "Estim.", "Ganadas", "Conv.", "Revenue"]}
           rightFrom={2}
           rightTo={4}
@@ -1068,7 +1112,8 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
             key={r.agentId ?? `none-${i}`}
             style={{
               display: "grid",
-              gridTemplateColumns: "44px 1fr 70px 70px 70px 1.2fr",
+              gridTemplateColumns: "44px minmax(130px, 1fr) 70px 70px 70px minmax(180px, 1.2fr)",
+              minWidth: 690,
               padding: "14px 18px",
               gap: 14,
               alignItems: "center",
@@ -1085,7 +1130,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
                 {r.name}
               </div>
               <div style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>
-                {fmtNum(r.clients)} {r.clients === 1 ? "cliente" : "clientes"} · {fmtNum(r.lost)} {r.lost === 1 ? "perdida" : "perdidas"}
+                {r.clients === null ? "—" : fmtNum(r.clients)} {r.clients === 1 ? "cliente" : "clientes"} · {fmtNum(r.lost)} {r.lost === 1 ? "perdida" : "perdidas"}
               </div>
             </div>
             <span style={{ font: "700 13px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
@@ -1103,16 +1148,16 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
             >
               {r.convPct}%
             </span>
-            <div>
+            <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
               <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                {fmtUsdCompact(r.revenueUsd)}
+                {formatAnnualUsd(r.billing.subtotalUsd)}
               </span>
-              <div style={{ marginTop: 5 }}>
-                <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />
-              </div>
+              <div style={{ marginTop: 5, font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(r.billing)}</div>
+              {r.revenueUsd !== null && <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />}
             </div>
           </div>
         ))}
+        </div>
       </Card>
 
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
@@ -1120,6 +1165,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
         estados de cierre del CRM. El revenue es facturación real del ERP
         (últimos 12 meses, USD) de los leads que se convirtieron en cliente —{" "}
         <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>no el valor estimado del CRM</strong>.
+        La atribución conserva una suma por lead: un cliente puede aparecer en varios leads o asesores; no es facturación única del tenant. El contador de facturas sin tasa se deduplica por cliente en cada ámbito.
         NPS y satisfacción se omiten: no hay fuente real todavía.
       </p>
     </div>
@@ -1446,7 +1492,7 @@ export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
 // Slice B — Contables · Aging CxC/CxP
 // ═══════════════════════════════════════════════════════════════
 function AgingView({ aging }: { aging: AgingReport }) {
-  const empty = aging.cxc.total === 0 && aging.cxp.total === 0;
+  const empty = aging.cxc.total === 0 && aging.cxp.total === 0 && !(aging.cxc.sinTasa || aging.cxp.sinTasa);
   if (empty) {
     return (
       <EmptyState
@@ -1474,8 +1520,12 @@ function AgingView({ aging }: { aging: AgingReport }) {
         />
       </div>
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Saldos normalizados a USD (VES por fx del documento).{" "}
-        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+        Saldos normalizados a USD (VES y CNY por la tasa del documento).{" "}
+        {(aging.cxc.sinTasa ?? 0) + (aging.cxp.sinTasa ?? 0) > 0 && (
+          <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>
+            {`Sin tasa, fuera de los buckets: ${aging.cxc.sinTasa ?? 0} por cobrar y ${aging.cxp.sinTasa ?? 0} por pagar.`}
+          </strong>
+        )}{" "}
         Vencido por días (≥1 día desde el vencimiento); Cobranzas pondera además
         las promesas de pago vigentes, por eso su vencido puede ser menor.
       </p>
@@ -1505,7 +1555,7 @@ function AgingSideCard({
 
   return (
     <Card eyebrow={eyebrow} title={title}>
-      {side.total === 0 ? (
+      {side.total === 0 && !(side.sinTasa ?? 0) ? (
         <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           {emptyLabel}
         </div>
@@ -1517,7 +1567,7 @@ function AgingSideCard({
                 {fmtUsd(side.total)}
               </div>
               <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-                Total
+                {(side.sinTasa ?? 0) > 0 ? "Subtotal conocido" : "Total"}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -1543,15 +1593,16 @@ function AgingSideCard({
                     {b.label}
                   </span>
                   <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-                    {fmtUsd(b.amount)} · {b.pct}%
+                    {fmtUsd(b.amount)}{(side.sinTasa ?? 0) > 0 ? " · subtotal" : ` · ${b.pct}%`}
                   </span>
                 </div>
-                <Progress value={b.pct} tone={tones[b.id]} height={8} />
+                {(side.sinTasa ?? 0) === 0 && <Progress value={b.pct} tone={tones[b.id]} height={8} />}
               </div>
             ))}
           </div>
         </>
       )}
+      <ConversionNote count={side.sinTasa ?? 0} />
     </Card>
   );
 }
@@ -1704,10 +1755,11 @@ function MiniStat({ label, value, sub }: { label: string; value: string; sub?: s
 export const ROTULO_FACTURADO_CON_IVA = "Facturado con IVA";
 
 export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
+  const sinTasa = (cashflow.facturasSinTasa ?? 0) + (cashflow.recibosSinTasa ?? 0);
   const hasData =
     cashflow.totalBilled > 0 ||
     cashflow.totalCollected > 0 ||
-    cashflow.outstanding > 0;
+    cashflow.outstanding > 0 || sinTasa > 0;
   if (!hasData) {
     return (
       <EmptyState
@@ -1730,23 +1782,28 @@ export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub="en el período" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub={(cashflow.facturasSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub={(cashflow.recibosSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
         <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
         <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
       </div>
 
       <Card eyebrow="Facturado contra cobrado" title="Serie mensual · USD">
+        <ConversionNote count={sinTasa} />
         <CashflowChart series={cashflow.series} />
       </Card>
 
       <p data-testid="facturado-cobrado-nota" style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Facturado con IVA y cobrado del período se normalizan a USD (VES por fx de la
-        factura/recibo). El facturado lleva el IVA porque se compara con lo cobrado; el
-        ingreso sin IVA está en el Estado de resultados.{" "}
-        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+        Facturado con IVA y cobrado del período se normalizan a USD (VES y CNY por la
+        tasa de la factura o del recibo). El facturado lleva el IVA porque se compara
+        con lo cobrado; el ingreso sin IVA está en el Estado de resultados.{" "}
+        {(cashflow.facturasSinTasa ?? 0) + (cashflow.recibosSinTasa ?? 0) > 0 && (
+          <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>
+            {`Sin tasa, fuera de los totales: ${cashflow.facturasSinTasa ?? 0} factura(s) y ${cashflow.recibosSinTasa ?? 0} recibo(s).`}
+          </strong>
+        )}{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
-        facturado − cobrado del período: {fmtUsdCompact(pendiente)}.
+        facturado − cobrado del período: {sinTasa > 0 ? "pendiente por conversión incompleta" : fmtUsdCompact(pendiente)}.
       </p>
     </div>
   );
@@ -1793,6 +1850,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
           const bw = gw * 0.32;
           return (
             <g key={p.month}>
+              <title>{`${p.label}: facturado ${fmtUsd(p.billed)}, cobrado ${fmtUsd(p.collected)}${(p.facturasSinTasa ?? 0) + (p.recibosSinTasa ?? 0) > 0 ? ` · subtotales conocidos · ${p.facturasSinTasa ?? 0} factura(s) y ${p.recibosSinTasa ?? 0} recibo(s) sin tasa` : ""}`}</title>
               <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--wine)" rx="2" />
               <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="var(--success)" rx="2" />
               <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle">
@@ -1842,7 +1900,7 @@ function CombinedView({
   rep: string;
 }) {
   // Sin costos cargados en el período → EmptyState honesto (regla §3.2).
-  if (combined.withCosts === 0) {
+  if (combined.withCosts === 0 && combined.totals.sinTasa === 0) {
     return (
       <EmptyState
         eyebrow="Combinados"
@@ -1877,16 +1935,17 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(t.revenue)} label="Ingreso" sub="facturado · USD" valueColor="var(--success)" />
-        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={`${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
-        <KpiCard value={fmtUsd(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsdCompact(t.revenue)} label={t.sinTasa > 0 ? "Ingreso · subtotal conocido" : "Ingreso"} sub="facturado · USD" valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={t.sinTasa > 0 ? "costo conocido · USD" : `${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
+        <KpiCard value={t.sinTasa > 0 ? "—" : fmtUsd(t.margin)} label="Margen bruto" sub={t.sinTasa > 0 ? "Conversión incompleta" : `${fmtPct(t.avgMarginPct)} margen`} valueColor={t.sinTasa > 0 ? "var(--ink)" : "var(--wine-text)"} />
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
+      <ConversionNote count={t.sinTasa} unit="embarque" />
       {combined.withCosts < combined.shipments && (
         <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           {fmtNum(combined.shipments - combined.withCosts)} embarque
           {combined.shipments - combined.withCosts === 1 ? "" : "s"} del período
-          sin costos cargados cuentan como costo 0 (margen = ingreso completo).
+          sin costos cargados cuentan como costo 0. El margen requiere ingreso completo.
           Cárgalos en /studio/costing para una rentabilidad fiel. Costo real, sin
           estimaciones.
         </p>
@@ -1911,12 +1970,15 @@ function MarginTable({
     margin: number;
     marginPct: number;
     tone: RouteMarginRow["tone"];
+    sinTasa: number;
   }[];
 }) {
   return (
     <Card eyebrow="Rentabilidad · revenue real − costo real" style={{ padding: 0 }}>
+      <div role="region" aria-label="Tabla de rentabilidad" tabIndex={0} style={{ overflowX: "auto" }}>
+      <div style={{ minWidth: 724 }}>
       <HeaderRow
-        cols="1.6fr 110px 110px 120px 70px"
+        cols="minmax(220px, 1.6fr) 110px 110px 120px 70px"
         labels={[label0, "Ingreso", "Costo dir.", "Margen", "%"]}
         rightFrom={1}
         rightTo={4}
@@ -1926,7 +1988,7 @@ function MarginTable({
           key={r.key}
           style={{
             display: "grid",
-            gridTemplateColumns: "1.6fr 110px 110px 120px 70px",
+            gridTemplateColumns: "minmax(220px, 1.6fr) 110px 110px 120px 70px",
             padding: "13px 18px",
             gap: 14,
             alignItems: "center",
@@ -1942,6 +2004,7 @@ function MarginTable({
                 {r.sub}
               </div>
             )}
+            <ConversionNote count={r.sinTasa} unit="embarque" />
           </div>
           <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
             {fmtUsdCompact(r.revenue)}
@@ -1949,16 +2012,18 @@ function MarginTable({
           <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
             {fmtUsdCompact(r.cost)}
           </span>
-          <span style={{ font: "800 13px/1 var(--f-mono)", textAlign: "right", color: marginColor(r.margin) }}>
-            {fmtUsd(r.margin)}
+          <span style={{ font: "800 13px/1 var(--f-mono)", textAlign: "right", color: r.sinTasa > 0 ? "var(--ink)" : marginColor(r.margin) }}>
+            {r.sinTasa > 0 ? "—" : fmtUsd(r.margin)}
           </span>
           <span style={{ textAlign: "right" }}>
-            <Badge tone={r.tone as BadgeTone} size="sm">
-              {fmtPct(r.marginPct)}
+            <Badge tone={r.sinTasa > 0 ? "neutral" : r.tone as BadgeTone} size="sm">
+              {r.sinTasa > 0 ? "—" : fmtPct(r.marginPct)}
             </Badge>
           </span>
         </div>
       ))}
+      </div>
+      </div>
     </Card>
   );
 }
@@ -1975,6 +2040,7 @@ function RentRouteView({ combined }: { combined: CombinedReport }) {
     margin: r.margin,
     marginPct: r.marginPct,
     tone: r.tone,
+    sinTasa: r.sinTasa,
   }));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2004,6 +2070,7 @@ function MarginClientView({ combined }: { combined: CombinedReport }) {
     margin: r.margin,
     marginPct: r.marginPct,
     tone: r.tone,
+    sinTasa: r.sinTasa,
   }));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2037,7 +2104,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
     );
   }
 
-  const maxMargin = Math.max(1, ...rows.map((r) => r.marginPerCbm));
+  const maxMargin = Math.max(1, ...rows.filter((r) => r.sinTasa === 0).map((r) => r.marginPerCbm));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2049,60 +2116,67 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
             consolidada. Costo real por embarque, sin estimaciones.
           </p>
         </div>
+        <div role="region" aria-label="Tabla de rendimiento por CBM" tabIndex={0} style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 744 }}>
         <HeaderRow
-          cols="1.5fr 90px 110px 110px 1fr"
+          cols="minmax(220px, 1.5fr) 90px 110px 110px minmax(120px, 1fr)"
           labels={["Ruta", "CBM", "$/CBM ing.", "$/CBM costo", "Margen / CBM"]}
           rightFrom={1}
           rightTo={3}
         />
         {rows.map((r: RouteCbmRow) => {
           const m = r.marginPerCbm;
+          const incomplete = r.sinTasa > 0;
           return (
             <div
               key={`${r.origin}→${r.destination}`}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.5fr 90px 110px 110px 1fr",
+                gridTemplateColumns: "minmax(220px, 1.5fr) 90px 110px 110px minmax(120px, 1fr)",
                 padding: "13px 18px",
                 gap: 14,
                 alignItems: "center",
                 borderTop: "1px solid var(--border)",
               }}
             >
-              <span style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+              <div style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
                 {r.origin || "—"} → {r.destination || "—"}
-              </span>
+                <ConversionNote count={r.sinTasa} unit="embarque" />
+                {incomplete && <span>Ingreso conocido: {fmtUsd(r.revenue)}</span>}
+              </div>
               <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
                 {r.cbm.toFixed(1)}
               </span>
               <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
-                {fmtUsdCompact(r.revenuePerCbm)}
+                {incomplete ? "—" : fmtUsdCompact(r.revenuePerCbm)}
               </span>
               <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
                 {fmtUsdCompact(r.costPerCbm)}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ flex: 1 }}>
+                {!incomplete && <div style={{ flex: 1 }}>
                   <Progress
                     value={(Math.max(0, m) / maxMargin) * 100}
                     tone={m < 0 ? "var(--danger)" : "var(--wine)"}
                     height={8}
                   />
-                </div>
+                </div>}
                 <span
                   style={{
                     font: "800 12px/1 var(--f-mono)",
-                    color: m < 0 ? "var(--danger)" : "var(--success)",
+                    color: incomplete ? "var(--ink)" : m < 0 ? "var(--danger)" : "var(--success)",
                     minWidth: 56,
                     textAlign: "right",
                   }}
                 >
-                  {fmtUsd(m)}
+                  {incomplete ? "—" : fmtUsd(m)}
                 </span>
               </div>
             </div>
           );
         })}
+        </div>
+        </div>
       </Card>
     </div>
   );

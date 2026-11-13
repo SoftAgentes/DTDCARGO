@@ -88,23 +88,3 @@ export function formatCurrency(
     maximumFractionDigits: 2,
   }).format(amount);
 }
-
-/**
- * Convierte monto en moneda origen a USD usando un fx_rate dado.
- *
- *   - USD: amount_usd = amount, fx_rate = 1
- *   - CNY: amount_usd = amount / fx_rate  (ej: 5000 CNY / 7.24 ≈ 690.61)
- *   - VES: amount_usd = amount / fx_rate
- *
- * El fx_rate se almacena en `expenses.fx_rate` por gasto, para que
- * los reportes consoliden siempre en USD sin recalcular.
- */
-export function toUsd(
-  amount: number,
-  currency: ExpenseCurrency,
-  fxRate: number,
-): number {
-  if (currency === "USD") return amount;
-  if (!Number.isFinite(fxRate) || fxRate <= 0) return 0;
-  return amount / fxRate;
-}

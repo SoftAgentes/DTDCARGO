@@ -250,6 +250,8 @@ export type AutoInvoiceResult =
       reason: string;
       /** true si el motivo es "no aplica" (sin OV, sin caja) — no es un error. */
       notApplicable?: boolean;
+      /** La RPC confirmó emisión, pero no fue posible comprobar la fecha para el asiento. */
+      invoiceEmitted?: true;
     };
 
 /** ¿La OV admite facturación? (no terminal, no cancelada). PURA. */
