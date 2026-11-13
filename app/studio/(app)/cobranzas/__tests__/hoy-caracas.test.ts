@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   collectionKpis: vi.fn(async () => ({})),
   fundsSeparationSummary: vi.fn(async () => ({})),
   seleccionar: vi.fn(() => ({ aEnviar: [], omitidos: [] })),
+  tasasVesPorFecha: vi.fn(async () => new Map()),
 }));
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
@@ -40,6 +41,7 @@ vi.mock("@/lib/studio/collections/recordatorios", () => ({
   resumirSeleccion: () => ({}),
   seleccionarParaRecordatorio: mocks.seleccionar,
 }));
+vi.mock("@/lib/studio/fx-rates", () => ({ tasasVesPorFecha: mocks.tasasVesPorFecha }));
 vi.mock("../_components/CobranzasClient", () => ({ CobranzasClient: () => null }));
 
 import CobranzasPage from "../page";
@@ -64,6 +66,19 @@ describe("Cobranzas · «hoy» en Caracas (SDD-0558)", () => {
       from: "2026-06-01",
       to: "2026-06-01",
     });
+  });
+
+  it("SDD-0629 · la tasa del equivalente en Bs se pide para el día de Caracas, con el tenant de la cola", async () => {
+    mocks.receivablesQueue.mockResolvedValueOnce([
+      { invoice: { tenant_id: "t-1" } },
+    ] as never);
+    await CobranzasPage();
+    expect(mocks.tasasVesPorFecha).toHaveBeenCalledWith(expect.anything(), "t-1", ["2026-06-01"]);
+  });
+
+  it("SDD-0629 · sin casos abiertos no se lee ninguna tasa", async () => {
+    await CobranzasPage();
+    expect(mocks.tasasVesPorFecha).not.toHaveBeenCalled();
   });
 
   it("la vista previa de recordatorios selecciona con el día de Caracas", async () => {
