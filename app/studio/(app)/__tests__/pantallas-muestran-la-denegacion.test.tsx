@@ -57,6 +57,8 @@ vi.mock("@/app/studio/(app)/tracking/[id]/actions", () => ({
 
 vi.mock("@/app/studio/(app)/cobranzas/actions", () => ({
   getReceivableHistory: (...a: unknown[]) => mocks.getReceivableHistory(...a),
+  // SDD-0630: el aviso de reportes del portal sin revisar; aquí, sin pendientes.
+  getPendingPaymentReports: async () => ({ pending: { count: 0, amount: 0 } }),
   logActivity: vi.fn(),
   registerCollection: vi.fn(),
   voidReceipt: vi.fn(),

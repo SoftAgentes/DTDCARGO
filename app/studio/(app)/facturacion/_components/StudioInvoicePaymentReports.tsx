@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
@@ -15,7 +15,15 @@ import { resolvePaymentReport, type ResolveReportResult } from "../payment-repor
 export type ReportWithProof = {
   report: PaymentReport;
   proofUrl: string | null;
+  /**
+   * SDD-0630: código del recibo de cobro que creó la confirmación, si lo hay.
+   * null si no tiene, o si la base todavía no tiene la migración 0537.
+   */
+  receiptCode?: string | null;
 };
+
+/** Cuenta de caja o banco postable del tenant (la misma lista de Cobranzas). */
+export type CashAccountOption = { id: string; code: string; name: string };
 
 function fmt(n: number): string {
   return n.toLocaleString("en-US", {
@@ -31,8 +39,10 @@ function fmt(n: number): string {
  */
 export function StudioInvoicePaymentReports({
   items,
+  cashAccounts = [],
 }: {
   items: ReportWithProof[] | null;
+  cashAccounts?: CashAccountOption[];
 }) {
   if (items === null) return <p role="alert" style={{ color: "var(--danger-text)" }}>No pudimos consultar los reportes de pago. Actualiza la factura antes de resolver un reporte.</p>;
   if (items.length === 0) return null;
@@ -52,19 +62,27 @@ export function StudioInvoicePaymentReports({
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {items.map((it, i) => (
-          <ReportRow key={it.report.id} item={it} first={i === 0} />
+          <ReportRow key={it.report.id} item={it} first={i === 0} cashAccounts={cashAccounts} />
         ))}
       </div>
     </section>
   );
 }
 
-function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
+function ReportRow({ item, first, cashAccounts }: {
+  item: ReportWithProof; first: boolean; cashAccounts: CashAccountOption[];
+}) {
   const { report, proofUrl } = item;
+  const cashSelectId = useId();
+  // SDD-0630: la cuenta donde entró el dinero. Con una sola cuenta, va elegida.
+  const [cashAccountId, setCashAccountId] = useState(cashAccounts.length === 1 ? cashAccounts[0].id : "");
+  const [receiptCode, setReceiptCode] = useState<string | null>(item.receiptCode ?? null);
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState<ResolveReportResult>({});
   const [selection, setSelection] = useState<"confirmado" | "rechazado" | null>(null);
-  const [attempt, setAttempt] = useState<{ requestId: string; action: "confirmado" | "rechazado"; reason: string } | null>(null);
+  const [attempt, setAttempt] = useState<{
+    requestId: string; action: "confirmado" | "rechazado"; reason: string; cashAccountId?: string;
+  } | null>(null);
   const [resolved, setResolved] = useState<"confirmado" | "rechazado" | null>(null);
   const [resolutionReason, setResolutionReason] = useState<string | null>(null);
   const busy = useRef(false);
@@ -72,9 +90,15 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
   const isPending = status === "reportado" && !report.cancelledAt;
   const unknown = "No pudimos confirmar el resultado. Conserva este intento y reintenta sin cambiar sus datos. Código: PAGO-RESULTADO-INCIERTO.";
 
+  const cashAccount = cashAccounts.find((a) => a.id === (attempt?.cashAccountId ?? cashAccountId)) ?? null;
+
   function begin(action: "confirmado" | "rechazado") {
     if (busy.current) return;
     if (state.uncertain && attempt) { setSelection(attempt.action); return; }
+    if (action === "confirmado" && !cashAccounts.some((a) => a.id === cashAccountId)) {
+      setState({ error: "Elige la cuenta de caja o banco donde entró el dinero antes de confirmar." });
+      return;
+    }
     setSelection(action); setAttempt(null); setState({});
   }
 
@@ -86,17 +110,20 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
     }
     const current = state.uncertain && attempt ? attempt : {
       requestId: attempt?.requestId ?? crypto.randomUUID(), action: selection, reason,
+      cashAccountId: selection === "confirmado" ? cashAccountId : undefined,
     };
     setAttempt(current);
     busy.current = true;
     setState((previous) => ({ uncertain: previous.uncertain }));
     startTransition(async () => {
       try {
-        const result = await resolvePaymentReport(report.id, current.action, current.reason, current.requestId);
+        const result = await resolvePaymentReport(report.id, current.action, current.reason, current.requestId,
+          current.cashAccountId);
         if (result?.ok === true && !result.error && result.receipt?.requestId === current.requestId
           && result.receipt.reportId === report.id && result.receipt.status === current.action
           && result.receipt.cancelled === false) {
           setResolved(current.action); setResolutionReason(current.reason); setSelection(null); setState({});
+          setReceiptCode(result.receipt.collection?.code ?? null);
         } else {
           setState((previous) => ({ error: result?.error ?? unknown,
             uncertain: previous.uncertain || result?.uncertain === true || !result?.error || result.ok === true }));
@@ -169,9 +196,27 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
         </p>
       ) : null}
       {resolved ? <p role="status" style={{ color: "var(--ink)" }}>{paymentStatusLabel(resolved)}</p> : null}
+      {status === "confirmado" && receiptCode ? (
+        <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+          {"Recibo de cobro "}<span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>{receiptCode}</span>
+          {" · ya está registrado en Cobranzas; no lo registres otra vez."}
+        </p>
+      ) : null}
 
       {isPending ? (
-        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <label htmlFor={cashSelectId} style={{ display: "flex", flexDirection: "column", gap: 4,
+            font: "600 11.5px/1.2 var(--f-sans)", color: "var(--ink-soft)", minWidth: 200 }}>
+            Cuenta donde entró el dinero
+            <select id={cashSelectId} className="studio-input" value={attempt?.cashAccountId ?? cashAccountId}
+              disabled={pending || Boolean(state.uncertain && attempt)}
+              onChange={(e) => { setCashAccountId(e.target.value); if (!state.uncertain) setState({}); }}>
+              <option value="">{cashAccounts.length === 0 ? "No hay cuentas de caja o banco" : "Elige la cuenta"}</option>
+              {cashAccounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.code} · {a.name}</option>
+              ))}
+            </select>
+          </label>
           <button type="button" disabled={pending || Boolean(state.uncertain && attempt?.action !== "confirmado")}
             onClick={() => begin("confirmado")} className="studio-btn studio-btn-primary studio-btn-sm">
             Confirmar pago
@@ -187,7 +232,8 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
         title={selection === "confirmado" ? "Confirmar pago" : "Rechazar reporte de pago"}
         message={"Factura " + report.invoiceCode + " · " + report.currency + " " + fmt(report.amount) + ". "
           + (selection === "confirmado"
-            ? "El monto se agregará al pago registrado en la factura. El comprobante y el motivo quedarán en el historial."
+            ? "Se creará el recibo de cobro en " + (cashAccount ? cashAccount.code + " · " + cashAccount.name : "la cuenta elegida")
+              + " y el monto se agregará al pago de la factura. No lo registres también en Cobranzas. El comprobante y el motivo quedarán en el historial."
             : "El reporte se conservará como rechazado, sin modificar el saldo. La nota del cliente y el comprobante permanecerán.")
           + (state.uncertain && attempt ? " Motivo conservado: " + attempt.reason : "")}
         danger={selection === "rechazado"} initialFocus="safe"

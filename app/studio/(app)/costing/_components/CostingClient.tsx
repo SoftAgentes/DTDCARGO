@@ -35,6 +35,7 @@ import type {
   CostingTotals,
   RouteMarginRow,
 } from "@/lib/studio/costing/queries";
+import type { ContainerMarginRow } from "@/lib/studio/costing/cxp-ligadas";
 import {
   asRankingSort,
   breakdownRows,
@@ -52,13 +53,14 @@ import {
 import { CostEditorDrawer } from "./CostEditorDrawer";
 import { TemplateDrawer } from "./TemplateDrawer";
 
-type Tab = "overview" | "ranking" | "breakdown" | "routes" | "templates" | "forecast";
+type Tab = "overview" | "ranking" | "breakdown" | "routes" | "containers" | "templates" | "forecast";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "ranking", label: "Ranking de embarques" },
   { value: "breakdown", label: "Desglose por categoría" },
   { value: "routes", label: "Margen por ruta" },
+  { value: "containers", label: "Contenedores" },
   { value: "templates", label: "Templates por ruta" },
   { value: "forecast", label: "Forecast pipeline" },
 ];
@@ -87,6 +89,8 @@ export function CostingClient({
   templates,
   forecast,
   vesRate,
+  containers = [],
+  linksAvailable = false,
 }: {
   rows: CostingRow[];
   totals: CostingTotals;
@@ -94,6 +98,9 @@ export function CostingClient({
   templates: RouteCostTemplate[];
   forecast: Forecast;
   vesRate: number | null;
+  /** SDD-0631: margen por contenedor (con las CxP ligadas). */
+  containers?: ContainerMarginRow[];
+  linksAvailable?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [currency, setCurrency] = useState<DisplayCurrency>("USD");
@@ -108,7 +115,8 @@ export function CostingClient({
 
   // SDD-0572: con alguna factura sin tasa el margen está incompleto: ni
   // rentable ni en pérdida, «sin tasa».
-  const sinTasa = (r: CostingRow) => (r.facturasSinTasa ?? 0) > 0;
+  // SDD-0631: también una CxP ligada sin tasa deja el margen incompleto.
+  const sinTasa = (r: CostingRow) => (r.facturasSinTasa ?? 0) > 0 || (r.cxp?.sinTasa ?? 0) > 0;
   const profitable = useMemo(
     () => rows.filter((r) => !sinTasa(r) && r.eco.margin > 0).length,
     [rows],
@@ -221,6 +229,9 @@ export function CostingClient({
       )}
       {hasRows && tab === "breakdown" && <BreakdownView totals={totals} money={money} />}
       {hasRows && tab === "routes" && <RoutesView routes={routes} money={money} />}
+      {tab === "containers" && (
+        <ContainersView containers={containers} linksAvailable={linksAvailable} money={money} />
+      )}
 
       {tab === "templates" && (
         <TemplatesView
@@ -644,7 +655,7 @@ function RankingView({
       </div>
 
       {sorted.map((r) => {
-        const incompleto = (r.facturasSinTasa ?? 0) > 0;
+        const incompleto = (r.facturasSinTasa ?? 0) > 0 || (r.cxp?.sinTasa ?? 0) > 0;
         const isLoss = !incompleto && r.eco.margin < 0;
         const tone = marginTone(r.eco.marginPct);
         const routeLabel =
@@ -893,6 +904,112 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
               {r.sinTasa > 0 ? "Sin tasa" : `${r.marginPct.toFixed(1)}%`}
             </Badge>
             {r.sinTasa > 0 && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>{r.sinTasa} {r.sinTasa === 1 ? "embarque sin tasa" : "embarques sin tasa"}</div>}
+          </div>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+// ── SDD-0631 · Margen por contenedor ───────────────────────────
+function ContainersView({
+  containers,
+  linksAvailable,
+  money,
+}: {
+  containers: ContainerMarginRow[];
+  linksAvailable: boolean;
+  money: Money;
+}) {
+  const note = linksAvailable
+    ? "El costo incluye las CxP ligadas en Tesorería: reemplazan lo cargado a mano en su categoría y una CxP de contenedor se reparte por CBM."
+    : "La base todavía no tiene el vínculo de CxP con contenedor (migración 0536): el costo sale solo de lo cargado a mano.";
+  if (containers.length === 0) {
+    return (
+      <EmptyState
+        eyebrow="Margen por contenedor"
+        title="Sin contenedores para costear"
+        description="Cuando haya consolidaciones en Naviera con embarques asignados, vas a ver acá su margen."
+      />
+    );
+  }
+  const cols = "1.4fr 60px 110px 110px 110px 110px 100px";
+  return (
+    <Card eyebrow={`${containers.length} contenedores · ${note}`} style={{ overflow: "hidden", padding: "18px 0 0" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: cols,
+          padding: "10px 18px",
+          gap: 14,
+          background: "var(--bg-elevated)",
+          borderBottom: "1px solid var(--border)",
+          marginTop: 14,
+        }}
+      >
+        {["Contenedor", "Envíos", "Revenue", "Costo", "De CxP", "Margen", "Margen %"].map((h, i) => (
+          <span
+            key={h}
+            style={{
+              font: "700 10px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              textAlign: i >= 1 ? "right" : "left",
+            }}
+          >
+            {h}
+          </span>
+        ))}
+      </div>
+      {containers.map((c) => (
+        <div
+          key={c.id}
+          style={{
+            display: "grid",
+            gridTemplateColumns: cols,
+            padding: "14px 18px",
+            gap: 14,
+            alignItems: "center",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ font: "700 13px/1.2 var(--f-mono)", color: "var(--ink)" }}>{c.ref}</div>
+            <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+              {[c.containerType, c.status, `${c.cbm.toLocaleString("es-VE")} CBM`].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+          <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
+            {c.shipments}
+          </span>
+          <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
+            {money(c.revenue)}
+          </span>
+          <div style={{ textAlign: "right" }}>
+            <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)" }}>{money(c.cost)}</span>
+            {c.unallocated > 0 && (
+              <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+                {money(c.unallocated)} sin repartir
+              </div>
+            )}
+          </div>
+          <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
+            {c.cxpCost > 0 ? money(c.cxpCost) : "—"}
+          </span>
+          <span
+            style={{
+              font: "800 13px/1 var(--f-mono)",
+              color: c.sinTasa > 0 ? "var(--ink)" : c.margin < 0 ? "var(--danger)" : "var(--success)",
+              textAlign: "right",
+            }}
+          >
+            {c.sinTasa > 0 ? "—" : money(c.margin)}
+          </span>
+          <div style={{ textAlign: "right" }}>
+            <Badge tone={c.sinTasa > 0 ? "neutral" : c.tone} size="md">
+              {c.sinTasa > 0 ? "Sin tasa" : c.revenue > 0 ? `${c.marginPct.toFixed(1)}%` : "Sin revenue"}
+            </Badge>
           </div>
         </div>
       ))}
