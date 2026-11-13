@@ -14,7 +14,7 @@
  * esto entra a Git: lleva nombres de clientes. Los Excel no se copian.
  */
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { leerPacking, leerRastreo } from "./leer-excel";
@@ -236,7 +236,32 @@ export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSq
   return archivos;
 }
 
+/**
+ * `deshacer.sql` o `purgar.sql` que ya estén en la carpeta de salida. Con `lstat`:
+ * un enlace simbólico roto también cuenta (`existsSync` sigue el enlace y diría
+ * que no existe).
+ */
+export function sobrantesSoloPrueba(dir: string): string[] {
+  return SOLO_PRUEBA.filter((n) => {
+    try {
+      lstatSync(path.join(dir, n));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
 export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[] }> {
+  if (args.entorno === "produccion") {
+    // Antes de leer nada ni escribir nada: un deshacer.sql o purgar.sql de una
+    // corrida anterior quedaría al lado del paquete nuevo (fuera de SHA256SUMS,
+    // pero a mano de un psql directo).
+    const sobrantes = sobrantesSoloPrueba(args.salida);
+    if (sobrantes.length) {
+      throw new Error(`La carpeta de salida ya trae ${sobrantes.join(" y ")}: un lote de producción no los lleva; usa una carpeta nueva.`);
+    }
+  }
   for (const ruta of [args.rastreo, args.packing].filter((r): r is string => !!r)) {
     if (!existsSync(ruta)) throw new Error(`No existe el archivo ${ruta}`);
   }
@@ -284,14 +309,6 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
   const salida = generarSql(lote, opciones, fuentes);
 
   const archivos = archivosDelLote(args.entorno, salida, resumenMarkdown(lote, salida, avisosExcel));
-  if (args.entorno === "produccion") {
-    // Un deshacer.sql o purgar.sql de una corrida anterior quedaría al lado del
-    // paquete nuevo (fuera de SHA256SUMS, pero a mano de un psql directo).
-    const sobrantes = SOLO_PRUEBA.filter((n) => existsSync(path.join(args.salida, n)));
-    if (sobrantes.length) {
-      throw new Error(`La carpeta de salida ya trae ${sobrantes.join(" y ")}: un lote de producción no los lleva; usa una carpeta nueva.`);
-    }
-  }
   mkdirSync(args.salida, { recursive: true });
   const sumas: string[] = [];
   for (const [nombre, contenido] of Object.entries(archivos)) {

@@ -11,7 +11,10 @@
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
 import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
-import { archivosDelLote, parsearArgumentos, resumenMarkdown, SOLO_PRUEBA } from "../consolidados/generar-lote";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { archivosDelLote, generar, parsearArgumentos, resumenMarkdown, SOLO_PRUEBA, sobrantesSoloPrueba } from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
   numero: 59,
@@ -419,5 +422,29 @@ describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimie
     expect(archivosPrueba["deshacer.sql"]).toBe(prueba.deshacer);
     expect(archivosPrueba["purgar.sql"]).toBe(prueba.purgar);
     expect(archivosPrueba["resumen.md"]).toContain("`purgar.sql` para el borrado definitivo en prueba");
+  });
+
+  it("generar() con --entorno produccion se niega si la carpeta de salida ya trae deshacer.sql o purgar.sql, sin escribir nada", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-prod-"));
+    try {
+      writeFileSync(path.join(dir, "deshacer.sql"), "-- de una corrida anterior\n");
+      writeFileSync(path.join(dir, "nota.txt"), "x\n");
+      expect(sobrantesSoloPrueba(dir)).toEqual(["deshacer.sql"]);
+      // La negativa va antes de leer los Excel: aquí ni siquiera existen.
+      const args = parsearArgumentos([
+        "--rastreo", path.join(dir, "no-existe-rastreo.xlsx"), "--contenedor", "63", "--eta", "2026-12-06",
+        "--salida", dir, "--entorno", "produccion", "--modalidad", "fcl", "--dueno", "DTD-9038",
+      ]);
+      await expect(generar(args)).rejects.toThrow("La carpeta de salida ya trae deshacer.sql: un lote de producción no los lleva; usa una carpeta nueva.");
+      expect(readdirSync(dir).sort()).toEqual(["deshacer.sql", "nota.txt"]);
+      expect(readFileSync(path.join(dir, "deshacer.sql"), "utf8")).toBe("-- de una corrida anterior\n");
+
+      writeFileSync(path.join(dir, "purgar.sql"), "--\n");
+      await expect(generar(args)).rejects.toThrow("ya trae deshacer.sql y purgar.sql");
+      // En prueba esos archivos son del paquete: no hay negativa (falla después, por el Excel que falta).
+      await expect(generar({ ...args, entorno: "prueba" })).rejects.toThrow(/No existe el archivo/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
