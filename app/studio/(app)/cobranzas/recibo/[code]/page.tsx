@@ -42,6 +42,9 @@ import {
   pickAcuerdoVersion,
   type ReceiptTemplateInvoice,
 } from "@/lib/studio/receipts/receipt-template";
+import { tasasVesPorFecha } from "@/lib/studio/fx-rates";
+import { equivalenteEnBs, LEYENDA_BS_REFERENCIAL } from "@/lib/shared/equivalente-bs";
+import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
 import { PrintButton } from "./PrintButton";
 
 export const metadata = { title: "Recibo de cobranza · DTD Studio" };
@@ -153,6 +156,17 @@ export default async function ReceiptPrintPage({
   }
 
   const doc = buildReceiptDoc({ receipt, invoice, acuerdoVersion });
+
+  // SDD-0629 · equivalente en Bs con la tasa del día del pago, solo en
+  // pantalla: el papel del recibo no cambia (data-print-hide).
+  const fechaPago = receipt.received_at.slice(0, 10);
+  const tasasPago = await tasasVesPorFecha(supabase, link.tenant_id, [fechaPago]);
+  const bsPago = equivalenteEnBs({
+    amount: receipt.amount,
+    currency: receipt.currency,
+    tasa: tasasPago.get(fechaPago),
+    fechaPedida: fechaPago,
+  });
   const generatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
 
   return (
@@ -292,6 +306,20 @@ export default async function ReceiptPrintPage({
               {receipt.currency}
             </span>
           </div>
+          {bsPago.estado !== "no-aplica" && (
+            <div data-print-hide>
+              <EquivalenteBs eq={bsPago} />
+              <p
+                style={{
+                  margin: "var(--s-1) 0 0",
+                  font: "italic 500 10.5px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {LEYENDA_BS_REFERENCIAL} No se imprime en el recibo.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Campos del recibo (COPY §2) */}
