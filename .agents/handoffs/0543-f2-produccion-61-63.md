@@ -3,46 +3,67 @@
 - Fecha: 2026-11-13 (Caracas = UTC − 4)
 - Worker: sesión `suspicious-davinci-7afcac`, abierta por el Subdirector Portal
 - Worktree: `.claude/worktrees/suspicious-davinci-7afcac`
-- Rama: `claude/suspicious-davinci-7afcac`, base main `11f90a32e`
+- Rama: `claude/suspicious-davinci-7afcac`, base main `11f90a32e`, con main traído por merge en `19bc732da`
 - SDD: [0543](../../docs/specs/0543-consolidados-en-camino/spec.md), sigue `in-progress`
 - Permisos:
   - No se escribe en producción.
-  - No se lee producción: la consulta queda preparada y espera el OK nominal de Sam.
+  - Este Worker no leyó producción. La consulta mínima la corrió el Subdirector Portal con el OK de Sam («Sí, autorizo»).
   - No va PII a Git.
+  - Push de la rama y PR autorizados por el Subdirector; el merge no.
 
 ## OBJETIVO ORIGINAL
 
-Listar las marcas y los remitentes de los lotes 61, 62 y 63 que en producción no resolverían o que traen texto de un nombre. Armar `marcas-mapa.json` en el Desktop. Preparar la consulta mínima de códigos de cliente. Generar la previa de producción sin aplicar y revisar que ningún nombre llegue al SQL.
+1. Listar las marcas y los remitentes de los lotes 61, 62 y 63 que en producción no resolverían o que traen texto de un nombre.
+2. Armar `marcas-mapa.json` en el Desktop.
+3. Preparar la consulta mínima de códigos de cliente.
+4. Generar la previa de producción sin aplicar y revisar que ningún nombre llegue al SQL.
+5. Segunda parte: el camino a producción de `infra/ops/consolidados/aplicar-lote.sh`, en una PR propia.
 
 ## COMPLETADO
+
+### Primera parte · marcas y previas
 
 - **Inventario.**
   - Los tres lotes son FCL de un solo dueño, como se cargaron en prueba el 2026-10-17 (spec §Decisiones 9). El encargo decía que el 61 y el 62 eran DDP multicliente; los manifiestos y la spec dicen FCL.
   - Cada lote tiene una sola marca: 61 `MG-0019`, 62 `MG-0020`, 63 `DTD-9038`.
-  - Ninguna marca ni código de envío trae texto de un nombre. Hay 3 marcas pendientes de resolver contra producción.
+  - Ninguna marca ni código de envío trae texto de un nombre.
 - **Fuentes nuevas.** Las hojas «container cost» que llegaron por Telegram son costos del agente en China. No tienen marcas de cliente. Sus números de contenedor coinciden con los lotes (61, 62, 63) y con el 64.
 - **Mapas.** En el Desktop, dentro de `DTD-consolidados/<N>/`, quedan `marcas-mapa.json` vacío (`{}`) y `marcas-por-resolver.json`. Probé que `--mapa` acepta la marca del dueño en sus dos formas (`MG-019` y `MG-0019`).
 - **Previas de producción.** Están en `DTD-consolidados/<N>/2026-11-13-produccion-v1/`:
   - Se generaron con `--entorno produccion --modalidad fcl`, desde la misma hoja de rastreo de octubre, así que el id de lote es el mismo. No se aplicaron.
   - Frente a la v3 de prueba solo cambian la cabecera y `lote_cab` (`crear_faltantes=false`, `entorno='produccion'`).
   - El único literal de texto en los datos es `Dueño del contenedor <marca>`, que es texto sintético.
-  - `purgar.sql` sigue negándose fuera de prueba.
-- **Consulta mínima.** Quedó preparada en la carpeta de notas compartidas del Subdirector y copiada en `DTD-consolidados/`:
-  - Es de solo lectura (`read only` + `rollback`) y usa `resolve_markbox`.
-  - Devuelve candidato, canónico, redirigido, vivo y aliado. Sin nombres ni ids.
-  - **No se corrió.**
+  - **Esas previas son anteriores al corte de c3e3be597.** Antes de llevar el 63 a producción hay que regenerarlo desde la cabeza de esta rama.
+- **Consulta mínima.**
+  - Está preparada en la carpeta de notas compartidas del Subdirector, con copia en `DTD-consolidados/`. Es de solo lectura (`read only` + `rollback`) y usa `resolve_markbox`.
+  - El Subdirector la corrió con el OK de Sam:
+    - `DTD-9038` resuelve, sin aliado;
+    - `MG-0019`/`MG-019` y `MG-0020`/`MG-020` no resuelven;
+    - el aliado `MG` no existe.
+  - Corregí la columna `vivo`, que daba `t` sin cliente por `null is null`.
 
-### Segunda parte · camino a producción de `aplicar-lote.sh` (pedido del Subdirector Portal, 2026-11-13)
+### Segunda parte · `aplicar-lote.sh` en producción (PR #534)
 
-- **`aplicar-lote.sh`.**
-  - Acepta `--project`/`--proyecto dtd-cargo` solo con lotes de `--entorno produccion`, y un `*-staging` solo con lotes de prueba.
-  - En producción, cada paso exige `AUTORIZACION.txt` (en el lote o con `--autorizacion`), no vacío y nombrando el número del contenedor. Se copia a la evidencia.
-  - `deshacer` y `purgar` están deshabilitados en producción.
-  - Un segundo `aplicar` se niega si la evidencia ya tiene un `aplicar` PASÓ del lote. Además queda el preflight del SQL.
+- **Destino.**
+  - `--project`/`--proyecto dtd-cargo` (el `PROD_COMPOSE_PROJECT`) acepta solo lotes de `--entorno produccion`.
+  - Un `*-staging` acepta solo lotes de prueba.
+  - Las mayúsculas no cuentan como destino.
+- **Autorización en producción.** Cada paso, previa incluida, exige `AUTORIZACION.txt` (en el lote o con `--autorizacion`):
+  - no vacío y con el **id completo del lote** (`carga-consolidado:<N>:<hash>`), escrito exacto;
+  - un `--autorizacion` que apunte a otro archivo de la carpeta del lote se rechaza;
+  - el archivo se copia a la evidencia.
+- **`deshacer` y `purgar`** están deshabilitados en producción.
+- **Idempotencia.** Un segundo `aplicar` se niega si la evidencia ya tiene un `aplicar` PASÓ del lote. Además queda el preflight del SQL.
+- **Candado.** Simulacro, aplicar, deshacer y purgar toman `LOTES_CANDADO` (por defecto `/run/lock/dtd-lotes.lock.d`). Es un `mkdir` atómico, como en `migraciones/aplicar.sh`, y se toma antes de mirar la evidencia.
+  - Se pidió `flock`, pero Git Bash no lo trae y migraciones usa `mkdir`.
 - **Generador.** En producción, `previa.sql` termina con un corte (`do $corte$`) que aborta si alguna marca no resuelve a un cliente vivo. Cita solo el conteo y las etiquetas. El lote de producción nunca crea clientes ni aliados.
-- **Prueba bash.** 40 casos (antes 23); el piso de `pruebas-linux.sh` sube a 40. Prueba vitest nueva en `consolidados-sql.test.ts`.
-- **Spec y runbook.** Spec 0543 con la sección «Extensión F2» y runbook con el §2b de producción.
-- **Consulta mínima.** La corrió el Subdirector con el OK de Sam: `DTD-9038` resuelve; `MG-0019`/`MG-019` y `MG-0020`/`MG-020` no resuelven, y el aliado `MG` no existe. Con esos lotes, la previa del 61 y la del 62 se cortan hasta que Sam dé el cliente real. Corregí en la consulta la columna `vivo`: antes daba `t` sin cliente, por `null is null`.
+- **Pruebas.**
+  - La prueba bash pasa de 23 a 53 casos, y el piso de `pruebas-linux.sh` sube a 53.
+  - Vitest: un caso nuevo en `consolidados-sql.test.ts` y `consolidados-previa-corte.test.ts` en PGlite (tres casos).
+- **Spec y runbook.**
+  - Spec 0543 con la sección «Extensión F2».
+  - Runbook §2b de producción: id completo en la autorización, candado, y borrar `/srv/ops/paquetes/lote-N` después de `verificar`, con `ls` vacío, porque el `deshacer.sql` de producción no trae la guarda de base de prueba.
+- **Revisión independiente** sobre 6bd5a592f: APPROVED con observaciones (1 MEDIA, 5 BAJA y 2 de forma). Atendidas en esta cabeza.
 
 ## VALIDACIÓN
 
@@ -51,17 +72,32 @@ Listar las marcas y los remitentes de los lotes 61, 62 y 63 que en producción n
 | Generar las tres previas de producción (tsx) | PASÓ (exit 0) |
 | Literales de texto en `insert into lote_*` | PASÓ: 1 por lote, sintético |
 | Diff contra la v3 de prueba | PASÓ: solo cabecera y `lote_cab` |
-| `--mapa` con la marca del dueño en sus dos formas | PASÓ (prueba ad hoc fuera del repo) |
-| Consulta mínima contra una base | NO EJECUTADO (sin OK de Sam; sin turno de Docker) |
-| `pnpm verify` | NO APLICA (sin cambios de código) |
+| `--mapa` con la marca del dueño en sus dos formas | PASÓ (prueba ad hoc, fuera del repo) |
+| `bash infra/ops/tests/prueba-aplicar-lote.sh` | PASÓ: 40/40 sobre 6bd5a592f y 53/53 tras la revisión |
+| `vitest run` consolidados-sql/modelo/excel | PASÓ: 51 sobre 6bd5a592f; tras la revisión, ver fila siguiente |
+| `vitest run --maxWorkers=1` consolidados-previa-corte + sql + modelo + excel + `pruebas-linux.test.mjs` + `ci-workflow-contract`, tras la revisión | PASÓ: 6 archivos, 152 pruebas. Con varios workers, Vitest no pudo arrancar dos forks por la carga de la PC; con uno, todo verde |
+| `vitest run infra/ops/tests/pruebas-linux.test.mjs` | PASÓ, 13 |
+| `vitest run scripts/__tests__/ci-workflow-contract.test.mjs` | PASÓ, 85 |
+| `tsc --noEmit` completo | PASÓ (exit 0) sobre aac8e1ea8 |
+| `eslint` sobre los TS tocados | PASÓ |
+| `pnpm docs:check`, `pnpm sdd:check`, `git diff --check` | PASÓ |
+| Consulta mínima en producción | Corrida por el Subdirector, no por este Worker |
+| `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub más la revisión independiente (indicación del Subdirector) |
 
 ## COMMITS
 
-- Este handoff, solo local. Sin push: no hubo código.
+- `0fc916127` handoff de las marcas.
+- `556e2f4af` `aplicar-lote.sh` en producción.
+- `c3e3be597` corte de la previa de producción.
+- `6bd5a592f` docs: spec, runbook y handoff.
+- `aac8e1ea8` handoff: 61 y 62 estacionados.
+- `19bc732da` merge de origin/main.
+- Después vienen los commits de la revisión independiente; la cabeza va en el reporte.
 
 ## PR / BRANCH
 
-- Sin PR.
+- Rama `claude/suspicious-davinci-7afcac`, publicada.
+- [SoftAgentes/DTDCARGO#534](https://github.com/SoftAgentes/DTDCARGO/pull/534), sin merge. Fusionar lo deciden el DG o Sam.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -72,16 +108,15 @@ Listar las marcas y los remitentes de los lotes 61, 62 y 63 que en producción n
   - sin cambio en el generador;
   - sin previa en producción, porque la previa los cortaría.
 
-  Cuando haya código, también queda por decidir con Sam si el envío se llama `<código de MG>-FCL-6N` (`--dueno <código>`) o `MG-019-FCL-61` (la referencia del proveedor, con el mapa). El generador deja hoy el texto de `--dueno` como código del envío.
-- **63 (`DTD-9038`): el único candidato a producción por ahora.** Resuelve a un cliente sin aliado. Sigue pendiente la duda de la hoja de costo, que nombra otro código de dueño (detalle en la nota compartida).
-
-1. Que Sam dé el OK nominal para correr la consulta mínima en producción.
-2. Si una marca no resuelve: Sam da el Shipping Mark real, se llena `marcas-mapa.json` y se regenera con `--mapa`.
-3. Que Sam diga quién es el dueño del 63: la hoja de costo nombra otro código, distinto de `DTD-9038` (detalle en la nota compartida, fuera de Git).
-4. ETA del 61 vencida (2026-10-25): regenerar con la ETA del rastreo nuevo que Sam pidió a la oficina.
-5. Para producción hay que definir un procedimiento de aplicación, porque `aplicar-lote.sh` solo acepta `-staging`. Además, cada lote va con el OK nominal de Sam.
+  Cuando haya código, queda por decidir con Sam cómo se llama el envío: `<código de MG>-FCL-6N` (`--dueno <código>`) o `MG-019-FCL-61` (la referencia del proveedor, con el mapa). El generador usa hoy el texto de `--dueno` como código del envío.
+- **63 (`DTD-9038`): el único candidato a producción por ahora.** Resuelve a un cliente sin aliado. Falta:
+  - aclarar la duda de la hoja de costo, que nombra otro código de dueño (detalle en la nota compartida, fuera de Git);
+  - regenerar el paquete desde esta rama, para que traiga el corte;
+  - el OK nominal de Sam citando el id del lote.
+- ETA del 61 vencida (2026-10-25): regenerar con la ETA del rastreo nuevo que Sam pidió a la oficina.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - En un lote **DDP** de producción, `aplicar.sql` y `manifiesto.json` siguen llevando el `nombre_excel` de cada cliente. Ese texto solo sirve para crear clientes en prueba, pero viaja al servidor. Para el 64, conviene vaciarlo cuando `entorno = produccion`.
 - Si Sam quiere los envíos DDP de los clientes de MG dentro del 61 y el 62 (modalidad mixto), los packing de esos contenedores solo están en PDF y el generador lee Excel.
+- El `deshacer.sql` y el `purgar.sql` de un paquete de producción se generan igual aunque el guion los niegue. Hoy lo cubre el runbook (borrar el paquete). Una opción más fuerte es que el generador no los emita para `--entorno produccion`.

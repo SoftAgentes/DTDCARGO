@@ -54,7 +54,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 - la previa de producción tiene que estar revisada en la PC: ningún texto con nombre llega al SQL.
 
 1. Genera el lote con `--entorno produccion`. Un lote de producción **nunca crea clientes ni aliados**: el generador no acepta `--crear-clientes-faltantes`, y `aplicar` aborta si una marca no resuelve. Además, la `previa.sql` de producción termina con un corte: si alguna marca no resuelve a un cliente vivo, aborta con el conteo y las etiquetas (`previa: N marca(s) sin resolver…`). Entonces psql sale distinto de 0, el guion sale con 6 y no hay que seguir. Las tablas de marcas quedan impresas en la evidencia antes del corte.
-2. Guarda la respuesta **literal** de Sam en `AUTORIZACION.txt`, dentro de la carpeta del lote, después de generar el `SHA256SUMS`. Si prefieres no ponerla ahí, pásala con `--autorizacion <archivo>`. Usa la herramienta de escritura, no un heredoc, como en `aplicar-migraciones-prod.md` §3. El texto tiene que nombrar el número del contenedor (`61`); un OK para el 61 no sirve para el 62.
+2. Guarda la respuesta **literal** de Sam en `AUTORIZACION.txt`, dentro de la carpeta del lote, después de generar el `SHA256SUMS`. Si prefieres no ponerla ahí, pásala con `--autorizacion <archivo>`. Usa la herramienta de escritura, no un heredoc, como en `aplicar-migraciones-prod.md` §3. El texto tiene que citar **el id completo del lote**, tal como sale en `manifiesto.json` y en el nombre del paquete (`carga-consolidado:63:<hash>`). Un número suelto no basta, porque lo cumplen una fecha o «no autorizo el 63». El id además fija el packing exacto: un OK para un lote no sirve para otro, ni para el mismo contenedor regenerado con otro Excel. Cuando le pidas el OK a Sam, dale el id para que lo repita. Si usas `--autorizacion`, tiene que apuntar a un archivo **fuera** de la carpeta del lote: dentro de ella solo vale `AUTORIZACION.txt`, porque el manifiesto y el resumen citan el id, llevan nombres y se copiarían a la evidencia.
 3. Sube la carpeta y corre los pasos de a uno, leyendo la evidencia entre paso y paso:
 
 ```bash
@@ -64,7 +64,8 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-61 --paso verificar
 ```
 
-- **Sin `AUTORIZACION.txt`, o si no nombra el contenedor, cada paso se niega (3), la previa también.** Leer producción también exige permiso. La autorización se copia a la evidencia.
+- **Sin `AUTORIZACION.txt`, o si no cita el id del lote, cada paso se niega (3), la previa también.** Leer producción también exige permiso. La autorización se copia a la evidencia.
+- **Candado.** Simulacro y aplicar (y deshacer y purgar, en prueba) toman `/run/lock/dtd-lotes.lock.d`, o lo que diga `LOTES_CANDADO`. Es un directorio que se crea con `mkdir`, igual que el de migraciones, y evita que dos pasos que escriben corran a la vez: el segundo se niega (3). Si quedó de una corrida muerta, revisa con `ps` que no haya otra en curso y bórralo a mano.
 - Un lote generado para prueba se rechaza en `dtd-cargo`, y uno generado para producción se rechaza en un `*-staging`.
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
@@ -73,6 +74,11 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 - **`deshacer` y `purgar` están deshabilitados en producción (3)**, aunque vengan confirmados. Borrar o revertir un lote de la base oficial lo corre Sam, con su propio procedimiento.
 - La evidencia queda en `/srv/ops/evidencias/lote-<id>-dtd-cargo-<ts>-<paso>/`, igual que en prueba, más `AUTORIZACION.txt`.
 - Un `aplicar` en producción **no publica nada**: el Portal muestra el envío cuando el cliente entra. Los avisos siguen apagados.
+- **Después de `verificar` PASÓ, borra el paquete del servidor: `/srv/ops/paquetes/lote-N` entero, con un `ls` vacío como prueba.** Las razones:
+  - El guion niega `deshacer` y `purgar` en producción, pero el `deshacer.sql` del paquete de producción **no trae la guarda de base de prueba**; esa guarda solo va en los lotes de prueba. Un `psql` directo con ese archivo revertiría el lote sin pasar por el guion.
+  - Los `.sql`, el manifiesto y el resumen llevan nombres.
+
+  La evidencia (`/srv/ops/evidencias/`) se queda, porque no lleva nombres. El paquete local, en `DTD-consolidados/<N>/` de la PC, también se queda.
 
 ## 3 · Qué mirar después (smoke)
 
@@ -92,6 +98,15 @@ Para entrar al Portal como uno de los clientes cargados en prueba hay que vincul
 | Comando | Qué cubre |
 |---|---|
 | `pnpm vitest run scripts/__tests__/consolidados-modelo.test.ts scripts/__tests__/consolidados-excel.test.ts scripts/__tests__/consolidados-sql.test.ts` | lectores de Excel, agrupación, líneas de factura con su `shipmentCode`, redondeo como `round(numeric, 2)`, forma de los scripts (`VERBOSITY terse`), preflight, guarda de base de prueba, `raise` con etiquetas, deshacer y purgar con sus dependencias |
-| `bash infra/ops/tests/prueba-aplicar-lote.sh` | guardas de `aplicar-lote.sh` (destino, `-staging`, `--confirm`, SHA256SUMS, entorno), orden simulacro → aplicar, forma de la salida, evidencia sin nombres y el control de que una fuga plantada en psql sí se vería. En producción: sin `AUTORIZACION.txt`, vacía o sin nombrar el contenedor; `deshacer` y `purgar` deshabilitados; lote ya aplicado (por evidencia y por el preflight); `--autorizacion` externa (40 casos). Desde la SDD-0550 también la corre el CI «Calidad continua» (`infra/ops/tests/pruebas-linux.sh`) |
+| `bash infra/ops/tests/prueba-aplicar-lote.sh` | guardas de `aplicar-lote.sh` (destino, `-staging`, `--confirm`, SHA256SUMS, entorno), orden simulacro → aplicar, forma de la salida, evidencia sin nombres y el control de que una fuga plantada en psql sí se vería. En producción cubre:
+- autorización ausente, vacía, con el número suelto, de otro hash o con el id en mayúsculas, en previa, simulacro y aplicar;
+- `--autorizacion` apuntando al manifiesto del lote, también por una ruta con `..`;
+- `deshacer` y `purgar` deshabilitados;
+- lote ya aplicado, por la evidencia y por el preflight;
+- `--autorizacion` externa;
+- el candado: tomado, liberado y sin soltar un candado ajeno;
+- `PROD_COMPOSE_PROJECT` y nombres de proyecto en mayúsculas.
+
+En total, 53 casos. Desde la SDD-0550 también la corre el CI «Calidad continua» (`infra/ops/tests/pruebas-linux.sh`) |
 | `bash infra/ops/consolidados/validar-lote-local.sh <lote> [<lote que depende>]` | **antes de mandar un lote al servidor** (Docker, turno del Director): postgres:17 con el esquema entero y la secuencia completa del lote, incluidos deshacer y purgar; con dos lotes, comprueba que purgar el primero aborte mientras el segundo dependa de él. ~40 s por lote |
 | `pnpm vitest run lib/portal/__tests__/pending-acceptance.test.ts lib/portal/__tests__/portal-legal-queries.test.ts "app/portal/(app)/facturas/[code]/_components/PendingInvoiceGate.test.tsx" "app/portal/(app)/facturas/page.test.tsx" "app/portal/(app)/facturas/[code]/page.test.tsx"` | el Portal: facturas por aceptar (el admin se crea dentro del try), los embarques de la factura con su medida, la puerta del detalle (contra el 404) y «Mis facturas» con y sin borradores |
