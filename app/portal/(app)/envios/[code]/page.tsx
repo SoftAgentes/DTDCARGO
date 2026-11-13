@@ -31,6 +31,7 @@ import {
 } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
+import { estimarSeguimiento } from "@/lib/portal/seguimiento-estimado";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -107,6 +108,22 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
     live = null;
   }
 
+  // Seguimiento estimado (SDD-0627): desde el zarpe, fecha estimada de cada
+  // etapa que falta. Puro, sobre lo que ya se leyó; null antes del zarpe.
+  const estimado = estimarSeguimiento({
+    status: shipment.status,
+    service: shipment.service,
+    stepDates,
+    itinerario: naviera
+      ? {
+          pod: naviera.pod,
+          etd: naviera.etd,
+          eta: naviera.eta,
+          transitDays: naviera.transitDays ?? null,
+        }
+      : null,
+  });
+
   // Orden DDP de ESTE envío esperando aceptación (SDD-0075 §1 · Slice A). Gate
   // propio (`showShipmentAcceptanceCta`): NORTE_PORTAL_LIVE ya está en true, así
   // que sin él el CTA saldría vivo para todos. Best-effort → un fallo del admin
@@ -124,6 +141,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
       naviera={naviera}
       live={live}
       stepDates={stepDates}
+      estimado={estimado}
       hiddenStatuses={hiddenStatuses}
       notificationHistory={notificationHistory}
       pendingAcceptance={pendingAcceptance}

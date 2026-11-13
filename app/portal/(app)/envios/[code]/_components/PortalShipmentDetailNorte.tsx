@@ -18,6 +18,10 @@ import {
 } from "@/lib/studio/naviera-tracking/types";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
+import {
+  rotuloFuente,
+  type SeguimientoEstimado,
+} from "@/lib/portal/seguimiento-estimado";
 import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/notification-history-queries";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
@@ -45,6 +49,7 @@ export function PortalShipmentDetailNorte({
   naviera,
   live,
   stepDates,
+  estimado,
   hiddenStatuses,
   notificationHistory,
   pendingAcceptance,
@@ -58,6 +63,11 @@ export function PortalShipmentDetailNorte({
   live?: TrackingSnapshotRow | null;
   /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /**
+   * Seguimiento estimado desde el zarpe (SDD-0627). null = todavía no zarpó o
+   * ya no aplica: el stepper queda como antes, sólo con fechas reales.
+   */
+  estimado?: SeguimientoEstimado | null;
   /** Statuses ocultos por config del tenant (SDD-0156 · visible_in_portal). */
   hiddenStatuses?: ReadonlySet<ShipmentStatus>;
   /** Historial de avisos enviados de este envío (SDD-0156 · Slice C). */
@@ -75,7 +85,9 @@ export function PortalShipmentDetailNorte({
     shipment.origin || shipment.destination
       ? `${shipment.origin ?? "—"} → ${shipment.destination ?? "—"}`
       : null;
-  const eta = estimatePortalEta(shipment);
+  // SDD-0627 · después del zarpe manda la estimación desde el zarpe; antes, la
+  // heurística de siempre por servicio.
+  const eta = estimado ? estimado.entregaIso : estimatePortalEta(shipment);
   const waLink = buildWhatsAppLink(
     `Hola DTD Cargo, tengo una consulta sobre mi envío ${shipment.code}.`,
   );
@@ -142,9 +154,23 @@ export function PortalShipmentDetailNorte({
           status={shipment.status}
           service={shipment.service}
           stepDates={stepDates}
+          estimatedDates={estimado?.porEtapa}
           hiddenStatuses={hiddenStatuses}
         />
-        <p className="mt-6 text-[12px] text-grey-500 leading-[1.5]">
+        {estimado ? (
+          <p
+            className="mt-6 text-[12px] text-grey-700 leading-[1.5]"
+            data-testid="seguimiento-estimado-nota"
+          >
+            <span className="font-bold">Fechas estimadas.</span> Las marcadas
+            «Est.» las calculamos desde el zarpe {rotuloFuente(estimado.fuente)}.
+            Llegada estimada a puerto: {formatDate(estimado.etaPuertoIso)}. Pueden
+            moverse con la naviera y la aduana.
+          </p>
+        ) : null}
+        <p
+          className={`${estimado ? "mt-2" : "mt-6"} text-[12px] text-grey-500 leading-[1.5]`}
+        >
           Las actualizaciones de estado las carga nuestro equipo a medida que tu
           carga avanza.
         </p>
@@ -246,11 +272,14 @@ function Stepper({
   status,
   service,
   stepDates,
+  estimatedDates,
   hiddenStatuses,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Fecha ESTIMADA de las etapas que faltan (SDD-0627). */
+  estimatedDates?: Partial<Record<ShipmentStatus, string>>;
   hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
   const steps = buildTimeline(status, service, hiddenStatuses);
@@ -332,6 +361,16 @@ function Stepper({
               {formatStepDate(stepDates?.[step.status]) ? (
                 <span className="mt-0.5 text-[9.5px] font-semibold text-grey-500 leading-tight">
                   {formatStepDate(stepDates?.[step.status])}
+                </span>
+              ) : !reached && formatStepDate(estimatedDates?.[step.status]) ? (
+                // SDD-0627 · fecha ESTIMADA de una etapa que falta: se rotula
+                // «Est.» y se lee entera para lectores de pantalla.
+                <span
+                  className="mt-0.5 text-[9.5px] italic text-grey-500 leading-tight"
+                  aria-label={`Fecha estimada: ${formatStepDate(estimatedDates?.[step.status])}`}
+                  data-testid={`stepper-estimado-${step.status}`}
+                >
+                  Est. {formatStepDate(estimatedDates?.[step.status])}
                 </span>
               ) : null}
             </div>
