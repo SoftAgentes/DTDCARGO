@@ -38,6 +38,8 @@ import {
   type PaymentReceipt,
 } from "@/lib/studio/payment-types";
 import type { Receivable } from "@/lib/studio/payment-queries";
+import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
+import { equivalenteEnBs, type TasaReferencial } from "@/lib/shared/equivalente-bs";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   getReceivableHistory,
@@ -59,10 +61,15 @@ function fmt(n: number): string {
 export function CobranzaDrawer({
   receivable,
   cashAccounts,
+  hoy,
+  tasaHoy = null,
   onClose,
 }: {
   receivable: Receivable;
   cashAccounts: CashAccountOption[];
+  /** SDD-0629 · «hoy» en Caracas y su tasa VES, para el equivalente en Bs. */
+  hoy?: string;
+  tasaHoy?: TasaReferencial | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -210,6 +217,16 @@ export function CobranzaDrawer({
             >
               ${fmt(receivable.balance)}
             </div>
+            {hoy && receivable.balance > 0 && (
+              <EquivalenteBs
+                eq={equivalenteEnBs({
+                  amount: receivable.balance,
+                  currency: inv.currency,
+                  tasa: tasaHoy,
+                  fechaPedida: hoy,
+                })}
+              />
+            )}
           </div>
         </div>
 
