@@ -52,6 +52,22 @@ export function FileField({
   const has = names.length > 0;
   return (
     <div>
+      {/* El input va ANTES del label: `peer-focus-visible:` solo mira a un
+          hermano anterior. Con el input después, el foco de teclado no se veía
+          (WCAG 2.4.7). Sigue oculto con `sr-only`; el orden visual no cambia. */}
+      <input
+        id={id}
+        type="file"
+        name={name}
+        accept={accept}
+        multiple={multiple}
+        disabled={disabled}
+        className="peer sr-only"
+        onChange={(e) => {
+          const fs = e.target.files;
+          setNames(fs ? Array.from(fs).map((f) => f.name) : []);
+        }}
+      />
       <label
         htmlFor={id}
         className={`flex items-center gap-2.5 px-3.5 py-3 min-h-[44px] rounded-[10px] border text-[13px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-ink)] ${
@@ -60,7 +76,8 @@ export function FileField({
         style={{
           borderColor: has
             ? "var(--color-status-success)"
-            : "var(--color-grey-200)",
+            : // SDD-0603 · tramo 3: contorno de campo ≥3:1 (grey-200 medía 1,25:1).
+              "var(--color-grey-500)",
           background: has ? "var(--color-paper)" : "var(--color-white)",
         }}
       >
@@ -83,19 +100,6 @@ export function FileField({
           {has ? "Cambiar" : "Subir"}
         </span>
       </label>
-      <input
-        id={id}
-        type="file"
-        name={name}
-        accept={accept}
-        multiple={multiple}
-        disabled={disabled}
-        className="peer sr-only"
-        onChange={(e) => {
-          const fs = e.target.files;
-          setNames(fs ? Array.from(fs).map((f) => f.name) : []);
-        }}
-      />
     </div>
   );
 }
