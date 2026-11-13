@@ -16,6 +16,10 @@ import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "../../../_components/InvoiceStatusBadge";
 import { InvoicePaymentReports } from "./_components/InvoicePaymentReports";
 import { PendingInvoiceGate } from "./_components/PendingInvoiceGate";
+import { EquivalenteBs } from "../../../_components/EquivalenteBs";
+import { equivalenteEnBs, LEYENDA_BS_REFERENCIAL } from "@/lib/shared/equivalente-bs";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+import { tasasReferencialesDelPortal } from "@/lib/portal/tasa-referencial";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -56,6 +60,25 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
   // Reportes de pago del cliente sobre esta factura (SDD-0134) + si puede reportar
   // uno nuevo (saldo abierto y factura no cerrada).
   const reports = await listMyInvoiceReports(supabase, code);
+
+  // SDD-0629 · equivalente en Bs, solo vista: el total con la tasa del día de
+  // emisión, el saldo con la de hoy. La tasa se lee con el tenant de ESTA
+  // factura (ya filtrada por tenant + Shipping Mark del principal).
+  const hoy = fechaCaracas();
+  const fechaTotal = inv.issuedAt?.slice(0, 10) || hoy;
+  const tasas = await tasasReferencialesDelPortal(inv.tenantId, [fechaTotal, hoy]);
+  const bsTotal = equivalenteEnBs({
+    amount: inv.total,
+    currency: inv.currency,
+    tasa: tasas.get(fechaTotal),
+    fechaPedida: fechaTotal,
+  });
+  const bsSaldo = equivalenteEnBs({
+    amount: balance,
+    currency: inv.currency,
+    tasa: tasas.get(hoy),
+    fechaPedida: hoy,
+  });
   const canReport =
     balance > 0 && inv.status !== "pagada" && inv.status !== "anulada";
 
@@ -147,6 +170,30 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
               />
             ) : null}
           </dl>
+
+          {bsTotal.estado !== "no-aplica" && !anulada ? (
+            <section
+              aria-label="Equivalente en bolívares"
+              className="mt-5 pt-4 border-t border-grey-200 flex flex-col gap-3"
+            >
+              <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+                En bolívares (referencial)
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[12.5px] text-grey-700">Total</span>
+                <EquivalenteBs eq={bsTotal} />
+              </div>
+              {balance > 0 ? (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[12.5px] text-grey-700">Saldo pendiente, a la tasa de hoy</span>
+                  <EquivalenteBs eq={bsSaldo} />
+                </div>
+              ) : null}
+              <p className="text-[11.5px] italic text-grey-500 leading-[1.5]">
+                {LEYENDA_BS_REFERENCIAL}
+              </p>
+            </section>
+          ) : null}
 
           {anulada ? (
             <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
