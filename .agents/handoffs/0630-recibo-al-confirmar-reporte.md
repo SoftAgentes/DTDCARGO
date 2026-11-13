@@ -53,7 +53,7 @@ confirmaciones a la vez. Está escrito en la spec (§ Asiento).
 | Comprobación | Resultado | Evidencia |
 |---|---|---|
 | Contratos SQL en Actions (`sql-tests.yml`, workflow_dispatch en la rama) | PASÓ: 282 de 282, con `0537_recibo_al_confirmar_reporte.test.sql` (control, R1-R4, casos, 0422 y 0423 encima) | run 43499942755. Los rojos anteriores, 43496423728 y 43497275587, eran de la prueba: `'texto' \|\| jsonb`, una invariante que incluía la factura de control y `dblink_exec` con un SELECT. |
-| PGlite: fixture 0533 + 0537 + casos + 0422/0423 | PASÓ: 70 aserciones en los casos y 75 con «después»; el preflight aborta sin la 0533 y al reaplicar | una corrida puntual de node con el script de diagnóstico, ~10 s |
+| PGlite: fixture 0533 + 0537 + casos + 0422/0423 | PASÓ: 70 aserciones en los casos y 75 con «después»; el preflight aborta sin la 0533 y al reaplicar | una corrida puntual de node con el script de diagnóstico, ~10 s, medida sobre 58233ddf6 (antes de la sección 11 de los casos; no se volvió a medir). La cabeza actual la cubren los contratos SQL del CI |
 | PGlite `payment-report-receipt.migration.test.ts` (vitest, con mutantes) | NO EJECUTADO en local; lo corre el CI de la PR («Calidad») | portón = CI de GitHub (cambio del DG, 2026-11-13) |
 | Vitest `payment-report-commands.test.ts`, `payment-report-ui.test.tsx` y `PendingReportsNotice.test.tsx` | NO EJECUTADO en local; lo corre el CI de la PR | ídem |
 | Vitest focal de los 5 archivos que el CI de 58233ddf6 dio en rojo (RBAC, comandos, consumidores, denegación, fechas Caracas) | PASÓ: 5 archivos, 775 de 775 | corrida local con turno del Subdirector, 2026-11-13, después de las correcciones |

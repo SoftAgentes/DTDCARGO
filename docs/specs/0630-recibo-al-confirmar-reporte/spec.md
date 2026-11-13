@@ -152,6 +152,16 @@ vuelve a confirmar, reintentar y rechazar.
 - `lib/portal/payment-report-commands.ts` y
   `lib/portal/__tests__/payment-report-commands.test.ts`.
 - `lib/portal/__tests__/payment-report-ui.test.tsx`.
+- `lib/portal/__tests__/payment-report-consumers.test.ts`: las acciones reales
+  ahora confirman por `confirm_payment_report_with_receipt` con la cuenta de caja;
+  los dobles devuelven el recibo, y la prueba afirma el asiento, el replay con el
+  mismo recibo y que sin cuenta no hay efectos.
+- `lib/studio/rbac-actions-guard.test.ts`: el inventario de acciones exportadas
+  sube de 466 a 467 por `getPendingPaymentReports`, con su gate y su razón.
+- `app/studio/(app)/__tests__/fechas-caracas-formularios.test.tsx` y
+  `app/studio/(app)/__tests__/pantallas-muestran-la-denegacion.test.tsx`: montan
+  el drawer de Cobranzas, que ahora renderiza el aviso de reportes pendientes; sus
+  mocks de `cobranzas/actions` suman `getPendingPaymentReports` sin pendientes.
 - `lib/portal/__tests__/payment-report-receipt.migration.test.ts` (nuevo).
 - `lib/studio/collections-actions.ts`: sólo se extrae `postCollectionReceiptEntry`,
   sin cambiar el comportamiento del cobro.

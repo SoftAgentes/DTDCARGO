@@ -236,6 +236,11 @@ describe("consumidores de comandos auditados", () => {
     expect(state.commands).toHaveLength(2);
     expect(state.commands[1]).toEqual(state.commands[0]);
     expect((replay.receipt as Row).collection).toEqual(appCollection);
+    // El asiento se intenta en el original y otra vez en el replay (por si el
+    // primero no llegó a asentar), siempre sobre el mismo recibo: la posting es
+    // idempotente por receipt_id.
+    expect(mocks.post).toHaveBeenCalledTimes(2);
+    expect(mocks.post.mock.calls[1][1]).toEqual(mocks.post.mock.calls[0][1]);
     expect(mocks.after).toHaveBeenCalledOnce();
     await correrAfter();
     expect(mocks.notifyClient).toHaveBeenCalledOnce();
