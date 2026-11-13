@@ -17,14 +17,17 @@ Ver tabla «Qué cambia» de `tramo-3.md`. En corto: `.btn-ghost` con contorno d
 
 ## Validación
 
-(se completa al cerrar; ver sección «Cierre»)
+- `/ui-check` sobre el diff: OK con ajustes menores, aplicados (relleno 16 px, radio concéntrico, hover en `--color-grey-100`).
+- Contraste recalculado aparte con Node sobre los tokens de `globals.css`: coincide con las cifras de `tramo-3.md`.
+- `git diff --check`: PASÓ.
+- Contrato, pruebas focales del portal y `pnpm verify`: NO EJECUTADOS todavía; esperan turno de corrida pesada (también `pnpm install`).
 
 ## FUERA DE ALCANCE DETECTADO
 
 - `PrealertaStatusBadge.tsx` pinta su píldora en línea: sigue como píldora. Componente fuera de la allowlist.
 - Avisos con borde o fondo en línea (`CotizacionRequestForm.tsx`, `app/portal/(app)/error.tsx`): pertenecen al tramo 4.
 - Primario vino en el portal oscuro: 3,00:1 contra la tarjeta (`#c24450` sobre `#16264a`), justo en el mínimo; el Studio lo resolvió con `--ctl-edge-hi` en la enmienda de elevación. Requiere decisión y tocar `globals.css`.
-- `vitest.config` excluye `**/.claude/**`: revisar si eso deja sin correr pruebas cuando se lanzan desde un worktree del harness.
+- Hipótesis sin comprobar: `vitest.config` excluye `**/.claude/**`; al correr desde un worktree del harness se confirma si el contrato se recoge (el conteo de pruebas lo dirá).
 
 ## Impacto documental
 
