@@ -20,7 +20,12 @@ Ver tabla «Qué cambia» de `tramo-3.md`. En corto: `.btn-ghost` con contorno d
 - `/ui-check` sobre el diff: OK con ajustes menores, aplicados (relleno 16 px, radio concéntrico, hover en `--color-grey-100`).
 - Contraste recalculado aparte con Node sobre los tokens de `globals.css`: coincide con las cifras de `tramo-3.md`.
 - `git diff --check`: PASÓ.
-- Contrato, pruebas focales del portal y `pnpm verify`: NO EJECUTADOS todavía; esperan turno de corrida pesada (también `pnpm install`).
+- Contrato, pruebas focales del portal y `pnpm verify`: NO EJECUTADO local: sin node_modules; cubre el CI de GitHub (regla del DG, 2026-11-13, transmitida por el Subdirector Rebrand).
+
+## Publicación
+
+- Rama publicada `claude/0603-t3-portal`; se trajo `origin/main` con merge, sin conflictos. El diff contra main es exactamente la allowlist.
+- PR #537, lista (no draft), sin fusionar. Fusionar: Director General, con revisión independiente y CI verde.
 
 ## FUERA DE ALCANCE DETECTADO
 
