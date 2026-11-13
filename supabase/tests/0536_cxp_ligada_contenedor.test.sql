@@ -20,6 +20,8 @@ begin
   if to_regclass('public.supplier_bills') is not null or to_regclass('public.consolidations') is not null then
     raise exception 'TEST 0536 requiere una base PostgreSQL desechable vacía';
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
 end;
 $vacia$;
 
@@ -116,6 +118,19 @@ begin
   select count(*) into v_count from pg_catalog.pg_trigger
    where tgrelid = 'public.supplier_bills'::regclass and tgname = 'supplier_bills_validate_cost_link';
   if v_count <> 1 then raise exception 'CONTRATO 4: se esperaba 1 trigger, hay %', v_count; end if;
+
+  -- 6. La función del trigger: search_path vacío y nadie la ejecuta por la API.
+  if not exists (
+    select 1 from pg_catalog.pg_proc
+     where oid = 'public.supplier_bills_validate_cost_link()'::regprocedure
+       and prosecdef and proconfig @> array['search_path=""']
+  ) then
+    raise exception 'CONTRATO 6: la función del trigger debe ser SECURITY DEFINER con search_path vacío';
+  end if;
+  if pg_catalog.has_function_privilege('authenticated', 'public.supplier_bills_validate_cost_link()', 'EXECUTE')
+     or pg_catalog.has_function_privilege('anon', 'public.supplier_bills_validate_cost_link()', 'EXECUTE') then
+    raise exception 'CONTRATO 6: anon o authenticated pueden ejecutar la función del trigger';
+  end if;
 
   -- 5. La CxP legada sigue pudiendo cambiar de estado.
   update public.supplier_bills set status = 'parcial' where bill_code = 'CXP-TEST-0001';

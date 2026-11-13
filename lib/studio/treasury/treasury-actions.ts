@@ -292,6 +292,8 @@ export async function linkBillCostFor(
       cost_category: link.costCategory,
     })
     .eq("id", billId)
+    // La lectura de arriba no bloquea: si la anularon en el medio, no se liga.
+    .neq("status", "anulada")
     .select("id");
   if (updErr) {
     if (isMissingCostLinkColumns(updErr.message)) return { error: COST_LINK_UNAVAILABLE };
@@ -299,7 +301,7 @@ export async function linkBillCostFor(
   }
   // RLS sin permiso de escritura no da error: devuelve cero filas.
   if (!updated || updated.length === 0) {
-    return { error: "Tu rol no puede cambiar el vínculo de esta CxP." };
+    return { error: "No se ligó: tu rol no puede cambiar esta CxP o la anularon mientras tanto." };
   }
   return { ok: true };
 }

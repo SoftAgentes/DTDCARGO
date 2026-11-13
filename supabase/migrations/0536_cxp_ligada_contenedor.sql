@@ -6,6 +6,9 @@
 --    estas columnas: el costeo sigue sin CxP ligadas y Tesorería oculta el
 --    selector.
 --
+-- EJECUTAR ÍNTEGRA EN UNA TRANSACCIÓN: usa `set local` (lock_timeout y
+-- statement_timeout), que fuera de una transacción no rige.
+--
 -- ── Para qué ─────────────────────────────────────────────────
 -- Lo que se le debe a un proveedor por el espacio de un contenedor tiene que
 -- llegar al margen de ese contenedor y de sus embarques. `supplier_bills` ya
@@ -86,7 +89,7 @@ create or replace function public.supplier_bills_validate_cost_link()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   if not public.consolidation_in_tenant(new.consolidation_id, new.tenant_id) then
@@ -119,7 +122,8 @@ $$;
 comment on function public.supplier_bills_validate_cost_link() is
   'SDD-0631: la CxP ligada apunta a un contenedor y a un embarque vivos del MISMO tenant; si trae los dos, el embarque está en ese contenedor; con vínculo, cost_category es obligatoria. SECURITY DEFINER, fail-closed.';
 
-revoke all on function public.supplier_bills_validate_cost_link() from public;
+-- Solo la invoca el trigger: nadie la llama por la API.
+revoke execute on function public.supplier_bills_validate_cost_link() from public, anon, authenticated;
 
 drop trigger if exists supplier_bills_validate_cost_link on public.supplier_bills;
 create trigger supplier_bills_validate_cost_link

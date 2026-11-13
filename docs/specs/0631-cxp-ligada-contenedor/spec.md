@@ -57,10 +57,16 @@ Más:
   3. si vienen los dos, el embarque está asignado a ese contenedor
      (`consolidation_items`);
   4. si hay contenedor o embarque, `cost_category` no es null.
+
+  La función es `security definer` con `search_path = ''` y sin EXECUTE para `public`,
+  `anon` ni `authenticated`: solo la invoca el trigger.
 - Sin cambios en RLS, grants, asientos ni auditoría D2: las columnas heredan las policies
   de 0470 (SELECT tenant-wide; INSERT/UPDATE solo `accounting` o `admin`).
 
-**No aplicada a producción.** Aplicarla exige OK de Sam nombrando el archivo y el
+**No aplicada a producción.** Se ejecuta íntegra en una transacción (usa `set local`). Su espera
+está en `supabase/migrations-baseline.json` (`pendingBelowCutoff`) con motivo y orden, y las
+degradaciones de `supplier_bills.consolidation_id` y `.cost_category` en
+`supabase/pending-migration-symbol-declarations.json`. Aplicarla exige OK de Sam nombrando el archivo y el
 [runbook](../../runbooks/aplicar-migraciones-prod.md). El código tolera la base sin las
 columnas: ver §2.4.
 
@@ -131,6 +137,8 @@ orden de pago → margen en Costing › Contenedores.
 - `.agents/handoffs/0631-cxp-ligada-contenedor.md`
 - `supabase/migrations/0536_cxp_ligada_contenedor.sql`
 - `supabase/tests/0536_cxp_ligada_contenedor.test.sql`
+- `supabase/migrations-baseline.json` (espera de la 0536)
+- `supabase/pending-migration-symbol-declarations.json` (degradaciones de la 0536)
 - `lib/studio/treasury/__tests__/cxp-ligada-contenedor.migration.test.ts`
 - `lib/studio/treasury/types.ts`
 - `lib/studio/treasury/bill-queries.ts`

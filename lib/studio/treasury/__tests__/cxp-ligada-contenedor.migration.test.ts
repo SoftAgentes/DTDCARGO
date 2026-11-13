@@ -102,6 +102,18 @@ describe("0536 · CxP ligada a contenedor (PGlite)", () => {
       /CONTRATO 3g/,
     ],
     [
+      "función del trigger con search_path público",
+      "security definer\nset search_path = ''\nas $$",
+      "security definer\nset search_path = public\nas $$",
+      /CONTRATO 6: la función del trigger/,
+    ],
+    [
+      "EXECUTE sin revocar a authenticated",
+      "revoke execute on function public.supplier_bills_validate_cost_link() from public, anon, authenticated;",
+      "revoke execute on function public.supplier_bills_validate_cost_link() from anon;",
+      /CONTRATO 6: anon o authenticated/,
+    ],
+    [
       "trigger en cualquier UPDATE (bloquea la CxP legada)",
       "before insert or update of consolidation_id, shipment_id, cost_category, tenant_id",
       "before insert or update",

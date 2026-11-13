@@ -43,6 +43,12 @@ embarque), y que ese costo llegue al margen del contenedor y del embarque sin co
 | `pnpm docs:check` · `governance:check` · `components:check` | PASÓ |
 | `pnpm verify` (turno 15:05, cortado por mí durante e2e tras el cambio de portón del DG) | NO EJECUTADO completo. Lo que alcanzó a medir: `test` FALLÓ con (a) **real**, `rbac-actions-guard` 466≠467 por `linkBillCost`, corregido; (b) `infra/ops/tests/migraciones.test.mjs` y `scripts/__tests__/entorno-prueba-scripts.test.mjs` cortados a 600 s, y (c) `MobileErpClient.fechas-caracas` foco N2: posible carga ajena (T5a de Rebrand desde 15:13, install/vitest/typecheck del 0629 ~16:00 y otro `pnpm verify` ajeno, PID 43928, desde 16:14). Esa ventana no vale ni como verde ni como rojo. docs/numbering/feature-constants/components/governance/pending-migration-symbols OK; migrations-applied, sql-tests y schema-rebuild SKIP (sin .env.local ni Docker) |
 | `rbac-actions-guard.test.ts` tras el arreglo y el merge de main | PASÓ (472/472) |
+| Revisión DG (CHANGES_REQUESTED sobre f73758365), corregida | Espera de la 0536 en `migrations-baseline.json` con motivo y orden; degradaciones de las dos columnas en `pending-migration-symbol-declarations.json`; función del trigger con `search_path = ''` y EXECUTE revocado a public/anon/authenticated; cabecera «ejecutar íntegra en una transacción»; `linkBillCost` filtra `status <> 'anulada'` en el UPDATE |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO · 1 AMARILLO declarado (0536) · 52 homónimos descartados |
+| `node scripts/migrations-lock.mjs verificar` | PASÓ: 517 selladas · 3 esperas sin sellar (0422, 0423, 0536) · 0 nuevas sin sellar |
+| `check-migrations-applied` | NO DISPONIBLE (worktree sin credenciales); lo mide el CI |
+| Contrato 0536 en PGlite con 2 mutantes nuevos (search_path, EXECUTE) | PASÓ (11/11) |
+| Degradación sin 0536: `listCostLinkData` (columna inexistente, caché de PostgREST, error ajeno que no se disfraza), `listCostLinks` vía `costingData` (CA8) y `createBillFor` sin vínculo sin nombrar las columnas | PASÓ (`cost-link.test.ts` 18 + punta a punta 4) |
 | CI de la PR | PENDIENTE |
 | Prueba visual en el navegador (`/ui-check`) | NO EJECUTADO: sin base local con la 0536 en esta sesión |
 
@@ -81,6 +87,8 @@ Rama `claude/sdd-0631-cxp-contenedor-5ae730` · PR #530 contra main. El tren AD 
    parte por CBM y su costo vuelve a repartirse entre sus contenedores por fracción; el total se
    conserva pero parte del costo de un contenedor puede verse en otro. Caso raro; documentado en la
    spec como límite.
+
+**Ojo al editar:** las declaraciones de símbolos citan `archivo:línea`. Cualquier edición por encima de esas líneas en `costing/queries.ts`, `cost-link-queries.ts`, `treasury-actions.ts` o `CostingClient.tsx` las vence: corre el gate y regenéralas.
 
 ## Impacto documental
 

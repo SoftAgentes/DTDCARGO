@@ -27,6 +27,7 @@ type State = {
   itemFound: boolean;
   updateResult: { data: unknown; error: { message: string } | null };
   insertError: { message: string } | null;
+  neqs: string[];
 };
 let st: State;
 
@@ -39,6 +40,10 @@ function makeClient(): SupabaseClient {
       const chain: Record<string, unknown> = {
         select: () => chain,
         eq: () => chain,
+        neq(col: string, v: unknown) {
+          st.neqs.push(`${table}.${col}<>${String(v)}`);
+          return chain;
+        },
         insert(values: Record<string, unknown>) {
           mode = "insert";
           st.inserts.push(values);
@@ -90,6 +95,7 @@ beforeEach(() => {
     itemFound: true,
     updateResult: { data: [{ id: "b1" }], error: null },
     insertError: null,
+    neqs: [],
   };
 });
 
@@ -162,6 +168,8 @@ describe("linkBillCostFor", () => {
   it("liga una CxP existente (el caso de la deuda ya registrada)", async () => {
     expect(await linkBillCostFor(makeClient(), "b1", { consolidationId: "c1", costCategory: "freight" })).toEqual({ ok: true });
     expect(st.updates[0]).toEqual({ consolidation_id: "c1", shipment_id: null, cost_category: "freight" });
+    // La escritura misma excluye una anulada (la lectura previa no bloquea).
+    expect(st.neqs).toContain("supplier_bills.status<>anulada");
   });
 
   it("quitar el vínculo pone todo en null", async () => {
@@ -190,5 +198,51 @@ describe("linkBillCostFor", () => {
   it("base sin la 0536", async () => {
     st.updateResult = { data: null, error: { message: "Could not find the 'cost_category' column of 'supplier_bills' in the schema cache" } };
     expect((await linkBillCostFor(makeClient(), "b1", { consolidationId: "c1", costCategory: "freight" })).error).toBe(COST_LINK_UNAVAILABLE);
+  });
+});
+
+// ── Degradación sin la 0536 (pending-migration-symbols) ─────────
+const { listCostLinkData } = await import("../cost-link-queries");
+
+function linkDataClient(billsError: string | null): SupabaseClient {
+  return {
+    from(table: string) {
+      const chain: Record<string, unknown> = {
+        select: () => chain,
+        is: () => chain,
+        or: () => chain,
+        not: () => chain,
+        order: () => chain,
+        limit: async () => ({
+          data: table === "consolidations" ? [{ id: "c1", ref: "DTD-CONSOL-9001", status: "zarpado", container_type: null }] : [],
+          error: null,
+        }),
+        range: async () => {
+          if (table === "supplier_bills" && billsError) return { data: null, error: { message: billsError } };
+          if (table === "consolidation_items") return { data: [], error: null };
+          return { data: [], error: null };
+        },
+      };
+      return chain;
+    },
+  } as unknown as SupabaseClient;
+}
+
+describe("listCostLinkData sin la 0536", () => {
+  it("columna inexistente: available=false, contenedores listos y sin vínculos", async () => {
+    const d = await listCostLinkData(linkDataClient("column supplier_bills.consolidation_id does not exist"));
+    expect(d.available).toBe(false);
+    expect(d.links).toEqual({});
+    expect(d.containers.map((c) => c.ref)).toEqual(["DTD-CONSOL-9001"]);
+  });
+  it("caché de PostgREST sin la columna: mismo degradado", async () => {
+    const d = await listCostLinkData(linkDataClient("Could not find the 'cost_category' column of 'supplier_bills' in the schema cache"));
+    expect(d.available).toBe(false);
+  });
+  it("otro error no se disfraza de base vieja", async () => {
+    await expect(listCostLinkData(linkDataClient("permission denied for table supplier_bills"))).rejects.toThrow(/permission denied/);
+  });
+  it("con la 0536: available=true", async () => {
+    expect((await listCostLinkData(linkDataClient(null))).available).toBe(true);
   });
 });
