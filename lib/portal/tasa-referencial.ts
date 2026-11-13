@@ -5,13 +5,20 @@ import "server-only";
  * El cliente del portal no es miembro de `user_tenants`, así que la RLS de
  * `fx_rates` (0495: `tenant_id = get_user_tenant_id()`) no le devuelve nada con
  * su sesión. La tasa no es un dato del cliente: es la referencia del tenant,
- * cargada en Admin › Tasas. Se lee con el admin client, SIEMPRE con el tenant
- * que ya resolvió la página (la factura o el resumen que leyó con su RLS y su
- * filtro de tenant + Shipping Mark del principal). `fx_rate_on` filtra por
- * `p_tenant_id`. Solo lectura, sin migración.
+ * cargada en Admin › Tasas.
  *
- * Best-effort: cualquier fallo es «tasa no disponible», nunca un cero.
+ * Mismo patrón que `pending-acceptance.ts` (SDD-0543/0549): admin client con el
+ * tenant del PRINCIPAL Portal, que la página ya resolvió. En el detalle, el
+ * tenant de la factura leída por `getMyInvoiceForPrincipal`, que filtra
+ * `tenant_id = principal.tenantId` y el Shipping Mark (SDD-0552); en «Mis
+ * facturas», `principal.tenantId`. No se relee `clients.tenant_id` ni se acepta
+ * un tenant de la URL. `fx_rate_on` filtra `f.tenant_id = p_tenant_id`, así que
+ * solo vuelven tasas de ese tenant. Solo lectura de `fx_rates`, sin migración.
+ *
+ * El admin client se crea DENTRO del try: si falta la variable de entorno, la
+ * página sigue con «tasa no disponible». `admin` se inyecta sólo en pruebas.
  */
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/db/admin";
 import { tasasVesPorFecha } from "@/lib/studio/fx-rates";
 import type { TasaReferencial } from "@/lib/shared/equivalente-bs";
@@ -19,10 +26,12 @@ import type { TasaReferencial } from "@/lib/shared/equivalente-bs";
 export async function tasasReferencialesDelPortal(
   tenantId: string | null | undefined,
   fechas: readonly (string | null | undefined)[],
+  admin?: SupabaseClient,
 ): Promise<Map<string, TasaReferencial | null>> {
-  if (!tenantId) return new Map();
   try {
-    return await tasasVesPorFecha(createAdminClient(), tenantId, fechas);
+    const tenant = String(tenantId ?? "").trim();
+    if (!tenant) return new Map();
+    return await tasasVesPorFecha(admin ?? createAdminClient(), tenant, fechas);
   } catch {
     return new Map();
   }

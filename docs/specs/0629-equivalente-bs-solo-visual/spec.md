@@ -49,9 +49,18 @@ Sam decidió el 2026-11-13: «todo el sistema trabaja en dólares». El bolívar
 
 Propuesta: el equivalente **no** entra en el PDF de la factura, en el estado de cuenta en PDF ni en el recibo impreso (en el recibo va con `data-print-hide`). Un monto en Bs impreso en un documento que el cliente guarda se lee como monto exigible y abre la pregunta fiscal (tasa BCV obligatoria, IGTF, libro de ventas). Cuando se implemente la facturación fiscal en Bs, esa SDD decide qué documento lleva el monto en Bs y con qué tasa. Hasta entonces, es solo pantalla.
 
-## Lectura de la tasa en el portal
+## Lectura de la tasa en el portal · decisión para el revisor
 
-El cliente del portal no está en `user_tenants`: la RLS de `fx_rates` (`tenant_id = get_user_tenant_id()`) no le devuelve filas. La tasa no es un dato del cliente, sino la referencia del tenant. `lib/portal/tasa-referencial.ts` (server-only) la lee con el admin client y **siempre** con el tenant que la página ya resolvió: el de la factura leída con la RLS y el filtro tenant + Shipping Mark del principal (`getMyInvoice`), o el del principal (`getPortalClientPrincipal`). `fx_rate_on` filtra por `p_tenant_id`. Solo lectura, sin migración. Cualquier fallo es «tasa no disponible».
+**Problema.** El cliente del portal no está en `user_tenants`: `get_user_tenant_id()` le da null y la RLS de `fx_rates` (`tenant_id = get_user_tenant_id()`, 0495) no le devuelve filas. Con su sesión, la vista diría siempre «tasa no disponible».
+
+**Decisión: admin client con el tenant del principal, sin migración.** Es el patrón vigente del portal para lo que su RLS no cubre: `lib/portal/pending-acceptance.ts` + `portal-legal-queries.ts` (SDD-0543/0549) leen con `createAdminClient()` y filtran explícito por el tenant y el Shipping Mark del principal Portal (`getPortalClientPrincipal`), sin releer `clients.tenant_id`. `lib/portal/tasa-referencial.ts` (server-only) lo sigue:
+
+- El tenant sale del principal: en «Mis facturas», `principal.tenantId`; en el detalle, `inv.tenantId` de `getMyInvoiceForPrincipal`, que filtra `tenant_id = principal.tenantId` y `client_markbox` (SDD-0552), así que es el mismo valor. Nunca de la URL ni de un parámetro del cliente.
+- La única lectura es la RPC `fx_rate_on(p_tenant_id, 'VES', fecha)`, cuyo cuerpo filtra `f.tenant_id = p_tenant_id` (0495). No lee ninguna otra tabla ni devuelve datos del cliente, solo valor, fuente y fecha de la tasa.
+- El admin client se crea dentro del `try`; sin tenant no se crea. Cualquier fallo es «tasa no disponible».
+- Prueba: `lib/portal/__tests__/tasa-referencial.test.ts`. Con un doble que guarda tasas de dos tenants, la única llamada es `fx_rate_on` con el tenant dado, la tasa del otro tenant no aparece, un tenant sin tasas da null, sin tenant no se crea el admin client y un fallo al crearlo da el mapa vacío.
+
+**Alternativa descartada por ahora.** Una RPC `SECURITY DEFINER` acotada al tenant de `get_portal_client_markbox()`, o una policy de lectura de `fx_rates` para clientes del portal. Daría lo mismo con migración, número y aplicación en producción con OK. Si el revisor la prefiere, el cambio en la app se limita a `tasa-referencial.ts`.
 
 ## Allowlist exacta
 
@@ -75,6 +84,7 @@ Pruebas:
 
 - `lib/shared/__tests__/equivalente-bs.test.ts`
 - `lib/studio/__tests__/fx-rates-por-fecha.test.ts`
+- `lib/portal/__tests__/tasa-referencial.test.ts`
 - `app/studio/_components/EquivalenteBs.test.tsx`
 - `app/studio/(app)/cobranzas/_components/CobranzasClient.bs.test.tsx`
 
