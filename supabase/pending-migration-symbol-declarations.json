@@ -11,37 +11,6 @@
     {
       "symbols": [
         {
-          "name": "studio_client_annual_billing_v2",
-          "callSites": [
-            "lib/studio/fidelizacion/queries.ts:37"
-          ],
-          "kind": "function"
-        }
-      ],
-      "migration": "0527_annual_billing_fx_v2",
-      "id": "sdd-0572b-annual-billing-fx-v2",
-      "primarySymbol": "studio_client_annual_billing_v2",
-      "evidence": [
-        {
-          "site": "lib/studio/fidelizacion/queries.ts:39",
-          "contains": "if (page.error) throw new AnnualBillingError(\"rpc\");",
-          "degradation": "Sin0527 o con caché anterior, PGRST202 se rechaza como lectura anual no disponible. No fallback a v1, cero ni invoices desde app."
-        },
-        {
-          "site": "lib/studio/fidelizacion/queries.ts:101",
-          "contains": "billingMap === null ? BILLING_UNAVAILABLE",
-          "degradation": "Fidelización conserva cartera no financiera, subtotal null y estado no_disponible. Nivel y progreso quedan Por revisar; la distribución usa la misma lectura. Reportes y CRM propagan el DTO; Portal decodifica billing_v2 ausente como no disponible y conserva recompensas/referidos cuando el principal sí existe."
-        },
-        {
-          "site": "lib/shared/annual-billing.ts:109",
-          "contains": "if (value.state === \"no_disponible\") return \"Facturación anual no disponible\";",
-          "degradation": "Los consumidores muestran indisponibilidad explícita, distinta de sin tasa. RPC/paginación/shape/duplicado nunca producen un cero financiero exitoso. La compatibilidad de app nueva con DB/caché vieja se prueba localmente; release sigue MIGRATE-FIRST con autorización nominal aparte."
-        }
-      ]
-    },
-    {
-      "symbols": [
-        {
           "name": "confirm_payment_report_with_receipt",
           "callSites": [
             "lib/portal/payment-report-commands.ts:193"

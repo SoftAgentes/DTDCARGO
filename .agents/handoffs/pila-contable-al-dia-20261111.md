@@ -45,3 +45,16 @@ Publicar de la #311 a la #317, una por turno, después de cada fusión. Antes de
 ## Deuda declarada en la revisión de la #520
 - `lib/studio/sales-orders/actions.ts:637-661`: el readback de `issued_at` sobra cuando la 0533 está aplicada, porque la RPC atómica de la 0497 fecha el asiento con `issued_at` persistido. Retirarlo (y bajar en 1 el inventario de `invoice-read-boundary`) es una tarea aparte, después de aplicar la 0533.
 - Contrato de la 0533 bajo la RLS de la 0511: NO DISPONIBLE. El fixture no monta la 0511 ni la 0497. Lo intenté y montar la 0511 arrastra 0190, 0294 y la cadena de auditoría D2 (`append_audit_event_v1`); quedó como deuda.
+
+## Estado de aplicación (2026-11-13, Director General)
+
+- **0533_fechas_caracas_operaciones**: **aplicada**. Prueba 16:25:51Z y producción 19:06:22Z del 2026-11-13, md5 `ef1805bd799471fe4c453276639c7b27`, verificación PASÓ.
+  - En producción la previa encontró una deriva cosmética en `public.sales_order_claim_and_invoice`: era la lógica de la 0128 sin comentarios ni caracteres no ASCII.
+  - Con el OK de Sam («Sí, restaura y aplica») se restauró el cuerpo exacto de la 0128, con guardas de md5 antes y después, y enseguida se aplicó la 0533.
+- **0534_annual_billing_caracas**: **aplicada**. Prueba 16:26:30Z y producción 18:01:47Z del 2026-11-13, md5 `9b16d8aaf26282e4db3ddf4930e64981`, verificación PASÓ.
+
+Las dos se retiraron de la espera y quedaron selladas en el tren AD (#529). Donde este documento dice «sin aplicar» o «no aplicada», es el estado histórico anterior a esa fecha. La cabecera del `.sql` no se edita, porque cambiaría el md5 aplicado.
+
+## Estado de aplicación (2026-11-13, Director General)
+
+La **0527_annual_billing_fx_v2** está **aplicada**: prueba 2026-11-11 17:11:57Z y producción 2026-11-13 18:00:50Z, md5 `422a371de0ae02c74c1ad46c4f83ed28`, verificación PASÓ en las dos. Se retiró su espera y quedó sellada en el tren AD (#529). Donde este documento dice «no aplicada» o «sigue sin aplicar», es el estado histórico anterior a esa fecha.

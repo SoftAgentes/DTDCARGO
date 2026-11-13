@@ -660,3 +660,12 @@ temporal, no los cuerpos de las funciones. SHA-256 anterior `bf90fe717e7be3d0af7
   `disabled={isPending}` a mano y dejarlo a `<ActionButton>`; aquí no aplica porque
   «Cerrar» no es una acción con efecto, pero es una desviación de esa guía y queda
   declarada.
+
+## Estado de aplicación (2026-11-13, Director General)
+
+- **0533_fechas_caracas_operaciones**: **aplicada**. Prueba 16:25:51Z y producción 19:06:22Z del 2026-11-13, md5 `ef1805bd799471fe4c453276639c7b27`, verificación PASÓ.
+  - En producción la previa encontró una deriva cosmética en `public.sales_order_claim_and_invoice`: era la lógica de la 0128 sin comentarios ni caracteres no ASCII.
+  - Con el OK de Sam («Sí, restaura y aplica») se restauró el cuerpo exacto de la 0128, con guardas de md5 antes y después, y enseguida se aplicó la 0533.
+- **0534_annual_billing_caracas**: **aplicada**. Prueba 16:26:30Z y producción 18:01:47Z del 2026-11-13, md5 `9b16d8aaf26282e4db3ddf4930e64981`, verificación PASÓ.
+
+Las dos se retiraron de la espera y quedaron selladas en el tren AD (#529). Donde este documento dice «sin aplicar» o «no aplicada», es el estado histórico anterior a esa fecha. La cabecera del `.sql` no se edita, porque cambiaría el md5 aplicado.
