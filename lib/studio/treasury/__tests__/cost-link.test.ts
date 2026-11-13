@@ -44,6 +44,10 @@ function makeClient(): SupabaseClient {
           st.neqs.push(`${table}.${col}<>${String(v)}`);
           return chain;
         },
+        is(col: string, v: unknown) {
+          st.neqs.push(`${table}.${col} is ${String(v)}`);
+          return chain;
+        },
         insert(values: Record<string, unknown>) {
           mode = "insert";
           st.inserts.push(values);
@@ -170,6 +174,8 @@ describe("linkBillCostFor", () => {
     expect(st.updates[0]).toEqual({ consolidation_id: "c1", shipment_id: null, cost_category: "freight" });
     // La escritura misma excluye una anulada (la lectura previa no bloquea).
     expect(st.neqs).toContain("supplier_bills.status<>anulada");
+    // …ni una borrada entre la lectura y la escritura.
+    expect(st.neqs).toContain("supplier_bills.deleted_at is null");
   });
 
   it("quitar el vínculo pone todo en null", async () => {
