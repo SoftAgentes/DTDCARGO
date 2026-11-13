@@ -22,6 +22,7 @@
 
 import { usdOrNull } from "@/lib/shared/fx";
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 /** Cuenta destino del crédito del cobro (CxC clientes, SDD-0040 §5). */
 export const RECEIPT_AR_CODE = "1.1.2"; // Cuentas por cobrar clientes (haber)
@@ -196,6 +197,7 @@ export async function postReceiptJournalEntry(
   input: ReceiptPostingInput,
 ): Promise<ReceiptPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // 1. Idempotencia: ¿ya hay asiento vivo para este recibo?
@@ -254,7 +256,6 @@ export async function postReceiptJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 4. Insertar el asiento (asentado) + sus 2 líneas.
     const { data: insertedEntry, error: entryErr } = await admin
@@ -382,6 +383,7 @@ export async function postUnidentifiedReceiptJournalEntry(
   input: ReceiptPostingInput,
 ): Promise<ReceiptPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // Idempotencia: ¿ya hay asiento vivo para este recibo?
@@ -426,7 +428,7 @@ export async function postUnidentifiedReceiptJournalEntry(
       receiptId: input.receiptId,
       memo: `Pago sin identificar ${input.receiptCode}`,
       source: "receipt",
-      entryDate: input.entryDate ?? new Date().toISOString().slice(0, 10),
+      entryDate,
       lines: buildUnidentifiedReceiptLines(cashRow.id, bridgeId, amountUsd),
     });
   } catch (e) {

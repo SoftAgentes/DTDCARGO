@@ -1,3 +1,4 @@
+import { billingStatus } from "@/lib/shared/annual-billing";
 /**
  * Export CSV de las vistas de Reportes (SDD-0052 · Slice C) — PURO, server-safe.
  *
@@ -140,7 +141,7 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       if (!data || data.oculto || !data.hasKommo || data.rows.length === 0) return null;
       return {
         slug: "comercial-por-agente",
-        headers: ["Agente", "Estimados", "Ganadas", "Perdidas", "Conversión %", "Clientes", "Revenue USD 12m"],
+        headers: ["Agente", "Estimados", "Ganadas", "Perdidas", "Conversión %", "Clientes", "Subtotal USD 12m atribuido por lead", "Estado", "Facturas sin tasa (clientes únicos del ámbito)"],
         rows: data.rows.map((r) => [
           r.name,
           r.leads,
@@ -148,7 +149,7 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
           r.lost,
           r.convPct,
           r.clients,
-          r.revenueUsd,
+          r.billing.subtotalUsd, billingStatus(r.billing), r.billing.sinTasaCount,
         ]),
       };
     }
@@ -184,12 +185,12 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
     }
     const data = input.byClient;
     if (!data) return null;
-    const ranked = data.ranking.filter((r) => r.billedUsd > 0);
+    const ranked = data.ranking;
     if (ranked.length === 0) return null;
     return {
       slug: "comercial-por-cliente",
-      headers: ["#", "Shipping Mark", "Cliente", "Nivel", "Facturado USD 12m"],
-      rows: ranked.map((r, i) => [i + 1, r.markbox, r.name, r.tierLabel, r.billedUsd]),
+      headers: ["#", "Shipping Mark", "Cliente", "Nivel", "Subtotal USD 12m", "Estado", "Facturas sin tasa"],
+      rows: ranked.map((r, i) => [r.billing.state === "completo" ? i + 1 : null, r.markbox, r.name, r.tierLabel, r.billing.subtotalUsd, billingStatus(r.billing), r.billing.sinTasaCount]),
     };
   }
 

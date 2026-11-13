@@ -4,11 +4,11 @@
  * claves, hace reintentos automáticos ni recurre a escrituras privilegiadas.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PAYMENT_METHODS, type PaymentReportInput, type PaymentReportStatus } from "./payment-report-types";
+import { PAYMENT_METHODS, isPaymentCreationContext, type PaymentCreationContext, type PaymentReportInput, type PaymentReportStatus } from "./payment-report-types";
 
 type Identity = { requestId: string; reportId: string };
 export type PaymentReportCommand =
-  | (Identity & { verb: "create"; invoiceId: string; invoiceCode: string; input: PaymentReportInput; proofPath: string })
+  | (Identity & { verb: "create"; invoiceId: string; invoiceCode: string; input: PaymentReportInput; proofPath: string; context: PaymentCreationContext })
   | (Identity & { verb: "cancel"; invoiceCode: string; reason: string })
   | (Identity & { verb: "confirm" | "reject"; reason: string });
 
@@ -71,6 +71,7 @@ function normalizeText(value: string): string {
 }
 function validCreate(command: Extract<PaymentReportCommand, { verb: "create" }>): boolean {
   const input = command.input;
+  if (!isPaymentCreationContext(command.context)) return false;
   if (!isUuid(command.invoiceId) || !isInvoiceCode(command.invoiceCode) || !isRecord(input)) return false;
   if (typeof input.amount !== "number" || !Number.isFinite(input.amount) || input.amount <= 0
     || input.amount > 9_999_999.99 || Number(input.amount.toFixed(2)) !== input.amount) return false;
@@ -79,7 +80,7 @@ function validCreate(command: Extract<PaymentReportCommand, { verb: "create" }>)
     || input.paidAt.startsWith("0000-")) return false;
   const paidDate = new Date(input.paidAt + "T00:00:00Z");
   if (Number.isNaN(paidDate.getTime()) || paidDate.toISOString().slice(0, 10) !== input.paidAt
-    || input.paidAt > new Date().toISOString().slice(0, 10)) return false;
+    || (command.context.kind === "new" && input.paidAt > command.context.businessDay)) return false;
   if (input.note !== null && (typeof input.note !== "string" || normalizeText(input.note).length > 500)) return false;
   if (typeof command.proofPath !== "string" || /\s/.test(command.proofPath) || !PROOF_PATH.test(command.proofPath)) return false;
   const [, invoiceId, reportId] = command.proofPath.split("/");
@@ -145,6 +146,9 @@ export async function runPaymentReportCommand(
         ? failure(known.error) : failure(UNCERTAIN_ERROR, true);
     }
     const receipt = decodeReceipt(data, command);
+    if (receipt && command.verb === "create" && command.context.kind === "recovery-candidate" && !receipt.replayed) {
+      return failure(UNCERTAIN_ERROR, true);
+    }
     return receipt ? { ok: true, receipt } : failure(UNCERTAIN_ERROR, true);
   } catch {
     return failure(UNCERTAIN_ERROR, true);

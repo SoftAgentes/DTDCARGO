@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 608 specs)
+### Índice de specs (generado · 609 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -599,6 +599,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
 | 0573 | Anular una factura revierte su asiento de venta, en la misma … | in-progress | interno |
 | 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
+| 0576 | Fechas Caracas — operaciones, anuales y móvil — C1/C2/C3 | in-progress | interno |
 | 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
 | 0579 | Promesas de seguimiento coherentes en FAQ y fuentes locales | done | interno |
 | 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
@@ -647,5 +648,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
 | 0627 | Seguimiento estimado: ETA desde el zarpe y avisos por hito | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0576, 0578, 0622, 0624, 0626 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0622, 0624, 0626 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
