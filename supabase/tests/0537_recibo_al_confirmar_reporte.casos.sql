@@ -104,17 +104,17 @@ begin
   v_audit := (select count(*) from public.entity_audit_log);
   v := r0537.como('accounting-A', r0537.confirmar('req-a1', 'rep-a1', v_caja));
   perform r0537.ok(v ->> 'status' = 'confirmado' and (v ->> 'replayed')::boolean = false
-    and v ->> 'report_id' = r0537.cid('rep-a1')::text, 'confirmar devuelve el reporte confirmado: ' || v);
+    and v ->> 'report_id' = r0537.cid('rep-a1')::text, 'confirmar devuelve el reporte confirmado: ' || (v)::text);
   select * into v_rec from public.payment_receipts where payment_report_id = r0537.cid('rep-a1');
   perform r0537.ok(v_rec.id is not null, 'confirmar crea un recibo vinculado al reporte');
   perform r0537.ok(v -> 'receipt' ->> 'id' = v_rec.id::text and v -> 'receipt' ->> 'code' = v_rec.receipt_code,
-    'el resultado trae el recibo creado: ' || v);
+    'el resultado trae el recibo creado: ' || (v)::text);
   perform r0537.ok(v_rec.receipt_code ~ '^R-\d{4}-\d+$', 'correlativo R- de next_receipt_code: ' || v_rec.receipt_code);
   perform r0537.ok(v_rec.invoice_id = r0537.cid('inv-a') and v_rec.amount = 600 and v_rec.currency = 'USD'
     and v_rec.cash_account_id = v_caja and v_rec.method = 'transferencia'
     and v_rec.received_at = current_date - 2 and v_rec.application_status = 'aplicado'
     and v_rec.fund_class = 'third_party' and v_rec.payer_kind = 'cliente' and v_rec.deleted_at is null,
-    'recibo con factura, monto, moneda, cuenta, método, fecha del reporte, aplicado y fund_class: ' || to_jsonb(v_rec));
+    'recibo con factura, monto, moneda, cuenta, método, fecha del reporte, aplicado y fund_class: ' || (to_jsonb(v_rec))::text);
   perform r0537.ok(r0537.pagado('inv-a') = 600
     and (select status from public.invoices where id = r0537.cid('inv-a')) = 'parcial'
     and (select last_payment_at from public.invoices where id = r0537.cid('inv-a')) is not null,
@@ -124,7 +124,7 @@ begin
     'el reporte queda confirmado');
   perform r0537.ok((v -> 'receipt' ->> 'paid_amount')::numeric = 600 and v -> 'receipt' ->> 'invoice_status' = 'parcial'
     and (v -> 'receipt' ->> 'fully_paid')::boolean = false and v -> 'receipt' ->> 'cash_account_id' = v_caja::text,
-    'el resultado trae saldo y estado de la factura: ' || v);
+    'el resultado trae saldo y estado de la factura: ' || (v)::text);
   perform r0537.ok(exists (select 1 from payment_private.report_commands
     where request_id = r0537.cid('req-a1') and verb = 'confirm' and result = v), 'el comando guarda el resultado con el recibo');
   perform r0537.ok(exists (select 1 from public.entity_audit_log t
@@ -142,7 +142,7 @@ begin
   v_antes := r0537.estado();
   v2 := r0537.como('accounting-A', r0537.confirmar('req-a1', 'rep-a1', v_caja));
   perform r0537.ok((v2 ->> 'replayed')::boolean and v2 -> 'receipt' = v -> 'receipt',
-    'el reintento devuelve el mismo recibo: ' || v2);
+    'el reintento devuelve el mismo recibo: ' || (v2)::text);
   perform r0537.ok(r0537.estado() = v_antes, 'el reintento no crea ni cambia nada');
   -- Otro miembro con permiso y la misma clave: conflicto, no replay ajeno.
   perform r0537.rechazo('misma clave, otro actor', 'admin-A', r0537.confirmar('req-a1', 'rep-a1', v_caja),
@@ -157,7 +157,7 @@ begin
   -- 3. Rechazo: ni recibo ni saldo.
   v := r0537.como('accounting-A', format('select public.resolve_payment_report(%L, %L, ''rechazado'', %L)',
     r0537.cid('req-a2'), r0537.cid('rep-a2'), 'No coincide con el banco'));
-  perform r0537.ok(v ->> 'status' = 'rechazado' and not v ? 'receipt', 'rechazar no devuelve recibo: ' || v);
+  perform r0537.ok(v ->> 'status' = 'rechazado' and not v ? 'receipt', 'rechazar no devuelve recibo: ' || (v)::text);
   perform r0537.ok(r0537.recibos('inv-a') = 1 and r0537.pagado('inv-a') = 600
     and not exists (select 1 from public.payment_receipts where payment_report_id = r0537.cid('rep-a2')),
     'rechazar no crea recibo ni toca el saldo');
@@ -174,7 +174,7 @@ begin
   v := r0537.como('admin-A', r0537.confirmar('req-b1', 'rep-b1', r0537.cid('banco')));
   select * into v_rec from public.payment_receipts where payment_report_id = r0537.cid('rep-b1');
   perform r0537.ok(v_rec.method = 'usdt' and v_rec.cash_account_id = r0537.cid('banco') and v_rec.amount = 1000,
-    'binance entra como usdt a la cuenta de banco: ' || to_jsonb(v_rec));
+    'binance entra como usdt a la cuenta de banco: ' || (to_jsonb(v_rec))::text);
   perform r0537.ok((select status from public.invoices where id = r0537.cid('inv-b')) = 'pagada'
     and r0537.pagado('inv-b') = 1000 and (v -> 'receipt' ->> 'fully_paid')::boolean,
     'el reporte que salda la factura la deja pagada');

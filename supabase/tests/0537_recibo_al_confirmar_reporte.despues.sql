@@ -81,7 +81,7 @@ begin
   perform r0537.ok(v ->> 'status' = 'confirmado' and v -> 'receipt' ->> 'id' is not null
     and r0537.recibos('inv-d') = 1 and r0537.pagado('inv-d') = 200
     and exists (select 1 from public.payment_receipts where payment_report_id = r0537.cid('rep-d1')),
-    'con 0422 y 0423 la confirmación crea su recibo: ' || v);
+    'con 0422 y 0423 la confirmación crea su recibo: ' || (v)::text);
   v2 := r0537.como('accounting-A', r0537.confirmar('req-d1', 'rep-d1', v_caja));
   perform r0537.ok((v2 ->> 'replayed')::boolean and v2 -> 'receipt' = v -> 'receipt' and r0537.recibos('inv-d') = 1,
     'con 0422 y 0423 el reintento devuelve el mismo recibo');
