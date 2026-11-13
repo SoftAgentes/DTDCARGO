@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # infra/ops/tests/prueba-aplicar-lote.sh — prueba de consolidados/aplicar-lote.sh (SDD-0543).
 #
-# Doble de docker en una carpeta temporal y un lote inventado: ninguna base.
-# Comprueba las guardas (producción, -staging, --confirm, SHA256SUMS, entorno,
+# Doble de docker en una carpeta temporal y lotes inventados: ninguna base.
+# Comprueba las guardas (destino, -staging, --confirm, SHA256SUMS, entorno,
 # id del lote, deshacer confirmado), el orden simulacro → aplicar, la forma de
 # la salida (BEGIN … ROLLBACK/COMMIT) y que la evidencia no lleve nombres.
+# Producción (extensión F2): AUTORIZACION.txt nominal por lote, deshacer y
+# purgar deshabilitados, y un lote ya aplicado no se aplica otra vez.
 #
 #   bash infra/ops/tests/prueba-aplicar-lote.sh
 set -uo pipefail
@@ -29,7 +31,8 @@ if [[ -n "${DOBLE_FUGA-}" ]]; then
   echo "psql:stdin:12: NOTICE:  marca sin resolver: NOMBRE SECRETO PRUEBA" >&2
 fi
 echo BEGIN
-echo "psql:stdin:40: NOTICE:  lote carga-consolidado:59:deadbeef · contenedor ABCU1234567 (DTD-CONSOL-0001) · 3 envíos · 3 recepciones · 3 items · 3 facturas · 3 clientes creados" >&2
+lote="$(grep -oE 'carga-consolidado:[0-9]+:[0-9a-f]+' <<< "${script}" | head -1)"
+echo "psql:stdin:40: NOTICE:  lote ${lote} · contenedor ABCU1234567 (DTD-CONSOL-0001) · 3 envíos · 3 recepciones · 3 items · 3 facturas · 3 clientes creados" >&2
 if [[ "${script}" == *"-- cierre: commit"* ]]; then echo COMMIT; else echo ROLLBACK; fi
 exit 0
 DOBLE
@@ -56,8 +59,8 @@ echo "# resumen · NOMBRE SECRETO PRUEBA" > "${L}/resumen.md"
 corre() { bash "${APLICAR}" --project zz-staging --confirm zz-staging --lote "${L}" --evidence-dir "${T}/evid" "$@"; }
 
 # 1. Guardas de destino.
-bash "${APLICAR}" --project dtd-cargo --confirm dtd-cargo --lote "${L}" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "producción rechazada (3)" || ko "producción no rechazada"
-bash "${APLICAR}" --project zz-prod --confirm zz-prod --lote "${L}" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "sin -staging rechazado (3)" || ko "sin -staging no rechazado"
+bash "${APLICAR}" --project dtd-cargo --confirm dtd-cargo --lote "${L}" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "lote de prueba en producción rechazado (3)" || ko "lote de prueba en producción no rechazado"
+bash "${APLICAR}" --project zz-prod --confirm zz-prod --lote "${L}" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "ni producción ni -staging rechazado (3)" || ko "sin -staging no rechazado"
 bash "${APLICAR}" --project zz-staging --confirm otro --lote "${L}" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "--confirm distinto rechazado (3)" || ko "--confirm distinto no rechazado"
 corre --paso cualquiera >/dev/null 2>&1; [[ $? -eq 2 ]] && ok "paso desconocido es uso inválido (2)" || ko "paso desconocido no rechazado"
 [[ -z "$(cat "${DOBLE_LOG}" 2>/dev/null)" ]] && ok "ninguna guarda llegó a docker" || ko "una guarda llegó a docker: $(cat "${DOBLE_LOG}")"
@@ -112,6 +115,64 @@ out="$(corre --paso purgar --confirm-purga carga-consolidado:59:deadbeef 2>&1)";
 # 6. --dry-run no toca docker.
 antes="$(wc -l < "${DOBLE_LOG}")"
 corre --paso previa --dry-run >/dev/null 2>&1 && [[ "$(wc -l < "${DOBLE_LOG}")" == "${antes}" ]] && ok "--dry-run no llama a docker" || ko "--dry-run llamó a docker"
+
+# 7. Producción (dtd-cargo): lote generado con --entorno produccion.
+P="${T}/lote-prod"; EP="${T}/evid-prod"; mkdir -p "${P}" "${EP}"
+for paso in previa simulacro verificar; do
+  printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\nbegin transaction read only;\nselect 1;\nrollback;\n' "${paso}" > "${P}/${paso}.sql"
+done
+for paso in aplicar deshacer purgar; do
+  printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\n-- cierre: commit\nbegin;\nselect 1;\ncommit;\n' "${paso}" > "${P}/${paso}.sql"
+done
+cat > "${P}/manifiesto.json" <<'JSON'
+{
+  "lote": "carga-consolidado:61:cafebabe",
+  "entorno": "produccion",
+  "esperado": { "envios": 1, "recepciones": 0, "items": 0, "cajas": 0, "clientes": 1, "facturas": 0, "cbm": 0, "kg": 0, "base": 0 },
+  "clientes": [{ "clave": "MG-0019", "nombreExcel": "NOMBRE SECRETO PRUEBA" }]
+}
+JSON
+echo "# resumen · NOMBRE SECRETO PRUEBA" > "${P}/resumen.md"
+( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+prod() { bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP}" "$@"; }
+antes="$(wc -l < "${DOBLE_LOG}")"
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"AUTORIZACION.txt"* ]] && ok "producción sin AUTORIZACION.txt rechazada (3)" || ko "sin autorización rc=${rc}: ${out}"
+: > "${P}/AUTORIZACION.txt"
+prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "AUTORIZACION.txt vacía rechazada (3)" || ko "autorización vacía no rechazada"
+echo "Sam, 2026-11-13: autorizo cargar el contenedor 610 y el 161 en producción" > "${P}/AUTORIZACION.txt"
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"no nombra el contenedor 61"* ]] && ok "autorización que no nombra el contenedor rechazada (3)" || ko "autorización ajena rc=${rc}: ${out}"
+echo "Sam, 2026-11-13: autorizo cargar el contenedor 61 en producción" > "${P}/AUTORIZACION.txt"
+out="$(prod --paso deshacer --confirm-deshacer carga-consolidado:61:cafebabe 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"deshabilitado en producción"* ]] && ok "deshacer en producción deshabilitado aunque esté confirmado (3)" || ko "deshacer en producción rc=${rc}: ${out}"
+out="$(prod --paso purgar --confirm-purga carga-consolidado:61:cafebabe 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"deshabilitado en producción"* ]] && ok "purgar en producción deshabilitado aunque esté confirmado (3)" || ko "purgar en producción rc=${rc}: ${out}"
+[[ "$(wc -l < "${DOBLE_LOG}")" == "${antes}" ]] && ok "ningún rechazo de producción llegó a docker" || ko "un rechazo de producción llegó a docker"
+bash "${APLICAR}" --project zz-staging --confirm zz-staging --lote "${P}" --evidence-dir "${EP}" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "lote de producción en prueba rechazado (3)" || ko "lote de producción corrió en prueba"
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 0 && "${out}" == *"PASÓ · previa · ROLLBACK"* ]] && ok "previa en producción PASÓ con la autorización" || ko "previa producción rc=${rc}: ${out}"
+ev="$(ls -d "${EP}"/lote-*-dtd-cargo-*-previa | head -1)"
+grep -q "contenedor 61" "${ev}/AUTORIZACION.txt" 2>/dev/null && ok "la evidencia de producción guarda la autorización" || ko "la evidencia no trae AUTORIZACION.txt"
+grep -rq "SECRETO" "${EP}" && ko "la evidencia de producción lleva un nombre" || ok "la evidencia de producción no lleva nombres"
+tail -1 "${DOBLE_LOG}" | grep -q "exec -i dtd-cargo-db-1 psql" && ok "psql corre en dtd-cargo-db-1" || ko "docker.log: $(tail -1 "${DOBLE_LOG}")"
+prod --paso aplicar >/dev/null 2>&1; [[ $? -eq 5 ]] && ok "aplicar en producción sin simulacro sale 5" || ko "aplicar producción sin simulacro no sale 5"
+sleep 1
+prod --paso simulacro >/dev/null 2>&1 && ok "simulacro en producción PASÓ" || ko "simulacro producción falló"
+out="$(prod --paso aplicar 2>&1)"; rc=$?
+[[ ${rc} -eq 0 && "${out}" == *"PASÓ · aplicar · COMMIT"* ]] && ok "aplicar en producción PASÓ con COMMIT" || ko "aplicar producción rc=${rc}: ${out}"
+antes="$(wc -l < "${DOBLE_LOG}")"
+sleep 1
+out="$(prod --paso aplicar 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"ya se aplicó"* && "$(wc -l < "${DOBLE_LOG}")" == "${antes}" ]] && ok "lote ya aplicado: el segundo aplicar se niega sin tocar docker (3)" || ko "segundo aplicar rc=${rc}: ${out}"
+# Sin evidencia local (otra carpeta), el preflight de aplicar.sql lo frena en la base: psql ≠ 0 → 6.
+EP2="${T}/evid-prod-2"; mkdir -p "${EP2}"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP2}" --paso simulacro >/dev/null 2>&1
+sleep 1
+out="$(DOBLE_FALLA='carga-consolidado:61:cafebabe · aplicar' bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP2}" --paso aplicar 2>&1)"; rc=$?
+[[ ${rc} -eq 6 && "${out}" == *"ya está cargado"* ]] && ok "lote existente en la base: el preflight lo frena y sale 6" || ko "preflight producción rc=${rc}: ${out}"
+rm -f "${P}/AUTORIZACION.txt"; echo "OK de Sam para el contenedor 61" > "${T}/ok-61.txt"
+prod --paso previa --autorizacion "${T}/ok-61.txt" >/dev/null 2>&1 && ok "--autorizacion <archivo> fuera del lote también vale" || ko "--autorizacion externa no funcionó"
 
 echo "${pass} PASÓ · ${fail} FALLÓ"
 [[ ${fail} -eq 0 ]]

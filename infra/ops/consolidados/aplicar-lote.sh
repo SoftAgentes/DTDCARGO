@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# infra/ops/consolidados/aplicar-lote.sh — corre UN paso de un lote de consolidados (SDD-0543) en la base de PRUEBA.
+# infra/ops/consolidados/aplicar-lote.sh — corre UN paso de un lote de consolidados (SDD-0543) en prueba o en producción.
 #
 # El lote lo genera `pnpm consolidados:lote` en un checkout (scripts/consolidados/)
 # y llega al servidor por scp como una carpeta con previa.sql, simulacro.sql,
@@ -9,43 +9,53 @@
 # clientes (sólo la salida de psql, los conteos y las huellas).
 #
 # Orden normal: previa → simulacro → aplicar → verificar. `aplicar` exige un
-# simulacro PASÓ del mismo lote en la misma base (evidencia previa); `deshacer`
-# borra lógicamente todo el lote y exige --confirm-deshacer <id del lote>;
-# `purgar` borra FÍSICAMENTE el lote y los clientes que creó (el borrado
-# definitivo que pidió Sam para prueba) y exige --confirm-purga <id del lote>.
+# simulacro PASÓ del mismo lote en la misma base (evidencia previa) y se niega
+# si ya hay un aplicar PASÓ de ese lote en esa base; además aplicar.sql aborta
+# en su preflight si el contenedor, los envíos o las facturas ya existen.
+# `deshacer` borra lógicamente todo el lote y exige --confirm-deshacer <id del
+# lote>; `purgar` borra FÍSICAMENTE el lote y los clientes que creó y exige
+# --confirm-purga <id del lote>.
 #
-# SOLO PRUEBA. El proyecto tiene que terminar en `-staging` y no puede ser el de
-# producción (PROD_COMPOSE_PROJECT, por defecto dtd-cargo). Pasar un lote a la
-# base oficial se decide con Sam y el Director, con otro procedimiento.
+# Destinos:
+# - Prueba: el proyecto termina en `-staging` y el lote se generó con
+#   `--entorno prueba`.
+# - Producción (PROD_COMPOSE_PROJECT, por defecto dtd-cargo; extensión F2 de la
+#   SDD-0543): el lote se generó con `--entorno produccion` y CADA paso exige
+#   `AUTORIZACION.txt` (en la carpeta del lote, o --autorizacion <archivo>) con
+#   el OK literal de Sam que nombra el contenedor del lote (su número). Previa,
+#   simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar` están
+#   deshabilitados: borrar en producción lo corre Sam, no este script.
 #
 # Uso:
-#   aplicar-lote.sh --project dtd-cargo-staging --confirm dtd-cargo-staging \
-#       --lote /srv/ops/paquetes/lote-59 --paso previa|simulacro|aplicar|verificar|deshacer|purgar \
-#       [--evidence-dir /srv/ops/evidencias] [--confirm-deshacer <id>] [--confirm-purga <id>] [--dry-run]
+#   aplicar-lote.sh --project dtd-cargo-staging|dtd-cargo --confirm <el mismo> #       --lote /srv/ops/paquetes/lote-59 --paso previa|simulacro|aplicar|verificar|deshacer|purgar #       [--autorizacion <archivo>] [--evidence-dir /srv/ops/evidencias] #       [--confirm-deshacer <id>] [--confirm-purga <id>] [--dry-run]
+#   (--proyecto es sinónimo de --project.)
 #
-# Códigos: 0 listo · 2 uso inválido · 3 rechazado por una guarda · 4 integridad
-# (SHA256SUMS) · 5 falta el simulacro previo · 6 psql falló (la transacción se
-# deshizo) · 7 la salida no tiene la forma esperada (leer la evidencia).
+# Códigos: 0 listo · 2 uso inválido · 3 rechazado por una guarda (incluye falta
+# de autorización y lote ya aplicado) · 4 integridad (SHA256SUMS) · 5 falta el
+# simulacro previo · 6 psql falló (la transacción se deshizo; también el
+# preflight que encuentra el lote ya cargado) · 7 la salida no tiene la forma
+# esperada (leer la evidencia).
 set -uo pipefail
 umask 077
 
 die() { echo "aplicar-lote: $*" >&2; exit 2; }
 refuse() { echo "aplicar-lote: RECHAZADO · $*" >&2; exit 3; }
 
-PROJECT=""; CONFIRM=""; LOTE=""; PASO=""; EVIDENCE_DIR="/srv/ops/evidencias"; CONFIRM_DESHACER=""; CONFIRM_PURGA=""; DRY_RUN=0
+PROJECT=""; CONFIRM=""; LOTE=""; PASO=""; EVIDENCE_DIR="/srv/ops/evidencias"; CONFIRM_DESHACER=""; CONFIRM_PURGA=""; AUTORIZACION=""; DRY_RUN=0
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 PASOS="previa simulacro aplicar verificar deshacer purgar"
 
 setopt() { local n="$1" v="${2-}"; [[ -n "${v}" && "${v}" != --* ]] || die "falta el valor de ${n}"; }
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --project) setopt "$1" "${2-}"; PROJECT="$2"; shift 2 ;;
+    --project|--proyecto) setopt "$1" "${2-}"; PROJECT="$2"; shift 2 ;;
     --confirm) setopt "$1" "${2-}"; CONFIRM="$2"; shift 2 ;;
     --lote) setopt "$1" "${2-}"; LOTE="${2%/}"; shift 2 ;;
     --paso) setopt "$1" "${2-}"; PASO="$2"; shift 2 ;;
     --evidence-dir) setopt "$1" "${2-}"; EVIDENCE_DIR="$2"; shift 2 ;;
     --confirm-deshacer) setopt "$1" "${2-}"; CONFIRM_DESHACER="$2"; shift 2 ;;
     --confirm-purga) setopt "$1" "${2-}"; CONFIRM_PURGA="$2"; shift 2 ;;
+    --autorizacion) setopt "$1" "${2-}"; AUTORIZACION="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     *) die "argumento desconocido: $1" ;;
   esac
@@ -53,10 +63,18 @@ done
 [[ -n "${PROJECT}" && -n "${LOTE}" && -n "${PASO}" ]] || die "faltan --project, --lote o --paso"
 
 # ── Guardas ────────────────────────────────────────────────────────────────
-[[ "${PROJECT}" != "${PROD_PROJECT}" ]] || refuse "${PROJECT} es producción: este script es sólo para prueba"
-[[ "${PROJECT}" == *-staging ]] || refuse "${PROJECT} no termina en -staging"
+if [[ "${PROJECT}" == "${PROD_PROJECT}" ]]; then
+  ES_PROD=1; ENTORNO_ESPERADO="produccion"
+elif [[ "${PROJECT}" == *-staging ]]; then
+  ES_PROD=0; ENTORNO_ESPERADO="prueba"
+else
+  refuse "${PROJECT} no es producción (${PROD_PROJECT}) ni termina en -staging"
+fi
 [[ "${CONFIRM}" == "${PROJECT}" ]] || refuse "--confirm tiene que repetir el proyecto (${PROJECT})"
 [[ " ${PASOS} " == *" ${PASO} "* ]] || die "--paso tiene que ser uno de: ${PASOS}"
+if [[ ${ES_PROD} -eq 1 && ( "${PASO}" == "deshacer" || "${PASO}" == "purgar" ) ]]; then
+  refuse "${PASO} está deshabilitado en producción: borrar lo corre Sam, no este script"
+fi
 [[ -d "${LOTE}" ]] || refuse "no existe la carpeta del lote ${LOTE}"
 [[ -f "${LOTE}/SHA256SUMS" ]] || refuse "el lote no trae SHA256SUMS"
 ( cd "${LOTE}" && sha256sum --check --quiet --strict SHA256SUMS ) || { echo "aplicar-lote: SHA256SUMS no coincide" >&2; exit 4; }
@@ -68,7 +86,17 @@ LOTE_ID="$(sed -nE 's/^[[:space:]]*"lote":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE
 [[ -n "${LOTE_ID}" ]] || refuse "manifiesto.json no trae el id del lote"
 grep -qF -- "${LOTE_ID}" "${SCRIPT}" || refuse "${PASO}.sql no es del lote ${LOTE_ID}"
 ENTORNO="$(sed -nE 's/^[[:space:]]*"entorno":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
-[[ "${ENTORNO}" == "prueba" ]] || refuse "el lote se generó para «${ENTORNO}», no para prueba"
+[[ "${ENTORNO}" == "${ENTORNO_ESPERADO}" ]] || refuse "el lote se generó para «${ENTORNO}», no para ${ENTORNO_ESPERADO} (${PROJECT})"
+if [[ ${ES_PROD} -eq 1 ]]; then
+  # El OK de Sam es nominal y por lote: el archivo tiene que existir, no estar
+  # vacío y nombrar el número del contenedor (61 no nombra el 610 ni el 161).
+  AUTORIZACION="${AUTORIZACION:-${LOTE}/AUTORIZACION.txt}"
+  [[ -s "${AUTORIZACION}" ]] || refuse "producción exige ${AUTORIZACION} con el OK literal de Sam para este lote"
+  NUMERO="$(sed -nE 's/^carga-consolidado:([0-9]+):.*$/\1/p' <<< "${LOTE_ID}")"
+  [[ -n "${NUMERO}" ]] || refuse "el id del lote ${LOTE_ID} no trae el número del contenedor"
+  grep -qE "(^|[^0-9])${NUMERO}([^0-9]|\$)" -- "${AUTORIZACION}" \
+    || refuse "la autorización no nombra el contenedor ${NUMERO}: el OK de Sam tiene que nombrar cada lote"
+fi
 case "${PASO}" in
   aplicar|deshacer|purgar) CIERRE="COMMIT" ;;
   *) CIERRE="ROLLBACK" ;;
@@ -93,6 +121,14 @@ if [[ "${PASO}" == "aplicar" ]]; then
     grep -q -- "NOTICE:.*lote ${LOTE_ID} " "${d}simulacro.err" || continue
     previo="${d}"
   done
+  # Idempotencia: un aplicar PASÓ del mismo lote en la misma base cierra el
+  # camino (el preflight de aplicar.sql lo repite contra la base).
+  for d in "${EVIDENCE_DIR}"/lote-*-"${PROJECT}"-*-aplicar/; do
+    [[ -f "${d}LOTE.txt" && -f "${d}aplicar.out" ]] || continue
+    grep -qx "lote=${LOTE_ID}" "${d}LOTE.txt" || continue
+    [[ "$(awk 'NF { l = $0 } END { print l }' "${d}aplicar.out")" == "COMMIT" ]] || continue
+    refuse "el lote ${LOTE_ID} ya se aplicó en ${PROJECT} (evidencia ${d%/}); no se aplica dos veces"
+  done
   if [[ -z "${previo}" ]]; then
     echo "aplicar-lote: falta un simulacro PASÓ del lote ${LOTE_ID} en ${PROJECT} (corre --paso simulacro primero)" >&2
     exit 5
@@ -110,6 +146,7 @@ if [[ ${DRY_RUN} -eq 1 ]]; then
 fi
 mkdir -p "${EVID}"
 cp "${LOTE}/SHA256SUMS" "${EVID}/SHA256SUMS.lote"
+if [[ ${ES_PROD} -eq 1 ]]; then cp "${AUTORIZACION}" "${EVID}/AUTORIZACION.txt"; fi
 printf 'lote=%s\npaso=%s\nproyecto=%s\nhora=%s\n' "${LOTE_ID}" "${PASO}" "${PROJECT}" "${TS}" > "${EVID}/LOTE.txt"
 # Los conteos esperados (la primera aparición de cada clave: la de `esperado`).
 grep -oE '"(envios|recepciones|items|cajas|clientes|facturas|cbm|kg|base)":[[:space:]]*[0-9.]+' "${LOTE}/manifiesto.json" \
