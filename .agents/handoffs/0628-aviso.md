@@ -29,7 +29,7 @@
 | `pnpm docs:check` | PASÓ (608 specs) |
 | `pnpm sdd:check` | PASÓ (sin números repetidos; advertencias históricas) |
 | `/ui-check` | OK para commit, advisory: tres hallazgos bajos o medios, ninguno de marca dura |
-| `pnpm verify` | NO EJECUTADO todavía: espera turno del Subdirector Rebrand |
+| `pnpm verify` | NO EJECUTADO: cubre el CI de GitHub (regla del DG, 2026-11-13, transmitida por el Subdirector Rebrand) |
 | `pnpm knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» (structural y semantic UNAVAILABLE) |
 
 ## Commits
@@ -44,7 +44,7 @@ PRs abiertas que tocan la allowlist: solo `docs/specs/README.md`, que es índice
 
 ## Pendientes de esta tarea
 
-- `pnpm verify` con turno, luego publicar la rama y abrir la PR lista, sin fusionar.
+- Leer el CI de GitHub de la PR y corregir en esta rama si sale rojo. La revisión independiente la lanza el DG. No se fusiona desde aquí.
 
 ## Impacto documental
 
