@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * EntryDrawer (SDD-0040) — "Nuevo asiento" con editor de líneas.
  *
@@ -47,7 +49,7 @@ function emptyLine(): DraftLine {
 }
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return fechaCaracas();
 }
 
 export function EntryDrawer({ postableAccounts, onClose }: Props) {

@@ -20,6 +20,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isCalendarDate } from "@/lib/shared/fechas-caracas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
@@ -561,6 +562,7 @@ export async function autoInvoiceForReceipt(args: {
       outcome: string;
       missing?: string;
       invoice_id?: string;
+      issued_at?: unknown;
       invoice_code?: string;
       base_amount?: number;
       iva_amount?: number;
@@ -625,7 +627,38 @@ export async function autoInvoiceForReceipt(args: {
 
     // ── 4. Asiento contable (0040) — FUERA de la tx, best-effort e idempotente por
     //       invoice_id (mismo modo de fallo que la emisión manual de 0021). ──
-    const today = new Date().toISOString().slice(0, 10);
+    // 0533 añade la fecha realmente persistida. En una DB anterior, la única
+    // convivencia admitida es leer esa factura; nunca se usa el reloj del caller.
+    const pendingPosting: AutoInvoiceResult = {
+      ok: false,
+      invoiceEmitted: true,
+      reason: 'Factura ' + invoiceCode + ' emitida; asiento pendiente: no se pudo confirmar su fecha de emisión. Requiere revisión contable.',
+    };
+    if (typeof r.invoice_id !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.invoice_id)) {
+      return pendingPosting;
+    }
+    let entryDate: string;
+    if (Object.prototype.hasOwnProperty.call(r, "issued_at")) {
+      if (!isCalendarDate(r.issued_at)) return pendingPosting;
+      entryDate = r.issued_at;
+    } else {
+      try {
+        const { data, error } = await admin.from("invoices")
+          .select("id, tenant_id, issued_at")
+          .eq("id", r.invoice_id)
+          .eq("tenant_id", tenantId)
+          .is("deleted_at", null)
+          .limit(2);
+        if (error || !Array.isArray(data) || data.length !== 1) return pendingPosting;
+        const persisted = data[0];
+        if (!persisted || persisted.id !== r.invoice_id || persisted.tenant_id !== tenantId ||
+            !isCalendarDate(persisted.issued_at)) return pendingPosting;
+        entryDate = persisted.issued_at;
+      } catch {
+        return pendingPosting;
+      }
+    }
     try {
       const posting = await postInvoiceJournalEntry({
         tenantId,
@@ -634,7 +667,7 @@ export async function autoInvoiceForReceipt(args: {
         baseAmount: num(r.base_amount),
         ivaAmount: num(r.iva_amount),
         totalAmount: totalUsd,
-        entryDate: today,
+        entryDate,
       });
       if (!posting.ok) {
         console.error(

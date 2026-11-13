@@ -195,21 +195,23 @@ describe("buildViewCsv · Operacionales · overview", () => {
 });
 
 describe("buildViewCsv · Comerciales · por cliente", () => {
-  it("filtra billed>0, numera y omite los sin facturación", () => {
+  it("conserva cero conocido, decimales y estado completo", () => {
     const data: CommercialByClient = {
       ranking: [
-        { markbox: "DTD-0001", name: "Acme", billedUsd: 5000, tierId: "gold", tierLabel: "Oro", tierTone: "warning" },
-        { markbox: "DTD-0002", name: "Zeta", billedUsd: 0, tierId: "base", tierLabel: "Base", tierTone: "neutral" },
+        { markbox: "DTD-0001", name: "Acme", billedUsd: 5000, billing: { state: "completo", subtotalUsd: "5000.00", sinTasaCount: 0 }, tierId: "gold", tierLabel: "Oro", tierTone: "warning" },
+        { markbox: "DTD-0002", name: "Zeta", billedUsd: 0, billing: { state: "completo", subtotalUsd: "0.00", sinTasaCount: 0 }, tierId: "base", tierLabel: "Base", tierTone: "neutral" },
       ],
       tierDist: [],
       totalClients: 2,
       totalBilledUsd: 5000,
+      billing: { state: "completo", subtotalUsd: "5000.00", sinTasaCount: 0 },
     };
     const csv = buildViewCsv({ category: "com", rep: "by-client", byClient: data, today: TODAY });
     const lines = csv!.content.split("\r\n");
-    expect(lines[0]).toBe("#,Shipping Mark,Cliente,Nivel,Facturado USD 12m");
-    expect(lines[1]).toBe("1,DTD-0001,Acme,Oro,5000");
-    expect(lines).toHaveLength(2); // Zeta (billed 0) excluido
+    expect(lines[0]).toBe("#,Shipping Mark,Cliente,Nivel,Subtotal USD 12m,Estado,Facturas sin tasa");
+    expect(lines[1]).toBe("1,DTD-0001,Acme,Oro,5000.00,Facturación completa,0");
+    expect(lines[2]).toBe("2,DTD-0002,Zeta,Base,0.00,Facturación completa,0");
+    expect(lines).toHaveLength(3);
   });
 });
 

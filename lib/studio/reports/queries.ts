@@ -1,3 +1,4 @@
+import { BILLING_UNAVAILABLE, BILLING_ZERO, billingNumber, compareAnnualBilling, sumAnnualBilling, type AnnualBillingRead } from "@/lib/shared/annual-billing";
 /**
  * Queries del módulo Reportes & Analytics (SDD-0052 · Slice A).
  *
@@ -28,7 +29,6 @@ import {
   allConvertedLeads,
   KOMMO_WON_STATUS_ID,
   KOMMO_LOST_STATUS_ID,
-  type AnalyticsLead,
 } from "@/lib/studio/kommo-analytics";
 import { listKommoUsers } from "@/lib/studio/kommo-queries";
 import type { KommoUserRow } from "@/lib/studio/kommo-types";
@@ -549,29 +549,31 @@ export async function commercialByClient(
   supabase: SupabaseClient,
   today?: Date,
 ): Promise<CommercialByClient> {
-  const clients = await clientsWithTier(supabase, today ?? new Date());
+  const clients = await clientsWithTier(supabase, today ?? new Date()).catch(() => null);
+  if (clients === null) return { ranking: [], tierDist: [], totalClients: null, totalBilledUsd: null, billing: BILLING_UNAVAILABLE };
 
   const ranking: ClientRankRow[] = clients.map((c) => ({
     markbox: c.markbox,
     name: c.name,
-    billedUsd: Math.round(c.billedUsd * 100) / 100,
-    tierId: c.tier.id,
-    tierLabel: c.tier.label,
-    tierTone: c.tier.tone,
+    billedUsd: c.billedUsd,
+    billing: c.billing,
+    tierId: c.tier?.id ?? "review",
+    tierLabel: c.tier?.label ?? "Por revisar",
+    tierTone: c.tier?.tone ?? "warning",
   }));
 
   const totalClients = clients.length;
-  const totalBilledUsd =
-    Math.round(clients.reduce((s, c) => s + c.billedUsd, 0) * 100) / 100;
+  const billing = sumAnnualBilling(clients.map((c) => ({ key: c.markbox, billing: c.billing })));
+  const totalBilledUsd = billingNumber(billing);
 
   // Distribución por tier (en orden de aparición de los tiers en el ranking,
   // estable: bronze < silver < gold < platinum según billedUsd derivado).
   const order: string[] = [];
   const counts = new Map<string, { label: string; tone: string; count: number }>();
   for (const c of clients) {
-    const id = c.tier.id;
+    const id = c.tier?.id ?? "review";
     if (!counts.has(id)) {
-      counts.set(id, { label: c.tier.label, tone: c.tier.tone, count: 0 });
+      counts.set(id, { label: c.tier?.label ?? "Por revisar", tone: c.tier?.tone ?? "warning", count: 0 });
       order.push(id);
     }
     counts.get(id)!.count += 1;
@@ -590,17 +592,19 @@ export async function commercialByClient(
     };
   });
 
-  return { ranking, tierDist, totalClients, totalBilledUsd };
+  return { ranking, tierDist, totalClients, totalBilledUsd, billing };
 }
 
 // ── Comerciales · Por agente ───────────────────────────────────
 
-const EMPTY_AGENT_TOTALS = {
+/** Totales vacíos: sin lectura, la facturación queda «no disponible», nunca cero. */
+const EMPTY_AGENT_TOTALS: CommercialByAgent["totals"] = {
   leads: 0,
   won: 0,
   lost: 0,
-  clients: 0,
-  revenueUsd: 0,
+  clients: null,
+  revenueUsd: null,
+  billing: BILLING_UNAVAILABLE,
   convPct: 0,
 };
 
@@ -627,113 +631,57 @@ export const commercialByAgent: (
 });
 
 /**
- * Desempeño por agente comercial (asesor de Kommo). REUSA el espejo Kommo
- * (SDD-0078/0087): `getAnalyticsLeads` (leads con responsible_user_id + estado),
- * `listKommoUsers` (nombre real del asesor) y `allConvertedLeads` (leadId →
- * markbox de los convertidos a cliente). El REVENUE es plata REAL del ERP
- * (`clientAnnualBilling`, USD trailing-12m) atribuida al asesor por sus leads
- * convertidos — NO el `price` de Kommo (≈$0, la ceguera de SDD-0062) ni un valor
- * fabricado (el Norte lo mockeaba). NPS/tickets del Norte se omiten (sin fuente).
+ * Desempeño por agente comercial (asesor de Kommo), sin consumidor desde
+ * SDD-0614 S0 (ocultar no es borrar) hasta 8.7.
  *
- * Snapshot del embudo actual (no filtra por período, igual que "Por cliente").
- * Resiliente: si el espejo Kommo no existe o está vacío → `hasKommo: false` →
- * EmptyState honesto. RLS filtra por tenant en cada lectura.
- *
- * Sin consumidor desde SDD-0614 S0: Reportes llama a `commercialByAgent`, que
- * no lee el espejo. Se conserva (ocultar no es borrar) hasta 8.7.
+ * Atribución histórica por lead; el contador se deduplica por cliente en cada
+ * ámbito. El revenue es la facturación anual real del ERP (`clientAnnualBilling`)
+ * con su completitud (SDD-0572-b): si falta la página completa, los convertidos o
+ * la facturación, el monto queda «no disponible» y no se presenta como cero.
  */
 export async function commercialByAgentKommo(
   supabase: SupabaseClient,
   today?: Date,
 ): Promise<CommercialByAgent> {
-  const now = today ?? new Date();
-
-  let leads: AnalyticsLead[];
-  try {
-    // `.rows` = el espejo COMPLETO (paginado). Antes esto leía 1000 filas de
-    // 3.145 y el desempeño por asesor salía del 32% de la cartera, sin avisar.
-    leads = (await getAnalyticsLeads(supabase)).rows;
-  } catch {
-    // kommo_leads ausente (gap deploy↔migración) → sin datos, honesto.
+  const page = await getAnalyticsLeads(supabase).catch(() => null);
+  if (!page || !page.rows.length) {
     return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false, oculto: false };
   }
-  if (leads.length === 0) {
-    return { rows: [], totals: { ...EMPTY_AGENT_TOTALS }, hasKommo: false, oculto: false };
-  }
-
-  const [users, converted, billing] = await Promise.all([
+  const [users, converted, billingMap] = await Promise.all([
     listKommoUsers(supabase).catch(() => [] as KommoUserRow[]),
-    allConvertedLeads(supabase).catch(() => ({}) as Record<number, string>),
-    clientAnnualBilling(supabase, now).catch(() => new Map<string, number>()),
+    allConvertedLeads(supabase).catch(() => null),
+    clientAnnualBilling(supabase, today ?? new Date()).catch(() => null),
   ]);
-
-  const nameById = new Map<number, string>();
-  for (const u of users) {
-    const n = (u.name ?? "").trim();
-    if (n) nameById.set(u.id, n);
-  }
-
-  type Acc = {
-    leads: number;
-    won: number;
-    lost: number;
-    clients: number;
-    revenueUsd: number;
-  };
-  const acc = new Map<number | null, Acc>();
-  const bucket = (id: number | null): Acc => {
-    let a = acc.get(id);
-    if (!a) {
-      a = { leads: 0, won: 0, lost: 0, clients: 0, revenueUsd: 0 };
-      acc.set(id, a);
-    }
-    return a;
-  };
-
-  for (const l of leads) {
-    const a = bucket(l.responsible_user_id);
-    a.leads += 1;
-    if (l.status_id === KOMMO_WON_STATUS_ID) a.won += 1;
-    else if (l.status_id === KOMMO_LOST_STATUS_ID) a.lost += 1;
-    const markbox = converted[l.id];
-    if (markbox) {
-      a.clients += 1;
-      a.revenueUsd += billing.get(markbox) ?? 0;
+  const names = new Map(users.map((u) => [u.id, (u.name ?? "").trim()]));
+  type Attribution = { key: string; billing: AnnualBillingRead };
+  const all: Attribution[] = [];
+  const acc = new Map<number | null, { leads: number; won: number; lost: number; clients: number; attributed: Attribution[] }>();
+  for (const lead of page.rows) {
+    const a = acc.get(lead.responsible_user_id) ?? { leads: 0, won: 0, lost: 0, clients: 0, attributed: [] };
+    acc.set(lead.responsible_user_id, a);
+    a.leads++;
+    if (lead.status_id === KOMMO_WON_STATUS_ID) a.won++;
+    else if (lead.status_id === KOMMO_LOST_STATUS_ID) a.lost++;
+    const key = converted?.[lead.id];
+    if (key) {
+      a.clients++;
+      const item = { key, billing: billingMap === null ? BILLING_UNAVAILABLE : billingMap.get(key) ?? BILLING_ZERO };
+      a.attributed.push(item); all.push(item);
     }
   }
-
-  const rows: AgentRow[] = [...acc.entries()]
-    .map(([id, a]) => ({
-      agentId: id,
-      name: id == null ? "Sin asignar" : (nameById.get(id) ?? `Asesor #${id}`),
-      leads: a.leads,
-      won: a.won,
-      lost: a.lost,
-      clients: a.clients,
-      revenueUsd: Math.round(a.revenueUsd * 100) / 100,
-      convPct: a.leads > 0 ? Math.round((a.won / a.leads) * 1000) / 10 : 0,
-    }))
-    .sort((x, y) => {
-      if (y.revenueUsd !== x.revenueUsd) return y.revenueUsd - x.revenueUsd;
-      return y.leads - x.leads;
-    });
-
-  const totals = rows.reduce(
-    (t, r) => ({
-      leads: t.leads + r.leads,
-      won: t.won + r.won,
-      lost: t.lost + r.lost,
-      clients: t.clients + r.clients,
-      revenueUsd: t.revenueUsd + r.revenueUsd,
-      convPct: 0,
-    }),
-    { ...EMPTY_AGENT_TOTALS },
-  );
-  totals.revenueUsd = Math.round(totals.revenueUsd * 100) / 100;
-  totals.convPct =
-    totals.leads > 0 ? Math.round((totals.won / totals.leads) * 1000) / 10 : 0;
-
-  return { rows, totals, hasKommo: true, oculto: false };
+  const available = page.complete && converted !== null && billingMap !== null;
+  const rows: AgentRow[] = [...acc.entries()].map(([id, a]) => {
+    const billing = available ? sumAnnualBilling(a.attributed) : BILLING_UNAVAILABLE;
+    return { agentId: id, name: id === null ? "Sin asignar" : names.get(id) || `Asesor #${id}`,
+      leads: a.leads, won: a.won, lost: a.lost, clients: converted === null ? null : a.clients,
+      revenueUsd: billingNumber(billing), billing, convPct: Math.round(a.won / a.leads * 1000) / 10 };
+  }).sort((a, b) => compareAnnualBilling(a.billing, b.billing));
+  const billing = available ? sumAnnualBilling(all) : BILLING_UNAVAILABLE;
+  const leads = page.rows.length;
+  const won = rows.reduce((n, r) => n + r.won, 0);
+  return { rows, hasKommo: true, oculto: false, totals: { leads, won, lost: rows.reduce((n,r) => n+r.lost,0),
+    clients: converted === null ? null : rows.reduce((n,r) => n+(r.clients ?? 0),0),
+    revenueUsd: billingNumber(billing), billing, convPct: Math.round(won/leads*1000)/10 } };
 }
 
 // ── Contables · Estado de resultados ───────────────────────────

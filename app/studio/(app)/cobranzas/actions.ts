@@ -60,10 +60,11 @@ export async function registerCollection(
   receiptCode?: string;
   fullyPaid?: boolean;
 }> {
+  const receivedAt = payload?.receivedAt === undefined ? todayCaracasISO() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const result = await registerCollectionFor(supabase, invoiceId, payload);
+  const result = await registerCollectionFor(supabase, invoiceId, { ...payload, receivedAt });
 
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -87,10 +88,11 @@ export async function registerCollection(
 export async function registerUnidentifiedPayment(
   payload: Partial<UnidentifiedPaymentInput>,
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string }> {
+  const receivedAt = payload?.receivedAt === undefined ? todayCaracasISO() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const result = await registerUnidentifiedPaymentFor(supabase, payload);
+  const result = await registerUnidentifiedPaymentFor(supabase, { ...payload, receivedAt });
 
   if (!result.ok) {
     const firstFieldError = result.fieldErrors

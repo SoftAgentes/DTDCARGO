@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Drawer de la CxP (SDD-0044): datos de la cuenta por pagar + proveedor +
  * Registrar pago (orden OP-) + historial de pagos + anular CxP/orden.
@@ -381,7 +383,7 @@ function PayForm({
   onDone: (paymentCode: string | undefined, fullyPaid: boolean) => void;
 }) {
   const balance = payable.balance;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [amount, setAmount] = useState<string>(String(balance));
   const [cashAccountId, setCashAccountId] = useState<string>(
     cashAccounts[0]?.id ?? "",
@@ -656,7 +658,7 @@ export function NewBillDrawer({
 }) {
   const router = useRouter();
   const toast = useToast();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
 
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id ?? "");
   const [concept, setConcept] = useState<string>("");

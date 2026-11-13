@@ -17,6 +17,7 @@
  *    contra mayor, sobre los saldos vivos.
  */
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { createClient } from "@/lib/db/server";
 import {
   accountBalances,
@@ -75,6 +76,7 @@ export default async function ContabilidadPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const hoy = fechaCaracas();
   const raw = await searchParams;
   const single = (k: string): string | undefined => {
     const v = raw[k];
@@ -95,8 +97,6 @@ export default async function ContabilidadPage({
       : "plan";
   const ledgerAccountId = single("cuenta") ?? null;
   const statementId = single("extracto") ?? null;
-  // Las fechas se graban en UTC (issued_at, entry_date): el «hoy» va igual.
-  const hoy = new Date().toISOString().slice(0, 10);
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();

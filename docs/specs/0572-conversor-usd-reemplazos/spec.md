@@ -15,11 +15,11 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3 y 0572-b (SQL 0404/0411) no ha arrancado.
+**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3. 0572-b ya está implementada y revisada localmente en rama separada, con verify16/17 y PR311 en borrador, según su subsección.
 
-El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress` porque 0572-b sigue diferida.
+El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress`: la validación local de a/b no sustituye CI, revalidación de la base final, integración, aplicación0527 ni las capas de conocimiento pendientes.
 
-El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam confirmó que GitHub revisa el rechazo de pago durante 48 horas; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
+El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam informó el rechazo de pago y aclaró que las 48 horas son la espera para cambiar la tarjeta, sin garantía de habilitación de Actions; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
 
 ## Decisión del Director para la retoma local · 2026-10-20
 
@@ -495,3 +495,269 @@ T10 ya rechazaba lecturas incompletas/erróneas: se conserva esa regresión.
 
 En ese cierre anterior quedó pendiente comprobar `topAndWorst` con ingreso
 parcial. La retoma posterior de esta sección registra su reproducción y reparación.
+
+## 0572-b · Transición compatible de agregados anuales · asignación 2026-10-20
+
+**IMPLEMENTACIÓN LOCAL COMPLETA; cierre canónico y revisión financiera pendientes.** Base a30d8585, rama
+`codex/sdd-0572-conversor-usd-sql`, worktree aislado propio. El Director aprobó
+la alternativa A y asignó `0527_annual_billing_fx_v2` tras inventario. El handoff
+propio es `.agents/handoffs/0572-conversor-usd-sql.md`; conserva el contrato
+completo. No se modifica el handoff de a ni sus migraciones aplicadas.
+
+- Portal conserva firma, identidad, propietario, ACL y campos legados; añade
+  `billing_v2`. Studio v1 permanece idéntica y añade RPC tabular
+  `studio_client_annual_billing_v2(p_as_of date)` sin tenant/cliente de entrada.
+- Decimal exacto con dos decimales como string, contador seguro y estado
+  `completo`/`sin_tasa`/`datos_invalidos`. Lectura `no_disponible` separada de
+  falta de tasa y ausencia de principal. Cero y signo se conservan.
+- Clasificador privado vigente: `annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric)`.
+  INVOKER, IMMUTABLE, search_path vacío, sin USAGE/EXECUTE para roles API.
+  Invoca `public.to_usd`; captura solo SQLSTATE 22023 + hint dtd-fx + mensajes
+  FX_AMOUNT_INVALID/FX_RATE_MISSING/FX_CURRENCY_UNKNOWN; relanza todo lo demás.
+  No duplica conversión, no usa catálogo ni altera `lib/shared/fx.ts`.
+- Suma redondeada por factura, filtros/ventanas y permisos de cada fachada
+  preservados. Studio no usa HAVING positivo; paginación hasta vacío, mismo
+  p_as_of, claves repetidas/error/tope rechazan. Sin garantía de snapshot entre
+  peticiones. Portal y Studio mantienen sus diferencias temporales existentes.
+- Subtotal/contador/estado hasta Portal, Fidelización, Reportes/CSV y CRM.
+  Lectura de Fidelización compartida; nivel/progreso parcial Por revisar.
+  Error de facturación o cruce CRM incompleto no se vuelve Map/objeto vacío
+  exitoso ni oculta datos no financieros. Cliente convertido no usa precio
+  Kommo como sustituto. Contadores por markbox sin multiplicarlos por lead;
+  atribución histórica de ingreso por lead se conserva, sin certificar KPI global.
+- Rollout MIGRATE-FIRST y compatibilidad DB nueva/app antigua; app nueva con
+  DB/caché anterior muestra no disponible. Retiro futuro de v1 es deuda
+  explícita, sin afirmar reemplazo universal de conversiones legadas.
+- Riesgo R3: SGE-00 (12 principios), NUM-01, ERR-01 y políticas aplicables se
+  contrastan con pruebas/UI, no con el resultado aislado de validadores.
+- Validación autorizada serial: rojos funcionales, SQL PostgreSQL17, PGlite,
+  PostgREST14.17 local con JWT sintéticos, paginación >1000/límite500, mutantes,
+  tipos/lint, UI real con fixtures y verify. Preservar JSON E2E antes de build.
+- 0495 ya aplicada por Director; baseline solo agrega espera0527. No DB real,
+  secretos, merge, deploy, 2.3/G, BCV/Caracas, cambios históricos ni KPI global.
+  PR propia en borrador apilada sobre #310, con integración final coordinada.
+
+### Allowlist exclusiva de b — 41 rutas aprobadas
+
+Checkpoint SQL 2026-10-21 00:50 UTC: implementación de0527 y contrato PGlite
+PASÓ17/17, sinSKIPs (contrato, control sin expansión,3preflights,12mutantes).
+PostgreSQL/HTTP y cierre general permanecen NO EJECUTADOS en este checkpoint;
+evidencia externa y límites de identidad/carga en el handoff propio de b.
+La carga1201 prueba materialización sin clasificación repetida por agregado.
+No atribuir este verde a la app todavía sin commit ni a producción.
+
+Suplemento00:58UTC: contrato PostgreSQL17.11 PASÓ37aserciones/ROLLBACK;
+HTTP14.17 PASÓ transición antes/DDL/COMMIT/recarga caliente/después, legado,
+aislamiento y paginación1202grupos500/500/202/0. Migración idéntica a f9cc1dd.
+El contrato de zona fija p_as_of al cambiar timezone y demuestra su guarda
+con mutante; PGlite18/18 (13mutantes) incluido en focal247/247sinSKIPs.
+Arnés durable permite --http-only para suplementos sin repetir contratoSQL.
+Limitaciones de identidad sintética y recibos crudosStartedAt en handoff;
+tipos/lint/visual/verify y revisión financiera todavía pendientes en ese checkpoint.
+
+Checkpoint aplicación01:16UTC: DTO exacto y todos los consumidores de b
+implementados. Focal247/247; suplemento de disposición28/28 y casos UI nuevos
+20/20, todos sinSKIPs (corridas solapadas, no total único). Mutantes app13/13
+detectados al cerrar suplemento: primera medición10/13, dos regresiones UI
+faltantes y un foco RSC corregido; todos los archivos restaurados por hash.
+UI sintética real390/1280 y claro/oscuro conserva importes grandes completos,
+subtotal/contador/estado; tablas consultables por Tab/flechas. Evidencia y
+limitaciones en handoff b. No certifica Studio autenticado ni producción.
+Tipos PASÓ y correcciones propias de lint PASÓ; dos advertencias de reloj CRM
+idénticas a a30 permanecen fuera del delta. Gate de símbolos detectó homónimos
+del nombre privado convertir en textos UI, sin llamadas reales al helper;
+resolución propuesta y evidencia en handoff. Cierre canónico aún no ejecutado.
+
+Decisión Director01:20UTC: renombrar únicamente el helper privado de0527 aún
+no aplicada a convertir_factura_anual_usd para evitar el homónimo textual del
+detector. Se conservan esquema/cuerpo/ACL/API; se actualizan las cuatro rutas
+SQL/contratos/arnés y se exige suplemento PGlite/mutantes/PostgreSQL/HTTP y
+revisión SQL por el nuevo blob. Los recibos f9/3b permanecen históricos, sin
+atribuirse por hash al nuevo nombre. App congelada en a734aa61 para revisión.
+
+### Gobernanza de b · clasificación y evidencia por principio
+
+| Norma | Clasificación del delta | Evidencia/límite |
+|---|---|---|
+| SGE-00.01 predictibilidad | Cumplimiento | Lecturas y CSV conservan significado; subtotal parcial distinto de total completo. |
+| SGE-00.02 conservación | No aplica a escritura | No nuevos editores ni mutaciones; se mantienen datos no financieros cuando falla facturación. |
+| SGE-00.03 riesgo/fricción | Cumplimiento de alcance R3 | Sin confirmaciones nuevas de lectura; migración/publicación requieren aprobación nominal separada. |
+| SGE-00.04 auditoría | No aplica a eventos de negocio | No DML de negocio; DDL/pruebas/SHAs y recibos durables, no se confunde toast con auditoría. |
+| SGE-00.05 aislamiento | Cumplimiento local | SQL37 y HTTP sintético prueban ACL, tenants, ambiguo0453, disabled y OR con overridesfalse; no equivalencia Auth productivo. |
+| SGE-00.06 prevención | Cumplimiento | Decodificador cerrado, decimal exacto, errores/cap/duplicados rechazan; tests y mutantes. |
+| SGE-00.07 estado verdadero | Cumplimiento local | DTO y UI separan completo/sin tasa/inválido/no disponible; cero conocido conserva0, nunca precio Kommo para ERP desconocido. |
+| SGE-00.08 recorrido | Cumplimiento | Mismas páginas y acciones; Fidelización comparte lectura en listado/distribución, sin pasos agregados. |
+| SGE-00.09 reutilización | Cumplimiento | KpiCard/Badge/Progress/Avatar/tokens existentes; helper compartido de dinero, sin nueva primitiva global. |
+| SGE-00.10 accesibilidad | Parcial; aceptación integral pendiente | Teclado/foco/regiones y390/1280/light-dark/reduced-motion medidos. CSSzoom2 no sustituye zoom nativo200%; lector de pantalla/WCAG integral NO EJECUTADOS. |
+| SGE-00.11 lenguaje | Cumplimiento local | Subtotal parcial, contador, Por revisar y no disponible son texto visible; error Portal explica reintento; no depende del color. |
+| SGE-00.12 autoridad | Cumplimiento | Solo entorno sintético y PR borrador autorizados; ninguna aplicación/merge/deploy real. |
+| NUM-01 / ERR-01 | Cumplimiento local | Céntimos/string canónicos, signo/0/grande, null vacío en CSV, diagnóstico sanitizado y error distinto de sin tasa. |
+| VIS-01 / CMP-01 | Cumplimiento acotado | Componentes y tokens DTD, cambios mínimos de wrap/scroll en sus consumidores, sin rediseño. |
+| A11Y-01 | Parcial, no excepción aprobada | Límites de SGE-00.10 explícitos; recorte preexistente de recompensa Portal fuera del delta con reproducción a30. |
+
+No se atribuye DAT-01 a completitud financiera ni se cambia la política de
+fechas: ventanas temporales existentes preservadas por contrato SQL. Deuda
+compatible: mantener v1/legado hasta retiro aprobado; atribución por lead no
+equivale a facturación única del tenant. Previa/paquete/OK nominal, caché y
+rollback compatible descritos en handoff propio; release NO EJECUTADO.
+
+Suplemento del identificador privado (21oct01:24UTC):0527 usa
+`annual_billing_private.convertir_factura_anual_usd`, sin cambio de fórmula,
+cuerpo ni ACL/API. Sobre blob `5b302b5cad00529fcc5731aa570fd620794c4689`
+pasaron PGlite18/18 (13mutantes), PostgreSQL37aserciones y HTTP real con
+recarga en caliente en el mismo PostgREST14.17. Gate de símbolos pendientes
+PASÓ sin modificar el detector. Recibos y límites en el handoff de b;
+revisión del nuevo blob y verify siguen pendientes.
+
+Precisión Director para el P2 de CRM: disponibilidad del cruce de identidad
+y de la métrica anual son estados distintos. Si el cruce completo confirma
+un lead no convertido, la falla anual no debe ocultar su nominal CRM ni la
+cabecera nominal. Si está convertido, o el cruce no está disponible, no se
+reemplaza un ERP desconocido por nominal. Requiere regresiones reales de
+lector, transporte RSC y ambos consumidores antes de certificar el cierre.
+
+Segundo P2 aceptado por Director: la RPC Portal escalar solo usa NULL real
+para ausencia de principal; un contenedor malformado, array, undefined o
+markbox de tipo inválido/vacío debe rechazar como shape y mostrar error
+sanitizado. Se conserva trim/uppercase del markbox válido y el resto del
+programa cuando únicamente billing_v2 falta o está mal formado. Ambos P2 se
+reprodujeron en rojo y luego pasaron118pruebas de9archivos y10mutantes con
+restauración. SQL permanece idéntico a0de; tipos y lint34rutas pasaron exit0
+(dos advertencias de reloj preexistentes). Revisión, suplemento visual y
+verify del nuevo candidato siguen pendientes en este hito.
+
+Cierre local de b (21oct02:07UTC): producto/pruebas en
+`3b1de9861de7bf15e614d89eb13cd2de6cb54fb0`, base a30d8585 de #310,
+[PR311 DRAFT](https://github.com/SoftAgentes/DTDCARGO/pull/311). Revisiones
+independientes de SQL y app cerraron los dos P2 sin nuevo hallazgo material
+conocido; suplemento visual sintético de15 casos confirmado, preservando
+el primer fallo de fixture y sus límites. No es autenticación productiva.
+
+Verify canónico terminó exit0 entre01:35:58.749 y02:02:55.354Z:
+**CIERRE INCOMPLETO,16/17 medidos**, únicamente migrations-applied omitido
+por ausencia de credenciales de release. Pasaron harness237/237, tipos,
+fronteras,4EdgeFunctions,12538unitarias (1omitida de corpus real), documentos,
+gobernanza, símbolos,247contratosSQL, reconstrucción472+18ledger-only y build.
+Lint conserva15advertencias/0errores. E2E fue aceptado **con aviso** por la
+política heredada:177aprobadas,1flaky recuperado,20omitidas y1error global de
+cierre de proceso; no se atribuye causalidad WebKit/Windows por el mensaje
+automático. JSON E2E original **NO DISPONIBLE**; se conserva log, clasificación
+y fallo separado del capturador auxiliar, sin repetir suite ni cambiar gates.
+
+Producto/SQL no cambian en el cierre documental posterior.0527 conserva
+blob `5b302b5cad00529fcc5731aa570fd620794c4689`, probado en PostgreSQL17.11 y
+PostgREST14.17 con recarga caliente en el mismo proceso, además del canónico.
+Los recibos y la tabla17controles están en el handoff propio de b; no sumar
+focales solapados ni atribuir recibos históricos a otro hash.
+
+Conocimiento de este worktree: status terminó exit0 pero ok=false; Graphify
+estructural/semántica global INVALID (grafo ausente,0/1325verificados), piloto
+PENDING0/16, Archify runtime2.16.0 ausente. Preview/publicación/lectura visible
+Obsidian NO EJECUTADAS; no hubo regeneración masiva ni publicación compartida.
+Turno pesado devuelto tras cero procesos propios. Integración,CI,paquete/
+previa/OK nominal0527,release y recuperación de derivados siguen pendientes,
+coordinados por Director; ninguna aplicación de DB real ocurrió en b.
+
+```text
+supabase/migrations/0527_annual_billing_fx_v2.sql
+supabase/tests/0527_annual_billing_fx_v2.test.sql
+supabase/migrations-baseline.json
+supabase/pending-migration-symbol-declarations.json
+lib/studio/__tests__/annual-billing-fx-v2.migration.test.ts
+scripts/tests/annual-billing-fx-v2-postgrest.mjs
+lib/shared/annual-billing.ts
+lib/shared/__tests__/annual-billing.test.ts
+lib/portal/portal-referral-queries.ts
+lib/portal/__tests__/portal-referral-query.test.ts
+lib/portal/__tests__/referrals.test.ts
+app/portal/(app)/referidos/page.tsx
+app/portal/(app)/referidos/__tests__/page.test.tsx
+lib/studio/fidelizacion/queries.ts
+lib/studio/fidelizacion/__tests__/queries.test.ts
+lib/studio/__tests__/listados-sin-eliminados.test.ts
+app/studio/(app)/fidelizacion/page.tsx
+app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx
+app/studio/(app)/fidelizacion/_components/FidelizacionClient.annual-billing.test.tsx
+app/studio/(app)/fidelizacion/__tests__/annual-billing-page.test.tsx
+lib/studio/reports/queries.ts
+lib/studio/reports/types.ts
+lib/studio/reports/__tests__/queries.test.ts
+lib/studio/reports/export-csv.ts
+lib/studio/reports/__tests__/export-csv.test.ts
+app/studio/(app)/reportes/_components/ReportesClient.tsx
+app/studio/(app)/reportes/_components/ReportesClient.annual-billing.test.tsx
+lib/studio/kommo-analytics.ts
+lib/studio/__tests__/kommo-analytics.test.ts
+lib/studio/__tests__/kommo-analytics-paging.test.ts
+app/studio/(app)/crm/page.tsx
+app/studio/(app)/crm/_components/KommoClient.tsx
+app/studio/(app)/crm/_components/KommoBoardView.tsx
+app/studio/(app)/crm/_components/DireccionTab.tsx
+app/studio/(app)/crm/_components/KommoClient.annual-billing.test.tsx
+app/studio/(app)/crm/_components/KommoBoardView.annual-billing.test.tsx
+app/studio/(app)/crm/_components/DireccionTab.annual-billing.test.tsx
+app/studio/(app)/crm/__tests__/annual-billing-page.test.tsx
+docs/specs/0572-conversor-usd-reemplazos/spec.md
+docs/specs/README.md
+.agents/handoffs/0572-conversor-usd-sql.md
+```
+
+### Corrección acotada #311 · cartera no disponible (2026-10-26)
+
+La disponibilidad de cartera que entrega la página se conserva también en las
+pestañas Clientes y Niveles. Cuando el lector real de clientes falla o agota el
+límite del paginador, Clientes comunica «Cartera no disponible» en vez de un vacío
+acreditado y Niveles conserva los beneficios, pero no presenta conteos de clientes
+como conocidos. Una cartera leída correctamente y vacía mantiene «Sin clientes»
+y los ceros verificables. El fallo exclusivo de la anual conserva la cartera y
+sus filtros, con facturación/nivel Por revisar según el contrato 0572-b.
+
+La bandera no cambia el orden de hooks ni la identidad de ClientesTab durante
+un rerender: búsqueda y foco en un tab visible se conservan al alternarla. No se
+añade recuperación de red, retry, efecto de foco ni regla financiera. Créditos,
+referidos, umbrales, importes, clasificación y navegación mantienen su contrato.
+
+Evidencia preparada: pruebas sintéticas de página → lector/paginador reales →
+componente y pestañas reales; error de clientes, cap de 60 páginas, vacío válido,
+fallo anual aislado y alternancia con búsqueda/foco. Se mantienen los siete casos
+previos de anual. Ejecución local NO DISPONIBLE / NO INVOCADA: el checkout aislado
+no contiene node_modules ni el entrypoint Vitest. No acredita UI real, aplicación
+de DB, aceptación financiera ni cierre de 2.1/QPG17/B. Handoff de esta reparación:
+.agents/handoffs/0572-fidelizacion-cartera-no-disponible-20261026.md.
+
+## Renumeración 0498 → 0527 (2026-11-11)
+
+Main llegó a la 0526 antes de integrar esta pila y la 0498 no está aplicada en
+ningún entorno (ledger de prueba y producción medidos por el revisor del DG). La
+migración pasa a `0527_annual_billing_fx_v2` con su contrato
+`supabase/tests/0527_annual_billing_fx_v2.test.sql`; también se renumeraron sus
+literales internos (`0527: …`, `annual_billing_0527_before`, `TEST 0527 …`),
+la espera de `migrations-baseline.json` (sigue sin aplicar) y su grupo en
+`pending-migration-symbol-declarations.json`. Cambia sólo el número: el blob
+anterior `5b302b5cad00529fcc5731aa570fd620794c4689` pasa a
+`bea43b92caa9505ed29abd0dbb0d513ed1f5fa5d` (SHA-256
+`492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229`). Los
+blobs y evidencias anteriores a esta nota describen el archivo con número 0498.
+La rama `claude/sdd-0572-conversor-usd-sql` reemplaza a la PR #311.
+
+## Cambio de texto visible declarado (revisión de la #516, 2026-11-11)
+
+La 0572-a (commit `4f24a1db0`) cambió una palabra de la descripción de Costing
+en `app/studio/(app)/costing/_components/CostingClient.tsx:312`: «los que dejan
+plata sobre la mesa» pasa a «los que dejan dinero sobre la mesa». Es el único
+cambio de copy visible de esta entrega fuera de los rótulos de conversión; no
+cambia comportamiento ni datos.
+
+## Visible hoy (desde la SDD-0614, 2026-11-11)
+
+La SDD-0614 S0 ocultó Kommo del Studio. Por eso, de los consumidores de la
+facturación anual v2 (0527) **hoy solo se ven Fidelización y el Portal**
+(referidos, `billing_v2`). El CRM (pestañas Asesor y Tablero) y Reportes › Por
+agente no la muestran: la página del CRM vuelve antes de leer el espejo y
+`commercialByAgent` devuelve el reporte oculto. Sus caminos de lectura
+(`app/studio/(app)/crm/page.tsx` y `commercialByAgentKommo`) se conservan sin uso
+hasta la 8.7 o la R4, junto con las pruebas que los recorren.
+
+## Estado de aplicación (2026-11-13, Director General)
+
+La **0527_annual_billing_fx_v2** está **aplicada**: prueba 2026-11-11 17:11:57Z y producción 2026-11-13 18:00:50Z, md5 `422a371de0ae02c74c1ad46c4f83ed28`, verificación PASÓ en las dos. Se retiró su espera y quedó sellada en el tren AD (#529). Donde este documento dice «no aplicada» o «sigue sin aplicar», es el estado histórico anterior a esa fecha.
