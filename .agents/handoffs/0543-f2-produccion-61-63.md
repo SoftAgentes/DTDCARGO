@@ -65,6 +65,16 @@ Listar las marcas y los remitentes de los lotes 61, 62 y 63 que en producción n
 
 ## PENDIENTES DE ESTA TAREA
 
+**Estado al 2026-11-13, decisión de Sam dicha al Subdirector Portal.**
+
+- **61 y 62: estacionados.** MG es un CLIENTE, no un aliado. `MG-019` y `MG-020` son proveedores de ese cliente: grupos de WeChat que se consolidan en un FCL. Sam no conoce el código de cliente de MG en producción y pidió avanzar sin él. Quedan así hasta que exista el cliente MG en producción:
+  - sin `marcas-mapa.json` (sigue `{}`);
+  - sin cambio en el generador;
+  - sin previa en producción, porque la previa los cortaría.
+
+  Cuando haya código, también queda por decidir con Sam si el envío se llama `<código de MG>-FCL-6N` (`--dueno <código>`) o `MG-019-FCL-61` (la referencia del proveedor, con el mapa). El generador deja hoy el texto de `--dueno` como código del envío.
+- **63 (`DTD-9038`): el único candidato a producción por ahora.** Resuelve a un cliente sin aliado. Sigue pendiente la duda de la hoja de costo, que nombra otro código de dueño (detalle en la nota compartida).
+
 1. Que Sam dé el OK nominal para correr la consulta mínima en producción.
 2. Si una marca no resuelve: Sam da el Shipping Mark real, se llena `marcas-mapa.json` y se regenera con `--mapa`.
 3. Que Sam diga quién es el dueño del 63: la hoja de costo nombra otro código, distinto de `DTD-9038` (detalle en la nota compartida, fuera de Git).
