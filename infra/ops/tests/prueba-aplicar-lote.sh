@@ -126,9 +126,8 @@ P="${T}/lote-prod"; EP="${T}/evid-prod"; mkdir -p "${P}" "${EP}"
 for paso in previa simulacro verificar; do
   printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\nbegin transaction read only;\nselect 1;\nrollback;\n' "${paso}" > "${P}/${paso}.sql"
 done
-for paso in aplicar deshacer purgar; do
-  printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\n-- cierre: commit\nbegin;\nselect 1;\ncommit;\n' "${paso}" > "${P}/${paso}.sql"
-done
+# Un paquete de producción no trae deshacer.sql ni purgar.sql (el generador no los emite).
+printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · aplicar\n-- cierre: commit\nbegin;\nselect 1;\ncommit;\n' > "${P}/aplicar.sql"
 cat > "${P}/manifiesto.json" <<'JSON'
 {
   "lote": "carga-consolidado:61:cafebabe",
@@ -161,6 +160,21 @@ out="$(prod --paso previa --autorizacion "${P}/manifiesto.json" 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"sólo vale AUTORIZACION.txt"* && -z "$(ls -A "${EP}")" ]] && ok "--autorizacion a manifiesto.json del lote rechazada sin dejar evidencia (3)" || ko "manifiesto como autorización rc=${rc}: ${out}"
 out="$(prod --paso previa --autorizacion "${P}/../lote-prod/resumen.md" 2>&1)"; rc=$?
 [[ ${rc} -eq 3 ]] && ok "--autorizacion a un archivo del lote por ruta con .. también rechazada (3)" || ko "ruta con .. rc=${rc}: ${out}"
+# Un texto con forma de manifiesto no es el OK de Sam, aunque cite el id (H3).
+printf '{ "lote": "carga-consolidado:61:cafebabe" }\n' > "${P}/AUTORIZACION.txt"
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"parece un manifiesto"* ]] && ok "autorización con \"lote\": (forma de manifiesto) rechazada (3)" || ko "\"lote\": rc=${rc}: ${out}"
+printf 'OK carga-consolidado:61:cafebabe\n"nombreExcel": "X"\n' > "${P}/AUTORIZACION.txt"
+prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 && -z "$(ls -A "${EP}")" ]] && ok "autorización con \"nombreExcel\" rechazada sin dejar evidencia (3)" || ko "nombreExcel no rechazado"
+# Un paquete de producción que trae deshacer.sql o purgar.sql se rechaza entero (H6).
+for f in deshacer purgar; do
+  printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\n' "${f}" > "${P}/${f}.sql"
+  ( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+  echo "Sam: autorizo carga-consolidado:61:cafebabe" > "${P}/AUTORIZACION.txt"
+  out="$(prod --paso previa 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"trae ${f}.sql"* ]] && ok "paquete de producción con ${f}.sql rechazado en la previa (3)" || ko "${f}.sql en producción rc=${rc}: ${out}"
+  rm -f "${P}/${f}.sql"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+done
 echo "Sam, 2026-11-13: autorizo cargar el lote carga-consolidado:61:cafebabe en producción" > "${P}/AUTORIZACION.txt"
 out="$(prod --paso deshacer --confirm-deshacer carga-consolidado:61:cafebabe 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"deshabilitado en producción"* ]] && ok "deshacer en producción deshabilitado aunque esté confirmado (3)" || ko "deshacer en producción rc=${rc}: ${out}"
@@ -237,15 +251,19 @@ espera_candado() { local i; for i in $(seq 1 100); do [[ -s "${LOTES_CANDADO}/pi
 set -m
 for senal in TERM:143 HUP:129 INT:130; do
   nombre="${senal%%:*}"; esperado="${senal##*:}"
-  (lento > /dev/null 2>&1) &
+  visto="${T}/visto-${nombre}.pid"; rm -f "${visto}"
+  # DOBLE_VER_CANDADO: el «psql» del doble anota el pid del candado mientras corre.
+  (DOBLE_VER_CANDADO="${visto}" lento > /dev/null 2>&1) &
   pid=$!
   espera_candado
+  # La señal llega mientras «psql» corre: hasta que el doble anotó el pid.
+  for _ in $(seq 1 100); do [[ -s "${visto}" ]] && break; sleep 0.1; done
   dueno="$(cat "${LOTES_CANDADO}/pid" 2> /dev/null)"
   kill -"${nombre}" "${pid}" 2> /dev/null
   wait "${pid}"; rc=$?
-  [[ "${dueno}" == "${pid}" && ${rc} -eq ${esperado} && ! -e "${LOTES_CANDADO}" ]] \
-    && ok "${nombre} durante el paso: sale ${esperado} y suelta su candado (dueño pid ${pid})" \
-    || ko "${nombre}: dueño='${dueno}' pid=${pid} rc=${rc} candado=$([[ -e "${LOTES_CANDADO}" ]] && echo tomado || echo libre)"
+  [[ "${dueno}" == "${pid}" && "$(cat "${visto}" 2> /dev/null)" == "${pid}" && ${rc} -eq ${esperado} && ! -e "${LOTES_CANDADO}" ]] \
+    && ok "${nombre} durante el paso: psql ve el candado con el pid ${pid}, sale ${esperado} y lo suelta" \
+    || ko "${nombre}: dueño='${dueno}' visto='$(cat "${visto}" 2> /dev/null)' pid=${pid} rc=${rc} candado=$([[ -e "${LOTES_CANDADO}" ]] && echo tomado || echo libre)"
   rm -rf "${LOTES_CANDADO}"; sleep 1
 done
 set +m

@@ -3,8 +3,8 @@
 #
 # El lote lo genera `pnpm consolidados:lote` en un checkout (scripts/consolidados/)
 # y llega al servidor por scp como una carpeta con previa.sql, simulacro.sql,
-# aplicar.sql, verificar.sql, deshacer.sql, manifiesto.json, resumen.md y
-# SHA256SUMS. Este script corre uno de esos scripts con psql dentro de
+# aplicar.sql, verificar.sql, deshacer.sql y purgar.sql (sólo en prueba),
+# manifiesto.json, resumen.md y SHA256SUMS. Este script corre uno de esos scripts con psql dentro de
 # `<proyecto>-db-1`, como `postgres`, y deja la evidencia sin nombres de
 # clientes (sólo la salida de psql, los conteos y las huellas).
 #
@@ -24,9 +24,14 @@
 #   `AUTORIZACION.txt` (en la carpeta del lote, o --autorizacion <archivo>) con
 #   el OK literal de Sam que cita el id COMPLETO del lote
 #   (`carga-consolidado:<N>:<hash>`). Un `--autorizacion` que apunte a otro
-#   archivo de la carpeta del lote (el manifiesto, el resumen) se rechaza.
+#   archivo de la carpeta del lote (el manifiesto, el resumen) se rechaza, igual
+#   que un enlace simbólico o un texto con `"nombreExcel"` o `"lote":` (eso es
+#   un manifiesto, no el OK de Sam). Se copia UNA vez a un temporal (`cp -P`) y
+#   el grep y la evidencia usan esa copia, no el original.
 #   Previa, simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar`
-#   están deshabilitados: borrar en producción lo corre Sam, no este script.
+#   están deshabilitados: borrar en producción lo corre Sam, no este script. Un
+#   paquete de producción que traiga deshacer.sql o purgar.sql se rechaza (el
+#   generador no los emite para producción).
 #
 # Candado: simulacro, aplicar, deshacer y purgar toman
 # LOTES_CANDADO (por defecto /run/lock/dtd-lotes.lock.d), un directorio que se
@@ -49,12 +54,37 @@
 # de autorización, candado tomado y lote ya aplicado) · 4 integridad (SHA256SUMS) · 5 falta el
 # simulacro previo · 6 psql falló (la transacción se deshizo; también el
 # preflight que encuentra el lote ya cargado) · 7 la salida no tiene la forma
-# esperada (leer la evidencia).
+# esperada (leer la evidencia) · 129 HUP · 130 INT · 143 TERM: el guion se cortó
+# por una señal. Una señal NO hace rollback: con TERM, psql puede haber llegado
+# al COMMIT y el guion igual sale 143; con HUP o INT, el psql del contenedor
+# puede seguir corriendo después de que EXIT soltó el candado. Con 129, 130 o
+# 143 (como con 7) no se repite el paso: primero se lee la evidencia y se
+# comprueba que no quede psql vivo en `<proyecto>-db-1`.
 set -uo pipefail
 umask 077
 
 die() { echo "aplicar-lote: $*" >&2; exit 2; }
 refuse() { echo "aplicar-lote: RECHAZADO · $*" >&2; exit 3; }
+
+# Una sola salida que limpia: la copia temporal de la autorización y, si es
+# nuestro, el candado. Los traps de señal van desde el principio, antes de tomar
+# el candado y de escribir su pid: una señal en cualquier punto sale por EXIT.
+AUT_COPIA=""; CANDADO=""; CANDADO_MIO=0
+soltar_candado() {
+  [[ ${CANDADO_MIO} -eq 1 ]] || return 0
+  local dueno
+  dueno="$(cat -- "${CANDADO}/pid" 2> /dev/null)"
+  # Nuestro: el pid es el nuestro, o todavía no se alcanzó a escribir (la señal
+  # cayó entre el mkdir y el printf). Con otro pid, alguien lo rehízo: no se toca.
+  [[ "${dueno}" == "$$" || -z "${dueno}" ]] || return 0
+  rm -f -- "${CANDADO}/pid" && rmdir -- "${CANDADO}" 2> /dev/null
+}
+al_salir() {
+  [[ -n "${AUT_COPIA}" ]] && rm -f -- "${AUT_COPIA}"
+  soltar_candado
+}
+trap al_salir EXIT
+trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 
 PROJECT=""; CONFIRM=""; LOTE=""; PASO=""; EVIDENCE_DIR="/srv/ops/evidencias"; CONFIRM_DESHACER=""; CONFIRM_PURGA=""; AUTORIZACION=""; DRY_RUN=0
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
@@ -107,9 +137,16 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   # vacío y citar el id COMPLETO del lote (un número suelto lo cumplen una
   # fecha o «no autorizo el 61»; el id además fija el packing exacto).
   AUTORIZACION="${AUTORIZACION:-${LOTE}/AUTORIZACION.txt}"
-  # Un enlace simbólico podría apuntar a cualquier archivo (el manifiesto de este
-  # u otro lote, que cita el id y lleva nombres) y saltarse la guarda de abajo,
-  # que mira la ruta del enlace y no la del destino. Sólo un archivo regular.
+  # Un paquete de producción no trae deshacer.sql ni purgar.sql (el generador no
+  # los emite): si están, alguien mezcló paquetes o copió uno de prueba.
+  for f in deshacer.sql purgar.sql; do
+    [[ -e "${LOTE}/${f}" || -L "${LOTE}/${f}" ]] \
+      && refuse "el paquete de producción trae ${f}: el generador no lo emite para producción; regenera el lote en una carpeta nueva"
+  done
+  # Enlace simbólico: la guarda de carpeta de abajo resuelve el DIRECTORIO de la
+  # ruta, no el último componente, así que un enlace fuera del lote que apunte al
+  # manifiesto (que cita el id y lleva nombres) la pasaría; y el destino de un
+  # enlace puede cambiar entre el chequeo y el uso. Sólo un archivo regular.
   [[ -L "${AUTORIZACION}" ]] && refuse "la autorización ${AUTORIZACION} es un enlace simbólico: tiene que ser un archivo regular"
   [[ -f "${AUTORIZACION}" && -s "${AUTORIZACION}" ]] || refuse "producción exige ${AUTORIZACION} con el OK literal de Sam para este lote"
   # Dentro de la carpeta del lote sólo vale AUTORIZACION.txt: cualquier otro
@@ -120,7 +157,16 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   if [[ "${aut_real}" == "${lote_real}/"* && "${aut_real}" != "${lote_real}/AUTORIZACION.txt" ]]; then
     refuse "--autorizacion apunta a $(basename -- "${AUTORIZACION}") dentro del lote: sólo vale AUTORIZACION.txt"
   fi
-  grep -qF -- "${LOTE_ID}" "${AUTORIZACION}" \
+  # Una sola lectura: se copia a un temporal (cp -P no sigue enlaces) y todo lo
+  # que sigue (contenido, grep del id, evidencia) usa la copia.
+  AUT_COPIA="$(mktemp)" || die "no puedo crear el temporal de la autorización"
+  cp -P -- "${AUTORIZACION}" "${AUT_COPIA}" || refuse "no pude copiar la autorización ${AUTORIZACION}"
+  [[ -f "${AUT_COPIA}" && ! -L "${AUT_COPIA}" && -s "${AUT_COPIA}" ]] || refuse "la autorización cambió entre el chequeo y la copia"
+  # Un manifiesto (o un trozo) cita el id y lleva nombres: no es el OK de Sam.
+  if grep -qE '"nombreExcel"|"lote"[[:space:]]*:' -- "${AUT_COPIA}"; then
+    refuse "la autorización parece un manifiesto (trae \"nombreExcel\" o \"lote\":): tiene que ser el OK literal de Sam"
+  fi
+  grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
     || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"
 fi
 case "${PASO}" in
@@ -142,17 +188,12 @@ if [[ ${DRY_RUN} -eq 0 && " simulacro aplicar deshacer purgar " == *" ${PASO} "*
   [[ -d "$(dirname -- "${CANDADO}")" ]] || die "no existe $(dirname -- "${CANDADO}") para el candado (LOTES_CANDADO)"
   mkdir -- "${CANDADO}" 2> /dev/null \
     || refuse "otro paso de un lote está en curso (candado ${CANDADO}, dueño pid $(cat -- "${CANDADO}/pid" 2> /dev/null || echo '?')); si no hay ninguno, revisa y borra el candado a mano"
-  # El dueño queda escrito adentro: al salir sólo se suelta si sigue siendo
-  # nuestro (nunca un candado ajeno, aunque alguien lo haya rehecho a mano).
+  # Los traps ya están puestos (arriba): desde aquí el candado es nuestro y EXIT
+  # lo suelta aunque una señal caiga antes de escribir el pid. El dueño queda
+  # escrito adentro y sólo se suelta si sigue siendo nuestro (nunca uno ajeno,
+  # aunque alguien lo haya rehecho a mano).
+  CANDADO_MIO=1
   printf '%s\n' "$$" > "${CANDADO}/pid"
-  soltar_candado() {
-    [[ "$(cat -- "${CANDADO}/pid" 2> /dev/null)" == "$$" ]] || return 0
-    rm -f -- "${CANDADO}/pid" && rmdir -- "${CANDADO}" 2> /dev/null
-  }
-  trap soltar_candado EXIT
-  # Si ssh se cae (HUP) o alguien corta, sale por EXIT y suelta el candado. La
-  # transacción en curso la resuelve Postgres: COMMIT completo o nada.
-  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 fi
 if [[ "${PASO}" == "aplicar" ]]; then
   # Un simulacro PASÓ del MISMO lote en la MISMA base: su evidencia tiene el
@@ -191,7 +232,7 @@ if [[ ${DRY_RUN} -eq 1 ]]; then
 fi
 mkdir -p "${EVID}"
 cp "${LOTE}/SHA256SUMS" "${EVID}/SHA256SUMS.lote"
-if [[ ${ES_PROD} -eq 1 ]]; then cp "${AUTORIZACION}" "${EVID}/AUTORIZACION.txt"; fi
+if [[ ${ES_PROD} -eq 1 ]]; then cp -- "${AUT_COPIA}" "${EVID}/AUTORIZACION.txt"; fi
 printf 'lote=%s\npaso=%s\nproyecto=%s\nhora=%s\n' "${LOTE_ID}" "${PASO}" "${PROJECT}" "${TS}" > "${EVID}/LOTE.txt"
 # Los conteos esperados (la primera aparición de cada clave: la de `esperado`).
 grep -oE '"(envios|recepciones|items|cajas|clientes|facturas|cbm|kg|base)":[[:space:]]*[0-9.]+' "${LOTE}/manifiesto.json" \
