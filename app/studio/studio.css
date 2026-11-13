@@ -1567,3 +1567,71 @@ details[open] > .calc-why-summary .calc-why-chev {
   height: 32px;
   font-size: 13px;
 }
+
+/* ── Aviso · SDD-0628 (tramo 4a de SDD-0603) ─────────────────────────────
+   BD-037: lo que avisa es una franja plana con icono, sin contorno ni sombra.
+   BRAND §Estados: el texto va siempre en tinta neutra (`--ink`); el tono lo
+   dan el fondo suave y el icono. Cero colores nuevos: solo tokens existentes.
+   Atención en claro: el dorado (`--warning`) mide 2,49-2,79:1 sobre su franja,
+   bajo el 3:1 de un icono; por eso el icono va en tinta y el dorado queda en
+   el fondo (BRAND §Estados: el acento que no alcanza es decorativo). En
+   oscuro el dorado sí alcanza (4,87:1 o más) y vuelve al icono, solo en
+   pantalla: al imprimir los tokens vuelven a claro.
+   Lo vigila `avisos-contract.test.ts`. */
+.studio-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-2) var(--s-3);
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  box-shadow: none;
+  background: var(--info-bg);
+  color: var(--ink);
+  font: 500 14px/1.45 var(--f-sans);
+}
+.studio-aviso > svg {
+  margin-top: 0.15em;
+  color: var(--info);
+}
+.studio-aviso-cuerpo {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.studio-aviso-titulo {
+  display: block;
+  font-weight: 700;
+}
+.studio-aviso-accion {
+  flex-shrink: 0;
+  align-self: center;
+}
+.studio-aviso-compacto {
+  padding: var(--s-2) var(--s-3);
+  font-size: 13px;
+}
+.studio-aviso[data-tono="atencion"] {
+  background: var(--warning-bg);
+}
+.studio-aviso[data-tono="atencion"] > svg {
+  color: var(--ink);
+}
+.studio-aviso[data-tono="exito"] {
+  background: var(--success-bg);
+}
+.studio-aviso[data-tono="exito"] > svg {
+  color: var(--success);
+}
+.studio-aviso[data-tono="error"] {
+  background: var(--danger-bg);
+}
+.studio-aviso[data-tono="error"] > svg {
+  color: var(--danger-text);
+}
+@media screen {
+  [data-theme="dark"] .studio-aviso[data-tono="atencion"] > svg {
+    color: var(--warning);
+  }
+}
