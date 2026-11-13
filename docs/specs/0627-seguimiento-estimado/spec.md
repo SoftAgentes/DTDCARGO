@@ -53,7 +53,8 @@ Conclusión: **no hace falta tabla nueva ni migración.**
    embarcado sin ese evento (lote cargado por SQL), el `etd` del zarpe. Sin ninguna de las dos, no
    se estima. **Antes del zarpe no se estima nada** (es el pedido de Sam).
 2. **Días de mar, en este orden:** `sailings.transit_days` (1–120) → `eta − etd` del mismo zarpe
-   (1–120) → default por puerto de descarga (`PBL` 40, `LGU` 42) → default general 40. Un zarpe
+   (1–120) → default por puerto de descarga (`LGU` 67) → default general 67. Los 67 días son el punto
+   medio del rastreo real de DTD a La Guaira (CMA CGM, 59–75 días de la carga a la ETA). Un zarpe
    atrasado corre la ETA: se suma a la fecha real, no al ETD.
 3. **Etapas después del puerto:** aduana el día del arribo; bodega VE +10; reparto +12; última milla
    +13; entregado +14. Si la aduana ya tiene fecha real, el resto se ancla ahí. Terrestre: entrega a
@@ -136,6 +137,15 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 
 ## Riesgos y límites
 
+- **Un solo puerto calibrado.** Los destinos reales son La Guaira, Maracaibo (63–71 días) y
+  Barranquilla, Colombia (46–49). Sólo La Guaira tiene código en `ports`; un zarpe a Maracaibo o
+  Barranquilla sin `transit_days` ni ETA cae al default de La Guaira (67): Barranquilla quedaría
+  ~20 días larga. Cargar `transit_days` en el zarpe lo evita. Ampliar el catálogo de puertos queda
+  fuera de esta SDD.
+- **Ancla «zarpe», no «carga».** La oficina registra la fecha de CARGA. El ancla es el evento
+  `shipped` que la 0477 inserta cuando se marca «zarpado»: si se marca el día de la carga, coincide
+  con los rangos medidos (que van de la carga a la ETA); si se marca días después, la ETA se corre
+  esos días.
 - Las constantes de aduana y reparto son de partida: la estimación puede quedar corta o larga hasta
   calibrarlas con la operación. La pantalla lo dice («Pueden moverse»).
 - Las fechas estimadas se ven apenas se integre (no hay bandera para la vista), en todo envío

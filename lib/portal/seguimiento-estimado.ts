@@ -24,17 +24,21 @@ import { flowForService } from "@/lib/studio/tracking-progress";
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Días de mar por puerto de descarga cuando el zarpe no trae los suyos. Los
- * códigos son los de `ports` (0096): PBL Puerto Cabello, LGU La Guaira.
- * Valores de partida para calibrar con la operación (pendiente en el handoff).
+ * Días de la carga a la ETA por puerto de descarga, cuando el zarpe no trae
+ * los suyos. Calibrado con el rastreo real de DTD (Subdirector Portal,
+ * 2026-11-13): CMA CGM a La Guaira 59–75 días → punto medio 67. Los códigos son
+ * los de `ports` (0096). Maracaibo (63–71) y Barranquilla (46–49) no tienen
+ * código en ese catálogo: caen al default (límite anotado en la spec).
  */
 export const DIAS_TRANSITO_POR_PUERTO: Readonly<Record<string, number>> = {
-  PBL: 40,
-  LGU: 42,
+  LGU: 67,
 };
 
-/** Días de mar cuando no hay zarpe, ni ETA, ni puerto conocido. */
-export const DIAS_TRANSITO_DEFAULT = 40;
+/**
+ * Días de mar cuando no hay zarpe, ni ETA, ni puerto conocido: la ruta
+ * principal (La Guaira, 59–75 → 67).
+ */
+export const DIAS_TRANSITO_DEFAULT = 67;
 
 /** Transporte terrestre interno: del despacho a la entrega. */
 export const DIAS_TERRESTRE = 3;

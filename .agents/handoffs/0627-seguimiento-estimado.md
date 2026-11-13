@@ -21,7 +21,8 @@ detrás de una bandera y con ensayo en seco.
   `carrier_tariffs.transit_days` (0330, texto) y `rates.transit_days` (0005) no se atan al
   contenedor. El zarpe con fecha ya existe (evento `shipped` de la 0477). **Sin tabla ni migración.**
 - `lib/portal/seguimiento-estimado.ts`: estimador puro (zarpe real → ETA de puerto → aduana, bodega
-  VE, reparto, entrega). Días de mar: `transit_days` → `eta − etd` → default por puerto → 40.
+  VE, reparto, entrega). Días de mar: `transit_days` → `eta − etd` → default por puerto (LGU 67) → 67, calibrado
+  con el rastreo real (CMA CGM a La Guaira, 59–75 días de la carga a la ETA).
 - `getShipmentNaviera` lee `sailings.transit_days` (`transitDays?` opcional).
 - Detalle del envío en el Portal: «Est. 12 dic» en las etapas que faltan, con `aria-label`, nota
   «Fechas estimadas…» y «Entrega estimada» desde el zarpe. Antes del zarpe, nada cambia.
@@ -48,7 +49,10 @@ Se completa en el commit final y en la PR. Pruebas focalizadas ya corridas (PAS�
 ## PENDIENTES DE ESTA TAREA
 
 - `pnpm verify`: espera turno de la PC (regla del DG; lo coordina el Subdirector Portal).
-- Calibrar con la operación las constantes (días de mar por puerto, aduana +10, reparto +12/+14).
+- Calibrar con la operación aduana (+10) y reparto (+12/+14). Días de mar ya calibrados a La Guaira.
+- **Límites (anotados en la spec, sin ampliar):** un solo puerto calibrado (La Guaira); Maracaibo
+  (63–71) y Barranquilla (46–49) no tienen código en `ports` y caen al default de 67. El ancla es el
+  evento de zarpe (0477), no la fecha de CARGA que registra la oficina.
 
 ## FUERA DE ALCANCE DETECTADO
 

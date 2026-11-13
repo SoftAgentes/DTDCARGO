@@ -26,8 +26,8 @@ describe("SDD-0627 · días de tránsito", () => {
   });
 
   it("descarta valores absurdos y cae al puerto, y después al default", () => {
-    expect(diasDeTransito({ transitDays: 0, etd: "2026-11-10", eta: "2026-11-01", pod: "pbl" })).toEqual({
-      dias: DIAS_TRANSITO_POR_PUERTO.PBL,
+    expect(diasDeTransito({ transitDays: 0, etd: "2026-11-10", eta: "2026-11-01", pod: "lgu" })).toEqual({
+      dias: DIAS_TRANSITO_POR_PUERTO.LGU,
       fuente: "puerto",
     });
     expect(diasDeTransito({ transitDays: 500, pod: "XXX" })).toEqual({
@@ -136,6 +136,13 @@ describe("SDD-0627 · estimarSeguimiento", () => {
     });
     expect(r!.porEtapa.in_customs).toBeUndefined();
     expect(dia(r!.entregaIso!)).toBe("2026-11-04");
+  });
+
+  it("los defaults caen dentro del rango real de la ruta a La Guaira (59–75 días)", () => {
+    for (const dias of [DIAS_TRANSITO_DEFAULT, DIAS_TRANSITO_POR_PUERTO.LGU]) {
+      expect(dias).toBeGreaterThanOrEqual(59);
+      expect(dias).toBeLessThanOrEqual(75);
+    }
   });
 
   it("es determinística: no lee el reloj", () => {
