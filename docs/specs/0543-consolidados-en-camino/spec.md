@@ -80,7 +80,8 @@ Pedido del Subdirector Portal para preparar la carga de los contenedores 61, 62 
 
 PR aparte desde `main` en `7b1e05050`. Cambios:
 
-- **Enlaces simbólicos.** La autorización no puede ser un enlace simbólico, ni en `--autorizacion` ni en el `AUTORIZACION.txt` del lote: tiene que ser un archivo regular. Un enlace podría apuntar al manifiesto de otro lote, que cita un id y lleva nombres, y saltarse la guarda de carpeta, que mira la ruta del enlace y no la del destino.
+- **Enlaces simbólicos.** La autorización no puede ser un enlace simbólico, ni en `--autorizacion` ni en el `AUTORIZACION.txt` del lote: tiene que ser un archivo regular. Hay dos razones. La guarda de carpeta resuelve el directorio de la ruta (`pwd -P`), pero no el último componente: un enlace que esté fuera del lote y apunte a su `manifiesto.json`, que cita el id y lleva nombres, la pasaría. Además, el destino de un enlace puede cambiar entre el chequeo y el uso. Por eso la autorización se copia una sola vez a un temporal (`cp -P`) y el grep y la evidencia usan esa copia. Un texto con `"nombreExcel"` o `"lote":` se rechaza. Un paquete de producción que traiga `deshacer.sql` o `purgar.sql` también se rechaza (3). Revisión de la #538: H3 y H6.
+- **Señales.** Los traps se ponen al principio del guion, antes de tomar el candado (H4). Una señal no hace rollback (H2): con TERM, psql puede haber terminado el COMMIT y el guion salir igual con 143; con HUP o INT, el psql del contenedor puede seguir vivo. Por eso 129, 130 y 143 están en los códigos del guion y el runbook manda leer la evidencia antes de repetir el paso, como con el 7.
 - **Candado con dueño.** Ahora el candado lleva `pid` adentro.
   - Al salir, también por HUP, INT o TERM (`trap 'exit 129' HUP; … 130 INT; … 143 TERM`, como `migraciones/aplicar.sh`), solo se suelta si sigue siendo del proceso.
   - Un candado ajeno, o rehecho a mano durante el paso, no se toca.

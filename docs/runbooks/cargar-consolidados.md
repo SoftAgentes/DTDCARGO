@@ -21,7 +21,7 @@ pnpm consolidados:lote -- --rastreo "C:\...\DTD RASTREO DE CONTENEDORES.xlsx" --
 - `--crear-clientes-faltantes` sólo vale con `--entorno prueba`: crea el cliente con la marca y el nombre del Excel (y el aliado raíz si hace falta). Con clientes reales, las marcas que no resuelvan se mapean a mano en `marcas-mapa.json` (`{ "DTD-J031": "DTD-8042" }`) y se pasa con `--mapa`.
 - `--sin-facturas` carga sin facturas; `--sin-exceso-peso` no cobra las líneas de «Exceso de peso» (el «TOTAL FACTURADO» del Excel no las incluye; Sam decidió no cobrarlo en el 59).
 - **Modalidad** (`--modalidad`, por defecto `ddp`): `fcl` = contenedor de un cliente, sólo su envío FCL (`--dueno <marca>`, opcional `--servicio-fcl fcl_directo|fcl_bodega`, `--cbm-fcl`, `--kg-fcl`), sin packing list, sin recepciones ni facturas; `mixto` = FCL de un aliado con nuestros DDP adentro: `--dueno <insignia o marca>` más el packing list de los DDP, y opcionalmente el gasto por el espacio (`--gasto-espacio <USD> --gasto-usuario <correo de un usuario del Studio>`, que se registra en `expenses` colgado del envío FCL). La marca del dueño puede ser la insignia pelada de un aliado (`HR`): en prueba se crea como ficha raíz. `--ignorar-titulo-packing` es sólo para pruebas locales con un packing de otro contenedor como doble.
-- Salida: `previa.sql`, `simulacro.sql`, `aplicar.sql`, `verificar.sql`, `deshacer.sql`, `purgar.sql`, `manifiesto.json`, `resumen.md`, `SHA256SUMS`. Leer `resumen.md` entero antes de seguir: trae los conteos, la tabla de clientes y los avisos (remitentes corregidos, embarques sin peso, filas a $0, la fila de totales del Excel que no cuadra).
+- Salida: `previa.sql`, `simulacro.sql`, `aplicar.sql`, `verificar.sql`, `deshacer.sql` y `purgar.sql` (solo en prueba: un lote `--entorno produccion` no los trae), `manifiesto.json`, `resumen.md`, `SHA256SUMS`. Leer `resumen.md` entero antes de seguir: trae los conteos, la tabla de clientes y los avisos (remitentes corregidos, embarques sin peso, filas a $0, la fila de totales del Excel que no cuadra).
 
 Idempotencia: el id del lote es `carga-consolidado:<NN>:<sha256 del packing>`; `aplicar.sql` aborta si ya existe el contenedor vivo, un envío con el mismo código, una recepción `WR-C<NN>-…` o facturas del lote. Dos corridas no duplican nada.
 
@@ -65,15 +65,28 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 ```
 
 - **Sin `AUTORIZACION.txt`, o si no cita el id del lote, cada paso se niega (3), la previa también.** Leer producción también exige permiso. La autorización se copia a la evidencia.
-- **La autorización no puede ser un enlace simbólico.** Tiene que ser un archivo regular: un enlace podría apuntar al manifiesto de otro lote y saltarse la guarda.
+- **La autorización no puede ser un enlace simbólico.** Tiene que ser un archivo regular, por dos razones:
+  - La guarda de carpeta resuelve el directorio de la ruta, no el último componente. Un enlace que esté fuera del lote y apunte a su `manifiesto.json`, que cita el id y lleva nombres, pasaría.
+  - El destino de un enlace puede cambiar entre el chequeo y el uso.
+
+  El guion copia la autorización una sola vez a un temporal (`cp -P`), y el grep y la evidencia usan esa copia. También rechaza un texto que traiga `"nombreExcel"` o `"lote":`, porque eso es un manifiesto, no el OK de Sam.
+- **Un paquete de producción que traiga `deshacer.sql` o `purgar.sql` se rechaza (3).** El generador no los emite para producción: si están, se mezclaron paquetes.
 - **Candado.** Simulacro y aplicar (y deshacer y purgar, en prueba) toman `/run/lock/dtd-lotes.lock.d`, o lo que diga `LOTES_CANDADO`. Es un directorio que se crea con `mkdir`, igual que el de migraciones, y evita que dos pasos que escriben corran a la vez: el segundo se niega (3) y el mensaje dice el pid del dueño.
   - Adentro queda `pid` con el dueño. Al salir, también por una señal (HUP 129, INT 130, TERM 143), el guion solo suelta el candado si sigue siendo suyo; nunca suelta uno ajeno.
-  - Si quedó de una corrida muerta, comprueba con `ps -p <pid>` que ese proceso ya no existe y bórralo a mano (`rm -r`).
+  - Si quedó de una corrida muerta, comprueba con `ps -o lstart=,args= -p <pid>` que ese pid no existe o que es otro proceso: compara la hora de inicio y el comando con `aplicar-lote.sh`, porque los pid se reciclan. Recién entonces bórralo a mano (`rm -r`).
 - Un lote generado para prueba se rechaza en `dtd-cargo`, y uno generado para producción se rechaza en un `*-staging`.
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
   - Sin esa evidencia, el preflight de `aplicar.sql` encuentra el contenedor o los envíos ya cargados, aborta y psql sale con 6 sin escribir nada.
   - No se repite un `aplicar` que salió con 7: primero se lee la evidencia.
+- **Después de una señal (129 HUP, 130 INT, 143 TERM) no se repite el paso**, igual que con 7. Una señal no hace rollback:
+  - con TERM, psql puede haber terminado el COMMIT y el guion salir igual con 143;
+  - con HUP o INT, el psql del contenedor puede seguir corriendo después de que el guion soltó el candado.
+
+  Antes de cualquier otra cosa:
+  1. lee la evidencia del paso (`<paso>.out` y `<paso>.err`);
+  2. comprueba que no quede psql vivo en `dtd-cargo-db-1`, con `docker exec dtd-cargo-db-1 ps -o pid,lstart,args -C psql` o con `pg_stat_activity` de solo lectura;
+  3. después corre `verificar`, que es de solo lectura, para saber si el lote quedó cargado.
 - **`deshacer` y `purgar` están deshabilitados en producción (3)**, aunque vengan confirmados. Además, el paquete de producción **ya no trae** `deshacer.sql` ni `purgar.sql`: el generador no los emite con `--entorno produccion` y se niega a escribir en una carpeta que ya los tenga. Borrar o revertir un lote de la base oficial lo corre Sam, con su propio procedimiento.
 - La evidencia queda en `/srv/ops/evidencias/lote-<id>-dtd-cargo-<ts>-<paso>/`, igual que en prueba, más `AUTORIZACION.txt`.
 - Un `aplicar` en producción **no publica nada**: el Portal muestra el envío cuando el cliente entra. Los avisos siguen apagados.
@@ -110,6 +123,6 @@ Desde el seguimiento de la #534 también cubre:
 - la autorización como enlace simbólico, por `--autorizacion` o en el lote;
 - el candado con dueño: TERM, HUP e INT sueltan el propio, un candado rehecho a mano no se suelta y el rechazo nombra el pid.
 
-En total son 60 casos en Linux. En Git Bash para Windows, `ln -s` copia y los 2 casos de enlace salen OMITIDOS, así que allí cuenta 58. Desde la SDD-0550 también la corre el CI «Calidad continua» (`infra/ops/tests/pruebas-linux.sh`) |
+Tras la revisión de la #538 también cubre: autorización con forma de manifiesto (`"lote":`, `"nombreExcel"`), paquete de producción con `deshacer.sql` o `purgar.sql`, y que psql vea el candado con el pid del guion. En total son 64 casos en Linux. En Git Bash para Windows, `ln -s` copia y los 2 casos de enlace salen OMITIDOS, así que allí cuenta 62. Desde la SDD-0550 también la corre el CI «Calidad continua» (`infra/ops/tests/pruebas-linux.sh`) |
 | `bash infra/ops/consolidados/validar-lote-local.sh <lote> [<lote que depende>]` | **antes de mandar un lote al servidor** (Docker, turno del Director): postgres:17 con el esquema entero y la secuencia completa del lote, incluidos deshacer y purgar; con dos lotes, comprueba que purgar el primero aborte mientras el segundo dependa de él. ~40 s por lote |
 | `pnpm vitest run lib/portal/__tests__/pending-acceptance.test.ts lib/portal/__tests__/portal-legal-queries.test.ts "app/portal/(app)/facturas/[code]/_components/PendingInvoiceGate.test.tsx" "app/portal/(app)/facturas/page.test.tsx" "app/portal/(app)/facturas/[code]/page.test.tsx"` | el Portal: facturas por aceptar (el admin se crea dentro del try), los embarques de la factura con su medida, la puerta del detalle (contra el 404) y «Mis facturas» con y sin borradores |

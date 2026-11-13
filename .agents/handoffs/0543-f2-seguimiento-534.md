@@ -52,6 +52,22 @@ Primer intento de las pruebas de señales: 3 FALLÓ, los tres por cómo estaba m
 - `$!` daba el pid de la subshell de la función. Se corrigió con `exec`.
 - SIGINT viene ignorado en los procesos lanzados con `&` sin control de trabajos. Se corrigió con `set -m` solo en esa sección.
 
+## REVISIÓN DE LA #538 (sobre 8d244a7f8): cambios pedidos, atendidos en un solo push
+
+- **H1.** La negativa de `generar()` (carpeta de salida con `deshacer.sql` o `purgar.sql`) pasó al principio de la función: falla antes de leer los Excel y antes de escribir. Tiene un vitest de `generar()` real sobre una carpeta temporal: espera el `throw` y comprueba que la carpeta quedó igual. En prueba no hay negativa.
+- **H2.** Los códigos 129, 130 y 143 están en la cabecera de `aplicar-lote.sh`, con la advertencia de que una señal no hace rollback. El runbook lleva la regla: tras una señal no se repite el paso. Primero se lee la evidencia, se comprueba que no quede psql vivo en `dtd-cargo-db-1` y se corre `verificar`.
+- **H3.** La autorización se copia una sola vez a un temporal (`mktemp` + `cp -P`); el grep y la evidencia usan la copia. Un texto con `"nombreExcel"` o `"lote":` se rechaza. `al_salir` borra el temporal.
+- **H4.** Los traps de señal y el EXIT van al principio del guion, antes de tomar el candado y de escribir el pid. Si la señal cae entre el `mkdir` y el `printf`, el candado sin pid también se suelta, porque es nuestro: `CANDADO_MIO=1`. La prueba usa `DOBLE_VER_CANDADO`: «psql» ve el candado con el pid del guion.
+- **H5.**
+  - Runbook :24 y cabecera del guion: `deshacer.sql` y `purgar.sql`, «solo en prueba».
+  - La explicación del enlace, corregida en el runbook y en la spec: la guarda resuelve el directorio, no el último componente, y el destino puede cambiar entre el chequeo y el uso.
+  - El candado viejo se revisa con `ps -o lstart=,args= -p <pid>`.
+- **H6.** En producción, `aplicar-lote.sh` sale con 3 si el paquete trae `deshacer.sql` o `purgar.sql`. `sobrantesSoloPrueba` usa `lstatSync`, así que un enlace roto también cuenta.
+- **Pruebas.**
+  - Bash: 64 casos en Linux, 62 en Git Bash (los 2 de enlace OMITIDOS). El piso de `pruebas-linux.sh` sube de 60 a 64.
+  - Vitest de consolidados: 56.
+  - El primer intento de las señales dio 3 FALLÓ, porque la prueba mandaba la señal antes de que el doble de psql corriera. Ahora espera a que el doble anote el pid.
+
 ## PENDIENTES DE ESTA TAREA
 
 - Ver en el CI Linux los 2 casos de enlace simbólico.
