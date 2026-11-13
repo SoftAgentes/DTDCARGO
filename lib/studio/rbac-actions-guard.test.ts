@@ -383,8 +383,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // sin entrar en ninguna lista. `guardarEdicion` escribe con el cliente de sesión
   // (la policy de UPDATE de 0055 repite admin y tenant); retiro y vuelta, por las
   // RPC `news_retirar` y `news_volver_a_publicar` (0518), que repiten `is_tenant_admin`.
+  // SDD-0631 sumó `tesoreria/actions.ts::linkBillCost` (466 → 467): liga, cambia
+  // o quita el contenedor/embarque de una CxP. `moduleEditDenial(supabase,
+  // "treasury")` al tope, antes de leer o escribir (treasury = accounting + admin
+  // en `rbac.ts`); escribe con el cliente de sesión y la policy de UPDATE de
+  // `supplier_bills` (0470) repite accounting/admin y tenant. Pasa el veredicto
+  // por acción sin entrar en ninguna lista; el trigger de la 0536 repite el
+  // same-tenant del contenedor y del embarque.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(466);
+    expect(reportes.length).toBe(467);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
