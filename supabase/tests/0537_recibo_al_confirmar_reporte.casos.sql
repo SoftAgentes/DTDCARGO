@@ -253,11 +253,12 @@ begin
   perform r0537.ok(v ->> 'status' = 'confirmado' and r0537.recibos('inv-c') = 1 and r0537.pagado('inv-c') = 100,
     'la confirmación válida de rep-c1 crea su recibo');
 
-  -- Invariante global de las facturas de este contrato.
-  perform r0537.ok(not exists (select 1 from public.invoices i where i.client_markbox = 'DUP' and i.invoice_code like 'F-0630-%'
+  -- Invariante de las facturas de estos casos (F-0630-A a D). La carrera agrega
+  -- F-0630-K-*, entre ellas el control que reproduce el defecto sin la 0537.
+  perform r0537.ok(not exists (select 1 from public.invoices i where i.client_markbox = 'DUP' and i.invoice_code like 'F-0630-_'
     and i.paid_amount <> coalesce((select sum(r.amount) from public.payment_receipts r where r.invoice_id = i.id and r.deleted_at is null), 0)),
     'en toda factura del contrato, pagado = suma de recibos');
-  perform r0537.ok(not exists (select 1 from public.payment_reports p where p.status = 'confirmado' and p.invoice_code like 'F-0630-%'
+  perform r0537.ok(not exists (select 1 from public.payment_reports p where p.status = 'confirmado' and p.invoice_code like 'F-0630-_'
     and not exists (select 1 from public.payment_receipts r where r.payment_report_id = p.id)),
     'todo reporte confirmado del contrato tiene recibo');
 end;
