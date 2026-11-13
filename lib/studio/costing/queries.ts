@@ -24,6 +24,17 @@ import {
   type ShipmentCosts,
   type ShipmentEconomics,
 } from "./types";
+import {
+  allocateLinkedBills,
+  effectiveCosts,
+  isCostBill,
+  marginByContainer,
+  type ConsolidationItemRow,
+  type ConsolidationRow,
+  type ContainerMarginRow,
+  type LinkedBillRow,
+  type ShipmentCxp,
+} from "./cxp-ligadas";
 import type { ShipmentService } from "@/lib/studio/shipment-types";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
 import type { Shipment } from "@/lib/studio/shipment-types";
@@ -250,17 +261,109 @@ export type CostingRow = {
    * margen está incompleto: el embarque se marca «sin tasa», no «en pérdida».
    */
   facturasSinTasa?: number;
+  /**
+   * SDD-0631: lo que aportan las CxP ligadas (directas o por su contenedor). En
+   * las categorías que cubren, reemplazan a `costs`; `eco` ya lo refleja.
+   */
+  cxp?: ShipmentCxp;
+};
+
+/** SDD-0631: ¿el margen de la fila está incompleto por facturas o CxP sin tasa? */
+export function rowSinTasa(row: Pick<CostingRow, "facturasSinTasa" | "cxp">): boolean {
+  return (row.facturasSinTasa ?? 0) > 0 || (row.cxp?.sinTasa ?? 0) > 0;
+}
+
+// ── SDD-0631 · CxP ligadas y contenedores ─────────────────────
+const LINKED_BILL_COLUMNS =
+  "id, shipment_id, consolidation_id, cost_category, currency, total_amount, fx_rate, status, deleted_at";
+
+/** La base todavía no tiene la 0536: la columna no existe. */
+function isMissingLinkColumn(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /(consolidation_id|cost_category)/.test(msg) && /does not exist|no existe|schema cache/i.test(msg);
+}
+
+export type CostLinks = {
+  bills: LinkedBillRow[];
+  items: ConsolidationItemRow[];
+  consolidations: ConsolidationRow[];
+  /** false si la base no tiene la 0536 (sin CxP ligadas, sin romper). */
+  linksAvailable: boolean;
+};
+
+/**
+ * CxP vivas (filtra el vínculo y el estado en JS: son pocas), piezas de
+ * contenedor y consolidaciones. Paginado: una CxP que no entra es un costo que
+ * falta y un margen inflado.
+ */
+export async function listCostLinks(supabase: SupabaseClient): Promise<CostLinks> {
+  const billsP = fetchAllPaged<Record<string, unknown>>((d, h) =>
+    supabase
+      .from("supplier_bills")
+      .select(LINKED_BILL_COLUMNS)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(d, h),
+  ).then(
+    (r) => ({ ...r, available: true }),
+    (e: unknown) => {
+      if (isMissingLinkColumn(e)) return { rows: [], complete: true, available: false };
+      throw e;
+    },
+  );
+  const [billsRes, itemsRes, consRes] = await Promise.all([
+    billsP,
+    fetchAllPaged<Record<string, unknown>>((d, h) =>
+      supabase
+        .from("consolidation_items")
+        .select("id, consolidation_id, shipment_id, cbm")
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+    fetchAllPaged<Record<string, unknown>>((d, h) =>
+      supabase
+        .from("consolidations")
+        .select("id, ref, status, container_type, deleted_at")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+  ]);
+  if (!billsRes.complete || !itemsRes.complete || !consRes.complete) {
+    throw new Error("Las CxP o los contenedores superan el tope de lectura; el margen quedaría inflado.");
+  }
+  return {
+    bills: (billsRes.rows as unknown as LinkedBillRow[]).filter(isCostBill),
+    items: itemsRes.rows as unknown as ConsolidationItemRow[],
+    consolidations: consRes.rows as unknown as ConsolidationRow[],
+    linksAvailable: billsRes.available,
+  };
+}
+
+/** Filas de costeo + lo necesario para el margen por contenedor. */
+export type CostingData = {
+  rows: CostingRow[];
+  containers: ContainerMarginRow[];
+  linksAvailable: boolean;
 };
 
 /**
  * Filas de costeo: cada embarque vivo del tenant + sus costos + su economía.
- * Cruza `shipments` (no borrados) + costos (Map) + revenue (id → fallback code).
+ * Cruza `shipments` (no borrados) + costos (Map) + revenue (id → fallback code)
+ * + CxP ligadas (SDD-0631: reemplazan a `shipment_costs` en su categoría).
  */
 export async function costingRows(
   supabase: SupabaseClient,
   period?: Period,
 ): Promise<CostingRow[]> {
-  const [costsMap, rev, shipmentsRes] = await Promise.all([
+  return (await costingData(supabase, period)).rows;
+}
+
+export async function costingData(
+  supabase: SupabaseClient,
+  period?: Period,
+): Promise<CostingData> {
+  const [costsMap, rev, shipmentsRes, links] = await Promise.all([
     listShipmentCosts(supabase),
     revenueByShipment(supabase, period),
     fetchAllPaged<Record<string, unknown>>((d, h) =>
@@ -270,6 +373,7 @@ export async function costingRows(
         .order("id", { ascending: true })
         .range(d, h),
     ),
+    listCostLinks(supabase),
   ]);
 
   if (!shipmentsRes.complete) {
@@ -277,15 +381,33 @@ export async function costingRows(
   }
 
   const shipments = shipmentsRes.rows as unknown as Shipment[];
+  const allocation = allocateLinkedBills(links.bills, links.items);
 
-  return shipments
+  const rows = shipments
     .filter((s) => s.deleted_at == null)
-    .map((shipment) => {
+    .map((shipment): CostingRow => {
       const costs = costsMap.get(shipment.id) ?? null;
+      const cxp = allocation.byShipment.get(shipment.id);
       const revenueUsd = resolveRevenue(shipment, rev);
-      const eco = shipmentEconomics({ revenueUsd, costs });
-      return { shipment, costs, eco, facturasSinTasa: resolveSinTasa(shipment, rev) };
+      const eco = shipmentEconomics({ revenueUsd, costs: effectiveCosts(costs, cxp) });
+      const row: CostingRow = { shipment, costs, eco, facturasSinTasa: resolveSinTasa(shipment, rev) };
+      if (cxp) row.cxp = cxp;
+      return row;
     });
+
+  const containers = marginByContainer(
+    rows.map((r) => ({
+      shipmentId: r.shipment.id,
+      revenue: r.eco.revenue,
+      totalCost: r.eco.totalCost,
+      sinTasa: rowSinTasa(r) ? 1 : 0,
+    })),
+    links.consolidations,
+    links.items,
+    allocation,
+  );
+
+  return { rows, containers, linksAvailable: links.linksAvailable };
 }
 
 // ── Agregados puros (sobre las filas ya cargadas) ─────────────
@@ -322,10 +444,11 @@ export function costingTotals(rows: CostingRow[]): CostingTotals {
   let losing = 0;
   let sinTasa = 0;
 
-  for (const { eco, facturasSinTasa } of rows) {
+  for (const row of rows) {
+    const { eco } = row;
     revenue += eco.revenue;
     cost += eco.totalCost;
-    if ((facturasSinTasa ?? 0) > 0) sinTasa += 1;
+    if (rowSinTasa(row)) sinTasa += 1;
     else if (eco.margin > 0) profitable += 1;
     else if (eco.margin < 0) losing += 1;
     for (const k of COST_KEYS) catTotals[k] += eco[k];
@@ -362,7 +485,8 @@ export function marginByRoute(rows: CostingRow[]): RouteMarginRow[] {
     { origin: string; destination: string; count: number; revenue: number; cost: number; sinTasa: number }
   >();
 
-  for (const { shipment, eco, facturasSinTasa } of rows) {
+  for (const row of rows) {
+    const { shipment, eco } = row;
     const origin = shipment.origin ?? "";
     const destination = shipment.destination ?? "";
     const key = `${origin}→${destination}`;
@@ -371,7 +495,7 @@ export function marginByRoute(rows: CostingRow[]): RouteMarginRow[] {
     cur.count += 1;
     cur.revenue += eco.revenue;
     cur.cost += eco.totalCost;
-    if ((facturasSinTasa ?? 0) > 0) cur.sinTasa += 1;
+    if (rowSinTasa(row)) cur.sinTasa += 1;
     byRoute.set(key, cur);
   }
 
@@ -418,14 +542,15 @@ export function marginByClient(rows: CostingRow[]): ClientMarginRow[] {
     { client: string; count: number; revenue: number; cost: number; sinTasa: number }
   >();
 
-  for (const { shipment, eco, facturasSinTasa } of rows) {
+  for (const row of rows) {
+    const { shipment, eco } = row;
     const name = (shipment.client_name ?? "").trim();
     const client = name || NO_CLIENT_LABEL;
     const cur = byClient.get(client) ?? { client, count: 0, revenue: 0, cost: 0, sinTasa: 0 };
     cur.count += 1;
     cur.revenue += eco.revenue;
     cur.cost += eco.totalCost;
-    if ((facturasSinTasa ?? 0) > 0) cur.sinTasa += 1;
+    if (rowSinTasa(row)) cur.sinTasa += 1;
     byClient.set(client, cur);
   }
 
@@ -486,7 +611,8 @@ export function costPerCbmByRoute(rows: CostingRow[]): RouteCbmRow[] {
     }
   >();
 
-  for (const { shipment, eco, facturasSinTasa } of rows) {
+  for (const row of rows) {
+    const { shipment, eco } = row;
     const origin = shipment.origin ?? "";
     const destination = shipment.destination ?? "";
     const key = `${origin}→${destination}`;
@@ -497,7 +623,7 @@ export function costPerCbmByRoute(rows: CostingRow[]): RouteCbmRow[] {
     cur.cbm += shipmentCbm(shipment);
     cur.revenue += eco.revenue;
     cur.cost += eco.totalCost;
-    if ((facturasSinTasa ?? 0) > 0) cur.sinTasa += 1;
+    if (rowSinTasa(row)) cur.sinTasa += 1;
     byRoute.set(key, cur);
   }
 
