@@ -377,7 +377,7 @@ function BsPorCobrar({
           Por cobrar en USD
         </div>
         <div style={{ font: "700 18px/1.2 var(--f-mono)", color: "var(--ink)", marginTop: 4 }}>
-          ${fmtMoney(porCobrarUsd)}
+          ${fmtAmount(porCobrarUsd)}
         </div>
         {casosSinTasa > 0 && (
           <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>

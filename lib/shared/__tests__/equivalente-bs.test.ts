@@ -22,7 +22,7 @@ describe("deUsdAMoneda · exacto, falla cerrado", () => {
     expect(deUsdAMoneda("0.1", "0.05")).toBe(0.01); // 0.005 → 0.01
     expect(deUsdAMoneda(-0.1, 0.05)).toBe(-0.01);
     expect(deUsdAMoneda(1.005, 1)).toBe(1.01); // en coma flotante daría 1.00
-    expect(deUsdAMoneda(1234.56, "36.12345678")).toBe(44596.6);
+    expect(deUsdAMoneda(1234.56, "36.12345678")).toBe(44596.57); // 44596.5748…
   });
   it.each([
     [100, 0],

@@ -6,8 +6,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const crearAdmin = vi.fn();
-vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => crearAdmin() }));
+// Como en pending-acceptance.test.ts: crear el admin client falla (sin la clave).
+const h = vi.hoisted(() => ({
+  crearAdmin: vi.fn((): never => {
+    throw new Error("falta SUPABASE_SERVICE_ROLE_KEY");
+  }),
+}));
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => h.crearAdmin() }));
+const crearAdmin = h.crearAdmin;
 
 import { tasasReferencialesDelPortal } from "../tasa-referencial";
 
@@ -36,7 +42,10 @@ function dobleAdmin() {
   return { db, llamadas };
 }
 
-beforeEach(() => crearAdmin.mockReset());
+// Con llaves: un beforeEach que devuelve una función la corre como limpieza.
+beforeEach(() => {
+  crearAdmin.mockClear();
+});
 
 describe("tasasReferencialesDelPortal", () => {
   it("solo pide fx_rate_on del tenant dado y no ve la tasa de otro tenant", async () => {
@@ -61,10 +70,8 @@ describe("tasasReferencialesDelPortal", () => {
   });
 
   it("si el admin client no se puede crear, «tasa no disponible» (mapa vacío)", async () => {
-    crearAdmin.mockImplementation(() => {
-      throw new Error("falta SUPABASE_SERVICE_ROLE_KEY");
-    });
     const m = await tasasReferencialesDelPortal("t-propio", ["2026-11-13"]);
     expect(m.size).toBe(0);
+    expect(crearAdmin).toHaveBeenCalledTimes(1);
   });
 });
