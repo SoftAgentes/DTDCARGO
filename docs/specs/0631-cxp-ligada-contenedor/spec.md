@@ -138,6 +138,7 @@ orden de pago → margen en Costing › Contenedores.
 - `lib/studio/treasury/cost-link-queries.ts`
 - `lib/studio/treasury/__tests__/cost-link.test.ts`
 - `app/studio/(app)/tesoreria/actions.ts`
+- `lib/studio/rbac-actions-guard.test.ts` (inventario RBAC: `linkBillCost`, 466 → 467)
 - `app/studio/(app)/tesoreria/page.tsx`
 - `app/studio/(app)/tesoreria/_components/BillDrawer.tsx`
 - `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx`

@@ -41,7 +41,8 @@ embarque), y que ese costo llegue al margen del contenedor y del embarque sin co
 | `tsc --noEmit` | PASÓ |
 | eslint de los archivos tocados | PASÓ |
 | `pnpm docs:check` · `governance:check` · `components:check` | PASÓ |
-| `pnpm verify` | PENDIENTE: se pidió turno a la sesión que me abrió |
+| `pnpm verify` (turno 15:05, cortado por mí durante e2e tras el cambio de portón del DG) | NO EJECUTADO completo. Lo que alcanzó a medir: `test` FALLÓ con (a) **real**, `rbac-actions-guard` 466≠467 por `linkBillCost`, corregido; (b) `infra/ops/tests/migraciones.test.mjs` y `scripts/__tests__/entorno-prueba-scripts.test.mjs` cortados a 600 s, y (c) `MobileErpClient.fechas-caracas` foco N2: posible carga ajena (T5a de Rebrand desde 15:13, install/vitest/typecheck del 0629 ~16:00 y otro `pnpm verify` ajeno, PID 43928, desde 16:14). Esa ventana no vale ni como verde ni como rojo. docs/numbering/feature-constants/components/governance/pending-migration-symbols OK; migrations-applied, sql-tests y schema-rebuild SKIP (sin .env.local ni Docker) |
+| `rbac-actions-guard.test.ts` tras el arreglo y el merge de main | PASÓ (472/472) |
 | CI de la PR | PENDIENTE |
 | Prueba visual en el navegador (`/ui-check`) | NO EJECUTADO: sin base local con la 0536 en esta sesión |
 
@@ -57,12 +58,11 @@ prueba de punta a punta, docs).
 
 ## PR / BRANCH
 
-Rama `claude/sdd-0631-cxp-contenedor-5ae730` · PR contra main, **depende del tren AD (#529)**.
-Cuando AD entre a main: traer main una vez con merge, en su turno; sin rebase ni force push.
+Rama `claude/sdd-0631-cxp-contenedor-5ae730` · PR #530 contra main. El tren AD entró a main (e5169e86e) y se trajo con un merge.
 
 ## PENDIENTES DE ESTA TAREA
 
-- `pnpm verify` con turno y CI verde de la PR.
+- CI verde de la PR (el portón ahora es CI + revisión independiente; el verify local ya no es requisito).
 - Aplicar la 0536 en producción: con OK nominal de Sam y el runbook de migraciones. Hasta entonces
   Tesorería no muestra el selector y Costing avisa que el costo es solo el manual.
 - Revisión visual de los dos bloques nuevos (`/ui-check`) con una base local que tenga la 0536.
