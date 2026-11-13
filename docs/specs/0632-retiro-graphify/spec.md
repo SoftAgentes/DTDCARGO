@@ -5,7 +5,7 @@ status: in-progress
 author: "Claude (Worker)"
 created: 2026-11-13
 updated: 2026-11-13
-supersedes: "0471, 0623"
+supersedes: "0471"
 superseded_by: null
 related: ["0471", "0623"]
 confidencialidad: interno
