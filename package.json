@@ -49,13 +49,7 @@
     "docker:build": "docker build -t dtdcargo:local .",
     "schema:rebuild:supabase": "node -e \"process.env.SQL_TEST_PG_IMAGE='supabase/postgres:17.6.1.136';import('./scripts/check-schema-rebuild.mjs')\"",
     "harness:status": "node scripts/director-status.mjs",
-    "harness:test": "node scripts/tests/run-harness.mjs",
-    "knowledge:status": "node scripts/knowledge-sync.mjs status",
-    "knowledge:publish": "node scripts/knowledge-sync.mjs publish",
-    "knowledge:check": "node scripts/knowledge-sync.mjs check",
-    "knowledge:daily": "node scripts/knowledge-daily.mjs",
-    "knowledge:visual": "node scripts/knowledge-visual.mjs build",
-    "knowledge:visual:check": "node scripts/knowledge-visual.mjs check"
+    "harness:test": "node scripts/tests/run-harness.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
