@@ -8,7 +8,7 @@ import { validateUnidentifiedPaymentInput } from "@/lib/studio/payment-types";
 
 const io = vi.hoisted(() => ({ unidentified: vi.fn(), history: vi.fn(), bills: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: io.refresh, push: vi.fn(), replace: vi.fn() }), usePathname: () => "/studio/gastos", useSearchParams: () => new URLSearchParams() }));
-vi.mock("@/app/studio/(app)/cobranzas/actions", () => ({ registerUnidentifiedPayment: io.unidentified, getReceivableHistory: io.history, logActivity: vi.fn(), registerCollection: vi.fn(), voidReceipt: vi.fn() }));
+vi.mock("@/app/studio/(app)/cobranzas/actions", () => ({ registerUnidentifiedPayment: io.unidentified, getReceivableHistory: io.history, getPendingPaymentReports: async () => ({ pending: { count: 0, amount: 0 } }), logActivity: vi.fn(), registerCollection: vi.fn(), voidReceipt: vi.fn() }));
 vi.mock("@/app/studio/(app)/tesoreria/actions", () => ({ getBillHistory: io.bills, createBill: vi.fn(), registerPayment: vi.fn(), voidBill: vi.fn(), voidPayment: vi.fn() }));
 vi.mock("@/app/studio/(app)/facturacion/actions", () => ({ duplicateInvoice: vi.fn(), emitInvoice: vi.fn(), registerPayment: vi.fn(), voidInvoice: vi.fn(), createInvoice: vi.fn(), updateInvoice: vi.fn() }));
 vi.mock("@/app/studio/(app)/contabilidad/actions", () => ({ createJournalEntry: vi.fn() }));
