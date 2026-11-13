@@ -35,7 +35,9 @@ la auditoría.
   - transporte con la cuenta y el recibo decodificado;
   - acción que asienta el recibo como Cobranzas (`postCollectionReceiptEntry`, compartida);
   - selector de cuenta en la factura y el recibo visible en los reportes confirmados;
-  - aviso en Cobranzas de reportes sin revisar.
+  - aviso en Cobranzas de reportes sin revisar (`PendingReportsNotice`, con su propia acción;
+    el drawer sólo lo monta). El cruce con la #531 (SDD-0629, cabeza d55101ee4), medido con
+    `git merge-tree`, da 0 conflictos.
 - Baseline (espera de la 0537) y declaraciones del gate de símbolos (dos AMARILLO declarados).
 
 ### Decisión técnica que el DG debe mirar

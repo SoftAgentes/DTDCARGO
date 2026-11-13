@@ -114,11 +114,13 @@ el asiento atómico, eso es una SDD aparte para cobros y confirmaciones a la vez
   Cobranzas». Si el resultado es incierto, conserva la cuenta y la clave y bloquea
   el selector. Un reporte confirmado muestra «Recibo de cobro R-…» y la nota de que
   ya está en Cobranzas, sin operaciones.
-- Cobranzas (`page.tsx`, `CobranzasClient`, `CobranzaDrawer`): avisa en el cobro
-  de una factura si tiene reportes del portal sin revisar, cuántos y por cuánto, y
-  enlaza a la factura para confirmarlos ahí. Si no pudo leerlos, también lo dice.
+- Cobranzas: `PendingReportsNotice` avisa en el cobro de una factura si tiene
+  reportes del portal sin revisar, cuántos y por cuánto, y enlaza a la factura para
+  confirmarlos ahí. Si no pudo leerlos, también lo dice. Carga sus datos con la
+  acción `getPendingPaymentReports`, con la misma puerta de vista que el historial,
+  y el drawer sólo lo monta. Así no cruza con la #531 (SDD-0629).
 - `lib/studio/payment-queries.ts`: `receiptCodesByReport` (sin la 0537 devuelve un
-  mapa vacío) y `pendingReportsByInvoice`.
+  mapa vacío) y `pendingReportsForInvoice`.
 
 ### Convivencia y orden
 
@@ -154,9 +156,10 @@ vuelve a confirmar, reintentar y rechazar.
 - `app/studio/(app)/facturacion/payment-report-actions.ts`.
 - `app/studio/(app)/facturacion/_components/StudioInvoicePaymentReports.tsx`.
 - `app/studio/(app)/facturacion/[code]/page.tsx`.
-- `app/studio/(app)/cobranzas/page.tsx`,
-  `app/studio/(app)/cobranzas/_components/CobranzasClient.tsx` y
-  `app/studio/(app)/cobranzas/_components/CobranzaDrawer.tsx`.
+- `app/studio/(app)/cobranzas/actions.ts` (una acción nueva de lectura),
+  `app/studio/(app)/cobranzas/_components/PendingReportsNotice.tsx` y su prueba
+  (nuevos), y `app/studio/(app)/cobranzas/_components/CobranzaDrawer.tsx` (sólo el
+  import y el render).
 - `.agents/handoffs/0630-recibo-al-confirmar-reporte.md`.
 
 No se tocan la 0421, la 0464, la 0467, la 0533 ni ninguna migración sellada o en
