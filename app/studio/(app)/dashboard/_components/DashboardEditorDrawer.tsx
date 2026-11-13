@@ -69,7 +69,12 @@ export function DashboardEditorDrawer({
     >
       <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, padding: "14px 22px 0", borderBottom: "1px solid var(--border)" }}>
+        <div
+          role="group"
+          aria-label="Secciones del editor"
+          className="studio-tabs"
+          style={{ margin: "14px 22px 0" }}
+        >
           {(
             [
               { value: "kpis", label: "KPIs", count: config.kpis.length },
@@ -81,18 +86,12 @@ export function DashboardEditorDrawer({
               <button
                 key={t.value}
                 type="button"
+                aria-pressed={active}
+                data-activa={active ? "true" : undefined}
                 onClick={() => setTab(t.value)}
-                style={{
-                  padding: "9px 14px",
-                  background: "transparent",
-                  border: 0,
-                  borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                  color: active ? "var(--ink)" : "var(--ink-soft)",
-                  font: "600 13px/1 var(--f-sans)",
-                  cursor: "pointer",
-                }}
+                className="studio-tab"
               >
-                {t.label} <span style={{ color: "var(--ink-mute)" }}>· {t.count}</span>
+                {t.label} <span className="studio-tab-n">· {t.count}</span>
               </button>
             );
           })}

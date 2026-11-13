@@ -145,13 +145,8 @@ export function UsersClient({
       <div
         role="tablist"
         aria-label="Secciones de usuarios y roles"
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "var(--s-4)",
-          overflowX: "auto",
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: "var(--s-4)" }}
       >
         <Tab activa={tab === "personas"} onClick={() => navegar({ tab: "personas" })} n={members.length}>
           Personas

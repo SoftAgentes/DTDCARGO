@@ -330,12 +330,9 @@ export function StatementDetail({
       {/* Tabs por estado de match */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 14,
-          flexWrap: "wrap",
-        }}
+        aria-label="Líneas por estado de conciliación"
+        className="studio-tabs"
+        style={{ marginBottom: 14 }}
       >
         {TABS.map((tEntry) => {
           const active = tab === tEntry.value;
@@ -346,32 +343,15 @@ export function StatementDetail({
               type="button"
               role="tab"
               aria-selected={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => {
                 setTab(tEntry.value);
                 setDetailLineId(null);
               }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "7px 12px",
-                borderRadius: "var(--r-sm)",
-                background: active ? "var(--wine-tint)" : "transparent",
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                border: "none",
-                font: "700 12px/1 var(--f-sans)",
-                cursor: "pointer",
-              }}
+              className="studio-tab"
             >
               {tEntry.label}
-              <span
-                style={{
-                  font: "800 10px/1 var(--f-mono)",
-                  color: active ? "var(--wine)" : "var(--ink-mute)",
-                }}
-              >
-                {count}
-              </span>
+              <span className="studio-tab-n">{count}</span>
             </button>
           );
         })}

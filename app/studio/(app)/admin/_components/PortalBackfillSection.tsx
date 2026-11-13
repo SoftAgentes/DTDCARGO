@@ -1931,48 +1931,22 @@ export function PortalBackfillSection({
       <div
         role="tablist"
         aria-label="Adopción del portal"
-        style={{
-          display: "flex",
-          gap: 4,
-          borderBottom: "1px solid var(--border)",
-        }}
+        className="studio-tabs"
       >
         {tabs.map((t) => {
           const on = tab === t.id;
           return (
             <button
               key={t.id}
+              type="button"
               role="tab"
               aria-selected={on}
+              data-activa={on ? "true" : undefined}
               onClick={() => setTab(t.id)}
-              style={{
-                appearance: "none",
-                border: 0,
-                background: "transparent",
-                cursor: "pointer",
-                padding: "9px 14px",
-                marginBottom: -1,
-                borderBottom: `2px solid ${on ? "var(--wine)" : "transparent"}`,
-                font: `${on ? 700 : 600} 12.5px/1 var(--f-sans)`,
-                color: on ? "var(--ink)" : "var(--ink-soft)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-              }}
+              className="studio-tab"
             >
               {t.label}
-              <span
-                style={{
-                  font: "700 10.5px/1 var(--f-mono)",
-                  color: on ? "var(--wine)" : "var(--ink-mute)",
-                  background: "var(--bg-elevated)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-pill)",
-                  padding: "2px 7px",
-                }}
-              >
-                {t.count}
-              </span>
+              <span className="studio-tab-n">{t.count}</span>
             </button>
           );
         })}
