@@ -149,13 +149,8 @@ export function ServicioDrawer({
       <nav
         role="tablist"
         aria-label="Secciones del servicio"
-        style={{
-          display: "flex",
-          gap: 4,
-          padding: "0 var(--s-5)",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}
+        className="studio-tabs"
+        style={{ margin: "0 var(--s-5)", flexShrink: 0 }}
       >
         {TABS.map((t) => {
           const active = tab === t.id;
@@ -166,16 +161,8 @@ export function ServicioDrawer({
               role="tab"
               onClick={() => setTab(t.id)}
               aria-selected={active}
-              style={{
-                appearance: "none",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? 600 : 500} 12.5px/1 var(--f-sans)`,
-                padding: "var(--s-3) var(--s-2)",
-                cursor: "pointer",
-              }}
+              data-activa={active ? "true" : undefined}
+              className="studio-tab"
             >
               {t.label}
             </button>

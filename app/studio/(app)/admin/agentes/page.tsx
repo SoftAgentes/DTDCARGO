@@ -108,14 +108,9 @@ export default async function AgentesPage({
 
       {/* Tabs */}
       <nav
-        role="tablist"
         aria-label="Vistas de Agentes y Skills"
-        style={{
-          display: "flex",
-          gap: 4,
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 22,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 22 }}
       >
         {TABS.map((t) => {
           const isActive = t.key === active;
@@ -123,19 +118,9 @@ export default async function AgentesPage({
             <Link
               key={t.key}
               href={`/studio/admin/agentes?tab=${t.key}`}
-              role="tab"
-              aria-selected={isActive}
-              style={{
-                padding: "10px 14px",
-                font: "600 13px/1 var(--f-sans)",
-                color: isActive ? "var(--ink)" : "var(--ink-soft)",
-                textDecoration: "none",
-                borderBottom: isActive
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                marginBottom: -1,
-                transition: "color var(--dur-fast) var(--ease)",
-              }}
+              aria-current={isActive ? "page" : undefined}
+              data-activa={isActive ? "true" : undefined}
+              className="studio-tab"
             >
               {t.label}
               <TabCount
@@ -146,7 +131,6 @@ export default async function AgentesPage({
                       ? agents.length
                       : runs.length
                 }
-                active={isActive}
               />
             </Link>
           );
@@ -161,19 +145,9 @@ export default async function AgentesPage({
   );
 }
 
-function TabCount({ value, active }: { value: number; active: boolean }) {
+function TabCount({ value }: { value: number }) {
   if (value === 0) return null;
-  return (
-    <span
-      style={{
-        marginLeft: 8,
-        font: "700 10.5px/1 var(--f-sans)",
-        color: active ? "var(--wine)" : "var(--ink-mute)",
-      }}
-    >
-      {value}
-    </span>
-  );
+  return <span className="studio-tab-n">{value}</span>;
 }
 
 function CatalogContent({ skills }: { skills: Awaited<ReturnType<typeof listSkills>> }) {

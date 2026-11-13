@@ -207,13 +207,9 @@ export function FinancieroChinaClient({
           {/* Tabs */}
           <div
             role="tablist"
-            style={{
-              display: "flex",
-              gap: 4,
-              borderBottom: "1px solid var(--border)",
-              marginBottom: 20,
-              flexWrap: "wrap",
-            }}
+            aria-label="Secciones del financiero China"
+            className="studio-tabs"
+            style={{ marginBottom: 20 }}
           >
             {TABS.map((tEntry) => {
               const active = tab === tEntry.value;
@@ -223,41 +219,13 @@ export function FinancieroChinaClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-activa={active ? "true" : undefined}
                   onClick={() => setTab(tEntry.value)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "10px 14px",
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: active
-                      ? "2px solid var(--wine)"
-                      : "2px solid transparent",
-                    color: active ? "var(--ink)" : "var(--ink-soft)",
-                    font: `${active ? 700 : 600} 13px/1 var(--f-sans)`,
-                    cursor: "pointer",
-                    marginBottom: -1,
-                  }}
+                  className="studio-tab"
                 >
                   {tEntry.label}
                   {typeof tEntry.count === "number" && tEntry.count > 0 && (
-                    <span
-                      style={{
-                        minWidth: 18,
-                        height: 18,
-                        padding: "0 5px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: 9,
-                        background: active ? "var(--wine-tint)" : "var(--neutral-bg)",
-                        color: active ? "var(--wine)" : "var(--ink-soft)",
-                        font: "800 10px/1 var(--f-mono)",
-                      }}
-                    >
-                      {tEntry.count}
-                    </span>
+                    <span className="studio-tab-n">{tEntry.count}</span>
                   )}
                 </button>
               );
