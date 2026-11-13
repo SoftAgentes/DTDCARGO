@@ -25,13 +25,20 @@ function valor(bloque: string, nombre: string): string {
   return m[1].trim();
 }
 
-function color(tema: "claro" | "oscuro", nombre: string): string {
+function crudo(tema: "claro" | "oscuro", nombre: string): string {
   const b = tema === "claro" ? bloqueClaro : bloqueOscuro;
   try {
     return valor(b, nombre);
   } catch {
     return valor(bloqueClaro, nombre); // el token no se sobrescribe en oscuro
   }
+}
+
+/** Valor de un token de color, siguiendo `var(--otro)` como lo haría el navegador. */
+function color(tema: "claro" | "oscuro", nombre: string): string {
+  const v = crudo(tema, nombre);
+  const ref = v.match(/^var\((--[\w-]+)\)$/);
+  return ref ? color(tema, ref[1]) : v;
 }
 
 function aRgb(c: string): Rgb {
@@ -71,8 +78,9 @@ const TEMAS = ["claro", "oscuro"] as const;
 describe("claridad de controles · SDD-0603", () => {
   describe.each(TEMAS)("tema %s", (tema) => {
     it("el contorno del botón secundario se ve contra la tarjeta (mínimo 3:1)", () => {
-      expect(regla(".studio-btn-ghost")).toContain("border-color: var(--ink)");
-      expect(contraste(tema, "--ink", "--bg-surface")).toBeGreaterThanOrEqual(3);
+      // Enmienda de elevación: el contorno pasa a 1,5 px en --ctl-border, que se resuelve a --ink.
+      expect(regla(".studio-btn-ghost")).toContain("border: 1.5px solid var(--ctl-border)");
+      expect(contraste(tema, "--ctl-border", "--bg-surface")).toBeGreaterThanOrEqual(3);
     });
 
     it("el contorno de un campo se ve contra la tarjeta (mínimo 3:1)", () => {
@@ -127,5 +135,77 @@ describe("claridad de controles · SDD-0603", () => {
     const compacto = tokensCss.slice(tokensCss.indexOf('[data-density="compact"]'));
     expect(valor(compacto, "--sb-item-y")).toBe("8px");
     expect(valor(bloqueClaro, "--sb-item-y")).toBe("12px");
+  });
+
+  describe("enmienda de elevación · 2026-11-12", () => {
+    /** Reglas de `studio.css` como pares selector → cuerpo, sin comentarios. */
+    const reglas = [...studioCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+      selectores: m[1].split(",").map((x) => x.trim()),
+      cuerpo: m[2],
+    }));
+
+    const RELLENO = [".studio-btn-primary", ".studio-btn-dark", ".studio-btn-warning", ".studio-btn-danger"];
+
+    it("la sombra del botón sale de sus dos piezas, nivel y borde", () => {
+      expect(regla(".studio-btn")).toContain("box-shadow: var(--btn-edge), var(--btn-lift)");
+      expect(regla(".studio-btn")).toContain("--btn-edge: 0 0 0 0 transparent");
+    });
+
+    it("el primario es el de más sombra: --shadow-md en reposo y --shadow-lg al pasar el cursor", () => {
+      expect(regla(".studio-btn-primary")).toContain("--btn-lift: var(--shadow-md)");
+      expect(regla(".studio-btn-primary:hover:not(:disabled)")).toContain("--btn-lift: var(--shadow-lg)");
+      expect(regla(".studio-btn-primary:active:not(:disabled)")).toContain("--btn-lift: var(--shadow-xs)");
+    });
+
+    it("el secundario lleva contorno de 1,5 px en --ctl-border y nivel --shadow-xs", () => {
+      const ghost = regla(".studio-btn-ghost");
+      expect(ghost).toContain("border: 1.5px solid var(--ctl-border)");
+      expect(ghost).toContain("--btn-lift: var(--shadow-xs)");
+      for (const tema of TEMAS) {
+        expect(crudo(tema, "--ctl-border")).toBe("var(--ink)");
+        expect(contraste(tema, "--ctl-border", "--bg-surface")).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    it("cada control con relleno lleva el borde propio --ctl-edge-hi", () => {
+      expect(RELLENO).toHaveLength(4);
+      for (const sel of RELLENO) expect([sel, regla(sel)]).toEqual([sel, expect.stringContaining("--btn-edge: var(--ctl-edge-hi)")]);
+    });
+
+    it("en claro --ctl-edge-hi no pinta nada; en oscuro trae un aro de al menos 3:1", () => {
+      expect(valor(bloqueClaro, "--ctl-edge-hi")).toBe("0 0 0 0 transparent");
+      const oscuro = valor(bloqueOscuro, "--ctl-edge-hi");
+      const aro = oscuro.match(/(?:^|,)\s*0 0 0 1px var\((--[\w-]+)\)/);
+      expect(aro).not.toBeNull();
+      for (const fondo of ["--bg-surface", "--bg-elevated", "--bg-base"]) {
+        expect(contraste("oscuro", aro![1], fondo)).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    it("los tokens nuevos no traen colores literales", () => {
+      const valores = [...tokensCss.matchAll(/--ctl-(?:border|edge-hi)\s*:\s*([^;]+);/g)].map((m) => m[1]);
+      expect(valores.length).toBeGreaterThanOrEqual(4); // claro y oscuro, más la impresión
+      for (const v of valores) expect(v).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/);
+    });
+
+    it("los verbos de botón van en peso 700 o más", () => {
+      const verbo = /^\.studio-(?:btn|icono-btn|cerrar-panel|densidad)(?![\w-]*__)|::file-selector-button/;
+      const pesos = reglas
+        .filter((r) => r.selectores.some((x) => verbo.test(x)))
+        .flatMap((r) => [...r.cuerpo.matchAll(/font(?:-weight)?\s*:\s*(\d{3})\b/g)].map((m) => ({ sel: r.selectores.join(", "), peso: Number(m[1]) })));
+      expect(pesos.length).toBeGreaterThanOrEqual(3);
+      for (const p of pesos) expect([p.sel, p.peso >= 700]).toEqual([p.sel, true]);
+    });
+
+    it("deshabilitado y confirmación quedan planos", () => {
+      expect(regla(".studio-btn:disabled")).toContain("box-shadow: none");
+      const exito = reglas.find((r) => r.selectores.includes(".studio-btn-success:disabled"));
+      expect(exito?.cuerpo).toContain("box-shadow: none");
+    });
+
+    it("los controles de icono, cierre y densidad reposan en nivel 1", () => {
+      const icono = reglas.find((r) => r.selectores.join(",") === ".studio-icono-btn,.studio-cerrar-panel,.studio-densidad");
+      expect(icono?.cuerpo).toContain("box-shadow: var(--shadow-xs)");
+    });
   });
 });

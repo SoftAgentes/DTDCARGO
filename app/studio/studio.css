@@ -287,7 +287,7 @@
   border-radius: 6px;
   background: var(--bg-elevated);
   color: var(--studio-ink);
-  font: 600 12px/1 var(--f-sans);
+  font: 700 12px/1 var(--f-sans);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -363,18 +363,24 @@
   font: 700 14px/1 var(--f-sans);
   border-radius: var(--r-md);
   border: 1px solid transparent;
-  box-shadow: var(--shadow-sm);
+  /* SDD-0603, enmienda de elevación: la sombra sale de dos piezas. --btn-lift es
+     el nivel (spec, «Niveles por control») y --btn-edge el borde propio de los
+     controles con relleno en oscuro (--ctl-edge-hi). Cada variante cambia solo
+     las piezas, no la sombra entera. */
+  --btn-edge: 0 0 0 0 transparent;
+  --btn-lift: var(--shadow-sm);
+  box-shadow: var(--btn-edge), var(--btn-lift);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 .studio-btn:hover:not(:disabled) {
-  box-shadow: var(--shadow-md);
+  --btn-lift: var(--shadow-md);
 }
 .studio-btn:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: var(--shadow-xs);
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn:disabled {
   /* Deshabilitado por validación: la raya y el fondo plano lo distinguen del activo
@@ -401,9 +407,15 @@
 .studio-btn-primary {
   background: var(--studio-wine);
   color: var(--ink-side-strong);
+  --btn-edge: var(--ctl-edge-hi);
+  --btn-lift: var(--shadow-md);
 }
 .studio-btn-primary:hover:not(:disabled) {
   background: var(--studio-wine-deep);
+  --btn-lift: var(--shadow-lg);
+}
+.studio-btn-primary:active:not(:disabled) {
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn-primary:focus-visible {
   outline: 2px solid var(--studio-wine-soft);
@@ -413,6 +425,7 @@
 .studio-btn-dark {
   background: var(--ink);
   color: var(--ink-inv);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-dark:focus-visible {
   outline: 2px solid var(--studio-wine-soft);
@@ -420,11 +433,13 @@
 }
 
 /* SDD-0603: el secundario deja de ser blanco sobre blanco. Contorno de tinta
-   (16,49:1 en claro, 13,08:1 en oscuro) y, al pasar el cursor, se invierte. */
+   (16,49:1 en claro, 13,08:1 en oscuro) y, al pasar el cursor, se invierte.
+   Enmienda de elevación: contorno de 1,5 px y nivel 1 (--shadow-xs). */
 .studio-btn-ghost {
   background: var(--bg-surface);
-  border-color: var(--ink);
+  border: 1.5px solid var(--ctl-border);
   color: var(--ink);
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn-ghost:hover:not(:disabled) {
   background: var(--ink);
@@ -454,6 +469,7 @@
 .studio-btn-warning {
   background: var(--studio-gold);
   color: var(--on-warning);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-warning:focus-visible {
   outline: 2px solid var(--studio-gold);
@@ -465,6 +481,7 @@
 .studio-btn-danger {
   background: var(--studio-red);
   color: var(--ink-inv);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-danger:focus-visible {
   outline: 2px solid var(--studio-red);
@@ -502,6 +519,7 @@
   border-radius: var(--r-md);
   color: var(--ink);
   font: 700 13.5px/1 var(--f-sans);
+  box-shadow: var(--shadow-xs);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
