@@ -1,3 +1,4 @@
+import { caracasDayBounds, caracasMonthBounds } from "@/lib/shared/fechas-caracas";
 /**
  * Queries del módulo Expenses · gastos rápidos del Mobile ERP.
  */
@@ -107,13 +108,7 @@ export interface ExpenseFilters {
 
 /** Rango [inicio, fin) ISO de un mes 'YYYY-MM' (o mes actual). */
 function monthRange(month?: string): { start: string; end: string } {
-  const now = new Date();
-  const [y, m] = month
-    ? month.split("-").map(Number)
-    : [now.getUTCFullYear(), now.getUTCMonth() + 1];
-  const start = new Date(Date.UTC(y, m - 1, 1)).toISOString();
-  const end = new Date(Date.UTC(y, m, 1)).toISOString();
-  return { start, end };
+  return caracasMonthBounds(month);
 }
 
 /**
@@ -269,16 +264,14 @@ export async function getLastFxRate(
 export async function sumMyExpensesTodayUsd(
   supabase: SupabaseClient,
 ): Promise<{ total: number; count: number }> {
-  // 'today' en VE timezone
-  const todayVE = new Date();
-  todayVE.setHours(0, 0, 0, 0);
-  const todayIso = todayVE.toISOString();
+  const { start, end } = caracasDayBounds();
 
   const { data, error } = await supabase
     .from("expenses")
     .select("amount_usd")
     .is("deleted_at", null)
-    .gte("occurred_at", todayIso);
+    .gte("occurred_at", start)
+    .lt("occurred_at", end);
 
   if (error) throw error;
 

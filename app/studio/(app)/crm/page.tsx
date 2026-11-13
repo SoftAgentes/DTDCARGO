@@ -1,3 +1,4 @@
+import type { AnnualBillingRead } from "@/lib/shared/annual-billing";
 /**
  * Tablero CRM Kommo (SDD-0078) — espejo READ-ONLY + cruce con la plata del ERP.
  * Server component: resuelve la pestaña, computa la analítica (Dirección) en una
@@ -101,6 +102,9 @@ export default async function KommoPage({
         filters={filters}
         convertedLeads={{}}
         valueByLead={{}}
+        // Sin lectura del espejo ni de la facturación: no disponible, nunca cero (SDD-0572-b).
+        convertedAvailable={false}
+        billingAvailable={false}
         contactByLead={{}}
         pendingOpsByLead={{}}
         staleOpsByLead={{}}
@@ -196,6 +200,8 @@ export default async function KommoPage({
           subdomain={overview.subdomain}
           convertedMarkboxByLead={analytics.convertedMarkboxByLead}
           valueByLead={analytics.valueByLead}
+          convertedAvailable={analytics.convertedAvailable}
+          billingAvailable={analytics.billingAvailable}
           ownerName={ownerName}
           pendingOpsByLead={boardPendingOps}
           staleOpsByLead={boardStaleOps}
@@ -239,7 +245,7 @@ export default async function KommoPage({
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
   const visibleConverted: Record<number, string> = {};
-  const visibleValue: Record<number, number> = {};
+  const visibleValue: Record<number, AnnualBillingRead> = {};
   for (const l of leads) {
     const mb = analytics.convertedMarkboxByLead[l.id];
     if (mb) visibleConverted[l.id] = mb;
@@ -301,6 +307,8 @@ export default async function KommoPage({
       filters={filters}
       convertedLeads={visibleConverted}
       valueByLead={visibleValue}
+      convertedAvailable={analytics.convertedAvailable}
+      billingAvailable={analytics.billingAvailable}
       contactByLead={contactByLead}
       pendingOpsByLead={pendingOpsByLead}
       staleOpsByLead={staleOpsByLead}

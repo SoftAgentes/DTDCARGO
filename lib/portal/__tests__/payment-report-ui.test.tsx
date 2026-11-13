@@ -168,6 +168,24 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("SDD-0365 · alta conserva el intento", () => {
+  it("C1: recovery reenvía por botón la fecha aceptada ahora futura con los mismos IDs, payload y prueba", async () => {
+    const user = userEvent.setup();
+    mocks.report.mockResolvedValueOnce({ error: UNCERTAIN_ERROR, uncertain: true }).mockImplementationOnce(formSuccess);
+    const view = mountForm();
+    await fillForm(user);
+    await user.click(screen.getByRole("button", { name: /^reportar pago$/i }));
+    await screen.findByText(UNCERTAIN_ERROR);
+    const first = formDataAt(0);
+    view.rerender(<UiBoundary><PaymentReportForm invoiceCode={CODE} currency="USD" todayIso="2026-08-31" /></UiBoundary>);
+    expect(screen.getByLabelText(/fecha del pago/i)).toHaveAttribute("max", "2026-08-31");
+    expect(screen.getByLabelText(/fecha del pago/i)).toHaveValue("2026-09-01");
+    await user.click(screen.getByRole("button", { name: /reintentar el mismo envío/i }));
+    await screen.findByText(SUCCESS);
+    for (const key of ["request_id", "report_id", "amount", "method", "paid_at", "note", "proof"]) {
+      expect(formDataAt(1).get(key)).toBe(first.get(key));
+    }
+  });
+
   it("conserva valores y archivo tras un rechazo conocido", async () => {
     const user = userEvent.setup();
     mountForm();

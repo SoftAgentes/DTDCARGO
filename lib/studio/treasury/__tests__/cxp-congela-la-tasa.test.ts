@@ -6,7 +6,7 @@
  * El doble corta en el INSERT (devuelve error) para afirmar lo que se manda sin
  * correr el asiento de causación.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const asientos: { fxRate: unknown }[] = [];
@@ -25,12 +25,14 @@ let inserts: Record<string, unknown>[] = [];
 let vigente: { data: unknown; error: unknown } = { data: null, error: null };
 // Lo que devuelve el INSERT: null corta la prueba ahí (sin asiento).
 let guardada: { id: string; fx_rate: unknown } | null = null;
+let despuesDeTasa: (() => void) | null = null;
 
 function makeClient(): SupabaseClient {
   const client = {
     rpc: async (rpc: string, args: Record<string, unknown>) => {
       rpcs.push({ rpc, args });
       if (rpc === "next_bill_code") return { data: "CXP-2026-0001", error: null };
+      despuesDeTasa?.();
       return vigente;
     },
     from(table: string) {
@@ -73,7 +75,29 @@ beforeEach(() => {
   inserts = [];
   vigente = { data: null, error: null };
   guardada = null;
+  despuesDeTasa = null;
   asientos.length = 0;
+});
+afterEach(() => vi.useRealTimers());
+
+describe("C1 · CxP con reloj capturado", () => {
+  it("resuelve fecha antes de FX y no la vuelve a calcular después", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));
+    despuesDeTasa = () => vi.setSystemTime(new Date("2026-10-21T04:00:00Z"));
+    vigente = { data: [{ rate: 40, source: "manual", valid_on: "2026-10-20" }], error: null };
+    guardada = { id: "b1", fx_rate: 40 };
+    expect(await createBillFor(makeClient(), { ...cxp, issueDate: undefined, currency: "VES", fxRate: null })).toMatchObject({ ok: true });
+    expect(rpcs[0].args.p_on).toBe("2026-10-20");
+    expect(inserts[0].issue_date).toBe("2026-10-20");
+    expect(asientos[0]).toMatchObject({ entryDate: "2026-10-20" });
+  });
+  it("vaciar emisión no consulta FX ni consume correlativo", async () => {
+    const result = await createBillFor(makeClient(), { ...cxp, issueDate: "", currency: "VES", fxRate: null });
+    expect(result.fieldErrors?.issueDate).toEqual(expect.any(String));
+    expect(rpcs).toEqual([]);
+    expect(inserts).toEqual([]);
+  });
 });
 
 describe("createBillFor · la tasa congelada", () => {

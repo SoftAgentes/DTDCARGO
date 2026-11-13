@@ -10,7 +10,7 @@
  *  - formato next_receipt_code → R-YYYY-NNNN (formatReceiptCode + RECEIPT_CODE_RE).
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { Account } from "../account-types";
 import type { Invoice } from "../invoice-types";
 import {
@@ -25,6 +25,7 @@ import {
   RECEIPT_CODE_RE,
   validateActivityInput,
   validatePaymentInput,
+  validateUnidentifiedPaymentInput,
   type CollectionActivity,
 } from "../payment-types";
 import {
@@ -33,6 +34,24 @@ import {
 } from "../accounting/receipt-posting";
 
 const TODAY = "2026-06-01";
+
+afterEach(() => vi.useRealTimers());
+describe("C1 · fecha de recepción", () => {
+  const valid = { amount: 10.25, cashAccountId: "cash" };
+  it("omisión programática toma Caracas en ambos tipos de cobro", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T02:30:00Z"));
+    expect(validatePaymentInput(valid, 100).input).toMatchObject({ receivedAt: "2026-10-20", amount: 10.25 });
+    expect(validateUnidentifiedPaymentInput(valid).input).toMatchObject({ receivedAt: "2026-10-20", amount: 10.25 });
+  });
+  it.each(["", "2026-02-30", "2025-02-29"])("rechaza fecha explícita inválida %j", (receivedAt) => {
+    expect(validatePaymentInput({ ...valid, receivedAt }, 100).fieldErrors?.receivedAt).toEqual(expect.any(String));
+    expect(validateUnidentifiedPaymentInput({ ...valid, receivedAt }).fieldErrors?.receivedAt).toEqual(expect.any(String));
+  });
+  it("preserva fecha elegida sin convertirla de zona", () => {
+    expect(validatePaymentInput({ ...valid, receivedAt: "2024-02-29" }, 100).input?.receivedAt).toBe("2024-02-29");
+  });
+});
 
 function inv(partial: Partial<Invoice> & { id: string }): Invoice {
   return {

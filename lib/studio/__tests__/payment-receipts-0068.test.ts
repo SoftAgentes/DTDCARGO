@@ -13,7 +13,7 @@
  *    con `rendido` definido (no visible) — su transición es SDD-D.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   buildReclassLines,
   buildUnidentifiedReceiptLines,
@@ -201,7 +201,7 @@ describe("validateUnidentifiedPaymentInput", () => {
     expect(ok.input?.fxRate).toBe(7.2);
   });
 
-  it("moneda desconocida cae a USD · fecha inválida es error · default hoy", () => {
+  it("moneda desconocida cae a USD · fecha inválida o vacía es error", () => {
     const r = validateUnidentifiedPaymentInput({
       ...valid,
       currency: "EUR" as never,
@@ -214,7 +214,33 @@ describe("validateUnidentifiedPaymentInput", () => {
     ).toBeDefined();
 
     const d = validateUnidentifiedPaymentInput({ ...valid, receivedAt: "" });
-    expect(d.input?.receivedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(d.fieldErrors?.receivedAt).toBe("Fecha de recepción inválida (YYYY-MM-DD).");
+    expect(d.input).toBeUndefined();
+  });
+
+  // SDD-0576: solo la omisión resuelve hoy; vacío no autoriza inventar una fecha.
+  it.each([
+    ["2026-10-21T03:59:59.999Z", "2026-10-20"],
+    ["2026-10-21T04:00:00.000Z", "2026-10-21"],
+  ])("omisión y undefined usan el día Caracas a %s", (instant, expectedDay) => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(instant));
+      const omitted: Partial<typeof valid> = { ...valid };
+      delete omitted.receivedAt;
+      for (const raw of [omitted, { ...valid, receivedAt: undefined }]) {
+        const result = validateUnidentifiedPaymentInput(raw);
+        expect(result.fieldErrors).toBeUndefined();
+        expect(result.input?.receivedAt).toBe(expectedDay);
+        expect(result.input?.amount).toBe(valid.amount);
+        expect(result.input?.currency).toBe(valid.currency);
+      }
+      const explicit = validateUnidentifiedPaymentInput(valid);
+      expect(explicit.fieldErrors).toBeUndefined();
+      expect(explicit.input?.receivedAt).toBe(valid.receivedAt);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
