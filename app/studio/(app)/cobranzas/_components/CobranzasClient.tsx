@@ -38,6 +38,7 @@ import {
 import type {
   CollectionKpis,
   FundsSeparation,
+  PendingReportsSummary,
   Receivable,
 } from "@/lib/studio/payment-queries";
 import { CobranzaDrawer, type CashAccountOption } from "./CobranzaDrawer";
@@ -72,12 +73,15 @@ export function CobranzasClient({
   cashAccounts,
   unidentified,
   separation,
+  pendingReports = {},
 }: {
   receivables: Receivable[];
   kpis: CollectionKpis;
   cashAccounts: CashAccountOption[];
   unidentified: PaymentReceipt[];
   separation: FundsSeparation;
+  /** SDD-0630: reportes del portal sin revisar por factura; null si no se pudo leer. */
+  pendingReports?: Record<string, PendingReportsSummary> | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -264,6 +268,7 @@ export function CobranzasClient({
         <CobranzaDrawer
           receivable={selected}
           cashAccounts={cashAccounts}
+          pendingReports={pendingReports === null ? "desconocido" : pendingReports[selected.invoice.id] ?? null}
           onClose={() => setSelectedId(null)}
         />
       )}

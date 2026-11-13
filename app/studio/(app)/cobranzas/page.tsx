@@ -16,6 +16,7 @@ import {
   fundsSeparationSummary,
   listCashAccounts,
   listUnidentifiedReceipts,
+  pendingReportsByInvoice,
   receivablesQueue,
 } from "@/lib/studio/payment-queries";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
@@ -32,13 +33,16 @@ export default async function CobranzasPage() {
   const today = todayCaracasISO();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [queue, kpis, cashAccounts, unidentified, separation] =
+  // SDD-0630: reportes del portal sin revisar, por factura, para avisar en el
+  // cobro que ese pago se confirma desde la factura (crea el recibo allí).
+  const [queue, kpis, cashAccounts, unidentified, separation, pendingReports] =
     await Promise.all([
       receivablesQueue(supabase, today),
       collectionKpis(supabase, today),
       listCashAccounts(supabase),
       listUnidentifiedReceipts(supabase),
       fundsSeparationSummary(supabase, { from: monthStart, to: today }),
+      pendingReportsByInvoice(supabase),
     ]);
 
   return (
@@ -52,6 +56,7 @@ export default async function CobranzasPage() {
       }))}
       unidentified={unidentified}
       separation={separation}
+      pendingReports={pendingReports === null ? null : Object.fromEntries(pendingReports)}
     />
   );
 }

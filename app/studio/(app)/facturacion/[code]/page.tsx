@@ -16,7 +16,7 @@ import {
   strandedCreditsForInvoice,
   type StrandedCreditOnInvoice,
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
-import { listCashAccounts, listReceipts } from "@/lib/studio/payment-queries";
+import { listCashAccounts, listReceipts, receiptCodesByReport } from "@/lib/studio/payment-queries";
 import { listInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { createProofSignedUrl } from "@/lib/portal/payment-proof";
 import {
@@ -92,15 +92,22 @@ export default async function InvoiceDetailPage({
     tenantId: invoice.tenant_id,
     invoiceId: invoice.id,
   });
+  // SDD-0630: el recibo que creó cada confirmación (vacío sin la migración 0537).
+  const reportReceipts = await receiptCodesByReport(
+    supabase,
+    (reports ?? []).filter((r) => r.status === "confirmado").map((r) => r.id),
+  );
   let reportItems: ReportWithProof[] | null = reports?.map((report) => ({
     report,
     proofUrl: null,
+    receiptCode: reportReceipts.get(report.id) ?? null,
   })) ?? null;
   if (reports?.some((r) => r.proofPath)) {
     const admin = createAdminClient();
     reportItems = await Promise.all(
       reports.map(async (report) => ({
         report,
+        receiptCode: reportReceipts.get(report.id) ?? null,
         proofUrl: report.proofPath
           ? await createProofSignedUrl(admin, report.proofPath, {
               tenantId: invoice.tenant_id,
@@ -515,7 +522,10 @@ export default async function InvoiceDetailPage({
       )}
 
       {/* Reportes de pago del cliente (SDD-0134 · Slice B) */}
-      <StudioInvoicePaymentReports items={reportItems} />
+      <StudioInvoicePaymentReports
+        items={reportItems}
+        cashAccounts={cashAccounts.map((a) => ({ id: a.id, code: a.code, name: a.name }))}
+      />
 
       {invoice.notes && (
         <section

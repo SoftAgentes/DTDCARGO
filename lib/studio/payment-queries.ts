@@ -723,3 +723,68 @@ export async function listCashAccounts(
     .filter(isCashAccount)
     .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
 }
+
+// ── SDD-0630 · reportes de pago del portal y su recibo ─────────
+
+/**
+ * Código del recibo de cobro de cada reporte confirmado (payment_reports.id →
+ * receipt_code), por el vínculo `payment_receipts.payment_report_id` de la
+ * migración 0537. Sin la 0537 la columna no existe y PostgREST responde error:
+ * se devuelve un mapa vacío y la pantalla sólo no muestra el código.
+ */
+export async function receiptCodesByReport(
+  supabase: SupabaseClient,
+  reportIds: string[],
+): Promise<Map<string, string>> {
+  const codes = new Map<string, string>();
+  if (reportIds.length === 0) return codes;
+  try {
+    const { data, error } = await supabase
+      .from("payment_receipts")
+      .select("payment_report_id, receipt_code")
+      .in("payment_report_id", reportIds);
+    if (error || !Array.isArray(data)) return codes;
+    for (const row of data as { payment_report_id: string | null; receipt_code: string }[]) {
+      if (row.payment_report_id) codes.set(row.payment_report_id, row.receipt_code);
+    }
+  } catch {
+    // Lectura de apoyo: sin ella la pantalla sigue, sin el código.
+  }
+  return codes;
+}
+
+/** Reportes del portal sin revisar de una factura: cuántos y por cuánto. */
+export type PendingReportsSummary = { count: number; amount: number };
+
+/**
+ * Reportes de pago del portal que siguen `reportado` (sin cancelar ni borrar),
+ * agrupados por factura. Cobranzas avisa con esto antes de registrar un cobro:
+ * ese pago se confirma desde la factura, que crea el recibo; registrarlo
+ * también en Cobranzas lo contaría dos veces. null si no se pudo leer: la
+ * pantalla lo dice en vez de callar.
+ */
+export async function pendingReportsByInvoice(
+  supabase: SupabaseClient,
+): Promise<Map<string, PendingReportsSummary> | null> {
+  try {
+    const { data, error } = await supabase
+      .from("payment_reports")
+      .select("invoice_id, amount")
+      .eq("status", "reportado")
+      .is("cancelled_at", null)
+      .is("deleted_at", null)
+      .limit(1000);
+    if (error || !Array.isArray(data)) return null;
+    const out = new Map<string, PendingReportsSummary>();
+    for (const row of data as { invoice_id: string; amount: number | string }[]) {
+      const prev = out.get(row.invoice_id) ?? { count: 0, amount: 0 };
+      out.set(row.invoice_id, {
+        count: prev.count + 1,
+        amount: Math.round((prev.amount + Number(row.amount)) * 100) / 100,
+      });
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
