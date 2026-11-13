@@ -1,3 +1,4 @@
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 /**
  * Tipos TypeScript del módulo Tesorería (SDD-0044) — el espejo de Cobranzas.
  * Matchea schema de supabase/migrations/0088_tesoreria.sql
@@ -302,11 +303,10 @@ export function validateBillInput(input: Partial<BillInput>): {
     errors.expenseAccountId = "Elige la cuenta de costo o gasto a imputar.";
   }
 
-  const dateOk = (s: string | null | undefined): boolean =>
-    !s || /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const dateOk = isCalendarDate;
 
-  const issueDate = (input.issueDate ?? "").trim();
-  if (issueDate && !dateOk(issueDate)) {
+  const issueDate = input.issueDate === undefined ? fechaCaracas() : input.issueDate;
+  if (!dateOk(issueDate)) {
     errors.issueDate = "Fecha de emisión inválida (YYYY-MM-DD).";
   }
 
@@ -350,7 +350,7 @@ export function validateBillInput(input: Partial<BillInput>): {
       currency,
       fxRate,
       totalAmount,
-      issueDate: issueDate || new Date().toISOString().slice(0, 10),
+      issueDate,
       dueDate,
       reference: input.reference?.trim() || null,
       shipmentId: input.shipmentId?.trim() || null,
@@ -491,8 +491,8 @@ export function validatePaymentInput(
     ? (input.method as PaymentMethod)
     : "transferencia";
 
-  const paidAt = (input.paidAt ?? "").trim();
-  if (paidAt && !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) {
+  const paidAt = input.paidAt === undefined ? fechaCaracas() : input.paidAt;
+  if (!isCalendarDate(paidAt)) {
     errors.paidAt = "Fecha de pago inválida (YYYY-MM-DD).";
   }
 
@@ -505,7 +505,7 @@ export function validatePaymentInput(
       amount,
       cashAccountId,
       method,
-      paidAt: paidAt || new Date().toISOString().slice(0, 10),
+      paidAt,
       reference: input.reference?.trim() || null,
       notes: input.notes?.trim() || null,
     },

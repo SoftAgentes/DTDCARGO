@@ -1,3 +1,4 @@
+import { BILLING_UNAVAILABLE, billingStatus, formatAnnualUsd, sumAnnualBilling, type AnnualBillingRead } from "@/lib/shared/annual-billing";
 /**
  * Tablero kanban del CRM Kommo (SDD-0078 · vista Tablero).
  *
@@ -78,6 +79,8 @@ export function KommoBoardView({
   subdomain,
   convertedMarkboxByLead,
   valueByLead,
+  convertedAvailable,
+  billingAvailable,
   ownerName,
   pendingOpsByLead,
   staleOpsByLead,
@@ -95,7 +98,9 @@ export function KommoBoardView({
   pipelineId: number | null;
   subdomain: string | null;
   convertedMarkboxByLead: Record<number, string>;
-  valueByLead: Record<number, number>;
+  valueByLead: Record<number, AnnualBillingRead>;
+  convertedAvailable: boolean;
+  billingAvailable: boolean;
   ownerName: Record<number, string>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo ("en camino"). */
   pendingOpsByLead: Record<number, string[]>;
@@ -144,8 +149,7 @@ export function KommoBoardView({
     else leadsByStatus.set(l.status_id, [l]);
   }
 
-  const leadValue = (l: KommoLeadRow): number =>
-    valueByLead[l.id] ?? (Number(l.price) || 0);
+
 
   // ¿Alguna columna trae menos tarjetas que su conteo real? (embudo capado)
   const anyTruncated = cols.some(
@@ -203,7 +207,9 @@ export function KommoBoardView({
             const colLeads = leadsByStatus.get(s.id) ?? [];
             const realCount = realCountByStatus[s.id] ?? colLeads.length;
             const truncated = realCount > colLeads.length;
-            const total = colLeads.reduce((acc, l) => acc + leadValue(l), 0);
+            const converted = colLeads.filter((l) => convertedMarkboxByLead[l.id]);
+            const erp = !convertedAvailable ? BILLING_UNAVAILABLE : sumAnnualBilling(converted.map((l) => ({ key: convertedMarkboxByLead[l.id], billing: billingAvailable ? valueByLead[l.id] ?? BILLING_UNAVAILABLE : BILLING_UNAVAILABLE })));
+            const nominal = colLeads.filter((l) => !convertedMarkboxByLead[l.id]).reduce((n, l) => n + (Number(l.price) || 0), 0);
             const shown = colLeads.slice(0, CARDS_PER_COLUMN);
             const rest = realCount - shown.length;
             const accent = accentColor(s.color);
@@ -264,16 +270,19 @@ export function KommoBoardView({
                   <div
                     style={{
                       font: "700 12px/1 var(--f-mono)",
-                      color: total > 0 ? "var(--ink-soft)" : "var(--ink-mute)",
+                      color: "var(--ink-soft)",
+                      lineHeight: 1.5,
                       marginTop: 8,
                     }}
                     title={
                       truncated
                         ? "Σ parcial — embudo grande, ver aviso al pie"
-                        : "Suma de valor de la columna (facturado ERP si es cliente; si no, el valor del CRM)"
+                        : "Facturación ERP atribuida a las tarjetas; valor nominal CRM separado"
                     }
                   >
-                    {total > 0 ? `${truncated ? "~" : ""}${fmtUsd(total)}` : "—"}
+                    <div>{truncated ? "Tarjetas cargadas · " : ""}ERP: {formatAnnualUsd(erp.subtotalUsd)}</div>
+                    <div style={{ font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(erp)}</div>
+                    {convertedAvailable && <div>Valor nominal CRM: {fmtUsd(nominal)}</div>}
                   </div>
                 </div>
 
@@ -303,7 +312,9 @@ export function KommoBoardView({
                         ? `https://${subdomain}.kommo.com/leads/detail/${l.id}`
                         : null;
                       const days = daysSince(l.kommo_updated_at);
-                      const erpVal = valueByLead[l.id];
+                      const erpVal = !convertedAvailable ? BILLING_UNAVAILABLE
+                        : convertedMarkboxByLead[l.id] ? (billingAvailable ? valueByLead[l.id] ?? BILLING_UNAVAILABLE : BILLING_UNAVAILABLE)
+                        : undefined;
                       const kommoPrice = Number(l.price) || 0;
                       const markbox = convertedMarkboxByLead[l.id];
                       const owner =
@@ -380,10 +391,11 @@ export function KommoBoardView({
                           >
                             {erpVal != null ? (
                               <span
-                                style={{ font: "700 12px/1 var(--f-mono)", color: "var(--success)" }}
-                                title="Facturado en el ERP (12m)"
+                                style={{ font: "700 12px/1 var(--f-mono)", color: erpVal.state === "completo" ? "var(--success)" : "var(--ink-soft)" }}
+                                title={billingStatus(erpVal)}
                               >
-                                {fmtUsd(erpVal)}
+                                {formatAnnualUsd(erpVal.subtotalUsd)}
+                      <small style={{ display: "block", lineHeight: 1.4, font: "500 11px/1.4 var(--f-sans)", marginTop: 5 }}>{billingStatus(erpVal)}</small>
                               </span>
                             ) : kommoPrice > 0 ? (
                               <span
