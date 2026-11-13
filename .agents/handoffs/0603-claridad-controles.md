@@ -68,7 +68,7 @@ Ver `docs/specs/0603-claridad-controles/spec.md`. Piezas compartidas del Studio,
 - **Owner:** Claude, sesión Worker encargada por el Director General (`local_25e2dded-103b-4eaa-b10e-6527564b9cad`), claim `local-0603-enmienda`.
 - **Worktree:** `.claude/worktrees/0603-enmienda-elevacion-b4a07e`.
 - **Rama:** `claude/0603-enmienda-elevacion-b4a07e`, desde `origin/main` `dcccddee611b674828309aedcec9101863357e7a`.
-- **Autorización:** Sam aprobó la enmienda el 2026-11-12. El encargo autorizaba publicar la rama y abrir la PR, pero el DG cambió el cierre el 2026-11-13, porque Sam pidió no gastar más minutos de GitHub Actions: commits locales y pruebas en la PC con turno. No se hace push ni se abre la PR hasta que el DG avise. No incluye merge, despliegue ni producción.
+- **Autorización:** Sam aprobó la enmienda el 2026-11-12, y el encargo autorizaba publicar la rama y abrir la PR. El 2026-11-13 el DG frenó el push para no gastar minutos de GitHub Actions. Ese mismo día lo reactivó, porque el repositorio es público: push y PR lista, después de leer el `verify` local. No incluye merge, despliegue ni producción.
 
 ### OBJETIVO ORIGINAL
 
@@ -98,8 +98,14 @@ Aplicar sobre `main` la Enmienda de elevación de SDD-0603: sombra por nivel, bo
 - Contrato con un mini-runner en node que imita lo que usa de vitest: PASÓ, 23 de 23. La prueba de impresión, recalculada con la misma lógica, da claves iguales y valores claros: PASÓ.
 - Mutantes: 14 de 14 muertos. Cada uno rompe una regla: primario sin `md`, hover sin `lg`, secundario de 1 px, secundario sin `xs`, peligro sin borde, sombra base fija, aro pálido, aro con color literal, borde que pinta en claro, `--ctl-border` pálido, selector de archivo en 600, botón en 600, deshabilitado con sombra e icono sin nivel.
 - `/ui-check`: OK con ajustes menores, que se miran en la imagen de prueba.
-- Vitest real, tipos, ESLint y build: NO EJECUTADO todavía. El worktree no tiene dependencias; está pedido el turno de máquina al DG.
-- `pnpm verify`: NO EJECUTADO, espera turno.
+- `pnpm install --frozen-lockfile`, con turno del DG: OK.
+- Vitest focal, con vitest real (contrato, apariencia, `DensityToggle` y pestañas): PASÓ, 4 archivos y 40 pruebas.
+- `pnpm verify` sobre `39b08570c`: exit 0, con 14 de 17 pasos medidos. Por comprobación:
+  - harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols y build: PASÓ.
+  - test: PASÓ, 1051 archivos y 16 383 pruebas, con 4 archivos y 26 pruebas omitidos.
+  - e2e: PASÓ con aviso. 237 pruebas pasaron y una salió flaky; pasó al reintentar (`e2e/auth.spec.ts:81`, token inválido, ajena a este cambio). El proceso salió distinto de 0 por el worker de WebKit, que no cierra en Windows.
+  - migrations-applied: NO DISPONIBLE, sin `.env.local`.
+  - sql-tests y schema-rebuild: NO DISPONIBLE, sin Docker. La enmienda no toca SQL.
 - Imagen de prueba: NO EJECUTADO; la arma el Director.
 
 ### COMMITS
@@ -110,12 +116,11 @@ Aplicar sobre `main` la Enmienda de elevación de SDD-0603: sombra por nivel, bo
 
 ### PR / BRANCH
 
-Rama local `claude/0603-enmienda-elevacion-b4a07e`, sin publicar. Base `dcccddee611b674828309aedcec9101863357e7a`. PR: ninguna; espera el aviso del DG.
+Rama `claude/0603-enmienda-elevacion-b4a07e`, publicada con un solo push. Base `dcccddee611b674828309aedcec9101863357e7a`. PR: ver el aviso al DG; la cabeza es el commit de este handoff.
 
 ### PENDIENTES DE ESTA TAREA
 
-- Turno de máquina: `pnpm install --frozen-lockfile`, vitest focal y `pnpm verify`. Registrar el resultado aquí.
-- Push único y PR cuando el DG avise. Luego, el aviso al DG con el número de PR y la cabeza de 40 caracteres.
+- CI de la PR y la revisión independiente, que lanza el DG.
 - En la imagen de prueba: el contorno de 1,5 px en pantallas 1x, el aro recortado por contenedores con `overflow: hidden` y un recorrido en oscuro.
 - Graphify, Archify y Obsidian: NO EJECUTADO; los publica el Director desde main integrado.
 
@@ -127,4 +132,4 @@ Rama local `claude/0603-enmienda-elevacion-b4a07e`, sin publicar. Base `dcccddee
 
 ### HANDOFF AL DIRECTOR
 
-Enmienda lista en local: cabeza en el commit de este handoff, sobre `dcccddee6`. Falta el turno de máquina para vitest real y `verify`. Sin push, por instrucción del DG del 2026-11-13.
+PR lista para revisar, sin fusionar. La cabeza es el commit de este handoff, sobre `dcccddee6`. El `verify` local dio verde en lo medido, con 3 críticos sin medir por falta de `.env.local` y Docker. La revisión independiente y la imagen de prueba para Sam las lanza el DG.
