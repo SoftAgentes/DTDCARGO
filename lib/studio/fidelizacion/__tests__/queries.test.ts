@@ -13,7 +13,7 @@
  * en `calls` los filtros aplicados (estilo invoice-queries.test.ts).
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   clientAnnualBilling,
@@ -153,11 +153,11 @@ describe("clientAnnualBilling", () => {
     expect(rpcCalls).toEqual([
       {
         fn: "studio_client_annual_billing_v2",
-        args: { p_as_of: "2026-06-03" },
+        args: { p_as_of: "2026-06-02" },
       },
       {
         fn: "studio_client_annual_billing_v2",
-        args: { p_as_of: "2026-06-03" },
+        args: { p_as_of: "2026-06-02" },
       },
     ]);
   });
@@ -380,7 +380,7 @@ describe("0572-b · frontera de páginas y forma v2", () => {
     expect(map.size).toBe(1201);
     expect(map.get("C1200")).toEqual({ state: "sin_tasa", subtotalUsd: "0.00", sinTasaCount: 1 });
     expect(offsets).toEqual([0,500,1000,1201]);
-    expect(new Set(dates)).toEqual(new Set(["2026-06-03"]));
+    expect(new Set(dates)).toEqual(new Set(["2026-06-02"]));
   });
   it("error intermedio y tope rechazan el mapa completo", async () => {
     await expect(clientAnnualBilling(paged(Array.from({ length: 61 }, (_,n) => row(n)),1).client)).rejects.toThrow("Facturación anual no disponible");
@@ -388,5 +388,51 @@ describe("0572-b · frontera de páginas y forma v2", () => {
   });
   it.each([{}, { ...row(1), subtotal_usd: null }, { ...row(1), sin_tasa_count: -1 }])("shape inválido no se omite %#", async (value) => {
     await expect(clientAnnualBilling(paged([value]).client)).rejects.toThrow();
+  });
+});
+
+describe("0576 C2 · día Caracas anual capturado antes de paginar", () => {
+  it.each([
+    ["2026-10-21T02:30:00Z", "2026-10-20"],
+    ["2026-10-21T03:59:59.999Z", "2026-10-20"],
+    ["2026-10-21T04:00:00Z", "2026-10-21"],
+    ["2027-01-01T02:30:00Z", "2026-12-31"],
+    ["2024-03-01T02:30:00Z", "2024-02-29"],
+    ["2010-01-01T04:15:00Z", "2009-12-31"],
+  ])("%s envía %s sin depender de la zona del host", async (instant, day) => {
+    const { client, rpcCalls } = stub({ studio_client_annual_billing_v2: [] });
+    await expect(clientAnnualBilling(client, new Date(instant))).resolves.toEqual(new Map());
+    expect(rpcCalls).toEqual([{ fn: "studio_client_annual_billing_v2", args: { p_as_of: day } }]);
+  });
+
+  it("conserva el ancla inyectada aunque el argumento y el reloj crucen medianoche entre páginas", async () => {
+    vi.useFakeTimers();
+    const instant = new Date("2026-10-21T03:59:59.999Z");
+    vi.setSystemTime(instant);
+    const dates: string[] = [], offsets: number[] = [];
+    const rows = Array.from({ length: 1001 }, (_, n) => ({ client_markbox: `C${n}`, subtotal_usd: "1.00", sin_tasa_count: 0, conversion_state: "completo" }));
+    const client = { rpc(_fn: string, args: { p_as_of: string }) {
+      dates.push(args.p_as_of);
+      const q = { order: () => q, async range(from: number) {
+        offsets.push(from);
+        await Promise.resolve();
+        instant.setTime(new Date("2026-10-21T04:00:00Z").getTime());
+        vi.setSystemTime(instant);
+        return { data: rows.slice(from, from + 500), error: null };
+      } }; return q;
+    } } as unknown as SupabaseClient;
+    try {
+      const result = await clientAnnualBilling(client, instant);
+      expect(result.size).toBe(1001);
+      expect(offsets).toEqual([0, 500, 1000, 1001]);
+      expect(dates).toEqual(Array(4).fill("2026-10-20"));
+      expect(JSON.stringify([...result.values()])).toContain('"subtotalUsd":"1.00"');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it.each([new Date(NaN), "2026-10-21" as unknown as Date])("rechaza un instante inválido antes de la RPC %#", async (instant) => {
+    const { client, rpcCalls } = stub({ studio_client_annual_billing_v2: [] });
+    await expect(clientAnnualBilling(client, instant)).rejects.toThrow();
+    expect(rpcCalls).toEqual([]);
   });
 });

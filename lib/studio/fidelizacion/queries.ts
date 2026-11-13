@@ -12,6 +12,7 @@
 import { AnnualBillingError, BILLING_UNAVAILABLE, BILLING_ZERO, billingNumber, compareAnnualBilling, decodeAnnualBilling, type AnnualBilling, type AnnualBillingRead } from "@/lib/shared/annual-billing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import {
   REFERRAL_RULES,
   tierOf,
@@ -29,7 +30,7 @@ export async function clientAnnualBilling(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<Map<string, AnnualBilling>> {
-  const asOf = now.toISOString().slice(0, 10);
+  const asOf = fechaCaracas(now);
   try {
     const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(
       async (d, h) => {
