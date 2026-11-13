@@ -352,8 +352,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // sin entrar en ninguna lista. `guardarEdicion` escribe con el cliente de sesión
   // (la policy de UPDATE de 0055 repite admin y tenant); retiro y vuelta, por las
   // RPC `news_retirar` y `news_volver_a_publicar` (0518), que repiten `is_tenant_admin`.
+  // SDD-0627 sumó `naviera/actions.ts::ensayarAvisosZarpe` (466 → 467): ensayo en
+  // seco del aviso `carga_en_camino`. `moduleEditDenial("naviera")` antes de leer
+  // nada (sólo valida antes que el id no venga vacío); comprueba con el cliente de
+  // sesión que el contenedor sea del tenant y después sólo LEE con el admin,
+  // scopeado a ese tenant y contenedor. No escribe: devuelve conteos.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(466);
+    expect(reportes.length).toBe(467);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
