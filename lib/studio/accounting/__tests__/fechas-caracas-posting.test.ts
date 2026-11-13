@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const io=vi.hoisted(()=>({ admin:vi.fn() }));
 vi.mock("@/lib/db/admin",()=>({createAdminClient:io.admin}));
-import { postInvoiceJournalEntry } from "../invoice-posting";
 import { postBillJournalEntry } from "../bill-posting";
 import { postReceiptJournalEntry, postUnidentifiedReceiptJournalEntry, postReceiptReclassEntry } from "../receipt-posting";
 import { postSupplierPaymentJournalEntry } from "../supplier-payment-posting";
@@ -34,7 +33,6 @@ function setup(cross=false) {
 }
 const base={tenantId:"tenant",amount:10.25,amountUsd:10.25,currency:"USD",cashAccountId:"cash"};
 const posters:[string,(date?:string)=>Promise<{ok:boolean}>][]=[
-  ["invoice",entryDate=>postInvoiceJournalEntry({...base,invoiceId:"i",invoiceCode:"F",baseAmount:10.25,ivaAmount:0,totalAmount:10.25,entryDate})],
   ["bill",entryDate=>postBillJournalEntry({...base,billId:"b",billCode:"B",expenseAccountId:"cost",entryDate})],
   ["receipt",entryDate=>postReceiptJournalEntry({...base,receiptId:"r",receiptCode:"R",entryDate})],
   ["unidentified",entryDate=>postUnidentifiedReceiptJournalEntry({...base,receiptId:"u",receiptCode:"U",entryDate})],
@@ -46,7 +44,10 @@ const posters:[string,(date?:string)=>Promise<{ok:boolean}>][]=[
 ];
 beforeEach(()=>{vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));});
 afterEach(()=>vi.useRealTimers());
-describe("C1 · nueve fallbacks de ocho posters reales",()=>{
+// La factura ya no tiene fallback en JS: desde la 0497 el asiento lo crea la RPC
+// atómica post_invoice_journal_entry_atomic con entry_date = issued_at persistido
+// (invoice-posting-reverso.test.ts). Quedan los ocho fallbacks de siete posters.
+describe("C1 · ocho fallbacks de siete posters reales",()=>{
   it.each(posters)("%s captura día antes del primer await; posted_at sigue instante UTC",async(_name,post)=>{
     const state=setup(true);
     expect(await post()).toMatchObject({ok:true});
