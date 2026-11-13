@@ -38,6 +38,7 @@
  * `voidBillFor`: anula la CxP sin pagos (status='anulada' + anula su asiento).
  */
 
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { tasaDelDocumento } from "@/lib/studio/fx-rates";
@@ -120,6 +121,9 @@ export async function createBillFor(
   supabase: SupabaseClient,
   raw: Partial<BillInput>,
 ): Promise<CreateBillResult> {
+  const businessDay = fechaCaracas();
+  const issueDate = raw?.issueDate === undefined ? businessDay : raw.issueDate;
+  if (!isCalendarDate(issueDate)) return { fieldErrors: { issueDate: "Fecha de emisión inválida (YYYY-MM-DD)." } };
   const tenantId = await resolveTenantId(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -127,11 +131,11 @@ export async function createBillFor(
   // congelada en la CxP con su fuente y su fecha.
   const tasa = await tasaDelDocumento(
     supabase, tenantId, raw.currency ?? "USD", raw.fxRate ?? null,
-    raw.issueDate || new Date().toISOString().slice(0, 10),
+    issueDate,
   );
   if (!tasa.ok) return { fieldErrors: { fxRate: tasa.error } };
   const { input, fieldErrors } = validateBillInput(
-    tasa.tasa.fxRate !== null ? { ...raw, fxRate: tasa.tasa.fxRate } : raw,
+    { ...raw, issueDate, ...(tasa.tasa.fxRate !== null ? { fxRate: tasa.tasa.fxRate } : {}) },
   );
   if (fieldErrors) return { fieldErrors };
 
@@ -309,6 +313,7 @@ export async function registerPaymentFor(
   billId: string,
   raw: Partial<SupplierPaymentInput>,
 ): Promise<RegisterPaymentResult> {
+  const paidAt = raw?.paidAt === undefined ? fechaCaracas() : raw.paidAt;
   // 1. Leer la CxP (RLS la acota al tenant). Sólo para el mensaje y el saldo
   // del formulario: la RPC vuelve a validar con la CxP bloqueada.
   const { data: bill, error: readErr } = await supabase
@@ -329,7 +334,7 @@ export async function registerPaymentFor(
     paid_amount: Number(bill.paid_amount),
   });
 
-  const { input, fieldErrors } = validatePaymentInput(raw, balance);
+  const { input, fieldErrors } = validatePaymentInput({ ...raw, paidAt }, balance);
   if (fieldErrors) return { fieldErrors };
 
   // 2. Pago atómico (0468): CxP FOR UPDATE, saldo estricto, payment_code

@@ -1,5 +1,7 @@
 "use client";
 
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
+
 /**
  * Orquestador client de Fidelización & Referidos (SDD-0051, Slice B).
  *
@@ -74,6 +76,7 @@ function tierColor(tone: BadgeTone): string {
 export function FidelizacionClient({
   clients,
   tierCounts,
+  portfolioAvailable = true,
   referrals,
   stats,
   topReferrers,
@@ -86,6 +89,7 @@ export function FidelizacionClient({
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
+  portfolioAvailable?: boolean;
   referrals: Referral[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
@@ -201,6 +205,7 @@ export function FidelizacionClient({
 
       {tab === "dashboard" && (
         <DashboardTab
+          totalClients={portfolioAvailable ? clients.length : null}
           tierCounts={tierCounts}
           stats={stats}
           topReferrers={topReferrers}
@@ -209,7 +214,10 @@ export function FidelizacionClient({
           onGoNiveles={() => setTab("niveles")}
         />
       )}
-      {tab === "niveles" && <NivelesTab tierCounts={tierCounts} />}
+      {(!portfolioAvailable || clients.some((c) => !c.tier)) && <p role="status" style={{ color: "var(--ink-soft)", font: "500 13px/1.5 var(--f-sans)" }}>
+        {!portfolioAvailable ? "Cartera y facturación anual no disponibles." : `${clients.filter((c) => !c.tier).length} clientes con nivel Por revisar. La distribución solo incluye niveles verificables.`}
+      </p>}
+      {tab === "niveles" && <NivelesTab tierCounts={tierCounts} portfolioAvailable={portfolioAvailable} />}
       {tab === "referidos" && (
         <ReferidosTab
           referrals={referrals}
@@ -218,7 +226,7 @@ export function FidelizacionClient({
         />
       )}
       {tab === "clientes" && (
-        <ClientesTab clients={clients} referrals={referrals} />
+        <ClientesTab clients={clients} referrals={referrals} portfolioAvailable={portfolioAvailable} />
       )}
 
       {/* Drawers */}
@@ -393,6 +401,7 @@ function programSteps(referredReward: number, referrerReward: number) {
 }
 
 function DashboardTab({
+  totalClients,
   tierCounts,
   stats,
   topReferrers,
@@ -406,12 +415,12 @@ function DashboardTab({
   referralSettings: ReferralSettingsInput;
   onGoReferidos: () => void;
   onGoNiveles: () => void;
+  totalClients: number | null;
 }) {
   const PROGRAM_STEPS = programSteps(
     referralSettings.referredRewardUsd,
     referralSettings.referrerRewardUsd,
   );
-  const totalClients = tierCounts.reduce((s, c) => s + c.count, 0);
   const platinum = tierCounts.find((c) => c.tier.id === "platinum")?.count ?? 0;
   const gold = tierCounts.find((c) => c.tier.id === "gold")?.count ?? 0;
 
@@ -426,7 +435,7 @@ function DashboardTab({
         }}
       >
         <KpiCard
-          value={totalClients}
+          value={totalClients ?? "—"}
           label="Clientes activos"
           sub={`${platinum} Platinum · ${gold} Gold`}
         />
@@ -726,9 +735,9 @@ function DashboardTab({
 // Tab: Niveles
 // ════════════════════════════════════════════════════════════════
 
-function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
+function NivelesTab({ tierCounts, portfolioAvailable }: { tierCounts: TierCount[]; portfolioAvailable: boolean }) {
   const countOf = (id: Tier["id"]) =>
-    tierCounts.find((c) => c.tier.id === id)?.count ?? 0;
+    portfolioAvailable ? tierCounts.find((c) => c.tier.id === id)?.count ?? 0 : null;
 
   return (
     <div
@@ -770,7 +779,7 @@ function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
                 {t.label}
               </span>
               <Badge tone={t.tone} size="sm">
-                {count} {count === 1 ? "cliente" : "clientes"}
+                {count === null ? "Cartera no disponible" : `${count} ${count === 1 ? "cliente" : "clientes"}`}
               </Badge>
             </div>
             <div
@@ -1036,14 +1045,16 @@ function ReferidosTab({
 // Tab: Clientes
 // ════════════════════════════════════════════════════════════════
 
-const CLIENT_GRID = "1fr 110px 130px 1.3fr 120px 90px";
+const CLIENT_GRID = "minmax(180px, 1fr) 110px minmax(200px, 1fr) minmax(160px, 1.3fr) 120px 90px";
 
 function ClientesTab({
   clients,
   referrals,
+  portfolioAvailable,
 }: {
   clients: ClientWithTier[];
   referrals: Referral[];
+  portfolioAvailable: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -1070,6 +1081,16 @@ function ClientesTab({
     );
   }, [clients, search]);
 
+  if (!portfolioAvailable) {
+    return (
+      <EmptyState
+        eyebrow="Cartera no disponible"
+        title="No se pudo cargar la cartera de clientes."
+        description="No se puede confirmar si hay clientes para clasificar. La información de referidos y créditos sigue disponible."
+      />
+    );
+  }
+
   if (clients.length === 0) {
     return (
       <EmptyState
@@ -1093,17 +1114,21 @@ function ClientesTab({
       </div>
 
       <div
+        role="region"
+        aria-label="Facturación y niveles de clientes"
+        tabIndex={0}
         style={{
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-lg)",
-          overflow: "hidden",
+          overflowX: "auto",
         }}
       >
         <div
           style={{
             display: "grid",
             gridTemplateColumns: CLIENT_GRID,
+            minWidth: 970,
             gap: 14,
             padding: "var(--s-3) var(--s-5)",
             background: "var(--bg-elevated)",
@@ -1133,7 +1158,7 @@ function ClientesTab({
           </div>
         ) : (
           rows.map((c, i) => {
-            const prog = tierProgress(c.billedUsd);
+            const prog = c.billedUsd === null ? null : tierProgress(c.billedUsd);
             const agg = byReferrer.get(c.markbox);
             const credits = agg?.credits ?? 0;
             const refs = agg?.count ?? 0;
@@ -1155,6 +1180,7 @@ function ClientesTab({
                 style={{
                   display: "grid",
                   gridTemplateColumns: CLIENT_GRID,
+                  minWidth: 970,
                   gap: 14,
                   padding: "14px 20px",
                   borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -1184,8 +1210,8 @@ function ClientesTab({
                   </code>
                 </div>
                 <span>
-                  <Badge tone={c.tier.tone} size="sm">
-                    {c.tier.label}
+                  <Badge tone={c.tier?.tone ?? "warning"} size="sm">
+                    {c.tier?.label ?? "Por revisar"}
                   </Badge>
                 </span>
                 <span
@@ -1193,12 +1219,14 @@ function ClientesTab({
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
                     color: "var(--ink)",
+                    minWidth: 0,
+                    overflowWrap: "anywhere",
                   }}
                 >
-                  {fmtUsd(c.billedUsd)}
+                  {formatAnnualUsd(c.billing.subtotalUsd)}<small style={{ display: "block", marginTop: 6, lineHeight: 1.4 }}>{billingStatus(c.billing)}</small>
                 </span>
                 <div>
-                  {prog.next ? (
+                  {!prog ? <span>Por revisar</span> : prog.next ? (
                     <>
                       <ProgressBar
                         pct={prog.pct}

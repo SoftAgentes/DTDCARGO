@@ -16,6 +16,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
@@ -176,10 +177,11 @@ export async function updateSupplier(
 export async function createBill(
   raw: Partial<BillInput>,
 ): Promise<{ ok?: boolean; error?: string; billCode?: string }> {
+  const issueDate = raw?.issueDate === undefined ? fechaCaracas() : raw.issueDate;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "treasury");
   if (denial) return { error: denial };
-  const result = await createBillFor(supabase, raw);
+  const result = await createBillFor(supabase, { ...raw, issueDate });
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
       ? Object.values(result.fieldErrors)[0]
@@ -218,10 +220,11 @@ export async function registerPayment(
   paymentCode?: string;
   fullyPaid?: boolean;
 }> {
+  const paidAt = payload?.paidAt === undefined ? fechaCaracas() : payload.paidAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "treasury");
   if (denial) return { error: denial };
-  const result = await registerPaymentFor(supabase, billId, payload);
+  const result = await registerPaymentFor(supabase, billId, { ...payload, paidAt });
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
       ? Object.values(result.fieldErrors)[0]

@@ -44,7 +44,7 @@ vi.mock("../portal-queries", () => ({
   },
 }));
 
-const TODAY = "2026-07-01";
+const TODAY = { kind: "new" as const, businessDay: "2026-07-01" };
 
 // ── Stub encadenable de SupabaseClient (calca invoices.test.ts) ──
 function stub(opts: {
