@@ -114,6 +114,7 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 | `app/studio/(app)/naviera/actions.ts` | gancho del zarpe y `ensayarAvisosZarpe` |
 | `app/studio/(app)/naviera/__tests__/ensayo-avisos-zarpe.test.ts` (nuevo) | acción real con el doble que filtra |
 | `scripts/feature-constants.json` | declara `AVISOS_POR_HITO_LIVE = false` |
+| `lib/studio/rbac-actions-guard.test.ts` | inventario de acciones 466 → 467 (`ensayarAvisosZarpe`, con `moduleEditDenial`) |
 | Esta spec, `docs/specs/README.md` y `.agents/handoffs/0627-seguimiento-estimado.md` | documentación |
 
 **No se tocan:** los archivos del T3 del Rebrand (`app/portal/claridad.css`, `app/portal/layout.tsx`,
