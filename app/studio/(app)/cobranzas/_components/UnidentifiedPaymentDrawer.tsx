@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Drawer "+ Pago sin identificar" (SDD-0068 #2 · cláusula 7.3 del Acuerdo).
  *
@@ -32,7 +34,7 @@ export function UnidentifiedPaymentDrawer({
   onClose: () => void;
   onDone: (receiptCode: string | undefined) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState<string>("");
   const [currency, setCurrency] = useState<InvoiceCurrency>("USD");

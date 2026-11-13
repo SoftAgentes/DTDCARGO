@@ -54,9 +54,42 @@ describe("uploadPaymentProof · reintento conservando evidencia", () => {
   it("recupera el mismo comprobante cuando el path original sí coincide", async () => {
     const io = storage();
     const original = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof() });
+    io.upload.mockClear();
     const retry = { ...SCOPE, file: proof(), expectedPath: original.path };
     expect(await uploadPaymentProof(io.admin, retry)).toEqual(original);
     expect(io.objects.size).toBe(1);
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.download).toHaveBeenCalledWith(original.path);
+  });
+
+  it("C1 · recovery no reconstruye evidencia faltante", async () => {
+    const io = storage();
+    const original = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof() });
+    io.objects.clear();
+    io.upload.mockClear();
+    const result = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof(), expectedPath: original.path });
+    expect(result.path).toBeUndefined();
+    expect(result.error).toEqual(expect.any(String));
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.objects.size).toBe(0);
+  });
+
+  it("C1 · recovery rechaza bytes distintos de igual tamaño bajo el path autorizado", async () => {
+    const io = storage();
+    const first = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof("contenido A") });
+    expect(first.path).toEqual(expect.any(String));
+    const originalPath = first.path as string;
+    io.objects.set(originalPath, Buffer.from("contenido B"));
+    io.upload.mockClear();
+    const retry = await uploadPaymentProof(io.admin, {
+      ...SCOPE, file: proof("contenido A"), expectedPath: originalPath,
+    });
+    expect(retry.path).toBeUndefined();
+    expect(retry.error).toEqual(expect.any(String));
+    expect(io.download).toHaveBeenCalledWith(originalPath);
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.remove).not.toHaveBeenCalled();
+    expect(io.objects.get(originalPath)?.toString()).toBe("contenido B");
   });
 
   it("reutiliza objeto para mismo scope y bytes, aunque cambie el nombre local", async () => {
