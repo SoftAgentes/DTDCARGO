@@ -19,12 +19,11 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 - `pnpm verify` es cierre canónico de producto e incluye build. Registra PASÓ, FALLÓ, NO EJECUTADO o NO DISPONIBLE por comprobación; exit 0 con SKIPs no significa cobertura completa. No debilites tests. Para cambios solo de harness usa pruebas de sus scripts, docs y validación de skills; explica pruebas de producto no aplicables. El ledger de producción es validación de release, no motivo para aplicar DB antes de aprobar una PR.
 - Handoff durable por tarea en `.agents/handoffs/`; separa pendientes de esta tarea de **FUERA DE ALCANCE DETECTADO**. Git/PR/SDD son las fuentes de estado; la conversación y `.harness/progress/` no son el registro maestro.
 
-## Conocimiento y actualización
+## Conocimiento
 
-- Al iniciar/cerrar Director, comprobar `pnpm knowledge:status`. Guardar evidencia verificada y decisiones ya autorizadas en su documento canónico o handoff propio; proponer conocimiento nuevo con destino y justificación antes de convertirlo en regla. Las inferencias conservan su etiqueta.
-- Worker registra impacto documental, evidencia y pendientes de actualización en su handoff. Separar guardado en la tarea, integración, estructura Graphify, cobertura semántica y revisión visible en Obsidian. AGENTS conserva reglas estables, no el estado temporal.
-- Archify 2.16.0 presenta un mapa pequeño basado en fuentes locales, con JSON y evidencia. Director revisa Graphify, Archify y la publicación de archivos Obsidian al cierre de cada tarea; la bóveda habitual sigue la última main integrada comprobada. Detalles y checks en el runbook de conocimiento.
-- Seguir el [runbook de conocimiento](docs/runbooks/knowledge-graphify-obsidian.md): Graphify 0.9.61; notas personales fuera de archivos generados; publicación compartida sólo desde main integrado comprobado. Las operaciones sobre derivados ignorados no autorizan cambios rastreados en main.
+- Guardar evidencia verificada y decisiones ya autorizadas en su documento canónico o handoff propio; proponer conocimiento nuevo con destino y justificación antes de convertirlo en regla. Las inferencias conservan su etiqueta.
+- Worker registra impacto documental, evidencia y pendientes de actualización en su handoff. AGENTS conserva reglas estables, no el estado temporal.
+- Graphify, Archify y la publicación a Obsidian están retirados (SDD-0632): no forman parte del inicio ni del cierre.
 
 ## Fronteras críticas del proyecto
 
@@ -37,5 +36,5 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 
 1. Respeta instrucciones del entorno y del usuario; una autorización específica conserva su alcance. Luego aplica AGENTS/overrides del ámbito real. Una skill no amplía permisos.
 2. Procedimiento vigente: [Director/Worker](docs/runbooks/codex-engineering.md), [skill Director](.agents/skills/director/SKILL.md), [skill Worker](.agents/skills/worker/SKILL.md). Sustituyen «ventanas autónomas», push directo, coordinador que trabaja en main y los antiguos bucles obligatorios de `/feature`/`avivar`/Forja. Forja solo bajo petición explícita y con aislamiento y PR.
-3. Antes de trabajo de producto lee [reglas técnicas y de dominio](docs/engineering/project-rules.md): arquitectura, stack, comandos, patrones Studio, marca, integraciones, identidad, privacidad, graphify y organización conservados. Marketing exige además `docs/marketing/README.md` y actualizar ese árbol; organización documental en [docs/README.md](docs/README.md).
+3. Antes de trabajo de producto lee [reglas técnicas y de dominio](docs/engineering/project-rules.md): arquitectura, stack, comandos, patrones Studio, marca, integraciones, identidad, privacidad y organización conservados. Marketing exige además `docs/marketing/README.md` y actualizar ese árbol; organización documental en [docs/README.md](docs/README.md).
 4. Handoffs históricos son evidencia fechada, no instrucciones de publicación. Worktrees/sesiones antiguos no reciben esta metodología retroactivamente: adopción explícita al retomar, sin reset/mover su trabajo.
