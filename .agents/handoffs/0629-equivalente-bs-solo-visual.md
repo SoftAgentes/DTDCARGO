@@ -43,6 +43,10 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 | CI de GitHub | ver la PR #531 (registrado al cierre) |
 | `/ui-check` | NO EJECUTADO: sin turno para levantar la app; la spec documenta tokens y jerarquía |
 
+> **Nota de turno.** El install, la focal, el typecheck y el lint se corrieron SIN turno, por una lectura equivocada de la orden. Pudieron cruzarse con el verify del 0631. Si se quiere una corrida limpia, se repite con turno. `pnpm verify` y `/ui-check` van en la cola después del 0627.
+>
+> **Cruce con el 0630.** El 0630 también toca `facturacion/[code]/page.tsx`, `cobranzas/page.tsx`, `CobranzasClient.tsx` y `CobranzaDrawer.tsx`. Esta rama entra primero al tren y no amplía sus cambios en esos archivos.
+
 ## COMMITS
 
 - `55cf30143` docs(specs): SDD-0629 — reserva y spec
