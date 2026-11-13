@@ -11,7 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
 import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
-import { parsearArgumentos } from "../consolidados/generar-lote";
+import { archivosDelLote, parsearArgumentos, resumenMarkdown, SOLO_PRUEBA } from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
   numero: 59,
@@ -399,5 +399,25 @@ describe("parsearArgumentos", () => {
     expect(() => parsearArgumentos([...base, "--gasto-espacio", "100", "--gasto-usuario", "a@b.test"])).toThrow(/sólo aplica a la modalidad mixto/);
     expect(parsearArgumentos([...base, "--modalidad", "mixto", "--dueno", "HR", "--gasto-espacio", "1200,50", "--gasto-usuario", "a@b.test", "--ignorar-titulo-packing"])).toMatchObject({ modalidad: "mixto", dueno: "HR", gastoEspacio: 1200.5, gastoUsuario: "a@b.test", ignorarTituloPacking: true });
     expect(() => parsearArgumentos([...base, "--modalidad", "lcl"])).toThrow(/ddp, fcl o mixto/);
+  });
+});
+
+describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimiento de la #534)", () => {
+  it("con --entorno produccion no se emiten deshacer.sql ni purgar.sql; en prueba sí", () => {
+    const prod = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const archivosProd = archivosDelLote("produccion", prod, resumenMarkdown(lote(), prod, []));
+    expect(Object.keys(archivosProd)).toEqual(["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json", "resumen.md"]);
+    for (const n of SOLO_PRUEBA) expect(archivosProd).not.toHaveProperty(n);
+    expect(archivosProd["resumen.md"]).toContain("no trae** `deshacer.sql` ni `purgar.sql`");
+    expect(archivosProd["resumen.md"]).not.toContain("--crear-clientes-faltantes");
+
+    const prueba = generarSql(lote(), OPCIONES, FUENTES);
+    const archivosPrueba = archivosDelLote("prueba", prueba, resumenMarkdown(lote(), prueba, []));
+    expect(Object.keys(archivosPrueba)).toEqual([
+      "previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "deshacer.sql", "purgar.sql", "manifiesto.json", "resumen.md",
+    ]);
+    expect(archivosPrueba["deshacer.sql"]).toBe(prueba.deshacer);
+    expect(archivosPrueba["purgar.sql"]).toBe(prueba.purgar);
+    expect(archivosPrueba["resumen.md"]).toContain("`purgar.sql` para el borrado definitivo en prueba");
   });
 });

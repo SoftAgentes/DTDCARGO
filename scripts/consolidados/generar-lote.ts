@@ -10,7 +10,7 @@
  *     [--pol NGB] [--tipo 40HC] [--tenant dtd]
  *
  * Escribe en --salida: previa.sql, aplicar.sql, simulacro.sql, verificar.sql,
- * deshacer.sql, purgar.sql, manifiesto.json, resumen.md y SHA256SUMS. Nada de
+ * deshacer.sql y purgar.sql (sólo en prueba), manifiesto.json, resumen.md y SHA256SUMS. Nada de
  * esto entra a Git: lleva nombres de clientes. Los Excel no se copian.
  */
 import { createHash } from "node:crypto";
@@ -198,15 +198,42 @@ Las marcas sin número (texto del Excel) salen en la evidencia del servidor como
 
 ${avisos.length ? avisos.map((a) => `- ${a}`).join("\n") : "- Ninguno."}
 
-## Cómo se aplica (prueba)
+## Cómo se aplica (${m.entorno === "produccion" ? "producción: runbook cargar-consolidados §2b, con el OK nominal de Sam que cite el id del lote" : "prueba"})
 
-1. \`previa.sql\` (sólo lee): revisar que \`sin_resolver\` sea 0 y los conflictos 0. Si hay marcas sin resolver, mapearlas en \`marcas-mapa.json\` y volver a generar, o usar \`--crear-clientes-faltantes\` (sólo prueba).
+1. \`previa.sql\` (sólo lee): revisar que \`sin_resolver\` sea 0 y los conflictos 0. Si hay marcas sin resolver, mapearlas en \`marcas-mapa.json\` y volver a generar${m.entorno === "produccion" ? " (en producción la previa se corta sola si una marca no resuelve)" : ", o usar \`--crear-clientes-faltantes\` (sólo prueba)"}.
 2. \`simulacro.sql\`: corre todo y deshace; tiene que terminar con el \`raise notice\` del lote y \`ROLLBACK\`.
 3. \`aplicar.sql\`: la carga real, una transacción.
 4. \`verificar.sql\`: PASÓ con los mismos conteos de arriba.
-5. \`deshacer.sql\` para volver atrás (borrado lógico; se niega si alguna factura dejó de ser borrador).
-6. \`purgar.sql\` para el borrado definitivo en prueba (físico, incluidos los clientes y aliados que creó el lote; se niega fuera de la base de prueba y termina con conteo cero).
-`;
+${
+  m.entorno === "produccion"
+    ? "5. Este paquete **no trae** `deshacer.sql` ni `purgar.sql`: revertir o borrar un lote de producción lo corre Sam, con su propio procedimiento.\n"
+    : "5. `deshacer.sql` para volver atrás (borrado lógico; se niega si alguna factura dejó de ser borrador).\n6. `purgar.sql` para el borrado definitivo en prueba (físico, incluidos los clientes y aliados que creó el lote; se niega fuera de la base de prueba y termina con conteo cero).\n"
+}`;
+}
+
+/** Scripts que sólo viajan en un lote de prueba: revertir o borrar en producción lo corre Sam. */
+export const SOLO_PRUEBA = ["deshacer.sql", "purgar.sql"] as const;
+
+/**
+ * Archivos del paquete, en el orden en que se escriben. Con `--entorno produccion`
+ * no van `deshacer.sql` ni `purgar.sql` (seguimiento de la #534): `aplicar-lote.sh`
+ * ya los niega en producción, y el `deshacer.sql` de producción no trae la guarda
+ * de base de prueba, así que un psql directo lo correría.
+ */
+export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSql, resumen: string): Record<string, string> {
+  const archivos: Record<string, string> = {
+    "previa.sql": salida.previa,
+    "simulacro.sql": salida.simulacro,
+    "aplicar.sql": salida.aplicar,
+    "verificar.sql": salida.verificar,
+  };
+  if (entorno === "prueba") {
+    archivos["deshacer.sql"] = salida.deshacer;
+    archivos["purgar.sql"] = salida.purgar;
+  }
+  archivos["manifiesto.json"] = JSON.stringify(salida.manifiesto, null, 2) + "\n";
+  archivos["resumen.md"] = resumen;
+  return archivos;
 }
 
 export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[] }> {
@@ -256,17 +283,16 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
   };
   const salida = generarSql(lote, opciones, fuentes);
 
+  const archivos = archivosDelLote(args.entorno, salida, resumenMarkdown(lote, salida, avisosExcel));
+  if (args.entorno === "produccion") {
+    // Un deshacer.sql o purgar.sql de una corrida anterior quedaría al lado del
+    // paquete nuevo (fuera de SHA256SUMS, pero a mano de un psql directo).
+    const sobrantes = SOLO_PRUEBA.filter((n) => existsSync(path.join(args.salida, n)));
+    if (sobrantes.length) {
+      throw new Error(`La carpeta de salida ya trae ${sobrantes.join(" y ")}: un lote de producción no los lleva; usa una carpeta nueva.`);
+    }
+  }
   mkdirSync(args.salida, { recursive: true });
-  const archivos: Record<string, string> = {
-    "previa.sql": salida.previa,
-    "simulacro.sql": salida.simulacro,
-    "aplicar.sql": salida.aplicar,
-    "verificar.sql": salida.verificar,
-    "deshacer.sql": salida.deshacer,
-    "purgar.sql": salida.purgar,
-    "manifiesto.json": JSON.stringify(salida.manifiesto, null, 2) + "\n",
-    "resumen.md": resumenMarkdown(lote, salida, avisosExcel),
-  };
   const sumas: string[] = [];
   for (const [nombre, contenido] of Object.entries(archivos)) {
     const ruta = path.join(args.salida, nombre);
