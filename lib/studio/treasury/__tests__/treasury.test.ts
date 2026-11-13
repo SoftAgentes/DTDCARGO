@@ -329,8 +329,10 @@ describe("billAmountUsd", () => {
     // 3600 CNY a 7.2 CNY/USD = 500 USD
     expect(billAmountUsd(3600, "CNY", 7.2)).toBe(500);
   });
-  it("sin fx_rate → amount tal cual (fallback)", () => {
-    expect(billAmountUsd(500, "VES", null)).toBe(500);
+  // SDD-0572 (decisión 1 de Sam; el Director, 2026-10-20): sin tasa no se convierte; nunca el monto tal cual.
+  it("sin fx_rate → null (la CxP no se asienta)", () => {
+    expect(billAmountUsd(500, "VES", null)).toBeNull();
+    expect(billAmountUsd(500, "CNY", undefined)).toBeNull();
   });
 });
 

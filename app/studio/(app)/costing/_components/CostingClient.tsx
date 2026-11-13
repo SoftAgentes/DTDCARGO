@@ -10,7 +10,7 @@
  *  - Cost Editor drawer (guardar costos) abierto desde Ranking o "Editar costos".
  *
  * El toggle USD/VES es DISPLAY-ONLY: convierte cada monto USD con la tasa BCV
- * (de la última factura en VES, o el fallback). Nunca persiste VES. Todos los
+ * vigente del catálogo; sin tasa se desactiva VES). Nunca persiste VES. Todos los
  * agregados llegan ya calculados desde el server (page.tsx).
  */
 
@@ -102,16 +102,22 @@ export function CostingClient({
 
   const rate = resolveDisplayRate(vesRate);
   // Formateador de display según el toggle (USD passthrough · VES × tasa).
-  const money = (usd: number) => fmtMoney(usd, currency, rate);
+  // SDD-0572: sin tasa vigente, siempre USD.
+  const money = (usd: number) =>
+    rate === null ? fmtMoney(usd, "USD", 0) : fmtMoney(usd, currency, rate);
 
+  // SDD-0572: con alguna factura sin tasa el margen está incompleto: ni
+  // rentable ni en pérdida, «sin tasa».
+  const sinTasa = (r: CostingRow) => (r.facturasSinTasa ?? 0) > 0;
   const profitable = useMemo(
-    () => rows.filter((r) => r.eco.margin > 0).length,
+    () => rows.filter((r) => !sinTasa(r) && r.eco.margin > 0).length,
     [rows],
   );
   const losing = useMemo(
-    () => rows.filter((r) => r.eco.margin < 0).length,
+    () => rows.filter((r) => !sinTasa(r) && r.eco.margin < 0).length,
     [rows],
   );
+  const conSinTasa = useMemo(() => rows.filter(sinTasa).length, [rows]);
 
   const hasRows = rows.length > 0;
   const exportCsv = () =>
@@ -144,27 +150,30 @@ export function CostingClient({
         >
           <KpiCard
             value={money(totals.revenue)}
-            label="Revenue total"
-            sub={currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
+            label={totals.sinTasa > 0 ? "Revenue · subtotal convertido" : "Revenue total"}
+            sub={totals.sinTasa > 0 ? `${totals.sinTasa} embarque${totals.sinTasa === 1 ? "" : "s"} sin tasa · conversión incompleta` : currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
             valueColor="var(--wine-text)"
           />
           <KpiCard
             value={money(totals.cost)}
             label="Costo total"
-            sub={`${Math.round(costPctOfRevenue(totals))}% del revenue`}
+            sub={totals.sinTasa > 0 ? "costos conocidos · ingreso incompleto" : `${Math.round(costPctOfRevenue(totals))}% del revenue`}
             valueColor="var(--warning)"
           />
           <KpiCard
-            value={money(totals.margin)}
+            value={totals.sinTasa > 0 ? "—" : money(totals.margin)}
             label="Margen bruto"
-            sub={`${totals.avgMarginPct.toFixed(1)}% promedio`}
-            valueColor={totals.margin < 0 ? "var(--danger)" : "var(--success)"}
+            sub={totals.sinTasa > 0 ? "Pendiente · conversión incompleta" : `${totals.avgMarginPct.toFixed(1)}% promedio`}
+            valueColor={totals.sinTasa > 0 ? "var(--ink)" : totals.margin < 0 ? "var(--danger)" : "var(--success)"}
           />
           <KpiCard
             value={`${profitable}/${rows.length}`}
             label="Embarques OK"
-            sub={losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida"}
-            valueColor={losing > 0 ? "var(--danger)" : "var(--success)"}
+            sub={
+              (losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida")
+              + (conSinTasa > 0 ? ` · ${conSinTasa} sin tasa` : "")
+            }
+            valueColor={conSinTasa > 0 ? "var(--ink)" : losing > 0 ? "var(--danger)" : "var(--success)"}
           />
         </div>
       )}
@@ -172,13 +181,9 @@ export function CostingClient({
       {/* Tabs */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 4,
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 24,
-          flexWrap: "wrap",
-        }}
+        aria-label="Secciones de costeo y margen"
+        className="studio-tabs"
+        style={{ marginBottom: 24 }}
       >
         {TABS.map((t) => {
           const on = t.value === tab;
@@ -188,18 +193,9 @@ export function CostingClient({
               type="button"
               role="tab"
               aria-selected={on}
+              data-activa={on ? "true" : undefined}
               onClick={() => setTab(t.value)}
-              style={{
-                appearance: "none",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${on ? "var(--wine)" : "transparent"}`,
-                padding: "8px 14px",
-                cursor: "pointer",
-                font: `${on ? "700" : "500"} 13px/1 var(--f-sans)`,
-                color: on ? "var(--ink)" : "var(--ink-soft)",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>
@@ -267,7 +263,7 @@ function Header({
 }: {
   currency: DisplayCurrency;
   onCurrency: (c: DisplayCurrency) => void;
-  rate: number;
+  rate: number | null;
   hasRows: boolean;
   onEdit?: () => void;
   onExport?: () => void;
@@ -300,7 +296,7 @@ function Header({
           }}
         >
           Rentabilidad real por embarque: desglose de costos vs revenue
-          facturado. Identificá los rentables y los que dejan plata sobre la
+          facturado. Identifica los rentables y los que dejan dinero sobre la
           mesa.
         </p>
       </div>
@@ -315,16 +311,16 @@ function Header({
               textTransform: "uppercase",
             }}
           >
-            Moneda · BCV {rate}
+            {rate === null ? "Moneda · Sin tasa de bolívares en Admin › Tasas" : `Moneda · BCV ${rate}`}
           </span>
           <SegmentedControl<DisplayCurrency>
             variant="pills"
             ariaLabel="Moneda de display"
-            value={currency}
+            value={rate === null ? "USD" : currency}
             onChange={onCurrency}
             options={[
               { value: "USD", label: "USD" },
-              { value: "VES", label: "VES" },
+              { value: "VES", label: "VES", disabled: rate === null },
             ]}
           />
         </div>
@@ -414,6 +410,12 @@ function OverviewView({
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card eyebrow="Composición · Revenue vs Costo" style={{ padding: "0 0 18px" }}>
         <div style={{ padding: "14px 20px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+          {totals.sinTasa > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-4)", color: "var(--ink)" }}>
+              <span>Subtotal convertido: <strong>{money(totals.revenue)}</strong></span>
+              <span>Costo total: <strong>{money(totals.cost)}</strong></span>
+            </div>
+          ) : <>
           <CompositionBar
             label="Revenue"
             value={money(totals.revenue)}
@@ -432,6 +434,7 @@ function OverviewView({
             pct={Math.max(0, 100 - costPctOfRevenue(totals))}
             tone={totals.margin < 0 ? "var(--danger)" : "var(--success)"}
           />
+          </>}
         </div>
         <p
           style={{
@@ -442,12 +445,14 @@ function OverviewView({
             borderTop: "1px solid var(--border)",
           }}
         >
+          {totals.sinTasa > 0 ? "Faltan tasas de facturas para conocer el revenue y el margen completos. Los importes convertidos y los costos se conservan." : <>
           Por cada <strong style={{ color: "var(--ink)" }}>$100</strong>{" "}
           facturados,{" "}
           <strong style={{ color: "var(--warning)" }}>${costPct}</strong> se van
           en costos y{" "}
           <strong style={{ color: "var(--success)" }}>${marginPctRound}</strong>{" "}
           quedan de margen bruto.
+          </>}
         </p>
       </Card>
 
@@ -575,7 +580,7 @@ function RankingView({
   const cols = "140px 1fr 110px 110px 110px 110px 80px";
 
   return (
-    <Card style={{ overflow: "hidden" }}>
+    <Card style={{ overflowX: "auto" }}>
       <div
         style={{
           padding: "14px 18px",
@@ -639,7 +644,8 @@ function RankingView({
       </div>
 
       {sorted.map((r) => {
-        const isLoss = r.eco.margin < 0;
+        const incompleto = (r.facturasSinTasa ?? 0) > 0;
+        const isLoss = !incompleto && r.eco.margin < 0;
         const tone = marginTone(r.eco.marginPct);
         const routeLabel =
           r.shipment.origin && r.shipment.destination
@@ -679,25 +685,37 @@ function RankingView({
                 {routeLabel}
               </div>
             </div>
-            <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
-              {money(r.eco.revenue)}
-            </span>
+            <div style={{ color: "var(--ink)", textAlign: "right" }}>
+              <span style={{ font: "700 13px/1 var(--f-mono)" }}>{money(r.eco.revenue)}</span>
+              {incompleto && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>Subtotal convertido</div>}
+            </div>
             <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)", textAlign: "right" }}>
               {money(r.eco.totalCost)}
             </span>
             <span
               style={{
                 font: "800 13px/1 var(--f-mono)",
-                color: isLoss ? "var(--danger)" : "var(--success)",
+                color: incompleto ? "var(--ink)" : isLoss ? "var(--danger)" : "var(--success)",
                 textAlign: "right",
               }}
             >
-              {money(r.eco.margin)}
+              {incompleto ? "—" : money(r.eco.margin)}
             </span>
             <div style={{ textAlign: "right" }}>
-              <Badge tone={tone} size="md">
-                {r.eco.marginPct.toFixed(1)}%
-              </Badge>
+              {incompleto ? (
+                <>
+                <Badge tone="neutral" size="md">
+                  Sin tasa
+                </Badge>
+                <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+                  {r.facturasSinTasa} {r.facturasSinTasa === 1 ? "factura sin tasa" : "facturas sin tasa"}
+                </div>
+                </>
+              ) : (
+                <Badge tone={tone} size="md">
+                  {r.eco.marginPct.toFixed(1)}%
+                </Badge>
+              )}
             </div>
             <div style={{ textAlign: "right" }}>
               <button
@@ -800,7 +818,7 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
   const cols = "1.4fr 70px 110px 110px 110px 110px";
 
   return (
-    <Card eyebrow={`${routes.length} rutas · ordenadas por margen %`} style={{ overflow: "hidden", padding: "18px 0 0" }}>
+    <Card eyebrow={`${routes.length} rutas · completas por margen % · incompletas al final`} style={{ overflow: "hidden", padding: "18px 0 0" }}>
       <div
         style={{
           display: "grid",
@@ -854,25 +872,27 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
           <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
             {r.count}
           </span>
-          <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
-            {money(r.revenue)}
-          </span>
+          <div style={{ color: "var(--ink)", textAlign: "right" }}>
+            <span style={{ font: "700 13px/1 var(--f-mono)" }}>{money(r.revenue)}</span>
+            {r.sinTasa > 0 && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>Subtotal convertido</div>}
+          </div>
           <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)", textAlign: "right" }}>
             {money(r.cost)}
           </span>
           <span
             style={{
               font: "800 13px/1 var(--f-mono)",
-              color: r.margin < 0 ? "var(--danger)" : "var(--success)",
+              color: r.sinTasa > 0 ? "var(--ink)" : r.margin < 0 ? "var(--danger)" : "var(--success)",
               textAlign: "right",
             }}
           >
-            {money(r.margin)}
+            {r.sinTasa > 0 ? "—" : money(r.margin)}
           </span>
           <div style={{ textAlign: "right" }}>
-            <Badge tone={r.tone} size="md">
-              {r.marginPct.toFixed(1)}%
+            <Badge tone={r.sinTasa > 0 ? "neutral" : r.tone} size="md">
+              {r.sinTasa > 0 ? "Sin tasa" : `${r.marginPct.toFixed(1)}%`}
             </Badge>
+            {r.sinTasa > 0 && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>{r.sinTasa} {r.sinTasa === 1 ? "embarque sin tasa" : "embarques sin tasa"}</div>}
           </div>
         </div>
       ))}

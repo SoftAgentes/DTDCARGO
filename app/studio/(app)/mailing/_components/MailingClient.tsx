@@ -127,14 +127,8 @@ export function MailingClient({
       <div
         role="tablist"
         aria-label="Mailing"
-        style={{
-          display: "inline-flex",
-          background: "var(--bg-elevated, #F2F0EC)",
-          borderRadius: 8,
-          padding: 4,
-          gap: 2,
-          marginBottom: 20,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 20 }}
       >
         {TABS.map((t) => (
           <button
@@ -142,23 +136,9 @@ export function MailingClient({
             type="button"
             role="tab"
             aria-selected={tab === t.value}
+            data-activa={tab === t.value ? "true" : undefined}
             onClick={() => changeTab(t.value)}
-            style={{
-              padding: "8px 16px",
-              border: "none",
-              background:
-                tab === t.value ? "var(--bg-surface, #FFFFFF)" : "transparent",
-              color: tab === t.value ? "var(--ink)" : "var(--ink-soft)",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: tab === t.value ? 600 : 500,
-              boxShadow: tab === t.value ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-              transition:
-                "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out), box-shadow var(--dur, 180ms) var(--ease, ease-out)",
-              whiteSpace: "nowrap",
-            }}
+            className="studio-tab"
           >
             {t.label}
           </button>

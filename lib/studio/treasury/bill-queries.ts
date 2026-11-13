@@ -183,7 +183,8 @@ export type Payable = {
    * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. Misma normalización que
    * `invoiceUsdAmount`. Para sumar/bucketizar aging y KPIs en USD real.
    */
-  balanceUsd: number;
+  /** SDD-0572: null sin tasa (no suma; los KPIs lo cuentan en `cxpSinTasa`). */
+  balanceUsd: number | null;
   /** Días vencido (>0 = vencido, <0 = faltan, 0 = vence hoy). null sin due_date. */
   daysOverdue: number | null;
   /** Stage derivado para la cola. */
@@ -209,7 +210,7 @@ export function daysOverdue(
 export function billBalanceToUsd(
   balance: number,
   bill: Pick<SupplierBill, "currency" | "fx_rate">,
-): number {
+): number | null {
   return invoiceUsdAmount({
     currency: bill.currency,
     total_amount: balance,
@@ -259,7 +260,10 @@ export function buildPayable(
   return {
     bill,
     balance,
-    balanceUsd: round2(billBalanceToUsd(balance, bill)),
+    balanceUsd: (() => {
+      const usd = billBalanceToUsd(balance, bill);
+      return usd === null ? null : round2(usd);
+    })(),
     daysOverdue: daysOverdue(bill.due_date, today),
     stage: derivedStage({
       totalAmount: bill.total_amount,
@@ -357,6 +361,8 @@ export type TreasuryKpis = {
   porPagarUsd: number;
   /** Saldo vencido normalizado a USD real. */
   vencidoUsd: number;
+  /** SDD-0572: CxP sin tasa, fuera de `porPagarUsd` y `vencidoUsd`. */
+  cxpSinTasa: number;
   /** Total pagado en el mes en curso (de las órdenes de pago vivas). */
   pagadoMes: number;
   /** Cantidad de proveedores con CxP con saldo. */
@@ -376,13 +382,15 @@ export function computeTreasuryKpis(
   let vencido = 0;
   let porPagarUsd = 0;
   let vencidoUsd = 0;
+  let cxpSinTasa = 0;
   const suppliers = new Set<string>();
   for (const p of queue) {
     porPagar += p.balance;
-    porPagarUsd += p.balanceUsd;
+    if (p.balanceUsd === null) cxpSinTasa += 1;
+    else porPagarUsd += p.balanceUsd;
     if (p.stage === "vencida") {
       vencido += p.balance;
-      vencidoUsd += p.balanceUsd;
+      if (p.balanceUsd !== null) vencidoUsd += p.balanceUsd;
     }
     suppliers.add(p.bill.supplier_id);
   }
@@ -402,6 +410,7 @@ export function computeTreasuryKpis(
     vencidoUsd: round2(vencidoUsd),
     pagadoMes: round2(pagadoMes),
     proveedoresActivos: suppliers.size,
+    cxpSinTasa,
   };
 }
 

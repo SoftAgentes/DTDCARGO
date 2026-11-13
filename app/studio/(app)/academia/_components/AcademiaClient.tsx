@@ -153,12 +153,8 @@ export function AcademiaClient({
       <div
         role="tablist"
         aria-label="Vistas de la Academia"
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
@@ -170,22 +166,10 @@ export function AcademiaClient({
               id={`academia-tab-${tDef.value}`}
               aria-selected={active}
               aria-controls={`academia-panel-${tDef.value}`}
+              data-activa={active ? "true" : undefined}
               tabIndex={active ? 0 : -1}
               onClick={() => setTab(tDef.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: active
-                  ? "700 13px/1 var(--f-sans)"
-                  : "500 13px/1 var(--f-sans)",
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {tDef.label}
             </button>

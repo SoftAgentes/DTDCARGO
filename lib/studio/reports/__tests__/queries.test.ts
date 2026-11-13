@@ -18,6 +18,7 @@ import { dobleListados as dobleListadosPnlI2 } from "../../__tests__/listados-do
 
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { buildViewCsv } from "../export-csv";
 import {
   agingReport,
   cashflowReport,
@@ -30,6 +31,8 @@ import {
   reportByService,
 } from "../queries";
 import { describirIngreso, ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
+import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
+import { RANGO_MES, control, tablasDeControl } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 /** Tope por request del doble: el `db-max-rows` de Supabase. */
 const SERVER_CAP = 1000;
@@ -44,7 +47,7 @@ type Recorded = {
   in: [string, unknown][];
 };
 
-function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
+function stub(rowsByTable: Record<string, Record<string, unknown>[]>, options: { serverCap?: number; errorTable?: string } = {}): {
   client: SupabaseClient;
   calls: Record<string, Recorded>;
 } {
@@ -88,9 +91,10 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
         // más generoso que el servidor, el test sale verde con código que en
         // producción trunca — que es exactamente cómo este bug sobrevivió.
         range: (desde: number, hasta: number) => {
+          if (options.errorTable === table) return Promise.resolve({ data: null, error: { message: "lectura interrumpida" } });
           const pedido = hasta - desde + 1;
           const trozo = Array.isArray(rows)
-            ? rows.slice(desde, desde + Math.min(pedido, SERVER_CAP))
+            ? rows.slice(desde, desde + Math.min(pedido, options.serverCap ?? SERVER_CAP))
             : [];
           return {
             ...chain,
@@ -119,6 +123,36 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
 }
 
 const TODAY = new Date("2026-06-15T00:00:00Z");
+
+describe("0572 · lectura completa del ingreso con conversión incompleta", () => {
+  const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+  const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+
+  it("lee la segunda página sin perder contador, monto oficial ni filtros", async () => {
+    // Con el contexto I2 íntegro (SDD-0573), lo único que falta es la conversión.
+    const mayor = control(1000, 1000, true, ["u1"]);
+    const tablas = tablasDeControl([usd, cny] as unknown as Parameters<typeof tablasDeControl>[0], RANGO_MES, mayor);
+    const { client, calls } = stub(tablas, { serverCap: 1 });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor });
+    expect(i).toMatchObject({ facturado: { total: 1000 }, sinConvertir: 1, diferenciaUsd: null });
+    expect(describirIngreso(i).estado).toBe("conversion_incompleta");
+    expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
+    expect(calls.invoices.gte).toContainEqual(["issued_at", RANGO_MES.from]);
+    expect(calls.invoices.lte).toContainEqual(["issued_at", RANGO_MES.to]);
+    expect(calls.invoices.in).toContainEqual(["status", [...ESTADOS_DE_INGRESO, "anulada"]]);
+  });
+
+  it("rechaza complete=false del paginador real, no devuelve un subtotal truncado", async () => {
+    const invoices = Array.from({ length: 61 }, (_, n) => ({ ...usd, id: String(n) }));
+    const { client } = stub({ invoices }, { serverCap: 1 });
+    await expect(ingresoDelPeriodo(client, RANGO_MES, { mayor: null })).rejects.toThrow(/tope/i);
+  });
+
+  it("rechaza el error de lectura en lugar de convertirlo en cero", async () => {
+    const { client } = stub({}, { errorTable: "invoices" });
+    await expect(ingresoDelPeriodo(client, RANGO_MES, { mayor: null })).rejects.toThrow("lectura interrumpida");
+  });
+});
 
 // ── Rango por período ──────────────────────────────────────────
 describe("rango del período aplicado a las tablas", () => {
@@ -818,6 +852,26 @@ describe("incomeStatement", () => {
 describe("agingReport", () => {
   const TODAY_STR = "2026-06-15";
 
+  it.each([[1, 0], [0, 1], [1, 1], [0, 0]])("0572 revisión · CxC=%s CxP=%s sin tasa no desaparecen del CSV", async (cxc, cxp) => {
+    const { client } = stub({
+      invoices: cxc ? [{ id: "missing-cxc", status: "emitida", total_amount: 700, paid_amount: 0, currency: "CNY", fx_rate: null, due_date: "2026-06-01" }] : [],
+      supplier_bills: cxp ? [{ id: "missing-cxp", supplier_id: "s1", status: "vencida", total_amount: 3600, paid_amount: 0, currency: "VES", fx_rate: null, due_date: "2026-06-01", issue_date: "2026-05-01" }] : [],
+    }, { serverCap: 1 });
+    const aging = await agingReport(client, TODAY_STR);
+    expect(aging.cxc).toMatchObject({ total: 0, sinTasa: cxc });
+    expect(aging.cxp).toMatchObject({ total: 0, sinTasa: cxp });
+    const csv = buildViewCsv({ category: "con", rep: "aging", aging, today: TODAY });
+    if (!cxc && !cxp) expect(csv).toBeNull();
+    else {
+      expect(csv).not.toBeNull();
+      expect(csv!.content).toContain("Estado de conversión,Documentos sin tasa del lado");
+      expect(csv!.content).toContain("Conversión incompleta,1");
+      // Ningún porcentaje definitivo se deriva del subtotal cero incompleto.
+      const lines = csv!.content.split("\r\n").slice(1).map((line) => line.split(","));
+      for (const line of lines) if ((line[0] === "CxC" && cxc) || (line[0] === "CxP" && cxp)) expect(line[4]).toBe("");
+    }
+  });
+
   it("clasifica CxC y CxP en buckets por días vencido", async () => {
     // CxC: facturas con saldo (total - paid > 0), no anuladas.
     const invoices = [
@@ -874,6 +928,31 @@ describe("agingReport", () => {
 
 // ── cashflowReport (facturado vs cobrado, USD-norm) ────────────
 describe("cashflowReport", () => {
+  it("0572 revisión · serie y CSV conservan exclusiones en su mes y segunda página", async () => {
+    const base = { status: "emitida", fx_rate: null, currency: "CNY", total_amount: 700, paid_amount: 0 };
+    const { client, calls } = stub({
+      invoices: [
+        { ...base, id: "known", currency: "USD", total_amount: 100, issued_at: "2026-05-01" },
+        { ...base, id: "missing", issued_at: "2026-06-01" },
+        { ...base, id: "draft", status: "borrador", issued_at: "2026-06-01" },
+        { ...base, id: "outside", issued_at: "2025-01-01" },
+      ],
+      payment_receipts: [
+        { id: "receipt-known", amount: 0, currency: "USD", fx_rate: null, received_at: "2026-05-01" },
+        { id: "receipt-missing", amount: 3600, currency: "VES", fx_rate: null, received_at: "2026-06-02" },
+      ],
+    }, { serverCap: 1 });
+    const out = await cashflowReport(client, "3M", TODAY);
+    expect(out).toMatchObject({ totalBilled: 100, totalCollected: 0, facturasSinTasa: 1, recibosSinTasa: 1 });
+    expect.soft(out.series.find((p) => p.month === "2026-06")).toMatchObject({ billed: 0, collected: 0, facturasSinTasa: 1, recibosSinTasa: 1 });
+    expect.soft(out.series.find((p) => p.month === "2026-05")).toMatchObject({ billed: 100, collected: 0, facturasSinTasa: 0, recibosSinTasa: 0 });
+    const csv = buildViewCsv({ category: "con", rep: "cashflow", cashflow: out, today: TODAY });
+    expect(csv!.content).toContain("Estado de conversión,Facturas sin tasa,Recibos sin tasa");
+    expect(csv!.content).toContain("JUN 26,0,0,Conversión incompleta,1,1");
+    expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
+    expect(calls.payment_receipts.is).toContainEqual(["deleted_at", null]);
+    expect(calls.invoices.neq).toContainEqual(["status", "borrador"]);
+  });
   it("serie mensual facturado (invoices) vs cobrado (payment_receipts), USD-norm", async () => {
     const invoices = [
       // Facturado: USD + VES normalizado.

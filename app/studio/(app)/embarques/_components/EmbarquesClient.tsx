@@ -288,13 +288,10 @@ export function EmbarquesClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "var(--s-4)",
-          overflowX: "auto",
-        }}
+        role="group"
+        aria-label="Embarques por estado"
+        className="studio-tabs"
+        style={{ marginBottom: "var(--s-4)" }}
       >
         {(
           [
@@ -309,33 +306,13 @@ export function EmbarquesClient({
             <button
               key={t.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(t.value)}
-              style={{
-                padding: "10px 14px",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "var(--s-2)",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               <span>{t.label}</span>
-              <span
-                style={{
-                  padding: "2px 6px",
-                  borderRadius: "var(--r-sm)",
-                  background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                  color: active ? "var(--wine)" : "var(--ink-soft)",
-                  font: "700 10.5px/1.3 var(--f-mono)",
-                }}
-              >
-                {t.count}
-              </span>
+              <span className="studio-tab-n">{t.count}</span>
             </button>
           );
         })}

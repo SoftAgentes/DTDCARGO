@@ -75,7 +75,7 @@ export function ChartWidget({
             CBM por mes
           </div>
         </div>
-        <div style={{ display: "flex", gap: 4 }} role="tablist" aria-label="Período del gráfico">
+        <div className="studio-tabs" role="tablist" aria-label="Período del gráfico">
           {CHART_PERIODS.map((p) => {
             const active = p === period;
             return (
@@ -84,16 +84,9 @@ export function ChartWidget({
                 type="button"
                 role="tab"
                 aria-selected={active}
+                data-activa={active ? "true" : undefined}
                 onClick={() => onPeriodChange(p)}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: "var(--r-sm)",
-                  border: "1px solid transparent",
-                  cursor: "pointer",
-                  background: active ? "var(--wine-tint)" : "transparent",
-                  color: active ? "var(--wine-text)" : "var(--ink-soft)",
-                  font: "600 11.5px/1 var(--f-sans)",
-                }}
+                className="studio-tab"
               >
                 {p}
               </button>

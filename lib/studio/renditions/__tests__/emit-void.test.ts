@@ -284,6 +284,57 @@ describe("emitRenditionFor", () => {
     expect(captured.inserts.find((i) => i.table === "renditions")).toBeFalsy();
   });
 
+  // SDD-0572 (decisiones 1 y 2 del Director por delegación de Sam, 2026-10-20): con un cobro sin tasa la rendición no se emite.
+  it("un cobro sin tasa en el período → no emite y no toca la DB", async () => {
+    const { stub, captured } = makeStub({
+      receipts: [
+        {
+          id: "r1",
+          receipt_code: "R-2026-0001",
+          invoice_id: "i1",
+          client_markbox: "DTD-0001",
+          client_name: "Acme",
+          amount: 3600,
+          currency: "VES",
+          fx_rate: null,
+          received_at: "2026-06-20",
+          application_status: "aplicado",
+          fund_class: "third_party",
+        },
+      ],
+      invoices: [{ id: "i1", invoice_code: "F-2026-0001" }],
+    });
+    const res = await emitRenditionFor(stub, PERIOD);
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toMatch(/1 cobro\(s\).*no tienen tasa/);
+    expect(captured.inserts.find((i) => i.table === "renditions")).toBeFalsy();
+    expect(captured.updates.find((u) => u.table === "payment_receipts")).toBeFalsy();
+  });
+
+  it("una factura local sin tasa bloquea aunque todos los cobros tengan USD", async () => {
+    const { stub, captured } = makeStub({
+      receipts: [{
+        id: "r1", receipt_code: "R-2026-0001", invoice_id: "i1",
+        client_markbox: "DTD-0001", client_name: "Acme",
+        amount: 600, currency: "USD", fx_rate: null,
+        received_at: "2026-06-20", application_status: "aplicado", fund_class: "third_party",
+      }],
+      invoices: [
+        { id: "i1", invoice_code: "F-2026-0001" },
+        {
+          id: "local1", invoice_code: "F-2026-0002", fund_class: "local_revenue",
+          status: "emitida", issued_at: "2026-06-20", total_amount: 700,
+          currency: "CNY", fx_rate: null,
+        },
+      ],
+    });
+    const res = await emitRenditionFor(stub, PERIOD);
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toMatch(/0 cobro\(s\).*1 factura\(s\) local\(es\).*no tienen tasa/);
+    expect(captured.inserts).toEqual([]);
+    expect(captured.updates).toEqual([]);
+  });
+
   it("rango inválido → error sin tocar la DB", async () => {
     const { stub, captured } = makeStub({});
     const res = await emitRenditionFor(stub, { from: "2026-06-30", to: "2026-06-01" });

@@ -5,8 +5,8 @@
  * saveShipmentCosts). Carga el costeo real con las queries de Slice A
  * (costingRows cruza shipments + shipment_costs + revenue de invoices,
  * excluyendo borradores) y deriva los agregados puros (totales, margen por
- * ruta). El toggle USD/VES es display-only: se resuelve la tasa BCV desde la
- * última factura en VES (fallback al default del Norte).
+ * ruta). El toggle USD/VES es display-only: SDD-0572, la tasa vigente de
+ * fx_rates (ultimaTasa de VES); sin ella, el selector de bolívares se apaga.
  *
  * Delega la UI interactiva (tabs Overview/Ranking/Breakdown/Routes + drawer) a
  * CostingClient. Frontera RSC: de CostingClient importamos SOLO el componente.
@@ -17,11 +17,11 @@ import {
   costingRows,
   costingTotals,
   forecastQuotes,
-  latestVesFxRate,
   listRouteCostTemplates,
   marginByRoute,
 } from "@/lib/studio/costing/queries";
 import { buildForecast } from "@/lib/studio/costing/ui";
+import { ultimaTasa } from "@/lib/studio/fx-rates";
 import { CostingClient } from "./_components/CostingClient";
 
 export const metadata = { title: "Costing & Margen" };
@@ -32,7 +32,7 @@ export default async function CostingPage() {
 
   const [rows, vesRate, templates, quotes] = await Promise.all([
     costingRows(supabase),
-    latestVesFxRate(supabase),
+    ultimaTasa(supabase, "VES").then((t) => t?.rate ?? null),
     listRouteCostTemplates(supabase),
     forecastQuotes(supabase),
   ]);

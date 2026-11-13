@@ -189,12 +189,10 @@ export function GastosClient({
 
       {/* Tabs por scope */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 16,
-          borderBottom: "1px solid var(--border)",
-        }}
+        role="group"
+        aria-label="Tipo de gasto"
+        className="studio-tabs"
+        style={{ marginBottom: 16 }}
       >
         <ScopeTab
           active={scope === "shipment"}
@@ -336,19 +334,10 @@ function ScopeTab({
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-pressed={active}
-      style={{
-        padding: "10px 16px",
-        background: "transparent",
-        border: 0,
-        borderBottom: active ? "2px solid var(--wine)" : "2px solid transparent",
-        marginBottom: -1,
-        cursor: "pointer",
-        font: `${active ? 700 : 600} 13px/1 var(--f-sans)`,
-        color: active ? "var(--wine)" : "var(--ink-soft)",
-        transition: "color var(--dur-fast) var(--ease)",
-      }}
+      data-activa={active ? "true" : undefined}
+      onClick={onClick}
+      className="studio-tab"
     >
       {label}
     </button>

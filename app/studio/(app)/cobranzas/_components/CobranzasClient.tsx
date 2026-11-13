@@ -327,6 +327,7 @@ export function CobranzasClient({
  * normalizado a USD. Insumo directo de la rendición quincenal (SDD-D).
  */
 function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
+  const sinTasa = separation.sinTasaCount ?? 0;
   return (
     <section
       style={{
@@ -337,6 +338,9 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
         marginBottom: 20,
       }}
     >
+      {sinTasa > 0 && <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
+        Conversión incompleta · subtotales conocidos · {sinTasa} cobro{sinTasa === 1 ? "" : "s"} sin tasa.
+      </p>}
       <div
         style={{
           display: "flex",
@@ -387,7 +391,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color: "var(--success)",
+              color: sinTasa > 0 ? "var(--ink)" : "var(--success)",
             }}
           >
             ${fmtAmount(separation.localRevenueUsd)}
