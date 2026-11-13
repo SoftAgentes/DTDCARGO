@@ -1,3 +1,4 @@
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 /**
  * Queries de CxP y pagos del módulo Tesorería (SDD-0044).
  *
@@ -194,7 +195,7 @@ export type Payable = {
 /** Días entre `due_date` y hoy (positivo = vencido). null si no hay due_date. */
 export function daysOverdue(
   dueDate: string | null,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): number | null {
   if (!dueDate) return null;
   const due = new Date(dueDate + "T00:00:00Z").getTime();
@@ -234,7 +235,7 @@ export function derivedStage(args: {
   dueDate: string | null;
   today?: string;
 }): PayableStage {
-  const today = args.today ?? new Date().toISOString().slice(0, 10);
+  const today = args.today ?? fechaCaracas();
   if (round2(args.balance) <= 0) return "pagada";
 
   const overdue = !!args.dueDate && args.dueDate < today;
@@ -254,7 +255,7 @@ export function derivedStage(args: {
  */
 export function buildPayable(
   bill: SupplierBill,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): Payable {
   const balance = billBalance(bill);
   return {
@@ -283,7 +284,7 @@ export function buildPayable(
  */
 export function buildPayablesQueue(
   bills: SupplierBill[],
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): Payable[] {
   const out: Payable[] = [];
   for (const bill of bills) {
@@ -306,7 +307,7 @@ export function buildPayablesQueue(
 /** Cola de cuentas por pagar del tenant: CxP con saldo, enriquecidas con aging. */
 export async function payablesQueue(
   supabase: SupabaseClient,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): Promise<Payable[]> {
   const bills = await listBills(supabase);
   return buildPayablesQueue(bills, today);
@@ -330,7 +331,7 @@ export async function payablesQueue(
 export async function payableForBill(
   supabase: SupabaseClient,
   billId: string,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): Promise<Payable | null> {
   const id = String(billId ?? "").trim();
   if (!id) return null;
@@ -376,7 +377,7 @@ export type TreasuryKpis = {
 export function computeTreasuryKpis(
   queue: Payable[],
   payments: Pick<SupplierPayment, "amount" | "paid_at">[] = [],
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): TreasuryKpis {
   let porPagar = 0;
   let vencido = 0;
@@ -417,7 +418,7 @@ export function computeTreasuryKpis(
 /** KPIs de tesorería del tenant (deriva de la cola + pagos del mes). */
 export async function treasuryKpis(
   supabase: SupabaseClient,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): Promise<TreasuryKpis> {
   const [queue, payments] = await Promise.all([
     payablesQueue(supabase, today),
