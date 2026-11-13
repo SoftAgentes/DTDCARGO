@@ -87,6 +87,7 @@ Pruebas:
 - `lib/portal/__tests__/tasa-referencial.test.ts`
 - `app/studio/_components/EquivalenteBs.test.tsx`
 - `app/studio/(app)/cobranzas/_components/CobranzasClient.bs.test.tsx`
+- `app/studio/(app)/cobranzas/__tests__/hoy-caracas.test.ts`: agrega que la tasa se pide para el día de Caracas con el tenant de la cola, y que sin casos no se lee ninguna tasa.
 
 Documentos: esta spec, `docs/specs/README.md` (índice regenerado) y `.agents/handoffs/0629-equivalente-bs-solo-visual.md`.
 

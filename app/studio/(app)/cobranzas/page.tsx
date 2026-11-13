@@ -33,24 +33,23 @@ export default async function CobranzasPage() {
   const today = todayCaracasISO();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  // SDD-0629 · la tasa de bolívares de hoy, solo para la vista del equivalente
-  // en Bs del saldo abierto. Sin tasa, null: «tasa no disponible».
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id")
-    .maybeSingle<{ tenant_id: string }>();
-
-  const [queue, kpis, cashAccounts, unidentified, separation, tasas] =
+  const [queue, kpis, cashAccounts, unidentified, separation] =
     await Promise.all([
       receivablesQueue(supabase, today),
       collectionKpis(supabase, today),
       listCashAccounts(supabase),
       listUnidentifiedReceipts(supabase),
       fundsSeparationSummary(supabase, { from: monthStart, to: today }),
-      link?.tenant_id
-        ? tasasVesPorFecha(supabase, link.tenant_id, [today])
-        : Promise.resolve(new Map()),
     ]);
+
+  // SDD-0629 · la tasa de bolívares de hoy (Caracas), solo para la vista del
+  // equivalente en Bs del saldo abierto. El tenant es el de la cola, que la RLS
+  // ya acotó al del usuario; sin casos abiertos no hay vista ni lectura. Sin
+  // tasa, null: «tasa no disponible».
+  const tenantId = queue[0]?.invoice.tenant_id;
+  const tasas = tenantId
+    ? await tasasVesPorFecha(supabase, tenantId, [today])
+    : new Map();
 
   return (
     <CobranzasClient

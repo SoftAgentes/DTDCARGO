@@ -39,6 +39,8 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 | Mutantes | PASÓ: tenant ajeno en `tasa-referencial.ts` → 2 rojos; sin la guarda de tasa futura → 1 rojo. Archivos restaurados exactos |
 | `pnpm typecheck` | PASÓ (exit 0) |
 | eslint `--max-warnings 0` sobre los .ts/.tsx del diff | PASÓ |
+| CI #531 en `6385a4828` | FALLÓ: 1 de 17 201. `hoy-caracas.test.ts` → `supabase.from is not a function`; la página leía `user_tenants` y el doble no trae `.from`. Corregido: el tenant sale de la cola (`queue[0].invoice.tenant_id`, ya acotada por la RLS) y sin casos no se lee ninguna tasa. La prueba no se debilitó: suma dos casos de la 0629 |
+| vitest focal con turno: `app/studio/(app)/cobranzas` + `app/portal/(app)/facturas` | PASÓ: 11 archivos, 63 pruebas |
 | `pnpm verify` | NO EJECUTADO: el turno de la PC no se dio; el portón es el CI de GitHub |
 | CI de GitHub | ver la PR #531 (registrado al cierre) |
 | `/ui-check` | NO EJECUTADO: sin turno para levantar la app; la spec documenta tokens y jerarquía |
