@@ -54,12 +54,12 @@ confirmaciones a la vez. Está escrito en la spec (§ Asiento).
 |---|---|---|
 | Contratos SQL en Actions (`sql-tests.yml`, workflow_dispatch en la rama) | PASÓ: 282 de 282, con `0537_recibo_al_confirmar_reporte.test.sql` (control, R1-R4, casos, 0422 y 0423 encima) | run 43499942755. Los rojos anteriores, 43496423728 y 43497275587, eran de la prueba: `'texto' \|\| jsonb`, una invariante que incluía la factura de control y `dblink_exec` con un SELECT. |
 | PGlite: fixture 0533 + 0537 + casos + 0422/0423 | PASÓ: 70 aserciones en los casos y 75 con «después»; el preflight aborta sin la 0533 y al reaplicar | una corrida puntual de node con el script de diagnóstico, ~10 s |
-| PGlite `payment-report-receipt.migration.test.ts` (vitest, con mutantes) | PENDIENTE (turno de máquina) | |
-| Vitest `payment-report-commands.test.ts` y `payment-report-ui.test.tsx` | PENDIENTE (turno) | |
+| PGlite `payment-report-receipt.migration.test.ts` (vitest, con mutantes) | NO EJECUTADO en local; lo corre el CI de la PR («Calidad») | portón = CI de GitHub (cambio del DG, 2026-11-13) |
+| Vitest `payment-report-commands.test.ts`, `payment-report-ui.test.tsx` y `PendingReportsNotice.test.tsx` | NO EJECUTADO en local; lo corre el CI de la PR | ídem |
 | Gate de símbolos pendientes | PASÓ: 0 ROJO, 3 AMARILLO declarados | `node scripts/check-pending-migration-symbols.mjs` |
 | `sdd:check` (numeración) | PASÓ | `node scripts/check-numbering.mjs` |
-| `pnpm verify` | NO EJECUTADO (turno del Subdirector) | |
-| CI de la PR | PENDIENTE | |
+| `pnpm verify` | NO EJECUTADO (portón = CI de GitHub + revisión independiente) | instrucción del Subdirector, 2026-11-13 |
+| CI de la PR | PENDIENTE: lo lee el Subdirector al pasar la PR a lista | |
 
 ## Guion de smoke en el ambiente de prueba — lo ejecuta Sam
 
