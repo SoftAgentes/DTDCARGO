@@ -3,7 +3,8 @@
  *
  * Server component, READ-ONLY salvo el Cost Editor (server action
  * saveShipmentCosts). Carga el costeo real con las queries de Slice A
- * (costingRows cruza shipments + shipment_costs + revenue de invoices,
+ * (costingData cruza shipments + shipment_costs + CxP ligadas (SDD-0631) +
+ * revenue de invoices,
  * excluyendo borradores) y deriva los agregados puros (totales, margen por
  * ruta). El toggle USD/VES es display-only: SDD-0572, la tasa vigente de
  * fx_rates (ultimaTasa de VES); sin ella, el selector de bolívares se apaga.
@@ -14,7 +15,7 @@
 
 import { createClient } from "@/lib/db/server";
 import {
-  costingRows,
+  costingData,
   costingTotals,
   forecastQuotes,
   listRouteCostTemplates,
@@ -35,8 +36,8 @@ export default async function CostingPage() {
 
   const supabase = await createClient();
 
-  const [rows, vesRate, templates, quotes] = await Promise.all([
-    costingRows(supabase),
+  const [{ rows, containers, linksAvailable }, vesRate, templates, quotes] = await Promise.all([
+    costingData(supabase),
     ultimaTasa(supabase, "VES").then((t) => t?.rate ?? null),
     listRouteCostTemplates(supabase),
     forecastQuotes(supabase),
@@ -54,6 +55,8 @@ export default async function CostingPage() {
       templates={templates}
       forecast={forecast}
       vesRate={vesRate}
+      containers={containers}
+      linksAvailable={linksAvailable}
     />
   );
 }

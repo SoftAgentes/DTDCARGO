@@ -8,6 +8,7 @@
  * - voidPayment: anula una orden de pago (revierte saldo + anula su asiento).
  * - getBillHistory: lee los pagos de una CxP (para el historial del drawer).
  * - getPayableForBill: abre una CxP en consulta desde el tab «Pagos» (0494).
+ * - linkBillCost: liga una CxP a contenedor/embarque (SDD-0631).
  *
  * Sin Zod: validación con `validate*Input()` propio. Las mutaciones financieras
  * se auditan atómicamente mediante los triggers de dominio D2 (SDD-0174).
@@ -21,6 +22,7 @@ import { createClient } from "@/lib/db/server";
 import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   createBillFor,
+  linkBillCostFor,
   registerPaymentFor,
   voidBillFor,
   voidPaymentFor,
@@ -192,7 +194,26 @@ export async function createBill(
   }
   revalidatePath("/studio/tesoreria");
   revalidatePath("/studio/contabilidad");
+  revalidatePath("/studio/costing");
   return { ok: true, billCode: result.billCode };
+}
+
+/**
+ * SDD-0631: liga, cambia o quita el contenedor/embarque de una CxP. El costo
+ * cambia de embarque en Costing; el asiento y el saldo no se tocan.
+ */
+export async function linkBillCost(
+  billId: string,
+  link: { consolidationId: string | null; shipmentId: string | null; costCategory: string | null },
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
+  const r = await linkBillCostFor(supabase, billId, link);
+  if (!r.ok) return { error: r.error };
+  revalidatePath("/studio/tesoreria");
+  revalidatePath("/studio/costing");
+  return { ok: true };
 }
 
 export async function voidBill(
