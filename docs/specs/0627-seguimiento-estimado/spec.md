@@ -157,6 +157,10 @@ Conclusión: **no hace falta tabla nueva ni migración.**
   Barranquilla sin `transit_days` ni ETA cae al default de La Guaira (67): Barranquilla quedaría
   ~20 días larga. Cargar `transit_days` en el zarpe lo evita. Ampliar el catálogo de puertos queda
   fuera de esta SDD.
+- **Con una ETA conocida, el zarpe no la corre.** Si hay ETA de SeaRates vigente o del itinerario,
+  la llegada a puerto es esa fecha: un zarpe atrasado ya no la mueve (sólo mueve la estimada, que es
+  el último recurso). SeaRates cuenta sólo si su última consulta salió bien (`fetch_status = ok`),
+  la misma regla en la tarjeta Naviera, la nota y los avisos.
 - **Ancla «zarpe», no «carga».** La oficina registra la fecha de CARGA. El ancla es el evento
   `shipped` que la 0477 inserta cuando se marca «zarpado»: si se marca el día de la carga, coincide
   con los rangos medidos (que van de la carga a la ETA); si se marca días después, la ETA se corre

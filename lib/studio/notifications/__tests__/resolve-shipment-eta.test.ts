@@ -52,10 +52,21 @@ describe("resolveShipmentEta", () => {
   it("prefiere pod_eta de SeaRates sobre sailings.eta", async () => {
     navieraMock.getShipmentTrackingSnapshot.mockResolvedValue({
       podEta: "2026-04-01T00:00:00.000Z",
+      fetchStatus: "ok",
     });
     navieraMock.getShipmentNaviera.mockResolvedValue({ eta: "2026-05-01" });
     const d = await resolveShipmentEta(admin, "s-1");
     expect(d?.toISOString()).toBe("2026-04-01T00:00:00.000Z");
+  });
+
+  it("SDD-0627 · con la consulta de SeaRates en error, ignora su pod_eta viejo y cae a sailings.eta", async () => {
+    navieraMock.getShipmentTrackingSnapshot.mockResolvedValue({
+      podEta: "2026-04-01T00:00:00.000Z",
+      fetchStatus: "error",
+    });
+    navieraMock.getShipmentNaviera.mockResolvedValue({ eta: "2026-05-01" });
+    const d = await resolveShipmentEta(admin, "s-1");
+    expect(d?.toISOString()).toBe("2026-05-01T12:00:00.000Z");
   });
 
   it("cae a sailings.eta cuando no hay pod_eta", async () => {

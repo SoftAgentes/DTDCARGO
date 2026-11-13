@@ -104,3 +104,21 @@ describe("SDD-0627 · revisión: fechas vencidas y terrestre", () => {
     expect(nota.textContent).not.toMatch(/zarpe|puerto|naviera/);
   });
 });
+
+describe("SDD-0627 · B2: fechas en hora de Caracas", () => {
+  it("un hito registrado a las 02:00 UTC del 2-nov se muestra como 1-nov (22:00 en Caracas)", () => {
+    render(
+      <PortalShipmentDetailNorte
+        shipment={envio}
+        documents={[]}
+        signedUrls={{}}
+        naviera={null}
+        live={null}
+        stepDates={{ ...stepDates, shipped: "2026-11-02T02:00:00Z" }}
+        estimado={null}
+      />,
+    );
+    expect(screen.getAllByText(/^01.nov/i).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/^02.nov/i)).toEqual([]);
+  });
+});

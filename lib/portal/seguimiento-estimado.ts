@@ -150,6 +150,26 @@ const SIN_ESTIMACION: ReadonlySet<ShipmentStatus> = new Set<ShipmentStatus>([
   "exception",
 ]);
 
+/**
+ * ETA de SeaRates sólo si la última consulta salió bien. Cuando SeaRates falla,
+ * la fila conserva el `pod_eta` viejo con `fetch_status = "error"`: ese valor ya
+ * no se usa. Lo comparten la tarjeta Naviera, la nota del stepper y los avisos
+ * (`resolve-shipment-eta`), para que nunca den dos llegadas distintas.
+ */
+export function etaPodVigente(
+  live: { fetchStatus: string; podEta: string | null } | null | undefined,
+): string | null {
+  return live != null && live.fetchStatus === "ok" ? live.podEta : null;
+}
+
+/** ETA conocida del puerto: SeaRates vigente → itinerario (`sailings.eta`). */
+export function etaPuertoConocida(
+  live: { fetchStatus: string; podEta: string | null } | null | undefined,
+  naviera: { eta: string | null } | null | undefined,
+): string | null {
+  return etaPodVigente(live) ?? naviera?.eta ?? null;
+}
+
 /** Día de calendario en Caracas ('YYYY-MM-DD') de un instante. */
 export function diaCaracas(ms: number): string {
   // en-CA formatea como YYYY-MM-DD.
@@ -258,7 +278,7 @@ export function rotuloFuente(fuente: FuenteTransito): string {
     case "aduana":
       return "desde la llegada real a puerto";
     case "naviera":
-      return "con la llegada a puerto que informó la naviera";
+      return "desde la llegada a puerto que informó la naviera";
     case "zarpe":
       return "desde el zarpe, con los días de tránsito del zarpe";
     case "itinerario":

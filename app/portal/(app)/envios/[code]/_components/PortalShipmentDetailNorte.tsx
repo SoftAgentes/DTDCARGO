@@ -19,6 +19,8 @@ import {
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
 import {
+  etaPodVigente,
+  etaPuertoConocida,
   rotuloFuente,
   type SeguimientoEstimado,
 } from "@/lib/portal/seguimiento-estimado";
@@ -174,7 +176,9 @@ export function PortalShipmentDetailNorte({
                 {estimado.puertoReal
                   ? null
                   : estimado.etaPuertoIso
-                    ? ` Llegada estimada a puerto: ${formatDate(estimado.etaPuertoIso)}.`
+                    ? estimado.fuente === "naviera"
+                      ? ` Llegada a puerto según la naviera: ${formatDate(estimado.etaPuertoIso)}.`
+                      : ` Llegada estimada a puerto: ${formatDate(estimado.etaPuertoIso)}.`
                     : " La llegada a puerto está por confirmar."}{" "}
                 Pueden moverse con la naviera y la aduana.
               </>
@@ -192,7 +196,15 @@ export function PortalShipmentDetailNorte({
       {/* Naviera Tier 1 (SDD-0101): buque/ETD/ETA/contenedor reales de la cadena +
           deep-link a SeaRates. Solo cuando hay data (envío consolidado con zarpe). */}
       {hasNavieraData(naviera) ? (
-        <NavieraCard naviera={naviera} live={live} />
+        <NavieraCard
+          naviera={naviera}
+          live={live}
+          puertoPorConfirmar={
+            estimado != null &&
+            estimado.fuente === "naviera" &&
+            estimado.etaPuertoIso == null
+          }
+        />
       ) : null}
 
       {/* 2 columnas: detalle de la carga · documentos */}
@@ -494,15 +506,22 @@ function liveLastMovement(live: TrackingSnapshotRow): string {
 function NavieraCard({
   naviera,
   live,
+  puertoPorConfirmar = false,
 }: {
   naviera: NavieraSnapshot;
   live?: TrackingSnapshotRow | null;
+  /**
+   * SDD-0627 · la ETA de la naviera ya pasó sin llegada registrada: la tarjeta
+   * dice lo mismo que la nota del stepper («por confirmar»), no «Confirmada».
+   */
+  puertoPorConfirmar?: boolean;
 }) {
   // El tracking vivo (real, de la naviera) le gana al dato manual de la cadena.
   const liveData: TrackingSnapshotRow | null =
     live != null && live.fetchStatus === "ok" ? live : null;
-  const etaValue = liveData?.podEta ?? naviera.eta;
-  const etaConfirmed = !!liveData?.podEta;
+  // SDD-0627 · la misma regla que la nota del stepper y los avisos.
+  const etaValue = etaPuertoConocida(live, naviera);
+  const etaConfirmed = !!etaPodVigente(live);
   const statusText = liveData?.status
     ? liveStatusLabel(liveData.status)
     : naviera.navieraStatus
@@ -550,9 +569,11 @@ function NavieraCard({
             value={formatDate(etaValue)}
             highlight
             hint={
-              etaConfirmed
-                ? "Confirmada por la naviera (SeaRates)."
-                : "Estimada por la naviera."
+              puertoPorConfirmar
+                ? "Esta fecha ya pasó: la llegada a puerto está por confirmar."
+                : etaConfirmed
+                  ? "Confirmada por la naviera (SeaRates)."
+                  : "Estimada por la naviera."
             }
           />
         ) : null}

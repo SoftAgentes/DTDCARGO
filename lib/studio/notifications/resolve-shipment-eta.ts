@@ -25,7 +25,7 @@ import {
   getShipmentNaviera,
   getShipmentTrackingSnapshot,
 } from "@/lib/studio/naviera-tracking/queries";
-import { estimarSeguimiento } from "@/lib/portal/seguimiento-estimado";
+import { estimarSeguimiento, etaPodVigente } from "@/lib/portal/seguimiento-estimado";
 import type { ShipmentService, ShipmentStatus } from "@/lib/shared/shipment-public";
 import { AVISOS_POR_HITO_LIVE } from "./avisos-por-hito-flag";
 
@@ -62,7 +62,9 @@ export async function resolveShipmentEta(
   // 1) SeaRates vivo (pod_eta) por consolidación.
   try {
     const snap = await getShipmentTrackingSnapshot(admin, shipmentId);
-    const fromLive = parseFlexibleDate(snap?.podEta);
+    // SDD-0627 · sólo si la última consulta salió bien: con `fetch_status` en
+    // error el `pod_eta` es viejo. La misma regla que la tarjeta del Portal.
+    const fromLive = parseFlexibleDate(etaPodVigente(snap));
     if (fromLive) return fromLive;
   } catch {
     /* degrada a la siguiente fuente */

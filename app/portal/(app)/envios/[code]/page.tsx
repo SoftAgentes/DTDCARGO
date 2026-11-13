@@ -31,7 +31,10 @@ import {
 } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
-import { estimarSeguimiento } from "@/lib/portal/seguimiento-estimado";
+import {
+  estimarSeguimiento,
+  etaPuertoConocida,
+} from "@/lib/portal/seguimiento-estimado";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -113,7 +116,8 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   // llegada a puerto usa la misma ETA que la tarjeta Naviera (SeaRates, luego
   // el itinerario) antes que la estimada, y «hoy» descarta fechas vencidas.
   const estimado = estimarSeguimiento({
-    etaPuertoConocida: live?.podEta ?? naviera?.eta ?? null,
+    // Misma ETA que la tarjeta Naviera: SeaRates sólo si su consulta salió bien.
+    etaPuertoConocida: etaPuertoConocida(live, naviera),
     ahoraIso: new Date().toISOString(),
     status: shipment.status,
     service: shipment.service,

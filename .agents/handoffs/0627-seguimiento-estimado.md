@@ -58,6 +58,16 @@ Se completa en el commit final y en la PR. Pruebas focalizadas ya corridas (PAS�
 - Por decisión del DG, la vista estimada va sin bandera. Ya no se corre `pnpm verify` local: lo
   reemplazan el CI de GitHub y la revisión independiente.
 
+### Revisión del delta (sobre 912ffb740), atendida
+
+- M2 (bloqueante): SeaRates cuenta sólo con `fetchStatus === "ok"`, en la página, la tarjeta
+  Naviera y `resolve-shipment-eta` (helpers `etaPodVigente` y `etaPuertoConocida`).
+- Prueba nueva de la página real (`envios/[code]/__tests__/eta-puerto-consistente.test.tsx`): ok,
+  error, ETA pasada y `date` pura. Mutante verificado: sin el filtro en `page.tsx`, el caso «error»
+  falla.
+- ETA pasada: la tarjeta dice «por confirmar», igual que la nota. Prueba B2 a las 02:00 UTC.
+  Límite anotado en la spec: con una ETA conocida, un zarpe atrasado ya no la corre.
+
 ## PENDIENTES DE ESTA TAREA
 
 - CI de Calidad verde sobre la cabeza final y aprobación de la revisión independiente (portón del DG). `pnpm verify` local: NO EJECUTADO por decisión del DG.
