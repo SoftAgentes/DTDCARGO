@@ -757,3 +757,7 @@ agente no la muestran: la página del CRM vuelve antes de leer el espejo y
 `commercialByAgent` devuelve el reporte oculto. Sus caminos de lectura
 (`app/studio/(app)/crm/page.tsx` y `commercialByAgentKommo`) se conservan sin uso
 hasta la 8.7 o la R4, junto con las pruebas que los recorren.
+
+## Estado de aplicación (2026-11-13, Director General)
+
+La **0527_annual_billing_fx_v2** está **aplicada**: prueba 2026-11-11 17:11:57Z y producción 2026-11-13 18:00:50Z, md5 `422a371de0ae02c74c1ad46c4f83ed28`, verificación PASÓ en las dos. Se retiró su espera y quedó sellada en el tren AD (#529). Donde este documento dice «no aplicada» o «sigue sin aplicar», es el estado histórico anterior a esa fecha.
