@@ -235,7 +235,7 @@ export function CobranzaDrawer({
               background: "var(--warning-bg)",
               borderLeft: "4px solid var(--warning)",
               borderRadius: "var(--r-md)",
-              padding: "10px 12px",
+              padding: "var(--s-2) var(--s-3)",
               font: "500 12.5px/1.5 var(--f-sans)",
               color: "var(--ink)",
             }}
