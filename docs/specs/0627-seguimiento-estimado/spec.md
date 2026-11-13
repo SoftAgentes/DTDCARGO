@@ -120,6 +120,7 @@ Conclusión: **no hace falta tabla nueva ni migración.**
 | `app/portal/(app)/envios/[code]/page.tsx` | calcula `estimado` y lo pasa |
 | `app/portal/(app)/envios/[code]/_components/PortalShipmentDetailNorte.tsx` | «Est.» en el stepper, nota y entrega estimada |
 | `app/portal/(app)/envios/[code]/_components/__tests__/PortalShipmentDetailEstimado.test.tsx` (nuevo) | jsdom |
+| `app/portal/(app)/envios/[code]/__tests__/eta-puerto-consistente.test.tsx` (nuevo) | jsdom de la página real: una sola llegada a puerto en nota y tarjeta |
 | `lib/studio/notifications/avisos-por-hito.ts` (nuevo) | plan, ensayo y programación |
 | `lib/studio/notifications/avisos-por-hito-flag.ts` (nuevo) | `AVISOS_POR_HITO_LIVE` |
 | `lib/studio/notifications/__tests__/avisos-por-hito.test.ts` (nuevo) | puro y doble |
