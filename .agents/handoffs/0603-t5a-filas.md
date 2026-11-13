@@ -11,6 +11,11 @@
 - Dashboard: acciones rápidas y enlaces de cabecera pasan a secundarios; filas que abren embarque con `studio-tracking-row`; estados con `Badge`; números de nómina sin cajón.
 - Dos pruebas focales nuevas. No se tocó `EmbarquesClient.borrado.test.tsx`, que está en la PR abierta #314, y sigue pasando.
 
+## Decisiones
+
+- **Fila fuera del Tab, parada en «Abrir»:** aprobada por el Subdirector Rebrand el 2026-11-13, por mensaje entre sesiones: «La decisión de que la fila salga del Tab y la única parada sea «Abrir embarque <código>» la apruebo». Pidió anotarla en el cuerpo de la PR para la revisión independiente.
+- **Cola de corridas pesadas:** `pnpm verify` espera turno del Subdirector Rebrand; antes van Contabilidad y T3. El `pnpm install` de este worktree se corrió sin turno (~50 s) y se le informó.
+
 ## Validación
 
 - Vitest focal (`embarques`, `dashboard`, `app/studio/_components/__tests__`): PASÓ, 24 archivos y 238 pruebas.
