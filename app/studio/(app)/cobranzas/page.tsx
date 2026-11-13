@@ -19,6 +19,7 @@ import {
   receivablesQueue,
 } from "@/lib/studio/payment-queries";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
+import { tasasVesPorFecha } from "@/lib/studio/fx-rates";
 import { CobranzasClient } from "./_components/CobranzasClient";
 
 export const metadata = { title: "Cobranzas" };
@@ -32,13 +33,23 @@ export default async function CobranzasPage() {
   const today = todayCaracasISO();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [queue, kpis, cashAccounts, unidentified, separation] =
+  // SDD-0629 · la tasa de bolívares de hoy, solo para la vista del equivalente
+  // en Bs del saldo abierto. Sin tasa, null: «tasa no disponible».
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+
+  const [queue, kpis, cashAccounts, unidentified, separation, tasas] =
     await Promise.all([
       receivablesQueue(supabase, today),
       collectionKpis(supabase, today),
       listCashAccounts(supabase),
       listUnidentifiedReceipts(supabase),
       fundsSeparationSummary(supabase, { from: monthStart, to: today }),
+      link?.tenant_id
+        ? tasasVesPorFecha(supabase, link.tenant_id, [today])
+        : Promise.resolve(new Map()),
     ]);
 
   return (
@@ -52,6 +63,8 @@ export default async function CobranzasPage() {
       }))}
       unidentified={unidentified}
       separation={separation}
+      hoy={today}
+      tasaHoy={tasas.get(today) ?? null}
     />
   );
 }

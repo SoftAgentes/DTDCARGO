@@ -21,6 +21,8 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
+import { equivalenteEnBs, type TasaReferencial } from "@/lib/shared/equivalente-bs";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   applicationStatusLabel,
@@ -72,12 +74,18 @@ export function CobranzasClient({
   cashAccounts,
   unidentified,
   separation,
+  hoy,
+  tasaHoy = null,
 }: {
   receivables: Receivable[];
   kpis: CollectionKpis;
   cashAccounts: CashAccountOption[];
   unidentified: PaymentReceipt[];
   separation: FundsSeparation;
+  /** SDD-0629 · «hoy» en Caracas, para la tasa del saldo abierto. */
+  hoy?: string;
+  /** SDD-0629 · tasa VES de hoy (o la última anterior); null si no hay. */
+  tasaHoy?: TasaReferencial | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -198,6 +206,16 @@ export function CobranzasClient({
         />
       </div>
 
+      {/* SDD-0629 · equivalente en Bs del saldo abierto, solo vista. */}
+      {hoy && kpis.casos > 0 && (
+        <BsPorCobrar
+          porCobrarUsd={kpis.porCobrarUsd}
+          casosSinTasa={kpis.casosSinTasa}
+          hoy={hoy}
+          tasaHoy={tasaHoy}
+        />
+      )}
+
       {/* Separación de fondos del mandato (SDD-0068 · insumo de SDD-D) */}
       <FundsSeparationCard separation={separation} />
 
@@ -264,6 +282,8 @@ export function CobranzasClient({
         <CobranzaDrawer
           receivable={selected}
           cashAccounts={cashAccounts}
+          hoy={hoy}
+          tasaHoy={tasaHoy}
           onClose={() => setSelectedId(null)}
         />
       )}
@@ -318,6 +338,57 @@ export function CobranzasClient({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * SDD-0629 · El saldo abierto en USD y su equivalente en Bs con la tasa del día.
+ * Solo vista: no cambia la cola, los KPI ni nada contable.
+ */
+function BsPorCobrar({
+  porCobrarUsd,
+  casosSinTasa,
+  hoy,
+  tasaHoy,
+}: {
+  porCobrarUsd: number;
+  casosSinTasa: number;
+  hoy: string;
+  tasaHoy: TasaReferencial | null;
+}) {
+  const eq = equivalenteEnBs({ amount: porCobrarUsd, currency: "USD", tasa: tasaHoy, fechaPedida: hoy });
+  return (
+    <section
+      aria-label="Saldo por cobrar en bolívares"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "var(--s-3) var(--s-4)",
+        marginBottom: 20,
+        display: "flex",
+        gap: 24,
+        flexWrap: "wrap",
+        alignItems: "flex-start",
+      }}
+    >
+      <div>
+        <div style={{ font: "700 9.5px/1.3 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          Por cobrar en USD
+        </div>
+        <div style={{ font: "700 18px/1.2 var(--f-mono)", color: "var(--ink)", marginTop: 4 }}>
+          ${fmtMoney(porCobrarUsd)}
+        </div>
+        {casosSinTasa > 0 && (
+          <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
+            {casosSinTasa} caso{casosSinTasa === 1 ? "" : "s"} sin tasa fuera de este total.
+          </div>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <EquivalenteBs eq={eq} leyenda />
+      </div>
+    </section>
   );
 }
 
