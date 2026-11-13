@@ -65,7 +65,10 @@ describe("DashboardWidgets · claridad de controles (SDD-0603, tramo 5a)", () =>
     expect(estados).toHaveLength(2);
     for (const estado of estados) {
       // Badge: el texto va con su icono al lado y sin fondo.
-      expect(estado.querySelector("svg") ?? estado.parentElement?.querySelector("svg")).not.toBeNull();
+      // Solo el Badge del estado: el icono de barco de la fila no cuenta.
+      const badge = estado.closest("span") as HTMLElement;
+      expect(badge.querySelector(":scope > svg")).not.toBeNull();
+      expect(badge.style.background).toBe("");
       expect(estado.style.background).toBe("");
     }
   });
