@@ -643,3 +643,19 @@ ocupadas. Se renumeraron sus literales, la espera de `migrations-baseline.json`
 el número de la migración y no cambian. SHA-256 anterior `bf265183a6c483cd2aae0412b330cbccc2e3804de7423b00664e89ae8c046d2e`, nuevo
 `5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75`. La entrega sigue PARCIAL como la #317 que reemplaza
 (rama `claude/sdd-0569-bcv-carga-diaria`).
+
+## Pendiente de la entrega completa: banda de plausibilidad de la tasa (revisión de la #527, 2026-11-13)
+
+Hoy la carga BCV valida la **estructura** de la tasa (formato, fecha valor, unicidad
+del rótulo) pero no su **magnitud**. Un valor bien formado y absurdo, por ejemplo con
+un error de escala en la página del BCV, se publicaría como tasa del día; y como la
+fuente `bcv` le gana a la `manual`, taparía una corrección manual. Antes de activar
+la carga (`BCV_RATES_ENABLED=true`), la entrega completa tiene que agregar una banda
+de plausibilidad. Por ejemplo, rechazar una variación mayor que un umbral contra la
+última tasa vigente y dejar el día para revisión humana, sin publicar ni pisar la
+manual. Mientras falte, la entrega sigue PARCIAL.
+
+Precisión sobre el ensayo: con la carga apagada y sin `dryRun`, la ruta devuelve
+DISABLED sin DB ni red. Con `?dryRun=1` y un scope configurado, **sí** lee la base
+(scope, snapshot y capability) y consulta la fuente BCV
+(`lib/studio/fx/bcv-sync.ts:168` en adelante); lo que no hace es escribir.
