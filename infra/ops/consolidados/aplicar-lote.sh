@@ -22,16 +22,28 @@
 # - Producción (PROD_COMPOSE_PROJECT, por defecto dtd-cargo; extensión F2 de la
 #   SDD-0543): el lote se generó con `--entorno produccion` y CADA paso exige
 #   `AUTORIZACION.txt` (en la carpeta del lote, o --autorizacion <archivo>) con
-#   el OK literal de Sam que nombra el contenedor del lote (su número). Previa,
-#   simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar` están
-#   deshabilitados: borrar en producción lo corre Sam, no este script.
+#   el OK literal de Sam que cita el id COMPLETO del lote
+#   (`carga-consolidado:<N>:<hash>`). Un `--autorizacion` que apunte a otro
+#   archivo de la carpeta del lote (el manifiesto, el resumen) se rechaza.
+#   Previa, simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar`
+#   están deshabilitados: borrar en producción lo corre Sam, no este script.
+#
+# Candado: simulacro, aplicar, deshacer y purgar toman
+# LOTES_CANDADO (por defecto /run/lock/dtd-lotes.lock.d), un directorio que se
+# crea con mkdir (atómico), igual que el de migraciones/aplicar.sh: dos pasos
+# que escriben no corren a la vez. Si quedó de una corrida muerta, se borra a
+# mano después de revisar que no haya otra en curso.
 #
 # Uso:
-#   aplicar-lote.sh --project dtd-cargo-staging|dtd-cargo --confirm <el mismo> #       --lote /srv/ops/paquetes/lote-59 --paso previa|simulacro|aplicar|verificar|deshacer|purgar #       [--autorizacion <archivo>] [--evidence-dir /srv/ops/evidencias] #       [--confirm-deshacer <id>] [--confirm-purga <id>] [--dry-run]
+#   aplicar-lote.sh --project dtd-cargo-staging|dtd-cargo --confirm <el mismo> \
+#       --lote /srv/ops/paquetes/lote-59 \
+#       --paso previa|simulacro|aplicar|verificar|deshacer|purgar \
+#       [--autorizacion <archivo>] [--evidence-dir /srv/ops/evidencias] \
+#       [--confirm-deshacer <id>] [--confirm-purga <id>] [--dry-run]
 #   (--proyecto es sinónimo de --project.)
 #
 # Códigos: 0 listo · 2 uso inválido · 3 rechazado por una guarda (incluye falta
-# de autorización y lote ya aplicado) · 4 integridad (SHA256SUMS) · 5 falta el
+# de autorización, candado tomado y lote ya aplicado) · 4 integridad (SHA256SUMS) · 5 falta el
 # simulacro previo · 6 psql falló (la transacción se deshizo; también el
 # preflight que encuentra el lote ya cargado) · 7 la salida no tiene la forma
 # esperada (leer la evidencia).
@@ -89,13 +101,20 @@ ENTORNO="$(sed -nE 's/^[[:space:]]*"entorno":[[:space:]]*"([^"]+)".*$/\1/p' "${L
 [[ "${ENTORNO}" == "${ENTORNO_ESPERADO}" ]] || refuse "el lote se generó para «${ENTORNO}», no para ${ENTORNO_ESPERADO} (${PROJECT})"
 if [[ ${ES_PROD} -eq 1 ]]; then
   # El OK de Sam es nominal y por lote: el archivo tiene que existir, no estar
-  # vacío y nombrar el número del contenedor (61 no nombra el 610 ni el 161).
+  # vacío y citar el id COMPLETO del lote (un número suelto lo cumplen una
+  # fecha o «no autorizo el 61»; el id además fija el packing exacto).
   AUTORIZACION="${AUTORIZACION:-${LOTE}/AUTORIZACION.txt}"
   [[ -s "${AUTORIZACION}" ]] || refuse "producción exige ${AUTORIZACION} con el OK literal de Sam para este lote"
-  NUMERO="$(sed -nE 's/^carga-consolidado:([0-9]+):.*$/\1/p' <<< "${LOTE_ID}")"
-  [[ -n "${NUMERO}" ]] || refuse "el id del lote ${LOTE_ID} no trae el número del contenedor"
-  grep -qE "(^|[^0-9])${NUMERO}([^0-9]|\$)" -- "${AUTORIZACION}" \
-    || refuse "la autorización no nombra el contenedor ${NUMERO}: el OK de Sam tiene que nombrar cada lote"
+  # Dentro de la carpeta del lote sólo vale AUTORIZACION.txt: cualquier otro
+  # archivo (manifiesto.json, resumen.md) cita el id y lleva nombres, y se
+  # copiaría a la evidencia.
+  lote_real="$(cd "${LOTE}" && pwd -P)"
+  aut_real="$(cd "$(dirname -- "${AUTORIZACION}")" && pwd -P)/$(basename -- "${AUTORIZACION}")"
+  if [[ "${aut_real}" == "${lote_real}/"* && "${aut_real}" != "${lote_real}/AUTORIZACION.txt" ]]; then
+    refuse "--autorizacion apunta a $(basename -- "${AUTORIZACION}") dentro del lote: sólo vale AUTORIZACION.txt"
+  fi
+  grep -qF -- "${LOTE_ID}" "${AUTORIZACION}" \
+    || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"
 fi
 case "${PASO}" in
   aplicar|deshacer|purgar) CIERRE="COMMIT" ;;
@@ -108,6 +127,14 @@ if [[ "${PASO}" == "purgar" ]]; then
   # Borrado definitivo (físico) del lote y de los clientes que creó: sólo prueba,
   # y el propio SQL se niega si no encuentra el cliente sintético de la semilla.
   [[ "${CONFIRM_PURGA}" == "${LOTE_ID}" ]] || refuse "purgar exige --confirm-purga ${LOTE_ID}"
+fi
+if [[ ${DRY_RUN} -eq 0 && " simulacro aplicar deshacer purgar " == *" ${PASO} "* ]]; then
+  # Antes de mirar la evidencia: el candado cierra la carrera entre «no hay
+  # aplicar previo» y el aplicar mismo.
+  CANDADO="${LOTES_CANDADO:-/run/lock/dtd-lotes.lock.d}"
+  [[ -d "$(dirname -- "${CANDADO}")" ]] || die "no existe $(dirname -- "${CANDADO}") para el candado (LOTES_CANDADO)"
+  mkdir -- "${CANDADO}" 2> /dev/null || refuse "otro paso de un lote está en curso (candado ${CANDADO}); si no hay ninguno, revisa y borra el candado a mano"
+  trap 'rmdir -- "${CANDADO}" 2> /dev/null' EXIT
 fi
 if [[ "${PASO}" == "aplicar" ]]; then
   # Un simulacro PASÓ del MISMO lote en la MISMA base: su evidencia tiene el

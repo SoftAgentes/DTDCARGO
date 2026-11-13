@@ -37,7 +37,7 @@ if [[ "${script}" == *"-- cierre: commit"* ]]; then echo COMMIT; else echo ROLLB
 exit 0
 DOBLE
 chmod +x "${T}/bin/docker"
-export PATH="${T}/bin:${PATH}" DOBLE_LOG="${T}/docker.log"
+export PATH="${T}/bin:${PATH}" DOBLE_LOG="${T}/docker.log" LOTES_CANDADO="${T}/candado.lock.d"
 
 L="${T}/lote"
 for paso in previa simulacro verificar; do
@@ -140,10 +140,23 @@ out="$(prod --paso previa 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"AUTORIZACION.txt"* ]] && ok "producción sin AUTORIZACION.txt rechazada (3)" || ko "sin autorización rc=${rc}: ${out}"
 : > "${P}/AUTORIZACION.txt"
 prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "AUTORIZACION.txt vacía rechazada (3)" || ko "autorización vacía no rechazada"
-echo "Sam, 2026-11-13: autorizo cargar el contenedor 610 y el 161 en producción" > "${P}/AUTORIZACION.txt"
-out="$(prod --paso previa 2>&1)"; rc=$?
-[[ ${rc} -eq 3 && "${out}" == *"no nombra el contenedor 61"* ]] && ok "autorización que no nombra el contenedor rechazada (3)" || ko "autorización ajena rc=${rc}: ${out}"
 echo "Sam, 2026-11-13: autorizo cargar el contenedor 61 en producción" > "${P}/AUTORIZACION.txt"
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"no cita el lote carga-consolidado:61:cafebabe"* ]] && ok "autorización con el número suelto (sin el id del lote) rechazada (3)" || ko "número suelto rc=${rc}: ${out}"
+echo "Sam: autorizo carga-consolidado:61:cafebabf" > "${P}/AUTORIZACION.txt"
+prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "autorización de otro lote (otro hash) rechazada (3)" || ko "otro hash no rechazado"
+echo "Sam: autorizo CARGA-CONSOLIDADO:61:CAFEBABE" > "${P}/AUTORIZACION.txt"
+prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "id del lote en mayúsculas no vale: tiene que citarse exacto (3)" || ko "id en mayúsculas no rechazado"
+for paso in simulacro aplicar; do
+  out="$(prod --paso "${paso}" 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"no cita el lote"* ]] && ok "${paso} sin autorización válida rechazado (3)" || ko "${paso} sin autorización rc=${rc}: ${out}"
+done
+# --autorizacion apuntando a un archivo del lote que cita el id (el manifiesto): rechazo, y no llega a la evidencia.
+out="$(prod --paso previa --autorizacion "${P}/manifiesto.json" 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"sólo vale AUTORIZACION.txt"* && -z "$(ls -A "${EP}")" ]] && ok "--autorizacion a manifiesto.json del lote rechazada sin dejar evidencia (3)" || ko "manifiesto como autorización rc=${rc}: ${out}"
+out="$(prod --paso previa --autorizacion "${P}/../lote-prod/resumen.md" 2>&1)"; rc=$?
+[[ ${rc} -eq 3 ]] && ok "--autorizacion a un archivo del lote por ruta con .. también rechazada (3)" || ko "ruta con .. rc=${rc}: ${out}"
+echo "Sam, 2026-11-13: autorizo cargar el lote carga-consolidado:61:cafebabe en producción" > "${P}/AUTORIZACION.txt"
 out="$(prod --paso deshacer --confirm-deshacer carga-consolidado:61:cafebabe 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"deshabilitado en producción"* ]] && ok "deshacer en producción deshabilitado aunque esté confirmado (3)" || ko "deshacer en producción rc=${rc}: ${out}"
 out="$(prod --paso purgar --confirm-purga carga-consolidado:61:cafebabe 2>&1)"; rc=$?
@@ -153,7 +166,7 @@ bash "${APLICAR}" --project zz-staging --confirm zz-staging --lote "${P}" --evid
 out="$(prod --paso previa 2>&1)"; rc=$?
 [[ ${rc} -eq 0 && "${out}" == *"PASÓ · previa · ROLLBACK"* ]] && ok "previa en producción PASÓ con la autorización" || ko "previa producción rc=${rc}: ${out}"
 ev="$(ls -d "${EP}"/lote-*-dtd-cargo-*-previa | head -1)"
-grep -q "contenedor 61" "${ev}/AUTORIZACION.txt" 2>/dev/null && ok "la evidencia de producción guarda la autorización" || ko "la evidencia no trae AUTORIZACION.txt"
+grep -q "carga-consolidado:61:cafebabe" "${ev}/AUTORIZACION.txt" 2>/dev/null && ok "la evidencia de producción guarda la autorización" || ko "la evidencia no trae AUTORIZACION.txt"
 grep -rq "SECRETO" "${EP}" && ko "la evidencia de producción lleva un nombre" || ok "la evidencia de producción no lleva nombres"
 tail -1 "${DOBLE_LOG}" | grep -q "exec -i dtd-cargo-db-1 psql" && ok "psql corre en dtd-cargo-db-1" || ko "docker.log: $(tail -1 "${DOBLE_LOG}")"
 prod --paso aplicar >/dev/null 2>&1; [[ $? -eq 5 ]] && ok "aplicar en producción sin simulacro sale 5" || ko "aplicar producción sin simulacro no sale 5"
@@ -171,8 +184,25 @@ bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evide
 sleep 1
 out="$(DOBLE_FALLA='carga-consolidado:61:cafebabe · aplicar' bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP2}" --paso aplicar 2>&1)"; rc=$?
 [[ ${rc} -eq 6 && "${out}" == *"ya está cargado"* ]] && ok "lote existente en la base: el preflight lo frena y sale 6" || ko "preflight producción rc=${rc}: ${out}"
-rm -f "${P}/AUTORIZACION.txt"; echo "OK de Sam para el contenedor 61" > "${T}/ok-61.txt"
+rm -f "${P}/AUTORIZACION.txt"; echo "OK de Sam para carga-consolidado:61:cafebabe" > "${T}/ok-61.txt"
 prod --paso previa --autorizacion "${T}/ok-61.txt" >/dev/null 2>&1 && ok "--autorizacion <archivo> fuera del lote también vale" || ko "--autorizacion externa no funcionó"
+
+# 8. Candado: con otro paso en curso, un aplicar se niega sin tocar docker; se libera al terminar.
+EP3="${T}/evid-prod-3"; mkdir -p "${EP3}"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso simulacro >/dev/null 2>&1
+[[ ! -e "${LOTES_CANDADO}" ]] && ok "el candado se libera al terminar el simulacro" || ko "el candado quedó tomado"
+mkdir "${LOTES_CANDADO}"; antes="$(wc -l < "${DOBLE_LOG}")"; sleep 1
+out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso aplicar 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"candado"* && "$(wc -l < "${DOBLE_LOG}")" == "${antes}" && -d "${LOTES_CANDADO}" ]] && ok "aplicar con el candado tomado se niega sin tocar docker ni soltar el candado ajeno (3)" || ko "candado tomado rc=${rc}: ${out}"
+rmdir "${LOTES_CANDADO}"
+out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso aplicar 2>&1)"; rc=$?
+[[ ${rc} -eq 0 && ! -e "${LOTES_CANDADO}" ]] && ok "sin candado, aplicar PASÓ y lo suelta" || ko "aplicar tras el candado rc=${rc}: ${out}"
+
+# 9. Destino: PROD_COMPOSE_PROJECT cambia cuál es producción; mayúsculas no cuentan.
+PROD_COMPOSE_PROJECT=otra-prod bash "${APLICAR}" --proyecto otra-prod --confirm otra-prod --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso previa >/dev/null 2>&1 && ok "PROD_COMPOSE_PROJECT=otra-prod: otra-prod es producción y acepta el lote" || ko "PROD_COMPOSE_PROJECT no se respetó"
+PROD_COMPOSE_PROJECT=otra-prod bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "con PROD_COMPOSE_PROJECT=otra-prod, dtd-cargo deja de ser destino válido (3)" || ko "dtd-cargo aceptado con otra producción"
+bash "${APLICAR}" --proyecto DTD-CARGO --confirm DTD-CARGO --lote "${P}" --evidence-dir "${EP3}" --autorizacion "${T}/ok-61.txt" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "DTD-CARGO en mayúsculas no es producción (3)" || ko "DTD-CARGO aceptado"
+bash "${APLICAR}" --project ZZ-STAGING --confirm ZZ-STAGING --lote "${L}" --evidence-dir "${T}/evid" --paso previa >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "ZZ-STAGING en mayúsculas no es prueba (3)" || ko "ZZ-STAGING aceptado"
 
 echo "${pass} PASÓ · ${fail} FALLÓ"
 [[ ${fail} -eq 0 ]]
