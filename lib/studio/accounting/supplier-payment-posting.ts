@@ -19,6 +19,7 @@
  *    representa <moneda>/USD). Si no hay fx_rate, se usa el amount tal cual.
  */
 
+import { usdOrNull } from "@/lib/shared/fx";
 import { createAdminClient } from "@/lib/db/admin";
 
 /** Cuenta de control de la CxP que se debita al pagar (SDD-0040 §5). */
@@ -58,18 +59,16 @@ function round2(n: number): number {
  * Deriva el monto USD funcional del pago. PURA — testeable sin DB.
  * - USD / USDT → el amount tal cual.
  * - otra moneda con fx_rate>0 → amount / fx_rate (fx_rate = <moneda>/USD).
- * - sin fx_rate → amount tal cual (fallback; el caller ya guarda currency).
+ * - SDD-0572: sin tasa, null (antes, el monto tal cual).
  */
 export function paymentAmountUsd(
   amount: number,
   currency: string,
   fxRate?: number | null,
-): number {
-  const a = Number(amount) || 0;
-  if (currency === "USD" || currency === "USDT") return round2(a);
-  const fx = Number(fxRate);
-  if (Number.isFinite(fx) && fx > 0) return round2(a / fx);
-  return round2(a);
+): number | null {
+  // SDD-0572: el conversor canónico. Sin tasa, null: el pago no se asienta (antes
+  // se asentaba el nominal como si fueran dólares) y queda en «Por contabilizar».
+  return usdOrNull(Number(amount) || 0, currency, fxRate);
 }
 
 /** Una línea del asiento del pago (debe XOR haber). */
@@ -137,6 +136,7 @@ export async function postSupplierPaymentJournalEntry(
       input.currency,
       input.fxRate,
     );
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) {
       return { ok: true, skipped: "zero-amount" };
     }

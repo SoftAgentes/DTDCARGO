@@ -28,8 +28,8 @@ export type PartnerBillAlert = {
   kind: Exclude<BillKind, "full">;
   /** Saldo pendiente en la moneda de la CxP. */
   balance: number;
-  /** Saldo normalizado a USD real (misma convención que la cola de CxP). */
-  balanceUsd: number;
+  /** Saldo en USD (misma convención que la cola de CxP). SDD-0572: null sin tasa. */
+  balanceUsd: number | null;
   /** Días de atraso (>0; la lista sólo trae vencidas). */
   daysOverdue: number;
 };

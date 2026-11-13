@@ -338,8 +338,13 @@ describe("receiptAmountUsd", () => {
     // 18000 VES a 36 VES/USD = 500 USD
     expect(receiptAmountUsd(18000, "VES", 36)).toBe(500);
   });
-  it("sin fx_rate → amount tal cual (fallback)", () => {
-    expect(receiptAmountUsd(500, "VES", null)).toBe(500);
+  // SDD-0572 (decisión 1 de Sam; el Director, 2026-10-20): sin tasa no se convierte; nunca el monto tal cual.
+  it("sin fx_rate → null (el cobro no se asienta)", () => {
+    expect(receiptAmountUsd(500, "VES", null)).toBeNull();
+    expect(receiptAmountUsd(500, "CNY", 0)).toBeNull();
+  });
+  it("CNY con tasa convierte con la cuenta exacta", () => {
+    expect(receiptAmountUsd(15.66, "CNY", 7.2)).toBe(2.18);
   });
 });
 
