@@ -36,7 +36,7 @@ Sin cambios en `app/globals.css`, páginas del portal, rutas, datos, acciones de
 ## Aceptación
 
 - Todo selector de `claridad.css` empieza por `.portal-sys`; sin `!important`, sin `[style…]`, sin colores literales; cada `var()` existe en `globals.css` o en la propia hoja.
-- Contornos de controles ≥3:1 y texto ≥4,5:1, en claro y en oscuro, medidos por `claridad-portal-contract.test.ts` sobre las reglas reales (piso: 14 pares por tema).
+- Contornos de controles ≥3:1 y texto ≥4,5:1, en claro y en oscuro, medidos por `claridad-portal-contract.test.ts` sobre las reglas reales (piso: 13 pares por tema).
 - El secundario reposa en sombra de nivel 1, sube al pasar el cursor y baja al oprimir.
 - Estado sin fondo, borde, relleno ni radio; aviso con cajón sin contorno ni sombra; enlaces de texto subrayados.
 - Nada oprimible nuevo bajo 32 px (sub-pestaña: 40 px; los filtros ya miden 48 px).

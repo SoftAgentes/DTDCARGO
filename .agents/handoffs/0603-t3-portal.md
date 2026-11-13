@@ -22,6 +22,12 @@ Ver tabla «Qué cambia» de `tramo-3.md`. En corto: `.btn-ghost` con contorno d
 - `git diff --check`: PASÓ.
 - Contrato, pruebas focales del portal y `pnpm verify`: NO EJECUTADO local: sin node_modules; cubre el CI de GitHub (regla del DG, 2026-11-13, transmitida por el Subdirector Rebrand).
 
+## Revisión independiente (2026-11-13) y corrección
+
+- Bloqueo: el contrato leía los tokens claros de `:root`, pero los `--color-*` claros viven en `@theme` de `app/globals.css`; `token()` lanzaba y fallaban todas las del tema claro y los mutantes M1 a M4. Arreglo: leer `@theme`.
+- Al correrlo aparecieron dos fallas más del propio contrato: el piso pedía 14 pares y la hoja real da 13 (el par 14 solo existe si el estado vuelve a tener fondo), y el chequeo de `!important`/`[style` leía también los comentarios. Piso a 13; ese chequeo ahora ignora comentarios.
+- Con `pnpm install --frozen-lockfile` autorizado por el Subdirector Rebrand: contrato 45/45 PASÓ (14 del tema claro; M1 a M5 mueren); `vitest run app/portal` 43 archivos, 386 pruebas PASÓ; ESLint de lo tocado PASÓ; `tsc --noEmit` PASÓ. `pnpm verify` completo: NO EJECUTADO local; lo cubre el CI de GitHub.
+
 ## Publicación
 
 - Rama publicada `claude/0603-t3-portal`; se trajo `origin/main` con merge, sin conflictos. El diff contra main es exactamente la allowlist.

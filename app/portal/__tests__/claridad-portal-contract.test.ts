@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * Contrato de SDD-0603 · tramo 3 (portal del cliente, BD-037).
  *
  * Lee las reglas reales de `app/portal/claridad.css`, saca el token de color que
- * usa cada una y lo mide contra la superficie donde cae, en claro (`:root`) y en
+ * usa cada una y lo mide contra la superficie donde cae, en claro (`@theme`) y en
  * oscuro (`[data-portal-theme="dark"]`) de `app/globals.css`. Si alguien cambia el
  * token de una regla o el valor de un token y el control vuelve a quedar pálido,
  * rompe aquí. Cada comprobación es una función pura sobre el texto del CSS, para
@@ -27,7 +27,8 @@ function bloque(css: string, cabecera: string): string {
   return css.slice(i, css.indexOf("}", i));
 }
 
-const claro = bloque(globalsCss, ":root");
+// Los `--color-*` claros viven en `@theme` (Tailwind v4), no en `:root`.
+const claro = bloque(globalsCss, "@theme");
 const oscuro = bloque(globalsCss, '[data-portal-theme="dark"]');
 const TEMAS = { claro, oscuro } as const;
 type Tema = keyof typeof TEMAS;
@@ -136,8 +137,8 @@ function coloresLiterales(css: string): string[] {
 }
 
 describe("claridad de controles en el portal · SDD-0603 tramo 3", () => {
-  it("mide al menos 14 pares en cada tema (piso: la suite no puede vaciarse)", () => {
-    expect(medidas(claridadCss).length).toBeGreaterThanOrEqual(14);
+  it("mide al menos 13 pares en cada tema (piso: la suite no puede vaciarse)", () => {
+    expect(medidas(claridadCss).length).toBeGreaterThanOrEqual(13);
   });
 
   describe.each(Object.keys(TEMAS) as Tema[])("tema %s", (tema) => {
@@ -163,8 +164,9 @@ describe("claridad de controles en el portal · SDD-0603 tramo 3", () => {
 
   it("sin colores literales ni !important: solo tokens que ya existen", () => {
     expect(coloresLiterales(claridadCss)).toEqual([]);
-    expect(claridadCss).not.toMatch(/!important/);
-    expect(claridadCss).not.toMatch(/\[style/);
+    const codigo = claridadCss.replace(/\/\*[\s\S]*?\*\//g, ""); // los comentarios pueden nombrarlos
+    expect(codigo).not.toMatch(/!important/);
+    expect(codigo).not.toMatch(/\[style/);
     const usados = new Set([...claridadCss.matchAll(/var\((--[\w-]+)\)/g)].map((m) => m[1]));
     const propios = new Set([...claridadCss.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]));
     for (const t of usados) {
