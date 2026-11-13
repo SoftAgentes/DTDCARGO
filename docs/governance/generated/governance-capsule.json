@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-08-20T00:00:00.000Z",
-  "sourceCommit": "104c15f2230755d1c9c911f52d4518d692b43e2a",
+  "generatedAt": "2026-11-12T00:00:00.000Z",
+  "sourceCommit": "75f77e61e5ae42846cc42b763db68544b19b8d78",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -171,6 +171,13 @@
       "state": "aprobada",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/sge-00.md"
+    },
+    {
+      "code": "SGE-AG-01",
+      "version": "0.2",
+      "state": "aprobada (cambio 2026-11-12)",
+      "approvedAt": "2026-11-12",
+      "path": "docs/governance/policies/sge-ag-01.md"
     },
     {
       "code": "TBL-01",

@@ -253,12 +253,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // las versiones de Chatwoot.
   // SDD-0589 (9.3) sumó `_actions/guia-actions.ts` (80 → 81, con prefijo 23 → 24):
   // el estado de la guía por usuario.
-  it("la superficie escaneada es la esperada (81 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
+  // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
+  it("la superficie escaneada es la esperada (82 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 81,
-      exactos: 57,
+      total: 82,
+      exactos: 58,
       conPrefijo: 24,
     });
   });
@@ -343,8 +345,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate` antes de leer nada; escribe solo por la RPC
   // `chatwoot_portal_destrabar` (0520) con el cliente de sesión, que repite el admin
   // del tenant (`is_tenant_admin`) y toma el tenant de la sesión.
+  // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts::guardarEdicion`,
+  // `::retirarNoticia` y `::volverAPublicar` (463 → 466): las tres pasan por
+  // `gateAdmin`, que llama a `tenantAdminGate` y después comprueba el flag
+  // `marketing_news` antes de leer o escribir nada. Pasan el veredicto por acción
+  // sin entrar en ninguna lista. `guardarEdicion` escribe con el cliente de sesión
+  // (la policy de UPDATE de 0055 repite admin y tenant); retiro y vuelta, por las
+  // RPC `news_retirar` y `news_volver_a_publicar` (0518), que repiten `is_tenant_admin`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(463);
+    expect(reportes.length).toBe(466);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

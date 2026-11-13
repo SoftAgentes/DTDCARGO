@@ -130,6 +130,8 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
 
 ## Puerta 3 · El ensayo, en la copia efímera
 
+> **El guion para copiar,** con las casillas y en el orden en que se corren las puertas 3 y 4: [`chatwoot-portal-p4-guion-puertas-3-4.md`](chatwoot-portal-p4-guion-puertas-3-4.md). Si el guion y este runbook no dicen lo mismo, vale este runbook.
+
 > **La PR 2b de E5 es la #473, en `main` desde `b5669b1a5` (tren #487).** El guion copia las guardas de `kommo-historial/ensayo-archivo.sh`. Las citas de su código son de `main` en `b5669b1a5`.
 
 **Sub-paso 3.0 · ⛔ OK propio · Crear `/srv/ops/portal-historial` y poner los scripts.**
@@ -169,7 +171,7 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
     - `supabase/migrations/0520_chatwoot_portal_vuelta.sql`
     - `supabase/migrations/0523_chatwoot_portal_carga.sql`
     - `supabase/migrations/0524_chatwoot_portal_puerta4.sql`;
-  - de la 2c (#478, en `main` desde `3c14dde83`, cabeza `602d5200e`): `deshacer.sh` y `deshacer-carga.rb`. Se copian por nombre con su propio `scp` (debajo), y van en esta misma lista, con su sha256, bajo el mismo OK;
+  - de la 2c (#478, en `main` desde `3c14dde83`, cabeza `602d5200e`; con la #502 y la #504, N1 a N3 del DG): `deshacer.sh` y `deshacer-carga.rb`. El sha256 es el de `main` después de la #504. Se copian por nombre con su propio `scp` (debajo), y van en esta misma lista, con su sha256, bajo el mismo OK;
   - en Studio, desde `supabase/cargas/portal-historial-deshacer/`: `deshacer-vinculos.sql` y `deshacer-vinculos.sh`, que van a la misma carpeta del VPS con su propio `scp` (debajo) y su sha256.
   - **La lista crece con cada PR,** y se escribe aquí cuando entra en `main`.
   - **No se copian** `README.md` ni `pruebas/`: la copia va por nombre, y en el VPS queda solo lo de esta lista.
@@ -310,6 +312,8 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
 
 ## Puerta 4 · Producción
 
+> **El guion para copiar** de 4.0 a 4.10 está en [`chatwoot-portal-p4-guion-puertas-3-4.md`](chatwoot-portal-p4-guion-puertas-3-4.md). El 4.6b no se copia ahí: su única versión es la de este runbook.
+
 **Antes de la puerta 4** (condición del DG, 2026-11-08): **las dos vueltas atrás dirigidas, la de Studio (`supabase/cargas/portal-historial-deshacer/`) y la de Chatwoot (la pieza de E5), en `main` y ensayadas** por el DG con `rollback`. No hace falta para las puertas 1 a 3. Sin ellas, el DG no le pide a Sam la puerta 4.
 
 **Y, antes de la puerta 4, la prevención del log** (aprobada por el DG, 2026-11-08). Son dos condiciones, y sin las dos la puerta no sigue:
@@ -370,10 +374,10 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
 | Paso | Quién | Qué hace | Qué exige | Si falla |
 |---|---|---|---|---|
-| **1 · El seco de Chatwoot** (en `main` desde `3c14dde83`) | El DG: no borra | Cuenta lo que se borraría, comprueba que no haya nada ajeno y escribe `contactos-conservados.ndjson` (los contactos `dtd-portal:` con otra bandeja, que no se borran) y `chatwoot-seco.hecho` | En Studio, en solo lectura (`deshacer.sh` de la #478, en `main` desde `3c14dde83`, `:191-196`): que el tenant tenga la fila del flag `chatwoot_portal`; que no esté encendido ni se haya encendido alguna vez (`feature_flags` y `entity_audit_log`); que la cola no haya corrido (ninguna salida que no sea `cargado`); que haya hilos vinculados; y que todos sus espejos sean de esta bandeja. Si no lo puede comprobar, no corre. En Chatwoot, que no haya nada ajeno (debajo) | No cambió nada. Se corre `limpiar.sh` y se repite |
-| **1b · El ensayo de Chatwoot, opcional** (en `main` desde `3c14dde83`) | El DG, **solo antes del paso 3** | Hace todo y termina en ROLLBACK; no escribe `.hecho` | El `.ndjson` del paso 1 y la misma guarda de Studio del paso 1. **Después del paso 3 se niega:** si en la durable hay `chatwoot-borrar.hecho` o `chatwoot-borrar.inicio`, o en tmpfs un `chatwoot-borrar.hecho`, sale con `ya_hay_un_borrado_en_la_copia_durable` y no borra nada (`deshacer.sh` en `main` desde `3c14dde83`, `:134-137`) | No cambió nada |
+| **1 · El seco de Chatwoot** (en `main` desde `3c14dde83`) | El DG: no borra | Cuenta lo que se borraría, comprueba que no haya nada ajeno y escribe `contactos-conservados.ndjson` (los contactos `dtd-portal:` con otra bandeja, que no se borran) y `chatwoot-seco.hecho` | En Studio, en solo lectura (`deshacer.sh`, `:164-205`, con la #504): que el tenant tenga la fila del flag `chatwoot_portal`; que no esté encendido ni se haya encendido alguna vez (`feature_flags` y `entity_audit_log`); que la cola no haya corrido (ninguna salida que no sea `cargado`); que haya hilos vinculados; y que todos sus espejos sean de esta bandeja. Si no lo puede comprobar, no corre. En Chatwoot, que no haya nada ajeno (debajo). **Los hilos cargados (#504):** cada conversación de la bandeja tiene que ser un hilo de Studio del tenant con ese `display_id` y su espejo en la bandeja; si no, se niega con `las_conversaciones_no_son_los_hilos_cargados` (`:305`). Un hilo que vinculó la cola y no tiene conversación en la bandeja queda fuera de la cuenta. `chatwoot-seco.hecho` guarda `antes=`, `contactos_a_borrar=` y `hilos_cargados=` | No cambió nada. Se corre `limpiar.sh` y se repite |
+| **1b · El ensayo de Chatwoot, opcional** (en `main` desde `3c14dde83`) | El DG, **solo antes del paso 3** | Hace todo y termina en ROLLBACK; no escribe `.hecho` | El `.ndjson` del paso 1 y la misma guarda de Studio del paso 1. **Después del paso 3 se niega:** si en la durable hay `chatwoot-borrar.hecho` o `chatwoot-borrar.inicio`, o en tmpfs un `chatwoot-borrar.hecho`, sale con `ya_hay_un_borrado_en_la_copia_durable` y no borra nada (`deshacer.sh`, `:143-144`, con la #504) | No cambió nada |
 | **2 · El ensayo de Studio** (en `main` desde `3c14dde83`) | El DG: rollback | Lee el `.ndjson`, ensaya el desarme y escribe `studio-ensayo.hecho`, solo en tmpfs | `chatwoot-seco.hecho` con el mismo sha256, el tenant, la cuenta y la bandeja | No cambió nada. Se repite |
-| **3 · El borrado de Chatwoot** (en `main` desde `3c14dde83`) | **Sam:** borrado permanente | Deja la copia durable, escribe ahí `chatwoot-borrar.inicio` antes de abrir su transacción, recalcula los conservados, borra y escribe `chatwoot-borrar.hecho` en las dos copias. El `.inicio` se queda al lado del `.hecho` (`deshacer.sh` en `main` desde `3c14dde83`, `:231`) | Los dos `.hecho` en `=ok`, el mismo sha256 en los dos y en el `sha256sum` actual del `.ndjson`, y el mismo tenant. Que no haya ya un borrado: ni `chatwoot-borrar.hecho` ni `chatwoot-borrar.inicio` en la durable (`:134-137`). **El ensayo de Studio con `entorno=produccion`:** si no, sale con `el_ensayo_de_studio_no_es_de_produccion` (`:218`). **La huella `SISTEMA` de Studio** (debajo, `:220-227`), antes de escribir nada: un ensayo sobre una copia no habilita borrar Chatwoot de producción | Con un ROLLBACK comprobado, retira el `.inicio` y Chatwoot queda igual: se repite el 3. Si queda `.inicio` sin `.hecho`, ver «`chatwoot-borrar.inicio` sin `chatwoot-borrar.hecho`», debajo |
+| **3 · El borrado de Chatwoot** (en `main` desde `3c14dde83`) | **Sam:** borrado permanente | Deja la copia durable, escribe ahí `chatwoot-borrar.inicio` antes de abrir su transacción, recalcula los conservados, borra y escribe `chatwoot-borrar.hecho` en las dos copias. El `.inicio` se queda al lado del `.hecho`: se retira solo con un ROLLBACK comprobado (`deshacer.sh`, `:277-278`, con la #504) | Los dos `.hecho` en `=ok`, el mismo sha256 en los dos y en el `sha256sum` actual del `.ndjson`, y el mismo tenant. Que no haya ya un borrado: ni `chatwoot-borrar.hecho` ni `chatwoot-borrar.inicio` en la durable (`:143-144`). **El ensayo de Studio con `entorno=produccion`:** si no, sale con `el_ensayo_de_studio_no_es_de_produccion` (`:225`). **La huella `SISTEMA` de Studio** (debajo, `:227-234`), antes de escribir nada: un ensayo sobre una copia no habilita borrar Chatwoot de producción. **Los pisos del seco (#504):** `deshacer.sh` le pasa al `.rb` los conteos de `chatwoot-seco.hecho` (`:262-270`). El `.rb` se niega sin ellos (`deshacer-carga.rb:106`), y no confirma si la bandeja no es la que contó el seco (`:249`) o si lo borrado no es exactamente eso (`:274`), por ejemplo una conversación que entró a mitad del borrado | Con un ROLLBACK comprobado, retira el `.inicio` y Chatwoot queda igual: se repite el 3. Si queda `.inicio` sin `.hecho`, ver «`chatwoot-borrar.inicio` sin `chatwoot-borrar.hecho`», debajo |
 | **4 · Studio aplica** (en `main` desde `3c14dde83`) | **Sam:** borrado permanente | Desarma los vínculos y escribe `studio-aplicar.hecho` en tmpfs y en la durable | `chatwoot-seco.hecho`, `studio-ensayo.hecho` (el mismo `entorno`) y `chatwoot-borrar.hecho` (`fin=commit`), con el mismo sha256 y el mismo tenant, y los de Chatwoot con la misma cuenta y bandeja. Usa la copia de tmpfs, o la durable si falta; si las dos están y no son iguales, se niega | Chatwoot ya está vacío y Studio sigue vinculado, sin daño con el flag apagado. **Se repite el 4 con el mismo `.ndjson`, sin volver a correr Chatwoot.** **Regla del DG: `chatwoot_portal` no se enciende hasta que el 4 salga con 0** |
 | **5 · El cierre** (en `main` desde `3c14dde83`) | **Sam** | Borra el `.ndjson` y los `.hecho` de las dos carpetas y comprueba que no quedó ninguna | `studio-aplicar.hecho` con `fin=commit`, en tmpfs o en la durable, y el sha256 del `.ndjson` que quede | Se repite el 5 |
 
@@ -545,6 +549,86 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 **Sub-paso 5a · ⛔ OK propio · Las variables de la web y recrearla.** Va antes de encender, porque es parte del encendido.
 - **Las variables:** `CHATWOOT_INBOX_PORTAL_ID` (el id de la bandeja de la puerta 2), `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_ACCOUNT_ID=1`, `CHATWOOT_TENANT_ID` y `CHATWOOT_URL`, en `/srv/dtd-cargo/.env`.
   - **No se imprimen:** se anota solo el nombre y el largo, o un sha256 corto.
+- **⛔ OK propio · El `CHATWOOT_ROUTER_TOKEN` de producción está vencido.** Lo midió el DG el 2026-11-11:
+  - el valor de `/srv/dtd-cargo/.env`, de 24 caracteres, no coincide con ningún `AccessToken` de Chatwoot;
+  - `GET /api/v1/profile` con él da 401.
+
+  **Qué rompe:** sin arreglarlo, cada envío del portal fallaría con `<paso>_no_autorizado`. El código es el paso más el error (`codigo()`, `lib/studio/chatwoot/portal.ts:79-81`), así que el que sale depende del primer paso que llama a Chatwoot:
+  - `contacto_no_autorizado`, si el hilo no tiene contacto;
+  - `conversacion_no_autorizado`, si no tiene conversación;
+  - `mensaje_no_autorizado`, si ya tiene las dos, como los hilos que vincula la puerta 4.
+
+  Se registra como `[chatwoot-portal] envío falló: <código>` (`:258`). Hoy no rompe nada, porque solo lo usan `chatwootRouterConfig()` y `chatwootPortalConfig()` (`lib/studio/chatwoot/config.ts:110` y `:154`), y las dos dan `null` mientras falten sus variables. **Se arregla en este 5a, antes del recreado de abajo,** para que la web se recree una sola vez. **El `.env` no se toca antes de este OK.**
+  1. **Leer, sin imprimir el token.** La huella es la de `pegar-secretos-web.sh:79`: `printf '%s'`, sin salto de línea, y los 8 primeros caracteres de `sha256sum`. Se comparan el `.env`, el contenedor y los `AccessToken` de Chatwoot. Los `updated_at` dicen si hubo rotación. Los tres comandos son de solo lectura y van sin `docker exec -i`.
+
+     ```bash
+     docker exec chatwoot-rails-1 bundle exec rails runner 'AccessToken.order(:id).each { |t| puts "HECHO token id=#{t.id} owner=#{t.owner_type}:#{t.owner_id} largo=#{t.token.to_s.length} sha8=#{Digest::SHA256.hexdigest(t.token.to_s)[0,8]} created_at=#{t.created_at&.utc&.iso8601} updated_at=#{t.updated_at&.utc&.iso8601}" }' 2>/dev/null | grep '^HECHO'
+     ```
+
+     ```bash
+     v=$(sed -n 's/^CHATWOOT_ROUTER_TOKEN=//p' /srv/dtd-cargo/.env | head -n 1 | tr -d "'\""); printf 'HECHO env largo=%s sha8=%s\n' "${#v}" "$(printf '%s' "$v" | sha256sum | cut -c1-8)"; unset v; echo "HECHO contenedor sha8=$(docker exec dtd-cargo-web-1 printenv CHATWOOT_ROUTER_TOKEN | tr -d '\n' | sha256sum | cut -c1-8)"
+     ```
+
+     ```bash
+     sed -n 's/^CHATWOOT_SERVICE_USER_ID=//p' /srv/chatwoot/secretos/platform-app.env; sed -n 's/^DTD_CHATWOOT_SERVICIO_ID=//p' /srv/chatwoot/.env
+     ```
+
+     **Para seguir:**
+     - el último comando da `1` y `1`;
+     - el `sha8` de `owner=User:1` en el primero es el token vigente; si su `updated_at` es posterior a `created_at`, se rotó en esa fecha.
+
+     **Si el `sha8` del `.env` o el del contenedor ya es el de `User:1`,** no hay nada que reemplazar: se para y se avisa al DG.
+  2. **Guardar la línea de ahora para la vuelta atrás,** sin imprimirla. La línea tiene que estar una sola vez:
+
+     ```bash
+     grep -c '^CHATWOOT_ROUTER_TOKEN=' /srv/dtd-cargo/.env; umask 077; grep '^CHATWOOT_ROUTER_TOKEN=' /srv/dtd-cargo/.env > /dev/shm/router-antes.env; wc -l < /dev/shm/router-antes.env
+     ```
+
+     **Para seguir:** `1` y `1`. Con otra cosa, se para: la vuelta atrás supone una sola línea.
+
+  3. **Vaciar la línea,** porque `pegar-secretos-web.sh` no pisa un valor que ya existe (`:85`):
+
+     ```bash
+     sed -i 's/^CHATWOOT_ROUTER_TOKEN=.*/CHATWOOT_ROUTER_TOKEN=/' /srv/dtd-cargo/.env && grep -c '^CHATWOOT_ROUTER_TOKEN=$' /srv/dtd-cargo/.env
+     ```
+
+  4. **Cargar el token vigente,** en una terminal con `ssh -t`. Cuando lo pide, se pulsa **Enter**: lo toma de `User.find(<CHATWOOT_SERVICE_USER_ID>).access_token.token` (`:74`) e imprime solo el largo y el sha8, que tienen que ser los del token del usuario 1.
+
+     ```bash
+     bash /srv/chatwoot/pegar-secretos-web.sh produccion CHATWOOT_ROUTER_TOKEN
+     ```
+
+  5. **Antes del recreado, la misma imagen.** La web toma `DTD_WEB_IMAGE` del `.env` (`infra/dtd-cargo/compose.yml:47`). Si no es la imagen que corre, recrear cambiaría la versión de la web: se para.
+
+     ```bash
+     cd /srv/dtd-cargo && corre=$(docker inspect dtd-cargo-web-1 --format '{{.Image}}') && img=$(sed -n 's/^DTD_WEB_IMAGE=//p' .env | tr -d "'\"") && quiere=$(docker image inspect "${img:-ghcr.io/softagentes/dtdcargo:main}" --format '{{.Id}}') && echo "HECHO misma_imagen=$([ "$corre" = "$quiere" ] && echo si || echo no)"
+     ```
+
+     **Para seguir:** `misma_imagen=si`. Después va el recreado de abajo, el mismo de este 5a.
+  6. **Después del recreado:**
+     - **La huella del contenedor.** `printenv` agrega un salto de línea, y `tr` lo quita para que dé lo mismo que la huella del guion. Tiene que ser el `sha8` de `owner=User:1` del punto 1.
+
+       ```bash
+       docker exec dtd-cargo-web-1 printenv CHATWOOT_ROUTER_TOKEN | tr -d '\n' | sha256sum | cut -c1-8
+       ```
+
+     - **`GET /api/v1/profile` con ese token.** Se hace desde el contenedor, con `node` y las variables de su propio entorno, así que el token no va en ningún argumento ni se imprime. Tiene que dar `HECHO perfil=200`.
+
+       ```bash
+       docker exec dtd-cargo-web-1 node -e 'fetch(process.env.CHATWOOT_URL + "/api/v1/profile", { headers: { api_access_token: process.env.CHATWOOT_ROUTER_TOKEN } }).then((r) => console.log("HECHO perfil=" + r.status)).catch(() => console.log("HECHO perfil=error"))'
+       ```
+
+     - **Al terminar,** `shred -u /dev/shm/router-antes.env`.
+
+  **La vuelta atrás:** volver la línea guardada, comprobar que quedó una sola vez y con valor, y hacer el mismo recreado.
+
+  ```bash
+  v=$(cat /dev/shm/router-antes.env); sed -i "s|^CHATWOOT_ROUTER_TOKEN=.*|$v|" /srv/dtd-cargo/.env; unset v; grep -c '^CHATWOOT_ROUTER_TOKEN=.' /srv/dtd-cargo/.env
+  ```
+
+  **Para seguir:** `1`.
+
+  **El OK nominal:** «¿Autorizas reemplazar en `/srv/dtd-cargo/.env` el `CHATWOOT_ROUTER_TOKEN` viejo por el token vigente del usuario de servicio 1 (con `pegar-secretos-web.sh`, sin mostrarlo), en el mismo recreado de la web del 5a y con la misma imagen que corre?»
 - **Recrear la web:** `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`.
   - Es el comando que usa `publicar-web.sh`, medido en el VPS por el DG.
   - **Sin `--force-recreate`:** compose recrea solo si cambió el `.env`.

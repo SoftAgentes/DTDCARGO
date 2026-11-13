@@ -170,12 +170,10 @@ export function FidelizacionClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-        }}
+        role="group"
+        aria-label="Secciones de fidelización"
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
@@ -187,43 +185,14 @@ export function FidelizacionClient({
             <button
               key={tDef.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(tDef.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: active
-                  ? "700 13px/1 var(--f-sans)"
-                  : "500 13px/1 var(--f-sans)",
-                cursor: "pointer",
-                marginBottom: -1,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-              }}
+              className="studio-tab"
             >
               {tDef.label}
               {count != null && (
-                <span
-                  style={{
-                    minWidth: 18,
-                    height: 18,
-                    padding: "0 5px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 9,
-                    background: "var(--bg-elevated)",
-                    color: "var(--ink-soft)",
-                    font: "700 10px/1 var(--f-mono)",
-                  }}
-                >
-                  {count}
-                </span>
+                <span className="studio-tab-n">{count}</span>
               )}
             </button>
           );

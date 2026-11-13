@@ -253,13 +253,9 @@ export function BugDrawer({
         {/* Tab strip */}
         <div
           role="tablist"
-          style={{
-            display: "flex",
-            gap: 2,
-            padding: "8px 22px 0",
-            borderBottom: "1px solid var(--border)",
-            background: "var(--bg-surface)",
-          }}
+          aria-label="Secciones del bug"
+          className="studio-tabs"
+          style={{ margin: "8px 22px 0" }}
         >
           {(["conv", "tech", "act"] as Tab[]).map((t) => (
             <button
@@ -267,20 +263,9 @@ export function BugDrawer({
               type="button"
               role="tab"
               aria-selected={tab === t}
+              data-activa={tab === t ? "true" : undefined}
               onClick={() => setTab(t)}
-              style={{
-                padding: "10px 16px",
-                border: "none",
-                background: "transparent",
-                color: tab === t ? "var(--wine)" : "var(--ink-soft)",
-                borderBottom:
-                  tab === t ? "2px solid var(--wine)" : "2px solid transparent",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: tab === t ? 600 : 500,
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t === "conv" ? "Conversación" : t === "tech" ? "Datos técnicos" : "Acciones"}
             </button>

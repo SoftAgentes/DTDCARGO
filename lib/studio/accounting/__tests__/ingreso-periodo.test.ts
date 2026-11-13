@@ -39,7 +39,7 @@ import { MAX_PAGES } from "@/lib/db/paginate";
 const sinMayor = () => resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, null);
 
 describe("resumirIngreso · la cifra oficial", () => {
-  it("con el fixture del mes: 2000 facturados, 2 facturas y 2 sin convertir", () => {
+  it("con el fixture del mes: 3000 facturados, 3 facturas y 2 sin convertir", () => {
     const i = sinMayor();
     expect(i.facturado).toEqual({
       propio: ESPERADO.propio,
@@ -100,11 +100,12 @@ describe("resumirIngreso · la cifra oficial", () => {
     expect(i.facturado.total).toBe(20);
   });
 
-  it("VES con tasa se convierte; VES sin tasa y CNY no suman y van a sin convertir", () => {
+  it("VES y CNY con tasa se convierten; sin tasa no suman y van a sin convertir (SDD-0572)", () => {
     const solo = (ids: string[]) =>
       resumirIngreso(FACTURAS_DEL_MES.filter((f) => ids.includes(f.id)), RANGO_MES, null);
     expect(solo(["f2"]).facturado.total).toBe(1000);
-    expect(solo(["f6", "f7"])).toMatchObject({
+    expect(solo(["f6"]).facturado.total).toBe(1000);
+    expect(solo(["f7", "f9"])).toMatchObject({
       facturas: 0,
       sinConvertir: 2,
       facturado: { total: 0 },
@@ -197,14 +198,14 @@ describe("no comparable (E1 de la SDD-0559, B2)", () => {
     ...extra,
   });
 
-  it("con el fixture del mes (F2, F6 y F7 en bolívares o yuanes): sin diferencia, aunque el mayor cuadre en número", () => {
+  it("con el fixture del mes (F2, F6, F7 y F9 en bolívares o yuanes): sin diferencia, aunque el mayor cuadre en número", () => {
     const i = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(2000));
-    expect(i.enOtraMoneda).toBe(3);
+    expect(i.enOtraMoneda).toBe(4);
     expect(i.diferenciaUsd).toBeNull();
     const d = describirIngreso(i);
     expect(d.estado).toBe("no_comparable");
     expect(d.diferenciaTexto).toBe(
-      "No comparable: 3 facturas del período están en bolívares o yuanes y hoy se asientan en la cuenta 4.5 por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).",
+      "No comparable: 4 facturas del período están en bolívares o yuanes y hoy se asientan en la cuenta 4.5 por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).",
     );
     // Sin números internos del plan: «la tarea 2.3» se leía como una cuenta.
     expect(d.diferenciaTexto).not.toMatch(/tarea|plan contable/);
@@ -302,10 +303,16 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     expect(notaDelMayorMezclado(i)).toBeNull();
   });
 
-  it("con el fixture del mes (VES y CNY) y 4.5 vacía: la diferencia es todo lo facturado", () => {
+  // I2: decisión expresa del Director, 2026-10-20. La ausencia de asientos se
+  // conserva; un subtotal conocido no certifica la diferencia del conjunto.
+  it("0572 · fixture mixto y 4.5 vacía: conserva B3 sin cuantificar diferencia incompleta", () => {
     const i = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, vacio);
-    expect(i.diferenciaUsd).toBe(ESPERADO.total);
+    expect(i.facturado.total).toBe(ESPERADO.total);
+    expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
+    expect(i.diferenciaUsd).toBeNull();
     expect(describirIngreso(i).estado).toBe("mayor_menor");
+    expect(describirIngreso(i).diferenciaTexto).toMatch(/no tiene ningún asiento de factura/);
+    expect(describirIngreso(i).diferenciaTexto).not.toMatch(/\$[\d,.]+ menos/);
   });
 
   it("solo facturas sin convertir (CNY) y 4.5 vacía: el mayor tiene menos, no «sin movimiento»", () => {
@@ -317,11 +324,11 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     const d = describirIngreso(i);
     expect(d.estado).toBe("mayor_menor");
     expect(d.diferenciaTexto).toBe(
-      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo.",
+      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; la factura del período (en bolívares o yuanes sin tasa) debería tenerlo.",
     );
     const dos = describirIngreso(resumirIngreso([cny, { ...cny }], RANGO_MES, vacio));
     expect(dos.diferenciaTexto).toBe(
-      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; las 2 facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo.",
+      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; las 2 facturas del período (en bolívares o yuanes sin tasa) deberían tenerlo.",
     );
   });
 
@@ -341,6 +348,45 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     const anulada = resumirIngreso([{ ...vesSinAsiento, status: "anulada" }], RANGO_MES, vacio);
     expect(anulada.enOtraMoneda).toBe(0);
     expect(describirIngreso(anulada).estado).toBe("sin_movimiento");
+  });
+});
+
+describe("0572 · subtotal conocido no concilia un conjunto incompleto", () => {
+  const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+  const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+
+  it("USD asentado más CNY sin tasa ni asiento: diferencia null y conversión incompleta", () => {
+    const i = resumirIngreso([usd, cny], RANGO_MES, control(1000, 1000, true, ["u1"]));
+    expect(i).toMatchObject({ facturado: { total: 1000 }, sinConvertir: 1, enOtraMoneda: 0, diferenciaUsd: null });
+    const d = describirIngreso(i);
+    expect(d.estado).toBe("conversion_incompleta");
+    expect(d.diferenciaTexto).toMatch(/falta convertir/i);
+    expect(d.diferenciaTexto).not.toMatch(/cuadra/i);
+    expect(notaDelMayorMezclado(i)).toBeNull();
+  });
+
+  it("mayor vacío: faltan asientos sin afirmar una diferencia USD total", () => {
+    const i = resumirIngreso([usd, cny], RANGO_MES, control(0, 0, false));
+    expect(i.diferenciaUsd).toBeNull();
+    const d = describirIngreso(i);
+    expect(d.estado).toBe("mayor_menor");
+    expect(d.diferenciaTexto).toMatch(/no tiene ningún asiento de factura/);
+    expect(d.diferenciaTexto).not.toMatch(/\$[\d,.]+ menos/);
+    expect(resumirIngreso([usd], RANGO_MES, control(0, 0, false)).diferenciaUsd).toBe(1000);
+  });
+
+  it("preserva ausencia de mayor/cuenta y nominal mixto como causas distintas", () => {
+    expect(describirIngreso(resumirIngreso([usd, cny], RANGO_MES, null)).estado).toBe("sin_mayor");
+    expect(describirIngreso(resumirIngreso([usd, cny], RANGO_MES, control(null))).estado).toBe("sin_cuenta");
+    const mixed = resumirIngreso([usd, cny], RANGO_MES, control(1700, 1700, true, ["u1", "c1"]));
+    expect(describirIngreso(mixed).estado).toBe("no_comparable");
+    expect(notaDelMayorMezclado(mixed)).not.toBeNull();
+  });
+
+  it("cero USD válido es conocido y comparable", () => {
+    const i = resumirIngreso([{ ...usd, base_amount: 0 }], RANGO_MES, control(0, 0, true, ["u1"]));
+    expect(i).toMatchObject({ facturas: 1, sinConvertir: 0, diferenciaUsd: 0 });
+    expect(describirIngreso(i).estado).toBe("cuadra");
   });
 });
 
@@ -421,8 +467,8 @@ describe("describirIngreso · textos en tuteo", () => {
 
   it("avisos: sin convertir, terceros y otros ingresos solo cuando hay", () => {
     const d = describirIngreso(resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(1500, 1700)));
-    expect(d.avisoSinConvertir).toBe("2 facturas no suman: están en bolívares sin tasa o en yuanes.");
-    expect(d.avisoTerceros).toBe("Incluye $1,000.00 de fondos de terceros.");
+    expect(d.avisoSinConvertir).toBe("2 facturas no suman: están en bolívares o yuanes sin tasa.");
+    expect(d.avisoTerceros).toBe("Incluye $2,000.00 de fondos de terceros.");
     expect(d.otrosIngresosTexto).toBe(
       "Otros ingresos del mayor que no salen del asiento de una factura (4.6 y asientos manuales, también a 4.5): $200.00. No cuentan como diferencia.",
     );
@@ -624,7 +670,8 @@ describe("I2 · evidencia independiente del saldo", () => {
   });
   it("sin mayor conserva el oficial y no exige evidencia contable al Dashboard", () => {
     const i = resumirIngresoSinContexto(FACTURAS_DEL_MES, RANGO_MES, null);
-    expect(i.facturado.total).toBe(2000);
+    // SDD-0572: F6 (CNY con tasa) ya suma; el oficial es el del fixture.
+    expect(i.facturado.total).toBe(ESPERADO.total);
     expect(describirIngreso(i).estado).toBe("sin_mayor");
     expect(i.controlI2).toMatchObject({ verificacion: "no_leida", incidencias: [] });
   });

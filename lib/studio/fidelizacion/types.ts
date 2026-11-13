@@ -13,6 +13,7 @@
  * ese campo.
  */
 
+import { usdOrNull } from "@/lib/shared/fx";
 import type { BadgeTone } from "@/app/studio/_components/ui/Badge";
 import type { Invoice } from "@/lib/studio/invoice-types";
 
@@ -272,30 +273,18 @@ export function validateReferralInput(raw: Partial<ReferralInput>): {
   };
 }
 
-// ── Normalización a USD para el motor de niveles (decisión §3.2) ──
+// ── Normalización a USD (decisión §3.2; SDD-0572: el conversor canónico) ──
 /**
- * Monto de una factura normalizado a USD (decisión §3.2 del spec):
+ * Monto de una factura en USD, con el conversor canónico `toUsd`
+ * (`lib/shared/fx.ts`, decisión 1 de Sam):
  *  - USD / USDT → total_amount 1:1
- *  - VES → total_amount / fx_rate (si fx_rate > 0; sino 0 → se omite del cómputo)
- *  - CNY → 0 (omitida en V1; raro)
- * Devuelve un número (0 cuando no contribuye).
+ *  - VES y CNY → total_amount / fx_rate
+ *  - **null** si no se puede convertir (sin tasa, moneda desconocida, monto
+ *    inválido). Antes devolvía 0: un CNY con tasa, o un VES sin tasa, sumaba 0
+ *    en silencio. Ahora el que suma lo cuenta como «sin convertir».
  */
 export function invoiceUsdAmount(
   invoice: Pick<Invoice, "currency" | "total_amount" | "fx_rate">,
-): number {
-  const total = Number(invoice.total_amount);
-  const amount = Number.isFinite(total) ? total : 0;
-
-  switch (invoice.currency) {
-    case "USD":
-    case "USDT":
-      return amount;
-    case "VES": {
-      const fx = Number(invoice.fx_rate);
-      return Number.isFinite(fx) && fx > 0 ? amount / fx : 0;
-    }
-    case "CNY":
-    default:
-      return 0;
-  }
+): number | null {
+  return usdOrNull(invoice.total_amount, invoice.currency, invoice.fx_rate);
 }

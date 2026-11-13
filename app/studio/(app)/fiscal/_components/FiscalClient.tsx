@@ -172,14 +172,8 @@ export function FiscalClient({
         role="tablist"
         aria-label="Secciones del módulo fiscal"
         aria-orientation="horizontal"
-        style={{
-          display: "flex",
-          flexWrap: "nowrap",
-          gap: 4,
-          overflowX: "auto",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 24,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 24 }}
       >
         {TABS.map((t, index) => {
           const active = t.id === tab;
@@ -194,23 +188,11 @@ export function FiscalClient({
               id={`fiscal-tab-${t.id}`}
               aria-controls={`fiscal-panel-${t.id}`}
               aria-selected={active}
+              data-activa={active ? "true" : undefined}
               tabIndex={active ? 0 : -1}
               onClick={() => go({ tab: t.id })}
               onKeyDown={(event) => handleTabKey(event, index)}
-              className="studio-btn studio-btn-ghost"
-              style={{
-                appearance: "none",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                padding: "10px 14px",
-                font: `${active ? 700 : 600} 13.5px/1 var(--f-sans)`,
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                cursor: "pointer",
-                marginBottom: -1,
-                flexShrink: 0,
-                whiteSpace: "nowrap",
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>

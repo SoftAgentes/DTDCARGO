@@ -70,7 +70,10 @@ const BASELINE = {
   // Sesión/RLS, tenant en documentos/headers/cuentas y validación relacional;
   // layouts accounting/reports y Dirección admin-only. Sólo agregados al cliente.
   "lib/studio/accounting/libro-control-queries.ts": 3,
-  "lib/studio/costing/queries.ts": 2,
+  // SDD-0572: −1 al eliminar latestVesFxRate (display desde facturas).
+  // Revenue conserva cliente de sesión, candados de Costing y RLS del tenant.
+  // El display usa ultimaTasa/fx_rates con ese mismo cliente, nunca admin.
+  "lib/studio/costing/queries.ts": 1,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
@@ -216,7 +219,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
     // SDD-0574: 44 → 45 por la lectura de `reporteSinFacturar`.
     // SDD-0573 I2: una lectura literal de metadata adicional, mismas 20 rutas del compuesto.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
+    // SDD-0572: 46 → 45, solo sale la lectura de display latestVesFxRate.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

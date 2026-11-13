@@ -91,13 +91,13 @@ jobs:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    # Tres partes en paralelo: a (la corrida real, el control y los mutantes de las guardas), b (los mutantes del
-    # borrado) y c (los de lo ajeno y del corte). Juntas no caben en el tope del job: la parte a, con lo ajeno, ya
-    # tardaba 59 min (job 129113941811).
+    # Cuatro partes en paralelo: a (la corrida real, el control y los mutantes de las guardas), b (los mutantes del
+    # borrado), c (los de lo ajeno y del corte) y d (los de las guardas del .rb, N2 del DG). Juntas no caben en el tope
+    # del job: la parte a, con lo ajeno, ya tardaba 59 min (job 129113941811).
     strategy:
       fail-fast: false
       matrix:
-        parte: [a, b, c]
+        parte: [a, b, c, d]
     env:
       CI: "true"
       PARTE: ${{ matrix.parte }}

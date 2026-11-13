@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 605 specs)
+### Índice de specs (generado · 608 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -596,6 +596,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
 | 0570 | Pruebas PGlite sin initdb por caso: plantilla del cluster rec… | in-progress | interno |
 | 0571 | Tarifa congelada por embarque: el precio por CBM queda guarda… | in-progress | interno |
+| 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
 | 0573 | Anular una factura revierte su asiento de venta, en la misma … | in-progress | interno |
 | 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
 | 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
@@ -623,6 +624,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
 | 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
 | 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
+| 0603 | Claridad de controles: qué se oprime, qué avisa y qué solo se… | in-progress | interno |
 | 0604 | SEO, GEO y AEO: fase A, mejoras estáticas del sitio público | in-progress | interno |
 | 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
 | 0606 | Avisos del Studio: de Telegram a Discord | in-progress | interno |
@@ -643,6 +645,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
 | 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
 | 0624 | Endurecimiento de permisos: dinero, gastos y deuda RBAC | in-progress | interno |
+| 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0603, 0622 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0576, 0578, 0622 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
