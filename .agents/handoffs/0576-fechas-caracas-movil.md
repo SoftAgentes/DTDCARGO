@@ -1,5 +1,7 @@
 # Handoff Worker · SDD-0576 C3 · gastos móviles
 
+> **Estado vigente (2026-11-13):** la C3 va en la #526 (rama `claude/sdd-0576-fechas-caracas-movil`) contra main y reemplaza a la #314. Las asignaciones, los GO, los turnos y las recetas `verify` de abajo son el registro histórico de la #314, sobre la base `0e630ede`. No describen pasos pendientes de la #526, cuyo portón es el CI.
+
 Fecha de adopción: 2026-10-21. Corte documental posterior a GO3: composición22bd revisada,16pasos medidos aceptados y CIERRE INCOMPLETO16/17 por ledger omitido. Las dos recetas anteriores conservan FALLÓ y CIERRE ADEMÁS INCOMPLETO; el primer intento de GO3 conserva FALLÓ/PARCIAL/OOM. Recursos propios observados cerrados y turno pesado devuelto; claim C3 activo al corte. Conocimiento postcommit y aceptación local final se acreditarán en recibo externo/PR, según el ciclo único acordado.
 Task ID: 0576-fechas-caracas-movil.
 Sesión escritora: /root/worker_0576_c3.
@@ -7,7 +9,7 @@ Owner: worker-0576c3-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0576-fechas-caracas-movil.
 Rama: codex/sdd-0576-fechas-caracas-movil.
 Base de implementación y PR: 0e630ede760dbc369ddf60133c18c4a77f2d8692.
-Base de PR asignada: codex/sdd-0576-fechas-caracas-anuales (PR313).
+Base de PR asignada: codex/sdd-0576-fechas-caracas-anuales (PR313). Histórico: hoy la C3 es la #526 (rama `claude/sdd-0576-fechas-caracas-movil`) contra main.
 SDD reutilizada: docs/specs/0576-fechas-caracas/spec.md, in-progress.
 Baseline heredada 0577: c4b2e72dabbdde80ec7fe5c8a7f128966b6494be, PR315 DRAFT base main; incorporación Git local autorizada sobre receptor55138b9cca4d304802337b50f353569531f9993e, sin merge de PR ni main.
 
@@ -32,6 +34,8 @@ Alta/edición/fila móvil usan día Caracas, tenant y origen propios, lecturas e
 - Composición publicada22bd5192825199aeafd0cf5e3625606ff77657b0 revisada por Director, padres55138/c4 y once rutas acumuladas. GO3 ejecutó una única receta normal sobre ese SHA;16pasos medidos aceptados, ledger omitido y todos los fallos/omisiones/avisos preservados. Bytecheck43/43 anterior a docs, fuentes intactas y originales sellados.
 
 ## VALIDACIÓN
+
+> **Evidencia histórica de la #314** sobre la base `0e630ede760dbc369ddf60133c18c4a77f2d8692`, no de la cabeza de la #526: 168/168, 248/248, tipos PASÓ y los 12 mutantes son de allí. Sobre la cabeza de la #526: NO EJECUTADO en local; lo cubre el CI.
 
 - PASÓ: identidad Git y guard/claim locales; SHA256 del contrato activo.
 - PASÓ: instalación explícita corepack pnpm12.14.0 install --frozen-lockfile (Node24.20.0); package SHA256b3f8a4feb66fea436215d17632a4951ef880ee0f096183afe87bb94cf5d2e1d5 y lock51550316928cf4ee17696eaa4c87f4e9e944146d2c2c9ca229f82caed4051608 iguales antes/después. La preparación automática anterior en knowledge:status se conserva literal y no se denomina congelada.
@@ -67,7 +71,7 @@ Checkpoint funcional a732bcb0221ad821c671b0ee18d52ab928da26eb, reparación de fi
 
 ## PR / BRANCH
 
-PR314 OPEN/DRAFT: https://github.com/SoftAgentes/DTDCARGO/pull/314, apilada sobre la rama/base indicadas arriba y adjunta al chat. Head/base actuales se cotejan en recibo externo/readback de cada checkpoint. Sin permiso de merge o producción.
+PR314 OPEN/DRAFT: https://github.com/SoftAgentes/DTDCARGO/pull/314 (reemplazada por la #526), apilada sobre la rama/base indicadas arriba y adjunta al chat. Head/base actuales se cotejan en recibo externo/readback de cada checkpoint. Sin permiso de merge o producción.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -318,4 +322,4 @@ La allowlist acumulada de la PR C3 pasa de7 a11rutas por herencia de cuatro nuev
 6. Tras resultado revisado, anotar spec/handoff/PR y conservar las dos primeras FALLÓ+INCOMPLETO. Una receta posterior aprobada no las borra. Ledger productivo omitido y pruebas omitidas/avisos mantienen límites; no se consulta DB real ni se repite0495.0496y0500 siguen sin aplicar.
 7. Cierre documental estable, único ciclo de conocimiento propio con turno, resultados externos/PR, revisión final de respaldo/limpio/claim/recursos. Sin publicación compartida/producción. Solo después de aceptación local final se activa BCV desde ese cierre.
 
-Faltan confirmación de PR DRAFT0577, mensaje de arranque local y nuevo GO canónico sobre composición/receta inmutables. El permiso de composición no inicia ni aprueba por anticipado la canónica. No hay Worker nuevo ni otro propietario de C3. Conocimiento sigue esperando cierre documental estable; sin nuevos focales/UI/SQL por rutina antes del checkpoint de composición.
+Histórico, superado por la #526: faltaban confirmación de PR DRAFT0577, mensaje de arranque local y nuevo GO canónico sobre composición/receta inmutables. El permiso de composición no inicia ni aprueba por anticipado la canónica. No hay Worker nuevo ni otro propietario de C3. Conocimiento sigue esperando cierre documental estable; sin nuevos focales/UI/SQL por rutina antes del checkpoint de composición.
