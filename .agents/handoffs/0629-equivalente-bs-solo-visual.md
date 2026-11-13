@@ -2,8 +2,8 @@
 
 - **Owner:** Worker (sesión hija de «Subdirector Contabilidad», `local_632735a9-…`); claim `local_sdd0629`.
 - **Worktree:** `.claude/worktrees/sdd-0629-bs-visual-d985c1` · **rama:** `claude/sdd-0629-bs-visual-d985c1`.
-- **Base:** `origin/claude/tren-ad` en `ef47d270c` (tren AD #529, todavía no en main). La PR va contra main; cuando AD entre, se trae main una vez con merge, en el turno asignado.
-- **PR:** https://github.com/SoftAgentes/DTDCARGO/pull/531 (borrador hasta cerrar la validación).
+- **Base:** salió de `origin/claude/tren-ad` (`ef47d270c`). AD entró a main en `e5169e86e`; se trajo origin/main una vez con merge (`d55101ee4`), sin rebase ni force push.
+- **PR:** https://github.com/SoftAgentes/DTDCARGO/pull/531.
 - **Spec:** `docs/specs/0629-equivalente-bs-solo-visual/spec.md`.
 
 ## OBJETIVO ORIGINAL
@@ -34,26 +34,28 @@ Donde se muestre un monto en USD de una factura, un saldo o un recibo, poder ver
 | `pnpm sdd:check` (node directo) | PASÓ, sin números repetidos |
 | `pnpm docs:check` (node directo) | PASÓ, índice sincronizado (609 specs) |
 | `git diff --check` | PASÓ |
-| `pnpm install --frozen-lockfile` | NO EJECUTADO: espera el turno (orden: verify 0631 → Rebrand T3 → 0629) |
-| vitest focal (5 archivos nuevos + `fx.test.ts`, `fx-rates.test.ts`, `CobranzasClient.sin-tasa`, `facturas/page.test`, `facturas/[code]/page.test`) | NO EJECUTADO: espera el turno |
-| `pnpm typecheck` | NO EJECUTADO: espera el turno |
-| lint | NO EJECUTADO: espera el turno |
-| `pnpm verify` | NO EJECUTADO: espera el turno |
-| CI de GitHub | NO EJECUTADO: la PR está en borrador (SDD-0621) |
-| `/ui-check` | NO EJECUTADO: pendiente después de las pruebas |
+| `pnpm install --frozen-lockfile` | PASÓ, sobre el merge con main (`d55101ee4`) |
+| vitest focal: 5 archivos nuevos + `fx.test.ts`, `fx-rates.test.ts`, `CobranzasClient.sin-tasa`, `facturas/page.test`, `facturas/[code]/page.test`, `pending-acceptance.test` | PASÓ: 11 archivos, 122 pruebas. La primera corrida dio 3 rojos: una expectativa mal calculada (44596.5748 → .57), un formato sin centavos en Cobranzas (corregido a `fmtAmount`) y un `beforeEach` que devolvía el mock y Vitest lo corría como limpieza |
+| Mutantes | PASÓ: tenant ajeno en `tasa-referencial.ts` → 2 rojos; sin la guarda de tasa futura → 1 rojo. Archivos restaurados exactos |
+| `pnpm typecheck` | PASÓ (exit 0) |
+| eslint `--max-warnings 0` sobre los .ts/.tsx del diff | PASÓ |
+| `pnpm verify` | NO EJECUTADO: el turno de la PC no se dio; el portón es el CI de GitHub |
+| CI de GitHub | ver la PR #531 (registrado al cierre) |
+| `/ui-check` | NO EJECUTADO: sin turno para levantar la app; la spec documenta tokens y jerarquía |
 
 ## COMMITS
 
 - `55cf30143` docs(specs): SDD-0629 — reserva y spec
 - `a2aef8252` feat(studio): SDD-0629 — equivalente en Bs en factura, Cobranzas, recibo y portal
 - `e5c7a3e47` feat(studio): SDD-0629 — tasa del portal con el patrón del principal y su prueba de tenant
+- `8306d99bc` docs(handoff): SDD-0629 — estado antes del turno de pruebas
+- `d55101ee4` merge de origin/main (tren AD)
+- `c7eb2f4f6` fix(studio): SDD-0629 — centavos en Cobranzas en Bs y pruebas corregidas tras la focal
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Con turno: install, vitest focal, typecheck, lint; luego `pnpm verify`.
-2. `/ui-check` del diff.
-3. Pasar la PR a lista (`gh pr ready 531`) y registrar el CI.
-4. Cuando el tren AD entre en main: un merge de origin/main en esta rama, en el turno asignado.
+1. `pnpm verify` y `/ui-check`, si el Subdirector da turno; si no, el portón es el CI.
+2. Revisión independiente (la lanza el DG).
 
 ## Impacto documental
 
