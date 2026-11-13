@@ -31,5 +31,9 @@ Medido hoy: la 0527 está libre. La 0528 la tiene el worktree `endurecer-permiso
 ## Pendientes de esta tarea
 Publicar de la #311 a la #317, una por turno, después de cada fusión. Antes de publicar cada una hay que traerle main.
 
+## Seguimientos que dejó la revisión de la #516 (Opus, APPROVED)
+- (a) Los totales de la 0572-a siguen sumando en coma flotante con `round2`. `sumarEnUsd` (`lib/shared/fx.ts`, suma exacta en centavos) solo lo usan sus pruebas; adoptarlo en los agregadores es una tarea aparte.
+- (b) `lib/studio/accounting/subdiario.ts:163` falla abierto a propósito: una CxP histórica sin tasa se suma al nominal para cuadrar con su asiento. Es una decisión declarada en el comentario, no un descuido.
+
 ## FUERA DE ALCANCE DETECTADO
 - #312: el readback de `issued_at` en `lib/studio/sales-orders/actions.ts` (+1 lectura de invoices con el cliente admin) quedó redundante, porque la RPC atómica de la 0497 ya fecha el asiento con `issued_at` persistido. No lo quité: es una decisión para quien revise.
