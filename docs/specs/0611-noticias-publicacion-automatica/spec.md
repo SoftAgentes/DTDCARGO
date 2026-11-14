@@ -735,17 +735,23 @@ Director General como relato; él las reconfirma con Sam. Opciones elegidas, tex
 - *Plazo:* «12 meses (Recomendado)».
 - *Alcance:* «Sí, las 4 columnas (Recomendado)».
 - *Al vencer:* «Vaciar solo el uuid (Recomendado)»: se conserva qué pasó y cuándo, sin quién.
-  Así IA-01 mantiene la trazabilidad de que una noticia salió con IA, sin el dato personal.
 - *Dónde va la purga:* «En la PR del cron de noticias (Recomendado)».
 
+Efecto de vaciar solo el uuid, que no es una cita de Sam: IA-01 mantiene la trazabilidad de que una
+noticia salió con IA, sin el dato personal.
+
 **Lo que esto exige antes de encender** (no se cumple todavía):
-1. La purga existe: una migración nueva que, pasados 12 meses de la fila, pone en `NULL` esas
+1. La purga existe: una migración nueva que, pasados más de 12 meses de la fila (frontera
+   estricta: una fila de exactamente 12 meses no se toca todavía), pone en `NULL` esas
    cuatro columnas y deja intacto el resto. Hoy no hay ninguna en `main`.
 2. La purga está aplicada en prueba y producción, con OK nominal de Sam (migrate-first).
-3. Las cuatro columnas aceptan `NULL`; si alguna es `NOT NULL`, la migración lo cambia con su
-   contrato.
-4. Un contrato SQL prueba que una fila de 12 meses queda sin uuid, que una de 11 no se toca y
-   que el resto de la fila no cambia; con piso de conteo y un mutante.
+3. Las cuatro columnas aceptan `NULL`: `news_autopublish_settings_log.changed_by` es hoy `NOT NULL`
+   (0518) y la migración lo cambia; además el CHECK `news_audit_manual_con_persona` de
+   `news_publication_audit` (`via = 'automatica' or actor_id is not null`) hay que reescribirlo con
+   una marca de purga, sin aflojarlo para filas nuevas.
+4. Un contrato SQL prueba que una fila de más de 12 meses (13) queda sin uuid, que una de 11 y una
+   de exactamente 12 no se tocan y que el resto de la fila no cambia; con piso de conteo y un
+   mutante.
 5. El encendido (timer y retiro de CONGELADO) es lo último, con OK de Sam.
 
 La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada, no antes.
