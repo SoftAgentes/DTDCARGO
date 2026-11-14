@@ -397,7 +397,7 @@ function CapBar({
           justifyContent: "space-between",
           marginBottom: 4,
           font: "600 10.5px/1 var(--f-mono)",
-          color: "var(--ink-inv-soft)",
+          color: "var(--ink-side-soft)",
         }}
       >
         <span>{label}</span>

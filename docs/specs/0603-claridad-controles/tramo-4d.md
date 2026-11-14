@@ -62,6 +62,10 @@ No se tocaron `studio.css`, `tokens.css`, `Aviso.tsx`, `ErrorAlert.tsx`, `spec.m
 
 Cuando la caja original traía un icono propio (⚠, ✓ o un svg), se quitó, porque `Aviso` pone el suyo. Por eso el glifo «✓» o «⚠» desaparece al inicio de cinco mensajes; las palabras no cambian. Los márgenes externos se conservan en un `div` envoltorio sin color.
 
+### Un arreglo de contraste que destapó el cambio
+
+`CreateOdDrawer.tsx`, `CapBar`: la etiqueta de las barras de ocupación iba en `--ink-inv-soft` dentro de la caja `--bg-sidebar`, que es navy en los dos temas. En oscuro, `--ink-inv*` se vuelve navy, así que el texto quedaba navy sobre navy. El error ya existía. `dark-theme-contrast-contract.test.ts` no lo veía porque busca el fondo más cercano hacia arriba, y la caja `--danger-bg` del error del servidor lo tapaba. Al pasar esa caja a `Aviso`, el contrato encontró la violación. Se corrige con `--ink-side-soft`, el token de texto sobre la barra lateral (blanco al 50-55 % en los dos temas). Es una línea, sin color nuevo.
+
 ## No aplica
 
 | Archivo | Motivo |
