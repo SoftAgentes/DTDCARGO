@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest";
  * a mano se reconoce por dos señales en el código fuente:
  *   - un `role="alert"` o `role="note"` literal (el rol lo pone `Aviso`);
  *   - un fondo de estado literal (`background: "var(--danger-bg)"` y sus
- *     hermanos de atención, éxito e información).
+ *     hermanos de atención, éxito e información), directo o en un ternario
+ *     en la misma línea.
  * Los archivos que conservan una de esas señales por una razón medida están en
  * `EXCEPCIONES`, con su motivo y su cuenta exacta. El detalle está en
  * `docs/specs/0603-claridad-controles/tramo-4c.md`.
@@ -110,7 +111,8 @@ const EXCEPCIONES: Record<string, Cuenta> = {
 };
 
 const ROL = /role="(?:alert|note)"/g;
-const FONDO = /background:\s*"var\(--(?:danger|warning|success|info)-bg\)"/g;
+/** Fondo de estado en la misma línea que `background:`, directo o en un ternario. */
+const FONDO = /background:[^,\n]*"var\(--(?:danger|warning|success|info)-bg\)"/g;
 const IMPORTA_AVISO = /import \{ Aviso \} from "@\/app\/studio\/_components\/ui\/Aviso";/;
 
 const leer = (rel: string) => readFileSync(join(process.cwd(), BASE, rel), "utf8");
