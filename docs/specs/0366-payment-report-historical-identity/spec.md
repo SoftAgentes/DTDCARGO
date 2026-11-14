@@ -260,7 +260,7 @@ una tabla o endpoint expuesto ni cambia las decisiones contables de SDD-0134.
 
 ## Aplicación de la 0423 en producción (registro §6.3, 2026-11-14)
 
-- **Autorización de Sam:** su aceptación previa «Sí, en prueba» y, sobre la lista nombrada «OK para aplicar la 0422 y luego la 0423», su bloque literal «Quiero que avances en todas las áreas que tengas que avanzar… los permisos que requieras, dátelos: te los autorizo y te los apruebo.». El Director General aplicó, de a una y en ese orden, después del smoke de Contabilidad en prueba (PASÓ).
+- **Autorización de Sam:** su aceptación previa «Sí, en prueba» y, sobre la lista nombrada «OK para aplicar la 0422 y luego la 0423», un extracto de su bloque: «Quiero que avances en todas las áreas que tengas que avanzar… los permisos que requieras, dátelos: te los autorizo y te los apruebo.». El literal completo está en `AUTORIZACION.txt`, dentro de la carpeta de evidencia del apply en el VPS (según el Director General; no lo copio aquí). El Director General aplicó, de a una y en ese orden, después del smoke de Contabilidad en prueba (PASÓ).
 - **Migración:** `0423_payment_report_historical_identity`.
 - **COMMIT:** 2026-11-14T08:51:31Z. La `version` del ledger es `20261114085131` y el ledger pasó de 533 a 534 filas.
 - **Identidad:** md5 `2d3d0cc9c2e299563add83c51f910f60`, 8612 bytes, sha256 `7a63c499d468451ad0ae0732ffaf42be5b78f4bb8f0e2e2e76651a553a0e235e`. La verificación del apply PASÓ.

@@ -622,7 +622,7 @@ no se instala ni actualiza Supabase en este incremento.
 
 ## Aplicación de la 0422 en producción (registro §6.3, 2026-11-14)
 
-- **Autorización de Sam:** su aceptación previa «Sí, en prueba» y, sobre la lista nombrada «OK para aplicar la 0422 y luego la 0423», su bloque literal «Quiero que avances en todas las áreas que tengas que avanzar… los permisos que requieras, dátelos: te los autorizo y te los apruebo.». El Director General aplicó, de a una y en ese orden, después del smoke de Contabilidad en prueba (PASÓ).
+- **Autorización de Sam:** su aceptación previa «Sí, en prueba» y, sobre la lista nombrada «OK para aplicar la 0422 y luego la 0423», un extracto de su bloque: «Quiero que avances en todas las áreas que tengas que avanzar… los permisos que requieras, dátelos: te los autorizo y te los apruebo.». El literal completo está en `AUTORIZACION.txt`, dentro de la carpeta de evidencia del apply en el VPS (según el Director General; no lo copio aquí). El Director General aplicó, de a una y en ese orden, después del smoke de Contabilidad en prueba (PASÓ).
 - **Migración:** `0422_payment_report_command_boundary`.
 - **COMMIT:** 2026-11-14T08:51:17Z. La `version` del ledger es `20261114085117` y el ledger pasó de 532 a 533 filas.
 - **Identidad:** md5 `e3e019590fac56315b971b4ce703ea96`, 8673 bytes, sha256 `0c412460c42a45e32c6d09f84bf1293094588e147de551930334cf12320f894c`. La verificación del apply PASÓ.

@@ -30,10 +30,12 @@ caja contra facturas.
 
 Además, cuando se escribió esta spec la 0422 y la 0423 seguían en espera. Su orden
 de liberación (`.agents/handoffs/c-l14-portal-comandos-recibos.md`, guion
-`.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, Bloque 3) pedía un smoke que
-no se había hecho. El guion nuevo cubre las tres. Estado vigente (2026-11-14): tras
-el smoke de Contabilidad en prueba (PASÓ), la 0422 y la 0423 se aplicaron en
-producción; registro §6.3 en SDD-0365 y SDD-0366.
+`.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, Bloque 3) pedía un smoke en
+producción que no se había hecho. El guion nuevo cubre las tres. Estado vigente
+(2026-11-14): Sam aceptó hacer ese smoke en prueba («Sí, en prueba»); tras el smoke
+de Contabilidad en prueba (PASÓ), la 0422 y la 0423 se aplicaron en producción
+(registro §6.3 en SDD-0365 y SDD-0366). El smoke en producción del guion queda
+pendiente, para repetirlo con la primera factura real.
 
 ## Contrato
 
