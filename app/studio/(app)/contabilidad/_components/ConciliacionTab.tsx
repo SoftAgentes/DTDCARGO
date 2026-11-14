@@ -171,7 +171,7 @@ export function ConciliacionTab({
               <a
                 href={hrefExtracto}
                 className={`studio-btn ${active ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-sm`}
-                aria-label={`Abrir extracto ${s.period_label} · ${s.account_code}`}
+                aria-label={`Abrir extracto ${s.period_label}${s.account_code ? ` · ${s.account_code}` : ""}`}
                 aria-current={active ? "true" : undefined}
                 style={{ justifySelf: "end" }}
               >
