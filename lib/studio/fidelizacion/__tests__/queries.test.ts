@@ -13,7 +13,7 @@
  * en `calls` los filtros aplicados (estilo invoice-queries.test.ts).
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   clientAnnualBilling,
@@ -119,45 +119,61 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
 const NOW = new Date("2026-06-03T00:00:00Z");
 
 describe("clientAnnualBilling", () => {
+  it("v2 conserva el grupo solo sin tasa y el decimal exacto", async () => {
+    const rows = [{ client_markbox: "DTD-X", billed_usd: 0, subtotal_usd: "0.00", sin_tasa_count: "2", conversion_state: "sin_tasa" }];
+    // Ambos endpoints reciben la misma fixture durante el rojo: no falla por un doble vacío.
+    const { client, calls, rpcCalls } = stub({ studio_client_annual_billing: rows, studio_client_annual_billing_v2: rows });
+    const result = await clientAnnualBilling(client, NOW);
+    expect(result.get("DTD-X")).toEqual({ state: "sin_tasa", subtotalUsd: "0.00", sinTasaCount: 2 });
+    expect(rpcCalls.every(({ fn }) => fn === "studio_client_annual_billing_v2")).toBe(true);
+    expect(calls.invoices).toBeUndefined();
+  });
+
+  it("rechaza claves duplicadas en vez de sumar una lectura repetida", async () => {
+    const rows = Array.from({ length: 2 }, () => ({ client_markbox: "DTD-X", billed_usd: 1, subtotal_usd: "1.00", sin_tasa_count: 0, conversion_state: "completo" }));
+    const { client } = stub({ studio_client_annual_billing: rows, studio_client_annual_billing_v2: rows });
+    await expect(clientAnnualBilling(client, NOW)).rejects.toThrow("Facturación anual no disponible");
+  });
+
   it("lee sólo el agregado por RPC y transmite la fecha de referencia", async () => {
     const aggregates = [
-      { client_markbox: "DTD-1", billed_usd: 1500 },
-      { client_markbox: "DTD-2", billed_usd: 1000 },
-      { client_markbox: "DTD-4", billed_usd: 200 },
+      { client_markbox: "DTD-1", subtotal_usd: "1500.00", sin_tasa_count: 0, conversion_state: "completo" },
+      { client_markbox: "DTD-2", subtotal_usd: "1000.00", sin_tasa_count: 0, conversion_state: "completo" },
+      { client_markbox: "DTD-4", subtotal_usd: "200.00", sin_tasa_count: 0, conversion_state: "completo" },
     ];
     const { client, calls, rpcCalls } = stub({
-      studio_client_annual_billing: aggregates,
+      studio_client_annual_billing_v2: aggregates,
     });
     const map = await clientAnnualBilling(client, NOW);
 
-    expect(map.get("DTD-1")).toBe(1500);
-    expect(map.get("DTD-2")).toBe(1000);
-    expect(map.get("DTD-4")).toBe(200);
+    expect(map.get("DTD-1")).toEqual({ subtotalUsd: "1500.00", sinTasaCount: 0, state: "completo" });
+    expect(map.get("DTD-2")).toEqual({ subtotalUsd: "1000.00", sinTasaCount: 0, state: "completo" });
+    expect(map.get("DTD-4")).toEqual({ subtotalUsd: "200.00", sinTasaCount: 0, state: "completo" });
     expect(calls.invoices).toBeUndefined();
     expect(rpcCalls).toEqual([
       {
-        fn: "studio_client_annual_billing",
-        args: { p_as_of: "2026-06-03" },
+        fn: "studio_client_annual_billing_v2",
+        args: { p_as_of: "2026-06-02" },
       },
       {
-        fn: "studio_client_annual_billing",
-        args: { p_as_of: "2026-06-03" },
+        fn: "studio_client_annual_billing_v2",
+        args: { p_as_of: "2026-06-02" },
       },
     ]);
   });
 
   it("coacciona el numeric agregado que PostgREST entrega como string", async () => {
     const { client } = stub({
-      studio_client_annual_billing: [
-        { client_markbox: "DTD-9", billed_usd: "2000" },
+      studio_client_annual_billing_v2: [
+        { client_markbox: "DTD-9", subtotal_usd: "2000.00", sin_tasa_count: 0, conversion_state: "completo" },
       ],
     });
     const map = await clientAnnualBilling(client, NOW);
-    expect(map.get("DTD-9")).toBe(2000);
+    expect(map.get("DTD-9")).toEqual({ subtotalUsd: "2000.00", sinTasaCount: 0, state: "completo" });
   });
 
   it("sin agregados → map vacío", async () => {
-    const { client } = stub({ studio_client_annual_billing: [] });
+    const { client } = stub({ studio_client_annual_billing_v2: [] });
     const map = await clientAnnualBilling(client, NOW);
     expect(map.size).toBe(0);
   });
@@ -166,21 +182,21 @@ describe("clientAnnualBilling", () => {
 describe("clientsWithTier", () => {
   it("asigna tier derivado y ordena desc por facturación", async () => {
     const billing = [
-      { client_markbox: "DTD-A", billed_usd: 320000 },
-      { client_markbox: "DTD-B", billed_usd: 60000 },
+      { client_markbox: "DTD-A", subtotal_usd: "320000.00", sin_tasa_count: 0, conversion_state: "completo" },
+      { client_markbox: "DTD-B", subtotal_usd: "60000.00", sin_tasa_count: 0, conversion_state: "completo" },
     ];
     const clients = [
       { id: "1", markbox: "DTD-A", name: "Alfa" },
       { id: "2", markbox: "DTD-B", name: "Beta" },
       { id: "3", markbox: "DTD-C", name: "Gamma" },
     ];
-    const { client } = stub({ studio_client_annual_billing: billing, clients });
+    const { client } = stub({ studio_client_annual_billing_v2: billing, clients });
     const res = await clientsWithTier(client, NOW);
 
     expect(res.map((c) => c.markbox)).toEqual(["DTD-A", "DTD-B", "DTD-C"]);
-    expect(res[0].tier.id).toBe("platinum"); // 320.000
-    expect(res[1].tier.id).toBe("silver"); // 60.000
-    expect(res[2].tier.id).toBe("bronze"); // 0
+    expect(res[0].tier?.id).toBe("platinum"); // 320.000
+    expect(res[1].tier?.id).toBe("silver"); // 60.000
+    expect(res[2].tier?.id).toBe("bronze"); // 0
     expect(res[2].billedUsd).toBe(0);
   });
 });
@@ -188,9 +204,9 @@ describe("clientsWithTier", () => {
 describe("tierCounts", () => {
   it("distribuye por nivel con los 4 buckets presentes", async () => {
     const billing = [
-      { client_markbox: "DTD-A", billed_usd: 320000 },
-      { client_markbox: "DTD-B", billed_usd: 60000 },
-      { client_markbox: "DTD-C", billed_usd: 200000 },
+      { client_markbox: "DTD-A", subtotal_usd: "320000.00", sin_tasa_count: 0, conversion_state: "completo" },
+      { client_markbox: "DTD-B", subtotal_usd: "60000.00", sin_tasa_count: 0, conversion_state: "completo" },
+      { client_markbox: "DTD-C", subtotal_usd: "200000.00", sin_tasa_count: 0, conversion_state: "completo" },
     ];
     const clients = [
       { id: "1", markbox: "DTD-A", name: "Alfa" }, // platinum
@@ -198,10 +214,10 @@ describe("tierCounts", () => {
       { id: "3", markbox: "DTD-C", name: "Gamma" }, // gold
       { id: "4", markbox: "DTD-D", name: "Delta" }, // bronze (sin facturas)
     ];
-    const { client } = stub({ studio_client_annual_billing: billing, clients });
+    const { client } = stub({ studio_client_annual_billing_v2: billing, clients });
     const counts = await tierCounts(client, NOW);
 
-    const byId = Object.fromEntries(counts.map((c) => [c.tier.id, c.count]));
+    const byId = Object.fromEntries(counts.map((c) => [c.tier?.id, c.count]));
     expect(counts).toHaveLength(4);
     expect(byId.bronze).toBe(1);
     expect(byId.silver).toBe(1);
@@ -342,5 +358,81 @@ describe("topReferrers", () => {
     const top = await topReferrers(client, 1);
     expect(top).toHaveLength(1);
     expect(top[0].markbox).toBe("DTD-5452");
+  });
+});
+
+describe("0572-b · frontera de páginas y forma v2", () => {
+  function paged(rows: unknown[], cap = 500, errorAt = -1) {
+    const offsets: number[] = [];
+    const dates: unknown[] = [];
+    const client = { rpc(fn: string, args: { p_as_of: string }) {
+      expect(fn).toBe("studio_client_annual_billing_v2"); dates.push(args.p_as_of);
+      const q = { order: () => q, range(from: number) { offsets.push(from); return Promise.resolve(from === errorAt ? { data: null, error: { message: "secreto SQL" } } : { data: rows.slice(from, from+cap), error: null }); } }; return q;
+    } } as unknown as SupabaseClient;
+    return { client, offsets, dates };
+  }
+  const row = (n: number) => ({ client_markbox: `C${n}`, subtotal_usd: "1.01", sin_tasa_count: 0, conversion_state: "completo" });
+  it("1201 grupos con cap500 y solo sin tasa al final; avanza por recibidas hasta vacía", async () => {
+    const rows = Array.from({ length: 1201 }, (_, n) => row(n));
+    rows[1200] = { ...row(1200), subtotal_usd: "0.00", sin_tasa_count: 1, conversion_state: "sin_tasa" };
+    const { client, offsets, dates } = paged(rows);
+    const map = await clientAnnualBilling(client, NOW);
+    expect(map.size).toBe(1201);
+    expect(map.get("C1200")).toEqual({ state: "sin_tasa", subtotalUsd: "0.00", sinTasaCount: 1 });
+    expect(offsets).toEqual([0,500,1000,1201]);
+    expect(new Set(dates)).toEqual(new Set(["2026-06-02"]));
+  });
+  it("error intermedio y tope rechazan el mapa completo", async () => {
+    await expect(clientAnnualBilling(paged(Array.from({ length: 61 }, (_,n) => row(n)),1).client)).rejects.toThrow("Facturación anual no disponible");
+    await expect(clientAnnualBilling(paged([row(1),row(2)],1,1).client)).rejects.toThrow("Facturación anual no disponible");
+  });
+  it.each([{}, { ...row(1), subtotal_usd: null }, { ...row(1), sin_tasa_count: -1 }])("shape inválido no se omite %#", async (value) => {
+    await expect(clientAnnualBilling(paged([value]).client)).rejects.toThrow();
+  });
+});
+
+describe("0576 C2 · día Caracas anual capturado antes de paginar", () => {
+  it.each([
+    ["2026-10-21T02:30:00Z", "2026-10-20"],
+    ["2026-10-21T03:59:59.999Z", "2026-10-20"],
+    ["2026-10-21T04:00:00Z", "2026-10-21"],
+    ["2027-01-01T02:30:00Z", "2026-12-31"],
+    ["2024-03-01T02:30:00Z", "2024-02-29"],
+    ["2010-01-01T04:15:00Z", "2009-12-31"],
+  ])("%s envía %s sin depender de la zona del host", async (instant, day) => {
+    const { client, rpcCalls } = stub({ studio_client_annual_billing_v2: [] });
+    await expect(clientAnnualBilling(client, new Date(instant))).resolves.toEqual(new Map());
+    expect(rpcCalls).toEqual([{ fn: "studio_client_annual_billing_v2", args: { p_as_of: day } }]);
+  });
+
+  it("conserva el ancla inyectada aunque el argumento y el reloj crucen medianoche entre páginas", async () => {
+    vi.useFakeTimers();
+    const instant = new Date("2026-10-21T03:59:59.999Z");
+    vi.setSystemTime(instant);
+    const dates: string[] = [], offsets: number[] = [];
+    const rows = Array.from({ length: 1001 }, (_, n) => ({ client_markbox: `C${n}`, subtotal_usd: "1.00", sin_tasa_count: 0, conversion_state: "completo" }));
+    const client = { rpc(_fn: string, args: { p_as_of: string }) {
+      dates.push(args.p_as_of);
+      const q = { order: () => q, async range(from: number) {
+        offsets.push(from);
+        await Promise.resolve();
+        instant.setTime(new Date("2026-10-21T04:00:00Z").getTime());
+        vi.setSystemTime(instant);
+        return { data: rows.slice(from, from + 500), error: null };
+      } }; return q;
+    } } as unknown as SupabaseClient;
+    try {
+      const result = await clientAnnualBilling(client, instant);
+      expect(result.size).toBe(1001);
+      expect(offsets).toEqual([0, 500, 1000, 1001]);
+      expect(dates).toEqual(Array(4).fill("2026-10-20"));
+      expect(JSON.stringify([...result.values()])).toContain('"subtotalUsd":"1.00"');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it.each([new Date(NaN), "2026-10-21" as unknown as Date])("rechaza un instante inválido antes de la RPC %#", async (instant) => {
+    const { client, rpcCalls } = stub({ studio_client_annual_billing_v2: [] });
+    await expect(clientAnnualBilling(client, instant)).rejects.toThrow();
+    expect(rpcCalls).toEqual([]);
   });
 });

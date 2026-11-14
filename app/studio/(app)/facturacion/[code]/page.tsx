@@ -16,7 +16,7 @@ import {
   strandedCreditsForInvoice,
   type StrandedCreditOnInvoice,
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
-import { listCashAccounts, listReceipts } from "@/lib/studio/payment-queries";
+import { listCashAccounts, listReceipts, receiptCodesByReport } from "@/lib/studio/payment-queries";
 import { listInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { createProofSignedUrl } from "@/lib/portal/payment-proof";
 import {
@@ -42,6 +42,10 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { fmtUsd } from "@/lib/money";
 import { InvoiceDetailClient } from "../_components/InvoiceDetailClient";
+import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
+import { tasasVesPorFecha } from "@/lib/studio/fx-rates";
+import { equivalenteEnBs, LEYENDA_BS_REFERENCIAL } from "@/lib/shared/equivalente-bs";
+import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 
 export const metadata = { title: "Detalle factura" };
 
@@ -92,15 +96,22 @@ export default async function InvoiceDetailPage({
     tenantId: invoice.tenant_id,
     invoiceId: invoice.id,
   });
+  // SDD-0630: el recibo que creó cada confirmación (vacío sin la migración 0537).
+  const reportReceipts = await receiptCodesByReport(
+    supabase,
+    (reports ?? []).filter((r) => r.status === "confirmado").map((r) => r.id),
+  );
   let reportItems: ReportWithProof[] | null = reports?.map((report) => ({
     report,
     proofUrl: null,
+    receiptCode: reportReceipts.get(report.id) ?? null,
   })) ?? null;
   if (reports?.some((r) => r.proofPath)) {
     const admin = createAdminClient();
     reportItems = await Promise.all(
       reports.map(async (report) => ({
         report,
+        receiptCode: reportReceipts.get(report.id) ?? null,
         proofUrl: report.proofPath
           ? await createProofSignedUrl(admin, report.proofPath, {
               tenantId: invoice.tenant_id,
@@ -117,6 +128,24 @@ export default async function InvoiceDetailPage({
   const overdue = isOverdue(invoice);
   const balance = computeBalance(invoice);
   const hasIvaBreakdown = Number(invoice.iva_rate) > 0;
+
+  // SDD-0629 · equivalente en Bs, solo vista. El total, con la tasa del día de
+  // emisión (un borrador todavía no tiene: la de hoy); el saldo, con la de hoy.
+  const hoy = todayCaracasISO();
+  const fechaTotal = invoice.issued_at?.slice(0, 10) || hoy;
+  const tasas = await tasasVesPorFecha(supabase, invoice.tenant_id, [fechaTotal, hoy]);
+  const bsTotal = equivalenteEnBs({
+    amount: invoice.total_amount,
+    currency: invoice.currency,
+    tasa: tasas.get(fechaTotal),
+    fechaPedida: fechaTotal,
+  });
+  const bsSaldo = equivalenteEnBs({
+    amount: balance,
+    currency: invoice.currency,
+    tasa: tasas.get(hoy),
+    fechaPedida: hoy,
+  });
 
   return (
     <div style={{ maxWidth: 1100 }}>
@@ -230,6 +259,7 @@ export default async function InvoiceDetailPage({
             >
               ${fmt(invoice.total_amount)}
             </div>
+            <EquivalenteBs eq={bsTotal} tono="oscuro" />
           </div>
           <div style={{ textAlign: "right" }}>
             <div
@@ -252,6 +282,7 @@ export default async function InvoiceDetailPage({
             >
               ${fmt(balance)}
             </div>
+            {balance > 0 && <EquivalenteBs eq={bsSaldo} tono="oscuro" align="right" />}
           </div>
         </div>
 
@@ -313,6 +344,17 @@ export default async function InvoiceDetailPage({
             </span>
           )}
         </div>
+        {bsTotal.estado !== "no-aplica" && (
+          <p
+            style={{
+              margin: "12px 0 0",
+              font: "italic 500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-side-soft)",
+            }}
+          >
+            {LEYENDA_BS_REFERENCIAL}
+          </p>
+        )}
       </section>
 
       {/* Grid de datos */}
@@ -515,7 +557,10 @@ export default async function InvoiceDetailPage({
       )}
 
       {/* Reportes de pago del cliente (SDD-0134 · Slice B) */}
-      <StudioInvoicePaymentReports items={reportItems} />
+      <StudioInvoicePaymentReports
+        items={reportItems}
+        cashAccounts={cashAccounts.map((a) => ({ id: a.id, code: a.code, name: a.name }))}
+      />
 
       {invoice.notes && (
         <section

@@ -1,3 +1,4 @@
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 /**
  * Tipos TypeScript del módulo Tesorería (SDD-0044) — el espejo de Cobranzas.
  * Matchea schema de supabase/migrations/0088_tesoreria.sql
@@ -18,6 +19,11 @@
 
 import type { InvoiceCurrency } from "../invoice-types";
 import { tasaPersistible } from "@/lib/shared/fx";
+import {
+  COST_CATEGORIES,
+  COST_CATEGORY_KEYS,
+  type CostCategoryKey,
+} from "@/lib/studio/costing/types";
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -31,6 +37,7 @@ export type SupplierType =
   | "naviera"
   | "agente_aduanal"
   | "servicio"
+  | "aliado_espacio"
   | "otro";
 
 export const SUPPLIER_TYPES: SupplierType[] = [
@@ -38,6 +45,7 @@ export const SUPPLIER_TYPES: SupplierType[] = [
   "naviera",
   "agente_aduanal",
   "servicio",
+  "aliado_espacio",
   "otro",
 ];
 
@@ -49,6 +57,9 @@ export const SUPPLIER_TYPE_OPTIONS: {
   { value: "naviera", label: "Naviera" },
   { value: "agente_aduanal", label: "Agente aduanal" },
   { value: "servicio", label: "Servicio" },
+  // SDD-0631: quien nos vende espacio en un contenedor. Es proveedor, no el
+  // «aliado» revendedor del lado del cliente (0362).
+  { value: "aliado_espacio", label: "Aliado de espacio" },
   { value: "otro", label: "Otro" },
 ];
 
@@ -237,6 +248,9 @@ export type SupplierBill = {
   due_date: string; // YYYY-MM-DD
   reference: string | null;
   shipment_id: string | null;
+  /** SDD-0631 (0536). Ausente si la base todavía no tiene la migración. */
+  consolidation_id?: string | null;
+  cost_category?: string | null;
   journal_entry_id: string | null;
   notes: string | null;
   created_at: string;
@@ -263,6 +277,10 @@ export type BillInput = {
   dueDate: string; // YYYY-MM-DD
   reference: string | null;
   shipmentId: string | null;
+  /** SDD-0631: contenedor (consolidación) al que pertenece el costo. */
+  consolidationId?: string | null;
+  /** SDD-0631: categoría de Costing que cubre; obligatoria si hay vínculo. */
+  costCategory?: CostCategoryKey | null;
   notes: string | null;
 };
 
@@ -302,11 +320,10 @@ export function validateBillInput(input: Partial<BillInput>): {
     errors.expenseAccountId = "Elige la cuenta de costo o gasto a imputar.";
   }
 
-  const dateOk = (s: string | null | undefined): boolean =>
-    !s || /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const dateOk = isCalendarDate;
 
-  const issueDate = (input.issueDate ?? "").trim();
-  if (issueDate && !dateOk(issueDate)) {
+  const issueDate = input.issueDate === undefined ? fechaCaracas() : input.issueDate;
+  if (!dateOk(issueDate)) {
     errors.issueDate = "Fecha de emisión inválida (YYYY-MM-DD).";
   }
 
@@ -332,9 +349,13 @@ export function validateBillInput(input: Partial<BillInput>): {
     }
   }
 
-  if (Object.keys(errors).length > 0) {
+  const linkResult = validateBillCostLink(input);
+  if (linkResult.error) errors.costCategory = linkResult.error;
+
+  if (Object.keys(errors).length > 0 || !linkResult.link) {
     return { fieldErrors: errors };
   }
+  const link = linkResult.link;
 
   const fxRate = currency !== "USD" && currency !== "USDT"
     ? tasaPersistible(input.fxRate)
@@ -350,13 +371,56 @@ export function validateBillInput(input: Partial<BillInput>): {
       currency,
       fxRate,
       totalAmount,
-      issueDate: issueDate || new Date().toISOString().slice(0, 10),
+      issueDate,
       dueDate,
       reference: input.reference?.trim() || null,
-      shipmentId: input.shipmentId?.trim() || null,
+      shipmentId: link.shipmentId,
+      consolidationId: link.consolidationId,
+      costCategory: link.costCategory,
       notes: input.notes?.trim() || null,
     },
   };
+}
+
+// ── SDD-0631 · Vínculo de la CxP con contenedor y embarque ─────
+
+/** Vínculo de costo de una CxP. Todo null = la CxP no es costo de embarque. */
+export type BillCostLink = {
+  consolidationId: string | null;
+  shipmentId: string | null;
+  costCategory: CostCategoryKey | null;
+};
+
+/** Opciones de categoría para el selector (las 7 de Costing). */
+export const BILL_COST_CATEGORY_OPTIONS: { value: CostCategoryKey; label: string }[] =
+  COST_CATEGORIES.map((c) => ({ value: c.key, label: c.label }));
+
+export function costCategoryLabel(key: string | null | undefined): string {
+  return COST_CATEGORIES.find((c) => c.key === key)?.label ?? "—";
+}
+
+/**
+ * Normaliza y valida el vínculo (puro). Embarque sin contenedor está permitido
+ * (costo directo del embarque); con vínculo, la categoría es obligatoria. Que el
+ * embarque esté en el contenedor lo comprueba la acción contra la base (y el
+ * trigger de la 0536).
+ */
+export function validateBillCostLink(raw: {
+  consolidationId?: string | null;
+  shipmentId?: string | null;
+  costCategory?: string | null;
+}): { link?: BillCostLink; error?: string } {
+  const consolidationId = raw.consolidationId?.trim() || null;
+  const shipmentId = raw.shipmentId?.trim() || null;
+  const cat = raw.costCategory?.trim() || null;
+  if (!consolidationId && !shipmentId) {
+    return { link: { consolidationId: null, shipmentId: null, costCategory: null } };
+  }
+  if (!cat) return { error: "Elige qué costo cubre la CxP (por ejemplo, flete)." };
+  if (!(COST_CATEGORY_KEYS as string[]).includes(cat)) {
+    return { error: "Categoría de costo desconocida." };
+  }
+  return { link: { consolidationId, shipmentId, costCategory: cat as CostCategoryKey } };
 }
 
 // ── Orden de pago ─────────────────────────────────────────────
@@ -491,8 +555,8 @@ export function validatePaymentInput(
     ? (input.method as PaymentMethod)
     : "transferencia";
 
-  const paidAt = (input.paidAt ?? "").trim();
-  if (paidAt && !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) {
+  const paidAt = input.paidAt === undefined ? fechaCaracas() : input.paidAt;
+  if (!isCalendarDate(paidAt)) {
     errors.paidAt = "Fecha de pago inválida (YYYY-MM-DD).";
   }
 
@@ -505,7 +569,7 @@ export function validatePaymentInput(
       amount,
       cashAccountId,
       method,
-      paidAt: paidAt || new Date().toISOString().slice(0, 10),
+      paidAt,
       reference: input.reference?.trim() || null,
       notes: input.notes?.trim() || null,
     },

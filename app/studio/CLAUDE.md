@@ -371,6 +371,8 @@ cumplirlas todas.
 | `warning` (gold) | Requiere atención · no destructiva pero significativa. | "Marcar excepción", "On hold" |
 | `success` (green) | **NUNCA como idle** · solo flash transitorio post-éxito. | (estado interno de ActionButton) |
 
+**Elevación (SDD-0603, enmienda del 2026-11-12).** La sombra de `.studio-btn` sale de dos piezas: `--btn-lift` (el nivel) y `--btn-edge` (el borde propio en oscuro). Una variante cambia esas piezas, nunca `box-shadow` entero. Niveles: `primary` `--shadow-md` (hover `--shadow-lg`); `dark`, `warning` y `danger` `--shadow-sm`; `ghost` `--shadow-xs` con contorno de 1,5 px en `--ctl-border`. Los rellenos llevan `--btn-edge: var(--ctl-edge-hi)`. Deshabilitado y `success` van planos. Verbos en peso 700 o más. Lo vigila `claridad-controles-contract.test.ts`.
+
 ### Regla 2 · Tamaños y proporciones
 
 - `default` (40 px, 36 en compacto) · botones primarios del header de página.

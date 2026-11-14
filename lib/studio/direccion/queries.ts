@@ -89,6 +89,8 @@ export type FinanceHealth = {
   vencido: number;
   /** Cobertura de pagos con caja: caja / CxP * 100 (100 si no hay CxP). */
   coberturaPct: number;
+  /** SDD-0572: documentos con saldo sin tasa, fuera de CxC, CxP y vencido. */
+  sinTasa?: number;
 };
 
 /** Operación (embarques + naviera). */
@@ -223,6 +225,7 @@ export function textosFinancieros(
     mayor_menor: vacio ? sinAsientos : deFacturas,
     mayor_mayor: deFacturas,
     no_comparable: `${CUENTA_VENTAS} de facturas: no comparable, hay facturas en bolívares o yuanes`,
+    conversion_incompleta: `conversión incompleta · ${deFacturas}`,
     sin_movimiento: sinAsientos,
     sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el plan de cuentas`,
     sin_mayor: null,
@@ -242,7 +245,7 @@ export function textosFinancieros(
     ingreso: {
       label: "Ingresos · mes",
       valor: fmtUsd(i.facturado.total),
-      periodo: `Facturado sin IVA · ${i.rango.from} → ${i.rango.to}`,
+      periodo: `${i.sinConvertir > 0 ? "Subtotal convertido" : "Facturado"} sin IVA · ${i.rango.from} → ${i.rango.to}`,
       detalle: partes.join(" · "),
     },
     utilidad: {
@@ -494,6 +497,8 @@ export async function getDireccionData(
     cxp,
     vencido,
     coberturaPct: paymentCoveragePct(caja, cxp),
+    // SDD-0572: lo que no convierte (sin tasa) no suma; se dice cuántos son.
+    sinTasa: cobranzas.casosSinTasa + tesoreria.cxpSinTasa,
   };
 
   // Próximo cut-off: el sailing abierto con cutoff más cercano (futuro o hoy).

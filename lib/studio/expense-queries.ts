@@ -1,3 +1,4 @@
+import { caracasDayBounds, caracasMonthBounds } from "@/lib/shared/fechas-caracas";
 /**
  * Queries del módulo Expenses · gastos rápidos del Mobile ERP.
  */
@@ -9,7 +10,6 @@ import { EXPENSE_CATEGORY_ACCOUNT_CODE } from "./expense-types";
 import type {
   Expense,
   ExpenseCategory,
-  ExpenseCurrency,
   ExpenseScope,
 } from "./expense-types";
 
@@ -64,22 +64,6 @@ export async function listMyExpenses(
   return (data as Expense[] | null) ?? [];
 }
 
-/**
- * Suma total de mis gastos del día actual en USD (conversión mock).
- * Para el KPI "Gastos hoy" del HomeScreen.
- *
- * TODO: cuando exista módulo Rates real (BCV/Paralelo), usar tasa
- * vigente del día. Por ahora: USD=1, VES≈36 (BCV mock), CNY≈7.18.
- */
-const RATE_VES_PER_USD = 36;
-const RATE_CNY_PER_USD = 7.18;
-
-export function convertToUsd(amount: number, currency: ExpenseCurrency): number {
-  if (currency === "USD") return amount;
-  if (currency === "VES") return amount / RATE_VES_PER_USD;
-  if (currency === "CNY") return amount / RATE_CNY_PER_USD;
-  return amount;
-}
 
 /**
  * Genera signed URLs para todos los expenses con receipt_path.
@@ -124,13 +108,7 @@ export interface ExpenseFilters {
 
 /** Rango [inicio, fin) ISO de un mes 'YYYY-MM' (o mes actual). */
 function monthRange(month?: string): { start: string; end: string } {
-  const now = new Date();
-  const [y, m] = month
-    ? month.split("-").map(Number)
-    : [now.getUTCFullYear(), now.getUTCMonth() + 1];
-  const start = new Date(Date.UTC(y, m - 1, 1)).toISOString();
-  const end = new Date(Date.UTC(y, m, 1)).toISOString();
-  return { start, end };
+  return caracasMonthBounds(month);
 }
 
 /**
@@ -286,20 +264,20 @@ export async function getLastFxRate(
 export async function sumMyExpensesTodayUsd(
   supabase: SupabaseClient,
 ): Promise<{ total: number; count: number }> {
-  // 'today' en VE timezone
-  const todayVE = new Date();
-  todayVE.setHours(0, 0, 0, 0);
-  const todayIso = todayVE.toISOString();
+  const { start, end } = caracasDayBounds();
 
   const { data, error } = await supabase
     .from("expenses")
-    .select("amount, currency")
+    .select("amount_usd")
     .is("deleted_at", null)
-    .gte("occurred_at", todayIso);
+    .gte("occurred_at", start)
+    .lt("occurred_at", end);
 
   if (error) throw error;
 
-  const rows = (data as { amount: number; currency: ExpenseCurrency }[] | null) ?? [];
-  const total = rows.reduce((s, r) => s + convertToUsd(Number(r.amount), r.currency), 0);
+  // SDD-0572: cada gasto guarda su `amount_usd` con la tasa del día en que se
+  // cargó (antes se recalculaba con 36 y 7,18 fijos).
+  const rows = (data as { amount_usd: number | string | null }[] | null) ?? [];
+  const total = rows.reduce((s, r) => s + (Number(r.amount_usd) || 0), 0);
   return { total: Math.round(total), count: rows.length };
 }

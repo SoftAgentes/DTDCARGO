@@ -10,7 +10,7 @@
  *  - Cost Editor drawer (guardar costos) abierto desde Ranking o "Editar costos".
  *
  * El toggle USD/VES es DISPLAY-ONLY: convierte cada monto USD con la tasa BCV
- * (de la última factura en VES, o el fallback). Nunca persiste VES. Todos los
+ * vigente del catálogo; sin tasa se desactiva VES). Nunca persiste VES. Todos los
  * agregados llegan ya calculados desde el server (page.tsx).
  */
 
@@ -35,6 +35,7 @@ import type {
   CostingTotals,
   RouteMarginRow,
 } from "@/lib/studio/costing/queries";
+import type { ContainerMarginRow } from "@/lib/studio/costing/cxp-ligadas";
 import {
   asRankingSort,
   breakdownRows,
@@ -52,13 +53,14 @@ import {
 import { CostEditorDrawer } from "./CostEditorDrawer";
 import { TemplateDrawer } from "./TemplateDrawer";
 
-type Tab = "overview" | "ranking" | "breakdown" | "routes" | "templates" | "forecast";
+type Tab = "overview" | "ranking" | "breakdown" | "routes" | "containers" | "templates" | "forecast";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "ranking", label: "Ranking de embarques" },
   { value: "breakdown", label: "Desglose por categoría" },
   { value: "routes", label: "Margen por ruta" },
+  { value: "containers", label: "Contenedores" },
   { value: "templates", label: "Templates por ruta" },
   { value: "forecast", label: "Forecast pipeline" },
 ];
@@ -87,6 +89,8 @@ export function CostingClient({
   templates,
   forecast,
   vesRate,
+  containers = [],
+  linksAvailable = false,
 }: {
   rows: CostingRow[];
   totals: CostingTotals;
@@ -94,6 +98,9 @@ export function CostingClient({
   templates: RouteCostTemplate[];
   forecast: Forecast;
   vesRate: number | null;
+  /** SDD-0631: margen por contenedor (con las CxP ligadas). */
+  containers?: ContainerMarginRow[];
+  linksAvailable?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [currency, setCurrency] = useState<DisplayCurrency>("USD");
@@ -102,16 +109,23 @@ export function CostingClient({
 
   const rate = resolveDisplayRate(vesRate);
   // Formateador de display según el toggle (USD passthrough · VES × tasa).
-  const money = (usd: number) => fmtMoney(usd, currency, rate);
+  // SDD-0572: sin tasa vigente, siempre USD.
+  const money = (usd: number) =>
+    rate === null ? fmtMoney(usd, "USD", 0) : fmtMoney(usd, currency, rate);
 
+  // SDD-0572: con alguna factura sin tasa el margen está incompleto: ni
+  // rentable ni en pérdida, «sin tasa».
+  // SDD-0631: también una CxP ligada sin tasa deja el margen incompleto.
+  const sinTasa = (r: CostingRow) => (r.facturasSinTasa ?? 0) > 0 || (r.cxp?.sinTasa ?? 0) > 0;
   const profitable = useMemo(
-    () => rows.filter((r) => r.eco.margin > 0).length,
+    () => rows.filter((r) => !sinTasa(r) && r.eco.margin > 0).length,
     [rows],
   );
   const losing = useMemo(
-    () => rows.filter((r) => r.eco.margin < 0).length,
+    () => rows.filter((r) => !sinTasa(r) && r.eco.margin < 0).length,
     [rows],
   );
+  const conSinTasa = useMemo(() => rows.filter(sinTasa).length, [rows]);
 
   const hasRows = rows.length > 0;
   const exportCsv = () =>
@@ -144,27 +158,30 @@ export function CostingClient({
         >
           <KpiCard
             value={money(totals.revenue)}
-            label="Revenue total"
-            sub={currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
+            label={totals.sinTasa > 0 ? "Revenue · subtotal convertido" : "Revenue total"}
+            sub={totals.sinTasa > 0 ? `${totals.sinTasa} embarque${totals.sinTasa === 1 ? "" : "s"} sin tasa · conversión incompleta` : currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
             valueColor="var(--wine-text)"
           />
           <KpiCard
             value={money(totals.cost)}
             label="Costo total"
-            sub={`${Math.round(costPctOfRevenue(totals))}% del revenue`}
+            sub={totals.sinTasa > 0 ? "costos conocidos · ingreso incompleto" : `${Math.round(costPctOfRevenue(totals))}% del revenue`}
             valueColor="var(--warning)"
           />
           <KpiCard
-            value={money(totals.margin)}
+            value={totals.sinTasa > 0 ? "—" : money(totals.margin)}
             label="Margen bruto"
-            sub={`${totals.avgMarginPct.toFixed(1)}% promedio`}
-            valueColor={totals.margin < 0 ? "var(--danger)" : "var(--success)"}
+            sub={totals.sinTasa > 0 ? "Pendiente · conversión incompleta" : `${totals.avgMarginPct.toFixed(1)}% promedio`}
+            valueColor={totals.sinTasa > 0 ? "var(--ink)" : totals.margin < 0 ? "var(--danger)" : "var(--success)"}
           />
           <KpiCard
             value={`${profitable}/${rows.length}`}
             label="Embarques OK"
-            sub={losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida"}
-            valueColor={losing > 0 ? "var(--danger)" : "var(--success)"}
+            sub={
+              (losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida")
+              + (conSinTasa > 0 ? ` · ${conSinTasa} sin tasa` : "")
+            }
+            valueColor={conSinTasa > 0 ? "var(--ink)" : losing > 0 ? "var(--danger)" : "var(--success)"}
           />
         </div>
       )}
@@ -212,6 +229,9 @@ export function CostingClient({
       )}
       {hasRows && tab === "breakdown" && <BreakdownView totals={totals} money={money} />}
       {hasRows && tab === "routes" && <RoutesView routes={routes} money={money} />}
+      {tab === "containers" && (
+        <ContainersView containers={containers} linksAvailable={linksAvailable} money={money} />
+      )}
 
       {tab === "templates" && (
         <TemplatesView
@@ -254,7 +274,7 @@ function Header({
 }: {
   currency: DisplayCurrency;
   onCurrency: (c: DisplayCurrency) => void;
-  rate: number;
+  rate: number | null;
   hasRows: boolean;
   onEdit?: () => void;
   onExport?: () => void;
@@ -287,7 +307,7 @@ function Header({
           }}
         >
           Rentabilidad real por embarque: desglose de costos vs revenue
-          facturado. Identificá los rentables y los que dejan plata sobre la
+          facturado. Identifica los rentables y los que dejan dinero sobre la
           mesa.
         </p>
       </div>
@@ -302,16 +322,16 @@ function Header({
               textTransform: "uppercase",
             }}
           >
-            Moneda · BCV {rate}
+            {rate === null ? "Moneda · Sin tasa de bolívares en Admin › Tasas" : `Moneda · BCV ${rate}`}
           </span>
           <SegmentedControl<DisplayCurrency>
             variant="pills"
             ariaLabel="Moneda de display"
-            value={currency}
+            value={rate === null ? "USD" : currency}
             onChange={onCurrency}
             options={[
               { value: "USD", label: "USD" },
-              { value: "VES", label: "VES" },
+              { value: "VES", label: "VES", disabled: rate === null },
             ]}
           />
         </div>
@@ -401,6 +421,12 @@ function OverviewView({
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card eyebrow="Composición · Revenue vs Costo" style={{ padding: "0 0 18px" }}>
         <div style={{ padding: "14px 20px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+          {totals.sinTasa > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-4)", color: "var(--ink)" }}>
+              <span>Subtotal convertido: <strong>{money(totals.revenue)}</strong></span>
+              <span>Costo total: <strong>{money(totals.cost)}</strong></span>
+            </div>
+          ) : <>
           <CompositionBar
             label="Revenue"
             value={money(totals.revenue)}
@@ -419,6 +445,7 @@ function OverviewView({
             pct={Math.max(0, 100 - costPctOfRevenue(totals))}
             tone={totals.margin < 0 ? "var(--danger)" : "var(--success)"}
           />
+          </>}
         </div>
         <p
           style={{
@@ -429,12 +456,14 @@ function OverviewView({
             borderTop: "1px solid var(--border)",
           }}
         >
+          {totals.sinTasa > 0 ? "Faltan tasas de facturas para conocer el revenue y el margen completos. Los importes convertidos y los costos se conservan." : <>
           Por cada <strong style={{ color: "var(--ink)" }}>$100</strong>{" "}
           facturados,{" "}
           <strong style={{ color: "var(--warning)" }}>${costPct}</strong> se van
           en costos y{" "}
           <strong style={{ color: "var(--success)" }}>${marginPctRound}</strong>{" "}
           quedan de margen bruto.
+          </>}
         </p>
       </Card>
 
@@ -562,7 +591,7 @@ function RankingView({
   const cols = "140px 1fr 110px 110px 110px 110px 80px";
 
   return (
-    <Card style={{ overflow: "hidden" }}>
+    <Card style={{ overflowX: "auto" }}>
       <div
         style={{
           padding: "14px 18px",
@@ -626,7 +655,8 @@ function RankingView({
       </div>
 
       {sorted.map((r) => {
-        const isLoss = r.eco.margin < 0;
+        const incompleto = (r.facturasSinTasa ?? 0) > 0 || (r.cxp?.sinTasa ?? 0) > 0;
+        const isLoss = !incompleto && r.eco.margin < 0;
         const tone = marginTone(r.eco.marginPct);
         const routeLabel =
           r.shipment.origin && r.shipment.destination
@@ -666,25 +696,37 @@ function RankingView({
                 {routeLabel}
               </div>
             </div>
-            <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
-              {money(r.eco.revenue)}
-            </span>
+            <div style={{ color: "var(--ink)", textAlign: "right" }}>
+              <span style={{ font: "700 13px/1 var(--f-mono)" }}>{money(r.eco.revenue)}</span>
+              {incompleto && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>Subtotal convertido</div>}
+            </div>
             <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)", textAlign: "right" }}>
               {money(r.eco.totalCost)}
             </span>
             <span
               style={{
                 font: "800 13px/1 var(--f-mono)",
-                color: isLoss ? "var(--danger)" : "var(--success)",
+                color: incompleto ? "var(--ink)" : isLoss ? "var(--danger)" : "var(--success)",
                 textAlign: "right",
               }}
             >
-              {money(r.eco.margin)}
+              {incompleto ? "—" : money(r.eco.margin)}
             </span>
             <div style={{ textAlign: "right" }}>
-              <Badge tone={tone} size="md">
-                {r.eco.marginPct.toFixed(1)}%
-              </Badge>
+              {incompleto ? (
+                <>
+                <Badge tone="neutral" size="md">
+                  Sin tasa
+                </Badge>
+                <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+                  {r.facturasSinTasa} {r.facturasSinTasa === 1 ? "factura sin tasa" : "facturas sin tasa"}
+                </div>
+                </>
+              ) : (
+                <Badge tone={tone} size="md">
+                  {r.eco.marginPct.toFixed(1)}%
+                </Badge>
+              )}
             </div>
             <div style={{ textAlign: "right" }}>
               <button
@@ -787,7 +829,7 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
   const cols = "1.4fr 70px 110px 110px 110px 110px";
 
   return (
-    <Card eyebrow={`${routes.length} rutas · ordenadas por margen %`} style={{ overflow: "hidden", padding: "18px 0 0" }}>
+    <Card eyebrow={`${routes.length} rutas · completas por margen % · incompletas al final`} style={{ overflow: "hidden", padding: "18px 0 0" }}>
       <div
         style={{
           display: "grid",
@@ -841,24 +883,132 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
           <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
             {r.count}
           </span>
-          <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
-            {money(r.revenue)}
-          </span>
+          <div style={{ color: "var(--ink)", textAlign: "right" }}>
+            <span style={{ font: "700 13px/1 var(--f-mono)" }}>{money(r.revenue)}</span>
+            {r.sinTasa > 0 && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>Subtotal convertido</div>}
+          </div>
           <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)", textAlign: "right" }}>
             {money(r.cost)}
           </span>
           <span
             style={{
               font: "800 13px/1 var(--f-mono)",
-              color: r.margin < 0 ? "var(--danger)" : "var(--success)",
+              color: r.sinTasa > 0 ? "var(--ink)" : r.margin < 0 ? "var(--danger)" : "var(--success)",
               textAlign: "right",
             }}
           >
-            {money(r.margin)}
+            {r.sinTasa > 0 ? "—" : money(r.margin)}
           </span>
           <div style={{ textAlign: "right" }}>
-            <Badge tone={r.tone} size="md">
-              {r.marginPct.toFixed(1)}%
+            <Badge tone={r.sinTasa > 0 ? "neutral" : r.tone} size="md">
+              {r.sinTasa > 0 ? "Sin tasa" : `${r.marginPct.toFixed(1)}%`}
+            </Badge>
+            {r.sinTasa > 0 && <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>{r.sinTasa} {r.sinTasa === 1 ? "embarque sin tasa" : "embarques sin tasa"}</div>}
+          </div>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+// ── SDD-0631 · Margen por contenedor ───────────────────────────
+function ContainersView({
+  containers,
+  linksAvailable,
+  money,
+}: {
+  containers: ContainerMarginRow[];
+  linksAvailable: boolean;
+  money: Money;
+}) {
+  const note = linksAvailable
+    ? "El costo incluye las CxP ligadas en Tesorería: reemplazan lo cargado a mano en su categoría y una CxP de contenedor se reparte por CBM."
+    : "La base todavía no tiene el vínculo de CxP con contenedor (migración 0536): el costo sale solo de lo cargado a mano.";
+  if (containers.length === 0) {
+    return (
+      <EmptyState
+        eyebrow="Margen por contenedor"
+        title="Sin contenedores para costear"
+        description="Cuando haya consolidaciones en Naviera con embarques asignados, vas a ver acá su margen."
+      />
+    );
+  }
+  const cols = "1.4fr 60px 110px 110px 110px 110px 100px";
+  return (
+    <Card eyebrow={`${containers.length} contenedores · ${note}`} style={{ overflow: "hidden", padding: "18px 0 0" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: cols,
+          padding: "10px 18px",
+          gap: 14,
+          background: "var(--bg-elevated)",
+          borderBottom: "1px solid var(--border)",
+          marginTop: 14,
+        }}
+      >
+        {["Contenedor", "Envíos", "Revenue", "Costo", "De CxP", "Margen", "Margen %"].map((h, i) => (
+          <span
+            key={h}
+            style={{
+              font: "700 10px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              textAlign: i >= 1 ? "right" : "left",
+            }}
+          >
+            {h}
+          </span>
+        ))}
+      </div>
+      {containers.map((c) => (
+        <div
+          key={c.id}
+          style={{
+            display: "grid",
+            gridTemplateColumns: cols,
+            padding: "14px 18px",
+            gap: 14,
+            alignItems: "center",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ font: "700 13px/1.2 var(--f-mono)", color: "var(--ink)" }}>{c.ref}</div>
+            <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+              {[c.containerType, c.status, `${c.cbm.toLocaleString("es-VE")} CBM`].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+          <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
+            {c.shipments}
+          </span>
+          <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
+            {money(c.revenue)}
+          </span>
+          <div style={{ textAlign: "right" }}>
+            <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)" }}>{money(c.cost)}</span>
+            {c.unallocated > 0 && (
+              <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+                {money(c.unallocated)} sin repartir
+              </div>
+            )}
+          </div>
+          <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
+            {c.cxpCost > 0 ? money(c.cxpCost) : "—"}
+          </span>
+          <span
+            style={{
+              font: "800 13px/1 var(--f-mono)",
+              color: c.sinTasa > 0 ? "var(--ink)" : c.margin < 0 ? "var(--danger)" : "var(--success)",
+              textAlign: "right",
+            }}
+          >
+            {c.sinTasa > 0 ? "—" : money(c.margin)}
+          </span>
+          <div style={{ textAlign: "right" }}>
+            <Badge tone={c.sinTasa > 0 ? "neutral" : c.tone} size="md">
+              {c.sinTasa > 0 ? "Sin tasa" : c.revenue > 0 ? `${c.marginPct.toFixed(1)}%` : "Sin revenue"}
             </Badge>
           </div>
         </div>

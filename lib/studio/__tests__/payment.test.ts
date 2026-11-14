@@ -10,7 +10,7 @@
  *  - formato next_receipt_code → R-YYYY-NNNN (formatReceiptCode + RECEIPT_CODE_RE).
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { Account } from "../account-types";
 import type { Invoice } from "../invoice-types";
 import {
@@ -25,6 +25,7 @@ import {
   RECEIPT_CODE_RE,
   validateActivityInput,
   validatePaymentInput,
+  validateUnidentifiedPaymentInput,
   type CollectionActivity,
 } from "../payment-types";
 import {
@@ -33,6 +34,24 @@ import {
 } from "../accounting/receipt-posting";
 
 const TODAY = "2026-06-01";
+
+afterEach(() => vi.useRealTimers());
+describe("C1 · fecha de recepción", () => {
+  const valid = { amount: 10.25, cashAccountId: "cash" };
+  it("omisión programática toma Caracas en ambos tipos de cobro", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T02:30:00Z"));
+    expect(validatePaymentInput(valid, 100).input).toMatchObject({ receivedAt: "2026-10-20", amount: 10.25 });
+    expect(validateUnidentifiedPaymentInput(valid).input).toMatchObject({ receivedAt: "2026-10-20", amount: 10.25 });
+  });
+  it.each(["", "2026-02-30", "2025-02-29"])("rechaza fecha explícita inválida %j", (receivedAt) => {
+    expect(validatePaymentInput({ ...valid, receivedAt }, 100).fieldErrors?.receivedAt).toEqual(expect.any(String));
+    expect(validateUnidentifiedPaymentInput({ ...valid, receivedAt }).fieldErrors?.receivedAt).toEqual(expect.any(String));
+  });
+  it("preserva fecha elegida sin convertirla de zona", () => {
+    expect(validatePaymentInput({ ...valid, receivedAt: "2024-02-29" }, 100).input?.receivedAt).toBe("2024-02-29");
+  });
+});
 
 function inv(partial: Partial<Invoice> & { id: string }): Invoice {
   return {
@@ -338,8 +357,13 @@ describe("receiptAmountUsd", () => {
     // 18000 VES a 36 VES/USD = 500 USD
     expect(receiptAmountUsd(18000, "VES", 36)).toBe(500);
   });
-  it("sin fx_rate → amount tal cual (fallback)", () => {
-    expect(receiptAmountUsd(500, "VES", null)).toBe(500);
+  // SDD-0572 (decisión 1 de Sam; el Director, 2026-10-20): sin tasa no se convierte; nunca el monto tal cual.
+  it("sin fx_rate → null (el cobro no se asienta)", () => {
+    expect(receiptAmountUsd(500, "VES", null)).toBeNull();
+    expect(receiptAmountUsd(500, "CNY", 0)).toBeNull();
+  });
+  it("CNY con tasa convierte con la cuenta exacta", () => {
+    expect(receiptAmountUsd(15.66, "CNY", 7.2)).toBe(2.18);
   });
 });
 

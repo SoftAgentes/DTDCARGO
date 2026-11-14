@@ -1,3 +1,4 @@
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 /**
  * Tipos TypeScript del módulo Tarifas (SDD-0008).
  * Matchea schema de supabase/migrations/0005_rates.sql.
@@ -87,12 +88,7 @@ export type RateInput = {
  * dice «hoy».
  */
 export function hoyCaracas(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Caracas",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
+  return fechaCaracas(now);
 }
 
 /**

@@ -60,10 +60,11 @@ export async function registerCollection(
   receiptCode?: string;
   fullyPaid?: boolean;
 }> {
+  const receivedAt = payload?.receivedAt === undefined ? todayCaracasISO() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const result = await registerCollectionFor(supabase, invoiceId, payload);
+  const result = await registerCollectionFor(supabase, invoiceId, { ...payload, receivedAt });
 
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -87,10 +88,11 @@ export async function registerCollection(
 export async function registerUnidentifiedPayment(
   payload: Partial<UnidentifiedPaymentInput>,
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string }> {
+  const receivedAt = payload?.receivedAt === undefined ? todayCaracasISO() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const result = await registerUnidentifiedPaymentFor(supabase, payload);
+  const result = await registerUnidentifiedPaymentFor(supabase, { ...payload, receivedAt });
 
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -235,6 +237,21 @@ export async function getReceivableHistory(invoiceId: string): Promise<{
     listActivities(supabase, invoiceId),
   ]);
   return { receipts, activities };
+}
+
+/**
+ * SDD-0630 · Reportes de pago del portal sin revisar de una factura, para el
+ * aviso del cobro. Misma puerta de VISTA que el historial. null = no se pudo leer.
+ */
+export async function getPendingPaymentReports(invoiceId: string): Promise<{
+  pending: import("@/lib/studio/payment-queries").PendingReportsSummary | null;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "collections");
+  if (denial) return { pending: null, error: denial };
+  const { pendingReportsForInvoice } = await import("@/lib/studio/payment-queries");
+  return { pending: await pendingReportsForInvoice(supabase, invoiceId) };
 }
 
 // ─────────────────────────────────────────────────────────────

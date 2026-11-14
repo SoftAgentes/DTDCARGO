@@ -19,7 +19,9 @@
  *    representa <moneda>/USD). Si no hay fx_rate, se usa el amount tal cual.
  */
 
+import { usdOrNull } from "@/lib/shared/fx";
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 /** Cuenta de control de la CxP (haber de la causación, SDD-0040 §5). */
 export const PAYABLE_AP_CODE = "2.1.1"; // Cuentas por pagar proveedores (haber)
@@ -58,18 +60,17 @@ function round2(n: number): number {
  * Deriva el monto USD funcional de la CxP. PURA — testeable sin DB.
  * - USD / USDT → el amount tal cual.
  * - otra moneda con fx_rate>0 → amount / fx_rate (fx_rate = <moneda>/USD).
- * - sin fx_rate → amount tal cual (fallback; el caller ya guarda currency).
+ * - SDD-0572: sin tasa, null (antes, el monto tal cual). Desde la 0569 toda CxP
+ *   nueva en otra moneda trae tasa.
  */
 export function billAmountUsd(
   amount: number,
   currency: string,
   fxRate?: number | null,
-): number {
-  const a = Number(amount) || 0;
-  if (currency === "USD" || currency === "USDT") return round2(a);
-  const fx = Number(fxRate);
-  if (Number.isFinite(fx) && fx > 0) return round2(a / fx);
-  return round2(a);
+): number | null {
+  // SDD-0572: el conversor canónico. Sin tasa, null: la CxP no se asienta (antes
+  // se asentaba el nominal como si fueran dólares) y queda en «Por contabilizar».
+  return usdOrNull(Number(amount) || 0, currency, fxRate);
 }
 
 /** Una línea del asiento de causación (debe XOR haber). */
@@ -119,6 +120,7 @@ export async function postBillJournalEntry(
   input: BillPostingInput,
 ): Promise<BillPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // 1. Idempotencia: ¿ya hay asiento vivo para esta CxP?
@@ -133,6 +135,7 @@ export async function postBillJournalEntry(
     }
 
     const amountUsd = billAmountUsd(input.amount, input.currency, input.fxRate);
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) {
       return { ok: true, skipped: "zero-amount" };
     }
@@ -171,7 +174,6 @@ export async function postBillJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 5. Insertar el asiento (asentado) + sus 2 líneas.
     const { data: insertedEntry, error: entryErr } = await admin

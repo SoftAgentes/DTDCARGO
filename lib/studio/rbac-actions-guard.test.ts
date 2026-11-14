@@ -284,12 +284,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // las versiones de Chatwoot.
   // SDD-0589 (9.3) sumó `_actions/guia-actions.ts` (80 → 81, con prefijo 23 → 24):
   // el estado de la guía por usuario.
-  it("la superficie escaneada es la esperada (81 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
+  // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
+  it("la superficie escaneada es la esperada (82 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 81,
-      exactos: 57,
+      total: 82,
+      exactos: 58,
       conPrefijo: 24,
     });
   });
@@ -374,8 +376,32 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate` antes de leer nada; escribe solo por la RPC
   // `chatwoot_portal_destrabar` (0520) con el cliente de sesión, que repite el admin
   // del tenant (`is_tenant_admin`) y toma el tenant de la sesión.
+  // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts::guardarEdicion`,
+  // `::retirarNoticia` y `::volverAPublicar` (463 → 466): las tres pasan por
+  // `gateAdmin`, que llama a `tenantAdminGate` y después comprueba el flag
+  // `marketing_news` antes de leer o escribir nada. Pasan el veredicto por acción
+  // sin entrar en ninguna lista. `guardarEdicion` escribe con el cliente de sesión
+  // (la policy de UPDATE de 0055 repite admin y tenant); retiro y vuelta, por las
+  // RPC `news_retirar` y `news_volver_a_publicar` (0518), que repiten `is_tenant_admin`.
+  // SDD-0627 sumó `naviera/actions.ts::ensayarAvisosZarpe` (466 → 467): ensayo en
+  // seco del aviso `carga_en_camino`. `moduleEditDenial("naviera")` antes de leer
+  // nada (sólo valida antes que el id no venga vacío); comprueba con el cliente de
+  // sesión que el contenedor sea del tenant y después sólo LEE con el admin,
+  // scopeado a ese tenant y contenedor. No escribe: devuelve conteos.
+  // SDD-0631 sumó `tesoreria/actions.ts::linkBillCost` (467 → 468): liga, cambia
+  // o quita el contenedor/embarque de una CxP. `moduleEditDenial(supabase,
+  // "treasury")` al tope, antes de leer o escribir (treasury = accounting + admin
+  // en `rbac.ts`); escribe con el cliente de sesión y la policy de UPDATE de
+  // `supplier_bills` (0470) repite accounting/admin y tenant. Pasa el veredicto
+  // por acción sin entrar en ninguna lista; el trigger de la 0536 repite el
+  // same-tenant del contenedor y del embarque.
+  // SDD-0630 sumó `cobranzas/actions.ts::getPendingPaymentReports` (468 → 469):
+  // solo LEE. `moduleViewDenial(supabase, "collections")` va al tope, antes de
+  // leer nada, como `getReceivableHistory`; la lectura de `payment_reports` usa el
+  // cliente de sesión, así que la RLS de la tabla repite el tenant. Pasa el
+  // veredicto por acción sin entrar en ninguna lista.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(463);
+    expect(reportes.length).toBe(469);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

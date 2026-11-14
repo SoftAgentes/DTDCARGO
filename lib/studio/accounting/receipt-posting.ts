@@ -20,7 +20,9 @@
  *    el amount tal cual (cobro en USD).
  */
 
+import { usdOrNull } from "@/lib/shared/fx";
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 /** Cuenta destino del crédito del cobro (CxC clientes, SDD-0040 §5). */
 export const RECEIPT_AR_CODE = "1.1.2"; // Cuentas por cobrar clientes (haber)
@@ -70,18 +72,16 @@ function round2(n: number): number {
  * Deriva el monto USD funcional del cobro. PURA — testeable sin DB.
  * - USD / USDT → el amount tal cual.
  * - otra moneda con fx_rate>0 → amount / fx_rate (fx_rate = <moneda>/USD).
- * - sin fx_rate → amount tal cual (mejor que 0; el caller ya guarda currency).
+ * - SDD-0572: sin tasa, null (antes, el monto tal cual).
  */
 export function receiptAmountUsd(
   amount: number,
   currency: string,
   fxRate?: number | null,
-): number {
-  const a = Number(amount) || 0;
-  if (currency === "USD" || currency === "USDT") return round2(a);
-  const fx = Number(fxRate);
-  if (Number.isFinite(fx) && fx > 0) return round2(a / fx);
-  return round2(a);
+): number | null {
+  // SDD-0572: el conversor canónico. Sin tasa, null: el cobro no se asienta (antes
+  // se asentaba el nominal como si fueran dólares) y queda en «Por contabilizar».
+  return usdOrNull(Number(amount) || 0, currency, fxRate);
 }
 
 /** Una línea del asiento del cobro (debe XOR haber). */
@@ -197,6 +197,7 @@ export async function postReceiptJournalEntry(
   input: ReceiptPostingInput,
 ): Promise<ReceiptPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // 1. Idempotencia: ¿ya hay asiento vivo para este recibo?
@@ -215,6 +216,7 @@ export async function postReceiptJournalEntry(
       input.currency,
       input.fxRate,
     );
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) {
       return { ok: true, skipped: "zero-amount" };
     }
@@ -254,7 +256,6 @@ export async function postReceiptJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 4. Insertar el asiento (asentado) + sus 2 líneas.
     const { data: insertedEntry, error: entryErr } = await admin
@@ -382,6 +383,7 @@ export async function postUnidentifiedReceiptJournalEntry(
   input: ReceiptPostingInput,
 ): Promise<ReceiptPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // Idempotencia: ¿ya hay asiento vivo para este recibo?
@@ -396,6 +398,7 @@ export async function postUnidentifiedReceiptJournalEntry(
     }
 
     const amountUsd = receiptAmountUsd(input.amount, input.currency, input.fxRate);
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) return { ok: true, skipped: "zero-amount" };
 
     const bridgeId = await resolveAccountIdByCode(
@@ -425,7 +428,7 @@ export async function postUnidentifiedReceiptJournalEntry(
       receiptId: input.receiptId,
       memo: `Pago sin identificar ${input.receiptCode}`,
       source: "receipt",
-      entryDate: input.entryDate ?? new Date().toISOString().slice(0, 10),
+      entryDate,
       lines: buildUnidentifiedReceiptLines(cashRow.id, bridgeId, amountUsd),
     });
   } catch (e) {
@@ -473,6 +476,7 @@ export async function postReceiptReclassEntry(
     }
 
     const amountUsd = receiptAmountUsd(input.amount, input.currency, input.fxRate);
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) return { ok: true, skipped: "zero-amount" };
 
     const [bridgeId, arId] = await Promise.all([

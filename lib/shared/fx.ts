@@ -94,20 +94,24 @@ function aDecimal(valor: number | string): Decimal | null {
 }
 
 /** numerador / denominador en centavos, con la mitad lejos de cero (denominador > 0). */
-function centavos(numerador: bigint, denominador: bigint): number {
+function centavos(numerador: bigint, denominador: bigint): bigint {
   const negativo = numerador < BigInt(0);
   const n = negativo ? -numerador : numerador;
   let q = n / denominador;
   if ((n % denominador) * BigInt(2) >= denominador) q += BigInt(1);
-  return (negativo ? -Number(q) : Number(q)) / 100;
+  return negativo ? -q : q;
 }
 
-/** El monto en USD, o por qué no se puede convertir. Redondea a 2 decimales al final. */
-export function toUsd(
+type ResultadoCentavos =
+  | { ok: true; centavos: bigint; negativo: boolean }
+  | Extract<ResultadoUsd, { ok: false }>;
+
+/** Misma validación y redondeo por documento, sin convertir sus centavos a number. */
+function convertirACentavos(
   amount: number | string | null | undefined,
   currency: string | null | undefined,
   rate?: number | string | null,
-): ResultadoUsd {
+): ResultadoCentavos {
   const a = amount == null ? null : Number(amount);
   const monto = amount == null || a === null || !Number.isFinite(a) || Math.abs(a) >= TOPE ? null : aDecimal(amount);
   if (monto === null) return { ok: false, reason: "invalid-amount" };
@@ -115,7 +119,11 @@ export function toUsd(
   if (m === null) return { ok: false, reason: "unknown-currency" };
   const diez = BigInt(10);
   if (m === "USD" || m === "USDT") {
-    return { ok: true, usd: centavos(monto.entero * BigInt(100), diez ** BigInt(monto.escala)) };
+    return {
+      ok: true,
+      centavos: centavos(monto.entero * BigInt(100), diez ** BigInt(monto.escala)),
+      negativo: monto.entero < BigInt(0),
+    };
   }
   const r = tasaValida(rate);
   const tasa = r === null ? null : aDecimal(rate as number | string);
@@ -123,9 +131,94 @@ export function toUsd(
   // (monto / 10^ea) / (tasa / 10^et) en centavos = monto·10^et·100 / (tasa·10^ea).
   return {
     ok: true,
-    usd: centavos(
+    centavos: centavos(
       monto.entero * diez ** BigInt(tasa.escala) * BigInt(100),
       tasa.entero * diez ** BigInt(monto.escala),
     ),
+    negativo: monto.entero < BigInt(0),
   };
+}
+
+/** El monto en USD, o por qué no se puede convertir. Conserva la API individual. */
+export function toUsd(
+  amount: number | string | null | undefined,
+  currency: string | null | undefined,
+  rate?: number | string | null,
+): ResultadoUsd {
+  const r = convertirACentavos(amount, currency, rate);
+  if (!r.ok) return r;
+  // Preserva incluso el -0 del redondeo individual anterior.
+  return { ok: true, usd: (r.negativo ? -Number(-r.centavos) : Number(r.centavos)) / 100 };
+}
+
+/**
+ * SDD-0629 · El camino inverso, solo para mostrar: un monto en USD por la tasa
+ * (unidades de la moneda por 1 USD), exacto y redondeado a 2 decimales con la
+ * mitad lejos de cero. null si el monto o la tasa no sirven: nunca 0 ni el
+ * monto tal cual. No se usa para asentar ni para guardar montos.
+ */
+export function deUsdAMoneda(
+  usd: number | string | null | undefined,
+  rate: number | string | null | undefined,
+): number | null {
+  const u = usd == null || usd === "" ? null : Number(usd);
+  if (u === null || !Number.isFinite(u) || Math.abs(u) >= TOPE) return null;
+  const monto = aDecimal(usd as number | string);
+  const r = tasaValida(rate);
+  const tasa = r === null ? null : aDecimal(rate as number | string);
+  if (monto === null || tasa === null || tasa.entero <= BigInt(0)) return null;
+  const escala = BigInt(10) ** BigInt(monto.escala + tasa.escala);
+  const c = centavos(monto.entero * tasa.entero * BigInt(100), escala);
+  const valor = Number(c) / 100;
+  return Number.isFinite(valor) ? valor : null;
+}
+
+/** La salida pública debe conservar los centavos también al representarse con dos decimales. */
+function usdExactoDesdeCentavos(total: bigint): number {
+  const cien = BigInt(100);
+  const negativo = total < BigInt(0);
+  const absoluto = negativo ? -total : total;
+  const literal = `${negativo ? "-" : ""}${absoluto / cien}.${String(absoluto % cien).padStart(2, "0")}`;
+  const usd = Number(literal);
+  const representaciones = Number.isFinite(usd) ? [aDecimal(usd), aDecimal(usd.toFixed(2))] : [null];
+  if (representaciones.some((d) =>
+    d === null || d.entero * cien !== total * BigInt(10) ** BigInt(d.escala),
+  )) {
+    throw new RangeError("sumarEnUsd: total fuera de rango para conservar centavos");
+  }
+  return usd;
+}
+
+/**
+ * SDD-0572 · El monto en USD, o null si no se puede convertir (sin tasa, moneda
+ * desconocida, monto inválido). Para los que suman: null va a «sin convertir»,
+ * nunca a 0 ni al monto tal cual.
+ */
+export function usdOrNull(
+  amount: number | string | null | undefined,
+  currency: string | null | undefined,
+  rate?: number | string | null,
+): number | null {
+  const r = toUsd(amount, currency, rate);
+  return r.ok ? r.usd : null;
+}
+
+/**
+ * SDD-0572 · Suma en USD exacta (en centavos) de varios montos. Los que no
+ * convierten no suman: se cuentan en `sinConvertir` para que la pantalla diga
+ * «N sin tasa» al lado del total. Acumula enteros exactos y comprueba sólo el
+ * total final: una cancelación posterior puede recuperar un total representable.
+ * Lanza RangeError si la salida number no conserva sus centavos; no es falta de tasa.
+ */
+export function sumarEnUsd(
+  items: Iterable<{ amount: number | string | null | undefined; currency: string | null | undefined; rate?: number | string | null }>,
+): { usd: number; sinConvertir: number } {
+  let centavosTotales = BigInt(0);
+  let sinConvertir = 0;
+  for (const it of items) {
+    const r = convertirACentavos(it.amount, it.currency, it.rate);
+    if (!r.ok) sinConvertir += 1;
+    else centavosTotales += r.centavos;
+  }
+  return { usd: usdExactoDesdeCentavos(centavosTotales), sinConvertir };
 }

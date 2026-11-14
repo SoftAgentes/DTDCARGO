@@ -39,6 +39,7 @@ export const TONO_DEL_CONTROL: Record<EstadoDelIngreso, "success" | "warning" | 
   sin_cuenta: "warning",
   requiere_revision: "warning",
   no_comparable: "neutral",
+  conversion_incompleta: "neutral",
   sin_movimiento: "neutral",
   sin_mayor: "neutral",
 };
@@ -111,7 +112,7 @@ export function IngresoDelPeriodoCard({
           {fmtUsd(ingreso.facturado.total)}
         </div>
         <p style={{ margin: 0, font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-          Facturado sin IVA · USD · por fecha de emisión · del {ingreso.rango.from} al{" "}
+          {ingreso.sinConvertir > 0 ? "Subtotal convertido sin IVA" : "Facturado sin IVA"} · USD · por fecha de emisión · del {ingreso.rango.from} al{" "}
           {ingreso.rango.to} · {ingreso.facturas}{" "}
           {ingreso.facturas === 1 ? "factura" : "facturas"}
         </p>

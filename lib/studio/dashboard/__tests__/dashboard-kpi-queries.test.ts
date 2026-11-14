@@ -127,9 +127,10 @@ describe("financeInvoiceKpis · cifra oficial (SDD-0557)", () => {
     // HOY es un día lejos de la fecha real: si el lector usara el reloj en vez
     // de `hoy`, el mes sería otro y daría $0.
     const k = await financeInvoiceKpis(stub(FACTURAS_DEL_MES), HOY);
-    expect(k.monthRevenue.value).toBe(money(2000));
-    // F2 (1000) es de terceros: la cifra la incluye y el subtítulo lo dice.
-    expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA · 2 sin convertir · incluye $1.0K de terceros");
+    expect(k.monthRevenue.value).toBe(money(3000));
+    // F2 y F6 (1000 cada una; F6 en yuanes con tasa, SDD-0572) son de terceros:
+    // la cifra las incluye y el subtítulo lo dice.
+    expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA · 2 sin convertir · incluye $2.0K de terceros");
   });
 
   it("una factura con IVA aporta su base, no el total; si es propia, no hay aviso de terceros", async () => {
@@ -156,12 +157,12 @@ describe("financeInvoiceKpis · cifra oficial (SDD-0557)", () => {
     expect(k.avgTicket.sub).toBe("2 factura(s) en el año · sin IVA · 29 % del facturado del año es de terceros");
   });
 
-  it("el ticket promedio usa la misma base: F1 + F2 + F5 en el año = 2300 / 3", async () => {
+  it("el ticket promedio usa la misma base: F1 + F2 + F5 + F6 en el año = 3300 / 4", async () => {
     const k = await financeInvoiceKpis(stub(FACTURAS_DEL_MES), HOY);
-    expect(k.avgTicket.value).toBe(money(2300 / 3));
-    // Terceros del año: F2 (1000) + F5 (300, enero), de los 2300 del año. Se
+    expect(k.avgTicket.value).toBe(money(3300 / 4));
+    // Terceros del año: F2 (1000) + F5 (300, enero) + F6 (1000), de los 3300 del año. Se
     // dicen contra el total del que sale el promedio, no colgados del ticket.
-    expect(k.avgTicket.sub).toBe("3 factura(s) en el año · sin IVA · 57 % del facturado del año es de terceros");
+    expect(k.avgTicket.sub).toBe("4 factura(s) en el año · sin IVA · 70 % del facturado del año es de terceros");
     expect(k.avgTicket.sub).not.toMatch(/incluye/);
   });
 });
