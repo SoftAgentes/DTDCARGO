@@ -133,7 +133,7 @@
           "degradation": "Crear una CxP sin vínculo (el único camino que ofrece la UI sin la 0536, y el de Órdenes de compra) no nombra las columnas nuevas en el INSERT."
         },
         {
-          "site": "lib/studio/treasury/treasury-actions.ts:299",
+          "site": "lib/studio/treasury/treasury-actions.ts:301",
           "contains": "if (isMissingCostLinkColumns(updErr.message)) return { error: COST_LINK_UNAVAILABLE };",
           "degradation": "Ligar una CxP por la acción sin la 0536 responde «la base todavía no tiene el vínculo (migración 0536)» y no escribe nada; el alta con vínculo da el mismo mensaje."
         }
