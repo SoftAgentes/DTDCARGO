@@ -1,7 +1,8 @@
 /**
- * SDD-0603 · tramo 5b: el extracto de Conciliación se abre con un control
- * real, «Abrir», que es la única parada de teclado de la fila y dice qué abre.
- * El extracto abierto se marca con tinta (contorno y botón oscuro), no con vino.
+ * SDD-0603 · tramo 5b: el extracto de Conciliación se abre y se cierra con un
+ * control real, «Abrir»/«Cerrar», que es la única parada de teclado de la fila,
+ * dice qué abre y expone su estado con aria-expanded. El extracto abierto se
+ * marca con tinta (contorno y botón oscuro), no con vino.
  */
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -56,6 +57,7 @@ describe("ConciliacionTab · «Abrir» en el extracto (SDD-0603, tramo 5b)", () 
         expect.arrayContaining(["studio-btn", "studio-btn-ghost", "studio-btn-sm"]),
       );
       expect(a.getAttribute("href")).toBe(`/studio/contabilidad?tab=conciliacion&extracto=${EXTRACTOS[i].id}`);
+      expect(a.getAttribute("aria-expanded")).toBe("false");
       expect(a.tabIndex).toBe(0);
     }
   });
@@ -67,14 +69,23 @@ describe("ConciliacionTab · «Abrir» en el extracto (SDD-0603, tramo 5b)", () 
     expect(fila.getAttribute("href")).toBe("/studio/contabilidad?tab=conciliacion&extracto=st-1");
   });
 
-  it("el abierto se marca con tinta: botón oscuro, aria-current y contorno de control, sin vino", () => {
+  it("el abierto se cierra desde su control, como hoy: «Cerrar», aria-expanded y enlace que lo cierra", () => {
     pintar(EXTRACTOS[1]);
-    const abierto = screen.getByRole("link", { name: "Abrir extracto 2026-02 · 1.1.1.01" });
+    const abierto = screen.getByRole("link", { name: "Cerrar extracto 2026-02 · 1.1.1.01" });
+    expect(abierto.textContent).toBe("Cerrar");
+    expect(abierto.getAttribute("aria-expanded")).toBe("true");
+    expect(abierto.getAttribute("href")).toBe("/studio/contabilidad?tab=conciliacion");
+    expect(abierto.tabIndex).toBe(0);
+    expect(screen.queryByRole("link", { name: /^Abrir extracto 2026-02/ })).toBeNull();
+  });
+
+  it("el abierto se marca con tinta: botón oscuro y contorno de control, sin vino", () => {
+    pintar(EXTRACTOS[1]);
+    const abierto = screen.getByRole("link", { name: "Cerrar extracto 2026-02 · 1.1.1.01" });
     expect(abierto.className.split(" ")).toContain("studio-btn-dark");
-    expect(abierto.getAttribute("aria-current")).toBe("true");
     const otro = screen.getByRole("link", { name: "Abrir extracto 2026-01 · 1.1.1.01" });
     expect(otro.className.split(" ")).toContain("studio-btn-ghost");
-    expect(otro.hasAttribute("aria-current")).toBe(false);
+    expect(otro.getAttribute("aria-expanded")).toBe("false");
 
     const fila = abierto.closest('[data-row-id="st-2"]') as HTMLElement;
     expect(fila.getAttribute("data-active")).toBe("true");

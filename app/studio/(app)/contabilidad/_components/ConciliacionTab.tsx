@@ -94,11 +94,13 @@ export function ConciliacionTab({
         <div className="studio-eyebrow">Extractos</div>
         {statements.map((s) => {
           const active = activeStatement?.id === s.id;
-          const hrefExtracto = `/studio/contabilidad?tab=conciliacion&extracto=${s.id}`;
-          // SDD-0603 · tramo 5b: la fila sigue abriendo (y cerrando, si ya
-          // está abierta) con el ratón, pero sale del Tab; la parada de
-          // teclado es «Abrir». El extracto abierto lleva contorno y botón de
-          // tinta, no vino.
+          // Abre el detalle debajo; si ya está abierto, lo cierra (como antes).
+          const hrefToggle = active
+            ? "/studio/contabilidad?tab=conciliacion"
+            : `/studio/contabilidad?tab=conciliacion&extracto=${s.id}`;
+          // SDD-0603 · tramo 5b: la fila sigue abriendo y cerrando con el
+          // ratón, pero sale del Tab; la parada de teclado es «Abrir»/«Cerrar».
+          // El extracto abierto lleva contorno y botón de tinta, no vino.
           return (
             <div
               key={s.id}
@@ -117,7 +119,7 @@ export function ConciliacionTab({
             >
               <a
                 tabIndex={-1}
-                href={active ? "/studio/contabilidad?tab=conciliacion" : hrefExtracto}
+                href={hrefToggle}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "120px 1fr 160px 120px",
@@ -169,14 +171,14 @@ export function ConciliacionTab({
                 </span>
               </a>
               <a
-                href={hrefExtracto}
+                href={hrefToggle}
                 className={`studio-btn ${active ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-sm`}
-                aria-label={`Abrir extracto ${s.period_label}${s.account_code ? ` · ${s.account_code}` : ""}`}
-                aria-current={active ? "true" : undefined}
+                aria-label={`${active ? "Cerrar" : "Abrir"} extracto ${s.period_label}${s.account_code ? ` · ${s.account_code}` : ""}`}
+                aria-expanded={active}
                 style={{ justifySelf: "end" }}
               >
-                Abrir
-                {Icon.chevR(14)}
+                {active ? "Cerrar" : "Abrir"}
+                {active ? Icon.chevU(14) : Icon.chevR(14)}
               </a>
             </div>
           );

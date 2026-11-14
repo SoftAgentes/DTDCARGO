@@ -29,7 +29,7 @@ type Cuenta = {
   caja: number;
   /** Contorno de estado en línea (`1px solid|dashed var(--danger|warning|success|info)`). */
   contorno: number;
-  /** Controles «Abrir <código>»: `aria-label={`Abrir …`}`. */
+  /** Controles «Abrir <código>»: `aria-label={`Abrir …`}` o el toggle `${… "Abrir"} …`. */
   abrir: number;
   /** `tabIndex={-1}`: la fila (o el panel del cajón) fuera del orden de Tab. */
   fueraDeTab: number;
@@ -75,7 +75,7 @@ const PATRONES: Record<keyof Cuenta, RegExp> = {
   vivo: /aria-live=/g,
   caja: /background: "var\(--(?:danger|warning|success|info)-bg\)"/g,
   contorno: /(?:solid|dashed) var\(--(?:danger|warning|success|info)\)/g,
-  abrir: /aria-label=\{`Abrir /g,
+  abrir: /aria-label=\{`(?:Abrir |\$\{active \? "Cerrar" : "Abrir"\} )/g,
   fueraDeTab: /tabIndex=\{-1\}/g,
   vino: /var\(--wine-tint\)|\? "var\(--wine\)"/g,
 };
@@ -130,13 +130,13 @@ describe("SDD-0603 · tramo 5b · filas y avisos de Contabilidad (BD-037)", () =
     expect(total).toBe(TOTAL_AVISOS);
   });
 
-  it("«Abrir» del extracto es un secundario de tabla con verbo visible, y el abierto va en tinta", () => {
+  it("«Abrir»/«Cerrar» del extracto es un secundario de tabla con verbo visible, estado y tinta", () => {
     const codigo = sinComentarios(fuentes.get("ConciliacionTab.tsx")!);
     const i = codigo.search(PATRONES.abrir);
     const control = codigo.slice(codigo.lastIndexOf("<a", i), codigo.indexOf("</a>", i));
     expect(control).toMatch(/studio-btn \$\{active \? "studio-btn-dark" : "studio-btn-ghost"\} studio-btn-sm/);
-    expect(control).toMatch(/aria-current=\{active \? "true" : undefined\}/);
-    expect(control).toMatch(/>\s*Abrir\s*\{Icon\.chevR\(14\)\}/);
+    expect(control).toMatch(/aria-expanded=\{active\}/);
+    expect(control).toMatch(/>\s*\{active \? "Cerrar" : "Abrir"\}\s*\{active \? Icon\.chevU\(14\) : Icon\.chevR\(14\)\}/);
   });
 
   it("la superclave queda fuera del <Aviso> del cierre", () => {
