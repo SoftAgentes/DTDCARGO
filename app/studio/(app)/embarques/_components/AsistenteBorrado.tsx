@@ -181,7 +181,7 @@ export function AsistenteBorrado({
         </p>
 
         {aviso && <Nota tono="warning">{aviso}</Nota>}
-        {/* El error ya es role="alert" dentro de <Aviso> (SDD-0628). */}
+        {/* Advertencia y error son alerta dentro de <Aviso> (SDD-0628): ver `Nota`. */}
         {errorPanel && <Nota tono="danger">{errorPanel}</Nota>}
 
         {carga.estado === "error" && (
@@ -438,10 +438,15 @@ function YaHecho({ hechos }: { hechos: string[] }) {
   );
 }
 
-/** SDD-0603 · tramo 5c: la nota es el aviso canónico; `danger` es `role="alert"`. */
+/**
+ * SDD-0603 · tramo 5c: la nota es el aviso canónico. Las dos son alerta
+ * (`urgente`): la advertencia sale de un paso recién ejecutado o de una
+ * lectura que falló. Así el panel tiene una sola región `status`, la del
+ * anuncio de arriba, y no dos que hablen a la vez.
+ */
 function Nota({ tono, children }: { tono: "warning" | "danger"; children: React.ReactNode }) {
   return (
-    <Aviso tono={tono === "danger" ? "error" : "atencion"} compacto>
+    <Aviso tono={tono === "danger" ? "error" : "atencion"} urgente compacto>
       {children}
     </Aviso>
   );

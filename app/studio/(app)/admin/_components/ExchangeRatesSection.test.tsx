@@ -59,7 +59,11 @@ describe("ExchangeRatesSection", () => {
     expect(status.textContent).toContain("BCV: no se confirmó una tasa para hoy.");
     expect(status.textContent).toContain(`Última tasa informada en esta vista: ${metadata}.`);
     expect(status.textContent).toContain("Puedes registrar una tasa manual en el formulario.");
-    expect(status.getAttribute("aria-live")).toBe("polite");
+    // SDD-0603 · menores: es el aviso canónico de información. `role="status"`
+    // ya es un anuncio cortés; no hace falta `aria-live` aparte.
+    expect(status.className).toContain("studio-aviso");
+    expect(status.getAttribute("data-tono")).toBe("info");
+    expect(status.getAttribute("style")).toBeNull();
     expect(screen.getByText(`del ${metadata}`)).toBeTruthy();
     expect(status.textContent).not.toMatch(/cron|caíd[oa]|no existe|sin tasa cargada/i);
   });
@@ -140,6 +144,40 @@ describe("ExchangeRatesSection", () => {
     expect(saveRate).toHaveBeenCalledTimes(1);
     const sent = saveRate.mock.calls[0][1] as FormData;
     expect(Object.fromEntries(sent)).toEqual({ pair: "VES/USD", rate: "883,3963", valid_on: "2026-10-20", note: "Respaldo manual" });
+  });
+
+  it("el error de la acción es el aviso canónico de error (alert), sin caja a mano", async () => {
+    const error = "No se pudo guardar la tasa. Revisa los datos y vuelve a intentarlo.";
+    saveRate.mockResolvedValueOnce({ error });
+    const user = userEvent.setup();
+    render(<ExchangeRatesSection data={{ latest: [confirmed] }} />);
+    await user.type(screen.getByLabelText("Tasa (1 USD = ? CNY)"), "7.24");
+    await user.click(screen.getByRole("button", { name: "Registrar tasa" }));
+    const alerta = await screen.findByRole("alert");
+    expect(alerta.textContent).toBe(error);
+    expect(alerta.className).toContain("studio-aviso");
+    expect(alerta.getAttribute("data-tono")).toBe("error");
+    expect(alerta.getAttribute("style")).toBeNull();
+  });
+
+  it("«fuera de rango» es un mensaje del campo Tasa, no una región viva", async () => {
+    const user = userEvent.setup();
+    render(<ExchangeRatesSection data={{ latest: [confirmed] }} />);
+    const rate = screen.getByLabelText("Tasa (1 USD = ? CNY)") as HTMLInputElement;
+    expect(rate.getAttribute("aria-describedby")).toBeNull();
+    await user.type(rate, "7000");
+    const mensaje = screen.getByText(/fuera del rango histórico habitual de CNY\/USD/);
+    // Aparece y desaparece al escribir: ni `status` ni `alert`.
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(mensaje.closest("[role], [aria-live]")).toBeNull();
+    const parrafo = mensaje.closest("p")!;
+    expect(rate.getAttribute("aria-describedby")).toBe(parrafo.id);
+    // Texto en tinta, sin fondo ni contorno de estado.
+    expect(parrafo.getAttribute("style")).not.toMatch(/background|border|--warning/);
+    await user.clear(rate);
+    expect(screen.queryByText(/fuera del rango histórico/)).toBeNull();
+    expect(rate.getAttribute("aria-describedby")).toBeNull();
   });
 
   it("pending bloquea la segunda acción y conserva el aviso y los campos", async () => {
