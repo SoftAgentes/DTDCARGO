@@ -124,6 +124,26 @@ El packing list del contenedor DTD #64 trae en su título «CONTENEDOR DTD #61»
   - bandera incorrecta o título sin número: se niega;
   - una corrida de `generar()` de punta a punta con Excel inventados.
 
+### Empaque mínimo (2026-11-14)
+
+Regla del DG, del 64 en adelante: al servidor sube solo lo que `aplicar-lote.sh` necesita. Ni `resumen.md` ni otro archivo con texto del Excel que el cargador no use. Cambios:
+
+- **Dos carpetas.** `--salida` es el paquete (los `.sql`, `manifiesto.json` y `SHA256SUMS`, que cubre solo esos archivos). `<salida>-local/` lleva `resumen.md` y `manifiesto-completo.json`, y no sube. Así el `scp -r` de siempre sube lo justo.
+- **Manifiesto del paquete.** Sin `clientes` (con `nombreExcel` y los candidatos), sin `embarques` ni `avisos`. `aplicar-lote.sh` solo lee el id, el entorno y los conteos esperados. `verificar.sql` se arma con el manifiesto completo en memoria, así que no cambia.
+- **SQL.** En producción, `lote_clientes.nombre_excel` va vacío: solo lo leen los insert de clientes faltantes, que existen solo en prueba. Con `--sin-facturas`, `lote_lineas` queda sin filas, porque solo la lee el bloque de facturas. Siguen viajando los remitentes y las descripciones de las filas, que son lo que se carga.
+- **`aplicar-lote.sh`** rechaza (3), en producción, un paquete con `resumen.md` o con `"nombreExcel"` en el manifiesto, antes de tocar docker. En prueba no lo rechaza: los paquetes de prueba viejos siguen corriendo.
+- **El generador** se niega si la carpeta de salida ya trae un `resumen.md` o un `manifiesto-completo.json` de una corrida anterior.
+- **Pruebas.**
+  - Vitest:
+    - manifiesto del paquete;
+    - archivos del paquete y de la carpeta local;
+    - `SHA256SUMS`;
+    - ningún nombre de marca en el paquete de producción;
+    - en prueba, el nombre sí viaja;
+    - `--sin-facturas` sin líneas;
+    - el sobrante `resumen.md`.
+  - Bash: los dos rechazos nuevos y que no llamen a docker. El piso de `pruebas-linux.sh` sube a 78.
+
 ## Diseño
 
 ### Modelo del lote (por contenedor)

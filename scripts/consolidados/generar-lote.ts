@@ -13,9 +13,12 @@
  * almacén de China («CONTENEDOR DTD #61») y el lote es otro número DTD (`--contenedor 64`).
  * El título tiene que decir exactamente N, y el mapeo queda en el manifiesto y el resumen.
  *
- * Escribe en --salida: previa.sql, aplicar.sql, simulacro.sql, verificar.sql,
- * deshacer.sql y purgar.sql (sólo en prueba), manifiesto.json, resumen.md y SHA256SUMS. Nada de
- * esto entra a Git: lleva nombres de clientes. Los Excel no se copian.
+ * Escribe en --salida el paquete que sube al servidor (empaque mínimo, 2026-11-14):
+ * previa.sql, aplicar.sql, simulacro.sql, verificar.sql, deshacer.sql y purgar.sql
+ * (sólo en prueba), manifiesto.json (sin nombres de marca, candidatos, remitentes
+ * ni avisos) y SHA256SUMS de esos archivos. En la carpeta hermana `<salida>-local/`
+ * deja resumen.md y manifiesto-completo.json, que NO suben. Nada de esto entra a
+ * Git: lleva nombres de clientes. Los Excel no se copian.
  */
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "node:fs";
@@ -270,7 +273,7 @@ export const SOLO_PRUEBA = ["deshacer.sql", "purgar.sql"] as const;
  * ya los niega en producción, y el `deshacer.sql` de producción no trae la guarda
  * de base de prueba, así que un psql directo lo correría.
  */
-export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSql, resumen: string): Record<string, string> {
+export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSql): Record<string, string> {
   const archivos: Record<string, string> = {
     "previa.sql": salida.previa,
     "simulacro.sql": salida.simulacro,
@@ -281,9 +284,36 @@ export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSq
     archivos["deshacer.sql"] = salida.deshacer;
     archivos["purgar.sql"] = salida.purgar;
   }
-  archivos["manifiesto.json"] = JSON.stringify(salida.manifiesto, null, 2) + "\n";
-  archivos["resumen.md"] = resumen;
+  archivos["manifiesto.json"] = JSON.stringify(manifiestoDelPaquete(salida.manifiesto), null, 2) + "\n";
   return archivos;
+}
+
+/** Lo que el manifiesto del paquete deja afuera: nombres de marca, candidatos, remitentes y avisos con texto del Excel. */
+export const FUERA_DEL_PAQUETE = ["clientes", "embarques", "avisos"] as const;
+export type ManifiestoDelPaquete = Omit<SalidaSql["manifiesto"], (typeof FUERA_DEL_PAQUETE)[number]>;
+
+/**
+ * Empaque mínimo (SDD-0543, 2026-11-14): el manifiesto que sube al servidor lleva
+ * sólo lo que `aplicar-lote.sh` lee (el id, el entorno y los conteos esperados)
+ * y los datos del contenedor. Los nombres de marca del Excel (`nombreExcel`), los
+ * candidatos, los remitentes y los avisos se quedan en la PC, en el manifiesto completo.
+ */
+export function manifiestoDelPaquete(m: SalidaSql["manifiesto"]): ManifiestoDelPaquete {
+  const { clientes: _c, embarques: _e, avisos: _a, ...paquete } = m;
+  return paquete;
+}
+
+/** Carpeta hermana de `--salida` con lo que no sube: `resumen.md` y el manifiesto completo. */
+export function carpetaLocal(salida: string): string {
+  return `${salida.replace(/[\\/]+$/, "")}-local`;
+}
+
+/** Archivos de la carpeta local: el resumen que cruza etiquetas con nombres y el manifiesto completo. */
+export function archivosLocales(salida: SalidaSql, resumen: string): Record<string, string> {
+  return {
+    "resumen.md": resumen,
+    "manifiesto-completo.json": JSON.stringify(salida.manifiesto, null, 2) + "\n",
+  };
 }
 
 /**
@@ -291,18 +321,22 @@ export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSq
  * un enlace simbólico roto también cuenta (`existsSync` sigue el enlace y diría
  * que no existe).
  */
-export function sobrantesSoloPrueba(dir: string): string[] {
-  return SOLO_PRUEBA.filter((n) => {
-    try {
-      lstatSync(path.join(dir, n));
-      return true;
-    } catch {
-      return false;
-    }
-  });
+function existeSinSeguir(ruta: string): boolean {
+  try {
+    lstatSync(ruta);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[] }> {
+export function sobrantesSoloPrueba(dir: string): string[] {
+  return SOLO_PRUEBA.filter((n) => existeSinSeguir(path.join(dir, n)));
+}
+
+export async function generar(
+  args: Argumentos,
+): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[]; carpetaLocal: string; locales: string[] }> {
   if (args.entorno === "produccion") {
     // Antes de leer nada ni escribir nada: un deshacer.sql o purgar.sql de una
     // corrida anterior quedaría al lado del paquete nuevo (fuera de SHA256SUMS,
@@ -310,6 +344,13 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     const sobrantes = sobrantesSoloPrueba(args.salida);
     if (sobrantes.length) {
       throw new Error(`La carpeta de salida ya trae ${sobrantes.join(" y ")}: un lote de producción no los lleva; usa una carpeta nueva.`);
+    }
+  }
+  // Empaque mínimo: un resumen.md de una corrida anterior quedaría dentro del
+  // paquete que sube al servidor. Ahora va en la carpeta local.
+  for (const n of ["resumen.md", "manifiesto-completo.json"]) {
+    if (existeSinSeguir(path.join(args.salida, n))) {
+      throw new Error(`La carpeta de salida ya trae ${n}: con el empaque mínimo va en ${carpetaLocal(args.salida)}; usa una carpeta nueva.`);
     }
   }
   for (const ruta of [args.rastreo, args.packing].filter((r): r is string => !!r)) {
@@ -355,8 +396,13 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
   };
   const salida = generarSql(lote, opciones, fuentes);
 
-  const archivos = archivosDelLote(args.entorno, salida, resumenMarkdown(lote, salida, avisosExcel));
+  // El paquete (lo que sube al servidor) va en --salida, con SHA256SUMS sólo de
+  // sus archivos; el resumen y el manifiesto completo, en la carpeta local hermana.
+  const archivos = archivosDelLote(args.entorno, salida);
+  const locales = archivosLocales(salida, resumenMarkdown(lote, salida, avisosExcel));
+  const dirLocal = carpetaLocal(args.salida);
   mkdirSync(args.salida, { recursive: true });
+  mkdirSync(dirLocal, { recursive: true });
   const sumas: string[] = [];
   for (const [nombre, contenido] of Object.entries(archivos)) {
     const ruta = path.join(args.salida, nombre);
@@ -364,18 +410,22 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     sumas.push(`${createHash("sha256").update(contenido).digest("hex")}  ${nombre}`);
   }
   writeFileSync(path.join(args.salida, "SHA256SUMS"), sumas.join("\n") + "\n", { encoding: "utf8" });
-  return { lote, salida, archivos: [...Object.keys(archivos), "SHA256SUMS"] };
+  for (const [nombre, contenido] of Object.entries(locales)) {
+    writeFileSync(path.join(dirLocal, nombre), contenido, { encoding: "utf8" });
+  }
+  return { lote, salida, archivos: [...Object.keys(archivos), "SHA256SUMS"], carpetaLocal: dirLocal, locales: Object.keys(locales) };
 }
 
 async function main(): Promise<void> {
   const args = parsearArgumentos(process.argv.slice(2));
-  const { lote, salida, archivos } = await generar(args);
+  const { lote, salida, archivos, carpetaLocal: dirLocal, locales } = await generar(args);
   const m = salida.manifiesto;
   console.log(`Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no}) · ${m.entorno}`);
   console.log(`  modalidad ${m.modalidad}${m.dueno ? ` · dueño ${m.dueno.clave} → ${m.dueno.codigo}` : ""}${m.gastoEspacio ? ` · gasto espacio $${m.gastoEspacio.monto}` : ""}`);
   console.log(`  ${m.esperado.envios} envíos · ${m.esperado.recepciones} recepciones · ${m.esperado.items} items · ${m.esperado.cajas} cajas · ${m.esperado.clientes} clientes · ${m.esperado.facturas} facturas`);
   console.log(`  ${m.esperado.cbm} m³ · ${m.esperado.kg} kg · base $${m.esperado.base.toFixed(2)} (Excel $${lote.totales.totalFacturadoExcel.toFixed(2)})`);
-  console.log(`  avisos: ${lote.avisos.length} · archivos en ${args.salida}: ${archivos.join(", ")}`);
+  console.log(`  avisos: ${lote.avisos.length} · paquete (sube al servidor) en ${args.salida}: ${archivos.join(", ")}`);
+  console.log(`  en la PC, NO sube: ${dirLocal}: ${locales.join(", ")}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

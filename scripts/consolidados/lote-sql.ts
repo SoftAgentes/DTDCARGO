@@ -220,14 +220,23 @@ export function codigosEnvio(lote: Lote): string[] {
   return codigos;
 }
 
-function datos(lote: Lote): string {
+/**
+ * Las tablas temporales con los datos del lote. Empaque mínimo (2026-11-14): lo
+ * que el cuerpo no va a leer no viaja al servidor.
+ *  - `nombre_excel` sólo lo usan los insert de clientes faltantes, que existen
+ *    sólo en prueba: en producción va vacío.
+ *  - `lote_lineas` (descripción y precio de cada línea) sólo la lee el bloque de
+ *    facturas: con `--sin-facturas` la tabla queda vacía.
+ */
+function datos(lote: Lote, o: Pick<OpcionesSql, "entorno" | "facturas">): string {
   const out: string[] = [];
   out.push(
     `create temp table lote_clientes (orden int primary key, clave text unique, etiqueta text, nombre_excel text, prefijo text, es_casa boolean, es_raiz_aliado boolean, candidatos text[]) on commit drop;`,
   );
   for (const m of marcasDelLote(lote)) {
+    const nombre = o.entorno === "produccion" ? "''" : litSql(m.marca.nombreExcel);
     out.push(
-      `insert into lote_clientes values (${m.orden}, ${litSql(m.clave)}, ${litSql(m.etiqueta)}, ${litSql(m.marca.nombreExcel)}, ${litSql(m.marca.prefijo)}, ${m.marca.esCasa}, ${m.esRaizAliado}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
+      `insert into lote_clientes values (${m.orden}, ${litSql(m.clave)}, ${litSql(m.etiqueta)}, ${nombre}, ${litSql(m.marca.prefijo)}, ${m.marca.esCasa}, ${m.esRaizAliado}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
     );
   }
   out.push(`create temp table lote_dueno (clave text, codigo text, servicio text, cbm numeric, kg numeric) on commit drop;`);
@@ -258,7 +267,7 @@ function datos(lote: Lote): string {
   });
   out.push(`create temp table lote_lineas (orden int primary key, clave text, remitente text, descripcion text, qty numeric, unit_price numeric) on commit drop;`);
   let n = 0;
-  for (const c of lote.clientes) {
+  for (const c of o.facturas ? lote.clientes : []) {
     for (const l of c.lineas) {
       n++;
       out.push(`insert into lote_lineas values (${n}, ${litSql(c.clave)}, ${litSql(l.remitente)}, ${litSql(l.desc)}, ${l.qty}, ${l.unitPrice});`);
@@ -751,7 +760,7 @@ $lote$;
 `;
 
 function cuerpoAplicar(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
-  return [cab(lote, o, pod, nav), datos(lote), CUERPO_APLICAR.trim()].join("\n\n");
+  return [cab(lote, o, pod, nav), datos(lote, o), CUERPO_APLICAR.trim()].join("\n\n");
 }
 
 function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
