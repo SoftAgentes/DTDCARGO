@@ -248,15 +248,21 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
                 amount: c.amount,
                 alreadyLinked: c.alreadyLinked,
               });
+              const bloqueado = pending || c.alreadyLinked;
               return (
-                <button
+                // SDD-0603 · tramo 5b: la fila sigue ligando con el ratón,
+                // pero sale del Tab; la parada de teclado es «Ligar».
+                <div
                   key={c.id}
-                  type="button"
-                  disabled={pending || c.alreadyLinked}
-                  onClick={() => doMatch(c.id)}
+                  data-row-id={c.entry_code}
+                  tabIndex={-1}
+                  aria-disabled={bloqueado || undefined}
+                  onClick={() => {
+                    if (!bloqueado) doMatch(c.id);
+                  }}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 110px",
+                    gridTemplateColumns: "1fr 110px auto",
                     gap: 10,
                     alignItems: "center",
                     padding: "10px 12px",
@@ -320,7 +326,20 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
                   >
                     ${fmtAmount(c.amount)}
                   </div>
-                </button>
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    aria-label={`Ligar con ${c.entry_code}`}
+                    disabled={bloqueado}
+                    onClick={(e) => {
+                      // Dentro de la fila: sin esto, el clic ligaría dos veces.
+                      e.stopPropagation();
+                      doMatch(c.id);
+                    }}
+                  >
+                    Ligar
+                  </button>
+                </div>
               );
             })}
           </div>
