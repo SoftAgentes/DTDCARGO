@@ -273,5 +273,47 @@ out="$(DOBLE_DORMIR=0 lento 2>&1)"; rc=$?  # $(…) ya es una subshell: el exec 
 [[ ${rc} -eq 3 && "${out}" == *"dueño pid 1"* ]] && ok "el rechazo por candado tomado nombra el pid del dueño (3)" || ko "rechazo sin dueño rc=${rc}: ${out}"
 rm -rf "${LOTES_CANDADO}"
 
+# 12. Seguimiento de la #538.
+# 12a. Una copia de resumen.md («# Lote <id>») no es el OK de Sam, aunque cite el id.
+EP5="${T}/evid-prod-5"; mkdir -p "${EP5}"
+printf '# Lote carga-consolidado:61:cafebabe · contenedor DTD #61\nOK\n' > "${T}/copia-resumen.txt"
+out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/copia-resumen.txt" --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "autorización copiada de resumen.md (# Lote) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md rc=${rc}: ${out}"
+printf 'Sam: autorizo carga-consolidado:61:cafebabe (ver # Lote en el resumen)\n' > "${T}/ok-con-almohadilla.txt"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-almohadilla.txt" --paso previa >/dev/null 2>&1 && ok "un OK que menciona «# Lote» a mitad de línea sigue valiendo (el rechazo mira el principio)" || ko "un OK válido con «# Lote» a mitad de línea se rechazó"
+# 12b. Los traps de señal (129, 130, 143) y el de EXIT que suelta el candado se
+# ponen antes de tomarlo: una señal entre el mkdir y el printf del pid también lo suelta.
+l_exit="$(grep -n "^trap al_salir EXIT" "${APLICAR}" | head -1 | cut -d: -f1)"
+l_sen="$(grep -n "^trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM" "${APLICAR}" | head -1 | cut -d: -f1)"
+l_mkdir="$(grep -n 'mkdir -- "${CANDADO}"' "${APLICAR}" | head -1 | cut -d: -f1)"
+l_pid="$(grep -n '"${CANDADO}/pid"; }' "${APLICAR}" | head -1 | cut -d: -f1)"
+[[ -n "${l_exit}" && -n "${l_sen}" && -n "${l_mkdir}" && -n "${l_pid}" && ${l_exit} -lt ${l_mkdir} && ${l_sen} -lt ${l_mkdir} && ${l_mkdir} -lt ${l_pid} ]] \
+  && ok "traps EXIT y 129/130/143 antes del mkdir del candado y del pid (líneas ${l_exit}, ${l_sen} < ${l_mkdir} < ${l_pid})" \
+  || ko "orden de traps: exit=${l_exit} señales=${l_sen} mkdir=${l_mkdir} pid=${l_pid}"
+# 12c. Un deshacer.sql que es un enlace simbólico roto también se rechaza (no basta -e).
+ln -s "${T}/no-existe.sql" "${P}/deshacer.sql" 2> /dev/null
+if [[ -L "${P}/deshacer.sql" ]]; then
+  antes="$(wc -l < "${DOBLE_LOG}")"
+  out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-61.txt" --paso previa 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"trae deshacer.sql"* && "$(wc -l < "${DOBLE_LOG}")" == "${antes}" ]] && ok "paquete de producción con deshacer.sql como enlace roto rechazado sin tocar docker (3)" || ko "enlace roto de deshacer.sql rc=${rc}: ${out}"
+else
+  echo "OMITIDA · deshacer.sql como enlace simbólico roto (este bash no crea enlaces: ln -s copia)"
+fi
+rm -f "${P}/deshacer.sql"
+# 12d. Si el pid no se puede escribir en el candado, rechaza (3), no corre psql y
+# no deja el candado tomado. Se fuerza con `ulimit -f 0` (escribir 1 byte da EFBIG)
+# y SIGXFSZ ignorada; donde el bash no aplica el límite (Git Bash), sale OMITIDA.
+if ( trap '' XFSZ; ulimit -f 0; printf x > "${T}/sonda-ulimit" ) 2> /dev/null; then
+  echo "OMITIDA · candado sin pid escrito (este bash no aplica ulimit -f)"
+else
+  antes="$(wc -l < "${DOBLE_LOG}")"; rm -rf "${LOTES_CANDADO}"
+  out="$( ( trap '' XFSZ; ulimit -f 0; exec bash "${APLICAR}" --project zz-staging --confirm zz-staging --lote "${L}" --evidence-dir "${T}/evid" --paso simulacro ) 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"no pude escribir el pid"* && ! -e "${LOTES_CANDADO}" && "$(wc -l < "${DOBLE_LOG}")" == "${antes}" ]] \
+    && ok "pid sin escribir: rechaza (3), no llama a docker y suelta el candado" \
+    || ko "pid sin escribir rc=${rc} candado=$([[ -e "${LOTES_CANDADO}" ]] && echo tomado || echo libre): ${out}"
+  rm -rf "${LOTES_CANDADO}"
+fi
+rm -f "${T}/sonda-ulimit"
+
 echo "${pass} PASÓ · ${fail} FALLÓ"
 [[ ${fail} -eq 0 ]]

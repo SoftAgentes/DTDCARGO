@@ -25,8 +25,9 @@
 #   el OK literal de Sam que cita el id COMPLETO del lote
 #   (`carga-consolidado:<N>:<hash>`). Un `--autorizacion` que apunte a otro
 #   archivo de la carpeta del lote (el manifiesto, el resumen) se rechaza, igual
-#   que un enlace simbólico o un texto con `"nombreExcel"` o `"lote":` (eso es
-#   un manifiesto, no el OK de Sam). Se copia UNA vez a un temporal (`cp -P`) y
+#   que un enlace simbólico, un texto con `"nombreExcel"` o `"lote":` (eso es
+#   un manifiesto, no el OK de Sam) o con una línea `# Lote ` (una copia de
+#   resumen.md). Se copia UNA vez a un temporal (`cp -P`) y
 #   el grep y la evidencia usan esa copia, no el original.
 #   Previa, simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar`
 #   están deshabilitados: borrar en producción lo corre Sam, no este script. Un
@@ -38,7 +39,8 @@
 # crea con mkdir (atómico), igual que el de migraciones/aplicar.sh: dos pasos
 # que escriben no corren a la vez. Adentro queda `pid` con el dueño; al salir
 # (también por HUP, INT o TERM: 129, 130, 143) sólo se suelta si sigue siendo
-# suyo. Si quedó de una corrida muerta, se borra a mano después de revisar con
+# suyo. Si el pid no se puede escribir, rechaza (3) y suelta el candado. Si
+# quedó de una corrida muerta, se borra a mano después de revisar con
 # ese pid que no haya otra en curso. La autorización no puede ser un enlace
 # simbólico.
 #
@@ -77,7 +79,7 @@ soltar_candado() {
   # Nuestro: el pid es el nuestro, o todavía no se alcanzó a escribir (la señal
   # cayó entre el mkdir y el printf). Con otro pid, alguien lo rehízo: no se toca.
   [[ "${dueno}" == "$$" || -z "${dueno}" ]] || return 0
-  rm -f -- "${CANDADO}/pid" && rmdir -- "${CANDADO}" 2> /dev/null
+  rm -f -- "${CANDADO}/pid" 2> /dev/null; rmdir -- "${CANDADO}" 2> /dev/null
 }
 al_salir() {
   [[ -n "${AUT_COPIA}" ]] && rm -f -- "${AUT_COPIA}"
@@ -166,6 +168,11 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   if grep -qE '"nombreExcel"|"lote"[[:space:]]*:' -- "${AUT_COPIA}"; then
     refuse "la autorización parece un manifiesto (trae \"nombreExcel\" o \"lote\":): tiene que ser el OK literal de Sam"
   fi
+  # Una copia de resumen.md (empieza con «# Lote <id>») cita el id y lleva
+  # nombres: tampoco es el OK de Sam.
+  if grep -qE '^# Lote ' -- "${AUT_COPIA}"; then
+    refuse "la autorización parece una copia de resumen.md (trae una línea «# Lote »): tiene que ser el OK literal de Sam"
+  fi
   grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
     || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"
 fi
@@ -193,7 +200,10 @@ if [[ ${DRY_RUN} -eq 0 && " simulacro aplicar deshacer purgar " == *" ${PASO} "*
   # escrito adentro y sólo se suelta si sigue siendo nuestro (nunca uno ajeno,
   # aunque alguien lo haya rehecho a mano).
   CANDADO_MIO=1
-  printf '%s\n' "$$" > "${CANDADO}/pid"
+  # Si el pid no se puede escribir (disco lleno, permisos), no se sigue con un
+  # candado sin dueño: se rechaza y EXIT lo suelta (el pid vacío cuenta como nuestro).
+  { printf '%s\n' "$$" > "${CANDADO}/pid"; } 2> /dev/null \
+    || refuse "no pude escribir el pid en el candado ${CANDADO}: se suelta y el paso no corre"
 fi
 if [[ "${PASO}" == "aplicar" ]]; then
   # Un simulacro PASÓ del MISMO lote en la MISMA base: su evidencia tiene el

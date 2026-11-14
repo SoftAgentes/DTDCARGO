@@ -69,10 +69,10 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
   - La guarda de carpeta resuelve el directorio de la ruta, no el último componente. Un enlace que esté fuera del lote y apunte a su `manifiesto.json`, que cita el id y lleva nombres, pasaría.
   - El destino de un enlace puede cambiar entre el chequeo y el uso.
 
-  El guion copia la autorización una sola vez a un temporal (`cp -P`), y el grep y la evidencia usan esa copia. También rechaza un texto que traiga `"nombreExcel"` o `"lote":`, porque eso es un manifiesto, no el OK de Sam.
+  El guion copia la autorización una sola vez a un temporal (`cp -P`), y el grep y la evidencia usan esa copia. También rechaza un texto que traiga `"nombreExcel"` o `"lote":`, porque eso es un manifiesto, y uno con una línea que empiece con `# Lote `, porque es una copia de `resumen.md`: ninguno de los dos es el OK de Sam.
 - **Un paquete de producción que traiga `deshacer.sql` o `purgar.sql` se rechaza (3).** El generador no los emite para producción: si están, se mezclaron paquetes.
 - **Candado.** Simulacro y aplicar (y deshacer y purgar, en prueba) toman `/run/lock/dtd-lotes.lock.d`, o lo que diga `LOTES_CANDADO`. Es un directorio que se crea con `mkdir`, igual que el de migraciones, y evita que dos pasos que escriben corran a la vez: el segundo se niega (3) y el mensaje dice el pid del dueño.
-  - Adentro queda `pid` con el dueño. Al salir, también por una señal (HUP 129, INT 130, TERM 143), el guion solo suelta el candado si sigue siendo suyo; nunca suelta uno ajeno.
+  - Adentro queda `pid` con el dueño. Si ese `pid` no se puede escribir (disco lleno, permisos), el guion se niega (3) y suelta el candado: no corre un paso con un candado sin dueño. Al salir, también por una señal (HUP 129, INT 130, TERM 143), el guion solo suelta el candado si sigue siendo suyo; nunca suelta uno ajeno.
   - Si quedó de una corrida muerta, comprueba con `ps -o lstart=,args= -p <pid>` que ese pid no existe o que es otro proceso: compara la hora de inicio y el comando con `aplicar-lote.sh`, porque los pid se reciclan. Recién entonces bórralo a mano (`rm -r`).
 - Un lote generado para prueba se rechaza en `dtd-cargo`, y uno generado para producción se rechaza en un `*-staging`.
 - **Idempotente.**
@@ -85,7 +85,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 
   Antes de cualquier otra cosa:
   1. lee la evidencia del paso (`<paso>.out` y `<paso>.err`);
-  2. comprueba que no quede psql vivo en `dtd-cargo-db-1`, con `docker exec dtd-cargo-db-1 ps -o pid,lstart,args -C psql` o con `pg_stat_activity` de solo lectura;
+  2. comprueba que no quede psql vivo en `dtd-cargo-db-1` con `docker top dtd-cargo-db-1`, que lista los procesos del contenedor desde el host (la imagen de la base no trae `ps`: no tiene procps). Mirar `pg_stat_activity` en producción es una consulta a la base oficial: solo con el OK de Sam;
   3. después corre `verificar`, que es de solo lectura, para saber si el lote quedó cargado.
 - **`deshacer` y `purgar` están deshabilitados en producción (3)**, aunque vengan confirmados. Además, el paquete de producción **ya no trae** `deshacer.sql` ni `purgar.sql`: el generador no los emite con `--entorno produccion` y se niega a escribir en una carpeta que ya los tenga. Borrar o revertir un lote de la base oficial lo corre Sam, con su propio procedimiento.
 - La evidencia queda en `/srv/ops/evidencias/lote-<id>-dtd-cargo-<ts>-<paso>/`, igual que en prueba, más `AUTORIZACION.txt`.
@@ -125,4 +125,5 @@ Desde el seguimiento de la #534 también cubre:
 
 Tras la revisión de la #538 también cubre: autorización con forma de manifiesto (`"lote":`, `"nombreExcel"`), paquete de producción con `deshacer.sql` o `purgar.sql`, y que psql vea el candado con el pid del guion. En total son 64 casos en Linux. En Git Bash para Windows, `ln -s` copia y los 2 casos de enlace salen OMITIDOS, así que allí cuenta 62. Desde la SDD-0550 también la corre el CI «Calidad continua» (`infra/ops/tests/pruebas-linux.sh`) |
 | `bash infra/ops/consolidados/validar-lote-local.sh <lote> [<lote que depende>]` | **antes de mandar un lote al servidor** (Docker, turno del Director): postgres:17 con el esquema entero y la secuencia completa del lote, incluidos deshacer y purgar; con dos lotes, comprueba que purgar el primero aborte mientras el segundo dependa de él. ~40 s por lote |
+| `bash infra/ops/consolidados/validar-lote-local.sh --produccion <lote> <marca>[,<marca>…]` | **antes de subir un lote de producción** (Docker, con turno): la previa sin los dueños aborta, entran clientes sintéticos con esas marcas y siguen previa, simulacro sin filas, aplicar (0 clientes creados), verificar PASÓ y un aplicar repetido que el preflight frena; al final, clientes y aliados sin cambio y un contenedor más. Sin deshacer ni purgar. La evidencia queda en `<padre>/ensayos-local/`, fuera del paquete |
 | `pnpm vitest run lib/portal/__tests__/pending-acceptance.test.ts lib/portal/__tests__/portal-legal-queries.test.ts "app/portal/(app)/facturas/[code]/_components/PendingInvoiceGate.test.tsx" "app/portal/(app)/facturas/page.test.tsx" "app/portal/(app)/facturas/[code]/page.test.tsx"` | el Portal: facturas por aceptar (el admin se crea dentro del try), los embarques de la factura con su medida, la puerta del detalle (contra el 404) y «Mis facturas» con y sin borradores |
