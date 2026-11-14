@@ -11,7 +11,10 @@
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
 import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
-import { parsearArgumentos } from "../consolidados/generar-lote";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { archivosDelLote, generar, parsearArgumentos, resumenMarkdown, SOLO_PRUEBA, sobrantesSoloPrueba } from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
   numero: 59,
@@ -399,5 +402,49 @@ describe("parsearArgumentos", () => {
     expect(() => parsearArgumentos([...base, "--gasto-espacio", "100", "--gasto-usuario", "a@b.test"])).toThrow(/sólo aplica a la modalidad mixto/);
     expect(parsearArgumentos([...base, "--modalidad", "mixto", "--dueno", "HR", "--gasto-espacio", "1200,50", "--gasto-usuario", "a@b.test", "--ignorar-titulo-packing"])).toMatchObject({ modalidad: "mixto", dueno: "HR", gastoEspacio: 1200.5, gastoUsuario: "a@b.test", ignorarTituloPacking: true });
     expect(() => parsearArgumentos([...base, "--modalidad", "lcl"])).toThrow(/ddp, fcl o mixto/);
+  });
+});
+
+describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimiento de la #534)", () => {
+  it("con --entorno produccion no se emiten deshacer.sql ni purgar.sql; en prueba sí", () => {
+    const prod = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const archivosProd = archivosDelLote("produccion", prod, resumenMarkdown(lote(), prod, []));
+    expect(Object.keys(archivosProd)).toEqual(["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json", "resumen.md"]);
+    for (const n of SOLO_PRUEBA) expect(archivosProd).not.toHaveProperty(n);
+    expect(archivosProd["resumen.md"]).toContain("no trae** `deshacer.sql` ni `purgar.sql`");
+    expect(archivosProd["resumen.md"]).not.toContain("--crear-clientes-faltantes");
+
+    const prueba = generarSql(lote(), OPCIONES, FUENTES);
+    const archivosPrueba = archivosDelLote("prueba", prueba, resumenMarkdown(lote(), prueba, []));
+    expect(Object.keys(archivosPrueba)).toEqual([
+      "previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "deshacer.sql", "purgar.sql", "manifiesto.json", "resumen.md",
+    ]);
+    expect(archivosPrueba["deshacer.sql"]).toBe(prueba.deshacer);
+    expect(archivosPrueba["purgar.sql"]).toBe(prueba.purgar);
+    expect(archivosPrueba["resumen.md"]).toContain("`purgar.sql` para el borrado definitivo en prueba");
+  });
+
+  it("generar() con --entorno produccion se niega si la carpeta de salida ya trae deshacer.sql o purgar.sql, sin escribir nada", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-prod-"));
+    try {
+      writeFileSync(path.join(dir, "deshacer.sql"), "-- de una corrida anterior\n");
+      writeFileSync(path.join(dir, "nota.txt"), "x\n");
+      expect(sobrantesSoloPrueba(dir)).toEqual(["deshacer.sql"]);
+      // La negativa va antes de leer los Excel: aquí ni siquiera existen.
+      const args = parsearArgumentos([
+        "--rastreo", path.join(dir, "no-existe-rastreo.xlsx"), "--contenedor", "63", "--eta", "2026-12-06",
+        "--salida", dir, "--entorno", "produccion", "--modalidad", "fcl", "--dueno", "DTD-9038",
+      ]);
+      await expect(generar(args)).rejects.toThrow("La carpeta de salida ya trae deshacer.sql: un lote de producción no los lleva; usa una carpeta nueva.");
+      expect(readdirSync(dir).sort()).toEqual(["deshacer.sql", "nota.txt"]);
+      expect(readFileSync(path.join(dir, "deshacer.sql"), "utf8")).toBe("-- de una corrida anterior\n");
+
+      writeFileSync(path.join(dir, "purgar.sql"), "--\n");
+      await expect(generar(args)).rejects.toThrow("ya trae deshacer.sql y purgar.sql");
+      // En prueba esos archivos son del paquete: no hay negativa (falla después, por el Excel que falta).
+      await expect(generar({ ...args, entorno: "prueba" })).rejects.toThrow(/No existe el archivo/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
