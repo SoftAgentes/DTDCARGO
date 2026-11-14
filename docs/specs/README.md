@@ -646,7 +646,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
 | 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
 | 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
-| 0626 | Oficina-runtime — El Cable Vertical | draft | interno |
+| 0626 | Oficina-runtime — El Cable Vertical | approved | interno |
 | 0627 | Seguimiento estimado: ETA desde el zarpe y avisos por hito | in-progress | interno |
 | 0628 | Aviso: componente único de avisos del Studio (tramo 4a de SDD… | in-progress | interno |
 | 0629 | Equivalente en bolívares, solo como vista, con su tasa, fecha… | in-progress | interno |
