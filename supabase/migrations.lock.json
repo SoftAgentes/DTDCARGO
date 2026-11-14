@@ -3330,6 +3330,24 @@
         "fecha": "2026-11-13",
         "forma": "exacta"
       }
+    },
+    "0536_cxp_ligada_contenedor": {
+      "sha256": "6941af4f08e29042163d32c50d17422624089cdd3596ee9f0a640d5654f4b6f5",
+      "md5": "bf7b3204624423d5a576404c59bbf087",
+      "bytes": 7708,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0537_recibo_al_confirmar_reporte": {
+      "sha256": "4ca12d8a561e7e50ed4c86a0ec6ec2cc55e7b50d9bab6d48d6ad51a99b7cbe65",
+      "md5": "0a8205477a1c66722918789483877eab",
+      "bytes": 36185,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
     }
   }
 }
