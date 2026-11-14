@@ -4,7 +4,7 @@ title: "Avisos de Paperclip a #actividad-oficina y resumen diario de la oficina"
 status: proposed
 author: "Claude Worker «Oficina actividad» (Sam)"
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0605", "0607", "0609"]
@@ -313,6 +313,9 @@ de `.claude/skills/revisar-datos-ve/SKILL.md` para confirmarlo.
 
 ## Decisiones de Sam
 
+**Respuestas de Sam del 2026-11-14.** Dadas en la pantalla del Subdirector SEO y relatadas al Director
+General, que las reconfirma con Sam. Se transcribe la opción elegida, textualmente.
+
 | # | Decisión | Recomendación |
 |---|---|---|
 | D1 | ¿Proceso aparte o extensión de Paperclip? | ⭐ Proceso aparte |
@@ -321,6 +324,15 @@ de `.claude/skills/revisar-datos-ve/SKILL.md` para confirmarlo.
 | D4 | ¿Los seis avisos en vivo de la Decisión 3, con «trabado» a las 24 horas? | ⭐ Sí, 24 horas |
 | D5 | ¿Resumen diario? Es la decisión 3 pendiente del plan v2 | ⭐ Sí: 18:00 de Venezuela, solo los días con cambios |
 | D6 | ¿Cuándo se instala? | Después de fusionar la PR del código, con Sam presente para los pasos 1, 2, 4 y 5 |
+
+| # | Respuesta de Sam (2026-11-14) |
+|---|---|
+| D1 | «Proceso aparte (Recomendado)» |
+| D2 | «Sí, agente Vigía (Recomendado)» |
+| D3 | «Con título». **Pendiente de reconfirmación del Director General:** no es la recomendación (⭐ Sin título). Hasta su respuesta no es una decisión de la spec |
+| D4 | «Sí, trabado a 24 h (Recomendado)» |
+| D5 | «Sí, 18:00 Venezuela (Recomendado)» |
+| D6 | «Tras fusionar la PR del código (Recomendado)» |
 
 ## Lo que no se pudo comprobar
 

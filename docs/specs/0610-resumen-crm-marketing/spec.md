@@ -4,7 +4,7 @@ title: "Resumen semanal agregado del CRM para marketing, sin datos personales"
 status: proposed
 author: "Claude"
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0062", "0149", "0582", "0585", "0587", "0604", "0605", "0606"]
@@ -410,6 +410,9 @@ Revisión con `revisar-datos-ve` en [`privacidad.md`](privacidad.md). Lo princip
 
 ## 10. Decisiones de Sam
 
+**Respuestas de Sam del 2026-11-14.** Dadas en la pantalla del Subdirector SEO y relatadas al Director
+General, que las reconfirma con Sam. Se transcribe la opción elegida, textualmente.
+
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
 | D1 | Umbral mínimo | (a) k = 5 · (b) k = 10 · (c) k = 3 | **(a)**: protege con el volumen de hoy sin vaciar el resumen; sube a 10 cuando el volumen lo permita |
@@ -421,3 +424,15 @@ Revisión con `revisar-datos-ve` en [`privacidad.md`](privacidad.md). Lo princip
 | D7 | Política de privacidad | (a) sumar la finalidad a §2 antes de la primera corrida · (b) consultarlo antes con la abogada | **(a) y (b)**: el texto lo propone `privacidad.md`; la abogada lo confirma |
 | D8 | Frecuencia | (a) semanal, lunes 07:00 · (b) quincenal | **(a)** |
 | D9 | Retención del resumen | (a) 24 meses · (b) 12 meses | **(a)** |
+
+| # | Respuesta de Sam (2026-11-14) |
+|---|---|
+| D1 | «k = 5» |
+| D2 | «Usuario propio con su token» |
+| D3 | «Modelo de lenguaje». **Pendiente de reconfirmación del Director General:** no es la recomendación (⭐ determinista en v1; el modelo solo después de medir lo determinista y con su propia revisión de privacidad). Hasta su respuesta no es una decisión de la spec |
+| D4 | «Sí, una vez» (con OK nominal de Sam cuando llegue el momento) |
+| D5 | «Chatwoot sin el texto del correo» |
+| D6 | «Webhook a #datos-marketing» |
+| D7 | «Solo sumarla». **Pendiente de reconfirmación del Director General:** no es la recomendación (⭐ sumarla y que la abogada confirme). Hasta su respuesta no es una decisión de la spec |
+| D8 | «Semanal, lunes 07:00» |
+| D9 | «24 meses» |
