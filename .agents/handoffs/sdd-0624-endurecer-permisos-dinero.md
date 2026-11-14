@@ -47,6 +47,21 @@ los overrides por rol. La SDD-0622 lo puede alinear con `user_has_module`.
 
 ## Pendiente de esta tarea
 
+- **Orden: aplicar la 0528 DESPUÉS de desplegar esta PR.** Aplicarla antes deja
+  la comprobación del asiento de gastos en falso. La app que está hoy en main
+  (`795b33ed7`) lee `journal_entries` con la sesión: `gastos/actions.ts:297`
+  (`supabase.from("journal_entries")`) y `m/erp/actions.ts:354`
+  (`expenseHistoryError(supabase, …)`). Con la 0528, comercial y operaciones ven
+  0 filas, la comprobación del período cerrado y de la fecha histórica pasa y
+  el gasto se edita sin mirar su asiento. Esta PR lee ese asiento con
+  `createAdminClient()` y funciona con o sin la 0528. También Reclamos, en la
+  app vieja, mostraría la columna del asiento vacía (degradación, no hueco).
+- **Cómo se combina con que una espera frena la publicación.** La 0528 en
+  `pendingBelowCutoff` frena la publicación de main mientras no se aplique, y
+  no se puede aplicar antes de publicar. Una salida posible: publicar esta PR
+  con la espera aceptada y aplicar la 0528 enseguida después, sin editar gastos
+  en esa ventana (la app nueva funciona igual sin la 0528). Lo deciden el DG y
+  Sam; no es una decisión de esta tarea.
 - **Aplicar la 0528 a producción.** Necesita un OK de Sam que nombre el archivo.
   La 0470 y la 0511 ya están aplicadas y selladas (candado, 2026-10-19 y
   2026-11-03), aunque sus cabeceras digan otra cosa. Hay que medir el ledger
@@ -114,6 +129,44 @@ devuelven el mismo cliente.
 | migrations-applied | NO DISPONIBLE: el worktree no tiene `.env.local` |
 | sql-tests, schema-rebuild | NO DISPONIBLE: sin Docker |
 | `page-gates-sensibles`, `rbac-actions-guard`, `rbac-view-guard` y el contrato 0528 en PGlite, corridos aparte | PASÓ: 4 archivos y 543 pruebas |
+
+## Revisión independiente sobre `1f661078d`: CAMBIOS, fase A (2026-11-14, W-515)
+
+Local y sin push; main sin traer (eso va cuando entre la #488).
+
+- **H1 (orden):** confirmado leyendo el código de main (ver «Pendiente»). Se
+  escribió en la espera de `migrations-baseline.json`, en la cabecera de la
+  0528 y en la spec §2.1.
+- **H3 (preflight y postflight):** el preflight exige el conjunto exacto de
+  policies de las seis tablas (nombre, comando, permisiva, roles), las huellas
+  de lo que reemplaza (lecturas del tenant sin rol, gastos del dueño sin rol) y
+  que las dos funciones no existan. El postflight exige el conjunto exacto que
+  queda, tenant y `studio_can_read_money()` en cada lectura, gastos sin
+  `support`, RLS sin FORCE y las dos funciones SQL, STABLE, DEFINER con
+  `search_path` vacío, sin EXECUTE para PUBLIC ni anon. Patrón 0470/0511.
+- **H4:** `notify pgrst, 'reload schema'` al final.
+- **H5 (hecho):** `set search_path = ''` en las dos funciones; los cuerpos ya
+  estaban calificados.
+- **H6 (pendiente, para la 0622):** la RPC de Reclamos sigue con lista fija de
+  roles y no mira `role_module_overrides` (0357). Alinearla es una decisión de
+  producto que va con los accesos por persona.
+- **H7:** solo comentarios en `cobranzas/actions.ts` (`getReceivableHistory`) y
+  `tesoreria/actions.ts` (`getBillHistory`).
+- **H8 (mutantes):** el contrato SQL suma un bloque `$funciones$` (DEFINER,
+  search_path, PUBLIC/anon/authenticated) y una aserción estructural del helper
+  en cada lectura. PGlite suma support editando gastos, la lectura sin helper en
+  las cinco tablas, el helper INVOKER, la RPC con `search_path` público y las
+  dos funciones sin revocar PUBLIC. Cada mutante que toca lo del postflight se
+  prueba dos veces: con la migración entera (lo caza el postflight) y sin el
+  postflight (lo caza el contrato). Más cuatro pruebas del preflight y una de
+  que termine en `notify`. El mutante de las líneas sin helper ya no sobrevive.
+- `pending-migration-symbol-declarations.json`: no cambia, porque no guarda
+  huella del blob y los sitios citados no se movieron. `check-pending-migration-symbols`
+  (0 rojo, 1 amarillo) y `migrations-lock` (1 espera: la 0528): PASÓ.
+- NO EJECUTADO (falta turno): vitest y typecheck de lo nuevo.
+- Riesgo a medir antes de aplicar: si producción tiene una policy que el repo no
+  conoce en esas seis tablas, el preflight aborta sin cambiar nada. Es lo
+  esperado; se mide con el ledger y `pg_policies` antes de pedir el OK.
 
 ## FUERA DE ALCANCE DETECTADO
 

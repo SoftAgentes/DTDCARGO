@@ -213,11 +213,13 @@ export async function voidReceipt(
  * cerró SDD-0494. Era la única de las ocho acciones de este archivo sin gate,
  * mientras las otras siete llaman `moduleEditDenial(supabase, "collections")`.
  * El `requireModuleView("collections")` del layout protege la PÁGINA, no esta
- * action —endpoint invocable directo, SDD-0085 §Seguridad—, y la RLS no compensa:
- * `payment_receipts_team_select` (0470:186-191) y `"collection_activities by
- * tenant"` (0079:151-155) sólo comparan `tenant_id`, sin predicado de rol. Sin
- * este candado, cualquier miembro del tenant leía monto, fecha, método y banco
- * de los cobros de un módulo de DINERO que la matriz reserva a `accounting`.
+ * action —endpoint invocable directo, SDD-0085 §Seguridad—. Antes de la 0528 la
+ * RLS no compensaba: `payment_receipts_team_select` (0470:186-191) sólo
+ * comparaba `tenant_id`, y cualquier miembro del tenant leía monto, fecha,
+ * método y banco de los cobros. Desde la 0528 (SDD-0624) los recibos los lee
+ * `payment_receipts_money_select` (tenant + `studio_can_read_money()`), pero
+ * `"collection_activities by tenant"` (0079:151-155) sigue comparando sólo
+ * `tenant_id`, y la base puede no tener la 0528 todavía: el candado se queda.
  *
  * Es el de VISTA, no el de edición: no muta nada, pero expone dinero.
  */
