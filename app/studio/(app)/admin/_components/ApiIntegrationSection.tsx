@@ -83,8 +83,14 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
 
         {revealToken && (
           <div style={{ marginBottom: 14 }}>
-          <Aviso tono="atencion" titulo="Copia este token ahora — no se vuelve a mostrar.">
-            <code style={{ display: "block", padding: "10px 12px", background: "var(--bg-surface)", borderRadius: "var(--r-sm)", font: "600 12px/1.5 var(--f-mono)", color: "var(--ink)", wordBreak: "break-all" }}>
+            {/* El aviso es `role="status"` (región viva). El token es un secreto
+                efímero: va FUERA de la franja para que el lector de pantalla
+                no lo lea en voz alta al aparecer. */}
+            <Aviso tono="atencion">Copia este token ahora — no se vuelve a mostrar.</Aviso>
+            <code
+              data-testid="api-key-token"
+              style={{ display: "block", marginTop: 10, padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-sm)", font: "600 12px/1.5 var(--f-mono)", color: "var(--ink)", wordBreak: "break-all" }}
+            >
               {revealToken}
             </code>
             <div style={{ display: "flex", gap: "var(--s-2)", marginTop: 10 }}>
@@ -104,7 +110,6 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
                 Ya lo copié
               </button>
             </div>
-          </Aviso>
           </div>
         )}
 

@@ -57,7 +57,7 @@ Según BRAND §Estados, no según el color que tenía la caja:
 
 | Aviso | Antes | Ahora | Por qué |
 |---|---|---|---|
-| Token de API recién creado («Copia este token ahora…») | verde | `atencion` | Pide actuar ya: no se vuelve a mostrar. |
+| Token de API recién creado («Copia este token ahora…») | verde | `atencion` | Pide actuar ya: no se vuelve a mostrar. **El token y sus botones van debajo y fuera de la franja**: el aviso es `role="status"` y el lector de pantalla no debe leer en voz alta un secreto efímero (ajuste del DG). Lo fija `ApiIntegrationSection.test.tsx`, con un mutante que mete el token en la franja y la hace fallar. El bloque del token pasa a `--bg-elevated` para separarse de la tarjeta. |
 | Resultado de invitaciones del portal | verde con borde | `exito`, o `atencion` si hubo fallas, correos fallidos o pendientes | El resultado mixto no es un éxito. |
 | Banner de modo de Debug, Norte y Radar | verde, ámbar o gris | `info`; `atencion` en snapshot o web | Informar que algo es local no es éxito ni riesgo. |
 | Gate DDP de Legal | verde o ámbar | `exito` con bloqueo duro, `atencion` en advisory | Igual que antes: el bloqueo activo es el estado deseado. |

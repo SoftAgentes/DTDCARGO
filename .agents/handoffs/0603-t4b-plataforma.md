@@ -21,6 +21,8 @@
 | ESLint de los archivos tocados, `--max-warnings=0` | PASÓ (exit 0) |
 | Mutante: quitar `franja.tabIndex = -1` de `enfocarAviso` (CityDrawer y TariffDrawer) | MUERTO: caen 4 pruebas; archivos restaurados |
 | `/ui-check` sobre el diff | PASÓ, con ajustes menores no bloqueantes: los márgenes de los envoltorios conservan sus px anteriores (8, 10, 14, 20) en vez de `var(--s-*)`; hay dos regiones `status` en la tarjeta de la guía cuando falta el ancla; los botones primarios quedan dentro de dos avisos (token de API y catálogo vacío). Sin hex nuevos, sin anidar `div` en `p` y sin AI slop. |
+| Ajustes del DG tras la revisión (b2f0b3c1): token fuera de la región viva e indentación | Hechos. `ApiIntegrationSection.test.tsx` (nueva, 2 pruebas) PASÓ; el mutante que mete el token en la franja la hace caer. tsc, eslint, `avisos-contract` y `dark-theme-contrast` en verde. |
+| Ajuste c) del DG: normalizar CRLF de `RunsTable.tsx` | NO APLICA, con evidencia: en `4441f65ac` y en `origin/main`, las 519 líneas de RunsTable ya terminan en CRLF. El commit conserva CRLF y su diff contra la base son 33 líneas. Pasarlo a LF convertiría el diff en el archivo entero. |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub |
 | Revisión visual en pantalla | NO DISPONIBLE: sin imagen de prueba en este encargo |
 
