@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import type { Bloqueo, Enlace, Paso, PasoAsistente, PlanBorrado } from "@/lib/studio/borrado/asistente";
@@ -180,11 +181,8 @@ export function AsistenteBorrado({
         </p>
 
         {aviso && <Nota tono="warning">{aviso}</Nota>}
-        {errorPanel && (
-          <div role="alert">
-            <Nota tono="danger">{errorPanel}</Nota>
-          </div>
-        )}
+        {/* El error ya es role="alert" dentro de <Aviso> (SDD-0628). */}
+        {errorPanel && <Nota tono="danger">{errorPanel}</Nota>}
 
         {carga.estado === "error" && (
           <SinPasos mensaje={carga.mensaje} onRevisar={revisar} pending={pending} />
@@ -383,10 +381,8 @@ function PlanBloqueado({ bloqueos, onRevisar, pending }: { bloqueos: Bloqueo[]; 
           <li
             key={b.clave}
             style={{
-              border: "1px solid var(--danger)",
-              background: "var(--danger-bg)",
-              borderRadius: "var(--r-sm)",
-              padding: "var(--s-2) var(--s-3)",
+              borderTop: "1px solid var(--border)",
+              padding: "var(--s-2) 0 0",
               display: "flex",
               flexDirection: "column",
               gap: "var(--s-1)",
@@ -442,21 +438,12 @@ function YaHecho({ hechos }: { hechos: string[] }) {
   );
 }
 
+/** SDD-0603 · tramo 5c: la nota es el aviso canónico; `danger` es `role="alert"`. */
 function Nota({ tono, children }: { tono: "warning" | "danger"; children: React.ReactNode }) {
   return (
-    <p
-      style={{
-        margin: 0,
-        padding: "var(--s-2) var(--s-3)",
-        border: `1px solid var(--${tono})`,
-        borderRadius: "var(--r-sm)",
-        background: `var(--${tono}-bg)`,
-        color: `var(--${tono}-text, var(--ink))`,
-        font: "500 12.5px/1.45 var(--f-sans)",
-      }}
-    >
+    <Aviso tono={tono === "danger" ? "error" : "atencion"} compacto>
       {children}
-    </p>
+    </Aviso>
   );
 }
 
