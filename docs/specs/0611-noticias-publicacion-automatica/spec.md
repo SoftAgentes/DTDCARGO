@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-11
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -498,9 +498,9 @@ el merge lo decide el Director.
 
 **Abierta desde el 2026-11-11 (N1, §11.4.1):**
 
-6. **Retención de `actor_id`.** Plazo de las cuatro columnas con uuid del personal de §11.3.1 (b),
-   qué se hace al vencer y en qué PR va la purga. La PR de N1 no lo decide. Tiene que estar
-   decidido antes de encender.
+6. **Retención de `actor_id`: decidida el 2026-11-14 (§11.4.1).** 12 meses en las cuatro
+   columnas; al vencer se vacía el uuid; la purga va en la PR del cron. Falta construir y aplicar
+   la purga antes de encender.
 
 ## 8. Dependencias
 
@@ -649,10 +649,10 @@ no enciende nada.
   La 0525 no las toca. Se declaran **excepción temporal**:
   - IA-01 exige dejar quién publicó, retiró o encendió el interruptor, y un uuid sin la fila
     de Auth ya no se puede resolver a un nombre dentro de la base;
-  - la excepción vence cuando Sam fije el plazo de retención de esas tablas (hallazgo 7 de
+  - Sam fijó el plazo el 2026-11-14: 12 meses, vaciando solo el uuid (§11.4.1; hallazgo 7 de
     [`privacidad.md`](privacidad.md));
-  - ese plazo y su purga van en la PR del cron. Antes de encender, el plazo tiene que estar
-    decidido.
+  - la excepción vence cuando la purga esté aplicada. La purga va en la PR del cron; antes de
+    encender tiene que estar aplicada.
 
 #### 11.3.2 Allowlist exacta de la PR #492
 
@@ -720,23 +720,35 @@ a las 14:41:58Z y en producción a las 14:43:54Z, con verificación PASÓ. Se se
   está en `main`.
 - Deshacer: `grant select on public.news_posts to anon;`.
 
-#### 11.4.1 Decisión abierta para Sam: retención de `actor_id`
+#### 11.4.1 Decisión de Sam: retención de `actor_id` (cerrada el 2026-11-14)
 
-**No la decide esta PR.** Las columnas de §11.3.1 (b) siguen guardando el uuid de una persona del
-Studio sin plazo:
+Las columnas de §11.3.1 (b) guardan el uuid de una persona del Studio:
 - `news_post_exits.actor_id`;
 - `news_publication_audit.actor_id`;
 - `news_autopublish_settings.updated_by`;
 - `news_autopublish_settings_log.changed_by`.
 
-Ninguna es legible por anon: la 0518 les quitó todo. N1 no cambia esa situación, y la 0526 no
-toca esas tablas. Falta que Sam fije:
-- el plazo de retención de esas columnas, o de sus filas: por ejemplo, 24 meses, como propone el
-  hallazgo 7 de [`privacidad.md`](privacidad.md);
-- si al vencer se borra la fila o solo se vacía el uuid;
-- si la purga va en la PR del cron, como dice §11.3.1.
+Ninguna es legible por anon: la 0518 les quitó todo. N1 no cambia esa situación.
 
-Antes de encender, el plazo tiene que estar decidido (§11.3.1).
+**Sam decidió el 2026-11-14**, en la pantalla del Subdirector SEO. Las respuestas llegaron al
+Director General como relato; él las reconfirma con Sam. Opciones elegidas, textualmente:
+- *Plazo:* «12 meses (Recomendado)».
+- *Alcance:* «Sí, las 4 columnas (Recomendado)».
+- *Al vencer:* «Vaciar solo el uuid (Recomendado)»: se conserva qué pasó y cuándo, sin quién.
+  Así IA-01 mantiene la trazabilidad de que una noticia salió con IA, sin el dato personal.
+- *Dónde va la purga:* «En la PR del cron de noticias (Recomendado)».
+
+**Lo que esto exige antes de encender** (no se cumple todavía):
+1. La purga existe: una migración nueva que, pasados 12 meses de la fila, pone en `NULL` esas
+   cuatro columnas y deja intacto el resto. Hoy no hay ninguna en `main`.
+2. La purga está aplicada en prueba y producción, con OK nominal de Sam (migrate-first).
+3. Las cuatro columnas aceptan `NULL`; si alguna es `NOT NULL`, la migración lo cambia con su
+   contrato.
+4. Un contrato SQL prueba que una fila de 12 meses queda sin uuid, que una de 11 no se toca y
+   que el resto de la fila no cambia; con piso de conteo y un mutante.
+5. El encendido (timer y retiro de CONGELADO) es lo último, con OK de Sam.
+
+La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada, no antes.
 
 #### 11.4.2 Allowlist exacta de esta PR (N1)
 
