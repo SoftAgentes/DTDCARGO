@@ -31,6 +31,8 @@ type Cuenta = {
   contorno: number;
   /** Controles «Abrir <código>»: `aria-label={`Abrir …`}` o el toggle `${… "Abrir"} …`. */
   abrir: number;
+  /** Controles «Ligar con <código>»: `aria-label={`Ligar con …`}`. */
+  ligar: number;
   /** `tabIndex={-1}`: la fila (o el panel del cajón) fuera del orden de Tab. */
   fueraDeTab: number;
   /**
@@ -42,28 +44,31 @@ type Cuenta = {
 };
 
 // `tabIndex={-1}` de los cajones y del diálogo es su panel, que recibe el foco al abrir.
-const CAJON = { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 1, vino: 0 };
+const CAJON = { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 1, vino: 0 };
 
 const ESPERADO: Record<string, Cuenta> = {
   "AccountDrawer.tsx": CAJON,
   // Filas: no aplica, la fila del activo no abre nada.
-  "ActivosFijosTab.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 0, vino: 0 },
-  "AjustesDelCierre.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 0, vino: 0 },
+  "ActivosFijosTab.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 0, vino: 0 },
+  "AjustesDelCierre.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 0, vino: 0 },
   "AssetDrawer.tsx": CAJON,
   // El aviso del cierre es franja propia; la superclave va fuera, sin región viva.
-  "CamposExcepcionCierre.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 0, vino: 0 },
+  "CamposExcepcionCierre.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 0, vino: 0 },
   "ClosingDateDrawer.tsx": CAJON,
-  "ConciliacionTab.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 1, fueraDeTab: 1, vino: 0 },
+  "ConciliacionTab.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 1, ligar: 0, fueraDeTab: 1, vino: 0 },
   // No aplica: botones de cabecera y `studio-tabs` (tramo 2).
-  "ContabilidadClient.tsx": { aviso: 0, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 0, vino: 0 },
+  "ContabilidadClient.tsx": { aviso: 0, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 0, vino: 0 },
   "EntryDrawer.tsx": CAJON,
   "ExcepcionCierreDialog.tsx": CAJON,
   // Excepciones, ya texto con icono y sin caja: el aviso del diario (status, al
   // cargar), la nota de protección de la fila (note) y el error de exportar (alert).
-  "LibroDiarioTab.tsx": { aviso: 1, rol: 3, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 0, vino: 0 },
-  "LineMatchDrawer.tsx": CAJON,
+  "LibroDiarioTab.tsx": { aviso: 1, rol: 3, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 0, vino: 0 },
+  // `tabIndex={-1}`: el panel del cajón y la fila del candidato (la parada es «Ligar»).
+  "LineMatchDrawer.tsx": { aviso: 1, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 1, fueraDeTab: 2, vino: 0 },
+  // Sin avisos a mano; «Abrir» en la cuenta postable y el nombre fuera del Tab.
+  "PlanCuentasTab.tsx": { aviso: 0, rol: 0, vivo: 0, caja: 0, contorno: 0, abrir: 1, ligar: 0, fueraDeTab: 1, vino: 0 },
   // Excepción: el error del filtro ya es texto con icono, ligado a sus campos (alert).
-  "ReportesTab.tsx": { aviso: 0, rol: 1, vivo: 0, caja: 0, contorno: 0, abrir: 0, fueraDeTab: 0, vino: 0 },
+  "ReportesTab.tsx": { aviso: 0, rol: 1, vivo: 0, caja: 0, contorno: 0, abrir: 0, ligar: 0, fueraDeTab: 0, vino: 0 },
   "StatementDrawer.tsx": CAJON,
 };
 
@@ -76,6 +81,7 @@ const PATRONES: Record<keyof Cuenta, RegExp> = {
   caja: /background: "var\(--(?:danger|warning|success|info)-bg\)"/g,
   contorno: /(?:solid|dashed) var\(--(?:danger|warning|success|info)\)/g,
   abrir: /aria-label=\{`(?:Abrir |\$\{active \? "Cerrar" : "Abrir"\} )/g,
+  ligar: /aria-label=\{`Ligar con /g,
   fueraDeTab: /tabIndex=\{-1\}/g,
   vino: /var\(--wine-tint\)|\? "var\(--wine\)"/g,
 };
@@ -116,8 +122,8 @@ const fuentes = new Map<string, string>(
 const TOTAL_AVISOS = 12;
 
 describe("SDD-0603 · tramo 5b · filas y avisos de Contabilidad (BD-037)", () => {
-  it("mira los 14 archivos de la allowlist", () => {
-    expect(fuentes.size).toBe(14);
+  it("mira los 15 archivos de la allowlist", () => {
+    expect(fuentes.size).toBe(15);
   });
 
   it.each(ARCHIVOS)("%s cumple su cuenta exacta", (ruta) => {
@@ -137,6 +143,24 @@ describe("SDD-0603 · tramo 5b · filas y avisos de Contabilidad (BD-037)", () =
     expect(control).toMatch(/studio-btn \$\{active \? "studio-btn-dark" : "studio-btn-ghost"\} studio-btn-sm/);
     expect(control).toMatch(/aria-expanded=\{active\}/);
     expect(control).toMatch(/>\s*\{active \? "Cerrar" : "Abrir"\}\s*\{active \? Icon\.chevU\(14\) : Icon\.chevR\(14\)\}/);
+  });
+
+  it("«Abrir» de la cuenta es un secundario de tabla con verbo visible", () => {
+    const codigo = sinComentarios(fuentes.get("PlanCuentasTab.tsx")!);
+    const i = codigo.search(PATRONES.abrir);
+    const boton = codigo.slice(codigo.lastIndexOf("<button", i), codigo.indexOf("</button>", i));
+    expect(boton).toMatch(/studio-btn studio-btn-ghost studio-btn-sm/);
+    expect(boton).toMatch(/>\s*Abrir\s*\{Icon\.chevR\(14\)\}/);
+  });
+
+  it("«Ligar» es un secundario que corta la propagación: la fila no liga dos veces", () => {
+    const codigo = sinComentarios(fuentes.get("LineMatchDrawer.tsx")!);
+    const i = codigo.search(PATRONES.ligar);
+    const boton = codigo.slice(codigo.lastIndexOf("<button", i), codigo.indexOf("</button>", i));
+    expect(boton).toMatch(/studio-btn studio-btn-ghost studio-btn-sm/);
+    expect(boton).toMatch(/disabled=\{bloqueado\}/);
+    expect(boton).toMatch(/e\.stopPropagation\(\);\s*doMatch\(c\.id\)/);
+    expect(boton).toMatch(/>\s*Ligar\s*$/);
   });
 
   it("la superclave queda fuera del <Aviso> del cierre", () => {
@@ -218,6 +242,22 @@ describe("SDD-0603 · tramo 5b · filas y avisos de Contabilidad (BD-037)", () =
       expect(violaciones(r, mutado)).toEqual(
         expect.arrayContaining([expect.stringContaining("aviso = 0"), expect.stringContaining("caja = 1")]),
       );
+    });
+
+    it("el candidato pierde «Ligar» → rompe", () => {
+      const r = "LineMatchDrawer.tsx";
+      const o = fuentes.get(r)!;
+      const mutado = o.replace("aria-label={`Ligar con ${c.entry_code}`}", "");
+      expect(mutado).not.toBe(o);
+      expect(violaciones(r, mutado)).toEqual(expect.arrayContaining([expect.stringContaining("ligar = 0")]));
+    });
+
+    it("el nombre de la cuenta vuelve a ser parada de Tab → rompe", () => {
+      const r = "PlanCuentasTab.tsx";
+      const o = fuentes.get(r)!;
+      const mutado = o.replace("tabIndex={-1}", "tabIndex={0}");
+      expect(mutado).not.toBe(o);
+      expect(violaciones(r, mutado)).toEqual([expect.stringContaining("fueraDeTab = 0")]);
     });
 
     it("el diálogo de excepción pierde su <Aviso> de error → rompe", () => {
