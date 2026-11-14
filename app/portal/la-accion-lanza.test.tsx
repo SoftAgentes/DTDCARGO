@@ -5,10 +5,13 @@
  * no puede afirmar qué pasó, porque el envío pudo haberse registrado: dice qué hará el reintento,
  * según la acción tenga candado en la base (SDD-0599), un candado por lectura o sobrescriba.
  */
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, configure, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Component, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Con la suite entera, un envío puede seguir en curso más de 1 s, que es lo que `findBy` y `waitFor` esperan por defecto.
+configure({ asyncUtilTimeout: 5_000 });
 
 const h = vi.hoisted(() => {
   const accion = vi.fn();
@@ -278,8 +281,7 @@ describe("SDD-0599 · el identificador del intento", () => {
 
 describe("SDD-0599 · si el primer envío ya había llegado, la pantalla lo dice", () => {
   const YA_ESTABA = /Ya estaba registrad[ao] desde tu primer envío\. Si cambiaste algo después, escríbele a tu asesor\./;
-  // `NewPurchaseWizard` es la pantalla más pesada: con carga pasa de medio segundo, y `findBy` espera 1 s.
-  const yaEstaba = () => screen.findByText(YA_ESTABA, undefined, { timeout: 5_000 });
+  const yaEstaba = () => screen.findByText(YA_ESTABA);
 
   it("CotizacionRequestForm", async () => {
     h.accion.mockResolvedValue({ ok: true, createdCode: "EST-1", replayed: true });
