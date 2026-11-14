@@ -9,27 +9,6 @@
   ],
   "degradations": [
     {
-      "id": "0528-claim-indemnity-entry-codes",
-      "migration": "0528_rls_lectura_dinero_y_gastos",
-      "primarySymbol": "claim_indemnity_entry_codes",
-      "symbols": [
-        {
-          "name": "claim_indemnity_entry_codes",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/reclamos/claims-queries.ts:200"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/reclamos/claims-queries.ts:204",
-          "contains": "esFuncionAusente(rpc.error)",
-          "degradation": "Sin la 0528 PostgREST responde PGRST202 (o 42883): Reclamos vuelve a leer el código del asiento de journal_entries, que en esa base sigue abierta al tenant. Cualquier otro error deja la columna vacía, sin romper la lista."
-        }
-      ]
-    },
-    {
       "symbols": [
         {
           "name": "confirm_payment_report_with_receipt",
@@ -154,9 +133,30 @@
           "degradation": "Crear una CxP sin vínculo (el único camino que ofrece la UI sin la 0536, y el de Órdenes de compra) no nombra las columnas nuevas en el INSERT."
         },
         {
-          "site": "lib/studio/treasury/treasury-actions.ts:299",
+          "site": "lib/studio/treasury/treasury-actions.ts:301",
           "contains": "if (isMissingCostLinkColumns(updErr.message)) return { error: COST_LINK_UNAVAILABLE };",
           "degradation": "Ligar una CxP por la acción sin la 0536 responde «la base todavía no tiene el vínculo (migración 0536)» y no escribe nada; el alta con vínculo da el mismo mensaje."
+        }
+      ]
+    },
+    {
+      "id": "0528-claim-indemnity-entry-codes",
+      "migration": "0528_rls_lectura_dinero_y_gastos",
+      "primarySymbol": "claim_indemnity_entry_codes",
+      "symbols": [
+        {
+          "name": "claim_indemnity_entry_codes",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/reclamos/claims-queries.ts:200"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/reclamos/claims-queries.ts:204",
+          "contains": "esFuncionAusente(rpc.error)",
+          "degradation": "Sin la 0528 PostgREST responde PGRST202 (o 42883): Reclamos vuelve a leer el código del asiento de journal_entries, que en esa base sigue abierta al tenant. Cualquier otro error deja la columna vacía, sin romper la lista."
         }
       ]
     }
