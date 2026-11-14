@@ -97,10 +97,23 @@ devuelven el mismo cliente.
 - Livianas, solo Node: `docs:check` (615 specs, índice sincronizado),
   `sdd:check`, `check-pending-migration-symbols` (0 rojo, 1 amarillo declarado)
   y `migrations-lock` (522 selladas, 1 espera: la 0528). PASÓ.
-- NO EJECUTADO en esta vuelta, va con turno: `pnpm install`, vitest de los
-  contratos (`page-gates-sensibles`, `rbac-*`, 0528 en PGlite) y `pnpm verify`.
-  `page-gates-sensibles` debe confirmar que las páginas nuevas de main no
-  necesitan gate.
+- Las pruebas pesadas corrieron después, con turno (ver la subsección
+  siguiente).
+
+### Corrida con turno sobre `f67cbb269` (2026-11-14)
+
+`pnpm install --frozen-lockfile` (1 min 28 s) y `pnpm verify` completo, de
+17:54 a 18:36 (42 min), exit 0, con 14 de 17 pasos medidos.
+
+| Comprobación | Resultado |
+|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions (4), docs:check, numbering, feature-constants (7), components, governance, build | PASÓ |
+| test (vitest) | PASÓ: 1123 archivos y 17811 pruebas; 4 archivos y 26 pruebas saltadas |
+| pending-migration-symbols | PASÓ: 0 rojo y 1 amarillo declarado (la 0528) |
+| e2e | PASÓ con aviso: 236 pasaron, 2 inestables y 0 fallaron; el worker de WebKit no cierra en Windows |
+| migrations-applied | NO DISPONIBLE: el worktree no tiene `.env.local` |
+| sql-tests, schema-rebuild | NO DISPONIBLE: sin Docker |
+| `page-gates-sensibles`, `rbac-actions-guard`, `rbac-view-guard` y el contrato 0528 en PGlite, corridos aparte | PASÓ: 4 archivos y 543 pruebas |
 
 ## FUERA DE ALCANCE DETECTADO
 
