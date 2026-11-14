@@ -292,8 +292,10 @@ export async function linkBillCostFor(
       cost_category: link.costCategory,
     })
     .eq("id", billId)
-    // La lectura de arriba no bloquea: si la anularon en el medio, no se liga.
+    // La lectura de arriba no bloquea: si la anularon o la borraron en el medio,
+    // no se liga.
     .neq("status", "anulada")
+    .is("deleted_at", null)
     .select("id");
   if (updErr) {
     if (isMissingCostLinkColumns(updErr.message)) return { error: COST_LINK_UNAVAILABLE };

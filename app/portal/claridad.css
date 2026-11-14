@@ -1,0 +1,169 @@
+/* ──────────────────────────────────────────────────────────────────
+   SDD-0603 · Tramo 3 · Claridad de controles en el portal del cliente (BD-037).
+
+   La regla, la misma del Studio:
+     1. Lo que se oprime lleva relleno o contorno de tinta y sombra.
+     2. Lo que avisa es una franja plana, sin contorno ni sombra.
+     3. Lo que solo se lee es texto, sin cajón.
+
+   Todo vive bajo `.portal-sys` (el wrapper de `app/portal/layout.tsx`): la web
+   pública usa las mismas clases `.btn` y `.badge-status`, y no cambia.
+
+   Va sin `@layer`, igual que `globals.css`: gana a las utilidades de Tailwind
+   (que van en `@layer utilities`) sin `!important`. Ningún selector mira el
+   estilo en línea. Ningún color nuevo: solo tokens `--color-*` y `--portal-*`
+   que ya existen. Contraste medido en los dos temas por
+   `app/portal/__tests__/claridad-portal-contract.test.ts`.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── Tokens de forma (sombra por nivel, como el Studio) ────────────────
+   Se derivan del navy plano del shell (`--portal-nav-solid`), que es navy en
+   los dos temas: una sombra de `--color-ink` sería crema en oscuro. Se declaran
+   también en `[data-portal-theme]` porque una variable que usa `var()` se
+   resuelve donde se declara, y el tema oscuro redefine `--portal-nav-solid`
+   en el shell, más abajo que `.portal-sys`. */
+.portal-sys,
+.portal-sys [data-portal-theme] {
+  --portal-ctl-shadow-xs: 0 1px 2px color-mix(in srgb, var(--portal-nav-solid) 14%, transparent);
+  --portal-ctl-shadow-md:
+    0 2px 6px color-mix(in srgb, var(--portal-nav-solid) 10%, transparent),
+    0 8px 16px color-mix(in srgb, var(--portal-nav-solid) 14%, transparent);
+}
+
+/* ── 1 · Lo que se oprime ─────────────────────────────────────────────── */
+
+/* Secundario. Antes: transparente con borde `--color-grey-300`, 1,65:1 sobre
+   el papel claro y 1,77:1 sobre la tarjeta oscura. Ahora: contorno de tinta de
+   1,5 px, superficie propia y sombra de nivel 1. */
+.portal-sys .btn-ghost {
+  background: var(--color-white);
+  color: var(--color-ink);
+  border: 1.5px solid var(--color-ink);
+  box-shadow: var(--portal-ctl-shadow-xs);
+  font-weight: 700;
+}
+.portal-sys .btn-ghost:hover {
+  border-color: var(--color-ink);
+  box-shadow: var(--portal-ctl-shadow-md);
+}
+.portal-sys .btn-ghost:active {
+  box-shadow: var(--portal-ctl-shadow-xs);
+}
+
+/* ── Campos ────────────────────────────────────────────────────────────
+   Muchos campos del portal no traían borde (`border-0` sobre `bg-grey-100`) o
+   lo traían en `--color-grey-200` (1,25:1). El contorno pasa a
+   `--color-grey-500`: 5,33:1 sobre la tarjeta clara y 4,85:1 sobre la oscura.
+   Solo dentro de `main`: la calculadora flotante y la barra superior quedan
+   como están. */
+.portal-sys main :is(
+    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"]),
+    select,
+    textarea
+  ) {
+  border: 1px solid var(--color-grey-500);
+}
+.portal-sys main :is(
+    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"]),
+    select,
+    textarea
+  ):hover:not(:disabled) {
+  border-color: var(--color-ink);
+}
+
+/* ── Selección: sub-pestañas del hub y filtros ──────────────────────────
+   La seleccionada va rellena de tinta (BD-037, excepción a VIS-01 §3 ya
+   aprobada) y se anuncia por `aria-current="page"` (navegación) o
+   `aria-pressed="true"` (filtro). No depende solo del color: cambia el relleno
+   entero y el peso. */
+.portal-sys .portal-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-grey-300);
+  border-radius: 10px;
+}
+.portal-sys .portal-subtab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 6px; /* concéntrico: 10 px del carril menos 4 px de relleno */
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.portal-sys .portal-subtab:hover {
+  background: var(--color-grey-100);
+}
+.portal-sys .portal-subtab[aria-current="page"],
+.portal-sys .portal-subtab[aria-current="page"]:hover {
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-weight: 800;
+}
+.portal-sys .portal-subtab:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* Filtros de una sola elección (Mis envíos › Alertas, Documentos). Se excluye
+   `.btn`: un botón con `aria-pressed` que es verbo («Marcar como completada»)
+   no es un filtro. */
+.portal-sys main button[aria-pressed]:not(.btn) {
+  color: var(--color-ink);
+}
+.portal-sys main button[aria-pressed]:not(.btn):hover {
+  background: var(--color-grey-100);
+}
+.portal-sys main button[aria-pressed="true"]:not(.btn),
+.portal-sys main button[aria-pressed="true"]:not(.btn):hover {
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-weight: 800;
+  box-shadow: none;
+}
+/* El conteo venía en vino: sobre el relleno de tinta no se leía. */
+.portal-sys main button[aria-pressed="true"]:not(.btn) * {
+  color: inherit;
+}
+
+/* Enlaces de texto: subrayados, para que se distingan del texto que solo se
+   lee. No aplica a botones, tarjetas, pestañas ni enlaces que envuelven bloques. */
+.portal-sys main a[href]:not(.btn, .portal-subtab, [class*="border"], [class*="rounded"], [class*="bg-"]):not(:has(div, section, article, h1, h2, h3, h4, img)) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* ── 2 · Lo que avisa: franja plana ─────────────────────────────────────
+   Solo los avisos con cajón (los que traen la clase `border`): pierden contorno
+   y sombra y quedan como franja de `--color-grey-100`. Un fondo de estado
+   puesto en línea (rojo suave de un error) sigue mandando, porque el estilo en
+   línea gana a esta hoja; tampoco se toca el aviso que pinta su borde completo
+   en línea (`border: …`). Esos avisos con estilo en línea quedan para un
+   tramo aparte, «T4e · avisos del portal», después de este; el tramo 4 del
+   Studio no toca el portal. El texto suelto con `role="alert"` (error bajo un campo) no lleva
+   cajón y no cambia. */
+.portal-sys main :is([role="alert"], [role="status"])[class*="border"] {
+  background: var(--color-grey-100);
+  border: 0;
+  box-shadow: none;
+}
+
+/* ── 3 · Lo que solo se lee: el estado es texto con icono, sin píldora ── */
+.portal-sys .badge-status,
+.portal-sys .badge-status.badge-status-warning {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 600;
+}

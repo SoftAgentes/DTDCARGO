@@ -4,7 +4,7 @@ title: "Confirmar un reporte de pago crea su recibo de cobro"
 status: in-progress
 author: "Sam + Claude Opus 5.5 (Worker)"
 created: 2026-11-13
-updated: 2026-11-13
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0134", "0365", "0366", "0484", "0488", "0576"]
@@ -16,7 +16,7 @@ confidencialidad: interno
 > Al confirmar en el Studio un pago que el cliente reportó en el portal, ahora se
 > crea su recibo de cobro en la misma transacción y por la misma función que usa
 > Cobranzas. Así se cierra el doble conteo entre el reporte y Cobranzas. La
-> migración `0537` está **en espera** y su aplicación pide un OK nominal de Sam.
+> migración `0537` se aplicó en producción el 2026-11-14 (ver «Aplicación en producción»).
 
 ## Problema
 
@@ -28,10 +28,14 @@ Cobranzas (`register_collection_receipt`, 0467), la factura lo contaba dos veces
 Con un lote de contenedores por llegar, la contabilidad tiene que poder cuadrar
 caja contra facturas.
 
-Además, la 0422 y la 0423 siguen en espera. Su orden de liberación
-(`.agents/handoffs/c-l14-portal-comandos-recibos.md`, guion
+Además, cuando se escribió esta spec la 0422 y la 0423 seguían en espera. Su orden
+de liberación (`.agents/handoffs/c-l14-portal-comandos-recibos.md`, guion
 `.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, Bloque 3) pedía un smoke en
-producción que nunca se hizo. El guion nuevo cubre las tres.
+producción que no se había hecho. El guion nuevo cubre las tres. Estado vigente
+(2026-11-14): Sam aceptó hacer ese smoke en prueba («Sí, en prueba»); tras el smoke
+de Contabilidad en prueba (PASÓ), la 0422 y la 0423 se aplicaron en producción
+(registro §6.3 en SDD-0365 y SDD-0366). El smoke en producción del guion queda
+pendiente, para repetirlo con la primera factura real.
 
 ## Contrato
 
@@ -216,3 +220,29 @@ espera, ni sus contratos.
 - El asiento atómico en SQL (ver la decisión técnica de arriba).
 - Aplicar la 0533, la 0537, la 0422 o la 0423 en producción. Cada una pide su OK
   nominal y el runbook.
+
+## Aplicación en producción de la 0537 (registro del runbook §6.3)
+
+- **OK nominal de Sam:** a la pregunta «¿Apruebas aplicar en producción
+  0537_recibo_al_confirmar_reporte.sql?» respondió literalmente «Sí, aplícala»
+  (2026-11-14).
+- **Paquete:** preparado desde main `52b7e094819835bdd7c6557814cb244d012ef84b`, con
+  `created_by` `servidor-propio:psql:SDD-0630`. El md5 de `aplicar.sql` es
+  `65b99d3ba8d8b69a48f91df3876f9ca6`.
+- **Lectura previa:** PASÓ, con el preflight propio incluido. Evidencia en
+  `/srv/ops/evidencias/previa-0537-dtd-cargo-20261114T055818Z`.
+- **COMMIT:** 2026-11-14T06:06:42Z, con su fila en el ledger: `version` 20261114060642.
+  El ledger pasó de 530 filas (última versión 20261114051359, la 0536) a 531.
+- **Verificación:** PASÓ. Hay una sola fila `0537_recibo_al_confirmar_reporte`, con md5
+  `0a8205477a1c66722918789483877eab` y 36185 bytes, y los cuerpos vivos de
+  `payment_private.guard_receipt_report_link`, `payment_private.run_report_command` y
+  `public.confirm_payment_report_with_receipt` son iguales a los del archivo. Evidencia
+  en `/srv/ops/evidencias/apply-0537-dtd-cargo-20261114T060641Z`.
+- **Migrate-first:** la app de esta SDD ya estaba en main. Producción seguía en la
+  imagen de e5169e86e (vigilante detenido), así que no hubo ventana con la app nueva
+  sin la 0537. La publicación de la web va después de este cierre.
+- **Cierre:** la PR de cierre retira la espera y sella la migración en
+  `migrations.lock.json`. La hora del merge queda en la PR.
+- **Pendiente:** el smoke de confirmar con recibo. Producción no tiene facturas desde
+  el 2026-11-02, así que se hace en el ambiente de prueba y se repite con la primera
+  factura real.

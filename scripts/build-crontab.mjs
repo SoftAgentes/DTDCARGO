@@ -29,6 +29,8 @@
  * (nunca se agendó en Vercel). En el servidor va semanal, lunes 06:00 UTC, antes de
  * que abra la jornada en Caracas (02:00 VET) y dentro del presupuesto de 100 consultas
  * mensuales de SeaRates (20 rutas × ≤5 lunes).
+ * `bcv-rates` va una vez por hora, en el minuto 5: 24 invocaciones nominales al
+ * día. La agenda no habilita su flag ni garantiza una cuota global de requests.
  *
  * DETERMINISTA: misma `vercel.json` ⇒ mismos bytes. Se conserva el orden de
  * `vercel.json` (no se reordena) para que un diff del crontab se lea igual que el
@@ -58,6 +60,12 @@ export const EXTRA_CRONS = [
     schedule: "0 6 * * 1",
     reason:
       "semanal, lunes 06:00 UTC · no está en vercel.json · 20 rutas/corrida caben en el plan gratis de SeaRates (100/mes)",
+  },
+  {
+    path: "/api/cron/bcv-rates",
+    schedule: "5 * * * *",
+    reason:
+      "cada hora, minuto 5 UTC · 24 invocaciones nominales/día · requiere flag y scope explícitos; no activa la carga",
   },
 ];
 

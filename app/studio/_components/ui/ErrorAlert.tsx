@@ -11,17 +11,20 @@
  * (t, state); if (!msg) return null; return <div role="alert">...} )()` que
  * estaba duplicado en BugReportModal, NewReceiptDrawer e InviteUserDrawer.
  *
+ * Desde SDD-0628 pinta con `<Aviso tono="error">`: misma API, mismo
+ * `role="alert"`, la franja y el icono salen de `studio.css`.
+ *
  * Uso:
  *   <ErrorAlert state={state} />
  *   <ErrorAlert state={res} compact />   // padding/fuente reducidos (en drawers densos)
  */
 
-import { StatusIcon } from "@/components/StatusIcon";
 import {
   resolveErrorMessage,
   useT,
   type ActionStateWithError,
 } from "@/lib/i18n";
+import { Aviso } from "./Aviso";
 
 interface ErrorAlertProps {
   /** ActionState de un useActionState / respuesta de server action. */
@@ -36,19 +39,8 @@ export function ErrorAlert({ state, compact = false }: ErrorAlertProps) {
   if (!msg) return null;
 
   return (
-    <div
-      role="alert"
-      style={{
-        padding: compact ? "var(--s-2) var(--s-3)" : "var(--s-3) var(--s-4)",
-        background: "var(--danger-bg)",
-        borderRadius: "var(--r-md)",
-        color: "var(--ink)",
-        font: `500 ${compact ? "13px" : "14px"}/1.45 var(--f-sans)`,
-        margin: 0,
-      }}
-    >
-      <StatusIcon tone="danger" style={{ color: "var(--danger-text)", display: "inline", marginRight: "var(--s-2)", verticalAlign: "middle" }} />
+    <Aviso tono="error" compacto={compact}>
       {msg}
-    </div>
+    </Aviso>
   );
 }

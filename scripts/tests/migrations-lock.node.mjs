@@ -27,7 +27,9 @@ const SCRIPT = path.join(RAIZ, "scripts", "migrations-lock.mjs");
 
 /**
  * ANCLA DE CREACIÓN (2026-10-19, origin/main 3f3a52cc): las 483 migraciones hasta la
- * 0491, sin las esperas 0422 y 0423. El digest es el sha256 de las líneas
+ * 0491, sin la 0422 y la 0423, que entonces eran esperas. Se aplicaron y sellaron el
+ * 2026-11-14 y siguen FUERA del conjunto del ancla: sus sellos son nuevos, igual que
+ * los de cualquier migración posterior. El digest es el sha256 de las líneas
  * «nombre sha256 md5 bytes\n» de sus identidades selladas, en orden. Si alguien
  * borra una entrada o reescribe un sello de este conjunto, cambia. Las excepciones no
  * lo tocan (no cambian la identidad sellada) y los sellos nuevos tampoco (quedan
@@ -36,13 +38,13 @@ const SCRIPT = path.join(RAIZ, "scripts", "migrations-lock.mjs");
  */
 const ANCLA = {
   hasta: 491,
-  esperasFuera: ["0422_payment_report_command_boundary", "0423_payment_report_historical_identity"],
+  fueraDelAncla: ["0422_payment_report_command_boundary", "0423_payment_report_historical_identity"],
   selladas: 483,
   digest: "10d5eb209ba9b9441c589200c0d425fec9bca99bf3fc88b16045640bdd12545e",
 };
 
 function digestDeCreacion(candado) {
-  const fuera = new Set(ANCLA.esperasFuera);
+  const fuera = new Set(ANCLA.fueraDelAncla);
   const nombres = Object.keys(candado.selladas)
     .filter((n) => L.numero(n) <= ANCLA.hasta && !fuera.has(n))
     .sort();
@@ -94,6 +96,20 @@ test("repo real: cada migración sellada conserva su identidad y ninguna falta",
 test("repo real: el conjunto sellado al crear el candado sigue intacto (ancla sin git)", () => {
   const candado = JSON.parse(fs.readFileSync(path.join(RAIZ, L.CANDADO), "utf8"));
   assert.deepEqual(digestDeCreacion(candado), { selladas: ANCLA.selladas, digest: ANCLA.digest });
+});
+
+test("repo real: la 0422 y la 0423 quedaron selladas con el md5 que se aplicó el 2026-11-14", () => {
+  const candado = JSON.parse(fs.readFileSync(path.join(RAIZ, L.CANDADO), "utf8"));
+  const aplicadas = {
+    "0422_payment_report_command_boundary": { md5: "e3e019590fac56315b971b4ce703ea96", bytes: 8673 },
+    "0423_payment_report_historical_identity": { md5: "2d3d0cc9c2e299563add83c51f910f60", bytes: 8612 },
+  };
+  for (const [nombre, esperado] of Object.entries(aplicadas)) {
+    assert.ok(Object.hasOwn(candado.selladas, nombre), `${nombre} no está sellada`);
+    assert.equal(candado.selladas[nombre].md5, esperado.md5, nombre);
+    assert.equal(candado.selladas[nombre].bytes, esperado.bytes, nombre);
+    assert.ok(!L.leerEsperas(RAIZ).includes(nombre), `${nombre} sigue declarada como espera`);
+  }
 });
 
 test("repo real: las esperas no están selladas y todo lo demás hasta la mayor sellada sí", () => {

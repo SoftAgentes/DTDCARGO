@@ -127,6 +127,13 @@ Viven en `app/studio/_components/ui/`:
 - `KpiCard` · número grande + label + sub
 - `drawer/DrawerShell` · shell + footer compartidos
 - `ActionButton` · anti-double-submit + feedback visual (ver sección debajo)
+- `Aviso` · franja plana con icono para todo aviso (SDD-0628, BD-037): tonos
+  `info` / `atencion` / `exito` / `error`, `titulo` y `accion` opcionales
+  (la acción es el botón secundario existente), `urgente`, `compacto`. Error o
+  urgente es `role="alert"`; el resto, `role="status"`. Color en `studio.css`
+  (`.studio-aviso*`), nunca en línea. `ErrorAlert` ya lo usa. **Para un aviso
+  nuevo usa `<Aviso>`**; no lo uses para pastillas de estado (`Badge`), toasts
+  ni mensajes de campo. Lo vigila `avisos-contract.test.ts`.
 
 Icons en `app/studio/_components/icons.tsx` (objeto `Icon` con métodos por nombre).
 
@@ -231,6 +238,7 @@ inline via `.studio-spin` (keyframe `studio-spin` definido en `studio.css`).
 - `.studio-label` · label estándar de form
 - `.studio-display` · Archivo Black para títulos
 - `.studio-eyebrow` · uppercase tracking-wide
+- `.studio-aviso` + `data-tono` · la franja de `<Aviso>`; no se pone a mano
 - `.studio-row-flash` · highlight transitorio de row tras mutación (ver
   sección "Trazabilidad visual" debajo)
 
