@@ -718,3 +718,23 @@ Rutas nuevas fuera de la allowlist de 32 de arriba, agregadas por pedido del Dir
 Con esto, lo técnico de la entrega queda completo. Falta el OK de Sam (los valores de
 la banda, confiar en el intermedio fijado y la 0535), y después la aplicación de la
 0535 y el encendido con `BCV_RATES_ENABLED=true`, cada uno con su autorización.
+
+## Aplicación de la 0535 en producción (registro §6.3, 2026-11-14)
+
+- **OK de Sam:** «Sí, actívala», en respuesta a la pregunta de las tres condiciones: el intermedio Sectigo fijado, la banda de 15 % y 10 días, y aplicar la 0535 en producción. La pregunta y la aplicación las hizo el Director General.
+- **Migración:** `0535_bcv_rates_system_audit`, con el paquete armado desde `4b79edbe7`.
+- **COMMIT:** 2026-11-14T08:30:17Z. La `version` del ledger es `20261114083017` y el ledger pasó de 531 a 532 filas.
+- **Identidad:** md5 `414b694a36160a4ded7c64d872c723f8`, 15 455 bytes, sha256 `5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75`. La verificación del apply PASÓ.
+- **Catálogo después del apply:**
+  - `audit_fx_rate_change`: md5 del cuerpo `1526ee264a46bb9a4dfc5562d4685bc7`, SECURITY DEFINER;
+  - `bcv_rates_write_capability`: md5 `f6c418c8d7c5e55ed3941f5e825990ba`, INVOKER.
+- **Evidencias en el VPS:** `/srv/ops/evidencias/previa-0535-dtd-cargo-20261114T082844Z` y `/srv/ops/evidencias/apply-0535-dtd-cargo-20261114T083014Z`.
+- **Cierre en esta rama:** con `retirar-espera.mjs … --md5 414b694a…`, la 0535 salió de `pendingBelowCutoff`, sus declaraciones se quitaron y quedó sellada en `migrations.lock.json`. El gate de símbolos da 0 rojos y 0 amarillos, y `migrations-lock.node.mjs` da 22/22. No hubo que corregir pruebas: ninguna afirmaba la espera de la 0535. La cabecera del `.sql` no se edita, porque cambiaría el md5 aplicado.
+- **Hora del merge:** pendiente, la registra el Director General al fusionar la #527.
+- **Lo que sigue, cada paso con su ejecución por el DG:**
+  1. copiar el crontab y hacer build/up del cron;
+  2. cargar `BCV_RATE_TENANT_IDS`;
+  3. un ensayo `dryRun=1`;
+  4. poner `BCV_RATES_ENABLED=true` y publicar con el relevo.
+
+  Donde este documento dice «0535 sin aplicar» o «propuesta», es el estado anterior a esta fecha.

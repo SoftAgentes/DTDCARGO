@@ -77,3 +77,10 @@ El `node_modules` de este worktree es anterior a la dependencia directa `parse5@
 - Nunca entró a Git, porque `node_modules` está ignorado.
 - Lo quité con `rmdir` sobre el enlace después de cada corrida: después de la cabeza `93f83ab2b` y de nuevo después de las pruebas de los menores. El paquete en `.pnpm` quedó intacto.
 - Lo correcto es `pnpm install` con turno del DG. No debe quedar ningún junction a mano (ver la memoria «junction a node_modules»).
+
+## 0535 aplicada y cerrada en la #527 (2026-11-14)
+
+- El DG la aplicó en producción con el OK de Sam («Sí, actívala»): COMMIT 2026-11-14T08:30:17Z, version del ledger `20261114083017` (531 → 532 filas), md5 `414b694a36160a4ded7c64d872c723f8` y 15 455 bytes, con la verificación PASÓ. Las evidencias están en `/srv/ops/evidencias/previa-0535-dtd-cargo-20261114T082844Z` y `apply-0535-dtd-cargo-20261114T083014Z`.
+- En la #527 traje main `307eee434` una vez, retiré la espera con `retirar-espera.mjs` (queda sellada) y escribí el registro en la spec 0569. Ninguna prueba afirmaba la espera. No toqué el código revisado ni el VPS.
+- Pendiente del DG: el merge, el crontab y el cron, el scope, el `dryRun=1`, encender el flag y publicar con el relevo.
+- Aviso que le di: si el flag queda en true antes del ensayo, el tick del minuto 5 hace la carga real primero.
