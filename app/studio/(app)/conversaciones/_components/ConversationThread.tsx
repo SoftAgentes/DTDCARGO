@@ -13,6 +13,7 @@
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -47,7 +48,8 @@ const selectStyle: React.CSSProperties = {
   height: 32,
   padding: "0 10px",
   background: "var(--bg-surface)",
-  border: "1px solid var(--border)",
+  // SDD-0603 tramo 5d: contorno de campo ≥ 3:1, como `.studio-input`.
+  border: "1px solid var(--ink-soft)",
   borderRadius: "var(--r-md)",
   font: "600 12px/1 var(--f-sans)",
   color: "var(--ink)",
@@ -268,7 +270,8 @@ export function ConversationThread({
             <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginTop: 5 }}>
               <Link
                 href={`/studio/clientes?q=${encodeURIComponent(conv.markbox)}`}
-                style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}
+                className="studio-link-quiet"
+                style={{ font: "600 11.5px/1 var(--f-mono)" }}
               >
                 {conv.markbox}
               </Link>
@@ -287,7 +290,9 @@ export function ConversationThread({
             </div>
           </div>
 
-          {/* Acciones */}
+          {/* Acciones · SDD-0603 tramo 5d: «Caso» es un control con contorno de
+              tinta y, marcado, relleno de tinta. El rojo queda para el `Badge`
+              «Caso» del encabezado. */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             <button
               type="button"
@@ -295,19 +300,7 @@ export function ConversationThread({
               title={conv.is_case ? "Quitar marca de caso" : "Marcar como caso"}
               aria-label={conv.is_case ? "Quitar marca de caso" : "Marcar como caso"}
               aria-pressed={conv.is_case}
-              style={{
-                height: 32,
-                padding: "0 10px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                borderRadius: "var(--r-md)",
-                cursor: "pointer",
-                font: "600 12px/1 var(--f-sans)",
-                background: conv.is_case ? "var(--danger-bg)" : "var(--bg-elevated)",
-                color: conv.is_case ? "var(--danger)" : "var(--ink-soft)",
-                border: `1px solid ${conv.is_case ? "var(--danger)" : "var(--border)"}`,
-              }}
+              className={`studio-btn ${conv.is_case ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-xs`}
             >
               {Icon.warn(14)} Caso
             </button>
@@ -427,32 +420,26 @@ export function ConversationThread({
 
         {/* SDD-0586 1c-1: hilo del portal con la traba puesta → aviso en lugar de la caja */}
         {soloLectura && (
+          // SDD-0603 tramo 5d: franja de `Aviso` (status). Solo el texto fijo va
+          // dentro de la región viva; el enlace, que depende de la carga del
+          // hilo, queda fuera para que nada se vuelva a anunciar con cada mensaje.
           <div
-            role="note"
             style={{
               padding: "12px 14px",
               borderTop: "1px solid var(--border)",
-              background: "var(--bg-elevated)",
               display: "flex",
               alignItems: "center",
               gap: "var(--s-3)",
               flexWrap: "wrap",
             }}
           >
-            <p
-              id={avisoId}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                margin: 0,
-                font: "500 13px/1.45 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              {trabaPortal === "activa"
-                ? "Este hilo del portal se responde desde la Bandeja de Chatwoot. El estado también se cambia allá."
-                : "No se pudo comprobar si este hilo del portal se responde desde la Bandeja de Chatwoot. Recarga la página para volver a intentar."}
-            </p>
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <Aviso id={avisoId} tono={trabaPortal === "activa" ? "info" : "atencion"}>
+                {trabaPortal === "activa"
+                  ? "Este hilo del portal se responde desde la Bandeja de Chatwoot. El estado también se cambia allá."
+                  : "No se pudo comprobar si este hilo del portal se responde desde la Bandeja de Chatwoot. Recarga la página para volver a intentar."}
+              </Aviso>
+            </div>
             {puedeVerBandeja && bandeja !== null && (
               <Link href={`/studio/bandeja?c=${bandeja}`} className="studio-btn studio-btn-ghost studio-btn-sm">
                 Responder en la Bandeja →
@@ -482,15 +469,7 @@ export function ConversationThread({
                   setShowQuick(false);
                 }}
                 title={q.text}
-                style={{
-                  padding: "6px 11px",
-                  borderRadius: "var(--r-pill)",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border)",
-                  font: "600 11.5px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  cursor: "pointer",
-                }}
+                className="studio-chip"
               >
                 {q.label}
               </button>
@@ -517,19 +496,7 @@ export function ConversationThread({
               title="Respuestas rápidas"
               aria-label="Respuestas rápidas"
               aria-expanded={showQuick}
-              style={{
-                width: 38,
-                height: 38,
-                flexShrink: 0,
-                borderRadius: "var(--r-md)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                background: showQuick ? "var(--wine-tint)" : "var(--bg-elevated)",
-                color: showQuick ? "var(--wine)" : "var(--ink-soft)",
-                border: `1px solid ${showQuick ? "var(--wine)" : "var(--border)"}`,
-              }}
+              className="studio-icono-btn"
             >
               {Icon.spark(16)}
             </button>
@@ -540,38 +507,19 @@ export function ConversationThread({
               placeholder={`Responder por ${channelLabel(ch)}…`}
               rows={1}
               disabled={replyPending}
+              className="studio-input"
               style={{
                 flex: 1,
+                width: "auto",
                 resize: "none",
-                minHeight: 38,
                 maxHeight: 120,
-                padding: "9px 12px",
-                background: "var(--bg-elevated)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-md)",
                 font: "500 13px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                outline: "none",
-                opacity: replyPending ? 0.6 : 1,
               }}
             />
             <button
               type="submit"
               disabled={!draft.trim() || replyPending}
-              style={{
-                height: 38,
-                padding: "0 16px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                borderRadius: "var(--r-md)",
-                border: "none",
-                cursor: !draft.trim() || replyPending ? "not-allowed" : "pointer",
-                opacity: !draft.trim() || replyPending ? 0.55 : 1,
-                background: "var(--wine)",
-                color: "var(--ink-side-strong)",
-                font: "700 13px/1 var(--f-sans)",
-              }}
+              className="studio-btn studio-btn-primary"
             >
               {Icon.arrowR(14)} {replyPending ? "Enviando…" : "Enviar"}
             </button>
