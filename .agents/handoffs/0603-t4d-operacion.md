@@ -33,7 +33,13 @@
 
 Nuevo `tramo-4d.md`. Sin cambios en documentos canónicos (`BRAND.md`, `spec.md`, CLAUDE, registro de componentes). Graphify y Archify no se regeneraron en este worktree; quedan para el cierre del Director.
 
+## Revisión independiente
+
+- APROBÓ la #548 en `c29f344df`, sin cambios requeridos (2026-11-14, transmitido por el Subdirector Rebrand).
+
 ## Pendientes de esta tarea
+
+- Para la revisión visual de Sam: CampaignActions ahora muestra su mensaje de resultado en tono éxito; antes era texto neutro.
 
 - Revisar en la imagen de prueba antes de fusionar, sobre todo TemplateEditorDrawer («Mandar prueba»), el estado de cuenta (el título ya no va en mayúsculas), Step3Article y ClientDrawer («Cerrar» dentro del aviso).
 - Cuando la #540 entre a main, traer origin/main una sola vez. El DG lo hace al armar el tren.
@@ -42,5 +48,6 @@ Nuevo `tramo-4d.md`. Sin cambios en documentos canónicos (`BRAND.md`, `spec.md`
 
 - `RegisterReferralDrawer.tsx` tiene voseo en un texto visible («acreditá…»).
 - `DriverDrawer.tsx` (tms, fuera de la allowlist) hereda el `FormError` de TruckDrawer, que ahora pinta con `Aviso`. No se editó.
-- `CreateOdDrawer` `CapBar`: la pista de la barra usa `--ink-inv-mute` sobre `--bg-sidebar`. En oscuro casi no se ve; no es texto y el contrato no la mira.
+- `CreateOdDrawer.tsx:411`: la pista de CapBar usa `--ink-inv-mute` sobre `--bg-sidebar` y en oscuro casi no se ve. No es texto, así que `dark-theme-contrast-contract` no la mira. La revisión independiente lo confirmó.
+- El regex `CONTORNO` de `avisos-t4d-contract.test.ts` no ve fallbacks (`var(--danger, …)`) ni plantillas de texto. Lo anotó la revisión independiente.
 - Las tarjetas de alerta de flota de GpsLiveTab usan tono con borde izquierdo propio. Si se quieren como `Aviso`, hay que decidir el anuncio (`alert` al renderizar).
