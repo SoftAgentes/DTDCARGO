@@ -13,6 +13,7 @@ import {
   type ApiIntegrationActionState,
   type Webhook,
 } from "@/lib/studio/api-integration-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const FORM_ID = "webhook-form";
 const INITIAL: ApiIntegrationActionState = {};
@@ -181,5 +182,5 @@ function FieldError({ msg }: { msg?: string }) {
   return <p style={{ font: "600 11px/1.3 var(--f-sans)", color: "var(--danger)", margin: "6px 0 0" }}>{msg}</p>;
 }
 function FormError({ msg }: { msg: string }) {
-  return <div style={{ padding: "var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)" }}>{msg}</div>;
+  return <Aviso tono="error">{msg}</Aviso>;
 }

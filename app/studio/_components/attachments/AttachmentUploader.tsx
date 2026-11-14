@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { useAttachmentUpload } from "./useAttachmentUpload";
 import { useT } from "@/lib/i18n";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const STATUS_KEYS = {
   queued: "expenses.attachment.status.queued",
@@ -35,7 +36,7 @@ export function AttachmentUploader({ ownerKey, entityId }: { ownerKey: string; e
       <p style={{ margin: 0, color: "var(--ink-soft)", font: "500 11px/1.4 var(--f-sans)" }}>
         {t("expenses.attachment.limits")}
       </p>
-      {error && <p role="alert" style={{ margin: 0, color: "var(--danger)", font: "600 12px/1.4 var(--f-sans)" }}>{error}</p>}
+      {error && <Aviso tono="error" compacto>{error}</Aviso>}
       {queue.records.map((record) => (
         <div key={record.id} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "var(--s-2)", display: "flex", gap: "var(--s-2)", alignItems: "center" }}>
           <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", font: "500 12px/1.4 var(--f-sans)" }}>{record.fileName}</span>

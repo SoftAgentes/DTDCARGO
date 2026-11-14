@@ -30,6 +30,7 @@ import {
   toggleTelegramRouteAction,
   deleteTelegramDestinationAction,
 } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface Props {
   destinations: TelegramDestination[];
@@ -94,39 +95,22 @@ export function TelegramAlertsPanel({
       </p>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: 8,
-            padding: "10px 14px",
-            marginBottom: 16,
-            font: "400 13px/1.5 var(--f-sans)",
-            color: "var(--danger)",
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="error" compacto>
+            {error}
+          </Aviso>
         </div>
       )}
 
       {huerfanas.length > 0 && (
-        <div
-          style={{
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: 8,
-            padding: "12px 14px",
-            marginBottom: 20,
-            font: "400 13px/1.6 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <b>Sin chat propio todavía:</b>{" "}
-          {huerfanas.map((c) => TELEGRAM_ALERT_CATEGORY_LABELS[c]).join(" · ")}.
-          <br />
-          Mientras tanto esos avisos van a todos los administradores con Telegram
-          enlazado, para que no se pierda ninguno.
+        <div style={{ marginBottom: 20 }}>
+          <Aviso tono="atencion" compacto>
+            <b>Sin chat propio todavía:</b>{" "}
+            {huerfanas.map((c) => TELEGRAM_ALERT_CATEGORY_LABELS[c]).join(" · ")}.
+            <br />
+            Mientras tanto esos avisos van a todos los administradores con Telegram
+            enlazado, para que no se pierda ninguno.
+          </Aviso>
         </div>
       )}
 
