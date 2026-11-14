@@ -625,21 +625,32 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
   **Por qué `awk` y no `sed`:** un token con `&` o `|` rompe un `sed "s|…|$v|"`. El `awk` lee la línea guardada como archivo (`NR == FNR`), así que no interpreta nada de su valor. El `.env` se reescribe con `cat >`, que conserva el dueño y los permisos, como `pegar-secretos-web.sh`.
 
   ```bash
-  awk 'NR == FNR { l = $0; next } /^CHATWOOT_ROUTER_TOKEN=/ { print l; next } { print }' /dev/shm/router-antes.env /srv/dtd-cargo/.env > /dev/shm/env-vuelta && cat /dev/shm/env-vuelta > /srv/dtd-cargo/.env && shred -u /dev/shm/env-vuelta; grep -c '^CHATWOOT_ROUTER_TOKEN=.' /srv/dtd-cargo/.env
+  ( umask 077; trap 'shred -u /dev/shm/env-vuelta 2>/dev/null' EXIT; [ -s /dev/shm/router-antes.env ] && awk 'NR == FNR { l = $0; next } /^CHATWOOT_ROUTER_TOKEN=/ { print l; next } { print }' /dev/shm/router-antes.env /srv/dtd-cargo/.env > /dev/shm/env-vuelta && cat /dev/shm/env-vuelta > /srv/dtd-cargo/.env ) || echo 'FALLO vuelta: el .env no se tocó'; test ! -e /dev/shm/env-vuelta && echo 'HECHO sin copia'; grep -c '^CHATWOOT_ROUTER_TOKEN=.' /srv/dtd-cargo/.env
   ```
+
+  **Las tres guardas del comando:**
+  - **`[ -s /dev/shm/router-antes.env ]`:** si la línea guardada no existe o está vacía, el `awk` saldría 0 sin escribir nada, y el `cat >` vaciaría el `.env`. Con la guarda, no se toca y sale `FALLO vuelta`.
+  - **`umask 077` en el mismo comando:** `/dev/shm/env-vuelta` es una copia completa del `.env`; nace `0600` aunque la sesión haya perdido el `umask` del punto 1.
+  - **El `trap … EXIT` del subshell:** el `shred -u` de esa copia corre también si el `awk` o el `cat` fallan. `HECHO sin copia` lo comprueba.
 
   ```bash
   v=$(sed -n 's/^CHATWOOT_ROUTER_TOKEN=//p' /srv/dtd-cargo/.env | head -n 1 | tr -d "'\""); printf 'HECHO env sha8=%s\n' "$(printf '%s' "$v" | sha256sum | cut -c1-8)"; unset v
   ```
 
   **Para seguir:**
-  - `1`;
-  - el `sha8` es el mismo `HECHO env sha8=` del punto 1, el de antes del arreglo. **Si no lo es, se para:** el `.env` no volvió a como estaba.
+  - ningún `FALLO vuelta`, `HECHO sin copia` y `1`;
+  - el `sha8` es el de la línea `HECHO env largo=… sha8=…` del punto 1, el de antes del arreglo. **Si no lo es, se para:** el `.env` no volvió a como estaba.
 
   **Probado en local el 2026-11-11,** con Git Bash, con `CHATWOOT_ROUTER_TOKEN='a&b|c\d'`:
   - la línea vuelve byte a byte (`cmp` contra la guardada da igual);
   - `grep -c` da 1, y el `sha8` es el de antes;
   - con el `sed` de antes, ese mismo valor sale con `unknown option to 's'` y deja la línea vacía.
+
+  **Las guardas, probadas en local el 2026-11-14** con el comando sacado del archivo, sobre un `.env` simulado:
+  - con `router-antes.env` vacío o ausente: `FALLO vuelta`, `HECHO sin copia`, y el `.env` queda igual (mismo `md5`);
+  - con el `cat >` fallando: `FALLO vuelta`, y la copia ya no está, porque el `trap` la borró;
+  - en el caso feliz: `HECHO sin copia`, `1`, la línea igual con `cmp` y el `sha8` `5eec48dd`.
+  - **No probado:** que la copia nazca `0600`. Git Bash sobre NTFS muestra `644` con cualquier `umask`; se ve en el VPS.
 
   **El OK nominal:** «¿Autorizas reemplazar en `/srv/dtd-cargo/.env` el `CHATWOOT_ROUTER_TOKEN` viejo por el token vigente del usuario de servicio 1 (con `pegar-secretos-web.sh`, sin mostrarlo), en el mismo recreado de la web del 5a y con la misma imagen que corre?»
 - **Recrear la web:** `cd /srv/dtd-cargo && docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`.
