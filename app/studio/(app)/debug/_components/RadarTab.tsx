@@ -31,6 +31,7 @@ import {
 } from "@/lib/studio/radar-types";
 import { Badge } from "../../../_components/ui/Badge";
 import { EmptyState } from "../../../_components/ui/EmptyState";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function RadarTab({
   report,
@@ -85,60 +86,34 @@ function RadarBanner({
 }) {
   const isWeb = env === "preview" || env === "production";
 
-  // Web = warning (limitación real); local = neutral (todo ok, informe local).
-  const accent = isWeb ? "var(--warning)" : "var(--ink-mute)";
-  const bg = isWeb ? "var(--warning-bg)" : "var(--neutral-bg)";
+  // Web = atención (limitación real); local = información.
 
   return (
-    <div
-      role="status"
-      data-radar-mode={isWeb ? "web" : "local"}
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "var(--s-3)",
-        background: bg,
-        border: `1px solid ${accent}`,
-        borderRadius: "var(--r-md)",
-        padding: "var(--s-3) var(--s-4)",
-        fontSize: 12.5,
-        lineHeight: 1.5,
-        color: "var(--ink-soft)",
-      }}
-    >
-      <span
-        aria-hidden
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: accent,
-          flexShrink: 0,
-          marginTop: "var(--s-1)",
-        }}
-      />
-      {isWeb ? (
-        <span>
-          <strong style={{ color: "var(--ink)" }}>
-            El Radar no es funcional en la web
-          </strong>{" "}
-          — corre solo en local con{" "}
-          <code style={{ fontFamily: "var(--f-mono)" }}>/radar</code> en Claude
-          Code. Lo que ves es el{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            último informe generado en local
-          </strong>
-          {generatedAt ? <> (generado {generatedAt})</> : null};{" "}
-          <strong style={{ color: "var(--ink)" }}>no se actualiza acá</strong>.
-        </span>
-      ) : (
-        <span>
-          <strong style={{ color: "var(--ink)" }}>Último informe local</strong> ·
-          regenerá corriendo{" "}
-          <code style={{ fontFamily: "var(--f-mono)" }}>/radar</code> en Claude
-          Code.
-        </span>
-      )}
+    <div data-radar-mode={isWeb ? "web" : "local"}>
+      <Aviso tono={isWeb ? "atencion" : "info"} compacto>
+        {isWeb ? (
+          <span>
+            <strong>
+              El Radar no es funcional en la web
+            </strong>{" "}
+            — corre solo en local con{" "}
+            <code style={{ fontFamily: "var(--f-mono)" }}>/radar</code> en Claude
+            Code. Lo que ves es el{" "}
+            <strong>
+              último informe generado en local
+            </strong>
+            {generatedAt ? <> (generado {generatedAt})</> : null};{" "}
+            <strong>no se actualiza acá</strong>.
+          </span>
+        ) : (
+          <span>
+            <strong>Último informe local</strong> ·
+            regenerá corriendo{" "}
+            <code style={{ fontFamily: "var(--f-mono)" }}>/radar</code> en Claude
+            Code.
+          </span>
+        )}
+      </Aviso>
     </div>
   );
 }

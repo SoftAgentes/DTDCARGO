@@ -19,65 +19,40 @@
  */
 
 import type { EnvName } from "@/lib/studio/env-status";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const SNAPSHOT_SRC = "/norte.html";
 
 export function NorteTab({ env }: { env: EnvName }) {
   const isWeb = env === "preview" || env === "production";
 
-  // Tonos del sistema: web = warning (limitación real), local = success (todo ok).
-  const accent = isWeb ? "var(--warning)" : "var(--success)";
-  const bg = isWeb ? "var(--warning-bg)" : "var(--success-bg)";
+  // Web = atención (limitación real); local = información.
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       {/* Banner de limitación OBLIGATORIO (mode-aware) */}
-      <div
-        role="status"
-        data-norte-mode={isWeb ? "web" : "local"}
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "var(--s-3)",
-          background: bg,
-          border: `1px solid ${accent}`,
-          borderRadius: "var(--r-md)",
-          padding: "var(--s-3) var(--s-4)",
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          color: "var(--ink-soft)",
-        }}
-      >
-        <span
-          aria-hidden
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: accent,
-            flexShrink: 0,
-            marginTop: "var(--s-1)",
-          }}
-        />
-        {isWeb ? (
-          <span>
-            <strong style={{ color: "var(--ink)" }}>Snapshot del último deploy.</strong>{" "}
-            La versión viva e interactiva del Norte es{" "}
-            <strong style={{ color: "var(--ink)" }}>local</strong> (
-            <code style={{ fontFamily: "var(--f-mono)" }}>node scripts/norte.mjs</code> →{" "}
-            <code style={{ fontFamily: "var(--f-mono)" }}>:3010</code>). En la web, los
-            links <strong>&ldquo;Abrir ↗&rdquo;</strong> a los mockups individuales{" "}
-            <strong style={{ color: "var(--ink)" }}>no funcionan</strong> (solo local).
-          </span>
-        ) : (
-          <span>
-            <strong style={{ color: "var(--ink)" }}>Snapshot local.</strong>{" "}
-            Regeneralo con{" "}
-            <code style={{ fontFamily: "var(--f-mono)" }}>node scripts/norte.mjs</code>.
-            La versión navegable completa la sirves en{" "}
-            <code style={{ fontFamily: "var(--f-mono)" }}>:3010</code>.
-          </span>
-        )}
+      <div data-norte-mode={isWeb ? "web" : "local"}>
+        <Aviso tono={isWeb ? "atencion" : "info"} compacto>
+          {isWeb ? (
+            <span>
+              <strong>Snapshot del último deploy.</strong>{" "}
+              La versión viva e interactiva del Norte es{" "}
+              <strong>local</strong> (
+              <code style={{ fontFamily: "var(--f-mono)" }}>node scripts/norte.mjs</code> →{" "}
+              <code style={{ fontFamily: "var(--f-mono)" }}>:3010</code>). En la web, los
+              links <strong>&ldquo;Abrir ↗&rdquo;</strong> a los mockups individuales{" "}
+              <strong>no funcionan</strong> (solo local).
+            </span>
+          ) : (
+            <span>
+              <strong>Snapshot local.</strong>{" "}
+              Regeneralo con{" "}
+              <code style={{ fontFamily: "var(--f-mono)" }}>node scripts/norte.mjs</code>.
+              La versión navegable completa la sirves en{" "}
+              <code style={{ fontFamily: "var(--f-mono)" }}>:3010</code>.
+            </span>
+          )}
+        </Aviso>
       </div>
 
       {/* Snapshot embebido */}

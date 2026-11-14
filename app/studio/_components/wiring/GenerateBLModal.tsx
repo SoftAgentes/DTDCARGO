@@ -14,6 +14,7 @@ import { createClient } from "@/lib/db/client";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ModalShell } from "./ProfileModal";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 type BLType = "OR" | "CP" | "SW";
 
@@ -119,21 +120,14 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                   Cargando embarques…
                 </div>
               ) : shipments.length === 0 ? (
-                <div
-                  style={{
-                    marginTop: 6,
-                    padding: 12,
-                    background: "var(--warning-bg)",
-                    color: "var(--warning)",
-                    borderRadius: "var(--r-sm)",
-                    font: "500 12.5px/1.4 var(--f-sans)",
-                  }}
-                >
-                  No hay embarques activos. Crea uno desde{" "}
-                  <a href="/studio/embarques" style={{ color: "var(--wine-text)" }}>
-                    Embarques
-                  </a>{" "}
-                  primero.
+                <div style={{ marginTop: 6 }}>
+                  <Aviso tono="atencion" compacto>
+                    No hay embarques activos. Crea uno desde{" "}
+                    <a href="/studio/embarques" style={{ color: "var(--wine-text)" }}>
+                      Embarques
+                    </a>{" "}
+                    primero.
+                  </Aviso>
                 </div>
               ) : (
                 <select
@@ -238,24 +232,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            <div
-              style={{
-                padding: 18,
-                background: "var(--success-bg)",
-                border: "1px solid var(--success)",
-                borderRadius: "var(--r-md)",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  font: "900 16px/1.2 var(--f-display)",
-                  color: "var(--success)",
-                  marginBottom: 6,
-                }}
-              >
-                BL generado
-              </div>
+            <Aviso tono="exito" titulo="BL generado">
               <code
                 style={{
                   font: "900 18px/1 var(--f-mono)",
@@ -264,7 +241,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
               >
                 {generatedCode}
               </code>
-            </div>
+            </Aviso>
 
             {selectedShipment && (
               <div

@@ -14,6 +14,7 @@ import {
   updatePrealertaAddonConfigAction,
   type AddonConfigState,
 } from "../recepcion-addons-actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function RecepcionAddonsSection({
   addons,
@@ -185,16 +186,11 @@ function AddonConfigRow({ addon }: { addon: PrealertaAddon }) {
       </div>
 
       {state.error && (
-        <p
-          role="alert"
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: "10px 0 0",
-          }}
-        >
-          {state.error}
-        </p>
+        <div style={{ marginTop: 10 }}>
+          <Aviso tono="error" compacto>
+            {state.error}
+          </Aviso>
+        </div>
       )}
     </form>
   );

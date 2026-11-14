@@ -17,6 +17,7 @@ import {
 } from "../actions";
 import type { DispatchCity, RoutesActionState } from "@/lib/studio/dispatch-routes-types";
 import type { VeLocalityEntry } from "@/lib/studio/ve-catalog-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const FORM_ID = "city-drawer-form";
 const INITIAL_STATE: RoutesActionState = {};
@@ -287,17 +288,7 @@ export function CityDrawer({
         </div>
 
         {state?.error && (
-          <div
-            style={{
-              padding: 12,
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "600 13px/1.3 var(--f-sans)",
-            }}
-          >
-            {state.error}
-          </div>
+          <Aviso tono="error">{state.error}</Aviso>
         )}
       </form>
 
