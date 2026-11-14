@@ -86,3 +86,11 @@ No es asesoría legal: es un inventario técnico.
 ## Impacto documental
 
 Cambian la spec 0586 §10.5.10 (el párrafo y la casilla), el runbook de las puertas (3.1 y «Antes de la puerta 4») y el guion de las puertas 3 y 4 (3.1). No hay cambios en Obsidian ni en Graphify desde esta rama.
+
+## El rojo del job 132577863038 (cabeza 963a7bfc5)
+
+- **Qué pasó:** R1 falló con `HECHO flag=cola` y `HECHO error=la_cola_corrio`. El fixture de la 0523 trae una salida «enviado» de hC (`salida_enviado=1`), y `deshacer.sh` se niega con eso, como debe. R2 y R3 cayeron en cascada, porque faltaba el `.ndjson` del seco (`sin_contactos_conservados`). R4 y RT cayeron por arrastre.
+- **El arreglo, solo en la prueba:** igual que `prueba-deshacer.sh:171`, la sección R pasa esa salida a «cargado» en la producción simulada antes de correr. En producción, antes de la puerta 4, la cola nunca corrió (runbook, 4.3). El ensayo no cambia su criterio.
+- **El log:** la etapa escribe ahora el código de salida y el primer `HECHO error=` de cada paso (`desarme-seco`, `desarme-1b` y `desarme-studio`), y la prueba los copia al log del CI.
+- **El `mensajes:7` frente a los 6 de E2:** `despues=` cuenta toda la bandeja después de la carga, y el seco cuenta lo mismo. Por eso R1 compara esos dos números, y no los `mensajes_nuevos`.
+- **R3 y C-8:** R3 no usa los controles de K. Toma sus propias fotos, `controles-desarme-antes.txt` y `controles-desarme-despues.txt`, justo antes y después de `deshacer-vinculos.sh`. Las líneas `controles_antes` y `controles_despues` de la evidencia son las de K: antes y después de la carga.

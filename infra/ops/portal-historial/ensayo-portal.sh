@@ -888,19 +888,22 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
         bash "$AQUI/deshacer.sh" >"$1" 2>&1
       echo "HECHO salida_proceso=$?" >>"$1"
     }
+    # En el log de la corrida, de cada paso: el código de salida y su primer HECHO error= (solo HECHO, sin datos de
+    # personas). Así un rojo se lee sin bajar la evidencia (pedido del Subdirector tras el job 132577863038).
+    informar() { log "   $1: salida $(h "$DIR/$1.txt" salida_proceso), $(grep -m 1 "^HECHO error=" "$DIR/$1.txt" || echo "HECHO error=ninguno")"; }
     R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"
     if desarme_es_la_copia "$R_DB" "$R_CW"; then
       ok R0 "el desarme corre solo en las copias: $R_DB y $R_CW son del proyecto $PROYECTO, en $RED"
       evidencia "HECHO desarme_guarda=ok"
       DURABLE_ANTES="$(durable_foto)"
       CARGADO="$(h "$DIR/carga-2.txt" despues)"
-      deshacer_cw "$DIR/desarme-seco.txt" seco; paso desarme-seco
+      deshacer_cw "$DIR/desarme-seco.txt" seco; paso desarme-seco; informar desarme-seco
       F="$DIR/desarme-seco.txt"
       R1_ANTES="$(h "$F" antes)"
       exigir R1 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO deshacer=ok" "$F" && [ -n "$CARGADO" ] && [ "$R1_ANTES" = "$CARGADO" ] && [ "${CARGADO#conversaciones:0,}" = "$CARGADO" ] && [ -s "$SHM/chatwoot-seco.hecho" ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
         "deshacer.sh en seco ve exactamente lo cargado ($R1_ANTES, la carga dejó $CARGADO), con $(h "$F" contactos_a_borrar) contactos a borrar y el contenedor limpio"
       CW_ANTES="$(bandeja_cw)"
-      deshacer_cw "$DIR/desarme-1b.txt" borrar no; paso desarme-1b
+      deshacer_cw "$DIR/desarme-1b.txt" borrar no; paso desarme-1b; informar desarme-1b
       CW_DESPUES="$(bandeja_cw)"
       evidencia "HECHO desarme_cw_antes=$CW_ANTES" "HECHO desarme_cw_despues=$CW_DESPUES"
       F="$DIR/desarme-1b.txt"
@@ -918,7 +921,7 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
         ESPERADOS_CONTACTOS="$ESP_CONTACTOS" ESPERADOS_ESPEJO="$ESP_ESPEJO" ENTORNO=copia MODO=ensayo \
         bash "$DESHACER_VINCULOS" >"$DIR/desarme-studio.txt" 2>&1
       echo "HECHO salida_proceso=$?" >>"$DIR/desarme-studio.txt"
-      paso desarme-studio
+      paso desarme-studio; informar desarme-studio
       CTL "$DIR/controles-desarme-despues.txt"
       Z="$DIR/controles-desarme-despues.txt"
       F="$DIR/desarme-studio.txt"

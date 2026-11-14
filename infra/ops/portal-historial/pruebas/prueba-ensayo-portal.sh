@@ -499,6 +499,12 @@ docker exec -i "$PG_SIM" psql -X -q -At -v ON_ERROR_STOP=1 -U chatwoot -d chatwo
   "delete from messages where inbox_id = $BANDEJA; delete from conversations where inbox_id = $BANDEJA;
    delete from contacts where id in (select contact_id from contact_inboxes where inbox_id = $BANDEJA) and (phone_number is not null or email is not null);
    delete from contact_inboxes where inbox_id = $BANDEJA;" >"$TRABAJO/r-sin-marcas.txt" 2>&1
+# El fixture de la 0523 trae una salida «enviado» de hC (la cola corrió para él), y deshacer.sh se niega con eso
+# (la_cola_corrio), como debe: en producción, antes de la puerta 4, la cola nunca corrió (runbook, 4.3). Igual que en
+# prueba-deshacer.sh, aquí pasa a «cargado» (el rojo del job 132577863038).
+qs "update public.chatwoot_portal_salida set estado = 'cargado' where tenant_id = '$TENANT' and estado <> 'cargado'" >>"$TRABAJO/r-sin-marcas.txt" 2>&1
+[ "$(qs "select count(*) from public.chatwoot_portal_salida where tenant_id = '$TENANT' and estado <> 'cargado'")" = 0 ] \
+  || echo "quedan salidas que no están cargado" >>"$TRABAJO/r-sin-marcas.txt"
 foto_sim >"$TRABAJO/sim-antes.txt" 2>&1
 # comprobar_r salida: la corrida con el desarme. R-R0 a R-R4 son las líneas PASÓ del ensayo; RT, que salió con 0 y limpió
 # todo, sin dejar /dev/shm/portal-historial; RP, la producción simulada sin cambios. RG, solo en los mutantes de la
@@ -518,7 +524,7 @@ comprobar_r() { # salida [rg]
 grep -q . "$TRABAJO/r-sin-marcas.txt" && mal R "no se pudo dejar la bandeja simulada sin marcas: $(head -c 300 "$TRABAJO/r-sin-marcas.txt")"
 ensayo "$PHV" "$TRABAJO/r.txt" ENSAYO_PRUEBA=1 ENSAYO_SIN_DESARME= --
 comprobar_r "$TRABAJO/r.txt"
-grep -E '^(PASÓ|FALLÓ) R' "$TRABAJO/r.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN"
+grep -E '^(PASÓ|FALLÓ) R|^   desarme-' "$TRABAJO/r.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN"
 if [ "$MUTANTES" = 1 ]; then
   # Los mutantes de la guarda del desarme, cada uno en su caso: apuntar a la producción simulada se niega (RG pasa y
   # R-R0 cae), y sin la guarda ya no se niega (RG cae).
