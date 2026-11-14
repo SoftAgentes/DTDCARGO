@@ -411,7 +411,7 @@ Revisión con `revisar-datos-ve` en [`privacidad.md`](privacidad.md). Lo princip
 ## 10. Decisiones de Sam
 
 **Respuestas de Sam del 2026-11-14.** Dadas en la pantalla del Subdirector SEO y relatadas al Director
-General, que las reconfirma con Sam. Se transcribe la opción elegida, textualmente.
+General, que las reconfirmó con Sam. Se transcribe la opción elegida, textualmente.
 
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
@@ -429,10 +429,10 @@ General, que las reconfirma con Sam. Se transcribe la opción elegida, textualme
 |---|---|
 | D1 | «k = 5» |
 | D2 | «Usuario propio con su token» |
-| D3 | «Modelo de lenguaje». **Pendiente de reconfirmación del Director General:** no es la recomendación (⭐ determinista en v1; el modelo solo después de medir lo determinista y con su propia revisión de privacidad). Hasta su respuesta no es una decisión de la spec |
+| D3 | «Modelo de lenguaje». No es la recomendación (⭐ determinista en v1; el modelo solo después de medir lo determinista y con su propia revisión de privacidad). **Reconfirmada por Sam el 2026-11-14** en el chat del Director General: «Sí, confirmo las tres decisiones». Es decisión de la spec; medir antes y la revisión de privacidad propia siguen siendo exigencias de la PR del código |
 | D4 | «Sí, una vez» (con OK nominal de Sam cuando llegue el momento) |
 | D5 | «Chatwoot sin el texto del correo» |
 | D6 | «Webhook a #datos-marketing» |
-| D7 | «Solo sumarla». **Pendiente de reconfirmación del Director General:** no es la recomendación (⭐ sumarla y que la abogada confirme). Hasta su respuesta no es una decisión de la spec |
+| D7 | «Solo sumarla» (sin consultar a la abogada). No es la recomendación (⭐ sumarla y que la abogada confirme). **Reconfirmada por Sam el 2026-11-14** en el chat del Director General: «Sí, confirmo las tres decisiones». Es decisión de la spec |
 | D8 | «Semanal, lunes 07:00» |
 | D9 | «24 meses» |
