@@ -159,32 +159,26 @@ export function KommoBoardView({
   return (
     <div>
       {/* Selector de embudo (links · sin JS de cliente) */}
-      <div
-        role="tablist"
-        aria-label="Embudos"
-        style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}
-      >
-        {pipelines.map((p) => {
-          const isActive = p.id === activeId;
-          return (
-            <Link
-              key={p.id}
-              href={`/studio/crm?tab=tablero&pipeline=${p.id}`}
-              role="tab"
-              aria-selected={isActive}
-              className="studio-btn studio-btn-sm"
-              style={{
-                background: isActive ? "var(--bg-elevated)" : "transparent",
-                border: isActive ? "1px solid var(--border)" : "1px solid transparent",
-                color: isActive ? "var(--ink)" : "var(--ink-soft)",
-                fontWeight: isActive ? 700 : 500,
-                textDecoration: "none",
-              }}
-            >
-              {p.name ?? `Embudo #${p.id}`}
-            </Link>
-          );
-        })}
+      {/* SDD-0603 tramo 5d: la clase única de pestañas; el activo va con
+          relleno de tinta (BD-037). El margen va en el envoltorio. */}
+      <div style={{ marginBottom: 16 }}>
+        <div role="tablist" aria-label="Embudos" className="studio-tabs">
+          {pipelines.map((p) => {
+            const isActive = p.id === activeId;
+            return (
+              <Link
+                key={p.id}
+                href={`/studio/crm?tab=tablero&pipeline=${p.id}`}
+                role="tab"
+                aria-selected={isActive}
+                data-activa={isActive ? "true" : undefined}
+                className="studio-tab"
+              >
+                {p.name ?? `Embudo #${p.id}`}
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {cols.length === 0 ? (

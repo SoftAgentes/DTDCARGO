@@ -8,7 +8,7 @@
  */
 
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
-import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   CHANNEL_LABELS,
@@ -19,16 +19,6 @@ import {
   type ConversationRow,
   type ConversationStatusFilter,
 } from "@/lib/studio/conversaciones/conversations-types";
-
-/** Tokens bg/fg por tono (misma convención que el primitive Badge). */
-const TONE_TOKENS: Record<BadgeTone, { bg: string; fg: string }> = {
-  success: { bg: "var(--success-bg)", fg: "var(--success)" },
-  warning: { bg: "var(--warning-bg)", fg: "var(--warning)" },
-  danger: { bg: "var(--danger-bg)", fg: "var(--danger)" },
-  info: { bg: "var(--info-bg)", fg: "var(--info)" },
-  wine: { bg: "var(--wine-tint)", fg: "var(--wine)" },
-  neutral: { bg: "var(--neutral-bg)", fg: "var(--ink-soft)" },
-};
 
 interface Props {
   list: ConversationRow[];
@@ -96,7 +86,8 @@ export function ConversationList({
             height: 34,
             padding: "0 10px",
             background: "var(--bg-elevated)",
-            border: "1px solid var(--border)",
+            // SDD-0603 tramo 5d: contorno de campo ≥ 3:1, como `.studio-input`.
+            border: "1px solid var(--ink-soft)",
             borderRadius: "var(--r-md)",
           }}
         >
@@ -119,8 +110,10 @@ export function ConversationList({
           />
         </div>
 
-        {/* Tabs de estado */}
-        <div style={{ display: "flex", gap: "var(--s-1)" }}>
+        {/* Filtro de estado · SDD-0603 tramo 5d: chip con contorno, 32 px y
+            relleno de tinta en el elegido (BD-037). Sigue siendo un grupo de
+            botones `aria-pressed`, no un tablist. */}
+        <div style={{ display: "flex", gap: "var(--s-1)", flexWrap: "wrap" }}>
           {STATUS_TABS.map((t) => {
             const active = statusFilter === t.value;
             return (
@@ -129,16 +122,8 @@ export function ConversationList({
                 type="button"
                 onClick={() => setStatusFilter(t.value)}
                 aria-pressed={active}
-                style={{
-                  flex: 1,
-                  padding: "6px 4px",
-                  borderRadius: "var(--r-sm)",
-                  border: "none",
-                  cursor: "pointer",
-                  font: `${active ? "700" : "500"} 11px/1 var(--f-sans)`,
-                  background: active ? "var(--wine-tint)" : "transparent",
-                  color: active ? "var(--wine)" : "var(--ink-soft)",
-                }}
+                data-activo={active ? "true" : undefined}
+                className="studio-chip"
               >
                 {t.label}
               </button>
@@ -147,10 +132,9 @@ export function ConversationList({
         </div>
 
         {/* Chips de canal */}
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <ChannelChip
             active={channelFilter === "all"}
-            tone="neutral"
             onClick={() => setChannelFilter("all")}
           >
             Todos
@@ -159,7 +143,6 @@ export function ConversationList({
             <ChannelChip
               key={ch}
               active={channelFilter === ch}
-              tone={channelTone(ch)}
               onClick={() => setChannelFilter(ch)}
             >
               {CHANNEL_LABELS[ch as ConversationChannel]}
@@ -188,21 +171,19 @@ export function ConversationList({
             (c.last_message_direction === "out" ? "Tú: " : "") +
             (c.last_message_preview ?? "");
           return (
-            <button
+            // SDD-0603 tramo 5d: la fila sigue abriendo con el ratón, pero sale
+            // del orden de Tab; la parada de teclado y de lector es «Abrir».
+            // La elegida se marca con tinta (contorno y relleno del botón).
+            <div
               key={c.id}
-              type="button"
-              onClick={() => onSelect(c.id)}
-              aria-current={isSel ? "true" : undefined}
               style={{
-                width: "100%",
-                textAlign: "left",
-                display: "block",
-                padding: "12px 14px",
-                border: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--s-2)",
+                padding: "0 14px 0 0",
                 borderBottom: "1px solid var(--border)",
-                borderLeft: `3px solid ${isSel ? "var(--wine)" : "transparent"}`,
-                background: isSel ? "var(--wine-tint)" : "transparent",
-                cursor: "pointer",
+                borderLeft: `3px solid ${isSel ? "var(--ctl-border)" : "transparent"}`,
+                background: isSel ? "var(--bg-elevated)" : "transparent",
                 transition: "background var(--dur-fast) var(--ease)",
               }}
               onMouseEnter={(e) => {
@@ -210,6 +191,23 @@ export function ConversationList({
               }}
               onMouseLeave={(e) => {
                 if (!isSel) e.currentTarget.style.background = "transparent";
+              }}
+            >
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => onSelect(c.id)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                textAlign: "left",
+                display: "block",
+                padding: "12px 0 12px 14px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: "inherit",
+                font: "inherit",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginBottom: 5 }}>
@@ -290,6 +288,18 @@ export function ConversationList({
                 )}
               </div>
             </button>
+              <button
+                type="button"
+                className={`studio-btn ${isSel ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-sm`}
+                aria-label={`Abrir conversación de ${c.client_name} por ${CHANNEL_LABELS[c.channel]}`}
+                aria-current={isSel ? "true" : undefined}
+                onClick={() => onSelect(c.id)}
+                style={{ flex: "0 0 auto" }}
+              >
+                Abrir
+                {Icon.chevR(14)}
+              </button>
+            </div>
           );
         })}
       </div>
@@ -299,30 +309,20 @@ export function ConversationList({
 
 function ChannelChip({
   active,
-  tone,
   onClick,
   children,
 }: {
   active: boolean;
-  tone: BadgeTone;
   onClick: () => void;
   children: React.ReactNode;
 }) {
-  const t = TONE_TOKENS[tone];
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      style={{
-        padding: "4px 9px",
-        borderRadius: "var(--r-pill)",
-        cursor: "pointer",
-        font: `${active ? "700" : "500"} 10.5px/1 var(--f-sans)`,
-        background: active ? t.bg : "var(--bg-elevated)",
-        color: active ? t.fg : "var(--ink-soft)",
-        border: `1px solid ${active ? t.fg : "transparent"}`,
-      }}
+      data-activo={active ? "true" : undefined}
+      className="studio-chip"
     >
       {children}
     </button>

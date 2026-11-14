@@ -17,6 +17,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
@@ -95,21 +96,20 @@ export function TarjetaFichaDrawer({
           </p>
         )}
         {estado.fase === "error" && (
-          <div role="alert">
-            <p style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink)", margin: "0 0 var(--s-3)" }}>
-              {estado.mensaje}
-            </p>
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost studio-btn-sm"
-              onClick={() => {
+          // SDD-0603 tramo 5d: el error de cargar el panel recién abierto es
+          // un `Aviso` de error (alert), con «Reintentar» como su acción.
+          <Aviso
+            tono="error"
+            accion={{
+              etiqueta: "Reintentar",
+              onClick: () => {
                 setEstado({ fase: "cargando" });
                 setVersion((v) => v + 1);
-              }}
-            >
-              Reintentar
-            </button>
-          </div>
+              },
+            }}
+          >
+            {estado.mensaje}
+          </Aviso>
         )}
         {estado.fase === "lista" && (
           <Ficha ficha={estado.ficha} etapas={etapas} canEdit={canEdit} onCambio={recargar} />
