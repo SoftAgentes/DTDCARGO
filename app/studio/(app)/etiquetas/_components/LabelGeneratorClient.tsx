@@ -11,6 +11,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { FORMATS, Label, type LabelFormat, warehouseAddress } from "./Label";
 import { SupplierMessageModal } from "./SupplierMessageModal";
@@ -571,22 +572,14 @@ function LabelGeneratorInner({
             </label>
           </Card>
 
-          <div
-            style={{
-              padding: "10px 12px",
-              background: "var(--info-bg)",
-              color: "var(--info)",
-              borderRadius: "var(--r-sm)",
-              font: "500 11.5px/1.5 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="info" compacto>
             Al imprimir, el navegador abre el diálogo del sistema. Elige{" "}
             <b>&quot;Guardar como PDF&quot;</b> como destino. Tamaño de papel:{" "}
             <b>
               {format.page.w}×{format.page.h} mm
             </b>
             .
-          </div>
+          </Aviso>
         </div>
 
         {/* Preview */}

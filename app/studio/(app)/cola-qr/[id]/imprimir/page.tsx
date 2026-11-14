@@ -21,6 +21,7 @@
  */
 
 import Link from "next/link";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { FORMATS } from "@/lib/studio/etiquetas-formats";
@@ -111,39 +112,21 @@ export default async function ImprimirOrdenPage({
         </p>
 
         {!order.receipt_id ? (
-          <p
-            style={{
-              marginTop: "var(--s-3)",
-              padding: "10px 14px",
-              background: "var(--warning-bg)",
-              borderLeft: "3px solid var(--warning)",
-              borderRadius: "var(--r-md)",
-              font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink)",
-              maxWidth: 640,
-            }}
-          >
-            Esta orden es anterior a la estiba por zonas: no sabemos de qué recepción salió, así
-            que las etiquetas van sin código de caja. Sirven para rotular, pero{" "}
-            <strong>no se pueden escanear al estibar</strong>. Manda a imprimir desde una
-            recepción nueva para que lleven código.
-          </p>
+          <div style={{ marginTop: "var(--s-3)", maxWidth: 640 }}>
+            <Aviso tono="atencion" compacto>
+              Esta orden es anterior a la estiba por zonas: no sabemos de qué recepción salió, así
+              que las etiquetas van sin código de caja. Sirven para rotular, pero{" "}
+              <strong>no se pueden escanear al estibar</strong>. Manda a imprimir desde una
+              recepción nueva para que lleven código.
+            </Aviso>
+          </div>
         ) : boxes.length === 0 ? (
-          <p
-            style={{
-              marginTop: "var(--s-3)",
-              padding: "10px 14px",
-              background: "var(--danger-bg)",
-              borderLeft: "3px solid var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "500 12.5px/1.5 var(--f-sans)",
-              color: "var(--ink)",
-              maxWidth: 640,
-            }}
-          >
-            La recepción no tiene cajas registradas. Revisa que el conteo de bultos sea mayor a
-            cero.
-          </p>
+          <div style={{ marginTop: "var(--s-3)", maxWidth: 640 }}>
+            <Aviso tono="error" compacto>
+              La recepción no tiene cajas registradas. Revisa que el conteo de bultos sea mayor a
+              cero.
+            </Aviso>
+          </div>
         ) : (
           <p
             style={{

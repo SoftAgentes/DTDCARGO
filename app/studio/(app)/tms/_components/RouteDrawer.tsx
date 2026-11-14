@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { createRouteAction } from "../actions";
 import type { EligibleShipmentForRoute } from "@/lib/studio/tms-queries";
 import type {
@@ -133,20 +134,11 @@ export function RouteDrawer({
             Embarque a entregar <span style={{ color: "var(--wine-text)" }}>*</span>
           </label>
           {eligibleShipments.length === 0 ? (
-            <div
-              style={{
-                padding: "10px 12px",
-                background: "var(--warning-bg)",
-                border: "1px solid var(--warning)",
-                borderRadius: "var(--r-sm)",
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-              }}
-            >
+            <Aviso tono="atencion" compacto>
               No hay embarques liberados de aduana esperando reparto. Crear
               ruta requiere shipment con status{" "}
               <strong>arrived_destination</strong>.
-            </div>
+            </Aviso>
           ) : (
             <select
               id="tms-route-shipment"
@@ -382,29 +374,11 @@ export function RouteDrawer({
           placeholder="Horarios de carga, contacto en destino, observaciones…"
         />
 
-        <div
-          style={{
-            padding: "12px 14px",
-            background: "var(--info-bg)",
-            borderRadius: "var(--r-md)",
-            display: "flex",
-            gap: 10,
-          }}
-        >
-          <span style={{ color: "var(--info)", flexShrink: 0 }}>
-            {Icon.box(13)}
-          </span>
-          <div
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
-            Al crear la ruta el shipment pasa a <b>En reparto</b> y el camión +
-            chofer quedan <b>en_ruta</b>. La notificación automática al chofer
-            por WhatsApp llega con SDD-0019.2.
-          </div>
-        </div>
+        <Aviso tono="info" compacto>
+          Al crear la ruta el shipment pasa a <b>En reparto</b> y el camión +
+          chofer quedan <b>en_ruta</b>. La notificación automática al chofer
+          por WhatsApp llega con SDD-0019.2.
+        </Aviso>
 
         {state.error && <FormError msg={state.error} />}
         <div style={{ flex: 1, minHeight: 12 }} />

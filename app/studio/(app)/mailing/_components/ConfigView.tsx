@@ -11,6 +11,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { updateMailConfigAction } from "../actions";
 import { INITIAL_MAILING_STATE, type MailConfigRow } from "./mailing-types";
 
@@ -179,35 +180,9 @@ export function ConfigView({ config }: Props) {
           </p>
         </div>
 
-        {state.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--danger-bg, #FCEDED)",
-              border: "1px solid var(--danger)",
-              borderRadius: 6,
-              color: "var(--danger)",
-              fontSize: 13,
-            }}
-          >
-            {state.error}
-          </div>
-        )}
+        {state.error && <Aviso tono="error">{state.error}</Aviso>}
         {state.ok && state.message && (
-          <div
-            role="status"
-            style={{
-              padding: "10px 12px",
-              background: "var(--success-bg, #E5F4ED)",
-              border: "1px solid var(--success)",
-              borderRadius: 6,
-              color: "var(--success)",
-              fontSize: 13,
-            }}
-          >
-            ✓ {state.message}
-          </div>
+          <Aviso tono="exito">{state.message}</Aviso>
         )}
 
         <div

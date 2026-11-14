@@ -28,6 +28,7 @@
 import React, { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   ALL_ANGULOS,
@@ -179,12 +180,9 @@ export function RouteIdeaPanel({
         </div>
 
         {error && (
-          <p
-            role="alert"
-            className="text-[12.5px] text-[color:var(--color-status-danger)]"
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
       </div>
 
@@ -395,30 +393,11 @@ function DetailBlock({
 /** Aviso placeholder para Flujo B — la generación de piezas llega en F-B. */
 function FlujoBPlaceholder() {
   return (
-    <div
-      className="flex items-start gap-3 rounded-lg px-4 py-3.5 border border-grey-200"
-      style={{
-        background: "var(--info-bg)",
-      }}
-    >
-      <span
-        className="inline-flex flex-shrink-0 mt-0.5"
-        style={{ color: "var(--info)" }}
-        aria-hidden
-      >
-        {Icon.info(16)}
-      </span>
-      <div className="flex flex-col gap-1">
-        <span className="text-[13px] font-semibold text-ink">
-          Esto va directo a redes y WhatsApp
-        </span>
-        <p className="text-[12.5px] text-grey-700 leading-relaxed max-w-[64ch]">
-          No pasa por la web (ensuciaría el blog sin aportar SEO). La generación
-          de las piezas por canal (LinkedIn, Instagram, WhatsApp) llega en la
-          próxima fase del motor. Por ahora tienes el ruteo, el ángulo y los
-          títulos para crearlas a mano.
-        </p>
-      </div>
-    </div>
+    <Aviso tono="info" titulo="Esto va directo a redes y WhatsApp">
+      No pasa por la web (ensuciaría el blog sin aportar SEO). La generación
+      de las piezas por canal (LinkedIn, Instagram, WhatsApp) llega en la
+      próxima fase del motor. Por ahora tienes el ruteo, el ángulo y los
+      títulos para crearlas a mano.
+    </Aviso>
   );
 }

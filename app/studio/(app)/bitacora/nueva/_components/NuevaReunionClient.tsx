@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import type { AssignableProfile } from "@/lib/studio/bitacora/bitacora-queries";
@@ -648,20 +649,10 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
   // Transcripción apagada: aviso claro, el flujo de pegar texto sigue vivo.
   if (transcriptionOff) {
     return (
-      <div
-        role="note"
-        style={{
-          font: "600 12px/1.5 var(--f-sans)",
-          color: "var(--warning)",
-          background: "var(--warning-bg)",
-          border: "1px solid var(--warning)",
-          borderRadius: "var(--r-md)",
-          padding: "12px 14px",
-        }}
-      >
+      <Aviso tono="atencion" compacto>
         La transcripción de audio no está activada todavía — pega el texto por
         ahora (pestaña «Pegar transcripción»).
-      </div>
+      </Aviso>
     );
   }
 
@@ -815,16 +806,9 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
       )}
 
       {audioError && (
-        <p
-          role="alert"
-          style={{
-            font: "600 11.5px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {audioError}
-        </p>
+        </Aviso>
       )}
     </div>
   );
