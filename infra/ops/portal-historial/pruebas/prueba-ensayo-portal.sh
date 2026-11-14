@@ -30,7 +30,8 @@
 #       durable sin cambios), RT (sale con 0 y limpia todo) y RP (la producción simulada no cambia). Las corridas de
 #       arriba saltan el desarme (ENSAYO_SIN_DESARME=1): sus marcas en la bandeja hacen que el seco se niegue
 #   RM  los mensajes que ve el seco del desarme: los de antes de la carga + los de Studio (los vinculados) + las notas
-#       de archivo (al menos una: la producción simulada tiene un hilo archivado) + lo que entró al repetir (0)
+#       de archivo (al menos una: la producción simulada tiene un hilo archivado) + lo que entró al repetir (0). Su
+#       mutante es M34: el ensayo sin contar la nota de archivo, y RM cae
 #   RG  solo en los mutantes M30 a M32 de la guarda del desarme: se niega antes de escribir
 #   N8  la comparación de los mutantes: un id que no existe sale como «(no existe)»
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
@@ -388,6 +389,9 @@ mutante() {
   elif [ "${8:-}" = desarme ]; then
     ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 ENSAYO_SIN_DESARME= --
     comprobar_r "$TRABAJO/$id.txt" rg
+  elif [ "${8:-}" = desarme-completo ]; then
+    ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 ENSAYO_SIN_DESARME= --
+    comprobar_r "$TRABAJO/$id.txt"
   elif [ "${8:-}" = completo ]; then
     ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/$id-volcado" --
     comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
@@ -524,13 +528,14 @@ comprobar_r() { # salida [rg]
     # antes de la carga, más los mensajes de Studio (los que vincular.sh vincula) y más las notas de archivo. La
     # producción simulada tiene un hilo archivado, así que la nota tiene que aparecer: con ella, la bandeja tiene un
     # mensaje más que el «mensajes_nuevos» de E1 y E2, y eso queda explicado, no tapado.
-    local M b a s n r v
-    M="$(h "$E" desarme_mensajes)"
-    IFS=, read -r b a s n r v <<<"$M"
-    b="${b#bandeja:}"; a="${a#antes_de_la_carga:}"; s="${s#de_studio:}"; n="${n#notas_de_archivo:}"; r="${r#al_repetir:}"; v="${v#vinculados:}"
+    # Nombres propios (RM_*): exigir evalúa la condición con su propio «local r», que tapaba una «r» de aquí.
+    local RM_L RM_B RM_A RM_S RM_N RM_R RM_V
+    RM_L="$(h "$E" desarme_mensajes)"
+    IFS=, read -r RM_B RM_A RM_S RM_N RM_R RM_V <<<"$RM_L"
+    RM_B="${RM_B#bandeja:}"; RM_A="${RM_A#antes_de_la_carga:}"; RM_S="${RM_S#de_studio:}"; RM_N="${RM_N#notas_de_archivo:}"; RM_R="${RM_R#al_repetir:}"; RM_V="${RM_V#vinculados:}"
     numeros() { local x; for x; do case "$x" in "" | *[!0-9]*) return 1 ;; esac; done; }
-    exigir RM 'numeros "$b" "$a" "$s" "$n" "$r" "$v" && [ "$b" = $((a + s + n + r)) ] && [ "$n" -ge 1 ] && [ "$r" = 0 ] && [ "$s" -gt 0 ] && [ "$v" = "$s" ]' \
-      "los ${b:-?} mensajes de la bandeja son ${a:-?} de antes + ${s:-?} de Studio (vinculados: ${v:-?}) + ${n:-?} notas de archivo + ${r:-?} al repetir ($M)"
+    exigir RM 'numeros "$RM_B" "$RM_A" "$RM_S" "$RM_N" "$RM_R" "$RM_V" && [ "$RM_B" = $((RM_A + RM_S + RM_N + RM_R)) ] && [ "$RM_N" -ge 1 ] && [ "$RM_R" = 0 ] && [ "$RM_S" -gt 0 ] && [ "$RM_V" = "$RM_S" ]' \
+      "los ${RM_B:-?} mensajes de la bandeja son ${RM_A:-?} de antes + ${RM_S:-?} de Studio (vinculados: ${RM_V:-?}) + ${RM_N:-?} notas de archivo + ${RM_R:-?} al repetir ($RM_L)"
     return 0
   fi
   exigir RG '[ "$(h "$E" error)" = desarme_no_es_la_copia ] && ! grep -q "^HECHO paso=desarme-" "$E"' \
@@ -551,6 +556,8 @@ if [ "$MUTANTES" = 1 ]; then
     'R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"
     if desarme_es_la_copia "$R_DB" "$R_CW"; then' 'R_DB="$STUDIO_COPIA"; R_CW="$PROD_RAILS"
     if true; then' desarme
+  # M34, la regla de los mensajes muerde: si el ensayo no contara la nota de archivo, RM cae y el resto del desarme pasa.
+  mutante M34 "el desarme no cuenta la nota de archivo en sus mensajes" ensayo-portal.sh "RM" "R-R1 RT RP"     'notas_de_archivo:$M_NOTAS,' 'notas_de_archivo:0,' desarme-completo
 fi
 
 if [ "$FALLAS" -gt 0 ] && [ "${CI:-}" = true ]; then
