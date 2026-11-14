@@ -16,6 +16,7 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   ledgerEntryTypeLabel,
   type PartnerBalance,
@@ -97,17 +98,8 @@ export function LedgerTab({
       </div>
 
       {loadError && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: "var(--r-md)",
-            background: "var(--danger-bg)",
-            color: "var(--danger)",
-            font: "600 12px/1.4 var(--f-sans)",
-            marginBottom: 16,
-          }}
-        >
-          {loadError}
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="error">{loadError}</Aviso>
         </div>
       )}
 

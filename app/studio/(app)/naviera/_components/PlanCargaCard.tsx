@@ -17,6 +17,7 @@ import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { ContainerPlanView } from "./ContainerPlanView";
 import { calcularPlanCargaAction } from "../plan-actions";
@@ -104,16 +105,9 @@ export function PlanCargaCard({ consolidationId, plan, puedeCalcular }: Props) {
       </div>
 
       {error && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--danger)",
-            margin: "0 0 12px",
-          }}
-        >
-          {error}
-        </p>
+        <div style={{ marginBottom: 12 }}>
+          <Aviso tono="error">{error}</Aviso>
+        </div>
       )}
 
       {!resultado ? (
@@ -160,18 +154,10 @@ export function PlanCargaCard({ consolidationId, plan, puedeCalcular }: Props) {
               }}
             >
               {resultado.avisos.map((a, i) => (
-                <li
-                  key={`${a.tipo}-${i}`}
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--warning-bg)",
-                    borderLeft: "3px solid var(--warning)",
-                    borderRadius: "var(--r-sm)",
-                    font: "500 12px/1.5 var(--f-sans)",
-                    color: "var(--ink)",
-                  }}
-                >
-                  {a.mensaje}
+                <li key={`${a.tipo}-${i}`}>
+                  <Aviso tono="atencion" compacto>
+                    {a.mensaje}
+                  </Aviso>
                 </li>
               ))}
             </ul>

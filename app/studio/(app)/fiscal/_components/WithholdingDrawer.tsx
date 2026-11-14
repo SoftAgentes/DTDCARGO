@@ -16,6 +16,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   WITHHOLDING_TYPES,
   computeWithholdingAmount,
@@ -102,19 +103,9 @@ export function WithholdingDrawer({
         }}
       >
         {state.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
 
         {/* Período (oculto: lo fija el selector de mes del listado). */}
