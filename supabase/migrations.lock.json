@@ -16,8 +16,8 @@
     "el archivo del repo, no lo que guardó el ledger.",
     "",
     "QUÉ ENTRÓ AL CREARLO (2026-10-19, origin/main 3f3a52cc): todas las migraciones del repo",
-    "hasta la 0491, menos las esperas de pendingBelowCutoff (0422 y 0423), que no están",
-    "aplicadas. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
+    "hasta la 0491, menos las esperas de entonces en pendingBelowCutoff (0422 y 0423),",
+    "que se aplicaron y sellaron después, el 2026-11-14. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
     "leyó el ledger de producción en solo lectura y se marcaron con `ledger` las que",
     "coinciden (conteos y método en la SDD-0561).",
     "",
@@ -2500,6 +2500,24 @@
         "forma": "exacta"
       }
     },
+    "0422_payment_report_command_boundary": {
+      "sha256": "0c412460c42a45e32c6d09f84bf1293094588e147de551930334cf12320f894c",
+      "md5": "e3e019590fac56315b971b4ce703ea96",
+      "bytes": 8673,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0423_payment_report_historical_identity": {
+      "sha256": "7a63c499d468451ad0ae0732ffaf42be5b78f4bb8f0e2e2e76651a553a0e235e",
+      "md5": "2d3d0cc9c2e299563add83c51f910f60",
+      "bytes": 8612,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
     "0424_portal_club_principal_tenant": {
       "sha256": "bfbce7469dc90e2b82310e1e24886fa13224fcbbdbd5c9a6a785d0a53327f046",
       "md5": "7dc9f0fa324ac8b1892b97b4f09a139c",
@@ -3328,6 +3346,15 @@
       "bytes": 14183,
       "ledger": {
         "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0535_bcv_rates_system_audit": {
+      "sha256": "5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75",
+      "md5": "414b694a36160a4ded7c64d872c723f8",
+      "bytes": 15455,
+      "ledger": {
+        "fecha": "2026-11-14",
         "forma": "exacta"
       }
     },

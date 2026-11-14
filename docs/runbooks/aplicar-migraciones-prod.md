@@ -330,9 +330,10 @@ no se eximen»). Consecuencias:
 - El orden normal es: aplicar → fusionar → la imagen se construye → se publica.
 - Si se fusiona una PR con su migración sin aplicar, **ninguna** publicación
   posterior entra hasta aplicarla, y el aviso dice «faltan en la base …».
-- Una espera que de verdad va **después** de la web (0422 y 0423, decisión B1 de
-  Sam) se acepta en el servidor una por una:
-  `publicar-web.sh aceptar-pendiente <nombre>`, con el OK de Sam.
+- Una espera que de verdad va **después** de la web se acepta en el servidor una
+  por una: `publicar-web.sh aceptar-pendiente <nombre>`, con el OK de Sam. Así se
+  hizo con la 0422 y la 0423 (decisión B1 de Sam), hasta que se aplicaron y
+  sellaron el 2026-11-14.
 
 ## 11 · Las esperas y los gates
 

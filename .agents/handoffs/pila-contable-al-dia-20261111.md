@@ -58,3 +58,29 @@ Las dos se retiraron de la espera y quedaron selladas en el tren AD (#529). Dond
 ## Estado de aplicación (2026-11-13, Director General)
 
 La **0527_annual_billing_fx_v2** está **aplicada**: prueba 2026-11-11 17:11:57Z y producción 2026-11-13 18:00:50Z, md5 `422a371de0ae02c74c1ad46c4f83ed28`, verificación PASÓ en las dos. Se retiró su espera y quedó sellada en el tren AD (#529). Donde este documento dice «no aplicada» o «sigue sin aplicar», es el estado histórico anterior a esa fecha.
+
+## #527: TLS de la fuente BCV y banda de plausibilidad (2026-11-14)
+
+Hecho a pedido del DG, en la rama `claude/sdd-0569-bcv-carga-diaria`. No traje main ni toqué producción. El detalle está en la spec 0569, en la sección «Banda de plausibilidad y TLS de la fuente».
+
+- Cabeza `93f83ab2b`: TLS con el intermedio Sectigo DV R36 fijado por huella, y la banda (15 %, referencia de 10 días). La revisión independiente (Opus) la APROBÓ.
+- Menores de esa revisión, en el commit siguiente:
+  - se quitó el `-----END CERTIFICATE-----` duplicado de `bcv-tls.ts`;
+  - `bcvTrustedCaFor` permite inyectar el pin;
+  - hay pruebas de que una huella distinta (`BCV_TLS_PIN_MISMATCH`) termina en `SOURCE_UNAVAILABLE`, sin abrir conexión y sin escrituras.
+- Pendiente: el OK de Sam sobre la banda, el intermedio y la 0535. Después vienen la aplicación de la 0535 y el encendido con `BCV_RATES_ENABLED=true`, cada uno con su autorización. Cuando la PR entre a un tren se trae main una sola vez, con conflicto solo en los dos JSON de migraciones.
+
+### Junction de parse5 en node_modules (riesgo anotado)
+
+El `node_modules` de este worktree es anterior a la dependencia directa `parse5@8.0.1`, y por eso Vitest no encontraba `parse5`. Para correr las pruebas creé un junction `node_modules/parse5` que apunta a `node_modules/.pnpm/parse5@8.0.1/node_modules/parse5`. Está dentro del worktree, no en el `node_modules` de main.
+
+- Nunca entró a Git, porque `node_modules` está ignorado.
+- Lo quité con `rmdir` sobre el enlace después de cada corrida: después de la cabeza `93f83ab2b` y de nuevo después de las pruebas de los menores. El paquete en `.pnpm` quedó intacto.
+- Lo correcto es `pnpm install` con turno del DG. No debe quedar ningún junction a mano (ver la memoria «junction a node_modules»).
+
+## 0535 aplicada y cerrada en la #527 (2026-11-14)
+
+- El DG la aplicó en producción con el OK de Sam («Sí, actívala»): COMMIT 2026-11-14T08:30:17Z, version del ledger `20261114083017` (531 → 532 filas), md5 `414b694a36160a4ded7c64d872c723f8` y 15 455 bytes, con la verificación PASÓ. Las evidencias están en `/srv/ops/evidencias/previa-0535-dtd-cargo-20261114T082844Z` y `apply-0535-dtd-cargo-20261114T083014Z`.
+- En la #527 traje main `307eee434` una vez, retiré la espera con `retirar-espera.mjs` (queda sellada) y escribí el registro en la spec 0569. Ninguna prueba afirmaba la espera. No toqué el código revisado ni el VPS.
+- Pendiente del DG: el merge, el crontab y el cron, el scope, el `dryRun=1`, encender el flag y publicar con el relevo.
+- Aviso que le di: si el flag queda en true antes del ensayo, el tick del minuto 5 hace la carga real primero.
