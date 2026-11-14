@@ -11,14 +11,14 @@ Subdirector SEO y relatadas al Director General, que las reconfirma.
 
 ## Reconciliaciones hechas en esta tarea (revisión independiente de d3c9258a3)
 - 0612: Decisión 4, formato del resumen, paso de prueba, privacidad y criterio 2 ya dicen «con título»;
-  el cómo se limita queda como pregunta abierta D3b (a título tal cual, b recortado y sin datos,
-  c solo tareas internas), con recomendación (b).
+  el cómo se limita fue la pregunta D3b (a título tal cual, b recortado y sin datos, c solo tareas
+  internas); Sam eligió (b) el 2026-11-14 («(b) Recortado, sin datos»).
 - 0610: la regla «clasificador determinista» y «por qué no un modelo» dicen que D3 prevalece y el
   determinista queda como línea base; `privacidad.md` marca que D7 se decidió sin consulta.
 - `docs/legal/privacidad/inventario-terceros.md`: Discord recibiría títulos de tareas.
 
 ## Pendiente de esta tarea
-- Sam responde D3b; el código de avisos con título no se escribe antes.
+- Ninguno: D3b quedó decidida (b); el código de avisos con título ya se puede escribir en su PR.
 
 ## FUERA DE ALCANCE DETECTADO
 - 0610-D3 «Modelo de lenguaje» reabre la medición previa y la revisión de privacidad propia en la

@@ -167,13 +167,14 @@ La regla es la corrección **A1 de Codex**, la misma del puente:
   Para un agente, su nombre y su estado. Para una aprobación, su tipo y el enlace.
 - **Con título (D3, decidida por Sam el 2026-11-14):** el título de la tarea va en el aviso. La
   propuesta original de esta spec era no llevarlo; **la decisión de Sam prevalece**. Un título puede
-  nombrar a un cliente y Discord es un tercero en un servidor que no es de Sam: **cómo se limita
-  está abierto (D3b, abajo)**. Hasta que Sam responda D3b no se escribe el código de este punto.
+  nombrar a un cliente y Discord es un tercero en un servidor que no es de Sam, así que **el título
+  se limita según D3b (decidida): se quitan los números de 7 dígitos o más, los correos y los
+  enlaces, y se recorta a 80 caracteres**.
 - **No:** el texto de los comentarios, el mensaje de error de un agente ni el contenido de una
   aprobación. Pueden traer datos de clientes, rutas o llaves.
 
 Esto se hace cumplir en el código: cada aviso se arma con una lista cerrada de campos (el título
-es uno de ellos, con el tratamiento que fije D3b), y una prueba mete un comentario y un mensaje de
+es uno de ellos, con el tratamiento de D3b), y una prueba mete un comentario y un mensaje de
 error con datos falsos de un cliente y exige que no aparezcan en lo enviado. Los nombres de los agentes no son datos personales: son roles de la oficina, como
 «ALFRED» o «Editor de contenido».
 
@@ -310,9 +311,10 @@ Ninguna otra pieza depende de este servicio: el puente y la recepción siguen ig
 
 ## Privacidad
 
-No mueve datos personales. Los avisos llevan identificadores de tareas, estados, nombres de
-agentes, enlaces y, por D3, títulos de tareas. Discord es un tercero en EE. UU.; un título puede
-nombrar a un cliente, y cómo se limita está abierto (D3b). Los comentarios y errores no llegan: lo
+Puede mover un dato de cliente en el título; se limita según D3b. Los avisos llevan identificadores
+de tareas, estados, nombres de agentes, enlaces y, por D3, títulos de tareas. Discord es un tercero
+en EE. UU.; un título puede nombrar a un cliente, y D3b le quita números de 7 dígitos o más, correos y
+enlaces y lo recorta a 80 caracteres. Los comentarios y errores no llegan: lo
 hace cumplir la lista cerrada de campos, con su prueba (Decisión 4). La PR del código pasa la revisión
 de `.claude/skills/revisar-datos-ve/SKILL.md` para confirmarlo.
 
@@ -334,8 +336,8 @@ General, que las reconfirmó con Sam. Se transcribe la opción elegida, textualm
 |---|---|
 | D1 | «Proceso aparte (Recomendado)» |
 | D2 | «Sí, agente Vigía (Recomendado)» |
-| D3 | «Con título». No es la recomendación (⭐ Sin título). **Reconfirmada por Sam el 2026-11-14** en el chat del Director General: «Sí, confirmo las tres decisiones». Es decisión de la spec. Cómo se limita el título está abierto: D3b |
-| D3b | **ABIERTA, pregunta para Sam.** Con título, ¿cómo se limita? (a) título tal cual; (b) título sin números largos, correos ni enlaces y recortado a 80 caracteres; (c) título tal cual solo en tareas internas de la oficina. **Recomendación del Subdirector: (b).** La PR de código pasa `revisar-datos-ve`. Hasta que Sam responda no se escribe el código de este punto |
+| D3 | «Con título». No es la recomendación (⭐ Sin título). **Reconfirmada por Sam el 2026-11-14** en el chat del Director General: «Sí, confirmo las tres decisiones». Es decisión de la spec. Cómo se limita el título: D3b (decidida) |
+| D3b | **Decidida por Sam el 2026-11-14 en el chat del Director General: «(b) Recortado, sin datos».** Con título, el título va sin números de 7 dígitos o más, sin correos ni enlaces, y recortado a 80 caracteres (las otras opciones eran (a) tal cual y (c) tal cual solo en tareas internas). La PR de código pasa `revisar-datos-ve`; ya se puede escribir cuando le toque su PR |
 | D4 | «Sí, trabado a 24 h (Recomendado)» |
 | D5 | «Sí, 18:00 Venezuela (Recomendado)» |
 | D6 | «Tras fusionar la PR del código (Recomendado)» |
@@ -373,8 +375,9 @@ General, que las reconfirmó con Sam. Se transcribe la opción elegida, textualm
 ## Criterios de aceptación del código (PR posterior)
 
 1. El cliente de Paperclip solo hace `GET` a una lista fija de rutas. Una prueba lo exige.
-2. Ningún aviso ni resumen lleva comentarios ni mensajes de error; el título solo con el tratamiento
-   que fije D3b. Una prueba con datos falsos de un cliente lo exige.
+2. Ningún aviso ni resumen lleva comentarios ni mensajes de error. El título sale sin números de 7
+   dígitos o más, sin correos y sin enlaces, y recortado a 80 caracteres. Una prueba con un título de
+   datos falsos que tenga los tres casos y otro de más de 80 caracteres lo exige.
 3. La primera corrida no publica nada.
 4. Los casos del emisor de la SDD-0607 pasan contra el emisor nuevo y dan el mismo resultado.
 5. Las pruebas corren en `pnpm harness:test`, con un piso de pruebas, y no se saltan en el CI.
