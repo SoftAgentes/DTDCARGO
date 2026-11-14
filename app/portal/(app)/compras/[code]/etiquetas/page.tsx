@@ -5,7 +5,8 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
-import { documentLabelGate } from "@/lib/studio/document-import/service";
+import { documentLabelGate,getDocumentLabels,WORKSPACE_SELECT } from "@/lib/studio/document-import/service";
+import type { WorkspaceRow } from "@/lib/studio/document-import/access";
 import {
   getPrealertaByCode,
   listPrealertaDocuments,
@@ -62,6 +63,15 @@ export default async function PortalLabelsPage({
     <p className="mt-3 text-grey-700">El proveedor debe revisar las cajas, el peso bruto y el CBM y confirmar la versión vigente del Packing List + Factura.</p>
     {prealerta.share_token&&<div className="mt-5"><ShareProviderButton token={prealerta.share_token}/></div>}
   </section>;
+  let managedLabels:Awaited<ReturnType<typeof getDocumentLabels>>|null=null;
+  let managedWorkspace:{id:string;revision:number}|undefined;
+  if(labelGate.managed){
+    const admin=createAdminClient();
+    const {data:workspace,error}=await admin.from("document_workspaces").select(WORKSPACE_SELECT).eq("prealerta_id",prealerta.id).eq("tenant_id",tenantId).eq("client_id",client.id).maybeSingle();
+    if(error||!workspace)notFound();
+    try{managedLabels=await getDocumentLabels(admin,workspace as unknown as WorkspaceRow,workspace.revision);managedWorkspace={id:workspace.id,revision:workspace.revision};}
+    catch{return <section className="card-shadow bg-white border border-grey-200 rounded-xl p-6"><h1 className="text-2xl font-bold">Revisa el documento antes de imprimir</h1><p className="mt-4 text-base leading-relaxed">Necesitamos comprobar la revisión confirmada y sus cajas físicas. Abre el Packing List + Factura o contacta a DTD para revisar las etiquetas.</p><a href={`/portal/compras/${encodeURIComponent(code)}/documento`} className="btn btn-primary mt-4">Abrir Packing List + Factura</a></section>;}
+  }
 
   // Tenant + Shipping Mark del principal (SDD-0554).
   const suppliers = await listSuppliers(supabase, { markbox: client.markbox, tenantId });
@@ -81,10 +91,10 @@ export default async function PortalLabelsPage({
   // cuadra), cae a la etiqueta por cliente. La RLS del portal solo devuelve las
   // cajas del propio cliente.
   const predeclaredBoxes = await listPredeclaredBoxes(supabase, prealerta.id);
-  const labels =
+  const labels = managedLabels?.labels ?? (
     predeclaredBoxes.length > 0
       ? buildLabelsFromBoxes(prealerta.code, predeclaredBoxes)
-      : buildLabels(prealerta.code, prealerta.boxes);
+      : buildLabels(prealerta.code, prealerta.boxes));
 
   // Servicios de recepción (SDD-0098): menú activo + lo que el cliente ya pidió.
   const [addons, serviceRequests] = await Promise.all([
@@ -141,6 +151,7 @@ export default async function PortalLabelsPage({
   return (
     <>
       <LabelsClient
+        key={managedWorkspace?managedWorkspace.id+":"+managedWorkspace.revision:prealerta.code}
         brand={brand}
         presentation={presentation.settings}
         code={prealerta.code}
@@ -149,6 +160,7 @@ export default async function PortalLabelsPage({
         supplierName={supplierName}
         description={prealerta.description}
         labels={labels}
+        documentWorkspace={managedWorkspace}
       />
 
       {prealerta.share_token && (

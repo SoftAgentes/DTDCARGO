@@ -124,7 +124,7 @@ export function parseCsv(input: string): string[][] {
 }
 const columnName = (index: number): string => index < 26 ? String.fromCharCode(65 + index) : columnName(Math.floor(index / 26) - 1) + String.fromCharCode(65 + index % 26);
 
-type Field = "name" | "nameZh" | "code" | "brand" | "material" | "quantity" | "perCarton" | "unitPrice" | "currency" | "unit" | "cartons" | "cartonLabel" | "grossTotal" | "grossEach" | "cbmTotal" | "cbmEach" | "amount" | "lengthCm" | "widthCm" | "heightCm";
+type Field = "name" | "nameZh" | "code" | "brand" | "material" | "quantity" | "perCarton" | "unitPrice" | "currency" | "unit" | "cartons" | "cartonLabel" | "grossTotal" | "grossEach" | "netTotal" | "netEach" | "cbmTotal" | "cbmEach" | "amount" | "lengthCm" | "widthCm" | "heightCm";
 const aliases: Record<Field, string[]> = {
   // `item` y `descripciones` salen de proformas reales de Yiwu, donde la columna
   // ITEM trae el nombre del producto y DESCRIPCIONES el detalle. Como el emparejado
@@ -142,6 +142,8 @@ const aliases: Record<Field, string[]> = {
   // peso POR CAJA, así que mapearlo a total metería el número de otra columna.
   grossTotal: ["grossweightkg", "totalgrossweightkg", "gwkg", "pesobrutokg", "pesobrutototalkg", "毛重kg", "总毛重kg", "tgwkgs", "tgwkg", "tgw", "总重量", "总毛重"],
   grossEach: ["gwctnkg", "grossweightpercartonkg", "kgcaja", "pesobrutoporcajakg", "每箱毛重kg", "每箱重kg"],
+  netTotal: ["totalnetweightkg", "netweightkg", "netweighttotalkg", "pesonetototalkg", "pesonetokg", "总净重kg", "净重kg"],
+  netEach: ["netweightpercartonkg", "nwctnkg", "pesonetoporcajakg", "每箱净重kg"],
   cbmTotal: ["cbm", "totalcbm", "volumem3", "volumentotalm3", "体积m3", "总体积", "总体积m3"], cbmEach: ["cbmctn", "cbmcarton", "cbmcaja", "cbmpercarton", "每箱体积", "每箱体积m3"],
   amount: ["amount", "totalamount", "importe", "totalimporte", "总金额", "金额", "总价"],
   lengthCm: ["lengthcm", "largocm", "长cm"], widthCm: ["widthcm", "anchocm", "宽cm"], heightCm: ["heightcm", "altocm", "高cm"],
@@ -254,6 +256,7 @@ function parseDtdExport(sheet: Sheet, options: ExtractionOptions): DocumentDraft
   if (!s(sheet.rows[0]?.[0]).startsWith("DTD Cargo · 装箱单") || !s(sheet.rows[8]?.[0]).includes("箱组") || !s(sheet.rows[8]?.[9]).includes("TOTAL del grupo")) return null;
   const d = emptyDocumentDraft(), source: DocumentSource = { id: options.sourceId, fileName: options.fileName, kind: options.kind === "unknown" ? "combined" : options.kind, locations: [] };
   d.sources = [source];
+  const netColumn = s(sheet.rows[8]?.[14]).includes("Peso neto TOTAL del grupo") && sheet.rows.slice(9).some(row => s(row[14]) !== "");
   for (const [field, row, column] of [["company", 3, 1], ["contact", 3, 3], ["email", 4, 1], ["wechat", 4, 3], ["phone", 4, 5], ["address", 5, 1], ["city", 5, 3]] as const) {
     d.supplier[field] = s(sheet.rows[row]?.[column]); locate(source, "supplier." + field, sheet.name, sheet.rows[row]?.[column]);
   }
@@ -263,6 +266,7 @@ function parseDtdExport(sheet: Sheet, options: ExtractionOptions): DocumentDraft
   for (const [offset, row] of sheet.rows.slice(9).entries()) {
     if (/^总计\s*\/\s*Totales/.test(s(row[0]))) {
       for (const [field, col] of [["cartons", 4], ["grossWeightKg", 9], ["cbm", 10]] as const) { d.declaredTotals[field] = readNumber(row[col], d, "declaredTotals." + field); locate(source, "declaredTotals." + field, sheet.name, row[col]); }
+      if (netColumn) { d.declaredTotals.netWeightKg = readNumber(row[14], d, "declaredTotals.netWeightKg"); locate(source, "declaredTotals.netWeightKg", sheet.name, row[14]); }
       const currencies = new Set(d.products.map((p) => p.currency).filter(Boolean));
       for (const footer of sheet.rows.slice(10 + offset)) if (/^货值\s*\/\s*Mercancía/.test(s(footer[0])) && currencies.size === 1 && s(footer[1]) === d.currency) { d.declaredTotals.amount = readNumber(footer[2], d, "declaredTotals.amount"); locate(source, "declaredTotals.amount", sheet.name, footer[2]); }
       break;
@@ -274,6 +278,7 @@ function parseDtdExport(sheet: Sheet, options: ExtractionOptions): DocumentDraft
     else if (cartons !== null || !group) {
       const id = options.sourceId + "-g" + (d.groups.length + 1);
       group = { id, label: unquoteLabel(s(row[0])), cartons, grossWeightKg: readNumber(row[9], d, "groups." + id + ".grossWeightKg"), cbm: readNumber(row[10], d, "groups." + id + ".cbm"), items: [] };
+      if (netColumn) { group.netWeightKg = readNumber(row[14], d, "groups." + id + ".netWeightKg"); locate(source, "groups." + id + ".netWeightKg", sheet.name, row[14]); }
       d.groups.push(group);
       for (const [field, col] of [["cartons", 4], ["grossWeightKg", 9], ["cbm", 10]] as const) locate(source, "groups." + id + "." + field, sheet.name, row[col]);
     }
@@ -339,7 +344,8 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
     else if (distintas.size > 1) issue(d, "currency_ambiguous", "currency", "Las columnas de precio declaran monedas distintas. Confirma cuál corresponde al documento.");
   }
   let previousGroup: CartonGroup | undefined;
-  const unallocated: { cartons: number | null; grossWeightKg: number | null; cbm: number | null; cells: Partial<Record<"cartons" | "grossTotal" | "cbmTotal", Cell>> }[] = [];
+  const hasNet = fields.netTotal !== undefined || fields.netEach !== undefined;
+  const unallocated: { cartons: number | null; grossWeightKg: number | null; netWeightKg?: number | null; cbm: number | null; cells: Partial<Record<"cartons" | "grossTotal" | "netTotal" | "cbmTotal", Cell>> }[] = [];
   for (const [rowOffset, row] of sheet.rows.slice(headerIndex + 1).entries()) {
     const cell = (field: Field) => fields[field] === undefined ? undefined : row[fields[field]!];
     const name = s(cell("name")), nameZh = s(cell("nameZh")), code = s(cell("code"));
@@ -360,6 +366,7 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
         if (dtd && targetCell?.formula) continue;
         d.declaredTotals[target] = readNumber(targetCell, d, "declaredTotals." + target); locate(source, "declaredTotals." + target, sheet.name, targetCell);
       }
+      if (fields.netTotal !== undefined) { d.declaredTotals.netWeightKg = readNumber(cell("netTotal"), d, "declaredTotals.netWeightKg"); locate(source, "declaredTotals.netWeightKg", sheet.name, cell("netTotal")); }
       const remaining = sheet.rows.slice(headerIndex + rowOffset + 2);
       if (remaining.some((later) => {
         const headers = later.map((c) => resolveHeader(s(c))).filter(Boolean);
@@ -394,7 +401,7 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
     }
     if (cartons !== null && !Number.isInteger(cartons)) { issue(d, "cartons_fractional", path, "La cantidad de cajas debe ser un número entero."); continue; }
     if (cartons === null) {
-      unallocated.push({ cartons, grossWeightKg: readNumber(cell("grossTotal"), d, "declaredTotals.grossWeightKg"), cbm: readNumber(cell("cbmTotal"), d, "declaredTotals.cbm"), cells: { grossTotal: cell("grossTotal"), cbmTotal: cell("cbmTotal") } });
+      unallocated.push({ cartons, grossWeightKg: readNumber(cell("grossTotal"), d, "declaredTotals.grossWeightKg"), ...(hasNet ? { netWeightKg: readNumber(cell("netTotal"), d, "declaredTotals.netWeightKg") } : {}), cbm: readNumber(cell("cbmTotal"), d, "declaredTotals.cbm"), cells: { grossTotal: cell("grossTotal"), netTotal: cell("netTotal"), cbmTotal: cell("cbmTotal") } });
       previousGroup = undefined; continue;
     }
     const groupId = options.sourceId + "-g" + (d.groups.length + 1), gp = "groups." + groupId;
@@ -402,6 +409,10 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
     const weightTotal = dtd && cell("grossTotal")?.formula ? null : readNumber(cell("grossTotal"), d, gp + ".grossWeightKg");
     const volumeTotal = dtd && cell("cbmTotal")?.formula ? null : readNumber(cell("cbmTotal"), d, gp + ".cbm");
     const grossWeightKg = weightEach !== null ? weightEach * cartons : weightTotal;
+    const netEach = hasNet ? readNumber(cell("netEach"), d, gp + ".netWeightKg") : null;
+    const netTotal = hasNet ? readNumber(cell("netTotal"), d, gp + ".netWeightKg") : null;
+    const netWeightKg = netEach !== null ? netEach * cartons : netTotal;
+    if (netEach !== null && netTotal !== null && Math.abs(netTotal - netEach * cartons) > 0.0005) issue(d, "net_weight_conflict", gp + ".netWeightKg", "El peso neto total difiere de cajas × peso neto por caja. Revisa ambos datos.");
     let cbm = cbmEach !== null ? cbmEach * cartons : volumeTotal;
     if (weightTotal !== null && weightEach !== null && Math.abs(weightTotal - weightEach * cartons) > 0.0005) issue(d, "weight_conflict", gp + ".grossWeightKg", "El peso bruto total difiere de cajas × peso por caja. Revisa ambos datos.");
     if (volumeTotal !== null && cbmEach !== null && Math.abs(volumeTotal - cbmEach * cartons) > 0.0005) issue(d, "cbm_conflict", gp + ".cbm", "El CBM total difiere de cajas × CBM por caja. Revisa ambos datos.");
@@ -412,7 +423,7 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
     if (!dtd && cartons > 1 && perCarton === null && weightEach === null && cbmEach === null) {
       // A global count and grand totals do not prove equal composition of cartons.
       issue(d, "packing_pattern_unknown", path, "Confirma cómo se distribuyen los productos entre las cajas; el archivo no lo especifica.");
-      unallocated.push({ cartons, grossWeightKg, cbm, cells: { cartons: cell("cartons"), grossTotal: cell("grossTotal"), cbmTotal: cell("cbmTotal") } });
+      unallocated.push({ cartons, grossWeightKg, ...(hasNet ? { netWeightKg } : {}), cbm, cells: { cartons: cell("cartons"), grossTotal: cell("grossTotal"), netTotal: cell("netTotal"), cbmTotal: cell("cbmTotal") } });
       previousGroup = undefined; continue;
     }
     const label = s(cell("cartonLabel"));
@@ -421,7 +432,8 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
       issue(d, "repeated_carton_label", "groups." + repeated.id, "El número de caja se repite. Confirma si son cajas mixtas sin duplicar peso y volumen.");
       repeated.items.push({ productId: id, quantity }); previousGroup = repeated; continue;
     }
-    previousGroup = { id: groupId, label, cartons, grossWeightKg, cbm, items: [{ productId: id, quantity }] }; d.groups.push(previousGroup);
+    previousGroup = { id: groupId, label, cartons, grossWeightKg, ...(hasNet ? { netWeightKg } : {}), cbm, items: [{ productId: id, quantity }] }; d.groups.push(previousGroup);
+    if (hasNet) locate(source, gp + ".netWeightKg", sheet.name, cell("netTotal"), cell("netEach"), cell("cartons"));
     locate(source, gp + ".cartons", sheet.name, cell("cartons"));
     locate(source, gp + ".grossWeightKg", sheet.name, cell("grossEach"), cell("grossTotal"), cell("cartons"));
     locate(source, gp + ".cbm", sheet.name, cell("cbmEach"), cell("cbmTotal"), cell("cartons"), cell("lengthCm"), cell("widthCm"), cell("heightCm"));
@@ -431,20 +443,36 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
   if (d.products.length === 1 && unallocated.length === 1) {
     const total = unallocated[0];
     for (const [field, cellKey] of [["cartons", "cartons"], ["grossWeightKg", "grossTotal"], ["cbm", "cbmTotal"]] as const) if (d.declaredTotals[field] === null && total[field] !== null) { d.declaredTotals[field] = total[field]; locate(source, "declaredTotals." + field, sheet.name, total.cells[cellKey]); }
+    if (hasNet && d.declaredTotals.netWeightKg == null) { d.declaredTotals.netWeightKg = total.netWeightKg ?? null; locate(source, "declaredTotals.netWeightKg", sheet.name, total.cells.netTotal); }
   } else if (unallocated.some((u) => u.grossWeightKg !== null || u.cbm !== null || u.cartons !== null)) {
     issue(d, "packing_patterns_assisted", "document", "Hay medidas por producto sin distribución de cajas explícita. Requiere lectura asistida para conservar y revisar los totales.");
   }
   return d;
 }
 
-export async function extractDocument(bytes: Uint8Array, options: ExtractionOptions): Promise<DocumentDraft> {
+/** The old assisted DTO cannot award itself server provenance or transport declarations. */
+function legacyProposal(draft: DocumentDraft): DocumentDraft {
+  const clean = { ...draft, sources: draft.sources.map(s => ({ ...s, locations: s.locations.map(l => ({ path: l.path, sheet: l.sheet, cell: l.cell, page: l.page })) })) };
+  delete clean.fieldDecisions;
+  delete clean.transportDeclarations;
+  return parseDocumentDraft(clean);
+}
+
+export type DocumentExtractionDependencies = Readonly<{
+  /** Server-owned explicit TEST seam, never selected from request/provider metadata. */
+  pdf?: (bytes: Uint8Array, options: ExtractionOptions) => Promise<DocumentDraft>;
+  nativeOnly?: boolean;
+}>;
+export async function extractDocument(bytes: Uint8Array, options: ExtractionOptions, dependencies?: DocumentExtractionDependencies): Promise<DocumentDraft> {
   if (!bytes.length || bytes.length > MAX_BYTES) throw new DocumentImportError("file_size", "El archivo debe tener contenido y pesar hasta 15 MB.");
   if (!/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,79}$/.test(options.sourceId) || options.fileName.length > 255) throw new DocumentImportError("invalid_metadata", "Los datos del archivo no son válidos.");
   const ext = options.fileName.toLowerCase().split(".").pop();
   if (ext === "xls") throw new DocumentImportError("legacy_xls", "El archivo XLS se conserva como adjunto. Conviértelo a XLSX o PDF para importar sus datos.");
   if (ext === "pdf") {
     if (!new TextDecoder().decode(bytes.subarray(0, 1024)).includes("%PDF-")) throw new DocumentImportError("invalid_pdf", "El archivo no tiene una cabecera PDF válida.");
-    return extractWithAnthropic({ type: "pdf", bytes }, options);
+    if (dependencies?.pdf) return parseDocumentDraft(await dependencies.pdf(new Uint8Array(bytes), options));
+    if (dependencies?.nativeOnly) throw new DocumentImportError("configuration_missing", "La lectura PDF requiere configuración explícita.");
+    return legacyProposal(await extractWithAnthropic({ type: "pdf", bytes }, options));
   }
   let sheets: Sheet[];
   if (ext === "xlsx") sheets = await readXlsx(bytes);
@@ -456,12 +484,17 @@ export async function extractDocument(bytes: Uint8Array, options: ExtractionOpti
   const useful = sheets.filter((sheet) => sheet.rows.some((row) => row.some((c) => s(c))));
   if (!useful.length) throw new DocumentImportError("empty_document", "El documento no contiene datos para importar.");
   const parsed = useful.map((sheet) => parseSheet(sheet, options));
+  if (dependencies?.nativeOnly) {
+    if (parsed.length !== 1 || !parsed[0]?.products.length) throw new DocumentImportError("native_review_required", "Revisa las hojas del Excel antes de importar; no se envió a IA.");
+    // Preserve native issues/unknowns. Native-only never silently buys assisted extraction.
+    return parseDocumentDraft(parsed[0]);
+  }
   if (parsed.length !== 1 || parsed.some((d) => !d || !d.products.length || d.issues.some((i) => ["additional_sections", "packing_patterns_assisted"].includes(i.code)))) {
     // Multiple sheets may overlap (invoice + packing list): model proposes matches,
     // preview is mandatory. Never concatenate sheets and silently double-count.
     const serialized = useful.map((sheet) => ({ name: sheet.name, cells: sheet.rows.flat().filter((c) => c.value !== null || c.formulaUnavailable).map((c) => ({ cell: c.ref, value: c.formulaUnavailable ? "[FORMULA_VALUE_UNAVAILABLE]" : c.value! })) }));
     if (JSON.stringify(serialized).length > 200000) throw new DocumentImportError("assisted_input_limits", "Divide el Excel en archivos más pequeños para la lectura asistida.");
-    return extractWithAnthropic({ type: "spreadsheet", sheets: serialized }, options);
+    return legacyProposal(await extractWithAnthropic({ type: "spreadsheet", sheets: serialized }, options));
   }
   return parseDocumentDraft(parsed[0]);
 }

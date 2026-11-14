@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ShippingBoxLabel } from "@/app/portal/_components/ShippingBoxLabel";
 import type { LabelPresentation } from "@/lib/shared/label-presentation";
 import { ArrowIcon, CheckIcon, DownloadIcon } from "@/components/Icon";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
 import type { BrandContext } from "@/lib/shared/brand-context";
+import { createDocumentClient,DocumentRequestError,type DocumentClient } from "@/components/document-import/document-client";
 
 /**
  * Vista de etiquetas imprimibles de una compra (SDD-0057 · Slice B · V1).
@@ -22,7 +23,11 @@ import type { BrandContext } from "@/lib/shared/brand-context";
  * legible — así el operario en Yiwu la escanea para recibir y estibar. Si no,
  * el QR solo confirma el Shipping Mark del cliente (fallback de la etiqueta vieja).
  */
-export function LabelsClient({
+export function LabelsClient(props:Parameters<typeof LabelsView>[0]){
+  const key=props.documentWorkspace?props.documentWorkspace.id+":"+props.documentWorkspace.revision:props.code;
+  return <LabelsView key={key} {...props}/>;
+}
+function LabelsView({
   code,
   markbox,
   supplierName,
@@ -30,6 +35,8 @@ export function LabelsClient({
   labels,
   brand,
   presentation,
+  documentWorkspace,
+  documentClient,
 }: {
   code: string;
   markbox: string;
@@ -40,8 +47,41 @@ export function LabelsClient({
   /** SDD-0255 · marca con la que se pinta. Obligatoria: sin default silencioso. */
   brand: BrandContext;
   presentation?: LabelPresentation;
+  documentWorkspace?:{id:string;revision:number};
+  documentClient?:DocumentClient;
 }) {
   const [copied, setCopied] = useState(false);
+  const [transport]=useState(()=>documentClient??createDocumentClient());
+  const [currentLabels,setCurrentLabels]=useState(labels);
+  const [printing,setPrinting]=useState(false);
+  const [printError,setPrintError]=useState(false);
+  const [pdfError,setPdfError]=useState<string|null>(null);
+  const [pdfSurface,setPdfSurface]=useState<"packing-list"|"labels"|null>(null);
+  const mounted=useRef(true);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+  async function downloadPdf(surface:"packing-list"|"labels"){
+    if(!documentWorkspace||printing||printError||!currentLabels.length)return;
+    setPrinting(true);setPdfSurface(surface);setPdfError(null);
+    try{
+      const file=await transport.download(documentWorkspace.id,{format:"pdf",surface,expectedRevision:documentWorkspace.revision});
+      if(!mounted.current)return;
+      const url=URL.createObjectURL(file),link=document.createElement("a");link.href=url;link.download=`${surface==="labels"?"Etiquetas":"PackingList"}-${code.replace(/[^a-z0-9-]/gi,"_")}-Rev${documentWorkspace.revision}.pdf`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(error){if(!mounted.current)return;
+      if(error instanceof DocumentRequestError&&error.status===409){setCurrentLabels([]);setPrintError(true);}
+      else setPdfError(error instanceof DocumentRequestError&&error.code==="pdf_font_unavailable"?"El PDF no está disponible en este momento. Tus datos y etiquetas siguen guardados; puedes usar Imprimir o avisar a DTD.":"No pudimos descargar el PDF. Tus datos siguen aquí; intenta otra vez.");
+    }finally{if(mounted.current){setPrinting(false);setPdfSurface(null);}}
+  }
+  async function printLabels(){
+    if(printing)return;
+    if(!documentWorkspace){window.print();return;}
+    setPrinting(true);setPrintError(false);
+    try{
+      const result=await transport.get<{revision:number;labels:BoxLabel[]}>("labels",{workspaceId:documentWorkspace.id,expectedRevision:String(documentWorkspace.revision)});
+      if(result.revision!==documentWorkspace.revision||!result.labels.length||result.labels.some(label=>!label.boxCode))throw new Error("Revision unavailable");
+      setCurrentLabels(result.labels);requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()));
+    }catch{setCurrentLabels([]);setPrintError(true);}
+    finally{setPrinting(false);}
+  }
 
   async function copyCode() {
     try {
@@ -96,7 +136,7 @@ export function LabelsClient({
               {supplierName ? ` · ${supplierName}` : ""}
             </p>
           </div>
-          <div className="flex gap-2.5 flex-shrink-0">
+          <div aria-busy={pdfSurface!==null} className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:justify-end">
             <button
               type="button"
               onClick={copyCode}
@@ -107,11 +147,13 @@ export function LabelsClient({
             </button>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={printLabels}
+              disabled={printing||printError}
               className="btn btn-primary inline-flex items-center gap-2"
             >
-              Descargar / imprimir <DownloadIcon size={15} />
+              {printing&&!pdfSurface?"Comprobando etiquetas…":"Descargar / imprimir"} <DownloadIcon size={15} />
             </button>
+            {documentWorkspace&&<><button type="button" className="btn btn-ghost" disabled={printing||printError||!currentLabels.length} onClick={()=>downloadPdf("packing-list")}>{pdfSurface==="packing-list"?"Preparando documento PDF…":"Descargar documento PDF"}</button><button type="button" className="btn btn-ghost" disabled={printing||printError||!currentLabels.length} onClick={()=>downloadPdf("labels")}>{pdfSurface==="labels"?"Preparando etiquetas PDF…":"Descargar etiquetas PDF"}</button></>}
           </div>
         </div>
 
@@ -129,9 +171,10 @@ export function LabelsClient({
         </div>
       </div>
 
-      {/* Grilla de etiquetas (vista pantalla + área de impresión) */}
+      {pdfError&&!printError&&<p role="alert" className="no-print mt-6 rounded-xl border border-grey-200 bg-white p-6 text-base leading-relaxed">{pdfError}</p>}
+      {printError&&<div role="alert" className="no-print mt-6 rounded-xl border border-grey-200 bg-white p-6 text-base leading-relaxed"><p>No pudimos validar esta revisión para descargar o imprimir. El documento o sus cajas cambiaron; consulta la versión compartida antes de continuar.</p><Link href={`/portal/compras/${encodeURIComponent(code)}/documento`} className="btn btn-primary mt-4">Abrir Packing List + Factura</Link></div>}
       <div className="labels-print-area mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {labels.map((l, i) => (
+        {currentLabels.map((l, i) => (
           <ShippingBoxLabel
             key={l.boxCode ?? `${l.code}-${l.boxN}-${i}`}
             label={l}

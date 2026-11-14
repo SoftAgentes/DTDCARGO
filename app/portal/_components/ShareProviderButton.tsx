@@ -37,7 +37,7 @@ const FAILED_TEXT = {
  * El origin se resuelve en el cliente con `useSyncExternalStore` y snapshot SSR
  * vacío (contrato SDD-0206: evita mismatch de hidratación).
  */
-export function ShareProviderButton({ token }: { token: string }) {
+export function ShareProviderButton({ token,documentConfirmed=false }: { token: string;documentConfirmed?:boolean }) {
   const origin = useSyncExternalStore(
     () => () => undefined,
     () => window.location.origin,
@@ -75,11 +75,10 @@ export function ShareProviderButton({ token }: { token: string }) {
   return (
     <section aria-labelledby={`${inputId}-title`}>
       <h2 id={`${inputId}-title`} className="m-0 text-lg font-bold leading-snug text-ink">
-        Solicita la factura y el packing list a tu proveedor
+        {documentConfirmed?"Comparte el documento confirmado con tu proveedor":"Solicita la factura y el packing list a tu proveedor"}
       </h2>
       <p id={`${inputId}-description`} className="mt-2 mb-4 max-w-prose text-base leading-relaxed text-grey-700">
-        Comparte este enlace en su chat. Tu proveedor completa los datos de la
-        mercancía, adjunta archivos y encuentra sus etiquetas y dirección de entrega.
+        {documentConfirmed?"El proveedor ya confirmó esta revisión. Con este enlace puede consultar el documento, sus etiquetas y la dirección de entrega.":"Comparte este enlace en su chat. Tu proveedor completa los datos de la mercancía, adjunta archivos y encuentra sus etiquetas y dirección de entrega."}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <label htmlFor={inputId} className="sr-only">

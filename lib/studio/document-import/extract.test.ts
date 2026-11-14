@@ -18,6 +18,46 @@ async function workbook(rows: unknown[][]): Promise<Uint8Array> {
 }
 beforeEach(() => { assisted.mockReset(); assisted.mockResolvedValue(emptyDocumentDraft()); });
 
+describe("S3 native-only and explicit PDF seam", () => {
+  it("reads a complete XLSX natively without either assisted provider", async () => {
+    const pdf = vi.fn(), bytes = await workbook([["Product", "Cartons", "PCS/CTN", "Gross weight per carton kg", "Net weight per carton kg", "CBM/CTN"], ["Vasos", 2, 10, 12, 10, 0.2]]);
+    const result = await extractDocument(bytes, { ...opts, fileName: "fictitious.xlsx" }, { nativeOnly: true, pdf });
+    expect(computeDocumentTotals(result)).toMatchObject({ cartons: 2, grossWeightKg: 24, netWeightKg: 20, cbm: 0.4 });
+    expect(pdf).not.toHaveBeenCalled(); expect(assisted).not.toHaveBeenCalled();
+  });
+  it("does not escalate ambiguous multiple sheets to AI in native-only mode", async () => {
+    const wb = new ExcelJS.Workbook(); for (const name of ["Invoice", "Packing"]) { const sheet = wb.addWorksheet(name); sheet.addRow(["Product", "Quantity"]); sheet.addRow(["Cup", 10]); }
+    await expect(extractDocument(new Uint8Array(await wb.xlsx.writeBuffer()), { ...opts, fileName: "fictitious.xlsx" }, { nativeOnly: true })).rejects.toMatchObject({ code: "native_review_required" });
+    expect(assisted).not.toHaveBeenCalled();
+  });
+  it("uses only the server supplied PDF function and preserves its pending declarations", async () => {
+    const draft = emptyDocumentDraft(); draft.transportDeclarations = { battery: null, specialCargo: null };
+    const pdf = vi.fn(async () => draft);
+    const output = await extractDocument(new TextEncoder().encode("%PDF-synthetic"), { ...opts, fileName: "synthetic.pdf" }, { nativeOnly: true, pdf });
+    expect(pdf).toHaveBeenCalledTimes(1); expect(output.transportDeclarations).toEqual({ battery: null, specialCargo: null }); expect(assisted).not.toHaveBeenCalled();
+  });
+});
+
+describe("S2: lectura de peso neto y autoridad legacy", () => {
+  it("lee bruto y neto explícitos por caja sin confundirlos", async () => {
+    const d = await csv("Product,Cartons,PCS/CTN,Gross weight per carton kg,Net weight per carton kg,CBM/CTN\nVasos,2,10,12,10,0.2");
+    expect(assisted).not.toHaveBeenCalled();
+    expect(d.groups[0]).toMatchObject({ cartons: 2, grossWeightKg: 24, netWeightKg: 20, cbm: 0.4 });
+    expect(computeDocumentTotals(d)).toMatchObject({ grossWeightKg: 24, netWeightKg: 20 });
+  });
+  it("un neto solitario nunca se transforma en peso bruto para el flete", async () => {
+    const d = await csv("Product,Cartons,PCS/CTN,Net weight kg,CBM\nVasos,1,10,12,0.2");
+    expect(d.groups[0]).toMatchObject({ grossWeightKg: null, netWeightKg: 12 });
+  });
+  it("el DTO asistido antiguo no otorga procedencia ni declaraciones de seguridad", async () => {
+    const legacy = emptyDocumentDraft(); legacy.transportDeclarations = { battery: false, specialCargo: false };
+    legacy.fieldDecisions = [{ path: "supplier.company", origin: "manual", references: [] }];
+    assisted.mockResolvedValue(legacy);
+    const d = await extractDocument(new TextEncoder().encode("%PDF-synthetic"), { ...opts, fileName: "synthetic.pdf" });
+    expect(d).not.toHaveProperty("fieldDecisions"); expect(d).not.toHaveProperty("transportDeclarations");
+  });
+});
+
 describe("native document extraction", () => {
   /**
    * Regresiones de proformas REALES de Yiwu. Las fixtures sintéticas nunca las

@@ -33,6 +33,7 @@ import {
   type DocumentWorkspace,
 } from "./document-client";
 import s from "./document-import.module.css";
+import { DocumentEditor } from "./DocumentEditor";
 
 /** Lo que el servidor acepta hoy. Las fotos de WeChat hay que convertirlas antes. */
 const ACCEPT = ".xlsx,.csv,.pdf";
@@ -41,6 +42,7 @@ const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_FILES = 10;
 
 type JobStatus =
+  | "prepared"
   | "uploading"
   | "queued"
   | "processing"
@@ -62,6 +64,7 @@ type FileEntry = {
   /** Motivo legible del fallo. Nunca lleva texto del documento. */
   error: string | null;
   draft: DocumentDraft | null;
+  stage?: "ocr" | "tokenizer" | "chat";
 };
 
 const TERMINAL: JobStatus[] = ["ready", "partial", "applied", "failed"];
@@ -82,6 +85,7 @@ export function documentKindLabel(kind: DocumentKind, locale: DocumentLocale): s
 export function documentStatusLabel(status: JobStatus, locale: DocumentLocale): string {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const known: Record<JobStatus, string> = {
+    prepared: t("待发送", "Preparado para enviar", "Ready to send"),
     uploading: t("上传中", "Enviando", "Uploading"),
     queued: t("排队中", "En cola", "Queued"),
     processing: t("读取中", "Leyendo", "Reading"),
@@ -101,6 +105,8 @@ export function documentStatusLabel(status: JobStatus, locale: DocumentLocale): 
 export function documentErrorLabel(code: string, locale: DocumentLocale): string {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const known: Record<string, string> = {
+    qa_glm_context_conflict: t("已有读取结果属于其他版本或采购。请保留数据并请求核对。", "La lectura conocida pertenece a otro contexto o revisión. Conserva tus datos y solicita revisar el documento; no se envió de nuevo.", "The known reading belongs to a different context or revision. Keep your data and request a review; it was not sent again."),
+    qa_glm_dispatch_blocked: t("此前的发送需要核对，不会自动重发。可手动填写。", "Un envío anterior requiere revisión del registro. No lo reenviamos automáticamente; puedes completar los datos a mano.", "A previous dispatch requires ledger review. It is not resent automatically; you can enter the data manually."),
     legacy_xls: t(
       "请将 XLS 另存为 XLSX 或 PDF 后再导入。",
       "Guarda el XLS como XLSX o PDF para importarlo. El original puede quedar como adjunto.",
@@ -146,7 +152,27 @@ export function documentErrorLabel(code: string, locale: DocumentLocale): string
   );
 }
 
-export function DocumentImportPanel({
+export function DocumentImportPanel(props: Parameters<typeof DocumentImportSession>[0]) {
+  const workspaceId = props.workspace?.id ?? null;
+  const [identity, setIdentity] = useState(() => ({
+    workspaceId,
+    openedId: null as string | null,
+    generation: 0,
+  }));
+  if (workspaceId !== identity.workspaceId) {
+    // Abrir desde null pertenece a esta carga; cambiar de compra crea otra sesión.
+    const openedHere = identity.workspaceId === null && workspaceId !== null && workspaceId === identity.openedId;
+    setIdentity({ workspaceId, openedId: null, generation: identity.generation + (openedHere ? 0 : 1) });
+  }
+  const onWorkspace = props.onWorkspace;
+  const publishWorkspace = useCallback((next: DocumentWorkspace) => {
+    setIdentity((current) => current.workspaceId === null ? { ...current, openedId: next.id } : current);
+    onWorkspace(next);
+  }, [onWorkspace]);
+  return <DocumentImportSession key={identity.generation} {...props} onWorkspace={publishWorkspace} />;
+}
+
+function DocumentImportSession({
   workspace,
   openParams,
   onWorkspace,
@@ -155,6 +181,8 @@ export function DocumentImportPanel({
   locale = "es",
   client,
   pollMs = 2500,
+  canReview = true,
+  extractionDisclosure,
 }: {
   /** Workspace ya abierto. Si falta, el panel lo abre con la primera carga. */
   workspace: DocumentWorkspace | null;
@@ -174,6 +202,9 @@ export function DocumentImportPanel({
   /** Inyección explícita sólo para pruebas y fixtures. */
   client?: DocumentClient;
   pollMs?: number;
+  canReview?: boolean;
+  /** Explicit fixture capability; normal callers read the effective server capability. */
+  extractionDisclosure?: string;
 }) {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const uid = useId();
@@ -182,16 +213,35 @@ export function DocumentImportPanel({
   const [over, setOver] = useState(false);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
+  const [disclosure, setDisclosure] = useState<string | null>(extractionDisclosure ?? null);
+  const [formats, setFormats] = useState(["xlsx", "csv", "pdf"]);
 
   // Inicializador perezoso en vez de un ref: crea el transporte UNA sola vez sin
   // leer `.current` durante el render, que es lo que React desaconseja.
   const [transport] = useState<DocumentClient>(() => client ?? createDocumentClient());
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
+  useEffect(() => {
+    if (extractionDisclosure) return;
+    let current = true;
+    transport.get<{ extractionDisclosure?: string; formats?: string[] }>("capabilities").then(result => {
+      if (current && typeof result.extractionDisclosure === "string" && result.extractionDisclosure.length <= 400) setDisclosure(result.extractionDisclosure);
+      if (current && Array.isArray(result.formats) && result.formats.length>0 && result.formats.length<=3 && result.formats.every(format=>["xlsx","csv","pdf"].includes(format)) && new Set(result.formats).size===result.formats.length) setFormats(result.formats);
+    }).catch(() => { if (current) setDisclosure(null); });
+    return () => { current = false; };
+  }, [transport, extractionDisclosure]);
 
   const patch = useCallback(
-    (requestKey: string, next: Partial<FileEntry>) =>
+    (requestKey: string, next: Partial<FileEntry>) => {
+      if (!active.current) return;
       setEntries((prev) =>
         prev.map((e) => (e.requestKey === requestKey ? { ...e, ...next } : e)),
-      ),
+      );
+    },
     [],
   );
 
@@ -204,18 +254,20 @@ export function DocumentImportPanel({
     [locale],
   );
 
-  async function ensureWorkspace(): Promise<DocumentWorkspace> {
+  async function ensureWorkspace(): Promise<DocumentWorkspace | null> {
     if (workspace) return workspace;
     const opened = await transport.post<{
       workspace: DocumentWorkspace;
       anonymousToken?: string;
     }>("open", { ...openParams });
+    if (!active.current) return null;
     if (opened.anonymousToken) transport.setAnonymousToken(opened.anonymousToken);
     onWorkspace(opened.workspace);
     return opened.workspace;
   }
 
   async function send(entry: FileEntry, target: DocumentWorkspace) {
+    if (!active.current) return;
     const reserved = await transport.post<{
       jobId: string;
       status: JobStatus;
@@ -228,19 +280,22 @@ export function DocumentImportPanel({
       sizeBytes: entry.file.size,
       kind: entry.kind,
     });
+    if (!active.current) return;
     patch(entry.requestKey, { jobId: reserved.jobId, status: reserved.status });
     // Sin uploadUrl el archivo ya estaba recibido: reintento idempotente.
     if (reserved.uploadUrl && reserved.contentType) {
       await transport.upload(reserved.uploadUrl, entry.file, reserved.contentType);
     }
+    if (!active.current) return;
     const finished = await transport.post<{ jobId: string; status: JobStatus }>(
       "uploaded",
       { workspaceId: target.id, jobId: reserved.jobId },
     );
-    patch(entry.requestKey, { status: finished.status });
+    patch(entry.requestKey, { jobId: finished.jobId, status: finished.status });
   }
 
   async function add(files: FileList | File[]) {
+    if (!active.current) return;
     setPanelError(null);
     const chosen = Array.from(files);
     if (!chosen.length) return;
@@ -264,22 +319,35 @@ export function DocumentImportPanel({
       file,
       kind: "unknown",
       jobId: null,
-      status: "uploading",
+      status: "prepared",
       error: null,
       draft: null,
     }));
     setEntries((prev) => [...prev, ...nuevos]);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function sendPrepared() {
+    if (sending.current || !disclosure || !active.current) return;
+    const nuevos = entries.filter(e => e.status === "prepared");
+    if (!nuevos.length) return;
+    sending.current = true;
     setBusy(true);
+    setPanelError(null);
     try {
       const target = await ensureWorkspace();
+      if (!active.current || !target) return;
       for (const entry of nuevos) {
+        if (!active.current) return;
         try {
+          patch(entry.requestKey, { status: "uploading" });
           await send(entry, target);
         } catch (error) {
           patch(entry.requestKey, { status: "failed", error: reason(error) });
         }
       }
     } catch (error) {
+      if (!active.current) return;
       setPanelError(reason(error));
       setEntries((prev) =>
         prev.map((e) =>
@@ -289,39 +357,46 @@ export function DocumentImportPanel({
         ),
       );
     } finally {
-      setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      sending.current = false;
+      if (active.current) {
+        setBusy(false);
+        if (inputRef.current) inputRef.current.value = "";
+      }
     }
   }
 
   /** Sondeo de los trabajos en vuelo. Se detiene solo cuando no queda ninguno. */
   useEffect(() => {
     const pendientes = entries.filter(
-      (e) => e.jobId && !TERMINAL.includes(e.status),
+      (e) => e.jobId && (!TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft)),
     );
     if (!pendientes.length || !workspace) return;
+    const pollingWorkspace: DocumentWorkspace = workspace;
     let vivo = true;
-    const timer = setTimeout(async () => {
+    async function poll() {
       for (const entry of pendientes) {
         if (!vivo) return;
         try {
           const { job } = await transport.get<{
-            job: { status: JobStatus; result: DocumentDraft | null; errorCode: string | null };
-          }>("job", { workspaceId: workspace.id, jobId: entry.jobId! });
+            job: { status: JobStatus; result: DocumentDraft | null; errorCode: string | null; stage?: "ocr" | "tokenizer" | "chat" };
+          }>("job", { workspaceId: pollingWorkspace.id, jobId: entry.jobId! });
           if (!vivo) return;
           patch(entry.requestKey, {
             status: job.status,
             draft: job.result,
+            stage: ["ocr", "tokenizer", "chat"].includes(job.stage ?? "") ? job.stage : undefined,
             error:
               job.status === "failed"
                 ? documentErrorLabel(job.errorCode ?? "unknown", locale)
                 : null,
           });
         } catch {
-          // Un sondeo fallido no es un fallo del archivo: se reintenta al próximo tick.
+          // No invalida el archivo. El siguiente tick se programa también tras el fallo.
         }
       }
-    }, pollMs);
+      if (vivo) timer = setTimeout(poll, pollMs);
+    }
+    let timer = setTimeout(poll, pollMs);
     return () => {
       vivo = false;
       clearTimeout(timer);
@@ -329,7 +404,7 @@ export function DocumentImportPanel({
   }, [entries, workspace, transport, patch, locale, pollMs]);
 
   async function apply(entry: FileEntry) {
-    if (!workspace || !entry.jobId) return;
+    if (!active.current || !workspace || !entry.jobId) return;
     setBusy(true);
     setPanelError(null);
     try {
@@ -343,22 +418,23 @@ export function DocumentImportPanel({
         expectedRevision: workspace.revision,
         commandId: transport.id(),
       });
+      if (!active.current) return;
       patch(entry.requestKey, { status: "applied" });
       // Aplicado ya está: se marca antes de releer para no perder ese hecho si
       // la relectura falla. Sin el borrador nuevo no hay nada que subir.
       const fresco = await transport.get<{ workspace: DocumentWorkspace }>("workspace", {
         workspaceId: workspace.id,
       });
-      onWorkspace(fresco.workspace);
+      if (active.current) onWorkspace(fresco.workspace);
     } catch (error) {
-      setPanelError(reason(error));
+      if (active.current) setPanelError(reason(error));
     } finally {
-      setBusy(false);
+      if (active.current) setBusy(false);
     }
   }
 
   const listos = entries.filter((e) => APPLICABLE.includes(e.status));
-  const enVuelo = entries.some((e) => !TERMINAL.includes(e.status));
+  const enVuelo = entries.some((e) => e.status !== "prepared" && (!TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft)));
 
   return (
     <section
@@ -378,6 +454,15 @@ export function DocumentImportPanel({
           )}
         </p>
       </div>
+
+      <p className={s.notice}>
+        {t(
+          "文件用于填写本次采购资料。请勿上传银行账号、身份证件或与货物无关的数据。",
+          "Usamos los archivos para preparar tu Packing List + Factura. Evita incluir datos bancarios, documentos de identidad o información ajena a la mercancía.",
+          "Files are used to prepare your Packing List + Invoice. Avoid bank details, identity documents or information unrelated to the goods.",
+        )}
+        {" "}{disclosure ?? t("读取方式暂不可用，仍可手动填写。", "No pudimos comprobar el servicio de lectura. Puedes completar los datos a mano.", "Reading service could not be checked. You can enter the data manually.")}
+      </p>
 
       <div
         className={s.drop}
@@ -401,7 +486,7 @@ export function DocumentImportPanel({
           id={`${uid}-file`}
           type="file"
           multiple
-          accept={ACCEPT}
+          accept={formats.map(format=>"."+format).join(",") || ACCEPT}
           disabled={busy}
           onChange={(e) => {
             if (e.target.files?.length) void add(e.target.files);
@@ -416,9 +501,7 @@ export function DocumentImportPanel({
           {t("选择文件", "Elegir archivos", "Choose files")}
         </button>
         <p className={s.chips} aria-label={t("支持的格式", "Formatos admitidos", "Supported formats")}>
-          <span className={s.chip}>XLSX</span>
-          <span className={s.chip}>CSV</span>
-          <span className={s.chip}>PDF</span>
+          {formats.map(format=><span key={format} className={s.chip}>{format.toUpperCase()}</span>)}
           <span className={s.chip}>15 MB</span>
         </p>
         <p className={s.muted}>
@@ -455,8 +538,9 @@ export function DocumentImportPanel({
                     <span className={s.fileName}>{entry.file.name}</span>
                     <span className={s.badge}>{documentStatusLabel(entry.status, locale)}</span>
                   </div>
+                  {entry.status === "processing" && entry.stage && <p role="status" className={s.muted}>{entry.stage === "ocr" ? t("识别 PDF 文字", "Leyendo el texto del PDF", "Reading PDF text") : entry.stage === "tokenizer" ? t("检查输入长度", "Comprobando el tamaño de la lectura", "Checking input length") : t("整理提取的数据", "Preparando los datos para revisar", "Preparing extracted data for review")}</p>}
 
-                  {entry.status === "uploading" && !entry.jobId && (
+                  {entry.status === "prepared" && !entry.jobId && (
                     <label className={s.field}>
                       <span>{t("文件类型", "Tipo de documento", "Document type")}</span>
                       <select
@@ -486,6 +570,7 @@ export function DocumentImportPanel({
                       {totals.cbm ?? t("待补充", "pendiente", "pending")} m³
                     </p>
                   )}
+                  {entry.draft&&<details className={s.card}><summary>{t("查看提取的数据","Ver datos detectados","View detected data")}</summary><DocumentEditor draft={entry.draft} locale={locale} readOnly/></details>}
 
                   {entry.status === "partial" && (
                     <p className={s.muted}>
@@ -508,8 +593,8 @@ export function DocumentImportPanel({
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={busy}
-                        onClick={() => void apply(entry)}
+                        disabled={busy || !entry.draft}
+                        onClick={() => { if(entry.draft)void apply(entry); }}
                       >
                         {t("应用到文件", "Aplicar al documento", "Apply to the document")}
                       </button>
@@ -519,6 +604,10 @@ export function DocumentImportPanel({
               );
             })}
           </div>
+          {entries.some(e => e.status === "prepared") && <div className={s.actions}>
+            <button type="button" className="btn btn-primary" disabled={busy || !disclosure} onClick={() => void sendPrepared()}>{t("发送并读取", "Enviar y leer documentos", "Send and read documents")}</button>
+            <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setEntries(previous => previous.filter(e => e.status !== "prepared"))}>{t("移除待发送文件", "Quitar archivos preparados", "Remove prepared files")}</button>
+          </div>}
 
           <p className={s.muted}>
             {t(
@@ -535,7 +624,7 @@ export function DocumentImportPanel({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={busy || enVuelo || (!workspace && listos.length === 0)}
+            disabled={busy || enVuelo || !canReview || (!workspace && listos.length === 0)}
             onClick={onReview}
           >
             {t("查看文件", "Revisar documento", "Review document")}

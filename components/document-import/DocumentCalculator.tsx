@@ -33,12 +33,14 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { CalcParams, Ciudad, EnvioCotizacion, EnvioInput } from "@/lib/calculadora";
+import { aggregateTransportDeclarations } from "@/lib/shared/document-import";
 import {
   createDocumentClient,
   documentText,
   DocumentRequestError,
   type DocumentClient,
   type DocumentLocale,
+  type DocumentWorkspace,
 } from "./document-client";
 import s from "./document-import.module.css";
 
@@ -68,22 +70,24 @@ export type DocumentEstimate = {
  * una salida concreta; mostrarlos como error genérico dejaría al cliente sin
  * saber qué hacer.
  */
-const NEEDS_DOCUMENT = ["missing_logistics", "review_required"];
+const NEEDS_DOCUMENT = ["missing_logistics", "review_required", "transport_review_required", "revision_conflict"];
 
 export function DocumentCalculator({
-  workspaceIds,
+  workspaces,
   locale = "es",
   client,
   canSave = false,
   merchandise = null,
   onNeedsDocument,
   onEstimate,
+  disabled = false,
 }: {
   /**
    * Los documentos que entran en este estimado. Varios sólo desde el portal:
    * el servidor exige sesión para combinar más de uno.
    */
-  workspaceIds: string[];
+  workspaces: DocumentWorkspace[];
+  disabled?: boolean;
   locale?: DocumentLocale;
   /** Inyección explícita para pruebas/fixtures. En producción nace del default. */
   client?: DocumentClient;
@@ -112,12 +116,20 @@ export function DocumentCalculator({
   const [destinations, setDestinations] = useState<Destination[] | null>(null);
   const [cityId, setCityId] = useState("");
   const [packaging, setPackaging] = useState<"estandar" | "especial">("estandar");
-  const [battery, setBattery] = useState(false);
-  const [specialCargo, setSpecialCargo] = useState(false);
-  const [estimate, setEstimate] = useState<DocumentEstimate | null>(null);
+  const [received, setReceived] = useState<{ key: string; data: DocumentEstimate } | null>(null);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const mounted = useRef(true), generation = useRef(0);
+  const workspaceIds = workspaces.map(w => w.id);
+  const expectedRevisions = workspaces.map(w => ({ workspaceId: w.id, revision: w.revision }));
+  const declarations = aggregateTransportDeclarations(workspaces.map(w => w.draft));
+  const transportPending = declarations.battery.pending || declarations.specialCargo.pending;
+  const binding = JSON.stringify([expectedRevisions, declarations, cityId, packaging, disabled]);
+  const latestBinding = useRef(binding); latestBinding.current = binding;
+  const estimate = received?.key === binding && !disabled ? received.data : null;
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; }; }, []);
+  useEffect(() => { generation.current++; setBusy(false); setReceived(null); setSaved(false); setError(null); }, [binding, api]);
 
   // El catálogo de destinos viene del servidor, no de una constante local: las
   // ciudades y sus tramos cambian sin tocar este archivo.
@@ -151,29 +163,35 @@ export function DocumentCalculator({
   // Cambiar cualquier entrada invalida el estimado anterior: dejarlo en pantalla
   // haría creer que ese precio corresponde al destino nuevo.
   const change = <T,>(set: (value: T) => void) => (value: T) => {
+    generation.current++;
     set(value);
-    setEstimate(null);
+    setReceived(null);
+    setBusy(false);
     setSaved(false);
   };
 
   async function calculate(save: boolean) {
-    if (busy) return;
+    if (busy || disabled || transportPending) return;
+    const requestGeneration = ++generation.current, requestBinding = binding;
+    const current = () => mounted.current && generation.current === requestGeneration && latestBinding.current === requestBinding;
     setBusy(true);
     setError(null);
     try {
       const data = await api.post<DocumentEstimate>("estimate", {
         workspaceIds,
+        expectedRevisions,
         cityId,
         packaging,
-        battery,
-        specialCargo,
         ...(save ? { save: true } : {}),
       });
-      setEstimate(data);
+      if (!current()) return;
+      if (data.documentRevisions.length !== expectedRevisions.length || expectedRevisions.some(w => !data.documentRevisions.some(r => r.workspaceId === w.workspaceId && r.revision === w.revision))) throw new DocumentRequestError(409, "revision_conflict", t("文件已更新，请载入当前修订版。", "El documento cambió. Carga la revisión compartida antes de cotizar.", "The document changed. Load the shared revision before estimating."));
+      setReceived({ key: requestBinding, data });
       setSaved(Boolean(data.savedId));
       onEstimate?.(data);
     } catch (e: unknown) {
-      setEstimate(null);
+      if (!current()) return;
+      setReceived(null);
       setSaved(false);
       setError({
         code: e instanceof DocumentRequestError ? e.code : "unavailable",
@@ -187,7 +205,7 @@ export function DocumentCalculator({
               ),
       });
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }
 
@@ -278,7 +296,7 @@ export function DocumentCalculator({
           <select
             id={`${uid}-city`}
             value={cityId}
-            disabled={busy || destinations === null}
+            disabled={disabled || destinations === null}
             onChange={(e) => change(setCityId)(e.target.value)}
           >
             <option value="">
@@ -299,7 +317,7 @@ export function DocumentCalculator({
           <select
             id={`${uid}-packaging`}
             value={packaging}
-            disabled={busy}
+            disabled={disabled}
             onChange={(e) =>
               change(setPackaging)(e.target.value === "especial" ? "especial" : "estandar")
             }
@@ -309,43 +327,24 @@ export function DocumentCalculator({
           </select>
         </label>
 
-        <label className={[s.field, s.wide].join(" ")} htmlFor={`${uid}-battery`}>
-          <span className={s.actions}>
-            <input
-              id={`${uid}-battery`}
-              type="checkbox"
-              checked={battery}
-              disabled={busy}
-              style={{ width: "auto", minHeight: "auto" }}
-              onChange={(e) => change(setBattery)(e.target.checked)}
-            />
-            {t("含电池", "Lleva baterías", "Contains batteries")}
-          </span>
-        </label>
-
-        <label className={[s.field, s.wide].join(" ")} htmlFor={`${uid}-special`}>
-          <span className={s.actions}>
-            <input
-              id={`${uid}-special`}
-              type="checkbox"
-              checked={specialCargo}
-              disabled={busy}
-              style={{ width: "auto", minHeight: "auto" }}
-              onChange={(e) => change(setSpecialCargo)(e.target.checked)}
-            />
-            {t("特殊货物（液体、粉末、品牌）", "Carga especial (líquidos, polvos, marcas)", "Special cargo (liquids, powders, brands)")}
-          </span>
-        </label>
+        <dl className={s.summaryList}>
+          {(["battery", "specialCargo"] as const).map(key => <div key={key}>
+            <dt>{key === "battery" ? t("含电池", "Lleva baterías", "Contains batteries") : t("特殊或受管制货物", "Carga especial o regulada", "Special or regulated cargo")}</dt>
+            <dd>{declarations[key].value === true ? t("是", "Sí", "Yes") : declarations[key].value === false ? t("否", "No", "No") : t("待审核", "Pendiente de revisión", "Review pending")}{declarations[key].value === true && declarations[key].pending ? t(" · 部分采购待审核", " · faltan compras por revisar", " · some purchases still need review") : ""}</dd>
+          </div>)}
+        </dl>
       </div>
 
+      {transportPending && <p className={s.notice}>{t("请在文件中核对并保存电池及受管制货物声明。", "Revisa y guarda la declaración de baterías y carga regulada en el documento.", "Review and save the battery and regulated cargo declarations in the document.")}{onNeedsDocument && <button type="button" className="btn btn-ghost" onClick={onNeedsDocument}>{t("返回文件", "Volver al documento", "Back to the document")}</button>}</p>}
+
       <div className={s.actions}>
-        <button type="button" className="btn btn-primary" disabled={busy || !cityId} onClick={() => void calculate(false)}>
+        <button type="button" className="btn btn-primary" disabled={busy || disabled || transportPending || !cityId} onClick={() => void calculate(false)}>
           {busy
             ? t("计算中…", "Calculando…", "Calculating…")
             : t("计算运费", "Calcular el transporte", "Calculate transport")}
         </button>
         {canSave && estimate && !saved && (
-          <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void calculate(true)}>
+          <button type="button" className="btn btn-ghost" disabled={busy || disabled} onClick={() => void calculate(true)}>
             {t("保存此估算", "Guardar este estimado", "Save this estimate")}
           </button>
         )}

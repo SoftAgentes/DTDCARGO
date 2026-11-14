@@ -5,6 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll,afterAll,describe,it,expect } from "vitest";
 import { emptyDocumentDraft,toPackingPayload } from "@/lib/shared/document-import";
 import { validatePackingListInput } from "@/lib/studio/prealertas/packlist-form";
+import { extractDocument } from "./extract";
 
 /** Real embedded PostgreSQL. Fixture DDL only for unrelated prerequisites;
  * submit0148,folio0147,sync0244,reconcile0449 and ALL0457 execute their real SQL. */
@@ -60,6 +61,22 @@ async function save(id:string,revision:number,d:ReturnType<typeof draft>,confirm
   return r.rows[0].result;
 }
 describe("0457 SQL real on ephemeral PostgreSQL",()=>{
+  it("extrae CSV, comparte incompleto, corrige peso y confirma; otro guardado invalida la confirmación",async()=>{
+    const imported=await extractDocument(new TextEncoder().encode("Product,Code,Cartons,Qty/CTN,Total PCS,Unit price USD,Unit,Gross weight kg,Total CBM\nVasos,VAS-01,10,10,100,3.5,pcs,,0.6\n"),{fileName:"synthetic-dispatch.csv",kind:"combined",sourceId:"synthetic-source"});
+    imported.supplier.wechat="demo-contact";
+    expect(imported.groups[0].grossWeightKg).toBeNull();expect(imported.groups[0].cbm).toBe(0.6);expect(imported.products[0].quantity).toBe(100);
+    const w=await workspace();await save(w.id,0,imported);
+    const shared=await db.query<{draft:typeof imported}>("select draft from document_workspaces where id=$1",[w.id]);
+    const corrected=shared.rows[0].draft;corrected.groups[0].grossWeightKg=120;
+    expect(corrected.products[0].id).toBe(imported.products[0].id);
+    const confirmed=await save(w.id,1,corrected,true);expect(confirmed).toMatchObject({revision:2,confirmed:true});
+    const boxes=await db.query<{code:string}>("select code from warehouse_boxes where prealerta_id=$1 order by code",[w.purchase]);expect(boxes.rows).toHaveLength(10);
+    corrected.supplier.company="Corrección comercial del cliente";await save(w.id,2,corrected);
+    const state=await db.query<{revision:number;confirmed_revision:number}>("select revision,confirmed_revision from document_workspaces where id=$1",[w.id]);expect(state.rows[0]).toEqual({revision:3,confirmed_revision:2});
+    await expect(save(w.id,2,corrected,true)).rejects.toThrow("revision_conflict");
+    await save(w.id,3,corrected,true);
+    expect((await db.query("select code from warehouse_boxes where prealerta_id=$1 order by code",[w.purchase])).rows).toEqual(boxes.rows);
+  });
   it("saves incomplete draft; CAS rejects stale second browser and appends history",async()=>{
     const w=await workspace();await save(w.id,0,emptyDocumentDraft());
     await expect(save(w.id,0,draft())).rejects.toThrow("revision_conflict");
