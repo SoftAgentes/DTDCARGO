@@ -13,6 +13,7 @@ import {
 } from "@/lib/public/rates-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { getPortalChangeRequestSnapshot } from "@/lib/portal/change-request-queries";
 import type { ClientChangeRequest } from "@/lib/portal/change-request-types";
 import {
@@ -317,26 +318,28 @@ export default async function PortalProfilePage({
             {/* Respaldo sin 0466: registrar empresa por el asesor (SDD-0487 lo
                 reemplaza por «Mi empresa»). Migrate-first: en producción no se ve. */}
             {!esEmpresa && !billing.available && (
-              <div
-                className="mt-6 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
-                style={{ borderLeftColor: "var(--color-wine)" }}
-              >
-                <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
-                  ¿Importas para tu negocio?
+              <div className="portal-aviso mt-6 rounded-[12px] p-5" data-tono="info">
+                <span className="portal-aviso-icono">
+                  <StatusIcon tone="info" size={16} />
+                </span>
+                <div className="portal-aviso-cuerpo">
+                  <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
+                    ¿Importas para tu negocio?
+                  </div>
+                  <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
+                    Registra tu empresa (RIF) para facturar a nombre de ella. Tu
+                    asesor crea el perfil de empresa vinculado a tu cuenta —
+                    escríbele y lo deja listo.
+                  </p>
+                  <a
+                    href={waCompany}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost mt-4 inline-flex items-center gap-2"
+                  >
+                    <WhatsAppIcon size={16} /> Registrar mi empresa
+                  </a>
                 </div>
-                <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
-                  Registra tu empresa (RIF) para facturar a nombre de ella. Tu
-                  asesor crea el perfil de empresa vinculado a tu cuenta —
-                  escríbele y lo deja listo.
-                </p>
-                <a
-                  href={waCompany}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost mt-4 inline-flex items-center gap-2"
-                >
-                  <WhatsAppIcon size={16} /> Registrar mi empresa
-                </a>
               </div>
             )}
           </section>
@@ -347,15 +350,13 @@ export default async function PortalProfilePage({
               {guardado === "empresa" || guardado === "persona" ? (
                 <p
                   role="status"
-                  className="flex items-start gap-2.5 rounded-[12px] border border-grey-200 bg-white p-3.5 text-[14px] leading-[1.5] text-ink"
+                  className="portal-aviso rounded-[12px] p-3.5 text-[14px] leading-[1.5] text-ink"
+                  data-tono="exito"
                 >
-                  <span className="mt-0.5 flex-shrink-0" style={{ color: "var(--color-status-success)" }} aria-hidden>
-                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M8 12.5l2.5 2.5L16 9.5" />
-                    </svg>
+                  <span className="portal-aviso-icono">
+                    <StatusIcon tone="success" size={18} />
                   </span>
-                  <span>
+                  <span className="portal-aviso-cuerpo">
                     <strong>{guardado === "empresa" ? "Empresa guardada." : "Datos guardados."}</strong>{" "}
                     Revisa abajo a nombre de quién salen tus próximas facturas.
                   </span>

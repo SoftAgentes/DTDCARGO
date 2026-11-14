@@ -19,6 +19,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { fmtAmount } from "@/lib/money";
@@ -81,16 +82,7 @@ export function RecordatoriosDrawer({
         )}
 
         {(preview?.error || errorEnvio) && (
-          <p
-            role="alert"
-            style={{
-              font: "500 13px/1.5 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-            }}
-          >
-            {errorEnvio ?? preview?.error}
-          </p>
+          <Aviso tono="error">{errorEnvio ?? preview?.error}</Aviso>
         )}
 
         {!cargando && !preview?.error && (

@@ -27,6 +27,7 @@ import {
   TruckIcon,
   WarehouseIcon,
 } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { NewPurchaseButton } from "../../../_components/NewPurchaseButton";
 import { ServiceRequestButton } from "../../../_components/ServiceRequestButton";
 import { PortalTrackingEnConstruccion } from "../../../_components/PortalTrackingEnConstruccion";
@@ -405,29 +406,29 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
   );
 }
 
-/** Banner "Próximo consolidado" (cut-off). Copy ya armado en el server. */
+/**
+ * Banner "Próximo consolidado" (cut-off). Copy ya armado en el server.
+ * SDD-0603 · T4e (BD-037): franja plana de información; antes, fondo y borde
+ * vino en línea. El vino no es un estado (BRAND §Estados).
+ */
 function ConsolidadoBanner({
   banner,
 }: {
   banner: { route: string; sentence: string };
 }) {
   return (
-    <div
-      className="mt-6 rounded-[14px] border-l-[3px] p-5"
-      style={{
-        background: "color-mix(in srgb, var(--color-wine) 8%, transparent)",
-        borderColor: "var(--color-wine)",
-      }}
-    >
-      <div className="flex items-center gap-2.5">
-        <ShipIcon size={18} className="text-wine-text flex-shrink-0" />
+    <div className="portal-aviso mt-6 rounded-[14px] p-5" data-tono="info">
+      <span className="portal-aviso-icono">
+        <StatusIcon tone="info" size={16} />
+      </span>
+      <div className="portal-aviso-cuerpo">
         <div className="text-[14px] font-bold text-ink">
           Próximo consolidado · {banner.route}
         </div>
+        <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.55]">
+          {banner.sentence}
+        </p>
       </div>
-      <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.55]">
-        {banner.sentence}
-      </p>
     </div>
   );
 }

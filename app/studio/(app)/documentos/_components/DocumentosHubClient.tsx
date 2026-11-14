@@ -512,16 +512,17 @@ export function DocumentosHubClient({
                     </div>
                   </div>
                   <div style={{ minWidth: 0 }}>
+                    {/* SDD-0603 · tramo 5c: vínculo de tabla en tinta y
+                        subrayado; el vino queda para la acción principal. */}
                     {link ? (
                       <Link
                         href={link.href}
                         title={`Ir a ${link.label}`}
+                        className="studio-link-quiet"
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 5,
-                          textDecoration: "none",
-                          color: "var(--wine-text)",
                           font: "600 11px/1.2 var(--f-sans)",
                         }}
                       >
