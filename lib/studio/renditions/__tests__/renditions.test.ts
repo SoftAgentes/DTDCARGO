@@ -255,6 +255,17 @@ describe("buildRenditionLines · normalización USD + exclusiones", () => {
     expect(byCode["R-2026-0001"].reference).toBe("F-2026-0001");
     expect(byCode["R-2026-0003"].reference).toBe(null);
   });
+
+  // SDD-0572 (decisiones 1 y 2 del Director por delegación de Sam, 2026-10-20): un cobro sin tasa no se toma como dólares.
+  it("un cobro sin tasa va al detalle con amountUsd null, no suma y se cuenta", () => {
+    const sinTasa: EligibleReceiptRow = { ...rows[1], id: "r5", receipt_code: "R-2026-0005", fx_rate: null };
+    const lines = buildRenditionLines([rows[0], sinTasa], invoiceCodeById, RANGE);
+    const byCode = Object.fromEntries(lines.map((l) => [l.receiptCode, l]));
+    expect(byCode["R-2026-0005"].amountUsd).toBeNull();
+    const preview = buildRenditionPreview(lines, 0, RANGE);
+    expect(preview.thirdPartyUsd).toBe(100); // solo el USD; antes 3700
+    expect(preview.recibosSinTasa).toBe(1);
+  });
 });
 
 // ── computeLocalRevenueInvoiced (DEVENGADO) ───────────────────
@@ -328,6 +339,16 @@ describe("computeLocalRevenueInvoiced · status e issued_at filtran", () => {
     const r = computeLocalRevenueInvoiced(invoices, RANGE);
     expect(r.invoiceCount).toBe(2);
     expect(r.localRevenueUsd).toBe(400); // 200 USD + 200 (VES/36)
+    expect(r.sinTasa).toBe(0);
+  });
+
+  // SDD-0572 (decisiones 1 y 2 del Director por delegación de Sam, 2026-10-20): antes la VES sin tasa sumaba su nominal (7200 «dólares»).
+  it("una factura local sin tasa no suma y se cuenta en sinTasa", () => {
+    const sinTasa = { ...invoices[1], fx_rate: null };
+    const r = computeLocalRevenueInvoiced([invoices[0], sinTasa], RANGE);
+    expect(r.localRevenueUsd).toBe(200);
+    expect(r.invoiceCount).toBe(1);
+    expect(r.sinTasa).toBe(1);
   });
 });
 

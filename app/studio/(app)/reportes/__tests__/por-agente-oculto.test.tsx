@@ -58,10 +58,11 @@ const CON_FILAS: CommercialByAgent = {
       lost: 2,
       clients: 3,
       revenueUsd: 1200,
+      billing: { state: "completo" as const, subtotalUsd: "1200.00", sinTasaCount: 0 },
       convPct: 40,
     },
   ],
-  totals: { leads: 10, won: 4, lost: 2, clients: 3, revenueUsd: 1200, convPct: 40 },
+  totals: { leads: 10, won: 4, lost: 2, clients: 3, revenueUsd: 1200, billing: { state: "completo" as const, subtotalUsd: "1200.00", sinTasaCount: 0 }, convPct: 40 },
   hasKommo: true,
   oculto: true,
 };

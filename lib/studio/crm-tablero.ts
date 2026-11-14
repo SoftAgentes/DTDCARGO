@@ -37,7 +37,7 @@ export const CRM_TABLEROS: ReadonlyArray<{ key: CrmTablero; label: string }> = [
 
 /**
  * Roles que usan el CRM propio POR ROL (default de `kommo` en rbac.ts + admin).
- * Desde la SDD-0622 (migr 0530) la RLS ya no compara el rol: decide con
+ * Desde la SDD-0622 (migr 0539) la RLS ya no compara el rol: decide con
  * `user_has_module('kommo')`, que suma desvíos por rol y accesos adicionales.
  * Este predicado queda para listar asesores por rol.
  */

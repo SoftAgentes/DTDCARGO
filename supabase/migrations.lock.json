@@ -16,8 +16,8 @@
     "el archivo del repo, no lo que guardó el ledger.",
     "",
     "QUÉ ENTRÓ AL CREARLO (2026-10-19, origin/main 3f3a52cc): todas las migraciones del repo",
-    "hasta la 0491, menos las esperas de pendingBelowCutoff (0422 y 0423), que no están",
-    "aplicadas. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
+    "hasta la 0491, menos las esperas de entonces en pendingBelowCutoff (0422 y 0423),",
+    "que se aplicaron y sellaron después, el 2026-11-14. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
     "leyó el ledger de producción en solo lectura y se marcaron con `ledger` las que",
     "coinciden (conteos y método en la SDD-0561).",
     "",
@@ -2500,6 +2500,24 @@
         "forma": "exacta"
       }
     },
+    "0422_payment_report_command_boundary": {
+      "sha256": "0c412460c42a45e32c6d09f84bf1293094588e147de551930334cf12320f894c",
+      "md5": "e3e019590fac56315b971b4ce703ea96",
+      "bytes": 8673,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0423_payment_report_historical_identity": {
+      "sha256": "7a63c499d468451ad0ae0732ffaf42be5b78f4bb8f0e2e2e76651a553a0e235e",
+      "md5": "2d3d0cc9c2e299563add83c51f910f60",
+      "bytes": 8612,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
     "0424_portal_club_principal_tenant": {
       "sha256": "bfbce7469dc90e2b82310e1e24886fa13224fcbbdbd5c9a6a785d0a53327f046",
       "md5": "7dc9f0fa324ac8b1892b97b4f09a139c",
@@ -3283,6 +3301,78 @@
       "bytes": 8957,
       "ledger": {
         "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0526_noticias_anon_solo_columnas_publicas": {
+      "sha256": "1baa79e38e6eac85349d63386c580490ef7f3ecc36ec30791cad37a484e68855",
+      "md5": "f58d4595160b45559882f1adb5ee909a",
+      "bytes": 6731,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0527_annual_billing_fx_v2": {
+      "sha256": "492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229",
+      "md5": "422a371de0ae02c74c1ad46c4f83ed28",
+      "bytes": 12529,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0532_noticias_edicion_auditada": {
+      "sha256": "4e6dc6d380c4fc12805da663f4b125381cb53c947e36a2afaba3fa0f3df8b9c9",
+      "md5": "bd81ad586d236fd165af6f7efdb73c58",
+      "bytes": 11203,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0533_fechas_caracas_operaciones": {
+      "sha256": "da9343c22d38a2cffce7d7118c090a8e6c412ae0956979d2dc315754cc1e85e0",
+      "md5": "ef1805bd799471fe4c453276639c7b27",
+      "bytes": 42657,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0534_annual_billing_caracas": {
+      "sha256": "4ea257be32704d24b4ed06871c50a86cce6bac9f8d1c8f63ca4bbc923e5c7c45",
+      "md5": "9b16d8aaf26282e4db3ddf4930e64981",
+      "bytes": 14183,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0535_bcv_rates_system_audit": {
+      "sha256": "5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75",
+      "md5": "414b694a36160a4ded7c64d872c723f8",
+      "bytes": 15455,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0536_cxp_ligada_contenedor": {
+      "sha256": "6941af4f08e29042163d32c50d17422624089cdd3596ee9f0a640d5654f4b6f5",
+      "md5": "bf7b3204624423d5a576404c59bbf087",
+      "bytes": 7708,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0537_recibo_al_confirmar_reporte": {
+      "sha256": "4ca12d8a561e7e50ed4c86a0ec6ec2cc55e7b50d9bab6d48d6ad51a99b7cbe65",
+      "md5": "0a8205477a1c66722918789483877eab",
+      "bytes": 36185,
+      "ledger": {
+        "fecha": "2026-11-14",
         "forma": "exacta"
       }
     }

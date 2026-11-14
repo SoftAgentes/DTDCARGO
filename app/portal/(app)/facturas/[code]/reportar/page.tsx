@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Render: resumen del saldo + PaymentReportForm.
  */
 export default async function ReportPaymentPage({ params }: Props) {
+  const todayIso = fechaCaracas();
   const { code: raw } = await params;
   const code = decodeURIComponent(raw);
 
@@ -33,7 +35,6 @@ export default async function ReportPaymentPage({ params }: Props) {
   }
 
   const balance = invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid });
-  const todayIso = new Date().toISOString().slice(0, 10);
 
   return (
     <div>

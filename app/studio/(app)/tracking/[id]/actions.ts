@@ -526,7 +526,7 @@ export async function lookupRateForNewDestination(
   const supabase = await createClient();
   // SDD-0622: cambiar el destino es editar el envío, y la tarifa es precio.
   // Pide editar Tracking y, además, ver el Cotizador O la CN: el mismo criterio
-  // con que la RLS de `rates` (0531) deja leer tarifas (la CN las lee para la
+  // con que la RLS de `rates` (0540) deja leer tarifas (la CN las lee para la
   // propuesta de la recepción). Así Almacén conserva la tarifa sugerida que ya
   // recibía, y quien no ve ninguno de los dos (p. ej. marketing) no la recibe.
   if (await moduleEditDenial(supabase, "tracking")) return { rate: null };

@@ -49,7 +49,8 @@ export function PaymentReportForm({
     const errors = { ...validatePaymentReportInput({
       amount: data.get("amount"), method: data.get("method"),
       paidAt: data.get("paid_at"), note: data.get("note"),
-    }, todayIso).fieldErrors };
+    }, state.uncertain && lastSubmission.current
+      ? { kind: "recovery-candidate" } : { kind: "new", businessDay: todayIso }).fieldErrors };
     const file = data.get("proof");
     if (!(file instanceof File) || file.size <= 0) errors.proof = "Adjunta el comprobante de tu pago.";
     else if (!PROOF_ALLOWED_MIME.includes(file.type)) errors.proof = "Formato de comprobante no válido.";

@@ -12,7 +12,7 @@
  *      alguien tiene algo: la pantalla lo dice (objeción de la SDD-0139).
  *
  * Toda escritura va por `grantUserModuleAction` / `revokeUserModuleGrantAction`
- * (admin + RPC de la 0529). La ficha no se cierra: `revalidatePath` la redibuja.
+ * (admin + RPC de la 0538). La ficha no se cierra: `revalidatePath` la redibuja.
  */
 
 import { useRef, useState, useTransition } from "react";

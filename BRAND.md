@@ -296,6 +296,20 @@ La densidad correcta depende de la superficie — calibra el juicio de spacing *
 
 ---
 
+## 🎛 Controles · qué se oprime, qué avisa y qué solo se lee (BD-037)
+
+Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal, y se adopta por tramos (SDD-0603).
+
+- **Lo que se oprime** lleva relleno o contorno de tinta. Contorno de control ≥ 3:1 contra su fondo.
+- **Lo que avisa** es una franja plana con icono, sin contorno ni sombra.
+- **Lo que solo se lee** es texto. Los estados van con texto e icono, sin cajón.
+- **El vino** queda para la acción principal y la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. Es una excepción registrada a VIS-01 §3.
+- **Las tarjetas** conservan su borde suave: el contorno fuerte queda para lo oprimible.
+- **Vista predeterminada:** compacta y en tema oscuro; cada persona puede cambiarlas en la barra superior. Nada que se oprima baja de 32 px. Al imprimir se pasa a claro.
+- **Elevación** (enmienda del 2026-11-12, aprobada por Sam): la sombra marca el nivel. Principal `--shadow-md`; relleno (oscuro, advertencia, peligro) `--shadow-sm`; secundario `--shadow-xs` con contorno de 1,5 px en `--ink` (`--ctl-border`). Avisos, estados y deshabilitados van planos. En oscuro, todo control con relleno lleva `--ctl-edge-hi`, una luz arriba y un aro `--ink-soft`. Los verbos de botón van en peso 700 o más. Sin colores nuevos.
+
+---
+
 ## 🧩 Componentes
 
 Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.jsx` (Portal).

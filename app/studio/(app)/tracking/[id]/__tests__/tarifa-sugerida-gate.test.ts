@@ -5,7 +5,7 @@
  *
  * Decisión del Director (revisión de la #509, M1): no quitarle a Almacén la
  * tarifa que hoy recibe. El candado es editar Tracking y además ver el
- * Cotizador O la CN, el mismo criterio con que la RLS de `rates` (0531) deja
+ * Cotizador O la CN, el mismo criterio con que la RLS de `rates` (0540) deja
  * leer tarifas.
  *
  *   - almacén con scope CN → recibe la tarifa (ve la CN);

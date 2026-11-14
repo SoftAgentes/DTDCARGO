@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
-  "generatedAt": "2026-08-14T00:00:00.000Z",
-  "sourceCommit": "77c9a6afe79d8ef8e31d985f8a7f202bcb53eb26",
+  "generatedAt": "2026-11-13T00:00:00.000Z",
+  "sourceCommit": "49b8b1fec9827b2277bbeb0c11c87db5588d6d41",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -103,6 +103,96 @@
         "approvedBy": "Sam (founder)",
         "lastReviewedAt": "2026-08-14",
         "nextReviewAt": "2027-02-14"
+      }
+    },
+    {
+      "schemaVersion": "1.1",
+      "id": "aviso",
+      "name": "Aviso",
+      "purpose": "Avisar algo de la pantalla o la transacción con una franja plana con icono, sin contorno ni sombra (BD-037), en cuatro tonos que siguen BRAND §Estados.",
+      "owner": "Studio UI",
+      "status": "proposed",
+      "implementation": {
+        "path": "app/studio/_components/ui/Aviso.tsx",
+        "exportName": "Aviso"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "ERR-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/err-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        },
+        {
+          "code": "VIS-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/vis-01.md"
+        }
+      ],
+      "api": {
+        "contractPath": "docs/specs/0628-aviso-studio/spec.md",
+        "summary": "Tonos info, atencion, exito y error; título y acción opcionales (botón secundario existente); urgente fuerza role=alert; compacto para drawers. Error y urgente son alert; el resto, status. Color en studio.css, nunca en línea."
+      },
+      "tokens": [],
+      "accessibility": {
+        "keyboard": "verified",
+        "focus": "verified",
+        "screenReader": "verified",
+        "contrast": "verified",
+        "reducedMotion": "not-applicable",
+        "evidence": [
+          "app/studio/_components/ui/Aviso.test.tsx",
+          "app/studio/_components/__tests__/avisos-contract.test.ts",
+          "app/studio/_components/__tests__/claridad-controles-contract.test.ts"
+        ]
+      },
+      "breakpoints": [
+        "mobile",
+        "tablet",
+        "desktop",
+        "print"
+      ],
+      "examples": {
+        "correct": [
+          "app/studio/_components/ui/ErrorAlert.tsx"
+        ],
+        "incorrect": [
+          "app/studio/(app)/admin/agentes/_components/InstallSkillDrawer.tsx"
+        ]
+      },
+      "tests": [
+        {
+          "type": "accessibility",
+          "path": "app/studio/_components/ui/Aviso.test.tsx",
+          "case": "Rol por tono, urgente, icono aria-hidden con forma distinta, acción por teclado y sin color en línea."
+        },
+        {
+          "type": "visual",
+          "path": "app/studio/_components/__tests__/avisos-contract.test.ts",
+          "case": "Texto ≥4,5:1 e icono ≥3:1 en 24 combinaciones de tema, tono y superficie; franja plana; cinco mutantes."
+        }
+      ],
+      "consumers": [
+        {
+          "path": "app/studio/_components/ui/ErrorAlert.tsx",
+          "verifiedAt": "2026-11-13"
+        }
+      ],
+      "review": {
+        "reviewPath": "docs/specs/0628-aviso-studio/spec.md",
+        "reviewer": "Claude (Worker SDD-0628)",
+        "approvedBy": "Pendiente: Sam (founder) al promover a canonical",
+        "lastReviewedAt": "2026-11-13",
+        "nextReviewAt": "2027-05-13"
       }
     },
     {
@@ -441,15 +531,20 @@
       },
       "tokens": [
         "--bg-elevated",
-        "--r-pill",
-        "--border",
+        "--r-lg",
+        "--border-strong",
         "--bg-surface",
         "--wine",
+        "--wine-text",
         "--ink-soft",
-        "--shadow-xs",
+        "--ink-inv",
+        "--shadow-sm",
         "--r-md",
         "--wine-tint",
-        "--ink"
+        "--ink",
+        "--s-1",
+        "--s-3",
+        "--s-4"
       ],
       "accessibility": {
         "keyboard": "verified",

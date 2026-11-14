@@ -480,6 +480,18 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Regla viva en:** `BRAND.md` §Tipografía · `docs/governance/policies/vis-02.md`
   · SDD-0175.
 
+### BD-037 · Claridad de controles (Studio y Portal)
+- **Fecha:** 2026-11-04
+- **Tipo:** Cambio normativo, con excepción a VIS-01 §3 en el color de selección
+- **Estado:** Aprobada por Sam; se adopta por tramos (SDD-0603). Hasta fusionar cada tramo, producción sigue como estaba.
+- **Autorizado por:** Sam (founder). Literal, por selector, viendo el texto y el BRAND-CHECK: «Apruebo, en azul (Recommended)». Después, por chat, sobre los predeterminados: «que damos con compacto y prederteminado ocuro».
+- **Aplica a:** Studio y Portal. La web pública no cambia.
+- **Decisión:** Lo que se oprime lleva relleno o contorno de tinta; lo que avisa es una franja plana sin contorno; los estados son texto con icono, sin cajón. El vino queda para la acción principal y la identidad. La selección (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. La vista predeterminada es compacta y en tema oscuro; cada persona puede cambiarlas. Nada que se oprima baja de 32 px.
+- **Contexto:** el contorno del botón secundario y de los campos medía 1,48:1 contra la tarjeta (mínimo 3:1), y botones, avisos y estados compartían el mismo cajón claro.
+- **Excepción:** VIS-01 §3 asigna la selección al vino. Un relleno vino en cada pestaña competiría con la acción principal (VIS-01 §5). Revisión: al cerrar el tramo de pestañas de SDD-0603.
+- **Enmienda de elevación (2026-11-12, aprobada por Sam):** los controles suben de nivel con sombra (primario `--shadow-md`, relleno `--shadow-sm`, secundario `--shadow-xs` con contorno de 1,5 px en `--ink`), los rellenos llevan en oscuro un borde propio (`--ctl-edge-hi`: luz arriba y aro `--ink-soft`, 6,86:1 contra la tarjeta, porque el vino solo da 2,26:1) y los verbos de botón van en peso 700 o más. Dos tokens nuevos de forma, `--ctl-border` y `--ctl-edge-hi`; ningún color nuevo. Detalle y tabla de niveles en SDD-0603 §Enmienda de elevación. Pendiente de llevar al Brand Book en el próximo NORTE-SYNC.
+- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603.
+
 ---
 
 ## Índice rápido
@@ -522,6 +534,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-034 | Fondos ERP: degradados tonales `--grad-*` + marca de agua "D" | Normativo (extiende BD-030) | Vigente — sidebar/hero/KPI/página |
 | BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — desde el 2026-10-13 servidas desde el repositorio (SDD-0505); estuvo superada unas horas ese día |
 | BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
+| BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada; se adopta por tramos (SDD-0603) |
 
 ---
 

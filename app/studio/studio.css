@@ -222,11 +222,13 @@
    ─────────────────────────────────────────────────────────── */
 .studio-input {
   width: 100%;
+  min-height: 40px;
   padding: 10px 12px;
   background: var(--bg-surface);
-  border: 1px solid var(--studio-border-strong);
-  border-radius: 6px;
-  font: 500 13.5px/1.2 var(--f-sans);
+  /* SDD-0603: --border-strong medía 1,48:1 contra la tarjeta (mínimo 3:1). */
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-md);
+  font: 500 14px/1.2 var(--f-sans);
   color: var(--studio-ink);
   outline: none;
   box-sizing: border-box;
@@ -240,17 +242,18 @@
   border-color: var(--studio-ink);
 }
 .studio-input:focus-visible {
-  border-color: var(--studio-wine);
-  box-shadow: 0 0 0 3px rgba(127, 15, 26, 0.18);
+  border-color: var(--wine-text);
+  box-shadow: 0 0 0 1px var(--wine-text);
 }
 .studio-input[aria-invalid="true"] {
   border-color: var(--danger);
 }
 .studio-input[aria-invalid="true"]:focus-visible {
   border-color: var(--danger);
-  box-shadow: 0 0 0 3px var(--danger-bg);
+  box-shadow: 0 0 0 1px var(--danger);
 }
 .studio-input:disabled {
+  border-style: dashed;
   background: var(--studio-paper-2);
   color: var(--studio-text-muted);
   cursor: not-allowed;
@@ -284,7 +287,7 @@
   border-radius: 6px;
   background: var(--bg-elevated);
   color: var(--studio-ink);
-  font: 600 12px/1 var(--f-sans);
+  font: 700 12px/1 var(--f-sans);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -333,10 +336,8 @@
 
 /* Label uppercase tracked (acompaña a los inputs) */
 .studio-label {
-  font: 600 10.5px/1 var(--f-sans);
-  color: var(--studio-text-muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 600 13.5px/1.2 var(--f-sans);
+  color: var(--studio-ink);
   display: block;
   margin-bottom: 6px;
 }
@@ -356,26 +357,39 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px 22px;
-  font: 800 13px/1 var(--f-sans);
-  /* +0.01em vs el tracking base: Nunito 800 no pega tan brutal como la vieja
-     Archivo Black; este pelo extra le devuelve autoridad al CTA sin tocar
-     fuente ni peso (ajuste fino post-port tipográfico, founder 2026-06-11). */
-  letter-spacing: 0.06em;
-  border-radius: 8px;
-  border: 0;
+  gap: var(--s-2);
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  font: 700 14px/1 var(--f-sans);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  /* SDD-0603, enmienda de elevación: la sombra sale de dos piezas. --btn-lift es
+     el nivel (spec, «Niveles por control») y --btn-edge el borde propio de los
+     controles con relleno en oscuro (--ctl-edge-hi). Cada variante cambia solo
+     las piezas, no la sombra entera. */
+  --btn-edge: 0 0 0 0 transparent;
+  --btn-lift: var(--shadow-sm);
+  box-shadow: var(--btn-edge), var(--btn-lift);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
 }
+.studio-btn:hover:not(:disabled) {
+  --btn-lift: var(--shadow-md);
+}
+.studio-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  --btn-lift: var(--shadow-xs);
+}
 .studio-btn:disabled {
-  /* Deshabilitado por validación (ej: "Analizar con IA" sin suficiente texto):
-     not-allowed comunica "no disponible todavía" (NO wait/reloj, que se leía
-     como colgado); opacity 0.5 lo DISTINGUE claro del activo sin borrar el texto. */
+  /* Deshabilitado por validación: la raya y el fondo plano lo distinguen del activo
+     sin borrar el texto. not-allowed comunica "no disponible todavía". */
+  background: var(--studio-paper-2);
+  border: 1px dashed var(--ink-soft);
+  box-shadow: none;
+  color: var(--ink-soft);
   cursor: not-allowed;
-  opacity: 0.5;
 }
 /* Estado "cargando" (aria-busy="true"): el botón puede estar disabled MIENTRAS
    trabaja (spinner + "Analizando…/Enviando…/Procesando…"). No es "prohibido"
@@ -385,19 +399,23 @@
    (ej: ActionButton), y el selector plano cubre aria-busy sin disabled. */
 .studio-btn[aria-busy="true"],
 .studio-btn[aria-busy="true"]:disabled {
+  border-style: solid;
+  color: var(--ink);
   cursor: progress;
-  opacity: 0.9;
 }
 
 .studio-btn-primary {
   background: var(--studio-wine);
-  color: #FFFFFF;
+  color: var(--ink-side-strong);
+  --btn-edge: var(--ctl-edge-hi);
+  --btn-lift: var(--shadow-md);
 }
 .studio-btn-primary:hover:not(:disabled) {
   background: var(--studio-wine-deep);
+  --btn-lift: var(--shadow-lg);
 }
 .studio-btn-primary:active:not(:disabled) {
-  transform: translateY(1px);
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn-primary:focus-visible {
   outline: 2px solid var(--studio-wine-soft);
@@ -407,61 +425,51 @@
 .studio-btn-dark {
   background: var(--ink);
   color: var(--ink-inv);
-}
-.studio-btn-dark:hover:not(:disabled) {
-  background: #1F1F1F;
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-dark:focus-visible {
   outline: 2px solid var(--studio-wine-soft);
   outline-offset: 2px;
 }
 
-/* Dark theme: --ink se invierte a paper, así que el botón "dark" debe usar
-   un fondo elevado del theme con texto principal (color-aware via tokens). */
-[data-theme="dark"] .studio-btn-dark {
-  background: var(--bg-elevated);
-  color: var(--ink);
-  border: 1px solid var(--border-strong);
-}
-[data-theme="dark"] .studio-btn-dark:hover:not(:disabled) {
-  background: var(--bg-surface);
-  border-color: var(--ink-soft);
-}
-
+/* SDD-0603: el secundario deja de ser blanco sobre blanco. Contorno de tinta
+   (16,49:1 en claro, 13,08:1 en oscuro) y, al pasar el cursor, se invierte.
+   Enmienda de elevación: contorno de 1,5 px y nivel 1 (--shadow-xs). */
 .studio-btn-ghost {
   background: var(--bg-surface);
-  border: 1px solid var(--studio-border-strong);
-  color: var(--studio-ink);
-  font-family: var(--f-sans);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  border: 1.5px solid var(--ctl-border);
+  color: var(--ink);
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn-ghost:hover:not(:disabled) {
-  border-color: var(--studio-ink);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-btn-ghost:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--wine-text);
   outline-offset: 2px;
 }
 
 .studio-btn-sm {
-  padding: 9px 16px;
-  font-size: 11.5px;
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  font-size: 13.5px;
 }
 
+/* 32 px: mínimo táctil del estándar de botones (app/studio/CLAUDE.md, regla 6). */
 .studio-btn-xs {
-  padding: 6px 12px;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  font-size: 13px;
 }
 
 /* Variant warning (gold) — para acciones de atencion */
+/* BRAND ♿: sobre --warning va --on-warning; el blanco medía 3,14:1. */
 .studio-btn-warning {
   background: var(--studio-gold);
-  color: #FFFFFF;
-}
-.studio-btn-warning:hover:not(:disabled) {
-  background: #9C7330;
+  color: var(--on-warning);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-warning:focus-visible {
   outline: 2px solid var(--studio-gold);
@@ -469,29 +477,80 @@
 }
 
 /* Variant danger (red) — para acciones destructivas */
+/* --ink-inv sobre --danger: 6,31:1 en claro y 5,61:1 en oscuro. */
 .studio-btn-danger {
   background: var(--studio-red);
-  color: #FFFFFF;
-}
-.studio-btn-danger:hover:not(:disabled) {
-  background: #A02830;
+  color: var(--ink-inv);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-danger:focus-visible {
   outline: 2px solid var(--studio-red);
   outline-offset: 2px;
 }
 
-/* Variant success (verde) — confirmación post-acción exitosa (transitorio
-   típico 2-3s, después el revalidate del server cambia el render).
-   color: var(--ink-inv) se invierte por theme · cream sobre verde oscuro
-   en light, navy sobre verde claro en dark · mantiene WCAG AA en ambos. */
-.studio-btn-success {
-  background: var(--success);
+/* Variant success — confirmación post-acción (transitorio típico 2-3s). BRAND
+   §Estados: icono verde y texto neutro, sin recolorear la acción. */
+.studio-btn-success,
+.studio-btn-success:disabled {
+  background: var(--bg-surface);
+  border: 1px solid var(--success);
+  box-shadow: none;
+  color: var(--ink);
+  cursor: default;
+}
+.studio-btn-success svg {
+  color: var(--success);
+}
+
+/* Controles de icono de la barra superior y cierre de paneles: contorno, como
+   cualquier otro control (SDD-0603). */
+.studio-icono-btn,
+.studio-cerrar-panel,
+.studio-densidad {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-width: 36px;
+  height: 36px;
+  background: var(--bg-surface);
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font: 700 13.5px/1 var(--f-sans);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.studio-cerrar-panel,
+.studio-densidad {
+  padding: 0 var(--s-3);
+}
+.studio-icono-btn:hover,
+.studio-cerrar-panel:hover:not(:disabled),
+.studio-densidad:hover,
+.studio-densidad[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
   color: var(--ink-inv);
 }
-.studio-btn-success:disabled {
-  opacity: 1;
-  cursor: default;
+.studio-cerrar-panel svg {
+  flex-shrink: 0;
+}
+@media (max-width: 767px) {
+  .studio-densidad__texto {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-btn {
+    transition: none;
+  }
+  .studio-btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* Spinner inline para estados de loading dentro de un botón. */
@@ -687,16 +746,25 @@
   }
 }
 
-/* Hover de ghost con background paper-2 para mejor feedback */
-.studio-btn-ghost:hover:not(:disabled) {
-  background: var(--studio-paper-2);
-}
-
 /* ───────────────────────────────────────────────────────────
    Tracking — filas clickeables del listado
    ─────────────────────────────────────────────────────────── */
 .studio-tracking-row {
+  position: relative;
   transition: background 0.12s;
+}
+/* SDD-0603: flecha fija en el margen derecho de la fila que se abre. Va por fuera
+   de la grilla, así que no corre las columnas. */
+.studio-tracking-row::after {
+  content: "›";
+  position: absolute;
+  top: 50%;
+  right: var(--s-1);
+  width: var(--s-4);
+  transform: translateY(-50%);
+  color: var(--ink);
+  font: 800 20px/1 var(--f-sans);
+  text-align: center;
 }
 .studio-tracking-row:hover {
   background: var(--studio-paper-2);
@@ -738,14 +806,18 @@
 }
 /* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
    subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */
+/* SDD-0603: subrayado siempre, para que se vea que se abre sin pasar el cursor. */
 .studio-link-quiet {
   color: var(--ink);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-soft);
+  text-underline-offset: 3px;
 }
 .studio-link-quiet:hover,
 .studio-link-quiet:focus-visible {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--wine-text);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
 }
 /* Hover de fila NO clickeable: feedback de posición en tablas densas sin
    prometer que la fila entera es un target (no cambia el cursor). */
@@ -956,33 +1028,6 @@
   outline-offset: -2px;
 }
 
-/* Selector de vista Mes/Semana/Agenda + tabs nivel-1 del calendario */
-.studio-cal-viewbtn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--ink-soft);
-  font: 500 12.5px/1 var(--f-sans);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.studio-cal-viewbtn:hover:not([aria-selected="true"]) {
-  color: var(--ink);
-}
-.studio-cal-viewbtn[aria-selected="true"] {
-  background: var(--bg-surface);
-  color: var(--ink);
-  font-weight: 700;
-  box-shadow: var(--shadow-xs);
-}
-.studio-cal-viewbtn:focus-visible {
-  outline: 2px solid var(--wine);
-  outline-offset: 2px;
-}
 .studio-cal-filterrow {
   transition: background var(--dur) var(--ease);
 }
@@ -1337,11 +1382,11 @@ details[open] > .calc-why-summary .calc-why-chev {
   gap: 7px;
   padding: 8px 12px;
   min-height: 32px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--ink-soft);
   border-radius: var(--r-pill, 999px);
   background: var(--bg-surface);
-  color: var(--ink-soft);
-  font: 600 12.5px/1 var(--f-sans);
+  color: var(--ink);
+  font: 600 13.5px/1 var(--f-sans);
   cursor: pointer;
   transition: background 0.14s, color 0.14s, border-color 0.14s;
 }
@@ -1354,9 +1399,9 @@ details[open] > .calc-why-summary .calc-why-chev {
   outline-offset: 2px;
 }
 .studio-chip[data-activo="true"] {
-  background: var(--wine-tint);
-  border-color: var(--wine-text);
-  color: var(--ink);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-chip-n {
   font: 700 11px/1 var(--f-mono);
@@ -1364,39 +1409,70 @@ details[open] > .calc-why-summary .calc-why-chev {
   color: var(--ink-soft);
 }
 .studio-chip[data-activo="true"] .studio-chip-n {
-  color: var(--wine-text);
+  color: var(--ink-inv);
 }
 
-/* ── Pestañas de módulo (SDD-0274) ────────────────────────────────────────
-   Secciones hermanas del mismo módulo, con su cantidad al lado. El subrayado
-   vino marca la activa; `aria-selected` lleva el estado real. */
+/* ── Pestañas de módulo (SDD-0274, SDD-0603) ──────────────────────────────
+   Secciones hermanas del mismo módulo, con su cantidad al lado. El relleno de tinta
+   marca la activa (BD-037). `aria-selected` o `aria-pressed` lleva el estado real;
+   `data-activa` solo pinta. El contenedor envuelve: sin recorte en zoom ni en
+   pantallas angostas (A11Y-01 §13). */
+.studio-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--s-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+}
 .studio-tab {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 10px var(--s-4);
+  min-height: 36px;
+  padding: 0 var(--s-3);
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--r-md);
   background: transparent;
-  color: var(--ink-soft);
-  font: 600 13px/1 var(--f-sans);
+  color: var(--ink);
+  font: 600 14px/1 var(--f-sans);
   white-space: nowrap;
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s;
 }
-.studio-tab:hover {
-  color: var(--ink);
+.studio-tab:hover:not(:disabled):not([data-activa="true"]) {
+  background: var(--bg-elevated);
 }
+/* Dentro del contenedor el fondo ya es --bg-elevated: el hover sube a la tarjeta. */
+.studio-tabs .studio-tab:hover:not(:disabled):not([data-activa="true"]) {
+  background: var(--bg-surface);
+}
+/* El anillo va por fuera, separado 2 px: así se ve también sobre la activa, que va
+   rellena con --ink, igual que el anillo (WCAG 2.4.7). El relleno del contenedor
+   (--s-1) le deja lugar. */
 .studio-tab:focus-visible {
   outline: 2px solid var(--info);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 .studio-tab[data-activa="true"] {
-  color: var(--ink);
-  border-bottom-color: var(--wine);
+  background: var(--ink);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-inv);
+  font-weight: 800;
+}
+.studio-tab:disabled {
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+.studio-tab-n[data-alerta="true"] {
+  color: var(--wine-text);
+  font-weight: 800;
 }
 .studio-tab-n {
-  font: 600 10.5px/1 var(--f-mono);
+  font: 600 12px/1 var(--f-mono);
   font-variant-numeric: tabular-nums;
   background: var(--bg-elevated);
   color: var(--ink-soft);
@@ -1404,8 +1480,8 @@ details[open] > .calc-why-summary .calc-why-chev {
   border-radius: var(--r-pill, 999px);
 }
 .studio-tab[data-activa="true"] .studio-tab-n {
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: transparent;
+  color: var(--ink-inv);
 }
 
 /* ───────────────────────────────────────────────────────────
@@ -1447,5 +1523,115 @@ details[open] > .calc-why-summary .calc-why-chev {
 @media (prefers-reduced-motion: reduce) {
   .studio-col-resize::before {
     transition: none;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Vista compacta · SDD-0603
+   Los espacios los reducen los tokens de tokens.css. Aquí van las alturas de los
+   controles. Menos aire, misma letra legible. Nada baja de 32 px.
+   ─────────────────────────────────────────────────────────── */
+[data-density="compact"] .studio-btn {
+  min-height: 36px;
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-btn-sm {
+  min-height: 32px;
+  font-size: 13px;
+}
+[data-density="compact"] .studio-btn-xs {
+  min-height: 32px;
+  padding: 0 var(--s-2);
+  font-size: 12.5px;
+}
+[data-density="compact"] .studio-label {
+  margin-bottom: var(--s-1);
+  font-size: 13px;
+}
+[data-density="compact"] .studio-input {
+  min-height: 36px;
+  padding: var(--s-1) var(--s-3);
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-tab {
+  min-height: 32px;
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-tracking-row {
+  padding-block: var(--s-2);
+}
+[data-density="compact"] .studio-icono-btn,
+[data-density="compact"] .studio-cerrar-panel,
+[data-density="compact"] .studio-densidad {
+  min-width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+/* ── Aviso · SDD-0628 (tramo 4a de SDD-0603) ─────────────────────────────
+   BD-037: lo que avisa es una franja plana con icono, sin contorno ni sombra.
+   BRAND §Estados: el texto va siempre en tinta neutra (`--ink`); el tono lo
+   dan el fondo suave y el icono. Cero colores nuevos: solo tokens existentes.
+   Atención en claro: el dorado (`--warning`) mide 2,49-2,79:1 sobre su franja,
+   bajo el 3:1 de un icono; por eso el icono va en tinta y el dorado queda en
+   el fondo (BRAND §Estados: el acento que no alcanza es decorativo). En
+   oscuro el dorado sí alcanza (4,87:1 o más) y vuelve al icono, solo en
+   pantalla: al imprimir los tokens vuelven a claro.
+   Lo vigila `avisos-contract.test.ts`. */
+.studio-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-2) var(--s-3);
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  box-shadow: none;
+  background: var(--info-bg);
+  color: var(--ink);
+  font: 500 14px/1.45 var(--f-sans);
+}
+.studio-aviso > svg {
+  margin-top: 0.15em;
+  color: var(--info);
+}
+.studio-aviso-cuerpo {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.studio-aviso-titulo {
+  display: block;
+  font-weight: 700;
+}
+.studio-aviso-accion {
+  flex-shrink: 0;
+  align-self: center;
+}
+.studio-aviso-compacto {
+  padding: var(--s-2) var(--s-3);
+  font-size: 13px;
+}
+.studio-aviso[data-tono="atencion"] {
+  background: var(--warning-bg);
+}
+.studio-aviso[data-tono="atencion"] > svg {
+  color: var(--ink);
+}
+.studio-aviso[data-tono="exito"] {
+  background: var(--success-bg);
+}
+.studio-aviso[data-tono="exito"] > svg {
+  color: var(--success);
+}
+.studio-aviso[data-tono="error"] {
+  background: var(--danger-bg);
+}
+.studio-aviso[data-tono="error"] > svg {
+  color: var(--danger-text);
+}
+@media screen {
+  [data-theme="dark"] .studio-aviso[data-tono="atencion"] > svg {
+    color: var(--warning);
   }
 }

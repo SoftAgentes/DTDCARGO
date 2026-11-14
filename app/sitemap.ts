@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { listPublishedPosts } from "@/lib/public/news-queries";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
 
+// ISR: lee news_posts con listPublishedPosts(); sin esto Next lo genera en el build y una
+// lectura fallida deja el sitemap sin /noticias/<slug>. Ver app/noticias/page.tsx.
+export const revalidate = 300;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
   // lastModified honesto (remate SEO 2026-07-05): las rutas estáticas y las

@@ -27,6 +27,9 @@ const REASON = "Comprobante revisado con el cliente";
 const KNOWN_ERROR = "La operación no se aplicó. Conserva este intento.";
 const UNCERTAIN_ERROR = "No pudimos confirmar el resultado. Reintenta el mismo intento.";
 const SUCCESS = /^reporte (enviado|registrado)\.$/i;
+// SDD-0630: cuentas de caja inventadas. Con una sola, el Studio la deja elegida.
+const CASH = { id: "44444444-4444-4444-8444-444444444444", code: "1.1.1.01", name: "Caja sintética" };
+const BANK = { id: "66666666-6666-4666-8666-666666666666", code: "1.1.1.02", name: "Banco sintético" };
 type Surface = "portal" | "studio";
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -54,7 +57,7 @@ function mountForm() {
 function mountReports(surface: Surface, value: PaymentReport = report) {
   return mount(surface === "portal"
     ? <InvoicePaymentReports invoiceCode={CODE} reports={[value]} />
-    : <StudioInvoicePaymentReports items={[{ report: value, proofUrl: null }]} />);
+    : <StudioInvoicePaymentReports items={[{ report: value, proofUrl: null }]} cashAccounts={[CASH]} />);
 }
 function receipt(requestId: string, reportId: string, status: PaymentReport["status"] = "reportado", cancelled = false): PaymentCommandReceipt {
   return { requestId, reportId, invoiceId: INVOICE_ID, invoiceCode: CODE, status, cancelled,
@@ -168,6 +171,24 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("SDD-0365 · alta conserva el intento", () => {
+  it("C1: recovery reenvía por botón la fecha aceptada ahora futura con los mismos IDs, payload y prueba", async () => {
+    const user = userEvent.setup();
+    mocks.report.mockResolvedValueOnce({ error: UNCERTAIN_ERROR, uncertain: true }).mockImplementationOnce(formSuccess);
+    const view = mountForm();
+    await fillForm(user);
+    await user.click(screen.getByRole("button", { name: /^reportar pago$/i }));
+    await screen.findByText(UNCERTAIN_ERROR);
+    const first = formDataAt(0);
+    view.rerender(<UiBoundary><PaymentReportForm invoiceCode={CODE} currency="USD" todayIso="2026-08-31" /></UiBoundary>);
+    expect(screen.getByLabelText(/fecha del pago/i)).toHaveAttribute("max", "2026-08-31");
+    expect(screen.getByLabelText(/fecha del pago/i)).toHaveValue("2026-09-01");
+    await user.click(screen.getByRole("button", { name: /reintentar el mismo envío/i }));
+    await screen.findByText(SUCCESS);
+    for (const key of ["request_id", "report_id", "amount", "method", "paid_at", "note", "proof"]) {
+      expect(formDataAt(1).get(key)).toBe(first.get(key));
+    }
+  });
+
   it("conserva valores y archivo tras un rechazo conocido", async () => {
     const user = userEvent.setup();
     mountForm();
@@ -442,5 +463,73 @@ describe("SDD-0365 · historia veraz", () => {
       expect(ui.queryByRole("button", { name: /cancelar reporte|confirmar pago|rechazar/i })).not.toBeInTheDocument();
       view.unmount();
     }
+  });
+});
+
+describe("SDD-0630 · confirmar crea el recibo en la cuenta elegida", () => {
+  function confirmedWithCollection(requestId: string, code = "R-2026-0007"): PaymentCommandReceipt {
+    return { ...receipt(requestId, REPORT_ID, "confirmado"), collection: {
+      id: "77777777-7777-4777-8777-777777777777", code, tenantId: "88888888-8888-4888-8888-888888888888",
+      amount: 120.5, currency: "USD", fxRate: null, cashAccountId: BANK.id, receivedAt: "2026-09-01",
+      paidAmount: 120.5, invoiceStatus: "parcial", fullyPaid: false } };
+  }
+
+  it("con varias cuentas exige elegir una antes de abrir la confirmación y la envía", async () => {
+    const user = userEvent.setup();
+    mocks.resolve.mockImplementation((_id: string, _action: string, _reason: string, requestId: string) =>
+      Promise.resolve({ ok: true, receipt: confirmedWithCollection(requestId) }));
+    mount(<StudioInvoicePaymentReports items={[{ report, proofUrl: null }]} cashAccounts={[CASH, BANK]} />);
+    await user.click(screen.getByRole("button", { name: /confirmar pago/i }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/elige la cuenta/i);
+    await user.selectOptions(screen.getByLabelText(/cuenta donde entró el dinero/i), BANK.id);
+    const dialog = await openDialog(user, "studio");
+    expect(dialog).toHaveTextContent(BANK.name);
+    expect(dialog).toHaveTextContent(/no lo registres también en cobranzas/i);
+    fireEvent.input(within(dialog).getByLabelText(/motivo/i), { target: { value: REASON } });
+    await user.click(dialogSubmit(dialog));
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1));
+    expect(mocks.resolve.mock.calls[0][1]).toBe("confirmado");
+    expect(mocks.resolve.mock.calls[0][4]).toBe(BANK.id);
+    expect(await screen.findByText("R-2026-0007")).toBeInTheDocument();
+    expect(screen.getByText(/ya está registrado en cobranzas/i)).toBeInTheDocument();
+  });
+
+  it("un resultado incierto reintenta con la misma clave y la misma cuenta, con el selector bloqueado", async () => {
+    const user = userEvent.setup();
+    mocks.resolve.mockResolvedValueOnce({ error: UNCERTAIN_ERROR, uncertain: true });
+    mount(<StudioInvoicePaymentReports items={[{ report, proofUrl: null }]} cashAccounts={[CASH, BANK]} />);
+    await user.selectOptions(screen.getByLabelText(/cuenta donde entró el dinero/i), CASH.id);
+    const dialog = await openDialog(user, "studio");
+    fireEvent.input(within(dialog).getByLabelText(/motivo/i), { target: { value: REASON } });
+    await user.click(dialogSubmit(dialog));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(UNCERTAIN_ERROR);
+    expect(screen.getByLabelText(/cuenta donde entró el dinero/i)).toBeDisabled();
+    mocks.resolve.mockImplementation((_id: string, _action: string, _reason: string, requestId: string) =>
+      Promise.resolve({ ok: true, receipt: confirmedWithCollection(requestId) }));
+    await user.click(dialogSubmit(dialog));
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(2));
+    expect(mocks.resolve.mock.calls[1][3]).toBe(mocks.resolve.mock.calls[0][3]);
+    expect(mocks.resolve.mock.calls[1][4]).toBe(CASH.id);
+  });
+
+  it("rechazar no pide ni envía cuenta", async () => {
+    const user = userEvent.setup();
+    commandSuccess("studio");
+    mount(<StudioInvoicePaymentReports items={[{ report, proofUrl: null }]} cashAccounts={[CASH, BANK]} />);
+    const dialog = await openDialog(user, "studio", "rechazado");
+    fireEvent.input(within(dialog).getByLabelText(/motivo/i), { target: { value: REASON } });
+    await user.click(dialogSubmit(dialog));
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1));
+    expect(mocks.resolve.mock.calls[0][4]).toBeUndefined();
+  });
+
+  it("un reporte confirmado con recibo lo muestra y no ofrece operaciones", () => {
+    const confirmed = { ...report, status: "confirmado" as const, resolutionReason: REASON };
+    mount(<StudioInvoicePaymentReports items={[{ report: confirmed, proofUrl: null, receiptCode: "R-2026-0003" }]} cashAccounts={[CASH]} />);
+    expect(screen.getByText("R-2026-0003")).toBeInTheDocument();
+    expect(screen.getByText(/no lo registres otra vez/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /confirmar pago|rechazar/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/cuenta donde entró el dinero/i)).not.toBeInTheDocument();
   });
 });

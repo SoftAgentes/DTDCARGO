@@ -49,6 +49,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   postReceiptJournalEntry,
@@ -191,6 +192,7 @@ export async function registerCollectionFor(
   invoiceId: string,
   raw: Partial<PaymentInput>,
 ): Promise<RegisterCollectionResult> {
+  const receivedAt = raw?.receivedAt === undefined ? fechaCaracas() : raw.receivedAt;
   // 1. Leer la factura (RLS la acota al tenant). Sólo para el mensaje y el
   // saldo del formulario: la RPC vuelve a validar con la factura bloqueada.
   const { data: inv, error: readErr } = await supabase
@@ -216,7 +218,7 @@ export async function registerCollectionFor(
   });
 
   // 2. Validar el input (amount>0, ≤saldo, cuenta requerida).
-  const { input, fieldErrors } = validatePaymentInput(raw, balance);
+  const { input, fieldErrors } = validatePaymentInput({ ...raw, receivedAt }, balance);
   if (fieldErrors) return { fieldErrors };
 
   // 3. Cobro atómico (0467): factura FOR UPDATE, saldo estricto, receipt_code
@@ -243,36 +245,59 @@ export async function registerCollectionFor(
   const receiptCode = receipt.receipt_code;
 
   // 4. Asiento del cobro (best-effort) — DR caja / CR 1.1.2. Guarda el id.
+  await postCollectionReceiptEntry(supabase, {
+    tenantId: receipt.tenant_id,
+    receiptId: receipt.receipt_id,
+    receiptCode,
+    cashAccountId: input!.cashAccountId,
+    amount: input!.amount,
+    currency: receipt.currency ?? inv.currency,
+    fxRate: receipt.fx_rate ?? null,
+    entryDate: input!.receivedAt,
+  });
+
+  return { ok: true, receiptCode, fullyPaid: receipt.fully_paid === true };
+}
+
+/**
+ * Asiento del cobro de un recibo aplicado (DR caja / CR 1.1.2), best-effort e
+ * idempotente por receipt_id, y su `journal_entry_id` en el recibo. Lo usan el
+ * cobro de Cobranzas y, desde SDD-0630, la confirmación de un reporte de pago
+ * del portal (el recibo lo crea la 0537 con la misma RPC de cobro). No lanza:
+ * si no se asienta, el recibo queda en «Por contabilizar» y se registra en log.
+ */
+export async function postCollectionReceiptEntry(
+  supabase: SupabaseClient,
+  receipt: {
+    tenantId: string;
+    receiptId: string;
+    receiptCode: string;
+    cashAccountId: string;
+    amount: number;
+    currency: string;
+    fxRate: number | null;
+    entryDate: string;
+  },
+): Promise<void> {
   try {
-    const posting = await postReceiptJournalEntry({
-      tenantId: receipt.tenant_id,
-      receiptId: receipt.receipt_id,
-      receiptCode,
-      cashAccountId: input!.cashAccountId,
-      amount: input!.amount,
-      currency: receipt.currency ?? inv.currency,
-      fxRate: receipt.fx_rate ?? null,
-      entryDate: input!.receivedAt,
-    });
+    const posting = await postReceiptJournalEntry(receipt);
     if (posting.ok && posting.entryId) {
       await supabase
         .from("payment_receipts")
         .update({ journal_entry_id: posting.entryId })
-        .eq("id", receipt.receipt_id);
+        .eq("id", receipt.receiptId);
     } else if (!posting.ok) {
       console.error(
-        `[contabilidad] asiento del cobro ${receiptCode} no creado:`,
+        `[contabilidad] asiento del cobro ${receipt.receiptCode} no creado:`,
         posting.skipped ?? posting.error,
       );
     }
   } catch (e) {
     console.error(
-      `[contabilidad] error inesperado al asentar cobro ${receiptCode}:`,
+      `[contabilidad] error inesperado al asentar cobro ${receipt.receiptCode}:`,
       e,
     );
   }
-
-  return { ok: true, receiptCode, fullyPaid: receipt.fully_paid === true };
 }
 
 // ── Pago sin referencia (SDD-0068 #2 · cláusula 7.3) ──────────

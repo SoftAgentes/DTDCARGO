@@ -126,7 +126,7 @@ async function autorizar(
     }
     overrides = mapa;
   }
-  // Extras de ESTA persona (SDD-0622). Si la 0529 no está aplicada, la lectura
+  // Extras de ESTA persona (SDD-0622). Si la 0538 no está aplicada, la lectura
   // falla y no suma nada: el rol decide como antes.
   let grants: UserModuleGrants = {};
   if (role !== "admin") {

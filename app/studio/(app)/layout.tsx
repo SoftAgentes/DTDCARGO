@@ -166,7 +166,7 @@ export default async function StudioAppLayout({
     // Matriz editable (SDD-0252, migr 0357): sólo importa para no-admin — el
     // sidebar sólo ESCONDE módulos (UX), el gate real es requireModuleView.
     role && role !== "admin" ? getRoleModuleOverrides(supabase) : Promise.resolve({}),
-    // Accesos adicionales de la persona (SDD-0622, migr 0529): el sidebar muestra
+    // Accesos adicionales de la persona (SDD-0622, migr 0538): el sidebar muestra
     // también los módulos que solo tiene por extra. Mismo carácter: solo UX.
     role && role !== "admin" ? getMyModuleGrants(supabase, user.id) : Promise.resolve({}),
     // Badge de la Bandeja de Chatwoot (SDD-0585, E2-D21). RLS scopea al tenant;

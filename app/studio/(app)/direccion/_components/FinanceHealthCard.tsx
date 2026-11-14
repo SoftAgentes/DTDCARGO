@@ -102,6 +102,14 @@ export function FinanceHealthCard({ health }: { health: FinanceHealth }) {
         tone={health.vencido > 0 ? "danger" : "neutral"}
         href="/studio/tesoreria"
       />
+      {(health.sinTasa ?? 0) > 0 && (
+        <p
+          data-testid="salud-sin-tasa"
+          style={{ margin: "var(--s-2) 0 0", font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}
+        >
+          {`${health.sinTasa} documento(s) sin tasa no suman aquí. Cárgala en Contabilidad › Tasas de cambio.`}
+        </p>
+      )}
 
       <div
         style={{

@@ -262,12 +262,10 @@ export function NominaClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: "var(--s-5)",
-          borderBottom: "1px solid var(--border)",
-        }}
+        role="group"
+        aria-label="Secciones de nómina"
+        className="studio-tabs"
+        style={{ marginBottom: "var(--s-5)" }}
       >
         {TABS.map((t) => {
           const active = tab === t.value;
@@ -275,17 +273,10 @@ export function NominaClient({
             <button
               key={t.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(t.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active ? "2px solid var(--wine)" : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? 700 : 500} 13px/1 var(--f-sans)`,
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>

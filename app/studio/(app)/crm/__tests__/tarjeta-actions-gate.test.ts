@@ -94,10 +94,10 @@ describe("moverTarjetaAction", () => {
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  // SDD-0622 (migr 0530): la RLS y `crm_mover_etapa` deciden con
+  // SDD-0622 (migr 0539): la RLS y `crm_mover_etapa` deciden con
   // user_has_module('kommo'), así que el desvío por rol y el acceso adicional
   // valen igual en la pantalla y en la base.
-  it("operations con el módulo abierto por desvío mueve: la base decide igual (0530)", async () => {
+  it("operations con el módulo abierto por desvío mueve: la base decide igual (0539)", async () => {
     role = "operations" as StudioUserRole;
     overrides = { "operations:kommo": { view: true, edit: true } };
     const res = await moverTarjetaAction(TARJETA, "leads", "contactado");

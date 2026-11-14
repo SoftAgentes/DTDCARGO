@@ -1196,9 +1196,9 @@ export async function saveMyDiscordUserIdAction(formData: FormData): Promise<{
 }
 
 // ─────────────────────────────────────────────────────────────
-// Accesos adicionales por persona (SDD-0622 · migr 0529).
+// Accesos adicionales por persona (SDD-0622 · migr 0538).
 //
-// Solo un admin del tenant (`tenantAdminGate`) y SOLO por las RPC de la 0529:
+// Solo un admin del tenant (`tenantAdminGate`) y SOLO por las RPC de la 0538:
 // la tabla no tiene escritura para authenticated. La RPC repite cada candado
 // (rol admin de la base, nada a uno mismo, doble aviso en sensibles, R2), así
 // que esta capa existe para dar mensajes claros, no para ser la única puerta.
@@ -1217,7 +1217,7 @@ export interface GrantModuleInput {
 
 const UUID_PERMISOS = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Traduce los errores de las RPC de la 0529 a algo legible. */
+/** Traduce los errores de las RPC de la 0538 a algo legible. */
 function mensajeDeAcceso(err: { code?: string; message?: string }): string {
   const msg = err.message ?? "";
   if (msg.includes("doble aviso")) return "Confirma el doble aviso para conceder un módulo sensible.";

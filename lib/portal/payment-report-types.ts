@@ -135,16 +135,28 @@ function isIsoDate(v: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
 
+/** Contexto interno. Candidato no autoriza replay: la RPC debe comprobarlo. */
+export type PaymentCreationContext =
+  | { kind: "new"; businessDay: string }
+  | { kind: "recovery-candidate" };
+
+export function isPaymentCreationContext(value: unknown): value is PaymentCreationContext {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (!("kind" in value)) return false;
+  return value.kind === "recovery-candidate"
+    || (value.kind === "new" && "businessDay" in value && typeof value.businessDay === "string" && isIsoDate(value.businessDay));
+}
+
 /**
  * Valida + normaliza el input del form de "Reportar pago". No incluye el archivo
  * (eso lo valida la action contra PROOF_*). Devuelve `input` o `fieldErrors`.
  *
- * @param todayIso  fecha de hoy (YYYY-MM-DD) inyectada por el caller (server), para
- *                  no permitir fechas futuras y mantener la función pura/testeable.
+ * El caller entrega el ancla confiable de nueva creación o un candidato a
+ * recuperación. Nunca se incorpora este contexto al payload/hash de la RPC.
  */
 export function validatePaymentReportInput(
   raw: { amount?: unknown; method?: unknown; paidAt?: unknown; note?: unknown },
-  todayIso: string,
+  context: PaymentCreationContext,
 ): { input?: PaymentReportInput; fieldErrors?: PaymentReportFieldErrors } {
   const fieldErrors: PaymentReportFieldErrors = {};
 
@@ -172,7 +184,9 @@ export function validatePaymentReportInput(
     fieldErrors.paidAt = "Indica la fecha del pago.";
   } else if (!isIsoDate(paidAt)) {
     fieldErrors.paidAt = "Fecha no válida.";
-  } else if (paidAt > todayIso) {
+  } else if (!isPaymentCreationContext(context)) {
+    fieldErrors.paidAt = "No pudimos comprobar la fecha de la operación. Actualiza la página.";
+  } else if (context.kind === "new" && paidAt > context.businessDay) {
     fieldErrors.paidAt = "La fecha del pago no puede ser futura.";
   }
 

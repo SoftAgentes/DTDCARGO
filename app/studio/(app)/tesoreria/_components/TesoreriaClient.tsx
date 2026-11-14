@@ -29,6 +29,10 @@ import type {
   Payable,
   TreasuryKpis,
 } from "@/lib/studio/treasury/bill-queries";
+import type { CostLinkData } from "@/lib/studio/treasury/cost-link-queries";
+
+/** SDD-0631: sin datos de vínculo (prueba o base sin la 0536) no hay selector. */
+const NO_COST_LINKS: CostLinkData = { available: false, containers: [], links: {} };
 import {
   BillDrawer,
   NewBillDrawer,
@@ -64,6 +68,7 @@ export function TesoreriaClient({
   suppliers,
   expenseAccounts,
   cashAccounts,
+  costLinks = NO_COST_LINKS,
 }: {
   payables: Payable[];
   kpis: TreasuryKpis;
@@ -71,6 +76,7 @@ export function TesoreriaClient({
   suppliers: Supplier[];
   expenseAccounts: AccountOption[];
   cashAccounts: AccountOption[];
+  costLinks?: CostLinkData;
 }) {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("payables");
@@ -229,12 +235,10 @@ export function TesoreriaClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-        }}
+        role="group"
+        aria-label="Secciones de tesorería"
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
@@ -242,21 +246,10 @@ export function TesoreriaClient({
             <button
               key={tDef.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(tDef.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: active
-                  ? "700 13px/1 var(--f-sans)"
-                  : "500 13px/1 var(--f-sans)",
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {tDef.label}
             </button>
@@ -294,6 +287,7 @@ export function TesoreriaClient({
           payable={selectedPayable}
           supplier={supplierById.get(selectedPayable.bill.supplier_id) ?? null}
           cashAccounts={cashAccounts}
+          costLinks={costLinks}
           onClose={closeDrawer}
         />
       )}
@@ -302,6 +296,7 @@ export function TesoreriaClient({
         <NewBillDrawer
           suppliers={suppliers}
           expenseAccounts={expenseAccounts}
+          costLinks={costLinks}
           onClose={() => setShowNewBill(false)}
         />
       )}

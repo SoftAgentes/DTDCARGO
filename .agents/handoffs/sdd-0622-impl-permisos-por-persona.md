@@ -39,7 +39,7 @@ Ampliación del Director el 2026-11-11 (mensaje entre sesiones, auditoría de pe
 
 **Base de datos (tres migraciones nuevas, sin aplicar en ningún entorno remoto):**
 
-- `supabase/migrations/0529_studio_user_module_grants.sql`
+- `supabase/migrations/0538_studio_user_module_grants.sql`
   - **Tabla `studio_user_module_grants`:**
     - PK (tenant, persona, módulo);
     - CHECK de que siempre deja ver y de que editar implica ver;
@@ -63,13 +63,13 @@ Ampliación del Director el 2026-11-11 (mensaje entre sesiones, auditoría de pe
     significa «lo que tiene hoy», el rastro append-only queda en la bitácora y re-conceder es un upsert. Un extra
     vencido NO se borra: deja de contar solo y aparece en el filtro «vencidos».
   - **Copia SQL de la matriz:** `studio_module_default_roles` replica `ROLE_MODULE_ACCESS`, con una prueba anti-drift.
-- `supabase/migrations/0530_comercial_acepta_accesos_por_persona.sql`
+- `supabase/migrations/0539_comercial_acepta_accesos_por_persona.sql`
   - `crm_puede_usar()` pasa a `user_has_module('kommo')`.
   - `crm_puede_editar()` es nueva; la usan las 5 policies de escritura del CRM y `crm_mover_etapa`, así que solo ver ya
     no edita.
   - `document_entity_authorized` suma el extra vigente; las entidades de dinero siguen por rol.
   - Tiene preflight contra drift de la 0444 y de la 0506.
-- `supabase/migrations/0531_comercial_rls_por_modulo.sql` (ampliación 1 y 3)
+- `supabase/migrations/0540_comercial_rls_por_modulo.sql` (ampliación 1 y 3)
   - En rates, quotes, conversations, conversation_messages, purchase_orders, purchase_order_items y sales_orders, la
     policy `for all` por tenant se reemplaza por cuatro: escribir exige editar el módulo dueño; leer exige ver alguno de
     los módulos que hoy la consumen con la sesión.
@@ -85,7 +85,7 @@ Ampliación del Director el 2026-11-11 (mensaje entre sesiones, auditoría de pe
   - Nuevos: `effectiveModuleAccess` (con la fuente del permiso), `READ_ONLY_GRANT_MODULES`, `SENSITIVE_MODULE_EFFECTS`
     y `SENSITIVE_MODULE_EFFECTS_VERSION`.
   - La cabecera ya dice que la SDD-0622 reemplaza el punto D de la 0139.
-- `lib/studio/rbac-guard.ts`: `getStudioAccess` carga los extras vigentes (con fallo cerrado suave si la 0529 no
+- `lib/studio/rbac-guard.ts`: `getStudioAccess` carga los extras vigentes (con fallo cerrado suave si la 0538 no
   existe). Los cuatro gates los pasan, y R2 se mantiene: el segundo candado de superadmin sigue.
 - `lib/studio/user-module-grants.ts` (puro): cobertura por módulo, estado concedible y validación del motivo.
   `lib/studio/user-module-grants-queries.ts`: lecturas.
@@ -96,7 +96,7 @@ Ampliación del Director el 2026-11-11 (mensaje entre sesiones, auditoría de pe
   - el indicador de Conversaciones del topbar (solo si ve el módulo).
 - **CRM:**
   - `crm/tarjeta-actions.ts` y `CrmEmbudosSlot.tsx` ya no exigen el rol fijo admin/commercial: deciden por módulo,
-    igual que la base con la 0530.
+    igual que la base con la 0539.
   - Los asesores incluyen a quien tiene el CRM concedido para editar.
 - **Gates (ampliación 4):**
   - `cotizador::lookupSuggestedRate` → ver Cotizador;
@@ -132,8 +132,8 @@ función con `user_has_module`.
 
 | Comprobación | Resultado |
 |---|---|
-| Contratos SQL 0529 (56 aserciones), 0530 (caso Alejandro de punta a punta) y 0531, en PGlite con los `.sql` reales (`lib/studio/__tests__/user-module-grants.migration.test.ts`, 28 casos) | PASÓ |
-| Control rojo de cada contrato, preflight anti-doble aplicación, 14 mutantes (8 de la 0529, 2 de la 0530 y 4 de la 0531) | PASÓ (todos caen con la aserción que nombran) |
+| Contratos SQL 0538 (56 aserciones), 0539 (caso Alejandro de punta a punta) y 0540, en PGlite con los `.sql` reales (`lib/studio/__tests__/user-module-grants.migration.test.ts`, 28 casos) | PASÓ |
+| Control rojo de cada contrato, preflight anti-doble aplicación, 14 mutantes (8 de la 0538, 2 de la 0539 y 4 de la 0540) | PASÓ (todos caen con la aserción que nombran) |
 | Paridad `canAccessModule`/`canEditModule` (+ scope) ↔ `user_has_module` para 6 roles × 57 módulos × extras de cada clase + desvío por rol | PASÓ |
 | Anti-drift de la matriz SQL ↔ `ROLE_MODULE_ACCESS`, `LOCKED_MODULES` (función y CHECK) y `SUPERADMIN_ONLY_MODULES` | PASÓ |
 | `rbac.test.ts` (12 casos nuevos), `rbac-actions-guard.test.ts`, CRM, Usuarios (incluido `AccesoPanel.test.tsx`, 8 casos), dashboard, cotizador, tracking, tarifas, búsqueda global y Discord | PASÓ |
@@ -151,7 +151,7 @@ compartidas del grupo, `sdd-0622-capturas/`:
 
 ## COMMITS
 
-`64f6fceeb`, `306c97536`, `48ffb82e6`, `e8c284f05`, `249ab33ec`, `5f8918190` (renumeración), `7afcc3e10` (0531) y
+`64f6fceeb`, `306c97536`, `48ffb82e6`, `e8c284f05`, `249ab33ec`, `5f8918190` (renumeración), `7afcc3e10` (0540) y
 `055709375`. Ver `git log origin/main..HEAD`.
 
 ## Desvíos de la allowlist (§11 de la spec; hay que enmendarla en la #488)
@@ -165,11 +165,11 @@ compartidas del grupo, `sdd-0622-capturas/`:
   - CRM (`crm/tarjeta-actions.ts`, `CrmEmbudosSlot.tsx`, `lib/studio/crm-tablero.ts`);
   - las acciones de la ampliación 4.
 - `lib/studio/user-module-grants.ts` es nuevo (puro); la spec nombraba solo el archivo de queries.
-- La migración de la ampliación 1 (0531) no estaba en la spec.
+- La migración de la ampliación 1 (0540) no estaba en la spec.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Aplicar 0529, 0530 y 0531** en prueba y producción, en ese orden y con el OK nominal de Sam, siguiendo
+- **Aplicar 0538, 0539 y 0540** en prueba y producción, en ese orden y con el OK nominal de Sam, siguiendo
   `docs/runbooks/aplicar-migraciones-prod.md` (migrate-first). Fusionar sin aplicarlas frena la próxima publicación
   (puerta de migraciones).
 - **Smoke con Sam (fase 7 de la spec):** conceder a Alejandro el CRM para editar desde la ficha y comprobar, con su
@@ -185,7 +185,7 @@ compartidas del grupo, `sdd-0622-capturas/`:
 ## Revisión independiente (cabeza 92d9ee38f) — aprobada, con dos arreglos aplicados
 
 - **M1 (decisión del Director):** `lookupRateForNewDestination` exige editar Tracking y ver el Cotizador **o** la CN,
-  con el mismo criterio que la RLS de `rates` en la 0531. Almacén con scope CN conserva la tarifa sugerida.
+  con el mismo criterio que la RLS de `rates` en la 0540. Almacén con scope CN conserva la tarifa sugerida.
   Prueba: `app/studio/(app)/tracking/[id]/__tests__/tarifa-sugerida-gate.test.ts` (almacén CN la recibe; almacén VE y
   marketing con Tracking concedido no).
 - **Errores de red en el panel:** cada `startTransition` de `AccesoPanel.tsx` pasa por `llamar()`, que traduce una
@@ -207,14 +207,14 @@ compartidas del grupo, `sdd-0622-capturas/`:
 - **El borrado lógico con la sesión ya fallaba antes de esta PR** en rates, quotes, conversations, purchase_orders y
   sales_orders (`cotizador/actions.ts:499`, `tarifas/actions.ts:260`). Postgres aplica la policy de SELECT a la fila
   nueva de un UPDATE que lee la tabla, y la `for all` filtraba `deleted_at is null`. Lo medí en PGlite con la policy
-  vieja y con la nueva: falla igual, así que la 0531 no lo arregla ni lo empeora. Arreglo posible: una policy de SELECT
+  vieja y con la nueva: falla igual, así que la 0540 no lo arregla ni lo empeora. Arreglo posible: una policy de SELECT
   aparte que deje ver lo borrado a quien edita, o RPC de borrado.
 - **La propuesta de tarifa de la CN** (`cn/rate-snapshot-actions.ts`) lee rates, quotes y sales_orders con la sesión
   de almacén, así que «almacén no lee tarifas» se cumple solo fuera de la CN (scope VE). Para cerrarlo del todo, esa
   lectura tendría que pasar a service_role tras su gate `cn`; es del carril CN y no lo toqué.
 - **`bandeja/page.tsx:100` y `lib/studio/chatwoot/agentes-ciclo.ts:87`** evalúan la Bandeja de TERCEROS solo por rol
   y desvío (sin extras de cada persona). Es coherente con que Bandeja no se ofrezca, pero habrá que tocarlo si se abre.
-- **`listUnreadConversationsForBadge`** en `layout.tsx` sigue consultando aunque no se pinte el indicador; con la 0531
+- **`listUnreadConversationsForBadge`** en `layout.tsx` sigue consultando aunque no se pinte el indicador; con la 0540
   devuelve vacío. Es costo menor.
 
 ## Impacto documental
@@ -239,3 +239,18 @@ Quien integre segunda resuelve:
 
 PR contra main en borrador; depende de la #488. No fusionar sin aplicar las tres migraciones (o sin decidir con Sam
 `aceptar-pendiente`). Revisión independiente: la lanza el Director.
+
+## Fusión con main y segunda renumeración (2026-11-14)
+
+- Fusioné `origin/main` en la rama para resolver el conflicto que avisó Auto-fix. El único conflicto fue en
+  `lib/studio/rbac-actions-guard.test.ts`. Ahí quedaron los comentarios de los dos lados y el inventario pasa de
+  469 (main) a 472 (+3 de esta tarea). Las listas siguen congeladas en `{ excepciones: 20, deuda: 21 }`.
+- Main ya selló y aplicó migraciones hasta la 0537, así que `migrations-lock` rechazaba las tres de esta tarea con
+  `SIN_SELLO` porque tenían número por debajo del tope. Ninguna estaba aplicada en ningún entorno, así que las
+  renumeré a **0538, 0539 y 0540** (antes 0529, 0530 y 0531), junto con sus `.test.sql`. Cambié los números en
+  comentarios, pruebas y este handoff. Las menciones previas a «0529/0530/0531» en esta nota ya se leen con los
+  números nuevos. Comprobé que ninguna rama remota ni PR abierta usa migraciones de la 0538 en adelante.
+- Comprobaciones tras la fusión: `migrations-lock` sin fallos (3 nuevas sin sellar, que es lo esperado antes de
+  aplicar); `check-pending-migration-symbols` 0 ROJO; `sdd:check` sin números repetidos; 26 archivos de pruebas
+  focales con 832/832 (contratos PGlite y mutantes incluidos). No corrí `pnpm verify`.
+- **Orden de aplicación vigente: 0538 → 0539 → 0540**, con OK nominal de Sam.

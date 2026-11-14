@@ -1,9 +1,12 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Drawer de la CxP (SDD-0044): datos de la cuenta por pagar + proveedor +
  * Registrar pago (orden OP-) + historial de pagos + anular CxP/orden.
- * Embarque vinculado (si shipment_id) como referencia read-only.
+ * SDD-0631: «Costo de contenedor» liga la CxP a un contenedor y, opcional, a
+ * un embarque; ese costo entra al margen en Costing & Margen.
  *
  * NewBillDrawer: alta de CxP (proveedor + cuenta de gasto + monto + venc.).
  *
@@ -24,11 +27,14 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
+  BILL_COST_CATEGORY_OPTIONS,
+  costCategoryLabel,
   billStatusLabel,
   billStatusTone,
   paymentMethodLabel,
   PAYMENT_METHOD_OPTIONS,
   supplierTypeLabel,
+  type BillCostLink,
   type PaymentMethod,
   type Supplier,
   type SupplierPayment,
@@ -39,9 +45,12 @@ import {
   type InvoiceCurrency,
 } from "@/lib/studio/invoice-types";
 import type { Payable } from "@/lib/studio/treasury/bill-queries";
+import type { CostLinkData } from "@/lib/studio/treasury/cost-link-queries";
+import type { CostCategoryKey } from "@/lib/studio/costing/types";
 import {
   createBill,
   getBillHistory,
+  linkBillCost,
   registerPayment,
   voidBill,
   voidPayment,
@@ -67,11 +76,13 @@ export function BillDrawer({
   payable,
   supplier,
   cashAccounts,
+  costLinks,
   onClose,
 }: {
   payable: Payable;
   supplier: Supplier | null;
   cashAccounts: AccountOption[];
+  costLinks?: CostLinkData;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -267,16 +278,23 @@ export function BillDrawer({
           />
         </div>
 
-        {bill.shipment_id && (
-          <div
-            style={{
-              font: "500 11.5px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-            }}
-          >
-            Embarque vinculado (para costing futuro).
-          </div>
-        )}
+        <BillCostLinkSection
+          billId={bill.id}
+          voided={bill.status === "anulada"}
+          costLinks={costLinks}
+          current={
+            costLinks?.links[bill.id] ?? {
+              consolidationId: null,
+              shipmentId: bill.shipment_id,
+              costCategory: null,
+            }
+          }
+          onSaved={(msg) => {
+            toast.success(msg);
+            refresh();
+          }}
+          onError={setError}
+        />
 
         {/* Historial de pagos */}
         <PaymentHistory
@@ -381,7 +399,7 @@ function PayForm({
   onDone: (paymentCode: string | undefined, fullyPaid: boolean) => void;
 }) {
   const balance = payable.balance;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [amount, setAmount] = useState<string>(String(balance));
   const [cashAccountId, setCashAccountId] = useState<string>(
     cashAccounts[0]?.id ?? "",
@@ -648,15 +666,17 @@ function PaymentHistory({
 export function NewBillDrawer({
   suppliers,
   expenseAccounts,
+  costLinks,
   onClose,
 }: {
   suppliers: Supplier[];
   expenseAccounts: AccountOption[];
+  costLinks?: CostLinkData;
   onClose: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
 
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id ?? "");
   const [concept, setConcept] = useState<string>("");
@@ -674,6 +694,7 @@ export function NewBillDrawer({
   const [issueDate, setIssueDate] = useState<string>(today);
   const [dueDate, setDueDate] = useState<string>("");
   const [reference, setReference] = useState<string>("");
+  const [costLink, setCostLink] = useState<BillCostLink>(EMPTY_LINK);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -716,7 +737,9 @@ export function NewBillDrawer({
       issueDate,
       dueDate,
       reference: reference.trim() || null,
-      shipmentId: null,
+      shipmentId: costLink.shipmentId,
+      consolidationId: costLink.consolidationId,
+      costCategory: costLink.costCategory,
       notes: null,
     });
     setPending(false);
@@ -933,6 +956,37 @@ export function NewBillDrawer({
             onChange={(e) => setReference(e.target.value)}
           />
         </div>
+
+        {costLinks?.available && (
+          <fieldset
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              padding: "12px 14px",
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <legend
+              style={{
+                font: "600 12px/1.3 var(--f-sans)",
+                color: "var(--ink)",
+                padding: "0 6px",
+              }}
+            >
+              Costo de contenedor{" "}
+              <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>(opcional)</span>
+            </legend>
+            <CostLinkFields
+              idPrefix="nb"
+              containers={costLinks.containers}
+              value={costLink}
+              onChange={setCostLink}
+            />
+          </fieldset>
+        )}
       </form>
 
       <DrawerFooter
@@ -944,6 +998,204 @@ export function NewBillDrawer({
         pendingLabel="Creando…"
       />
     </DrawerShell>
+  );
+}
+
+// ── SDD-0631 · Costo de contenedor ─────────────────────────────
+
+const EMPTY_LINK: BillCostLink = { consolidationId: null, shipmentId: null, costCategory: null };
+
+/** Contenedor → embarque (de ese contenedor, opcional) → qué costo cubre. */
+function CostLinkFields({
+  idPrefix,
+  containers,
+  value,
+  onChange,
+}: {
+  idPrefix: string;
+  containers: CostLinkData["containers"];
+  value: BillCostLink;
+  onChange: (v: BillCostLink) => void;
+}) {
+  const container = containers.find((c) => c.id === value.consolidationId) ?? null;
+  const linked = !!value.consolidationId || !!value.shipmentId;
+  const hint = { font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "var(--s-1) 0 0" };
+  return (
+    <>
+      <div>
+        <label className="studio-label" htmlFor={`${idPrefix}-container`}>
+          Contenedor
+        </label>
+        <select
+          id={`${idPrefix}-container`}
+          className="studio-input"
+          value={value.consolidationId ?? ""}
+          onChange={(e) => {
+            const id = e.target.value || null;
+            onChange(
+              id
+                ? { consolidationId: id, shipmentId: null, costCategory: value.costCategory ?? "freight" }
+                : EMPTY_LINK,
+            );
+          }}
+        >
+          <option value="">Sin contenedor</option>
+          {containers.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.ref}
+              {c.containerType ? ` · ${c.containerType}` : ""} · {c.status}
+            </option>
+          ))}
+        </select>
+        {containers.length === 0 && <p style={hint}>No hay contenedores abiertos en Naviera.</p>}
+      </div>
+      {container && (
+        <div>
+          <label className="studio-label" htmlFor={`${idPrefix}-shipment`}>
+            Embarque <span style={{ color: "var(--ink-soft)" }}>(opcional)</span>
+          </label>
+          <select
+            id={`${idPrefix}-shipment`}
+            className="studio-input"
+            value={value.shipmentId ?? ""}
+            onChange={(e) => onChange({ ...value, shipmentId: e.target.value || null })}
+          >
+            <option value="">Todo el contenedor · se reparte por CBM</option>
+            {container.shipments.map((sh) => (
+              <option key={sh.id} value={sh.id}>
+                {sh.code ?? "Embarque sin código"}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {linked && (
+        <div>
+          <label className="studio-label" htmlFor={`${idPrefix}-category`}>
+            Qué costo cubre
+          </label>
+          <select
+            id={`${idPrefix}-category`}
+            className="studio-input"
+            value={value.costCategory ?? "freight"}
+            onChange={(e) => onChange({ ...value, costCategory: e.target.value as CostCategoryKey })}
+          >
+            {BILL_COST_CATEGORY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <p style={hint}>En Costing, esta CxP reemplaza lo cargado a mano en esa categoría.</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Vínculo de una CxP existente: lo muestra y deja ligarlo, cambiarlo o quitarlo. */
+function BillCostLinkSection({
+  billId,
+  voided,
+  costLinks,
+  current,
+  onSaved,
+  onError,
+}: {
+  billId: string;
+  voided: boolean;
+  costLinks?: CostLinkData;
+  current: BillCostLink;
+  onSaved: (msg: string) => void;
+  onError: (msg: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<BillCostLink>(current);
+  const containers = costLinks?.containers ?? [];
+  const container = containers.find((c) => c.id === current.consolidationId) ?? null;
+  const shipmentCode = container?.shipments.find((s) => s.id === current.shipmentId)?.code ?? null;
+  const linked = !!current.consolidationId || !!current.shipmentId;
+
+  if (!costLinks?.available && !linked) return null;
+
+  const summary = !linked
+    ? "Sin contenedor: esta CxP no entra al margen de ningún embarque."
+    : [
+        current.consolidationId ? `Contenedor ${container?.ref ?? "fuera de la lista"}` : null,
+        current.shipmentId
+          ? `embarque ${shipmentCode ?? "ligado"}`
+          : current.consolidationId
+            ? "repartido por CBM"
+            : null,
+        current.costCategory ? costCategoryLabel(current.costCategory) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+  return (
+    <section
+      aria-label="Costo de contenedor"
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "12px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div>
+          <div style={{ font: "600 12px/1.3 var(--f-sans)", color: "var(--ink)" }}>Costo de contenedor</div>
+          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
+            {summary}
+          </div>
+        </div>
+        {costLinks?.available && !voided && !editing && (
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            onClick={() => {
+              onError(null);
+              setDraft(current);
+              setEditing(true);
+            }}
+          >
+            {linked ? "Cambiar" : "Ligar a contenedor"}
+          </button>
+        )}
+      </div>
+      {editing && (
+        <>
+          <CostLinkFields idPrefix="bl" containers={containers} value={draft} onChange={setDraft} />
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={() => setEditing(false)}
+            >
+              Cancelar
+            </button>
+            <ActionButton
+              variant="primary"
+              idleLabel="Guardar vínculo"
+              loadingLabel="Guardando…"
+              successLabel={null}
+              onAction={() => linkBillCost(billId, draft)}
+              onError={onError}
+              onSuccess={() => {
+                setEditing(false);
+                onSaved(
+                  draft.consolidationId || draft.shipmentId
+                    ? "CxP ligada · el costo ya cuenta en Costing"
+                    : "Vínculo de la CxP quitado",
+                );
+              }}
+            />
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

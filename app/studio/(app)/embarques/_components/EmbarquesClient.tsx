@@ -288,13 +288,10 @@ export function EmbarquesClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "var(--s-4)",
-          overflowX: "auto",
-        }}
+        role="group"
+        aria-label="Embarques por estado"
+        className="studio-tabs"
+        style={{ marginBottom: "var(--s-4)" }}
       >
         {(
           [
@@ -309,33 +306,13 @@ export function EmbarquesClient({
             <button
               key={t.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(t.value)}
-              style={{
-                padding: "10px 14px",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "var(--s-2)",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               <span>{t.label}</span>
-              <span
-                style={{
-                  padding: "2px 6px",
-                  borderRadius: "var(--r-sm)",
-                  background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                  color: active ? "var(--wine)" : "var(--ink-soft)",
-                  font: "700 10.5px/1.3 var(--f-mono)",
-                }}
-              >
-                {t.count}
-              </span>
+              <span className="studio-tab-n">{t.count}</span>
             </button>
           );
         })}
@@ -814,13 +791,13 @@ function GroupedTable({
   // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
   const columnas =
     adjuntos === null
-      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px"
-      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px";
-  // SDD-0522: la fila es [casilla | botón con el resto]. El botón usa las
-  // mismas columnas sin la primera, así el encabezado y las filas no se
-  // desalinean (24px + gap + resto, igual que el encabezado).
-  const columnasDatos = columnas.replace(/^24px /, "");
-  const anchoMinimo = adjuntos === null ? 824 : 930;
+      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px 92px"
+      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px 92px";
+  // SDD-0522: la fila es [casilla | botón con los datos | «Abrir»]. El botón
+  // usa las mismas columnas sin la primera ni la última, así el encabezado y
+  // las filas no se desalinean (24px + gap + datos + gap + 92px).
+  const columnasDatos = columnas.replace(/^24px /, "").replace(/ 92px$/, "");
+  const anchoMinimo = adjuntos === null ? 926 : 1032;
   return (
     <div
       style={{
@@ -991,6 +968,8 @@ function GroupedTable({
                   <span style={{ textAlign: "right" }}>CBM</span>
                   {adjuntos !== null && <span>Adjuntos</span>}
                   <span>Creado</span>
+                  {/* SDD-0603: columna de «Abrir», sin rótulo propio. */}
+                  <span aria-hidden="true" />
                 </div>
                 {group.shipments.map((s) => {
                   const pct = computeProgress(s.status);
@@ -1005,7 +984,7 @@ function GroupedTable({
                       data-row-id={s.code}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "24px minmax(0, 1fr)",
+                        gridTemplateColumns: "24px minmax(0, 1fr) 92px",
                         columnGap: 10,
                         padding: "var(--s-3) var(--s-5)",
                         background: fondo,
@@ -1040,8 +1019,13 @@ function GroupedTable({
                           />
                         )}
                       </span>
+                      {/* SDD-0603 · tramo 5a: la fila entera sigue abriendo
+                          con el ratón, pero el control de teclado y de lector
+                          es «Abrir». Sale del orden de Tab para que cada fila
+                          siga teniendo una sola parada. */}
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => onRowClick(s.id)}
                         style={{
                           width: "100%",
@@ -1133,6 +1117,16 @@ function GroupedTable({
                       >
                         {formatDate(s.created_at)}
                       </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="studio-btn studio-btn-ghost studio-btn-sm"
+                        aria-label={`Abrir embarque ${s.code}`}
+                        onClick={() => onRowClick(s.id)}
+                        style={{ justifySelf: "end" }}
+                      >
+                        Abrir
+                        {Icon.chevR(14)}
                       </button>
                       {/* SDD-0522 · BTN-01 §6: el motivo de una casilla
                           deshabilitada se ve, no depende de enfocarla. */}

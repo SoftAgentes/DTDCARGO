@@ -1,3 +1,4 @@
+import type { AnnualBillingRead } from "@/lib/shared/annual-billing";
 /**
  * Tipos + helpers PUROS del módulo Reportes & Analytics (SDD-0052 · Slice A).
  *
@@ -144,6 +145,8 @@ export type RouteRow = {
   avgTransit: number | null; // días promedio (null si ninguno medible)
   revenue: number; // USD facturado cruzado por shipment_code
   rate: number; // USD por CBM (revenue / cbm, 0 si cbm≤0)
+  /** SDD-0572: facturas del grupo sin tasa, fuera del revenue. */
+  facturasSinTasa?: number;
 };
 
 /** Una fila agregada por servicio (shipment_service). */
@@ -155,6 +158,8 @@ export type ServiceRow = {
   avgTransit: number | null;
   revenue: number;
   rate: number;
+  /** SDD-0572: facturas del grupo sin tasa, fuera del revenue. */
+  facturasSinTasa?: number;
 };
 
 /** Una fila por naviera (desde bookings/sailings de la migración 0096). */
@@ -211,6 +216,11 @@ export type OperationalOverview = {
    * sin dueño" que igual se despachan. Informativo, no alarma.
    */
   unassigned: { count: number; cbm: number };
+  /**
+   * SDD-0572: facturas de los embarques del rango que no convierten a USD (sin
+   * tasa). No suman al revenue (ni 0 ni el nominal): la pantalla lo dice al lado.
+   */
+  facturasSinTasa?: number;
 };
 
 // ── Forma mínima de un shipment para los helpers ───────────────
@@ -395,6 +405,7 @@ function cbmOf(rows: ReportShipment[]): number {
 export function groupByRoute(
   shipments: ReportShipment[],
   revenueByCode: Map<string, number>,
+  sinTasaByCode: Map<string, number> = new Map(),
 ): RouteRow[] {
   const groups = new Map<string, ReportShipment[]>();
   for (const s of shipments) {
@@ -415,6 +426,7 @@ export function groupByRoute(
       destination: (first.destination ?? "").trim(),
       label: routeLabel(first.origin, first.destination),
       count: list.length,
+      facturasSinTasa: list.reduce((n, s) => n + (sinTasaByCode.get(s.code) ?? 0), 0),
       cbm,
       avgTransit: avgTransitOf(list),
       revenue,
@@ -432,6 +444,7 @@ export function groupByRoute(
 export function groupByService(
   shipments: ReportShipment[],
   revenueByCode: Map<string, number>,
+  sinTasaByCode: Map<string, number> = new Map(),
 ): ServiceRow[] {
   const groups = new Map<ShipmentService, ReportShipment[]>();
   for (const s of shipments) {
@@ -448,6 +461,7 @@ export function groupByService(
       service,
       label: serviceLabel(service),
       count: list.length,
+      facturasSinTasa: list.reduce((n, s) => n + (sinTasaByCode.get(s.code) ?? 0), 0),
       cbm,
       avgTransit: avgTransitOf(list),
       revenue,
@@ -482,7 +496,8 @@ function sortByRevenueThenCount<T extends { revenue: number; count: number }>(
 export type ClientRankRow = {
   markbox: string;
   name: string;
-  billedUsd: number;
+  billedUsd: number | null;
+  billing: AnnualBillingRead;
   tierId: string;
   tierLabel: string;
   tierTone: string; // BadgeTone (string libre, lo resuelve la UI)
@@ -501,8 +516,9 @@ export type TierDistRow = {
 export type CommercialByClient = {
   ranking: ClientRankRow[];
   tierDist: TierDistRow[];
-  totalClients: number;
-  totalBilledUsd: number;
+  totalClients: number | null;
+  totalBilledUsd: number | null;
+  billing: AnnualBillingRead;
 };
 
 // ── Contables · Estado de resultados ───────────────────────────
@@ -563,6 +579,8 @@ export type AgingSide = {
   total: number;
   overdue: number;
   buckets: AgingBucket[];
+  /** SDD-0572: documentos con saldo sin tasa, fuera de los buckets. */
+  sinTasa?: number;
 };
 
 /** Payload del aging: CxC + CxP. */
@@ -579,6 +597,9 @@ export type CashflowPoint = {
   label: string; // "ENE 26"
   billed: number; // facturado en el mes (USD)
   collected: number; // cobrado en el mes (USD)
+  /** Excluidas del subtotal de este mes, no contadores repetidos del período. */
+  facturasSinTasa?: number;
+  recibosSinTasa?: number;
 };
 
 /** Payload del cashflow: serie mensual + KPIs. */
@@ -588,6 +609,9 @@ export type CashflowReport = {
   totalCollected: number; // cobrado del período (USD)
   outstanding: number; // por cobrar (saldo vivo, invoiceKpis)
   overdue: number; // vencido (saldo vivo, invoiceKpis)
+  /** SDD-0572: facturas y recibos del período sin tasa, fuera de los totales. */
+  facturasSinTasa?: number;
+  recibosSinTasa?: number;
 };
 
 // ── Helpers puros (testeables) ─────────────────────────────────
@@ -685,7 +709,7 @@ export function incomeStatementRows(pl: {
 }
 
 /** Mínimo que el cashflow necesita de un movimiento (factura o cobro). */
-export type FlowItem = { dateIso: string | null; usd: number };
+export type FlowItem = { dateIso: string | null; usd: number | null };
 
 /**
  * Serie mensual facturado-vs-cobrado (USD) sobre el rango, alineada a los meses
@@ -714,23 +738,31 @@ export function monthlyCashflow(
 
   const billedByMonth = new Map<string, number>();
   const collectedByMonth = new Map<string, number>();
-  const tally = (items: FlowItem[], into: Map<string, number>) => {
+  const billedMissing = new Map<string, number>();
+  const collectedMissing = new Map<string, number>();
+  const tally = (items: FlowItem[], into: Map<string, number>, missing: Map<string, number>) => {
     for (const it of items) {
       if (!it.dateIso) continue;
       const t = new Date(it.dateIso);
       if (Number.isNaN(t.getTime())) continue;
       const key = monthKey(t);
+      if (it.usd === null) {
+        missing.set(key, (missing.get(key) ?? 0) + 1);
+        continue;
+      }
       into.set(key, (into.get(key) ?? 0) + (Number(it.usd) || 0));
     }
   };
-  tally(billed, billedByMonth);
-  tally(collected, collectedByMonth);
+  tally(billed, billedByMonth, billedMissing);
+  tally(collected, collectedByMonth, collectedMissing);
 
   return months.map((key) => ({
     month: key,
     label: monthLabel(key),
     billed: Math.round((billedByMonth.get(key) ?? 0) * 100) / 100,
     collected: Math.round((collectedByMonth.get(key) ?? 0) * 100) / 100,
+    facturasSinTasa: billedMissing.get(key) ?? 0,
+    recibosSinTasa: collectedMissing.get(key) ?? 0,
   }));
 }
 
@@ -763,9 +795,10 @@ export type AgentRow = {
   /** Leads perdidos (estado de sistema Kommo 143). */
   lost: number;
   /** Leads del asesor que se convirtieron en cliente vivo del ERP. */
-  clients: number;
+  clients: number | null;
   /** Facturación real (USD, trailing 12m) de esos clientes convertidos. */
-  revenueUsd: number;
+  revenueUsd: number | null;
+  billing: AnnualBillingRead;
   /** Conversión = won / leads * 100 (0 si no tiene leads). */
   convPct: number;
 };
@@ -777,8 +810,9 @@ export type CommercialByAgent = {
     leads: number;
     won: number;
     lost: number;
-    clients: number;
-    revenueUsd: number;
+    clients: number | null;
+    revenueUsd: number | null;
+  billing: AnnualBillingRead;
     convPct: number;
   };
   /**
