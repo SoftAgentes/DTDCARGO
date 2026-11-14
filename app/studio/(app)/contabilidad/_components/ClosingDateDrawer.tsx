@@ -14,6 +14,7 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import type { EstadoCierre } from "@/lib/studio/accounting/cierre-queries";
 import { AjustesDelCierre } from "./AjustesDelCierre";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function ClosingDateDrawer({
   currentClosingDate,
@@ -202,20 +203,7 @@ export function ClosingDateDrawer({
           )}
 
           {error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {error}
-            </p>
+            <Aviso tono="error" compacto>{error}</Aviso>
           )}
 
         </form>
