@@ -330,22 +330,26 @@ Pregunta abierta, **sin valor asumido**:
 ## 11. Allowlist exacta de archivos (enmendada el 2026-11-11 para coincidir con la implementación)
 
 La allowlist original (2026-11-09) se quedó corta: la implementación (PR #509, rama
-`claude/impl-permisos-por-persona-10d044`, cabeza `a44b77066`) toca archivos que la spec no nombraba, porque los
+`claude/impl-permisos-por-persona-10d044`, cabeza `bed937852`) toca archivos que la spec no nombraba, porque los
 extras tienen que verse y funcionar en **todos** los sitios donde se evalúa a la persona de la sesión (sidebar,
 ⌘K, exportaciones, PDF, dashboard, CRM, gates de acciones). La lista de abajo sale de
 `git diff --name-only origin/main...origin/claude/impl-permisos-por-persona-10d044` y es la **exacta**; cualquier otro
 archivo requiere enmendar esta spec primero.
 
-**Migraciones definitivas** (las tres sin aplicar en ningún entorno remoto; las numeraciones previas 0526 y 0527 de esta tarea ya no valen (0526 es de la #507 y 0528 de la SDD-0624) y la
+**Migraciones definitivas** (las tres sin aplicar en ningún entorno remoto; las numeraciones previas 0526, 0527 y 0529-0531 de esta tarea ya no valen (0526 es de la #507 y 0528 de la SDD-0624) y la
 numeración original de esta spec tampoco):
-- `supabase/migrations/0529_studio_user_module_grants.sql`
-- `supabase/migrations/0530_comercial_acepta_accesos_por_persona.sql`
-- `supabase/migrations/0531_comercial_rls_por_modulo.sql`
+- `supabase/migrations/0538_studio_user_module_grants.sql`
+- `supabase/migrations/0539_comercial_acepta_accesos_por_persona.sql`
+- `supabase/migrations/0540_comercial_rls_por_modulo.sql`
+
+**Cruce con la SDD-0624 (PR #515):** su 0528 crea `public.studio_can_read_money()` solo por rol
+(`accounting`/`admin`). La fase 8 de esta spec la redefinirá para sumar los extras de dinero; mientras tanto un
+extra de dinero no abre esas lecturas (queda fail-closed). Ni la 0538 ni la 0539 ni la 0540 tocan esa función.
 
 **Contratos SQL**
-- `supabase/tests/0529_studio_user_module_grants.test.sql`
-- `supabase/tests/0530_comercial_acepta_accesos_por_persona.test.sql`
-- `supabase/tests/0531_comercial_rls_por_modulo.test.sql`
+- `supabase/tests/0538_studio_user_module_grants.test.sql`
+- `supabase/tests/0539_comercial_acepta_accesos_por_persona.test.sql`
+- `supabase/tests/0540_comercial_rls_por_modulo.test.sql`
 
 **Biblioteca (`lib/`)**
 - `lib/studio/__tests__/user-module-grants.migration.test.ts`
@@ -487,9 +491,9 @@ fusionar y sus migraciones no se han aplicado en ningún entorno remoto.
 
 | Pieza | Nombre definitivo (lo que dice el código) | Difiere de §5 |
 |---|---|---|
-| Tabla y RPC (0529) | `studio_user_module_grants`, `studio_grant_user_module`, `studio_revoke_user_module_grant`, `user_has_module(p_module, p_edit)`; ayudantes `studio_module_default_roles`, `studio_module_is_sensitive`, `studio_module_is_superadmin_only` | La RPC de conceder se llama `studio_grant_user_module`, no `studio_set_user_module_grant`; hay ayudantes SQL que §5 no nombraba |
-| CRM (0530) | `crm_puede_usar()` pasa a `user_has_module('kommo')`; `crm_puede_editar()` nueva (la usan las 5 políticas de escritura del CRM y `crm_mover_etapa`); `document_entity_authorized` suma el extra vigente, y las entidades de dinero siguen por rol | `crm_puede_editar()` es nueva |
-| RLS por módulo (0531) | En rates, quotes, conversations, conversation_messages, purchase_orders, purchase_order_items y sales_orders la política `for all` por tenant pasa a cuatro: escribir exige editar el módulo dueño, leer exige ver alguno de los que la consumen; `chatwoot_conversations` la lee quien ve Bandeja o CRM; ayudante `user_has_any_module(text[], boolean)` | **No estaba en la spec** (§12 las daba por «solo tenant»; la implementación las endureció por módulo) |
+| Tabla y RPC (0538) | `studio_user_module_grants`, `studio_grant_user_module`, `studio_revoke_user_module_grant`, `user_has_module(p_module, p_edit)`; ayudantes `studio_module_default_roles`, `studio_module_is_sensitive`, `studio_module_is_superadmin_only` | La RPC de conceder se llama `studio_grant_user_module`, no `studio_set_user_module_grant`; hay ayudantes SQL que §5 no nombraba |
+| CRM (0539) | `crm_puede_usar()` pasa a `user_has_module('kommo')`; `crm_puede_editar()` nueva (la usan las 5 políticas de escritura del CRM y `crm_mover_etapa`); `document_entity_authorized` suma el extra vigente, y las entidades de dinero siguen por rol | `crm_puede_editar()` es nueva |
+| RLS por módulo (0540) | En rates, quotes, conversations, conversation_messages, purchase_orders, purchase_order_items y sales_orders la política `for all` por tenant pasa a cuatro: escribir exige editar el módulo dueño, leer exige ver alguno de los que la consumen; `chatwoot_conversations` la lee quien ve Bandeja o CRM; ayudante `user_has_any_module(text[], boolean)` | **No estaba en la spec** (§12 las daba por «solo tenant»; la implementación las endureció por módulo) |
 
 Detalles de diseño que se fijaron al construir:
 
@@ -536,7 +540,7 @@ tenants por persona habría que filtrar por el tenant activo.
 ### 13.4 Fuera de alcance detectado por la implementación
 
 - El borrado lógico con la sesión ya fallaba antes en rates, quotes, conversations, purchase_orders y sales_orders
-  (`cotizador/actions.ts:499`, `tarifas/actions.ts:260`); la 0531 no lo arregla ni lo empeora.
+  (`cotizador/actions.ts:499`, `tarifas/actions.ts:260`); la 0540 no lo arregla ni lo empeora.
 - La propuesta de tarifa de la CN (`cn/rate-snapshot-actions.ts`) lee con la sesión de almacén; es del carril CN.
 - `bandeja/page.tsx:100` y `lib/studio/chatwoot/agentes-ciclo.ts:87` evalúan la Bandeja de terceros solo por rol y
   desvío; habrá que tocarlos si se abre.

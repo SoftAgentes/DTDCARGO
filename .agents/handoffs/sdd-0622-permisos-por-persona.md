@@ -60,8 +60,9 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 
 ## Enmienda 2026-11-11 (encargo del Director, tras la revisión de la PR #509)
 - Spec enmendada para coincidir con lo implementado: allowlist exacta (57 archivos, calculada de
-  `git diff --name-only origin/main...origin/claude/impl-permisos-por-persona-10d044`, cabeza a44b77066), migraciones
-  definitivas 0529 (grants + user_has_module), 0530 (CRM + document_entity_authorized) y 0531 (RLS por módulo),
+  `git diff --name-only origin/main...origin/claude/impl-permisos-por-persona-10d044`, cabeza entonces a44b77066), migraciones
+  definitivas 0538 (grants + user_has_module), 0539 (CRM + document_entity_authorized) y 0540 (RLS por módulo)
+  —numeradas 0529, 0530 y 0531 en esta enmienda; renumeradas el 2026-11-14, ver abajo—,
   nombres definitivos de las RPC (`studio_grant_user_module`) y §13 con el estado de la implementación.
 - R1, R2 y R3 quedan registradas como decididas por el Director el 2026-11-11 con la autorización de Sam
   («hazlo como creas tú»), según lo informó la sesión coordinadora; no las confirmé con Sam directamente.
@@ -69,3 +70,34 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
   aún no cubiertos. Y de antes: nómina, `documents` para `custom`, fusión de fichas, diseño de §5.5.
 - Validación: docs:check PASÓ, sdd:check PASÓ, git diff --check PASÓ. No se verificó el contenido de la PR #509 más
   allá de su handoff y de la lista de archivos del diff.
+
+## Renumeración 2026-11-14 (Worker W-488, encargo del Director)
+- **Worktree:** `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\agent-ab638f828c2bb96b2`, rama local
+  `w488/sdd-permisos-por-persona` que empuja a `origin/codex/sdd-permisos-por-persona` (la rama local con ese nombre está
+  tomada por el worktree original, limpio en 41b8c58e0; no se tocó).
+- Base 41b8c58e0 + `git merge --no-edit origin/main` (4a59f10bf), sin conflictos.
+- Spec §11 y §13.1: 0529/0530/0531 (migraciones y `.test.sql`) pasan a 0538/0539/0540, nombres exactos de
+  `origin/claude/impl-permisos-por-persona-10d044` (cabeza bed937852, PR #509); cabeza citada a44b77066 → bed937852;
+  «la 0531 no lo arregla» pasa a 0540.
+- Nota nueva en §11 del cruce con la SDD-0624 (PR #515, cabeza 013c39c5a, abierta): su 0528 crea
+  `public.studio_can_read_money()` solo por rol (`accounting`/`admin`, comprobado en el archivo); la fase 8 la redefinirá
+  para sumar extras; mientras tanto queda fail-closed. `git grep` confirma que 0538-0540 no la tocan.
+- No se tocaron `status: approved`, «aprobada por Sam», R1-R3 ni «caso Alejandro».
+
+### Evidencia
+- Allowlist §11 contra `git diff --name-only <merge-base da8d123ee> origin/claude/impl-permisos-por-persona-10d044`:
+  57 = 57, `diff` vacío, sin diferencias.
+- `git diff --check`: PASÓ.
+- `pnpm docs:check` y `pnpm sdd:check`: NO EJECUTADO (worktree sin `node_modules`; no se instaló ni se enlazó; queda
+  pedir turno).
+- Producto (`pnpm verify`): NO APLICA, cambio solo de documentación. Ninguna migración aplicada.
+
+### Pendientes de esta tarea
+- Correr `pnpm docs:check` y `pnpm sdd:check` con turno y `node_modules`.
+- Lo que depende de Sam sigue igual (estado `approved`, R1-R3).
+
+### FUERA DE ALCANCE DETECTADO
+- La 0528 vive solo en la PR #515 (no está en main); si la #515 cambia de número, la nota de §11 y las de §6/§9/§13
+  que citan «0528» se vencen.
+- En `supabase/migrations/` de main faltan 0528-0531 (0532-0537 ya fusionadas). La #515 ocupa 0528; el destino de
+  0529-0531 lo coordina el Director.
