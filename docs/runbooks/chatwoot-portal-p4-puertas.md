@@ -46,7 +46,10 @@
 
 ## El orden de las puertas 1 a 3: primero la 2
 
-**El orden real es: puerta 2 → los OK 1a y 1b, los dos antes de la primera corrida → `--solo-copia` → puerta 3.** Las puertas se numeran como en la spec, pero se abren en este orden. Lo midió el Subdirector en `ensayo-portal.sh` en `main` (`3c14dde83`), y lo decidió el DG el 2026-11-11.
+**El orden real es: puerta 2 → OK del 3.0 (los scripts en el VPS) → OK 1a → OK 1b → comprobación `--solo-copia` → OK del 3.1 (el ensayo).** Las puertas se numeran como en la spec, pero se abren en este orden. Lo midió el Subdirector en `ensayo-portal.sh` en `main` (`3c14dde83`) y lo decidió el DG el 2026-11-11. El DG agregó el 3.0 delante de los OK 1a y 1b el 2026-11-14, siguiendo el guion.
+
+- **La puerta 2 ya está hecha:** `BANDEJA=10` y `AGENTE_SERVICIO=1`.
+- **El 3.0 va antes de los OK 1a y 1b.** `--solo-copia` corre desde `/srv/ops/portal-historial/`, y esa carpeta no existe en el VPS hasta el sub-paso 3.0 de la puerta 3, que tiene su propio OK. Sin el 3.0 no hay nada que correr, y un OK 1a o 1b dado antes quedaría esperando sin uso.
 
 - **La 2 va antes que la 1.** `ensayo-portal.sh:232-233` exige que `BANDEJA` y `AGENTE_SERVICIO` sean números; si no, sale con `HECHO error=numeros` y 2. Los dos salen de la puerta 2: la bandeja «Conversaciones del portal» la crea esa puerta, y la copia de Chatwoot filtra por `:bandeja`.
 - **La 1a y la 1b no se corren por separado.** Las dos copias salen en una sola corrida, y primero va **Studio**: los usuarios de Chatwoot que se copian salen de la copia de Studio (`ensayo-portal.sh:585`, los `chatwoot_user_id` de `chatwoot_agent_links`, más `AGENTE_SERVICIO`). Los dos OK se piden uno por uno, primero el 1a y después el 1b, pero **los dos tienen que estar dados antes de la primera corrida.**
@@ -83,7 +86,7 @@
 | **Qué lee o escribe** | **Lee producción en solo lectura:** `COPY (SELECT <lista> … WHERE account_id = :cuenta …)`. **El esquema lo crea la imagen de Chatwoot fijada por digest,** con `db:chatwoot_prepare` en el stack efímero. **Las otras cuentas no entran nunca:** la consulta ya filtra la cuenta. No escribe nada en producción |
 | **Qué va** | <ul><li>solo la bandeja del portal;</li><li>el usuario de servicio y los agentes vinculados, con correo y nombre **sintéticos**;</li><li>los contactos `dtd-portal:`, **sin teléfono, correo ni `additional_attributes`**, y con el nombre sintético;</li><li>sus `contact_inboxes`;</li><li>las conversaciones y los mensajes **de la bandeja del portal, sin `content`**;</li><li>los webhooks de la cuenta, con la URL **sintética**;</li><li>la secuencia `conv_dpid_seq_<cuenta>`, por `setval`.</li></ul>**No va:** nada de WhatsApp ni de Instagram, el `hmac_token`, la URL real de un webhook, `access_tokens`, `inbox_members` ni adjuntos |
 | **Tablas y columnas** | Las de `infra/ops/portal-historial/copia-columnas.tsv`, con md5 `cc1534a8a223e37ab9485451d5ee922c` (49 líneas, 26 de datos (16 de Studio y 10 de Chatwoot) y el resto comentarios; medido con `git show 3c14dde83:infra/ops/portal-historial/copia-columnas.tsv \| md5sum`). El ensayo la imprime como `HECHO lista_md5=` (`ensayo-portal.sh:269-270`). Si el md5 medido en el VPS no es ese, no se sigue |
-| **Comando** | En el VPS como root, desde `/srv/ops/portal-historial/` (`ensayo-portal.sh:23-25`, en `main` desde `3c14dde83`). **La 1a y la 1b van en la misma corrida.** La comprobación, que copia y comprueba sin cargar: `TENANT=<uuid> CUENTA=1 BANDEJA=<id de la puerta 2> AGENTE_SERVICIO=<id> bash ensayo-portal.sh --solo-copia`. El ensayo completo es la puerta 3: lo mismo, sin `--solo-copia`. Para limpiar un ensayo que quedó a medias: `bash ensayo-portal.sh --limpiar` |
+| **Comando** | En el VPS como root, desde `/srv/ops/portal-historial/` (`ensayo-portal.sh:23-25`, en `main` desde `3c14dde83`). **Exige el sub-paso 3.0 hecho:** esa carpeta y sus scripts no existen en el VPS hasta el 3.0, que tiene su propio OK y va antes de este. **La 1a y la 1b van en la misma corrida.** La comprobación, que copia y comprueba sin cargar: `TENANT=<uuid> CUENTA=1 BANDEJA=<id de la puerta 2> AGENTE_SERVICIO=<id> bash ensayo-portal.sh --solo-copia`. El ensayo completo es la puerta 3: lo mismo, sin `--solo-copia`. Para limpiar un ensayo que quedó a medias: `bash ensayo-portal.sh --limpiar` |
 | **Para seguir** | Sale con 0. La otra cuenta tiene 0 filas en todas las tablas de la copia, medido antes de cualquier otro paso. Producción queda sin cambios |
 | **Evidencia** | `HECHO` con las filas por tabla y el md5 de la lista de columnas. Sin datos de personas |
 | **Vuelta atrás** | Borrar la copia, con el `trap` o con `ensayo-portal.sh --limpiar`, y la prueba de borrado |
@@ -96,7 +99,7 @@
 | **Qué lee o escribe** | **Lee producción en solo lectura, filtrado al tenant:** `COPY (SELECT <lista> … WHERE tenant_id = :tenant …)`. **El esquema sale de las migraciones del repo,** aplicadas en el Postgres efímero. No viaja ningún `pg_dump --schema-only` de producción. No escribe nada en producción |
 | **Qué va** | <ul><li>**Los únicos datos personales: `clients.name` y `conversation_messages.body`**, este último solo de los hilos `portal`.</li><li>`clients` va **sin `phone`, `email`, cédula, RIF ni el `markbox` real**, y el `markbox` va sintético.</li><li>`conversation_messages` va **sin `author_name`**.</li><li>Lo demás son ids, estados y fechas: `tenants`, `conversations` del portal, los `chatwoot_portal_*`, `chatwoot_conversations`, `chatwoot_agent_links`, los `id` de `auth.users`, `feature_flags` (`chatwoot_portal`), y los `id` del CRM de C-7 y de `chatwoot_webhook_events`.</li></ul> |
 | **Tablas y columnas** | Las de `infra/ops/portal-historial/copia-columnas.tsv`, con md5 `cc1534a8a223e37ab9485451d5ee922c` (49 líneas, 26 de datos (16 de Studio y 10 de Chatwoot) y el resto comentarios; medido con `git show 3c14dde83:infra/ops/portal-historial/copia-columnas.tsv \| md5sum`). El ensayo la imprime como `HECHO lista_md5=` (`ensayo-portal.sh:269-270`). Si el md5 medido en el VPS no es ese, no se sigue |
-| **Comando** | En el VPS como root, desde `/srv/ops/portal-historial/` (`ensayo-portal.sh:23-25`, en `main` desde `3c14dde83`). **La 1a y la 1b van en la misma corrida.** La comprobación, que copia y comprueba sin cargar: `TENANT=<uuid> CUENTA=1 BANDEJA=<id de la puerta 2> AGENTE_SERVICIO=<id> bash ensayo-portal.sh --solo-copia`. El ensayo completo es la puerta 3: lo mismo, sin `--solo-copia`. Para limpiar un ensayo que quedó a medias: `bash ensayo-portal.sh --limpiar` |
+| **Comando** | En el VPS como root, desde `/srv/ops/portal-historial/` (`ensayo-portal.sh:23-25`, en `main` desde `3c14dde83`). **Exige el sub-paso 3.0 hecho:** esa carpeta y sus scripts no existen en el VPS hasta el 3.0, que tiene su propio OK y va antes de este. **La 1a y la 1b van en la misma corrida.** La comprobación, que copia y comprueba sin cargar: `TENANT=<uuid> CUENTA=1 BANDEJA=<id de la puerta 2> AGENTE_SERVICIO=<id> bash ensayo-portal.sh --solo-copia`. El ensayo completo es la puerta 3: lo mismo, sin `--solo-copia`. Para limpiar un ensayo que quedó a medias: `bash ensayo-portal.sh --limpiar` |
 | **Para seguir** | Sale con 0. Producción queda sin cambios. Los conteos de la copia son los del tenant (C-1) |
 | **Evidencia** | `HECHO` con las filas por tabla y el md5 de la lista de columnas. Sin datos de personas |
 | **Vuelta atrás** | Igual que la 1a |
@@ -107,7 +110,7 @@
 - **El único que la escribe** es `lib/studio/chatwoot/portal.ts:206` (`p_error`), por `chatwoot_portal_marcar`. El código sale de `codigo()` (`:79-81`): el paso (`contacto`, `conversacion` o `mensaje`) más un `ChatwootError` (`chatwoot-types.ts:9-16`: `sin_configurar`, `no_autorizado`, `no_encontrado`, `origen_invalido`, `respuesta_invalida`, `red` o `http_<n>`) o `busqueda_incompleta`. Si falla la base, va `base` (`:251`).
 - **Por eso la lista no cambia:** el código se nombra en el OK.
 
-Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos antes de la primera corrida. Si en el VPS el md5 de la lista no es `cc1534a8a223e37ab9485451d5ee922c`, los OK no cubren la corrida.
+Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos después del 3.0 y antes de la primera corrida. Si en el VPS el md5 de la lista no es `cc1534a8a223e37ab9485451d5ee922c`, los OK no cubren la corrida.
 
 **Contexto:** el conteo del 2026-11-07 dio 24 hilos y 73 mensajes del portal. La carga vuelve a contar al extraer (C-1).
 
@@ -135,6 +138,7 @@ Los dos OK se presentan uno por uno, primero el 1a y después el 1b, y los dos a
 > **La PR 2b de E5 es la #473, en `main` desde `b5669b1a5` (tren #487).** El guion copia las guardas de `kommo-historial/ensayo-archivo.sh`. Las citas de su código son de `main` en `b5669b1a5`.
 
 **Sub-paso 3.0 · ⛔ OK propio · Crear `/srv/ops/portal-historial` y poner los scripts.**
+- **Cuándo:** después de la puerta 2 y **antes de los OK 1a y 1b,** porque la comprobación `--solo-copia` corre desde esta carpeta (el orden, arriba, en «El orden de las puertas 1 a 3»).
 - **El punto de partida,** medido en el VPS por el DG: `/srv/ops/portal-historial` no existe, y `/srv/ops/kommo-historial` sí.
 - **Qué escribe, todo en el VPS:**
   1. crea `/srv/ops/portal-historial/` y copia ahí, **por nombre**, los scripts de la lista de abajo, sin `README.md` ni `pruebas/`;
