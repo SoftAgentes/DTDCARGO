@@ -14,6 +14,7 @@
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { StatusIcon } from "@/components/StatusIcon";
 import { STATUS_LABELS } from "@/lib/shared/shipment-public";
 import { TONE_TO_VALUE_COLOR, type ChartPeriod, type KpiTone } from "@/lib/studio/dashboard/dashboard-catalog";
 import { CHART_PERIODS } from "@/lib/studio/dashboard/dashboard-catalog";
@@ -258,6 +259,25 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
 }
 
 // ── Atención requerida ────────────────────────────────────────
+
+/**
+ * Franja de cada pendiente, como en `<Aviso>` (BRAND §Estados): el tono va en
+ * el fondo suave y en la forma del icono; el texto, siempre en tinta. En
+ * atención el icono va en tinta: el dorado no llega a 3:1 sobre su franja en
+ * claro. `wine` y `neutral` no son estados: se leen como información.
+ */
+const ESTADO_DE_ALERTA: Record<
+  KpiTone,
+  { fondo: string; icono: "info" | "success" | "warning" | "danger"; color: string }
+> = {
+  danger: { fondo: "var(--danger-bg)", icono: "danger", color: "var(--danger-text)" },
+  warning: { fondo: "var(--warning-bg)", icono: "warning", color: "var(--ink)" },
+  success: { fondo: "var(--success-bg)", icono: "success", color: "var(--success)" },
+  info: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
+  wine: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
+  neutral: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
+};
+
 export function AlertsWidget({ alerts }: { alerts: AlertItem[] }) {
   return (
     <WCard>
@@ -269,36 +289,47 @@ export function AlertsWidget({ alerts }: { alerts: AlertItem[] }) {
           Todo en orden. Sin pendientes críticos.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        // SDD-0603 · menores del Studio (BD-037): cada pendiente es una franja
+        // plana con icono, sin contorno. No es `<Aviso>` porque es una lista
+        // fija del tablero, no un anuncio: con `role="alert"` interrumpiría al
+        // lector cada vez que se abre el Dashboard. Lo que se pulsa es «Abrir»,
+        // un secundario con contorno de tinta; la franja ya no es un enlace.
+        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
           {alerts.map((a, i) => {
-            const inner = (
-              <div
+            const estado = ESTADO_DE_ALERTA[a.tone];
+            return (
+              <li
+                key={i}
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
+                  flexWrap: "wrap",
                   gap: 10,
                   padding: "10px 12px",
-                  background: `var(--${a.tone}-bg)`,
+                  background: estado.fondo,
                   borderRadius: "var(--r-md)",
-                  borderLeft: `3px solid var(--${a.tone})`,
                 }}
               >
-                <span style={{ color: `var(--${a.tone})`, marginTop: 1, display: "inline-flex" }}>{Icon.warn(14)}</span>
-                <div style={{ flex: 1 }}>
+                <StatusIcon tone={estado.icono} size={16} style={{ color: estado.color, marginTop: 1 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: "700 12px/1.3 var(--f-sans)", color: "var(--ink)" }}>{a.title}</div>
                   <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>{a.meta}</div>
                 </div>
-              </div>
-            );
-            return a.href ? (
-              <Link key={i} href={a.href} style={{ textDecoration: "none" }}>
-                {inner}
-              </Link>
-            ) : (
-              <div key={i}>{inner}</div>
+                {a.href ? (
+                  <Link
+                    href={a.href}
+                    className="studio-btn studio-btn-ghost studio-btn-xs"
+                    aria-label={`Abrir: ${a.title}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    Abrir
+                    {Icon.chevR(14)}
+                  </Link>
+                ) : null}
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </WCard>
   );

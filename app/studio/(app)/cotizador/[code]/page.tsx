@@ -133,7 +133,7 @@ export default async function QuoteDetailPage({
               <span>Este estimado ya fue convertido a un embarque.</span>
               <Link
                 href={`/studio/tracking/${quote.converted_to_shipment_id}`}
-                className="studio-btn studio-btn-dark studio-btn-sm"
+                className="studio-btn studio-btn-ghost studio-btn-sm"
               >
                 Ver embarque →
               </Link>

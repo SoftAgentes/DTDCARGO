@@ -350,7 +350,8 @@ function ScopeTab({
 // Banner de alertas de consolidado
 // ─────────────────────────────────────────────────────────────
 
-function AlertBanner({
+/** Exportado para su prueba (`GastosClient.alertas.test.tsx`). */
+export function AlertBanner({
   alerts,
   onLoad,
 }: {
@@ -377,8 +378,11 @@ function AlertBanner({
     });
   };
 
+  // SDD-0603 · menores del Studio: la región viva lleva solo la frase fija
+  // (título y subtítulo). La lista va fuera, debajo: si estuviera dentro, al
+  // cerrar una alerta el lector releería todas las que quedan.
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
       <Aviso
         tono="atencion"
         titulo={
@@ -387,60 +391,59 @@ function AlertBanner({
             : t("expenses.alert.banner_title_many", { count: alerts.length })
         }
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <p style={{ margin: 0 }}>
-            {t("expenses.alert.banner_sub")}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {alerts.map((a) => (
-              <div
-                key={a.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  padding: "8px 10px",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-md)",
-                }}
-              >
-                <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
-                  {a.shipment_code ?? "—"}
-                </code>
-                <span
-                  style={{
-                    font: "500 11.5px/1 var(--f-sans)",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  → {a.destination ?? t("expenses.alert.no_destination")}
-                </span>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    className="studio-btn studio-btn-primary studio-btn-xs"
-                    onClick={() => onLoad(a.shipment_id)}
-                  >
-                    {Icon.plus(12)} {t("expenses.alert.load_btn")}
-                  </button>
-                  <button
-                    type="button"
-                    className="studio-btn studio-btn-ghost studio-btn-xs"
-                    disabled={isPending && pendingId === a.id}
-                    onClick={() => close(a.id, a.shipment_code)}
-                  >
-                    {isPending && pendingId === a.id
-                      ? t("expenses.alert.closing")
-                      : t("expenses.alert.close_btn")}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {t("expenses.alert.banner_sub")}
       </Aviso>
+      <ul
+        style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}
+      >
+        {alerts.map((a) => (
+          <li
+            key={a.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              padding: "8px 10px",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+            }}
+          >
+            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+              {a.shipment_code ?? "—"}
+            </code>
+            <span
+              style={{
+                font: "500 11.5px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              → {a.destination ?? t("expenses.alert.no_destination")}
+            </span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              {/* El vino es de «Nuevo gasto», la acción principal de la pantalla. */}
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-xs"
+                onClick={() => onLoad(a.shipment_id)}
+              >
+                {Icon.plus(12)} {t("expenses.alert.load_btn")}
+              </button>
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-xs"
+                disabled={isPending && pendingId === a.id}
+                onClick={() => close(a.id, a.shipment_code)}
+              >
+                {isPending && pendingId === a.id
+                  ? t("expenses.alert.closing")
+                  : t("expenses.alert.close_btn")}
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
