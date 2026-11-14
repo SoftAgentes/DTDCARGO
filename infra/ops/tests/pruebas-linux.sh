@@ -51,7 +51,7 @@ declare -A PISO=(
   [infra/ops/tests/prueba-ips-prueba.sh]=24
   [infra/ops/tests/prueba-prompt-trim.sh]=13
   [infra/ops/tests/prueba-restore-event-triggers.sh]=78
-  [infra/ops/tests/prueba-portal-historial.sh]=139
+  [infra/ops/tests/prueba-portal-historial.sh]=145
   [infra/ops/tests/prueba-respaldo-storage.sh]=90
   [infra/ops/tests/prueba-vigilar-chatwoot.sh]=102
 )
