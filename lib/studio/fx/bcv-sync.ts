@@ -1,8 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fechaCaracas, isCalendarDate, validInstant } from "@/lib/shared/fechas-caracas";
 import { cancelBcvBody, fetchBcvObservation, readBcvBody } from "./bcv-source";
-import { BCV_MAX_TENANTS, BCV_RUN_TIMEOUT_MS, BCV_URL, BcvError, decimalRateKey,
-  emptyBcvCounts, sameDecimalRate, type BcvCounts, type BcvObservation, type BcvReason, type BcvSummary } from "./bcv-types";
+import { BCV_MAX_TENANTS, BCV_RATE_MAX_CHANGE_BPS, BCV_RATE_REFERENCE_MAX_AGE_DAYS, BCV_RUN_TIMEOUT_MS, BCV_URL,
+  BcvError, decimalRateKey, emptyBcvCounts, rateWithinBand, sameDecimalRate, type BcvCounts, type BcvObservation, type BcvReason, type BcvSummary } from "./bcv-types";
 
 type Client = SupabaseClient;
 type Reply = { data: unknown; error: { code?: string } | null; count: number | null; status: number };
@@ -126,6 +126,40 @@ async function snapshot(client: Client, ids: readonly string[], day: string, sig
   return rows(reply, ids, day);
 }
 
+const SOURCE_RANK: Readonly<Record<string, number>> = { bcv: 0, manual: 1, operacion: 2 };
+
+function daysBefore(day: string, days: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Referencia de la banda: por tenant, la tasa VES vigente del día anterior más
+ * reciente dentro de la ventana, con la misma prioridad que fx_rate_on
+ * (fecha más reciente; ese día, bcv > manual > operacion). Lectura exacta: un
+ * snapshot incompleto o raro corta la corrida, nunca se adivina la referencia.
+ */
+async function references(client: Client, ids: readonly string[], day: string, maxAgeDays: number,
+  signal: AbortSignal): Promise<Map<string, string>> {
+  const oldest = daysBefore(day, maxAgeDays);
+  const reply = await client.from("fx_rates").select("tenant_id,source,valid_on,rate::text", { count: "exact" })
+    .in("tenant_id", [...ids]).eq("currency", "VES").lt("valid_on", day).gte("valid_on", oldest)
+    .retry(false).abortSignal(signal);
+  const best = new Map<string, { validOn: string; rank: number; rate: string }>();
+  for (const value of exactArray(reply)) {
+    if (!isObject(value) || Object.keys(value).length !== 4 || typeof value.tenant_id !== "string"
+      || !ids.includes(value.tenant_id) || typeof value.source !== "string" || !(value.source in SOURCE_RANK)
+      || typeof value.valid_on !== "string" || !isCalendarDate(value.valid_on)
+      || value.valid_on >= day || value.valid_on < oldest
+      || typeof value.rate !== "string" || decimalRateKey(value.rate) === null) throw new BcvError("SNAPSHOT_UNAVAILABLE");
+    const candidate = { validOn: value.valid_on, rank: SOURCE_RANK[value.source], rate: value.rate };
+    const current = best.get(value.tenant_id);
+    if (current && current.validOn === candidate.validOn && current.rank === candidate.rank) throw new BcvError("SNAPSHOT_UNAVAILABLE");
+    if (!current || candidate.validOn > current.validOn
+      || (candidate.validOn === current.validOn && candidate.rank < current.rank)) best.set(value.tenant_id, candidate);
+  }
+  return new Map([...best].map(([tenant, ref]) => [tenant, ref.rate]));
+}
+
 function sameRow(left: Row, right: Row): boolean {
   return left.id === right.id && left.tenant_id === right.tenant_id && left.currency === right.currency
     && left.source === right.source && left.valid_on === right.valid_on && left.rate === right.rate
@@ -153,6 +187,12 @@ export async function syncBcvRates(options: Readonly<{
   now?: () => Date; monotonicNow?: () => number;
   createClient?: (signal: AbortSignal) => Client;
   obtain?: typeof fetchBcvObservation;
+  /**
+   * Banda de plausibilidad. Por defecto, los valores de bcv-types. `false` solo
+   * existe para los fixtures de precisión/carrera de SQL que no la miden; la
+   * ruta del cron nunca lo pasa (lo vigila su prueba).
+   */
+  band?: false | Readonly<{ maxChangeBps: bigint; maxAgeDays: number }>;
 }>): Promise<BcvSummary> {
   const mode = Object.freeze({ enabled: options.enabled, dryRun: options.dryRun });
   const clock = options.now ?? (() => new Date());
@@ -205,6 +245,10 @@ export async function syncBcvRates(options: Readonly<{
       return result("WAITING", quote.validOn > today ? "WAITING_FOR_VALUE_DATE" : "NO_TODAY_QUOTE_IN_RESPONSE");
     }
     if (mode.dryRun) return result("CANDIDATE", "CANDIDATE_VALIDATED");
+    const band = options.band === false ? undefined
+      : options.band ?? { maxChangeBps: BCV_RATE_MAX_CHANGE_BPS, maxAgeDays: BCV_RATE_REFERENCE_MAX_AGE_DAYS };
+    const reference = band ? await references(client, ids, today, band.maxAgeDays, signal) : undefined;
+    check();
 
     for (const tenant of ids) {
       check();
@@ -216,6 +260,12 @@ export async function syncBcvRates(options: Readonly<{
         else if (current && sameDecimalRate(current.rate, quote.rate)) finishTenant("reconciled");
         else finishTenant("conflicts");
         continue;
+      }
+      if (band && reference) {
+        // Sin referencia reciente o con un salto mayor que la banda: el día queda
+        // para revisión humana. No se publica ni se pisa la manual.
+        const previous = reference.get(tenant);
+        if (!previous || !rateWithinBand(quote.rate, previous, band.maxChangeBps)) { finishTenant("held"); continue; }
       }
       await capability(client, signal);
       check();
@@ -272,8 +322,8 @@ export async function syncBcvRates(options: Readonly<{
       finishTenant("unknown"); counts.deferred = counts.notAttempted;
       return result("PARTIAL", "WRITE_UNKNOWN");
     }
-    if (counts.unknown || counts.failed || counts.conflicts) return result("PARTIAL",
-      counts.unknown ? "WRITE_UNKNOWN" : counts.failed ? "WRITE_FAILED" : "WRITE_CONFLICT");
+    if (counts.unknown || counts.failed || counts.conflicts || counts.held) return result("PARTIAL",
+      counts.unknown ? "WRITE_UNKNOWN" : counts.failed ? "WRITE_FAILED" : counts.conflicts ? "WRITE_CONFLICT" : "RATE_HELD_FOR_REVIEW");
     return result("COMPLETED", "COMPLETED");
   } catch (error) {
     counts.deferred = counts.notAttempted;

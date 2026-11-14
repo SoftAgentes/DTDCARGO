@@ -1,7 +1,8 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBcvServiceClient, parseBcvDryRun, parseBcvTenantScope, syncBcvRates } from "../bcv-sync";
-import { BcvError, type BcvObservation } from "../bcv-types";
+import { BcvError, rateWithinBand, type BcvObservation } from "../bcv-types";
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
@@ -24,8 +25,15 @@ const tableResponse = (data: unknown, count: number, status = 200) => new Respon
     "content-range": `${Array.isArray(data) && data.length ? `0-${data.length - 1}` : "*"}/${count}` },
 });
 
+type History = { tenant_id: string; source: string; valid_on: string; rate: string };
+/** Referencia de la banda por defecto: manual de ayer a 880, dentro de banda para 883,3963. */
+const reference = (tenant = A, rate = "880.00000000", day = "2026-10-20", source = "manual"): History =>
+  ({ tenant_id: tenant, source, valid_on: day, rate });
+const isReferenceRead = (call: Call) => call.method === "GET" && call.url.pathname.endsWith("/fx_rates")
+  && call.url.searchParams.getAll("valid_on").some(value => value.startsWith("lt."));
+
 /** SDK real; el único doble es el transporte. HTTP/DB reales se miden aparte. */
-function database(seed: Stored[] = [], scope = [A]) {
+function database(seed: Stored[] = [], scope = [A], history: History[] = scope.map(id => reference(id))) {
   const state = new Map(seed.map(r => [r.tenant_id, { ...r }]));
   const calls: Call[] = [];
   let capCalls = 0;
@@ -43,6 +51,14 @@ function database(seed: Stored[] = [], scope = [A]) {
       capCalls++; return new Response('{"version":1,"ready":true}', { headers: { "content-type": "application/json" } });
     }
     if (!url.pathname.endsWith("/fx_rates")) throw new Error("Unexpected fixture endpoint");
+    if (method === "GET" && isReferenceRead(call)) {
+      // Lectura de la banda: aplica los mismos filtros que manda el SDK.
+      const ids = (url.searchParams.get("tenant_id") ?? "").slice(4, -1).split(",");
+      const before = url.searchParams.getAll("valid_on").find(v => v.startsWith("lt."))?.slice(3) ?? "";
+      const from = url.searchParams.getAll("valid_on").find(v => v.startsWith("gte."))?.slice(4) ?? "";
+      const selected = history.filter(h => ids.includes(h.tenant_id) && h.valid_on < before && h.valid_on >= from);
+      return tableResponse(selected, selected.length);
+    }
     if (method === "GET") {
       getCalls++;
       const ids = (url.searchParams.get("tenant_id") ?? "").slice(4, -1).split(",");
@@ -267,7 +283,7 @@ describe("B9–B15 · persistencia textual, CAS y certeza", () => {
       counts: { scope: 2, unknown: 1, notAttempted: 1, deferred: 1 } });
     expect(db.writes()).toHaveLength(1); expect(db.writes()[0].method).toBe("PATCH");
     expect(db.state.get(A)?.rate).toBe("883.39630000"); expect(db.state.has(B)).toBe(false);
-    expect(db.calls.filter(call => call.method === "GET" && call.url.pathname.endsWith("/fx_rates"))).toHaveLength(1);
+    expect(db.calls.filter(call => call.method === "GET" && call.url.pathname.endsWith("/fx_rates") && !isReferenceRead(call))).toHaveLength(1);
     expect(cancel).toHaveBeenCalledTimes(1); expect(vi.getTimerCount()).toBe(0);
   });
   it("B15 · deadline durante reconciliación de PATCH no repite escritura", async () => {
@@ -285,7 +301,7 @@ describe("B9–B15 · persistencia textual, CAS y certeza", () => {
     expect(await task).toMatchObject({ status: "PARTIAL", reason: "WRITE_UNKNOWN",
       counts: { scope: 2, unknown: 1, notAttempted: 1, deferred: 1 } });
     expect(db.writes()).toHaveLength(1);
-    expect(db.calls.filter(call => call.method === "GET" && call.url.pathname.endsWith("/fx_rates"))).toHaveLength(2);
+    expect(db.calls.filter(call => call.method === "GET" && call.url.pathname.endsWith("/fx_rates") && !isReferenceRead(call))).toHaveLength(2);
     expect(db.state.has(B)).toBe(false); expect(cancel).toHaveBeenCalledTimes(1); expect(vi.getTimerCount()).toBe(0);
   });
   it("alta string exacta y repetición equivalente sin churn", async () => {
@@ -423,5 +439,90 @@ describe("B9–B15 · persistencia textual, CAS y certeza", () => {
     db.obtain.mockRejectedValueOnce(new BcvError("SOURCE_UNAVAILABLE"));
     expect(await db.run({ now: () => new Date("2026-10-22T07:00:00Z") })).toMatchObject({ status: "REJECTED", reason: "SOURCE_UNAVAILABLE" });
     expect(db.obtain).toHaveBeenCalledTimes(2); expect(db.writes()).toHaveLength(0); expect(db.state.size).toBe(0);
+  });
+});
+
+describe("Banda de plausibilidad · revisión de la #527", () => {
+  const held = { status: "PARTIAL", reason: "RATE_HELD_FOR_REVIEW" };
+
+  it("aritmética exacta en el borde: 15 % entra, un octavo decimal más no", () => {
+    expect(rateWithinBand("115.00000000", "100.00000000")).toBe(true);
+    expect(rateWithinBand("115.00000001", "100.00000000")).toBe(false);
+    expect(rateWithinBand("85.00000000", "100.00000000")).toBe(true);
+    expect(rateWithinBand("84.99999999", "100.00000000")).toBe(false);
+    expect(rateWithinBand("abc", "100.00000000")).toBe(false);
+  });
+
+  it("dentro de banda escribe, y la referencia se lee acotada a VES, antes de hoy y diez días", async () => {
+    const db = database();
+    expect(await db.run()).toMatchObject({ status: "COMPLETED", counts: { inserted: 1, held: 0 } });
+    const read = db.calls.filter(isReferenceRead);
+    expect(read).toHaveLength(1);
+    expect(read[0].url.searchParams.get("currency")).toBe("eq.VES");
+    expect(read[0].url.searchParams.getAll("valid_on").sort()).toEqual(["gte.2026-10-11", "lt.2026-10-21"]);
+  });
+
+  it.each([
+    ["sin referencia", [] as History[]],
+    ["salto de +20 %", [reference(A, "736.16358333")]],
+    ["caída de −20 %", [reference(A, "1104.24537500")]],
+    ["referencia de hace once días", [reference(A, "880.00000000", "2026-10-10")]],
+  ])("%s: retiene el día, sin escribir ni consultar la capability de escritura", async (_label, history) => {
+    const db = database([], [A], history);
+    expect(await db.run()).toMatchObject({ ...held, counts: { scope: 1, held: 1, inserted: 0, notAttempted: 0 } });
+    expect(db.writes()).toHaveLength(0);
+    expect(db.capCalls).toBe(1);
+  });
+
+  it("no pisa una corrección: la tasa de hoy fuera de banda deja intacta la fila existente", async () => {
+    const db = database([row(A, "880.00000000")], [A], [reference(A, "700.00000000")]);
+    expect(await db.run()).toMatchObject({ ...held, counts: { held: 1, corrected: 0 } });
+    expect(db.writes()).toHaveLength(0);
+    expect(db.state.get(A)?.rate).toBe("880.00000000");
+  });
+
+  it("misma prioridad que fx_rate_on: ese día bcv le gana a manual", async () => {
+    // bcv 700 manda aunque la manual 880 estaría en banda: +26 % → retenido.
+    const winsBcv = database([], [A], [reference(A, "880.00000000", "2026-10-20", "manual"),
+      reference(A, "700.00000000", "2026-10-20", "bcv")]);
+    expect(await winsBcv.run()).toMatchObject({ ...held, counts: { held: 1 } });
+    // La fecha más reciente gana sobre la fuente: manual de ayer 880 frente a bcv de anteayer 600.
+    const winsDate = database([], [A], [reference(A, "600.00000000", "2026-10-19", "bcv"),
+      reference(A, "880.00000000", "2026-10-20", "manual")]);
+    expect(await winsDate.run()).toMatchObject({ status: "COMPLETED", counts: { inserted: 1 } });
+  });
+
+  it("por tenant: uno escribe y el otro sin referencia queda retenido", async () => {
+    const db = database([], [A, B], [reference(A)]);
+    expect(await db.run()).toMatchObject({ ...held, counts: { scope: 2, inserted: 1, held: 1, notAttempted: 0 } });
+    expect(db.state.has(A)).toBe(true); expect(db.state.has(B)).toBe(false);
+  });
+
+  it("si la tasa ya está publicada igual, no hace falta referencia", async () => {
+    const db = database([row(A, "883.39630000")], [A], []);
+    expect(await db.run()).toMatchObject({ status: "COMPLETED", counts: { unchanged: 1, held: 0 } });
+  });
+
+  it("el ensayo no lee la referencia (sin escrituras ni consultas nuevas)", async () => {
+    const db = database([], [A], []);
+    expect(await db.run({ dryRun: true })).toMatchObject({ status: "CANDIDATE" });
+    expect(db.calls.filter(isReferenceRead)).toHaveLength(0);
+  });
+
+  it.each([
+    ["clave de más", { ...reference(), extra: 1 }],
+    ["fuente desconocida", reference(A, "880.00000000", "2026-10-20", "otra")],
+    ["fecha de hoy", reference(A, "880.00000000", "2026-10-21")],
+    ["tasa ilegible", reference(A, "-1")],
+  ])("referencia rara (%s) corta la corrida sin escribir", async (_label, bad) => {
+    const db = database();
+    db.setIntercept(call => isReferenceRead(call) ? tableResponse([bad], 1) : undefined);
+    expect(await db.run()).toMatchObject({ status: "REJECTED", reason: "SNAPSHOT_UNAVAILABLE" });
+    expect(db.writes()).toHaveLength(0);
+  });
+
+  it("la ruta del cron nunca apaga la banda", () => {
+    const route = readFileSync(new URL("../../../../app/api/cron/bcv-rates/route.ts", import.meta.url), "utf8");
+    expect(route).not.toMatch(/\bband\b/);
   });
 });

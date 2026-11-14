@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { parseBcvHtml } from "./bcv-parser";
+import { bcvTlsFetch } from "./bcv-tls";
 import { BCV_MAX_BYTES, BCV_SOURCE_TIMEOUT_MS, BCV_URL, BcvError, type BcvObservation } from "./bcv-types";
 
 /** Espera cooperativa hasta la señal del presupuesto, sin extenderlo por cleanup. */
@@ -72,7 +73,8 @@ export async function fetchBcvObservation(options: {
   fetch?: typeof globalThis.fetch;
   now?: () => Date;
 }): Promise<BcvObservation> {
-  const request = options.fetch ?? globalThis.fetch;
+  // Por defecto, el fetch con el intermedio fijado (bcv-tls.ts); nunca el global sin él.
+  const request = options.fetch ?? bcvTlsFetch();
   const clock = options.now ?? (() => new Date());
   const controller = new AbortController();
   const sourceStopAt = performance.now() + BCV_SOURCE_TIMEOUT_MS;

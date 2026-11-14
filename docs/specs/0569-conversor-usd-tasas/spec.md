@@ -658,4 +658,63 @@ manual. Mientras falte, la entrega sigue PARCIAL.
 Precisión sobre el ensayo: con la carga apagada y sin `dryRun`, la ruta devuelve
 DISABLED sin DB ni red. Con `?dryRun=1` y un scope configurado, **sí** lee la base
 (scope, snapshot y capability) y consulta la fuente BCV
-(`lib/studio/fx/bcv-sync.ts:168` en adelante); lo que no hace es escribir.
+(`lib/studio/fx/bcv-sync.ts:208` en adelante); lo que no hace es escribir. Tampoco lee la referencia de la banda: esa lectura ocurre solo en modo escritura.
+
+## Banda de plausibilidad y TLS de la fuente (2026-11-14)
+
+Responde al pendiente de arriba y al «Fuente pública positiva NO DISPONIBLE por TLS» de
+los cortes anteriores. Rama `claude/sdd-0569-bcv-carga-diaria`, sin traer main, sin
+migración nueva y sin tocar producción.
+
+**Banda de plausibilidad** (`lib/studio/fx/bcv-sync.ts`, `bcv-types.ts`). En modo
+escritura, después del ensayo y antes del primer tenant, se lee una sola vez la
+referencia de cada tenant: la tasa VES del día anterior más reciente dentro de una
+ventana, con la misma prioridad que `fx_rate_on` (la fecha más reciente; ese día
+bcv > manual > operacion). La lectura es exacta (`count=exact`, cuatro columnas,
+fuente y fecha válidas); cualquier fila rara corta la corrida con
+`SNAPSHOT_UNAVAILABLE` sin escribir. Por tenant, antes de escribir:
+
+- sin referencia en la ventana, o con `|nueva − referencia| × 10000 > referencia × bps`
+  (aritmética exacta sobre numeric(20,8)), el tenant queda **retenido**
+  (`counts.held`): no se inserta, no se corrige, no se pisa la manual;
+- la corrida termina `PARTIAL` / `RATE_HELD_FOR_REVIEW` (HTTP 207), después de
+  `WRITE_UNKNOWN`, `WRITE_FAILED` y `WRITE_CONFLICT` en prioridad;
+- si la tasa de hoy ya está publicada igual (`unchanged`), no se exige referencia.
+
+Valores por defecto propuestos, a decidir por Sam: **15 %** (`BCV_RATE_MAX_CHANGE_BPS = 1500`)
+y referencia de **10 días** como máximo (`BCV_RATE_REFERENCE_MAX_AGE_DAYS`). El ensayo
+(`dryRun`) no lee la referencia. La opción `band: false` existe solo para los fixtures
+de precisión y carrera del driver Docker, que no tienen historial; la ruta del cron no la
+pasa y una prueba lo vigila.
+
+**TLS** (`lib/studio/fx/bcv-tls.ts`). Medido el 2026-11-14 con `openssl s_client`: el
+servidor entrega la hoja `*.bcv.org.ve` (emitida por «Sectigo Public Server
+Authentication CA DV R36», vence 2026-11-20) junto con otro intermedio («Sectigo RSA
+Domain Validation Secure Server CA»), por eso el fetch nativo fallaba con
+`UNABLE_TO_VERIFY_LEAF_SIGNATURE`. El arreglo agrega al almacén, junto a las raíces de
+Node, el intermedio DV R36 publicado por Sectigo (AIA de la hoja,
+`crt.sectigo.com`), fijado por su huella SHA-256
+`8C:54:C3:34:…:EF:22:E0` y vigente hasta 2036. La verificación sigue completa
+(cadena hasta la raíz pública «Sectigo Public Server Authentication Root R46»,
+nombre del host y fechas); `rejectUnauthorized` queda en true, no se toca la variable
+de entorno que la apaga ni el fetch global. La fuente usa un fetch mínimo sobre
+`node:https` sin redirects automáticos ni agente compartido, con gzip/deflate/br.
+
+Evidencia: una obtención real el 2026-11-14 por `fetchBcvObservation` con el fetch
+nuevo, sin base de datos: tasa 914,02180000 VES/USD con fecha valor 2026-11-16,
+157 608 bytes, SHA-256 del cuerpo
+`5c78aaeb432a00f67d1e76ff2ca80d411de17cb017a9ba935b482439a57d67eb`, en 1,2 s.
+Si el BCV renueva la hoja con otro intermedio, la fuente vuelve a fallar cerrada
+(`SOURCE_UNAVAILABLE`): no publica nada.
+
+Pruebas focales (Vitest): `bcv-tls.test.ts` (10), `bcv-sync.test.ts` (99, con 16
+casos nuevos de la banda) y `bcv-source.test.ts` (33). Dos mutantes de la banda
+murieron (sin retención: 7 rojos; prioridad bcv/manual invertida: 1 rojo). El driver
+Docker `scripts/tests/bcv-rates-postgrest.mjs` solo cambió su suma de conteos y
+`band: false`; no se ejecutó (necesita turno).
+
+Rutas nuevas fuera de la allowlist de 32 de arriba, agregadas por pedido del Director General (2026-11-14): `lib/studio/fx/bcv-tls.ts`, `lib/studio/fx/__tests__/bcv-tls.test.ts` y `lib/studio/fx/__tests__/fixtures/bcv-leaf-20261120.crt` (certificado público).
+
+Con esto, lo técnico de la entrega queda completo. Falta el OK de Sam (los valores de
+la banda, confiar en el intermedio fijado y la 0535), y después la aplicación de la
+0535 y el encendido con `BCV_RATES_ENABLED=true`, cada uno con su autorización.

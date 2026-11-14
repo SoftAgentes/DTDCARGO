@@ -440,7 +440,8 @@ async function runFunctional({syncBcvRates,fetchBcvObservation,client,service,sc
     fixtureSources.set(path,{label,html});
     const from=receipt.gatewayHttp.length,sourceFrom=receipt.sourceHttp.length;
     let factories=0;
-    const summary=await syncBcvRates({enabled,dryRun,scope:scope.join(','),signal,
+    // band:false: estos casos miden precisión extrema y carreras SQL sin historial; la banda se prueba en bcv-sync.test.ts.
+    const summary=await syncBcvRates({enabled,dryRun,scope:scope.join(','),signal,band:false,
       now:()=>new Date(day+'T07:00:00.123Z'),
       createClient:shared=>{factories++;return client('service_role',undefined,{'x-bcv-fixture-flow':label},shared);},
       obtain:async options=>{
@@ -453,7 +454,7 @@ async function runFunctional({syncBcvRates,fetchBcvObservation,client,service,sc
         await afterSource?.(); return observation;
       }});
     const counts=summary.counts;
-    assert.equal(counts.scope,['inserted','corrected','unchanged','reconciled','conflicts','failed','unknown','notAttempted']
+    assert.equal(counts.scope,['inserted','corrected','unchanged','reconciled','conflicts','failed','unknown','held','notAttempted']
       .reduce((sum,key)=>sum+counts[key],0));
     assert(counts.deferred<=counts.notAttempted);
     assert(!JSON.stringify(summary).includes(A)&&!JSON.stringify(summary).includes(B));
@@ -778,7 +779,7 @@ async function runSupplemental({withdrawalOnly=false,syncBcvRates,fetchBcvObserv
     fixtureSources.set(path,{label,html});
     const from=receipt.gatewayHttp.length,sourceFrom=receipt.sourceHttp.length;
     const clockReads=[];
-    const summary=await syncBcvRates({enabled:true,dryRun:false,scope:scope.join(','),
+    const summary=await syncBcvRates({enabled:true,dryRun:false,scope:scope.join(','),band:false,
       now:()=>{const value=clock();clockReads.push(value.toISOString());return value;},
       createClient:signal=>client('service_role',undefined,{'x-bcv-fixture-flow':label},signal),
       obtain:options=>fetchBcvObservation({...options,fetch:(input,init)=>{
@@ -786,7 +787,7 @@ async function runSupplemental({withdrawalOnly=false,syncBcvRates,fetchBcvObserv
       }})});
     const item={label,day,summary,clockReads,http:receipt.gatewayHttp.slice(from),sourceHttp:receipt.sourceHttp.slice(sourceFrom)};
     receipt.supplemental.push(item);
-    assert.equal(summary.counts.scope,['inserted','corrected','unchanged','reconciled','conflicts','failed','unknown','notAttempted']
+    assert.equal(summary.counts.scope,['inserted','corrected','unchanged','reconciled','conflicts','failed','unknown','held','notAttempted']
       .reduce((sum,key)=>sum+summary.counts[key],0));
     assert(summary.counts.deferred<=summary.counts.notAttempted);
     return item;
