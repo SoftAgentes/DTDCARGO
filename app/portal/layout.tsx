@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { sora, nunitoSans } from "@/lib/fonts";
+// SDD-0603 · tramo 3: claridad de controles, solo bajo `.portal-sys` (BD-037).
+import "./claridad.css";
 
 /**
  * Layout raíz de la 5ª superficie: Portal del Cliente (SDD-0042).
