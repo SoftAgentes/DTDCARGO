@@ -68,13 +68,27 @@ Pedido del Subdirector Portal para preparar la carga de los contenedores 61, 62 
 - `--project dtd-cargo` (o `--proyecto`, o el `PROD_COMPOSE_PROJECT`) acepta solo lotes generados con `--entorno produccion`. Un `*-staging` acepta solo lotes de prueba.
 - En producción, **cada paso** exige `AUTORIZACION.txt`, en la carpeta del lote o con `--autorizacion <archivo>`. Tiene que traer el OK literal de Sam y citar **el id completo del lote** (`carga-consolidado:<N>:<hash>`). Un número suelto no basta: lo cumplen una fecha o «no autorizo el 61» (revisión independiente, MEDIA). Aplica también a la previa, porque leer producción también requiere permiso. El archivo se copia a la evidencia. Un `--autorizacion` que apunte a otro archivo de la carpeta del lote, como el manifiesto o el resumen, se rechaza: citan el id, llevan nombres y se copiarían a la evidencia.
 - Candado: los pasos que escriben toman `LOTES_CANDADO` (por defecto `/run/lock/dtd-lotes.lock.d`), creado con `mkdir` igual que en `migraciones/aplicar.sh`. El servidor no garantiza `flock` en todas las rutas y Git Bash no lo trae.
-- Después de `verificar` PASÓ se borra el paquete del servidor. El `deshacer.sql` de producción no trae la guarda de base de prueba: el guion lo niega, pero un `psql` directo no.
+- Después de `verificar` PASÓ se borra el paquete del servidor. El `deshacer.sql` de producción no trae la guarda de base de prueba: el guion lo niega, pero un `psql` directo no. Desde el seguimiento de abajo, ese archivo ya no se emite en producción.
 - Previa, simulacro, aplicar y verificar van de a uno, cada uno con su evidencia de conteos y huellas. `aplicar` exige un simulacro PASÓ del mismo lote en la misma base.
 - **Idempotente.** Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, se niega (código 3) sin tocar la base. Sin esa evidencia, el preflight de `aplicar.sql` aborta en la base: si el contenedor, los envíos o las facturas ya existen, sale con 6 y no deja nada escrito.
 - En producción, `deshacer` y `purgar` están deshabilitados (código 3), aunque vengan confirmados: el borrado lo corre Sam.
 - **Un lote de producción no crea clientes ni aliados.** El generador no acepta `--crear-clientes-faltantes` y `aplicar.sql` aborta si una marca no resuelve. Además, `previa.sql` termina con un corte (`do $corte$`): si alguna marca no resuelve a un cliente vivo, aborta con el conteo y las etiquetas, sin texto del Excel. Así la previa se niega antes del simulacro. Lo prueba `scripts/__tests__/consolidados-previa-corte.test.ts` en PGlite, con el mismo bloque que genera `generarSql` y un esquema mínimo. Son tres casos: sin cliente corta, cliente borrado corta y cliente vivo pasa. El `resolve_markbox` real, con historial y fusiones, lo cubre `schema-rebuild`, no esta prueba.
 - Consulta mínima del 2026-11-13, corrida por el Subdirector con el OK de Sam: `DTD-9038` (63) resuelve; `MG-0019`/`MG-019` (61) y `MG-0020`/`MG-020` (62) no resuelven, y el aliado `MG` no existe en producción. Con estos lotes, la previa del 61 y la del 62 se cortarían hasta que Sam diga a qué cliente real corresponden. Sam aclaró que MG es un cliente, no un aliado, y que `MG-019`/`MG-020` son sus proveedores. El 61 y el 62 quedan estacionados hasta que el cliente MG exista en producción. El 63 es el único candidato.
 - No hay prueba en una base real; la cobertura es `infra/ops/tests/prueba-aplicar-lote.sh` con un doble de docker.
+
+### Seguimiento de la #534 (2026-11-13): observaciones bajas de la re-revisión
+
+PR aparte desde `main` en `7b1e05050`. Cambios:
+
+- **Enlaces simbólicos.** La autorización no puede ser un enlace simbólico, ni en `--autorizacion` ni en el `AUTORIZACION.txt` del lote: tiene que ser un archivo regular. Hay dos razones. La guarda de carpeta resuelve el directorio de la ruta (`pwd -P`), pero no el último componente: un enlace que esté fuera del lote y apunte a su `manifiesto.json`, que cita el id y lleva nombres, la pasaría. Además, el destino de un enlace puede cambiar entre el chequeo y el uso. Por eso la autorización se copia una sola vez a un temporal (`cp -P`) y el grep y la evidencia usan esa copia. Un texto con `"nombreExcel"` o `"lote":` se rechaza. Un paquete de producción que traiga `deshacer.sql` o `purgar.sql` también se rechaza (3). Revisión de la #538: H3 y H6.
+- **Señales.** Los traps se ponen al principio del guion, antes de tomar el candado (H4). Una señal no hace rollback (H2): con TERM, psql puede haber terminado el COMMIT y el guion salir igual con 143; con HUP o INT, el psql del contenedor puede seguir vivo. Por eso 129, 130 y 143 están en los códigos del guion y el runbook manda leer la evidencia antes de repetir el paso, como con el 7.
+- **Candado con dueño.** Ahora el candado lleva `pid` adentro.
+  - Al salir, también por HUP, INT o TERM (`trap 'exit 129' HUP; … 130 INT; … 143 TERM`, como `migraciones/aplicar.sh`), solo se suelta si sigue siendo del proceso.
+  - Un candado ajeno, o rehecho a mano durante el paso, no se toca.
+  - El rechazo por candado tomado dice el pid del dueño.
+- **Paquete de producción.** Con `--entorno produccion`, el generador ya no emite `deshacer.sql` ni `purgar.sql`, y se niega a escribir en una carpeta que ya los tenga. Revertir o borrar en producción lo corre Sam. El runbook §2b ya no manda borrarlos a mano.
+  - Esto reemplaza la nota de arriba sobre el `deshacer.sql` de producción.
+  - El paquete se sigue borrando del servidor después de `verificar`, porque lleva nombres.
 
 ## Diseño
 

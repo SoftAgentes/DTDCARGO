@@ -52,10 +52,21 @@ describe("resolveShipmentEta", () => {
   it("prefiere pod_eta de SeaRates sobre sailings.eta", async () => {
     navieraMock.getShipmentTrackingSnapshot.mockResolvedValue({
       podEta: "2026-04-01T00:00:00.000Z",
+      fetchStatus: "ok",
     });
     navieraMock.getShipmentNaviera.mockResolvedValue({ eta: "2026-05-01" });
     const d = await resolveShipmentEta(admin, "s-1");
     expect(d?.toISOString()).toBe("2026-04-01T00:00:00.000Z");
+  });
+
+  it("SDD-0627 · con la consulta de SeaRates en error, ignora su pod_eta viejo y cae a sailings.eta", async () => {
+    navieraMock.getShipmentTrackingSnapshot.mockResolvedValue({
+      podEta: "2026-04-01T00:00:00.000Z",
+      fetchStatus: "error",
+    });
+    navieraMock.getShipmentNaviera.mockResolvedValue({ eta: "2026-05-01" });
+    const d = await resolveShipmentEta(admin, "s-1");
+    expect(d?.toISOString()).toBe("2026-05-01T12:00:00.000Z");
   });
 
   it("cae a sailings.eta cuando no hay pod_eta", async () => {
@@ -89,5 +100,63 @@ describe("resolveShipmentEtd", () => {
   it("sin etd → null", async () => {
     navieraMock.getShipmentNaviera.mockResolvedValue({ etd: null });
     expect(await resolveShipmentEtd(admin, "s-1")).toBeNull();
+  });
+});
+
+// ── SDD-0627 · cuarta fuente: ETA estimada desde el zarpe ──────────────────
+function adminPorTabla(dataByTable: Record<string, unknown>) {
+  function from(table: string) {
+    const result = { data: dataByTable[table] ?? null, error: null };
+    const builder: unknown = new Proxy(
+      {},
+      {
+        get(_t, prop) {
+          if (prop === "then") {
+            return (res: (v: unknown) => unknown) => Promise.resolve(result).then(res);
+          }
+          return () => builder;
+        },
+      },
+    );
+    return builder;
+  }
+  return { from } as never;
+}
+
+describe("SDD-0627 · resolveShipmentEta con la ETA estimada desde el zarpe", () => {
+  const datos = {
+    shipments: { status: "shipped", shipment_service: "consolidado_lcl", client_markbox: null },
+    shipment_events: { occurred_at: "2026-11-01T00:00:00Z" },
+  };
+
+  it("apagada por defecto: sin fuentes reales devuelve null aunque haya zarpe", async () => {
+    navieraMock.getShipmentTrackingSnapshot.mockResolvedValue(null);
+    navieraMock.getShipmentNaviera.mockResolvedValue({ transitDays: 30, pod: "PBL" });
+    expect(await resolveShipmentEta(adminPorTabla(datos), "s1")).toBeNull();
+  });
+
+  it("encendida: zarpe + días de tránsito del zarpe", async () => {
+    navieraMock.getShipmentTrackingSnapshot.mockResolvedValue(null);
+    navieraMock.getShipmentNaviera.mockResolvedValue({ transitDays: 30, pod: "PBL" });
+    const d = await resolveShipmentEta(adminPorTabla(datos), "s1", { estimadaDesdeZarpe: true });
+    expect(d?.toISOString().slice(0, 10)).toBe("2026-12-01");
+  });
+
+  it("encendida: una ETA de la naviera manda sobre la estimada", async () => {
+    navieraMock.getShipmentTrackingSnapshot.mockResolvedValue(null);
+    navieraMock.getShipmentNaviera.mockResolvedValue({ eta: "2026-12-20", transitDays: 30 });
+    const d = await resolveShipmentEta(adminPorTabla(datos), "s1", { estimadaDesdeZarpe: true });
+    expect(d?.toISOString().slice(0, 10)).toBe("2026-12-20");
+  });
+
+  it("encendida: antes del zarpe no estima", async () => {
+    navieraMock.getShipmentTrackingSnapshot.mockResolvedValue(null);
+    navieraMock.getShipmentNaviera.mockResolvedValue({ transitDays: 30 });
+    const d = await resolveShipmentEta(
+      adminPorTabla({ ...datos, shipments: { status: "consolidating", shipment_service: "consolidado_lcl" } }),
+      "s1",
+      { estimadaDesdeZarpe: true },
+    );
+    expect(d).toBeNull();
   });
 });

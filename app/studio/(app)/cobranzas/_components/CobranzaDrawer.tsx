@@ -14,6 +14,7 @@ import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PendingReportsNotice } from "./PendingReportsNotice";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
@@ -229,6 +230,8 @@ export function CobranzaDrawer({
             )}
           </div>
         </div>
+
+        <PendingReportsNotice invoiceId={inv.id} invoiceCode={inv.invoice_code} currency={inv.currency} />
 
         {/* Cobro */}
         {!showCobro ? (

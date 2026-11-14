@@ -1203,7 +1203,8 @@ export async function combinedReport(
   const range = periodRange(period, today);
   const rows = await costingRows(supabase, { from: range.from, to: range.to });
 
-  const withCosts = rows.filter((r) => r.costs != null).length;
+  // SDD-0631: un embarque con solo CxP ligadas también tiene costo cargado.
+  const withCosts = rows.filter((r) => r.costs != null || r.cxp != null).length;
 
   return {
     totals: costingTotals(rows),
