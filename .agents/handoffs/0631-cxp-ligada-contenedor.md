@@ -64,11 +64,23 @@ prueba de punta a punta, docs).
 
 ## PR / BRANCH
 
-Rama `claude/sdd-0631-cxp-contenedor-5ae730` · PR #530 contra main. El tren AD entró a main (e5169e86e) y se trajo con un merge.
+Rama `claude/sdd-0631-cxp-contenedor-5ae730` · PR #530 contra main, aprobada por el DG en
+71421121c e integrada en el tren AF (#541, en main 3dbba8a7e).
+
+Seguimiento: rama `claude/sdd-0631-seguimiento` desde `origin/main` 3dbba8a7e, PR aparte contra main.
+
+## SEGUIMIENTO PEDIDO POR EL DG AL APROBAR LA #530
+
+| Punto | Estado |
+|---|---|
+| `migrations-baseline.json`, espera de la 0536: los locks no decían que la FK de `ADD COLUMN consolidation_id … references` toma SHARE ROW EXCLUSIVE sobre `consolidations` | HECHO: el texto lo dice (bloquea escrituras en contenedores, no lecturas, hasta el COMMIT) |
+| `treasury-actions.ts`, UPDATE de `linkBillCost` sin `deleted_at is null`: una CxP borrada entre la lectura y la escritura se podía ligar | HECHO: `.is("deleted_at", null)` en el UPDATE; `cost-link.test.ts` lo exige (18/18) |
+| Declaración de símbolos tras correrse las líneas | HECHO: regenerada; `check-pending-migration-symbols` 0 ROJO · 3 AMARILLO (0631 y las dos de la 0630) |
+| `migrations-lock verificar` | PASÓ: 517 selladas · 4 esperas sin sellar (0422, 0423, 0536, 0537) |
 
 ## PENDIENTES DE ESTA TAREA
 
-- CI verde de la PR (el portón ahora es CI + revisión independiente; el verify local ya no es requisito).
+- CI verde de la PR de seguimiento.
 - Aplicar la 0536 en producción: con OK nominal de Sam y el runbook de migraciones. Hasta entonces
   Tesorería no muestra el selector y Costing avisa que el costo es solo el manual.
 - Revisión visual de los dos bloques nuevos (`/ui-check`) con una base local que tenga la 0536.
