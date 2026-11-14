@@ -14,10 +14,15 @@ import {
   listVeLocalityCatalog,
 } from "@/lib/studio/dispatch-routes-queries";
 import { RoutesClient } from "./_components/RoutesClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Rutas y ciudades · DTD Studio" };
 
 export default async function AdminRoutesPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin-rutas");
+
   const supabase = await createClient();
   const [routes, cities, citiesCount, veCatalog] = await Promise.all([
     listRoutes(supabase, { activeOnly: false }),

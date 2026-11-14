@@ -19,6 +19,7 @@ import {
   BUG_STATE_LABELS,
   type BugState,
 } from "@/lib/studio/bug-types";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Mis reportes · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -26,6 +27,10 @@ export const dynamic = "force-dynamic";
 const KPI_STATES: BugState[] = ["nuevo", "triaje", "espera", "progreso", "resuelto"];
 
 export default async function MisBugsPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("mis-bugs");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");

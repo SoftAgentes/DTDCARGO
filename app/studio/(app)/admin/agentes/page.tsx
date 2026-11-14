@@ -35,6 +35,7 @@ import { AgentKpisRow } from "./_components/AgentKpisRow";
 import { AgentRowActions } from "./_components/AgentRowActions";
 import { RunsTable } from "./_components/RunsTable";
 import { SkillCard } from "./_components/SkillCard";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Agentes y Skills" };
 
@@ -55,6 +56,10 @@ export default async function AgentesPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin");
+
   const sp = await searchParams;
   const active: Tab = isTab(sp.tab) ? sp.tab : "catalog";
 
