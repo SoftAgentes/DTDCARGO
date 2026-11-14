@@ -8,22 +8,34 @@
 ## Hecho
 
 - 12 `<Aviso>` en 11 archivos: errores de acción (`error`, compacto en cajones) y el aviso del cierre (`atencion`, con la superclave fuera de la región viva).
-- Conciliación: «Abrir» real por extracto. La fila sale del Tab. El extracto abierto va en tinta: contorno `--ctl-border`, botón oscuro y `aria-current`, sin vino.
+- Conciliación: control real por extracto, «Abrir» o «Cerrar» según el estado, con `aria-expanded` y nombre «Abrir/Cerrar extracto <período> · <cuenta>». Conserva el toggle de la fila. La fila sale del Tab. El abierto va en tinta: contorno `--ctl-border` y botón oscuro, sin vino.
 - Nuevos: `conciliacion-abrir.test.tsx` y `claridad-t5b-contract.test.ts`, con cuenta exacta por archivo y mutantes.
 
 ## Decisiones
 
 - **Allowlist:** el Subdirector Rebrand la confirmó con los 14 archivos el 2026-11-14. El Subdirector de Contabilidad midió sus cinco worktrees y ninguno tenía trabajo en `contabilidad/_components/`.
-- **Preguntas sin respuesta al publicar:**
-  - Extracto abierto: «Abrir» lleva a su extracto, y la fila, con el ratón, sigue cerrándolo.
-  - Candidatos de `LineMatchDrawer`: quedan fuera, porque ligan al pulsarlos y no abren nada.
-  - En las dos se tomó la opción conservadora. El Subdirector puede pedir otra.
+- **Extracto abierto (Subdirector Rebrand, 2026-11-14):** «se mantiene el toggle, porque no cambiamos comportamiento». Se aplica con texto «Abrir»/«Cerrar», `aria-expanded` y la fila fuera del Tab. La primera versión, en la que «Abrir» siempre abría, se reemplazó en `da9e63d56`.
+- **Relleno de tinta de la selección:** se aplicó en el control (`studio-btn-dark`) y en el contorno de la fila, como en la #552, y no en toda la fila. Con la fila en `--ink`, el texto y los `Badge` quedarían sin contraste medido. Queda señalado para la revisión independiente en `tramo-5b.md`.
+- **LineMatchDrawer (Subdirector Rebrand, 2026-11-14):** fuera, por prudencia, porque liga al pulsar. La propuesta queda anotada en `tramo-5b.md`.
 - **Finales de línea:** `AccountDrawer.tsx` y `LineMatchDrawer.tsx` están en el índice con CRLF y un CR suelto (`-text`). Se editaron sin cambiar sus finales, para que el diff quede en las líneas tocadas.
 
 ## Validación
 
-- Ver el cuerpo de la PR y la sección de Validación al cierre: vitest focal, mutantes, `dark-theme-contrast`, `tsc`, ESLint, `docs:check` y `sdd:check`.
-- `/ui-check`: sin hallazgos altos. Uno medio, el comportamiento distinto con ratón y teclado del extracto abierto, y dos bajos.
+- `pnpm install --frozen-lockfile`, con turno del Subdirector Rebrand: PASÓ.
+- Vitest focal: PASÓ, 18 archivos y 317 pruebas.
+  - Cubre `contabilidad/` completo y los contratos `claridad-t5b`, `claridad-controles`, `avisos` y `dark-theme-contrast`.
+  - También `estado-gerencial-mezclado` y `fechas-caracas-formularios`.
+  - Se corrió antes del toggle. Sobre la cabeza final se corrieron el contrato y `conciliacion-abrir`: 31 pruebas en verde.
+- Mutantes sobre los archivos reales: murieron 6 de 6. Cada uno se restauró desde HEAD y el árbol quedó limpio.
+  - `AccountDrawer`, `<Aviso>` a `<p role="alert">`: 6 fallos.
+  - El aviso del cierre a `<p>`: 4 fallos.
+  - La fila del extracto sin `tabIndex={-1}`: 4.
+  - El control sin `aria-expanded`: 4.
+  - «Cerrar» fijo en «Abrir»: 2.
+  - El contorno del abierto en vino: 4.
+- Los mutantes dentro del contrato están en `tramo-5b.md`.
+- `tsc --noEmit`: PASÓ. ESLint de lo tocado: PASÓ.
+- `/ui-check`: sin hallazgos altos. El medio (ratón y teclado distintos en el extracto abierto) quedó resuelto con el toggle; quedan dos bajos (margen de 12 px fijo como el original y los campos del cierre sin caja, a ver en pantalla).
 - `pnpm verify` local: NO EJECUTADO. Lo cubre el CI de GitHub (regla del DG, 2026-11-13).
 - Vista en pantalla con datos, en claro y en oscuro: NO EJECUTADA.
 

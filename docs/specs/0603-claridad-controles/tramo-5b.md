@@ -35,11 +35,19 @@ Sin migraciones, rutas, acciones de servidor, permisos, dependencias, CSS ni col
 
 ### Extractos (Conciliación)
 
-- Cada extracto trae al final un control real «Abrir», con `studio-btn studio-btn-ghost studio-btn-sm`, de 36 px o 32 en compacto. Es un enlace, porque abrir un extracto es navegar (`?extracto=<id>`). Su nombre accesible es «Abrir extracto <período> · <cuenta>».
-- La fila sigue abriendo con el ratón, con el mismo enlace de antes, y sale del orden de Tab (`tabIndex={-1}`). Cada fila conserva una sola parada.
-- **Extracto abierto:** antes llevaba fondo `--wine-tint` y contorno `--wine`. Ahora lleva fondo de superficie, contorno `--ctl-border` y «Abrir» en `studio-btn-dark` con `aria-current="true"`. Es el mismo patrón de la tarjeta de Tracking en la #552.
-- **Decisión pendiente de confirmar:** el enlace del extracto abierto lo cerraba. La fila conserva ese comportamiento con el ratón, pero «Abrir» siempre lleva a su extracto: un botón que dice «Abrir» no cierra. Con teclado, el extracto se cierra cambiando de pestaña. Se consultó al Subdirector Rebrand y, sin respuesta, se tomó esta opción, que es la más conservadora.
-- La columna de «Abrir» mide 92 px, como en Embarques (tramo 5a).
+- Cada extracto trae al final un control real con `studio-btn studio-btn-ghost studio-btn-sm`, de 36 px o 32 en compacto. Es un enlace, como la fila de antes: abrir o cerrar el detalle cambia `?extracto=<id>`.
+- **Toggle conservado. Decisión del Subdirector Rebrand, 2026-11-14:** «se mantiene el toggle, porque no cambiamos comportamiento».
+  - El control hace lo mismo que hacía la fila: abre el extracto y, si ya está abierto, lo cierra.
+  - El texto visible es «Abrir» o «Cerrar», según el estado. «Cerrar» es texto nuevo, aprobado en esa decisión.
+  - El nombre accesible es «Abrir extracto <período> · <cuenta>» o «Cerrar extracto <período> · <cuenta>».
+  - El estado se expone con `aria-expanded`, porque el detalle aparece debajo; no se usa `aria-current`.
+  - El ícono es una flecha a la derecha para abrir y hacia arriba para cerrar.
+- La fila sigue abriendo y cerrando con el ratón, con el mismo enlace, y sale del orden de Tab (`tabIndex={-1}`). Cada fila conserva una sola parada, que ahora también sirve para cerrar con el teclado.
+- **Extracto abierto:** antes llevaba fondo `--wine-tint` y contorno `--wine`.
+  - Ahora lleva fondo de superficie, contorno `--ctl-border` y el control en `studio-btn-dark`, que es el relleno de tinta.
+  - Es el mismo patrón de la tarjeta de Tracking en la #552.
+  - **Para la revisión:** el Subdirector pidió la fila seleccionada con relleno de tinta. Se aplicó en el control y no en toda la fila. Si toda la fila fuera `--ink`, el texto de la fila y los `Badge` de estado, que están pensados para la superficie, quedarían sin contraste medido sobre la tinta. Además, el secundario `ghost` y su contorno `--ctl-border` desaparecerían sobre ese fondo. Si se quiere la fila entera en tinta, hace falta otro tramo que mida esos pares en claro y en oscuro.
+- La columna del control mide 92 px, como en Embarques (tramo 5a). Se midió con Archivo 700 real en el navegador: «Abrir» mide 31,8 px a 13,5 px y «Cerrar» 40,9 px. Con 12 px de relleno por lado, 8 de separación, ícono de 14 y borde, «Cerrar» ocupa unos 89 px y cabe.
 
 ### Roles vivos
 
@@ -54,10 +62,31 @@ Los `Aviso` de este tramo no llevan `titulo`, así que ningún título pierde la
 
 ## Aceptación
 
-- Cada extracto tiene «Abrir» con clases de secundario de tabla, enfocable, con nombre «Abrir extracto <período> · <cuenta>» y que lleva a ese extracto. La fila no es parada de Tab. El abierto va en tinta, con botón oscuro, `aria-current` y contorno `--ctl-border`, sin vino. Lo vigila `conciliacion-abrir.test.tsx`.
+- Cada extracto tiene su control con clases de secundario de tabla, enfocable.
+  - Cerrado: «Abrir», con nombre «Abrir extracto <período> · <cuenta>», `aria-expanded="false"` y enlace al extracto.
+  - Abierto: «Cerrar», con nombre «Cerrar extracto <período> · <cuenta>», `aria-expanded="true"` y enlace que lo cierra.
+  - La fila no es parada de Tab y conserva el mismo enlace.
+  - El abierto va en tinta: botón oscuro y contorno `--ctl-border`, sin vino.
+  - Lo vigila `conciliacion-abrir.test.tsx`.
 - Cuenta exacta por archivo de `<Aviso>`, roles crudos, `aria-live`, cajas de estado, contornos de estado, «Abrir», `tabIndex={-1}` y selección en vino. Los comentarios no cuentan. En total quedan 12 `<Aviso>`. Lo vigila `claridad-t5b-contract.test.ts`.
 - La superclave no queda dentro del `<Aviso>` del cierre.
-- Mutantes que mueren: `<Aviso>` vuelve a `<p>`; vuelve la caja roja; se quita el `Aviso` y se deja citado en un comentario; se cambia el import canónico; la fila del extracto vuelve al Tab; el abierto vuelve al vino; el aviso del cierre vuelve a caja ámbar; el diálogo pierde su `<Aviso>`. Un comentario que cite los patrones no suma.
+- Mutantes que mueren dentro del contrato:
+  - `<Aviso>` vuelve a `<p>`;
+  - vuelve la caja roja;
+  - se quita el `Aviso` y se deja citado en un comentario;
+  - se cambia el import canónico;
+  - la fila del extracto vuelve al Tab;
+  - el abierto vuelve al vino;
+  - el aviso del cierre vuelve a caja ámbar;
+  - el diálogo pierde su `<Aviso>`.
+  - Un comentario que cite los patrones no suma.
+- Mutantes sobre los archivos reales, contra el contrato y la prueba del extracto (lista y resultado en el handoff):
+  - `<Aviso>` de AccountDrawer a `<p role="alert">`;
+  - el aviso del cierre a `<p>`;
+  - la fila sin `tabIndex={-1}`;
+  - el control sin `aria-expanded`;
+  - «Cerrar» fijo en «Abrir»;
+  - el contorno del abierto en vino.
 
 ## Gate VIS-01
 
@@ -68,10 +97,20 @@ Los `Aviso` de este tramo no llevan `titulo`, así que ningún título pierde la
 | Semántica de color | Cumple: error y atención con `Aviso`, tono por ícono y fondo suave, texto en tinta (BRAND §Estados). |
 | Contraste | Cumple por herencia: `.studio-aviso*` y `--ctl-border` ya están medidos en claro y en oscuro (`avisos-contract`, `claridad-controles-contract`, `dark-theme-contrast`). |
 | Tokens | Cumple: ninguno nuevo, ningún color nuevo, solo clases existentes. |
-| Estados sin color | Cumple: el extracto abierto se marca con `aria-current` y botón oscuro, no solo con color. |
+| Estados sin color | Cumple: el extracto abierto se marca con `aria-expanded`, el texto «Cerrar» y el botón oscuro, no solo con color. |
 | Light/dark | Cumple en contrato. Falta verlo en pantalla, en claro y en oscuro (ver Límites). |
 | Móvil | La lista de extractos suma una columna de 92 px dentro de la misma tarjeta. |
 | Movimiento reducido | Cumple: no se agrega movimiento. |
+
+## Pendientes fuera de este tramo
+
+- **Candidatos de `LineMatchDrawer`:** quedan fuera por prudencia, porque cada fila liga al pulsarla. El Subdirector Rebrand lo confirmó el 2026-11-14.
+  - Propuesta para otro tramo: un botón explícito «Ligar», con nombre «Ligar con <código>», como única parada de teclado.
+  - La fila conservaría el clic con el ratón y saldría del Tab (`tabIndex={-1}`).
+  - El botón cortaría la propagación para no ligar dos veces, con una prueba que lo fije.
+  - La acción del servidor no se toca.
+  - Hoy cada candidato es un `<button>` de fila entera con contorno `--border`.
+- **Cuentas (`PlanCuentasTab.tsx`) y mayor (`LibroMayorTab.tsx`):** no estaban en la allowlist. Sus filas se revisan en otro tramo.
 
 ## Límites
 
