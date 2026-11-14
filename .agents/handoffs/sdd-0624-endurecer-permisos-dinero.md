@@ -73,12 +73,34 @@ devuelven el mismo cliente.
 
 ## Coordinación con SDD-0622 (PR #509)
 
-- La SDD-0622 usa las migraciones 0529 a 0531. La 0528 es de esta tarea.
+- La SDD-0622 usa las migraciones 0538, 0539 y 0540 (renumeradas desde 0529 a
+  0531; medido en la PR #509, cabeza `bed937852`, 2026-11-14). La 0528 es de
+  esta tarea.
 - Para sumar accesos por persona en el dinero, la SDD-0622 redefine
   `studio_can_read_money()` sin tocar las policies.
 - Conflictos esperados al integrar, en `usuarios/page.tsx` (la línea del gate),
   `rbac-actions-guard.test.ts` (las cuentas de DEUDA y EXCEPCIONES) y
   `rbac-view-guard.test.ts`.
+
+## Vuelta 2026-11-14 (W-515): main al día, sin pruebas pesadas
+
+- Merge de `origin/main` (`4a59f10bf`) sobre `013c39c5a`, sin conflictos. Ningún
+  archivo de la rama lo tocó main; el contrato de la 0528 y el
+  `requireModuleView("users")` de `usuarios/page.tsx` quedan iguales.
+- `migrations-baseline.json` y `pending-migration-symbol-declarations.json`
+  iguales a `013c39c5a`; frente a main solo suman la entrada de la 0528.
+  `migrations.lock.json` igual a main (solo selladas; la 0528 no va ahí).
+- Las migraciones nuevas de main (0532 a 0537) no tocan las policies que
+  reemplaza la 0528; la 0534 solo mira `invoices_team_select`.
+- `rbac-actions-guard`: la #515 no agrega ni quita acciones exportadas ni
+  archivos de actions, así que el 469 y los 82 archivos siguen vigentes.
+- Livianas, solo Node: `docs:check` (615 specs, índice sincronizado),
+  `sdd:check`, `check-pending-migration-symbols` (0 rojo, 1 amarillo declarado)
+  y `migrations-lock` (522 selladas, 1 espera: la 0528). PASÓ.
+- NO EJECUTADO en esta vuelta, va con turno: `pnpm install`, vitest de los
+  contratos (`page-gates-sensibles`, `rbac-*`, 0528 en PGlite) y `pnpm verify`.
+  `page-gates-sensibles` debe confirmar que las páginas nuevas de main no
+  necesitan gate.
 
 ## FUERA DE ALCANCE DETECTADO
 
