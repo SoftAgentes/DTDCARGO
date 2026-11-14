@@ -668,5 +668,50 @@ else
 fi
 rm -f "${T}/ensayo-b2.sh" "${T}/b2.txt" "${T}/tipos-studio.sql" "${T}/tipos-chatwoot.sql"
 
+# LA GUARDA DEL DESARME DEL ENSAYO (decisión A del DG, 2026-11-14): desarme_es_la_copia de ensayo-portal.sh, sacada del
+# archivo y corrida con un docker falso (sin Docker). Los dos contenedores tienen que ser los de la copia: con su
+# nombre fijo, del proyecto portal-ensayo, solo en la red aislada, y nunca uno de producción. Un caso por condición, y
+# un mutante por condición: sin ella, su caso deja pasar el contenedor equivocado.
+guarda_desarme() { # [sed] → la función, mutada si se pasa un sed
+  sed -n '/^    desarme_es_la_copia() {/,/^    }/p' "${PH}/ensayo-portal.sh" | sed "${1:-}"
+}
+probar_guarda_desarme() { # definición studio chatwoot → código de la guarda, con las etiquetas y redes de FALSO_*
+  bash -c '
+    PROYECTO=portal-ensayo; RED=portal-ensayo_aislada; STUDIO_COPIA="${COPIA_S:-portal-ensayo-studio-1}"; RAILS_COPIA=portal-ensayo-rails-1
+    PROD_STUDIO=dtd-cargo-db-1; PROD_PG=chatwoot-postgres-1; PROD_RAILS=chatwoot-rails-1
+    docker() { case "$3" in *Labels*) echo "${FALSO_PROYECTO:-portal-ensayo}" ;; *Networks*) echo "${FALSO_REDES:-portal-ensayo_aislada }" ;; esac; }
+    eval "$1"; desarme_es_la_copia "$2" "$3"' _ "$1" "$2" "$3"
+}
+GD="$(guarda_desarme)"
+[ -n "${GD}" ] && probar_guarda_desarme "${GD}" portal-ensayo-studio-1 portal-ensayo-rails-1 \
+  && ok "la guarda del desarme deja pasar los contenedores de la copia (portal-ensayo, red aislada)" \
+  || ko "la guarda del desarme no deja pasar la copia, o no se encontró en ensayo-portal.sh"
+# caso → sed del mutante que quita su condición
+declare -A GD_MUT=(
+  [produccion]='/case "$c" in dtd-cargo-db-1/d'
+  [proyecto]='/com.docker.compose.project/d'
+  [red]='/NetworkSettings.Networks/d'
+  [nombre]='s/^      \[ "\$1" = "\$STUDIO_COPIA" \] && \[ "\$2" = "\$RAILS_COPIA" \]$/      :/'
+)
+gd_caso() { # caso definición → 0 si la guarda se niega
+  case "$1" in
+    produccion) ! COPIA_S=dtd-cargo-db-1 probar_guarda_desarme "$2" dtd-cargo-db-1 portal-ensayo-rails-1 ;;
+    proyecto) ! FALSO_PROYECTO=chatwoot probar_guarda_desarme "$2" portal-ensayo-studio-1 portal-ensayo-rails-1 ;;
+    red) ! FALSO_REDES="chatwoot_default portal-ensayo_aislada " probar_guarda_desarme "$2" portal-ensayo-studio-1 portal-ensayo-rails-1 ;;
+    nombre) ! probar_guarda_desarme "$2" portal-ensayo-studio-1 portal-ensayo-otro-1 ;;
+  esac
+}
+for caso in produccion proyecto red nombre; do
+  gd_caso "${caso}" "${GD}" && ok "la guarda del desarme se niega (${caso})" || ko "la guarda del desarme deja pasar (${caso})"
+  m="$(guarda_desarme "${GD_MUT[${caso}]}")"
+  if [ "${m}" = "${GD}" ]; then
+    ko "MUTANTE de la guarda del desarme (${caso}): no se pudo aplicar"
+  elif gd_caso "${caso}" "${m}"; then
+    ko "MUTANTE de la guarda del desarme (${caso}): SOBREVIVE"
+  else
+    ok "MUTANTE de la guarda del desarme (${caso}): sin la condición, deja pasar el contenedor equivocado y cae"
+  fi
+done
+
 echo "== ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]
