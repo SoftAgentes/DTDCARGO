@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 614 specs)
+### Índice de specs (generado · 615 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -496,7 +496,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0468 | Portal: rediseño del enlace del proveedor (Factura + Packing … | in-progress | interno |
 | 0469 | Borrar un cliente deja un evento de auditoría atómico y se co… | in-progress | interno |
 | 0470 | El e2e de verify sin Supabase público: omite con motivo lo qu… | done | interno |
-| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | in-progress | interno |
+| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | superseded | interno |
 | 0472 | Clientes: escritura gobernada por RBAC efectivo | in-progress | interno |
 | 0473 | Importación documental, borrador compartido y calculadora pue… | in-progress | interno |
 | 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
@@ -644,7 +644,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0619 | Inventario para la limpieza de Kommo (paso 8.10 de la SDD-0582) | draft | interno |
 | 0620 | Respaldo cifrado de los archivos del Storage de Studio | in-progress | interno |
 | 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
-| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
+| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | superseded | interno |
 | 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
 | 0626 | Oficina-runtime — El Cable Vertical | draft | interno |
 | 0627 | Seguimiento estimado: ETA desde el zarpe y avisos por hito | in-progress | interno |
@@ -652,6 +652,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0629 | Equivalente en bolívares, solo como vista, con su tasa, fecha… | in-progress | interno |
 | 0630 | Confirmar un reporte de pago crea su recibo de cobro | in-progress | interno |
 | 0631 | CxP ligada a un contenedor y a un embarque, con su costo en e… | in-progress | interno |
+| 0632 | Retiro de Graphify, Archify y la publicación a Obsidian | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0622, 0624 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

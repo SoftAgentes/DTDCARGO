@@ -1,17 +1,19 @@
 ---
 sdd: "0471"
 title: "Conocimiento verificable con Director, Graphify, Archify y Obsidian"
-status: in-progress
+status: superseded
 author: "Codex"
 created: 2026-09-15
-updated: 2026-09-16
+updated: 2026-11-13
 supersedes: null
-superseded_by: null
+superseded_by: "0632"
 related: ["0464"]
 confidencialidad: interno
 ---
 
 # SDD-0471 — Conocimiento verificable
+
+> **Superada por SDD-0632 (2026-11-13).** Sam retiró Graphify, Archify y la publicación a Obsidian. Este documento queda como registro histórico.
 
 ## Problema y objetivo
 

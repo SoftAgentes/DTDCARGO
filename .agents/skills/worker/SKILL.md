@@ -34,14 +34,4 @@ No preguntes «¿sigo?» ni interrumpas por tests rutinarios o hipótesis de baj
 
 ## Cierre documental
 
-Si sus fuentes cambiaron, actualiza Graphify estructuralmente. Antes de publicar el piloto, usa la skill
-Graphify para toda fuente de `semanticPilot` modificada. Fuera de ese alcance, registra recibos faltantes
-como pendientes globales visibles y extrae cuando la tarea necesite interpretar esos documentos o el
-alcance se amplíe; no declares cobertura ni bloquees el piloto solo por esos pendientes.
-Construye y verifica el mapa Archify mediante
-knowledge:visual y knowledge:visual:check en el worktree propio. Registra la versión, JSON, evidencia,
-estado visual y estado de la preview de Obsidian en el handoff. Un mapa autoral no certifica relaciones AST.
-
-Sigue el [runbook de conocimiento](../../../docs/runbooks/knowledge-graphify-obsidian.md). En el handoff propio registra impacto documental (o no aplica con motivo), documentos canónicos actualizados, evidencia, resultados estructurales/semánticos y pendientes de integración/exportación. Conserva propuestas separadas de decisiones autorizadas.
-
-Ejecuta `pnpm knowledge:status` al cerrar y actualiza los derivados afectados en tu worktree. `pnpm knowledge:publish --preview` produce una vista local revisable; no escribe la bóveda compartida. Director publica desde main comprobado después de integrar con autorización. No cambies las notas personales ni declares actualizada una capa pendiente.
+En el handoff propio registra impacto documental (o no aplica con motivo), documentos canónicos actualizados, evidencia y pendientes. Conserva propuestas separadas de decisiones autorizadas. Graphify, Archify y Obsidian están retirados (SDD-0632); no forman parte del cierre.

@@ -41,9 +41,8 @@ const eslintConfig = defineConfig([
     // lint de Next ni `tsc` lo validan (mismo motivo que `supabase/functions`;
     // `tsconfig.json` lo excluye igual). Se refresca copiando del upstream.
     "infra/**",
-    // Grafo de conocimiento de graphify (AST generado + scripts _gen_*.js):
-    // output regenerable y gitignored, NO código de la app. `graphify update`
-    // deja .js con require() de Node que rompen el lint del gate.
+    // Restos de Graphify (retirado, SDD-0632): la carpeta puede seguir en
+    // checkouts locales hasta que se borre a mano y trae .js con require().
     "graphify-out/**",
     // Vault de Obsidian (el repo se abre como vault local · ver .gitignore):
     // config + bundles minificados de plugins de terceros (main.js de 500KB+),
