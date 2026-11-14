@@ -229,7 +229,7 @@ comprobar() { # salida volcado
   local etapas orden_sim
   etapas="$(h "$E" copia_studio_public.crm_historial_etapas)"
   orden_sim="$(qs "select datcollate from pg_database where datname = current_database()")"
-  exigir T7 '[ "$(h "$E" tipos_studio)" = iguales ] && [ "$(h "$E" tipos_chatwoot)" = iguales ] && [ "${etapas%,columnas_md5:*}" = filas:2,produccion:2 ] && [ "$orden_sim" = C.UTF-8 ]' \
+  exigir T7 '[ "$(h "$E" tipos_studio_consulta)" = ok ] && [ "$(h "$E" tipos_chatwoot_consulta)" = ok ] && [ "$(h "$E" tipos_studio)" = iguales ] && [ "$(h "$E" tipos_chatwoot)" = iguales ] && [ "${etapas%,columnas_md5:*}" = filas:2,produccion:2 ] && [ "$orden_sim" = C.UTF-8 ]' \
     "los tipos de la lista son los mismos en producción ($orden_sim) y en la copia ($(h "$E" tipos_studio), $(h "$E" tipos_chatwoot)), y crm_historial_etapas, con id bigint, se copia entera ($etapas)"
   return 0
 }

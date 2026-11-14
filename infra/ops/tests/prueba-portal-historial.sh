@@ -639,5 +639,34 @@ for lado in esquema fixture; do
 done
 rm -f "${T}/esquema.sql" "${T}/fixture.sql"
 
+# LA CONSULTA DE LA GUARDA DE TIPOS EN UN POSTGRES REAL (revisión del DG de la #563, B2): tipos_sql de ensayo-portal.sh
+# arma la consulta del catálogo y PGlite la ejecuta. Un `order by 1 collate "C"` pasó los dobles de psql y Postgres lo
+# rechaza («collations are not supported by type integer»). Pide node_modules (la Calidad instala antes).
+tipos_en_pglite() { # guion lado → la salida de tipos-guarda-pglite.mjs
+  bash -c 'eval "$(sed -n "/^tipos_sql() {/,/^}/p" "$1")"; LISTA="$2"; tipos_sql "$3"' _ "$1" "${PH}/copia-columnas.tsv" "$2" > "${T}/tipos-$2.sql" || return 1
+  node "${R}/infra/ops/tests/tipos-guarda-pglite.mjs" "${T}/tipos-$2.sql"
+}
+for lado in studio chatwoot; do
+  n="$(awk -F'\t' -v l="${lado}" '$1 == l { n += split($3, c, ";") } END { print n + 0 }' "${PH}/copia-columnas.tsv")"
+  s="$(tipos_en_pglite "${PH}/ensayo-portal.sh" "${lado}" 2>&1)"
+  if printf '%s\n' "${s}" | grep -qx "filas=${n} ausentes=[0-9]* orden_c=si" && { [ "${lado}" = chatwoot ] || printf '%s\n' "${s}" | grep -qx 'tipo public.crm_historial_etapas.id:bigint'; }; then
+    ok "la consulta de la guarda de tipos corre en PGlite (${lado}): ${n} filas, ordenadas como LC_ALL=C sort"
+  else
+    ko "la consulta de la guarda de tipos en PGlite (${lado}): $(printf '%s' "${s}" | head -c 300)"
+  fi
+done
+# MUTANTE: con el `order by 1 collate "C"` de la 17ad4e510, Postgres rechaza la consulta.
+cp "${PH}/ensayo-portal.sh" "${T}/ensayo-b2.sh"
+sed -i 's/), \\047ausente\\047)) collate \\042C\\042 from (values " v ") v(t, c) order by 1"$/), \\047ausente\\047) from (values " v ") v(t, c) order by 1 collate \\042C\\042"/; s/print "select (v\.t || /print "select v.t || /' "${T}/ensayo-b2.sh"
+if cmp -s "${T}/ensayo-b2.sh" "${PH}/ensayo-portal.sh"; then
+  ko "MUTANTE B2 de la guarda de tipos: no se pudo aplicar"
+elif tipos_en_pglite "${T}/ensayo-b2.sh" studio > "${T}/b2.txt" 2>&1; then
+  ko "MUTANTE B2 de la guarda de tipos: la consulta con «order by 1 collate» SOBREVIVE ($(head -c 200 "${T}/b2.txt"))"
+else
+  grep -q 'collations_are_not_supported' "${T}/b2.txt" && ok "MUTANTE B2 de la guarda de tipos: «order by 1 collate» cae en PGlite" \
+    || ko "MUTANTE B2 de la guarda de tipos: cae por otro motivo ($(head -c 200 "${T}/b2.txt"))"
+fi
+rm -f "${T}/ensayo-b2.sh" "${T}/b2.txt" "${T}/tipos-studio.sql" "${T}/tipos-chatwoot.sql"
+
 echo "== ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]

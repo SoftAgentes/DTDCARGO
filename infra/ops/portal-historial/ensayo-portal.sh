@@ -534,7 +534,7 @@ tipos_sql() { # lado → la consulta del catálogo para las columnas de ese lado
     }
     END {
       if (v == "") exit 1
-      print "select v.t || \047.\047 || v.c || \047:\047 || coalesce((select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(v.t) and a.attname = v.c and a.attnum > 0 and not a.attisdropped), \047ausente\047) from (values " v ") v(t, c) order by 1 collate \042C\042"
+      print "select (v.t || \047.\047 || v.c || \047:\047 || coalesce((select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(v.t) and a.attname = v.c and a.attnum > 0 and not a.attisdropped), \047ausente\047)) collate \042C\042 from (values " v ") v(t, c) order by 1"
     }' "$LISTA"
 }
 tipos_columnas() { awk -F'\t' -v lado="$1" '$1 == lado { n += split($3, c, ";") } END { print n + 0 }' "$LISTA"; }

@@ -190,7 +190,7 @@ Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de syste
 - [ ] **Su evidencia:**
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); echo "$E"; grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos)=' "$E"
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); echo "$E"; grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes)=' "$E"
   ```
 
   **Para seguir:**
@@ -228,7 +228,7 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
 - [ ] **La evidencia:** el mismo `grep` de arriba, más el resumen:
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
   ```
 
   **Para seguir:**
