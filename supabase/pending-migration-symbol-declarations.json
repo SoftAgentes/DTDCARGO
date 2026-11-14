@@ -7,51 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "symbols": [
-        {
-          "name": "confirm_payment_report_with_receipt",
-          "callSites": [
-            "lib/portal/payment-report-commands.ts:193"
-          ],
-          "kind": "function"
-        }
-      ],
-      "migration": "0537_recibo_al_confirmar_reporte",
-      "id": "sdd-0630-confirmar-con-recibo",
-      "primarySymbol": "confirm_payment_report_with_receipt",
-      "evidence": [
-        {
-          "site": "lib/portal/payment-report-commands.ts:209",
-          "contains": "error.code === \"PGRST202\") return failure(UNAVAILABLE_ERROR);",
-          "degradation": "Sin la 0537 (o con caché de PostgREST anterior), confirmar devuelve PGRST202 y el Studio muestra PAGO-NO-DISPONIBLE: la confirmación no se aplicó, el reporte sigue pendiente y el saldo igual. No es un resultado incierto ni hay fallback a resolve_payment_report (que confirmaría sin recibo). Rechazar y cancelar no usan este símbolo. Release MIGRATE-FIRST con OK nominal aparte."
-        }
-      ]
-    },
-    {
-      "symbols": [
-        {
-          "name": "payment_receipts.payment_report_id",
-          "callSites": [
-            "lib/studio/payment-queries.ts:744",
-            "lib/studio/payment-queries.ts:745",
-            "lib/studio/payment-queries.ts:747",
-            "lib/studio/payment-queries.ts:748"
-          ],
-          "kind": "column"
-        }
-      ],
-      "migration": "0537_recibo_al_confirmar_reporte",
-      "id": "sdd-0630-vinculo-recibo-reporte",
-      "primarySymbol": "payment_receipts.payment_report_id",
-      "evidence": [
-        {
-          "site": "lib/studio/payment-queries.ts:746",
-          "contains": "if (error || !Array.isArray(data)) return codes;",
-          "degradation": "Sin la columna de la 0537, PostgREST responde error y receiptCodesByReport devuelve un mapa vacío: el detalle de factura muestra los reportes y su estado sin el código de recibo. No toca saldos ni RECEIPT_COLUMNS: el resto de las lecturas de recibos no la piden."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
