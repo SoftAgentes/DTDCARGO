@@ -90,6 +90,26 @@ PR aparte desde `main` en `7b1e05050`. Cambios:
   - Esto reemplaza la nota de arriba sobre el `deshacer.sql` de producción.
   - El paquete se sigue borrando del servidor después de `verificar`, porque lleva nombres.
 
+### Seguimiento de la #538 (2026-11-14): después de cargar el 63
+
+PR aparte desde `main` en `4c5c39581`, con el lote 63 ya cargado en producción (DTD-CONSOL-0003). Cambios:
+
+- **Copia de `resumen.md`.** Una autorización con una línea que empiece con `# Lote ` se rechaza (3), igual que las que traen `"nombreExcel"` o `"lote":`. Es la primera línea de `resumen.md`, que cita el id y lleva nombres. Una mención de `# Lote` a mitad de línea no se rechaza.
+- **pid sin escribir.** Si el `printf` del pid en el candado falla, el guion se niega (3), no corre psql y suelta el candado. El pid vacío ya contaba como propio en `soltar_candado`, y ahora el `rm` del pid no impide el `rmdir`.
+- **Runbook.** Para ver si queda psql vivo después de una señal, `docker top dtd-cargo-db-1`, porque la imagen de la base no trae procps. Mirar `pg_stat_activity` en producción requiere el OK de Sam.
+- **Pruebas.**
+  - Orden de los traps: EXIT y 129/130/143 antes del `mkdir` del candado y del pid. Es una prueba estructural, que se suma a las de señal durante el paso.
+  - Un `deshacer.sql` que es un enlace roto también se rechaza.
+  - El rechazo de la copia de `resumen.md`.
+  - El refuse del pid, con `ulimit -f 0`; en Git Bash sale OMITIDA.
+- **`validar-lote-local.sh --produccion <lote> <marcas>`.** Reemplaza al ensayo ad hoc del 63. El orden es:
+  - la previa sin los dueños aborta;
+  - entran los clientes sintéticos;
+  - previa, simulacro sin filas, aplicar con «0 clientes creados», verificar PASÓ y un aplicar repetido que el preflight frena;
+  - al final, clientes y aliados quedan sin cambio y hay un contenedor más.
+
+  La evidencia va a `<padre>/ensayos-local/`, fuera del paquete. Los modos normal y cruzado se niegan con un lote de producción, y `--produccion` se niega con uno de prueba o con un paquete que traiga `deshacer.sql` o `purgar.sql`.
+
 ## Diseño
 
 ### Modelo del lote (por contenedor)
