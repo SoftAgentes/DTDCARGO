@@ -142,7 +142,12 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
     await cargado();
 
     const aviso = screen.getByText(AVISO);
-    expect(aviso.closest("[role=note]")).toBeTruthy();
+    // SDD-0603 tramo 5d: el aviso es la franja `Aviso` (status), no una caja `note`.
+    const franja = aviso.closest(".studio-aviso")!;
+    expect(franja.getAttribute("role")).toBe("status");
+    expect(franja.getAttribute("data-tono")).toBe("info");
+    // El enlace queda fuera de la región viva.
+    expect(franja.querySelector("a")).toBeNull();
     const enlace = await screen.findByRole("link", { name: "Responder en la Bandeja →" });
     expect(enlace.getAttribute("href")).toBe("/studio/bandeja?c=9001");
 
@@ -205,7 +210,9 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
     render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="no_se_sabe" puedeVerBandeja />);
     await cargado();
 
-    expect(screen.getByText(/No se pudo comprobar si este hilo del portal/)).toBeTruthy();
+    const duda = screen.getByText(/No se pudo comprobar si este hilo del portal/).closest(".studio-aviso")!;
+    expect(duda.getAttribute("role")).toBe("status");
+    expect(duda.getAttribute("data-tono")).toBe("atencion");
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(estado().disabled).toBe(true);
   });
@@ -214,7 +221,7 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
     render(<ConversationThread conv={hilo("portal")} agents={[]} trabaPortal="apagada" />);
     await cargado();
 
-    expect(screen.queryByRole("note")).toBeNull();
+    expect(document.querySelector(".studio-aviso")).toBeNull();
     expect(screen.getByRole("textbox")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Respuestas rápidas" })).toBeTruthy();
     const sel = estado();
@@ -232,14 +239,14 @@ describe("ConversationThread · SDD-0586 1c-1", () => {
     await cargado();
 
     expect(screen.getByRole("textbox")).toBeTruthy();
-    expect(screen.queryByRole("note")).toBeNull();
+    expect(document.querySelector(".studio-aviso")).toBeNull();
   });
 
   it("otro canal con la traba activa: como antes", async () => {
     for (const canal of ["email", "whatsapp"] as const) {
       render(<ConversationThread conv={hilo(canal)} agents={[]} trabaPortal="activa" puedeVerBandeja />);
       await cargado();
-      expect(screen.queryByRole("note"), canal).toBeNull();
+      expect(document.querySelector(".studio-aviso"), canal).toBeNull();
       expect(screen.getByRole("textbox"), canal).toBeTruthy();
       expect(estado().disabled, canal).toBe(false);
       cleanup();
@@ -295,7 +302,7 @@ describe("ConversacionesPage · la traba llega al hilo", () => {
     render(await ConversacionesPage({ searchParams: Promise.resolve({ c: "conv-1" }) }));
     await cargado();
 
-    expect(screen.queryByRole("note")).toBeNull();
+    expect(document.querySelector(".studio-aviso")).toBeNull();
     expect(caja()).toBeTruthy();
     expect(estado().disabled).toBe(false);
   });

@@ -25,6 +25,7 @@
 
 import { useState, useTransition } from "react";
 import { DrawerFooter, DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { StaleOp } from "@/lib/studio/kommo-writeback";
@@ -152,33 +153,26 @@ export function LeadDrawer({
         )}
 
         {/* Selector de verbo */}
-        <div
-          role="tablist"
-          aria-label="Qué hacer con el lead"
-          style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginBottom: 18 }}
-        >
-          {VERBOS.map((v) => {
-            const activo = v.key === verbo;
-            return (
-              <button
-                key={v.key}
-                type="button"
-                role="tab"
-                aria-selected={activo}
-                disabled={isPending}
-                onClick={() => setVerbo(v.key)}
-                className="studio-btn studio-btn-sm"
-                style={{
-                  background: activo ? "var(--bg-elevated)" : "transparent",
-                  border: `1px solid ${activo ? "var(--border)" : "transparent"}`,
-                  color: activo ? "var(--ink)" : "var(--ink-soft)",
-                  fontWeight: activo ? 700 : 500,
-                }}
-              >
-                {v.label}
-              </button>
-            );
-          })}
+        <div style={{ marginBottom: 18 }}>
+          <div role="tablist" aria-label="Qué hacer con el lead" className="studio-tabs">
+            {VERBOS.map((v) => {
+              const activo = v.key === verbo;
+              return (
+                <button
+                  key={v.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activo}
+                  data-activa={activo ? "true" : undefined}
+                  disabled={isPending}
+                  onClick={() => setVerbo(v.key)}
+                  className="studio-tab"
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <form
@@ -334,20 +328,10 @@ function AvisoFrenado({
   const [reintentando, setReintentando] = useState<string | null>(null);
 
   return (
-    <div
-      role="status"
-      style={{
-        border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--warning)",
-        borderRadius: "var(--r-sm)",
-        background: "var(--bg-elevated)",
-        padding: "12px 14px",
-        marginBottom: 18,
-      }}
-    >
-      <div style={{ font: "700 11px/1.3 var(--f-sans)", color: "var(--ink)", marginBottom: 6 }}>
-        No se pisó el trabajo del CRM
-      </div>
+    // SDD-0603 tramo 5d: franja plana de `Aviso` (atención → status), sin el
+    // cajón con borde dorado. Aparece al abrir el panel, no por una tecla.
+    <div style={{ marginBottom: 18 }}>
+      <Aviso tono="atencion" compacto titulo="No se pisó el trabajo del CRM">
       {ops.map((o) => (
         <div
           key={o.id}
@@ -359,9 +343,9 @@ function AvisoFrenado({
             padding: "4px 0",
           }}
         >
-          <span style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+          <span>
             El lead cambió en el CRM después de que pediste{" "}
-            <strong style={{ color: "var(--ink)" }}>{OP_LABEL[o.op] ?? o.op}</strong>, así que
+            <strong>{OP_LABEL[o.op] ?? o.op}</strong>, así que
             no se mandó.
           </span>
           <button
@@ -380,6 +364,7 @@ function AvisoFrenado({
           </button>
         </div>
       ))}
+      </Aviso>
     </div>
   );
 }
@@ -466,7 +451,7 @@ function EntradaChips({
               disabled={disabled}
               onClick={() => onChange(valores.filter((x) => x !== v))}
               title={`Quitar "${v}" de la lista`}
-              style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}
+              className="studio-chip"
             >
               <Badge tone={tone} size="sm">
                 {v} ×
