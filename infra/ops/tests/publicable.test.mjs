@@ -394,12 +394,15 @@ describe("etiquetas de migraciones", () => {
     expect(() => migracionesDelCommit(raiz)).toThrow(/inesperado/);
   });
 
-  it("en el repo real incluye las esperas 0422 y 0423 y cuenta bien", () => {
+  it("en el repo real exige 0422 y 0423 (aplicadas el 2026-11-14), cuenta bien y no quedan esperas", () => {
     const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-    const [linea] = etiquetas(raiz);
+    const [linea, lineaEspera] = etiquetas(raiz);
     const [, n, lista] = linea.split("=")[1].split(":");
     expect(lista.split(",")).toHaveLength(Number(n));
     expect(lista.split(",")).toEqual(expect.arrayContaining(["0422_payment_report_command_boundary", "0423_payment_report_historical_identity"]));
+    // Fueron las últimas esperas: se aplicaron y se sellaron. Una espera nueva tiene que declararse a propósito.
+    expect(lineaEspera).toBe("org.dtdcargo.migraciones-en-espera=v1:0:");
+    expect(migracionesDelCommit(raiz).enEspera).toEqual([]);
   });
 
   it("formatoLista y activado", () => {

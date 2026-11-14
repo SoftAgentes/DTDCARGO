@@ -13,6 +13,8 @@ confidencialidad: interno
 
 # SDD-0366 — Identidad histórica de reportes de pago
 
+> **Actualización 2026-11-14:** `0423_payment_report_historical_identity` se aplicó en producción después de la 0422; ver el registro §6.3 al final de esta spec. Lo que esta nota dice de la 0422 y la 0423 como pendientes es el estado anterior.
+>
 > **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
 > #21 con su contenido original, `status: in-progress` incluido. Su migración
 > `0423_payment_report_historical_identity` está **PENDIENTE DE APLICAR** y declarada en
@@ -255,3 +257,16 @@ SHA, aplicación nominal y smoke alojado. El resultado no cierra SDD-0258.
 Changelog consultado: no se instala ni actualiza Supabase. La numeración del
 repo prevalece sobre el generador timestamp de la CLI. Esta migración no crea
 una tabla o endpoint expuesto ni cambia las decisiones contables de SDD-0134.
+
+## Aplicación de la 0423 en producción (registro §6.3, 2026-11-14)
+
+- **Autorización de Sam:** su aceptación previa «Sí, en prueba» y, sobre la lista nombrada «OK para aplicar la 0422 y luego la 0423», su bloque literal «Quiero que avances en todas las áreas que tengas que avanzar… los permisos que requieras, dátelos: te los autorizo y te los apruebo.». El Director General aplicó, de a una y en ese orden, después del smoke de Contabilidad en prueba (PASÓ).
+- **Migración:** `0423_payment_report_historical_identity`.
+- **COMMIT:** 2026-11-14T08:51:31Z. La `version` del ledger es `20261114085131` y el ledger pasó de 533 a 534 filas.
+- **Identidad:** md5 `2d3d0cc9c2e299563add83c51f910f60`, 8612 bytes, sha256 `7a63c499d468451ad0ae0732ffaf42be5b78f4bb8f0e2e2e76651a553a0e235e`. La verificación del apply PASÓ.
+- **Evidencia en el VPS:** `/srv/ops/evidencias/apply-0423-dtd-cargo-20261114T085131Z`.
+- **Cierre en la rama `claude/cierre-0422-0423`:** con `retirar-espera.mjs 0423_payment_report_historical_identity --md5 2d3d0cc9c2e299563add83c51f910f60`, la 0423 salió de `pendingBelowCutoff` y quedó sellada en `migrations.lock.json`. No tenía declaraciones de símbolos. Con la 0422 y la 0423 retiradas, el baseline queda sin esperas. Las pruebas que afirmaban la espera (`infra/ops/tests/publicable.test.mjs`, `lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts` y `scripts/tests/migrations-lock.node.mjs`) ahora afirman el estado aplicado, sin perder lo que miden. La cabecera del `.sql` no se edita, porque cambiaría el md5 aplicado.
+- **Orden:** se aplicó después de la 0422 (COMMIT 2026-11-14T08:51:17Z, ledger `20261114085117`; registro en SDD-0365), como exige su preflight.
+- **Hora del merge:** pendiente; la registra el Director General al fusionar.
+
+  Donde este documento dice que la 0423 está «PENDIENTE DE APLICAR», «sigue pendiente» o «en espera», es el estado anterior a esta fecha.

@@ -13,6 +13,8 @@ confidencialidad: interno
 
 # SDD-0365 — Seguridad de los comandos de reportes de pago
 
+> **Actualización 2026-11-14:** la restricción `0422_payment_report_command_boundary` se aplicó en producción; ver el registro §6.3 al final de esta spec. Lo que esta nota dice de la 0422 como pendiente es el estado anterior.
+>
 > **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
 > #21 (`ea9952a4`; commits `12ee7407`, `7f4c1046`, `85912909`, `bcf111a8` y `f649bdbc`) con su
 > contenido original, `status: in-progress` incluido. Su migración de expansión
@@ -617,3 +619,16 @@ adopción de comandos y sus controles R3/AUD-01 sigue obligatoria antes del cier
 Fuente técnica consultada: [funciones de Supabase](https://supabase.com/docs/guides/database/functions).
 La futura elevación del comando requiere permisos mínimos y search_path vacío;
 no se instala ni actualiza Supabase en este incremento.
+
+## Aplicación de la 0422 en producción (registro §6.3, 2026-11-14)
+
+- **Autorización de Sam:** su aceptación previa «Sí, en prueba» y, sobre la lista nombrada «OK para aplicar la 0422 y luego la 0423», su bloque literal «Quiero que avances en todas las áreas que tengas que avanzar… los permisos que requieras, dátelos: te los autorizo y te los apruebo.». El Director General aplicó, de a una y en ese orden, después del smoke de Contabilidad en prueba (PASÓ).
+- **Migración:** `0422_payment_report_command_boundary`.
+- **COMMIT:** 2026-11-14T08:51:17Z. La `version` del ledger es `20261114085117` y el ledger pasó de 532 a 533 filas.
+- **Identidad:** md5 `e3e019590fac56315b971b4ce703ea96`, 8673 bytes, sha256 `0c412460c42a45e32c6d09f84bf1293094588e147de551930334cf12320f894c`. La verificación del apply PASÓ.
+- **Evidencia en el VPS:** `/srv/ops/evidencias/apply-0422-dtd-cargo-20261114T085116Z`.
+- **Cierre en la rama `claude/cierre-0422-0423`:** con `retirar-espera.mjs 0422_payment_report_command_boundary --md5 e3e019590fac56315b971b4ce703ea96`, la 0422 salió de `pendingBelowCutoff` y quedó sellada en `migrations.lock.json`. No tenía declaraciones de símbolos. Con la 0422 y la 0423 retiradas, el baseline queda sin esperas. Las pruebas que afirmaban la espera (`infra/ops/tests/publicable.test.mjs`, `lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts` y `scripts/tests/migrations-lock.node.mjs`) ahora afirman el estado aplicado, sin perder lo que miden. La cabecera del `.sql` no se edita, porque cambiaría el md5 aplicado.
+- **Orden de L14 cumplido:** 0420 y 0421 (2026-09-13) → smoke de los comandos (en prueba, 2026-11-14) → 0422 → 0423, catorce segundos después (registro en SDD-0366).
+- **Hora del merge:** pendiente; la registra el Director General al fusionar.
+
+  Donde este documento dice que la 0422 está «PENDIENTE DE APLICAR», «sigue pendiente» o «en espera», es el estado anterior a esta fecha.
