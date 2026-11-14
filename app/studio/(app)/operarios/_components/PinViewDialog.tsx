@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { StatusIcon } from "@/components/StatusIcon";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
@@ -231,20 +232,9 @@ function PinRequest({
         </div>
 
         {generalError && (
-          <div
-            id={errorId}
-            role="alert"
-            style={{
-              padding: "var(--s-2) var(--s-3)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-              background: "var(--danger-bg)",
-              color: "var(--danger-text, var(--danger))",
-              font: "500 12.5px/1.45 var(--f-sans)",
-            }}
-          >
+          <Aviso id={errorId} tono="error" compacto>
             {generalError}
-          </div>
+          </Aviso>
         )}
 
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
@@ -320,23 +310,10 @@ function PinShown({
             <PinRevealBlock pin={pin} region={operario.region} />
           </>
         ) : (
-          <div
-            id={descriptionId}
-            style={{
-              alignSelf: "stretch",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "var(--s-2)",
-              padding: "var(--s-3) var(--s-4)",
-              background: "var(--bg-surface)",
-              border: "1px solid var(--warning)",
-              borderRadius: "var(--r-md)",
-              font: "600 13px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
-            <StatusIcon tone="warning" size={16} style={{ color: "var(--warning)", marginTop: 1 }} />
-            <span>{OPERARIO_PIN_LEGACY_MESSAGE}</span>
+          <div style={{ alignSelf: "stretch" }}>
+            <Aviso id={descriptionId} tono="atencion">
+              {OPERARIO_PIN_LEGACY_MESSAGE}
+            </Aviso>
           </div>
         )}
 

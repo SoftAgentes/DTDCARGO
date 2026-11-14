@@ -30,6 +30,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
@@ -176,54 +177,23 @@ export default async function EstadoDeCuentaPage({
           peor que no mostrarlo, y el asesor tiene que saber que está leyendo
           sólo una parte de la cuenta. */}
       {ledger.mixedCurrencies ? (
-        <p
-          role="note"
-          style={{
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-sm)",
-            padding: "10px 12px",
-            margin: "0 0 20px",
-          }}
-        >
-          Este cliente tiene facturas en más de una moneda. Acá sólo se muestran
-          las de {ledger.currency}; el resto queda fuera del saldo corrido.
-        </p>
+        <div style={{ marginBottom: 20 }}>
+          <Aviso tono="atencion" compacto>
+            Este cliente tiene facturas en más de una moneda. Acá sólo se muestran
+            las de {ledger.currency}; el resto queda fuera del saldo corrido.
+          </Aviso>
+        </div>
       ) : null}
 
       {notaAnuladas || notaDeMas ? (
-        <div
-          role="note"
-          style={{
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-sm)",
-            padding: "10px 12px",
-            margin: "0 0 20px",
-            maxWidth: "80ch",
-          }}
-        >
-          <div
-            style={{
-              font: "700 9.5px/1 var(--f-sans)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--ink-soft)",
-              marginBottom: 6,
-            }}
-          >
-            Lo que el cliente ve en su portal y en el PDF
-          </div>
-          {[notaAnuladas, notaDeMas].filter(Boolean).map((nota) => (
-            <p
-              key={nota}
-              style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink)", margin: "0 0 4px" }}
-            >
-              {nota}
-            </p>
-          ))}
+        <div style={{ marginBottom: 20, maxWidth: "80ch" }}>
+          <Aviso tono="atencion" compacto titulo="Lo que el cliente ve en su portal y en el PDF">
+            {[notaAnuladas, notaDeMas].filter(Boolean).map((nota) => (
+              <p key={nota} style={{ margin: "0 0 4px" }}>
+                {nota}
+              </p>
+            ))}
+          </Aviso>
         </div>
       ) : null}
 

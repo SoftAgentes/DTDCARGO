@@ -20,6 +20,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const CSV_PLACEHOLDER = `service,origin,destination,per_cbm,flat_rate,min_charge,transit_days,valid_from,valid_until,notes
 consolidado_lcl,Yiwu,Valencia,800,,380,38,2026-01-01,2026-12-31,Tarifa Q1
@@ -105,20 +106,10 @@ export function ImportRatesDrawer({
           </div>
 
           {priceBookId && !priceBookEsCasa && (
-            <p
-              style={{
-                font: "500 12.5px/1.45 var(--f-sans)",
-                color: "var(--ink)",
-                background: "var(--info-bg)",
-                border: "1px solid var(--info)",
-                borderRadius: "var(--r-sm)",
-                padding: "8px 10px",
-                margin: 0,
-              }}
-            >
+            <Aviso tono="info" compacto>
               Estas tarifas entran en <b>{priceBookName}</b> — sólo las ven sus
               clientes, y no salen en la calculadora del sitio.
-            </p>
+            </Aviso>
           )}
 
           <div>
@@ -157,40 +148,19 @@ export function ImportRatesDrawer({
           </div>
 
           {error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
+            <Aviso tono="error" compacto>
               {error}
-            </p>
+            </Aviso>
           )}
 
           {/* Resumen de la importación */}
           {result?.ok && (
-            <p
-              style={{
-                font: "500 12.5px/1.4 var(--f-sans)",
-                color: "var(--success)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--success-bg)",
-                border: "1px solid var(--success)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
+            <Aviso tono="exito" compacto>
               {result.inserted ?? 0} tarifa(s) importada(s) como borrador.
               {result.skippedExisting
                 ? ` ${result.skippedExisting} ya existía(n) y se saltaron.`
                 : ""}
-            </p>
+            </Aviso>
           )}
 
           {/* Preview por fila */}

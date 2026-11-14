@@ -30,6 +30,7 @@ import {
 import { Icon } from "@/app/studio/_components/icons";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
@@ -668,15 +669,9 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
               </div>
             )}
             {geoError && (
-              <p
-                style={{
-                  font: "500 11px/1.4 var(--f-sans)",
-                  color: "var(--danger)",
-                  margin: 0,
-                }}
-              >
+              <Aviso tono="error" compacto>
                 {geoError}
-              </p>
+              </Aviso>
             )}
           </div>
 
@@ -728,48 +723,21 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
           </div>
 
           {state.ok && state.warning && (
-            <div
-              role="status"
-              style={{
-                marginTop: 12,
-                padding: 12,
-                background: "var(--warning-bg)",
-                color: "var(--ink)",
-                border: "1px solid var(--warning)",
-                borderRadius: "var(--r-sm)",
-                font: "500 12.5px/1.4 var(--f-sans)",
-              }}
-            >
-              <div style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--warning)", marginBottom: 6 }}>
-                Cliente creado{state.createdMarkbox ? ` (${state.createdMarkbox})` : ""}
-              </div>
-              {state.warning}
-              <div style={{ marginTop: 8, textAlign: "right" }}>
-                <button
-                  type="button"
-                  className="studio-btn studio-btn-ghost studio-btn-xs"
-                  onClick={onClose}
-                >
-                  Cerrar
-                </button>
-              </div>
+            <div style={{ marginTop: 12 }}>
+              <Aviso
+                tono="atencion"
+                compacto
+                titulo={`Cliente creado${state.createdMarkbox ? ` (${state.createdMarkbox})` : ""}`}
+                accion={{ etiqueta: "Cerrar", onClick: onClose }}
+              >
+                {state.warning}
+              </Aviso>
             </div>
           )}
           {(state.error || createError) && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
+            <Aviso tono="error" compacto>
               {state.error ?? createError}
-            </p>
+            </Aviso>
           )}
 
           <div style={{ flex: 1, minHeight: 12 }} />

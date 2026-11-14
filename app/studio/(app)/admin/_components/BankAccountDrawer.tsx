@@ -15,6 +15,7 @@ import {
   type CompanyActionState,
   type CompanyBankAccount,
 } from "@/lib/studio/company-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const FORM_ID = "bank-drawer-form";
 const INITIAL: CompanyActionState = {};
@@ -215,16 +216,8 @@ function FieldError({ msg }: { msg?: string }) {
 
 function FormError({ msg }: { msg: string }) {
   return (
-    <div
-      style={{
-        padding: "var(--s-3)",
-        background: "var(--danger-bg)",
-        color: "var(--danger)",
-        borderRadius: "var(--r-md)",
-        font: "600 13px/1.3 var(--f-sans)",
-      }}
-    >
+    <Aviso tono="error">
       {msg}
-    </div>
+    </Aviso>
   );
 }
