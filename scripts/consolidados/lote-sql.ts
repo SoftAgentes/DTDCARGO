@@ -37,6 +37,12 @@ export interface OpcionesSql {
   /** Identificador del lote, p. ej. `carga-consolidado:59:1a2b3c4d`. */
   lote: string;
   tenantSlug: string;
+  /**
+   * Correlativo del almacén de China que trae el título del packing list cuando no
+   * coincide con el número DTD del contenedor (`--correlativo-origen`). Sólo queda
+   * registrado en el manifiesto; no cambia el SQL.
+   */
+  correlativoOrigen?: number;
 }
 
 export interface PuertoDestino {
@@ -118,7 +124,11 @@ export interface Manifiesto {
   dueno: { etiqueta: string; clave: string; codigo: string; servicio: string; cbm: number | null; kg: number | null } | null;
   /** Monto del gasto por espacio (mixto). El correo del usuario no va al manifiesto. */
   gastoEspacio: { monto: number } | null;
-  contenedor: { numero: number; etiqueta: string; container_no: string; naviera: string; pol: string; pod: string; fechaCarga: string; fechaRecepcion: string; etd: string; eta: string; modalidad: string | null };
+  contenedor: {
+    numero: number; etiqueta: string; container_no: string; naviera: string; pol: string; pod: string; fechaCarga: string; fechaRecepcion: string; etd: string; eta: string; modalidad: string | null;
+    /** Sólo con `--correlativo-origen`: el título del packing list dice este número (correlativo de China) y el lote es del `numero` DTD. */
+    correlativoOrigen?: number;
+  };
   fuentes: { rastreo: string; packing: string };
   opciones: { crearClientesFaltantes: boolean; facturas: boolean; excesoPeso: boolean; containerType: string };
   esperado: { envios: number; recepciones: number; items: number; cajas: number; clientes: number; facturas: number; cbm: number; kg: number; base: number };
@@ -1174,6 +1184,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
       etd: lote.etd,
       eta: lote.eta,
       modalidad: lote.rastreo.modalidad,
+      ...(o.correlativoOrigen != null ? { correlativoOrigen: o.correlativoOrigen } : {}),
     },
     fuentes,
     opciones: { crearClientesFaltantes: o.crearClientesFaltantes, facturas: o.facturas, excesoPeso: lote.excesoPeso, containerType: o.containerType },

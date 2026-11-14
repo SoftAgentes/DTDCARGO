@@ -7,7 +7,11 @@
  *     --eta 2026-10-19 --salida "C:\...\DTD-consolidados\59\2026-10-16" \
  *     [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
  *     [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json]
- *     [--pol NGB] [--tipo 40HC] [--tenant dtd]
+ *     [--pol NGB] [--tipo 40HC] [--tenant dtd] [--correlativo-origen N]
+ *
+ * `--correlativo-origen N`: el título del packing list trae el correlativo del
+ * almacén de China («CONTENEDOR DTD #61») y el lote es otro número DTD (`--contenedor 64`).
+ * El título tiene que decir exactamente N, y el mapeo queda en el manifiesto y el resumen.
  *
  * Escribe en --salida: previa.sql, aplicar.sql, simulacro.sql, verificar.sql,
  * deshacer.sql y purgar.sql (sólo en prueba), manifiesto.json, resumen.md y SHA256SUMS. Nada de
@@ -48,6 +52,12 @@ export interface Argumentos {
   gastoUsuario?: string;
   /** Sólo para pruebas locales: el título del packing list no tiene que coincidir con --contenedor. */
   ignorarTituloPacking: boolean;
+  /**
+   * Correlativo de China que trae el título del packing list cuando no es el número
+   * DTD (`--correlativo-origen 61` con `--contenedor 64`). Tiene que coincidir con el
+   * título; vale en prueba y en producción, y queda en el manifiesto y el resumen.
+   */
+  correlativoOrigen?: number;
 }
 
 const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor <N> --eta YYYY-MM-DD --salida <dir>
@@ -55,7 +65,7 @@ const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor 
       [--gasto-espacio <monto USD> --gasto-usuario <correo del Studio>]
       [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
       [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
-      [--ignorar-titulo-packing]`;
+      [--correlativo-origen <N del título del packing>] [--ignorar-titulo-packing (sólo prueba)]`;
 
 export function parsearArgumentos(argv: string[]): Argumentos {
   const valores = new Map<string, string>();
@@ -111,6 +121,19 @@ export function parsearArgumentos(argv: string[]): Argumentos {
   if (gastoEspacio != null && modalidad !== "mixto") throw new Error("--gasto-espacio sólo aplica a la modalidad mixto");
   const packing = valores.get("packing");
   if (modalidad !== "fcl" && !packing) throw new Error(`--modalidad ${modalidad} exige --packing <xlsx>`);
+  const ignorarTituloPacking = banderas.has("ignorar-titulo-packing");
+  if (ignorarTituloPacking && entorno !== "prueba") {
+    throw new Error("--ignorar-titulo-packing sólo se permite con --entorno prueba; para un correlativo de China usa --correlativo-origen <N>");
+  }
+  let correlativoOrigen: number | undefined;
+  if (valores.has("correlativo-origen")) {
+    const t = valores.get("correlativo-origen")!.trim();
+    correlativoOrigen = /^\d{1,4}$/.test(t) ? Number(t) : NaN;
+    if (!Number.isInteger(correlativoOrigen) || correlativoOrigen <= 0) throw new Error("--correlativo-origen debe ser un entero positivo");
+    if (correlativoOrigen === contenedor) throw new Error("--correlativo-origen es igual a --contenedor: no hace falta");
+    if (!packing) throw new Error("--correlativo-origen exige --packing <xlsx> (es el número de su título)");
+    if (ignorarTituloPacking) throw new Error("--correlativo-origen y --ignorar-titulo-packing no van juntos");
+  }
   return {
     rastreo: req("rastreo"),
     packing,
@@ -135,8 +158,35 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     kgFcl: numOpc("kg-fcl"),
     gastoEspacio,
     gastoUsuario,
-    ignorarTituloPacking: banderas.has("ignorar-titulo-packing"),
+    ignorarTituloPacking,
+    correlativoOrigen,
   };
+}
+
+/**
+ * Contrasta el número del título del packing list con el lote. Sin bandera, el
+ * título tiene que decir el número DTD (`--contenedor`). Con `--correlativo-origen N`,
+ * tiene que decir exactamente N: así un packing de otro contenedor no pasa por
+ * error. Devuelve el aviso para el resumen, o null si no hay nada que avisar.
+ */
+export function revisarTituloPacking(
+  numeroTitulo: number | null,
+  args: Pick<Argumentos, "contenedor" | "correlativoOrigen" | "ignorarTituloPacking">,
+): string | null {
+  if (args.correlativoOrigen != null) {
+    if (numeroTitulo == null) {
+      throw new Error(`Pediste --correlativo-origen ${args.correlativoOrigen}, pero no leo el número del título del packing list («CONTENEDOR DTD #N»)`);
+    }
+    if (numeroTitulo !== args.correlativoOrigen) {
+      throw new Error(`El packing list dice contenedor #${numeroTitulo} y --correlativo-origen dice ${args.correlativoOrigen}`);
+    }
+    return `Correlativo de origen: el título del packing list dice #${numeroTitulo} (correlativo de China); el lote es del contenedor DTD #${args.contenedor} (--correlativo-origen ${args.correlativoOrigen}).`;
+  }
+  if (numeroTitulo == null || numeroTitulo === args.contenedor) return null;
+  if (!args.ignorarTituloPacking) {
+    throw new Error(`El packing list dice contenedor #${numeroTitulo} y pediste el #${args.contenedor}; si es el correlativo de China, usa --correlativo-origen ${numeroTitulo}`);
+  }
+  return `El packing list dice contenedor #${numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`;
 }
 
 export function sha256(ruta: string): string {
@@ -169,7 +219,7 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
 - Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
 - Entorno: **${m.entorno}** · facturas: ${m.opciones.facturas ? "sí (borrador, una por cliente DDP)" : "no"} · exceso de peso: ${m.opciones.excesoPeso ? "se cobra en líneas aparte" : "NO se cobra"} · crear clientes faltantes: ${m.opciones.crearClientesFaltantes ? "sí (sólo prueba)" : "no"}
 - Naviera ${m.contenedor.naviera} · ${m.contenedor.pol} → ${m.contenedor.pod} · carga ${m.contenedor.fechaCarga} · recepciones ${m.contenedor.fechaRecepcion} · ETD ${m.contenedor.etd} · ETA ${m.contenedor.eta} · ${m.opciones.containerType}
-- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
+${m.contenedor.correlativoOrigen != null ? `- Correlativo de origen: **${m.contenedor.correlativoOrigen} (China) → ${m.contenedor.numero} (DTD)**: el título del packing list usa el número del almacén de China\n` : ""}- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
 - Generado ${m.generadoEn}
 
 ## Lo que escribe aplicar.sql
@@ -271,12 +321,8 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
   if (args.packing) {
     const packing = await leerPacking(args.packing);
     avisosExcel.push(...packing.avisos);
-    if (packing.numeroTitulo != null && packing.numeroTitulo !== args.contenedor) {
-      if (!args.ignorarTituloPacking) {
-        throw new Error(`El packing list dice contenedor #${packing.numeroTitulo} y pediste el #${args.contenedor}`);
-      }
-      avisosExcel.push(`El packing list dice contenedor #${packing.numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`);
-    }
+    const avisoTitulo = revisarTituloPacking(packing.numeroTitulo, args);
+    if (avisoTitulo) avisosExcel.push(avisoTitulo);
     filas = packing.filas;
   }
   const mapa = leerMapa(args.mapa);
@@ -305,6 +351,7 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     vessel: "Por confirmar",
     lote: `carga-consolidado:${args.contenedor}:${huellaLote}`,
     tenantSlug: args.tenant,
+    ...(args.correlativoOrigen != null ? { correlativoOrigen: args.correlativoOrigen } : {}),
   };
   const salida = generarSql(lote, opciones, fuentes);
 
