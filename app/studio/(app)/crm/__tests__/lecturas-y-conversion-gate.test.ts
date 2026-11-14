@@ -73,6 +73,10 @@ let overrides: Record<string, { view: boolean; edit: boolean }> = {};
 vi.mock("@/lib/studio/role-module-overrides-queries", () => ({
   getRoleModuleOverrides: async () => overrides,
 }));
+// Accesos adicionales de la persona (SDD-0622): fuera del universo de datos.
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({
+  getMyModuleGrants: async () => ({}),
+}));
 
 // ── Cliente de la sesión ──────────────────────────────────────
 let sessionUser: { id: string } | null = null;

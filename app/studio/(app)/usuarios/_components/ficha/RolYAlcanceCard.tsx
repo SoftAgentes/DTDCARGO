@@ -46,6 +46,7 @@ import {
   changeUserRoleAction,
   changeWarehouseScopeAction,
 } from "../../actions";
+import "../acceso/permisos.css";
 
 /**
  * Mínimo que exige `d1Reason` para no caer al texto enlatado del servidor.
@@ -138,22 +139,42 @@ export function RolYAlcanceCard({
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
-          <Campo etiqueta="Rol" htmlFor="ficha-rol">
-            <select
-              id="ficha-rol"
-              className="studio-input"
-              value={rol}
+        {/* SDD-0622: el rol base es un selector segmentado (los 7 a la vista,
+            sin abrir una lista). Igual que antes, elegir NO aplica: Aplicar
+            abre el diálogo con motivo. */}
+        <div
+          role="radiogroup"
+          aria-label="Rol"
+          className="perm-seg"
+          onKeyDown={(e) => {
+            if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(e.key)) return;
+            e.preventDefault();
+            const i = STUDIO_USER_ROLES.indexOf(rol);
+            const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+            const sig = STUDIO_USER_ROLES[(i + paso + STUDIO_USER_ROLES.length) % STUDIO_USER_ROLES.length];
+            setRol(sig);
+            const grupo = e.currentTarget;
+            queueMicrotask(() => grupo.querySelector<HTMLButtonElement>(`[data-rol="${sig}"]`)?.focus());
+          }}
+        >
+          {STUDIO_USER_ROLES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              role="radio"
+              data-rol={r}
+              aria-checked={rol === r}
+              tabIndex={rol === r ? 0 : -1}
+              className="perm-seg-btn"
               disabled={pendiente || !!bloqueo}
-              onChange={(e) => setRol(e.target.value as StudioUserRole)}
+              onClick={() => setRol(r)}
             >
-              {STUDIO_USER_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
-          </Campo>
+              {ROLE_LABELS[r]}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
 
           <Campo etiqueta="Almacén" htmlFor="ficha-scope">
             <select

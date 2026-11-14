@@ -34,6 +34,8 @@ import { UserDetailDrawer } from "./UserDetailDrawer";
 import { BandaDeTrabajo } from "./personas/BandaDeTrabajo";
 import { ToolbarPersonas, type FiltroEtapa } from "./personas/ToolbarPersonas";
 import type { RoleModuleOverrides } from "@/lib/studio/rbac";
+import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-queries";
+import "./acceso/permisos.css";
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABELS,
@@ -48,6 +50,8 @@ import {
 } from "@/lib/studio/user-types";
 
 type Pestana = "personas" | "roles" | "invitaciones";
+/** Filtros de excepción (SDD-0622): quién tiene algo más que su rol. */
+type FiltroExtra = "todos" | "con" | "sensible" | "vence";
 const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones"];
 
 export function UsersClient({
@@ -55,11 +59,14 @@ export function UsersClient({
   invitations,
   currentUserId,
   roleModuleOverrides,
+  grants = [],
 }: {
   members: UserMembershipWithProfile[];
   invitations: UserInvitation[];
   currentUserId: string;
   roleModuleOverrides: RoleModuleOverrides;
+  /** Accesos extra del tenant (SDD-0622), vigentes y vencidos. */
+  grants?: UserModuleGrantView[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -74,6 +81,32 @@ export function UsersClient({
       ? etapaUrl
       : "todos";
   const personaUrl = params.get("persona");
+  const extraUrl = params.get("extras");
+  const filtroExtra: FiltroExtra =
+    extraUrl === "con" || extraUrl === "sensible" || extraUrl === "vence" ? extraUrl : "todos";
+  const fichaUrl = params.get("ficha");
+
+  const grantsByUser = useMemo(() => {
+    const m: Record<string, UserModuleGrantView[]> = {};
+    for (const g of grants) (m[g.userId] ??= []).push(g);
+    return m;
+  }, [grants]);
+  const nombres = useMemo(() => {
+    const n: Record<string, string> = {};
+    for (const m of members) n[m.user_id] = userDisplayName(m.profile, m.email);
+    return n;
+  }, [members]);
+  const cumpleExtra = useMemo(
+    () =>
+      (userId: string, f: FiltroExtra): boolean => {
+        const gs = grantsByUser[userId] ?? [];
+        if (f === "todos") return true;
+        if (f === "con") return gs.some((g) => !g.expired);
+        if (f === "sensible") return gs.some((g) => !g.expired && g.sensitive);
+        return gs.some((g) => g.expired || g.expiringSoon);
+      },
+    [grantsByUser],
+  );
 
   // El texto buscado vive SÓLO en memoria — ver el docstring.
   const [busqueda, setBusqueda] = useState("");
@@ -109,6 +142,7 @@ export function UsersClient({
     return members
       .filter((m) => {
         if (etapa !== "todos" && accessStage(m) !== etapa) return false;
+        if (!cumpleExtra(m.user_id, filtroExtra)) return false;
         if (!q) return true;
         // BUS-01: el alcance declarado en el label tiene que ser el real.
         const campos = [
@@ -120,7 +154,7 @@ export function UsersClient({
         return campos.some((c) => c.toLowerCase().includes(q));
       })
       .sort(compareByAccessStage);
-  }, [members, etapa, busqueda]);
+  }, [members, etapa, busqueda, filtroExtra, cumpleExtra]);
 
   const pendientesAcceso = useMemo(
     () => members.filter((m) => accessStage(m) === "nunca-entro"),
@@ -133,11 +167,11 @@ export function UsersClient({
     ? (members.find((m) => m.user_id === personaUrl) ?? null)
     : null;
 
-  const hayFiltro = busqueda.trim() !== "" || etapa !== "todos";
+  const hayFiltro = busqueda.trim() !== "" || etapa !== "todos" || filtroExtra !== "todos";
 
   function limpiar() {
     setBusqueda("");
-    navegar({ estado: null });
+    navegar({ estado: null, extras: null });
   }
 
   return (
@@ -179,12 +213,34 @@ export function UsersClient({
             total={members.length}
             onLimpiar={limpiar}
           />
+          <div className="perm-filters" role="group" aria-label="Filtrar por accesos extra">
+            {(
+              [
+                ["todos", "Todos"],
+                ["con", "Con accesos extra"],
+                ["sensible", "Con acceso sensible"],
+                ["vence", "Por vencer o vencidos"],
+              ] as const
+            ).map(([f, etiqueta]) => (
+              <button
+                key={f}
+                type="button"
+                className="perm-filter"
+                aria-pressed={filtroExtra === f}
+                onClick={() => navegar({ extras: f === "todos" ? null : f })}
+              >
+                {etiqueta}
+                <span className="perm-filter-n">{members.filter((m) => cumpleExtra(m.user_id, f)).length}</span>
+              </button>
+            ))}
+          </div>
           <MembersTable
             members={visibles}
             currentUserId={currentUserId}
             onOpenDetail={(m) => navegar({ persona: m.user_id })}
             filtroActivo={hayFiltro}
             onLimpiar={limpiar}
+            grantsByUser={grantsByUser}
           />
         </>
       )}
@@ -259,9 +315,14 @@ export function UsersClient({
 
       {fichaAbierta && (
         <UserDetailDrawer
+          key={fichaAbierta.user_id}
           member={fichaAbierta}
           esYo={fichaAbierta.user_id === currentUserId}
-          onClose={() => navegar({ persona: null })}
+          onClose={() => navegar({ persona: null, ficha: null })}
+          grants={grantsByUser[fichaAbierta.user_id] ?? []}
+          overrides={roleModuleOverrides}
+          nombres={nombres}
+          pestana={fichaUrl === "acceso" || fichaUrl === "actividad" ? fichaUrl : "perfil"}
         />
       )}
 

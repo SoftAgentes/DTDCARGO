@@ -23,6 +23,8 @@ import {
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
+import { listTenantModuleGrants } from "@/lib/studio/user-module-grants-queries";
+import { isSensitiveModule } from "@/lib/studio/user-module-grants";
 import { UsersClient } from "./_components/UsersClient";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
@@ -61,7 +63,7 @@ export default async function UsuariosPage() {
     }
   })();
 
-  const [membersRaw, invitations, roleModuleOverrides] = await Promise.all([
+  const [membersRaw, invitations, roleModuleOverrides, moduleGrants] = await Promise.all([
     // includeDisabled: sin esto el desactivado se esfuma de la tabla y el botón
     // "Reactivar" (único unban) queda inalcanzable (hallazgo review 2026-07-02).
     listMembers(supabaseAdminForListing ?? supabase, {
@@ -72,6 +74,9 @@ export default async function UsuariosPage() {
     // SDD-0274: la matriz de permisos se mudó de Administración a la pestaña
     // «Roles y permisos» de este módulo. Mismo gate: los dos eran admin-only.
     getRoleModuleOverrides(supabase),
+    // SDD-0622: accesos extra del tenant (vigentes y vencidos). La RLS de la
+    // 0538 deja leer todas al admin con su sesión; sin la 0538 llega vacío.
+    listTenantModuleGrants(supabase, isSensitiveModule),
   ]);
 
   // Resolver emails de auth.users via service_role admin client.
@@ -185,6 +190,7 @@ export default async function UsuariosPage() {
         invitations={invitations}
         currentUserId={userResp.user.id}
         roleModuleOverrides={roleModuleOverrides}
+        grants={moduleGrants}
       />
     </div>
   );

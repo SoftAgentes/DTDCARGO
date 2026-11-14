@@ -23,11 +23,17 @@
  * Siete columnas pasaron a cuatro: rol y alcance se funden, y estado y último
  * acceso también. Con eso muere el `position:sticky` de la columna de acciones,
  * que era un parche por el ancho que ocupaban los botones.
+ *
+ * SDD-0622 suma «Accesos extra»: chips con lo que la persona tiene además de su
+ * rol (azul = extra, ámbar = sensible). La excepción se ve sin abrir la ficha.
  */
 
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
+import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-queries";
+import { moduleLabel } from "./acceso/AccesoPanel";
+import "./acceso/permisos.css";
 import {
   ROLE_LABELS,
   SCOPED_ROLES,
@@ -55,9 +61,12 @@ export function MembersTable({
   onOpenDetail,
   filtroActivo,
   onLimpiar,
+  grantsByUser = {},
 }: {
   members: UserMembershipWithProfile[];
   currentUserId: string;
+  /** Accesos extra por persona (SDD-0622). */
+  grantsByUser?: Record<string, UserModuleGrantView[]>;
   onOpenDetail: (m: UserMembershipWithProfile) => void;
   /** Hay filtros puestos: cambia el vacío de «sin datos» a «sin coincidencias». */
   filtroActivo?: boolean;
@@ -108,14 +117,15 @@ export function MembersTable({
             color: "var(--ink-soft)",
           }}
         >
-          Miembros del equipo, con su rol, alcance de almacén y estado de acceso.
-          Cada fila abre la ficha de esa persona.
+          Miembros del equipo, con su rol base, sus accesos extra y su último
+          ingreso. Cada fila abre la ficha de esa persona.
         </caption>
         <thead>
           <tr style={{ background: "var(--bg-elevated)" }}>
             <Th>Persona</Th>
-            <Th>Rol y alcance</Th>
-            <Th>Acceso</Th>
+            <Th>Rol base</Th>
+            <Th>Accesos extra</Th>
+            <Th>Último ingreso</Th>
             <Th anclada>
               <span className="studio-sr-only">Abrir ficha</span>
             </Th>
@@ -128,6 +138,7 @@ export function MembersTable({
               member={m}
               esYo={m.user_id === currentUserId}
               onOpenDetail={onOpenDetail}
+              grants={grantsByUser[m.user_id] ?? []}
             />
           ))}
         </tbody>
@@ -140,10 +151,12 @@ function Fila({
   member,
   esYo,
   onOpenDetail,
+  grants,
 }: {
   member: UserMembershipWithProfile;
   esYo: boolean;
   onOpenDetail: (m: UserMembershipWithProfile) => void;
+  grants: UserModuleGrantView[];
 }) {
   const tone = roleBadgeTone(member.role);
   const etapa = accessStage(member);
@@ -221,6 +234,10 @@ function Fila({
       </Td>
 
       <Td>
+        <ChipsExtra grants={grants} />
+      </Td>
+
+      <Td>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
           <Badge tone={accessStageBadgeTone(etapa)} size="sm">
             {ACCESS_STAGE_LABELS[etapa]}
@@ -250,6 +267,35 @@ function Fila({
         </span>
       </Td>
     </tr>
+  );
+}
+
+/** Hasta dos chips y «+N»; los vencidos no cuentan. */
+function ChipsExtra({ grants }: { grants: UserModuleGrantView[] }) {
+  const vigentes = grants.filter((g) => !g.expired);
+  if (vigentes.length === 0) {
+    return (
+      <span aria-label="Sin accesos extra" style={{ color: "var(--ink-mute)" }}>
+        —
+      </span>
+    );
+  }
+  const visibles = vigentes.slice(0, 2);
+  const resto = vigentes.length - visibles.length;
+  return (
+    <span className="perm-chips" title={vigentes.map((g) => `${moduleLabel(g.moduleId)}${g.canEdit ? "" : " (ver)"}`).join(" · ")}>
+      {visibles.map((g) => (
+        <span key={g.moduleId} className="perm-chip" data-kind={g.sensitive ? "sens" : "extra"}>
+          {moduleLabel(g.moduleId)}
+          {g.canEdit ? "" : " · ver"}
+        </span>
+      ))}
+      {resto > 0 && (
+        <span className="perm-chip" data-kind="extra">
+          +{resto}
+        </span>
+      )}
+    </span>
   );
 }
 

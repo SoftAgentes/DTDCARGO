@@ -35,7 +35,12 @@ export const CRM_TABLEROS: ReadonlyArray<{ key: CrmTablero; label: string }> = [
   { key: "clientes", label: "Clientes" },
 ];
 
-/** Roles que la RLS de la 0506 deja usar el CRM propio (`crm_puede_usar()`). */
+/**
+ * Roles que usan el CRM propio POR ROL (default de `kommo` en rbac.ts + admin).
+ * Desde la SDD-0622 (migr 0539) la RLS ya no compara el rol: decide con
+ * `user_has_module('kommo')`, que suma desvíos por rol y accesos adicionales.
+ * Este predicado queda para listar asesores por rol.
+ */
 export const CRM_ROLES = ["admin", "commercial"] as const;
 
 /** Etapa a la que vuelve un cliente que deja de serlo (§4.5). */
@@ -62,7 +67,7 @@ export function esSegmento(v: unknown): v is CrmSegmento {
   return v === "cliente" || v === "lead_registrado" || v === "lead_nuevo";
 }
 
-/** El mismo predicado que `crm_puede_usar()` de la 0506, del lado de la pantalla. */
+/** ¿El ROL solo usa el CRM? (sin extras de la persona; ver `canAccessModule`). */
 export function rolUsaCrm(role: string | null | undefined): boolean {
   return (CRM_ROLES as readonly string[]).includes(role ?? "");
 }

@@ -20,7 +20,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { UserMembershipWithProfile } from "@/lib/studio/user-types";
+import { ROLE_LABELS, type UserMembershipWithProfile } from "@/lib/studio/user-types";
 
 const rolMock = vi.fn();
 const scopeMock = vi.fn();
@@ -77,7 +77,7 @@ describe("RolYAlcanceCard · el orden de escritura", () => {
     render(<RolYAlcanceCard member={miembro({ role: "operations", warehouse_scope: "all" })} />);
 
     // `warehouse` sigue siendo scoped, así que las dos escrituras corren.
-    await u.selectOptions(screen.getByLabelText("Rol"), "warehouse");
+    await u.click(screen.getByRole("radio", { name: ROLE_LABELS.warehouse }));
     await u.selectOptions(screen.getByLabelText("Almacén"), "cn");
     await aplicarCon(u);
 
@@ -89,7 +89,7 @@ describe("RolYAlcanceCard · el orden de escritura", () => {
     rolMock.mockResolvedValue({ error: "La base rechazó el cambio." });
     render(<RolYAlcanceCard member={miembro({ role: "operations", warehouse_scope: "all" })} />);
 
-    await u.selectOptions(screen.getByLabelText("Rol"), "warehouse");
+    await u.click(screen.getByRole("radio", { name: ROLE_LABELS.warehouse }));
     await u.selectOptions(screen.getByLabelText("Almacén"), "cn");
     await aplicarCon(u);
 
@@ -105,7 +105,7 @@ describe("RolYAlcanceCard · el orden de escritura", () => {
     // Se toca el alcance MIENTRAS el rol todavía lo admite…
     await u.selectOptions(screen.getByLabelText("Almacén"), "cn");
     // …y después el rol pasa a uno que no tiene lado geográfico.
-    await u.selectOptions(screen.getByLabelText("Rol"), "accounting");
+    await u.click(screen.getByRole("radio", { name: ROLE_LABELS.accounting }));
     await aplicarCon(u);
 
     expect(rolMock).toHaveBeenCalledTimes(1);

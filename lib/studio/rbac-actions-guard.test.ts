@@ -230,10 +230,6 @@ const DEUDA: Lista = {
   // ── sin candado de aplicación: sólo queda la RLS ──
   "bugs/actions.ts::updateBugAdminAction":
     "Sin gate de aplicación: hace `from(\"bug_reports\").update(...)` directo. El candado vive en la DB —policy `bug_reports_admin_update` más el grant por columna de migr 0394 (`:80`)—, y el propio código lo delata al tratar el error `42501`. Defensa en profundidad perdida, no agujero.",
-  "cotizador/actions.ts::lookupSuggestedRate":
-    "Sin candado: resuelve la tarifa sugerida de un cliente (`clientIdByMarkbox` + `resolveRateForClient`). Lo que devuelve es precio.",
-  "tracking/[id]/actions.ts::lookupRateForNewDestination":
-    "Sin candado: busca tarifa por destino. Mismo caso que `lookupSuggestedRate`.",
   "facturacion/actions.ts::lookupShipmentForInvoice":
     "Sin candado: `from(\"shipments\").select` por código. Lectura acotada sólo por la RLS de tenant.",
   "facturacion/actions.ts::lookupInvoiceBillingOptions":
@@ -246,8 +242,6 @@ const DEUDA: Lista = {
     "Sin candado, en un módulo que es dinero Y PII de empleados. El comentario del código dice «la RLS por tenant+rol ya restringe» — puede ser cierto y aun así el gate de aplicación falta.",
   "nomina/actions.ts::listSettlementLinesAction":
     "Sin candado; mismo caso que `listPayrollRunLinesAction`.",
-  "tarifas/actions.ts::previewRatesImportAction":
-    "Sin candado, pero NO toca datos: `return parseRatesCsv(csv)` sobre el texto que mandó el propio llamante. El riesgo es el menor de la lista; se deja acá para no cambiar comportamiento fuera del encargo.",
 };
 
 const listaDe = (clave: string): "EXCEPCIONES" | "DEUDA" | null =>
@@ -400,8 +394,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // leer nada, como `getReceivableHistory`; la lectura de `payment_reports` usa el
   // cliente de sesión, así que la RLS de la tabla repite el tenant. Pasa el
   // veredicto por acción sin entrar en ninguna lista.
+  // SDD-0622 sumó `usuarios/actions.ts::grantUserModuleAction`,
+  // `::revokeUserModuleGrantAction` y `::listUserAccessActivityAction` (469 → 472):
+  // `tenantAdminGate` antes de leer o escribir nada; escriben SOLO por las RPC
+  // de la 0538 (`studio_grant_user_module`, `studio_revoke_user_module_grant`),
+  // que repiten el rol admin de la base, y la lectura de la bitácora la limita
+  // la RLS del tenant.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(469);
+    expect(reportes.length).toBe(472);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -410,7 +410,10 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 20, deuda: 24 });
+    // SDD-0622 sacó de DEUDA `cotizador::lookupSuggestedRate` (ver Cotizador),
+    // `tracking/[id]::lookupRateForNewDestination` (editar Tracking + ver
+    // Cotizador) y `tarifas::previewRatesImportAction` (editar Tarifas): 24 → 21.
+    }).toEqual({ excepciones: 20, deuda: 21 });
   });
 
   for (const { rel, r } of reportes) {

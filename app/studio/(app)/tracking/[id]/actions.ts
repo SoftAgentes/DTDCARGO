@@ -16,7 +16,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   mensajeResultadoEmbarques,
@@ -524,6 +524,16 @@ export async function lookupRateForNewDestination(
   if (!destination?.trim()) return { rate: null };
 
   const supabase = await createClient();
+  // SDD-0622: cambiar el destino es editar el envío, y la tarifa es precio.
+  // Pide editar Tracking y, además, ver el Cotizador O la CN: el mismo criterio
+  // con que la RLS de `rates` (0540) deja leer tarifas (la CN las lee para la
+  // propuesta de la recepción). Así Almacén conserva la tarifa sugerida que ya
+  // recibía, y quien no ve ninguno de los dos (p. ej. marketing) no la recibe.
+  if (await moduleEditDenial(supabase, "tracking")) return { rate: null };
+  const sinPrecio =
+    (await moduleViewDenial(supabase, "quotes")) !== null &&
+    (await moduleViewDenial(supabase, "cn")) !== null;
+  if (sinPrecio) return { rate: null };
   try {
     const rate = await findRateForDestination(supabase, service, destination);
     return { rate };

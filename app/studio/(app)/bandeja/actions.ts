@@ -383,7 +383,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
   const agente = idDeContexto(agenteId);
   if (conversacion === null || agente === null) return { ok: false, error: "invalid" };
 
-  const { tenantId, userId, role, overrides } = await getStudioAccess(supabase);
+  const { tenantId, userId, role, overrides, grants } = await getStudioAccess(supabase);
   if (!tenantId || !userId) return { ok: false, error: "denied" };
   const cfg = chatwootConfig();
   if (!cfg) return { ok: false, error: "unconfigured" };
@@ -392,7 +392,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
   const vinculo = await getVinculoPropio(supabase, tenantId, userId);
   if (!vinculo) return { ok: false, error: "unlinked" };
   if (vinculo.chatwoot_user_id !== agente) return { ok: false, error: "otro_agente" };
-  if (!canAccessModule(role, "clients", overrides)) return { ok: false, error: "sin_clientes" };
+  if (!canAccessModule(role, "clients", overrides, grants)) return { ok: false, error: "sin_clientes" };
 
   // E2-D30 (4): Chatwoot decide si ese agente ve esa conversación. El token se
   // usa acá y se descarta.
@@ -444,7 +444,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     codigosConocidos = [];
   }
   const cuenta = await getClientAccountState(supabase, cliente, {
-    puedeVerSaldo: puedeVerSaldoCliente(role, overrides),
+    puedeVerSaldo: puedeVerSaldoCliente(role, overrides, grants),
     codigosConocidos,
   });
   return {

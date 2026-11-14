@@ -73,10 +73,10 @@ export async function GET(req: Request) {
     // El rol NO sale de `sesion.role` a propósito: `getStudioAccess` además
     // resuelve los overrides por rol (SDD-0085), y `canAccessModule` los
     // necesita para no negarle el módulo a quien lo tiene concedido a mano.
-    const { role, overrides } = await getStudioAccess(supabase);
+    const { role, overrides, grants } = await getStudioAccess(supabase);
 
     if (tipo === "estimados") {
-      if (!canAccessModule(role, "quotes", overrides)) {
+      if (!canAccessModule(role, "quotes", overrides, grants)) {
         return apiError("No tienes acceso a Estimados.", null, 403, "comercial-export");
       }
       const quotes = await listQuotes(
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
     }
 
     if (tipo === "facturas") {
-      if (!canAccessModule(role, "invoices", overrides)) {
+      if (!canAccessModule(role, "invoices", overrides, grants)) {
         return apiError("No tienes acceso a Facturación.", null, 403, "comercial-export");
       }
       // `listInvoices` ya aplica el filtro de tab in-memory (`filterByTab`), que

@@ -384,6 +384,10 @@ export type RateImportResult = {
 export async function previewRatesImportAction(
   csv: string,
 ): Promise<RateImportPreview> {
+  // SDD-0622: no toca datos, pero es el primer paso de importar tarifas; mismo
+  // candado que `importRatesAction`.
+  const denial = await moduleEditDenial(await createClient(), "rates");
+  if (denial) return { rows: [], validCount: 0, invalidCount: 0, duplicateCount: 0, error: denial };
   return parseRatesCsv(csv ?? "");
 }
 
