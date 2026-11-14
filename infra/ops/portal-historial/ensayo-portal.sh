@@ -890,7 +890,16 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
     }
     # En el log de la corrida, de cada paso: el código de salida y su primer HECHO error= (solo HECHO, sin datos de
     # personas). Así un rojo se lee sin bajar la evidencia (pedido del Subdirector tras el job 132577863038).
-    informar() { log "   $1: salida $(h "$DIR/$1.txt" salida_proceso), $(grep -m 1 "^HECHO error=" "$DIR/$1.txt" || echo "HECHO error=ninguno")"; }
+    # Cada paso del desarme deja en la salida del ensayo (y así en el log del CI) todas sus líneas HECHO: deshacer.sh y
+    # deshacer-vinculos.sh solo sacan conteos, ids de tenant, cuenta y bandeja, y sha256, nunca datos de personas. Las
+    # líneas que no son HECHO (un error de psql puede citar una fila) no salen: solo se cuentan.
+    informar() { # paso
+      local l n=0 otras
+      while IFS= read -r l; do log "   $1: $l"; n=$((n + 1)); done < <(grep '^HECHO ' "$DIR/$1.txt" 2>/dev/null | tr -d '\r')
+      otras="$(grep -vc '^HECHO ' "$DIR/$1.txt" 2>/dev/null)"
+      [ "$n" -gt 0 ] || log "   $1: sin líneas HECHO"
+      [ "${otras:-0}" = 0 ] || log "   $1: y ${otras} líneas que no son HECHO, que no se copian"
+    }
     R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"
     if desarme_es_la_copia "$R_DB" "$R_CW"; then
       ok R0 "el desarme corre solo en las copias: $R_DB y $R_CW son del proyecto $PROYECTO, en $RED"
@@ -900,8 +909,25 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
       deshacer_cw "$DIR/desarme-seco.txt" seco; paso desarme-seco; informar desarme-seco
       F="$DIR/desarme-seco.txt"
       R1_ANTES="$(h "$F" antes)"
-      exigir R1 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO deshacer=ok" "$F" && [ -n "$CARGADO" ] && [ "$R1_ANTES" = "$CARGADO" ] && [ "${CARGADO#conversaciones:0,}" = "$CARGADO" ] && [ -s "$SHM/chatwoot-seco.hecho" ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
-        "deshacer.sh en seco ve exactamente lo cargado ($R1_ANTES, la carga dejó $CARGADO), con $(h "$F" contactos_a_borrar) contactos a borrar y el contenedor limpio"
+      # Los mensajes de la bandeja, explicados y no copiados: el seco cuenta TODAS las filas de messages de la bandeja,
+      # igual que el «despues=» de la carga (filas_en_bandeja de cargar-portal.rb). Son lo que la bandeja tenía antes de
+      # la carga, más los mensajes de Studio (mensajes_nuevos, los que vincular.sh vincula: su «mensajes=») y más las
+      # notas de archivo de los hilos archivados (notas_nuevas), que no son mensajes de Studio ni van en los vínculos.
+      # Por eso, con un hilo archivado, el seco ve un mensaje más que E1 y E2.
+      msj_de() { printf '%s\n' "$1" | sed -n 's/^conversaciones:[0-9]*,mensajes:\([0-9]*\),.*/\1/p'; }
+      num() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; }
+      C1F="$DIR/carga-1.txt"; C2F="$DIR/carga-2.txt"
+      M_ANTES="$(msj_de "$(h "$C1F" antes)")"; M_STUDIO="$(h "$C1F" mensajes_nuevos)"; M_NOTAS="$(h "$C1F" notas_nuevas)"; M_NOTAS="${M_NOTAS:-0}"
+      # Lo que entró al repetir (c): C1 exige que no entre nada, y si entrara se suma aquí en vez de esconderse.
+      M_R1="$(h "$C2F" mensajes_nuevos)"; M_R2="$(h "$C2F" notas_nuevas)"; M_REPETIR=""
+      num "${M_R1:-0}" && num "${M_R2:-0}" && M_REPETIR=$((${M_R1:-0} + ${M_R2:-0}))
+      M_VINCULADOS="$(sed -n 's/^HECHO contactos=[0-9]* hilos=[0-9]* mensajes=\([0-9]*\)$/\1/p' "$DIR/vincular.txt" 2>/dev/null | tr -d '\r' | tail -n 1)"
+      M_BANDEJA="$(msj_de "$R1_ANTES")"
+      M_ESPERADOS=""
+      num "$M_ANTES" && num "$M_STUDIO" && num "$M_NOTAS" && num "$M_REPETIR" && M_ESPERADOS=$((M_ANTES + M_STUDIO + M_NOTAS + M_REPETIR))
+      evidencia "HECHO desarme_mensajes=bandeja:${M_BANDEJA:-ilegible},antes_de_la_carga:${M_ANTES:-ilegible},de_studio:${M_STUDIO:-ilegible},notas_de_archivo:$M_NOTAS,al_repetir:${M_REPETIR:-ilegible},vinculados:${M_VINCULADOS:-ilegible}"
+      exigir R1 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO deshacer=ok" "$F" && [ -n "$CARGADO" ] && [ "$R1_ANTES" = "$CARGADO" ] && [ "${CARGADO#conversaciones:0,}" = "$CARGADO" ] && [ -n "$M_ESPERADOS" ] && [ "$M_BANDEJA" = "$M_ESPERADOS" ] && [ "$M_VINCULADOS" = "$M_STUDIO" ] && [ -s "$SHM/chatwoot-seco.hecho" ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
+        "deshacer.sh en seco ve exactamente lo cargado ($R1_ANTES, la carga dejó $CARGADO): sus ${M_BANDEJA:-?} mensajes son los ${M_ANTES:-?} de antes, ${M_STUDIO:-?} de Studio (vinculados: ${M_VINCULADOS:-?}) y $M_NOTAS notas de archivo; con $(h "$F" contactos_a_borrar) contactos a borrar y el contenedor limpio"
       CW_ANTES="$(bandeja_cw)"
       deshacer_cw "$DIR/desarme-1b.txt" borrar no; paso desarme-1b; informar desarme-1b
       CW_DESPUES="$(bandeja_cw)"
@@ -910,6 +936,8 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
       exigir R2 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO deshacer=ok" "$F" && grep -qx "HECHO fin=rollback" "$F" && [ -n "$CW_ANTES" ] && [ "$CW_ANTES" = "$CW_DESPUES" ] && [ ! -e "$SHM/chatwoot-borrar.hecho" ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
         "deshacer.sh MODO=borrar CONFIRMAR=no termina en ROLLBACK y la copia de Chatwoot queda igual ($CW_DESPUES)"
       # La marca de la copia que pide deshacer-vinculos.sql para ENTORNO=copia, guardada para la base de la copia.
+      # R3 compara contra la foto de DESPUÉS de la carga: la toma aquí, justo antes de deshacer-vinculos.sh (y después
+      # de R1 y R2, que no cambian Studio). No usa controles-antes.txt, que es de antes de la carga (K, C-8 inicial).
       studio_copia -c "alter database postgres set dtd.entorno = 'copia'" >/dev/null 2>&1
       CTL "$DIR/controles-desarme-antes.txt"
       A="$DIR/controles-desarme-antes.txt"
