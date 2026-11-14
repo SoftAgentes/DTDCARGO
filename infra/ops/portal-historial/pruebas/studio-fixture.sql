@@ -162,6 +162,11 @@ values (pg_temp.id('c1'), pg_temp.id('T1'), pg_temp.id('hC'), 'enviado', 1101);
 -- C-7 de controles-studio.sql lee estas tablas del CRM: aquí van vacías, solo con lo que esa consulta mira.
 create table public.crm_tarjetas (id uuid primary key default gen_random_uuid(), tenant_id uuid not null);
 create table public.crm_tareas (id uuid primary key default gen_random_uuid(), tenant_id uuid not null);
-create table public.crm_historial_etapas (id uuid primary key default gen_random_uuid(), tenant_id uuid not null);
+-- El id es bigint identity, como en 0506_crm_modelo.sql (el --solo-copia del 2026-11-14 falló con uuid:
+-- «invalid input syntax for type uuid»). COPY FROM acepta el id de producción aunque sea generated always.
+create table public.crm_historial_etapas (
+  id           bigint generated always as identity primary key,
+  tenant_id    uuid not null
+);
 
 commit;

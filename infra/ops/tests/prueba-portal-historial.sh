@@ -597,5 +597,47 @@ done
 [ "${mutantes_a}" = 3 ] && ok "PISO: caen los 3 mutantes del abandono" || ko "caen ${mutantes_a} de 3 mutantes del abandono"
 rm -rf "${D}" "${DUR}"
 
+# CONTRATO DE TIPOS (el --solo-copia del 2026-11-14): las tablas del CRM que el esquema de la copia
+# (ensayo-studio-esquema.sql) y el fixture de la producción simulada (pruebas/studio-fixture.sql) escriben a mano tienen
+# que tener el tipo de 0506_crm_modelo.sql en cada columna de la lista. crm_historial_etapas.id era uuid en los dos, y
+# bigint en producción: el COPY falló, y la prueba de Actions no lo vio porque su «producción» tenía el mismo error.
+# tipo_col archivo tabla columna: la primera palabra después del nombre de la columna en su `create table`.
+tipo_col() {
+  awk -v t="create table public.$2 (" -v c="$3" '
+    !hecho && index($0, t) { en = 1; $0 = substr($0, index($0, t) + length(t)) }
+    en { b = b " " $0; if ($0 ~ /\);/) { en = 0; hecho = 1 } }
+    END {
+      n = split(b, p, ",")
+      for (i = 1; i <= n; i++) { s = p[i]; sub(/^[ \t]+/, "", s); split(s, w, /[ \t]+/); if (w[1] == c) { print w[2]; exit } }
+    }' "$1"
+}
+M0506="${R}/supabase/migrations/0506_crm_modelo.sql"
+contrato_tipos() { # esquema fixture: 0 si las 6 columnas tienen el tipo de la 0506
+  local tabla col real n=0
+  for tabla in crm_tarjetas crm_tareas crm_historial_etapas; do
+    for col in id tenant_id; do
+      real="$(tipo_col "${M0506}" "${tabla}" "${col}")"
+      [ -n "${real}" ] && [ "$(tipo_col "$1" "${tabla}" "${col}")" = "${real}" ] && [ "$(tipo_col "$2" "${tabla}" "${col}")" = "${real}" ] && n=$((n+1))
+    done
+  done
+  [ "${n}" = 6 ]
+}
+contrato_tipos "${PH}/ensayo-studio-esquema.sql" "${PH}/pruebas/studio-fixture.sql" \
+  && ok "contrato de tipos: las 3 tablas del CRM del esquema de la copia y del fixture tienen los tipos de la 0506 (crm_historial_etapas.id $(tipo_col "${M0506}" crm_historial_etapas id))" \
+  || ko "contrato de tipos: el esquema de la copia o el fixture no tienen los tipos de la 0506"
+# MUTANTES del contrato, cada uno en su caso: el id de crm_historial_etapas vuelve a uuid en el esquema, o en el fixture.
+for lado in esquema fixture; do
+  cp "${PH}/ensayo-studio-esquema.sql" "${T}/esquema.sql"; cp "${PH}/pruebas/studio-fixture.sql" "${T}/fixture.sql"
+  sed -i 's/^  id           bigint generated always as identity primary key,$/  id           uuid primary key default gen_random_uuid(),/' "${T}/${lado}.sql"
+  if cmp -s "${T}/${lado}.sql" "${PH}/$([ "${lado}" = esquema ] && echo ensayo-studio-esquema.sql || echo pruebas/studio-fixture.sql)"; then
+    ko "MUTANTE del contrato de tipos (${lado}): no se pudo aplicar"
+  elif contrato_tipos "${T}/esquema.sql" "${T}/fixture.sql"; then
+    ko "MUTANTE del contrato de tipos (${lado}): crm_historial_etapas.id uuid SOBREVIVE"
+  else
+    ok "MUTANTE del contrato de tipos (${lado}): crm_historial_etapas.id uuid cae"
+  fi
+done
+rm -f "${T}/esquema.sql" "${T}/fixture.sql"
+
 echo "== ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]
