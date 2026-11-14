@@ -28,6 +28,7 @@ import {
   type ActualizacionesErrorCode,
   type ActualizacionesState,
 } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export interface RevisionVista {
   estado: EstadoVersiones;
@@ -178,23 +179,8 @@ export function ActualizacionesPanel({ revision, pedidos, analisis = null }: Pro
   const [error, setError] = useState<string | null>(null);
 
   const banner = error && (
-    <div
-      role="alert"
-      style={{
-        display: "flex",
-        gap: "var(--s-2)",
-        alignItems: "center",
-        background: "var(--bg-surface)",
-        border: "1px solid var(--danger-border)",
-        borderRadius: "var(--r-md)",
-        padding: "var(--s-3) var(--s-4)",
-        marginBottom: "var(--s-4)",
-        font: "400 13px/1.5 var(--f-sans)",
-        color: "var(--ink)",
-      }}
-    >
-      <span style={{ color: "var(--danger-text)", display: "inline-flex" }}>{Icon.warn(14)}</span>
-      {error}
+    <div style={{ marginBottom: "var(--s-4)" }}>
+      <Aviso tono="error">{error}</Aviso>
     </div>
   );
 

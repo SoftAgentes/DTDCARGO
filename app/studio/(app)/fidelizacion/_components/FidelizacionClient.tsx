@@ -19,6 +19,7 @@ import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -284,43 +285,10 @@ function StrandedCreditsBanner({
     : `${complete ? "" : "Al menos "}${credits.length} créditos de referido quedaron sin liberar`;
 
   return (
-    <section
-      role="alert"
-      style={{
-        margin: "0 0 var(--s-5)",
-        padding: "var(--s-3) var(--s-4)",
-        background: "var(--warning-bg)",
-        border: "1px solid var(--warning)",
-        borderRadius: "var(--r-md)",
-        display: "flex",
-        gap: "var(--s-3)",
-        alignItems: "flex-start",
-      }}
-    >
-      <span
-        style={{
-          color: "var(--warning)",
-          display: "flex",
-          flexShrink: 0,
-          marginTop: 2,
-        }}
-      >
-        {Icon.warn(16)}
-      </span>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            font: "700 13px/1.3 var(--f-sans)",
-            color: "var(--ink)",
-            marginBottom: "var(--s-2)",
-          }}
-        >
-          {titulo}
-        </div>
+    <div style={{ margin: "0 0 var(--s-5)" }}>
+      <Aviso tono="atencion" urgente titulo={titulo}>
         <p
           style={{
-            font: "500 12.5px/1.55 var(--f-sans)",
-            color: "var(--ink-soft)",
             margin: "0 0 var(--s-2)",
             maxWidth: "76ch",
           }}
@@ -370,8 +338,8 @@ function StrandedCreditsBanner({
             </span>
           )}
         </div>
-      </div>
-    </section>
+      </Aviso>
+    </div>
   );
 }
 

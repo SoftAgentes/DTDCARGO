@@ -24,6 +24,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { Avatar, type AvatarColor } from "@/app/studio/_components/ui/Avatar";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { Icon } from "@/app/studio/_components/icons";
 import { buildViewCsv } from "@/lib/studio/reports/export-csv";
@@ -1421,20 +1422,9 @@ export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
   return (
     <Card eyebrow="Estado de resultados" title={unidadSinVerificar ? "Gerencial · unidad monetaria sin verificar" : "Gerencial · USD funcional · desde el mayor"} style={{ maxWidth: 680, padding: 0 }}>
       {aviso ? (
-        <p
-          role="note"
-          style={{
-            margin: "0 20px var(--s-3)",
-            padding: "var(--s-3) var(--s-4)",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-sm)",
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          {aviso}
-        </p>
+        <div style={{ margin: "0 20px var(--s-3)" }}>
+          <Aviso tono="atencion">{aviso}</Aviso>
+        </div>
       ) : null}
       <div style={{ padding: "0 0 var(--s-2)" }}>
         {income.rows.map((row) => (

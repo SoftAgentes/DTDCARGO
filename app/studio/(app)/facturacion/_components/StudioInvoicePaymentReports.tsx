@@ -3,6 +3,7 @@
 import { useId, useRef, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   paymentStatusLabel,
   paymentStatusTone,
@@ -44,7 +45,7 @@ export function StudioInvoicePaymentReports({
   items: ReportWithProof[] | null;
   cashAccounts?: CashAccountOption[];
 }) {
-  if (items === null) return <p role="alert" style={{ color: "var(--danger-text)" }}>No pudimos consultar los reportes de pago. Actualiza la factura antes de resolver un reporte.</p>;
+  if (items === null) return <Aviso tono="error">No pudimos consultar los reportes de pago. Actualiza la factura antes de resolver un reporte.</Aviso>;
   if (items.length === 0) return null;
 
   return (
@@ -227,7 +228,7 @@ function ReportRow({ item, first, cashAccounts }: {
           </button>
         </div>
       ) : null}
-      {!selection && state.error ? <p role="alert" style={{ color: "var(--danger-text)" }}>{state.error}</p> : null}
+      {!selection && state.error ? <Aviso tono="error" compacto>{state.error}</Aviso> : null}
       <ConfirmDialog open={selection !== null}
         title={selection === "confirmado" ? "Confirmar pago" : "Rechazar reporte de pago"}
         message={"Factura " + report.invoiceCode + " · " + report.currency + " " + fmt(report.amount) + ". "

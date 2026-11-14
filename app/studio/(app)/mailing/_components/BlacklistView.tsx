@@ -15,6 +15,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   addMailBlacklistAction,
   removeMailBlacklistAction,
@@ -206,34 +207,17 @@ export function BlacklistView({ blacklist }: Props) {
         </form>
 
         {addState.error && (
-          <div
-            role="alert"
-            style={{
-              marginTop: 10,
-              padding: "8px 12px",
-              background: "var(--danger-bg, #FCEDED)",
-              border: "1px solid var(--danger)",
-              borderRadius: 6,
-              color: "var(--danger)",
-              fontSize: 12,
-            }}
-          >
-            {addState.error}
+          <div style={{ marginTop: 10 }}>
+            <Aviso tono="error" compacto>
+              {addState.error}
+            </Aviso>
           </div>
         )}
         {addState.ok && addState.message && (
-          <div
-            style={{
-              marginTop: 10,
-              padding: "8px 12px",
-              background: "var(--success-bg, #E5F4ED)",
-              border: "1px solid var(--success)",
-              borderRadius: 6,
-              color: "var(--success)",
-              fontSize: 12,
-            }}
-          >
-            ✓ {addState.message}
+          <div style={{ marginTop: 10 }}>
+            <Aviso tono="exito" compacto>
+              {addState.message}
+            </Aviso>
           </div>
         )}
       </div>
@@ -347,19 +331,10 @@ export function BlacklistView({ blacklist }: Props) {
       )}
 
       {removeState.error && (
-        <div
-          role="alert"
-          style={{
-            marginTop: 12,
-            padding: "8px 12px",
-            background: "var(--danger-bg, #FCEDED)",
-            border: "1px solid var(--danger)",
-            borderRadius: 6,
-            color: "var(--danger)",
-            fontSize: 12,
-          }}
-        >
-          {removeState.error}
+        <div style={{ marginTop: 12 }}>
+          <Aviso tono="error" compacto>
+            {removeState.error}
+          </Aviso>
         </div>
       )}
       <ConfirmDialog

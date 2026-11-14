@@ -18,6 +18,7 @@ import { useMemo, useState, useTransition } from "react";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   statementStatusLabel,
   statementStatusTone,
@@ -152,17 +153,8 @@ export function ReconciliationTab({
       </div>
 
       {error && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: "var(--r-md)",
-            background: "var(--danger-bg)",
-            color: "var(--danger)",
-            font: "600 12px/1.4 var(--f-sans)",
-            marginBottom: 16,
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="error">{error}</Aviso>
         </div>
       )}
 

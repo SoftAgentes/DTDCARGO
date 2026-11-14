@@ -15,6 +15,7 @@ import { useState, useTransition } from "react";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   canTransitionCharge,
   chargeStatusLabel,
@@ -110,17 +111,8 @@ export function ChargesTab({
       </div>
 
       {(loadError || rowError) && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: "var(--r-md)",
-            background: "var(--danger-bg)",
-            color: "var(--danger)",
-            font: "600 12px/1.4 var(--f-sans)",
-            marginBottom: 16,
-          }}
-        >
-          {loadError ?? rowError}
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="error">{loadError ?? rowError}</Aviso>
         </div>
       )}
 

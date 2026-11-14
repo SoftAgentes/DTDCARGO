@@ -15,6 +15,7 @@ import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { fmtAmount } from "@/lib/studio/renditions/printable";
 import type { QuincenaCard } from "../page";
 import { emitRenditionAction } from "../actions";
@@ -217,18 +218,9 @@ export function EmitDrawer({
         </p>
 
         {error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 14px",
-              borderRadius: "var(--r-md)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              font: "600 12px/1.4 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </div>
+          </Aviso>
         )}
       </div>
 

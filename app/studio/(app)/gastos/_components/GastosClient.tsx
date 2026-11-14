@@ -16,6 +16,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -377,88 +378,69 @@ function AlertBanner({
   };
 
   return (
-    <div
-      style={{
-        marginBottom: 16,
-        padding: "14px 16px",
-        background: "var(--warning-bg)",
-        border: "1px solid var(--warning)",
-        borderRadius: "var(--r-lg)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ color: "var(--warning)", display: "inline-flex" }}>
-          {Icon.bell(15)}
-        </span>
-        <span
-          className="studio-display"
-          style={{ fontSize: 14, color: "var(--ink)" }}
-        >
-          {alerts.length === 1
+    <div style={{ marginBottom: 16 }}>
+      <Aviso
+        tono="atencion"
+        titulo={
+          alerts.length === 1
             ? t("expenses.alert.banner_title_one")
-            : t("expenses.alert.banner_title_many", { count: alerts.length })}
-        </span>
-      </div>
-      <p
-        style={{
-          font: "500 12px/1.4 var(--f-sans)",
-          color: "var(--ink-soft)",
-          margin: 0,
-        }}
+            : t("expenses.alert.banner_title_many", { count: alerts.length })
+        }
       >
-        {t("expenses.alert.banner_sub")}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {alerts.map((a) => (
-          <div
-            key={a.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-              padding: "8px 10px",
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-md)",
-            }}
-          >
-            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
-              {a.shipment_code ?? "—"}
-            </code>
-            <span
-              style={{
-                font: "500 11.5px/1 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              → {a.destination ?? t("expenses.alert.no_destination")}
-            </span>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              <button
-                type="button"
-                className="studio-btn studio-btn-primary studio-btn-xs"
-                onClick={() => onLoad(a.shipment_id)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{ margin: 0 }}>
+            {t("expenses.alert.banner_sub")}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {alerts.map((a) => (
+              <div
+                key={a.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  padding: "8px 10px",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-md)",
+                }}
               >
-                {Icon.plus(12)} {t("expenses.alert.load_btn")}
-              </button>
-              <button
-                type="button"
-                className="studio-btn studio-btn-ghost studio-btn-xs"
-                disabled={isPending && pendingId === a.id}
-                onClick={() => close(a.id, a.shipment_code)}
-              >
-                {isPending && pendingId === a.id
-                  ? t("expenses.alert.closing")
-                  : t("expenses.alert.close_btn")}
-              </button>
-            </div>
+                <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                  {a.shipment_code ?? "—"}
+                </code>
+                <span
+                  style={{
+                    font: "500 11.5px/1 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  → {a.destination ?? t("expenses.alert.no_destination")}
+                </span>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-primary studio-btn-xs"
+                    onClick={() => onLoad(a.shipment_id)}
+                  >
+                    {Icon.plus(12)} {t("expenses.alert.load_btn")}
+                  </button>
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-xs"
+                    disabled={isPending && pendingId === a.id}
+                    onClick={() => close(a.id, a.shipment_code)}
+                  >
+                    {isPending && pendingId === a.id
+                      ? t("expenses.alert.closing")
+                      : t("expenses.alert.close_btn")}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </Aviso>
     </div>
   );
 }
