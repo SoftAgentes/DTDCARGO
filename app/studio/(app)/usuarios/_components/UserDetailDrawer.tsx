@@ -118,21 +118,26 @@ export function UserDetailDrawer({
       pending={pendiente}
       width={640}
     >
-      <div role="tablist" aria-label="Secciones de la ficha" className="perm-tabs">
-        {(["perfil", "acceso", "actividad"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            id={`ficha-tab-${t}`}
-            aria-selected={pestana === t}
-            aria-controls={`ficha-panel-${t}`}
-            className="perm-tab"
-            onClick={() => setPestana(t)}
-          >
-            {t === "perfil" ? "Perfil" : t === "acceso" ? "Acceso" : "Actividad"}
-          </button>
-        ))}
+      {/* Pestañas con la forma única del Studio (SDD-0603, `.studio-tabs`). */}
+      <div style={{ padding: "var(--s-3) var(--s-4) 0" }}>
+        <div role="tablist" aria-label="Secciones de la ficha" className="studio-tabs">
+          {(["perfil", "acceso", "actividad"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              id={`ficha-tab-${t}`}
+              aria-selected={pestana === t}
+              aria-controls={`ficha-panel-${t}`}
+              data-activa={pestana === t ? "true" : undefined}
+              tabIndex={pestana === t ? 0 : -1}
+              className="studio-tab"
+              onClick={() => setPestana(t)}
+            >
+              {t === "perfil" ? "Perfil" : t === "acceso" ? "Acceso" : "Actividad"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {pestana === "acceso" && (
