@@ -110,6 +110,40 @@ PR aparte desde `main` en `4c5c39581`, con el lote 63 ya cargado en producción 
 
   La evidencia va a `<padre>/ensayos-local/`, fuera del paquete. Los modos normal y cruzado se niegan con un lote de producción, y `--produccion` se niega con uno de prueba o con un paquete que traiga `deshacer.sql` o `purgar.sql`.
 
+### Correlativo de China en el título del packing (2026-11-14)
+
+El packing list del contenedor DTD #64 trae en su título «CONTENEDOR DTD #61», porque el almacén de China lo numera con su propio correlativo. El generador ya se negaba cuando el título no coincidía con `--contenedor`, y la única salida era `--ignorar-titulo-packing`, que es solo para pruebas. Aprobado por el DG el 2026-11-14 (D1). Cambios:
+
+- **`--correlativo-origen N`** en `generar-lote`. Con la bandera, el título tiene que decir exactamente N; si dice otro número, o no se lee, se niega sin escribir nada. Sin la bandera, el rechazo de siempre queda igual, y su mensaje sugiere la bandera.
+- **Registro del mapeo.** Queda en `manifiesto.json` (`contenedor.correlativoOrigen`), en `resumen.md` («N (China) → M (DTD)») y como aviso. Son solo los dos números, sin datos del Excel. No cambia el SQL ni el id del lote.
+- **`--ignorar-titulo-packing` se niega con `--entorno produccion`.** Antes, que fuera solo para pruebas estaba únicamente en el runbook. No se combina con `--correlativo-origen`.
+- **Pruebas** (`scripts/__tests__/consolidados-sql.test.ts`), en prueba y en producción:
+  - título igual sin bandera: pasa;
+  - título distinto sin bandera: se niega;
+  - bandera correcta: pasa y el mapeo queda;
+  - bandera incorrecta o título sin número: se niega;
+  - una corrida de `generar()` de punta a punta con Excel inventados.
+
+### Empaque mínimo (2026-11-14)
+
+Regla del DG, del 64 en adelante: al servidor sube solo lo que `aplicar-lote.sh` necesita. Ni `resumen.md` ni otro archivo con texto del Excel que el cargador no use. Cambios:
+
+- **Dos carpetas.** `--salida` es el paquete (los `.sql`, `manifiesto.json` y `SHA256SUMS`, que cubre solo esos archivos). `<salida>-local/` lleva `resumen.md` y `manifiesto-completo.json`, y no sube. Así el `scp -r` de siempre sube lo justo.
+- **Manifiesto del paquete.** Sin `clientes` (con `nombreExcel` y los candidatos), sin `embarques` ni `avisos`. `aplicar-lote.sh` solo lee el id, el entorno y los conteos esperados. `verificar.sql` se arma con el manifiesto completo en memoria, así que no cambia.
+- **SQL.** En producción, `lote_clientes.nombre_excel` va vacío: solo lo leen los insert de clientes faltantes, que existen solo en prueba. Con `--sin-facturas`, `lote_lineas` queda sin filas, porque solo la lee el bloque de facturas. Siguen viajando los remitentes y las descripciones de las filas, que son lo que se carga.
+- **`aplicar-lote.sh`** rechaza (3), en producción, un paquete con `resumen.md` o con `"nombreExcel"` en el manifiesto, antes de tocar docker. En prueba no lo rechaza: los paquetes de prueba viejos siguen corriendo.
+- **El generador** se niega si la carpeta de salida ya trae un `resumen.md` o un `manifiesto-completo.json` de una corrida anterior.
+- **Pruebas.**
+  - Vitest:
+    - manifiesto del paquete;
+    - archivos del paquete y de la carpeta local;
+    - `SHA256SUMS`;
+    - ningún nombre de marca en el paquete de producción;
+    - en prueba, el nombre sí viaja;
+    - `--sin-facturas` sin líneas;
+    - el sobrante `resumen.md`.
+  - Bash: los dos rechazos nuevos y que no llamen a docker. El piso de `pruebas-linux.sh` sube a 78.
+
 ## Diseño
 
 ### Modelo del lote (por contenedor)

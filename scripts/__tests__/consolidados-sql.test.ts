@@ -11,10 +11,13 @@
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
 import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { archivosDelLote, generar, parsearArgumentos, resumenMarkdown, SOLO_PRUEBA, sobrantesSoloPrueba } from "../consolidados/generar-lote";
+import ExcelJS from "exceljs";
+import {
+  archivosDelLote, carpetaLocal, generar, manifiestoDelPaquete, parsearArgumentos, resumenMarkdown, revisarTituloPacking, SOLO_PRUEBA, sobrantesSoloPrueba,
+} from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
   numero: 59,
@@ -408,20 +411,21 @@ describe("parsearArgumentos", () => {
 describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimiento de la #534)", () => {
   it("con --entorno produccion no se emiten deshacer.sql ni purgar.sql; en prueba sí", () => {
     const prod = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
-    const archivosProd = archivosDelLote("produccion", prod, resumenMarkdown(lote(), prod, []));
-    expect(Object.keys(archivosProd)).toEqual(["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json", "resumen.md"]);
+    const archivosProd = archivosDelLote("produccion", prod);
+    expect(Object.keys(archivosProd)).toEqual(["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json"]);
     for (const n of SOLO_PRUEBA) expect(archivosProd).not.toHaveProperty(n);
-    expect(archivosProd["resumen.md"]).toContain("no trae** `deshacer.sql` ni `purgar.sql`");
-    expect(archivosProd["resumen.md"]).not.toContain("--crear-clientes-faltantes");
+    const resumenProd = resumenMarkdown(lote(), prod, []);
+    expect(resumenProd).toContain("no trae** `deshacer.sql` ni `purgar.sql`");
+    expect(resumenProd).not.toContain("--crear-clientes-faltantes");
 
     const prueba = generarSql(lote(), OPCIONES, FUENTES);
-    const archivosPrueba = archivosDelLote("prueba", prueba, resumenMarkdown(lote(), prueba, []));
+    const archivosPrueba = archivosDelLote("prueba", prueba);
     expect(Object.keys(archivosPrueba)).toEqual([
-      "previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "deshacer.sql", "purgar.sql", "manifiesto.json", "resumen.md",
+      "previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "deshacer.sql", "purgar.sql", "manifiesto.json",
     ]);
     expect(archivosPrueba["deshacer.sql"]).toBe(prueba.deshacer);
     expect(archivosPrueba["purgar.sql"]).toBe(prueba.purgar);
-    expect(archivosPrueba["resumen.md"]).toContain("`purgar.sql` para el borrado definitivo en prueba");
+    expect(resumenMarkdown(lote(), prueba, [])).toContain("`purgar.sql` para el borrado definitivo en prueba");
   });
 
   it("generar() con --entorno produccion se niega si la carpeta de salida ya trae deshacer.sql o purgar.sql, sin escribir nada", async () => {
@@ -443,6 +447,210 @@ describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimie
       await expect(generar(args)).rejects.toThrow("ya trae deshacer.sql y purgar.sql");
       // En prueba esos archivos son del paquete: no hay negativa (falla después, por el Excel que falta).
       await expect(generar({ ...args, entorno: "prueba" })).rejects.toThrow(/No existe el archivo/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+/** Nombres de marca inventados: tienen que quedar en la carpeta local y nunca en el paquete de producción. */
+const NOMBRES_SECRETOS = ["NOMBRESECRETOUNO", "NOMBRESECRETODOS"];
+
+/** Rastreo y packing inventados del contenedor DTD #64, con el número de título que se pida. */
+async function armarLibros(dir: string, tituloPacking: number): Promise<{ rastreo: string; packing: string }> {
+  const rastreo = path.join(dir, "rastreo.xlsx");
+  const packing = path.join(dir, `packing-${tituloPacking}.xlsx`);
+  const wr = new ExcelJS.Workbook();
+  const wsr = wr.addWorksheet("DTD");
+  wsr.getRow(3).values = [undefined, "# CONTENEDOR", "FCL/DDP", "NOMBRE PUERTO", "FECHA DE CARGA", "NRO DE CONTENEDOR", "PRECINTO", "EMPRESA", "LLEGA A PUERTO", "FECHA APROX. DE LLEGADA"];
+  wsr.getRow(4).values = [undefined, "DTD#64", "DDP", "YIWU", new Date(Date.UTC(2026, 8, 29)), "ABCU6464646", undefined, "CMA CGM", "la guaira", new Date(Date.UTC(2026, 11, 12))];
+  await wr.xlsx.writeFile(rastreo);
+  const wp = new ExcelJS.Workbook();
+  const wsp = wp.addWorksheet("Hoja1");
+  wsp.getRow(2).getCell(1).value = `CONTENEDOR DTD # ${tituloPacking} YW: SEPTIEMBRE 2026 SALIDA`;
+  wsp.getRow(3).values = ["marca de la caja", "Remitente", "Descripciones de paquetes", "cajas", "Peso (kg)", "CBM CHINA", "CBM A FACTURA", "CONSOLIDADO KG EXTRA", "PRECIO X KG EXTRA", "VALOR $ KG EXTRA", "PRECIO VENTA CBM", "TOTAL FACTURADO", "Agente"];
+  wsp.getRow(4).values = [`DTD-J031 ${NOMBRES_SECRETOS[0]}`, "DTD-J031-05", "Cajas de prueba", 2, 100, 1, 1, 0, 0, 0, 500, 500, "Agente Prueba"];
+  wsp.getRow(5).values = [`DC-014 ${NOMBRES_SECRETOS[1]}`, "DC-014-11", "Cajas de prueba", 3, 120, 0.5, 0.5, 0, 0, 0, 600, 300, "Agente Prueba"];
+  await wp.xlsx.writeFile(packing);
+  return { rastreo, packing };
+}
+
+describe("SDD-0543 F2 · --correlativo-origen: el título del packing trae el correlativo de China", () => {
+  const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "64", "--eta", "2026-12-12", "--salida", "out"];
+
+  it("parsearArgumentos valida la bandera y deja --ignorar-titulo-packing sólo para prueba", () => {
+    expect(parsearArgumentos(base).correlativoOrigen).toBeUndefined();
+    expect(parsearArgumentos([...base, "--correlativo-origen", "61"])).toMatchObject({ contenedor: 64, correlativoOrigen: 61, ignorarTituloPacking: false });
+    expect(parsearArgumentos([...base, "--entorno", "produccion", "--correlativo-origen", "61"])).toMatchObject({ entorno: "produccion", correlativoOrigen: 61 });
+    for (const malo of ["0", "-3", "6x", "61.5", "12345"]) {
+      expect(() => parsearArgumentos([...base, "--correlativo-origen", malo])).toThrow(/entero positivo|Falta el valor/);
+    }
+    expect(() => parsearArgumentos([...base, "--correlativo-origen", "64"])).toThrow(/igual a --contenedor/);
+    expect(() => parsearArgumentos([...base, "--correlativo-origen", "61", "--ignorar-titulo-packing"])).toThrow(/no van juntos/);
+    const fcl = ["--rastreo", "r.xlsx", "--contenedor", "64", "--eta", "2026-12-12", "--salida", "out", "--modalidad", "fcl", "--dueno", "DTD-9038"];
+    expect(() => parsearArgumentos([...fcl, "--correlativo-origen", "61"])).toThrow(/exige --packing/);
+    expect(parsearArgumentos([...base, "--ignorar-titulo-packing"]).ignorarTituloPacking).toBe(true);
+    expect(() => parsearArgumentos([...base, "--entorno", "produccion", "--ignorar-titulo-packing"])).toThrow(/sólo se permite con --entorno prueba/);
+  });
+
+  for (const entorno of ["prueba", "produccion"] as const) {
+    it(`revisarTituloPacking (${entorno}): igual pasa, distinto sin bandera se niega, bandera correcta pasa con el mapeo, bandera incorrecta se niega`, () => {
+      const sin = parsearArgumentos([...base, "--entorno", entorno]);
+      const con = parsearArgumentos([...base, "--entorno", entorno, "--correlativo-origen", "61"]);
+      // Título igual al contenedor, sin bandera: pasa sin aviso (también sin número legible en el título).
+      expect(revisarTituloPacking(64, sin)).toBeNull();
+      expect(revisarTituloPacking(null, sin)).toBeNull();
+      // Título distinto, sin bandera: el rechazo de siempre, que ahora sugiere la bandera.
+      expect(() => revisarTituloPacking(61, sin)).toThrow("El packing list dice contenedor #61 y pediste el #64");
+      // Bandera correcta: pasa y el aviso registra el mapeo.
+      expect(revisarTituloPacking(61, con)).toBe(
+        "Correlativo de origen: el título del packing list dice #61 (correlativo de China); el lote es del contenedor DTD #64 (--correlativo-origen 61).",
+      );
+      // Bandera que no coincide con el título, o título sin número: se niega.
+      expect(() => revisarTituloPacking(62, con)).toThrow("El packing list dice contenedor #62 y --correlativo-origen dice 61");
+      expect(() => revisarTituloPacking(64, con)).toThrow("--correlativo-origen dice 61");
+      expect(() => revisarTituloPacking(null, con)).toThrow(/no leo el número del título/);
+    });
+  }
+
+
+  it("generar() en producción: con la bandera correcta escribe el mapeo en manifiesto y resumen; sin bandera o con otra se niega sin escribir", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-correlativo-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 61);
+      const argv = (salida: string, ...extra: string[]) =>
+        parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", "produccion", ...extra]);
+
+      const negada = path.join(dir, "negada");
+      await expect(generar(argv(negada))).rejects.toThrow("El packing list dice contenedor #61 y pediste el #64");
+      await expect(generar(argv(negada, "--correlativo-origen", "62"))).rejects.toThrow("--correlativo-origen dice 62");
+      expect(readdirSync(dir).sort()).toEqual(["packing-61.xlsx", "rastreo.xlsx"]);
+
+      const salida = path.join(dir, "lote");
+      const { archivos } = await generar(argv(salida, "--correlativo-origen", "61"));
+      expect(archivos).not.toContain("deshacer.sql");
+      const man = JSON.parse(readFileSync(path.join(salida, "manifiesto.json"), "utf8"));
+      expect(man.entorno).toBe("produccion");
+      expect(man.lote).toMatch(/^carga-consolidado:64:[0-9a-f]{8}$/);
+      expect(man.contenedor).toMatchObject({ numero: 64, correlativoOrigen: 61, container_no: "ABCU6464646" });
+      const resumen = readFileSync(path.join(carpetaLocal(salida), "resumen.md"), "utf8");
+      expect(resumen).toContain("Correlativo de origen: **61 (China) → 64 (DTD)**");
+      expect(resumen).toContain("(--correlativo-origen 61)");
+      // El mapeo no cambia el SQL: el aplicar habla del contenedor DTD #64, nunca del 61.
+      const aplicar = readFileSync(path.join(salida, "aplicar.sql"), "utf8");
+      expect(aplicar).toContain("contenedor DTD #64");
+      expect(aplicar).not.toMatch(/#61\b/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("generar(): con el título igual al contenedor y sin bandera pasa, sin mapeo en el manifiesto", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-correlativo-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      for (const entorno of ["prueba", "produccion"]) {
+        const salida = path.join(dir, `lote-${entorno}`);
+        await generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", entorno]));
+        const man = JSON.parse(readFileSync(path.join(salida, "manifiesto.json"), "utf8"));
+        expect(man.contenedor.numero).toBe(64);
+        expect(man.contenedor).not.toHaveProperty("correlativoOrigen");
+        expect(readFileSync(path.join(carpetaLocal(salida), "resumen.md"), "utf8")).not.toContain("Correlativo de origen");
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("SDD-0543 F2 · empaque mínimo: al servidor sube sólo lo que aplicar-lote.sh necesita", () => {
+  it("manifiestoDelPaquete deja afuera clientes, embarques y avisos, y conserva lo que lee el guion", () => {
+    const s = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const p = manifiestoDelPaquete(s.manifiesto);
+    for (const k of ["clientes", "embarques", "avisos"]) expect(p).not.toHaveProperty(k);
+    expect(p).toMatchObject({ lote: s.manifiesto.lote, entorno: "produccion", esperado: s.manifiesto.esperado, contenedor: s.manifiesto.contenedor });
+    expect(JSON.stringify(p)).not.toContain("nombreExcel");
+    // El original en memoria sigue completo: verificar.sql y el resumen lo usan.
+    expect(s.manifiesto.clientes.length).toBeGreaterThan(0);
+  });
+
+  it("generar() en producción: paquete sin resumen ni nombres, SHA256SUMS sólo del paquete, y lo local en <salida>-local", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-empaque-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      const salida = path.join(dir, "lote");
+      const r = await generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", "produccion"]));
+      const paquete = ["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json"];
+      expect(readdirSync(salida).sort()).toEqual([...paquete, "SHA256SUMS"].sort());
+      expect(r.archivos).toEqual([...paquete, "SHA256SUMS"]);
+      expect(r.carpetaLocal).toBe(`${salida}-local`);
+      expect(readdirSync(r.carpetaLocal).sort()).toEqual(["manifiesto-completo.json", "resumen.md"]);
+      // SHA256SUMS cubre exactamente los archivos del paquete, y nada de la carpeta local.
+      const sumas = readFileSync(path.join(salida, "SHA256SUMS"), "utf8").trim().split("\n").map((l) => l.split("  ")[1]);
+      expect(sumas).toEqual(paquete);
+      // Ningún archivo del paquete trae los nombres de marca del Excel ni la clave nombreExcel.
+      for (const n of readdirSync(salida)) {
+        const t = readFileSync(path.join(salida, n), "utf8");
+        for (const nombre of NOMBRES_SECRETOS) expect(t, `${n} trae un nombre de marca`).not.toContain(nombre);
+        expect(t, `${n} trae nombreExcel`).not.toContain("nombreExcel");
+      }
+      const man = JSON.parse(readFileSync(path.join(salida, "manifiesto.json"), "utf8"));
+      expect(man).toMatchObject({ entorno: "produccion", esperado: { envios: 2, recepciones: 2 } });
+      expect(man.lote).toMatch(/^carga-consolidado:64:[0-9a-f]{8}$/);
+      // La carpeta local sí los trae: es la que cruza etiquetas con nombres.
+      const completo = readFileSync(path.join(r.carpetaLocal, "manifiesto-completo.json"), "utf8");
+      const resumen = readFileSync(path.join(r.carpetaLocal, "resumen.md"), "utf8");
+      for (const nombre of NOMBRES_SECRETOS) {
+        expect(completo).toContain(nombre);
+        expect(resumen).toContain(nombre);
+      }
+      expect(JSON.parse(completo).lote).toBe(man.lote);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("en prueba el nombre de la marca sigue viajando (lo usan los clientes faltantes), pero tampoco hay resumen en el paquete", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-empaque-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      const salida = path.join(dir, "lote");
+      await generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--crear-clientes-faltantes"]));
+      expect(readdirSync(salida)).not.toContain("resumen.md");
+      expect(readdirSync(salida)).toEqual(expect.arrayContaining(["deshacer.sql", "purgar.sql"]));
+      expect(readFileSync(path.join(salida, "aplicar.sql"), "utf8")).toContain(NOMBRES_SECRETOS[0]);
+      expect(readFileSync(path.join(salida, "manifiesto.json"), "utf8")).not.toContain("nombreExcel");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("--sin-facturas: aplicar.sql y simulacro.sql no traen las líneas con precio; con facturas sí", () => {
+    const con = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const sin = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false, facturas: false }, FUENTES);
+    expect(con.aplicar).toContain("insert into lote_lineas values");
+    for (const t of [sin.aplicar, sin.simulacro]) {
+      expect(t).toContain("create temp table lote_lineas");
+      expect(t).not.toContain("insert into lote_lineas values");
+      expect(t).not.toContain("Flete DDP ·");
+    }
+    expect(sin.manifiesto.esperado).toMatchObject({ facturas: 0, base: 0 });
+  });
+
+  it("generar() se niega si la carpeta de salida ya trae un resumen.md de una corrida anterior, sin escribir nada", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-empaque-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      const salida = path.join(dir, "lote");
+      mkdirSync(salida);
+      writeFileSync(path.join(salida, "resumen.md"), "# viejo\n");
+      for (const entorno of ["prueba", "produccion"]) {
+        await expect(
+          generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", entorno])),
+        ).rejects.toThrow("La carpeta de salida ya trae resumen.md");
+      }
+      expect(readdirSync(salida)).toEqual(["resumen.md"]);
+      expect(readdirSync(dir)).not.toContain("lote-local");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

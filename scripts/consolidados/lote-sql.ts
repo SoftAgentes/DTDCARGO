@@ -37,6 +37,12 @@ export interface OpcionesSql {
   /** Identificador del lote, p. ej. `carga-consolidado:59:1a2b3c4d`. */
   lote: string;
   tenantSlug: string;
+  /**
+   * Correlativo del almacén de China que trae el título del packing list cuando no
+   * coincide con el número DTD del contenedor (`--correlativo-origen`). Sólo queda
+   * registrado en el manifiesto; no cambia el SQL.
+   */
+  correlativoOrigen?: number;
 }
 
 export interface PuertoDestino {
@@ -118,7 +124,11 @@ export interface Manifiesto {
   dueno: { etiqueta: string; clave: string; codigo: string; servicio: string; cbm: number | null; kg: number | null } | null;
   /** Monto del gasto por espacio (mixto). El correo del usuario no va al manifiesto. */
   gastoEspacio: { monto: number } | null;
-  contenedor: { numero: number; etiqueta: string; container_no: string; naviera: string; pol: string; pod: string; fechaCarga: string; fechaRecepcion: string; etd: string; eta: string; modalidad: string | null };
+  contenedor: {
+    numero: number; etiqueta: string; container_no: string; naviera: string; pol: string; pod: string; fechaCarga: string; fechaRecepcion: string; etd: string; eta: string; modalidad: string | null;
+    /** Sólo con `--correlativo-origen`: el título del packing list dice este número (correlativo de China) y el lote es del `numero` DTD. */
+    correlativoOrigen?: number;
+  };
   fuentes: { rastreo: string; packing: string };
   opciones: { crearClientesFaltantes: boolean; facturas: boolean; excesoPeso: boolean; containerType: string };
   esperado: { envios: number; recepciones: number; items: number; cajas: number; clientes: number; facturas: number; cbm: number; kg: number; base: number };
@@ -210,14 +220,23 @@ export function codigosEnvio(lote: Lote): string[] {
   return codigos;
 }
 
-function datos(lote: Lote): string {
+/**
+ * Las tablas temporales con los datos del lote. Empaque mínimo (2026-11-14): lo
+ * que el cuerpo no va a leer no viaja al servidor.
+ *  - `nombre_excel` sólo lo usan los insert de clientes faltantes, que existen
+ *    sólo en prueba: en producción va vacío.
+ *  - `lote_lineas` (descripción y precio de cada línea) sólo la lee el bloque de
+ *    facturas: con `--sin-facturas` la tabla queda vacía.
+ */
+function datos(lote: Lote, o: Pick<OpcionesSql, "entorno" | "facturas">): string {
   const out: string[] = [];
   out.push(
     `create temp table lote_clientes (orden int primary key, clave text unique, etiqueta text, nombre_excel text, prefijo text, es_casa boolean, es_raiz_aliado boolean, candidatos text[]) on commit drop;`,
   );
   for (const m of marcasDelLote(lote)) {
+    const nombre = o.entorno === "produccion" ? "''" : litSql(m.marca.nombreExcel);
     out.push(
-      `insert into lote_clientes values (${m.orden}, ${litSql(m.clave)}, ${litSql(m.etiqueta)}, ${litSql(m.marca.nombreExcel)}, ${litSql(m.marca.prefijo)}, ${m.marca.esCasa}, ${m.esRaizAliado}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
+      `insert into lote_clientes values (${m.orden}, ${litSql(m.clave)}, ${litSql(m.etiqueta)}, ${nombre}, ${litSql(m.marca.prefijo)}, ${m.marca.esCasa}, ${m.esRaizAliado}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
     );
   }
   out.push(`create temp table lote_dueno (clave text, codigo text, servicio text, cbm numeric, kg numeric) on commit drop;`);
@@ -248,7 +267,7 @@ function datos(lote: Lote): string {
   });
   out.push(`create temp table lote_lineas (orden int primary key, clave text, remitente text, descripcion text, qty numeric, unit_price numeric) on commit drop;`);
   let n = 0;
-  for (const c of lote.clientes) {
+  for (const c of o.facturas ? lote.clientes : []) {
     for (const l of c.lineas) {
       n++;
       out.push(`insert into lote_lineas values (${n}, ${litSql(c.clave)}, ${litSql(l.remitente)}, ${litSql(l.desc)}, ${l.qty}, ${l.unitPrice});`);
@@ -741,7 +760,7 @@ $lote$;
 `;
 
 function cuerpoAplicar(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
-  return [cab(lote, o, pod, nav), datos(lote), CUERPO_APLICAR.trim()].join("\n\n");
+  return [cab(lote, o, pod, nav), datos(lote, o), CUERPO_APLICAR.trim()].join("\n\n");
 }
 
 function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
@@ -1174,6 +1193,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
       etd: lote.etd,
       eta: lote.eta,
       modalidad: lote.rastreo.modalidad,
+      ...(o.correlativoOrigen != null ? { correlativoOrigen: o.correlativoOrigen } : {}),
     },
     fuentes,
     opciones: { crearClientesFaltantes: o.crearClientesFaltantes, facturas: o.facturas, excesoPeso: lote.excesoPeso, containerType: o.containerType },
