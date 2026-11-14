@@ -46,6 +46,7 @@ import { ExcepcionCierreDialog } from "./ExcepcionCierreDialog";
 import { postEntry, voidEntry, softDeleteEntry } from "../actions";
 import { isPeriodClosed } from "@/lib/studio/accounting/period-queries";
 import type { AvisoCierre, ResultadoDeAsiento } from "@/lib/studio/accounting/cierre-excepciones";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const CAMBIO_NO_CONFIRMADO = "No se pudo confirmar el cambio. Recarga el diario antes de volver a intentarlo.";
 function mensajeDeAccion(result: ResultadoDeAsiento | null | undefined): string {
@@ -150,20 +151,9 @@ export function LibroDiarioTab({
   return (
     <>
       {error && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: "0 0 12px",
-            padding: "10px 12px",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
-          {error}
-        </p>
+        <div style={{ marginBottom: 12 }}>
+          <Aviso tono="error">{error}</Aviso>
+        </div>
       )}
 
       <div

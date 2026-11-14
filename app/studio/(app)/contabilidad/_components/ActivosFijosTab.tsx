@@ -26,6 +26,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { fmtAmount } from "./format";
 import { AssetDrawer } from "./AssetDrawer";
 import { disposeAsset, postDepreciationAction } from "../assets-actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -100,20 +101,9 @@ export function ActivosFijosTab({
   return (
     <>
       {error && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: "0 0 12px",
-            padding: "10px 12px",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
-          {error}
-        </p>
+        <div style={{ marginBottom: 12 }}>
+          <Aviso tono="error">{error}</Aviso>
+        </div>
       )}
 
       {/* KPIs de la cédula */}

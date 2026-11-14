@@ -17,6 +17,7 @@ import {
   textoAvisoCierre,
   type AvisoCierre,
 } from "@/lib/studio/accounting/cierre-excepciones";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function CamposExcepcionCierre({
   aviso,
@@ -50,19 +51,13 @@ export function CamposExcepcionCierre({
     <div
       role="group"
       aria-labelledby={avisoId}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--s-3)",
-        padding: "var(--s-3)",
-        background: "var(--warning-bg)",
-        border: "1px solid var(--warning)",
-        borderRadius: "var(--r-sm)",
-      }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}
     >
-      <p id={avisoId} style={{ margin: 0, font: "600 12.5px/1.45 var(--f-sans)", color: "var(--ink)" }}>
+      {/* SDD-0603 · tramo 5b: el aviso es una franja propia y los campos van
+          debajo, fuera de la región viva: la superclave no se anuncia. */}
+      <Aviso tono="atencion" compacto id={avisoId}>
         {textoAvisoCierre(aviso)}
-      </p>
+      </Aviso>
       {posible && pideSuperclave(aviso) && (
         <label htmlFor={`${id}-superclave`} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <span className="studio-label">Superclave del cierre</span>
