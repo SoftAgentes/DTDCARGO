@@ -418,13 +418,13 @@ Los cubre un solo OK: el de la puerta 4 del runbook. **No cubre la 4.10a.** Se c
 - los caminos A y B del `.inicio`;
 - el abandono.
 
-**Aquí no se copia:** la #504 lo está cambiando, y dos copias de un borrado permanente no pueden quedar distintas. Antes de usarlo, se lee en el runbook de `main` y se compara con la cabecera del `deshacer.sh` que quedó en el VPS en el 3.0.
+**Aquí no se copia:** dos copias de un borrado permanente no pueden quedar distintas, así que su única versión es la del runbook. Ya trae la #504, en `main` desde `8f2029a80`. Antes de usarlo, se lee en el runbook de `main` y se compara con la cabecera del `deshacer.sh` que quedó en el VPS en el 3.0.
 
 ---
 
 ## De dónde sale cada cosa
 
-- **Los comandos:** el runbook de puertas, puertas 3 y 4, en `main` (`836b2cf19`). Los comandos que este guion agrega:
+- **Los comandos:** el runbook de puertas, puertas 3 y 4, en `main` (`326be27fe`, con la #504 y este guion). Los comandos que este guion agrega:
   - la comparación de los sha256 del 3.0;
   - el lanzamiento con `systemd-run`, sus lecturas del journal y de la evidencia;
   - la prueba de borrado por etiqueta de compose.
