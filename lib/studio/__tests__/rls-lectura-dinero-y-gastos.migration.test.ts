@@ -102,6 +102,16 @@ function mutant(cambios: [from: string, to: string, veces: number][]): string {
   return text;
 }
 
+/** La 0528 sin su bloque de postflight, para medir sola la matriz del contrato. */
+function sinPostflight(text: string): string {
+  const start = text.indexOf("\ndo $postflight$");
+  const endTag = "\n$postflight$;\n";
+  const end = text.indexOf(endTag, start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  return text.slice(0, start) + text.slice(end + endTag.length);
+}
+
 describe("SDD-0624 · 0528 lectura del dinero y gastos (PGlite)", () => {
   it("el contrato pasa con 0528", async () => {
     const result = await contract();
@@ -114,30 +124,44 @@ describe("SDD-0624 · 0528 lectura del dinero y gastos (PGlite)", () => {
     expect(result.error).toBe("TEST 0528: commercial-A lee journal_entries (2 filas)");
   }, SLOW);
 
-  const MUTANTS: { name: string; cambios: [string, string, number][]; fails: string }[] = [
+  /**
+   * `fails` es lo que caza la matriz del contrato con el postflight quitado;
+   * `postflight`, lo que caza el postflight de la 0528 con la migración entera.
+   * Así cada mutante prueba las dos capas por separado: si una se afloja, la
+   * otra no la tapa en la prueba.
+   */
+  const MUTANTS: { name: string; cambios: [string, string, number][]; fails: string; postflight?: string }[] = [
     {
       name: "el helper deja pasar a operations",
       cambios: [["in ('accounting', 'admin')", "in ('accounting', 'admin', 'operations')", 1]],
       fails: "TEST 0528: operations-A lee journal_entries (2 filas)",
     },
-    {
-      name: "una policy de lectura sin el helper",
-      cambios: [[`using (
+    // Una lectura sin el helper, tabla por tabla. En journal_lines la matriz no
+    // lo ve (el EXISTS lee journal_entries bajo SU RLS, que ya pide el helper):
+    // lo cazan la aserción estructural del contrato y el postflight.
+    ...(["journal_entries", "payment_receipts", "supplier_bills", "supplier_payments"] as const).map((t) => ({
+      name: `la lectura de ${t} sin el helper`,
+      cambios: [[`create policy ${t}_money_select
+  on public.${t} for select
+  to authenticated
+  using (
     tenant_id = (select public.get_user_tenant_id())
     and (select public.studio_can_read_money())
-  );
-
--- ── supplier_bills`, `using (
+  );`, `create policy ${t}_money_select
+  on public.${t} for select
+  to authenticated
+  using (
     tenant_id = (select public.get_user_tenant_id())
-  );
-
--- ── supplier_bills`, 1]],
-      fails: "TEST 0528: commercial-A lee payment_receipts (1 filas)",
+  );`, 1]] as [string, string, number][],
+      fails: `TEST 0528: commercial-A lee ${t} (`,
+      postflight: "0528 postflight: una lectura del dinero no pide el tenant y studio_can_read_money()",
+    })),
+    {
+      name: "la lectura de journal_lines sin el helper",
+      cambios: [["    (select public.studio_can_read_money())\n    and exists (", "    exists (", 1]],
+      fails: "TEST 0528: una lectura del dinero no pide studio_can_read_money()",
+      postflight: "0528 postflight: una lectura del dinero no pide el tenant y studio_can_read_money()",
     },
-    // Sin mutante de «las líneas sin el helper»: sobrevive A PROPÓSITO. El EXISTS
-    // de journal_lines lee journal_entries bajo SU RLS, que ya pide el helper, así
-    // que las líneas quedan cerradas dos veces. El helper en las líneas es defensa
-    // en profundidad por si un día el EXISTS se reescribe con una función DEFINER.
     {
       name: "la RPC de reclamos sin el filtro de rol",
       cambios: [["\n     and public.current_studio_role() in ('admin', 'commercial', 'operations', 'accounting', 'support')", "", 1]],
@@ -153,11 +177,51 @@ describe("SDD-0624 · 0528 lectura del dinero y gastos (PGlite)", () => {
       cambios: [["    and coalesce((select public.current_studio_role()) <> 'support', false)\n  );\n\ndrop policy expenses_update",
         "  );\n\ndrop policy expenses_update", 1]],
       fails: "TEST 0528: support-A pudo crear un gasto",
+      postflight: "0528 postflight: expenses_insert o expenses_update no cierran a support",
+    },
+    {
+      name: "support sigue editando sus gastos",
+      cambios: [["    and coalesce((select public.current_studio_role()) <> 'support', false)\n  );\n\ndo $postflight$",
+        "  );\n\ndo $postflight$", 1]],
+      fails: "TEST 0528: support-A editó su gasto",
+      postflight: "0528 postflight: expenses_insert o expenses_update no cierran a support",
+    },
+    {
+      name: "el helper como SECURITY INVOKER",
+      cambios: [["security definer\nset search_path = ''\nas $$\n  select coalesce(",
+        "security invoker\nset search_path = ''\nas $$\n  select coalesce(", 1]],
+      fails: "studio_can_read_money() no es SECURITY DEFINER",
+      postflight: "0528 postflight: studio_can_read_money() no quedó SQL, STABLE, DEFINER y con search_path vacío",
+    },
+    {
+      name: "la RPC de reclamos con search_path public",
+      cambios: [["set search_path = ''\nas $$\n  select je.claim_id", "set search_path = public\nas $$\n  select je.claim_id", 1]],
+      fails: "no fija search_path vacío",
+      postflight: "claim_indemnity_entry_codes(uuid[]) no quedó SQL, STABLE, DEFINER y con search_path vacío",
+    },
+    {
+      name: "la RPC de reclamos sin revocar PUBLIC",
+      cambios: [["revoke all on function public.claim_indemnity_entry_codes(uuid[]) from public, anon;\n", "", 1]],
+      fails: "TEST 0528: anon puede ejecutar la RPC de reclamos",
+      postflight: "0528 postflight: PUBLIC puede ejecutar",
+    },
+    {
+      name: "el helper sin revocar PUBLIC",
+      cambios: [["revoke all on function public.studio_can_read_money() from public, anon;\n", "", 1]],
+      fails: "TEST 0528: PUBLIC puede ejecutar ",
+      postflight: "0528 postflight: PUBLIC puede ejecutar",
     },
   ];
   for (const m of MUTANTS) {
-    it(`mutante ${m.name}: lo caza el contrato`, async () => {
-      const result = await contract({ migration: mutant(m.cambios) });
+    if (m.postflight) {
+      it(`mutante ${m.name}: lo caza el postflight`, async () => {
+        const result = await contract({ migration: mutant(m.cambios) });
+        expect(result.error ?? "").toContain(m.postflight);
+      }, SLOW);
+    }
+    it(`mutante ${m.name}: lo caza el contrato${m.postflight ? " sin el postflight" : ""}`, async () => {
+      const text = mutant(m.cambios);
+      const result = await contract({ migration: m.postflight ? sinPostflight(text) : text });
       expect(result.error ?? "").toContain(m.fails);
     }, SLOW);
   }
@@ -167,4 +231,36 @@ describe("SDD-0624 · 0528 lectura del dinero y gastos (PGlite)", () => {
     const result = await contract({ migration: sinPrevias });
     expect(result.error).toContain("0528 abortado: faltan policies");
   }, SLOW);
+
+  it("el preflight aborta con una policy de más en paralelo", async () => {
+    const conExtra = "create policy supplier_bills_extra_select on public.supplier_bills for select to authenticated using (true);\n"
+      + FILE_0528;
+    const result = await contract({ migration: conExtra });
+    expect(result.error).toContain("0528 abortado: las policies de dinero o gastos no son las que dejaron la 0470 y la 0511");
+  }, SLOW);
+
+  it("el preflight aborta si la lectura que reemplaza no tiene la huella del equipo", async () => {
+    const otraHuella = "alter policy supplier_bills_team_select on public.supplier_bills using ("
+      + "tenant_id = (select public.get_user_tenant_id()) and (select public.current_studio_role()) = 'admin');\n"
+      + FILE_0528;
+    const result = await contract({ migration: otraHuella });
+    expect(result.error).toContain("0528 abortado: una lectura *_team_select no es la del equipo del tenant");
+  }, SLOW);
+
+  it("el preflight aborta si los gastos no son los del dueño de la 0047", async () => {
+    const otraHuella = "alter policy expenses_update on public.expenses using (true);\n" + FILE_0528;
+    const result = await contract({ migration: otraHuella });
+    expect(result.error).toContain("0528 abortado: expenses_insert o expenses_update no son las del dueño de la 0047");
+  }, SLOW);
+
+  it("el preflight aborta si el helper ya existe", async () => {
+    const yaExiste = "create function public.studio_can_read_money() returns boolean language sql as $$ select true $$;\n"
+      + FILE_0528;
+    const result = await contract({ migration: yaExiste });
+    expect(result.error).toContain("0528 abortado: studio_can_read_money() o claim_indemnity_entry_codes(uuid[]) ya existen");
+  }, SLOW);
+
+  it("termina avisando a PostgREST", () => {
+    expect(FILE_0528.trimEnd().endsWith("notify pgrst, 'reload schema';")).toBe(true);
+  });
 });

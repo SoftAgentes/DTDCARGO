@@ -4,7 +4,7 @@ title: "Endurecimiento de permisos: dinero, gastos y deuda RBAC"
 status: in-progress
 author: "Claude Code (sesión del Director) + Sam"
 created: 2026-11-11
-updated: 2026-11-11
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0085", "0139", "0252", "0407", "0470", "0492", "0500", "0593", "0622"]
@@ -49,9 +49,22 @@ la tabla lo dice desde la 0047 («cada user del tenant carga los suyos»).
 
 **Depende de la 0470 y la 0511**, ya aplicadas y selladas en
 `supabase/migrations.lock.json`. La 0528 es una espera declarada en
-`supabase/migrations-baseline.json`. El preflight de la 0528 aborta si sus policies `*_team_select`
-no existen. Aplicar exige OK de Sam nombrando el archivo y medir el ledger
-antes (`docs/runbooks/aplicar-migraciones-prod.md`).
+`supabase/migrations-baseline.json`. El preflight de la 0528 aborta, sin
+cambiar nada, si las policies de las seis tablas no son exactamente las que
+dejaron la 0047, la 0074, la 0470 y la 0511 (nombre, comando, permisiva y
+roles), si las que reemplaza no tienen su huella o si las dos funciones nuevas
+ya existen. El postflight exige el conjunto exacto que queda, el helper en cada
+lectura, gastos cerrados a `support` y las dos funciones DEFINER con
+`search_path` vacío, ejecutables sólo por `authenticated`. Termina con
+`notify pgrst, 'reload schema'`. Aplicar exige OK de Sam nombrando el archivo y
+medir el ledger antes (`docs/runbooks/aplicar-migraciones-prod.md`).
+
+**Orden: aplicar la 0528 DESPUÉS de desplegar esta PR.** La app anterior lee
+`journal_entries` con la sesión al editar un gasto (`gastos/actions.ts` y
+`expenseHistoryError` de `m/erp/actions.ts`); con la 0528 aplicada, quien no es
+accounting ni admin ve 0 filas, la comprobación del asiento pasa en falso y el
+gasto se edita sin mirar su asiento. Esta PR lee ese asiento con el cliente de
+servicio y funciona con o sin la 0528.
 
 ### 2.2 Aplicación
 
@@ -84,9 +97,15 @@ antes (`docs/runbooks/aplicar-migraciones-prod.md`).
 - `supabase/tests/0528_rls_lectura_dinero_y_gastos.test.sql` + su espejo
   PGlite `lib/studio/__tests__/rls-lectura-dinero-y-gastos.migration.test.ts`:
   matriz de 9 actores × 5 tablas, la RPC de reclamos, gastos, lo intacto;
-  control rojo (sin 0528 el comercial lee asientos) y 5 mutantes cazados. Un
-  sexto mutante (las líneas sin el helper) sobrevive a propósito: el EXISTS de
-  `journal_lines` ya pasa por la RLS de `journal_entries`.
+  control rojo (sin 0528 el comercial lee asientos) y mutantes: el helper, la
+  lectura sin helper en cada una de las cinco tablas, la RPC sin rol o sin
+  tenant, support creando y editando gastos, las funciones como INVOKER, con
+  `search_path` público o ejecutables por PUBLIC. Los que tocan lo que mide el
+  postflight se prueban dos veces: el postflight los caza, y la matriz del
+  contrato los caza con el postflight quitado. Las líneas sin el helper no las
+  ve la matriz (el EXISTS ya pasa por la RLS de `journal_entries`); las caza la
+  aserción estructural del contrato. Más pruebas del preflight: policy de más
+  en paralelo, huella distinta de la lectura o de gastos, y helper ya existente.
 - `lib/studio/__tests__/page-gates-sensibles.test.ts`: contrato nuevo; el
   módulo sale de la ruta (`moduleIdForPath`), con piso y control de
   excepciones muertas. Detectó la página de Usuarios sin gate y, tras la

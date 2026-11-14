@@ -7,6 +7,14 @@
 --    ya aplicadas y selladas en supabase/migrations.lock.json: el preflight
 --    aborta si sus policies `*_team_select` no existen. Medir el ledger antes.
 --
+-- ⚠️ ORDEN: aplicar DESPUÉS de desplegar la PR de la SDD-0624. Aplicarla antes
+--    deja en falso la comprobación del asiento de gastos: la app anterior lee
+--    `journal_entries` con la sesión al editar un gasto (gastos/actions.ts y
+--    expenseHistoryError de m/erp/actions.ts); con esta migración, quien no es
+--    accounting ni admin ve 0 filas, la comprobación pasa y el gasto se edita
+--    sin mirar su asiento. La app de esta PR lee ese asiento con el cliente de
+--    servicio y funciona con o sin la 0528.
+--
 -- ── El hueco ────────────────────────────────────────────────
 -- La 0470 y la 0511 cerraron la ESCRITURA de asientos, cobros y cuentas por
 -- pagar a accounting y admin, pero dejaron la LECTURA abierta a todo el tenant
@@ -44,6 +52,12 @@
 --   comercial y operaciones cargar sus gastos de calle. `expenses_cn_team` y
 --   `expenses_ve_accounting` (0074) no cambian: el equipo CN comparte los gastos
 --   por diseño.
+-- · Preflight: el conjunto exacto de policies que dejaron la 0047, la 0074, la
+--   0470 y la 0511, con la huella de las que se reemplazan, y que las dos
+--   funciones nuevas no existan. Postflight: el conjunto exacto que queda, las
+--   lecturas con el helper, gastos sin support, y las dos funciones DEFINER con
+--   search_path vacío, ejecutables sólo por authenticated (patrón 0470/0511).
+--   Al final, `notify pgrst` para que PostgREST vea la RPC nueva (como la 0537).
 --
 -- ── Locks ───────────────────────────────────────────────────
 -- DROP/CREATE POLICY toma ACCESS EXCLUSIVE sobre seis tablas hasta el COMMIT:
@@ -80,6 +94,76 @@ begin
      or pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null then
     raise exception '0528 abortado: faltan current_studio_role() o get_user_tenant_id()';
   end if;
+
+  -- Las funciones nuevas no existen todavía: si están, otra migración ya las
+  -- definió y esta las pisaría.
+  if pg_catalog.to_regprocedure('public.studio_can_read_money()') is not null
+     or pg_catalog.to_regprocedure('public.claim_indemnity_entry_codes(uuid[])') is not null then
+    raise exception '0528 abortado: studio_can_read_money() o claim_indemnity_entry_codes(uuid[]) ya existen';
+  end if;
+
+  -- El conjunto EXACTO de policies que dejaron la 0047, la 0074, la 0470 y la
+  -- 0511: nombre, comando, permisiva y roles. Una policy de más quedaría en
+  -- paralelo y, si es permisiva, volvería a abrir lo que esta cierra.
+  if exists (
+    with expected(tablename, policyname, cmd, roles) as (values
+      ('journal_entries',   'journal_entries_team_select',         'SELECT', array['authenticated']::name[]),
+      ('journal_entries',   'journal_entries_accounting_insert',   'INSERT', array['authenticated']::name[]),
+      ('journal_entries',   'journal_entries_accounting_update',   'UPDATE', array['authenticated']::name[]),
+      ('journal_entries',   'journal_entries_accounting_delete',   'DELETE', array['authenticated']::name[]),
+      ('journal_lines',     'journal_lines_team_select',           'SELECT', array['authenticated']::name[]),
+      ('journal_lines',     'journal_lines_accounting_insert',     'INSERT', array['authenticated']::name[]),
+      ('payment_receipts',  'payment_receipts_team_select',        'SELECT', array['authenticated']::name[]),
+      ('payment_receipts',  'payment_receipts_accounting_insert',  'INSERT', array['authenticated']::name[]),
+      ('payment_receipts',  'payment_receipts_accounting_update',  'UPDATE', array['authenticated']::name[]),
+      ('supplier_bills',    'supplier_bills_team_select',          'SELECT', array['authenticated']::name[]),
+      ('supplier_bills',    'supplier_bills_accounting_insert',    'INSERT', array['authenticated']::name[]),
+      ('supplier_bills',    'supplier_bills_accounting_update',    'UPDATE', array['authenticated']::name[]),
+      ('supplier_payments', 'supplier_payments_team_select',       'SELECT', array['authenticated']::name[]),
+      ('supplier_payments', 'supplier_payments_accounting_insert', 'INSERT', array['authenticated']::name[]),
+      ('supplier_payments', 'supplier_payments_accounting_update', 'UPDATE', array['authenticated']::name[]),
+      ('expenses',          'expenses_select',                     'SELECT', array['public']::name[]),
+      ('expenses',          'expenses_insert',                     'INSERT', array['public']::name[]),
+      ('expenses',          'expenses_update',                     'UPDATE', array['public']::name[]),
+      ('expenses',          'expenses_cn_team',                    'ALL',    array['public']::name[]),
+      ('expenses',          'expenses_ve_accounting',              'ALL',    array['public']::name[])
+    ), actual as (
+      select * from pg_catalog.pg_policies p
+       where p.schemaname = 'public'
+         and p.tablename in ('journal_entries', 'journal_lines', 'payment_receipts',
+                             'supplier_bills', 'supplier_payments', 'expenses')
+    )
+    select 1 from expected e full join actual a
+      on a.tablename = e.tablename and a.policyname = e.policyname
+    where e.policyname is null or a.policyname is null or a.cmd <> e.cmd
+      or a.roles <> e.roles or a.permissive <> 'PERMISSIVE'
+  ) then
+    raise exception '0528 abortado: las policies de dinero o gastos no son las que dejaron la 0470 y la 0511';
+  end if;
+
+  -- Huellas de lo que se reemplaza. Las lecturas son las del equipo del tenant,
+  -- sin rol; las de gastos, las del dueño de la 0047, sin rol.
+  if exists (select 1 from pg_catalog.pg_policies p
+              where p.schemaname = 'public' and p.cmd = 'SELECT'
+                and p.tablename in ('journal_entries', 'journal_lines', 'payment_receipts',
+                                    'supplier_bills', 'supplier_payments')
+                and (p.with_check is not null
+                     or p.qual not like '%get_user_tenant_id()%'
+                     or p.qual like '%current_studio_role%')) then
+    raise exception '0528 abortado: una lectura *_team_select no es la del equipo del tenant';
+  end if;
+  if exists (select 1 from pg_catalog.pg_policies p
+              cross join lateral (select case p.cmd when 'INSERT' then p.with_check else p.qual end as expr) e
+              where p.schemaname = 'public' and p.tablename = 'expenses'
+                and p.policyname in ('expenses_insert', 'expenses_update')
+                and ((p.cmd = 'INSERT') is distinct from (p.qual is null)
+                     or (p.cmd = 'UPDATE' and p.with_check is not null)
+                     or e.expr is null
+                     or e.expr not like '%auth.uid()%'
+                     or e.expr not like '%user_tenants%'
+                     or e.expr like '%current_studio_role%')) then
+    raise exception '0528 abortado: expenses_insert o expenses_update no son las del dueño de la 0047';
+  end if;
 end;
 $preflight$;
 
@@ -89,7 +173,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select coalesce(public.current_studio_role() in ('accounting', 'admin'), false)
 $$;
@@ -160,7 +244,7 @@ returns table (claim_id uuid, entry_code text)
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select je.claim_id, je.entry_code
     from public.journal_entries je
@@ -193,3 +277,111 @@ create policy expenses_update on public.expenses
     and tenant_id in (select tenant_id from public.user_tenants where user_id = auth.uid())
     and coalesce((select public.current_studio_role()) <> 'support', false)
   );
+
+do $postflight$
+declare
+  v_t text;
+  v_fn regprocedure;
+begin
+  -- El conjunto EXACTO por tabla: la lectura del dinero es la *_money_select y
+  -- ninguna otra; las escrituras de la 0470 y la 0511 y las cinco de gastos
+  -- siguen, todas permisivas. Nada en paralelo.
+  if exists (
+    with expected(tablename, policyname, cmd, roles) as (values
+      ('journal_entries',   'journal_entries_money_select',        'SELECT', array['authenticated']::name[]),
+      ('journal_entries',   'journal_entries_accounting_insert',   'INSERT', array['authenticated']::name[]),
+      ('journal_entries',   'journal_entries_accounting_update',   'UPDATE', array['authenticated']::name[]),
+      ('journal_entries',   'journal_entries_accounting_delete',   'DELETE', array['authenticated']::name[]),
+      ('journal_lines',     'journal_lines_money_select',          'SELECT', array['authenticated']::name[]),
+      ('journal_lines',     'journal_lines_accounting_insert',     'INSERT', array['authenticated']::name[]),
+      ('payment_receipts',  'payment_receipts_money_select',       'SELECT', array['authenticated']::name[]),
+      ('payment_receipts',  'payment_receipts_accounting_insert',  'INSERT', array['authenticated']::name[]),
+      ('payment_receipts',  'payment_receipts_accounting_update',  'UPDATE', array['authenticated']::name[]),
+      ('supplier_bills',    'supplier_bills_money_select',         'SELECT', array['authenticated']::name[]),
+      ('supplier_bills',    'supplier_bills_accounting_insert',    'INSERT', array['authenticated']::name[]),
+      ('supplier_bills',    'supplier_bills_accounting_update',    'UPDATE', array['authenticated']::name[]),
+      ('supplier_payments', 'supplier_payments_money_select',      'SELECT', array['authenticated']::name[]),
+      ('supplier_payments', 'supplier_payments_accounting_insert', 'INSERT', array['authenticated']::name[]),
+      ('supplier_payments', 'supplier_payments_accounting_update', 'UPDATE', array['authenticated']::name[]),
+      ('expenses',          'expenses_select',                     'SELECT', array['public']::name[]),
+      ('expenses',          'expenses_insert',                     'INSERT', array['public']::name[]),
+      ('expenses',          'expenses_update',                     'UPDATE', array['public']::name[]),
+      ('expenses',          'expenses_cn_team',                    'ALL',    array['public']::name[]),
+      ('expenses',          'expenses_ve_accounting',              'ALL',    array['public']::name[])
+    ), actual as (
+      select * from pg_catalog.pg_policies p
+       where p.schemaname = 'public'
+         and p.tablename in ('journal_entries', 'journal_lines', 'payment_receipts',
+                             'supplier_bills', 'supplier_payments', 'expenses')
+    )
+    select 1 from expected e full join actual a
+      on a.tablename = e.tablename and a.policyname = e.policyname
+    where e.policyname is null or a.policyname is null or a.cmd <> e.cmd
+      or a.roles <> e.roles or a.permissive <> 'PERMISSIVE'
+  ) then
+    raise exception '0528 postflight: las policies de dinero o gastos no quedaron como se esperaba';
+  end if;
+
+  -- Cada lectura del dinero pide el tenant Y el helper, sin WITH CHECK.
+  if exists (select 1 from pg_catalog.pg_policies p
+              where p.schemaname = 'public' and p.cmd = 'SELECT'
+                and p.tablename in ('journal_entries', 'journal_lines', 'payment_receipts',
+                                    'supplier_bills', 'supplier_payments')
+                and (p.with_check is not null
+                     or p.qual not like '%get_user_tenant_id()%'
+                     or p.qual not like '%studio_can_read_money()%')) then
+    raise exception '0528 postflight: una lectura del dinero no pide el tenant y studio_can_read_money()';
+  end if;
+
+  -- Alta y edición del gasto propio: dueño, tenant y rol distinto de support.
+  if exists (select 1 from pg_catalog.pg_policies p
+              cross join lateral (select case p.cmd when 'INSERT' then p.with_check else p.qual end as expr) e
+              where p.schemaname = 'public' and p.tablename = 'expenses'
+                and p.policyname in ('expenses_insert', 'expenses_update')
+                and ((p.cmd = 'INSERT') is distinct from (p.qual is null)
+                     or (p.cmd = 'UPDATE' and p.with_check is not null)
+                     or e.expr is null
+                     or e.expr not like '%auth.uid()%'
+                     or e.expr not like '%user_tenants%'
+                     or e.expr not like '%current_studio_role()%'
+                     or e.expr not like '%''support''%')) then
+    raise exception '0528 postflight: expenses_insert o expenses_update no cierran a support';
+  end if;
+
+  -- RLS encendida, sin FORCE, y authenticated conserva su SELECT de tabla.
+  foreach v_t in array array['journal_entries', 'journal_lines', 'payment_receipts',
+                             'supplier_bills', 'supplier_payments', 'expenses'] loop
+    if not exists (select 1 from pg_catalog.pg_class c
+                    where c.oid = pg_catalog.to_regclass('public.' || v_t)
+                      and c.relrowsecurity and not c.relforcerowsecurity) then
+      raise exception '0528 postflight: public.% no quedó con RLS (sin FORCE)', v_t;
+    end if;
+    if not pg_catalog.has_table_privilege('authenticated', 'public.' || v_t, 'SELECT') then
+      raise exception '0528 postflight: authenticated perdió SELECT sobre public.%', v_t;
+    end if;
+  end loop;
+
+  -- Las dos funciones: SQL, STABLE, DEFINER y search_path vacío; las ejecuta
+  -- authenticated, no PUBLIC ni anon.
+  foreach v_fn in array array['public.studio_can_read_money()'::regprocedure,
+                              'public.claim_indemnity_entry_codes(uuid[])'::regprocedure] loop
+    if not exists (select 1 from pg_catalog.pg_proc p
+                    join pg_catalog.pg_language l on l.oid = p.prolang
+                    where p.oid = v_fn and l.lanname = 'sql' and p.provolatile = 's'
+                      and p.prosecdef and p.proconfig = array['search_path=""']) then
+      raise exception '0528 postflight: % no quedó SQL, STABLE, DEFINER y con search_path vacío', v_fn;
+    end if;
+    if exists (select 1 from pg_catalog.pg_proc p
+                cross join lateral pg_catalog.aclexplode(coalesce(p.proacl, pg_catalog.acldefault('f', p.proowner))) a
+                where p.oid = v_fn and a.grantee = 0 and a.privilege_type = 'EXECUTE') then
+      raise exception '0528 postflight: PUBLIC puede ejecutar %', v_fn;
+    end if;
+    if pg_catalog.has_function_privilege('anon', v_fn, 'EXECUTE')
+       or not pg_catalog.has_function_privilege('authenticated', v_fn, 'EXECUTE') then
+      raise exception '0528 postflight: % no quedó sólo para authenticated', v_fn;
+    end if;
+  end loop;
+end;
+$postflight$;
+
+notify pgrst, 'reload schema';

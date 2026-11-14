@@ -346,6 +346,29 @@ begin
 end;
 $reclamos$;
 
+-- ── Las dos funciones nuevas: DEFINER, search_path vacío, sólo authenticated ──
+do $funciones$
+declare
+  v_fn regprocedure;
+begin
+  foreach v_fn in array array['public.studio_can_read_money()'::regprocedure,
+                              'public.claim_indemnity_entry_codes(uuid[])'::regprocedure] loop
+    perform pg_temp.afirmar((select p.prosecdef from pg_catalog.pg_proc p where p.oid = v_fn),
+      format('%s no es SECURITY DEFINER', v_fn));
+    perform pg_temp.afirmar((select p.proconfig from pg_catalog.pg_proc p where p.oid = v_fn)
+      = array['search_path=""'], format('%s no fija search_path vacío', v_fn));
+    perform pg_temp.afirmar(not exists (select 1 from pg_catalog.pg_proc p
+        cross join lateral pg_catalog.aclexplode(coalesce(p.proacl, pg_catalog.acldefault('f', p.proowner))) a
+       where p.oid = v_fn and a.grantee = 0 and a.privilege_type = 'EXECUTE'),
+      format('PUBLIC puede ejecutar %s', v_fn));
+    perform pg_temp.afirmar(not has_function_privilege('anon', v_fn, 'execute'),
+      format('anon puede ejecutar %s', v_fn));
+    perform pg_temp.afirmar(has_function_privilege('authenticated', v_fn, 'execute'),
+      format('authenticated no puede ejecutar %s', v_fn));
+  end loop;
+end;
+$funciones$;
+
 -- ── Gastos: support no escribe; el resto carga los suyos ──
 do $gastos$
 declare
@@ -407,6 +430,11 @@ begin
   perform pg_temp.afirmar(not exists (select 1 from pg_catalog.pg_policies
      where tablename in ('journal_entries', 'journal_lines', 'payment_receipts', 'supplier_bills', 'supplier_payments')
        and cmd = 'SELECT' and policyname like '%team_select'), 'queda una policy *_team_select');
+  -- Cada lectura del dinero, también la de las líneas, nombra el helper.
+  perform pg_temp.afirmar(not exists (select 1 from pg_catalog.pg_policies
+     where tablename in ('journal_entries', 'journal_lines', 'payment_receipts', 'supplier_bills', 'supplier_payments')
+       and cmd = 'SELECT' and qual not like '%studio_can_read_money()%'),
+    'una lectura del dinero no pide studio_can_read_money()');
 end;
 $intacto$;
 
