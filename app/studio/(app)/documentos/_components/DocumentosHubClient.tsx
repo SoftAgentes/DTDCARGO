@@ -512,9 +512,9 @@ export function DocumentosHubClient({
                     </div>
                   </div>
                   <div style={{ minWidth: 0 }}>
+                    {/* SDD-0603 · tramo 5c: vínculo de tabla en tinta y
+                        subrayado; el vino queda para la acción principal. */}
                     {link ? (
-                      {/* SDD-0603 · tramo 5c: vínculo de tabla en tinta y
-                          subrayado; el vino queda para la acción principal. */}
                       <Link
                         href={link.href}
                         title={`Ir a ${link.label}`}
