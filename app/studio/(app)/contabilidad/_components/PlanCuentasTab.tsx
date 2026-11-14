@@ -4,8 +4,8 @@
  * Tab "Plan de cuentas" (SDD-0040).
  *
  * Árbol del CoA (expand/collapse), badge de tipo y saldo por cuenta (con
- * rollup). "+ Cuenta" abre el drawer para agregar una hoja. Click en una
- * cuenta postable la abre para editar.
+ * rollup). "+ Cuenta" abre el drawer para agregar una hoja. «Abrir» (o un
+ * clic en el nombre) abre una cuenta postable para editarla (SDD-0603).
  */
 
 import { useMemo, useState } from "react";
@@ -93,7 +93,9 @@ export function PlanCuentasTab({
     );
   }
 
-  const GRID = "1.6fr 130px 120px 120px 120px";
+  // SDD-0603 · tramo 5b: última columna para «Abrir» (92 px, medida en el
+  // tramo 5a con Archivo 700: «Abrir» + flecha en `-sm` ocupa ~81 px).
+  const GRID = "1.6fr 130px 120px 120px 120px 92px";
 
   return (
     <>
@@ -125,6 +127,8 @@ export function PlanCuentasTab({
           <span style={{ textAlign: "right" }}>Debe</span>
           <span style={{ textAlign: "right" }}>Haber</span>
           <span style={{ textAlign: "right" }}>Saldo</span>
+          {/* SDD-0603: columna de «Abrir», sin rótulo propio. */}
+          <span aria-hidden="true" />
         </div>
 
         {visibleRows.map((node, i) => {
@@ -136,6 +140,7 @@ export function PlanCuentasTab({
           return (
             <div
               key={node.id}
+              data-row-id={node.code}
               className={isGroup ? undefined : "studio-tracking-row"}
               style={{
                 display: "grid",
@@ -164,8 +169,11 @@ export function PlanCuentasTab({
                     aria-label={isCollapsed ? "Expandir" : "Colapsar"}
                     aria-expanded={!isCollapsed}
                     style={{
-                      width: 24,
-                      height: 24,
+                      // SDD-0603: 32 px de blanco táctil; el margen negativo
+                      // conserva el lugar de 24 px que ocupaba en la fila.
+                      width: 32,
+                      height: 32,
+                      margin: -4,
                       display: "grid",
                       placeItems: "center",
                       border: 0,
@@ -192,8 +200,11 @@ export function PlanCuentasTab({
                 >
                   {node.code}
                 </span>
+                {/* SDD-0603 · tramo 5b: el nombre sigue abriendo con el ratón,
+                    pero sale del Tab; la parada de teclado es «Abrir». */}
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={() => node.is_postable && setEditing(node)}
                   title={node.is_postable ? "Editar cuenta" : undefined}
                   style={{
@@ -247,6 +258,20 @@ export function PlanCuentasTab({
               >
                 {bal ? fmtSigned(bal.balance) : "—"}
               </span>
+              {node.is_postable ? (
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  aria-label={`Abrir cuenta ${node.code}`}
+                  onClick={() => setEditing(node)}
+                  style={{ justifySelf: "end" }}
+                >
+                  Abrir
+                  {Icon.chevR(14)}
+                </button>
+              ) : (
+                <span aria-hidden="true" />
+              )}
             </div>
           );
         })}

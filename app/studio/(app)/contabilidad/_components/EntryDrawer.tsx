@@ -29,6 +29,7 @@ import { fmtAmount } from "./format";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { textoAvisoCierre } from "@/lib/studio/accounting/cierre-excepciones";
 import { CamposExcepcionCierre, excepcionCompleta } from "./CamposExcepcionCierre";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface Props {
   postableAccounts: Account[];
@@ -389,20 +390,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
           )}
 
           {state.error && !(cierre && state.error === textoAvisoCierre(cierre)) && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {state.error}
-            </p>
+            <Aviso tono="error" compacto>{state.error}</Aviso>
           )}
 
           {/* Totales debe/haber + balance, navy LIVE */}
