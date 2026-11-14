@@ -1,7 +1,7 @@
 # Handoff — SDD-0622 · Rol base + accesos adicionales por persona
 
 - **Owner / sesión:** `sdd-permisos-persona` (Worker, lanzado desde la sesión del Director)
-- **Worktree:** `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-permisos-por-persona`
+- **Worktree:** `DTD-worktrees/sdd-permisos-por-persona` (fuera del checkout principal)
 - **Rama:** `codex/sdd-permisos-por-persona` (base `origin/main` ad50537f1)
 - **Reserva:** `codex/sdd-reserve-0622-permisos-por-persona` (commit 9f2f9aa52, incorporada por cherry-pick; reserva local, sin publicar)
 - **Fecha:** 2026-11-09
@@ -72,7 +72,7 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
   allá de su handoff y de la lista de archivos del diff.
 
 ## Renumeración 2026-11-14 (Worker W-488, encargo del Director)
-- **Worktree:** `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\agent-ab638f828c2bb96b2`, rama local
+- **Worktree:** `.claude/worktrees/agent-ab638f828c2bb96b2`, rama local
   `w488/sdd-permisos-por-persona` que empuja a `origin/codex/sdd-permisos-por-persona` (la rama local con ese nombre está
   tomada por el worktree original, limpio en 41b8c58e0; no se tocó).
 - Base 41b8c58e0 + `git merge --no-edit origin/main` (4a59f10bf), sin conflictos.
@@ -111,3 +111,33 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - Sin cambios en el texto de R1-R3, «caso Alejandro» (sigue abierta) ni `status: approved`.
 - Evidencia: `git diff --check` PASÓ; `pnpm docs:check` NO EJECUTADO (sin `node_modules`, no se instaló nada).
 - Pendiente de esta tarea: sin cambio respecto de la sección anterior (correr `docs:check` y `sdd:check` con turno).
+
+## Observaciones de la revisión independiente (W-488, sobre 96af83e56)
+La revisión salió APROBADA CON OBSERVACIONES; commit solo de docs:
+- §5.1 regla 2 (segundo candado) y §5.4 dejan de decir «hasta que Sam decida/resuelva R1 y R2»: usan la resolución
+  vigente (R1 solo lectura; «mientras R2 siga en opción A»). En la línea 128 que citó la revisión no había esa frase.
+- §5.1 regla 4 explica que admin y superadmin no son alternativas: conceder exige siempre rol `admin` en el tenant y
+  `is_platform_admin()` es adicional solo para los 4 módulos del superadministrador. Comprobado en la 0538 de la #509:
+  la RPC rechaza con `42501` a quien no tiene rol `admin` antes de mirar el módulo. Estado, §5.5 y §9.1 remiten ahí.
+- Estado: «Confirmadas la spec y R1-R3; siguen abiertos §9.5, §9.1 (nómina) y §13.3».
+- §8, dos riesgos de privacidad: los extras sobre `conversations`/`users` abren datos personales (0540) y la #509 debe
+  pasar `revisar-datos-ve`; `reason` es texto libre que va a `entity_audit_log` y la persona lee su fila.
+  Hallazgo en la #509: la UI limita el motivo a 5-500 (`reasonError`, `maxLength={500}`, igual que el CHECK de la 0538),
+  pero **no** pide evitar datos personales y el ejemplo del campo usa un nombre de persona. Quedó escrito como
+  **requisito para la #509**, no como algo existente.
+- §11: «las numeraciones previas de esta tarea ya no valen», sin listar números ni la afirmación sobre la 0526.
+- Frontmatter `updated: 2026-11-14`. Rutas locales con el usuario de Windows quitadas de este handoff (líneas 4 y 75);
+  ninguna queda en los dos archivos.
+- Sin cambios en «caso Alejandro», `status: approved` ni el texto de R1-R3.
+
+### Evidencia
+- `git diff --check`: PASÓ.
+- `pnpm install --frozen-lockfile` (una vez, autorizado): PASÓ.
+- `pnpm docs:check`: PASÓ («índice sincronizado con 615 specs»).
+- `pnpm sdd:check`: PASÓ («sin números repetidos»; los avisos son choques históricos ya aplicados).
+- vitest y `pnpm verify`: NO EJECUTADOS por indicación (cambio solo de docs).
+
+### FUERA DE ALCANCE DETECTADO
+- §5.1 regla 4 dice que la RPC usa `assert_studio_role(array['admin'])`; la 0538 compara `user_tenants.role` a mano
+  (mismo efecto). No lo corregí porque no estaba en el encargo.
+- El aviso de datos personales en el motivo y el ejemplo sin nombres son cambios de código de la #509, que es de otro Worker.

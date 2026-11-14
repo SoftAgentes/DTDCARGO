@@ -4,7 +4,7 @@ title: "Rol base + accesos adicionales por persona en Studio"
 status: approved
 author: "Claude (sesión Worker sdd-permisos-persona) + Sam"
 created: 2026-11-09
-updated: 2026-11-11
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0024", "0085", "0139", "0252", "0412", "0587"]
@@ -17,9 +17,9 @@ confidencialidad: interno
 > y no hay forma de sumarle, por ejemplo, el CRM a quien lleva contabilidad. Esta spec agrega
 > «accesos adicionales» por persona, solo hacia arriba, con motivo, rastro y candados.
 
-**Estado:** aprobada por Sam el 2026-11-09. Confirmada por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». Fue **actualizada el 2026-11-11** con su decisión sobre módulos
+**Estado:** aprobada por Sam el 2026-11-09. Confirmada por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». Confirmadas la spec y R1-R3; siguen abiertos §9.5, §9.1 (nómina) y §13.3. Fue **actualizada el 2026-11-11** con su decisión sobre módulos
 sensibles (§9.1): los extras **sí** pueden abrir dinero y módulos solo de administrador, con **doble aviso**
-obligatorio (también exigido por la RPC) y concedidos por un admin o un superadmin. Siguen vigentes: acceso por
+obligatorio (también exigido por la RPC) y concedidos por un admin o un superadmin (cómo se combinan: §5.1 regla 4). Siguen vigentes: acceso por
 módulo, vencimiento opcional, «elegir módulos» para Alejandro y el usuario «Personalizado» (§5.5). Las acciones
 destructivas o gobernadas (`CAPABILITIES`) quedan fuera. R1, R2 y R3 de §8 las resolvió el Director el 2026-11-11 con la autorización de Sam («hazlo como creas tú»). Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». La implementación está en la PR #509 y esta spec se enmendó el 2026-11-11 para coincidir con ella (§11 y §13); lo que queda a decisión de Sam está en §9 y §13.3.
 
@@ -128,6 +128,10 @@ Reglas:
    tenant tomado de `get_user_tenant_id()`, destino validado como miembro **activo** (`disabled_at is null`).
    Quien tenga `users` o `admin` solo por extra **no** puede ejecutar estas RPC, porque la base sigue exigiendo
    rol `admin` (mitigación de R1, §8; resuelta; firma y nombres definitivos en §13.1).
+   **Admin y superadmin no son alternativas:** conceder exige siempre el rol `admin` en `user_tenants` del tenant
+   activo; `is_platform_admin()` es un requisito **adicional** solo para los 4 módulos del superadministrador (R2).
+   Un superadmin de plataforma sin rol `admin` en el tenant **no** puede conceder (en la 0538 de la #509, la RPC
+   rechaza con `42501` antes de mirar el módulo). Donde esta spec dice «un admin o un superadmin», léase así.
 5. **Sin escritura directa.** RLS activa; `authenticated` sin INSERT/UPDATE/DELETE; solo `service_role` y
    las RPC. SELECT solo para admin y para la propia persona (para que vea qué tiene y por qué).
 6. **Auditoría.** Cada concesión, cambio y revocación escribe en `entity_audit_log` con actor, destino,
@@ -147,7 +151,7 @@ Orden de decisión para un no-admin:
 2. Módulo **sensible** (`LOCKED_MODULES`): se resuelve igual que los demás, con dos precisiones. Los desvíos
    **por rol** siguen ignorándose en estos módulos (candado de la 0357), y un extra solo vale si la fila trae
    `sensitive_confirmed_at`. Para los 4 `SUPERADMIN_ONLY_MODULES` el segundo candado `is_platform_admin()` de
-   `rbac-guard.ts` **sigue aplicándose** hasta que Sam decida R2 (§8).
+   `rbac-guard.ts` **sigue aplicándose** mientras R2 siga en opción A (§8).
 3. Acceso por rol (default de código o desvío por rol, como hoy) → si lo da, permitido.
 4. Si no, ¿hay acceso adicional vigente de la persona para ese módulo? → ver/editar según la fila.
 5. El scope de almacén (`scopeAllowsModule`) **sigue aplicando encima**: un extra no salta el lado CN/VE.
@@ -192,7 +196,10 @@ confusos. Por eso un módulo **no se puede conceder** desde la UI hasta que su c
   y editar», **motivo obligatorio** y vencimiento opcional. Atajo: «Agregar todo Comercial».
 - Se ofrecen los módulos **ya cubiertos en la base** (§5.3). Los sensibles llevan la etiqueta «Sensible» y al
   concederlos aparece el **doble aviso** con la lista concreta de efectos y una confirmación explícita (§5.1
-  regla 2). `users`, `admin` y los 4 módulos del superadministrador solo se ofrecen cuando Sam resuelva R1 y R2.
+  regla 2). `users`, `admin` y los 4 módulos del superadministrador no se ofrecen hoy (la #509 los marca como no
+  cubiertos en `GRANT_COVERAGE`). Con R1 vigente, un extra sobre `users`/`admin` solo daría lectura; mientras R2
+  siga en opción A, los 4 del superadministrador solo los otorga `is_platform_admin()` y el receptor sigue pasando
+  el segundo candado.
 - Panel **«Accesos efectivos»**: rol base + extras, indicando de dónde viene cada permiso («por rol» o
   «adicional · motivo · quién · cuándo · vence»).
 - Lista **«Personas con excepciones»** en Usuarios, con filtro de por vencer y vencidos.
@@ -212,7 +219,7 @@ Sam quiere poder **crear un usuario totalmente personalizado**, sin partir de un
   módulo con los mismos accesos adicionales de §5.1 (ver / ver y editar, motivo, vencimiento opcional).
 - En la invitación y en «Cambiar rol» aparece la opción **Personalizado**; al elegirla se abre directamente el
   selector «Agregar acceso» (§5.4), con atajos por área («todo Comercial», «todo Operaciones», etc.).
-- Aplican las mismas reglas: concede admin o superadmin, doble aviso en módulos sensibles, capabilities fuera,
+- Aplican las mismas reglas: concede admin o superadmin (§5.1 regla 4), doble aviso en módulos sensibles, capabilities fuera,
   todo auditado. `custom` **nunca** da edición implícita: sin extra no hay acceso.
 - Impacto técnico (a medir en la Fase 1, no a adivinar): el rol está duplicado en CHECK de `user_tenants` y
   `user_invitations`, en las RPC que validan listas de roles (`studio_invite_user`, `studio_change_user_role` y
@@ -294,6 +301,15 @@ aplicar antes de aprobar la PR.
 - **Acumulación de excepciones** (la objeción de la 0139) → motivo, vencimiento opcional, lista visible.
 - **Borrado no limpia el rastro**: borrar un extra no borra `entity_audit_log`; contar antes de ensayar.
 - **Preview comparte Supabase con producción**: no probar concesiones reales en Preview.
+- **Privacidad · extras que abren datos personales.** Un extra sobre `conversations` abre conversaciones y mensajes
+  de clientes (la 0540 vuelve legibles `conversations` y `conversation_messages` por módulo), y uno sobre `users`
+  abre datos del equipo. Por eso la PR de código #509 tiene que pasar
+  `.claude/skills/revisar-datos-ve/SKILL.md` antes de integrarse.
+- **Privacidad · el motivo es texto libre.** `reason` puede arrastrar datos personales; se copia a
+  `entity_audit_log` y la persona destinataria lee su propia fila (`studio_user_module_grants_read`). La #509 ya
+  limita el largo (CHECK de 5 a 500 caracteres en la 0538 y `maxLength={500}` en la UI), pero la UI **no** pide no
+  escribir datos personales, y el ejemplo del campo trae un nombre de persona. **Requisito para la #509:** el campo
+  de motivo avisa que no se escriban datos personales (cédula, teléfono, salud) y el ejemplo no usa nombres.
 - **Doble fuente de verdad** (código y base) → un único contrato que compare ambas (§7.8).
 - **Matriz por rol (0357) y extras por persona** conviven; la spec define el orden en §5.2 para que no haya
   ambigüedad.
@@ -302,7 +318,7 @@ aplicar antes de aprobar la PR.
 
 | # | Decisión | Resultado | Estado |
 |---|---|---|---|
-| 9.1 | ¿Los extras abren módulos sensibles (dinero y solo-administrador)? | **Sí.** Los puede conceder un admin o un superadmin, con **doble aviso obligatorio** que liste en concreto lo que esa persona podrá hacer y confirmación explícita, exigida también por la RPC y registrada en auditoría (§5.1 regla 2). El CHECK de la 0357 no se toca. Las capabilities quedan fuera | Decidido por Sam 2026-11-11 (reemplaza la decisión del 2026-11-09). **Pendiente de Sam:** nómina |
+| 9.1 | ¿Los extras abren módulos sensibles (dinero y solo-administrador)? | **Sí.** Los puede conceder un admin o un superadmin (cómo se combinan: §5.1 regla 4), con **doble aviso obligatorio** que liste en concreto lo que esa persona podrá hacer y confirmación explícita, exigida también por la RPC y registrada en auditoría (§5.1 regla 2). El CHECK de la 0357 no se toca. Las capabilities quedan fuera | Decidido por Sam 2026-11-11 (reemplaza la decisión del 2026-11-09). **Pendiente de Sam:** nómina |
 | 9.2 | Granularidad | **Por módulo** (ver / ver y editar). Acciones finas quedan para fase 2 | Decidido por Sam 2026-11-09 |
 | 9.3 | Vencimiento | **Opcional** | Decidido por Sam 2026-11-09 |
 | 9.4 | Alcance de «parte de Comercial» | **Elegir módulos** (p. ej. CRM sí, Cotizaciones no). Filtrar etapas o embudos dentro del CRM sería otra spec | Decidido por Sam 2026-11-09 |
@@ -336,8 +352,8 @@ extras tienen que verse y funcionar en **todos** los sitios donde se evalúa a l
 `git diff --name-only origin/main...origin/claude/impl-permisos-por-persona-10d044` y es la **exacta**; cualquier otro
 archivo requiere enmendar esta spec primero.
 
-**Migraciones definitivas** (las tres sin aplicar en ningún entorno remoto; las numeraciones previas 0526, 0527 y 0529-0531 de esta tarea ya no valen (0526 es de la #507 y 0528 de la SDD-0624) y la
-numeración original de esta spec tampoco):
+**Migraciones definitivas** (las tres sin aplicar en ningún entorno remoto; las numeraciones previas de esta tarea
+ya no valen, y la numeración original de esta spec tampoco):
 - `supabase/migrations/0538_studio_user_module_grants.sql`
 - `supabase/migrations/0539_comercial_acepta_accesos_por_persona.sql`
 - `supabase/migrations/0540_comercial_rls_por_modulo.sql`
