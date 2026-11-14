@@ -1,4 +1,5 @@
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import type { TmsRouteRow, TmsTruckRow } from "@/lib/studio/tms-types";
 import { RouteStatusBadge } from "./RouteStatusBadge";
 
@@ -176,27 +177,9 @@ export function GpsLiveTab({
           Alertas de flota
         </div>
         {alerts.length === 0 ? (
-          <div
-            style={{
-              padding: "var(--s-5) var(--s-4)",
-              background: "var(--success-bg)",
-              border: "1px solid var(--success)",
-              borderRadius: "var(--r-md)",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <span style={{ color: "var(--success)" }}>{Icon.check(14)}</span>
-            <div
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-              }}
-            >
-              Toda la flota operativa · sin alertas
-            </div>
-          </div>
+          <Aviso tono="exito" compacto>
+            Toda la flota operativa · sin alertas
+          </Aviso>
         ) : (
           <div
             style={{

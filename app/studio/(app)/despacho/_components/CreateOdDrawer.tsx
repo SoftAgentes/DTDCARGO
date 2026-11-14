@@ -11,6 +11,7 @@
 
 import { useActionState, useState } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { createDispatchOrderAction } from "../actions";
 import {
   DISPATCH_HUB_OPTIONS,
@@ -301,31 +302,16 @@ export function CreateOdDrawer({
 
         {/* Partials warning + reason picker */}
         {partials.length > 0 && (
-          <div
-            style={{
-              padding: 14,
-              background: "var(--warning-bg)",
-              border: "1px solid var(--warning)",
-              borderRadius: "var(--r-md)",
-            }}
+          <Aviso
+            tono="atencion"
+            compacto
+            titulo={
+              <>
+                Hay {partials.length} {partials.length === 1 ? "paquete" : "paquetes"} con carga fraccionada
+              </>
+            }
           >
-            <div
-              style={{
-                font: "700 12px/1.2 var(--f-sans)",
-                color: "var(--warning)",
-                marginBottom: 6,
-                letterSpacing: "0.02em",
-              }}
-            >
-              Hay {partials.length} {partials.length === 1 ? "paquete" : "paquetes"} con carga fraccionada
-            </div>
-            <p
-              style={{
-                font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "0 0 12px",
-              }}
-            >
+            <p style={{ margin: "0 0 12px" }}>
               Cada paquete parcial requiere un motivo. La porción que queda en bodega
               se genera como OD nueva en estado <code>creada</code>.
             </p>
@@ -368,22 +354,14 @@ export function CreateOdDrawer({
                 );
               })}
             </div>
-          </div>
+          </Aviso>
         )}
 
         {/* Server feedback */}
         {state?.error && (
-          <div
-            style={{
-              padding: 12,
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "600 13px/1.3 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
       </form>
 

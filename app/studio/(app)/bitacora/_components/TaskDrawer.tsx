@@ -23,6 +23,7 @@ import {
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type {
   AssignableProfile,
@@ -194,18 +195,9 @@ export function TaskDrawer({
         }}
       >
         {state.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "500 12px/1.4 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
 
         {!isCreate && task && <input type="hidden" name="task_id" value={task.id} />}

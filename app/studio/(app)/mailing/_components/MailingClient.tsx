@@ -11,6 +11,7 @@ import { useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Icon } from "@/app/studio/_components/icons";
 import { resendStuckMailAction } from "../actions";
 import type {
@@ -222,18 +223,8 @@ function LogsView({
   return (
     <>
       {resendError && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: 12,
-            padding: "8px 12px",
-            borderRadius: 6,
-            fontSize: 13,
-            color: "var(--danger)",
-            background: "var(--danger-soft, #FBEAEA)",
-          }}
-        >
-          {resendError}
+        <div style={{ marginBottom: 12 }}>
+          <Aviso tono="error">{resendError}</Aviso>
         </div>
       )}
       {/* Filters */}

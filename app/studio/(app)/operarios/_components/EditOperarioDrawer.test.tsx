@@ -133,7 +133,7 @@ describe("EditOperarioDrawer · un operario de Venezuela", () => {
     renderDrawer(operario({ warehouse_id: YIW.id, warehouse_code: "YIW-A1" }));
 
     expect(almacenSelect()).not.toBeInTheDocument();
-    expect(screen.getByRole("note")).toHaveTextContent(
+    expect(screen.getByRole("status")).toHaveTextContent(
       "Tiene asignado el almacén YIW-A1. Al guardar se le quita: los operarios de Venezuela no llevan almacén.");
     await user.click(guardar());
     await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1));
@@ -146,7 +146,7 @@ describe("EditOperarioDrawer · un operario de Venezuela", () => {
 
     expect(rolSelect()).toHaveValue("");
     expect(options(rolSelect())).toEqual(["Elige un rol", "Bodeguero", "Camionero", "Supervisor"]);
-    expect(screen.getByRole("note")).toHaveTextContent(
+    expect(screen.getByRole("status")).toHaveTextContent(
       "Su rol de hoy, Operario, no es de un operario de Venezuela. Elige uno para guardar.");
     expect(guardar()).toBeDisabled();
 
@@ -228,7 +228,7 @@ describe("EditOperarioDrawer · un operario de China", () => {
   it("un rol de despacho en China no se ofrece: hay que elegir uno de almacén", () => {
     renderDrawer({ ...ANA, role: "bodeguero" });
     expect(rolSelect()).toHaveValue("");
-    expect(screen.getByRole("note")).toHaveTextContent(
+    expect(screen.getByRole("status")).toHaveTextContent(
       "Su rol de hoy, Bodeguero, no es de un operario de China. Elige uno para guardar.");
     expect(guardar()).toBeDisabled();
   });

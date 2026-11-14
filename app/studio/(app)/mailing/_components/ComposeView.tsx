@@ -30,6 +30,7 @@
 import { useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   MAIL_CHANNELS,
   channelLabel,
@@ -432,18 +433,8 @@ export function ComposeView({ templates, signatures }: Props) {
           )}
 
           {error && (
-            <div
-              role="alert"
-              style={{
-                marginTop: 16,
-                padding: "10px 14px",
-                borderRadius: "var(--r-md)",
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                font: "500 13px/1.4 var(--f-sans)",
-              }}
-            >
-              {error}
+            <div style={{ marginTop: 16 }}>
+              <Aviso tono="error">{error}</Aviso>
             </div>
           )}
 

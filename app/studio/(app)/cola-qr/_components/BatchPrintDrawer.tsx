@@ -6,6 +6,7 @@
 
 import { useActionState, useState } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { batchAssignPrinterAction } from "../actions";
 import { MOCK_PRINTERS, type QrQueueActionState } from "@/lib/studio/qr-queue-types";
 
@@ -134,17 +135,9 @@ export function BatchPrintDrawer({
         </div>
 
         {state?.error && (
-          <div
-            style={{
-              padding: "var(--s-3)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-sm)",
-              font: "600 12.5px/1.4 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
       </form>
 
