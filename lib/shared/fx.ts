@@ -151,6 +151,28 @@ export function toUsd(
   return { ok: true, usd: (r.negativo ? -Number(-r.centavos) : Number(r.centavos)) / 100 };
 }
 
+/**
+ * SDD-0629 · El camino inverso, solo para mostrar: un monto en USD por la tasa
+ * (unidades de la moneda por 1 USD), exacto y redondeado a 2 decimales con la
+ * mitad lejos de cero. null si el monto o la tasa no sirven: nunca 0 ni el
+ * monto tal cual. No se usa para asentar ni para guardar montos.
+ */
+export function deUsdAMoneda(
+  usd: number | string | null | undefined,
+  rate: number | string | null | undefined,
+): number | null {
+  const u = usd == null || usd === "" ? null : Number(usd);
+  if (u === null || !Number.isFinite(u) || Math.abs(u) >= TOPE) return null;
+  const monto = aDecimal(usd as number | string);
+  const r = tasaValida(rate);
+  const tasa = r === null ? null : aDecimal(rate as number | string);
+  if (monto === null || tasa === null || tasa.entero <= BigInt(0)) return null;
+  const escala = BigInt(10) ** BigInt(monto.escala + tasa.escala);
+  const c = centavos(monto.entero * tasa.entero * BigInt(100), escala);
+  const valor = Number(c) / 100;
+  return Number.isFinite(valor) ? valor : null;
+}
+
 /** La salida pública debe conservar los centavos también al representarse con dos decimales. */
 function usdExactoDesdeCentavos(total: bigint): number {
   const cien = BigInt(100);

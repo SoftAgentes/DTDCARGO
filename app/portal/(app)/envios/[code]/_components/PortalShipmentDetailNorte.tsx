@@ -18,6 +18,12 @@ import {
 } from "@/lib/studio/naviera-tracking/types";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
+import {
+  etaPodVigente,
+  etaPuertoConocida,
+  rotuloFuente,
+  type SeguimientoEstimado,
+} from "@/lib/portal/seguimiento-estimado";
 import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/notification-history-queries";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
@@ -45,6 +51,7 @@ export function PortalShipmentDetailNorte({
   naviera,
   live,
   stepDates,
+  estimado,
   hiddenStatuses,
   notificationHistory,
   pendingAcceptance,
@@ -58,6 +65,11 @@ export function PortalShipmentDetailNorte({
   live?: TrackingSnapshotRow | null;
   /** Fecha real (ISO) por status del stepper (SDD-0132). Opcional. */
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /**
+   * Seguimiento estimado desde el zarpe (SDD-0627). null = todavía no zarpó o
+   * ya no aplica: el stepper queda como antes, sólo con fechas reales.
+   */
+  estimado?: SeguimientoEstimado | null;
   /** Statuses ocultos por config del tenant (SDD-0156 · visible_in_portal). */
   hiddenStatuses?: ReadonlySet<ShipmentStatus>;
   /** Historial de avisos enviados de este envío (SDD-0156 · Slice C). */
@@ -75,7 +87,11 @@ export function PortalShipmentDetailNorte({
     shipment.origin || shipment.destination
       ? `${shipment.origin ?? "—"} → ${shipment.destination ?? "—"}`
       : null;
-  const eta = estimatePortalEta(shipment);
+  // SDD-0627 · después del zarpe manda la estimación desde el zarpe; antes, la
+  // heurística de siempre por servicio. Una entrega estimada que ya pasó no se
+  // muestra con su fecha vencida: dice «Pendiente de confirmar».
+  const eta = estimado ? estimado.entregaIso : estimatePortalEta(shipment);
+  const entregaPorConfirmar = estimado?.entregaVencida ?? false;
   const waLink = buildWhatsAppLink(
     `Hola DTD Cargo, tengo una consulta sobre mi envío ${shipment.code}.`,
   );
@@ -142,9 +158,36 @@ export function PortalShipmentDetailNorte({
           status={shipment.status}
           service={shipment.service}
           stepDates={stepDates}
+          estimatedDates={estimado?.porEtapa}
+          overdueSteps={estimado?.vencidas}
           hiddenStatuses={hiddenStatuses}
         />
-        <p className="mt-6 text-[12px] text-grey-500 leading-[1.5]">
+        {estimado ? (
+          <p
+            className="mt-6 text-[12px] text-grey-700 leading-[1.5]"
+            data-testid="seguimiento-estimado-nota"
+          >
+            <span className="font-bold">Fechas estimadas.</span> Las marcadas
+            «Est.» las calculamos {rotuloFuente(estimado.fuente)}.
+            {estimado.fuente === "terrestre" ? (
+              <> Pueden moverse con la ruta.</>
+            ) : (
+              <>
+                {estimado.puertoReal
+                  ? null
+                  : estimado.etaPuertoIso
+                    ? estimado.fuente === "naviera"
+                      ? ` Llegada a puerto según la naviera: ${formatDate(estimado.etaPuertoIso)}.`
+                      : ` Llegada estimada a puerto: ${formatDate(estimado.etaPuertoIso)}.`
+                    : " La llegada a puerto está por confirmar."}{" "}
+                Pueden moverse con la naviera y la aduana.
+              </>
+            )}
+          </p>
+        ) : null}
+        <p
+          className={`${estimado ? "mt-2" : "mt-6"} text-[12px] text-grey-500 leading-[1.5]`}
+        >
           Las actualizaciones de estado las carga nuestro equipo a medida que tu
           carga avanza.
         </p>
@@ -153,7 +196,16 @@ export function PortalShipmentDetailNorte({
       {/* Naviera Tier 1 (SDD-0101): buque/ETD/ETA/contenedor reales de la cadena +
           deep-link a SeaRates. Solo cuando hay data (envío consolidado con zarpe). */}
       {hasNavieraData(naviera) ? (
-        <NavieraCard naviera={naviera} live={live} />
+        <NavieraCard
+          naviera={naviera}
+          live={live}
+          puertoPorConfirmar={
+            estimado != null &&
+            !estimado.puertoReal &&
+            estimado.fuente === "naviera" &&
+            estimado.etaPuertoIso == null
+          }
+        />
       ) : null}
 
       {/* 2 columnas: detalle de la carga · documentos */}
@@ -184,6 +236,13 @@ export function PortalShipmentDetailNorte({
                 label="Llegó a bodega VE"
                 value={formatDate(shipment.arrivedDestinationAt)}
                 highlight
+              />
+            ) : entregaPorConfirmar ? (
+              <Field
+                label="Entrega estimada"
+                value="Pendiente de confirmar"
+                highlight
+                hint="La fecha estimada ya pasó; se actualiza cuando tu carga avance."
               />
             ) : eta ? (
               <Field
@@ -224,13 +283,26 @@ export function PortalShipmentDetailNorte({
   );
 }
 
+/**
+ * Instante a mostrar. Una `date` pura ('YYYY-MM-DD', como `sailings.eta`) se
+ * ancla a mediodía UTC: con la zona de Caracas, la medianoche UTC caería en el
+ * día anterior.
+ */
+function instante(iso: string): Date {
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00Z` : iso);
+}
+
 /** Fecha del hito (ISO) → "12 jun" corto para el stepper, o null si no parseable. */
 function formatStepDate(iso: string | undefined): string | null {
   if (!iso) return null;
   try {
-    return new Date(iso).toLocaleDateString("es-VE", {
+    const d = instante(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    // SDD-0627 · en hora de Caracas: el servidor corre en UTC.
+    return d.toLocaleDateString("es-VE", {
       day: "2-digit",
       month: "short",
+      timeZone: "America/Caracas",
     });
   } catch {
     return null;
@@ -246,11 +318,17 @@ function Stepper({
   status,
   service,
   stepDates,
+  estimatedDates,
+  overdueSteps,
   hiddenStatuses,
 }: {
   status: ShipmentStatus;
   service: ShipmentService;
   stepDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Fecha ESTIMADA de las etapas que faltan (SDD-0627). */
+  estimatedDates?: Partial<Record<ShipmentStatus, string>>;
+  /** Etapas cuya fecha estimada ya pasó sin ocurrir (SDD-0627): «Por confirmar». */
+  overdueSteps?: readonly ShipmentStatus[];
   hiddenStatuses?: ReadonlySet<ShipmentStatus>;
 }) {
   const steps = buildTimeline(status, service, hiddenStatuses);
@@ -333,6 +411,25 @@ function Stepper({
                 <span className="mt-0.5 text-[9.5px] font-semibold text-grey-500 leading-tight">
                   {formatStepDate(stepDates?.[step.status])}
                 </span>
+              ) : !reached && formatStepDate(estimatedDates?.[step.status]) ? (
+                // SDD-0627 · fecha ESTIMADA de una etapa que falta: se rotula
+                // «Est.» y se lee entera para lectores de pantalla.
+                <span
+                  className="mt-0.5 text-[9.5px] italic text-grey-500 leading-tight"
+                  aria-label={`Fecha estimada: ${formatStepDate(estimatedDates?.[step.status])}`}
+                  data-testid={`stepper-estimado-${step.status}`}
+                >
+                  Est. {formatStepDate(estimatedDates?.[step.status])}
+                </span>
+              ) : !reached && overdueSteps?.includes(step.status) ? (
+                // SDD-0627 · la fecha estimada ya pasó y la etapa no ocurrió: no
+                // se muestra una fecha vencida.
+                <span
+                  className="mt-0.5 text-[9.5px] italic text-grey-500 leading-tight"
+                  data-testid={`stepper-por-confirmar-${step.status}`}
+                >
+                  Por confirmar
+                </span>
               ) : null}
             </div>
           );
@@ -410,15 +507,22 @@ function liveLastMovement(live: TrackingSnapshotRow): string {
 function NavieraCard({
   naviera,
   live,
+  puertoPorConfirmar = false,
 }: {
   naviera: NavieraSnapshot;
   live?: TrackingSnapshotRow | null;
+  /**
+   * SDD-0627 · la ETA de la naviera ya pasó sin llegada registrada: la tarjeta
+   * dice lo mismo que la nota del stepper («por confirmar»), no «Confirmada».
+   */
+  puertoPorConfirmar?: boolean;
 }) {
   // El tracking vivo (real, de la naviera) le gana al dato manual de la cadena.
   const liveData: TrackingSnapshotRow | null =
     live != null && live.fetchStatus === "ok" ? live : null;
-  const etaValue = liveData?.podEta ?? naviera.eta;
-  const etaConfirmed = !!liveData?.podEta;
+  // SDD-0627 · la misma regla que la nota del stepper y los avisos.
+  const etaValue = etaPuertoConocida(live, naviera);
+  const etaConfirmed = !!etaPodVigente(live);
   const statusText = liveData?.status
     ? liveStatusLabel(liveData.status)
     : naviera.navieraStatus
@@ -466,9 +570,11 @@ function NavieraCard({
             value={formatDate(etaValue)}
             highlight
             hint={
-              etaConfirmed
-                ? "Confirmada por la naviera (SeaRates)."
-                : "Estimada por la naviera."
+              puertoPorConfirmar
+                ? "Esta fecha ya pasó: la llegada a puerto está por confirmar."
+                : etaConfirmed
+                  ? "Confirmada por la naviera (SeaRates)."
+                  : "Estimada por la naviera."
             }
           />
         ) : null}
@@ -546,10 +652,13 @@ function cityOf(loc: string | null): string {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString("es-VE", {
+    const d = instante(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("es-VE", {
       day: "2-digit",
       month: "short",
       year: "numeric",
+      timeZone: "America/Caracas",
     });
   } catch {
     return "—";
