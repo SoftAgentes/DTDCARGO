@@ -23,12 +23,18 @@
 - `/ui-check` sobre el diff: un hallazgo alto, aplicado: atención en claro no tenía el acento dorado de BRAND §Estados (solo la forma del icono la distinguía de info) → fondo `color-mix` del dorado existente al 14 %.
 - Contraste recalculado aparte con Node: peor caso icono de atención en oscuro 4,46:1; el mutante M8 (60 %) baja el texto oscuro a 3,92:1.
 - Conteo de franjas y restos recalculado aparte con Node sobre los archivos reales: coincide con `ESPERADO`.
-- Vitest focal, tsc, eslint: ver «Corrida con turno» abajo.
+- Vitest focal, tsc y eslint: ver «Corrida con turno», abajo.
 - `pnpm verify`: NO EJECUTADO local; portón = CI de GitHub.
 
 ## Corrida con turno
 
-Pendiente al escribir: turno pedido al Subdirector Rebrand para `pnpm install` y vitest focal.
+Turno dado por el Subdirector Rebrand (2026-11-14), y liberado al terminar.
+
+- `pnpm install --frozen-lockfile`: PASÓ.
+- `vitest run` de los dos contratos (avisos-portal y claridad-portal): 85/85 PASÓ; los mutantes M1 a M8 mueren.
+- `vitest run app/portal lib/portal/__tests__/payment-report-ui.test.tsx`: 60 archivos, 591 pruebas, PASÓ.
+- ESLint de los 12 archivos de código tocados: PASÓ. `tsc --noEmit`: PASÓ.
+- `pnpm docs:check` y `pnpm sdd:check`: PASÓ.
 
 ## Impacto documental
 
