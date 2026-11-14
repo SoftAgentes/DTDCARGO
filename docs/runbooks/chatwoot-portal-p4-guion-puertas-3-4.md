@@ -228,7 +228,7 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
 - [ ] **La evidencia:** el mismo `grep` de arriba, más el resumen:
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes|desarme_guarda|desarme_esperados|desarme_cw_antes|desarme_cw_despues|desarme_durable_antes|desarme_durable_despues)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
   ```
 
   **Para seguir:**
@@ -236,9 +236,10 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
   - el mismo `lista_md5`;
   - `unidad=portal-p4-ensayo.service`, con `unidad_timeout_stop_s=600`;
   - `limpieza_completa=si` y `ensayo_codigo=0`;
+  - el desarme (decisión A del DG): `desarme_guarda=ok`, `desarme_cw_antes` igual a `desarme_cw_despues`, y `desarme_durable_antes=ausente` y `desarme_durable_despues=ausente`;
   - `0` líneas `FALLÓ`.
 
-  Además, **salen en `PASÓ`** los ids de la lista del runbook (3.1, «Qué mide el ensayo»): `P0`, `P2`, `P3`, `A1` a `A7`, `S1`, `S2`, `D2`, `O1`, `E0`, `E1`, `E2`, `V10`, `V12`, `V13`, `CA`, `B1`, `B2`, `C1` a `C3` y `K1` a `K3`.
+  Además, **salen en `PASÓ`** los ids de la lista del runbook (3.1, «Qué mide el ensayo»): `P0`, `P2`, `P3`, `A1` a `A7`, `S1`, `S2`, `D2`, `O1`, `E0`, `E1`, `E2`, `V10`, `V12`, `V13`, `CA`, `B1`, `B2`, `C1` a `C3`, `K1` a `K3` y `R0` a `R4`. `R0` a `R4` son el desarme del 4.6b sin el paso que borra: los pasos 1, 1b y 2, sobre las copias.
 
 - [ ] **La prueba de borrado,** la misma de la comprobación.
 - [ ] **El DG recibe la evidencia** antes de pedir la puerta 4. Lleva solo líneas `HECHO`, con conteos y md5.

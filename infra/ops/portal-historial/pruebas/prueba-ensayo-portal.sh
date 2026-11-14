@@ -24,6 +24,12 @@
 #       crm_historial_etapas (id bigint) se copian
 #   T8  solo en el mutante M29 (el esquema de la copia con crm_historial_etapas.id uuid): el ensayo se para con 7 antes
 #       de copiar, dice qué columna difiere y limpia todo
+#   G8  ENSAYO_SIN_DESARME fuera de la prueba (sin ENSAYO_PRUEBA=1): se niega
+#   R   al final, con la bandeja del portal simulada sin lo que no es de la carga: el ensayo completo con el desarme
+#       (R-R0 a R-R4: la guarda, deshacer.sh en seco y con CONFIRMAR=no, deshacer-vinculos.sh en ensayo y la copia
+#       durable sin cambios), RT (sale con 0 y limpia todo) y RP (la producción simulada no cambia). Las corridas de
+#       arriba saltan el desarme (ENSAYO_SIN_DESARME=1): sus marcas en la bandeja hacen que el seco se niegue
+#   RG  solo en los mutantes M30 a M32 de la guarda del desarme: se niega antes de escribir
 #   N8  la comparación de los mutantes: un id que no existe sale como «(no existe)»
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
 #
@@ -49,6 +55,13 @@ for d in /dev/shm/portal-historial /dev/shm/portal-ensayo; do
   [ -e "$d" ] && { echo "se niega: ya existe $d"; exit 2; }
 done
 TRABAJO="$(mktemp -d "${TEMP:-/tmp}/cw-ensayo-portal.XXXXXX")"
+# La carpeta del ensayo como la deja el sub-paso 3.0 en el VPS: los guiones de infra/ops/portal-historial y, al lado,
+# el desarme de Studio del 4.6b (deshacer-vinculos.sh y su .sql), que el desarme del ensayo (R) usa. Todas las
+# corridas, y la copia de cada mutante, salen de aquí.
+PHV="$TRABAJO/ph"
+mkdir -p "$PHV" && cp -r "$PH/." "$PHV/" \
+  && cp "$RAIZ/supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sh" "$RAIZ/supabase/cargas/portal-historial-deshacer/deshacer-vinculos.sql" "$PHV/" \
+  || { echo "no se pudo armar la carpeta del ensayo en $PHV"; exit 2; }
 D="$TRABAJO/sim"
 P="chatwoot-sim"
 EDGE="chatwoot_edge_sim"
@@ -187,11 +200,18 @@ foto_sim() {
 foto_sim >"$TRABAJO/sim-antes.txt" 2>&1
 
 # El ensayo, con la producción simulada. Las entradas que cambian por caso van por argumento.
+# Con ENSAYO_PRUEBA=1 y sin decir nada del desarme, el ensayo completo lo salta (ENSAYO_SIN_DESARME=1): la bandeja del
+# portal simulada tiene conversaciones con marcas que no son de la carga, y deshacer.sh en seco se niega con ellas. El
+# desarme (R) se prueba al final, con la bandeja sin marcas, pasando ENSAYO_SIN_DESARME= vacío.
 ensayo() { # carpeta salida [VAR=valor...] -- [opciones]
-  local carpeta="$1" salida="$2" envs=()
+  local carpeta="$1" salida="$2" envs=() prueba=0 desarme=0
   shift 2
-  while [ "${1:-}" != "--" ]; do envs+=("$1"); shift; done
+  while [ "${1:-}" != "--" ]; do
+    case "$1" in ENSAYO_PRUEBA=1) prueba=1 ;; ENSAYO_SIN_DESARME=*) desarme=1 ;; esac
+    envs+=("$1"); shift
+  done
   shift
+  [ "$prueba" = 1 ] && [ "$desarme" = 0 ] && envs=(ENSAYO_SIN_DESARME=1 "${envs[@]}")
   env TENANT="$TENANT" CUENTA="$CUENTA" BANDEJA="$BANDEJA" AGENTE_SERVICIO="$SERVICIO" \
       PROD_STUDIO="$STUDIO_SIM" PROD_PG="$PG_SIM" PROD_RAILS="$P-rails-1" PROD_PROYECTO="$P" \
       CHATWOOT_DIR="$CW" MIGRACIONES="$RAIZ/supabase/migrations" TOPE_CARGA=64 \
@@ -237,7 +257,7 @@ comprobar() { # salida volcado
 # ── T. El ensayo completo ────────────────────────────────────────────────────
 log "== T. el ensayo completo sobre la producción simulada"
 LISTA_DE="$PH/copia-columnas.tsv"
-ensayo "$PH" "$TRABAJO/ensayo.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/volcado" --
+ensayo "$PHV" "$TRABAJO/ensayo.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/volcado" --
 comprobar "$TRABAJO/ensayo.txt" "$TRABAJO/volcado"
 grep -E '^(PASÓ|FALLÓ) ' "$TRABAJO/ensayo.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN" # también en el log del CI cuando pasa (el run 42538856924 no las mostraba)
 # Lo que el ensayo completo tiene que haber medido en la copia (y pasado).
@@ -318,8 +338,12 @@ guardas() { # carpeta prefijo
   ensayo "$C" "$TRABAJO/$X-g3.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/no" PROD_PG=chatwoot-postgres-1 --
   exigir G3 '[ "$(h "$TRABAJO/$X-g3.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g3.txt.evidencia" error)" = volcado_fuera_de_la_prueba ] && [ ! -e "$TRABAJO/no" ]' \
     "ENSAYO_VOLCADO con el nombre real de producción: se niega ($(h "$TRABAJO/$X-g3.txt.evidencia" error))"
+  # G8: saltar el desarme fuera de la prueba de Actions (sin ENSAYO_PRUEBA=1): se niega antes de crear nada.
+  ensayo "$C" "$TRABAJO/$X-g8.txt" ENSAYO_SIN_DESARME=1 --
+  exigir G8 '[ "$(h "$TRABAJO/$X-g8.txt" salida_proceso)" = 2 ] && [ "$(h "$TRABAJO/$X-g8.txt.evidencia" error)" = sin_desarme_fuera_de_la_prueba ] && [ -z "$(docker ps -aq --filter label=com.docker.compose.project=portal-ensayo)" ]' \
+    "ENSAYO_SIN_DESARME fuera de la prueba: se niega ($(h "$TRABAJO/$X-g8.txt.evidencia" error))"
 }
-guardas "$PH" real
+guardas "$PHV" real
 
 # ── M. Mutantes ──────────────────────────────────────────────────────────────
 mutar() { # archivo buscar reemplazo: el texto tiene que aparecer exactamente una vez
@@ -351,7 +375,7 @@ exigir N8 '[ "$n8_caen" = " T2 T9(no existe)" ] && [ "$n8_pasan" = " T1 T9(no ex
 # mutante id qué archivo(copia-columnas.tsv|ensayo-portal.sh) caen pasan buscar reemplazo [guardas]
 mutante() {
   local id="$1" que="$2" arch="$3" caen="$4" pasan="$5" C="$TRABAJO/m/$1" faltan="" otro="" c
-  rm -rf -- "$C"; mkdir -p "$C"; cp -r "$PH/." "$C/"
+  rm -rf -- "$C"; mkdir -p "$C"; cp -r "$PHV/." "$C/"
   if ! mutar "$C/$arch" "$6" "$7" >"$C.mutar.txt" 2>&1; then
     mal "$id" "$que: no se pudo aplicar ($(cat "$C.mutar.txt"))"; return 0
   fi
@@ -359,6 +383,9 @@ mutante() {
   LISTA_DE="$C/copia-columnas.tsv"
   if [ "${8:-}" = guardas ]; then
     guardas "$C" "$id"
+  elif [ "${8:-}" = desarme ]; then
+    ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 ENSAYO_SIN_DESARME= --
+    comprobar_r "$TRABAJO/$id.txt" rg
   elif [ "${8:-}" = completo ]; then
     ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/$id-volcado" --
     comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
@@ -457,8 +484,52 @@ if [ "$MUTANTES" = 1 ]; then
     "  id           bigint generated by default as identity primary key," "  id           uuid primary key default gen_random_uuid()," tipos
   mutante M16 "vuelca fuera de la prueba" ensayo-portal.sh "G3" "G1 G2" \
     'if [ "${ENSAYO_PRUEBA:-}" != 1 ] || [ "$PROD_STUDIO" = dtd-cargo-db-1 ] || [ "$PROD_PG" = chatwoot-postgres-1 ]; then' 'if false; then' guardas
+  mutante M33 "salta el desarme fuera de la prueba" ensayo-portal.sh "G8" "G1 G2 G3" \
+    'if [ -n "${ENSAYO_SIN_DESARME:-}" ]; then' 'if false; then' guardas
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
+fi
+
+# ── R. El desarme del ensayo: las dos vueltas atrás del 4.6b, en las copias ──
+# Va al final: borra de la producción simulada lo que la bandeja del portal tiene y no es de la carga (las dos
+# conversaciones con marcas y el contacto dtd-portal: con teléfono), porque deshacer.sh en seco se niega con eso, como
+# debe. Las corridas de arriba, que buscan esas marcas, ya terminaron. Después corre el ensayo completo con el desarme.
+log "== R. el desarme del ensayo, con la bandeja del portal sin lo que no es de la carga"
+docker exec -i "$PG_SIM" psql -X -q -At -v ON_ERROR_STOP=1 -U chatwoot -d chatwoot_production -c \
+  "delete from messages where inbox_id = $BANDEJA; delete from conversations where inbox_id = $BANDEJA;
+   delete from contacts where id in (select contact_id from contact_inboxes where inbox_id = $BANDEJA) and (phone_number is not null or email is not null);
+   delete from contact_inboxes where inbox_id = $BANDEJA;" >"$TRABAJO/r-sin-marcas.txt" 2>&1
+foto_sim >"$TRABAJO/sim-antes.txt" 2>&1
+# comprobar_r salida: la corrida con el desarme. R-R0 a R-R4 son las líneas PASÓ del ensayo; RT, que salió con 0 y limpió
+# todo, sin dejar /dev/shm/portal-historial; RP, la producción simulada sin cambios. RG, solo en los mutantes de la
+# guarda: el desarme se negó antes de escribir nada.
+comprobar_r() { # salida [rg]
+  local S="$1" E="$1.evidencia" c
+  for c in R0 R1 R2 R3 R4; do exigir "R-$c" 'grep -q "^PASÓ  $c " "$S"' "el ensayo midió $c en las copias"; done
+  exigir RT '[ "$(h "$S" salida_proceso)" = 0 ] && [ "$(h "$E" ensayo_codigo)" = 0 ] && [ "$(h "$E" limpieza_completa)" = si ] && [ ! -e /dev/shm/portal-historial ] && [ -z "$(h "$E" desarme)" ]' \
+    "el ensayo con el desarme sale con 0 ($(h "$S" salida_proceso)), limpia todo ($(h "$E" limpieza_completa)) y no deja /dev/shm/portal-historial"
+  foto_sim >"$S.sim-despues" 2>&1
+  exigir RP 'cmp -s "$TRABAJO/sim-antes.txt" "$S.sim-despues" && grep -q "^PASÓ  P2" "$S" && grep -q "^PASÓ  P3" "$S"' \
+    "la producción simulada no cambió con el desarme"
+  [ "${2:-}" = rg ] || return 0
+  exigir RG '[ "$(h "$E" error)" = desarme_no_es_la_copia ] && ! grep -q "^HECHO paso=desarme-" "$E"' \
+    "la guarda del desarme se niega antes de escribir ($(h "$E" error))"
+}
+grep -q . "$TRABAJO/r-sin-marcas.txt" && mal R "no se pudo dejar la bandeja simulada sin marcas: $(head -c 300 "$TRABAJO/r-sin-marcas.txt")"
+ensayo "$PHV" "$TRABAJO/r.txt" ENSAYO_PRUEBA=1 ENSAYO_SIN_DESARME= --
+comprobar_r "$TRABAJO/r.txt"
+grep -E '^(PASÓ|FALLÓ) R' "$TRABAJO/r.txt" | sed 's/^/   ensayo: /' | tee -a "$RESUMEN"
+if [ "$MUTANTES" = 1 ]; then
+  # Los mutantes de la guarda del desarme, cada uno en su caso: apuntar a la producción simulada se niega (RG pasa y
+  # R-R0 cae), y sin la guarda ya no se niega (RG cae).
+  mutante M30 "el desarme apunta al Chatwoot de producción" ensayo-portal.sh "R-R0" "RG RP" \
+    'R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"' 'R_DB="$STUDIO_COPIA"; R_CW="$PROD_RAILS"' desarme
+  mutante M32 "el desarme apunta al Studio de producción" ensayo-portal.sh "R-R0" "RG RP" \
+    'R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"' 'R_DB="$PROD_STUDIO"; R_CW="$RAILS_COPIA"' desarme
+  mutante M31 "el desarme sin su guarda, apuntando al Chatwoot de producción" ensayo-portal.sh "RG" "" \
+    'R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"
+    if desarme_es_la_copia "$R_DB" "$R_CW"; then' 'R_DB="$STUDIO_COPIA"; R_CW="$PROD_RAILS"
+    if true; then' desarme
 fi
 
 if [ "$FALLAS" -gt 0 ] && [ "${CI:-}" = true ]; then

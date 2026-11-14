@@ -779,6 +779,8 @@ Es la mitad de Studio del sub-paso 4.6b del runbook [`chatwoot-portal-p4-puertas
 
 **El orden con E5** (aprobado por el DG el 2026-11-09; el detalle va en el 4.6b de `docs/runbooks/chatwoot-portal-p4-puertas.md`): 1, el seco de Chatwoot (el DG); 2, el ensayo de Studio con rollback (el DG); 3, el borrado de Chatwoot (Sam); 4, el desarme de Studio (Sam); 5, el cierre con `limpiar.sh --cierre-4-6b` (Sam). **El orden lo imponen los archivos `.hecho`:** cada paso exige el del anterior, con el mismo sha256 de `contactos-conservados.ndjson` y el mismo tenant, y se niega si falta. Así un aborto del borrado de Chatwoot no deja a Studio desarmado. **Si el 4 falla después del 3,** Chatwoot ya está vacío y Studio sigue vinculado: se repite el 4 con el mismo archivo, y `chatwoot_portal` no se enciende hasta que el 4 salga con 0. **Si el VPS se reinicia entre el 3 y el 4,** el 4 usa la copia durable que deja el paso 3 en `/srv/ops/portal-historial/deshacer/` (root 0700, solo ids, uuid seudónimos y hashes; la opción (a) que eligió Sam), y el 5 la borra. Las piezas: la 2c de E5 (#478) y la #480, ‹por confirmar hasta que estén en `main`›.
 
+**El desarme, ensayado en el 3.1** (decisión A del DG, 2026-11-14). El ensayo completo (`ensayo-portal.sh` sin `--solo-copia`) corre, después de K3 y sobre las copias, los pasos del 4.6b que no borran: el 1 (`deshacer.sh` con `MODO=seco`), el 1b (`MODO=borrar CONFIRMAR=no`) y el 2 (`deshacer-vinculos.sh` con `ENTORNO=copia MODO=ensayo`). Sus ids son R0 a R4: R0, la guarda, solo los contenedores de la copia y nunca los de producción; R1, el seco ve exactamente lo cargado; R2 y R3, ROLLBACK sin cambios en las copias; R4, la copia durable no se crea y los `.hecho` quedan solo en tmpfs, que la limpieza borra. Los pasos 3 a 5 siguen siendo de Sam, en producción. La auditoría del flag va vacía en la copia: «encendido alguna vez» lo mide el 4.1 en producción.
+
 ### 10.5.11 El plazo de respuesta: lunes y feriados (P5 y P7)
 
 **La regla (E10-D23), en hora de Caracas:**
@@ -964,6 +966,7 @@ La skill pide una segunda opinión: otro modelo puede revisar este diseño. **Lo
 - [ ] Nada sale a Chatwoot fuera del nombre y el texto.
 - [ ] El flag nace apagado y no se enciende hasta que T1 a T4 estén publicados en producción (E10-D42). Se comprueba en la web publicada: Soporte del portal muestra T1, y `/privacidad` muestra T2, T3 y la fecha de T4.
 - [ ] La carga pasa C-1 a C-14 en el ensayo, antes de producción.
+- [ ] El ensayo completo ensaya también el desarme (R0 a R4) sin cambiar las copias ni crear la copia durable, antes de la puerta 4.
 - [ ] `pnpm verify`, `/ui-check` y revisar-datos-ve sobre el código.
 - [ ] Aceptación de Sam de las filas de la 10.5.
 
