@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
-import { CheckIcon, ArrowIcon } from "@/components/Icon";
+import { ArrowIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import {
   PAYMENT_METHODS,
   paymentMethodLabel,
@@ -138,14 +139,13 @@ export function PaymentReportForm({
   if (state.ok) {
     return (
       <div className="card-shadow-static bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-        <div className="flex items-start gap-3">
-          <span
-            className="mt-0.5 w-8 h-8 rounded-full grid place-items-center flex-shrink-0"
-            style={{ background: "var(--color-status-success)", color: "var(--color-white)" }}
-          >
-            <CheckIcon size={18} />
+        {/* SDD-0603 · T4e (BD-037): franja plana de éxito; el verde, solo en el
+            icono (antes, círculo relleno con color en línea). */}
+        <div className="portal-aviso rounded-[12px] p-4" data-tono="exito">
+          <span className="portal-aviso-icono">
+            <StatusIcon tone="success" size={18} />
           </span>
-          <div>
+          <div className="portal-aviso-cuerpo">
             <div role="status" className="text-[17px] font-bold text-ink">Reporte registrado.</div>
             <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
               El reporte quedó registrado. Revisa su estado actualizado en la
