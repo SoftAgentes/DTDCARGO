@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { renderNewsletterEmail } from "@/lib/studio/newsletter/render-email";
 import type { NewsletterCampaign, NewsletterCampaignInput } from "@/lib/studio/newsletter/types";
 import { saveNewsletterCampaign } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const EMPTY: NewsletterCampaignInput = {
   internalName: "",
@@ -99,8 +100,8 @@ export function CampaignComposer({ campaign }: { campaign?: NewsletterCampaign |
               <input className="studio-input" inputMode="url" value={form.ctaUrl} onChange={(e) => update("ctaUrl", e.target.value)} />
             </Field>
           </div>
-          {error && <p role="alert" style={errorStyle}>{error}</p>}
-          {message && <p role="status" style={successStyle}>{message}</p>}
+          {error && <div style={{ marginBottom: "var(--s-3)" }}><Aviso tono="error" compacto>{error}</Aviso></div>}
+          {message && <div style={{ marginBottom: "var(--s-3)" }}><Aviso tono="exito" compacto>{message}</Aviso></div>}
           <button type="button" className="studio-btn studio-btn-primary studio-btn-sm" onClick={save} disabled={pending}>
             {pending ? "Guardando…" : "Guardar borrador"}
           </button>
@@ -131,5 +132,3 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const cardStyle: React.CSSProperties = {
   background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "var(--s-5)",
 };
-const errorStyle: React.CSSProperties = { padding: "var(--s-2) var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-sm)", font: "600 12px/1.4 var(--f-sans)" };
-const successStyle: React.CSSProperties = { padding: "var(--s-2) var(--s-3)", background: "var(--success-bg)", color: "var(--ink)", borderRadius: "var(--r-sm)", font: "600 12px/1.4 var(--f-sans)" };

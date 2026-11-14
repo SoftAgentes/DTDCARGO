@@ -22,6 +22,7 @@ import {
 } from "react";
 import { Icon } from "../icons";
 import { useT } from "@/lib/i18n";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export interface GuiaTarjetaProps {
   titulo: string;
@@ -159,18 +160,9 @@ export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
 
         <div id={ID_CUERPO} style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
           {faltaAncla && (
-            <p
-              style={{
-                margin: 0,
-                padding: "var(--s-2) var(--s-3)",
-                borderRadius: "var(--r-md)",
-                background: "var(--info-bg)",
-                color: "var(--info)",
-                font: "400 13px/1.5 var(--f-sans)",
-              }}
-            >
+            <Aviso tono="info" compacto>
               {t("guide.chrome.missing_target")}
-            </p>
+            </Aviso>
           )}
           <p style={{ margin: 0, font: "400 14px/1.5 var(--f-sans)", color: "var(--ink)" }}>{que}</p>
           {antes && (

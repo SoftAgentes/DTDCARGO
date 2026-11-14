@@ -394,12 +394,19 @@ describe("etiquetas de migraciones", () => {
     expect(() => migracionesDelCommit(raiz)).toThrow(/inesperado/);
   });
 
-  it("en el repo real incluye las esperas 0422 y 0423 y cuenta bien", () => {
+  it("en el repo real exige 0422 y 0423 (aplicadas el 2026-11-14), cuenta bien y ya no las lleva como espera", () => {
     const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-    const [linea] = etiquetas(raiz);
+    const [linea, lineaEspera] = etiquetas(raiz);
     const [, n, lista] = linea.split("=")[1].split(":");
     expect(lista.split(",")).toHaveLength(Number(n));
     expect(lista.split(",")).toEqual(expect.arrayContaining(["0422_payment_report_command_boundary", "0423_payment_report_historical_identity"]));
+    // Se aplicaron y se sellaron: salen de la etiqueta de esperas. No se fija la lista
+    // entera, porque una PR migrate-first puede declarar una espera nueva y legítima.
+    const { enEspera } = migracionesDelCommit(raiz);
+    for (const nombre of ["0422_payment_report_command_boundary", "0423_payment_report_historical_identity"]) {
+      expect(enEspera).not.toContain(nombre);
+      expect(lineaEspera).not.toContain(nombre);
+    }
   });
 
   it("formatoLista y activado", () => {

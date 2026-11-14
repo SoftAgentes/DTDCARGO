@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "generatedAt": "2026-11-13T00:00:00.000Z",
-  "sourceCommit": "49b8b1fec9827b2277bbeb0c11c87db5588d6d41",
+  "sourceCommit": "84db39d389b538e2c41093af87c5c8ab4cf87097",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -247,10 +247,7 @@
         "--f-display",
         "--ink-soft",
         "--s-2",
-        "--s-3",
         "--danger",
-        "--r-sm",
-        "--danger-bg",
         "--f-sans",
         "--bg-sidebar",
         "--dur-fast",

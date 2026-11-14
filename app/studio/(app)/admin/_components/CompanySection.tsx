@@ -27,6 +27,7 @@ import {
   type CompanyData,
   type CompanyOffice,
 } from "@/lib/studio/company-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const INITIAL: CompanyActionState = {};
 
@@ -104,17 +105,9 @@ export function CompanySection({ data }: { data: CompanyData }) {
         </Card>
 
         {state?.error && (
-          <div
-            style={{
-              padding: "var(--s-3)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "600 13px/1.3 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error">
             {state.error}
-          </div>
+          </Aviso>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>

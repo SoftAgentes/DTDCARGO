@@ -89,7 +89,8 @@ describe("RadarTab · banner de limitación OBLIGATORIO (mode-aware)", () => {
   it("en web (production) avisa que NO es funcional en la web y que no se actualiza", () => {
     render(<RadarTab report={REPORT} env="production" />);
     const banner = screen.getByRole("status");
-    expect(banner).toHaveAttribute("data-radar-mode", "web");
+    expect(banner.closest("[data-radar-mode]")).toHaveAttribute("data-radar-mode", "web");
+    expect(banner).toHaveAttribute("data-tono", "atencion");
     expect(
       within(banner).getByText(/no es funcional en la web/),
     ).toBeInTheDocument();
@@ -100,7 +101,7 @@ describe("RadarTab · banner de limitación OBLIGATORIO (mode-aware)", () => {
 
   it("en web (preview) también es modo web", () => {
     render(<RadarTab report={REPORT} env="preview" />);
-    expect(screen.getByRole("status")).toHaveAttribute(
+    expect(screen.getByRole("status").closest("[data-radar-mode]")).toHaveAttribute(
       "data-radar-mode",
       "web",
     );
@@ -109,7 +110,8 @@ describe("RadarTab · banner de limitación OBLIGATORIO (mode-aware)", () => {
   it("en local el banner es suave (último informe local, cómo regenerar)", () => {
     render(<RadarTab report={REPORT} env="local" />);
     const banner = screen.getByRole("status");
-    expect(banner).toHaveAttribute("data-radar-mode", "local");
+    expect(banner.closest("[data-radar-mode]")).toHaveAttribute("data-radar-mode", "local");
+    expect(banner).toHaveAttribute("data-tono", "info");
     expect(within(banner).getByText(/Último informe local/)).toBeInTheDocument();
     // En local NO se muestra la advertencia "no es funcional en la web".
     expect(within(banner).queryByText(/no es funcional en la web/)).toBeNull();
@@ -144,7 +146,8 @@ describe("RadarTab · sin artefacto (edge: report=null)", () => {
   it("en web sin artefacto, el banner sigue siendo el de 'no funcional acá'", () => {
     render(<RadarTab report={null} env="production" />);
     const banner = screen.getByRole("status");
-    expect(banner).toHaveAttribute("data-radar-mode", "web");
+    expect(banner.closest("[data-radar-mode]")).toHaveAttribute("data-radar-mode", "web");
+    expect(banner).toHaveAttribute("data-tono", "atencion");
     expect(
       within(banner).getByText(/no es funcional en la web/),
     ).toBeInTheDocument();

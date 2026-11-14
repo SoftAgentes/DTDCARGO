@@ -47,11 +47,11 @@ declare -A PISO=(
   [infra/ops/tests/prueba-aviso-discord.sh]=39
   [infra/ops/tests/prueba-guardar-webhook-discord.sh]=32
   [infra/ops/tests/prueba-runbook-avisos-discord.sh]=12
-  [infra/ops/tests/prueba-aplicar-lote.sh]=64
+  [infra/ops/tests/prueba-aplicar-lote.sh]=75
   [infra/ops/tests/prueba-ips-prueba.sh]=24
   [infra/ops/tests/prueba-prompt-trim.sh]=13
   [infra/ops/tests/prueba-restore-event-triggers.sh]=78
-  [infra/ops/tests/prueba-portal-historial.sh]=139
+  [infra/ops/tests/prueba-portal-historial.sh]=151
   [infra/ops/tests/prueba-respaldo-storage.sh]=90
   [infra/ops/tests/prueba-vigilar-chatwoot.sh]=102
 )

@@ -13,6 +13,7 @@
  */
 
 import { useState } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Icon } from "@/app/studio/_components/icons";
 import {
@@ -320,18 +321,10 @@ function KpiEditor({
             <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
           </div>
           {atMax && (
-            <div
-              style={{
-                padding: "9px 12px",
-                marginBottom: 12,
-                background: "var(--info-bg)",
-                borderRadius: "var(--r-md)",
-                borderLeft: "3px solid var(--info)",
-                font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              Llegaste al tope de {MAX_KPIS} KPIs. Quita alguno para agregar otro.
+            <div style={{ marginBottom: 12 }}>
+              <Aviso tono="info" compacto>
+                Llegaste al tope de {MAX_KPIS} KPIs. Quita alguno para agregar otro.
+              </Aviso>
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -484,18 +477,9 @@ function WidgetEditor({
           </div>
         </section>
       )}
-      <div
-        style={{
-          padding: "12px 14px",
-          background: "var(--info-bg)",
-          borderRadius: "var(--r-md)",
-          borderLeft: "3px solid var(--info)",
-          font: "500 12px/1.5 var(--f-sans)",
-          color: "var(--ink-soft)",
-        }}
-      >
+      <Aviso tono="info" compacto>
         Si dejas una columna vacía, la otra ocupa todo el ancho.
-      </div>
+      </Aviso>
     </div>
   );
 }

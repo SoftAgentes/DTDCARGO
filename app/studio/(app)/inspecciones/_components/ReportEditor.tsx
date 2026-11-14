@@ -24,6 +24,7 @@ import type { InspectionActionState } from "@/lib/studio/inspecciones/validators
 import type { InspectionPhotoItem } from "@/lib/studio/inspecciones/photos";
 import { updateInspectionReportAction } from "../actions";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { PsiBuilder } from "./PsiBuilder";
 import { FactoryBuilder } from "./FactoryBuilder";
 import { PhotoManager } from "./PhotoManager";
@@ -199,16 +200,11 @@ export function ReportEditor({
                 )}
               </form>
               {state.error && (
-                <p
-                  role="alert"
-                  style={{
-                    font: "500 12px/1.4 var(--f-sans)",
-                    color: "var(--danger)",
-                    marginTop: 14,
-                  }}
-                >
-                  {state.error}
-                </p>
+                <div style={{ marginTop: 14 }}>
+                  <Aviso tono="error" compacto>
+                    {state.error}
+                  </Aviso>
+                </div>
               )}
             </>
           )}

@@ -13,6 +13,7 @@ import {
 } from "../actions";
 import type { InspectionPhotoItem } from "@/lib/studio/inspecciones/photos";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function PhotoManager({
   reportId,
@@ -92,16 +93,11 @@ export function PhotoManager({
           {pending ? "Subiendo…" : "Subir fotos"}
         </button>
         {state.error && (
-          <span
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              flexBasis: "100%",
-            }}
-          >
-            {state.error}
-          </span>
+          <div style={{ flexBasis: "100%" }}>
+            <Aviso tono="error" compacto>
+              {state.error}
+            </Aviso>
+          </div>
         )}
       </form>
     </div>

@@ -23,6 +23,7 @@ import {
   type AuditListFilters,
   type AuditListResult,
 } from "@/lib/studio/audit-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -84,28 +85,9 @@ export function AuditLogSection({
   if (!result.ok) {
     const copy = ERROR_COPY[result.code];
     return (
-      <div
-        role="alert"
-        style={{
-          padding: "var(--s-6)",
-          border: "1px solid var(--danger)",
-          borderRadius: "var(--r-lg)",
-          background: "var(--danger-bg)",
-        }}
-      >
-        <strong style={{ color: "var(--ink)", font: "700 14px/1.4 var(--f-sans)" }}>
-          {copy.title}
-        </strong>
-        <p
-          style={{
-            color: "var(--ink-soft)",
-            font: "400 14px/1.5 var(--f-sans)",
-            margin: "var(--s-2) 0 0",
-          }}
-        >
-          {copy.description}
-        </p>
-      </div>
+      <Aviso tono="error" titulo={copy.title}>
+        {copy.description}
+      </Aviso>
     );
   }
 

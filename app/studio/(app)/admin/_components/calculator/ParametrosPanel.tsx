@@ -32,6 +32,7 @@ import { WeightModelExplainer } from "./WeightModelExplainer";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const initialState: CalculatorSettingsActionState = {};
 
@@ -257,16 +258,11 @@ export function ParametrosPanel({
 
         {/* Error global de la action */}
         {!dirty && state.error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12.5px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: "20px 0 0",
-            }}
-          >
-            {state.error}
-          </p>
+          <div style={{ marginTop: 20 }}>
+            <Aviso tono="error" compacto>
+              {state.error}
+            </Aviso>
+          </div>
         )}
 
         {/* Footer · ghost a la izquierda, primary a la derecha (Regla 8) */}

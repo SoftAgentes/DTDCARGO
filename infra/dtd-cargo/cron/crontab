@@ -30,3 +30,5 @@
 # Solo en el servidor (no están en vercel.json).
 # /api/cron/searates-refresh: semanal, lunes 06:00 UTC · no está en vercel.json · 20 rutas/corrida caben en el plan gratis de SeaRates (100/mes)
 0 6 * * 1 curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/searates-refresh
+# /api/cron/bcv-rates: cada hora, minuto 5 UTC · 24 invocaciones nominales/día · requiere flag y scope explícitos; no activa la carga
+5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bcv-rates

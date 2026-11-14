@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { ShipmentService } from "@/lib/studio/shipment-types";
 import {
@@ -327,20 +328,9 @@ export function TemplateDrawer({
         </div>
 
         {(state.error || deleteError) && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error ?? deleteError}
-          </p>
+          </Aviso>
         )}
 
         {/* Soft delete (solo edit) */}

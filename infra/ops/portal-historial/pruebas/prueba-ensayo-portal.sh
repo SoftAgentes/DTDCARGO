@@ -20,6 +20,10 @@
 #       /dev/shm/portal-historial), conserva su código
 #       y anota docker_no_responde (revisión del DG de la vuelta 9, B1)
 #   G7  docker colgado en la limpieza: las carpetas se borran antes de esperarlo
+#   T7  los tipos de las columnas de la lista son los mismos en producción y en la copia (S3 y S4), y las dos filas de
+#       crm_historial_etapas (id bigint) se copian
+#   T8  solo en el mutante M29 (el esquema de la copia con crm_historial_etapas.id uuid): el ensayo se para con 7 antes
+#       de copiar, dice qué columna difiere y limpia todo
 #   N8  la comparación de los mutantes: un id que no existe sale como «(no existe)»
 #   M   mutantes de la lista (copia-columnas.tsv) y del guion: cada uno tiene que tumbar lo suyo
 #
@@ -107,7 +111,9 @@ PERMITIDAS_CW=('Conversaciones del portal' 'SINT contacto' 'sint-' 'copia.invali
 log "== prueba del ensayo de la carga P4 · $(date -u +%Y-%m-%dT%H:%M:%SZ) · trabajo $TRABAJO"
 
 # ── La producción simulada de Studio: el fixture de la 0523 y las marcas ─────
-docker run -d --name "$STUDIO_SIM" -e POSTGRES_PASSWORD="$(openssl rand -hex 16)" -v "$RAIZ/supabase:/supabase:ro" postgres:17 >/dev/null \
+# En C.UTF-8, y la copia del ensayo en el en_US.utf8 de postgres:17: la guarda de tipos tiene que ordenar igual en las
+# dos (revisión del DG de la #563, B1). T7 comprueba que la mezcla de ordenaciones de verdad está.
+docker run -d --name "$STUDIO_SIM" -e POSTGRES_PASSWORD="$(openssl rand -hex 16)" -e POSTGRES_INITDB_ARGS=--locale=C.UTF-8 -v "$RAIZ/supabase:/supabase:ro" postgres:17 >/dev/null \
   || { mal P0 "no arrancó el Studio simulado"; exit 1; }
 for _ in $(seq 1 60); do docker exec "$STUDIO_SIM" pg_isready -q -h 127.0.0.1 -U postgres && break; sleep 1; done
 docker exec -i "$STUDIO_SIM" psql -X -q -U postgres -d postgres -f - <"$AQUI/studio-fixture.sql" >"$TRABAJO/fixture.txt" 2>&1 \
@@ -116,6 +122,9 @@ TENANT="$(qs "select md5('0523-sintetico-T1')::uuid")"
 qs "update public.conversation_messages set author_name = 'SINT-AUTOR';
     insert into public.conversation_messages (id, tenant_id, conversation_id, direction, author_name, body, sent_at)
     values (md5('ensayo-correo')::uuid, md5('0523-sintetico-T1')::uuid, md5('0523-sintetico-hE')::uuid, 'in', 'SINT-AUTOR', 'SINT-CORREO', now() - interval '1 hour');" >/dev/null
+# T7: dos filas de crm_historial_etapas del tenant, como en producción (id bigint identity). Con 0 filas, un tipo
+# distinto en la copia no se veía: el COPY de nada no falla (el --solo-copia del 2026-11-14).
+qs "insert into public.crm_historial_etapas (tenant_id) values (md5('0523-sintetico-T1')::uuid), (md5('0523-sintetico-T1')::uuid);" >/dev/null
 
 # ── La producción simulada de Chatwoot ───────────────────────────────────────
 mkdir -p "$D/cargador"
@@ -217,6 +226,11 @@ comprobar() { # salida volcado
     "minimización: del espejo y de los eventos de Studio, solo los del hilo del portal ($espejo · $eventos)"
   exigir T5 'cmp -s "$TRABAJO/sim-antes.txt" "$S.sim-despues" && grep -q "^PASÓ  P2" "$S" && grep -q "^PASÓ  P3" "$S"' \
     "la producción simulada no cambió (foto de la prueba, y P2 y P3 del ensayo)"
+  local etapas orden_sim
+  etapas="$(h "$E" copia_studio_public.crm_historial_etapas)"
+  orden_sim="$(qs "select datcollate from pg_database where datname = current_database()")"
+  exigir T7 '[ "$(h "$E" tipos_studio_consulta)" = ok ] && [ "$(h "$E" tipos_chatwoot_consulta)" = ok ] && [ "$(h "$E" tipos_studio)" = iguales ] && [ "$(h "$E" tipos_chatwoot)" = iguales ] && [ "${etapas%,columnas_md5:*}" = filas:2,produccion:2 ] && [ "$orden_sim" = C.UTF-8 ]' \
+    "los tipos de la lista son los mismos en producción ($orden_sim) y en la copia ($(h "$E" tipos_studio), $(h "$E" tipos_chatwoot)), y crm_historial_etapas, con id bigint, se copia entera ($etapas)"
   return 0
 }
 
@@ -352,6 +366,12 @@ mutante() {
   else
     ensayo "$C" "$TRABAJO/$id.txt" ENSAYO_PRUEBA=1 "ENSAYO_VOLCADO=$TRABAJO/$id-volcado" -- --solo-copia
     comprobar "$TRABAJO/$id.txt" "$TRABAJO/$id-volcado"
+    if [ "${8:-}" = tipos ]; then
+      # T8: la guarda de tipos paró el ensayo con 7, antes de copiar ninguna tabla, nombró la columna y limpió todo.
+      local Mt="$TRABAJO/$id.txt" Me="$TRABAJO/$id.txt.evidencia"
+      exigir T8 '[ "$(h "$Mt" salida_proceso)" = 7 ] && [ "$(h "$Me" ensayo_codigo)" = 7 ] && [ "$(h "$Me" error)" = tipos_distintos ] && [ "$(h "$Me" tipos_studio_distintos)" = 1:public.crm_historial_etapas.id ] && ! grep -q "^HECHO copia_" "$Me" && [ "$(h "$Me" limpieza_completa)" = si ]' \
+        "la guarda de tipos para con 7 antes de copiar ($(h "$Mt" salida_proceso), $(h "$Me" error), $(h "$Me" tipos_studio_distintos)) y limpia ($(h "$Me" limpieza_completa))"
+    fi
   fi
   MODO_LOG=1
   faltan="$(no_cumplen FALLÓ $caen)"
@@ -431,6 +451,10 @@ if [ "$MUTANTES" = 1 ]; then
     'if [ -n "${DB_CW:-}" ] && [ "$DB_CW" != "$RAILS_COPIA" ]; then' 'if false; then' guardas
   mutante M15 "sin la guarda de /dev/shm/portal-historial" ensayo-portal.sh "G2" "G1 G3" \
     'if [ -e "$SHM" ]; then' 'if false; then' guardas
+  # El --solo-copia del 2026-11-14: el esquema de la copia con el tipo inventado. Sin la guarda, el COPY falla a medias
+  # (código 1, D1); con ella, se para con 7 antes de copiar nada (T8).
+  mutante M29 "el esquema de la copia con crm_historial_etapas.id uuid" ensayo-studio-esquema.sql "T7" "T8" \
+    "  id           bigint generated by default as identity primary key," "  id           uuid primary key default gen_random_uuid()," tipos
   mutante M16 "vuelca fuera de la prueba" ensayo-portal.sh "G3" "G1 G2" \
     'if [ "${ENSAYO_PRUEBA:-}" != 1 ] || [ "$PROD_STUDIO" = dtd-cargo-db-1 ] || [ "$PROD_PG" = chatwoot-postgres-1 ]; then' 'if false; then' guardas
 else

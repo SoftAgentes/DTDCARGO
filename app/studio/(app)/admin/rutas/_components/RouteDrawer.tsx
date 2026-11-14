@@ -36,6 +36,7 @@ import type {
 } from "@/lib/studio/dispatch-routes-types";
 import type { VeLocalityEntry } from "@/lib/studio/ve-catalog-types";
 import { CityPicker } from "./CityPicker";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const FORM_ID = "route-drawer-form";
 const INITIAL_STATE: RoutesActionState = {};
@@ -797,16 +798,6 @@ function FieldError({ msg }: { msg: string }) {
 
 function ErrorBanner({ msg }: { msg: string }) {
   return (
-    <div
-      style={{
-        padding: 12,
-        background: "var(--danger-bg)",
-        color: "var(--danger)",
-        borderRadius: "var(--r-md)",
-        font: "600 13px/1.3 var(--f-sans)",
-      }}
-    >
-      {msg}
-    </div>
+    <Aviso tono="error">{msg}</Aviso>
   );
 }

@@ -23,6 +23,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
@@ -53,16 +54,6 @@ const hint: CSSProperties = {
   font: "500 11.5px/1.4 var(--f-sans)",
   color: "var(--ink-soft)",
   margin: "6px 0 0",
-};
-
-const notice: CSSProperties = {
-  font: "500 12px/1.4 var(--f-sans)",
-  color: "var(--ink)",
-  background: "var(--warning-bg)",
-  border: "1px solid var(--warning)",
-  borderRadius: "var(--r-sm)",
-  padding: "8px 10px",
-  margin: 0,
 };
 
 export function EditOperarioDrawer({
@@ -204,11 +195,11 @@ export function EditOperarioDrawer({
           </div>
         ) : (
           operario.warehouse_id && (
-            <p role="note" style={notice}>
+            <Aviso tono="atencion" compacto>
               Tiene asignado el almacén{" "}
               <strong>{operario.warehouse_code ?? "de China"}</strong>. Al guardar
               se le quita: los operarios de Venezuela no llevan almacén.
-            </p>
+            </Aviso>
           )
         )}
 
@@ -290,10 +281,12 @@ export function EditOperarioDrawer({
               para editar este operario.
             </p>
           ) : !actualValido ? (
-            <p role="note" style={{ ...notice, marginTop: 6 }}>
-              Su rol de hoy, {operarioRolLabel(operario.role)}, no es de un
-              operario de {region.label}. Elige uno para guardar.
-            </p>
+            <div style={{ marginTop: 6 }}>
+              <Aviso tono="atencion" compacto>
+                Su rol de hoy, {operarioRolLabel(operario.role)}, no es de un
+                operario de {region.label}. Elige uno para guardar.
+              </Aviso>
+            </div>
           ) : rolCambia ? (
             <p role="status" style={hint}>
               Vas a cambiar su rol de {operarioRolLabel(operario.role)} a{" "}
