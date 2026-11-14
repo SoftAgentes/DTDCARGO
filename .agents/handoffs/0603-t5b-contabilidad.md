@@ -9,14 +9,17 @@
 
 - 12 `<Aviso>` en 11 archivos: errores de acción (`error`, compacto en cajones) y el aviso del cierre (`atencion`, con la superclave fuera de la región viva).
 - Conciliación: control real por extracto, «Abrir» o «Cerrar» según el estado, con `aria-expanded` y nombre «Abrir/Cerrar extracto <período> · <cuenta>». Conserva el toggle de la fila. La fila sale del Tab. El abierto va en tinta: contorno `--ctl-border` y botón oscuro, sin vino.
-- Nuevos: `conciliacion-abrir.test.tsx` y `claridad-t5b-contract.test.ts`, con cuenta exacta por archivo y mutantes.
+- Ampliación del 2026-11-14 (pedido de Sam, transmitido por el Subdirector Rebrand):
+  - `LineMatchDrawer`: «Ligar con <código>» por candidato, con la fila fuera del Tab y `stopPropagation` para no ligar dos veces.
+  - `PlanCuentasTab`, que entra a la allowlist: «Abrir cuenta <código>», con el nombre fuera del Tab y el botón de colapsar en 32 px.
+- Nuevos: `conciliacion-abrir.test.tsx`, `line-match-ligar.test.tsx`, `plan-cuentas-abrir.test.tsx` y `claridad-t5b-contract.test.ts` (15 archivos con cuenta exacta y mutantes).
 
 ## Decisiones
 
 - **Allowlist:** el Subdirector Rebrand la confirmó con los 14 archivos el 2026-11-14. El Subdirector de Contabilidad midió sus cinco worktrees y ninguno tenía trabajo en `contabilidad/_components/`.
 - **Extracto abierto (Subdirector Rebrand, 2026-11-14):** «se mantiene el toggle, porque no cambiamos comportamiento». Se aplica con texto «Abrir»/«Cerrar», `aria-expanded` y la fila fuera del Tab. La primera versión, en la que «Abrir» siempre abría, se reemplazó en `da9e63d56`.
 - **Relleno de tinta de la selección:** se aplicó en el control (`studio-btn-dark`) y en el contorno de la fila, como en la #552, y no en toda la fila. Con la fila en `--ink`, el texto y los `Badge` quedarían sin contraste medido. Queda señalado para la revisión independiente en `tramo-5b.md`.
-- **LineMatchDrawer (Subdirector Rebrand, 2026-11-14):** fuera, por prudencia, porque liga al pulsar. La propuesta queda anotada en `tramo-5b.md`.
+- **LineMatchDrawer y PlanCuentasTab (Subdirector Rebrand, 2026-11-14):** primero LineMatchDrawer quedó fuera. Luego Sam pidió resolver los pendientes menores en la misma PR, y entraron los dos. «Ligar» es secundario para no sumar un primario por candidato. La acción del servidor no cambia.
 - **Finales de línea:** `AccountDrawer.tsx` y `LineMatchDrawer.tsx` están en el índice con CRLF y un CR suelto (`-text`). Se editaron sin cambiar sus finales, para que el diff quede en las líneas tocadas.
 
 ## Validación
@@ -34,7 +37,15 @@
   - «Cerrar» fijo en «Abrir»: 2.
   - El contorno del abierto en vino: 4.
 - Los mutantes dentro del contrato están en `tramo-5b.md`.
-- `tsc --noEmit`: PASÓ. ESLint de lo tocado: PASÓ.
+- Ampliación, sobre `5e5d3fa17`: vitest focal (`contabilidad/` y el contrato) PASÓ, 15 archivos y 273 pruebas.
+- Mutantes reales de la ampliación: murieron 6 de 6.
+  - «Ligar» sin `stopPropagation`: 2 fallos.
+  - «Ligar» sin nombre: 6.
+  - El candidato ya conciliado que liga por la fila: 1.
+  - El nombre de la cuenta en el Tab: 3.
+  - La cuenta sin «Abrir»: 5.
+  - Colapsar a 24 px: 1.
+- `tsc --noEmit`: PASÓ. ESLint de lo tocado: PASÓ (las dos veces).
 - `/ui-check`: sin hallazgos altos. El medio (ratón y teclado distintos en el extracto abierto) quedó resuelto con el toggle; quedan dos bajos (margen de 12 px fijo como el original y los campos del cierre sin caja, a ver en pantalla).
 - `pnpm verify` local: NO EJECUTADO. Lo cubre el CI de GitHub (regla del DG, 2026-11-13).
 - Vista en pantalla con datos, en claro y en oscuro: NO EJECUTADA.
@@ -51,6 +62,4 @@ Nuevo `tramo-5b.md`. Sin cambios en los documentos canónicos (`BRAND.md`, `spec
 
 - Los botones de papelera de `StatementDrawer` y `EntryDrawer` tienen contorno `--border`, que puede quedar por debajo de 3:1 (BD-037).
 - `accentColor: var(--wine)` en casillas: `AccountDrawer`, `AjustesDelCierre`, `EntryDrawer` y unos 20 archivos más del Studio. Es selección en vino; conviene una tarea transversal.
-- Las filas de cuentas (`PlanCuentasTab.tsx`) y del mayor (`LibroMayorTab.tsx`) no estaban en la allowlist.
-- Los candidatos de `LineMatchDrawer` son una fila entera que liga al pulsarla, con contorno `--border`. Se podría pasar a fila más botón «Ligar».
-- `EntryDrawer.tsx` choca con las PRs abiertas #529, #527, #526, #521, #520 y #312.
+- Las filas del mayor (`LibroMayorTab.tsx`) no están en la allowlist.

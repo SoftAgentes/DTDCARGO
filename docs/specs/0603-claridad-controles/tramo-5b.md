@@ -2,7 +2,7 @@
 
 Parte del tramo 5 de [la spec](spec.md) («Filas y pantallas propias»). Aplica BD-037 al módulo de Contabilidad: lo que abre un registro es un control real «Abrir», lo que avisa es `<Aviso>` (SDD-0628) y la selección va en tinta. Rama `claude/0603-t5b-contabilidad-05e824`, desde `origin/main` `375adebfb`: es `da8d123ee` más el tren #549, que no toca Contabilidad.
 
-**Fuera, a propósito:** `PlanCuentasTab.tsx`, `LibroMayorTab.tsx`, `PorContabilizarTab.tsx`, `ExcepcionesCierreTab.tsx` e `IngresoDelPeriodoCard.tsx`, que no están en la allowlist; las pills, badges y chips de estado; los textos, montos, cálculos, permisos y acciones de servidor; y cualquier regla de CSS.
+**Fuera, a propósito:** `LibroMayorTab.tsx`, `PorContabilizarTab.tsx`, `ExcepcionesCierreTab.tsx` e `IngresoDelPeriodoCard.tsx`, que no están en la allowlist; las pills, badges y chips de estado; los textos, montos, cálculos, permisos y acciones de servidor; y cualquier regla de CSS.
 
 ## Allowlist
 
@@ -10,7 +10,9 @@ Confirmada con el Subdirector de Contabilidad el 2026-11-14. Ninguno de sus cinc
 
 `app/studio/(app)/contabilidad/_components/`: `AccountDrawer.tsx`, `ActivosFijosTab.tsx`, `AjustesDelCierre.tsx`, `AssetDrawer.tsx`, `CamposExcepcionCierre.tsx`, `ClosingDateDrawer.tsx`, `ConciliacionTab.tsx`, `ContabilidadClient.tsx`, `EntryDrawer.tsx`, `ExcepcionCierreDialog.tsx`, `LibroDiarioTab.tsx`, `LineMatchDrawer.tsx`, `ReportesTab.tsx`, `StatementDrawer.tsx`.
 
-Además: `app/studio/(app)/contabilidad/__tests__/conciliacion-abrir.test.tsx` (nueva), `app/studio/_components/__tests__/claridad-t5b-contract.test.ts` (nuevo), este archivo y `.agents/handoffs/0603-t5b-contabilidad.md`.
+Ampliación del 2026-11-14: Sam pidió resolver también los pendientes menores en esta PR. El Subdirector Rebrand sumó `PlanCuentasTab.tsx` (medido: no lo toca ninguna PR abierta) y metió los candidatos de `LineMatchDrawer.tsx`. Son 15 archivos.
+
+Además: `app/studio/(app)/contabilidad/__tests__/conciliacion-abrir.test.tsx`, `line-match-ligar.test.tsx` y `plan-cuentas-abrir.test.tsx` (nuevas), `app/studio/_components/__tests__/claridad-t5b-contract.test.ts` (nuevo), este archivo y `.agents/handoffs/0603-t5b-contabilidad.md`.
 
 Sin migraciones, rutas, acciones de servidor, permisos, dependencias, CSS ni colores nuevos.
 
@@ -29,7 +31,8 @@ Sin migraciones, rutas, acciones de servidor, permisos, dependencias, CSS ni col
 | `EntryDrawer.tsx` | aviso | La caja de error pasa a `Aviso tono="error" compacto`. |
 | `ExcepcionCierreDialog.tsx` | aviso | La caja de error pasa a `Aviso tono="error" compacto` y conserva su `id`. |
 | `LibroDiarioTab.tsx` | aviso | La caja de error de acción pasa a `Aviso tono="error"`. Filas: no aplica, porque la fila del asiento no abre nada (`EntryDrawer` solo crea). |
-| `LineMatchDrawer.tsx` | aviso | La caja de error pasa a `Aviso tono="error" compacto`. |
+| `LineMatchDrawer.tsx` | fila y aviso | La caja de error pasa a `Aviso tono="error" compacto`. Ver «Candidatos para ligar». |
+| `PlanCuentasTab.tsx` | fila | Ver «Plan de cuentas». No tiene avisos hechos a mano. |
 | `ReportesTab.tsx` | no aplica | El error del filtro ya es texto con ícono, sin caja. |
 | `StatementDrawer.tsx` | aviso | La caja de error pasa a `Aviso tono="error" compacto`. |
 
@@ -48,6 +51,25 @@ Sin migraciones, rutas, acciones de servidor, permisos, dependencias, CSS ni col
   - Es el mismo patrón de la tarjeta de Tracking en la #552.
   - **Para la revisión:** el Subdirector pidió la fila seleccionada con relleno de tinta. Se aplicó en el control y no en toda la fila. Si toda la fila fuera `--ink`, el texto de la fila y los `Badge` de estado, que están pensados para la superficie, quedarían sin contraste medido sobre la tinta. Además, el secundario `ghost` y su contorno `--ctl-border` desaparecerían sobre ese fondo. Si se quiere la fila entera en tinta, hace falta otro tramo que mida esos pares en claro y en oscuro.
 - La columna del control mide 92 px, como en Embarques (tramo 5a). Se midió con Archivo 700 real en el navegador: «Abrir» mide 31,8 px a 13,5 px y «Cerrar» 40,9 px. Con 12 px de relleno por lado, 8 de separación, ícono de 14 y borde, «Cerrar» ocupa unos 89 px y cabe.
+
+### Candidatos para ligar (`LineMatchDrawer`)
+
+- Antes, cada candidato era un `<button>` de fila entera que ligaba al pulsarlo.
+- Ahora la fila es un `div` con el mismo clic de ratón y `tabIndex={-1}`, y trae un botón explícito «Ligar» (`studio-btn studio-btn-ghost studio-btn-sm`) con nombre «Ligar con <código>».
+  - Es la única parada de teclado de la fila.
+  - Es secundario, para que el drawer no sume un primario por candidato.
+  - «Ligar» ya era texto visible en Conciliación.
+- El botón corta la propagación (`e.stopPropagation()`): pulsarlo dentro de la fila liga una sola vez.
+- Un candidato ya conciliado, o con una acción en curso, no liga: el botón queda `disabled` y la fila lleva `aria-disabled` y no responde al clic.
+- La acción del servidor (`matchLine`) no cambia, ni su confianza ni el cierre del drawer.
+- La columna del botón es `auto`: cada fila es su propia grilla y no hay encabezado que alinear.
+
+### Plan de cuentas (`PlanCuentasTab`)
+
+- Cada cuenta postable trae al final «Abrir» (`studio-btn studio-btn-ghost studio-btn-sm`), con nombre «Abrir cuenta <código>». Abre el mismo cajón de edición que el nombre.
+- El nombre sigue abriendo con el ratón y sale del Tab (`tabIndex={-1}`). Las cuentas de grupo no se abren, como antes, y su columna queda vacía. Su parada de teclado sigue siendo «Expandir»/«Colapsar».
+- La grilla suma una columna de 92 px, como en Embarques. El encabezado lleva una celda vacía `aria-hidden`, así que encabezado y filas tienen las mismas columnas.
+- **Blanco táctil:** el botón de colapsar medía 24 × 24 px, por debajo de los 32 px de la regla. Sube a 32 × 32 con `margin: -4`, que le conserva el lugar de 24 px en la fila: ni la sangría ni el alto de la fila cambian.
 
 ### Roles vivos
 
@@ -68,7 +90,9 @@ Los `Aviso` de este tramo no llevan `titulo`, así que ningún título pierde la
   - La fila no es parada de Tab y conserva el mismo enlace.
   - El abierto va en tinta: botón oscuro y contorno `--ctl-border`, sin vino.
   - Lo vigila `conciliacion-abrir.test.tsx`.
-- Cuenta exacta por archivo de `<Aviso>`, roles crudos, `aria-live`, cajas de estado, contornos de estado, «Abrir», `tabIndex={-1}` y selección en vino. Los comentarios no cuentan. En total quedan 12 `<Aviso>`. Lo vigila `claridad-t5b-contract.test.ts`.
+- Cada candidato tiene «Ligar» secundario con nombre «Ligar con <código>». La fila es `div` con `tabIndex={-1}` y un solo botón. Pulsar «Ligar» liga una vez, y el clic en la fila liga igual que antes. Un candidato ya conciliado no liga ni por el botón ni por la fila. Lo vigila `line-match-ligar.test.tsx`.
+- Cada cuenta postable tiene «Abrir» con nombre «Abrir cuenta <código>»; el grupo no. El nombre no es parada de Tab y abre lo mismo. Encabezado y filas tienen las mismas columnas, y colapsar mide 32 px. Lo vigila `plan-cuentas-abrir.test.tsx`.
+- Cuenta exacta por archivo de `<Aviso>`, roles crudos, `aria-live`, cajas de estado, contornos de estado, «Abrir», «Ligar», `tabIndex={-1}` y selección en vino, en los 15 archivos. Los comentarios no cuentan. En total quedan 12 `<Aviso>`. Lo vigila `claridad-t5b-contract.test.ts`.
 - La superclave no queda dentro del `<Aviso>` del cierre.
 - Mutantes que mueren dentro del contrato:
   - `<Aviso>` vuelve a `<p>`;
@@ -86,7 +110,13 @@ Los `Aviso` de este tramo no llevan `titulo`, así que ningún título pierde la
   - la fila sin `tabIndex={-1}`;
   - el control sin `aria-expanded`;
   - «Cerrar» fijo en «Abrir»;
-  - el contorno del abierto en vino.
+  - el contorno del abierto en vino;
+  - «Ligar» sin `stopPropagation` (liga dos veces);
+  - «Ligar» sin su nombre;
+  - la fila del candidato ya conciliado que vuelve a ligar;
+  - el nombre de la cuenta de vuelta en el Tab;
+  - la cuenta sin «Abrir»;
+  - colapsar de vuelta a 24 px.
 
 ## Gate VIS-01
 
@@ -104,16 +134,10 @@ Los `Aviso` de este tramo no llevan `titulo`, así que ningún título pierde la
 
 ## Pendientes fuera de este tramo
 
-- **Candidatos de `LineMatchDrawer`:** quedan fuera por prudencia, porque cada fila liga al pulsarla. El Subdirector Rebrand lo confirmó el 2026-11-14.
-  - Propuesta para otro tramo: un botón explícito «Ligar», con nombre «Ligar con <código>», como única parada de teclado.
-  - La fila conservaría el clic con el ratón y saldría del Tab (`tabIndex={-1}`).
-  - El botón cortaría la propagación para no ligar dos veces, con una prueba que lo fije.
-  - La acción del servidor no se toca.
-  - Hoy cada candidato es un `<button>` de fila entera con contorno `--border`.
-- **Cuentas (`PlanCuentasTab.tsx`) y mayor (`LibroMayorTab.tsx`):** no estaban en la allowlist. Sus filas se revisan en otro tramo.
+- **Mayor (`LibroMayorTab.tsx`):** no está en la allowlist. Sus filas se revisan en otro tramo.
 
 ## Límites
 
 - No se vio en pantalla con datos, porque el Studio pide sesión y datos. Se revisa en la imagen de prueba antes de fusionar, en claro, en oscuro y en compacto.
-- `EntryDrawer.tsx` también lo tocan las PRs abiertas #529, #527, #526, #521, #520 y #312. El cambio es una sola caja, pero puede dar conflicto al integrarlas.
+- Choques: el Subdirector Rebrand midió que ninguna PR abierta toca `contabilidad/_components/`. #529, #527, #526, #521 y #520 están fusionadas y #312 cerrada. El choque que se anotó al principio salía de una lista vieja.
 - Los errores en cajones cambian de forma: de caja roja con contorno a franja plana con ícono. El texto no cambia.
