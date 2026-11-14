@@ -27,11 +27,16 @@ import { CommercialCard } from "./_components/CommercialCard";
 import { AlertsCard } from "./_components/AlertsCard";
 import { SinFacturarCard } from "./_components/SinFacturarCard";
 import { reporteSinFacturar } from "@/lib/studio/rate-snapshots/sin-facturar";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Dirección · DTD Studio" };
 export const dynamic = "force-dynamic";
 
 export default async function DireccionPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("direccion");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");

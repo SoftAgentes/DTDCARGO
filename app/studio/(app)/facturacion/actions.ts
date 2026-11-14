@@ -29,7 +29,7 @@ import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
 import { voidReferralRevertWarning } from "@/lib/studio/fidelizacion/referral-revert-notice";
@@ -1075,9 +1075,11 @@ export async function lookupShipmentForInvoice(code: string): Promise<{
     client_markbox: string | null;
   } | null;
 }> {
+  const supabase = await createClient();
+  // SDD-0624: la búsqueda es de la pantalla de facturación.
+  if (await moduleViewDenial(supabase, "invoices")) return { shipment: null };
   const trimmed = code?.trim();
   if (!trimmed) return { shipment: null };
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shipments")
     .select("id, code, client_name, client_markbox")
@@ -1105,9 +1107,11 @@ export async function lookupInvoiceBillingOptions(
   markbox: string,
   invoiceId?: string | null,
 ): Promise<(InvoiceBillingOptions & { current: BillingKind | null }) | null> {
+  const supabase = await createClient();
+  // SDD-0624: datos de facturación del cliente → sólo quien ve facturación.
+  if (await moduleViewDenial(supabase, "invoices")) return null;
   const mb = markbox?.trim();
   if (!mb) return null;
-  const supabase = await createClient();
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, name, rif, doc_kind")

@@ -12,12 +12,16 @@ import { makeDocumentsDouble } from "@/lib/studio/documents/__tests__/documents-
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   moduleEditDenial: vi.fn(async () => null as string | null),
+  moduleViewDenial: vi.fn(async () => null as string | null),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("@/lib/db/server", () => ({ createClient: () => mocks.createClient() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: mocks.moduleEditDenial }));
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  moduleEditDenial: mocks.moduleEditDenial,
+  moduleViewDenial: mocks.moduleViewDenial,
+}));
 
 import { deleteDocument, signDocumentUrl } from "../actions";
 

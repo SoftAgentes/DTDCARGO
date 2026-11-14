@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getUserTenantId: vi.fn(),
   moduleEditDenial: vi.fn(async () => null as string | null),
+  moduleViewDenial: vi.fn(async () => null as string | null),
   revalidatePath: vi.fn(),
 }));
 
@@ -24,6 +25,7 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("@/lib/studio/rbac-guard", () => ({
   getStudioRole: vi.fn(),
   moduleEditDenial: mocks.moduleEditDenial,
+  moduleViewDenial: mocks.moduleViewDenial,
 }));
 vi.mock("@/lib/studio/rbac", () => ({ canSpecial: vi.fn(() => false) }));
 vi.mock("@/lib/studio/comments/comments-queries", () => ({

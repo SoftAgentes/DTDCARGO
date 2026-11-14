@@ -46,6 +46,7 @@ import { tasasVesPorFecha } from "@/lib/studio/fx-rates";
 import { equivalenteEnBs, LEYENDA_BS_REFERENCIAL } from "@/lib/shared/equivalente-bs";
 import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
 import { PrintButton } from "./PrintButton";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Recibo de cobranza · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -78,6 +79,10 @@ export default async function ReceiptPrintPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("collections");
+
   const { code: raw } = await params;
   const code = decodeURIComponent(raw ?? "").trim();
 

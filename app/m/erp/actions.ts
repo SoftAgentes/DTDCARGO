@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { resolveExpenseAccountId } from "@/lib/studio/expense-queries";
 import {
   syncExpenseEntry,
@@ -22,7 +23,7 @@ import {
   type ExpenseCategory,
   type ExpenseMethod,
 } from "@/lib/studio/expense-types";
-import { capabilityDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, getStudioRole } from "@/lib/studio/rbac-guard";
 import {
   expenseVoidErrorMessage,
   validateExpenseVoidInput,
@@ -55,6 +56,20 @@ function extFromMime(mime: string): string {
     default:
       return "bin";
   }
+}
+
+/**
+ * SDD-0624 · `support` es de solo lectura: la 0528 le niega escribir gastos en
+ * la base. Devuelve el mensaje claro (o null si puede escribir) para no llegar
+ * a un 42501 crudo después de haber gastado correlativo y subido la foto.
+ */
+async function rolSoloLectura(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const role = await getStudioRole(supabase);
+  return role === "support"
+    ? "Tu rol es de solo lectura: no puedes cargar ni editar gastos."
+    : null;
 }
 
 type ExpenseClient = Awaited<ReturnType<typeof createClient>>;
@@ -126,7 +141,7 @@ async function ownExpense(client: ExpenseClient, id: string, tenantId: string, u
 }
 
 async function expenseHistoryError(
-  client: ExpenseClient, tenantId: string, expenseId: string, day: string, closingDate: string | null,
+  client: ExpenseClient | ReturnType<typeof createAdminClient>, tenantId: string, expenseId: string, day: string, closingDate: string | null,
 ): Promise<string | null> {
   const unavailable = "No se pudo comprobar el asiento histórico del gasto. Reintenta.";
   try {
@@ -163,6 +178,10 @@ export async function createExpenseAction(
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
+  // SDD-0624: la base (0528) ya no deja escribir gastos a support; se lo
+  // decimos claro ANTES de gastar un correlativo o subir la foto.
+  const soloLectura = await rolSoloLectura(supabase);
+  if (soloLectura) return { error: soloLectura };
 
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
@@ -308,6 +327,8 @@ export async function updateExpenseAction(
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
+  const soloLectura = await rolSoloLectura(supabase);
+  if (soloLectura) return { error: soloLectura };
 
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
@@ -351,7 +372,11 @@ export async function updateExpenseAction(
     Number(existing.amount_usd) !== Number(input!.amount_usd) ||
     existing.method !== input!.method;
   if (acctChanged) {
-    const error = await expenseHistoryError(supabase, tenantId, id, expenseDay, accSettings.closing_date);
+    // SDD-0624: desde la 0528 comercial y operaciones no leen journal_entries;
+    // con su sesión verían 0 filas y la comprobación pasaría en falso. El gasto
+    // ya se probó propio (ownExpense, con la sesión); el asiento se lee con el
+    // cliente de servicio, el mismo que después lo anula y lo vuelve a asentar.
+    const error = await expenseHistoryError(createAdminClient(), tenantId, id, expenseDay, accSettings.closing_date);
     if (error) return { error };
   }
 

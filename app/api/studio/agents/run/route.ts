@@ -33,6 +33,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { runAgent } from "@/lib/studio/agents/runtime/orchestrator";
 import { createLLMClient } from "@/lib/studio/agents/runtime/llm-client-factory";
 import {
@@ -91,6 +92,14 @@ export async function POST(request: Request) {
       { error: "No autorizado — inicia sesión primero." },
       { status: 401 },
     );
+  }
+
+  // SDD-0624: correr un agente es del módulo Admin (la única pantalla que lo
+  // dispara es admin/agentes) y gasta presupuesto de LLM. Antes bastaba la
+  // sesión: cualquier rol del tenant lo podía invocar directo.
+  const denial = await moduleEditDenial(supabaseUser, "admin");
+  if (denial) {
+    return NextResponse.json({ error: denial }, { status: 403 });
   }
 
   // Admin (service_role) — solo para audit

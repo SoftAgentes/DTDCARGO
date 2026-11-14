@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0528_rls_lectura_dinero_y_gastos": "PENDIENTE DE APLICAR — SDD-0624 (endurecimiento de permisos: dinero y gastos). Crea studio_can_read_money() (accounting o admin activos) y reemplaza las policies *_team_select de journal_entries, journal_lines, payment_receipts, supplier_bills y supplier_payments por *_money_select (tenant + ese helper); agrega la RPC DEFINER claim_indemnity_entry_codes(uuid[]) para Reclamos; y suma a expenses_insert y expenses_update la condición de rol activo distinto de support. Requiere la 0470 y la 0511, ambas aplicadas y selladas: su preflight aborta sin cambiar nada si las policies *_team_select o expenses_insert/expenses_update no existen. El código de la PR funciona con o sin la 0528: listClaimEntryCodes llama a la RPC y, si la base no la tiene (PGRST202/42883), vuelve a la lectura de journal_entries, que sin la 0528 sigue abierta al tenant. Requiere OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exacto 0528_rls_lectura_dinero_y_gastos. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
+  }
 }

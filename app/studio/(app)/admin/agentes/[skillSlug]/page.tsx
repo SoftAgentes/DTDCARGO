@@ -23,6 +23,7 @@ import {
   triggerLabel,
 } from "@/lib/studio/agent-types";
 import { InstallSkillButton } from "../_components/InstallSkillButton";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export async function generateMetadata({
   params,
@@ -63,6 +64,10 @@ export default async function SkillDetailPage({
 }: {
   params: Promise<{ skillSlug: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin");
+
   const { skillSlug } = await params;
   const supabase = await createClient();
   const skill = await getSkillBySlug(supabase, skillSlug);

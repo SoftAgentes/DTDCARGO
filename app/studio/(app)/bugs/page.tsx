@@ -18,6 +18,7 @@ import {
 } from "@/lib/studio/bug-queries";
 import { parseBugAdminFilters, type ReporterProfile } from "@/lib/studio/bug-types";
 import { BugsAdminClient } from "./_components/BugsAdminClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 const STALE_DAYS = 7;
 
@@ -31,6 +32,10 @@ export default async function BugsAdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("bugs");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");

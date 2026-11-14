@@ -33,6 +33,7 @@ import {
 } from "@/lib/studio/renditions/queries";
 import type { RenditionPreview } from "@/lib/studio/renditions/types";
 import { RendicionesClient } from "./_components/RendicionesClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Rendiciones · Operadora · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -50,6 +51,10 @@ export default async function RendicionesPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("renditions");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");

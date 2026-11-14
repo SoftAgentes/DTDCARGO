@@ -12,6 +12,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import { listRules } from "@/lib/studio/notifications/client-notification-rules-queries";
 import { NotificationsClient } from "./_components/NotificationsClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Notificaciones al cliente · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -27,6 +28,10 @@ export default async function NotificacionesPage({
 }: {
   searchParams: Promise<{ client?: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin");
+
   const { client: clientParam } = await searchParams;
   const supabase = await createClient();
 
