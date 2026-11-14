@@ -13,6 +13,7 @@ import {
   ShieldIcon,
   TruckIcon,
 } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 import { GuiaAlibabaCard } from "@/components/GuiaAlibabaCard";
 import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
@@ -156,21 +157,15 @@ export function SuppliersClient({
         </div>
       </div>
 
-      {/* ── Mensaje clave ── */}
-      <div
-        className="mt-5 rounded-[12px] border-l-[3px] px-4 py-3.5 flex items-start gap-3"
-        style={{
-          background: "var(--color-paper)",
-          borderColor: "var(--color-status-success)",
-        }}
-      >
-        <span
-          className="w-5 h-5 rounded-full grid place-items-center flex-shrink-0 mt-0.5"
-          style={{ background: "var(--color-status-success)", color: "#fff" }}
-        >
-          <CheckIcon size={13} />
+      {/* ── Mensaje clave ──
+          SDD-0603 · T4e (BD-037): franja plana de información. Antes, borde y
+          círculo verdes en línea; el verde es para un resultado, y esto es una
+          indicación (BRAND §Estados). */}
+      <div className="portal-aviso mt-5 rounded-[12px] px-4 py-3.5" data-tono="info">
+        <span className="portal-aviso-icono">
+          <StatusIcon tone="info" size={16} />
         </span>
-        <p className="text-[13px] text-grey-700 leading-[1.5]">
+        <p className="portal-aviso-cuerpo text-[13px] text-grey-700 leading-[1.5]">
           Copia el código y envíaselo SOLO al proveedor — a nosotros nos llega
           automático al registrarlo.
         </p>
