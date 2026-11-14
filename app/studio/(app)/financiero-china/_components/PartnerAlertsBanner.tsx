@@ -36,7 +36,7 @@ export function PartnerAlertsBanner({ alerts }: { alerts: PartnerBillAlert[] }) 
   return (
     <div style={{ marginBottom: 20 }}>
       <Aviso
-        tono="error"
+        tono="atencion"
         titulo={
           <>
             {alerts.length} pago{alerts.length === 1 ? "" : "s"} PP/CA vencido

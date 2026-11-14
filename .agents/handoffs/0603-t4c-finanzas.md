@@ -30,15 +30,26 @@ Reemplazar por `<Aviso>` las cajas de aviso hechas a mano de los 47 archivos, si
 | `/ui-check` | PASÓ (advisory, 4 notas menores en `tramo-4c.md`) |
 | `pnpm install --frozen-lockfile` | PASÓ (con turno del Subdirector) |
 | Vitest focal: los 16 módulos del tramo, `app/studio/(app)/__tests__`, `avisos-contract`, `frontend-state-contract`, `drawer-derived-state-contract`, `payment-report-ui` | PASÓ, 50 archivos y 479 pruebas. En la primera corrida fallaron 2, ambas del contrato nuevo, cuyo regex no veía los ternarios. Corregido y vuelto a correr: 7/7. |
+| Vitest tras la revisión: contrato, `proveedores`, `financiero-china` y `avisos-contract` | PASÓ, 5 archivos y 51 pruebas. Mutantes de las dos pruebas nuevas comprobados a mano: fallan. |
 | Mutantes del contrato | PASÓ: los cuatro rompen la regla |
 | `tsc --noEmit -p .` | PASÓ (exit 0) |
 | eslint `--max-warnings=0` sobre el diff | PASÓ (exit 0) |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub |
 | Vista en pantalla (claro, oscuro, compacto) | NO DISPONIBLE: va en la imagen de prueba, fuera de este encargo |
 
+## Revisión independiente (DG, sobre 323e7057): CAMBIOS, atendidos
+
+Alcance, texto, imports, tonos y contrato pasaron.
+
+1. **Requerido:** `PartnerAlertsBanner` vuelve a `tono="atencion"` (`status`). El banner es persistente y atómico: con `alert` interrumpía al cargar y releía la lista entera al pulsar «Ver N más». Lo fija la prueba nueva `PartnerAlertsBanner.test.tsx`; el mutante a `error` la hace fallar.
+2. `SupplierDrawer`: la lista de proveedores parecidos sale de la región viva. La franja lleva solo la frase fija y la lista va debajo, en `ProveedoresParecidos`. No se tocó `Aviso.tsx`. Lo fija la prueba nueva `SupplierDrawer.parecidos.test.tsx`; el mutante que devuelve la lista al `Aviso` la hace fallar.
+3. Contrato: cuenta exacta de `<Aviso` por archivo (62 en 43). Ahora también cuenta `backgroundColor` y los bordes de estado. El mutante `<Aviso>` → `<p>` muere.
+
 ## COMMITS
 
 - `e26cf19b2` feat(studio): SDD-0603 — tramo 4c, avisos de Finanzas y compras en Aviso
+- `323e70571` test(studio): SDD-0603 — contrato T4c ve ternarios y handoff del tramo
+- (siguiente) correcciones de la revisión
 
 ## PR / BRANCH
 
@@ -51,8 +62,13 @@ Pendiente: push y PR lista para revisión después del vitest focal.
 
 ## Decisiones para la revisión
 
-- `PartnerAlertsBanner` y «Alerta SENIAT» pasan a `role="alert"` por ser tono error. Si no deben interrumpir, la alternativa es `atencion`.
+- «Alerta SENIAT» pasa a `role="alert"` por ser tono error. `PartnerAlertsBanner` quedó en `atencion` por decisión del DG.
 - En `cotizador/[code]/page` se quitó el «✓» que duplicaba el ícono de éxito.
+
+## PENDIENTE PARA UN TRAMO POSTERIOR (indicado por el DG; no se hace en esta PR)
+
+- Botones primarios dentro de `Aviso`: «Cargar» de `GastosClient`, «Ver embarque» (`studio-btn-dark`) de `cotizador/[code]` y «Emitir igual» (`ActionButton` warning) de `InvoiceDetailClient`.
+- `AlertBanner` de `GastosClient`: la franja es atómica y relee la lista de alertas, como pasaba con `PartnerAlertsBanner`.
 
 ## FUERA DE ALCANCE DETECTADO
 

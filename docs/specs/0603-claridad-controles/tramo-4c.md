@@ -10,6 +10,7 @@ Los 47 archivos de `rebrand-0603-allowlist-t4c-4441f65ac.txt`, que es el inventa
 
 - `app/studio/(app)/reportes/__tests__/estado-gerencial-mezclado.test.tsx` (ajuste de rol, abajo)
 - `app/studio/(app)/__tests__/avisos-finanzas-contract.test.ts` (nuevo)
+- `app/studio/(app)/financiero-china/_components/PartnerAlertsBanner.test.tsx` y `app/studio/(app)/proveedores/_components/SupplierDrawer.parecidos.test.tsx` (nuevos, de la revisión)
 - este archivo y `.agents/handoffs/0603-t4c-finanzas.md`
 
 Sin migraciones, rutas, acciones de servidor, permisos, dependencias, CSS ni colores nuevos. Sin cambios de texto, montos ni cálculos.
@@ -47,7 +48,7 @@ Todo bajo `app/studio/(app)/`.
 | `financiero-china/` 5 drawers (`Charge`, `ClaimOffset`, `Conversion`, `CreditNote`, `ImportStatement`) | error | error |
 | `financiero-china/` `ChargesTab`, `LedgerTab`, `ReconciliationTab`, `StatementDetail` | error de carga o de fila | error |
 | `financiero-china/FinancieroChinaClient` | huecos contables, con título | atencion |
-| `financiero-china/PartnerAlertsBanner` | pagos PP/CA vencidos, con título, lista y «Ver N más» | error |
+| `financiero-china/PartnerAlertsBanner` | pagos PP/CA vencidos, con título, lista y «Ver N más» | atencion (decisión del DG) |
 | `fiscal/FiscalClient` | período en varias monedas | atencion |
 | `fiscal/FiscalConfig` | error al guardar | error |
 | `fiscal/WithholdingDrawer` | error | error |
@@ -59,7 +60,7 @@ Todo bajo `app/studio/(app)/`.
 | `ordenes-compra/PoDrawer` | error ×2 | error |
 | `ordenes-venta/OvDrawer` | «Viene del estimado…»; `ErrorBanner` | info, error |
 | `proveedores/` `OrderSignal`, `ProviderLink`, `ServiceRequest`, `SupplierClaim` | error | error |
-| `proveedores/SupplierDrawer` | error; proveedores parecidos, con título y lista | error, atencion |
+| `proveedores/SupplierDrawer` | error; proveedores parecidos: la franja lleva solo la frase fija y la lista va debajo, fuera de la franja (`ProveedoresParecidos`) | error, atencion |
 | `rendiciones/EmitDrawer` | error | error |
 | `rendiciones/VoidDrawer` | error; conserva `id="void-reason-error"` para el `aria-describedby` | error |
 | `reportes/ReportesClient` | mayor mezclado o sin verificar | atencion |
@@ -89,7 +90,9 @@ Casos dentro de archivos convertidos que se dejaron como texto: el `role="status
 
 - Los `role="note"` (`FiscalClient`, `ReportesClient`) pasan a `status`. La prueba `estado-gerencial-mezclado.test.tsx` buscaba `note`; ahora busca `status`, con las mismas cuatro aserciones.
 - Los dos avisos amarillos de `InvoiceDetailClient` eran `alert`: llevan `urgente` para conservarlo.
-- `PartnerAlertsBanner` (antes `status`) y «Alerta SENIAT» (antes sin rol) pasan a `alert`, porque son tono error. Si se prefiere que no interrumpan al abrir la pantalla o el drawer, el cambio es a `atencion`: queda para la revisión.
+- «Alerta SENIAT» (antes sin rol) pasa a `alert`, porque es tono error.
+- `PartnerAlertsBanner` queda en `atencion` (`status`), por decisión del DG en la revisión de la #547. El banner aparece siempre al abrir Financiero China y la franja es atómica: con `alert` interrumpiría al cargar y releería la lista entera (CxP, proveedor y saldo) al pulsar «Ver N más». Lo fija `PartnerAlertsBanner.test.tsx`.
+- `SupplierDrawer`: la lista de proveedores parecidos se recalcula con cada tecla del nombre. Dentro del `Aviso` era región viva y el lector la releía entera. Ahora la franja lleva solo la frase fija y la lista va debajo, como texto, en el componente `ProveedoresParecidos` del mismo archivo. No hizo falta tocar `Aviso.tsx`. Lo fija `SupplierDrawer.parecidos.test.tsx`: la lista no tiene ningún ancestro con `role="status"`, `"alert"` ni `aria-live`.
 - Las franjas de ayuda y atención sin rol ganan `status`.
 
 ## Texto
@@ -98,8 +101,15 @@ No cambia ningún texto. Una salvedad: en `cotizador/[code]/page` se quitó el �
 
 ## Aceptación
 
-- Los 43 archivos convertidos importan `Aviso` y no tienen `role="alert"` ni `role="note"` literal, ni un fondo de estado literal, salvo las excepciones medidas. Lo vigila `avisos-finanzas-contract.test.ts`: cuenta exacta por archivo, los 47 sin repetir y una tabla de excepciones con su motivo.
-- Mutantes del contrato: reintroducir un `<p role="alert">`, añadir un fondo de estado literal, quitar el import de `Aviso` y borrar la señal de una excepción. Cada uno debe hacer fallar la regla.
+- Cada uno de los 47 archivos tiene una cuenta exacta de `<Aviso` (62 en total, en 43 archivos). Ninguno tiene `role="alert"` ni `role="note"` literal, ni fondo de estado (`background` o `backgroundColor`), ni borde de estado (`border*`, `borderColor` u `outline`), salvo las excepciones medidas: botones destructivos, la pastilla de tarifa, la casilla de un paso hecho, la fila resaltada, el `hover` y `ErrorBox`. Lo vigila `avisos-finanzas-contract.test.ts`, que trae la tabla de excepciones con su motivo.
+- Mutantes del contrato. Cada uno hace fallar la regla:
+  - cambiar un `<Aviso>` por un `<p>` sin rol;
+  - reintroducir un `<p role="alert">`;
+  - añadir un fondo de estado, también como `backgroundColor`;
+  - añadir un borde de estado;
+  - quitar el import de `Aviso`;
+  - borrar la señal de una excepción.
+- Mutantes de las pruebas de componente: volver `PartnerAlertsBanner` a `tono="error"` y meter otra vez la lista dentro del `Aviso` hacen fallar su prueba. Se comprobó a mano.
 - Las pruebas vecinas que buscan `getByRole("alert")` siguen valiendo, porque el error conserva `alert`.
 
 ## Gate VIS-01

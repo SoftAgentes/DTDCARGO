@@ -176,33 +176,7 @@ export function SupplierDrawer({
           />
         </div>
 
-        {similar.length > 0 && (
-          <Aviso
-            tono="atencion"
-            compacto
-            titulo={
-              <>
-                Este cliente ya tiene proveedores parecidos — revisa antes de
-                crear otro:
-              </>
-            }
-          >
-            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
-              {similar.map((s) => (
-                <li
-                  key={s.id}
-                  style={{
-                    font: "500 12px/1.3 var(--f-sans)",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  #{s.supplier_seq} · {s.name}
-                  {s.wechat ? ` · WeChat ${s.wechat}` : ""}
-                </li>
-              ))}
-            </ul>
-          </Aviso>
-        )}
+        {similar.length > 0 && <ProveedoresParecidos similar={similar} />}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
@@ -274,5 +248,42 @@ export function SupplierDrawer({
         pendingLabel="Guardando…"
       />
     </DrawerShell>
+  );
+}
+
+/**
+ * Proveedores que ya tiene el cliente, mientras se escribe el nombre.
+ * La franja lleva solo el título fijo: es región viva (`role="status"`) y la
+ * lista cambia con cada tecla. La lista va fuera, como texto, para que el
+ * lector no la relea entera en cada pulsación (revisión de la #547).
+ */
+export function ProveedoresParecidos({
+  similar,
+}: {
+  similar: Pick<SupplierRow, "id" | "supplier_seq" | "name" | "wechat">[];
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+      <Aviso tono="atencion" compacto>
+        Este cliente ya tiene proveedores parecidos — revisa antes de crear
+        otro:
+      </Aviso>
+      <ul
+        style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}
+      >
+        {similar.map((s) => (
+          <li
+            key={s.id}
+            style={{
+              font: "500 12px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            #{s.supplier_seq} · {s.name}
+            {s.wechat ? ` · WeChat ${s.wechat}` : ""}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
