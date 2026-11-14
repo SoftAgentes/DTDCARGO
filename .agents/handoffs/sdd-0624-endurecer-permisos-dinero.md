@@ -168,6 +168,25 @@ Local y sin push; main sin traer (eso va cuando entre la #488).
   conoce en esas seis tablas, el preflight aborta sin cambiar nada. Es lo
   esperado; se mide con el ledger y `pg_policies` antes de pedir el OK.
 
+## Fase B (2026-11-14, W-515): main al día y pruebas focales
+
+Merge de `origin/main` (`d2998533d`, con la #488) sobre `93b58a659`, sin
+conflictos. Main no tocó `migrations-baseline.json`,
+`pending-migration-symbol-declarations.json` ni `pnpm-lock.yaml`: la única
+espera y la única degradación siguen siendo las de la 0528, con el texto de H1.
+`pnpm docs:index` no cambió nada (617 specs). Sin push.
+
+| Comprobación | Resultado |
+|---|---|
+| `rls-lectura-dinero-y-gastos.migration.test.ts` (PGlite) | PASÓ 33/33: verde, control rojo, 25 mutantes, 5 del preflight y el `notify` |
+| `claim-entry-codes`, `rbac-actions-guard`, `rbac-view-guard`, `page-gates-sensibles` (junto con el de arriba) | PASÓ: 5 archivos y 572 pruebas, en 31 s, sin caídas por forks ni timeout |
+| `pnpm typecheck` | PASÓ |
+| `pnpm lint` | PASÓ: 0 errores y 18 advertencias, ninguna en archivos de esta PR |
+| `migrations-lock` | PASÓ: 522 selladas y 1 espera (la 0528) |
+| `check-pending-migration-symbols` | PASÓ: 0 rojo y 1 amarillo declarado |
+| `pnpm docs:check`, `pnpm sdd:check` | PASÓ (617 specs; sin números repetidos) |
+| `pnpm verify` completo, sql-tests y schema-rebuild con Docker | NO EJECUTADO en esta fase (no se pidió; Docker no disponible) |
+
 ## FUERA DE ALCANCE DETECTADO
 
 - `legal/layout.tsx` exige el módulo `legal` y así bloquea
