@@ -8,7 +8,7 @@ import { rootCertificates } from "node:tls";
 import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import { fetchBcvObservation } from "../bcv-source";
-import { BCV_INTERMEDIATE_PEM, BCV_INTERMEDIATE_SHA256, bcvTlsFetch, bcvTrustedCa } from "../bcv-tls";
+import { BCV_INTERMEDIATE_PEM, BCV_INTERMEDIATE_SHA256, bcvTlsFetch, bcvTrustedCa, bcvTrustedCaFor } from "../bcv-tls";
 import { BCV_URL } from "../bcv-types";
 
 const html = readFileSync(new URL("./fixtures/bcv-usd-20261021.html", import.meta.url), "utf8");
@@ -118,5 +118,25 @@ describe("TLS · adaptador fetch sobre node:https (transporte HTTP de loopback)"
     const { fetch } = await serve((_req, res) => { res.setHeader("content-type", "text/html; charset=utf-8"); res.end(html); });
     const result = await fetchBcvObservation({ fetch, signal: new AbortController().signal, now: () => new Date("2026-10-21T07:00:00Z") });
     expect(result.quote).toMatchObject({ rate: "883.39630000", validOn: "2026-10-21" });
+  });
+});
+
+describe("TLS · huella que no coincide (BCV_TLS_PIN_MISMATCH)", () => {
+  const otherPem = readFileSync(new URL("./fixtures/bcv-leaf-20261120.crt", import.meta.url), "utf8");
+
+  it("un certificado con otra huella no entra al almacén", () => {
+    expect(() => bcvTrustedCaFor(otherPem, BCV_INTERMEDIATE_SHA256)).toThrow("BCV_TLS_PIN_MISMATCH");
+    expect(bcvTrustedCaFor(BCV_INTERMEDIATE_PEM, BCV_INTERMEDIATE_SHA256).at(-1)).toBe(BCV_INTERMEDIATE_PEM);
+  });
+
+  it("la fuente termina en SOURCE_UNAVAILABLE sin abrir conexión", async () => {
+    let connections = 0;
+    const fetch = bcvTlsFetch({
+      request: () => { connections++; throw new Error("no debía conectar"); },
+      trustedCa: () => bcvTrustedCaFor(otherPem, BCV_INTERMEDIATE_SHA256),
+    });
+    await expect(fetchBcvObservation({ fetch, signal: new AbortController().signal }))
+      .rejects.toMatchObject({ reason: "SOURCE_UNAVAILABLE" });
+    expect(connections).toBe(0);
   });
 });

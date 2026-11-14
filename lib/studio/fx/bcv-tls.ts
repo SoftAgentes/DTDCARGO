@@ -62,17 +62,19 @@ WrZhFZLjEkhp7fFXf9r32rNPfb74X/U90Bdy4lzp3+X1ukh1BuMxA/EEhDoTOS3l
 r8IWKIMxzxLPv5Kt3ePKcUdvkBU/smqujSczTzzSjIoR5QqQA6lN1ZRSnuHIWCvh
 JEltkYnTAH41QJ6SAWO66GrrUESwN/cgZzL4JLEqz1Y=
 -----END CERTIFICATE-----
------END CERTIFICATE-----
 `;
 
 let trusted: readonly string[] | undefined;
 
-/** Raíces públicas de Node + el intermedio fijado; lanza si la huella no coincide. */
+/** Raíces públicas de Node + `pem`; lanza BCV_TLS_PIN_MISMATCH si su huella no es `pin`. */
+export function bcvTrustedCaFor(pem: string, pin: string): readonly string[] {
+  if (new X509Certificate(pem).fingerprint256 !== pin) throw new Error("BCV_TLS_PIN_MISMATCH");
+  return Object.freeze([...rootCertificates, pem]);
+}
+
+/** El almacén de producción: el intermedio fijado de arriba, verificado una vez. */
 export function bcvTrustedCa(): readonly string[] {
-  if (trusted) return trusted;
-  const fingerprint = new X509Certificate(BCV_INTERMEDIATE_PEM).fingerprint256;
-  if (fingerprint !== BCV_INTERMEDIATE_SHA256) throw new Error("BCV_TLS_PIN_MISMATCH");
-  trusted = Object.freeze([...rootCertificates, BCV_INTERMEDIATE_PEM]);
+  trusted ??= bcvTrustedCaFor(BCV_INTERMEDIATE_PEM, BCV_INTERMEDIATE_SHA256);
   return trusted;
 }
 
@@ -93,8 +95,9 @@ function decoded(response: IncomingMessage): { stream: Readable; changed: boolea
  * fetch mínimo sobre node:https con el almacén de arriba. Sin redirects
  * automáticos (los decide fetchBcvObservation), sin cookies ni agente compartido.
  */
-export function bcvTlsFetch(deps: { request?: SendRequest } = {}): typeof globalThis.fetch {
+export function bcvTlsFetch(deps: { request?: SendRequest; trustedCa?: () => readonly string[] } = {}): typeof globalThis.fetch {
   const send = deps.request ?? (httpsRequest as unknown as SendRequest);
+  const trustedCa = deps.trustedCa ?? bcvTrustedCa;
   return (input, init) => new Promise<Response>((resolve, reject) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.protocol !== "https:") { reject(new TypeError("BCV_TLS_HTTPS_ONLY")); return; }
@@ -103,7 +106,7 @@ export function bcvTlsFetch(deps: { request?: SendRequest } = {}): typeof global
     const method = init?.method ?? "GET";
     const headers = Object.fromEntries(new Headers(init?.headers));
     headers["accept-encoding"] ??= "gzip, deflate, br";
-    const request = send(url, { method, headers, ca: [...bcvTrustedCa()], servername: url.hostname,
+    const request = send(url, { method, headers, ca: [...trustedCa()], servername: url.hostname,
       rejectUnauthorized: true, agent: false, signal }, response => {
       try {
         const { stream, changed } = decoded(response);

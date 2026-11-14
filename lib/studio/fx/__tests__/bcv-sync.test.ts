@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBcvServiceClient, parseBcvDryRun, parseBcvTenantScope, syncBcvRates } from "../bcv-sync";
 import { BcvError, rateWithinBand, type BcvObservation } from "../bcv-types";
+import { fetchBcvObservation } from "../bcv-source";
+import { BCV_INTERMEDIATE_SHA256, bcvTlsFetch, bcvTrustedCaFor } from "../bcv-tls";
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
@@ -524,5 +526,22 @@ describe("Banda de plausibilidad · revisión de la #527", () => {
   it("la ruta del cron nunca apaga la banda", () => {
     const route = readFileSync(new URL("../../../../app/api/cron/bcv-rates/route.ts", import.meta.url), "utf8");
     expect(route).not.toMatch(/\bband\b/);
+  });
+});
+
+describe("TLS · huella que no coincide en la corrida completa", () => {
+  it("BCV_TLS_PIN_MISMATCH termina REJECTED/SOURCE_UNAVAILABLE sin escrituras", async () => {
+    const otherPem = readFileSync(new URL("./fixtures/bcv-leaf-20261120.crt", import.meta.url), "utf8");
+    let connections = 0;
+    const fetch = bcvTlsFetch({
+      request: () => { connections++; throw new Error("no debía conectar"); },
+      trustedCa: () => bcvTrustedCaFor(otherPem, BCV_INTERMEDIATE_SHA256),
+    });
+    const db = database();
+    const result = await db.run({ obtain: options => fetchBcvObservation({ ...options, fetch }) });
+    expect(result).toMatchObject({ status: "REJECTED", reason: "SOURCE_UNAVAILABLE", counts: { inserted: 0, notAttempted: 1 } });
+    expect(result.observation).toBeUndefined();
+    expect(db.writes()).toHaveLength(0);
+    expect(connections).toBe(0);
   });
 });
