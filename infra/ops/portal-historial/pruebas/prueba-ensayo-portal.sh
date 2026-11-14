@@ -111,7 +111,9 @@ PERMITIDAS_CW=('Conversaciones del portal' 'SINT contacto' 'sint-' 'copia.invali
 log "== prueba del ensayo de la carga P4 · $(date -u +%Y-%m-%dT%H:%M:%SZ) · trabajo $TRABAJO"
 
 # ── La producción simulada de Studio: el fixture de la 0523 y las marcas ─────
-docker run -d --name "$STUDIO_SIM" -e POSTGRES_PASSWORD="$(openssl rand -hex 16)" -v "$RAIZ/supabase:/supabase:ro" postgres:17 >/dev/null \
+# En C.UTF-8, y la copia del ensayo en el en_US.utf8 de postgres:17: la guarda de tipos tiene que ordenar igual en las
+# dos (revisión del DG de la #563, B1). T7 comprueba que la mezcla de ordenaciones de verdad está.
+docker run -d --name "$STUDIO_SIM" -e POSTGRES_PASSWORD="$(openssl rand -hex 16)" -e POSTGRES_INITDB_ARGS=--locale=C.UTF-8 -v "$RAIZ/supabase:/supabase:ro" postgres:17 >/dev/null \
   || { mal P0 "no arrancó el Studio simulado"; exit 1; }
 for _ in $(seq 1 60); do docker exec "$STUDIO_SIM" pg_isready -q -h 127.0.0.1 -U postgres && break; sleep 1; done
 docker exec -i "$STUDIO_SIM" psql -X -q -U postgres -d postgres -f - <"$AQUI/studio-fixture.sql" >"$TRABAJO/fixture.txt" 2>&1 \
@@ -224,10 +226,11 @@ comprobar() { # salida volcado
     "minimización: del espejo y de los eventos de Studio, solo los del hilo del portal ($espejo · $eventos)"
   exigir T5 'cmp -s "$TRABAJO/sim-antes.txt" "$S.sim-despues" && grep -q "^PASÓ  P2" "$S" && grep -q "^PASÓ  P3" "$S"' \
     "la producción simulada no cambió (foto de la prueba, y P2 y P3 del ensayo)"
-  local etapas
+  local etapas orden_sim
   etapas="$(h "$E" copia_studio_public.crm_historial_etapas)"
-  exigir T7 '[ "$(h "$E" tipos_studio)" = iguales ] && [ "$(h "$E" tipos_chatwoot)" = iguales ] && [ "${etapas%,columnas_md5:*}" = filas:2,produccion:2 ]' \
-    "los tipos de la lista son los mismos en producción y en la copia ($(h "$E" tipos_studio), $(h "$E" tipos_chatwoot)), y crm_historial_etapas, con id bigint, se copia entera ($etapas)"
+  orden_sim="$(qs "select datcollate from pg_database where datname = current_database()")"
+  exigir T7 '[ "$(h "$E" tipos_studio)" = iguales ] && [ "$(h "$E" tipos_chatwoot)" = iguales ] && [ "${etapas%,columnas_md5:*}" = filas:2,produccion:2 ] && [ "$orden_sim" = C.UTF-8 ]' \
+    "los tipos de la lista son los mismos en producción ($orden_sim) y en la copia ($(h "$E" tipos_studio), $(h "$E" tipos_chatwoot)), y crm_historial_etapas, con id bigint, se copia entera ($etapas)"
   return 0
 }
 

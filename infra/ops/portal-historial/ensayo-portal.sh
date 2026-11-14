@@ -523,6 +523,9 @@ exigir S2 '[ "$(cw_copia -c "select to_regclass('"'"'public.conversations'"'"') 
 # columnas_md5 no lo vio porque solo mide los nombres. Antes de copiar nada se compara «tabla.columna:tipo» de cada
 # columna de la lista, a cada lado, en el catálogo (format_type). Solo nombres y tipos, nunca datos. Una columna que
 # no existe sale como «ausente». Si un lado no coincide, se para con 7, sin copiar.
+# El orden no depende de la base (revisión del DG de la #563, B1): producción de Studio es supabase/postgres y la copia
+# es postgres:17, y pueden ordenar distinto «event:» y «event_key:». Por eso la consulta ordena con `collate "C"` y el
+# `sort` corre con LC_ALL=C: sin eso, el `diff` daría un 7 falso sin ningún tipo distinto.
 tipos_sql() { # lado → la consulta del catálogo para las columnas de ese lado de la lista
   awk -F'\t' -v lado="$1" '
     $1 == lado {
@@ -531,13 +534,13 @@ tipos_sql() { # lado → la consulta del catálogo para las columnas de ese lado
     }
     END {
       if (v == "") exit 1
-      print "select v.t || \047.\047 || v.c || \047:\047 || coalesce((select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(v.t) and a.attname = v.c and a.attnum > 0 and not a.attisdropped), \047ausente\047) from (values " v ") v(t, c) order by 1"
+      print "select v.t || \047.\047 || v.c || \047:\047 || coalesce((select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(v.t) and a.attname = v.c and a.attnum > 0 and not a.attisdropped), \047ausente\047) from (values " v ") v(t, c) order by 1 collate \042C\042"
     }' "$LISTA"
 }
 tipos_columnas() { awk -F'\t' -v lado="$1" '$1 == lado { n += split($3, c, ";") } END { print n + 0 }' "$LISTA"; }
 comparar_tipos() { # lado id
   local lado="$1" q esperadas prod copia distintas ausentes consulta
-  q="$(tipos_sql "$lado")" || { mal "$2" "$lado: la lista no tiene columnas de ese lado"; return 0; }
+  q="$(tipos_sql "$lado")" || { mal "$2" "$lado: copia-columnas.tsv no trae columnas de ese lado: no hay nada que comparar"; evidencia "HECHO tipos_$lado=lista_sin_columnas"; LISTA_SIN_COLUMNAS=1; return 0; }
   esperadas="$(tipos_columnas "$lado")"
   if [ "$lado" = studio ]; then
     studio_prod -c "$q" >"$DIR/tipos-$lado-prod.txt" 2>&1
@@ -556,7 +559,7 @@ comparar_tipos() { # lado id
   distintas=ninguna
   if [ "$consulta" = ok ]; then
     # Las cinco primeras, y cuántas son: alcanza para encontrarlas en el esquema del ensayo.
-    distintas="$(diff "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | sed -n 's/^[<>] \([^:]*\):.*/\1/p' | sort -u)"
+    distintas="$(diff "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | sed -n 's/^[<>] \([^:]*\):.*/\1/p' | LC_ALL=C sort -u)"
     distintas="$([ -n "$distintas" ] && printf '%s' "$(printf '%s\n' "$distintas" | grep -c .):$(printf '%s\n' "$distintas" | head -n 5 | paste -sd, -)" || echo ninguna)"
   fi
   ausentes="$(cat "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | grep -c ':ausente$')"
@@ -571,9 +574,14 @@ comparar_tipos() { # lado id
   rm -f -- "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt"
 }
 log "== tipos de las columnas de la lista, producción frente a la copia"
+LISTA_SIN_COLUMNAS=0
 comparar_tipos studio S3
 comparar_tipos chatwoot S4
-if [ "$FALLAS" != 0 ]; then
+if [ "$LISTA_SIN_COLUMNAS" = 1 ]; then
+  # No es un tipo distinto: la lista está mal. Sale con 1, como cualquier otra falla.
+  evidencia "HECHO error=lista_sin_columnas"
+  exit 1
+elif [ "$FALLAS" != 0 ]; then
   evidencia "HECHO error=tipos_distintos"
   exit 7
 fi
