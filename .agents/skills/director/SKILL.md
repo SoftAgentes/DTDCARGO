@@ -26,26 +26,9 @@ Ante «cambia este botón», «arregla este bug» o equivalente: «Esta es una s
 - Solo integra PR concreta con autorización vigente y evidencia sobre head/base actuales. Sigue el runbook para GitHub, release y cleanup. Un nuevo commit invalida la revisión anterior. Un check `skipped` no es verde: el CI de PR solo corre con la PR lista (SDD-0621). Antes de fusionar, la corrida más reciente de `pull_request` de `quality.yml` sobre la cabeza (`actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request`, `max_by(.id)`) tiene que estar `completed` + `success`; ni `commits/<sha>/check-runs` (una fila por corrida) ni `gh pr checks` (cuenta el `skipped` y sale con 0) bastan. Comando exacto en el runbook. No uses `--admin` ni auto-merge para saltar checks.
 - Tu coordinación persistente vive en descripción de PR/issue ya existente o un handoff **por tarea**. No crees un tablero compartido editable por todos. Actualiza solo el artefacto que te pertenece; pide al Worker cambios sobre su artefacto mientras escribe.
 
-## Conservar conocimiento y revisar vigencia
+## Conservar conocimiento
 
-Al revisar el cierre de cada Worker, coteja su handoff con la rama y la cobertura Graphify: si solo hay
-cambios estructurales, coordina su refresco AST. Antes de publicar el piloto, exige recibo semántico
-vigente para cada fuente de `semanticPilot` que haya cambiado. Registra cambios documentales fuera de
-ese alcance como pendientes globales visibles; extrae su semántica cuando la tarea necesite interpretarlos
-o cuando el alcance se amplíe. No finjas cobertura ni bloquees el piloto solo por esos pendientes.
-Comprueba también la vigencia del JSON visual Archify y la preview Obsidian de ese worktree. Una tarea
-cerrada en su rama sigue PENDIENTE DE INTEGRACIÓN. Tras integrar una PR con autorización, en main actualizado
-ejecuta la validación Archify, publica las notas/JSON/mapa en la bóveda habitual y verifica el manifest y
-los hashes mediante knowledge:check. Informa cuándo los archivos fueron comprobados y cuándo alguien
-los abrió realmente en Obsidian; la lectura local de Obsidian no hace push ni publica en la web.
-
-Informa por separado lo guardado, lo pendiente de integración, estructura, semántica, Archify y archivos
-comprobados en Obsidian. Recupera pendientes en la siguiente sesión y lee el log de la corrida diaria mecánica
-(SDD-0623); fuera de esa única tarea programada no instales un scheduler, y no promuevas notas personales sin petición de Sam.
-
-Al iniciar y cerrar trabajo, ejecuta `pnpm knowledge:status` y sigue el [runbook de conocimiento](../../../docs/runbooks/knowledge-graphify-obsidian.md). Cruza fuentes y revisión; nunca infieras cobertura semántica desde una actualización AST.
+Al revisar el cierre de cada Worker, coteja su handoff con la rama: impacto documental, fuentes verificadas y pendientes. Una tarea cerrada en su rama sigue PENDIENTE DE INTEGRACIÓN. Recupera pendientes en la siguiente sesión y no promuevas notas personales sin petición de Sam. Graphify, Archify y la publicación a Obsidian están retirados (SDD-0632): no los ejecutes ni los exijas.
 
 - Guarda hechos verificados y decisiones autorizadas en su destino canónico, dentro de tu rama de coordinación o mediante el Worker dueño. Propón ideas/reglas nuevas indicando qué, dónde, por qué, evidencia y estado propuesto.
 - Pide al Worker impacto documental y recibo de validación en su handoff; conserva la frontera de propiedad de archivos.
-- Coordina la skill `$graphify . --update` cuando falte extracción semántica. En código exclusivamente estructural puede bastar `graphify update .`.
-- Tras integración autorizada y main comprobado, `pnpm knowledge:publish` y `pnpm knowledge:check`. Antes de integración sólo preview en el worktree. Una publicación de derivados ignorados no permite editar archivos rastreados en el principal.
