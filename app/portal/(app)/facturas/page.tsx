@@ -30,6 +30,10 @@ import { InvoiceStatusBadge } from "../../_components/InvoiceStatusBadge";
 import { PendingAcceptanceCard } from "../_components/PendingAcceptanceCard";
 import { InvoiceCycleCard } from "./_components/InvoiceCycleCard";
 import { StatementLedgerTable } from "./_components/StatementLedgerTable";
+import { EquivalenteBs } from "../../_components/EquivalenteBs";
+import { equivalenteEnBs } from "@/lib/shared/equivalente-bs";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+import { tasasReferencialesDelPortal } from "@/lib/portal/tasa-referencial";
 import {
   loadPendingAcceptanceForClient,
   totalPorAceptar,
@@ -116,6 +120,20 @@ export default async function PortalInvoicesPage({
   // Con un sobrepago, facturado − pagado no da el saldo pendiente: la nota lo
   // explica bajo los KPIs. En el estado de cuenta va la versión del libro.
   const notaDeMas = notaSobrepagos(r.sobrepagos, r.currency, { donde: "kpis" });
+
+  // SDD-0629 · el saldo pendiente en Bs a la tasa de hoy, solo vista. Con
+  // monedas mezcladas el saldo de arriba es parcial: no se convierte.
+  const hoy = fechaCaracas();
+  const conBs = r.porPagar > 0 && !r.mixedCurrencies && !!principal;
+  const tasasHoy = conBs
+    ? await tasasReferencialesDelPortal(principal?.tenantId, [hoy])
+    : new Map();
+  const bsSaldo = equivalenteEnBs({
+    amount: conBs ? r.porPagar : null,
+    currency: r.currency,
+    tasa: tasasHoy.get(hoy),
+    fechaPedida: hoy,
+  });
 
   return (
     <div>
@@ -220,6 +238,16 @@ export default async function PortalInvoicesPage({
               highlight={r.porPagar > 0}
             />
           </div>
+          {bsSaldo.estado !== "no-aplica" ? (
+            <div className="mt-3 flex justify-end">
+              <div className="max-w-[40ch]">
+                <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+                  Saldo pendiente en bolívares
+                </span>
+                <EquivalenteBs eq={bsSaldo} leyenda />
+              </div>
+            </div>
+          ) : null}
           {r.mixedCurrencies && (
             <p className="mt-3 text-[12px] text-grey-500">
               Montos en {r.currency}. Tienes facturas en otras monedas — abre cada una

@@ -31,7 +31,7 @@ PRUEBAS=(
   infra/ops/tests/prueba-aviso-discord.sh # SDD-0609: aviso del servidor a Discord
   infra/ops/tests/prueba-guardar-webhook-discord.sh # SDD-0609: guardar el webhook de #publicaciones
   infra/ops/tests/prueba-runbook-avisos-discord.sh # SDD-0609: el paso 2 del runbook corta al primer PARAR; la vuelta atrás elige por huella
-  infra/ops/tests/prueba-aplicar-lote.sh # SDD-0543: carga de consolidados en prueba
+  infra/ops/tests/prueba-aplicar-lote.sh # SDD-0543: carga de consolidados en prueba y producción
   infra/ops/tests/prueba-ips-prueba.sh   # SDD-0540: lista de IP del entorno de prueba
   infra/ops/tests/prueba-prompt-trim.sh  # SDD-0505: trim() de lib/prompt.sh
   infra/ops/tests/prueba-restore-event-triggers.sh # SDD-0594: restore.sh con ensure_rls y los demás event triggers
@@ -47,7 +47,7 @@ declare -A PISO=(
   [infra/ops/tests/prueba-aviso-discord.sh]=39
   [infra/ops/tests/prueba-guardar-webhook-discord.sh]=32
   [infra/ops/tests/prueba-runbook-avisos-discord.sh]=12
-  [infra/ops/tests/prueba-aplicar-lote.sh]=23
+  [infra/ops/tests/prueba-aplicar-lote.sh]=64
   [infra/ops/tests/prueba-ips-prueba.sh]=24
   [infra/ops/tests/prueba-prompt-trim.sh]=13
   [infra/ops/tests/prueba-restore-event-triggers.sh]=78
