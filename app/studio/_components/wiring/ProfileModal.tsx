@@ -26,6 +26,7 @@ import {
 } from "@/app/studio/(app)/usuarios/actions";
 import type { UserActionState } from "@/lib/studio/user-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export type ProfileTab = "profile" | "password" | "prefs";
 
@@ -193,26 +194,14 @@ function ProfileTabContent({
       </p>
 
       {state.error && (
-        <p
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {state.error}
-        </p>
+        </Aviso>
       )}
       {state.ok && (
-        <p
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--success)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="exito" compacto>
           Guardado.
-        </p>
+        </Aviso>
       )}
 
       <Footer
@@ -270,18 +259,10 @@ function PasswordTabContent({ onClose }: { onClose: () => void }) {
       onSubmit={handleSubmit}
       style={{ display: "flex", flexDirection: "column", gap: 14 }}
     >
-      <div
-        style={{
-          padding: 12,
-          background: "var(--warning-bg)",
-          color: "var(--ink)",
-          borderRadius: "var(--r-sm)",
-          font: "500 12.5px/1.4 var(--f-sans)",
-        }}
-      >
+      <Aviso tono="info" compacto>
         La contraseña debe tener mínimo <strong>12 caracteres</strong>. Mezcla
         mayúsculas, minúsculas, números y símbolos.
-      </div>
+      </Aviso>
 
       <Field
         label="Nueva contraseña"
@@ -303,26 +284,14 @@ function PasswordTabContent({ onClose }: { onClose: () => void }) {
       />
 
       {error && (
-        <p
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {error}
-        </p>
+        </Aviso>
       )}
       {success && (
-        <p
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--success)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="exito" compacto>
           Contraseña actualizada. Tu sesión actual sigue activa.
-        </p>
+        </Aviso>
       )}
 
       <Footer
@@ -643,26 +612,14 @@ function PrefsTabContent({
         </div>
 
         {geoStatus === "ok" && (
-          <p
-            style={{
-              font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--success)",
-              margin: 0,
-            }}
-          >
+          <Aviso tono="exito" compacto>
             Coordenadas capturadas.
-          </p>
+          </Aviso>
         )}
         {geoError && (
-          <p
-            style={{
-              font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-            }}
-          >
+          <Aviso tono="error" compacto>
             {geoError}
-          </p>
+          </Aviso>
         )}
       </div>
 
@@ -800,26 +757,14 @@ function PrefsTabContent({
       </div>
 
       {state.error && (
-        <p
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {state.error}
-        </p>
+        </Aviso>
       )}
       {state.ok && (
-        <p
-          style={{
-            font: "600 12px/1.4 var(--f-sans)",
-            color: "var(--success)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="exito" compacto>
           Guardado.
-        </p>
+        </Aviso>
       )}
 
       <Footer
@@ -1100,16 +1045,10 @@ function PushSubscriptionSection() {
         </button>
       )}
       {status === "blocked" && (
-        <p
-          style={{
-            font: "500 11.5px/1.4 var(--f-sans)",
-            color: "var(--warning)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="atencion" compacto>
           El navegador bloqueó las notificaciones. Habilitalas desde el
           ícono de candado en la URL y vuelve a probar.
-        </p>
+        </Aviso>
       )}
       {status === "unsupported" && (
         <p
@@ -1124,15 +1063,9 @@ function PushSubscriptionSection() {
         </p>
       )}
       {errorMsg && (
-        <p
-          style={{
-            font: "500 11.5px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {errorMsg}
-        </p>
+        </Aviso>
       )}
     </div>
   );
@@ -1361,27 +1294,15 @@ function TelegramSection({
       )}
 
       {!botUsername && (
-        <p
-          style={{
-            font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--warning)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="atencion" compacto>
           Bot no configurado · setear <code>NEXT_PUBLIC_TELEGRAM_BOT_USERNAME</code> en
           Vercel. Ver runbook docs/runbooks/setup-telegram-bot.md.
-        </p>
+        </Aviso>
       )}
       {error && (
-        <p
-          style={{
-            font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {error}
-        </p>
+        </Aviso>
       )}
     </div>
   );
@@ -1820,12 +1741,9 @@ function DiscordSection() {
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}
-        >
+        <Aviso tono="error" compacto>
           {error}
-        </div>
+        </Aviso>
       )}
     </div>
   );

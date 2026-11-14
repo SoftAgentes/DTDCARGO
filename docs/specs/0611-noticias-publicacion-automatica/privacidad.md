@@ -65,7 +65,7 @@ Los titulares del personal son Sam, Alejandro y los admins. No hay datos de clie
 
 anon conserva solo las 18 columnas que pide el sitio (`COLUMNAS_PUBLICAS`). La 0526 está **aplicada**
 desde el 2026-11-11 en prueba y en producción, así que vale la última columna. La retención de `actor_id` y de las
-otras columnas con uuid del personal sigue abierta para Sam (spec §11.4.1, hallazgo 7).
+otras columnas con uuid del personal estaba abierta para Sam (spec §11.4.1, hallazgo 7).
 
 ## 3 · Hallazgos y puntos
 
@@ -77,7 +77,7 @@ otras columnas con uuid del personal sigue abierta para Sam (spec §11.4.1, hall
 | 4 | 2 · Minimización: opinión del Revisor | `CORRECTO` | `aviso.ts:63`: no viaja si `tieneDatosPersonales` la marca, y se recorta a 300 caracteres |
 | 5 | 2 · Minimización: la nota del retiro | `CORRECTO` en el código; `NO VERIFICABLE` en la base | `motivos.ts:39` rechaza una nota con teléfono, correo, cédula, RIF o dirección (`nota_con_datos_personales`), y `notaParaOficina` (`motivos.ts:48`) la vuelve a filtrar antes de entregarla. La función `news_retirar` de la base no la filtra: depende de que la pantalla del Studio, que falta, use `validarRetiro` |
 | 6 | 2 · Minimización: el control detecta datos personales en el artículo | `CORRECTO` | `control.ts:84` (teléfono, correo, cédula, RIF, dirección) y prueba de §5 «Privacidad» en `piezas.test.ts` |
-| 7 | 5 · Borrado | `ENCONTRADO` | Las tablas nuevas no tienen plazo de retención ni purga. Guardan uuids del personal y notas libres. **Arreglo:** fijar con Sam un plazo (por ejemplo, 24 meses para salidas y auditoría) y una purga en el cron de la segunda PR; mientras tanto, la nota se valida (punto 5) |
+| 7 | 5 · Borrado | `ENCONTRADO` | Las tablas nuevas no tienen plazo de retención ni purga. Guardan uuids del personal y notas libres. **Arreglo:** fijar con Sam un plazo (por ejemplo, 24 meses para salidas y auditoría). *Resuelto el 2026-11-14: 12 meses, ver spec §11.4.1* y una purga en el cron de la segunda PR; mientras tanto, la nota se valida (punto 5). *Resuelto el 2026-11-14: 12 meses, ver spec §11.4.1* |
 | 8 | 6 · Trazabilidad | `CORRECTO` | Cada publicación, retención, retiro y cambio de interruptor deja fila con quién y cuándo (0518, `news_publication_audit`, `news_post_exits`, `news_autopublish_settings_log`) |
 | 9 | 8 · Inventario de terceros | `CORRECTO` | `docs/legal/privacidad/inventario-terceros.md`: la fila de Discord ahora nombra `#noticias` y lo que sale |
 | 10 | 8 · El nombre de quien publica a mano sale a Discord | `ENCONTRADO` (bajo) | `aviso.ts:78`. Es una decisión de Sam (§4.5) y son datos del personal, no de clientes. Falta declararlo a ese personal. **Arreglo:** anotarlo en la política interna del equipo (no en `/privacidad`) antes de enganchar la vía manual |
@@ -95,7 +95,7 @@ otras columnas con uuid del personal sigue abierta para Sam (spec §11.4.1, hall
 
 ## 5 · Fuera de alcance (abogado)
 
-- El plazo de retención de las tablas de auditoría.
+- El plazo de retención de las tablas de auditoría (Sam fijó 12 meses el 2026-11-14; la abogada puede confirmarlo).
 - Si el nombre de quien publica en `#noticias` necesita un aviso formal al personal.
 
 *Esto no es asesoría legal. Conviene que otro modelo audite el mismo flujo.*

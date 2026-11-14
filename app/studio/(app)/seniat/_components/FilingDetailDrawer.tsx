@@ -20,6 +20,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   CUSTOMS_DOC_LABELS,
@@ -246,38 +247,9 @@ export function FilingDetailDrawer({
         >
           {/* 1. Alert banner */}
           {filing.alert && (
-            <div
-              style={{
-                padding: "12px 14px",
-                background: "var(--danger-bg)",
-                borderLeft: "3px solid var(--danger)",
-                borderRadius: "var(--r-md)",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-              }}
-            >
-              <span style={{ color: "var(--danger)", marginTop: 2 }}>
-                {Icon.warn(15)}
-              </span>
-              <div>
-                <div
-                  className="studio-display"
-                  style={{ fontSize: 13, color: "var(--ink)" }}
-                >
-                  Alerta SENIAT
-                </div>
-                <div
-                  style={{
-                    font: "500 12.5px/1.4 var(--f-sans)",
-                    color: "var(--ink)",
-                    marginTop: 3,
-                  }}
-                >
-                  {filing.alert}
-                </div>
-              </div>
-            </div>
+            <Aviso tono="error" titulo="Alerta SENIAT" compacto>
+              {filing.alert}
+            </Aviso>
           )}
 
           {/* 2. Cost breakdown */}
@@ -641,20 +613,9 @@ export function FilingDetailDrawer({
           )}
 
           {error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
+            <Aviso tono="error" compacto>
               {error}
-            </p>
+            </Aviso>
           )}
         </div>
 

@@ -47,6 +47,7 @@ import type {
   ClaimOffsetOption,
 } from "@/lib/studio/reclamos/claims-queries";
 import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   advanceClaimStatusAction,
@@ -889,16 +890,11 @@ function ClaimDetail({
           </div>
 
           {error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: "12px 0 0",
-              }}
-            >
-              {error}
-            </p>
+            <div style={{ marginTop: 12 }}>
+              <Aviso tono="error" compacto>
+                {error}
+              </Aviso>
+            </div>
           )}
         </div>
       )}
@@ -1326,15 +1322,11 @@ function EvidenceUpload({ claimId }: { claimId: string }) {
         {pending ? "Subiendo…" : "Subir evidencia"}
       </button>
       {state.error && (
-        <span
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            flexBasis: "100%",
-          }}
-        >
-          {state.error}
-        </span>
+        <div style={{ flexBasis: "100%" }}>
+          <Aviso tono="error" compacto>
+            {state.error}
+          </Aviso>
+        </div>
       )}
     </form>
   );

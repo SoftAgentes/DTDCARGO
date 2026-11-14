@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface Props {
   mode: "create" | "edit";
@@ -47,7 +48,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
   const [slug, setSlug] = useState(city?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(mode === "edit");
   const [casco, setCasco] = useState(city?.casco ?? false);
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
   // Depende de `isPending` y no de `state.error`: un segundo error con el mismo
   // texto no lo cambia, y el botón deshabilitado ya soltó el foco fuera del panel.
   useEffect(() => {
-    if (!isPending && state.error) errorRef.current?.focus();
+    if (!isPending && state.error) enfocarAviso(errorRef.current);
   }, [state, isPending]);
 
   const title = mode === "create" ? "Nueva ciudad" : "Editar ciudad";
@@ -252,22 +253,11 @@ export function CityDrawer({ mode, city, onClose }: Props) {
           </label>
 
           {(state.error || deleteError) && (
-            <p
-              ref={errorRef}
-              role="alert"
-              tabIndex={-1}
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {state.error ?? deleteError}
-            </p>
+            <div ref={errorRef}>
+              <Aviso tono="error" compacto>
+                {state.error ?? deleteError}
+              </Aviso>
+            </div>
           )}
 
           <div style={{ flex: 1, minHeight: 12 }} />
@@ -364,6 +354,14 @@ export function CityDrawer({ mode, city, onClose }: Props) {
         </footer>
     </DrawerShell>
   );
+}
+
+/** `Aviso` no recibe ref: el foco va a su franja (`role="alert"`), que se vuelve enfocable aquí. */
+function enfocarAviso(contenedor: HTMLElement | null) {
+  const franja = contenedor?.querySelector<HTMLElement>('[role="alert"]');
+  if (!franja) return;
+  franja.tabIndex = -1;
+  franja.focus();
 }
 
 function FieldError({ msg }: { msg: string }) {

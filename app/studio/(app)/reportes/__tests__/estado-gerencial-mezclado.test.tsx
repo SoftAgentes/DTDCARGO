@@ -54,12 +54,12 @@ afterEach(() => cleanup());
 describe("IncomeStatementCard · mayor mezclado (SDD-0557)", () => {
   it("con una factura en VES asentada al nominal, la tarjeta avisa que las cifras no son todas USD", () => {
     render(createElement(IncomeStatementCard, { income: estado(resumirIngreso([VES], RANGO_MES, control(36500, 36500, true, ["v1"]), contexto(VES))) }));
-    expect(screen.getByRole("note")).toHaveTextContent(/mezclan el nominal de facturas en bolívares o yuanes/);
+    expect(screen.getByRole("status")).toHaveTextContent(/mezclan el nominal de facturas en bolívares o yuanes/);
   });
 
   it("sin facturas en otra moneda no hay nota", () => {
     render(createElement(IncomeStatementCard, { income: estado(resumirIngreso([USD], RANGO_MES, control(1000, 1000, true, ["u1"]), contexto(USD))) }));
-    expect(screen.queryByRole("note")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
   it("unidad desconocida con neto0 conserva diagnóstico y oculta certificación monetaria sólo en el gerencial", () => {
     const ingreso = resumirIngreso([USD], RANGO_MES, control(0, 0, false));
@@ -76,8 +76,8 @@ describe("IncomeStatementCard · mayor mezclado (SDD-0557)", () => {
     const gerencial = titulo.parentElement;
     expect(gerencial).not.toBeNull();
     const tarjeta = within(gerencial!);
-    expect(tarjeta.getByRole("note")).toHaveTextContent("No se ha verificado la unidad monetaria del mayor.");
-    expect(tarjeta.getByRole("note")).toHaveTextContent("Revisa el control de Ingreso del período");
+    expect(tarjeta.getByRole("status")).toHaveTextContent("No se ha verificado la unidad monetaria del mayor.");
+    expect(tarjeta.getByRole("status")).toHaveTextContent("Revisa el control de Ingreso del período");
     expect(tarjeta.getByText("No disponible")).toBeInTheDocument();
     expect(tarjeta.getByText("—")).toBeInTheDocument();
     expect(gerencial).not.toHaveTextContent(/\$|USD funcional|0%/);

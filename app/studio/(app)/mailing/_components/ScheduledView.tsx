@@ -21,6 +21,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   scheduledStatusBadgeTone,
   scheduledStatusLabel,
@@ -77,18 +78,8 @@ export function ScheduledView({ scheduled }: Props) {
   return (
     <div>
       {error && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: 16,
-            padding: "10px 14px",
-            borderRadius: "var(--r-md)",
-            background: "var(--danger-bg)",
-            color: "var(--danger)",
-            font: "500 13px/1.4 var(--f-sans)",
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="error">{error}</Aviso>
         </div>
       )}
 

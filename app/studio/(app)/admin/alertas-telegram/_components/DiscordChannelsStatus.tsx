@@ -18,6 +18,7 @@ import {
   TELEGRAM_ALERT_CATEGORY_LABELS,
 } from "@/lib/studio/telegram/alert-routing";
 import type { DiscordCategoryStatus } from "@/lib/studio/discord/channels";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface Props {
   statuses: DiscordCategoryStatus[];
@@ -72,66 +73,40 @@ export function DiscordChannelsStatus({ statuses, canalRespaldo }: Props) {
       </p>
 
       {sinTenant && (
-        <div
-          role="status"
-          style={{
-            background: "var(--bg-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: "12px 14px",
-            marginBottom: 16,
-            font: "400 13px/1.6 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <b>Los canales de Discord no están asignados a esta empresa.</b> Se
-          asignan en el servidor con <code>DISCORD_TENANT_ID</code>. Mientras
-          tanto, los avisos sólo llegan por correo y a la campana del Studio.
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="info" compacto>
+            <b>Los canales de Discord no están asignados a esta empresa.</b> Se
+            asignan en el servidor con <code>DISCORD_TENANT_ID</code>. Mientras
+            tanto, los avisos sólo llegan por correo y a la campana del Studio.
+          </Aviso>
         </div>
       )}
 
       {!apagado && !sinTenant && conDiscord.length === 0 && (
-        <div
-          style={{
-            background: "var(--bg-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: "12px 14px",
-            marginBottom: 16,
-            font: "400 13px/1.6 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <b>Discord todavía no está configurado.</b> Mientras tanto, los avisos sólo
-          llegan por correo y a la campana del Studio.
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="info" compacto>
+            <b>Discord todavía no está configurado.</b> Mientras tanto, los avisos sólo
+            llegan por correo y a la campana del Studio.
+          </Aviso>
         </div>
       )}
 
       {enRespaldo.length > 0 && (
-        <div
-          role="status"
-          style={{
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: 8,
-            padding: "12px 14px",
-            marginBottom: 16,
-            font: "400 13px/1.6 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <b>Sin canal propio todavía:</b>{" "}
-          {enRespaldo.map((s) => TELEGRAM_ALERT_CATEGORY_LABELS[s.category]).join(" · ")}.
-          <br />
-          Mientras tanto esos avisos salen a {canalRespaldo}, para que no se pierda
-          ninguno.
-          {invalidas.length > 0 && (
-            <>
-              <br />
-              La dirección guardada en el servidor no tiene forma de webhook de
-              Discord en: {invalidas.map((s) => s.envVar).join(", ")}.
-            </>
-          )}
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="atencion" compacto>
+            <b>Sin canal propio todavía:</b>{" "}
+            {enRespaldo.map((s) => TELEGRAM_ALERT_CATEGORY_LABELS[s.category]).join(" · ")}.
+            <br />
+            Mientras tanto esos avisos salen a {canalRespaldo}, para que no se pierda
+            ninguno.
+            {invalidas.length > 0 && (
+              <>
+                <br />
+                La dirección guardada en el servidor no tiene forma de webhook de
+                Discord en: {invalidas.map((s) => s.envVar).join(", ")}.
+              </>
+            )}
+          </Aviso>
         </div>
       )}
 

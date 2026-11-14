@@ -31,6 +31,7 @@ import type {
 } from "@/lib/studio/warehouse-cn-types";
 import type { Client } from "@/lib/studio/client-types";
 import { useT } from "@/lib/i18n";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
 
 interface Props {
@@ -345,85 +346,34 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 {state.fieldErrors?.client_markbox && (
                   <FieldError msg={state.fieldErrors.client_markbox} />
                 )}
+                {/* SDD-0603 · tramo 5c: lo que se pulsa lleva contorno de tinta. */}
                 <button
                   type="button"
                   onClick={() => setIsOrphan(true)}
-                  style={{
-                    marginTop: 6,
-                    font: "600 11px/1.3 var(--f-sans)",
-                    color: "var(--ink-soft)",
-                    background: "transparent",
-                    border: 0,
-                    cursor: "pointer",
-                    padding: "2px 0",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = "var(--wine)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = "var(--ink-soft)")
-                  }
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                  style={{ marginTop: 6 }}
                 >
                   {Icon.box(11)} {t("warehouse_cn.drawer.orphan_toggle")}
                 </button>
               </>
             ) : (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 12px",
-                  background: "var(--warning-bg)",
-                  border: "1px solid var(--warning)",
-                  borderRadius: "var(--r-md)",
-                }}
-              >
-                <span style={{ color: "var(--warning)" }}>
-                  {Icon.box(14)}
-                </span>
-                <div
-                  style={{
-                    flex: 1,
-                    font: "700 12px/1.4 var(--f-sans)",
-                    color: "var(--ink)",
-                  }}
-                >
-                  {t("warehouse_cn.drawer.orphan_badge")}
-                  <span
-                    style={{
-                      font: "500 11px/1.4 var(--f-sans)",
-                      color: "var(--ink-soft)",
-                      marginLeft: "var(--s-1)",
-                    }}
-                  >
-                    {t("warehouse_cn.drawer.orphan_code_note")}{" "}
-                    <code
-                      style={{
-                        font: "700 11px/1 var(--f-mono)",
-                        color: "var(--warning)",
-                      }}
-                    >
-                      SIN-CODIGO-NNNN
-                    </code>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
+              <Aviso
+                tono="atencion"
+                compacto
+                titulo={t("warehouse_cn.drawer.orphan_badge")}
+                accion={{
+                  etiqueta: t("warehouse_cn.drawer.orphan_disable"),
+                  onClick: () => {
                     setIsOrphan(false);
                     setOrphanMarks("");
                     setOrphanBroughtBy("");
                     setOrphanSuspected("");
-                  }}
-                  className="studio-btn studio-btn-ghost studio-btn-xs"
-                >
-                  {t("warehouse_cn.drawer.orphan_disable")}
-                </button>
-              </div>
+                  },
+                }}
+              >
+                {t("warehouse_cn.drawer.orphan_code_note")}{" "}
+                <code style={{ font: "700 11px/1 var(--f-mono)" }}>SIN-CODIGO-NNNN</code>
+              </Aviso>
             )}
           </div>
 
@@ -788,26 +738,7 @@ function ItemEditor({
             type="button"
             onClick={onRemove}
             aria-label={t("warehouse_cn.drawer.item_remove_aria", { index: index + 1 })}
-            style={{
-              width: 26,
-              height: 26,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: "pointer",
-              borderRadius: "var(--r-sm)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--danger)";
-              e.currentTarget.style.background = "var(--danger-bg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--ink-soft)";
-              e.currentTarget.style.background = "transparent";
-            }}
+            className="studio-icono-btn"
           >
             {Icon.trash(13)}
           </button>

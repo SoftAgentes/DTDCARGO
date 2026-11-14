@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
 import { categoriasByTipo, NEWS_CATEGORIES_V4, type NewsCategoria } from "@/lib/news/categories";
@@ -166,14 +167,12 @@ export function EditarNoticiaForm({ noticia }: { noticia: NoticiaParaEditar }) {
       )}
 
       {marcas > 0 ? (
-        <p role="status" style={{ fontSize: 14, color: "var(--color-status-danger, #c2353f)", margin: 0 }}>
+        <Aviso tono="atencion">
           {marcas === 1 ? "Queda 1 marca [VERIFICAR]" : `Quedan ${marcas} marcas [VERIFICAR]`}: corrígelas para poder guardar.
-        </p>
+        </Aviso>
       ) : null}
       {error ? (
-        <p role="alert" style={{ fontSize: 14, color: "var(--color-status-danger, #c2353f)", margin: 0 }}>
-          {error}
-        </p>
+        <Aviso tono="error">{error}</Aviso>
       ) : null}
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
