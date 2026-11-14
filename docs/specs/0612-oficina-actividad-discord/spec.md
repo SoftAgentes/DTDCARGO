@@ -165,12 +165,16 @@ La regla es la corrección **A1 de Codex**, la misma del puente:
 - **Sí:** el identificador de la tarea (`HAI-123`), su estado nuevo, el nombre del agente y el
   enlace a Paperclip (`http://localhost:3100/HAI/issues/HAI-123`, que abre por el túnel de Sam).
   Para un agente, su nombre y su estado. Para una aprobación, su tipo y el enlace.
-- **No:** el título de la tarea, el texto de los comentarios, el mensaje de error de un agente ni
-  el contenido de una aprobación. Pueden traer datos de clientes, rutas o llaves.
+- **Con título (D3, decidida por Sam el 2026-11-14):** el título de la tarea va en el aviso. La
+  propuesta original de esta spec era no llevarlo; **la decisión de Sam prevalece**. Un título puede
+  nombrar a un cliente y Discord es un tercero en un servidor que no es de Sam: **cómo se limita
+  está abierto (D3b, abajo)**. Hasta que Sam responda D3b no se escribe el código de este punto.
+- **No:** el texto de los comentarios, el mensaje de error de un agente ni el contenido de una
+  aprobación. Pueden traer datos de clientes, rutas o llaves.
 
-Esto se hace cumplir en el código: cada aviso se arma con una lista cerrada de campos, y una prueba
-mete un título y un comentario con datos falsos de un cliente y exige que no aparezcan en lo
-enviado. Los nombres de los agentes no son datos personales: son roles de la oficina, como
+Esto se hace cumplir en el código: cada aviso se arma con una lista cerrada de campos (el título
+es uno de ellos, con el tratamiento que fije D3b), y una prueba mete un comentario y un mensaje de
+error con datos falsos de un cliente y exige que no aparezcan en lo enviado. Los nombres de los agentes no son datos personales: son roles de la oficina, como
 «ALFRED» o «Editor de contenido».
 
 **Ejemplo de mensaje.** Los cambios de un mismo minuto van en un solo mensaje, para no gastar
@@ -227,7 +231,7 @@ de `#alfred`. Revocar uno no apaga el otro.
 - **Días:** solo los días con algún cambio. Un día sin movimiento no publica nada.
 - **Fuente:** la bitácora de cambios que el propio servicio guarda en su base, de las últimas 24
   horas, más la foto del momento. No llama a ningún modelo.
-- **Formato** (mismas reglas de contenido que los avisos, sin títulos):
+- **Formato** (mismas reglas de contenido que los avisos, con el título según D3/D3b):
 
 ```text
 Resumen de la oficina · jueves 6 de noviembre
@@ -293,7 +297,7 @@ y se la asigna al Vigía. Como está pausado, no trabaja. Lo que se espera ver:
 - al marcarla terminada, el aviso «terminada»;
 - con `dtd-actividad --resumen-ahora`, el resumen del día.
 
-Se confirma que ningún mensaje trae el título de la tarea. Después se cancela la tarea.
+Se confirma que el mensaje trae el título de la tarea de prueba, que no lleva datos de clientes, y ningún comentario. Después se cancela la tarea.
 
 **6. Vuelta atrás**, en este orden:
 
@@ -307,8 +311,9 @@ Ninguna otra pieza depende de este servicio: el puente y la recepción siguen ig
 ## Privacidad
 
 No mueve datos personales. Los avisos llevan identificadores de tareas, estados, nombres de
-agentes y enlaces. Discord es un tercero en EE. UU., pero ahí no llega nada de clientes. Lo hace
-cumplir la lista cerrada de campos, con su prueba (Decisión 4). La PR del código pasa la revisión
+agentes, enlaces y, por D3, títulos de tareas. Discord es un tercero en EE. UU.; un título puede
+nombrar a un cliente, y cómo se limita está abierto (D3b). Los comentarios y errores no llegan: lo
+hace cumplir la lista cerrada de campos, con su prueba (Decisión 4). La PR del código pasa la revisión
 de `.claude/skills/revisar-datos-ve/SKILL.md` para confirmarlo.
 
 ## Decisiones de Sam
@@ -329,7 +334,8 @@ General, que las reconfirmó con Sam. Se transcribe la opción elegida, textualm
 |---|---|
 | D1 | «Proceso aparte (Recomendado)» |
 | D2 | «Sí, agente Vigía (Recomendado)» |
-| D3 | «Con título». No es la recomendación (⭐ Sin título). **Reconfirmada por Sam el 2026-11-14** en el chat del Director General: «Sí, confirmo las tres decisiones». Es decisión de la spec; el código debe tapar o limitar el título y pasar `revisar-datos-ve` |
+| D3 | «Con título». No es la recomendación (⭐ Sin título). **Reconfirmada por Sam el 2026-11-14** en el chat del Director General: «Sí, confirmo las tres decisiones». Es decisión de la spec. Cómo se limita el título está abierto: D3b |
+| D3b | **ABIERTA, pregunta para Sam.** Con título, ¿cómo se limita? (a) título tal cual; (b) título sin números largos, correos ni enlaces y recortado a 80 caracteres; (c) título tal cual solo en tareas internas de la oficina. **Recomendación del Subdirector: (b).** La PR de código pasa `revisar-datos-ve`. Hasta que Sam responda no se escribe el código de este punto |
 | D4 | «Sí, trabado a 24 h (Recomendado)» |
 | D5 | «Sí, 18:00 Venezuela (Recomendado)» |
 | D6 | «Tras fusionar la PR del código (Recomendado)» |
@@ -367,8 +373,8 @@ General, que las reconfirmó con Sam. Se transcribe la opción elegida, textualm
 ## Criterios de aceptación del código (PR posterior)
 
 1. El cliente de Paperclip solo hace `GET` a una lista fija de rutas. Una prueba lo exige.
-2. Ningún aviso ni resumen lleva títulos, comentarios ni mensajes de error. Una prueba con datos
-   falsos de un cliente lo exige.
+2. Ningún aviso ni resumen lleva comentarios ni mensajes de error; el título solo con el tratamiento
+   que fije D3b. Una prueba con datos falsos de un cliente lo exige.
 3. La primera corrida no publica nada.
 4. Los casos del emisor de la SDD-0607 pasan contra el emisor nuevo y dan el mismo resultado.
 5. Las pruebas corren en `pnpm harness:test`, con un piso de pruebas, y no se saltan en el CI.

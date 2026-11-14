@@ -9,13 +9,20 @@ Subdirector SEO y relatadas al Director General, que las reconfirma.
   «Sí, confirmo las tres decisiones»: 0612-D3 «Con título», 0610-D3 «Modelo de lenguaje» y 0610-D7
   «Solo sumarla». Ahora son decisiones de la spec.
 
+## Reconciliaciones hechas en esta tarea (revisión independiente de d3c9258a3)
+- 0612: Decisión 4, formato del resumen, paso de prueba, privacidad y criterio 2 ya dicen «con título»;
+  el cómo se limita queda como pregunta abierta D3b (a título tal cual, b recortado y sin datos,
+  c solo tareas internas), con recomendación (b).
+- 0610: la regla «clasificador determinista» y «por qué no un modelo» dicen que D3 prevalece y el
+  determinista queda como línea base; `privacidad.md` marca que D7 se decidió sin consulta.
+- `docs/legal/privacidad/inventario-terceros.md`: Discord recibiría títulos de tareas.
+
 ## Pendiente de esta tarea
-- Ninguno de esta PR. Las exigencias de código de esas tres van en sus PR.
+- Sam responde D3b; el código de avisos con título no se escribe antes.
 
 ## FUERA DE ALCANCE DETECTADO
-- 0612-D3 «Con título» exige, en la PR de código, tapado o lista de campos para el título y
-  `revisar-datos-ve` (puede nombrar a un cliente; el servidor Discord no es de Sam).
-- 0610-D3 «Modelo de lenguaje» reabre la condición de la spec (medir lo determinista antes y revisión
-  de privacidad propia).
+- 0610-D3 «Modelo de lenguaje» reabre la medición previa y la revisión de privacidad propia en la
+  PR de código; el inventario de terceros deberá contar al proveedor del modelo cuando se elija.
 
-Allowlist: las dos specs y este handoff. `docs:check` PASÓ; sin verify ni vitest.
+Allowlist: las dos specs, `docs/specs/0610-resumen-crm-marketing/privacidad.md`,
+`docs/legal/privacidad/inventario-terceros.md` y este handoff. `docs:check` PASÓ; sin verify ni vitest.

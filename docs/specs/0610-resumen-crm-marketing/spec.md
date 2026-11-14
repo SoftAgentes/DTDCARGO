@@ -155,7 +155,7 @@ la prueba de §7 corre sobre el catálogo nuevo.
 
 ### 4.4 Clasificación, sin sacar el texto del Studio
 
-**v1: clasificador determinista** en el propio proceso del Studio
+**Clasificador determinista** en el propio proceso del Studio (decisión D3 de Sam del 2026-11-14: «Modelo de lenguaje», que prevalece sobre esta regla; el determinista queda como línea base de medición y de comparación, y el modelo entra con las condiciones de D3: texto tapado, salida restringida al catálogo, tercero contado en el inventario y revisión de privacidad propia)
 (`lib/studio/crm-resumen/clasificar.ts`): normaliza el texto (minúsculas, sin tildes, sin
 emojis) y aplica las reglas del catálogo (palabras y expresiones por entrada). Sin red, sin
 modelo, sin reloj ni azar: el mismo texto da siempre el mismo resultado.
@@ -163,7 +163,7 @@ modelo, sin reloj ni azar: el mismo texto da siempre el mismo resultado.
 - El texto vive **solo en memoria**, mientras se clasifica una conversación. No se guarda, no se
   registra en logs (ni en error), no va a la cola de trabajos ni a otro servicio.
 - Un mensaje puede caer en varias entradas o en ninguna (`cobertura.sin_clasificar`).
-- **Por qué no un modelo de lenguaje en v1:** clasificar con Anthropic o GLM manda el texto
+- **Por qué la propuesta original era no usar un modelo de lenguaje en v1** (Sam decidió lo contrario en D3; esto queda como el riesgo que sus condiciones deben cubrir): clasificar con Anthropic o GLM manda el texto
   completo de cada conversación a un tercero en EE. UU. o China, para una finalidad nueva. El
   determinista no tiene ese costo y da un piso medible. La opción con modelo queda en la
   decisión D3 con sus condiciones (texto tapado, salida restringida al catálogo, tercero ya
