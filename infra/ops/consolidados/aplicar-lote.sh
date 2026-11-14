@@ -26,8 +26,8 @@
 #   (`carga-consolidado:<N>:<hash>`). Un `--autorizacion` que apunte a otro
 #   archivo de la carpeta del lote (el manifiesto, el resumen) se rechaza, igual
 #   que un enlace simbólico, un texto con `"nombreExcel"` o `"lote":` (eso es
-#   un manifiesto, no el OK de Sam) o con una línea `# Lote ` (una copia de
-#   resumen.md). Se copia UNA vez a un temporal (`cp -P`) y
+#   un manifiesto, no el OK de Sam) o una copia de resumen.md (su título
+#   `Lote <id> · contenedor DTD #` o las cabeceras de su tabla). Se copia UNA vez a un temporal (`cp -P`) y
 #   el grep y la evidencia usan esa copia, no el original.
 #   Previa, simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar`
 #   están deshabilitados: borrar en producción lo corre Sam, no este script. Un
@@ -168,10 +168,12 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   if grep -qE '"nombreExcel"|"lote"[[:space:]]*:' -- "${AUT_COPIA}"; then
     refuse "la autorización parece un manifiesto (trae \"nombreExcel\" o \"lote\":): tiene que ser el OK literal de Sam"
   fi
-  # Una copia de resumen.md (empieza con «# Lote <id>») cita el id y lleva
-  # nombres: tampoco es el OK de Sam.
-  if grep -qE '^# Lote ' -- "${AUT_COPIA}"; then
-    refuse "la autorización parece una copia de resumen.md (trae una línea «# Lote »): tiene que ser el OK literal de Sam"
+  # Una copia de resumen.md cita el id y lleva nombres: tampoco es el OK de Sam.
+  # Se reconoce por su título («Lote <id> · contenedor DTD #N», en cualquier
+  # lugar de la línea: con BOM, sangría, cita o renderizado sin «#») o por las
+  # cabeceras fijas de su tabla de clientes. Bytes, no caracteres (LC_ALL=C).
+  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+ · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
+    refuse "la autorización parece una copia de resumen.md (trae su título «Lote … · contenedor DTD #» o las cabeceras de su tabla): tiene que ser el OK literal de Sam"
   fi
   grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
     || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"

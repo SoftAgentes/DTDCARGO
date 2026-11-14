@@ -279,8 +279,23 @@ EP5="${T}/evid-prod-5"; mkdir -p "${EP5}"
 printf '# Lote carga-consolidado:61:cafebabe · contenedor DTD #61\nOK\n' > "${T}/copia-resumen.txt"
 out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/copia-resumen.txt" --paso previa 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "autorización copiada de resumen.md (# Lote) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md rc=${rc}: ${out}"
+# Variantes que se colaban con `^# Lote ` (revisión de la #545): BOM UTF-8, sangría,
+# renderizada sin «#», citada con «>», y sólo las cabeceras de la tabla de clientes.
+# Todas citan el id: sin la guarda pasarían como OK y la previa correría (rc 0).
+printf '\xEF\xBB\xBF# Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU1234567)\n' > "${T}/resumen-bom.txt"
+printf '   # Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU1234567)\n' > "${T}/resumen-sangria.txt"
+printf 'Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU1234567)\n' > "${T}/resumen-renderizado.txt"
+printf 'OK de Sam:\n> # Lote carga-consolidado:61:cafebabe · contenedor DTD #61\n' > "${T}/resumen-citado.txt"
+printf 'OK carga-consolidado:61:cafebabe\n| Marca | Etiqueta en la evidencia | Nombre (Excel) | Embarques | Cajas | CBM | kg | Base | Candidatos a resolver |\n' > "${T}/resumen-tabla.txt"
+for v in bom sangria renderizado citado tabla; do
+  out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/resumen-${v}.txt" --paso previa 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "copia de resumen.md (${v}) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md (${v}) rc=${rc}: ${out}"
+done
+# Un OK legítimo que nombra el lote (incluso empezando con «Lote <id>» o mencionando «# Lote») sigue valiendo.
 printf 'Sam: autorizo carga-consolidado:61:cafebabe (ver # Lote en el resumen)\n' > "${T}/ok-con-almohadilla.txt"
-bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-almohadilla.txt" --paso previa >/dev/null 2>&1 && ok "un OK que menciona «# Lote» a mitad de línea sigue valiendo (el rechazo mira el principio)" || ko "un OK válido con «# Lote» a mitad de línea se rechazó"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-almohadilla.txt" --paso previa >/dev/null 2>&1 && ok "un OK que menciona «# Lote» sin el título del resumen sigue valiendo" || ko "un OK válido con «# Lote» se rechazó"
+printf 'Lote carga-consolidado:61:cafebabe: autorizado por Sam el 2026-11-14\n' > "${T}/ok-empieza-lote.txt"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-empieza-lote.txt" --paso previa >/dev/null 2>&1 && ok "un OK que empieza con «Lote <id>» (sin «· contenedor DTD #») sigue valiendo" || ko "un OK válido que empieza con «Lote <id>» se rechazó"
 # 12b. Los traps de señal (129, 130, 143) y el de EXIT que suelta el candado se
 # ponen antes de tomarlo: una señal entre el mkdir y el printf del pid también lo suelta.
 l_exit="$(grep -n "^trap al_salir EXIT" "${APLICAR}" | head -1 | cut -d: -f1)"

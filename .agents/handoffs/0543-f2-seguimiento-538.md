@@ -30,7 +30,7 @@ Esto reemplaza las notas fuera del repo (`f2-handoff-carga-63-pendientes.md`) y 
 
 ## 2 · OBJETIVO DE ESTA PR
 
-1. `aplicar-lote.sh` rechaza una autorización que sea copia de `resumen.md` (`^# Lote `).
+1. `aplicar-lote.sh` rechaza una autorización que sea copia de `resumen.md`.
 2. Runbook: `docker top dtd-cargo-db-1` en lugar de `ps` dentro del contenedor (la imagen no trae procps); `pg_stat_activity` en producción requiere el OK de Sam.
 3. Candado: si el `printf` del pid falla, refuse y salir sin dejar el candado tomado.
 4. Pruebas:
@@ -44,16 +44,18 @@ Esto reemplaza las notas fuera del repo (`f2-handoff-carga-63-pendientes.md`) y 
 ## COMPLETADO
 
 - **`infra/ops/consolidados/aplicar-lote.sh`**
-  - Rechaza (3) una autorización con una línea que empiece con `# Lote `, es decir una copia de `resumen.md`, igual que las que traen `"nombreExcel"` o `"lote":`. La regla mira solo el principio de línea, así que un OK que menciona «# Lote» a mitad de línea sigue valiendo.
+  - Rechaza (3) una copia de `resumen.md`, igual que las autorizaciones que traen `"nombreExcel"` o `"lote":`. La reconoce por el título del resumen (`Lote <id> · contenedor DTD #`, en cualquier parte de la línea) o por las cabeceras fijas de su tabla (`Nombre (Excel)`, `Candidatos a resolver`). Un OK que empieza con «Lote <id>», o que menciona «# Lote», sigue valiendo.
+  - La primera versión usaba `^# Lote `. La revisión de la #545 mostró que dejaba pasar una copia con BOM UTF-8, con sangría o renderizada sin `#`: se endureció en la misma rama.
   - Si el `printf` del pid en el candado falla, el guion rechaza (3) sin correr psql. EXIT suelta el candado, porque un pid vacío cuenta como propio.
   - `soltar_candado` hace `rm -f pid; rmdir` sin `&&`.
 - **`infra/ops/tests/prueba-aplicar-lote.sh`**: sección 12, con cinco casos.
   - La copia de `resumen.md` se rechaza sin dejar evidencia.
-  - «# Lote» a mitad de línea sigue valiendo.
+  - Variantes de la copia de `resumen.md`: con BOM, con sangría, renderizada, citada con `>` y solo con las cabeceras de la tabla. Las cinco se rechazan.
+  - Dos OK legítimos siguen valiendo: uno que menciona «# Lote» y otro que empieza con «Lote <id>».
   - Orden de los traps: una prueba estructural comprueba que EXIT y 129/130/143 están antes del `mkdir` del candado y del pid. Las pruebas de señal durante el paso (sección 11) siguen.
   - `deshacer.sql` como enlace roto se rechaza sin tocar docker. Solo corre en Linux.
   - pid sin escribir: rechaza, no llama a docker y suelta el candado. Se fuerza con `ulimit -f 0` y SIGXFSZ ignorada. Solo corre en Linux.
-  - El piso de `pruebas-linux.sh` sube de 64 a 69.
+  - El piso de `pruebas-linux.sh` sube de 64 a 75.
 - **`infra/ops/consolidados/validar-lote-local.sh --produccion <lote> <marca>[,<marca>…]`** reemplaza al ensayo ad hoc del 63.
   - Secuencia:
     1. la previa sin los dueños aborta;
@@ -83,8 +85,9 @@ Esto reemplaza las notas fuera del repo (`f2-handoff-carga-63-pendientes.md`) y 
 
 | Comprobación | Resultado |
 |---|---|
-| Prueba bash en Linux (Ubuntu 24.04 de WSL) | **PASÓ**: 69 PASÓ · 0 FALLÓ, sin OMITIDAS |
-| Prueba bash en Git Bash | **PASÓ**: 65 PASÓ · 0 FALLÓ · 4 OMITIDAS (tres de enlaces y una de `ulimit -f`). Linux cubre las cuatro |
+| Prueba bash en Linux (Ubuntu 24.04 de WSL), sobre la cabeza final | **PASÓ**: 75 PASÓ · 0 FALLÓ, sin OMITIDAS |
+| Prueba bash en Git Bash, sobre la cabeza final | **PASÓ**: 71 PASÓ · 0 FALLÓ · 4 OMITIDAS (tres de enlaces y una de `ulimit -f`). Linux cubre las cuatro |
+| Mutantes de la guarda de `resumen.md` (Git Bash) | **PASÓ**: con `^# Lote ` caen las 5 variantes (66/5); sin la guarda caen las 6 copias (65/6) |
 | `bash -n` de los dos guiones | **PASÓ** |
 | Guardas de `--produccion` sin Docker, en cuatro casos | **PASÓ**: sale 2 en los cuatro y no crea carpetas |
 | `--produccion` sobre la v3 del 63 (`carga-consolidado:63:e1ebd577`, dueño `DTD-9038`), 2026-11-14 06:55Z, con el turno del DG | **PASÓ**: 0 FALLÓ, 503 migraciones. Ver el detalle debajo de la tabla |
@@ -100,6 +103,11 @@ Detalle del ensayo `--produccion` sobre la v3:
 - Clientes y aliados sin cambio; consolidations +1.
 - Deltas informativos: shipments +1, shipment_events +3, consolidation_items +1, sailings +1 y carriers +1.
 - Al terminar, `docker ps -a` y `docker volume ls` dieron 0.
+
+## PENDIENTES DE ESTA TAREA
+
+- **CI verde sobre la cabeza final de la #545**, y la revisión independiente cerrada.
+- **Reinstalar `aplicar-lote.sh` en `/srv/ops/consolidados/` después del merge, con el OK de Sam.** Hay que respaldar el actual, instalar el de main con chmod 700, comparar el sha256 con main y hacer un dry-run. Es el mismo procedimiento que el paso 0 del 63. Mientras no se reinstale, el servidor no tiene el rechazo de la copia de `resumen.md` ni el refuse del pid.
 
 ## FUERA DE ALCANCE DETECTADO
 

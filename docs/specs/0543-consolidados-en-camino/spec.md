@@ -94,7 +94,7 @@ PR aparte desde `main` en `7b1e05050`. Cambios:
 
 PR aparte desde `main` en `4c5c39581`, con el lote 63 ya cargado en producción (DTD-CONSOL-0003). Cambios:
 
-- **Copia de `resumen.md`.** Una autorización con una línea que empiece con `# Lote ` se rechaza (3), igual que las que traen `"nombreExcel"` o `"lote":`. Es la primera línea de `resumen.md`, que cita el id y lleva nombres. Una mención de `# Lote` a mitad de línea no se rechaza.
+- **Copia de `resumen.md`.** Una autorización que traiga el título de `resumen.md` (`Lote <id> · contenedor DTD #`, en cualquier parte de la línea, así que también con BOM, sangría, citada o renderizada sin `#`) o las cabeceras fijas de su tabla (`Nombre (Excel)`, `Candidatos a resolver`) se rechaza (3), igual que las que traen `"nombreExcel"` o `"lote":`. `resumen.md` cita el id y lleva nombres. Un OK que empieza con `Lote <id>` sin el resto del título sigue valiendo. La primera versión (`^# Lote `) dejaba pasar esas variantes: lo vio la revisión de la #545.
 - **pid sin escribir.** Si el `printf` del pid en el candado falla, el guion se niega (3), no corre psql y suelta el candado. El pid vacío ya contaba como propio en `soltar_candado`, y ahora el `rm` del pid no impide el `rmdir`.
 - **Runbook.** Para ver si queda psql vivo después de una señal, `docker top dtd-cargo-db-1`, porque la imagen de la base no trae procps. Mirar `pg_stat_activity` en producción requiere el OK de Sam.
 - **Pruebas.**
