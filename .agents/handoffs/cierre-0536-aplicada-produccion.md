@@ -7,7 +7,8 @@ Fecha: 2026-11-14 · Rama: `claude/cierre-0536` · PR #543 · Director General
 - El 2026-11-14 la 0536 se aplicó en producción con el OK nominal de Sam: «Sí, aplícala». El
   conteo previo, también autorizado, dio 0 CxP vivas con embarque.
   - COMMIT: 05:14:00Z.
-  - Ledger: md5 `bf7b3204624423d5a576404c59bbf087`, 7708 bytes.
+  - Ledger: `version` 20261114051359, md5 `bf7b3204624423d5a576404c59bbf087`, 7708 bytes.
+    Pasó de 529 a 530 filas.
   - Evidencia en `/srv/ops/evidencias/`:
     - lectura previa: `previa-0536-dtd-cargo-20261114T051320Z`
     - apply: `apply-0536-dtd-cargo-20261114T051359Z`
