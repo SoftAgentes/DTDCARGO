@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -135,20 +136,9 @@ export function BillDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         {/* Estado + saldo */}
@@ -773,20 +763,9 @@ export function NewBillDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         <div>

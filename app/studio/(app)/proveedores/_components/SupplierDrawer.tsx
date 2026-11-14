@@ -14,6 +14,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   DrawerShell,
   DrawerFooter,
@@ -123,20 +124,9 @@ export function SupplierDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         {!editing && (
@@ -187,24 +177,16 @@ export function SupplierDrawer({
         </div>
 
         {similar.length > 0 && (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--r-sm)",
-              background: "var(--warning-bg, var(--bg-elevated))",
-              border: "1px solid var(--border)",
-            }}
+          <Aviso
+            tono="atencion"
+            compacto
+            titulo={
+              <>
+                Este cliente ya tiene proveedores parecidos — revisa antes de
+                crear otro:
+              </>
+            }
           >
-            <p
-              style={{
-                font: "700 11px/1.3 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "0 0 6px",
-              }}
-            >
-              Este cliente ya tiene proveedores parecidos — revisa antes de
-              crear otro:
-            </p>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
               {similar.map((s) => (
                 <li
@@ -219,7 +201,7 @@ export function SupplierDrawer({
                 </li>
               ))}
             </ul>
-          </div>
+          </Aviso>
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

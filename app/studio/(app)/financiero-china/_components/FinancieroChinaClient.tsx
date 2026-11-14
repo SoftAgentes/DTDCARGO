@@ -17,6 +17,7 @@
 
 import { useState, useTransition } from "react";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import type {
   PartnerBalance,
   PartnerLedgerEntry,
@@ -143,37 +144,17 @@ export function FinancieroChinaClient({
           asiento stale tras una nota de crédito. Best-effort hace que estos
           colgados sean invisibles sin un contador. */}
       {health.total > 0 && (
-        <div
-          role="status"
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            padding: "12px 14px",
-            marginBottom: 20,
-            borderRadius: "var(--r-md)",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <p
-              style={{
-                margin: 0,
-                font: "700 13px/1.4 var(--f-sans)",
-                color: "var(--warning)",
-              }}
-            >
-              {health.total} movimiento{health.total === 1 ? "" : "s"} sin
-              contabilizar correctamente.
-            </p>
-            <p
-              style={{
-                margin: "var(--s-1) 0 0",
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
+        <div style={{ marginBottom: 20 }}>
+          <Aviso
+            tono="atencion"
+            titulo={
+              <>
+                {health.total} movimiento{health.total === 1 ? "" : "s"} sin
+                contabilizar correctamente.
+              </>
+            }
+          >
+            <p style={{ margin: 0 }}>
               {[
                 health.unpostedCharges > 0 &&
                   `${health.unpostedCharges} cargo(s) sin asiento`,
@@ -189,7 +170,7 @@ export function FinancieroChinaClient({
               . Revisa el plan de cuentas (2.1.7 / 4.6 / 5.10) y las tasas de
               cambio de los cargos no-USD.
             </p>
-          </div>
+          </Aviso>
         </div>
       )}
 
