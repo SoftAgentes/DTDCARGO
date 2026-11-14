@@ -3331,6 +3331,15 @@
         "forma": "exacta"
       }
     },
+    "0535_bcv_rates_system_audit": {
+      "sha256": "5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75",
+      "md5": "414b694a36160a4ded7c64d872c723f8",
+      "bytes": 15455,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
     "0536_cxp_ligada_contenedor": {
       "sha256": "6941af4f08e29042163d32c50d17422624089cdd3596ee9f0a640d5654f4b6f5",
       "md5": "bf7b3204624423d5a576404c59bbf087",
