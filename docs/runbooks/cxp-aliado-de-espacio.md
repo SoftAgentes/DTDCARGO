@@ -1,6 +1,6 @@
 # Registrar lo que se le debe a un aliado de espacio (SDD-0631)
 
-Dueño: contabilidad · Estado: vigente cuando la migración 0536 esté aplicada · Actualizado: 2026-11-13 · review-by: 2027-02-13
+Dueño: contabilidad · Estado: vigente (0536 aplicada en producción el 2026-11-14) · Actualizado: 2026-11-14 · review-by: 2027-02-13
 
 Cuando otra empresa nos vende espacio en su contenedor, lo que le debemos es una cuenta por
 pagar (CxP) a un **proveedor**. Esta guía la registra ligada al contenedor para que el costo
@@ -11,8 +11,8 @@ llegue al margen en Costing & Margen. La spec es [SDD-0631](../specs/0631-cxp-li
 
 ## 0 · Antes de empezar
 
-- La migración `0536_cxp_ligada_contenedor.sql` tiene que estar aplicada en producción (OK de
-  Sam nombrando el archivo, [runbook de migraciones](aplicar-migraciones-prod.md)). Sin ella,
+- La migración `0536_cxp_ligada_contenedor.sql` ya está aplicada en producción (2026-11-14,
+  [runbook de migraciones](aplicar-migraciones-prod.md)); en otro entorno, compruébalo antes. Sin ella,
   Tesorería no muestra el bloque «Costo de contenedor» y Costing avisa que el costo sale solo de
   lo cargado a mano.
 - El contenedor tiene que existir en **Naviera** con sus embarques asignados y su CBM: el reparto

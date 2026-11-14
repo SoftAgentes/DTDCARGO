@@ -191,3 +191,25 @@ orden de pago → margen en Costing › Contenedores.
 - Una CxP repartida en varios contenedores, o la orden de compra (`purchase-orders`)
   ligada a contenedor.
 - Cambios a la tabla de aliados (0362) o a su portal.
+
+## 6. Aplicación en producción (registro del runbook §6.3)
+
+- **OK nominal de Sam:** a la pregunta «¿Apruebas aplicar en producción
+  0536_cxp_ligada_contenedor.sql?» respondió literalmente «Sí, aplícala» (2026-11-14).
+- **Conteo previo:** también autorizado por Sam. En solo lectura dio
+  `cxp_vivas_con_embarque = 0`, así que el margen de ningún embarque existente cambia.
+- **Paquete:** preparado desde main `db5ea99e01ec42ef572af97deb1b5612fa18050e`, con
+  `created_by` `servidor-propio:psql:SDD-0631`. El md5 de `aplicar.sql` es
+  `94171615940e82c5aeef74969d1191d0`.
+- **Lectura previa:** PASÓ. Evidencia en
+  `/srv/ops/evidencias/previa-0536-dtd-cargo-20261114T051320Z`.
+- **COMMIT:** 2026-11-14T05:14:00Z, con su fila en el ledger.
+- **Verificación:** PASÓ. Hay una sola fila `0536_cxp_ligada_contenedor`, con md5
+  `bf7b3204624423d5a576404c59bbf087` y 7708 bytes, y el cuerpo vivo de
+  `supplier_bills_validate_cost_link` es igual al del archivo. Evidencia en
+  `/srv/ops/evidencias/apply-0536-dtd-cargo-20261114T051359Z`.
+- **Cierre:** PR #543, que retira la espera y sella la migración en `migrations.lock.json`.
+  La hora del merge queda en la PR.
+- **Pendiente:** el smoke en el Studio (Tesorería › nueva CxP con contenedor, y Costing ›
+  margen del contenedor) con una cuenta de contabilidad. Va con un monto de prueba y la CxP
+  se anula al terminar.
