@@ -17,11 +17,11 @@ confidencialidad: interno
 > y no hay forma de sumarle, por ejemplo, el CRM a quien lleva contabilidad. Esta spec agrega
 > «accesos adicionales» por persona, solo hacia arriba, con motivo, rastro y candados.
 
-**Estado:** aprobada por Sam el 2026-11-09 y **actualizada el 2026-11-11** con su decisión sobre módulos
+**Estado:** aprobada por Sam el 2026-11-09. Confirmada por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». Fue **actualizada el 2026-11-11** con su decisión sobre módulos
 sensibles (§9.1): los extras **sí** pueden abrir dinero y módulos solo de administrador, con **doble aviso**
 obligatorio (también exigido por la RPC) y concedidos por un admin o un superadmin. Siguen vigentes: acceso por
 módulo, vencimiento opcional, «elegir módulos» para Alejandro y el usuario «Personalizado» (§5.5). Las acciones
-destructivas o gobernadas (`CAPABILITIES`) quedan fuera. R1, R2 y R3 de §8 las resolvió el Director el 2026-11-11 con la autorización de Sam («hazlo como creas tú»). La implementación está en la PR #509 y esta spec se enmendó el 2026-11-11 para coincidir con ella (§11 y §13); lo que queda a decisión de Sam está en §9 y §13.3.
+destructivas o gobernadas (`CAPABILITIES`) quedan fuera. R1, R2 y R3 de §8 las resolvió el Director el 2026-11-11 con la autorización de Sam («hazlo como creas tú»). Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». La implementación está en la PR #509 y esta spec se enmendó el 2026-11-11 para coincidir con ella (§11 y §13); lo que queda a decisión de Sam está en §9 y §13.3.
 
 ## 1. Pedido que la origina
 
@@ -276,19 +276,19 @@ aplicar antes de aprobar la PR.
   `rbac-actions-guard.test.ts`): nada se mueve de «deuda» a «excepción». Abrir módulos sensibles por persona está
   permitido por decisión de Sam, así que cada concesión sensible exige doble aviso, queda con motivo y aparece
   resaltada en «Personas con excepciones»; las capabilities destructivas no son concedibles.
-- **R1 · Escalada de privilegios (decidido por el Director el 2026-11-11, con autorización de Sam).** Un extra sobre `users` o `admin` podría servir para dar
+- **R1 · Escalada de privilegios (decidido por el Director el 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo»).** Un extra sobre `users` o `admin` podría servir para dar
   accesos a otros o a uno mismo. Mitigación propuesta: (a) conceder/revocar extras, cambiar roles y desactivar
   personas siguen exigiendo rol `admin` en la base; (b) un extra sobre `users`/`admin` queda de **solo lectura
   efectiva**; (c) la RPC rechaza que alguien se conceda extras sensibles a sí mismo; (d) el doble aviso dice
   expresamente «esta persona verá la gestión de usuarios». **Resolución adoptada:** un extra sobre `users`/`admin` da solo lectura (CHECK `studio_user_module_grants_keystone_read_only`) y nadie se concede extras a sí mismo; conceder sigue exigiendo el rol `admin` en la base.
-- **R2 · Módulos del superadministrador (decidido por el Director el 2026-11-11, con autorización de Sam).** `financiero-china`, `legal`, `no-olvidar` y
+- **R2 · Módulos del superadministrador (decidido por el Director el 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo»).** `financiero-china`, `legal`, `no-olvidar` y
   `renditions` exigen además `is_platform_admin()` (`rbac.ts`, `SUPERADMIN_ONLY_MODULES`; en la base `0355`/`0356`).
   Preguntas: ¿quién puede otorgarlos? Propuesta: solo quien cumpla `is_platform_admin()`, no cualquier admin. ¿Debe
   el receptor pasar el segundo candado? Hoy el guard lo exige en cada vista y acción, así que un extra a quien no es
   superadmin de plataforma **no abriría nada**. Opción A: mantenerlo (el extra casi no tiene efecto). Opción B:
   reemplazar el segundo candado por una confirmación reforzada, lo que cambia `0355`/`0356` y requiere spec
   aparte. **Resolución adoptada:** los 4 módulos del superadministrador solo los otorga quien cumpla `is_platform_admin()`, y el segundo candado del receptor se mantiene (opción A).
-- **R3 · Dinero por persona exige cambiar la base (decidido por el Director el 2026-11-11, con autorización de Sam).** Abrir dinero a quien no es contabilidad
+- **R3 · Dinero por persona exige cambiar la base (decidido por el Director el 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo»).** Abrir dinero a quien no es contabilidad
   obliga a cambiar funciones y RLS que hoy comparan el rol (inventario con archivo:línea en §12.2). Se propone una
   **fase propia** (§6, fase 8), con su migración y su OK de Sam, separada de Comercial. **Resolución adoptada:** fase propia; se suma redefiniendo `studio_can_read_money()` de la 0528 (SDD-0624, PR #515).
 - **Acumulación de excepciones** (la objeción de la 0139) → motivo, vencimiento opcional, lista visible.
@@ -307,9 +307,9 @@ aplicar antes de aprobar la PR.
 | 9.3 | Vencimiento | **Opcional** | Decidido por Sam 2026-11-09 |
 | 9.4 | Alcance de «parte de Comercial» | **Elegir módulos** (p. ej. CRM sí, Cotizaciones no). Filtrar etapas o embudos dentro del CRM sería otra spec | Decidido por Sam 2026-11-09 |
 | 9.5 | Usuario **Personalizado** | Rol base `custom` + accesos módulo a módulo (§5.5) | Pedido de Sam 2026-11-09; **pendiente de confirmar por Sam** que el diseño de §5.5 es lo que quiere |
-| 9.6 | R1 · Escalada con `users`/`admin` | Solo lectura y sin auto-concesión (§8) | Decidido por el Director 2026-11-11, con autorización de Sam |
-| 9.7 | R2 · Módulos del superadministrador | Solo los otorga `is_platform_admin()`; el receptor sigue pasando el segundo candado (opción A) | Decidido por el Director 2026-11-11, con autorización de Sam |
-| 9.8 | R3 · Fase propia para dinero | Fase 8, redefiniendo `studio_can_read_money()` (0528, SDD-0624, PR #515) | Decidido por el Director 2026-11-11, con autorización de Sam |
+| 9.6 | R1 · Escalada con `users`/`admin` | Solo lectura y sin auto-concesión (§8) | Decidido por el Director 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo» |
+| 9.7 | R2 · Módulos del superadministrador | Solo los otorga `is_platform_admin()`; el receptor sigue pasando el segundo candado (opción A) | Decidido por el Director 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo» |
+| 9.8 | R3 · Fase propia para dinero | Fase 8, redefiniendo `studio_can_read_money()` (0528, SDD-0624, PR #515) | Decidido por el Director 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo» |
 
 Pregunta abierta, **sin valor asumido**:
 

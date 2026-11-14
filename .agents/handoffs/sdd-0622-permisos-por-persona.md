@@ -101,3 +101,13 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
   que citan «0528» se vencen.
 - En `supabase/migrations/` de main faltan 0528-0531 (0532-0537 ya fusionadas). La #515 ocupa 0528; el destino de
   0529-0531 lo coordina el Director.
+
+## Confirmación de Sam 2026-11-14 (W-488, sobre c3c154e3c)
+- Según lo transmitió el Director, Sam respondió en el chat del Director General, el 2026-11-14, a si confirma la spec
+  0622 y R1, R2 y R3: «Sí, las confirmo». No la recibí directamente.
+- Spec: en «Estado» (§ inicial) se agrega «Confirmada por Sam el 2026-11-14 en el chat del Director General: «Sí, las
+  confirmo»»; junto a cada «decidido por el Director el 2026-11-11» de R1-R3 (§8, filas 9.6-9.8 de §9 y el párrafo de
+  estado) se agrega «Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo»».
+- Sin cambios en el texto de R1-R3, «caso Alejandro» (sigue abierta) ni `status: approved`.
+- Evidencia: `git diff --check` PASÓ; `pnpm docs:check` NO EJECUTADO (sin `node_modules`, no se instaló nada).
+- Pendiente de esta tarea: sin cambio respecto de la sección anterior (correr `docs:check` y `sdd:check` con turno).
