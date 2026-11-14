@@ -34,9 +34,12 @@
 | `git diff --check` | PASÓ |
 | `node scripts/build-component-registry.mjs` y `validate-component-registry.mjs` | PASÓ (6 componentes, agregado reproducible) |
 | Diff dentro de la allowlist, más la ampliación, pruebas vecinas y documentos | PASÓ (`git status` contra la lista) |
-| `pnpm install`, vitest focal, `tsc --noEmit`, eslint del diff | NO EJECUTADO: en espera del turno de la PC |
-| Mutantes sobre archivos reales | NO EJECUTADO: van después del vitest, sobre código con commit |
-| `/ui-check` | NO EJECUTADO |
+| `pnpm install --frozen-lockfile` | PASÓ (con turno del Subdirector, 1 min 11 s) |
+| Vitest focal: `_components/ui`, `_components/__tests__`, `(app)/__tests__`, las 11 carpetas de módulo tocadas, `admin/_components` y `component-registry.test.ts` | PASÓ: 90 archivos, 977 pruebas |
+| `tsc --noEmit -p .` | PASÓ (exit 0) |
+| eslint `--max-warnings=0` sobre los 21 `.ts`/`.tsx` del diff | FALLÓ por 2 advertencias que ya estaban en `main`: `ExchangeRatesSection.test.tsx:11`, parámetros `_previous` y `_form` sin usar. Esa línea no se tocó. Cero errores y cero advertencias en lo editado. |
+| Mutantes sobre archivos reales, con commit | PASÓ: 14 de 14 muertos, con corrida de control sin mutar en verde. Incluye `ErrorBox` → `<p>`, que rompe el contrato de Finanzas. |
+| `/ui-check` | PASÓ (advisory): sin hallazgos altos. Bajas: medidas heredadas de 6 y 10 px, fuera de la escala de 4 px, en las filas del banner de Gastos y la franja del Dashboard. |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub |
 | Vista en pantalla (claro, oscuro, compacto) | NO DISPONIBLE: va en la imagen de prueba |
 
@@ -46,7 +49,8 @@ Nuevo `menores-studio.md`. Enmienda en `docs/specs/0628-aviso-studio/spec.md` (A
 
 ## Pendientes de esta tarea
 
-- Turno de la PC, pruebas, mutantes, `/ui-check`, push y PR.
+- Revisión independiente del DG y armado del tren. Este Worker no trae main ni fusiona.
+- Nota sobre los mutantes: la primera corrida dio `exit 255` en las rutas con `(app)`. Era el lanzador, no la prueba. Se repitió con las rutas entre comillas, una corrida de control sin mutar y la condición de que vitest reporte pruebas fallidas.
 - Verlo en la imagen de prueba antes de fusionar: un error de formulario en Nómina, el banner de Gastos, un cotizador convertido, el Dashboard, la creación de OD, el asistente de borrado y Tasas de cambio.
 
 ## FUERA DE ALCANCE DETECTADO
