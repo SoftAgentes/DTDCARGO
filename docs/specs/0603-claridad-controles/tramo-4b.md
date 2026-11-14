@@ -91,7 +91,9 @@ Dentro de los archivos adoptados también quedan sin tocar, a propósito: los me
 
 - `debug/__tests__/NorteTab.test.tsx` y `RadarTab.test.tsx`: el `data-norte-mode` y el `data-radar-mode` pasan al envoltorio, porque `Aviso` no recibe atributos `data-*`. La prueba busca la franja por su rol, como antes, y lee el modo con `closest(...)`. **Se endurece:** ahora también exige `data-tono="atencion"` en web y `"info"` en local. Ninguna aserción se quitó.
 - Pruebas vecinas que siguen sin cambios y vigilan lo convertido: `CityDrawer.test.tsx` y `TransportistasPanel.test.tsx` (foco en el error), `DebugTabs.test.tsx` (banner `status` con «Modo vivo»), `DiscordChannelsStatus.test.tsx`, `ActualizacionesPanel.test.tsx`, `CommentsThread.test.tsx`, `PortalBackfillSection.test.tsx`, `AttachmentUploader.test.tsx`, `GuiaMotor.test.tsx`, `GenerateBLModal.test.tsx`, `ConfirmDialog.test.tsx` y `pantallas-muestran-la-denegacion.test.tsx`.
-- Resultados: en el handoff.
+- **Contrato que se destapó:** `dark-theme-contrast-contract.test.ts` busca hacia arriba el fondo más cercano a cada uso de la tinta invertida. En `PortalBackfillSection.tsx`, el `Chip` de filtro activo pintaba esa tinta sobre `--wine`, y en oscuro la tinta se vuelve navy. La caja de resultado que este tramo quitó tenía un `background` neutro que tapaba la violación. Se corrige con `--ink-side-strong`, que es blanco en los dos temas: el mismo token del botón primario sobre vino. No es un color nuevo.
+- **Mutante:** quitar `franja.tabIndex = -1` de `enfocarAviso` en CityDrawer y TariffDrawer hace caer 4 pruebas (`CityDrawer.test.tsx` y `TransportistasPanel.test.tsx`).
+- Resultados completos: en el handoff.
 
 ## Gate VIS-01
 

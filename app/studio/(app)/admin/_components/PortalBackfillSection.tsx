@@ -270,7 +270,9 @@ function Chip({
         appearance: "none",
         cursor: "pointer",
         font: `${active ? 700 : 600} 11.5px/1 var(--f-sans)`,
-        color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+        // Sobre vino, `--ink-side-strong` (blanco en los dos temas), como el
+        // botón primario: la tinta invertida se vuelve navy en oscuro.
+        color: active ? "var(--ink-side-strong)" : "var(--ink-soft)",
         background: active ? "var(--wine)" : "var(--bg-elevated)",
         border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
         borderRadius: "var(--r-pill)",

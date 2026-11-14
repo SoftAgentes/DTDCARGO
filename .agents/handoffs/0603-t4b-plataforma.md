@@ -16,10 +16,10 @@
 
 | Comprobación | Resultado |
 |---|---|
-| Vitest focal (archivos tocados y pruebas vecinas) | NO EJECUTADO: pendiente de turno para `pnpm install` |
-| `tsc --noEmit` | NO EJECUTADO: mismo motivo |
-| ESLint de los archivos tocados | NO EJECUTADO: mismo motivo |
-| Mutante: quitar `franja.tabIndex = -1` de `enfocarAviso` | NO EJECUTADO |
+| Vitest focal: debug; admin (componentes, actualizaciones, alertas, rutas, agentes); comentarios, academia, club, bugs, calendario, legal, usuarios y denegación; `_components` (ui, wiring, guía, adjuntos, contratos) | PASÓ: 61 archivos, 636 pruebas. La primera corrida dio 1 rojo en `dark-theme-contrast-contract`, por el chip de PortalBackfill (ver tramo-4b.md, Pruebas). Corregido y repetido en verde. |
+| `tsc --noEmit` | PASÓ (exit 0) |
+| ESLint de los archivos tocados, `--max-warnings=0` | PASÓ (exit 0) |
+| Mutante: quitar `franja.tabIndex = -1` de `enfocarAviso` (CityDrawer y TariffDrawer) | MUERTO: caen 4 pruebas; archivos restaurados |
 | `/ui-check` sobre el diff | PASÓ, con ajustes menores no bloqueantes: los márgenes de los envoltorios conservan sus px anteriores (8, 10, 14, 20) en vez de `var(--s-*)`; hay dos regiones `status` en la tarjeta de la guía cuando falta el ancla; los botones primarios quedan dentro de dos avisos (token de API y catálogo vacío). Sin hex nuevos, sin anidar `div` en `p` y sin AI slop. |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub |
 | Revisión visual en pantalla | NO DISPONIBLE: sin imagen de prueba en este encargo |
