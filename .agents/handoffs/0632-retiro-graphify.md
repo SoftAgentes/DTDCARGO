@@ -4,7 +4,7 @@
 - Worktree: `.claude/worktrees/distracted-mendel-4d032d` · rama `claude/distracted-mendel-4d032d` · base `origin/main` e5169e86e.
 - SDD: [0632](../../docs/specs/0632-retiro-graphify/spec.md) (reserva local `codex/sdd-reserve-0632-retiro-graphify`, commit 0e1751f; sin publicar). Reemplaza a 0471 y 0623.
 - Decisión de Sam (2026-11-13): «A Graphite lo eliminamos totalmente, ya que no se estaba usando y había que actualizarlo a cada rato».
-- **Condición de integración** (Sam, 2026-11-13, vía la sesión que encargó): «Opino que retiremos Grafiti cuando avancemos con la creación del cerebro, ¿correcto?». La PR queda en **borrador** y no se integra hasta que el repositorio privado del cerebro avance y Sam confirme el retiro. Lo mismo vale para la limpieza fuera de Git.
+- **Condición de integración** (Sam, 2026-11-13, vía la sesión que encargó): «Opino que retiremos Grafiti cuando avancemos con la creación del cerebro, ¿correcto?». **Cumplida el 2026-11-14:** la #560 (4a59f10bf) agregó `dtd-cerebro` a `AGENTS.md` y Sam confirmó en el chat del Director General: «Sí, retíralos» (texto transmitido por el DG; registrado aquí como su autorización, no como un OK dado a esta sesión). La PR pasa a lista; la fusión y la revisión independiente las lleva el DG.
 
 ## OBJETIVO ORIGINAL
 
@@ -38,9 +38,9 @@ Patrones: `graphify`, `knowledge:`, `knowledge-sync`, `knowledge-daily`, `knowle
 | `.claude/` versionado | — | sin referencias |
 | `docs/qa/0581-…`, specs anteriores, `.agents/handoffs/*` | evidencia histórica | sin cambios |
 
-## Limpieza fuera de Git — PENDIENTE, condicionada
+## Limpieza fuera de Git — PENDIENTE
 
-No se ejecutó nada. Solo después de que (1) Sam confirme el retiro con el cerebro privado avanzado, (2) la PR esté fusionada y (3) Sam dé el OK a estos borrados. Se miraron en lectura el 2026-11-13: los cinco existen.
+No se ejecutó nada. La confirmación del retiro ya está (2026-11-14). Falta: (1) que la PR esté fusionada y (2) que Sam dé el OK concreto a estos borrados. Se miraron en lectura el 2026-11-13: los cinco existen.
 
 ```powershell
 # 1. Tarea programada (Ready; ejecuta node scripts/knowledge-daily.mjs en el checkout principal)
@@ -76,8 +76,8 @@ Fallos de `pnpm verify` y su causa:
 
 ## PENDIENTES DE ESTA TAREA
 
-- Confirmación de Sam para integrar (condición de arriba).
-- Limpieza fuera de Git (condicionada).
+- Revisión independiente y fusión (las lanza el DG).
+- Limpieza fuera de Git (después de fusionar, con OK de Sam).
 
 ## FUERA DE ALCANCE DETECTADO
 

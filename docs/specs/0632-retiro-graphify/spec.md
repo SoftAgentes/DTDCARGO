@@ -13,10 +13,10 @@ confidencialidad: interno
 
 # SDD-0632 — Retiro de Graphify, Archify y la publicación a Obsidian
 
-> **Integración condicionada.** Esta SDD y su PR quedan en borrador. No se integran hasta que el
-> repositorio privado del «segundo cerebro» de la empresa haya avanzado y Sam confirme el retiro.
-> Orden de Sam del 2026-11-13: «Opino que retiremos Grafiti cuando avancemos con la creación del
-> cerebro, ¿correcto?».
+> **Condición de integración cumplida.** Sam, 2026-11-13: «Opino que retiremos Grafiti cuando
+> avancemos con la creación del cerebro, ¿correcto?». El cerebro avanzó: la #560 (4a59f10bf) agregó
+> a `AGENTS.md` el punto 5 sobre el repo privado `dtd-cerebro`. Sam confirmó el retiro el 2026-11-14,
+> según lo transmitió el Director General: «Sí, retíralos».
 
 ## Decisión
 
@@ -48,8 +48,8 @@ correspondía con el uso.
 
 Guardar evidencia verificada y decisiones autorizadas en su documento canónico, specs SDD y un
 handoff por tarea en `.agents/handoffs/`. Eso no es Graphify y sigue vigente en `AGENTS.md` y en las
-skills Director y Worker. El conocimiento compartido de la empresa pasa a un repositorio privado
-aparte (otra tarea); este repo es público y no recibe datos del negocio.
+skills Director y Worker. La memoria compartida entre agentes pasa al repo privado `dtd-cerebro`
+(`AGENTS.md`, punto 5); este repo es público y no recibe contenido de ese repo.
 
 ## Alcance
 
@@ -83,4 +83,4 @@ SDD y con el OK de Sam. Los comandos están en el handoff
       (excepto las exclusiones de protección del punto 4 y los avisos de retiro).
 - [ ] `pnpm harness:test`, `pnpm docs:check`, `pnpm sdd:check` y CI de la PR en verde.
 - [ ] Handoff con inventario y limpieza fuera de Git pendiente.
-- [ ] Sam confirma el retiro con el cerebro privado avanzado; recién entonces se integra.
+- [x] Sam confirma el retiro con el cerebro privado avanzado (2026-11-14: «Sí, retíralos», vía el Director General).

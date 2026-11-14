@@ -10,6 +10,8 @@ publicación a la bóveda de Obsidian, que dependían del grafo.
 - Director y Worker no consultan, actualizan ni publican el grafo al iniciar o cerrar.
 - El conocimiento verificado sigue en Git: documentos canónicos, specs SDD y un handoff por tarea en
   `.agents/handoffs/` (ver [AGENTS.md](../../AGENTS.md) y el [runbook de ingeniería](codex-engineering.md)).
+- La memoria compartida entre agentes vive en el repo privado `dtd-cerebro` (`AGENTS.md`, punto 5).
+  Nada de ese repo se copia aquí.
 
 La evidencia de uso, el inventario retirado y la limpieza pendiente fuera de Git están en
 [SDD-0632](../specs/0632-retiro-graphify/spec.md). Los handoffs históricos que citan Graphify se
