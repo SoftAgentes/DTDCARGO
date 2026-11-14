@@ -15,7 +15,7 @@
   - `CUENTA=1`;
   - `TENANT=<uuid>`: el del tenant de producción; no es un secreto.
 
-  Al empezar cada sesión de terminal:
+  Al empezar cada sesión de terminal, **después de que el 3.0 cree la carpeta** (`/srv/ops/portal-historial` no existe en el VPS hasta ese sub-paso, y antes el `cd` falla):
 
   ```bash
   cd /srv/ops/portal-historial && TENANT=<uuid> && CUENTA=1 && BANDEJA=10 && AGENTE_SERVICIO=1 && echo "HECHO cuenta=$CUENTA bandeja=$BANDEJA agente_servicio=$AGENTE_SERVICIO"
@@ -30,7 +30,6 @@
 ### Antes de empezar
 
 - [ ] **La puerta 2 está hecha:** `BANDEJA=10` y `AGENTE_SERVICIO=1`, con su evidencia.
-- [ ] **Los dos OK de la puerta 1 están dados,** el 1a y después el 1b, antes de la primera corrida. Los textos están en el runbook, en la puerta 1.
 - [ ] **La #504 está en `main`.** El orden es fijo: primero la #504, porque cambia `deshacer.sh` y `deshacer-carga.rb`, y después el 3.0, desde un `main` que la incluya. Sin ella no se empieza.
 
 ### 3.0 · ⛔ Los scripts en el VPS
@@ -169,6 +168,8 @@ Es el runbook, puerta 3, «Lo que el CI no puede probar».
 
 ### 1 · La comprobación `--solo-copia`, con los OK 1a y 1b
 
+- [ ] **Los dos OK de la puerta 1 están dados,** el 1a y después el 1b, después del 3.0 y antes de la primera corrida. Los textos están en el runbook, en la puerta 1.
+
 Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de systemd, igual que el ensayo:
 - `TimeoutStopSec` de 600 s, porque la G1 exige 300 o más (`ensayo-portal.sh:77`);
 - Nice 10;
@@ -189,7 +190,7 @@ Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de syste
 - [ ] **Su evidencia:**
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); echo "$E"; grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|limpieza_completa)=' "$E"
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); echo "$E"; grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes)=' "$E"
   ```
 
   **Para seguir:**
@@ -227,7 +228,7 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
 - [ ] **La evidencia:** el mismo `grep` de arriba, más el resumen:
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
   ```
 
   **Para seguir:**
