@@ -211,6 +211,22 @@ su sección, al final. Ver `git log origin/main..HEAD`.
   USING de las FOR ALL. Con la 0230 aplicada, el borrado lógico con la sesión funciona (`cotizador/actions.ts:497-500`
   y `tarifas/actions.ts:258-261`). La primera versión de la 0540 lo **rompía** al volver a filtrar `deleted_at` en sus
   SELECT. Arreglo y prueba: ver «Revisión Opus del delta sobre `69d71f7cf`».
+- **Lecturas con la sesión que no filtran `deleted_at` (2.ª revisión del delta, 2026-11-15).**
+  - **Origen:** no es una regresión de la #509. La 0230 quitó el filtro de las FOR ALL y lo dejó a la app, pero
+    estas lecturas no lo aplican. Verifiqué cada cita en el código.
+  - **Tarifas:** `lib/studio/rate-queries.ts:48-54` (lista) y `:95-99` (por id).
+  - **Cotizaciones:** `lib/studio/quote-queries.ts:32-36` (lista) y `:81-85` (por código).
+  - **Dashboard:** `lib/studio/dashboard-queries.ts:66-69` (conteo de tarifas vigentes), `:88-92` (totales de
+    cotizaciones) y `:130-134` (últimas cotizaciones).
+  - **Cambio de destino:** `lib/studio/destination-change.ts:32-42` puede sugerir una tarifa ya borrada. Selecciona
+    `deleted_at`, pero no lo filtra.
+  - **Cotizador:** `app/studio/(app)/cotizador/actions.ts:179-182`, `:251-255`, `:385-390` y `:482-488`, todas
+    lecturas de `quotes` por id.
+  - **Comentarios vencidos:** dicen que la RLS de `quotes` filtra `deleted_at is null`, y eso dejó de ser cierto
+    con la 0230. Están en `cotizador/actions.ts:470-472` y `:491` y en
+    `app/studio/(app)/cotizador/_components/CotizadorClient.tsx:258`.
+  - **Arreglo posible:** `.is("deleted_at", null)` en cada lectura que no deba mostrar lo borrado. No se hizo en esta
+    PR.
 - **La propuesta de tarifa de la CN** (`cn/rate-snapshot-actions.ts`) lee rates, quotes y sales_orders con la sesión
   de almacén, así que «almacén no lee tarifas» se cumple solo fuera de la CN (scope VE). Para cerrarlo del todo, esa
   lectura tendría que pasar a service_role tras su gate `cn`; es del carril CN y no lo toqué.
@@ -522,11 +538,13 @@ el Director.
 - **B2 · Lecturas sin `deleted_at`.**
   - Las 5 SELECT nuevas ya no filtran lo borrado: `0540:166`, `:185`, `:204`, `:236` y `:268`.
   - Update y delete conservan `deleted_at is null` en su USING, que solo mira la fila vieja.
-  - Comprobé que la app filtra lo borrado en las consultas de las 5 tablas. La excepción es
-    `lib/studio/conversaciones/messages-queries.ts:120-129`, que lee y suma `unread_count` por id de conversación. Lo
-    acota el tenant y el módulo; no es una fuga.
-- **Aserciones nuevas** (sección 7, `test.sql:475` y `:479`): comercial borra una tarifa y admin borra una cotización,
-  las dos con la sesión, con `update … set deleted_at = now() where id = …`, y ninguno es dueño de la fila.
+  - ~~Comprobé que la app filtra lo borrado en las consultas de las 5 tablas.~~ **Corregido en la 2.ª revisión del
+    delta:** era falso. La 0230 dejó el filtro a la app, y varias lecturas no lo aplican; el inventario está en
+    «FUERA DE ALCANCE DETECTADO». También lee sin filtro `lib/studio/conversaciones/messages-queries.ts:120-129`, que
+    suma `unread_count` por id de conversación.
+- **Aserciones nuevas** (sección 7, 7a en `test.sql:474-478` y 7b en `:481-485`; desde la 2.ª revisión, también 7c,
+  7d y 7e): comercial borra una tarifa y admin borra una cotización, las dos con la sesión, con
+  `update … set deleted_at = now() where id = …`, y ninguno es dueño de la fila.
   - `3d2` ahora afirma que la RLS no oculta lo borrado; `3d3`, que lo borrado ya no se edita.
   - Dos mutantes reponen el filtro: el de tarifas cae en `7a` y el de cotizaciones en `3d2`.
 - **Textos falsos corregidos:** `0540:44-51`, `test.sql:383-385`, spec §13.4 y este handoff («FUERA DE ALCANCE»).
@@ -579,8 +597,8 @@ Esa SELECT de la 0528 no filtra `deleted_at`, así que no repite el problema de 
 
 | Comprobación | Resultado |
 |---|---|
-| `user-module-grants.migration.test.ts` | FALLÓ 1 de 107: «el contrato de la 0540 pasa entero» cae en `TEST 0540: 7a: comercial borra lógico una tarifa con la sesión` |
-| `infra/ops/tests/migraciones.test.mjs`, `scripts/check-migrations-applied.test.mjs` | PASÓ (en la misma corrida: 3 archivos, 111/112 en 80 s) |
+| `user-module-grants.migration.test.ts` | FALLÓ 1 de 46 (el archivo focal tiene 46 casos): «el contrato de la 0540 pasa entero» cae en `TEST 0540: 7a: comercial borra lógico una tarifa con la sesión` |
+| `infra/ops/tests/migraciones.test.mjs`, `scripts/check-migrations-applied.test.mjs` | PASÓ (en la misma corrida: 3 archivos y 112 casos, 111 en verde, en 80 s) |
 | `pnpm verify` | NO EJECUTADO (se detuvo ante el rojo) |
 
 **Diagnóstico (solo en copias del contrato en la carpeta de notas, sin tocar el repo):**
@@ -620,3 +638,33 @@ Duración: focales 81 s (22:58:22 → 22:59:43), más tres diagnósticos en PGli
 
 `verify`: exit 0 y CIERRE INCOMPLETO (14/17 medidas, sin fallos). Duración: la prueba focal 21 s
 (23:02:29 → 23:02:50) y `verify` 43 min (23:03:15 → 23:46:11), con el reintento de e2e.
+
+## 2.ª revisión Opus del delta sobre `913eca58c`: CAMBIOS (2026-11-15, vuelta W-509)
+
+La lógica de la migración no se tocó. Esta vuelta fue sin pruebas, solo con scripts livianos.
+
+- **M1 · «la app filtra lo borrado» era falso.** Las cuatro frases ahora dicen que la 0230 dejó el filtro a la app y
+  que varias lecturas no lo aplican:
+  - `0540:48-50`: es un comentario, pero cambia el blob;
+  - `test.sql:383-385`;
+  - spec §13.4;
+  - el punto B2 de la revisión anterior en este handoff.
+
+  El inventario de esas lecturas, con cada cita verificada en el código, está en «FUERA DE ALCANCE DETECTADO».
+- **M2 · El borrado lógico, en las 5 tablas:**
+  - las tres tablas tienen `deleted_at` (0106:57, 0124:51 y 0125:62);
+  - 7c (`test.sql:496-500`): contabilidad con el extra de Conversaciones borra una conversación;
+  - 7d (`:501-505`): comercial borra una orden de compra;
+  - 7e (`:506-510`): contabilidad borra una orden de venta por su rol;
+  - las tres con la sesión, sin ser dueño, en dos sentencias como 7a y 7b;
+  - tres mutantes reponen `and deleted_at is null` en las SELECT de conversations, purchase_orders y sales_orders
+    (`0540:205`, `:237` y `:269`), y cada uno tiene que caer en su aserción con «new row violates».
+- **Bajos:**
+  - el piso de aserciones del contrato 0540 sube de 25 a 45 (39 más 6), y el de mutantes de 11 a 14;
+  - los conteos de la corrida sobre `31e5a4eb1` quedan en «1 de 46» y «112 casos»;
+  - las citas de 7a y 7b quedan en `test.sql:474-478` y `:481-485`.
+- **Scripts livianos:** ver el reporte al Director.
+
+**Focales para la vuelta con turno:** `lib/studio/__tests__/user-module-grants.migration.test.ts`, que tiene que
+dar el contrato 0540 en verde con 45 aserciones y que los tres mutantes nuevos caigan en 7c, 7d y 7e. Después,
+`pnpm verify`.

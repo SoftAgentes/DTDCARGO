@@ -572,8 +572,9 @@ tenants por persona habría que filtrar por el tenant activo.
 
 - Borrado lógico con la sesión en rates, quotes, conversations, purchase_orders y sales_orders
   (`cotizador/actions.ts:497-500`, `tarifas/actions.ts:258-261`): funciona desde la 0230, que quitó el filtro de
-  borrado del USING de las FOR ALL. La 0540 lo conserva: sus lecturas no filtran `deleted_at` (lo hace la app), y el
-  contrato lo prueba con la sesión y con un rol que no es dueño de la fila (sección 7).
+  borrado del USING de las FOR ALL. La 0540 lo conserva: sus lecturas no filtran `deleted_at`. La 0230 dejó el filtro
+  a la app, y varias lecturas no lo aplican (inventario en el handoff de la #509). El contrato prueba el borrado
+  lógico de las 5 tablas con la sesión y con un rol que no es dueño de la fila (sección 7, de 7a a 7e).
 - La propuesta de tarifa de la CN (`cn/rate-snapshot-actions.ts`) lee con la sesión de almacén; es del carril CN.
 - `bandeja/page.tsx:100` y `lib/studio/chatwoot/agentes-ciclo.ts:87` evalúan la Bandeja de terceros solo por rol y
   desvío; habrá que tocarlos si se abre.
