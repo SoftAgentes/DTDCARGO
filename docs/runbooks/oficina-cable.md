@@ -14,7 +14,7 @@ sigue con §3.1 (migraciones), ni con el webhook ni con el despachador.
 contenedor web del ERP (dtd-cargo-web-1, usuario node)
   → http://172.19.0.1:18642   IP del puente de dtd-cargo_dtd_internal (br-0fac7b3a83c3), §4
   → ssh -L de tunel-oficina en el host DTD (también escucha en 127.0.0.1:18642)
-  → SSH tunel-dtd@13.140.227.228:22 (llave restringida a permitopen 127.0.0.1:8642)
+  → SSH tunel-dtd@<IP de la oficina: ver REVERTIR.txt en el VPS DTD>:22 (llave restringida a permitopen 127.0.0.1:8642)
   → 127.0.0.1:8642 en la oficina: API server del gateway soporte-chatwoot (con llave y sin herramientas)
 ```
 
@@ -25,16 +25,16 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 | Pieza | Detalle |
 |---|---|
 | Usuario `tunel-oficina` | nologin, home `/var/lib/tunel-oficina`. Tiene su llave ed25519 propia (no sale de DTD) y `known_hosts` fijado a la llave de host de la oficina |
-| Servicio `oficina-cable-tunel` | `ssh -N -L 127.0.0.1:18642:127.0.0.1:8642 tunel-dtd@13.140.227.228` con `ExitOnForwardFailure`, `ServerAliveInterval=15` y `ServerAliveCountMax=3`, `Restart=always` y `RestartSec=15` |
+| Servicio `oficina-cable-tunel` | `ssh -N -L 127.0.0.1:18642:127.0.0.1:8642 tunel-dtd@<IP de la oficina: ver REVERTIR.txt en el VPS DTD>` con `ExitOnForwardFailure`, `ServerAliveInterval=15` y `ServerAliveCountMax=3`, `Restart=always` y `RestartSec=15` |
 | Drop-in `oficina-cable-tunel.service.d/erp-puente.conf` | agrega `-L 172.19.0.1:18642:127.0.0.1:8642` (§4) y `After=docker.service`. Es una sola sesión SSH con los dos escuchas |
 | Regla ufw | `allow in on br-0fac7b3a83c3 from 172.19.0.0/16 to 172.19.0.1 port 18642 proto tcp`, comentario `SDD-0626 cable` (§4) |
 | Puerto 18642 | solo en `127.0.0.1` y `172.19.0.1`. Nunca en `0.0.0.0` ni en la IP pública. Desde fuera del servidor no responde (medido el 2026-11-14 desde la PC de Sam, antes y después del §4: `TcpTestSucceeded: False`) |
 | `/etc/dtd-cable/oficina-runtime.env` | root, 0600: `OFICINA_RUNTIME_URL=http://127.0.0.1:18642` y `OFICINA_RUNTIME_TOKEN`. Sirve para probar desde el host. El ERP **no** lo lee |
 | `/srv/dtd-cargo/.env` | convención de secretos del ERP (root, 0600, `env_file` del servicio `web`). Lleva `OFICINA_RUNTIME_URL=http://172.19.0.1:18642` y `OFICINA_RUNTIME_TOKEN` al final, bajo el comentario `# SDD-0626 Paso 0`. La copia previa es `.env.bak-cable-20261114T211808Z`. Ver §3 |
-| Copia de la prueba | `/root/cable-paso0-20261114/prueba-paso0.mjs`, la del PR #569. Tras integrar, la oficial es `/srv/ops/cable-oficina/prueba-paso0.mjs` |
+| Copia de la prueba | La oficial es `/srv/ops/cable-oficina/prueba-paso0.mjs` (root, 0700), copiada de `infra/ops/cable-oficina/` de `main` el 2026-11-15 (Paso 1). Queda la de `/root/cable-paso0-20261114/`, la del PR #569, con el mismo sha256 |
 | Reversión | `/root/cable-paso0-20261114/REVERTIR.txt` |
 
-### VPS Oficina (13.140.227.228)
+### VPS Oficina (IP de la oficina: ver REVERTIR.txt en el VPS DTD)
 
 | Pieza | Detalle |
 |---|---|
@@ -111,12 +111,15 @@ docker exec -i --env-file <(grep -E '^OFICINA_RUNTIME_(URL|TOKEN)=' /srv/dtd-car
 ```
 
 `--env-file` lo lee el cliente de Docker en el host. El proceso de la prueba solo recibe las dos variables, igual
-que el `web` las recibirá por `env_file`. Hasta integrar el PR, el script se pasa desde
-`/root/cable-paso0-20261114/prueba-paso0.mjs`.
+que el `web` las recibirá por `env_file`.
 
 Primera corrida, el 2026-11-14 a las 21:18 UTC, en `dtd-cargo-web-1` como `uid=1000 usuario=node`: 3 de 3 con
 200 y `soporte-chatwoot` (88, 9 y 8 ms), sin llave 401 (7 ms). `RESULTADO: PASA (4 de 4)`, exit 0. El `web`
 no se reinició: su `StartedAt` siguió en 15:51:30 UTC.
+
+Segunda corrida, ya desde `/srv/ops/cable-oficina/`, el 2026-11-15 a las 03:37 UTC, igual que arriba: 3 de 3
+con 200 (103, 9 y 10 ms), sin llave 401 (7 ms). `RESULTADO: PASA (4 de 4)`, exit 0. El `web` siguió sin
+reiniciarse. Está anotada como paso 8 en `/root/cable-paso0-20261114/REVERTIR.txt`.
 
 ## 7 · Revertir
 
