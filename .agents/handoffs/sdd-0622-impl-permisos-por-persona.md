@@ -668,3 +668,18 @@ La lógica de la migración no se tocó. Esta vuelta fue sin pruebas, solo con s
 **Focales para la vuelta con turno:** `lib/studio/__tests__/user-module-grants.migration.test.ts`, que tiene que
 dar el contrato 0540 en verde con 45 aserciones y que los tres mutantes nuevos caigan en 7c, 7d y 7e. Después,
 `pnpm verify`.
+
+### Corrida con turno sobre `3da3dcb83` (2026-11-15, W-509, una sola focal)
+
+| Comprobación | Resultado |
+|---|---|
+| `lib/studio/__tests__/user-module-grants.migration.test.ts` | PASÓ: 49/49 en 17 s (00:04:17 → 00:04:35) |
+| Contrato 0540 | PASÓ: `TEST 0540: 45 aserciones OK` |
+| Mutantes 0540 | PASÓ: los 14 caen, ninguno sobrevive |
+| Mutante «la lectura de conversations vuelve a filtrar lo borrado» | Cae en `TEST 0540: 7c: contabilidad con Conversaciones borra lógico una conversación con la sesión (error: new row violates row-level security policy for table "conversations")` |
+| Mutante de purchase_orders | Cae en `TEST 0540: 7d: comercial borra lógico una orden de compra con la sesión (error: new row violates row-level security policy for table "purchase_orders")` |
+| Mutante de sales_orders | Cae en `TEST 0540: 7e: contabilidad borra lógico una orden de venta con la sesión (error: new row violates row-level security policy for table "sales_orders")` |
+| `pnpm verify` | NO EJECUTADO (no se pidió en esta vuelta) |
+
+El conteo de aserciones y los mensajes de los tres mutantes los saqué de corridas del mismo contrato en PGlite, dentro
+del turno, porque el reporte de vitest no los imprime. No cambié el código.
