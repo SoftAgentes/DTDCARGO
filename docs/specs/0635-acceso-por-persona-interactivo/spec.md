@@ -1,7 +1,7 @@
 ---
 sdd: "0635"
 title: "Acceso por persona interactivo y matriz de roles legible: mapa de módulos, persona frente a rol y Actividad completa"
-status: proposed
+status: approved
 author: "Claude (Worker 0635) + Sam"
 created: 2026-11-15
 updated: 2026-11-15
@@ -20,8 +20,9 @@ confidencialidad: interno
 > amplió el alcance a la matriz **«Roles y permisos»** (§3.8): encabezados fijos, palabras en vez de «V·E» y
 > «de fábrica» en vez de «desvío del default».
 
-**Estado:** `proposed`. Primera etapa = solo diseño: esta spec, la maqueta y `/ui-check`. El Director General
-la revisa y Sam aprueba el diseño antes de implementar. Sin migraciones, sin datos y sin tocar producción.
+**Estado:** `approved` el 2026-11-15. Sam aprobó la maqueta vía el Director General: «Esa me gustó. Y crea la
+sombra para los bordes fijos.» Las decisiones de §12 quedaron con la opción recomendada. La etapa 2 (pantalla)
+se implementa en la misma rama y PR, sin migraciones, sin datos y sin tocar producción.
 
 **Maqueta navegable:** [`maqueta/acceso-por-persona.html`](maqueta/acceso-por-persona.html) (archivo
 autocontenido; ábrelo en el navegador). Capturas en [`maqueta/`](maqueta/), listadas en §10.
@@ -430,6 +431,10 @@ fija el estado de cada captura (lo explica el script del archivo).
 **Biblioteca**
 - `lib/studio/user-module-grants.ts` (estado por chip y textos; sin tocar `COVERED` ni la regla)
 
+**Sistema de diseño** (agregado al aprobar, decisión 12.8)
+- `app/studio/tokens.css` (solo `--shadow-sticky-top` y `--shadow-sticky-left`, en claro, oscuro e impresión)
+- `BRAND.md` (§Sombras) y `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-070)
+
 **Documentación**
 - Esta spec, su maqueta y el índice regenerado con `pnpm docs:index`.
 - `.agents/handoffs/` de la tarea de implementación.
@@ -437,17 +442,22 @@ fija el estado de cada captura (lo explica el script del archivo).
 **Fuera, por decisión:** `supabase/` entero, `lib/studio/rbac.ts`, `lib/studio/rbac-guard.ts`, la lista
 `COVERED`, `.env*`, producción, el portal público y Chatwoot. Cualquier otro archivo pide enmendar esta spec.
 
-## 12. Decisiones que pide a Sam
+## 12. Decisiones de Sam
 
-| # | Pregunta | Propuesta | Estado |
+| # | Pregunta | Opción tomada | Estado |
 |---|---|---|---|
-| 12.1 | ¿Aprueba el mapa con bandeja (opción A de §5)? | Sí | Pendiente de Sam |
-| 12.2 | ¿Dos pantallas cruzadas en vez de unificar? | Sí (§3.4) | Pendiente de Sam |
-| 12.3 | ¿La matriz por rol pasa a pedir confirmación en cada clic? | Sí, con los nombres afectados | Pendiente de Sam |
-| 12.4 | ¿Etapa 3 (historial de la matriz por rol, con migración)? | Sí, después de la etapa 2 | Pendiente de Sam |
-| 12.5 | ¿Fase 6 (`custom`) espera a la cobertura y a la fase 8? | Sí (§6) | Pendiente de Sam |
-| 12.6 | ¿Matriz con panel por celda en vez de ciclo al clic? | Sí (§3.8) | Pendiente de Sam |
-| 12.7 | ¿Textos «Ver y editar · Solo ver · Sin acceso · Todo» y «Cambiado / de fábrica»? | Sí (§3.8) | Pendiente de Sam |
+| 12.1 | ¿Aprueba el mapa con bandeja (opción A de §5)? | Sí | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.2 | ¿Dos pantallas cruzadas en vez de unificar? | Sí (§3.4) | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.3 | ¿La matriz por rol pasa a pedir confirmación en cada clic? | Sí, con los nombres afectados | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.4 | ¿Etapa 3 (historial de la matriz por rol, con migración)? | Sí, después de la etapa 2, en spec o enmienda propia con su OK | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.5 | ¿Fase 6 (`custom`) espera a la cobertura y a la fase 8? | Sí (§6) | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.6 | ¿Matriz con panel por celda en vez de ciclo al clic? | Sí (§3.8) | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.7 | ¿Textos «Ver y editar · Solo ver · Sin acceso · Todo» y «Cambiado / de fábrica»? | Sí (§3.8) | aprobada por Sam el 2026-11-15, con la opción recomendada, vía el Director General |
+| 12.8 | ¿Sombra de los bordes fijos con token propio? (agregada al aprobar) | Sí: `--shadow-sticky-top` / `--shadow-sticky-left`, BD-070 | aprobada por Sam el 2026-11-15, pedida por Sam en la misma aprobación, vía el Director General |
+
+Texto literal de Sam (2026-11-15, por el Director General): «Esa me gustó. Y crea la sombra para los bordes
+fijos.» El Director General agregó que Sam autorizó en bloque aplicar lo que él recomendara y que se tomara la
+opción recomendada en cada decisión. La 12.8 no estaba en la lista: la pidió Sam en la misma aprobación.
 
 ## 13. Fuera de alcance
 
@@ -480,7 +490,7 @@ Veredicto: **OK con ajustes menores** para pasar a implementación.
 |---|---|---|---|
 | 1 | Media | El panel de la celda se cerraba con el desplazamiento que provoca su propio `scrollIntoView` | Corregido en la maqueta (gracia de 400 ms); en código, cerrar solo por desplazamiento del usuario |
 | 2 | Media | En forma corta la leyenda mostraba las palabras largas y no traducía «Edita / Ve / No» | Corregido: la leyenda dice «Edita = Ver y editar», etc. |
-| 3 | Media | Sombras con `rgba` sin token | El panel ya usa `--shadow-pop`. Las sombras direccionales de los encabezados fijos no tienen token: pedir uno antes de implementar (BRAND regla 5) o usar solo el borde `--border-strong` |
+| 3 | Media | Sombras con `rgba` sin token | El panel ya usa `--shadow-pop`. Resuelto: Sam pidió crear el token. `--shadow-sticky-top` y `--shadow-sticky-left` en `app/studio/tokens.css`, claro y oscuro, BD-070 |
 | 4 | Baja | Panel posicionado a mano (`position: fixed`) | En código, el popover del sistema si existe; si no, el mismo cálculo con prueba de bordes |
 | 5 | Baja | Celdas de 30 px de alto | Igual que hoy en escritorio; en táctil, 44 px |
 
