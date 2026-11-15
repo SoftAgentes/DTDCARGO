@@ -175,6 +175,32 @@ describe("SDD-0603 · tramo 4d · avisos con <Aviso>", () => {
     expect(totalAvisos(fuentes)).toBeGreaterThanOrEqual(PISO_AVISOS);
   });
 
+  describe("aviso de créditos sin liberar (decisión de Sam, 2026-11-15)", () => {
+    const rutaF = "fidelizacion/_components/FidelizacionClient.tsx";
+    const bloque = (t: string) => {
+      const i = t.indexOf("function StrandedCreditsBanner");
+      return i < 0 ? "" : t.slice(i, i + 3000);
+    };
+    const fuente = fuentes.get(rutaF);
+
+    it("es status: el <Aviso> del banner no lleva urgente", () => {
+      expect(fuente).toBeDefined();
+      const b = bloque(fuente!);
+      expect(b).toMatch(/<Aviso tono="atencion" titulo=\{titulo\}>/);
+      expect(b).not.toMatch(/<Aviso[^>]*urgente/);
+    });
+
+    it("mutante: volver a urgente → rompe", () => {
+      const b = bloque(fuente!);
+      const mutado = b.replace(
+        '<Aviso tono="atencion" titulo={titulo}>',
+        '<Aviso tono="atencion" urgente titulo={titulo}>',
+      );
+      expect(mutado).not.toBe(b);
+      expect(mutado.includes('<Aviso tono="atencion" urgente')).toBe(true);
+    });
+  });
+
   describe("mutantes", () => {
     const ruta = "tms/_components/TruckDrawer.tsx";
     const original = fuentes.get(ruta)!;
