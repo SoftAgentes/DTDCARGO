@@ -164,7 +164,9 @@ insert into public.user_tenants (user_id, tenant_id, role, disabled_at, warehous
 -- de la 0540 (su preflight exige el conjunto exacto con huellas): las que
 -- reemplaza (0012:242-244 y :256-258, 0106:129-145, 0124:178-185,
 -- 0125:187-189 y 0504:117-119), las de service_role (0106, 0124, 0125, 0504) y
--- las del portal en su forma final (0428:40-51 y 0433:87-91).
+-- las del portal en su forma final (0428:40-51 y 0433:87-91). Después se aplica
+-- la 0230 REAL (`\ir` más abajo), que quita `AND (deleted_at IS NULL)` del USING
+-- de las FOR ALL «by tenant»: ese es el estado del repo y de producción.
 create table public.clients (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz, markbox text);
 create table public.client_users (auth_user_id uuid, client_id uuid, tenant_id uuid, status text);
 -- Vacías: la policy del portal las lee y no encuentra a nadie.
@@ -245,6 +247,9 @@ create policy "conv_messages portal client read own" on public.conversation_mess
   using (
     public.portal_can_read_conversation_message(conversation_id, tenant_id)
   );
+
+-- La 0230 real: deja las FOR ALL «by tenant» sin el filtro de borrado en el USING.
+\ir ../migrations/0230_fix_rls_soft_delete_blocked.sql
 
 grant select, insert, update, delete on public.rates, public.quotes, public.conversations,
   public.conversation_messages, public.purchase_orders, public.purchase_order_items, public.sales_orders
@@ -375,12 +380,13 @@ select pg_temp.assert_true(pg_temp.ve('b1', 'rates') = 2 and pg_temp.ve('b1', 'q
   and pg_temp.ve('b1', 'conversation_messages') = 2 and pg_temp.ve('b1', 'purchase_orders') = 2
   and pg_temp.ve('b1', 'sales_orders') = 2 and pg_temp.ve('b1', 'chatwoot_conversations') = 1,
   '3c: comercial lee y escribe todo lo comercial');
--- Nota: marcar `deleted_at` con la sesión ya fallaba ANTES de la 0540 (la policy
--- `for all` también se aplica como SELECT a la fila nueva); no se prueba aquí
--- porque no cambia. Queda anotado en el handoff como fuera de alcance.
+-- Borrado lógico: como dejó la 0230, la RLS de lectura NO filtra `deleted_at`
+-- (si lo hiciera, el borrado con la sesión fallaría: ver la sección 7). Lo
+-- borrado lo oculta la app en cada consulta.
 select pg_temp.assert_true(pg_temp.actualiza('b1', 'quotes') = 2, '3d: comercial edita cotizaciones');
 update public.quotes set deleted_at = now() where id in (select id from public.quotes limit 1);
-select pg_temp.assert_true(pg_temp.ve('b1', 'quotes') = 1, '3d2: lo borrado no se lee');
+select pg_temp.assert_true(pg_temp.ve('b1', 'quotes') = 2, '3d2: la RLS no oculta lo borrado (lo filtra la app, como en la 0230)');
+select pg_temp.assert_true(pg_temp.actualiza('b1', 'quotes') = 1, '3d3: lo borrado ya no se edita');
 select pg_temp.assert_true(pg_temp.ve('c1', 'sales_orders') = 2,
   '3e: contabilidad lee órdenes de venta');
 select pg_temp.assert_true(pg_temp.actualiza('c1', 'quotes') >= 1, '3f: contabilidad edita cotizaciones por su rol');
@@ -438,6 +444,39 @@ select pg_temp.falla(pg_temp.u('d1'),
 select pg_temp.assert_true(pg_temp.borra('d1', 'quotes') = 0, '6d: support no borra cotizaciones');
 select pg_temp.assert_true(pg_temp.borra('d1', 'purchase_orders') = 0, '6e: support no borra órdenes de compra');
 select pg_temp.assert_true(pg_temp.borra('a3', 'rates') = 0, '6f: marketing con Tarifas para ver no borra tarifas');
+
+-- ── 7. Borrado lógico CON LA SESIÓN (revisión de la #509, la 0230) ───────
+-- Como lo hacen `softDeleteRate` (tarifas/actions.ts) y el cotizador: un UPDATE
+-- de `deleted_at` filtrado por id. Lo hace alguien que no es dueño de la fila
+-- (las filas las carga el fixture), con el módulo para editar. Postgres aplica
+-- la policy de SELECT a la fila nueva: si filtrara `deleted_at`, esto fallaría
+-- con «new row violates row-level security policy».
+create function pg_temp.error_de(p_user uuid, p_sql text) returns text language plpgsql as $$
+declare v_msg text;
+begin
+  begin
+    perform pg_temp.como(p_user, p_sql);
+    v_msg := null;
+  exception when others then
+    v_msg := sqlerrm;
+  end;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
+  return v_msg;
+end;
+$$;
+insert into public.rates (id, tenant_id, nombre)
+values ('70000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tarifa a retirar');
+insert into public.quotes (id, tenant_id)
+values ('70000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111');
+select pg_temp.assert_true(pg_temp.error_de(pg_temp.u('b1'),
+  $q$update public.rates set deleted_at = now() where id = '70000000-0000-0000-0000-000000000001'$q$) is null
+  and (select deleted_at is not null from public.rates where id = '70000000-0000-0000-0000-000000000001'),
+  '7a: comercial borra lógico una tarifa con la sesión');
+select pg_temp.assert_true(pg_temp.error_de(pg_temp.u('a1'),
+  $q$update public.quotes set deleted_at = now() where id = '70000000-0000-0000-0000-000000000002'$q$) is null
+  and (select deleted_at is not null from public.quotes where id = '70000000-0000-0000-0000-000000000002'),
+  '7b: admin borra lógico una cotización con la sesión');
 
 select 'TEST 0540: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 

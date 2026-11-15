@@ -4,10 +4,10 @@
 -- ⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en
 --    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicar exige OK
 --    de Sam NOMBRANDO este archivo (docs/runbooks/aplicar-migraciones-prod.md).
---    ORDEN: 0528 → 0538 → 0539 → 0540. La 0528 (SDD-0624) va antes: su
---    preflight aborta si `studio_can_read_money()` ya existe, y la fase de
---    dinero de esta spec la redefinirá encima. Esta crea la tabla y las RPC
---    que la 0539 y la 0540 exigen en sus preflights.
+--    ORDEN: 0528 → 0538 → 0539 → 0540. Entre la 0528 (SDD-0624) y esta hoy
+--    no hay dependencia técnica; se ordena por la fase 8 de esta spec, que
+--    redefinirá `studio_can_read_money()` de la 0528. Esta crea la tabla y las
+--    RPC que la 0539 y la 0540 exigen en sus preflights.
 --
 -- QUÉ RESUELVE: cada persona tiene un solo rol (`user_tenants.role`) y la
 -- matriz rol×módulo (`lib/studio/rbac.ts`, desvíos por rol de la 0357) no

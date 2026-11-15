@@ -41,16 +41,24 @@
 --       - sales_orders: la propuesta CN y facturación (invoices).
 --     El efecto: `marketing` deja de leerlas, y quien no tiene ninguno de esos
 --     módulos (o su scope de almacén no lo deja) tampoco.
---   · Se conserva la semántica de borrado lógico: lo borrado (`deleted_at`) no
---     se lee ni se vuelve a tocar. OJO, sin cambio: marcar `deleted_at` con la
---     sesión ya fallaba antes (Postgres aplica la policy de SELECT a la fila
---     nueva de un UPDATE que lee la tabla, y la `for all` vieja filtraba
---     `deleted_at is null`); esta migración no lo arregla ni lo empeora.
+--   · Borrado lógico, como lo dejó la 0230 (`0230_fix_rls_soft_delete_blocked.sql`):
+--     las lecturas (SELECT) NO filtran `deleted_at`. Postgres aplica la policy de
+--     SELECT a la fila nueva de un UPDATE que lee la tabla, así que un filtro
+--     `deleted_at is null` ahí haría fallar el borrado lógico con la sesión
+--     («new row violates row-level security policy»), también para admin. Lo
+--     borrado lo oculta la aplicación en cada consulta (`.is("deleted_at", null)`).
+--     Update y delete siguen sin tocar filas ya borradas (`deleted_at is null` en
+--     su USING, que solo mira la fila vieja).
 --   · Las policies de service_role y las del portal (0117, 0217) no se tocan.
 --
 -- Esto NO es la fase de dinero (R3): las tablas de dinero las endurece la
 -- SDD-0624 en su propia migración.
 -- ─────────────────────────────────────────────────────────────
+
+-- Como la 0511: si una de las 8 tablas está tomada, abortar en vez de hacer cola
+-- (y de dejar en cola a todo lo que llegue detrás del ACCESS EXCLUSIVE).
+set local lock_timeout = '5s';
+set local statement_timeout = '30s';
 
 do $preflight$
 declare
@@ -89,25 +97,28 @@ begin
 
   -- El conjunto EXACTO de policies que deja el repo en las 8 tablas: nombre,
   -- comando, roles, permisiva y huella (md5 sin espacios de `qual|with_check`,
-  -- mismo método que la 0511). Medido sobre el estado del repo (fixture de
-  -- supabase/tests/0540_*.test.sql, copia literal de 0012, 0106, 0124, 0125,
-  -- 0428, 0433 y 0504); el catálogo de producción lo mide el DG antes de aplicar.
+  -- mismo método que la 0511). Es el estado del repo DESPUÉS de la 0230, que
+  -- quitó `AND (deleted_at IS NULL)` del USING de las FOR ALL «by tenant»: el
+  -- fixture de supabase/tests/0540_*.test.sql copia 0012, 0106, 0124, 0125,
+  -- 0428, 0433 y 0504 y aplica la 0230 real. `166af319…` es la huella que la
+  -- 0511 midió en producción para la misma forma (0511:73 y :75). El catálogo de
+  -- producción lo mide el DG antes de aplicar.
   -- Una policy de más quedaría en paralelo y, si es permisiva, reabriría lo
   -- que esta cierra.
   with expected(tablename, policyname, cmd, roles, huella) as (values
-    ('rates',                  'rates by tenant',                        'ALL',    array['authenticated']::name[], '2f1c848a6636190ff07f8c388e1aa6df'),
-    ('quotes',                 'quotes by tenant',                       'ALL',    array['authenticated']::name[], '2f1c848a6636190ff07f8c388e1aa6df'),
+    ('rates',                  'rates by tenant',                        'ALL',    array['authenticated']::name[], '5b84860214a7eeed1bd1cd67c154b817'),
+    ('quotes',                 'quotes by tenant',                       'ALL',    array['authenticated']::name[], '5b84860214a7eeed1bd1cd67c154b817'),
     ('quotes',                 'quotes portal self read',                'SELECT', array['authenticated']::name[], 'dcd0ac40a95dd62de8bc8a9da1254ef4'),
-    ('conversations',          'conversations by tenant',                'ALL',    array['authenticated']::name[], '79e4eb54de3e8071163bd49191ad482c'),
+    ('conversations',          'conversations by tenant',                'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
     ('conversations',          'conversations service_role all',         'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
     ('conversation_messages',  'conversation_messages by tenant',        'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
     ('conversation_messages',  'conversation_messages service_role all', 'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
     ('conversation_messages',  'conv_messages portal client read own',   'SELECT', array['authenticated']::name[], 'b020e161bd5da9a8be82dd285d7737d8'),
-    ('purchase_orders',        'purchase_orders by tenant',              'ALL',    array['authenticated']::name[], '79e4eb54de3e8071163bd49191ad482c'),
+    ('purchase_orders',        'purchase_orders by tenant',              'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
     ('purchase_orders',        'purchase_orders service_role all',       'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
     ('purchase_order_items',   'purchase_order_items by tenant',         'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
     ('purchase_order_items',   'purchase_order_items service_role all',  'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
-    ('sales_orders',           'sales_orders by tenant',                 'ALL',    array['authenticated']::name[], '79e4eb54de3e8071163bd49191ad482c'),
+    ('sales_orders',           'sales_orders by tenant',                 'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
     ('sales_orders',           'sales_orders service_role all',          'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
     ('chatwoot_conversations', 'chatwoot_conversations_select_tenant',   'SELECT', array['authenticated']::name[], '8a6363ce084bcb9f4547aa7a80376539'),
     ('chatwoot_conversations', 'chatwoot_conversations_service_role_all','ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d')
@@ -154,7 +165,7 @@ grant execute on function public.user_has_any_module(text[], boolean) to authent
 drop policy "rates by tenant" on public.rates;
 create policy rates_select_por_modulo on public.rates
   for select to authenticated
-  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null
+  using (tenant_id = (select public.get_user_tenant_id())
          and (select public.user_has_any_module(array['rates', 'quotes', 'clients', 'sales-orders', 'cn'])));
 create policy rates_insert_por_modulo on public.rates
   for insert to authenticated
@@ -173,7 +184,7 @@ create policy rates_delete_por_modulo on public.rates
 drop policy "quotes by tenant" on public.quotes;
 create policy quotes_select_por_modulo on public.quotes
   for select to authenticated
-  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null
+  using (tenant_id = (select public.get_user_tenant_id())
          and (select public.user_has_any_module(array['quotes', 'clients', 'sales-orders', 'cn', 'reports'])));
 create policy quotes_insert_por_modulo on public.quotes
   for insert to authenticated
@@ -192,7 +203,7 @@ create policy quotes_delete_por_modulo on public.quotes
 drop policy "conversations by tenant" on public.conversations;
 create policy conversations_select_por_modulo on public.conversations
   for select to authenticated
-  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null
+  using (tenant_id = (select public.get_user_tenant_id())
          and (select public.user_has_module('conversaciones', false)));
 create policy conversations_insert_por_modulo on public.conversations
   for insert to authenticated
@@ -224,7 +235,7 @@ create policy conversation_messages_delete_por_modulo on public.conversation_mes
 drop policy "purchase_orders by tenant" on public.purchase_orders;
 create policy purchase_orders_select_por_modulo on public.purchase_orders
   for select to authenticated
-  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null
+  using (tenant_id = (select public.get_user_tenant_id())
          and (select public.user_has_module('purchase-orders', false)));
 create policy purchase_orders_insert_por_modulo on public.purchase_orders
   for insert to authenticated
@@ -256,7 +267,7 @@ create policy purchase_order_items_delete_por_modulo on public.purchase_order_it
 drop policy "sales_orders by tenant" on public.sales_orders;
 create policy sales_orders_select_por_modulo on public.sales_orders
   for select to authenticated
-  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null
+  using (tenant_id = (select public.get_user_tenant_id())
          and (select public.user_has_any_module(array['sales-orders', 'cn', 'invoices'])));
 create policy sales_orders_insert_por_modulo on public.sales_orders
   for insert to authenticated
@@ -303,6 +314,44 @@ begin
   end if;
   if pg_catalog.has_function_privilege('anon', 'public.user_has_any_module(text[],boolean)', 'EXECUTE') then
     raise exception '0540: anon no debe ejecutar user_has_any_module';
+  end if;
+
+  -- El conjunto EXACTO que queda, como el postflight de la 0511: las 29 nuevas
+  -- (cuatro por tabla y una en chatwoot_conversations), las 6 de service_role y
+  -- las 2 del portal, que no se tocan. Una de más, de menos o con otro comando o
+  -- roles aborta.
+  with nuevas(tablename) as (values
+    ('rates'), ('quotes'), ('conversations'), ('conversation_messages'),
+    ('purchase_orders'), ('purchase_order_items'), ('sales_orders')
+  ), expected(tablename, policyname, cmd, roles) as (
+    select n.tablename, n.tablename || '_' || o.op || '_por_modulo', o.cmd, array['authenticated']::name[]
+      from nuevas n
+      cross join (values ('select', 'SELECT'), ('insert', 'INSERT'), ('update', 'UPDATE'), ('delete', 'DELETE')) o(op, cmd)
+    union all values
+      ('chatwoot_conversations', 'chatwoot_conversations_select_por_modulo', 'SELECT', array['authenticated']::name[]),
+      ('quotes',                 'quotes portal self read',                  'SELECT', array['authenticated']::name[]),
+      ('conversation_messages',  'conv_messages portal client read own',     'SELECT', array['authenticated']::name[]),
+      ('conversations',          'conversations service_role all',           'ALL',    array['service_role']::name[]),
+      ('conversation_messages',  'conversation_messages service_role all',   'ALL',    array['service_role']::name[]),
+      ('purchase_orders',        'purchase_orders service_role all',         'ALL',    array['service_role']::name[]),
+      ('purchase_order_items',   'purchase_order_items service_role all',    'ALL',    array['service_role']::name[]),
+      ('sales_orders',           'sales_orders service_role all',            'ALL',    array['service_role']::name[]),
+      ('chatwoot_conversations', 'chatwoot_conversations_service_role_all',  'ALL',    array['service_role']::name[])
+  ), actual as (
+    select p.tablename::text as tablename, p.policyname::text as policyname, p.cmd, p.roles, p.permissive
+      from pg_catalog.pg_policies p
+     where p.schemaname = 'public'
+       and p.tablename in ('rates', 'quotes', 'conversations', 'conversation_messages',
+                           'purchase_orders', 'purchase_order_items', 'sales_orders', 'chatwoot_conversations')
+  )
+  select string_agg(coalesce(e.tablename, a.tablename) || '::' || coalesce(e.policyname, a.policyname), ', ')
+    into v_abiertas
+  from expected e full join actual a
+    on a.tablename = e.tablename and a.policyname = e.policyname
+  where e.policyname is null or a.policyname is null or a.cmd <> e.cmd
+     or a.roles <> e.roles or a.permissive <> 'PERMISSIVE';
+  if v_abiertas is not null then
+    raise exception '0540 postflight: las policies finales no son las esperadas: %', v_abiertas;
   end if;
 end;
 $post$;

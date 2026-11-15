@@ -316,6 +316,27 @@ const MUTANTES_0540: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0540: 6c: support no crea órdenes de venta",
   },
   {
+    nombre: "la lectura de tarifas vuelve a filtrar lo borrado (reabre el bug de la 0230)",
+    sql: () =>
+      once(
+        FILE_0540,
+        "create policy rates_select_por_modulo on public.rates\n  for select to authenticated\n  using (tenant_id = (select public.get_user_tenant_id())\n",
+        "create policy rates_select_por_modulo on public.rates\n  for select to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null\n",
+      ),
+    cae: "TEST 0540: 7a: comercial borra lógico una tarifa con la sesión",
+  },
+  {
+    nombre: "la lectura de cotizaciones vuelve a filtrar lo borrado",
+    sql: () =>
+      once(
+        FILE_0540,
+        "create policy quotes_select_por_modulo on public.quotes\n  for select to authenticated\n  using (tenant_id = (select public.get_user_tenant_id())\n",
+        "create policy quotes_select_por_modulo on public.quotes\n  for select to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null\n",
+      ),
+    // Cae antes, en 3d2 (la RLS ya no muestra lo borrado), que también defiende la 0230.
+    cae: "TEST 0540: 3d2:",
+  },
+  {
     nombre: "una policy TO public sin módulo se cuela",
     sql: () =>
       once(
@@ -356,14 +377,26 @@ const DERIVAS_0540: { nombre: string; fixture: () => string; cae: string }[] = [
     cae: "conversations::conversations service_role all",
   },
   {
-    nombre: "«rates by tenant» con otra expresión",
+    // El estado real (después de la 0230, que el fixture aplica) pasa: es el
+    // contrato verde. Una deriva VERDADERA es otra expresión de tenant.
+    nombre: "«rates by tenant» con otra expresión (no la de la 0230)",
     fixture: () =>
       once(
         FIXTURE_0540,
         "create policy \"rates by tenant\" on public.rates for all to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null)",
-        "create policy \"rates by tenant\" on public.rates for all to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()))",
+        "create policy \"rates by tenant\" on public.rates for all to authenticated\n  using (tenant_id is not null and deleted_at is null)",
       ),
     cae: "0540: faltan las policies que reemplaza o no son las del repo (drift o ya aplicada): rates::rates by tenant",
+  },
+  {
+    nombre: "sin la 0230 (estado viejo, con el filtro de borrado en la FOR ALL)",
+    fixture: () =>
+      once(
+        FIXTURE_0540,
+        "\\ir ../migrations/0230_fix_rls_soft_delete_blocked.sql\n",
+        "",
+      ),
+    cae: "rates::rates by tenant",
   },
   {
     nombre: "una policy de más en cotizaciones",
@@ -429,8 +462,8 @@ describe("SDD-0622 · contrato 0540 (RLS comercial por módulo, PGlite)", () => 
   }, SLOW);
 
   it("hay mutantes y derivas de la 0540 (piso)", () => {
-    expect(MUTANTES_0540.length).toBeGreaterThanOrEqual(9);
-    expect(DERIVAS_0540.length).toBeGreaterThanOrEqual(5);
+    expect(MUTANTES_0540.length).toBeGreaterThanOrEqual(11);
+    expect(DERIVAS_0540.length).toBeGreaterThanOrEqual(6);
   });
 });
 
