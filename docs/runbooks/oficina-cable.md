@@ -14,7 +14,7 @@ sigue con §3.1 (migraciones), ni con el webhook ni con el despachador.
 contenedor web del ERP (dtd-cargo-web-1, usuario node)
   → http://172.19.0.1:18642   IP del puente de dtd-cargo_dtd_internal (br-0fac7b3a83c3), §4
   → ssh -L de tunel-oficina en el host DTD (también escucha en 127.0.0.1:18642)
-  → SSH tunel-dtd@13.140.227.228:22 (llave restringida a permitopen 127.0.0.1:8642)
+  → SSH tunel-dtd@<IP de la oficina: ver REVERTIR.txt en el VPS DTD>:22 (llave restringida a permitopen 127.0.0.1:8642)
   → 127.0.0.1:8642 en la oficina: API server del gateway soporte-chatwoot (con llave y sin herramientas)
 ```
 
@@ -25,7 +25,7 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 | Pieza | Detalle |
 |---|---|
 | Usuario `tunel-oficina` | nologin, home `/var/lib/tunel-oficina`. Tiene su llave ed25519 propia (no sale de DTD) y `known_hosts` fijado a la llave de host de la oficina |
-| Servicio `oficina-cable-tunel` | `ssh -N -L 127.0.0.1:18642:127.0.0.1:8642 tunel-dtd@13.140.227.228` con `ExitOnForwardFailure`, `ServerAliveInterval=15` y `ServerAliveCountMax=3`, `Restart=always` y `RestartSec=15` |
+| Servicio `oficina-cable-tunel` | `ssh -N -L 127.0.0.1:18642:127.0.0.1:8642 tunel-dtd@<IP de la oficina: ver REVERTIR.txt en el VPS DTD>` con `ExitOnForwardFailure`, `ServerAliveInterval=15` y `ServerAliveCountMax=3`, `Restart=always` y `RestartSec=15` |
 | Drop-in `oficina-cable-tunel.service.d/erp-puente.conf` | agrega `-L 172.19.0.1:18642:127.0.0.1:8642` (§4) y `After=docker.service`. Es una sola sesión SSH con los dos escuchas |
 | Regla ufw | `allow in on br-0fac7b3a83c3 from 172.19.0.0/16 to 172.19.0.1 port 18642 proto tcp`, comentario `SDD-0626 cable` (§4) |
 | Puerto 18642 | solo en `127.0.0.1` y `172.19.0.1`. Nunca en `0.0.0.0` ni en la IP pública. Desde fuera del servidor no responde (medido el 2026-11-14 desde la PC de Sam, antes y después del §4: `TcpTestSucceeded: False`) |
@@ -34,7 +34,7 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 | Copia de la prueba | `/root/cable-paso0-20261114/prueba-paso0.mjs`, la del PR #569. Tras integrar, la oficial es `/srv/ops/cable-oficina/prueba-paso0.mjs` |
 | Reversión | `/root/cable-paso0-20261114/REVERTIR.txt` |
 
-### VPS Oficina (13.140.227.228)
+### VPS Oficina (IP de la oficina: ver REVERTIR.txt en el VPS DTD)
 
 | Pieza | Detalle |
 |---|---|
