@@ -27,9 +27,9 @@
 | **5b · El webhook** | **HECHO, sin cambios** (solo lectura): el webhook id=2 de la cuenta 1 termina en `/api/chatwoot/webhook` y tiene `message_created` marcado | 2026-11-15, a las 05:58:48Z | `/srv/ops/evidencias/p4-carga-20261115T054606Z/p5b.txt` |
 | **Antes del encendido · la 0542** | **Aplicada en producción** (`0542_is_platform_admin_execute_authenticated`, SDD-0633, #574). **No es un sub-paso de la puerta 5:** es el prerrequisito del encendido. Devolvió `EXECUTE` de `is_platform_admin()` a `authenticated`, y con eso se desbloqueó el interruptor del panel. **La #574, que trae su código, quedó en `main`** en `42daa3d2c`, fusionada a las 08:09:21Z | La 0542: 2026-11-15 08:09:18Z | La lectura previa: `/srv/ops/evidencias/previa-0542-dtd-cargo-20261115T074242Z`. La aplicación: `/srv/ops/evidencias/apply-0542-dtd-cargo-20261115T080917Z` |
 | **El encendido** | **HECHO.** `chatwoot_portal` en `true`, **desde el panel, por Sam** («listo encendido»). Lo leyó el DG en producción: `feature_flags` con `enabled=true` y `updated_at` 08:12:13Z; en `entity_audit_log`, una fila `action=feature_flag_changed` con `after_data` `enabled=true` y `occurred_at` 08:12:13Z. **Lectura de la cola después del encendido:** `chatwoot_portal_salida` con `cargado=78`, sin pendientes ni errores | 2026-11-15T08:12:13Z | **Sin archivo en el VPS** (fue en el panel). La fila de auditoría se identifica por `action` + `key` + `occurred_at`: no hay copia de su id, y leerlo exige consultar producción otra vez |
-| **5c · El smoke con un cliente real** | **EN CURSO, no hecho.** Sam lo autorizó a las 08:21Z («Autorizo el smoke») y lo hace él con su propia cuenta de cliente; la lectura de los conteos de la cola también tiene su OK («Autorizo los conteos»). **Línea de base** antes del smoke: `cargado=78`, 0 atascados y 0 sin llegar. El resultado va en otra PR, cuando termine | La línea de base: 2026-11-15 08:26:12Z | Todavía no hay: se registra al terminar |
+| **5c · El smoke con un cliente real** | **HECHO.** Sam lo autorizó a las 08:21Z («Autorizo el smoke») y los conteos de la cola también («Autorizo los conteos»). Lo hizo él con su propia cuenta de cliente. **Se probó:** el mensaje llegó a la bandeja 10; la respuesta del agente volvió al portal y Sam recibió el push; en `/studio/bandeja` la tarjeta no muestra alertas; en `/studio/conversaciones` el hilo se ve en solo lectura. Sam confirmó que llegó (entre 08:26Z y 08:32Z, sin minuto exacto) y, a la pregunta «¿Salieron bien la notificación y las dos pantallas del Studio?», respondió que sí, todo bien. **Conteos de la cola,** con la misma consulta (md5 `99f7536ecb22`), en solo lectura y con rollback: a las 08:26:12Z, `cargado=78`; contactos, hilos y `conversaciones_portal` en 26; rezagados 0/0. A las 08:32:43Z, `cargado=78` y `enviado=1` (`max_intentos` 1); 27/27/27; el corte no cambió; rezagados 0/0. **El cron `chatwoot-reintentos`** corrió 6 veces en 30 minutos, con 0 líneas de error. Sin datos del cliente | 2026-11-15: la autorización a las 08:21Z; los conteos a las 08:26:12Z y a las 08:32:43Z; el «todo bien» de Sam a las 08:42Z (precisión de minuto) | **Registro del DG, sin archivo en el VPS** |
 
-**Lo que este registro no cubre:** el resultado del 5c, que va en otra PR cuando termine. Las horas de este registro las sacó el DG con `stat` en el VPS, en UTC (`ls` allá muestra la hora local, UTC+1).
+**Con el 5c, la puerta 5 queda completa.** Las horas de este registro las sacó el DG con `stat` en el VPS, en UTC (`ls` allá muestra la hora local, UTC+1).
 
 ## Antes de la primera puerta
 
@@ -573,7 +573,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
 ## Puerta 5 · Encender `chatwoot_portal`
 
-> **Estado al 2026-11-15:** el 5a, el 5b y el encendido están **hechos**, y el 5c está **en curso** (no hecho). Las horas y las rutas están en el «Registro de las puertas», arriba. Lo que sigue es el procedimiento del runbook: este registro no lo modifica.
+> **Estado al 2026-11-15:** el 5a, el 5b, el encendido y el 5c están **hechos**: la puerta 5 está completa. Las horas y las rutas están en el «Registro de las puertas», arriba. Lo que sigue es el procedimiento del runbook: este registro no lo modifica.
 
 **Antes de encender, en este orden:** 5a, las variables y la web, y 5b, el webhook. El encendido va después, y 5c, el smoke, al final.
 
@@ -718,6 +718,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 - **Qué se mira:** que el mensaje llegue a la bandeja y que la respuesta del agente vuelva al portal.
 - **Qué se lee:** solo los conteos de la cola (`chatwoot-portal-encendido.md` §2), con su OK.
 - **La evidencia:** las horas y los estados, sin el texto.
+- **Estado:** HECHO el 2026-11-15, con el OK de Sam para el smoke y para los conteos. El detalle está en el «Registro de las puertas».
 
 ---
 
@@ -838,8 +839,7 @@ Es una revisión con el método de `.claude/skills/revisar-datos-ve/SKILL.md`. *
 
 - **El procedimiento de 4.10a:** se define con el DG.
 - **Los argumentos del respaldo externo a B2** (`pg-dump-to-s3.sh`, que sube a B2 aunque el nombre diga S3).
-- **Lo que falta del «Registro de las puertas»:** solo el resultado del 5c, que va en otra PR. El 3.0 y el encendido no tienen archivo en el VPS (registro del DG), y el id de la fila de auditoría del encendido no está copiado (se identifica por `action` + `key` + `occurred_at`).
-- **La puerta 5c,** el smoke con un cliente real: en curso con Sam; su resultado, las horas y los estados, sin el texto, va en otra PR cuando termine.
+- **Lo que falta del «Registro de las puertas»:** nada. El 3.0 y el encendido no tienen archivo en el VPS (registro del DG), y el id de la fila de auditoría del encendido no está copiado (se identifica por `action` + `key` + `occurred_at`).
 - **Pendientes de una PR de pruebas** (observaciones bajas de la revisión de la #567; no son de este runbook y no se arreglan aquí):
   - **G8 cubre una sola condición.** La guarda de la G0 que exige los guiones del desarme en el modo completo tiene un caso y un mutante para una sola de sus cuatro condiciones.
   - **R4 solo cuenta.** Comprueba que la copia durable del 4.6b no se crea ni cambia contando archivos, sin comparar contenido (ni md5 ni huella).
