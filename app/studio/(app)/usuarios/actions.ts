@@ -39,7 +39,7 @@ import { getStudioAccess, moduleEditDenial, moduleViewDenial, tenantAdminGate } 
 import { SENSITIVE_MODULE_EFFECTS_VERSION, isKnownModule } from "@/lib/studio/rbac";
 import { isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
-import { SUPERADMIN_DENIAL, platformAdminDenial } from "@/lib/studio/platform-admin";
+import { platformAdminCheck } from "@/lib/studio/platform-admin";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import { isDiscordUserId } from "@/lib/studio/discord/send-webhook";
@@ -331,6 +331,9 @@ export async function changeWarehouseScopeAction(
  *
  * `target_role` llega del formulario de la ficha. Es solo una pista para avisar
  * antes: si miente, el flujo es el de siempre y la base sigue siendo el freno.
+ * Por la misma razón, si no se pudo preguntar (`error`, como el 403 de antes de
+ * la 0542) no se corta: decide la base, que en `studio_set_user_disabled`
+ * (DEFINER, vía audit_d1_auth_transition, 0289:1144) no depende del grant.
  */
 async function superadminParaOtroAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -339,11 +342,8 @@ async function superadminParaOtroAdmin(
   actorId: string,
 ): Promise<string | null> {
   if (formData.get("target_role") !== "admin" || targetUserId === actorId) return null;
-  const denial = await platformAdminDenial(supabase);
-  if (!denial) return null;
-  return denial === SUPERADMIN_DENIAL
-    ? "No eres superadministrador. Suspender o reactivar a otro administrador lo hace solo el superadministrador: pídeselo a quien administra el sistema."
-    : denial;
+  if ((await platformAdminCheck(supabase)) !== "no") return null;
+  return "No eres superadministrador. Suspender o reactivar a otro administrador lo hace solo el superadministrador: pídeselo a quien administra el sistema.";
 }
 
 // ─────────────────────────────────────────────────────────────

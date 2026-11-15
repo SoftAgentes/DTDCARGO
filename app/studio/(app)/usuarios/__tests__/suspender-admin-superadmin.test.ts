@@ -7,12 +7,11 @@
  * la confirmación falló…». Ahora:
  *   1. si el destino es admin, no eres tú y la base dice que no eres superadmin,
  *      sale «No eres superadministrador…» y Auth no se toca;
- *   2. si no se pudo comprobar, se dice eso y Auth tampoco se toca;
+ *   2. si no se pudo comprobar (403 o red), la pista no corta: decide la base;
  *   3. el superadmin, un destino que no es admin o uno mismo siguen el flujo de
  *      siempre (la base sigue siendo el freno).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SUPERADMIN_CHECK_FAILED } from "@/lib/studio/platform-admin";
 
 const ACTOR = "actor";
 const OTRO_ADMIN = "otro-admin";
@@ -61,11 +60,15 @@ describe.each([
     expect(authLifecycleMock).not.toHaveBeenCalled();
   });
 
-  it("si no se pudo comprobar: lo dice, y Auth no se toca", async () => {
-    rpc.mockResolvedValue({ data: null, error: { code: "42501" } });
+  it("si no se pudo comprobar (403 o red): no corta, decide la base", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "42501" } });
     const r = await accion({}, form({ target_user_id: OTRO_ADMIN, target_role: "admin" }));
-    expect(r.error).toBe(SUPERADMIN_CHECK_FAILED);
-    expect(authLifecycleMock).not.toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    expect(r.error).toBeUndefined();
+    expect(authLifecycleMock).toHaveBeenCalledTimes(1);
+    rpc.mockRejectedValueOnce(new Error("red"));
+    expect((await accion({}, form({ target_user_id: OTRO_ADMIN, target_role: "admin" }))).ok).toBe(true);
+    expect(authLifecycleMock).toHaveBeenCalledTimes(2);
   });
 
   it("el superadmin sigue el flujo de siempre", async () => {

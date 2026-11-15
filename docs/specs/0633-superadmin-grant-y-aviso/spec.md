@@ -29,20 +29,39 @@ confidencialidad: interno
   - `0058:66` lo dio y `0209:49` lo repitió.
   - `0211:27` lo revocó, con la premisa de que solo lo llamaban DEFINER del
     servidor. `0248:25` lo dejó fuera de su sweep-back por esa misma premisa.
-  - Los grants de `0273:90`, `0282:119`, `0287:3594` y `0288:3694` están **dentro de
-    literales dollar-quoted** que esas migraciones escriben en
-    `supabase_migrations.schema_migrations.statements` (SDD-0118). Son texto del
-    ledger, no SQL que se ejecute. Por eso las cinco están en el ledger y el grant
-    no está.
+  - Los grants de `0273:90`, `0276:74`, `0282:119`, `0285:99`, `0287:3594` y
+    `0288:3694` están **dentro de literales dollar-quoted** que esas migraciones
+    escriben en `supabase_migrations.schema_migrations.statements` (SDD-0118). Son
+    texto del ledger, no SQL que se ejecute. Por eso esas migraciones están en el
+    ledger y el grant no está. El detalle de cada literal está en el handoff.
   - La prueba de la 0273 da verde porque repasa solo el texto de la 0058, sin el
     revoke de la 0211. Los fixtures de 0538 a 0540 también lo dan por concedido.
-- **La premisa de la 0211 era falsa** para esta función. La llaman con la sesión:
-  - `lib/studio/platform-admin.ts` (`isPlatformAdmin`), que usan
-    `platformAdminDenial` y el segundo candado de `rbac-guard.ts` para los
-    `SUPERADMIN_ONLY_MODULES`;
-  - la policy `feature_flags_platform_admin_update` (0355:137).
+- **La premisa de la 0211 era cierta cuando se escribió** (2026-07-03): ningún
+  caller con la sesión usaba la función. El defecto vino después:
+  - la 0355 empezó a usarla con la sesión en la policy
+    `feature_flags_platform_admin_update` (0355:137);
+  - la 0356 la usa en seis policies de authenticated (:47, :62, :78, :97, :112 y
+    :132), sobre `legal_docs` (insert, update y delete), `renditions` (insert y
+    update) y `rendition_receipts` (insert);
+  - `lib/studio/platform-admin.ts` (`isPlatformAdmin`) la llama con la sesión, y la
+    usan `platformAdminDenial` y el segundo candado de `rbac-guard.ts` para los
+    `SUPERADMIN_ONLY_MODULES`.
 
-  Como falla cerrada, el superadministrador queda tratado como uno más.
+  Ninguna de las tres devolvió el grant. Como falla cerrada, el superadministrador
+  queda tratado como uno más.
+- **Lo que abre el grant, además de los flags:** con la 0542, el superadministrador
+  que además sea admin del tenant puede escribir en `legal_docs`, `renditions` y
+  `rendition_receipts` por esas seis policies de la 0356. Es lo que la 0356 quería y
+  hoy no se cumple. Entra en el smoke posterior a la aplicación (§6).
+- **El bloqueo efectivo de los feature flags es `platformAdminDenial`**, en la
+  server action. La escritura va por `audit_d1_execute` (0289:632-650), que es
+  DEFINER de postgres y escribe como dueño, así que la policy de la 0355 no la
+  alcanza (ver §5).
+- **La cabecera de la 0542 (:7-9) quedó inexacta** en lo que ve el superadmin sin la
+  migración. Dice «no eres superadministrador», pero con esta PR el aviso es «No
+  pudimos comprobar si eres superadministrador…», porque la RPC da 403 (R3). No se
+  corrige en el archivo: su md5 (`e6f1c9b137ba7eda3e7ca79e0b144da7`) es el que se
+  aplica.
 - **Los DEFINER que la llaman por dentro corren como postgres** y no dependen del
   grant: `studio_set_user_disabled` y `studio_change_user_role` (0355) y
   `studio_grant_user_module` (0538).
@@ -82,7 +101,10 @@ confidencialidad: interno
   - **El aviso previo:** si el destino es admin, no es uno mismo y la base dice que
     no eres superadmin, la acción avisa antes y no toca Auth.
   - **La pista no es el freno:** si miente, el flujo es el de siempre y la base
-    sigue frenando.
+    sigue frenando. Por eso, si no se pudo preguntar («error», como el 403 de antes
+    de la 0542), la acción no corta y decide la base: `studio_set_user_disabled` es
+    DEFINER (vía `audit_d1_auth_transition`, 0289:1144) y no depende del grant. Así
+    el superadmin sigue pudiendo suspender y reactivar admins aunque la 0542 no esté.
 - **R5 · Cambiar el rol** ya traducía el `permission_denied` a «… lo hace el
   superadministrador» (`usuarios/actions.ts`, `mensajeDeError`) y el drawer lo
   muestra. No cambia.
@@ -131,8 +153,10 @@ confidencialidad: interno
   catch y el éxito, y que el error sin `flagKey` se vea en la tarjeta pulsada y solo
   en ella.
 - **CA4** Suspender o reactivar a otro admin sin ser superadmin avisa y no llama a
-  Auth. El superadmin, otro rol o uno mismo siguen el flujo.
-- **CA5** `pnpm verify` registrado en el handoff por comprobación.
+  Auth. El superadmin, otro rol, uno mismo o una comprobación que falla siguen el flujo.
+- **CA5** Las comprobaciones registradas en el handoff. `pnpm verify` no se corre en
+  la PC por orden del DG (memoria): el portón es el CI de GitHub más la revisión
+  independiente.
 
 ## 5. Fuera de alcance
 
@@ -148,3 +172,13 @@ confidencialidad: interno
 
 Pendiente: la 0542 no está aplicada. El DG la registra aquí con el OK literal de
 Sam, la lectura previa y el ledger.
+
+**Smoke posterior a la aplicación** (lo nombra el DG al pedir el OK):
+1. Superadmin en `/studio/admin/feature-flags`: el interruptor de `chatwoot_portal`
+   cambia, y un admin del tenant que no es superadmin ve «No eres superadministrador…».
+2. Superadmin en los `SUPERADMIN_ONLY_MODULES` (financiero-china, legal, no-olvidar
+   y renditions): la pantalla abre y no redirige a `/studio/dashboard?denied=…`.
+3. Superadmin que además es admin del tenant: puede crear o editar en `legal_docs`,
+   `renditions` y `rendition_receipts` (policies de la 0356). Un admin que no es
+   superadmin, no.
+4. Catálogo: `has_function_privilege` de authenticated = t, de anon = f.
