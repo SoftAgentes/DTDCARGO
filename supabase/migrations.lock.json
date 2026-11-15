@@ -3384,6 +3384,15 @@
         "fecha": "2026-11-15",
         "forma": "exacta"
       }
+    },
+    "0543_feature_flags_exige_superadmin": {
+      "sha256": "38316b9cde785f4961e56514c26eac829d3732e66f1735feea192d6ec4a79c73",
+      "md5": "c44c34f2aeba188ba18194ee29b135f3",
+      "bytes": 12953,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
     }
   }
 }
