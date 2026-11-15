@@ -571,3 +571,30 @@ Esa SELECT de la 0528 no filtra `deleted_at`, así que no repite el problema de 
 - `lib/studio/__tests__/user-module-grants.migration.test.ts`, con el contrato 0540 y sus mutantes y derivas nuevos.
 - `infra/ops/tests/migraciones.test.mjs` y `scripts/check-migrations-applied.test.mjs`, porque leen la baseline.
 - Recomiendo `pnpm verify` completo.
+
+### Corrida con turno sobre `31e5a4eb1` (2026-11-14, W-509): ROJO en la aserción 7a, detenida
+
+**Punto 1:** ningún WITH CHECK de UPDATE de la 0540 exige `deleted_at is null`. Lo revisé en `0540:176`, `:196-197`
+(quotes, multilínea), `:214`, `:229`, `:246`, `:261` y `:278`. El filtro solo está en los USING.
+
+| Comprobación | Resultado |
+|---|---|
+| `user-module-grants.migration.test.ts` | FALLÓ 1 de 107: «el contrato de la 0540 pasa entero» cae en `TEST 0540: 7a: comercial borra lógico una tarifa con la sesión` |
+| `infra/ops/tests/migraciones.test.mjs`, `scripts/check-migrations-applied.test.mjs` | PASÓ (en la misma corrida: 3 archivos, 111/112 en 80 s) |
+| `pnpm verify` | NO EJECUTADO (se detuvo ante el rojo) |
+
+**Diagnóstico (solo en copias del contrato en la carpeta de notas, sin tocar el repo):**
+- El preflight de la 0540 **aceptó las huellas nuevas**: el contrato pasó de largo el preflight y llegó a la sección
+  7. Por eso el punto 3 (imprimir las huellas que mide PGlite) no aplicó.
+- Al imprimir el error de 7a salió «sin error», pero la fila seguía sin borrar.
+- La causa está en la propia aserción (`test.sql:473-475`). La comprobación `(select deleted_at is not null …)` va en
+  **la misma sentencia** que `pg_temp.error_de(…)`, así que lee con la instantánea de la sentencia, que es anterior al
+  UPDATE que hace la función.
+- Con la comprobación separada en dos sentencias (para 7a y 7b), el contrato da **VERDE: TEST 0540, 39 aserciones**.
+  La migración está bien; lo que hay que corregir es la prueba.
+- **Arreglo propuesto, sin aplicar:** partir 7a y 7b en dos `assert_true`: uno con `error_de(...) is null` y otro con la
+  lectura de `deleted_at`.
+- Hasta que se aplique, el mutante «la lectura de tarifas vuelve a filtrar lo borrado» cae en 7a por la misma razón y
+  no prueba nada. Con el arreglo cae por el error real del UPDATE.
+
+Duración: focales 81 s (22:58:22 → 22:59:43), más tres diagnósticos en PGlite.
