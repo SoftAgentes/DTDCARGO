@@ -3375,6 +3375,15 @@
         "fecha": "2026-11-14",
         "forma": "exacta"
       }
+    },
+    "0542_is_platform_admin_execute_authenticated": {
+      "sha256": "9c4a84028e9cda7207d562663f323f313ea05f11df0303fcdb7a3f503323040c",
+      "md5": "e6f1c9b137ba7eda3e7ca79e0b144da7",
+      "bytes": 6855,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
     }
   }
 }

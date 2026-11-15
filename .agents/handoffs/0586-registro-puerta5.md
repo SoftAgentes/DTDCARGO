@@ -53,13 +53,13 @@
 
 ## Pendientes de esta tarea
 
-- **El resultado del 5c:** va en otra PR cuando el DG avise que terminó (Sam lo hace con su cuenta de cliente; línea de base 08:26:12Z con `cargado=78`, 0 atascados y 0 sin llegar). El registro ya trae las rutas y horas del DG para la 3.0 (sin archivo, 04:40:39Z), la 3.1, la 4 con su cierre (`p4.txt`, 05:52:18Z), el 5a (`p5a.txt`), el 5b (`p5b.txt`, 05:58:48Z) y la 0542; el id de la fila de auditoría del encendido no está copiado (se identifica por `action` + `key` + `occurred_at`). El DG corrigió mi primer reparto: la 0542 no es el 5a (es prerrequisito del encendido) y `cargado=78` es una lectura posterior al encendido.
+- **El resultado del 5c:** ya está registrado en [`0586-registro-5c.md`](0586-registro-5c.md) (PR aparte, 2026-11-15).
 - **La revisión y la fusión de la PR,** que hace el DG.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - **Una PR de pruebas** para las tres observaciones bajas de la #567: G8 cubre una sola de las cuatro condiciones de la guarda del desarme; R4 solo cuenta archivos; y puede quedar algún resto tras un KILL (`.hecho` o contenedores de `portal-ensayo`).
-- **El 5c,** el smoke con un cliente real: en curso, no hecho; los conteos de la cola tienen su OK.
+- **El 5c,** el smoke con un cliente real: HECHO el 2026-11-15; ver [`0586-registro-5c.md`](0586-registro-5c.md).
 - **Citas de línea en otros documentos** que apunten a `ensayo-portal.sh` o `deshacer.sh` no se revisaron fuera de los dos runbooks (por ejemplo la spec 0586 y los handoffs, que son evidencia fechada).
 
 ## Impacto documental
