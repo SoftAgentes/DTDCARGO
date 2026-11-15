@@ -72,8 +72,9 @@ La tabla completa está en la spec §4.
 ## FUERA DE ALCANCE DETECTADO
 
 1. Otra rama de audit_d1_execute quedó fuera de alcance y está registrada aparte.
-2. **BAJO · El baseline todavía declara la espera de la 0542,** que ya se aplicó el 2026-11-15 a las 08:09Z. Retirarla y sellarla es parte del cierre del runbook de quien la aplicó, no de esta PR.
+2. **CERRADO · La espera de la 0542** (aplicada el 2026-11-15 a las 08:09Z) ya no está en el baseline: la retiró y la selló la #581, siguiendo el cierre del runbook de quien la aplicó. Escrito así el 2026-11-15; antes de eso el baseline todavía la declaraba. Con la #581, el baseline solo declara las esperas de la 0528, la 0538, la 0539, la 0540, la 0541 y la 0543; esta última la retira la PR que corrige este ítem (la 0543 se aplicó el 2026-11-15 a las 15:42:24Z).
 3. **BAJO · `feature_flags` no tiene FORCE ROW LEVEL SECURITY** (0042:37). Cualquier DEFINER de postgres que escriba en una tabla con policies se salta esas policies. Con la 0543 los flags no dependen de eso, pero el patrón se repite en otras tablas: vale una auditoría de los DEFINER que escriben tablas «con candado de policy».
+4. **La #579 (B4) entró por SQUASH** en `main`, con el commit `3793b4ca3` («la razón de toggleFeatureFlagAction en el guard de RBAC»). Para ubicarla en el historial, se busca ese commit, no el de la rama de la PR.
 
 ## Impacto documental
 
