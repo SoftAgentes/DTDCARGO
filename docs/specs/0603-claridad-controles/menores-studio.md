@@ -59,6 +59,10 @@ Cada pendiente del Dashboard era una caja con borde izquierdo de color, icono en
 
 Ahora cada pendiente es una **franja plana** hecha con las mismas reglas que `Aviso` (BRAND §Estados): fondo suave del tono, sin contorno, texto en tinta e icono `StatusIcon` con forma distinta por tono. En atención el icono va en tinta, porque el dorado no llega a 3:1 sobre su franja en claro. Lo que se pulsa es «Abrir», un secundario `-xs` con contorno de tinta y nombre accesible «Abrir: <título>»; la franja deja de ser un enlace.
 
+**Lo que oye un lector de pantalla.** El botón lleva `aria-label` «Abrir: <título>», con el título del pendiente: en la lista no se oyen varios «Abrir» iguales. El texto visible sigue siendo «Abrir».
+
+**Tonos vino y neutro.** Los pendientes que llegaban con tono `wine` o `neutral` no son estados. Antes llevaban borde vino o gris; ahora van con el fondo y el icono informativos (`--info-bg`, icono `info`) y se leen como información. Los tonos de atención, error y éxito conservan el suyo.
+
 **Por qué no es `<Aviso>`.** `Aviso` siempre es una región viva, y con tono de error es `role="alert"`. Esta lista es contenido fijo del tablero, no un anuncio por una acción: con `alert`, «facturas vencidas» interrumpiría al lector cada vez que se abre el Dashboard. Va como lista (`<ul>`) sin `role` vivo.
 
 ## Pista de CapBar

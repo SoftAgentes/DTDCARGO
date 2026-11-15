@@ -133,7 +133,8 @@ Viven en `app/studio/_components/ui/`:
   urgente es `role="alert"`; el resto, `role="status"`. Color en `studio.css`
   (`.studio-aviso*`), nunca en línea. `ErrorAlert` ya lo usa. **Para un aviso
   nuevo usa `<Aviso>`**; no lo uses para pastillas de estado (`Badge`), toasts
-  ni mensajes de campo. Lo vigila `avisos-contract.test.ts`.
+  ni mensajes de campo. Lo vigila `avisos-contract.test.ts`. Acepta `tabIndex`
+  y `ref`, para llevarle el foco por programa (SDD-0603, menores del Studio).
 
 Icons en `app/studio/_components/icons.tsx` (objeto `Icon` con métodos por nombre).
 
