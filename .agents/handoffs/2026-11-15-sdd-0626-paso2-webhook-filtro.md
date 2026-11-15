@@ -64,5 +64,11 @@ Ver el cuerpo del PR y el REPORTE FINAL: SHA, corrida del CI y resultado.
 ## QUÉ QUEDA (no es de este paso)
 - **Paso 2b:** la prueba con un mensaje real del inbox de prueba, cuando Sam entregue las 5 piezas de Chatwoot (secret del webhook, id de la bandeja de prueba, URL pública, etiquetas y la cuenta).
 - **Aplicar la 0541 y la 0544**, con OK nominal de Sam. La publicación de la web se frena por las esperas (0528, 0538 a 0542 y 0544) hasta que se acepten con `publicar-web.sh aceptar-pendiente <migración>` o se apliquen.
-- **Recrear el contenedor `cron`** para que tome las dos líneas nuevas del crontab (devuelven «apagado» mientras los interruptores estén vacíos).
+- **Reconstruir la imagen del contenedor `cron`** (el Dockerfile copia el crontab dentro de la imagen; no basta recrearlo): secuencia C8 de `docs/runbooks/publicacion-automatica-web.md` (copiar `cron/` a `/srv/dtd-cargo/`, `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml build cron`, luego `… up -d --no-deps cron`). Prohibido un `compose up` suelto. Las dos líneas nuevas devuelven «apagado» mientras los interruptores estén vacíos.
 - **Paso 3:** despachador y ejecución (§3.4 y §3.5), y lo de `agent_approvals`.
+
+## PENDIENTES DEL PASO 3 (observaciones opcionales del Director General, no hechas)
+- Responder 200 con `descartado:"texto_rechazado"` en vez de 422 (espera la respuesta de Sam).
+- Rechazar cuando falte `CHATWOOT_ACCOUNT_ID`.
+- Agregar `supabase/pending-migration-symbol-declarations.json` a la allowlist de la spec.
+- CHECK `estado='triaje' ⇒ triaje_en is not null`, o quitar `estado` del UPDATE de service_role.

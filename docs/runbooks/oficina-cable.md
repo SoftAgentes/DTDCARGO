@@ -145,7 +145,7 @@ cron del servidor, diario 04:15 UTC ────────▶  /api/cron/ofici
 
 | Variable | Qué hace | Apagado / vacío |
 |---|---|---|
-| `OFICINA_WEBHOOK_ACTIVO` | Enciende el webhook y el filtro. Solo vale `1` o `true` | El webhook responde 200 sin hacer nada y no escribe; el filtro no llama a la base |
+| `OFICINA_WEBHOOK_ACTIVO` | Enciende el webhook y el filtro. Solo vale `1` o `true` (cualquier otra cosa, apagado) | El webhook responde 200 sin hacer nada y no escribe; el filtro no llama a la base |
 | `OFICINA_WEBHOOK_SECRET` | El «secret» del webhook de Chatwoot que apunta a este endpoint. **Propio del cable**, no el de `/api/chatwoot/webhook` | Se rechaza todo (503) |
 | `OFICINA_CHATWOOT_INBOX_PRUEBA` | Id numérico de la única bandeja que el cable atiende | Se rechaza todo (503). Cualquier otra bandeja se ignora |
 | `OFICINA_ETIQUETAS_DINERO`, `OFICINA_ETIQUETAS_INTERNO` | Etiquetas de Chatwoot (separadas por comas) que dan prioridad 3 (dinero) o 1 (interno). Opcionales | Valen las del código: dinero, pago, cobro, cobranza, factura, reembolso / interno, prueba. Sin etiqueta clara, cliente (2) |
@@ -164,7 +164,7 @@ El orden importa; cada paso se comprueba antes del siguiente.
    persona que opera en `/srv/dtd-cargo/.env` como `OFICINA_WEBHOOK_SECRET`.
 3. **El `.env`.** Poner `OFICINA_CHATWOOT_INBOX_PRUEBA` (id de la bandeja de prueba) y `OFICINA_WEBHOOK_SECRET`, con
    copia previa del `.env` (`.env.bak-cable-<ts>`, §3). Después `OFICINA_WEBHOOK_ACTIVO=1`. Recrear el `web`
-   (publicación). El crontab nuevo solo lo toma el contenedor `cron` al recrearse: sin él, el filtro no corre.
+   (publicación). El crontab nuevo NO se toma solo: `infra/dtd-cargo/cron/Dockerfile` lo copia dentro de la imagen del contenedor `cron`, así que hay que reconstruirla (secuencia C8 de [publicacion-automatica-web.md](publicacion-automatica-web.md)): copiar `cron/` del repo a `/srv/dtd-cargo/`, luego `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml build cron` y luego `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps cron`. **Está prohibido un `compose up` suelto.** Sin esto, el filtro y el vaciado no corren.
 4. **El vaciado** se enciende aparte (`OFICINA_VACIADO_ACTIVO=1`) cuando la 0541 esté aplicada. Sin la 0541 no hace nada.
 
 ### Qué revisar

@@ -463,10 +463,10 @@ describe("configuración", () => {
   });
 
   it("solo un «sí» explícito enciende", () => {
-    for (const v of [undefined, "", " ", "0", "false", "no", "off", "apagado", "2"]) {
+    for (const v of [undefined, "", " ", "0", "false", "no", "off", "apagado", "2", "si", "sí", "yes", "on"]) {
       expect(configWebhookOficina({ OFICINA_WEBHOOK_ACTIVO: v }).activo, String(v)).toBe(false);
     }
-    for (const v of ["1", "true", "TRUE", " si ", "sí", "on"]) {
+    for (const v of ["1", "true", "TRUE", " true "]) {
       expect(configWebhookOficina({ OFICINA_WEBHOOK_ACTIVO: v }).activo, v).toBe(true);
     }
   });
@@ -475,6 +475,14 @@ describe("configuración", () => {
     expect(configWebhookOficina({ OFICINA_CHATWOOT_INBOX_PRUEBA: "7" }).bandejaPrueba).toBe(7);
     for (const v of ["", "0", "-1", "siete", "7,8", "07a"]) {
       expect(configWebhookOficina({ OFICINA_CHATWOOT_INBOX_PRUEBA: v }).bandejaPrueba, v).toBeNull();
+    }
+  });
+
+  it("si la bandeja de prueba es la del portal, de clientes o de leads, se rechaza todo (null)", () => {
+    for (const v of ["CHATWOOT_INBOX_PORTAL_ID", "CHATWOOT_INBOX_CLIENTES_ID", "CHATWOOT_INBOX_LEADS_ID"]) {
+      expect(configWebhookOficina({ OFICINA_CHATWOOT_INBOX_PRUEBA: "7", [v]: "7" }).bandejaPrueba, v).toBeNull();
+      expect(configWebhookOficina({ OFICINA_CHATWOOT_INBOX_PRUEBA: "7", [v]: " 7 " }).bandejaPrueba, v).toBeNull();
+      expect(configWebhookOficina({ OFICINA_CHATWOOT_INBOX_PRUEBA: "7", [v]: "8" }).bandejaPrueba, v).toBe(7);
     }
   });
 
