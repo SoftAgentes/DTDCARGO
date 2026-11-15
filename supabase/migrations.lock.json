@@ -3322,6 +3322,15 @@
         "forma": "exacta"
       }
     },
+    "0528_rls_lectura_dinero_y_gastos": {
+      "sha256": "64c2882948fc4d6fa09d5178a4a3aa5f0e1cba4eaaa9b050dbfd28fa95fea8d5",
+      "md5": "112f3178f116613a9c784fcfe0a1eb54",
+      "bytes": 23082,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
     "0532_noticias_edicion_auditada": {
       "sha256": "4e6dc6d380c4fc12805da663f4b125381cb53c947e36a2afaba3fa0f3df8b9c9",
       "md5": "bd81ad586d236fd165af6f7efdb73c58",
@@ -3373,6 +3382,33 @@
       "bytes": 36185,
       "ledger": {
         "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0538_studio_user_module_grants": {
+      "sha256": "d6fe8db8bca2291b9e337b401c9ff23f010a75fd0b3f378a5bc559ddd89971f9",
+      "md5": "1deed08847cda609f150b95ed50d0b2c",
+      "bytes": 31624,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0539_comercial_acepta_accesos_por_persona": {
+      "sha256": "927508300e2d5c85e8f865fe03f87d30121745772aad6f4d6bec507f07255d4e",
+      "md5": "565d7607876eca42f7b54eb39cfe506e",
+      "bytes": 16774,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0540_comercial_rls_por_modulo": {
+      "sha256": "3ff0c3ec3e43da7a0cf902e70ab47ff250b7d2c50bf2912da42435a37713e636",
+      "md5": "8ae2c0c52dacebbf7164fbdffbe66acb",
+      "bytes": 25190,
+      "ledger": {
+        "fecha": "2026-11-15",
         "forma": "exacta"
       }
     },
