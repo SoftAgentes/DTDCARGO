@@ -7,18 +7,18 @@
  * que dejó de ser una facultad de cualquier `admin` y pasó a la capa de
  * plataforma — fue el primer permiso que el founder pidió subir.
  *
- * ⚠️ El bloqueo efectivo hoy es `platformAdminDenial`, aquí. La escritura va por
- * `audit_d1_execute` (0289:632-650), DEFINER de postgres, que solo exige admin del
- * tenant y escribe como dueño: la policy `feature_flags_platform_admin_update`
- * (0355) no la alcanza, y un admin del tenant puede llamar esa RPC por PostgREST
- * (SDD-0633, FUERA DE ALCANCE: va en otra PR). La policy solo frena un UPDATE
- * directo con la sesión.
+ * El control real es el disparador `feature_flags_exige_superadmin` (migr
+ * 0543, SDD-0634): con sesión de usuario, solo el superadministrador cambia un
+ * flag, también por `audit_d1_execute` (0289:632-650), que es DEFINER y escribe
+ * como dueño, así que la policy `feature_flags_platform_admin_update` (0355) no
+ * lo alcanzaba. `platformAdminDenial` de aquí avisa antes; si la base igual
+ * niega, el catch muestra el mismo aviso.
  */
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { platformAdminDenial } from "@/lib/studio/platform-admin";
-import { executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
+import { SUPERADMIN_DENIAL, platformAdminDenial } from "@/lib/studio/platform-admin";
+import { D1OperationError, executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/studio/feature-flags-types";
 
 export interface ToggleFlagState {
@@ -56,7 +56,14 @@ export async function toggleFeatureFlagAction(
       operationType: "feature_flag.toggle",
       input: { key, enabled },
     });
-  } catch {
+  } catch (err) {
+    // SDD-0634: desde la 0543 la base frena por su cuenta (42501 →
+    // permission_denied) a quien no es superadmin, por cualquier camino. Si
+    // llega aquí, la comprobación de arriba dijo que sí y la base dijo que no:
+    // manda la base, con el mismo aviso.
+    if (err instanceof D1OperationError && err.code === "permission_denied") {
+      return { error: SUPERADMIN_DENIAL, flagKey: key };
+    }
     return {
       error: "No se pudo guardar el cambio del módulo. Intenta de nuevo.",
       flagKey: key,

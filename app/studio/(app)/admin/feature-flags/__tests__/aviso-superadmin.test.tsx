@@ -28,7 +28,8 @@ describe("toggleFeatureFlagAction", () => {
     vi.resetModules();
     vi.doMock("next/cache", () => ({ revalidatePath: (...a: unknown[]) => revalidate(...a) }));
     vi.doMock("@/lib/db/server", () => ({ createClient: async () => ({ rpc }) }));
-    vi.doMock("@/lib/studio/audit/d1-access-config-adapters", () => ({
+    vi.doMock("@/lib/studio/audit/d1-access-config-adapters", async (importOriginal) => ({
+      ...(await importOriginal<Record<string, unknown>>()),
       executeD1Operation: (...a: unknown[]) => executeD1(...a),
     }));
     return (await import("../actions")).toggleFeatureFlagAction;
@@ -74,6 +75,17 @@ describe("toggleFeatureFlagAction", () => {
     const r = await (await accion())({}, form("on"));
     expect(r.flagKey).toBe(KEY);
     expect(r.error).toMatch(/No se pudo guardar/);
+    expect(revalidate).not.toHaveBeenCalled();
+  });
+
+  it("SDD-0634: la base niega (42501 → permission_denied): el mismo aviso de superadmin", async () => {
+    rpc.mockResolvedValue({ data: true, error: null });
+    // Después de `accion()`: tras resetModules, la clase es la que ve la acción.
+    const toggle = await accion();
+    const { D1OperationError } = await import("@/lib/studio/audit/d1-access-config-adapters");
+    executeD1.mockRejectedValue(new D1OperationError("permission_denied"));
+    const r = await toggle({}, form("on"));
+    expect(r).toEqual({ error: SUPERADMIN_DENIAL, flagKey: KEY });
     expect(revalidate).not.toHaveBeenCalled();
   });
 
