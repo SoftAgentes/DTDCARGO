@@ -20,13 +20,13 @@ confidencialidad: interno
 **Estado:** aprobada por Sam el 2026-11-09. Confirmada por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». Confirmadas la spec y R1-R3; siguen abiertos §9.5, §9.1 (nómina) y §13.3. Fue **actualizada el 2026-11-11** con su decisión sobre módulos
 sensibles (§9.1): los extras **sí** pueden abrir dinero y módulos solo de administrador, con **doble aviso**
 obligatorio (también exigido por la RPC) y concedidos por un admin o un superadmin (cómo se combinan: §5.1 regla 4). Siguen vigentes: acceso por
-módulo, vencimiento opcional, «elegir módulos» para Alejandro y el usuario «Personalizado» (§5.5). Las acciones
+módulo, vencimiento opcional, «elegir módulos» para la persona de contabilidad que también atiende el CRM y el usuario «Personalizado» (§5.5). Las acciones
 destructivas o gobernadas (`CAPABILITIES`) quedan fuera. R1, R2 y R3 de §8 las resolvió el Director el 2026-11-11 con la autorización de Sam («hazlo como creas tú»). Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo». La implementación está en la PR #509 y esta spec se enmendó el 2026-11-11 para coincidir con ella (§11 y §13); lo que queda a decisión de Sam está en §9 y §13.3.
 
 ## 1. Pedido que la origina
 
 Sam (2026-11-09): puede cambiar el rol de una persona (administración, comercial, operaciones,
-contabilidad, almacenista) pero no personalizar a la persona. Caso concreto: **Alejandro** tiene rol
+contabilidad, almacenista) pero no personalizar a la persona. Caso concreto (**contabilidad con CRM**): una persona tiene rol
 `accounting` y además atiende CRM. Quiere habilitarle Comercial completo o definir qué parte de Comercial
 ve. Pidió además ver cómo lo resuelven QuickBooks y otras aplicaciones, y planificar antes de construir.
 
@@ -42,7 +42,7 @@ ve. Pidió además ver cómo lo resuelven QuickBooks y otras aplicaciones, y pla
 | Scope de almacén por persona | `user_tenants.warehouse_scope` (migr. 0202), SDD-0139 §C | Único atributo por persona que ya existe |
 | Anti-drift de RBAC | `lib/studio/rbac-guard.test.ts`, `rbac-actions-guard.test.ts` | Cada server action debe tener guard antes del primer dato y de la primera escritura |
 
-Resultado: Alejandro no ve CRM porque la matriz dice `kommo: ["commercial"]`. Cambiar la matriz **por rol**
+Resultado: la persona de contabilidad con CRM no lo ve porque la matriz dice `kommo: ["commercial"]`. Cambiar la matriz **por rol**
 (0357) le abriría el CRM a **todos** los de contabilidad, que no es lo que se pide.
 
 ## 3. Decisión previa que esta spec reabre
@@ -165,13 +165,13 @@ ser **opcionales** y compatibles hacia atrás, como se hizo en 0252.
 No basta con el código: la base repite el rol en varios sitios. Hallazgos de la lectura de
 `supabase/migrations` (solo lectura, sin tocar producción ni leer datos):
 
-| Hallazgo | Dónde | Efecto en el caso Alejandro |
+| Hallazgo | Dónde | Efecto en el caso contabilidad con CRM |
 |---|---|---|
 | `current_studio_role()` devuelve el rol de `user_tenants` | `0200_rbac_disabled_enforcement.sql:70` | Fuente de verdad del rol en SQL; hoy sin noción de extras |
 | `assert_studio_role(text[])` | `0351_operario_rpc_exige_rol.sql:32` | Gate de RPC por lista de roles |
-| `crm_puede_usar()` = `admin` o `commercial` | `0506_crm_modelo.sql:186-194` | **Cierra el CRM** para Alejandro aunque la UI se lo muestre |
+| `crm_puede_usar()` = `admin` o `commercial` | `0506_crm_modelo.sql:186-194` | **Cierra el CRM** para la persona de contabilidad aunque la UI se lo muestre |
 | `document_entity_authorized(entity, tenant, access)` con mapa entidad→módulo→roles y **ya** consulta `studio_role_module_overrides` | `0444_unlinked_document_entity_rbac.sql:73-150` (cadena 0439–0444) | Punto central ideal para sumar los accesos por persona en documentos de clientes/proveedores/etc. |
-| Escritura de `clients` pasa por `document_entity_authorized('client', …, 'edit')` | `0456_clients_write_rbac.sql:24` | Hay que cubrirla o Alejandro vería clientes pero no podría editarlos |
+| Escritura de `clients` pasa por `document_entity_authorized('client', …, 'edit')` | `0456_clients_write_rbac.sql:24` | Hay que cubrirla o la persona de contabilidad vería clientes pero no podría editarlos |
 | RPC con lista fija de roles | `0358`/`0361` (fusión de clientes), `0367`, `0371` (`assert_studio_role(array['admin','commercial','operations'])`) | Acciones puntuales que requieren decisión módulo a módulo |
 | Fachadas con roles fijos | `0411`, `0412`, `0413` (`v_role in (...)`), `0466:187` | Idem |
 | `quotes`, `sales_orders`, `suppliers` con RLS **solo por tenant** | `0007_quotes.sql:83`, `0125_sales_orders.sql:186`, `0236_supplier_scorecard.sql:300-311` | Aquí el rol no se exige en la base: basta el cambio de aplicación |
@@ -203,7 +203,7 @@ confusos. Por eso un módulo **no se puede conceder** desde la UI hasta que su c
 - Panel **«Accesos efectivos»**: rol base + extras, indicando de dónde viene cada permiso («por rol» o
   «adicional · motivo · quién · cuándo · vence»).
 - Lista **«Personas con excepciones»** en Usuarios, con filtro de por vencer y vencidos.
-- Ante la objeción de la 0139, el criterio es: nadie debería preguntarse por qué Alejandro tiene CRM;
+- Ante la objeción de la 0139, el criterio es: nadie debería preguntarse por qué alguien de contabilidad tiene CRM;
   la pantalla lo dice.
 
 Los textos van en español de Venezuela, tuteo. Cambios visuales sustanciales pasan por `/ui-check` y lo
@@ -240,7 +240,7 @@ Sam quiere poder **crear un usuario totalmente personalizado**, sin partir de un
 | **4 · Base, Comercial** | `crm_puede_usar()`, `document_entity_authorized` y lo que arroje la Fase 1 | Migración aparte |
 | **5 · Pantalla** | «Agregar acceso», «Accesos efectivos», «Personas con excepciones» | PR + `/ui-check` |
 | **6 · Personalizado** | Rol base `custom` (§5.5): CHECK, invitación, cambio de rol, revisión de fachadas que comparan roles | Migración aparte + PR |
-| **7 · Alejandro** | Concederle Comercial y los módulos sensibles que Sam indique (p. ej. tesorería), cada uno con motivo; comprobar por pantallas y roles | Smoke con Sam |
+| **7 · Contabilidad con CRM** | Concederle a la persona de contabilidad Comercial y los módulos sensibles que Sam indique (p. ej. tesorería), cada uno con motivo; comprobar por pantallas y roles | Smoke con Sam |
 | **8 · Dinero para quien no es contabilidad** | Migrar las funciones y RLS de dinero que hoy exigen rol (§12.2) para que un extra de dinero funcione a un `custom` u otro rol. Fase **propia**, con su migración y su OK nominal de Sam, separada de Comercial. Decisión del Director 2026-11-11: se suma **redefiniendo `studio_can_read_money()`** (migración 0528, SDD-0624, PR #515) con `user_has_module`, en lugar de tocar cada función | Migración aparte + PR; OK de Sam |
 
 Ninguna migración se aplica a producción sin OK nominal de Sam y el runbook
@@ -249,12 +249,12 @@ aplicar antes de aprobar la PR.
 
 ## 7. Pruebas de aceptación
 
-1. **Caso Alejandro:** rol `accounting` + extra `kommo` (ver y editar) → ve y usa CRM; sigue sin ver módulos
+1. **Caso contabilidad con CRM:** rol `accounting` + extra `kommo` (ver y editar) → ve y usa CRM; sigue sin ver módulos
    que su rol ni su extra incluyen (p. ej. `users`, `legal`).
 2. **Solo suma:** un extra nunca reduce lo que el rol ya da.
 3. **Doble aviso y candados:** (a) la RPC rechaza un módulo sensible sin `p_confirm_sensitive = true` y la tabla
    rechaza por CHECK una fila sensible sin `sensitive_confirmed_at`; (b) con confirmación se acepta `treasury`
-   (caso Alejandro) y queda una fila en `entity_audit_log` con la confirmación y la versión de efectos; (c) el CHECK
+   (caso contabilidad con CRM) y queda una fila en `entity_audit_log` con la confirmación y la versión de efectos; (c) el CHECK
    de la 0357 sigue rechazando desvíos **por rol** sobre módulos bloqueados (no se tocó); (d) con un extra de dinero
    **no** se obtiene ninguna capability (`delete_shipments`, `void_payroll_settlement`, `moderate_comments`,
    `audit_view_sensitive`, …); (e) un extra sobre `users` no permite llamar a las RPC de conceder ni cambiar roles.
@@ -326,6 +326,7 @@ aplicar antes de aprobar la PR.
 | 9.6 | R1 · Escalada con `users`/`admin` | Solo lectura y sin auto-concesión (§8) | Decidido por el Director 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo» |
 | 9.7 | R2 · Módulos del superadministrador | Solo los otorga `is_platform_admin()`; el receptor sigue pasando el segundo candado (opción A) | Decidido por el Director 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo» |
 | 9.8 | R3 · Fase propia para dinero | Fase 8, redefiniendo `studio_can_read_money()` (0528, SDD-0624, PR #515) | Decidido por el Director 2026-11-11, con autorización de Sam. Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo» |
+| 9.9 | Nombre del caso de ejemplo | La spec usa el rol genérico «contabilidad con CRM» en lugar de un nombre propio | Sam, 2026-11-14, en el chat del Director General: «Sí, cámbialo por un rol genérico» |
 
 Pregunta abierta, **sin valor asumido**:
 
@@ -449,22 +450,22 @@ sumar varios patrones: `user_tenants.role` 99 · `current_studio_role()` 63 · `
 | Grupo | Qué hay (archivo) | Efecto para extras / `custom` | Veredicto |
 |---|---|---|---|
 | **A · Control del sistema** (solo admin) | Mailing `0408`; bugs `0028`/`0029`; SEO y noticias `0053`–`0055`, `0518`; Telegram `0386`; Chatwoot admin `0503`–`0507`, `0509`, `0522`; etapas CRM `0506` (escritura); códigos de marca `0334`/`0339`; legal y rendiciones `0356`; ajustes fiscales/contables `0126`/`0133`; auditoría `0201`, `0270`, `0289`–`0301`, `0398` | Concedibles con doble aviso (§5.1 regla 2), sujetos a R1 y R2. En la base, los gates de rol `admin` siguen mandando | **Depende de R1/R2** |
-| **B · Dinero por rol `accounting`** | Facturas `0407`/`0414`; conciliación `0409`; cobros y pagos a proveedores `0467`/`0468`/`0470`; cuentas y asientos `0510`/`0511`; libros fiscales y retenciones `0165`/`0166`; gastos `0074`; reportes de pago `0422`; nómina `0160` (`nomina_can_access`); cierre y edición contable `0493` | **Alejandro ya los tiene** por ser `accounting`. Un extra de dinero a quien no sea `accounting` (incluido `custom`) **no funcionaría** hasta migrar estas ~45 piezas | **Requiere cambio** solo para `custom` o roles distintos de contabilidad; **no** para Alejandro |
-| **C · Comercial con rol fijo** | `crm_puede_usar()` = `admin`/`commercial` (`0506:186-194`); `document_entity_authorized` y el mapa entidad→módulo (`0444`, escrituras de clientes `0456`); `update_shipment_plan` (`0305`); `rename_client_markbox` (`0371`); identidad de facturación (`0466`) | Sin cambio en la base, Alejandro **ve** el CRM en pantalla y la base se lo cierra | **Requiere cambio** (primera tanda) |
-| **C2 · Comercial ya compatible con contabilidad** | Fachadas `0411`/`0412`/`0413` y `merge_clients` (`0358`/`0361`) ya incluyen `accounting`; `client_outstanding` (`0492`) | Funcionan para Alejandro; **fallan cerrado** ante `custom` hasta incluirlo | Cubierta para Alejandro; **requiere cambio** para `custom` |
+| **B · Dinero por rol `accounting`** | Facturas `0407`/`0414`; conciliación `0409`; cobros y pagos a proveedores `0467`/`0468`/`0470`; cuentas y asientos `0510`/`0511`; libros fiscales y retenciones `0165`/`0166`; gastos `0074`; reportes de pago `0422`; nómina `0160` (`nomina_can_access`); cierre y edición contable `0493` | **Quien es `accounting` ya los tiene**. Un extra de dinero a quien no sea `accounting` (incluido `custom`) **no funcionaría** hasta migrar estas ~45 piezas | **Requiere cambio** solo para `custom` o roles distintos de contabilidad; **no** para el caso contabilidad con CRM |
+| **C · Comercial con rol fijo** | `crm_puede_usar()` = `admin`/`commercial` (`0506:186-194`); `document_entity_authorized` y el mapa entidad→módulo (`0444`, escrituras de clientes `0456`); `update_shipment_plan` (`0305`); `rename_client_markbox` (`0371`); identidad de facturación (`0466`) | Sin cambio en la base, la persona de contabilidad **ve** el CRM en pantalla y la base se lo cierra | **Requiere cambio** (primera tanda) |
+| **C2 · Comercial ya compatible con contabilidad** | Fachadas `0411`/`0412`/`0413` y `merge_clients` (`0358`/`0361`) ya incluyen `accounting`; `client_outstanding` (`0492`) | Funcionan para el caso contabilidad con CRM; **fallan cerrado** ante `custom` hasta incluirlo | Cubierta para el caso contabilidad con CRM; **requiere cambio** para `custom` |
 | **D · Comercial sin rol en la base** | `quotes` (`0007`), `sales_orders` (`0125`), parte de proveedores (`0236`): RLS solo por tenant | Basta el cambio de aplicación | **Cubierta** |
-| **E · Operación y almacén** | Operarios `0475`; naviera `0477`/`0482`; SENIAT `0484`; TMS `0486`; entrega VE `0487`; despacho `0489`; tarifa congelada `0496`; funciones de operarios `bodeguero_*`/`camionero_*` (`0288`/`0336`) con `v_role` | No se necesitan para el caso de Alejandro | **Fuera de esta spec** (se revisan si se pide) |
+| **E · Operación y almacén** | Operarios `0475`; naviera `0477`/`0482`; SENIAT `0484`; TMS `0486`; entrega VE `0487`; despacho `0489`; tarifa congelada `0496`; funciones de operarios `bodeguero_*`/`camionero_*` (`0288`/`0336`) con `v_role` | No se necesitan para el caso contabilidad con CRM | **Fuera de esta spec** (se revisan si se pide) |
 | **F · Acciones destructivas o gobernadas** | Anulaciones y borrados: `0316`, `0340`, `0470`, `0476`, `0497`, `0262` | Los extras no las otorgan (§5.1 regla 2) | **Fuera** por decisión |
 
 ### Conclusión para el plan
 
-1. **Caso Alejandro (contabilidad + CRM + módulos sensibles):** la base ya lo deja trabajar en dinero y en lo
+1. **Caso contabilidad con CRM (más módulos sensibles):** la base ya lo deja trabajar en dinero y en lo
    comercial que incluye `accounting`. El cambio mínimo en la base es el de **C**: `crm_puede_usar()` y, si se le
    suman clientes con edición completa, `document_entity_authorized`/`0456`. Eso es una tanda pequeña.
 2. **Usuario `custom`:** es donde se concentra el trabajo grande. Sin migrar el grupo B y C2, un `custom` con
    extras de dinero o de clientes vería módulos que la base le niega. Por eso en la Fase 5 un módulo solo se
    ofrece a un `custom` cuando su grupo esté marcado «cubierto» (§5.3).
-3. **Orden sugerido de tandas:** (i) tabla, RPC (con doble aviso) y aplicación para roles existentes (Alejandro);
+3. **Orden sugerido de tandas:** (i) tabla, RPC (con doble aviso) y aplicación para roles existentes (caso contabilidad con CRM);
    (ii) base para Comercial (grupo C); (iii) rol `custom` + C2; (iv) **fase propia de dinero** (grupo B y §12.2), con
    su migración y su OK de Sam, pues es lo más extenso.
 4. **Pendiente de la Fase 1:** repetir el inventario contra el catálogo de una base efímera y fijar la lista
@@ -494,7 +495,7 @@ Políticas de dinero por rol `accounting` (por migración, sin línea individual
 `0165`/`0166` libros fiscales y retenciones, `0074` gastos, `0422` reportes de pago. Lo de solo-administrador usa
 `is_tenant_admin()` (39 objetos, ver cifras de §12) y `0356` para los 4 módulos del superadministrador.
 
-Conclusión: para **Alejandro** (ya contabilidad) el dinero funciona sin tocar nada. Para cualquier otro receptor de un
+Conclusión: para el **caso contabilidad con CRM** (ya es `accounting`) el dinero funciona sin tocar nada. Para cualquier otro receptor de un
 extra de dinero hay que migrar las piezas marcadas «Requiere cambio» y las familias de políticas anteriores, y por eso
 es una fase propia (§6, fase 8; R3).
 
