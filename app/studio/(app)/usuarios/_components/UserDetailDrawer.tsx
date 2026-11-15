@@ -22,6 +22,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   ROLE_LABELS,
@@ -285,18 +286,13 @@ export function UserDetailDrawer({
                   va e invita a quien llega: así el historial de cada quien
                   queda a su nombre.
                 </p>
+                {/* SDD-0603 · tramo 5e: aparece al abrir el formulario y se
+                    queda; es `status`, no `alert`. */}
                 {esYo && (
-                  <p
-                    role="alert"
-                    style={{
-                      font: "600 11.5px/1.5 var(--f-sans)",
-                      color: "var(--ink)",
-                      margin: 0,
-                    }}
-                  >
+                  <Aviso tono="atencion" compacto>
                     Es tu propio correo: de aquí en adelante entras con el
                     nuevo.
-                  </p>
+                  </Aviso>
                 )}
                 <div>
                   <button
@@ -311,17 +307,12 @@ export function UserDetailDrawer({
             )}
 
             {correoState.ok && (
-              <p
-                role="status"
-                style={{
-                  font: "600 11.5px/1.4 var(--f-sans)",
-                  color: "var(--success)",
-                  margin: "var(--s-2) 0 0",
-                }}
-              >
-                Correo actualizado. Los enlaces anteriores quedaron anulados —
-                mándale uno nuevo con «Enviar acceso».
-              </p>
+              <div style={{ marginTop: "var(--s-2)" }}>
+                <Aviso tono="exito" compacto>
+                  Correo actualizado. Los enlaces anteriores quedaron anulados —
+                  mándale uno nuevo con «Enviar acceso».
+                </Aviso>
+              </div>
             )}
           </div>
           <Dato
@@ -330,30 +321,12 @@ export function UserDetailDrawer({
             alerta={nuncaEntro}
           />
           {nuncaEntro && activo && (
-            <p
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "var(--s-2)",
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "var(--s-2) 0 0",
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  width: 6,
-                  height: 6,
-                  marginTop: 5,
-                  flexShrink: 0,
-                  borderRadius: "50%",
-                  background: "var(--warning)",
-                }}
-              />
-              Esta persona nunca ha entrado. Mándale su enlace de acceso para que
-              cree su contraseña.
-            </p>
+            <div style={{ marginTop: "var(--s-2)" }}>
+              <Aviso tono="atencion" compacto>
+                Esta persona nunca ha entrado. Mándale su enlace de acceso para que
+                cree su contraseña.
+              </Aviso>
+            </div>
           )}
         </Seccion>
 
@@ -404,16 +377,11 @@ export function UserDetailDrawer({
             />
           </form>
           {perfilState.ok && (
-            <p
-              role="status"
-              style={{
-                font: "600 12px/1.4 var(--f-sans)",
-                color: "var(--success)",
-                margin: "var(--s-2) 0 0",
-              }}
-            >
-              Datos guardados.
-            </p>
+            <div style={{ marginTop: "var(--s-2)" }}>
+              <Aviso tono="exito" compacto>
+                Datos guardados.
+              </Aviso>
+            </div>
           )}
         </Seccion>
 
@@ -477,55 +445,39 @@ export function UserDetailDrawer({
           </p>
 
           {/* Rastro persistente: el admin necesita PODER COPIAR el enlace si el
-              correo no llega, así que se queda en pantalla. */}
+              correo no llega, así que el aviso con su botón de copiar se queda.
+              SDD-0603 · tramo 5e: el enlace NUNCA se pinta; solo va al
+              portapapeles. Dentro de la región `status` quedan el correo y el
+              botón, no el secreto. */}
           {accesoState.ok && accesoState.accessLink && (
-            <div
-              style={{
-                marginTop: "var(--s-3)",
-                padding: "var(--s-2) var(--s-3)",
-                background: "var(--success-bg)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              <div
-                style={{
-                  font: "600 12px/1.4 var(--f-sans)",
-                  color: "var(--ink)",
-                  marginBottom: "var(--s-2)",
-                }}
-              >
-                Enlace enviado a {member.email}
-              </div>
-              <button
-                type="button"
-                className="studio-btn studio-btn-ghost studio-btn-xs"
-                onClick={() => {
-                  void navigator.clipboard
-                    .writeText(accesoState.accessLink as string)
-                    .then(() => {
-                      setCopiado(true);
-                      setTimeout(() => setCopiado(false), 2500);
-                    });
-                }}
-                title="Por si el correo no llega — pásaselo por un canal privado"
-              >
-                {copiado ? "Copiado" : "Copiar enlace"}
-              </button>
+            <div style={{ marginTop: "var(--s-3)" }}>
+              <Aviso tono="exito" compacto titulo={<>Enlace enviado a {member.email}</>}>
+                <div style={{ marginTop: "var(--s-2)" }}>
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-xs"
+                    onClick={() => {
+                      void navigator.clipboard
+                        .writeText(accesoState.accessLink as string)
+                        .then(() => {
+                          setCopiado(true);
+                          setTimeout(() => setCopiado(false), 2500);
+                        });
+                    }}
+                    title="Por si el correo no llega — pásaselo por un canal privado"
+                  >
+                    {copiado ? "Copiado" : "Copiar enlace"}
+                  </button>
+                </div>
+              </Aviso>
             </div>
           )}
         </Seccion>
 
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "600 12.5px/1.45 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
       </div>
       )}
