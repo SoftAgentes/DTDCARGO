@@ -42,7 +42,7 @@ Las tres páginas de `[code]` imprimen un único contenedor y anclan sus colores
 
 ## Roles vivos
 
-- De `alert` a `status`: «Es tu propio correo…» (aparece al abrir el formulario y se queda) y el aviso de créditos sin liberar de la factura (se deriva del estado cada vez que la factura se abre; no responde a una acción). En Fidelización, el aviso equivalente (`StrandedCreditsBanner`, tramo 4d) quedó `urgente`; aquí se aplica la regla del encargo: lo persistente es `status`.
+- De `alert` a `status`: «Es tu propio correo…» (aparece al abrir el formulario y se queda) y el aviso de créditos sin liberar de la factura (se deriva del estado cada vez que la factura se abre; no responde a una acción). En Fidelización, el aviso equivalente (`StrandedCreditsBanner`, tramo 4d) quedó `urgente`. **Decisión de Sam, 2026-11-15 (opción A):** los dos son `status`, porque lo persistente es `status`; `StrandedCreditsBanner` pasó de `urgente` a `status` en la enmienda de cierre.
 - De sin rol a `status`: «Esta persona nunca ha entrado…» y «Enlace enviado a …».
 - Sigue `status`: «Correo actualizado…», «Datos guardados.» y los dos avisos de «Embarques sin facturar».
 - Sigue `alert`: el error general de la ficha, que responde a una acción.

@@ -44,7 +44,7 @@ Cada documento de tramo trae su allowlist, sus excepciones contadas, su aceptaci
 
 ### La excepción de BD-037 sigue vigente
 
-BD-037 lleva una excepción a VIS-01 §3: la selección va en tinta y no en vino. Su revisión estaba fijada «al cerrar el tramo de pestañas». Ese tramo cerró con #511 y, para el CRM, con #561. No hay registro de una decisión de Sam que la cambie, así que la excepción sigue como está escrita en `BRAND.md` §Controles y en `BRAND-DECISIONS.md`, y todos los tramos se construyeron sobre ella. Esta PR no edita esos dos documentos. La revisión formal queda pendiente de Sam.
+BD-037 lleva una excepción a VIS-01 §3: la selección va en tinta y no en vino. Su revisión estaba fijada «al cerrar el tramo de pestañas». Ese tramo cerró con #511 y, para el CRM, con #561. Sam la revisó el 2026-11-15, en el chat del Director General, y decidió mantenerla: la selección va en tinta y no en vino. Todos los tramos se construyeron sobre ella. Queda registrada como revisada en `BRAND-DECISIONS.md` (BD-037).
 
 ## Pendientes escritos
 
@@ -66,8 +66,6 @@ La PR #318 (SDD-0578) sigue abierta y con conflictos, y su base es la rama `code
 
 - **Relleno de `CapBar`.** El relleno de la barra de ocupación mide menos de 3:1 contra su pista en los dos temas. Arreglarlo pide un token nuevo. Ver [menores-studio.md](menores-studio.md), «Pista de CapBar» y «Límites».
 - **Borde de la franja del portal en claro.** El canto de la franja mide 1,09:1 contra el papel y se dejó así: darle 3:1 exigiría un contorno, que BD-037 reserva para lo que se oprime. Ver [menores-portal.md](menores-portal.md), punto 3.
-- **Aviso de créditos sin liberar.** En la factura es `status` y en Fidelización es urgente (`alert`). Falta elegir un solo criterio. Ver [tramo-5e.md](tramo-5e.md), «Roles vivos».
-- **Revisión de la excepción de BD-037**, descrita arriba.
 
 ### Hallazgos de las revisiones, sin encargo
 
@@ -327,3 +325,20 @@ Cada regla nueva tiene piso (cuenta mínima de lo que mide) y al menos un mutant
 - `pnpm verify` se corre con turno del Director.
 - Sin PR hasta que el Director dé turno. La publicación a producción sigue congelada.
 - `Badge` lleva letra de 12 a 13,5 px en lugar de 9,5 a 11,5, pero pierde su relleno lateral. Medido con Nunito Sans real: el estado más largo, «En bodega VE», pasa de 97,8 a 99,9 px en tamaño `sm`, y mide 107,2 px en `md`. No se midió pantalla por pantalla; se comprueba en prueba antes de fusionar.
+
+## Enmienda de cierre (2026-11-15)
+
+Dos decisiones de Sam, tomadas en el chat del Director General, tras publicarse la adopción en producción.
+
+1. **Aviso de créditos sin liberar: `status` en las dos pantallas.** `StrandedCreditsBanner` (Fidelización, tramo 4d) pasa de `urgente` (`alert`) a `status`, igual que el de la factura. Regla de BD-037 y del tramo 5e: lo persistente es `status`. El contrato `avisos-t4d-contract.test.ts` lo vigila, con un mutante que lo devuelve a `urgente`.
+2. **Documentos de marca al día.** `BRAND.md` §Controles y `BRAND-DECISIONS.md` (BD-037 y su fila del índice) dejan de decir «se adopta por tramos»: BD-037 está adoptada en producción desde el 2026-11-15, salvo las siete pantallas de «Detenidos por la PR #318». La excepción a VIS-01 §3 (selección en tinta) se revisó y se mantiene.
+
+### Allowlist de la enmienda de cierre
+
+- `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx`
+- `app/studio/_components/__tests__/avisos-t4d-contract.test.ts`
+- `BRAND.md`, `docs/design/studio/_norte/BRAND-DECISIONS.md`
+- `docs/specs/0603-claridad-controles/spec.md`, `docs/specs/0603-claridad-controles/tramo-5e.md`, `docs/specs/0603-claridad-controles/tramo-4d.md`
+- `.agents/handoffs/0603-aviso-status-y-marca.md`
+
+Sin base de datos, sin producción, sin tokens ni CSS.

@@ -298,7 +298,7 @@ La densidad correcta depende de la superficie — calibra el juicio de spacing *
 
 ## 🎛 Controles · qué se oprime, qué avisa y qué solo se lee (BD-037)
 
-Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal, y se adopta por tramos (SDD-0603).
+Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal. Adoptada en producción el 2026-11-15 (SDD-0603). Quedan siete pantallas que dependen de la PR #318; se ajustan cuando esa PR llegue a main (ver spec 0603, "Detenidos por la PR #318").
 
 - **Lo que se oprime** lleva relleno o contorno de tinta. Contorno de control ≥ 3:1 contra su fondo.
 - **Lo que avisa** es una franja plana con icono, sin contorno ni sombra.
