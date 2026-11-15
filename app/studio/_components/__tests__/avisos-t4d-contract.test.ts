@@ -183,21 +183,24 @@ describe("SDD-0603 · tramo 4d · avisos con <Aviso>", () => {
     };
     const fuente = fuentes.get(rutaF);
 
+    /** La regla: el <Aviso> del banner existe y no lleva `urgente`. */
+    const bannerEsStatus = (t: string): boolean => {
+      const b = bloque(t);
+      return /<Aviso tono="atencion" titulo=\{titulo\}>/.test(b) && !/<Aviso[^>]*urgente/.test(b);
+    };
+
     it("es status: el <Aviso> del banner no lleva urgente", () => {
       expect(fuente).toBeDefined();
-      const b = bloque(fuente!);
-      expect(b).toMatch(/<Aviso tono="atencion" titulo=\{titulo\}>/);
-      expect(b).not.toMatch(/<Aviso[^>]*urgente/);
+      expect(bannerEsStatus(fuente!)).toBe(true);
     });
 
-    it("mutante: volver a urgente → rompe", () => {
-      const b = bloque(fuente!);
-      const mutado = b.replace(
+    it("mutante: volver a urgente → la misma regla falla", () => {
+      const mutado = fuente!.replace(
         '<Aviso tono="atencion" titulo={titulo}>',
         '<Aviso tono="atencion" urgente titulo={titulo}>',
       );
-      expect(mutado).not.toBe(b);
-      expect(mutado.includes('<Aviso tono="atencion" urgente')).toBe(true);
+      expect(mutado).not.toBe(fuente);
+      expect(bannerEsStatus(mutado)).toBe(false);
     });
   });
 

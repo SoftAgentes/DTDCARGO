@@ -338,7 +338,7 @@ Dos decisiones de Sam, tomadas en el chat del Director General, tras publicarse 
 - `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx`
 - `app/studio/_components/__tests__/avisos-t4d-contract.test.ts`
 - `BRAND.md`, `docs/design/studio/_norte/BRAND-DECISIONS.md`
-- `docs/specs/0603-claridad-controles/spec.md`, `docs/specs/0603-claridad-controles/tramo-5e.md`
+- `docs/specs/0603-claridad-controles/spec.md`, `docs/specs/0603-claridad-controles/tramo-5e.md`, `docs/specs/0603-claridad-controles/tramo-4d.md`
 - `.agents/handoffs/0603-aviso-status-y-marca.md`
 
 Sin base de datos, sin producción, sin tokens ni CSS.

@@ -13,9 +13,12 @@ Dos decisiones de Sam (2026-11-15, chat del Director General): (1) aviso de cré
 - `spec.md`: sección «Enmienda de cierre» con allowlist; quitados de pendientes el aviso y la revisión de la excepción. `tramo-5e.md` «Roles vivos»: decisión anotada.
 
 ## VALIDACIÓN
-- vitest (3 archivos: contrato 4d, annual-billing de Fidelización, Aviso): PASÓ (antes del último ajuste 103/104; tras corregirlo, 80/80 en los dos archivos que lo tocan).
-- `tsc --noEmit`: PASÓ. `pnpm docs:check` y `pnpm sdd:check`: ver cierre en la PR.
+- vitest (contrato 4d, annual-billing de Fidelización, `Aviso`): PASÓ, 3 archivos, 104/104, tras la revisión independiente. Historia: en una corrida intermedia fallaba 1 de 104 (103/104) el mutante propio, porque mi script había metido caracteres de retroceso (``) en una regex del test y la aserción no coincidía. Lo corregí. La revisión pidió además que el mutante corra la misma regla sobre el texto mutado y espere que falle: hecho (`bannerEsStatus`). El «80/80» que dije antes era de solo dos archivos; el resultado vigente es 104/104.
+- `tsc --noEmit`: PASÓ.
+- `pnpm docs:check`: PASÓ (índice sincronizado con 619 specs).
+- `pnpm sdd:check`: PASÓ (sin números repetidos; los choques históricos ya aplicados en prod salen como aviso, no como fallo).
 - `/ui-check` sobre el diff: el único cambio visual es quitar `urgente` (el rol pasa de `alert` a `status`; el aspecto no cambia). Sin hex, sin fuentes, sin espaciado nuevo. Veredicto: OK para commit.
+- Observación de la revisión atendida: `tramo-4d.md` decía «urgente» para el banner; corregido y añadido a la allowlist de la enmienda.
 - `pnpm verify`: NO EJECUTADO (requiere turno del DG; el cambio es de una prop y docs).
 
 ## COMMITS / PR
