@@ -96,7 +96,8 @@ confidencialidad: interno
     - la 0542: authenticated ejecuta `is_platform_admin()` y anon no;
     - `audit_d1_execute` DEFINER de postgres, sin EXECUTE para anon;
     - que ni authenticated ni anon puedan hacer INSERT, DELETE ni TRUNCATE sobre la
-      tabla: es la premisa de cubrir solo UPDATE.
+      tabla: es la premisa de cubrir solo UPDATE;
+    - que anon no tenga UPDATE sobre la tabla.
 
     Aborta si ya hay un disparador con ese nombre y otra función. Guarda el ACL de
     `audit_d1_execute` y el de `is_platform_admin()`.
@@ -107,8 +108,14 @@ confidencialidad: interno
       anon, authenticated, service_role ni PUBLIC;
     - los dos ACL guardados, sin cambios.
   - Es idempotente.
-- **R2 · La server action:** si la base devuelve `permission_denied` al guardar,
-  muestra el mismo aviso de la #574 (`SUPERADMIN_DENIAL`).
+- **R2 · La server action:** `permission_denied` (42501) al guardar tiene dos
+  causas, y cada una lleva su aviso. `D1OperationError.dbMessage` conserva el
+  mensaje de Postgres solo para distinguirlas; nunca se muestra.
+  - **El disparador de la 0543** (mensaje «Solo el superadministrador…»): sale el
+    aviso de la #574, «No eres superadministrador…» (`SUPERADMIN_DENIAL`).
+  - **`audit_d1_admin_tenant` (0289):** es superadmin pero no admin de este equipo,
+    o la sesión se perdió. Sale «Para encender o apagar los módulos de este equipo
+    tienes que ser también su administrador…».
 - **R3 · Los comentarios** de `feature-flags/actions.ts` y `platform-admin.ts`
   nombran el disparador como control real.
 
@@ -151,7 +158,8 @@ o cambiarle el rol).
   - (b) el superadmin pasa por `feature_flag.toggle` y directo;
   - (c) con el dueño de por medio, se niegan anon (con o sin sub), authenticated sin
     sub y un sub sin rol; un comercial no pasa la guarda;
-  - (d) service_role (las dos formas) y sin claims pasan;
+  - (d) service_role (las dos formas), sin claims y claims `'{}'` pasan; un JSON
+    de claims inválido falla cerrado (22P02) y el flag no cambia;
   - (e) authenticated no inserta ni borra flags;
   - (f) en modo réplica el disparador sigue frenando;
   - (g) la función nueva sin EXECUTE para nadie, y los ACL sin cambios;
@@ -165,15 +173,28 @@ o cambiarle el rol).
   - **ENABLE ALWAYS:** sin él.
   - **El postflight:** AFTER en vez de BEFORE, sin `search_path` vacío, la función
     concedida y el ACL de `audit_d1_execute` tocado.
-  - **El preflight:** sin la 0542, con `audit_d1_execute` no DEFINER, y con
-    authenticated pudiendo insertar o borrar.
-- **CA3** La server action convierte `permission_denied` en el aviso de superadmin,
-  con su prueba.
+  - **El preflight:** sin la 0542, con `audit_d1_execute` no DEFINER, con anon
+    pudiendo actualizar, y con authenticated pudiendo insertar o borrar.
+  - **El anti-drift del mensaje:** la 0543 lanza la subcadena «Solo el
+    superadministrador», que es la que busca `actions.ts`.
+- **CA3** La server action da el aviso correcto a cada causa de `permission_denied`:
+  «No eres superadministrador…» si niega el disparador, y «tienes que ser también
+  su administrador…» si niega `audit_d1_admin_tenant`. Las dos tienen su prueba, y
+  hay otra de que el adaptador real conserva `dbMessage`.
 - **CA4** Las comprobaciones se registran en el handoff. `pnpm verify` no se corre en
   la PC, por orden del DG: el portón es el CI de GitHub más la revisión
   independiente.
 
 ## 7. Fuera de alcance
+
+- **RIESGO RESIDUAL (revisión de la #578):** una función DEFINER futura que anon
+  pueda ejecutar y que actualice `feature_flags` pasaría con claims `'{}'`, porque
+  sin rol ni sub el disparador la trata como «sin claims».
+  - Hoy no existe: anon no ejecuta `audit_d1_execute` y no tiene privilegios sobre
+    la tabla.
+  - El preflight solo vigila `audit_d1_execute`.
+  - Quien agregue un DEFINER que escriba flags y se conceda a anon tiene que
+    revisar esta regla.
 
 - **Aplicar la 0543.** La aplica el DG con OK nominal de Sam y el runbook.
 - **Invitar como admin** sin ser superadmin (§4). Es otra llave, que decide el founder.

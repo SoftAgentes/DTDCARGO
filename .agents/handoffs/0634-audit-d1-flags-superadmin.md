@@ -33,7 +33,7 @@
   - `has_table_privilege`: authenticated tiene UPDATE = t e INSERT, DELETE y TRUNCATE = f. anon tiene las cuatro en f.
   - RLS activa, sin FORCE.
   - Policies: `feature_flags_no_insert_authenticated` (check false), `feature_flags_no_delete_authenticated` (using false), `feature_flags_platform_admin_update`, `feature_flags_tenant_select` y `service_role_all_feature_flags`.
-  - **La conclusión:** el preflight pasa en producción.
+  - **La conclusión:** la premisa de INSERT y DELETE, y la del UPDATE de anon, se cumplen en producción (medido por el DG a las 08:55Z). El preflight completo lo prueba la lectura previa.
 - **B1:** el preflight exige además que anon no tenga UPDATE sobre la tabla. El contrato suma claims `{}` (sin rol ni sub: pasa, como sin claims) y JSON inválido (falla cerrado con 22P02 y el flag no cambia).
 - **B2:** `permission_denied` viene de dos causas.
   - **El disparador**, que dice que no es superadmin. Va con «No eres superadministrador…».
@@ -59,6 +59,7 @@ La tabla completa está en la spec §4.
 | `migrations-lock` (node directo) | PASÓ: la 0543 está en espera sin sellar, y hay 0 nuevas sin sellar |
 | La focal (2026-11-15, con turno del Subdirector): `feature-flags-superadmin.migration.test.ts` y `aviso-superadmin.test.tsx` | PASÓ: 29/29, exit 0, 12 s (20 + 9 casos). El primer intento, sobre el diseño anterior, dio 19/22 y no se publicó |
 | La focal de los ajustes de la revisión (2026-11-15, con turno del Subdirector) | PASÓ: 32/32, exit 0, 10 s (21 + 11 casos) |
+| La focal del último ajuste (anti-drift del mensaje; spec, baseline y handoff), con turno | PASÓ: 33/33, exit 0, 13 s (22 + 11 casos). La 0543 no cambió: md5 c44c34f2aeba188ba18194ee29b135f3 |
 | `pnpm verify` | NO EJECUTADO, por orden del DG: el portón es el CI de GitHub más la revisión independiente |
 | `sql-tests` (Postgres 17) | Lo corre el CI (`sql-tests.yml`) |
 

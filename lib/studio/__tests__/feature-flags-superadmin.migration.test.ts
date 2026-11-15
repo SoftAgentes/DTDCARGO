@@ -94,6 +94,13 @@ describe("SDD-0634 · el doble del contrato sigue siendo la 0289", () => {
     expect(rama).not.toMatch(/is_platform_admin/);
   });
 
+  it("el mensaje del raise de la 0543 es el que busca la server action", () => {
+    const ACTION = read(resolve(ROOT, "app/studio/(app)/admin/feature-flags/actions.ts"));
+    const SUB = "Solo el superadministrador";
+    expect(FILE_0543).toMatch(new RegExp(`raise exception '${SUB}[^']*'\\s+using errcode = '42501'`));
+    expect(ACTION).toContain(`err.dbMessage?.includes("${SUB}")`);
+  });
+
   it("la firma y el ACL del doble son los de la 0289", () => {
     expect(FILE_0289).toContain(
       "grant execute on function public.audit_d1_execute(uuid,text,uuid,jsonb,text)\n  to authenticated;",
