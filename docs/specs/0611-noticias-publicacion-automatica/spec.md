@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-14
+updated: 2026-11-15
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -767,6 +767,38 @@ La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada, no 
 | `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §7 y este §11.4 |
 | `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
 | `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
+
+### 11.5 Foto de portada de cada noticia (PROPUESTA, pendiente de Sam; 2026-11-15)
+
+**Problema medido (sitio público, 2026-11-15, solo conteos).** Hay 5 noticias publicadas. Las 5
+usan la **foto de respaldo por categoría** (`CATEGORY_IMAGES` en `lib/news/editorial.ts`): ninguna
+lleva foto propia. En 4 la portada es `precinto-doortudoor-contenedor-…jpg`; la otra usa
+`bodega-yiwu-…jpg`. De los seis respaldos, tres tienen «doortudoor» en el nombre de archivo (la marca
+anterior). *Inferencia:* que esas fotos muestren la marca anterior no se comprobó mirando el
+contenido de las imágenes; hace falta que Sam o diseño las confirmen. `cover_image_url` solo acepta
+rutas locales (`editorial.ts:60-67`), así que hoy no puede entrar una foto externa.
+
+**Regla propuesta (la que Sam elige o ajusta).** Cada noticia lleva una foto elegida, en este
+orden, y se detiene en la primera que cumpla:
+1. **Foto de la noticia de origen, solo con licencia que lo permita**: kit de prensa, Creative
+   Commons que permita uso comercial, dominio público o permiso explícito por escrito. Modificar la
+   foto no sustituye el permiso: una versión editada de la foto de un medio sigue siendo una obra
+   derivada. Se guardan siempre **crédito, licencia y enlace de origen** con la noticia.
+2. **Foto de un banco con licencia** (de la lista que Sam apruebe), con crédito y licencia guardados.
+3. **Imagen propia de la marca vigente**, una por tema (puertos, aduanas, tarifas, Yiwu, contenedores).
+4. **Nunca**: el logo o las fotos de la marca anterior («Door to Door»), ni una foto de origen sin
+   licencia comprobada.
+
+**Qué exige el código (PR posterior, no esta).** (a) Columnas de crédito y licencia junto a la
+portada, migración nueva en espera; (b) la publicación automática **retiene** la noticia si la foto
+no trae licencia registrada; (c) el filtro rechaza una portada que apunte a los archivos de la marca
+anterior; (d) retirar los tres respaldos con la marca anterior y sustituirlos por imágenes de la
+marca vigente. Retirar o cambiar la foto de las 5 noticias ya publicadas es un cambio de contenido en
+producción: lleva su OK de Sam.
+
+**Decisión de Sam (una sola pregunta).** ¿Aprueba esta regla de cuatro pasos, o prefiere solo los
+pasos 2 y 3 (sin usar fotos de origen)? Recomendación del Subdirector: la regla de cuatro pasos,
+con el paso 1 apagado hasta que exista el registro de licencia.
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 
