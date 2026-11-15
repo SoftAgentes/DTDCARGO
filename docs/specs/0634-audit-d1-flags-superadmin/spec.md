@@ -55,13 +55,34 @@ confidencialidad: interno
   futura. No toca `audit_d1_execute`, ni su cuerpo ni su ACL. Es lo que la 0355
   pedía: el control va donde vive el privilegio.
 
-**La regla del disparador:**
-- **Con sesión de usuario** (`auth.uid()` no nulo), solo `is_platform_admin()` pasa.
-- **Sin sesión** (service_role, migraciones, el sembrado de la 0337 y scripts de
-  operación) no cambia nada.
-- **Un admin del tenant que no es superadmin** recibe `42501` «Solo el
-  superadministrador puede encender o apagar módulos». La operación vuelve atrás
-  entera, con su fila en `audit_d1_operations` y su evento de auditoría.
+**La regla del disparador** (condiciones del DG del 2026-11-15):
+- **La sesión se detecta por los claims del JWT, no por `current_user`.** Dentro de
+  `audit_d1_execute`, que es DEFINER, `current_user` es postgres. Se leen las dos
+  formas de PostgREST: `request.jwt.claims` (JSON) y
+  `request.jwt.claim.role`/`.sub` (la antigua).
+- **Rol `service_role`, o sin rol y sin sub** (migraciones, jobs, el sembrado de la
+  0337, psql del dueño): pasa.
+- **Rol `anon`:** se niega siempre, aunque traiga un sub. `auth.uid() is null` solo
+  habría dejado pasar a anon el día que reciba un grant.
+- **Cualquier otro caso** (authenticated, otro rol o un sub sin rol) exige
+  `is_platform_admin()`. Un authenticated sin sub da false.
+- **Lo que recibe quien no pasa:** un 42501 «Solo el superadministrador puede
+  encender o apagar módulos». La operación vuelve atrás entera, con su fila en
+  `audit_d1_operations` y su evento de auditoría.
+- **ENABLE ALWAYS:** con `session_replication_role = replica` un disparador normal no
+  corre. Ese ajuste solo lo cambia un superusuario, no authenticated ni el dueño
+  postgres. Se deja ALWAYS igual porque no cuesta nada, y en una restauración no hay
+  claims, así que pasa.
+- **INSERT y DELETE no se cubren**, y el preflight lo comprueba en el catálogo de
+  producción:
+  - authenticated y anon no tienen INSERT, DELETE ni TRUNCATE sobre la tabla
+    (0042: `grant select, update`), y además hay policies `with check (false)` y
+    `using (false)` para authenticated (0042).
+  - Solo insertan el sembrado (0337, `on conflict do nothing`) y las migraciones.
+    Solo borra el `on delete cascade` de `tenants`. `audit_d1_execute` no inserta
+    ni borra flags.
+  - Cubrirlos frenaría el alta o la baja de un tenant hechas con sesión, sin cerrar
+    ningún camino abierto.
 
 ## 3. Contrato
 
@@ -69,14 +90,22 @@ confidencialidad: interno
   - **Crea la función** `public.feature_flags_exige_superadmin()`: DEFINER de
     postgres, `search_path` vacío, sin EXECUTE para nadie.
   - **Crea el disparador** `feature_flags_exige_superadmin`: BEFORE UPDATE FOR EACH
-    ROW.
-  - **El preflight** exige la tabla, `auth.uid()`, la 0542 (authenticated ejecuta
-    `is_platform_admin()` y anon no) y `audit_d1_execute` DEFINER de postgres sin
-    EXECUTE para anon. Aborta si ya hay un disparador con ese nombre y otra función.
-    Guarda el ACL de `audit_d1_execute` y el de `is_platform_admin()`.
-  - **El postflight** exige el disparador con su tipo exacto (`tgtype = 19`), la
-    función DEFINER sin EXECUTE para anon, authenticated, service_role ni PUBLIC, y
-    los dos ACL guardados sin cambios.
+    ROW, con **ENABLE ALWAYS**.
+  - **El preflight** exige:
+    - la tabla, de postgres;
+    - la 0542: authenticated ejecuta `is_platform_admin()` y anon no;
+    - `audit_d1_execute` DEFINER de postgres, sin EXECUTE para anon;
+    - que ni authenticated ni anon puedan hacer INSERT, DELETE ni TRUNCATE sobre la
+      tabla: es la premisa de cubrir solo UPDATE.
+
+    Aborta si ya hay un disparador con ese nombre y otra función. Guarda el ACL de
+    `audit_d1_execute` y el de `is_platform_admin()`.
+  - **El postflight** exige:
+    - el disparador, con su tipo exacto (`tgtype = 19`), ENABLE ALWAYS
+      (`tgenabled = 'A'`);
+    - la función, DEFINER de postgres con `search_path` vacío y sin EXECUTE para
+      anon, authenticated, service_role ni PUBLIC;
+    - los dos ACL guardados, sin cambios.
   - Es idempotente.
 - **R2 · La server action:** si la base devuelve `permission_denied` al guardar,
   muestra el mismo aviso de la #574 (`SUPERADMIN_DENIAL`).
@@ -112,25 +141,31 @@ o cambiarle el rol).
 
 ## 6. Criterios de aceptación
 
-- **CA1** El contrato de la 0543 corre en PGlite y en `sql-tests`. Su doble de
-  `audit_d1_execute` copia literalmente la guarda y la rama de la 0289, y un
-  anti-drift lo comprueba. Prueba siete cosas:
+- **CA1** El contrato de la 0543 corre en PGlite y en `sql-tests`, con 25
+  aserciones. Su doble de `audit_d1_execute` copia literalmente la guarda y la rama
+  de la 0289, y un anti-drift lo comprueba. Prueba lo siguiente:
   - (0) antes, un admin que no es superadmin enciende un flag por el DEFINER;
-  - (a) después, ese admin recibe 42501 y el flag no cambia;
-  - (b) el superadmin pasa;
-  - (c) por UPDATE directo, el superadmin sí y el admin no; un comercial no pasa la
-    guarda;
-  - (d) sin sesión, el UPDATE pasa;
-  - (e) la función nueva sin EXECUTE para nadie, y los ACL de `audit_d1_execute` e
-    `is_platform_admin()` sin cambios;
-  - (f) es idempotente.
+  - (a) después, ese admin recibe 42501 por el DEFINER, en las dos formas de claims,
+    y nada por UPDATE directo;
+  - (b) el superadmin pasa por `feature_flag.toggle` y directo;
+  - (c) con el dueño de por medio, se niegan anon (con o sin sub), authenticated sin
+    sub y un sub sin rol; un comercial no pasa la guarda;
+  - (d) service_role (las dos formas) y sin claims pasan;
+  - (e) authenticated no inserta ni borra flags;
+  - (f) en modo réplica el disparador sigue frenando;
+  - (g) la función nueva sin EXECUTE para nadie, y los ACL sin cambios;
+  - (h) es idempotente.
 - **CA2** El control rojo y los mutantes caen con el mensaje que los nombra:
   - **El control:** sin la 0543.
-  - **Los mutantes de la migración:** sin el disparador, con postflight y sin él;
-    sin `is_platform_admin()`; que frene también sin sesión; AFTER en vez de BEFORE;
-    que conceda la función, con postflight y sin él; que toque el ACL de
-    `audit_d1_execute`.
-  - **Los mutantes del preflight:** sin la 0542, y con `audit_d1_execute` no DEFINER.
+  - **(a)** El disparador apagado.
+  - **(b)** Sin el disparador; con la condición invertida.
+  - **(c)** Sin la regla de anon; detectar la sesión con `auth.uid() is null`.
+  - **(d)** Que frene sin claims; que frene a service_role.
+  - **ENABLE ALWAYS:** sin él.
+  - **El postflight:** AFTER en vez de BEFORE, sin `search_path` vacío, la función
+    concedida y el ACL de `audit_d1_execute` tocado.
+  - **El preflight:** sin la 0542, con `audit_d1_execute` no DEFINER, y con
+    authenticated pudiendo insertar o borrar.
 - **CA3** La server action convierte `permission_denied` en el aviso de superadmin,
   con su prueba.
 - **CA4** Las comprobaciones se registran en el handoff. `pnpm verify` no se corre en

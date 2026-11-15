@@ -11,13 +11,18 @@
 
 1. **La migración `supabase/migrations/0543_feature_flags_exige_superadmin.sql`:**
    - Crea `public.feature_flags_exige_superadmin()` (DEFINER, sin EXECUTE para nadie) y su disparador BEFORE UPDATE FOR EACH ROW en `feature_flags`.
-   - **La regla:** con sesión de usuario, solo `is_platform_admin()` pasa; sin sesión, pasa todo.
+   - **La regla, con las 5 condiciones del DG (2026-11-15):**
+     - La sesión se detecta por los claims del JWT (`request.jwt.claims` y la forma antigua), no por `current_user`: service_role o sin claims pasa; anon se niega siempre; cualquier otra sesión exige `is_platform_admin()`.
+     - El disparador queda ENABLE ALWAYS.
+     - INSERT y DELETE no se cubren: el preflight exige que authenticated y anon no tengan INSERT, DELETE ni TRUNCATE sobre la tabla (detalle en la spec §2).
+     - El postflight mide el disparador ALWAYS, la función DEFINER de postgres con `search_path` vacío y sin EXECUTE para nadie, y los ACL sin cambios.
    - No reemplaza `audit_d1_execute`. El porqué está en la spec §2.
    - **El preflight y el postflight:** el preflight guarda el ACL de `audit_d1_execute` y el de `is_platform_admin()`, y el postflight los exige iguales. Es la lección de la 0542.
    - **La espera:** está declarada en `migrations-baseline.json`.
 2. **El contrato:**
-   - `supabase/tests/0543_….test.sql`, de 13 aserciones, más su envoltorio PGlite `lib/studio/__tests__/feature-flags-superadmin.migration.test.ts`.
-   - Ese envoltorio trae 3 anti-drift contra la 0289, el control rojo, 7 mutantes de la migración y 2 del preflight.
+   - `supabase/tests/0543_….test.sql`, de 25 aserciones, más su envoltorio PGlite `lib/studio/__tests__/feature-flags-superadmin.migration.test.ts`.
+   - Ese envoltorio trae 3 anti-drift contra la 0289, el control rojo, 13 mutantes de la migración (los (a) a (e) del DG y los del postflight) y 3 del preflight.
+   - **El primer intento de la focal salió rojo, 3 de 22.** Tres mutantes caían en otra aserción que la esperada: el bloque (d) no capturaba su error, y dos mutantes del preflight rompían el fixture antes del bloque (0). Se arregló sin relajar ningún regex, y no se publicó.
 3. **La server action** (`feature-flags/actions.ts`): `permission_denied` del guardado se convierte en `SUPERADMIN_DENIAL`, el aviso de la #574. Tiene su caso en `aviso-superadmin.test.tsx`, y el mock del adaptador D1 ahora conserva `D1OperationError`.
 4. **Los comentarios** de `feature-flags/actions.ts` y `lib/studio/platform-admin.ts` nombran el disparador como control real.
 
@@ -35,13 +40,13 @@ La tabla completa está en la spec §4.
 | `docs:check` y `sdd:check` (node directo) | PASÓ: 619 specs, sin números repetidos |
 | `pending-migration-symbols` (node directo) | PASÓ: 0 ROJO · 3 AMARILLO declarados. La 0543 no crea símbolos que use el código |
 | `migrations-lock` (node directo) | PASÓ: la 0543 está en espera sin sellar, y hay 0 nuevas sin sellar |
-| La focal: el contrato 0543 en PGlite con los mutantes, y `aviso-superadmin.test.tsx` | PENDIENTE, a la espera del turno del Subdirector |
+| La focal (2026-11-15, con turno del Subdirector): `feature-flags-superadmin.migration.test.ts` y `aviso-superadmin.test.tsx` | PASÓ: 29/29, exit 0, 12 s (20 + 9 casos). El primer intento, sobre el diseño anterior, dio 19/22 y no se publicó |
 | `pnpm verify` | NO EJECUTADO, por orden del DG: el portón es el CI de GitHub más la revisión independiente |
 | `sql-tests` (Postgres 17) | Lo corre el CI (`sql-tests.yml`) |
 
 ## Pendientes de esta tarea
 
-- Correr la focal con turno y registrarla aquí.
+- La focal ya corrió: 29/29.
 - Publicar la rama y abrir la PR. Reportar la cabeza.
 - **La aplicación la hace el DG:** con OK nominal de Sam, `preparar.mjs` sobre la cabeza final y la lectura previa. La migración no reemplaza funciones existentes, así que no hay deriva que medir. Después se fusiona, y se hace el smoke de la spec §8.
 

@@ -8,39 +8,56 @@
 --    ORDEN: después de la 0542 (su preflight lo exige). Migrate-first: la PR trae
 --    el aviso de la server action para el 42501.
 --
--- ⚠️ LOCK: CREATE TRIGGER toma SHARE ROW EXCLUSIVE sobre `feature_flags` hasta el
---    COMMIT. Es una tabla chica (una fila por tenant y módulo) que solo se lee al
---    cargar el Studio y el portal; mientras corre, esas lecturas siguen, y solo
---    esperan las escrituras. Se corta a los 5 s si algo la tiene tomada.
+-- ⚠️ LOCK: CREATE TRIGGER y ALTER TABLE … ENABLE ALWAYS TRIGGER toman SHARE ROW
+--    EXCLUSIVE sobre `feature_flags` hasta el COMMIT. Es una tabla chica (una fila
+--    por tenant y módulo) que solo se lee al cargar el Studio y el portal;
+--    mientras corre, las lecturas siguen y solo esperan las escrituras. Se corta a
+--    los 5 s si algo la tiene tomada.
 --
 -- EL HUECO (confirmado por el DG en el repo y en el catálogo de producción, sin
 -- filas): `audit_d1_execute(uuid,text,uuid,jsonb,text)` (0289:166) es SECURITY
 -- DEFINER de postgres, y authenticated tiene EXECUTE. Su única guarda es
 -- `audit_d1_admin_tenant()` (0289:131-160), que pide rol admin del tenant. La rama
--- `feature_flag.toggle` (0289:632-650) hace el UPDATE de `feature_flags` como
--- dueño: `feature_flags` no tiene FORCE ROW LEVEL SECURITY (0042:37), así que la
+-- `feature_flag.toggle` (0289:632-650) hace un UPDATE por id de `feature_flags`
+-- como dueño: la tabla no tiene FORCE ROW LEVEL SECURITY (0042:37), así que la
 -- policy `feature_flags_platform_admin_update` (0355) no lo alcanza. Cualquier
 -- admin del tenant podía encender o apagar módulos por PostgREST, y el candado
 -- de superadmin era solo de pantalla (`platformAdminDenial`).
 --
 -- POR QUÉ UN DISPARADOR Y NO REEMPLAZAR audit_d1_execute: la función tiene ~760
 -- líneas y 22 ramas. Reemplazarla para tocar una pisaría cualquier deriva viva de
--- las otras 21, y exigiría el md5 del cuerpo vivo de producción. Un BEFORE UPDATE
+-- las otras 21, y exigiría el md5 del cuerpo vivo de producción. Un disparador
 -- en la tabla frena todos los caminos (el DEFINER, un UPDATE directo y cualquier
--- RPC futura) sin tocar audit_d1_execute, su cuerpo ni su ACL. Es lo que la 0355
--- quería decir con «el control real va donde vive el privilegio».
+-- RPC futura) sin tocar audit_d1_execute, su cuerpo ni su ACL.
 --
--- QUIÉN PASA:
---   · el superadministrador (`is_platform_admin()`, que desde la 0542 ejecuta
---     authenticated);
---   · todo lo que no trae sesión de usuario (`auth.uid()` nulo): service_role,
---     migraciones, el sembrado de la 0337 y scripts de operación. Para ellos no
---     cambia nada.
--- QUIÉN NO: un admin del tenant (o cualquier miembro) que no es superadmin
--- recibe 42501 «Solo el superadministrador puede encender o apagar módulos»,
--- que el adaptador D1 traduce a `permission_denied`, y la server action a «No eres
--- superadministrador…». La operación entera vuelve atrás, también su fila en
--- `audit_d1_operations` y su evento de auditoría.
+-- QUIÉN ES «UNA SESIÓN»: dentro de un DEFINER, `current_user` es postgres, así
+-- que no sirve. La regla sale de los claims del JWT que PostgREST deja en la
+-- transacción, en sus dos formas: `request.jwt.claims` (JSON, la actual) y
+-- `request.jwt.claim.role` / `request.jwt.claim.sub` (la antigua):
+--   · rol `service_role` → pasa (la clave de servicio del servidor);
+--   · sin rol y sin sub (migraciones, jobs, psql del dueño, el sembrado de la
+--     0337) → pasa;
+--   · rol `anon` → se NIEGA siempre (hoy anon no tiene ni EXECUTE ni privilegios
+--     sobre la tabla; esto cierra el camino si algún día recibe un grant);
+--   · cualquier otro caso (rol `authenticated`, otro rol, o un sub sin rol) →
+--     exige `is_platform_admin()` (que desde la 0542 ejecuta authenticated). Un
+--     authenticated sin sub da false: se niega.
+-- `auth.uid() is null` solo no alcanzaba: dejaba pasar a anon.
+--
+-- INSERT Y DELETE NO SE CUBREN, Y POR QUÉ (lo comprueba el preflight en el
+-- catálogo): authenticated y anon no tienen INSERT ni DELETE sobre la tabla
+-- (0042: `grant select, update`), y además hay policies `with check (false)` y
+-- `using (false)` para authenticated (0042). Los únicos que insertan son el
+-- sembrado (0337, `on conflict do nothing`, sin elegir valores) y migraciones; el
+-- único que borra es el `on delete cascade` de `tenants`. audit_d1_execute no
+-- tiene rama que inserte ni borre flags. Cubrirlos con el disparador frenaría el
+-- alta o la baja de un tenant hechas con sesión, sin cerrar ningún camino abierto.
+--
+-- ENABLE ALWAYS: un disparador normal no corre con session_replication_role =
+-- replica. Ese ajuste solo lo puede cambiar un superusuario (o quien tenga SET
+-- sobre él), no authenticated ni el dueño postgres, que no es superusuario. Igual
+-- se deja ALWAYS: no cuesta nada, y una restauración o una réplica tampoco se lo
+-- saltan (en ellas no hay claims, así que pasan, como cualquier migración).
 --
 -- LA LECCIÓN DE LA 0542 (ACL que no sobrevive): esta migración no hace
 -- create or replace ni drop sobre ninguna función existente. Mide el ACL de
@@ -75,8 +92,8 @@ begin
   if v_ff is null then
     raise exception '0543 requiere public.feature_flags (0042)';
   end if;
-  if pg_catalog.to_regprocedure('auth.uid()') is null then
-    raise exception '0543 requiere auth.uid()';
+  if (select pg_catalog.pg_get_userbyid(c.relowner) from pg_catalog.pg_class c where c.oid = v_ff) <> 'postgres' then
+    raise exception '0543: feature_flags no es de postgres';
   end if;
   if v_ipa is null or not (select p.prosecdef from pg_catalog.pg_proc p where p.oid = v_ipa) then
     raise exception '0543 requiere public.is_platform_admin() DEFINER (0058)';
@@ -93,6 +110,14 @@ begin
   if pg_catalog.has_function_privilege('anon', v_d1, 'EXECUTE') then
     raise exception '0543: anon puede ejecutar audit_d1_execute; revisar antes de aplicar';
   end if;
+  -- La premisa de no cubrir INSERT ni DELETE: ningún rol de sesión puede hacerlos.
+  foreach v_rol in array array['anon', 'authenticated'] loop
+    if pg_catalog.has_table_privilege(v_rol, v_ff, 'INSERT')
+       or pg_catalog.has_table_privilege(v_rol, v_ff, 'DELETE')
+       or pg_catalog.has_table_privilege(v_rol, v_ff, 'TRUNCATE') then
+      raise exception '0543: % puede insertar, borrar o vaciar feature_flags; el disparador solo cubre UPDATE', v_rol;
+    end if;
+  end loop;
   if exists (
     select 1 from pg_catalog.pg_trigger t
     where t.tgrelid = v_ff and not t.tgisinternal
@@ -116,10 +141,21 @@ language plpgsql
 security definer
 set search_path = ''
 as $function$
+declare
+  v_claims jsonb := nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb;
+  v_rol    text := coalesce(
+    nullif(v_claims ->> 'role', ''),
+    nullif(pg_catalog.current_setting('request.jwt.claim.role', true), ''));
+  v_sub    text := coalesce(
+    nullif(v_claims ->> 'sub', ''),
+    nullif(pg_catalog.current_setting('request.jwt.claim.sub', true), ''));
 begin
-  -- Sin sesión de usuario (service_role, migraciones, sembrado): no cambia nada.
-  if (select auth.uid()) is not null
-     and not public.is_platform_admin() then
+  -- La clave de servicio, o sin claims (migraciones, jobs, el dueño): pasa.
+  if v_rol = 'service_role' or (v_rol is null and v_sub is null) then
+    return new;
+  end if;
+  -- anon nunca; cualquier otra sesión, solo el superadministrador.
+  if v_rol = 'anon' or not public.is_platform_admin() then
     raise exception 'Solo el superadministrador puede encender o apagar módulos'
       using errcode = '42501';
   end if;
@@ -131,12 +167,13 @@ alter function public.feature_flags_exige_superadmin() owner to postgres;
 revoke all on function public.feature_flags_exige_superadmin() from public, anon, authenticated, service_role;
 
 comment on function public.feature_flags_exige_superadmin() is
-  'SDD-0634 · 0543: BEFORE UPDATE de feature_flags. Con sesión de usuario, solo el superadministrador (is_platform_admin) cambia un flag, también por audit_d1_execute (DEFINER, 0289). Sin sesión (service_role, migraciones) pasa. No se concede a nadie.';
+  'SDD-0634 · 0543: BEFORE UPDATE de feature_flags (ENABLE ALWAYS). Por los claims del JWT: service_role o sin claims pasa; anon nunca; cualquier otra sesión, solo is_platform_admin(). Frena también audit_d1_execute (DEFINER, 0289). No se concede a nadie.';
 
 drop trigger if exists feature_flags_exige_superadmin on public.feature_flags;
 create trigger feature_flags_exige_superadmin
   before update on public.feature_flags
   for each row execute function public.feature_flags_exige_superadmin();
+alter table public.feature_flags enable always trigger feature_flags_exige_superadmin;
 
 do $postflight$
 declare
@@ -149,14 +186,23 @@ begin
   if not exists (
     select 1 from pg_catalog.pg_trigger t
     where t.tgrelid = v_ff and t.tgname = 'feature_flags_exige_superadmin'
-      and t.tgfoid = v_fn and t.tgenabled = 'O'
+      and t.tgfoid = v_fn
       -- tgtype: ROW (1) + BEFORE (2) + UPDATE (16) = 19
       and t.tgtype = 19
   ) then
     raise exception '0543: no quedó el disparador BEFORE UPDATE FOR EACH ROW feature_flags_exige_superadmin';
   end if;
-  if not (select p.prosecdef from pg_catalog.pg_proc p where p.oid = v_fn) then
-    raise exception '0543: feature_flags_exige_superadmin() no quedó DEFINER';
+  if (select t.tgenabled from pg_catalog.pg_trigger t
+      where t.tgrelid = v_ff and t.tgname = 'feature_flags_exige_superadmin') <> 'A' then
+    raise exception '0543: el disparador feature_flags_exige_superadmin no quedó ENABLE ALWAYS';
+  end if;
+  if not exists (
+    select 1 from pg_catalog.pg_proc p
+    where p.oid = v_fn and p.prosecdef
+      and pg_catalog.pg_get_userbyid(p.proowner) = 'postgres'
+      and p.proconfig = array['search_path=""']::text[]
+  ) then
+    raise exception '0543: feature_flags_exige_superadmin() no quedó DEFINER de postgres con search_path vacío';
   end if;
   foreach v_rol in array array['anon', 'authenticated', 'service_role'] loop
     if pg_catalog.has_function_privilege(v_rol, v_fn, 'EXECUTE') then

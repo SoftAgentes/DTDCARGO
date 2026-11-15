@@ -13,16 +13,21 @@
 --     esa copia sigue en la 0289.
 -- y aplica la 0543 REAL dos veces.
 --
--- Lo que defiende:
+-- Lo que defiende (las 5 condiciones del DG, 2026-11-15):
 --   (0) antes de la 0543, un admin del tenant que no es superadmin enciende un
 --       flag por el DEFINER (el hueco medido);
---   (a) después, ese admin recibe 42501 por el DEFINER, y el flag no cambia;
---   (b) el superadmin lo cambia por el DEFINER;
---   (c) por UPDATE directo: el superadmin sí; el admin, 0 filas (policy) o 42501;
---   (d) sin sesión de usuario (service_role, migraciones) se sigue pudiendo;
---   (e) la función nueva no se concede a nadie, y el ACL de audit_d1_execute e
+--   (a) después, ese admin recibe 42501 por el DEFINER, en las dos formas de
+--       claims, y nada por UPDATE directo; el flag no cambia;
+--   (b) el superadmin pasa por el camino real (feature_flag.toggle) y directo;
+--   (c) la sesión se detecta por los claims, no por current_user: anon (con o
+--       sin sub), authenticated sin sub y un sub sin rol se niegan con el dueño
+--       de por medio;
+--   (d) service_role (las dos formas) y sin claims pasan;
+--   (e) ninguna sesión inserta ni borra flags (por qué basta con UPDATE);
+--   (f) ENABLE ALWAYS: el modo réplica no se lo salta;
+--   (g) la función nueva no se concede a nadie, y el ACL de audit_d1_execute e
 --       is_platform_admin() no cambia;
---   (f) es idempotente.
+--   (h) es idempotente.
 --
 -- CONTROL ROJO: sin la 0543 cae «(a)».
 -- Termina siempre en ROLLBACK. Solo ids y textos sintéticos.
@@ -40,8 +45,12 @@ grant usage on schema public to anon, authenticated, service_role;
 
 create schema auth;
 grant usage on schema auth to anon, authenticated, service_role;
+-- Como el auth.uid() de Supabase: el sub de request.jwt.claim.sub o de request.jwt.claims.
 create function auth.uid() returns uuid language sql stable set search_path = ''
-as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+as $$ select coalesce(
+  nullif(current_setting('request.jwt.claim.sub', true), ''),
+  (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+)::uuid $$;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 create table auth.users (id uuid primary key);
 
@@ -216,51 +225,91 @@ create function pg_temp.u(p_user text) returns uuid language sql immutable as $$
   select ('a0000000-0000-0000-0000-0000000000' || p_user)::uuid;
 $$;
 
-/** Ejecuta p_sql como authenticated con la sesión de p_user; devuelve 'ok', o 'ERROR <sqlstate>: <mensaje>'. */
-create function pg_temp.como(p_user text, p_sql text) returns text language plpgsql as $$
-declare v text;
+/**
+ * Deja los claims como los deja PostgREST. p_forma: 'json' (request.jwt.claims,
+ * la actual), 'antigua' (request.jwt.claim.role/sub) o 'ninguna' (sin claims:
+ * migraciones, jobs, el dueño). p_user null = sin sub.
+ */
+create function pg_temp.jwt(p_rol text, p_user text, p_forma text default 'json') returns void language plpgsql as $$
 begin
-  perform set_config('request.jwt.claim.sub', pg_temp.u(p_user)::text, true);
-  set local role authenticated;
+  perform set_config('request.jwt.claims', '', true);
+  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+  if p_forma = 'json' then
+    perform set_config('request.jwt.claims',
+      jsonb_strip_nulls(jsonb_build_object('role', p_rol, 'sub', pg_temp.u(p_user)))::text, true);
+  elsif p_forma = 'antigua' then
+    perform set_config('request.jwt.claim.role', coalesce(p_rol, ''), true);
+    perform set_config('request.jwt.claim.sub', coalesce(pg_temp.u(p_user)::text, ''), true);
+  end if;
+end;
+$$;
+
+/**
+ * Ejecuta p_sql con esos claims. p_como: el rol de base con el que corre
+ * ('authenticated', 'service_role'…) o null para el dueño (como un DEFINER o
+ * una migración). Devuelve 'ok', el número de filas si p_sql es un UPDATE, o
+ * 'ERROR <sqlstate>: <mensaje>'.
+ */
+create function pg_temp.como(p_claim_rol text, p_user text, p_como text, p_sql text, p_forma text default 'json')
+returns text language plpgsql as $$
+declare v text; n int;
+begin
+  perform pg_temp.jwt(p_claim_rol, p_user, p_forma);
+  if p_como is not null then execute format('set local role %I', p_como); end if;
   begin
     execute p_sql;
-    v := 'ok';
+    get diagnostics n = row_count;
+    v := case when p_sql ~* '^\s*update' then n::text else 'ok' end;
   exception when others then
     v := 'ERROR ' || sqlstate || ': ' || sqlerrm;
   end;
   reset role;
-  perform set_config('request.jwt.claim.sub', '', true);
+  perform pg_temp.jwt(null, null, 'ninguna');
   return v;
 end;
 $$;
 
-/** Filas que logra cambiar un UPDATE directo con la sesión, o el error. */
-create function pg_temp.directo(p_user text, p_enabled boolean) returns text language plpgsql as $$
-declare v int; v_msg text;
-begin
-  perform set_config('request.jwt.claim.sub', pg_temp.u(p_user)::text, true);
-  set local role authenticated;
-  begin
-    update public.feature_flags set enabled = p_enabled where key = 'chatwoot_portal';
-    get diagnostics v = row_count;
-    v_msg := v::text;
-  exception when others then
-    v_msg := 'ERROR ' || sqlstate || ': ' || sqlerrm;
-  end;
-  reset role;
-  perform set_config('request.jwt.claim.sub', '', true);
-  return v_msg;
-end;
+/** Una persona autenticada enciende/apaga por audit_d1_execute (el camino real de la server action). */
+create function pg_temp.por_d1(p_user text, p_enabled boolean, p_forma text default 'json') returns text language sql as $$
+  select pg_temp.como('authenticated', p_user, 'authenticated', format(
+    $q$select public.audit_d1_execute(gen_random_uuid(), 'feature_flag.toggle', null, %L::jsonb, null)$q$,
+    jsonb_build_object('key', 'chatwoot_portal', 'enabled', p_enabled)::text), p_forma);
 $$;
 
-create function pg_temp.por_d1(p_user text, p_enabled boolean) returns text language sql as $$
-  select pg_temp.como(p_user, format(
-    $q$select public.audit_d1_execute(gen_random_uuid(), 'feature_flag.toggle', null, %L::jsonb, null)$q$,
-    jsonb_build_object('key', 'chatwoot_portal', 'enabled', p_enabled)::text));
+/** UPDATE directo, como lo haría PostgREST con la sesión. */
+create function pg_temp.directo(p_user text, p_enabled boolean) returns text language sql as $$
+  select pg_temp.como('authenticated', p_user, 'authenticated',
+    format('update public.feature_flags set enabled = %L where key = %L', p_enabled, 'chatwoot_portal'));
+$$;
+
+/** UPDATE del dueño (como dentro de un DEFINER) con los claims dados. */
+create function pg_temp.dueno(p_claim_rol text, p_user text, p_enabled boolean, p_forma text default 'json') returns text language sql as $$
+  select pg_temp.como(p_claim_rol, p_user, null,
+    format('update public.feature_flags set enabled = %L where key = %L', p_enabled, 'chatwoot_portal'), p_forma);
 $$;
 
 create function pg_temp.flag() returns boolean language sql as $$
   select enabled from public.feature_flags where key = 'chatwoot_portal';
+$$;
+
+/**
+ * Repone el flag entre casos SIN pasar por el disparador (lo apaga y lo devuelve
+ * a su estado anterior, sea O, A o D), para que un mutante caiga en su propio
+ * caso y no aquí.
+ */
+create function pg_temp.reponer(p_enabled boolean) returns void language plpgsql as $$
+declare v_estado "char" := (select tgenabled from pg_trigger
+  where tgrelid = 'public.feature_flags'::regclass and tgname = 'feature_flags_exige_superadmin');
+begin
+  perform pg_temp.jwt(null, null, 'ninguna');
+  if v_estado is not null then alter table public.feature_flags disable trigger feature_flags_exige_superadmin; end if;
+  update public.feature_flags set enabled = p_enabled where key = 'chatwoot_portal';
+  if v_estado = 'A' then alter table public.feature_flags enable always trigger feature_flags_exige_superadmin;
+  elsif v_estado = 'O' then alter table public.feature_flags enable trigger feature_flags_exige_superadmin;
+  elsif v_estado = 'R' then alter table public.feature_flags enable replica trigger feature_flags_exige_superadmin;
+  end if;
+end;
 $$;
 
 -- (0) Antes de la 0543: el hueco. El admin que no es superadmin enciende el flag
@@ -269,62 +318,91 @@ select pg_temp.assert_true(pg_temp.directo('a1', true) = '0',
   '(0) antes de la 0543, la policy le niega al admin el UPDATE directo');
 select pg_temp.assert_true(pg_temp.por_d1('a1', true) = 'ok' and pg_temp.flag() = true,
   '(0) antes de la 0543, el admin enciende el flag por audit_d1_execute');
-update public.feature_flags set enabled = false where key = 'chatwoot_portal';
+select pg_temp.reponer(false);
 
 \ir ../migrations/0543_feature_flags_exige_superadmin.sql
 
--- (a) El admin del tenant que no es superadmin: 42501 por el DEFINER, sin cambio.
+-- (a) El admin del tenant que no es superadmin: 42501 por el DEFINER (en las dos
+-- formas de claims) y nada por UPDATE directo. El flag no cambia.
 select pg_temp.assert_true(pg_temp.por_d1('a1', true)
     = 'ERROR 42501: Solo el superadministrador puede encender o apagar módulos',
   '(a) el admin que no es superadmin recibe 42501 por audit_d1_execute');
+select pg_temp.assert_true(pg_temp.por_d1('a1', true, 'antigua') ~ '^ERROR 42501: Solo el superadministrador',
+  '(a) también con los claims en la forma antigua');
+select pg_temp.assert_true(pg_temp.directo('a1', true) = '0',
+  '(a) el admin no logra el UPDATE directo');
 select pg_temp.assert_true(pg_temp.flag() = false, '(a) el flag sigue apagado');
 
--- (b) El superadmin lo cambia por el DEFINER.
+-- (b) El superadmin lo cambia por el camino real (audit_d1_execute) y por UPDATE directo.
 select pg_temp.assert_true(pg_temp.por_d1('a2', true) = 'ok' and pg_temp.flag() = true,
   '(b) el superadmin enciende el flag por audit_d1_execute');
+select pg_temp.assert_true(pg_temp.por_d1('a2', false, 'antigua') = 'ok' and pg_temp.flag() = false,
+  '(b) el superadmin lo apaga con los claims en la forma antigua');
+select pg_temp.assert_true(pg_temp.directo('a2', true) = '1' and pg_temp.flag() = true,
+  '(b) el superadmin enciende el flag por UPDATE directo');
+select pg_temp.reponer(false);
 
--- (c) UPDATE directo: el superadmin sí; el admin no (la policy filtra: 0 filas).
-select pg_temp.assert_true(pg_temp.directo('a2', false) = '1' and pg_temp.flag() = false,
-  '(c) el superadmin apaga el flag por UPDATE directo');
-select pg_temp.assert_true(pg_temp.directo('a1', true) = '0' and pg_temp.flag() = false,
-  '(c) el admin no logra el UPDATE directo');
+-- (c) Otras sesiones con el dueño de por medio (como dentro de un DEFINER).
+select pg_temp.assert_true(pg_temp.dueno('anon', null, true) ~ '^ERROR 42501',
+  '(c) anon sin sub: se niega');
+select pg_temp.assert_true(pg_temp.dueno('anon', 'a2', true) ~ '^ERROR 42501',
+  '(c) anon, aunque traiga el sub del superadmin: se niega');
+select pg_temp.assert_true(pg_temp.dueno('authenticated', null, true) ~ '^ERROR 42501',
+  '(c) authenticated sin sub: se niega');
+select pg_temp.assert_true(pg_temp.dueno(null, 'a1', true) ~ '^ERROR 42501',
+  '(c) un sub sin rol que no es superadmin: se niega');
+select pg_temp.assert_true(pg_temp.flag() = false, '(c) el flag sigue apagado');
 -- Un comercial no pasa ni la guarda de audit_d1 (no es admin del tenant).
 select pg_temp.assert_true(pg_temp.por_d1('b1', true) ~ '^ERROR 42501: permission_denied',
   '(c) el comercial no pasa audit_d1_admin_tenant');
 
--- (d) Sin sesión de usuario (service_role, migraciones, sembrado): no cambia nada.
-update public.feature_flags set enabled = true where key = 'chatwoot_portal';
-select pg_temp.assert_true(pg_temp.flag() = true, '(d) sin sesión, el UPDATE pasa');
-do $sr$
-begin
-  perform set_config('request.jwt.claim.sub', '', true);
-  set local role service_role;
-  update public.feature_flags set enabled = false where key = 'chatwoot_portal';
-  reset role;
-end;
-$sr$;
-select pg_temp.assert_true(pg_temp.flag() = false, '(d) service_role, sin sub, cambia el flag');
+-- (d) service_role y sin claims pasan.
+select pg_temp.assert_true(pg_temp.como('service_role', null, 'service_role',
+    'update public.feature_flags set enabled = true where key = ''chatwoot_portal''') = '1'
+    and pg_temp.flag() = true,
+  '(d) service_role (claims JSON) cambia el flag');
+select pg_temp.assert_true(pg_temp.dueno('service_role', null, false, 'antigua') = '1' and pg_temp.flag() = false,
+  '(d) service_role (forma antigua) cambia el flag');
+select pg_temp.assert_true(pg_temp.dueno(null, null, true, 'ninguna') = '1' and pg_temp.flag() = true,
+  '(d) sin claims (migración, job, el dueño) cambia el flag');
+select pg_temp.reponer(false);
 
--- (e) La función nueva no se concede a nadie; el ACL de las otras no cambió.
+-- (e) INSERT y DELETE: ninguna sesión los puede hacer (premisa de cubrir solo UPDATE).
+select pg_temp.assert_true(pg_temp.como('authenticated', 'a2', 'authenticated',
+    'insert into public.feature_flags (tenant_id, key, enabled) values (''11111111-1111-1111-1111-111111111111'', ''otro'', true)')
+    ~ '^ERROR 42501',
+  '(e) authenticated no inserta flags');
+select pg_temp.assert_true(pg_temp.como('authenticated', 'a2', 'authenticated',
+    'delete from public.feature_flags where key = ''chatwoot_portal''') ~ '^ERROR 42501',
+  '(e) authenticated no borra flags');
+
+-- (f) ENABLE ALWAYS: tampoco se lo salta el modo réplica.
+set local session_replication_role = replica;
+select pg_temp.assert_true(pg_temp.por_d1('a1', true) ~ '^ERROR 42501',
+  '(f) con session_replication_role = replica, el admin sigue recibiendo 42501');
+set local session_replication_role = origin;
+select pg_temp.assert_true(pg_temp.flag() = false, '(f) el flag sigue apagado');
+
+-- (g) La función nueva no se concede a nadie; el ACL de las otras no cambió.
 select pg_temp.assert_true(
     not has_function_privilege('authenticated', 'public.feature_flags_exige_superadmin()', 'EXECUTE')
     and not has_function_privilege('anon', 'public.feature_flags_exige_superadmin()', 'EXECUTE'),
-  '(e) nadie ejecuta feature_flags_exige_superadmin()');
+  '(g) nadie ejecuta feature_flags_exige_superadmin()');
 select pg_temp.assert_true(
     has_function_privilege('authenticated', 'public.audit_d1_execute(uuid,text,uuid,jsonb,text)', 'EXECUTE')
     and not has_function_privilege('anon', 'public.audit_d1_execute(uuid,text,uuid,jsonb,text)', 'EXECUTE')
     and has_function_privilege('authenticated', 'public.is_platform_admin()', 'EXECUTE')
     and not has_function_privilege('anon', 'public.is_platform_admin()', 'EXECUTE'),
-  '(e) audit_d1_execute e is_platform_admin() conservan su ACL');
+  '(g) audit_d1_execute e is_platform_admin() conservan su ACL');
 
--- (f) Idempotente: aplicarla otra vez deja un solo disparador y el mismo resultado.
+-- (h) Idempotente: aplicarla otra vez deja un solo disparador y el mismo resultado.
 \ir ../migrations/0543_feature_flags_exige_superadmin.sql
 select pg_temp.assert_true(
     (select count(*) from pg_trigger where tgrelid = 'public.feature_flags'::regclass
-       and tgname = 'feature_flags_exige_superadmin') = 1
+       and tgname = 'feature_flags_exige_superadmin' and tgenabled = 'A') = 1
     and pg_temp.por_d1('a1', true) ~ '^ERROR 42501'
     and pg_temp.por_d1('a2', true) = 'ok',
-  '(f) la segunda aplicación deja el mismo resultado');
+  '(h) la segunda aplicación deja el mismo resultado');
 
 select 'TEST 0543: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 
