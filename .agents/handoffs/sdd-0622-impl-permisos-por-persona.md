@@ -448,3 +448,21 @@ procedimiento y blindaje. Sin vitest ni verify en esta vuelta: el turno lo pide 
 - `docs:check` y `sdd:check`: PASÓ.
 
 **Allowlist:** suma `migrations-baseline.json` y `pending-migration-symbol-declarations.json`.
+
+**Corrección de procedimiento (DG):** los contratos de PGlite de esta vuelta los corrí sin turno; cualquier corrida de
+pruebas, aunque sea un script corto de PGlite, necesita turno. No se repite.
+
+### Corrida con turno sobre `e95920324` (2026-11-14, W-509)
+
+| Comprobación | Resultado |
+|---|---|
+| Focales vitest (13 archivos): `user-module-grants.migration`, `AccesoPanel`, `RolYAlcanceCard`, `actividad-acceso`, `rbac.test`, `rbac-actions-guard`, `rbac-view-guard`, `page-gates-sensibles`, `crm/tarjeta-actions-gate`, `crm/lecturas-y-conversion-gate`, `global-search/search-action`, `infra/ops/tests/migraciones.test.mjs` y `scripts/check-migrations-applied.test.mjs` | PASÓ: 787/787 en 111 s, sin caídas por forks ni timeout. Los dos últimos son archivos de vitest (importan `vitest`), no de `node --test`, así que los corrí con vitest |
+| `pnpm typecheck` | PASÓ |
+| `pnpm lint` | PASÓ: 0 errores y 18 advertencias, ninguna en archivos de esta PR |
+| `pnpm verify`: harness, lint, rsc-boundary, typecheck, edge-functions | PASÓ |
+| `pnpm verify`: test | FALLÓ en la 1.ª pasada. `scripts/__tests__/entorno-prueba-scripts.test.mjs` › «las pruebas con dobles salen con 0 FALLÓ» llegó al timeout de 600 s. Es el mismo timeout que figura arriba en la 1.ª corrida de esta tarea, y pasó en la `verify` sobre `ea59a6921`. `verify` arrancó su reintento propio («flaky conocido») y **lo detuve ahí** por la orden de parar ante un rojo, sin arreglar nada |
+| `pnpm verify`: docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, e2e, build | NO EJECUTADO (corrida detenida) |
+| `pnpm verify`: migrations-applied, sql-tests, schema-rebuild | NO EJECUTADO (además, sin `.env.local` ni Docker serían NO DISPONIBLE) |
+
+Duración: focales unos 2 min (21:28 → 21:30); typecheck 1 min 20 s; lint 1 min 40 s; `verify`, 16 min hasta que lo
+detuve (21:34 → 21:50).
