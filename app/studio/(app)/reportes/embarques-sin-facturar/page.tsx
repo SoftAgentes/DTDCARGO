@@ -12,6 +12,7 @@
 
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -69,7 +70,8 @@ export default async function EmbarquesSinFacturarPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)", maxWidth: 1280, width: "100%", minWidth: 0 }}>
       <header style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
-        <Link href="/studio/reportes?cat=con" style={{ font: "600 12px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
+        {/* SDD-0603 · tramo 5e: lo que se oprime lleva contorno y no baja de 32 px. */}
+        <Link href="/studio/reportes?cat=con" className="studio-btn studio-btn-ghost studio-btn-sm" style={{ alignSelf: "flex-start" }}>
           ← Reportes
         </Link>
         <span className="studio-eyebrow">Reportes · Contables</span>
@@ -84,16 +86,16 @@ export default async function EmbarquesSinFacturarPage() {
       </header>
 
       {!r.tarifasDisponibles && (
-        <p role="status" style={{ margin: 0, padding: "10px 12px", borderRadius: "var(--r-sm)", background: "var(--warning-bg)", color: "var(--ink)", font: "600 12.5px/1.4 var(--f-sans)" }}>
+        <Aviso tono="atencion">
           La tarifa congelada todavía no está disponible en esta base. No se pueden determinar sus importes;
           la prioridad de las recepciones que ya llegaron se conserva.
-        </p>
+        </Aviso>
       )}
       {!r.completo && (
-        <p role="status" style={{ margin: 0, padding: "10px 12px", borderRadius: "var(--r-sm)", background: "var(--warning-bg)", color: "var(--ink)", font: "600 12.5px/1.4 var(--f-sans)" }}>
+        <Aviso tono="atencion">
           Lectura parcial: se alcanzó el tope de páginas. Cantidades y subtotales describen solo la parte leída;
           no permiten concluir el total de pendientes.
-        </p>
+        </Aviso>
       )}
 
       <p role="status" aria-label="Resumen global por facturar" style={{ margin: 0, font: "500 13px/1.5 var(--f-sans)", color: "var(--ink)", overflowWrap: "anywhere" }}>

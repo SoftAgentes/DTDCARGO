@@ -33,7 +33,7 @@
   ],
   "api": {
     "contractPath": "docs/specs/0628-aviso-studio/spec.md",
-    "summary": "Tonos info, atencion, exito y error; título y acción opcionales (botón secundario existente); urgente fuerza role=alert; compacto para drawers. Error y urgente son alert; el resto, status. Color en studio.css, nunca en línea."
+    "summary": "Tonos info, atencion, exito y error; título y acción opcionales (botón secundario existente); urgente fuerza role=alert; compacto para drawers; tabIndex y ref para que el formulario le lleve el foco al error bloqueante, sin cambiar aspecto ni rol. Error y urgente son alert; el resto, status. Color en studio.css, nunca en línea."
   },
   "tokens": [],
   "accessibility": {
@@ -66,7 +66,7 @@
     {
       "type": "accessibility",
       "path": "app/studio/_components/ui/Aviso.test.tsx",
-      "case": "Rol por tono, urgente, icono aria-hidden con forma distinta, acción por teclado y sin color en línea."
+      "case": "Rol por tono, urgente, icono aria-hidden con forma distinta, acción por teclado, sin color en línea y foco por programa (tabIndex y ref) sin cambiar rol ni marcado."
     },
     {
       "type": "visual",
@@ -78,6 +78,10 @@
     {
       "path": "app/studio/_components/ui/ErrorAlert.tsx",
       "verifiedAt": "2026-11-13"
+    },
+    {
+      "path": "app/studio/(app)/nomina/_components/form-bits.tsx",
+      "verifiedAt": "2026-11-14"
     }
   ],
   "review": {

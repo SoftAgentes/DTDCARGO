@@ -12,9 +12,13 @@
  * Uso:
  *   <Aviso tono="atencion" titulo="Falta el peso">Cotiza con un asesor.</Aviso>
  *   <Aviso tono="error" accion={{ etiqueta: "Reintentar", onClick: retry }}>No se pudo guardar.</Aviso>
+ *
+ * Foco (enmienda de SDD-0603, menores del Studio): `tabIndex` y `ref` dejan que
+ * el formulario le lleve el foco al error bloqueante (ERR-01). El aviso no lo
+ * toma solo, y ninguna de las dos props cambia su aspecto ni su `role`.
  */
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { StatusIcon } from "@/components/StatusIcon";
 
 export type AvisoTono = "info" | "atencion" | "exito" | "error";
@@ -39,6 +43,13 @@ export interface AvisoProps {
   urgente?: boolean;
   /** Padding y fuente reducidos, para drawers y menús densos. */
   compacto?: boolean;
+  /**
+   * Para recibir el foco por programa. Usa `-1`: se puede enfocar y queda fuera
+   * del orden de Tab. `useDialogA11y` busca `[role="alert"][tabindex="-1"]`.
+   */
+  tabIndex?: number;
+  /** Referencia a la franja, para enfocarla desde el formulario que la muestra. */
+  ref?: Ref<HTMLDivElement>;
   id?: string;
   className?: string;
 }
@@ -62,6 +73,8 @@ export function Aviso({
   accion,
   urgente = false,
   compacto = false,
+  tabIndex,
+  ref,
   id,
   className,
 }: AvisoProps) {
@@ -70,7 +83,14 @@ export function Aviso({
     .join(" ");
 
   return (
-    <div id={id} role={rolDeAviso(tono, urgente)} data-tono={tono} className={clases}>
+    <div
+      ref={ref}
+      id={id}
+      role={rolDeAviso(tono, urgente)}
+      tabIndex={tabIndex}
+      data-tono={tono}
+      className={clases}
+    >
       <StatusIcon tone={ICONO[tono]} size={compacto ? 14 : 16} />
       <div className="studio-aviso-cuerpo">
         {titulo ? <strong className="studio-aviso-titulo">{titulo}</strong> : null}

@@ -35,6 +35,8 @@ import { fmtAmount } from "./format";
 import { StatementDrawer } from "./StatementDrawer";
 import { LineMatchDrawer } from "./LineMatchDrawer";
 import { setLineStatus } from "../reconcile-actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { Icon } from "@/app/studio/_components/icons";
 
 export function ConciliacionTab({
   statements,
@@ -92,67 +94,93 @@ export function ConciliacionTab({
         <div className="studio-eyebrow">Extractos</div>
         {statements.map((s) => {
           const active = activeStatement?.id === s.id;
+          // Abre el detalle debajo; si ya está abierto, lo cierra (como antes).
+          const hrefToggle = active
+            ? "/studio/contabilidad?tab=conciliacion"
+            : `/studio/contabilidad?tab=conciliacion&extracto=${s.id}`;
+          // SDD-0603 · tramo 5b: la fila sigue abriendo y cerrando con el
+          // ratón, pero sale del Tab; la parada de teclado es «Abrir»/«Cerrar».
+          // El extracto abierto lleva contorno y botón de tinta, no vino.
           return (
-            <a
+            <div
               key={s.id}
-              href={
-                active
-                  ? "/studio/contabilidad?tab=conciliacion"
-                  : `/studio/contabilidad?tab=conciliacion&extracto=${s.id}`
-              }
+              data-row-id={s.id}
+              data-active={active ? "true" : "false"}
               style={{
                 display: "grid",
-                gridTemplateColumns: "120px 1fr 160px 120px",
+                gridTemplateColumns: "minmax(0, 1fr) 92px",
                 gap: 14,
                 alignItems: "center",
                 padding: "13px 18px",
-                background: active ? "var(--wine-tint)" : "var(--bg-surface)",
-                border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                background: "var(--bg-surface)",
+                border: `1px solid ${active ? "var(--ctl-border)" : "var(--border)"}`,
                 borderRadius: "var(--r-lg)",
-                textDecoration: "none",
               }}
             >
-              <span
+              <a
+                tabIndex={-1}
+                href={hrefToggle}
                 style={{
-                  font: "700 12px/1 var(--f-mono)",
-                  color: "var(--ink)",
-                  letterSpacing: "0.02em",
+                  display: "grid",
+                  gridTemplateColumns: "120px 1fr 160px 120px",
+                  gap: 14,
+                  alignItems: "center",
+                  textDecoration: "none",
+                  color: "inherit",
                 }}
               >
-                {s.period_label}
-              </span>
-              <span
-                style={{
-                  font: "600 12.5px/1.3 var(--f-sans)",
-                  color: "var(--ink)",
-                }}
-              >
-                {s.bank_name ?? s.account_name ?? "Extracto"}
                 <span
                   style={{
-                    font: "500 11px/1 var(--f-mono)",
-                    color: "var(--ink-soft)",
-                    marginLeft: 8,
+                    font: "700 12px/1 var(--f-mono)",
+                    color: "var(--ink)",
+                    letterSpacing: "0.02em",
                   }}
                 >
-                  {s.account_code}
+                  {s.period_label}
                 </span>
-              </span>
-              <span
-                style={{
-                  font: "700 13px/1 var(--f-mono)",
-                  color: "var(--ink)",
-                  textAlign: "right",
-                }}
+                <span
+                  style={{
+                    font: "600 12.5px/1.3 var(--f-sans)",
+                    color: "var(--ink)",
+                  }}
+                >
+                  {s.bank_name ?? s.account_name ?? "Extracto"}
+                  <span
+                    style={{
+                      font: "500 11px/1 var(--f-mono)",
+                      color: "var(--ink-soft)",
+                      marginLeft: 8,
+                    }}
+                  >
+                    {s.account_code}
+                  </span>
+                </span>
+                <span
+                  style={{
+                    font: "700 13px/1 var(--f-mono)",
+                    color: "var(--ink)",
+                    textAlign: "right",
+                  }}
+                >
+                  ${fmtAmount(s.closing_balance)}
+                </span>
+                <span style={{ textAlign: "right" }}>
+                  <Badge tone={statementStatusBadgeTone(s.status)} size="sm">
+                    {statementStatusLabel(s.status)}
+                  </Badge>
+                </span>
+              </a>
+              <a
+                href={hrefToggle}
+                className={`studio-btn ${active ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-sm`}
+                aria-label={`${active ? "Cerrar" : "Abrir"} extracto ${s.period_label}${s.account_code ? ` · ${s.account_code}` : ""}`}
+                aria-expanded={active}
+                style={{ justifySelf: "end" }}
               >
-                ${fmtAmount(s.closing_balance)}
-              </span>
-              <span style={{ textAlign: "right" }}>
-                <Badge tone={statementStatusBadgeTone(s.status)} size="sm">
-                  {statementStatusLabel(s.status)}
-                </Badge>
-              </span>
-            </a>
+                {active ? "Cerrar" : "Abrir"}
+                {active ? Icon.chevU(14) : Icon.chevR(14)}
+              </a>
+            </div>
           );
         })}
       </div>
@@ -486,19 +514,8 @@ function BalanceCell({
 
 function ErrorBanner({ msg }: { msg: string }) {
   return (
-    <p
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: "0 0 12px",
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
-      {msg}
-    </p>
+    <div style={{ marginBottom: 12 }}>
+      <Aviso tono="error">{msg}</Aviso>
+    </div>
   );
 }

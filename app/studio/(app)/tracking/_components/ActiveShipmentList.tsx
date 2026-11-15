@@ -199,106 +199,106 @@ export function ActiveShipmentList({
                   borderRadius: 8,
                 }}
               >
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={() => selectShipment(s.id)}
-                style={{
-                  width: "100%",
-                  display: "block",
-                  textAlign: "left",
-                  padding: 0,
-                  background: "transparent",
-                  border: 0,
-                  cursor: "pointer",
-                  color: "inherit",
-                  font: "inherit",
-                }}
-              >
-                <div
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => selectShipment(s.id)}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 8,
-                    gap: 8,
+                    width: "100%",
+                    display: "block",
+                    textAlign: "left",
+                    padding: 0,
+                    background: "transparent",
+                    border: 0,
+                    cursor: "pointer",
+                    color: "inherit",
+                    font: "inherit",
                   }}
                 >
-                  <code
-                    style={{
-                      font: "800 12px/1 var(--f-mono)",
-                      color: "var(--ink)",
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    {s.code}
-                  </code>
-                  <StatusBadge status={s.status} />
-                </div>
-
-                <div
-                  style={{
-                    font: "600 12.5px/1.3 var(--f-sans)",
-                    color: "var(--ink)",
-                  }}
-                >
-                  {etiquetaDelCliente(s, nombresOcultos)}
-                </div>
-
-                {(s.origin || s.destination) && (
                   <div
                     style={{
-                      font: "500 11px/1.3 var(--f-sans)",
-                      color: "var(--ink-soft)",
-                      marginTop: 3,
-                      letterSpacing: "0.02em",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 8,
+                      gap: 8,
                     }}
                   >
-                    {s.origin ?? "?"} → {s.destination ?? "?"}
+                    <code
+                      style={{
+                        font: "800 12px/1 var(--f-mono)",
+                        color: "var(--ink)",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {s.code}
+                    </code>
+                    <StatusBadge status={s.status} />
                   </div>
-                )}
 
-                {/* Progress bar */}
-                <div
-                  style={{
-                    height: 4,
-                    background: "var(--bg-elevated)",
-                    borderRadius: 4,
-                    marginTop: 10,
-                    overflow: "hidden",
-                  }}
-                  aria-hidden
-                >
                   <div
                     style={{
-                      width: `${progress}%`,
-                      height: "100%",
-                      background: isAlert
-                        ? "var(--warning)"
-                        : "var(--wine)",
-                      transition: "width 240ms",
+                      font: "600 12.5px/1.3 var(--f-sans)",
+                      color: "var(--ink)",
                     }}
-                  />
-                </div>
+                  >
+                    {etiquetaDelCliente(s, nombresOcultos)}
+                  </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 8,
-                    marginTop: 6,
-                    font: "600 10.5px/1 var(--f-mono)",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  <span>{progress}%</span>
-                  {adjuntos !== null && (
-                    <AdjuntosDeTarjeta conteo={adjuntos[s.id]} />
+                  {(s.origin || s.destination) && (
+                    <div
+                      style={{
+                        font: "500 11px/1.3 var(--f-sans)",
+                        color: "var(--ink-soft)",
+                        marginTop: 3,
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {s.origin ?? "?"} → {s.destination ?? "?"}
+                    </div>
                   )}
-                  <span>ETA {formatEta(s.arrived_destination_at)}</span>
-                </div>
-              </button>
+
+                  {/* Progress bar */}
+                  <div
+                    style={{
+                      height: 4,
+                      background: "var(--bg-elevated)",
+                      borderRadius: 4,
+                      marginTop: 10,
+                      overflow: "hidden",
+                    }}
+                    aria-hidden
+                  >
+                    <div
+                      style={{
+                        width: `${progress}%`,
+                        height: "100%",
+                        background: isAlert
+                          ? "var(--warning)"
+                          : "var(--wine)",
+                        transition: "width 240ms",
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                      marginTop: 6,
+                      font: "600 10.5px/1 var(--f-mono)",
+                      color: "var(--ink-soft)",
+                    }}
+                  >
+                    <span>{progress}%</span>
+                    {adjuntos !== null && (
+                      <AdjuntosDeTarjeta conteo={adjuntos[s.id]} />
+                    )}
+                    <span>ETA {formatEta(s.arrived_destination_at)}</span>
+                  </div>
+                </button>
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
                   <button
                     type="button"
