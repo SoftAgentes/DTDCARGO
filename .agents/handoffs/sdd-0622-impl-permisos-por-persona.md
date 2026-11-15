@@ -206,11 +206,11 @@ su sección, al final. Ver `git log origin/main..HEAD`.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **El borrado lógico con la sesión ya fallaba antes de esta PR** en rates, quotes, conversations, purchase_orders y
-  sales_orders (`cotizador/actions.ts:499`, `tarifas/actions.ts:260`). Postgres aplica la policy de SELECT a la fila
-  nueva de un UPDATE que lee la tabla, y la `for all` filtraba `deleted_at is null`. Lo medí en PGlite con la policy
-  vieja y con la nueva: falla igual, así que la 0540 no lo arregla ni lo empeora. Arreglo posible: una policy de SELECT
-  aparte que deje ver lo borrado a quien edita, o RPC de borrado.
+- ~~El borrado lógico con la sesión ya fallaba antes de esta PR~~ **(corregido el 2026-11-14, revisión Opus del
+  delta):** era falso. La medición usó la policy de antes de la 0230, que ya había quitado el filtro de borrado del
+  USING de las FOR ALL. Con la 0230 aplicada, el borrado lógico con la sesión funciona (`cotizador/actions.ts:497-500`
+  y `tarifas/actions.ts:258-261`). La primera versión de la 0540 lo **rompía** al volver a filtrar `deleted_at` en sus
+  SELECT. Arreglo y prueba: ver «Revisión Opus del delta sobre `69d71f7cf`».
 - **La propuesta de tarifa de la CN** (`cn/rate-snapshot-actions.ts`) lee rates, quotes y sales_orders con la sesión
   de almacén, así que «almacén no lee tarifas» se cumple solo fuera de la CN (scope VE). Para cerrarlo del todo, esa
   lectura tendría que pasar a service_role tras su gate `cn`; es del carril CN y no lo toqué.
@@ -498,3 +498,76 @@ detuve (21:34 → 21:50).
 
 `verify`: exit 0 y CIERRE INCOMPLETO (14/17 medidas, sin fallos). Duración: focales 31 s (21:57:22 → 21:57:53),
 entorno-prueba-scripts 2 min 30 s (21:57:59 → 22:00:29) y `verify` 36 min 49 s (22:00:49 → 22:37:38).
+
+## Revisión Opus del delta sobre `69d71f7cf`: CAMBIOS (2026-11-14, vuelta W-509)
+
+Hubo dos bloqueantes que vienen de la 0230. Esta vuelta fue sin pruebas, solo con scripts livianos; el turno lo pide
+el Director.
+
+- **B1 · El fixture y las huellas, después de la 0230.**
+  - El fixture aplica la 0230 real (`supabase/tests/0540_comercial_rls_por_modulo.test.sql:252`, `\ir`) después de
+    copiar las policies de 0012, 0106, 0124 y 0125.
+  - Huellas nuevas del preflight (`0540:109-118`):
+    - `rates by tenant` y `quotes by tenant` → `5b84860214a7eeed1bd1cd67c154b817`;
+    - `conversations`, `purchase_orders` y `sales_orders` «by tenant» → `166af3198bb588089bebf7ac447ad386`, la misma que
+      la 0511 midió en producción.
+  - **Cómo las calculé sin PGlite:** reconstruí con `md5` de Node las expresiones que da PostgreSQL al leer la policy.
+    Primero comprobé la reconstrucción contra cuatro huellas ya medidas (`8a6363ce…`, `166af319…`, `2f1c848a…` y
+    `79e4eb54…`). Las cuatro coinciden. Después apliqué la expresión regular de la 0230 (`0230:36`). Se confirma con
+    el contrato en la vuelta con turno.
+  - Las derivas (`user-module-grants.migration.test.ts`):
+    - «rates by tenant con otra expresión» ahora inyecta `tenant_id is not null`, una deriva verdadera;
+    - se suma «sin la 0230», que quita el `\ir` y tiene que abortar;
+    - el estado real lo cubre el contrato verde.
+- **B2 · Lecturas sin `deleted_at`.**
+  - Las 5 SELECT nuevas ya no filtran lo borrado: `0540:166`, `:185`, `:204`, `:236` y `:268`.
+  - Update y delete conservan `deleted_at is null` en su USING, que solo mira la fila vieja.
+  - Comprobé que la app filtra lo borrado en las consultas de las 5 tablas. La excepción es
+    `lib/studio/conversaciones/messages-queries.ts:120-129`, que lee y suma `unread_count` por id de conversación. Lo
+    acota el tenant y el módulo; no es una fuga.
+- **Aserciones nuevas** (sección 7, `test.sql:475` y `:479`): comercial borra una tarifa y admin borra una cotización,
+  las dos con la sesión, con `update … set deleted_at = now() where id = …`, y ninguno es dueño de la fila.
+  - `3d2` ahora afirma que la RLS no oculta lo borrado; `3d3`, que lo borrado ya no se edita.
+  - Dos mutantes reponen el filtro: el de tarifas cae en `7a` y el de cotizaciones en `3d2`.
+- **Textos falsos corregidos:** `0540:44-51`, `test.sql:383-385`, spec §13.4 y este handoff («FUERA DE ALCANCE»).
+- **Media:** spec §13.2 ahora dice que la decisión de §9.1 hoy no se puede cumplir, ni por pantalla ni por RPC, hasta
+  que se cubra algún sensible.
+- **Bajas:**
+  - `set local lock_timeout`/`statement_timeout` en `0540:60-61`.
+  - Postflight con el conjunto exacto final de 37 policies en `0540:319-…`. Va después de la comprobación «sin
+    módulo», para que los mutantes TO public y portal sigan cayendo con su mensaje.
+  - Motivo del orden: «hoy no hay dependencia técnica; se ordena por la fase 8», en `0538:7-10` y en las tres
+    entradas de la baseline.
+- **anon (revisión, sin cambio):**
+  - En el repo ninguna de las 8 tablas tiene policy `to anon` (solo authenticated, service_role y las dos del portal,
+    que son de authenticated). Con RLS activa y sin policy, anon no lee ni escribe nada, tenga los grants que tenga.
+  - `chatwoot_conversations` además revoca todo a anon (`0504:122`).
+  - Los grants por defecto de Supabase a anon no se pueden medir en el repo. Que el DG los mida en el catálogo de
+    producción; no se cambian.
+
+**Propuesta para el punto 3:** ninguna distinta. Sacar el filtro de las SELECT es lo que decidió la 0230 y lo que
+espera la app.
+
+**Límite conocido (fase 8, overrides).**
+
+`softDeleteEntry` (`app/studio/(app)/contabilidad/actions.ts:428-431`) borra de forma lógica `journal_entries` con
+la sesión, detrás de `moduleEditGate("accounting")`. Si un override (`studio_role_module_overrides`) le da a otro rol
+la edición de accounting, el gate lo deja pasar. Pero la lectura de la 0528 (`journal_entries_money_select`,
+`0528:189-195`) decide con `studio_can_read_money()`, que solo mira el rol (accounting o admin). Entonces el update
+afecta 0 filas y la app responde `CAMBIO_NO_CONFIRMADO`.
+
+Falla cerrado: no hay fuga ni corrupción. Se resuelve en la fase 8 de la 0622, cuando `studio_can_read_money()` sume
+los overrides y los extras. Es de la misma familia que el H6 (Reclamos sin overrides).
+
+Esa SELECT de la 0528 no filtra `deleted_at`, así que no repite el problema de la 0230.
+
+**Scripts livianos:**
+- `check-pending-migration-symbols`: 0 ROJO y 3 AMARILLO. Los sitios de código no se movieron, así que las
+  declaraciones siguen válidas.
+- `migrations-lock`: 522 selladas y 4 esperas.
+- `docs:check` (617 specs) y `sdd:check`: PASÓ.
+
+**Focales para la vuelta con turno:**
+- `lib/studio/__tests__/user-module-grants.migration.test.ts`, con el contrato 0540 y sus mutantes y derivas nuevos.
+- `infra/ops/tests/migraciones.test.mjs` y `scripts/check-migrations-applied.test.mjs`, porque leen la baseline.
+- Recomiendo `pnpm verify` completo.

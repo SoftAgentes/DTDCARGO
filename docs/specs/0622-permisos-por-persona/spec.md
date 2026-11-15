@@ -540,9 +540,12 @@ Detalles de diseño que se fijaron al construir:
 - **Dinero (R3):** no se tocó ninguna función ni política de dinero. En la pantalla los módulos de dinero salen como
   «Requiere fase de dinero» y no se ofrecen. La suma de extras se hará redefiniendo `studio_can_read_money()`
   (0528, SDD-0624, PR #515).
-- **Doble aviso:** el diálogo está hecho y probado, pero hoy ningún módulo sensible está «cubierto», así que la
-  pantalla no lo abre; la RPC sí lo acepta con confirmación. Abrir uno es mover su entrada en `GRANT_COVERAGE`
-  cuando su base acepte el extra.
+- **Doble aviso:** el diálogo está hecho y probado, pero hoy ningún módulo sensible está «cubierto». La pantalla
+  no lo abre y la RPC tampoco lo acepta: desde la revisión de la #509 rechaza todo lo que no esté en la lista cubierta
+  (`0538_studio_user_module_grants.sql`, `studio_module_is_grantable`), aunque venga con confirmación. Por eso la
+  decisión de §9.1 de Sam (los extras abren módulos sensibles, con doble aviso) **hoy no se puede cumplir, ni por
+  pantalla ni por RPC**, hasta que se cubra algún sensible (§13.3.3). Abrir uno es moverlo a `COVERED` y a
+  `studio_module_is_grantable` cuando su base acepte el extra.
 - **Bandeja:** no se ofrece; el ciclo de agentes de Chatwoot decide solo por rol y es del carril de Chatwoot.
 - **Rol `custom` (fase 6):** no está en la #509.
 - **Acciones sacadas de DEUDA** del anti-drift: `lookupSuggestedRate`, `lookupRateForNewDestination` y
@@ -567,8 +570,10 @@ tenants por persona habría que filtrar por el tenant activo.
 
 ### 13.4 Fuera de alcance detectado por la implementación
 
-- El borrado lógico con la sesión ya fallaba antes en rates, quotes, conversations, purchase_orders y sales_orders
-  (`cotizador/actions.ts:499`, `tarifas/actions.ts:260`); la 0540 no lo arregla ni lo empeora.
+- Borrado lógico con la sesión en rates, quotes, conversations, purchase_orders y sales_orders
+  (`cotizador/actions.ts:497-500`, `tarifas/actions.ts:258-261`): funciona desde la 0230, que quitó el filtro de
+  borrado del USING de las FOR ALL. La 0540 lo conserva: sus lecturas no filtran `deleted_at` (lo hace la app), y el
+  contrato lo prueba con la sesión y con un rol que no es dueño de la fila (sección 7).
 - La propuesta de tarifa de la CN (`cn/rate-snapshot-actions.ts`) lee con la sesión de almacén; es del carril CN.
 - `bandeja/page.tsx:100` y `lib/studio/chatwoot/agentes-ciclo.ts:87` evalúan la Bandeja de terceros solo por rol y
   desvío; habrá que tocarlos si se abre.
