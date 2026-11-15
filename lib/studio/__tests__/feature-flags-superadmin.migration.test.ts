@@ -23,7 +23,7 @@ const FILE_0289 = read(resolve(ROOT, "supabase/migrations/0289_audit_d1_access_c
 const C0543 = resolve(ROOT, "supabase/tests/0543_feature_flags_exige_superadmin.test.sql");
 const CONTRATO = read(C0543);
 const SLOW = 120_000;
-const VERDE = "TEST 0543: 25 aserciones OK";
+const VERDE = "TEST 0543: 27 aserciones OK";
 
 /** psql → SQL plano: quita \set e inlinea \ir. `replace` sustituye un archivo por el final de su ruta. */
 function inline(file: string, replace: Record<string, string> = {}): string {
@@ -209,6 +209,11 @@ describe("SDD-0634 · la 0543 en PGlite", () => {
     const r = await contract({}, antesDeLa0543(
       "alter function public.audit_d1_execute(uuid,text,uuid,jsonb,text) security invoker;"));
     expect(r.error).toMatch(/0543 requiere public.audit_d1_execute DEFINER/);
+  }, SLOW);
+
+  it("PREFLIGHT: aborta si anon puede actualizar flags", async () => {
+    const r = await contract({}, antesDeLa0543("grant update on public.feature_flags to anon;"));
+    expect(r.error).toMatch(/0543: anon puede actualizar feature_flags/);
   }, SLOW);
 
   it("PREFLIGHT: aborta si authenticated puede insertar o borrar flags (el disparador solo cubre UPDATE)", async () => {

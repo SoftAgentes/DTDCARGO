@@ -83,10 +83,38 @@ describe("toggleFeatureFlagAction", () => {
     // Después de `accion()`: tras resetModules, la clase es la que ve la acción.
     const toggle = await accion();
     const { D1OperationError } = await import("@/lib/studio/audit/d1-access-config-adapters");
-    executeD1.mockRejectedValue(new D1OperationError("permission_denied"));
+    executeD1.mockRejectedValue(new D1OperationError("permission_denied",
+      "Solo el superadministrador puede encender o apagar módulos"));
     const r = await toggle({}, form("on"));
     expect(r).toEqual({ error: SUPERADMIN_DENIAL, flagKey: KEY });
     expect(revalidate).not.toHaveBeenCalled();
+  });
+
+  it("SDD-0634: superadmin que no es admin del equipo (audit_d1_admin_tenant): no le dice «no eres superadministrador»", async () => {
+    rpc.mockResolvedValue({ data: true, error: null });
+    const toggle = await accion();
+    const { D1OperationError } = await import("@/lib/studio/audit/d1-access-config-adapters");
+    executeD1.mockRejectedValue(new D1OperationError("permission_denied", "permission_denied"));
+    const r = await toggle({}, form("on"));
+    expect(r.flagKey).toBe(KEY);
+    expect(r.error).toMatch(/tienes que ser también su administrador/);
+    expect(r.error).not.toMatch(/No eres superadministrador/);
+  });
+
+  it("SDD-0634: el adaptador real conserva el mensaje de la base para distinguir las dos causas", async () => {
+    const real = await vi.importActual<typeof import("@/lib/studio/audit/d1-access-config-adapters")>(
+      "@/lib/studio/audit/d1-access-config-adapters");
+    const db = (message: string) => ({
+      rpc: async () => ({ data: null, error: { code: "42501", message } }),
+    }) as never;
+    const err = await real.executeD1Operation(
+      db("Solo el superadministrador puede encender o apagar módulos"),
+      { operationType: "feature_flag.toggle", input: {} },
+    ).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(real.D1OperationError);
+    expect((err as InstanceType<typeof real.D1OperationError>).code).toBe("permission_denied");
+    expect((err as InstanceType<typeof real.D1OperationError>).dbMessage).toMatch(/^Solo el superadministrador/);
+    expect((err as Error).message).toBe("permission_denied");
   });
 
   it("éxito del superadmin: guarda lo pedido y revalida", async () => {

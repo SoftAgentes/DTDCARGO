@@ -21,6 +21,10 @@ import { SUPERADMIN_DENIAL, platformAdminDenial } from "@/lib/studio/platform-ad
 import { D1OperationError, executeD1Operation } from "@/lib/studio/audit/d1-access-config-adapters";
 import { FEATURE_FLAG_KEYS, type FeatureFlagKey } from "@/lib/studio/feature-flags-types";
 
+/** El superadmin que no es admin de este equipo (la guarda de audit_d1_execute). */
+const NO_ES_ADMIN_DEL_EQUIPO =
+  "Para encender o apagar los módulos de este equipo tienes que ser también su administrador. Si lo eres, vuelve a iniciar sesión.";
+
 export interface ToggleFlagState {
   ok?: boolean;
   error?: string;
@@ -57,12 +61,19 @@ export async function toggleFeatureFlagAction(
       input: { key, enabled },
     });
   } catch (err) {
-    // SDD-0634: desde la 0543 la base frena por su cuenta (42501 →
-    // permission_denied) a quien no es superadmin, por cualquier camino. Si
-    // llega aquí, la comprobación de arriba dijo que sí y la base dijo que no:
-    // manda la base, con el mismo aviso.
+    // SDD-0634: dos causas dan `permission_denied` (42501):
+    //  · el disparador de la 0543: la base dice que no es superadmin (manda
+    //    la base, con el mismo aviso);
+    //  · `audit_d1_admin_tenant` (0289): es superadmin, pero no admin de este
+    //    tenant (o la sesión se perdió). Decirle «no eres superadministrador»
+    //    sería falso.
     if (err instanceof D1OperationError && err.code === "permission_denied") {
-      return { error: SUPERADMIN_DENIAL, flagKey: key };
+      return {
+        error: err.dbMessage?.includes("Solo el superadministrador")
+          ? SUPERADMIN_DENIAL
+          : NO_ES_ADMIN_DEL_EQUIPO,
+        flagKey: key,
+      };
     }
     return {
       error: "No se pudo guardar el cambio del módulo. Intenta de nuevo.",

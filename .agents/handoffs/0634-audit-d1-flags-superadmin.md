@@ -20,11 +20,28 @@
    - **El preflight y el postflight:** el preflight guarda el ACL de `audit_d1_execute` y el de `is_platform_admin()`, y el postflight los exige iguales. Es la lección de la 0542.
    - **La espera:** está declarada en `migrations-baseline.json`.
 2. **El contrato:**
-   - `supabase/tests/0543_….test.sql`, de 25 aserciones, más su envoltorio PGlite `lib/studio/__tests__/feature-flags-superadmin.migration.test.ts`.
-   - Ese envoltorio trae 3 anti-drift contra la 0289, el control rojo, 13 mutantes de la migración (los (a) a (e) del DG y los del postflight) y 3 del preflight.
+   - `supabase/tests/0543_….test.sql`, de 27 aserciones, más su envoltorio PGlite `lib/studio/__tests__/feature-flags-superadmin.migration.test.ts`.
+   - Ese envoltorio trae 3 anti-drift contra la 0289, el control rojo, 12 mutantes de la migración (los (a) a (e) del DG, ENABLE ALWAYS y los del postflight) y 4 del preflight: 21 casos en total, contados contra el archivo. La revisión de la #578 corrigió el conteo anterior, que decía «13».
    - **El primer intento de la focal salió rojo, 3 de 22.** Tres mutantes caían en otra aserción que la esperada: el bloque (d) no capturaba su error, y dos mutantes del preflight rompían el fixture antes del bloque (0). Se arregló sin relajar ningún regex, y no se publicó.
 3. **La server action** (`feature-flags/actions.ts`): `permission_denied` del guardado se convierte en `SUPERADMIN_DENIAL`, el aviso de la #574. Tiene su caso en `aviso-superadmin.test.tsx`, y el mock del adaptador D1 ahora conserva `D1OperationError`.
 4. **Los comentarios** de `feature-flags/actions.ts` y `lib/studio/platform-admin.ts` nombran el disparador como control real.
+
+## La revisión Opus de la #578 (sobre 9910a7541): CAMBIOS REQUERIDOS solo por M1
+
+- **M1, resuelto por medición del DG.** No cambió la migración. El revisor sospechaba que en producción authenticated tuviera INSERT o DELETE fuera de banda, como las tablas de la 0399 y la 0465. Eso haría abortar el preflight que exige lo contrario.
+  - **Medido por el DG en el catálogo de producción, en solo lectura con rollback, el 2026-11-15 a las 08:55Z:** `relacl` = `{postgres=arwdDxtm, service_role=arwdDxtm, authenticated=rw}`.
+  - `has_table_privilege`: authenticated tiene UPDATE = t e INSERT, DELETE y TRUNCATE = f. anon tiene las cuatro en f.
+  - RLS activa, sin FORCE.
+  - Policies: `feature_flags_no_insert_authenticated` (check false), `feature_flags_no_delete_authenticated` (using false), `feature_flags_platform_admin_update`, `feature_flags_tenant_select` y `service_role_all_feature_flags`.
+  - **La conclusión:** el preflight pasa en producción.
+- **B1:** el preflight exige además que anon no tenga UPDATE sobre la tabla. El contrato suma claims `{}` (sin rol ni sub: pasa, como sin claims) y JSON inválido (falla cerrado con 22P02 y el flag no cambia).
+- **B2:** `permission_denied` viene de dos causas.
+  - **El disparador**, que dice que no es superadmin. Va con «No eres superadministrador…».
+  - **`audit_d1_admin_tenant`**, que dice que es superadmin pero no admin de este equipo, o que la sesión se perdió. Va con «tienes que ser también su administrador…».
+  - **Cómo se distinguen:** `D1OperationError` conserva `dbMessage`, el mensaje de Postgres, solo para distinguir las causas. Nunca se muestra, y su `.message` sigue siendo el código.
+- **B3:** la cabecera dice que reaplicarla toma ACCESS EXCLUSIVE por el DROP TRIGGER.
+- **B5:** el conteo de mutantes, corregido arriba.
+- **B4** (`rbac-actions-guard.test.ts:135`): no entra, porque no está en la allowlist. Va en otra PR.
 
 ## Revisión de las otras ramas
 
@@ -41,6 +58,7 @@ La tabla completa está en la spec §4.
 | `pending-migration-symbols` (node directo) | PASÓ: 0 ROJO · 3 AMARILLO declarados. La 0543 no crea símbolos que use el código |
 | `migrations-lock` (node directo) | PASÓ: la 0543 está en espera sin sellar, y hay 0 nuevas sin sellar |
 | La focal (2026-11-15, con turno del Subdirector): `feature-flags-superadmin.migration.test.ts` y `aviso-superadmin.test.tsx` | PASÓ: 29/29, exit 0, 12 s (20 + 9 casos). El primer intento, sobre el diseño anterior, dio 19/22 y no se publicó |
+| La focal de los ajustes de la revisión (2026-11-15, con turno del Subdirector) | PASÓ: 32/32, exit 0, 10 s (21 + 11 casos) |
 | `pnpm verify` | NO EJECUTADO, por orden del DG: el portón es el CI de GitHub más la revisión independiente |
 | `sql-tests` (Postgres 17) | Lo corre el CI (`sql-tests.yml`) |
 

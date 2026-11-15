@@ -22,7 +22,8 @@
 --   (c) la sesión se detecta por los claims, no por current_user: anon (con o
 --       sin sub), authenticated sin sub y un sub sin rol se niegan con el dueño
 --       de por medio;
---   (d) service_role (las dos formas) y sin claims pasan;
+--   (d) service_role (las dos formas), sin claims y claims '{}' pasan; un JSON
+--       de claims inválido falla cerrado;
 --   (e) ninguna sesión inserta ni borra flags (por qué basta con UPDATE);
 --   (f) ENABLE ALWAYS: el modo réplica no se lo salta;
 --   (g) la función nueva no se concede a nadie, y el ACL de audit_d1_execute e
@@ -289,6 +290,24 @@ create function pg_temp.dueno(p_claim_rol text, p_user text, p_enabled boolean, 
     format('update public.feature_flags set enabled = %L where key = %L', p_enabled, 'chatwoot_portal'), p_forma);
 $$;
 
+/** UPDATE del dueño con request.jwt.claims crudo (p. ej. '{}' o un JSON inválido). */
+create function pg_temp.crudo(p_claims text, p_enabled boolean) returns text language plpgsql as $$
+declare v text; n int;
+begin
+  perform pg_temp.jwt(null, null, 'ninguna');
+  perform set_config('request.jwt.claims', p_claims, true);
+  begin
+    update public.feature_flags set enabled = p_enabled where key = 'chatwoot_portal';
+    get diagnostics n = row_count;
+    v := n::text;
+  exception when others then
+    v := 'ERROR ' || sqlstate || ': ' || sqlerrm;
+  end;
+  perform pg_temp.jwt(null, null, 'ninguna');
+  return v;
+end;
+$$;
+
 create function pg_temp.flag() returns boolean language sql as $$
   select enabled from public.feature_flags where key = 'chatwoot_portal';
 $$;
@@ -365,6 +384,10 @@ select pg_temp.assert_true(pg_temp.dueno('service_role', null, false, 'antigua')
   '(d) service_role (forma antigua) cambia el flag');
 select pg_temp.assert_true(pg_temp.dueno(null, null, true, 'ninguna') = '1' and pg_temp.flag() = true,
   '(d) sin claims (migración, job, el dueño) cambia el flag');
+select pg_temp.assert_true(pg_temp.crudo('{}', false) = '1' and pg_temp.flag() = false,
+  '(d) claims ''{}'' (sin role ni sub) es lo mismo que sin claims: pasa');
+select pg_temp.assert_true(pg_temp.crudo('no-es-json', true) ~ '^ERROR 22P02' and pg_temp.flag() = false,
+  '(d) un JSON de claims inválido falla cerrado y el flag no cambia');
 select pg_temp.reponer(false);
 
 -- (e) INSERT y DELETE: ninguna sesión los puede hacer (premisa de cubrir solo UPDATE).

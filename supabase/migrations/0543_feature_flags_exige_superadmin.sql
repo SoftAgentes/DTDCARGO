@@ -8,11 +8,13 @@
 --    ORDEN: después de la 0542 (su preflight lo exige). Migrate-first: la PR trae
 --    el aviso de la server action para el 42501.
 --
--- ⚠️ LOCK: CREATE TRIGGER y ALTER TABLE … ENABLE ALWAYS TRIGGER toman SHARE ROW
---    EXCLUSIVE sobre `feature_flags` hasta el COMMIT. Es una tabla chica (una fila
---    por tenant y módulo) que solo se lee al cargar el Studio y el portal;
---    mientras corre, las lecturas siguen y solo esperan las escrituras. Se corta a
---    los 5 s si algo la tiene tomada.
+-- ⚠️ LOCK: en la primera aplicación, CREATE TRIGGER y ALTER TABLE … ENABLE ALWAYS
+--    TRIGGER toman SHARE ROW EXCLUSIVE sobre `feature_flags` hasta el COMMIT: las
+--    lecturas siguen y solo esperan las escrituras. Al REAPLICARLA (el disparador
+--    ya existe), el DROP TRIGGER toma ACCESS EXCLUSIVE: hasta el COMMIT esperan
+--    también las lecturas (el Studio y el portal leen la tabla al cargar). Es una
+--    tabla chica (una fila por tenant y módulo) y la migración dura milisegundos;
+--    igual se corta a los 5 s si algo la tiene tomada.
 --
 -- EL HUECO (confirmado por el DG en el repo y en el catálogo de producción, sin
 -- filas): `audit_d1_execute(uuid,text,uuid,jsonb,text)` (0289:166) es SECURITY
@@ -109,6 +111,10 @@ begin
   end if;
   if pg_catalog.has_function_privilege('anon', v_d1, 'EXECUTE') then
     raise exception '0543: anon puede ejecutar audit_d1_execute; revisar antes de aplicar';
+  end if;
+  -- anon no actualiza flags (medido por el DG el 2026-11-15 en producción: no).
+  if pg_catalog.has_table_privilege('anon', v_ff, 'UPDATE') then
+    raise exception '0543: anon puede actualizar feature_flags; revisar antes de aplicar';
   end if;
   -- La premisa de no cubrir INSERT ni DELETE: ningún rol de sesión puede hacerlos.
   foreach v_rol in array array['anon', 'authenticated'] loop

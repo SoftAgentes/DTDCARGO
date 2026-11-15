@@ -137,11 +137,12 @@ o cambiarle el rol).
 - `lib/studio/__tests__/feature-flags-superadmin.migration.test.ts`
 - `lib/studio/platform-admin.ts` (comentario)
 - `app/studio/(app)/admin/feature-flags/actions.ts`
+- `lib/studio/audit/d1-access-config-adapters.ts` (`D1OperationError.dbMessage`, para distinguir las dos causas de `permission_denied`)
 - `app/studio/(app)/admin/feature-flags/__tests__/aviso-superadmin.test.tsx`
 
 ## 6. Criterios de aceptación
 
-- **CA1** El contrato de la 0543 corre en PGlite y en `sql-tests`, con 25
+- **CA1** El contrato de la 0543 corre en PGlite y en `sql-tests`, con 27
   aserciones. Su doble de `audit_d1_execute` copia literalmente la guarda y la rama
   de la 0289, y un anti-drift lo comprueba. Prueba lo siguiente:
   - (0) antes, un admin que no es superadmin enciende un flag por el DEFINER;
