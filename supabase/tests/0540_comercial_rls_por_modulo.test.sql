@@ -381,8 +381,8 @@ select pg_temp.assert_true(pg_temp.ve('b1', 'rates') = 2 and pg_temp.ve('b1', 'q
   and pg_temp.ve('b1', 'sales_orders') = 2 and pg_temp.ve('b1', 'chatwoot_conversations') = 1,
   '3c: comercial lee y escribe todo lo comercial');
 -- Borrado lógico: como dejó la 0230, la RLS de lectura NO filtra `deleted_at`
--- (si lo hiciera, el borrado con la sesión fallaría: ver la sección 7). Lo
--- borrado lo oculta la app en cada consulta.
+-- (si lo hiciera, el borrado con la sesión fallaría: ver la sección 7). La 0230
+-- dejó el filtro a la app, y varias lecturas no lo aplican.
 select pg_temp.assert_true(pg_temp.actualiza('b1', 'quotes') = 2, '3d: comercial edita cotizaciones');
 update public.quotes set deleted_at = now() where id in (select id from public.quotes limit 1);
 select pg_temp.assert_true(pg_temp.ve('b1', 'quotes') = 2, '3d2: la RLS no oculta lo borrado (lo filtra la app, como en la 0230)');
@@ -483,6 +483,31 @@ from (select pg_temp.error_de(pg_temp.u('a1'),
   $q$update public.quotes set deleted_at = now() where id = '70000000-0000-0000-0000-000000000002'$q$) as e offset 0) x;
 select pg_temp.assert_true((select deleted_at is not null from public.quotes where id = '70000000-0000-0000-0000-000000000002'),
   '7b2: la cotización queda borrada');
+
+-- Las otras tres tablas con `deleted_at`, mismo patrón de dos sentencias.
+-- c1 = contabilidad con el extra de Conversaciones para editar (sección 4);
+-- b1 = comercial; c2 = contabilidad, que edita órdenes de venta por su rol.
+insert into public.conversations (id, tenant_id)
+values ('70000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111');
+insert into public.purchase_orders (id, tenant_id)
+values ('70000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111');
+insert into public.sales_orders (id, tenant_id)
+values ('70000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111');
+select pg_temp.assert_true(x.e is null, '7c: contabilidad con Conversaciones borra lógico una conversación con la sesión (error: ' || coalesce(x.e, 'ninguno') || ')')
+from (select pg_temp.error_de(pg_temp.u('c1'),
+  $q$update public.conversations set deleted_at = now() where id = '70000000-0000-0000-0000-000000000003'$q$) as e offset 0) x;
+select pg_temp.assert_true((select deleted_at is not null from public.conversations where id = '70000000-0000-0000-0000-000000000003'),
+  '7c2: la conversación queda borrada');
+select pg_temp.assert_true(x.e is null, '7d: comercial borra lógico una orden de compra con la sesión (error: ' || coalesce(x.e, 'ninguno') || ')')
+from (select pg_temp.error_de(pg_temp.u('b1'),
+  $q$update public.purchase_orders set deleted_at = now() where id = '70000000-0000-0000-0000-000000000004'$q$) as e offset 0) x;
+select pg_temp.assert_true((select deleted_at is not null from public.purchase_orders where id = '70000000-0000-0000-0000-000000000004'),
+  '7d2: la orden de compra queda borrada');
+select pg_temp.assert_true(x.e is null, '7e: contabilidad borra lógico una orden de venta con la sesión (error: ' || coalesce(x.e, 'ninguno') || ')')
+from (select pg_temp.error_de(pg_temp.u('c2'),
+  $q$update public.sales_orders set deleted_at = now() where id = '70000000-0000-0000-0000-000000000005'$q$) as e offset 0) x;
+select pg_temp.assert_true((select deleted_at is not null from public.sales_orders where id = '70000000-0000-0000-0000-000000000005'),
+  '7e2: la orden de venta queda borrada');
 
 select 'TEST 0540: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 

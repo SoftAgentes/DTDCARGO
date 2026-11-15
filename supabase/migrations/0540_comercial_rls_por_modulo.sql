@@ -45,8 +45,9 @@
 --     las lecturas (SELECT) NO filtran `deleted_at`. Postgres aplica la policy de
 --     SELECT a la fila nueva de un UPDATE que lee la tabla, así que un filtro
 --     `deleted_at is null` ahí haría fallar el borrado lógico con la sesión
---     («new row violates row-level security policy»), también para admin. Lo
---     borrado lo oculta la aplicación en cada consulta (`.is("deleted_at", null)`).
+--     («new row violates row-level security policy»), también para admin. La
+--     0230 dejó el filtro a la app, y varias lecturas no lo aplican (inventario
+--     en el handoff de la SDD-0622, «FUERA DE ALCANCE DETECTADO»).
 --     Update y delete siguen sin tocar filas ya borradas (`deleted_at is null` en
 --     su USING, que solo mira la fila vieja).
 --   · Las policies de service_role y las del portal (0117, 0217) no se tocan.

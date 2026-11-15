@@ -336,6 +336,22 @@ const MUTANTES_0540: { nombre: string; sql: () => string; cae: string }[] = [
     // Cae antes, en 3d2 (la RLS ya no muestra lo borrado), que también defiende la 0230.
     cae: "TEST 0540: 3d2:",
   },
+  ...(
+    [
+      ["conversations", "7c: contabilidad con Conversaciones borra lógico una conversación con la sesión (error: new row violates"],
+      ["purchase_orders", "7d: comercial borra lógico una orden de compra con la sesión (error: new row violates"],
+      ["sales_orders", "7e: contabilidad borra lógico una orden de venta con la sesión (error: new row violates"],
+    ] as const
+  ).map(([tabla, cae]) => ({
+    nombre: `la lectura de ${tabla} vuelve a filtrar lo borrado`,
+    sql: () =>
+      once(
+        FILE_0540,
+        `create policy ${tabla}_select_por_modulo on public.${tabla}\n  for select to authenticated\n  using (tenant_id = (select public.get_user_tenant_id())\n`,
+        `create policy ${tabla}_select_por_modulo on public.${tabla}\n  for select to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null\n`,
+      ),
+    cae: `TEST 0540: ${cae}`,
+  })),
   {
     nombre: "una policy TO public sin módulo se cuela",
     sql: () =>
@@ -435,7 +451,7 @@ describe("SDD-0622 · contrato 0540 (RLS comercial por módulo, PGlite)", () => 
     const run = await contract(C0540, "TEST 0540");
     expect(run.error).toBeNull();
     expect(run.green).toMatch(/^TEST 0540: \d+ aserciones OK$/);
-    expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(25);
+    expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(45);
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0540 support escribe cotizaciones", async () => {
@@ -462,7 +478,7 @@ describe("SDD-0622 · contrato 0540 (RLS comercial por módulo, PGlite)", () => 
   }, SLOW);
 
   it("hay mutantes y derivas de la 0540 (piso)", () => {
-    expect(MUTANTES_0540.length).toBeGreaterThanOrEqual(11);
+    expect(MUTANTES_0540.length).toBeGreaterThanOrEqual(14);
     expect(DERIVAS_0540.length).toBeGreaterThanOrEqual(6);
   });
 });
