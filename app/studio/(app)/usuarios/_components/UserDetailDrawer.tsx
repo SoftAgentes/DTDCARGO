@@ -437,6 +437,8 @@ export function UserDetailDrawer({
             {activo ? (
               <form action={disableAction} style={{ display: "inline" }}>
                 <input type="hidden" name="target_user_id" value={member.user_id} />
+                {/* Pista para avisar antes si hace falta el superadministrador (SDD-0633). */}
+                <input type="hidden" name="target_role" value={member.role} />
                 <button
                   type="submit"
                   disabled={pendiente}
@@ -450,6 +452,8 @@ export function UserDetailDrawer({
             ) : (
               <form action={enableAction} style={{ display: "inline" }}>
                 <input type="hidden" name="target_user_id" value={member.user_id} />
+                {/* Pista para avisar antes si hace falta el superadministrador (SDD-0633). */}
+                <input type="hidden" name="target_role" value={member.role} />
                 <button
                   type="submit"
                   disabled={pendiente}

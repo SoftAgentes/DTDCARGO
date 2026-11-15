@@ -36,14 +36,34 @@ type StudioClient = Awaited<ReturnType<typeof createClient>>;
  * abre porque la red falló no es una llave.
  */
 export async function isPlatformAdmin(supabase: StudioClient): Promise<boolean> {
+  return (await platformAdminCheck(supabase)) === "si";
+}
+
+/**
+ * Lo mismo, sin aplanar el fallo: «no» es la respuesta de la base; «error» es
+ * que no se pudo preguntar (red, o la RPC negada, como el 403 que dejó la 0211
+ * hasta la 0542 · SDD-0633). Los dos niegan, pero solo se le puede decir «no
+ * eres superadministrador» a quien la base contestó que no.
+ */
+export async function platformAdminCheck(
+  supabase: StudioClient,
+): Promise<"si" | "no" | "error"> {
   try {
     const { data, error } = await supabase.rpc("is_platform_admin");
-    if (error) return false;
-    return data === true;
+    if (error) return "error";
+    return data === true ? "si" : "no";
   } catch {
-    return false;
+    return "error";
   }
 }
+
+/** La denegación de una llave del sistema, para quien la base dijo que no. */
+export const SUPERADMIN_DENIAL =
+  "No eres superadministrador. Esta acción la reserva el superadministrador: pídesela a quien administra el sistema.";
+
+/** No se pudo comprobar el permiso: fail-closed, pero sin acusar a nadie. */
+export const SUPERADMIN_CHECK_FAILED =
+  "No pudimos comprobar si eres superadministrador, así que no se hizo el cambio. Intenta de nuevo; si sigue pasando, avísale a quien administra el sistema.";
 
 /**
  * Guard para server actions, mismo contrato que `moduleEditDenial`: devuelve el
@@ -55,7 +75,7 @@ export async function isPlatformAdmin(supabase: StudioClient): Promise<boolean> 
 export async function platformAdminDenial(
   supabase: StudioClient,
 ): Promise<string | null> {
-  const ok = await isPlatformAdmin(supabase);
-  if (ok) return null;
-  return "Esta acción la reserva el superadministrador. Pídesela a quien administra el sistema.";
+  const check = await platformAdminCheck(supabase);
+  if (check === "si") return null;
+  return check === "no" ? SUPERADMIN_DENIAL : SUPERADMIN_CHECK_FAILED;
 }

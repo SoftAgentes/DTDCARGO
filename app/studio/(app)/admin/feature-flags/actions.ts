@@ -44,8 +44,11 @@ export async function toggleFeatureFlagAction(
 
   const supabase = await createClient();
 
+  // SDD-0633: todo error de aquí en adelante lleva `flagKey`, para que lo pinte
+  // la tarjeta pulsada. Antes la denegación y el catch salían sin él y el
+  // interruptor "no hacía nada".
   const denial = await platformAdminDenial(supabase);
-  if (denial) return { error: denial };
+  if (denial) return { error: denial, flagKey: key };
 
   try {
     await executeD1Operation(supabase, {
@@ -53,7 +56,10 @@ export async function toggleFeatureFlagAction(
       input: { key, enabled },
     });
   } catch {
-    return { error: "No se pudo guardar el feature flag." };
+    return {
+      error: "No se pudo guardar el cambio del módulo. Intenta de nuevo.",
+      flagKey: key,
+    };
   }
 
   // Revalidar el layout para que el sidebar tome los flags nuevos.
