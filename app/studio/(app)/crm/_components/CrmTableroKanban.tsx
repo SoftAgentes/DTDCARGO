@@ -16,6 +16,7 @@
  */
 
 import { useRef, useState, type DragEvent } from "react";
+import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   CRM_DIAS_ATENCION,
@@ -277,10 +278,13 @@ function TarjetaCard({
         cursor: canEdit && !enCurso ? "grab" : "default",
       }}
     >
+      {/* SDD-0603 tramo 5d: el nombre sigue abriendo la ficha con el ratón, pero
+          sale del orden de Tab; la parada de teclado y de lector es «Abrir»,
+          al pie de la tarjeta. */}
       <button
         type="button"
+        tabIndex={-1}
         onClick={onOpen}
-        aria-label={`Abrir ficha de ${nombre}`}
         className="studio-link-quiet"
         style={{
           display: "block",
@@ -390,48 +394,71 @@ function TarjetaCard({
         </span>
       </div>
 
-      {enCurso ? (
-        <p
-          role="status"
-          style={{
-            margin: "var(--s-2) 0 0",
-            font: "600 11px/1.3 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          Moviendo…
-        </p>
-      ) : (
-        canEdit &&
-        destinos.length > 0 && (
-          <select
-            className="studio-input"
-            aria-label={`Mover ${nombre} a otra etapa`}
-            value=""
-            onChange={(e) => {
-              const destino = destinos.find((d) => d.clave === e.target.value);
-              if (destino) onMove(destino);
-            }}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: "var(--s-2)",
+          marginTop: "var(--s-2)",
+        }}
+      >
+        {enCurso ? (
+          <p
+            role="status"
             style={{
-              marginTop: "var(--s-2)",
-              width: "100%",
-              font: "500 12px/1 var(--f-sans)",
-              // Alto ≥ 32 px: objetivo táctil del estándar de botones del Studio.
-              minHeight: 32,
-              padding: "var(--s-1) var(--s-2)",
+              margin: 0,
+              flex: 1,
+              font: "600 11px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
             }}
           >
-            <option value="" disabled>
-              Mover a…
-            </option>
-            {destinos.map((d) => (
-              <option key={d.clave} value={d.clave}>
-                {d.nombre}
+            Moviendo…
+          </p>
+        ) : (
+          canEdit &&
+          destinos.length > 0 && (
+            <select
+              className="studio-input"
+              aria-label={`Mover ${nombre} a otra etapa`}
+              value=""
+              onChange={(e) => {
+                const destino = destinos.find((d) => d.clave === e.target.value);
+                if (destino) onMove(destino);
+              }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                font: "500 12px/1 var(--f-sans)",
+                // Alto ≥ 32 px: objetivo táctil del estándar de botones del Studio.
+                minHeight: 32,
+                padding: "var(--s-1) var(--s-2)",
+              }}
+            >
+              <option value="" disabled>
+                Mover a…
               </option>
-            ))}
-          </select>
-        )
-      )}
+              {destinos.map((d) => (
+                <option key={d.clave} value={d.clave}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+          )
+        )}
+        {/* No es arrastrable por sí mismo: la tarjeta lo es. Un clic no inicia
+            arrastre, y el clic fantasma tras soltar lo descarta `onOpen`. */}
+        <button
+          type="button"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          aria-label={`Abrir ficha de ${nombre}`}
+          onClick={onOpen}
+          style={{ flex: "0 0 auto" }}
+        >
+          Abrir
+          {Icon.chevR(14)}
+        </button>
+      </div>
     </article>
   );
 }

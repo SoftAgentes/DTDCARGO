@@ -304,44 +304,29 @@ export function KommoClient({
         )}
       </div>
 
-      {/* Pestañas */}
-      <div
-        role="tablist"
-        aria-label="Tablero CRM"
-        style={{
-          display: "flex",
-          gap: "var(--s-2)",
-          flexWrap: "wrap",
-          borderBottom: "1px solid var(--border)",
-          paddingBottom: "var(--s-2)",
-          marginBottom: 20,
-          opacity: isPending ? 0.7 : 1,
-        }}
-      >
-        {KOMMO_TABS.map((t) => {
-          const isActive = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              data-tab={t.key}
-              onClick={() => goTab(t.key)}
-              className="studio-btn studio-btn-sm"
-              style={{
-                background: isActive ? "var(--bg-elevated)" : "transparent",
-                border: isActive
-                  ? "1px solid var(--border)"
-                  : "1px solid transparent",
-                color: isActive ? "var(--ink)" : "var(--ink-soft)",
-                fontWeight: isActive ? 700 : 500,
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+      {/* Pestañas · SDD-0603 tramo 5d: la clase única del Studio; la activa va
+          con relleno de tinta (BD-037). El margen y la espera van en el
+          envoltorio, para que el tablist no lleve estilo propio. */}
+      <div style={{ marginBottom: 20, opacity: isPending ? 0.7 : 1 }}>
+        <div role="tablist" aria-label="Tablero CRM" className="studio-tabs">
+          {KOMMO_TABS.map((t) => {
+            const isActive = t.key === tab;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                data-activa={isActive ? "true" : undefined}
+                data-tab={t.key}
+                onClick={() => goTab(t.key)}
+                className="studio-tab"
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Contenido */}
@@ -719,7 +704,6 @@ function LeadsTable({
                         style={{
                           display: "block",
                           font: "500 12px/1.3 var(--f-mono)",
-                          color: "var(--wine-text)",
                           fontVariantNumeric: "tabular-nums",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
