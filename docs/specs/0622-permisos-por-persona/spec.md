@@ -408,6 +408,8 @@ extra de dinero no abre esas lecturas (queda fail-closed). Ni la 0538 ni la 0539
 - `app/studio/(app)/tarifas/actions.ts`
 - `app/studio/(app)/tracking/[id]/__tests__/tarifa-sugerida-gate.test.ts`
 - `app/studio/(app)/tracking/[id]/actions.ts`
+- `app/studio/(app)/usuarios/__tests__/actividad-acceso.test.ts` (enmienda del 2026-11-14: la pestaña Actividad lee
+  la bitácora con el cliente de servicio, por decisión del Director General)
 - `app/studio/(app)/usuarios/_components/MembersTable.tsx`
 - `app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx`
 - `app/studio/(app)/usuarios/_components/UsersClient.tsx`
