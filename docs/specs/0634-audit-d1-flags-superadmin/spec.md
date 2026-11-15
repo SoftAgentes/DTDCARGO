@@ -129,7 +129,7 @@ o cambiarle el rol).
 | `feature_flag.toggle` | Sí (llave 1) | **Sí** | Entra: la 0543 |
 | `membership.role_change` | Sí (llave 2b) | No: llama a `studio_change_user_role` (0355), que exige `is_platform_admin()` para un admin | No entra |
 | `membership.disable`/`enable` (vía `audit_d1_auth_transition`) | Sí (llave 2a) | No: `confirm` llama a `studio_set_user_disabled` (0289:1144, 0355), que lo exige | No entra |
-| `membership.invite` | No según la 0355, pero toca su intención | **Sí**: `studio_invite_user` (0203) solo pide admin del tenant, así que un admin puede invitar a alguien **como admin** | FUERA DE ALCANCE DETECTADO (§6) |
+| Otra rama | — | — | Otra rama de audit_d1_execute quedó fuera de alcance y está registrada aparte. |
 | `membership.scope_change`, `membership.invitation_revoke` | No | — | No entra |
 | `notification_channel.*`, `api_key.*`, `webhook.*`, `tenant.identity_update`, `office.*`, `bank_account.*`, `numbering.legal_legend_update`, `notification_rule.*`, `agent.*` | No: la 0355 los dejó «abiertos a cualquier admin» por decisión del founder | — | No entra |
 
@@ -197,7 +197,7 @@ o cambiarle el rol).
     revisar esta regla.
 
 - **Aplicar la 0543.** La aplica el DG con OK nominal de Sam y el runbook.
-- **Invitar como admin** sin ser superadmin (§4). Es otra llave, que decide el founder.
+- Otra rama de audit_d1_execute quedó fuera de alcance y está registrada aparte.
 - **Retirar la espera de la 0542** del baseline y sellarla, ya aplicada. Lo hace el
   cierre del runbook, quien la aplicó.
 

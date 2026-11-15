@@ -48,7 +48,7 @@
 La tabla completa está en la spec §4.
 - **`membership.role_change` y la suspensión** ya están cubiertas por `studio_change_user_role` y `studio_set_user_disabled` (0355), que exigen superadmin para tocar a otro admin.
 - **Las demás ramas** son de admin por decisión de la 0355.
-- **`membership.invite`** queda abierta (ver abajo).
+- Otra rama de audit_d1_execute quedó fuera de alcance y está registrada aparte.
 
 ## Pruebas
 
@@ -71,11 +71,7 @@ La tabla completa está en la spec §4.
 
 ## FUERA DE ALCANCE DETECTADO
 
-1. **MEDIO · Invitar como admin sin ser superadmin.**
-   - **Dónde:** la rama `membership.invite` de `audit_d1_execute` (0289:240) llama a `studio_invite_user` (0203:65-79), que solo exige que quien invita sea admin del tenant.
-   - **El efecto:** un admin puede «fabricarse aliados» invitando a alguien como admin, que es justo lo que la 0355 cerró para el cambio de rol (0355:244-252).
-   - **Por qué no entra:** la 0355 no lo listó como llave, y decidirlo es del founder.
-   - **Cómo se sabe:** leído en el código, no ejecutado.
+1. Otra rama de audit_d1_execute quedó fuera de alcance y está registrada aparte.
 2. **BAJO · El baseline todavía declara la espera de la 0542,** que ya se aplicó el 2026-11-15 a las 08:09Z. Retirarla y sellarla es parte del cierre del runbook de quien la aplicó, no de esta PR.
 3. **BAJO · `feature_flags` no tiene FORCE ROW LEVEL SECURITY** (0042:37). Cualquier DEFINER de postgres que escriba en una tabla con policies se salta esas policies. Con la 0543 los flags no dependen de eso, pero el patrón se repite en otras tablas: vale una auditoría de los DEFINER que escriben tablas «con candado de policy».
 
