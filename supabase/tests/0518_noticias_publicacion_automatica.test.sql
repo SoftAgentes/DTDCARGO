@@ -87,7 +87,7 @@ insert into auth.users values
   ('20000000-0000-4000-8000-000000000001'),  -- admin de T1 (Sam)
   ('20000000-0000-4000-8000-000000000002'),  -- admin de T2
   ('20000000-0000-4000-8000-000000000003'),  -- commercial de T1
-  ('20000000-0000-4000-8000-000000000004');  -- segundo admin de T1 (Alejandro)
+  ('20000000-0000-4000-8000-000000000004');  -- segundo admin de T1 (la persona de contabilidad con CRM)
 insert into public.user_tenants values
   ('20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'admin', null),
   ('20000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000002', 'admin', null),
@@ -204,7 +204,7 @@ declare
   sam constant uuid := '20000000-0000-4000-8000-000000000001';
   admin2 constant uuid := '20000000-0000-4000-8000-000000000002';
   comercial constant uuid := '20000000-0000-4000-8000-000000000003';
-  alejandro constant uuid := '20000000-0000-4000-8000-000000000004';
+  revisor constant uuid := '20000000-0000-4000-8000-000000000004';
   d1 constant uuid := '30000000-0000-4000-8000-000000000001';
   d2 constant uuid := '30000000-0000-4000-8000-000000000002';
   d3 constant uuid := '30000000-0000-4000-8000-000000000003';
@@ -416,21 +416,21 @@ begin
   perform pg_temp.assert_true(pg_temp.falla('authenticated', comercial,
     format('select public.news_retirar(%L, %L, null)', v_post, 'tono')) = '42501',
     'una cuenta sin permiso no retira');
-  perform pg_temp.assert_true(pg_temp.falla('authenticated', alejandro,
+  perform pg_temp.assert_true(pg_temp.falla('authenticated', revisor,
     format('select public.news_retirar(%L, null, null)', v_post)) = '22023',
     'sin motivo no se retira');
-  perform pg_temp.assert_true(pg_temp.falla('authenticated', alejandro,
+  perform pg_temp.assert_true(pg_temp.falla('authenticated', revisor,
     format('select public.news_retirar(%L, %L, %L)', v_post, 'otro', ' ')) = '22023',
     'con «otro» la nota es obligatoria');
   perform pg_temp.assert_true(pg_temp.falla('authenticated', admin2,
     format('select public.news_retirar(%L, %L, null)', v_post, 'tono')) = 'P0002',
     'un admin de otro tenant no retira una noticia ajena');
-  perform pg_temp.como('authenticated', alejandro,
+  perform pg_temp.como('authenticated', revisor,
     format('select public.news_retirar(%L, %L, %L)', v_post, 'dato_incorrecto', 'La cifra está mal'));
   perform pg_temp.assert_true(not (select published from public.news_posts where id = v_post),
-    'Alejandro, con su cuenta, retira: la noticia sale del sitio');
+    'la persona de contabilidad con CRM, con su cuenta, retira: la noticia sale del sitio');
   perform pg_temp.assert_true((select kind = 'retiro' and reason = 'dato_incorrecto'
-      and note = 'La cifra está mal' and actor_id = alejandro and publish_via = 'automatica'
+      and note = 'La cifra está mal' and actor_id = revisor and publish_via = 'automatica'
     from public.news_post_exits where post_id = v_post),
     'el retiro queda registrado con motivo, nota y quién');
   perform pg_temp.assert_true((select enabled from public.news_autopublish_settings where tenant_id = t1),

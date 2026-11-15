@@ -108,7 +108,7 @@ docs/audits/pendientes-2026-08-06.md tienen el estado medido del sistema.
 | accounting | Yolimar Moreno | pagodtd@gmail.com | **nunca** |
 | commercial | **Jose Mendez** | sistemaqb@gmail.com | **nunca** |
 | marketing | Fiorella de Vita | creativedtd@gmail.com | **nunca** |
-| operations | Alejandro Parra | pasantedtd@gmail.com | **nunca** |
+| operations | *(la persona de contabilidad con CRM)* | pasantedtd@gmail.com | **nunca** |
 | warehouse | Alberto Lameda | logisticavzladtd@gmail.com | **nunca** |
 
 ⚠️ **El único que puede cambiarle el rol a José es `vzla@dtdcargo.com`**, porque
