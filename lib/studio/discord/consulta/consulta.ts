@@ -28,7 +28,7 @@ import {
   type RoleModuleOverrides,
   type UserModuleGrants,
 } from "@/lib/studio/rbac";
-import { grantsFromRows, type UserModuleGrantRow } from "@/lib/studio/user-module-grants-queries";
+import { DECISION_COLUMNS, grantsFromRows, type GrantDecisionRow } from "@/lib/studio/user-module-grants-queries";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { MAX_RESULTADOS, TOPE_POR_MINUTO } from "./comando";
 import {
@@ -133,10 +133,10 @@ async function autorizar(
     try {
       const extras = await admin
         .from("studio_user_module_grants")
-        .select("user_id, module_id, can_view, can_edit, reason, expires_at, granted_by, sensitive_confirmed_at, effects_version, created_at, updated_at")
+        .select(DECISION_COLUMNS)
         .eq("tenant_id", tenant)
         .eq("user_id", userId);
-      if (!extras.error && Array.isArray(extras.data)) grants = grantsFromRows(extras.data as UserModuleGrantRow[]);
+      if (!extras.error && Array.isArray(extras.data)) grants = grantsFromRows(extras.data as GrantDecisionRow[]);
     } catch {
       // Sin la tabla (o un cliente que no la conoce): no suma nada, decide el rol.
     }

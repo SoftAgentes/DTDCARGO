@@ -49,12 +49,20 @@ const POR_VENCER_MS = 7 * 86_400_000;
 const COLUMNS =
   "user_id, module_id, can_view, can_edit, reason, expires_at, granted_by, sensitive_confirmed_at, effects_version, created_at, updated_at";
 
+/**
+ * Lo justo para DECIDIR acceso: sin motivo, sin quién concedió y sin fechas de
+ * auditoría (revisión de la #509, minimización). Lo usan la sesión, la
+ * evaluación de terceros y Discord; la pantalla de Usuarios sigue con COLUMNS.
+ */
+export const DECISION_COLUMNS = "user_id, module_id, can_view, can_edit, expires_at";
+export type GrantDecisionRow = Pick<UserModuleGrantRow, "user_id" | "module_id" | "can_view" | "can_edit" | "expires_at">;
+
 function isExpired(expiresAt: string | null, now: number): boolean {
   return expiresAt !== null && Date.parse(expiresAt) <= now;
 }
 
 /** Filas → mapa por módulo, solo las VIGENTES (sin vencer). */
-export function grantsFromRows(rows: readonly UserModuleGrantRow[], now = Date.now()): UserModuleGrants {
+export function grantsFromRows(rows: readonly GrantDecisionRow[], now = Date.now()): UserModuleGrants {
   const map: Record<string, { view: boolean; edit: boolean; expiresAt: string | null }> = {};
   for (const row of rows) {
     if (isExpired(row.expires_at, now)) continue;
@@ -75,10 +83,10 @@ export async function getMyModuleGrants(
   try {
     const { data, error } = await supabase
       .from("studio_user_module_grants")
-      .select(COLUMNS)
+      .select(DECISION_COLUMNS)
       .eq("user_id", userId);
     if (error || !Array.isArray(data)) return {};
-    return grantsFromRows(data as UserModuleGrantRow[]);
+    return grantsFromRows(data as GrantDecisionRow[]);
   } catch {
     // Cliente sin la tabla o doble de pruebas sin esa consulta: el rol decide solo.
     return {};
@@ -134,18 +142,18 @@ export async function getTenantGrantsByUser(
   tenantId: string,
 ): Promise<Map<string, UserModuleGrants>> {
   const out = new Map<string, UserModuleGrants>();
-  let rows: UserModuleGrantRow[] = [];
+  let rows: GrantDecisionRow[] = [];
   try {
     const { data, error } = await supabase
       .from("studio_user_module_grants")
-      .select(COLUMNS)
+      .select(DECISION_COLUMNS)
       .eq("tenant_id", tenantId);
     if (error || !Array.isArray(data)) return out;
-    rows = data as UserModuleGrantRow[];
+    rows = data as GrantDecisionRow[];
   } catch {
     return out;
   }
-  const byUser = new Map<string, UserModuleGrantRow[]>();
+  const byUser = new Map<string, GrantDecisionRow[]>();
   for (const row of rows) {
     const list = byUser.get(row.user_id) ?? [];
     list.push(row);
