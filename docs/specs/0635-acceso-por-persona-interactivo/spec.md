@@ -1,6 +1,6 @@
 ---
 sdd: "0635"
-title: "Acceso por persona interactivo: mapa de módulos, persona frente a rol y Actividad completa"
+title: "Acceso por persona interactivo y matriz de roles legible: mapa de módulos, persona frente a rol y Actividad completa"
 status: proposed
 author: "Claude (Worker 0635) + Sam"
 created: 2026-11-15
@@ -16,7 +16,9 @@ confidencialidad: interno
 > Sam probó en producción el panel de la SDD-0622 (migraciones 0538 a 0540, web f6f8199d6). No encontró dónde
 > elegir «ver y editar», notó que Actividad solo muestra los extras y no los cambios de rol, y pidió decidir
 > los permisos **persona por persona** de forma más intuitiva. Esta spec rediseña la pestaña **Acceso** de la
-> ficha de usuario sin tocar la base: mismas tablas, mismas RPC, misma regla «solo suma».
+> ficha de usuario sin tocar la base: mismas tablas, mismas RPC, misma regla «solo suma». El mismo día Sam
+> amplió el alcance a la matriz **«Roles y permisos»** (§3.8): encabezados fijos, palabras en vez de «V·E» y
+> «de fábrica» en vez de «desvío del default».
 
 **Estado:** `proposed`. Primera etapa = solo diseño: esta spec, la maqueta y `/ui-check`. El Director General
 la revisa y Sam aprueba el diseño antes de implementar. Sin migraciones, sin datos y sin tocar producción.
@@ -35,6 +37,10 @@ Sam, 2026-11-15, al probar el panel en producción:
 3. Más intuitivo: el selector «Ver / Editar» solo aparece después de elegir un módulo en el buscador y Sam no lo
    encontró. El campo «Almacén» confunde cuando no aplica.
 4. Evaluar la Fase 6 de la 0622 (rol `custom` / «Personalizado») sin implementarla.
+5. **Ampliación del 2026-11-15 (vía Director General), matriz «Roles y permisos»:** encabezado de roles fijo
+   arriba y columna de módulos fija a la izquierda, con señal de que hay más contenido y el grupo visible; «V·E»
+   cambiado por palabras o íconos claros con leyenda siempre a la vista; explicar en palabras «desvío del
+   default» y su ×; rediseño moderno y simple que distinga «todo el rol» de «una persona».
 
 Pregunta que lo resume: **¿cómo tratar a dos personas de contabilidad con accesos distintos sin que choquen con
 los cambios por rol?** La respuesta está en §4.
@@ -141,17 +147,17 @@ En la ficha (pestaña Acceso):
 2. En el rol base: «**N personas** tienen este rol. El rol es el piso: lo que todas comparten.»
 3. En cada detalle de módulo que viene del rol, el texto «Lo tienen las N personas del rol».
 
-En «Roles y permisos» (captura 07):
+En «Roles y permisos» (rediseño completo en §3.8, capturas 07 y 09 a 13):
 
-4. Franja dorada arriba: «**Esto cambia a todas las personas del rol.** Para dar algo a una sola persona, abre
-   su ficha › Acceso.»
+4. Franja dorada arriba: «**Esta tabla cambia a todas las personas de cada rol.** Para darle algo a una sola
+   persona, abre su ficha › Acceso (accesos extra).»
 5. Bajo el nombre de cada rol, «N personas».
-6. Bajo una celda, «N con extra» cuando alguna persona del rol ya tiene ese módulo como extra.
-7. Cada clic en una celda **pide confirmar** con el alcance: «Esto le da CRM (ver) a las 2 personas de
-   Contabilidad: Contable A y Contable B». Si alguna ya lo tiene como extra, se avisa que quedará «sobra». Hoy
-   el clic guarda solo; el pedido de 2026-08-07 que pidió guardar al clic se mantiene en la velocidad (un clic +
-   confirmar), pero ahora el alcance se lee antes. Es una acción que cambia el acceso de varias personas: MP-01
-   pide confirmación con consecuencia.
+6. Cada celda abre un panel que **nombra a las personas afectadas** y avisa si alguna ya tiene ese módulo como
+   extra (quedará «sobra» o lo conservará).
+7. Nada se guarda con el primer clic: se elige el nivel y se pulsa «Aplicar a las N». Hoy la celda guarda al
+   clic con un ciclo de tres estados; el pedido del 2026-08-07 (que el cambio se note) se conserva con el toast
+   que nombra el cambio y el destello, pero ahora el alcance se lee antes. Cambia el acceso de varias personas:
+   MP-01 pide confirmación con consecuencia.
 
 ### 3.5 Regla de combinación y el caso de las dos personas de contabilidad
 
@@ -211,6 +217,65 @@ La pestaña Actividad junta, para esa persona y en orden de fecha (captura 06):
   valor anterior, valor nuevo y motivo. Pide migración y RPC nuevas (`studio_set_role_module_access` hoy no
   recibe motivo), así que va en una spec propia o en una enmienda de esta con su OK de Sam.
 
+### 3.8 Matriz «Roles y permisos» (ampliación pedida por Sam el 2026-11-15)
+
+Pantalla: pestaña «Roles y permisos» de Usuarios (`UsersClient.tsx` → `PermissionsSection.tsx`, que vive en
+`app/studio/(app)/admin/_components/`). Hoy: tabla de módulos × 7 roles, celdas `TOTAL / V·E / V / —` que ciclan
+al clic y guardan solas, punto wine de «desvío del default» con una × que aparece al pasar el mouse, y una
+leyenda arriba que se pierde al bajar. El contenedor tiene `overflowX: auto`: la columna de módulos queda fija
+al desplazarse a los lados, pero **el encabezado de roles no** queda fijo al bajar, porque el desplazamiento
+vertical es el de la página.
+
+Lo que dijo Sam y cómo lo resuelve el diseño:
+
+| Pedido de Sam | Diseño |
+|---|---|
+| **1. Encabezados fijos.** Al bajar se olvida cuál columna es cada rol | La tabla vive en un contenedor con alto propio (`max-height` = alto de la ventana menos la cabecera) y desplazamiento en los dos sentidos. Dentro: la fila de roles queda fija arriba (`position: sticky; top: 0`), la columna de módulos fija a la izquierda (`left: 0`) y la esquina por encima de ambas. Cada rol muestra su nombre y «N personas» |
+| …que se note que hay más contenido | Al bajar, el encabezado proyecta una sombra hacia abajo; al desplazar a los lados, la columna de módulos la proyecta hacia la derecha. Desaparecen en el borde (captura 09) |
+| …y que el grupo quede visible | La fila del grupo («OPERACIÓN · 19 módulos») queda fija justo debajo de los roles mientras dura su sección y la siguiente la empuja (captura 09) |
+| **2. «V·E» no se entiende** | Cada celda dice el nivel con **ícono + palabra**: lápiz «Ver y editar», ojo «Solo ver», guion «Sin acceso», escudo «Todo» (solo Administración). En pantallas angostas (menos de ~1180 px) pasa a la forma corta «Edita · Ve · No · Todo» con el mismo ícono (captura 12) |
+| …leyenda siempre a la vista | La leyenda pasa al **pie fijo** del contenedor: se ve en cualquier punto del desplazamiento. En forma corta dice además «Edita = Ver y editar», etc. |
+| **3. «Desvío del default» y la ×** | La palabra «desvío» desaparece. La celda cambiada lleva debajo «● Cambiado». Al abrirla, el panel dice en palabras: «De fábrica, Comercial tiene **ver y editar** en Reclamos. Hoy está cambiado a **solo ver**. *Volver a lo de fábrica*». La × se elimina: volver a fábrica es un enlace con texto dentro del panel. La opción de fábrica lleva la marca «· de fábrica» (captura 11) |
+| **4. Moderno, simple, y que se distinga de la ficha** | Panel por celda en vez de ciclo ciego (ver referencias abajo); franja dorada «cambia a todas las personas de cada rol» con enlace a la ficha; conteo de personas por rol; el panel nombra a quiénes afecta. En la ficha, la franja índigo dice «solo para esta persona» (§3.4). Dorado = alcance amplio, índigo = una persona |
+
+Detalle del panel de una celda (captura 10):
+
+- Título «CRM · todo el rol Contabilidad» y «Cambia para **2 personas**: Contable A, Contable B».
+- Tres opciones como radio, con una línea cada una: Sin acceso («No le aparece en el menú»), Solo ver («Lo abre sin
+  poder cambiar nada»), Ver y editar («Puede crear y modificar»). Soporte tiene «Ver y editar» deshabilitada con
+  el motivo («Soporte nunca edita»).
+- Recuadro «De fábrica…» y, si está cambiada, «Volver a lo de fábrica».
+- Si alguna persona del rol tiene ese módulo como extra: «Contable B ya lo tiene como acceso extra en su ficha. Si lo
+  aplicas, ese extra quedará marcado «sobra»» (o «Lo conserva aunque el rol no lo tenga» si se quita).
+- «Cancelar» y «Aplicar a las N», deshabilitado mientras no cambie nada. `Esc` cierra y devuelve el foco a la
+  celda. Al desplazar la tabla el panel se cierra.
+- Al aplicar: toast que nombra el cambio y las personas («Contabilidad: CRM ahora en «Solo ver» para 2
+  personas») y el destello actual de la celda (`studio-permcell-flash`).
+
+Otros cambios de la matriz:
+
+- **Buscar módulo** y filtro **«Solo los cambiados (N)»**, para revisar de un vistazo todo lo que se apartó de
+  fábrica.
+- Columna **Administración** con fondo de base y «Todo» fijo; su encabezado dice «ve y edita todo».
+- Celdas **fijas** (dinero y administración, `LOCKED_MODULES`): borde punteado, candado en el nombre del módulo y
+  en la leyenda «Fijo: dinero y administración no se cambian aquí». No abren panel.
+- Cada celda es un botón con nombre accesible completo («Contabilidad, CRM: Sin acceso. Cambiar para todo el
+  rol»); la tabla tiene `caption` y encabezados con `scope`.
+- Lógica sin cambios: `setRoleModuleAccessAction` / `resetRoleModuleAccessAction`, mismos candados, misma regla
+  de `support`.
+
+**Referencias de productos actuales** (de memoria, **sin verificar en línea** en esta tarea; orientan el diseño,
+no son cita. Si se van a usar como argumento, verificar antes):
+
+- Las matrices de roles de herramientas SaaS de equipo (administración de cuentas tipo Google Workspace, Atlassian,
+  Odoo) usan **palabras o íconos con etiqueta** en las celdas, no siglas, y encabezados fijos en tablas largas.
+- Los editores de permisos más usados abren **un menú o panel por celda** con las opciones nombradas («Sin
+  acceso / Lector / Editor») en vez de ciclar al clic.
+- Para lo cambiado se ve una marca «Modificado» o «Personalizado» y una acción con texto «Restablecer», no un
+  ícono suelto.
+- Se separa visualmente lo que aplica a un grupo de lo que aplica a una persona, y se dice a cuántos afecta antes
+  de guardar.
+
 ## 4. Respuesta corta para Sam
 
 - **Dónde está «ver y editar»:** al tocar cualquier módulo, las tres opciones salen grandes y a la vista.
@@ -220,6 +285,8 @@ La pestaña Actividad junta, para esa persona y en orden de fecha (captura 06):
   quitar, se baja el piso y se suma a la otra. En dinero no se puede todavía (§3.5).
 - **Actividad:** rol, almacén, suspensiones y extras en una sola línea de tiempo; los cambios a todo el rol,
   cuando la matriz tenga historial.
+- **Matriz de roles:** los roles y el grupo quedan a la vista al bajar; cada celda dice «Ver y editar», «Solo
+  ver», «Sin acceso» o «Todo»; lo cambiado dice «Cambiado» y el panel explica «de fábrica» y cómo volver.
 
 ## 5. Alternativas evaluadas
 
@@ -283,6 +350,16 @@ mínimo viable sería `custom` con solo los 8 módulos cubiertos; la pantalla de
 12. **UI:** `/ui-check` sin hallazgos altos; claro y oscuro con tokens de `app/studio/tokens.css`; foco visible y
     `Esc` en el detalle.
 13. **Privacidad:** sin nombres reales en fixtures ni capturas; el motivo conserva su aviso de datos personales.
+14. **Matriz, encabezados fijos:** el encabezado de roles, la columna de módulos y la fila de grupo tienen
+    `position: sticky` dentro de un contenedor con desplazamiento propio; al desplazar aparecen las sombras.
+    Comprobación en navegador (e2e o captura) con la tabla desplazada, no solo en la prueba de componente.
+15. **Matriz, sin siglas:** ninguna celda muestra «V·E», «V» ni «TOTAL»; el texto visible o el nombre accesible
+    dice «Ver y editar», «Solo ver», «Sin acceso» o «Todo». La leyenda está en el pie fijo.
+16. **Matriz, de fábrica:** una celda cambiada muestra «Cambiado»; su panel dice el nivel de fábrica y el actual
+    y ofrece «Volver a lo de fábrica», que llama `resetRoleModuleAccessAction`. No queda ninguna «×» suelta.
+17. **Matriz, alcance:** el panel nombra a las personas del rol y avisa de los extras afectados; nada se guarda
+    hasta «Aplicar a las N» (espía en la prueba); celdas fijas y columna Administración no abren panel.
+18. **Matriz, forma corta:** bajo ~1180 px las celdas muestran «Edita / Ve / No / Todo» y la leyenda las traduce.
 
 ## 8. Gobernanza
 
@@ -318,8 +395,13 @@ fija el estado de cada captura (lo explica el script del archivo).
 | `04-bandeja-no-disponible.png` | Bandeja: módulo que todavía no se puede dar, con el motivo en texto |
 | `05-almacen-solo-operaciones.png` | Al elegir Operaciones aparece «Almacén que ve» |
 | `06-actividad-unificada.png` | Actividad con rol, estado, extras y cambios a todo el rol |
-| `07-roles-y-permisos.png` | Matriz por rol con franja, conteos y confirmación con nombres |
-| `08-oscuro-crm.png` | Tema oscuro |
+| `08-oscuro-crm.png` | Tema oscuro de la ficha |
+| `07-matriz-roles-arriba.png` | Matriz «Roles y permisos» al inicio: franja de alcance, roles con personas, leyenda en el pie |
+| `09-matriz-fija-al-bajar.png` | Al bajar: roles y grupo fijos, sombra bajo el encabezado, leyenda a la vista |
+| `10-matriz-celda-crm-contabilidad.png` | Panel de una celda: personas afectadas, tres opciones y aviso del extra de Contable B |
+| `11-matriz-volver-a-fabrica.png` | Celda «Cambiado»: «de fábrica» y «Volver a lo de fábrica» |
+| `12-matriz-angosta-forma-corta.png` | Forma corta «Edita · Ve · No» con leyenda que la traduce |
+| `13-matriz-oscuro.png` | Matriz en tema oscuro |
 
 ## 11. Allowlist exacta para la etapa 2 (implementación, sin base de datos)
 
@@ -338,7 +420,12 @@ fija el estado de cada captura (lo explica el script del archivo).
 - `app/studio/(app)/usuarios/_components/UsersClient.tsx`
 - `app/studio/(app)/usuarios/actions.ts` (solo `listUserAccessActivityAction` y su tipo de evento)
 - `app/studio/(app)/usuarios/__tests__/actividad-acceso.test.ts`
-- `app/studio/(app)/admin/_components/PermissionsSection.tsx` (franja, conteos, confirmación)
+- `app/studio/(app)/admin/_components/PermissionsSection.tsx` (§3.8 completo; las acciones de servidor no cambian)
+- `app/studio/(app)/admin/_components/PermissionsSection.test.tsx` (nuevo)
+- `app/studio/(app)/admin/_components/PermisoCeldaPanel.tsx` (nuevo: panel de la celda)
+- `app/studio/(app)/admin/page.tsx` (solo si la sección se sigue mostrando ahí; hoy enlaza a Usuarios)
+- `app/studio/studio.css` (solo las reglas `.studio-permcell*` y las nuevas de la matriz)
+- `e2e/` un spec nuevo para los encabezados fijos de la matriz (nombre a fijar al implementar)
 
 **Biblioteca**
 - `lib/studio/user-module-grants.ts` (estado por chip y textos; sin tocar `COVERED` ni la regla)
@@ -359,6 +446,8 @@ fija el estado de cada captura (lo explica el script del archivo).
 | 12.3 | ¿La matriz por rol pasa a pedir confirmación en cada clic? | Sí, con los nombres afectados | Pendiente de Sam |
 | 12.4 | ¿Etapa 3 (historial de la matriz por rol, con migración)? | Sí, después de la etapa 2 | Pendiente de Sam |
 | 12.5 | ¿Fase 6 (`custom`) espera a la cobertura y a la fase 8? | Sí (§6) | Pendiente de Sam |
+| 12.6 | ¿Matriz con panel por celda en vez de ciclo al clic? | Sí (§3.8) | Pendiente de Sam |
+| 12.7 | ¿Textos «Ver y editar · Solo ver · Sin acceso · Todo» y «Cambiado / de fábrica»? | Sí (§3.8) | Pendiente de Sam |
 
 ## 13. Fuera de alcance
 
@@ -384,3 +473,17 @@ Corrido sobre `maqueta/acceso-por-persona.html` contra `BRAND.md`, el Norte y `a
 Bien: solo tokens existentes (claro y oscuro), Archivo como `--f-sans` del Studio según `tokens.css`, sin
 gradientes ni efectos, alineado a la izquierda, foco visible, nombres accesibles con estado, tuteo sin voseo.
 Veredicto: **OK con ajustes menores** para pasar a implementación.
+
+### 14.1 `/ui-check` de la matriz «Roles y permisos» (2026-11-15)
+
+| # | Prioridad | Hallazgo | Estado |
+|---|---|---|---|
+| 1 | Media | El panel de la celda se cerraba con el desplazamiento que provoca su propio `scrollIntoView` | Corregido en la maqueta (gracia de 400 ms); en código, cerrar solo por desplazamiento del usuario |
+| 2 | Media | En forma corta la leyenda mostraba las palabras largas y no traducía «Edita / Ve / No» | Corregido: la leyenda dice «Edita = Ver y editar», etc. |
+| 3 | Media | Sombras con `rgba` sin token | El panel ya usa `--shadow-pop`. Las sombras direccionales de los encabezados fijos no tienen token: pedir uno antes de implementar (BRAND regla 5) o usar solo el borde `--border-strong` |
+| 4 | Baja | Panel posicionado a mano (`position: fixed`) | En código, el popover del sistema si existe; si no, el mismo cálculo con prueba de bordes |
+| 5 | Baja | Celdas de 30 px de alto | Igual que hoy en escritorio; en táctil, 44 px |
+
+Bien: encabezado, columna, grupo y leyenda fijos; ícono + palabra en vez de siglas; «de fábrica» en palabras;
+solo tokens de color existentes; foco visible y `Esc`; nombres accesibles completos; tuteo.
+Veredicto: **OK con ajustes menores**.

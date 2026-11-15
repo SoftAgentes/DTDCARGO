@@ -24,6 +24,11 @@ hacer visible «ver y editar», ordenar «Almacén», y evaluar la Fase 6 (`cust
 - Maqueta navegable autocontenida `maqueta/acceso-por-persona.html` (tokens de `app/studio/tokens.css`,
   personas ficticias) y 8 capturas PNG generadas con Chrome headless (estado por hash de URL).
 - Índice de specs regenerado.
+- **Ampliación del 2026-11-15** (pedido de Sam vía Director General): matriz «Roles y permisos» en la misma spec
+  (§3.8, aceptación 14 a 18, decisiones 12.6 y 12.7, `/ui-check` §14.1) y en la misma maqueta (vista «Ver Roles y
+  permisos»): encabezado, columna, grupo y leyenda fijos con sombras; ícono + palabra en vez de «V·E»; «Cambiado» y
+  «Volver a lo de fábrica» en vez de «desvío del default» y la ×; panel por celda que nombra a las personas
+  afectadas. Capturas 07 y 09 a 13. Referencias de productos escritas de memoria y marcadas sin verificar.
 
 ## VALIDACIÓN
 
@@ -31,7 +36,7 @@ hacer visible «ver y editar», ordenar «Almacén», y evaluar la Fase 6 (`cust
 |---|---|
 | `pnpm docs:index` / `pnpm docs:check` | PASÓ (620 specs) |
 | `pnpm sdd:check` | PASÓ (sin números repetidos; solo choques históricos ya conocidos) |
-| `/ui-check` de la maqueta | PASÓ con ajustes menores; 2 hallazgos corregidos en la maqueta (§14) |
+| `/ui-check` de la maqueta | PASÓ con ajustes menores; ficha §14 y matriz §14.1, hallazgos fuertes corregidos en la maqueta |
 | Maqueta en navegador (clic en CRM, «Ver y editar», bandeja, motivo) | PASÓ, sin errores de consola |
 | `git diff --check` | ver commit |
 | `pnpm verify` | NO EJECUTADO: el diff es solo documentación (spec, HTML de maqueta, PNG); no cambia producto |
@@ -39,7 +44,8 @@ hacer visible «ver y editar», ordenar «Almacén», y evaluar la Fase 6 (`cust
 ## COMMITS
 
 - Reserva: `ef4d2f7f7` (stub).
-- Commit que contiene este documento: spec, maqueta, capturas, índice y handoff.
+- `c6f7a8c1e`: spec, maqueta, capturas, índice y handoff (ficha).
+- Commit que contiene esta versión del documento: ampliación a la matriz «Roles y permisos».
 
 ## PR / BRANCH
 
