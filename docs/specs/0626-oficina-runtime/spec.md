@@ -12,12 +12,12 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.3 (aprobada para construir el Paso 0 y §3.1) · 15/11/2026**
+**Versión 0.3.1 (aprobada para construir §3.2 y §3.3) · 15/11/2026**
 
 | Control | Valor |
 |---|---|
 | Dueño | Sam (aprobación) · construcción: Director/Worker · redacción: Hermes |
-| Estado | aprobada para construir el Paso 0 y §3.1 · OK de Sam al cable del 14/11/2026 (Paso 0: Partes A, A2 y B; Paso 1: §3.1) · Paso 1 lanzado por Sam el 15/11/2026 con «Sí, lánzalo», transmitido por Hermes |
+| Estado | aprobada para construir §3.2 y §3.3 (el Paso 0 y §3.1 ya están construidos) · OK de Sam al cable del 14/11/2026 · Paso 1 lanzado por Sam el 15/11/2026 con «Sí, lánzalo», transmitido por Hermes · Paso 2 lanzado por Sam el 15/11/2026: a «¿Le aviso a Hermes y lanzo el Paso 2 v2?» respondió «Sí, las dos» |
 | Gobernanza | SGE v8.0 · SGE-AG-01 v0.2 (niveles L0/L1, kill switch, presupuestos) |
 | Depende de | SDD-0020 (SkillDef) · política agent_approvals (docs/agents — NO la spec 0021-facturación de main) · SGE-AG-01 ya en main (`docs/governance/policies/sge-ag-01.md`, PR #524) |
 | No toca | producción, main, ni tareas abiertas de otras ramas |
@@ -42,6 +42,17 @@ completas, los 6 eventos (Fase B), aprobaciones L1 con dinero.
 - **PC de Sam**: aprobaciones y monitoreo (Discord + mini-vista).
 
 ## 3 · Fase A — El cable (semanas 2-3)
+
+**Mapa de pasos.** Cada paso construye una parte de §3 y se entrega en su propio PR. Todo el documento
+usa este mapa.
+
+| Paso | Construye | Estado |
+|---|---|---|
+| Paso 0 | §3.0 · prueba de conexión ERP → oficina | construido |
+| Paso 1 | §3.1 · las 4 tablas y la bandera | construido (migración 0541, sin aplicar) |
+| Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | este PR (migración 0544, sin aplicar) |
+| Paso 3 | §3.4 y §3.5 · despachador mínimo y ejecución | pendiente |
+| Paso 4 | §3.6 · mini-vista | pendiente |
 
 **3.0 Paso 0 · Prueba de conexión (antes de todo):** antes de crear
 migraciones o webhook, el ERP (VPS DTD) llama al VPS Oficina por la red
@@ -93,8 +104,10 @@ y `correlation_id`, y `task_events` solo lo referencia.
   - A la persona y al envío se los nombra por referencia (`entidad_ref`,
     `payload_ref`).
   - `meta_datos` solo guarda referencias e indicadores: ids, conteos y banderas.
-  - El Paso 2 escribe estos campos solo después de `exigirTextosDelCable`
-    (`lib/studio/oficina/cable-textos.ts`, con su prueba). Esa función usa la
+  - Toda escritura del cable pasa antes por `exigirTextosDelCable`
+    (`lib/studio/oficina/cable-textos.ts`, con su prueba): en el Paso 2, la bandeja
+    (`event_inbox`, solo referencias); en el Paso 3, tareas y bitácora (estos
+    campos). Esa función usa la
     regla de `tieneDatosPersonales` y le suma el teléfono internacional
     agrupado.
 - **El resumen se vacía a los 90 días.** `task_events.resumen` se guarda 90
@@ -104,8 +117,9 @@ y `correlation_id`, y `task_events` solo lo referencia.
   - **Por qué:** es una red por si la redacción de datos personales falla, por
     temporalidad (SC 332/2001). No es un plazo que pida R5: R5 le da los 90
     días al replay, la corrida cruda.
-  - **Cómo:** lo hace `office_vaciar_resumenes_viejos()`, que el despachador
-    llama una vez al día.
+  - **Cómo:** lo hace `office_vaciar_resumenes_viejos()`, que llama una vez al
+    día una tarea programada del servidor (`/api/cron/oficina-vaciado`, Paso 2),
+    con su propio interruptor y aunque la oficina esté pausada.
   - **Es la única excepción al solo agregar.** El disparador solo deja pasar
     `resumen → null` en filas de más de 90 días, sin tocar ninguna otra columna.
 - **Lo que se queda con la tarea.** `office_tasks.titulo` y `meta_datos` se
@@ -129,8 +143,46 @@ llegue cuando llegue, y el webhook inserta con `ON CONFLICT DO NOTHING`. Así AC
 no depende de una carrera entre dos entregas. Un evento que de verdad se repite
 lleva en la clave lo que lo distingue (su tipo o su versión).
 
+**Cómo se construyó §3.2 (Paso 2).** Endpoint `POST /api/oficina/webhook-chatwoot`,
+con su propio secreto y su propio interruptor; nace **apagado**.
+- `OFICINA_WEBHOOK_ACTIVO`: vacío o falso = responde sin hacer nada y no escribe.
+- Autentica con la firma HMAC de Chatwoot 4.19.1 (cabeceras `X-Chatwoot-Timestamp` y
+  `X-Chatwoot-Signature`, secreto `OFICINA_WEBHOOK_SECRET`), en tiempo constante y con
+  anti-replay de 300 s. Firma inválida: 401 y no se guarda nada.
+- Solo la bandeja `OFICINA_CHATWOOT_INBOX_PRUEBA`. Vacía = se rechaza todo; otra bandeja
+  se ignora. Solo mensajes entrantes de clientes: ni los propios ni las notas internas.
+- Guarda en `event_inbox`: `clave_dedupe` = conversación + mensaje y `payload_ref` =
+  `chatwoot:conversations/<id>/messages/<id>`. **Nunca el texto** (R5).
+- Con `office_esta_pausada()` en verdadero el aviso se guarda igual y no avanza.
+- Sin la 0541, no hace nada y lo anota una vez en el log.
+
 **3.3 Filtro nivel 1 (0 tokens):** dedupe por clave · prioridad dinero>cliente>
 interno · cuota 20/hora al triaje. Solo lo no clasificado va al modelo.
+
+**Cómo se construyó §3.3 (Paso 2).**
+- **Dedupe.** `event_inbox.clave_dedupe` es única (0541): la misma clave no entra dos veces,
+  ni dentro de 30 min ni después. Es más fuerte que la ventana de 30 min y no tiene carreras.
+- **Prioridad (3 dinero, 2 cliente, 1 interno).** Se decide al recibir, con las etiquetas de la
+  conversación (`OFICINA_ETIQUETAS_DINERO` y `OFICINA_ETIQUETAS_INTERNO`, con valores por defecto).
+  Si no está claro, va como cliente (2).
+- **Cuota.** La función `office_filtrar_bandeja()` (migración **0544**, sin aplicar) pasa a
+  «triaje» como máximo 20 por hora, primero dinero, luego cliente, luego interno, y a igual
+  prioridad el más viejo. Lo que no cabe se queda en «nuevo» y espera: la cuota no descarta nada.
+  La 0544 agrega `event_inbox.triaje_en` para contar la última hora; sin esa hora no se puede.
+- **Pausa.** Con `office_esta_pausada()` en verdadero el filtro no mueve nada.
+- **Cuándo corre.** Un cron de servidor cada minuto (`/api/cron/oficina-filtro`), apagado
+  junto con el webhook.
+- **Vaciado diario** (decisión A de Sam, [privacidad.md](privacidad.md)): `/api/cron/oficina-vaciado`
+  llama una vez al día a `office_vaciar_resumenes_viejos()`. Interruptor propio
+  `OFICINA_VACIADO_ACTIVO`, apagado por defecto. Corre aunque la oficina esté pausada.
+
+**Archivos del Paso 2 (allowlist):**
+- `app/api/oficina/webhook-chatwoot/`, `app/api/cron/oficina-filtro/`, `app/api/cron/oficina-vaciado/`
+- `lib/studio/oficina/` (configuración, filtro, escritura, almacén y procesador) y sus pruebas
+- `supabase/migrations/0544_oficina_filtro_bandeja.sql`, su desarme y su contrato
+- `scripts/build-crontab.mjs`, su prueba y `infra/dtd-cargo/cron/crontab`
+- `supabase/migrations-baseline.json` (la espera), `.env.example` e `infra/dtd-cargo/.env.example`
+- esta spec, `privacidad.md` y `docs/runbooks/oficina-cable.md`
 
 **3.4 Despachador mínimo (tick 10s):** toma `office_tasks` en `listo` →
 invoca el runtime → recibe resultado → verifica contra eval.md (anexo A.7) →
@@ -143,8 +195,8 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 
 **Un solo contestador por bandeja.** Una bandeja de Chatwoot solo puede tener
 un contestador automático. `soporte-chatwoot` y el `dtd-bot` de la SDD-0618
-nunca comparten bandeja. Se hace cumplir en el Paso 3 del cable, cuando el
-agente empiece a responder.
+nunca comparten bandeja. Se hace cumplir en el Paso 3 del cable (§3.4 y §3.5),
+cuando el agente empiece a responder.
 
 **3.6 Mini-vista:** página de prueba leyendo las 4 tablas (cola, eventos,
 bitácora y la bandera) — maqueta de la V3, solo lectura.
@@ -193,12 +245,16 @@ de suscripción 2×día · modo degradado de dos vías.
   - **Paso de la etapa 1 a la etapa 2.** Hacen falta todas a la vez:
     1. **10 conversaciones internas** del inbox de prueba atendidas de punta a
        punta.
-    2. **9 o más correctas** según eval.md (§A.7), revisadas por Sam.
+    2. **9 o más correctas** según eval.md (§A.7), revisadas por Sam. Esa
+       revisión se anota en `agent_approvals`, igual que en la etapa 2, y el
+       conteo usa la misma consulta que AC-7. (Solo texto: se construye en el
+       Paso 3.)
     3. **Cero datos inventados.**
     4. **Simulacro de `office_paused` superado** (AC-3) y **dedupe superado**
        (AC-4).
     5. **Pregunta de control superada** (AC-6).
-    6. **Gasto registrado por corrida** (AC-5).
+    6. **AC-5 completo:** gasto visible por corrida **y** simulacro de
+       auto-pausa al 80 % superado, con un tope de prueba.
 
     Sam firma el paso. Si falla una, no se pasa.
   - **Etapa 2 · Redacta, Sam aprueba:** el agente redacta y Sam aprueba cada
@@ -235,12 +291,12 @@ de suscripción 2×día · modo degradado de dos vías.
 |---|---|
 | Paso 0 · Conexión ERP → VPS Oficina | antes de migraciones y webhook: el ERP llama al VPS Oficina con el token del gestor de secretos y recibe respuesta del runtime con el perfil `soporte-chatwoot`. **Éxito:** 3 de 3 llamadas respondidas en ≤10 s cada una, sin correr el modelo, y la misma llamada sin token es rechazada. Si no se cumple, no se sigue |
 | Migraciones | reversibles; índices en task_events.task_id y event_inbox.clave (única: AC-4) |
-| Webhook | prueba con mensaje interno del inbox de prueba |
-| Filtro | ráfaga de 50 eventos simulados → dedupe y cuota funcionan |
+| Webhook | prueba con mensaje interno del inbox de prueba. **Paso 2:** eventos simulados, sin Chatwoot real (firma mala, bandeja ajena, nota interna, interruptor apagado y pausa activa). **Paso 2b:** el mensaje real del inbox de prueba, cuando Sam entregue las piezas de Chatwoot |
+| Filtro | ráfaga de 50 eventos simulados → dedupe y cuota funcionan (Paso 2: contra el esquema real, en PGlite y en Postgres 17) |
 | Despachador | prueba de caída del proceso → reinicia y retoma del último tick |
 | Kill switch | drill: activar y verificar pausa + aborto en vuelo (AC-3) |
 | Prueba real | AC-1 (etapas 1 y 2) y AC-2..AC-6 con Sam presente |
-| Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas, cero datos inventados, AC-3, AC-4, AC-5 (gasto por corrida) y AC-6 superados; Sam firma el paso |
+| Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `agent_approvals`, contada con la consulta de AC-7), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
 | Paso a etapa 3 | AC-7: conteo de las 20 conversaciones en `agent_approvals` y `task_events`; Sam firma el paso |
 
 ## 10 · Riesgos y qué NO es
@@ -276,6 +332,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.3.1 | 15/11/2026 | Encabezado: aprobada para construir §3.2 y §3.3, con el OK de Sam al cable del 14/11/2026 y su «Sí, las dos» del 15/11/2026 al lanzar el Paso 2 v2. **Mapa de pasos** al inicio de §3 (Paso 0 = §3.0 · Paso 1 = §3.1 · Paso 2 = §3.2 y §3.3 · Paso 3 = §3.4 y §3.5 · Paso 4 = §3.6) y menciones sueltas corregidas. **AC-1, condición 6:** pasa a «AC-5 completo: gasto visible por corrida y simulacro de auto-pausa al 80 % superado, con un tope de prueba». **AC-1, condición 2:** la revisión de Sam de las 10 conversaciones se anota en `agent_approvals`, igual que en la etapa 2, con la misma consulta de conteo que AC-7 (solo texto; se construye en el Paso 3). Cómo se construyen §3.2 y §3.3 y allowlist del Paso 2 (migración 0544 para la cuota) |
 | 0.3 | 15/11/2026 | **Revisión independiente de la #572 (0541 corregida en su lugar, porque no está aplicada en ningún entorno).** Bajas: autorización del Paso 1 registrada (Sam, 15/11/2026, «Sí, lánzalo», por Hermes); «3 tablas» → 4 en §1 y §3.6; `clave_dedupe` única (§3.2, §9). **Con el OK de Sam del 15/11/2026, dado en la sesión del cable** sobre la propuesta de las medias: §3.1 suma la minimización y retención de los textos libres («A: regla + 90 días»; Sam la mantuvo sabiendo que los 90 días no son de R5) y declara que el §3 de AUD-01 no aplica a `task_events` («Sí, apruebo»). Revisión de datos personales en [privacidad.md](privacidad.md). **Con el OK de Sam del 15/11/2026 al pedido «Paso 1.1» de Hermes** («Sí, añádelas»): la regla del paso de la etapa 1 a la 2 en AC-1 (y su fila en §9) y la de un solo contestador por bandeja (§3.5). Allowlist del Paso 1 en §3.1 |
 | 0.2.2 | 15/11/2026 | Encabezado: aprobada para construir el Paso 0 y §3.1, con el OK de Sam al cable del 14/11/2026. Sin cambios de alcance. §3.1 se construye en el Paso 1 (pedido de Hermes que Sam autorizó: «Sí, lánzalo») |
 | 0.2.1 | 14/11/2026 | Estado `draft` → `approved` para construir, con el OK de Sam al cable del 14/11/2026. Sin cambios de alcance. El Paso 0 se monta y se prueba en la Parte B. Runbook: `docs/runbooks/oficina-cable.md` |

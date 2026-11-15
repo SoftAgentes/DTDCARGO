@@ -67,6 +67,18 @@ export const EXTRA_CRONS = [
     reason:
       "cada hora, minuto 5 UTC · 24 invocaciones nominales/día · requiere flag y scope explícitos; no activa la carga",
   },
+  {
+    path: "/api/cron/oficina-filtro",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 §3.3 · filtro nivel 1 de la bandeja del cable (hasta 20/hora a triaje) · nace APAGADO: sin OFICINA_WEBHOOK_ACTIVO no llama a la base",
+  },
+  {
+    path: "/api/cron/oficina-vaciado",
+    schedule: "15 4 * * *",
+    reason:
+      "diario, 04:15 UTC · SDD-0626 §3.1 · vacía task_events.resumen a los 90 días (privacidad, decisión A de Sam) · corre aunque la oficina esté pausada · nace APAGADO: sin OFICINA_VACIADO_ACTIVO no llama a la base",
+  },
 ];
 
 const CRON_PATH_RE = /^\/api\/cron\/([a-z0-9]+(?:-[a-z0-9]+)*)$/;

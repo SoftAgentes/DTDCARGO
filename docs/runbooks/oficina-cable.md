@@ -1,4 +1,4 @@
-# Runbook · El cable ERP → oficina (SDD-0626, Paso 0)
+# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0 y 2)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Es provisional hasta que termine la actualización de Hermes (ver §5).
@@ -127,3 +127,77 @@ Los dos `REVERTIR.txt` (§2) tienen cada paso con su comando, en orden inverso. 
 `ufw delete allow in on br-0fac7b3a83c3 from 172.19.0.0/16 to 172.19.0.1 port 18642 proto tcp` y borrando el
 drop-in `erp-puente.conf` (después, `systemctl daemon-reload` y `systemctl restart oficina-cable-tunel`). Las dos líneas `OFICINA_RUNTIME_*` se borran del `.env` (queda su respaldo). Nada de
 esto toca la base, las migraciones ni el código del ERP.
+
+## 8 · Webhook, filtro y vaciado (SDD-0626 Paso 2: §3.2 y §3.3)
+
+**Estado:** construido en el Paso 2, con todo **apagado**. Si este código llega a producción con una publicación
+manual, no hace nada hasta que Sam encienda cada interruptor. **Faltan, y no las aplica este paso:** la migración
+0541 (tablas) y la 0544 (cuota del filtro). Ambas están declaradas como espera en `migrations-baseline.json`;
+aplicarlas exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`.
+
+```
+Chatwoot (bandeja de prueba)  ──POST firmado──▶  /api/oficina/webhook-chatwoot  ──▶  event_inbox  (guardar y salir)
+cron del servidor, cada minuto ─────────────▶  /api/cron/oficina-filtro  ──▶  office_filtrar_bandeja()  (hasta 20/h a «triaje»)
+cron del servidor, diario 04:15 UTC ────────▶  /api/cron/oficina-vaciado ──▶  office_vaciar_resumenes_viejos()
+```
+
+### Las variables (solo en `/srv/dtd-cargo/.env`; los nombres están en `.env.example`, sin valores)
+
+| Variable | Qué hace | Apagado / vacío |
+|---|---|---|
+| `OFICINA_WEBHOOK_ACTIVO` | Enciende el webhook y el filtro. Solo vale `1` o `true` (cualquier otra cosa, apagado) | El webhook responde 200 sin hacer nada y no escribe; el filtro no llama a la base |
+| `OFICINA_WEBHOOK_SECRET` | El «secret» del webhook de Chatwoot que apunta a este endpoint. **Propio del cable**, no el de `/api/chatwoot/webhook` | Se rechaza todo (503) |
+| `OFICINA_CHATWOOT_INBOX_PRUEBA` | Id numérico de la única bandeja que el cable atiende | Se rechaza todo (503). Cualquier otra bandeja se ignora |
+| `OFICINA_ETIQUETAS_DINERO`, `OFICINA_ETIQUETAS_INTERNO` | Etiquetas de Chatwoot (separadas por comas) que dan prioridad 3 (dinero) o 1 (interno). Opcionales | Valen las del código: dinero, pago, cobro, cobranza, factura, reembolso / interno, prueba. Sin etiqueta clara, cliente (2) |
+| `OFICINA_VACIADO_ACTIVO` | Enciende el vaciado diario del resumen. **Interruptor propio**: no lo enciende el del webhook. Solo vale `1` o `true` | No llama a la base |
+
+Se leen en cada llamada: **apagar** una pieza es poner su variable vacía y recrear el `web` (las variables del
+`.env` entran al recrearlo, §3). Hasta entonces el proceso sigue con lo anterior.
+
+### Cómo se enciende (con OK de Sam, y solo cuando estén las 5 piezas del Paso 2b)
+
+El orden importa; cada paso se comprueba antes del siguiente.
+1. **La base.** Aplicar la 0541 y la 0544 (OK nominal de Sam, runbook de migraciones). La oficina **nace pausada**: eso
+   no se cambia hasta la etapa de prueba, y solo lo despausa un `is_platform_admin()`.
+2. **Chatwoot.** Crear, en la cuenta, un webhook que apunte a `https://<dominio del ERP>/api/oficina/webhook-chatwoot`
+   con el evento `message_created` y su «secret». El secret **no se escribe en el chat ni en el repo**: lo pega la
+   persona que opera en `/srv/dtd-cargo/.env` como `OFICINA_WEBHOOK_SECRET`.
+3. **El `.env`.** Poner `OFICINA_CHATWOOT_INBOX_PRUEBA` (id de la bandeja de prueba) y `OFICINA_WEBHOOK_SECRET`, con
+   copia previa del `.env` (`.env.bak-cable-<ts>`, §3). Después `OFICINA_WEBHOOK_ACTIVO=1`. Recrear el `web`
+   (publicación). El crontab nuevo NO se toma solo: `infra/dtd-cargo/cron/Dockerfile` lo copia dentro de la imagen del contenedor `cron`, así que hay que reconstruirla (secuencia C8 de [publicacion-automatica-web.md](publicacion-automatica-web.md)): copiar `cron/` del repo a `/srv/dtd-cargo/`, luego `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml build cron` y luego `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps cron`. **Está prohibido un `compose up` suelto.** Sin esto, el filtro y el vaciado no corren.
+4. **El vaciado** se enciende aparte (`OFICINA_VACIADO_ACTIVO=1`) cuando la 0541 esté aplicada. Sin la 0541 no hace nada.
+
+### Qué revisar
+
+- **Que llega:** un mensaje del cliente en la bandeja de prueba deja UNA fila en `event_inbox` con
+  `payload_ref = chatwoot:conversations/<id>/messages/<id>`. Si la fila trae algo más que una referencia, es un
+  error: apagar y avisar (R5).
+- **Que no escribe de más:** un mensaje de otra bandeja, una nota interna o un mensaje nuestro no dejan fila.
+- **Que el filtro respeta la pausa:** con `office_paused` en verdadero, las filas se quedan en «nuevo».
+- **Cuota:** como máximo 20 filas pasan a «triaje» por hora (`triaje_en`). Lo demás espera en «nuevo»: la cuota no descarta.
+- **Duplicados:** la misma conversación + mensaje no entra dos veces, llegue cuando llegue (`clave_dedupe` única).
+- **El log**, solo con códigos, nunca con el texto del cliente:
+  - `[oficina-cable] el webhook no guarda nada: falta la 0541` / `el filtro no mueve nada: falta la 0541 o la 0544` /
+    `el vaciado no hace nada: falta la 0541`: una sola vez por proceso. Significa que la base no tiene la migración.
+  - `[oficina-cable] no se guarda: <códigos> (SDD-0626 §3.1, R5)`: `exigirTextosDelCable` rechazó algo (422).
+    No debería ocurrir con el webhook; si pasa, revisar de dónde vino el dato.
+  - `el webhook no pudo guardar el aviso (<código>)`: error de la base (500). Chatwoot 4.19.1 no reintenta webhooks de
+    cuenta: el mensaje queda sin fila; se ve en Chatwoot.
+- **El vaciado:** `curl` del cron con la llave devuelve `{"ok":true,"estado":"ok","cantidad":N}`. Repetirlo da `0`.
+  Corre con la oficina pausada. Las filas se quedan; solo el `resumen` de las de más de 90 días pasa a vacío.
+
+### Cómo se apaga
+
+- **Todo el cable de entrada:** `OFICINA_WEBHOOK_ACTIVO=` (vacío) y recrear el `web`. El webhook responde 200 sin
+  escribir y el filtro deja de moverse. Las filas ya guardadas quedan como están.
+- **Solo el vaciado:** `OFICINA_VACIADO_ACTIVO=` (vacío) y recrear el `web`.
+- **Parar el trabajo sin apagar el webhook:** pausar la oficina (`office_cambiar_pausa(true, '<motivo>')`, solo un
+  administrador). El aviso se sigue guardando para no perder mensajes, pero nada avanza.
+- **Quitar el webhook en Chatwoot** (borrarlo o pausarlo en su pantalla de webhooks) corta la entrada en el origen.
+- **Revertir el código:** el desarme de la 0544 (`supabase/desarmes/0544_desarme.sql`, antes que el de la 0541) pierde
+  solo la hora de triaje. El código sin las migraciones no hace nada.
+
+### Lo que este paso NO hace
+
+No responde nada en Chatwoot, no tiene repartidor, modelo ni herramientas, y no usa `OFICINA_RUNTIME_*`. La prueba
+con un mensaje real del inbox de prueba es el **Paso 2b** y espera las 5 piezas de Chatwoot de Sam.

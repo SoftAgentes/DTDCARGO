@@ -64,8 +64,9 @@ No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalizaci�
 
 ### `ENCONTRADO` 1 · La regla de escritura todavía no tiene quién la llame (media)
 
-`exigirTextosDelCable` existe y tiene su prueba (`lib/studio/oficina/cable-textos.ts:115`), pero nadie la llama todavía, porque el Paso 2 no existe.
-- **Arreglo:** el PR del Paso 2 escribe `titulo`, `meta_datos`, `resumen`, `actor` y `asignado_a` solo después de esa función. Su revisión comprueba que no haya otro camino de escritura.
+`exigirTextosDelCable` existe y tiene su prueba (`lib/studio/oficina/cable-textos.ts:115`).
+- **Paso 2 (hecho):** el webhook escribe `event_inbox` solo a través de `escribirEnElCable` (`lib/studio/oficina/escritura.ts`), que llama a esa función antes de guardar. La fila lleva solo identificadores y referencias, y no existe otro camino de escritura a las tablas del cable en el código. Su prueba incluye el caso de rechazo: no se guarda, y el log da los códigos sin repetir el dato.
+- **Sigue abierto (Paso 3):** el despachador escribirá `titulo`, `meta_datos`, `resumen`, `actor` y `asignado_a`. Esos campos todavía no los escribe nadie; su revisión comprobará que no haya otro camino de escritura.
 
 ### `ENCONTRADO` 2 · La regla no ve todo (baja)
 
@@ -82,7 +83,7 @@ No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalizaci�
 
 `clave_dedupe` solo prohíbe los espacios (`0541:216`). La clave se arma con los ids de Chatwoot (conversación y mensaje), nunca con datos de contacto (§3.2).
 - Por qué no se le aplica la regla de texto: los ids numéricos largos la harían dar falsos positivos.
-- Dónde se revisa: en el PR del Paso 2.
+- Dónde se revisó: en el PR del Paso 2. La clave del webhook es `chatwoot:conv:<id>:msg:<id>`, con los dos ids numéricos de Chatwoot, y además pasa por `exigirTextosDelCable`. Una prueba exige que ninguna fila guarde el texto, el nombre, el correo ni el teléfono de un mensaje de ejemplo.
 
 ### `CORRECTO` 4 · Quién y a quién, por identificador
 
@@ -132,7 +133,7 @@ service_role escribe por columna: nunca `id`, `creado_en` ni `ts` (`0541:423` y 
 - **Chatwoot:** guarda la conversación completa. Su retención es la de Chatwoot, no la de estas tablas.
 - **Producción:**
   - que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide;
-  - que el despachador de verdad llame a `office_vaciar_resumenes_viejos()` todos los días.
+  - que la tarea programada `/api/cron/oficina-vaciado` esté de verdad en el contenedor `cron` del servidor, encendida (`OFICINA_VACIADO_ACTIVO`) y llamando a `office_vaciar_resumenes_viejos()` todos los días (Paso 2: nace apagada).
 - **Base real:** no se corrió la verificación del paso 3 de la skill (crear un valor rastreable, vaciarlo y buscarlo). El contrato corre en PGlite y en un Postgres 17 desechable.
 
 ## 5 · Fuera de alcance

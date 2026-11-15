@@ -32,3 +32,7 @@
 0 6 * * 1 curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/searates-refresh
 # /api/cron/bcv-rates: cada hora, minuto 5 UTC · 24 invocaciones nominales/día · requiere flag y scope explícitos; no activa la carga
 5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bcv-rates
+# /api/cron/oficina-filtro: cada minuto · SDD-0626 §3.3 · filtro nivel 1 de la bandeja del cable (hasta 20/hora a triaje) · nace APAGADO: sin OFICINA_WEBHOOK_ACTIVO no llama a la base
+* * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/oficina-filtro
+# /api/cron/oficina-vaciado: diario, 04:15 UTC · SDD-0626 §3.1 · vacía task_events.resumen a los 90 días (privacidad, decisión A de Sam) · corre aunque la oficina esté pausada · nace APAGADO: sin OFICINA_VACIADO_ACTIVO no llama a la base
+15 4 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/oficina-vaciado
