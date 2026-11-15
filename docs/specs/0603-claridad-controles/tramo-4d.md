@@ -35,7 +35,7 @@ No se tocaron `studio.css`, `tokens.css`, `Aviso.tsx`, `ErrorAlert.tsx`, `spec.m
 | | CreateOdDrawer | carga fraccionada (atención, con `titulo`) y error del servidor |
 | | RulesClient | error y guardado (éxito) |
 | etiquetas | LabelGeneratorClient | nota de impresión (info) |
-| fidelización | FidelizacionClient | `StrandedCreditsBanner` (atención, `urgente`) |
+| fidelización | FidelizacionClient | `StrandedCreditsBanner` (atención, `status`; era `urgente` hasta la enmienda de cierre, 2026-11-15) |
 | | ReferralDrawer | error y venta anulada (atención) |
 | | ReferralSettingsDrawer, RegisterReferralDrawer | `FormError` local (error) y nota de montos (info) |
 | inspecciones | InspeccionDrawer, PhotoManager, ReportEditor | error de la acción |

@@ -266,6 +266,10 @@ export function FidelizacionClient({
  * encontrarse sin buscarlo. Quien abre Fidelización para otra cosa es
  * exactamente quien hoy no se entera.
  *
+ * Es `status`, no `alert` (decisión de Sam, 2026-11-15, BD-037): el aviso se
+ * deriva del estado al abrir la pantalla y no responde a una acción, igual que
+ * el de la factura anulada. Lo persistente es `status`.
+ *
  * No nombra la factura: este módulo lo ven commercial y support, y el código de
  * factura es dato del módulo de dinero. El `referral_code` alcanza para
  * coordinar, y es el mismo handle que ve el lado de facturación.
@@ -286,7 +290,7 @@ function StrandedCreditsBanner({
 
   return (
     <div style={{ margin: "0 0 var(--s-5)" }}>
-      <Aviso tono="atencion" urgente titulo={titulo}>
+      <Aviso tono="atencion" titulo={titulo}>
         <p
           style={{
             margin: "0 0 var(--s-2)",
