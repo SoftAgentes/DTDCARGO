@@ -12,12 +12,12 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.2.2 (aprobada para construir el Paso 0 y §3.1) · 15/11/2026**
+**Versión 0.2.3 (aprobada para construir el Paso 0 y §3.1) · 15/11/2026**
 
 | Control | Valor |
 |---|---|
 | Dueño | Sam (aprobación) · construcción: Director/Worker · redacción: Hermes |
-| Estado | aprobada para construir el Paso 0 y §3.1 · OK de Sam al cable del 14/11/2026 (Paso 0: Partes A, A2 y B; Paso 1: §3.1) |
+| Estado | aprobada para construir el Paso 0 y §3.1 · OK de Sam al cable del 14/11/2026 (Paso 0: Partes A, A2 y B; Paso 1: §3.1) · Paso 1 lanzado por Sam el 15/11/2026 con «Sí, lánzalo», transmitido por Hermes |
 | Gobernanza | SGE v8.0 · SGE-AG-01 v0.2 (niveles L0/L1, kill switch, presupuestos) |
 | Depende de | SDD-0020 (SkillDef) · política agent_approvals (docs/agents — NO la spec 0021-facturación de main) · SGE-AG-01 ya en main (`docs/governance/policies/sge-ag-01.md`, PR #524) |
 | No toca | producción, main, ni tareas abiertas de otras ramas |
@@ -27,8 +27,8 @@ confidencialidad: interno
 Que una conversación real de Chatwoot sea atendida de principio a fin por
 `soporte-chatwoot` (glm-5.3), con autonomía que sube por etapas (AC-1) y solo
 pasa a responder sola si cumple la regla de seguir o parar (AC-7), con cada
-paso anotado y visible en una vista de prueba estilo V3. **Incluye:** 3 tablas mínimas,
-webhook de Chatwoot, filtro nivel 1, despachador mínimo, 1 corrida, ficha del
+paso anotado y visible en una vista de prueba estilo V3. **Incluye:** 4 tablas mínimas
+(las 3 del cable y la bandera `office_paused`), webhook de Chatwoot, filtro nivel 1, despachador mínimo, 1 corrida, ficha del
 agente, kill switch. **NO incluye:** los otros 34 agentes, las vistas
 completas, los 6 eventos (Fase B), aprobaciones L1 con dinero.
 
@@ -61,7 +61,11 @@ tabla de §9.
   próximo tick; aborta acción en vuelo y congela estado transaccional.
 
 **3.2 Webhook Chatwoot → bandeja:** POST entrante autenticado; crea
-`event_inbox` con `clave_dedupe = conversación+mensaje` (ventana 30 min).
+`event_inbox` con `clave_dedupe = conversación+mensaje` (ventana 30 min). La
+base hace la clave única (0541): una segunda entrega del mismo mensaje no entra,
+llegue cuando llegue, y el webhook inserta con `ON CONFLICT DO NOTHING`. Así AC-4
+no depende de una carrera entre dos entregas. Un evento que de verdad se repite
+lleva en la clave lo que lo distingue (su tipo o su versión).
 
 **3.3 Filtro nivel 1 (0 tokens):** dedupe por clave · prioridad dinero>cliente>
 interno · cuota 20/hora al triaje. Solo lo no clasificado va al modelo.
@@ -75,8 +79,8 @@ timeout 300s (tope por corrida, presupuesto de doble carril).
 acceso nivel 2 (Chatwoot API: leer conversación, responder; nada más).
 Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 
-**3.6 Mini-vista:** página de prueba leyendo las 3 tablas (cola, eventos,
-bitácora) — maqueta de la V3, solo lectura.
+**3.6 Mini-vista:** página de prueba leyendo las 4 tablas (cola, eventos,
+bitácora y la bandera) — maqueta de la V3, solo lectura.
 
 ## 4 · Fase B (semanas 4-5) — resumen para planificar
 Los 6 disparadores (pago, pre-alerta, contenedor, reclamo, run fallido,
@@ -152,7 +156,7 @@ de suscripción 2×día · modo degradado de dos vías.
 | Paso | Cómo se comprueba |
 |---|---|
 | Paso 0 · Conexión ERP → VPS Oficina | antes de migraciones y webhook: el ERP llama al VPS Oficina con el token del gestor de secretos y recibe respuesta del runtime con el perfil `soporte-chatwoot`. **Éxito:** 3 de 3 llamadas respondidas en ≤10 s cada una, sin correr el modelo, y la misma llamada sin token es rechazada. Si no se cumple, no se sigue |
-| Migraciones | reversibles; índices en task_events.task_id y event_inbox.clave |
+| Migraciones | reversibles; índices en task_events.task_id y event_inbox.clave (única: AC-4) |
 | Webhook | prueba con mensaje interno del inbox de prueba |
 | Filtro | ráfaga de 50 eventos simulados → dedupe y cuota funcionan |
 | Despachador | prueba de caída del proceso → reinicia y retoma del último tick |
@@ -193,6 +197,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.2.3 | 15/11/2026 | Bajas de la revisión independiente de la #572, sin cambios de alcance. Autorización del Paso 1 registrada con su texto, su fecha y quién la transmitió (Sam, 15/11/2026, «Sí, lánzalo», por Hermes). «3 tablas» → 4 en §1 y §3.6, porque se suma `office_paused`. §3.2 y §9: `clave_dedupe` es única en la base (AC-4). La 0541 se corrige en su lugar porque no está aplicada en ningún entorno. Revisión de datos personales de §3.1 en [privacidad.md](privacidad.md). Las dos observaciones medias (textos libres y AUD-01 §3) esperan el OK de Sam |
 | 0.2.2 | 15/11/2026 | Encabezado: aprobada para construir el Paso 0 y §3.1, con el OK de Sam al cable del 14/11/2026. Sin cambios de alcance. §3.1 se construye en el Paso 1 (pedido de Hermes que Sam autorizó: «Sí, lánzalo») |
 | 0.2.1 | 14/11/2026 | Estado `draft` → `approved` para construir, con el OK de Sam al cable del 14/11/2026. Sin cambios de alcance. El Paso 0 se monta y se prueba en la Parte B. Runbook: `docs/runbooks/oficina-cable.md` |
 | 0.2 | 13/11/2026 | Paso 0 de conexión ERP → VPS Oficina (§3.0 y primera fila de §9) · AC-1 reescrito como autonomía por etapas · AC-7 nuevo, regla de seguir o parar (20 conversaciones, 90 % correctas, cero datos inventados, tope $15/mes) · dependencia de gobernanza al día (SGE-AG-01 ya en main) |
