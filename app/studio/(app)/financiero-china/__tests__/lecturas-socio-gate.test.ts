@@ -40,6 +40,11 @@ const listLedgerEntriesMock = vi.fn();
 const listChargesMock = vi.fn();
 const getStatementWithLinesMock = vi.fn();
 
+// SDD-0622: los accesos adicionales de la persona se leen aparte, como los
+// desvíos por rol; aquí no son el objeto de la prueba.
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({
+  getMyModuleGrants: async () => ({}),
+}));
 vi.mock("@/lib/studio/partner-finance/ledger-queries", () => ({
   getPartnerBalance: (...a: unknown[]) => getPartnerBalanceMock(...a),
   listLedgerEntries: (...a: unknown[]) => listLedgerEntriesMock(...a),

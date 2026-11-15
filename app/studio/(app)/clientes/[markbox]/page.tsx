@@ -163,7 +163,7 @@ export default async function ClienteDetallePage({
   // SDD-0558: la cuenta del cliente. No lanza: sin permiso no pide el saldo,
   // y si el cálculo falla la cabecera lo dice con una referencia (ERR-01).
   const cuentaCliente = await getClientAccountState(supabase, client, {
-    puedeVerSaldo: puedeVerSaldoCliente(studioRole, studioAccess.overrides),
+    puedeVerSaldo: puedeVerSaldoCliente(studioRole, studioAccess.overrides, studioAccess.grants),
     codigosConocidos: markboxHistory.map((h) => h.markbox),
   });
   const puedeAbrirEstadoDeCuenta = puedeVerEstadoDeCuenta(studioRole);
@@ -188,7 +188,7 @@ export default async function ClienteDetallePage({
   // un cruce ambiguo no aparece acá. Solo con acceso a la Bandeja y el flag
   // encendido; sin 0504 o con error, no hay tarjeta.
   let conversacionesChatwoot: ConversacionDeCliente[] | null = null;
-  if (tenantLink?.tenant_id && canAccessModule(studioRole, "bandeja", studioAccess.overrides)) {
+  if (tenantLink?.tenant_id && canAccessModule(studioRole, "bandeja", studioAccess.overrides, studioAccess.grants)) {
     try {
       if (isModuleEnabled("bandeja", await listFeatureFlags(supabase))) {
         conversacionesChatwoot = await listConversacionesDeCliente(supabase, tenantLink.tenant_id, client.id);

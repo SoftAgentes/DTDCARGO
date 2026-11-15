@@ -22,7 +22,13 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { canAccessModule, scopeAllowsModule, type RoleModuleOverrides } from "@/lib/studio/rbac";
+import {
+  canAccessModule,
+  scopeAllowsModule,
+  type RoleModuleOverrides,
+  type UserModuleGrants,
+} from "@/lib/studio/rbac";
+import { DECISION_COLUMNS, grantsFromRows, type GrantDecisionRow } from "@/lib/studio/user-module-grants-queries";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { MAX_RESULTADOS, TOPE_POR_MINUTO } from "./comando";
 import {
@@ -120,8 +126,23 @@ async function autorizar(
     }
     overrides = mapa;
   }
+  // Extras de ESTA persona (SDD-0622). Si la 0538 no está aplicada, la lectura
+  // falla y no suma nada: el rol decide como antes.
+  let grants: UserModuleGrants = {};
+  if (role !== "admin") {
+    try {
+      const extras = await admin
+        .from("studio_user_module_grants")
+        .select(DECISION_COLUMNS)
+        .eq("tenant_id", tenant)
+        .eq("user_id", userId);
+      if (!extras.error && Array.isArray(extras.data)) grants = grantsFromRows(extras.data as GrantDecisionRow[]);
+    } catch {
+      // Sin la tabla (o un cliente que no la conoce): no suma nada, decide el rol.
+    }
+  }
   const puede =
-    canAccessModule(role, MODULO_CLIENTES, overrides) &&
+    canAccessModule(role, MODULO_CLIENTES, overrides, grants) &&
     (role === "admin" || scopeAllowsModule(membresia.data?.warehouse_scope, MODULO_CLIENTES));
   if (!puede) return { resultado: "sin_permiso", userId, tenantId: tenant };
 

@@ -12,8 +12,8 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
-import type { StudioUserRole } from "@/lib/studio/user-types";
 import {
   getClientCount,
   getOperationalCounts,
@@ -91,19 +91,23 @@ type UserTenantWithTenant = { role: string | null; tenants: TenantRow | null };
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [userResp, link] = await Promise.all([
+  const [userResp, link, access] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("user_tenants")
       .select("role, tenants(display_name, base_currency)")
       .maybeSingle<UserTenantWithTenant>()
       .then((r) => r.data ?? null),
+    // SDD-0622: el rol, los desvíos por rol y los accesos adicionales salen de
+    // la MISMA resolución que el sidebar y los gates (membresía activa).
+    getStudioAccess(supabase),
   ]);
 
   const userId = userResp.data.user?.id ?? "";
-  const role = (link?.role as StudioUserRole | null) ?? null;
+  const role = access.role;
   const tenant = link?.tenants ?? null;
-  const canAccess = (moduleId: string | null) => (moduleId === null ? true : canAccessModule(role, moduleId));
+  const canAccess = (moduleId: string | null) =>
+    moduleId === null ? true : canAccessModule(role, moduleId, access.overrides, access.grants);
 
   // Config del usuario (DB manda) → filtrada por RBAC y por lo oculto. Vacía /
   // usuario nuevo → default. Sin KPI por un KPI oculto → los KPI del default del

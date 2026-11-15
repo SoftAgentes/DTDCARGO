@@ -11,10 +11,10 @@
  * (`shell.jsx`, OVERLAY_TITLES 'Perfil de usuario'), NO una carpeta ni una ruta
  * propia. Acá se usa el DrawerShell del Studio, que es el mismo gesto.
  *
- * NO trae "actividad reciente" a propósito. El Norte la dibuja, pero antes de
- * prometerla hay que resolver de dónde salen esos datos: hoy la auditoría vive
- * repartida en varias tablas y no hay una vista por persona. Dibujarla con
- * datos inventados sería peor que no tenerla.
+ * SDD-0622: tres pestañas — Perfil (datos y acciones de admin), Acceso (rol
+ * base, accesos extra y lo que puede ver) y Actividad (rastro de los accesos
+ * extra en `entity_audit_log`). La actividad muestra SOLO eso, que sí tiene una
+ * vista por persona; los cambios de rol siguen en su propia auditoría.
  */
 
 import { useActionState, useState } from "react";
@@ -32,7 +32,11 @@ import {
   type UserActionState,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
-import { RolYAlcanceCard } from "./ficha/RolYAlcanceCard";
+import type { RoleModuleOverrides } from "@/lib/studio/rbac";
+import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-queries";
+import { AccesoPanel } from "./acceso/AccesoPanel";
+import { ActividadAcceso } from "./acceso/ActividadAcceso";
+import "./acceso/permisos.css";
 import {
   changeMemberEmailAction,
   disableUserAction,
@@ -43,16 +47,30 @@ import {
 
 const INICIAL: UserActionState = {};
 
+export type FichaPestana = "perfil" | "acceso" | "actividad";
+
 export function UserDetailDrawer({
   member,
   esYo,
   onClose,
+  grants = [],
+  overrides = {},
+  nombres = {},
+  pestana: pestanaInicial = "perfil",
 }: {
   member: UserMembershipWithProfile;
   /** El admin se está mirando a sí mismo — cambia el aviso del correo. */
   esYo?: boolean;
   onClose: () => void;
+  /** Accesos extra de esta persona (SDD-0622). */
+  grants?: UserModuleGrantView[];
+  /** Desvíos por rol del tenant, para «Lo que puede ver». */
+  overrides?: RoleModuleOverrides;
+  /** userId → nombre, para «dado por» y la actividad. */
+  nombres?: Record<string, string>;
+  pestana?: FichaPestana;
 }) {
+  const [pestana, setPestana] = useState<FichaPestana>(pestanaInicial);
   const [perfilState, perfilAction, perfilPending] = useActionState(
     updateMemberProfileAction,
     INICIAL,
@@ -98,9 +116,63 @@ export function UserDetailDrawer({
       subtitle={`${ROLE_LABELS[member.role]} · ${memberStatusLabel(estado)}`}
       onClose={onClose}
       pending={pendiente}
-      width={620}
+      width={640}
     >
+      {/* Pestañas con la forma única del Studio (SDD-0603, `.studio-tabs`). */}
+      <div style={{ padding: "var(--s-3) var(--s-4) 0" }}>
+        <div role="tablist" aria-label="Secciones de la ficha" className="studio-tabs">
+          {(["perfil", "acceso", "actividad"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              id={`ficha-tab-${t}`}
+              aria-selected={pestana === t}
+              aria-controls={`ficha-panel-${t}`}
+              data-activa={pestana === t ? "true" : undefined}
+              tabIndex={pestana === t ? 0 : -1}
+              className="studio-tab"
+              onClick={() => setPestana(t)}
+            >
+              {t === "perfil" ? "Perfil" : t === "acceso" ? "Acceso" : "Actividad"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {pestana === "acceso" && (
+        <div
+          role="tabpanel"
+          id="ficha-panel-acceso"
+          aria-labelledby="ficha-tab-acceso"
+          style={{ flex: 1, overflow: "auto", padding: "var(--s-4)" }}
+        >
+          {/* NO se pasa `onClose`: la ficha se queda abierta y `revalidatePath`
+              la redibuja con la fila fresca (UsersClient guarda el ID). */}
+          <AccesoPanel member={member} grants={grants} overrides={overrides} nombres={nombres} esYo={esYo} />
+        </div>
+      )}
+
+      {pestana === "actividad" && (
+        <div
+          role="tabpanel"
+          id="ficha-panel-actividad"
+          aria-labelledby="ficha-tab-actividad"
+          style={{ flex: 1, overflow: "auto", padding: "var(--s-4)" }}
+        >
+          <ActividadAcceso
+            userId={member.user_id}
+            nombres={nombres}
+            version={grants.map((g) => `${g.moduleId}:${g.updatedAt}:${g.canEdit}`).join("|")}
+          />
+        </div>
+      )}
+
+      {pestana === "perfil" && (
       <div
+        role="tabpanel"
+        id="ficha-panel-perfil"
+        aria-labelledby="ficha-tab-perfil"
         style={{
           flex: 1,
           overflow: "auto",
@@ -285,15 +357,9 @@ export function UserDetailDrawer({
           )}
         </Seccion>
 
-        {/* ── Rol y alcance ──────────────────────────────────── */}
-        <Seccion titulo="Rol y alcance">
-          {/* NO se pasa `onClose`: cerrar la ficha al aplicar descartaba en
-              silencio lo que hubiera escrito el admin en «Datos de la persona»
-              (son inputs no controlados, viven sólo en el DOM). El
-              `revalidatePath` de la acción ya redibuja la ficha con la fila
-              fresca — `UsersClient` guarda el ID, no el objeto. */}
-          <RolYAlcanceCard member={member} esYo={esYo} />
-        </Seccion>
+        {/* El rol y el alcance se mudaron a la pestaña «Acceso» (SDD-0622),
+            junto a los accesos extra: la pregunta es una sola, «qué puede
+            hacer esta persona». */}
 
         {/* ── Datos editables ────────────────────────────────── */}
         <Seccion titulo="Datos de la persona">
@@ -458,14 +524,34 @@ export function UserDetailDrawer({
           </p>
         )}
       </div>
+      )}
 
-      <DrawerFooter
-        formId="ficha-perfil-form"
-        onClose={onClose}
-        isPending={pendiente}
-        canSubmit={!pendiente}
-        submitLabel="Guardar datos"
-      />
+      {pestana === "perfil" ? (
+        <DrawerFooter
+          formId="ficha-perfil-form"
+          onClose={onClose}
+          isPending={pendiente}
+          canSubmit={!pendiente}
+          submitLabel="Guardar datos"
+        />
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-3)",
+            padding: "var(--s-3) var(--s-4)",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <span style={{ flex: 1, font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+            Cada cambio de acceso queda en Actividad con quién, cuándo y motivo.
+          </span>
+          <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+      )}
     </DrawerShell>
   );
 }
