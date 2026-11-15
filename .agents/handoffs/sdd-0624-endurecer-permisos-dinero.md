@@ -59,9 +59,10 @@ los overrides por rol. La SDD-0622 lo puede alinear con `user_has_module`.
 - **Cómo se combina con que una espera frena la publicación.** La 0528 en
   `pendingBelowCutoff` frena la publicación de main mientras no se aplique, y
   no se puede aplicar antes de publicar. Una salida posible: publicar esta PR
-  con la espera aceptada y aplicar la 0528 enseguida después, sin editar gastos
-  en esa ventana (la app nueva funciona igual sin la 0528). Lo deciden el DG y
-  Sam; no es una decisión de esta tarea.
+  con la espera aceptada y aplicar la 0528 solo con el despliegue nuevo
+  confirmado en vivo, y no volver a una versión anterior de la app mientras la
+  0528 esté aplicada (ojo con un :publicable viejo). La app nueva funciona igual
+  sin la 0528. Lo deciden el DG y Sam; no es una decisión de esta tarea.
 - **Aplicar la 0528 a producción.** Necesita un OK de Sam que nombre el archivo.
   La 0470 y la 0511 ya están aplicadas y selladas (candado, 2026-10-19 y
   2026-11-03), aunque sus cabeceras digan otra cosa. Hay que medir el ledger
@@ -186,6 +187,20 @@ espera y la única degradación siguen siendo las de la 0528, con el texto de H1
 | `check-pending-migration-symbols` | PASÓ: 0 rojo y 1 amarillo declarado |
 | `pnpm docs:check`, `pnpm sdd:check` | PASÓ (617 specs; sin números repetidos) |
 | `pnpm verify` completo, sql-tests y schema-rebuild con Docker | NO EJECUTADO en esta fase (no se pidió; Docker no disponible) |
+
+## Nota de la vuelta W-509 (2026-11-14, desde la rama de la #509)
+
+- Se cambió la frase de «Pendiente de esta tarea» sobre cuándo aplicar la 0528
+  (pedido del Director).
+- **Pendiente, sin cambiar:** el pedido «mensaje de la 0528 :141: sumar la 0047
+  y la 0074» apunta al texto de la propia migración,
+  `0528_rls_lectura_dinero_y_gastos.sql:141` («…no son las que dejaron la 0470
+  y la 0511»). El conjunto que compara su preflight incluye también las de la
+  0047 y la 0074 (`:105`). Cambiarlo cambia el blob de una migración en espera,
+  y además la aserción de
+  `lib/studio/__tests__/rls-lectura-dinero-y-gastos.migration.test.ts:239`, así
+  que no se tocó por orden del Director. Si se decide hacerlo, es antes de
+  aplicarla y en la rama que corresponda.
 
 ## FUERA DE ALCANCE DETECTADO
 
