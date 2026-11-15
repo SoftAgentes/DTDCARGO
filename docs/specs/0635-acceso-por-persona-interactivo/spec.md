@@ -80,8 +80,8 @@ Se fusionan «Accesos extra» y «Lo que puede ver» en un único bloque **«Lo 
 
   | Estado | Aspecto | Texto |
   |---|---|---|
-  | Por su rol | relleno neutro (`--neutral-bg`) | nombre + `V` o `V·E` |
-  | Extra | relleno índigo (`--cat-2-bg`, borde `--cat-2`) | nombre + `V` o `V·E` |
+  | Por su rol | relleno neutro (`--neutral-bg`) | nombre + «Ve» o «Edita» |
+  | Extra | relleno índigo (`--cat-2-bg`, borde `--cat-2`) | nombre + «Ve» o «Edita» |
   | Sensible | borde dorado (`--warning`) sobre cualquiera de los anteriores | igual |
   | Sin acceso, se puede dar | contorno punteado | `+ nombre` |
   | Todavía no se puede dar | contorno punteado tenue, ícono de candado | nombre |
@@ -90,6 +90,8 @@ Se fusionan «Accesos extra» y «Lo que puede ver» en un único bloque **«Lo 
 - Los que «todavía no se pueden dar» van **plegados** por área: «N todavía no se pueden dar como extra · ver».
   Así el mapa no se llena de opciones muertas, pero nadie piensa que el módulo no existe.
 - El contador por área cambia a «7 de 13» = módulos con acceso de los del área.
+- **Al implementar (2026-11-15):** el nivel del chip usa las palabras cortas de la matriz («Ve», «Edita») en vez de
+  `V` / `V·E`, por la decisión 12.7: ninguna sigla en ninguna de las dos pantallas.
 - El nombre accesible de cada chip incluye el estado («CRM: sin acceso», «Tesorería: por su rol, ver y
   editar»). No depende del color (A11Y-01).
 

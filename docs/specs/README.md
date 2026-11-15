@@ -657,7 +657,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0632 | Retiro de Graphify, Archify y la publicación a Obsidian | in-progress | interno |
 | 0633 | Superadmin: devolver el EXECUTE de is_platform_admin() y avis… | in-progress | interno |
 | 0634 | Feature flags: el superadministrador por cualquier camino, ta… | in-progress | interno |
-| 0635 | Acceso por persona interactivo y matriz de roles legible: map… | proposed | interno |
+| 0635 | Acceso por persona interactivo y matriz de roles legible: map… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

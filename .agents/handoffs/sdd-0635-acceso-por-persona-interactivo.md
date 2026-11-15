@@ -1,76 +1,82 @@
-# Handoff · SDD-0635 · Acceso por persona interactivo (etapa 1: diseño)
+# Handoff · SDD-0635 · Acceso por persona interactivo (etapas 1 y 2: diseño y pantalla)
 
 - **Fecha:** 2026-11-15
 - **Owner / sesión:** Worker 0635 (Claude Code), iniciada por la sesión `local_25e2dded-103b-4eaa-b10e-6527564b9cad`; claim `local_0635-worker`
 - **Worktree:** `DTD-worktrees/0635-acceso-por-persona`
-- **Rama:** `codex/0635-acceso-por-persona`, desde la reserva `codex/sdd-reserve-0635-acceso-por-persona-interactivo` (`ef4d2f7f7`), base `origin/main` `540d607f8`
-- **Reserva publicada:** `refs/heads/codex/sdd-reserve-0635` (create-only, por `next-number.mjs --push`)
-- **SDD:** `docs/specs/0635-acceso-por-persona-interactivo/spec.md`, estado `proposed`
-- **Estado de tarea:** lista-para-revision (diseño). No implementa.
-- **Permisos del encargo:** commits, push de la rama propia y PR draft. Sin merge, sin migraciones, sin producción.
+- **Rama:** `codex/0635-acceso-por-persona`, desde la reserva `ef4d2f7f7`; trae `origin/main` hasta `bd873493e` (merge `f92acabb6`)
+- **SDD:** `docs/specs/0635-acceso-por-persona-interactivo/spec.md`, estado `approved`
+- **Estado de tarea:** lista para revisión independiente (la lanza el Director General). Sin merge.
+- **Permisos del encargo:** commits, push de la rama propia y PR. Sin merge, sin migraciones, sin producción.
 
 ## OBJETIVO ORIGINAL
 
-Reservar una SDD y proponer el rediseño interactivo de la pestaña Acceso de la ficha de usuario (parte de la
-SDD-0622 en producción): actuar sobre cada módulo desde «Lo que puede ver», dejar claro persona frente a rol,
-hacer visible «ver y editar», ordenar «Almacén», y evaluar la Fase 6 (`custom`). Entrega: spec + maqueta +
-`/ui-check`, PR draft y este handoff.
+Rediseñar la pestaña Acceso de la ficha de usuario (actuar sobre cada módulo, persona frente a rol, «ver y
+editar» a la vista, «Almacén» solo cuando aplica, Actividad completa) y la matriz «Roles y permisos»
+(encabezados fijos, palabras en vez de «V·E», «de fábrica» en vez de «desvío del default»). Sam aprobó la
+maqueta vía el Director General: «Esa me gustó. Y crea la sombra para los bordes fijos.» Decisiones de §12 con
+la opción recomendada.
 
 ## COMPLETADO
 
-- SDD-0635 reservada con `pnpm sdd:next` (stub en rama, sin push a main) y escrita: diagnóstico con archivo,
-  diseño (§3), respuesta corta para Sam (§4), alternativas (§5), evaluación de la Fase 6 (§6), aceptación (§7),
-  gobernanza (§8), fases (§9), allowlist exacta de la etapa 2 (§11), decisiones para Sam (§12), `/ui-check` (§14).
-- Maqueta navegable autocontenida `maqueta/acceso-por-persona.html` (tokens de `app/studio/tokens.css`,
-  personas ficticias) y 8 capturas PNG generadas con Chrome headless (estado por hash de URL).
-- Índice de specs regenerado.
-- **Ampliación del 2026-11-15** (pedido de Sam vía Director General): matriz «Roles y permisos» en la misma spec
-  (§3.8, aceptación 14 a 18, decisiones 12.6 y 12.7, `/ui-check` §14.1) y en la misma maqueta (vista «Ver Roles y
-  permisos»): encabezado, columna, grupo y leyenda fijos con sombras; ícono + palabra en vez de «V·E»; «Cambiado» y
-  «Volver a lo de fábrica» en vez de «desvío del default» y la ×; panel por celda que nombra a las personas
-  afectadas. Capturas 07 y 09 a 13. Referencias de productos escritas de memoria y marcadas sin verificar.
+- **Etapa 1 (diseño):** spec, maqueta navegable, 13 capturas y `/ui-check` (commits `c6f7a8c1e`, `da174a8eb`, `232fa9065`).
+- **Aprobación:** spec a `approved`, §12 con el texto pedido por el DG y la 12.8 (sombra). Token nuevo
+  `--shadow-sticky-top` / `--shadow-sticky-left` en `app/studio/tokens.css` (claro, oscuro e impresión),
+  documentado en `BRAND.md` §Sombras y `BRAND-DECISIONS.md` BD-070 (`16f0d2b0c`). BD-070 y no BD-038: el
+  registro del proyecto de marca ya usa BD-037 a BD-069.
+- **Etapa 2 (pantalla), sin base de datos:**
+  - Ficha: franja «solo para <persona>», `MapaAcceso` (todos los módulos con estado escrito, plegado de los que
+    no se pueden dar, detalle con origen y tres opciones, «sobra», `Esc` sin cerrar la ficha),
+    `CambiosPendientes` (un motivo, un guardado, una llamada por módulo, fallo a medias), aviso al cerrar o
+    cambiar de pestaña con cambios sin guardar, «Todo Comercial» que llena la bandeja.
+  - `RolYAlcanceCard`: «Almacén que ve» solo en roles con lado; «N personas tienen el rol… el piso»; el
+    diálogo de cambio de rol lista los extras que conserva.
+  - Actividad: una línea de tiempo con extras, rol, almacén (D1, `entity_audit_log` entidad `membership`) y
+    suspensiones (`user_role_audit` disable/enable), filtros Todo · Rol y estado · Accesos extra. Solo lectura
+    con el cliente de servicio, mismos candados que antes.
+  - Matriz: contenedor con desplazamiento propio, roles/columna/grupo/leyenda fijos con las sombras del token,
+    ícono + palabra (forma corta bajo 1180 px), «Cambiado», panel por celda (`PermisoCeldaPanel`) con personas
+    afectadas, extras que quedan «sobra», «Volver a lo de fábrica» y «Aplicar a las N». Elegir lo de fábrica
+    llama `reset` en vez de guardar un desvío igual. Mismas acciones y candados.
+- Corregido de paso: al cambiar el nivel de un extra con vencimiento, el código viejo cortaba el ISO en UTC y
+  corría el vencimiento un día; ahora se lee en hora de Caracas (`fechaCaracas`).
 
 ## VALIDACIÓN
 
 | Comprobación | Resultado |
 |---|---|
-| `pnpm docs:index` / `pnpm docs:check` | PASÓ (620 specs) |
-| `pnpm sdd:check` | PASÓ (sin números repetidos; solo choques históricos ya conocidos) |
-| `/ui-check` de la maqueta | PASÓ con ajustes menores; ficha §14 y matriz §14.1, hallazgos fuertes corregidos en la maqueta |
-| Maqueta en navegador (clic en CRM, «Ver y editar», bandeja, motivo) | PASÓ, sin errores de consola |
-| `git diff --check` | ver commit |
-| `pnpm verify` | NO EJECUTADO: el diff es solo documentación (spec, HTML de maqueta, PNG); no cambia producto |
-
-## COMMITS
-
-- Reserva: `ef4d2f7f7` (stub).
-- `c6f7a8c1e`: spec, maqueta, capturas, índice y handoff (ficha).
-- Commit que contiene esta versión del documento: ampliación a la matriz «Roles y permisos».
+| `tsc --noEmit` (proyecto completo) | PASÓ |
+| `eslint` sobre los archivos tocados | PASÓ |
+| Vitest dirigido: `AccesoPanel`, `MapaAcceso`, `CambiosPendientes`, `RolYAlcanceCard`, `PermissionsSection`, `actividad-acceso` | PASÓ (21 + 23 + 8 + 11 pruebas en las corridas) |
+| Mutante: sin filtro de tenant en `user_role_audit` | Detectado (4 rojas); restaurado |
+| Contrato CSS de bordes fijos y sombras con token | PASÓ (`PermissionsSection.test.tsx`) |
+| `/ui-check` del diff | PASÓ: sin colores sueltos, sin emojis, tuteo |
+| `pnpm docs:check` / `pnpm sdd:check` | PASÓ (620 specs; solo choques históricos conocidos) |
+| Navegador con sesión real (desplazamiento de la matriz, aceptación 14) | NO EJECUTADO: el e2e local no tiene sesión de Studio; cubierto por la maqueta y el contrato CSS |
+| `pnpm verify` y Vitest amplio | NO EJECUTADO: esperan turno del Director General (una corrida pesada a la vez) |
 
 ## PR / BRANCH
 
-https://github.com/SoftAgentes/DTDCARGO/pull/588 (draft) contra `main` desde `codex/0635-acceso-por-persona`.
+https://github.com/SoftAgentes/DTDCARGO/pull/588 contra `main` desde `codex/0635-acceso-por-persona`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Revisión del Director General y aprobación de Sam del diseño (§12, siete decisiones).
-- Al aprobar: cambiar `status` a `approved` y abrir la etapa 2 con la allowlist de §11.
+- `pnpm verify` con turno del DG y revisión independiente.
+- Prueba en navegador con sesión (preview o local) de la matriz desplazada y de la ficha.
 
 ## Impacto documental
 
-- Nuevo: spec 0635 y su maqueta. Índice `docs/specs/README.md` regenerado.
-- No se tocó la 0622; la 0635 la cita. Si Sam aprueba, la 0622 §5.4 queda superada en lo visual por la 0635
-  (anotar en la 0622 al implementar, no antes).
+- Spec 0635 aprobada; §3.1 anota que el chip usa «Ve / Edita». Allowlist ampliada con el token y su documentación.
+- `BRAND.md` §Sombras y BD-070. La 0622 §5.4 queda superada en lo visual por la 0635 (anotarlo al fusionar).
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La matriz por rol (`studio_role_module_overrides`, 0357) no guarda historial ni motivo de sus cambios; solo la
-  última versión de la celda. Propuesto como etapa 3 de la 0635, con migración propia.
-- La regla de `/ui-check` (`.claude/skills/ui-check`) dice que el Studio usa Nunito + Sora; `app/studio/tokens.css`
-  usa Archivo como `--f-sans`. Conviene alinear el texto de la skill.
+- La matriz por rol no guarda historial ni motivo (etapa 3, con migración y OK propio).
+- `useDialogA11y` escucha `Esc` en `document` y cierra el cajón aunque haya un detalle abierto dentro; la ficha
+  lo resuelve escuchando antes en `window`. Conviene que el hook respete capas internas.
+- La skill `/ui-check` dice que el Studio usa Nunito + Sora; `tokens.css` usa Archivo.
 
 ## HANDOFF AL DIRECTOR
 
-- Siguiente acción: revisar la PR draft y llevar a Sam las decisiones de §12.
-- No hay cambios compartidos de código, API, base ni migraciones.
-- Ownership: se libera el claim al cerrar esta sesión. No se borró worktree ni rama.
+- Sin migraciones, RPC ni RLS nuevas. «Aplicar a las N» usa `setRoleModuleAccessAction` /
+  `resetRoleModuleAccessAction` con sus candados de siempre.
+- Ownership: claim `local_0635-worker`; no se borró worktree ni rama.

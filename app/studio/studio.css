@@ -1343,6 +1343,154 @@ details[open] > .calc-why-summary .calc-why-chev {
   }
 }
 
+/* ───────────────────────────────────────────────────────────
+   Matriz «Roles y permisos» legible (SDD-0635 §3.8)
+   Encabezado, columna, grupo y leyenda fijos dentro de un contenedor
+   con desplazamiento propio. Sombras de borde fijo = BD-070.
+   ─────────────────────────────────────────────────────────── */
+.studio-mx-page { display: flex; flex-direction: column; gap: var(--s-3); }
+.studio-mx-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-3); }
+.studio-mx-band {
+  flex: 1 1 420px; display: flex; gap: var(--s-3); align-items: flex-start;
+  padding: var(--s-3); border-radius: var(--r-md);
+  background: var(--warning-bg); color: var(--ink);
+}
+.studio-mx-band p { margin: 0; font: 400 12.5px/1.5 var(--f-sans); }
+.studio-mx-band b { font-weight: 700; }
+.studio-mx-band-ic {
+  flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--warning); color: var(--on-warning); font: 700 11px/1 var(--f-sans);
+}
+.studio-mx-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.studio-mx-search input { width: 220px; }
+
+.studio-mx-wrap {
+  position: relative; overflow: auto;
+  max-height: calc(100vh - 240px); min-height: 360px;
+  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface);
+}
+.studio-mx-wrap:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
+.studio-mx th, .studio-mx td { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
+/* Fila de roles fija arriba */
+.studio-mx thead th {
+  position: sticky; top: 0; z-index: 3; height: 60px;
+  padding: var(--s-2) 6px; text-align: center; vertical-align: bottom;
+  background: var(--bg-elevated); border-bottom: 1px solid var(--border-strong);
+}
+.studio-mx-rn { display: block; font: 700 12.5px/1.2 var(--f-sans); color: var(--ink); }
+.studio-mx-rc { display: block; margin-top: 3px; font: 500 11.5px/1.2 var(--f-sans); color: var(--ink-soft); }
+/* Columna de módulos fija a la izquierda */
+.studio-mx th[scope="row"], .studio-mx thead th:first-child {
+  position: sticky; left: 0; z-index: 2; min-width: 200px;
+  padding: 0 var(--s-3); text-align: left; border-right: 1px solid var(--border-strong);
+}
+.studio-mx thead th:first-child {
+  z-index: 5; padding-bottom: 10px;
+  font: 600 11px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft);
+}
+.studio-mx th[scope="row"] { height: 50px; font: 600 12.5px/1.25 var(--f-sans); color: var(--ink); }
+.studio-mx-lk { display: inline-flex; vertical-align: -1px; margin-left: 6px; color: var(--ink-soft); }
+/* Grupo fijo bajo los roles mientras dura su sección */
+.studio-mx-grp th {
+  position: sticky; top: 60px; z-index: 4; height: 32px;
+  padding: 0 var(--s-3); text-align: left;
+  background: var(--bg-base); border-bottom: 1px solid var(--border-strong);
+  font: 700 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink);
+}
+.studio-mx-grp th small { margin-left: var(--s-2); font: 500 11.5px/1 var(--f-sans); letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
+/* Sombras: hay contenido escondido arriba o a la izquierda */
+.studio-mx-wrap[data-y="true"] .studio-mx thead th,
+.studio-mx-wrap[data-y="true"] .studio-mx-grp th { box-shadow: var(--shadow-sticky-top); }
+.studio-mx-wrap[data-x="true"] .studio-mx th[scope="row"],
+.studio-mx-wrap[data-x="true"] .studio-mx thead th:first-child { box-shadow: var(--shadow-sticky-left); }
+.studio-mx td { padding: 6px; text-align: center; }
+.studio-mx td.studio-mx-adm { background: var(--bg-base); }
+.studio-mx-vacio { padding: var(--s-6) !important; text-align: left !important; font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); }
+
+/* Celda: ícono + palabra */
+.studio-mx-st {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-width: 104px; min-height: 32px; padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm); border: 1px solid transparent;
+  font: 600 12px/1.15 var(--f-sans); white-space: nowrap;
+}
+.studio-mx-st svg { flex: none; }
+.studio-mx-st[data-n="edit"] { background: var(--success-bg); color: var(--ink); }
+.studio-mx-st[data-n="edit"] svg { color: var(--success); }
+.studio-mx-st[data-n="view"] { background: var(--neutral-bg); color: var(--ink); }
+.studio-mx-st[data-n="none"] { background: transparent; color: var(--ink-soft); border-color: var(--border); }
+.studio-mx-st[data-n="all"] { background: var(--wine-tint); color: var(--wine-text); }
+button.studio-mx-st { cursor: pointer; }
+button.studio-mx-st:hover:not(:disabled) { border-color: var(--border-strong); }
+button.studio-mx-st[aria-expanded="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
+.studio-mx-st[data-locked="true"] { border-style: dashed; border-color: var(--border-strong); }
+.studio-mx-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
+.studio-mx-chg { display: inline-flex; align-items: center; gap: var(--s-1); font: 600 11px/1 var(--f-sans); color: var(--wine-text); }
+.studio-mx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--wine); }
+
+/* Leyenda en el pie fijo, siempre a la vista */
+.studio-mx-legend {
+  position: sticky; bottom: 0; left: 0; z-index: 6;
+  display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center;
+  padding: 10px var(--s-3);
+  background: var(--bg-surface); border-top: 1px solid var(--border-strong);
+  font: 500 12px/1.3 var(--f-sans); color: var(--ink-soft);
+}
+.studio-mx-lg { display: inline-flex; align-items: center; gap: 6px; }
+.studio-mx-lg-end { margin-left: auto; }
+.studio-mx-legend .studio-mx-st { min-width: 0; min-height: 24px; padding: 2px 7px; }
+.studio-mx-legend .studio-mx-ws { display: none !important; }
+.studio-mx-legend .studio-mx-w { display: inline !important; }
+.studio-mx-lg-long { display: none; }
+/* Forma corta en pantallas angostas; la leyenda la traduce */
+.studio-mx-ws { display: none; }
+@media (max-width: 1180px) {
+  .studio-mx .studio-mx-st .studio-mx-w { display: none; }
+  .studio-mx .studio-mx-st .studio-mx-ws { display: inline; }
+  .studio-mx .studio-mx-st { min-width: 62px; }
+  .studio-mx { min-width: 780px; }
+  .studio-mx-legend .studio-mx-ws { display: inline !important; }
+  .studio-mx-legend .studio-mx-w { display: none !important; }
+  .studio-mx-lg-long { display: inline; }
+}
+
+/* Panel de una celda */
+.studio-mx-pop {
+  position: fixed; z-index: 900; width: 340px; max-width: calc(100vw - 24px);
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  background: var(--bg-surface); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+}
+.studio-mx-pop h3 { margin: 0; font: 700 14px/1.3 var(--f-sans); }
+.studio-mx-afecta { margin: 0; font: 500 12px/1.45 var(--f-sans); }
+.studio-mx-afecta b { font-weight: 700; }
+.studio-mx-opts { display: grid; gap: 6px; }
+.studio-mx-opt {
+  display: flex; flex-direction: column; gap: 3px; min-height: 44px; padding: var(--s-2) 10px;
+  text-align: left; cursor: pointer;
+  border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--ink);
+}
+.studio-mx-opt b { font: 650 12.5px/1.2 var(--f-sans); }
+.studio-mx-opt span { font: 400 11.5px/1.35 var(--f-sans); color: var(--ink-soft); }
+.studio-mx-opt:hover:not(:disabled) { border-color: var(--ink); }
+.studio-mx-opt:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-opt[aria-checked="true"] { border-color: var(--wine); background: var(--wine-tint); }
+.studio-mx-opt[aria-checked="true"] b { color: var(--wine-text); }
+.studio-mx-opt:disabled { cursor: not-allowed; opacity: .6; }
+.studio-mx-fab { margin: 0; padding: var(--s-2) 10px; border-radius: var(--r-sm); background: var(--bg-elevated); font: 400 12px/1.45 var(--f-sans); }
+.studio-mx-fab b { font-weight: 700; }
+.studio-mx-link {
+  display: inline; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px;
+}
+.studio-mx-link:hover:not(:disabled) { color: var(--wine-text); }
+.studio-mx-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-aviso { margin: 0; font: 400 11.5px/1.45 var(--f-sans); color: var(--ink-soft); }
+.studio-mx-actions { display: flex; justify-content: flex-end; gap: var(--s-2); }
+
 /* ── Fila de tabla que abre su detalle (SDD-0274) ──────────────────────────
    La fila entera es el enlace a la ficha: hover y foco tienen que verse en
    TODA la fila, no en una celda. El foco va con outline hacia adentro porque
