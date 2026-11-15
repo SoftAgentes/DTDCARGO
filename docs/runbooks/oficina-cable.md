@@ -20,7 +20,7 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 
 ## 2 · Qué existe fuera del repo
 
-### VPS DTD (217.216.54.70; es también el salto SSH hacia la oficina)
+### VPS DTD (IP pública del VPS DTD: ver el servidor; es también el salto SSH hacia la oficina)
 
 | Pieza | Detalle |
 |---|---|
@@ -38,7 +38,7 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 
 | Pieza | Detalle |
 |---|---|
-| Usuario `tunel-dtd` | una sola llave en `authorized_keys`, con `restrict,port-forwarding,permitopen="127.0.0.1:8642",from="217.216.54.70"`. No tiene shell útil ni otro destino |
+| Usuario `tunel-dtd` | una sola llave en `authorized_keys`, con `restrict,port-forwarding,permitopen="127.0.0.1:8642",from="IP pública del VPS DTD (ver el servidor)"`. No tiene shell útil ni otro destino |
 | Perfil Hermes `soporte-chatwoot` | bajo el usuario `agentes-run` (**provisional**; el destino es `agentes-soporte`, ya creado y vacío). API server solo en `127.0.0.1:8642`, con llave en el `.env` del perfil (0600) y `platform_toolsets.api_server: []` |
 | Servicio `dtd-hermes-soporte-chatwoot` | `hermes gateway run --force` del perfil. El `--force` hace falta porque Hermes no abre un segundo gateway del mismo usuario sin él |
 | Reversión | `/srv/oficina/backups/cable-paso0-20261114/REVERTIR.txt` |
@@ -87,7 +87,7 @@ caso hay que actualizar la regla, el `-L` del servicio y `OFICINA_RUNTIME_URL`.
 - **Si la oficina rechaza la llave del túnel, fail2ban de la oficina bloquea la IP de DTD durante 1 h.** Con
   `Restart=always` cada 15 s, el bloqueo llega en ~75 s. Mientras dure, DTD tampoco sirve de salto SSH hacia la
   oficina. Arreglo: corrige la llave (`authorized_keys` de `tunel-dtd` en la oficina) y desbloquea a mano desde la
-  oficina, entrando por la vía de Sam (NordVPN): `fail2ban-client set sshd unbanip 217.216.54.70` (confirma el
+  oficina, entrando por la vía de Sam (NordVPN): `fail2ban-client set sshd unbanip IP pública del VPS DTD (ver el servidor)` (confirma el
   nombre de la jaula con `fail2ban-client status`). Si vas a tocar la llave, primero
   `systemctl stop oficina-cable-tunel` en DTD.
 - **El gateway de `soporte-chatwoot` arranca con `--force` y comparte el usuario `agentes-run`.** Es provisional
