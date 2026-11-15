@@ -23,7 +23,7 @@ const BASE = "app/studio/(app)/";
 type Cuenta = {
   /** `<Aviso` en el código. */
   aviso: number;
-  /** `role="alert|status|note"` en un elemento crudo (el de `<Aviso>` vive en el componente). */
+  /** `role="alert|status|note|log"` en un elemento crudo (el de `<Aviso>` vive en el componente). `log` también es región viva. */
   rol: number;
   /** `aria-live=` crudo. */
   vivo: number;
@@ -64,7 +64,7 @@ const ARCHIVOS = Object.keys(ESPERADO);
 
 const PATRONES: Record<keyof Cuenta, RegExp> = {
   aviso: /<Aviso\b/g,
-  rol: /role="(?:alert|status|note)"/g,
+  rol: /role="(?:alert|status|note|log)"/g,
   vivo: /aria-live=/g,
   contorno: /(?:solid|dashed) var\(--(?:danger|warning|success|info)\)/g,
   abrir: /aria-label=\{`Abrir /g,
@@ -273,6 +273,12 @@ describe("SDD-0603 · tramo 5d · pestañas, tarjetas y avisos de CRM y Conversa
       expect(
         muta("conversaciones/_components/ConversationThread.tsx", /<Aviso id=\{avisoId\}[^>]*>/, '<p id={avisoId} role="note">'),
       ).toEqual(expect.arrayContaining([expect.stringContaining("aviso = 0"), expect.stringContaining("rol = 1")]));
+    });
+
+    it("el hilo de mensajes se declara role=log → rompe", () => {
+      expect(muta("conversaciones/_components/ConversationThread.tsx", "ref={scrollRef}", 'ref={scrollRef} role="log"')).toEqual([
+        expect.stringContaining("rol = 1"),
+      ]);
     });
 
     it("el hilo de mensajes se vuelve región viva → rompe", () => {

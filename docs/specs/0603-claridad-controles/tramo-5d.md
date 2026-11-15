@@ -51,6 +51,7 @@ La spec dejó `ConversationList.tsx:123` en la lista «parecen pestañas pero so
 - Kanban y Conversaciones: un «Abrir» por tarjeta o fila con clases de secundario, enfocable y con nombre que dice qué abre; el nombre o la fila no son parada de Tab; Enter sobre «Abrir» abre lo mismo que el clic. Lo vigilan `CrmTableroKanban.test.tsx` y `ConversationList.abrir.test.tsx`.
 - Arrastre del kanban: la tarjeta sigue con `draggable`, el botón no; un arrastre que empieza sobre «Abrir» mueve la tarjeta y no abre la ficha; el clic fantasma al soltar se descarta.
 - `claridad-t5d-contract.test.ts` cuenta por archivo, sin comentarios: `<Aviso`, `role` crudo, `aria-live`, contorno de estado, «Abrir», `tabIndex={-1}`, `tablist`, `tab` y vino en línea. Total del grupo: 4 `<Aviso>` y 3 grupos de pestañas.
+- Desde la PR de cierre de la spec, el patrón de `role` crudo del contrato también cuenta `role="log"`, que es región viva igual que `status`. Ningún archivo del grupo lo usa; el mutante que lo pone en el hilo de mensajes rompe.
 - Mutantes que deben morir: `<Aviso>` → `<p>`; volver la caja con contorno; quitar el import canónico; pestaña con estilo en línea, sin la clase o sin `data-activa`; `tablist` sin la clase; el nombre de la tarjeta otra vez en el Tab; la fila elegida otra vez en vino; el aviso del hilo otra vez como `note`; el hilo de mensajes como región viva. Y dos que prueban que los comentarios no cuentan.
 - Nada que se oprima baja de 32 px: `.studio-tab` (36/32), «Abrir» `-sm` (36/32), «Caso» `-xs` (32), `studio-chip` (32) y `studio-icono-btn` (36/32).
 
@@ -69,7 +70,7 @@ La spec dejó `ConversationList.tsx:123` en la lista «parecen pestañas pero so
 
 ## Pendientes fuera de este tramo
 
-- `pestanas-contract.test.ts` todavía excluye `app/studio/(app)/crm/` entero (`PENDIENTES`). Los tres archivos de este tramo ya cumplen su forma, pero quitar la exclusión toca ese contrato, que no está en la allowlist, y antes hay que medir el resto de `crm/` (por ejemplo `RecoveryTab.tsx` y `CrmEmbudosClient.tsx`).
+- `pestanas-contract.test.ts` todavía excluye `app/studio/(app)/crm/` entero (`PENDIENTES`), también al cierre de la spec (2026-11-15): la forma de las tres pestañas del CRM la vigila solo `claridad-t5d-contract.test.ts`. Los tres archivos de este tramo ya cumplen su forma, pero quitar la exclusión toca ese contrato, que no está en la allowlist, y antes hay que medir el resto de `crm/` (por ejemplo `RecoveryTab.tsx` y `CrmEmbudosClient.tsx`).
 - Otros archivos de `crm/` fuera de la allowlist no se revisaron: `StageControl.tsx`, `LeadActionsButton.tsx`, `ConvertLeadDrawer.tsx`, `RecoveryTab.tsx`, `CrmEmbudosClient.tsx`, `StageMapConfig.tsx`, `MarkboxFieldConfig.tsx`, y `CrmEmbudosSlot.tsx` (en la PR abierta #509).
 - `ConversacionesClient.tsx` y `GenerateDigestsPanel.tsx` tampoco estaban en la allowlist.
 

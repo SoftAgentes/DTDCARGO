@@ -332,38 +332,38 @@ function AvisoFrenado({
     // cajón con borde dorado. Aparece al abrir el panel, no por una tecla.
     <div style={{ marginBottom: 18 }}>
       <Aviso tono="atencion" compacto titulo="No se pisó el trabajo del CRM">
-      {ops.map((o) => (
-        <div
-          key={o.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            padding: "4px 0",
-          }}
-        >
-          <span>
-            El lead cambió en el CRM después de que pediste{" "}
-            <strong>{OP_LABEL[o.op] ?? o.op}</strong>, así que
-            no se mandó.
-          </span>
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            disabled={isPending || reintentando === o.id}
-            onClick={async () => {
-              setReintentando(o.id);
-              const res = await retryStaleWritebackAction(o.id);
-              setReintentando(null);
-              onDone(res.error ?? "Reintentado: va de nuevo al CRM", Boolean(res.error));
+        {ops.map((o) => (
+          <div
+            key={o.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "4px 0",
             }}
-            style={{ flexShrink: 0 }}
           >
-            {reintentando === o.id ? "…" : "Reintentar"}
-          </button>
-        </div>
-      ))}
+            <span>
+              El lead cambió en el CRM después de que pediste{" "}
+              <strong>{OP_LABEL[o.op] ?? o.op}</strong>, así que
+              no se mandó.
+            </span>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              disabled={isPending || reintentando === o.id}
+              onClick={async () => {
+                setReintentando(o.id);
+                const res = await retryStaleWritebackAction(o.id);
+                setReintentando(null);
+                onDone(res.error ?? "Reintentado: va de nuevo al CRM", Boolean(res.error));
+              }}
+              style={{ flexShrink: 0 }}
+            >
+              {reintentando === o.id ? "…" : "Reintentar"}
+            </button>
+          </div>
+        ))}
       </Aviso>
     </div>
   );
