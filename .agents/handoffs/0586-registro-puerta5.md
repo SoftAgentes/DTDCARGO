@@ -8,7 +8,7 @@
 ## Qué cambia
 
 1. **El comando del rolsuper de la puerta 4** (runbook, «prevención del log»; guion, 4.0): lleva `-d chatwoot_production`. Sin él, psql falla con «database "chatwoot" does not exist». `chatwoot_production` es el `PROD_DB` por defecto de `ensayo-portal.sh:74`. El hallazgo es del Subdirector; no lo reproduje (no toco el VPS).
-2. **El registro de las puertas** (runbook, sección nueva «Registro de las puertas (2026-11-15)», antes de «Antes de la primera puerta», y una nota de estado al inicio de la puerta 5 y del guion): puerta 2, 3.0, 3.1, 4, 5a, 5b, la 0542 con la #574, el encendido y el 5c, con hora UTC y ruta de evidencia. Trae lo que informó el Subdirector, lo que dice `main` y lo que midió y pasó el DG (puerta 4, 5a, 5b, 0542 y encendido). Lo que no tengo está escrito como «pendiente de confirmar por el DG»; el 5c figura como PENDIENTE.
+2. **El registro de las puertas** (runbook, sección nueva «Registro de las puertas (2026-11-15)», antes de «Antes de la primera puerta», y una nota de estado al inicio de la puerta 5 y del guion): puerta 2, 3.0, 3.1, 4, 5a, 5b, la 0542 con la #574, el encendido y el 5c, con hora UTC y ruta de evidencia. Trae lo que informó el Subdirector, lo que dice `main` y lo que midió y pasó el DG (3.0, puerta 4 con su cierre, 5a, 5b, 0542 y encendido), con horas UTC sacadas con `stat` en el VPS. No quedó ninguna celda «pendiente de confirmar por el DG»; el 5c figura como EN CURSO.
 3. **La fila «Comando» del 3.1** (runbook): ahora dice el modo completo con los casos provocados, el desarme `R0` a `R4` y la exigencia de la G0 de los cuatro guiones del desarme (`ensayo-portal.sh:262-267`).
 4. **Las citas de línea, medidas contra `42daa3d2c`:**
 
@@ -53,8 +53,7 @@
 
 ## Pendientes de esta tarea
 
-- **Lo que sigue pendiente del registro:** la evidencia y la hora del 3.0, y la hora exacta del 5b y del cierre de la 4.10. El DG respondió el 2026-11-15 con las rutas de la puerta 4 (`p4-carga-20261115T054606Z`) y de la 0542 (lectura previa y aplicación); el 5a, el 5b y el encendido no tienen carpeta (registro del DG), y el id de la fila de auditoría del encendido no está copiado (se identifica por `action` + `key` + `occurred_at`). El DG corrigió mi primer reparto: la 0542 no es el 5a (es prerrequisito del encendido) y `cargado=78` es una lectura posterior al encendido.
-- **El resultado del 5c** (en curso con Sam; línea de base 08:26:12Z con `cargado=78`, 0 atascados y 0 sin llegar): se registra en otro commit cuando el DG avise que terminó.
+- **El resultado del 5c:** va en otra PR cuando el DG avise que terminó (Sam lo hace con su cuenta de cliente; línea de base 08:26:12Z con `cargado=78`, 0 atascados y 0 sin llegar). El registro ya trae las rutas y horas del DG para la 3.0 (sin archivo, 04:40:39Z), la 3.1, la 4 con su cierre (`p4.txt`, 05:52:18Z), el 5a (`p5a.txt`), el 5b (`p5b.txt`, 05:58:48Z) y la 0542; el id de la fila de auditoría del encendido no está copiado (se identifica por `action` + `key` + `occurred_at`). El DG corrigió mi primer reparto: la 0542 no es el 5a (es prerrequisito del encendido) y `cargado=78` es una lectura posterior al encendido.
 - **La revisión y la fusión de la PR,** que hace el DG.
 
 ## FUERA DE ALCANCE DETECTADO
