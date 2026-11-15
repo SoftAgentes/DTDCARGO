@@ -34,7 +34,8 @@ begin
      or to_regclass('public.office_paused') is not null
      or to_regprocedure('public.office_solo_insertar()') is not null
      or to_regprocedure('public.office_esta_pausada()') is not null
-     or to_regprocedure('public.office_cambiar_pausa(boolean, text)') is not null then
+     or to_regprocedure('public.office_cambiar_pausa(boolean, text)') is not null
+     or to_regprocedure('public.office_vaciar_resumenes_viejos()') is not null then
     raise exception 'CONTRATO 1: el desarme dejó objetos de la 0541';
   end if;
   if to_regprocedure('public.is_platform_admin()') is null
@@ -267,6 +268,11 @@ describe("0541 · tablas del cable y office_paused (PGlite)", () => {
       "security definer\nset search_path = ''",
       "security definer",
     ],
+    [
+      "office_vaciar_resumenes_viejos()",
+      "returns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''",
+      "returns integer\nlanguage plpgsql\nsecurity definer",
+    ],
   ])("mutante: %s sin search_path vacío, el postflight no termina", async (firma, buscar, poner) => {
     expect(await run(inline(CONTRACT, { migracion: mutar(buscar, poner) }))).toMatch(
       new RegExp(`public\\.${firma.replace(/[()]/g, "\\$&")} sin search_path vacío`),
@@ -321,6 +327,78 @@ describe("0541 · tablas del cable y office_paused (PGlite)", () => {
     const migracion = (sql: string) => `${sql}\ngrant select on public.office_tasks to authenticated;\n`;
     expect(await run(inline(CONTRACT, { migracion }))).toMatch(/CONTRATO 7: authenticated pudo ejecutar: select/);
   }, 60_000);
+
+  // Media 1 de la revisión de la #572 (OK de Sam, opción A): identificadores y retención del resumen.
+  const IDENTIFICADOR =
+    "'^(agente:[a-z0-9][a-z0-9_.-]{0,63}|sistema:[a-z0-9][a-z0-9_.-]{0,63}|persona:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'";
+
+  it.each<[string, string, RegExp]>([
+    ["actor", `check (actor ~ ${IDENTIFICADOR})`, /CONTRATO 3\/4: entró una fila inválida \(actor con nombre\)/],
+    [
+      "asignado_a",
+      `check (asignado_a is null or asignado_a ~ ${IDENTIFICADOR})`,
+      /CONTRATO 3\/4: entró una fila inválida \(asignado_a con nombre\)/,
+    ],
+  ])("mutante: sin el CHECK de identificador de %s, entra un nombre", async (_n, check, error) => {
+    expect(await run(inline(CONTRACT, { migracion: mutar(check, "check (true)") }))).toMatch(error);
+  }, 60_000);
+
+  it("mutante: sin los CHECK de identificador, el postflight no termina", async () => {
+    const migracion = mutar("constraint task_events_actor_es_identificador\n", "constraint task_events_actor_libre\n");
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(/faltan los CHECK de identificador de actor o asignado_a/);
+  }, 60_000);
+
+  it.each<[string, string, string, RegExp]>([
+    [
+      "deja cambiar el resumen por otro texto",
+      "       and old.resumen is not null and new.resumen is null\n",
+      "",
+      /CONTRATO 2e: el solo agregar dejó pasar: update public\.task_events set resumen = 'otro'/,
+    ],
+    [
+      "deja tocar otra columna al vaciar",
+      "\n       and (pg_catalog.to_jsonb(new) - 'resumen') = (pg_catalog.to_jsonb(old) - 'resumen')",
+      "",
+      /CONTRATO 2e: el solo agregar dejó pasar: update public\.task_events set resumen = null, costo_usd = 0/,
+    ],
+    [
+      "vacía filas de menos de 90 días",
+      "if old.ts < pg_catalog.now() - interval '90 days'",
+      "if old.ts < pg_catalog.now()",
+      /CONTRATO 2e: el solo agregar dejó pasar: update public\.task_events set resumen = null where id = '00000000-0000-4000-8000-0000000000e2'/,
+    ],
+    [
+      "no existe (la retención no puede vaciar)",
+      "if tg_op = 'UPDATE' and tg_level = 'ROW' and tg_relid = 'public.task_events'::pg_catalog.regclass then",
+      "if false then",
+      /CONTRATO 2e: el disparador no dejó vaciar los resúmenes viejos/,
+    ],
+    [
+      "no se limita a task_events",
+      "and tg_relid = 'public.task_events'::pg_catalog.regclass then",
+      "then",
+      /record "old" has no field "ts"/,
+    ],
+  ])("mutante: la excepción de la retención %s, el contrato lo detecta", async (_n, buscar, poner, error) => {
+    expect(await run(inline(CONTRACT, { migracion: mutar(buscar, poner) }))).toMatch(error);
+  }, 60_000);
+
+  it("mutante: office_vaciar_resumenes_viejos() sin SECURITY DEFINER, el postflight no termina", async () => {
+    const migracion = mutar(
+      "returns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''",
+      "returns integer\nlanguage plpgsql\nset search_path = ''",
+    );
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(
+      /public\.office_vaciar_resumenes_viejos\(\) sin search_path vacío o sin el SECURITY DEFINER esperado \(definer\)/,
+    );
+  }, 60_000);
+
+  it("mutante: office_vaciar_resumenes_viejos() ejecutable por authenticated, el contrato lo detecta", async () => {
+    // El grant va después del postflight (la segunda subida lo revoca y lo vuelve a dar): lo ve el contrato 2e.
+    const migracion = (sql: string) =>
+      `${sql}\ngrant execute on function public.office_vaciar_resumenes_viejos() to authenticated;\n`;
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(/CONTRATO 2e: authenticated pudo vaciar resúmenes/);
+  }, 60_000);
 });
 
 // El desarme (supabase/desarmes/0541_desarme.sql) solo: quita lo de la 0541 y nada más, y repetirlo no falla.
@@ -347,6 +425,7 @@ describe("0541 · desarme (PGlite)", () => {
          + (to_regprocedure('public.office_solo_insertar()') is not null)::int
          + (to_regprocedure('public.office_esta_pausada()') is not null)::int
          + (to_regprocedure('public.office_cambiar_pausa(boolean, text)') is not null)::int
+         + (to_regprocedure('public.office_vaciar_resumenes_viejos()') is not null)::int
          as objetos,
          (select count(*) from public.platform_admins)::int as admins
   `;
@@ -363,18 +442,18 @@ describe("0541 · desarme (PGlite)", () => {
     }
   }
 
-  it("control: con la 0541 sola quedan sus siete objetos", async () => {
-    expect(await medir(`${FIXTURE}\n${MIG}`)).toEqual({ objetos: 7, admins: 1 });
+  it("control: con la 0541 sola quedan sus ocho objetos", async () => {
+    expect(await medir(`${FIXTURE}\n${MIG}`)).toEqual({ objetos: 8, admins: 1 });
   }, 60_000);
 
-  it("el desarme quita los siete y no toca platform_admins; repetirlo no falla", async () => {
+  it("el desarme quita los ocho y no toca platform_admins; repetirlo no falla", async () => {
     expect(await medir(`${FIXTURE}\n${MIG}\n${DES}\n${DES}`)).toEqual({ objetos: 0, admins: 1 });
   }, 60_000);
 
   it("el desarme funciona con filas en la bitácora (DROP no dispara el solo agregar)", async () => {
     const conFilas = `${FIXTURE}\n${MIG}
       insert into public.office_tasks (id, titulo) values ('00000000-0000-4000-8000-0000000000c1', 'x');
-      insert into public.task_events (task_id, tipo, actor) values ('00000000-0000-4000-8000-0000000000c1', 'x', 'y');
+      insert into public.task_events (task_id, tipo, actor) values ('00000000-0000-4000-8000-0000000000c1', 'x', 'sistema:prueba');
       ${DES}`;
     expect(await medir(conFilas)).toEqual({ objetos: 0, admins: 1 });
   }, 60_000);

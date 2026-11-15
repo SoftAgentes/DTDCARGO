@@ -10,8 +10,12 @@
 --      fallan para service_role, también con esos privilegios dados por error, también con
 --      session_replication_role = replica (disparadores ALWAYS) y también desde una función
 --      SECURITY DEFINER del dueño llamada por otro. Solo pasa el dueño de las migraciones en sesión propia.
+--   2e. La única edición de la bitácora: office_vaciar_resumenes_viejos() vacía el resumen de las filas
+--      de más de 90 días y deja el resto de la fila. El disparador no deja pasar nada más: ni otro
+--      valor de resumen, ni otra columna, ni una fila de menos de 90 días.
 --   3. Las listas cerradas: estado y modo de office_tasks, prioridad y estado de event_inbox. Lo de
---      fuera falla; todo lo permitido entra.
+--      fuera falla; todo lo permitido entra. actor y asignado_a son identificadores (agente:,
+--      sistema: o persona:<uuid>), nunca nombres.
 --   4. payload_ref es una referencia, nunca el mensaje del cliente (R5).
 --   5. Existen los índices de task_events.task_id y event_inbox.clave_dedupe, y la clave es única:
 --      un duplicado no entra y ON CONFLICT DO NOTHING lo descarta (AC-4).
@@ -81,7 +85,7 @@ insert into public.office_tasks (titulo, estado, modo, prioridad, entidad_ref, o
 values ('Responder conversación de prueba', 'listo', 'solo', 2,
         'chatwoot:conversations/1', 'chatwoot', '{"inbox":"prueba"}');
 insert into public.task_events (task_id, tipo, actor, resumen, costo_usd, modelo_usado)
-select t.id, 'run.iniciada', 'despachador', 'Corrida 1', 0.001234, 'glm-5.3'
+select t.id, 'run.iniciada', 'sistema:despachador', 'Corrida 1', 0.001234, 'glm-5.3'
   from public.office_tasks t where t.titulo = 'Responder conversación de prueba';
 insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad, payload_ref)
 values ('chatwoot.message_created', 'chatwoot', 'chatwoot:1:10', 2, 'chatwoot:conversations/1/messages/10');
@@ -227,6 +231,107 @@ begin
 end;
 $solo_insertar$;
 
+-- 2e. Retención del resumen: la única edición de la bitácora (temporalidad, SDD-0626 §3.1).
+do $retencion$
+declare
+  v_tarea uuid;
+  v_sql text;
+  v_resultado text;
+  v_msg text;
+  v_sesion name;
+  v_vaciados integer;
+  v_rol text;
+begin
+  select id into v_tarea from public.office_tasks where titulo = 'Responder conversación de prueba';
+  -- El dueño siembra dos filas con la hora corrida (service_role no puede escribir ts).
+  insert into public.task_events (id, task_id, tipo, actor, resumen, costo_usd, modelo_usado, ts) values
+    ('00000000-0000-4000-8000-0000000000e1', v_tarea, 'run.terminada', 'agente:soporte-chatwoot', 'Resumen viejo',
+     0.5, 'glm-5.3', now() - interval '91 days'),
+    ('00000000-0000-4000-8000-0000000000e2', v_tarea, 'run.terminada', 'agente:soporte-chatwoot', 'Resumen reciente',
+     0.5, 'glm-5.3', now() - interval '89 days');
+
+  -- a) Con UPDATE dado por error, service_role no logra más que esa edición exacta.
+  foreach v_sql in array array[
+    'update public.task_events set resumen = ''otro'' where id = ''00000000-0000-4000-8000-0000000000e1''',
+    'update public.task_events set resumen = null, costo_usd = 0 where id = ''00000000-0000-4000-8000-0000000000e1''',
+    'update public.task_events set resumen = null, ts = now() where id = ''00000000-0000-4000-8000-0000000000e1''',
+    'update public.task_events set resumen = null, actor = ''sistema:otro'' where id = ''00000000-0000-4000-8000-0000000000e1''',
+    'update public.task_events set tipo = ''run.editada'' where id = ''00000000-0000-4000-8000-0000000000e1''',
+    'update public.task_events set resumen = null where id = ''00000000-0000-4000-8000-0000000000e2'''
+  ] loop
+    v_msg := null;
+    begin
+      grant update on public.task_events to service_role;
+      execute 'set local role service_role';
+      execute v_sql;
+      raise exception using errcode = 'DT001';
+    exception
+      when sqlstate 'DT001' then v_resultado := 'paso';
+      when insufficient_privilege then
+        v_resultado := 'cortado';
+        get stacked diagnostics v_msg = message_text;
+    end;
+    execute 'reset role';
+    if v_resultado = 'paso' then
+      raise exception 'CONTRATO 2e: el solo agregar dejó pasar: %', v_sql;
+    end if;
+    if v_msg not like '%solo se agregan filas%' then
+      raise exception 'CONTRATO 2e: lo cortó otra cosa y no el disparador: %', v_msg;
+    end if;
+  end loop;
+
+  -- b) anon y authenticated no la ejecutan.
+  foreach v_rol in array array['anon', 'authenticated'] loop
+    begin
+      execute format('set local role %I', v_rol);
+      perform public.office_vaciar_resumenes_viejos();
+      raise exception using errcode = 'DT001';
+    exception
+      when sqlstate 'DT001' then v_resultado := 'paso';
+      when insufficient_privilege then v_resultado := 'cortado';
+    end;
+    execute 'reset role';
+    if v_resultado = 'paso' then
+      raise exception 'CONTRATO 2e: % pudo vaciar resúmenes', v_rol;
+    end if;
+  end loop;
+
+  -- c) El camino de verdad: service_role en su propia sesión, como entra por la API (session_user no es el
+  --    dueño, así que la excepción del dueño no aplica y decide la de la retención). La sesión se devuelve
+  --    a mano, como en 2c.
+  v_sesion := session_user;
+  begin
+    execute 'set local session authorization service_role';
+    v_vaciados := public.office_vaciar_resumenes_viejos();
+  exception
+    when insufficient_privilege then
+      get stacked diagnostics v_msg = message_text;
+      execute format('set local session authorization %I', v_sesion);
+      raise exception 'CONTRATO 2e: el disparador no dejó vaciar los resúmenes viejos: %', v_msg;
+  end;
+  execute format('set local session authorization %I', v_sesion);
+  if session_user <> v_sesion or current_user <> v_sesion then
+    raise exception 'TEST 0541: no se pudo volver a la sesión original (%/%)', session_user, current_user;
+  end if;
+
+  if v_vaciados is distinct from 1 then
+    raise exception 'CONTRATO 2e: office_vaciar_resumenes_viejos() vació % filas, no 1', v_vaciados;
+  end if;
+  if (select resumen from public.task_events where id = '00000000-0000-4000-8000-0000000000e2')
+     is distinct from 'Resumen reciente' then
+    raise exception 'CONTRATO 2e: se vació un resumen de menos de 90 días';
+  end if;
+  if not exists (
+    select 1 from public.task_events
+     where id = '00000000-0000-4000-8000-0000000000e1' and resumen is null
+       and task_id = v_tarea and tipo = 'run.terminada' and actor = 'agente:soporte-chatwoot'
+       and costo_usd = 0.5 and modelo_usado = 'glm-5.3' and ts < now() - interval '90 days'
+  ) then
+    raise exception 'CONTRATO 2e: el resumen viejo no quedó vacío o se tocó otra columna de la fila';
+  end if;
+end;
+$retencion$;
+
 -- 3 y 4. Listas cerradas y referencias: cada caso fuera tiene que caer por un CHECK (23514).
 do $listas$
 declare
@@ -242,6 +347,13 @@ begin
   foreach v_valor in array array['nuevo', 'triaje', 'convertido', 'descartado'] loop
     insert into public.event_inbox (tipo, origen, clave_dedupe, estado) values ('prueba', 'interno', 'e:' || v_valor, v_valor);
   end loop;
+  -- Identificadores: agente, sistema o persona por su uuid.
+  foreach v_valor in array array['agente:soporte-chatwoot', 'sistema:despachador',
+                                  'persona:00000000-0000-4000-8000-00000000a001'] loop
+    insert into public.task_events (task_id, tipo, actor)
+    select id, 'paso.prueba', v_valor from public.office_tasks where titulo = 'Responder conversación de prueba';
+    insert into public.office_tasks (titulo, asignado_a) values ('Asignada a ' || v_valor, v_valor);
+  end loop;
 
   for v_caso in
     select * from (values
@@ -253,11 +365,17 @@ begin
       ('prioridad 0',              'insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad) values (''prueba'', ''interno'', ''k'', 0)'),
       ('prioridad 4',              'insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad) values (''prueba'', ''interno'', ''k'', 4)'),
       ('estado de bandeja',        'insert into public.event_inbox (tipo, origen, clave_dedupe, estado) values (''prueba'', ''interno'', ''k'', ''procesado'')'),
-      ('costo negativo',           'insert into public.task_events (task_id, tipo, actor, costo_usd) select id, ''x'', ''y'', -1 from public.office_tasks limit 1'),
+      ('costo negativo',           'insert into public.task_events (task_id, tipo, actor, costo_usd) select id, ''x'', ''sistema:prueba'', -1 from public.office_tasks limit 1'),
       ('mensaje completo',         'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''Hola, quiero saber dónde está mi paquete'')'),
       ('mensaje tras el origen',   'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''chatwoot:hola mi pedido'')'),
       ('referencia sin origen',    'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''conversations/1'')'),
-      ('referencia demasiado larga', 'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''chatwoot:'' || repeat(''x'', 300))')
+      ('referencia demasiado larga', 'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''chatwoot:'' || repeat(''x'', 300))'),
+      ('actor con nombre',         'insert into public.task_events (task_id, tipo, actor) select id, ''x'', ''Juan Pérez'' from public.office_tasks limit 1'),
+      ('actor sin prefijo',        'insert into public.task_events (task_id, tipo, actor) select id, ''x'', ''soporte-chatwoot'' from public.office_tasks limit 1'),
+      ('actor persona sin uuid',   'insert into public.task_events (task_id, tipo, actor) select id, ''x'', ''persona:juan-perez'' from public.office_tasks limit 1'),
+      ('actor con correo',         'insert into public.task_events (task_id, tipo, actor) select id, ''x'', ''persona:juan@ejemplo.test'' from public.office_tasks limit 1'),
+      ('asignado_a con nombre',    'insert into public.office_tasks (titulo, asignado_a) values (''x'', ''María'')'),
+      ('asignado_a persona sin uuid', 'insert into public.office_tasks (titulo, asignado_a) values (''x'', ''persona:maria'')')
     ) as t(nombre, sentencia)
   loop
     begin
@@ -500,8 +618,8 @@ begin
     'update public.office_tasks set id = gen_random_uuid() where titulo = ''Modo solo''',
     'update public.office_tasks set creado_en = now() - interval ''1 day''',
     'update public.office_tasks set origen = ''otro''',
-    'insert into public.task_events (id, task_id, tipo, actor) select gen_random_uuid(), id, ''x'', ''despachador'' from public.office_tasks limit 1',
-    'insert into public.task_events (task_id, tipo, actor, ts) select id, ''x'', ''despachador'', now() - interval ''1 day'' from public.office_tasks limit 1',
+    'insert into public.task_events (id, task_id, tipo, actor) select gen_random_uuid(), id, ''x'', ''sistema:despachador'' from public.office_tasks limit 1',
+    'insert into public.task_events (task_id, tipo, actor, ts) select id, ''x'', ''sistema:despachador'', now() - interval ''1 day'' from public.office_tasks limit 1',
     'insert into public.event_inbox (tipo, origen, clave_dedupe, ts) values (''prueba'', ''interno'', ''c:ts'', now() - interval ''1 day'')',
     'update public.event_inbox set clave_dedupe = ''otra'' where clave_dedupe = ''p:3''',
     'update public.event_inbox set payload_ref = ''chatwoot:otra''',

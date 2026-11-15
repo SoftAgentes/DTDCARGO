@@ -18,7 +18,9 @@
 --    pone la base), y un disparador para UPDATE,
 --    DELETE y TRUNCATE aunque alguien le dé esos privilegios por error. La única
 --    excepción es el dueño de las migraciones en una sesión propia (ver 5).
---    costo_usd numeric ≥ 0. Índice en task_id.
+--    costo_usd numeric ≥ 0. Índice en task_id. actor es un identificador
+--    (agente:<perfil>, sistema:<componente> o persona:<uuid>), nunca un nombre.
+--    La ÚNICA edición: vaciar resumen en filas de más de 90 días (ver 6).
 -- 3. event_inbox: la bandeja de eventos entrantes. prioridad ∈ {3, 2, 1}
 --    (§3.3: dinero > cliente > interno); estado ∈ {nuevo, triaje, convertido,
 --    descartado}. clave_dedupe es ÚNICA (AC-4 en la base: un duplicado no entra;
@@ -40,6 +42,13 @@
 --    el dueño, pero su session_user es el de la API: no pasa. Los cuatro
 --    disparadores van ENABLE ALWAYS: session_replication_role = replica no los
 --    apaga.
+-- 6. Retención del resumen (SDD-0626 §3.1, temporalidad: una red por si la
+--    redacción de datos personales del Paso 2 falla; no es un plazo de R5, que
+--    se lo da al replay). office_vaciar_resumenes_viejos(), SECURITY DEFINER,
+--    solo para service_role: pone resumen = null en las filas de más de 90 días.
+--    El disparador deja pasar esa edición y ninguna otra: solo resumen → null,
+--    solo en filas de más de 90 días, con todas las demás columnas iguales.
+--    office_tasks.asignado_a también es un identificador, como actor.
 --
 -- ── Quién la ve ──────────────────────────────────────────────
 -- RLS activada en las cuatro tablas y sin policies. anon y authenticated sin
@@ -136,9 +145,11 @@ create table if not exists public.office_tasks (
     check (char_length(btrim(titulo)) between 1 and 200),
   constraint office_tasks_textos_cortos
     check (coalesce(char_length(ejecucion), 0) <= 200
-           and coalesce(char_length(asignado_a), 0) <= 100
            and coalesce(char_length(depto), 0) <= 100
            and coalesce(char_length(origen), 0) <= 100),
+  -- R5 · AUD-01 §5: a quién va la tarea es un identificador, nunca un nombre.
+  constraint office_tasks_asignado_a_es_identificador
+    check (asignado_a is null or asignado_a ~ '^(agente:[a-z0-9][a-z0-9_.-]{0,63}|sistema:[a-z0-9][a-z0-9_.-]{0,63}|persona:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'),
   -- Una referencia a una entidad del ERP, no su contenido (R5).
   constraint office_tasks_entidad_ref_es_referencia
     check (entidad_ref is null or (entidad_ref ~ '^[^[:space:]]+$' and char_length(entidad_ref) <= 300)),
@@ -164,8 +175,10 @@ create table if not exists public.task_events (
 
   constraint task_events_tipo_valido
     check (tipo ~ '^[a-z][a-z0-9_.:-]{0,63}$'),
-  constraint task_events_actor_corto
-    check (char_length(btrim(actor)) between 1 and 100),
+  -- R5 · AUD-01 §5: quién hizo el paso es un identificador (agente:<perfil>,
+  -- sistema:<componente> o persona:<uuid de auth>), nunca un nombre ni un correo.
+  constraint task_events_actor_es_identificador
+    check (actor ~ '^(agente:[a-z0-9][a-z0-9_.-]{0,63}|sistema:[a-z0-9][a-z0-9_.-]{0,63}|persona:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'),
   constraint task_events_resumen_corto
     check (resumen is null or char_length(resumen) <= 1000),
   constraint task_events_costo_no_negativo
@@ -251,7 +264,7 @@ begin
     into v_dueno
     from pg_catalog.pg_class c
    where c.oid = tg_relid;
-  -- La única excepción: el dueño de las migraciones en una sesión propia. Una
+  -- Excepción 1: el dueño de las migraciones en una sesión propia. Una
   -- función SECURITY DEFINER llamada desde la API corre como el dueño
   -- (current_user), pero su session_user es otro: no pasa.
   if current_user = v_dueno and session_user = v_dueno then
@@ -260,6 +273,16 @@ begin
     elsif tg_op = 'DELETE' then
       return old;
     else
+      return new;
+    end if;
+  end if;
+  -- Excepción 2, la única edición de la bitácora (SDD-0626 §3.1, temporalidad):
+  -- vaciar el resumen de una fila de task_events de más de 90 días. Solo
+  -- resumen → null; cualquier otra columna igual. La fila queda para siempre.
+  if tg_op = 'UPDATE' and tg_level = 'ROW' and tg_relid = 'public.task_events'::pg_catalog.regclass then
+    if old.ts < pg_catalog.now() - interval '90 days'
+       and old.resumen is not null and new.resumen is null
+       and (pg_catalog.to_jsonb(new) - 'resumen') = (pg_catalog.to_jsonb(old) - 'resumen') then
       return new;
     end if;
   end if;
@@ -274,8 +297,9 @@ alter function public.office_solo_insertar() owner to postgres;
 revoke all on function public.office_solo_insertar() from public, anon, authenticated, service_role;
 
 comment on function public.office_solo_insertar() is
-  'SDD-0626 §3.1 · AUD-01: corta UPDATE, DELETE y TRUNCATE en task_events y office_paused. Solo pasa el dueño de '
-  'la tabla cuando también es el session_user (sesión directa del dueño de las migraciones).';
+  'SDD-0626 §3.1 · AUD-01: corta UPDATE, DELETE y TRUNCATE en task_events y office_paused. Pasa el dueño de la '
+  'tabla cuando también es el session_user (sesión directa del dueño de las migraciones) y, en task_events, el '
+  'vaciado del resumen de filas de más de 90 días (solo resumen → null).';
 
 create or replace trigger task_events_solo_insertar
   before update or delete on public.task_events
@@ -352,6 +376,37 @@ comment on function public.office_cambiar_pausa(boolean, text) is
   'SDD-0626 §3.1 · SGE-AG-01 §7: único camino de la API para pausar o despausar la oficina. Exige '
   'is_platform_admin() y un motivo; agrega una fila con auth.uid() y now(). Despausar queda registrado.';
 
+-- ─── 6b. Retención del resumen (temporalidad, SDD-0626 §3.1) ──
+-- El despachador la llama una vez al día. Vacía el resumen de las filas de más de
+-- 90 días y devuelve cuántas vació; el resto de cada fila queda para siempre. Es
+-- SECURITY DEFINER para que service_role no necesite UPDATE sobre task_events:
+-- el disparador deja pasar solo esta edición (excepción 2 de office_solo_insertar).
+create or replace function public.office_vaciar_resumenes_viejos()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_vaciados integer;
+begin
+  update public.task_events
+     set resumen = null
+   where resumen is not null
+     and ts < pg_catalog.now() - interval '90 days';
+  get diagnostics v_vaciados = row_count;
+  return v_vaciados;
+end;
+$function$;
+
+alter function public.office_vaciar_resumenes_viejos() owner to postgres;
+revoke all on function public.office_vaciar_resumenes_viejos() from public, anon, authenticated, service_role;
+grant execute on function public.office_vaciar_resumenes_viejos() to service_role;
+
+comment on function public.office_vaciar_resumenes_viejos() is
+  'SDD-0626 §3.1: vacía task_events.resumen en las filas de más de 90 días (temporalidad: red por si la redacción '
+  'de datos personales falla). La fila queda: tipo, actor, costo, modelo y hora. Solo la ejecuta service_role.';
+
 -- ─── 7. Seguridad: RLS sin policies y privilegios mínimos ────
 alter table public.office_tasks  enable row level security;
 alter table public.task_events   enable row level security;
@@ -422,6 +477,14 @@ begin
     end if;
   end loop;
 
+  -- Quién y a quién: identificadores, nunca nombres (R5 · AUD-01 §5).
+  if (select pg_catalog.count(*) from pg_catalog.pg_constraint k
+       where k.contype = 'c'
+         and ((k.conrelid = 'public.task_events'::regclass and k.conname = 'task_events_actor_es_identificador')
+           or (k.conrelid = 'public.office_tasks'::regclass and k.conname = 'office_tasks_asignado_a_es_identificador'))) <> 2 then
+    raise exception '0541 postflight: faltan los CHECK de identificador de actor o asignado_a';
+  end if;
+
   foreach v_tabla in array array['task_events', 'office_paused'] loop
     if pg_catalog.has_any_column_privilege('service_role', 'public.' || v_tabla, 'UPDATE') then
       raise exception '0541 postflight: service_role puede cambiar filas de %', v_tabla;
@@ -470,12 +533,14 @@ begin
     raise exception '0541 postflight: office_paused sin su primera fila';
   end if;
 
-  -- Las tres funciones con search_path vacío; solo office_cambiar_pausa es SECURITY DEFINER.
+  -- Las cuatro funciones con search_path vacío; solo office_cambiar_pausa y
+  -- office_vaciar_resumenes_viejos son SECURITY DEFINER.
   for v_fn in
     select * from (values
       ('public.office_solo_insertar()', false),
       ('public.office_esta_pausada()', false),
-      ('public.office_cambiar_pausa(boolean, text)', true)
+      ('public.office_cambiar_pausa(boolean, text)', true),
+      ('public.office_vaciar_resumenes_viejos()', true)
     ) as t(firma, definer)
   loop
     if not exists (
@@ -484,7 +549,8 @@ begin
          and p.prosecdef = v_fn.definer
          and p.proconfig @> array['search_path=""']
     ) then
-      raise exception '0541 postflight: % sin search_path vacío o con SECURITY DEFINER distinto de %', v_fn.firma, v_fn.definer;
+      raise exception '0541 postflight: % sin search_path vacío o sin el SECURITY DEFINER esperado (%)',
+        v_fn.firma, case when v_fn.definer then 'definer' else 'invoker' end;
     end if;
   end loop;
   if pg_catalog.has_function_privilege('anon', 'public.office_cambiar_pausa(boolean, text)', 'EXECUTE')
@@ -493,8 +559,13 @@ begin
      or pg_catalog.has_function_privilege('authenticated', 'public.office_esta_pausada()', 'EXECUTE')
      or pg_catalog.has_function_privilege('anon', 'public.office_solo_insertar()', 'EXECUTE')
      or pg_catalog.has_function_privilege('authenticated', 'public.office_solo_insertar()', 'EXECUTE')
-     or pg_catalog.has_function_privilege('service_role', 'public.office_solo_insertar()', 'EXECUTE') then
+     or pg_catalog.has_function_privilege('service_role', 'public.office_solo_insertar()', 'EXECUTE')
+     or pg_catalog.has_function_privilege('anon', 'public.office_vaciar_resumenes_viejos()', 'EXECUTE')
+     or pg_catalog.has_function_privilege('authenticated', 'public.office_vaciar_resumenes_viejos()', 'EXECUTE') then
     raise exception '0541 postflight: una función quedó ejecutable por quien no debía';
+  end if;
+  if not pg_catalog.has_function_privilege('service_role', 'public.office_vaciar_resumenes_viejos()', 'EXECUTE') then
+    raise exception '0541 postflight: service_role no puede vaciar los resúmenes viejos';
   end if;
 end
 $postflight$;
