@@ -466,3 +466,35 @@ pruebas, aunque sea un script corto de PGlite, necesita turno. No se repite.
 
 Duración: focales unos 2 min (21:28 → 21:30); typecheck 1 min 20 s; lint 1 min 40 s; `verify`, 16 min hasta que lo
 detuve (21:34 → 21:50).
+
+## Rol genérico y main al día (2026-11-14, vuelta W-509)
+
+- **Decisión de Sam** (citada por el DG): «Sí, cámbialo por un rol genérico». En `4923bb5b7` las pruebas, los
+  contratos SQL, el comentario de `usuarios/actions.ts:711-715` y este handoff usan «persona de contabilidad que
+  también atiende el CRM» (en AccesoPanel, la constante `CONTABILIDAD_CON_CRM`). Los nombres de ejemplo del
+  AccesoPanel también pasaron a genéricos. Las migraciones no cambiaron, así que no hubo que regenerar
+  declaraciones.
+- **Merges con main, sin rebase:**
+  - `09ca695f1` (9926b24ec) trajo solo el handoff de la 0624 (#570);
+  - `a3549d92c` (0120028bc) trajo solo la spec 0622 de la #571, que tiene el rol genérico y la fila 9.9. Se
+    fusionó sin conflictos y conserva la allowlist y §13.3.3 de esta rama.
+- **Grep del nombre:** sale vacío en la spec 0622 y en los 61 archivos de la #509 (`git diff --name-only origin/main
+  HEAD`). Quedan menciones fuera de la PR (docs de marketing y operaciones, specs 0272, 0275 y 0611, la 0204 ya
+  aplicada y los contratos 0518, 0525 y 0526): **FUERA DE ALCANCE DETECTADO**.
+- **Scripts livianos tras los dos merges:** símbolos con 0 ROJO y 3 AMARILLO; candado con 522 selladas y 4 esperas;
+  `docs:check` y `sdd:check` pasaron.
+
+### Corrida con turno sobre `09ca695f1` (antes del merge de la #571, que solo toca docs)
+
+| Comprobación | Resultado |
+|---|---|
+| Focales: `rbac.test`, `user-module-grants.migration`, `AccesoPanel`, `crm/tarjeta-actions-gate` | PASÓ: 130/130 en 29 s |
+| `scripts/__tests__/entorno-prueba-scripts.test.mjs`, aislado, una vez | PASÓ: `bash -n` 1,2 s; «las pruebas con dobles salen con 0 FALLÓ» 147,3 s (total 149 s) |
+| `pnpm verify`: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO, 3 AMARILLO), build | PASÓ |
+| `pnpm verify`: test | PASÓ: 1127 archivos y 17921 pruebas (26 en skip). `entorno-prueba-scripts` pasó sin reintento |
+| `pnpm verify`: e2e | PASÓ con aviso: 235 pasaron y 3 flaky que pasaron al reintento (`auth.spec.ts:81`, `calculadora-semantic-colors.spec.ts:53` y `company-photo-carousel.spec.ts:9`). El proceso salió ≠0 por el worker de WebKit en Windows |
+| `pnpm verify`: migrations-applied | NO DISPONIBLE (sin `.env.local`) |
+| `pnpm verify`: sql-tests, schema-rebuild | NO DISPONIBLE (sin Docker) |
+
+`verify`: exit 0 y CIERRE INCOMPLETO (14/17 medidas, sin fallos). Duración: focales 31 s (21:57:22 → 21:57:53),
+entorno-prueba-scripts 2 min 30 s (21:57:59 → 22:00:29) y `verify` 36 min 49 s (22:00:49 → 22:37:38).
