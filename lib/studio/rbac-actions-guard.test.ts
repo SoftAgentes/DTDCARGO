@@ -132,7 +132,7 @@ const EXCEPCIONES: Lista = {
     "Re-corre los health checks del panel de diagnóstico; no muta datos de negocio.",
 
   "admin/feature-flags/actions.ts::toggleFeatureFlagAction":
-    "Gatea con `platformAdminDenial` (SDD-0355), que es MÁS estricto que cualquier guard de la matriz: exige `is_platform_admin()`, no `admin` del tenant. El control real es la policy `feature_flags_platform_admin_update` (migr 0355), como dice la cabecera del archivo. (La razón anterior de esta allowlist —«valida role==='admin' inline»— quedó desactualizada cuando la 0355 subió el candado.)",
+    "Gatea con `platformAdminDenial` (SDD-0355; SDD-0633 distingue «no eres superadministrador» de «no se pudo comprobar»), que es MÁS estricto que cualquier guard de la matriz: exige `is_platform_admin()`, no `admin` del tenant; authenticated la ejecuta desde la migr 0542. La policy `feature_flags_platform_admin_update` (migr 0355) NO es el control real: la escritura va por `audit_d1_execute` (migr 0289, DEFINER de postgres), que escribe como dueño y la policy no alcanza. El freno en la base es el disparador `feature_flags_exige_superadmin` (migr 0543, SDD-0634); mientras no esté aplicada, el bloqueo efectivo es esta guarda. (Las razones anteriores —«valida role==='admin' inline» y «el control real es la policy»— quedaron desactualizadas con la 0355 y con la 0289/0543.)",
 
   // Las cuatro del archivo comparten `requireAdmin`, que resuelve el rol con
   // `getStudioRole` → `getStudioAccess`, o sea CON el filtro `disabled_at` de la
