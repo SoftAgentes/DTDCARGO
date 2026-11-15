@@ -392,7 +392,7 @@ Los cubre un solo OK: el de la puerta 4 del runbook. **No cubre la 4.10a.** Se c
 - [ ] **4.10 · El log de Postgres de Chatwoot.** Se cuentan las líneas, sin copiarlas.
 
   ```bash
-  docker exec chatwoot-postgres-1 psql -X -At -U chatwoot -c 'SHOW logging_collector'
+  docker exec chatwoot-postgres-1 psql -X -At -U chatwoot -d chatwoot_production -c 'SHOW logging_collector'
   ```
 
   Con `off`, el log es la salida del contenedor, desde la hora de 4.4:

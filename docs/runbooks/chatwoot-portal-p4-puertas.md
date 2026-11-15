@@ -378,14 +378,14 @@ Para seguir, tiene que decir `cola_y_flag=ok`. Es solo lectura (`begin transacti
 
 ```bash
 # 1. Dónde escribe Postgres su log.
-docker exec -i chatwoot-postgres-1 psql -X -At -U chatwoot -c 'SHOW logging_collector'
+docker exec -i chatwoot-postgres-1 psql -X -At -U chatwoot -d chatwoot_production -c 'SHOW logging_collector'
 
 # 2, caso «off»: el log es la salida del contenedor. Se cuentan las líneas desde la hora de 4.4, sin copiarlas.
 # El patrón es el del DG: Postgres pone dos espacios después de «DETAIL:» y de «STATEMENT:», de ahí el « +».
 docker logs --since <hora de 4.4, en UTC> chatwoot-postgres-1 2>&1 | grep -c -E 'Failing row|DETAIL: +Key|STATEMENT: +INSERT'
 
 # 2, caso «on»: los archivos de log_directory dentro de PGDATA, en el intervalo de la carga.
-docker exec -i chatwoot-postgres-1 sh -c 'cat "$PGDATA/$(psql -X -At -U chatwoot -c "SHOW log_directory")"/*' | grep -c -E 'Failing row|DETAIL: +Key|STATEMENT: +INSERT'
+docker exec -i chatwoot-postgres-1 sh -c 'cat "$PGDATA/$(psql -X -At -U chatwoot -d chatwoot_production -c "SHOW log_directory")"/*' | grep -c -E 'Failing row|DETAIL: +Key|STATEMENT: +INSERT'
 ```
 
 El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» supone que `log_directory` es relativo a `PGDATA`,** que es lo de serie (`log`). Si `SHOW log_directory` da una ruta absoluta, se usa esa. **Ojo con el caso «on»:** cuenta todo lo que hay en esos archivos, no solo el intervalo de la carga. Si da más que 0, antes de abrir el 4.10a se mira la hora de las líneas, sin copiarlas.
