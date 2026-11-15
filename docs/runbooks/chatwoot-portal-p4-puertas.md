@@ -27,9 +27,9 @@
 | **5b · El webhook** | **HECHO, sin cambios** (solo lectura): el webhook id=2 de la cuenta 1 termina en `/api/chatwoot/webhook` y tiene `message_created` marcado | 2026-11-15, antes del encendido. Hora exacta: no informada | **Registro del DG, sin carpeta en el VPS** |
 | **Antes del encendido · la 0542** | **Aplicada en producción** (`0542_is_platform_admin_execute_authenticated`, SDD-0633, #574). **No es un sub-paso de la puerta 5:** es el prerrequisito del encendido. Devolvió `EXECUTE` de `is_platform_admin()` a `authenticated`, y con eso se desbloqueó el interruptor del panel. **La #574, que trae su código, quedó en `main`** en `42daa3d2c`, fusionada a las 08:09:21Z | La 0542: 2026-11-15 08:09:18Z | La lectura previa: `/srv/ops/evidencias/previa-0542-dtd-cargo-20261115T074242Z`. La aplicación: `/srv/ops/evidencias/apply-0542-dtd-cargo-20261115T080917Z` |
 | **El encendido** | **HECHO.** `chatwoot_portal` en `true`, **desde el panel, por Sam** («listo encendido»). Lo leyó el DG en producción: `feature_flags` con `enabled=true` y `updated_at` 08:12:13Z; en `entity_audit_log`, una fila `action=feature_flag_changed` con `after_data` `enabled=true` y `occurred_at` 08:12:13Z. **Lectura de la cola después del encendido:** `chatwoot_portal_salida` con `cargado=78`, sin pendientes ni errores | 2026-11-15T08:12:13Z | **Sin carpeta ni copia.** La fila de auditoría se identifica por `action` + `key` + `occurred_at`: no hay copia de su id, y leerlo exige consultar producción otra vez |
-| **5c · El smoke con un cliente real** | **PENDIENTE.** Sam lo autorizó, pero falta que nombre al cliente | — | — |
+| **5c · El smoke con un cliente real** | **EN CURSO, no hecho.** Lo hace Sam con su cuenta de cliente, y la lectura de los conteos de la cola tiene su OK. **Línea de base** antes del smoke: `cargado=78`, 0 atascados y 0 sin llegar. Su resultado se registra aparte, cuando el DG avise que terminó | La línea de base: 2026-11-15 08:26:12Z | Todavía no hay: se registra al terminar |
 
-**Lo que este registro no cubre:** la lectura de la cola de la puerta 5c, que va con su OK propio, y la hora exacta del 3.0, del 5b y de cierre de la 4.10, que el DG no informó. Las evidencias del 5a, del 5b y del encendido son del DG: la salida de su script y su nota de control, fuera del repo.
+**Lo que este registro no cubre:** el resultado del 5c, que se registra aparte al terminar, y la hora exacta del 3.0, del 5b y de cierre de la 4.10, que el DG no informó. Las evidencias del 5a, del 5b y del encendido son del DG: la salida de su script y su nota de control, fuera del repo.
 
 ## Antes de la primera puerta
 
@@ -573,7 +573,7 @@ El número tiene que ser 0. Va a la evidencia solo el número. **El caso «on» 
 
 ## Puerta 5 · Encender `chatwoot_portal`
 
-> **Estado al 2026-11-15:** el 5a, el 5b y el encendido están **hechos**, y el 5c **no**. Las horas y las rutas están en el «Registro de las puertas», arriba. Lo que sigue es el procedimiento del runbook: este registro no lo modifica.
+> **Estado al 2026-11-15:** el 5a, el 5b y el encendido están **hechos**, y el 5c está **en curso** (no hecho). Las horas y las rutas están en el «Registro de las puertas», arriba. Lo que sigue es el procedimiento del runbook: este registro no lo modifica.
 
 **Antes de encender, en este orden:** 5a, las variables y la web, y 5b, el webhook. El encendido va después, y 5c, el smoke, al final.
 
@@ -839,7 +839,7 @@ Es una revisión con el método de `.claude/skills/revisar-datos-ve/SKILL.md`. *
 - **El procedimiento de 4.10a:** se define con el DG.
 - **Los argumentos del respaldo externo a B2** (`pg-dump-to-s3.sh`, que sube a B2 aunque el nombre diga S3).
 - **Lo que falta del «Registro de las puertas»:** la evidencia y la hora del 3.0, y la hora exacta del 5b. El 5a, el 5b y el encendido no tienen carpeta en el VPS (registro del DG), y el id de la fila de auditoría del encendido no está copiado.
-- **La puerta 5c,** el smoke con un cliente real: Sam lo autorizó, pero falta que nombre al cliente.
+- **La puerta 5c,** el smoke con un cliente real: en curso con Sam; su resultado, las horas y los estados, sin el texto, se registra cuando el DG avise que terminó.
 - **Pendientes de una PR de pruebas** (observaciones bajas de la revisión de la #567; no son de este runbook y no se arreglan aquí):
   - **G8 cubre una sola condición.** La guarda de la G0 que exige los guiones del desarme en el modo completo tiene un caso y un mutante para una sola de sus cuatro condiciones.
   - **R4 solo cuenta.** Comprueba que la copia durable del 4.6b no se crea ni cambia contando archivos, sin comparar contenido (ni md5 ni huella).

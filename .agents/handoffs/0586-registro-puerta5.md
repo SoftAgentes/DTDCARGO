@@ -54,12 +54,13 @@
 ## Pendientes de esta tarea
 
 - **Lo que sigue pendiente del registro:** la evidencia y la hora del 3.0, y la hora exacta del 5b y del cierre de la 4.10. El DG respondió el 2026-11-15 con las rutas de la puerta 4 (`p4-carga-20261115T054606Z`) y de la 0542 (lectura previa y aplicación); el 5a, el 5b y el encendido no tienen carpeta (registro del DG), y el id de la fila de auditoría del encendido no está copiado (se identifica por `action` + `key` + `occurred_at`). El DG corrigió mi primer reparto: la 0542 no es el 5a (es prerrequisito del encendido) y `cargado=78` es una lectura posterior al encendido.
+- **El resultado del 5c** (en curso con Sam; línea de base 08:26:12Z con `cargado=78`, 0 atascados y 0 sin llegar): se registra en otro commit cuando el DG avise que terminó.
 - **La revisión y la fusión de la PR,** que hace el DG.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - **Una PR de pruebas** para las tres observaciones bajas de la #567: G8 cubre una sola de las cuatro condiciones de la guarda del desarme; R4 solo cuenta archivos; y puede quedar algún resto tras un KILL (`.hecho` o contenedores de `portal-ensayo`).
-- **El 5c,** el smoke con un cliente real: no está hecho y tiene su OK propio de Sam.
+- **El 5c,** el smoke con un cliente real: en curso, no hecho; los conteos de la cola tienen su OK.
 - **Citas de línea en otros documentos** que apunten a `ensayo-portal.sh` o `deshacer.sh` no se revisaron fuera de los dos runbooks (por ejemplo la spec 0586 y los handoffs, que son evidencia fechada).
 
 ## Impacto documental
