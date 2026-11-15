@@ -1,10 +1,10 @@
 ---
 sdd: "0626"
 title: "Oficina-runtime — El Cable Vertical"
-status: draft
+status: approved
 author: "Hermes (redacción) · Sam (aprobación)"
 created: 2026-11-12
-updated: 2026-11-13
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0020", "0021"]
@@ -12,12 +12,12 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.2 (borrador para revisión) · 13/11/2026**
+**Versión 0.2.1 (aprobada para construir el Paso 0) · 14/11/2026**
 
 | Control | Valor |
 |---|---|
 | Dueño | Sam (aprobación) · construcción: Director/Worker · redacción: Hermes |
-| Estado | borrador → pendiente aprobación de Sam |
+| Estado | aprobada · OK de Sam al cable del 14/11/2026 (Paso 0: Partes A, A2 y B) |
 | Gobernanza | SGE v8.0 · SGE-AG-01 v0.2 (niveles L0/L1, kill switch, presupuestos) |
 | Depende de | SDD-0020 (SkillDef) · política agent_approvals (docs/agents — NO la spec 0021-facturación de main) · SGE-AG-01 ya en main (`docs/governance/policies/sge-ag-01.md`, PR #524) |
 | No toca | producción, main, ni tareas abiertas de otras ramas |
@@ -193,6 +193,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.2.1 | 14/11/2026 | Estado `draft` → `approved` para construir, con el OK de Sam al cable del 14/11/2026. Sin cambios de alcance. El Paso 0 se monta y se prueba en la Parte B. Runbook: `docs/runbooks/oficina-cable.md` |
 | 0.2 | 13/11/2026 | Paso 0 de conexión ERP → VPS Oficina (§3.0 y primera fila de §9) · AC-1 reescrito como autonomía por etapas · AC-7 nuevo, regla de seguir o parar (20 conversaciones, 90 % correctas, cero datos inventados, tope $15/mes) · dependencia de gobernanza al día (SGE-AG-01 ya en main) |
 | 0.1 | 12/11/2026 | Alta inicial (redacción: Hermes) |
 
