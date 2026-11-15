@@ -77,11 +77,11 @@ Flujo real de coordinación CN (compra-asistida / consolidación), **anterior** 
 
 ## 6. Mapeo perfiles → RBAC (de `Downloads/estructura-perfiles-dtdcargo.md`, doc del founder)
 
-- Los **~14 roles de negocio colapsan limpio en los 6 RBAC que el ERP ya tiene** (SDD-0024: `admin · commercial · operations · accounting · warehouse · support`) + 2 móviles por PIN (`bodeguero · camionero`). **NO crear roles nuevos.** Marketing (Fátima/Fiorella/Alejandro-vibe) = sin asiento ERP (Kommo/GA4); externos (operador Candy, transportistas, agente aduanal) = prohibidos por candado.
+- Los **~14 roles de negocio colapsan limpio en los 6 RBAC que el ERP ya tiene** (SDD-0024: `admin · commercial · operations · accounting · warehouse · support`) + 2 móviles por PIN (`bodeguero · camionero`). **NO crear roles nuevos.** Marketing (Fátima/Fiorella/la persona de contabilidad con CRM en su parte de marketing) = sin asiento ERP (Kommo/GA4); externos (operador Candy, transportistas, agente aduanal) = prohibidos por candado.
 - ⚠️ **Hueco real del ERP:** hoy el RBAC solo distingue **admin vs no-admin**; los 4 roles intermedios NO restringen ningún módulo (aislamiento real = `tenant_id`/RLS). Falta `ROLE_MODULE_ACCESS` + helper `requireModule()` server-side. Archivos: `lib/studio/user-types.ts` (6 roles), `supabase/migrations/0019_users_roles.sql` (CHECK+RPC), `app/studio/(app)/layout.tsx` (único gating `isAdmin`).
 - **El `owner_role` del motor debe reusar `StudioUserRole`** (los mismos 6), no inventar "frentes". Un solo vocabulario de roles en todo el sistema.
 - **La Matriz rol→persona (titular + suplente) debe volverse una TABLA en la DB** por tenant, no un .md — así el motor enruta tareas solo (`owner_role` del paso → titular de la Matriz).
-- **Candados:** Sourcing/proveedores NUNCA en el ERP; **separación de poderes** Tesorería (`accounting`, mueve plata) vs Operador de ERP (`operations`, verifica) → **Yolimar = accounting, NO admin**; Alejandro (data/ERP) = `operations`, nunca el que mueve plata.
+- **Candados:** Sourcing/proveedores NUNCA en el ERP; **separación de poderes** Tesorería (`accounting`, mueve plata) vs Operador de ERP (`operations`, verifica) → **Yolimar = accounting, NO admin**; la persona de contabilidad con CRM (data/ERP) = `operations`, nunca el que mueve plata.
 
 ## 7. Mapeo servicios → owner_role (cuajar servicios a perfiles)
 

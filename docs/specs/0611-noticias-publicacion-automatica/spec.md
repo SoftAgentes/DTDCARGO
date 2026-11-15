@@ -57,7 +57,7 @@ vía automática todavía no existe; ver §4.2.1.
 - **Retirar no apaga la automatización, y cada retiro dice el porqué:** «Me dices que yo puedo
   borrarla, pero no me apagues la automatización. ¿Podemos hacer que detecte que una noticia se
   borró y diga el porqué, para entrenar a la gente?». Ver §4.6 y §4.11.
-- **Quién revisa:** «el humano va a ser Sam y va a ser Alejandro», más un agente crítico que
+- **Quién revisa:** «el humano va a ser Sam y va a ser [la persona de contabilidad con CRM]», más un agente crítico que
   muestra si la noticia puede dar algún problema y da su opinión. Ver §4.7.
 
 ### 1.2 La regla que se exceptúa
@@ -95,7 +95,7 @@ y política afectada». La sección 2 de esta spec es ese registro.
 | Motivo | El ritmo decidido (de una por día en prueba a una o dos por semana) y una oficina que redacta y revisa sola no se sostienen si cada publicación espera a Sam. El daño de una noticia mala se acota: es contenido público sin datos de clientes, se retira con un clic y no envía correos |
 | Alcance exacto | Pasar a publicada **una noticia nueva** en `/noticias`, creada desde un borrador en revisión del tenant de DTD Cargo, de los tipos y categorías de §4.2 (F2) |
 | Fuera del alcance | Editar o volver a publicar una noticia ya publicada; borrar; el tipo Especial y la categoría «Novedades DTD»; «Historias reales»; correos, boletín, redes, WhatsApp y cualquier otro canal; cualquier dato del ERP. Todo eso sigue en I4 o en su nivel propio |
-| Controles que compensan | Los filtros F1 a F10 de §4.2, el aviso a Sam y a Alejandro con retiro de §4.5, el motivo obligatorio de cada retiro y su vuelta a la oficina (§4.11) y la auditoría de §4.4. El interruptor lo apaga solo Sam |
+| Controles que compensan | Los filtros F1 a F10 de §4.2, el aviso a Sam y a la persona de contabilidad con CRM con retiro de §4.5, el motivo obligatorio de cada retiro y su vuelta a la oficina (§4.11) y la auditoría de §4.4. El interruptor lo apaga solo Sam |
 | Lo que IA-01 sigue exigiendo | Auditoría con modelo, versión y resultado; salida segura y camino manual; separar hecho de propuesta; prueba contra contenido no confiable; minimizar datos. Nada de eso se exceptúa |
 | Retirar una noticia | Es I3 (reversible): `published = false`, con auditoría. No requiere esta excepción |
 | Fecha de revisión | **60 días después de la primera publicación automática** (decisión de Sam del 2026-11-06). En la revisión Sam decide si sigue, cambia los filtros o se cierra |
@@ -326,14 +326,14 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
 - Lo publicado por la vía automática se firma **«DTD Cargo»**, como organización, sin escritor
   invitado de la rotación de `lib/news/writers.ts`.
 - **Quién revisa** (decisión de Sam del 2026-11-06):
-  - **Las personas son Sam y Alejandro.** Con la vía automática revisan **después** de publicar,
-    a partir del aviso de `#noticias`, y cualquiera de los dos retira si hace falta. Alejandro
-    necesita una cuenta propia en el Studio con permiso para retirar; no se comparte la de Sam.
+  - **Las personas son Sam y la persona de contabilidad con CRM.** Con la vía automática revisan **después** de publicar,
+    a partir del aviso de `#noticias`, y cualquiera de los dos retira si hace falta. La persona de
+    contabilidad con CRM necesita una cuenta propia en el Studio con permiso para retirar; no se comparte la de Sam.
     El Studio registra quién revisó y cuándo.
   - **El agente crítico es el Revisor** de la oficina. Su papel es buscar problemas: dice si la
     noticia puede traer algún riesgo (un dato dudoso, una línea roja, un tono que puede caer mal,
     algo que suene a IA) y da su opinión. Su veredicto es F3; su opinión de riesgo viaja en el
-    aviso de `#noticias` para que Sam y Alejandro la lean primero. **No reemplaza a las
+    aviso de `#noticias` para que Sam y la persona de contabilidad con CRM la lean primero. **No reemplaza a las
     personas**: es una barrera más antes de publicar.
 - La página no dice que una persona revisó el artículo mientras eso no esté registrado. Cuando
   lo esté, puede mostrar el nombre del revisor.
@@ -414,7 +414,7 @@ registro.
   control de datos personales de §4.3.1, y si encuentra algo, no la entrega y avisa.
 - **Al Revisor en particular:** si retiraron una noticia que el Revisor no marcó como riesgosa,
   eso es lo que más le enseña. Esos casos se señalan aparte.
-- **A Sam y a Alejandro, cada semana:** un resumen en `#noticias` con las retiradas de la semana
+- **A Sam y a la persona de contabilidad con CRM, cada semana:** un resumen en `#noticias` con las retiradas de la semana
   por motivo y las que siguen con motivo pendiente.
 - **A las reglas, por una persona:** si un motivo se repite, una persona decide si suma una
   palabra a la lista de muletillas o de líneas rojas, o un ejemplo de «lo que no» en la
@@ -440,7 +440,7 @@ corrigió también es aprendizaje, y se entrega igual.
 | Privacidad | El control detecta un teléfono, un correo y una cédula en el cuerpo |
 | Salida manual | Una persona admin publica a mano un retenido y queda su nombre |
 | Retiro con motivo | Sin motivo no se retira desde la pantalla; despublicar por otra vía deja «motivo pendiente» y avisa; borrar una noticia automática se rechaza; borrar una manual deja registro; una nota con un teléfono no se entrega a la oficina |
-| Dos personas | Alejandro, con su cuenta, retira; una cuenta sin el permiso, no |
+| Dos personas | La persona de contabilidad con CRM, con su cuenta, retira; una cuenta sin el permiso, no |
 
 Cada filtro F1 a F10 tiene una prueba en rojo que lo demuestra y un mutante que muere al
 quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción.
@@ -487,12 +487,12 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
    y §4.5).
 4. ~~**Fecha de revisión.**~~ *Resuelto por Sam el 2026-11-06:* 60 días después de la primera
    publicación automática (§2). Al quitar el apagado automático, esta revisión y el aviso de
-   §4.6 son el freno que queda además de Sam y Alejandro.
+   §4.6 son el freno que queda además de Sam y la persona de contabilidad con CRM.
 
 **Todas las decisiones abiertas quedaron resueltas.** Sam aprobó la spec el 2026-11-06, texto
 literal: «yo aprobé el PR (aprobado), pero que él tome la decisión». La aprobación es de la spec;
 el merge lo decide el Director.
-5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y Alejandro, más el
+5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y la persona de contabilidad con CRM, más el
    Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
    revisó cuando la revisión esté registrada.
 

@@ -53,7 +53,7 @@ El transporte es el de la 0606:
 | `news_post_exits.note` | Nota libre de quien retiró (hasta 1.000 caracteres) | El porqué del retiro, para entrenar | Sin plazo | Ídem; y viaja a la oficina |
 | `news_post_exits.title`, `.slug`, `.content_sha256` | Titular, dirección y huella de una noticia que fue pública | Que el retiro quede como ejemplo | Sin plazo | Ídem |
 
-Los titulares del personal son Sam, Alejandro y los admins. No hay datos de clientes en ninguna columna nueva.
+Los titulares del personal son Sam, la persona de contabilidad con CRM y los admins. No hay datos de clientes en ninguna columna nueva.
 
 ### `news_posts`: lo que lee el público (N1, migración 0526, 2026-11-11)
 
