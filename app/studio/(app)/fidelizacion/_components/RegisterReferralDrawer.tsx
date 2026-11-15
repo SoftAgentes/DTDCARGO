@@ -146,7 +146,7 @@ export function RegisterReferralDrawer({
         {/* Aviso advisory: el crédito no se aplica solo. */}
         <Aviso tono="info" compacto>
           El referido arranca en <strong>Invitado</strong>. Cuando haga su primer
-          embarque, acreditá el crédito de {fmtUsd(referrerReward)}{" "}
+          embarque, acredita el crédito de {fmtUsd(referrerReward)}{" "}
           al referidor — se aplica a mano en su próxima factura (crédito advisory,
           no se postea solo a Facturación).
         </Aviso>

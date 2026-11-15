@@ -4,6 +4,7 @@
  */
 
 import { cloneElement, isValidElement, useId, type ReactNode } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 type ControlProps = { id?: string; "aria-invalid"?: boolean; "aria-describedby"?: string };
 
@@ -55,22 +56,15 @@ export function Row({ children }: { children: ReactNode }) {
   return <div style={{ display: "flex", gap: "var(--s-4)", flexWrap: "wrap" }}>{children}</div>;
 }
 
+/**
+ * Error del formulario entero. SDD-0603 (menores del Studio): es el aviso
+ * canónico, sin contorno. `tabIndex={-1}` lo deja enfocable sin entrar en el
+ * orden de Tab: `useDialogA11y` le lleva el foco al terminar el envío (ERR-01).
+ */
 export function ErrorBox({ children }: { children: ReactNode }) {
   return (
-    <p
-      role="alert"
-      tabIndex={-1}
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-        margin: 0,
-      }}
-    >
+    <Aviso tono="error" compacto tabIndex={-1}>
       {children}
-    </p>
+    </Aviso>
   );
 }

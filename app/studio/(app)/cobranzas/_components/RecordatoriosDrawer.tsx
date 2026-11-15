@@ -82,7 +82,7 @@ export function RecordatoriosDrawer({
         )}
 
         {(preview?.error || errorEnvio) && (
-          <Aviso tono="error">{errorEnvio ?? preview?.error}</Aviso>
+          <Aviso tono="error" compacto>{errorEnvio ?? preview?.error}</Aviso>
         )}
 
         {!cargando && !preview?.error && (

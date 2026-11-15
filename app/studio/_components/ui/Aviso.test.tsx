@@ -7,6 +7,7 @@
  */
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Aviso, rolDeAviso, type AvisoTono } from "./Aviso";
 import { ErrorAlert } from "./ErrorAlert";
@@ -106,6 +107,71 @@ describe("Aviso · SDD-0628", () => {
     const { container } = render(<Aviso compacto>x</Aviso>);
     expect(container.firstElementChild).toHaveClass("studio-aviso-compacto");
     expect(container.querySelector("svg")).toHaveAttribute("width", "14");
+  });
+});
+
+describe("Aviso · foco por programa (enmienda de SDD-0603)", () => {
+  it("sin tabIndex no es enfocable ni entra en el orden de Tab", () => {
+    render(<Aviso tono="error">No se pudo guardar.</Aviso>);
+    const alerta = screen.getByRole("alert");
+    expect(alerta).not.toHaveAttribute("tabindex");
+    alerta.focus();
+    expect(alerta).not.toHaveFocus();
+  });
+
+  it("con tabIndex={-1} recibe el foco por programa y conserva rol, clases y tono", () => {
+    const { container } = render(
+      <Aviso tono="error" compacto tabIndex={-1}>
+        No se pudo guardar.
+      </Aviso>,
+    );
+    const alerta = screen.getByRole("alert");
+    expect(alerta).toHaveAttribute("tabindex", "-1");
+    alerta.focus();
+    expect(alerta).toHaveFocus();
+    expect(alerta.className).toBe("studio-aviso studio-aviso-compacto");
+    expect(alerta).toHaveAttribute("data-tono", "error");
+    expect(alerta.getAttribute("style")).toBeNull();
+    // Lo encuentra el selector con el que `useDialogA11y` lleva el foco al error.
+    expect(container.querySelector('[role="alert"][tabindex="-1"]')).toBe(alerta);
+  });
+
+  it("tabIndex no cambia el rol de un tono que no es error", () => {
+    render(
+      <Aviso tono="atencion" tabIndex={-1}>
+        Revisa el monto.
+      </Aviso>,
+    );
+    expect(screen.getByRole("status")).toHaveAttribute("tabindex", "-1");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("ref apunta a la franja y sirve para enfocarla", () => {
+    const ref = createRef<HTMLDivElement>();
+    render(
+      <Aviso tono="error" tabIndex={-1} ref={ref}>
+        No se pudo guardar.
+      </Aviso>,
+    );
+    expect(ref.current).toBe(screen.getByRole("alert"));
+    ref.current?.focus();
+    expect(ref.current).toHaveFocus();
+  });
+
+  it("con y sin las props de foco el marcado es el mismo, salvo tabindex", () => {
+    const sin = render(
+      <Aviso tono="error" titulo="Falló">
+        x
+      </Aviso>,
+    ).container.innerHTML;
+    cleanup();
+    const con = render(
+      <Aviso tono="error" titulo="Falló" tabIndex={-1} ref={createRef<HTMLDivElement>()}>
+        x
+      </Aviso>,
+    ).container.innerHTML;
+    expect(con).toContain('tabindex="-1"');
+    expect(con.replace(' tabindex="-1"', "")).toBe(sin);
   });
 });
 
