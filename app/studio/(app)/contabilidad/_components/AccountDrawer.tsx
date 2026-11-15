@@ -21,6 +21,7 @@ import {
 import { createAccount, updateAccount } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
@@ -309,20 +310,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
           </div>
 
           {state.error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {state.error}
-            </p>
+            <Aviso tono="error" compacto>{state.error}</Aviso>
           )}
 
           <div style={{ flex: 1, minHeight: 8 }} />
