@@ -94,6 +94,18 @@ function violaciones(ruta: string, texto: string): string[] {
   return fallas;
 }
 
+/**
+ * Formas de pintar el enlace de acceso (un secreto): como hijo de JSX
+ * (`{…accessLink}`) o interpolado en una plantilla (`${…accessLink}`).
+ * La condición `{accesoState.ok && accesoState.accessLink && (` y
+ * `writeText(accesoState.accessLink as string)` no son ninguna de las dos.
+ */
+const ENLACE_PINTADO = [/(?<!\$)\{\s*[\w.?]*accessLink\s*\}/g,/\$\{[^}]*accessLink[^}]*\}/g];
+
+function enlacePintado(codigo: string): string[] {
+  return ENLACE_PINTADO.flatMap((re) => codigo.match(re) ?? []);
+}
+
 const fuentes = new Map<string, string>(
   ARCHIVOS.map((ruta) => [ruta, readFileSync(join(process.cwd(), BASE, ruta), "utf8").replace(/\r\n/g, "\n")]),
 );
@@ -177,10 +189,10 @@ describe("SDD-0603 · tramo 5e · archivos liberados (BD-037)", () => {
 
   it("el enlace de acceso no se pinta: solo va al portapapeles", () => {
     const codigo = sinComentarios(fuentes.get("usuarios/_components/UserDetailDrawer.tsx")!);
-    const usos = [...codigo.matchAll(/accesoState\.accessLink/g)];
-    // La condición de render y `writeText(...)`. Ningún `{accesoState.accessLink}` como texto.
+    const usos = [...codigo.matchAll(/accessLink/g)];
+    // La condición de render y `writeText(...)`. Nada más.
     expect(usos).toHaveLength(2);
-    expect(codigo).not.toMatch(/\{accesoState\.accessLink\}/);
+    expect(enlacePintado(codigo)).toEqual([]);
     expect(codigo).toMatch(/writeText\(accesoState\.accessLink as string\)/);
   });
 
@@ -227,6 +239,33 @@ describe("SDD-0603 · tramo 5e · archivos liberados (BD-037)", () => {
       const mutado = original.replace(IMPORT_AVISO, 'from "./Aviso"');
       expect(mutado).not.toBe(original);
       expect(violaciones(ruta, mutado).length).toBeGreaterThan(0);
+    });
+
+    it("el enlace de acceso pintado como hijo de JSX → se detecta", () => {
+      const mutado = original.replace(
+        '{copiado ? "Copiado" : "Copiar enlace"}',
+        '{copiado ? "Copiado" : "Copiar enlace"} {accesoState.accessLink}',
+      );
+      expect(mutado).not.toBe(original);
+      expect(enlacePintado(sinComentarios(mutado))).toEqual(["{accesoState.accessLink}"]);
+    });
+
+    it("el enlace de acceso pintado por plantilla → se detecta", () => {
+      const mutado = original.replace(
+        "titulo={<>Enlace enviado a {member.email}</>}",
+        "titulo={`Enlace enviado a ${member.email}: ${accesoState.accessLink}`}",
+      );
+      expect(mutado).not.toBe(original);
+      expect(enlacePintado(sinComentarios(mutado))).toEqual(["${accesoState.accessLink}"]);
+    });
+
+    it("el enlace de acceso pintado por plantilla con alias → se detecta", () => {
+      const mutado = original.replace(
+        '{copiado ? "Copiado" : "Copiar enlace"}',
+        '{copiado ? "Copiado" : `Copiar ${String(estado.accessLink ?? "")}`}',
+      );
+      expect(mutado).not.toBe(original);
+      expect(enlacePintado(sinComentarios(mutado))).toHaveLength(1);
     });
 
     it("la tarjeta de Mis reportes vuelve a ser parada de Tab → rompe", () => {

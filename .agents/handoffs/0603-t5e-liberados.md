@@ -36,6 +36,13 @@ Turno de la PC concedido por el DG, vía el Subdirector Rebrand, el 2026-11-15. 
 - Vista en pantalla con datos, en claro, en oscuro y en compacto: NO EJECUTADA.
 - Impresión de recibo, expediente y rendición: NO EJECUTADA; los tres archivos no tienen diff.
 
+## Ajustes de la revisión independiente (PR #582, aprobada con observaciones)
+
+- `UserDetailDrawer.tsx`: el comentario «se queda en pantalla» quedó obsoleto; ahora dice que lo que se queda es el aviso con su botón de copiar.
+- `facturacion/[code]/page.tsx`: el margen bajo «Volver al listado» pasa de 14 a 12 px. Se eligió 12 y no 16 porque el vínculo ahora es un botón 24 px más alto que el texto que reemplazó. Va en px literal y no en `var(--s-3)`, que en compacto vale 8.
+- Contrato: `enlacePintado` detecta el enlace de acceso como hijo de JSX y también interpolado en una plantilla (`${…accessLink}`), con tres mutantes nuevos. El contrato queda en 29 pruebas y 11 mutantes.
+- Validación de estos ajustes: ver el reporte al Subdirector; se corre con turno.
+
 ## Impacto documental
 
 Nuevo `tramo-5e.md`. Sin cambios en documentos canónicos ni en `spec.md`.

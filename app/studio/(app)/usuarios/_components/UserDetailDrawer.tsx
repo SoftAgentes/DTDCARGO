@@ -445,8 +445,8 @@ export function UserDetailDrawer({
           </p>
 
           {/* Rastro persistente: el admin necesita PODER COPIAR el enlace si el
-              correo no llega, así que se queda en pantalla. */}
-          {/* SDD-0603 · tramo 5e: el enlace NUNCA se pinta; solo va al
+              correo no llega, así que el aviso con su botón de copiar se queda.
+              SDD-0603 · tramo 5e: el enlace NUNCA se pinta; solo va al
               portapapeles. Dentro de la región `status` quedan el correo y el
               botón, no el secreto. */}
           {accesoState.ok && accesoState.accessLink && (

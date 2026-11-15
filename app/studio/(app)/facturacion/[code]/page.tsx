@@ -158,7 +158,7 @@ export default async function InvoiceDetailPage({
       <Link
         href="/studio/facturacion"
         className="studio-btn studio-btn-ghost studio-btn-sm"
-        style={{ marginBottom: 14 }}
+        style={{ marginBottom: 12 }}
       >
         <span>←</span> Volver al listado
       </Link>
