@@ -134,6 +134,8 @@
 /* Formulario de alta en línea */
 .perm-form { padding: 12px; display: grid; gap: 10px; background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
 .perm-form-row { display: grid; grid-template-columns: 1fr 160px; gap: 10px; }
+/* Aviso de privacidad bajo cada campo de motivo (queda en Actividad) */
+.perm-motivo-aviso { margin: 4px 0 0; font: 400 11.5px/1.45 var(--f-sans); color: var(--ink-soft); }
 .perm-empty { padding: 14px 12px; font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); }
 
 /* «Lo que puede ver» */

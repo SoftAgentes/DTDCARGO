@@ -35,6 +35,7 @@ import {
   grantViewOnly,
   grantableStatus,
   isSensitiveModule,
+  MOTIVO_AVISO_PII,
   reasonError,
   type GrantableStatus,
 } from "@/lib/studio/user-module-grants";
@@ -470,10 +471,10 @@ function AccesosExtra({
         reason
         reasonRequired
         reasonLabel="Motivo · mínimo 5 caracteres"
-        reasonPlaceholder="Ej: volvió María y ya no atiende el CRM"
+        reasonPlaceholder="Ej: ya no cubre el CRM"
         initialFocus="reason"
         title={quitar ? `Quitar ${moduleLabel(quitar.moduleId)} a ${persona}` : "Quitar acceso"}
-        message="Deja de verlo al instante. Queda en Actividad con tu nombre y el motivo."
+        message={`Deja de verlo al instante. Queda en Actividad con tu nombre y el motivo. ${MOTIVO_AVISO_PII}`}
         confirmLabel="Quitar acceso"
         pending={pendiente}
         error={quitar ? error : undefined}
@@ -557,7 +558,8 @@ function FormAlta({
             className="studio-input"
             autoFocus
             maxLength={500}
-            placeholder="Ej: atiende leads mientras María está de viaje"
+            placeholder="Ej: cubre el CRM durante una ausencia"
+            aria-describedby="perm-motivo-aviso"
             value={borrador.reason}
             disabled={pending}
             onChange={(e) => onCambio({ ...borrador, reason: e.target.value })}
@@ -568,6 +570,9 @@ function FormAlta({
               }
             }}
           />
+          <p id="perm-motivo-aviso" className="perm-motivo-aviso">
+            {MOTIVO_AVISO_PII}
+          </p>
         </div>
         <div>
           <label className="studio-label" htmlFor="perm-vence">

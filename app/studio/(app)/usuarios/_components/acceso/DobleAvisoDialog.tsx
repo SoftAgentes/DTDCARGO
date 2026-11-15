@@ -17,7 +17,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { SENSITIVE_MODULE_EFFECTS } from "@/lib/studio/rbac";
-import { reasonError } from "@/lib/studio/user-module-grants";
+import { MOTIVO_AVISO_PII, reasonError } from "@/lib/studio/user-module-grants";
 
 export interface DobleAvisoResultado {
   canEdit: boolean;
@@ -159,10 +159,14 @@ export function DobleAvisoDialog({
               maxLength={500}
               value={motivo}
               disabled={pending}
-              placeholder="Ej: cubre las vacaciones de Yolimar del 15 al 29"
+              placeholder="Ej: cubre el área durante unas vacaciones"
+              aria-describedby={`${titleId}-motivo-aviso`}
               aria-invalid={intentado && !!errMotivo}
               onChange={(e) => setMotivo(e.target.value)}
             />
+            <p id={`${titleId}-motivo-aviso`} className="perm-motivo-aviso">
+              {MOTIVO_AVISO_PII}
+            </p>
             {intentado && errMotivo && (
               <p role="alert" style={{ margin: "4px 0 0", font: "600 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
                 {errMotivo}

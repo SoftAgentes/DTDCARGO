@@ -131,6 +131,22 @@ describe("AccesoPanel · buscador de módulos", () => {
     expect(await screen.findByText(/se cortó la conexión/)).toBeTruthy();
   });
 
+  it("los campos de motivo avisan que no se escriban datos personales", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
+    await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
+    await u.click(screen.getByRole("option", { name: /^CRM/ }));
+    const motivo = screen.getByLabelText("Motivo (obligatorio)") as HTMLInputElement;
+    expect(motivo.placeholder).toBe("Ej: cubre el CRM durante una ausencia");
+    const aviso = document.getElementById(motivo.getAttribute("aria-describedby") ?? "");
+    expect(aviso?.textContent).toMatch(/No escribas datos personales/);
+
+    await u.click(screen.getByRole("button", { name: "Cancelar" }));
+    await u.click(screen.getByRole("button", { name: "Quitar CRM" }));
+    expect((screen.getByRole("textbox") as HTMLInputElement).placeholder).toBe("Ej: ya no cubre el CRM");
+    expect(screen.getByText(/No escribas datos personales/)).toBeTruthy();
+  });
+
   it("a un admin no se le ofrecen extras", () => {
     render(<AccesoPanel member={miembro({ role: "admin" })} grants={[]} overrides={{}} nombres={{}} />);
     expect(screen.queryByRole("combobox", { name: "Agregar módulo o área" })).toBeNull();
@@ -175,6 +191,7 @@ describe("DobleAvisoDialog", () => {
     for (const efecto of SENSITIVE_MODULE_EFFECTS.treasury) {
       expect(within(dialogo).getByText(efecto)).toBeTruthy();
     }
+    expect(within(dialogo).getByText(/No escribas datos personales/)).toBeTruthy();
     const dar = screen.getByRole("button", { name: "Sí, dar acceso" });
     expect(dar).toHaveProperty("disabled", true);
     await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Cubre vacaciones");

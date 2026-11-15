@@ -37,12 +37,15 @@ import type { StudioUserRole } from "@/lib/studio/user-types";
 export type GrantCoverage = "covered" | "money_phase" | "admin_base" | "superadmin" | "not_reviewed";
 
 /**
- * Módulos cubiertos en la base (SDD-0622 §12, grupos C y D, más `users`):
+ * Módulos cubiertos en la base (SDD-0622 §12, grupos C y D; `users` NO está):
  *   - kommo: `crm_puede_usar()`/`crm_puede_editar()` usan `user_has_module` (0539).
  *   - clients: `document_entity_authorized` suma los extras (0539). La fusión de
  *     fichas (0358/0361) y el cambio de código (0371) siguen pidiendo su rol.
- *   - quotes, sales-orders, purchase-orders, conversaciones, rates, suppliers:
- *     RLS solo por tenant (0007, 0012, 0106, 0124, 0125, 0236).
+ *   - quotes, sales-orders, purchase-orders, conversaciones, rates: la 0540
+ *     reemplazó su RLS solo por tenant (0012, 0106, 0124, 0125) por policies que
+ *     deciden con `user_has_module`/`user_has_any_module`, así que el extra entra
+ *     por ahí (también en `chatwoot_conversations`, solo lectura).
+ *   - suppliers: RLS solo por tenant (0236); el extra no necesita cambio en la base.
  *
  * Fuera a propósito, con su motivo en `COVERAGE_HINT`:
  *   - bandeja: el ciclo de agentes de Chatwoot (`lib/studio/chatwoot/agentes-*`)
@@ -140,3 +143,11 @@ export function reasonError(reason: string): string | null {
   if (len > 500) return "El motivo admite hasta 500 caracteres.";
   return null;
 }
+
+/**
+ * Aviso junto a cada campo de motivo (SDD-0622 §8): el texto queda en la fila
+ * del extra, que lee la persona destinataria, y en `entity_audit_log`, que se
+ * ve en Actividad. El límite de 5 a 500 caracteres lo pone `reasonError`.
+ */
+export const MOTIVO_AVISO_PII =
+  "No escribas datos personales en el motivo (cédula, teléfono, salud): queda guardado en Actividad.";
