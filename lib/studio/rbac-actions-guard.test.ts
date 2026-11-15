@@ -210,13 +210,10 @@ const DEUDA: Lista = {
   // propio pasaron a EXCEPCIONES con el alcance verificado; el resto tiene ya
   // su gate central.
 
-  // ── sin candado de aplicación: sólo queda la RLS ──
-  "cotizador/actions.ts::lookupSuggestedRate":
-    "Sin candado: resuelve la tarifa sugerida de un cliente (`clientIdByMarkbox` + `resolveRateForClient`). Lo que devuelve es precio.",
-  "tracking/[id]/actions.ts::lookupRateForNewDestination":
-    "Sin candado: busca tarifa por destino. Mismo caso que `lookupSuggestedRate`.",
-  "tarifas/actions.ts::previewRatesImportAction":
-    "Sin candado, pero NO toca datos: `return parseRatesCsv(csv)` sobre el texto que mandó el propio llamante. El riesgo es el menor de la lista; se deja acá para no cambiar comportamiento fuera del encargo.",
+  // SDD-0622 sacó las tres de tarifas que quedaban
+  // (`cotizador::lookupSuggestedRate`, `tracking/[id]::lookupRateForNewDestination`
+  // y `tarifas::previewRatesImportAction`): cada una tiene ya su gate central.
+  // La lista queda vacía; una entrada nueva exige defenderla por escrito.
 };
 
 const listaDe = (clave: string): "EXCEPCIONES" | "DEUDA" | null =>
@@ -369,8 +366,18 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // leer nada, como `getReceivableHistory`; la lectura de `payment_reports` usa el
   // cliente de sesión, así que la RLS de la tabla repite el tenant. Pasa el
   // veredicto por acción sin entrar en ninguna lista.
+  // SDD-0622 sumó `usuarios/actions.ts::grantUserModuleAction`,
+  // `::revokeUserModuleGrantAction` y `::listUserAccessActivityAction` (469 → 472):
+  // `tenantAdminGate` antes de leer o escribir nada; escriben SOLO por las RPC
+  // de la 0538 (`studio_grant_user_module`, `studio_revoke_user_module_grant`),
+  // que repiten el rol admin de la base. La bitácora NO la limita la RLS: desde
+  // la 0270 authenticated no la lee, así que `listUserAccessActivityAction` lee
+  // con el cliente de servicio después de `moduleViewDenial("users")` y
+  // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
+  // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
+  // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(469);
+    expect(reportes.length).toBe(472);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -381,7 +388,10 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 24, deuda: 3 });
+    // SDD-0622 sacó de DEUDA `cotizador::lookupSuggestedRate` (ver Cotizador),
+    // `tracking/[id]::lookupRateForNewDestination` (editar Tracking + ver
+    // Cotizador) y `tarifas::previewRatesImportAction` (editar Tarifas): 3 → 0.
+    }).toEqual({ excepciones: 24, deuda: 0 });
   });
 
   for (const { rel, r } of reportes) {

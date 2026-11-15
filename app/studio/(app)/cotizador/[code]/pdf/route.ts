@@ -32,8 +32,8 @@ export async function GET(
 
   const supabase = await createClient();
 
-  const { role, overrides } = await getStudioAccess(supabase);
-  if (!canAccessModule(role, "quotes", overrides)) return noEncontrado("Estimado");
+  const { role, overrides, grants } = await getStudioAccess(supabase);
+  if (!canAccessModule(role, "quotes", overrides, grants)) return noEncontrado("Estimado");
 
   const quote = await getQuoteByCode(supabase, code);
   if (!quote) return noEncontrado("Estimado");

@@ -35,7 +35,9 @@ import {
   orquestarLoteDeAcceso,
   type BulkAccessResult,
 } from "@/lib/studio/access-link-bulk";
-import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleEditDenial, moduleViewDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { SENSITIVE_MODULE_EFFECTS_VERSION, isKnownModule } from "@/lib/studio/rbac";
+import { isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
@@ -706,11 +708,11 @@ export async function sendAccessLinkBulkAction(
 // sucesión de un puesto: el `user_id` NO cambia, así que todo lo que ya está
 // registrado sigue siendo de la MISMA persona.
 //
-// ⚠️ SI SE VA ALEJANDRO Y ENTRA PEDRO, ESTE NO ES EL GESTO. Todo el rastro del
+// ⚠️ SI SE VA UNA PERSONA Y ENTRA OTRA, ESTE NO ES EL GESTO. Todo el rastro del
 // ERP se guarda contra `user_id` (append_audit_event, created_by de facturas y
 // embarques), no contra el correo. Reescribirle el correo a la fila haría que
-// cada factura y cada evento que registró Alejandro apareciera, hacia atrás y
-// en silencio, como hecho por Pedro. La sucesión es: desactivar a quien se va +
+// cada factura y cada evento que registró quien se fue apareciera, hacia atrás y
+// en silencio, como hecho por quien llega. La sucesión es: desactivar a quien se va +
 // invitar a quien llega; lo que se hereda es el rol y el alcance, que con
 // SDD-0252 viven por rol y no por persona. Ver §Sucesión de la spec.
 //
@@ -1191,4 +1193,203 @@ export async function saveMyDiscordUserIdAction(formData: FormData): Promise<{
   }
 
   return { ok: true, discordUserId: raw || null };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Accesos adicionales por persona (SDD-0622 · migr 0538).
+//
+// Solo un admin del tenant (`tenantAdminGate`) y SOLO por las RPC de la 0538:
+// la tabla no tiene escritura para authenticated. La RPC repite cada candado
+// (rol admin de la base, nada a uno mismo, doble aviso en sensibles, R2), así
+// que esta capa existe para dar mensajes claros, no para ser la única puerta.
+// ─────────────────────────────────────────────────────────────
+
+export interface GrantModuleInput {
+  targetUserId: string;
+  moduleId: string;
+  canEdit: boolean;
+  reason: string;
+  /** `YYYY-MM-DD` (fin de ese día, hora de Caracas) o null. */
+  expiresOn: string | null;
+  /** El admin marcó «Entiendo…» en el doble aviso. */
+  confirmSensitive: boolean;
+}
+
+const UUID_PERMISOS = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Traduce los errores de las RPC de la 0538 a algo legible. */
+function mensajeDeAcceso(err: { code?: string; message?: string }): string {
+  const msg = err.message ?? "";
+  if (msg.includes("doble aviso")) return "Confirma el doble aviso para conceder un módulo sensible.";
+  if (msg.includes("superadministrador")) return "Ese módulo solo lo concede el superadministrador.";
+  if (msg.includes("a ti mismo")) return "No puedes concederte accesos a ti mismo.";
+  if (msg.includes("ya tiene todos")) return "Un administrador ya tiene todos los módulos.";
+  if (msg.includes("miembro activo")) return "La persona no está activa en tu equipo.";
+  if (msg.includes("solo para ver")) return "Ese módulo se concede solo para ver.";
+  if (msg.includes("motivo")) return "Escribe el motivo (entre 5 y 500 caracteres).";
+  if (msg.includes("vencimiento")) return "El vencimiento tiene que ser una fecha futura.";
+  if (err.code === "42501") return "No tienes permiso para cambiar accesos.";
+  if (err.code === "PGRST202" || msg.includes("does not exist")) {
+    return "Los accesos adicionales todavía no están activos en esta base.";
+  }
+  return "No se pudo guardar el acceso. Intenta de nuevo.";
+}
+
+export async function grantUserModuleAction(
+  input: GrantModuleInput,
+): Promise<{ ok?: true; error?: string }> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { error: gate.denied };
+
+  if (!UUID_PERMISOS.test(input.targetUserId ?? "")) return { error: "Persona inválida." };
+  if (!isKnownModule(input.moduleId)) return { error: "Módulo desconocido." };
+  const motivo = (input.reason ?? "").trim();
+  const errMotivo = reasonError(motivo);
+  if (errMotivo) return { error: errMotivo };
+  if (moduleCoverage(input.moduleId) !== "covered") {
+    return { error: "Ese módulo todavía no se puede conceder: su base no lo acepta." };
+  }
+  let expiresAt: string | null = null;
+  if (input.expiresOn) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expiresOn)) return { error: "Fecha de vencimiento inválida." };
+    // Fin del día en Caracas (UTC−4).
+    expiresAt = new Date(`${input.expiresOn}T23:59:59-04:00`).toISOString();
+    if (Date.parse(expiresAt) <= Date.now()) return { error: "El vencimiento tiene que ser una fecha futura." };
+  }
+  const sensible = isSensitiveModule(input.moduleId);
+  if (sensible && !input.confirmSensitive) {
+    return { error: "Confirma el doble aviso para conceder un módulo sensible." };
+  }
+
+  const { error } = await supabase.rpc("studio_grant_user_module", {
+    p_user_id: input.targetUserId,
+    p_module_id: input.moduleId,
+    p_can_view: true,
+    p_can_edit: Boolean(input.canEdit),
+    p_reason: motivo,
+    p_expires_at: expiresAt,
+    p_confirm_sensitive: sensible ? input.confirmSensitive === true : false,
+    p_effects_version: sensible ? SENSITIVE_MODULE_EFFECTS_VERSION : null,
+  });
+  if (error) return { error: mensajeDeAcceso(error) };
+  revalidatePath("/studio/usuarios");
+  return { ok: true };
+}
+
+export async function revokeUserModuleGrantAction(input: {
+  targetUserId: string;
+  moduleId: string;
+  reason: string;
+}): Promise<{ ok?: true; error?: string }> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { error: gate.denied };
+
+  if (!UUID_PERMISOS.test(input.targetUserId ?? "")) return { error: "Persona inválida." };
+  if (!isKnownModule(input.moduleId)) return { error: "Módulo desconocido." };
+  const motivo = (input.reason ?? "").trim();
+  const errMotivo = reasonError(motivo);
+  if (errMotivo) return { error: errMotivo };
+
+  const { error } = await supabase.rpc("studio_revoke_user_module_grant", {
+    p_user_id: input.targetUserId,
+    p_module_id: input.moduleId,
+    p_reason: motivo,
+  });
+  if (error) return { error: mensajeDeAcceso(error) };
+  revalidatePath("/studio/usuarios");
+  return { ok: true };
+}
+
+/** Un evento de la pestaña «Actividad» de la ficha (sin datos personales). */
+export interface AccessActivityEvent {
+  id: string;
+  event: "created" | "updated" | "revoked";
+  moduleId: string;
+  canEdit: boolean | null;
+  reason: string | null;
+  actorId: string | null;
+  occurredAt: string;
+}
+
+/** Columnas de la bitácora que pinta la pestaña «Actividad»; nada más. */
+const ACCESS_ACTIVITY_COLUMNS =
+  "id, event_type, reason, actor_id, before_data, after_data, occurred_at";
+/** Tope de filas de la pestaña. */
+const ACCESS_ACTIVITY_LIMIT = 50;
+
+/**
+ * Rastro de los accesos adicionales de UNA persona: concesiones, cambios y
+ * revocaciones (entity_audit_log, entidad `studio_user_module_grant`).
+ *
+ * Desde la 0270 `authenticated` no tiene SELECT sobre `entity_audit_log`, así
+ * que con la sesión esta lectura salía siempre vacía. Lee con el cliente de
+ * servicio, y por eso los candados van todos aquí, antes de leer:
+ *   1. ver el módulo `users` (`moduleViewDenial`, el equivalente para acciones
+ *      de `requireModuleView`) y ser admin del tenant (`tenantAdminGate`, el
+ *      mismo de `grantUserModuleAction`);
+ *   2. el tenant sale de la sesión (`gate.tenantId`), nunca del cliente, y la
+ *      persona destino tiene que ser miembro de ese tenant en `user_tenants`;
+ *   3. filtros fijos: `tenant_id`, `entity_type` y `entity_id` (la 0538 guarda
+ *      el evento con `p_entity_id = p_user_id`), solo las columnas que se
+ *      pintan y un tope de filas.
+ */
+export async function listUserAccessActivityAction(
+  targetUserId: string,
+): Promise<{ ok: true; events: AccessActivityEvent[] } | { error: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "users");
+  if (denial) return { error: denial };
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { error: gate.denied };
+  if (!UUID_PERMISOS.test(targetUserId ?? "")) return { error: "Persona inválida." };
+
+  const admin = createAdminClient();
+  const { data: miembro, error: errMiembro } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (errMiembro) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+  if (!miembro) return { error: "La persona no es parte de tu equipo." };
+
+  const { data, error } = await admin
+    .from("entity_audit_log")
+    .select(ACCESS_ACTIVITY_COLUMNS)
+    .eq("tenant_id", gate.tenantId)
+    .eq("entity_type", "studio_user_module_grant")
+    .eq("entity_id", targetUserId)
+    .order("occurred_at", { ascending: false })
+    .limit(ACCESS_ACTIVITY_LIMIT);
+  if (error) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+
+  type Fila = {
+    id: string;
+    event_type: string;
+    reason: string | null;
+    actor_id: string | null;
+    before_data: { module_id?: string; can_edit?: boolean } | null;
+    after_data: { module_id?: string; can_edit?: boolean } | null;
+    occurred_at: string;
+  };
+  const events: AccessActivityEvent[] = ((data ?? []) as Fila[]).map((f) => {
+    const datos = f.after_data ?? f.before_data ?? {};
+    const event: AccessActivityEvent["event"] = f.event_type.endsWith("_revoked")
+      ? "revoked"
+      : f.event_type.endsWith("_updated")
+        ? "updated"
+        : "created";
+    return {
+      id: f.id,
+      event,
+      moduleId: datos.module_id ?? "—",
+      canEdit: typeof datos.can_edit === "boolean" ? datos.can_edit : null,
+      reason: f.reason,
+      actorId: f.actor_id,
+      occurredAt: f.occurred_at,
+    };
+  });
+  return { ok: true, events };
 }
