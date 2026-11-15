@@ -128,7 +128,7 @@ revoke all on function public.append_audit_event(uuid,text,uuid,text,uuid,text,t
 
 -- ── Fixture ─────────────────────────────────────────────────────────────
 -- T1 = 1…1, T2 = 1…2.
--- a1 admin T1 · a2 admin T1 superadmin · c1 contabilidad (Alejandro) · c2 contabilidad
+-- a1 admin T1 · a2 admin T1 superadmin · c1 contabilidad que también atiende el CRM · c2 contabilidad
 -- k1 comercial · s1 support · w1 almacén con scope VE · x1 contabilidad desactivada · o1 admin T2
 insert into public.tenants values ('11111111-1111-1111-1111-111111111111'), ('11111111-1111-1111-1111-111111111112');
 insert into auth.users values

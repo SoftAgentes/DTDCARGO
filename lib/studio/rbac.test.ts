@@ -413,7 +413,7 @@ describe("SDD-0622 · accesos adicionales por persona", () => {
   const crmEditar: UserModuleGrants = { kommo: { view: true, edit: true } };
   const crmVer: UserModuleGrants = { kommo: { view: true, edit: false } };
 
-  it("caso Alejandro: contabilidad + CRM editar ve y edita el CRM", () => {
+  it("persona de contabilidad que también atiende el CRM: ve y edita el CRM", () => {
     expect(canAccessModule("accounting", "kommo")).toBe(false);
     expect(canAccessModule("accounting", "kommo", undefined, crmEditar)).toBe(true);
     expect(canEditModule("accounting", "kommo", undefined, crmEditar)).toBe(true);

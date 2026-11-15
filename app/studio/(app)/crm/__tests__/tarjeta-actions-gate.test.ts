@@ -105,7 +105,7 @@ describe("moverTarjetaAction", () => {
     expect(rpcMock).toHaveBeenCalled();
   });
 
-  it("contabilidad con el CRM concedido para editar mueve (caso Alejandro)", async () => {
+  it("contabilidad con el CRM concedido para editar mueve (persona de contabilidad que también atiende el CRM)", async () => {
     role = "accounting" as StudioUserRole;
     grants = { kommo: { view: true, edit: true } };
     expect(await moverTarjetaAction(TARJETA, "leads", "contactado")).toEqual({ ok: true, movida: true });

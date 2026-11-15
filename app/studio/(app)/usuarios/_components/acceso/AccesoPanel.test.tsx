@@ -7,7 +7,7 @@
  *   2. Agregar un módulo cubierto pide motivo y manda a la acción lo elegido.
  *   3. El doble aviso lista los efectos concretos y no confirma sin motivo ni
  *      casilla; con las dos cosas manda `confirmSensitive: true`.
- *   4. «Lo que puede ver» marca la fuente: el CRM de Alejandro sale como extra.
+ *   4. «Lo que puede ver» marca la fuente: el CRM de la persona de contabilidad sale como extra.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -33,11 +33,11 @@ vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
 const { AccesoPanel } = await import("./AccesoPanel");
 const { DobleAvisoDialog } = await import("./DobleAvisoDialog");
 
-const ALE = "00000000-0000-4000-8000-0000000000a1";
+const CONTABILIDAD_CON_CRM = "00000000-0000-4000-8000-0000000000a1";
 
 function miembro(over: Partial<UserMembershipWithProfile> = {}): UserMembershipWithProfile {
   return {
-    user_id: ALE,
+    user_id: CONTABILIDAD_CON_CRM,
     tenant_id: "tn-1",
     role: "accounting",
     warehouse_scope: "all",
@@ -46,14 +46,14 @@ function miembro(over: Partial<UserMembershipWithProfile> = {}): UserMembershipW
     invited_by: null,
     created_at: "2026-07-03T00:00:00Z",
     email: "persona@ejemplo.test",
-    profile: { user_id: ALE, first_name: "Ana", last_name: "Prueba" } as never,
+    profile: { user_id: CONTABILIDAD_CON_CRM, first_name: "Persona", last_name: "de contabilidad" } as never,
     ...over,
   };
 }
 
 function extra(over: Partial<UserModuleGrantView> = {}): UserModuleGrantView {
   return {
-    userId: ALE,
+    userId: CONTABILIDAD_CON_CRM,
     moduleId: "kommo",
     canView: true,
     canEdit: true,
@@ -100,7 +100,7 @@ describe("AccesoPanel · buscador de módulos", () => {
     await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Atiende leads con comercial");
     await u.click(screen.getByRole("button", { name: "Agregar acceso" }));
     expect(grantMock).toHaveBeenCalledWith({
-      targetUserId: ALE,
+      targetUserId: CONTABILIDAD_CON_CRM,
       moduleId: "kommo",
       canEdit: true,
       reason: "Atiende leads con comercial",
@@ -181,7 +181,7 @@ describe("DobleAvisoDialog", () => {
     render(
       <DobleAvisoDialog
         open
-        persona="Carlos"
+        persona="Persona de prueba"
         moduleId="treasury"
         moduleLabel="Tesorería"
         dinero
@@ -190,7 +190,7 @@ describe("DobleAvisoDialog", () => {
         onConfirm={onConfirm}
       />,
     );
-    const dialogo = screen.getByRole("alertdialog", { name: "Dar Tesorería a Carlos" });
+    const dialogo = screen.getByRole("alertdialog", { name: "Dar Tesorería a Persona de prueba" });
     for (const efecto of SENSITIVE_MODULE_EFFECTS.treasury) {
       expect(within(dialogo).getByText(efecto)).toBeTruthy();
     }
@@ -209,7 +209,7 @@ describe("DobleAvisoDialog", () => {
     const u = userEvent.setup();
     const onConfirm = vi.fn();
     render(
-      <DobleAvisoDialog open persona="Carlos" moduleId="treasury" moduleLabel="Tesorería" dinero soloVer={false} onCancel={vi.fn()} onConfirm={onConfirm} />,
+      <DobleAvisoDialog open persona="Persona de prueba" moduleId="treasury" moduleLabel="Tesorería" dinero soloVer={false} onCancel={vi.fn()} onConfirm={onConfirm} />,
     );
     await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Solo consulta saldos");
     await u.click(screen.getByRole("checkbox"));
@@ -220,7 +220,7 @@ describe("DobleAvisoDialog", () => {
   it("Esc cancela", async () => {
     const u = userEvent.setup();
     const onCancel = vi.fn();
-    render(<DobleAvisoDialog open persona="Carlos" moduleId="users" moduleLabel="Usuarios" dinero={false} soloVer onCancel={onCancel} onConfirm={vi.fn()} />);
+    render(<DobleAvisoDialog open persona="Persona de prueba" moduleId="users" moduleLabel="Usuarios" dinero={false} soloVer onCancel={onCancel} onConfirm={vi.fn()} />);
     await u.keyboard("{Escape}");
     expect(onCancel).toHaveBeenCalled();
   });

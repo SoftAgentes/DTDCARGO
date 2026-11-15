@@ -132,7 +132,7 @@ función con `user_has_module`.
 
 | Comprobación | Resultado |
 |---|---|
-| Contratos SQL 0538 (56 aserciones), 0539 (caso Alejandro de punta a punta) y 0540, en PGlite con los `.sql` reales (`lib/studio/__tests__/user-module-grants.migration.test.ts`, 28 casos) | PASÓ |
+| Contratos SQL 0538 (56 aserciones), 0539 (contabilidad con CRM de punta a punta) y 0540, en PGlite con los `.sql` reales (`lib/studio/__tests__/user-module-grants.migration.test.ts`, 28 casos) | PASÓ |
 | Control rojo de cada contrato, preflight anti-doble aplicación, 14 mutantes (8 de la 0538, 2 de la 0539 y 4 de la 0540) | PASÓ (todos caen con la aserción que nombran) |
 | Paridad `canAccessModule`/`canEditModule` (+ scope) ↔ `user_has_module` para 6 roles × 57 módulos × extras de cada clase + desvío por rol | PASÓ |
 | Anti-drift de la matriz SQL ↔ `ROLE_MODULE_ACCESS`, `LOCKED_MODULES` (función y CHECK) y `SUPERADMIN_ONLY_MODULES` | PASÓ |
@@ -174,7 +174,7 @@ su sección, al final. Ver `git log origin/main..HEAD`.
 - **Aplicar 0538, 0539 y 0540** en prueba y producción, en ese orden y con el OK nominal de Sam, siguiendo
   `docs/runbooks/aplicar-migraciones-prod.md` (migrate-first). Fusionar sin aplicarlas frena la próxima publicación
   (puerta de migraciones).
-- **Smoke con Sam (fase 7 de la spec):** conceder a Alejandro el CRM para editar desde la ficha y comprobar, con su
+- **Smoke con Sam (fase 7 de la spec):** conceder el CRM para editar a una persona de contabilidad desde la ficha y comprobar, con su
   sesión, el CRM de punta a punta.
 - **Doble aviso hoy solo alcanzable por RPC.** El diálogo está hecho y probado, pero ningún módulo sensible está
   «cubierto», así que hoy la UI no lo abre. El dinero espera la fase 8 y `users`, `direccion`, `mailing` y `admin`
@@ -385,7 +385,7 @@ Cabeza medida: `ea59a6921`. `pnpm install --frozen-lockfile` una vez (47 s), sin
 
 - Contratos SQL en Postgres real (workflow «Contratos SQL» de la PR) y el ledger, en la PR.
 - ~~Enmendar la allowlist de la spec 0622 (archivo de prueba nuevo).~~ Hecho en `e4a82be1a`.
-- «Caso Alejandro» en spec, pruebas y handoff: **sin tocar**, espera la decisión de Sam.
+- ~~Nombre real en pruebas y handoff~~: resuelto en la vuelta del 2026-11-14 (Sam: «Sí, cámbialo por un rol genérico»). La spec lo cambia otra PR de docs.
 
 ## Revisión Opus sobre `e4a82be1a`: CAMBIOS (2026-11-14, vuelta W-509)
 

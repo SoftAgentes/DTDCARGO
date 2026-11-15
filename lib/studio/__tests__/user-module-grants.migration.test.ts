@@ -459,7 +459,7 @@ describe("SDD-0622 · contratos 0538 y 0539 (PGlite)", () => {
     expect(run.error).toContain(cae);
   }, SLOW);
 
-  it("el contrato de la 0539 pasa entero (caso Alejandro de punta a punta)", async () => {
+  it("el contrato de la 0539 pasa entero (contabilidad con CRM de punta a punta)", async () => {
     const run = await contract(C0539, "TEST 0539");
     expect(run.error).toBeNull();
     expect(run.green).toMatch(/^TEST 0539: \d+ aserciones OK$/);

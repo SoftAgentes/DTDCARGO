@@ -253,7 +253,7 @@ revoke all on function public.document_entity_authorized(text,uuid,text) from pu
 grant execute on function public.document_entity_authorized(text,uuid,text) to authenticated, service_role;
 
 -- ── Fixture ─────────────────────────────────────────────────────────────
--- 01 admin · 02 comercial · 03 contabilidad (Alejandro) · 04 contabilidad
+-- 01 admin · 02 comercial · 03 contabilidad que también atiende el CRM · 04 contabilidad
 -- 05 support · 06 almacén. Todos en T1.
 insert into public.tenants values ('10000000-0000-0000-0000-000000000001', 'dtd');
 insert into auth.users values
@@ -364,7 +364,7 @@ select pg_temp.falla(pg_temp.u('03'),
   $q$select public.crm_mover_etapa('40000000-0000-0000-0000-000000000001', 'clientes', 'postventa')$q$,
   'sin acceso al CRM', '2c: sin extra, contabilidad no mueve etapas');
 
--- ── 3. Caso Alejandro: CRM editar de punta a punta ───────────────────────
+-- ── 3. Contabilidad con CRM: editar de punta a punta ───────────────────────
 select pg_temp.como(pg_temp.u('01'),
   format($q$select public.studio_grant_user_module(%L, 'kommo', true, true, 'Atiende el CRM con comercial')$q$, pg_temp.u('03')));
 select pg_temp.assert_true(pg_temp.valor(pg_temp.u('03'), 'public.crm_puede_usar()')::boolean, '3a: crm_puede_usar con extra');

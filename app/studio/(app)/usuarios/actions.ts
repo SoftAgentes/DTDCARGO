@@ -708,11 +708,11 @@ export async function sendAccessLinkBulkAction(
 // sucesión de un puesto: el `user_id` NO cambia, así que todo lo que ya está
 // registrado sigue siendo de la MISMA persona.
 //
-// ⚠️ SI SE VA ALEJANDRO Y ENTRA PEDRO, ESTE NO ES EL GESTO. Todo el rastro del
+// ⚠️ SI SE VA UNA PERSONA Y ENTRA OTRA, ESTE NO ES EL GESTO. Todo el rastro del
 // ERP se guarda contra `user_id` (append_audit_event, created_by de facturas y
 // embarques), no contra el correo. Reescribirle el correo a la fila haría que
-// cada factura y cada evento que registró Alejandro apareciera, hacia atrás y
-// en silencio, como hecho por Pedro. La sucesión es: desactivar a quien se va +
+// cada factura y cada evento que registró quien se fue apareciera, hacia atrás y
+// en silencio, como hecho por quien llega. La sucesión es: desactivar a quien se va +
 // invitar a quien llega; lo que se hereda es el rol y el alcance, que con
 // SDD-0252 viven por rol y no por persona. Ver §Sucesión de la spec.
 //
