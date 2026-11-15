@@ -370,8 +370,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `::revokeUserModuleGrantAction` y `::listUserAccessActivityAction` (469 → 472):
   // `tenantAdminGate` antes de leer o escribir nada; escriben SOLO por las RPC
   // de la 0538 (`studio_grant_user_module`, `studio_revoke_user_module_grant`),
-  // que repiten el rol admin de la base, y la lectura de la bitácora la limita
-  // la RLS del tenant.
+  // que repiten el rol admin de la base. La bitácora NO la limita la RLS: desde
+  // la 0270 authenticated no la lee, así que `listUserAccessActivityAction` lee
+  // con el cliente de servicio después de `moduleViewDenial("users")` y
+  // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
+  // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
+  // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
     expect(reportes.length).toBe(472);
   });

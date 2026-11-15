@@ -35,7 +35,7 @@ import {
   orquestarLoteDeAcceso,
   type BulkAccessResult,
 } from "@/lib/studio/access-link-bulk";
-import { getStudioAccess, moduleEditDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleEditDenial, moduleViewDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
 import { SENSITIVE_MODULE_EFFECTS_VERSION, isKnownModule } from "@/lib/studio/rbac";
 import { isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
@@ -1313,27 +1313,57 @@ export interface AccessActivityEvent {
   occurredAt: string;
 }
 
+/** Columnas de la bitácora que pinta la pestaña «Actividad»; nada más. */
+const ACCESS_ACTIVITY_COLUMNS =
+  "id, event_type, reason, actor_id, before_data, after_data, occurred_at";
+/** Tope de filas de la pestaña. */
+const ACCESS_ACTIVITY_LIMIT = 50;
+
 /**
  * Rastro de los accesos adicionales de UNA persona: concesiones, cambios y
- * revocaciones (entity_audit_log, entidad `studio_user_module_grant`). Solo
- * admin; lee con la sesión, y la RLS de la bitácora ya la limita al tenant.
+ * revocaciones (entity_audit_log, entidad `studio_user_module_grant`).
+ *
+ * Desde la 0270 `authenticated` no tiene SELECT sobre `entity_audit_log`, así
+ * que con la sesión esta lectura salía siempre vacía. Lee con el cliente de
+ * servicio, y por eso los candados van todos aquí, antes de leer:
+ *   1. ver el módulo `users` (`moduleViewDenial`, el equivalente para acciones
+ *      de `requireModuleView`) y ser admin del tenant (`tenantAdminGate`, el
+ *      mismo de `grantUserModuleAction`);
+ *   2. el tenant sale de la sesión (`gate.tenantId`), nunca del cliente, y la
+ *      persona destino tiene que ser miembro de ese tenant en `user_tenants`;
+ *   3. filtros fijos: `tenant_id`, `entity_type` y `entity_id` (la 0538 guarda
+ *      el evento con `p_entity_id = p_user_id`), solo las columnas que se
+ *      pintan y un tope de filas.
  */
 export async function listUserAccessActivityAction(
   targetUserId: string,
 ): Promise<{ ok: true; events: AccessActivityEvent[] } | { error: string }> {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "users");
+  if (denial) return { error: denial };
   const gate = await tenantAdminGate(supabase);
   if (!gate.ok) return { error: gate.denied };
   if (!UUID_PERMISOS.test(targetUserId ?? "")) return { error: "Persona inválida." };
 
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const { data: miembro, error: errMiembro } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (errMiembro) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+  if (!miembro) return { error: "La persona no es parte de tu equipo." };
+
+  const { data, error } = await admin
     .from("entity_audit_log")
-    .select("id, event_type, reason, actor_id, before_data, after_data, occurred_at")
+    .select(ACCESS_ACTIVITY_COLUMNS)
+    .eq("tenant_id", gate.tenantId)
     .eq("entity_type", "studio_user_module_grant")
     .eq("entity_id", targetUserId)
     .order("occurred_at", { ascending: false })
-    .limit(50);
-  if (error) return { ok: true, events: [] };
+    .limit(ACCESS_ACTIVITY_LIMIT);
+  if (error) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
 
   type Fila = {
     id: string;
