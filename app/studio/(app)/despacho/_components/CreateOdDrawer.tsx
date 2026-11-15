@@ -408,7 +408,10 @@ function CapBar({
       <div
         style={{
           height: 6,
-          background: "var(--ink-inv-mute)",
+          // Pista sobre --bg-sidebar, que es oscuro en los dos temas: va con
+          // la tinta de barra lateral (5,82:1 en claro, 5,32:1 en oscuro). La
+          // tinta invertida voltea con el tema y en oscuro medía 1,07:1.
+          background: "var(--ink-side-soft)",
           borderRadius: 999,
           overflow: "hidden",
         }}

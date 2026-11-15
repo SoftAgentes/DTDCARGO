@@ -51,7 +51,8 @@ const AVISOS: Record<string, number> = {
   "naviera/_components/SailingDrawer.tsx": 1,
   "nomina/_components/FiniquitoDetalle.tsx": 3,
   "nomina/_components/RecibosTab.tsx": 2,
-  "nomina/_components/form-bits.tsx": 0,
+  // Menores del Studio (SDD-0603): `Aviso` ya acepta `tabIndex` y `ErrorBox` se convirtió.
+  "nomina/_components/form-bits.tsx": 1,
   "ordenes-compra/_components/PoDrawer.tsx": 2,
   "ordenes-venta/_components/OvDrawer.tsx": 2,
   "proveedores/_components/OrderSignalDrawer.tsx": 1,
@@ -93,12 +94,6 @@ const EXCEPCIONES: Record<string, Excepcion> = {
   "fiscal/_components/FiscalConfig.tsx": {
     roles: 1,
     motivo: "nota neutra de permisos, sin color de estado",
-  },
-  "nomina/_components/form-bits.tsx": {
-    roles: 1,
-    fondos: 1,
-    bordes: 1,
-    motivo: "ErrorBox necesita tabIndex={-1} para el foco del diálogo y Aviso no lo acepta",
   },
   "proveedores/_components/ProviderLinkDrawer.tsx": {
     bordes: 1,
@@ -143,11 +138,11 @@ function problemas(rel: string, fuente: string): string[] {
 }
 
 describe("SDD-0603 T4c · avisos de Finanzas y compras en <Aviso>", () => {
-  it("cubre los 47 archivos del tramo, con 43 convertidos y 62 avisos", () => {
+  it("cubre los 47 archivos del tramo, con 44 convertidos y 63 avisos", () => {
     const archivos = Object.keys(AVISOS);
     expect(archivos).toHaveLength(47);
-    expect(archivos.filter((rel) => AVISOS[rel] > 0)).toHaveLength(43);
-    expect(Object.values(AVISOS).reduce((s, n) => s + n, 0)).toBe(62);
+    expect(archivos.filter((rel) => AVISOS[rel] > 0)).toHaveLength(44);
+    expect(Object.values(AVISOS).reduce((s, n) => s + n, 0)).toBe(63);
     for (const rel of Object.keys(EXCEPCIONES)) expect(archivos).toContain(rel);
   });
 
