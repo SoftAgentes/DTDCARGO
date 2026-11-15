@@ -133,15 +133,18 @@ describe("AccesoPanel · buscador de módulos", () => {
 
   it("los campos de motivo avisan que no se escriban datos personales", async () => {
     const u = userEvent.setup();
-    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
+    // Alta: sin extras, para que el buscador ofrezca el CRM.
+    const { unmount } = render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
     await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
     await u.click(screen.getByRole("option", { name: /^CRM/ }));
     const motivo = screen.getByLabelText("Motivo (obligatorio)") as HTMLInputElement;
     expect(motivo.placeholder).toBe("Ej: cubre el CRM durante una ausencia");
     const aviso = document.getElementById(motivo.getAttribute("aria-describedby") ?? "");
     expect(aviso?.textContent).toMatch(/No escribas datos personales/);
+    unmount();
 
-    await u.click(screen.getByRole("button", { name: "Cancelar" }));
+    // Quitar: con el CRM ya concedido.
+    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
     await u.click(screen.getByRole("button", { name: "Quitar CRM" }));
     expect((screen.getByRole("textbox") as HTMLInputElement).placeholder).toBe("Ej: ya no cubre el CRM");
     expect(screen.getByText(/No escribas datos personales/)).toBeTruthy();
