@@ -151,8 +151,10 @@ compartidas del grupo, `sdd-0622-capturas/`:
 
 ## COMMITS
 
-`64f6fceeb`, `306c97536`, `48ffb82e6`, `e8c284f05`, `249ab33ec`, `5f8918190` (renumeración), `7afcc3e10` (0540) y
-`055709375`. Ver `git log origin/main..HEAD`.
+`64f6fceeb`, `306c97536`, `48ffb82e6`, `e8c284f05`, `249ab33ec`, `5f8918190` (renumeración), `7afcc3e10` (0540),
+`055709375` y `bed937852` (las pestañas de la ficha pasan a `.studio-tabs`/`.studio-tab` del contrato SDD-0603:
+`UserDetailDrawer.tsx` y `acceso/permisos.css`, que pierde las clases `perm-tabs`). Los de la vuelta W-509 están en
+su sección, al final. Ver `git log origin/main..HEAD`.
 
 ## Desvíos de la allowlist (§11 de la spec; hay que enmendarla en la #488)
 
@@ -254,3 +256,96 @@ PR contra main en borrador; depende de la #488. No fusionar sin aplicar las tres
   aplicar); `check-pending-migration-symbols` 0 ROJO; `sdd:check` sin números repetidos; 26 archivos de pruebas
   focales con 832/832 (contratos PGlite y mutantes incluidos). No corrí `pnpm verify`.
 - **Orden de aplicación vigente: 0538 → 0539 → 0540**, con OK nominal de Sam.
+
+## Vuelta W-509 (2026-11-14): dejar la #509 lista para revisión
+
+- **Owner / sesión:** Worker W-509 (subagente del Director), claim `W-509`. Worktree
+  `.claude/worktrees/agent-a5d1243b82afbf481`, rama local `w509-permisos-por-persona` sobre
+  `origin/claude/impl-permisos-por-persona-10d044` (cabeza de partida `bed937852`). Sin push: lo ordena el Director.
+- **Sin corridas pesadas en esta vuelta** (orden del Director): no se corrieron `pnpm install`, vitest, typecheck,
+  lint ni verify. Sí se corrieron scripts de Node sin `node_modules`.
+
+### Fusión con main (`3893f717f`, trae la #488 y la #515)
+
+- `git merge --no-edit origin/main`, sin rebase. Único conflicto: `lib/studio/rbac-actions-guard.test.ts`.
+  - DEUDA: main la dejó en 3 (las de tarifas) y esta rama saca esas 3, así que queda vacía. Las demás entradas que
+    conservaba esta rama (bugs, facturación, documentos, nómina) ya las había sacado main con la 0624.
+  - Listas: `{ excepciones: 24, deuda: 0 }`. Esta rama no toca EXCEPCIONES; las 24 son de main.
+  - Inventario: 472. Cuenta a mano: entre la base `da8d123ee` y main no cambia ningún `export async function` de
+    los archivos de acciones del Studio (main asertaba 469, igual que la base). Esta rama suma tres en
+    `usuarios/actions.ts` (`grantUserModuleAction`, `revokeUserModuleGrantAction`,
+    `listUserAccessActivityAction`) y ningún archivo de acciones nuevo (`user-module-grants-queries.ts` no lleva
+    `"use server"`). 469 + 3 = 472. **Sin correr la prueba.**
+- `app/studio/(app)/usuarios/page.tsx`: se fusionó solo y conserva `await requireModuleView("users")` (l. 37) junto
+  con `listTenantModuleGrants`.
+- `migrations-baseline.json`, `pending-migration-symbol-declarations.json` y `migrations.lock.json`: esta rama no los
+  toca; quedan como en main (espera de la 0528 y su degradación `claim_indemnity_entry_codes`). La 0538, la 0539 y
+  la 0540 no llevan entrada: siguen siendo «nuevas sin sellar».
+- Índice de specs: `node scripts/build-docs-index.mjs --check` PASÓ (617 specs, sincronizado); no hizo falta
+  regenerar.
+
+### Coordinación con la 0528 (verificado leyendo los `.sql`)
+
+- Ninguna de las tres borra ni redefine `public.studio_can_read_money()`. Las funciones que crean o redefinen son
+  otras: 0538 (`studio_module_*`, `user_has_module`, `studio_grant_user_module`, `studio_revoke_user_module_grant`),
+  0539 (`crm_puede_usar`, `crm_puede_editar`, `crm_mover_etapa`, `document_entity_authorized`) y 0540
+  (`user_has_any_module`).
+- Ninguna toca policies de `journal_entries`, `journal_lines`, `payment_receipts`, `supplier_bills`,
+  `supplier_payments` ni `expenses`, y ningún preflight busca `*_team_select`. Preflights:
+  `0538_studio_user_module_grants.sql:55-77`, `0539_comercial_acepta_accesos_por_persona.sql:30-66` y
+  `0540_comercial_rls_por_modulo.sql:43-71` (este último busca solo las 8 policies comerciales que reemplaza). Los
+  `.test.sql` y `user-module-grants.migration.test.ts` tampoco las nombran.
+- A la inversa, el preflight y el postflight de la 0528 solo miran sus seis tablas, que estas tres no tocan, así que
+  el orden entre la 0528 y la 0538-0540 no importa para la base. **Sin cambios en migraciones; ningún blob cambió.**
+- `check-pending-migration-symbols`: 0 ROJO, 1 AMARILLO declarado (el de la 0528). `migrations-lock`: 522 selladas
+  (la mayor, 0537), 1 espera (0528) y 3 nuevas sin sellar (0538, 0539, 0540).
+
+### Requisitos de la revisión de la #488 (spec 0622 §8)
+
+- Ejemplos de motivo sin nombres de persona en los tres campos: alta (`AccesoPanel.tsx:561`, «Ej: cubre el CRM
+  durante una ausencia»), quitar (`AccesoPanel.tsx:474`, «Ej: ya no cubre el CRM») y doble aviso
+  (`DobleAvisoDialog.tsx:162`, «Ej: cubre el área durante unas vacaciones»).
+- Aviso visible en los tres: `MOTIVO_AVISO_PII` (`lib/studio/user-module-grants.ts:152`), «No escribas datos
+  personales en el motivo (cédula, teléfono, salud): queda guardado en Actividad.». En el alta y en el doble aviso va
+  bajo el campo, enlazado con `aria-describedby`; en quitar va en el mensaje del diálogo. Estilo `.perm-motivo-aviso`
+  en `permisos.css`, solo con tokens.
+- Límite de 5 a 500 sin cambios (`reasonError`, `maxLength={500}` y el CHECK de la 0538).
+- Ninguna prueba buscaba el texto viejo. Agregué a `AccesoPanel.test.tsx` un caso para el alta y quitar (placeholder
+  y aviso) y una aserción del aviso en el doble aviso. **Sin correr.**
+- Comentario vencido de `lib/studio/user-module-grants.ts:40-49` corregido: `users` no está en COVERED, y quotes,
+  sales-orders, purchase-orders, conversaciones y rates ya no son «solo por tenant», porque la 0540 les puso
+  `user_has_module`/`user_has_any_module`; suppliers sigue por tenant.
+
+### `revisar-datos-ve` sobre lo que trata la #509 (inventario técnico, no es un juicio legal)
+
+| Dato | Qué es | Quién lo ve | Retención |
+|---|---|---|---|
+| `studio_user_module_grants.user_id`, `granted_by` | IDs de personas del equipo | admin del tenant y la propia persona (`0538:245-251`) | borrar al usuario en `auth.users` borra sus filas (`0538:199`); `granted_by` pasa a null (`0538:205`) |
+| `…reason` | texto libre de 5 a 500 caracteres (`0538:216-217`) | los mismos | revocar borra la fila; el texto queda en la bitácora |
+| `…expires_at`, `sensitive_confirmed_at`, `effects_version` | fechas y versión del aviso | los mismos | igual que la fila |
+| `entity_audit_log` (`studio_user_module_grant`) | actor, persona destino, módulo, ver/editar, vencimiento y motivo (`0538:471-501`, `0538:553-576`) | authenticated no tiene SELECT desde la 0270 (`0270_audit_governed_query_rbac.sql:588-591`) | append-only; quitar un extra no lo limpia |
+| Extra de `conversaciones` | abre `conversations` y `conversation_messages` de clientes (`0540:131-149`) | quien reciba el extra | el de esas tablas |
+
+- **CORRECTO:** aviso y ejemplos sin nombres (arriba); escritura solo por RPC (`0538:257-258`) y la RPC exige el rol
+  admin de la base (`0538:400-401`); `users` no se ofrece en la UI (`user-module-grants.ts:70`, `admin_base`) y la
+  base lo deja en solo lectura (`0538:231-232`); fixtures ficticios (`AccesoPanel.test.tsx:48-49`; el teléfono de
+  `0539_comercial_acepta_accesos_por_persona.test.sql:271` usa el patrón 555).
+- **ENCONTRADO:** «Actividad» lee `entity_audit_log` con la sesión (`usuarios/actions.ts:1329-1336`), pero desde la
+  0270 authenticated no tiene SELECT ni policy de lectura sobre esa tabla (`0270:588-591`). En una base real la
+  consulta falla y la acción devuelve la lista vacía sin avisar (`:1336`). Para la privacidad es fail-closed (nadie
+  ve de más), pero la pestaña sale vacía. También está vencido el comentario de `rbac-actions-guard.test.ts:373`
+  («la lectura de la bitácora la limita la RLS del tenant»). No lo cambié porque es lógica de lectura fuera de lo
+  pedido. Un arreglo posible: leer con `audit_list_events` (0270) o con el cliente de servicio después de
+  `tenantAdminGate`, filtrando por tenant.
+- **ENCONTRADO (menor):** la persona destinataria también lee el motivo de su extra (`0538:250`). El aviso lo cubre,
+  pero nada controla el contenido del texto.
+- **NO VERIFICABLE:** qué motivos reales hay (no leí filas de producción, y la 0538 no está aplicada); si el extra de
+  `conversaciones` tiene una finalidad documentada para cada persona (es una decisión de negocio); la retención de
+  `entity_audit_log` (no encontré en el repo una purga para este tipo; la decide Sam).
+- La skill recomienda una segunda revisión con otro modelo antes de integrar.
+
+### Pendientes de esta vuelta (para la corrida con turno)
+
+- Correr las pruebas focales (la lista está en el reporte al Director) y, si pasan, `pnpm verify`.
+- Decidir con el Director qué hacer con el hallazgo de Actividad (arriba) antes de integrar.
+- «Caso Alejandro» en spec, pruebas y handoff: **sin tocar**, espera la decisión de Sam.
