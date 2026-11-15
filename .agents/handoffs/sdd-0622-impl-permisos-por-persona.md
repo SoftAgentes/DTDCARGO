@@ -598,3 +598,25 @@ Esa SELECT de la 0528 no filtra `deleted_at`, así que no repite el problema de 
   no prueba nada. Con el arreglo cae por el error real del UPDATE.
 
 Duración: focales 81 s (22:58:22 → 22:59:43), más tres diagnósticos en PGlite.
+
+### 7a/7b corregidas y corrida con turno sobre `b216ddd76` (2026-11-14, W-509, visto bueno del DG)
+
+- **`b216ddd76`** cambia solo `supabase/tests/0540_comercial_rls_por_modulo.test.sql` (+14 −8). 7a y 7b afirman que
+  el UPDATE con la sesión no da error y llevan el error en la etiqueta; la subconsulta va con `offset 0` para que la
+  función corra una sola vez. 7a2 y 7b2 leen `deleted_at` en otra sentencia. La migración no cambió.
+- **Mutantes** (cada mensaje se copió de una corrida en PGlite dentro del turno):
+  - el que repone el filtro en tarifas cae en `TEST 0540: 7a: comercial borra lógico una tarifa con la sesión
+    (error: new row violates row-level security policy for table "rates")`, que es el error real del UPDATE;
+  - el de cotizaciones cae en `TEST 0540: 3d2: la RLS no oculta lo borrado (lo filtra la app, como en la 0230)`.
+
+| Comprobación | Resultado |
+|---|---|
+| `user-module-grants.migration.test.ts` (contrato 0540 en verde, mutantes y derivas) | PASÓ: 46/46 en 20 s |
+| `pnpm verify`: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO, 3 AMARILLO), build | PASÓ |
+| `pnpm verify`: test | PASÓ: 1127 archivos y 17924 pruebas (26 en skip). `entorno-prueba-scripts` pasó sin reintento |
+| `pnpm verify`: e2e | PASÓ con aviso en el 2.º intento. El 1.º dio 235 pasadas y 1 flaky y salió con exit 1; `verify` lo reintentó una vez («flaky conocido»). El 2.º dio 235 pasadas y 3 flaky (`company-photo-carousel.spec.ts:9`, `:64` y `:93`, en chromium), y salió ≠0 por el worker de WebKit en Windows |
+| `pnpm verify`: migrations-applied | NO DISPONIBLE (sin `.env.local`) |
+| `pnpm verify`: sql-tests, schema-rebuild | NO DISPONIBLE (sin Docker) |
+
+`verify`: exit 0 y CIERRE INCOMPLETO (14/17 medidas, sin fallos). Duración: la prueba focal 21 s
+(23:02:29 → 23:02:50) y `verify` 43 min (23:03:15 → 23:46:11), con el reintento de e2e.
