@@ -469,14 +469,20 @@ insert into public.rates (id, tenant_id, nombre)
 values ('70000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tarifa a retirar');
 insert into public.quotes (id, tenant_id)
 values ('70000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111');
-select pg_temp.assert_true(pg_temp.error_de(pg_temp.u('b1'),
-  $q$update public.rates set deleted_at = now() where id = '70000000-0000-0000-0000-000000000001'$q$) is null
-  and (select deleted_at is not null from public.rates where id = '70000000-0000-0000-0000-000000000001'),
-  '7a: comercial borra lógico una tarifa con la sesión');
-select pg_temp.assert_true(pg_temp.error_de(pg_temp.u('a1'),
-  $q$update public.quotes set deleted_at = now() where id = '70000000-0000-0000-0000-000000000002'$q$) is null
-  and (select deleted_at is not null from public.quotes where id = '70000000-0000-0000-0000-000000000002'),
-  '7b: admin borra lógico una cotización con la sesión');
+-- Dos sentencias: una lectura en la MISMA sentencia que el UPDATE usaría la
+-- instantánea de antes y no vería el cambio. `offset 0` evita que la función se evalúe dos veces.
+select pg_temp.assert_true(x.e is null, '7a: comercial borra lógico una tarifa con la sesión (error: ' || coalesce(x.e, 'ninguno') || ')')
+from (select pg_temp.error_de(pg_temp.u('b1'),
+  $q$update public.rates set deleted_at = now() where id = '70000000-0000-0000-0000-000000000001'$q$) as e offset 0) x;
+select pg_temp.assert_true((select deleted_at is not null from public.rates where id = '70000000-0000-0000-0000-000000000001'),
+  '7a2: la tarifa queda borrada');
+-- Dos sentencias: una lectura en la MISMA sentencia que el UPDATE usaría la
+-- instantánea de antes y no vería el cambio. `offset 0` evita que la función se evalúe dos veces.
+select pg_temp.assert_true(x.e is null, '7b: admin borra lógico una cotización con la sesión (error: ' || coalesce(x.e, 'ninguno') || ')')
+from (select pg_temp.error_de(pg_temp.u('a1'),
+  $q$update public.quotes set deleted_at = now() where id = '70000000-0000-0000-0000-000000000002'$q$) as e offset 0) x;
+select pg_temp.assert_true((select deleted_at is not null from public.quotes where id = '70000000-0000-0000-0000-000000000002'),
+  '7b2: la cotización queda borrada');
 
 select 'TEST 0540: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 
