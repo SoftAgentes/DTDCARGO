@@ -384,5 +384,67 @@ Cabeza medida: `ea59a6921`. `pnpm install --frozen-lockfile` una vez (47 s), sin
 ### Pendientes
 
 - Contratos SQL en Postgres real (workflow «Contratos SQL» de la PR) y el ledger, en la PR.
-- Enmendar la allowlist de la spec 0622 (archivo de prueba nuevo).
+- ~~Enmendar la allowlist de la spec 0622 (archivo de prueba nuevo).~~ Hecho en `e4a82be1a`.
 - «Caso Alejandro» en spec, pruebas y handoff: **sin tocar**, espera la decisión de Sam.
+
+## Revisión Opus sobre `e4a82be1a`: CAMBIOS (2026-11-14, vuelta W-509)
+
+El diseño quedó aprobado: no hay escalada, la 0540 no corta lecturas legítimas y R1-R3 se cumplen. Faltaban
+procedimiento y blindaje. Sin vitest ni verify en esta vuelta: el turno lo pide el Director.
+
+1. **Esperas y cabeceras.**
+   - `migrations-baseline.json` › `pendingBelowCutoff` tiene las tres, con motivo, orden 0528 → 0538 → 0539 → 0540
+     y el OK nominal. La 0528 va antes porque su preflight aborta si `studio_can_read_money()` ya existe y la fase
+     de dinero la redefinirá encima. Hoy ninguna de las tres la crea.
+   - Cabecera «⚠️ NO APLICADA A PRODUCCIÓN» en `0538:4`, `0539:4` y `0540:4`. La 0540 avisa el lock en `:9`: son
+     **8** tablas vivas, no 7 (el SQL hace DROP/CREATE POLICY en 8).
+   - El gate pidió declarar `studio_grant_user_module`, `studio_revoke_user_module_grant` y la tabla
+     `studio_user_module_grants`. `user_has_module` y `crm_puede_editar` no salen porque ningún código TS los
+     llama: solo los usa el SQL.
+   - Hay dos declaraciones nuevas en `pending-migration-symbol-declarations.json` (`0538-rpc-conceder-y-quitar` y
+     `0538-lectura-de-extras`).
+2. **Preflight exacto de la 0540** (`0540:65-89` y `:90-128`).
+   - Comprueba, en las 8 tablas: dueño postgres, RLS sin FORCE, SELECT de authenticated, I/U/D esperados (no en
+     `chatwoot_conversations`) y el conjunto exacto de 16 policies con nombre, cmd, roles, permisiva y md5 sin
+     espacios de `qual|with_check` (método de la 0511).
+   - Las huellas se midieron en PGlite sobre el fixture, que ahora copia literal todas las policies del repo
+     (service_role y las dos del portal en su forma final de 0428/0433).
+   - Indicio a favor: `166af319…` coincide con la huella que la 0511 midió **en producción** para la misma
+     expresión.
+   - anon no se afirma; el catálogo de producción lo mide el DG.
+3. **Postflight de la 0540:** `or 0 = any (p.polroles)` en `:296`; las del portal, por nombre exacto en `:298`.
+4. **Preflight de la 0539:** huellas de `crm_mover_etapa` y de las 5 policies del CRM (0506) en `0539:73-104`.
+   Dos derivas de la 0506 en el contrato PGlite.
+5. **La RPC rechaza lo no cubierto:**
+   - `studio_module_is_grantable` (`0538:202`) es la copia de COVERED; la paridad TS↔SQL está en
+     `user-module-grants.migration.test.ts`. El rechazo está en `0538:480`, después de los demás candados.
+   - El contrato prueba los rechazos de Tesorería con confirmación (`4c`), Usuarios (`5b`), **admin** (`5g`), Legal
+     incluso por el superadmin (`5f`) y la CN (`6e0`).
+   - Las filas sensibles y la de la CN se cargan aparte, para seguir probando `user_has_module`.
+   - Mutante: «la RPC concede módulos que la base no cubre».
+   - **§13.3.3 sigue abierto para Sam**, anotado en la spec: ampliar la lista va con su migración.
+   - Efecto: el doble aviso ya no es alcanzable ni por RPC mientras ningún sensible esté cubierto.
+6. **Opcionales:**
+   - Hechos:
+     - mutantes de borrado y de OC/OV en la 0540 (aserciones `6a-6f` nuevas);
+     - `getMyModuleGrants`, `getTenantGrantsByUser` y Discord leen `DECISION_COLUMNS`, sin `reason`, `granted_by`
+       ni fechas.
+   - **No hechos** (quedan pendientes):
+     - `getMyModuleGrants` sin filtro por tenant (cambia firma y dobles);
+     - el `id`/`aria-describedby` fijo del alta (`perm-motivo`, `perm-motivo-aviso`): hoy hay un solo formulario
+       a la vez, y `useId` lo resolvería;
+     - la lista de asesores del CRM sin desvíos por rol.
+7. **El handoff de la 0624 sale de esta rama:** `61d36cca3` lo devuelve a como está en main. Su cambio vive en la
+   PR #570 (`claude/docs-0624-handoff-aplicacion`, `c767ce51b`, solo ese archivo), sin fusionar.
+8. Los blobs de 0538-0540 cambiaron; las declaraciones quedaron regeneradas.
+
+**Validación liviana (sin vitest):**
+- Corrí los tres contratos en PGlite con un script de Node, igual que `contract()`: TEST 0538 dio 61 aserciones,
+  TEST 0539 dio 32 y TEST 0540 dio 34.
+- Los 32 mutantes, derivas, controles rojos y dobles aplicaciones caen con la aserción que nombran.
+- `check-pending-migration-symbols`: 0 ROJO y 3 AMARILLO.
+- `migrations-lock`: 522 selladas y 4 esperas.
+- `node --test` de migrations-lock y pending-migration-symbols: 38/38.
+- `docs:check` y `sdd:check`: PASÓ.
+
+**Allowlist:** suma `migrations-baseline.json` y `pending-migration-symbol-declarations.json`.

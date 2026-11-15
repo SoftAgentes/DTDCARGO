@@ -362,6 +362,11 @@ ya no valen, y la numeración original de esta spec tampoco):
 (`accounting`/`admin`). La fase 8 de esta spec la redefinirá para sumar los extras de dinero; mientras tanto un
 extra de dinero no abre esas lecturas (queda fail-closed). Ni la 0538 ni la 0539 ni la 0540 tocan esa función.
 
+**Esperas de las tres migraciones** (enmienda del 2026-11-14, revisión de la #509: declararlas como espera y sus
+degradaciones de código):
+- `supabase/migrations-baseline.json`
+- `supabase/pending-migration-symbol-declarations.json`
+
 **Contratos SQL**
 - `supabase/tests/0538_studio_user_module_grants.test.sql`
 - `supabase/tests/0539_comercial_acepta_accesos_por_persona.test.sql`
@@ -551,6 +556,10 @@ Detalles de diseño que se fijaron al construir:
 3. **La RPC concede módulos que la base aún no cubre:** la pantalla solo ofrece los cubiertos, pero un admin que
    llame la RPC directo puede dar, por ejemplo, Tesorería a comercial y la base le negaría los datos. ¿Se limita la
    RPC a la lista cubierta?
+   **Mientras Sam decide (revisión de la #509, 2026-11-14, pedido del Director General):** la RPC de la 0538 ya
+   rechaza todo módulo fuera de la lista cubierta (`studio_module_is_grantable`, copia de COVERED con paridad
+   probada), en especial `admin`, que abriría /studio/admin y /studio/debug. La pregunta sigue abierta: ampliar
+   la lista es decisión de Sam y va con su migración.
 
 Pendiente técnico menor (no requiere decisión de Sam): `getMyModuleGrants` filtra solo por `user_id`; con varios
 tenants por persona habría que filtrar por el tenant activo.
