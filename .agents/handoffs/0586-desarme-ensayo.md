@@ -81,6 +81,10 @@ No es asesoría legal: es un inventario técnico.
 
 - En el guion, `:124`: `ls migraciones` debería ir con la ruta absoluta, `ls /srv/ops/portal-historial/migraciones`. Es una observación del DG sobre la #556.
 - En el runbook, `:49`: «siguiendo el guion» debería decir «siguiendo el orden de ejecución del guion». Es otra observación del DG sobre la #556.
+- **Observaciones bajas de la revisión independiente de la #567** (fusionada en `e7086e3b1`), pasadas aquí el 2026-11-15 desde las notas compartidas. Las de documentación (la fila «Comando» del 3.1, las citas de línea, el `ls` del guion, la redacción del runbook y el journal de systemd) las cerró [`0586-registro-puerta5.md`](0586-registro-puerta5.md). **Siguen pendientes, para una PR de pruebas:**
+  - **G8 cubre una sola condición:** la guarda de la G0 que exige los guiones del desarme tiene caso y mutante para una sola de sus cuatro condiciones.
+  - **R4 solo cuenta archivos:** no compara contenido (ni md5 ni huella).
+  - **Puede quedar algún resto tras un KILL** (`.hecho` o contenedores de `portal-ensayo`): en Actions el runner se descarta, en el VPS no.
 - **«Encendido alguna vez»** no se ensaya en la copia, porque la auditoría va vacía. Para ensayarlo habría que sumar `entity_audit_log` a `copia-columnas.tsv`, lo que cambia el md5 y pide OK nuevos 1a y 1b.
 
 ## Impacto documental
