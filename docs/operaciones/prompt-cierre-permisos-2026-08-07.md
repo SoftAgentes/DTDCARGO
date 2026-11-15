@@ -96,7 +96,7 @@ tampoco se las presentes en crudo: llévale el dato medido y una recomendación.
 
 ## Limpieza que el founder puede hacer solo (recuérdasela, no la hagas tú)
 
-- Mandarle el acceso a Yolimar, Fiorella, Alejandro y Alberto: 4 clics.
+- Mandarle el acceso a Yolimar, Fiorella, la persona de contabilidad con CRM y Alberto: 4 clics.
 - Cargar el cargo de las 8 personas desde la ficha nueva.
 - Borrar prueba4@dtdcargo.com (desactivado y baneado desde el 20-jul).
 - Revocar 3 invitaciones expiradas del 26-may (prueba@, prueba2@, prueba3@).
@@ -173,7 +173,7 @@ Borrar es irreversible y los correos salen a gente de verdad.
 | admin | VZLA Pérez | vzla@dtdcargo.com | ❌ | 26-may |
 | accounting | Yolimar Moreno | pagodtd@gmail.com | ❌ | **nunca** |
 | marketing | Fiorella de Vita | creativedtd@gmail.com | ❌ | **nunca** |
-| operations | Alejandro Parra | pasantedtd@gmail.com | ❌ | **nunca** |
+| operations | *(la persona de contabilidad con CRM)* | pasantedtd@gmail.com | ❌ | **nunca** |
 | warehouse (VE) | Alberto Lameda | logisticavzladtd@gmail.com | ❌ | **nunca** |
 
 Más `prueba4@dtdcargo.com`, desactivado y baneado desde el 20-jul.
