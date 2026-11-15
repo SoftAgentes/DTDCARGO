@@ -15,6 +15,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { updateLegalLegendsAction } from "../numbering-actions";
 import type { NumberingActionState, NumberingOverview } from "@/lib/studio/numbering-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const INITIAL: NumberingActionState = {};
 
@@ -110,17 +111,9 @@ export function NumberingSection({ data }: { data: NumberingOverview }) {
           </div>
 
           {state?.error && (
-            <div
-              style={{
-                padding: "var(--s-3)",
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                borderRadius: "var(--r-md)",
-                font: "600 13px/1.3 var(--f-sans)",
-              }}
-            >
+            <Aviso tono="error">
               {state.error}
-            </div>
+            </Aviso>
           )}
 
           <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>

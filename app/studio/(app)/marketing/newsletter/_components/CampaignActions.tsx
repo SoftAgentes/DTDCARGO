@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import type { NewsletterCampaignStatus } from "@/lib/studio/newsletter/types";
 import {
   approveNewsletterCampaign,
@@ -52,8 +53,8 @@ export function CampaignActions({ id, status, isAdmin }: { id: string; status: N
         {["approved", "sending"].includes(status) && isAdmin && <button className="studio-btn studio-btn-primary studio-btn-xs" type="button" onClick={() => setIntent("send")}>{status === "sending" ? "Continuar envío" : "Enviar campaña"}</button>}
         {["partial", "failed"].includes(status) && isAdmin && <button className="studio-btn studio-btn-ghost studio-btn-xs" type="button" onClick={() => setIntent("retry")}>Reintentar fallos</button>}
       </div>
-      {error && <p role="alert" style={{ margin: "var(--s-2) 0 0", color: "var(--danger)", font: "600 12px/1.4 var(--f-sans)" }}>{error}</p>}
-      {message && <p role="status" style={{ margin: "var(--s-2) 0 0", color: "var(--ink-soft)", font: "600 12px/1.4 var(--f-sans)" }}>{message}</p>}
+      {error && <div style={{ marginTop: "var(--s-2)" }}><Aviso tono="error" compacto>{error}</Aviso></div>}
+      {message && <div style={{ marginTop: "var(--s-2)" }}><Aviso tono="exito" compacto>{message}</Aviso></div>}
       {dialog && <ConfirmDialog open title={dialog.title} message={dialog.message} confirmLabel={dialog.label} pending={pending} onCancel={() => setIntent(null)} onConfirm={() => run(dialog.action)} />}
     </div>
   );

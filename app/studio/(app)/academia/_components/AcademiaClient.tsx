@@ -37,6 +37,7 @@ import { EnrollmentDrawer } from "./EnrollmentDrawer";
 import { CourseDrawer } from "./CourseDrawer";
 import { CourseEditorDrawer } from "./CourseEditorDrawer";
 import { emitDiplomasAction, toggleAttendanceAction } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 type Tab = "catalogo" | "cohortes";
 
@@ -574,20 +575,11 @@ function CohortDetailView({
         </div>
 
         {emitError && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: "14px 0 0",
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
-            {emitError}
-          </p>
+          <div style={{ marginTop: 14 }}>
+            <Aviso tono="error" compacto>
+              {emitError}
+            </Aviso>
+          </div>
         )}
       </div>
 

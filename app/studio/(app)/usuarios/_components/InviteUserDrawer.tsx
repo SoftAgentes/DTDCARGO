@@ -42,6 +42,7 @@ import {
   type UserRegion,
 } from "@/lib/i18n";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 /** Rol → I18nKey para localizar labels en select + summary. */
 const ROLE_KEY: Record<StudioUserRole, I18nKey> = {
@@ -846,29 +847,9 @@ function SuccessView({
           gap: 16,
         }}
       >
-        <div
-          style={{
-            padding: 14,
-            background: "var(--success-bg, #E5F4ED)",
-            border: "1px solid var(--success, #1F8A5B)",
-            borderRadius: 6,
-            fontSize: 13,
-            color: "var(--ink)",
-          }}
-        >
-          <strong style={{ color: "var(--success, #1F8A5B)" }}>
-            {t("users.success.title")}
-          </strong>
-          <p
-            style={{
-              margin: "var(--s-1) 0 0",
-              color: "var(--ink-soft)",
-              fontSize: 12,
-            }}
-          >
-            {t("users.success.body")}
-          </p>
-        </div>
+        <Aviso tono="exito" titulo={t("users.success.title")}>
+          {t("users.success.body")}
+        </Aviso>
 
         <div>
           <span

@@ -18,6 +18,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { upsertServiceConfigAction } from "@/lib/studio/service-catalog/actions";
 import {
@@ -363,16 +364,11 @@ export function ServicioDrawer({
           </fieldset>
 
           {state.error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12.5px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: "var(--s-2) 0 0",
-              }}
-            >
-              {state.error}
-            </p>
+            <div style={{ marginTop: "var(--s-2)" }}>
+              <Aviso tono="error" compacto>
+                {state.error}
+              </Aviso>
+            </div>
           )}
         </form>
       ) : (

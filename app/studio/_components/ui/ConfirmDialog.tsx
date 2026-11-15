@@ -26,6 +26,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useDialogA11y } from "./drawer/useDialogA11y";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 /** Debe permanecer sincronizado con `--dur-hold` en `app/studio/tokens.css`. */
 export const HTD_HOLD_DURATION_MS = 1_500;
@@ -349,20 +350,9 @@ function OpenConfirmDialog({
         )}
 
         {error && (
-          <div
-            id={errorId}
-            role="alert"
-            style={{
-              padding: "var(--s-2) var(--s-3)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-              background: "var(--danger-bg)",
-              color: "var(--danger-text, var(--danger))",
-              font: "500 12.5px/1.45 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" id={errorId} compacto>
             {error}
-          </div>
+          </Aviso>
         )}
 
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>

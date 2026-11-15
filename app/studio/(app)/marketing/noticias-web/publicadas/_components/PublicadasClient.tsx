@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
@@ -61,9 +62,9 @@ export function PublicadasClient({
 
   if (error) {
     return (
-      <p role="alert" style={{ color: "var(--color-status-danger, #c2353f)", fontSize: 14 }}>
+      <Aviso tono="error">
         {error}. Recarga la página; si sigue, avisa al equipo técnico.
-      </p>
+      </Aviso>
     );
   }
 
@@ -140,9 +141,9 @@ export function PublicadasClient({
           No se ven en el sitio. Volver a publicar la deja otra vez en /noticias con el mismo enlace.
         </p>
         {errorAccion ? (
-          <p role="alert" style={{ color: "var(--color-status-danger, #c2353f)", fontSize: 14, margin: "0 0 12px" }}>
-            {errorAccion}
-          </p>
+          <div style={{ marginBottom: 12 }}>
+            <Aviso tono="error">{errorAccion}</Aviso>
+          </div>
         ) : null}
         {retiradas.length === 0 ? (
           <p style={{ fontSize: 14, color: "var(--color-grey-500, #6B6B6B)" }}>No hay noticias retiradas.</p>

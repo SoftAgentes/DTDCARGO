@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   DrawerShell,
   DrawerFooter,
@@ -92,20 +93,9 @@ export function OrderSignalDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>

@@ -25,6 +25,7 @@ import {
   type TotalesSinFacturar,
 } from "@/lib/studio/rate-snapshots/sin-facturar";
 import { cbmCambio } from "@/lib/studio/rate-snapshots/types";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Embarques sin facturar · Reportes" };
 export const dynamic = "force-dynamic";
@@ -58,6 +59,10 @@ function textoImporte(total: TotalesSinFacturar, completo: boolean): string {
 }
 
 export default async function EmbarquesSinFacturarPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("reports");
+
   const supabase = await createClient();
   const r = await reporteSinFacturar(supabase);
 

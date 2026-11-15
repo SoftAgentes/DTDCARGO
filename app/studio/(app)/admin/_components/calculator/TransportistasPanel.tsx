@@ -42,6 +42,7 @@ import {
 } from "../../carrier-actions";
 import { TariffDrawer, type CityOption } from "./TariffDrawer";
 import { BulkPriceDrawer } from "./BulkPriceDrawer";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 type DrawerState =
   | { mode: "create" }
@@ -608,9 +609,11 @@ function TarjetaTransportista({
       )}
 
       {state.error && (
-        <p role="alert" style={{ marginTop: 8, fontSize: 12, color: "var(--danger)" }}>
-          {state.error}
-        </p>
+        <div style={{ marginTop: 8 }}>
+          <Aviso tono="error" compacto>
+            {state.error}
+          </Aviso>
+        </div>
       )}
     </div>
   );

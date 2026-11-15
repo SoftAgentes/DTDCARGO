@@ -16,6 +16,7 @@ import {
   changeDestination,
   lookupRateForNewDestination,
 } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { formatRate } from "@/lib/studio/rate-types";
 import type { Rate } from "@/lib/studio/rate-types";
@@ -453,20 +454,9 @@ function FormPhase({
       </div>
 
       {serverError && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-            padding: "var(--s-2) var(--s-3)",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
+        <Aviso tono="error" compacto>
           {serverError}
-        </p>
+        </Aviso>
       )}
     </>
   );
@@ -516,13 +506,11 @@ function RateSuggestion({
   }
 
   return (
+    // SDD-0603 · tramo 5c: se recalcula mientras se escribe el destino, así que
+    // no es franja ni región viva (BD-037); es texto con su botón.
     <div
       style={{
         marginTop: 8,
-        padding: "8px 10px",
-        background: "var(--success-bg)",
-        border: "1px solid var(--success)",
-        borderRadius: "var(--r-sm)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -539,7 +527,7 @@ function RateSuggestion({
         <strong
           style={{
             font: "700 12px/1 var(--f-mono)",
-            color: "var(--success)",
+            color: "var(--ink)",
           }}
         >
           {formatRate(rate)}
@@ -641,20 +629,9 @@ function ConfirmPhase({
       </p>
 
       {serverError && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-            padding: "var(--s-2) var(--s-3)",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
+        <Aviso tono="error" compacto>
           {serverError}
-        </p>
+        </Aviso>
       )}
     </>
   );

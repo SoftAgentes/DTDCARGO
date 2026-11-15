@@ -15,6 +15,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
@@ -1140,19 +1141,10 @@ function TaskEditCard({
       </div>
 
       {unassignedWithSuggestion && (
-        <div
-          role="note"
-          style={{
-            font: "600 11.5px/1.4 var(--f-sans)",
-            color: "var(--warning)",
-            background: "var(--warning-bg)",
-            padding: "7px 10px",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
+        <Aviso tono="atencion" compacto>
           La IA sugirió «{task.suggestedName}», sin match en el equipo. Elige a
           quién asignar (o déjala sin asignar).
-        </div>
+        </Aviso>
       )}
 
       {/* para_agente */}

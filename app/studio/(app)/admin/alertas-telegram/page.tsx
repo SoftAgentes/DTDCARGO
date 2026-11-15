@@ -23,6 +23,7 @@ import {
   discordCategoryStatus,
 } from "@/lib/studio/discord/channels";
 import { DiscordChannelsStatus } from "./_components/DiscordChannelsStatus";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = {
   title: "Alertas del equipo · DTD Studio",
@@ -31,6 +32,10 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AlertasTelegramPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin");
+
   const supabase = await createClient();
 
   const { data } = await supabase

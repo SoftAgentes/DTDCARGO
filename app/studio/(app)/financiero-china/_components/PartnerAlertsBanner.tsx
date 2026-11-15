@@ -13,7 +13,7 @@
  */
 
 import { useState } from "react";
-import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { billKindLabel } from "@/lib/studio/treasury/types";
 import type { PartnerBillAlert } from "@/lib/studio/partner-finance/alerts-queries";
 
@@ -34,95 +34,79 @@ export function PartnerAlertsBanner({ alerts }: { alerts: PartnerBillAlert[] }) 
   const hidden = alerts.length - shown.length;
 
   return (
-    <div
-      role="status"
-      style={{
-        padding: "12px 14px",
-        marginBottom: 20,
-        borderRadius: "var(--r-md)",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <span style={{ color: "var(--danger)", marginTop: 1 }}>{Icon.warn(16)}</span>
-        <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, font: "700 13px/1.4 var(--f-sans)", color: "var(--danger)" }}>
+    <div style={{ marginBottom: 20 }}>
+      <Aviso
+        tono="atencion"
+        titulo={
+          <>
             {alerts.length} pago{alerts.length === 1 ? "" : "s"} PP/CA vencido
             {alerts.length === 1 ? "" : "s"} al socio · {fmtMoney(totalUsd, "USD")} pendiente
             {sinTasa > 0 ? ` · ${sinTasa} sin tasa, fuera del total` : ""}
-          </p>
-          <p style={{ margin: "var(--s-1) 0 0", font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-            Pre-pagos y saldos con crédito comercial (30-45 días) que pasaron su
-            vencimiento con saldo. Págalos o ajusta la fecha desde Tesorería.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      >
+        <p style={{ margin: 0 }}>
+          Pre-pagos y saldos con crédito comercial (30-45 días) que pasaron su
+          vencimiento con saldo. Págalos o ajusta la fecha desde Tesorería.
+        </p>
 
-      <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-        {shown.map((a) => (
-          <li
-            key={a.bill.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: "7px 10px",
-              borderRadius: "var(--r-sm)",
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-            }}
+        <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+          {shown.map((a) => (
+            <li
+              key={a.bill.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "7px 10px",
+                borderRadius: "var(--r-sm)",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <span className="studio-input-mono" style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink)" }}>
+                  {a.bill.bill_code}
+                </span>
+                <span
+                  style={{
+                    padding: "1px 6px",
+                    borderRadius: 6,
+                    background: "var(--neutral-bg)",
+                    color: "var(--ink-soft)",
+                    font: "700 10px/1.4 var(--f-sans)",
+                  }}
+                >
+                  {billKindLabel(a.kind)}
+                </span>
+                <span style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {a.bill.supplier_name}
+                </span>
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                <span style={{ font: "700 12px/1 var(--f-sans)", color: "var(--danger)" }}>
+                  {a.daysOverdue}d vencido
+                </span>
+                <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
+                  {fmtMoney(a.balance, a.bill.currency)}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {(hidden > 0 || expanded) && alerts.length > PREVIEW && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            style={{ marginTop: 8 }}
           >
-            <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <span className="studio-input-mono" style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink)" }}>
-                {a.bill.bill_code}
-              </span>
-              <span
-                style={{
-                  padding: "1px 6px",
-                  borderRadius: 6,
-                  background: "var(--neutral-bg)",
-                  color: "var(--ink-soft)",
-                  font: "700 10px/1.4 var(--f-sans)",
-                }}
-              >
-                {billKindLabel(a.kind)}
-              </span>
-              <span style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {a.bill.supplier_name}
-              </span>
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-              <span style={{ font: "700 12px/1 var(--f-sans)", color: "var(--danger)" }}>
-                {a.daysOverdue}d vencido
-              </span>
-              <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
-                {fmtMoney(a.balance, a.bill.currency)}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      {(hidden > 0 || expanded) && alerts.length > PREVIEW && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          style={{
-            marginTop: 8,
-            background: "transparent",
-            border: "none",
-            color: "var(--danger)",
-            font: "700 12px/1 var(--f-sans)",
-            cursor: "pointer",
-            padding: "6px 0",
-            minHeight: 32,
-          }}
-        >
-          {expanded ? "Ver menos" : `Ver ${hidden} más`}
-        </button>
-      )}
+            {expanded ? "Ver menos" : `Ver ${hidden} más`}
+          </button>
+        )}
+      </Aviso>
     </div>
   );
 }

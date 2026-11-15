@@ -21,6 +21,7 @@ import {
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { type ReferralActionState } from "@/lib/studio/fidelizacion/types";
 import { fmtUsd } from "@/lib/money";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { registerReferral } from "../actions";
 
 const INITIAL: ReferralActionState = {};
@@ -143,21 +144,12 @@ export function RegisterReferralDrawer({
         </Field>
 
         {/* Aviso advisory: el crédito no se aplica solo. */}
-        <div
-          style={{
-            padding: "12px 14px",
-            background: "var(--info-bg)",
-            borderLeft: "3px solid var(--info)",
-            borderRadius: "var(--r-md)",
-            font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
+        <Aviso tono="info" compacto>
           El referido arranca en <strong>Invitado</strong>. Cuando haga su primer
           embarque, acreditá el crédito de {fmtUsd(referrerReward)}{" "}
           al referidor — se aplica a mano en su próxima factura (crédito advisory,
           no se postea solo a Facturación).
-        </div>
+        </Aviso>
       </form>
 
       <DrawerFooter
@@ -211,19 +203,8 @@ function Field({
 
 function FormError({ message }: { message: string }) {
   return (
-    <p
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: 0,
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
+    <Aviso tono="error" compacto>
       {message}
-    </p>
+    </Aviso>
   );
 }

@@ -190,3 +190,7 @@ Por módulo, los 139: admin 19, contabilidad 12, componentes compartidos 8, mail
 
 - jsdom no calcula estilos: el contraste se mide sobre los tokens, no sobre píxeles. La revisión en navegador, en claro y oscuro y a 375 px, llega con la primera pantalla que adopte el componente; hoy solo `ErrorAlert` lo usa.
 - La medida de adopción es heurística y por archivo, no por aviso.
+
+## Extensión al portal: tramo 4e
+
+El portal del cliente no puede importar del Studio, así que no usa `Aviso`: reproduce su franja con la clase `.portal-aviso` de `app/portal/claridad.css` (mismos cuatro tonos en `data-tono`, `StatusIcon` compartido, sin contorno ni sombra, color del estado en el icono y, en atención, un tinte dorado del fondo). No es un componente nuevo ni entra en CMP-01. Lo adoptan 13 avisos en 11 archivos del portal; lo vigila `app/portal/__tests__/avisos-portal-contract.test.ts`. Detalle, clasificación y medidas en [tramo-4e.md](../0603-claridad-controles/tramo-4e.md).

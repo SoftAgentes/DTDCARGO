@@ -17,6 +17,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   matchConfidenceLabel,
   matchConfidenceTone,
@@ -313,17 +314,8 @@ export function StatementDetail({
       </div>
 
       {error && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: "var(--r-md)",
-            background: "var(--danger-bg)",
-            color: "var(--danger)",
-            font: "600 12px/1.4 var(--f-sans)",
-            marginBottom: 14,
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: 14 }}>
+          <Aviso tono="error">{error}</Aviso>
         </div>
       )}
 

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { Shipment } from "@/lib/studio/shipment-types";
 import { updateShipmentPlan, type ActionState } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const ZONES = [
   ["America/Caracas", "Venezuela · America/Caracas"],
@@ -105,8 +106,16 @@ export function ShipmentPlanPanel({
         <>
           <label className="studio-label" htmlFor="planning_reason">Motivo de planificación o cambio</label>
           <input id="planning_reason" name="planning_reason" className="studio-input" minLength={4} required placeholder="Ej. itinerario confirmado por naviera" style={{ marginBottom: 12 }} />
-          {state.error && <p role="alert" style={{ color: "var(--danger)", font: "500 12px/1.4 var(--f-sans)" }}>{state.error}</p>}
-          {state.ok && <p role="status" style={{ color: "var(--success)", font: "500 12px/1.4 var(--f-sans)" }}>Plan guardado.</p>}
+          {state.error && (
+            <div style={{ marginBottom: 12 }}>
+              <Aviso tono="error" compacto>{state.error}</Aviso>
+            </div>
+          )}
+          {state.ok && (
+            <div style={{ marginBottom: 12 }}>
+              <Aviso tono="exito" compacto>Plan guardado.</Aviso>
+            </div>
+          )}
           <button type="submit" className="studio-btn studio-btn-primary studio-btn-sm" disabled={pending}>
             {pending ? "Guardando…" : "Guardar planificación"}
           </button>

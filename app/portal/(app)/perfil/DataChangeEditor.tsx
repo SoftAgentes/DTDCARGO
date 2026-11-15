@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import { ChatIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import Link from "next/link";
 import {
   updateMyProfileAction,
@@ -186,32 +187,34 @@ export function DataChangeEditor({
           ) : null}
 
           {confirming || pending ? (
-            <div
-              className="rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-4"
-              style={{ borderLeftColor: "var(--color-status-warning)" }}
-            >
-              <p className="text-[13px] text-grey-700 leading-[1.55]">
-                Guardar usa 1 de tus {quota.remaining}{" "}
-                {quota.remaining === 1 ? "cambio disponible" : "cambios disponibles"}{" "}
-                y se aplica al instante.
-              </p>
-              <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={pending}
-                  aria-busy={pending}
-                  className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {pending ? "Guardando…" : "Sí, guardar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmedFor(null)}
-                  disabled={pending}
-                  className="btn btn-ghost inline-flex items-center justify-center disabled:opacity-60"
-                >
-                  Volver
-                </button>
+            <div className="portal-aviso rounded-[12px] p-4" data-tono="atencion">
+              <span className="portal-aviso-icono">
+                <StatusIcon tone="warning" size={16} />
+              </span>
+              <div className="portal-aviso-cuerpo">
+                <p className="text-[13px] text-grey-700 leading-[1.55]">
+                  Guardar usa 1 de tus {quota.remaining}{" "}
+                  {quota.remaining === 1 ? "cambio disponible" : "cambios disponibles"}{" "}
+                  y se aplica al instante.
+                </p>
+                <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={pending}
+                    aria-busy={pending}
+                    className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {pending ? "Guardando…" : "Sí, guardar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmedFor(null)}
+                    disabled={pending}
+                    className="btn btn-ghost inline-flex items-center justify-center disabled:opacity-60"
+                  >
+                    Volver
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -269,42 +272,44 @@ function PendingRequest({
   const diff = buildChangeRequestDiff(request, isEmpresa);
   return (
     <div className="mt-3">
-      <div
-        className="rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
-        style={{ borderLeftColor: "var(--color-status-warning)" }}
-      >
-        <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
-          Cambio en revisión
+      <div className="portal-aviso rounded-[12px] p-5" data-tono="atencion">
+        <span className="portal-aviso-icono">
+          <StatusIcon tone="warning" size={16} />
+        </span>
+        <div className="portal-aviso-cuerpo">
+          <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
+            Cambio en revisión
+          </div>
+          <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.55]">
+            Tu asesor está revisando estos cambios.
+            {canEdit
+              ? " Ahora también puedes editar tus datos al instante: si lo haces, esta solicitud se reemplaza."
+              : ""}
+          </p>
+          <dl className="mt-4 flex flex-col gap-2.5">
+            {diff.map((d) => (
+              <div key={d.field} className="text-[13px]">
+                <dt className="text-[11px] font-semibold tracking-[0.08em] uppercase text-grey-500">
+                  {d.label}
+                </dt>
+                <dd className="mt-0.5 text-ink">
+                  <span className="text-grey-500 line-through">{d.from ?? "—"}</span>{" "}
+                  <span aria-hidden>→</span>{" "}
+                  <span className="font-semibold">{d.to}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="btn btn-ghost mt-4 inline-flex items-center gap-2"
+            >
+              Editar ahora
+            </button>
+          ) : null}
         </div>
-        <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.55]">
-          Tu asesor está revisando estos cambios.
-          {canEdit
-            ? " Ahora también puedes editar tus datos al instante: si lo haces, esta solicitud se reemplaza."
-            : ""}
-        </p>
-        <dl className="mt-4 flex flex-col gap-2.5">
-          {diff.map((d) => (
-            <div key={d.field} className="text-[13px]">
-              <dt className="text-[11px] font-semibold tracking-[0.08em] uppercase text-grey-500">
-                {d.label}
-              </dt>
-              <dd className="mt-0.5 text-ink">
-                <span className="text-grey-500 line-through">{d.from ?? "—"}</span>{" "}
-                <span aria-hidden>→</span>{" "}
-                <span className="font-semibold">{d.to}</span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="btn btn-ghost mt-4 inline-flex items-center gap-2"
-          >
-            Editar ahora
-          </button>
-        ) : null}
       </div>
 
       {/* Cancelar la solicitud (¿se equivocó?) — confirm de 2 pasos. */}

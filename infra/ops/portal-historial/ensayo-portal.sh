@@ -28,7 +28,8 @@
 # nombres de contenedores; nunca nombres de personas ni textos. Códigos (también `HECHO ensayo_codigo`): 0 pasó todo;
 # 1 fallas; 2 opción o entrada mala; 3 carga o memoria; 4 la limpieza no terminó (y nada más falló); 5 la unidad de
 # systemd tiene TimeoutStopSec de menos de 300 s; 6 --limpiar con docker sin responder, y no se borró nada (un ensayo
-# que corrió borra sus carpetas igual y conserva su código); 143, 130 y 129 parado por TERM, INT y HUP.
+# que corrió borra sus carpetas igual y conserva su código); 7 los tipos de las columnas de la lista no son los mismos
+# en producción y en la copia, y no se copió nada; 143, 130 y 129 parado por TERM, INT y HUP.
 #
 # Copia las guardas de infra/ops/kommo-historial/ensayo-archivo.sh (SDD-0590): el trap que sale con 4, la salida
 # del guion en 7 y 8 para los traps, TimeoutStopSec, la carga del VPS y la memoria.
@@ -515,6 +516,75 @@ docker exec "$RAILS_COPIA" bundle exec rails db:chatwoot_prepare >"$DIR/esquema-
 exigir S2 '[ "$(cw_copia -c "select to_regclass('"'"'public.conversations'"'"') is not null")" = t ] && [ "$(cw_copia -c "select count(*) from public.accounts")" = 0 ]' \
   "Chatwoot: el esquema de la imagen (db:chatwoot_prepare), con 0 cuentas"
 [ "$FALLAS" = 0 ] || { tail -n 20 "$DIR/esquema-studio.txt" "$DIR/esquema-chatwoot.txt"; exit 1; }
+
+# ── Los tipos de las columnas de la lista: producción frente a la copia ──────
+# El esquema de la copia de Studio se arma en parte a mano (ensayo-studio-esquema.sql). El --solo-copia del 2026-11-14
+# falló a medias porque crm_historial_etapas.id era uuid en la copia y bigint en producción: el COPY se cortó, y
+# columnas_md5 no lo vio porque solo mide los nombres. Antes de copiar nada se compara «tabla.columna:tipo» de cada
+# columna de la lista, a cada lado, en el catálogo (format_type). Solo nombres y tipos, nunca datos. Una columna que
+# no existe sale como «ausente». Si un lado no coincide, se para con 7, sin copiar.
+# El orden no depende de la base (revisión del DG de la #563, B1): producción de Studio es supabase/postgres y la copia
+# es postgres:17, y pueden ordenar distinto «event:» y «event_key:». Por eso la consulta ordena con `collate "C"` y el
+# `sort` corre con LC_ALL=C: sin eso, el `diff` daría un 7 falso sin ningún tipo distinto.
+tipos_sql() { # lado → la consulta del catálogo para las columnas de ese lado de la lista
+  awk -F'\t' -v lado="$1" '
+    $1 == lado {
+      n = split($3, c, ";")
+      for (i = 1; i <= n; i++) { sub(/=.*/, "", c[i]); v = v (v ? ", " : "") "(\047" $2 "\047, \047" c[i] "\047)" }
+    }
+    END {
+      if (v == "") exit 1
+      print "select (v.t || \047.\047 || v.c || \047:\047 || coalesce((select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(v.t) and a.attname = v.c and a.attnum > 0 and not a.attisdropped), \047ausente\047)) collate \042C\042 from (values " v ") v(t, c) order by 1"
+    }' "$LISTA"
+}
+tipos_columnas() { awk -F'\t' -v lado="$1" '$1 == lado { n += split($3, c, ";") } END { print n + 0 }' "$LISTA"; }
+comparar_tipos() { # lado id
+  local lado="$1" q esperadas prod copia distintas ausentes consulta
+  q="$(tipos_sql "$lado")" || { mal "$2" "$lado: copia-columnas.tsv no trae columnas de ese lado: no hay nada que comparar"; evidencia "HECHO tipos_$lado=lista_sin_columnas"; LISTA_SIN_COLUMNAS=1; return 0; }
+  esperadas="$(tipos_columnas "$lado")"
+  if [ "$lado" = studio ]; then
+    studio_prod -c "$q" >"$DIR/tipos-$lado-prod.txt" 2>&1
+    studio_copia -c "$q" >"$DIR/tipos-$lado-copia.txt" 2>&1
+  else
+    cw_prod -c "$q" >"$DIR/tipos-$lado-prod.txt" 2>&1
+    cw_copia -c "$q" >"$DIR/tipos-$lado-copia.txt" 2>&1
+  fi
+  # Cada línea tiene que ser «esquema.tabla.columna:tipo»: si psql falló, su error no se lee como columna ni va a la
+  # evidencia (solo «fallida»).
+  prod="$(grep -cE '^[a-z_]+\.[a-z_0-9]+\.[a-z_0-9]+:.+$' "$DIR/tipos-$lado-prod.txt")"
+  copia="$(grep -cE '^[a-z_]+\.[a-z_0-9]+\.[a-z_0-9]+:.+$' "$DIR/tipos-$lado-copia.txt")"
+  consulta=ok
+  [ "$prod" = "$esperadas" ] && [ "$prod" = "$(grep -c . "$DIR/tipos-$lado-prod.txt")" ] \
+    && [ "$copia" = "$esperadas" ] && [ "$copia" = "$(grep -c . "$DIR/tipos-$lado-copia.txt")" ] || consulta=fallida
+  distintas=ninguna
+  if [ "$consulta" = ok ]; then
+    # Las cinco primeras, y cuántas son: alcanza para encontrarlas en el esquema del ensayo.
+    distintas="$(diff "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | sed -n 's/^[<>] \([^:]*\):.*/\1/p' | LC_ALL=C sort -u)"
+    distintas="$([ -n "$distintas" ] && printf '%s' "$(printf '%s\n' "$distintas" | grep -c .):$(printf '%s\n' "$distintas" | head -n 5 | paste -sd, -)" || echo ninguna)"
+  fi
+  ausentes="$(cat "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | grep -c ':ausente$')"
+  evidencia "HECHO tipos_${lado}_columnas=$esperadas" "HECHO tipos_${lado}_consulta=$consulta"
+  if [ "$consulta" = ok ] && [ "$distintas" = ninguna ] && [ "$ausentes" = 0 ]; then
+    evidencia "HECHO tipos_$lado=iguales" "HECHO tipos_${lado}_md5=$(md5sum <"$DIR/tipos-$lado-prod.txt" | cut -c1-12)"
+    ok "$2" "$lado: las $esperadas columnas de la lista tienen el mismo tipo en producción y en la copia"
+  else
+    evidencia "HECHO tipos_$lado=distintos" "HECHO tipos_${lado}_distintos=$distintas" "HECHO tipos_${lado}_ausentes=$ausentes"
+    mal "$2" "$lado: los tipos de la lista no son los mismos en producción y en la copia (consulta $consulta, distintas $distintas, $ausentes ausentes). No se copia nada"
+  fi
+  rm -f -- "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt"
+}
+log "== tipos de las columnas de la lista, producción frente a la copia"
+LISTA_SIN_COLUMNAS=0
+comparar_tipos studio S3
+comparar_tipos chatwoot S4
+if [ "$LISTA_SIN_COLUMNAS" = 1 ]; then
+  # No es un tipo distinto: la lista está mal. Sale con 1, como cualquier otra falla.
+  evidencia "HECHO error=lista_sin_columnas"
+  exit 1
+elif [ "$FALLAS" != 0 ]; then
+  evidencia "HECHO error=tipos_distintos"
+  exit 7
+fi
 # Marca de cada copia: una tabla que producción nunca tiene, con un valor aleatorio de este momento.
 MARCA="$(openssl rand -hex 16)"
 studio_copia -c "create table public._dtd_ensayo_marca (valor text not null); insert into public._dtd_ensayo_marca values ('$MARCA')" >/dev/null

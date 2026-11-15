@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { fmtAmount } from "@/lib/studio/renditions/printable";
 import type { Rendition } from "@/lib/studio/renditions/types";
 import { voidRenditionAction } from "../actions";
@@ -99,19 +100,9 @@ export function VoidDrawer({
         </div>
 
         {error && (
-          <div
-            id="void-reason-error"
-            role="alert"
-            style={{
-              padding: "10px 14px",
-              borderRadius: "var(--r-md)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              font: "600 12px/1.4 var(--f-sans)",
-            }}
-          >
+          <Aviso id="void-reason-error" tono="error" compacto>
             {error}
-          </div>
+          </Aviso>
         )}
       </div>
 

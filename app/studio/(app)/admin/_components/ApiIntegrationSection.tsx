@@ -20,6 +20,7 @@ import {
   type ApiKey,
   type Webhook,
 } from "@/lib/studio/api-integration-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const INITIAL: ApiIntegrationActionState = {};
 
@@ -71,37 +72,25 @@ export function ApiIntegrationSection({ data }: { data: ApiIntegrationData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Aviso de estado */}
-      <div
-        style={{
-          padding: "var(--s-3) var(--s-4)",
-          background: "var(--warning-bg)",
-          color: "var(--warning)",
-          borderRadius: "var(--r-md)",
-          font: "600 12px/1.4 var(--f-sans)",
-        }}
-      >
+      <Aviso tono="atencion" compacto>
         Estas credenciales se administran acá, pero todavía no hay un endpoint que autentique con la key ni un
         dispatcher que dispare los webhooks (follow-up). Sirven para dejar la integración lista.
-      </div>
+      </Aviso>
 
       {/* ── API keys ── */}
       <Card>
         <CardEyebrow>API keys</CardEyebrow>
 
         {revealToken && (
-          <div
-            style={{
-              padding: 14,
-              background: "var(--success-bg)",
-              border: "1px solid var(--success)",
-              borderRadius: "var(--r-md)",
-              marginBottom: 14,
-            }}
-          >
-            <div style={{ font: "700 12px/1.3 var(--f-sans)", color: "var(--success)", marginBottom: "var(--s-2)" }}>
-              Copia este token ahora — no se vuelve a mostrar.
-            </div>
-            <code style={{ display: "block", padding: "10px 12px", background: "var(--bg-surface)", borderRadius: "var(--r-sm)", font: "600 12px/1.5 var(--f-mono)", color: "var(--ink)", wordBreak: "break-all" }}>
+          <div style={{ marginBottom: 14 }}>
+            {/* El aviso es `role="status"` (región viva). El token es un secreto
+                efímero: va FUERA de la franja para que el lector de pantalla
+                no lo lea en voz alta al aparecer. */}
+            <Aviso tono="atencion">Copia este token ahora — no se vuelve a mostrar.</Aviso>
+            <code
+              data-testid="api-key-token"
+              style={{ display: "block", marginTop: 10, padding: "10px 12px", background: "var(--bg-elevated)", borderRadius: "var(--r-sm)", font: "600 12px/1.5 var(--f-mono)", color: "var(--ink)", wordBreak: "break-all" }}
+            >
               {revealToken}
             </code>
             <div style={{ display: "flex", gap: "var(--s-2)", marginTop: 10 }}>
@@ -242,5 +231,9 @@ function CardEyebrow({ children, noMargin }: { children: React.ReactNode; noMarg
   );
 }
 function FormError({ msg }: { msg: string }) {
-  return <div style={{ padding: "var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)", marginBottom: "var(--s-3)" }}>{msg}</div>;
+  return (
+    <div style={{ marginBottom: "var(--s-3)" }}>
+      <Aviso tono="error">{msg}</Aviso>
+    </div>
+  );
 }

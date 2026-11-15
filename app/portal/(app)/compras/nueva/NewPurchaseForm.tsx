@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import { ArrowIcon, CheckIcon } from "@/components/Icon";
+import { ArrowIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { ShareProviderButton } from "../../../_components/ShareProviderButton";
 import {
   PrealertaAddonPicker,
@@ -240,19 +241,20 @@ function PurchaseDone({
 }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
-      <div
-        className="w-14 h-14 rounded-full grid place-items-center"
-        style={{ background: "var(--color-status-success)", color: "var(--color-on-accent)" }}
-      >
-        <CheckIcon size={28} />
-      </div>
-      <div>
-        <div className="text-[16px] font-bold text-ink">
-          Tu compra quedó registrada.
+      {/* SDD-0603 · T4e (BD-037): franja plana de éxito; el verde, solo en el
+          icono (antes, círculo relleno con color en línea). */}
+      <div className="portal-aviso w-full rounded-[14px] p-4 text-left" data-tono="exito">
+        <span className="portal-aviso-icono">
+          <StatusIcon tone="success" size={18} />
+        </span>
+        <div className="portal-aviso-cuerpo">
+          <div className="text-[16px] font-bold text-ink">
+            Tu compra quedó registrada.
+          </div>
+          <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[42ch]">
+            Conserva el código de tu compra para consultar su estado y sus etiquetas.
+          </p>
         </div>
-        <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[42ch]">
-          Conserva el código de tu compra para consultar su estado y sus etiquetas.
-        </p>
       </div>
 
       <div className="w-full rounded-[14px] px-6 py-5 bg-white border border-grey-200">

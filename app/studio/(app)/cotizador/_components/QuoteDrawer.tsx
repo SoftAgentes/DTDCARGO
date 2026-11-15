@@ -40,6 +40,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
 import type { ClientSearchHit } from "@/lib/studio/client-search-action";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
@@ -756,20 +757,9 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           </div>
 
           {(state.error || createError) && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
+            <Aviso tono="error" compacto>
               {state.error ?? createError}
-            </p>
+            </Aviso>
           )}
 
           {/* Total card navy LIVE */}

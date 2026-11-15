@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StatusBadge } from "./StatusBadge";
+import { Icon } from "@/app/studio/_components/icons";
 import {
   computeProgress,
 } from "@/lib/studio/tracking-progress";
@@ -181,24 +182,37 @@ export function ActiveShipmentList({
               s.status === "exception" || s.status === "delayed_warehouse";
 
             return (
-              <button
+              // SDD-0603 · tramo 5c: la tarjeta sigue abriendo con el ratón,
+              // pero sale del orden de Tab; la parada de teclado es «Abrir».
+              // La seleccionada lleva contorno y botón de tinta, no vino.
+              <div
                 key={s.id}
-                type="button"
-                onClick={() => selectShipment(s.id)}
+                data-row-id={s.code}
                 className="studio-shipment-card"
                 data-active={isActive ? "true" : "false"}
                 style={{
-                  width: "100%",
-                  textAlign: "left",
                   padding: "12px 14px",
-                  background: isActive
-                    ? "var(--wine-tint)"
-                    : "var(--bg-surface)",
+                  background: "var(--bg-surface)",
                   border: `1px solid ${
-                    isActive ? "var(--wine)" : "var(--border)"
+                    isActive ? "var(--ctl-border)" : "var(--border)"
                   }`,
                   borderRadius: 8,
+                }}
+              >
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => selectShipment(s.id)}
+                style={{
+                  width: "100%",
+                  display: "block",
+                  textAlign: "left",
+                  padding: 0,
+                  background: "transparent",
+                  border: 0,
                   cursor: "pointer",
+                  color: "inherit",
+                  font: "inherit",
                 }}
               >
                 <div
@@ -213,7 +227,7 @@ export function ActiveShipmentList({
                   <code
                     style={{
                       font: "800 12px/1 var(--f-mono)",
-                      color: isActive ? "var(--wine)" : "var(--ink)",
+                      color: "var(--ink)",
                       letterSpacing: "0.02em",
                     }}
                   >
@@ -285,6 +299,19 @@ export function ActiveShipmentList({
                   <span>ETA {formatEta(s.arrived_destination_at)}</span>
                 </div>
               </button>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className={`studio-btn ${isActive ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-sm`}
+                    aria-label={`Abrir embarque ${s.code}`}
+                    aria-current={isActive ? "true" : undefined}
+                    onClick={() => selectShipment(s.id)}
+                  >
+                    Abrir
+                    {Icon.chevR(14)}
+                  </button>
+                </div>
+              </div>
             );
           })
         )}

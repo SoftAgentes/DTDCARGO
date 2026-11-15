@@ -32,6 +32,7 @@ import type {
   RoutesActionState,
 } from "@/lib/studio/dispatch-routes-types";
 import type { VeLocalityEntry } from "@/lib/studio/ve-catalog-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const SEED_INITIAL: RoutesActionState = {};
 
@@ -685,84 +686,38 @@ function CitiesTab({
   return (
     <>
       {isEmpty && (
-        <div
-          style={{
-            padding: 18,
-            background: "var(--info-bg)",
-            border: "1px solid var(--info)",
-            borderRadius: "var(--r-md)",
-            marginBottom: 14,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                font: "800 14px/1.2 var(--f-display)",
-                color: "var(--ink)",
-                marginBottom: 4,
-              }}
-            >
-              Tu catálogo está vacío
-            </div>
-            <p
-              style={{
-                font: "500 12.5px/1.4 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: 0,
-              }}
-            >
-              Puedes seedear con las 98 ciudades del catálogo público VE (24 estados +
-              IPOSTEL). Después editas cuáles te interesan.
-            </p>
-          </div>
-          <form action={seedAction}>
-            <button
-              type="submit"
-              className="studio-btn studio-btn-primary"
-              disabled={seedPending}
-            >
-              {seedPending ? "Seedeando…" : "Seedear desde catálogo VE"}
-            </button>
-          </form>
+        <div style={{ marginBottom: 14 }}>
+          <Aviso tono="info" titulo="Tu catálogo está vacío">
+            Puedes seedear con las 98 ciudades del catálogo público VE (24 estados +
+            IPOSTEL). Después editas cuáles te interesan.
+            <form action={seedAction} style={{ marginTop: "var(--s-3)" }}>
+              <button
+                type="submit"
+                className="studio-btn studio-btn-primary"
+                disabled={seedPending}
+              >
+                {seedPending ? "Seedeando…" : "Seedear desde catálogo VE"}
+              </button>
+            </form>
+          </Aviso>
         </div>
       )}
 
       {seedState?.ok && seedState.createdCode && (
-        <div
-          style={{
-            padding: 12,
-            background: "var(--success-bg)",
-            color: "var(--success)",
-            borderRadius: "var(--r-md)",
-            marginBottom: 14,
-            font: "600 13px/1.3 var(--f-sans)",
-          }}
-        >
-          {seedState.createdCode}
+        <div style={{ marginBottom: 14 }}>
+          <Aviso tono="exito">
+            {seedState.createdCode}
+          </Aviso>
         </div>
       )}
 
       {/* SDD-0497: el seed ya devuelve motivo (denegación de permiso o fallo de
           la RPC) y hasta acá nadie lo mostraba — el botón quedaba mudo. */}
       {seedState?.error && (
-        <div
-          role="alert"
-          style={{
-            padding: 12,
-            background: "var(--danger-bg)",
-            /* `--danger-text`, no `--danger`: en oscuro el crudo da 4,19:1
-               sobre este fondo y no pasa AA (SDD-0275, tokens.css:284-293). */
-            color: "var(--danger-text)",
-            borderRadius: "var(--r-md)",
-            marginBottom: 14,
-            font: "600 13px/1.3 var(--f-sans)",
-          }}
-        >
-          {seedState.error}
+        <div style={{ marginBottom: 14 }}>
+          <Aviso tono="error">
+            {seedState.error}
+          </Aviso>
         </div>
       )}
 
@@ -819,30 +774,15 @@ function CitiesTab({
       </div>
 
       {/* Banner IPOSTEL */}
-      <div
-        style={{
-          marginBottom: 14,
-          padding: "10px 14px",
-          background: "var(--info-bg)",
-          color: "var(--info)",
-          borderRadius: "var(--r-md)",
-          font: "500 11.5px/1.5 var(--f-sans)",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 8,
-        }}
-      >
-        <span style={{ marginTop: 1, flexShrink: 0, display: "inline-flex" }}>
-          {Icon.info(13)}
-        </span>
-        <span>
+      <div style={{ marginBottom: 14 }}>
+        <Aviso tono="info" compacto>
           <b>Códigos postales venezolanos (IPOSTEL):</b> 4 dígitos, a veces con
           sufijo{" "}
           <code style={{ font: "700 11px/1 var(--f-mono)" }}>-A</code> para zonas
           dentro del mismo código. Caracas centro 1010 · Chacao 1060 · Valencia
           2001 · Maracaibo 4001. La columna Barrios cuenta las urbanizaciones
           registradas para el filtro de la cola de despacho.
-        </span>
+        </Aviso>
       </div>
 
       {!isEmpty && (
@@ -926,29 +866,14 @@ function CitiesTab({
           </div>
 
           {/* Banner info radio */}
-          <div
-            style={{
-              marginTop: 14,
-              padding: "10px 12px",
-              background: "var(--info-bg)",
-              color: "var(--info)",
-              borderRadius: "var(--r-md)",
-              font: "500 11.5px/1.5 var(--f-sans)",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 8,
-            }}
-          >
-            <span style={{ marginTop: 1, flexShrink: 0, display: "inline-flex" }}>
-              {Icon.info(13)}
-            </span>
-            <span>
+          <div style={{ marginTop: 14 }}>
+            <Aviso tono="info" compacto>
               <b>¿Cómo se usa el radio?</b> Cuando un cliente está dentro del
               radio km de una parada, califica para esa ruta. Por ejemplo, si{" "}
               <code style={{ font: "700 11.5px/1 var(--f-mono)" }}>Maracay</code>{" "}
               tiene radio 20km, los clientes a más de 20km no aparecen como
               elegibles para una ruta que pase por Maracay.
-            </span>
+            </Aviso>
           </div>
         </>
       )}

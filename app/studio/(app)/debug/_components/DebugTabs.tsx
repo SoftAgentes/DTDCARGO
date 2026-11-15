@@ -32,6 +32,7 @@ import {
   type DebugTabKey,
   type DebugTabMode,
 } from "./debug-tabs.shared";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export { DEBUG_TABS, isDebugTab, modeDotColor, resolveDebugTab };
 export type { DebugTabKey, DebugTabMode };
@@ -133,18 +134,8 @@ function ModeBanner({ active }: { active: DebugTabKey }) {
   const meta = DEBUG_TABS.find((t) => t.key === active);
   if (!meta) return null;
 
-  const accent =
-    meta.mode === "vivo"
-      ? "var(--success)"
-      : meta.mode === "snapshot"
-        ? "var(--warning)"
-        : "var(--ink-mute)";
-  const bg =
-    meta.mode === "vivo"
-      ? "var(--success-bg)"
-      : meta.mode === "snapshot"
-        ? "var(--warning-bg)"
-        : "var(--neutral-bg)";
+  // Snapshot es una limitación real (atención); vivo y local solo informan.
+  const tono = meta.mode === "snapshot" ? "atencion" : "info";
 
   const text =
     meta.mode === "vivo"
@@ -154,35 +145,10 @@ function ModeBanner({ active }: { active: DebugTabKey }) {
         : "El Radar no corre en la web · se ejecuta solo en local con /radar en Claude Code. Llega en la Slice C.";
 
   return (
-    <div
-      role="status"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--s-3)",
-        background: bg,
-        border: `1px solid ${accent}`,
-        borderRadius: "var(--r-md)",
-        padding: "var(--s-3) var(--s-4)",
-        fontSize: 12.5,
-        color: "var(--ink-soft)",
-      }}
-    >
-      <span
-        aria-hidden
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: accent,
-          flexShrink: 0,
-        }}
-      />
-      <span>
-        <strong style={{ color: "var(--ink)" }}>Modo {meta.modeLabel}</strong>
-        {" · "}
-        {text}
-      </span>
-    </div>
+    <Aviso tono={tono} compacto>
+      <strong>Modo {meta.modeLabel}</strong>
+      {" · "}
+      {text}
+    </Aviso>
   );
 }

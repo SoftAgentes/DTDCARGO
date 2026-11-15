@@ -38,6 +38,7 @@ import {
   type ContactCaptureState,
   type WhatsAppBatchState,
 } from "../portal-backfill-actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const WA_BATCH_MAX = 10;
 
@@ -216,34 +217,15 @@ function BatchResult({
   if (!state.ok && !state.error) return null;
   if (state.error) {
     return (
-      <div
-        role="alert"
-        style={{
-          font: "600 12.5px/1.5 var(--f-sans)",
-          color: "var(--danger)",
-          background: "var(--bg-elevated)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-sm)",
-          padding: "11px 14px",
-        }}
-      >
+      <Aviso tono="error" compacto>
         {state.error}
-      </div>
+      </Aviso>
     );
   }
+  // Con fallas o pendientes el resultado pide atención; limpio, es éxito.
+  const conPendientes = Boolean(state.failed || state.emailFailed || state.remaining);
   return (
-    <div
-      role="status"
-      style={{
-        font: "500 12.5px/1.5 var(--f-sans)",
-        color: "var(--ink)",
-        background: "var(--bg-elevated)",
-        border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--success)",
-        borderRadius: "var(--r-sm)",
-        padding: "11px 14px",
-      }}
-    >
+    <Aviso tono={conPendientes ? "atencion" : "exito"} compacto>
       <strong>{state.invited ?? 0}</strong> {okNoun}.
       {state.emailFailed
         ? ` ${state.emailFailed} con el correo fallido (reinténtalo).`
@@ -255,7 +237,7 @@ function BatchResult({
       {state.details ? (
         <span style={{ color: "var(--ink-soft)" }}> · {state.details}</span>
       ) : null}
-    </div>
+    </Aviso>
   );
 }
 
@@ -288,7 +270,9 @@ function Chip({
         appearance: "none",
         cursor: "pointer",
         font: `${active ? 700 : 600} 11.5px/1 var(--f-sans)`,
-        color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+        // Sobre vino, `--ink-side-strong` (blanco en los dos temas), como el
+        // botón primario: la tinta invertida se vuelve navy en oscuro.
+        color: active ? "var(--ink-side-strong)" : "var(--ink-soft)",
         background: active ? "var(--wine)" : "var(--bg-elevated)",
         border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
         borderRadius: "var(--r-pill)",
@@ -969,17 +953,7 @@ function InviteCandidatesPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Aviso: correos reales */}
-      <div
-        style={{
-          font: "500 12.5px/1.5 var(--f-sans)",
-          color: "var(--ink)",
-          background: "var(--warning-tint, var(--bg-elevated))",
-          border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--warning)",
-          borderRadius: "var(--r-sm)",
-          padding: "11px 14px",
-        }}
-      >
+      <Aviso tono="atencion" compacto>
         Invita por <strong>correo</strong> (selección + tandas de{" "}
         <strong>{MAX_PER_BATCH}</strong>) o por <strong>WhatsApp</strong> 1×1 (los
         que tienen teléfono) — genera el enlace y lo abres en su chat. Ambos mandan
@@ -992,7 +966,7 @@ function InviteCandidatesPanel({
             márcalos a mano solo si de verdad quieres invitarlos.
           </>
         ) : null}
-      </div>
+      </Aviso>
 
       <BatchResult state={state} okNoun="invitados con correo" />
 
@@ -1506,42 +1480,22 @@ function ColdInviteesPanel({ cold }: { cold: PortalColdInvitee[] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div
-        style={{
-          font: "500 12.5px/1.5 var(--f-sans)",
-          color: "var(--ink)",
-          background: "var(--warning-tint, var(--bg-elevated))",
-          border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--warning)",
-          borderRadius: "var(--r-sm)",
-          padding: "11px 14px",
-        }}
-      >
+      <Aviso tono="atencion" compacto>
         Estos clientes tienen invitación pero <strong>nunca abrieron su
         enlace</strong>. Reenvíales por <strong>correo</strong> (selección + tandas
         de <strong>{MAX_PER_BATCH}</strong>) o por <strong>WhatsApp</strong> 1×1. Los
         badges <em>✉/WA</em> muestran cuántas veces ya se les invitó por cada canal —
         <strong> no los satures</strong>.
-      </div>
+      </Aviso>
 
       <BatchResult state={state} okNoun="reenviados" />
 
       {saturatedSelected > 0 && (
-        <div
-          role="alert"
-          style={{
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--warning)",
-            background: "var(--warning-tint, var(--bg-elevated))",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-sm)",
-            padding: "10px 13px",
-          }}
-        >
+        <Aviso tono="atencion" urgente compacto>
           <strong>{saturatedSelected}</strong> de los seleccionados ya recibieron{" "}
           <strong>{SPAM_THRESHOLD}+ correos</strong>. Reenviar de nuevo puede leerse
           como spam — revisa los badges <em>✉</em> antes de continuar.
-        </div>
+        </Aviso>
       )}
 
       <BatchToolbar

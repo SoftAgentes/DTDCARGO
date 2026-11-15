@@ -17,6 +17,7 @@ import {
 } from "@/lib/studio/quote-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { QuoteDetailClient } from "../_components/QuoteDetailClient";
 
 export const metadata = { title: "Detalle estimado" };
@@ -118,33 +119,26 @@ export default async function QuoteDetailPage({
 
       {/* Link al shipment si se convirtió */}
       {quote.converted_to_shipment_id && (
-        <div
-          style={{
-            marginBottom: 20,
-            padding: "var(--s-3) var(--s-4)",
-            background: "var(--success-bg)",
-            border: "1px solid var(--success)",
-            borderRadius: "var(--r-sm)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 14,
-          }}
-        >
-          <span
-            style={{
-              font: "500 13px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
-            ✓ Este estimado ya fue convertido a un embarque.
-          </span>
-          <Link
-            href={`/studio/tracking/${quote.converted_to_shipment_id}`}
-            className="studio-btn studio-btn-dark studio-btn-sm"
-          >
-            Ver embarque →
-          </Link>
+        <div style={{ marginBottom: 20 }}>
+          <Aviso tono="exito">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              <span>Este estimado ya fue convertido a un embarque.</span>
+              <Link
+                href={`/studio/tracking/${quote.converted_to_shipment_id}`}
+                className="studio-btn studio-btn-dark studio-btn-sm"
+              >
+                Ver embarque →
+              </Link>
+            </div>
+          </Aviso>
         </div>
       )}
 

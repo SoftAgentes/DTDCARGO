@@ -21,6 +21,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 type ProbeResult =
   | {
@@ -258,19 +259,9 @@ export function SeaRatesTab() {
 
       {/* Error de request (no del proveedor) */}
       {reqError && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-md)",
-            padding: "var(--s-3) var(--s-4)",
-            fontSize: 13,
-            color: "var(--ink)",
-          }}
-        >
+        <Aviso tono="error">
           {reqError}
-        </div>
+        </Aviso>
       )}
 
       {/* Resultado */}

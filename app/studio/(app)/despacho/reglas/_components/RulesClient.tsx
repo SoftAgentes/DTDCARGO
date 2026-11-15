@@ -13,6 +13,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { updateDispatchRulesAction } from "../actions";
 import {
   DEFAULT_WEIGHTS,
@@ -447,30 +448,10 @@ export function RulesClient({
 
       {/* Feedback + submit */}
       {state?.error && (
-        <div
-          style={{
-            padding: 12,
-            background: "var(--danger-bg)",
-            color: "var(--danger)",
-            borderRadius: "var(--r-md)",
-            font: "600 13px/1.3 var(--f-sans)",
-          }}
-        >
-          {state.error}
-        </div>
+        <Aviso tono="error">{state.error}</Aviso>
       )}
       {state?.ok && (
-        <div
-          style={{
-            padding: 12,
-            background: "var(--success-bg)",
-            color: "var(--success)",
-            borderRadius: "var(--r-md)",
-            font: "600 13px/1.3 var(--f-sans)",
-          }}
-        >
-          Reglas guardadas. Se aplican al instante en la cola.
-        </div>
+        <Aviso tono="exito">Reglas guardadas. Se aplican al instante en la cola.</Aviso>
       )}
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>

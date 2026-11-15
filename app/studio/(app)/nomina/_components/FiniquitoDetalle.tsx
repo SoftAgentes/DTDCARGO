@@ -12,6 +12,7 @@ import { useState, useTransition, useEffect } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   settlementStatusLabel,
   settlementStatusTone,
@@ -218,39 +219,19 @@ export function FiniquitoDetalle({
       />
 
       {actionError && !voidDialogOpen && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            padding: "10px 12px",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-            margin: "0 0 var(--s-4)",
-          }}
-        >
-          {actionError}
-        </p>
+        <div style={{ marginBottom: "var(--s-4)" }}>
+          <Aviso tono="error">{actionError}</Aviso>
+        </div>
       )}
 
       {isDraft && (
-        <p
-          style={{
-            font: "600 12px/1.5 var(--f-sans)",
-            color: "var(--warning)",
-            padding: "10px 12px",
-            background: "var(--bg-elevated)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-sm)",
-            margin: "0 0 var(--s-4)",
-            maxWidth: "70ch",
-          }}
-        >
-          Borrador advisory — el contador valida el criterio salarial antes de confirmar y pagar.
-          Confirmar genera el asiento de provisión (DR cargas sociales / CR sueldos por pagar); el
-          pago real sale luego por Tesorería.
-        </p>
+        <div style={{ marginBottom: "var(--s-4)", maxWidth: "70ch" }}>
+          <Aviso tono="atencion">
+            Borrador advisory — el contador valida el criterio salarial antes de confirmar y pagar.
+            Confirmar genera el asiento de provisión (DR cargas sociales / CR sueldos por pagar); el
+            pago real sale luego por Tesorería.
+          </Aviso>
+        </div>
       )}
 
       {/* Totales */}
@@ -270,7 +251,7 @@ export function FiniquitoDetalle({
       </div>
 
       {loadError ? (
-        <p style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>{loadError}</p>
+        <Aviso tono="error">{loadError}</Aviso>
       ) : lines === null ? (
         <p style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           Cargando desglose…

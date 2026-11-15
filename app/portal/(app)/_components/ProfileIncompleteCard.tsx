@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 
 /**
  * Aviso del dashboard: el perfil está incompleto (REGISTRO EXPRESS · founder
@@ -28,29 +29,31 @@ export function ProfileIncompleteCard({
   const ctaLabel = onlyAddress ? "Agregar dirección" : "Completar ahora";
 
   return (
-    <div
-      className="card-shadow bg-white border border-grey-200 rounded-[16px] border-l-[3px] p-5 sm:p-6"
-      style={{ borderLeftColor: "var(--color-status-warning)" }}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-        <div className="min-w-0">
-          {/* Eyebrow en grey-700 (AA): el ámbar a 11px sobre card mide 3.14:1
-              — el estado lo llevan el borde izquierdo dorado y el copy. Mismo
-              criterio que ProfilePendingBanner y CedulaPhotoRow. SDD-0176. */}
-          <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
-            Completa tu perfil
+    // SDD-0603 · T4e (BD-037): franja plana de atención; color en `claridad.css`.
+    <div className="portal-aviso rounded-[16px] p-5 sm:p-6" data-tono="atencion">
+      <span className="portal-aviso-icono">
+        <StatusIcon tone="warning" size={16} />
+      </span>
+      <div className="portal-aviso-cuerpo">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+          <div className="min-w-0">
+            {/* Eyebrow en grey-700 (AA): el ámbar a 11px sobre card mide 3.14:1
+                — el estado lo llevan el icono de atención y el copy. SDD-0176. */}
+            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
+              Completa tu perfil
+            </div>
+            <p className="mt-1.5 text-[14px] text-grey-700 leading-[1.55]">
+              Antes de tu primera compra necesitamos {missingText}. Te toma un par de
+              minutos y lo haces una sola vez.
+            </p>
           </div>
-          <p className="mt-1.5 text-[14px] text-grey-700 leading-[1.55]">
-            Antes de tu primera compra necesitamos {missingText}. Te toma un par de
-            minutos y lo haces una sola vez.
-          </p>
+          <Link
+            href={ctaHref}
+            className="btn btn-primary flex-shrink-0 inline-flex items-center gap-2 whitespace-nowrap"
+          >
+            {ctaLabel} <ArrowIcon />
+          </Link>
         </div>
-        <Link
-          href={ctaHref}
-          className="btn btn-primary flex-shrink-0 inline-flex items-center gap-2 whitespace-nowrap"
-        >
-          {ctaLabel} <ArrowIcon />
-        </Link>
       </div>
     </div>
   );

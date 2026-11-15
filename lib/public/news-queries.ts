@@ -7,10 +7,12 @@ export type { NewsPostRow } from "@/lib/news/types";
 /**
  * Columnas de `news_posts` que lee el sitio público (SDD-0611 C1).
  *
- * anon tiene SELECT en toda la tabla. Con `select("*")` saldrían `publish_via`,
- * `seo_draft_id` y `content_sha256` (`publish_via = 'automatica'` declararía la
- * IA, contra §4.7), `created_by` (uuid de un usuario del Studio) y `tenant_id`.
- * `source` tampoco: ninguna página lo usa. Catálogo de producción leído por el DG el 2026-11-09 (estructura, sin filas):
+ * Desde la 0526 anon solo tiene SELECT sobre estas columnas (grant por columna,
+ * sin SELECT de tabla): `select("*")` falla con permiso denegado. Quedan fuera
+ * `publish_via` (`'automatica'` declararía la IA, contra §4.7), `seo_draft_id`,
+ * `content_sha256`, `created_by` (uuid de un usuario del Studio), `tenant_id` y
+ * `source`, que ninguna página usa. Una columna nueva que lea el sitio público
+ * exige migración con su GRANT además de sumarse al literal. Catálogo de producción leído por el DG el 2026-11-09 (estructura, sin filas):
  * 24 columnas. `content_kind`, `cover_image_url`, `cover_alt`, `featured`,
  * `reviewer_name` y `reviewer_role` NO existen: pedirlas vaciaría /noticias.
  */
