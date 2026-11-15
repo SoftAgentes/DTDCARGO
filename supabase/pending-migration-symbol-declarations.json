@@ -38,20 +38,20 @@
           "name": "studio_grant_user_module",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/usuarios/actions.ts:1265"
+            "app/studio/(app)/usuarios/actions.ts:1299"
           ]
         },
         {
           "name": "studio_revoke_user_module_grant",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/usuarios/actions.ts:1295"
+            "app/studio/(app)/usuarios/actions.ts:1329"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/usuarios/actions.ts:1232",
+          "site": "app/studio/(app)/usuarios/actions.ts:1266",
           "contains": "err.code === \"PGRST202\"",
           "degradation": "Sin la 0538 PostgREST responde PGRST202 y mensajeDeAcceso lo traduce a «Los accesos adicionales todavía no están activos en esta base». No se concede ni se quita nada; el resto de Usuarios sigue igual."
         }
