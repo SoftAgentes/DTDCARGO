@@ -8,7 +8,7 @@
 
 ## Objetivo original
 Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicionales por persona» en ERP Studio
-(caso Alejandro: contabilidad + CRM). Sin código de producto ni migraciones.
+(caso contabilidad con CRM). Sin código de producto ni migraciones.
 
 ## Completado
 - SDD **0622** reservado (siguiente libre según `sdd:next`: spec 0622, migración 0525).
@@ -28,14 +28,14 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 
 ## Hallazgos clave de la auditoría (resumen)
 - `crm_puede_usar()` exige `admin`/`commercial` (`0506_crm_modelo.sql:186-194`): sin cambio en la base, el CRM
-  seguiría cerrado para Alejandro aunque la UI lo mostrara.
+  seguiría cerrado para la persona de contabilidad con CRM aunque la UI lo mostrara.
 - `document_entity_authorized` (`0444_unlinked_document_entity_rbac.sql:73-150`) ya consulta
   `studio_role_module_overrides`: punto central para sumar los accesos por persona.
 - `quotes`, `sales_orders`, `suppliers`: RLS solo por tenant; alcanza con la capa de aplicación.
 - Nómina exige admin/accounting en SQL (`0160_nomina_employees.sql:71-85`): la base la sigue exigiendo por rol; si se concede por extra hay que cubrirla (por confirmar con Sam).
 
 ## Decisiones de Sam (recogidas en la spec §9)
-- 2026-11-09: extras por módulo; vencimiento opcional; «elegir módulos» para Alejandro; opción «Personalizado» (§5.5).
+- 2026-11-09: extras por módulo; vencimiento opcional; «elegir módulos» para la persona de contabilidad con CRM; opción «Personalizado» (§5.5).
 - **2026-11-11 (cambia lo anterior):** los extras SÍ pueden abrir módulos sensibles (dinero y solo-administrador), concedidos por admin o superadmin, con **doble aviso** («Esta persona puede hacer estas modificaciones, ¿estás seguro?»). La RPC exige `p_confirm_sensitive` y registra la confirmación en `entity_audit_log`. No se toca el CHECK de la 0357. Las capabilities (`CAPABILITIES`) quedan fuera.
 
 ## Pendientes de esta tarea (de Sam)
@@ -82,7 +82,7 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - Nota nueva en §11 del cruce con la SDD-0624 (PR #515, cabeza 013c39c5a, abierta): su 0528 crea
   `public.studio_can_read_money()` solo por rol (`accounting`/`admin`, comprobado en el archivo); la fase 8 la redefinirá
   para sumar extras; mientras tanto queda fail-closed. `git grep` confirma que 0538-0540 no la tocan.
-- No se tocaron `status: approved`, «aprobada por Sam», R1-R3 ni «caso Alejandro».
+- No se tocaron `status: approved`, «aprobada por Sam», R1-R3 ni «caso contabilidad con CRM».
 
 ### Evidencia
 - Allowlist §11 contra `git diff --name-only <merge-base da8d123ee> origin/claude/impl-permisos-por-persona-10d044`:
@@ -108,7 +108,7 @@ Reservar número SDD y redactar **solo la spec** de «rol base + accesos adicion
 - Spec: en «Estado» (§ inicial) se agrega «Confirmada por Sam el 2026-11-14 en el chat del Director General: «Sí, las
   confirmo»»; junto a cada «decidido por el Director el 2026-11-11» de R1-R3 (§8, filas 9.6-9.8 de §9 y el párrafo de
   estado) se agrega «Confirmadas por Sam el 2026-11-14 en el chat del Director General: «Sí, las confirmo»».
-- Sin cambios en el texto de R1-R3, «caso Alejandro» (sigue abierta) ni `status: approved`.
+- Sin cambios en el texto de R1-R3, «caso contabilidad con CRM» (sigue abierta) ni `status: approved`.
 - Evidencia: `git diff --check` PASÓ; `pnpm docs:check` NO EJECUTADO (sin `node_modules`, no se instaló nada).
 - Pendiente de esta tarea: sin cambio respecto de la sección anterior (correr `docs:check` y `sdd:check` con turno).
 
@@ -128,7 +128,7 @@ La revisión salió APROBADA CON OBSERVACIONES; commit solo de docs:
 - §11: «las numeraciones previas de esta tarea ya no valen», sin listar números ni la afirmación sobre la 0526.
 - Frontmatter `updated: 2026-11-14`. Rutas locales con el usuario de Windows quitadas de este handoff (líneas 4 y 75);
   ninguna queda en los dos archivos.
-- Sin cambios en «caso Alejandro», `status: approved` ni el texto de R1-R3.
+- Sin cambios en «caso contabilidad con CRM», `status: approved` ni el texto de R1-R3.
 
 ### Evidencia
 - `git diff --check`: PASÓ.

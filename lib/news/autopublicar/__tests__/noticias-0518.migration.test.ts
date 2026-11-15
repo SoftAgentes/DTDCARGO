@@ -4,8 +4,8 @@
  *
  * El contrato `supabase/tests/0518_noticias_publicacion_automatica.test.sql`
  * aplica las migraciones REALES de noticias (0053, 0055, 0057, 0140) y la 0518,
- * y escribe como la vía automática (service_role), como admins (Sam, Alejandro,
- * otro tenant) y como una cuenta sin permiso. PGlite lo corre con los `.sql`
+ * y escribe como la vía automática (service_role), como admins (Sam, la persona de
+ * contabilidad con CRM, otro tenant) y como una cuenta sin permiso. PGlite lo corre con los `.sql`
  * inlineados: lo que se prueba es el texto que el runbook aplicará.
  *
  * CONTROL ROJO: sin 0518 el contrato cae en la primera aserción.

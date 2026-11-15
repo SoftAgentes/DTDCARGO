@@ -82,7 +82,7 @@ insert into auth.users values
   ('20000000-0000-4000-8000-000000000001'),  -- admin de T1 (Sam)
   ('20000000-0000-4000-8000-000000000002'),  -- admin de T2
   ('20000000-0000-4000-8000-000000000003'),  -- commercial de T1
-  ('20000000-0000-4000-8000-000000000004');  -- segundo admin de T1 (Alejandro)
+  ('20000000-0000-4000-8000-000000000004');  -- segundo admin de T1 (la persona de contabilidad con CRM)
 insert into public.user_tenants values
   ('20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'admin', null),
   ('20000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000002', 'admin', null),
@@ -201,7 +201,7 @@ do $contrato$
 declare
   t1 constant uuid := '10000000-0000-4000-8000-000000000001';
   sam constant uuid := '20000000-0000-4000-8000-000000000001';
-  alejandro constant uuid := '20000000-0000-4000-8000-000000000004';
+  revisor constant uuid := '20000000-0000-4000-8000-000000000004';
   d1 constant uuid := '30000000-0000-4000-8000-000000000001';
   r jsonb;
   v_post uuid;
@@ -268,9 +268,9 @@ begin
     '13: una manual editada sigue sin huella');
 
   -- ── C2 · borrar en Auth a quien creó el borrador de una automática ──
-  update public.seo_drafts set created_by = alejandro where id = d1;
+  update public.seo_drafts set created_by = revisor where id = d1;
   perform pg_temp.assert_true(pg_temp.falla('postgres', null,
-    format('delete from auth.users where id = %L', alejandro)) is null,
+    format('delete from auth.users where id = %L', revisor)) is null,
     'C2: se puede borrar en Auth a quien creó el borrador de una automática publicada');
   perform pg_temp.assert_true((select created_by is null from public.seo_drafts where id = d1),
     'C2: el borrador queda sin autor («Quedan sin autor»)');

@@ -27,8 +27,8 @@ Medido el 2026-08-19 sobre `app/studio/(app)/usuarios/`:
 - La ficha (`UserDetailDrawer`) muestra el correo con el componente `Dato`, que
   es de sólo lectura.
 
-Consecuencia real: `pasantedtd@gmail.com` quedó cargado por error para Alejandro
-Parra, cuyo correo de trabajo es `pasantecontabilidaddtd@gmail.com`. El botón
+Consecuencia real: `pasantedtd@gmail.com` quedó cargado por error para la persona de
+contabilidad con CRM, cuyo correo de trabajo es `pasantecontabilidaddtd@gmail.com`. El botón
 "Enviar acceso" le manda el enlace al buzón equivocado, así que la persona no
 puede entrar — `last_sign_in_at` sigue en `null` desde el 2026-07-03.
 
@@ -38,7 +38,7 @@ Lo que ESTA spec hace: **corregir la dirección de correo de una persona que
 sigue siendo la misma persona.**
 
 Lo que ESTA spec NO hace, a propósito: **la sucesión de un puesto** (se va
-Alejandro, entra Pedro). Ver §Sucesión.
+la persona de contabilidad con CRM, entra Pedro). Ver §Sucesión.
 
 ## Sucesión: por qué NO se resuelve reescribiendo el correo
 
@@ -51,8 +51,8 @@ correo: `append_audit_event(..., actor_user_id, ...)`, `created_by` de facturas,
 embarques y tokens de acceso. El correo es un atributo de login, no la
 identidad.
 
-Si a la fila de Alejandro se le reescribe el correo por el de Pedro, **cada
-factura, cada embarque y cada evento de auditoría que registró Alejandro pasa a
+Si a la fila de la persona de contabilidad con CRM se le reescribe el correo por el de Pedro, **cada
+factura, cada embarque y cada evento de auditoría que registró esa persona pasa a
 mostrarse como hecho por Pedro**, en silencio y hacia atrás. Eso contradice
 AUD-01/AUD-02 y la trazabilidad que exige ISO 9001 §7.5, que es justo lo que el
 carril de auditoría existe para sostener.
