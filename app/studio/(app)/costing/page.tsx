@@ -24,11 +24,16 @@ import {
 import { buildForecast } from "@/lib/studio/costing/ui";
 import { ultimaTasa } from "@/lib/studio/fx-rates";
 import { CostingClient } from "./_components/CostingClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Costing & Margen" };
 export const dynamic = "force-dynamic";
 
 export default async function CostingPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("costing");
+
   const supabase = await createClient();
 
   const [{ rows, containers, linksAvailable }, vesRate, templates, quotes] = await Promise.all([

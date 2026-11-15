@@ -24,11 +24,16 @@ import {
 } from "@/lib/studio/user-types";
 import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
 import { UsersClient } from "./_components/UsersClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
 export const dynamic = "force-dynamic";
 
 export default async function UsuariosPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("users");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");

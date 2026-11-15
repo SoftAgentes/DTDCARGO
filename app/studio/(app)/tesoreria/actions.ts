@@ -282,11 +282,13 @@ export async function voidPayment(
  *
  * Gate de VISTA (SDD-0494): el layout de Tesorería exige `requireModuleView`,
  * pero eso protege la PÁGINA, no esta action — que es un endpoint invocable
- * directo, igual que las mutaciones (SDD-0085 §Seguridad). Y la RLS no ayuda
- * acá: `supplier_payments_team_select` (0470) es tenant-wide, así que sin este
- * candado un rol `operations` o `commercial` leía órdenes de pago con sus
+ * directo, igual que las mutaciones (SDD-0085 §Seguridad). Antes de la 0528 la
+ * RLS no ayudaba: `supplier_payments_team_select` (0470) era tenant-wide, y sin
+ * este candado un rol `operations` o `commercial` leía órdenes de pago con sus
  * montos, contra lo que el propio layout declara («NUNCA operations/commercial»).
- * Hueco preexistente; se cierra junto con el de `getPayableForBill`.
+ * Desde la 0528 (SDD-0624) la lectura es `supplier_payments_money_select`
+ * (tenant + `studio_can_read_money()`); el candado se queda como defensa en
+ * profundidad y para la base que todavía no tenga la 0528.
  */
 export async function getBillHistory(
   billId: string,

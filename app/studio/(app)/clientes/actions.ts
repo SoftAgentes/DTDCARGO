@@ -401,6 +401,11 @@ export async function geocodeClientAddressAction(
   | { ok: false; error: string }
 > {
   const supabase = await createClient();
+  // SDD-0624: geocodificar es parte de editar la dirección de un cliente y
+  // gasta la cuota de la casa; antes bastaba la sesión.
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { ok: false, error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { ok: false, error: "Inicia sesión primero." };
 

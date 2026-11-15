@@ -11,12 +11,20 @@ type PayloadSnapshot = {
 };
 const io = vi.hoisted(() => ({
   client: vi.fn(), account: vi.fn(), post: vi.fn(), void: vi.fn(), revalidate: vi.fn(), refresh: vi.fn(),
+  role: vi.fn(async () => "commercial"), admin: { current: null as unknown },
   captured: [] as PayloadSnapshot[],
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: io.refresh }) }));
 vi.mock("@/app/studio/(app)/actions", () => ({ signOut: vi.fn() }));
 vi.mock("@/components/BrandMark", () => ({ BrandMark: () => <span>DTD Cargo</span> }));
 vi.mock("@/lib/db/server", () => ({ createClient: io.client }));
+// SDD-0624: el asiento histórico se lee con el cliente de servicio; el doble
+// devuelve el mismo cliente. El rol no es support.
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => io.admin.current }));
+vi.mock("@/lib/studio/rbac-guard", async (orig) => ({
+  ...(await orig<typeof import("@/lib/studio/rbac-guard")>()),
+  getStudioRole: io.role,
+}));
 vi.mock("@/lib/studio/expense-queries", () => ({ resolveExpenseAccountId: io.account }));
 vi.mock("@/lib/studio/accounting/expense-posting", () => ({
   syncExpenseEntry: io.post, voidExpenseEntriesForExpense: io.void,
@@ -163,6 +171,7 @@ function setupDb() {
     },
   };
   io.client.mockImplementation(async () => { if (context.pause) await context.pause.promise; return client; });
+  io.admin.current = client;
   io.account.mockResolvedValue(A);
   io.post.mockImplementation(async (value) => { effects.push({ kind: "post", value }); });
   io.void.mockImplementation(async (...value) => { effects.push({ kind: "void", value }); });

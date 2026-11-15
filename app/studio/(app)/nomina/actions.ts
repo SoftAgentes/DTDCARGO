@@ -30,7 +30,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import {
+  capabilityDenial,
+  moduleEditDenial,
+  moduleViewDenial,
+} from "@/lib/studio/rbac-guard";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   validateEmployeeInput,
@@ -1244,7 +1248,10 @@ export async function listPayrollRunLinesAction(
   runId: string,
 ): Promise<{ lines?: PayrollRunLine[]; error?: string }> {
   const supabase = await createClient();
-  // Lectura: la RLS por tenant+rol ya restringe; no muta nada.
+  // Lectura: la RLS por tenant+rol ya restringe; SDD-0624 suma el gate de
+  // aplicación (dinero + PII de empleados).
+  const denial = await moduleViewDenial(supabase, "nomina");
+  if (denial) return { error: denial };
   const run = await getPayrollRun(supabase, runId);
   if (!run) return { error: "El corte no existe o no es de tu tenant." };
   const lines = await listPayrollRunLines(supabase, runId);
@@ -1630,6 +1637,9 @@ export async function listSettlementLinesAction(
   settlementId: string,
 ): Promise<{ lines?: SettlementLineRow[]; error?: string }> {
   const supabase = await createClient();
+  // SDD-0624: gate de aplicación además de la RLS de nómina.
+  const denial = await moduleViewDenial(supabase, "nomina");
+  if (denial) return { error: denial };
   const s = await getSettlement(supabase, settlementId);
   if (!s) return { error: "El finiquito no existe o no es de tu tenant." };
   const lines = await listSettlementLines(supabase, settlementId);
