@@ -131,9 +131,7 @@ esto toca la base, las migraciones ni el código del ERP.
 ## 8 · Webhook, filtro y vaciado (SDD-0626 Paso 2: §3.2 y §3.3)
 
 **Estado:** construido en el Paso 2, con todo **apagado**. Si este código llega a producción con una publicación
-manual, no hace nada hasta que Sam encienda cada interruptor. **Faltan, y no las aplica este paso:** la migración
-0541 (tablas) y la 0544 (cuota del filtro). Ambas están declaradas como espera en `migrations-baseline.json`;
-aplicarlas exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`.
+manual, no hace nada hasta que Sam encienda cada interruptor. **Aplicadas en producción el 2026-11-15, con el OK de Sam («Autorizo ambas»):** la migración 0541 (tablas, 20:51:38Z, md5 `e43598906754dd582fa3fb4162b012e2`) y la 0544 (cuota del filtro, 20:52:17Z, md5 `fd984a13dd2056bcaa6d1665b27b2094`). Están selladas en `migrations.lock.json` y ya no son esperas. La oficina **nace pausada** y todos los interruptores siguen apagados.
 
 ```
 Chatwoot (bandeja de prueba)  ──POST firmado──▶  /api/oficina/webhook-chatwoot  ──▶  event_inbox  (guardar y salir)

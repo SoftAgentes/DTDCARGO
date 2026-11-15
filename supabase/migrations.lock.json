@@ -3412,6 +3412,15 @@
         "forma": "exacta"
       }
     },
+    "0541_oficina_cable_tablas": {
+      "sha256": "361cc810386f9e38b8433a67939a0fce80827f2cdfbe65bbb03593e37e494cc6",
+      "md5": "e43598906754dd582fa3fb4162b012e2",
+      "bytes": 31004,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
     "0542_is_platform_admin_execute_authenticated": {
       "sha256": "9c4a84028e9cda7207d562663f323f313ea05f11df0303fcdb7a3f503323040c",
       "md5": "e6f1c9b137ba7eda3e7ca79e0b144da7",
@@ -3425,6 +3434,15 @@
       "sha256": "38316b9cde785f4961e56514c26eac829d3732e66f1735feea192d6ec4a79c73",
       "md5": "c44c34f2aeba188ba18194ee29b135f3",
       "bytes": 12953,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0544_oficina_filtro_bandeja": {
+      "sha256": "7517d7e6d5367d27c884bc55d206c37fc724d82dfaf015295636fa2e102f2630",
+      "md5": "fd984a13dd2056bcaa6d1665b27b2094",
+      "bytes": 8897,
       "ledger": {
         "fecha": "2026-11-15",
         "forma": "exacta"
