@@ -49,11 +49,11 @@ hacer visible «ver y editar», ordenar «Almacén», y evaluar la Fase 6 (`cust
 
 ## PR / BRANCH
 
-PR draft contra `main` desde `codex/0635-acceso-por-persona` (URL en el cierre de la sesión).
+https://github.com/SoftAgentes/DTDCARGO/pull/588 (draft) contra `main` desde `codex/0635-acceso-por-persona`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Revisión del Director General y aprobación de Sam del diseño (§12, cinco decisiones).
+- Revisión del Director General y aprobación de Sam del diseño (§12, siete decisiones).
 - Al aprobar: cambiar `status` a `approved` y abrir la etapa 2 con la allowlist de §11.
 
 ## Impacto documental
