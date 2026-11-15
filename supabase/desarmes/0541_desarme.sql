@@ -5,7 +5,8 @@
 -- Ensayo: lib/studio/__tests__/oficina-cable-tablas.migration.test.ts («desarme») y el contrato
 --   supabase/tests/0541_oficina_cable_tablas.test.sql, que aplica la 0541, este desarme y otra vez la 0541.
 --
--- QUITA las funciones office_cambiar_pausa, office_esta_pausada y office_solo_insertar, y las tablas
+-- QUITA las funciones office_vaciar_resumenes_viejos, office_cambiar_pausa, office_esta_pausada y
+--   office_solo_insertar, y las tablas
 --   task_events, office_tasks, event_inbox y office_paused con sus índices, disparadores y secuencia.
 -- NO TOCA is_platform_admin, platform_admins, agents, agent_runs, agent_approvals ni ninguna otra tabla,
 --   función, policy o grant.
@@ -41,6 +42,7 @@ begin
 end
 $preflight$;
 
+drop function if exists public.office_vaciar_resumenes_viejos();
 drop function if exists public.office_cambiar_pausa(boolean, text);
 drop function if exists public.office_esta_pausada();
 drop table if exists public.task_events;
