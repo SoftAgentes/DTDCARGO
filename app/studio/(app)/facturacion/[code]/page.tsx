@@ -38,8 +38,8 @@ import {
   fundClassTone,
   paymentMethodLabel,
 } from "@/lib/studio/payment-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
-import { Icon } from "@/app/studio/_components/icons";
 import { fmtUsd } from "@/lib/money";
 import { InvoiceDetailClient } from "../_components/InvoiceDetailClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
@@ -154,19 +154,13 @@ export default async function InvoiceDetailPage({
 
   return (
     <div style={{ maxWidth: 1100 }}>
+      {/* SDD-0603 · tramo 5e: lo que se oprime lleva contorno y no baja de 32 px. */}
       <Link
         href="/studio/facturacion"
-        style={{
-          font: "500 12px/1 var(--f-sans)",
-          color: "var(--ink-soft)",
-          textDecoration: "none",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          marginBottom: 14,
-        }}
+        className="studio-btn studio-btn-ghost studio-btn-sm"
+        style={{ marginBottom: 14 }}
       >
-        <span style={{ fontSize: 14 }}>←</span> Volver al listado
+        <span>←</span> Volver al listado
       </Link>
 
       <InvoiceDetailClient
@@ -617,53 +611,22 @@ function StrandedCreditsNotice({
   const uno = credits.length === 1;
   const total = credits.reduce((s, c) => s + c.rewardUsd, 0);
 
+  // SDD-0603 · tramo 5e: franja de `Aviso`. Es un aviso durable que se deriva
+  // del estado al abrir la factura, no la respuesta a una acción: va en
+  // `status`, no en `alert`. El icono lo pone `Aviso` (estado por icono y
+  // texto, nunca solo por color); los códigos solo se leen, así que van como
+  // texto, sin cajón.
   return (
-    <section
-      role="alert"
-      style={{
-        margin: "0 0 var(--s-5)",
-        padding: "var(--s-3) var(--s-4)",
-        background: "var(--warning-bg)",
-        border: "1px solid var(--warning)",
-        borderRadius: "var(--r-md)",
-        display: "flex",
-        gap: "var(--s-3)",
-        alignItems: "flex-start",
-      }}
-    >
-      {/* El estado se entiende por icono Y texto, nunca sólo por color
-          (política de estados del founder, 2026-09-05). El dorado va en el
-          icono y el borde, que sólo necesitan 3:1; el cuerpo es tinta neutra. */}
-      <span
-        style={{
-          color: "var(--warning)",
-          display: "flex",
-          flexShrink: 0,
-          marginTop: 2,
-        }}
-      >
-        {Icon.warn(16)}
-      </span>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            font: "700 13px/1.3 var(--f-sans)",
-            color: "var(--ink)",
-            marginBottom: "var(--s-2)",
-          }}
-        >
-          {uno
+    <div style={{ margin: "0 0 var(--s-5)" }}>
+      <Aviso
+        tono="atencion"
+        titulo={
+          uno
             ? "El crédito de referido quedó sin liberar"
-            : `Quedaron ${credits.length} créditos de referido sin liberar`}
-        </div>
-        <p
-          style={{
-            font: "500 12.5px/1.55 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: "0 0 var(--s-2)",
-            maxWidth: "76ch",
-          }}
-        >
+            : `Quedaron ${credits.length} créditos de referido sin liberar`
+        }
+      >
+        <p style={{ margin: "var(--s-1) 0 var(--s-2)", maxWidth: "76ch" }}>
           {uno
             ? "Esta factura se anuló, pero el crédito de referido que tenía aplicado sigue marcado como usado, así que el referidor no lo va a poder aprovechar en otra compra."
             : "Esta factura se anuló, pero los créditos de referido que tenía aplicados siguen marcados como usados, así que los referidores no los van a poder aprovechar en otra compra."}{" "}
@@ -674,7 +637,7 @@ function StrandedCreditsNotice({
         <div
           style={{
             display: "flex",
-            gap: "var(--s-2)",
+            gap: "var(--s-2) var(--s-4)",
             flexWrap: "wrap",
             alignItems: "center",
           }}
@@ -683,12 +646,7 @@ function StrandedCreditsNotice({
             <span
               key={c.referralId}
               style={{
-                font: "700 11.5px/1 var(--f-mono)",
-                color: "var(--ink)",
-                padding: "5px 9px",
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-sm)",
+                font: "700 12px/1.4 var(--f-mono)",
                 whiteSpace: "nowrap",
               }}
             >
@@ -696,18 +654,13 @@ function StrandedCreditsNotice({
             </span>
           ))}
           {!uno && (
-            <span
-              style={{
-                font: "600 11.5px/1 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
+            <span style={{ font: "600 12px/1.4 var(--f-sans)" }}>
               Total sin liberar: {fmtUsd(total)}
             </span>
           )}
         </div>
-      </div>
-    </section>
+      </Aviso>
+    </div>
   );
 }
 
@@ -771,14 +724,15 @@ function FieldLink({
       >
         {label}
       </div>
+      {/* SDD-0603 · tramo 5e: el vino queda para la acción principal; el
+          vínculo va en tinta y subrayado (`studio-link-quiet`). */}
       <Link
         href={href}
+        className="studio-link-quiet"
         style={{
           font: mono
             ? "600 13px/1.3 var(--f-mono)"
             : "500 13px/1.4 var(--f-sans)",
-          color: "var(--wine-text)",
-          textDecoration: "none",
         }}
       >
         {value}

@@ -378,6 +378,7 @@ function UserMenuDropdown({
           disabled={isPending}
           style={{
             width: "100%",
+            minHeight: 32,
             textAlign: "left",
             padding: "8px 10px",
             borderRadius: "var(--r-sm)",
@@ -453,6 +454,8 @@ function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
       onClick={onClick}
       style={{
         width: "100%",
+        // SDD-0603 · tramo 5e: nada que se oprima baja de 32 px (medía 29).
+        minHeight: 32,
         textAlign: "left",
         padding: "8px 10px",
         borderRadius: "var(--r-sm)",
