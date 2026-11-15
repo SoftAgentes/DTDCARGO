@@ -225,6 +225,13 @@ su sección, al final. Ver `git log origin/main..HEAD`.
   - **Comentarios vencidos:** dicen que la RLS de `quotes` filtra `deleted_at is null`, y eso dejó de ser cierto
     con la 0230. Están en `cotizador/actions.ts:470-472` y `:491` y en
     `app/studio/(app)/cotizador/_components/CotizadorClient.tsx:258`.
+    - **Matiz:** la policy «quotes portal self read» **sigue** filtrando `deleted_at is null` (la forma vigente es la
+      de `0428_portal_quotes_principal_tenant.sql:40-42`; en el fixture, `supabase/tests/0540_comercial_rls_por_modulo.test.sql:234`).
+      Por eso lo que esos comentarios dicen del portal («desaparece del portal del cliente»,
+      `cotizador/actions.ts:470-473` y `CotizadorClient.tsx:258`) sigue siendo cierto. Lo vencido es solo lo que
+      dicen del Studio.
+  - **Conversaciones:** `lib/studio/conversaciones/messages-queries.ts:120-129` lee y actualiza `unread_count` de una
+    conversación por id sin filtrar `deleted_at`. Lo acotan el tenant y el módulo; no es una fuga.
   - **Arreglo posible:** `.is("deleted_at", null)` en cada lectura que no deba mostrar lo borrado. No se hizo en esta
     PR.
 - **La propuesta de tarifa de la CN** (`cn/rate-snapshot-actions.ts`) lee rates, quotes y sales_orders con la sesión
@@ -536,7 +543,7 @@ el Director.
     - se suma «sin la 0230», que quita el `\ir` y tiene que abortar;
     - el estado real lo cubre el contrato verde.
 - **B2 · Lecturas sin `deleted_at`.**
-  - Las 5 SELECT nuevas ya no filtran lo borrado: `0540:166`, `:185`, `:204`, `:236` y `:268`.
+  - Las 5 SELECT nuevas ya no filtran lo borrado: `0540:167`, `:186`, `:205`, `:237` y `:269`.
   - Update y delete conservan `deleted_at is null` en su USING, que solo mira la fila vieja.
   - ~~Comprobé que la app filtra lo borrado en las consultas de las 5 tablas.~~ **Corregido en la 2.ª revisión del
     delta:** era falso. La 0230 dejó el filtro a la app, y varias lecturas no lo aplican; el inventario está en
@@ -547,7 +554,7 @@ el Director.
   `update … set deleted_at = now() where id = …`, y ninguno es dueño de la fila.
   - `3d2` ahora afirma que la RLS no oculta lo borrado; `3d3`, que lo borrado ya no se edita.
   - Dos mutantes reponen el filtro: el de tarifas cae en `7a` y el de cotizaciones en `3d2`.
-- **Textos falsos corregidos:** `0540:44-51`, `test.sql:383-385`, spec §13.4 y este handoff («FUERA DE ALCANCE»).
+- **Textos falsos corregidos:** `0540:44-52`, `test.sql:383-385`, spec §13.4 y este handoff («FUERA DE ALCANCE»).
 - **Media:** spec §13.2 ahora dice que la decisión de §9.1 hoy no se puede cumplir, ni por pantalla ni por RPC, hasta
   que se cubra algún sensible.
 - **Bajas:**
@@ -625,7 +632,7 @@ Duración: focales 81 s (22:58:22 → 22:59:43), más tres diagnósticos en PGli
 - **Mutantes** (cada mensaje se copió de una corrida en PGlite dentro del turno):
   - el que repone el filtro en tarifas cae en `TEST 0540: 7a: comercial borra lógico una tarifa con la sesión
     (error: new row violates row-level security policy for table "rates")`, que es el error real del UPDATE;
-  - el de cotizaciones cae en `TEST 0540: 3d2: la RLS no oculta lo borrado (lo filtra la app, como en la 0230)`.
+  - el de cotizaciones cae en `TEST 0540: 3d2: la RLS no oculta lo borrado desde la 0230` (etiqueta corregida después; antes decía «(lo filtra la app, como en la 0230)»).
 
 | Comprobación | Resultado |
 |---|---|
