@@ -1,6 +1,14 @@
 -- ─────────────────────────────────────────────────────────────
 -- 0538 · SDD-0622 · Accesos adicionales por persona (rol base + extras)
 --
+-- ⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en
+--    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicar exige OK
+--    de Sam NOMBRANDO este archivo (docs/runbooks/aplicar-migraciones-prod.md).
+--    ORDEN: 0528 → 0538 → 0539 → 0540. La 0528 (SDD-0624) va antes: su
+--    preflight aborta si `studio_can_read_money()` ya existe, y la fase de
+--    dinero de esta spec la redefinirá encima. Esta crea la tabla y las RPC
+--    que la 0539 y la 0540 exigen en sus preflights.
+--
 -- QUÉ RESUELVE: cada persona tiene un solo rol (`user_tenants.role`) y la
 -- matriz rol×módulo (`lib/studio/rbac.ts`, desvíos por rol de la 0357) no
 -- permite darle a UNA persona un módulo que su rol no trae. Caso real: alguien
@@ -186,12 +194,34 @@ $$;
 comment on function public.studio_module_is_superadmin_only(text) is
   'SDD-0622 R2: SUPERADMIN_ONLY_MODULES de lib/studio/rbac.ts. Sólo los concede is_platform_admin().';
 
+-- Módulos que la base ya acepta como extra = COVERED de
+-- lib/studio/user-module-grants.ts (revisión de la #509). La RPC rechaza el
+-- resto: un extra sobre un módulo que la base no cubre promete lo que la RLS
+-- niega, y `admin` abriría /studio/admin y /studio/debug. Ampliar la lista es
+-- una decisión de Sam (spec 0622 §13.3.3) y va con su migración.
+create function public.studio_module_is_grantable(p_module_id text)
+returns boolean
+language sql
+immutable
+security invoker
+set search_path = ''
+as $$
+  select p_module_id = any (array[
+    'kommo', 'clients', 'quotes', 'sales-orders', 'purchase-orders', 'conversaciones', 'rates', 'suppliers'
+  ]::text[])
+$$;
+
+comment on function public.studio_module_is_grantable(text) is
+  'SDD-0622: COVERED de lib/studio/user-module-grants.ts. Solo estos módulos se conceden como extra; la prueba de la 0538 compara la lista con el código.';
+
 revoke all on function public.studio_module_default_roles(text) from public, anon;
 revoke all on function public.studio_module_is_sensitive(text) from public, anon;
 revoke all on function public.studio_module_is_superadmin_only(text) from public, anon;
+revoke all on function public.studio_module_is_grantable(text) from public, anon;
 grant execute on function public.studio_module_default_roles(text) to authenticated, service_role;
 grant execute on function public.studio_module_is_sensitive(text) to authenticated, service_role;
 grant execute on function public.studio_module_is_superadmin_only(text) to authenticated, service_role;
+grant execute on function public.studio_module_is_grantable(text) to authenticated, service_role;
 
 -- ─── 2. Tabla ─────────────────────────────────────────────────────────────
 create table public.studio_user_module_grants (
@@ -442,6 +472,12 @@ begin
   end if;
   if v_sensitive and (v_version is null or v_version !~ '^[0-9a-z.-]{1,32}$') then
     raise exception 'Módulo sensible: falta la versión de la lista de efectos' using errcode = '22023';
+  end if;
+
+  -- Solo lo que la base ya cubre (COVERED). Va después de los demás candados
+  -- para que cada rechazo conserve su motivo propio.
+  if not public.studio_module_is_grantable(v_module) then
+    raise exception 'Ese módulo todavía no se puede conceder: su base no lo acepta (%)', v_module using errcode = '22023';
   end if;
 
   select * into v_before

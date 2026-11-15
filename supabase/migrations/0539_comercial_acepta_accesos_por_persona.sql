@@ -1,6 +1,13 @@
 -- ─────────────────────────────────────────────────────────────
 -- 0539 · SDD-0622 · Comercial en la base acepta los accesos por persona
 --
+-- ⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en
+--    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicar exige OK
+--    de Sam NOMBRANDO este archivo (docs/runbooks/aplicar-migraciones-prod.md).
+--    ORDEN: 0528 → 0538 → 0539 → 0540. Requiere la 0538 (su preflight exige
+--    `user_has_module` y `studio_user_module_grants`) y aborta si el CRM o el
+--    contrato documental no tienen las huellas de la 0506 y la 0444.
+--
 -- QUÉ RESUELVE: con la 0538 la pantalla ya suma los accesos adicionales, pero la
 -- base seguía comparando el rol suelto en Comercial (§12, grupo C):
 --   · `crm_puede_usar()` = admin o commercial (0506:186) → a alguien de
@@ -61,6 +68,37 @@ begin
      or pg_catalog.obj_description('public.document_entity_authorized(text,uuid,text)'::regprocedure, 'pg_proc')
         not like 'SDD-0412:%' then
     raise exception '0539: document_entity_authorized no es el de la 0444 (drift)';
+  end if;
+
+  -- Huellas de lo que se borra y recrea, con la 0506 como referencia (revisión
+  -- de la #509). Mismo método que la 0511: md5 sin espacios del cuerpo de la
+  -- función y de `qual|with_check` de cada policy, más comando, roles y
+  -- permisiva. Medidas sobre el estado que deja el repo; el catálogo de
+  -- producción lo mide el DG antes de aplicar.
+  if pg_catalog.md5(pg_catalog.regexp_replace(
+       (select p.prosrc from pg_catalog.pg_proc p
+         where p.oid = 'public.crm_mover_etapa(uuid,text,text,text)'::regprocedure),
+       '\s', '', 'g')) is distinct from '4868bb2402955359b06cf09a595ac928' then
+    raise exception '0539: crm_mover_etapa no tiene el cuerpo de la 0506 (drift)';
+  end if;
+  select string_agg(e.tabla || '::' || e.politica, ', ')
+    into v_doc
+  from (values
+    ('crm_tarjetas', 'crm_tarjetas_insert', 'INSERT', '225bbb4b6ef0be68babc61c15563c96c'),
+    ('crm_tarjetas', 'crm_tarjetas_update', 'UPDATE', '34052cc2ccb2fb667abb2494e251cadc'),
+    ('crm_tareas',   'crm_tareas_insert',   'INSERT', '9d0e4ca8ef271f4d4e6da0adc3e8f121'),
+    ('crm_tareas',   'crm_tareas_update',   'UPDATE', '34052cc2ccb2fb667abb2494e251cadc'),
+    ('crm_notas',    'crm_notas_insert',    'INSERT', 'f7cef6caad4eae47d126469d6965d923')
+  ) as e(tabla, politica, cmd, huella)
+  where not exists (
+    select 1 from pg_catalog.pg_policies p
+     where p.schemaname = 'public' and p.tablename = e.tabla and p.policyname = e.politica
+       and p.cmd = e.cmd and p.roles = array['authenticated']::name[] and p.permissive = 'PERMISSIVE'
+       and pg_catalog.md5(pg_catalog.regexp_replace(
+             coalesce(p.qual, '') || '|' || coalesce(p.with_check, ''), '\s', '', 'g')) = e.huella
+  );
+  if v_doc is not null then
+    raise exception '0539: las policies del CRM que se recrean no son las de la 0506 (drift): %', v_doc;
   end if;
 end;
 $preflight$;

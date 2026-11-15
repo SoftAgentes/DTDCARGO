@@ -1,6 +1,18 @@
 -- ─────────────────────────────────────────────────────────────
 -- 0540 · SDD-0622 · RLS de tablas comerciales por módulo (no solo por tenant)
 --
+-- ⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en
+--    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicar exige OK
+--    de Sam NOMBRANDO este archivo (docs/runbooks/aplicar-migraciones-prod.md).
+--    ORDEN: 0528 → 0538 → 0539 → 0540. Requiere la 0538 (`user_has_module`).
+--
+-- ⚠️ LOCK: cada DROP/CREATE POLICY toma ACCESS EXCLUSIVE sobre su tabla hasta
+--    el COMMIT. Son 8 tablas vivas (rates, quotes, conversations,
+--    conversation_messages, purchase_orders, purchase_order_items, sales_orders
+--    y chatwoot_conversations): mientras corre, el Studio, el portal y los
+--    webhooks de Chatwoot que las lean o escriban esperan. Aplicar en una
+--    ventana tranquila y con lock_timeout corto (runbook).
+--
 -- QUÉ RESUELVE (auditoría de permisos del 2026-11-11): estas tablas tenían una
 -- policy `for all to authenticated using (tenant_id = get_user_tenant_id())`,
 -- sin rol y con GRANT de escritura a authenticated. Cualquier miembro activo
@@ -42,30 +54,80 @@
 
 do $preflight$
 declare
+  v_t     record;
+  v_priv  text;
   v_falta text;
 begin
   if pg_catalog.to_regprocedure('public.user_has_module(text,boolean)') is null then
     raise exception '0540 requiere la 0538 (user_has_module)';
   end if;
-  select string_agg(t.tabla || '::' || t.policy, ', ')
+
+  -- Tabla por tabla, al nivel de la 0511: de postgres, RLS activa y SIN FORCE
+  -- (así la RLS no alcanza a los DEFINER), y los privilegios que las policies
+  -- nuevas necesitan. `escribe` = authenticated tiene INSERT/UPDATE/DELETE.
+  -- anon no se afirma aquí: lo mide el DG en el catálogo de producción.
+  for v_t in select * from (values
+    ('rates', true), ('quotes', true), ('conversations', true), ('conversation_messages', true),
+    ('purchase_orders', true), ('purchase_order_items', true), ('sales_orders', true),
+    ('chatwoot_conversations', false)
+  ) e(tabla, escribe) loop
+    if not exists (select 1 from pg_catalog.pg_class c
+                    where c.oid = pg_catalog.to_regclass('public.' || v_t.tabla)
+                      and c.relrowsecurity and not c.relforcerowsecurity
+                      and c.relowner = 'postgres'::pg_catalog.regrole) then
+      raise exception '0540 abortado: public.% no es de postgres con RLS activa y sin FORCE', v_t.tabla;
+    end if;
+    if not pg_catalog.has_table_privilege('authenticated', 'public.' || v_t.tabla, 'SELECT') then
+      raise exception '0540 abortado: authenticated no tiene SELECT sobre public.%', v_t.tabla;
+    end if;
+    foreach v_priv in array array['INSERT', 'UPDATE', 'DELETE'] loop
+      if pg_catalog.has_table_privilege('authenticated', 'public.' || v_t.tabla, v_priv) <> v_t.escribe then
+        raise exception '0540 abortado: el % de authenticated sobre public.% no es el esperado', v_priv, v_t.tabla;
+      end if;
+    end loop;
+  end loop;
+
+  -- El conjunto EXACTO de policies que deja el repo en las 8 tablas: nombre,
+  -- comando, roles, permisiva y huella (md5 sin espacios de `qual|with_check`,
+  -- mismo método que la 0511). Medido sobre el estado del repo (fixture de
+  -- supabase/tests/0540_*.test.sql, copia literal de 0012, 0106, 0124, 0125,
+  -- 0428, 0433 y 0504); el catálogo de producción lo mide el DG antes de aplicar.
+  -- Una policy de más quedaría en paralelo y, si es permisiva, reabriría lo
+  -- que esta cierra.
+  with expected(tablename, policyname, cmd, roles, huella) as (values
+    ('rates',                  'rates by tenant',                        'ALL',    array['authenticated']::name[], '2f1c848a6636190ff07f8c388e1aa6df'),
+    ('quotes',                 'quotes by tenant',                       'ALL',    array['authenticated']::name[], '2f1c848a6636190ff07f8c388e1aa6df'),
+    ('quotes',                 'quotes portal self read',                'SELECT', array['authenticated']::name[], 'dcd0ac40a95dd62de8bc8a9da1254ef4'),
+    ('conversations',          'conversations by tenant',                'ALL',    array['authenticated']::name[], '79e4eb54de3e8071163bd49191ad482c'),
+    ('conversations',          'conversations service_role all',         'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
+    ('conversation_messages',  'conversation_messages by tenant',        'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
+    ('conversation_messages',  'conversation_messages service_role all', 'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
+    ('conversation_messages',  'conv_messages portal client read own',   'SELECT', array['authenticated']::name[], 'b020e161bd5da9a8be82dd285d7737d8'),
+    ('purchase_orders',        'purchase_orders by tenant',              'ALL',    array['authenticated']::name[], '79e4eb54de3e8071163bd49191ad482c'),
+    ('purchase_orders',        'purchase_orders service_role all',       'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
+    ('purchase_order_items',   'purchase_order_items by tenant',         'ALL',    array['authenticated']::name[], '166af3198bb588089bebf7ac447ad386'),
+    ('purchase_order_items',   'purchase_order_items service_role all',  'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
+    ('sales_orders',           'sales_orders by tenant',                 'ALL',    array['authenticated']::name[], '79e4eb54de3e8071163bd49191ad482c'),
+    ('sales_orders',           'sales_orders service_role all',          'ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d'),
+    ('chatwoot_conversations', 'chatwoot_conversations_select_tenant',   'SELECT', array['authenticated']::name[], '8a6363ce084bcb9f4547aa7a80376539'),
+    ('chatwoot_conversations', 'chatwoot_conversations_service_role_all','ALL',    array['service_role']::name[],  'fe2e7aa3a94b94b876d7713f1517686d')
+  ), actual as (
+    select p.tablename::text as tablename, p.policyname::text as policyname, p.cmd, p.roles, p.permissive,
+           pg_catalog.md5(pg_catalog.regexp_replace(
+             coalesce(p.qual, '') || '|' || coalesce(p.with_check, ''), '\s', '', 'g')) as huella
+      from pg_catalog.pg_policies p
+     where p.schemaname = 'public'
+       and p.tablename in ('rates', 'quotes', 'conversations', 'conversation_messages',
+                           'purchase_orders', 'purchase_order_items', 'sales_orders', 'chatwoot_conversations')
+  )
+  select string_agg(coalesce(e.tablename, a.tablename) || '::' || coalesce(e.policyname, a.policyname), ', ')
     into v_falta
-  from (values
-    ('rates', 'rates by tenant'),
-    ('quotes', 'quotes by tenant'),
-    ('conversations', 'conversations by tenant'),
-    ('conversation_messages', 'conversation_messages by tenant'),
-    ('purchase_orders', 'purchase_orders by tenant'),
-    ('purchase_order_items', 'purchase_order_items by tenant'),
-    ('sales_orders', 'sales_orders by tenant'),
-    ('chatwoot_conversations', 'chatwoot_conversations_select_tenant')
-  ) as t(tabla, policy)
-  where not exists (
-    select 1 from pg_catalog.pg_policy p
-    where p.polrelid = pg_catalog.to_regclass('public.' || t.tabla)
-      and p.polname = t.policy
-  );
+  from expected e full join actual a
+    on a.tablename = e.tablename and a.policyname = e.policyname
+  where e.policyname is null or a.policyname is null or a.cmd <> e.cmd
+     or a.roles <> e.roles or a.permissive <> 'PERMISSIVE' or a.huella <> e.huella;
   if v_falta is not null then
-    raise exception '0540: faltan las policies que reemplaza (drift o ya aplicada): %', v_falta;
+    raise exception '0540: faltan las policies que reemplaza o no son las del repo (drift o ya aplicada): %', v_falta;
   end if;
 end;
 $preflight$;
@@ -230,8 +292,10 @@ begin
   where n.nspname = 'public'
     and c.relname in ('rates', 'quotes', 'conversations', 'conversation_messages',
                       'purchase_orders', 'purchase_order_items', 'sales_orders', 'chatwoot_conversations')
-    and 'authenticated'::regrole = any (p.polroles)
-    and p.polname not like '%portal%'
+    -- authenticated o TO public (polroles con 0): las dos alcanzan a la sesión.
+    and ('authenticated'::regrole = any (p.polroles) or 0 = any (p.polroles))
+    -- Las dos del portal, por nombre exacto: un comodín dejaría pasar cualquiera.
+    and p.polname not in ('quotes portal self read', 'conv_messages portal client read own')
     and coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '')
         || coalesce(pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid), '') not like '%user_has_%module%';
   if v_abiertas is not null then

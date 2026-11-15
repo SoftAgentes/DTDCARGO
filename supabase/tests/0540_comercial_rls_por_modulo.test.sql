@@ -160,12 +160,21 @@ insert into public.user_tenants (user_id, tenant_id, role, disabled_at, warehous
   ('a0000000-0000-0000-0000-0000000000e2', '11111111-1111-1111-1111-111111111111', 'warehouse', null, 'cn');
 
 -- ── Tablas comerciales, forma mínima, con sus policies VIGENTES ──────────
--- Copia literal de lo que la 0540 reemplaza: 0012:242-244 y :256-258,
--- 0106:129-145, 0124:178-185, 0125:187-189 y 0504:117-119.
+-- Copia literal de TODAS las policies que el repo deja en estas 8 tablas antes
+-- de la 0540 (su preflight exige el conjunto exacto con huellas): las que
+-- reemplaza (0012:242-244 y :256-258, 0106:129-145, 0124:178-185,
+-- 0125:187-189 y 0504:117-119), las de service_role (0106, 0124, 0125, 0504) y
+-- las del portal en su forma final (0428:40-51 y 0433:87-91).
+create table public.clients (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz, markbox text);
+create table public.client_users (auth_user_id uuid, client_id uuid, tenant_id uuid, status text);
+-- Vacías: la policy del portal las lee y no encuentra a nadie.
+grant select on public.clients, public.client_users to authenticated;
+create function public.portal_can_read_conversation_message(p_conversation_id uuid, p_message_tenant uuid)
+returns boolean language sql stable set search_path = '' as $$ select false $$;
 create table public.rates (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz, nombre text);
-create table public.quotes (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz, sales_order_id uuid);
+create table public.quotes (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz, sales_order_id uuid, client_markbox text);
 create table public.conversations (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz);
-create table public.conversation_messages (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, body text);
+create table public.conversation_messages (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, body text, conversation_id uuid);
 create table public.purchase_orders (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz);
 create table public.purchase_order_items (id uuid primary key default gen_random_uuid(), tenant_id uuid not null);
 create table public.sales_orders (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, deleted_at timestamptz);
@@ -204,6 +213,38 @@ create policy "sales_orders by tenant" on public.sales_orders for all to authent
 create policy chatwoot_conversations_select_tenant on public.chatwoot_conversations
   for select to authenticated
   using (tenant_id = (select public.get_user_tenant_id()));
+
+-- service_role y portal: la 0540 no las toca, pero su preflight las cuenta.
+create policy "conversations service_role all" on public.conversations
+  for all to service_role using (true) with check (true);
+create policy "conversation_messages service_role all" on public.conversation_messages
+  for all to service_role using (true) with check (true);
+create policy "purchase_orders service_role all"
+  on public.purchase_orders for all to service_role using (true) with check (true);
+create policy "purchase_order_items service_role all"
+  on public.purchase_order_items for all to service_role using (true) with check (true);
+create policy "sales_orders service_role all"
+  on public.sales_orders for all to service_role using (true) with check (true);
+create policy chatwoot_conversations_service_role_all on public.chatwoot_conversations
+  for all to service_role using (true) with check (true);
+create policy "quotes portal self read" on public.quotes for select to authenticated
+  using (
+    deleted_at is null and client_markbox is not null
+    and exists (
+      select 1 from public.client_users cu
+      join public.clients c
+        on c.id = cu.client_id and c.tenant_id = cu.tenant_id
+          and c.deleted_at is null
+      where cu.auth_user_id = (select auth.uid()) and cu.status = 'active'
+        and cu.tenant_id = quotes.tenant_id
+        and c.markbox = quotes.client_markbox
+    )
+  );
+create policy "conv_messages portal client read own" on public.conversation_messages
+  for select to authenticated
+  using (
+    public.portal_can_read_conversation_message(conversation_id, tenant_id)
+  );
 
 grant select, insert, update, delete on public.rates, public.quotes, public.conversations,
   public.conversation_messages, public.purchase_orders, public.purchase_order_items, public.sales_orders
@@ -367,6 +408,36 @@ select pg_temp.assert_true(not exists (
                        'public.chatwoot_conversations'::regclass)
     and p.polname like '%by tenant%'
 ), '5a: no queda ninguna policy «by tenant»');
+
+-- ── 6. Borrado y órdenes de compra/venta (revisión de la #509) ───────────
+-- support con OC y OV concedidas para VER: lee, pero no crea ni borra.
+create function pg_temp.borra(p_user text, p_tabla text) returns int language plpgsql as $$
+declare v int;
+begin
+  perform set_config('request.jwt.claim.sub', pg_temp.u(p_user)::text, true);
+  set local role authenticated;
+  execute format('delete from public.%I', p_tabla);
+  get diagnostics v = row_count;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
+  return v;
+end;
+$$;
+select pg_temp.como(pg_temp.u('a1'),
+  format($q$select public.studio_grant_user_module(%L, 'purchase-orders', true, false, 'Consulta órdenes de compra')$q$, pg_temp.u('d1')));
+select pg_temp.como(pg_temp.u('a1'),
+  format($q$select public.studio_grant_user_module(%L, 'sales-orders', true, false, 'Consulta órdenes de venta')$q$, pg_temp.u('d1')));
+select pg_temp.assert_true(pg_temp.ve('d1', 'purchase_orders') > 0 and pg_temp.ve('d1', 'sales_orders') > 0,
+  '6a: support con OC y OV para ver las lee');
+select pg_temp.falla(pg_temp.u('d1'),
+  $q$insert into public.purchase_orders (tenant_id) values ('11111111-1111-1111-1111-111111111111')$q$,
+  'row-level security', '6b: support no crea órdenes de compra');
+select pg_temp.falla(pg_temp.u('d1'),
+  $q$insert into public.sales_orders (tenant_id) values ('11111111-1111-1111-1111-111111111111')$q$,
+  'row-level security', '6c: support no crea órdenes de venta');
+select pg_temp.assert_true(pg_temp.borra('d1', 'quotes') = 0, '6d: support no borra cotizaciones');
+select pg_temp.assert_true(pg_temp.borra('d1', 'purchase_orders') = 0, '6e: support no borra órdenes de compra');
+select pg_temp.assert_true(pg_temp.borra('a3', 'rates') = 0, '6f: marketing con Tarifas para ver no borra tarifas');
 
 select 'TEST 0540: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 

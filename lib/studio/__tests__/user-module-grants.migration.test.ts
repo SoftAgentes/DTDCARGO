@@ -29,6 +29,8 @@ import {
   type UserModuleGrants,
 } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
+import { MODULES } from "@/lib/studio/modules";
+import { moduleCoverage } from "@/lib/studio/user-module-grants";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
@@ -129,6 +131,20 @@ describe("SDD-0622 · la 0538 copia exacta de rbac.ts", () => {
       expect(SENSITIVE_MODULE_EFFECTS[id]?.length ?? 0, id).toBeGreaterThan(0);
     }
   });
+
+  it("los concedibles de la 0538 (studio_module_is_grantable) = COVERED de user-module-grants.ts", () => {
+    const fn = FILE_0538.slice(
+      FILE_0538.indexOf("create function public.studio_module_is_grantable"),
+      FILE_0538.indexOf("comment on function public.studio_module_is_grantable"),
+    );
+    const sql = [...fn.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]).sort();
+    const code = MODULES.map((m) => m.id).filter((id) => moduleCoverage(id) === "covered").sort();
+    expect(code.length).toBeGreaterThanOrEqual(5);
+    expect(sql).toEqual(code);
+    // Ni el panel de administración ni Usuarios se conceden por la RPC.
+    expect(sql).not.toContain("admin");
+    expect(sql).not.toContain("users");
+  });
 });
 
 // ─── Contratos ───────────────────────────────────────────────────────────
@@ -173,6 +189,16 @@ const MUTANTES_0538: { nombre: string; sql: () => string; cae: string }[] = [
     sql: () => once(FILE_0538, "if coalesce(p_can_edit, false) and v_module in ('users', 'admin') then", "if false then"),
     cae: "TEST 0538: 5a: Usuarios no se concede con edición",
   },
+  {
+    nombre: "la RPC concede módulos que la base no cubre (Tesorería, admin)",
+    sql: () =>
+      once(
+        FILE_0538,
+        "  if not public.studio_module_is_grantable(v_module) then\n    raise exception 'Ese módulo todavía no se puede conceder",
+        "  if false then\n    raise exception 'Ese módulo todavía no se puede conceder",
+      ),
+    cae: "TEST 0538: 4c: con confirmación, la RPC tampoco da Tesorería",
+  },
 ];
 
 const MUTANTES_0539: { nombre: string; sql: () => string; cae: string }[] = [
@@ -190,6 +216,35 @@ const MUTANTES_0539: { nombre: string; sql: () => string; cae: string }[] = [
     nombre: "document_entity_authorized ignora el extra",
     sql: () => once(FILE_0539, "        or coalesce(d.grant_view, false)\n", "\n"),
     cae: "TEST 0539: 6e:",
+  },
+];
+
+/**
+ * Deriva del estado de partida (revisión de la #509): se cambia la 0506 del
+ * fixture, no la 0539. Su preflight tiene que abortar sin tocar nada.
+ */
+const M0506 = "0506_crm_modelo.sql";
+const FILE_0506 = read(resolve(ROOT, "supabase/migrations", M0506));
+const DERIVAS_0539: { nombre: string; sql: () => string; cae: string }[] = [
+  {
+    nombre: "crm_tarjetas_insert ya no exige fuente manual",
+    sql: () =>
+      once(
+        FILE_0506,
+        "with check (tenant_id = (select public.get_user_tenant_id()) and (select public.crm_puede_usar()) and fuente = 'manual');",
+        "with check (tenant_id = (select public.get_user_tenant_id()) and (select public.crm_puede_usar()));",
+      ),
+    cae: "0539: las policies del CRM que se recrean no son las de la 0506 (drift): crm_tarjetas::crm_tarjetas_insert",
+  },
+  {
+    nombre: "crm_mover_etapa con otro cuerpo",
+    sql: () =>
+      once(
+        FILE_0506,
+        "raise exception 'crm_mover_etapa: tablero desconocido'",
+        "raise exception 'crm_mover_etapa: tablero no reconocido'",
+      ),
+    cae: "0539: crm_mover_etapa no tiene el cuerpo de la 0506 (drift)",
   },
 ];
 
@@ -230,6 +285,116 @@ const MUTANTES_0540: { nombre: string; sql: () => string; cae: string }[] = [
       ),
     cae: "TEST 0540: 1f: support no escribe mensajes",
   },
+  {
+    nombre: "borrar cotizaciones solo pide ver",
+    sql: () =>
+      once(
+        FILE_0540,
+        "  for delete to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null and (select public.user_has_module('quotes', true)));",
+        "  for delete to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null and (select public.user_has_module('quotes', false)));",
+      ),
+    cae: "TEST 0540: 6d: support no borra cotizaciones",
+  },
+  {
+    nombre: "crear órdenes de compra solo pide ver",
+    sql: () =>
+      once(
+        FILE_0540,
+        "create policy purchase_orders_insert_por_modulo on public.purchase_orders\n  for insert to authenticated\n  with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('purchase-orders', true)));",
+        "create policy purchase_orders_insert_por_modulo on public.purchase_orders\n  for insert to authenticated\n  with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('purchase-orders', false)));",
+      ),
+    cae: "TEST 0540: 6b: support no crea órdenes de compra",
+  },
+  {
+    nombre: "crear órdenes de venta solo pide ver",
+    sql: () =>
+      once(
+        FILE_0540,
+        "create policy sales_orders_insert_por_modulo on public.sales_orders\n  for insert to authenticated\n  with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('sales-orders', true)));",
+        "create policy sales_orders_insert_por_modulo on public.sales_orders\n  for insert to authenticated\n  with check (tenant_id = (select public.get_user_tenant_id()) and (select public.user_has_module('sales-orders', false)));",
+      ),
+    cae: "TEST 0540: 6c: support no crea órdenes de venta",
+  },
+  {
+    nombre: "una policy TO public sin módulo se cuela",
+    sql: () =>
+      once(
+        FILE_0540,
+        "-- ─── Postcondiciones",
+        "create policy rates_abierta_public on public.rates for select using (true);\n-- ─── Postcondiciones",
+      ),
+    cae: "0540: quedan policies de authenticated sin módulo: rates::rates_abierta_public",
+  },
+  {
+    nombre: "una policy con «portal» en el nombre se cuela",
+    sql: () =>
+      once(
+        FILE_0540,
+        "-- ─── Postcondiciones",
+        "create policy \"rates portal abierta\" on public.rates for select to authenticated using (true);\n-- ─── Postcondiciones",
+      ),
+    cae: "0540: quedan policies de authenticated sin módulo: rates::rates portal abierta",
+  },
+];
+
+/**
+ * Deriva del estado de partida de la 0540 (revisión de la #509): se cambia el
+ * fixture (la copia literal del repo), no la 0540. El preflight exacto tiene
+ * que abortar.
+ */
+const C0540_NOMBRE = "0540_comercial_rls_por_modulo.test.sql";
+const FIXTURE_0540 = read(C0540);
+const DERIVAS_0540: { nombre: string; fixture: () => string; cae: string }[] = [
+  {
+    nombre: "falta la policy de service_role de conversaciones",
+    fixture: () =>
+      once(
+        FIXTURE_0540,
+        "create policy \"conversations service_role all\" on public.conversations\n  for all to service_role using (true) with check (true);\n",
+        "",
+      ),
+    cae: "conversations::conversations service_role all",
+  },
+  {
+    nombre: "«rates by tenant» con otra expresión",
+    fixture: () =>
+      once(
+        FIXTURE_0540,
+        "create policy \"rates by tenant\" on public.rates for all to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()) and deleted_at is null)",
+        "create policy \"rates by tenant\" on public.rates for all to authenticated\n  using (tenant_id = (select public.get_user_tenant_id()))",
+      ),
+    cae: "0540: faltan las policies que reemplaza o no son las del repo (drift o ya aplicada): rates::rates by tenant",
+  },
+  {
+    nombre: "una policy de más en cotizaciones",
+    fixture: () =>
+      once(
+        FIXTURE_0540,
+        "-- service_role y portal: la 0540 no las toca, pero su preflight las cuenta.\n",
+        "-- service_role y portal: la 0540 no las toca, pero su preflight las cuenta.\ncreate policy quotes_extra on public.quotes for select to authenticated using (true);\n",
+      ),
+    cae: "quotes::quotes_extra",
+  },
+  {
+    nombre: "RLS con FORCE en tarifas",
+    fixture: () =>
+      once(
+        FIXTURE_0540,
+        "alter table public.rates enable row level security;\n",
+        "alter table public.rates enable row level security;\nalter table public.rates force row level security;\n",
+      ),
+    cae: "0540 abortado: public.rates no es de postgres con RLS activa y sin FORCE",
+  },
+  {
+    nombre: "authenticated sin DELETE en órdenes de venta",
+    fixture: () =>
+      once(
+        FIXTURE_0540,
+        "grant select on public.chatwoot_conversations to authenticated;\n",
+        "grant select on public.chatwoot_conversations to authenticated;\nrevoke delete on public.sales_orders from authenticated;\n",
+      ),
+    cae: "0540 abortado: el DELETE de authenticated sobre public.sales_orders no es el esperado",
+  },
 ];
 
 describe("SDD-0622 · contrato 0540 (RLS comercial por módulo, PGlite)", () => {
@@ -256,6 +421,17 @@ describe("SDD-0622 · contrato 0540 (RLS comercial por módulo, PGlite)", () => 
     expect(run.green).toBeUndefined();
     expect(run.error).toContain(cae);
   }, SLOW);
+
+  it.each(DERIVAS_0540)("DERIVA del estado de partida «$nombre»: el preflight de la 0540 aborta", async ({ fixture, cae }) => {
+    const run = await contract(C0540, "TEST 0540", { [C0540_NOMBRE]: fixture() });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toContain(cae);
+  }, SLOW);
+
+  it("hay mutantes y derivas de la 0540 (piso)", () => {
+    expect(MUTANTES_0540.length).toBeGreaterThanOrEqual(9);
+    expect(DERIVAS_0540.length).toBeGreaterThanOrEqual(5);
+  });
 });
 
 describe("SDD-0622 · contratos 0538 y 0539 (PGlite)", () => {
@@ -302,9 +478,16 @@ describe("SDD-0622 · contratos 0538 y 0539 (PGlite)", () => {
     expect(run.error).toContain(cae);
   }, SLOW);
 
+  it.each(DERIVAS_0539)("DERIVA de la 0506 «$nombre»: el preflight de la 0539 aborta", async ({ sql, cae }) => {
+    const run = await contract(C0539, "TEST 0539", { [M0506]: sql() });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toContain(cae);
+  }, SLOW);
+
   it("hay mutantes de cada candado (piso)", () => {
-    expect(MUTANTES_0538.length).toBeGreaterThanOrEqual(8);
+    expect(MUTANTES_0538.length).toBeGreaterThanOrEqual(9);
     expect(MUTANTES_0539.length).toBeGreaterThanOrEqual(2);
+    expect(DERIVAS_0539.length).toBeGreaterThanOrEqual(2);
   });
 });
 

@@ -287,15 +287,22 @@ select pg_temp.falla(pg_temp.u('a1'),
 select pg_temp.falla(pg_temp.u('a1'),
   format($q$select public.studio_grant_user_module(%L, 'treasury', true, false, 'Revisa la caja', null, true)$q$, pg_temp.u('b1')),
   'versión de la lista de efectos', '4b: sin versión de efectos rechazada');
-select pg_temp.como(pg_temp.u('a1'),
-  format($q$select public.studio_grant_user_module(%L, 'treasury', true, false, 'Revisa la caja', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')));
-select pg_temp.assert_true(pg_temp.tiene('b1', 'treasury', false), '4c: con confirmación, comercial ve Tesorería');
-select pg_temp.assert_true(not pg_temp.tiene('b1', 'treasury', true), '4d: solo ver no edita');
+-- Revisión de la #509: la RPC solo concede lo que la base cubre (COVERED).
+-- Tesorería no está, ni con el doble aviso (§13.3.3 sigue abierto para Sam).
+select pg_temp.falla(pg_temp.u('a1'),
+  format($q$select public.studio_grant_user_module(%L, 'treasury', true, false, 'Revisa la caja', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')),
+  'no se puede conceder', '4c: con confirmación, la RPC tampoco da Tesorería: la base no la cubre');
 select pg_temp.assert_true((
-  select count(*) = 1 from public.entity_audit_log
+  select count(*) = 0 from public.entity_audit_log
   where entity_id = pg_temp.u('b1') and event_type = 'user_module_grant_created'
-    and (payload->>'sensitive_confirmed')::boolean and payload->>'effects_version' = '2026-11-11.1'
-), '4e: la auditoría guarda la confirmación y la versión de efectos');
+) and not exists (select 1 from public.studio_user_module_grants where user_id = pg_temp.u('b1')),
+  '4e: el rechazo no deja fila ni evento');
+-- La semántica de una fila sensible confirmada se prueba cargándola aparte.
+select pg_temp.como(null,
+  format($q$insert into public.studio_user_module_grants (tenant_id, user_id, module_id, can_view, can_edit, reason, sensitive_confirmed_at, effects_version)
+            values ('11111111-1111-1111-1111-111111111111', %L, 'treasury', true, false, 'Revisa la caja', now(), '2026-11-11.1')$q$, pg_temp.u('b1')));
+select pg_temp.assert_true(pg_temp.tiene('b1', 'treasury', false), '4d: una fila sensible confirmada deja ver Tesorería');
+select pg_temp.assert_true(not pg_temp.tiene('b1', 'treasury', true), '4d2: solo ver no edita');
 select pg_temp.falla(null,
   format($q$insert into public.studio_user_module_grants (tenant_id, user_id, module_id, can_view, can_edit, reason)
             values ('11111111-1111-1111-1111-111111111111', %L, 'nomina', true, false, 'Directo sin aviso')$q$, pg_temp.u('b1')),
@@ -309,10 +316,17 @@ select pg_temp.falla(null,
 select pg_temp.falla(pg_temp.u('a1'),
   format($q$select public.studio_grant_user_module(%L, 'users', true, true, 'Ayuda con altas', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')),
   'solo para ver', '5a: Usuarios no se concede con edición');
-select pg_temp.como(pg_temp.u('a1'),
-  format($q$select public.studio_grant_user_module(%L, 'users', true, false, 'Ayuda con altas', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')));
+select pg_temp.falla(pg_temp.u('a1'),
+  format($q$select public.studio_grant_user_module(%L, 'users', true, false, 'Ayuda con altas', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')),
+  'no se puede conceder', '5b: Usuarios tampoco se concede por la RPC: la base no lo cubre');
+select pg_temp.falla(pg_temp.u('a1'),
+  format($q$select public.studio_grant_user_module(%L, 'admin', true, false, 'Mira el panel', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')),
+  'no se puede conceder', '5g: el panel de administración no se concede (abriría /studio/admin y /studio/debug)');
+select pg_temp.como(null,
+  format($q$insert into public.studio_user_module_grants (tenant_id, user_id, module_id, can_view, can_edit, reason, sensitive_confirmed_at, effects_version)
+            values ('11111111-1111-1111-1111-111111111111', %L, 'users', true, false, 'Ayuda con altas', now(), '2026-11-11.1')$q$, pg_temp.u('b1')));
 select pg_temp.assert_true(pg_temp.tiene('b1', 'users', false) and not pg_temp.tiene('b1', 'users', true),
-  '5b: un extra sobre Usuarios es solo lectura efectiva');
+  '5b2: una fila sobre Usuarios es solo lectura efectiva');
 select pg_temp.falla(pg_temp.u('b1'),
   format($q$select public.studio_grant_user_module(%L, 'kommo', true, false, 'Escalada')$q$, pg_temp.u('c2')),
   'Solo un administrador', '5c: con Usuarios por extra no se pueden conceder accesos');
@@ -323,10 +337,11 @@ select pg_temp.falla(null,
 select pg_temp.falla(pg_temp.u('a1'),
   format($q$select public.studio_grant_user_module(%L, 'legal', true, false, 'Revisa contratos', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')),
   'superadministrador', '5e: un admin que no es superadmin no concede Legal');
-select pg_temp.como(pg_temp.u('a2'),
-  format($q$select public.studio_grant_user_module(%L, 'legal', true, false, 'Revisa contratos', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')));
-select pg_temp.assert_true((select count(*) = 1 from public.studio_user_module_grants where module_id = 'legal'),
-  '5f: el superadmin sí concede Legal');
+select pg_temp.falla(pg_temp.u('a2'),
+  format($q$select public.studio_grant_user_module(%L, 'legal', true, false, 'Revisa contratos', null, true, '2026-11-11.1')$q$, pg_temp.u('b1')),
+  'no se puede conceder', '5f: el superadmin pasa R2, pero Legal tampoco se concede: la base no lo cubre');
+select pg_temp.assert_true((select count(*) = 0 from public.studio_user_module_grants where module_id = 'legal'),
+  '5f2: no queda fila de Legal');
 
 -- ── 6. support, vencimiento, desactivado, scope ──────────────────────────
 select pg_temp.como(pg_temp.u('a1'),
@@ -341,8 +356,12 @@ select pg_temp.como(null, format($q$update public.studio_user_module_grants set 
   where user_id = %L and module_id = 'rates'$q$, pg_temp.u('e1')));
 select pg_temp.assert_true(not pg_temp.tiene('e1', 'rates', false), '6d: vencido, el acceso desaparece solo');
 
-select pg_temp.como(pg_temp.u('a1'),
-  format($q$select public.studio_grant_user_module(%L, 'cn', true, false, 'Ayuda en China')$q$, pg_temp.u('e1')));
+select pg_temp.falla(pg_temp.u('a1'),
+  format($q$select public.studio_grant_user_module(%L, 'cn', true, false, 'Ayuda en China')$q$, pg_temp.u('e1')),
+  'no se puede conceder', '6e0: la CN no se concede por la RPC: la base no la cubre');
+select pg_temp.como(null,
+  format($q$insert into public.studio_user_module_grants (tenant_id, user_id, module_id, can_view, can_edit, reason)
+            values ('11111111-1111-1111-1111-111111111111', %L, 'cn', true, false, 'Ayuda en China')$q$, pg_temp.u('e1')));
 select pg_temp.assert_true(not pg_temp.tiene('e1', 'cn', false), '6e: un extra no salta el scope de almacén');
 
 update public.user_tenants set disabled_at = now() where user_id = pg_temp.u('c1');
