@@ -1,12 +1,18 @@
 # SDD-0626 — Revisión de datos personales: las cuatro tablas del cable (§3.1, migración 0541)
 
-**Cuándo y con qué:** el 2026-11-15, con [`revisar-datos-ve`](../../../.claude/skills/revisar-datos-ve/SKILL.md), sobre la rama `sdd/0626-paso1-revision`.
+Hecha el 2026-11-15 con [`revisar-datos-ve`](../../../.claude/skills/revisar-datos-ve/SKILL.md), sobre la rama `sdd/0626-paso1-revision`.
 
-**Por qué:** lo pidió la revisión independiente de la #572 (hallazgo 1, severidad media). `titulo`, `meta_datos`, `actor` y `resumen` son texto libre, y en `task_events` quedan para siempre.
+**Por qué:** lo pidió la revisión independiente de la #572, en su hallazgo 1 (severidad media): `titulo`, `meta_datos`, `actor` y `resumen` son texto libre, y en `task_events` quedan para siempre.
 
-**Alcance:** las cuatro tablas de la 0541 y lo que el Paso 2 va a escribir en ellas. No es una auditoría del cable completo, ni de Chatwoot, ni del runtime de la oficina.
+**El arreglo:** es la opción A que Sam aprobó el 15/11/2026 («A: regla + 90 días»). Está en §3.1 de la spec, en la 0541 y en `lib/studio/oficina/cable-textos.ts`.
 
-**Qué no es:** no es asesoría legal y no afirma que el proyecto cumple. Cada punto queda en uno de tres estados:
+**Alcance:**
+- las cuatro tablas de la 0541;
+- la regla con la que el Paso 2 va a escribir en ellas.
+
+No es una auditoría del cable completo, ni de Chatwoot, ni del runtime de la oficina.
+
+**No es asesoría legal y no afirma que el proyecto cumple.** Cada punto queda en uno de tres estados:
 - `ENCONTRADO`: un problema que se ve en el código;
 - `CORRECTO`: la implementación que lo resuelve, vista en el código;
 - `NO VERIFICABLE`: no se puede comprobar leyendo el repositorio.
@@ -24,96 +30,110 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 
 | Estado | Cantidad |
 |---|---|
-| `CORRECTO` | 6 |
+| `CORRECTO` | 7 |
 | `ENCONTRADO` | 3 |
 | `NO VERIFICABLE` | 5 |
 
 ## 2 · Inventario
 
 **De quién son los datos:**
-- los clientes y contactos que escriben por Chatwoot. Muchos no son usuarios del ERP (punto 12). Sus datos llegan a la oficina solo **por referencia** (`payload_ref`, `entidad_ref`);
-- el personal que pausa o despausa la oficina: los administradores de plataforma.
+- Los clientes y contactos que escriben por Chatwoot. Muchos no son usuarios del ERP (punto 12). Sus datos llegan a la oficina solo por referencia (`payload_ref`, `entidad_ref`).
+- El personal que pausa o despausa la oficina: los administradores de plataforma.
 
-**Quién más lo ve:** RLS está activa y no hay policies. anon y authenticated no tienen privilegios, ni de tabla ni de columna. Solo leen service_role (el despachador futuro) y el dueño de las migraciones.
+**Quién más lo ve:**
+- RLS está activa y no hay policies.
+- anon y authenticated no tienen privilegios, ni de tabla ni de columna.
+- Solo leen service_role (el despachador futuro) y el dueño de las migraciones.
 
 | Tabla.campo | Qué es | Finalidad | Retención | Evidencia |
 |---|---|---|---|---|
-| `office_tasks.titulo` | Texto libre de hasta 200 caracteres | Describir el trabajo | Sin plazo: las tareas no se pierden (SGE-AG-01 §7) | `0541:117`, `:135` |
-| `office_tasks.asignado_a` | Texto libre de hasta 100 caracteres. Puede ser un agente o el nombre de una persona | A quién va la tarea | Sin plazo | `0541:121`, `:137` |
-| `office_tasks.entidad_ref` | Referencia sin espacios, de hasta 300 caracteres | Señalar la entidad del ERP sin copiarla (R5) | Sin plazo | `0541:124`, `:143` |
-| `office_tasks.meta_datos` | Objeto jsonb de hasta 8 KB, con claves libres | **Finalidad no evidente en el código** | Sin plazo | `0541:126`, `:145` |
-| `task_events.actor` | Texto libre de hasta 100 caracteres | Quién hizo el paso | **Para siempre** (solo agregar) | `0541:159`, `:167` |
-| `task_events.resumen` | Texto libre de hasta 1.000 caracteres | Qué hizo el paso | **Para siempre** (solo agregar) | `0541:160`, `:169` |
-| `event_inbox.clave_dedupe` | Texto sin espacios, de hasta 200 caracteres, único | Que un evento se procese una sola vez (AC-4) | Sin plazo | `0541:189`, `:203` |
-| `event_inbox.payload_ref` | Referencia `origen:ruta` | Señalar el mensaje en Chatwoot, sin copiarlo | Sin plazo | `0541:210` |
-| `office_paused.cambiado_por` | uuid del administrador que cambió la bandera | Dejar registrada la autorización (SGE-AG-01 §7) | Para siempre (solo agregar) | `0541:223`, `:342` |
-| `office_paused.motivo` | Texto del administrador, de hasta 500 caracteres | Por qué se pausó o despausó | Para siempre (solo agregar) | `0541:225` |
+| `office_tasks.titulo` | Texto libre de hasta 200 caracteres, sin datos personales por la regla de escritura | Describir el trabajo | Sin plazo: las tareas no se pierden (SGE-AG-01 §7) | `0541:126`, `:144` |
+| `office_tasks.asignado_a` | Identificador `agente:`, `sistema:` o `persona:<uuid>` | A quién va la tarea | Sin plazo | `0541:130`, `:151` |
+| `office_tasks.entidad_ref` | Referencia sin espacios, de hasta 300 caracteres | Señalar la entidad del ERP sin copiarla (R5) | Sin plazo | `0541:133`, `:154` |
+| `office_tasks.meta_datos` | Objeto jsonb de hasta 8 KB con referencias e indicadores (ids, conteos y banderas), sin datos personales | Lo que el despachador necesita de la tarea | Sin plazo | `0541:135`, `:156` |
+| `task_events.actor` | Identificador `agente:`, `sistema:` o `persona:<uuid>` | Quién hizo el paso | Para siempre (solo agregar) | `0541:170`, `:180` |
+| `task_events.resumen` | Texto libre de hasta 1.000 caracteres, sin datos personales por la regla de escritura | Qué hizo el paso | **90 días**; después queda vacío | `0541:171`, `:182`, `:279`, `:384` |
+| `event_inbox.clave_dedupe` | Texto sin espacios, de hasta 200 caracteres, único | Que un evento se procese una sola vez (AC-4) | Sin plazo | `0541:202`, `:216` |
+| `event_inbox.payload_ref` | Referencia `origen:ruta` | Señalar el mensaje en Chatwoot sin copiarlo | Sin plazo | `0541:223` |
+| `office_paused.cambiado_por` | uuid del administrador que cambió la bandera | Dejar registrada la autorización (SGE-AG-01 §7) | Para siempre (solo agregar) | `0541:236`, `:366` |
+| `office_paused.motivo` | Texto del administrador, de hasta 500 caracteres | Por qué se pausó o despausó | Para siempre (solo agregar) | `0541:238` |
 
-No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalización. El riesgo está en los cuatro textos libres, que pueden copiar lo que dijo el cliente.
+No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalización. El riesgo estaba en los textos libres, que pueden copiar lo que dijo el cliente.
 
 ## 3 · Hallazgos
 
-### `ENCONTRADO` 1 · La bitácora guarda texto libre para siempre (media)
+### `ENCONTRADO` 1 · La regla de escritura todavía no tiene quién la llame (media)
 
-`task_events.actor` y `task_events.resumen` aceptan cualquier texto (`0541:159-160`, `:167-170`), y el disparador de solo agregar no deja borrarlo nunca.
-- **Riesgo:** un resumen escrito por el modelo puede llevar el nombre, el teléfono o el mensaje del cliente.
-- **Lo que falta:** no hay regla en la base ni en el código que lo impida, y no hay plazo de retención.
-- **Norma:** SC 332/2001, temporalidad; AUD-01 §5 («PII se minimiza y se representa por identificador»); R5 de esta spec («redacción de PII en logs»).
-- **Arreglo propuesto:** la **opción A**, que espera el OK de Sam porque cambia el alcance de §3.1:
-  - `actor` pasa a ser un identificador (`agente:<perfil>`, `persona:<uuid>` o `sistema:<componente>`), exigido con un CHECK;
-  - `resumen` pasa por una regla de escritura del Paso 2, con prueba;
-  - `resumen` se vacía a los 90 días, el plazo del replay en N1. La fila queda, con tipo, actor, costo, modelo y hora.
+`exigirTextosDelCable` existe y tiene su prueba (`lib/studio/oficina/cable-textos.ts:115`), pero nadie la llama todavía, porque el Paso 2 no existe.
+- **Arreglo:** el PR del Paso 2 escribe `titulo`, `meta_datos`, `resumen`, `actor` y `asignado_a` solo después de esa función. Su revisión comprueba que no haya otro camino de escritura.
 
-### `ENCONTRADO` 2 · Textos de la tarea sin regla (media)
+### `ENCONTRADO` 2 · La regla no ve todo (baja)
 
-`office_tasks.titulo`, `asignado_a` y `meta_datos` no tienen regla de minimización (`0541:117`, `:121`, `:126`). La finalidad de `meta_datos` no se puede deducir del código.
-- **Arreglo propuesto, dentro de la opción A:**
-  - `asignado_a` usa el mismo formato de identificador que `actor`;
-  - `titulo` y `meta_datos` los escribe una sola función del Paso 2, que rechaza los datos personales. Reusa `tieneDatosPersonales` (`lib/news/autopublicar/control.ts:174`) y tiene prueba;
-  - `meta_datos` solo guarda referencias e indicadores: ids, conteos y banderas.
+`tieneDatosPersonales` (`lib/news/autopublicar/control.ts:174`) no veía un móvil de China agrupado como «+86 138 1234 5678».
+- **Lo que ya se agregó:** el cable le suma el teléfono con prefijo internacional (`detectorDelCable`, `cable-textos.ts:108`), con prueba y mutante.
+- **Lo que sigue sin verse:**
+  - un móvil chino escrito **sin** prefijo;
+  - un nombre de persona suelto.
+
+  Ninguna regla de texto los detecta sin dar falsos positivos.
+- **La red:** si algo pasa, el resumen se vacía a los 90 días.
 
 ### `ENCONTRADO` 3 · La clave de dedupe podría armarse con un dato de contacto (baja)
 
-`clave_dedupe` solo prohíbe los espacios (`0541:203`). Si el webhook la armara con un teléfono, el teléfono quedaría guardado.
-- **Arreglo:** regla del Paso 2. La clave se arma con los ids de Chatwoot (conversación y mensaje), nunca con datos de contacto (§3.2).
+`clave_dedupe` solo prohíbe los espacios (`0541:216`). La clave se arma con los ids de Chatwoot (conversación y mensaje), nunca con datos de contacto (§3.2).
+- Por qué no se le aplica la regla de texto: los ids numéricos largos la harían dar falsos positivos.
+- Dónde se revisa: en el PR del Paso 2.
 
-### `CORRECTO` 4 · El mensaje del cliente no entra a la bandeja
+### `CORRECTO` 4 · Quién y a quién, por identificador
 
-`payload_ref` solo acepta una referencia `origen:ruta` sin espacios (`0541:210`). El contrato rechaza el mensaje completo y el texto después del origen: casos «mensaje completo» y «mensaje tras el origen» de `supabase/tests/0541_oficina_cable_tablas.test.sql`.
+`task_events.actor` y `office_tasks.asignado_a` solo aceptan `agente:<perfil>`, `sistema:<componente>` o `persona:<uuid>` (`0541:180`, `:151`).
+- El contrato rechaza un nombre, un identificador sin prefijo, una `persona:` sin uuid y un correo.
+- `cable-textos.ts:27` usa el mismo patrón, y una prueba compara los dos.
 
-### `CORRECTO` 5 · La entidad del ERP va por referencia
+### `CORRECTO` 5 · El resumen se vacía a los 90 días
 
-`entidad_ref` es una referencia sin espacios (`0541:143`). No copia el contenido.
+`office_vaciar_resumenes_viejos()` (`0541:384`) pone `resumen = null` en las filas de más de 90 días.
+- El disparador solo deja pasar esa edición (`0541:279`): resumen → null, en filas de más de 90 días, con todas las demás columnas iguales.
+- El contrato 2e lo prueba con su lado negativo: no se puede cambiar el resumen por otro texto, ni tocar otra columna al vaciar, ni vaciar una fila de menos de 90 días.
+- Hay cinco mutantes de la excepción.
 
-### `CORRECTO` 6 · Nadie de la API lee estas tablas
+**Por qué 90 días:** es una red por si la redacción falla, por temporalidad (SC 332/2001). R5 le da ese plazo al replay, no a la bitácora.
 
-- RLS sin policies en las cuatro tablas (`0541:356-359`).
-- `revoke all` a public, anon, authenticated y service_role (`0541:361`).
+### `CORRECTO` 6 · La regla de escritura existe y se prueba
+
+`cable-textos.ts` rechaza correos, teléfonos de Venezuela e internacionales, cédulas, RIF y direcciones en `titulo`, `resumen` y `meta_datos`, a cualquier profundidad y también en las claves.
+- No confunde un uuid ni un conteo con un teléfono.
+- Su prueba tiene un mutante: el revisor sin detector deja pasar los casos de rechazo.
+
+### `CORRECTO` 7 · El mensaje del cliente no entra a la bandeja
+
+`payload_ref` solo acepta una referencia `origen:ruta` sin espacios (`0541:223`). Lo prueban los casos «mensaje completo» y «mensaje tras el origen» del contrato.
+
+### `CORRECTO` 8 · Nadie de la API lee estas tablas
+
+- RLS sin policies (`0541:411-414`).
+- `revoke all` a public, anon, authenticated y service_role (`0541:416`).
 - El postflight comprueba que anon y authenticated no tienen ningún privilegio de tabla ni de columna.
 
-### `CORRECTO` 7 · El volumen está acotado
+### `CORRECTO` 9 · La hora y la identidad las pone la base
 
-`titulo` tiene un tope de 200 caracteres, `resumen` de 1.000 y `meta_datos` de 8 KB (`0541:135`, `:169`, `:145`). Ningún texto libre puede guardar una conversación entera.
+service_role escribe por columna: nunca `id`, `creado_en` ni `ts` (`0541:423` y siguientes). Lo prueba el contrato 8. Eso sostiene el valor de la bitácora, porque AUD-01 §3 pide la hora del servidor.
 
-### `CORRECTO` 8 · La hora y la identidad las pone la base
+### `CORRECTO` 10 · Quién pausó queda por identificador
 
-service_role escribe por columna: nunca `id`, `creado_en` ni `ts` (`0541:368` y siguientes). Lo prueba el contrato 8. No es un dato personal, pero sostiene el valor de la bitácora (AUD-01 §3: hora del servidor).
-
-### `CORRECTO` 9 · Quién pausó queda por identificador
-
-`office_paused.cambiado_por` es el uuid de `auth.uid()`, no un nombre (`0541:223`, `:342`). Su finalidad está escrita: SGE-AG-01 §7, «Despausar exige autorización registrada».
+`office_paused.cambiado_por` es el uuid de `auth.uid()`, no un nombre (`0541:236`, `:366`). Su finalidad está escrita en SGE-AG-01 §7: «Despausar exige autorización registrada».
 
 ## 4 · No verificable
 
-- **Lo que va a escribir el Paso 2.** Todavía no existe. Las reglas de los hallazgos 1 a 3 se comprueban en su PR.
-- **Los respaldos de la base.** Un plazo de retención en la tabla no llega a los dumps (`docs/runbooks/backup-restore-servidor.md`). Hay que saber cuánto se guardan.
+- **Los respaldos de la base.** Vaciar el resumen no llega a los dumps (`docs/runbooks/backup-restore-servidor.md`). Un resumen sigue en los respaldos mientras estos existan.
 - **El runtime de la oficina (VPS Oficina) y el proveedor de glm-5.3:**
   - qué guardan de cada conversación y por cuánto tiempo (el replay de SGE-AG-01 §8);
-  - en qué país procesan, que decide si aplica la PIPL (punto 9 del checklist).
+  - en qué país procesan, que decide si aplica la PIPL (punto 9).
 - **Chatwoot:** guarda la conversación completa. Su retención es la de Chatwoot, no la de estas tablas.
-- **Producción:** que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide.
-
-No se corrió la verificación del paso 3 de la skill (crear un valor rastreable, borrarlo y buscarlo) contra una base real. El contrato corre en PGlite y en un Postgres 17 desechable.
+- **Producción:**
+  - que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide;
+  - que el despachador de verdad llame a `office_vaciar_resumenes_viejos()` todos los días.
+- **Base real:** no se corrió la verificación del paso 3 de la skill (crear un valor rastreable, vaciarlo y buscarlo). El contrato corre en PGlite y en un Postgres 17 desechable.
 
 ## 5 · Fuera de alcance
 
