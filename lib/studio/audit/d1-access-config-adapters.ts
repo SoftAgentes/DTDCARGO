@@ -51,6 +51,11 @@ export class D1OperationError extends Error {
       | "idempotency_conflict"
       | "audit_failed"
       | "query_failed",
+    /**
+     * El mensaje de Postgres, solo para que el código distinga causas con el
+     * mismo `code` (SDD-0634). Nunca se le muestra tal cual a una persona.
+     */
+    public readonly dbMessage?: string,
   ) {
     super(code);
     this.name = "D1OperationError";
@@ -63,7 +68,7 @@ function mapDatabaseError(error: {
 }): D1OperationError {
   const message = error.message ?? "";
   if (error.code === "42501" || message.includes("permission_denied")) {
-    return new D1OperationError("permission_denied");
+    return new D1OperationError("permission_denied", message);
   }
   if (error.code === "23505" || message.includes("idempotency_conflict")) {
     return new D1OperationError("idempotency_conflict");
