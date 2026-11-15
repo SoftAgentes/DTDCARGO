@@ -15,21 +15,21 @@
 
 ## Registro de las puertas (2026-11-15)
 
-> **Qué es.** El estado de cada puerta, con su hora UTC y la ruta de su evidencia, escrito el 2026-11-15 por el Worker de esta tarea con lo que informó el Subdirector de Chatwoot y lo que dice `main` (`42daa3d2c`). **Es un registro, no una instrucción:** los pasos y sus condiciones siguen siendo los de abajo. Todas las rutas son del VPS y solo traen líneas `HECHO`, sin datos de personas. **«Ruta de evidencia: pendiente de confirmar por el DG»** significa que el hecho está informado pero su ruta todavía no se recibió; no se inventó ninguna.
+> **Qué es.** El estado de cada puerta, con su hora UTC y la ruta de su evidencia, escrito el 2026-11-15 por el Worker de esta tarea con lo que informó el Subdirector de Chatwoot y lo que dice `main` (`42daa3d2c`). **Es un registro, no una instrucción:** los pasos y sus condiciones siguen siendo los de abajo. Las rutas son del VPS y solo traen líneas `HECHO`, sin datos de personas; donde no hay carpeta, la evidencia es el registro del DG. Las cifras de la 4, del 5a, del 5b, de la 0542 y del encendido las midió el DG el 2026-11-15 en el VPS y en la base, y las pasó por mensaje (corrigió el reparto: la 0542 no es el 5a, y la cola `cargado=78` es una lectura posterior al encendido). **«Ruta de evidencia: pendiente de confirmar por el DG»** significa que el hecho está informado pero su ruta todavía no se recibió; no se inventó ninguna.
 
 | Puerta | Estado | Cuándo (UTC) | Evidencia |
 |---|---|---|---|
 | **2 · La bandeja** | **HECHA.** `BANDEJA=10`, `AGENTE_SERVICIO=1` | 2026-11-11 | `/srv/ops/evidencias/p4-bandeja-20261111T122059Z` |
 | **3.0 · Los scripts en el VPS** | **HECHO,** el nuevo, desde `main` en `e7086e3b1` (la fusión de la #567, con el desarme del 4.6b). Salió en 0 | 2026-11-15, antes del 3.1. Hora: pendiente de confirmar por el DG | Ruta de evidencia: pendiente de confirmar por el DG |
 | **3.1 · El ensayo** | **HECHO,** el nuevo, sobre `e7086e3b1`: salió en 0, con **37 `PASÓ` y 0 `FALLÓ`** | 2026-11-15, la corrida empezó a las 04:56:07 (la hora del nombre del archivo) | `/srv/ops/portal-historial/evidencia-ensayo-portal-20261115T045607Z.txt` |
-| **4 · La carga** | **HECHA.** La cola de salida quedó con `cargado=78`, sin pendientes ni errores | Fecha y hora de la carga y de esa lectura: pendiente de confirmar por el DG | Ruta de evidencia: pendiente de confirmar por el DG |
-| **5a · Las variables de la web** | **HECHO.** La bandeja 10 está configurada y el token del enrutador es el vigente: `HECHO perfil=200` | Pendiente de confirmar por el DG | Ruta de evidencia: pendiente de confirmar por el DG |
-| **5b · El webhook** | **HECHO.** El webhook de la cuenta 1 tiene `message_created` | Pendiente de confirmar por el DG | Ruta de evidencia: pendiente de confirmar por el DG |
-| **Antes del encendido · la 0542** | **Aplicada en producción** (`0542_is_platform_admin_execute_authenticated`, SDD-0633). Sin ella, el superadministrador no puede usar el panel de flags. **La #574, que trae su código, quedó en `main`** en `42daa3d2c`, fusionada a las 08:09:21Z | La 0542: 2026-11-15 08:09Z | Ruta de evidencia: pendiente de confirmar por el DG |
-| **El encendido** | **HECHO.** `chatwoot_portal` en `true`, **desde el panel, por Sam**, con su fila de auditoría en `entity_audit_log` | 2026-11-15T08:12:13Z | La fila de auditoría: identificador y ruta pendientes de confirmar por el DG |
-| **5c · El smoke con un cliente real** | **NO HECHO.** Sigue pendiente, con su OK propio de Sam (lo pide el DG) | — | — |
+| **4 · La carga** | **HECHA.** 4.1 (los respaldos) a las 05:46:17Z y 4.4 (extraer) a las 05:50:39Z. Resultados de 4.4 a 4.10: reservados 26 y líneas 131; la carga salió `ok`, con la secuencia 4811→4837 y 131 vínculos; vincular salió en 0; C-8 dio 26 hilos con espejo y `salida_cargado=78`; `logging_collector=off`. Antes de la carga, Sam respondió «Sí, ya saben» al aviso de que el equipo no respondería desde Studio | 2026-11-15, de 05:46:17Z a la 4.10 (la hora de cierre de la 4.10 no se informó) | `/srv/ops/evidencias/p4-carga-20261115T054606Z/` (root 0700, archivos 0600) |
+| **5a · Las variables de la web** | **HECHO.** Bandeja 10, token y un recreado de la web. En `.env`: md5 `d4ea8ac1e3e9` → `6afabe795f82` y `CHATWOOT_INBOX_PORTAL_ID` agregado. Token cambiado al del usuario 1: el contenedor coincide con el `.env` por `sha8`. Web recreada a las 05:57:58Z, healthy, `perfil=200` y `sitio=200`. Las copias temporales se borraron con `shred` | 2026-11-15, de 05:57:42Z a 05:58:16Z | **Registro del DG, sin carpeta en el VPS:** la salida del script del DG y su nota de control, que está fuera del repo |
+| **5b · El webhook** | **HECHO, sin cambios** (solo lectura): el webhook id=2 de la cuenta 1 termina en `/api/chatwoot/webhook` y tiene `message_created` marcado | 2026-11-15, antes del encendido. Hora exacta: no informada | **Registro del DG, sin carpeta en el VPS** |
+| **Antes del encendido · la 0542** | **Aplicada en producción** (`0542_is_platform_admin_execute_authenticated`, SDD-0633, #574). **No es un sub-paso de la puerta 5:** es el prerrequisito del encendido. Devolvió `EXECUTE` de `is_platform_admin()` a `authenticated`, y con eso se desbloqueó el interruptor del panel. **La #574, que trae su código, quedó en `main`** en `42daa3d2c`, fusionada a las 08:09:21Z | La 0542: 2026-11-15 08:09:18Z | La lectura previa: `/srv/ops/evidencias/previa-0542-dtd-cargo-20261115T074242Z`. La aplicación: `/srv/ops/evidencias/apply-0542-dtd-cargo-20261115T080917Z` |
+| **El encendido** | **HECHO.** `chatwoot_portal` en `true`, **desde el panel, por Sam** («listo encendido»). Lo leyó el DG en producción: `feature_flags` con `enabled=true` y `updated_at` 08:12:13Z; en `entity_audit_log`, una fila `action=feature_flag_changed` con `after_data` `enabled=true` y `occurred_at` 08:12:13Z. **Lectura de la cola después del encendido:** `chatwoot_portal_salida` con `cargado=78`, sin pendientes ni errores | 2026-11-15T08:12:13Z | **Sin carpeta ni copia.** La fila de auditoría se identifica por `action` + `key` + `occurred_at`: no hay copia de su id, y leerlo exige consultar producción otra vez |
+| **5c · El smoke con un cliente real** | **PENDIENTE.** Sam lo autorizó, pero falta que nombre al cliente | — | — |
 
-**Lo que este registro no cubre:** la lectura de la cola de la puerta 5c, que va con su OK propio, y la hora de cada sub-paso de la 4, que el DG todavía no informó.
+**Lo que este registro no cubre:** la lectura de la cola de la puerta 5c, que va con su OK propio, y la hora exacta del 3.0, del 5b y de cierre de la 4.10, que el DG no informó. Las evidencias del 5a, del 5b y del encendido son del DG: la salida de su script y su nota de control, fuera del repo.
 
 ## Antes de la primera puerta
 
@@ -838,8 +838,8 @@ Es una revisión con el método de `.claude/skills/revisar-datos-ve/SKILL.md`. *
 
 - **El procedimiento de 4.10a:** se define con el DG.
 - **Los argumentos del respaldo externo a B2** (`pg-dump-to-s3.sh`, que sube a B2 aunque el nombre diga S3).
-- **Las rutas de evidencia que faltan en el «Registro de las puertas»:** la hora y la ruta de la 4, del 5a, del 5b y de la 0542, el identificador de la fila de auditoría del encendido, y la evidencia del 3.0. Las confirma el DG.
-- **La puerta 5c,** el smoke con un cliente real, con su OK propio de Sam.
+- **Lo que falta del «Registro de las puertas»:** la evidencia y la hora del 3.0, y la hora exacta del 5b. El 5a, el 5b y el encendido no tienen carpeta en el VPS (registro del DG), y el id de la fila de auditoría del encendido no está copiado.
+- **La puerta 5c,** el smoke con un cliente real: Sam lo autorizó, pero falta que nombre al cliente.
 - **Pendientes de una PR de pruebas** (observaciones bajas de la revisión de la #567; no son de este runbook y no se arreglan aquí):
   - **G8 cubre una sola condición.** La guarda de la G0 que exige los guiones del desarme en el modo completo tiene un caso y un mutante para una sola de sus cuatro condiciones.
   - **R4 solo cuenta.** Comprueba que la copia durable del 4.6b no se crea ni cambia contando archivos, sin comparar contenido (ni md5 ni huella).
