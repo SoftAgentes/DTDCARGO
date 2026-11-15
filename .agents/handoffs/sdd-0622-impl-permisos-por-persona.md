@@ -344,8 +344,45 @@ PR contra main en borrador; depende de la #488. No fusionar sin aplicar las tres
   `entity_audit_log` (no encontré en el repo una purga para este tipo; la decide Sam).
 - La skill recomienda una segunda revisión con otro modelo antes de integrar.
 
-### Pendientes de esta vuelta (para la corrida con turno)
+### Actividad arreglada (decisión del DG, 2026-11-14; commit `31c8e1897`)
 
-- Correr las pruebas focales (la lista está en el reporte al Director) y, si pasan, `pnpm verify`.
-- Decidir con el Director qué hacer con el hallazgo de Actividad (arriba) antes de integrar.
+`listUserAccessActivityAction` lee la bitácora con `createAdminClient()` dentro de la acción, sin migración nueva.
+Cada condición tiene su prueba en `app/studio/(app)/usuarios/__tests__/actividad-acceso.test.ts`:
+
+| Condición | Código (`usuarios/actions.ts`) | Prueba |
+|---|---|---|
+| Ver `users` y ser admin del tenant antes de leer | `:1342` `moduleViewDenial(supabase, "users")` (el equivalente de `requireModuleView` para acciones: no redirige), `:1344` `tenantAdminGate` (el mismo de `grantUserModuleAction`) | `:147` no-admin; `:155` con extra de `users` solo ver |
+| Tenant de la sesión (`gate.tenantId`) y persona destino miembro de ese tenant en `user_tenants` | `:1349-1356` | `:163` admin de otro tenant; `:177` persona de otro tenant da error y no lee la bitácora; `:184` filtros de la comprobación |
+| Filtros fijos `tenant_id`, `entity_type` y `entity_id` (la 0538 guarda `entity_id = p_user_id`), columnas y tope 50 | `:1317-1320`, `:1358-1365` | `:170` y `:218` sin eventos de otro tenant; `:196` caso feliz con columnas y `limit(50)` |
+
+El doble del cliente de servicio honra los `.eq()`. Mutantes corridos a mano (2026-11-14):
+- sin `.eq("tenant_id", …)` en la bitácora → **ROJO**, 3 de 8 caen (`:170`, `:196` y `:218`);
+- sin la comprobación de miembro → **ROJO**, 2 de 8 caen (`:163` y `:177`).
+
+Restauré el archivo y la suite volvió a 8/8. Corregí el comentario de `rbac-actions-guard.test.ts:371-378`. Un
+error de lectura ya no se traga en silencio: devuelve un mensaje que la pestaña muestra.
+
+**Desvío de la allowlist:** `app/studio/(app)/usuarios/__tests__/actividad-acceso.test.ts` es nuevo y no está en
+§11 de la spec 0622. Hay que enmendarla.
+
+### Corrida con turno (2026-11-14, la única pesada en la PC)
+
+Cabeza medida: `ea59a6921`. `pnpm install --frozen-lockfile` una vez (47 s), sin junction.
+
+| Comprobación | Resultado |
+|---|---|
+| Focales: `AccesoPanel.test.tsx`, `RolYAlcanceCard.test.tsx`, `user-module-grants.migration.test.ts` (PGlite 0538-0540), `rbac-actions-guard`, `rbac-view-guard`, `page-gates-sensibles`, `rbac.test.ts`, `rls-lectura-dinero-y-gastos.migration.test.ts`, `actividad-acceso.test.ts` | 1.ª corrida: FALLÓ 1 de 674. Era el caso nuevo del aviso de motivo, que nunca había corrido: lo rendericé con el CRM ya concedido, así que el buscador no lo ofrecía. Lo corregí en `ea59a6921` y `AccesoPanel.test.tsx` volvió a PASAR 11/11. Los otros 8 archivos PASARON (35 s), sin caídas por forks ni timeouts |
+| `pnpm verify`: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO, 1 AMARILLO), build | PASÓ |
+| `pnpm verify`: test | PASÓ: 1127 archivos y 17906 pruebas (4 archivos y 26 pruebas en skip) |
+| `pnpm verify`: e2e | PASÓ: 235, con 3 flaky que pasaron al reintento (`auth.spec.ts:81` en chromium y `company-photo-carousel.spec.ts:9` y `:64` en mobile-chrome) y 20 en skip |
+| `pnpm verify`: migrations-applied | NO DISPONIBLE (el worktree no tiene `.env.local`) |
+| `pnpm verify`: sql-tests y schema-rebuild | NO DISPONIBLE (sin Docker) |
+
+`verify` terminó con exit 0 y CIERRE INCOMPLETO: 14 de 17 comprobaciones medidas y sin fallos. Duró unos 29 min
+(20:19 → 20:49).
+
+### Pendientes
+
+- Contratos SQL en Postgres real (workflow «Contratos SQL» de la PR) y el ledger, en la PR.
+- Enmendar la allowlist de la spec 0622 (archivo de prueba nuevo).
 - «Caso Alejandro» en spec, pruebas y handoff: **sin tocar**, espera la decisión de Sam.
