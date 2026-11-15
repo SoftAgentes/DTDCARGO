@@ -39,6 +39,7 @@ import { getStudioAccess, moduleEditDenial, moduleViewDenial, tenantAdminGate } 
 import { SENSITIVE_MODULE_EFFECTS_VERSION, isKnownModule } from "@/lib/studio/rbac";
 import { isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
+import { platformAdminCheck } from "@/lib/studio/platform-admin";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import { isDiscordUserId } from "@/lib/studio/discord/send-webhook";
@@ -321,6 +322,30 @@ export async function changeWarehouseScopeAction(
   return { ok: true, userId: targetUserId };
 }
 
+/**
+ * SDD-0633 · Suspender o reactivar a OTRO administrador lo reserva el
+ * superadministrador (0355). La base lo niega recién en la confirmación, después
+ * de banear en Auth, y la compensación lo deshace: la persona leía «Auth cambió,
+ * pero la confirmación falló…» sin saber que el motivo era su permiso, y el otro
+ * admin quedaba baneado unos instantes.
+ *
+ * `target_role` llega del formulario de la ficha. Es solo una pista para avisar
+ * antes: si miente, el flujo es el de siempre y la base sigue siendo el freno.
+ * Por la misma razón, si no se pudo preguntar (`error`, como el 403 de antes de
+ * la 0542) no se corta: decide la base, que en `studio_set_user_disabled`
+ * (DEFINER, vía audit_d1_auth_transition, 0289:1144) no depende del grant.
+ */
+async function superadminParaOtroAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  targetUserId: string,
+  actorId: string,
+): Promise<string | null> {
+  if (formData.get("target_role") !== "admin" || targetUserId === actorId) return null;
+  if ((await platformAdminCheck(supabase)) !== "no") return null;
+  return "No eres superadministrador. Suspender o reactivar a otro administrador lo hace solo el superadministrador: pídeselo a quien administra el sistema.";
+}
+
 // ─────────────────────────────────────────────────────────────
 // disableUserAction / enableUserAction · vía RPC studio_set_user_disabled
 // (migr 0200) + ban/unban en Supabase Auth.
@@ -345,6 +370,8 @@ export async function disableUserAction(
 
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+  const superadmin = await superadminParaOtroAdmin(supabase, formData, targetUserId, userResp.user.id);
+  if (superadmin) return { error: superadmin };
 
   const result = await executeAuthLifecycle(
     supabase,
@@ -388,6 +415,13 @@ export async function enableUserAction(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+  if (formData.get("target_role") === "admin") {
+    const { data: actorResp } = await supabase.auth.getUser();
+    const superadmin = await superadminParaOtroAdmin(
+      supabase, formData, targetUserId, actorResp.user?.id ?? "",
+    );
+    if (superadmin) return { error: superadmin };
+  }
 
   const result = await executeAuthLifecycle(
     supabase,

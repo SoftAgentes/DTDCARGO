@@ -7,11 +7,12 @@
  * que dejó de ser una facultad de cualquier `admin` y pasó a la capa de
  * plataforma — fue el primer permiso que el founder pidió subir.
  *
- * El control REAL es la policy `feature_flags_platform_admin_update` (migr
- * 0355): sin ella, gatear sólo acá dejaría el hueco abierto para quien invoque
- * PostgREST directo. El guard de abajo existe para dar un error legible —
- * sin él, la RLS descarta el UPDATE en silencio y el interruptor "no hace nada"
- * sin explicar por qué.
+ * ⚠️ El bloqueo efectivo hoy es `platformAdminDenial`, aquí. La escritura va por
+ * `audit_d1_execute` (0289:632-650), DEFINER de postgres, que solo exige admin del
+ * tenant y escribe como dueño: la policy `feature_flags_platform_admin_update`
+ * (0355) no la alcanza, y un admin del tenant puede llamar esa RPC por PostgREST
+ * (SDD-0633, FUERA DE ALCANCE: va en otra PR). La policy solo frena un UPDATE
+ * directo con la sesión.
  */
 
 import { revalidatePath } from "next/cache";
@@ -44,8 +45,11 @@ export async function toggleFeatureFlagAction(
 
   const supabase = await createClient();
 
+  // SDD-0633: todo error de aquí en adelante lleva `flagKey`, para que lo pinte
+  // la tarjeta pulsada. Antes la denegación y el catch salían sin él y el
+  // interruptor "no hacía nada".
   const denial = await platformAdminDenial(supabase);
-  if (denial) return { error: denial };
+  if (denial) return { error: denial, flagKey: key };
 
   try {
     await executeD1Operation(supabase, {
@@ -53,7 +57,10 @@ export async function toggleFeatureFlagAction(
       input: { key, enabled },
     });
   } catch {
-    return { error: "No se pudo guardar el feature flag." };
+    return {
+      error: "No se pudo guardar el cambio del módulo. Intenta de nuevo.",
+      flagKey: key,
+    };
   }
 
   // Revalidar el layout para que el sidebar tome los flags nuevos.

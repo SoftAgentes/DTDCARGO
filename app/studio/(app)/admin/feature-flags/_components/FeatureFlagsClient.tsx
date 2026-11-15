@@ -229,12 +229,17 @@ function FlagCard({
         )}
       </div>
 
-      {state.error && state.flagKey === flagKey && (
+      {/* Cada tarjeta tiene su propio useActionState: su error es siempre el de
+          este interruptor, traiga o no `flagKey` (SDD-0633). BRAND (Error):
+          rojo localizado en el borde, cuerpo neutro legible. */}
+      {state.error && (
         <div
+          role="alert"
           style={{
             font: "500 11.5px/1.4 var(--font-sans, 'Archivo')",
-            color: "var(--danger)",
+            color: "var(--ink)",
             paddingTop: 6,
+            borderTop: "2px solid var(--danger)",
           }}
         >
           {state.error}
