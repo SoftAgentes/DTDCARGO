@@ -123,20 +123,46 @@ describe("0541 · tablas del cable y office_paused (PGlite)", () => {
     expect(await run(inline(CONTRACT, { migracion }))).toMatch(/CONTRATO 1: aplicar la 0541 de nuevo duplicó/);
   }, 60_000);
 
-  it("mutante: sin el disparador de UPDATE/DELETE, un privilegio dado por error edita la bitácora", async () => {
-    const migracion = mutar(
-      "create or replace trigger task_events_solo_insertar\n  before update or delete on public.task_events\n  for each row execute function public.office_solo_insertar();",
-      "",
-    );
-    // El postflight cuenta los disparadores: sin uno, la migración misma no termina.
-    expect(await run(inline(CONTRACT, { migracion }))).toMatch(/faltan los disparadores de solo agregar en task_events/);
-    // Y sin esa comprobación, el contrato lo ve en la bitácora.
-    const sinPostflight = (sql: string) =>
-      mutar("<> 2 then\n      raise exception '0541 postflight: faltan los disparadores", "< 0 then\n      raise exception '0541 postflight: faltan los disparadores")(
-        migracion(sql),
+  // El postflight cuenta los disparadores ALWAYS; sin esa cuenta, el contrato tiene que verlo solo.
+  const sinCuentaDeDisparadores = mutar(
+    "<> 2 then\n      raise exception '0541 postflight: faltan los disparadores",
+    "< 0 then\n      raise exception '0541 postflight: faltan los disparadores",
+  );
+
+  it.each<[string, string]>([
+    ["task_events", "task_events_solo_insertar"],
+    ["office_paused", "office_paused_solo_insertar"],
+  ])("mutante: sin el disparador de UPDATE/DELETE de %s, un privilegio dado por error la edita", async (tabla, disparador) => {
+    const migracion = (sql: string) =>
+      mutar(`alter table public.${tabla.padEnd(13)} enable always trigger ${disparador};\n`, "")(
+        mutar(
+          `create or replace trigger ${disparador}\n  before update or delete on public.${tabla}\n  for each row execute function public.office_solo_insertar();`,
+          "",
+        )(sql),
       );
+    // Sin uno, la migración misma no termina.
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(
+      new RegExp(`faltan los disparadores de solo agregar \\(ENABLE ALWAYS\\) en ${tabla}`),
+    );
+    // Y sin esa comprobación, el contrato lo ve en la tabla.
+    expect(await run(inline(CONTRACT, { migracion: (sql) => sinCuentaDeDisparadores(migracion(sql)) }))).toMatch(
+      new RegExp(`CONTRATO 2: con privilegio dado por error, service_role pudo ejecutar: update public\\.${tabla}`),
+    );
+  }, 60_000);
+
+  it("mutante: disparadores ORIGIN y no ALWAYS, session_replication_role = replica los apaga", async () => {
+    const migracion = (sql: string) => {
+      const sinAlways = sql.replace(/^alter table public\.\S+\s+enable always trigger \S+;\n/gm, "");
+      if (sinAlways === sql) throw new Error("el mutante no encontró los ENABLE ALWAYS");
+      return sinAlways;
+    };
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(
+      /faltan los disparadores de solo agregar \(ENABLE ALWAYS\) en task_events/,
+    );
+    const sinPostflight = (sql: string) =>
+      mutar("t.tgenabled = 'A'", "t.tgenabled in ('O', 'A')")(migracion(sql));
     expect(await run(inline(CONTRACT, { migracion: sinPostflight }))).toMatch(
-      /CONTRATO 2: con privilegio dado por error, service_role pudo ejecutar: update/,
+      /CONTRATO 2: con session_replication_role = replica, service_role pudo ejecutar: update public\.task_events/,
     );
   }, 60_000);
 
@@ -185,12 +211,100 @@ describe("0541 · tablas del cable y office_paused (PGlite)", () => {
       "create index if not exists task_events_task_id_idx\n  on public.task_events (task_id, ts);",
       "",
     );
-    expect(await run(inline(CONTRACT, { migracion }))).toMatch(/faltan los índices de task_id o clave_dedupe/);
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(/falta el índice de task_events\.task_id/);
+  }, 60_000);
+
+  it("mutante: clave_dedupe con un índice no único, entra el duplicado (AC-4)", async () => {
+    // Un índice común en lugar de la restricción única: el contrato 5 sigue viendo un índice, no la unicidad.
+    const migracion = (sql: string) =>
+      mutar(
+        "raise exception '0541 postflight: event_inbox.clave_dedupe no es única (AC-4)';",
+        "null;",
+      )(
+        mutar(
+          "  constraint event_inbox_clave_dedupe_unica\n    unique (clave_dedupe),\n",
+          "",
+        )(sql),
+      ) + "\ncreate index if not exists event_inbox_clave_dedupe_comun on public.event_inbox (clave_dedupe);\n";
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(/CONTRATO 5: entró una clave_dedupe repetida/);
+    // Con el postflight entero, la migración misma no termina.
+    const conPostflight = mutar("  constraint event_inbox_clave_dedupe_unica\n    unique (clave_dedupe),\n", "");
+    expect(await run(inline(CONTRACT, { migracion: conPostflight }))).toMatch(
+      /event_inbox\.clave_dedupe no es única/,
+    );
+  }, 60_000);
+
+  it("mutante: la versión anterior aplicada (índice no único), el preflight para", async () => {
+    const vieja = (sql: string) =>
+      `${sql}\ncreate index if not exists event_inbox_clave_dedupe_idx on public.event_inbox (clave_dedupe, ts);\n`;
+    // El primer \ir deja el índice viejo; el segundo (aplicar otra vez) tiene que parar en el preflight.
+    expect(await run(inline(CONTRACT, { migracion: vieja }))).toMatch(
+      /está aplicada la versión anterior a la revisión de la #572/,
+    );
   }, 60_000);
 
   it("mutante: la oficina nace despausada, el contrato lo detecta", async () => {
     const migracion = mutar("select true, 'La oficina nace pausada", "select false, 'La oficina nace pausada");
     expect(await run(inline(CONTRACT, { migracion }))).toMatch(/CONTRATO 6: la primera subida no nació pausada/);
+  }, 60_000);
+
+  it("mutante: sin filas, office_esta_pausada() responde falso, el contrato lo detecta", async () => {
+    const migracion = mutar("limit 1),\n    true\n  );", "limit 1),\n    false\n  );");
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(
+      /CONTRATO 6: sin filas, office_esta_pausada\(\) no falló cerrado/,
+    );
+  }, 60_000);
+
+  it.each<[string, string, string]>([
+    [
+      "office_solo_insertar()",
+      "language plpgsql\nset search_path = ''\nas $function$\ndeclare\n  v_dueno name;",
+      "language plpgsql\nas $function$\ndeclare\n  v_dueno name;",
+    ],
+    ["office_esta_pausada()", "stable\nset search_path = ''", "stable"],
+    [
+      "office_cambiar_pausa(boolean, text)",
+      "security definer\nset search_path = ''",
+      "security definer",
+    ],
+  ])("mutante: %s sin search_path vacío, el postflight no termina", async (firma, buscar, poner) => {
+    expect(await run(inline(CONTRACT, { migracion: mutar(buscar, poner) }))).toMatch(
+      new RegExp(`public\\.${firma.replace(/[()]/g, "\\$&")} sin search_path vacío`),
+    );
+  }, 60_000);
+
+  // El postflight revisa columna por columna; sin esa revisión, el contrato 8 tiene que verlo solo.
+  const sinRevisionDeColumnas = mutar(
+    "if pg_catalog.has_column_privilege('service_role', 'public.' || v_col.tabla",
+    "if false and pg_catalog.has_column_privilege('service_role', 'public.' || v_col.tabla",
+  );
+
+  it.each<[string, string, string, RegExp, RegExp]>([
+    [
+      "UPDATE de toda event_inbox",
+      "grant update (prioridad, estado)\n  on public.event_inbox to service_role;",
+      "grant update on public.event_inbox to service_role;",
+      /service_role tiene UPDATE sobre event_inbox\.id/,
+      /CONTRATO 8: service_role pudo: update public\.event_inbox set clave_dedupe/,
+    ],
+    [
+      "INSERT de toda task_events (hora propia)",
+      "grant insert (task_id, run_id, tipo, actor, resumen, costo_usd, modelo_usado)\n  on public.task_events to service_role;",
+      "grant insert on public.task_events to service_role;",
+      /service_role tiene INSERT sobre task_events\.id/,
+      /CONTRATO 8: service_role pudo: insert into public\.task_events \(id,/,
+    ],
+    [
+      "UPDATE de toda office_tasks",
+      "grant update (titulo, estado, modo, ejecucion, asignado_a, depto, prioridad, entidad_ref, meta_datos)\n  on public.office_tasks to service_role;",
+      "grant update on public.office_tasks to service_role;",
+      /service_role tiene UPDATE sobre office_tasks\.id/,
+      /CONTRATO 8: service_role pudo: update public\.office_tasks set id/,
+    ],
+  ])("mutante: grant de %s en vez de por columna, lo detectan el postflight y el contrato", async (_n, buscar, poner, postflight, contrato) => {
+    const migracion = mutar(buscar, poner);
+    expect(await run(inline(CONTRACT, { migracion }))).toMatch(postflight);
+    expect(await run(inline(CONTRACT, { migracion: (sql) => sinRevisionDeColumnas(migracion(sql)) }))).toMatch(contrato);
   }, 60_000);
 
   it("mutante: office_cambiar_pausa sin exigir administrador, un no administrador la cambia", async () => {

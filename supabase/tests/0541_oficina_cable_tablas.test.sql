@@ -6,16 +6,21 @@
 -- Lo que se protege:
 --   1. Aplicar la 0541 otra vez no falla ni duplica la primera fila de office_paused. La vuelta
 --      0541 → desarme → 0541 la agrega el runner PGlite en el primer \ir (ver el punto 1, abajo).
---   2. task_events es SOLO INSERT (AUD-01) en la base: UPDATE, DELETE y TRUNCATE fallan para
---      service_role, también con esos privilegios dados por error y también desde una función
+--   2. task_events y office_paused son SOLO INSERT (AUD-01) en la base: UPDATE, DELETE y TRUNCATE
+--      fallan para service_role, también con esos privilegios dados por error, también con
+--      session_replication_role = replica (disparadores ALWAYS) y también desde una función
 --      SECURITY DEFINER del dueño llamada por otro. Solo pasa el dueño de las migraciones en sesión propia.
 --   3. Las listas cerradas: estado y modo de office_tasks, prioridad y estado de event_inbox. Lo de
 --      fuera falla; todo lo permitido entra.
 --   4. payload_ref es una referencia, nunca el mensaje del cliente (R5).
---   5. Existen los índices de task_events.task_id y event_inbox.clave_dedupe.
+--   5. Existen los índices de task_events.task_id y event_inbox.clave_dedupe, y la clave es única:
+--      un duplicado no entra y ON CONFLICT DO NOTHING lo descarta (AC-4).
 --   6. office_paused nace en VERDADERO; un no administrador no la cambia (ni authenticated, ni anon,
---      ni service_role); un administrador sí, con motivo, y queda quién y cuándo.
+--      ni service_role); un administrador sí, con motivo, y queda quién y cuándo. Sin filas,
+--      office_esta_pausada() responde VERDADERO (falla cerrado).
 --   7. RLS activada en las cuatro tablas, sin policies; anon y authenticated sin acceso.
+--   8. service_role escribe por columna: nunca id, creado_en, ts ni clave_dedupe, ni el origen de
+--      una fila ya creada; sí los campos de trabajo (estado, prioridad…).
 
 begin;
 
@@ -69,18 +74,20 @@ begin
 end;
 $arriba$;
 
--- Filas válidas (como service_role, que es quien escribirá).
+-- Filas válidas (como service_role, que es quien escribirá). El id y la hora los pone la base: el
+-- id de la tarea de prueba se lee de vuelta, como lo leerá el despachador.
 set local role service_role;
-insert into public.office_tasks (id, titulo, estado, modo, prioridad, entidad_ref, origen, meta_datos)
-values ('00000000-0000-4000-8000-0000000000c1', 'Responder conversación de prueba', 'listo', 'solo', 2,
+insert into public.office_tasks (titulo, estado, modo, prioridad, entidad_ref, origen, meta_datos)
+values ('Responder conversación de prueba', 'listo', 'solo', 2,
         'chatwoot:conversations/1', 'chatwoot', '{"inbox":"prueba"}');
 insert into public.task_events (task_id, tipo, actor, resumen, costo_usd, modelo_usado)
-values ('00000000-0000-4000-8000-0000000000c1', 'run.iniciada', 'despachador', 'Corrida 1', 0.001234, 'glm-5.3');
+select t.id, 'run.iniciada', 'despachador', 'Corrida 1', 0.001234, 'glm-5.3'
+  from public.office_tasks t where t.titulo = 'Responder conversación de prueba';
 insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad, payload_ref)
 values ('chatwoot.message_created', 'chatwoot', 'chatwoot:1:10', 2, 'chatwoot:conversations/1/messages/10');
 reset role;
 
--- 2. task_events: SOLO INSERT.
+-- 2. task_events y office_paused: SOLO INSERT.
 do $solo_insertar$
 declare
   v_sql text;
@@ -108,15 +115,19 @@ begin
     end if;
   end loop;
 
-  -- b) Aunque alguien le dé UPDATE, DELETE y TRUNCATE por error, el disparador lo corta.
+  -- b) Aunque alguien le dé UPDATE, DELETE y TRUNCATE por error, el disparador lo corta, en las dos
+  --    tablas de solo agregar. El grant se deshace con el bloque.
   foreach v_sql in array array[
     'update public.task_events set resumen = ''editado''',
     'delete from public.task_events',
-    'truncate public.task_events'
+    'truncate public.task_events',
+    'update public.office_paused set pausada = false',
+    'delete from public.office_paused',
+    'truncate public.office_paused'
   ] loop
     v_msg := null;
     begin
-      grant update, delete, truncate on public.task_events to service_role;
+      grant update, delete, truncate on public.task_events, public.office_paused to service_role;
       execute 'set local role service_role';
       execute v_sql;
       raise exception using errcode = 'DT001';
@@ -132,6 +143,38 @@ begin
     end if;
     if v_msg not like '%solo se agregan filas%' then
       raise exception 'CONTRATO 2: lo cortó otra cosa y no el disparador: %', v_msg;
+    end if;
+  end loop;
+
+  -- b2) session_replication_role = replica apaga los disparadores ORIGIN; los de la 0541 son ALWAYS y
+  --     siguen cortando. Lo fija el superusuario de la prueba (service_role no podría) y se devuelve a
+  --     mano, igual que la sesión en c).
+  foreach v_sql in array array[
+    'update public.task_events set resumen = ''editado''',
+    'delete from public.task_events',
+    'update public.office_paused set pausada = false',
+    'delete from public.office_paused'
+  ] loop
+    v_msg := null;
+    begin
+      grant update, delete on public.task_events, public.office_paused to service_role;
+      perform set_config('session_replication_role', 'replica', true);
+      execute 'set local role service_role';
+      execute v_sql;
+      raise exception using errcode = 'DT001';
+    exception
+      when sqlstate 'DT001' then v_resultado := 'paso';
+      when insufficient_privilege then
+        v_resultado := 'cortado';
+        get stacked diagnostics v_msg = message_text;
+    end;
+    execute 'reset role';
+    perform set_config('session_replication_role', 'origin', true);
+    if v_resultado = 'paso' then
+      raise exception 'CONTRATO 2: con session_replication_role = replica, service_role pudo ejecutar: %', v_sql;
+    end if;
+    if v_msg not like '%solo se agregan filas%' then
+      raise exception 'CONTRATO 2: en modo replica lo cortó otra cosa y no el disparador: %', v_msg;
     end if;
   end loop;
 
@@ -210,7 +253,7 @@ begin
       ('prioridad 0',              'insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad) values (''prueba'', ''interno'', ''k'', 0)'),
       ('prioridad 4',              'insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad) values (''prueba'', ''interno'', ''k'', 4)'),
       ('estado de bandeja',        'insert into public.event_inbox (tipo, origen, clave_dedupe, estado) values (''prueba'', ''interno'', ''k'', ''procesado'')'),
-      ('costo negativo',           'insert into public.task_events (task_id, tipo, actor, costo_usd) values (''00000000-0000-4000-8000-0000000000c1'', ''x'', ''y'', -1)'),
+      ('costo negativo',           'insert into public.task_events (task_id, tipo, actor, costo_usd) select id, ''x'', ''y'', -1 from public.office_tasks limit 1'),
       ('mensaje completo',         'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''Hola, quiero saber dónde está mi paquete'')'),
       ('mensaje tras el origen',   'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''chatwoot:hola mi pedido'')'),
       ('referencia sin origen',    'insert into public.event_inbox (tipo, origen, clave_dedupe, payload_ref) values (''prueba'', ''chatwoot'', ''k'', ''conversations/1'')'),
@@ -227,8 +270,10 @@ begin
 end;
 $listas$;
 
--- 5. Índices.
+-- 5. Índices, y la clave de dedupe única (AC-4).
 do $indices$
+declare
+  v_resultado text;
 begin
   if not exists (
     select 1 from pg_index i
@@ -243,6 +288,31 @@ begin
      where i.indrelid = 'public.event_inbox'::regclass and a.attname = 'clave_dedupe'
   ) then
     raise exception 'CONTRATO 5: falta el índice de event_inbox.clave_dedupe';
+  end if;
+
+  -- La misma clave otra vez, como la mandaría una segunda entrega del webhook: no entra.
+  begin
+    execute 'set local role service_role';
+    insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad, payload_ref)
+    values ('chatwoot.message_created', 'chatwoot', 'chatwoot:1:10', 2, 'chatwoot:conversations/1/messages/10');
+    raise exception using errcode = 'DT001';
+  exception
+    when sqlstate 'DT001' then v_resultado := 'paso';
+    when unique_violation then v_resultado := 'cortado';
+  end;
+  execute 'reset role';
+  if v_resultado = 'paso' then
+    raise exception 'CONTRATO 5: entró una clave_dedupe repetida (AC-4)';
+  end if;
+
+  -- Y con ON CONFLICT DO NOTHING, como insertará el webhook, se descarta sin error.
+  execute 'set local role service_role';
+  insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad, payload_ref)
+  values ('chatwoot.message_created', 'chatwoot', 'chatwoot:1:10', 2, 'chatwoot:conversations/1/messages/10')
+  on conflict (clave_dedupe) do nothing;
+  execute 'reset role';
+  if (select count(*) from public.event_inbox where clave_dedupe = 'chatwoot:1:10') <> 1 then
+    raise exception 'CONTRATO 5: la clave chatwoot:1:10 no quedó una sola vez';
   end if;
 end;
 $indices$;
@@ -325,6 +395,24 @@ begin
     raise exception 'CONTRATO 6: el historial de office_paused no es de solo agregar';
   end if;
 
+  -- Sin filas, la bandera falla cerrado: VERDADERO aunque el último valor fuera falso. Vaciarla solo lo
+  -- puede el dueño en sesión propia, y el bloque lo deshace.
+  begin
+    delete from public.office_paused;
+    if (select count(*) from public.office_paused) <> 0 then
+      raise exception 'TEST 0541: el dueño no pudo vaciar office_paused';
+    end if;
+    if public.office_esta_pausada() is distinct from true then
+      raise exception 'CONTRATO 6: sin filas, office_esta_pausada() no falló cerrado';
+    end if;
+    raise exception using errcode = 'DT001';
+  exception
+    when sqlstate 'DT001' then null;
+  end;
+  if public.office_esta_pausada() or (select count(*) from public.office_paused) <> 2 then
+    raise exception 'TEST 0541: vaciar office_paused no se deshizo';
+  end if;
+
   -- service_role (el despachador) lee el valor vigente; anon y authenticated no.
   execute 'set local role service_role';
   if public.office_esta_pausada() then
@@ -399,6 +487,55 @@ begin
   end loop;
 end;
 $privilegios$;
+
+-- 8. service_role escribe por columna: la identidad, la hora y el origen de cada fila los pone la base.
+do $columnas$
+declare
+  v_sql text;
+  v_resultado text;
+begin
+  foreach v_sql in array array[
+    'insert into public.office_tasks (id, titulo) values (gen_random_uuid(), ''x'')',
+    'insert into public.office_tasks (titulo, creado_en) values (''x'', now() - interval ''1 day'')',
+    'update public.office_tasks set id = gen_random_uuid() where titulo = ''Modo solo''',
+    'update public.office_tasks set creado_en = now() - interval ''1 day''',
+    'update public.office_tasks set origen = ''otro''',
+    'insert into public.task_events (id, task_id, tipo, actor) select gen_random_uuid(), id, ''x'', ''despachador'' from public.office_tasks limit 1',
+    'insert into public.task_events (task_id, tipo, actor, ts) select id, ''x'', ''despachador'', now() - interval ''1 day'' from public.office_tasks limit 1',
+    'insert into public.event_inbox (tipo, origen, clave_dedupe, ts) values (''prueba'', ''interno'', ''c:ts'', now() - interval ''1 day'')',
+    'update public.event_inbox set clave_dedupe = ''otra'' where clave_dedupe = ''p:3''',
+    'update public.event_inbox set payload_ref = ''chatwoot:otra''',
+    'update public.event_inbox set ts = now() - interval ''1 day''',
+    'update public.event_inbox set id = gen_random_uuid()'
+  ] loop
+    begin
+      execute 'set local role service_role';
+      execute v_sql;
+      raise exception using errcode = 'DT001';
+    exception
+      when sqlstate 'DT001' then v_resultado := 'paso';
+      when insufficient_privilege then v_resultado := 'cortado';
+    end;
+    execute 'reset role';
+    if v_resultado = 'paso' then
+      raise exception 'CONTRATO 8: service_role pudo: %', v_sql;
+    end if;
+  end loop;
+
+  -- Los campos de trabajo sí: el despachador mueve el estado de la tarea y el triaje el de la bandeja.
+  execute 'set local role service_role';
+  update public.office_tasks set estado = 'en-ejecución', meta_datos = '{"paso":1}'
+   where titulo = 'Responder conversación de prueba';
+  update public.event_inbox set estado = 'triaje', prioridad = 3 where clave_dedupe = 'chatwoot:1:10';
+  execute 'reset role';
+  if not exists (select 1 from public.office_tasks where titulo = 'Responder conversación de prueba'
+                  and estado = 'en-ejecución')
+     or not exists (select 1 from public.event_inbox where clave_dedupe = 'chatwoot:1:10'
+                     and estado = 'triaje' and prioridad = 3) then
+    raise exception 'CONTRATO 8: service_role no pudo mover el estado de la tarea o de la bandeja';
+  end if;
+end;
+$columnas$;
 
 rollback;
 

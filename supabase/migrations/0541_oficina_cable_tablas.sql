@@ -14,15 +14,17 @@
 --    meta_datos jsonb (objeto, ≤ 8 KB). Nadie las borra: SGE-AG-01 §7 dice que
 --    las tareas quedan congeladas, nunca se pierden.
 -- 2. task_events: la bitácora de cada tarea. SOLO INSERT (AUD-01), cumplido en la
---    base: service_role solo tiene SELECT e INSERT, y un disparador para UPDATE,
+--    base: service_role solo tiene SELECT e INSERT (sin id ni ts: la hora la
+--    pone la base), y un disparador para UPDATE,
 --    DELETE y TRUNCATE aunque alguien le dé esos privilegios por error. La única
 --    excepción es el dueño de las migraciones en una sesión propia (ver 5).
 --    costo_usd numeric ≥ 0. Índice en task_id.
 -- 3. event_inbox: la bandeja de eventos entrantes. prioridad ∈ {3, 2, 1}
 --    (§3.3: dinero > cliente > interno); estado ∈ {nuevo, triaje, convertido,
---    descartado}. Índice en clave_dedupe. payload_ref es una REFERENCIA
---    (`origen:ruta`, sin espacios, ≤ 288 caracteres), nunca el mensaje del
---    cliente (R5 · PII): un texto con espacios o saltos no entra.
+--    descartado}. clave_dedupe es ÚNICA (AC-4 en la base: un duplicado no entra;
+--    el webhook inserta con ON CONFLICT DO NOTHING). payload_ref es una
+--    REFERENCIA (`origen:ruta`, sin espacios, ≤ 288 caracteres), nunca el
+--    mensaje del cliente (R5 · PII): un texto con espacios o saltos no entra.
 -- 4. office_paused: la bandera de toda la oficina (kill switch, SGE-AG-01 §7),
 --    guardada como historial de solo agregar. Cada fila es un cambio: a qué
 --    valor, quién (auth.uid()), cuándo y por qué. Vale la ÚLTIMA fila. Nace con
@@ -35,12 +37,23 @@
 --    office_paused. Deja pasar UPDATE, DELETE o TRUNCATE solo si current_user y
 --    session_user son el dueño de la tabla: una sesión directa del dueño de las
 --    migraciones. Una función SECURITY DEFINER llamada desde la API corre como
---    el dueño, pero su session_user es el de la API: no pasa.
+--    el dueño, pero su session_user es el de la API: no pasa. Los cuatro
+--    disparadores van ENABLE ALWAYS: session_replication_role = replica no los
+--    apaga.
 --
 -- ── Quién la ve ──────────────────────────────────────────────
 -- RLS activada en las cuatro tablas y sin policies. anon y authenticated sin
--- ningún privilegio de tabla ni de secuencia. service_role (el despachador
--- futuro) lee y escribe lo mínimo; no borra nada. Aún no hay pantallas.
+-- ningún privilegio de tabla, de columna ni de secuencia. service_role (el
+-- despachador futuro) lee todo y escribe POR COLUMNA: nunca id, creado_en, ts
+-- ni clave_dedupe (la hora y la identidad las pone la base, AUD-01 §3), ni
+-- origen o payload_ref después de creada la fila. No borra nada. Aún no hay
+-- pantallas.
+--
+-- ── Revisión de la #572 ──────────────────────────────────────
+-- Corregida EN SU LUGAR antes de aplicarse en ningún entorno (ni sellada en
+-- migrations.lock.json): clave_dedupe única, disparadores ALWAYS, grants por
+-- columna y un postflight que mira las tres funciones. Si encuentra la versión
+-- anterior aplicada (el índice no único event_inbox_clave_dedupe_idx), para.
 --
 -- ── Qué NO toca ──────────────────────────────────────────────
 -- Ninguna tabla, función, policy ni grant existente. No usa agents, agent_runs
@@ -89,6 +102,11 @@ begin
                       where table_schema = 'public' and table_name = 'office_paused'
                         and column_name = 'cambiado_por') then
     raise exception '0541: public.office_paused ya existe con otra forma';
+  end if;
+  -- La versión de la 0541 anterior a la revisión de la #572 dejaba un índice no
+  -- único en clave_dedupe. Esta versión no la convierte: se desarma antes.
+  if pg_catalog.to_regclass('public.event_inbox_clave_dedupe_idx') is not null then
+    raise exception '0541: está aplicada la versión anterior a la revisión de la #572 (índice no único event_inbox_clave_dedupe_idx); desarmarla antes';
   end if;
 end
 $preflight$;
@@ -184,6 +202,10 @@ create table if not exists public.event_inbox (
     check (char_length(btrim(origen)) between 1 and 100),
   constraint event_inbox_clave_dedupe_valida
     check (clave_dedupe ~ '^[^[:space:]]{1,200}$'),
+  -- AC-4 en la base: la misma clave entra una sola vez, sin carrera entre dos
+  -- entregas del mismo webhook. Su índice es el de clave_dedupe que pide §9.
+  constraint event_inbox_clave_dedupe_unica
+    unique (clave_dedupe),
   -- R5 · PII: una referencia `origen:ruta`, nunca el mensaje completo del cliente.
   constraint event_inbox_payload_ref_es_referencia
     check (payload_ref is null or payload_ref ~ '^[a-z][a-z0-9_-]{0,31}:[^[:space:]]{1,255}$')
@@ -191,10 +213,8 @@ create table if not exists public.event_inbox (
 
 comment on table public.event_inbox is
   'SDD-0626 §3.1: bandeja de eventos. prioridad 3|2|1, estado nuevo|triaje|convertido|descartado. '
-  'payload_ref es una referencia (origen:ruta, sin espacios), nunca el mensaje del cliente (R5).';
-
-create index if not exists event_inbox_clave_dedupe_idx
-  on public.event_inbox (clave_dedupe, ts);
+  'clave_dedupe es única (AC-4). payload_ref es una referencia (origen:ruta, sin espacios), nunca el '
+  'mensaje del cliente (R5).';
 
 -- ─── 4. office_paused (kill switch, historial de solo agregar) ─
 create table if not exists public.office_paused (
@@ -269,6 +289,11 @@ create or replace trigger office_paused_solo_insertar
 create or replace trigger office_paused_solo_insertar_truncate
   before truncate on public.office_paused
   for each statement execute function public.office_solo_insertar();
+-- ALWAYS: también con session_replication_role = replica (que sí apaga los ORIGIN).
+alter table public.task_events   enable always trigger task_events_solo_insertar;
+alter table public.task_events   enable always trigger task_events_solo_insertar_truncate;
+alter table public.office_paused enable always trigger office_paused_solo_insertar;
+alter table public.office_paused enable always trigger office_paused_solo_insertar_truncate;
 
 -- ─── 6. Lectura y cambio de la bandera ───────────────────────
 create or replace function public.office_esta_pausada()
@@ -336,10 +361,22 @@ alter table public.office_paused enable row level security;
 revoke all on public.office_tasks, public.task_events, public.event_inbox, public.office_paused
   from public, anon, authenticated, service_role;
 
-grant select, insert, update on public.office_tasks  to service_role;
-grant select, insert         on public.task_events   to service_role;
-grant select, insert, update on public.event_inbox   to service_role;
-grant select                 on public.office_paused to service_role;
+-- service_role lee todo y escribe por columna. La identidad (id) y la hora
+-- (creado_en, ts) las pone la base, nunca quien escribe (AUD-01 §3: hora del
+-- servidor). De dónde vino la fila (origen, clave_dedupe, payload_ref, tipo de
+-- evento) no cambia después de creada.
+grant select on public.office_tasks, public.task_events, public.event_inbox, public.office_paused
+  to service_role;
+grant insert (titulo, estado, modo, ejecucion, asignado_a, depto, prioridad, entidad_ref, origen, meta_datos)
+  on public.office_tasks to service_role;
+grant update (titulo, estado, modo, ejecucion, asignado_a, depto, prioridad, entidad_ref, meta_datos)
+  on public.office_tasks to service_role;
+grant insert (task_id, run_id, tipo, actor, resumen, costo_usd, modelo_usado)
+  on public.task_events to service_role;
+grant insert (tipo, origen, clave_dedupe, prioridad, payload_ref, estado)
+  on public.event_inbox to service_role;
+grant update (prioridad, estado)
+  on public.event_inbox to service_role;
 
 do $secuencia$
 declare
@@ -355,6 +392,8 @@ declare
   v_tabla text;
   v_rol text;
   v_priv text;
+  v_col record;
+  v_fn record;
 begin
   foreach v_tabla in array array['office_tasks', 'task_events', 'event_inbox', 'office_paused'] loop
     if not (select c.relrowsecurity from pg_catalog.pg_class c
@@ -370,6 +409,12 @@ begin
           raise exception '0541 postflight: % tiene % sobre %', v_rol, v_priv, v_tabla;
         end if;
       end loop;
+      -- Tampoco por columna.
+      foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'] loop
+        if pg_catalog.has_any_column_privilege(v_rol, 'public.' || v_tabla, v_priv) then
+          raise exception '0541 postflight: % tiene % sobre columnas de %', v_rol, v_priv, v_tabla;
+        end if;
+      end loop;
     end loop;
     if pg_catalog.has_table_privilege('service_role', 'public.' || v_tabla, 'DELETE')
        or pg_catalog.has_table_privilege('service_role', 'public.' || v_tabla, 'TRUNCATE') then
@@ -378,33 +423,70 @@ begin
   end loop;
 
   foreach v_tabla in array array['task_events', 'office_paused'] loop
-    if pg_catalog.has_table_privilege('service_role', 'public.' || v_tabla, 'UPDATE') then
+    if pg_catalog.has_any_column_privilege('service_role', 'public.' || v_tabla, 'UPDATE') then
       raise exception '0541 postflight: service_role puede cambiar filas de %', v_tabla;
     end if;
+    -- ENABLE ALWAYS ('A'): session_replication_role = replica no los apaga.
     if (select pg_catalog.count(*) from pg_catalog.pg_trigger t
          where t.tgrelid = pg_catalog.to_regclass('public.' || v_tabla)
-           and not t.tgisinternal and t.tgenabled = 'O'
+           and not t.tgisinternal and t.tgenabled = 'A'
            and t.tgfoid = 'public.office_solo_insertar()'::regprocedure) <> 2 then
-      raise exception '0541 postflight: faltan los disparadores de solo agregar en %', v_tabla;
+      raise exception '0541 postflight: faltan los disparadores de solo agregar (ENABLE ALWAYS) en %', v_tabla;
     end if;
   end loop;
 
-  if pg_catalog.to_regclass('public.task_events_task_id_idx') is null
-     or pg_catalog.to_regclass('public.event_inbox_clave_dedupe_idx') is null then
-    raise exception '0541 postflight: faltan los índices de task_id o clave_dedupe';
+  -- La identidad, la hora y el origen de cada fila: service_role no los escribe.
+  for v_col in
+    select * from (values
+      ('office_tasks', 'id', 'INSERT'), ('office_tasks', 'id', 'UPDATE'),
+      ('office_tasks', 'creado_en', 'INSERT'), ('office_tasks', 'creado_en', 'UPDATE'),
+      ('office_tasks', 'origen', 'UPDATE'),
+      ('task_events', 'id', 'INSERT'), ('task_events', 'ts', 'INSERT'),
+      ('event_inbox', 'id', 'INSERT'), ('event_inbox', 'id', 'UPDATE'),
+      ('event_inbox', 'ts', 'INSERT'), ('event_inbox', 'ts', 'UPDATE'),
+      ('event_inbox', 'clave_dedupe', 'UPDATE'), ('event_inbox', 'tipo', 'UPDATE'),
+      ('event_inbox', 'origen', 'UPDATE'), ('event_inbox', 'payload_ref', 'UPDATE'),
+      ('office_paused', 'pausada', 'INSERT')
+    ) as t(tabla, columna, priv)
+  loop
+    if pg_catalog.has_column_privilege('service_role', 'public.' || v_col.tabla, v_col.columna, v_col.priv) then
+      raise exception '0541 postflight: service_role tiene % sobre %.%', v_col.priv, v_col.tabla, v_col.columna;
+    end if;
+  end loop;
+
+  if pg_catalog.to_regclass('public.task_events_task_id_idx') is null then
+    raise exception '0541 postflight: falta el índice de task_events.task_id';
+  end if;
+  if not exists (
+    select 1 from pg_catalog.pg_constraint k
+      join pg_catalog.pg_attribute a on a.attrelid = k.conrelid and a.attnum = k.conkey[1]
+     where k.conrelid = 'public.event_inbox'::regclass and k.contype = 'u'
+       and pg_catalog.array_length(k.conkey, 1) = 1 and a.attname = 'clave_dedupe'
+  ) then
+    raise exception '0541 postflight: event_inbox.clave_dedupe no es única (AC-4)';
   end if;
 
   if not exists (select 1 from public.office_paused) then
     raise exception '0541 postflight: office_paused sin su primera fila';
   end if;
 
-  if not exists (
-    select 1 from pg_catalog.pg_proc p
-     where p.oid = 'public.office_cambiar_pausa(boolean, text)'::regprocedure
-       and p.prosecdef and p.proconfig @> array['search_path=""']
-  ) then
-    raise exception '0541 postflight: office_cambiar_pausa sin SECURITY DEFINER o sin search_path vacío';
-  end if;
+  -- Las tres funciones con search_path vacío; solo office_cambiar_pausa es SECURITY DEFINER.
+  for v_fn in
+    select * from (values
+      ('public.office_solo_insertar()', false),
+      ('public.office_esta_pausada()', false),
+      ('public.office_cambiar_pausa(boolean, text)', true)
+    ) as t(firma, definer)
+  loop
+    if not exists (
+      select 1 from pg_catalog.pg_proc p
+       where p.oid = pg_catalog.to_regprocedure(v_fn.firma)
+         and p.prosecdef = v_fn.definer
+         and p.proconfig @> array['search_path=""']
+    ) then
+      raise exception '0541 postflight: % sin search_path vacío o con SECURITY DEFINER distinto de %', v_fn.firma, v_fn.definer;
+    end if;
+  end loop;
   if pg_catalog.has_function_privilege('anon', 'public.office_cambiar_pausa(boolean, text)', 'EXECUTE')
      or pg_catalog.has_function_privilege('service_role', 'public.office_cambiar_pausa(boolean, text)', 'EXECUTE')
      or pg_catalog.has_function_privilege('anon', 'public.office_esta_pausada()', 'EXECUTE')
