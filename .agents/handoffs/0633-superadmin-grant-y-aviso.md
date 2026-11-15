@@ -63,14 +63,14 @@
 | `sdd:check` (node directo) | PASÓ (sin números repetidos) |
 | `pending-migration-symbols` (node directo) | PASÓ: 0 ROJO · 3 AMARILLO declarados (antes de corregir las líneas: FALLÓ por las citas corridas, ya arreglado) |
 | `migrations-lock` (node directo) | PASÓ: 0542 en espera sin sellar, 0 nuevas sin sellar |
-| Contrato 0542 en PGlite, control rojo y mutantes | PENDIENTE de turno de máquina |
-| Pruebas de acción y UI (feature flags, suspender) | PENDIENTE de turno de máquina |
-| `pnpm verify` | PENDIENTE de turno de máquina |
+| Contrato 0542 en PGlite, control rojo, 7 mutantes y barrido (`is-platform-admin-grant.migration.test.ts`, 11 casos) | PASÓ (vitest 4.1.7, 2026-11-15, con turno del Subdirector) |
+| Pruebas de acción y UI: `aviso-superadmin.test.tsx` (8) y `suspender-admin-superadmin.test.ts` (10) | PASÓ. Las 3 juntas: 29/29, exit 0, 18 s |
+| `pnpm verify` | NO EJECUTADO, por orden del DG (2026-11-15, relayada por el Subdirector): la memoria de la PC está justa. El portón es el CI de GitHub más la revisión independiente que lanza el DG |
 | `sql-tests` (Postgres 17) | Lo corre el CI (`sql-tests.yml`, que se dispara por `supabase/tests/**` y `supabase/migrations/**`) |
 
 ## Pendientes de esta tarea
 
-- Correr los vitest y `pnpm verify` con turno, y registrarlos aquí.
+- El vitest de los 3 archivos ya corrió: 29/29. `pnpm verify` no se corre en la PC, por decisión del DG; el portón es el CI.
 - `/ui-check` (2026-11-15): OK para commit. Una media: la tarjeta, que ya existía, usa `var(--font-sans, 'Archivo')` y px fuera de escala (`FeatureFlagsClient.tsx:235-245`), y va a FUERA DE ALCANCE. Una baja: el aviso no se puede cerrar a mano, y es aceptable por `role="alert"`.
 - Abrir la PR y reportar la cabeza.
 - **La aplicación en producción la hace el DG:** con el OK nominal de Sam, el paquete `preparar.mjs` sobre la cabeza final, la lectura previa y después la fusión. La previa va a decir que la 0542 no crea funciones, así que no hay deriva que medir. El preflight propio compara el cuerpo vivo.
