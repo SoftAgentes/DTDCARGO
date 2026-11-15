@@ -106,6 +106,26 @@ La IP pública del VPS DTD salió de `docs/runbooks/oficina-cable.md:23`, `:41` 
 - el contrato en Postgres 17, porque Docker no corre en la PC. Lo corre el job «Contratos SQL»;
 - `pnpm verify` completo.
 
+## MEZCLA CON MAIN: LA #574 Y LA 0542 (2026-11-15, 08:09 UTC)
+- **Qué entró:** la #574 (merge `42daa3d2c`) trajo `0542_is_platform_admin_execute_authenticated`, que devuelve a authenticated el EXECUTE de `is_platform_admin()`.
+- **La mezcla:** `origin/main` entró sin force y Git la resolvió sin conflicto en local. `migrations-baseline.json` queda con las seis esperas en orden: la 0528, de la 0538 a la 0542, y la 0541 con su texto nuevo.
+- **La 0541 no depende de ese grant.** `office_cambiar_pausa` es SECURITY DEFINER de postgres y llama a `is_platform_admin()` por dentro. Ninguna prueba de la 0541 exigía que authenticated no pudiera ejecutarla, así que no se debilitó nada.
+- **Se ajustó el fixture del contrato.** Ahora copia el cuerpo literal de la 0058, que el preflight de la 0542 exige, y el ACL de producción de hoy: sin EXECUTE para authenticated. Antes le daba EXECUTE a authenticated, que era el estado después de la 0542.
+- **Tres casos nuevos en PGlite:**
+  - sin la 0542: comprueba que authenticated no la ejecuta;
+  - con la 0542 real **antes** de la 0541, también con la vuelta;
+  - con la 0542 real **después** de la 0541.
+
+  En los tres, la bandera sigue cerrada para quien no es administrador (contrato 6).
+- **Pruebas después de la mezcla:**
+  - PGlite de la 0541: 45 de 45;
+  - `is-platform-admin-grant.migration.test.ts`: verde;
+  - `cable-textos`: 18 de 18;
+  - lock: exit 0, con 6 esperas;
+  - símbolos: 0 ROJO;
+  - `spec-migration-refs` y `check-pending-migration-symbols.test`: 25 de 25;
+  - `typecheck`: exit 0.
+
 ## DUDAS (Paso 1.1)
 - **«Paso 3» no está numerado en la spec.** La spec solo nombra el Paso 0 y §3.1 (Paso 1). La regla de un solo contestador dice «se hace cumplir en el Paso 3» como en el texto de Hermes.
 - **AC-5 tiene dos partes:** el presupuesto visible por corrida y la auto-pausa al 80 %. La regla de la etapa 1 a la 2 exige solo la primera («gasto registrado por corrida»). La auto-pausa no se exige para pasar.

@@ -45,12 +45,26 @@ create or replace function auth.uid() returns uuid
 language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema public, auth to anon, authenticated, service_role;
 
+-- is_platform_admin() con el cuerpo literal de la 0058 (el que exige el preflight de la 0542) y el ACL
+-- de producción ANTES de la 0542, medido por el DG el 2026-11-15: {postgres=X, service_role=X}, sin
+-- EXECUTE para authenticated. office_cambiar_pausa es DEFINER de postgres y la llama por dentro, así
+-- que la 0541 no depende de ese grant. El runner PGlite corre además este contrato con la 0542 REAL
+-- aplicada aquí (marca 0542 de abajo): authenticated ya la ejecuta y la bandera sigue igual de cerrada.
 create table public.platform_admins (user_id uuid primary key);
 create function public.is_platform_admin()
-returns boolean language sql security definer stable set search_path = public as $$
-  select exists (select 1 from public.platform_admins where user_id = (select auth.uid()))
+  returns boolean
+  language sql
+  security definer
+  stable
+  set search_path = public
+as $$
+  select exists (
+    select 1 from public.platform_admins where user_id = (select auth.uid())
+  );
 $$;
-grant execute on function public.is_platform_admin() to authenticated;
+revoke all on function public.is_platform_admin() from public, anon, authenticated;
+grant execute on function public.is_platform_admin() to service_role;
+-- 0542: aquí
 insert into public.platform_admins values ('00000000-0000-4000-8000-00000000a001');
 
 -- 1. La 0541. El runner PGlite (lib/studio/__tests__/oficina-cable-tablas.migration.test.ts) corre este

@@ -55,10 +55,11 @@ $abajo$;
  */
 function inline(
   file: string,
-  opts: { omit?: boolean; vuelta?: boolean; migracion?: Transform; desarme?: Transform } = {},
+  opts: { omit?: boolean; vuelta?: boolean; migracion?: Transform; desarme?: Transform; contrato?: Transform } = {},
 ): string {
   let primera = true;
-  return readFileSync(file, "utf8")
+  const texto = readFileSync(file, "utf8");
+  return (opts.contrato ? opts.contrato(texto) : texto)
     .split(/\r?\n/)
     .map((line) => {
       const include = line.match(/^\\ir\s+(\S+)/);
@@ -106,6 +107,39 @@ describe("0541 · tablas del cable y office_paused (PGlite)", () => {
 
   it("el contrato completo pasa después de arriba → abajo → arriba, con la migración y el desarme reales", async () => {
     expect(await run(inline(CONTRACT, { vuelta: true }))).toBeNull();
+  }, 60_000);
+
+  // La 0542 (SDD-0633) devuelve a authenticated el EXECUTE de is_platform_admin(). La 0541 no depende
+  // de ese grant (office_cambiar_pausa es DEFINER de postgres): el contrato tiene que pasar sin ella
+  // (el ACL de producción de hoy, el del fixture) y con ella, aplicada antes o después de la 0541.
+  const M0542 = readFileSync(
+    resolve(ROOT, "supabase/migrations/0542_is_platform_admin_execute_authenticated.sql"),
+    "utf8",
+  );
+  const authenticatedEjecuta = (debe: boolean) => `
+do $acl_0542$
+begin
+  if pg_catalog.has_function_privilege('authenticated', 'public.is_platform_admin()', 'EXECUTE') is distinct from ${debe} then
+    raise exception 'TEST 0541: authenticated no tiene el EXECUTE de is_platform_admin() que se esperaba (${debe})';
+  end if;
+end;
+$acl_0542$;
+`;
+  const enLaMarca = (sql: string) => mutar("-- 0542: aquí", sql);
+
+  it("sin la 0542 (el ACL de producción de hoy): authenticated no ejecuta is_platform_admin() y el contrato pasa", async () => {
+    expect(await run(inline(CONTRACT, { contrato: enLaMarca(authenticatedEjecuta(false)) }))).toBeNull();
+  }, 60_000);
+
+  it("con la 0542 real aplicada antes de la 0541, el contrato completo pasa (y con la vuelta)", async () => {
+    const contrato = enLaMarca(`${M0542}\n${authenticatedEjecuta(true)}`);
+    expect(await run(inline(CONTRACT, { contrato }))).toBeNull();
+    expect(await run(inline(CONTRACT, { contrato, vuelta: true }))).toBeNull();
+  }, 60_000);
+
+  it("con la 0542 real aplicada después de la 0541, el contrato completo pasa", async () => {
+    const migracion = (sql: string) => `${sql}\n${M0542}\n${authenticatedEjecuta(true)}`;
+    expect(await run(inline(CONTRACT, { migracion }))).toBeNull();
   }, 60_000);
 
   it("control rojo: sin la migración el contrato falla", async () => {
