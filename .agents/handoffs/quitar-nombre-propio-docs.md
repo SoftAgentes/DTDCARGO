@@ -1,10 +1,10 @@
 # Handoff · quitar-nombre-propio-docs
 
 - **Owner / sesión:** worker-quitar-nombre-propio (subagente Worker lanzado por el Director General).
-- **Ruta:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/quitar-nombre-propio`
+- **Worktree:** `.claude/worktrees/quitar-nombre-propio`
 - **Rama:** `claude/quitar-nombre-propio-docs`, desde `origin/main` `aee7d5d70`.
 - **SDD:** no aplica (solo docs y pruebas, sin cambio de comportamiento). Referencia del rol: SDD-0622, fila 9.9.
-- **Autorización:** Sam, «Sí, límpialo», por medio del Director General. Sin push ni PR en este encargo.
+- **Autorización:** Sam, «Sí, límpialo», por medio del Director General. La PR la abre el Subdirector de Contabilidad (#576).
 
 ## Objetivo
 
@@ -48,9 +48,9 @@ choca con ningún identificador: en esos archivos solo aparece como literal `'re
 - `git diff --check`: sin errores.
 - `pnpm docs:check` (`node scripts/build-docs-index.mjs --check`): PASÓ, 617 specs.
 - `pnpm sdd:check` (`node scripts/check-numbering.mjs`): PASÓ, sin números repetidos (choques históricos ya conocidos).
-- Pruebas focales: NO EJECUTADO (las corre el Director General con turno). Archivos:
-  `lib/news/autopublicar/__tests__/noticias-0518.migration.test.ts` y los contratos
-  `supabase/tests/0518_…`, `0525_…`, `0526_….test.sql` (revisar qué arnés Vitest/PGlite carga 0525 y 0526).
+- Pruebas focales (Subdirector, con turno del Director General): PASÓ, 3 archivos y 55 pruebas.
+  Son `lib/news/autopublicar/__tests__/noticias-0518`, `-0525` y `-0526.migration.test.ts`, que cargan
+  los contratos `supabase/tests/0518_…`, `0525_…` y `0526_….test.sql` en PGlite.
 - Sin node_modules en el worktree; no se corrió `pnpm install`. Los dos checks son node puro.
 
 ## Impacto documental
@@ -61,18 +61,28 @@ queda para el Director al integrar.
 
 ## Pendientes de esta tarea
 
-- Corrida focal de las pruebas tocadas (Director General).
-- Push y PR, cuando se autoricen.
+- Revisión y fusión de la #576 (Director General).
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Correos personales junto al rol** (no se copian aquí): `docs/specs/0272-cambio-de-correo-de-un-miembro/spec.md:30` y `:31`;
-  `docs/operaciones/prompt-cierre-permisos-2026-08-07.md:31` y `:170-177`; `docs/operaciones/prompt-roles-y-permisos.md:106-112`.
-- **Otros nombres propios de personal** en los mismos archivos: Yolimar (y su apellido), Fiorella (y apellido),
-  Alberto (y apellido), Jose (y apellido) en las tablas de `docs/operaciones/`; Pedro en la 0272 (§Sucesión);
-  Fátima, Fiorella y Yolimar en `FASE-FUTURA-motor-flujo-interno-y-rbac.md:80,84`; Yoli, José, Alberto y Javier en
-  `docs/marketing/whatsapp-business.md`; Javier en `supabase/migrations/0204_nomina_positions.sql:180` (aplicada).
-- **Nombre de una clienta («Alexandra»):** `docs/specs/0255-aliados-white-label/spec.md:100`;
-  `docs/specs/0258-shipping-mark-historial-y-subinsignias/spec.md:31,46,49,172,213,219,222,228`;
-  `lib/shared/markbox-chain.ts:15`; `supabase/migrations/0362_aliados_base.sql:20` (aplicada).
-- `docs/marketing/whatsapp-business.md` muestra teléfonos de la empresa por persona; no se evaluó si son públicos.
+Aquí no se copian nombres, correos ni identificadores: solo archivo y línea.
+
+- **Correos personales junto al rol:**
+  - `docs/specs/0272-cambio-de-correo-de-un-miembro/spec.md:30-31`: dos correos personales que siguen junto al rol;
+  - `docs/operaciones/prompt-cierre-permisos-2026-08-07.md:31` y `:170-177`;
+  - `docs/operaciones/prompt-roles-y-permisos.md:106-112`.
+- **Otros nombres de personal:**
+  - en las tablas de `docs/operaciones/prompt-cierre-permisos-2026-08-07.md:170-177` y de `docs/operaciones/prompt-roles-y-permisos.md:106-112`, algunos con apellido;
+  - en `docs/specs/0272-cambio-de-correo-de-un-miembro/spec.md`, §Sucesión;
+  - en `docs/specs/0076-configuracion-servicios/assets/FASE-FUTURA-motor-flujo-interno-y-rbac.md:80` y `:84`;
+  - en `docs/marketing/whatsapp-business.md`;
+  - en `supabase/migrations/0204_nomina_positions.sql:180`, que está aplicada.
+- **Identificador de cuenta que parece salir de un nombre real:** `.agents/handoffs/sdd-0611-noticias-publicacion-automatica.md:67-68`.
+- **Nombre de una clienta:**
+  - `docs/specs/0255-aliados-white-label/spec.md:100`;
+  - `docs/specs/0258-shipping-mark-historial-y-subinsignias/spec.md:31,46,49,172,213,219,222,228`;
+  - `lib/shared/markbox-chain.ts:15`;
+  - `supabase/migrations/0362_aliados_base.sql:20`, que está aplicada.
+- **Teléfonos de la empresa por persona:** `docs/marketing/whatsapp-business.md`. No se evaluó si son públicos.
+
+El Director General se lo lleva a Sam como decisión aparte.
