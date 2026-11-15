@@ -31,10 +31,9 @@ este handoff (nuevo). Sin código, sin migraciones. Verificado: `docs:check` y `
 No corrí verify ni vitest.
 
 ## Brief del Worker: migración de purga (no la programa el Subdirector)
-- **Rama y worktree propios**, desde `origin/main` fresco, y la purga va **en la PR del cron de noticias**,
-  como dijo Sam («En la PR del cron de noticias»): el Worker trabaja en la rama de esa PR (o el Worker
-  del cron la incluye). Si esa PR aún no existe, el Director General decide dónde abrirla; no se
-  reinterpreta la decisión. Opus (toca DB y datos personales).
+- **Rama y worktree propios, los de la PR del cron de noticias**, como dijo Sam («En la PR del cron de
+  noticias»): la purga va en esa PR (el Worker del cron la incluye). Si esa PR aún no existe, el
+  Director General decide dónde abrirla; no se reinterpreta la decisión. Opus (toca DB y datos personales).
 - **Número:** el que dé `pnpm sdd:next` al empezar. Verifica ramas y `refs/dtd/reservations`.
 - **Archivos exactos (allowlist), según el precedente de §11.4.2:**
   `supabase/migrations/05NN_noticias_purga_actor_id.sql`;

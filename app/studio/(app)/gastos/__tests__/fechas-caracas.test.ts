@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-const io = vi.hoisted(() => ({ client: vi.fn(), guard: vi.fn(), post: vi.fn(), void: vi.fn() }));
+const io = vi.hoisted(() => ({ client: vi.fn(), guard: vi.fn(), post: vi.fn(), void: vi.fn(), admin: { current: null as unknown } }));
 vi.mock("@/lib/db/server", () => ({ createClient: io.client }));
+// SDD-0624: el asiento histórico se lee con el cliente de servicio (la 0528 se
+// lo oculta a operaciones y almacén); el doble devuelve el mismo cliente.
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => io.admin.current }));
 vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: io.guard, capabilityDenial: vi.fn() }));
 vi.mock("@/lib/studio/accounting/expense-posting", () => ({ syncExpenseEntry: io.post, voidExpenseEntriesForExpense: io.void }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -52,6 +55,7 @@ function setup(options: { settings?: Row[]; entries?: Row[]; transportEntries?: 
     },
   };
   io.client.mockResolvedValue(client);
+  io.admin.current = client;
   io.guard.mockImplementation(async () => { if (options.crossMidnight) vi.setSystemTime(new Date("2026-10-21T04:00:00Z")); return null; });
   return { mutations, reads, rpc, upload, original, live };
 }

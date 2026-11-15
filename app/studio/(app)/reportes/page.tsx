@@ -37,6 +37,7 @@ import {
 import { asPeriod } from "@/lib/studio/reports/types";
 import { asSourceId } from "@/lib/studio/reports/builder-types";
 import { ReportesClient } from "./_components/ReportesClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Reportes & Analytics" };
 export const dynamic = "force-dynamic";
@@ -57,6 +58,10 @@ export default async function ReportesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("reports");
+
   const raw = await searchParams;
   const single = (k: string): string | undefined => {
     const v = raw[k];
