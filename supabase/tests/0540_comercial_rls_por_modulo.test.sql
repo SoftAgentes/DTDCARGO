@@ -385,7 +385,7 @@ select pg_temp.assert_true(pg_temp.ve('b1', 'rates') = 2 and pg_temp.ve('b1', 'q
 -- dejó el filtro a la app, y varias lecturas no lo aplican.
 select pg_temp.assert_true(pg_temp.actualiza('b1', 'quotes') = 2, '3d: comercial edita cotizaciones');
 update public.quotes set deleted_at = now() where id in (select id from public.quotes limit 1);
-select pg_temp.assert_true(pg_temp.ve('b1', 'quotes') = 2, '3d2: la RLS no oculta lo borrado (lo filtra la app, como en la 0230)');
+select pg_temp.assert_true(pg_temp.ve('b1', 'quotes') = 2, '3d2: la RLS no oculta lo borrado desde la 0230');
 select pg_temp.assert_true(pg_temp.actualiza('b1', 'quotes') = 1, '3d3: lo borrado ya no se edita');
 select pg_temp.assert_true(pg_temp.ve('c1', 'sales_orders') = 2,
   '3e: contabilidad lee órdenes de venta');
