@@ -32,18 +32,49 @@ function bloque(css: string, cabecera: string): string {
   return css.slice(i, css.indexOf("}", i));
 }
 
-const claro = bloque(globalsCss, "@theme");
-const oscuro = bloque(globalsCss, '[data-portal-theme="dark"]');
-const TEMAS = { claro, oscuro } as const;
-type Tema = keyof typeof TEMAS;
+/** Todos los bloques que abren exactamente con `cabecera {`, juntos; "" si no hay ninguno. */
+function bloques(css: string, cabecera: string): string {
+  const abre = `\n${cabecera} {`;
+  const out: string[] = [];
+  for (let i = css.indexOf(abre); i >= 0; i = css.indexOf(abre, i + 1)) out.push(css.slice(i, css.indexOf("}", i)));
+  return out.join("\n");
+}
 
-function token(tema: Tema, nombre: string): string {
+/**
+ * El portal tiene tres estados de tema, no dos:
+ *   - `claro`: sin atributo (cuentas sin tema). Los `--color-*` salen de `@theme`.
+ *   - `claro-explicito`: `data-portal-theme="light"`, lo que deja el botón de tema
+ *     al pasar de oscuro a claro. Hoy no redefine ningún `--color-*`, pero le
+ *     aplican los bloques `[data-portal-theme="light"]` y `[data-portal-theme]`
+ *     (este último vale para los dos temas con atributo) de las dos hojas.
+ *   - `oscuro`: `data-portal-theme="dark"`.
+ */
+type Tema = "claro" | "claro-explicito" | "oscuro";
+type Temas = Record<Tema, string>;
+const NOMBRES: Tema[] = ["claro", "claro-explicito", "oscuro"];
+
+/** Selectores de atributo que le aplican a cada tema, del más propio al más general. */
+const ATRIBUTOS: Record<Tema, string[]> = {
+  claro: [],
+  "claro-explicito": ['[data-portal-theme="light"]', "[data-portal-theme]"],
+  oscuro: ['[data-portal-theme="dark"]', "[data-portal-theme]"],
+};
+
+function temasDe(globals: string): Temas {
+  return {
+    claro: bloque(globals, "@theme"),
+    "claro-explicito": ATRIBUTOS["claro-explicito"].map((a) => bloques(globals, a)).join("\n"),
+    oscuro: bloque(globals, '[data-portal-theme="dark"]'),
+  };
+}
+
+function token(temas: Temas, tema: Tema, nombre: string): string {
   const re = new RegExp(`${nombre}\\s*:\\s*([^;]+);`);
-  const m = TEMAS[tema].match(re) ?? claro.match(re);
+  const m = temas[tema].match(re) ?? temas.claro.match(re); // sin override → hereda el claro
   if (!m) throw new Error(`no hay ${nombre}`);
   const v = m[1].trim();
   const ref = v.match(/^var\((--[\w-]+)\)$/);
-  return ref ? token(tema, ref[1]) : v;
+  return ref ? token(temas, tema, ref[1]) : v;
 }
 
 function luz(hex: string): number {
@@ -59,18 +90,18 @@ function luz(hex: string): number {
  * Un color es un token (`--x`) o una mezcla sRGB de dos tokens, escrita
  * `mezcla(--a,14,--b)`, que es lo que hace `color-mix(in srgb, var(--a) 14%, var(--b))`.
  */
-function hex(tema: Tema, color: string): string {
+function hex(temas: Temas, tema: Tema, color: string): string {
   const m = color.match(/^mezcla\((--[\w-]+),(\d+(?:\.\d+)?),(--[\w-]+)\)$/);
-  if (!m) return token(tema, color);
-  const [a, b, p] = [token(tema, m[1]), token(tema, m[3]), Number(m[2]) / 100];
+  if (!m) return token(temas, tema, color);
+  const [a, b, p] = [token(temas, tema, m[1]), token(temas, tema, m[3]), Number(m[2]) / 100];
   return `#${[1, 3, 5]
     .map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * p + parseInt(b.slice(i, i + 2), 16) * (1 - p)))
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("")}`;
 }
 
-function contraste(tema: Tema, a: string, b: string): number {
-  const [l1, l2] = [luz(hex(tema, a)), luz(hex(tema, b))];
+function contraste(temas: Temas, tema: Tema, a: string, b: string): number {
+  const [l1, l2] = [luz(hex(temas, tema, a)), luz(hex(temas, tema, b))];
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
@@ -99,20 +130,36 @@ const SEL = {
   franja: ".portal-sys .portal-aviso",
   icono: ".portal-sys .portal-aviso-icono",
   tono: (t: Tono) => `.portal-sys .portal-aviso[data-tono="${t}"] .portal-aviso-icono`,
-  oscuro: (t: Tono) => `.portal-sys [data-portal-theme="dark"] .portal-aviso[data-tono="${t}"] .portal-aviso-icono`,
+  // `atributo` es `[data-portal-theme="dark"]`, `[data-portal-theme="light"]` o `[data-portal-theme]`.
+  iconoEnTema: (atributo: string, t: Tono) => `.portal-sys ${atributo} .portal-aviso[data-tono="${t}"] .portal-aviso-icono`,
+  franjaEnTema: (atributo: string, t: Tono) => `.portal-sys ${atributo} .portal-aviso[data-tono="${t}"]`,
 };
 
-/** Token del icono de un tono en un tema, resuelto como lo haría la cascada. */
-function tokenIcono(css: string, tema: Tema, tono: Tono): string {
-  const oscuroR = tema === "oscuro" ? reglaO(css, SEL.oscuro(tono)) : null;
-  const propia = reglaO(css, SEL.tono(tono));
-  return tokenDe(oscuroR ?? propia ?? regla(css, SEL.icono), "color");
+/** La primera regla que exista de las que le aplican a ese tema; `null` si ninguna. */
+function reglaDeTema(css: string, tema: Tema, selector: (atributo: string) => string): string | null {
+  for (const atributo of ATRIBUTOS[tema]) {
+    const r = reglaO(css, selector(atributo));
+    if (r !== null) return r;
+  }
+  return null;
 }
 
-/** Fondo de la franja de un tono: el suyo propio si lo declara (atención), si no el común. */
-function fondoDe(css: string, tono: Tono): string {
+/**
+ * Token del icono de un tono en un tema, resuelto como lo haría la cascada: una
+ * regla con atributo de tema le gana a la del tono, y esta a la común. Una regla
+ * bajo `[data-portal-theme]` a secas le aplica también al claro explícito.
+ */
+function tokenIcono(css: string, tema: Tema, tono: Tono): string {
+  const deTema = reglaDeTema(css, tema, (a) => SEL.iconoEnTema(a, tono));
+  const propia = reglaO(css, SEL.tono(tono));
+  return tokenDe(deTema ?? propia ?? regla(css, SEL.icono), "color");
+}
+
+/** Fondo de la franja de un tono en un tema: el del tema, el propio del tono (atención) o el común. */
+function fondoDe(css: string, tema: Tema, tono: Tono): string {
+  const deTema = reglaDeTema(css, tema, (a) => SEL.franjaEnTema(a, tono));
   const propia = reglaO(css, `.portal-sys .portal-aviso[data-tono="${tono}"]`);
-  const cuerpo = propia ?? regla(css, SEL.franja);
+  const cuerpo = deTema ?? propia ?? regla(css, SEL.franja);
   const mezcla = cuerpo.match(
     /\n\s*background\s*:\s*color-mix\(in srgb, var\((--[\w-]+)\) (\d+(?:\.\d+)?)%, var\((--[\w-]+)\)\);/,
   );
@@ -124,9 +171,9 @@ type Medida = { tema: Tema; que: string; frente: string; fondo: string; minimo: 
 function medidas(css: string): Medida[] {
   const franja = regla(css, SEL.franja);
   const out: Medida[] = [];
-  for (const tema of Object.keys(TEMAS) as Tema[]) {
+  for (const tema of NOMBRES) {
     for (const tono of TONOS) {
-      const fondo = fondoDe(css, tono);
+      const fondo = fondoDe(css, tema, tono);
       out.push({ tema, que: `texto de la franja de ${tono}`, frente: tokenDe(franja, "color"), fondo, minimo: 4.5 });
       // Las pantallas ponen el cuerpo en `text-grey-700`: también tiene que leerse.
       out.push({ tema, que: `texto secundario (grey-700) en ${tono}`, frente: "--color-grey-700", fondo, minimo: 4.5 });
@@ -136,15 +183,44 @@ function medidas(css: string): Medida[] {
   return out;
 }
 
-function fallasDeHoja(css: string): string[] {
+/** `globals` se puede cambiar para probar un mutante de los tokens. */
+function fallasDeHoja(css: string, globals: string = globalsCss): string[] {
+  const temas = temasDe(globals);
   const out: string[] = [];
   for (const m of medidas(css)) {
-    const c = contraste(m.tema, m.frente, m.fondo);
+    const c = contraste(temas, m.tema, m.frente, m.fondo);
     if (c < m.minimo) out.push(`${m.tema} · ${m.que}: ${c.toFixed(2)}:1 < ${m.minimo}`);
   }
   const franja = regla(css, SEL.franja);
   if (!/\n\s*border: 0;/.test(franja)) out.push("la franja declara contorno");
   if (!/\n\s*box-shadow: none;/.test(franja)) out.push("la franja declara sombra");
+  return out;
+}
+
+/**
+ * La franja no depende de su borde (menores del portal, BD-037). El relleno
+ * `--color-grey-100` mide 1,09:1 contra el papel claro: el canto casi no se ve,
+ * y la regla prohíbe darle contorno. Lo que hace de aviso es el icono y el texto,
+ * así que tienen que leerse igual si el relleno no se distingue: se miden contra
+ * las dos superficies donde cae una franja (papel y tarjeta), en los tres temas.
+ */
+function fallasSinFranja(css: string, globals: string = globalsCss): string[] {
+  const temas = temasDe(globals);
+  const texto = tokenDe(regla(css, SEL.franja), "color");
+  const out: string[] = [];
+  for (const tema of NOMBRES) {
+    for (const [superficie, nombre] of [["--color-paper", "el papel"], ["--color-white", "la tarjeta"]] as const) {
+      const pares: [string, string, number][] = [
+        ["texto de la franja", texto, 4.5],
+        ["texto secundario (grey-700)", "--color-grey-700", 4.5],
+        ...TONOS.map((t): [string, string, number] => [`icono de ${t}`, tokenIcono(css, tema, t), 3]),
+      ];
+      for (const [que, frente, minimo] of pares) {
+        const c = contraste(temas, tema, frente, superficie);
+        if (c < minimo) out.push(`${tema} · ${que} sobre ${nombre}: ${c.toFixed(2)}:1 < ${minimo}`);
+      }
+    }
+  }
   return out;
 }
 
@@ -244,17 +320,21 @@ function todasLasFallas(pantallas: Record<string, string>): string[] {
 // ── Pruebas ─────────────────────────────────────────────────────────────────
 
 describe("avisos del portal · SDD-0603 tramo 4e (BD-037)", () => {
-  it("mide al menos 24 pares (12 por tema): la suite no puede vaciarse", () => {
-    expect(medidas(claridadCss).length).toBeGreaterThanOrEqual(24);
+  it("mide al menos 36 pares (12 por tema, tres temas): la suite no puede vaciarse", () => {
+    const ms = medidas(claridadCss);
+    expect(ms.length).toBeGreaterThanOrEqual(36);
+    for (const tema of NOMBRES) expect(ms.filter((m) => m.tema === tema).length).toBeGreaterThanOrEqual(12);
   });
 
   it("atención lleva el acento dorado en el fondo; los demás tonos, la franja neutra", () => {
-    expect(fondoDe(claridadCss, "atencion")).toBe("mezcla(--color-status-warning,14,--color-grey-100)");
-    for (const t of ["info", "exito", "error"] as const) expect(fondoDe(claridadCss, t)).toBe("--color-grey-100");
+    for (const tema of NOMBRES) {
+      expect(fondoDe(claridadCss, tema, "atencion")).toBe("mezcla(--color-status-warning,14,--color-grey-100)");
+      for (const t of ["info", "exito", "error"] as const) expect(fondoDe(claridadCss, tema, t)).toBe("--color-grey-100");
+    }
   });
 
   it.each(medidas(claridadCss).map((m) => [`${m.tema} · ${m.que}`, m] as const))("%s", (_q, m) => {
-    expect(contraste(m.tema, m.frente, m.fondo)).toBeGreaterThanOrEqual(m.minimo);
+    expect(contraste(temasDe(globalsCss), m.tema, m.frente, m.fondo)).toBeGreaterThanOrEqual(m.minimo);
   });
 
   it("la hoja real no tiene fallas: franja plana y contraste AA", () => {
@@ -264,6 +344,22 @@ describe("avisos del portal · SDD-0603 tramo 4e (BD-037)", () => {
   it("atención en claro lleva el icono en tinta; en oscuro, el dorado", () => {
     expect(tokenIcono(claridadCss, "claro", "atencion")).toBe("--color-ink");
     expect(tokenIcono(claridadCss, "oscuro", "atencion")).toBe("--color-status-warning");
+  });
+
+  it('con data-portal-theme="light" explícito, atención también lleva el icono en tinta', () => {
+    expect(tokenIcono(claridadCss, "claro-explicito", "atencion")).toBe("--color-ink");
+  });
+
+  it("el claro explícito resuelve hoy los mismos colores que el claro sin atributo", () => {
+    const temas = temasDe(globalsCss);
+    for (const m of medidas(claridadCss).filter((x) => x.tema === "claro")) {
+      expect(hex(temas, "claro-explicito", m.frente), m.que).toBe(hex(temas, "claro", m.frente));
+      expect(hex(temas, "claro-explicito", m.fondo), m.que).toBe(hex(temas, "claro", m.fondo));
+    }
+  });
+
+  it("la franja no depende de su borde: icono y texto se leen también sobre el papel y la tarjeta", () => {
+    expect(fallasSinFranja(claridadCss)).toEqual([]);
   });
 
   it("cuenta 13 franjas en los 11 archivos", () => {
@@ -367,6 +463,45 @@ describe("avisos del portal · SDD-0603 tramo 4e (BD-037)", () => {
       const m = claridadCss.replace("var(--color-status-warning) 14%,", "var(--color-status-warning) 60%,");
       expect(m).not.toBe(claridadCss);
       expect(fallasDeHoja(m).some((f) => f.includes("texto de la franja de atencion"))).toBe(true);
+    });
+
+    it("M9 · la excepción dorada se abre a todo tema con atributo y alcanza al claro explícito", () => {
+      const m = claridadCss.replace(
+        '.portal-sys [data-portal-theme="dark"] .portal-aviso[data-tono="atencion"] .portal-aviso-icono {',
+        '.portal-sys [data-portal-theme] .portal-aviso[data-tono="atencion"] .portal-aviso-icono {',
+      );
+      expect(m).not.toBe(claridadCss);
+      const f = fallasDeHoja(m);
+      expect(f.some((x) => x.startsWith("claro-explicito · icono de atencion"))).toBe(true);
+      // El claro sin atributo y el oscuro siguen bien: sin el tercer tema, este mutante pasaba.
+      expect(f.filter((x) => !x.startsWith("claro-explicito · "))).toEqual([]);
+    });
+
+    it('M10 · una regla propia de [data-portal-theme="light"] pone el dorado en el icono', () => {
+      const m = `${claridadCss}\n.portal-sys [data-portal-theme="light"] .portal-aviso[data-tono="atencion"] .portal-aviso-icono {\n  color: var(--color-status-warning);\n}\n`;
+      const f = fallasDeHoja(m);
+      expect(f.some((x) => x.startsWith("claro-explicito · icono de atencion"))).toBe(true);
+      expect(f.filter((x) => !x.startsWith("claro-explicito · "))).toEqual([]);
+    });
+
+    it('M11 · globals.css redefine un token bajo [data-portal-theme="light"] y el texto deja de leerse', () => {
+      const m = `${globalsCss}\n[data-portal-theme="light"] {\n  --color-grey-700: #8b93a8;\n}\n`;
+      const f = fallasDeHoja(claridadCss, m);
+      expect(f.some((x) => x.startsWith("claro-explicito · texto secundario (grey-700)"))).toBe(true);
+      expect(f.filter((x) => !x.startsWith("claro-explicito · "))).toEqual([]);
+    });
+
+    it("M12 · la franja pasa a depender de su relleno: bloque de tinta con texto claro", () => {
+      const franja = regla(claridadCss, SEL.franja);
+      const m = claridadCss.replace(
+        franja,
+        franja.replace("background: var(--color-grey-100);", "background: var(--color-ink);").replace("color: var(--color-ink);", "color: var(--color-white);"),
+      );
+      expect(m).not.toBe(claridadCss);
+      // Sobre su propio relleno el texto se lee (16,49:1 en claro)…
+      expect(fallasDeHoja(m).some((x) => x.startsWith("claro · texto de la franja de info"))).toBe(false);
+      // …pero ya no se sostiene sin él.
+      expect(fallasSinFranja(m)).toContain("claro · texto de la franja sobre la tarjeta: 1.00:1 < 4.5");
     });
   });
 });
