@@ -6,11 +6,10 @@
  *
  * EL CONTROL VIVE EN LA BASE para usuarios: la 0355 mete `is_platform_admin()`
  * dentro de `studio_set_user_disabled` y `studio_change_user_role` (DEFINER,
- * invocables por PostgREST). ⚠️ Para los feature flags NO: la escritura va por
- * `audit_d1_execute` (0289:632-650), que solo exige admin del tenant y escribe
- * como dueño, así que la policy de `feature_flags` (0355) no la alcanza y el
- * bloqueo efectivo es `platformAdminDenial` en la server action (SDD-0633,
- * FUERA DE ALCANCE: va en otra PR).
+ * invocables por PostgREST). Para los feature flags, el control es el disparador
+ * `feature_flags_exige_superadmin` (migr 0543, SDD-0634): la escritura va por
+ * `audit_d1_execute` (0289:632-650), DEFINER, que la policy de `feature_flags`
+ * (0355) no alcanzaba.
  *
  * Este módulo es para que la UI pueda DECIRLO: sin él, un admin que aprieta el
  * interruptor de un feature flag vería la RLS descartar su UPDATE en silencio y
