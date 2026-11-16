@@ -1,21 +1,27 @@
 # Handoff — SDD-0649 Shipping Mark y segmento del ERP en el contacto de Chatwoot
 
-Fecha: 2026-11-16 · Rama: `claude/quizzical-villani-eb5dfc` · Reserva: `codex/sdd-reserve-0649-chatwoot-contacto-ficha-erp` + `refs/dtd/reservations/0649`.
+Fecha: 2026-11-16 · Rama: `claude/quizzical-villani-eb5dfc` · PR #622 · Reserva: `codex/sdd-reserve-0649-chatwoot-contacto-ficha-erp` + `refs/dtd/reservations/0649`.
 
 ## Hecho
-- Spec en borrador: `docs/specs/0649-chatwoot-contacto-ficha-erp/spec.md`. Diseño, datos personales y decisiones D1 a D5.
-- Índice de specs regenerado.
-- Comprobaciones: `sdd:check` PASÓ («sin números repetidos») y `docs:check` PASÓ. `pnpm verify`: NO EJECUTADO, porque el cambio es solo documental.
+- Spec `docs/specs/0649-chatwoot-contacto-ficha-erp/spec.md`: D1 a D5 resueltas por Sam («Sí, como recomiendas»). D4 queda en (b): su recomendación era condicional y la frecuencia del borrado no está medida.
+- Antecedente revisado a pedido de Sam: ni en la sesión del Director General, ni en otras sesiones, ni en el repo había una aprobación previa de esto. Lo parecido es la SDD-0244, que pone el Shipping Mark en el contacto de **Kommo**.
+- Código según la lista exacta de la spec, §6. Manejador `marcarContactoErp`, apagado salvo con `CHATWOOT_ATRIBUTOS_CONTACTO=1`. **Sin migración**: usa la RPC de la 0505 y lee solo `clients.markbox` con service_role.
+- Runbook: sección «Segmento y Shipping Mark en el contacto» en `docs/runbooks/chatwoot-bandeja.md`.
+
+## Comprobaciones
+- `sdd:check`: PASÓ. `docs:check`: PASÓ.
+- Vitest, typecheck, lint y `pnpm verify` locales: NO EJECUTADOS. El worktree no tiene `node_modules`, y instalar o correr pruebas en la PC pide turno del Director General. El portón es el CI de la PR #622.
 
 ## Pendiente de esta tarea
-- Respuestas de Sam a D1 a D5.
-- Después, la implementación (plan §6) en esta misma SDD y otra PR.
+- CI de la PR en verde y revisión independiente, que lanza el Director General.
+- Puertas, cada una con OK nominal de Sam: fusionar y desplegar; crear los dos atributos en Chatwoot (D1); cargar `CHATWOOT_ATRIBUTOS_CONTACTO=1` y recrear `web`; smoke con el número de prueba (runbook).
 
 ## FUERA DE ALCANCE DETECTADO
 - Conteos de solo lectura del Archivo Kommo: el guion está en la carpeta de notas del Subdirector de Chatwoot (`0590-por-que-no-veo-kommo-conteos.rb`). Lo corre el Director General; Sam lo aprobó el 2026-11-16.
 - Historial de Kommo en la ficha de Studio y en la Ficha DTD (opción A del informe de esa carpeta): sin decidir.
 - Prueba de fotos, videos, voz y enlaces con el número de prueba: propuesta, sin OK.
 - Consentimiento y baja de marketing: hay un borrador en la misma carpeta; la tabla de consentimientos pide su propia SDD.
+- D4 (a), limpiar el atributo al borrar la ficha: si un conteo muestra que el borrado es frecuente.
 
 ## Impacto documental
-- Ninguno fuera de la spec y el índice. El runbook de los atributos se escribe al implementar.
+- Runbook `chatwoot-bandeja.md` y `.env.example` actualizados. El índice de specs se regeneró.

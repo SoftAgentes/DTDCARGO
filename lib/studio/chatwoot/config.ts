@@ -177,3 +177,13 @@ export function chatwootBandejasWhatsapp(): { leads: number | null; clientes: nu
   };
   return { leads: id(process.env.CHATWOOT_INBOX_LEADS_ID), clientes: id(process.env.CHATWOOT_INBOX_CLIENTES_ID) };
 }
+
+/**
+ * SDD-0649: escribir el segmento y el Shipping Mark en el contacto de Chatwoot.
+ * Solo con `CHATWOOT_ATRIBUTOS_CONTACTO=1`, que se carga DESPUÉS de crear los dos
+ * atributos en Chatwoot (D1, OK nominal de Sam). Cualquier otro valor, o vacío,
+ * lo deja apagado.
+ */
+export function chatwootAtributosContactoActivos(): boolean {
+  return (process.env.CHATWOOT_ATRIBUTOS_CONTACTO ?? "").trim() === "1";
+}
