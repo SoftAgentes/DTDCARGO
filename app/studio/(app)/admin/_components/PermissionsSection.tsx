@@ -105,6 +105,9 @@ function describeChange(role: StudioUserRole, moduleLabel: string, next: NivelRo
   return `${ROLE_LABELS[role]}: ${moduleLabel} ahora en «${NIVEL_ROL_LABEL[next]}» para ${personasTxt(personas)}.`;
 }
 
+/** Si la acción lanza (red caída, sesión vencida), la celda vuelve y se dice. */
+const ERROR_RED = "No se pudo guardar el cambio. Revisa tu conexión e intenta de nuevo.";
+
 function normalizar(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
@@ -141,12 +144,16 @@ export function PermissionsSection({
     const delRol = new Set(members.filter((m) => m.role === r).map((m) => m.user_id));
     return grants
       .filter((g) => g.moduleId === moduleId && !g.expired && delRol.has(g.userId))
-      .map((g) => nombres[g.userId] ?? "una persona");
+      .map((g) => ({ nombre: nombres[g.userId] ?? "una persona", edita: g.canEdit }));
   };
 
   const cambiada = (r: StudioUserRole, moduleId: string) =>
     r !== "admin" && !LOCKED_MODULES.has(moduleId) && nivelCelda(r, moduleId, overrides) !== nivelCelda(r, moduleId);
-  const nCambiadas = MODULES.reduce((n, m) => n + STUDIO_USER_ROLES.filter((r) => cambiada(r, m.id)).length, 0);
+  /** Hay un desvío guardado que hoy da lo mismo que fábrica: se ve y se puede limpiar. */
+  const igualAFabrica = (r: StudioUserRole, moduleId: string) =>
+    r !== "admin" && !LOCKED_MODULES.has(moduleId) && `${r}:${moduleId}` in overrides && !cambiada(r, moduleId);
+  const conDesvio = (r: StudioUserRole, moduleId: string) => cambiada(r, moduleId) || igualAFabrica(r, moduleId);
+  const nCambiadas = MODULES.reduce((n, m) => n + STUDIO_USER_ROLES.filter((r) => conDesvio(r, m.id)).length, 0);
 
   const q = normalizar(busqueda.trim());
   const grouped = GROUP_ORDER.map((g) => ({
@@ -154,7 +161,7 @@ export function PermissionsSection({
     total: MODULES.filter((m) => m.group === g).length,
     items: MODULES.filter((m) => m.group === g)
       .filter((m) => !q || normalizar(m.label).includes(q))
-      .filter((m) => !soloCambiados || STUDIO_USER_ROLES.some((r) => cambiada(r, m.id))),
+      .filter((m) => !soloCambiados || STUDIO_USER_ROLES.some((r) => conDesvio(r, m.id))),
   })).filter((x) => x.items.length > 0);
 
   const flash = (key: string) => {
@@ -165,10 +172,42 @@ export function PermissionsSection({
 
   const cerrar = useCallback(() => {
     setAbierta((k) => {
-      if (k) queueMicrotask(() => celdas.current.get(k)?.focus());
+      if (k) queueMicrotask(() => celdas.current.get(k)?.focus({ preventScroll: true }));
       return null;
     });
   }, []);
+
+  // Alto real de la fila de roles: la fila del grupo se pega justo debajo,
+  // aunque un rol ocupe dos líneas (sin un número fijo que la tape).
+  useEffect(() => {
+    const w = wrapRef.current;
+    const head = w?.querySelector("thead");
+    if (!w || !head) return;
+    const medir = () => w.style.setProperty("--mx-head-h", `${Math.ceil(head.getBoundingClientRect().height)}px`);
+    medir();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(medir);
+    ro.observe(head);
+    return () => ro.disconnect();
+  }, []);
+
+  // El panel es fijo en la ventana: si la tabla o la página se desplazan, o la
+  // ventana cambia de tamaño, quedaría lejos de su celda. Se cierra y el foco
+  // vuelve a la celda.
+  useEffect(() => {
+    if (!abierta) return;
+    function onMover(e: Event) {
+      const t = e.target;
+      if (t instanceof Node && document.querySelector(".studio-mx-pop")?.contains(t)) return;
+      cerrar();
+    }
+    window.addEventListener("scroll", onMover, true);
+    window.addEventListener("resize", onMover);
+    return () => {
+      window.removeEventListener("scroll", onMover, true);
+      window.removeEventListener("resize", onMover);
+    };
+  }, [abierta, cerrar]);
 
   // Esc cierra el panel y devuelve el foco a la celda.
   useEffect(() => {
@@ -187,8 +226,6 @@ export function PermissionsSection({
     if (!w) return;
     const s = { x: w.scrollLeft > 0, y: w.scrollTop > 0 };
     if (s.x !== sombra.x || s.y !== sombra.y) setSombra(s);
-    // Al desplazar la tabla, el panel quedaría lejos de su celda: se cierra.
-    if (abierta) setAbierta(null);
   }
 
   function aplicar(role: StudioUserRole, moduleId: string, moduleLabel: string, next: NivelRol) {
@@ -206,7 +243,12 @@ export function PermissionsSection({
     const previous = overrides;
     setOverrides({ ...overrides, [key]: valor });
     startTransition(async () => {
-      const res = await setRoleModuleAccessAction(role, moduleId, valor.view, valor.edit);
+      let res: { error?: string };
+      try {
+        res = await setRoleModuleAccessAction(role, moduleId, valor.view, valor.edit);
+      } catch {
+        res = { error: ERROR_RED };
+      }
       setPendingKey(null);
       if (res.error) {
         setOverrides(previous);
@@ -229,7 +271,12 @@ export function PermissionsSection({
     delete rest[key];
     setOverrides(rest);
     startTransition(async () => {
-      const res = await resetRoleModuleAccessAction(role, moduleId);
+      let res: { error?: string };
+      try {
+        res = await resetRoleModuleAccessAction(role, moduleId);
+      } catch {
+        res = { error: ERROR_RED };
+      }
       setPendingKey(null);
       if (res.error) {
         setOverrides(previous);
@@ -362,6 +409,7 @@ export function PermissionsSection({
           fabrica={nivelCelda(rolAbierto, modDef.id) as NivelRol}
           actual={nivelCelda(rolAbierto, modDef.id, overrides) as NivelRol}
           cambiado={cambiada(rolAbierto, modDef.id)}
+          igualAFabrica={igualAFabrica(rolAbierto, modDef.id)}
           personas={personasDe(rolAbierto)}
           conExtra={conExtraDe(rolAbierto, modDef.id)}
           pending={pendingKey === abierta}
@@ -421,7 +469,8 @@ function GroupRows({
               const n = nivelCelda(r, m.id, overrides);
               const key = `${r}:${m.id}`;
               const cambio = r !== "admin" && !locked && n !== nivelCelda(r, m.id);
-              const nombre = `${ROLE_LABELS[r]}, ${m.label}: ${NIVEL_ROL_LABEL[n]}${cambio ? ", cambiado respecto a lo de fábrica" : ""}${locked ? ", fijo" : ""}`;
+              const igual = r !== "admin" && !locked && !cambio && `${r}:${m.id}` in overrides;
+              const nombre = `${ROLE_LABELS[r]}, ${m.label}: ${NIVEL_ROL_LABEL[n]}${cambio ? ", cambiado respecto a lo de fábrica" : ""}${igual ? ", cambio guardado igual a lo de fábrica" : ""}${locked ? ", fijo" : ""}`;
               if (r === "admin") {
                 return (
                   <td key={r} className="studio-mx-adm">
@@ -465,6 +514,12 @@ function GroupRows({
                       <span className="studio-mx-chg">
                         <span className="studio-mx-dot" aria-hidden />
                         Cambiado
+                      </span>
+                    )}
+                    {igual && (
+                      <span className="studio-mx-chg">
+                        <span className="studio-mx-dot" aria-hidden />
+                        Cambiado (igual a fábrica)
                       </span>
                     )}
                   </span>

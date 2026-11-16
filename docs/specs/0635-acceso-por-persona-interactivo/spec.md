@@ -128,11 +128,22 @@ Elegir una opción **no guarda**. El cambio va a una bandeja fija al pie del pan
 - Si en la lista hay un módulo sensible, antes de guardar se abre el **doble aviso** existente
   (`DobleAvisoDialog`), con la lista de efectos de ese módulo. Mientras ningún sensible esté cubierto (0622
   §13.2) este camino no se alcanza, igual que hoy.
+  - **Nota de implementación (revisión del 2026-11-15):** hoy un módulo sensible **no pasa por la bandeja**:
+    al elegir «Solo ver» o «Ver y editar» en su detalle, `MapaAcceso` llama a `onSensible` y se abre el doble
+    aviso de una vez, con su propio motivo, como en la 0622. No se alcanza mientras `COVERED` no tenga ningún
+    sensible. Si algún día se cubre uno, hay que decidir si entra a la bandeja (con el doble aviso al guardar) o
+    se queda aparte, y probarlo antes de habilitarlo.
 - **Fallo a medias:** si un módulo falla, los anteriores ya quedaron guardados. La bandeja conserva solo los que
   faltan, dice cuál falló y por qué, y el resto se ve en el mapa. Nada se revierte por detrás.
 - Al guardar, el resultado se dice en la sección («2 cambios guardados para Contable A»), no solo en un toast
   (BTN-01 §5).
-- Si la persona cierra la ficha con cambios sin guardar, se pide confirmar el descarte.
+- Si la persona cierra la ficha con cambios sin guardar, se pide confirmar el descarte. Lo mismo al cambiar de
+  pestaña o al ir a «Roles y permisos» (prueba en `UserDetailDrawer.test.tsx`).
+  - **Pendiente, con razón:** el botón «atrás» del navegador **no** avisa todavía. La ficha vive en la URL
+    (`?persona=…&ficha=…`) y el «atrás» es una navegación del cliente de Next: no dispara `beforeunload` y
+    `popstate` llega cuando la URL ya cambió, así que no se puede frenar sin reescribir el historial o
+    interceptar el router. Se deja para una tarea propia (o cuando el router ofrezca una guarda de navegación);
+    mientras tanto, el «atrás» pierde la bandeja sin guardar nada a medias.
 - El atajo «Agregar todo Comercial» pasa a ser «Todo Comercial» dentro del encabezado del área: llena la
   bandeja con los comerciales que se pueden dar, en «Ver y editar», para revisar antes de guardar.
 
@@ -356,6 +367,10 @@ mínimo viable sería `custom` con solo los 8 módulos cubiertos; la pantalla de
 14. **Matriz, encabezados fijos:** el encabezado de roles, la columna de módulos y la fila de grupo tienen
     `position: sticky` dentro de un contenedor con desplazamiento propio; al desplazar aparecen las sombras.
     Comprobación en navegador (e2e o captura) con la tabla desplazada, no solo en la prueba de componente.
+    **Estado (2026-11-15):** pendiente con dueño, **Sam**, aceptado así por el Director General. Sam lo
+    comprueba en pantalla, en prueba o en producción, cuando se publique. Lo cubren por ahora la maqueta y el
+    contrato CSS de `PermissionsSection.test.tsx`; la fila de grupo usa el alto medido de la fila de roles
+    (`--mx-head-h`), no un número fijo.
 15. **Matriz, sin siglas:** ninguna celda muestra «V·E», «V» ni «TOTAL»; el texto visible o el nombre accesible
     dice «Ver y editar», «Solo ver», «Sin acceso» o «Todo». La leyenda está en el pie fijo.
 16. **Matriz, de fábrica:** una celda cambiada muestra «Cambiado»; su panel dice el nivel de fábrica y el actual
@@ -374,6 +389,7 @@ mínimo viable sería `custom` con solo los 8 módulos cubiertos; la pantalla de
 | A11Y-01 | Chips con nombre accesible y estado; `radiogroup` con flechas; `Esc` y retorno de foco | Cumplimiento |
 | VIS-01 / `BRAND.md` | Solo tokens existentes; dorado = sensible (riesgo), índigo = extra, wine = acción pendiente | Cumplimiento |
 | Privacidad (`revisar-datos-ve`) | No se captura dato nuevo; el motivo sigue con su aviso. Actividad lee bitácoras que ya existen con el cliente de servicio, limitado a admin | No aplica revisión nueva; se revisa en la PR de implementación si cambia la lectura |
+| Privacidad · lectura nueva de `user_role_audit` (etapa 2) | Actividad agrega la lectura de suspensiones y reactivaciones de `user_role_audit` (0201) | **No aplica.** Razón: no se captura, mueve ni borra ningún dato personal; la tabla ya existe y ya la escribe el Studio. Se leen solo `id, action, actor_user_id, created_at`, con `action` en `disable`/`enable`, filtrado por el tenant de la sesión y la persona de la ficha, en el servidor y solo para administración (mismos candados que la lectura de extras). No trae `old_value`/`new_value` ni otros campos. A la pantalla llegan el tipo de evento, la fecha y quién lo hizo, que ya se muestra para los extras. Lo prueba `actividad-acceso.test.ts` (columnas, filtros y tenant). |
 
 ## 9. Fases
 
@@ -420,6 +436,7 @@ fija el estado de cada captura (lo explica el script del archivo).
 - `app/studio/(app)/usuarios/_components/ficha/RolYAlcanceCard.tsx`
 - `app/studio/(app)/usuarios/_components/ficha/RolYAlcanceCard.test.tsx`
 - `app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx`
+- `app/studio/(app)/usuarios/_components/UserDetailDrawer.test.tsx` (nuevo: aviso de descarte, revisión del 2026-11-15)
 - `app/studio/(app)/usuarios/_components/UsersClient.tsx`
 - `app/studio/(app)/usuarios/actions.ts` (solo `listUserAccessActivityAction` y su tipo de evento)
 - `app/studio/(app)/usuarios/__tests__/actividad-acceso.test.ts`

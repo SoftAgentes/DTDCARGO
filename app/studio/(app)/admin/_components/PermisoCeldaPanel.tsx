@@ -49,12 +49,43 @@ function nombresCortos(nombres: string[]): string {
   return `${nombres.slice(0, 5).join(", ")} y ${nombres.length - 5} más`;
 }
 
+export type ExtraDelRol = { nombre: string; edita: boolean };
+
+/**
+ * Un extra «sobra» solo cuando el nivel elegido para el rol ya da todo lo que
+ * el extra suma (la misma regla que `estadoModulo` en la ficha): el rol edita,
+ * o el rol ve y el extra solo ve. Con el rol en «Solo ver», un extra que edita
+ * sigue sumando la edición.
+ */
+export function extrasQueSobran(conExtra: ExtraDelRol[], sel: NivelRol): ExtraDelRol[] {
+  return conExtra.filter((e) => sel === "edit" || (sel === "view" && !e.edita));
+}
+
+function AvisoExtras({ conExtra, sel }: { conExtra: ExtraDelRol[]; sel: NivelRol }) {
+  const sobran = extrasQueSobran(conExtra, sel);
+  const suman = conExtra.filter((e) => !sobran.includes(e));
+  const todos = conExtra.map((e) => e.nombre);
+  return (
+    <p className="studio-mx-aviso">
+      {nombresCortos(todos)} ya {todos.length === 1 ? "lo tiene" : "lo tienen"} como acceso extra en su ficha.{" "}
+      {sobran.length > 0 && (
+        <>Si lo aplicas, el extra de {nombresCortos(sobran.map((e) => e.nombre))} quedará marcado «sobra». </>
+      )}
+      {suman.length > 0 &&
+        (sel === "none"
+          ? "Lo conserva aunque el rol no lo tenga."
+          : `El extra de ${nombresCortos(suman.map((e) => e.nombre))} sigue sumando: el rol solo ve y el extra también edita.`)}
+    </p>
+  );
+}
+
 export function PermisoCeldaPanel({
   role,
   moduleLabel,
   fabrica,
   actual,
   cambiado,
+  igualAFabrica = false,
   personas,
   conExtra,
   pending,
@@ -71,10 +102,12 @@ export function PermisoCeldaPanel({
   actual: NivelRol;
   /** Hoy es distinto a lo de fábrica. */
   cambiado: boolean;
+  /** Hay un desvío guardado, pero hoy da lo mismo que lo de fábrica. */
+  igualAFabrica?: boolean;
   /** Nombres de las personas activas del rol. */
   personas: string[];
-  /** Nombres de las personas del rol que ya tienen este módulo como extra vigente. */
-  conExtra: string[];
+  /** Personas del rol que ya tienen este módulo como extra vigente, y si ese extra edita. */
+  conExtra: ExtraDelRol[];
   pending: boolean;
   /** Celda que abrió el panel (para ubicarlo). */
   anchor: HTMLElement | null;
@@ -183,13 +216,17 @@ export function PermisoCeldaPanel({
             </button>
           </>
         )}
+        {!cambiado && igualAFabrica && (
+          <>
+            {" "}
+            Hay un cambio guardado que hoy da lo mismo.{" "}
+            <button type="button" className="studio-mx-link" disabled={pending} onClick={onFabrica}>
+              Volver a lo de fábrica
+            </button>
+          </>
+        )}
       </p>
-      {conExtra.length > 0 && (
-        <p className="studio-mx-aviso">
-          {nombresCortos(conExtra)} ya {conExtra.length === 1 ? "lo tiene" : "lo tienen"} como acceso extra en su ficha.{" "}
-          {sel !== "none" ? "Si lo aplicas, ese extra quedará marcado «sobra»." : "Lo conserva aunque el rol no lo tenga."}
-        </p>
-      )}
+      {conExtra.length > 0 && <AvisoExtras conExtra={conExtra} sel={sel} />}
       <div className="studio-mx-actions">
         <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" disabled={pending} onClick={onCerrar}>
           Cancelar

@@ -37,6 +37,20 @@ la opción recomendada.
     ícono + palabra (forma corta bajo 1180 px), «Cambiado», panel por celda (`PermisoCeldaPanel`) con personas
     afectadas, extras que quedan «sobra», «Volver a lo de fábrica» y «Aplicar a las N». Elegir lo de fábrica
     llama `reset` en vez de guardar un desvío igual. Mismas acciones y candados.
+- **Observaciones de la revisión Opus de `ae1d1381d` (APPROVED con observaciones), commit nuevo encima:**
+  1. La matriz envuelve `setRoleModuleAccessAction` / `resetRoleModuleAccessAction` en `try/catch`: si lanza,
+     la celda vuelve, sale de «guardando» y avisa. Con pruebas de rechazo para las dos.
+  2. Un desvío guardado igual a lo de fábrica se ve («Cambiado (igual a fábrica)»), cuenta en «Solo los
+     cambiados» y se limpia con «Volver a lo de fábrica».
+  3. El aviso «sobra» del panel sigue la regla de la ficha: con el rol en «Solo ver», un extra que edita no sobra.
+  4. Desplazar la tabla o la página, o cambiar el tamaño de la ventana, cierra el panel y el foco vuelve a la celda.
+  5. La fila de grupo se pega bajo el alto medido de la fila de roles (`--mx-head-h`, `ResizeObserver`).
+  6. `UserDetailDrawer.test.tsx`: aviso de descarte al cerrar y al cambiar de pestaña. El «atrás» del navegador
+     queda pendiente con su razón en spec §3.3.
+  7. Spec §8: lectura de `user_role_audit` clasificada «no aplica», con razón.
+  8. Spec §3.3: un sensible no pasa por la bandeja; no se alcanza sin sensibles en `COVERED`.
+  - Opcional (px sueltos → `var(--s-*)`): no aplicado. Los px que quedan (6, 10, 14, 3) no están en la escala
+    de 4 de `--s-*`; cambiarlos movería la maqueta aprobada.
 - Corregido de paso: al cambiar el nivel de un extra con vencimiento, el código viejo cortaba el ISO en UTC y
   corría el vencimiento un día; ahora se lee en hora de Caracas (`fechaCaracas`).
 
@@ -51,8 +65,10 @@ la opción recomendada.
 | Contrato CSS de bordes fijos y sombras con token | PASÓ (`PermissionsSection.test.tsx`) |
 | `/ui-check` del diff | PASÓ: sin colores sueltos, sin emojis, tuteo |
 | `pnpm docs:check` / `pnpm sdd:check` | PASÓ (620 specs; solo choques históricos conocidos) |
-| Navegador con sesión real (desplazamiento de la matriz, aceptación 14) | NO EJECUTADO: el e2e local no tiene sesión de Studio; cubierto por la maqueta y el contrato CSS |
-| `pnpm verify` y Vitest amplio | NO EJECUTADO: esperan turno del Director General (una corrida pesada a la vez) |
+| Vitest tras la revisión: `PermissionsSection` (16) y `UserDetailDrawer` (4) | PASÓ |
+| Mutantes tras la revisión: regla vieja de «sobra» y `catch` que relanza | Detectados (3 rojas); restaurado |
+| Navegador con sesión real (desplazamiento de la matriz, aceptación 14) | PENDIENTE CON DUEÑO: Sam, en pantalla al publicar (aceptado por el DG) |
+| `pnpm verify` y Vitest amplio | NO EJECUTADO por indicación del DG: el portón es el CI de GitHub más la revisión |
 
 ## PR / BRANCH
 
@@ -60,8 +76,9 @@ https://github.com/SoftAgentes/DTDCARGO/pull/588 contra `main` desde `codex/0635
 
 ## PENDIENTES DE ESTA TAREA
 
-- `pnpm verify` con turno del DG y revisión independiente.
-- Prueba en navegador con sesión (preview o local) de la matriz desplazada y de la ficha.
+- CI de GitHub verde sobre la cabeza nueva; fusión por el portón (la hace el DG).
+- Aceptación 14 (matriz desplazada en el navegador real): pendiente con dueño, Sam, al publicar.
+- «Atrás» del navegador con cambios sin guardar: pendiente con razón (spec §3.3).
 
 ## Impacto documental
 

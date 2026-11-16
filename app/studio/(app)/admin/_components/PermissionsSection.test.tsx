@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserMembershipWithProfile } from "@/lib/studio/user-types";
 import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-queries";
@@ -23,12 +23,13 @@ import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-querie
 const setMock = vi.fn();
 const resetMock = vi.fn();
 const toastOk = vi.fn();
+const toastError = vi.fn();
 vi.mock("../actions", () => ({
   setRoleModuleAccessAction: (...a: unknown[]) => setMock(...a),
   resetRoleModuleAccessAction: (...a: unknown[]) => resetMock(...a),
 }));
 vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
-  useToast: () => ({ success: toastOk, error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
+  useToast: () => ({ success: toastOk, error: toastError, info: vi.fn(), warning: vi.fn() }),
 }));
 
 const { PermissionsSection } = await import("./PermissionsSection");
@@ -95,10 +96,61 @@ describe("PermissionsSection · palabras y alcance", () => {
     expect(aplicar).toHaveProperty("disabled", true);
     await u.click(within(panel).getByRole("radio", { name: /^Solo ver/ }));
     expect(setMock).not.toHaveBeenCalled();
-    expect(within(panel).getByText(/quedará marcado «sobra»/)).toBeTruthy();
+    // Rol en «Solo ver» y el extra edita: el extra sigue sumando, no sobra.
+    expect(within(panel).queryByText(/quedará marcado «sobra»/)).toBeNull();
+    expect(within(panel).getByText(/El extra de Contable B sigue sumando/)).toBeTruthy();
+    await u.click(within(panel).getByRole("radio", { name: /^Ver y editar/ }));
+    expect(within(panel).getByText(/el extra de Contable B quedará marcado «sobra»/)).toBeTruthy();
+    await u.click(within(panel).getByRole("radio", { name: /^Solo ver/ }));
     await u.click(aplicar);
     expect(setMock).toHaveBeenCalledWith("accounting", "kommo", true, false);
     expect(toastOk).toHaveBeenCalledWith("Contabilidad: CRM ahora en «Solo ver» para 2 personas.");
+  });
+
+  it("un extra que solo ve sí sobra cuando el rol pasa a «Solo ver»", async () => {
+    const u = userEvent.setup();
+    render(<PermissionsSection members={MIEMBROS} grants={[{ ...EXTRA_CB, canEdit: false }]} nombres={NOMBRES} />);
+    await u.click(celda(/^Contabilidad, CRM: Sin acceso/));
+    await u.click(screen.getByRole("radio", { name: /^Solo ver/ }));
+    expect(screen.getByText(/el extra de Contable B quedará marcado «sobra»/)).toBeTruthy();
+  });
+
+  it("si la acción lanza, la celda vuelve a su valor, sale de «guardando» y avisa", async () => {
+    const u = userEvent.setup();
+    setMock.mockRejectedValueOnce(new Error("red"));
+    render(<PermissionsSection members={MIEMBROS} nombres={NOMBRES} />);
+    await u.click(celda(/^Contabilidad, CRM: Sin acceso/));
+    await u.click(screen.getByRole("radio", { name: /^Solo ver/ }));
+    await u.click(screen.getByRole("button", { name: "Aplicar a las 2" }));
+    expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/No se pudo guardar el cambio/));
+    const boton = celda(/^Contabilidad, CRM: Sin acceso/);
+    expect(boton).toHaveProperty("disabled", false);
+    expect(toastOk).not.toHaveBeenCalled();
+  });
+
+  it("si «Volver a lo de fábrica» lanza, el desvío vuelve y avisa", async () => {
+    const u = userEvent.setup();
+    resetMock.mockRejectedValueOnce(new Error("red"));
+    const OV = { "commercial:reclamos": { view: true, edit: false } };
+    render(<PermissionsSection initialOverrides={OV} members={MIEMBROS} nombres={NOMBRES} />);
+    await u.click(celda(/^Comercial, Reclamos:/));
+    await u.click(screen.getByRole("button", { name: "Volver a lo de fábrica" }));
+    expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/No se pudo guardar el cambio/));
+    const boton = celda(/^Comercial, Reclamos: Solo ver, cambiado/);
+    expect(boton).toHaveProperty("disabled", false);
+  });
+
+  it("desplazar la página cierra el panel y devuelve el foco a la celda", async () => {
+    const u = userEvent.setup();
+    render(<PermissionsSection members={MIEMBROS} nombres={NOMBRES} />);
+    await u.click(celda(/^Contabilidad, CRM: Sin acceso/));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await act(async () => {});
+    expect(document.activeElement).toBe(celda(/^Contabilidad, CRM: Sin acceso/));
   });
 
   it("Esc cierra el panel y devuelve el foco a la celda", async () => {
@@ -154,6 +206,21 @@ describe("PermissionsSection · de fábrica", () => {
     expect(setMock).not.toHaveBeenCalled();
   });
 
+  it("un desvío guardado igual a lo de fábrica se ve y se limpia con «Volver a lo de fábrica»", async () => {
+    const u = userEvent.setup();
+    // De fábrica Comercial tiene ver y editar en Reclamos: este desvío da lo mismo.
+    const IGUAL = { "commercial:reclamos": { view: true, edit: true } };
+    render(<PermissionsSection initialOverrides={IGUAL} members={MIEMBROS} nombres={NOMBRES} />);
+    expect(screen.getByText("Cambiado (igual a fábrica)")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Solo los cambiados/ }).textContent).toMatch(/1$/);
+    await u.click(celda(/^Comercial, Reclamos: Ver y editar, cambio guardado igual a lo de fábrica/));
+    const panel = screen.getByRole("dialog");
+    expect(panel.textContent).toMatch(/Hay un cambio guardado que hoy da lo mismo/);
+    await u.click(within(panel).getByRole("button", { name: "Volver a lo de fábrica" }));
+    expect(resetMock).toHaveBeenCalledWith("commercial", "reclamos");
+    expect(screen.queryByText("Cambiado (igual a fábrica)")).toBeNull();
+  });
+
   it("«Solo los cambiados» deja solo los módulos con algo cambiado", async () => {
     const u = userEvent.setup();
     render(<PermissionsSection initialOverrides={OV} members={MIEMBROS} nombres={NOMBRES} />);
@@ -174,8 +241,15 @@ describe("PermissionsSection · contrato de bordes fijos (studio.css)", () => {
     expect(regla(".studio-mx-wrap")).toMatch(/overflow:\s*auto/);
     expect(regla(".studio-mx thead th")).toMatch(/position:\s*sticky;\s*top:\s*0/);
     expect(css).toMatch(/\.studio-mx th\[scope="row"\], \.studio-mx thead th:first-child \{[^}]*position:\s*sticky;\s*left:\s*0/);
-    expect(regla(".studio-mx-grp th")).toMatch(/position:\s*sticky;\s*top:\s*60px/);
+    // El grupo se pega bajo el alto REAL de la fila de roles (ResizeObserver), no bajo un número fijo.
+    expect(regla(".studio-mx-grp th")).toMatch(/position:\s*sticky;\s*top:\s*var\(--mx-head-h/);
     expect(regla(".studio-mx-legend")).toMatch(/position:\s*sticky;\s*bottom:\s*0/);
+  });
+
+  it("la matriz publica el alto medido de la fila de roles en --mx-head-h", () => {
+    const { container } = render(<PermissionsSection members={MIEMBROS} nombres={NOMBRES} />);
+    const wrap = container.querySelector<HTMLElement>(".studio-mx-wrap");
+    expect(wrap?.style.getPropertyValue("--mx-head-h")).toMatch(/^\d+px$/);
   });
 
   it("las sombras usan el token de borde fijo (BD-070), no rgba sueltos", () => {

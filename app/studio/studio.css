@@ -1392,9 +1392,11 @@ details[open] > .calc-why-summary .calc-why-chev {
 }
 .studio-mx th[scope="row"] { height: 50px; font: 600 12.5px/1.25 var(--f-sans); color: var(--ink); }
 .studio-mx-lk { display: inline-flex; vertical-align: -1px; margin-left: 6px; color: var(--ink-soft); }
-/* Grupo fijo bajo los roles mientras dura su sección */
+/* Grupo fijo bajo los roles mientras dura su sección. `--mx-head-h` es el alto
+   real de la fila de roles (lo mide PermissionsSection con ResizeObserver): un
+   rol en dos líneas no queda tapado. */
 .studio-mx-grp th {
-  position: sticky; top: 60px; z-index: 4; height: 32px;
+  position: sticky; top: var(--mx-head-h, 60px); z-index: 4; height: 32px;
   padding: 0 var(--s-3); text-align: left;
   background: var(--bg-base); border-bottom: 1px solid var(--border-strong);
   font: 700 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink);
