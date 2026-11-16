@@ -3474,6 +3474,15 @@
         "fecha": "2026-11-16",
         "forma": "exacta"
       }
+    },
+    "0548_oficina_despachador": {
+      "sha256": "0ef7605f8bb1ef682038c760abb506fb9ab16581ba62a81568f9cd5c98fda15a",
+      "md5": "ee02f470301985260fdf56a5cb232d73",
+      "bytes": 28173,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
     }
   }
 }
