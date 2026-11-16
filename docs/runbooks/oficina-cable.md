@@ -40,7 +40,7 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 |---|---|
 | Usuario `tunel-dtd` | una sola llave en `authorized_keys`, con `restrict,port-forwarding,permitopen="127.0.0.1:8642",from="IP pública del VPS DTD (ver el servidor)"`. No tiene shell útil ni otro destino |
 | Usuario `agentes-soporte` | nologin, sin sudo y sin el grupo `oficina`. Solo corre este agente |
-| Perfil Hermes `soporte-chatwoot` | `/home/agentes-soporte/.hermes/profiles/soporte-chatwoot` (0700), creado con `hermes profile create soporte-chatwoot --no-skills --no-alias` el 2026-11-16. Solo se copiaron `config.yaml` y `.env` (0600) del perfil viejo, sin sesiones ni memorias. API server solo en `127.0.0.1:8642`, la misma llave de siempre en el `.env` del perfil y `platform_toolsets.api_server: []`. **Paso 3a:** modelo `glm-5.3` (zai) con respaldo `deepseek-chat`; llaves en el `.env` (ver §10); `memory.memory_enabled: false`, `agent.max_turns: 3`, kanban apagado; `SOUL.md` con la esencia del Anexo A y salida JSON |
+| Perfil Hermes `soporte-chatwoot` | `/home/agentes-soporte/.hermes/profiles/soporte-chatwoot` (0700), creado con `hermes profile create soporte-chatwoot --no-skills --no-alias` el 2026-11-16. Solo se copiaron `config.yaml` y `.env` (0600) del perfil viejo, sin sesiones ni memorias. API server solo en `127.0.0.1:8642`, la misma llave de siempre en el `.env` del perfil y `platform_toolsets.api_server: []`. **Paso 3a:** modelo `glm-5.3` (zai), **sin respaldo** hasta la llave propia de DeepSeek (Sam, 16/11/2026); llaves en el `.env` (ver §10); `memory.memory_enabled: false`, `agent.max_turns: 3`, kanban apagado; `SOUL.md` con la esencia del Anexo A y salida JSON |
 | Servicio `hermes-gateway-soporte-chatwoot` | `/etc/systemd/system/hermes-gateway-soporte-chatwoot.service`: `User=agentes-soporte` y `hermes gateway run` **sin `--force`**. El nombre importa: Hermes niega un gateway propio a un perfil de `profiles/` (sale con 78/CONFIG) salvo que exista la unidad con el nombre que él espera (`hermes-gateway-<perfil>`). Endurecimiento: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`, escritura solo en el perfil y en `~/.hermes/installs` (allí Hermes deja sus cerrojos y sin eso no arranca), e `InaccessiblePaths` para `/home/agentes-run`, `/srv/oficina/usuarios`, `/srv/oficina/trabajo` y los demás homes. **Paso 3a:** drop-in `hermes-gateway-soporte-chatwoot.service.d/aislamiento-paso3a.conf` con `ProtectHome=tmpfs` y solo su home montado, así que dentro del servicio `/home` muestra solo `agentes-soporte`; además niega `/srv/oficina/{usuarios,backups,repo,staging,motores,trabajo}`. La unidad no cambia de nombre |
 | Timer `hermes-soporte-purga.timer` | Paso 3a: diario a las 04:40 UTC, como `agentes-soporte`. Corre `/usr/local/libexec/hermes-soporte-purga.py`, que borra por la API (`DELETE /api/sessions/<id>`) toda sesión del API server de más de 24 h. Solo imprime conteos. Es la red de seguridad del borrado que hace el despachador en cada llamada (§10) |
 | Servicio viejo `dtd-hermes-soporte-chatwoot` | parado y `disabled` desde el 2026-11-16. Era `gateway run --force` como `agentes-run`. Su perfil está archivado (no borrado) en el respaldo de la mudanza |
@@ -281,7 +281,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 | `OFICINA_CHATWOOT_TOKEN_LECTURA` | Token de un usuario **agente** de Chatwoot que solo es miembro de la bandeja de prueba. El despachador solo hace GET con él |
 | `OFICINA_CHATWOOT_API_URL` | Opcional: la URL interna de la API de Chatwoot (sin ella, `CHATWOOT_URL`) |
 | `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
-| `OFICINA_TOPE_MENSUAL_USD` | El tope del mes (D5: 15; solo se puede bajar). Al 80 % la oficina se auto-pausa |
+| `OFICINA_TOPE_MENSUAL_USD` | El tope del mes (D5: 15; solo se puede bajar). **Etapa 1: `1`** (Sam, 16/11/2026). Al 80 % la oficina se auto-pausa |
 | `OFICINA_TOPE_LLAMADAS_CORRIDA` / `OFICINA_TOPE_TOKENS_CORRIDA` | Topes por corrida (2 y 24000) |
 | `OFICINA_PRECIO_ENTRADA_USD_MTOK` / `OFICINA_PRECIO_SALIDA_USD_MTOK` | La tarifa con la que se estima el costo (1,00 y 3,20 USD por millón de tokens). 0, negativo o inválido vale el de por defecto |
 | `OFICINA_VACIADO_ACTIVO` | **Requisito:** el despachador no arranca sin él (`sin_vaciado`) |
@@ -321,8 +321,9 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 ### Llaves del agente (D5)
 
 - Las puso Claude Code en el `.env` del perfil (600), sin imprimirlas.
-- **GLM:** la llave compartida de la oficina (plan de código de Z.AI, tarifa plana). **DeepSeek:** la del perfil
-  personal de Sam, la única que había en el servidor.
+- **GLM:** la llave compartida de la oficina (plan de código de Z.AI, tarifa plana).
+- **DeepSeek:** quitada el 16/11/2026 (era la del perfil personal de Sam), junto con `fallback_model`. Sam crea una
+  llave propia del agente con tope de gasto; al llegar, va al `.env` y vuelve el respaldo (REVERTIR, paso 7).
 - **Pendiente (R2):** una llave propia de `soporte-chatwoot` en cada proveedor. Las crea Sam en los paneles y las coloca
   Claude Code por un canal seguro.
 

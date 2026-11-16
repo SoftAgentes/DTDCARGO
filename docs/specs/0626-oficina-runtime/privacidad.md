@@ -155,7 +155,7 @@ Para redactar, el despachador manda el texto de la conversación fuera del VPS D
 | ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto) | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, prueba «ninguna fila ni log» |
 | Cable (túnel SSH ERP → oficina) | El mismo texto, cifrado por el túnel | Nada se guarda en el camino | runbook §8 |
 | Hermes, perfil `soporte-chatwoot` (VPS Oficina) | El texto y la respuesta, como un turno del API server | **Hermes v0.23.1 guarda cada turno en su `state.db` y no se puede apagar.** El despachador borra la sesión de cada llamada al terminar (`DELETE /api/sessions/<id>`); si falla, la purga diaria de la oficina (`hermes-soporte-purga.timer`) borra toda sesión del API server de más de 24 h. **Máximo: 48 h.** Quedan además las marcas de idempotencia (7 días, sin el texto) y, hasta el próximo VACUUM, las páginas libres de SQLite | sección B del Paso 3a (`.agents/handoffs/2026-11-16-sdd-0626-paso3a-despachador.md`) |
-| Proveedor del modelo: Z.AI (glm-5.3) y, de respaldo, DeepSeek (deepseek-chat) | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
+| Proveedor del modelo: Z.AI (glm-5.3). El respaldo DeepSeek (deepseek-chat) está quitado hasta que haya una llave propia del agente (Sam, 16/11/2026) | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
 
 - El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
 - Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
@@ -209,6 +209,8 @@ cualquier envío: ninguna decisión sale sin una persona.
     `hermes sessions optimize` como `agentes-soporte` y arrancarlo. Unos segundos sin agente; con el despachador
     encendido, la corrida de ese momento escala por `runtime:red`.
   - **B:** aceptar el resto, sabiendo que el texto es de la bandeja de prueba e inventado hasta la etapa 2.
+- **Decisión de Sam (16/11/2026, «Sí a todo»):** **B** mientras solo haya datos de prueba. **A es OBLIGATORIA antes
+  de la etapa 2** (clientes reales): la compactación semanal tiene que estar instalada y probada antes de ese paso.
 
 #### `ENCONTRADO` 17 · Hermes conserva la respuesta del agente 7 días tras el borrado (baja)
 

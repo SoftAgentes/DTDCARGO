@@ -216,7 +216,7 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 - **D3 · El borrador se guarda para la revisión de Sam y se borra a los 90 días** (`office_borradores`, 0548).
 - **D4 · La página de aprobación es solo para `is_platform_admin`**, con un aviso en Discord que no incluye el texto.
   Se construye en el Paso 3b.
-- **D5 · Tope de $15 al mes y auto-pausa al 80 %.** Las llaves de los proveedores las coloca Claude Code en el
+- **D5 · Tope de $15 al mes y auto-pausa al 80 %.** En la etapa 1, `OFICINA_TOPE_MENSUAL_USD=1` (Sam, 16/11/2026). Las llaves de los proveedores las coloca Claude Code en el
   servidor de la oficina; nunca pasan por el chat.
 - **D6 · El Paso 3 se divide en 3a y 3b** en el mapa de pasos.
 
@@ -249,7 +249,8 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   - detectar URLs y dominios en el borrador (hoy `revisarRespuesta` no los mira) y escalar si no vienen de un guion;
   - mostrar el borrador y el motivo siempre como texto plano en la página de aprobación (nunca HTML ni Markdown renderizado);
   - si una llamada se aborta a mitad (pausa o tope de tiempo), el `DELETE` de su sesión puede fallar y la sesión queda en la oficina hasta la purga diaria: dentro de las 48 h. Ver si conviene reintentar el borrado en el tick siguiente.
-- **El agente (VPS Oficina).** glm-5.3 con respaldo deepseek-chat; instrucciones con la esencia del Anexo A y salida
+- **El agente (VPS Oficina).** glm-5.3, **sin respaldo** hasta que Sam cree la llave propia de DeepSeek con tope de
+  gasto (16/11/2026; después, respaldo deepseek-chat); instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
 - **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta `CHATWOOT_ACCOUNT_ID` e ignora los avisos de
