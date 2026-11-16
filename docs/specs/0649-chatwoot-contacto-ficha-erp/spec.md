@@ -58,7 +58,7 @@ Objetivo: que en el contacto de Chatwoot se vea, sin abrir la Ficha DTD, si la p
 | Inventario | Nuevo flujo Studio → Chatwoot: segmento y Shipping Mark. Ni nombre, ni teléfono, ni documento, ni saldo | §3 |
 | Finalidad | Atender y enrutar a quien ya escribió; segmentar avisos. La segmentación de marketing queda sujeta al consentimiento de la SDD que lo diseñe | NO VERIFICABLE hasta que exista el registro de consentimiento |
 | Minimización | **D2:** solo el Shipping Mark vigente, no el historial de códigos ni los fusionados | D2 |
-| Quién lo ve | Todo usuario de Chatwoot que vea el contacto. Hoy son 4 administradores; un Agente lo vería en sus bandejas | NV: roles medidos por conteo pendiente |
+| Quién lo ve | Todo usuario de Chatwoot que vea el contacto. Hoy son 4 administradores; un Agente lo vería en sus bandejas | NV: roles medidos por conteo pendiente. **Antes de encender D1** hay que medir si en Chatwoot CE 4.19.1 un usuario con rol Agente ve los Shipping Marks de contactos que solo están en bandejas de las que no es miembro (vista Contactos y buscador). Si los ve, se decide con Sam antes de crear los atributos (Director General, revisión de la #622) |
 | Borrado | Al borrar o anonimizar la ficha, el atributo se limpia la próxima vez que escriba. **D4** decide si además hace falta una limpieza activa | D4 |
 | Logs | Solo códigos de error, como el resto del manejador | `enrutar.ts:29` |
 

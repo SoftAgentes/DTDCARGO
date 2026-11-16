@@ -11,6 +11,10 @@ Fecha: 2026-11-16 · Rama: `claude/quizzical-villani-eb5dfc` · PR #622 · Reser
 ## Comprobaciones
 - `sdd:check`: PASÓ. `docs:check`: PASÓ.
 - Vitest, typecheck, lint y `pnpm verify` locales: NO EJECUTADOS. El worktree no tiene `node_modules`, y instalar o correr pruebas en la PC pide turno del Director General. El portón es el CI de la PR #622.
+- Revisión independiente del Director General sobre `07cca5b7f`: sin defectos en el código. Dejó dos anotaciones:
+  - **Lectura y escritura de `custom_attributes`:** la forma de `GET /contacts/{id}` (`payload.custom_attributes`) y la mezcla del `PATCH` salen del código de Chatwoot 4.19.1, no de una prueba contra un Chatwoot real. Se comprueban en el smoke contra 4.19.1, antes de encender.
+  - **`shippingMarkVisible` descarta códigos con espacios** (y vacíos o de más de 40 caracteres): una ficha con un código así queda sin Shipping Mark en Chatwoot, aunque su segmento sí se escribe.
+- Antes de encender D1: medir si un Agente de Chatwoot CE ve los Shipping Marks de contactos de bandejas de las que no es miembro (spec §4).
 
 ## Pendiente de esta tarea
 - CI de la PR en verde y revisión independiente, que lanza el Director General.
