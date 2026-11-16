@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Resumen diario de reportes a Discord `#bugs` · SDD-0036 (enmienda D-13).
+ * Resumen diario de reportes a Discord `#bugs` · SDD-0036 §11 (enmienda D-13).
  *
  * Lo que se mide: el texto que sale a Discord trae conteos, folios y módulos,
  * y NUNCA el título, la descripción, la URL del reporte ni nombres de personas

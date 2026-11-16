@@ -1,5 +1,5 @@
 /**
- * Resumen diario de reportes a Discord `#bugs` · SDD-0036 (enmienda D-13).
+ * Resumen diario de reportes a Discord `#bugs` · SDD-0036 §11 (enmienda D-13).
  *
  * Decisión de Sam (2026-11-16, D-13 de la SDD-0637): los errores de gravedad
  * alta y crítica siguen llegando al momento (`notifyBugCreatedToAdmin`); todo

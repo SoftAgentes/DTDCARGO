@@ -1,6 +1,6 @@
 /**
  * /api/cron/bug-daily-digest — resumen diario de reportes a Discord `#bugs`
- * (SDD-0036, enmienda D-13).
+ * (SDD-0036 §11, enmienda D-13).
  *
  * Una vez al día (12:00 UTC = 08:00 en Caracas) manda el resumen del día
  * anterior: mejoras, sugerencias, preguntas y errores leves, con conteos,
