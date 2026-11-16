@@ -778,25 +778,30 @@ anterior). *Inferencia:* que esas fotos muestren la marca anterior no se comprob
 contenido de las imágenes; hace falta que Sam o diseño las confirmen. `cover_image_url` solo acepta
 rutas locales (`editorial.ts:60-67`), así que hoy no puede entrar una foto externa.
 
-**Regla decidida por Sam (2026-11-15, opción B: «solo de bancos autorizados y fotos propias»).**
-Cada noticia lleva una foto elegida, en este orden, y se detiene en la primera que cumpla:
-1. **Foto de un banco de uso libre** que permita uso comercial sin pago (Unsplash, Pexels o
-   Pixabay u otro de licencia abierta equivalente), con el **crédito guardado cuando el banco lo
-   pida**. Sin licencias pagas.
-2. **Foto propia de la marca vigente**, una por tema (puertos, aduanas, tarifas, Yiwu, contenedores),
-   solo si **no muestra la marca anterior** («DoorTuDoor», «Door to Door»): ni en rótulos, ni en
-   gorras, camisas o códigos QR, ni en el nombre del archivo.
-3. **Nunca**: la foto de una noticia, medio o sitio de terceros, con o sin licencia, ni su versión
-   editada; ni el logo ni las fotos de la marca anterior. «Sin licencia» no significa tomar la foto
-   de un medio: eso queda fuera.
+**Regla decidida por Sam (2026-11-15; opción B, ampliada el mismo día).** Cada noticia lleva una
+foto elegida en este orden, y se detiene en la primera que cumpla:
+1. **Foto de la fuente de la noticia, solo si la fuente la publica con una licencia que permite
+   reutilizarla**: dominio público (por ejemplo, muchos sitios de gobierno), Creative Commons con uso
+   comercial, nota o kit de prensa que autoriza su difusión, o indicación explícita de la fuente. Se
+   guardan **crédito, licencia y enlace de origen**. Si el permiso no se puede comprobar, esa foto
+   **no** se usa. Modificarla no da permiso.
+2. **Si no, foto de un banco de uso libre** (Unsplash, Pexels, Pixabay u otro de licencia abierta
+   que permita uso comercial sin pago; crédito guardado cuando lo pida) **o foto propia** de la marca
+   vigente que no muestre la marca anterior («DoorTuDoor», «Door to Door»), ni en rótulos, gorras,
+   camisas, códigos QR ni en el nombre del archivo.
+3. **Si no, o ante cualquier duda o problema con la foto, la noticia se publica sin foto.** Es el
+   respaldo que pidió Sam y debe ser seguro de verdad: la portada sin imagen se ve bien (tarjeta,
+   página de la noticia y vista compartida), sin hueco roto ni imagen de relleno.
+4. **Nunca** el logo o las fotos de la marca anterior, ni una foto cuyo permiso no esté comprobado.
 
-**Qué exige el código (PR posterior, no esta).** (a) Columna de crédito junto a la portada cuando
-el banco lo pida, migración nueva en espera; (b) el filtro rechaza una portada que no sea una ruta
-propia versionada ni de un banco permitido, y una que apunte a archivos de la marca anterior;
-(c) retirar los respaldos con la marca anterior de `CATEGORY_IMAGES` y sustituirlos por fotos propias
-sin ella (hecho en la PR de respaldos, ver abajo). Retirar o cambiar la foto de las 5 noticias ya
-publicadas es un cambio de contenido en producción: llega con la publicación de la web y lleva el
-OK de Sam.
+**Qué exige el código (PR posterior, no esta).** (a) Columnas de crédito, licencia y enlace de origen
+junto a la portada, migración nueva en espera; (b) la publicación automática **no usa** una foto sin
+licencia registrada y cae al paso 2 o 3, sin retener la noticia por eso; (c) el filtro rechaza una
+portada que apunte a archivos de la marca anterior y una URL que no sea ruta propia versionada o
+host permitido; (d) diseño de la portada sin imagen en tarjeta, página y vista compartida;
+(e) respaldos de `CATEGORY_IMAGES` sin la marca anterior (hecho en la PR de respaldos). Retirar o
+cambiar la foto de las 5 noticias ya publicadas es un cambio de contenido en producción: llega con
+la publicación de la web y lleva el OK de Sam.
 
 **Revisión de las fotos propias (2026-11-15, a la vista).** Con marca anterior, **excluidas**:
 `precinto-doortudoor-…jpg`, `carga-contenedor-precinto-doortudoor-…jpg`,
