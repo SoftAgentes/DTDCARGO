@@ -152,7 +152,7 @@ const ESPERA_MS = 250;
  */
 const VIGENCIA_PEDIDO_MS = REINTENTOS_TRAS_PESTANA * ESPERA_MS;
 /** Tamaño de referencia antes de medir la tarjeta real. */
-const TARJETA_ESTIMADA = { width: 360, height: 240 };
+const TARJETA_ESTIMADA = { width: 300, height: 200 };
 
 interface Activo {
   recorrido: GuiaRecorrido;
