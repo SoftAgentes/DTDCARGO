@@ -5,7 +5,7 @@ import { jetbrainsMonoUi,sora,nunitoSans } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
 import { getPrealertaIdsByToken, getProviderShareByToken } from "@/lib/studio/prealertas/queries";
-import { authorizeWorkspace,portalEnabled, type WorkspaceRow } from "@/lib/studio/document-import/access";
+import { authorizeSupplierWorkspace, portalEnabled, type WorkspaceRow } from "@/lib/studio/document-import/access";
 import { WORKSPACE_SELECT, projectWorkspace } from "@/lib/studio/document-import/service";
 import type { DocumentWorkspace } from "@/components/document-import/document-client";
 import { buildLabels, buildLabelsFromBoxes } from "@/lib/studio/prealertas/types";
@@ -68,12 +68,8 @@ export default async function ProviderSharePage({
         if (error) sharedUnavailable = true;
         else if (workspace) {
           const row = workspace as unknown as WorkspaceRow;
-          // El segundo argumento (sesión) va con el admin a propósito: esta página
-          // no tiene sesión de cliente. Es seguro solo porque mandamos
-          // x-supplier-token, y authorizeWorkspace resuelve ese camino con el
-          // token y nunca toca la sesión. No quitar ese header ni reutilizar esta
-          // llamada para otro actor.
-          const actor = await authorizeWorkspace(admin, admin, row, new Headers({ "x-supplier-token": token }));
+          // Esta página no tiene sesión de cliente: el proveedor entra solo por su token.
+          const actor = await authorizeSupplierWorkspace(admin, row, token);
           sharedWorkspace = projectWorkspace(row, actor);
         }
       }
