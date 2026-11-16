@@ -1,4 +1,4 @@
-# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0 y 2)
+# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2 y 3a)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
@@ -40,10 +40,11 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 |---|---|
 | Usuario `tunel-dtd` | una sola llave en `authorized_keys`, con `restrict,port-forwarding,permitopen="127.0.0.1:8642",from="IP pública del VPS DTD (ver el servidor)"`. No tiene shell útil ni otro destino |
 | Usuario `agentes-soporte` | nologin, sin sudo y sin el grupo `oficina`. Solo corre este agente |
-| Perfil Hermes `soporte-chatwoot` | `/home/agentes-soporte/.hermes/profiles/soporte-chatwoot` (0700), creado con `hermes profile create soporte-chatwoot --no-skills --no-alias` el 2026-11-16. Solo se copiaron `config.yaml` y `.env` (0600) del perfil viejo, sin sesiones ni memorias. API server solo en `127.0.0.1:8642`, la misma llave de siempre en el `.env` del perfil y `platform_toolsets.api_server: []` |
-| Servicio `hermes-gateway-soporte-chatwoot` | `/etc/systemd/system/hermes-gateway-soporte-chatwoot.service`: `User=agentes-soporte` y `hermes gateway run` **sin `--force`**. El nombre importa: Hermes niega un gateway propio a un perfil de `profiles/` (sale con 78/CONFIG) salvo que exista la unidad con el nombre que él espera (`hermes-gateway-<perfil>`). Endurecimiento: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`, escritura solo en el perfil y en `~/.hermes/installs` (allí Hermes deja sus cerrojos y sin eso no arranca), e `InaccessiblePaths` para `/home/agentes-run`, `/srv/oficina/usuarios`, `/srv/oficina/trabajo` y los demás homes |
+| Perfil Hermes `soporte-chatwoot` | `/home/agentes-soporte/.hermes/profiles/soporte-chatwoot` (0700), creado con `hermes profile create soporte-chatwoot --no-skills --no-alias` el 2026-11-16. Solo se copiaron `config.yaml` y `.env` (0600) del perfil viejo, sin sesiones ni memorias. API server solo en `127.0.0.1:8642`, la misma llave de siempre en el `.env` del perfil y `platform_toolsets.api_server: []`. **Paso 3a:** modelo `glm-5.3` (zai) con respaldo `deepseek-chat`; llaves en el `.env` (ver §10); `memory.memory_enabled: false`, `agent.max_turns: 3`, kanban apagado; `SOUL.md` con la esencia del Anexo A y salida JSON |
+| Servicio `hermes-gateway-soporte-chatwoot` | `/etc/systemd/system/hermes-gateway-soporte-chatwoot.service`: `User=agentes-soporte` y `hermes gateway run` **sin `--force`**. El nombre importa: Hermes niega un gateway propio a un perfil de `profiles/` (sale con 78/CONFIG) salvo que exista la unidad con el nombre que él espera (`hermes-gateway-<perfil>`). Endurecimiento: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`, escritura solo en el perfil y en `~/.hermes/installs` (allí Hermes deja sus cerrojos y sin eso no arranca), e `InaccessiblePaths` para `/home/agentes-run`, `/srv/oficina/usuarios`, `/srv/oficina/trabajo` y los demás homes. **Paso 3a:** drop-in `hermes-gateway-soporte-chatwoot.service.d/aislamiento-paso3a.conf` con `ProtectHome=tmpfs` y solo su home montado, así que dentro del servicio `/home` muestra solo `agentes-soporte`; además niega `/srv/oficina/{usuarios,backups,repo,staging,motores,trabajo}`. La unidad no cambia de nombre |
+| Timer `hermes-soporte-purga.timer` | Paso 3a: diario a las 04:40 UTC, como `agentes-soporte`. Corre `/usr/local/libexec/hermes-soporte-purga.py`, que borra por la API (`DELETE /api/sessions/<id>`) toda sesión del API server de más de 24 h. Solo imprime conteos. Es la red de seguridad del borrado que hace el despachador en cada llamada (§10) |
 | Servicio viejo `dtd-hermes-soporte-chatwoot` | parado y `disabled` desde el 2026-11-16. Era `gateway run --force` como `agentes-run`. Su perfil está archivado (no borrado) en el respaldo de la mudanza |
-| Reversión | `/srv/oficina/backups/cable-paso0-20261114/REVERTIR.txt` (montaje) y `/srv/oficina/backups/soporte-mudanza-20261116T034030Z/REVERTIR.txt` (mudanza a `agentes-soporte`) |
+| Reversión | `/srv/oficina/backups/cable-paso0-20261114/REVERTIR.txt` (montaje), `/srv/oficina/backups/soporte-mudanza-20261116T034030Z/REVERTIR.txt` (mudanza a `agentes-soporte`) y `/srv/oficina/backups/paso3a-agente-20261116T041544Z/REVERTIR.txt` (Paso 3a: aislamiento, modelo, SOUL y purga) |
 
 ## 3 · Secretos del ERP
 
@@ -253,12 +254,74 @@ Chatwoot (cuenta 2 «DTD Prueba», bandeja 11 «Prueba Oficina») ──GET─�
   `event_inbox` (prioridad 2), sin respuesta automática y sin datos personales en los logs. La cuenta 2 se reactivó
   solo durante la prueba y quedó suspendida otra vez. El token del usuario del puente se rotó y su env se borró, así
   que **para volver a usarlo hace falta un token nuevo**. Evidencia: `/srv/ops/evidencias/cable-puente-prueba-20261116T012638Z.txt`.
-- **Pendiente (revisión del DG de la #591):**
-  - **O4:** faltan pruebas de `mensajeSeguro`, de las respuestas 4xx de Chatwoot, y de que el puerto o una query
-    se rechacen en cada ruta. La prueba de que el token y el secreto no salen en el log ya está.
-  - **O5:** paginación de Chatwoot. Cada vuelta lee solo la página 1 de conversaciones y de mensajes, que basta para la
-    bandeja de prueba pero no para una bandeja con historia.
+- **Revisión del DG de la #591, hecha en el Paso 3a:**
+  - **O4:** pruebas de `mensajeSeguro`, de las respuestas 4xx de Chatwoot (la vuelta para con la ruta enmascarada) y
+    del ERP (avanza el cursor), y de que el puerto, la query, el fragmento o un usuario se rechacen en las dos rutas.
+  - **O5:** paginación de Chatwoot. Conversaciones con `?page=N` mientras la página venga llena y `meta.all_count` diga
+    que hay más; mensajes hacia atrás con `?before=<id>` solo hasta pasar el cursor. Tope de 40 páginas.
 
 **NO VERIFICADO** en este paso, y pendiente para el Paso 3 o para la prueba en producción: la entrada real del webhook
 desde fuera. Es decir, la ruta pública `https://<dominio>/api/oficina/webhook-chatwoot`, su paso por Traefik y Cloudflare, y
 la firma emitida **por Chatwoot** (aquí la emite el puente con el mismo algoritmo).
+
+## 10 · Paso 3a: el despachador mínimo (SDD-0626 §3.4 y §3.5; el agente redacta, nada se envía)
+
+**Qué hace.** `/api/cron/oficina-despachador` (el cron lo llama cada minuto) abre una tanda de ticks de 10 s. Cada tick
+convierte la bandeja en tareas, toma UNA para `soporte-chatwoot`, lee la conversación de Chatwoot (solo GET, solo la
+bandeja de prueba, en memoria), llama al agente por el cable, valida su JSON y lo revisa contra eval.md, y deja un
+**borrador** en `office_borradores` con la tarea en «aprobación». **No envía nada a Chatwoot** (eso es el Paso 3b, tras la
+aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
+
+### Las variables (solo en el `.env` del entorno; nombres en `.env.example`, sin valores)
+
+| Variable | Para qué |
+|---|---|
+| `OFICINA_DESPACHADOR_ACTIVO` | El interruptor. Solo `1` o `true` enciende; vacío = apagado |
+| `OFICINA_RUNTIME_URL` / `OFICINA_RUNTIME_TOKEN` | El cable (§3); ya están |
+| `OFICINA_CHATWOOT_TOKEN_LECTURA` | Token de un usuario **agente** de Chatwoot que solo es miembro de la bandeja de prueba. El despachador solo hace GET con él |
+| `OFICINA_CHATWOOT_API_URL` | Opcional: la URL interna de la API de Chatwoot (sin ella, `CHATWOOT_URL`) |
+| `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
+| `OFICINA_TOPE_MENSUAL_USD` | El tope del mes (D5: 15; solo se puede bajar). Al 80 % la oficina se auto-pausa |
+| `OFICINA_TOPE_LLAMADAS_CORRIDA` / `OFICINA_TOPE_TOKENS_CORRIDA` | Topes por corrida (2 y 24000) |
+| `OFICINA_PRECIO_ENTRADA_USD_MTOK` / `OFICINA_PRECIO_SALIDA_USD_MTOK` | La tarifa con la que se estima el costo (1,00 y 3,20 USD por millón de tokens) |
+
+### Requisitos para encenderlo (con OK de Sam y aviso al DG)
+
+1. La migración **0547** aplicada en esa base (sin ella responde `sin_migracion` y no hace nada).
+2. La oficina despausada por un administrador (`office_cambiar_pausa`). La auto-pausa nunca despausa.
+3. El token de lectura de Chatwoot puesto en el `.env` del entorno sin pasar por el chat.
+4. Recrear el web para que tome las variables; después, `OFICINA_DESPACHADOR_ACTIVO=1`.
+
+### Qué revisar
+
+- `task_events`: `tarea.creada`, `run.iniciada`, `conversacion.leida`, `modelo.respuesta` (con modelo y costo) y el
+  cierre (`run.terminada`, `run.escalada`, `run.abortada` o `run.interrumpida`).
+- `office_borradores`: una fila por corrida. Solo un administrador la lee, con service_role (no hay pantalla hasta el 3b).
+- `office_gasto_del_mes()`: la suma del mes. La auto-pausa deja en `office_paused` una fila con el motivo «Auto-pausa…».
+- En los logs del web solo aparecen códigos (`[oficina-despachador] …`), nunca el texto del cliente.
+
+### Cómo se apaga
+
+- **Pausa (kill switch):** `office_cambiar_pausa(true, motivo)` desde un administrador. El despachador no toma nada
+  nuevo y aborta la llamada en vuelo en ≤ 10 s; la tarea vuelve a «listo».
+- **Apagado:** `OFICINA_DESPACHADOR_ACTIVO` vacío y recrear el web.
+
+### Qué guarda la oficina (Hermes) de cada llamada
+
+- Hermes v0.23.1 guarda cada turno del API server en el `state.db` del perfil, y no se puede apagar.
+- El despachador usa una sesión propia por llamada (`cable-<run>-<intento>`) y la borra al terminar.
+- El timer `hermes-soporte-purga` (§2) borra lo que haya quedado con más de 24 h. **Máximo en disco: 48 h.**
+- Lo demás está en [privacidad.md](../specs/0626-oficina-runtime/privacidad.md), hallazgo 13.
+
+### Llaves del agente (D5)
+
+- Las puso Claude Code en el `.env` del perfil (600), sin imprimirlas.
+- **GLM:** la llave compartida de la oficina (plan de código de Z.AI, tarifa plana). **DeepSeek:** la del perfil
+  personal de Sam, la única que había en el servidor.
+- **Pendiente (R2):** una llave propia de `soporte-chatwoot` en cada proveedor. Las crea Sam en los paneles y las coloca
+  Claude Code por un canal seguro.
+
+### Lo que este paso NO hace
+
+- No envía nada a Chatwoot. No tiene página de aprobación (Paso 3b, D2 y D4).
+- La prueba con el modelo real en staging (sección E del pedido) todavía no se hizo.
