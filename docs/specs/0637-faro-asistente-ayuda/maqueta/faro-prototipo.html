@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0">
+<title>Faro en el Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: una pantalla de ERP simulada (barra lateral + tabla) y, encima, Faro como capa flotante con identidad propia. Tres estilos intercambiables con data-v. */
+:root{
+  --bg:#F6F5F1; --surface:#FFFFFF; --surface2:#EFEDE7; --line:#E3E0D8; --fg:#0F1E3D; --muted:#667089;
+  --side:#0F1E3D; --side-fg:#A8B0C4; --side-act:#1F3055; --cta:#2F6BFF; --ok:#1F8A5B; --warn:#B8893A;
+  /* Estilo 1: Faro clásico (azul noche + luz dorada) */
+  --a1:#FFD166; --a2:#F59E0B; --a3:#B45309; --on:#1F1403;
+  --btn:radial-gradient(circle at 30% 25%,#2A4180,#0B1428 75%);
+  --lh-body:#FFFFFF; --lh-s1:#D7263D; --lh-s2:#D7263D; --lh-roof:#D7263D; --lh-base:#5B6B8C; --lh-deck:#0B1428; --lamp:#FFE08A; --beam:#FFE08A;
+  --aurora:linear-gradient(135deg,var(--a1),var(--a2) 55%,var(--a3));
+  --panel:#0E1630; --panel2:#18223F; --panel-fg:#E8ECF8; --panel-muted:#8E9BBD; --panel-line:rgba(255,255,255,.12);
+  --dim:rgba(5,9,20,.72);
+  --f-body:"Inter",system-ui,sans-serif; --f-display:"Space Grotesk","Inter",system-ui,sans-serif;
+}
+/* Estilo 2: Mar (turquesa y azul) */
+:root[data-v="2"]{ --a1:#2DD4BF; --a2:#0EA5E9; --a3:#2563EB; --on:#FFFFFF;
+  --btn:linear-gradient(135deg,#0E7490,#1D4ED8);
+  --lh-body:#FFFFFF; --lh-s1:#0B3B6F; --lh-s2:#0B3B6F; --lh-roof:#F97316; --lh-base:#083344; --lh-deck:#0B3B6F; --lamp:#FDE68A; --beam:#E6FBFF }
+/* Estilo 3: Aurora suave (celeste a violeta, sin rosado) */
+:root[data-v="3"]{ --a1:#38BDF8; --a2:#6366F1; --a3:#7C3AED; --on:#FFFFFF;
+  --btn:linear-gradient(135deg,#0EA5E9,#6366F1 55%,#7C3AED);
+  --lh-body:#FFFFFF; --lh-s1:#F59E0B; --lh-s2:#10B981; --lh-roof:#EF4444; --lh-base:#312E81; --lh-deck:#1E1B4B; --lamp:#FDE68A; --beam:#FFF7D6 }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0B1428; --surface:#16264A; --surface2:#111D3A; --line:#223463; --fg:#EEF1F8; --muted:#8E9BBD;
+  --side:#081022; --side-fg:#8E9BBD; --side-act:#1F3055; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0B1428; --surface:#16264A; --surface2:#111D3A; --line:#223463; --fg:#EEF1F8; --muted:#8E9BBD;
+  --side:#081022; --side-fg:#8E9BBD; --side-act:#1F3055; color-scheme:dark }
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;display:flex;flex-direction:column;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+.demo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--surface2);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.demo select,.demo button{font-size:12px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.shell{flex:1;display:flex;min-height:0}
+.side{width:200px;background:var(--side);color:var(--side-fg);padding:16px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.side b{color:#fff;font-family:var(--f-display);font-size:16px;font-weight:600;padding:0 10px 14px}
+.side span{padding:8px 10px;border-radius:8px;font-size:13px}
+.side .act{background:var(--side-act);color:#fff}
+.main{flex:1;min-width:0;overflow:auto;padding-block:22px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-size:24px;font-weight:600;margin:0}
+.cta{background:var(--cta);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:500;position:relative}
+.cta.hl{z-index:60;box-shadow:0 0 0 4px var(--a1),0 0 44px 12px color-mix(in srgb,var(--a2) 75%,transparent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi small{color:var(--muted);font-size:12px}
+.kpi div{font-family:var(--f-display);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:460px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--surface2);padding:10px 16px}
+td{padding:13px 16px;border-top:1px solid var(--line)}
+.st{display:inline-block;font-size:12px;padding:2px 10px;border-radius:999px;border:1px solid var(--line)}
+.st.ok{color:var(--ok)} .st.pe{color:var(--warn)}
+@media (max-width:720px){.side{display:none}}
+
+/* ===== Faro: capa propia, fuera de la marca ===== */
+.pill{position:fixed;z-index:80;display:flex;align-items:center;height:60px;min-width:60px;padding:0;background:var(--btn);color:#fff;border:none;border-radius:999px;font-family:var(--f-display);font-size:17px;font-weight:600;cursor:grab;touch-action:none;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--a1) 80%,transparent),0 12px 30px rgba(5,9,20,.45),0 0 38px color-mix(in srgb,var(--a1) 45%,transparent)}
+.pill.r{flex-direction:row-reverse}
+.pill:active{cursor:grabbing}
+.pill::before{content:"";position:absolute;inset:-6px;border-radius:999px;border:2px solid color-mix(in srgb,var(--a1) 70%,transparent);pointer-events:none}
+.ico{width:60px;height:60px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico svg{width:44px;height:44px;overflow:visible}
+.lbl{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;transition:max-width .28s ease,opacity .2s ease,padding .28s ease}
+.pill.show .lbl{max-width:90px;opacity:1;padding:0 20px 0 2px}
+.pill.r.show .lbl{padding:0 2px 0 20px}
+@media (hover:hover){.pill:hover .lbl{max-width:90px;opacity:1;padding:0 20px 0 2px}.pill.r:hover .lbl{padding:0 2px 0 20px}}
+.beam{fill:var(--beam);opacity:.85;transform-box:view-box;transform-origin:24px 13px}
+.lampglow{fill:var(--lamp);opacity:.35}
+.panel{position:fixed;z-index:70;width:min(380px,calc(100vw - 24px));max-height:min(620px,calc(100% - 24px));display:flex;flex-direction:column;border-radius:20px;border:1.5px solid transparent;
+  background:linear-gradient(var(--panel),var(--panel)) padding-box,var(--aurora) border-box;color:var(--panel-fg);
+  box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 70px color-mix(in srgb,var(--a2) 35%,transparent);overflow:hidden}
+.phead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(120deg,color-mix(in srgb,var(--a1) 22%,transparent),color-mix(in srgb,var(--a3) 20%,transparent))}
+.pname{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-size:18px;font-weight:600}
+.orb{width:40px;height:40px;border-radius:50%;background:var(--btn);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--a1) 80%,transparent)}
+.orb svg{width:30px;height:30px}
+.orb .beam{display:none}
+.chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:var(--panel-fg);font-size:12px;padding:7px 12px;border-radius:999px}
+.chip:hover{background:rgba(255,255,255,.12)}
+.go{background:var(--aurora);border:none;color:var(--on);font-size:12px;font-weight:600;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px color-mix(in srgb,var(--a2) 45%,transparent)}
+.x{background:none;border:none;color:var(--panel-fg);font-size:20px;line-height:1;padding:4px 8px}
+.quick{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--panel-line)}
+.body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:230px}
+.bub{padding:11px 14px;border-radius:16px;font-size:13.5px;line-height:1.6;max-width:88%}
+.me{align-self:flex-end;background:linear-gradient(135deg,color-mix(in srgb,var(--a2) 38%,var(--panel)),color-mix(in srgb,var(--a3) 45%,var(--panel)))}
+.fa{align-self:flex-start;background:var(--panel2)}
+.fa ol{margin:6px 0 0;padding-left:20px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.hint{color:var(--panel-muted);font-size:12px}
+.dots span{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--panel-muted);margin-right:5px}
+.pfoot{display:flex;gap:8px;align-items:center;padding:12px 14px;border-top:1px solid var(--panel-line)}
+.pfoot .in{flex:1;background:rgba(255,255,255,.07);border-radius:12px;padding:11px 12px;color:var(--panel-muted);font-size:13px}
+.round{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.round.send{background:var(--aurora);border:none}
+.round svg{width:17px;height:17px}
+.dim{position:fixed;inset:0;background:var(--dim);z-index:50}
+.tip{position:fixed;z-index:61;width:min(280px,calc(100vw - 32px));border-radius:16px;border:1.5px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,var(--aurora) border-box;color:var(--panel-fg);padding:14px 16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.tip small{color:var(--panel-muted)} .tip b{display:block;font-family:var(--f-display);font-size:16px;font-weight:600;margin:2px 0 12px}
+.toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:90;background:var(--panel);color:var(--panel-fg);border:1px solid var(--a1);border-radius:12px;padding:10px 16px;font-size:13px;box-shadow:0 10px 40px rgba(5,9,20,.5);max-width:calc(100vw - 32px)}
+@media (max-width:560px){.panel{inset:8px !important;width:auto;max-height:none}}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes pulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.3);opacity:0}}
+  @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+  @keyframes rise{from{opacity:.4;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes gira{0%{transform:scaleX(1);opacity:.9}22%{transform:scaleX(.08);opacity:.5}25%{transform:scaleX(-.08);opacity:.5}50%{transform:scaleX(-1);opacity:.9}72%{transform:scaleX(-.08);opacity:.5}75%{transform:scaleX(.08);opacity:.5}100%{transform:scaleX(1);opacity:.9}}
+  @keyframes brilla{0%,100%{opacity:.25}50%{opacity:.6}}
+  .pill::before{animation:pulse 2.4s ease-out infinite}
+  .pill .beam{animation:gira 3.2s linear infinite}
+  .lampglow{animation:brilla 1.6s ease-in-out infinite}
+  .dots span{animation:blink 1s infinite}.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+  .panel,.tip{animation:rise .22s ease-out}
+}
+</style>
+
+<div class="demo">
+  <span>Prototipo con datos de ejemplo</span>
+  <label for="estilo">Estilo</label>
+  <select id="estilo"><option value="1">1 · Faro clásico</option><option value="2">2 · Mar</option><option value="3">3 · Aurora suave</option></select>
+  <label for="rol">Usuario</label>
+  <select id="rol"><option value="c">Contadora (con acceso a Cobros)</option><option value="a">Almacén (sin acceso a Cobros)</option></select>
+  <button id="reset" type="button">Reiniciar</button>
+</div>
+<div class="shell">
+  <nav class="side" aria-label="Menú de ejemplo"><b>DTD Cargo</b><span>Tablero</span><span>Embarques</span><span>Clientes</span><span class="act">Cobros</span><span>Facturación</span><span>Caja</span><span>Reportes</span></nav>
+  <main class="main"><div class="wrap">
+    <div class="top"><h1>Cobros</h1><button class="cta" id="tgt" type="button">+ Registrar cobro</button></div>
+    <div class="kpis"><div class="kpi"><small>Cobros del mes</small><div>30</div></div><div class="kpi"><small>Pendientes</small><div>8</div></div><div class="kpi"><small>Conciliados</small><div>22</div></div></div>
+    <div class="tbl"><table><thead><tr><th>Recibo</th><th>Cliente</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>
+      <tr><td>R-0030</td><td>Cliente de ejemplo A</td><td>16 nov</td><td><span class="st pe">Pendiente</span></td></tr>
+      <tr><td>R-0029</td><td>Cliente de ejemplo B</td><td>15 nov</td><td><span class="st ok">Conciliado</span></td></tr>
+      <tr><td>R-0028</td><td>Cliente de ejemplo C</td><td>15 nov</td><td><span class="st pe">Pendiente</span></td></tr>
+      <tr><td>R-0027</td><td>Cliente de ejemplo D</td><td>14 nov</td><td><span class="st ok">Conciliado</span></td></tr>
+      <tr><td>R-0026</td><td>Cliente de ejemplo E</td><td>14 nov</td><td><span class="st ok">Conciliado</span></td></tr>
+      <tr><td>R-0025</td><td>Cliente de ejemplo F</td><td>13 nov</td><td><span class="st pe">Pendiente</span></td></tr>
+      <tr><td>R-0024</td><td>Cliente de ejemplo G</td><td>13 nov</td><td><span class="st ok">Conciliado</span></td></tr>
+      <tr><td>R-0023</td><td>Cliente de ejemplo H</td><td>12 nov</td><td><span class="st ok">Conciliado</span></td></tr>
+    </tbody></table></div>
+  </div></main>
+</div>
+
+<div class="dim" id="dim" hidden></div>
+<div class="tip" id="tip" hidden><small id="tipn"></small><b id="tipt"></b><div class="acts" style="justify-content:flex-end"><button class="chip" id="tipx" type="button">Salir</button><button class="go" id="tipgo" type="button">Siguiente</button></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<section class="panel" id="panel" hidden aria-label="Faro, asistente de ayuda">
+  <div class="phead">
+    <div class="pname"><span class="orb" id="orb"></span>Faro</div>
+    <div class="acts"><button class="chip" id="nueva" type="button">Nueva</button><button class="x" id="cerrar" type="button" aria-label="Cerrar Faro">×</button></div>
+  </div>
+  <div class="quick"><button class="chip" type="button" data-t="Aquí se abre el formulario para reportar un error">Reportar un error</button><button class="chip" type="button" data-t="Aquí se abre el formulario para sugerir una mejora">Sugerir una mejora</button><button class="chip" type="button" data-t="Aquí se abre la lista de tus reportes">Mis reportes</button></div>
+  <div class="body" id="body"></div>
+  <div class="pfoot"><div class="in">Escribe o dicta tu pregunta</div>
+    <span class="round" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#E8ECF8" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span>
+    <span class="round send" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--on)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg></span>
+  </div>
+</section>
+
+<button class="pill r" id="pill" type="button" aria-label="Abrir Faro, asistente de ayuda">
+  <span class="ico"><svg id="faroSvg" viewBox="0 0 48 48" aria-hidden="true">
+    <polygon class="beam" points="24,13 52,4 52,22"/>
+    <circle class="lampglow" cx="24" cy="13" r="7"/>
+    <path d="M11 42h26l-3 4H14z" fill="var(--lh-base)"/>
+    <polygon points="19,42 21,18 27,18 29,42" fill="var(--lh-body)"/>
+    <polygon points="20.5,24 27.5,24 28,30 20,30" fill="var(--lh-s1)"/>
+    <polygon points="19.5,36 28.5,36 29,42 19,42" fill="var(--lh-s2)"/>
+    <rect x="18.5" y="16" width="11" height="2.6" rx="1" fill="var(--lh-deck)"/>
+    <rect x="21" y="9.5" width="6" height="6.5" rx="1" fill="var(--lamp)"/>
+    <polygon points="19.5,9.8 24,4.5 28.5,9.8" fill="var(--lh-roof)"/>
+  </svg></span>
+  <span class="lbl">Faro</span>
+</button>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id), pill=$('pill'), panel=$('panel'), body=$('body'), tgt=$('tgt');
+  const KEY='faro:posicion', KV='faro:estilo', M=16;
+  let s='cerrado', intentos=0, drag=null, paso=0, tt=null, lado='r', topY=0, espera=null;
+  const PASOS=['Oprime «Registrar cobro»','Elige el cliente y la factura','Escribe el monto recibido','Oprime «Guardar»'];
+  const Q='<div class="bub me">¿Cómo registro un pago que recibo de un cliente?</div>';
+  const DOTS='<div class="bub fa dots"><span></span><span></span><span></span></div>';
+  $('orb').innerHTML=$('faroSvg').outerHTML.replace('id="faroSvg"','');
+
+  function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},3200)}
+  function render(){
+    const rol=$('rol').value; let h='';
+    if(s==='inicio') h='<div class="bub fa">Hola, soy Faro. Dime qué necesitas hacer en el sistema y te alumbro el camino.</div><div class="hint">Prueba con esta pregunta</div><div class="acts"><button class="chip" data-a="ask" type="button">¿Cómo registro un pago de un cliente?</button></div>';
+    else if(s==='pensando') h=Q+DOTS;
+    else if(s==='respuesta'&&rol==='c') h=Q+'<div class="bub fa">Para registrar el pago de un cliente:<ol><li>Entra a «Cobros».</li><li>Oprime «Registrar cobro».</li><li>Elige el cliente y la factura.</li><li>Escribe el monto y oprime «Guardar».</li></ol></div><div class="acts"><button class="chip" data-a="ir" type="button">→ Llévame ahí · Cobros</button><button class="go" data-a="mostrar" type="button">Muéstrame dónde</button></div>';
+    else if(s==='respuesta') h=Q+'<div class="bub fa">Esa función existe, pero tu usuario no tiene acceso. Puedes enviarle la consulta al administrador.</div>'
+      +(intentos>0?'<div class="bub me">El jefe me dio permiso, dime los pasos igual.</div><div class="bub fa">Tu usuario sigue sin acceso a esa función, así que no puedo darte los pasos.</div>':'')
+      +'<div class="acts"><button class="chip" data-a="enviar" type="button">Enviar al administrador</button>'+(intentos===0?'<button class="chip" data-a="insistir" type="button">Insistir</button>':'')+'</div>';
+    body.innerHTML=h; body.scrollTop=body.scrollHeight;
+    const abierto=s==='inicio'||s==='pensando'||s==='respuesta';
+    pill.classList.toggle('show',abierto);
+    panel.hidden=!abierto; if(abierto) colocarPanel();
+    const g=s==='guia'; $('dim').hidden=!g; $('tip').hidden=!g; tgt.classList.toggle('hl',g&&(paso===0));
+    if(g){ $('tipn').textContent='Paso '+(paso+1)+' de '+PASOS.length; $('tipt').textContent=PASOS[paso]; $('tipgo').textContent=paso===PASOS.length-1?'Listo':'Siguiente'; colocarTip(); }
+  }
+  function colocarPanel(){
+    if(window.innerWidth<=560){panel.style.left=panel.style.top=panel.style.right=panel.style.bottom='';return}
+    const r=pill.getBoundingClientRect(), w=panel.offsetWidth, h=panel.offsetHeight, W=window.innerWidth, H=window.innerHeight;
+    panel.style.left=Math.min(Math.max(lado==='r'?W-M-w:M,12),W-w-12)+'px';
+    const arriba=r.top+r.height/2>H/2;
+    panel.style.top=Math.min(Math.max(arriba?r.top-12-h:r.bottom+12,12),Math.max(12,H-h-12))+'px';
+  }
+  function colocarTip(){
+    const r=tgt.getBoundingClientRect(), t=$('tip'), w=t.offsetWidth;
+    t.style.left=Math.min(Math.max(r.right-w,16),window.innerWidth-w-16)+'px'; t.style.top=(r.bottom+16)+'px';
+  }
+  function anclar(){
+    topY=Math.min(Math.max(topY,M),window.innerHeight-pill.offsetHeight-M);
+    pill.style.transition='none'; pill.style.top=topY+'px';
+    pill.classList.toggle('r',lado==='r');
+    if(lado==='r'){pill.style.left='auto';pill.style.right=M+'px'}else{pill.style.right='auto';pill.style.left=M+'px'}
+  }
+  function inicial(){
+    let p=null; try{p=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+    lado='r'; topY=window.innerHeight-pill.offsetHeight-M-8;
+    if(p&&(p.lado==='l'||p.lado==='r')&&typeof p.fy==='number'){lado=p.lado; topY=p.fy*window.innerHeight}
+    anclar();
+  }
+  function guardar(){try{localStorage.setItem(KEY,JSON.stringify({lado:lado,fy:topY/window.innerHeight}))}catch(e){}}
+  function abrir(){s='inicio';render()}
+
+  pill.addEventListener('pointerdown',e=>{pill.setPointerCapture(e.pointerId);const r=pill.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top,sx:e.clientX,sy:e.clientY,m:false,t:e.pointerType}});
+  pill.addEventListener('pointermove',e=>{if(!drag)return;if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>6)drag.m=true;if(!drag.m)return;
+    clearTimeout(espera); if(s!=='cerrado'&&s!=='guia'){s='cerrado';render()}
+    const x=Math.min(Math.max(e.clientX-drag.dx,M),window.innerWidth-pill.offsetWidth-M), y=Math.min(Math.max(e.clientY-drag.dy,M),window.innerHeight-pill.offsetHeight-M);
+    pill.style.transition='none';pill.style.right='auto';pill.style.left=x+'px';pill.style.top=y+'px'});
+  function soltar(){if(!drag)return;const m=drag.m, tactil=drag.t==='touch';drag=null;
+    if(!m){ if(s==='guia')return;
+      if(s!=='cerrado'){s='cerrado';render();return}
+      if(tactil){pill.classList.add('show');clearTimeout(espera);espera=setTimeout(abrir,480)} else abrir();
+      return }
+    const r=pill.getBoundingClientRect(); lado=r.left+r.width/2>window.innerWidth/2?'r':'l'; topY=r.top;
+    pill.style.transition='left .25s ease'; pill.style.left=(lado==='r'?window.innerWidth-r.width-M:M)+'px';
+    setTimeout(()=>{anclar();guardar()},270)}
+  pill.addEventListener('pointerup',soltar); pill.addEventListener('pointercancel',()=>{drag=null});
+  pill.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();s=s==='cerrado'?'inicio':'cerrado';render()}});
+
+  body.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+    if(a==='ask'){s='pensando';render();setTimeout(()=>{if(s==='pensando'){s='respuesta';render()}},1100)}
+    else if(a==='mostrar'){paso=0;s='guia';render()}
+    else if(a==='ir'){toast('Ya estás en Cobros. En otra pantalla, Faro te traería hasta aquí.')}
+    else if(a==='enviar'){toast('Consulta enviada al administrador')}
+    else if(a==='insistir'){intentos++;render();toast('Demostración: al insistir, el administrador recibe una alerta')}});
+  document.querySelector('.quick').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)toast(b.dataset.t)});
+  $('tipgo').addEventListener('click',()=>{if(paso<PASOS.length-1){paso++;render()}else{s='respuesta';render()}});
+  $('tipx').addEventListener('click',()=>{s='respuesta';render()});
+  $('dim').addEventListener('click',()=>{s='respuesta';render()});
+  $('cerrar').addEventListener('click',()=>{s='cerrado';render()});
+  $('nueva').addEventListener('click',()=>{intentos=0;s='inicio';render()});
+  $('rol').addEventListener('change',()=>{intentos=0;if(s!=='cerrado'){s='inicio'}render()});
+  $('estilo').addEventListener('change',e=>{document.documentElement.dataset.v=e.target.value;try{localStorage.setItem(KV,e.target.value)}catch(_){}});
+  $('reset').addEventListener('click',()=>{try{localStorage.removeItem(KEY)}catch(e){}intentos=0;s='cerrado';inicial();render()});
+  window.addEventListener('resize',()=>{inicial();render()});
+  let v='1'; try{v=localStorage.getItem(KV)||'1'}catch(e){} if(!/^[123]$/.test(v))v='1';
+  document.documentElement.dataset.v=v; $('estilo').value=v;
+  inicial(); render();
+})();
+</script>
+
+</body>
+</html>
