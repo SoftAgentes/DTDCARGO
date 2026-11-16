@@ -3447,6 +3447,15 @@
         "fecha": "2026-11-15",
         "forma": "exacta"
       }
+    },
+    "0546_noticias_purga_actor_id": {
+      "sha256": "446d0ede22642f8c0a24d4e648a485d2a832455b829c62ba582f8d3a878fac7d",
+      "md5": "5e28082b08b95a5db4c46bd9c2847178",
+      "bytes": 15793,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
     }
   }
 }

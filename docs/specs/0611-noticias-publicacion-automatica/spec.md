@@ -759,8 +759,9 @@ corrida haya dado `ok`), no antes (misma regla en §11.4.1.1).
 
 #### 11.4.1.1 La purga, construida (migración 0546, 2026-11-16)
 
-**Construida, sin aplicar en ningún entorno.** Cumple los puntos 1, 3 y 4 de arriba; el 2 (aplicarla en prueba y
-producción, con OK nominal de Sam) y el 5 (encender) siguen abiertos.
+**Construida y aplicada en producción el 2026-11-16 a las 05:33:39Z**, con el OK de Sam (ledger md5
+`5e28082b08b95a5db4c46bd9c2847178`, 15793 bytes). Cumple los puntos 1 a 4 de arriba; el 5 (encender el interruptor
+`NOTICIAS_PURGA_ACTOR_ACTIVO`, con OK de Sam) sigue abierto: la ruta está apagada y la excepción de §11.3.1 (b) sigue vigente.
 
 - `supabase/migrations/0546_noticias_purga_actor_id.sql`, declarada como espera en `supabase/migrations-baseline.json`:
   - `news_purgar_actor_id()`: SECURITY DEFINER, `search_path` vacío, `lock_timeout`, solo `service_role`. Pone en NULL el

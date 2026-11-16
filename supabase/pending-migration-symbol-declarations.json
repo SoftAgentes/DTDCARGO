@@ -9,27 +9,6 @@
   ],
   "degradations": [
     {
-      "id": "0546-purga-actor-id-noticias",
-      "migration": "0546_noticias_purga_actor_id",
-      "primarySymbol": "news_purgar_actor_id",
-      "symbols": [
-        {
-          "name": "news_purgar_actor_id",
-          "kind": "function",
-          "callSites": [
-            "app/api/cron/noticias-purga-actor/route.ts:41"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "app/api/cron/noticias-purga-actor/route.ts:43",
-          "contains": "faltaLaMigracion(error)",
-          "degradation": "Sin la 0546 PostgREST responde PGRST202 (o 42883): la purga no hace nada, devuelve «sin_migracion» y lo anota en el log. Además nace apagada (NOTICIAS_PURGA_ACTOR_ACTIVO)."
-        }
-      ]
-    },
-    {
       "id": "0547-portada-lectura-aparte",
       "migration": "0547_noticias_portada_licencia",
       "primarySymbol": "news_posts.cover_image_url",
