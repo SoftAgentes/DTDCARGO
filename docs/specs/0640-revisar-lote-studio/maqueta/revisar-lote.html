@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Revisar lote · maqueta</title>
+<title>Revisar contenedor · maqueta</title>
 <!--
-  Maqueta estática de la SDD «Revisar lote». TODOS LOS DATOS SON INVENTADOS:
+  Maqueta estática de la SDD «Revisar contenedor». TODOS LOS DATOS SON INVENTADOS:
   marcas DTD-Z9xx / ZZ-0xx, «Cliente de ejemplo N», contenedor ZZZU0000000.
   Este repositorio es público: nunca reemplazar por datos reales.
   Fuentes: en producto se sirven desde el repositorio (BRAND.md). La maqueta no
@@ -124,15 +124,15 @@
     <a href="#">Almacén CN</a>
     <a href="#">Tracking</a>
     <a href="#" class="on">Naviera &amp; Consolidación</a>
-    <a href="#" class="sub on" aria-current="page">Revisar lotes</a>
+    <a href="#" class="sub on" aria-current="page">Revisar contenedores</a>
     <a href="#">Almacén VE</a>
   </nav>
 
   <main>
-    <div class="crumbs"><a href="#">Naviera &amp; Consolidación</a> › <a href="#">Revisar lotes</a> › Contenedor 99</div>
+    <div class="crumbs"><a href="#">Naviera &amp; Consolidación</a> › <a href="#">Revisar contenedores</a> › Contenedor 99</div>
     <div class="head">
       <div>
-        <h1>Revisar lote · contenedor 99</h1>
+        <h1>Revisar contenedor · contenedor 99</h1>
         <div class="row soft" style="font-size:13px">
           <span class="mono">carga-consolidado:99:a1b2c3d4</span>
           <span>·</span><span>Subido por Dirección General el 16/11/2026, 09:40</span>
@@ -164,7 +164,7 @@
     </section>
 
     <section class="card" aria-labelledby="t-cli">
-      <h2 id="t-cli">Clientes del lote</h2>
+      <h2 id="t-cli">Clientes del contenedor</h2>
       <div class="row" style="margin-bottom:10px">
         <div class="filters" role="group" aria-label="Filtrar líneas" id="filtros"></div>
         <input class="search" type="search" id="buscar" placeholder="Buscar por Shipping Mark o Remitente" aria-label="Buscar por Shipping Mark o Remitente">
@@ -188,14 +188,14 @@
         <div style="text-align:right">
           <div class="row" style="justify-content:flex-end">
             <button class="btn" type="button" id="copiar">Copiar respuestas</button>
-            <button class="btn primary" type="button" id="aprobar" disabled>Aprobar lote</button>
+            <button class="btn primary" type="button" id="aprobar" disabled>Aprobar contenedor</button>
           </div>
           <p class="soft" style="font-size:12px;margin:8px 0 0">Apruebas como <b>Operaciones · usuario de ejemplo</b></p>
         </div>
       </div>
       <div id="aprobado" hidden style="margin-top:14px"></div>
       <h2 style="margin-top:20px;font-size:15px">Historial</h2>
-      <ul class="history" id="historial"><li>16/11/2026 09:40 · Dirección General subió el lote (huella <span class="mono">9f3e…c210</span>)</li></ul>
+      <ul class="history" id="historial"><li>16/11/2026 09:40 · Dirección General subió el contenedor 99 (huella <span class="mono">9f3e…c210</span>)</li></ul>
       <p class="note-maq">Maqueta: los datos son inventados y nada se guarda. En el Studio, cada marca, respuesta y la aprobación quedan en la base con su auditoría; el historial sale del registro de eventos.</p>
     </section>
   </main>
@@ -306,11 +306,11 @@ function pintarEstado() {
   if (f.sin) items.push(`Faltan ${f.sin} línea${f.sin>1?"s":""} por revisar.`);
   if (f.preg) items.push(`Faltan ${f.preg} pregunta${f.preg>1?"s":""} por responder.`);
   if (f.corrSinTexto) items.push(`${f.corrSinTexto} línea${f.corrSinTexto>1?"s":""} en «Corregir» sin explicación.`);
-  if (f.corr && !f.corrSinTexto) items.push(`Hay ${f.corr} línea${f.corr>1?"s":""} para corregir: el lote se devuelve a Dirección General para regenerarlo.`);
-  $("faltan").innerHTML = estado.aprobado ? "" : (items.length ? `<p style="margin:0 0 6px;font-weight:600">Antes de aprobar:</p><ul class="missing">${items.map(i => `<li>${i}</li>`).join("")}</ul>` : `<p style="margin:0">Todo revisado. Puedes aprobar el lote.</p>`);
+  if (f.corr && !f.corrSinTexto) items.push(`Hay ${f.corr} línea${f.corr>1?"s":""} para corregir: el contenedor se devuelve a Dirección General para regenerarlo.`);
+  $("faltan").innerHTML = estado.aprobado ? "" : (items.length ? `<p style="margin:0 0 6px;font-weight:600">Antes de aprobar:</p><ul class="missing">${items.map(i => `<li>${i}</li>`).join("")}</ul>` : `<p style="margin:0">Todo revisado. Puedes aprobar el contenedor.</p>`);
   const btn = $("aprobar");
   const devolver = f.corr > 0;
-  btn.textContent = devolver ? "Devolver para corregir" : "Aprobar lote";
+  btn.textContent = devolver ? "Devolver para corregir" : "Aprobar contenedor";
   btn.disabled = estado.aprobado || f.sin > 0 || f.preg > 0 || f.corrSinTexto > 0;
   filtros();
 }
@@ -332,7 +332,7 @@ document.addEventListener("click", e => {
   if (b.id === "aprobar") {
     const f = faltantes();
     const devolver = f.corr > 0;
-    const msg = devolver ? "¿Devolver el lote carga-consolidado:99:a1b2c3d4 a Dirección General para corregirlo?" : "¿Aprobar el lote carga-consolidado:99:a1b2c3d4? Después no se puede cambiar.";
+    const msg = devolver ? "¿Devolver el contenedor 99 (huella a1b2c3d4) a Dirección General para corregirlo?" : "¿Aprobar el contenedor 99 (huella a1b2c3d4)? Después no se puede cambiar.";
     if (!confirm(msg)) return;
     estado.aprobado = true;
     const est = $("estado");
@@ -340,7 +340,7 @@ document.addEventListener("click", e => {
     est.querySelector("span:last-child").textContent = devolver ? "Devuelto" : "Aprobado";
     $("aprobado").hidden = false;
     $("aprobado").innerHTML = `<span class="badge ${devolver?"err":"ok"}"><span class="dot"></span>${devolver ? "Devuelto para corregir" : "Aprobado"} por Operaciones · usuario de ejemplo el ${ahora()}</span>`;
-    $("historial").insertAdjacentHTML("beforeend", `<li>${ahora()} · Operaciones · usuario de ejemplo ${devolver ? "devolvió el lote para corregir" : "aprobó el lote"}</li>`);
+    $("historial").insertAdjacentHTML("beforeend", `<li>${ahora()} · Operaciones · usuario de ejemplo ${devolver ? "devolvió el contenedor para corregir" : "aprobó el contenedor"}</li>`);
     $("nota").disabled = true;
     render();
     return;
@@ -349,7 +349,7 @@ document.addEventListener("click", e => {
     const corr = lineas.filter(l => estado.v[l.ref]==="corregir").map(l => `- ${l.ref} (${l.clave}): ${estado.c[l.ref]||"(sin explicación)"}`);
     const resp = preguntas.map((p,i) => `${i+1}. ${p.texto}\n   → ${estado.r[p.id]||"(sin respuesta)"}`);
     const f = faltantes();
-    const txt = `Revisión del lote carga-consolidado:99:a1b2c3d4\n${lineas.length - f.sin}/${lineas.length} líneas revisadas\n\nPara corregir:\n${corr.join("\n") || "- ninguna"}\n\nPreguntas:\n${resp.join("\n")}`;
+    const txt = `Revisión del contenedor 99 (huella a1b2c3d4)\n${lineas.length - f.sin}/${lineas.length} líneas revisadas\n\nPara corregir:\n${corr.join("\n") || "- ninguna"}\n\nPreguntas:\n${resp.join("\n")}`;
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("Respuestas copiadas"), () => toast("No se pudo copiar: el navegador no dio permiso"));
     return;
   }
