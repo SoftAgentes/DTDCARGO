@@ -94,8 +94,8 @@ unitaria con casos de cada patrón. No atrapa nombres propios: por eso el aviso 
 
 **E-4 · El equipo no tiene aviso de que sus preguntas se guardan.** No existe todavía; la spec lo pide (§10).
 *Arreglo:* la primera vez que alguien abre Faro ve un aviso corto: qué se guarda, quién lo lee (D-4), cuánto dura
-(D-6), que la IA es de un proveedor externo (hoy Anthropic, en EE. UU.; nunca uno chino, E-10) y a quién pedir
-sus datos. Se registra **qué versión del
+(D-6), que la IA es de un proveedor externo (hoy Anthropic, en EE. UU.; nunca uno chino, E-10), que el registro vive en
+el servidor de Contabo, en EE. UU., y a quién pedir sus datos. Se registra **qué versión del
 aviso se mostró y cuándo**, por persona. Es un aviso, no un consentimiento: la base de licitud la decide un abogado.
 > CRBV art. 28 (conocer el uso y la finalidad) · SC 332/2001, autonomía.
 

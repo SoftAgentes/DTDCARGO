@@ -15,7 +15,7 @@ Solo documentos. No hay código, migraciones ni cambios en producción.
 |---|---|
 | `docs/specs/0637-faro-asistente-ayuda/privacidad.md` | Nuevo: la revisión `revisar-datos-ve`. Inventario por finalidad, doce puntos (3 correctos, 10 encontrados, 5 no verificables) y plazos |
 | `docs/legal/privacidad/registro-tratamiento.md` | Fila de Faro en §3, marcada como propuesta y sin datos |
-| `docs/specs/0637-faro-asistente-ayuda/spec.md` | §3: memoria acotada a la conversación en curso. §5: estante `novedades/` y la regla de guía y novedad en la misma PR. §6.4: tres finalidades, tablas nuevas, purga que borra filas y pregunta depurada. §6.5: gasto medido en `asistente_llamadas`. §10: corrección sobre Anthropic en el inventario y enlace a la revisión. §11: D-6 con propuesta, y D-9, D-10 y D-11 nuevas |
+| `docs/specs/0637-faro-asistente-ayuda/spec.md` | §3: memoria acotada a la conversación en curso. §5: estante `novedades/` y la regla de guía y novedad en la misma PR. §6.4: tres finalidades, tablas nuevas, purga que borra filas y pregunta depurada. §6.5: gasto medido en `asistente_llamadas`. §10: corrección sobre Anthropic en el inventario y enlace a la revisión. §11: D-6 aprobada por Sam, y D-9, D-10 y D-11 nuevas |
 
 Insumo: una consulta de diseño a Codex, de solo lectura, pedida por Sam, sobre qué guardar, la memoria, el ciclo con
 Hermes, los riesgos y las novedades. El Worker comprobó en el código nueve de sus afirmaciones antes de usarlas; las
@@ -48,7 +48,7 @@ Correcciones aplicadas en un solo commit:
 1. D-6 (plazos) aprobada por Sam el 2026-11-16: «Sí, apruébalos». Falta D-11 (equipo en China). D-4 y D-5 siguen con su recomendación.
 2. Antes del primer envío real a un modelo: N-1 (retención del proveedor, por escrito) y N-2 (sumar Faro a la fila
    de Anthropic en `docs/legal/privacidad/inventario-terceros.md`).
-3. Las condiciones E-1 a E-9 entran como criterios de la migración (fase 2) y del servidor (fase 3).
+3. Las condiciones E-1 a E-10 entran como criterios de la migración (fase 2) y del servidor (fase 3).
 
 ## FUERA DE ALCANCE DETECTADO
 

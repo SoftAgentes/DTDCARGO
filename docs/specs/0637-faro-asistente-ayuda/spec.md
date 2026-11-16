@@ -370,7 +370,7 @@ incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisi
 | AC-6 | Las tres situaciones de §6.3 crean una alerta; un «sin acceso» aislado no la crea | 3 |
 | AC-7 | Al superar el tope por hora, Faro responde con un aviso claro y guarda el intento | 3 |
 | AC-8 | Al alcanzar `FARO_TOPE_USD_MES`, Faro no llama al modelo, los reportes siguen funcionando y el administrador recibe un aviso (simulacro) | 3 |
-| AC-9 | Si el motor principal falla o excede el tiempo límite, responde el respaldo; si fallan los dos, Faro lo dice y guarda `error` | 3 |
+| AC-9 | Si el motor principal falla o excede el tiempo límite, responde el respaldo si hay uno configurado; si no hay respaldo, o si fallan los dos, Faro dice que no puede responder ahora, los accesos de reporte siguen funcionando y se guarda `error` | 3 |
 | AC-10 | Solo `cliente-directo.ts` importa el SDK del proveedor, y el id del modelo solo aparece en `config.ts` | 3 |
 | AC-11 | Ni la pregunta ni la respuesta aparecen en los logs del servidor | 3 |
 | AC-12 | El botón se arrastra, se pega al borde, recuerda su posición y respeta `prefers-reduced-motion`; en teléfono el panel ocupa la pantalla | 4 |
