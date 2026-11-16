@@ -19,7 +19,7 @@ confidencialidad: interno
 > pago», y un recordatorio periódico al equipo de lo que hay que tener pagado.
 >
 > **Estado: proposed.** Es un plan. No trae código, migraciones ni cambios de configuración. Sam
-> decide las D-1 a D-8 (§9) antes de que se implemente.
+> decide las D-1 a D-7 (§9) antes de que se implemente.
 
 **Etiquetas de evidencia:** **C** código leído en esta tarea · **D** documento del repo · **I**
 inferencia · **NV** no verificado, por confirmar con Sam. Base: `main` `4a3046745` (2026-11-16).
@@ -90,10 +90,8 @@ Hermes elige el proveedor. El ERP **no ve** el error del proveedor: hoy recibe
 - `/studio/debug` ya tiene `getEnvStatus()` (variable presente o no, **sin valores**) y
   `integration-health.ts` (sondeo sin gasto de Anthropic y OpenRouter, con
   `METERED_INTEGRATIONS`). Se reutilizan; no se duplican.
-- El encargo cita «un aviso de créditos en status» de la SDD-0603. **No se encontró**: la spec de la
-  0603 y el código del Studio no tienen ningún aviso de créditos ni saldo (búsqueda de «crédito»,
-  «saldo», «credit», «balance», «insufficient» en `app/`, `lib/`, `components/` y
-  `docs/specs/0603-*`). Si Sam se refiere a otra pantalla, se ajusta esta sección (D-8).
+- El «aviso de créditos en status» de la SDD-0603 (#589, `bd873493e`) trata de **créditos de clientes
+  sin liberar en facturación**, no de créditos de IA. No tiene relación con esta spec.
 - Cada motor nuevo ya anota proveedor, modelo, tokens, costo y resultado por llamada
   (`chatwoot_bot_llamadas`, tablas de la Oficina, `asistente_mensajes` de Faro). Esta spec agrega
   **una clasificación común del error**, no un registro paralelo.
@@ -253,8 +251,6 @@ proveedor y costo por llamada.
   qué suscripciones de fuera del ERP quieres ver en la lista (herramientas de programación, etc.).
 - **D-7 · Respuesta ante falta de pago.** Solo avisar (propuesta), o además pausar la función hasta
   que alguien marque «recargado».
-- **D-8 · Aviso de créditos de la SDD-0603.** No se encontró en el repo. ¿A qué pantalla te
-  referías?
 
 ## 10. Fuera de alcance
 

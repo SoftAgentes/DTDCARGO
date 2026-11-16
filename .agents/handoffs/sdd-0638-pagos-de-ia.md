@@ -11,7 +11,7 @@
 - Inventario verificado en el repo (spec §2): diez puntos en el ERP (A1 a A10), tres que pasan por la Oficina
   (H1 a H3) y dos planeados (P1 Faro, P2 `dtd-bot`). Solo nombres de variables.
 - Mapa de dependencias por proveedor (§3), pantalla (§4), clasificador de errores de cobro (§5), recordatorio
-  (§6), fases (§7), pruebas (§8), decisiones D-1 a D-8 (§9).
+  (§6), fases (§7), pruebas (§8), decisiones D-1 a D-7 (§9).
 
 ## VALIDACIÓN
 
@@ -23,13 +23,13 @@
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam decida D-1 a D-8 y apruebe la spec. El DG la fusiona después.
+- Que Sam decida D-1 a D-7 y apruebe la spec. El DG la fusiona después.
 - Confirmar con Sam lo marcado **NV**: proveedores de Hermes en el VPS, tipo de cuenta de Anthropic,
   plan de Cloudflare, suscripciones fuera del ERP.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- El «aviso de créditos en status» de la SDD-0603 que citaba el encargo no existe en el repo (D-8).
+- El «aviso de créditos» de la SDD-0603 (#589) es de créditos de clientes en facturación, no de IA (aclarado por el DG; la D-8 se retiró).
 - `integration-health.ts` muestra un 402 como «HTTP 402» y un 401 siempre como «API key inválida». Se
   corrige en la fase 1 de esta spec, no aparte.
 - No hay una sección «IA y configuraciones» en el Studio. La spec propone Administración › PRO.
