@@ -18,8 +18,8 @@ confidencialidad: interno
 > kg, CBM y notas), marca cada línea como «bien» o «corregir», contesta las preguntas abiertas y lo
 > aprueba con su usuario. La aprobación queda auditada y la carga en producción la exige.
 
-**Estado:** `proposed`. Etapa 1: **solo especificación y maqueta.** No hay código de producto, migraciones
-ni cambios en producción. Nada se programa hasta que Sam apruebe esta spec y sus decisiones (§12).
+**Estado:** `proposed`. Decisiones de Sam resueltas el 2026-11-16 (§12.1). Etapa 1: **solo especificación y maqueta.** No hay código de producto, migraciones
+ni cambios en producción. La implementación es otra tarea, que ordena el DG.
 
 **Maqueta navegable** (archivo autocontenido, con datos inventados): `maqueta/revisar-lote.html`.
 
@@ -364,3 +364,23 @@ desde el primer contenedor que llegue después de la fase 3.
    «bien» con un comentario.
 9. **¿Dónde vive la pantalla?** **Recomiendo** dentro de Naviera & Consolidación (`/studio/naviera/lotes/...`),
    sin módulo nuevo en el menú, con el enlace directo que el DG manda por lote.
+
+### 12.1 Resolución (2026-11-16)
+
+Sam aprobó las nueve decisiones tal como se recomendaron. Su respuesta literal, el 2026-11-16, se la dio al
+Subdirector Portal del cliente en esa sesión, y el Subdirector la transmitió a este Worker: «Sí, las 9».
+
+| # | Decisión | Resolución |
+|---|---|---|
+| 1 | Origen de los datos | **B:** `revision.json` que emite el generador y se sube al Studio, atado a la huella del lote. |
+| 2 | Quién aprueba | `operations` y `admin`, más el acceso por persona «aprobar lote» (SDD-0622). `accounting` revisa y comenta, pero no aprueba por defecto. |
+| 3 | Montos en la pantalla | **No.** Solo carga física: cajas, kg, CBM y marcas. |
+| 4 | Quien sube, ¿aprueba? | **No** (cuatro ojos). La base lo comprueba. |
+| 5 | ¿La aprobación reemplaza el OK nominal de Sam? | **No:** se suman. Se revisa después de tres contenedores sin incidentes. |
+| 6 | ¿Exigencia en prueba? | **No:** opcional en prueba, obligatoria en producción. |
+| 7 | Retención | **30 días** después de `cargado`; luego se purgan etiquetas, descripciones, comentarios y respuestas. |
+| 8 | ¿«Corregir» bloquea? | **Sí:** el lote se devuelve y se regenera. |
+| 9 | Dónde vive | Dentro de Naviera & Consolidación (`/studio/naviera/lotes/...`), sin módulo nuevo en el menú y con enlace directo. |
+
+La aprobación de las decisiones no arranca la implementación. La fase 1 es otra tarea, la ordena el DG y sigue
+esperando a que se fusione la #559.
