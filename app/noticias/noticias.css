@@ -215,6 +215,8 @@
 .actual-feature-card:hover .actual-feature-image img { transform: scale(1.02); }
 
 .actual-feature-copy { padding: var(--s-6); }
+/* Sin foto (SDD-0611 §11.5): la tarjeta se sostiene con su texto y un filete de marca, sin hueco ni relleno. */
+.actual-feature-card.is-sin-foto { border-top: var(--s-1) solid var(--wine-text); }
 .actual-kind,
 .actual-latest-row em,
 .actual-archive-copy > em {
@@ -310,6 +312,7 @@
 .actual-archive-row:last-child { border-bottom: 0; }
 .actual-archive-row:hover { background: var(--bg-elevated); }
 .actual-archive-row > img { width: 160px; height: 104px; border-radius: var(--r-md); }
+.actual-archive-row.is-sin-foto { grid-template-columns: minmax(0, 1fr); }
 .actual-archive-copy { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 .actual-archive-copy > strong { margin-top: var(--s-1); font: 800 17px/1.3 var(--f-brand); text-wrap: pretty; }
 .actual-archive-copy > small { margin-top: var(--s-1); color: var(--ink-soft); font: 500 13px/1.45 var(--f-brand); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -388,6 +391,7 @@
   .actual-latest-row { min-height: 112px; padding: var(--s-4); }
   .actual-archive-row { min-height: 0; grid-template-columns: 96px minmax(0, 1fr); gap: var(--s-3); }
   .actual-archive-row > img { width: 96px; height: 96px; }
+  .actual-archive-row.is-sin-foto { grid-template-columns: minmax(0, 1fr); }
   .actual-archive-copy > small { display: none; }
   .actual-archive-copy > strong { font-size: 15px; }
   .actual-newsletter { padding: var(--s-5); }
@@ -408,6 +412,10 @@
 .actual-article-meta { margin-top: var(--s-5); display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); color: var(--ink-side-soft); font: 500 12px/1.4 var(--f-brand); }
 .actual-cover { position: relative; aspect-ratio: 16 / 8; margin-top: calc(-1 * var(--s-6)); overflow: hidden; border: var(--s-1) solid var(--bg-base); border-radius: var(--r-xl); background: var(--bg-elevated); box-shadow: var(--shadow-lg); }
 .actual-cover img { object-fit: cover; }
+.actual-cover-figure { margin-block: 0; margin-top: calc(-1 * var(--s-6)); }
+.actual-cover-figure > .actual-cover { margin-top: 0; }
+.actual-cover-credit { margin-top: var(--s-2); color: var(--ink-soft); font: 500 12px/1.4 var(--f-brand); }
+.actual-cover-credit a { color: var(--wine-text); }
 .actual-article-grid { padding-block: var(--s-10) var(--s-16); display: grid; grid-template-columns: 220px minmax(0, 65ch); justify-content: center; gap: var(--s-10); align-items: start; }
 .actual-article-body { min-width: 0; font-size: 17px; }
 .actual-article-body :is(h2, h3) { scroll-margin-top: 104px; }
@@ -456,7 +464,8 @@
   .actual-article-kickers { margin-top: var(--s-6); }
   .actual-article-header h1 { font-size: 36px; }
   .actual-article-header > div > p { font-size: 16px; }
-  .actual-cover { margin-top: calc(-1 * var(--s-4)); aspect-ratio: 16 / 9; }
+  .actual-cover-figure { margin-top: calc(-1 * var(--s-4)); }
+  .actual-cover { aspect-ratio: 16 / 9; }
   .actual-article-grid { padding-block: var(--s-8) var(--s-12); gap: 0; }
   .actual-answer { padding: var(--s-5); }
   .actual-answer > p:last-child { font-size: 16px; }

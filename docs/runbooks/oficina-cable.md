@@ -1,7 +1,7 @@
 # Runbook · El cable ERP → oficina (SDD-0626, Pasos 0 y 2)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
-**Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Es provisional hasta que termine la actualización de Hermes (ver §5).
+**Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
 **Sin secretos:** este archivo solo nombra servicios, usuarios, puertos y rutas. La llave vive en los servidores y nunca va al repo, a un log, a un PR ni a un chat.
 
 ## 1 · Qué es
@@ -39,9 +39,11 @@ contenedor web del ERP (dtd-cargo-web-1, usuario node)
 | Pieza | Detalle |
 |---|---|
 | Usuario `tunel-dtd` | una sola llave en `authorized_keys`, con `restrict,port-forwarding,permitopen="127.0.0.1:8642",from="IP pública del VPS DTD (ver el servidor)"`. No tiene shell útil ni otro destino |
-| Perfil Hermes `soporte-chatwoot` | bajo el usuario `agentes-run` (**provisional**; el destino es `agentes-soporte`, ya creado y vacío). API server solo en `127.0.0.1:8642`, con llave en el `.env` del perfil (0600) y `platform_toolsets.api_server: []` |
-| Servicio `dtd-hermes-soporte-chatwoot` | `hermes gateway run --force` del perfil. El `--force` hace falta porque Hermes no abre un segundo gateway del mismo usuario sin él |
-| Reversión | `/srv/oficina/backups/cable-paso0-20261114/REVERTIR.txt` |
+| Usuario `agentes-soporte` | nologin, sin sudo y sin el grupo `oficina`. Solo corre este agente |
+| Perfil Hermes `soporte-chatwoot` | `/home/agentes-soporte/.hermes/profiles/soporte-chatwoot` (0700), creado con `hermes profile create soporte-chatwoot --no-skills --no-alias` el 2026-11-16. Solo se copiaron `config.yaml` y `.env` (0600) del perfil viejo, sin sesiones ni memorias. API server solo en `127.0.0.1:8642`, la misma llave de siempre en el `.env` del perfil y `platform_toolsets.api_server: []` |
+| Servicio `hermes-gateway-soporte-chatwoot` | `/etc/systemd/system/hermes-gateway-soporte-chatwoot.service`: `User=agentes-soporte` y `hermes gateway run` **sin `--force`**. El nombre importa: Hermes niega un gateway propio a un perfil de `profiles/` (sale con 78/CONFIG) salvo que exista la unidad con el nombre que él espera (`hermes-gateway-<perfil>`). Endurecimiento: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`, escritura solo en el perfil y en `~/.hermes/installs` (allí Hermes deja sus cerrojos y sin eso no arranca), e `InaccessiblePaths` para `/home/agentes-run`, `/srv/oficina/usuarios`, `/srv/oficina/trabajo` y los demás homes |
+| Servicio viejo `dtd-hermes-soporte-chatwoot` | parado y `disabled` desde el 2026-11-16. Era `gateway run --force` como `agentes-run`. Su perfil está archivado (no borrado) en el respaldo de la mudanza |
+| Reversión | `/srv/oficina/backups/cable-paso0-20261114/REVERTIR.txt` (montaje) y `/srv/oficina/backups/soporte-mudanza-20261116T034030Z/REVERTIR.txt` (mudanza a `agentes-soporte`) |
 
 ## 3 · Secretos del ERP
 
@@ -90,9 +92,16 @@ caso hay que actualizar la regla, el `-L` del servicio y `OFICINA_RUNTIME_URL`.
   oficina, entrando por la vía de Sam (NordVPN): `fail2ban-client set sshd unbanip IP pública del VPS DTD (ver el servidor)` (confirma el
   nombre de la jaula con `fail2ban-client status`). Si vas a tocar la llave, primero
   `systemctl stop oficina-cable-tunel` en DTD.
-- **El gateway de `soporte-chatwoot` arranca con `--force` y comparte el usuario `agentes-run`.** Es provisional
-  hasta completar la actualización de Hermes. Después se muda al usuario `agentes-soporte`. Mientras tanto, otro
-  gateway de `agentes-run` no debe reclamar el puerto 8642.
+- **El gateway de `soporte-chatwoot` corre como `agentes-soporte`, sin `--force`** (mudanza del 2026-11-16). Solo un
+  proceso debe escuchar en el 8642: compruébalo con `ss -ltnp | grep 8642`. No vuelvas a arrancar el servicio
+  viejo `dtd-hermes-soporte-chatwoot` mientras el nuevo esté activo, porque los dos piden el mismo puerto.
+- **El cron de la raíz de `agentes-soporte` queda en solo lectura** por `ProtectHome=read-only`. El journal avisa
+  de que `~/.hermes/cron` no admite escritura. Es lo esperado: este agente no tiene tareas programadas.
+- **Después de cada `hermes update` como root, devuelve `install-stamp.json` a 604.** El update de root reescribe
+  `/opt/hermes/hermes-agent/install-stamp.json` (y `.hermes-bootstrap-complete`) en modo 600. Entonces todos los
+  usuarios no-root, `agentes-soporte` incluido, fallan con «pm-runtime: invalid package install stamp» y el cable
+  se cae. Arreglo: `chmod 604` en los dos archivos y reiniciar `hermes-gateway-soporte-chatwoot`; luego, la prueba
+  del §6.
 - La oficina tiene `ufw limit` en SSH: no abras ráfagas de conexiones desde DTD.
 
 ## 6 · Prueba del Paso 0
@@ -120,6 +129,11 @@ no se reinició: su `StartedAt` siguió en 15:51:30 UTC.
 Segunda corrida, ya desde `/srv/ops/cable-oficina/`, el 2026-11-15 a las 03:37 UTC, igual que arriba: 3 de 3
 con 200 (103, 9 y 10 ms), sin llave 401 (7 ms). `RESULTADO: PASA (4 de 4)`, exit 0. El `web` siguió sin
 reiniciarse. Está anotada como paso 8 en `/root/cable-paso0-20261114/REVERTIR.txt`.
+
+Tras la mudanza a `agentes-soporte`, el 2026-11-16: antes, a las 03:40 UTC, PASA (4 de 4). Después, a las 03:48,
+PASA (4 de 4: 110, 9 y 6 ms; sin llave 401). Tras un `systemctl restart hermes-gateway-soporte-chatwoot`, el
+servicio volvió solo en 9 s y la prueba de las 03:49 dio PASA (4 de 4). `GET /v1/toolsets`: 26 toolsets, todos
+apagados.
 
 ## 7 · Revertir
 

@@ -7,5 +7,112 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0546-purga-actor-id-noticias",
+      "migration": "0546_noticias_purga_actor_id",
+      "primarySymbol": "news_purgar_actor_id",
+      "symbols": [
+        {
+          "name": "news_purgar_actor_id",
+          "kind": "function",
+          "callSites": [
+            "app/api/cron/noticias-purga-actor/route.ts:41"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/api/cron/noticias-purga-actor/route.ts:43",
+          "contains": "faltaLaMigracion(error)",
+          "degradation": "Sin la 0546 PostgREST responde PGRST202 (o 42883): la purga no hace nada, devuelve «sin_migracion» y lo anota en el log. Además nace apagada (NOTICIAS_PURGA_ACTOR_ACTIVO)."
+        }
+      ]
+    },
+    {
+      "id": "0547-portada-lectura-aparte",
+      "migration": "0547_noticias_portada_licencia",
+      "primarySymbol": "news_posts.cover_image_url",
+      "symbols": [
+        {
+          "name": "news_posts.cover_alt",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:233",
+            "lib/news/portada.ts:260",
+            "lib/news/types.ts:27",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_credit",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:235",
+            "lib/news/portada.ts:261",
+            "lib/news/types.ts:30",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_image_url",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:232",
+            "lib/news/portada.ts:255",
+            "lib/news/types.ts:26",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_license",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:236",
+            "lib/news/portada.ts:256",
+            "lib/news/types.ts:31",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_origin",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:234",
+            "lib/news/types.ts:29",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_source_url",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:237",
+            "lib/news/portada.ts:259",
+            "lib/news/types.ts:32",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/public/news-queries.ts:51",
+          "contains": "if (error || !data) return posts;",
+          "degradation": "Sin la 0547 la lectura de portada falla (42703 / PGRST204): las noticias salen igual por COLUMNAS_PUBLICAS, sin portada propia, y editorialImageOf usa el respaldo propio de su categoría. La lectura de noticias no pide ninguna columna de la 0547."
+        }
+      ]
+    }
+  ]
 }

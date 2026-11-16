@@ -14,11 +14,50 @@ export type { NewsPostRow } from "@/lib/news/types";
  * `source`, que ninguna página usa. Una columna nueva que lea el sitio público
  * exige migración con su GRANT además de sumarse al literal. Catálogo de producción leído por el DG el 2026-11-09 (estructura, sin filas):
  * 24 columnas. `content_kind`, `cover_image_url`, `cover_alt`, `featured`,
- * `reviewer_name` y `reviewer_role` NO existen: pedirlas vaciaría /noticias.
+ * `reviewer_name` y `reviewer_role` NO existen: pedirlas aquí vaciaría /noticias.
+ * La portada (0547) se lee aparte, en `conPortadas`, justo por eso.
  */
 // Un literal y no un join: supabase-js lee el texto del select para tipar la fila.
 const COLUMNAS_PUBLICAS =
   "id,slug,tipo,categoria,title,excerpt,body_markdown,author_name,author_role,focus_keyword,secondary_keywords,meta_description,pain_points,date,read_time_min,published,created_at,updated_at";
+
+/**
+ * Portada de cada noticia (SDD-0611 §11.5, migración 0547): crédito, licencia y
+ * enlace de origen. Va en una lectura aparte y no en `COLUMNAS_PUBLICAS`: si la
+ * 0547 aún no está aplicada, esa lectura falla y las noticias salen igual, con
+ * el respaldo propio de su categoría (`editorialImageOf`). `cover_license_verified_at`
+ * no se pide: es interna, la base la exige antes de guardar la portada.
+ */
+const COLUMNAS_PORTADA =
+  "slug,cover_image_url,cover_alt,cover_origin,cover_credit,cover_license,cover_source_url";
+
+type FilaPortada = Pick<
+  NewsPostRow,
+  "slug" | "cover_image_url" | "cover_alt" | "cover_origin" | "cover_credit" | "cover_license" | "cover_source_url"
+>;
+
+async function conPortadas(posts: NewsPostRow[]): Promise<NewsPostRow[]> {
+  if (posts.length === 0) return posts;
+  try {
+    const { data, error } = await getAnonClient()
+      .from("news_posts")
+      .select(COLUMNAS_PORTADA)
+      .eq("published", true)
+      .in(
+        "slug",
+        posts.map((p) => p.slug),
+      );
+    // Sin la 0547 (columna ausente 42703 / PGRST204, o sin permiso 42501) no hay portada propia: respaldo.
+    if (error || !data) return posts;
+    const porSlug = new Map((data as unknown as FilaPortada[]).map((f) => [f.slug, f]));
+    return posts.map((p) => {
+      const f = porSlug.get(p.slug);
+      return f ? { ...p, ...f } : p;
+    });
+  } catch {
+    return posts;
+  }
+}
 
 export async function listPublishedPosts(limit?: number): Promise<NewsPostRow[]> {
   try {
@@ -34,7 +73,7 @@ export async function listPublishedPosts(limit?: number): Promise<NewsPostRow[]>
 
     const { data, error } = await query;
     if (error) throw error;
-    return (data ?? []) as NewsPostRow[];
+    return await conPortadas((data ?? []) as NewsPostRow[]);
   } catch (error) {
     console.error("listPublishedPosts error:", error);
     return [];
@@ -50,7 +89,8 @@ export async function getPostBySlug(slug: string): Promise<NewsPostRow | null> {
       .eq("published", true)
       .maybeSingle<NewsPostRow>();
     if (error) throw error;
-    return data ?? null;
+    if (!data) return null;
+    return (await conPortadas([data]))[0] ?? data;
   } catch (error) {
     console.error("getPostBySlug error:", error);
     return null;
@@ -75,7 +115,7 @@ export async function getRelatedPosts(
     if (sameError) throw sameError;
 
     const collected = (same ?? []) as NewsPostRow[];
-    if (collected.length >= limit) return collected.slice(0, limit);
+    if (collected.length >= limit) return await conPortadas(collected.slice(0, limit));
 
     const { data: others, error: otherError } = await supabase
       .from("news_posts")
@@ -86,7 +126,7 @@ export async function getRelatedPosts(
       .order("date", { ascending: false })
       .limit(limit - collected.length);
     if (otherError) throw otherError;
-    return [...collected, ...((others ?? []) as NewsPostRow[])];
+    return await conPortadas([...collected, ...((others ?? []) as NewsPostRow[])]);
   } catch (error) {
     console.error("getRelatedPosts error:", error);
     return [];
