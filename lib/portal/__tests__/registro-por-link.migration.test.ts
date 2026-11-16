@@ -127,9 +127,20 @@ rollback;`);
     await expect(correr(m)).rejects.toThrow(/duplicada de sí misma/);
   }, SLOW);
 
-  it("mutante: completar copia la cédula de otra ficha", async () => {
-    const m = mutar("v_skip_rif := (v_dup_by = 'documento');", "v_skip_rif := false;");
-    await expect(correr(m)).rejects.toThrow(/cédula|unique|duplicate|copió/i);
+  // «Completar copia la cédula de otra ficha» (v_skip_rif := false) es un mutante
+  // EQUIVALENTE: el índice único la rechaza y el respaldo deja el mismo
+  // resultado. Lo que sí se puede romper es el respaldo.
+  it("mutante: el respaldo del índice no avisa que se saltó la cédula", async () => {
+    const m = mutar("    v_skip_rif := true;\n", "    v_skip_rif := false;\n");
+    await expect(correr(m)).rejects.toThrow(/no se saltó la cédula que el índice rechaza/);
+  }, SLOW);
+
+  it("mutante: sin duplicado, la marca de cédula saltada queda en NULL", async () => {
+    const m = mutar(
+      "v_skip_rif := coalesce(v_dup_by = 'documento', false);",
+      "v_skip_rif := (v_dup_by = 'documento');",
+    );
+    await expect(correr(m)).rejects.toThrow(/rif_skipped/);
   }, SLOW);
 
   it("mutante: el link se puede usar dos veces", async () => {

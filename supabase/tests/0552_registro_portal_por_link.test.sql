@@ -150,6 +150,11 @@ $grants$;
 
 \ir ../migrations/0552_registro_portal_por_link.sql
 
+-- Como en Supabase: service_role tiene grants sobre las tablas y salta la RLS.
+-- Sólo a service_role: lo que se mide de anon y authenticated queda igual.
+alter role service_role bypassrls;
+grant select, insert, update, delete on all tables in schema public to service_role;
+
 -- ── Datos ficticios ──────────────────────────────────────────────────────────
 -- t1: el tenant de DTD. t2: otro tenant. a1 admin, v1 un rol sin permiso, x1
 -- admin de t2. Fichas: c1 (legado DTD-8001, código viejo VJ-77 retirado), c2

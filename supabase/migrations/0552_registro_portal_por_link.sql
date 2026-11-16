@@ -407,7 +407,7 @@ begin
 
   -- La cédula de otra ficha no se copia: el índice único la rechazaría y, sobre
   -- todo, decidir de quién es le toca al equipo (duplicados), no a este POST.
-  v_skip_rif := (v_dup_by = 'documento');
+  v_skip_rif := coalesce(v_dup_by = 'documento', false);
 
   begin
     update public.clients x

@@ -12,8 +12,8 @@
 -- NO DESHACE DATOS: las fichas que el cliente completó siguen completas, los accesos al portal creados
 -- siguen activos y un código recuperado sigue siendo el actual (su 8xxx queda en el historial).
 -- Los cuerpos de abajo son copia exacta de la 0371 y la 0342 (md5 ed233ed2… y 61d5707d…).
-set local lock_timeout = 5s;
-set local statement_timeout = 30s;
+set local lock_timeout = '5s';
+set local statement_timeout = '30s';
 
 drop trigger if exists clients_guard_markbox_retirado_t on public.clients;
 drop function if exists public.clients_guard_markbox_retirado();
