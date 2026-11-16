@@ -15,7 +15,7 @@
 --     membership.role_change de audit_d1_execute (0289);
 --   · un doble de audit_d1_execute con la FIRMA real, DEFINER y concedido a
 --     authenticated como en la 0289;
--- y aplica la 0545 REAL dos veces, y después su desarme.
+-- y aplica la 0545 REAL dos veces. El desarme lo agrega el runner PGlite (ver (j)).
 --
 -- Lo que defiende:
 --   (0) control del arnés, sin la 0545: el fixture invita con rol admin por
@@ -40,7 +40,8 @@
 --   (h) lo que no crea ni reactiva admins no se frena (revocar, suspender, la
 --       oficina de un admin);
 --   (i) es idempotente;
---   (j) el desarme deja todo como antes.
+--   (j) el desarme deja todo como antes (solo en el runner PGlite: C4 no copia
+--       supabase/desarmes/).
 --
 -- CONTROL ROJO: sin la 0545 cae «(a)».
 -- Termina siempre en ROLLBACK. Solo ids y correos sintéticos.
@@ -969,16 +970,10 @@ select pg_temp.assert_true(
     and pg_temp.d1_invita('a2', 'e4', 'admin') = 'ok',
   '(i) la segunda aplicación deja el mismo resultado');
 
--- (j) El desarme deja todo como antes de la 0545.
-\ir ../desarmes/0545_desarme.sql
-select pg_temp.assert_true(
-    not exists (select 1 from pg_trigger where tgname in
-      ('user_invitations_exige_superadmin', 'user_tenants_exige_superadmin', 'user_tenants_audit_alta'))
-    and to_regprocedure('public.user_tenants_exige_superadmin()') is null
-    and has_function_privilege('authenticated', 'public.studio_invite_user(text,text,text)', 'EXECUTE'),
-  '(j) el desarme quita los disparadores y devuelve el EXECUTE de studio_invite_user');
-select pg_temp.assert_true(pg_temp.d1_invita('a1', 'n9', 'admin') = 'ok',
-  '(j) después del desarme, el admin vuelve a invitar admins');
+-- (j) La vuelta del desarme no corre aquí: el desarme vive fuera de supabase/migrations/ y el
+--     control C4 del CI (Postgres 17) no copia supabase/desarmes/. La vuelta completa la hace el
+--     runner PGlite (lib/studio/__tests__/solo-superadmin-crea-admin.migration.test.ts), que mete
+--     el desarme real y las dos aserciones de (j) en este punto, antes del conteo final.
 
 select 'TEST 0545: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;
 

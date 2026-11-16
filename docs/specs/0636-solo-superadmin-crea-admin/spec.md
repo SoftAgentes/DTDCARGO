@@ -105,8 +105,10 @@ Las dos funciones guardianas niegan con
 
 ## 3. Contrato
 
-- `supabase/tests/0545_solo_superadmin_crea_admin.test.sql`, sobre PGlite, con la
-  0545 real dos veces y su desarme. Copia literal de `studio_invite_user`
+- `supabase/tests/0545_solo_superadmin_crea_admin.test.sql`, en Postgres 17 (CI)
+  y en PGlite, con la 0545 real dos veces. La vuelta del desarme (bloque «(j)»)
+  la agrega solo el runner PGlite: el control C4 del CI no copia
+  `supabase/desarmes/`. Copia literal de `studio_invite_user`
   (0203), `studio_accept_invitation` (0352), `studio_set_user_disabled` y
   `studio_change_user_role` (0355), `audit_user_tenants_changes` (0202), la
   guarda `audit_d1_admin_tenant` y las ramas `membership.invite` y

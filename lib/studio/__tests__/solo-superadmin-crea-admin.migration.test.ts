@@ -45,13 +45,33 @@ function inline(file: string, replace: Record<string, string> = {}): string {
   return out.join("\n");
 }
 
+/**
+ * (j) La vuelta del desarme, solo aquí: el desarme vive fuera de supabase/migrations/ y el control C4
+ * del CI (Postgres 17) no copia supabase/desarmes/, así que el `.test.sql` no la trae. Se mete el
+ * desarme REAL y sus dos aserciones justo antes del conteo final del contrato.
+ */
+const DESARME_0545 = read(resolve(ROOT, "supabase/desarmes/0545_desarme.sql"));
+const CONTEO_FINAL = "select 'TEST 0545: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones OK' as resultado;";
+const BLOQUE_J = `-- (j) El desarme deja todo como antes de la 0545.
+${DESARME_0545}
+select pg_temp.assert_true(
+    not exists (select 1 from pg_trigger where tgname in
+      ('user_invitations_exige_superadmin', 'user_tenants_exige_superadmin', 'user_tenants_audit_alta'))
+    and to_regprocedure('public.user_tenants_exige_superadmin()') is null
+    and has_function_privilege('authenticated', 'public.studio_invite_user(text,text,text)', 'EXECUTE'),
+  '(j) el desarme quita los disparadores y devuelve el EXECUTE de studio_invite_user');
+select pg_temp.assert_true(pg_temp.d1_invita('a1', 'n9', 'admin') = 'ok',
+  '(j) después del desarme, el admin vuelve a invitar admins');
+`;
+const conVueltaDelDesarme = (sql: string) => once(sql, CONTEO_FINAL, BLOQUE_J + "\n" + CONTEO_FINAL);
+
 async function contract(
   replace: Record<string, string> = {},
   fixture: (sql: string) => string = (sql) => sql,
 ) {
   const db = await pgliteLimpio();
   try {
-    const results = await db.exec(fixture(inline(C0545, replace)));
+    const results = await db.exec(fixture(conVueltaDelDesarme(inline(C0545, replace))));
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
     const green = rows.map((row) => String(row.resultado ?? "")).find((t) => t.startsWith("TEST 0545"));
     return { error: null as string | null, green };
@@ -146,6 +166,12 @@ describe("SDD-0636 · las copias del contrato siguen siendo la última definici�
     // Uno por disparador guardián, los dos con 42501.
     expect(FILE_0545.match(new RegExp(`raise exception '${MSG}'\\s+using errcode = '42501';`, "g"))).toHaveLength(2);
     expect(ACTION).toContain(`"${MSG}"`);
+  });
+
+  it("el .test.sql no lee supabase/desarmes/ (C4 no la copia) y el runner sí mete la vuelta (j)", () => {
+    expect(CONTRATO).not.toMatch(/^\\ir\s+\S*desarmes\//m);
+    expect(CONTRATO.split(CONTEO_FINAL)).toHaveLength(2);
+    expect(BLOQUE_J).toContain("drop trigger if exists user_tenants_exige_superadmin on public.user_tenants;");
   });
 
   it("la app invita solo por audit_d1_execute", () => {

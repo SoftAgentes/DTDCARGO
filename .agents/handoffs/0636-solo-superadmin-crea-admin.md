@@ -16,7 +16,7 @@
    - La sesión se detecta por los claims del JWT, como en la 0543.
    - El preflight guarda el ACL de `audit_d1_execute`, `is_platform_admin()` y `studio_accept_invitation`, y el postflight lo exige igual.
    - La espera está declarada en `migrations-baseline.json`. El desarme está en `supabase/desarmes/`.
-2. **El contrato** `supabase/tests/0545_….test.sql` (49 aserciones, con la 0545 real dos veces y su desarme) y su envoltorio PGlite `lib/studio/__tests__/solo-superadmin-crea-admin.migration.test.ts`:
+2. **El contrato** `supabase/tests/0545_….test.sql` (47 aserciones en Postgres 17 con la 0545 real dos veces; 49 en PGlite, donde el runner agrega la vuelta del desarme «(j)», porque el control C4 del CI no copia `supabase/desarmes/`) y su envoltorio PGlite `lib/studio/__tests__/solo-superadmin-crea-admin.migration.test.ts`:
    - 8 anti-drift: seis copias literales que siguen siendo la última definición, las ramas D1, y que la app invita solo por `audit_d1_execute`. Además, el mensaje del raise.
    - El control rojo, 21 casos de mutante y 3 del preflight.
 3. **La pantalla:**
