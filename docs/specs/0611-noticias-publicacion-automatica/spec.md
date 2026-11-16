@@ -803,6 +803,8 @@ host permitido; (d) diseño de la portada sin imagen en tarjeta, página y vista
 cambiar la foto de las 5 noticias ya publicadas es un cambio de contenido en producción: llega con
 la publicación de la web y lleva el OK de Sam.
 
+**Límite de la prueba:** la prueba de los respaldos solo mira el nombre de archivo y que exista; que la foto no muestre la marca anterior (rótulos, gorras, camisas, QR) **se revisa a mano, a la vista**, cada vez que se agregue o cambie una foto.
+
 **Revisión de las fotos propias (2026-11-15, a la vista).** Con marca anterior, **excluidas**:
 `precinto-doortudoor-…jpg`, `carga-contenedor-precinto-doortudoor-…jpg`,
 `puerto-venezuela-aduana-entrega-final-…jpg` (gorra y camisa con «Door»), `dtd-cargo-recepcion-contenedor.webp`
