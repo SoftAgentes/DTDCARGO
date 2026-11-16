@@ -69,7 +69,7 @@ describe("PDF confirmado SDD-0473 B",()=>{
     for(const label of input.labels)expect(all.split(label.boxCode!)).toHaveLength(2);
     const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){
       await mkdir(output,{recursive:true});await writeFile(path.join(output,"labels-confirmed-group-logistics.pdf"),result.bytes);
-      await writeFile(path.join(output,"labels-confirmed-group-logistics-manifest.json"),JSON.stringify({provenance:"synthetic-render-regression-not-real-GLM-extraction",pageCount:pages.length,pageTexts:texts,boxGroups:input.boxGroups,physicalCodes:input.labels.map(label=>label.boxCode),visualClippingVerified:false},null,2));
+      await writeFile(path.join(output,"labels-confirmed-group-logistics-manifest.json"),JSON.stringify({provenance:"synthetic-render-regression-not-real-extraction",pageCount:pages.length,pageTexts:texts,boxGroups:input.boxGroups,physicalCodes:input.labels.map(label=>label.boxCode),visualClippingVerified:false},null,2));
     }
   });
   it("incluye neto opcional del grupo y total sin cambiar códigos ni duplicar cajas mixtas",()=>{

@@ -362,6 +362,13 @@ Allowlist exacta de P1:
 - `lib/font-files/pdf/jetbrains-mono-400.ttf`
 - `lib/font-files/pdf/nunito-sans-400.ttf`
 - `lib/font-files/pdf/sora-600.ttf`
+- `next.config.ts`: solo la clave `outputFileTracingIncludes["/api/document-import"]`
+
+**Fuentes en producción.** `pdf.tsx` lee las TTF con `fs` desde `process.cwd()`, así que el tracer
+no las ve solo. `next.config.ts` las declara en `outputFileTracingIncludes` para `/api/document-import`.
+
+**Sin puertas de proveedor.** `extractDocument` ya no acepta las dependencias `pdf`/`nativeOnly` del
+diseño GLM. Toda lectura asistida pasa por `anthropic.ts`; un proveedor nuevo exige spec y la D-2.
 
 Sin migraciones: la tabla de workspaces es la 0457, que ya está en main. No se encienden banderas
 (`DOCUMENT_IMPORT_ENABLED` y `DOCUMENT_IMPORT_PORTAL_ENABLED` siguen como estén).
