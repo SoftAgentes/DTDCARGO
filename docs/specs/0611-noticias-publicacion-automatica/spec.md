@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-15
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -755,6 +755,38 @@ noticia salió con IA, sin el dato personal.
 5. El encendido (timer y retiro de CONGELADO) es lo último, con OK de Sam.
 
 La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada, no antes.
+
+#### 11.4.1.1 La purga, construida (migración 0546, 2026-11-16)
+
+**Construida, sin aplicar en ningún entorno.** Cumple los puntos 1, 3 y 4 de arriba; el 2 (aplicarla en prueba y
+producción, con OK nominal de Sam) y el 5 (encender) siguen abiertos.
+
+- `supabase/migrations/0546_noticias_purga_actor_id.sql`, declarada como espera en `supabase/migrations-baseline.json`:
+  - `news_purgar_actor_id()`: SECURITY DEFINER, `search_path` vacío, `lock_timeout`, solo `service_role`. Pone en NULL el
+    uuid de las cuatro columnas en filas de **más** de 12 meses (frontera estricta: `<`, una de exactamente 12 meses no
+    se toca todavía). Edad por tabla: `news_post_exits.created_at`, `news_publication_audit.evaluated_at`,
+    `news_autopublish_settings_log.changed_at`, `news_autopublish_settings.updated_at`. No borra filas ni toca otra columna.
+    Devuelve conteos por tabla. Idempotente.
+  - Marca de purga: `news_publication_audit.actor_purged_at` y `news_autopublish_settings_log.changed_by_purged_at`.
+    `news_audit_manual_con_persona` pasa a «manual con uuid **o** con marca»; un CHECK nuevo impide uuid y marca a la vez.
+    Una fila nueva sigue exigiendo persona (sin marca, se rechaza).
+  - `news_autopublish_settings_log.changed_by` deja de ser NOT NULL, con un CHECK equivalente (uuid o marca).
+  - Ninguna de las cuatro tablas tiene disparadores de solo agregar (la 0518 no los creó): no hay excepción que abrir.
+- `supabase/desarmes/0546_desarme.sql`: quita función, marcas y CHECK y restaura los de la 0518. **Para** si la purga ya
+  vació algún uuid: lo vaciado no vuelve.
+- Contrato `supabase/tests/0546_noticias_purga_actor_id.test.sql` (filas de 13, 12 y 11 meses en las cuatro tablas, resto
+  de la fila intacto, ninguna fila borrada, rechazos de CHECK, solo `service_role` ejecuta, idempotente) y
+  `lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts` (PGlite: control rojo, preflight, 12 mutantes, desarme
+  y su vuelta, gemela con las cuatro columnas de esta sección).
+- Ruta `/api/cron/noticias-purga-actor` (diaria, 04:45 UTC, en el crontab del servidor): exige `CRON_SECRET`, llama a la
+  función y nace **apagada** (`NOTICIAS_PURGA_ACTOR_ACTIVO`; sin la 0546 responde `sin_migracion`). Es privacidad: no
+  depende del interruptor `news_autopublish`. Runbook: [noticias-purga-actor.md](../../runbooks/noticias-purga-actor.md).
+
+**Impacto en privacidad (`revisar-datos-ve`).** Cumple la minimización y la temporalidad que faltaban: el uuid del
+personal deja de guardarse pasados 12 meses (excepción de §11.3.1 (b)). Se conserva qué pasó y cuándo, sin quién (IA-01:
+sigue constando que una noticia salió con IA). El borrado no se puede deshacer, a propósito. La respuesta de la ruta lleva
+solo conteos, nunca uuid. **La excepción de §11.3.1 (b) vence cuando la 0546 esté aplicada y el interruptor encendido**: hasta
+entonces rige.
 
 #### 11.4.2 Allowlist exacta de esta PR (N1)
 
