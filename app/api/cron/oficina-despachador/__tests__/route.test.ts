@@ -21,6 +21,7 @@ beforeEach(() => {
   m.rpc.mockReset();
   vi.stubEnv("CRON_SECRET", "cron-sintetico");
   vi.stubEnv("OFICINA_DESPACHADOR_ACTIVO", "1");
+  vi.stubEnv("OFICINA_VACIADO_ACTIVO", "1");
   vi.stubEnv("OFICINA_RUNTIME_URL", "http://runtime.prueba:18642");
   vi.stubEnv("OFICINA_RUNTIME_TOKEN", "llave");
   vi.stubEnv("OFICINA_CHATWOOT_TOKEN_LECTURA", "lectura");
@@ -48,6 +49,12 @@ describe("GET /api/cron/oficina-despachador", () => {
     vi.stubEnv("OFICINA_VACIADO_ACTIVO", "1");
     expect(await (await GET(req("Bearer cron-sintetico"))).json()).toEqual({ ok: true, estado: "apagado" });
     expect(m.rpc).not.toHaveBeenCalled();
+  });
+
+  it("encendido con el vaciado apagado: «sin_vaciado», sin tocar la base (D3: los borradores no se purgarían)", async () => {
+    vi.stubEnv("OFICINA_VACIADO_ACTIVO", "");
+    expect(await (await GET(req("Bearer cron-sintetico"))).json()).toEqual({ ok: true, estado: "sin_vaciado" });
+    expect(m.admins).toBe(0);
   });
 
   it("encendido sin el token de lectura de Chatwoot: «sin_config», sin tocar la base", async () => {

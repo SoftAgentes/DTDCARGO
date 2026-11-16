@@ -17,12 +17,15 @@
  *   `OFICINA_TOPE_TOKENS_CORRIDA` (24000). Pasos (20) y tiempo (200 s, bajo el máximo de 300 s de §3.4) son fijos.
  * - Tarifa para el costo (USD por millón de tokens): `OFICINA_PRECIO_ENTRADA_USD_MTOK` (1,00) y
  *   `OFICINA_PRECIO_SALIDA_USD_MTOK` (3,20). Es una estimación conservadora: la llave de GLM es de un plan de
- *   tarifa plana, así que el costo real no sale de la factura; el tope se mide con esta tarifa.
+ *   tarifa plana, así que el costo real no sale de la factura; el tope se mide con esta tarifa. 0, negativo o
+ *   inválido vale el valor por defecto (con 0 la auto-pausa no saltaría nunca).
+ * - `OFICINA_VACIADO_ACTIVO` (el del vaciado diario) es REQUISITO: sin él los borradores no se borran a los 90 días
+ *   (D3), así que el despachador no arranca (`sin_vaciado`).
  */
 import { chatwootOriginFromEnv } from "@/lib/runtime/chatwoot-origin";
 import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 
-import { configWebhookOficina, interruptorEncendido } from "./config";
+import { configWebhookOficina, interruptorEncendido, vaciadoActivo } from "./config";
 
 type Entorno = Readonly<Record<string, string | undefined>>;
 
@@ -40,6 +43,8 @@ export const TICK_MS = 10_000;
 
 export interface ConfigDespachador {
   activo: boolean;
+  /** `OFICINA_VACIADO_ACTIVO`: sin él no se borran los borradores a los 90 días (D3), así que el despachador no arranca. */
+  vaciadoActivo: boolean;
   agente: string;
   runtime: { url: string; token: string } | null;
   chatwoot: { url: string; token: string; cuenta: number; bandeja: number } | null;
@@ -57,6 +62,13 @@ function numero(valor: string | undefined, porDefecto: number, min: number, max:
   const n = Number((valor ?? "").trim().replace(",", "."));
   if (!(valor ?? "").trim() || !Number.isFinite(n)) return porDefecto;
   return Math.min(Math.max(n, min), max);
+}
+
+/** Un número > 0 (con tope). Vacío, inválido, 0 o negativo → el valor por defecto: con un precio 0 la auto-pausa no saltaría nunca. */
+function positivo(valor: string | undefined, porDefecto: number, max: number): number {
+  const n = Number((valor ?? "").trim().replace(",", "."));
+  if (!(valor ?? "").trim() || !Number.isFinite(n) || n <= 0) return porDefecto;
+  return Math.min(n, max);
 }
 
 function urlValida(valor: string | undefined): string | null {
@@ -79,6 +91,7 @@ export function configDespachador(env: Entorno = process.env): ConfigDespachador
   const chatwootUrl = urlValida(env.OFICINA_CHATWOOT_API_URL) ?? chatwootOriginFromEnv(env.CHATWOOT_URL);
   return {
     activo: interruptorEncendido(env.OFICINA_DESPACHADOR_ACTIVO),
+    vaciadoActivo: vaciadoActivo(env),
     agente: AGENTE_SOPORTE,
     runtime: runtimeUrl && runtimeToken ? { url: runtimeUrl, token: runtimeToken } : null,
     chatwoot:
@@ -94,8 +107,8 @@ export function configDespachador(env: Entorno = process.env): ConfigDespachador
       segundos: SEGUNDOS_POR_CORRIDA,
     },
     precios: {
-      entradaPorMTok: numero(env.OFICINA_PRECIO_ENTRADA_USD_MTOK, 1, 0, 1000),
-      salidaPorMTok: numero(env.OFICINA_PRECIO_SALIDA_USD_MTOK, 3.2, 0, 1000),
+      entradaPorMTok: positivo(env.OFICINA_PRECIO_ENTRADA_USD_MTOK, 1, 1000),
+      salidaPorMTok: positivo(env.OFICINA_PRECIO_SALIDA_USD_MTOK, 3.2, 1000),
     },
     pausaEntreCorridasS: PAUSA_ENTRE_CORRIDAS_S,
     tickMs: TICK_MS,

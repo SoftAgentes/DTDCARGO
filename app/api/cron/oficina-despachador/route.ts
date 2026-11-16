@@ -9,6 +9,7 @@
  * NADA SE ENVÍA a Chatwoot desde aquí (D1; el envío es del Paso 3b, tras la aprobación de Sam).
  *
  * Nace APAGADO: con `OFICINA_DESPACHADOR_ACTIVO` vacío o falso no crea el cliente de la base ni llama a nadie.
+ * Encendido sin `OFICINA_VACIADO_ACTIVO` (la purga de borradores a 90 días, D3) responde `sin_vaciado` y tampoco.
  * Sin la 0548 responde 200 `sin_migracion` y lo anota una vez en el log. Respuesta: solo conteos y estados.
  *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera. Solo en el servidor
@@ -37,6 +38,8 @@ export async function GET(req: NextRequest) {
   const config = configDespachador();
   // Apagado: ni siquiera se crea el cliente de la base.
   if (!config.activo) return NextResponse.json({ ok: true, estado: "apagado" });
+  // D3: sin la purga diaria de borradores (OFICINA_VACIADO_ACTIVO) no se redacta nada.
+  if (!config.vaciadoActivo) return NextResponse.json({ ok: true, estado: "sin_vaciado" });
   if (!config.runtime || !config.chatwoot) return NextResponse.json({ ok: true, estado: "sin_config" });
   const runtime = config.runtime;
   const chatwoot = config.chatwoot;

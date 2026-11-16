@@ -115,6 +115,7 @@ function almacenPglite(db: PGlite): AlmacenDespachador {
 
 const ENV = {
   OFICINA_DESPACHADOR_ACTIVO: "1",
+  OFICINA_VACIADO_ACTIVO: "1",
   OFICINA_RUNTIME_URL: "http://runtime.prueba:18642",
   OFICINA_RUNTIME_TOKEN: "token-de-prueba-del-cable",
   OFICINA_CHATWOOT_TOKEN_LECTURA: "token-de-lectura-de-prueba",
@@ -214,6 +215,33 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
     expect(tocado).toEqual([]);
     expect(llamar).not.toHaveBeenCalled();
     expect(leerC).not.toHaveBeenCalled();
+  });
+
+  it("encendido pero con el vaciado apagado (los borradores no se purgarían a 90 días): no hace nada", async () => {
+    const tocado: string[] = [];
+    const almacen = new Proxy({} as AlmacenDespachador, {
+      get: (_, k) => () => {
+        tocado.push(String(k));
+        throw new Error("no debía tocar la base");
+      },
+    });
+    const registros: string[] = [];
+    for (const v of ["", "0", "false", "si"]) {
+      const d: DepsDespachador = {
+        config: configDespachador({ ...ENV, OFICINA_VACIADO_ACTIVO: v }),
+        almacen,
+        leer: vi.fn(),
+        llamar: vi.fn(),
+        borrarSesion: vi.fn(),
+        registrar: (m) => registros.push(m),
+      };
+      expect(d.config.vaciadoActivo).toBe(false);
+      expect(await tick(d)).toEqual({ estado: "sin_vaciado" });
+      expect(await correrTanda(d, { duracionMs: 1000 })).toMatchObject({ estado: "sin_vaciado", ticks: 0 });
+      expect(d.llamar).not.toHaveBeenCalled();
+    }
+    expect(tocado).toEqual([]);
+    expect(registros.filter((r) => r.includes("OFICINA_VACIADO_ACTIVO"))).toHaveLength(1);
   });
 
   it("sin las migraciones (ni la 0541, o sin la 0548) no tumba nada: «sin_migracion», una vez en el log", async () => {
@@ -346,6 +374,12 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(String(pausas[0].motivo)).toMatch(/^Auto-pausa/);
       expect(await tick(d)).toEqual({ estado: "pausada" });
       expect(doble.llamadas).toBe(1);
+      // Un precio 0, negativo o inválido no vale: la auto-pausa no saltaría nunca. Cae al valor por defecto.
+      for (const malo of ["0", "-1", "-0.5", "abc", "0,0"]) {
+        const c = configDespachador({ ...ENV, OFICINA_PRECIO_ENTRADA_USD_MTOK: malo, OFICINA_PRECIO_SALIDA_USD_MTOK: malo });
+        expect(c.precios).toEqual({ entradaPorMTok: 1, salidaPorMTok: 3.2 });
+      }
+      expect(configDespachador({ ...ENV, OFICINA_PRECIO_ENTRADA_USD_MTOK: "0,5" }).precios.entradaPorMTok).toBe(0.5);
       // Y el tope solo se puede bajar: más de 15 vale 15.
       expect(configDespachador({ ...ENV, OFICINA_TOPE_MENSUAL_USD: "999" }).topeMensualUsd).toBe(15);
     } finally {

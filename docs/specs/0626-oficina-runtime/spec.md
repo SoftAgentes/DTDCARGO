@@ -53,7 +53,7 @@ usa este mapa.
 | Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | construido (migración 0544) |
 | Paso 2b | prueba con el mensaje real del inbox de prueba, por el puente interno («Opción 3: puente») | construido y probado en staging el 16/11/2026 |
 | Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | construido con el modelo simulado (migración 0548, sin aplicar); falta la prueba en staging |
-| Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4) | pendiente |
+| Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4); más los pendientes de la revisión del DG en §3.5 | pendiente |
 | Paso 4 | §3.6 · mini-vista | pendiente |
 
 **3.0 Paso 0 · Prueba de conexión (antes de todo):** antes de crear
@@ -242,6 +242,13 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 - **Bitácora (AC-2).** Cada paso va a `task_events` con tipo, actor, resumen, modelo y costo, pasando por
   `exigirTextosDelCable`.
 - **Interruptor.** `OFICINA_DESPACHADOR_ACTIVO` (solo `1` o `true`), apagado por defecto. Sin la 0548 no hace nada.
+  **Requisito:** `OFICINA_VACIADO_ACTIVO` encendido. Sin él los borradores no se purgarían a los 90 días (D3), así que
+  el despachador no arranca (`sin_vaciado`). Un precio por millón de tokens de 0, negativo o inválido vale el de
+  por defecto: con 0 la auto-pausa no saltaría nunca.
+- **Pendientes para el Paso 3b** (revisión del DG de la #598):
+  - detectar URLs y dominios en el borrador (hoy `revisarRespuesta` no los mira) y escalar si no vienen de un guion;
+  - mostrar el borrador y el motivo siempre como texto plano en la página de aprobación (nunca HTML ni Markdown renderizado);
+  - si una llamada se aborta a mitad (pausa o tope de tiempo), el `DELETE` de su sesión puede fallar y la sesión queda en la oficina hasta la purga diaria: dentro de las 48 h. Ver si conviene reintentar el borrado en el tick siguiente.
 - **El agente (VPS Oficina).** glm-5.3 con respaldo deepseek-chat; instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.

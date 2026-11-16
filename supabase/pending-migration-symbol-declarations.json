@@ -77,7 +77,7 @@
           "degradation": "Sin la 0548 (o sin la 0541/0544) PostgREST responde PGRST202 (o 42883/42P01): el almacén lanza SinMigracion y el despachador (tick y correrTanda) responde «sin_migracion», no llama a Chatwoot ni al runtime y lo anota una sola vez en el log. Además nace apagado (OFICINA_DESPACHADOR_ACTIVO)."
         },
         {
-          "site": "lib/studio/oficina/despachador.ts:240",
+          "site": "lib/studio/oficina/despachador.ts:245",
           "contains": "e instanceof SinMigracion",
           "degradation": "El tick atrapa SinMigracion: devuelve «sin_migracion» sin tumbar la ruta /api/cron/oficina-despachador (200)."
         }

@@ -162,9 +162,16 @@ describe("0548 · despachador mínimo del cable (PGlite)", () => {
     const comprobar = `
       do $c$ begin
         if to_regclass('public.office_borradores') is not null or to_regclass('public.office_despachador') is not null
-           or to_regclass('public.office_tasks_evento_unico') is not null
-           or to_regprocedure('public.office_tomar_tarea(text, integer, integer)') is not null then
-          raise exception 'el desarme dejó objetos de la 0548';
+           or to_regclass('public.office_tasks_evento_unico') is not null then
+          raise exception 'el desarme dejó tablas o el índice de la 0548';
+        end if;
+        -- Las 13 funciones de la 0548, con cualquier firma.
+        if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname in ('office_agente_valido', 'office_despachador_turno',
+               'office_despachador_soltar', 'office_convertir_triaje', 'office_tipos_de_cierre', 'office_tomar_tarea',
+               'office_corrida_en_curso', 'office_entregar_corrida', 'office_soltar_corrida', 'office_recuperar_corridas',
+               'office_gasto_del_mes', 'office_autopausar_por_tope', 'office_purgar_borradores_viejos')) <> 0 then
+          raise exception 'el desarme dejó funciones de la 0548';
         end if;
         if (select count(*) from public.office_tasks) <> 1 or to_regprocedure('public.office_filtrar_bandeja(integer)') is null then
           raise exception 'el desarme tocó lo que no es de la 0548';
@@ -177,6 +184,15 @@ describe("0548 · despachador mínimo del cable (PGlite)", () => {
       leer("supabase/migrations/0544_oficina_filtro_bandeja.sql"),
       leer("supabase/migrations/0548_oficina_despachador.sql"),
       "insert into public.office_tasks (titulo) values ('una');",
+      `do $antes$ begin
+        if (select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname in ('office_agente_valido', 'office_despachador_turno',
+               'office_despachador_soltar', 'office_convertir_triaje', 'office_tipos_de_cierre', 'office_tomar_tarea',
+               'office_corrida_en_curso', 'office_entregar_corrida', 'office_soltar_corrida', 'office_recuperar_corridas',
+               'office_gasto_del_mes', 'office_autopausar_por_tope', 'office_purgar_borradores_viejos')) <> 13 then
+          raise exception 'antes del desarme debían existir las 13 funciones de la 0548';
+        end if;
+      end $antes$;`,
       leer("supabase/desarmes/0548_desarme.sql"),
       leer("supabase/desarmes/0548_desarme.sql"),
       comprobar,

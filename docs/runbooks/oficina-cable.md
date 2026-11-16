@@ -283,11 +283,14 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 | `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
 | `OFICINA_TOPE_MENSUAL_USD` | El tope del mes (D5: 15; solo se puede bajar). Al 80 % la oficina se auto-pausa |
 | `OFICINA_TOPE_LLAMADAS_CORRIDA` / `OFICINA_TOPE_TOKENS_CORRIDA` | Topes por corrida (2 y 24000) |
-| `OFICINA_PRECIO_ENTRADA_USD_MTOK` / `OFICINA_PRECIO_SALIDA_USD_MTOK` | La tarifa con la que se estima el costo (1,00 y 3,20 USD por millón de tokens) |
+| `OFICINA_PRECIO_ENTRADA_USD_MTOK` / `OFICINA_PRECIO_SALIDA_USD_MTOK` | La tarifa con la que se estima el costo (1,00 y 3,20 USD por millón de tokens). 0, negativo o inválido vale el de por defecto |
+| `OFICINA_VACIADO_ACTIVO` | **Requisito:** el despachador no arranca sin él (`sin_vaciado`) |
 
 ### Requisitos para encenderlo (con OK de Sam y aviso al DG)
 
 1. La migración **0548** aplicada en esa base (sin ella responde `sin_migracion` y no hace nada).
+1. `OFICINA_VACIADO_ACTIVO=1` (la purga diaria de borradores a 90 días, D3). Sin él el despachador responde
+   `sin_vaciado` y no hace nada.
 2. La oficina despausada por un administrador (`office_cambiar_pausa`). La auto-pausa nunca despausa.
 3. El token de lectura de Chatwoot puesto en el `.env` del entorno sin pasar por el chat.
 4. Recrear el web para que tome las variables; después, `OFICINA_DESPACHADOR_ACTIVO=1`.

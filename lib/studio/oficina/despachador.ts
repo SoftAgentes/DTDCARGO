@@ -50,7 +50,7 @@ export type ResultadoCorrida =
   | { fin: "descartada" };
 
 export type ResultadoTick =
-  | { estado: "apagado" | "sin_config" | "sin_migracion" | "pausada" }
+  | { estado: "apagado" | "sin_vaciado" | "sin_config" | "sin_migracion" | "pausada" }
   | { estado: "sin_tareas"; convertidas: number }
   | { estado: "corrida"; convertidas: number; resultado: ResultadoCorrida };
 
@@ -224,6 +224,11 @@ export async function tick(deps: DepsDespachador): Promise<ResultadoTick> {
   const { config, almacen } = deps;
   const registrar = deps.registrar ?? ((m: string) => console.warn(m));
   if (!config.activo) return { estado: "apagado" };
+  // D3: sin la purga diaria encendida, un borrador viviría más de 90 días. No se redacta nada.
+  if (!config.vaciadoActivo) {
+    avisarUnaVez("despachador-sin-vaciado", "[oficina-despachador] encendido pero OFICINA_VACIADO_ACTIVO está apagado (los borradores no se purgarían a los 90 días): no hace nada", registrar);
+    return { estado: "sin_vaciado" };
+  }
   if (!config.runtime || !config.chatwoot) {
     avisarUnaVez("despachador-sin-config", "[oficina-despachador] encendido pero sin el cable o sin el token de lectura de Chatwoot: no hace nada", registrar);
     return { estado: "sin_config" };
@@ -246,7 +251,7 @@ export async function tick(deps: DepsDespachador): Promise<ResultadoTick> {
 }
 
 export interface ResumenTanda {
-  estado: "apagado" | "ocupado" | "sin_migracion" | "hecha";
+  estado: "apagado" | "sin_vaciado" | "ocupado" | "sin_migracion" | "hecha";
   ticks: number;
   corridas: number;
   ultimo: ResultadoTick["estado"] | null;
@@ -261,6 +266,7 @@ export async function correrTanda(deps: DepsDespachador, opts: { duracionMs: num
   const ahora = deps.ahora ?? Date.now;
   const dormir = deps.dormir ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   if (!config.activo) return { estado: "apagado", ticks: 0, corridas: 0, ultimo: null };
+  if (!config.vaciadoActivo) return { estado: "sin_vaciado", ticks: 0, corridas: 0, ultimo: null };
   const dueno = randomUUID();
   const turnoS = config.porCorrida.segundos + 60;
   try {
@@ -280,7 +286,7 @@ export async function correrTanda(deps: DepsDespachador, opts: { duracionMs: num
       ticks += 1;
       ultimo = r.estado;
       if (r.estado === "corrida") corridas += 1;
-      if (r.estado === "apagado" || r.estado === "sin_config" || r.estado === "sin_migracion") break;
+      if (r.estado === "apagado" || r.estado === "sin_vaciado" || r.estado === "sin_config" || r.estado === "sin_migracion") break;
       await almacen.tomarTurno(dueno, turnoS);
       const espera = Math.max(config.tickMs - (ahora() - inicio), 0);
       if (ahora() + espera >= fin) break;

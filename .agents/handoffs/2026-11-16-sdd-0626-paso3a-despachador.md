@@ -37,7 +37,7 @@ Respaldo y REVERTIR: `/srv/oficina/backups/paso3a-agente-20261116T041544Z/` (REV
   - el índice «un evento → una tarea»;
   - las funciones para convertir, tomar, entregar, soltar, recuperar y auto-pausar (esta solo pausa) y la purga.
 
-  Contrato SQL `supabase/tests/0548_…test.sql`, PGlite con 15 mutantes y desarme.
+  Contrato SQL `supabase/tests/0548_…test.sql`, PGlite con 13 mutantes, control rojo y desarme (que comprueba que desaparecen las 13 funciones).
 - **Despachador** (`lib/studio/oficina/despachador*.ts` y piezas), ruta `/api/cron/oficina-despachador` y cron cada minuto.
 - **Vaciado diario:** purga además los borradores viejos.
 - **Webhook:** sin `CHATWOOT_ACCOUNT_ID` rechaza todo.
@@ -54,4 +54,8 @@ Respaldo y REVERTIR: `/srv/oficina/backups/paso3a-agente-20261116T041544Z/` (REV
 
   Gasto máximo: $1.
 - **Llaves propias de soporte-chatwoot (R2).**
-- **Paso 3b:** la tabla de aprobaciones con casillas fijas, la página solo para `is_platform_admin`, el aviso en Discord sin texto y el envío desde el ERP.
+- **Paso 3b:** la tabla de aprobaciones con casillas fijas, la página solo para `is_platform_admin`, el aviso en Discord sin texto y el envío desde el ERP. Además, de la revisión del DG de la #598:
+  - detectar URLs y dominios en el borrador (hoy `revisarRespuesta` no los mira) y escalar si no vienen de un guion;
+  - mostrar el borrador y el motivo siempre como texto plano en la página de aprobación (nunca HTML ni Markdown renderizado);
+  - si una llamada se aborta a mitad (pausa o tope de tiempo), el `DELETE` de su sesión puede fallar y la sesión queda en la oficina hasta la purga diaria: dentro de las 48 h. Ver si conviene reintentar el borrado en el tick siguiente.
+- **Revisión del DG (#598, APPROVED con observaciones):** el despachador no arranca sin `OFICINA_VACIADO_ACTIVO` (`sin_vaciado`) y los precios 0 o negativos valen el valor por defecto. Las dos cosas tienen prueba.
