@@ -987,8 +987,8 @@ function ListaDeContenedores({
                 display: "grid",
                 gridTemplateColumns: "24px minmax(0, 1fr) auto",
                 gap: "var(--s-3)",
-                padding: "16px 20px",
-                background: abierto ? "var(--bg-elevated)" : "transparent",
+                padding: "var(--s-4) var(--s-5)",
+                background: abierto ? "var(--bg-elevated)" : undefined,
                 border: 0,
                 textAlign: "left",
                 cursor: "pointer",
@@ -1093,6 +1093,10 @@ function ListaDeContenedores({
         );
       })}
       <style>{`
+        .emb-cont-header { background: transparent; }
+        .emb-cont-header:hover { background: var(--bg-elevated); }
+        /* La tarjeta recorta lo que sale (overflow hidden): el foco va adentro. */
+        .emb-cont-header:focus-visible { outline-offset: -3px; }
         @media (max-width: 640px) {
           .emb-cont-header {
             grid-template-columns: 24px minmax(0, 1fr) !important;
