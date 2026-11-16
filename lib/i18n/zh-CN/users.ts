@@ -79,6 +79,10 @@ export const users: UsersDict = {
   "users.summary.global_access": "✓ 全局访问 · 不限制仓库",
   "users.summary.twofa_suggested": "✓ 将建议其启用 2FA（可选）",
 
+  // ── SDD-0636 · 只有超级管理员可以创建管理员 ──────────────
+  "users.invite.admin_superadmin":
+    "只有超级管理员可以邀请管理员。如果你不是超级管理员，请选择其他角色，或联系系统管理员。",
+
   // ── 免责声明 ─────────────────────────────────────────────
   "users.disclaimer":
     "V1 仅保存邮箱 + 角色 + 办公室。姓名、团队、范围、权限和 2FA 仅存于 UI，直到 schema 的 B 阶段。用户接受邀请时将填写姓名。",

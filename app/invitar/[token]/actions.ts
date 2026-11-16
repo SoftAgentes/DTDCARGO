@@ -25,6 +25,9 @@ import {
   type UserActionState,
 } from "@/lib/studio/user-types";
 
+const INVITACION_ADMIN_SIN_SUPERADMIN =
+  "Esta invitación de administrador no se puede aceptar: invitar a un administrador lo hace solo el superadministrador. Pídele una invitación nueva a quien administra el sistema.";
+
 export async function acceptInvitationFormAction(
   _prev: UserActionState,
   formData: FormData,
@@ -76,6 +79,21 @@ export async function acceptInvitationFormAction(
   }
   if (new Date(invitation.expires_at).getTime() < Date.now()) {
     return { error: "Esta invitación expiró." };
+  }
+
+  // SDD-0636 · política de roles: una invitación de administrador vale solo si
+  // la emitió un superadministrador (la base lo exige al aceptar, migr 0545). Se
+  // mira antes de crear la cuenta, para no dejar una cuenta sin equipo. Si no se
+  // pudo preguntar, se sigue: decide la base.
+  if (invitation.role === "admin") {
+    const { data: emisor, error: emisorErr } = await supabaseAdmin
+      .from("platform_admins")
+      .select("user_id")
+      .eq("user_id", invitation.invited_by)
+      .maybeSingle<{ user_id: string }>();
+    if (!emisorErr && !emisor) {
+      return { error: INVITACION_ADMIN_SIN_SUPERADMIN };
+    }
   }
 
   // 2. Crear el user en auth (con email_confirm=true para evitar paso extra)
