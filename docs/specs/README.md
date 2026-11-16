@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 621 specs)
+### Índice de specs (generado · 622 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -659,6 +659,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0634 | Feature flags: el superadministrador por cualquier camino, ta… | in-progress | interno |
 | 0635 | Acceso por persona interactivo y matriz de roles legible: map… | approved | interno |
 | 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
+| 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0637 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
