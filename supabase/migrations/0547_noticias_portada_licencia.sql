@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- 0546 · SDD-0611 §11.5 — foto de portada con crédito, licencia y enlace de origen.
+-- 0547 · SDD-0611 §11.5 — foto de portada con crédito, licencia y enlace de origen.
 --
 -- ⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en
 --    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicarla exige el
@@ -43,7 +43,7 @@
 -- lock_timeout 5 s.
 --
 -- ── Deshacer ─────────────────────────────────────────────────
---   supabase/desarmes/0546_desarme.sql (aborta si ya hay portadas guardadas).
+--   supabase/desarmes/0547_desarme.sql (aborta si ya hay portadas guardadas).
 -- ─────────────────────────────────────────────────────────────
 
 set local lock_timeout = '5s';
@@ -53,22 +53,22 @@ do $preflight$
 begin
   if pg_catalog.to_regclass('public.news_posts') is null
      or pg_catalog.to_regclass('public.seo_drafts') is null then
-    raise exception '0546 requiere public.news_posts y public.seo_drafts';
+    raise exception '0547 requiere public.news_posts y public.seo_drafts';
   end if;
   if pg_catalog.to_regprocedure('public.news_insertar_post(uuid,text,uuid,jsonb,text,uuid)') is null then
-    raise exception '0546 requiere news_insertar_post de la 0518';
+    raise exception '0547 requiere news_insertar_post de la 0518';
   end if;
   if not exists (select 1 from pg_catalog.pg_attribute a
                   where a.attrelid = 'public.seo_drafts'::regclass
                     and a.attname = 'autopub_cover_image_url' and a.attnum > 0 and not a.attisdropped) then
-    raise exception '0546: falta seo_drafts.autopub_cover_image_url (¿0518 sin aplicar?)';
+    raise exception '0547: falta seo_drafts.autopub_cover_image_url (¿0518 sin aplicar?)';
   end if;
   if exists (select 1 from pg_catalog.pg_attribute a
               where a.attrelid = 'public.news_posts'::regclass
                 and a.attname in ('cover_image_url', 'cover_alt', 'cover_origin', 'cover_credit',
                                   'cover_license', 'cover_source_url', 'cover_license_verified_at')
                 and a.attnum > 0 and not a.attisdropped) then
-    raise exception '0546 ya aplicada, o news_posts ya tiene columnas de portada hechas a mano';
+    raise exception '0547 ya aplicada, o news_posts ya tiene columnas de portada hechas a mano';
   end if;
   if exists (select 1 from pg_catalog.pg_attribute a
               where a.attrelid = 'public.seo_drafts'::regclass
@@ -76,7 +76,7 @@ begin
                                   'autopub_cover_license', 'autopub_cover_source_url',
                                   'autopub_cover_license_verified_at')
                 and a.attnum > 0 and not a.attisdropped) then
-    raise exception '0546 ya aplicada, o seo_drafts ya tiene columnas autopub_cover_* hechas a mano';
+    raise exception '0547 ya aplicada, o seo_drafts ya tiene columnas autopub_cover_* hechas a mano';
   end if;
 end;
 $preflight$;
@@ -98,7 +98,7 @@ alter table public.news_posts
         -- Ruta propia versionada (public/fotos) o Storage público de Supabase; nada más.
         (cover_image_url ~* '^/fotos/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*\.(webp|jpe?g|png|avif)$'
          or cover_image_url ~* '^https://[a-z0-9-]+\.supabase\.co/storage/v1/object/public/[A-Za-z0-9._%/-]+\.(webp|jpe?g|png|avif)$')
-        and pg_catalog.position('..' in cover_image_url) = 0
+        and pg_catalog.strpos(cover_image_url, '..') = 0
         and pg_catalog.length(cover_image_url) <= 2048
         -- Nunca la marca anterior (misma expresión que MARCA_ANTERIOR_RE en lib/news/portada.ts).
         and cover_image_url !~* 'door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door'
@@ -107,7 +107,7 @@ alter table public.news_posts
         and pg_catalog.length(cover_license) <= 120
         and cover_license_verified_at is not null
         -- De dónde viene, y con enlace de origen si no es propia.
-        and cover_origin in ('fuente', 'banco', 'propia')
+        and cover_origin is not null and cover_origin in ('fuente', 'banco', 'propia')
         and (cover_origin = 'propia' or cover_source_url is not null)
       )
     ),
@@ -126,7 +126,7 @@ alter table public.news_posts
     );
 
 comment on column public.news_posts.cover_image_url is
-  'SDD-0611 §11.5 (0546): portada propia de la noticia; solo con licencia comprobada. NULL = respaldo por categoría o sin foto.';
+  'SDD-0611 §11.5 (0547): portada propia de la noticia; solo con licencia comprobada. NULL = respaldo por categoría o sin foto.';
 
 -- ─── 2. Lo que declara el borrador ───────────────────────────────────────────
 alter table public.seo_drafts
@@ -233,40 +233,40 @@ begin
     if not exists (select 1 from pg_catalog.pg_attribute a
                     where a.attrelid = 'public.news_posts'::regclass
                       and a.attname = v_col and a.attnum > 0 and not a.attisdropped) then
-      raise exception '0546 postflight: falta news_posts.%', v_col;
+      raise exception '0547 postflight: falta news_posts.%', v_col;
     end if;
   end loop;
   if (select pg_catalog.count(*) from pg_catalog.pg_constraint c
        where c.conrelid = 'public.news_posts'::regclass and c.convalidated
          and c.conname in ('news_posts_portada_con_permiso', 'news_posts_portada_campos')) <> 2 then
-    raise exception '0546 postflight: faltan los CHECK de portada o no están validados';
+    raise exception '0547 postflight: faltan los CHECK de portada o no están validados';
   end if;
   if not exists (select 1 from pg_catalog.pg_constraint c
                   where c.conrelid = 'public.seo_drafts'::regclass
                     and c.conname = 'seo_drafts_portada_forma' and c.convalidated) then
-    raise exception '0546 postflight: falta seo_drafts_portada_forma';
+    raise exception '0547 postflight: falta seo_drafts_portada_forma';
   end if;
   foreach v_col in array array[
     'cover_image_url', 'cover_alt', 'cover_origin', 'cover_credit', 'cover_license', 'cover_source_url'] loop
     if not pg_catalog.has_column_privilege('anon', 'public.news_posts', v_col, 'select') then
-      raise exception '0546 postflight: anon no lee news_posts.%', v_col;
+      raise exception '0547 postflight: anon no lee news_posts.%', v_col;
     end if;
   end loop;
   foreach v_col in array array[
     'cover_license_verified_at', 'created_by', 'publish_via', 'seo_draft_id', 'content_sha256',
     'tenant_id', 'source'] loop
     if pg_catalog.has_column_privilege('anon', 'public.news_posts', v_col, 'select') then
-      raise exception '0546 postflight: anon lee news_posts.%', v_col;
+      raise exception '0547 postflight: anon lee news_posts.%', v_col;
     end if;
   end loop;
   if pg_catalog.has_table_privilege('anon', 'public.news_posts', 'select') then
-    raise exception '0546 postflight: anon volvió a tener SELECT de tabla';
+    raise exception '0547 postflight: anon volvió a tener SELECT de tabla';
   end if;
   -- Los privilegios de la función no cambian (la 0518 se los quitó a todos).
   if pg_catalog.has_function_privilege('anon', 'public.news_insertar_post(uuid,text,uuid,jsonb,text,uuid)', 'execute')
      or pg_catalog.has_function_privilege('authenticated', 'public.news_insertar_post(uuid,text,uuid,jsonb,text,uuid)', 'execute')
      or pg_catalog.has_function_privilege('service_role', 'public.news_insertar_post(uuid,text,uuid,jsonb,text,uuid)', 'execute') then
-    raise exception '0546 postflight: news_insertar_post quedó ejecutable por un rol de API';
+    raise exception '0547 postflight: news_insertar_post quedó ejecutable por un rol de API';
   end if;
 end;
 $postflight$;

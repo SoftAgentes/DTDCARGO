@@ -41,7 +41,7 @@ describe("SDD-0611 §11.5 · URL de portada permitida", () => {
     ["javascript:alert(1)", "esquema peligroso"],
     ["", "vacía"],
     [null, "nula"],
-  ])("rechaza %s (%s)", (url) => expect(esUrlDePortadaPermitida(url as string)).toBe(false));
+  ])("rechaza %s (%s)", (url, _motivo) => expect(esUrlDePortadaPermitida(url as string)).toBe(false));
 
   it("rechaza la marca anterior en cualquier forma", () => {
     for (const u of [

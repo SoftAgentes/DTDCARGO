@@ -88,7 +88,7 @@ interface FilaBorrador {
   autopub_test_noticia: Record<string, unknown> | null;
   autopub_content_kind: string | null;
   autopub_cover_image_url: string | null;
-  /** SDD-0611 §11.5 (migración 0546); ausentes mientras la 0546 no esté aplicada. */
+  /** SDD-0611 §11.5 (migración 0547); ausentes mientras la 0547 no esté aplicada. */
   autopub_cover_alt?: string | null;
   autopub_cover_origin?: string | null;
   autopub_cover_credit?: string | null;
@@ -103,12 +103,12 @@ const COLUMNAS_BORRADOR =
   "secondary_keywords, reviewer_verdict, autopub_sources, search_console, idea_tipo, " +
   "autopub_test_noticia, autopub_content_kind, autopub_cover_image_url, writer_agent";
 
-/** Las columnas de portada que trae la 0546 (crédito, licencia y enlace de origen). */
+/** Las columnas de portada que trae la 0547 (crédito, licencia y enlace de origen). */
 const COLUMNAS_PORTADA_BORRADOR =
   ", autopub_cover_alt, autopub_cover_origin, autopub_cover_credit, autopub_cover_license, " +
   "autopub_cover_source_url, autopub_cover_license_verified_at";
 
-/** Postgres 42703 / PostgREST PGRST204: la columna no existe todavía (0546 sin aplicar). */
+/** Postgres 42703 / PostgREST PGRST204: la columna no existe todavía (0547 sin aplicar). */
 function columnaAusente(error: { code?: string; message?: string } | null): boolean {
   return !!error && (error.code === "42703" || error.code === "PGRST204" || /autopub_cover_/.test(error.message ?? ""));
 }
@@ -150,7 +150,7 @@ export async function evaluarBorradorAutomatico(
     .eq("id", draftId)
     .maybeSingle<FilaBorrador>();
   if (columnaAusente(errBorrador)) {
-    // Sin la 0546 no hay licencia registrada: la portada no se usa y la noticia sigue.
+    // Sin la 0547 no hay licencia registrada: la portada no se usa y la noticia sigue.
     ({ data: bLeido, error: errBorrador } = await db
       .from("seo_drafts")
       .select(COLUMNAS_BORRADOR)

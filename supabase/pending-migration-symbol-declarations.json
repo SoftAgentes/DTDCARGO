@@ -9,8 +9,8 @@
   ],
   "degradations": [
     {
-      "id": "0546-portada-lectura-aparte",
-      "migration": "0546_noticias_portada_licencia",
+      "id": "0547-portada-lectura-aparte",
+      "migration": "0547_noticias_portada_licencia",
       "primarySymbol": "news_posts.cover_image_url",
       "symbols": [
         {
@@ -89,7 +89,7 @@
         {
           "site": "lib/public/news-queries.ts:51",
           "contains": "if (error || !data) return posts;",
-          "degradation": "Sin la 0546 la lectura de portada falla (42703 / PGRST204): las noticias salen igual por COLUMNAS_PUBLICAS, sin portada propia, y editorialImageOf usa el respaldo propio de su categoría. La lectura de noticias no pide ninguna columna de la 0546."
+          "degradation": "Sin la 0547 la lectura de portada falla (42703 / PGRST204): las noticias salen igual por COLUMNAS_PUBLICAS, sin portada propia, y editorialImageOf usa el respaldo propio de su categoría. La lectura de noticias no pide ninguna columna de la 0547."
         }
       ]
     }

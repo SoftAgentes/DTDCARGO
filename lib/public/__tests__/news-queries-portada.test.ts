@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * SDD-0611 §11.5 · La portada (0546) se lee aparte: si la columna no existe todavía,
+ * SDD-0611 §11.5 · La portada (0547) se lee aparte: si la columna no existe todavía,
  * las noticias salen igual, sin portada propia (respaldo por categoría).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -49,7 +49,7 @@ describe("SDD-0611 §11.5 · conPortadas", () => {
     expect(pedidos.some((p) => p.includes("cover_license_verified_at"))).toBe(false);
   });
 
-  it("sin la 0546 (columna ausente) las noticias salen igual, sin portada propia", async () => {
+  it("sin la 0547 (columna ausente) las noticias salen igual, sin portada propia", async () => {
     portadas = { data: null, error: { code: "42703", message: "column news_posts.cover_image_url does not exist" } };
     const { listPublishedPosts } = await import("../news-queries");
     const posts = await listPublishedPosts();

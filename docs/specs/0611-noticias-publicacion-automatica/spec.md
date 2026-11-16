@@ -815,18 +815,18 @@ la publicación de la web y lleva el OK de Sam.
 
 #### 11.5.1 Código de la regla (PR de la foto de portada)
 
-Hecho en código; la migración **0546** queda en espera (sin aplicar):
+Hecho en código; la migración **0547** queda en espera (sin aplicar):
 
 | Pieza | Qué hace |
 |---|---|
 | `lib/news/portada.ts` | Regla pura: URL permitida (ruta propia `/fotos/…` o Storage público de Supabase; nunca la marca anterior), licencia escrita y comprobada con fecha, origen `fuente`/`banco`/`propia` y enlace de origen si no es propia. `evaluarPortada` descarta con motivos; no retiene. |
-| `supabase/migrations/0546_noticias_portada_licencia.sql` | 7 columnas `cover_*` en `news_posts` con dos CHECK, 6 `autopub_cover_*` en `seo_drafts`, `news_insertar_post` guarda la portada solo si pasa y, si no, publica la noticia sin ella; anon lee seis columnas (no la fecha de comprobación). Desarme en `supabase/desarmes/0546_desarme.sql`. |
+| `supabase/migrations/0547_noticias_portada_licencia.sql` | 7 columnas `cover_*` en `news_posts` con dos CHECK, 6 `autopub_cover_*` en `seo_drafts`, `news_insertar_post` guarda la portada solo si pasa y, si no, publica la noticia sin ella; anon lee seis columnas (no la fecha de comprobación). Desarme en `supabase/desarmes/0547_desarme.sql`. |
 | `lib/news/autopublicar/puntaje.ts`, `filtros.ts` | F6 ya no retiene por la portada (`puntaje:portada` retirado, §11.5 b); el descarte vive en `evaluarPortada`. |
-| `lib/studio/news/autopublicar.ts` | Lee las columnas de portada (con reintento si la 0546 no está), decide con `evaluarPortada` y manda al RPC la portada solo si se puede usar. |
+| `lib/studio/news/autopublicar.ts` | Lee las columnas de portada (con reintento si la 0547 no está), decide con `evaluarPortada` y manda al RPC la portada solo si se puede usar. |
 | `lib/news/editorial.ts`, `app/noticias/**` | `editorialImageOf` devuelve `null` si no hay foto presentable; tarjeta, archivo, relacionadas y página se ven sin hueco ni relleno; pie de foto con crédito, licencia y origen. La vista compartida (`opengraph-image`) ya es una tarjeta de texto sin foto. |
-| `lib/public/news-queries.ts` | La portada se lee en una consulta aparte que degrada sin la 0546 (declarado en `supabase/pending-migration-symbol-declarations.json`). |
+| `lib/public/news-queries.ts` | La portada se lee en una consulta aparte que degrada sin la 0547 (declarado en `supabase/pending-migration-symbol-declarations.json`). |
 
-Pendiente fuera de esta PR: aplicar la 0546 (OK nominal de Sam), que el Studio (o quien carga la foto) capture crédito, licencia y comprobación en el borrador, y revisar a la vista cada foto nueva (límite de la prueba, arriba).
+Pendiente fuera de esta PR: aplicar la 0547 (OK nominal de Sam), que el Studio (o quien carga la foto) capture crédito, licencia y comprobación en el borrador, y revisar a la vista cada foto nueva (límite de la prueba, arriba).
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 

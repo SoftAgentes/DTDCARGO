@@ -1,10 +1,10 @@
 \set ON_ERROR_STOP on
 
--- SDD-0611 §11.5 · contrato de la 0546: foto de portada con crédito, licencia y enlace de origen.
+-- SDD-0611 §11.5 · contrato de la 0547: foto de portada con crédito, licencia y enlace de origen.
 --
 -- Monta el mismo fixture que los contratos de la 0518, 0525 y 0526 (roles, auth,
 -- tenants y las migraciones REALES de noticias 0053, 0055, 0057, 0140, 0518, 0525
--- y 0526) y aplica la 0546 REAL.
+-- y 0526) y aplica la 0547 REAL.
 --
 -- Lo que se protege:
 --   C  la base solo guarda una portada con URL permitida, licencia escrita y
@@ -16,16 +16,16 @@
 --   P  la función conserva sus privilegios (ningún rol de API la ejecuta).
 --
 -- La vuelta del desarme NO está aquí: vive solo en el runner PGlite
--- (lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts), porque el
+-- (lib/news/autopublicar/__tests__/noticias-0547.migration.test.ts), porque el
 -- control C4 del CI no copia supabase/desarmes/.
--- CONTROL ROJO: sin 0546 cae en la primera aserción.
+-- CONTROL ROJO: sin 0547 cae en la primera aserción.
 -- Termina siempre en ROLLBACK. Solo ids y textos sintéticos.
 begin;
 
 do $roles$
 begin
   if to_regclass('public.news_posts') is not null then
-    raise exception 'Fixture 0546 rechazada: el objeto real ya existe';
+    raise exception 'Fixture 0547 rechazada: el objeto real ya existe';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -103,12 +103,12 @@ grant all on public.news_posts, public.seo_drafts to service_role;
 \ir ../migrations/0518_noticias_publicacion_automatica.sql
 \ir ../migrations/0525_noticias_ajustes_antes_de_encender.sql
 \ir ../migrations/0526_noticias_anon_solo_columnas_publicas.sql
-\ir ../migrations/0546_noticias_portada_licencia.sql
+\ir ../migrations/0547_noticias_portada_licencia.sql
 
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
 begin
-  if p_value is distinct from true then raise exception 'TEST 0546: %', p_label; end if;
+  if p_value is distinct from true then raise exception 'TEST 0547: %', p_label; end if;
   perform nextval('pg_temp.assertion_count');
 end;
 $$;
@@ -184,7 +184,7 @@ begin
   v_id := public.news_insertar_post(t1, 'manual', null,
     jsonb_build_object('slug', 'con-portada-propia', 'tipo', 'informativo', 'categoria', 'importa-sin-perder-plata',
       'title', 'Importa · Titular sintético', 'excerpt', 'x', 'body_markdown', 'Cuerpo sintético.') || base_portada,
-    'h', sam);
+    repeat('a', 64), sam);
   perform pg_temp.assert_true(
     (select cover_image_url = '/fotos/dtd-cargo-camion-entrega.webp' and cover_origin = 'propia'
             and cover_license = 'Foto propia de DTD Cargo' and cover_license_verified_at is not null
@@ -196,7 +196,7 @@ begin
       'title', 'Importa · Titular sintético', 'excerpt', 'x', 'body_markdown', 'Cuerpo sintético.')
     || base_portada || jsonb_build_object('cover_origin', 'fuente', 'cover_license', 'CC BY 4.0',
          'cover_credit', 'Autoría sintética', 'cover_source_url', 'https://fuente.example/foto'),
-    'h', sam);
+    repeat('a', 64), sam);
   perform pg_temp.assert_true(
     (select cover_origin = 'fuente' and cover_credit = 'Autoría sintética'
             and cover_source_url = 'https://fuente.example/foto'
@@ -209,7 +209,7 @@ begin
     || base_portada || jsonb_build_object('cover_origin', 'banco', 'cover_license', 'Pexels License',
          'cover_image_url', 'https://abcdefgh.supabase.co/storage/v1/object/public/noticias/foto-1.webp',
          'cover_source_url', 'https://www.pexels.com/photo/1234/'),
-    'h', sam);
+    repeat('a', 64), sam);
   perform pg_temp.assert_true(
     (select cover_origin = 'banco' from public.news_posts where id = v_id),
     'C3: el Storage público de Supabase es un host permitido');
@@ -242,7 +242,7 @@ begin
     v_id := public.news_insertar_post(t1, 'manual', null,
       jsonb_build_object('slug', 'caso-' || c.nombre, 'tipo', 'informativo', 'categoria', 'importa-sin-perder-plata',
         'title', 'Importa · Titular sintético', 'excerpt', 'x', 'body_markdown', 'Cuerpo sintético.') || c.portada,
-      'h', sam);
+      repeat('a', 64), sam);
     perform pg_temp.assert_true(
       (select published and cover_image_url is null and cover_alt is null and cover_origin is null
               and cover_credit is null and cover_license is null and cover_source_url is null
@@ -257,7 +257,7 @@ begin
   v_id := public.news_insertar_post(t1, 'manual', null,
     jsonb_build_object('slug', 'sin-portada', 'tipo', 'informativo', 'categoria', 'importa-sin-perder-plata',
       'title', 'Importa · Titular sintético', 'excerpt', 'x', 'body_markdown', 'Cuerpo sintético.'),
-    'h', sam);
+    repeat('a', 64), sam);
   perform pg_temp.assert_true(
     (select published and cover_image_url is null from public.news_posts where id = v_id),
     'N0: sin portada declarada, la noticia queda sin portada');
@@ -286,8 +286,8 @@ begin
   begin
     perform public.news_insertar_post(t1, 'manual', null,
       jsonb_build_object('slug', 'con-portada-propia', 'tipo', 'informativo', 'categoria', 'importa-sin-perder-plata',
-        'title', 't', 'excerpt', 'e', 'body_markdown', 'b') || base_portada, 'h', sam);
-    raise exception 'TEST 0546: R1: un slug repetido debía fallar';
+        'title', 't', 'excerpt', 'e', 'body_markdown', 'b') || base_portada, repeat('a', 64), sam);
+    raise exception 'TEST 0547: R1: un slug repetido debía fallar';
   exception when unique_violation then
     null;
   end;
@@ -296,8 +296,8 @@ begin
     perform public.news_insertar_post(t1, 'manual', null,
       jsonb_build_object('slug', 'con-marca', 'tipo', 'informativo', 'categoria', 'importa-sin-perder-plata',
         'title', 't', 'excerpt', 'e', 'body_markdown', 'Texto con [VERIFICAR: dato] pendiente') || base_portada,
-      'h', sam);
-    raise exception 'TEST 0546: R2: la marca [VERIFICAR debía fallar';
+      repeat('a', 64), sam);
+    raise exception 'TEST 0547: R2: la marca [VERIFICAR debía fallar';
   exception when check_violation then
     get stacked diagnostics v_cons = constraint_name;
     perform pg_temp.assert_true(v_cons = 'news_posts_sin_marca_verificar',
@@ -347,6 +347,6 @@ begin
 end;
 $contrato$;
 
-select 'TEST 0546 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
+select 'TEST 0547 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 
 rollback;

@@ -3,7 +3,7 @@
  *
  * Puro y sin dependencias: lo usan el render público, el filtro de la
  * publicación automática y las pruebas. Su gemela en la base son los CHECK de
- * `news_posts` y el cuerpo de `news_insertar_post` (migración 0546): misma
+ * `news_posts` y el cuerpo de `news_insertar_post` (migración 0547): misma
  * lista de rutas, mismo patrón de la marca anterior.
  *
  * La regla (decidida por Sam el 2026-11-15), en orden:
@@ -23,7 +23,7 @@ export type OrigenDePortada = (typeof ORIGENES_DE_PORTADA)[number];
 /**
  * Marca anterior en un nombre de archivo o URL: «doortudoor», «door-to-door»,
  * «door to door», «door2door», con separadores o su codificación (`%20`). La
- * misma expresión vive en los CHECK de la 0546.
+ * misma expresión vive en los CHECK de la 0547.
  */
 export const MARCA_ANTERIOR_RE = /door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door/i;
 

@@ -25,7 +25,7 @@ export interface NewsPostRow {
   content_kind?: NewsContentKind | null;
   cover_image_url?: string | null;
   cover_alt?: string | null;
-  /** SDD-0611 §11.5 (migración 0546): de dónde viene la foto y con qué permiso. */
+  /** SDD-0611 §11.5 (migración 0547): de dónde viene la foto y con qué permiso. */
   cover_origin?: "fuente" | "banco" | "propia" | null;
   cover_credit?: string | null;
   cover_license?: string | null;

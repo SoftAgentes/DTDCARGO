@@ -1,8 +1,8 @@
--- SDD-0611 §11.5 · Desarme de la 0546: quita las columnas de portada con licencia.
+-- SDD-0611 §11.5 · Desarme de la 0547: quita las columnas de portada con licencia.
 -- ⚠️ NO ES UNA MIGRACIÓN TODAVÍA. Vive fuera de supabase/migrations/ y sin número, para que nada la
 --    aplique ni la empaquete. Usarla exige OK nominal de Sam: se copia a supabase/migrations/ con el
 --    siguiente número libre y se aplica con el runbook de producción.
--- Ensayo: lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts (bloque «desarme»).
+-- Ensayo: lib/news/autopublicar/__tests__/noticias-0547.migration.test.ts (bloque «desarme»).
 --
 -- SOLO SIRVE MIENTRAS NINGUNA NOTICIA USÓ UNA PORTADA PROPIA. El preflight aborta, sin cambiar nada, si
 -- alguna fila de news_posts tiene portada o alguna de seo_drafts declara una: borrar las columnas
@@ -20,7 +20,7 @@ begin
   if not exists (select 1 from pg_catalog.pg_attribute a
                   where a.attrelid = 'public.news_posts'::regclass
                     and a.attname = 'cover_license_verified_at' and a.attnum > 0 and not a.attisdropped) then
-    raise exception 'Desarme abortado: la 0546 no está aplicada';
+    raise exception 'Desarme abortado: la 0547 no está aplicada';
   end if;
   if exists (select 1 from public.news_posts where cover_image_url is not null) then
     raise exception 'Desarme abortado: hay noticias con portada propia; se perdería su licencia registrada';
