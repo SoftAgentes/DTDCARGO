@@ -4,7 +4,7 @@
 --
 -- Monta el mismo escenario que el contrato de la 0506 (fichas, códigos,
 -- envíos y recibos con sus casos borde), aplica la 0505, la 0506 y la 0553
--- REALES y llama a crm_asegurar_tarjetas_clientes() como lo hará el tablero.
+-- REALES y mide el alta inicial que la 0553 corre al aplicarse.
 --
 -- CONTROL ROJO: sin 0553 cae en la primera aserción (la función no existe).
 --
@@ -189,6 +189,25 @@ insert into public.warehouse_receipts_cn (tenant_id, client_markbox, is_orphan, 
 
 \ir ../migrations/0505_chatwoot_segmento.sql
 \ir ../migrations/0506_crm_modelo.sql
+
+-- ── Antes de la 0553: lo que ya existe en la base cuando se aplica ──────────
+-- clients.advisor_id (0151).
+alter table public.clients add column advisor_id uuid references auth.users(id);
+-- Asesores: 02 → comercial activo de T1; 04 → comercial desactivado; 06 → admin de T2.
+update public.clients set advisor_id = '20000000-0000-0000-0000-000000000002' where id = '30000000-0000-0000-0000-000000000002';
+update public.clients set advisor_id = '20000000-0000-0000-0000-000000000005' where id = '30000000-0000-0000-0000-000000000004';
+update public.clients set advisor_id = '20000000-0000-0000-0000-000000000003' where id = '30000000-0000-0000-0000-000000000006';
+-- 20: fusionada en 01 pero VIVA (sin deleted_at), con envío propio.
+insert into public.clients (id, tenant_id, markbox, phone, merged_into_client_id, deleted_at) values
+  ('30000000-0000-0000-0000-000000000020', '10000000-0000-0000-0000-000000000001', 'DTD-1020', null, '30000000-0000-0000-0000-000000000001', null);
+insert into public.shipments (tenant_id, client_markbox, status, deleted_at) values
+  ('10000000-0000-0000-0000-000000000001', 'DTD-1020', 'in_transit', null);
+-- La ficha 01 (cliente) ya tiene tarjeta, con actividad real; y hay un lead sin ficha.
+insert into public.crm_tarjetas (tenant_id, client_id, fuente, ultima_actividad_at) values
+  ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'web_registro', '2026-11-15 12:00:00+00');
+insert into public.crm_tarjetas (tenant_id, nombre_visible, phone_last10, fuente) values
+  ('10000000-0000-0000-0000-000000000001', 'Lead sin ficha', '4125550299', 'whatsapp_leads');
+
 \ir ../migrations/0553_crm_tarjetas_clientes_con_carga.sql
 
 -- T3 nace después de la 0506: sus etapas las siembra el trigger.
@@ -256,16 +275,14 @@ create function pg_temp.seg(p_client text) returns text language sql as $$
     '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-0000000000' || p_client));
 $$;
 
--- Tenant T1 = 10…01; admin 20…01, comercial 20…02, operaciones 20…04; T2 admin 20…03.
--- Antes de llamar: la ficha 01 (cliente) ya tiene tarjeta, y hay un lead sin ficha.
-insert into public.crm_tarjetas (tenant_id, client_id, fuente) values
-  ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'web_registro');
-insert into public.crm_tarjetas (tenant_id, nombre_visible, phone_last10, fuente) values
-  ('10000000-0000-0000-0000-000000000001', 'Lead sin ficha', '4125550299', 'whatsapp_leads');
-
 create function pg_temp.tiene_tarjeta(p_client text) returns boolean language sql as $$
   select exists (select 1 from public.crm_tarjetas
                  where client_id = ('30000000-0000-0000-0000-0000000000' || p_client)::uuid);
+$$;
+
+create function pg_temp.asesor_de(p_client text) returns uuid language sql as $$
+  select asesor_id from public.crm_tarjetas
+  where client_id = ('30000000-0000-0000-0000-0000000000' || p_client)::uuid;
 $$;
 
 do $alta$
@@ -273,23 +290,17 @@ declare
   v_creadas text;
 begin
   perform pg_temp.assert_true(
-    to_regprocedure('public.crm_asegurar_tarjetas_clientes()') is not null,
-    'la 0553 crea crm_asegurar_tarjetas_clientes()');
+    to_regprocedure('public.crm_alta_tarjetas_clientes(uuid)') is not null,
+    'la 0553 crea crm_alta_tarjetas_clientes(uuid)');
 
-  -- Sin el módulo CRM no corre: operaciones y anon.
-  perform pg_temp.falla('20000000-0000-0000-0000-000000000004',
-    'select public.crm_asegurar_tarjetas_clientes()', 'sin acceso al CRM',
-    'operaciones sin el módulo CRM no crea tarjetas');
+  -- Alta inicial al aplicar: 8 en T1 (01 ya tenía) y 1 en T2.
   perform pg_temp.assert_true(
-    not has_function_privilege('anon', 'public.crm_asegurar_tarjetas_clientes()', 'EXECUTE')
-    and has_function_privilege('authenticated', 'public.crm_asegurar_tarjetas_clientes()', 'EXECUTE'),
-    'la ejecuta authenticated, no anon');
-
-  -- El comercial de T1 la llama: 8 tarjetas nuevas.
-  v_creadas := pg_temp.valor('20000000-0000-0000-0000-000000000002',
-    'public.crm_asegurar_tarjetas_clientes()');
-  perform pg_temp.assert_true(v_creadas = '8',
-    'crea las 8 que faltan (01 ya tenía), creadas: ' || coalesce(v_creadas, 'null'));
+    (select count(*) from public.crm_tarjetas where fuente = 'carga_erp'
+     and tenant_id = '10000000-0000-0000-0000-000000000001') = 8
+    and (select count(*) from public.crm_tarjetas where fuente = 'carga_erp'
+         and tenant_id = '10000000-0000-0000-0000-000000000002') = 1
+    and pg_temp.tiene_tarjeta('19'),
+    'el alta inicial crea al aplicar las 8 que faltan en T1 y la de T2');
 
   -- Clientes con carga: envío en tránsito (01, ya tenía), recibo en China (02),
   -- entregado (04), código del historial (06), carga de la fusionada (07), dos
@@ -302,47 +313,67 @@ begin
     'cada ficha con prueba de carga tiene tarjeta');
   perform pg_temp.assert_true(
     (select count(*) from public.crm_tarjetas
-     where client_id = '30000000-0000-0000-0000-000000000001') = 1,
-    'la ficha que ya tenía tarjeta no recibe otra');
+     where client_id = '30000000-0000-0000-0000-000000000001') = 1
+    and (select ultima_actividad_at from public.crm_tarjetas
+         where client_id = '30000000-0000-0000-0000-000000000001') = '2026-11-15 12:00:00+00',
+    'la ficha que ya tenía tarjeta no recibe otra ni se toca');
 
   -- Sin prueba de carga: registrado sin carga (05), envío solo de otro tenant
   -- (03), borrador + cancelado + envío borrado + recibo borrado (13), recibo
-  -- huérfano (15), ficha borrada con envío (16) y fichas fusionadas (08, 11, 12).
+  -- huérfano (15), ficha borrada con envío (16), fusionadas borradas (08, 11,
+  -- 12) y fusionada VIVA con envío propio (20).
   perform pg_temp.assert_true(
     not pg_temp.tiene_tarjeta('03') and not pg_temp.tiene_tarjeta('05')
     and not pg_temp.tiene_tarjeta('13') and not pg_temp.tiene_tarjeta('15')
     and not pg_temp.tiene_tarjeta('16') and not pg_temp.tiene_tarjeta('08')
     and not pg_temp.tiene_tarjeta('11') and not pg_temp.tiene_tarjeta('12'),
-    'carga anulada, huérfana, de otro tenant, ficha borrada o fusionada: sin tarjeta');
+    'carga anulada, huérfana, de otro tenant, ficha borrada o fusionada borrada: sin tarjeta');
+  perform pg_temp.assert_true(not pg_temp.tiene_tarjeta('20'),
+    'una ficha fusionada viva no recibe tarjeta: su carga es de la ficha que queda');
+
+  -- No aparenta actividad: va al final del orden del tablero.
+  perform pg_temp.assert_true(not exists (
+    select 1 from public.crm_tarjetas
+    where fuente = 'carga_erp' and ultima_actividad_at <> '2000-01-01 00:00:00+00'
+  ), 'la tarjeta nueva no aparenta actividad: ultima_actividad_at = 2000-01-01');
+
+  -- Asesor heredado solo si sigue activo en el tenant.
+  perform pg_temp.assert_true(
+    pg_temp.asesor_de('02') = '20000000-0000-0000-0000-000000000002'
+    and pg_temp.asesor_de('04') is null
+    and pg_temp.asesor_de('06') is null
+    and pg_temp.asesor_de('07') is null,
+    'hereda el asesor activo de la ficha; desactivado o de otro tenant, sin asesor');
 
   perform pg_temp.assert_true(not exists (
     select 1 from public.crm_tarjetas
     where fuente = 'carga_erp'
       and (nombre_visible is not null or phone_last10 is not null or chatwoot_contact_id is not null
-           or bsuid is not null or asesor_id is not null
-           or etapa_clientes <> 'activo' or etapa_leads <> 'nuevo')
-  ), 'la tarjeta nueva solo guarda tenant, ficha y fuente, en Clientes › Activo');
+           or bsuid is not null or etapa_clientes <> 'activo' or etapa_leads <> 'nuevo')
+  ), 'la tarjeta nueva no copia nombre ni teléfono y nace en Clientes › Activo');
   perform pg_temp.assert_true(
     (select count(*) from public.crm_tarjetas where nombre_visible = 'Lead sin ficha') = 1,
     'no toca la tarjeta del lead sin ficha');
 
-  -- Idempotente: la segunda vez no crea nada.
-  v_creadas := pg_temp.valor('20000000-0000-0000-0000-000000000001',
-    'public.crm_asegurar_tarjetas_clientes()');
-  perform pg_temp.assert_true(v_creadas = '0', 'la segunda llamada no crea nada');
+  -- Solo service_role: ni la vista ni anon la llaman.
+  perform pg_temp.assert_true(
+    not has_function_privilege('anon', 'public.crm_alta_tarjetas_clientes(uuid)', 'EXECUTE')
+    and not has_function_privilege('authenticated', 'public.crm_alta_tarjetas_clientes(uuid)', 'EXECUTE')
+    and has_function_privilege('service_role', 'public.crm_alta_tarjetas_clientes(uuid)', 'EXECUTE'),
+    'la ejecuta solo service_role');
+  perform pg_temp.falla('20000000-0000-0000-0000-000000000001',
+    'select public.crm_alta_tarjetas_clientes(''10000000-0000-0000-0000-000000000001''::uuid)',
+    'permission denied|permiso denegado', 'un admin con sesión no la llama');
 
-  -- Otro tenant: el admin de T2 crea la de su cliente (19) y nada en T1.
-  v_creadas := pg_temp.valor('20000000-0000-0000-0000-000000000003',
-    'public.crm_asegurar_tarjetas_clientes()');
-  perform pg_temp.assert_true(v_creadas = '1' and pg_temp.tiene_tarjeta('19')
-    and (select count(*) from public.crm_tarjetas
-         where tenant_id = '10000000-0000-0000-0000-000000000001') = 10,
-    'cada tenant solo crea las suyas');
+  -- Idempotente: otra corrida no crea nada.
+  v_creadas := pg_temp.valor(null,
+    'public.crm_alta_tarjetas_clientes(''10000000-0000-0000-0000-000000000001''::uuid)');
+  perform pg_temp.assert_true(v_creadas = '0', 'una segunda corrida no crea nada');
 
   -- Un cliente que pierde su carga conserva la tarjeta; el segmento lo baja solo.
   update public.shipments set status = 'cancelled' where client_markbox = 'DTD-1017';
-  v_creadas := pg_temp.valor('20000000-0000-0000-0000-000000000002',
-    'public.crm_asegurar_tarjetas_clientes()');
+  v_creadas := pg_temp.valor(null,
+    'public.crm_alta_tarjetas_clientes(''10000000-0000-0000-0000-000000000001''::uuid)');
   perform pg_temp.assert_true(v_creadas = '0' and pg_temp.tiene_tarjeta('17')
     and pg_temp.seg('17') = 'lead_registrado',
     'cancelar su único envío no borra la tarjeta: pasa a lead_registrado');
@@ -354,7 +385,7 @@ begin
     'crm_tarjetas_fuente_check', 'una fuente fuera de la lista no entra');
   perform pg_temp.assert_true(
     exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public' and p.proname = 'crm_asegurar_tarjetas_clientes'
+            where n.nspname = 'public' and p.proname = 'crm_alta_tarjetas_clientes'
               and p.prosecdef and p.proconfig = array['search_path=""']),
     'security definer con search_path vacío');
 end;

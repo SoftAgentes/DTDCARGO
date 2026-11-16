@@ -1,6 +1,6 @@
 # Handoff · SDD-0647 — CRM › Embudos: Clientes, Leads y Leads con código
 
-Fecha: 2026-11-16 · Rama `claude/hungry-proskuriakova-1c7b26` · Reserva `refs/dtd/reservations/0647`.
+Fecha: 2026-11-16 · Rama `claude/sdd-0647-crm-segmentos` (PR #621) · Reserva `refs/dtd/reservations/0647`.
 
 ## Hecho
 
@@ -8,9 +8,13 @@ Fecha: 2026-11-16 · Rama `claude/hungry-proskuriakova-1c7b26` · Reserva `refs/
 - Tres vistas en `CRM_VISTAS` (`lib/studio/crm-tablero.ts`): Clientes (segmento `cliente` de la 0506),
   Leads con código (con Shipping Mark, sin carga) y Leads (sin ficha o sin código). Disjuntas, extensibles.
 - Pestañas con su conteo en `CrmEmbudosClient.tsx`; `?embudo=` acepta `leads_con_codigo`.
-- Migración **0553** (en espera): `crm_asegurar_tarjetas_clientes()` crea la tarjeta de cada cliente con
-  carga que no la tiene, al abrir Embudos. Fuente nueva `carga_erp`. Desarme `supabase/desarmes/0553_desarme.sql`.
-  Sin la 0553 el tablero degrada (declarado en `pending-migration-symbol-declarations.json`).
+- Migración **0553** (en espera): `crm_alta_tarjetas_clientes(tenant)` (solo service_role) y un alta inicial
+  que corre una vez al aplicar. Fecha de actividad 2000-01-01 y asesor heredado si está activo. Fuente nueva
+  `carga_erp`. La vista no escribe. Desarme `supabase/desarmes/0553_desarme.sql`.
+- Revisión independiente del DG (CHANGES_REQUESTED sobre f29d95a4f), atendida: (1) actividad baja fija;
+  (2) alta inicial en la 0553 y sin escritura desde la vista; (3) el `console.warn` ya no aplica porque la
+  llamada se quitó; (4) caso de ficha fusionada viva. La prueba con `crm_puede_usar()` de la 0539 ya no
+  aplica: la función no lo usa, es solo de service_role; (5) asesor heredado.
 - `CrmTarjetaTablero` suma `fuente` y `utmSource`, pedidos por la sesión de la visual.
 
 ## Evidencia
@@ -19,6 +23,10 @@ Fecha: 2026-11-16 · Rama `claude/hungry-proskuriakova-1c7b26` · Reserva `refs/
   PASÓ, 254 pruebas en 17 archivos (crm-tablero, crm-tablero-queries, migración en PGlite con mutantes,
   `app/studio/(app)/crm`). Después del cambio: NO EJECUTADO localmente, porque el `node_modules` del
   checkout principal apunta a otro worktree que cambió a las 17:30. Lo cubre el CI.
+- Cambios de la revisión (alta inicial, fecha baja, asesor, fusionada viva, vista sin escritura): prueba
+  local NO EJECUTADA. Este worktree no tiene install propio y el `node_modules` compartido está roto; el DG
+  decidió (2026-11-16) publicar sin correr nada local para no hacer cola en la PC. El portón es el CI de
+  GitHub (Vitest y PGlite completos). Si sale rojo, el DG da turno.
 - `check-pending-migration-symbols`: PASÓ (0 rojo, 1 amarillo declarado). `check-numbering`: PASÓ. Índice
   de specs regenerado.
 - `pnpm verify`: NO EJECUTADO (requiere turno del DG). Lint y tipos: los mide el CI.
@@ -28,6 +36,8 @@ Fecha: 2026-11-16 · Rama `claude/hungry-proskuriakova-1c7b26` · Reserva `refs/
 
 - CI verde de la PR; revisión independiente (la lanza el DG).
 - Aplicar la 0553 en producción: solo con OK nominal de Sam para el archivo, en el chat del DG, con el runbook.
+  Antes, el conteo de solo lectura de fichas cliente sin tarjeta.
+- Fichas que ganen carga después de aplicar: no reciben tarjeta sola (spec §7).
 
 ## FUERA DE ALCANCE DETECTADO
 

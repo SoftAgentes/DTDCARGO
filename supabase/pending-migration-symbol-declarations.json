@@ -7,32 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "crm-tablero-sin-0553",
-      "primarySymbol": "crm_asegurar_tarjetas_clientes",
-      "migration": "0553_crm_tarjetas_clientes_con_carga",
-      "symbols": [
-        {
-          "kind": "function",
-          "name": "crm_asegurar_tarjetas_clientes",
-          "callSites": [
-            "lib/studio/crm-tablero-queries.ts:119"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/crm-tablero-queries.ts:120",
-          "contains": "if (error) return null;",
-          "degradation": "Sin la 0553 la RPC devuelve error y el alta se salta: no lanza ni corta la carga."
-        },
-        {
-          "site": "lib/studio/crm-tablero-queries.ts:142",
-          "contains": "await asegurarTarjetasClientes(supabase);",
-          "degradation": "El tablero ignora el resultado del alta y sigue leyendo las tarjetas que ya existen."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }

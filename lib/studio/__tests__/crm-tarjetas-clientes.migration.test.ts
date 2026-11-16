@@ -5,8 +5,8 @@
  * El contrato `supabase/tests/0553_crm_tarjetas_clientes_con_carga.test.sql`
  * monta el escenario de la 0506 (carga viva, entregada, cancelada, borrador,
  * borrada, huérfana, de otro tenant, por historial y por fusión), aplica la
- * 0505, la 0506 y la 0553 REALES y llama a `crm_asegurar_tarjetas_clientes()`
- * como lo hará el tablero.
+ * 0505, la 0506 y la 0553 REALES y mide el alta inicial que la 0553 corre al
+ * aplicarse (`crm_alta_tarjetas_clientes`, solo service_role: la vista no escribe).
  *
  * CONTROL ROJO: sin 0553 el contrato cae en la primera aserción.
  * MUTANTES: cada uno es una 0553 coherente con un defecto y cae en la aserción
@@ -81,20 +81,34 @@ describe("SDD-0647 · 0553 tarjetas para los clientes con carga (PGlite)", () =>
   it("CONTROL ROJO: sin la 0553 la función no existe y el contrato cae", async () => {
     const run = await contract({ [M0553]: "select 1;" });
     expect(run.green).toBeUndefined();
-    expect(run.error).toMatch(/TEST 0553: la 0553 crea crm_asegurar_tarjetas_clientes/);
+    expect(run.error).toMatch(/TEST 0553: la 0553 crea crm_alta_tarjetas_clientes/);
   }, SLOW);
 
   const MUTANTES: [string, string, string, RegExp][] = [
-    ["sin exigir el módulo CRM", "not coalesce((select public.crm_puede_usar()), false)", "false", /TEST 0553: operaciones sin el módulo CRM/],
-    ["abierta a anon", "revoke all on function public.crm_asegurar_tarjetas_clientes() from anon;", "grant execute on function public.crm_asegurar_tarjetas_clientes() to anon;", /TEST 0553: la ejecuta authenticated, no anon/],
-    ["crea también a los leads", "  where s.segmento = 'cliente'\n", "\n", /TEST 0553: crea las 8 que faltan/],
-    // Sin mutante (equivalentes): quitar `c.deleted_at is null` o `c.tenant_id = v_tenant`
+    ["sin alta inicial", "    v_total := v_total + public.crm_alta_tarjetas_clientes(v_tenant);", "    v_total := v_total;", /TEST 0553: el alta inicial crea/],
+    ["crea también a los leads", "  where s.segmento = 'cliente'
+", "
+", /TEST 0553: el alta inicial crea/],
+    ["fusionada viva recibe tarjeta", "        and c.merged_into_client_id is null
+", "", /TEST 0553: el alta inicial crea|TEST 0553: una ficha fusionada viva/],
+    ["aparenta actividad de hoy", ", timestamptz '2000-01-01 00:00:00+00'", ", pg_catalog.now()", /TEST 0553: la tarjeta nueva no aparenta actividad/],
+    ["sin heredar el asesor", "'carga_erp', ut.user_id,", "'carga_erp', null,", /TEST 0553: hereda el asesor activo/],
+    ["asesor desactivado", "   and ut.disabled_at is null
+", "", /el asesor no es del tenant|TEST 0553: hereda el asesor activo/],
+    ["asesor de otro tenant", "   and ut.tenant_id = p_tenant_id
+", "", /el asesor no es del tenant|TEST 0553: hereda el asesor activo|TEST 0553: el alta inicial crea/],
+    [
+      "abierta a la sesión",
+      "revoke all on function public.crm_alta_tarjetas_clientes(uuid) from anon, authenticated;",
+      "grant execute on function public.crm_alta_tarjetas_clientes(uuid) to authenticated;",
+      /TEST 0553: la ejecuta solo service_role/,
+    ],
+    ["fuente libre", "'kommo', 'manual', 'carga_erp'));", "'kommo', 'manual', 'carga_erp', 'inventada'));", /TEST 0553: una fuente fuera de la lista no entra/],
+    // Sin mutante (equivalentes): quitar `c.deleted_at is null` o `c.tenant_id = p_tenant_id`
     // no cambia nada porque `crm_segmento_clientes` (0506) ya descarta fichas borradas y
     // de otro tenant (sus mutantes están en crm-modelo.migration.test.ts); quitar el
     // `not exists` tampoco, porque `on conflict do nothing` sobre crm_tarjetas_client_uq
     // ya impide la segunda tarjeta. Se conservan como filtro temprano.
-    ["otra etapa de entrada", "  insert into public.crm_tarjetas (tenant_id, client_id, fuente)\n  select v_tenant, s.client_id, 'carga_erp'", "  insert into public.crm_tarjetas (tenant_id, client_id, fuente, etapa_clientes)\n  select v_tenant, s.client_id, 'carga_erp', 'postventa'", /TEST 0553: la tarjeta nueva solo guarda tenant, ficha y fuente|violates foreign key|viola/],
-    ["fuente libre", "'kommo', 'manual', 'carga_erp'));", "'kommo', 'manual', 'carga_erp', 'inventada'));", /TEST 0553: una fuente fuera de la lista no entra/],
   ];
 
   for (const [nombre, from, to, espera] of MUTANTES) {
@@ -108,7 +122,7 @@ describe("SDD-0647 · 0553 tarjetas para los clientes con carga (PGlite)", () =>
   it("REAPLICAR: el preflight aborta si ya existe", async () => {
     const run = await contract({ [M0553]: `${FILE_0553}\n${FILE_0553}` });
     expect(run.green).toBeUndefined();
-    expect(run.error).toMatch(/0553 requiere el CHECK|0553: crm_asegurar_tarjetas_clientes ya existe/);
+    expect(run.error).toMatch(/0553: crm_alta_tarjetas_clientes ya existe/);
   }, SLOW);
 
   it("PREFLIGHT: sin la 0506 aborta sin crear nada", async () => {
