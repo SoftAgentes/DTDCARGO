@@ -6,7 +6,7 @@
  *     node scripts/auditoria-geo-aeo.mjs --base https://staging.example.com
  *     node scripts/auditoria-geo-aeo.mjs --sitemap ./sitemap.xml --base https://dtdcargo.com
  *     node scripts/auditoria-geo-aeo.mjs --json              # además escribe auditoria-geo-aeo-AAAA-MM-DD.json
- *     node scripts/auditoria-geo-aeo.mjs --json salida.json --estricto
+ *     node scripts/auditoria-geo-aeo.mjs --json salida.json --no-estricto   (por defecto sale 1 si hay FALLAS)
  *
  * Por página marca PASA / FALLA / MANUAL solo sobre lo que una máquina puede medir en el HTML
  * que entrega el servidor. No renderiza JavaScript, no mide velocidad, no usa cuentas ni llaves.
@@ -24,7 +24,7 @@
  */
 
 import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /* ------------------------------------------------------------------ */
@@ -125,7 +125,7 @@ export function decodificarEntidades(s) {
 
 const limpiarEspacios = (s) => s.replace(/\s+/g, " ").trim();
 /** Longitud en caracteres visibles (puntos de código, no unidades UTF-16). */
-const largo = (s) => [...s].length;
+const largo = (s) => [...s.normalize("NFC")].length; // NFC: una vocal con tilde en NFD cuenta 1
 
 function atributos(etiqueta) {
   const out = {};
@@ -241,6 +241,7 @@ export function extraerEnlacesInternos(html, paginaUrl) {
 /** URL de cada `<loc>` de un sitemap; con `base`, reemplaza el origen (útil para staging). */
 export function parsearSitemap(xml, base = null) {
   const urls = [];
+  let propio = null;
   for (const m of xml.matchAll(/<url\b[\s\S]*?<\/url>/gi)) {
     const loc = /<loc>([\s\S]*?)<\/loc>/i.exec(m[0]);
     if (!loc) continue;
@@ -248,7 +249,9 @@ export function parsearSitemap(xml, base = null) {
     let url = decodificarEntidades(loc[1].trim());
     if (base) {
       const u = new URL(url);
-      url = new URL(u.pathname + u.search, base).href;
+      propio ??= u.origin;
+      // Solo se reescribe el origen propio del sitemap; una <loc> de otro dominio queda tal cual y falla.
+      if (u.origin === propio) url = new URL(u.pathname + u.search, base).href;
     }
     urls.push({ url, lastmod: lm ? lm[1].trim() : null });
   }
@@ -281,7 +284,7 @@ export function analizarPagina(pagina, config = {}) {
   const checks = {};
 
   // 1. HTTP
-  checks.http = pagina.status === 200 ? PASA("200") : FALLA(`respuesta ${pagina.status ?? "sin respuesta"}`);
+  checks.http = pagina.status === 200 ? PASA("200") : FALLA(pagina.error ? `sin respuesta: ${pagina.error}` : `respuesta ${pagina.status ?? "sin respuesta"}`);
 
   // 2. Título ≤ 60
   const titulo = extraerTitulo(html);
@@ -362,7 +365,7 @@ export function analizarPagina(pagina, config = {}) {
     for (const id of exc.omite) if (checks[id]) checks[id] = NA(`excepción: ${exc.motivo}`);
   }
 
-  return { url: pagina.url, ruta, status: pagina.status ?? null, titulo, h1, palabras, enlaces: [...extraerEnlacesInternos(html, pagina.url)], checks };
+  return { url: pagina.url, ruta, status: pagina.status ?? null, titulo, h1, palabras, enlaces: [...extraerEnlacesInternos(html, pagina.url)], error: pagina.error ?? null, checks };
 }
 
 /**
@@ -452,8 +455,9 @@ export function formatearFallas(paginas) {
   return lineas.join("\n");
 }
 
-export function construirInforme({ base, sitemap, paginas, fecha = new Date() }) {
+export function construirInforme({ base, sitemap, paginas, fecha = new Date(), truncado = null }) {
   return {
+    ...(truncado ? { truncado } : {}),
     fecha: fecha.toISOString(),
     base,
     sitemap,
@@ -466,6 +470,7 @@ export function construirInforme({ base, sitemap, paginas, fecha = new Date() })
       titulo: p.titulo,
       palabras: p.palabras,
       entrantes: p.entrantes ?? null,
+      error: p.error ?? null,
       checks: p.checks,
     })),
   };
@@ -482,25 +487,57 @@ export const PAUSA_POR_DEFECTO_MS = 1000;
 
 const dormir = (ms) => new Promise((res) => setTimeout(res, ms));
 
-async function leerTexto(origen) {
+/** Tope de espera por pedido (ms). */
+export const TIMEOUT_MS = 20_000;
+/** Tope de URL auditadas por corrida. */
+export const MAX_POR_DEFECTO = 200;
+const MAX_REDIRECCIONES = 5;
+
+/**
+ * Un pedido que solo sigue redirecciones DENTRO del mismo origen (`origen`). Si una redirección
+ * sale a otro origen, lanza error y no la sigue. Siempre con tope de tiempo.
+ */
+export async function pedir(url, { origen, fetchFn = fetch, timeoutMs = TIMEOUT_MS, accept = "*/*" } = {}) {
+  let actual = url;
+  for (let salto = 0; salto <= MAX_REDIRECCIONES; salto++) {
+    const res = await fetchFn(actual, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { "user-agent": USER_AGENT, accept },
+    });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return res;
+      const destino = new URL(loc, actual);
+      if (origen && destino.origin !== origen) throw new Error(`redirige a otro origen (${destino.origin}); no se sigue`);
+      actual = destino.href;
+      continue;
+    }
+    return res;
+  }
+  throw new Error(`más de ${MAX_REDIRECCIONES} redirecciones`);
+}
+
+const motivo = (e) => (e?.name === "TimeoutError" || e?.name === "AbortError" ? `tiempo agotado (${TIMEOUT_MS / 1000} s)` : String(e?.cause?.code ?? e?.message ?? e));
+
+async function leerTexto(origen, deps) {
   if (/^https?:\/\//i.test(origen)) {
-    const res = await fetch(origen, { headers: { "user-agent": USER_AGENT } });
+    const res = await pedir(origen, { origen: new URL(origen).origin, fetchFn: deps.fetchFn, timeoutMs: deps.timeoutMs });
     if (!res.ok) throw new Error(`${origen}: HTTP ${res.status}`);
     return res.text();
   }
   return readFile(origen, "utf8");
 }
 
-async function bajarPagina(url) {
+async function bajarPagina(url, origen, deps) {
+  if (new URL(url).origin !== origen) {
+    return { url, status: null, headers: {}, html: "", error: `la URL del sitemap es de otro origen (${new URL(url).origin}); solo se audita ${origen}` };
+  }
   try {
-    const res = await fetch(url, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(20_000),
-      headers: { "user-agent": USER_AGENT, accept: "text/html" },
-    });
+    const res = await pedir(url, { origen, fetchFn: deps.fetchFn, timeoutMs: deps.timeoutMs, accept: "text/html" });
     return { url, status: res.status, headers: { "x-robots-tag": res.headers.get("x-robots-tag") ?? "" }, html: await res.text() };
   } catch (e) {
-    return { url, status: null, headers: {}, html: "", error: String(e?.message ?? e) };
+    return { url, status: null, headers: {}, html: "", error: motivo(e) };
   }
 }
 
@@ -516,12 +553,20 @@ export function candidatosLocales(ruta) {
 }
 
 async function leerPaginaLocal(dir, url) {
-  for (const c of candidatosLocales(new URL(url).pathname)) {
-    try {
-      return { url, status: 200, headers: {}, html: await readFile(join(dir, c), "utf8") };
-    } catch {
-      /* probar el siguiente candidato */
+  const raiz = resolve(dir);
+  try {
+    for (const c of candidatosLocales(new URL(url).pathname)) {
+      const archivo = resolve(raiz, c);
+      const rel = relative(raiz, archivo);
+      if (!rel || rel.startsWith("..") || isAbsolute(rel)) return { url, status: null, headers: {}, html: "", error: "ruta fuera de la carpeta --html-dir" };
+      try {
+        return { url, status: 200, headers: {}, html: await readFile(archivo, "utf8") };
+      } catch {
+        /* probar el siguiente candidato */
+      }
     }
+  } catch (e) {
+    return { url, status: null, headers: {}, html: "", error: `ruta no válida: ${e?.message ?? e}` };
   }
   return { url, status: null, headers: {}, html: "", error: "archivo local no encontrado" };
 }
@@ -537,7 +582,7 @@ async function enSerie(items, pausaMs, fn) {
 }
 
 export function leerArgumentos(argv) {
-  const a = { base: BASE_POR_DEFECTO, baseExplicita: false, sitemap: null, htmlDir: null, pausa: PAUSA_POR_DEFECTO_MS, json: null, estricto: false, ayuda: false };
+  const a = { base: BASE_POR_DEFECTO, baseExplicita: false, sitemap: null, htmlDir: null, pausa: PAUSA_POR_DEFECTO_MS, max: MAX_POR_DEFECTO, json: null, estricto: true, ayuda: false };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === "--base") (a.base = argv[++i]), (a.baseExplicita = true);
@@ -546,55 +591,75 @@ export function leerArgumentos(argv) {
     else if (v === "--pausa") {
       a.pausa = Number(argv[++i]);
       if (!Number.isFinite(a.pausa) || a.pausa < 0) throw new Error("--pausa necesita un número de milisegundos ≥ 0");
-    }
-    else if (v === "--json") a.json = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
+    } else if (v === "--max") {
+      a.max = Number(argv[++i]);
+      if (!Number.isInteger(a.max) || a.max < 1) throw new Error("--max necesita un entero ≥ 1");
+    } else if (v === "--json") a.json = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
     else if (v === "--estricto") a.estricto = true;
+    else if (v === "--no-estricto") a.estricto = false;
     else if (v === "--help" || v === "-h") a.ayuda = true;
     else throw new Error(`Argumento desconocido: ${v}`);
   }
   return a;
 }
 
-const AYUDA = `Uso: node scripts/auditoria-geo-aeo.mjs [--base URL] [--sitemap URL|archivo] [--html-dir carpeta] [--pausa ms] [--json [archivo]] [--estricto]
-  --base URL        origen a auditar (por defecto ${BASE_POR_DEFECTO}); con --sitemap local, reescribe el origen de cada <loc>
-  --sitemap X       sitemap alterno: URL o archivo local (por defecto <base>/sitemap.xml)
+/** Nombre de archivo del informe JSON: solo un nombre simple `.json` (se escribe en la carpeta actual). */
+export function nombreJsonSeguro(nombre) {
+  if (!/^[\w.-]+\.json$/.test(nombre) || nombre.includes("..")) {
+    throw new Error("--json acepta solo un nombre simple terminado en .json (sin carpetas), que se escribe en la carpeta actual.");
+  }
+  return nombre;
+}
+
+const AYUDA = `Uso: node scripts/auditoria-geo-aeo.mjs [--base URL] [--sitemap URL|archivo] [--html-dir carpeta] [--pausa ms] [--max N] [--json [nombre.json]] [--no-estricto]
+  --base URL        origen a auditar (por defecto ${BASE_POR_DEFECTO}); con --sitemap, reescribe el origen propio de cada <loc>
+  --sitemap X       sitemap alterno: URL o archivo local (por defecto <base>/sitemap.xml). Sin --base y con URL, el origen sale del sitemap
   --html-dir D      lee el HTML de cada página de una carpeta local (/ = index.html; /fcl = fcl.html o fcl/index.html)
                     y NO toca el sitio; exige --sitemap con un archivo local
   --pausa ms        pausa entre pedidos al sitio en vivo (por defecto ${PAUSA_POR_DEFECTO_MS}); siempre un pedido a la vez
-  --json [archivo]  escribe el informe JSON (por defecto auditoria-geo-aeo-AAAA-MM-DD.json)
-  --estricto        sale con código 1 si hay alguna FALLA (por defecto siempre 0)`;
+  --max N           tope de URL por corrida (por defecto ${MAX_POR_DEFECTO}); si el sitemap trae más, corta y avisa
+  --json [nombre]   escribe el informe JSON en la carpeta actual (por defecto auditoria-geo-aeo-AAAA-MM-DD.json)
+  --no-estricto     sale con código 0 aunque haya FALLAS (por defecto sale 1 si hay alguna; 2 si el script no pudo correr)
+Solo se audita el dominio propio: una URL o redirección a otro origen cuenta como FALLA y no se sigue.`;
 
-export async function main(argv = process.argv.slice(2)) {
+export async function main(argv = process.argv.slice(2), deps = {}) {
+  const { fetchFn = fetch, log = console.log, timeoutMs = TIMEOUT_MS } = deps;
   const args = leerArgumentos(argv);
-  if (args.ayuda) return console.log(AYUDA), 0;
-  if (args.htmlDir && (!args.sitemap || /^https?:\/\//i.test(args.sitemap))) {
+  if (args.ayuda) return log(AYUDA), 0;
+  const sitemapEsUrl = !!args.sitemap && /^https?:\/\//i.test(args.sitemap);
+  if (args.htmlDir && (!args.sitemap || sitemapEsUrl)) {
     throw new Error("--html-dir exige --sitemap con un archivo local (así no se toca el sitio).");
   }
-  const sitemapSrc = args.sitemap ?? new URL("/sitemap.xml", args.base).href;
-  const xml = await leerTexto(sitemapSrc);
-  const entradas = parsearSitemap(xml, args.sitemap && !args.baseExplicita ? null : args.base);
-  if (!entradas.length) throw new Error(`El sitemap ${sitemapSrc} no trae ninguna <loc>.`);
-  console.log(`Auditando ${entradas.length} URL de ${sitemapSrc}${args.htmlDir ? ` (HTML local: ${args.htmlDir})` : `, un pedido a la vez con pausa de ${args.pausa} ms`} …`);
+  const archivoJson = args.json ? nombreJsonSeguro(args.json === true ? `auditoria-geo-aeo-${new Date().toISOString().slice(0, 10)}.json` : args.json) : null;
+  // Origen auditado: --base; si no, el del sitemap (si es URL) o el de su primera <loc> (si es archivo); sin sitemap, la base por defecto.
+  const origenBase = new URL(args.baseExplicita ? args.base : sitemapEsUrl ? args.sitemap : args.base).origin;
+  const sitemapSrc = args.sitemap ?? new URL("/sitemap.xml", origenBase).href;
+  const xml = await leerTexto(sitemapSrc, { fetchFn, timeoutMs });
+  const primera = parsearSitemap(xml)[0];
+  const origen = args.baseExplicita || !args.sitemap || sitemapEsUrl || !primera ? origenBase : new URL(primera.url).origin;
+  const todas = parsearSitemap(xml, origen);
+  if (!todas.length) throw new Error(`El sitemap ${sitemapSrc} no trae ninguna <loc>.`);
+  const entradas = todas.slice(0, args.max);
+  const truncado = todas.length > entradas.length ? { total: todas.length, auditadas: entradas.length } : null;
+  log(`Auditando ${entradas.length} URL de ${sitemapSrc}${args.htmlDir ? ` (HTML local: ${args.htmlDir})` : `, un pedido a la vez con pausa de ${args.pausa} ms`} …`);
+  if (truncado) log(`AVISO: el sitemap trae ${truncado.total} URL; se auditan solo las primeras ${truncado.auditadas} (--max ${args.max}). Sube --max para ver el resto.`);
   const bajadas = args.htmlDir
     ? await Promise.all(entradas.map((e) => leerPaginaLocal(args.htmlDir, e.url)))
-    : await enSerie(entradas, args.pausa, (e) => bajarPagina(e.url));
+    : await enSerie(entradas, args.pausa, (e) => bajarPagina(e.url, origen, { fetchFn, timeoutMs }));
   const paginas = analizarSitio(bajadas.map((p) => analizarPagina(p)));
-  console.log("\n" + formatearTabla(paginas));
+  log("\n" + formatearTabla(paginas));
   const fallas = formatearFallas(paginas);
-  if (fallas) console.log("\nFallas:\n" + fallas);
+  if (fallas) log("\nFallas:\n" + fallas);
   const res = resumir(paginas);
-  console.log(
-    `\n${res.paginas} páginas · comprobaciones: ${res.comprobaciones.PASA} pasan, ${res.comprobaciones.FALLA} fallan, ${res.comprobaciones.MANUAL} manuales, ${res["comprobaciones"]["N/A"]} no aplican`,
-  );
-  console.log("(Conteo de comprobaciones reales; no es un puntaje.)");
-  if (args.json) {
-    const fecha = new Date();
-    const archivo = args.json === true ? `auditoria-geo-aeo-${fecha.toISOString().slice(0, 10)}.json` : args.json;
-    await writeFile(archivo, JSON.stringify(construirInforme({ base: args.base, sitemap: sitemapSrc, paginas, fecha }), null, 2) + "\n");
-    console.log(`Informe JSON: ${archivo}`);
+  log(`\n${res.paginas} páginas · comprobaciones: ${res.comprobaciones.PASA} pasan, ${res.comprobaciones.FALLA} fallan, ${res.comprobaciones.MANUAL} manuales, ${res["comprobaciones"]["N/A"]} no aplican`);
+  log("(Conteo de comprobaciones reales; no es un puntaje.)");
+  if (archivoJson) {
+    await writeFile(archivoJson, JSON.stringify(construirInforme({ base: origen, sitemap: sitemapSrc, paginas, truncado }), null, 2) + "\n");
+    log(`Informe JSON: ${archivoJson}`);
   }
   return args.estricto && res.comprobaciones.FALLA > 0 ? 1 : 0;
 }
+
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main().then(

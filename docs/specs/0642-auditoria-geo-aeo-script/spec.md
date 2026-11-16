@@ -72,19 +72,22 @@ node scripts/auditoria-geo-aeo.mjs                       # sitemap de https://dt
 node scripts/auditoria-geo-aeo.mjs --base https://staging.example.com
 node scripts/auditoria-geo-aeo.mjs --sitemap ./sitemap.xml --base https://dtdcargo.com
 node scripts/auditoria-geo-aeo.mjs --json                # además escribe auditoria-geo-aeo-AAAA-MM-DD.json
-node scripts/auditoria-geo-aeo.mjs --json salida.json --estricto
+node scripts/auditoria-geo-aeo.mjs --json salida.json --no-estricto   # sale 0 aunque haya FALLAS
 ```
 
 - `--base URL`: origen a auditar. Con `--sitemap` local, reescribe el origen de cada `<loc>` (para auditar
   un staging con el sitemap de producción).
 - `--sitemap X`: URL o archivo local.
 - **Con el sitio en vivo:** un pedido a la vez, con pausa entre pedidos y user-agent genérico `auditoria-geo-aeo/1` (sin datos de Sam ni del repositorio). Condición del DG, 2026-11-16.
-- `--json [archivo]`: informe con fecha, resumen y el detalle de cada comprobación. El nombre por defecto
+- `--json`: informe con fecha, resumen y el detalle de cada comprobación. El nombre por defecto
   está ignorado por Git (`.gitignore`); un informe con datos reales es evidencia fechada, no código.
 - `--html-dir carpeta`: lee el HTML de cada página de una carpeta local (`/` = `index.html`; `/fcl` = `fcl.html` o `fcl/index.html`) y **no toca el sitio**. Exige `--sitemap` con un archivo local.
 - `--pausa ms`: pausa entre pedidos al sitio en vivo (1000 por defecto).
-- `--estricto`: sale con código 1 si hay alguna FALLA. Por defecto siempre sale 0, para que no se vuelva
-  una meta que se persiga por sí misma. No está cableado a `pnpm verify` ni al CI.
+- `--max N`: tope de URL por corrida (200 por defecto). Si el sitemap trae más, corta y avisa (el JSON lleva `truncado`).
+- **Código de salida** (decisión del DG, 2026-11-16; 0641 §7b): **1 si hay alguna FALLA**, 0 si no, 2 si el script no pudo correr. `--no-estricto` lo deja en 0 aunque haya FALLAS (explícito); `--estricto` se acepta y es el comportamiento por defecto. No está cableado a `pnpm verify` ni al CI.
+- **Solo el dominio propio:** cada URL del sitemap debe tener el origen de `--base` (o, sin `--base`, el del sitemap: la URL, o la primera `<loc>` si es un archivo). Una `<loc>` de otro origen no se pide y cuenta como FALLA en `http`. Las redirecciones se siguen a mano y solo dentro del mismo origen; una que salga a otro host no se sigue y cuenta como FALLA. Todo pedido (también el del sitemap) lleva tope de 20 s. Con `--base`, solo se reescribe el origen propio del sitemap.
+- `--json [nombre.json]`: solo un nombre simple terminado en `.json`, sin carpetas; se escribe en la carpeta actual. Guarda el motivo del error de red de cada página.
+- `--html-dir` no sale de su carpeta: la ruta resuelta se comprueba y una ruta con `..` o un `%` inválido cuenta como página no encontrada.
 
 Salida de consola: una fila por página con `OK` / `XX` / `??` / `--` por comprobación, después la lista de
 fallas con su detalle y una línea de conteo.
@@ -93,8 +96,7 @@ fallas con su detalle y una línea de conteo.
 
 `scripts/__tests__/auditoria-geo-aeo.test.mjs`: Vitest sobre el parseo y las reglas con HTML de ejemplo, sin red.
 Incluye los dos hallazgos ya conocidos (`/fcl` con título de 76 caracteres y `/servicios/puerta-a-puerta` con 63).
-Se verificó con mutantes (título 60→70, `noindex` que ignora la meta, H1 que acepta varios, huérfana que siempre
-pasa): los cuatro hacen fallar la prueba.
+Con `fetch` simulado cubre: código de salida (1 / `--no-estricto` 0), otro origen, redirección a otro host, timeout, error de red con su motivo, orden serial (nunca dos pedidos a la vez), `--max`, `--json` y `--html-dir` acotados, y título con acentos en NFD. Se verificó con mutantes (título 60→70, `noindex` que ignora la meta, H1 que acepta varios, huérfana que siempre pasa, salida 0 por defecto, redirección sin validar, `redirect: follow`, sin tope `--max`, `--html-dir` sin guarda): todos hacen fallar la prueba.
 
 ```bash
 npx vitest run scripts/__tests__/auditoria-geo-aeo.test.mjs
@@ -116,6 +118,10 @@ Las fallas son de cinco tipos:
 `/puerta-a-puerta` (0,9 de prioridad) sin entrantes del sitemap es el hallazgo más llamativo frente a la
 canibalización con `/servicios/puerta-a-puerta` descrita en SDD-0641 §2, grupo 1. Es un dato para decidir,
 no una conclusión: este script mira el HTML crudo.
+
+## Pendiente
+
+- **`lastmod` del sitemap:** el script lo lee pero no lo compara con `dateModified` ni con la fecha del contenido. Anotado para una fase posterior (revisión independiente, punto 6).
 
 ## Fuera de alcance
 

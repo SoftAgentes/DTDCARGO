@@ -1,9 +1,15 @@
 // @vitest-environment node
 // SDD-0642 · Prueba focal del parseo y las reglas de scripts/auditoria-geo-aeo.mjs. Sin red.
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   analizarPagina,
   USER_AGENT,
+  main,
+  pedir,
+  nombreJsonSeguro,
   analizarSitio,
   candidatosLocales,
   leerArgumentos,
@@ -204,5 +210,198 @@ describe("modo prudente con el sitio en vivo", () => {
     expect(candidatosLocales("/")).toEqual(["index.html"]);
     expect(candidatosLocales("/fcl")).toEqual(["fcl.html", "fcl/index.html"]);
     expect(candidatosLocales("/importar-de-china/valencia/")).toEqual(["importar-de-china/valencia.html", "importar-de-china/valencia/index.html"]);
+  });
+});
+
+/* ---- Red simulada: salida, dominio propio, tiempo, orden y carpetas (sin red real) ---- */
+
+const resp = (status, cuerpo = "", headers = {}) => ({
+  status,
+  ok: status >= 200 && status < 300,
+  headers: { get: (k) => headers[k.toLowerCase()] ?? null },
+  text: async () => cuerpo,
+});
+const sitemapDe = (...urls) => `<urlset>${urls.map((u) => `<url><loc>${u}</loc></url>`).join("")}</urlset>`;
+const tmp = () => mkdtempSync(join(tmpdir(), "geo-aeo-"));
+const correr = (argv, fetchFn) => {
+  const log = [];
+  return main(argv, { fetchFn, log: (l) => log.push(l), timeoutMs: 50 }).then((codigo) => ({ codigo, log: log.join("\n") }));
+};
+const borrar = (nombre) => {
+  try {
+    if (existsSync(nombre)) rmSync(nombre);
+  } catch {
+    /* limpieza best-effort */
+  }
+};
+const sitemapEn = (...urls) => {
+  const sm = join(tmp(), "sitemap.xml");
+  writeFileSync(sm, sitemapDe(...urls));
+  return sm;
+};
+
+describe("código de salida", () => {
+  it("sale 1 por defecto si hay una FALLA y 0 solo con --no-estricto", async () => {
+    const sm = sitemapEn("https://dtdcargo.com/falla");
+    const falla = async () => resp(404, "");
+    expect((await correr(["--sitemap", sm, "--pausa", "0"], falla)).codigo).toBe(1);
+    expect((await correr(["--sitemap", sm, "--pausa", "0", "--estricto"], falla)).codigo).toBe(1);
+    expect((await correr(["--sitemap", sm, "--pausa", "0", "--no-estricto"], falla)).codigo).toBe(0);
+  });
+
+  it("la ayuda sale 0", async () => {
+    expect((await correr(["--help"], async () => resp(200))).codigo).toBe(0);
+  });
+});
+
+describe("solo el dominio propio", () => {
+  it("una URL del sitemap de otro origen es FALLA y no se pide", async () => {
+    const sm = sitemapEn("https://dtdcargo.com/a", "https://otro.example/b");
+    const pedidos = [];
+    const f = async (u) => (pedidos.push(u), resp(200, html({ canonical: canon("/a") })));
+    const r = await correr(["--sitemap", sm, "--pausa", "0"], f);
+    expect(pedidos).toEqual(["https://dtdcargo.com/a"]);
+    expect(r.log).toContain("otro origen");
+    expect(r.codigo).toBe(1);
+  });
+
+  it("una redirección a otro host no se sigue y cuenta como falla", async () => {
+    const pedidos = [];
+    const f = async (u) => (pedidos.push(u), resp(301, "", { location: "https://malo.example/x" }));
+    await expect(pedir("https://dtdcargo.com/a", { origen: "https://dtdcargo.com", fetchFn: f })).rejects.toThrow(/otro origen/);
+    expect(pedidos).toEqual(["https://dtdcargo.com/a"]);
+    const sm = sitemapEn("https://dtdcargo.com/a");
+    const salida = "auditoria-geo-aeo-prueba-redir.json";
+    const r = await correr(["--sitemap", sm, "--pausa", "0", "--json", salida], f);
+    const info = JSON.parse(readFileSync(salida, "utf8"));
+    borrar(salida);
+    expect(pedidos).toHaveLength(2); // 1 de la prueba directa + 1 de main; nunca el host malo
+    expect(pedidos.every((u) => u.startsWith("https://dtdcargo.com"))).toBe(true);
+    expect(info.paginas[0].error).toContain("otro origen");
+    expect(info.paginas[0].checks.http.detalle).toContain("otro origen");
+    expect(r.codigo).toBe(1);
+  });
+
+  it("sigue redirecciones del mismo origen", async () => {
+    const f = async (u) => (u.endsWith("/a") ? resp(301, "", { location: "/b" }) : resp(200, "ok"));
+    const res = await pedir("https://dtdcargo.com/a", { origen: "https://dtdcargo.com", fetchFn: f });
+    expect(res.status).toBe(200);
+  });
+
+  it("--sitemap como URL sin --base toma el origen del sitemap", async () => {
+    const pedidos = [];
+    const f = async (u) => {
+      pedidos.push(u);
+      return u.endsWith("sitemap.xml") ? resp(200, sitemapDe("https://staging.example/a")) : resp(200, html({ canonical: "https://staging.example/a" }));
+    };
+    await correr(["--sitemap", "https://staging.example/sitemap.xml", "--pausa", "0"], f);
+    expect(pedidos).toEqual(["https://staging.example/sitemap.xml", "https://staging.example/a"]);
+  });
+
+  it("parsearSitemap solo reescribe el origen propio", () => {
+    const xml = sitemapDe("https://dtdcargo.com/a", "https://otro.example/b");
+    expect(parsearSitemap(xml, "https://staging.test").map((u) => u.url)).toEqual(["https://staging.test/a", "https://otro.example/b"]);
+  });
+});
+
+describe("tiempo, red caída y orden", () => {
+  it("el motivo del error de red queda en el informe", async () => {
+    const sm = sitemapEn("https://dtdcargo.com/a", "https://dtdcargo.com/b");
+    const f = async (u) => {
+      if (u.endsWith("/a")) throw Object.assign(new Error("fetch failed"), { cause: { code: "ECONNREFUSED" } });
+      throw Object.assign(new Error("agotado"), { name: "TimeoutError" });
+    };
+    const salida = "auditoria-geo-aeo-prueba-red.json";
+    const r = await correr(["--sitemap", sm, "--pausa", "0", "--json", salida], f);
+    const info = JSON.parse(readFileSync(salida, "utf8"));
+    borrar(salida);
+    expect(info.paginas[0].error).toBe("ECONNREFUSED");
+    expect(info.paginas[1].error).toContain("tiempo agotado");
+    expect(r.codigo).toBe(1);
+  });
+
+  it("el pedido lleva tope de tiempo, user-agent genérico y no sigue redirecciones por su cuenta", async () => {
+    let opciones;
+    await pedir("https://dtdcargo.com/a", { origen: "https://dtdcargo.com", fetchFn: async (u, o) => ((opciones = o), resp(200)) });
+    expect(opciones.redirect).toBe("manual");
+    expect(opciones.signal).toBeInstanceOf(AbortSignal);
+    expect(opciones.headers["user-agent"]).toBe("auditoria-geo-aeo/1");
+  });
+
+  it("el sitemap también se pide con tope de tiempo", async () => {
+    let opciones;
+    const f = async (u, o) => ((opciones ??= o), resp(200, sitemapDe("https://dtdcargo.com/a")));
+    await correr(["--sitemap", "https://dtdcargo.com/sitemap.xml", "--pausa", "0", "--no-estricto"], f);
+    expect(opciones.signal).toBeInstanceOf(AbortSignal);
+    expect(opciones.redirect).toBe("manual");
+  });
+
+  it("los pedidos van en serie: nunca dos a la vez y en el orden del sitemap", async () => {
+    const sm = sitemapEn("https://dtdcargo.com/1", "https://dtdcargo.com/2", "https://dtdcargo.com/3");
+    let activos = 0;
+    let maximo = 0;
+    const orden = [];
+    const f = async (u) => {
+      activos++;
+      maximo = Math.max(maximo, activos);
+      orden.push(u);
+      await new Promise((r) => setTimeout(r, 5));
+      activos--;
+      return resp(200, "");
+    };
+    await correr(["--sitemap", sm, "--pausa", "0", "--no-estricto"], f);
+    expect(maximo).toBe(1);
+    expect(orden).toEqual(["https://dtdcargo.com/1", "https://dtdcargo.com/2", "https://dtdcargo.com/3"]);
+  });
+});
+
+describe("tope --max", () => {
+  it("corta y avisa", async () => {
+    const sm = sitemapEn(...Array.from({ length: 5 }, (_, i) => `https://dtdcargo.com/p${i}`));
+    const pedidos = [];
+    const r = await correr(["--sitemap", sm, "--pausa", "0", "--max", "2", "--no-estricto"], async (u) => (pedidos.push(u), resp(200, "")));
+    expect(pedidos).toHaveLength(2);
+    expect(r.log).toContain("AVISO");
+    expect(leerArgumentos([]).max).toBe(200);
+    expect(() => leerArgumentos(["--max", "0"])).toThrow();
+  });
+});
+
+describe("carpetas acotadas", () => {
+  it("--json acepta solo un nombre simple .json", () => {
+    expect(nombreJsonSeguro("auditoria-geo-aeo-2026-11-16.json")).toBe("auditoria-geo-aeo-2026-11-16.json");
+    for (const malo of ["../x.json", "a/b.json", "C:\\x.json", "x.txt", "..json", "/etc/x.json"]) expect(() => nombreJsonSeguro(malo), malo).toThrow();
+  });
+
+  it("--html-dir no sale de la carpeta", async () => {
+    const d = tmp();
+    const dentro = join(d, "sitio");
+    mkdirSync(dentro);
+    writeFileSync(join(dentro, "a.html"), html({ canonical: canon("/a") }));
+    writeFileSync(join(d, "secreto.html"), "<title>secreto</title>");
+    const sm = join(d, "sitemap.xml");
+    writeFileSync(sm, sitemapDe("https://dtdcargo.com/a", "https://dtdcargo.com/%2e%2e%2fsecreto", "https://dtdcargo.com/%E0%A4%A"));
+    const salida = "auditoria-geo-aeo-prueba-dir.json";
+    const r = await correr(["--sitemap", sm, "--html-dir", dentro, "--no-estricto", "--json", salida], async () => {
+      throw new Error("no debe tocar la red");
+    });
+    const info = JSON.parse(readFileSync(salida, "utf8"));
+    borrar(salida);
+    expect(info.paginas[0].status).toBe(200);
+    expect(info.paginas[1].titulo).toBeNull();
+    expect(info.paginas[1].error).toContain("fuera de la carpeta");
+    expect(info.paginas[2].error).toBeTruthy(); // %-inválido atrapado dentro del try
+    expect(r.codigo).toBe(0);
+  });
+});
+
+describe("longitud del título", () => {
+  it("con « · DTD Cargo» y acentos en NFD cuenta como NFC", () => {
+    const nfc = "Importación marítima desde China · DTD Cargo";
+    const nfd = nfc.normalize("NFD");
+    expect(nfd.length).toBeGreaterThan(nfc.length);
+    expect(pagina(html({ title: nfd })).checks.titulo.detalle).toContain(`${[...nfc].length} caracteres`);
+    expect(estado(pagina(html({ title: "á".repeat(60).normalize("NFD") })), "titulo")).toBe("PASA");
+    expect(estado(pagina(html({ title: "á".repeat(61).normalize("NFD") })), "titulo")).toBe("FALLA");
   });
 });

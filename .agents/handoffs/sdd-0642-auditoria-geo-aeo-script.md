@@ -4,7 +4,7 @@ Fecha: 2026-11-16 · Rama: `claude/geo-aeo-script-auditoria-e8a39d` · Worker Cl
 
 ## Qué se hizo
 
-- `scripts/auditoria-geo-aeo.mjs`: solo lectura, sin dependencias nuevas. Sitemap por defecto `https://dtdcargo.com/sitemap.xml`; `--base`, `--sitemap` (URL o archivo), `--json [archivo]`, `--estricto`. 14 comprobaciones de máquina + 2 MANUAL, estados PASA / FALLA / MANUAL / N/A, excepciones explícitas (`/enlaces`, `/privacidad`, `/cookies`). Sin puntaje.
+- `scripts/auditoria-geo-aeo.mjs`: solo lectura, sin dependencias nuevas. Sitemap por defecto `https://dtdcargo.com/sitemap.xml`; `--base`, `--sitemap` (URL o archivo), `--json [archivo]`, `--estricto`. 14 comprobaciones de máquina (sale 1 si hay FALLAS) + 2 MANUAL, estados PASA / FALLA / MANUAL / N/A, excepciones explícitas (`/enlaces`, `/privacidad`, `/cookies`). Sin puntaje.
 - `scripts/__tests__/auditoria-geo-aeo.test.mjs`: 16 pruebas con HTML de ejemplo, sin red.
 - `docs/specs/0642-auditoria-geo-aeo-script/spec.md`: uso, reglas, línea base. `.gitignore`: `auditoria-geo-aeo-*.json`.
 - Número 0642: de `node scripts/next-number.mjs` (0641 ya reservado por la PR #613).
@@ -19,6 +19,10 @@ Fecha: 2026-11-16 · Rama: `claude/geo-aeo-script-auditoria-e8a39d` · Worker Cl
 | Cambios por condiciones del DG (un pedido a la vez + pausa, user-agent `auditoria-geo-aeo/1`, `--html-dir`) | **PASÓ**: prueba focal 19/19; humo con carpeta local sin red; la corrida en vivo de arriba fue ANTES de estos cambios (4 en paralelo, otro user-agent) y no se repitió |
 | `pnpm verify`, suite completa, Docker, install | **NO EJECUTADO** (sin turno del DG; cambio de harness/script, sin producto) |
 | `docs:check` y `sdd:check` (numbering) | **PASÓ** |
+
+## Revisión independiente (770bc3b8d → CAMBIOS NECESARIOS), atendida en commits nuevos
+
+- Salida ≠0 por defecto (`--no-estricto` explícito); solo dominio propio (origen del sitemap, redirecciones manuales validadas, tope de 20 s también en el sitemap); `--max` (200); `--json` solo con nombre simple; `--html-dir` acotado; NFC en la longitud del título; motivo del error de red en el informe; `lastmod` anotado como pendiente. Prueba focal: 34/34; 9 mutantes muertos.
 
 ## Pendientes de esta tarea
 
