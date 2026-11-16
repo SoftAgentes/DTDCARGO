@@ -18,6 +18,26 @@ async function workbook(rows: unknown[][]): Promise<Uint8Array> {
 }
 beforeEach(() => { assisted.mockReset(); assisted.mockResolvedValue(emptyDocumentDraft()); });
 
+describe("S2: lectura de peso neto y autoridad legacy", () => {
+  it("lee bruto y neto explícitos por caja sin confundirlos", async () => {
+    const d = await csv("Product,Cartons,PCS/CTN,Gross weight per carton kg,Net weight per carton kg,CBM/CTN\nVasos,2,10,12,10,0.2");
+    expect(assisted).not.toHaveBeenCalled();
+    expect(d.groups[0]).toMatchObject({ cartons: 2, grossWeightKg: 24, netWeightKg: 20, cbm: 0.4 });
+    expect(computeDocumentTotals(d)).toMatchObject({ grossWeightKg: 24, netWeightKg: 20 });
+  });
+  it("un neto solitario nunca se transforma en peso bruto para el flete", async () => {
+    const d = await csv("Product,Cartons,PCS/CTN,Net weight kg,CBM\nVasos,1,10,12,0.2");
+    expect(d.groups[0]).toMatchObject({ grossWeightKg: null, netWeightKg: 12 });
+  });
+  it("el DTO asistido antiguo no otorga procedencia ni declaraciones de seguridad", async () => {
+    const legacy = emptyDocumentDraft(); legacy.transportDeclarations = { battery: false, specialCargo: false };
+    legacy.fieldDecisions = [{ path: "supplier.company", origin: "manual", references: [] }];
+    assisted.mockResolvedValue(legacy);
+    const d = await extractDocument(new TextEncoder().encode("%PDF-synthetic"), { ...opts, fileName: "synthetic.pdf" });
+    expect(d).not.toHaveProperty("fieldDecisions"); expect(d).not.toHaveProperty("transportDeclarations");
+  });
+});
+
 describe("native document extraction", () => {
   /**
    * Regresiones de proformas REALES de Yiwu. Las fixtures sintéticas nunca las
