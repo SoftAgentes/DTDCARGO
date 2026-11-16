@@ -17,6 +17,9 @@
 --   6. Sesiones por borrar: se anotan, se listan, vencen y se quitan; solo ids de sesión del cable.
 --   7. Privilegios: anon y authenticated no leen ni escriben las tablas; authenticated no llama a las funciones
 --      del ERP; service_role no llama a las de la página.
+--   8. B3: la revisión guarda la conversación aprobada y el envío no sale si la tarea cambió de conversación o si
+--      el ERP pide otra. B1: una aprobación de más de 24 h vence. El ERP bloquea una vez (y la tarea termina). M1:
+--      un envío incierto queda «enviando» con su aviso y nunca vuelve a la lista.
 
 begin;
 
@@ -233,7 +236,7 @@ begin
   set local role service_role;
   select count(*) into n from public.office_envios_por_hacer(5);
   select * into r from public.office_revisiones where veredicto = 'aprobado' and tipo_borrador = 'respuesta' limit 1;
-  s := public.office_reservar_envio(r.id, r.huella_borrador, 11);
+  s := public.office_reservar_envio(r.id, r.huella_borrador, 11, 1);
   reset role;
   if n <> 0 or s <> 'pausada' or exists (select 1 from public.office_envios) then
     raise exception 'CONTRATO 5: con la oficina pausada se preparó un envío (%, %)', n, s;
@@ -243,22 +246,23 @@ begin
   b4 := public.t_borrador(4, 'respuesta');
   rev4 := public.t_revisar(b4, 'aprobado');
   set local role service_role;
-  s := public.office_reservar_envio(rev4, repeat('0', 64), 11);
+  s := public.office_reservar_envio(rev4, repeat('0', 64), 11, 4);
   reset role;
-  if s <> 'borrador_cambio' or (select estado from public.office_envios where revision_id = rev4) <> 'bloqueado' then
-    raise exception 'CONTRATO 5: una huella distinta no bloqueó el envío (%)', s;
+  if s <> 'borrador_cambio' or (select estado from public.office_envios where revision_id = rev4) <> 'bloqueado'
+     or (select t.estado from public.office_tasks t join public.office_revisiones x on x.task_id = t.id where x.id = rev4) <> 'terminada' then
+    raise exception 'CONTRATO 5: una huella distinta no bloqueó el envío ni terminó la tarea (%)', s;
   end if;
   set local role service_role;
-  s := public.office_reservar_envio(rev4, (select huella_borrador from public.office_revisiones where id = rev4), 11);
+  s := public.office_reservar_envio(rev4, (select huella_borrador from public.office_revisiones where id = rev4), 11, 4);
   reset role;
   if s <> 'ya_reservado' then
     raise exception 'CONTRATO 5: un envío bloqueado se volvió a reservar (%)', s;
   end if;
   -- Reservar UNA vez, cerrar, terminar.
   set local role service_role;
-  s := public.office_reservar_envio(r.id, r.huella_borrador, 11);
+  s := public.office_reservar_envio(r.id, r.huella_borrador, 11, 1);
   if s <> 'ok' then raise exception 'CONTRATO 5: no reservó el envío aprobado (%)', s; end if;
-  s := public.office_reservar_envio(r.id, r.huella_borrador, 11);
+  s := public.office_reservar_envio(r.id, r.huella_borrador, 11, 1);
   if s <> 'ya_reservado' then raise exception 'CONTRATO 5: reservó dos veces (%)', s; end if;
   select count(*) into n from public.office_envios_por_hacer(5);
   if n <> 0 then raise exception 'CONTRATO 5: lo reservado siguió por hacer'; end if;
@@ -272,7 +276,7 @@ begin
   end if;
   -- Un rechazado no se envía nunca.
   set local role service_role;
-  s := public.office_reservar_envio((select id from public.office_revisiones where veredicto = 'rechazado' limit 1), repeat('a', 64), 11);
+  s := public.office_reservar_envio((select id from public.office_revisiones where veredicto = 'rechazado' limit 1), repeat('a', 64), 11, 2);
   reset role;
   if s <> 'no_aprobado' then raise exception 'CONTRATO 5: reservó un rechazado (%)', s; end if;
   begin
@@ -325,6 +329,86 @@ begin
 end;
 $conteo$;
 
+-- 8. La conversación aprobada (B3), la vigencia (B1), el bloqueo desde el ERP y el envío incierto (M1).
+do $envio_b$
+declare
+  b uuid;
+  rv uuid;
+  s text;
+  h text;
+begin
+  -- B3: la revisión guarda la conversación de la tarea.
+  b := public.t_borrador(21, 'respuesta');
+  rv := public.t_revisar(b, 'aprobado');
+  if (select entidad_ref from public.office_revisiones where id = rv) <> 'chatwoot:conversations/21/messages/21' then
+    raise exception 'CONTRATO 8: la revisión no guardó la conversación aprobada';
+  end if;
+  -- B3: la tarea pasó a otra conversación → no se envía a ninguna.
+  update public.office_tasks t set entidad_ref = 'chatwoot:conversations/99/messages/99'
+    from public.office_revisiones x where x.id = rv and t.id = x.task_id;
+  h := (select huella_borrador from public.office_revisiones where id = rv);
+  set local role service_role;
+  s := public.office_reservar_envio(rv, h, 11, 21);
+  reset role;
+  if s <> 'conversacion_cambio' then raise exception 'CONTRATO 8: se reservó con la conversación cambiada (%)', s; end if;
+  -- B3: el ERP pide enviar a otra conversación que la aprobada → tampoco.
+  b := public.t_borrador(22, 'respuesta');
+  rv := public.t_revisar(b, 'aprobado');
+  h := (select huella_borrador from public.office_revisiones where id = rv);
+  set local role service_role;
+  s := public.office_reservar_envio(rv, h, 11, 999);
+  reset role;
+  if s <> 'conversacion_cambio' then raise exception 'CONTRATO 8: se reservó para otra conversación (%)', s; end if;
+  -- B1: una aprobación de más de 24 h vence (el dueño, en su sesión, corre la hora).
+  b := public.t_borrador(23, 'respuesta');
+  rv := public.t_revisar(b, 'aprobado');
+  update public.office_revisiones set revisado_en = now() - interval '25 hours' where id = rv;
+  h := (select huella_borrador from public.office_revisiones where id = rv);
+  set local role service_role;
+  s := public.office_reservar_envio(rv, h, 11, 23);
+  reset role;
+  if s <> 'aprobacion_vencida' or (select estado from public.office_envios where revision_id = rv) <> 'bloqueado' then
+    raise exception 'CONTRATO 8: una aprobación vencida se reservó (%)', s;
+  end if;
+  -- Bloqueo desde el ERP (B1: el cliente escribió después): una sola vez, termina la tarea y ya no se reserva.
+  b := public.t_borrador(24, 'respuesta');
+  rv := public.t_revisar(b, 'aprobado');
+  h := (select huella_borrador from public.office_revisiones where id = rv);
+  set local role service_role;
+  if not public.office_bloquear_envio(rv, 'cliente_escribio', 11) then raise exception 'CONTRATO 8: no bloqueó'; end if;
+  if public.office_bloquear_envio(rv, 'cliente_escribio', 11) then raise exception 'CONTRATO 8: bloqueó dos veces'; end if;
+  s := public.office_reservar_envio(rv, h, 11, 24);
+  begin
+    perform public.office_bloquear_envio(rv, 'cualquier cosa', 11);
+    raise exception 'CONTRATO 8: aceptó un código de bloqueo raro';
+  exception when invalid_parameter_value then null;
+  end;
+  reset role;
+  if s <> 'ya_reservado'
+     or (select t.estado from public.office_tasks t join public.office_revisiones x on x.task_id = t.id where x.id = rv) <> 'terminada' then
+    raise exception 'CONTRATO 8: el bloqueo no frenó el envío o no terminó la tarea (%)', s;
+  end if;
+  -- M1: incierto deja «enviando» (nunca «fallido»), lo anota y no vuelve a la lista.
+  b := public.t_borrador(25, 'respuesta');
+  rv := public.t_revisar(b, 'aprobado');
+  h := (select huella_borrador from public.office_revisiones where id = rv);
+  set local role service_role;
+  if public.office_marcar_envio_incierto(rv, 'red') then raise exception 'CONTRATO 8: incierto sin reserva'; end if;
+  s := public.office_reservar_envio(rv, h, 11, 25);
+  if s <> 'ok' then raise exception 'CONTRATO 8: no reservó (%)', s; end if;
+  if not public.office_marcar_envio_incierto(rv, 'red') then raise exception 'CONTRATO 8: no marcó incierto'; end if;
+  if exists (select 1 from public.office_envios_por_hacer(50) x where x.revision_id = rv) then
+    raise exception 'CONTRATO 8: un envío incierto volvió a la lista';
+  end if;
+  reset role;
+  if (select array_agg(estado) from public.office_envios where revision_id = rv) <> array['enviando']
+     or (select count(*) from public.task_events ev join public.office_revisiones x on x.task_id = ev.task_id
+          where x.id = rv and ev.tipo = 'envio.incierto') <> 1 then
+    raise exception 'CONTRATO 8: incierto no quedó «enviando» con su aviso';
+  end if;
+end;
+$envio_b$;
+
 -- 6. Sesiones por borrar.
 do $sesiones$
 declare
@@ -364,7 +448,7 @@ begin
   end if;
   begin
     set local role authenticated;
-    perform public.office_reservar_envio(gen_random_uuid(), repeat('a', 64), 11);
+    perform public.office_reservar_envio(gen_random_uuid(), repeat('a', 64), 11, 1);
     raise exception 'CONTRATO 7: authenticated reservó un envío';
   exception when insufficient_privilege then null;
   end;

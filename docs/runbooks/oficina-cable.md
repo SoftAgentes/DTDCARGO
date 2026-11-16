@@ -358,8 +358,16 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
 ### Qué revisar
 
 - `office_revisiones`: una fila por borrador revisado (veredicto, 5 casillas, motivo, revisor, hora). Solo se agregan filas.
-- `office_envios`: `enviando` → `enviado` (con el id del mensaje de Chatwoot) o `fallido`; `bloqueado` si la huella cambió.
-  Un envío `fallido` o que quedó en `enviando` **no se reintenta solo**: lo mira Sam.
+- `office_envios`: `enviando` → `enviado` (con el id del mensaje de Chatwoot) o `fallido`; o `bloqueado` (con su código:
+  `borrador_cambio`, `conversacion_cambio`, `aprobacion_vencida`, `otra_bandeja`, `ya_contestada`, `cliente_escribio`,
+  `forma_desconocida`). Nada de eso se reintenta solo.
+  - **`fallido`:** Chatwoot RECHAZÓ el envío (4xx): el mensaje no se entregó. Ver el código, corregir la causa (token,
+    bandeja) y, si Sam quiere, redactar de nuevo desde una conversación nueva. No hay botón de reenvío.
+  - **`enviando` atascado** (sin `enviado` ni `fallido` detrás, con o sin el evento `envio.incierto`): **el mensaje pudo
+    haber llegado.** No reenviarlo. Abrir la conversación en Chatwoot (bandeja de prueba) y mirar si el mensaje está:
+    - si está, cerrar como el dueño en su sesión: `select office_cerrar_envio('<revisión>', 'enviado', null, <id del mensaje>)`;
+    - si no está, cerrar como `fallido` con el código `no_llego` y dejarlo anotado. Las dos cosas solo con el OK de Sam.
+  - **`bloqueado`:** la tarea ya terminó. Si el cliente volvió a escribir, su mensaje abre una tarea nueva.
 - `task_events`: `revision.aprobada` / `revision.rechazada` (actor `persona:<uuid>`), `envio.reservado`, `envio.hecho`,
   `envio.fallido`, `envio.bloqueado`.
 - El conteo de AC-1 (y AC-7): `office_conteo_revisiones(1)` desde la página, o en la base como el dueño.

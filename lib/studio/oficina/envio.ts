@@ -7,18 +7,21 @@
  * - `OFICINA_CHATWOOT_TOKEN_ENVIO`: token de ESCRITURA de un usuario agente de Chatwoot que SOLO es miembro de la
  *   bandeja de prueba. Chatwoot 4.19.1 no tiene tokens con alcance: el token tiene los permisos de su usuario,
  *   así que «limitado a la bandeja» = el usuario solo está en esa bandeja. Además, este código solo escribe en
- *   la conversación de la tarea, y antes comprueba por GET que es de la cuenta y de la bandeja permitidas.
+ *   la conversación que Sam aprobó, y antes comprueba por GET que es de la cuenta y de la bandeja permitidas.
  * - La cuenta (`CHATWOOT_ACCOUNT_ID`) y la bandeja (`OFICINA_CHATWOOT_INBOX_PRUEBA`) son las del webhook. La
  *   bandeja nunca puede ser una del ERP (portal, clientes, leads): un solo contestador por bandeja (§3.5).
  *
  * Por cada revisión aprobada (`office_envios_por_hacer`):
  *   1. la huella del texto que se va a mandar tiene que ser la que Sam aprobó;
- *   2. GET de la conversación: de la cuenta y la bandeja permitidas, y sin un mensaje saliente nuevo desde que se
- *      redactó el borrador (si alguien ya contestó, no se contesta dos veces: un solo contestador);
- *   3. `office_reservar_envio` mira OTRA VEZ la pausa y la huella del borrador (que no cambió desde la
- *      aprobación) y reserva el envío UNA vez; recién entonces
- *   4. POST del mensaje saliente, y `office_cerrar_envio` (enviado | fallido). Nunca se reintenta solo: si el
- *      proceso se cae entre 3 y 4, el envío queda «enviando» y lo mira Sam (como mucho una vez, nunca dos).
+ *   2. GET de la conversación (la que Sam aprobó, B3). Se BLOQUEA si es de otra bandeja o cuenta, si alguien ya
+ *      contestó después del borrador (un solo contestador), si el cliente escribió después del borrador (B1) o si
+ *      Chatwoot responde con una forma que no se reconoce (falla hacia el lado seguro);
+ *   3. `office_reservar_envio` mira OTRA VEZ la pausa, que la conversación sigue siendo la aprobada, que la
+ *      aprobación tiene menos de 24 h (B1) y que el borrador no cambió (su huella), y reserva el envío UNA vez;
+ *   4. POST del mensaje saliente. Solo un rechazo seguro de Chatwoot (4xx) es «fallido». Si el mensaje PUDO haber
+ *      salido (red, plazo vencido, 5xx, una respuesta ilegible o el cierre en la base que falla después de
+ *      entregar), el envío se queda en «enviando», con el aviso `envio.incierto`, y nunca se reintenta (M1): como
+ *      mucho una vez, nunca dos.
  *
  * Los errores llevan solo un código; el texto no va a ningún log.
  */
@@ -69,6 +72,7 @@ export function configEnvio(env: Entorno = process.env): ConfigEnvio {
 export interface EnvioPorHacer {
   revisionId: string;
   taskId: string;
+  /** La conversación que Sam aprobó (la de la revisión, no la de la tarea: B3). */
   entidadRef: string | null;
   texto: string;
   guion: string;
@@ -76,13 +80,25 @@ export interface EnvioPorHacer {
   borradorCreadoEn: string;
 }
 
-export type Reserva = "ok" | "pausada" | "ya_reservado" | "no_aprobado" | "borrador_cambio" | "borrador_no_existe";
+export type Reserva =
+  | "ok"
+  | "pausada"
+  | "ya_reservado"
+  | "no_aprobado"
+  | "conversacion_cambio"
+  | "aprobacion_vencida"
+  | "borrador_cambio"
+  | "borrador_no_existe";
+
+export type Bloqueo = "otra_bandeja" | "ya_contestada" | "cliente_escribio" | "forma_desconocida";
 
 export interface AlmacenEnvio {
   estaPausada(): Promise<boolean>;
   porHacer(limite: number): Promise<EnvioPorHacer[]>;
-  reservar(revisionId: string, huella: string, bandeja: number): Promise<Reserva>;
+  reservar(revisionId: string, huella: string, bandeja: number, conversacion: number): Promise<Reserva>;
+  bloquear(revisionId: string, codigo: Bloqueo, bandeja: number): Promise<boolean>;
   cerrar(revisionId: string, estado: "enviado" | "fallido", codigo: string | null, mensajeId: number | null): Promise<boolean>;
+  marcarIncierto(revisionId: string, codigo: string): Promise<boolean>;
 }
 
 export function crearAlmacenEnvio(admin: SupabaseClient): AlmacenEnvio {
@@ -116,43 +132,125 @@ export function crearAlmacenEnvio(admin: SupabaseClient): AlmacenEnvio {
           borradorCreadoEn: String(f.borrador_creado_en ?? ""),
         }));
     },
-    reservar: (revisionId, huella, bandeja) =>
-      rpc<Reserva>("office_reservar_envio", { p_revision: revisionId, p_huella: huella, p_bandeja: bandeja }),
+    reservar: (revisionId, huella, bandeja, conversacion) =>
+      rpc<Reserva>("office_reservar_envio", {
+        p_revision: revisionId,
+        p_huella: huella,
+        p_bandeja: bandeja,
+        p_conversacion: conversacion,
+      }),
+    bloquear: (revisionId, codigo, bandeja) =>
+      rpc<boolean>("office_bloquear_envio", { p_revision: revisionId, p_codigo: codigo, p_bandeja: bandeja }),
     cerrar: (revisionId, estado, codigo, mensajeId) =>
       rpc<boolean>("office_cerrar_envio", { p_revision: revisionId, p_estado: estado, p_codigo: codigo, p_mensaje_id: mensajeId }),
+    marcarIncierto: (revisionId, codigo) =>
+      rpc<boolean>("office_marcar_envio_incierto", { p_revision: revisionId, p_codigo: codigo }),
   };
 }
 
+/**
+ * Un error de Chatwoot. `incierto` = el mensaje PUDO haber llegado (se cortó la red o venció el plazo, respondió
+ * 5xx o 408, o un 2xx que no se puede leer). Solo un 4xx (distinto de 408) es un rechazo seguro: no se entregó.
+ */
 export class ErrorDeChatwoot extends Error {
   readonly codigo: string;
-  constructor(codigo: string) {
+  readonly incierto: boolean;
+  constructor(codigo: string, incierto = false) {
     super(`Chatwoot no respondió (${codigo})`);
     this.name = "ErrorDeChatwoot";
     this.codigo = codigo;
+    this.incierto = incierto;
   }
 }
 
+/** Lo que el envío necesita saber de la conversación, ya interpretado. */
+export type LecturaConversacion =
+  | { forma: "conocida"; cuenta: number; bandeja: number; ultimaSalidaS: number | null; ultimaEntradaS: number | null }
+  | { forma: "desconocida" };
+
 export interface ChatwootEnvio {
-  /** GET de la conversación: cuenta, bandeja y la hora (s) del último mensaje saliente no privado. */
-  conversacion(conversacionId: number): Promise<{ cuenta: number; bandeja: number; ultimaSalidaS: number | null }>;
-  /** POST del mensaje saliente. Devuelve el id del mensaje. */
-  enviar(conversacionId: number, texto: string): Promise<number | null>;
+  /** GET de la conversación y de sus mensajes. Una forma que no se reconoce vuelve como `desconocida` (se bloquea). */
+  conversacion(conversacionId: number): Promise<LecturaConversacion>;
+  /** POST del mensaje saliente. Devuelve el id del mensaje; si no lo puede confirmar, lanza `ErrorDeChatwoot`. */
+  enviar(conversacionId: number, texto: string): Promise<number>;
 }
 
 function obj(v: unknown): Record<string, unknown> | null {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
 }
 
+function entero(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && /^[0-9]+$/.test(v.trim()) ? Number(v) : NaN;
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/** La hora de un mensaje en segundos: unix (número o texto) o ISO. Null si no se entiende. */
+function segundos(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v) && v > 0) return v > 1e12 ? v / 1000 : v;
+  if (typeof v === "string" && v.trim()) {
+    if (/^[0-9]+(\.[0-9]+)?$/.test(v.trim())) return segundos(Number(v));
+    const ms = Date.parse(v);
+    return Number.isFinite(ms) ? ms / 1000 : null;
+  }
+  return null;
+}
+
+/**
+ * `message_type` de Chatwoot 4.19.1: en la API de mensajes es un entero (0 entrante, 1 saliente, 2 actividad,
+ * 3 plantilla); en los webhooks, texto. Las plantillas cuentan como salientes. Cualquier otra cosa = no se reconoce.
+ */
+const TIPOS: Record<string, "entrada" | "salida" | "otro"> = {
+  "0": "entrada",
+  incoming: "entrada",
+  "1": "salida",
+  outgoing: "salida",
+  "2": "otro",
+  activity: "otro",
+  "3": "salida",
+  template: "salida",
+};
+
+/**
+ * Interpreta la conversación y sus mensajes. FALLA HACIA EL LADO SEGURO: si la bandeja no es un entero, si la lista
+ * de mensajes no es una lista, si un mensaje trae un `message_type` o un `private` que no se reconoce, o si un mensaje
+ * entrante o saliente no trae una hora legible, la forma es `desconocida` y el envío se bloquea.
+ */
+export function interpretarConversacion(conv: unknown, mensajes: unknown, cuentaEsperada: number): LecturaConversacion {
+  const c = obj(conv);
+  const bandeja = entero(c?.inbox_id);
+  if (!c || bandeja === null) return { forma: "desconocida" };
+  let cuenta = cuentaEsperada;
+  if (c.account_id !== undefined) {
+    const n = entero(c.account_id);
+    if (n === null) return { forma: "desconocida" };
+    cuenta = n;
+  }
+  const m = obj(mensajes);
+  if (!m || !Array.isArray(m.payload)) return { forma: "desconocida" };
+  let ultimaSalidaS: number | null = null;
+  let ultimaEntradaS: number | null = null;
+  for (const crudo of m.payload) {
+    const x = obj(crudo);
+    if (!x) return { forma: "desconocida" };
+    const tipo = TIPOS[String(x.message_type)];
+    if (!tipo) return { forma: "desconocida" };
+    if (x.private !== undefined && x.private !== null && typeof x.private !== "boolean") return { forma: "desconocida" };
+    if (x.private === true || tipo === "otro") continue;
+    const s = segundos(x.created_at);
+    if (s === null) return { forma: "desconocida" };
+    if (tipo === "salida") ultimaSalidaS = Math.max(ultimaSalidaS ?? 0, s);
+    else ultimaEntradaS = Math.max(ultimaEntradaS ?? 0, s);
+  }
+  return { forma: "conocida", cuenta, bandeja, ultimaSalidaS, ultimaEntradaS };
+}
+
 export function crearChatwootEnvio(c: { url: string; token: string; cuenta: number }, f: typeof fetch = fetch): ChatwootEnvio {
-  const pedir = async (ruta: string, init: RequestInit): Promise<unknown> => {
+  const base = `${c.url}/api/v1/accounts/${c.cuenta}`;
+  const cabeceras = { api_access_token: c.token, accept: "application/json", "content-type": "application/json" };
+  const leer = async (ruta: string): Promise<unknown> => {
     let r: Response;
     try {
-      r = await f(`${c.url}/api/v1/accounts/${c.cuenta}${ruta}`, {
-        ...init,
-        headers: { api_access_token: c.token, accept: "application/json", "content-type": "application/json" },
-        signal: AbortSignal.timeout(15_000),
-        cache: "no-store",
-      });
+      r = await f(`${base}${ruta}`, { method: "GET", headers: cabeceras, signal: AbortSignal.timeout(15_000), cache: "no-store" });
     } catch {
       throw new ErrorDeChatwoot("red");
     }
@@ -165,40 +263,42 @@ export function crearChatwootEnvio(c: { url: string; token: string; cuenta: numb
   };
   return {
     async conversacion(id) {
-      const conv = obj(await pedir(`/conversations/${id}`, { method: "GET" }));
-      if (!conv) throw new ErrorDeChatwoot("conversacion");
-      const mensajes = obj(await pedir(`/conversations/${id}/messages`, { method: "GET" }));
-      const lista = Array.isArray(mensajes?.payload) ? (mensajes.payload as unknown[]) : [];
-      const salidas = lista
-        .map(obj)
-        .filter((m): m is Record<string, unknown> => m !== null && m.message_type === 1 && m.private !== true)
-        .map((m) => Number(m.created_at))
-        .filter((n) => Number.isFinite(n));
-      return {
-        cuenta: conv.account_id === undefined ? c.cuenta : Number(conv.account_id),
-        bandeja: Number(conv.inbox_id),
-        ultimaSalidaS: salidas.length ? Math.max(...salidas) : null,
-      };
+      const conv = await leer(`/conversations/${id}`);
+      const mensajes = await leer(`/conversations/${id}/messages`);
+      return interpretarConversacion(conv, mensajes, c.cuenta);
     },
     async enviar(id, texto) {
-      const m = obj(
-        await pedir(`/conversations/${id}/messages`, {
+      let r: Response;
+      try {
+        r = await f(`${base}/conversations/${id}/messages`, {
           method: "POST",
+          headers: cabeceras,
           body: JSON.stringify({ content: texto, message_type: "outgoing", private: false, content_type: "text" }),
-        }),
-      );
-      const n = Number(m?.id);
-      return Number.isFinite(n) && n > 0 ? n : null;
+          signal: AbortSignal.timeout(15_000),
+          cache: "no-store",
+        });
+      } catch {
+        // Se cortó o venció el plazo: Chatwoot pudo haberlo guardado.
+        throw new ErrorDeChatwoot("red", true);
+      }
+      if (!r.ok) {
+        const rechazo = r.status >= 400 && r.status < 500 && r.status !== 408;
+        throw new ErrorDeChatwoot(`http_${r.status}`, !rechazo);
+      }
+      let cuerpo: unknown;
+      try {
+        cuerpo = await r.json();
+      } catch {
+        throw new ErrorDeChatwoot("json", true);
+      }
+      const n = entero(obj(cuerpo)?.id);
+      if (n === null) throw new ErrorDeChatwoot("sin_id", true);
+      return n;
     },
   };
 }
 
-export type ResultadoUno =
-  | "enviado"
-  | "fallido"
-  | "bloqueado"
-  | "omitido"
-  | Exclude<Reserva, "ok">;
+export type ResultadoUno = "enviado" | "fallido" | "incierto" | "omitido" | Bloqueo | Exclude<Reserva, "ok">;
 
 export interface ResumenEnvio {
   estado: "apagado" | "sin_config" | "sin_migracion" | "pausada" | "hecho";
@@ -212,45 +312,77 @@ export interface DepsEnvio {
   registrar?: (m: string) => void;
 }
 
+const codigoSeguro = (c: string) => c.replace(/[^a-z0-9_:.-]/g, "_").slice(0, 64) || "error";
+
+async function bloquear(deps: DepsEnvio, e: EnvioPorHacer, codigo: Bloqueo, bandeja: number, por: string): Promise<ResultadoUno> {
+  (deps.registrar ?? ((m: string) => console.error(m)))(`[oficina-envio] no se envía (${codigo}): ${por}`);
+  await deps.almacen.bloquear(e.revisionId, codigo, bandeja);
+  return codigo;
+}
+
+/** El mensaje pudo haber salido: el envío se queda en «enviando», se anota y NUNCA se reintenta (M1). */
+async function incierto(deps: DepsEnvio, e: EnvioPorHacer, codigo: string): Promise<ResultadoUno> {
+  const registrar = deps.registrar ?? ((m: string) => console.error(m));
+  registrar(`[oficina-envio] no se sabe si el mensaje llegó (${codigo}): queda «enviando» para que Sam lo revise; no se reintenta`);
+  try {
+    await deps.almacen.marcarIncierto(e.revisionId, codigoSeguro(codigo));
+  } catch {
+    // Sin el aviso igual queda «enviando», y lo «enviando» nunca vuelve a la lista de envíos por hacer.
+  }
+  return "incierto";
+}
+
 async function enviarUno(deps: DepsEnvio, e: EnvioPorHacer, bandeja: number): Promise<ResultadoUno> {
   const { almacen, chatwoot } = deps;
   const registrar = deps.registrar ?? ((m: string) => console.error(m));
+  const conversacionId = conversacionDeReferencia(e.entidadRef);
+  const borradorS = Date.parse(e.borradorCreadoEn) / 1000;
+  if (conversacionId === null || !Number.isFinite(borradorS)) return "omitido";
   // 1. El texto en memoria es el que Sam aprobó. Si no, la reserva lo deja «bloqueado» (borrador_cambio).
   const huella = huellaBorrador({ tipo: "respuesta", texto: e.texto, guion: e.guion, motivo: null, prioridad: null });
-  if (huella !== e.huella) return await almacen.reservar(e.revisionId, huella, bandeja).then((r) => (r === "ok" ? "omitido" : r));
-  const conversacionId = conversacionDeReferencia(e.entidadRef);
-  if (conversacionId === null) return "omitido";
-  // 2. La conversación es de la bandeja permitida y nadie contestó desde el borrador.
-  let conv: Awaited<ReturnType<ChatwootEnvio["conversacion"]>>;
+  if (huella !== e.huella) {
+    const r = await almacen.reservar(e.revisionId, huella, bandeja, conversacionId);
+    return r === "ok" ? "omitido" : r;
+  }
+  // 2. La conversación: de la bandeja permitida, nadie contestó y el cliente no escribió después del borrador.
+  let conv: LecturaConversacion;
   try {
     conv = await chatwoot.conversacion(conversacionId);
   } catch (err) {
     registrar(`[oficina-envio] no se pudo leer la conversación (${err instanceof ErrorDeChatwoot ? err.codigo : "error"}); se reintenta en el próximo minuto`);
     return "omitido";
   }
+  if (conv.forma === "desconocida") return bloquear(deps, e, "forma_desconocida", bandeja, "Chatwoot respondió con una forma que no se reconoce");
   if (conv.bandeja !== bandeja || conv.cuenta !== deps.config.chatwoot?.cuenta) {
-    // No se reserva: nunca se escribe fuera de la bandeja de prueba.
-    registrar("[oficina-envio] la conversación no es de la bandeja de prueba: no se envía");
-    return "bloqueado";
+    return bloquear(deps, e, "otra_bandeja", bandeja, "la conversación no es de la bandeja de prueba");
   }
-  const borradorS = Date.parse(e.borradorCreadoEn) / 1000;
-  if (conv.ultimaSalidaS !== null && Number.isFinite(borradorS) && conv.ultimaSalidaS > borradorS) {
-    registrar("[oficina-envio] alguien ya contestó en esa conversación después del borrador: no se envía (un solo contestador)");
-    return "bloqueado";
+  if (conv.ultimaSalidaS !== null && conv.ultimaSalidaS > borradorS) {
+    return bloquear(deps, e, "ya_contestada", bandeja, "alguien ya contestó después del borrador (un solo contestador)");
   }
-  // 3. Otra vez la pausa y la huella, y la reserva (una sola vez), en la base.
-  const reserva = await almacen.reservar(e.revisionId, e.huella, bandeja);
+  if (conv.ultimaEntradaS !== null && conv.ultimaEntradaS > borradorS) {
+    return bloquear(deps, e, "cliente_escribio", bandeja, "el cliente escribió después del borrador");
+  }
+  // 3. Otra vez la pausa, la conversación aprobada, la vigencia y la huella, y la reserva (una sola vez), en la base.
+  const reserva = await almacen.reservar(e.revisionId, e.huella, bandeja, conversacionId);
   if (reserva !== "ok") return reserva;
-  // 4. El envío.
+  // 4. El envío. Solo un rechazo seguro de Chatwoot es «fallido»; si pudo haber salido, «incierto» (M1).
+  let mensajeId: number;
   try {
-    const id = await chatwoot.enviar(conversacionId, e.texto);
-    await almacen.cerrar(e.revisionId, "enviado", null, id);
-    return "enviado";
+    mensajeId = await chatwoot.enviar(conversacionId, e.texto);
   } catch (err) {
-    const codigo = err instanceof ErrorDeChatwoot ? err.codigo : "error";
-    registrar(`[oficina-envio] el envío falló (${codigo}); no se reintenta solo`);
-    await almacen.cerrar(e.revisionId, "fallido", codigo.replace(/[^a-z0-9_:.-]/g, "_").slice(0, 64), null);
-    return "fallido";
+    if (err instanceof ErrorDeChatwoot && !err.incierto) {
+      registrar(`[oficina-envio] Chatwoot rechazó el envío (${err.codigo}); no se entregó y no se reintenta solo`);
+      await almacen.cerrar(e.revisionId, "fallido", codigoSeguro(err.codigo), null);
+      return "fallido";
+    }
+    return incierto(deps, e, err instanceof ErrorDeChatwoot ? err.codigo : "error");
+  }
+  // 5. Chatwoot ya lo tiene: si el cierre en la base falla, NUNCA «fallido» (reintentarlo duplicaría el mensaje).
+  try {
+    if (await almacen.cerrar(e.revisionId, "enviado", null, mensajeId)) return "enviado";
+    return incierto(deps, e, "cierre_rechazado");
+  } catch {
+    return incierto(deps, e, "cierre_fallo");
   }
 }
 

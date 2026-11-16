@@ -133,8 +133,10 @@ function almacenEnvio(db: PGlite): AlmacenEnvio {
         huella: String(f.huella),
         borradorCreadoEn: new Date(f.borrador_creado_en as string).toISOString(),
       })),
-    reservar: (r, h, b) => uno<Reserva>(db, "select public.office_reservar_envio($1::uuid, $2, $3::int)", [r, h, b]),
+    reservar: (r, h, b, c) => uno<Reserva>(db, "select public.office_reservar_envio($1::uuid, $2, $3::int, $4::bigint)", [r, h, b, c]),
+    bloquear: (r, c, b) => uno<boolean>(db, "select public.office_bloquear_envio($1::uuid, $2, $3::int)", [r, c, b]),
     cerrar: (r, e, c, m) => uno<boolean>(db, "select public.office_cerrar_envio($1::uuid, $2, $3, $4::bigint)", [r, e, c, m]),
+    marcarIncierto: (r, c) => uno<boolean>(db, "select public.office_marcar_envio_incierto($1::uuid, $2)", [r, c]),
   };
 }
 
@@ -196,15 +198,33 @@ function despachador(db: PGlite, o: { mensajes?: Record<number, string>; conteni
 }
 
 /** Un Chatwoot de mentira: conversaciones por bandeja y los mensajes salientes que recibe. */
-function chatwootDoble(bandejas: Record<number, number>, o: { falla?: boolean; salidaPrevia?: Record<number, number> } = {}) {
+function chatwootDoble(
+  bandejas: Record<number, number>,
+  o: {
+    falla?: "rechazo" | "incierto" | "entrega_y_corte";
+    salidaPrevia?: Record<number, number>;
+    entradaPrevia?: Record<number, number>;
+    forma?: "desconocida";
+    bandejas?: Record<number, number>;
+  } = {},
+) {
   const salientes: Array<{ conversacion: number; bandeja: number; texto: string }> = [];
   const c: ChatwootEnvio = {
     async conversacion(id) {
-      return { cuenta: 2, bandeja: bandejas[id] ?? 11, ultimaSalidaS: o.salidaPrevia?.[id] ?? null };
+      if (o.forma === "desconocida") return { forma: "desconocida" };
+      return {
+        forma: "conocida",
+        cuenta: 2,
+        bandeja: bandejas[id] ?? 11,
+        ultimaSalidaS: o.salidaPrevia?.[id] ?? null,
+        ultimaEntradaS: o.entradaPrevia?.[id] ?? null,
+      };
     },
     async enviar(id, texto) {
-      if (o.falla) throw new ErrorDeChatwoot("http_500");
+      if (o.falla === "rechazo") throw new ErrorDeChatwoot("http_422");
+      if (o.falla === "incierto") throw new ErrorDeChatwoot("red", true);
       salientes.push({ conversacion: id, bandeja: bandejas[id] ?? 11, texto });
+      if (o.falla === "entrega_y_corte") throw new ErrorDeChatwoot("json", true);
       return 900 + salientes.length;
     },
   };
@@ -395,27 +415,86 @@ describe("envío (Paso 3b, C)", () => {
     expect(await procesarEnvios({ config: configEnvio(ENV), almacen, chatwoot: c })).toEqual({ estado: "hecho", resultados: ["borrador_cambio"] });
     expect(salientes).toEqual([]);
     expect(await q(db, "select estado, codigo from public.office_envios")).toEqual([{ estado: "bloqueado", codigo: "borrador_cambio" }]);
+    expect(await q(db, "select estado from public.office_tasks")).toEqual([{ estado: "terminada" }]);
   }, 60_000);
 
-  it("una conversación de otra bandeja, o ya contestada por alguien, no se toca", async () => {
+  const enUnMinuto = () => Math.floor(Date.now() / 1000) + 60;
+  it.each([
+    ["otra_bandeja", { bandejas: { 41: 6 } }],
+    ["ya_contestada", { salidaPrevia: { 41: enUnMinuto() } }],
+    ["cliente_escribio", { entradaPrevia: { 41: enUnMinuto() } }],
+    ["forma_desconocida", { forma: "desconocida" as const }],
+  ] as const)("%s: no se envía, queda «bloqueado» y la tarea termina (no se reintenta)", async (codigo, o) => {
     const db = await unaAprobada();
-    const otra = chatwootDoble({ 41: 6 });
-    expect(await procesarEnvios({ config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: otra.c })).toEqual({ estado: "hecho", resultados: ["bloqueado"] });
-    expect(otra.salientes).toEqual([]);
-    const contestada = chatwootDoble({ 41: 11 }, { salidaPrevia: { 41: Math.floor(Date.now() / 1000) + 60 } });
-    expect(await procesarEnvios({ config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: contestada.c })).toEqual({ estado: "hecho", resultados: ["bloqueado"] });
-    expect(contestada.salientes).toEqual([]);
-    // Nada quedó reservado: cuando la conversación sea la correcta, se puede enviar.
-    expect(await q(db, "select * from public.office_envios")).toEqual([]);
+    const { c, salientes } = chatwootDoble("bandejas" in o ? o.bandejas : { 41: 11 }, o);
+    const env = { config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: c };
+    expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: [codigo] });
+    expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: [] });
+    expect(salientes).toEqual([]);
+    expect(await q(db, "select estado, codigo from public.office_envios")).toEqual([{ estado: "bloqueado", codigo }]);
+    expect(await q(db, "select estado from public.office_tasks")).toEqual([{ estado: "terminada" }]);
   }, 60_000);
 
-  it("si Chatwoot falla, queda «fallido» y no se reintenta solo", async () => {
+  it("B3: si la tarea pasó a otra conversación, no se envía a ninguna (conversacion_cambio)", async () => {
     const db = await unaAprobada();
-    const mala = chatwootDoble({ 41: 11 }, { falla: true });
+    await db.exec("update public.office_tasks set entidad_ref = 'chatwoot:conversations/99/messages/99';");
+    const { c, salientes } = chatwootDoble({ 41: 11, 99: 11 });
+    expect(await procesarEnvios({ config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: c })).toEqual({
+      estado: "hecho",
+      resultados: ["conversacion_cambio"],
+    });
+    expect(salientes).toEqual([]);
+  }, 60_000);
+
+  it("B1: una aprobación de más de 24 h no se envía (aprobacion_vencida)", async () => {
+    const db = await unaAprobada();
+    // El dueño en su propia sesión (como una migración) puede correr la hora; la API no.
+    await db.exec("update public.office_revisiones set revisado_en = now() - interval '25 hours';");
+    const { c, salientes } = chatwootDoble({ 41: 11 });
+    expect(await procesarEnvios({ config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: c })).toEqual({
+      estado: "hecho",
+      resultados: ["aprobacion_vencida"],
+    });
+    expect(salientes).toEqual([]);
+  }, 60_000);
+
+  it("si Chatwoot RECHAZA el envío (4xx), queda «fallido» y no se reintenta solo", async () => {
+    const db = await unaAprobada();
+    const mala = chatwootDoble({ 41: 11 }, { falla: "rechazo" });
     const env = { config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: mala.c };
     expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: ["fallido"] });
     expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: [] });
-    expect((await q(db, "select codigo from public.office_envios where estado = 'fallido'"))[0]).toEqual({ codigo: "http_500" });
+    expect((await q(db, "select codigo from public.office_envios where estado = 'fallido'"))[0]).toEqual({ codigo: "http_422" });
+  }, 60_000);
+
+  it.each(["incierto", "entrega_y_corte"] as const)(
+    "M1 · %s: si el mensaje pudo haber salido, queda «enviando» con el aviso, nunca «fallido», y no se reintenta",
+    async (falla) => {
+      const db = await unaAprobada();
+      const { c, salientes } = chatwootDoble({ 41: 11 }, { falla });
+      const env = { config: configEnvio(ENV), almacen: almacenEnvio(db), chatwoot: c };
+      expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: ["incierto"] });
+      expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: [] });
+      expect(salientes.length).toBe(falla === "entrega_y_corte" ? 1 : 0);
+      expect(await q(db, "select estado from public.office_envios")).toEqual([{ estado: "enviando" }]);
+      expect((await q(db, "select count(*)::int as n from public.task_events where tipo = 'envio.incierto'"))[0]).toEqual({ n: 1 });
+    },
+    60_000,
+  );
+
+  it("M1 · Chatwoot lo entregó y el cierre en la base falla: «incierto», nunca «fallido»", async () => {
+    const db = await unaAprobada();
+    const { c, salientes } = chatwootDoble({ 41: 11 });
+    const almacen = almacenEnvio(db);
+    almacen.cerrar = async () => {
+      throw new ErrorDelAlmacen("08006");
+    };
+    const env = { config: configEnvio(ENV), almacen, chatwoot: c };
+    expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: ["incierto"] });
+    expect(salientes.length).toBe(1);
+    expect(await procesarEnvios(env)).toEqual({ estado: "hecho", resultados: [] });
+    expect(salientes.length).toBe(1);
+    expect(await q(db, "select estado from public.office_envios")).toEqual([{ estado: "enviando" }]);
   }, 60_000);
 
   it("sin la 0549 el envío responde sin_migracion y no toca Chatwoot", async () => {

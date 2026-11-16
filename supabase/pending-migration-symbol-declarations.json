@@ -71,32 +71,46 @@
           "name": "office_envios_por_hacer",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/envio.ts:100"
+            "lib/studio/oficina/envio.ts:116"
           ]
         },
         {
           "name": "office_reservar_envio",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/envio.ts:120"
+            "lib/studio/oficina/envio.ts:136"
+          ]
+        },
+        {
+          "name": "office_bloquear_envio",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:143"
           ]
         },
         {
           "name": "office_cerrar_envio",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/envio.ts:122"
+            "lib/studio/oficina/envio.ts:145"
+          ]
+        },
+        {
+          "name": "office_marcar_envio_incierto",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:147"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/oficina/envio.ts:92",
+          "site": "lib/studio/oficina/envio.ts:108",
           "contains": "if (faltaLaMigracion(error)) throw new SinMigracion();",
           "degradation": "Sin la 0549 el almacén del envío lanza SinMigracion."
         },
         {
-          "site": "lib/studio/oficina/envio.ts:271",
+          "site": "lib/studio/oficina/envio.ts:403",
           "contains": "if (err instanceof SinMigracion) return { estado: \"sin_migracion\", resultados };",
           "degradation": "procesarEnvios atrapa SinMigracion antes de llamar a Chatwoot: /api/cron/oficina-envio responde 200 «sin_migracion» y no envía nada. Nace apagado (OFICINA_ENVIO_ACTIVO)."
         }

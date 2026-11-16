@@ -135,6 +135,27 @@ describe("0549 · revisión de Sam y envío desde el ERP (PGlite)", () => {
       "CONTRATO 4",
     ],
     [
+      "envía a otra conversación (sin B3)",
+      mutar(
+        "  if v_r.entidad_ref is null or v_ref_tarea is distinct from v_r.entidad_ref\n     or pg_catalog.substring(v_r.entidad_ref, '^chatwoot:conversations/([0-9]+)/') is distinct from p_conversacion::text then",
+        "  if false then",
+      ),
+      "CONTRATO 8",
+    ],
+    [
+      "la aprobación no vence (sin B1)",
+      mutar("  if v_r.revisado_en < pg_catalog.now() - interval '24 hours' then", "  if false then"),
+      "CONTRATO 8",
+    ],
+    [
+      "el bloqueo se repite",
+      mutar(
+        "  if not found or exists (select 1 from public.office_envios e where e.revision_id = p_revision) then\n    return false;\n  end if;\n  perform public.office_bloquear(",
+        "  if not found then\n    return false;\n  end if;\n  perform public.office_bloquear(",
+      ),
+      "" // también lo corta la clave única de office_envios,
+    ],
+    [
       "authenticated reserva envíos",
       mutar(
         "    execute pg_catalog.format('grant execute on function %s to service_role', v_firma);",
@@ -196,7 +217,8 @@ describe("0549 · revisión de Sam y envío desde el ERP (PGlite)", () => {
     const nombres =
       "'office_huella_borrador', 'office_exigir_admin', 'office_borradores_pendientes', 'office_revisar_borrador', " +
       "'office_conteo_revisiones', 'office_pendientes_conteo', 'office_envios_por_hacer', 'office_reservar_envio', " +
-      "'office_cerrar_envio', 'office_anotar_sesion_por_borrar', 'office_sesiones_por_borrar', 'office_quitar_sesion_por_borrar'";
+      "'office_cerrar_envio', 'office_anotar_sesion_por_borrar', 'office_sesiones_por_borrar', 'office_quitar_sesion_por_borrar', " +
+      "'office_bloquear', 'office_bloquear_envio', 'office_marcar_envio_incierto'";
     const contar = `(select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                       where n.nspname = 'public' and p.proname in (${nombres}))`;
     const sql = [
@@ -206,7 +228,7 @@ describe("0549 · revisión de Sam y envío desde el ERP (PGlite)", () => {
       leer("supabase/migrations/0548_oficina_despachador.sql"),
       leer("supabase/migrations/0549_oficina_revisiones_envio.sql"),
       "insert into public.office_tasks (titulo) values ('una');",
-      `do $antes$ begin if ${contar} <> 12 then raise exception 'antes del desarme debían existir las 12 funciones'; end if; end $antes$;`,
+      `do $antes$ begin if ${contar} <> 15 then raise exception 'antes del desarme debían existir las 15 funciones'; end if; end $antes$;`,
       leer("supabase/desarmes/0549_desarme.sql"),
       leer("supabase/desarmes/0549_desarme.sql"),
       `do $c$ begin

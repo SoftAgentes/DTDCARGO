@@ -35,9 +35,11 @@
 --      correctas y cero datos inventados).
 --    · para el ERP (solo service_role): office_pendientes_conteo() (el aviso de
 --      Discord, solo el número), office_envios_por_hacer(límite),
---      office_reservar_envio(revisión, huella, bandeja) (mira OTRA VEZ la pausa
---      y que el borrador no cambió desde la aprobación, y reserva el envío),
---      office_cerrar_envio(...), office_anotar_sesion_por_borrar(...),
+--      office_reservar_envio(revisión, huella, bandeja, conversación) (mira OTRA
+--      VEZ la pausa, que el borrador no cambió, que la conversación es la que
+--      Sam aprobó y que la aprobación no venció —24 h—, y reserva el envío),
+--      office_bloquear_envio(...), office_cerrar_envio(...),
+--      office_marcar_envio_incierto(...), office_anotar_sesion_por_borrar(...),
 --      office_sesiones_por_borrar() y office_quitar_sesion_por_borrar(...).
 --
 -- ── Qué NO toca ──────────────────────────────────────────────
@@ -97,6 +99,8 @@ create table if not exists public.office_revisiones (
   borrador_id           uuid not null,
   task_id               uuid not null references public.office_tasks(id) on delete restrict,
   run_id                uuid not null,
+  -- La conversación que Sam aprobó (la entidad_ref de la tarea al revisar). El envío la vuelve a comparar.
+  entidad_ref           text,
   tipo_borrador         text not null,
   huella_borrador       text not null,
   veredicto             text not null,
@@ -116,6 +120,8 @@ create table if not exists public.office_revisiones (
   constraint office_revisiones_huella_hex check (huella_borrador ~ '^[0-9a-f]{64}$'),
   constraint office_revisiones_motivo_corto check (char_length(btrim(motivo)) between 1 and 500),
   constraint office_revisiones_etapa_valida check (etapa in (1, 2)),
+  constraint office_revisiones_entidad_ref_es_referencia
+    check (entidad_ref is null or (entidad_ref ~ '^[^[:space:]]+$' and char_length(entidad_ref) <= 300)),
   -- Lo que se envía no puede llevar datos inventados ni datos personales repetidos.
   constraint office_revisiones_aprobar_exige
     check (not (veredicto = 'aprobado' and tipo_borrador = 'respuesta')
@@ -236,6 +242,7 @@ declare
   v_uid uuid := public.office_exigir_admin('office_revisar_borrador');
   v_b record;
   v_estado text;
+  v_ref text;
   v_id uuid;
   v_casillas integer;
 begin
@@ -254,7 +261,7 @@ begin
   if not found then
     raise exception 'office_revisar_borrador: el borrador no existe' using errcode = 'P0002';
   end if;
-  select t.estado into v_estado from public.office_tasks t where t.id = v_b.task_id for update;
+  select t.estado, t.entidad_ref into v_estado, v_ref from public.office_tasks t where t.id = v_b.task_id for update;
   if v_estado is distinct from 'aprobación' then
     raise exception 'office_revisar_borrador: la tarea no está en aprobación' using errcode = '55000';
   end if;
@@ -262,9 +269,9 @@ begin
     raise exception 'office_revisar_borrador: no se aprueba un envío con datos inventados o datos personales repetidos'
       using errcode = '23514';
   end if;
-  insert into public.office_revisiones (borrador_id, task_id, run_id, tipo_borrador, huella_borrador, veredicto,
+  insert into public.office_revisiones (borrador_id, task_id, run_id, entidad_ref, tipo_borrador, huella_borrador, veredicto,
          c_acuse, c_guion_o_escalado, c_cero_inventados, c_pii_no_repetida, c_cierre_3, motivo, etapa, revisor)
-  values (v_b.id, v_b.task_id, v_b.run_id, v_b.tipo,
+  values (v_b.id, v_b.task_id, v_b.run_id, v_ref, v_b.tipo,
           public.office_huella_borrador(v_b.tipo, v_b.texto, v_b.guion, v_b.motivo, v_b.prioridad),
           p_veredicto, p_acuse, p_guion_o_escalado, p_cero_inventados, p_pii_no_repetida, p_cierre_3,
           btrim(p_motivo), coalesce(p_etapa, 1), v_uid)
@@ -360,7 +367,7 @@ begin
     return;
   end if;
   return query
-    select r.id, r.task_id, t.entidad_ref, b.texto, b.guion, r.huella_borrador, b.creado_en
+    select r.id, r.task_id, r.entidad_ref, b.texto, b.guion, r.huella_borrador, b.creado_en
       from public.office_revisiones r
       join public.office_tasks t on t.id = r.task_id
       join public.office_borradores b on b.id = r.borrador_id
@@ -373,9 +380,29 @@ begin
 end;
 $function$;
 
--- Reserva UN envío. Mira OTRA VEZ la pausa y que el borrador no cambió desde la aprobación (su huella). Devuelve:
--- ok | pausada | ya_reservado | no_aprobado | borrador_cambio | borrador_no_existe.
-create or replace function public.office_reservar_envio(p_revision uuid, p_huella text, p_bandeja integer)
+-- Interna (sin EXECUTE para nadie): deja un envío «bloqueado» con su código, lo anota y termina la tarea (un
+-- bloqueado no se reintenta; si el cliente vuelve a escribir, su mensaje abre una tarea nueva).
+create or replace function public.office_bloquear(p_revision uuid, p_task uuid, p_run uuid, p_codigo text,
+                                                  p_bandeja integer, p_resumen text)
+returns void
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  insert into public.office_envios (revision_id, task_id, estado, codigo, bandeja)
+  values (p_revision, p_task, 'bloqueado', p_codigo, p_bandeja);
+  insert into public.task_events (task_id, run_id, tipo, actor, resumen)
+  values (p_task, p_run, 'envio.bloqueado', 'sistema:envio', 'No se envía (' || p_codigo || '): ' || p_resumen);
+  update public.office_tasks set estado = 'terminada' where id = p_task;
+end;
+$function$;
+
+-- Reserva UN envío. Mira OTRA VEZ la pausa; que la conversación es la que Sam aprobó (B3) y sigue siendo la de la
+-- tarea; que la aprobación tiene menos de 24 h (B1); y que el borrador no cambió desde la aprobación (su huella).
+-- Devuelve: ok | pausada | ya_reservado | no_aprobado | conversacion_cambio | aprobacion_vencida |
+-- borrador_cambio | borrador_no_existe.
+create or replace function public.office_reservar_envio(p_revision uuid, p_huella text, p_bandeja integer,
+                                                        p_conversacion bigint)
 returns text
 language plpgsql
 security definer
@@ -384,16 +411,21 @@ as $function$
 declare
   v_r record;
   v_b record;
+  v_ref_tarea text;
   v_huella text;
 begin
   if p_bandeja is null or p_bandeja <= 0 then
     raise exception 'office_reservar_envio: falta la bandeja' using errcode = '22023';
   end if;
+  if p_conversacion is null or p_conversacion <= 0 then
+    raise exception 'office_reservar_envio: falta la conversación' using errcode = '22023';
+  end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('office_envio:' || coalesce(p_revision::text, '')));
   if public.office_esta_pausada() then
     return 'pausada';
   end if;
-  select r.id, r.task_id, r.run_id, r.borrador_id, r.veredicto, r.tipo_borrador, r.huella_borrador into v_r
+  select r.id, r.task_id, r.run_id, r.borrador_id, r.veredicto, r.tipo_borrador, r.huella_borrador, r.entidad_ref,
+         r.revisado_en into v_r
     from public.office_revisiones r where r.id = p_revision;
   if not found or v_r.veredicto <> 'aprobado' or v_r.tipo_borrador <> 'respuesta' then
     return 'no_aprobado';
@@ -401,22 +433,29 @@ begin
   if exists (select 1 from public.office_envios e where e.revision_id = p_revision) then
     return 'ya_reservado';
   end if;
+  select t.entidad_ref into v_ref_tarea from public.office_tasks t where t.id = v_r.task_id for update;
+  if v_r.entidad_ref is null or v_ref_tarea is distinct from v_r.entidad_ref
+     or pg_catalog.substring(v_r.entidad_ref, '^chatwoot:conversations/([0-9]+)/') is distinct from p_conversacion::text then
+    perform public.office_bloquear(p_revision, v_r.task_id, v_r.run_id, 'conversacion_cambio', p_bandeja,
+                                   'la conversación no es la que Sam aprobó.');
+    return 'conversacion_cambio';
+  end if;
+  if v_r.revisado_en < pg_catalog.now() - interval '24 hours' then
+    perform public.office_bloquear(p_revision, v_r.task_id, v_r.run_id, 'aprobacion_vencida', p_bandeja,
+                                   'la aprobación tiene más de 24 h.');
+    return 'aprobacion_vencida';
+  end if;
   select b.tipo, b.texto, b.guion, b.motivo, b.prioridad into v_b
     from public.office_borradores b where b.id = v_r.borrador_id;
   if not found then
-    insert into public.office_envios (revision_id, task_id, estado, codigo, bandeja)
-    values (p_revision, v_r.task_id, 'bloqueado', 'borrador_no_existe', p_bandeja);
-    insert into public.task_events (task_id, run_id, tipo, actor, resumen)
-    values (v_r.task_id, v_r.run_id, 'envio.bloqueado', 'sistema:envio', 'No se envía: el borrador ya no existe.');
+    perform public.office_bloquear(p_revision, v_r.task_id, v_r.run_id, 'borrador_no_existe', p_bandeja,
+                                   'el borrador ya no existe.');
     return 'borrador_no_existe';
   end if;
   v_huella := public.office_huella_borrador(v_b.tipo, v_b.texto, v_b.guion, v_b.motivo, v_b.prioridad);
   if v_huella <> v_r.huella_borrador or p_huella is distinct from v_r.huella_borrador then
-    insert into public.office_envios (revision_id, task_id, estado, codigo, bandeja)
-    values (p_revision, v_r.task_id, 'bloqueado', 'borrador_cambio', p_bandeja);
-    insert into public.task_events (task_id, run_id, tipo, actor, resumen)
-    values (v_r.task_id, v_r.run_id, 'envio.bloqueado', 'sistema:envio',
-            'No se envía: el borrador no es el que Sam aprobó (la huella cambió).');
+    perform public.office_bloquear(p_revision, v_r.task_id, v_r.run_id, 'borrador_cambio', p_bandeja,
+                                   'el borrador no es el que Sam aprobó (la huella cambió).');
     return 'borrador_cambio';
   end if;
   insert into public.office_envios (revision_id, task_id, estado, bandeja)
@@ -428,6 +467,39 @@ begin
 end;
 $function$;
 
+-- Lo que el ERP ve en Chatwoot y frena el envío ANTES de reservarlo: la conversación es de otra bandeja o cuenta,
+-- alguien ya contestó, el cliente escribió después del borrador (B1) o Chatwoot respondió con una forma que no se
+-- reconoce. Queda «bloqueado» y la tarea termina. Solo si no hay ningún envío de esa revisión.
+create or replace function public.office_bloquear_envio(p_revision uuid, p_codigo text, p_bandeja integer)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_r record;
+begin
+  if p_codigo is null or p_codigo not in ('otra_bandeja', 'ya_contestada', 'cliente_escribio', 'forma_desconocida') then
+    raise exception 'office_bloquear_envio: código inválido' using errcode = '22023';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('office_envio:' || coalesce(p_revision::text, '')));
+  select r.task_id, r.run_id into v_r
+    from public.office_revisiones r where r.id = p_revision and r.veredicto = 'aprobado';
+  if not found or exists (select 1 from public.office_envios e where e.revision_id = p_revision) then
+    return false;
+  end if;
+  perform public.office_bloquear(p_revision, v_r.task_id, v_r.run_id, p_codigo, p_bandeja,
+    case p_codigo
+      when 'otra_bandeja' then 'la conversación no es de la bandeja de prueba.'
+      when 'ya_contestada' then 'alguien ya contestó después del borrador (un solo contestador).'
+      when 'cliente_escribio' then 'el cliente escribió después del borrador; su mensaje abre una tarea nueva.'
+      else 'Chatwoot respondió con una forma que no se reconoce.'
+    end);
+  return true;
+end;
+$function$;
+
+-- Cierra un envío reservado: «enviado» (Chatwoot lo confirmó) o «fallido» (Chatwoot lo RECHAZÓ: no se entregó).
 create or replace function public.office_cerrar_envio(p_revision uuid, p_estado text, p_codigo text, p_mensaje_id bigint)
 returns boolean
 language plpgsql
@@ -458,8 +530,36 @@ begin
   else
     insert into public.task_events (task_id, run_id, tipo, actor, resumen)
     values (v_r.task_id, v_r.run_id, 'envio.fallido', 'sistema:envio',
-            'No se envió (' || coalesce(p_codigo, 'error') || '). No se reintenta solo: lo revisa Sam.');
+            'Chatwoot rechazó el envío (' || coalesce(p_codigo, 'error') || '): no se entregó. No se reintenta solo.');
   end if;
+  return true;
+end;
+$function$;
+
+-- El envío pudo haber salido y no se sabe (se cortó la red, llegó un 200 ilegible, o el cierre en la base falló
+-- DESPUÉS de entregar). El envío se queda en «enviando» —nunca «fallido»: reintentarlo podría duplicar el mensaje
+-- al cliente— y se anota para que Sam lo mire en Chatwoot antes de hacer nada.
+create or replace function public.office_marcar_envio_incierto(p_revision uuid, p_codigo text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_r record;
+begin
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('office_envio:' || coalesce(p_revision::text, '')));
+  select e.task_id, e.bandeja, r.run_id into v_r
+    from public.office_envios e join public.office_revisiones r on r.id = e.revision_id
+   where e.revision_id = p_revision and e.estado = 'enviando';
+  if not found or exists (select 1 from public.office_envios e
+                           where e.revision_id = p_revision and e.estado in ('enviado', 'fallido', 'bloqueado')) then
+    return false;
+  end if;
+  insert into public.task_events (task_id, run_id, tipo, actor, resumen)
+  values (v_r.task_id, v_r.run_id, 'envio.incierto', 'sistema:envio',
+          'No se sabe si el mensaje llegó (' || coalesce(pg_catalog.left(p_codigo, 64), 'error')
+          || '). Queda «enviando» y NO se reintenta: revisar la conversación en Chatwoot antes de hacer nada.');
   return true;
 end;
 $function$;
@@ -515,13 +615,16 @@ declare
 begin
   foreach v_firma in array array[
     'public.office_huella_borrador(text, text, text, text, smallint)',
+    'public.office_bloquear(uuid, uuid, uuid, text, integer, text)',
     'public.office_exigir_admin(text)',
     'public.office_borradores_pendientes()',
     'public.office_revisar_borrador(uuid, text, boolean, boolean, boolean, boolean, boolean, text, smallint)',
     'public.office_conteo_revisiones(smallint)',
     'public.office_pendientes_conteo()',
     'public.office_envios_por_hacer(integer)',
-    'public.office_reservar_envio(uuid, text, integer)',
+    'public.office_reservar_envio(uuid, text, integer, bigint)',
+    'public.office_bloquear_envio(uuid, text, integer)',
+    'public.office_marcar_envio_incierto(uuid, text)',
     'public.office_cerrar_envio(uuid, text, text, bigint)',
     'public.office_anotar_sesion_por_borrar(text, integer)',
     'public.office_sesiones_por_borrar()',
@@ -542,7 +645,9 @@ begin
   foreach v_firma in array array[
     'public.office_pendientes_conteo()',
     'public.office_envios_por_hacer(integer)',
-    'public.office_reservar_envio(uuid, text, integer)',
+    'public.office_reservar_envio(uuid, text, integer, bigint)',
+    'public.office_bloquear_envio(uuid, text, integer)',
+    'public.office_marcar_envio_incierto(uuid, text)',
     'public.office_cerrar_envio(uuid, text, text, bigint)',
     'public.office_anotar_sesion_por_borrar(text, integer)',
     'public.office_sesiones_por_borrar()',
@@ -559,9 +664,9 @@ comment on function public.office_revisar_borrador(uuid, text, boolean, boolean,
 comment on function public.office_conteo_revisiones(smallint) is
   'SDD-0626 AC-1 (etapa 1: 10) y AC-7 (etapa 2: 20): la MISMA consulta. Por conversación; cumple con el mínimo, '
   'el 90 % correctas (las 5 casillas) y cero datos inventados. Solo is_platform_admin().';
-comment on function public.office_reservar_envio(uuid, text, integer) is
-  'SDD-0626 Paso 3b: reserva un envío UNA vez. Mira otra vez la pausa y la huella del borrador (que no cambió '
-  'desde la aprobación). Solo service_role.';
+comment on function public.office_reservar_envio(uuid, text, integer, bigint) is
+  'SDD-0626 Paso 3b: reserva un envío UNA vez. Mira otra vez la pausa, la conversación aprobada, la vigencia (24 h) '
+  'y la huella del borrador (que no cambió desde la aprobación). Solo service_role.';
 
 alter table public.office_revisiones          enable row level security;
 alter table public.office_envios              enable row level security;
@@ -620,7 +725,9 @@ begin
       ('public.office_conteo_revisiones(smallint)', true, 'authenticated'),
       ('public.office_pendientes_conteo()', false, 'service_role'),
       ('public.office_envios_por_hacer(integer)', false, 'service_role'),
-      ('public.office_reservar_envio(uuid, text, integer)', true, 'service_role'),
+      ('public.office_reservar_envio(uuid, text, integer, bigint)', true, 'service_role'),
+      ('public.office_bloquear_envio(uuid, text, integer)', true, 'service_role'),
+      ('public.office_marcar_envio_incierto(uuid, text)', true, 'service_role'),
       ('public.office_cerrar_envio(uuid, text, text, bigint)', true, 'service_role'),
       ('public.office_anotar_sesion_por_borrar(text, integer)', true, 'service_role'),
       ('public.office_sesiones_por_borrar()', true, 'service_role'),
@@ -641,10 +748,13 @@ begin
       end if;
     end loop;
   end loop;
-  if pg_catalog.has_function_privilege('anon', 'public.office_exigir_admin(text)', 'EXECUTE')
-     or pg_catalog.has_function_privilege('authenticated', 'public.office_exigir_admin(text)', 'EXECUTE') then
-    raise exception '0549 postflight: office_exigir_admin se llama desde la API';
-  end if;
+  foreach v_tabla in array array['public.office_exigir_admin(text)', 'public.office_bloquear(uuid, uuid, uuid, text, integer, text)'] loop
+    foreach v_rol in array array['anon', 'authenticated', 'service_role'] loop
+      if pg_catalog.has_function_privilege(v_rol, v_tabla, 'EXECUTE') then
+        raise exception '0549 postflight: % se llama desde la API (%)', v_tabla, v_rol;
+      end if;
+    end loop;
+  end loop;
 end
 $postflight$;
 

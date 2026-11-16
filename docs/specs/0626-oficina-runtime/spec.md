@@ -292,11 +292,19 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 - **C · El envío: `/api/cron/oficina-envio`**, cada minuto, con su interruptor `OFICINA_ENVIO_ACTIVO` (apagado por
   defecto). Solo el ERP envía, solo lo aprobado y solo a `OFICINA_CHATWOOT_INBOX_PRUEBA`, con un token de escritura
   propio (`OFICINA_CHATWOOT_TOKEN_ENVIO`) de un usuario agente que solo es miembro de esa bandeja (Chatwoot 4.19.1 no
-  tiene tokens con alcance: el límite es el del usuario). Por cada aprobado: la huella del texto tiene que ser la
-  aprobada; un GET comprueba la cuenta, la bandeja y que nadie haya contestado después del borrador;
-  `office_reservar_envio` mira **otra vez la pausa** y que **el borrador no cambió desde la aprobación**, y reserva el
-  envío una sola vez; recién entonces el POST del mensaje saliente y `office_cerrar_envio`. Un envío fallido o a medias
-  no se reintenta solo: como mucho una vez, nunca dos.
+  tiene tokens con alcance: el límite es el del usuario). Por cada aprobado:
+  - la huella del texto tiene que ser la aprobada;
+  - la aprobación queda **atada a su conversación** (`office_revisiones.entidad_ref`): el envío va solo a esa, y no
+    sale si la tarea cambió de conversación;
+  - un GET comprueba la cuenta, la bandeja, que nadie haya contestado y que **el cliente no haya escrito** después del
+    borrador. Si Chatwoot responde con una forma que no se reconoce, **se bloquea** (falla hacia el lado seguro);
+  - `office_reservar_envio` mira **otra vez la pausa**, la conversación, que la aprobación tenga **menos de 24 h** y que
+    **el borrador no cambió desde la aprobación**, y reserva el envío una sola vez;
+  - recién entonces el POST del mensaje saliente. Solo un rechazo seguro de Chatwoot (4xx) es «fallido». Si el mensaje
+    **pudo haber salido** (la red, el plazo, un 5xx, una respuesta ilegible o el cierre en la base que falla después de
+    entregar), el envío se queda en «enviando» con el aviso `envio.incierto`: **nunca «fallido»**, para que nadie lo
+    reenvíe a ciegas. Como mucho una vez, nunca dos.
+  - Un envío bloqueado termina la tarea; si el cliente escribe de nuevo, su mensaje abre una tarea nueva.
 - **Un solo contestador por bandeja (§3.5).** La bandeja del cable nunca puede ser una del ERP (portal, clientes,
   leads): la configuración la anula y no hay a dónde enviar. Y si alguien ya contestó en la conversación después del
   borrador, no se envía. El `dtd-bot` de la SDD-0618 todavía no atiende ninguna bandeja; cuando lo haga, su configuración
@@ -431,7 +439,7 @@ de suscripción 2×día · modo degradado de dos vías.
 | Prueba real | AC-1 (etapas 1 y 2) y AC-2..AC-6 con Sam presente |
 | Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `office_revisiones`, contada con `office_conteo_revisiones`, la misma consulta de AC-7), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
 | Paso a etapa 3 | AC-7: conteo de las 20 conversaciones con `office_conteo_revisiones(2)` y `task_events`; Sam firma el paso |
-| Envío (Paso 3b) | **En CI con dobles:** sin aprobación no sale nada; con la oficina pausada, una huella cambiada, otra bandeja o una conversación ya contestada, no se envía; un borrador sale una sola vez; 3 conversaciones con 2 aprobadas y 1 rechazada dan 2 salientes en la bandeja 11 (`lib/studio/__tests__/oficina-paso3b.test.ts`). **Prueba F en staging (con OK de Sam):** lo mismo con Chatwoot real; 0 salientes en las demás bandejas |
+| Envío (Paso 3b) | **En CI con dobles:** sin aprobación no sale nada; con la oficina pausada, una huella cambiada, otra bandeja, una conversación ya contestada o en la que el cliente volvió a escribir, otra conversación que la aprobada, una aprobación de más de 24 h o una forma de Chatwoot que no se reconoce, no se envía; un envío que pudo haber llegado queda «enviando», nunca «fallido»; `crearChatwootEnvio` se prueba con la forma real de Chatwoot 4.19.1; un borrador sale una sola vez; 3 conversaciones con 2 aprobadas y 1 rechazada dan 2 salientes en la bandeja 11 (`lib/studio/__tests__/oficina-paso3b.test.ts`). **Prueba F en staging (con OK de Sam):** lo mismo con Chatwoot real; 0 salientes en las demás bandejas |
 
 ## 10 · Riesgos y qué NO es
 
