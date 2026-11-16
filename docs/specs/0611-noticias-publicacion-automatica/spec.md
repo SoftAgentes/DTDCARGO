@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-14
+updated: 2026-11-15
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -767,6 +767,51 @@ La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada, no 
 | `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §7 y este §11.4 |
 | `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
 | `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
+
+### 11.5 Foto de portada de cada noticia (decidida por Sam el 2026-11-15)
+
+**Problema medido (sitio público, 2026-11-15, solo conteos).** Hay 5 noticias publicadas. Las 5
+usan la **foto de respaldo por categoría** (`CATEGORY_IMAGES` en `lib/news/editorial.ts`): ninguna
+lleva foto propia. En 4 la portada es `precinto-doortudoor-contenedor-…jpg`; la otra usa
+`bodega-yiwu-…jpg`. De los seis respaldos, tres tienen «doortudoor» en el nombre de archivo (la marca
+anterior). *Inferencia:* que esas fotos muestren la marca anterior no se comprobó mirando el
+contenido de las imágenes; hace falta que Sam o diseño las confirmen. `cover_image_url` solo acepta
+rutas locales (`editorial.ts:60-67`), así que hoy no puede entrar una foto externa.
+
+**Regla decidida por Sam (2026-11-15; opción B, ampliada el mismo día).** Cada noticia lleva una
+foto elegida en este orden, y se detiene en la primera que cumpla:
+1. **Foto de la fuente de la noticia, solo si la fuente la publica con una licencia que permite
+   reutilizarla**: dominio público (por ejemplo, muchos sitios de gobierno), Creative Commons con uso
+   comercial, nota o kit de prensa que autoriza su difusión, o indicación explícita de la fuente. Se
+   guardan **crédito, licencia y enlace de origen**. Si el permiso no se puede comprobar, esa foto
+   **no** se usa. Modificarla no da permiso.
+2. **Si no, foto de un banco de uso libre** (Unsplash, Pexels, Pixabay u otro de licencia abierta
+   que permita uso comercial sin pago; crédito guardado cuando lo pida) **o foto propia** de la marca
+   vigente que no muestre la marca anterior («DoorTuDoor», «Door to Door»), ni en rótulos, gorras,
+   camisas, códigos QR ni en el nombre del archivo.
+3. **Si no, o ante cualquier duda o problema con la foto, la noticia se publica sin foto.** Es el
+   respaldo que pidió Sam y debe ser seguro de verdad: la portada sin imagen se ve bien (tarjeta,
+   página de la noticia y vista compartida), sin hueco roto ni imagen de relleno.
+4. **Nunca** el logo o las fotos de la marca anterior, ni una foto cuyo permiso no esté comprobado.
+
+**Qué exige el código (PR posterior, no esta).** (a) Columnas de crédito, licencia y enlace de origen
+junto a la portada, migración nueva en espera; (b) la publicación automática **no usa** una foto sin
+licencia registrada y cae al paso 2 o 3, sin retener la noticia por eso; (c) el filtro rechaza una
+portada que apunte a archivos de la marca anterior y una URL que no sea ruta propia versionada o
+host permitido; (d) diseño de la portada sin imagen en tarjeta, página y vista compartida;
+(e) respaldos de `CATEGORY_IMAGES` sin la marca anterior (hecho en la PR de respaldos). Retirar o
+cambiar la foto de las 5 noticias ya publicadas es un cambio de contenido en producción: llega con
+la publicación de la web y lleva el OK de Sam.
+
+**Límite de la prueba:** la prueba de los respaldos solo mira el nombre de archivo y que exista; que la foto no muestre la marca anterior (rótulos, gorras, camisas, QR) **se revisa a mano, a la vista**, cada vez que se agregue o cambie una foto.
+
+**Revisión de las fotos propias (2026-11-15, a la vista).** Con marca anterior, **excluidas**:
+`precinto-doortudoor-…jpg`, `carga-contenedor-precinto-doortudoor-…jpg`,
+`puerto-venezuela-aduana-entrega-final-…jpg` (gorra y camisa con «Door»), `dtd-cargo-recepcion-contenedor.webp`
+(camisa con «doortudoor.com»). Dudosas, **no usadas** (logo «DP» sin confirmar):
+`dtd-cargo-descarga-bodega.webp` y `dtd-cargo-atencion-mapa.webp`. Sin marca anterior visible, usadas:
+`dtd-cargo-carga-consolidada`, `dtd-cargo-camion-entrega`, `dtd-cargo-operacion-puerto`,
+`dtd-cargo-equipo-contenedor` y `bodega-yiwu-…jpg`.
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 
