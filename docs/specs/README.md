@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 623 specs)
+### Índice de specs (generado · 624 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -661,6 +661,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
 | 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
 | 0640 | Revisar lote: la persona de operaciones revisa y aprueba cada… | proposed | interno |
+| 0643 | Embarques por contenedor: la vista empieza por el contenedor,… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0641, 0642 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
