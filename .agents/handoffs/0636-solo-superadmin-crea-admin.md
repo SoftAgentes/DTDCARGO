@@ -39,10 +39,33 @@
 | md5 de la 0545 | `e0dba88d4e317fc8da3f9af3d295f640`, 21106 B (igual antes y después de la tercera corrida) |
 | `pnpm verify` | NO EJECUTADO, por orden del DG: el portón es el CI más la revisión del DG |
 
+## Aplicación y retiro de la espera
+
+- **Conteo previo** de invitaciones pendientes con rol admin, de solo lectura: 0, el 2026-11-16 a las 02:20:15Z (dato del DG).
+- **La 0545 se aplicó** en producción el 2026-11-16 a las 02:50:34Z (el DG, con el OK nominal de Sam y el runbook). El ledger guarda md5 `e0dba88d4e317fc8da3f9af3d295f640` y 21106 B, igual que el archivo.
+- **La #592 se fusionó** el 2026-11-16 a las 04:15:03Z, y `main` quedó en `c5a554afc`.
+- **El retiro** se hizo en la rama `claude/docs-retirar-espera-0545`, desde `c5a554afc` (runbook `aplicar-migraciones-prod.md` §6):
+  - `node infra/ops/migraciones/retirar-espera.mjs 0545_solo_superadmin_crea_admin --md5 e0dba88d4e317fc8da3f9af3d295f640` devolvió `esperaRetirada: true`, 0 declaraciones quitadas y `revisarAMano` vacío.
+  - `node scripts/migrations-lock.mjs` dio 531 selladas (la mayor, la 0545), 0 esperas sin sellar y 0 nuevas sin sellar.
+  - `supabase/migrations-baseline.json` pierde solo la entrada de la 0545 y no queda ninguna espera.
+  - `supabase/migrations.lock.json` suma su sello: sha256 `300f6f6b…4598`, md5 `e0dba88d…f640`, 21106 B.
+- **Comprobaciones del retiro:** están en la tabla siguiente.
+
+| Comprobación del retiro | Resultado |
+|---|---|
+| Huella de las líneas «OK nominal» (`grep 'OK nominal' <archivo> \| md5sum \| cut -c1-8`) | PASÓ: runbook `chatwoot-portal-p4-puertas.md` `79131b41` y guion `chatwoot-portal-p4-guion-puertas-3-4.md` `693fb4f3`, iguales antes y después. `copia-columnas.tsv` sin tocar (md5 `cc1534a8a223e37ab9485451d5ee922c`) |
+| El candado de migraciones (`scripts/migrations-lock.mjs`) | PASÓ, exit 0 |
+| Su prueba (`node --test scripts/tests/migrations-lock.node.mjs`) | PASÓ: 23 de 23 |
+| El gate de símbolos (`scripts/check-pending-migration-symbols.mjs`) | PASÓ: 0 ROJO, 0 AMARILLO |
+| `docs:check` | PASÓ: 621 specs |
+| `sdd:check` | PASÓ: sin números repetidos |
+| El `.sql` de la 0545 | Sin tocar: md5 `e0dba88d4e317fc8da3f9af3d295f640`, 21106 B |
+| `pnpm verify`, vitest, build, Docker | NO EJECUTADO: el retiro no toca código ni SQL |
+| La gate `migrations-applied` | NO EJECUTADO: necesita credenciales de producción. La mide el CI de la PR |
+
 ## Pendientes de esta tarea
 
-- La aplicación de la 0545 en producción: la hace el DG con OK nominal de Sam y el runbook. Antes, el conteo de solo lectura de invitaciones pendientes con rol admin, que el DG le pide a Sam.
-- La revisión independiente la lanza el DG.
+- La revisión y la fusión de la PR del retiro, que hace el DG.
 
 ## Impacto documental
 
