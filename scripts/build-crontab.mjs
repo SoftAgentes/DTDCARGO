@@ -85,6 +85,12 @@ export const EXTRA_CRONS = [
     reason:
       "diario, 04:45 UTC · SDD-0611 §11.4.1 · vacía el uuid de las 4 columnas actor_id de noticias a los 12 meses (privacidad, decisión de Sam 2026-11-14) · no borra filas · nace APAGADO: sin NOTICIAS_PURGA_ACTOR_ACTIVO no llama a la base",
   },
+  {
+    path: "/api/cron/oficina-despachador",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 §3.4 (Paso 3a) · una tanda de ticks cada 10 s; el agente redacta y NADA se envía · una tanda a la vez (turno en la base) · nace APAGADO: sin OFICINA_DESPACHADOR_ACTIVO no llama a la base",
+  },
 ];
 
 const CRON_PATH_RE = /^\/api\/cron\/([a-z0-9]+(?:-[a-z0-9]+)*)$/;

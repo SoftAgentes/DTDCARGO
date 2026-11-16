@@ -199,7 +199,7 @@ export function guardarCursor(ruta, n) {
 }
 
 /** Solo GET a la API de cuenta de Chatwoot. Cualquier otra cosa no se puede ni pedir. */
-async function chatwoot(cfg, ruta) {
+export async function chatwoot(cfg, ruta) {
   if (!ruta.startsWith(`/api/v1/accounts/${CUENTA}/`)) throw new Error("ruta fuera de la cuenta de prueba");
   const r = await fetch(`${cfg.chatwoot}${ruta}`, {
     method: "GET",
@@ -237,14 +237,54 @@ async function entregar(cfg, conversacion, mensaje) {
   return { status: r.status, resultado };
 }
 
+/**
+ * O5 (revisión del DG de la #591): paginación de Chatwoot 4.19.1.
+ * - Conversaciones: `?page=N`, 25 por página. Se sigue mientras la página venga llena y `meta.all_count` diga
+ *   que hay más, hasta PAGINAS_MAXIMAS (un tope: una bandeja de prueba no tiene miles).
+ * - Mensajes: la API devuelve los 20 más nuevos; los anteriores, con `?before=<id más viejo>`. Se sigue hacia
+ *   atrás solo mientras la página venga llena y su id más viejo sea más nuevo que `hasta` (el cursor), hasta
+ *   PAGINAS_MAXIMAS.
+ */
+export const PAGINAS_MAXIMAS = 40;
+const POR_PAGINA_CONVERSACIONES = 25;
+const POR_PAGINA_MENSAJES = 20;
+
+export async function listarConversaciones(cfg, pedir = chatwoot) {
+  const todas = [];
+  for (let page = 1; page <= PAGINAS_MAXIMAS; page += 1) {
+    const lista = await pedir(cfg, `/api/v1/accounts/${CUENTA}/conversations?inbox_id=${BANDEJA}&status=all&page=${page}`);
+    const datos = obj(lista?.data);
+    const pagina = Array.isArray(datos?.payload) ? datos.payload : [];
+    todas.push(...pagina);
+    const total = Number(obj(datos?.meta)?.all_count);
+    const hayMas = pagina.length >= POR_PAGINA_CONVERSACIONES && (!Number.isFinite(total) || todas.length < total);
+    if (!hayMas) break;
+  }
+  return todas.filter(esConversacionDePrueba);
+}
+
+export async function listarMensajes(cfg, conversacionId, hasta = 0, pedir = chatwoot) {
+  const todos = [];
+  let antes = null;
+  for (let n = 1; n <= PAGINAS_MAXIMAS; n += 1) {
+    const ruta = `/api/v1/accounts/${CUENTA}/conversations/${conversacionId}/messages${antes ? `?before=${antes}` : ""}`;
+    const ms = await pedir(cfg, ruta);
+    const pagina = (Array.isArray(ms?.payload) ? ms.payload : []).filter((m) => entero(m?.id));
+    todos.push(...pagina);
+    const masViejo = pagina.reduce((min, m) => Math.min(min, m.id), Number.POSITIVE_INFINITY);
+    if (pagina.length < POR_PAGINA_MENSAJES || !(masViejo > hasta) || masViejo === antes) break;
+    antes = masViejo;
+  }
+  const vistos = new Set();
+  return todos.filter((m) => (vistos.has(m.id) ? false : (vistos.add(m.id), true))).sort((a, b) => a.id - b.id);
+}
+
 /** Una vuelta: conversaciones de la bandeja 11 → mensajes nuevos → entrega en orden de id. */
-export async function vuelta(cfg, cursor) {
-  const lista = await chatwoot(cfg, `/api/v1/accounts/${CUENTA}/conversations?inbox_id=${BANDEJA}&status=all&page=1`);
-  const conversaciones = (obj(lista?.data)?.payload ?? []).filter(esConversacionDePrueba);
+export async function vuelta(cfg, cursor, pedir = chatwoot) {
+  const conversaciones = await listarConversaciones(cfg, pedir);
   const pendientes = [];
   for (const c of conversaciones) {
-    const ms = await chatwoot(cfg, `/api/v1/accounts/${CUENTA}/conversations/${c.id}/messages`);
-    for (const m of ms?.payload ?? []) if (esNuevoEntrante(m, cursor)) pendientes.push([c, m]);
+    for (const m of await listarMensajes(cfg, c.id, cursor, pedir)) if (esNuevoEntrante(m, cursor)) pendientes.push([c, m]);
   }
   pendientes.sort((a, b) => a[1].id - b[1].id);
   let nuevo = cursor;
@@ -261,11 +301,10 @@ export async function vuelta(cfg, cursor) {
 
 /** El primer arranque no reenvía la historia: el cursor empieza en el último entrante que ya existe. */
 async function cursorInicial(cfg) {
-  const lista = await chatwoot(cfg, `/api/v1/accounts/${CUENTA}/conversations?inbox_id=${BANDEJA}&status=all&page=1`);
   let max = 0;
-  for (const c of (obj(lista?.data)?.payload ?? []).filter(esConversacionDePrueba)) {
-    const ms = await chatwoot(cfg, `/api/v1/accounts/${CUENTA}/conversations/${c.id}/messages`);
-    for (const m of ms?.payload ?? []) if (entero(m?.id) && m.id > max) max = m.id;
+  for (const c of await listarConversaciones(cfg)) {
+    // Basta la página más nueva: el id más alto está ahí.
+    for (const m of await listarMensajes(cfg, c.id, Number.MAX_SAFE_INTEGER)) if (m.id > max) max = m.id;
   }
   return max;
 }

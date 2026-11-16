@@ -45,17 +45,24 @@ describe("GET /api/cron/oficina-vaciado", () => {
     expect(m.rpc).not.toHaveBeenCalled();
   });
 
-  it("encendido: llama a office_vaciar_resumenes_viejos (no consulta la pausa: corre pausada o no)", async () => {
+  it("encendido: vacía los resúmenes y purga los borradores viejos (no consulta la pausa: corre pausada o no)", async () => {
     const r = await GET(req("Bearer cron-sintetico"));
-    expect(await r.json()).toEqual({ ok: true, estado: "ok", cantidad: 2 });
-    expect(m.rpc).toHaveBeenCalledTimes(1);
-    expect(m.rpc).toHaveBeenCalledWith("office_vaciar_resumenes_viejos");
+    expect(await r.json()).toEqual({ ok: true, estado: "ok", cantidad: 2, borradores: { estado: "ok", cantidad: 2 } });
+    expect(m.rpc).toHaveBeenCalledTimes(2);
+    expect(m.rpc).toHaveBeenNthCalledWith(1, "office_vaciar_resumenes_viejos");
+    expect(m.rpc).toHaveBeenNthCalledWith(2, "office_purgar_borradores_viejos");
   });
 
   it("sin la 0541: 200 «sin_migracion», no rompe", async () => {
     m.rpc.mockResolvedValue({ data: null, error: { code: "42883" } });
     const r = await GET(req("Bearer cron-sintetico"));
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ ok: true, estado: "sin_migracion" });
+    expect(await r.json()).toEqual({ ok: true, estado: "sin_migracion", borradores: { estado: "sin_migracion" } });
+  });
+
+  it("con la 0541 pero sin la 0548: vacía igual y la purga dice «sin_migracion»", async () => {
+    m.rpc.mockResolvedValueOnce({ data: 1, error: null }).mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } });
+    const r = await GET(req("Bearer cron-sintetico"));
+    expect(await r.json()).toEqual({ ok: true, estado: "ok", cantidad: 1, borradores: { estado: "sin_migracion" } });
   });
 });
