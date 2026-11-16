@@ -30,18 +30,21 @@
 --   · asistente_llamadas: una fila por intento a la IA, sin texto ni usuario
 --     (13 meses). De aquí sale el gasto del mes (D-8).
 --   · asistente_cuotas: preguntas por persona y hora (7 días).
---   · asistente_purgas: constancia de cada purga, sin usuarios ni textos.
+--   · asistente_purgas: constancia de cada purga, sin usuarios, actores ni
+--     textos: el motivo es un código de una lista cerrada.
 --
 -- Todas: RLS activa y SIN policies (ni anon ni authenticated las alcanzan
--- directo); service_role lee e inserta; NADIE actualiza ni borra. El trigger
--- asistente_solo_insercion() lo repite en la base y solo deja pasar el DELETE
--- que hacen las funciones de purga (E-1).
+-- directo); service_role lee e inserta; NADIE tiene UPDATE, DELETE ni TRUNCATE.
+-- Esa es la barrera. El trigger asistente_solo_insercion() es una segunda capa:
+-- frena también al dueño, y solo deja pasar el DELETE que hacen las funciones de
+-- purga (E-1).
 --
 -- Funciones (search_path vacío):
 --   · asistente_reservar_pregunta(tenant, usuario, tope) → boolean · service_role
 --   · asistente_gasto_del_mes(tenant) → numeric · service_role
 --   · asistente_purgar_vencidos() → jsonb · service_role (la corre un cron)
---   · asistente_purgar_usuario(tenant, usuario, actor, motivo) → jsonb · service_role
+--   · asistente_purgar_usuario(tenant, usuario, actor, motivo_codigo) → jsonb ·
+--     service_role; el actor tiene que ser admin activo del tenant
 --   · asistente_listar_conversaciones(límite, antes) · authenticated, solo admin
 --     del tenant; sin textos
 --   · asistente_leer_conversacion(id) · authenticated, solo admin del tenant;
@@ -84,9 +87,10 @@ alter type public.bug_notif_type add value if not exists 'asistente_alerta';
 
 -- ─── 1. Solo inserción ──────────────────────────────────────────────────────
 -- Rechaza UPDATE siempre, y DELETE/TRUNCATE salvo dentro de una función de purga,
--- que antes hace `set_config('asistente.purga', 'on', true)`. La bandera sola no
--- alcanza: además nadie tiene privilegio DELETE sobre estas tablas, solo el dueño,
--- que es quien ejecuta las funciones SECURITY DEFINER.
+-- que antes hace `set_config('asistente.purga', 'on', true)`. La barrera es el
+-- privilegio: nadie tiene DELETE sobre estas tablas salvo el dueño, que es quien
+-- ejecuta las funciones SECURITY DEFINER. Este trigger es la segunda capa, para el
+-- dueño: la bandera la puede poner cualquier sesión, así que sola no protege nada.
 create or replace function public.asistente_solo_insercion()
 returns trigger
 language plpgsql
@@ -236,13 +240,17 @@ create table if not exists public.asistente_purgas (
   id             uuid primary key default gen_random_uuid(),
   ejecutada_at   timestamptz not null default now(),
   motivo         text not null check (motivo in ('plazo', 'pedido')),
+  motivo_codigo  text,
   tenant_id      uuid,
-  actor_id       uuid,
-  nota           text check (nota is null or pg_catalog.char_length(nota) <= 200),
-  conteos        jsonb not null check (jsonb_typeof(conteos) = 'object')
+  conteos        jsonb not null check (jsonb_typeof(conteos) = 'object'),
+  -- Lista cerrada, sin texto libre: la constancia no lleva datos personales (privacidad.md §2).
+  constraint asistente_purgas_motivo_codigo check (
+    (motivo = 'plazo' and motivo_codigo is null)
+    or (motivo = 'pedido'
+        and motivo_codigo in ('pedido_titular', 'baja_personal', 'orden_legal', 'registro_erroneo')))
 );
 comment on table public.asistente_purgas is
-  'SDD-0637 Faro · constancia de cada purga: cuándo, por qué y cuántas filas por tabla. Sin usuarios ni textos borrados. Solo inserción y sin plazo.';
+  'SDD-0637 Faro · constancia de cada purga: cuándo, por qué (código de una lista cerrada) y cuántas filas por tabla. Sin usuarios, actores ni textos. Quién pidió una purga a pedido lo registra el servidor en la auditoría general. Solo inserción y sin plazo.';
 
 -- ─── 3. Triggers de solo inserción ──────────────────────────────────────────
 do $triggers$
@@ -378,25 +386,32 @@ end;
 $fn$;
 
 -- ─── 8. Purga a pedido de una persona (privacidad.md E-5) ───────────────────
--- Borra sus conversaciones (con mensajes) y los eventos no-alerta de ellas. Las
--- alertas se quedan su plazo (seguridad). El servidor comprueba antes que quien
--- la pide es administrador del tenant; aquí se exige el actor y un motivo.
+-- Borra, en ese tenant, sus conversaciones (con mensajes), sus eventos no-alerta
+-- (de esas conversaciones o a su nombre) y sus cuotas. Las alertas se quedan su
+-- plazo (seguridad). Exige que el actor sea administrador activo del tenant y un
+-- motivo de la lista cerrada; el actor no se guarda aquí (privacidad.md §2).
 create or replace function public.asistente_purgar_usuario(
-  p_tenant uuid, p_usuario uuid, p_actor uuid, p_motivo text)
+  p_tenant uuid, p_usuario uuid, p_actor uuid, p_motivo_codigo text)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $fn$
 declare
-  n_conv integer; n_msj integer; n_ev integer;
+  n_conv integer; n_msj integer; n_ev integer; n_cuo integer;
   v_conteos jsonb;
 begin
   if p_tenant is null or p_usuario is null or p_actor is null then
     raise exception 'asistente_purgar_usuario: tenant, usuario y actor son obligatorios' using errcode = '22023';
   end if;
-  if p_motivo is null or pg_catalog.char_length(pg_catalog.btrim(p_motivo)) not between 4 and 200 then
-    raise exception 'asistente_purgar_usuario: el motivo debe tener entre 4 y 200 caracteres' using errcode = '22023';
+  if p_motivo_codigo is null
+     or p_motivo_codigo not in ('pedido_titular', 'baja_personal', 'orden_legal', 'registro_erroneo') then
+    raise exception 'asistente_purgar_usuario: motivo fuera de la lista cerrada' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.user_tenants ut
+                  where ut.user_id = p_actor and ut.tenant_id = p_tenant
+                    and ut.role = 'admin' and ut.disabled_at is null) then
+    raise exception 'asistente_purgar_usuario: el actor no es administrador activo del tenant' using errcode = '42501';
   end if;
 
   perform pg_catalog.set_config('asistente.purga', 'on', true);
@@ -404,20 +419,27 @@ begin
   delete from public.asistente_eventos e
    where e.tenant_id = p_tenant
      and e.tipo in ('feedback', 'rectificacion', 'fallo')
-     and e.conversacion_id in (select c.id from public.asistente_conversaciones c
-                                where c.tenant_id = p_tenant and c.usuario_id = p_usuario);
+     and (e.usuario_id = p_usuario
+          or e.conversacion_id in (select c.id from public.asistente_conversaciones c
+                                    where c.tenant_id = p_tenant and c.usuario_id = p_usuario));
   get diagnostics n_ev = row_count;
 
   select pg_catalog.count(*) into n_msj
     from public.asistente_mensajes m
     join public.asistente_conversaciones c on c.tenant_id = m.tenant_id and c.id = m.conversacion_id
    where c.tenant_id = p_tenant and c.usuario_id = p_usuario;
-  delete from public.asistente_conversaciones where tenant_id = p_tenant and usuario_id = p_usuario;
+  delete from public.asistente_conversaciones dc
+   where dc.tenant_id = p_tenant
+     and dc.usuario_id = p_usuario;
   get diagnostics n_conv = row_count;
 
-  v_conteos := pg_catalog.jsonb_build_object('conversaciones', n_conv, 'mensajes', n_msj, 'eventos', n_ev);
-  insert into public.asistente_purgas (motivo, tenant_id, actor_id, nota, conteos)
-  values ('pedido', p_tenant, p_actor, pg_catalog.btrim(p_motivo), v_conteos);
+  delete from public.asistente_cuotas q where q.tenant_id = p_tenant and q.usuario_id = p_usuario;
+  get diagnostics n_cuo = row_count;
+
+  v_conteos := pg_catalog.jsonb_build_object(
+    'conversaciones', n_conv, 'mensajes', n_msj, 'eventos', n_ev, 'cuotas', n_cuo);
+  insert into public.asistente_purgas (motivo, motivo_codigo, tenant_id, conteos)
+  values ('pedido', p_motivo_codigo, p_tenant, v_conteos);
 
   perform pg_catalog.set_config('asistente.purga', 'off', true);
   return v_conteos;
@@ -495,3 +517,5 @@ grant execute on function public.asistente_purgar_vencidos() to service_role;
 grant execute on function public.asistente_purgar_usuario(uuid, uuid, uuid, text) to service_role;
 grant execute on function public.asistente_listar_conversaciones(integer, timestamptz) to authenticated;
 grant execute on function public.asistente_leer_conversacion(uuid) to authenticated;
+
+notify pgrst, 'reload schema';

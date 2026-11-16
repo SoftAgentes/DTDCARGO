@@ -69,11 +69,13 @@ o el nombre de un cliente, un monto, o algo de su propia salud. Ver E-3.
 **E-1 · La purga que se iba a copiar no borra el texto.** La spec (§6.4) toma como modelo la purga de Noticias, y
 esa función solo pone en `null` el identificador y deja la fila (`supabase/migrations/0546_noticias_purga_actor_id.sql:178-202`).
 En Faro el dato personal está **en el texto**: quitar el `usuario_id` no basta.
-*Arreglo:* la purga **borra las filas completas** de `asistente_mensajes` y `asistente_conversaciones` vencidas. El
-trigger de solo inserción admite una excepción estrecha: un `delete` dentro de la función de purga
-(`security definer`, solo `service_role`), marcada con un `set local` que el trigger comprueba. Nunca un flag que
-pueda poner el cliente, nunca desactivar el trigger. Contrato `.test.sql`: el `delete` directo falla y el de la purga
-pasa; la purga deja su fila en `asistente_purgas`.
+*Arreglo:* la purga **borra las filas completas** de `asistente_mensajes` y `asistente_conversaciones` vencidas. La
+barrera es el **privilegio**: nadie tiene `DELETE` sobre estas tablas, ni `service_role`; solo el dueño, que es quien
+ejecuta la función de purga (`security definer`, ejecutable solo por `service_role`). El trigger de solo inserción
+es una **segunda capa** para el dueño: deja pasar el `delete` solo con una bandera de transacción que pone la
+función. La bandera sola no protege nada, porque cualquier sesión puede ponerla; por eso nunca reemplaza al
+privilegio, y nunca se desactiva el trigger. Contrato `.test.sql`: el `delete` directo falla, también con la bandera
+puesta; el de la purga pasa y deja su fila en `asistente_purgas`.
 > SC 332/2001, temporalidad · SC 759/2025, derecho al olvido · PIPL art. 47.
 
 **E-2 · Equipo en China: sin mecanismo para sacar sus preguntas del país.** Las preguntas de quien trabaja en China,
@@ -105,7 +107,7 @@ aviso se mostró y cuándo**, por persona. Es un aviso, no un consentimiento: la
 **E-5 · No hay camino para que una persona vea, corrija o pida borrar sus preguntas.** El panel no relee el historial (§6.4)
 y la memoria personal quedó fuera, así que la persona no tiene dónde verlas.
 *Arreglo:* el administrador puede **exportar** las conversaciones de una persona y **purgar** las suyas a pedido,
-con motivo, por la misma función de E-1 y con registro en `asistente_purgas`. El aviso de E-4 dice cómo pedirlo.
+con un motivo de una lista cerrada, por la misma vía de E-1 y con registro en `asistente_purgas` (sin quién ni texto). El aviso de E-4 dice cómo pedirlo.
 Una pantalla «Mis preguntas» queda como mejora posterior.
 *Rectificación:* el registro guarda lo que la persona escribió y lo que Faro respondió; corregirlo después lo
 falsearía. Si la persona dice que un dato está mal (por ejemplo, la conversación quedó a nombre de otra persona),

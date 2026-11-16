@@ -22,8 +22,8 @@ confidencialidad: interno
 **Decisiones:** D-1 a D-11 (§11). Decididas por Sam: D-3, D-4, D-5, D-6, D-9, D-10 y D-11. Abiertas: D-1, D-2, D-7
 y D-8.
 
-**Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
-Nada se programa hasta que Sam apruebe esta spec.
+**Estado:** `proposed`. Hay contenido (fase 1, en `main`) y una migración sin aplicar (fase 2, `0550`). **No hay
+cambios en producción.** Cada fase se programa con el visto bueno de Sam y el turno del Director General.
 
 **Maquetas navegables** (archivos autocontenidos; se abren en el navegador):
 
@@ -354,7 +354,26 @@ de los usuarios se tratan como datos, nunca como instrucciones.
 contrato `supabase/tests/0550_faro_registro.test.sql`, su ensayo en PGlite
 `lib/studio/asistente/__tests__/faro-0550.migration.test.ts` (control rojo, mutantes y desarme) y su desarme
 `supabase/desarmes/0550_desarme.sql`. Implementa D-4 (lee solo el administrador del tenant, con rastro) y deja
-D-5 como parámetro: el tope por hora lo pasa el servidor y la base no fija el número. Sam aprobó las dos el mismo día. Detalle en `.agents/handoffs/sdd-0637-faro-fase2-migracion.md`.
+D-5 como parámetro: el tope por hora lo pasa el servidor y la base no fija el número. Sam aprobó las dos el mismo día.
+La purga a pedido exige que quien la pide sea administrador activo del tenant y un motivo de una lista cerrada; la
+constancia en `asistente_purgas` no guarda quién la pidió ni texto (`privacidad.md` §2). Si hace falta dejar
+constancia de quién, la fase 3 la escribe con `append_audit_event` (0267), sin el texto de las preguntas.
+Detalle en `.agents/handoffs/sdd-0637-faro-fase2-migracion.md`.
+
+**Allowlist exacta de la fase 2** (PR #611): ningún otro archivo cambia.
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0550_faro_registro.sql` | Nuevo |
+| `supabase/tests/0550_faro_registro.test.sql` | Nuevo |
+| `lib/studio/asistente/__tests__/faro-0550.migration.test.ts` | Nuevo |
+| `supabase/desarmes/0550_desarme.sql` | Nuevo |
+| `supabase/migrations-baseline.json` | Espera `0550_faro_registro` |
+| `docs/specs/0637-faro-asistente-ayuda/spec.md` | Fase 2, D-4, D-5, AC-17 y AC-18 |
+| `.agents/handoffs/sdd-0637-faro-fase2-migracion.md` | Nuevo |
+
+Más `docs/specs/0637-faro-asistente-ayuda/privacidad.md`, solo para precisar el texto de E-1 y E-5 a lo que hace la
+0550.
 
 **Orden:** el Director General ubicó la implementación después de lo que está en curso (retiros de espera de las
 migraciones 0545 a 0547, la PR #598 y la prueba E del cable). El número de la migración se toma al crearla.
@@ -385,6 +404,7 @@ incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisi
 | AC-15 | Existe la revisión `revisar-datos-ve` aprobada antes del primer envío real al modelo | 5 |
 | AC-16 | `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo aceptan proveedores de la lista permitida, sin proveedores chinos; una prueba falla si se configura uno fuera de la lista | 3 |
 | AC-17 | Cada hallazgo E-1 a E-10 de [`privacidad.md`](privacidad.md) queda resuelto en su fase, con prueba donde el código lo permite. Fase 2: E-1 (la purga borra filas completas), E-5 (purga a pedido con constancia) y E-7 (cada lectura del administrador queda en `asistente_lecturas`), en el contrato de la 0550. Fase 3: E-3 (depuración antes de la IA y antes de guardar), E-6 (la alerta es una señal que revisa una persona), E-9 (un canal externo no lleva identidad) y E-10 (AC-16). Fase 4: E-4 (aviso con versión) y el camino de E-5 para pedir. Fase 7: E-8 (Hermes solo lee agregados). E-2 queda aceptado por D-11, con el riesgo anotado | 2 a 7 |
+| AC-18 | El tope de gasto del mes no se pasa por una carrera: dos preguntas simultáneas del mismo tenant no pueden leer el mismo gasto y llamar las dos a la IA. El servidor toma un advisory lock por tenant o reserva el gasto antes de llamar; una prueba con llamadas en paralelo lo demuestra | 3 |
 
 ## 10. Datos personales
 

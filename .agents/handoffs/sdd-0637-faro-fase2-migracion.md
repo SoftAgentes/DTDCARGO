@@ -40,9 +40,11 @@
   - `asistente_reservar_pregunta(tenant, usuario, tope)`: reserva atómica; devuelve falso al pasar el tope.
     El tope lo pasa el servidor (D-5 como parámetro). Solo `service_role`.
   - `asistente_gasto_del_mes(tenant)`: suma `costo_usd` del mes UTC en curso (D-8). Solo `service_role`.
-  - `asistente_purgar_vencidos()` y `asistente_purgar_usuario(tenant, usuario, actor, motivo)`: solo
-    `service_role`. La segunda atiende un pedido de supresión: borra conversaciones y eventos de esa persona,
-    pero no sus alertas, y deja constancia con motivo.
+  - `asistente_purgar_vencidos()` y `asistente_purgar_usuario(tenant, usuario, actor, motivo_codigo)`: solo
+    `service_role`. La segunda atiende un pedido de supresión: exige que el actor sea admin activo del tenant y
+    un motivo de la lista cerrada (`pedido_titular`, `baja_personal`, `orden_legal`, `registro_erroneo`). Borra
+    en ese tenant sus conversaciones, sus eventos no-alerta (de esas conversaciones o a su nombre) y sus cuotas;
+    las alertas quedan. La constancia no guarda quién ni texto.
   - `asistente_listar_conversaciones(limite, antes)`: solo el administrador del tenant (D-4). Sin texto.
   - `asistente_leer_conversacion(id)`: solo el administrador del tenant. Deja una fila en `asistente_lecturas`.
 - Las FK hacia `tenants` no tienen `on delete cascade` a propósito: una cascada chocaría con el trigger. Borrar

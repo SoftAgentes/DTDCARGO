@@ -148,7 +148,7 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
   {
     nombre: "la lista no filtra por tenant",
     sql: () => once(FILE_0550, "     where c.tenant_id = v_tenant\n       and (p_antes", "     where true\n       and (p_antes"),
-    cae: "TEST 0550: H: el admin de T1 ve 2 conversaciones",
+    cae: "TEST 0550: H: el admin de T1 ve 3 conversaciones",
   },
   {
     nombre: "abrir no exige administrador",
@@ -169,6 +169,61 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
         "",
       ),
     cae: "TEST 0550: H: abrir la conversación no quedó registrado una vez",
+  },
+  {
+    nombre: "el revoke de una función olvida a anon",
+    sql: () =>
+      once(
+        FILE_0550,
+        "revoke all on function public.asistente_purgar_vencidos() from public, anon, authenticated;",
+        "revoke all on function public.asistente_purgar_vencidos() from public, authenticated;",
+      ),
+    cae: "TEST 0550: I: anon ejecuta public.asistente_purgar_vencidos()",
+  },
+  {
+    nombre: "el revoke de las tablas olvida a service_role",
+    sql: () =>
+      once(
+        FILE_0550,
+        "'revoke all on table public.%I from public, anon, authenticated, service_role'",
+        "'revoke all on table public.%I from public, anon, authenticated'",
+      ),
+    cae: "TEST 0550: B: service_role tiene UPDATE sobre asistente_",
+  },
+  {
+    nombre: "la purga a pedido no exige un admin del tenant",
+    sql: () =>
+      once(
+        FILE_0550,
+        "                    and ut.role = 'admin' and ut.disabled_at is null) then",
+        "                    and ut.role = 'admin' and ut.disabled_at is null) and false then",
+      ),
+    cae: "TEST 0550: G: un actor que no es admin pidió una purga",
+  },
+  {
+    nombre: "la purga a pedido cruza de tenant",
+    sql: () =>
+      once(
+        FILE_0550,
+        "   where dc.tenant_id = p_tenant\n     and dc.usuario_id = p_usuario;",
+        "   where true\n     and dc.usuario_id = p_usuario;",
+      ),
+    cae: "TEST 0550: G: la purga a pedido de una persona en dos tenants dio",
+  },
+  {
+    nombre: "la purga a pedido deja los eventos a su nombre",
+    sql: () => once(FILE_0550, "     and (e.usuario_id = p_usuario\n          or ", "     and (false\n          or "),
+    cae: "TEST 0550: G: la purga a pedido dio",
+  },
+  {
+    nombre: "la purga a pedido deja las cuotas",
+    sql: () =>
+      once(
+        FILE_0550,
+        "delete from public.asistente_cuotas q where q.tenant_id = p_tenant and q.usuario_id = p_usuario;",
+        "delete from public.asistente_cuotas q where false;",
+      ),
+    cae: "TEST 0550: G: la purga a pedido dio",
   },
   {
     nombre: "authenticated ejecuta la purga",
