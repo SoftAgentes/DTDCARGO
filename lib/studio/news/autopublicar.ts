@@ -30,6 +30,7 @@ import {
   type VeredictoRevisor,
 } from "@/lib/news/autopublicar/filtros";
 import { huellaDe } from "@/lib/news/autopublicar/huella";
+import { evaluarPortada, type PortadaDeclarada } from "@/lib/news/portada";
 import { automaticasDeLaSemana, lunesCaracas } from "@/lib/news/autopublicar/ritmo";
 import { extraerExtracto, tiempoDeLectura } from "@/lib/news/derivados";
 import { slugify } from "@/lib/news/slugify";
@@ -66,6 +67,8 @@ export interface ResultadoAutopublicacion {
   postId?: string | null;
   aviso?: DiscordDeliveryState | "sin_canal" | "no_aplica";
   evaluacion?: EvaluacionFiltros;
+  /** §11.5: si la foto del borrador se usó o se descartó (y por qué). Nunca retiene la noticia. */
+  portada?: { usada: boolean; motivos: string[] };
 }
 
 interface FilaBorrador {
@@ -85,6 +88,13 @@ interface FilaBorrador {
   autopub_test_noticia: Record<string, unknown> | null;
   autopub_content_kind: string | null;
   autopub_cover_image_url: string | null;
+  /** SDD-0611 §11.5 (migración 0546); ausentes mientras la 0546 no esté aplicada. */
+  autopub_cover_alt?: string | null;
+  autopub_cover_origin?: string | null;
+  autopub_cover_credit?: string | null;
+  autopub_cover_license?: string | null;
+  autopub_cover_source_url?: string | null;
+  autopub_cover_license_verified_at?: string | null;
   writer_agent: AgenteVersion | null;
 }
 
@@ -92,6 +102,16 @@ const COLUMNAS_BORRADOR =
   "id, tenant_id, status, tipo, categoria, selected_headline, article_markdown, focus_keyword, " +
   "secondary_keywords, reviewer_verdict, autopub_sources, search_console, idea_tipo, " +
   "autopub_test_noticia, autopub_content_kind, autopub_cover_image_url, writer_agent";
+
+/** Las columnas de portada que trae la 0546 (crédito, licencia y enlace de origen). */
+const COLUMNAS_PORTADA_BORRADOR =
+  ", autopub_cover_alt, autopub_cover_origin, autopub_cover_credit, autopub_cover_license, " +
+  "autopub_cover_source_url, autopub_cover_license_verified_at";
+
+/** Postgres 42703 / PostgREST PGRST204: la columna no existe todavía (0546 sin aplicar). */
+function columnaAusente(error: { code?: string; message?: string } | null): boolean {
+  return !!error && (error.code === "42703" || error.code === "PGRST204" || /autopub_cover_/.test(error.message ?? ""));
+}
 
 function sitio(env: EnvSource): string {
   return (env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com").replace(/\/+$/, "");
@@ -124,11 +144,20 @@ export async function evaluarBorradorAutomatico(
   const ahora = deps.ahora ?? new Date();
   const { db } = deps;
 
-  const { data: b, error: errBorrador } = await db
+  let { data: bLeido, error: errBorrador } = await db
     .from("seo_drafts")
-    .select(COLUMNAS_BORRADOR)
+    .select(COLUMNAS_BORRADOR + COLUMNAS_PORTADA_BORRADOR)
     .eq("id", draftId)
     .maybeSingle<FilaBorrador>();
+  if (columnaAusente(errBorrador)) {
+    // Sin la 0546 no hay licencia registrada: la portada no se usa y la noticia sigue.
+    ({ data: bLeido, error: errBorrador } = await db
+      .from("seo_drafts")
+      .select(COLUMNAS_BORRADOR)
+      .eq("id", draftId)
+      .maybeSingle<FilaBorrador>());
+  }
+  const b = bLeido;
   if (errBorrador) return { ok: false, error: `No se pudo leer el borrador: ${errBorrador.message}` };
   if (!b) return { ok: false, error: "Borrador inexistente" };
   if (b.status !== "en_revision") return { ok: true, decision: "ignorada", motivos: [], aviso: "no_aplica" };
@@ -151,6 +180,29 @@ export async function evaluarBorradorAutomatico(
     read_time_min: tiempoDeLectura(body),
   };
   const huella = huellaDe(post);
+  // §11.5: sin licencia registrada y comprobada la foto no se usa, y la noticia no se retiene por eso.
+  const portadaDeclarada: PortadaDeclarada = {
+    url: b.autopub_cover_image_url,
+    alt: b.autopub_cover_alt,
+    origen: b.autopub_cover_origin,
+    credito: b.autopub_cover_credit,
+    licencia: b.autopub_cover_license,
+    enlaceOrigen: b.autopub_cover_source_url,
+    licenciaVerificadaEn: b.autopub_cover_license_verified_at,
+  };
+  const portada = evaluarPortada(portadaDeclarada);
+  const postParaPublicar = portada.usa
+    ? {
+        ...post,
+        cover_image_url: portada.portada.url,
+        cover_alt: portada.portada.alt,
+        cover_origin: portada.portada.origen,
+        cover_credit: portada.portada.credito,
+        cover_license: portada.portada.licencia,
+        cover_source_url: portada.portada.enlaceOrigen,
+        cover_license_verified_at: portada.portada.licenciaVerificadaEn,
+      }
+    : post;
 
   const [conf, recientes, anterior, mismoBorrador, mismoSlug] = await Promise.all([
     db
@@ -195,7 +247,7 @@ export async function evaluarBorradorAutomatico(
       searchConsole: b.search_console,
       sources: Array.isArray(b.autopub_sources) ? (b.autopub_sources as Array<{ url?: string; titulo?: string }>) : null,
       contentKind: b.autopub_content_kind,
-      coverImageUrl: b.autopub_cover_image_url,
+      portada: portadaDeclarada,
       writerAgent: writer,
       reviewerVerdict: b.reviewer_verdict,
     },
@@ -218,7 +270,7 @@ export async function evaluarBorradorAutomatico(
   const { data: rpc, error: errRpc } = await db.rpc("news_evaluacion_automatica", {
     p_tenant_id: b.tenant_id,
     p_draft_id: b.id,
-    p_post: post,
+    p_post: postParaPublicar,
     p_auditoria: {
       content_sha256: huella,
       correlation_id: crypto.randomUUID(),
@@ -260,6 +312,7 @@ export async function evaluarBorradorAutomatico(
     postId: r.post_id ?? null,
     aviso,
     evaluacion,
+    portada: portada.usa ? { usada: true, motivos: [] } : { usada: false, motivos: portada.motivos },
   };
 }
 

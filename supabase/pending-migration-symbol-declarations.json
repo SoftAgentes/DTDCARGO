@@ -7,5 +7,91 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0546-portada-lectura-aparte",
+      "migration": "0546_noticias_portada_licencia",
+      "primarySymbol": "news_posts.cover_image_url",
+      "symbols": [
+        {
+          "name": "news_posts.cover_alt",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:198",
+            "lib/news/portada.ts:225",
+            "lib/news/types.ts:27",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_credit",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:200",
+            "lib/news/portada.ts:226",
+            "lib/news/types.ts:30",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_image_url",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:197",
+            "lib/news/portada.ts:220",
+            "lib/news/types.ts:26",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_license",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:201",
+            "lib/news/portada.ts:221",
+            "lib/news/types.ts:31",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_origin",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:199",
+            "lib/news/types.ts:29",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        },
+        {
+          "name": "news_posts.cover_source_url",
+          "kind": "column",
+          "callSites": [
+            "lib/news/editorial.ts:79",
+            "lib/news/portada.ts:202",
+            "lib/news/portada.ts:224",
+            "lib/news/types.ts:32",
+            "lib/public/news-queries.ts:32",
+            "lib/public/news-queries.ts:36"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/public/news-queries.ts:51",
+          "contains": "if (error || !data) return posts;",
+          "degradation": "Sin la 0546 la lectura de portada falla (42703 / PGRST204): las noticias salen igual por COLUMNAS_PUBLICAS, sin portada propia, y editorialImageOf usa el respaldo propio de su categoría. La lectura de noticias no pide ninguna columna de la 0546."
+        }
+      ]
+    }
+  ]
 }

@@ -101,7 +101,6 @@ export interface EntradaPuntaje {
   tipo: NewsTipo;
   categoria: NewsCategoria;
   focusKeyword: string | null;
-  coverImageUrl: string | null;
   contentKind: string | null;
 }
 
@@ -137,11 +136,10 @@ export function evaluarPuntaje(e: EntradaPuntaje): string[] {
 
   if (problemasDelTitular(e.titular, e.categoria).length > 0) codigos.push("puntaje:titular");
 
-  // Portada propia del sitio; sin portada vale la de la categoría.
-  const cover = e.coverImageUrl?.trim() ?? "";
-  if (cover !== "" && (!cover.startsWith("/") || cover.startsWith("//"))) {
-    codigos.push("puntaje:portada");
-  }
+  // La portada ya no retiene la noticia (SDD-0611 §11.5): una foto sin licencia
+  // comprobada, de la marca anterior o con URL no permitida se descarta en
+  // `evaluarPortada` (lib/news/portada.ts) y la noticia sigue con el respaldo
+  // propio o sin foto.
 
   if (!e.contentKind || !TIPOS_DE_CONTENIDO.has(e.contentKind as NewsContentKind)) {
     codigos.push("puntaje:tipo_contenido");
