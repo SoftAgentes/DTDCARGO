@@ -2,7 +2,7 @@
 
 /**
  * Los embudos del CRM propio (SDD-0587 · paso 6.3), vistos por segmento
- * (SDD-0645): Clientes, Leads y Leads con código (`CRM_VISTAS`).
+ * (SDD-0647): Clientes, Leads y Leads con código (`CRM_VISTAS`).
  *
  * La vista de cada tarjeta no la elige nadie: sale del segmento calculado en
  * el momento y de si su ficha tiene Shipping Mark. Aquí solo se elige qué vista
