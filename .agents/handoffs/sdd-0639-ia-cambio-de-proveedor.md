@@ -15,7 +15,7 @@
   - la privacidad con proveedores chinos;
   - las fases, las pruebas y las decisiones D-1 a D-6.
 
-- v0.2 (2026-11-16): decisiones de Sam registradas en §8.1:
+- v0.2 (2026-11-16): decisiones de Sam registradas en §9.1:
   - D-1: GLM como principal y DeepSeek como respaldo, cambiable;
   - D-2: a un proveedor chino solo va el Shipping Mark;
   - D-3: automático con opción manual;
@@ -40,8 +40,7 @@
 ## FUERA DE ALCANCE DETECTADO
 
 - La cadena de fallback de la Oficina (SDD-0626 §7) se coordina, no se toca.
-- **Conflicto con la regla D-2:** el agente `soporte-chatwoot` (SDD-0626) lee conversaciones de clientes
-  con `glm-5.3` (Z.AI). Lo revisan la sesión de la SDD-0626 y Sam. Se avisó al DG.
+- Hay un choque entre la regla D-2 y la SDD-0626, pendiente de que decida Sam. Lo lleva el DG (spec §7).
 
 ## Impacto documental
 

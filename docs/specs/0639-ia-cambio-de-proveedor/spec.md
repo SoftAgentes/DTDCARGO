@@ -20,7 +20,7 @@ confidencialidad: interno
 >
 > **Estado: proposed.** Es un plan. Depende de la SDD-0638 (clasificador y registro) y se coordina con
 > el fallback de la Oficina (SDD-0626 §7). **v0.2:** Sam decidió D-1, D-2, D-3 y D-6 el 2026-11-16
-> (§8). Quedan abiertas D-4 y D-5, con una recomendación cada una, y una nueva, D-7.
+> (§9). Quedan abiertas D-4 y D-5, con una recomendación cada una, y una nueva, D-7.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no
 verificado. Base: `main` `4a3046745`. El repo es público: sin llaves, montos ni datos de cuentas.
@@ -126,11 +126,6 @@ marca permite:
 - Retención: se usa la política de no conservar del proveedor donde exista, y queda escrita por
   proveedor en el catálogo.
 
-**FUERA DE ALCANCE DETECTADO (para el DG y la SDD-0626):** el agente `soporte-chatwoot` de la Oficina
-(H1 en la SDD-0638) redacta borradores **leyendo conversaciones de clientes** con `glm-5.3`
-(Z.AI). Con la regla de Sam, eso choca. Esta spec no lo cambia. Lo tiene que revisar la sesión de la
-SDD-0626 con Sam, porque hoy solo atiende la bandeja de prueba.
-
 ## 5. Fases (orden recomendado, D-4)
 
 | Fase | Qué entrega | Necesita |
@@ -162,15 +157,22 @@ sin IA, y un error ahí no se nota tanto.
   no puede cambiar, ni desde la pantalla ni directo en la base (RLS en PGlite). Una persona con el
   extra sí puede. Cada cambio queda en la auditoría.
 
-## 7. Fuera de alcance
+## 7. Riesgos
+
+- **Regla D-2 y la Oficina:** hay un choque entre la regla D-2 y la SDD-0626, que queda como decisión
+  pendiente de Sam. Lo lleva el DG; esta spec no lo resuelve.
+- **Compatibilidad:** que el endpoint compatible de un proveedor exista no prueba que soporte cada
+  capacidad (§2). Por eso cada función se habilita solo después de pasar su prueba.
+
+## 8. Fuera de alcance
 
 - La cadena de fallback de la Oficina (SDD-0626 §7) y el proveedor del agente `soporte-chatwoot`.
 - Elegir el modelo «mejor» por calidad: eso se mide en la evaluación de cada función.
 - Comprar o crear cuentas en proveedores nuevos: lo hace Sam en cada panel.
 
-## 8. Decisiones
+## 9. Decisiones
 
-### 8.1 Decididas por Sam (2026-11-16)
+### 9.1 Decididas por Sam (2026-11-16)
 
 - **D-1 · Predeterminado:** GLM como principal y DeepSeek como respaldo. Sam puede cambiarlo, por
   ejemplo a Anthropic si tiene esa suscripción (§3, puntos 4 y 6).
@@ -179,7 +181,7 @@ sin IA, y un error ahí no se nota tanto.
 - **D-6 · Quién cambia:** el superadministrador. El permiso se puede dar a una persona concreta desde
   Usuarios › Acceso, como un permiso nuevo (§3, punto 5).
 
-### 8.2 Abiertas
+### 9.2 Abiertas
 
 - **D-4 · Por qué función se empieza.** Recomendación: **noticias web (A1)** y después el **brief
   (A2)**. Ver §5. Confírmala o cámbiala.
