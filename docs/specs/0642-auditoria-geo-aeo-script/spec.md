@@ -25,7 +25,7 @@ Sam, 2026-11-16: «arranca con la línea base y el script». Encargo del Directo
 ## Qué hace
 
 `scripts/auditoria-geo-aeo.mjs` (Node, sin dependencias nuevas). Lee `https://dtdcargo.com/sitemap.xml`
-(o otra base / un archivo local), baja cada URL con `fetch` anónimo (4 en paralelo, 20 s de tope) y
+(o otra base / un archivo local), baja cada URL con `fetch` anónimo (de a una, con pausa, 20 s de tope) y
 analiza el HTML tal como lo entrega el servidor. **No renderiza JavaScript ni mide velocidad.**
 
 ### Comprobaciones (columnas de la tabla)
@@ -133,5 +133,4 @@ Solo estos archivos, y ninguno más, pertenecen a la Fase A:
 - `.gitignore` (solo la línea `auditoria-geo-aeo-*.json`)
 - `docs/specs/README.md` (índice regenerado con `pnpm docs:index`)
 
-Pendiente: copiar esta lista a la SDD-0641 §11 cuando la PR #613 esté en `main` (esta rama no puede
-editar un archivo que aún no existe en su base).
+Copiada a la SDD-0641 §11 (enmienda Fase A) tras entrar la PR #613 en `main`.
