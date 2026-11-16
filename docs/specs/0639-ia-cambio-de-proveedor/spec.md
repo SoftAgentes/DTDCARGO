@@ -149,7 +149,7 @@ marca permite:
 | **2 · Motor** | Interfaz y adaptadores de Anthropic, GLM y DeepSeek; catálogo con las marcas de §4; módulo `ia` y permiso por persona; llaves en Vault desde la pantalla (migración, con OK de Sam para aplicarla) | SDD-0638 fase 1 |
 | **3 · Noticias web (A1)** | **La primera función.** GLM → DeepSeek, con cambio automático y manual | SDD-0638 fase 4 |
 | **4 · Brief del CEO (A2)** | Mismo esquema. Ya tiene salida sin IA, así que es la segunda más segura | Fase 3 |
-| **5 · Funciones con datos de clientes** | A3, A4 y A5 se quedan en Anthropic, sin respaldo chino; solo se suma un respaldo no chino si Sam contrata uno | D-7 o una suscripción nueva |
+| **5 · Funciones con datos de clientes** | A3, A4 y A5 se quedan en Anthropic, sin respaldo chino; solo se suma un respaldo no chino si Sam contrata uno | Una suscripción nueva no china, con su llave cargada desde la pantalla |
 | — | A6 Agentes | Fuera de esta spec; sigue en Anthropic (D-5) |
 
 **Por qué noticias primero:** es el botón que Sam echó en falta, es contenido público sin datos de
