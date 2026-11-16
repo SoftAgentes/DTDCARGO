@@ -350,6 +350,13 @@ de los usuarios se tratan como datos, nunca como instrucciones.
 | 6 | Producción | `pnpm verify`, revisión independiente, portón del DG, OK nominal de Sam para la migración |
 | 7 | Hermes (§8) | Se especifica en detalle con la sesión de la Oficina |
 
+**Fase 2 (2026-11-16):** migración `supabase/migrations/0550_faro_registro.sql`, **no aplicada**, con su
+contrato `supabase/tests/0550_faro_registro.test.sql`, su ensayo en PGlite
+`lib/studio/asistente/__tests__/faro-0550.migration.test.ts` (control rojo, mutantes y desarme) y su desarme
+`supabase/desarmes/0550_desarme.sql`. Toma la recomendación de D-4 (lee solo el administrador del tenant) y deja
+D-5 como parámetro: el tope por hora lo pasa el servidor y la base no fija el número. Si Sam decide distinto en
+D-4, hace falta otra migración. Detalle en `.agents/handoffs/sdd-0637-faro-fase2-migracion.md`.
+
 **Orden:** el Director General ubicó la implementación después de lo que está en curso (retiros de espera de las
 migraciones 0545 a 0547, la PR #598 y la prueba E del cable). El número de la migración se toma al crearla.
 
