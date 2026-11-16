@@ -4,7 +4,7 @@ title: "Motor de guía propio y liviano en Studio (E9 del programa SDD-0582, pas
 status: in-progress
 author: "Claude Worker «E9 motor» (Sam)"
 created: 2026-10-30
-updated: 2026-11-07
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0582", "0233"]
@@ -774,3 +774,42 @@ Con el turno de máquina que dio el Subdirector y la regla nueva de dos corridas
 | `tsc --noEmit` | PASÓ |
 | `check-numbering`, `build-docs-index --check` y `git diff --check` | PASÓ |
 | `pnpm verify` y la página real | NO EJECUTADO. El portón es el CI «Calidad continua» |
+
+## 2026-11-16 · §9 · La tarjeta se distingue del sistema y es más compacta
+
+**Fuente.** Sam probó el Studio en el entorno de prueba el 2026-11-16 y pidió, en sus palabras: «me gustaría que la ayuda que sale al principio (la que te guía) tenga otra tonalidad que sobresalga o se diferencie del sistema en sí. No tanto, sino que se distinga: ahorita parece una ventana más, y debería ser algo como "mira, hay esto y lo puedes cerrar". [...] También hazlo más compacto, porque veo que el tema de la guía de ayuda del principio ocupa mucho espacio en la pantalla.»
+
+Es un ajuste solo visual de `GuiaTarjeta`. No cambia el motor, la navegación, los textos, el estado por usuario ni la base. Sustituye lo que §2 decía del tamaño (360 px) y del botón de cerrar (32×32).
+
+### Diseño
+
+| Pieza | Antes | Ahora |
+|---|---|---|
+| Superficie | `--bg-surface`, igual que las tarjetas del sistema | `--wine-tint` sobre `--bg-surface`: el tinte de la marca en los dos temas |
+| Acento | ninguno | barra superior de 3 px en `--wine-text` |
+| Etiqueta | «GUÍA · 1 DE 4» en `--ink-soft` | punto y «GUÍA» en `--wine-text`; el contador sigue en `--ink-soft` |
+| Cerrar | X sola de 32×32, con `title` | X y la palabra «Cerrar», 28 px de alto, contorno de tinta (`studio-btn-ghost`); el nombre accesible «Cerrar la guía» contiene la palabra visible (WCAG 2.5.3) |
+| Tamaño | 360 px de ancho, alto hasta el viewport, relleno `--s-4`, separación `--s-3` | 300 px de ancho, alto máximo 340 px (con scroll interno), relleno y separación `--s-3` / `--s-2` |
+| Texto | título 15 px, cuerpo 14 px, Antes/Ahora 13 px | título 14 px, cuerpo 13 px, Antes/Ahora 12,5 px |
+| Botones | Anterior/Siguiente y acciones secundarias de 36 px (`studio-btn-sm`) | Anterior/Siguiente de 32 px; «No volver a mostrar» y «Ver la guía desde el principio» de 28 px y 12 px. Todos sobre los 24 px de WCAG 2.5.8 |
+| Motor | `TARJETA_ESTIMADA` 360×240 | 300×200, la referencia antes de medir la tarjeta real |
+
+No hay colores sueltos: solo `--wine-tint`, `--wine-text`, `--bg-surface`, `--border-strong`, `--ink`, `--ink-soft`, `--shadow-pop`, `--r-*` y `--s-*`. La sombra, el `z-index`, el foco, el teclado y el movimiento no cambian.
+
+**Contraste (cálculo con los hex de `app/studio/tokens.css`).** Claro: la superficie resulta `#F5ECED`; `--ink` 14,2:1, `--ink-soft` 4,59:1 y `--wine-text` 9,1:1. Oscuro: la superficie resulta `#2A2848`; `--ink` 12,4:1, `--ink-soft` 6,5:1 y `--wine-text` 6,1:1. Todo pasa AA para texto pequeño; el margen más corto es `--ink-soft` en claro (4,59 contra 4,5), por eso Antes/Ahora no bajan de 12,5 px ni de peso 400. La barra de acento mide 10,6:1 (claro) y 6,4:1 (oscuro) contra la superficie, aunque es decorativa.
+
+### Allowlist exacta
+
+`app/studio/_components/guia/GuiaTarjeta.tsx`, `app/studio/_components/guia/GuiaMotor.tsx` (solo `TARJETA_ESTIMADA`), `app/studio/_components/guia/GuiaMotor.test.tsx` (una prueba nueva), esta spec y `.agents/handoffs/0589-guia-compacta.md` (nuevo).
+
+### Aceptación
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| C1 | La tarjeta se distingue de las del sistema en claro y en oscuro, sin gritar | capturas antes/después; prueba «se distingue del sistema, es compacta…» (tokens `--wine-tint` y `--wine-text` en el estilo) |
+| C2 | Se lee que se puede cerrar: la palabra «Cerrar» se ve y está en el nombre accesible | misma prueba; «el botón Cerrar tiene nombre accesible» sigue pasando |
+| C3 | Más compacta: 300 px de ancho y 340 px de alto como máximo | misma prueba; capturas a 1440 px y a ancho de teléfono |
+| C4 | Las pruebas de la guía siguen en verde sin debilitarse | suite de `guia/` y `lib/studio/guia` (ver el handoff) |
+| C5 | `prefers-reduced-motion`, foco y teclado sin cambios | pruebas existentes de A4 y A5 |
+
+La evidencia de esta sección (pruebas, capturas y `/ui-check`) queda en el handoff `.agents/handoffs/0589-guia-compacta.md`.
