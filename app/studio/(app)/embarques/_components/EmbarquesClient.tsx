@@ -3,7 +3,7 @@
 /**
  * EmbarquesClient — vista comercial agrupada por cliente (SDD-0012).
  *
- * - SDD-0643: empieza por contenedores («Contenedor 64», «FCL 63», «Sin
+ * - SDD-0643: empieza por contenedores («DDP 64», «FCL 63», «Sin
  *   contenedor»); dentro de cada uno, el acordeón por cliente de siempre.
  *   Filtros «Contenedor» (número DTD o ISO) y «Cliente» (nombre o Shipping
  *   Mark). Si no se pudieron leer los contenedores, se dice y se agrupa sólo
@@ -942,7 +942,7 @@ function BarraDeSeleccion({
 
 /**
  * SDD-0643 · Nivel 1: un acordeón por contenedor. La cabecera dice el nombre
- * («Contenedor 64», «FCL 63»), el número ISO, la naviera, la ETA, el estado y
+ * («DDP 64», «FCL 63»), el número ISO, la naviera, la ETA, el estado y
  * los conteos; el cuerpo es el acordeón por cliente (nivel 2) con sus
  * embarques (nivel 3).
  */

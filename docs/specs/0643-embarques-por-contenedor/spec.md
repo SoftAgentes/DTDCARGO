@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0643 — Embarques por contenedor
 
 > La vista Embarques del Studio (`/studio/embarques`) deja de abrir con todos los embarques agrupados
-> por cliente. Ahora abre con los contenedores («Contenedor 64», «FCL 63»); dentro de cada uno están sus
+> por cliente. Ahora abre con los contenedores («DDP 64», «FCL 63»); dentro de cada uno están sus
 > clientes y, dentro de cada cliente, sus embarques. Se filtra por contenedor (número DTD o ISO) y por
 > cliente (nombre o Shipping Mark).
 
@@ -34,6 +34,18 @@ Sam, 2026-11-16, revisando en vivo con el equipo:
 Nombres visibles, también de Sam: un consolidado (carga suelta de varios clientes, modalidades `ddp` y
 `mixto`) se llama **«Contenedor 64»**; un contenedor de un solo dueño se llama **«FCL 63»**. Nunca «lote».
 
+Sam, 2026-11-16, más tarde (llegó por el Subdirector Portal):
+
+> «Lo que se va a visualizar ahorita con esta purga que estamos haciendo es solamente un FCL 63 y un DDP
+> 64; es lo único que se va a visualizar. Ya después de ahí entro al embarque y puedo ver detalles de los
+> embarques que van adentro de ese contenedor y de quién son: • El 63 es de un solo cliente: cuando entro
+> al 63 me va a aparecer un solo cliente, y si entro al cliente me van a aparecer varios embarques adentro
+> de un solo contenedor. • En el 64 cambia: entro y voy a ver que es un DDP 64; al entrar voy a ver que
+> adentro hay muchos clientes, y cada cliente puede tener varios embarques.»
+
+**Para confirmar por el DG:** Sam usó dos formas para el consolidado, «Contenedor 64» y «DDP 64». La
+implementación usa la segunda, la más reciente, armada con el tipo más el número (§3.3).
+
 ## 2. Lo que existe
 
 | Pieza | Dónde | Qué aporta |
@@ -50,7 +62,7 @@ Nombres visibles, también de Sam: un consolidado (carga suelta de varios client
 ### 3.1 Navegación
 
 1. **Nivel 1, contenedores.** Un acordeón por contenedor. La cabecera muestra:
-   - nombre visible («Contenedor 64» o «FCL 63»);
+   - nombre visible («DDP 64» o «FCL 63», §3.3);
    - número ISO (`container_no`), si está;
    - estado del contenedor, con las etiquetas de `CONTAINER_STATUS` (`lib/studio/naviera/types.ts`);
    - naviera (`carriers.name` del zarpe) o «Sin naviera»;
@@ -77,16 +89,24 @@ igual que el Portal (`lib/portal/consolidation-queries.ts`).
 
 **No hay una columna que lo diga.** `consolidations` no tiene modalidad; `bookings.mode` (FCL/LCL) no lo
 llena el cargador y la modalidad de la hoja de rastreo sólo queda como texto en `notes`. Se decide con
-los servicios de los embarques que van en el contenedor:
+los servicios y los clientes de los embarques que van en el contenedor:
 
-- **FCL** si todos son `fcl_directo` o `fcl_bodega` (lo que crea el cargador para `--modalidad fcl`: un
-  solo envío del dueño).
-- **Consolidado** en cualquier otro caso: con un `puerta_a_puerta_DDP` o un `consolidado_lcl` adentro
-  (modalidades `ddp` y `mixto`), o sin embarques visibles.
+- **FCL** si todos son `fcl_directo` o `fcl_bodega` (lo que crea el cargador para `--modalidad fcl`), o
+  si lleva al menos un embarque FCL y todos sus embarques son del mismo cliente. Lo segundo cubre lo que
+  dijo Sam del 63: un solo cliente con varios embarques adentro, aunque alguno no sea de servicio FCL.
+- **Consolidado** en cualquier otro caso: con embarques de otro cliente (modalidades `ddp` y `mixto`), sólo
+  LCL, o sin embarques visibles.
+
+**Rótulo:** tipo más número.
+- FCL → «FCL 63».
+- Consolidado con algún `puerta_a_puerta_DDP` → «DDP 64».
+- Consolidado sin DDP (sólo LCL) → «Contenedor NN», porque llamarlo DDP sería falso.
+
+Pendiente de que el DG confirme «DDP 64» frente a «Contenedor 64» (§1).
 
 Límite: se cuentan los embarques que están en la vista. Si un tab o un filtro deja sólo el envío FCL de un
 contenedor mixto, ese contenedor se muestra como «FCL». Se acepta para esta tarea; una columna de
-modalidad en `consolidations` lo resolvería y exige migración (fuera de alcance, §6).
+modalidad en `consolidations` lo resolvería, pero exige migración (fuera de alcance, §6).
 
 ### 3.4 Número DTD («64»)
 
@@ -99,7 +119,7 @@ mano en Naviera) no hay número y no se inventa: el nombre usa el ISO y, si falt
 ### 3.5 Filtros
 
 - **Contenedor** (campo nuevo, monoespaciado): número DTD exacto de 1 a 4 cifras («64», «#64»,
-  «Contenedor 64», «FCL 63»), o parte del ISO o de la ref (`TLLU779`, `7792550`, `CONSOL-0012`). Un número
+  «DDP 64», «Contenedor 64», «FCL 63»), o parte del ISO o de la ref (`TLLU779`, `7792550`, `CONSOL-0012`). Un número
   corto es sólo el número DTD: «64» no trae un ISO que tenga «64» adentro. «Sin contenedor» no pasa este
   filtro. No se pinta si no se pudieron leer los contenedores.
 - **Cliente** (campo nuevo): nombre sin acentos ni mayúsculas, o Shipping Mark.
@@ -138,7 +158,7 @@ mano en Naviera) no hay número y no se inventa: el nombre usa el ISO y, si falt
 
 1. Sin filtros, el primer nivel de `/studio/embarques` son los contenedores, con nombre, ISO, naviera, ETA,
    estado y conteos; «Sin contenedor» al final.
-2. Un consolidado se llama «Contenedor NN» y un contenedor sólo con envíos FCL, «FCL NN». En ningún texto
+2. Un consolidado con DDP se llama «DDP NN» (sin DDP, «Contenedor NN») y un contenedor de un solo dueño, «FCL NN», aunque lleve varios embarques de ese cliente. En ningún texto
    nuevo aparece «lote».
 3. Al abrir un contenedor se ven sus clientes; al abrir un cliente, sus embarques.
 4. «Contenedor» filtra por número DTD exacto y por ISO; «Cliente», por nombre o Shipping Mark.

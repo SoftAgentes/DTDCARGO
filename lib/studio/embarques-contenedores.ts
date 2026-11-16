@@ -5,7 +5,7 @@
  * los clientes de cada contenedor (nivel 2) y después los embarques de cada
  * cliente (nivel 3). Este módulo arma esos tres niveles y decide:
  *
- *  - Si un contenedor es un consolidado («Contenedor 64») o un FCL («FCL 63»).
+ *  - Si un contenedor es un consolidado («DDP 64») o un FCL («FCL 63»).
  *    No hay una columna que lo diga: se deduce de los servicios de los
  *    embarques que lleva (ver `tipoDeContenedor`).
  *  - El número DTD del contenedor («64»). Tampoco hay columna: el cargador de
@@ -58,7 +58,7 @@ export type GrupoContenedor = {
   contenedor: ContenedorDeEmbarques | null;
   /** `null` para el grupo «Sin contenedor». */
   tipo: TipoContenedor | null;
-  /** «Contenedor 64», «FCL 63» o «Sin contenedor». */
+  /** «DDP 64», «FCL 63» o «Sin contenedor». */
   nombre: string;
   clientes: ClientShipmentGroup[];
   embarques: number;
@@ -80,20 +80,49 @@ export function numeroDtdDeNotas(notes: string | null | undefined): number | nul
   return Number.isFinite(n) ? n : null;
 }
 
-/**
- * FCL = todos los embarques del contenedor son de servicio FCL (`fcl_directo`
- * o `fcl_bodega`). Con un solo embarque que no lo sea (DDP o LCL de otro
- * cliente) es un consolidado: así quedan las modalidades `ddp` y `mixto`.
- * Sin embarques no hay con qué decidir: consolidado, que es el caso general.
- */
-export function tipoDeContenedor(servicios: readonly ShipmentService[]): TipoContenedor {
-  if (servicios.length === 0) return "consolidado";
-  return servicios.every((s) => SERVICIOS_FCL.has(s)) ? "fcl" : "consolidado";
+/** Llave de cliente: Shipping Mark o, si falta, el nombre (como SDD-0012). */
+function llaveCliente(r: Pick<ShipmentListRow, "client_markbox" | "client_name">): string {
+  return r.client_markbox?.trim() || `__name:${(r.client_name ?? "").trim().toLowerCase()}`;
 }
 
-/** Nombre visible: «Contenedor 64» o «FCL 63». Sin número, el ISO o la ref. */
-export function nombreDeContenedor(c: ContenedorDeEmbarques, tipo: TipoContenedor): string {
-  const prefijo = tipo === "fcl" ? "FCL" : "Contenedor";
+/**
+ * FCL = contenedor de un solo dueño. Se reconoce de dos maneras:
+ *  - todos sus embarques son de servicio FCL (`fcl_directo` o `fcl_bodega`), o
+ *  - lleva al menos un embarque FCL y todos sus embarques son del mismo
+ *    cliente (Sam, 2026-11-16: «el 63 es de un solo cliente… varios
+ *    embarques adentro de un solo contenedor»).
+ * Con embarques de otro cliente (DDP o LCL), es un consolidado: así quedan
+ * las modalidades `ddp` y `mixto`. Sin embarques: consolidado.
+ */
+export function tipoDeContenedor(
+  filas: readonly Pick<ShipmentListRow, "shipment_service" | "client_markbox" | "client_name">[],
+): TipoContenedor {
+  if (filas.length === 0) return "consolidado";
+  const fcl = filas.filter((r) => SERVICIOS_FCL.has(r.shipment_service));
+  if (fcl.length === filas.length) return "fcl";
+  if (fcl.length > 0 && new Set(filas.map(llaveCliente)).size === 1) return "fcl";
+  return "consolidado";
+}
+
+/**
+ * Prefijo del rótulo. Sam usó dos formas para el consolidado el 2026-11-16
+ * («Contenedor 64» y «DDP 64»); se usa «DDP» cuando el contenedor lleva carga
+ * puerta a puerta (DDP) y «Contenedor» si no (p. ej., sólo LCL). Pendiente de
+ * confirmar por el DG (spec §3.3).
+ */
+export function prefijoDeContenedor(
+  tipo: TipoContenedor,
+  servicios: readonly ShipmentService[],
+): "FCL" | "DDP" | "Contenedor" {
+  if (tipo === "fcl") return "FCL";
+  return servicios.includes("puerta_a_puerta_DDP") ? "DDP" : "Contenedor";
+}
+
+/** Nombre visible: «DDP 64» o «FCL 63». Sin número, el ISO o la ref. */
+export function nombreDeContenedor(
+  c: ContenedorDeEmbarques,
+  prefijo: "FCL" | "DDP" | "Contenedor",
+): string {
   const ident = c.numeroDtd != null ? String(c.numeroDtd) : c.containerNo?.trim() || c.ref;
   return `${prefijo} ${ident}`;
 }
@@ -107,7 +136,7 @@ function normalizar(s: string): string {
 }
 
 /**
- * Filtro «Contenedor»: número DTD exacto («64», «#64», «contenedor 64»,
+ * Filtro «Contenedor»: número DTD exacto («64», «#64», «DDP 64», «contenedor 64»,
  * «FCL 63»; de 1 a 4 cifras) o parte del número ISO o de la ref (`TLLU779`,
  * `7792550`, `CONSOL-0012`).
  * Vacío = todos.
@@ -116,7 +145,7 @@ export function contenedorCoincide(c: ContenedorDeEmbarques | null, consulta: st
   const q = normalizar(consulta);
   if (!q) return true;
   if (!c) return false;
-  const soloNumero = /^(?:contenedor|fcl)?\s*#?\s*(\d{1,4})$/.exec(q);
+  const soloNumero = /^(?:contenedor|fcl|ddp)?\s*#?\s*(\d{1,4})$/.exec(q);
   // Un número corto es el número DTD y nada más: «64» no debe traer un ISO
   // que por casualidad tenga «64» adentro.
   if (soloNumero) return c.numeroDtd != null && Number(soloNumero[1]) === c.numeroDtd;
@@ -160,7 +189,7 @@ export function agruparPorContenedor(
   const grupos: GrupoContenedor[] = [];
   for (const [key, lista] of filas) {
     const contenedor = key === SIN_CONTENEDOR_KEY ? null : porId.get(key) ?? null;
-    const tipo = contenedor ? tipoDeContenedor(lista.map((r) => r.shipment_service)) : null;
+    const tipo = contenedor ? tipoDeContenedor(lista) : null;
     const clientes = groupShipmentsByClient(lista).map((g) => ({
       ...g,
       // La misma persona puede estar en dos contenedores: la llave del
@@ -177,7 +206,13 @@ export function agruparPorContenedor(
       key,
       contenedor,
       tipo,
-      nombre: contenedor && tipo ? nombreDeContenedor(contenedor, tipo) : "Sin contenedor",
+      nombre:
+        contenedor && tipo
+          ? nombreDeContenedor(
+              contenedor,
+              prefijoDeContenedor(tipo, lista.map((r) => r.shipment_service)),
+            )
+          : "Sin contenedor",
       clientes,
       embarques: lista.length,
       totalCbm: Math.round(totalCbm * 1000) / 1000,

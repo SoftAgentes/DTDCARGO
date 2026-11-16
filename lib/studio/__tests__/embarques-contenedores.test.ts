@@ -9,6 +9,7 @@ import {
   clienteCoincide,
   contenedorCoincide,
   nombreDeContenedor,
+  prefijoDeContenedor,
   numeroDtdDeNotas,
   tipoDeContenedor,
   type ContenedorDeEmbarques,
@@ -56,34 +57,51 @@ describe("numeroDtdDeNotas", () => {
   });
 });
 
+function fila(shipment_service: ShipmentListRow["shipment_service"], client_markbox = "DTD-1001") {
+  return { shipment_service, client_markbox, client_name: "X" };
+}
+
 describe("tipoDeContenedor", () => {
-  it("FCL sólo si todos los embarques son FCL", () => {
-    expect(tipoDeContenedor(["fcl_directo"])).toBe("fcl");
-    expect(tipoDeContenedor(["fcl_bodega", "fcl_directo"])).toBe("fcl");
+  it("FCL si todos los embarques son FCL", () => {
+    expect(tipoDeContenedor([fila("fcl_directo")])).toBe("fcl");
+    expect(tipoDeContenedor([fila("fcl_bodega"), fila("fcl_directo")])).toBe("fcl");
   });
-  it("con un DDP o un LCL adentro es consolidado (modalidades ddp y mixto)", () => {
-    expect(tipoDeContenedor(["puerta_a_puerta_DDP"])).toBe("consolidado");
-    expect(tipoDeContenedor(["fcl_directo", "puerta_a_puerta_DDP"])).toBe("consolidado");
-    expect(tipoDeContenedor(["consolidado_lcl"])).toBe("consolidado");
+  it("FCL si lleva un FCL y varios embarques, todos del mismo cliente (Sam, 2026-11-16)", () => {
+    expect(
+      tipoDeContenedor([fila("fcl_directo"), fila("puerta_a_puerta_DDP"), fila("puerta_a_puerta_DDP")]),
+    ).toBe("fcl");
+  });
+  it("con carga de otro cliente es consolidado (modalidades ddp y mixto)", () => {
+    expect(tipoDeContenedor([fila("puerta_a_puerta_DDP")])).toBe("consolidado");
+    expect(tipoDeContenedor([fila("fcl_directo"), fila("puerta_a_puerta_DDP", "DTD-2002")])).toBe("consolidado");
+    expect(tipoDeContenedor([fila("consolidado_lcl")])).toBe("consolidado");
     expect(tipoDeContenedor([])).toBe("consolidado");
   });
 });
 
+describe("prefijoDeContenedor", () => {
+  it("FCL, DDP si lleva puerta a puerta, y si no «Contenedor»", () => {
+    expect(prefijoDeContenedor("fcl", ["fcl_directo", "puerta_a_puerta_DDP"])).toBe("FCL");
+    expect(prefijoDeContenedor("consolidado", ["puerta_a_puerta_DDP", "fcl_directo"])).toBe("DDP");
+    expect(prefijoDeContenedor("consolidado", ["consolidado_lcl"])).toBe("Contenedor");
+  });
+});
+
 describe("nombreDeContenedor", () => {
-  it("«Contenedor 64» y «FCL 63»; nunca «lote»", () => {
-    expect(nombreDeContenedor(cont({ id: "a", numeroDtd: 64 }), "consolidado")).toBe("Contenedor 64");
-    expect(nombreDeContenedor(cont({ id: "b", numeroDtd: 63 }), "fcl")).toBe("FCL 63");
+  it("«DDP 64» y «FCL 63»; nunca «lote»", () => {
+    expect(nombreDeContenedor(cont({ id: "a", numeroDtd: 64 }), "DDP")).toBe("DDP 64");
+    expect(nombreDeContenedor(cont({ id: "b", numeroDtd: 63 }), "FCL")).toBe("FCL 63");
   });
   it("sin número DTD usa el ISO y, si falta, la ref", () => {
-    expect(nombreDeContenedor(cont({ id: "a", containerNo: "ABCU1234567" }), "fcl")).toBe("FCL ABCU1234567");
-    expect(nombreDeContenedor(cont({ id: "0009" }), "consolidado")).toBe("Contenedor DTD-CONSOL-0009");
+    expect(nombreDeContenedor(cont({ id: "a", containerNo: "ABCU1234567" }), "FCL")).toBe("FCL ABCU1234567");
+    expect(nombreDeContenedor(cont({ id: "0009" }), "Contenedor")).toBe("Contenedor DTD-CONSOL-0009");
   });
 });
 
 describe("contenedorCoincide", () => {
   const c64 = cont({ id: "a", numeroDtd: 64, containerNo: "ABCU7764550" });
   it("por número DTD exacto, con o sin prefijo", () => {
-    for (const q of ["64", "#64", "contenedor 64", "Contenedor 64", "FCL 64", " 64 "]) {
+    for (const q of ["64", "#64", "DDP 64", "ddp64", "contenedor 64", "Contenedor 64", "FCL 64", " 64 "]) {
       expect(contenedorCoincide(c64, q)).toBe(true);
     }
     expect(contenedorCoincide(c64, "6")).toBe(false);
@@ -135,7 +153,7 @@ describe("agruparPorContenedor", () => {
 
   it("arma contenedor → cliente → embarques, con nombres y conteos", () => {
     const g = agruparPorContenedor(filas, datos);
-    expect(g.map((x) => x.nombre)).toEqual(["Contenedor 64", "FCL 63", "Contenedor DTD-CONSOL-cx", "Sin contenedor"]);
+    expect(g.map((x) => x.nombre)).toEqual(["DDP 64", "FCL 63", "DDP DTD-CONSOL-cx", "Sin contenedor"]);
     const g64 = g[0];
     expect(g64.tipo).toBe("consolidado");
     expect(g64.embarques).toBe(3);

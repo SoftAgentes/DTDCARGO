@@ -66,9 +66,9 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
   it("el primer nivel son los contenedores, con nombre, ISO, naviera, ETA, estado y conteos", () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     const regiones = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));
-    expect(regiones).toEqual(["Contenedor 64", "FCL 63", "Sin contenedor"]);
+    expect(regiones).toEqual(["DDP 64", "FCL 63", "Sin contenedor"]);
 
-    const c64 = cabecera("Contenedor 64");
+    const c64 = cabecera("DDP 64");
     expect(c64.textContent).toContain("ABCU7792550");
     expect(c64.textContent).toContain("Naviera Uno");
     expect(c64.textContent).toContain("Zarpado");
@@ -81,11 +81,30 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     expect(screen.queryByText("S-a1")).toBeNull();
   });
 
+  it("un FCL es de un solo cliente, que puede tener varios embarques adentro", async () => {
+    const user = userEvent.setup();
+    const otroDelDueno = envio("f2", { client_name: "Dueño FCL", client_markbox: "DTD-9000" });
+    render(
+      <EmbarquesClient
+        shipments={[...ENVIOS, otroDelDueno]}
+        adjuntos={undefined}
+        contenedores={{ ...DATOS, porEmbarque: { ...DATOS.porEmbarque, f2: "c63" } }}
+      />,
+    );
+    const c63 = cabecera("FCL 63");
+    expect(c63.textContent).toContain("1 cliente");
+    expect(c63.textContent).toContain("2 envíos");
+    await user.click(c63);
+    const seccion = screen.getByRole("region", { name: "FCL 63" });
+    expect(within(seccion).getByText("S-f1")).toBeTruthy();
+    expect(within(seccion).getByText("S-f2")).toBeTruthy();
+  });
+
   it("abrir el contenedor muestra sus clientes y, con pocos, sus embarques", async () => {
     const user = userEvent.setup();
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
-    await user.click(cabecera("Contenedor 64"));
-    const seccion = screen.getByRole("region", { name: "Contenedor 64" });
+    await user.click(cabecera("DDP 64"));
+    const seccion = screen.getByRole("region", { name: "DDP 64" });
     expect(within(seccion).getByText("Cliente Uno")).toBeTruthy();
     expect(within(seccion).getByText("Cliente Dos")).toBeTruthy();
     expect(within(seccion).queryByText("Cliente Tres")).toBeNull();
@@ -105,14 +124,14 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
 
     await user.clear(screen.getByLabelText("Contenedor"));
     await user.type(screen.getByLabelText("Contenedor"), "abcu7792");
-    expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["Contenedor 64"]);
+    expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["DDP 64"]);
   });
 
   it("filtro «Cliente» por nombre o por Shipping Mark", async () => {
     const user = userEvent.setup();
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await user.type(screen.getByLabelText("Cliente"), "dtd-1002");
-    expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["Contenedor 64"]);
+    expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["DDP 64"]);
     expect(screen.getByText("S-a2")).toBeTruthy();
     expect(screen.queryByText("S-a1")).toBeNull();
 
@@ -126,8 +145,8 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     const conAlerta = ENVIOS.map((r) => (r.id === "a2" ? { ...r, status: "exception" as const } : r));
     render(<EmbarquesClient shipments={conAlerta} adjuntos={undefined} contenedores={DATOS} />);
     await user.click(screen.getByRole("button", { name: /Con alertas/ }));
-    expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["Contenedor 64"]);
-    expect(cabecera("Contenedor 64").textContent).toContain("1 alerta");
+    expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["DDP 64"]);
+    expect(cabecera("DDP 64").textContent).toContain("1 alerta");
   });
 
   it("si no se pudieron leer los contenedores, lo dice y agrupa sólo por cliente", () => {
