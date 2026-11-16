@@ -390,7 +390,7 @@ la API nueva y la interfaz vieja.
 - **Portal apagado (decisión DG, 2026-11-16):** si `portalEnabled()` es falso, `/p/[token]` no consulta
   el documento compartido y el proveedor ve el formulario de siempre, aunque exista un workspace.
   Con el portal encendido, si la lectura falla, la vista queda cerrada (`sharedUnavailable`).
-  El proveedor se autoriza solo por `x-supplier-token`, nunca por la sesión.
+  El proveedor se autoriza solo por su token, nunca por la sesión: `authorizeSupplierWorkspace` (seguimiento).
 - **Sin GLM:** no entran los mensajes `qa_glm_*`. Los tests usan un texto de divulgación neutral.
 
 Revisión `revisar-datos-ve` (2026-11-16, lectura de código, inventario técnico, no asesoría legal):
@@ -436,3 +436,21 @@ Allowlist exacta de P2:
 - `components/document-import/document-client.test.ts`
 - `components/document-import/document-client.ts`
 - `components/document-import/document-import.module.css`
+
+### Seguimiento · menores de la revisión de P2 (2026-11-16)
+
+Después de que P1 y P2 entraron a main (#609), una PR corta atiende los menores del DG:
+- `authorizeSupplierWorkspace(admin, workspace, token)` autoriza al proveedor sin parámetro de sesión.
+  Niega workspaces anónimos o vencidos y exige el portal encendido. `authorizeWorkspace` delega en el mismo camino.
+- La prueba con el portal apagado afirma que no se consulta `document_workspaces`. Un caso nuevo fija
+  que un error al leerlo, con el portal encendido, deja la vista cerrada.
+- El handoff de P2 registra como FALLÓ la corrida amplia con timeouts, y aparte la corrida aislada en verde.
+
+Allowlist exacta del seguimiento:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-p2-interfaz-20261116.md`
+- `lib/studio/document-import/access.ts`
+- `lib/studio/document-import/access.test.ts`
+- `app/p/[token]/page.tsx`
+- `app/p/[token]/page.shared-document.test.tsx`
