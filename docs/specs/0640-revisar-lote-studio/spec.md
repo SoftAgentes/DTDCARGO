@@ -1,6 +1,6 @@
 ---
 sdd: "0640"
-title: "Revisar lote: la persona de operaciones revisa y aprueba cada consolidado en el Studio antes de cargarlo"
+title: "Revisar contenedor: la persona de operaciones revisa y aprueba cada contenedor consolidado en el Studio antes de cargarlo"
 status: proposed
 author: "Claude (Worker del Subdirector Portal) + Sam"
 created: 2026-11-16
@@ -11,7 +11,7 @@ related: ["0016", "0085", "0101", "0267", "0491", "0543", "0622"]
 confidencialidad: interno
 ---
 
-# SDD-0640 — Revisar lote: revisión y aprobación de un consolidado en el Studio
+# SDD-0640 — Revisar contenedor: revisión y aprobación de un consolidado en el Studio
 
 > Antes de cargar un contenedor con el flujo de la SDD-0543, una persona de la oficina con permiso abre
 > un enlace directo del Studio, revisa el consolidado (contenedores y, por cliente, sus remitentes, cajas,
@@ -22,6 +22,26 @@ confidencialidad: interno
 ni cambios en producción. La implementación es otra tarea, que ordena el DG.
 
 **Maqueta navegable** (archivo autocontenido, con datos inventados): `maqueta/revisar-lote.html`.
+
+## 0. Nombres visibles (enmienda del 2026-11-16)
+
+Sam lo pidió el mismo día: «lote» no se entiende en la oficina. Desde esta enmienda:
+
+- **Consolidado.** Cada Excel es un contenedor cerrado de consolidado: carga suelta de varios clientes de DTD
+  Cargo (modalidades `ddp` y `mixto` del generador). En pantalla, en los mensajes y con Sam o la oficina se llama
+  «contenedor 64» o «consolidado 64». La pantalla se llama **«Revisar contenedor»** y la lista
+  **«Revisar contenedores»**.
+- **FCL.** Un contenedor de un solo dueño (`--modalidad fcl`) se llama «FCL 66», nunca «contenedor 66» ni
+  «consolidado». No trae packing list ni lista de clientes, así que **no pasa por esta pantalla**. Queda abierto
+  para Sam (§12.2) si la carga de un FCL en producción necesita otra aprobación además de su OK nominal. Esta spec
+  no lo decide.
+- **«Lote» no aparece en ningún texto visible:** títulos, menú, botones, confirmaciones, historial ni el texto de
+  «Copiar respuestas». El acceso por persona de la decisión 2 se muestra como «Aprobar contenedor».
+- **Los nombres internos no cambian.** Se quedan la ruta `/studio/naviera/lotes/...`, las tablas y funciones
+  (`consolidation_reviews`, `lote_id`, `*_revision_lote`), la acción `naviera.lote.aprobar`, el id
+  `carga-consolidado:<N>:<sha8>`, el formato `revision-lote/1`, `generar-lote.ts`, `aplicar-lote.sh` y el
+  archivo de la maqueta. Cambiarlos no le sirve a nadie de la oficina y rompería referencias de la SDD-0543. En el
+  resto de esta spec, «lote» es el término técnico del generador: un contenedor y su packing exacto.
 
 ## 1. Pedido
 
@@ -55,7 +75,7 @@ atada al id del lote: si el Excel cambia, la revisión vieja parece válida.
 
 **Dentro**
 
-- Pantalla «Revisar lote» del Studio, con un enlace directo por lote.
+- Pantalla «Revisar contenedor» del Studio, con un enlace directo por contenedor consolidado.
 - Un lote de revisión en estado propio, con sus líneas, preguntas, veredictos y aprobación.
 - Subida del archivo de revisión que produce el generador (opción B de §4).
 - Auditoría de cada veredicto, respuesta, aprobación y devolución.
@@ -248,12 +268,13 @@ aprobación como requisito previo al OK de Sam, con el enlace en el mensaje con 
 
 Modelo: la hoja del 2026-11-16. La maqueta (`maqueta/revisar-lote.html`) la muestra con datos inventados.
 
-- **Cabecera:** contenedor, estado de la revisión, id corto del lote, quién lo subió y cuándo, y la barra de
+- **Título:** «Revisar contenedor · contenedor 64». Menú y migas: «Revisar contenedores».
+- **Cabecera:** contenedor, estado de la revisión, huella corta, quién lo subió y cuándo, y la barra de
   progreso («31 de 58 líneas revisadas · 2 preguntas abiertas»). La barra cuenta líneas con veredicto más
   preguntas respondidas (PRG-01: progreso real, no decorativo).
 - **Contenedores:** una tarjeta por contenedor con número ISO, precinto, naviera, puerto de llegada, fecha de
   carga, ETD y ETA; totales de clientes, embarques, cajas, kg y CBM.
-- **Clientes del lote:** una tabla agrupada por cliente. Por cliente: Shipping Mark (JetBrains Mono), etiqueta,
+- **Clientes del contenedor:** una tabla agrupada por cliente. Por cliente: Shipping Mark (JetBrains Mono), etiqueta,
   cuántos remitentes; por línea: Remitente, cajas, kg, CBM, notas como etiquetas con texto e icono (nunca solo
   color), y los botones «Bien» y «Corregir». «Corregir» abre un campo de texto obligatorio.
   - **Filtros:** Todas · Sin revisar · Para corregir · Con nota, con su conteo. Una búsqueda por Shipping Mark o
@@ -262,9 +283,9 @@ Modelo: la hoja del 2026-11-16. La maqueta (`maqueta/revisar-lote.html`) la mues
 - **Preguntas abiertas:** cada una con su texto, las líneas a las que se refiere (enlaces dentro de la página) y
   un campo de respuesta.
 - **Aprobación:** resumen de lo que falta («faltan 3 líneas y 1 pregunta»), nota opcional y el botón
-  «Aprobar lote» con el usuario que aprueba. Deshabilitado mientras falte algo, con el motivo a la vista. Si hay
-  líneas en «corregir», el botón principal es «Devolver para corregir». Confirmación con el id corto del lote.
-- **Copiar respuestas:** copia al portapapeles un texto con el id del lote, las líneas en «corregir» con su
+  «Aprobar contenedor» con el usuario que aprueba. Deshabilitado mientras falte algo, con el motivo a la vista. Si hay
+  líneas en «corregir», el botón principal es «Devolver para corregir». La confirmación nombra el contenedor y la huella corta («¿Aprobar el contenedor 64 (huella a1b2c3d4)?»).
+- **Copiar respuestas:** copia al portapapeles un texto que empieza con «Revisión del contenedor 64» y su huella corta, y sigue con las líneas en «corregir» con su
   comentario y las respuestas. Solo Remitentes y Shipping Marks, sin etiquetas de cliente (§9).
 - **Después de aprobar:** la página queda en solo lectura con «Aprobado por <usuario> el <fecha>» y el historial.
 
@@ -456,3 +477,16 @@ Subdirector Portal del cliente en esa sesión, y el Subdirector la transmitió a
 
 La aprobación de las decisiones no arranca la implementación. La fase 1 es otra tarea, la ordena el DG y sigue
 esperando a que se fusione la #559.
+
+### 12.2 Enmienda de nombres (2026-11-16)
+
+Sam se lo pidió al DG ese día, y el DG se lo transmitió al Subdirector Portal: «Vamos a llamar "contenedor 64" o
+"consolidado 64", ese es el nombre que usamos nosotros… "Lote" no se entiende. Cada Excel es un contenedor cerrado
+de consolidado. Y hay contenedores que son FCL 66… lo que es FCL es decir FCL; lo que es contenedor es DTD Cargo, o
+sea, carga suelta.»
+
+Cambian solo los textos visibles (§0 y §8) y la maqueta. Las nueve decisiones de §12.1 siguen igual.
+
+**Pregunta abierta para Sam:** un FCL no pasa por esta pantalla. ¿Su carga en producción sigue solo con tu OK
+nominal, como hoy, o necesita otra revisión? Hasta que Sam conteste, la fase 3 exige la aprobación solo a los
+consolidados (`ddp` y `mixto`).
