@@ -78,8 +78,11 @@ node scripts/auditoria-geo-aeo.mjs --json salida.json --estricto
 - `--base URL`: origen a auditar. Con `--sitemap` local, reescribe el origen de cada `<loc>` (para auditar
   un staging con el sitemap de producción).
 - `--sitemap X`: URL o archivo local.
+- **Con el sitio en vivo:** un pedido a la vez, con pausa entre pedidos y user-agent genérico `auditoria-geo-aeo/1` (sin datos de Sam ni del repositorio). Condición del DG, 2026-11-16.
 - `--json [archivo]`: informe con fecha, resumen y el detalle de cada comprobación. El nombre por defecto
   está ignorado por Git (`.gitignore`); un informe con datos reales es evidencia fechada, no código.
+- `--html-dir carpeta`: lee el HTML de cada página de una carpeta local (`/` = `index.html`; `/fcl` = `fcl.html` o `fcl/index.html`) y **no toca el sitio**. Exige `--sitemap` con un archivo local.
+- `--pausa ms`: pausa entre pedidos al sitio en vivo (1000 por defecto).
 - `--estricto`: sale con código 1 si hay alguna FALLA. Por defecto siempre sale 0, para que no se vuelva
   una meta que se persiga por sí misma. No está cableado a `pnpm verify` ni al CI.
 
@@ -118,3 +121,17 @@ no una conclusión: este script mira el HTML crudo.
 
 Todo lo de las fases B a E de la SDD-0641; Core Web Vitals; renderizado con JavaScript; Search Console;
 corregir los hallazgos (títulos, bloque de respuesta, enlaces): son decisiones de redacción y de producto.
+
+## Allowlist exacta (enmienda a SDD-0641 §11)
+
+Solo estos archivos, y ninguno más, pertenecen a la Fase A:
+
+- `scripts/auditoria-geo-aeo.mjs`
+- `scripts/__tests__/auditoria-geo-aeo.test.mjs`
+- `docs/specs/0642-auditoria-geo-aeo-script/spec.md`
+- `.agents/handoffs/sdd-0642-auditoria-geo-aeo-script.md`
+- `.gitignore` (solo la línea `auditoria-geo-aeo-*.json`)
+- `docs/specs/README.md` (índice regenerado con `pnpm docs:index`)
+
+Pendiente: copiar esta lista a la SDD-0641 §11 cuando la PR #613 esté en `main` (esta rama no puede
+editar un archivo que aún no existe en su base).

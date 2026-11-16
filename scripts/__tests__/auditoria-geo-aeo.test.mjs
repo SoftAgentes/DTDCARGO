@@ -3,7 +3,10 @@
 import { describe, expect, it } from "vitest";
 import {
   analizarPagina,
+  USER_AGENT,
   analizarSitio,
+  candidatosLocales,
+  leerArgumentos,
   contarPalabras,
   extraerJsonLd,
   parsearSitemap,
@@ -183,5 +186,23 @@ describe("JSON-LD en @graph", () => {
       '<script type="application/ld+json">{"@graph":[{"@type":["Organization","LocalBusiness"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem"}]}]}</script>',
     );
     expect(r.tipos).toEqual(["Organization", "LocalBusiness", "BreadcrumbList", "ListItem"]);
+  });
+});
+
+describe("modo prudente con el sitio en vivo", () => {
+  it("user-agent genérico, sin datos de Sam ni del repositorio", () => {
+    expect(USER_AGENT).toBe("auditoria-geo-aeo/1");
+  });
+
+  it("pausa por defecto y --html-dir se leen de los argumentos", () => {
+    expect(leerArgumentos([]).pausa).toBeGreaterThan(0);
+    expect(leerArgumentos(["--pausa", "250", "--html-dir", "./html"])).toMatchObject({ pausa: 250, htmlDir: "./html" });
+    expect(() => leerArgumentos(["--pausa", "-1"])).toThrow();
+  });
+
+  it("mapea rutas a archivos de una carpeta local", () => {
+    expect(candidatosLocales("/")).toEqual(["index.html"]);
+    expect(candidatosLocales("/fcl")).toEqual(["fcl.html", "fcl/index.html"]);
+    expect(candidatosLocales("/importar-de-china/valencia/")).toEqual(["importar-de-china/valencia.html", "importar-de-china/valencia/index.html"]);
   });
 });

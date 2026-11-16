@@ -24,6 +24,7 @@
  */
 
 import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /* ------------------------------------------------------------------ */
@@ -474,9 +475,16 @@ export function construirInforme({ base, sitemap, paginas, fecha = new Date() })
 /* Red y línea de comandos                                              */
 /* ------------------------------------------------------------------ */
 
+/** User-agent genérico: sin datos de Sam ni del repositorio. */
+export const USER_AGENT = "auditoria-geo-aeo/1";
+/** Pausa por defecto entre pedidos al sitio en vivo (ms). */
+export const PAUSA_POR_DEFECTO_MS = 1000;
+
+const dormir = (ms) => new Promise((res) => setTimeout(res, ms));
+
 async function leerTexto(origen) {
   if (/^https?:\/\//i.test(origen)) {
-    const res = await fetch(origen, { headers: { "user-agent": "dtd-auditoria-geo-aeo/1.0 (solo lectura)" } });
+    const res = await fetch(origen, { headers: { "user-agent": USER_AGENT } });
     if (!res.ok) throw new Error(`${origen}: HTTP ${res.status}`);
     return res.text();
   }
@@ -488,7 +496,7 @@ async function bajarPagina(url) {
     const res = await fetch(url, {
       redirect: "follow",
       signal: AbortSignal.timeout(20_000),
-      headers: { "user-agent": "dtd-auditoria-geo-aeo/1.0 (solo lectura)", accept: "text/html" },
+      headers: { "user-agent": USER_AGENT, accept: "text/html" },
     });
     return { url, status: res.status, headers: { "x-robots-tag": res.headers.get("x-robots-tag") ?? "" }, html: await res.text() };
   } catch (e) {
@@ -496,26 +504,49 @@ async function bajarPagina(url) {
   }
 }
 
-async function enPool(items, n, fn) {
-  const out = new Array(items.length);
-  let i = 0;
-  await Promise.all(
-    Array.from({ length: n }, async () => {
-      while (i < items.length) {
-        const k = i++;
-        out[k] = await fn(items[k]);
-      }
-    }),
-  );
+/**
+ * Archivos candidatos dentro de una carpeta local de HTML para una ruta del sitio:
+ * `/` → index.html; `/fcl` → fcl.html o fcl/index.html.
+ */
+export function candidatosLocales(ruta) {
+  const r = normalizarRuta(ruta);
+  if (r === "/") return ["index.html"];
+  const sin = decodeURIComponent(r.slice(1));
+  return [`${sin}.html`, `${sin}/index.html`];
+}
+
+async function leerPaginaLocal(dir, url) {
+  for (const c of candidatosLocales(new URL(url).pathname)) {
+    try {
+      return { url, status: 200, headers: {}, html: await readFile(join(dir, c), "utf8") };
+    } catch {
+      /* probar el siguiente candidato */
+    }
+  }
+  return { url, status: null, headers: {}, html: "", error: "archivo local no encontrado" };
+}
+
+/** Un pedido a la vez, con pausa entre pedidos (nunca en paralelo contra el sitio en vivo). */
+async function enSerie(items, pausaMs, fn) {
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    if (i > 0 && pausaMs > 0) await dormir(pausaMs);
+    out.push(await fn(items[i]));
+  }
   return out;
 }
 
 export function leerArgumentos(argv) {
-  const a = { base: BASE_POR_DEFECTO, baseExplicita: false, sitemap: null, json: null, estricto: false, ayuda: false };
+  const a = { base: BASE_POR_DEFECTO, baseExplicita: false, sitemap: null, htmlDir: null, pausa: PAUSA_POR_DEFECTO_MS, json: null, estricto: false, ayuda: false };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === "--base") (a.base = argv[++i]), (a.baseExplicita = true);
     else if (v === "--sitemap") a.sitemap = argv[++i];
+    else if (v === "--html-dir") a.htmlDir = argv[++i];
+    else if (v === "--pausa") {
+      a.pausa = Number(argv[++i]);
+      if (!Number.isFinite(a.pausa) || a.pausa < 0) throw new Error("--pausa necesita un número de milisegundos ≥ 0");
+    }
     else if (v === "--json") a.json = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
     else if (v === "--estricto") a.estricto = true;
     else if (v === "--help" || v === "-h") a.ayuda = true;
@@ -524,21 +555,29 @@ export function leerArgumentos(argv) {
   return a;
 }
 
-const AYUDA = `Uso: node scripts/auditoria-geo-aeo.mjs [--base URL] [--sitemap URL|archivo] [--json [archivo]] [--estricto]
+const AYUDA = `Uso: node scripts/auditoria-geo-aeo.mjs [--base URL] [--sitemap URL|archivo] [--html-dir carpeta] [--pausa ms] [--json [archivo]] [--estricto]
   --base URL        origen a auditar (por defecto ${BASE_POR_DEFECTO}); con --sitemap local, reescribe el origen de cada <loc>
   --sitemap X       sitemap alterno: URL o archivo local (por defecto <base>/sitemap.xml)
+  --html-dir D      lee el HTML de cada página de una carpeta local (/ = index.html; /fcl = fcl.html o fcl/index.html)
+                    y NO toca el sitio; exige --sitemap con un archivo local
+  --pausa ms        pausa entre pedidos al sitio en vivo (por defecto ${PAUSA_POR_DEFECTO_MS}); siempre un pedido a la vez
   --json [archivo]  escribe el informe JSON (por defecto auditoria-geo-aeo-AAAA-MM-DD.json)
   --estricto        sale con código 1 si hay alguna FALLA (por defecto siempre 0)`;
 
 export async function main(argv = process.argv.slice(2)) {
   const args = leerArgumentos(argv);
   if (args.ayuda) return console.log(AYUDA), 0;
+  if (args.htmlDir && (!args.sitemap || /^https?:\/\//i.test(args.sitemap))) {
+    throw new Error("--html-dir exige --sitemap con un archivo local (así no se toca el sitio).");
+  }
   const sitemapSrc = args.sitemap ?? new URL("/sitemap.xml", args.base).href;
   const xml = await leerTexto(sitemapSrc);
   const entradas = parsearSitemap(xml, args.sitemap && !args.baseExplicita ? null : args.base);
   if (!entradas.length) throw new Error(`El sitemap ${sitemapSrc} no trae ninguna <loc>.`);
-  console.log(`Auditando ${entradas.length} URL de ${sitemapSrc} …`);
-  const bajadas = await enPool(entradas, 4, (e) => bajarPagina(e.url));
+  console.log(`Auditando ${entradas.length} URL de ${sitemapSrc}${args.htmlDir ? ` (HTML local: ${args.htmlDir})` : `, un pedido a la vez con pausa de ${args.pausa} ms`} …`);
+  const bajadas = args.htmlDir
+    ? await Promise.all(entradas.map((e) => leerPaginaLocal(args.htmlDir, e.url)))
+    : await enSerie(entradas, args.pausa, (e) => bajarPagina(e.url));
   const paginas = analizarSitio(bajadas.map((p) => analizarPagina(p)));
   console.log("\n" + formatearTabla(paginas));
   const fallas = formatearFallas(paginas);

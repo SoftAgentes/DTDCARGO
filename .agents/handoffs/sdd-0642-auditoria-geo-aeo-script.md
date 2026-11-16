@@ -16,6 +16,7 @@ Fecha: 2026-11-16 · Rama: `claude/geo-aeo-script-auditoria-e8a39d` · Worker Cl
 | Prueba focal `npx vitest run scripts/__tests__/auditoria-geo-aeo.test.mjs` | **PASÓ** (16/16) |
 | Mutantes (MAX_TITULO 60→70; noindex sin meta; H1 `>=1`; huérfana siempre pasa) | **PASÓ**: los 4 hacen fallar la prueba; archivo restaurado |
 | Corrida real contra el sitio (una pasada, 48 URL, anónima) | **PASÓ**: reproduce `/fcl` = 76 y `/servicios/puerta-a-puerta` = 63. 555 pasan, 37 fallan, 83 manuales, 93 N/A |
+| Cambios por condiciones del DG (un pedido a la vez + pausa, user-agent `auditoria-geo-aeo/1`, `--html-dir`) | **PASÓ**: prueba focal 19/19; humo con carpeta local sin red; la corrida en vivo de arriba fue ANTES de estos cambios (4 en paralelo, otro user-agent) y no se repitió |
 | `pnpm verify`, suite completa, Docker, install | **NO EJECUTADO** (sin turno del DG; cambio de harness/script, sin producto) |
 | `docs:check` y `sdd:check` (numbering) | **PASÓ** |
 
