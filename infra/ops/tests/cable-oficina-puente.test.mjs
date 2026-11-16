@@ -25,8 +25,13 @@ import {
   esNuevoEntrante,
   firmar,
   guardarCursor,
+  PAGINAS_MAXIMAS,
+  chatwoot,
   leerConfig,
   leerCursor,
+  listarConversaciones,
+  listarMensajes,
+  mensajeSeguro,
   vuelta,
 } from "../cable-oficina/puente-prueba.mjs";
 import { interpretarEvento } from "../../../lib/studio/chatwoot/webhook-events";
@@ -89,6 +94,12 @@ describe("leerConfig: solo prueba", () => {
     [{ CHATWOOT_API_URL: "http://dtd-cargo-staging-web-1:3000" }, /rails de Chatwoot/],
     [{ PUENTE_ERP_URL: "https://prueba.dtdcargo.com/api/oficina/webhook-chatwoot" }, /web de prueba/],
     [{ PUENTE_INTERVALO_MS: "10" }, /INTERVALO/],
+    // O4: el puerto y la query se rechazan en las DOS rutas (Chatwoot y ERP).
+    [{ CHATWOOT_API_URL: "http://rails" }, /rails de Chatwoot/],
+    [{ CHATWOOT_API_URL: "http://rails:3000/?x=1" }, /rails de Chatwoot/],
+    [{ CHATWOOT_API_URL: "http://usuario:clave@rails:3000" }, /rails de Chatwoot/],
+    [{ PUENTE_ERP_URL: "http://dtd-cargo-staging-web-1:3000/api/oficina/webhook-chatwoot#x" }, /web de prueba/],
+    [{ PUENTE_ERP_URL: "http://u:p@dtd-cargo-staging-web-1:3000/api/oficina/webhook-chatwoot" }, /web de prueba/],
   ])("rechaza %o", (cambio, error) => {
     expect(() => leerConfig({ ...BASE_ENV, ...cambio })).toThrow(ConfigInvalida);
     expect(() => leerConfig({ ...BASE_ENV, ...cambio })).toThrow(error);
@@ -260,5 +271,103 @@ describe("una vuelta contra un Chatwoot y un ERP de mentira", () => {
     guardarCursor(ruta, 43);
     expect(readFileSync(ruta, "utf8")).toBe("43\n");
     expect(leerCursor(ruta)).toBe(43);
+  });
+});
+
+describe("O4 · lo que faltaba probar (revisión del DG de la #591)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("mensajeSeguro: los mensajes propios pasan; de lo demás, solo el código, nunca el cuerpo", () => {
+    expect(mensajeSeguro(new Error("chatwoot /api/v1/accounts/<id>/conversations → 401"))).toBe("chatwoot /api/v1/accounts/<id>/conversations → 401");
+    expect(mensajeSeguro(new Error("ruta fuera de la cuenta de prueba"))).toBe("ruta fuera de la cuenta de prueba");
+    expect(mensajeSeguro(Object.assign(new Error(`fetch failed ${TOKEN} ${TEXTO}`), { cause: { code: "ECONNREFUSED" } }))).toBe("ECONNREFUSED");
+    expect(mensajeSeguro(new TypeError(`algo con ${SECRETO}`))).toBe("TypeError");
+    expect(mensajeSeguro({ code: "UND_ERR; rm -rf /" })).toBe("UND_ERRrmrf");
+    expect(mensajeSeguro(null)).toBe("error");
+  });
+
+  it("a Chatwoot solo se le piden rutas de la cuenta de prueba", async () => {
+    const f = vi.spyOn(globalThis, "fetch");
+    await expect(chatwoot({ chatwoot: "http://rails:3000", token: TOKEN }, "/api/v1/accounts/1/conversations")).rejects.toThrow(/fuera de la cuenta de prueba/);
+    await expect(chatwoot({ chatwoot: "http://rails:3000", token: TOKEN }, "/platform/api/v1/accounts")).rejects.toThrow(/fuera de la cuenta de prueba/);
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it.each([401, 403, 404, 422])("un %i de Chatwoot corta la vuelta con la ruta enmascarada, sin token ni cuerpo", async (status) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(`detalle ${TOKEN} ${TEXTO}`, { status }));
+    const e = await vuelta({ chatwoot: "http://rails:3000", token: TOKEN, secreto: SECRETO, erp: "http://x" }, 0).catch((x) => x);
+    expect(e.message).toBe(`chatwoot /api/v<id>/accounts/<id>/conversations → ${status}`);
+    expect(mensajeSeguro(e)).not.toContain(TOKEN);
+  });
+
+  it("un 4xx del ERP avanza el cursor (no se arregla reintentando) y queda en el log con su código", async () => {
+    const log = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((s) => (log.push(String(s)), true));
+    const pedir = async (_cfg, ruta) =>
+      ruta.includes("/messages") ? { payload: [mensaje(41)] } : { data: { payload: [CONV] } };
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ ok: false, error: "texto_rechazado" }), { status: 422 }));
+    const r = await vuelta({ token: TOKEN, secreto: SECRETO, erp: "http://erp/api/oficina/webhook-chatwoot" }, 40, pedir);
+    expect(r.cursor).toBe(41);
+    expect(log.join("")).toMatch(/msg=41 → 422 texto_rechazado/);
+  });
+});
+
+describe("O5 · paginación de Chatwoot", () => {
+  const conv = (id) => ({ ...CONV, id });
+
+  it("conversaciones: sigue mientras la página venga llena y all_count diga que hay más", async () => {
+    const rutas = [];
+    const pedir = async (_cfg, ruta) => {
+      rutas.push(ruta);
+      const page = Number(new URL(`http://x${ruta}`).searchParams.get("page"));
+      const desde = (page - 1) * 25;
+      const total = 60;
+      const ids = Array.from({ length: Math.max(Math.min(25, total - desde), 0) }, (_, i) => desde + i + 1);
+      return { data: { meta: { all_count: total }, payload: ids.map(conv) } };
+    };
+    const lista = await listarConversaciones({}, pedir);
+    expect(lista).toHaveLength(60);
+    expect(rutas.map((r) => r.split("page=")[1])).toEqual(["1", "2", "3"]);
+  });
+
+  it("conversaciones: con un Chatwoot que nunca termina, para en el tope de páginas", async () => {
+    let n = 0;
+    const pedir = async () => (n++, { data: { payload: Array.from({ length: 25 }, (_, i) => conv(n * 100 + i)) } });
+    await listarConversaciones({}, pedir);
+    expect(n).toBe(PAGINAS_MAXIMAS);
+  });
+
+  it("mensajes: va hacia atrás con before= solo hasta pasar el cursor", async () => {
+    const rutas = [];
+    // 70 mensajes, ids 1..70; cada página trae los 20 más nuevos antes de "before".
+    const pedir = async (_cfg, ruta) => {
+      rutas.push(ruta);
+      const antes = Number(new URL(`http://x${ruta}`).searchParams.get("before") ?? 71);
+      const ids = Array.from({ length: 20 }, (_, i) => antes - 20 + i).filter((id) => id >= 1);
+      return { payload: ids.map((id) => mensaje(id)) };
+    };
+    const hasta30 = await listarMensajes({}, 7, 30, pedir);
+    expect(rutas.map((r) => r.split("?")[1] ?? "")).toEqual(["", "before=51", "before=31"]);
+    expect(hasta30.filter((m) => esNuevoEntrante(m, 30)).map((m) => m.id)).toEqual(Array.from({ length: 40 }, (_, i) => 31 + i));
+    rutas.length = 0;
+    await listarMensajes({}, 7, 65, pedir);
+    expect(rutas).toHaveLength(1);
+  });
+
+  it("una vuelta con historia larga entrega todo lo nuevo en orden", async () => {
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const entregados = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      entregados.push(JSON.parse(String(init.body)).id);
+      return new Response(JSON.stringify({ ok: true, resultado: "guardado" }), { status: 200 });
+    });
+    const pedir = async (_cfg, ruta) => {
+      if (!ruta.includes("/messages")) return { data: { payload: [CONV] } };
+      const antes = Number(new URL(`http://x${ruta}`).searchParams.get("before") ?? 46);
+      return { payload: Array.from({ length: 20 }, (_, i) => antes - 20 + i).filter((id) => id >= 1).map((id) => mensaje(id)) };
+    };
+    const r = await vuelta({ token: TOKEN, secreto: SECRETO, erp: "http://erp/api/oficina/webhook-chatwoot" }, 10, pedir);
+    expect(r.cursor).toBe(45);
+    expect(entregados).toEqual(Array.from({ length: 35 }, (_, i) => 11 + i));
   });
 });

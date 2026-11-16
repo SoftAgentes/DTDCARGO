@@ -79,6 +79,12 @@ export const EXTRA_CRONS = [
     reason:
       "diario, 04:15 UTC · SDD-0626 §3.1 · vacía task_events.resumen a los 90 días (privacidad, decisión A de Sam) · corre aunque la oficina esté pausada · nace APAGADO: sin OFICINA_VACIADO_ACTIVO no llama a la base",
   },
+  {
+    path: "/api/cron/oficina-despachador",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 §3.4 (Paso 3a) · una tanda de ticks cada 10 s; el agente redacta y NADA se envía · una tanda a la vez (turno en la base) · nace APAGADO: sin OFICINA_DESPACHADOR_ACTIVO no llama a la base",
+  },
 ];
 
 const CRON_PATH_RE = /^\/api\/cron\/([a-z0-9]+(?:-[a-z0-9]+)*)$/;

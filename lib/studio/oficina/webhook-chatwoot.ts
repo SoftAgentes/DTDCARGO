@@ -5,7 +5,8 @@
  * nada en Chatwoot. Orden de las puertas; cada una corta y ninguna escribe antes de la última:
  *   1. Interruptor `OFICINA_WEBHOOK_ACTIVO`. Apagado → 200 `ignorado: apagado`, sin leer el cuerpo ni
  *      crear el almacén (no toca la base).
- *   2. Configuración: sin secreto o sin bandeja de prueba → 503, se rechaza todo.
+ *   2. Configuración: sin secreto, sin bandeja de prueba o sin `CHATWOOT_ACCOUNT_ID` → 503, se rechaza todo
+ *      (Paso 3a: la cuenta es obligatoria; un aviso de otra cuenta se ignora en el paso 5).
  *   3. Tope de tamaño (256 KiB) ANTES de la firma → 413.
  *   4. Firma HMAC de Chatwoot 4.19.1 sobre el cuerpo crudo, con anti-replay y comparación en tiempo
  *      constante (`verificarFirmaChatwoot`, la de la Bandeja). Inválida → 401 y no se guarda nada.
@@ -76,7 +77,10 @@ export async function procesarWebhookOficina(
   const registrar = deps.registrar ?? ((m: string) => console.error(m));
 
   if (!config.activo) return ignorado("apagado");
-  if (!config.secreto || config.bandejaPrueba === null) return responder(503, { ok: false, error: "no_configurado" });
+  // Paso 3a (opcional del DG): sin CHATWOOT_ACCOUNT_ID no se acepta ningún aviso; con él, solo los de esa cuenta.
+  if (!config.secreto || config.bandejaPrueba === null || config.cuenta === null) {
+    return responder(503, { ok: false, error: "no_configurado" });
+  }
 
   const leido = await leerCuerpoAcotado(req);
   if (!leido.ok) return responder(413, { ok: false, error: "tamano" });
@@ -98,7 +102,7 @@ export async function procesarWebhookOficina(
 
   const evento = interpretarEvento(payload);
   if (!evento || evento.evento !== "message_created" || evento.mensajeId === null) return ignorado("evento");
-  if (config.cuenta !== null && evento.accountId !== config.cuenta) return ignorado("cuenta");
+  if (evento.accountId !== config.cuenta) return ignorado("cuenta");
   // Solo la bandeja de prueba. Cualquier otra se ignora sin mirar nada más.
   if (evento.conversacion.inboxId !== config.bandejaPrueba) return ignorado("bandeja");
   // Solo mensajes entrantes de clientes: ni los propios (salientes) ni las notas internas.

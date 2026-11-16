@@ -10,6 +10,9 @@
  * 200 `sin_migracion` y lo anota una vez en el log: no rompe. Idempotente: correrlo dos veces da lo
  * mismo (la segunda no encuentra nada que vaciar).
  *
+ * Paso 3a (D3): en la misma corrida purga los borradores del agente de más de 90 días
+ * (`office_purgar_borradores_viejos()`, 0547). Sin la 0547 esa parte responde `sin_migracion`; el vaciado sigue.
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera, como push-drain.
  * Solo en el servidor (infra/dtd-cargo/cron/crontab, no en vercel.json).
  */
@@ -17,7 +20,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
-import { correrVaciadoDeResumenes } from "@/lib/studio/oficina/bandeja-store";
+import { correrPurgaDeBorradores, correrVaciadoDeResumenes } from "@/lib/studio/oficina/bandeja-store";
 import { vaciadoActivo } from "@/lib/studio/oficina/config";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +34,10 @@ export async function GET(req: NextRequest) {
   // Apagado: ni siquiera se crea el cliente de la base.
   if (!vaciadoActivo()) return NextResponse.json({ ok: true, estado: "apagado" });
   try {
-    const r = await correrVaciadoDeResumenes(createAdminClient());
-    return NextResponse.json({ ok: true, ...r });
+    const admin = createAdminClient();
+    const r = await correrVaciadoDeResumenes(admin);
+    const borradores = await correrPurgaDeBorradores(admin);
+    return NextResponse.json({ ok: true, ...r, borradores });
   } catch (e) {
     console.error(`[oficina-vaciado] no corrió (${e instanceof Error ? e.name : "error"})`);
     return NextResponse.json({ ok: false, error: "vaciado" }, { status: 500 });

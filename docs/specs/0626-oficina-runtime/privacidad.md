@@ -30,9 +30,11 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 
 | Estado | Cantidad |
 |---|---|
-| `CORRECTO` | 8 |
+| `CORRECTO` | 10 |
 | `ENCONTRADO` | 3 |
 | `NO VERIFICABLE` | 5 |
+
+**Paso 3a (16/11/2026):** se suman el hallazgo 12 (el borrador del agente) y el 13 (los mensajes salen de la casa hacia los cerebros), y el 1 queda cerrado para lo que escribe el despachador.
 
 ## 2 · Inventario
 
@@ -57,6 +59,8 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 | `event_inbox.payload_ref` | Referencia `origen:ruta` | Señalar el mensaje en Chatwoot sin copiarlo | Sin plazo | `0541:223` |
 | `office_paused.cambiado_por` | uuid del administrador que cambió la bandera | Dejar registrada la autorización (SGE-AG-01 §7) | Para siempre (solo agregar) | `0541:236`, `:366` |
 | `office_paused.motivo` | Texto del administrador, de hasta 500 caracteres | Por qué se pausó o despausó | Para siempre (solo agregar) | `0541:238` |
+| `office_borradores.texto` | Lo que REDACTÓ el agente para el cliente (hasta 4.000 caracteres), nunca el texto del cliente. Pasa antes la revisión automática de eval.md, que escala si trae datos personales | Que Sam lo revise antes de cualquier envío (D3; el envío es del Paso 3b) | **90 días**; después se borra la fila (`office_purgar_borradores_viejos`) | `0547` (office_borradores) |
+| `office_borradores.motivo` | Por qué se escaló: un código del despachador o el motivo del agente, pasado por la regla del cable | Que Sam sepa qué revisar | **90 días** | `0547` |
 
 No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalización. El riesgo estaba en los textos libres, que pueden copiar lo que dijo el cliente.
 
@@ -66,7 +70,7 @@ No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalizaci�
 
 `exigirTextosDelCable` existe y tiene su prueba (`lib/studio/oficina/cable-textos.ts:115`).
 - **Paso 2 (hecho):** el webhook escribe `event_inbox` solo a través de `escribirEnElCable` (`lib/studio/oficina/escritura.ts`), que llama a esa función antes de guardar. La fila lleva solo identificadores y referencias, y no existe otro camino de escritura a las tablas del cable en el código. Su prueba incluye el caso de rechazo: no se guarda, y el log da los códigos sin repetir el dato.
-- **Sigue abierto (Paso 3):** el despachador escribirá `titulo`, `meta_datos`, `resumen`, `actor` y `asignado_a`. Esos campos todavía no los escribe nadie; su revisión comprobará que no haya otro camino de escritura.
+- **Paso 3a (hecho):** el despachador escribe `task_events` solo por `crearAlmacenDespachador().anotar` (`lib/studio/oficina/despachador-almacen.ts`), que pasa por `escribirEnElCable`; si la regla rechaza un resumen, el paso se guarda sin él. `office_tasks` la crea la base (`office_convertir_triaje`, 0547) con un título fijo, `asignado_a = agente:<perfil>` y `meta_datos` solo con el id y el tipo del evento. El motivo de un escalado pasa por la misma regla (`textoSeguro`). La prueba `lib/studio/__tests__/oficina-despachador.test.ts` vuelca todas las tablas del cable y los logs y exige que no aparezca el texto ni el teléfono del cliente.
 
 ### `ENCONTRADO` 2 · La regla no ve todo (baja)
 
@@ -136,12 +140,31 @@ service_role escribe por columna: nunca `id`, `creado_en` ni `ts` (`0541:423` y 
   - en la prueba de staging del 16/11/2026 aparecieron **0 líneas** con el texto o el nombre en los logs del web y del puente (`/srv/ops/evidencias/cable-puente-prueba-20261116T012638Z.txt`, en el VPS).
 - **Alcance:** solo la cuenta 2, de prueba. Los datos de la prueba son inventados: un contacto, una conversación y un mensaje, que siguen en Chatwoot con la retención de Chatwoot (§4).
 
+### `CORRECTO` 12 · El borrador guarda lo que redactó el agente, no lo que escribió el cliente (Paso 3a)
+
+- `office_borradores` (0547) guarda la respuesta redactada o el escalado. El texto del cliente vive solo en memoria durante la corrida (`chatwoot-lectura.ts`, `despachador.ts`) y no entra a ninguna tabla ni log.
+- Antes de guardar una respuesta, `revisarRespuesta` (`eval-automatico.ts`) escala si trae un correo, un teléfono, una cédula, un RIF o una dirección (la regla del cable): el agente no repite datos personales.
+- RLS sin policies; anon y authenticated sin privilegios; service_role solo lee e inserta. Se borra a los 90 días (D3), en la misma tarea diaria que vacía los resúmenes.
+
+### `CORRECTO` 13 · Los mensajes salen de la casa hacia los cerebros (Paso 3a, 16/11/2026)
+
+Para redactar, el despachador manda el texto de la conversación fuera del VPS DTD. Este es el viaje completo:
+
+| Dónde | Qué llega | Cuánto tiempo | Evidencia |
+|---|---|---|---|
+| ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto) | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, prueba «ninguna fila ni log» |
+| Cable (túnel SSH ERP → oficina) | El mismo texto, cifrado por el túnel | Nada se guarda en el camino | runbook §8 |
+| Hermes, perfil `soporte-chatwoot` (VPS Oficina) | El texto y la respuesta, como un turno del API server | **Hermes v0.23.1 guarda cada turno en su `state.db` y no se puede apagar.** El despachador borra la sesión de cada llamada al terminar (`DELETE /api/sessions/<id>`); si falla, la purga diaria de la oficina (`hermes-soporte-purga.timer`) borra toda sesión del API server de más de 24 h. **Máximo: 48 h.** Quedan además las marcas de idempotencia (7 días, sin el texto) y, hasta el próximo VACUUM, las páginas libres de SQLite | sección B del Paso 3a (`.agents/handoffs/2026-11-16-sdd-0626-paso3a-despachador.md`) |
+| Proveedor del modelo: Z.AI (glm-5.3) y, de respaldo, DeepSeek (deepseek-chat) | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
+
+- El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
+- Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
+- **Alcance hoy:** solo la cuenta 2 y la bandeja 11, de prueba, con texto inventado.
+
 ## 4 · No verificable
 
 - **Los respaldos de la base.** Vaciar el resumen no llega a los dumps (`docs/runbooks/backup-restore-servidor.md`). Un resumen sigue en los respaldos mientras estos existan.
-- **El runtime de la oficina (VPS Oficina) y el proveedor de glm-5.3:**
-  - qué guardan de cada conversación y por cuánto tiempo (el replay de SGE-AG-01 §8);
-  - en qué país procesan, que decide si aplica la PIPL (punto 9).
+- **Los proveedores del modelo (Z.AI y DeepSeek):** qué guardan de cada llamada y por cuánto tiempo, y en qué país procesan. Las dos son empresas con sede en China, así que la PIPL (punto 9) probablemente aplica; no consta dónde procesan. El runtime de la oficina ya está medido (hallazgo 13).
 - **Chatwoot:** guarda la conversación completa. Su retención es la de Chatwoot, no la de estas tablas.
 - **Producción:**
   - que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide;
