@@ -154,7 +154,7 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     sql: () =>
       once(
         FILE_0546,
-        "if tg_table_name = 'news_publication_audit' and new.actor_purged_at is not null then",
+        "if tg_table_name = 'news_publication_audit' and (pg_catalog.to_jsonb(new) ->> 'actor_purged_at') is not null then",
         "if tg_table_name = 'news_publication_audit' and false then",
       ),
     cae: "TEST 0546: M: una fila nueva de la auditoría no entra con marca de purga",

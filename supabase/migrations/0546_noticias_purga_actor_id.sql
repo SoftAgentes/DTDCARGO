@@ -135,10 +135,10 @@ language plpgsql
 set search_path = ''
 as $function$
 begin
-  if tg_table_name = 'news_publication_audit' and new.actor_purged_at is not null then
+  if tg_table_name = 'news_publication_audit' and (pg_catalog.to_jsonb(new) ->> 'actor_purged_at') is not null then
     raise exception 'news_publication_audit: actor_purged_at solo lo escribe la purga (UPDATE), no un INSERT'
       using errcode = 'check_violation';
-  elsif tg_table_name = 'news_autopublish_settings_log' and new.changed_by_purged_at is not null then
+  elsif tg_table_name = 'news_autopublish_settings_log' and (pg_catalog.to_jsonb(new) ->> 'changed_by_purged_at') is not null then
     raise exception 'news_autopublish_settings_log: changed_by_purged_at solo lo escribe la purga (UPDATE), no un INSERT'
       using errcode = 'check_violation';
   end if;
