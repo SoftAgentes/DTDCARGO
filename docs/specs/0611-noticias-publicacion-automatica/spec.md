@@ -819,7 +819,7 @@ Hecho en código; la migración **0547** queda en espera (sin aplicar):
 
 | Pieza | Qué hace |
 |---|---|
-| `lib/news/portada.ts` | Regla pura: URL permitida (ruta propia `/fotos/…` o Storage público de Supabase; nunca la marca anterior), licencia escrita y comprobada con fecha, origen `fuente`/`banco`/`propia` y enlace de origen si no es propia. `evaluarPortada` descarta con motivos; no retiene. |
+| `lib/news/portada.ts` | Regla pura: URL permitida (una foto de la **lista cerrada** de 5 fotos propias revisadas a la vista, o el Storage público de Supabase; nunca la marca anterior, también fuera de la URL: enlace, crédito, licencia y texto alternativo), licencia escrita y comprobada con fecha no futura, origen `fuente`/`banco`/`propia` y enlace de origen si no es propia. `evaluarPortada` descarta con motivos; no retiene. |
 | `supabase/migrations/0547_noticias_portada_licencia.sql` | 7 columnas `cover_*` en `news_posts` con dos CHECK, 6 `autopub_cover_*` en `seo_drafts`, `news_insertar_post` guarda la portada solo si pasa y, si no, publica la noticia sin ella; anon lee seis columnas (no la fecha de comprobación). Desarme en `supabase/desarmes/0547_desarme.sql`. |
 | `lib/news/autopublicar/puntaje.ts`, `filtros.ts` | F6 ya no retiene por la portada (`puntaje:portada` retirado, §11.5 b); el descarte vive en `evaluarPortada`. |
 | `lib/studio/news/autopublicar.ts` | Lee las columnas de portada (con reintento si la 0547 no está), decide con `evaluarPortada` y manda al RPC la portada solo si se puede usar. |
@@ -827,6 +827,35 @@ Hecho en código; la migración **0547** queda en espera (sin aplicar):
 | `lib/public/news-queries.ts` | La portada se lee en una consulta aparte que degrada sin la 0547 (declarado en `supabase/pending-migration-symbol-declarations.json`). |
 
 Pendiente fuera de esta PR: aplicar la 0547 (OK nominal de Sam), que el Studio (o quien carga la foto) capture crédito, licencia y comprobación en el borrador, y revisar a la vista cada foto nueva (límite de la prueba, arriba).
+
+**Allowlist exacta de la PR #597** (`git diff --name-only origin/main...HEAD`, 24 archivos; ningún otro entra):
+
+| Archivo | Cambio |
+|---|---|
+| `.agents/handoffs/sdd-0611-foto-portada-licencia.md` | Nuevo: handoff |
+| `app/noticias/[slug]/page.tsx` | Modificado: portada opcional con pie de foto |
+| `app/noticias/_components/ActualidadHub.tsx` | Modificado: tarjeta y archivo sin foto |
+| `app/noticias/noticias.css` | Modificado: estilos sin foto y pie de foto |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado: esta subsección |
+| `lib/news/__tests__/editorial.test.ts` | Modificado: licencia, respaldos y fotos excluidas |
+| `lib/news/__tests__/portada.test.ts` | Nuevo: regla de portada |
+| `lib/news/autopublicar/__tests__/fixture.ts` | Modificado: `portada` en lugar de `coverImageUrl` |
+| `lib/news/autopublicar/__tests__/noticias-0547.migration.test.ts` | Nuevo: runner PGlite, mutantes y desarme |
+| `lib/news/autopublicar/__tests__/piezas.test.ts` | Modificado: F6 sin portada |
+| `lib/news/autopublicar/filtros.ts` | Modificado: `portada` en el borrador |
+| `lib/news/autopublicar/puntaje.ts` | Modificado: retira `puntaje:portada` |
+| `lib/news/editorial.ts` | Modificado: `editorialImageOf` puede devolver `null` |
+| `lib/news/portada.ts` | Nuevo: regla pura |
+| `lib/news/types.ts` | Modificado: campos `cover_*` |
+| `lib/public/__tests__/news-queries-portada.test.ts` | Nuevo: lectura aparte |
+| `lib/public/news-queries.ts` | Modificado: `conPortadas` |
+| `lib/studio/news/__tests__/autopublicar.test.ts` | Modificado: cableado de la portada |
+| `lib/studio/news/autopublicar.ts` | Modificado: decide y manda la portada |
+| `supabase/desarmes/0547_desarme.sql` | Nuevo: desarme |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0547 |
+| `supabase/migrations/0547_noticias_portada_licencia.sql` | Nuevo: migración 0547, sin aplicar |
+| `supabase/pending-migration-symbol-declarations.json` | Modificado: degradado declarado |
+| `supabase/tests/0547_noticias_portada_licencia.test.sql` | Nuevo: contrato SQL |
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 

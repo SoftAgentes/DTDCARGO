@@ -13,12 +13,12 @@
  * MUTANTES: cada uno es una 0547 con UN defecto y tiene que caer con el mensaje que lo nombra.
  * GEMELAS: la lista de columnas que anon lee y la marca anterior coinciden con el código.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
-import { MARCA_ANTERIOR_RE } from "@/lib/news/portada";
+import { FOTOS_PROPIAS_REVISADAS, MARCA_ANTERIOR_RE } from "@/lib/news/portada";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const CONTRACT = resolve(ROOT, "supabase/tests/0547_noticias_portada_licencia.test.sql");
@@ -120,7 +120,33 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     nombre: "el CHECK deja pasar la marca anterior",
     sql: () =>
       once(FILE_0547, "        and cover_image_url !~* 'door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door'\n", ""),
-    cae: "TEST 0547: N: doortudoor se publica sin portada",
+    cae: "TEST 0547: N: storage-doortudoor se publica sin portada",
+  },
+  {
+    nombre: "cualquier /fotos/ vale (sin lista cerrada)",
+    sql: () => {
+      const i = FILE_0547.indexOf("(cover_image_url in (");
+      const j = FILE_0547.indexOf("or cover_image_url ~*", i);
+      expect(i).toBeGreaterThan(0);
+      return FILE_0547.slice(0, i) + "(cover_image_url ~* '^/fotos/[a-z0-9-]+\.(webp|jpg)$'\n         " + FILE_0547.slice(j);
+    },
+    cae: "TEST 0547: N: foto-recepcion se publica sin portada",
+  },
+  {
+    nombre: "la marca anterior entra por el alt, el crédito, la licencia o el enlace",
+    sql: () => {
+      const i = FILE_0547.indexOf("      and coalesce(cover_alt, '') ||");
+      const fin = "door.{0,6}2.{0,6}door'\n";
+      const j = FILE_0547.indexOf(fin, i);
+      expect(i).toBeGreaterThan(0);
+      return FILE_0547.slice(0, i) + FILE_0547.slice(j + fin.length);
+    },
+    cae: "TEST 0547: N: marca-en-alt se publica sin portada",
+  },
+  {
+    nombre: "se acepta una fecha de comprobación futura",
+    sql: () => once(FILE_0547, "        and cover_license_verified_at <= pg_catalog.now()\n", ""),
+    cae: "TEST 0547: N: fecha-futura se publica sin portada",
   },
   {
     nombre: "una foto de la fuente sin enlace de origen",
@@ -207,7 +233,7 @@ describe("SDD-0611 §11.5 · 0547 portada con licencia (PGlite)", () => {
   );
 
   it("hay un mutante por defecto protegido (piso)", () => {
-    expect(MUTANTES.length).toBeGreaterThanOrEqual(6);
+    expect(MUTANTES.length).toBeGreaterThanOrEqual(9);
   });
 
   it(
@@ -238,6 +264,22 @@ describe("SDD-0611 §11.5 · 0547 portada con licencia (PGlite)", () => {
     const pedidas = m![1].split(",").map((c) => c.trim());
     expect(pedidas.filter((c) => c !== "slug").sort()).toEqual([...grant].sort());
     expect(pedidas).not.toContain("cover_license_verified_at");
+  });
+
+  it("GEMELA: la lista cerrada de fotos propias de la base es la de portada.ts, y todas existen", () => {
+    const i = FILE_0547.indexOf("(cover_image_url in (");
+    const bloque = FILE_0547.slice(i, FILE_0547.indexOf("or cover_image_url", i));
+    const enBase = [...bloque.matchAll(/'(\/fotos\/[^']+)'/g)].map((m) => m[1]);
+    expect([...enBase].sort()).toEqual([...FOTOS_PROPIAS_REVISADAS].sort());
+    expect(enBase.length).toBe(5);
+    for (const f of enBase) {
+      expect(existsSync(resolve(ROOT, "public", f.slice(1))), f).toBe(true);
+      expect(f.toLowerCase()).not.toMatch(/doortudoor|door-to-door|doortodoor/);
+    }
+    // Excluidas y dudosas de §11.5: nunca en la lista.
+    for (const fuera of ["dtd-cargo-recepcion-contenedor", "puerto-venezuela-aduana-entrega-final", "dtd-cargo-descarga-bodega", "dtd-cargo-atencion-mapa"]) {
+      for (const f of enBase) expect(f).not.toContain(fuera);
+    }
   });
 
   it("GEMELA: la marca anterior de la base es la misma expresión que la del código", () => {

@@ -18,8 +18,8 @@
           "kind": "column",
           "callSites": [
             "lib/news/editorial.ts:79",
-            "lib/news/portada.ts:198",
-            "lib/news/portada.ts:225",
+            "lib/news/portada.ts:217",
+            "lib/news/portada.ts:244",
             "lib/news/types.ts:27",
             "lib/public/news-queries.ts:32",
             "lib/public/news-queries.ts:36"
@@ -30,8 +30,8 @@
           "kind": "column",
           "callSites": [
             "lib/news/editorial.ts:79",
-            "lib/news/portada.ts:200",
-            "lib/news/portada.ts:226",
+            "lib/news/portada.ts:219",
+            "lib/news/portada.ts:245",
             "lib/news/types.ts:30",
             "lib/public/news-queries.ts:32",
             "lib/public/news-queries.ts:36"
@@ -42,8 +42,8 @@
           "kind": "column",
           "callSites": [
             "lib/news/editorial.ts:79",
-            "lib/news/portada.ts:197",
-            "lib/news/portada.ts:220",
+            "lib/news/portada.ts:216",
+            "lib/news/portada.ts:239",
             "lib/news/types.ts:26",
             "lib/public/news-queries.ts:32",
             "lib/public/news-queries.ts:36"
@@ -54,8 +54,8 @@
           "kind": "column",
           "callSites": [
             "lib/news/editorial.ts:79",
-            "lib/news/portada.ts:201",
-            "lib/news/portada.ts:221",
+            "lib/news/portada.ts:220",
+            "lib/news/portada.ts:240",
             "lib/news/types.ts:31",
             "lib/public/news-queries.ts:32",
             "lib/public/news-queries.ts:36"
@@ -66,7 +66,7 @@
           "kind": "column",
           "callSites": [
             "lib/news/editorial.ts:79",
-            "lib/news/portada.ts:199",
+            "lib/news/portada.ts:218",
             "lib/news/types.ts:29",
             "lib/public/news-queries.ts:32",
             "lib/public/news-queries.ts:36"
@@ -77,8 +77,8 @@
           "kind": "column",
           "callSites": [
             "lib/news/editorial.ts:79",
-            "lib/news/portada.ts:202",
-            "lib/news/portada.ts:224",
+            "lib/news/portada.ts:221",
+            "lib/news/portada.ts:243",
             "lib/news/types.ts:32",
             "lib/public/news-queries.ts:32",
             "lib/public/news-queries.ts:36"

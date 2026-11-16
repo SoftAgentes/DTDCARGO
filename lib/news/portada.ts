@@ -27,9 +27,29 @@ export type OrigenDePortada = (typeof ORIGENES_DE_PORTADA)[number];
  */
 export const MARCA_ANTERIOR_RE = /door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door/i;
 
-/** Carpeta versionada en el repo (`public/fotos`) y extensiones de imagen. */
-const RUTA_PROPIA_RE = /^\/fotos\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*\.(?:webp|jpe?g|png|avif)$/i;
-/** Storage público del Supabase propio (el que declara `next.config` en `images.remotePatterns`). */
+/**
+ * Lista CERRADA de fotos propias revisadas a la vista (§11.5, 2026-11-15): sin la
+ * marca anterior en rótulos, gorras, camisas ni códigos QR. Una foto nueva entra
+ * aquí, en el CHECK `news_posts_portada_con_permiso` de la 0547 y en la prueba
+ * gemela, o no entra. El nombre del archivo no prueba nada: `dtd-cargo-recepcion-contenedor.webp`
+ * y `puerto-venezuela-aduana-entrega-final-…jpg` no la nombran y la llevan puesta.
+ * Excluidas (marca anterior visible): esas dos, `precinto-doortudoor-…`,
+ * `carga-contenedor-precinto-doortudoor-…`; dudosas, no usadas:
+ * `dtd-cargo-descarga-bodega.webp` y `dtd-cargo-atencion-mapa.webp`.
+ */
+export const FOTOS_PROPIAS_REVISADAS: readonly string[] = [
+  "/fotos/dtd-cargo-carga-consolidada.webp",
+  "/fotos/dtd-cargo-camion-entrega.webp",
+  "/fotos/dtd-cargo-operacion-puerto.webp",
+  "/fotos/dtd-cargo-equipo-contenedor.webp",
+  "/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg",
+];
+
+/**
+ * Storage público de un proyecto de Supabase: el patrón `*.supabase.co` de
+ * `next.config` en `images.remotePatterns` (cualquier proyecto, no solo el propio;
+ * lo que se sube ahí lo revisa una persona antes de registrar la licencia).
+ */
 const HOST_PERMITIDO_RE = /^[a-z0-9-]+\.supabase\.co$/;
 const RUTA_STORAGE_RE = /^\/storage\/v1\/object\/public\/[A-Za-z0-9._%/-]+\.(?:webp|jpe?g|png|avif)$/i;
 
@@ -53,15 +73,9 @@ export function nombraMarcaAnterior(texto: string): boolean {
   }
 }
 
-/** Ruta propia versionada: `/fotos/…` sin `..`, sin `//`, sin la marca anterior. */
+/** Ruta propia versionada: solo una foto de la lista cerrada de fotos revisadas. */
 export function esRutaPropiaVersionada(url: string): boolean {
-  return (
-    RUTA_PROPIA_RE.test(url) &&
-    !url.includes("..") &&
-    !url.includes("//") &&
-    url.length <= URL_MAX &&
-    !nombraMarcaAnterior(url)
-  );
+  return FOTOS_PROPIAS_REVISADAS.includes(url);
 }
 
 /** Host permitido: solo el Storage público de Supabase, por https y sin puerto ni credenciales. */
@@ -151,11 +165,16 @@ export function evaluarPortada(p: PortadaDeclarada | null | undefined): Decision
   const motivos: MotivoDeDescarte[] = [];
   if (nombraMarcaAnterior(url)) motivos.push("portada:marca_anterior");
   else if (!esUrlDePortadaPermitida(url)) motivos.push("portada:url");
+  // La marca anterior tampoco entra por el enlace, el crédito ni el texto alternativo.
+  if ([p?.enlaceOrigen, p?.credito, p?.alt].some((t) => nombraMarcaAnterior(sinVacios(t)))) {
+    if (!motivos.includes("portada:marca_anterior")) motivos.push("portada:marca_anterior");
+  }
 
   const licencia = sinVacios(p?.licencia);
   const verificada = sinVacios(p?.licenciaVerificadaEn);
   if (licencia === "") motivos.push("portada:sin_licencia");
-  else if (verificada === "" || Number.isNaN(Date.parse(verificada))) {
+  else if (verificada === "" || Number.isNaN(Date.parse(verificada)) || Date.parse(verificada) > Date.now()) {
+    // Sin fecha, ilegible o futura: la licencia no está comprobada todavía.
     motivos.push("portada:licencia_sin_comprobar");
   }
 
@@ -224,6 +243,8 @@ export function portadaDeRegistro(post: PortadaDeRegistro): PortadaPublica | nul
   const enlace = sinVacios(post.cover_source_url);
   const alt = sinVacios(post.cover_alt);
   const credito = sinVacios(post.cover_credit);
+  // La marca anterior en el enlace, el crédito o el alt también descarta la portada.
+  if ([enlace, alt, credito, licencia].some(nombraMarcaAnterior)) return null;
   return {
     src: url,
     alt: alt === "" ? null : alt.slice(0, ALT_MAX),

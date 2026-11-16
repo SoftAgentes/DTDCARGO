@@ -73,8 +73,8 @@ describe("búsqueda y fotografía editorial", () => {
     expect(editorialImageOf(post({ cover_image_url: "https://example.com/foto.jpg" }))?.src).toMatch(/^\/fotos\/dtd-cargo/);
     expect(editorialImageOf(post({ cover_image_url: "/fotos/propia.jpg" }))?.src).not.toBe("/fotos/propia.jpg");
     // Con licencia y URL permitida sí.
-    const con = editorialImageOf(post({ cover_image_url: "/fotos/propia.jpg", cover_license: "Foto propia" }));
-    expect(con?.src).toBe("/fotos/propia.jpg");
+    const con = editorialImageOf(post({ cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp", cover_license: "Foto propia" }));
+    expect(con?.src).toBe("/fotos/dtd-cargo-camion-entrega.webp");
     expect(con?.licencia).toBe("Foto propia");
     // Con licencia, pero de la marca anterior o de un host ajeno: respaldo.
     expect(editorialImageOf(post({ cover_image_url: "/fotos/doortudoor.jpg", cover_license: "Propia" }))?.src).not.toMatch(/doortudoor/);

@@ -63,3 +63,12 @@ Rama `claude/0611-foto-licencia-d10015`. PR propia, sin auto-merge, a main.
 - Impacto documental: spec 0611 §11.5.1 actualizado; nada más. Sin datos personales en el repo.
 
 Nota de proceso: un `sed` global de renumeración (0546→0547) tocó 35 archivos ajenos; se revirtieron con `git checkout` antes de commitear. El diff final solo trae archivos de esta tarea.
+
+## Cambios tras la revisión Opus (CHANGES_REQUESTED sobre 9ac882a43)
+
+1. Lista cerrada de 5 fotos propias revisadas (`FOTOS_PROPIAS_REVISADAS`), la misma en `portada.ts`, en el CHECK de la 0547 y en una prueba gemela que además comprueba que existen y que las 4 excluidas/dudosas no están. Mutante «cualquier /fotos/ vale».
+2. La marca anterior también se rechaza en `cover_source_url`, `cover_credit`, `cover_alt` y `cover_license`, en código y en el CHECK (sin decodificar, `~*`). Mutante propio. Como la URL propia ya sale de una lista cerrada, el CHECK de marca en la URL protege ahora las URL del Storage: su mutante usa un caso `storage-doortudoor`.
+3. Allowlist exacta de 24 archivos en spec §11.5.1.
+4. Prueba del cableado de `lib/studio/news/autopublicar.ts`: portada válida viaja; 6 casos inválidos no viajan y la decisión sigue «publicada»; con 42703 reintenta sin las columnas y publica sin foto.
+5. Recomendados: comentario del host `*.supabase.co` corregido (es el patrón de `next.config`, cualquier proyecto); `cover_license_verified_at` no acepta fechas futuras (CHECK y código).
+6. **Anotado:** `conPortadas` usa `.in("slug", …)` sin límite; hoy hay pocas noticias por lectura (lista y relacionadas), pero si la lista pública crece mucho habrá que paginar esa consulta.

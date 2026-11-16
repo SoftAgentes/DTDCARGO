@@ -95,8 +95,14 @@ alter table public.news_posts
   add constraint news_posts_portada_con_permiso
     check (
       cover_image_url is null or (
-        -- Ruta propia versionada (public/fotos) o Storage público de Supabase; nada más.
-        (cover_image_url ~* '^/fotos/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*\.(webp|jpe?g|png|avif)$'
+        -- Una foto propia de la lista CERRADA de revisadas a la vista (§11.5; la misma lista que
+        -- FOTOS_PROPIAS_REVISADAS en lib/news/portada.ts) o el Storage público de Supabase; nada más.
+        (cover_image_url in (
+           '/fotos/dtd-cargo-carga-consolidada.webp',
+           '/fotos/dtd-cargo-camion-entrega.webp',
+           '/fotos/dtd-cargo-operacion-puerto.webp',
+           '/fotos/dtd-cargo-equipo-contenedor.webp',
+           '/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg')
          or cover_image_url ~* '^https://[a-z0-9-]+\.supabase\.co/storage/v1/object/public/[A-Za-z0-9._%/-]+\.(webp|jpe?g|png|avif)$')
         and pg_catalog.strpos(cover_image_url, '..') = 0
         and pg_catalog.length(cover_image_url) <= 2048
@@ -106,6 +112,7 @@ alter table public.news_posts
         and cover_license is not null and pg_catalog.btrim(cover_license) <> ''
         and pg_catalog.length(cover_license) <= 120
         and cover_license_verified_at is not null
+        and cover_license_verified_at <= pg_catalog.now()
         -- De dónde viene, y con enlace de origen si no es propia.
         and cover_origin is not null and cover_origin in ('fuente', 'banco', 'propia')
         and (cover_origin = 'propia' or cover_source_url is not null)
@@ -115,6 +122,11 @@ alter table public.news_posts
     check (
       (cover_alt is null or pg_catalog.length(cover_alt) <= 200)
       and (cover_credit is null or pg_catalog.length(cover_credit) <= 200)
+      -- La marca anterior tampoco entra por el texto alternativo, el crédito, la licencia ni el
+      -- enlace. El CHECK no decodifica: busca sin distinguir mayúsculas (`~*`).
+      and coalesce(cover_alt, '') || ' ' || coalesce(cover_credit, '') || ' ' || coalesce(cover_license, '')
+          || ' ' || coalesce(cover_source_url, '')
+          !~* 'door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door'
       and (cover_source_url is null
            or (cover_source_url ~ '^https://[^[:space:]]+\.[^[:space:]]+$'
                and pg_catalog.length(cover_source_url) <= 2048))

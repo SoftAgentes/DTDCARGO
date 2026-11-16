@@ -165,7 +165,7 @@ declare
     'cover_alt', 'Camión de DTD Cargo',
     'cover_origin', 'propia',
     'cover_license', 'Foto propia de DTD Cargo',
-    'cover_license_verified_at', '2026-11-15T12:00:00Z');
+    'cover_license_verified_at', to_char(now() - interval '1 day', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 begin
   -- ── Presencia ──
   perform pg_temp.assert_true(
@@ -233,9 +233,23 @@ begin
       ('doortudoor',          base_portada || jsonb_build_object('cover_image_url', '/fotos/precinto-doortudoor-contenedor.jpg')),
       ('door-to-door',        base_portada || jsonb_build_object('cover_image_url', '/fotos/equipo-door-to-door.webp')),
       ('door-codificado',     base_portada || jsonb_build_object('cover_image_url', '/fotos/door%20to%20door.webp')),
-      ('mayusculas',          base_portada || jsonb_build_object('cover_image_url', '/fotos/DoorToDoor.JPG')),
+      ('storage-doortudoor', base_portada || jsonb_build_object('cover_origin', 'banco', 'cover_source_url', 'https://banco.example/f',
+                               'cover_image_url', 'https://abcdefgh.supabase.co/storage/v1/object/public/noticias/doortudoor-1.webp')),
+      ('mayusculas',         base_portada || jsonb_build_object('cover_image_url', '/fotos/DoorToDoor.JPG')),
       ('extension-rara',      base_portada || jsonb_build_object('cover_image_url', '/fotos/foto.svg')),
-      ('alt-largo',           base_portada || jsonb_build_object('cover_alt', repeat('a', 201)))
+      ('alt-largo',           base_portada || jsonb_build_object('cover_alt', repeat('a', 201))),
+      -- Fotos propias que NO están en la lista cerrada (§11.5): con la marca anterior sin nombrarla,
+      -- dudosas o simplemente no revisadas.
+      ('foto-recepcion',      base_portada || jsonb_build_object('cover_image_url', '/fotos/dtd-cargo-recepcion-contenedor.webp')),
+      ('foto-puerto-aduana',  base_portada || jsonb_build_object('cover_image_url', '/fotos/puerto-venezuela-aduana-entrega-final-dtd-cargo.jpg')),
+      ('foto-descarga',       base_portada || jsonb_build_object('cover_image_url', '/fotos/dtd-cargo-descarga-bodega.webp')),
+      ('foto-atencion-mapa',  base_portada || jsonb_build_object('cover_image_url', '/fotos/dtd-cargo-atencion-mapa.webp')),
+      ('foto-no-revisada',    base_portada || jsonb_build_object('cover_image_url', '/fotos/dtd-cargo-equipo-oficina.webp')),
+      ('fecha-futura',        base_portada || jsonb_build_object('cover_license_verified_at', to_char(now() + interval '2 days', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))),
+      ('marca-en-alt',        base_portada || jsonb_build_object('cover_alt', 'Equipo DoorTuDoor en el puerto')),
+      ('marca-en-credito',    base_portada || jsonb_build_object('cover_credit', 'Foto: DOOR-TO-DOOR')),
+      ('marca-en-licencia',   base_portada || jsonb_build_object('cover_license', 'Propia de door to door')),
+      ('marca-en-enlace',     base_portada || jsonb_build_object('cover_origin', 'fuente', 'cover_source_url', 'https://doortudoor.com/foto'))
     ) as t(nombre, portada)
   loop
     v_n := v_n + 1;
@@ -251,7 +265,7 @@ begin
       'N: ' || c.nombre || ' se publica sin portada, sin retener la noticia');
   end loop;
   -- Piso: si la lista de casos quedara vacía, el bucle no probaría nada.
-  perform pg_temp.assert_true(v_n >= 19, 'N: se probaron al menos 19 casos');
+  perform pg_temp.assert_true(v_n >= 30, 'N: se probaron al menos 30 casos');
 
   -- Una noticia sin portada declarada queda sin portada (el respaldo vive en el código).
   v_id := public.news_insertar_post(t1, 'manual', null,
@@ -281,6 +295,17 @@ begin
     'update public.news_posts set cover_image_url = ''/fotos/dtd-cargo-camion-entrega.webp'', cover_origin = ''propia'',
             cover_license = ''Propia'', cover_license_verified_at = now() where slug = ''sin-portada''') is null,
     'C7: la misma portada con licencia comprobada sí entra (control del control)');
+
+  perform pg_temp.assert_true(pg_temp.falla('service_role', null,
+    'update public.news_posts set cover_image_url = ''/fotos/dtd-cargo-recepcion-contenedor.webp'', cover_origin = ''propia'',
+            cover_license = ''Propia'', cover_license_verified_at = now() where slug = ''sin-portada''') = '23514',
+    'C8: una foto propia fuera de la lista cerrada no entra a mano (UPDATE)');
+  perform pg_temp.assert_true(pg_temp.falla('service_role', null,
+    'update public.news_posts set cover_alt = ''Equipo DOORTUDOOR'' where slug = ''sin-portada''') = '23514',
+    'C9: la marca anterior en mayúsculas en el alt falla con 23514');
+  perform pg_temp.assert_true(pg_temp.falla('service_role', null,
+    'update public.news_posts set cover_license_verified_at = now() + interval ''2 days'' where slug = ''sin-portada''') = '23514',
+    'C10: una fecha de comprobación futura falla con 23514');
 
   -- ── R · lo que no es de portada no se traga ──
   begin

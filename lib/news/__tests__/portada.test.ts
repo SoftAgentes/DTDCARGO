@@ -1,5 +1,8 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  FOTOS_PROPIAS_REVISADAS,
   esEnlaceDeOrigen,
   esUrlDePortadaPermitida,
   evaluarPortada,
@@ -21,7 +24,7 @@ const valida: PortadaDeclarada = {
 describe("SDD-0611 §11.5 · URL de portada permitida", () => {
   it.each([
     "/fotos/dtd-cargo-camion-entrega.webp",
-    "/fotos/sub/carpeta/foto-1.JPG",
+    "/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg",
     "https://abcdefgh.supabase.co/storage/v1/object/public/noticias/foto-1.webp",
   ])("acepta %s", (url) => expect(esUrlDePortadaPermitida(url)).toBe(true));
 
@@ -35,6 +38,12 @@ describe("SDD-0611 §11.5 · URL de portada permitida", () => {
     ["https://abcdefgh.supabase.co/storage/v1/object/sign/x.jpg", "ruta que no es pública"],
     ["//otro.example/x.jpg", "protocolo relativo"],
     ["/otra/x.jpg", "ruta fuera de /fotos"],
+    ["/fotos/dtd-cargo-recepcion-contenedor.webp", "camisa con la marca anterior, sin nombrarla"],
+    ["/fotos/puerto-venezuela-aduana-entrega-final-dtd-cargo.jpg", "gorra y camisa con la marca anterior"],
+    ["/fotos/dtd-cargo-descarga-bodega.webp", "dudosa (logo sin confirmar)"],
+    ["/fotos/dtd-cargo-atencion-mapa.webp", "dudosa (logo sin confirmar)"],
+    ["/fotos/dtd-cargo-equipo-oficina.webp", "no revisada"],
+    ["/fotos/propia.jpg", "fuera de la lista cerrada"],
     ["/fotos/../secreto.jpg", "con .."],
     ["/fotos//x.jpg", "con //"],
     ["/fotos/foto.svg", "extensión no admitida"],
@@ -57,6 +66,19 @@ describe("SDD-0611 §11.5 · URL de portada permitida", () => {
     }
     expect(nombraMarcaAnterior("/fotos/dtd-cargo-puerta-a-puerta-china-venezuela.jpg")).toBe(false);
     expect(nombraMarcaAnterior("/fotos/%E0%A4%A.jpg")).toBe(true); // no decodificable: falla cerrado
+  });
+});
+
+describe("SDD-0611 §11.5 · lista cerrada de fotos propias", () => {
+  it("tiene las 5 revisadas, todas existen y ninguna es de las excluidas o dudosas", () => {
+    expect(FOTOS_PROPIAS_REVISADAS).toHaveLength(5);
+    for (const f of FOTOS_PROPIAS_REVISADAS) {
+      expect(esUrlDePortadaPermitida(f), f).toBe(true);
+      expect(existsSync(join(process.cwd(), "public", f)), f).toBe(true);
+    }
+    for (const fuera of ["recepcion-contenedor", "aduana-entrega-final", "descarga-bodega", "atencion-mapa"]) {
+      for (const f of FOTOS_PROPIAS_REVISADAS) expect(f).not.toContain(fuera);
+    }
   });
 });
 
@@ -91,6 +113,11 @@ describe("SDD-0611 §11.5 · evaluarPortada", () => {
     ["banco con enlace http", { origen: "banco", enlaceOrigen: "http://banco.example/x" }, "portada:sin_enlace_de_origen"],
     ["host ajeno", { url: "https://otro.example/x.jpg" }, "portada:url"],
     ["marca anterior", { url: "/fotos/precinto-doortudoor-x.jpg" }, "portada:marca_anterior"],
+    ["foto propia fuera de la lista", { url: "/fotos/dtd-cargo-recepcion-contenedor.webp" }, "portada:url"],
+    ["marca anterior en el alt", { alt: "Equipo DoorTuDoor" }, "portada:marca_anterior"],
+    ["marca anterior en el crédito", { credito: "DOOR-TO-DOOR" }, "portada:marca_anterior"],
+    ["marca anterior en el enlace de origen", { origen: "fuente", enlaceOrigen: "https://doortudoor.com/f" }, "portada:marca_anterior"],
+    ["fecha de comprobación futura", { licenciaVerificadaEn: "2999-01-01T00:00:00Z" }, "portada:licencia_sin_comprobar"],
     ["alt demasiado largo", { alt: "a".repeat(201) }, "portada:campo_invalido"],
     ["licencia demasiado larga", { licencia: "L".repeat(121) }, "portada:campo_invalido"],
   ];
@@ -103,8 +130,8 @@ describe("SDD-0611 §11.5 · evaluarPortada", () => {
     }
   });
 
-  it("piso: hay al menos 12 casos de descarte", () => {
-    expect(casos.length).toBeGreaterThanOrEqual(12);
+  it("piso: hay al menos 17 casos de descarte", () => {
+    expect(casos.length).toBeGreaterThanOrEqual(17);
   });
 });
 
@@ -121,16 +148,23 @@ describe("SDD-0611 §11.5 · portadaDeRegistro (lo que pinta el sitio)", () => {
   });
 
   it("sin licencia, con URL ajena o con la marca anterior, no hay portada propia", () => {
-    expect(portadaDeRegistro({ cover_image_url: "/fotos/a.webp" })).toBeNull();
-    expect(portadaDeRegistro({ cover_image_url: "/fotos/a.webp", cover_license: " " })).toBeNull();
+    expect(portadaDeRegistro({ cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp" })).toBeNull();
+    expect(portadaDeRegistro({ cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp", cover_license: " " })).toBeNull();
     expect(portadaDeRegistro({ cover_image_url: "https://otro.example/a.jpg", cover_license: "CC0" })).toBeNull();
     expect(portadaDeRegistro({ cover_image_url: "/fotos/doortudoor.jpg", cover_license: "CC0" })).toBeNull();
     expect(portadaDeRegistro({})).toBeNull();
+    expect(portadaDeRegistro({ cover_image_url: "/fotos/dtd-cargo-recepcion-contenedor.webp", cover_license: "Propia" })).toBeNull();
+    for (const campo of ["cover_alt", "cover_credit", "cover_license"] as const) {
+      expect(
+        portadaDeRegistro({ cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp", cover_license: "CC0", [campo]: "DoorTuDoor" }),
+        campo,
+      ).toBeNull();
+    }
   });
 
   it("un enlace de origen que no es https no se muestra", () => {
     const p = portadaDeRegistro({
-      cover_image_url: "/fotos/a.webp", cover_license: "CC0", cover_source_url: "javascript:alert(1)",
+      cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp", cover_license: "CC0", cover_source_url: "javascript:alert(1)",
     });
     expect(p?.enlaceOrigen).toBeNull();
     expect(esEnlaceDeOrigen("javascript:alert(1)")).toBe(false);
