@@ -295,3 +295,17 @@ migración si la hay y su aprobación; esta spec no autoriza escribir código de
 | `docs/specs/0641-geo-aeo-radar-respuestas-ia/spec.md` | Nuevo (esta spec) |
 | `docs/specs/README.md` | Índice regenerado con `pnpm docs:index`, si el check lo pide |
 | `.agents/handoffs/sdd-0641-geo-aeo-radar-respuestas-ia.md` | Nuevo |
+
+### Enmienda: Fase A (SDD-0642)
+
+La Fase A (script de auditoría por página) tiene su propia SDD, [0642](../0642-auditoria-geo-aeo-script/spec.md).
+Su allowlist exacta, solo lectura y sin dependencias nuevas:
+
+| Archivo | Cambio |
+|---|---|
+| `scripts/auditoria-geo-aeo.mjs` | Nuevo (script) |
+| `scripts/__tests__/auditoria-geo-aeo.test.mjs` | Nuevo (prueba focal, sin red) |
+| `docs/specs/0642-auditoria-geo-aeo-script/spec.md` | Nuevo |
+| `.agents/handoffs/sdd-0642-auditoria-geo-aeo-script.md` | Nuevo |
+| `.gitignore` | Solo la línea `auditoria-geo-aeo-*.json` |
+| `docs/specs/README.md` | Índice regenerado con `pnpm docs:index` |
