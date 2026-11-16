@@ -12,12 +12,12 @@
    - `user_invitations_exige_superadmin`: BEFORE INSERT OR UPDATE OF role, ENABLE ALWAYS. Una invitación con rol admin exige `is_platform_admin()`.
    - `user_tenants_exige_superadmin`: BEFORE INSERT OR UPDATE, ENABLE ALWAYS. Quedar admin viniendo de no serlo, o volver activo siendo admin, exige `is_platform_admin()`. La excepción es para el invitado que acepta una invitación vigente de admin emitida por un superadministrador.
    - `user_tenants_audit_alta`: AFTER INSERT, escribe el alta en `user_role_audit`.
-   - Quita el EXECUTE de `studio_invite_user` a public, anon y authenticated: invitar con sesión pasa por `audit_d1_execute`.
+   - La invitación con sesión pasa por una sola vía, auditada (`audit_d1_execute`). La función interna `studio_invite_user` no se expone directamente.
    - La sesión se detecta por los claims del JWT, como en la 0543.
    - El preflight guarda el ACL de `audit_d1_execute`, `is_platform_admin()` y `studio_accept_invitation`, y el postflight lo exige igual.
    - La espera está declarada en `migrations-baseline.json`. El desarme está en `supabase/desarmes/`.
 2. **El contrato** `supabase/tests/0545_….test.sql` (49 aserciones, con la 0545 real dos veces y su desarme) y su envoltorio PGlite `lib/studio/__tests__/solo-superadmin-crea-admin.migration.test.ts`:
-   - 8 anti-drift: seis copias literales que siguen siendo la última definición, las ramas D1, y que la app no llama la rpc directa. Además, el mensaje del raise.
+   - 8 anti-drift: seis copias literales que siguen siendo la última definición, las ramas D1, y que la app invita solo por `audit_d1_execute`. Además, el mensaje del raise.
    - El control rojo, 21 casos de mutante y 3 del preflight.
 3. **La pantalla:**
    - `inviteUserAction` avisa antes con rol admin cuando la base dice que no eres superadmin. Si no se pudo preguntar, decide la base, y su 42501 sale con el mismo aviso. Otro 42501 dice que no eres admin del equipo.

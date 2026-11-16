@@ -61,10 +61,11 @@ SDD-0250) puede crear o reactivar un administrador del equipo. Cubre:
      vencida).
    - **Sin excepción para reactivar:** reactivar a un admin lo hace el
      superadministrador desde la ficha.
-3. **Invitar con sesión pasa por `audit_d1_execute`.** Se quita el EXECUTE de
-   `studio_invite_user(text,text,text)` a public, anon y authenticated. La app la
-   llamaba solo por `audit_d1_execute` (`membership.invite`), que la sigue
-   llamando como su dueño y registra cada operación en la auditoría D1.
+3. **La invitación con sesión pasa por una sola vía, auditada
+   (`audit_d1_execute`).** La función interna
+   `studio_invite_user(text,text,text)` no se expone directamente:
+   `audit_d1_execute` (`membership.invite`) la llama como su dueño y registra
+   cada operación en la auditoría D1.
    `service_role` queda como estaba. El envoltorio `inviteUserRPC`, sin uso, sale
    de `lib/studio/user-queries.ts`.
 4. **`user_tenants_audit_alta`**, AFTER INSERT de `user_tenants`: escribe en
@@ -112,8 +113,8 @@ Las dos funciones guardianas niegan con
   `membership.role_change` de `audit_d1_execute` (0289).
 - `lib/studio/__tests__/solo-superadmin-crea-admin.migration.test.ts`:
   - **anti-drift:** cada copia es literal y su archivo sigue siendo la última
-    definición (sin las migraciones de historial de replay); la app no llama
-    `studio_invite_user` directo; el mensaje del raise es el que busca la acción;
+    definición (sin las migraciones de historial de replay); la app invita solo
+    por `audit_d1_execute`; el mensaje del raise es el que busca la acción;
   - **control rojo:** sin la 0545, el contrato cae en «(a)»;
   - **mutantes:** sin cada disparador, condición invertida en cada uno, sin «OF
     role», sin el revoke, excepción sin emisor superadmin, excepción para otra
@@ -158,8 +159,9 @@ supabase/tests/0545_solo_superadmin_crea_admin.test.sql
    `audit_d1_execute` y por cualquier escritura de `user_invitations`; también al
    re-invitar como admin una invitación pendiente.
 2. Un admin del equipo sigue invitando los demás roles por `audit_d1_execute`.
-3. authenticated no ejecuta `studio_invite_user` directo; service_role conserva
-   lo que tenía.
+3. La invitación con sesión pasa solo por `audit_d1_execute`; la función interna
+   `studio_invite_user` no se expone directamente. service_role conserva lo que
+   tenía.
 4. Una invitación de admin se acepta solo si la emitió un superadministrador; las
    de los demás roles, como siempre. La excepción del invitado no la usa otra
    sesión.

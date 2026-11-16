@@ -325,8 +325,8 @@ export async function computeUserKpis(
 // ─── Helpers (wrappers de RPCs) ─────────────────────────────
 
 // Invitar no tiene wrapper: va por `audit_d1_execute` (`membership.invite`) desde
-// `inviteUserAction`. Desde la migr 0545 (SDD-0636) authenticated ya no ejecuta
-// `studio_invite_user` directo.
+// `inviteUserAction`. La función interna `studio_invite_user` no se expone
+// directamente (migr 0545, SDD-0636).
 
 export async function acceptInvitationRPC(
   supabase: SupabaseClient,

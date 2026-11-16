@@ -148,7 +148,7 @@ describe("SDD-0636 · las copias del contrato siguen siendo la última definici�
     expect(ACTION).toContain(`"${MSG}"`);
   });
 
-  it("la app ya no llama studio_invite_user directo", () => {
+  it("la app invita solo por audit_d1_execute", () => {
     const fuentes = ["lib", "app", "components"].flatMap((dir) =>
       (readdirSync(resolve(ROOT, dir), { recursive: true }) as string[])
         .filter((f) => /\.(ts|tsx)$/.test(f) && !/__tests__|\.test\./.test(f))
@@ -163,7 +163,7 @@ describe("SDD-0636 · la 0545 en PGlite", () => {
   /** Mete `extra` justo antes de la 0545 inlineada (después del bloque (0)). */
   const antesDeLa0545 = (extra: string) => (sql: string) => {
     const i = sql.indexOf("-- 0545 · SDD-0636 · política de roles");
-    expect(i).toBeGreaterThan(sql.indexOf("(0) Antes de la 0545"));
+    expect(i).toBeGreaterThan(sql.indexOf("(0) Control sin la 0545"));
     return sql.slice(0, i) + extra + "\n" + sql.slice(i);
   };
 
@@ -200,7 +200,7 @@ describe("SDD-0636 · la 0545 en PGlite", () => {
   it("MUTANTE sin quitar el EXECUTE de studio_invite_user: cae el postflight, y sin él cae (a)", async () => {
     const mut = once(FILE_0545, REVOKE_SIU, "");
     expect((await contract(mig(mut))).error).toMatch(/0545: authenticated o anon siguen ejecutando studio_invite_user/);
-    expect((await contract(mig(sinPostflight(mut)))).error).toMatch(/TEST 0545: \(a\) authenticated ya no ejecuta studio_invite_user/);
+    expect((await contract(mig(sinPostflight(mut)))).error).toMatch(/TEST 0545: \(a\) la función interna studio_invite_user no se expone a la sesión/);
   }, SLOW);
 
   // ── Membresías ──────────────────────────────────────────────────────

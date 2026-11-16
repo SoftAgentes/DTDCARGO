@@ -18,12 +18,12 @@
 -- y aplica la 0545 REAL dos veces, y después su desarme.
 --
 -- Lo que defiende:
---   (0) antes de la 0545, un admin que no es superadmin invita admins por los
---       dos caminos (audit_d1_execute y la rpc), y esa invitación se acepta;
+--   (0) control del arnés, sin la 0545: el fixture invita con rol admin por
+--       audit_d1_execute y por la función interna, y la invitación se acepta;
 --   (a) invitar: el admin recibe 42501 al invitar como admin, también al
 --       re-invitar como admin una invitación pendiente; sigue invitando los
---       demás roles por audit_d1_execute; la rpc directa ya no la ejecuta
---       authenticated; el superadmin invita admins;
+--       demás roles por audit_d1_execute; la función interna no se expone
+--       a la sesión; el superadmin invita admins;
 --   (b) aceptar: la invitación de admin de un superadmin se acepta y el alta
 --       queda en user_role_audit; una de admin que no emitió un superadmin se
 --       niega; las de otros roles se aceptan;
@@ -686,7 +686,7 @@ create function pg_temp.d1_invita(p_user text, p_invitado text, p_rol text, p_fo
     jsonb_build_object('email', pg_temp.correo(p_invitado), 'role', p_rol)::text), p_forma);
 $$;
 
-/** Invitar por la rpc studio_invite_user, directo con la sesión. */
+/** Llamar la función interna studio_invite_user con la sesión. */
 create function pg_temp.rpc_invita(p_user text, p_invitado text, p_rol text) returns text language sql as $$
   select pg_temp.como('authenticated', p_user, 'authenticated', format(
     $q$select public.studio_invite_user(%L, %L, 've')$q$, pg_temp.correo(p_invitado), p_rol));
@@ -779,14 +779,14 @@ begin
 end;
 $$;
 
--- (0) Antes de la 0545: un admin que no es superadmin invita admins por los dos
--- caminos, y la invitación se acepta.
+-- (0) Control sin la 0545: el fixture invita con rol admin por audit_d1_execute y
+-- por la función interna, y la invitación se acepta.
 select pg_temp.assert_true(pg_temp.d1_invita('a1', 'e1', 'admin') = 'ok' and pg_temp.pendiente('e1') = 'admin',
-  '(0) antes de la 0545, el admin invita un admin por audit_d1_execute');
+  '(0) control sin la 0545: el fixture invita con rol admin por audit_d1_execute');
 select pg_temp.assert_true(pg_temp.rpc_invita('a1', 'e2', 'admin') = 'ok' and pg_temp.pendiente('e2') = 'admin',
-  '(0) antes de la 0545, el admin invita un admin por la rpc directa');
+  '(0) control sin la 0545: el fixture invita con rol admin por la función interna');
 select pg_temp.assert_true(pg_temp.acepta('e1') = 'ok' and pg_temp.miembro('e1') = 'admin/activa',
-  '(0) antes de la 0545, esa invitación se acepta y la persona queda admin');
+  '(0) control sin la 0545: la invitación se acepta y la persona queda admin');
 -- Se deshace lo de e1; la invitación de admin de e2 sigue pendiente.
 select pg_temp.sembrar($s$
   delete from public.user_tenants where user_id = pg_temp.u('e1');
@@ -806,7 +806,7 @@ select pg_temp.assert_true(pg_temp.pendiente('e1') is null, '(a) no quedó invit
 select pg_temp.assert_true(pg_temp.d1_invita('a1', 'e2', 'admin') ~ '^ERROR 42501: Solo el superadministrador',
   '(a) re-invitar como admin una invitación de admin pendiente también se niega');
 select pg_temp.assert_true(pg_temp.rpc_invita('a1', 'e1', 'commercial') ~ '^ERROR 42501: permission denied for function studio_invite_user',
-  '(a) authenticated ya no ejecuta studio_invite_user directo');
+  '(a) la función interna studio_invite_user no se expone a la sesión');
 select pg_temp.assert_true(pg_temp.rpc_invita('a2', 'e1', 'admin') ~ '^ERROR 42501: permission denied for function studio_invite_user',
   '(a) ni siquiera el superadmin: invitar por sesión pasa por audit_d1_execute');
 select pg_temp.assert_true(pg_temp.d1_invita('a1', 'e3', 'commercial') = 'ok' and pg_temp.pendiente('e3') = 'commercial',
@@ -944,7 +944,7 @@ select pg_temp.assert_true(
     and has_function_privilege('authenticated', 'public.studio_accept_invitation(text,text,text)', 'EXECUTE')
     and has_function_privilege('authenticated', 'public.is_platform_admin()', 'EXECUTE')
     and not has_function_privilege('anon', 'public.is_platform_admin()', 'EXECUTE'),
-  '(g) studio_invite_user sale de authenticated y lo demás conserva su ACL');
+  '(g) studio_invite_user no se expone a la sesión y lo demás conserva su ACL');
 
 -- (h) Lo que no crea ni reactiva admins no se frena.
 select pg_temp.assert_true(pg_temp.dueno('authenticated', 'a1',
