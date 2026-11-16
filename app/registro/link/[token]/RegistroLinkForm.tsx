@@ -9,7 +9,7 @@
  * La validación del servidor es `validateRegisterInput`, la del registro normal.
  */
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldIcon, UserIcon } from "@/components/Icon";
 import type { RegisterCity } from "@/lib/portal/register-cities";
@@ -28,6 +28,18 @@ import {
 import { registerByLinkAction } from "./actions";
 
 const initial: RegistroLinkActionState = {};
+
+/** Orden de los campos en pantalla, para llevar el foco al primer error. */
+const CAMPO_ORDEN = [
+  "name",
+  "company",
+  "document",
+  "email",
+  "whatsapp",
+  "city",
+  "state",
+  "address",
+] as const;
 
 export function RegistroLinkForm({
   token,
@@ -55,6 +67,17 @@ export function RegistroLinkForm({
 
   const isCompany = kind === "empresa";
   const fe = state.fieldErrors ?? {};
+
+  // ERR-01: con errores del servidor, el foco va al primer campo marcado (en el
+  // teléfono la pantalla es larga y el error puede quedar fuera de la vista).
+  useEffect(() => {
+    const errs = state.fieldErrors;
+    if (!errs) return;
+    const primero = CAMPO_ORDEN.find((k) => errs[k]);
+    // Ciudad y estado los dibuja CiudadEntrega, con los ids del registro normal.
+    const id = primero === "city" ? "reg-city" : primero === "state" ? "reg-state" : `rl-${primero}`;
+    if (primero) window.document.getElementById(id)?.focus();
+  }, [state.fieldErrors]);
 
   if (state.ok && state.markbox) {
     return <Listo markbox={state.markbox} portalUrl={state.portalUrl ?? null} warning={state.warning} />;

@@ -126,7 +126,7 @@ function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: 20,
+        padding: "var(--s-5)",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -146,7 +146,7 @@ function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
         </Badge>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)", marginTop: "var(--s-3)" }}>
         {row.duplicateClientId && (
           <Aviso tono="atencion" compacto titulo="Posible duplicado">
             Coincide por {POR[row.duplicateMatchedBy as keyof typeof POR] ?? "un dato"} con la
@@ -175,7 +175,8 @@ function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
         )}
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 14 }}>
+      <div style={{ overflowX: "auto", marginTop: "var(--s-4)" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
             {["Dato", "Tenía la ficha", "Escribió el cliente"].map((h) => (
@@ -222,6 +223,7 @@ function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
           ))}
         </tbody>
       </table>
+      </div>
 
       {error && (
         <p role="alert" style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--danger)", margin: "10px 0 0" }}>
@@ -229,7 +231,7 @@ function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
         </p>
       )}
       {!comprobado && (
-        <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ marginTop: "var(--s-4)", display: "flex", justifyContent: "flex-end" }}>
           <ActionButton
             variant="primary"
             size="sm"
