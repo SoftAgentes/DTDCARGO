@@ -19,7 +19,7 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones abiertas:** D-1 a D-8 (§11).
+**Decisiones abiertas:** D-1 a D-11 (§11).
 
 **Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
 Nada se programa hasta que Sam apruebe esta spec.
@@ -69,7 +69,8 @@ Sam trajo como referencia el documento «cómo se construyó Lumi» (asistente d
 
 ## 3. Arquitectura: cinco capas
 
-Faro es un **flujo fijo**, no un agente: no tiene herramientas ni memoria. Solo una capa habla con una IA.
+Faro es un **flujo fijo**, no un agente: no tiene herramientas y no tiene memoria entre conversaciones; solo recuerda
+la conversación en curso, acotada (D-9). Solo una capa habla con una IA.
 
 | Capa | Qué es | Dónde vive |
 |---|---|---|
@@ -85,7 +86,9 @@ Faro es un **flujo fijo**, no un agente: no tiene herramientas ni memoria. Solo 
 2. **Portero:** sesión del Studio (`requireStudioSession`), origen de la petición y tope por hora.
 3. **Permisos:** `getStudioAccess()` devuelve rol, almacén, ajustes por rol y accesos por persona.
 4. **Recorte:** se arma el contexto con las entradas del minicerebro que esa persona puede ver (§6.1).
-5. **Motor:** instrucciones fijas + contexto recortado + historial leído de la base + pregunta.
+5. **Motor:** instrucciones fijas + contexto recortado + los últimos turnos de **esta** conversación (hasta ocho
+   intercambios y un tope de tokens), leídos de la base y revalidados contra los permisos actuales + pregunta. Si
+   la persona perdió acceso a algo de lo conversado, el contexto se reinicia.
 6. **Verificador:** valida la ficha, descarta la ruta sugerida si no está permitida y decide si hubo bloqueo (§6.2).
 7. **Registro:** guarda pregunta y respuesta. Si corresponde, crea la alerta.
 8. El panel muestra la respuesta y los botones que correspondan al resultado.
@@ -119,6 +122,7 @@ versionados, revisados en cada PR. Cada entrada lleva fecha de revisión, respon
 | Guías | `guias/<modulo>.ts` | «Para qué sirve», «Qué se ve», «Tareas comunes» con los botones exactos, «Errores frecuentes», «Quién puede» |
 | Procesos | `procesos/<slug>.ts` | Tareas que cruzan varias pantallas, por ejemplo del pago recibido a la conciliación |
 | Glosario | `glosario.ts` | Términos del negocio y del sistema |
+| Novedades | `novedades/<id>.ts` | Qué cambió en el Studio: título, resumen, fecha, módulos, la tarea de la guía que lo explica, el recorrido visual si existe, permisos y condición de disponibilidad (flag) |
 
 Reglas:
 
@@ -127,6 +131,16 @@ Reglas:
 - Regla de mantenimiento propuesta para `AGENTS.md` (requiere OK de Sam, fase 6): todo cambio que altere lo que
   ve o hace un usuario en una pantalla actualiza su guía en la misma PR.
 - Con el tamaño previsto todo cabe en el contexto del modelo. Se revisa si pasa de unos 150.000 tokens.
+
+**Novedades (aprobado por Sam el 2026-11-16, D-10).** Cada función nueva del Studio trae, en la misma PR, la tarea
+de la guía que la explica y su entrada en `novedades/`. La novedad apunta a la tarea; no repite los pasos. Faro
+usa la novedad para «¿qué hay de nuevo?» y la tarea para «¿cómo se hace?». Una novedad o una tarea solo entra al
+contexto si está aprobada, si su condición de disponibilidad está encendida para el tenant y si la persona tiene el
+permiso. Si no se puede leer el estado de los flags, Faro no la menciona: `listFeatureFlags` vuelve a los valores
+por defecto cuando la lectura falla (`lib/studio/feature-flags-queries.ts:35-36`), y para Faro «no sé» significa
+«no lo menciono». Una comprobación de CI pedirá, por cada pantalla cambiada, la guía tocada o una justificación de
+«sin impacto para el usuario»; una persona confirma que el texto es correcto. Hermes, en la fase 7, revisa las PR
+fusionadas que se escaparon.
 
 ## 6. Seguridad y seguimiento
 
@@ -190,14 +204,25 @@ desde qué pantalla y el resultado. Requiere un valor nuevo en el enum `bug_noti
 
 ### 6.4 Registro
 
-- `asistente_conversaciones` y `asistente_mensajes`, de solo inserción. Un trigger rechaza `update` y `delete`.
+Tres finalidades, cada una con su plazo (detalle y plazos propuestos en [`privacidad.md`](privacidad.md) §2):
+**auditoría** (conversaciones y mensajes), **mejora del conocimiento** (eventos de feedback y alertas; Hermes lee
+solo agregados) y **costo y operación** (llamadas a la IA y cuotas, sin texto ni usuario).
+
+- `asistente_conversaciones` y `asistente_mensajes`, de solo inserción. Un trigger rechaza `update` y `delete`,
+  salvo el `delete` de la función de purga (`privacidad.md`, E-1).
+- `asistente_eventos` (feedback y alertas), `asistente_llamadas` (una fila por intento a la IA), `asistente_cuotas`
+  (tope por persona y gasto del mes) y `asistente_purgas` (constancia de cada purga).
 - `authenticated` no tiene `insert`: escribe solo el servidor, con la sesión ya verificada.
 - Lectura solo para el administrador del tenant. El usuario no relee su historial: el panel lo tiene en memoria.
-- Cada respuesta guarda resultado, pantalla de origen, motor, modelo, tokens, costo y milisegundos.
+- Cada respuesta guarda resultado, pantalla de origen y versiones del contenido. Motor, modelo, tokens, costo y
+  milisegundos van por intento en `asistente_llamadas`.
+- La pregunta se guarda **depurada**: el servidor reemplaza cédulas, RIF, teléfonos, correos y Shipping Marks por
+  marcadores antes de enviarla a la IA y antes de guardarla (`privacidad.md`, E-3).
 - Los logs del servidor guardan el tipo de fallo, nunca el texto de la pregunta.
 - **Este registro es el único lugar donde se conservan la pregunta y la respuesta**, y solo durante el plazo que
   fije §10 (D-6). «Inalterable» significa que nadie edita ni borra a mano; al vencer el plazo, una purga
-  programada y auditada elimina las filas, como la purga de `actor_id` de noticias.
+  programada y auditada **borra las filas completas**. No sirve copiar la purga de noticias, que solo vacía el
+  identificador (`supabase/migrations/0546_noticias_purga_actor_id.sql:178-202`): aquí el dato está en el texto.
 - El contexto recortado que se envía al modelo (catálogo y guías) no se guarda: se vuelve a armar en cada pregunta.
 
 ### 6.5 El motor de IA y la Oficina (decisión abierta D-1)
@@ -230,7 +255,7 @@ condiciones, que son requisitos de esta spec:
      hace cumplir una prueba de importaciones (o una regla `no-restricted-imports`) que falla si otro archivo de
      Faro lo importa.
    - **Tope de gasto propio con pausa automática.** El gasto del mes se mide sumando el costo guardado en
-     `asistente_mensajes` (§6.4) y se compara con `FARO_TOPE_USD_MES` antes de cada llamada. Al alcanzarlo, Faro
+     `asistente_llamadas` (§6.4), que cuenta también los intentos fallidos y de respaldo, y se compara con `FARO_TOPE_USD_MES` antes de cada llamada. Al alcanzarlo, Faro
      deja de llamar al modelo, responde que no puede contestar ahora, mantiene los reportes y avisa al
      administrador. El monto es la decisión D-8.
 2. **El modelo se elige por configuración:** el más reciente que alcance para la tarea, Sonnet o Haiku si sirve,
@@ -365,8 +390,12 @@ Puntos que esa revisión debe resolver:
 
 - Aviso al personal de que las preguntas se guardan y de quién las lee.
 - Plazo de conservación. «Inalterable» no puede significar «para siempre» sin un plazo definido.
-- El proveedor de IA como encargado: hoy Anthropic no figura en el inventario de terceros
-  (`docs/legal/privacidad/inventario-terceros.md`). Es un pendiente previo a producción.
+- El proveedor de IA como encargado: Anthropic figura en el inventario de terceros
+  (`docs/legal/privacidad/inventario-terceros.md:38`), pero su fila no menciona Faro. Sumarlo es un pendiente previo
+  al primer envío real.
+
+**Revisión hecha (2026-11-16):** [`privacidad.md`](privacidad.md). Cubre la puerta de la fase 2. La puerta del
+primer envío real sigue abierta (N-1 y N-2 de esa revisión, y el equipo en China, E-2).
 - Las guías no contienen datos personales ni de clientes.
 
 ## 11. Decisiones abiertas
@@ -378,9 +407,12 @@ Puntos que esa revisión debe resolver:
 | D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |
 | D-5 | Tope de preguntas por usuario y hora | 30, configurable |
-| D-6 | Plazo de conservación del registro | Lo define la revisión de datos (§10) |
+| D-6 | Plazo de conservación del registro | Propuesta de la revisión de datos (`privacidad.md` §2): conversaciones, mensajes y feedback 180 días; alertas y lecturas del administrador 2 años, sin texto; llamadas a la IA 13 meses, sin texto ni usuario. Falta Sam |
 | D-7 | ¿Las alertas van también a Telegram o Discord? | Campana siempre; el canal externo, apagado al inicio |
-| D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo guardado por respuesta en `asistente_mensajes` |
+| D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo por intento en `asistente_llamadas` |
+| D-9 | Memoria | **Aprobada por Sam el 2026-11-16**: solo la conversación en curso, acotada y revalidada contra los permisos actuales. Sin memoria por persona entre conversaciones. El conocimiento compartido mejora por guías aprobadas. Su respuesta a «¿Apruebas la recomendación de Codex sobre memoria y novedades?» fue «Sí, apruébala» |
+| D-10 | Cómo se entera Faro de lo nuevo | **Aprobada por Sam el 2026-11-16**, en la misma respuesta: estante `novedades/`, guía y novedad en la misma PR de la función, filtro por flags y permisos, Hermes como vigía en la fase 7 (§5). La regla de PR para `AGENTS.md` sigue necesitando su OK aparte (fase 6) |
+| D-11 | ¿Faro para el equipo en China? | Apagado para `region = 'cn'` hasta tener consentimiento separado y mecanismo PIPL, o criterio de un abogado (`privacidad.md`, E-2). Falta Sam |
 
 ## 12. Riesgos
 
