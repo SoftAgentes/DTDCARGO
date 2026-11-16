@@ -3447,6 +3447,42 @@
         "fecha": "2026-11-15",
         "forma": "exacta"
       }
+    },
+    "0545_solo_superadmin_crea_admin": {
+      "sha256": "300f6f6bc72de0dca32e591646826aa7d73d358a615e8805b5aef915dca44598",
+      "md5": "e0dba88d4e317fc8da3f9af3d295f640",
+      "bytes": 21106,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0546_noticias_purga_actor_id": {
+      "sha256": "446d0ede22642f8c0a24d4e648a485d2a832455b829c62ba582f8d3a878fac7d",
+      "md5": "5e28082b08b95a5db4c46bd9c2847178",
+      "bytes": 15793,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0547_noticias_portada_licencia": {
+      "sha256": "91e515ef79bec540d2357b760b495f6f439b98c3f4c28702a99a1774ccb89e14",
+      "md5": "038c5b567758666d2fe30a9a1406e9a7",
+      "bytes": 16914,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0548_oficina_despachador": {
+      "sha256": "0ef7605f8bb1ef682038c760abb506fb9ab16581ba62a81568f9cd5c98fda15a",
+      "md5": "ee02f470301985260fdf56a5cb232d73",
+      "bytes": 28173,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
     }
   }
 }

@@ -64,6 +64,27 @@ export async function correrFiltroDeLaBandeja(
 }
 
 /**
+ * La purga diaria de borradores (Paso 3a, D3): `office_purgar_borradores_viejos()` (0548) borra los borradores
+ * del agente de más de 90 días. Va con el vaciado (mismo interruptor `OFICINA_VACIADO_ACTIVO`) y, como él,
+ * corre aunque la oficina esté pausada. Sin la 0548 devuelve `sin_migracion` y lo anota una vez.
+ */
+export async function correrPurgaDeBorradores(
+  admin: SupabaseClient,
+  env?: Readonly<Record<string, string | undefined>>,
+): Promise<ResultadoCorrida> {
+  if (!vaciadoActivo(env)) return { estado: "apagado" };
+  const { data, error } = await admin.rpc("office_purgar_borradores_viejos");
+  if (error) {
+    if (faltaLaMigracion(error)) {
+      avisarUnaVez("purga-borradores-sin-migracion", "[oficina-cable] la purga de borradores no hace nada: falta la 0548 en esta base (SDD-0626)");
+      return { estado: "sin_migracion" };
+    }
+    throw new ErrorDeBandeja(error.code);
+  }
+  return { estado: "ok", cantidad: typeof data === "number" ? data : 0 };
+}
+
+/**
  * El vaciado diario (privacidad, decisión A de Sam del 15/11/2026): `office_vaciar_resumenes_viejos()`
  * pone `task_events.resumen = null` en las filas de más de 90 días. Es privacidad, no trabajo de
  * agentes: corre aunque la oficina esté pausada. Tiene su propio interruptor (`OFICINA_VACIADO_ACTIVO`).

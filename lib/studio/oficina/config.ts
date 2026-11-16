@@ -36,7 +36,8 @@ export interface ConfigWebhookOficina {
   secreto: string | null;
   /** Id de la bandeja de prueba; null si falta o es inválido (se rechaza todo). */
   bandejaPrueba: number | null;
-  /** Cuenta de Chatwoot (`CHATWOOT_ACCOUNT_ID`); si está, los eventos de otra cuenta se ignoran. */
+  /** Cuenta de Chatwoot (`CHATWOOT_ACCOUNT_ID`). Obligatoria: sin ella el webhook rechaza todo (Paso 3a); los
+   *  eventos de otra cuenta se ignoran. */
   cuenta: number | null;
   reglas: ReglasPrioridad;
 }

@@ -30,9 +30,11 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 
 | Estado | Cantidad |
 |---|---|
-| `CORRECTO` | 8 |
-| `ENCONTRADO` | 3 |
-| `NO VERIFICABLE` | 5 |
+| `CORRECTO` | 12 |
+| `ENCONTRADO` | 5 |
+| `NO VERIFICABLE` | 7 |
+
+**Paso 3a (16/11/2026):** se suman el hallazgo 12 (el borrador del agente) y el 13 (los mensajes salen de la casa hacia los cerebros), y el 1 queda cerrado para lo que escribe el despachador. La retención en la oficina (`state.db` de Hermes) se revisó aparte con la skill, a pedido del DG: hallazgos 14 a 18.
 
 ## 2 · Inventario
 
@@ -57,6 +59,8 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 | `event_inbox.payload_ref` | Referencia `origen:ruta` | Señalar el mensaje en Chatwoot sin copiarlo | Sin plazo | `0541:223` |
 | `office_paused.cambiado_por` | uuid del administrador que cambió la bandera | Dejar registrada la autorización (SGE-AG-01 §7) | Para siempre (solo agregar) | `0541:236`, `:366` |
 | `office_paused.motivo` | Texto del administrador, de hasta 500 caracteres | Por qué se pausó o despausó | Para siempre (solo agregar) | `0541:238` |
+| `office_borradores.texto` | Lo que REDACTÓ el agente para el cliente (hasta 4.000 caracteres), nunca el texto del cliente. Pasa antes la revisión automática de eval.md, que escala si trae datos personales | Que Sam lo revise antes de cualquier envío (D3; el envío es del Paso 3b) | **90 días**; después se borra la fila (`office_purgar_borradores_viejos`) | `0548` (office_borradores) |
+| `office_borradores.motivo` | Por qué se escaló: un código del despachador o el motivo del agente, pasado por la regla del cable | Que Sam sepa qué revisar | **90 días** | `0548` |
 
 No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalización. El riesgo estaba en los textos libres, que pueden copiar lo que dijo el cliente.
 
@@ -66,7 +70,7 @@ No hay datos sensibles por columna: ni salud, ni biométricos, ni geolocalizaci�
 
 `exigirTextosDelCable` existe y tiene su prueba (`lib/studio/oficina/cable-textos.ts:115`).
 - **Paso 2 (hecho):** el webhook escribe `event_inbox` solo a través de `escribirEnElCable` (`lib/studio/oficina/escritura.ts`), que llama a esa función antes de guardar. La fila lleva solo identificadores y referencias, y no existe otro camino de escritura a las tablas del cable en el código. Su prueba incluye el caso de rechazo: no se guarda, y el log da los códigos sin repetir el dato.
-- **Sigue abierto (Paso 3):** el despachador escribirá `titulo`, `meta_datos`, `resumen`, `actor` y `asignado_a`. Esos campos todavía no los escribe nadie; su revisión comprobará que no haya otro camino de escritura.
+- **Paso 3a (hecho):** el despachador escribe `task_events` solo por `crearAlmacenDespachador().anotar` (`lib/studio/oficina/despachador-almacen.ts`), que pasa por `escribirEnElCable`; si la regla rechaza un resumen, el paso se guarda sin él. `office_tasks` la crea la base (`office_convertir_triaje`, 0548) con un título fijo, `asignado_a = agente:<perfil>` y `meta_datos` solo con el id y el tipo del evento. El motivo de un escalado pasa por la misma regla (`textoSeguro`). La prueba `lib/studio/__tests__/oficina-despachador.test.ts` vuelca todas las tablas del cable y los logs y exige que no aparezca el texto ni el teléfono del cliente.
 
 ### `ENCONTRADO` 2 · La regla no ve todo (baja)
 
@@ -136,12 +140,118 @@ service_role escribe por columna: nunca `id`, `creado_en` ni `ts` (`0541:423` y 
   - en la prueba de staging del 16/11/2026 aparecieron **0 líneas** con el texto o el nombre en los logs del web y del puente (`/srv/ops/evidencias/cable-puente-prueba-20261116T012638Z.txt`, en el VPS).
 - **Alcance:** solo la cuenta 2, de prueba. Los datos de la prueba son inventados: un contacto, una conversación y un mensaje, que siguen en Chatwoot con la retención de Chatwoot (§4).
 
+### `CORRECTO` 12 · El borrador guarda lo que redactó el agente, no lo que escribió el cliente (Paso 3a)
+
+- `office_borradores` (0548) guarda la respuesta redactada o el escalado. El texto del cliente vive solo en memoria durante la corrida (`chatwoot-lectura.ts`, `despachador.ts`) y no entra a ninguna tabla ni log.
+- Antes de guardar una respuesta, `revisarRespuesta` (`eval-automatico.ts`) escala si trae un correo, un teléfono, una cédula, un RIF o una dirección (la regla del cable): el agente no repite datos personales.
+- RLS sin policies; anon y authenticated sin privilegios; service_role solo lee e inserta. Se borra a los 90 días (D3), en la misma tarea diaria que vacía los resúmenes.
+
+### `CORRECTO` 13 · Los mensajes salen de la casa hacia los cerebros (Paso 3a, 16/11/2026)
+
+Para redactar, el despachador manda el texto de la conversación fuera del VPS DTD. Este es el viaje completo:
+
+| Dónde | Qué llega | Cuánto tiempo | Evidencia |
+|---|---|---|---|
+| ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto) | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, prueba «ninguna fila ni log» |
+| Cable (túnel SSH ERP → oficina) | El mismo texto, cifrado por el túnel | Nada se guarda en el camino | runbook §8 |
+| Hermes, perfil `soporte-chatwoot` (VPS Oficina) | El texto y la respuesta, como un turno del API server | **Hermes v0.23.1 guarda cada turno en su `state.db` y no se puede apagar.** El despachador borra la sesión de cada llamada al terminar (`DELETE /api/sessions/<id>`); si falla, la purga diaria de la oficina (`hermes-soporte-purga.timer`) borra toda sesión del API server de más de 24 h. **Máximo: 48 h.** Quedan además las marcas de idempotencia (7 días, sin el texto) y, hasta el próximo VACUUM, las páginas libres de SQLite | sección B del Paso 3a (`.agents/handoffs/2026-11-16-sdd-0626-paso3a-despachador.md`) |
+| Proveedor del modelo: Z.AI (glm-5.3). El respaldo DeepSeek (deepseek-chat) está quitado hasta que haya una llave propia del agente (Sam, 16/11/2026) | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
+
+- El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
+- Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
+- **Alcance hoy:** solo la cuenta 2 y la bandeja 11, de prueba, con texto inventado.
+
+### Revisión de la retención en la oficina: el `state.db` de Hermes (Paso 3a, 16/11/2026)
+
+Pedido del DG: pasar por [`revisar-datos-ve`](../../../.claude/skills/revisar-datos-ve/SKILL.md) que la oficina guarde los
+mensajes hasta 48 h. Se revisó contra la checklist, puntos 1, 2, 5 y 10. La evidencia del servidor está fuera del
+repositorio: lo que solo se ve allí queda `NO VERIFICABLE` desde aquí, aunque se haya mirado en el VPS.
+
+**Inventario (punto 1):**
+
+| Dónde | Qué es | Finalidad | Retención | Quién más lo ve |
+|---|---|---|---|---|
+| `state.db` del perfil `soporte-chatwoot` (tablas de sesiones y mensajes de Hermes) | El texto de la conversación que manda el ERP (rol y texto de los últimos 20 mensajes del cliente), las instrucciones, los guiones y la respuesta del agente | Ninguna propia: Hermes guarda cada turno del API server para continuar sesiones, y en v0.23.1 no se puede apagar | Segundos: el despachador borra la sesión al terminar. Si falla, ≤ 48 h por la purga diaria. Ver 16 | Solo `agentes-soporte` (archivo 600, home 700) y root |
+| Admisiones de Hermes (tombstones de idempotencia) | La respuesta del agente asociada a la llave `<run>:<intento>` | Que un reintento exacto no vuelva a correr el modelo | 7 días tras el borrado de la sesión, hasta una pasada de limpieza. Ver 17 | Igual |
+| Páginas libres y WAL de SQLite | Restos de bytes de las filas borradas | Ninguna | Hasta que SQLite reutilice la página o haya un VACUUM. Ver 16 | Igual |
+
+**Finalidad (punto 2).** El despachador no necesita que la oficina recuerde nada: cada llamada lleva todo lo necesario
+(`lib/studio/oficina/despachador.ts`, el `usuario` de `ejecutarCorrida`). Por eso lo que guarda Hermes no tiene
+finalidad propia, y el criterio es borrarlo cuanto antes (SC 332/2001, temporalidad).
+
+#### `CORRECTO` 14 · El despachador borra la sesión de cada llamada
+
+- Cada llamada usa su propia sesión: `lib/studio/oficina/despachador.ts:162` y la cabecera en `lib/studio/oficina/runtime-cliente.ts:59`.
+- Se borra en un `finally`, haya salido bien o mal: `despachador.ts:170`, `runtime-cliente.ts:99` y `:103` (`DELETE /api/sessions/<id>`).
+- En Hermes, `delete_session` borra la sesión y sus mensajes (`hermes_state_sessions.py`, v0.23.1, en el VPS).
+- La prueba `lib/studio/__tests__/oficina-despachador.test.ts:418` exige un borrado por llamada.
+- **Solo se verificó con una sesión vacía** (crear → DELETE 200 → GET 404, 16/11/2026). Falta el paso 3 de la skill con un turno real (ver 18).
+
+#### `CORRECTO` 15 · La versión de las instrucciones queda con cada llamada (punto 10)
+
+El agente decide si responde o escala, y con qué prioridad. Cada llamada anota en `task_events` el modelo que la
+sirvió, el costo y la versión de los guiones (`despachador.ts:177`). El borrador queda para que Sam lo revise antes de
+cualquier envío: ninguna decisión sale sin una persona.
+
+#### `ENCONTRADO` 16 · «48 h» vale para las filas, no para los bytes del archivo (media)
+
+- **Qué:** SQLite no sobrescribe al borrar (sin `secure_delete`). Los bytes de una sesión borrada quedan en páginas
+  libres (y un rato en el WAL) hasta que se reutilicen o haya un `VACUUM`.
+- **Dónde:** en v0.23.1, Hermes solo hace `VACUUM` después de su propia poda, y solo con más del 25 % de páginas libres
+  y cada 30 días (`hermes_state_maintenance.py` y `hermes_state_common.py:302`, en el VPS). El `DELETE` por la API no
+  lo dispara. `hermes sessions optimize` no corre con el gateway vivo, salvo con `--force`, que Hermes advierte que
+  puede dejar a los agentes sin responder.
+- **Por qué importa:** quien copie el archivo `state.db` (root, un respaldo del VPS) podría recuperar restos más allá de
+  las 48 h. Las filas en sí, no.
+- **Norma:** SC 332/2001 (temporalidad) y SC 759/2025 (derecho al olvido); CRBV art. 28 (destrucción).
+- **Arreglo propuesto (lo decide Sam):**
+  - **A:** una ventana semanal de mantenimiento en la oficina: parar `hermes-gateway-soporte-chatwoot`, correr
+    `hermes sessions optimize` como `agentes-soporte` y arrancarlo. Unos segundos sin agente; con el despachador
+    encendido, la corrida de ese momento escala por `runtime:red`.
+  - **B:** aceptar el resto, sabiendo que el texto es de la bandeja de prueba e inventado hasta la etapa 2.
+- **Decisión de Sam (16/11/2026, «Sí a todo»):** **B** mientras solo haya datos de prueba. **A es OBLIGATORIA antes
+  de la etapa 2** (clientes reales): la compactación semanal tiene que estar instalada y probada antes de ese paso.
+
+#### `ENCONTRADO` 17 · Hermes conserva la respuesta del agente 7 días tras el borrado (baja)
+
+- **Qué:** después de `DELETE /api/sessions/<id>`, Hermes guarda las admisiones como tombstones durante 7 días, y hasta
+  la siguiente pasada de limpieza. Un reintento exacto con la misma `Idempotency-Key` recibe la respuesta original
+  (`website/docs/user-guide/features/api-server.md`, «Idempotency keys», en el VPS).
+- **Qué no:** el texto del cliente, que entra en la identidad de la admisión y no es la respuesta. Que no se guarde
+  textual es `NO VERIFICABLE` sin leer el almacén de admisiones (sí consta en el ledger de `/v1/runs`, que solo
+  guarda huellas: `api_server_run_idempotency.py:60`, en el VPS).
+- **Por qué es baja:** la respuesta del agente es el mismo texto que el borrador, que se guarda 90 días por decisión de
+  Sam (D3), y la revisión de eval.md escala si trae datos personales.
+- **Arreglo, si se quiere:** quitar la `Idempotency-Key` (`runtime-cliente.ts`). Se pierde la protección contra una
+  llamada doble al modelo cuando la red corta a mitad. No se recomienda.
+
+#### `CORRECTO` / `NO VERIFICABLE` · Lo que vive en el servidor de la oficina
+
+Visto en el VPS el 16/11/2026, pero fuera del repositorio:
+- el timer `hermes-soporte-purga`;
+- `sessions.auto_prune: true` y `retention_days: 1`;
+- `memory.memory_enabled: false`;
+- `updates.pre_update_backup: "off"`: la copia rápida que `hermes update` hace de `state.db` sería un escondite más (punto 5, respaldos);
+- el home 700.
+
+Los detalles están en `docs/runbooks/oficina-cable.md` §2 y §10, y la reversión en
+`/srv/oficina/backups/paso3a-agente-20261116T041544Z/REVERTIR.txt`.
+
+#### `NO VERIFICABLE` 18 · El borrado no se probó con un valor rastreable (paso 3 de la skill)
+
+Se propone para la prueba de staging (E), con el OK de Sam:
+1. Una conversación inventada con una marca única.
+2. Una corrida del despachador.
+3. Buscar la marca en `state.db`, `-wal`, `response_store.db`, `runs_idempotency.db`, `logs/` y `cache/` del perfil:
+   - justo después de la corrida;
+   - después de la purga diaria.
+
+Si la marca sobrevive como fila, el borrado no borra (`ENCONTRADO`). Si sobrevive solo como bytes sueltos del archivo, es el 16.
+
 ## 4 · No verificable
 
 - **Los respaldos de la base.** Vaciar el resumen no llega a los dumps (`docs/runbooks/backup-restore-servidor.md`). Un resumen sigue en los respaldos mientras estos existan.
-- **El runtime de la oficina (VPS Oficina) y el proveedor de glm-5.3:**
-  - qué guardan de cada conversación y por cuánto tiempo (el replay de SGE-AG-01 §8);
-  - en qué país procesan, que decide si aplica la PIPL (punto 9).
+- **Los proveedores del modelo (Z.AI y DeepSeek):** qué guardan de cada llamada y por cuánto tiempo, y en qué país procesan. Las dos son empresas con sede en China, así que la PIPL (punto 9) probablemente aplica; no consta dónde procesan. El runtime de la oficina ya está medido (hallazgo 13).
 - **Chatwoot:** guarda la conversación completa. Su retención es la de Chatwoot, no la de estas tablas.
 - **Producción:**
   - que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide;

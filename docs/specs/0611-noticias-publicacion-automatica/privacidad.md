@@ -65,7 +65,7 @@ Los titulares del personal son Sam, la persona de contabilidad con CRM y los adm
 
 anon conserva solo las 18 columnas que pide el sitio (`COLUMNAS_PUBLICAS`). La 0526 está **aplicada**
 desde el 2026-11-11 en prueba y en producción, así que vale la última columna. La retención de `actor_id` y de las
-otras columnas con uuid del personal estaba abierta para Sam (spec §11.4.1, hallazgo 7). *Resuelto el 2026-11-14: 12 meses, ver spec §11.4.1.*
+otras columnas con uuid del personal estaba abierta para Sam (spec §11.4.1, hallazgo 7). *Resuelto el 2026-11-14: 12 meses, ver spec §11.4.1.* La purga está **construida** (migración 0546, spec §11.4.1.1) y **sin aplicar**: mientras no se aplique y se encienda su interruptor, las cuatro columnas siguen «Sin plazo» en la tabla de arriba.
 
 ## 3 · Hallazgos y puntos
 
