@@ -202,6 +202,20 @@ Propuesta, a coordinar con la sesión que lleva la SDD-0626:
 - Si la Oficina extrae su política de fallos a un módulo común, Faro la adopta y borra la suya.
 - Motor `simulado` para pruebas (`LLM_FORCE_MOCK`).
 
+**Respuesta del Director General (2026-11-16):** la propuesta no contradice su instrucción, que buscaba evitar una
+segunda cadena de respaldo paralela a la de la Oficina y no prohibir un cliente directo. La acepta con tres
+condiciones, que son requisitos de esta spec:
+
+1. **Un solo módulo cliente** para el motor directo. La llave llega por variable de entorno y nunca entra en Git.
+   Faro tiene un tope de gasto propio con pausa automática al alcanzarlo, igual que la Oficina.
+2. **El modelo se elige por configuración:** el más reciente que alcance para la tarea, Sonnet o Haiku si sirve,
+   con el esfuerzo medido en la evaluación de la fase 5.
+3. **La pregunta y el contexto del usuario no se guardan más allá de lo que fije §10,** revisada con
+   `revisar-datos-ve`. Esto incluye lo que retenga el proveedor de IA y, si se usa el respaldo, las sesiones del
+   runtime de la Oficina.
+
+Falta el visto bueno de Sam a D-1.
+
 Si falla todo, Faro dice que no puede responder ahora, los reportes siguen funcionando y la pregunta se guarda
 como `error`.
 
@@ -292,7 +306,7 @@ Faro guarda lo que escribe el personal, con su identidad. Antes de la fase 2 pas
 
 | # | Decisión | Recomendación |
 |---|---|---|
-| D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo en la Oficina | La tercera (§6.5), coordinada con la SDD-0626 |
+| D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo en la Oficina | La tercera (§6.5). Aceptada por el Director General con tres condiciones; falta Sam |
 | D-2 | ¿Faro absorbe el botón de reportar errores? | Sí: un solo elemento flotante, como hizo la referencia |
 | D-3 | Lista de módulos `reservada` y `oculta` | La propone el Worker en la fase 1; la aprueba Sam |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |

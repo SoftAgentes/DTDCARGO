@@ -25,6 +25,7 @@ con excepción a BRAND.md solo para Faro · Hermes como analista, redactor y vig
 | `pnpm verify` | NO EJECUTADO: cambio solo de documentación, sin código de producto |
 | Maquetas en navegador | NO EJECUTADO: no se abrieron en un navegador desde esta sesión |
 | Número 0637 libre | Medido: main llega a 0636; ningún otro worktree ni PR abierta usa 0637 |
+| `node scripts/check-numbering.mjs` (sdd:check) | PASÓ: sin números repetidos |
 
 ## Pendientes de esta tarea
 - Aprobación de Sam a la spec y a las decisiones D-1 a D-7.
