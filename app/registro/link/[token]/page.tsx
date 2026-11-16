@@ -46,14 +46,15 @@ export default async function RegistroLinkPage({
 }) {
   const { token } = await params;
 
-  let target: { markbox: string; client_name: string | null } | null = null;
+  type Target = { markbox: string; client_name: string | null };
+  let target: Target | null = null;
   if (isRegistroTokenShape(token)) {
     try {
       const admin = createAdminClient();
       const { data } = await admin.rpc("portal_registration_link_peek", {
         p_token_hash: hashRegistroToken(token),
       });
-      const row = (Array.isArray(data) ? data[0] : data) as typeof target | undefined;
+      const row = (Array.isArray(data) ? data[0] : data) as Target | null | undefined;
       target = row?.markbox ? row : null;
     } catch {
       target = null;

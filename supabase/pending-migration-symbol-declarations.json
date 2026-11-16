@@ -17,7 +17,7 @@
           "name": "portal_registration_link_peek",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/page.tsx:53"
+            "app/registro/link/[token]/page.tsx:54"
           ]
         },
         {
@@ -45,7 +45,7 @@
       ],
       "evidence": [
         {
-          "site": "app/registro/link/[token]/page.tsx:57",
+          "site": "app/registro/link/[token]/page.tsx:58",
           "contains": "target = row?.markbox ? row : null;",
           "degradation": "Sin la 0552 la RPC de lectura responde error (PGRST202) y no hay fila: la página muestra «Enlace no disponible» con el mensaje genérico y ningún formulario. No escribe nada."
         },
