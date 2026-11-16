@@ -25,7 +25,7 @@ sobre memoria y novedades?», respondió «Sí, apruébala». Queda así:
 | Estado | Cantidad |
 |---|---|
 | `CORRECTO` | 3 |
-| `ENCONTRADO` | 9 (condiciones para la fase 2 y para el primer envío real) |
+| `ENCONTRADO` | 10 (condiciones para la fase 2 y para el primer envío real) |
 | `NO VERIFICABLE` | 5 |
 | No aplica | punto 11 |
 
@@ -57,12 +57,12 @@ o el nombre de un cliente, un monto, o algo de su propia salud. Ver E-3.
 ### `CORRECTO`
 
 - **C-1 · El minicerebro no lleva datos personales.** Las guías describen botones, no casos; la prueba
-  `lib/studio/asistente/contenido/__tests__/catalogo.test.ts` busca correos, teléfonos y montos en guías y catálogo.
-  Es una heurística, y la propia prueba lo dice (líneas 8 a 10).
+  `lib/studio/asistente/contenido/__tests__/catalogo.test.ts:164-171` busca correos, teléfonos y montos en guías y
+  catálogo. Es una heurística, y la propia prueba lo dice (línea 165).
 - **C-2 · El contexto enviado a la IA no se guarda.** La spec lo fija en §6.4: catálogo y guías se rearman en cada
   pregunta. Minimiza lo que queda guardado.
-- **C-3 · Se puede filtrar por país.** `user_tenants.region` existe (`supabase/migrations/0052_user_region.sql:5-6`,
-  valores `ve` y `cn`). Es lo que hace posible E-6 sin construir nada nuevo.
+- **C-3 · Se puede filtrar por país.** `user_tenants.region` existe, con los valores `ve` y `cn`
+  (`supabase/migrations/0052_user_region.sql:25,31-32`). Es lo que hace posible E-6 sin construir nada nuevo.
 
 ### `ENCONTRADO` (por gravedad)
 
@@ -94,15 +94,19 @@ unitaria con casos de cada patrón. No atrapa nombres propios: por eso el aviso 
 
 **E-4 · El equipo no tiene aviso de que sus preguntas se guardan.** No existe todavía; la spec lo pide (§10).
 *Arreglo:* la primera vez que alguien abre Faro ve un aviso corto: qué se guarda, quién lo lee (D-4), cuánto dura
-(D-6), que la IA es de un proveedor externo en EE. UU. y a quién pedir sus datos. Se registra **qué versión del
+(D-6), que la IA es de un proveedor externo (hoy Anthropic, en EE. UU.; nunca uno chino, E-10) y a quién pedir
+sus datos. Se registra **qué versión del
 aviso se mostró y cuándo**, por persona. Es un aviso, no un consentimiento: la base de licitud la decide un abogado.
 > CRBV art. 28 (conocer el uso y la finalidad) · SC 332/2001, autonomía.
 
-**E-5 · No hay camino para que una persona vea o pida borrar sus preguntas.** El panel no relee el historial (§6.4)
+**E-5 · No hay camino para que una persona vea, corrija o pida borrar sus preguntas.** El panel no relee el historial (§6.4)
 y la memoria personal quedó fuera, así que la persona no tiene dónde verlas.
 *Arreglo:* el administrador puede **exportar** las conversaciones de una persona y **purgar** las suyas a pedido,
 con motivo, por la misma función de E-1 y con registro en `asistente_purgas`. El aviso de E-4 dice cómo pedirlo.
 Una pantalla «Mis preguntas» queda como mejora posterior.
+*Rectificación:* el registro guarda lo que la persona escribió y lo que Faro respondió; corregirlo después lo
+falsearía. Si la persona dice que un dato está mal (por ejemplo, la conversación quedó a nombre de otra persona),
+el administrador deja una nota de rectificación como evento nuevo, sin editar la fila, y si corresponde la purga.
 > CRBV art. 28 · SC 759/2025.
 
 **E-6 · Las alertas marcan a una persona.** Una alerta dice «esta persona intentó saltarse las reglas». Es una
@@ -130,6 +134,15 @@ llegaría a un tercero.
 sin pantalla, sin texto. D-7 sigue apagado al inicio.
 > Ley Especial contra los Delitos Informáticos art. 22.
 
+**E-10 · El respaldo por la Oficina mandaría preguntas a proveedores chinos.** §6.5 proponía usar el runtime de la
+Oficina como respaldo, y ese runtime corre con Z.AI o DeepSeek, empresas con sede en China
+(`docs/specs/0626-oficina-runtime/privacidad.md:254`). Una pregunta puede nombrar a un cliente, y E-3 no atrapa
+nombres propios. Sam decidió que los datos de clientes nunca van a un proveedor chino (SDD-0639 §4, D-2).
+*Arreglo:* el respaldo de Faro es un proveedor no chino o ninguno. `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo
+aceptan proveedores de una lista permitida, y una prueba falla si se configura uno fuera de ella (spec, AC-16).
+La Oficina vuelve a ser candidata solo si deja de usar proveedores chinos para este perfil, con revisión nueva.
+> PIPL y Ley Especial contra los Delitos Informáticos art. 22 (revelación indebida) · decisión D-2 de la SDD-0639.
+
 ### `NO VERIFICABLE`
 
 - **N-1 · Retención del proveedor de IA.** Qué guarda Anthropic de cada llamada, cuánto tiempo y si lo usa para
@@ -147,6 +160,23 @@ sin pantalla, sin texto. D-7 sigue apagado al inicio.
 ### No aplica
 
 - **Punto 11 · Aceptación electrónica.** Faro no pide firmar ni aceptar nada; el aviso de E-4 se lee, no se firma.
+
+### Recorrido de los doce puntos
+
+| # | Punto | Resultado |
+|---|---|---|
+| 1 | Inventario | §2; C-2 |
+| 2 | Minimización | E-3 (pregunta depurada); C-2 (el contexto no se guarda) |
+| 3 | Consentimiento con evidencia | E-4: es un aviso con versión registrada; si hace falta consentimiento lo decide un abogado. Sin memoria personal (D-9), no hay otro consentimiento que pedir |
+| 4 | Derechos (acceso, conocer el uso, rectificación, supresión) | E-5, con la rectificación por nota |
+| 5 | Borrado que borra | E-1; N-4 (respaldos) |
+| 6 | Trazabilidad de solicitudes | E-5 (la purga a pedido queda en `asistente_purgas`); E-7 (lecturas) |
+| 7 | Política y registro de tratamientos | E-4; Faro se suma a `docs/legal/privacidad/registro-tratamiento.md` §3 en esta misma rama |
+| 8 | Inventario de terceros | N-1, N-2; E-9 (Discord y Telegram) |
+| 9 | Transferencia internacional | E-2 (China); E-10 (proveedores chinos); Anthropic y Contabo en EE. UU., en el aviso de E-4 |
+| 10 | Decisiones automatizadas | E-6 (alertas) |
+| 11 | Aceptación electrónica | No aplica |
+| 12 | Titulares que no son usuarios | E-3 (clientes nombrados en una pregunta) |
 
 ## 4 · Fuera de alcance: lo que decide Sam o un abogado
 

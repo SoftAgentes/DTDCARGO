@@ -19,7 +19,8 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones abiertas:** D-1 a D-11 (§11).
+**Decisiones:** D-1 a D-11 (§11). Aprobadas por Sam: D-3, D-6, D-9 y D-10. Abiertas: D-1, D-2, D-4, D-5, D-7,
+D-8 y D-11.
 
 **Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
 Nada se programa hasta que Sam apruebe esta spec.
@@ -86,9 +87,9 @@ la conversación en curso, acotada (D-9). Solo una capa habla con una IA.
 2. **Portero:** sesión del Studio (`requireStudioSession`), origen de la petición y tope por hora.
 3. **Permisos:** `getStudioAccess()` devuelve rol, almacén, ajustes por rol y accesos por persona.
 4. **Recorte:** se arma el contexto con las entradas del minicerebro que esa persona puede ver (§6.1).
-5. **Motor:** instrucciones fijas + contexto recortado + los últimos turnos de **esta** conversación (hasta ocho
-   intercambios y un tope de tokens), leídos de la base y revalidados contra los permisos actuales + pregunta. Si
-   la persona perdió acceso a algo de lo conversado, el contexto se reinicia.
+5. **Motor:** instrucciones fijas + contexto recortado + los últimos turnos de **esta** conversación, leídos de la base y revalidados contra los permisos actuales + pregunta. Si
+   la persona perdió acceso a algo de lo conversado, el contexto se reinicia. Cuántos turnos (propuesta: ocho
+   intercambios y un tope de tokens) es un detalle de diseño de la fase 3, no parte de lo que Sam aprobó en D-9.
 6. **Verificador:** valida la ficha, descarta la ruta sugerida si no está permitida y decide si hubo bloqueo (§6.2).
 7. **Registro:** guarda pregunta y respuesta. Si corresponde, crea la alerta.
 8. El panel muestra la respuesta y los botones que correspondan al resultado.
@@ -240,8 +241,11 @@ Propuesta, a coordinar con la sesión que lleva la SDD-0626:
 - Faro define una interfaz `Motor` mínima con **un principal y un respaldo**. No es una cadena: sin cortacircuitos
   ni política propia de fallos.
 - **Principal:** llamada directa a un proveedor, con el SDK de Anthropic ya instalado.
-- **Respaldo:** el runtime de la Oficina, reutilizando `runtime-cliente.ts` con un perfil propio sin herramientas
-  ni memoria, cuando la SDD-0626 lo permita. Mientras no exista, el respaldo es un segundo modelo directo.
+- **Respaldo:** un segundo modelo directo de un proveedor **no chino**, o ninguno. **No** el runtime de la Oficina
+  mientras use Z.AI o DeepSeek (`docs/specs/0626-oficina-runtime/privacidad.md:254`): una pregunta a Faro puede
+  nombrar a un cliente, la depuración no atrapa nombres propios (`privacidad.md`, E-3) y Sam decidió que los datos
+  de clientes nunca van a un proveedor chino (SDD-0639 §4, D-2, PR #606 sin fusionar al escribir esto). Ver
+  `privacidad.md`, E-10.
 - Si la Oficina extrae su política de fallos a un módulo común, Faro la adopta y borra la suya.
 - Motor `simulado` para pruebas (`LLM_FORCE_MOCK`).
 
@@ -264,11 +268,12 @@ condiciones, que son requisitos de esta spec:
      `lib/studio/asistente/motor/config.ts`.
    - El id de un modelo no aparece como literal en el código de Faro, salvo el valor por defecto de ese archivo.
      Lo hace cumplir una prueba que busca ids de modelo en el resto de los archivos.
+   - `config.ts` acepta en `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo proveedores de una lista permitida, sin
+     proveedores chinos. Si alguno de los dos apunta a un proveedor fuera de la lista, Faro no arranca, y una prueba
+     falla (AC-16).
 3. **Fuera del registro del Studio, la pregunta y el contexto no se conservan.** El registro de §6.4 sí guarda
    pregunta y respuesta, por diseño y durante el plazo de §10; esta condición cubre todo lo demás:
    - el proveedor de IA, con la política de retención que fije §10;
-   - las sesiones del runtime de la Oficina, si se usa el respaldo, que se borran al terminar cada llamada como
-     ya hace la SDD-0626;
    - los logs del servidor y cualquier herramienta de seguimiento, que nunca reciben el texto.
 
    Todo ello se revisa con `revisar-datos-ve` antes del primer envío real al modelo (§10).
@@ -372,6 +377,7 @@ incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisi
 | AC-13 | Sin motor disponible, Faro lo indica y los accesos de reporte siguen funcionando | 4 |
 | AC-14 | La batería alcanza al menos 95 % de aciertos con cero filtraciones, y el ataque con promptfoo no obtiene pasos ni descripciones prohibidas | 5 |
 | AC-15 | Existe la revisión `revisar-datos-ve` aprobada antes del primer envío real al modelo | 5 |
+| AC-16 | `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo aceptan proveedores de la lista permitida, sin proveedores chinos; una prueba falla si se configura uno fuera de la lista | 3 |
 
 ## 10. Datos personales
 
@@ -394,15 +400,16 @@ Puntos que esa revisión debe resolver:
   (`docs/legal/privacidad/inventario-terceros.md:38`), pero su fila no menciona Faro. Sumarlo es un pendiente previo
   al primer envío real.
 
+- Las guías no contienen datos personales ni de clientes.
+
 **Revisión hecha (2026-11-16):** [`privacidad.md`](privacidad.md). Cubre la puerta de la fase 2. La puerta del
 primer envío real sigue abierta (N-1 y N-2 de esa revisión, y el equipo en China, E-2).
-- Las guías no contienen datos personales ni de clientes.
 
 ## 11. Decisiones abiertas
 
 | # | Decisión | Recomendación |
 |---|---|---|
-| D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo en la Oficina | La tercera (§6.5). Aceptada por el Director General con tres condiciones; falta Sam |
+| D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo | Principal directo (hoy Anthropic) y respaldo solo de un proveedor no chino, o ninguno; la Oficina no sirve de respaldo mientras use Z.AI o DeepSeek (§6.5, `privacidad.md` E-10). Aceptada por el Director General con tres condiciones; falta Sam |
 | D-2 | ¿Faro absorbe el botón de reportar errores? | Sí: un solo elemento flotante, como hizo la referencia |
 | D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |
@@ -421,8 +428,8 @@ primer envío real sigue abierta (N-1 y N-2 de esa revisión, y el equipo en Chi
 | Inyección de prompt | El modelo no recibe lo prohibido (§6.1) y el servidor decide el bloqueo (§6.2) |
 | Guía desactualizada | Regla de mantenimiento (§5) y fecha de revisión por entrada |
 | El modelo inventa un paso | Batería antes de producción y al cambiar de modelo; el administrador lee el registro |
-| Costo descontrolado | Tope por usuario y hora; costo guardado por respuesta |
-| Dependencia de la PR #598 | Faro puede salir con motor directo y sumar el respaldo de la Oficina después |
+| Costo descontrolado | Tope por usuario y hora; tope mensual medido por intento en `asistente_llamadas` |
+| Dependencia de la PR #598 | Ya no: la Oficina no es respaldo de Faro mientras use proveedores chinos (§6.5, E-10) |
 | El botón tapa datos | Se arrastra y recuerda la posición |
 
 ## 13. Fuentes

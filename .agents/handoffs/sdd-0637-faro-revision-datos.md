@@ -13,12 +13,26 @@ Solo documentos. No hay código, migraciones ni cambios en producción.
 
 | Archivo | Cambio |
 |---|---|
-| `docs/specs/0637-faro-asistente-ayuda/privacidad.md` | Nuevo: la revisión `revisar-datos-ve`. Inventario por finalidad, doce puntos (3 correctos, 9 encontrados, 5 no verificables) y plazos propuestos |
+| `docs/specs/0637-faro-asistente-ayuda/privacidad.md` | Nuevo: la revisión `revisar-datos-ve`. Inventario por finalidad, doce puntos (3 correctos, 10 encontrados, 5 no verificables) y plazos |
+| `docs/legal/privacidad/registro-tratamiento.md` | Fila de Faro en §3, marcada como propuesta y sin datos |
 | `docs/specs/0637-faro-asistente-ayuda/spec.md` | §3: memoria acotada a la conversación en curso. §5: estante `novedades/` y la regla de guía y novedad en la misma PR. §6.4: tres finalidades, tablas nuevas, purga que borra filas y pregunta depurada. §6.5: gasto medido en `asistente_llamadas`. §10: corrección sobre Anthropic en el inventario y enlace a la revisión. §11: D-6 con propuesta, y D-9, D-10 y D-11 nuevas |
 
 Insumo: una consulta de diseño a Codex, de solo lectura, pedida por Sam, sobre qué guardar, la memoria, el ciclo con
 Hermes, los riesgos y las novedades. El Worker comprobó en el código nueve de sus afirmaciones antes de usarlas; las
 nueve eran ciertas.
+
+## Revisión independiente (Opus, lanzada por el Director, sobre be17d9db4): CHANGES
+
+Correcciones aplicadas en un solo commit:
+
+1. **Bloqueante:** el respaldo por la Oficina usaría Z.AI o DeepSeek (proveedores chinos), y eso choca con la D-2 de
+   Sam en la SDD-0639. Ahora hay un E-10 nuevo; §6.5, D-1 y la tabla de riesgos dicen que el respaldo es no chino o
+   ninguno; se suma AC-16 (lista permitida de proveedores, con prueba); y el aviso de E-4 ya no dice solo «EE. UU.».
+2. Citas corregidas: C-1 (`catalogo.test.ts:164-171`) y C-3 (`0052_user_region.sql:25,31-32`).
+3. Rectificación en E-5 (nota como evento nuevo, sin editar la fila); Faro sumado a
+   `docs/legal/privacidad/registro-tratamiento.md` §3; tabla con el recorrido de los doce puntos.
+4. Spec: la línea de decisiones separa aprobadas de abiertas; la lista de §10 queda arreglada; los «ocho
+   intercambios» quedan como detalle de diseño, no como parte de la D-9.
 
 ## Validaciones
 
