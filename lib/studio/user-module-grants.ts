@@ -151,3 +151,84 @@ export function reasonError(reason: string): string | null {
  */
 export const MOTIVO_AVISO_PII =
   "No escribas datos personales en el motivo (cédula, teléfono, salud): queda guardado en Actividad.";
+
+// ─── Mapa «Lo que puede hacer» (SDD-0635 §3.1 y §3.2) ─────────────────────
+
+/** Nivel de un acceso extra que se quiere dejar: sin extra, solo ver, ver y editar. */
+export type NivelExtra = "none" | "view" | "edit";
+
+/** Extra tal como lo usa el mapa: el nivel que da hoy y si sigue vigente. */
+export type ExtraActual = { nivel: Exclude<NivelExtra, "none">; vigente: boolean; expiresAt: string | null };
+
+/**
+ * Estado de un chip del mapa para una persona:
+ *   role     → su rol lo da (y un extra, si lo hay, no suma nada: «sobra»).
+ *   grant    → lo tiene por un extra vigente que sí suma algo.
+ *   none     → no lo tiene y se le puede dar como extra.
+ *   blocked  → no lo tiene y todavía no se puede dar (la base no lo acepta).
+ *   admin    → un administrador ve y edita todo.
+ */
+export type ChipSrc = "role" | "grant" | "none" | "blocked" | "admin";
+
+export type EstadoModulo = {
+  moduleId: string;
+  src: ChipSrc;
+  /** Lo que ve y edita hoy, con extras vigentes. */
+  view: boolean;
+  edit: boolean;
+  /** Lo que da su rol solo (default de código ± desvío por rol). */
+  viewByRole: boolean;
+  editByRole: boolean;
+  sensitive: boolean;
+  /** Qué le puede sumar un extra (regla de la 0622). */
+  status: GrantableStatus;
+  extra: ExtraActual | null;
+  /** Hay un extra vigente que su rol ya cubre: no suma nada y se puede quitar. */
+  sobra: boolean;
+  /** El extra sobre este módulo solo puede ser de ver (R1 o `support`). */
+  soloVer: boolean;
+};
+
+export function estadoModulo(
+  role: StudioUserRole | null | undefined,
+  moduleId: string,
+  overrides: RoleModuleOverrides | undefined,
+  extra: ExtraActual | null,
+): EstadoModulo {
+  const viewByRole = canAccessModule(role, moduleId, overrides);
+  const editByRole = canEditModule(role, moduleId, overrides);
+  const soloVer = grantViewOnly(moduleId, role);
+  const vigente = extra?.vigente ? extra : null;
+  const extraEdit = !!vigente && vigente.nivel === "edit" && !soloVer && role !== "support";
+  const view = viewByRole || !!vigente;
+  const edit = role === "admin" || editByRole || (view && extraEdit);
+  const status = grantableStatus(role, moduleId, overrides);
+  // Sobra = el extra no agrega nada a lo que ya da el rol.
+  const sobra = !!vigente && viewByRole && (editByRole || !extraEdit);
+  const src: ChipSrc =
+    role === "admin" ? "admin" : vigente && !sobra ? "grant" : viewByRole ? "role" : status.kind === "blocked" ? "blocked" : "none";
+  return { moduleId, src, view, edit, viewByRole, editByRole, sensitive: isSensitiveModule(moduleId), status, extra, sobra, soloVer };
+}
+
+/** Nivel visible de un chip en palabras cortas (las mismas de la matriz por rol). */
+export function nivelCorto(e: Pick<EstadoModulo, "view" | "edit">): string | null {
+  if (!e.view) return null;
+  return e.edit ? "Edita" : "Ve";
+}
+
+export const NIVEL_LARGO: Record<NivelExtra, string> = {
+  none: "sin extra",
+  view: "solo ver",
+  edit: "ver y editar",
+};
+
+/**
+ * Fecha `AAAA-MM-DD` en hora de Caracas de un vencimiento guardado. La acción
+ * guarda `T23:59:59-04:00`: cortar el ISO en UTC daría el día siguiente.
+ */
+export function fechaCaracas(iso: string | null): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Caracas", year: "numeric", month: "2-digit", day: "2-digit" }).format(t);
+}
