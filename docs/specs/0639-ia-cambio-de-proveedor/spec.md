@@ -19,7 +19,8 @@ confidencialidad: interno
 > pantalla «Estado de la IA» de la SDD-0638.
 >
 > **Estado: proposed.** Es un plan. Depende de la SDD-0638 (clasificador y registro) y se coordina con
-> el fallback de la Oficina (SDD-0626 §7). Sam decide las D-1 a D-6 (§8).
+> el fallback de la Oficina (SDD-0626 §7). **v0.2:** Sam decidió D-1, D-2, D-3 y D-6 el 2026-11-16
+> (§8). Quedan abiertas D-4 y D-5, con una recomendación cada una, y una nueva, D-7.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no
 verificado. Base: `main` `4a3046745`. El repo es público: sin llaves, montos ni datos de cuentas.
@@ -63,72 +64,132 @@ función y proveedor se habilita solo después de pasar su prueba (§6).
 2. **Un catálogo aprobado por función** (en código, revisado por PR): qué proveedores y modelos puede
    usar cada función. Lo que no está en el catálogo no se puede elegir en la pantalla.
 3. **La elección por función** se guarda en una tabla `ia_motores` (tenant, función, principal,
-   respaldo), que el admin cambia desde la pantalla de la SDD-0638. Las llaves siguen en variables de
-   entorno; la tabla solo guarda nombres de proveedor y modelo.
-4. **Primero, cambio manual.** El admin elige el principal y el respaldo y aprieta «Usar el respaldo».
-   Queda en la auditoría quién lo cambió y cuándo.
-5. **Después, y solo si Sam lo aprueba (D-3), cambio automático:** si el principal da `falta_de_pago`,
-   `cuenta_suspendida` o `llave_invalida` (clasificador de la SDD-0638), esa llamada se reintenta con el
-   respaldo y la pantalla lo muestra. No es una cadena larga: es un principal y un respaldo, igual que
-   en Faro (SDD-0637 §6.5).
-6. **Costos:** las tarifas pasan a una tabla o a la configuración por modelo, para que el tope de
+   respaldo), que se cambia desde la pantalla de la SDD-0638. Las llaves siguen en variables de
+   entorno; la tabla solo guarda nombres de proveedor y modelo. **Valor predeterminado (D-1):** GLM
+   como principal y DeepSeek como respaldo, en las funciones que lo permite la regla de datos (§4).
+4. **Cambio automático, con opción manual (D-3).**
+   - **Automático:** si el principal da `falta_de_pago`, `cuenta_suspendida`, `llave_invalida` o
+     `proveedor_caido` (clasificador de la SDD-0638), esa llamada se reintenta una vez con el respaldo.
+     La pantalla lo muestra y avisa al equipo, con el aviso de la SDD-0638 §5.5. Un error de entrada
+     (400 sin señal de cobro) no cambia de proveedor.
+   - **Vuelta al principal:** cuando el principal vuelve a responder (sondeo o generación real), las
+     llamadas regresan a él. No es una cadena larga: es un principal y un respaldo, igual que en Faro
+     (SDD-0637 §6.5).
+   - **Manual:** quien tenga el permiso (punto 5) puede fijar el respaldo («Usar el respaldo»),
+     cambiar el principal, por ejemplo a Anthropic si Sam tiene esa suscripción, o volver al
+     predeterminado. Cada cambio queda en la auditoría, con quién lo hizo, cuándo y el motivo.
+5. **Quién puede cambiar (D-6).** Por defecto, solo el **superadministrador**. Además, el permiso se
+   puede dar a una persona concreta desde **Usuarios › Acceso** (SDD-0622/0635):
+   - la pantalla «Estado de la IA» pasa a ser un módulo propio, `ia`;
+   - **Ver** = ver los estados; **Editar** = cambiar proveedor y modelo;
+   - hoy un módulo `SUPERADMIN_ONLY_MODULES` **no** se puede conceder por persona: `rbac-guard.ts:170`
+     exige `is_platform_admin()` aunque haya un extra (C). Por eso `ia` no entra en esa lista: va con
+     el candado propio «superadmin o extra Editar de esa persona», también en la base (RLS de
+     `ia_motores`);
+   - `moduleCoverage` (C `lib/studio/user-module-grants.ts:66`) lo marca como cubierto, y el aviso
+     de módulo sensible (SDD-0622 §5.1) explica qué podrá hacer la persona antes de confirmar;
+   - un admin normal **no** lo tiene si no se le da.
+6. **Agregar un proveedor o una suscripción nueva** (por ejemplo, si Sam contrata Anthropic u otro):
+   - la llave va en una variable de entorno del servidor; la coloca Claude Code con el OK de Sam, sin
+     que entre en Git;
+   - si el proveedor ya tiene adaptador, aparece en la pantalla en cuanto su llave existe, y basta con
+     elegirlo;
+   - si no tiene adaptador, hace falta una PR pequeña con ese adaptador y su prueba de contrato (§6).
+   - **No** se propone cargar llaves desde la pantalla: guardarlas en la base sería una segunda
+     superficie de robo. Queda como decisión abierta (D-7).
+7. **Costos:** las tarifas pasan a una tabla o a la configuración por modelo, para que el tope de
    Agentes y el de Faro sigan sumando bien con otro proveedor.
 
 **Coordinación con la Oficina:** la SDD-0626 §7 ya diseña una cadena con fallback del lado de Hermes.
 Esta spec cubre solo las llamadas **directas** del ERP. Si la Oficina extrae su política de fallos a un
 módulo común, este motor la adopta y no mantiene otra (la misma regla que aceptó el DG para Faro).
 
-## 4. Privacidad: el cambio de proveedor mueve datos
+## 4. Regla de datos: a un proveedor chino solo va código
 
-Z.AI y DeepSeek son proveedores chinos. Cambiar a ellos una función que manda **conversaciones de
-clientes** (A4) o **documentos de clientes** (A5) significa transferir esos datos a China.
+**Decisión de Sam (2026-11-16, D-2):** los datos de clientes **nunca** van a un proveedor chino (Z.AI/GLM,
+DeepSeek). Lo único que puede recibir sobre un cliente es su **código, el Shipping Mark**. Nombres,
+teléfonos, direcciones, conversaciones, documentos y montos de un cliente quedan fuera.
 
-- Antes de habilitar a un proveedor para una función con datos de clientes, se pasa por
-  `.claude/skills/revisar-datos-ve/SKILL.md` (Venezuela y PIPL). Si esas normas aplican es una
-  cuestión jurídica que queda pendiente.
-- El catálogo de §3 marca cada función como **interna** (A1, A2, A3, A6, A8) o **con datos de
-  clientes** (A4, A5). Para estas últimas, Sam aprueba cada destino por separado (D-2).
+Cada función del catálogo lleva una de tres marcas, y la elección de proveedor solo ofrece lo que la
+marca permite:
+
+| Marca | Funciones (SDD-0638) | Qué proveedores admite |
+|---|---|---|
+| **Sin datos de clientes** | A1 noticias web (contenido público), A2 brief del CEO (solo conteos del día, C `lib/news/ceo-brief.ts`), A8 análisis de Chatwoot (solo código) | Todos, incluido GLM → DeepSeek (el predeterminado) |
+| **Solo Shipping Mark** | Ninguna hoy. Una función que necesite referirse a un cliente podrá mandar solo el código, si se escribe así a propósito | Todos, si una prueba demuestra que solo sale el código |
+| **Con datos de clientes** | A3 actas de Bitácora (pueden nombrar clientes, **I**), A4 resúmenes de conversaciones, A5 documentos, A6 Agentes y Skills (sus herramientas devuelven nombre y dirección del cliente, C `lib/studio/agents/tools/shipment-tools.ts:80-81`) | Solo proveedores **no chinos** (hoy, Anthropic). El respaldo también tiene que ser no chino o quedar vacío |
+
+- La regla vive en código (el catálogo) **y** en una prueba: si una función «con datos de clientes»
+  apunta a un proveedor chino, la prueba falla y la pantalla no ofrece esa opción.
+- Antes de pasar una función a «solo Shipping Mark», se revisa con
+  `.claude/skills/revisar-datos-ve/SKILL.md` que el texto que sale no lleve nada más.
 - Retención: se usa la política de no conservar del proveedor donde exista, y queda escrita por
   proveedor en el catálogo.
 
-## 5. Fases
+**FUERA DE ALCANCE DETECTADO (para el DG y la SDD-0626):** el agente `soporte-chatwoot` de la Oficina
+(H1 en la SDD-0638) redacta borradores **leyendo conversaciones de clientes** con `glm-5.3`
+(Z.AI). Con la regla de Sam, eso choca. Esta spec no lo cambia. Lo tiene que revisar la sesión de la
+SDD-0626 con Sam, porque hoy solo atiende la bandeja de prueba.
+
+## 5. Fases (orden recomendado, D-4)
 
 | Fase | Qué entrega | Necesita |
 |---|---|---|
 | **1 · Nivel 1** | Los ids de modelo de A1, A2 y A6 pasan a la configuración, sin literales en el código | Nada |
-| **2 · Motor** | Interfaz y adaptador de Anthropic; A1 y A2 migran sin cambiar su conducta | SDD-0638 fase 1 |
-| **3 · Respaldo de texto** | Adaptador del primer respaldo (D-1) para A1 y A2, con cambio manual desde la pantalla | SDD-0638 fase 4, D-1 |
-| **4 · Forma fija** | A3 y A4 con respaldo, después de pasar la prueba de forma fija | Fase 3; para A4, D-2 y `revisar-datos-ve` |
-| **5 · Automático** | Cambio al respaldo ante error de cobro | D-3 |
-| — | A5 (documentos) y A6 (Agentes) | Quedan **sin respaldo** hasta que pasen su prueba y Sam lo apruebe |
+| **2 · Motor** | Interfaz y adaptadores de Anthropic, GLM y DeepSeek; catálogo con las marcas de §4; módulo `ia` y permiso por persona | SDD-0638 fase 1 |
+| **3 · Noticias web (A1)** | **La primera función.** GLM → DeepSeek, con cambio automático y manual | SDD-0638 fase 4 |
+| **4 · Brief del CEO (A2)** | Mismo esquema. Ya tiene salida sin IA, así que es la segunda más segura | Fase 3 |
+| **5 · Funciones con datos de clientes** | A3, A4 y A5 se quedan en Anthropic, sin respaldo chino; solo se suma un respaldo no chino si Sam contrata uno | D-7 o una suscripción nueva |
+| — | A6 Agentes | Ver D-5 |
+
+**Por qué noticias primero:** es el botón que Sam echó en falta, es contenido público sin datos de
+clientes, son ocho acciones de texto libre (lo más fácil de pasar a otro proveedor) y, si algo sale
+mal, el equipo lo ve en el momento y puede seguir a mano. El brief va segundo porque ya tiene salida
+sin IA, y un error ahí no se nota tanto.
 
 ## 6. Pruebas previstas
 
-- **Contrato del motor:** la misma batería contra el adaptador de Anthropic y contra cada respaldo:
-  texto, forma fija (JSON válido según su esquema) y tiempo agotado.
-- **Habilitación:** una función no ofrece un proveedor en la pantalla si no pasó su prueba (el catálogo
-  lo marca).
+- **Contrato del motor:** la misma batería contra cada adaptador (Anthropic, GLM, DeepSeek): texto,
+  forma fija (JSON válido según su esquema) y tiempo agotado.
+- **Habilitación:** una función no ofrece un proveedor si no pasó su prueba (el catálogo lo marca).
+- **Regla de datos:** una función «con datos de clientes» no puede apuntar a GLM ni a DeepSeek; la
+  prueba falla si el catálogo lo permite. Una «solo Shipping Mark» falla si el texto de salida lleva
+  algo distinto del código.
 - **Sin literales:** una prueba busca ids de modelo fuera de la configuración (como en Faro).
-- **Cambio manual:** queda en la auditoría; sin permiso de admin se rechaza.
-- **Automático:** con un 402 simulado en el principal, la llamada va al respaldo una sola vez y queda
-  registrada; un 400 de entrada inválida no cambia de proveedor.
-- **Privacidad:** una función con datos de clientes no puede apuntar a un proveedor sin aprobación;
-  la prueba falla si el catálogo lo permite.
+- **Automático:** con un 402 simulado en GLM, la llamada va a DeepSeek una sola vez, queda registrada
+  y avisa. Un 400 de entrada inválida no cambia de proveedor. Cuando GLM vuelve, las llamadas regresan.
+- **Manual y permisos:** el superadmin puede cambiar. Un admin sin el extra «Editar» del módulo `ia`
+  no puede cambiar, ni desde la pantalla ni directo en la base (RLS en PGlite). Una persona con el
+  extra sí puede. Cada cambio queda en la auditoría.
 
 ## 7. Fuera de alcance
 
-- La cadena de fallback de la Oficina (SDD-0626 §7).
+- La cadena de fallback de la Oficina (SDD-0626 §7) y el proveedor del agente `soporte-chatwoot`.
 - Elegir el modelo «mejor» por calidad: eso se mide en la evaluación de cada función.
 - Comprar o crear cuentas en proveedores nuevos: lo hace Sam en cada panel.
 
-## 8. Decisiones abiertas para Sam
+## 8. Decisiones
 
-- **D-1 · Primer respaldo.** ¿Con qué proveedor arrancamos? GLM (ya hay cuenta de pago para el ERP) o
-  DeepSeek (hace falta una llave propia).
-- **D-2 · Datos de clientes.** ¿Las funciones con datos de clientes (resúmenes de conversaciones y
-  documentos) pueden ir a un proveedor chino? ¿O se quedan solo con proveedores que Sam apruebe
-  después de la revisión de privacidad?
-- **D-3 · Automático.** Solo cambio manual (propuesta para empezar), o automático ante falta de pago.
-- **D-4 · Alcance.** ¿Empezamos solo por noticias y brief (lo más simple), o también Bitácora?
-- **D-5 · Agentes.** ¿Agentes y Skills entra en esta spec, o se queda con Anthropic?
-- **D-6 · Quién cambia.** Solo el superadministrador, o cualquier admin del equipo.
+### 8.1 Decididas por Sam (2026-11-16)
+
+- **D-1 · Predeterminado:** GLM como principal y DeepSeek como respaldo. Sam puede cambiarlo, por
+  ejemplo a Anthropic si tiene esa suscripción (§3, puntos 4 y 6).
+- **D-2 · Datos de clientes:** nunca van a un proveedor chino. Solo el código, el Shipping Mark (§4).
+- **D-3 · Modo:** cambio automático, con opción manual (§3, punto 4).
+- **D-6 · Quién cambia:** el superadministrador. El permiso se puede dar a una persona concreta desde
+  Usuarios › Acceso, como un permiso nuevo (§3, punto 5).
+
+### 8.2 Abiertas
+
+- **D-4 · Por qué función se empieza.** Recomendación: **noticias web (A1)** y después el **brief
+  (A2)**. Ver §5. Confírmala o cámbiala.
+- **D-5 · Agentes y Skills.** Contexto: es el módulo de Administración › Agentes (SDD-0020). Ahí se
+  instalan asistentes como «Tracking Concierge» (responde dónde está una carga) y «Service Advisor»
+  (orienta sobre servicios). Consultan el ERP en modo solo lectura (embarques, clientes) y cada uno
+  tiene un tope de gasto mensual. Usan Anthropic con un bucle de herramientas, lo más difícil de pasar
+  a otro proveedor. Como sus herramientas devuelven **nombre y dirección del cliente**, por la regla
+  D-2 **no pueden** ir a GLM ni a DeepSeek. **Recomendación: dejarlo fuera de esta spec y en
+  Anthropic.** Si algún día hace falta respaldo, que sea un proveedor no chino.
+- **D-7 · Llaves nuevas.** Propuesta: las llaves siguen en variables del servidor y las coloca Claude
+  Code con tu OK. La pantalla solo elige entre los proveedores con llave puesta. ¿O quieres poder
+  pegar una llave desde la pantalla? Es más cómodo, pero guarda la llave en la base y es más riesgoso.
