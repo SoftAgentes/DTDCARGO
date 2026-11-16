@@ -812,7 +812,7 @@ dado `ok`): hasta entonces rige. Misma regla que §11.4.1.
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0546_noticias_purga_actor_id.sql` | Nuevo: la migración 0546, sin aplicar |
-| `supabase/desarmes/0546_desarme.sql` | Nuevo: su desarme (fuera de `migrations/`, sin número) |
+| `supabase/desarmes/` (archivo «0546», guion bajo, «desarme», extensión `.sql`) | Nuevo: el desarme de la 0546 (fuera de `migrations/`, sin número; no se cita con su nombre completo porque `spec-migration-refs` lo tomaría por una migración) |
 | `supabase/tests/0546_noticias_purga_actor_id.test.sql` | Nuevo: contrato SQL |
 | `lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts` | Nuevo: PGlite, control rojo, mutantes y desarme |
 | `app/api/cron/noticias-purga-actor/route.ts` | Nuevo: la ruta del cron, con `CRON_SECRET` y su interruptor |
