@@ -19,7 +19,7 @@
  * compra, leído con la sesión del cliente (RPC 0479) y acotado a la compra.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 
 const h = vi.hoisted(() => ({
   prendido: true,
@@ -123,7 +123,7 @@ const AVISAREMOS = "Te avisaremos apenas esté activo.";
 
 async function abrir() {
   const ui = await PortalPurchaseDetailPage({ params: Promise.resolve({ code: "PA-0001" }) });
-  render(ui!);
+  await act(async () => { render(ui!); });
 }
 
 function aviso(): HTMLElement | null {
@@ -296,7 +296,7 @@ describe("/portal/compras/[code] con el historial de avisos de la compra (SDD-05
     expect(within(tarjeta).getByText("En bodega")).toBeInTheDocument();
     expect(within(tarjeta).getByText("Correo")).toBeInTheDocument();
     expect(within(tarjeta).queryByText(/este envío/)).toBeNull();
-    const packing = screen.getByRole("heading", { name: "Packing list del proveedor" });
+    const packing = screen.getByRole("heading", { name: "Packing List + Factura del proveedor" });
     expect(packing.compareDocumentPosition(titulo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
