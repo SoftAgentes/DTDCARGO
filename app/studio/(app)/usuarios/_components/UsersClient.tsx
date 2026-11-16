@@ -45,6 +45,7 @@ import {
   invitationStatus,
   roleBadgeTone,
   userDisplayName,
+  type StudioUserRole,
   type UserInvitation,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
@@ -121,6 +122,13 @@ export function UsersClient({
     const qs = s.toString();
     router.push(qs ? `/studio/usuarios?${qs}` : "/studio/usuarios", { scroll: false });
   }
+
+  // SDD-0635 §3.4: personas activas por rol (las mismas que cuentan las tarjetas de rol).
+  const personasPorRol = useMemo(() => {
+    const c: Partial<Record<StudioUserRole, number>> = {};
+    for (const m of members) if (accessStage(m) !== "suspendido") c[m.role] = (c[m.role] ?? 0) + 1;
+    return c;
+  }, [members]);
 
   const pendientesInvit = invitations.filter((i) => invitationStatus(i) === "pending");
 
@@ -307,7 +315,12 @@ export function UsersClient({
             })}
           </div>
 
-          <PermissionsSection initialOverrides={roleModuleOverrides} />
+          <PermissionsSection
+            initialOverrides={roleModuleOverrides}
+            members={members.filter((m) => accessStage(m) !== "suspendido")}
+            grants={grants}
+            nombres={nombres}
+          />
         </>
       )}
 
@@ -323,6 +336,8 @@ export function UsersClient({
           overrides={roleModuleOverrides}
           nombres={nombres}
           pestana={fichaUrl === "acceso" || fichaUrl === "actividad" ? fichaUrl : "perfil"}
+          personasDelRol={personasPorRol[fichaAbierta.role]}
+          onIrARoles={() => navegar({ tab: "roles", persona: null, ficha: null })}
         />
       )}
 

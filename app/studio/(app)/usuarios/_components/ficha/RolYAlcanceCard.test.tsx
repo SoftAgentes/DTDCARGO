@@ -78,7 +78,7 @@ describe("RolYAlcanceCard · el orden de escritura", () => {
 
     // `warehouse` sigue siendo scoped, así que las dos escrituras corren.
     await u.click(screen.getByRole("radio", { name: ROLE_LABELS.warehouse }));
-    await u.selectOptions(screen.getByLabelText("Almacén"), "cn");
+    await u.selectOptions(screen.getByLabelText("Almacén que ve"), "cn");
     await aplicarCon(u);
 
     expect(orden).toEqual(["rol", "alcance"]);
@@ -90,7 +90,7 @@ describe("RolYAlcanceCard · el orden de escritura", () => {
     render(<RolYAlcanceCard member={miembro({ role: "operations", warehouse_scope: "all" })} />);
 
     await u.click(screen.getByRole("radio", { name: ROLE_LABELS.warehouse }));
-    await u.selectOptions(screen.getByLabelText("Almacén"), "cn");
+    await u.selectOptions(screen.getByLabelText("Almacén que ve"), "cn");
     await aplicarCon(u);
 
     expect(rolMock).toHaveBeenCalledTimes(1);
@@ -103,7 +103,7 @@ describe("RolYAlcanceCard · el orden de escritura", () => {
     render(<RolYAlcanceCard member={miembro({ role: "operations", warehouse_scope: "all" })} />);
 
     // Se toca el alcance MIENTRAS el rol todavía lo admite…
-    await u.selectOptions(screen.getByLabelText("Almacén"), "cn");
+    await u.selectOptions(screen.getByLabelText("Almacén que ve"), "cn");
     // …y después el rol pasa a uno que no tiene lado geográfico.
     await u.click(screen.getByRole("radio", { name: ROLE_LABELS.accounting }));
     await aplicarCon(u);
@@ -127,12 +127,24 @@ describe("RolYAlcanceCard · los candados", () => {
     expect(screen.getByRole("button", { name: "Aplicar" })).toHaveProperty("disabled", true);
   });
 
-  it("un rol que no admite alcance deshabilita su select y no habilita Aplicar", () => {
-    // `accounting` no es scoped: su select de almacén está deshabilitado y
-    // ningún cambio de alcance debería contar como cambio.
+  it("SDD-0635 §3.6: un rol sin lado geográfico no dibuja el campo Almacén", () => {
+    // `accounting` no es scoped: no hay campo que confunda y Aplicar sigue apagado.
     render(<RolYAlcanceCard member={miembro({ role: "accounting", warehouse_scope: "all" })} />);
-
-    expect(screen.getByLabelText("Almacén")).toHaveProperty("disabled", true);
+    expect(screen.queryByLabelText("Almacén que ve")).toBeNull();
+    expect(screen.queryByText(/no aplica a/)).toBeNull();
     expect(screen.getByRole("button", { name: "Aplicar" })).toHaveProperty("disabled", true);
+  });
+
+  it("SDD-0635 §3.6: al elegir Operaciones aparece «Almacén que ve» con su nota", async () => {
+    const u = userEvent.setup();
+    render(<RolYAlcanceCard member={miembro({ role: "accounting", warehouse_scope: "all" })} />);
+    await u.click(screen.getByRole("radio", { name: "Operaciones" }));
+    expect(screen.getByLabelText("Almacén que ve")).toBeTruthy();
+    expect(screen.getByText("Solo limita los módulos de almacén (CN o VE).")).toBeTruthy();
+  });
+
+  it("SDD-0635 §3.4: dice cuántas personas comparten el rol", () => {
+    render(<RolYAlcanceCard member={miembro({ role: "accounting" })} personasDelRol={2} />);
+    expect(screen.getByText(/tienen el rol Contabilidad\. El rol es el piso/)).toBeTruthy();
   });
 });

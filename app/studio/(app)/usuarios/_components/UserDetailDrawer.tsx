@@ -17,7 +17,8 @@
  * vista por persona; los cambios de rol siguen en su propia auditoría.
  */
 
-import { useActionState, useState } from "react";
+import { useActionState, useCallback, useState } from "react";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   DrawerShell,
   DrawerFooter,
@@ -58,6 +59,8 @@ export function UserDetailDrawer({
   overrides = {},
   nombres = {},
   pestana: pestanaInicial = "perfil",
+  personasDelRol,
+  onIrARoles,
 }: {
   member: UserMembershipWithProfile;
   /** El admin se está mirando a sí mismo — cambia el aviso del correo. */
@@ -70,8 +73,22 @@ export function UserDetailDrawer({
   /** userId → nombre, para «dado por» y la actividad. */
   nombres?: Record<string, string>;
   pestana?: FichaPestana;
+  /** SDD-0635: personas activas con el mismo rol («el rol es el piso»). */
+  personasDelRol?: number;
+  /** SDD-0635: lleva a «Roles y permisos» (cambios para todo el rol). */
+  onIrARoles?: () => void;
 }) {
   const [pestana, setPestana] = useState<FichaPestana>(pestanaInicial);
+  // SDD-0635 §3.3: cambios de acceso elegidos y sin guardar. Cerrar la ficha,
+  // cambiar de pestaña o ir a la matriz pide confirmar el descarte.
+  const [sinGuardar, setSinGuardar] = useState(0);
+  const [descartar, setDescartar] = useState<null | (() => void)>(null);
+  const onPendientes = useCallback((n: number) => setSinGuardar(n), []);
+  const conGuarda = (accion: () => void) => {
+    if (sinGuardar > 0) setDescartar(() => accion);
+    else accion();
+  };
+  const cerrar = () => conGuarda(onClose);
   const [perfilState, perfilAction, perfilPending] = useActionState(
     updateMemberProfileAction,
     INICIAL,
@@ -115,7 +132,7 @@ export function UserDetailDrawer({
     <DrawerShell
       title={userDisplayName(member.profile, member.email)}
       subtitle={`${ROLE_LABELS[member.role]} · ${memberStatusLabel(estado)}`}
-      onClose={onClose}
+      onClose={cerrar}
       pending={pendiente}
       width={640}
     >
@@ -133,7 +150,7 @@ export function UserDetailDrawer({
               data-activa={pestana === t ? "true" : undefined}
               tabIndex={pestana === t ? 0 : -1}
               className="studio-tab"
-              onClick={() => setPestana(t)}
+              onClick={() => (t === pestana ? undefined : conGuarda(() => setPestana(t)))}
             >
               {t === "perfil" ? "Perfil" : t === "acceso" ? "Acceso" : "Actividad"}
             </button>
@@ -150,7 +167,16 @@ export function UserDetailDrawer({
         >
           {/* NO se pasa `onClose`: la ficha se queda abierta y `revalidatePath`
               la redibuja con la fila fresca (UsersClient guarda el ID). */}
-          <AccesoPanel member={member} grants={grants} overrides={overrides} nombres={nombres} esYo={esYo} />
+          <AccesoPanel
+            member={member}
+            grants={grants}
+            overrides={overrides}
+            nombres={nombres}
+            esYo={esYo}
+            personasDelRol={personasDelRol}
+            onIrARoles={onIrARoles ? () => conGuarda(onIrARoles) : undefined}
+            onPendientes={onPendientes}
+          />
         </div>
       )}
 
@@ -485,7 +511,7 @@ export function UserDetailDrawer({
       {pestana === "perfil" ? (
         <DrawerFooter
           formId="ficha-perfil-form"
-          onClose={onClose}
+          onClose={cerrar}
           isPending={pendiente}
           canSubmit={!pendiente}
           submitLabel="Guardar datos"
@@ -503,11 +529,27 @@ export function UserDetailDrawer({
           <span style={{ flex: 1, font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             Cada cambio de acceso queda en Actividad con quién, cuándo y motivo.
           </span>
-          <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onClose}>
+          <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={cerrar}>
             Cerrar
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={descartar !== null}
+        danger
+        title={`Descartar ${sinGuardar === 1 ? "1 cambio" : `${sinGuardar} cambios`} sin guardar`}
+        message="Elegiste cambios de acceso para esta persona y no los guardaste. Si sigues, se pierden."
+        confirmLabel="Descartar cambios"
+        cancelLabel="Seguir editando"
+        onCancel={() => setDescartar(null)}
+        onConfirm={() => {
+          const accion = descartar;
+          setDescartar(null);
+          setSinGuardar(0);
+          accion?.();
+        }}
+      />
     </DrawerShell>
   );
 }

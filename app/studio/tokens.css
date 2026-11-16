@@ -124,6 +124,11 @@
   --shadow-md: 0 2px 6px rgba(15,30,61,0.06), 0 8px 16px rgba(15,30,61,0.08);
   --shadow-lg: 0 4px 12px rgba(15,30,61,0.10), 0 12px 32px rgba(15,30,61,0.12);
   --shadow-pop: 0 12px 40px rgba(15,30,61,0.18), 0 4px 12px rgba(15,30,61,0.08);
+  /* SDD-0635 / BD-070: sombra de un borde fijo (encabezado o columna sticky)
+     mientras hay contenido escondido detrás. -top cae hacia abajo y -left hacia
+     la derecha. Solo se pinta mientras hay desplazamiento. */
+  --shadow-sticky-top: 0 6px 8px -6px rgba(15,30,61,0.28);
+  --shadow-sticky-left: 6px 0 8px -6px rgba(15,30,61,0.28);
 
   /* SDD-0603, enmienda de elevación: contorno de los controles con contorno y
      borde propio de los controles con relleno. Solo referencias a tokens que ya
@@ -341,6 +346,8 @@
   --shadow-md: 0 2px 6px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.25);
   --shadow-lg: 0 4px 12px rgba(0,0,0,0.45), 0 12px 32px rgba(0,0,0,0.4);
   --shadow-pop: 0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-sticky-top: 0 6px 8px -6px rgba(0,0,0,0.6);
+  --shadow-sticky-left: 6px 0 8px -6px rgba(0,0,0,0.6);
   /* SDD-0603: en oscuro el vino mide 2,26:1 contra la tarjeta. Luz arriba y aro
      --ink-soft (6,86:1) para que el relleno tenga forma propia. */
   --ctl-edge-hi: inset 0 1px 0 var(--border-strong), 0 0 0 1px var(--ink-soft);
@@ -426,6 +433,8 @@
     --shadow-md: 0 2px 6px rgba(15,30,61,0.06), 0 8px 16px rgba(15,30,61,0.08);
     --shadow-lg: 0 4px 12px rgba(15,30,61,0.10), 0 12px 32px rgba(15,30,61,0.12);
     --shadow-pop: 0 12px 40px rgba(15,30,61,0.18), 0 4px 12px rgba(15,30,61,0.08);
+    --shadow-sticky-top: 0 6px 8px -6px rgba(15,30,61,0.28);
+    --shadow-sticky-left: 6px 0 8px -6px rgba(15,30,61,0.28);
     --ctl-edge-hi: 0 0 0 0 transparent;
     --scrim: rgba(15,30,61,0.55);
   }
