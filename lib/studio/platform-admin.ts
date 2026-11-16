@@ -9,7 +9,8 @@
  * invocables por PostgREST). Para los feature flags, el control es el disparador
  * `feature_flags_exige_superadmin` (migr 0543, SDD-0634): la escritura va por
  * `audit_d1_execute` (0289:632-650), DEFINER, que la policy de `feature_flags`
- * (0355) no alcanzaba.
+ * (0355) no alcanzaba. Crear o reactivar un administrador lo exigen los
+ * disparadores de `user_invitations` y `user_tenants` (migr 0545, SDD-0636).
  *
  * Este módulo es para que la UI pueda DECIRLO: sin él, un admin que aprieta el
  * interruptor de un feature flag vería la RLS descartar su UPDATE en silencio y
