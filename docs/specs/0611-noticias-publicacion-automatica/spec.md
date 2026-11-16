@@ -768,7 +768,7 @@ La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada, no 
 | `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
 | `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
 
-### 11.5 Foto de portada de cada noticia (PROPUESTA, pendiente de Sam; 2026-11-15)
+### 11.5 Foto de portada de cada noticia (decidida por Sam el 2026-11-15)
 
 **Problema medido (sitio público, 2026-11-15, solo conteos).** Hay 5 noticias publicadas. Las 5
 usan la **foto de respaldo por categoría** (`CATEGORY_IMAGES` en `lib/news/editorial.ts`): ninguna
@@ -778,27 +778,33 @@ anterior). *Inferencia:* que esas fotos muestren la marca anterior no se comprob
 contenido de las imágenes; hace falta que Sam o diseño las confirmen. `cover_image_url` solo acepta
 rutas locales (`editorial.ts:60-67`), así que hoy no puede entrar una foto externa.
 
-**Regla propuesta (la que Sam elige o ajusta).** Cada noticia lleva una foto elegida, en este
-orden, y se detiene en la primera que cumpla:
-1. **Foto de la noticia de origen, solo con licencia que lo permita**: kit de prensa, Creative
-   Commons que permita uso comercial, dominio público o permiso explícito por escrito. Modificar la
-   foto no sustituye el permiso: una versión editada de la foto de un medio sigue siendo una obra
-   derivada. Se guardan siempre **crédito, licencia y enlace de origen** con la noticia.
-2. **Foto de un banco con licencia** (de la lista que Sam apruebe), con crédito y licencia guardados.
-3. **Imagen propia de la marca vigente**, una por tema (puertos, aduanas, tarifas, Yiwu, contenedores).
-4. **Nunca**: el logo o las fotos de la marca anterior («Door to Door»), ni una foto de origen sin
-   licencia comprobada.
+**Regla decidida por Sam (2026-11-15, opción B: «solo de bancos autorizados y fotos propias»).**
+Cada noticia lleva una foto elegida, en este orden, y se detiene en la primera que cumpla:
+1. **Foto de un banco de uso libre** que permita uso comercial sin pago (Unsplash, Pexels o
+   Pixabay u otro de licencia abierta equivalente), con el **crédito guardado cuando el banco lo
+   pida**. Sin licencias pagas.
+2. **Foto propia de la marca vigente**, una por tema (puertos, aduanas, tarifas, Yiwu, contenedores),
+   solo si **no muestra la marca anterior** («DoorTuDoor», «Door to Door»): ni en rótulos, ni en
+   gorras, camisas o códigos QR, ni en el nombre del archivo.
+3. **Nunca**: la foto de una noticia, medio o sitio de terceros, con o sin licencia, ni su versión
+   editada; ni el logo ni las fotos de la marca anterior. «Sin licencia» no significa tomar la foto
+   de un medio: eso queda fuera.
 
-**Qué exige el código (PR posterior, no esta).** (a) Columnas de crédito y licencia junto a la
-portada, migración nueva en espera; (b) la publicación automática **retiene** la noticia si la foto
-no trae licencia registrada; (c) el filtro rechaza una portada que apunte a los archivos de la marca
-anterior; (d) retirar los tres respaldos con la marca anterior y sustituirlos por imágenes de la
-marca vigente. Retirar o cambiar la foto de las 5 noticias ya publicadas es un cambio de contenido en
-producción: lleva su OK de Sam.
+**Qué exige el código (PR posterior, no esta).** (a) Columna de crédito junto a la portada cuando
+el banco lo pida, migración nueva en espera; (b) el filtro rechaza una portada que no sea una ruta
+propia versionada ni de un banco permitido, y una que apunte a archivos de la marca anterior;
+(c) retirar los respaldos con la marca anterior de `CATEGORY_IMAGES` y sustituirlos por fotos propias
+sin ella (hecho en la PR de respaldos, ver abajo). Retirar o cambiar la foto de las 5 noticias ya
+publicadas es un cambio de contenido en producción: llega con la publicación de la web y lleva el
+OK de Sam.
 
-**Decisión de Sam (una sola pregunta).** ¿Aprueba esta regla de cuatro pasos, o prefiere solo los
-pasos 2 y 3 (sin usar fotos de origen)? Recomendación del Subdirector: la regla de cuatro pasos,
-con el paso 1 apagado hasta que exista el registro de licencia.
+**Revisión de las fotos propias (2026-11-15, a la vista).** Con marca anterior, **excluidas**:
+`precinto-doortudoor-…jpg`, `carga-contenedor-precinto-doortudoor-…jpg`,
+`puerto-venezuela-aduana-entrega-final-…jpg` (gorra y camisa con «Door»), `dtd-cargo-recepcion-contenedor.webp`
+(camisa con «doortudoor.com»). Dudosas, **no usadas** (logo «DP» sin confirmar):
+`dtd-cargo-descarga-bodega.webp` y `dtd-cargo-atencion-mapa.webp`. Sin marca anterior visible, usadas:
+`dtd-cargo-carga-consolidada`, `dtd-cargo-camion-entrega`, `dtd-cargo-operacion-puerto`,
+`dtd-cargo-equipo-contenedor` y `bodega-yiwu-…jpg`.
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 
