@@ -117,11 +117,11 @@ export function PackingListDelProveedor({
         <div className="min-w-0">
           <h2
             id="packing-list-titulo"
-            className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500"
+            className="text-2xl font-bold text-ink"
           >
-            Packing list del proveedor
+            Packing List + Factura del proveedor
           </h2>
-          <p className="mt-2.5 text-[14px] text-grey-700 max-w-[60ch] leading-[1.55]">
+          <p className="mt-3 text-base text-grey-700 max-w-prose leading-relaxed">
             Lo llenó{" "}
             <span className="font-semibold text-ink">
               {packing.empresa?.trim() || "tu proveedor"}
@@ -134,21 +134,21 @@ export function PackingListDelProveedor({
         <div className="flex flex-col items-start sm:items-end gap-1.5 flex-shrink-0">
           {packing.folio ? (
             <code
-              className="text-[13px] font-bold text-ink"
+              className="text-base font-bold text-ink"
               style={{ fontFamily: MONO }}
             >
               {packing.folio}
             </code>
           ) : null}
           {fechaDoc ? (
-            <span className="text-[12px] text-grey-500">{fechaDoc}</span>
+            <span className="text-sm text-grey-700">{fechaDoc}</span>
           ) : null}
           {packing.version > 1 ? (
             // Una versión >1 no es un detalle técnico: significa que el
             // proveedor CORRIGIÓ lo que había mandado antes. El cliente que vio
             // la versión anterior necesita saber que está mirando otra cosa.
             <span
-              className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold"
+              className="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold"
               style={{
                 background:
                   "color-mix(in srgb, var(--color-status-warning) 20%, transparent)",
@@ -168,8 +168,8 @@ export function PackingListDelProveedor({
       <dl className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Total label="Cajas" value={num(t.ctns)} />
         <Total label="Unidades" value={formatPackingQuantity(t, (v) => num(v))} />
-        <Total label="Peso" value={`${num(t.weight, 1)} kg`} />
-        <Total label="Volumen" value={`${num(t.cbm, 3)} CBM`} />
+        <Total label="Peso bruto" value={`${num(t.weight, 1)} kg`} />
+        <Total label="CBM" value={`${num(t.cbm, 3)} m³`} />
         <Total label="Valor" value={money(t.amount, packing.moneda)} destacado />
       </dl>
 
@@ -185,8 +185,8 @@ export function PackingListDelProveedor({
             <table className="w-full min-w-[720px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-grey-200">
-                  <Th>Caja</Th>
                   <Th>Producto</Th>
+                  <Th>Caja</Th>
                   <Th align="right">Cajas</Th>
                   <Th align="right">Uds/caja</Th>
                   <Th align="right">Unidades</Th>
@@ -203,33 +203,12 @@ export function PackingListDelProveedor({
                     className="border-b border-grey-200 last:border-b-0 align-top"
                   >
                     <Td>
-                      {/* `text-ink` explícito, no heredado: en el tema oscuro
-                          del portal `--color-white` y `--color-ink` VOLTEAN, y
-                          un texto sin clase de color hereda un navy fijo que no
-                          voltea con ellos. Medido: 1,11:1 sobre la tarjeta
-                          oscura — invisible. Con el token, 13,08:1. */}
-                      <span
-                        style={{ fontFamily: MONO }}
-                        className="text-[12px] text-ink"
-                      >
-                        {r.carton.trim() || "—"}
-                      </span>
-                      {r.same ? (
-                        // Caja Padre (SDD-0097): esta fila viaja DENTRO de la
-                        // caja de la fila líder. Sin decirlo, el cliente suma
-                        // las cajas de la columna y le da de más.
-                        <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.1em] text-grey-500">
-                          Misma caja
-                        </span>
-                      ) : null}
-                    </Td>
-                    <Td>
-                      <span className="text-[13px] font-semibold text-ink">
+                      <span className="text-base font-semibold text-ink">
                         {nombreDeFila(r)}
                       </span>
                       {r.zh.trim() && r.es.trim() ? (
                         <span
-                          className="mt-0.5 block text-[12px] text-grey-700"
+                          className="mt-1 block text-base text-grey-700"
                           style={{ fontFamily: CJK }}
                           lang="zh-Hans"
                         >
@@ -237,6 +216,27 @@ export function PackingListDelProveedor({
                         </span>
                       ) : null}
                       <SubLinea fila={r} />
+                    </Td>
+                    <Td>
+                      {/* `text-ink` explícito, no heredado: en el tema oscuro
+                          del portal `--color-white` y `--color-ink` VOLTEAN, y
+                          un texto sin clase de color hereda un navy fijo que no
+                          voltea con ellos. Medido: 1,11:1 sobre la tarjeta
+                          oscura — invisible. Con el token, 13,08:1. */}
+                      <span
+                        style={{ fontFamily: MONO }}
+                        className="text-base text-ink"
+                      >
+                        {r.carton.trim() || "—"}
+                      </span>
+                      {r.same ? (
+                        // Caja Padre (SDD-0097): esta fila viaja DENTRO de la
+                        // caja de la fila líder. Sin decirlo, el cliente suma
+                        // las cajas de la columna y le da de más.
+                        <span className="mt-1 block text-sm font-semibold text-grey-700">
+                          Misma caja
+                        </span>
+                      ) : null}
                     </Td>
                     <TdNum>{r.same ? "—" : num(r.ctns)}</TdNum>
                     <TdNum>{r.same ? "—" : num(r.perctn)}</TdNum>
@@ -251,7 +251,7 @@ export function PackingListDelProveedor({
               <tfoot>
                 <tr className="border-t-2 border-grey-300">
                   <td colSpan={2} className="py-3 pr-3">
-                    <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-grey-500">
+                    <span className="text-base font-bold text-ink">
                       Total
                     </span>
                   </td>
@@ -277,12 +277,12 @@ export function PackingListDelProveedor({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="text-[13.5px] font-semibold text-ink">
+                    <span className="text-base font-semibold text-ink">
                       {nombreDeFila(r)}
                     </span>
                     {r.zh.trim() && r.es.trim() ? (
                       <span
-                        className="mt-0.5 block text-[12.5px] text-grey-700"
+                        className="mt-1 block text-base text-grey-700"
                         style={{ fontFamily: CJK }}
                         lang="zh-Hans"
                       >
@@ -292,7 +292,7 @@ export function PackingListDelProveedor({
                     <SubLinea fila={r} />
                   </div>
                   <span
-                    className="flex-shrink-0 text-[12px] font-bold text-ink"
+                    className="flex-shrink-0 text-base font-bold text-ink"
                     style={{ fontFamily: MONO }}
                   >
                     {r.carton.trim() || "—"}
@@ -300,7 +300,7 @@ export function PackingListDelProveedor({
                 </div>
 
                 {r.same ? (
-                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-grey-500">
+                  <p className="mt-2 text-sm font-semibold text-grey-700">
                     Va dentro de la caja anterior
                   </p>
                 ) : null}
@@ -333,7 +333,7 @@ export function PackingListDelProveedor({
       ) : (
         // "Sin líneas" es distinto de "sin packing list": el proveedor mandó el
         // documento pero no cargó mercancía. TBL-01 §vacío pide distinguirlos.
-        <p className="mt-6 text-[14px] text-grey-700 leading-[1.55]">
+        <p className="mt-6 text-base text-grey-700 leading-relaxed">
           Tu proveedor envió el documento pero todavía no cargó las líneas de
           mercancía. Escríbele para que las complete.
         </p>
@@ -342,10 +342,10 @@ export function PackingListDelProveedor({
       {/* ── Nota del proveedor ── */}
       {packing.nota?.trim() ? (
         <div className="mt-7 pt-6 border-t border-grey-200">
-          <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+          <div className="text-base font-semibold text-ink">
             Nota del proveedor
           </div>
-          <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] whitespace-pre-line">
+          <p className="mt-2 text-base text-grey-700 leading-relaxed whitespace-pre-line">
             {packing.nota.trim()}
           </p>
         </div>
@@ -388,10 +388,10 @@ function Cotejo({ cotejo }: { cotejo: CotejoDeCajas }) {
       <span style={{ color: tono }} className="flex-shrink-0 mt-px">
         {cuadra ? <CheckIcon size={16} /> : <WarningIcon size={16} />}
       </span>
-      <p className="text-[13.5px] text-ink leading-[1.5]">
+      <p className="text-base text-ink leading-relaxed">
         {frase}
         {!cuadra ? (
-          <span className="block mt-1 text-[13px] text-grey-700">
+          <span className="block mt-1 text-base text-grey-700">
             No siempre es un error — el proveedor pudo reagrupar la mercancía en
             menos cajas. Lo que mande de verdad se cuenta al recibirlo en Yiwu.
           </span>
@@ -404,13 +404,13 @@ function Cotejo({ cotejo }: { cotejo: CotejoDeCajas }) {
 /** Marca, código y HS: identifican el producto, pero no son su nombre. */
 function SubLinea({ fila }: { fila: PackingListRow }) {
   const partes = [
+    fila.code.trim() ? `Código ${fila.code.trim()}` : "",
     fila.brand.trim(),
-    fila.code.trim(),
     fila.hs.trim() ? `HS ${fila.hs.trim()}` : "",
   ].filter(Boolean);
   if (partes.length === 0) return null;
   return (
-    <span className="mt-1 block text-[11.5px] text-grey-500">
+    <span className="mt-1 block text-sm text-grey-700">
       {partes.join(" · ")}
     </span>
   );
@@ -434,11 +434,11 @@ function Total({
           : "var(--color-paper)",
       }}
     >
-      <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-grey-500">
+      <dt className="text-sm font-semibold text-grey-700">
         {label}
       </dt>
       <dd
-        className="mt-1.5 text-[15px] font-bold"
+        className="mt-2 text-lg font-bold break-words"
         style={{
           fontFamily: MONO,
           // `--color-wine-text` es wine COMO TEXTO (BD-026) y no voltea en el
@@ -462,7 +462,7 @@ function Th({
   return (
     <th
       scope="col"
-      className={`py-2.5 pr-3 text-[10.5px] font-bold uppercase tracking-[0.1em] text-grey-500 whitespace-nowrap ${
+      className={`py-3 pr-3 text-sm font-bold text-grey-700 whitespace-nowrap ${
         align === "right" ? "text-right" : "text-left"
       }`}
     >
@@ -484,7 +484,7 @@ function TdNum({
 }) {
   return (
     <td
-      className={`py-3 pr-3 text-right whitespace-nowrap text-[12.5px] ${
+      className={`py-3 pr-3 text-right whitespace-nowrap text-base ${
         strong ? "font-bold text-ink" : "text-grey-700"
       }`}
       style={{ fontFamily: MONO }}
@@ -505,11 +505,11 @@ function DatoMovil({
 }) {
   return (
     <div>
-      <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-grey-500">
+      <dt className="text-sm font-semibold text-grey-700">
         {label}
       </dt>
       <dd
-        className={`mt-0.5 text-[13px] ${strong ? "font-bold text-ink" : "text-grey-700"}`}
+        className={`mt-1 text-base ${strong ? "font-bold text-ink" : "text-grey-700"}`}
         style={{ fontFamily: MONO }}
       >
         {value}
