@@ -13,7 +13,7 @@
 |---|---|
 | `supabase/migrations/0550_faro_registro.sql` | Siete tablas, trigger de solo inserción, privilegios, seis funciones y el valor `asistente_alerta` del enum `bug_notif_type`. Cabecera «NO APLICADA» |
 | `supabase/tests/0550_faro_registro.test.sql` | Contrato: arma lo mínimo de la tenencia, aplica la 0550 dos veces y prueba las secciones A a I |
-| `lib/studio/asistente/__tests__/faro-0550.migration.test.ts` | Corre el contrato en PGlite, el control rojo, 13 mutantes y el ensayo del desarme |
+| `lib/studio/asistente/__tests__/faro-0550.migration.test.ts` | Corre el contrato en PGlite, el control rojo, los mutantes y el ensayo del desarme |
 | `supabase/desarmes/0550_desarme.sql` | Desarme sin número: quita funciones y tablas; el valor del enum queda |
 | `supabase/migrations-baseline.json` | Espera `0550_faro_registro` en `pendingBelowCutoff` |
 
@@ -65,7 +65,7 @@
 | `node scripts/migrations-lock.mjs verificar` | PASÓ: 1 espera sin sellar (0550), 0 nuevas sin sellar |
 | `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO, 0 AMARILLO (ningún código usa los símbolos) |
 | `node scripts/check-migrations-applied.mjs` | NO DISPONIBLE: worktree sin credenciales (SKIP) |
-| Vitest `faro-0550.migration.test.ts` (turno del DG) | PASÓ: 16/16 (contrato, control rojo, 13 mutantes, desarme) |
+| Vitest `faro-0550.migration.test.ts` (turno del DG) | PASÓ: 24/24 sobre 4eb4becf9 (contrato, control rojo, mutantes, desarme) |
 | Contrato `.test.sql` con Docker (`scripts/run-sql-tests.mjs`) | NO EJECUTADO local; lo corre el CI |
 | `pnpm verify` | NO EJECUTADO: se corre al cierre de Faro (fase 6), con turno |
 
