@@ -3447,6 +3447,15 @@
         "fecha": "2026-11-15",
         "forma": "exacta"
       }
+    },
+    "0545_solo_superadmin_crea_admin": {
+      "sha256": "300f6f6bc72de0dca32e591646826aa7d73d358a615e8805b5aef915dca44598",
+      "md5": "e0dba88d4e317fc8da3f9af3d295f640",
+      "bytes": 21106,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
     }
   }
 }
