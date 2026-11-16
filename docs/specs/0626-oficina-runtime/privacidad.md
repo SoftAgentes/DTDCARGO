@@ -30,7 +30,7 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 
 | Estado | Cantidad |
 |---|---|
-| `CORRECTO` | 7 |
+| `CORRECTO` | 8 |
 | `ENCONTRADO` | 3 |
 | `NO VERIFICABLE` | 5 |
 
@@ -123,6 +123,18 @@ service_role escribe por columna: nunca `id`, `creado_en` ni `ts` (`0541:423` y 
 ### `CORRECTO` 10 · Quién pausó queda por identificador
 
 `office_paused.cambiado_por` es el uuid de `auth.uid()`, no un nombre (`0541:236`, `:366`). Su finalidad está escrita en SGE-AG-01 §7: «Despausar exige autorización registrada».
+
+### `CORRECTO` 11 · El puente de prueba lee el mensaje pero no lo guarda (Paso 2b, 16/11/2026)
+
+- **Qué lee:** el puente (`infra/ops/cable-oficina/puente-prueba.mjs`) pide por la API de Chatwoot las conversaciones y los mensajes de la cuenta 2 y la bandeja 11, y la respuesta trae el contenido del mensaje (`content`) y el contacto (`sender`, `meta.sender`). Esos datos están **solo en memoria**, durante la vuelta.
+- **Qué no hace con ellos:**
+  - no los manda al ERP: `cuerpoMessageCreated` arma el cuerpo solo con ids, tipo, estado y etiquetas;
+  - no los guarda: en disco solo queda el cursor, que es un número;
+  - no los registra: en el log solo hay ids y códigos.
+- **Evidencia:**
+  - `infra/ops/tests/cable-oficina-puente.test.mjs` exige que ni el cuerpo ni el log lleven el texto o el nombre del contacto, y tampoco el token ni el secreto;
+  - en la prueba de staging del 16/11/2026 aparecieron **0 líneas** con el texto o el nombre en los logs del web y del puente (`/srv/ops/evidencias/cable-puente-prueba-20261116T012638Z.txt`, en el VPS).
+- **Alcance:** solo la cuenta 2, de prueba. Los datos de la prueba son inventados: un contacto, una conversación y un mensaje, que siguen en Chatwoot con la retención de Chatwoot (§4).
 
 ## 4 · No verificable
 
