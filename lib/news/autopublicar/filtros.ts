@@ -15,6 +15,7 @@
 
 import { CEREBRO_A_EDITORIAL, scoreFromTest, TEST_NOTICIA_KEYS, type CerebroTipo } from "@/lib/news/cerebro";
 import type { NewsCategoria, NewsTipo } from "@/lib/news/categories";
+import type { PortadaDeclarada } from "@/lib/news/portada";
 import { controlLineasRojas, lineasRojasDelRevisor, type FuenteBorrador } from "./control";
 import { tieneMarca } from "./marcas";
 import { evaluarPuntaje } from "./puntaje";
@@ -82,7 +83,8 @@ export interface EntradaFiltros {
     searchConsole: { consulta?: unknown; fecha?: unknown } | null;
     sources: FuenteBorrador[] | null;
     contentKind: string | null;
-    coverImageUrl: string | null;
+    /** Portada declarada por el borrador; `evaluarPortada` decide si se usa (nunca retiene). */
+    portada: PortadaDeclarada | null;
     writerAgent: AgenteVersion | null;
     reviewerVerdict: VeredictoRevisor | null;
   };
@@ -194,7 +196,6 @@ export const EVALUADORES: Readonly<Record<Filtro, Evaluador>> = {
       tipo: e.post.tipo,
       categoria: e.post.categoria,
       focusKeyword: e.post.focus_keyword,
-      coverImageUrl: e.borrador.coverImageUrl,
       contentKind: e.borrador.contentKind,
     }),
 
