@@ -43,8 +43,8 @@ Esta spec convierte esa hoja en una pantalla del Studio y conecta su aprobación
 | Carga | `infra/ops/consolidados/aplicar-lote.sh` | Pasos de a uno, con evidencia. En producción exige `AUTORIZACION.txt` con el OK literal de Sam y el id completo del lote. |
 | Runbook | `docs/runbooks/cargar-consolidados.md` | §1 generar, §2 prueba, §2b producción. |
 | Contenedor | `consolidations` + `consolidation_items` + `sailings` | Lo que la carga crea; el Portal lo muestra (SDD-0101). |
-| Huérfanos | `warehouse_receipts_cn` con `SIN-CODIGO-0640` (SDD-0016, SDD-0491) | La recepción sin Shipping Mark. En el lote, el equivalente es un paquete cuya marca no resuelve a un cliente. |
-| Permisos | `lib/studio/rbac.ts` (SDD-0085), accesos por persona (SDD-0622, migr 0538) | `naviera` lo ven `operations` y `accounting`; `admin` todo; `support` solo lectura. |
+| Huérfanos | `warehouse_receipts_cn` con `SIN-CODIGO-NNNN` (contador por tenant, `supabase/migrations/0008_warehouses_cn.sql:55`) (SDD-0016, SDD-0491) | La recepción sin Shipping Mark. En el lote, el equivalente es un paquete cuya marca no resuelve a un cliente. |
+| Permisos | `lib/studio/rbac.ts` (SDD-0085), accesos por persona (SDD-0622, migr 0538) | `naviera` lo ven `operations` y `accounting`; `admin` todo; `user_has_module` (0538) lo resuelve en SQL. |
 | Auditoría | `append_audit_event` (migr 0267), `entity_audit_log` append-only | Evento por acción, sin borrar. |
 
 **Lo que falta.** Hoy no hay manera de que alguien de la oficina revise el lote dentro del sistema ni de
@@ -70,6 +70,9 @@ atada al id del lote: si el Excel cambia, la revisión vieja parece válida.
 - Cambiar el lote desde la pantalla. «Corregir» devuelve el lote; quien regenera es el DG con el generador.
 - Lotes de prueba (`--entorno prueba`): pueden subirse para ensayar, pero la exigencia de aprobación aplica a
   producción (decisión 6).
+- Inteligencia artificial. Ningún dato de la revisión (etiquetas, descripciones, comentarios, respuestas ni
+  códigos) se envía a un proveedor de IA. Si más adelante Faro (SDD-0637) u otra IA lee estas pantallas, los
+  datos de clientes no van a un proveedor chino (D-2 de la SDD-0639), y ese acceso se decide en su propia spec.
 
 ## 4. De dónde salen los datos del lote
 
@@ -124,7 +127,17 @@ con la revisión, y la carga la compara (§7).
 
 ## 5. Modelo de datos y auditoría (fase 1; aquí solo se especifica)
 
-Tres tablas nuevas, con `tenant_id` y RLS por tenant como el resto del Studio:
+Tres tablas nuevas, con `tenant_id`. La RLS filtra por tenant **y por rol**, porque `contenido` trae etiquetas de
+clientes:
+
+- **SELECT** en las tres tablas: mismo tenant **y** `public.user_has_module('naviera')` (migr 0538), que concede a
+  `admin`, a los roles de la matriz de `naviera` en `lib/studio/rbac.ts` (hoy `operations` y `accounting`) y a
+  quien tenga un acceso por persona vigente a `naviera` (SDD-0622). `support` no está hoy en la matriz de
+  `naviera`, así que no lee; si se agrega a la matriz, lee sin tocar la policy. `warehouse`, `marketing`,
+  `commercial` y los demás roles no leen ninguna fila.
+- **INSERT/UPDATE/DELETE**: ninguna policy para `authenticated`; todo pasa por las funciones de abajo.
+
+Las tablas:
 
 **`consolidation_reviews`** (una fila por lote subido)
 
@@ -182,9 +195,14 @@ La pantalla muestra el historial de la revisión (quién marcó qué y cuándo) 
 
 - **Ruta:** submódulo de Naviera & Consolidación, `/studio/naviera/lotes` (lista) y
   `/studio/naviera/lotes/<contenedor>-<sha8>` (enlace directo). Hereda el gate de vista de `naviera`
-  (`operations`, `accounting`, `admin`; `support` solo lectura). No se crea un módulo nuevo en `modules.ts`.
+  (`app/studio/(app)/naviera/layout.tsx`, `requireModuleView("naviera")`: hoy `operations`, `accounting` y `admin`,
+  más los accesos por persona). No se crea un módulo nuevo en `modules.ts`.
+- **El enlace directo no es una llave.** `<contenedor>-<sha8>` no es secreto ni da autorización: el número del
+  contenedor es secuencial y el `sha8` sale en la evidencia y en los mensajes. Sin sesión, la ruta redirige al
+  login del Studio. Con sesión pero sin vista de `naviera`, el layout niega la página y la RLS (§5) no devuelve
+  filas. Un enlace adivinado o reenviado a alguien sin el rol no abre nada.
 - **Marcar líneas y responder:** quien pueda **editar** `naviera` (`canEditModule`): `operations`, `accounting`,
-  `admin`. `support` ve sin editar.
+  `admin`, y quien tenga el acceso por persona con edición.
 - **Aprobar y devolver:** acción nueva `naviera.lote.aprobar`, concedida por defecto a `operations` y `admin`.
   Se puede sumar a una persona con un acceso adicional de la SDD-0622 (con motivo, vencimiento y auditoría).
   `accounting` no aprueba por defecto: revisa carga física, no dinero (decisión 2).
@@ -295,6 +313,9 @@ Como esta etapa no tiene código, todo lo que sigue es **diseño a verificar** e
 - **Venezuela (CRBV art. 28 y 60).** El cliente puede pedir acceso y supresión; la purga a plazo y la ausencia
   de etiquetas en el log facilitan responderle. Que exista un aviso de privacidad que cubra este tratamiento es
   `NO VERIFICABLE` en esta etapa.
+- **Inteligencia artificial.** Ningún dato de la revisión se envía a un proveedor de IA: ni la subida, ni la
+  pantalla, ni la carga llaman a un modelo. Si Faro (SDD-0637) u otra IA llega a leer estas pantallas, los datos
+  de clientes no van a un proveedor chino (D-2 de la SDD-0639), y ese acceso pasa por su propia revisión de datos.
 
 ## 10. Criterios de aceptación
 
@@ -321,6 +342,15 @@ Como esta etapa no tiene código, todo lo que sigue es **diseño a verificar** e
 9. Tras `verificar` PASÓ, la revisión queda `cargado`.
 10. La purga del `contenido` vacía etiquetas, descripciones, comentarios y respuestas, con evidencia de conteo.
 11. `pnpm verify` PASÓ en cada fase de producto.
+12. **RLS por rol.** Una prueba `.test.sql` siembra una revisión con sus líneas y preguntas y comprueba que
+    usuarios del mismo tenant con rol `warehouse` y `marketing` (sin acceso por persona a `naviera`) leen **cero
+    filas** en las tres tablas; que `operations`, `accounting` y `admin` las leen; que un `warehouse` con acceso
+    por persona vigente a `naviera` las lee y, al vencerse o revocarse el acceso, deja de leerlas; y que ningún
+    rol de otro tenant lee nada. También comprueba que `authenticated` no puede insertar ni actualizar
+    directamente.
+13. **Enlace directo.** Sin sesión, `/studio/naviera/lotes/<contenedor>-<sha8>` redirige al login; con sesión y sin
+    vista de `naviera`, se niega. Lo cubren `rbac-subroute-guard.test.ts` (layout con gate) y una prueba de la
+    página.
 
 ## 11. Fases
 
@@ -332,8 +362,50 @@ Como esta etapa no tiene código, todo lo que sigue es **diseño a verificar** e
 | 3 | `aplicar-lote.sh` y runbook exigen la aprobación | Fase 1 | `infra/ops/consolidados/`, `infra/ops/tests/`, `docs/runbooks/cargar-consolidados.md` |
 | 4 | Primer contenedor real revisado en el Studio; retiro de la hoja local | Fases 1-3 en producción, con OK de Sam | — |
 
-La allowlist exacta de cada fase se fija en su PR. La migración se aplica en producción solo con el OK nominal
-de Sam y el runbook `aplicar-migraciones-prod.md`.
+La migración se aplica en producción solo con el OK nominal de Sam y el runbook `aplicar-migraciones-prod.md`.
+`NNNN` es el número de migración que toque al implementar (el siguiente libre en `supabase/migrations/`).
+
+### 11.1 Allowlist exacta por fase
+
+Cualquier archivo fuera de estas listas pide enmendar esta spec.
+
+**Fase 0 (esta PR)**
+- `docs/specs/0640-revisar-lote-studio/spec.md`
+- `docs/specs/0640-revisar-lote-studio/maqueta/revisar-lote.html`
+- `docs/specs/README.md` (índice regenerado con `pnpm docs:index`)
+- `.agents/handoffs/0640-revisar-lote-studio.md`
+
+**Fase 1 (base de datos y generador; después de fusionar la #559)**
+- `supabase/migrations/NNNN_revisar_lote.sql` (nueva: tablas, RLS por rol, funciones, trigger, auditoría)
+- `supabase/tests/NNNN_revisar_lote.test.sql` (nueva: criterios 5, 6, 7, 10 y 12)
+- `scripts/consolidados/modelo.ts` (códigos de nota y preguntas)
+- `scripts/consolidados/lote-sql.ts` (guarda `do $aprobacion$` en el preflight de `aplicar.sql`, solo producción)
+- `scripts/consolidados/generar-lote.ts` (emitir `revision.json`)
+- `scripts/consolidados/revision.ts` (nueva: armar y validar `revision.json`)
+- `scripts/__tests__/consolidados-revision.test.ts` (nueva)
+- `scripts/__tests__/consolidados-sql.test.ts` (la guarda de aprobación)
+- `.agents/handoffs/` de la tarea
+
+**Fase 2 (pantalla del Studio, detrás de un flag apagado)**
+- `app/studio/(app)/naviera/lotes/**` (nuevo: `page.tsx` de la lista, `[lote]/page.tsx`, `_components/`,
+  `actions.ts` y sus pruebas; todo bajo el gate de `app/studio/(app)/naviera/layout.tsx`, que no cambia)
+- `lib/studio/revision-lote-queries.ts` (nueva: lecturas) y `lib/studio/revision-lote-types.ts` (nueva)
+- `lib/studio/revision-lote-schema.ts` (nueva: validación de `revision.json` en el servidor)
+- `lib/studio/rbac.ts` (solo los roles que aprueban un lote, decisión 2)
+- `lib/studio/rbac-actions-guard.test.ts` y `lib/studio/rbac-subroute-guard.test.ts` (solo si hace falta
+  registrar la ruta o la acción nuevas)
+- `app/studio/(app)/naviera/_components/NavieraClient.tsx` (solo el enlace «Revisar lotes»)
+- `.agents/handoffs/` de la tarea
+
+**Fase 3 (la carga exige la aprobación)**
+- `infra/ops/consolidados/aplicar-lote.sh`
+- `infra/ops/tests/prueba-aplicar-lote.sh` (criterio 8)
+- `docs/runbooks/cargar-consolidados.md` (§1b nuevo y §2b)
+- `docs/specs/0543-consolidados-en-camino/spec.md` (solo una nota de seguimiento que remite a esta spec)
+- `.agents/handoffs/` de la tarea
+
+**Fuera, por decisión:** `lib/studio/modules.ts` (no hay módulo nuevo), `infra/ops/portal-historial/`,
+`.env*`, producción, el Portal del cliente y cualquier integración con IA.
 
 **El 64 no espera a esto.** Se revisa con la hoja local de hoy y se carga con el flujo vigente. Esta spec rige
 desde el primer contenedor que llegue después de la fase 3.
