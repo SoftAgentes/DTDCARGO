@@ -21,8 +21,11 @@
   - D-3: automático con opción manual;
   - D-6: el superadmin, más un permiso por persona en Usuarios › Acceso.
 
-  Quedan abiertas D-4 (recomendación: noticias y después el brief), D-5 (recomendación: Agentes fuera de
-  la spec y en Anthropic) y D-7 (llaves nuevas).
+- v0.3: Sam aprobó «Sí, así» las recomendaciones:
+  - D-4: empezar por noticias y seguir con el brief;
+  - D-5: Agentes fuera de la spec, en Anthropic.
+
+  Queda abierta solo la D-7 (llaves nuevas).
 
 ## VALIDACIÓN
 
@@ -34,7 +37,7 @@
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam decida D-4, D-5 y D-7 y apruebe la spec. El DG la fusiona por separado de la #603.
+- Que Sam decida la D-7 y apruebe la spec. El DG la fusiona por separado de la #603.
 - Depende de la SDD-0638 (clasificador y registro), que va en la PR #603.
 
 ## FUERA DE ALCANCE DETECTADO

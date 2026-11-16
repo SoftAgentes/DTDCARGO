@@ -19,8 +19,8 @@ confidencialidad: interno
 > pantalla «Estado de la IA» de la SDD-0638.
 >
 > **Estado: proposed.** Es un plan. Depende de la SDD-0638 (clasificador y registro) y se coordina con
-> el fallback de la Oficina (SDD-0626 §7). **v0.2:** Sam decidió D-1, D-2, D-3 y D-6 el 2026-11-16
-> (§9). Quedan abiertas D-4 y D-5, con una recomendación cada una, y una nueva, D-7.
+> el fallback de la Oficina (SDD-0626 §7). **v0.3:** Sam decidió D-1 a D-6 el 2026-11-16 (§9).
+> Queda abierta solo la D-7 (llaves nuevas).
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no
 verificado. Base: `main` `4a3046745`. El repo es público: sin llaves, montos ni datos de cuentas.
@@ -126,7 +126,7 @@ marca permite:
 - Retención: se usa la política de no conservar del proveedor donde exista, y queda escrita por
   proveedor en el catálogo.
 
-## 5. Fases (orden recomendado, D-4)
+## 5. Fases (orden aprobado, D-4)
 
 | Fase | Qué entrega | Necesita |
 |---|---|---|
@@ -135,7 +135,7 @@ marca permite:
 | **3 · Noticias web (A1)** | **La primera función.** GLM → DeepSeek, con cambio automático y manual | SDD-0638 fase 4 |
 | **4 · Brief del CEO (A2)** | Mismo esquema. Ya tiene salida sin IA, así que es la segunda más segura | Fase 3 |
 | **5 · Funciones con datos de clientes** | A3, A4 y A5 se quedan en Anthropic, sin respaldo chino; solo se suma un respaldo no chino si Sam contrata uno | D-7 o una suscripción nueva |
-| — | A6 Agentes | Ver D-5 |
+| — | A6 Agentes | Fuera de esta spec; sigue en Anthropic (D-5) |
 
 **Por qué noticias primero:** es el botón que Sam echó en falta, es contenido público sin datos de
 clientes, son ocho acciones de texto libre (lo más fácil de pasar a otro proveedor) y, si algo sale
@@ -180,18 +180,14 @@ sin IA, y un error ahí no se nota tanto.
 - **D-3 · Modo:** cambio automático, con opción manual (§3, punto 4).
 - **D-6 · Quién cambia:** el superadministrador. El permiso se puede dar a una persona concreta desde
   Usuarios › Acceso, como un permiso nuevo (§3, punto 5).
+- **D-4 · Por dónde se empieza:** por **noticias web (A1)** y después por el **brief (A2)**, en el
+  orden de §5. Lo aprobó Sam con «Sí, así».
+- **D-5 · Agentes y Skills:** **queda fuera de esta spec y sigue en Anthropic**, porque sus
+  herramientas devuelven nombre y dirección del cliente (regla D-2). Si algún día hace falta un
+  respaldo, tendrá que ser un proveedor no chino, en su propia spec. Lo aprobó Sam con «Sí, así».
 
-### 9.2 Abiertas
+### 9.2 Abierta
 
-- **D-4 · Por qué función se empieza.** Recomendación: **noticias web (A1)** y después el **brief
-  (A2)**. Ver §5. Confírmala o cámbiala.
-- **D-5 · Agentes y Skills.** Contexto: es el módulo de Administración › Agentes (SDD-0020). Ahí se
-  instalan asistentes como «Tracking Concierge» (responde dónde está una carga) y «Service Advisor»
-  (orienta sobre servicios). Consultan el ERP en modo solo lectura (embarques, clientes) y cada uno
-  tiene un tope de gasto mensual. Usan Anthropic con un bucle de herramientas, lo más difícil de pasar
-  a otro proveedor. Como sus herramientas devuelven **nombre y dirección del cliente**, por la regla
-  D-2 **no pueden** ir a GLM ni a DeepSeek. **Recomendación: dejarlo fuera de esta spec y en
-  Anthropic.** Si algún día hace falta respaldo, que sea un proveedor no chino.
 - **D-7 · Llaves nuevas.** Propuesta: las llaves siguen en variables del servidor y las coloca Claude
   Code con tu OK. La pantalla solo elige entre los proveedores con llave puesta. ¿O quieres poder
   pegar una llave desde la pantalla? Es más cómodo, pero guarda la llave en la base y es más riesgoso.
