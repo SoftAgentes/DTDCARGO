@@ -37,6 +37,8 @@ interface Props {
   inicioUrl: string | null;
   /** `?c=N`: conversación a abrir (E2-D24). */
   conversacion?: number | null;
+  /** SDD-0648 (D7): se llegó desde el CRM; el encabezado ofrece volver al embudo. */
+  volverACrm?: boolean;
   admin: {
     vinculos: VinculoFila[];
     miembros: MiembroOpcion[];
@@ -49,7 +51,7 @@ interface Props {
 
 type Fase = { tipo: "pidiendo" } | { tipo: "abriendo" } | { tipo: "abierto" } | { tipo: "error"; codigo: BandejaErrorCode };
 
-export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null, admin }: Props) {
+export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null, volverACrm = false, admin }: Props) {
   const t = useT();
   const [src, setSrc] = useState<string | null>(inicioUrl);
   const [fase, setFase] = useState<Fase>(inicioUrl ? { tipo: "abriendo" } : { tipo: "pidiendo" });
@@ -100,6 +102,15 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--s-4)", flexWrap: "wrap" }}>
         <div>
+          {volverACrm && (
+            <a
+              href="/studio/crm?tab=embudos"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              style={{ marginBottom: "var(--s-3)" }}
+            >
+              {t("bandeja.action.back_crm")}
+            </a>
+          )}
           <div style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--wine-text)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: "var(--s-2)" }}>
             {t("bandeja.page.eyebrow")}
           </div>

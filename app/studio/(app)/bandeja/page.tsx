@@ -38,9 +38,11 @@ function nombreDe(profile: { first_name: string | null; last_name: string | null
 export default async function BandejaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string | string[] }>;
+  searchParams: Promise<{ c?: string | string[]; volver?: string | string[] }>;
 }) {
-  const { c } = await searchParams;
+  const { c, volver } = await searchParams;
+  // SDD-0648 (D7): el chat abierto desde el CRM muestra «← Volver al embudo».
+  const volverACrm = (Array.isArray(volver) ? volver[0] : volver) === "crm";
   const conversacion = parseChatwootUserId(Array.isArray(c) ? c[0] : c);
   const supabase = await createClient();
   const access = await getStudioAccess(supabase);
@@ -108,6 +110,6 @@ export default async function BandejaPage({
   }
 
   return (
-    <BandejaClient estado={estado} panelUrl={panelUrl} inicioUrl={inicioUrl} conversacion={conversacion} admin={admin} />
+    <BandejaClient estado={estado} panelUrl={panelUrl} inicioUrl={inicioUrl} conversacion={conversacion} volverACrm={volverACrm} admin={admin} />
   );
 }

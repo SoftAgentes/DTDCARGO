@@ -116,6 +116,8 @@ export interface CrmTarjetaFila {
   etapa_clientes_at: string;
   asesor_id: string | null;
   fuente: string;
+  /** Marca de campaña del registro web (SDD-0648 §2: reconoce TikTok). */
+  utm_source?: string | null;
   ultima_actividad_at: string;
 }
 
@@ -203,6 +205,10 @@ export interface CrmTarjetaTablero {
   asesorNombre: string | null;
   tareasAbiertas: number;
   tareasVencidas: number;
+  /** `crm_tarjetas.fuente`: de ella sale el logo del canal (SDD-0648 §2). */
+  fuente?: string;
+  /** `crm_tarjetas.utm_source`: solo para reconocer TikTok (SDD-0648, D4). */
+  utmSource?: string | null;
 }
 
 export interface CrmColumna {

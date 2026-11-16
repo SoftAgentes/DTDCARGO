@@ -21,6 +21,7 @@ export const bandeja: BandejaDict = {
   "bandeja.action.retry": "重试",
   "bandeja.action.relogin": "重新登录",
   "bandeja.action.open_tab": "在新标签页中打开",
+  "bandeja.action.back_crm": "← 返回销售漏斗",
 
   // ── 绑定（仅管理员）──────────────────────────────────────
   "bandeja.links.title": "已绑定的坐席",

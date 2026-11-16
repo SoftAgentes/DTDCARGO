@@ -83,10 +83,9 @@ describe("CrmEmbudosClient", () => {
     const user = userEvent.setup();
     moverMock.mockResolvedValue({ ok: true, movida: true });
     pintar();
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Mover Lead de prueba a otra etapa" }),
-      "perdido",
-    );
+    // SDD-0648: mover va por el menú de la tarjeta.
+    await user.click(screen.getByRole("button", { name: "Acciones de Lead de prueba" }));
+    await user.click(screen.getByRole("menuitem", { name: "Mover a Perdido" }));
     expect(moverMock).not.toHaveBeenCalled();
 
     const dialogo = await screen.findByRole("dialog");
@@ -104,10 +103,8 @@ describe("CrmEmbudosClient", () => {
     moverMock.mockResolvedValue({ error: "Esa etapa ya no existe o está apagada." });
     pintar([TARJETAS[1]]);
     await user.click(screen.getByRole("radio", { name: "Clientes (1)" }));
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Mover Cliente de prueba a otra etapa" }),
-      "postventa",
-    );
+    await user.click(screen.getByRole("button", { name: "Acciones de Cliente de prueba" }));
+    await user.click(screen.getByRole("menuitem", { name: "Mover a Postventa" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Esa etapa ya no existe o está apagada."));
     await waitFor(() =>
       expect(within(screen.getByRole("region", { name: "Etapa Activo" })).getByText("Cliente de prueba")).toBeTruthy(),

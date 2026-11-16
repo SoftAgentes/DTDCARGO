@@ -25,7 +25,7 @@ import {
 } from "@/lib/studio/crm-tablero";
 
 const COLS_TARJETA =
-  "id, client_id, nombre_visible, etapa_leads, etapa_leads_at, etapa_clientes, etapa_clientes_at, asesor_id, fuente, ultima_actividad_at";
+  "id, client_id, nombre_visible, etapa_leads, etapa_leads_at, etapa_clientes, etapa_clientes_at, asesor_id, fuente, utm_source, ultima_actividad_at";
 
 /** Lote para la RPC de segmentos: el arreglo viaja en el cuerpo, no en la URL. */
 const SEGMENTO_LOTE = 500;
@@ -215,6 +215,9 @@ export async function cargarTableroCrm(
         asesorNombre: t.asesor_id ? (opts.asesores.get(t.asesor_id) ?? null) : null,
         tareasAbiertas: tk?.total ?? 0,
         tareasVencidas: tk?.vencidas ?? 0,
+        // SDD-0648 §2: el logo del canal; utm_source solo para reconocer TikTok.
+        fuente: t.fuente,
+        utmSource: t.utm_source ?? null,
       };
     });
 

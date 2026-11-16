@@ -29,7 +29,8 @@ import {
   type CrmTarjetaTablero,
 } from "@/lib/studio/crm-tablero";
 import { moverTarjetaAction } from "../tarjeta-actions";
-import { CrmTableroKanban, nombreTarjeta } from "./CrmTableroKanban";
+import { nombreTarjeta } from "./CrmTableroKanban";
+import { CrmVistaEmbudo } from "./CrmVistaEmbudo";
 import { TarjetaFichaDrawer } from "./TarjetaFichaDrawer";
 
 export function CrmEmbudosClient({
@@ -190,7 +191,8 @@ export function CrmEmbudosClient({
         </p>
       )}
 
-      <CrmTableroKanban
+      {/* SDD-0648 §3-§4: vista Tablero | Lista y aviso del chat que no se pudo abrir. */}
+      <CrmVistaEmbudo
         tablero={tablero}
         columnas={columnas}
         etapas={etapas}

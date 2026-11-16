@@ -24,6 +24,8 @@ export const bandeja = {
   "bandeja.action.retry": "Reintentar",
   "bandeja.action.relogin": "Volver a entrar",
   "bandeja.action.open_tab": "Abrir en pestaña aparte",
+  // SDD-0648 (D7): el chat abierto desde el CRM vuelve al tablero.
+  "bandeja.action.back_crm": "← Volver al embudo",
 
   // ── Vínculos (solo admin) ────────────────────────────────
   "bandeja.links.title": "Agentes vinculados",

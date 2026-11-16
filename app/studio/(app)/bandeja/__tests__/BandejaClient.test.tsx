@@ -38,6 +38,16 @@ describe("BandejaClient (SDD-0585)", () => {
     expect(pedirEnlaceSso).not.toHaveBeenCalled();
   });
 
+  it("desde el CRM ofrece volver al embudo; sin `volver` no (SDD-0648, D7)", () => {
+    const { rerender } = render(
+      <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} conversacion={97} volverACrm admin={null} />,
+    );
+    const volver = screen.getByRole("link", { name: "← Volver al embudo" });
+    expect(volver.getAttribute("href")).toBe("/studio/crm?tab=embudos");
+    rerender(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    expect(screen.queryByRole("link", { name: "← Volver al embudo" })).toBeNull();
+  });
+
   it("sin marca: pide UN enlace al montar y lo pone en el iframe", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);

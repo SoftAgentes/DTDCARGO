@@ -28,6 +28,8 @@ import {
   type CrmFichaTarjeta,
 } from "@/lib/studio/crm-ficha";
 import { FUENTE_LABEL, nombreEtapa, type CrmEtapa } from "@/lib/studio/crm-tablero";
+import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
+import { rutaChatTarjeta } from "./CrmTableroKanban";
 import {
   agregarNotaTarjetaAction,
   agregarTareaTarjetaAction,
@@ -166,6 +168,15 @@ function Ficha({
         <Dueno ficha={f} canEdit={canEdit} onCambio={onCambio} />
         <div style={{ marginTop: "var(--s-4)" }}>
           <span className="studio-label">Quién contesta el chat (Chatwoot)</span>
+          {/* SDD-0648 (D7): el chat se lee y se contesta en la Bandeja, a pantalla
+              completa; la ficha sigue a media pantalla. */}
+          {(f.chat != null || canalConChat(canalDeTarjeta(f.fuente))) && (
+            <p style={{ margin: "0 0 var(--s-2)" }}>
+              <a href={rutaChatTarjeta(f.id)} className="studio-btn studio-btn-primary studio-btn-sm">
+                Abrir chat
+              </a>
+            </p>
+          )}
           <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
             {f.chat == null
               ? "Sin conversación en Chatwoot ligada a esta ficha."

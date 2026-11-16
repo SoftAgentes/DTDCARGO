@@ -6,18 +6,21 @@
  * Toma el layout del tablero de Kommo (`KommoBoardView`: columnas = etapas en
  * orden, antigüedad en dorado desde 30 días) y el arrastre del kanban de
  * Bitácora (HTML5 nativo, sin librería, contrato DND-01): cada tarjeta se
- * arrastra y además trae un selector «Mover a…» que alcanza cualquier etapa
- * con teclado o con el dedo. El verbo de etapa vive en la misma tarjeta, igual
- * que `StageControl`, porque un kanban que no mueve nada enseña que la pantalla
- * no sirve (SDD-0256).
+ * arrastra y además trae un menú de acciones con «Mover a …» que alcanza
+ * cualquier etapa con teclado o con el dedo. El verbo de etapa vive en la misma
+ * tarjeta, igual que `StageControl`, porque un kanban que no mueve nada enseña
+ * que la pantalla no sirve (SDD-0256). SDD-0648: el menú reemplaza al selector
+ * y al botón «Abrir» para que la tarjeta quepa en dos líneas.
  *
  * Es presentacional: quien la monta decide qué hacer con `onMove` (pedir
  * motivo si la etapa es de cierre, llamar a la acción, avisar).
  */
 
 import { useRef, useState, type DragEvent } from "react";
-import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ActionMenu, type ActionMenuItem } from "@/app/studio/_components/ui/ActionMenu";
+import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
+import { CanalLogo } from "./CanalLogo";
 import {
   CRM_DIAS_ATENCION,
   CRM_TARJETAS_POR_COLUMNA,
@@ -31,6 +34,11 @@ import {
 } from "@/lib/studio/crm-tablero";
 
 const SIN_NOMBRE = "Lead sin nombre";
+
+/** Ruta que resuelve la conversación de Chatwoot de una tarjeta (SDD-0648 §4). */
+export function rutaChatTarjeta(id: string): string {
+  return `/studio/crm/chat/${encodeURIComponent(id)}`;
+}
 
 export function nombreTarjeta(t: Pick<CrmTarjetaTablero, "nombre">): string {
   return t.nombre ?? SIN_NOMBRE;
@@ -83,11 +91,15 @@ export function CrmTableroKanban({
       <div
         data-guia="embudo.tablero"
         style={{
-          display: "flex",
-          gap: "var(--s-3)",
+          // SDD-0648 §3: las columnas se reparten el ancho; si no caben, el
+          // tablero se desplaza en horizontal como antes.
+          display: "grid",
+          gridAutoFlow: "column",
+          gridAutoColumns: "minmax(232px, 1fr)",
+          gap: "var(--s-2)",
           overflowX: "auto",
           paddingBottom: "var(--s-2)",
-          alignItems: "flex-start",
+          alignItems: "start",
         }}
       >
         {columnas.map(({ etapa, tarjetas }, i) => {
@@ -110,8 +122,7 @@ export function CrmTableroKanban({
               }}
               onDrop={(e) => canEdit && soltar(e, etapa)}
               style={{
-                flex: "0 0 268px",
-                width: 268,
+                minWidth: 0,
                 background: encima ? "var(--wine-tint)" : "var(--bg-surface)",
                 border: `1px ${encima ? "dashed var(--wine)" : "solid var(--border)"}`,
                 borderRadius: "var(--r-lg)",
@@ -166,8 +177,8 @@ export function CrmTableroKanban({
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "var(--s-2)",
-                  padding: "var(--s-2)",
+                  gap: "var(--s-1)",
+                  padding: "var(--s-1)",
                   minHeight: 64,
                 }}
               >
@@ -230,6 +241,15 @@ export function CrmTableroKanban({
   );
 }
 
+/**
+ * Tarjeta compacta (SDD-0648 §1). Dos líneas y una sola acción visible:
+ *   1. logo del canal + nombre (abre la ficha; es parada de teclado otra vez);
+ *   2. segmento o Shipping Mark · dueño · días;
+ *   3. solo si existen: tareas y de dónde vino.
+ * «Mover», «Abrir ficha» y «Abrir chat» viven en un `ActionMenu` de 32 × 32
+ * (BTN-01 §7, BD-037): nada oprimible baja de 32 px y la fila de controles ya
+ * no ocupa media tarjeta.
+ */
 function TarjetaCard({
   tarjeta: t,
   tablero,
@@ -255,6 +275,28 @@ function TarjetaCard({
   const destinos = destinosDe(etapas, tablero, t.etapa);
   const dias = t.diasEnEtapa;
   const atencion = dias != null && dias >= CRM_DIAS_ATENCION;
+  const canal = canalDeTarjeta(t.fuente, t.utmSource);
+  const conChat = canalConChat(canal) || t.shippingMark != null;
+
+  const acciones: ActionMenuItem[] = [
+    { key: "ficha", label: "Abrir ficha", icon: "doc", onSelect: onOpen },
+    ...(conChat
+      ? [{ key: "chat", label: "Abrir chat", icon: "chat" as const, href: rutaChatTarjeta(t.id) }]
+      : []),
+    ...(canEdit && destinos.length > 0
+      ? [
+          { key: "sep-mover", separator: true as const },
+          ...destinos.map((d) => ({
+            key: `mover-${d.clave}`,
+            label: `Mover a ${d.nombre}`,
+            onSelect: () => onMove(d),
+          })),
+        ]
+      : []),
+  ];
+
+  const segmento = tablero === "leads" ? SEGMENTO_LABEL[t.segmento] : null;
+  const extras = t.tareasVencidas > 0 || t.tareasAbiertas > 0 || t.origen != null;
 
   return (
     <article
@@ -273,104 +315,71 @@ function TarjetaCard({
         background: "var(--bg-base)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-md)",
-        padding: "var(--s-3)",
+        padding: "var(--s-1) var(--s-1) var(--s-1) var(--s-2)",
         opacity: enCurso ? 0.6 : 1,
         cursor: canEdit && !enCurso ? "grab" : "default",
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) auto",
+        columnGap: "var(--s-1)",
+        alignItems: "center",
       }}
     >
-      {/* SDD-0603 tramo 5d: el nombre sigue abriendo la ficha con el ratón, pero
-          sale del orden de Tab; la parada de teclado y de lector es «Abrir»,
-          al pie de la tarjeta. */}
-      <button
-        type="button"
-        tabIndex={-1}
-        onClick={onOpen}
-        className="studio-link-quiet"
-        style={{
-          display: "block",
-          width: "100%",
-          textAlign: "left",
-          background: "none",
-          border: 0,
-          padding: 0,
-          cursor: "pointer",
-          font: "600 13px/1.3 var(--f-sans)",
-          color: t.nombre ? "var(--ink)" : "var(--ink-soft)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {nombre}
-      </button>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--s-1)",
-          flexWrap: "wrap",
-          marginTop: "var(--s-2)",
-        }}
-      >
-        {tablero === "leads" && (
-          <Badge tone="neutral" size="sm">
-            {SEGMENTO_LABEL[t.segmento]}
-          </Badge>
-        )}
-        {t.shippingMark && (
-          <Badge tone="info" size="sm">
-            {t.shippingMark}
-          </Badge>
-        )}
-        {t.tareasVencidas > 0 ? (
-          <span data-guia="embudo.tareas" style={{ display: "inline-flex" }}>
-            <Badge tone="danger" size="sm">
-              {t.tareasVencidas === 1 ? "1 tarea vencida" : `${t.tareasVencidas} tareas vencidas`}
-            </Badge>
-          </span>
-        ) : t.tareasAbiertas > 0 ? (
-          <span data-guia="embudo.tareas" style={{ display: "inline-flex" }}>
-            <Badge tone="neutral" size="sm">
-              {t.tareasAbiertas === 1 ? "1 tarea" : `${t.tareasAbiertas} tareas`}
-            </Badge>
-          </span>
-        ) : null}
-      </div>
-
-      {t.origen && (
-        <p
+      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        {canal && <CanalLogo canal={canal} />}
+        {/* SDD-0648: el nombre vuelve a ser la parada de teclado que abre la
+            ficha (antes era «Abrir», al pie). Un clic fantasma tras soltar lo
+            descarta `onOpen`. */}
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`Abrir ficha de ${nombre}`}
+          className="studio-link-quiet"
           style={{
-            margin: "var(--s-2) 0 0",
-            font: "500 11px/1.35 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          {t.origen.vuelta ? "Volvió de Clientes" : "Vino de Leads"} ·{" "}
-          {nombreEtapa(etapas, t.origen.tablero, t.origen.etapa)}
-        </p>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "var(--s-2)",
-          marginTop: "var(--s-2)",
-        }}
-      >
-        <span
-          style={{
-            font: "500 11px/1.2 var(--f-sans)",
-            color: "var(--ink-soft)",
+            display: "block",
+            minWidth: 0,
+            flex: 1,
+            textAlign: "left",
+            background: "none",
+            border: 0,
+            padding: "2px 0",
+            cursor: "pointer",
+            font: "600 13px/1.3 var(--f-sans)",
+            color: t.nombre ? "var(--ink)" : "var(--ink-soft)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
         >
-          {t.asesorNombre ?? "Sin dueño"}
+          {nombre}
+        </button>
+      </div>
+
+      <div style={{ gridRow: "1 / span 2", gridColumn: 2 }}>
+        {enCurso ? (
+          <span role="status" style={{ font: "600 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+            Moviendo…
+          </span>
+        ) : (
+          <ActionMenu items={acciones} ariaLabel={`Acciones de ${nombre}`} align="end" size="sm" />
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          minWidth: 0,
+          font: "500 11px/1.3 var(--f-sans)",
+          color: "var(--ink-soft)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+          {[segmento, t.shippingMark, t.asesorNombre ?? "Sin dueño"].filter(Boolean).join(" · ")}
         </span>
+        <span aria-hidden>·</span>
         <span
           title={dias == null ? "Sin fecha" : `${dias} días en esta etapa`}
           style={{
@@ -378,7 +387,7 @@ function TarjetaCard({
             alignItems: "center",
             gap: 4,
             font: "700 11px/1 var(--f-mono)",
-            color: "var(--ink-soft)",
+            color: atencion ? "var(--ink)" : "var(--ink-soft)",
             flex: "0 0 auto",
           }}
         >
@@ -394,71 +403,40 @@ function TarjetaCard({
         </span>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          gap: "var(--s-2)",
-          marginTop: "var(--s-2)",
-        }}
-      >
-        {enCurso ? (
-          <p
-            role="status"
-            style={{
-              margin: 0,
-              flex: 1,
-              font: "600 11px/1.3 var(--f-sans)",
-              color: "var(--ink-soft)",
-            }}
-          >
-            Moviendo…
-          </p>
-        ) : (
-          canEdit &&
-          destinos.length > 0 && (
-            <select
-              className="studio-input"
-              aria-label={`Mover ${nombre} a otra etapa`}
-              value=""
-              onChange={(e) => {
-                const destino = destinos.find((d) => d.clave === e.target.value);
-                if (destino) onMove(destino);
-              }}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                font: "500 12px/1 var(--f-sans)",
-                // Alto ≥ 32 px: objetivo táctil del estándar de botones del Studio.
-                minHeight: 32,
-                padding: "var(--s-1) var(--s-2)",
-              }}
-            >
-              <option value="" disabled>
-                Mover a…
-              </option>
-              {destinos.map((d) => (
-                <option key={d.clave} value={d.clave}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
-          )
-        )}
-        {/* No es arrastrable por sí mismo: la tarjeta lo es. Un clic no inicia
-            arrastre, y el clic fantasma tras soltar lo descarta `onOpen`. */}
-        <button
-          type="button"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          aria-label={`Abrir ficha de ${nombre}`}
-          onClick={onOpen}
-          style={{ flex: "0 0 auto" }}
+      {extras && (
+        <div
+          style={{
+            gridColumn: "1 / -1",
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-1)",
+            flexWrap: "wrap",
+            marginTop: 4,
+            font: "500 11px/1.35 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
         >
-          Abrir
-          {Icon.chevR(14)}
-        </button>
-      </div>
+          {t.tareasVencidas > 0 ? (
+            <span data-guia="embudo.tareas" style={{ display: "inline-flex" }}>
+              <Badge tone="danger" size="sm">
+                {t.tareasVencidas === 1 ? "1 tarea vencida" : `${t.tareasVencidas} tareas vencidas`}
+              </Badge>
+            </span>
+          ) : t.tareasAbiertas > 0 ? (
+            <span data-guia="embudo.tareas" style={{ display: "inline-flex" }}>
+              <Badge tone="neutral" size="sm">
+                {t.tareasAbiertas === 1 ? "1 tarea" : `${t.tareasAbiertas} tareas`}
+              </Badge>
+            </span>
+          ) : null}
+          {t.origen && (
+            <span>
+              {t.origen.vuelta ? "Volvió de Clientes" : "Vino de Leads"} ·{" "}
+              {nombreEtapa(etapas, t.origen.tablero, t.origen.etapa)}
+            </span>
+          )}
+        </div>
+      )}
     </article>
   );
 }

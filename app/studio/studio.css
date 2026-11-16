@@ -1785,3 +1785,19 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
     color: var(--warning);
   }
 }
+
+/* ── SDD-0648 · CRM › Embudos ─────────────────────────────────────────────
+   Tope de ancho del contenido. Una pantalla que marca `[data-ancho-completo]`
+   (el tablero del CRM) lo levanta: sus columnas se reparten la ventana. */
+.studio-content { max-width: var(--content-max); }
+.studio-content:has([data-ancho-completo]) { max-width: none; }
+
+/* Isólogo DTD del canal «Canales DTD»: primary en claro, reverse en oscuro
+   (BRAND §Logo, nunca primary sobre navy). */
+.crm-logo-dtd-oscuro { display: none; }
+[data-theme="dark"] .crm-logo-dtd-claro { display: none; }
+[data-theme="dark"] .crm-logo-dtd-oscuro { display: block; }
+@media print {
+  [data-theme="dark"] .crm-logo-dtd-claro { display: block; }
+  [data-theme="dark"] .crm-logo-dtd-oscuro { display: none; }
+}
