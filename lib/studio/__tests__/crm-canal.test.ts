@@ -11,6 +11,7 @@ describe("canalDeTarjeta (SDD-0648 §2)", () => {
     ["portal", "dtd"],
     ["web_registro", "dtd"],
     ["cotizador", "dtd"],
+    ["carga_erp", "dtd"],
   ] as const)("%s → %s", (fuente, canal) => {
     expect(canalDeTarjeta(fuente, null)).toBe(canal);
   });

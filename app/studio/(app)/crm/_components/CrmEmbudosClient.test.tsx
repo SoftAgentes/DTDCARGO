@@ -36,6 +36,8 @@ const base = {
   asesorNombre: null,
   tareasAbiertas: 0,
   tareasVencidas: 0,
+  fuente: "manual",
+  utmSource: null,
 } as const;
 
 const TARJETAS: CrmTarjetaTablero[] = [
@@ -52,6 +54,16 @@ const TARJETAS: CrmTarjetaTablero[] = [
   },
 ];
 
+const LEAD_CON_CODIGO: CrmTarjetaTablero = {
+  ...base,
+  id: "t-codigo",
+  nombre: "Registrado sin carga",
+  segmento: "lead_registrado",
+  tablero: "leads",
+  etapa: "nuevo",
+  shippingMark: "DTD-9497",
+};
+
 function pintar(tarjetas = TARJETAS, ocultas = 0) {
   render(
     <CrmEmbudosClient
@@ -66,6 +78,46 @@ function pintar(tarjetas = TARJETAS, ocultas = 0) {
 }
 
 describe("CrmEmbudosClient", () => {
+  it("tres segmentos con su conteo; cada tarjeta en exactamente uno (SDD-0647)", async () => {
+    const user = userEvent.setup();
+    pintar([...TARJETAS, LEAD_CON_CODIGO]);
+    expect(screen.getAllByRole("radio").map((r) => r.textContent)).toEqual([
+      "Clientes (1)",
+      "Leads (1)",
+      "Leads con código (1)",
+    ]);
+    // Leads: solo el que no tiene código.
+    expect(screen.getByText("Lead de prueba")).toBeTruthy();
+    expect(screen.queryByText("Registrado sin carga")).toBeNull();
+
+    await user.click(screen.getByRole("radio", { name: "Leads con código (1)" }));
+    expect(screen.getByText("Registrado sin carga")).toBeTruthy();
+    expect(screen.queryByText("Lead de prueba")).toBeNull();
+    expect(screen.queryByText("Cliente de prueba")).toBeNull();
+    expect(replaceMock).toHaveBeenCalledWith("/studio/crm?tab=embudos&embudo=leads_con_codigo", {
+      scroll: false,
+    });
+
+    await user.click(screen.getByRole("radio", { name: "Clientes (1)" }));
+    expect(screen.getByText("Cliente de prueba")).toBeTruthy();
+    expect(screen.queryByText("Registrado sin carga")).toBeNull();
+  });
+
+  it("abre en la vista que dice la URL", () => {
+    render(
+      <CrmEmbudosClient
+        etapas={ETAPAS}
+        tarjetas={[...TARJETAS, LEAD_CON_CODIGO]}
+        ocultas={0}
+        recortado={false}
+        canEdit
+        tableroInicial="leads_con_codigo"
+      />,
+    );
+    expect(screen.getByRole("radio", { name: "Leads con código (1)" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText("Registrado sin carga")).toBeTruthy();
+  });
+
   it("los dos embudos con su conteo; cada tarjeta en el suyo", async () => {
     const user = userEvent.setup();
     pintar();

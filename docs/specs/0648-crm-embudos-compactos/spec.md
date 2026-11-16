@@ -71,6 +71,7 @@ Respuesta de Sam a la propuesta (2026-11-16): «Sí, apruebo la nueva propuesta,
 | `messenger` | Facebook | Simple Icons, `#0866FF` |
 | `portal`, `web_registro`, `cotizador` | Canales DTD | isólogo (primary en claro, reverse en oscuro) |
 | `web_registro`, `portal`, `cotizador` con `utm_source` que contiene `tiktok` | TikTok | Simple Icons, con el desplazado cian/rojo de la marca |
+| `carga_erp` (0553, SDD-0647) | Canales DTD | isólogo: cliente de la casa, sin canal de terceros |
 | `correo` | Correo | icono `mail` del Studio, sin color |
 | `kommo`, `manual`, otra | sin logo | — |
 
@@ -91,6 +92,11 @@ Cada logo lleva su nombre como `aria-label` y `title`: el canal no depende solo 
   - Sin conversación, sin permiso o con error, vuelve a `/studio/crm?tab=embudos&chat=sin` y el tablero lo dice.
 - La Bandeja respeta sus dos capas (rol + flag `chatwoot_inbox`) y el vínculo del agente; Chatwoot decide qué bandejas ve cada agente. Leer y contestar ocurre en Chatwoot: Studio no copia mensajes.
 - Con `volver=crm`, la Bandeja muestra «← Volver al embudo».
+
+## Dependencia
+
+`fuente` y `utmSource` en `CrmTarjetaTablero` llegan con la SDD-0647 (PR #621, rama `claude/sdd-0647-crm-segmentos`),
+que esta rama trae por merge. Esta PR se fusiona después de la #621.
 
 ## Fuera de alcance
 
@@ -123,8 +129,6 @@ Cada logo lleva su nombre como `aria-label` y `title`: el canal no depende solo 
 | `lib/studio/__tests__/crm-canal.test.ts` | nuevo |
 | `lib/studio/crm-chat.ts` | nuevo: resolver la conversación de una tarjeta |
 | `lib/studio/__tests__/crm-chat.test.ts` | nuevo |
-| `lib/studio/crm-tablero.ts` | `fuente` y `utmSource` en `CrmTarjetaTablero` (coordinado con la sesión de segmentos) |
-| `lib/studio/crm-tablero-queries.ts` | leer `utm_source` y pasar `fuente`/`utmSource` (coordinado) |
 | `app/studio/(app)/crm/_components/CanalLogo.tsx` | nuevo |
 | `app/studio/(app)/crm/_components/CrmTableroKanban.tsx` | tarjeta compacta, menú, columnas flexibles |
 | `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx` | pruebas de la tarjeta |

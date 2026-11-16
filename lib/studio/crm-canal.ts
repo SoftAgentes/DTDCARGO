@@ -45,6 +45,10 @@ export function canalDeTarjeta(
       return "facebook";
     case "correo":
       return "correo";
+    // 0553 (SDD-0647): cliente con carga en el ERP que nunca escribió. No vino
+    // por un canal de terceros: es de la casa, así que lleva el isólogo DTD.
+    case "carga_erp":
+      return "dtd";
     default:
       return null;
   }

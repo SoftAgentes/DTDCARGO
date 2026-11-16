@@ -30,6 +30,8 @@ const lead: CrmTarjetaTablero = {
   asesorNombre: "Asesora de prueba",
   tareasAbiertas: 2,
   tareasVencidas: 1,
+  fuente: "manual",
+  utmSource: null,
 };
 
 function pintar({

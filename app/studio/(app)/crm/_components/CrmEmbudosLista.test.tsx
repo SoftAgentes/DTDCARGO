@@ -24,6 +24,7 @@ const base: CrmTarjetaTablero = {
   tareasAbiertas: 0,
   tareasVencidas: 0,
   fuente: "whatsapp_leads",
+  utmSource: null,
 };
 
 const TARJETAS: CrmTarjetaTablero[] = [
