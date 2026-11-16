@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0552_registro_portal_por_link": "PENDIENTE DE APLICAR — SDD-0646 (registro al portal por link para los clientes del legado). Crea la tabla client_registration_links (RLS: el equipo sólo lee su tenant; nadie escribe por PostgREST), las RPC portal_registration_link_create/mark_reviewed (authenticated, roles admin/commercial/operations) y peek/complete/bind/access_error (sólo service_role), find_duplicate_client_except_service (find_duplicate_client_service pasa a llamarla con el mismo resultado), el trigger clients_guard_markbox_retirado_t (BEFORE INSERT en clients) y reemplaza rename_client_markbox para que un cliente recupere SU propio código retirado. Preflight por md5 de los dos cuerpos que reemplaza (0371 y 0342): si producción tiene otro, aborta sin tocar nada. Sin backfill ni locks de tabla largos. MIGRATE-FIRST: sin ella el botón de la ficha dice «todavía no está disponible», la lista de revisión avisa que falta la migración y el link público muestra «Enlace no disponible». Desarme: supabase/desarmes/0552_desarme.sql. Producción: OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG. Aplicar individualmente con name exacto 0552_registro_portal_por_link. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
+  }
 }
