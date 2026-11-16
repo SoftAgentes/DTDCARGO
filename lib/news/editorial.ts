@@ -10,7 +10,7 @@ export const CONTENT_KIND_LABELS: Record<NewsContentKind, string> = {
 
 const CATEGORY_IMAGES: Record<NewsCategoria, { src: string; alt: string }> = {
   "importa-sin-perder-plata": {
-    src: "/fotos/carga-contenedor-precinto-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
+    src: "/fotos/dtd-cargo-carga-consolidada.webp",
     alt: "Carga de DTD Cargo preparada para envío marítimo",
   },
   "que-se-mueve-en-china": {
@@ -18,16 +18,16 @@ const CATEGORY_IMAGES: Record<NewsCategoria, { src: string; alt: string }> = {
     alt: "Operación de recepción y consolidación de DTD Cargo en Yiwu",
   },
   "como-llega-tu-mercancia": {
-    src: "/fotos/precinto-doortudoor-contenedor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
-    alt: "Contenedor de DTD Cargo identificado para su tránsito marítimo",
+    src: "/fotos/dtd-cargo-camion-entrega.webp",
+    alt: "Camión de DTD Cargo recibiendo carga para su entrega",
   },
   "venezuela-y-tu-bolsillo": {
-    src: "/fotos/puerto-venezuela-aduana-entrega-final-dtd-cargo.jpg",
-    alt: "Operación portuaria y entrega de carga en Venezuela",
+    src: "/fotos/dtd-cargo-operacion-puerto.webp",
+    alt: "Equipo de DTD Cargo manejando carga en el puerto",
   },
   "historias-reales": {
-    src: "/fotos/carga-contenedor-precinto-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
-    alt: "Mercancía de clientes durante una operación de DTD Cargo",
+    src: "/fotos/dtd-cargo-equipo-contenedor.webp",
+    alt: "Equipo de DTD Cargo junto a un contenedor",
   },
   "novedades-dtd": {
     src: "/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg",

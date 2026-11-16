@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ALL_CATEGORIA_SLUGS } from "../categories";
 import {
   articleSchemaTypeOf,
   contentKindOf,
@@ -68,5 +71,13 @@ describe("búsqueda y fotografía editorial", () => {
     expect(editorialImageOf(post()).src).toMatch(/^\/fotos\//);
     expect(editorialImageOf(post({ cover_image_url: "https://example.com/foto.jpg" })).src).toMatch(/^\/fotos\//);
     expect(editorialImageOf(post({ cover_image_url: "/fotos/propia.jpg" })).src).toBe("/fotos/propia.jpg");
+  });
+
+  it("ningún respaldo por categoría usa fotos de la marca anterior y todos existen", () => {
+    for (const categoria of ALL_CATEGORIA_SLUGS) {
+      const { src } = editorialImageOf(post({ categoria }));
+      expect(src.toLowerCase()).not.toMatch(/doortudoor|door-to-door|doortodoor/);
+      expect(existsSync(join(process.cwd(), "public", src))).toBe(true);
+    }
   });
 });
