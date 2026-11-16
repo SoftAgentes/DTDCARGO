@@ -18,8 +18,10 @@ El diseño, la tabla antes/ahora, el contraste calculado, la allowlist y la acep
 
 | Comprobación | Resultado |
 |---|---|
-| Pruebas de `app/studio/_components/guia` y `lib/studio/guia` | PENDIENTE del turno de PC del DG |
-| `tsc --noEmit` y ESLint de los archivos tocados | PENDIENTE del turno de PC del DG |
+| Pruebas de `app/studio/_components/guia` y `lib/studio/guia`, con 1 worker y turno del DG | PASÓ: 159 de 159 en 9 archivos |
+| Mutante: ancho de vuelta a 360 px y sin tinte | FALLÓ la prueba nueva, como se esperaba; archivo restaurado |
+| ESLint de los 3 archivos, con `--max-warnings=0` | PASÓ |
+| `tsc --noEmit` | NO EJECUTADO: el turno cubría install, vitest y capturas; lo mide el CI |
 | `/ui-check` del diff | PASÓ con ajustes menores, aplicados (ver abajo) |
 | Capturas antes/después, claro y oscuro, 1440 px y 390 px | HECHAS, fuera del repo (ver abajo) |
 | `pnpm verify` y la página real en prueba | NO EJECUTADO. El portón es el CI y la revisión independiente que lanza el DG |
@@ -40,7 +42,6 @@ Lo que está bien: solo tokens, sin hex; foco, teclado, `aria-*`, `z-index` y `p
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr las pruebas con turno del DG y anotar el resultado aquí.
 - Revisión independiente (la lanza el DG) y CI verde antes de fusionar.
 - Ver la tarjeta en prueba con Sam después de la fusión.
 
