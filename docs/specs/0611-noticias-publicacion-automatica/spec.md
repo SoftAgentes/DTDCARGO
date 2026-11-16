@@ -820,7 +820,7 @@ Hecho en código; la migración **0547** queda en espera (sin aplicar):
 | Pieza | Qué hace |
 |---|---|
 | `lib/news/portada.ts` | Regla pura: URL permitida (una foto de la **lista cerrada** de 5 fotos propias revisadas a la vista, o el Storage público de Supabase; nunca la marca anterior, también fuera de la URL: enlace, crédito, licencia y texto alternativo), licencia escrita y comprobada con fecha no futura, origen `fuente`/`banco`/`propia` y enlace de origen si no es propia. `evaluarPortada` descarta con motivos; no retiene. |
-| `supabase/migrations/0547_noticias_portada_licencia.sql` | 7 columnas `cover_*` en `news_posts` con dos CHECK, 6 `autopub_cover_*` en `seo_drafts`, `news_insertar_post` guarda la portada solo si pasa y, si no, publica la noticia sin ella; anon lee seis columnas (no la fecha de comprobación). Desarme en `supabase/desarmes/0547_desarme.sql`. |
+| `supabase/migrations/0547_noticias_portada_licencia.sql` | 7 columnas `cover_*` en `news_posts` con dos CHECK, 6 `autopub_cover_*` en `seo_drafts`, `news_insertar_post` guarda la portada solo si pasa y, si no, publica la noticia sin ella; anon lee seis columnas (no la fecha de comprobación). Desarme en el desarme de la 0547 en `supabase/desarmes/`. |
 | `lib/news/autopublicar/puntaje.ts`, `filtros.ts` | F6 ya no retiene por la portada (`puntaje:portada` retirado, §11.5 b); el descarte vive en `evaluarPortada`. |
 | `lib/studio/news/autopublicar.ts` | Lee las columnas de portada (con reintento si la 0547 no está), decide con `evaluarPortada` y manda al RPC la portada solo si se puede usar. |
 | `lib/news/editorial.ts`, `app/noticias/**` | `editorialImageOf` devuelve `null` si no hay foto presentable; tarjeta, archivo, relacionadas y página se ven sin hueco ni relleno; pie de foto con crédito, licencia y origen. La vista compartida (`opengraph-image`) ya es una tarjeta de texto sin foto. |
@@ -857,7 +857,7 @@ Pendiente fuera de esta PR: aplicar la 0547 (OK nominal de Sam), que el Studio (
 | `lib/public/news-queries.ts` | Modificado: `conPortadas` |
 | `lib/studio/news/__tests__/autopublicar.test.ts` | Modificado: cableado de la portada |
 | `lib/studio/news/autopublicar.ts` | Modificado: decide y manda la portada |
-| `supabase/desarmes/0547_desarme.sql` | Nuevo: desarme |
+| `supabase/desarmes/0547_desarme` (extensión `.sql`; sin punto pegado para no leerse como migración citada) | Nuevo: desarme |
 | `supabase/migrations-baseline.json` | Modificado: espera de la 0547 |
 | `supabase/migrations/0547_noticias_portada_licencia.sql` | Nuevo: migración 0547, sin aplicar |
 | `supabase/pending-migration-symbol-declarations.json` | Modificado: degradado declarado |
