@@ -27,10 +27,30 @@ Fecha: 2026-11-16 · Rama `claude/sdd-0647-crm-segmentos` (PR #621) · Reserva `
   local NO EJECUTADA. Este worktree no tiene install propio y el `node_modules` compartido está roto; el DG
   decidió (2026-11-16) publicar sin correr nada local para no hacer cola en la PC. El portón es el CI de
   GitHub (Vitest y PGlite completos). Si sale rojo, el DG da turno.
-- `check-pending-migration-symbols`: PASÓ (0 rojo, 1 amarillo declarado). `check-numbering`: PASÓ. Índice
+- La corrida 43969569049 (cabeza 396422331) cayó en ESLint: tres mutantes tenían un salto de línea real
+  dentro de la cadena. Corregido con `
+`; vitest local NO EJECUTADO, porque el turno de PC era de otro
+  Worker. Sí corrió `pnpm install` en este worktree, antes de que el DG retirara el turno.
+- `check-pending-migration-symbols`: la medición local (0 rojo, 1 amarillo) era de la cabeza f29d95a4f, cuando el tablero llamaba a la RPC. Desde 396422331 no hay código que llame a un símbolo de la 0553 ni declaración; la medición sobre la cabeza nueva es NO EJECUTADA en local (sin turno de PC) y la hace el CI. `check-numbering`: PASÓ. Índice
   de specs regenerado.
 - `pnpm verify`: NO EJECUTADO (requiere turno del DG). Lint y tipos: los mide el CI.
 - `/ui-check`: OK para commit (control segmentado del sistema, sin tokens nuevos; pills con wrap).
+
+## Costo de aplicar la 0553 (para el OK de Sam)
+
+- El `ALTER TABLE … drop/add constraint` toma **ACCESS EXCLUSIVE sobre `crm_tarjetas`** y lo mantiene hasta
+  el COMMIT. Como el alta inicial corre en la misma transacción, el lock dura lo que tarda el alta.
+- Mientras dura: el tablero Embudos, la ficha de tarjeta y la entrada de leads de Chatwoot (0513), que leen o
+  escriben `crm_tarjetas`, **esperan**. No fallan salvo que su propio timeout se cumpla antes. Los webhooks
+  que no entran se reintentan por el cron de reintentos (0504).
+- Duración: un recorrido por tenant de las fichas vivas sin tarjeta y su segmento (`crm_segmento_clientes`
+  compara `upper(btrim(client_markbox))` contra `shipments` y `warehouse_receipts_cn` sin índice de
+  expresión). No medido en producción, porque no leí filas. Con unos miles de fichas y envíos se espera
+  segundos, no minutos.
+- Topes: `lock_timeout 5 s` (si otra sesión tiene la tabla, aborta sin cambiar nada) y `statement_timeout 60 s`
+  (si el alta tarda más, **todo** vuelve atrás: ni CHECK, ni función, ni tarjetas). Es seguro reintentar.
+- Recomendación: aplicarla en una ventana tranquila, sin carga de contenedores en curso. El conteo previo de
+  solo lectura (fichas con segmento cliente sin tarjeta) da el tamaño real del alta.
 
 ## Pendiente de esta tarea
 

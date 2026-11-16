@@ -86,17 +86,12 @@ describe("SDD-0647 · 0553 tarjetas para los clientes con carga (PGlite)", () =>
 
   const MUTANTES: [string, string, string, RegExp][] = [
     ["sin alta inicial", "    v_total := v_total + public.crm_alta_tarjetas_clientes(v_tenant);", "    v_total := v_total;", /TEST 0553: el alta inicial crea/],
-    ["crea también a los leads", "  where s.segmento = 'cliente'
-", "
-", /TEST 0553: el alta inicial crea/],
-    ["fusionada viva recibe tarjeta", "        and c.merged_into_client_id is null
-", "", /TEST 0553: el alta inicial crea|TEST 0553: una ficha fusionada viva/],
+    ["crea también a los leads", "  where s.segmento = 'cliente'\n", "\n", /TEST 0553: el alta inicial crea/],
+    ["fusionada viva recibe tarjeta", "        and c.merged_into_client_id is null\n", "", /TEST 0553: el alta inicial crea|TEST 0553: una ficha fusionada viva/],
     ["aparenta actividad de hoy", ", timestamptz '2000-01-01 00:00:00+00'", ", pg_catalog.now()", /TEST 0553: la tarjeta nueva no aparenta actividad/],
     ["sin heredar el asesor", "'carga_erp', ut.user_id,", "'carga_erp', null,", /TEST 0553: hereda el asesor activo/],
-    ["asesor desactivado", "   and ut.disabled_at is null
-", "", /el asesor no es del tenant|TEST 0553: hereda el asesor activo/],
-    ["asesor de otro tenant", "   and ut.tenant_id = p_tenant_id
-", "", /el asesor no es del tenant|TEST 0553: hereda el asesor activo|TEST 0553: el alta inicial crea/],
+    ["asesor desactivado", "   and ut.disabled_at is null\n", "", /el asesor no es del tenant|TEST 0553: hereda el asesor activo/],
+    ["asesor de otro tenant", "   and ut.tenant_id = p_tenant_id\n", "", /el asesor no es del tenant|TEST 0553: hereda el asesor activo|TEST 0553: el alta inicial crea/],
     [
       "abierta a la sesión",
       "revoke all on function public.crm_alta_tarjetas_clientes(uuid) from anon, authenticated;",
