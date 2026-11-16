@@ -33,7 +33,7 @@ sobre memoria y novedades?», respondió «Sí, apruébala». Queda así:
 
 Separado en tres finalidades, cada una con su plazo. Los nombres de tablas son propuesta; los fija la migración.
 
-| Dato | Qué es | Finalidad | Base de licitud | Retención propuesta (D-6) | Quién lo ve |
+| Dato | Qué es | Finalidad | Base de licitud | Retención (D-6, aprobada por Sam el 2026-11-16) | Quién lo ve |
 |---|---|---|---|---|---|
 | `asistente_conversaciones.usuario_id`, `creada_at` | Quién abrió la conversación y cuándo | Auditoría y continuidad de la conversación activa | Fuera de alcance (abogado); relación laboral, probablemente | **180 días** desde la creación, fijo | Administrador del tenant |
 | `asistente_mensajes.texto` (pregunta) | Lo que escribió la persona del equipo, **ya depurado** (§3, hallazgo E-3) | Auditoría; contexto de la conversación activa | ídem | **180 días**, se borra la fila completa | Administrador del tenant; el proveedor de IA lo recibe al preguntar |
@@ -151,7 +151,7 @@ sin pantalla, sin texto. D-7 sigue apagado al inicio.
 ## 4 · Fuera de alcance: lo que decide Sam o un abogado
 
 - La base de licitud para guardar las preguntas del equipo.
-- Los plazos propuestos en §2 (D-6). Son propuesta de esta revisión; los aprueba Sam.
+- ~~Los plazos de §2 (D-6).~~ Aprobados por Sam el 2026-11-16: «Sí, apruébalos».
 - El consentimiento separado y el mecanismo PIPL para el equipo en China (E-2).
 - El texto final del aviso al equipo (E-4).
 - El contrato y la política de datos con el proveedor de IA (N-1).

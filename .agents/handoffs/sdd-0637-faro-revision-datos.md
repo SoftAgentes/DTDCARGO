@@ -31,7 +31,7 @@ nueve eran ciertas.
 
 ## Pendientes de esta tarea
 
-1. Sam decide D-6 (plazos) y D-11 (equipo en China). D-4 y D-5 siguen con su recomendación.
+1. D-6 (plazos) aprobada por Sam el 2026-11-16: «Sí, apruébalos». Falta D-11 (equipo en China). D-4 y D-5 siguen con su recomendación.
 2. Antes del primer envío real a un modelo: N-1 (retención del proveedor, por escrito) y N-2 (sumar Faro a la fila
    de Anthropic en `docs/legal/privacidad/inventario-terceros.md`).
 3. Las condiciones E-1 a E-9 entran como criterios de la migración (fase 2) y del servidor (fase 3).

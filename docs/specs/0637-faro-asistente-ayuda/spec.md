@@ -407,7 +407,7 @@ primer envío real sigue abierta (N-1 y N-2 de esa revisión, y el equipo en Chi
 | D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |
 | D-5 | Tope de preguntas por usuario y hora | 30, configurable |
-| D-6 | Plazo de conservación del registro | Propuesta de la revisión de datos (`privacidad.md` §2): conversaciones, mensajes y feedback 180 días; alertas y lecturas del administrador 2 años, sin texto; llamadas a la IA 13 meses, sin texto ni usuario. Falta Sam |
+| D-6 | Plazo de conservación del registro | **Aprobada por Sam el 2026-11-16** (`privacidad.md` §2): conversaciones, mensajes y feedback 180 días; alertas y lecturas del administrador 2 años, sin texto; llamadas a la IA 13 meses, sin texto ni usuario. Su respuesta a «¿Apruebas los plazos propuestos para D-6?» fue «Sí, apruébalos» |
 | D-7 | ¿Las alertas van también a Telegram o Discord? | Campana siempre; el canal externo, apagado al inicio |
 | D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo por intento en `asistente_llamadas` |
 | D-9 | Memoria | **Aprobada por Sam el 2026-11-16**: solo la conversación en curso, acotada y revalidada contra los permisos actuales. Sin memoria por persona entre conversaciones. El conocimiento compartido mejora por guías aprobadas. Su respuesta a «¿Apruebas la recomendación de Codex sobre memoria y novedades?» fue «Sí, apruébala» |
