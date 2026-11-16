@@ -79,6 +79,12 @@ export const EXTRA_CRONS = [
     reason:
       "diario, 04:15 UTC · SDD-0626 §3.1 · vacía task_events.resumen a los 90 días (privacidad, decisión A de Sam) · corre aunque la oficina esté pausada · nace APAGADO: sin OFICINA_VACIADO_ACTIVO no llama a la base",
   },
+  {
+    path: "/api/cron/noticias-purga-actor",
+    schedule: "45 4 * * *",
+    reason:
+      "diario, 04:45 UTC · SDD-0611 §11.4.1 · vacía el uuid de las 4 columnas actor_id de noticias a los 12 meses (privacidad, decisión de Sam 2026-11-14) · no borra filas · nace APAGADO: sin NOTICIAS_PURGA_ACTOR_ACTIVO no llama a la base",
+  },
 ];
 
 const CRON_PATH_RE = /^\/api\/cron\/([a-z0-9]+(?:-[a-z0-9]+)*)$/;
