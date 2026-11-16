@@ -22,7 +22,8 @@ Fecha: 2026-11-16 · Rama: `claude/geo-aeo-script-auditoria-e8a39d` · Worker Cl
 
 ## Pendientes de esta tarea
 
-- Ninguno de código. Falta solo la revisión independiente y el turno del DG para `verify`/CI.
+- **Enmienda a la 0641 §11 (allowlist de la Fase A):** pendiente hasta que la PR #613 entre en main; el texto ya está en la spec 0642. Luego traer main y editar la 0641 en esta misma PR.
+- Ninguno más de código. Falta solo la revisión independiente y el turno del DG para `verify`/CI.
 
 ## FUERA DE ALCANCE DETECTADO
 
