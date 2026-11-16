@@ -8,6 +8,7 @@ import {
   agruparPorContenedor,
   clienteCoincide,
   contenedorCoincide,
+  formatFecha,
   nombreDeContenedor,
   prefijoDeContenedor,
   numeroDtdDeNotas,
@@ -185,5 +186,40 @@ describe("agruparPorContenedor", () => {
     expect(g[0].alertas).toBe(1);
     const sinC64 = agruparPorContenedor(filas.filter((r) => !r.id.startsWith("a")), datos);
     expect(sinC64.some((x) => x.key === "c64")).toBe(false);
+  });
+
+  it("el rótulo sale de todos los embarques, no de los que dejó el filtro (revisión M1)", () => {
+    // Un mixto: DDP de un cliente y el FCL del dueño en el mismo contenedor.
+    const mixto = [
+      envio({ id: "d1", client_markbox: "DTD-1001" }),
+      envio({ id: "f9", client_markbox: "DTD-9000", shipment_service: "fcl_directo" }),
+    ];
+    const d = { contenedores: [c64], porEmbarque: { d1: "c64", f9: "c64" } };
+    const soloFcl = mixto.filter((r) => r.shipment_service === "fcl_directo");
+    // Sin `todas`, lo filtrado decide: el error que vio la revisión.
+    expect(agruparPorContenedor(soloFcl, d)[0].nombre).toBe("FCL 64");
+    // Con `todas`, sigue siendo el consolidado que es.
+    const g = agruparPorContenedor(soloFcl, d, mixto);
+    expect(g[0].nombre).toBe("DDP 64");
+    expect(g[0].tipo).toBe("consolidado");
+    expect(g[0].embarques).toBe(1);
+  });
+});
+
+describe("formatFecha", () => {
+  it("no corre el día en la zona de Caracas (UTC-4) ni en otras", () => {
+    const previa = process.env.TZ;
+    try {
+      for (const tz of ["America/Caracas", "Asia/Shanghai", "UTC"]) {
+        process.env.TZ = tz;
+        expect(formatFecha("2026-12-12")).toBe("12 dic. 2026");
+        expect(formatFecha("2026-01-01")).toBe("01 ene. 2026");
+      }
+    } finally {
+      process.env.TZ = previa;
+    }
+  });
+  it("lo que no es una fecha se devuelve igual", () => {
+    expect(formatFecha("sin fecha")).toBe("sin fecha");
   });
 });

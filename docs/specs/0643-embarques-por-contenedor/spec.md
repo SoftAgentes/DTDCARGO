@@ -43,8 +43,9 @@ Sam, 2026-11-16, más tarde (llegó por el Subdirector Portal):
 > de un solo contenedor. • En el 64 cambia: entro y voy a ver que es un DDP 64; al entrar voy a ver que
 > adentro hay muchos clientes, y cada cliente puede tener varios embarques.»
 
-**Para confirmar por el DG:** Sam usó dos formas para el consolidado, «Contenedor 64» y «DDP 64». La
-implementación usa la segunda, la más reciente, armada con el tipo más el número (§3.3).
+Sam usó dos formas para el consolidado, «Contenedor 64» y «DDP 64». **El DG confirmó el 2026-11-16 la
+segunda**, la más reciente: «DDP 64» para los consolidados propios y «FCL 63» para los FCL. El rótulo es el
+tipo más el número (§3.3).
 
 ## 2. Lo que existe
 
@@ -66,7 +67,8 @@ implementación usa la segunda, la más reciente, armada con el tipo más el nú
    - número ISO (`container_no`), si está;
    - estado del contenedor, con las etiquetas de `CONTAINER_STATUS` (`lib/studio/naviera/types.ts`);
    - naviera (`carriers.name` del zarpe) o «Sin naviera»;
-   - ETA (`sailings.eta`) o «sin fecha». La fecha `YYYY-MM-DD` se formatea sin pasar por UTC;
+   - ETA (`sailings.eta`) o «sin fecha». La fecha `YYYY-MM-DD` se formatea en UTC sobre la fecha UTC
+     (`formatFecha`), así la zona de quien mira no corre el día;
    - ref interna (`DTD-CONSOL-NNNN`);
    - conteos: clientes, envíos, alertas y m³.
 2. **Nivel 2, clientes.** Dentro del contenedor, el acordeón por cliente de la SDD-0012, sin cambios.
@@ -102,11 +104,13 @@ los servicios y los clientes de los embarques que van en el contenedor:
 - Consolidado con algún `puerta_a_puerta_DDP` → «DDP 64».
 - Consolidado sin DDP (sólo LCL) → «Contenedor NN», porque llamarlo DDP sería falso.
 
-Pendiente de que el DG confirme «DDP 64» frente a «Contenedor 64» (§1).
+Confirmado por el DG el 2026-11-16 (§1).
 
-Límite: se cuentan los embarques que están en la vista. Si un tab o un filtro deja sólo el envío FCL de un
-contenedor mixto, ese contenedor se muestra como «FCL». Se acepta para esta tarea; una columna de
-modalidad en `consolidations` lo resolvería, pero exige migración (fuera de alcance, §6).
+**El tipo y el rótulo se calculan con todos los embarques de la lista, sin filtrar.** Tabs, servicio y
+búsquedas no los cambian; así, el 64 filtrado por «Servicio = FCL» sigue diciendo «DDP 64». Esto lo pidió la
+revisión independiente (M1). Queda un límite: solo se cuentan los embarques que entraron en la lista (tope
+de 500, §3.6). Una columna de modalidad en `consolidations` lo haría exacto, pero exige migración (fuera de
+alcance, §6).
 
 ### 3.4 Número DTD («64»)
 
@@ -121,7 +125,8 @@ mano en Naviera) no hay número y no se inventa: el nombre usa el ISO y, si falt
 - **Contenedor** (campo nuevo, monoespaciado): número DTD exacto de 1 a 4 cifras («64», «#64»,
   «DDP 64», «Contenedor 64», «FCL 63»), o parte del ISO o de la ref (`TLLU779`, `7792550`, `CONSOL-0012`). Un número
   corto es sólo el número DTD: «64» no trae un ISO que tenga «64» adentro. «Sin contenedor» no pasa este
-  filtro. No se pinta si no se pudieron leer los contenedores.
+  filtro. No se pinta si no se pudieron leer los contenedores. Su texto de ejemplo, «Nº DTD (1-4 cifras) o
+  ISO», avisa que un número corto busca el número DTD (revisión M5).
 - **Cliente** (campo nuevo): nombre sin acentos ni mayúsculas, o Shipping Mark.
 - **Buscar** sigue igual (código, cliente, Shipping Mark, origen, destino); su texto de ejemplo pasa a
   «Código, ruta…».

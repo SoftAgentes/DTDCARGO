@@ -80,6 +80,22 @@ export function numeroDtdDeNotas(notes: string | null | undefined): number | nul
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * `YYYY-MM-DD` → «12 dic. 2026». Se formatea en UTC sobre la fecha UTC, así la
+ * zona de quien mira no corre el día (en Caracas, UTC-4, «2026-12-12» como
+ * `new Date("2026-12-12")` saldría el 11).
+ */
+export function formatFecha(ymd: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd);
+  if (!m) return ymd;
+  return new Intl.DateTimeFormat("es-VE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+}
+
 /** Llave de cliente: Shipping Mark o, si falta, el nombre (como SDD-0012). */
 function llaveCliente(r: Pick<ShipmentListRow, "client_markbox" | "client_name">): string {
   return r.client_markbox?.trim() || `__name:${(r.client_name ?? "").trim().toLowerCase()}`;
@@ -171,25 +187,41 @@ export function clienteCoincide(r: ShipmentListRow, consulta: string): boolean {
  * primero; después por número DTD descendente (el más nuevo arriba); los que
  * no tienen número, por fecha de creación descendente. «Sin contenedor» va
  * siempre al final. Un contenedor sin embarques en `rows` no aparece.
+ *
+ * `todas` son los embarques SIN filtrar (tabs, servicio, búsqueda): el tipo y
+ * el rótulo de cada contenedor salen de ahí, no de lo que dejó el filtro. Si
+ * no, un mixto como el 64 filtrado por «Servicio = FCL» diría «FCL 64».
  */
 export function agruparPorContenedor(
   rows: readonly ShipmentListRow[],
   datos: ContenedoresDeEmbarques,
+  todas: readonly ShipmentListRow[] = rows,
 ): GrupoContenedor[] {
   const porId = new Map(datos.contenedores.map((c) => [c.id, c]));
-  const filas = new Map<string, ShipmentListRow[]>();
-  for (const r of rows) {
+  const llaveDe = (r: ShipmentListRow): string => {
     const cid = datos.porEmbarque[r.id];
-    const key = cid && porId.has(cid) ? cid : SIN_CONTENEDOR_KEY;
-    const lista = filas.get(key);
-    if (lista) lista.push(r);
-    else filas.set(key, [r]);
-  }
+    return cid && porId.has(cid) ? cid : SIN_CONTENEDOR_KEY;
+  };
+  const porContenedor = (lista: readonly ShipmentListRow[]) => {
+    const m = new Map<string, ShipmentListRow[]>();
+    for (const r of lista) {
+      const key = llaveDe(r);
+      const l = m.get(key);
+      if (l) l.push(r);
+      else m.set(key, [r]);
+    }
+    return m;
+  };
+  const filas = porContenedor(rows);
+  const completas = porContenedor(todas);
 
   const grupos: GrupoContenedor[] = [];
   for (const [key, lista] of filas) {
     const contenedor = key === SIN_CONTENEDOR_KEY ? null : porId.get(key) ?? null;
-    const tipo = contenedor ? tipoDeContenedor(lista) : null;
+    // `lista` siempre es un subconjunto de `completas`, salvo que el caller
+    // pase un `todas` que no la contenga; entonces se cae a `lista`.
+    const base = completas.get(key) ?? lista;
+    const tipo = contenedor ? tipoDeContenedor(base) : null;
     const clientes = groupShipmentsByClient(lista).map((g) => ({
       ...g,
       // La misma persona puede estar en dos contenedores: la llave del
@@ -210,7 +242,7 @@ export function agruparPorContenedor(
         contenedor && tipo
           ? nombreDeContenedor(
               contenedor,
-              prefijoDeContenedor(tipo, lista.map((r) => r.shipment_service)),
+              prefijoDeContenedor(tipo, base.map((r) => r.shipment_service)),
             )
           : "Sin contenedor",
       clientes,

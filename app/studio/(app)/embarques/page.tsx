@@ -34,25 +34,21 @@ export default async function EmbarquesPage() {
 
   const supabase = await createClient();
   const shipments = (await listShipments(supabase, {}, { limit: TOPE_EMBARQUES })) as ShipmentListRow[];
-  // SDD-0643: `null` = no se pudo leer; la vista lo dice y agrupa sólo por cliente.
-  const contenedores = await leerContenedoresDeEmbarques(
-    supabase,
-    shipments.map((s) => s.id),
-  );
+  const ids = shipments.map((s) => s.id);
   // SDD-0507: cuántos adjuntos tiene cada embarque (internos + portal), con el
   // cliente de sesión. `null` si no se pudo contar: la tabla lo dice.
   // Esta pantalla se abre con `shipments`, pero la RLS de los documentos de un
   // embarque pide `tracking` (migr 0439/0444). Sin `tracking` no ve ninguno, y
   // la columna diría «Ninguno» en todas las filas sin ser cierto: no se cuenta.
-  const veAdjuntos = (await moduleViewDenial(supabase, "tracking")) === null;
-  const adjuntos = veAdjuntos
-    ? conteosPorId(
-        await contarAdjuntosDeEmbarques(
-          supabase,
-          shipments.map((s) => s.id),
-        ),
-      )
-    : undefined;
+  // SDD-0643: contenedores y adjuntos se leen a la vez. `contenedores` `null` =
+  // no se pudo leer; la vista lo dice y agrupa sólo por cliente.
+  const [contenedores, adjuntos] = await Promise.all([
+    leerContenedoresDeEmbarques(supabase, ids),
+    (async () => {
+      const veAdjuntos = (await moduleViewDenial(supabase, "tracking")) === null;
+      return veAdjuntos ? conteosPorId(await contarAdjuntosDeEmbarques(supabase, ids)) : undefined;
+    })(),
+  ]);
 
   // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de
   // bloqueos falla (por ejemplo, sin la 0476), se dice y no se ofrece borrar.

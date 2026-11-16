@@ -74,8 +74,8 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     expect(c64.textContent).toContain("Zarpado");
     expect(c64.textContent).toContain("2 clientes");
     expect(c64.textContent).toContain("2 envíos");
-    // La ETA no se corre un día por UTC.
-    expect(c64.textContent).toMatch(/12/);
+    // La ETA, con el texto exacto: «2026-12-12» no se corre al 11 por UTC.
+    expect(c64.textContent).toContain("ETA 12 dic. 2026");
     // Varios contenedores: cerrados; los embarques no se ven todavía.
     expect(c64.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("S-a1")).toBeNull();
@@ -98,6 +98,24 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     const seccion = screen.getByRole("region", { name: "FCL 63" });
     expect(within(seccion).getByText("S-f1")).toBeTruthy();
     expect(within(seccion).getByText("S-f2")).toBeTruthy();
+  });
+
+  it("un mixto sigue diciendo «DDP NN» con el filtro «Servicio = FCL» (revisión M1)", async () => {
+    const user = userEvent.setup();
+    // El 64 lleva DDP de dos clientes y el FCL del dueño: es un mixto.
+    const delDueno = envio("m1", { client_name: "Dueño FCL", client_markbox: "DTD-9000", shipment_service: "fcl_directo" });
+    render(
+      <EmbarquesClient
+        shipments={[...ENVIOS, delDueno]}
+        adjuntos={undefined}
+        contenedores={{ ...DATOS, porEmbarque: { ...DATOS.porEmbarque, m1: "c64" } }}
+      />,
+    );
+    await user.selectOptions(screen.getByLabelText("Servicio"), "fcl_directo");
+    const regiones = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));
+    expect(regiones).toEqual(["DDP 64", "FCL 63"]);
+    // Con el filtro sólo queda el envío FCL del dueño dentro del 64.
+    expect(cabecera("DDP 64").textContent).toContain("1 envío");
   });
 
   it("abrir el contenedor muestra sus clientes y, con pocos, sus embarques", async () => {

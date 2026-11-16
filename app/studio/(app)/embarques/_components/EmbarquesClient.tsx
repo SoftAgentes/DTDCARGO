@@ -63,6 +63,7 @@ import {
   agruparPorContenedor,
   clienteCoincide,
   contenedorCoincide,
+  formatFecha,
   type ContenedoresDeEmbarques,
   type GrupoContenedor,
 } from "@/lib/studio/embarques-contenedores";
@@ -121,17 +122,6 @@ function statusBadgeTone(
   if (status === "in_customs") return "warning";
   if (status === "draft") return "neutral";
   return "info";
-}
-
-/** `YYYY-MM-DD` sin pasar por UTC: «2026-12-12» no puede salir como el 11. */
-function formatFecha(ymd: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd);
-  if (!m) return ymd;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString("es-VE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 function formatDate(iso: string): string {
@@ -276,9 +266,10 @@ export function EmbarquesClient({
   }, [shipments, tab, serviceFilter, q, qCliente, qContenedor, filtroAdjuntos, adjuntos, contenedores, contenedorPorId]);
 
   // SDD-0643: nivel 1. `null` = sin datos de contenedores: sólo por cliente.
+  // El rótulo DDP/FCL sale de `shipments` sin filtrar (revisión M1).
   const grupos = useMemo<GrupoContenedor[] | null>(
-    () => (contenedores ? agruparPorContenedor(filtradas, contenedores) : null),
-    [filtradas, contenedores],
+    () => (contenedores ? agruparPorContenedor(filtradas, contenedores, shipments) : null),
+    [filtradas, contenedores, shipments],
   );
   const groupedFiltered = useMemo(
     () => (grupos ? grupos.flatMap((g) => g.clientes) : groupShipmentsByClient(filtradas)),
@@ -434,7 +425,9 @@ export function EmbarquesClient({
         {contenedores && (
           <div
             className="emb-toolbar-cont"
-            style={{ flex: "0 1 200px", minWidth: 170 }}
+            // 25 caracteres de 14 px monoespaciado (~8,7 px c/u) + 26 px de
+            // padding y borde ≈ 243 px: el texto de ejemplo cabe entero.
+            style={{ flex: "0 1 260px", minWidth: 250 }}
           >
             <label className="studio-label" htmlFor="emb-cont">
               Contenedor
@@ -443,7 +436,7 @@ export function EmbarquesClient({
               id="emb-cont"
               type="search"
               className="studio-input studio-input-mono"
-              placeholder="64 o TLLU7792550"
+              placeholder="Nº DTD (1-4 cifras) o ISO"
               value={qContenedor}
               onChange={(e) => setQContenedor(e.target.value)}
             />

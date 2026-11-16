@@ -53,10 +53,35 @@ Más tarde Sam pidió «FCL 63» y «DDP 64», y aclaró que el 63 es de un solo
 | Prueba visual en el navegador | NO EJECUTADO: el Studio local necesita Supabase con datos; la vista se probó con Testing Library |
 | Producción y VPS | No se tocaron |
 
+## REVISIÓN INDEPENDIENTE (2026-11-16)
+
+El DG lanzó la revisión sobre `2f5675d70` y salió **APROBADA CON MENORES**. Seguridad, RLS, gate y allowlist quedaron bien. Lo aplicado en el commit de menores:
+
+- **M1 (obligatorio).** El tipo y el rótulo DDP/FCL se calculaban sobre las filas ya filtradas, así que el 64 filtrado por «Servicio = FCL» decía «FCL 64». Ahora `agruparPorContenedor(rows, datos, todas)` los calcula con `shipments` sin filtrar.
+  - Hay una prueba en la librería y otra en la vista: un mixto filtrado por «Servicio = FCL» sigue diciendo «DDP 64».
+  - Comprobé que la prueba mira algo: sin `shipments`, la de la vista falla (1 failed); con el arreglo, pasa.
+- **M2.** `formatFecha` pasó a la librería y formatea en UTC sobre la fecha UTC.
+  - La prueba fija el texto exacto, «12 dic. 2026», con `TZ` en America/Caracas, Asia/Shanghai y UTC.
+  - La de la vista afirma «ETA 12 dic. 2026».
+- **M4.** `page.tsx` lee los contenedores y los adjuntos con `Promise.all`.
+- **M5.** El texto de ejemplo del filtro «Contenedor» pasó a «Nº DTD (1-4 cifras) o ISO». El campo se ensanchó a 250 px como mínimo, medido para 25 caracteres de 14 px monoespaciado.
+- **M6.** Queda como está, por decisión del DG: es coherente con el Portal.
+
+Rótulo confirmado por el DG el 2026-11-16: «DDP 64» para los consolidados propios y «FCL 63» para los FCL. Está en la spec, §1 y §3.3.
+
+| Comprobación (ronda de menores) | Resultado |
+|---|---|
+| vitest de embarques (9 archivos) | PASÓ, 127 pruebas |
+| `pnpm typecheck` | PASÓ |
+| eslint de los archivos tocados | PASÓ |
+| `docs:check` | PASÓ |
+
 ## PENDIENTES DE ESTA TAREA
 
-- **Rótulo del consolidado.** El DG tiene que confirmar «DDP 64» frente a «Contenedor 64», porque Sam usó las dos formas (spec §1).
-- Revisión independiente, que lanza el DG, y CI de la PR.
+- **M3 de la revisión.** El DG lo pasó a pendiente sin aplicarlo en esta ronda; el detalle está en el informe de la revisión independiente de la #616.
+- **`aria-expanded` en el grupo de cliente.** Es la cabecera del acordeón de la SDD-0012, que hoy no lo expone. La cabecera nueva del contenedor sí lo tiene.
+- **PIPL.** Revisar qué ve el equipo de China de esta vista, con `.claude/skills/revisar-datos-ve/SKILL.md`.
+- Falta el CI de la PR en la cabeza nueva. Después el DG decide si lo despliega en prueba.
 - La spec queda en `in-progress` y se cierra al fusionar.
 
 ## Impacto documental
