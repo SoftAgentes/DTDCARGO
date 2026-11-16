@@ -4,8 +4,8 @@
 - **Ruta / rama:** `.claude/worktrees/pagos-de-ia-d02a4a` · `claude/pagos-de-ia-d02a4a`.
 - **Reserva:** `codex/sdd-reserve-0638` (publicada) y local `codex/sdd-reserve-0638-pagos-de-ia`, commit `ec888a151`.
 - **Objetivo:** solo planear. Inventario de IA, spec en `proposed`, PR draft. Sin producto.
-- **SDD:** `docs/specs/0638-pagos-de-ia/spec.md` (proposed, v0.2) y `docs/specs/0639-ia-cambio-de-proveedor/spec.md` (proposed).
-- **Reserva 0639:** `codex/sdd-reserve-0639` (publicada), commit `2ab348c84`.
+- **SDD:** `docs/specs/0638-pagos-de-ia/spec.md` (proposed, v0.2).
+- **SDD-0639** (cambio de proveedor): separada a pedido del DG en la rama `codex/ia-cambio-de-proveedor`, PR draft #606.
 
 ## COMPLETADO
 
@@ -15,8 +15,7 @@
   (§6), fases (§7), pruebas (§8), decisiones D-1 a D-7 (§9).
 - v0.2 (2026-11-16): correcciones de la revisión de Codex (solo lectura), verificadas en el código una por una;
   tabla en §12 de la 0638.
-- SDD-0639: cambio de modelo o proveedor por función (principal y respaldo, manual primero), a pedido de Sam,
-  con sus decisiones D-1 a D-6.
+- La SDD-0639 (cambio de modelo o proveedor) va en su propia PR, la #606.
 
 ## VALIDACIÓN
 
@@ -28,7 +27,7 @@
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam decida D-1 a D-7 (0638) y D-1 a D-6 (0639) y apruebe las dos specs. El DG las fusiona después.
+- Que Sam decida D-1 a D-7 y apruebe la spec. El DG la fusiona después (la 0639 va aparte, en la #606).
 - Confirmar con Sam lo marcado **NV**: proveedores de Hermes en el VPS, tipo de cuenta de Anthropic,
   plan de Cloudflare, suscripciones fuera del ERP.
 
@@ -41,5 +40,5 @@
 
 ## Impacto documental
 
-- Nuevas: `docs/specs/0638-pagos-de-ia/spec.md` y `docs/specs/0639-ia-cambio-de-proveedor/spec.md`. Regenerado: `docs/specs/README.md`.
+- Nueva: `docs/specs/0638-pagos-de-ia/spec.md`. Regenerado: `docs/specs/README.md`.
 - Sin cambios en documentos canónicos. Sin montos, llaves, correos ni datos de cuentas.
