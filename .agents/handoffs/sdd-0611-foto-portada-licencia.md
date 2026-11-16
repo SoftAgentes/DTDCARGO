@@ -72,3 +72,7 @@ Nota de proceso: un `sed` global de renumeración (0546→0547) tocó 35 archivo
 4. Prueba del cableado de `lib/studio/news/autopublicar.ts`: portada válida viaja; 6 casos inválidos no viajan y la decisión sigue «publicada»; con 42703 reintenta sin las columnas y publica sin foto.
 5. Recomendados: comentario del host `*.supabase.co` corregido (es el patrón de `next.config`, cualquier proyecto); `cover_license_verified_at` no acepta fechas futuras (CHECK y código).
 6. **Anotado:** `conPortadas` usa `.in("slug", …)` sin límite; hoy hay pocas noticias por lectura (lista y relacionadas), pero si la lista pública crece mucho habrá que paginar esa consulta.
+
+## Cierre
+
+La 0547 quedó aplicada en producción el 2026-11-16 a las 05:46:39Z con el OK de Sam (md5 038c5b567758666d2fe30a9a1406e9a7, 16914 bytes). La espera se retira y la migración se sella en la PR de retiro; el sitio ya lee la portada sin la degradación.
