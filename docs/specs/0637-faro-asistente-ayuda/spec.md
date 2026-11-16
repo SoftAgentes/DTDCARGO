@@ -19,8 +19,7 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones:** D-1 a D-11 (§11). Decididas por Sam: D-3, D-4, D-5, D-6, D-9, D-10 y D-11. Abiertas: D-1, D-2, D-7
-y D-8.
+**Decisiones:** D-1 a D-13 (§11). Decididas por Sam: D-2 a D-6 y D-9 a D-13. Abiertas: D-1, D-7 y D-8.
 
 **Estado:** `proposed`. Hay contenido (fase 1, en `main`) y una migración sin aplicar (fase 2, `0550`). **No hay
 cambios en producción.** Cada fase se programa con el visto bueno de Sam y el turno del Director General.
@@ -313,8 +312,36 @@ Cabecera con el faro, el nombre, «Nueva» y cerrar. Accesos fijos: «Reportar u
 
 ### 7.4 Convivencia con lo que ya flota
 
-En esa esquina ya están el `BugFABButton` (oculto por defecto, Alt+B) y los avisos. Se decide en D-2 si Faro
-absorbe el botón de reportes o conviven.
+En esa esquina ya están el `BugFABButton` (oculto por defecto, Alt+B) y los avisos. Por D-2, Faro **absorbe** el
+botón de reportes: queda un solo elemento flotante (§7.6).
+
+### 7.6 Reportes de error y mejora desde Faro (D-2, D-12, D-13)
+
+Faro no crea un sistema de reportes nuevo: usa el de la SDD-0036 tal como está.
+
+1. **Faro propone, la persona envía.** Cuando la ficha trae `tipoReporte`, o la persona pulsa «Reportar un error» o
+   «Sugerir una mejora», Faro arma un borrador: categoría (`error` o `improve`), gravedad sugerida si es error,
+   título, descripción y pantalla de origen. La persona lo ve, lo corrige y pulsa «Enviar». **Faro nunca crea un
+   reporte sin esa confirmación.**
+2. **El mismo camino del ERP.** El envío llama a `createBugForReporter` (`lib/studio/bug-create.ts`) con la sesión
+   de la persona: folio `BUG-XXXXX`, control de duplicados, datos técnicos, pantalla de administración «Bugs»,
+   avance en «Mis reportes», avisos al que reportó y Discord quedan como hoy. Faro solo cambia de dónde sale el
+   texto.
+3. **El texto va depurado** (`privacidad.md`, E-3): el borrador sale de la conversación ya depurada y la persona lo
+   revisa antes de enviar. El reporte no copia la conversación entera; si el administrador la necesita, la abre en
+   «Conversaciones del asistente», con su lectura registrada (D-4).
+4. **Rastro de los últimos pasos (D-12).** Hoy el reporte no tiene foto de pantalla (nunca se construyó) y la
+   grabación de 15 segundos está apagada (`NEXT_PUBLIC_BUG_REPLAY_ENABLED`). Se agrega un rastro: las últimas
+   10 a 15 pantallas visitadas y botones pulsados, con ruta, ancla `data-guia` o texto del botón y hora. **Nunca**
+   lo que la persona escribió en un campo, ni valores de la pantalla. Vive solo en la memoria del navegador y se
+   adjunta a los datos técnicos del reporte (`bug_tech_data`, solo administrador) al enviarlo. La grabación y la
+   foto de pantalla siguen fuera.
+5. **Discord (D-13).** Errores de gravedad alta y crítica, al momento, como hoy. Mejoras, sugerencias y errores
+   leves, en un resumen diario a `#bugs`: conteos, folios y módulos, sin títulos, sin textos y sin nombres, igual
+   que el aviso actual. Telegram sigue retirado (SDD-0606).
+
+Fases: el borrador y el envío por `createBugForReporter` van en la fase 3 (servidor) y la 4 (panel); el rastro, en
+la 4. El resumen diario de Discord es del reportador de la SDD-0036, no de Faro: va en su propia tarea.
 
 ### 7.5 Dependencia del motor de guía
 
@@ -439,7 +466,7 @@ Sam (D-11), con el riesgo anotado.
 | # | Decisión | Recomendación |
 |---|---|---|
 | D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo | Principal directo (hoy Anthropic) y respaldo solo de un proveedor no chino, o ninguno; la Oficina no sirve de respaldo mientras use Z.AI o DeepSeek (§6.5, `privacidad.md` E-10). Aceptada por el Director General con tres condiciones; falta Sam |
-| D-2 | ¿Faro absorbe el botón de reportar errores? | Sí: un solo elemento flotante, como hizo la referencia |
+| D-2 | ¿Faro absorbe el botón de reportar errores? | **Aprobada por Sam el 2026-11-16** (§7.6): Faro reemplaza el botón, arma el reporte desde la conversación y la persona lo revisa y envía; se crea por `createBugForReporter`. Su respuesta a «Propongo que Faro lo reemplace y arme el reporte desde la conversación […], pero que la persona lo revise y pulse «Enviar» antes de crearlo. ¿Así?» fue «Sí, con confirmación» |
 | D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | **Aprobada por Sam el 2026-11-16:** solo el administrador del tenant, con cada lectura registrada en `asistente_lecturas` (migración 0550). Su respuesta en el chat del Director General a «¿Apruebas las dos recomendaciones? D-4: solo el administrador lee las preguntas del equipo, con cada lectura registrada. D-5: 30 preguntas por hora por persona, configurable» fue «Sí, D-4 y D-5» |
 | D-5 | Tope de preguntas por usuario y hora | **Aprobada por Sam el 2026-11-16**, en la misma respuesta: 30 por hora y por persona, configurable. La base no fija el número: el servidor lo pasa a `asistente_reservar_pregunta` (fase 3) |
@@ -449,6 +476,8 @@ Sam (D-11), con el riesgo anotado.
 | D-9 | Memoria | **Aprobada por Sam el 2026-11-16**: solo la conversación en curso, acotada y revalidada contra los permisos actuales. Sin memoria por persona entre conversaciones. El conocimiento compartido mejora por guías aprobadas. Su respuesta a «¿Apruebas la recomendación de Codex sobre memoria y novedades?» fue «Sí, apruébala» |
 | D-10 | Cómo se entera Faro de lo nuevo | **Aprobada por Sam el 2026-11-16**, en la misma respuesta: estante `novedades/`, guía y novedad en la misma PR de la función, filtro por flags y permisos, Hermes como vigía en la fase 7 (§5). La regla de PR para `AGENTS.md` sigue necesitando su OK aparte (fase 6) |
 | D-11 | ¿Faro para el equipo en China? | **Decidida por Sam el 2026-11-16: activo, sin filtro por región.** Su respuesta a «¿Dejamos Faro apagado por ahora para el equipo en China, o prefieres consultarlo antes?» fue «No es necesario ocultar a China, déjalo activo, no importa. Todavía China no va a trabajar, así que actívalo normal.» La recomendación era apagarlo para `region = 'cn'` (`privacidad.md`, E-2); el riesgo PIPL queda anotado y conviene revisarla cuando el equipo en China empiece a usar el Studio |
+| D-12 | ¿Qué captura acompaña un reporte? | **Decidida por Sam el 2026-11-16:** el rastro de los últimos pasos, sin lo escrito (§7.6). Entre «rastro de últimos pasos», «encender la grabación» y «foto de pantalla», eligió solo el rastro. La grabación y la foto siguen fuera |
+| D-13 | ¿Qué llega a Discord de los reportes? | **Decidida por Sam el 2026-11-16:** alta y crítica al momento, como hoy, más un resumen diario de lo demás, sin datos de clientes (§7.6). Tarea del reportador de la SDD-0036, aparte de Faro |
 
 ## 12. Riesgos
 
