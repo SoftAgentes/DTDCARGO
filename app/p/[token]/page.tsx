@@ -53,27 +53,33 @@ export default async function ProviderSharePage({
 
   let sharedWorkspace:DocumentWorkspace|null = null;
   let sharedUnavailable=false;
-  try {
-    const ids = await getPrealertaIdsByToken(admin, token);
-    if (ids) {
-      const { data: workspace,error } = await admin
-        .from("document_workspaces")
-        .select(WORKSPACE_SELECT)
-        .eq("prealerta_id", ids.prealertaId)
-        .eq("tenant_id", ids.tenantId)
-        .maybeSingle();
-      if(error&&portalEnabled())sharedUnavailable=true;
-      if(workspace) {
-        if(portalEnabled()){
-          const row=workspace as unknown as WorkspaceRow;
-          const actor=await authorizeWorkspace(admin,admin,row,new Headers({"x-supplier-token":token}));
-          sharedWorkspace=projectWorkspace(row,actor);
+  // Con el portal apagado, el proveedor siempre ve el formulario de siempre,
+  // aunque exista un documento compartido (decisión DG, SDD-0473).
+  if (portalEnabled()) {
+    try {
+      const ids = await getPrealertaIdsByToken(admin, token);
+      if (ids) {
+        const { data: workspace, error } = await admin
+          .from("document_workspaces")
+          .select(WORKSPACE_SELECT)
+          .eq("prealerta_id", ids.prealertaId)
+          .eq("tenant_id", ids.tenantId)
+          .maybeSingle();
+        if (error) sharedUnavailable = true;
+        else if (workspace) {
+          const row = workspace as unknown as WorkspaceRow;
+          // El segundo argumento (sesión) va con el admin a propósito: esta página
+          // no tiene sesión de cliente. Es seguro solo porque mandamos
+          // x-supplier-token, y authorizeWorkspace resuelve ese camino con el
+          // token y nunca toca la sesión. No quitar ese header ni reutilizar esta
+          // llamada para otro actor.
+          const actor = await authorizeWorkspace(admin, admin, row, new Headers({ "x-supplier-token": token }));
+          sharedWorkspace = projectWorkspace(row, actor);
         }
-        else sharedUnavailable=true;
       }
+    } catch {
+      sharedUnavailable = true;
     }
-  } catch {
-    if(portalEnabled())sharedUnavailable=true;
   }
   const labels =
     data.predeclaredBoxes.length > 0

@@ -164,7 +164,7 @@ export function CotizadorClient({
     setAviso(null);
     const requestedGeneration = generation.current;
     const key = JSON.stringify([ws.id, ws.revision, draft]);
-    if(command.current?.key!==key) command.current={key,id:transport.id()};
+    if (command.current?.key !== key) command.current = { key, id: transport.id() };
     try {
       const recibo = await transport.post<DocumentReceipt>("save", {
         workspaceId: ws.id,
@@ -174,7 +174,7 @@ export function CotizadorClient({
       });
       if (!mounted.current || generation.current !== requestedGeneration) return false;
       aplicar(receiptWorkspace(recibo, ws.id));
-      command.current=null;
+      command.current = null;
       return true;
     } catch (error) {
       if (!mounted.current || generation.current !== requestedGeneration) return false;

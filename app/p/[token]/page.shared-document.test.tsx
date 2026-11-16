@@ -27,4 +27,8 @@ describe("frontera SSR del proveedor con documento compartido",()=>{
     h.workspace=null;const view=await ProviderSharePage({params:Promise.resolve({token})});const props=view.props.children.props;
     expect(props.sharedWorkspace).toBeNull();expect(props.sharedUnavailable).toBe(false);expect(h.authorize).not.toHaveBeenCalled();
   });
+  it("con el portal apagado y un documento presente cae al formulario de siempre",async()=>{
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED","false");const view=await ProviderSharePage({params:Promise.resolve({token})});const props=view.props.children.props;
+    expect(props.sharedWorkspace).toBeNull();expect(props.sharedUnavailable).toBe(false);expect(h.authorize).not.toHaveBeenCalled();
+  });
 });

@@ -45,6 +45,9 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   const metadataGeneration=useRef(0);
   const editGeneration=useRef(0), latestScope=useRef(scope);latestScope.current=scope;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+  // El idioma del aviso se lee al fallar: cambiar de idioma no debe volver a pedir la revisión.
+  const localeRef=useRef(locale);
+  useEffect(()=>{localeRef.current=locale;},[locale]);
   const confirmed=scope===transportScope&&!dirty&&workspace.revision===workspace.confirmedRevision;
   const canHydrateReceipt=loaded&&confirmed&&!dirty&&!conflict&&!editingProduct&&scope===transportScope&&workspace.id===initialWorkspace.id;
   const currentReceiptMetadata=canHydrateReceipt&&receiptMetadata?.scope===scope&&receiptMetadata.workspaceId===workspace.id&&receiptMetadata.revision===workspace.revision?receiptMetadata:null;
@@ -52,8 +55,19 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   const steps=[t("供应商资料","Datos del proveedor","Supplier details"),t("产品与箱组","Productos y cajas","Products and cartons"),t("照片与附件","Fotos y archivos","Photos and files"),t("核对并确认发货","Revisar y confirmar","Review and confirm")];
   const adopt=useCallback((next:DocumentWorkspace)=>{editGeneration.current++;metadataGeneration.current++;setReceiptMetadata(null);setWorkspace(next);setDraft(next.draft);setDirty(false);setConflict(false);setComparison(null);setLabels(null);setReceipt(null);setChecked(false);setEditingProduct(false);setEditorGeneration(generation=>generation+1);setStep(next.revision===next.confirmedRevision?3:0);},[]);
 
-  useEffect(()=>{let active=true;transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:initialWorkspace.id}).then(result=>{if(active){adopt(result.workspace);setLoaded(true);}}).catch(()=>{if(active){setNotice(t("无法读取最新修订版，请重试。","No pudimos consultar la revisión vigente. Reintenta antes de editar.","We could not load the current revision. Retry before editing."));}});return()=>{active=false;};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{
+    let active=true;
+    transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:initialWorkspace.id})
+      .then(result=>{
+        if(!active)return;
+        adopt(result.workspace);
+        setLoaded(true);
+      })
+      .catch(()=>{
+        if(!active)return;
+        setNotice(documentText(localeRef.current,"无法读取最新修订版，请重试。","No pudimos consultar la revisión vigente. Reintenta antes de editar.","We could not load the current revision. Retry before editing."));
+      });
+    return()=>{active=false;};
   },[transport,initialWorkspace.id,adopt]);
   useEffect(()=>{
     if(!canHydrateReceipt||currentReceiptMetadata||(receipt?.confirmed&&receipt.revision===workspace.revision&&receipt.folio&&receipt.versionNo)||(labels?.revision===workspace.revision&&labels.folio&&labels.versionNo))return;
@@ -118,7 +132,28 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
     }catch(error){setLabels(null);if(error instanceof DocumentRequestError&&error.status===409)setConflict(true);setNotice(error instanceof DocumentRequestError&&error.code==="labels_need_operations"?t("实际箱子与文件不一致。请联系 DTD 核对箱标。","Las cajas físicas no coinciden con el documento. Contacta a DTD para revisar las etiquetas.","Physical cartons differ from the document. Contact DTD to review the labels."):t("无法打印当前修订版。请读取共享版本并核对确认状态。","No pudimos validar esta revisión para imprimir. Consulta la versión compartida y su confirmación.","This revision could not be validated for printing. Check the shared revision and confirmation."));}
     finally{setBusy(false);}
   }
-  async function download(){if(busy||dirty||conflict||!loaded||scope!==transportScope)return;const requestedGeneration=editGeneration.current,requestedScope=scope;setBusy(true);try{const file=await transport.download(workspace.id,{format:"xlsx",expectedRevision:workspace.revision});if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;const url=URL.createObjectURL(file);const link=document.createElement("a");link.href=url;link.download=`PackingList-${code.replace(/[^a-z0-9-]/gi,"_")}-Rev${workspace.revision}.xlsx`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;if(error instanceof DocumentRequestError&&error.status===409)setConflict(true);setNotice(t("无法下载当前修订版，请读取共享版本。","No pudimos descargar esa revisión. Consulta la versión compartida.","We could not download that revision. Load the shared revision."));}finally{if(mounted.current&&latestScope.current===requestedScope)setBusy(false);}}
+  async function download(){
+    if(busy||dirty||conflict||!loaded||scope!==transportScope)return;
+    const requestedGeneration=editGeneration.current,requestedScope=scope;
+    const stale=()=>!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration;
+    setBusy(true);
+    try{
+      const file=await transport.download(workspace.id,{format:"xlsx",expectedRevision:workspace.revision});
+      if(stale())return;
+      const url=URL.createObjectURL(file);
+      const link=document.createElement("a");
+      link.href=url;
+      link.download=`PackingList-${code.replace(/[^a-z0-9-]/gi,"_")}-Rev${workspace.revision}.xlsx`;
+      link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(error){
+      if(stale())return;
+      if(error instanceof DocumentRequestError&&error.status===409)setConflict(true);
+      setNotice(t("无法下载当前修订版，请读取共享版本。","No pudimos descargar esa revisión. Consulta la versión compartida.","We could not download that revision. Load the shared revision."));
+    }finally{
+      if(mounted.current&&latestScope.current===requestedScope)setBusy(false);
+    }
+  }
   async function downloadPdf(surface:"packing-list"|"labels"){
     if(busy||!loaded||!confirmed||editingProduct||conflict||scope!==transportScope)return;
     const requestedGeneration=editGeneration.current,requestedScope=scope;

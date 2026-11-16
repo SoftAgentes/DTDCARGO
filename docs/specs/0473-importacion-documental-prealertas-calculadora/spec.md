@@ -387,6 +387,10 @@ la API nueva y la interfaz vieja.
   exigen una revisión confirmada.
 - **Proveedor (`/p/[token]`):** abre la revisión compartida, corrige peso bruto y CBM, confirma
   y descarga. Ve la proyección `projectSupplierDocument`: sin fuentes, decisiones ni mensajes privados.
+- **Portal apagado (decisión DG, 2026-11-16):** si `portalEnabled()` es falso, `/p/[token]` no consulta
+  el documento compartido y el proveedor ve el formulario de siempre, aunque exista un workspace.
+  Con el portal encendido, si la lectura falla, la vista queda cerrada (`sharedUnavailable`).
+  El proveedor se autoriza solo por `x-supplier-token`, nunca por la sesión.
 - **Sin GLM:** no entran los mensajes `qa_glm_*`. Los tests usan un texto de divulgación neutral.
 
 Revisión `revisar-datos-ve` (2026-11-16, lectura de código, inventario técnico, no asesoría legal):
