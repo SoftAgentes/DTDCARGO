@@ -3456,6 +3456,15 @@
         "fecha": "2026-11-16",
         "forma": "exacta"
       }
+    },
+    "0547_noticias_portada_licencia": {
+      "sha256": "91e515ef79bec540d2357b760b495f6f439b98c3f4c28702a99a1774ccb89e14",
+      "md5": "038c5b567758666d2fe30a9a1406e9a7",
+      "bytes": 16914,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
     }
   }
 }
