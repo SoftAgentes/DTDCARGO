@@ -269,6 +269,15 @@ export function InviteUserDrawer({ onClose }: Props) {
               />
             </div>
 
+            {/* ─── SDD-0636 · el rol admin es del superadministrador (migr 0545).
+                 Aviso antes de enviar; si igual se envía, la acción responde con
+                 la causa en el ErrorAlert de abajo. ─── */}
+            {role === "admin" && (
+              <Aviso tono="atencion" compacto>
+                {t("users.invite.admin_superadmin")}
+              </Aviso>
+            )}
+
             {/* ─── Scope warehouses (solo si rol lo requiere) ─── */}
             {needsScope && (
               <ScopeSection
