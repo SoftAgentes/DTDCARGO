@@ -141,8 +141,18 @@ El modelo nunca recibe lo que el usuario no debe saber. Por cada entrada del cat
 | No puede y es `reservada` | La línea con la descripción sustituida por «Reservada» |
 | No puede y es `oculta` | Nada. Para Faro no existe |
 
-Un proceso entra solo si el usuario puede abrir **todos** los módulos que cruza. La lista inicial de reservadas y
-ocultas la propone el Worker a partir de `LOCKED_MODULES` y `SUPERADMIN_ONLY_MODULES`, y la aprueba Sam (D-3).
+Un proceso entra solo si el usuario puede abrir **todos** los módulos que cruza.
+
+Lista aprobada por Sam el 2026-11-16 (D-3). Vive en `lib/studio/asistente/contenido/catalogo.ts`:
+
+| Trato | Módulos |
+|---|---|
+| `oculta` (4) | `renditions`, `financiero-china`, `legal`, `no-olvidar`: los de `SUPERADMIN_ONLY_MODULES` |
+| `reservada` (6) | `direccion`, `users`, `admin`, `mailing`, `nomina`, `costing` |
+| `normal` (47) | El resto, incluidos Facturación, Cobranzas, Tesorería, Contabilidad, Fiscal y Reportes |
+
+El dinero de uso diario queda como `normal` a propósito: con Sam pidiendo alertas «solo lo serio» (S-2), una
+pregunta suelta por Cobranzas no debe alertar. Sin acceso, igual se bloquea y queda en el registro.
 
 ### 6.2 El servidor decide el bloqueo
 
@@ -365,7 +375,7 @@ Puntos que esa revisión debe resolver:
 |---|---|---|
 | D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo en la Oficina | La tercera (§6.5). Aceptada por el Director General con tres condiciones; falta Sam |
 | D-2 | ¿Faro absorbe el botón de reportar errores? | Sí: un solo elemento flotante, como hizo la referencia |
-| D-3 | Lista de módulos `reservada` y `oculta` | La propone el Worker en la fase 1; la aprueba Sam |
+| D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |
 | D-5 | Tope de preguntas por usuario y hora | 30, configurable |
 | D-6 | Plazo de conservación del registro | Lo define la revisión de datos (§10) |
