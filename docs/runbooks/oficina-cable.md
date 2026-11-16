@@ -311,6 +311,8 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 - Hermes v0.23.1 guarda cada turno del API server en el `state.db` del perfil, y no se puede apagar.
 - El despachador usa una sesión propia por llamada (`cable-<run>-<intento>`) y la borra al terminar.
 - El timer `hermes-soporte-purga` (§2) borra lo que haya quedado con más de 24 h. **Máximo en disco: 48 h.**
+- La copia previa a `hermes update` está apagada en el perfil (`updates.pre_update_backup: "off"`).
+- Pendiente de decisión de Sam: los bytes borrados quedan en páginas libres de SQLite hasta un `VACUUM` (privacidad.md, hallazgo 16).
 - Lo demás está en [privacidad.md](../specs/0626-oficina-runtime/privacidad.md), hallazgo 13.
 
 ### Llaves del agente (D5)

@@ -30,11 +30,11 @@ En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tab
 
 | Estado | Cantidad |
 |---|---|
-| `CORRECTO` | 10 |
-| `ENCONTRADO` | 3 |
-| `NO VERIFICABLE` | 5 |
+| `CORRECTO` | 12 |
+| `ENCONTRADO` | 5 |
+| `NO VERIFICABLE` | 7 |
 
-**Paso 3a (16/11/2026):** se suman el hallazgo 12 (el borrador del agente) y el 13 (los mensajes salen de la casa hacia los cerebros), y el 1 queda cerrado para lo que escribe el despachador.
+**Paso 3a (16/11/2026):** se suman el hallazgo 12 (el borrador del agente) y el 13 (los mensajes salen de la casa hacia los cerebros), y el 1 queda cerrado para lo que escribe el despachador. La retención en la oficina (`state.db` de Hermes) se revisó aparte con la skill, a pedido del DG: hallazgos 14 a 18.
 
 ## 2 · Inventario
 
@@ -160,6 +160,91 @@ Para redactar, el despachador manda el texto de la conversación fuera del VPS D
 - El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
 - Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
 - **Alcance hoy:** solo la cuenta 2 y la bandeja 11, de prueba, con texto inventado.
+
+### Revisión de la retención en la oficina: el `state.db` de Hermes (Paso 3a, 16/11/2026)
+
+Pedido del DG: pasar por [`revisar-datos-ve`](../../../.claude/skills/revisar-datos-ve/SKILL.md) que la oficina guarde los
+mensajes hasta 48 h. Se revisó contra la checklist, puntos 1, 2, 5 y 10. La evidencia del servidor está fuera del
+repositorio: lo que solo se ve allí queda `NO VERIFICABLE` desde aquí, aunque se haya mirado en el VPS.
+
+**Inventario (punto 1):**
+
+| Dónde | Qué es | Finalidad | Retención | Quién más lo ve |
+|---|---|---|---|---|
+| `state.db` del perfil `soporte-chatwoot` (tablas de sesiones y mensajes de Hermes) | El texto de la conversación que manda el ERP (rol y texto de los últimos 20 mensajes del cliente), las instrucciones, los guiones y la respuesta del agente | Ninguna propia: Hermes guarda cada turno del API server para continuar sesiones, y en v0.23.1 no se puede apagar | Segundos: el despachador borra la sesión al terminar. Si falla, ≤ 48 h por la purga diaria. Ver 16 | Solo `agentes-soporte` (archivo 600, home 700) y root |
+| Admisiones de Hermes (tombstones de idempotencia) | La respuesta del agente asociada a la llave `<run>:<intento>` | Que un reintento exacto no vuelva a correr el modelo | 7 días tras el borrado de la sesión, hasta una pasada de limpieza. Ver 17 | Igual |
+| Páginas libres y WAL de SQLite | Restos de bytes de las filas borradas | Ninguna | Hasta que SQLite reutilice la página o haya un VACUUM. Ver 16 | Igual |
+
+**Finalidad (punto 2).** El despachador no necesita que la oficina recuerde nada: cada llamada lleva todo lo necesario
+(`lib/studio/oficina/despachador.ts`, el `usuario` de `ejecutarCorrida`). Por eso lo que guarda Hermes no tiene
+finalidad propia, y el criterio es borrarlo cuanto antes (SC 332/2001, temporalidad).
+
+#### `CORRECTO` 14 · El despachador borra la sesión de cada llamada
+
+- Cada llamada usa su propia sesión: `lib/studio/oficina/despachador.ts:162` y la cabecera en `lib/studio/oficina/runtime-cliente.ts:59`.
+- Se borra en un `finally`, haya salido bien o mal: `despachador.ts:170`, `runtime-cliente.ts:99` y `:103` (`DELETE /api/sessions/<id>`).
+- En Hermes, `delete_session` borra la sesión y sus mensajes (`hermes_state_sessions.py`, v0.23.1, en el VPS).
+- La prueba `lib/studio/__tests__/oficina-despachador.test.ts:418` exige un borrado por llamada.
+- **Solo se verificó con una sesión vacía** (crear → DELETE 200 → GET 404, 16/11/2026). Falta el paso 3 de la skill con un turno real (ver 18).
+
+#### `CORRECTO` 15 · La versión de las instrucciones queda con cada llamada (punto 10)
+
+El agente decide si responde o escala, y con qué prioridad. Cada llamada anota en `task_events` el modelo que la
+sirvió, el costo y la versión de los guiones (`despachador.ts:177`). El borrador queda para que Sam lo revise antes de
+cualquier envío: ninguna decisión sale sin una persona.
+
+#### `ENCONTRADO` 16 · «48 h» vale para las filas, no para los bytes del archivo (media)
+
+- **Qué:** SQLite no sobrescribe al borrar (sin `secure_delete`). Los bytes de una sesión borrada quedan en páginas
+  libres (y un rato en el WAL) hasta que se reutilicen o haya un `VACUUM`.
+- **Dónde:** en v0.23.1, Hermes solo hace `VACUUM` después de su propia poda, y solo con más del 25 % de páginas libres
+  y cada 30 días (`hermes_state_maintenance.py` y `hermes_state_common.py:302`, en el VPS). El `DELETE` por la API no
+  lo dispara. `hermes sessions optimize` no corre con el gateway vivo, salvo con `--force`, que Hermes advierte que
+  puede dejar a los agentes sin responder.
+- **Por qué importa:** quien copie el archivo `state.db` (root, un respaldo del VPS) podría recuperar restos más allá de
+  las 48 h. Las filas en sí, no.
+- **Norma:** SC 332/2001 (temporalidad) y SC 759/2025 (derecho al olvido); CRBV art. 28 (destrucción).
+- **Arreglo propuesto (lo decide Sam):**
+  - **A:** una ventana semanal de mantenimiento en la oficina: parar `hermes-gateway-soporte-chatwoot`, correr
+    `hermes sessions optimize` como `agentes-soporte` y arrancarlo. Unos segundos sin agente; con el despachador
+    encendido, la corrida de ese momento escala por `runtime:red`.
+  - **B:** aceptar el resto, sabiendo que el texto es de la bandeja de prueba e inventado hasta la etapa 2.
+
+#### `ENCONTRADO` 17 · Hermes conserva la respuesta del agente 7 días tras el borrado (baja)
+
+- **Qué:** después de `DELETE /api/sessions/<id>`, Hermes guarda las admisiones como tombstones durante 7 días, y hasta
+  la siguiente pasada de limpieza. Un reintento exacto con la misma `Idempotency-Key` recibe la respuesta original
+  (`website/docs/user-guide/features/api-server.md`, «Idempotency keys», en el VPS).
+- **Qué no:** el texto del cliente, que entra en la identidad de la admisión y no es la respuesta. Que no se guarde
+  textual es `NO VERIFICABLE` sin leer el almacén de admisiones (sí consta en el ledger de `/v1/runs`, que solo
+  guarda huellas: `api_server_run_idempotency.py:60`, en el VPS).
+- **Por qué es baja:** la respuesta del agente es el mismo texto que el borrador, que se guarda 90 días por decisión de
+  Sam (D3), y la revisión de eval.md escala si trae datos personales.
+- **Arreglo, si se quiere:** quitar la `Idempotency-Key` (`runtime-cliente.ts`). Se pierde la protección contra una
+  llamada doble al modelo cuando la red corta a mitad. No se recomienda.
+
+#### `CORRECTO` / `NO VERIFICABLE` · Lo que vive en el servidor de la oficina
+
+Visto en el VPS el 16/11/2026, pero fuera del repositorio:
+- el timer `hermes-soporte-purga`;
+- `sessions.auto_prune: true` y `retention_days: 1`;
+- `memory.memory_enabled: false`;
+- `updates.pre_update_backup: "off"`: la copia rápida que `hermes update` hace de `state.db` sería un escondite más (punto 5, respaldos);
+- el home 700.
+
+Los detalles están en `docs/runbooks/oficina-cable.md` §2 y §10, y la reversión en
+`/srv/oficina/backups/paso3a-agente-20261116T041544Z/REVERTIR.txt`.
+
+#### `NO VERIFICABLE` 18 · El borrado no se probó con un valor rastreable (paso 3 de la skill)
+
+Se propone para la prueba de staging (E), con el OK de Sam:
+1. Una conversación inventada con una marca única.
+2. Una corrida del despachador.
+3. Buscar la marca en `state.db`, `-wal`, `response_store.db`, `runs_idempotency.db`, `logs/` y `cache/` del perfil:
+   - justo después de la corrida;
+   - después de la purga diaria.
+
+Si la marca sobrevive como fila, el borrado no borra (`ENCONTRADO`). Si sobrevive solo como bytes sueltos del archivo, es el 16.
 
 ## 4 · No verificable
 

@@ -174,7 +174,7 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
       await anotar(
         "modelo.respuesta",
         actorAgente,
-        `Intento ${intento}: ${r.entrada} tokens de entrada y ${r.salida} de salida; JSON ${interpretada.ok ? "válido" : `inválido (${interpretada.codigo})`}.`,
+        `Intento ${intento} (guiones v${VERSION_GUIONES}): ${r.entrada} tokens de entrada y ${r.salida} de salida; JSON ${interpretada.ok ? "válido" : `inválido (${interpretada.codigo})`}.`,
         costoDeLlamada(r.entrada, r.salida, config.precios),
         r.modelo,
       );
