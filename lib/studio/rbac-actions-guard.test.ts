@@ -252,12 +252,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // el estado de la guía por usuario.
   // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
-  it("la superficie escaneada es la esperada (82 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
+  // borradores del agente.
+  it("la superficie escaneada es la esperada (83 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 82,
-      exactos: 58,
+      total: 83,
+      exactos: 59,
       conPrefijo: 24,
     });
   });
@@ -376,8 +378,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
   // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
   // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (472 → 473): `moduleEditDenial(supabase,
+  // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
+  // repite `is_platform_admin()`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(472);
+    expect(reportes.length).toBe(473);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

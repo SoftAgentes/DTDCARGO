@@ -14,6 +14,7 @@ import { createClient } from "@/lib/db/server";
 import { detectorDelCable } from "@/lib/studio/oficina/cable-textos";
 import { CASILLAS, type ClaveCasilla, etapaActual, guardarRevision } from "@/lib/studio/oficina/revisiones";
 import { platformAdminDenial } from "@/lib/studio/platform-admin";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 
 const RUTA = "/studio/admin/oficina";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -24,6 +25,8 @@ function volver(codigo: string): never {
 
 export async function revisarBorradorAction(formData: FormData): Promise<void> {
   const supabase = await createClient();
+  // Dos candados, antes de leer nada: el del módulo admin (la matriz del ERP) y el de superadministrador (D4).
+  if (await moduleEditDenial(supabase, "admin")) volver("sin_permiso");
   if (await platformAdminDenial(supabase)) volver("sin_permiso");
 
   const borradorId = String(formData.get("borrador") ?? "");
