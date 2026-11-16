@@ -1,5 +1,5 @@
 /**
- * Embarques — vista comercial agrupada por cliente.
+ * Embarques — vista comercial por contenedor → cliente → embarque.
  *
  * SDD-0012. Server component fetchea todos los shipments del tenant
  * (RLS-filtered) y delega la UI a EmbarquesClient. Los filtros (tabs +
@@ -7,6 +7,11 @@
  *
  * SDD-0522: a quien puede eliminar embarques (admin) se le lee además qué
  * bloquea cada uno, con la misma regla que aplica el borrado.
+ *
+ * SDD-0643: se lee en qué contenedor va cada embarque (consolidation_items →
+ * consolidations → sailings → carriers, con la sesión y su RLS) y la vista
+ * empieza por los contenedores. El tope sube a 500 embarques para no cortar
+ * un consolidado; si se llega al tope, la vista lo dice.
  */
 
 import { createClient } from "@/lib/db/server";
@@ -16,15 +21,24 @@ import { listShipments, type ShipmentListRow } from "@/lib/studio/shipment-queri
 import { contarAdjuntosDeEmbarques } from "@/lib/studio/documents/adjuntos-queries";
 import { conteosPorId } from "@/lib/studio/documents/adjuntos";
 import { leerInfoEmbarques } from "@/lib/studio/borrado/servidor";
+import { leerContenedoresDeEmbarques } from "@/lib/studio/embarques-contenedores-queries";
 import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
 
 export const metadata = { title: "Embarques" };
+
+/** SDD-0643: tope de la lista. Un consolidado trae decenas de embarques. */
+const TOPE_EMBARQUES = 500;
 
 export default async function EmbarquesPage() {
   await requireModuleView("shipments");
 
   const supabase = await createClient();
-  const shipments = (await listShipments(supabase, {})) as ShipmentListRow[];
+  const shipments = (await listShipments(supabase, {}, { limit: TOPE_EMBARQUES })) as ShipmentListRow[];
+  // SDD-0643: `null` = no se pudo leer; la vista lo dice y agrupa sólo por cliente.
+  const contenedores = await leerContenedoresDeEmbarques(
+    supabase,
+    shipments.map((s) => s.id),
+  );
   // SDD-0507: cuántos adjuntos tiene cada embarque (internos + portal), con el
   // cliente de sesión. `null` si no se pudo contar: la tabla lo dice.
   // Esta pantalla se abre con `shipments`, pero la RLS de los documentos de un
@@ -52,5 +66,13 @@ export default async function EmbarquesPage() {
     eliminacion = info === null ? { estado: "no_disponible" } : { estado: "lista", info };
   }
 
-  return <EmbarquesClient shipments={shipments} adjuntos={adjuntos} eliminacion={eliminacion} />;
+  return (
+    <EmbarquesClient
+      shipments={shipments}
+      adjuntos={adjuntos}
+      eliminacion={eliminacion}
+      contenedores={contenedores}
+      tope={shipments.length >= TOPE_EMBARQUES ? TOPE_EMBARQUES : undefined}
+    />
+  );
 }
