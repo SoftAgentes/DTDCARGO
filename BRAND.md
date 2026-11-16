@@ -286,6 +286,8 @@ Escala de 4px (todo múltiplo). Usa las variables:
 ### Sombras
 Solo las del sistema: `--shadow-xs`, `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-pop`. Nunca sombras inventadas.
 
+**Bordes fijos** (BD-070, aprobada por Sam el 2026-11-15): un encabezado o una columna `sticky` con contenido escondido detrás lleva `--shadow-sticky-top` (cae hacia abajo) o `--shadow-sticky-left` (cae hacia la derecha). Solo mientras hay desplazamiento; en el borde, nada. Claro y oscuro salen del token. Studio (`app/studio/tokens.css`).
+
 ---
 
 ## 🎚️ Perfil de densidad por superficie
