@@ -111,7 +111,7 @@ export function entradaFeliz(over: Partial<EntradaFiltros> = {}): EntradaFiltros
       searchConsole: { consulta: "como importar de china", fecha: "2026-11-10" },
       sources: [],
       contentKind: "guide",
-      coverImageUrl: null,
+      portada: null,
       writerAgent: { agente: "redactor-noticias", modelo: "modelo-sintetico", version: "1.0" },
       reviewerVerdict: {
         veredicto: "aprobado",

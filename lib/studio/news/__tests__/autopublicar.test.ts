@@ -71,16 +71,24 @@ interface Estado {
   ultimoAviso: { notice_state: string | null } | null;
   salidas: Array<{ reason: string | null }>;
   rpcResultado: Record<string, unknown>;
+  /** SDD-0611 §11.5: la 0547 no está aplicada, así que pedir las columnas de portada falla con 42703. */
+  sinColumnasPortada?: boolean;
 }
 
 /** Base doble: responde por tabla y anota cada RPC. */
 function dobleDb(e: Estado) {
   const rpcs: Array<{ fn: string; args: Record<string, unknown> }> = [];
+  const selectsDeBorrador: string[] = [];
   const from = (tabla: string) => {
     const filtros: Record<string, unknown> = {};
+    let columnas = "";
     const datos = () => {
       switch (tabla) {
-        case "seo_drafts": return e.draft;
+        case "seo_drafts":
+          // Sin la 0547 la base no devuelve las columnas nuevas de portada.
+          return e.draft && e.sinColumnasPortada
+            ? Object.fromEntries(Object.entries(e.draft).filter(([k]) => k === "autopub_cover_image_url" || !k.startsWith("autopub_cover_")))
+            : e.draft;
         case "news_autopublish_settings": return e.settings;
         case "news_publication_audit": return e.ultimoAviso;
         case "news_post_exits": return e.salidas;
@@ -91,12 +99,19 @@ function dobleDb(e: Estado) {
       }
     };
     const q = {
-      select: () => q,
+      select: (c?: string) => {
+        columnas = c ?? "";
+        if (tabla === "seo_drafts") selectsDeBorrador.push(columnas);
+        return q;
+      },
       eq: (c: string, v: unknown) => { filtros[c] = v; return q; },
       gte: () => q,
       order: () => q,
       limit: () => q,
-      maybeSingle: async () => ({ data: datos(), error: null }),
+      maybeSingle: async () =>
+        tabla === "seo_drafts" && e.sinColumnasPortada && columnas.includes("autopub_cover_alt")
+          ? { data: null, error: { code: "42703", message: "column seo_drafts.autopub_cover_alt does not exist" } }
+          : { data: datos(), error: null },
       then: (ok: (r: { data: unknown; error: null }) => unknown) => Promise.resolve({ data: datos(), error: null }).then(ok),
     };
     return q;
@@ -105,7 +120,7 @@ function dobleDb(e: Estado) {
     rpcs.push({ fn, args });
     return fn === "news_evaluacion_automatica" ? { data: e.rpcResultado, error: null } : { data: null, error: null };
   };
-  return { db: { from, rpc } as unknown as SupabaseClient, rpcs };
+  return { db: { from, rpc } as unknown as SupabaseClient, rpcs, selectsDeBorrador };
 }
 
 function estado(over: Partial<Estado> = {}): Estado {
@@ -126,6 +141,66 @@ function discord(status = 200) {
     return new Response(status === 200 ? JSON.stringify({ id: "987654321098765432" }) : "{}", { status });
   });
 }
+
+const PORTADA_BUENA = {
+  autopub_cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp",
+  autopub_cover_alt: "Camión de DTD Cargo",
+  autopub_cover_origin: "propia",
+  autopub_cover_license: "Foto propia de DTD Cargo",
+  autopub_cover_license_verified_at: "2026-11-15T12:00:00Z",
+};
+
+describe("SDD-0611 §11.5 · la portada en la vía automática", () => {
+  const publicar = async (e: Estado) => {
+    const t = dobleDb(e);
+    const r = await evaluarBorradorAutomatico(
+      { db: t.db, env: ENV, ahora: AHORA, fetchImpl: discord() as unknown as typeof fetch }, DRAFT);
+    const post = t.rpcs.find((x) => x.fn === "news_evaluacion_automatica")!.args.p_post as Record<string, unknown>;
+    return { r, post, selects: t.selectsDeBorrador };
+  };
+  const viajaPortada = (post: Record<string, unknown>) => Object.keys(post).some((k) => k.startsWith("cover_"));
+
+  it("una portada con licencia comprobada viaja a la base", async () => {
+    const { r, post } = await publicar(estado({ draft: borrador(PORTADA_BUENA) }));
+    expect(r.decision).toBe("publicada");
+    expect(r.portada).toEqual({ usada: true, motivos: [] });
+    expect(post.cover_image_url).toBe("/fotos/dtd-cargo-camion-entrega.webp");
+    expect(post.cover_license).toBe("Foto propia de DTD Cargo");
+    expect(post.cover_origin).toBe("propia");
+  });
+
+  it.each([
+    ["sin licencia", { autopub_cover_license: null }],
+    ["licencia sin comprobar", { autopub_cover_license_verified_at: null }],
+    ["host ajeno", { autopub_cover_image_url: "https://otro.example/x.jpg" }],
+    ["foto propia fuera de la lista", { autopub_cover_image_url: "/fotos/dtd-cargo-recepcion-contenedor.webp" }],
+    ["marca anterior en la URL", { autopub_cover_image_url: "/fotos/precinto-doortudoor-x.jpg" }],
+    ["marca anterior en el alt", { autopub_cover_alt: "Equipo DoorTuDoor" }],
+  ])("portada inválida (%s): no viaja, la noticia se publica igual", async (_n, cambio) => {
+    const { r, post } = await publicar(estado({ draft: borrador({ ...PORTADA_BUENA, ...cambio }) }));
+    expect(viajaPortada(post)).toBe(false);
+    expect(r.decision).toBe("publicada");
+    expect(r.evaluacion?.motivos).toEqual([]);
+    expect(r.portada?.usada).toBe(false);
+    expect(r.portada?.motivos.length).toBeGreaterThan(0);
+  });
+
+  it("sin la 0547 (columna ausente) reintenta sin las columnas de portada y publica sin foto", async () => {
+    const { r, post, selects } = await publicar(
+      estado({ draft: borrador(PORTADA_BUENA), sinColumnasPortada: true }));
+    expect(selects).toHaveLength(2);
+    expect(selects[0]).toContain("autopub_cover_alt");
+    expect(selects[1]).not.toContain("autopub_cover_alt");
+    expect(r.ok).toBe(true);
+    expect(r.decision).toBe("publicada");
+    expect(viajaPortada(post)).toBe(false);
+  });
+
+  it("con las columnas presentes lee una sola vez", async () => {
+    const { selects } = await publicar(estado());
+    expect(selects).toHaveLength(1);
+  });
+});
 
 describe("SDD-0611 · orquestador de la vía automática", () => {
   it("todo en verde: la base recibe cero motivos y la auditoría completa; avisa y registra entregado", async () => {

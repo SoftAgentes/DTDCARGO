@@ -116,7 +116,6 @@ describe("F6 · puntaje mínimo, en el límite de cada métrica", () => {
     tipo: "informativo" as const,
     categoria: "importa-sin-perder-plata" as const,
     focusKeyword: "importador",
-    coverImageUrl: null,
     contentKind: "guide",
   };
   const conCuerpo = (palabras: number, subtitulos = 6, ocurrencias = 10) =>
@@ -181,10 +180,9 @@ describe("F6 · puntaje mínimo, en el límite de cada métrica", () => {
     expect(problemasDelTitular("Importa · Cómo repartir tus compras grandes en el 🚢", cat)).toContain("emoji");
   });
 
-  it("portada propia del sitio o la de la categoría; una externa no", () => {
-    expect(evaluarPuntaje({ ...base, coverImageUrl: "/fotos/x.jpg", markdown: cuerpo({ palabras: 1000, subtitulos: 6, ocurrencias: 10 }) })).toEqual([]);
-    expect(evaluarPuntaje({ ...base, coverImageUrl: "https://otro.test/x.jpg", markdown: cuerpo({ palabras: 1000, subtitulos: 6, ocurrencias: 10 }) })).toContain("puntaje:portada");
-    expect(evaluarPuntaje({ ...base, coverImageUrl: "//otro.test/x.jpg", markdown: cuerpo({ palabras: 1000, subtitulos: 6, ocurrencias: 10 }) })).toContain("puntaje:portada");
+  it("la portada ya no entra al puntaje: su descarte vive en portada.ts y no retiene la noticia", () => {
+    expect(conCuerpo(1000)).toEqual([]);
+    expect(conCuerpo(1000).some((c) => c.startsWith("puntaje:portada"))).toBe(false);
   });
 
   it("tipo de contenido declarado", () => {

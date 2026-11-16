@@ -91,9 +91,25 @@ export default async function NewsPostPage({ params }: Props) {
           </div>
         </header>
 
-        <div className="actual-article-wrap actual-cover">
-          <Image src={image.src} alt={image.alt} fill loading="eager" sizes="(max-width: 900px) 100vw, 980px" />
-        </div>
+        {image && (
+          <figure className="actual-article-wrap actual-cover-figure">
+            <div className="actual-cover">
+              <Image src={image.src} alt={image.alt} fill loading="eager" sizes="(max-width: 900px) 100vw, 980px" />
+            </div>
+            {image.licencia && (
+              <figcaption className="actual-cover-credit">
+                {image.credito ? <>Foto: {image.credito} · </> : null}
+                {image.licencia}
+                {image.enlaceOrigen && (
+                  <>
+                    {" · "}
+                    <a href={image.enlaceOrigen} target="_blank" rel="noopener noreferrer nofollow">Origen</a>
+                  </>
+                )}
+              </figcaption>
+            )}
+          </figure>
+        )}
 
         <div className="actual-article-wrap actual-article-grid">
           {headings.length > 1 && <ArticleToc headings={headings} />}
@@ -171,7 +187,9 @@ function RelatedCard({ post }: { post: NewsPostRow }) {
   const image = editorialImageOf(post);
   return (
     <Link href={`/noticias/${post.slug}`} className="actual-related-card">
-      <span className="actual-related-image"><Image src={image.src} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" /></span>
+      {image && (
+        <span className="actual-related-image"><Image src={image.src} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" /></span>
+      )}
       <span><em>{CONTENT_KIND_LABELS[contentKindOf(post)]}</em><strong>{post.title}</strong><small>{post.read_time_min} min de lectura</small></span>
     </Link>
   );
