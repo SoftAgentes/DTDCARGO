@@ -36,7 +36,9 @@ PASÓ: vitest focal (noticias-0546, ruta de cron, build-crontab, spec-migration-
 - Reconstruir la imagen `cron` (C8) y encender `NOTICIAS_PURGA_ACTOR_ACTIVO=1`: último paso, con OK de Sam.
 
 ## FUERA DE ALCANCE DETECTADO
-- (ninguno por ahora)
+- `entity_audit_log` (0532) guarda lo editado de las noticias y sigue sin plazo.
+- `news_posts.created_by` y `news_post_exits.note` (texto libre de quien retiró) siguen sin plazo; la purga no los cubre.
+- Los respaldos y el PITR conservan lo vaciado: la purga actúa sobre la base viva, no sobre las copias.
 
 ## Impacto documental
 Actualizados: spec 0611 §11.4.1.1, `privacidad.md`, runbook nuevo `noticias-purga-actor.md`. Sin otros documentos canónicos afectados.

@@ -17,7 +17,8 @@
 --      rechazada; uuid y marca juntos, también);
 --   P  solo service_role ejecuta la purga; es idempotente.
 --
--- CONTROL ROJO: sin 0546 cae en la primera aserción.
+-- CONTROL ROJO: sin 0546 el piso de conteo pasa (las tablas son de la 0518) y cae en
+-- «P: anon no ejecuta la purga» (la función no existe: 42883, no 42501).
 -- Termina siempre en ROLLBACK. Solo ids y textos sintéticos.
 begin;
 
@@ -80,7 +81,8 @@ grant execute on function public.is_tenant_admin() to authenticated;
 
 insert into public.tenants values
   ('10000000-0000-4000-8000-000000000001', 'dtd'),
-  ('10000000-0000-4000-8000-000000000002', 'otro');
+  ('10000000-0000-4000-8000-000000000002', 'otro'),
+  ('10000000-0000-4000-8000-000000000003', 'tres');
 insert into auth.users values
   ('20000000-0000-4000-8000-000000000001'),  -- persona A
   ('20000000-0000-4000-8000-000000000002'),  -- persona B
@@ -141,7 +143,8 @@ values
 insert into public.news_autopublish_settings (tenant_id, enabled, daily_cap, weekly_cap, updated_at, updated_by)
 values
   ('10000000-0000-4000-8000-000000000001', false, 1, 2, now() - interval '13 months', '20000000-0000-4000-8000-000000000001'),
-  ('10000000-0000-4000-8000-000000000002', false, 1, 2, now() - interval '11 months', '20000000-0000-4000-8000-000000000002');
+  ('10000000-0000-4000-8000-000000000002', false, 1, 2, now() - interval '11 months', '20000000-0000-4000-8000-000000000002'),
+  ('10000000-0000-4000-8000-000000000003', false, 1, 2, now() - interval '12 months', '20000000-0000-4000-8000-000000000003');
 
 -- Foto de cada fila ANTES de la 0546 (sin las columnas que la purga puede tocar).
 create temporary table foto_antes (tabla text, id text, fila jsonb);
@@ -205,6 +208,7 @@ do $contrato$
 declare
   t1 constant uuid := '10000000-0000-4000-8000-000000000001';
   t2 constant uuid := '10000000-0000-4000-8000-000000000002';
+  t3 constant uuid := '10000000-0000-4000-8000-000000000003';
   v_r jsonb;
   v_r2 jsonb;
   v_resto integer;
@@ -213,11 +217,11 @@ begin
   perform pg_temp.assert_true((select count(*) from public.news_post_exits) = 4
     and (select count(*) from public.news_publication_audit) = 5
     and (select count(*) from public.news_autopublish_settings_log) = 3
-    and (select count(*) from public.news_autopublish_settings) = 2, 'piso: las filas de partida están');
+    and (select count(*) from public.news_autopublish_settings) = 3, 'piso: las filas de partida están');
   perform pg_temp.assert_true((select count(*) from public.news_post_exits where actor_id is not null) = 3
     and (select count(*) from public.news_publication_audit where actor_id is not null) = 4
     and (select count(*) from public.news_autopublish_settings_log where changed_by is not null) = 3
-    and (select count(*) from public.news_autopublish_settings where updated_by is not null) = 2,
+    and (select count(*) from public.news_autopublish_settings where updated_by is not null) = 3,
     'piso: hay uuid que vaciar');
 
   -- ── P · quién ejecuta la purga ──
@@ -234,27 +238,37 @@ begin
     'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id)
      values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null)', t1)) = '23514',
     'M: una fila manual nueva sin uuid y sin marca se rechaza');
+  -- Una fila nueva no entra ya «purgada»: el disparador BEFORE INSERT rechaza la marca (con o sin uuid).
+  perform pg_temp.assert_true(pg_temp.entra(format(
+    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
+     values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null, now())', t1)) = '23514',
+    'M: una fila nueva de la auditoría no entra con marca de purga (sin uuid)');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
      values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', %L, now())', t1,
     '20000000-0000-4000-8000-000000000001')) = '23514',
+    'M: una fila nueva de la auditoría no entra con marca de purga (con uuid)');
+  -- El CHECK «uuid y marca a la vez» sigue vigente para un UPDATE (la purga pone las dos cosas juntas).
+  perform pg_temp.assert_true(pg_temp.entra(
+    'update public.news_publication_audit set actor_purged_at = now()
+      where correlation_id = ''40000000-0000-4000-8000-000000000003''') = '23514',
     'M: uuid y marca de purga a la vez se rechazan (auditoría)');
-  perform pg_temp.assert_true(pg_temp.entra(format(
-    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
-     values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null, now())', t1)) is null,
-    'M: una fila vaciada por la purga (sin uuid, con marca) sí es válida');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by)
      values (%L, true, 1, 2, null)', t1)) = '23514',
     'M: una fila nueva del log sin uuid y sin marca se rechaza');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by, changed_by_purged_at)
-     values (%L, true, 1, 2, %L, now())', t1, '20000000-0000-4000-8000-000000000001')) = '23514',
-    'M: uuid y marca a la vez se rechazan (log)');
+     values (%L, true, 1, 2, null, now())', t1)) = '23514',
+    'M: una fila nueva del log no entra con marca de purga (sin uuid)');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by, changed_by_purged_at)
-     values (%L, true, 1, 2, null, now())', t1)) is null,
-    'M: una fila del log vaciada por la purga es válida');
+     values (%L, true, 1, 2, %L, now())', t1, '20000000-0000-4000-8000-000000000001')) = '23514',
+    'M: una fila nueva del log no entra con marca de purga (con uuid)');
+  perform pg_temp.assert_true(pg_temp.entra(
+    'update public.news_autopublish_settings_log set changed_by_purged_at = now()
+      where changed_at = now() - interval ''11 months''') = '23514',
+    'M: uuid y marca a la vez se rechazan (log)');
 
   -- ── F · la purga ──
   v_r := pg_temp.purgar();
@@ -299,12 +313,14 @@ begin
     'F: el log de 11 meses no se toca');
   perform pg_temp.assert_true((select updated_by is not null from public.news_autopublish_settings where tenant_id = t2),
     'F: el interruptor de 11 meses no se toca');
+  perform pg_temp.assert_true((select updated_by is not null from public.news_autopublish_settings where tenant_id = t3),
+    'F: el interruptor de exactamente 12 meses no se toca todavía');
 
   -- ── R · el resto de la fila no cambia y no se borra nada ──
   perform pg_temp.assert_true((select count(*) from public.news_post_exits) = 4
     and (select count(*) from public.news_publication_audit) = 5
     and (select count(*) from public.news_autopublish_settings_log) = 3
-    and (select count(*) from public.news_autopublish_settings) = 2, 'R: la purga no borra filas');
+    and (select count(*) from public.news_autopublish_settings) = 3, 'R: la purga no borra filas');
   select count(*) into v_resto from (
     select 'exits' as tabla, id::text as id, to_jsonb(t) - 'actor_id' as fila from public.news_post_exits t
     union all select 'audit', id::text, to_jsonb(t) - 'actor_id' - 'actor_purged_at' from public.news_publication_audit t
@@ -313,7 +329,7 @@ begin
   ) d
   join foto_antes f on f.tabla = d.tabla and f.id = d.id
   where (f.fila - 'actor_purged_at' - 'changed_by_purged_at') = (d.fila - 'actor_purged_at' - 'changed_by_purged_at');
-  perform pg_temp.assert_true(v_resto = 14, 'R: las 14 filas conservan todo menos el uuid y su marca (' || v_resto || ')');
+  perform pg_temp.assert_true(v_resto = 15, 'R: las 15 filas conservan todo menos el uuid y su marca (' || v_resto || ')');
 
   -- ── P · idempotente ──
   v_r2 := pg_temp.purgar();

@@ -17,7 +17,9 @@
 -- 1. news_publication_audit.actor_purged_at (timestamptz, nula): la marca de
 --    purga. El CHECK news_audit_manual_con_persona se reescribe para que una fila
 --    manual sin uuid exista SOLO con la marca. Una fila nueva sigue exigiendo
---    persona: no se afloja.
+--    persona: no se afloja. Un disparador BEFORE INSERT
+--    (news_purga_marca_solo_por_purga) rechaza una marca no nula al insertar: una fila
+--    nueva no puede entrar ya «purgada»; la marca solo la pone la purga con UPDATE.
 -- 2. news_autopublish_settings_log.changed_by deja de ser NOT NULL y gana
 --    changed_by_purged_at con el mismo CHECK (changed_by o su marca).
 -- 3. news_purgar_actor_id(): SECURITY DEFINER, search_path vacío, lock_timeout.
@@ -43,9 +45,12 @@
 -- service_role siguen igual sobre las tablas.
 --
 -- ── Locks ────────────────────────────────────────────────────────────────────
--- ALTER TABLE toma ACCESS EXCLUSIVE un instante sobre dos tablas pequeñas de
--- auditoría; lock_timeout de 5 s: si hay tráfico, falla y se reintenta. El CHECK
--- nuevo entra NOT VALID y se valida después (SHARE UPDATE EXCLUSIVE).
+-- news_publication_audit y news_autopublish_settings_log quedan con ACCESS EXCLUSIVE
+-- desde su primer ALTER (el ADD COLUMN) hasta el COMMIT de la migración: ese candado
+-- no se suelta antes, y NOT VALID/VALIDATE no lo acorta. Son tablas pequeñas y la
+-- migración dura milisegundos, pero escribir o leer en ellas espera hasta el COMMIT.
+-- lock_timeout de 5 s es solo para ADQUIRIRLO: con tráfico encima, falla y se
+-- reintenta. Aplicarla en una ventana tranquila.
 --
 -- ── Deshacer ─────────────────────────────────────────────────────────────────
 -- supabase/desarmes/0546_desarme.sql (sin número; usarlo exige OK nominal de Sam).
@@ -62,8 +67,9 @@ begin
      or pg_catalog.to_regclass('public.news_autopublish_settings_log') is null then
     raise exception '0546 requiere las tablas de la 0518 (news_post_exits, news_publication_audit, news_autopublish_settings y su log)';
   end if;
-  if pg_catalog.to_regprocedure('public.news_purgar_actor_id()') is not null then
-    raise exception '0546 ya aplicada: existe public.news_purgar_actor_id()';
+  if pg_catalog.to_regprocedure('public.news_purgar_actor_id()') is not null
+     or pg_catalog.to_regprocedure('public.news_purga_marca_solo_por_purga()') is not null then
+    raise exception '0546 ya aplicada: existe public.news_purgar_actor_id() o su disparador';
   end if;
   if exists (select 1 from information_schema.columns
               where table_schema = 'public' and table_name = 'news_publication_audit'
@@ -118,6 +124,37 @@ alter table public.news_autopublish_settings_log
     changed_by_purged_at is null or changed_by is null) not valid;
 alter table public.news_autopublish_settings_log validate constraint news_autopublish_log_con_persona;
 alter table public.news_autopublish_settings_log validate constraint news_autopublish_log_purga_sin_uuid;
+
+-- ─── 2b. Una fila nueva no entra ya «purgada» ────────────────────────────────
+-- Las marcas solo las escribe la purga con UPDATE. Sin esto, un INSERT con la marca
+-- y sin uuid saltaría el CHECK de persona. Disparador común (ENABLE ORIGIN: una
+-- restauración con session_replication_role = replica puede recargar filas ya purgadas).
+create or replace function public.news_purga_marca_solo_por_purga()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  if tg_table_name = 'news_publication_audit' and new.actor_purged_at is not null then
+    raise exception 'news_publication_audit: actor_purged_at solo lo escribe la purga (UPDATE), no un INSERT'
+      using errcode = 'check_violation';
+  elsif tg_table_name = 'news_autopublish_settings_log' and new.changed_by_purged_at is not null then
+    raise exception 'news_autopublish_settings_log: changed_by_purged_at solo lo escribe la purga (UPDATE), no un INSERT'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$function$;
+
+alter function public.news_purga_marca_solo_por_purga() owner to postgres;
+revoke all on function public.news_purga_marca_solo_por_purga() from public, anon, authenticated, service_role;
+
+create trigger news_audit_marca_purga_ins
+  before insert on public.news_publication_audit
+  for each row execute function public.news_purga_marca_solo_por_purga();
+create trigger news_autopublish_log_marca_purga_ins
+  before insert on public.news_autopublish_settings_log
+  for each row execute function public.news_purga_marca_solo_por_purga();
 
 -- ─── 3. La purga ─────────────────────────────────────────────────────────────
 -- Una sola marca de tiempo para toda la corrida: now() es el de la transacción.
@@ -199,6 +236,12 @@ begin
          and k.conname in ('news_audit_manual_con_persona', 'news_audit_purga_sin_uuid',
                            'news_autopublish_log_con_persona', 'news_autopublish_log_purga_sin_uuid')) <> 4 then
     raise exception '0546 postflight: faltan los CHECK de persona/purga (o no están validados)';
+  end if;
+  if (select pg_catalog.count(*) from pg_catalog.pg_trigger t
+       where not t.tgisinternal and t.tgenabled = 'O'
+         and t.tgfoid = 'public.news_purga_marca_solo_por_purga()'::pg_catalog.regprocedure
+         and t.tgname in ('news_audit_marca_purga_ins', 'news_autopublish_log_marca_purga_ins')) <> 2 then
+    raise exception '0546 postflight: faltan los disparadores BEFORE INSERT de la marca de purga';
   end if;
   if (select a.attnotnull from pg_catalog.pg_attribute a
        where a.attrelid = 'public.news_autopublish_settings_log'::pg_catalog.regclass

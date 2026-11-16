@@ -5,7 +5,7 @@
 -- Ensayo: lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts («desarme», solo en PGlite;
 --   el contrato .test.sql no lo incluye porque el control C4 del CI no copia esta carpeta).
 --
--- QUITA la función news_purgar_actor_id, las dos columnas de marca (actor_purged_at, changed_by_purged_at)
+-- QUITA la función news_purgar_actor_id, el disparador de marca de purga (y su función), las dos columnas de marca (actor_purged_at, changed_by_purged_at)
 --   y los cuatro CHECK de la 0546; restaura news_audit_manual_con_persona de la 0518 y el NOT NULL de
 --   news_autopublish_settings_log.changed_by.
 -- NO TOCA ninguna fila, policy ni grant, ni otra tabla o función.
@@ -35,6 +35,9 @@ end
 $preflight$;
 
 drop function if exists public.news_purgar_actor_id();
+drop trigger if exists news_audit_marca_purga_ins on public.news_publication_audit;
+drop trigger if exists news_autopublish_log_marca_purga_ins on public.news_autopublish_settings_log;
+drop function if exists public.news_purga_marca_solo_por_purga();
 
 alter table public.news_publication_audit drop constraint if exists news_audit_purga_sin_uuid;
 alter table public.news_publication_audit drop constraint if exists news_audit_manual_con_persona;

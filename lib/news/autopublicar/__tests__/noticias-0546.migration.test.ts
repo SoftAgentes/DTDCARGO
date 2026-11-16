@@ -7,7 +7,8 @@
  * aplica las migraciones REALES 0053, 0055, 0057, 0140, 0518, 0525 y 0546. PGlite lo corre con los
  * `.sql` inlineados: lo que se prueba es el texto que se aplicará.
  *
- * CONTROL ROJO: sin 0546 el contrato cae en la primera aserción.
+ * CONTROL ROJO: sin 0546 el piso de conteo pasa (las tablas son de la 0518) y el contrato cae en
+ * «P: anon no ejecuta la purga» (la función no existe: 42883, no 42501). El runner exige ese mensaje.
  * MUTANTES: cada uno es una 0546 con UN defecto y tiene que caer con el mensaje que lo nombra.
  * DESARME: 0546 → desarme → 0546 (el contrato no lo incluye: el control C4 del CI no copia
  * supabase/desarmes). Y el desarme PARA si la purga ya vació uuid.
@@ -79,6 +80,21 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0546: F: la purga cuenta exactamente",
   },
   {
+    nombre: "frontera no estricta en la auditoría (<=)",
+    sql: () => once(FILE_0546, "where actor_id is not null and evaluated_at < v_corte;", "where actor_id is not null and evaluated_at <= v_corte;"),
+    cae: "TEST 0546: F: la purga cuenta exactamente",
+  },
+  {
+    nombre: "frontera no estricta en el log (<=)",
+    sql: () => once(FILE_0546, "where changed_by is not null and changed_at < v_corte;", "where changed_by is not null and changed_at <= v_corte;"),
+    cae: "TEST 0546: F: la purga cuenta exactamente",
+  },
+  {
+    nombre: "frontera no estricta en el interruptor (<=)",
+    sql: () => once(FILE_0546, "where updated_by is not null and updated_at < v_corte;", "where updated_by is not null and updated_at <= v_corte;"),
+    cae: "TEST 0546: F: la purga cuenta exactamente",
+  },
+  {
     nombre: "plazo de 11 meses",
     sql: () => once(FILE_0546, "pg_catalog.now() - interval '12 months'", "pg_catalog.now() - interval '11 months'"),
     cae: "TEST 0546: F: la purga cuenta exactamente",
@@ -134,6 +150,40 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0546: M: uuid y marca de purga a la vez se rechazan (auditoría)",
   },
   {
+    nombre: "el disparador deja entrar la marca de la auditoría",
+    sql: () =>
+      once(
+        FILE_0546,
+        "if tg_table_name = 'news_publication_audit' and new.actor_purged_at is not null then",
+        "if tg_table_name = 'news_publication_audit' and false then",
+      ),
+    cae: "TEST 0546: M: una fila nueva de la auditoría no entra con marca de purga",
+  },
+  {
+    nombre: "sin disparador de marca en la auditoría (y su postflight ciego)",
+    sql: () =>
+      once(
+        once(
+          FILE_0546,
+          "create trigger news_audit_marca_purga_ins\n  before insert on public.news_publication_audit\n  for each row execute function public.news_purga_marca_solo_por_purga();\n",
+          "",
+        ),
+        "and t.tgname in ('news_audit_marca_purga_ins', 'news_autopublish_log_marca_purga_ins')) <> 2 then",
+        "and t.tgname in ('news_audit_marca_purga_ins', 'news_autopublish_log_marca_purga_ins')) <> 1 then",
+      ),
+    cae: "TEST 0546: M: una fila nueva de la auditoría no entra con marca de purga",
+  },
+  {
+    nombre: "sin disparador de marca en el log",
+    sql: () =>
+      once(
+        FILE_0546,
+        "create trigger news_autopublish_log_marca_purga_ins\n  before insert on public.news_autopublish_settings_log\n  for each row execute function public.news_purga_marca_solo_por_purga();\n",
+        "",
+      ),
+    cae: "0546 postflight: faltan los disparadores BEFORE INSERT de la marca de purga",
+  },
+  {
     nombre: "el log queda NOT NULL",
     sql: () => once(FILE_0546, "alter column changed_by drop not null;", "alter column changed_by set not null;"),
     cae: "0546 postflight: changed_by sigue NOT NULL",
@@ -153,11 +203,11 @@ describe("SDD-0611 §11.4.1 · 0546 purga de actor_id (PGlite)", () => {
   );
 
   it(
-    "CONTROL ROJO: sin la 0546 cae en la primera aserción",
+    "CONTROL ROJO: sin la 0546 el piso pasa y cae en «P: anon no ejecuta la purga»",
     async () => {
       const run = await contract({ [M0546]: "select 1;" });
       expect(run.green).toBeUndefined();
-      expect(run.error).toBeTruthy();
+      expect(run.error).toContain("TEST 0546: P: anon no ejecuta la purga");
     },
     SLOW,
   );
@@ -183,7 +233,7 @@ describe("SDD-0611 §11.4.1 · 0546 purga de actor_id (PGlite)", () => {
   );
 
   it("hay un mutante por defecto protegido (piso)", () => {
-    expect(MUTANTES.length).toBeGreaterThanOrEqual(12);
+    expect(MUTANTES.length).toBeGreaterThanOrEqual(18);
   });
 
   it(

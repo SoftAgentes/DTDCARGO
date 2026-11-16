@@ -12,6 +12,9 @@ Vacía el uuid de la persona del equipo en las cuatro columnas de noticias cuand
 | Línea del crontab | `infra/dtd-cargo/cron/crontab`: `45 4 * * *` (diaria, 04:45 UTC), generada por `scripts/build-crontab.mjs` |
 | Interruptor | `NOTICIAS_PURGA_ACTOR_ACTIVO` (nace vacío = apagado; solo `1` o `true` enciende) |
 
+**Es privacidad, no publicación.** La purga corre aunque `news_autopublish` esté apagado, pero tiene que estar aplicada
+**antes** de encender la publicación automática.
+
 Las cuatro columnas y su edad: `news_post_exits.actor_id` (`created_at`), `news_publication_audit.actor_id`
 (`evaluated_at`), `news_autopublish_settings_log.changed_by` (`changed_at`) y `news_autopublish_settings.updated_by`
 (`updated_at`). Frontera estricta: una fila de exactamente 12 meses no se toca todavía.
@@ -27,10 +30,13 @@ Las cuatro columnas y su edad: `news_post_exits.actor_id` (`created_at`), `news_
    `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml build cron` y
    `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps cron`.
    **Está prohibido un `compose up` suelto.** Sin esto la línea nueva no corre.
-3. **Encender**: copia previa del `.env` (`.env.bak-purga-<ts>`), poner `NOTICIAS_PURGA_ACTOR_ACTIVO=1` y recrear el `web`.
-   Es lo último y lleva OK de Sam. La purga es privacidad: corre aunque `news_autopublish` esté apagado.
+3. **Encender**: copia previa del `.env` (`.env.bak-purga-<ts>`) y poner `NOTICIAS_PURGA_ACTOR_ACTIVO=1`. El `web` **no** se recrea
+   a mano ni con un `compose up`: la variable la toma una publicación, con el procedimiento vigente de
+   [publicacion-automatica-web.md](publicacion-automatica-web.md) (`publicar-web.sh`, que cambia solo `DTD_WEB_IMAGE` y
+   hace el relevo sin corte). Es lo último y lleva OK de Sam.
 
-La purga tiene que estar **aplicada antes de encender la publicación automática** (§11.4.1, punto 2).
+La excepción de la spec (§11.3.1 (b)) vence cuando la 0546 está aplicada **y** el interruptor encendido (y la primera corrida
+dio `ok`), no antes. La purga tiene que estar aplicada antes de encender la publicación automática (§11.4.1, punto 2).
 
 ## Qué revisar tras encender
 
@@ -42,6 +48,7 @@ La purga tiene que estar **aplicada antes de encender la publicación automátic
 
 ## Apagar y deshacer
 
-- Apagar: vaciar `NOTICIAS_PURGA_ACTOR_ACTIVO` y recrear el `web`. No pierde nada.
+- Apagar: vaciar `NOTICIAS_PURGA_ACTOR_ACTIVO` y publicar de nuevo con [publicacion-automatica-web.md](publicacion-automatica-web.md)
+  (nunca un `compose up` suelto). No pierde nada.
 - Deshacer la migración: copiar `supabase/desarmes/0546_desarme.sql` a `supabase/migrations/` con el siguiente número libre,
   con OK de Sam. Para con un mensaje si la purga ya vació algún uuid.
