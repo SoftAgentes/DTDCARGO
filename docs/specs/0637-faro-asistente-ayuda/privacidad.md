@@ -82,6 +82,9 @@ de tratamientos ya marca al «equipo de Yiwu» sin gate regional ni consentimien
 (`docs/legal/privacidad/registro-tratamiento.md:156`).
 *Arreglo:* **Faro apagado para usuarios con `region = 'cn'`** hasta que exista consentimiento separado
 (PIPL art. 39) y un mecanismo del art. 38, o hasta que un abogado diga otra cosa. El servidor lo decide, no el panel.
+*Decisión de Sam (2026-11-16, D-11): no se aplica este arreglo.* Faro queda activo también para `region = 'cn'`. Su respuesta a «¿Dejamos Faro apagado por ahora para el equipo en China, o prefieres consultarlo antes?» fue «No es necesario ocultar a China, déjalo activo, no importa. Todavía China no va a trabajar, así que actívalo normal.»
+El hallazgo sigue `ENCONTRADO`: el riesgo de la PIPL existe en cuanto alguien en China use Faro. Conviene volver a
+decidirlo cuando ese equipo empiece a trabajar en el Studio.
 > PIPL arts. 38 y 39.
 
 **E-3 · El texto libre puede traer datos de clientes.** Faro no lee la base, pero la persona puede escribir «el
@@ -173,7 +176,7 @@ La Oficina vuelve a ser candidata solo si deja de usar proveedores chinos para e
 | 6 | Trazabilidad de solicitudes | E-5 (la purga a pedido queda en `asistente_purgas`); E-7 (lecturas) |
 | 7 | Política y registro de tratamientos | E-4; Faro se suma a `docs/legal/privacidad/registro-tratamiento.md` §3 en esta misma rama |
 | 8 | Inventario de terceros | N-1, N-2; E-9 (Discord y Telegram) |
-| 9 | Transferencia internacional | E-2 (China); E-10 (proveedores chinos); Anthropic y Contabo en EE. UU., en el aviso de E-4 |
+| 9 | Transferencia internacional | E-2 (China; activo por decisión de Sam, D-11); E-10 (proveedores chinos); Anthropic y Contabo en EE. UU., en el aviso de E-4 |
 | 10 | Decisiones automatizadas | E-6 (alertas) |
 | 11 | Aceptación electrónica | No aplica |
 | 12 | Titulares que no son usuarios | E-3 (clientes nombrados en una pregunta) |

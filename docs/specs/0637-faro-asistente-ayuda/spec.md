@@ -19,8 +19,8 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones:** D-1 a D-11 (§11). Aprobadas por Sam: D-3, D-6, D-9 y D-10. Abiertas: D-1, D-2, D-4, D-5, D-7,
-D-8 y D-11.
+**Decisiones:** D-1 a D-11 (§11). Decididas por Sam: D-3, D-6, D-9, D-10 y D-11. Abiertas: D-1, D-2, D-4, D-5, D-7
+y D-8.
 
 **Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
 Nada se programa hasta que Sam apruebe esta spec.
@@ -403,7 +403,8 @@ Puntos que esa revisión debe resolver:
 - Las guías no contienen datos personales ni de clientes.
 
 **Revisión hecha (2026-11-16):** [`privacidad.md`](privacidad.md). Cubre la puerta de la fase 2. La puerta del
-primer envío real sigue abierta (N-1 y N-2 de esa revisión, y el equipo en China, E-2).
+primer envío real sigue abierta (N-1 y N-2 de esa revisión). El equipo en China (E-2) queda activo por decisión de
+Sam (D-11), con el riesgo anotado.
 
 ## 11. Decisiones abiertas
 
@@ -419,7 +420,7 @@ primer envío real sigue abierta (N-1 y N-2 de esa revisión, y el equipo en Chi
 | D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo por intento en `asistente_llamadas` |
 | D-9 | Memoria | **Aprobada por Sam el 2026-11-16**: solo la conversación en curso, acotada y revalidada contra los permisos actuales. Sin memoria por persona entre conversaciones. El conocimiento compartido mejora por guías aprobadas. Su respuesta a «¿Apruebas la recomendación de Codex sobre memoria y novedades?» fue «Sí, apruébala» |
 | D-10 | Cómo se entera Faro de lo nuevo | **Aprobada por Sam el 2026-11-16**, en la misma respuesta: estante `novedades/`, guía y novedad en la misma PR de la función, filtro por flags y permisos, Hermes como vigía en la fase 7 (§5). La regla de PR para `AGENTS.md` sigue necesitando su OK aparte (fase 6) |
-| D-11 | ¿Faro para el equipo en China? | Apagado para `region = 'cn'` hasta tener consentimiento separado y mecanismo PIPL, o criterio de un abogado (`privacidad.md`, E-2). Falta Sam |
+| D-11 | ¿Faro para el equipo en China? | **Decidida por Sam el 2026-11-16: activo, sin filtro por región.** Su respuesta a «¿Dejamos Faro apagado por ahora para el equipo en China, o prefieres consultarlo antes?» fue «No es necesario ocultar a China, déjalo activo, no importa. Todavía China no va a trabajar, así que actívalo normal.» La recomendación era apagarlo para `region = 'cn'` (`privacidad.md`, E-2); el riesgo PIPL queda anotado y conviene revisarla cuando el equipo en China empiece a usar el Studio |
 
 ## 12. Riesgos
 
