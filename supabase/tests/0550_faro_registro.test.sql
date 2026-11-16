@@ -157,7 +157,7 @@ begin
   -- Un mensaje no se cuelga de una conversación de otro tenant.
   begin
     insert into public.asistente_mensajes (tenant_id, conversacion_id, solicitud_id, orden, tipo, texto) values
-      ('10000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000009', 1, 'usuario', 'cruzado');
+      ('10000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000009', 5, 'usuario', 'cruzado');
     raise exception 'TEST 0550: C: un mensaje de T2 se colgó de una conversación de T1';
   exception when foreign_key_violation then null;
   end;
@@ -195,6 +195,14 @@ begin
     raise exception 'TEST 0550: C: el dueño vació llamadas con TRUNCATE';
   exception when insufficient_privilege then null;
   end;
+  -- Ni siquiera dentro de una purga se edita: la bandera abre el borrado, nunca el UPDATE.
+  perform pg_catalog.set_config('asistente.purga', 'on', true);
+  begin
+    update public.asistente_conversaciones set usuario_id = 'b0000000-0000-0000-0000-000000000002';
+    raise exception 'TEST 0550: C: el dueño editó una conversación con la bandera de purga encendida';
+  exception when insufficient_privilege then null;
+  end;
+  perform pg_catalog.set_config('asistente.purga', 'off', true);
 end;
 $c2$;
 

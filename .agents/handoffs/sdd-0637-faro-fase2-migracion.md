@@ -50,9 +50,10 @@
 
 ## Decisiones tomadas en esta fase
 
-- **D-4:** se implementa la recomendación (solo el administrador del tenant lee). Sam no la ha decidido; si
-  decide otra cosa, hace falta otra migración.
-- **D-5:** no se fija el número en la base. El servidor pasa el tope (fase 3, recomendación 30 por hora).
+- **D-4 y D-5, aprobadas por Sam el 2026-11-16** en el chat del DG. A la pregunta «¿Apruebas las dos
+  recomendaciones? D-4: solo el administrador lee las preguntas del equipo, con cada lectura registrada. D-5: 30
+  preguntas por hora por persona, configurable» respondió «Sí, D-4 y D-5». La 0550 implementa D-4; D-5 queda como
+  parámetro que pasa el servidor (fase 3), sin número fijo en la base.
 - **Número 0550:** la 0549 está en `origin/sdd/0626-paso3b-revision-envio`. Medido sobre todas las refs remotas.
 
 ## Evidencia
@@ -62,9 +63,18 @@
 | `node scripts/migrations-lock.mjs verificar` | PASÓ: 1 espera sin sellar (0550), 0 nuevas sin sellar |
 | `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO, 0 AMARILLO (ningún código usa los símbolos) |
 | `node scripts/check-migrations-applied.mjs` | NO DISPONIBLE: worktree sin credenciales (SKIP) |
-| Vitest `faro-0550.migration.test.ts` | Ver la sección «Corrida» al final |
+| Vitest `faro-0550.migration.test.ts` (turno del DG) | PASÓ: 16/16 (contrato, control rojo, 13 mutantes, desarme) |
 | Contrato `.test.sql` con Docker (`scripts/run-sql-tests.mjs`) | NO EJECUTADO local; lo corre el CI |
 | `pnpm verify` | NO EJECUTADO: se corre al cierre de Faro (fase 6), con turno |
+
+## Corrida
+
+La primera corrida dio 14 rojos. Ninguno venía de la migración:
+
+- el caso «mensaje de T2 en una conversación de T1» repetía `orden 1`, y la unicidad saltaba antes que la FK;
+- el ensayo del desarme cortaba el contrato después de inlinearlo y arrastraba los inserts;
+- el mutante «el trigger deja editar» pasaba. Era un hueco real del contrato: la bandera de la purga seguía
+  frenando el UPDATE, pero solo fuera de la purga. Se agregó el caso «UPDATE con la bandera encendida».
 
 ## Pendientes de esta tarea
 

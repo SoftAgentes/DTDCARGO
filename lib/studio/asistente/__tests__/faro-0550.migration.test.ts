@@ -73,7 +73,7 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
   {
     nombre: "el trigger deja editar",
     sql: () => once(FILE_0550, "  if tg_op = 'UPDATE' then\n", "  if false then\n"),
-    cae: "TEST 0550: C: el dueño editó una conversación",
+    cae: "TEST 0550: C: el dueño editó una conversación con la bandera de purga encendida",
   },
   {
     nombre: "el trigger deja borrar sin la bandera",
@@ -219,7 +219,11 @@ describe("0550 · registro de Faro (PGlite)", () => {
     async () => {
       const db = await pgliteLimpio();
       try {
-        const fixture = inline(CONTRACT).split("\\ir ../migrations/0550_faro_registro.sql")[0];
+        // El armado del contrato: todo lo que va antes de su primer \ir de la 0550, sin el begin.
+        const fixture = read(CONTRACT)
+          .split("\\ir ../migrations/0550_faro_registro.sql")[0]
+          .replace(/^\\set .*$/gm, "");
+        expect(fixture).not.toMatch(/^\\/m);
         const base = fixture.replace(/^begin;$/m, "");
         await db.exec(base);
         await db.exec(FILE_0550);
