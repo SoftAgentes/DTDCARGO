@@ -52,7 +52,7 @@ usa este mapa.
 | Paso 1 | §3.1 · las 4 tablas y la bandera | construido (migración 0541, sin aplicar) |
 | Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | construido (migración 0544) |
 | Paso 2b | prueba con el mensaje real del inbox de prueba, por el puente interno («Opción 3: puente») | construido y probado en staging el 16/11/2026 |
-| Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | construido con el modelo simulado (migración 0548, sin aplicar); falta la prueba en staging |
+| Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | hecho y probado en staging el 16/11/2026 (prueba E: 6 borradores, 0 envíos). Migración 0548 **aplicada** en staging (10:58:56Z) y en producción (11:54:57Z, OK de Sam al DG; md5 `ee02f470301985260fdf56a5cb232d73`). En producción sigue todo apagado y la oficina pausada |
 | Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4); más los pendientes de la revisión del DG en §3.5 | pendiente |
 | Paso 4 | §3.6 · mini-vista | pendiente |
 

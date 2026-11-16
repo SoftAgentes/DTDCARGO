@@ -1,7 +1,7 @@
 # Handoff · SDD-0626 Paso 3a · Despachador mínimo: el agente redacta, nada se envía (16/11/2026)
 
 **Pedido:** Hermes (chat DIRECTOR), con el anexo del mismo día. Sam aprobó D1 a D6 con «Sí a todo» y lo lanzó con
-«Sí, lánzalo» el 16/11/2026. Todo nace apagado. La migración 0548 está en espera y **sin aplicar en ningún entorno**.
+«Sí, lánzalo» el 16/11/2026. Todo nace apagado. La migración 0548 está **aplicada** en staging (16/11/2026, 10:58:56Z) y en producción (11:54:57Z, la aplicó el DG con el OK nominal de Sam «Sí, aplica la 0548»; md5 `ee02f470301985260fdf56a5cb232d73`, 28173 bytes; evidencia `apply-0548-dtd-cargo-20261116T115456Z`). Su espera se retiró con `retirar-espera.mjs`. En producción los interruptores siguen apagados y la oficina pausada.
 
 ## Hecho fuera del repo (VPS Oficina, sección B y anexo 1)
 
