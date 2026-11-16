@@ -80,6 +80,10 @@ export const users = {
   "users.summary.global_access": "✓ Acceso global · sin restricción por almacén",
   "users.summary.twofa_suggested": "✓ Se le sugerirá activar 2FA (opcional)",
 
+  // ── SDD-0636 · solo el superadministrador crea administradores ──
+  "users.invite.admin_superadmin":
+    "Invitar a un administrador lo hace solo el superadministrador. Si no lo eres, invita con otro rol o pídeselo a quien administra el sistema.",
+
   // ── Disclaimer Fase C ────────────────────────────────────
   "users.disclaimer":
     "V1 persiste solo email + rol + oficina. Nombre, equipo, scope, permiso y 2FA viven en UI hasta que llegue Fase B del schema. Cuando el user acepte la invitación cargará su nombre.",
