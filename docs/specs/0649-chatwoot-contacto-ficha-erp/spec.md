@@ -13,7 +13,9 @@ confidencialidad: interno
 
 # SDD-0649 — Shipping Mark y segmento del ERP en el contacto de Chatwoot
 
-> **Borrador para decidir.** No hay código, migración ni cambio en Chatwoot. Las decisiones D1 a D5 esperan la respuesta de Sam.
+> **D1 a D5 resueltas por Sam el 2026-11-16:** «Sí, como recomiendas». D4 tenía una recomendación condicional: queda **(b)** mientras no haya medida de cuántas fichas se borran (ver §5). Sigue sin código, migración ni cambio en Chatwoot.
+>
+> **Antecedente revisado (2026-11-16, a pedido de Sam).** En la sesión del Director General, en las demás sesiones y en el repo no hay una aprobación ni un diseño previo de atributos del ERP en el contacto de Chatwoot. Lo parecido que existe es de **Kommo**: la SDD-0244 escribe el Shipping Mark en un campo permanente del contacto de Kommo, configurable en CRM › Dirección («Shipping Mark en el contacto», `app/studio/(app)/crm/_components/DireccionTab.tsx:585-597`). Esa pieza se retira con Kommo en E8; esta es su equivalente en Chatwoot.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 
 ## 1. Pedido
@@ -60,7 +62,9 @@ Objetivo: que en el contacto de Chatwoot se vea, sin abrir la Ficha DTD, si la p
 | Borrado | Al borrar o anonimizar la ficha, el atributo se limpia la próxima vez que escriba. **D4** decide si además hace falta una limpieza activa | D4 |
 | Logs | Solo códigos de error, como el resto del manejador | `enrutar.ts:29` |
 
-## 5. Decisiones para Sam
+## 5. Decisiones (resueltas el 2026-11-16)
+
+D1 (a), D2 (a), D3 (a), D4 (b) y D5 (a). D4 queda en (b) porque la condición de la recomendación («si el borrado es frecuente») no está medida; si un conteo la cumple, se pasa a (a) en esta misma SDD.
 
 | ID | Pregunta | Opciones | Recomendación |
 |---|---|---|---|
