@@ -37,7 +37,14 @@ solo la bandeja 11. Sin merge propio: portón del DG.
   tarea y con la conversación a la que el ERP va a escribir (`conversacion_cambio`).
 - **B1 (hecho):** la aprobación vence a las 24 h (`aprobacion_vencida`), y si el cliente escribió después del borrador no
   se envía (`cliente_escribio`). Un bloqueado termina la tarea.
-- **B2 y B4:** quedan pendientes como los dejó la revisión del DG (no se tocaron en esta PR).
+- **B2 (pendiente, antes de la etapa 2):** la base no conoce la bandeja de prueba: `office_reservar_envio` solo anota
+  `p_bandeja` y la allowlist vive en el ERP (configuración + GET). Es aceptable porque solo service_role reserva. Antes
+  de abrir a bandejas reales, llevar la bandeja permitida a una configuración de la base como segunda capa.
+- **B4 (pendiente):** mutantes que faltan en el contrato de la 0549:
+  - uno propio para la comparación `v_huella <> v_r.huella_borrador` (hoy la compensa que service_role no tiene
+    UPDATE sobre `office_borradores`);
+  - que «dos revisiones por borrador» y «authenticated reserva envíos» exijan su código de error, no cualquiera;
+  - una prueba de dos envíos realmente simultáneos.
 
 ## Pendiente
 
@@ -46,4 +53,4 @@ solo la bandeja 11. Sin merge propio: portón del DG.
 - **Prueba F en staging, con OK de Sam:** 3 conversaciones; Sam aprueba 2 y rechaza 1. Esperado: 2 salientes en la
   bandeja 11, 0 en las demás y las 3 revisiones registradas. Red temporal como en E (opción A). Cierre igual que en E.
 - R2: llaves propias del agente en Z.AI y DeepSeek (las crea Sam).
-- B2 y B4 de la revisión del DG (ver arriba).
+- B2 (antes de la etapa 2) y B4 de la revisión del DG (ver arriba).
