@@ -99,6 +99,33 @@ function mensajeDeError(err: unknown): string {
   }
 }
 
+/**
+ * SDD-0636 · política de roles: solo el superadministrador crea administradores.
+ * Lo aplica la base (migr 0545, disparadores sobre `user_invitations` y
+ * `user_tenants`) con este mensaje y 42501; la acción lo busca en `dbMessage`.
+ */
+const SOLO_SUPERADMIN_CREA_ADMIN = "Solo el superadministrador puede crear o reactivar administradores";
+
+/** Para quien la base dijo que no es superadministrador. */
+const INVITAR_ADMIN_DENIAL =
+  "No eres superadministrador. Invitar a un administrador lo hace solo el superadministrador: invita con otro rol o pídeselo a quien administra el sistema.";
+
+/**
+ * El error de la invitación, por causa. Dos dan `permission_denied` (42501):
+ *  · la política de la 0545: invitar con rol admin sin ser superadministrador;
+ *  · `audit_d1_admin_tenant` (0289): no eres admin activo de este equipo, o la
+ *    sesión se perdió. Decirle «no eres superadministrador» sería falso.
+ */
+function mensajeDeInvitacion(err: unknown): string {
+  if (err instanceof D1OperationError && err.code === "permission_denied") {
+    return err.dbMessage?.includes(SOLO_SUPERADMIN_CREA_ADMIN)
+      ? INVITAR_ADMIN_DENIAL
+      : "No tienes permiso para invitar en este equipo. Si eres su administrador, vuelve a iniciar sesión.";
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return `No se pudo crear la invitación: ${msg}`;
+}
+
 // ─────────────────────────────────────────────────────────────
 // inviteUserAction · crea invitation + devuelve link copy/paste
 // ─────────────────────────────────────────────────────────────
@@ -126,6 +153,13 @@ export async function inviteUserAction(
 
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+
+  // SDD-0636: invitar con rol admin es del superadministrador. Se avisa antes
+  // cuando la base contesta que no lo eres; si no se pudo preguntar, decide la
+  // base y el catch muestra el mismo aviso.
+  if (input.role === "admin" && (await platformAdminCheck(supabase)) === "no") {
+    return { error: INVITAR_ADMIN_DENIAL };
+  }
 
   // Guard: si el email ya es miembro del tenant (activo o desactivado), la
   // invitación es un callejón sin salida — el accept no puede completarse con
@@ -237,8 +271,7 @@ export async function inviteUserAction(
       invitationLink: link,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { error: `No se pudo crear la invitación: ${msg}` };
+    return { error: mensajeDeInvitacion(err) };
   }
 }
 
