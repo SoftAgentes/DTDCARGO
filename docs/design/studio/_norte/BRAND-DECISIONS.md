@@ -494,6 +494,20 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 
 ---
 
+### BD-070 · Sombra de borde fijo (`--shadow-sticky-top` / `--shadow-sticky-left`)
+- **Fecha:** 2026-11-15
+- **Tipo:** Normativo (adición de tokens de forma; ningún color nuevo)
+- **Estado:** Aprobada por Sam. Primer uso: matriz «Roles y permisos» de Usuarios (SDD-0635).
+- **Autorizado por:** Sam (founder), vía el Director General, al aprobar la maqueta de la SDD-0635. Literal: «Esa me gustó. Y crea la sombra para los bordes fijos.»
+- **Numeración:** BD-070 y no BD-038 porque el registro del proyecto de marca ya usa BD-037 a BD-069 (ver `BRAND-DECISIONS-BD037-BD069.md`); así no choca con ninguno de los dos.
+- **Aplica a:** Studio. Portal y web pública no la usan todavía.
+- **Decisión:** un encabezado o una columna fija (`position: sticky`) que tiene contenido escondido detrás proyecta una sombra corta hacia ese contenido: `--shadow-sticky-top` cae hacia abajo (fila de encabezado fija arriba) y `--shadow-sticky-left` cae hacia la derecha (columna fija a la izquierda). Solo se pinta mientras hay desplazamiento en esa dirección; en el borde, nada.
+- **Valores:** claro `0 6px 8px -6px rgba(15,30,61,0.28)` y `6px 0 8px -6px rgba(15,30,61,0.28)`; oscuro con negro al 60 %. Al imprimir vuelven al claro, como el resto.
+- **Contexto:** en la `/ui-check` de la SDD-0635 (§14.1, hallazgo 3) las sombras de los bordes fijos estaban escritas con `rgba` sueltos, contra la regla de usar solo sombras del sistema.
+- **Regla viva en:** `BRAND.md` §Sombras · `app/studio/tokens.css` · SDD-0635 §3.8.
+
+---
+
 ## Índice rápido
 
 | ID | Decisión | Tipo | Estado |
@@ -535,6 +549,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — desde el 2026-10-13 servidas desde el repositorio (SDD-0505); estuvo superada unas horas ese día |
 | BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
 | BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada. Adoptada en producción el 2026-11-15 (SDD-0603); quedan siete pantallas que dependen de la PR #318 |
+| BD-070 | Sombra de borde fijo `--shadow-sticky-top` / `--shadow-sticky-left` | Normativo (adición) | Vigente — matriz «Roles y permisos» (SDD-0635) |
 
 ---
 

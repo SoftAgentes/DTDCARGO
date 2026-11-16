@@ -1336,12 +1336,23 @@ export async function revokeUserModuleGrantAction(input: {
   return { ok: true };
 }
 
-/** Un evento de la pestaña «Actividad» de la ficha (sin datos personales). */
+/**
+ * Un evento de la pestaña «Actividad» de la ficha (sin datos personales).
+ * SDD-0635 §3.7: junta extras, rol, almacén y suspensiones de UNA persona.
+ *   extra         → `entity_audit_log`, entidad `studio_user_module_grant` (0538), con motivo.
+ *   rol / almacen → `entity_audit_log`, entidad `membership` (D1, 0289), con motivo.
+ *   estado        → `user_role_audit` (0201), `disable` / `enable`, sin motivo.
+ */
 export interface AccessActivityEvent {
   id: string;
-  event: "created" | "updated" | "revoked";
-  moduleId: string;
+  kind: "extra" | "rol" | "almacen" | "estado";
+  event: "created" | "updated" | "revoked" | "role_changed" | "scope_changed" | "disabled" | "enabled";
+  /** Solo en los extras. */
+  moduleId: string | null;
   canEdit: boolean | null;
+  /** Rol o almacén de antes y de después (códigos, no etiquetas). */
+  before: string | null;
+  after: string | null;
   reason: string | null;
   actorId: string | null;
   occurredAt: string;
@@ -1354,8 +1365,10 @@ const ACCESS_ACTIVITY_COLUMNS =
 const ACCESS_ACTIVITY_LIMIT = 50;
 
 /**
- * Rastro de los accesos adicionales de UNA persona: concesiones, cambios y
- * revocaciones (entity_audit_log, entidad `studio_user_module_grant`).
+ * Rastro de acceso de UNA persona: concesiones, cambios y revocaciones de
+ * extras (entity_audit_log, entidad `studio_user_module_grant`) y, desde la
+ * SDD-0635, sus cambios de rol y de almacén (entidad `membership`) y sus
+ * suspensiones (`user_role_audit`), en una sola línea de tiempo.
  *
  * Desde la 0270 `authenticated` no tiene SELECT sobre `entity_audit_log`, así
  * que con la sesión esta lectura salía siempre vacía. Lee con el cliente de
@@ -1389,26 +1402,53 @@ export async function listUserAccessActivityAction(
   if (errMiembro) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
   if (!miembro) return { error: "La persona no es parte de tu equipo." };
 
-  const { data, error } = await admin
-    .from("entity_audit_log")
-    .select(ACCESS_ACTIVITY_COLUMNS)
-    .eq("tenant_id", gate.tenantId)
-    .eq("entity_type", "studio_user_module_grant")
-    .eq("entity_id", targetUserId)
-    .order("occurred_at", { ascending: false })
-    .limit(ACCESS_ACTIVITY_LIMIT);
-  if (error) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+  const [extras, membresia, estado] = await Promise.all([
+    admin
+      .from("entity_audit_log")
+      .select(ACCESS_ACTIVITY_COLUMNS)
+      .eq("tenant_id", gate.tenantId)
+      .eq("entity_type", "studio_user_module_grant")
+      .eq("entity_id", targetUserId)
+      .order("occurred_at", { ascending: false })
+      .limit(ACCESS_ACTIVITY_LIMIT),
+    // D1 guarda el cambio de rol y de almacén con `p_target_id` = la persona
+    // (0289, `membership.role_change` / `membership.scope_change`). La
+    // revocación de invitación usa el id de la invitación: queda fuera.
+    admin
+      .from("entity_audit_log")
+      .select(ACCESS_ACTIVITY_COLUMNS)
+      .eq("tenant_id", gate.tenantId)
+      .eq("entity_type", "membership")
+      .eq("entity_id", targetUserId)
+      .in("event_type", ["membership_role_changed", "membership_scope_changed"])
+      .order("occurred_at", { ascending: false })
+      .limit(ACCESS_ACTIVITY_LIMIT),
+    // Suspensión y reactivación: solo las deja el trigger de la 0201. Sus
+    // `role_change` / `scope_change` repiten lo de D1 sin motivo: no se leen.
+    admin
+      .from("user_role_audit")
+      .select("id, action, actor_user_id, created_at")
+      .eq("tenant_id", gate.tenantId)
+      .eq("target_user_id", targetUserId)
+      .in("action", ["disable", "enable"])
+      .order("created_at", { ascending: false })
+      .limit(ACCESS_ACTIVITY_LIMIT),
+  ]);
+  if (extras.error || membresia.error || estado.error) {
+    return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+  }
 
+  type Datos = { module_id?: string; can_edit?: boolean; role?: string; warehouse_scope?: string };
   type Fila = {
     id: string;
     event_type: string;
     reason: string | null;
     actor_id: string | null;
-    before_data: { module_id?: string; can_edit?: boolean } | null;
-    after_data: { module_id?: string; can_edit?: boolean } | null;
+    before_data: Datos | null;
+    after_data: Datos | null;
     occurred_at: string;
   };
-  const events: AccessActivityEvent[] = ((data ?? []) as Fila[]).map((f) => {
+  const deExtras: AccessActivityEvent[] = ((extras.data ?? []) as Fila[]).map((f) => {
     const datos = f.after_data ?? f.before_data ?? {};
     const event: AccessActivityEvent["event"] = f.event_type.endsWith("_revoked")
       ? "revoked"
@@ -1417,13 +1457,48 @@ export async function listUserAccessActivityAction(
         : "created";
     return {
       id: f.id,
+      kind: "extra",
       event,
       moduleId: datos.module_id ?? "—",
       canEdit: typeof datos.can_edit === "boolean" ? datos.can_edit : null,
+      before: null,
+      after: null,
       reason: f.reason,
       actorId: f.actor_id,
       occurredAt: f.occurred_at,
     };
   });
+  const deMembresia: AccessActivityEvent[] = ((membresia.data ?? []) as Fila[]).map((f) => {
+    const rol = f.event_type === "membership_role_changed";
+    const campo = rol ? "role" : "warehouse_scope";
+    return {
+      id: f.id,
+      kind: rol ? "rol" : "almacen",
+      event: rol ? "role_changed" : "scope_changed",
+      moduleId: null,
+      canEdit: null,
+      before: f.before_data?.[campo] ?? null,
+      after: f.after_data?.[campo] ?? null,
+      reason: f.reason,
+      actorId: f.actor_id,
+      occurredAt: f.occurred_at,
+    };
+  });
+  type FilaEstado = { id: string; action: string; actor_user_id: string | null; created_at: string };
+  const deEstado: AccessActivityEvent[] = ((estado.data ?? []) as FilaEstado[]).map((f) => ({
+    id: f.id,
+    kind: "estado",
+    event: f.action === "disable" ? "disabled" : "enabled",
+    moduleId: null,
+    canEdit: null,
+    before: null,
+    after: null,
+    reason: null,
+    actorId: f.actor_user_id,
+    occurredAt: f.created_at,
+  }));
+  const events = [...deExtras, ...deMembresia, ...deEstado]
+    .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+    .slice(0, ACCESS_ACTIVITY_LIMIT);
   return { ok: true, events };
 }
