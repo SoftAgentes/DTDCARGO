@@ -330,6 +330,7 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 - `lib/studio/__tests__/oficina-revisiones.migration.test.ts` y `lib/studio/__tests__/oficina-paso3b.test.ts`
 - `app/studio/(app)/admin/oficina/` y `app/api/cron/oficina-envio/`; `app/api/cron/oficina-despachador/route.ts` (el aviso)
 - `scripts/build-crontab.mjs`, su prueba e `infra/dtd-cargo/cron/crontab`
+- `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones: suma `admin/oficina/actions.ts`)
 - `supabase/migrations-baseline.json` (la espera), `supabase/pending-migration-symbol-declarations.json`,
   `.env.example` e `infra/dtd-cargo/.env.example`
 - esta spec, `privacidad.md`, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
