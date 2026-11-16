@@ -66,14 +66,14 @@ create type public.bug_notif_type as enum ('new_reply', 'state_change', 'resolve
 -- Como en Supabase: los roles de la API reciben EXECUTE y privilegios por defecto sobre lo nuevo. La 0550 tiene
 -- que revocarlos ella misma; sin esto, un revoke olvidado pasaría el contrato.
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
-alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 
 \ir ../migrations/0550_faro_registro.sql
 -- Otra vez encima: no falla.
 \ir ../migrations/0550_faro_registro.sql
 
 -- Datos ficticios: dos tenants; en T1 un admin (A1), una contadora (U1) y otra persona (U2); en T2, su admin (A2).
--- En los dos: una persona (P3) y un admin con dos membresías (A3).
+-- En los dos: una persona (P3) y un admin con dos membresías (A3). En T1, además, un admin deshabilitado (A4).
 insert into public.tenants values ('10000000-0000-0000-0000-000000000001'), ('10000000-0000-0000-0000-000000000002');
 insert into public.user_tenants (user_id, tenant_id, role) values
   ('a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin'),
@@ -84,6 +84,8 @@ insert into public.user_tenants (user_id, tenant_id, role) values
   ('b0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'commercial'),
   ('a0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'admin'),
   ('a0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'admin');
+insert into public.user_tenants (user_id, tenant_id, role, disabled_at) values
+  ('a0000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'admin', now());
 
 -- ─── A ───────────────────────────────────────────────────────
 do $a$
@@ -371,6 +373,12 @@ begin
     perform public.asistente_purgar_usuario('10000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002',
                                             'a0000000-0000-0000-0000-000000000002', 'pedido_titular');
     raise exception 'TEST 0550: G: el admin de T2 pidió una purga en T1';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.asistente_purgar_usuario('10000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002',
+                                            'a0000000-0000-0000-0000-000000000004', 'pedido_titular');
+    raise exception 'TEST 0550: G: un admin deshabilitado pidió una purga';
   exception when insufficient_privilege then null;
   end;
   v := public.asistente_purgar_usuario('10000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002',

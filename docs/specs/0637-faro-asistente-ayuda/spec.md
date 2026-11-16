@@ -356,8 +356,8 @@ contrato `supabase/tests/0550_faro_registro.test.sql`, su ensayo en PGlite
 `supabase/desarmes/0550_desarme.sql`. Implementa D-4 (lee solo el administrador del tenant, con rastro) y deja
 D-5 como parámetro: el tope por hora lo pasa el servidor y la base no fija el número. Sam aprobó las dos el mismo día.
 La purga a pedido exige que quien la pide sea administrador activo del tenant y un motivo de una lista cerrada; la
-constancia en `asistente_purgas` no guarda quién la pidió ni texto (`privacidad.md` §2). Si hace falta dejar
-constancia de quién, la fase 3 la escribe con `append_audit_event` (0267), sin el texto de las preguntas.
+constancia en `asistente_purgas` no guarda quién la pidió ni texto (`privacidad.md` §2). Quién la pidió lo
+registra la fase 3 con `append_audit_event` (0267), sin el texto de las preguntas (AC-19).
 Detalle en `.agents/handoffs/sdd-0637-faro-fase2-migracion.md`.
 
 **Allowlist exacta de la fase 2** (PR #611): ningún otro archivo cambia.
@@ -369,7 +369,7 @@ Detalle en `.agents/handoffs/sdd-0637-faro-fase2-migracion.md`.
 | `lib/studio/asistente/__tests__/faro-0550.migration.test.ts` | Nuevo |
 | `supabase/desarmes/0550_desarme.sql` | Nuevo |
 | `supabase/migrations-baseline.json` | Espera `0550_faro_registro` |
-| `docs/specs/0637-faro-asistente-ayuda/spec.md` | Fase 2, D-4, D-5, AC-17 y AC-18 |
+| `docs/specs/0637-faro-asistente-ayuda/spec.md` | Fase 2, D-4, D-5, AC-17, AC-18 y AC-19 |
 | `.agents/handoffs/sdd-0637-faro-fase2-migracion.md` | Nuevo |
 
 Más `docs/specs/0637-faro-asistente-ayuda/privacidad.md`, solo para precisar el texto de E-1 y E-5 a lo que hace la
@@ -405,6 +405,7 @@ incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisi
 | AC-16 | `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo aceptan proveedores de la lista permitida, sin proveedores chinos; una prueba falla si se configura uno fuera de la lista | 3 |
 | AC-17 | Cada hallazgo E-1 a E-10 de [`privacidad.md`](privacidad.md) queda resuelto en su fase, con prueba donde el código lo permite. Fase 2: E-1 (la purga borra filas completas), E-5 (purga a pedido con constancia) y E-7 (cada lectura del administrador queda en `asistente_lecturas`), en el contrato de la 0550. Fase 3: E-3 (depuración antes de la IA y antes de guardar), E-6 (la alerta es una señal que revisa una persona), E-9 (un canal externo no lleva identidad) y E-10 (AC-16). Fase 4: E-4 (aviso con versión) y el camino de E-5 para pedir. Fase 7: E-8 (Hermes solo lee agregados). E-2 queda aceptado por D-11, con el riesgo anotado | 2 a 7 |
 | AC-18 | El tope de gasto del mes no se pasa por una carrera: dos preguntas simultáneas del mismo tenant no pueden leer el mismo gasto y llamar las dos a la IA. El servidor toma un advisory lock por tenant o reserva el gasto antes de llamar; una prueba con llamadas en paralelo lo demuestra | 3 |
+| AC-19 | Cada purga a pedido deja constancia de quién la pidió con `append_audit_event` (0267): actor, tenant, persona purgada y código de motivo, sin el texto de las preguntas. `asistente_purgas` sigue sin actor (decisión del Director General, revisión de la #611) | 3 |
 
 ## 10. Datos personales
 

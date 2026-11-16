@@ -201,6 +201,26 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0550: G: un actor que no es admin pidió una purga",
   },
   {
+    nombre: "la purga a pedido acepta un admin deshabilitado",
+    sql: () =>
+      once(
+        FILE_0550,
+        "                    and ut.role = 'admin' and ut.disabled_at is null) then",
+        "                    and ut.role = 'admin') then",
+      ),
+    cae: "TEST 0550: G: un admin deshabilitado pidió una purga",
+  },
+  {
+    nombre: "el revoke de las tablas olvida a authenticated",
+    sql: () =>
+      once(
+        FILE_0550,
+        "'revoke all on table public.%I from public, anon, authenticated, service_role'",
+        "'revoke all on table public.%I from public, anon, service_role'",
+      ),
+    cae: "TEST 0550: B: authenticated tiene SELECT sobre asistente_",
+  },
+  {
     nombre: "la purga a pedido cruza de tenant",
     sql: () =>
       once(

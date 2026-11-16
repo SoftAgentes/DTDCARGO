@@ -43,7 +43,7 @@ Separado en tres finalidades, cada una con su plazo. Los nombres de tablas son p
 | `asistente_eventos` (feedback) | «Me sirvió / no me sirvió» y motivo cerrado, por respuesta | Mejorar guías | ídem | **180 días**, con su mensaje | Administrador; Hermes solo agregado |
 | `asistente_llamadas` | Por intento a la IA: motor, modelo, tokens, costo, tiempo, código de error. **Sin texto ni usuario** | Tope de gasto y operación | Interés del negocio en controlar costo | **13 meses** (comparar el mismo mes del año anterior) | Servidor; administrador agregado |
 | `asistente_cuotas` | Consumo por usuario y hora; consumo del mes | Tope por persona (D-5) y tope de gasto (D-8) | ídem | Ventana por hora: **7 días**. Mes: **13 meses** | Solo servidor |
-| `asistente_purgas` | Constancia de cada purga: fecha, corte y conteos. Sin usuarios ni textos | Probar que se borró | ídem | Sin plazo (no tiene datos personales) | Administrador |
+| `asistente_purgas` | Constancia de cada purga: fecha, corte, conteos, `tenant_id` y `motivo_codigo` (lista cerrada, solo en la purga a pedido). Sin usuarios ni textos | Probar que se borró | ídem | Sin plazo (no tiene datos personales) | Administrador |
 | Señales para Hermes (vista o punto de lectura) | Tema, pantalla, tipo de carencia, conteos y ejemplos depurados. **Sin identidad** | Mejorar el minicerebro (§8) | ídem | Se calcula al leer; Hermes no guarda copia (E-8) | Hermes (perfil analista) |
 | Lecturas del administrador | Qué conversación ajena abrió el administrador y cuándo | Rendir cuentas de quién vio qué | ídem | **2 años**, clase `security` | Administrador; auditoría |
 
