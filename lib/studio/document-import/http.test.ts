@@ -28,6 +28,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 import { NextRequest } from "next/server";
 import { emptyDocumentDraft, type DocumentDraft } from "@/lib/shared/document-import";
+import { ImportHttpError } from "./access";
 
 const h = vi.hoisted(() => {
   type Reply = { data?: unknown; error?: unknown };
@@ -67,6 +68,7 @@ const h = vi.hoisted(() => {
     getEstimateRates: vi.fn(),
     estimateForRequest: vi.fn(),
     exportDocument: vi.fn(),
+    renderPdf: vi.fn(),
   };
 });
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => h.admin }));
@@ -84,6 +86,7 @@ vi.mock("./estimate", () => ({ getEstimateRates: h.getEstimateRates, estimateFor
 // El armado del xlsx se prueba en su propia suite; aquí importa QUÉ sello y qué
 // identidad le entrega esta puerta, porque eso es lo que el proveedor lee.
 vi.mock("./export", () => ({ exportDocument: h.exportDocument }));
+vi.mock("./pdf",()=>({renderConfirmedDocumentPdf:h.renderPdf,parsePdfSurface:(value:string|null)=>{if(value!=="packing-list"&&value!=="labels")throw new ImportHttpError(400,"invalid_pdf_surface","Elige documento o etiquetas.");return value;}}));
 
 import { documentImportRequest, options } from "./http";
 import * as route from "@/app/api/document-import/route";
@@ -136,6 +139,14 @@ function request(init: Init = {}): NextRequest {
 const call = (init: Init = {}) => documentImportRequest(request(init));
 const post = (body: unknown, init: Init = {}) => call({ method: "POST", origin: SITE, body: JSON.stringify(body), ...init });
 
+function pdfReady() {
+  const d=draft();d.supplier.wechat="demo";d.groups=[{id:"g1",label:"1",cartons:1,grossWeightKg:2,cbm:0.05,items:[{productId:"p1",quantity:10}]}];
+  const w=workspace({draft:d,revision:4,confirmed_revision:4,confirmed_submission_id:"submission"});h.getWorkspace.mockResolvedValue(w);
+  h.state.admin.prealertas={data:{code:"DTD-C-1",client_markbox:MARKBOX}};h.state.admin.packing_list_submissions={data:{folio:"PL-TEST",version_no:1}};
+  h.state.admin.document_group_boxes={data:[{box_id:"box"}]};h.state.admin.warehouse_boxes={data:[{id:"box",code:"DTD-B-000001",seq:1}]};h.state.admin.document_workspaces={data:{revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}};
+  return {w,headers:asSupplier(),query:{action:"pdf",surface:"packing-list",workspaceId:WORKSPACE_ID,expectedRevision:"4"}};
+}
+
 let logged: MockInstance<(...args: unknown[]) => void>;
 beforeEach(() => {
   vi.clearAllMocks();
@@ -148,11 +159,86 @@ beforeEach(() => {
   vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true");
   vi.stubEnv("DOCUMENT_IMPORT_RATE_SECRET", "s".repeat(48));
   h.getWorkspace.mockResolvedValue(workspace());
+  h.renderPdf.mockResolvedValue({bytes:new TextEncoder().encode("%PDF-synthetic-renderer-contract")});
   logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 afterEach(() => { logged.mockRestore(); vi.unstubAllEnvs(); });
 
 describe("Puerta HTTP de importación documental", () => {
+  it("aplica la misma proyección privada a workspace, historial y Excel conservando los dos identificadores operativos", async () => {
+    const d = draft(); d.supplier.email = "proveedor@synthetic.example";
+    d.fieldDecisions = [{ path: "products.p1.name", origin: "manual", references: [] }];
+    d.issues = [{ id: "PRIVATE-ID", code: "PRIVATE-CODE", message: "PRIVATE-BUYER PRIVATE-OCR PRIVATE-ALTERNATIVE", path: "PRIVATE-PATH", severity: "warning", blocking: false }];
+    h.getWorkspace.mockResolvedValue(workspace({ draft: d }));
+    h.state.admin.document_workspace_versions = { data: [{ revision: 3, actor_kind: "client", created_at: "2026-10-22T12:00:00Z", confirmed: false, draft: d, private: "PRIVATE-HISTORY" }] };
+    h.state.admin.prealertas = { data: { code: "DTD-C-1", client_markbox: MARKBOX, name: "PRIVATE-NAME", email: "PRIVATE-EMAIL", phone: "PRIVATE-PHONE", address: "PRIVATE-ADDRESS" } };
+    h.exportDocument.mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
+    const headers = asSupplier();
+    for (const action of ["workspace", "history"]) {
+      const response = await call({ headers, query: { action, workspaceId: WORKSPACE_ID } });
+      expect(response.status).toBe(200); const serialized = JSON.stringify(await response.json());
+      expect(serialized).not.toMatch(/PRIVATE-|factura-original-del-cliente|fieldDecisions/); expect(serialized).toContain("proveedor@synthetic.example");
+    }
+    expect((await call({ headers, query: { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" } })).status).toBe(200);
+    const [shared, context] = h.exportDocument.mock.calls[0];
+    expect(JSON.stringify([shared, context])).not.toMatch(/PRIVATE-|factura-original-del-cliente|fieldDecisions/);
+    expect(shared.sources).toEqual([]); expect(context).toMatchObject({ markbox: MARKBOX, code: "DTD-C-1", revision: 3 });
+  });
+  it("el PDF recibe la misma proyección de incidencias y no contactos del comprador", async () => {
+    const { w, headers, query } = pdfReady(); const d = w.draft as DocumentDraft;
+    d.issues = [{ id: "PRIVATE-ID", code: "PRIVATE-CODE", message: "PRIVATE-BUYER PRIVATE-OCR", path: "PRIVATE-PATH", severity: "warning", blocking: false }];
+    h.getWorkspace.mockResolvedValue({ ...w, draft: d });
+    const response = await call({ headers, query }); expect(response.status).toBe(200);
+    const payload = h.renderPdf.mock.calls[0][0]; expect(JSON.stringify(payload)).not.toMatch(/PRIVATE-|fieldDecisions|factura-original-del-cliente/);
+    expect(payload).toMatchObject({ markbox: MARKBOX, code: "DTD-C-1" });
+  });
+  it("niega XLSX sin revisión y si cambia durante el render", async () => {
+    h.state.admin.prealertas = { data: { code: "DTD-C-1", client_markbox: MARKBOX } };
+    expect((await call({ headers: asSupplier(), query: { action: "export", workspaceId: WORKSPACE_ID } })).status).toBe(409);
+    expect(h.exportDocument).not.toHaveBeenCalled();
+    h.exportDocument.mockImplementationOnce(async () => { h.getWorkspace.mockResolvedValue(workspace({ revision: 4 })); return new Uint8Array([80, 75]); });
+    expect((await call({ headers: asSupplier(), query: { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" } })).status).toBe(409);
+  });
+  describe("PDF confirmado SDD-0473 B HTTP",()=>{
+    it.each(["packing-list","labels"])("sirve %s privado con compra y revisión protegidas",async(surface)=>{
+      const {headers,query}=pdfReady();const res=await call({headers,query:{...query,surface}});expect(res.status).toBe(200);expect(res.headers.get("content-type")).toBe("application/pdf");expect(res.headers.get("cache-control")).toBe("private, no-store");expect(res.headers.get("content-disposition")).toContain("Rev4.pdf");
+      expect(h.renderPdf).toHaveBeenCalledWith(expect.objectContaining({markbox:MARKBOX,code:"DTD-C-1",revision:4,folio:"PL-TEST",versionNo:1,labels:[expect.objectContaining({boxCode:"DTD-B-000001"})]}),surface);
+      expect(h.renderPdf.mock.calls[0][0].draft.sources).toEqual([]);expect(h.getWorkspace).toHaveBeenCalledTimes(2);
+    });
+    it("cambiar la revisión durante el render devuelve409, nunca bytes PDF",async()=>{
+      const {headers,query,w}=pdfReady();h.renderPdf.mockImplementationOnce(async()=>{h.getWorkspace.mockResolvedValue({...w,revision:5,confirmed_revision:4});return {bytes:new TextEncoder().encode("%PDF-stale")};});
+      const res=await call({headers,query});expect(res.status).toBe(409);expect(res.headers.get("content-type")).toContain("application/json");expect(await res.json()).toMatchObject({code:"revision_conflict"});
+    });
+    it("sin revisión confirmada rechaza antes del renderer",async()=>{
+      const {headers,query,w}=pdfReady();h.getWorkspace.mockResolvedValue({...w,confirmed_revision:null});expect((await call({headers,query})).status).toBe(409);expect(h.renderPdf).not.toHaveBeenCalled();
+    });
+    it.each(["compra","tenant"])("otro %s no puede usar PDF aunque conozca workspace/revisión",async(scope)=>{
+      const {headers,query}=pdfReady();h.tokenIds.mockResolvedValue({prealertaId:scope==="compra"?"other":PURCHASE_ID,tenantId:scope==="tenant"?"other":TENANT_ID,markbox:MARKBOX});expect((await call({headers,query})).status).toBe(404);expect(h.renderPdf).not.toHaveBeenCalled();
+    });
+    it("códigos físicos que cambian durante el render invalidan el PDF aun con la misma revisión",async()=>{
+      const {headers,query}=pdfReady();h.renderPdf.mockImplementationOnce(async()=>{h.state.admin.warehouse_boxes={data:[{id:"box",code:"DTD-B-000002",seq:1}]};return {bytes:new TextEncoder().encode("%PDF-old-code")};});
+      const res=await call({headers,query});expect(res.status).toBe(409);expect(res.headers.get("content-type")).toContain("application/json");expect(await res.json()).toMatchObject({code:"revision_conflict"});
+    });
+    it("fuente no disponible mantiene503 recuperable y respuesta privada",async()=>{
+      const {headers,query}=pdfReady();h.renderPdf.mockRejectedValueOnce(new ImportHttpError(503,"pdf_font_unavailable","Falta una fuente compatible. Puedes usar la impresión existente."));const res=await call({headers,query});expect(res.status).toBe(503);expect(res.headers.get("cache-control")).toBe("private, no-store");expect(await res.json()).toMatchObject({code:"pdf_font_unavailable"});
+    });
+    it("superficie no permitida se rechaza sin renderizar",async()=>{
+      const {headers,query}=pdfReady();expect((await call({headers,query:{...query,surface:"secret"}})).status).toBe(400);expect(h.renderPdf).not.toHaveBeenCalled();
+    });
+  });
+  it("las etiquetas exigen el token de esta compra y la revisión confirmada solicitada",async()=>{
+    const d=draft();d.supplier.wechat="demo";d.groups=[{id:"g1",label:"1",cartons:1,grossWeightKg:2,cbm:0.05,items:[{productId:"p1",quantity:10}]}];
+    h.getWorkspace.mockResolvedValue(workspace({draft:d,revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}));
+    h.state.admin.prealertas={data:{code:"DTD-C-1"}};h.state.admin.packing_list_submissions={data:{folio:"PL-TEST",version_no:1}};
+    h.state.admin.document_group_boxes={data:[{box_id:"box"}]};h.state.admin.warehouse_boxes={data:[{id:"box",code:"DTD-B-000001",seq:3}]};
+    h.state.admin.document_workspaces={data:{revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}};
+    const headers=asSupplier();
+    const query={action:"labels",workspaceId:WORKSPACE_ID,expectedRevision:"4"};
+    const ok=await call({headers,query});expect(ok.status).toBe(200);expect(await ok.json()).toMatchObject({revision:4,labels:[{boxCode:"DTD-B-000001"}]});
+    const stale=await call({headers,query:{...query,expectedRevision:"3"}});expect(stale.status).toBe(409);
+    h.tokenIds.mockResolvedValue({prealertaId:"another-purchase",tenantId:TENANT_ID,markbox:MARKBOX});
+    expect((await call({headers,query})).status).toBe(404);
+  });
   it("sólo abre para los orígenes configurados y el propio, comparando el origen completo", async () => {
     for (const origin of [SITE, API, PORTAL, SELF]) {
       const res = await call({ origin, query: { action: "capabilities" } });
@@ -223,6 +309,7 @@ describe("Puerta HTTP de importación documental", () => {
     expect(h.state.calls).toEqual([]);
     vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
     expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ available: true, portal: true });
+    expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ extractionDisclosure: expect.stringContaining("Anthropic") });
   });
 
   it("con sólo la llave del cotizador, capabilities lo dice y lo que es de una compra se niega sin tocar sus tablas", async () => {
@@ -379,7 +466,7 @@ describe("Puerta HTTP de importación documental", () => {
     h.saveWorkspace.mockRejectedValue(new Error("Documento inválido: products.id"));
     const res = await post({ action: "save", workspaceId: WORKSPACE_ID }, { headers: asClient() });
     expect(res.status).toBe(422);
-    expect(await res.json()).toMatchObject({ code: "invalid_document", error: "Documento inválido: products.id" });
+    expect(await res.json()).toMatchObject({ code: "invalid_document", error: "Los datos del documento necesitan revisión. Conserva tus cambios y revisa los campos indicados." });
     expect(logged).not.toHaveBeenCalled();
   });
 
@@ -455,7 +542,7 @@ describe("Puerta HTTP de importación documental", () => {
   it("el packing list sólo sale sellado como confirmado cuando la revisión vigente ES la confirmada", async () => {
     h.exportDocument.mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
     h.state.admin.prealertas = { data: { code: "DTD-C-1", client_markbox: MARKBOX }, error: null };
-    const query = { action: "export", workspaceId: WORKSPACE_ID };
+    const query = { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" };
 
     // Hay ediciones posteriores a la confirmación: el documento es un borrador,
     // y sellarlo como confirmado le diría al proveedor que produzca lo que aún
@@ -466,18 +553,18 @@ describe("Puerta HTTP de importación documental", () => {
     expect(h.exportDocument.mock.calls[0][1]).toMatchObject({ confirmed: false, revision: 3, markbox: MARKBOX, code: "DTD-C-1" });
 
     h.getWorkspace.mockResolvedValue(workspace({ revision: 2, confirmed_revision: 2 }));
-    await call({ origin: PORTAL, headers: asClient(), query });
+    await call({ origin: PORTAL, headers: asClient(), query: { ...query, expectedRevision: "2" } });
     expect(h.exportDocument.mock.calls[1][1]).toMatchObject({ confirmed: true, revision: 2 });
 
     // Un documento que nunca se confirmó tampoco se sella.
     h.getWorkspace.mockResolvedValue(workspace({ revision: 1, confirmed_revision: null }));
-    await call({ origin: PORTAL, headers: asClient(), query });
+    await call({ origin: PORTAL, headers: asClient(), query: { ...query, expectedRevision: "1" } });
     expect(h.exportDocument.mock.calls[2][1]).toMatchObject({ confirmed: false, revision: 1 });
   });
 
   it("no exporta un documento cuya compra no se puede leer, ni deja que el código escape a la cabecera", async () => {
     h.exportDocument.mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
-    const query = { action: "export", workspaceId: WORKSPACE_ID };
+    const query = { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" };
 
     // Sin la compra no hay marca ni código: exportar igual produciría un packing
     // list sin dueño, que es exactamente el dato inventado que no se permite.
