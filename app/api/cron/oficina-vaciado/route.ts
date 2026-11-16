@@ -11,7 +11,7 @@
  * mismo (la segunda no encuentra nada que vaciar).
  *
  * Paso 3a (D3): en la misma corrida purga los borradores del agente de más de 90 días
- * (`office_purgar_borradores_viejos()`, 0547). Sin la 0547 esa parte responde `sin_migracion`; el vaciado sigue.
+ * (`office_purgar_borradores_viejos()`, 0548). Sin la 0548 esa parte responde `sin_migracion`; el vaciado sigue.
  *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera, como push-drain.
  * Solo en el servidor (infra/dtd-cargo/cron/crontab, no en vercel.json).

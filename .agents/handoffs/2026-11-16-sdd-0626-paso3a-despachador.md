@@ -1,7 +1,7 @@
 # Handoff · SDD-0626 Paso 3a · Despachador mínimo: el agente redacta, nada se envía (16/11/2026)
 
 **Pedido:** Hermes (chat DIRECTOR), con el anexo del mismo día. Sam aprobó D1 a D6 con «Sí a todo» y lo lanzó con
-«Sí, lánzalo» el 16/11/2026. Todo nace apagado. La migración 0547 está en espera y **sin aplicar en ningún entorno**.
+«Sí, lánzalo» el 16/11/2026. Todo nace apagado. La migración 0548 está en espera y **sin aplicar en ningún entorno**.
 
 ## Hecho fuera del repo (VPS Oficina, sección B y anexo 1)
 
@@ -32,12 +32,12 @@ Respaldo y REVERTIR: `/srv/oficina/backups/paso3a-agente-20261116T041544Z/` (REV
 
 ## En el repo
 
-- **0547** (`supabase/migrations/0547_oficina_despachador.sql`). Incluye:
+- **0548** (`supabase/migrations/0548_oficina_despachador.sql`). Incluye:
   - `office_borradores` (90 días) y el turno del despachador;
   - el índice «un evento → una tarea»;
   - las funciones para convertir, tomar, entregar, soltar, recuperar y auto-pausar (esta solo pausa) y la purga.
 
-  Contrato SQL `supabase/tests/0547_…test.sql`, PGlite con 15 mutantes y desarme.
+  Contrato SQL `supabase/tests/0548_…test.sql`, PGlite con 15 mutantes y desarme.
 - **Despachador** (`lib/studio/oficina/despachador*.ts` y piezas), ruta `/api/cron/oficina-despachador` y cron cada minuto.
 - **Vaciado diario:** purga además los borradores viejos.
 - **Webhook:** sin `CHATWOOT_ACCOUNT_ID` rechaza todo.
@@ -49,7 +49,7 @@ Respaldo y REVERTIR: `/srv/oficina/backups/paso3a-agente-20261116T041544Z/` (REV
 - **Prueba en staging (sección E).** Necesita:
   - el método aprobado por Sam para reactivar la cuenta 2;
   - un token de lectura nuevo;
-  - aplicar la 0547 en staging, con el OK de Sam y aviso al DG;
+  - aplicar la 0548 en staging, con el OK de Sam y aviso al DG;
   - 3 conversaciones inventadas y la pregunta de control.
 
   Gasto máximo: $1.

@@ -60,7 +60,7 @@ describe("GET /api/cron/oficina-vaciado", () => {
     expect(await r.json()).toEqual({ ok: true, estado: "sin_migracion", borradores: { estado: "sin_migracion" } });
   });
 
-  it("con la 0541 pero sin la 0547: vacía igual y la purga dice «sin_migracion»", async () => {
+  it("con la 0541 pero sin la 0548: vacía igual y la purga dice «sin_migracion»", async () => {
     m.rpc.mockResolvedValueOnce({ data: 1, error: null }).mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } });
     const r = await GET(req("Bearer cron-sintetico"));
     expect(await r.json()).toEqual({ ok: true, estado: "ok", cantidad: 1, borradores: { estado: "sin_migracion" } });

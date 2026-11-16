@@ -1,10 +1,10 @@
 /**
- * SDD-0626 §3.4 (Paso 3a) · El almacén del despachador: las funciones de la 0547 sobre Supabase (service_role).
+ * SDD-0626 §3.4 (Paso 3a) · El almacén del despachador: las funciones de la 0548 sobre Supabase (service_role).
  *
  * Toda la lógica que tiene que ser atómica (convertir la bandeja, tomar UNA tarea por agente, entregar o soltar
  * una corrida, recuperar las caídas, auto-pausar) vive en la base. Aquí solo se llaman.
  *
- * Sin la 0547 (o sin la 0541/0544) la función no existe: se lanza `SinMigracion` y el despachador lo anota UNA
+ * Sin la 0548 (o sin la 0541/0544) la función no existe: se lanza `SinMigracion` y el despachador lo anota UNA
  * vez y no hace nada. Los errores de la base solo llevan su código (el mensaje puede traer valores).
  * Toda escritura de texto pasa antes por `exigirTextosDelCable` (escribirEnElCable).
  */
@@ -14,7 +14,7 @@ import { escribirEnElCable, faltaLaMigracion } from "./escritura";
 
 export class SinMigracion extends Error {
   constructor() {
-    super("falta la 0547 (o la 0541/0544) en esta base");
+    super("falta la 0548 (o la 0541/0544) en esta base");
     this.name = "SinMigracion";
   }
 }

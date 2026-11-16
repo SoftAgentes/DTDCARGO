@@ -1,10 +1,10 @@
 // @vitest-environment node
 /**
- * SDD-0626 Paso 3a · La migración 0547 (el despachador mínimo) corrida de verdad sobre PostgreSQL
- * embebido, con el contrato `supabase/tests/0547_…test.sql` y los `.sql` reales inlineados (la 0541 y
- * la 0544 de las que depende, la 0547 y su desarme).
+ * SDD-0626 Paso 3a · La migración 0548 (el despachador mínimo) corrida de verdad sobre PostgreSQL
+ * embebido, con el contrato `supabase/tests/0548_…test.sql` y los `.sql` reales inlineados (la 0541 y
+ * la 0544 de las que depende, la 0548 y su desarme).
  *
- * CONTROL ROJO: sin la 0547 el contrato falla. MUTANTES: cada uno quita una barrera de la 0547 y el
+ * CONTROL ROJO: sin la 0548 el contrato falla. MUTANTES: cada uno quita una barrera de la 0548 y el
  * contrato tiene que caer. El mismo contrato corre en Postgres 17 con Docker en «Contratos SQL».
  */
 import { readFileSync } from "node:fs";
@@ -14,13 +14,13 @@ import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const CONTRACT = resolve(ROOT, "supabase/tests/0547_oficina_despachador.test.sql");
-const PERMITIDAS = new Set(["0541_oficina_cable_tablas.sql", "0544_oficina_filtro_bandeja.sql", "0547_oficina_despachador.sql"]);
-const M0547 = "0547_oficina_despachador.sql";
+const CONTRACT = resolve(ROOT, "supabase/tests/0548_oficina_despachador.test.sql");
+const PERMITIDAS = new Set(["0541_oficina_cable_tablas.sql", "0544_oficina_filtro_bandeja.sql", "0548_oficina_despachador.sql"]);
+const M0548 = "0548_oficina_despachador.sql";
 
 type Transform = (sql: string) => string;
 
-function inline(opts: { sin0547?: boolean; migracion?: Transform } = {}): string {
+function inline(opts: { sin0548?: boolean; migracion?: Transform } = {}): string {
   return readFileSync(CONTRACT, "utf8")
     .split(/\r?\n/)
     .map((line) => {
@@ -28,9 +28,9 @@ function inline(opts: { sin0547?: boolean; migracion?: Transform } = {}): string
       if (include) {
         const nombre = include[1].replace("../migrations/", "");
         if (!PERMITIDAS.has(nombre)) throw new Error(`\\ir inesperado en el contrato: ${include[1]}`);
-        if (nombre === M0547 && opts.sin0547) return "";
+        if (nombre === M0548 && opts.sin0548) return "";
         const leida = readFileSync(resolve(ROOT, "supabase/migrations", nombre), "utf8");
-        return nombre === M0547 && opts.migracion ? opts.migracion(leida) : leida;
+        return nombre === M0548 && opts.migracion ? opts.migracion(leida) : leida;
       }
       return /^\\(set|echo)\s/.test(line) ? "" : line;
     })
@@ -57,13 +57,13 @@ function mutar(buscar: string, poner: string): Transform {
   };
 }
 
-describe("0547 · despachador mínimo del cable (PGlite)", () => {
+describe("0548 · despachador mínimo del cable (PGlite)", () => {
   it("el contrato completo pasa con las migraciones reales (como en Postgres 17)", async () => {
     expect(await run(inline())).toBeNull();
   }, 60_000);
 
-  it("CONTROL ROJO: sin la 0547 el contrato falla", async () => {
-    expect(await run(inline({ sin0547: true }))).not.toBeNull();
+  it("CONTROL ROJO: sin la 0548 el contrato falla", async () => {
+    expect(await run(inline({ sin0548: true }))).not.toBeNull();
   }, 60_000);
 
   const mutantes: Array<[string, Transform, string]> = [
@@ -145,7 +145,7 @@ describe("0547 · despachador mínimo del cable (PGlite)", () => {
     }, 60_000);
   }
 
-  it("desarme: quita lo de la 0547, deja las tareas y la bitácora, y repetirlo no falla", async () => {
+  it("desarme: quita lo de la 0548, deja las tareas y la bitácora, y repetirlo no falla", async () => {
     const leer = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
     const base = `
       create schema if not exists auth;
@@ -164,10 +164,10 @@ describe("0547 · despachador mínimo del cable (PGlite)", () => {
         if to_regclass('public.office_borradores') is not null or to_regclass('public.office_despachador') is not null
            or to_regclass('public.office_tasks_evento_unico') is not null
            or to_regprocedure('public.office_tomar_tarea(text, integer, integer)') is not null then
-          raise exception 'el desarme dejó objetos de la 0547';
+          raise exception 'el desarme dejó objetos de la 0548';
         end if;
         if (select count(*) from public.office_tasks) <> 1 or to_regprocedure('public.office_filtrar_bandeja(integer)') is null then
-          raise exception 'el desarme tocó lo que no es de la 0547';
+          raise exception 'el desarme tocó lo que no es de la 0548';
         end if;
       end $c$;
     `;
@@ -175,12 +175,12 @@ describe("0547 · despachador mínimo del cable (PGlite)", () => {
       base,
       leer("supabase/migrations/0541_oficina_cable_tablas.sql"),
       leer("supabase/migrations/0544_oficina_filtro_bandeja.sql"),
-      leer("supabase/migrations/0547_oficina_despachador.sql"),
+      leer("supabase/migrations/0548_oficina_despachador.sql"),
       "insert into public.office_tasks (titulo) values ('una');",
-      leer("supabase/desarmes/0547_desarme.sql"),
-      leer("supabase/desarmes/0547_desarme.sql"),
+      leer("supabase/desarmes/0548_desarme.sql"),
+      leer("supabase/desarmes/0548_desarme.sql"),
       comprobar,
-      leer("supabase/migrations/0547_oficina_despachador.sql"),
+      leer("supabase/migrations/0548_oficina_despachador.sql"),
     ].join("\n");
     expect(await run(sql)).toBeNull();
   }, 60_000);

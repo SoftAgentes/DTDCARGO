@@ -287,7 +287,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 
 ### Requisitos para encenderlo (con OK de Sam y aviso al DG)
 
-1. La migración **0547** aplicada en esa base (sin ella responde `sin_migracion` y no hace nada).
+1. La migración **0548** aplicada en esa base (sin ella responde `sin_migracion` y no hace nada).
 2. La oficina despausada por un administrador (`office_cambiar_pausa`). La auto-pausa nunca despausa.
 3. El token de lectura de Chatwoot puesto en el `.env` del entorno sin pasar por el chat.
 4. Recrear el web para que tome las variables; después, `OFICINA_DESPACHADOR_ACTIVO=1`.

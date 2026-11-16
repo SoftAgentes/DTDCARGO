@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * SDD-0626 Paso 3a · El despachador mínimo con el MODELO SIMULADO, sobre las funciones reales de la 0547 en
+ * SDD-0626 Paso 3a · El despachador mínimo con el MODELO SIMULADO, sobre las funciones reales de la 0548 en
  * PostgreSQL embebido (PGlite) como service_role. Ninguna llamada sale a la red: Chatwoot y el runtime de la
  * oficina son dobles. Lo que se prueba (pedido §D):
  *   · pausa: aborta en ≤ 10 s con un agente lento;
@@ -44,7 +44,7 @@ const BASE = `
 const MARCA = "MARCA-CLIENTE-7Q9Z";
 const MENSAJES: MensajeLeido[] = [{ rol: "cliente", texto: `Hola, ${MARCA}, mi teléfono es 0414-555-1234, ¿dónde está mi caja?` }];
 
-async function base(migraciones: string[] = ["0541_oficina_cable_tablas", "0544_oficina_filtro_bandeja", "0547_oficina_despachador"]) {
+async function base(migraciones: string[] = ["0541_oficina_cable_tablas", "0544_oficina_filtro_bandeja", "0548_oficina_despachador"]) {
   const db = await pgliteLimpio();
   await db.exec(BASE + migraciones.map((m) => leer(`supabase/migrations/${m}.sql`)).join("\n"));
   return db;
@@ -64,7 +64,7 @@ async function eventoEnTriaje(db: PGlite, n = 1) {
   );
 }
 
-/** El almacén sobre PGlite, como service_role: las mismas funciones de la 0547 que llama Supabase. */
+/** El almacén sobre PGlite, como service_role: las mismas funciones de la 0548 que llama Supabase. */
 function almacenPglite(db: PGlite): AlmacenDespachador {
   const q = async <T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> => {
     try {
@@ -216,7 +216,7 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
     expect(leerC).not.toHaveBeenCalled();
   });
 
-  it("sin las migraciones (ni la 0541, o sin la 0547) no tumba nada: «sin_migracion», una vez en el log", async () => {
+  it("sin las migraciones (ni la 0541, o sin la 0548) no tumba nada: «sin_migracion», una vez en el log", async () => {
     for (const migraciones of [[], ["0541_oficina_cable_tablas", "0544_oficina_filtro_bandeja"]]) {
       const db = await base(migraciones);
       try {
@@ -225,7 +225,7 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
         expect(await tick(d)).toEqual({ estado: "sin_migracion" });
         expect(await correrTanda(d, { duracionMs: 50 })).toMatchObject({ estado: "sin_migracion" });
         expect(doble.llamadas).toBe(0);
-        expect(registros.filter((r) => r.includes("falta la 0547"))).toHaveLength(1);
+        expect(registros.filter((r) => r.includes("falta la 0548"))).toHaveLength(1);
         olvidarAvisosParaPruebas();
       } finally {
         await db.close();

@@ -238,7 +238,7 @@ export async function tick(deps: DepsDespachador): Promise<ResultadoTick> {
     return { estado: "corrida", convertidas, resultado: await ejecutarCorrida(deps, tarea) };
   } catch (e) {
     if (e instanceof SinMigracion) {
-      avisarUnaVez("despachador-sin-migracion", "[oficina-despachador] no hace nada: falta la 0547 (o la 0541/0544) en esta base (SDD-0626)", registrar);
+      avisarUnaVez("despachador-sin-migracion", "[oficina-despachador] no hace nada: falta la 0548 (o la 0541/0544) en esta base (SDD-0626)", registrar);
       return { estado: "sin_migracion" };
     }
     throw e;

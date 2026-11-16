@@ -1,10 +1,10 @@
 \set ON_ERROR_STOP on
 
--- Contrato desechable de la migr 0547 (SDD-0626 Paso 3a): el despachador mínimo del cable.
+-- Contrato desechable de la migr 0548 (SDD-0626 Paso 3a): el despachador mínimo del cable.
 -- Fixtures ficticios y rollback: no toca prod.
 --
 -- Lo que se protege:
---   1. Aplicar la 0547 otra vez no falla.
+--   1. Aplicar la 0548 otra vez no falla.
 --   2. Pausada (la oficina nace pausada): no convierte la bandeja ni toma tareas.
 --   3. Convertir: cada evento en «triaje» da UNA tarea «listo» del agente, y el evento pasa a «convertido».
 --      Repetirlo no duplica.
@@ -23,7 +23,7 @@ begin;
 do $roles$
 begin
   if to_regclass('public.office_tasks') is not null or to_regclass('public.platform_admins') is not null then
-    raise exception 'TEST 0547 requiere una base PostgreSQL desechable vacía';
+    raise exception 'TEST 0548 requiere una base PostgreSQL desechable vacía';
   end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
@@ -51,9 +51,9 @@ grant execute on function public.is_platform_admin() to service_role;
 
 \ir ../migrations/0541_oficina_cable_tablas.sql
 \ir ../migrations/0544_oficina_filtro_bandeja.sql
-\ir ../migrations/0547_oficina_despachador.sql
+\ir ../migrations/0548_oficina_despachador.sql
 -- Otra vez encima: no falla.
-\ir ../migrations/0547_oficina_despachador.sql
+\ir ../migrations/0548_oficina_despachador.sql
 
 -- Tres eventos ya en «triaje» (como los deja el filtro): uno de dinero y dos de cliente.
 insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad, payload_ref, estado, triaje_en)
@@ -78,7 +78,7 @@ end;
 $pausada$;
 
 -- Despausar (el dueño, en sesión propia: lo que haría office_cambiar_pausa de un admin).
-insert into public.office_paused (pausada, motivo) values (false, 'Contrato 0547: despausada para la prueba.');
+insert into public.office_paused (pausada, motivo) values (false, 'Contrato 0548: despausada para la prueba.');
 
 -- 3. Convertir.
 do $convertir$

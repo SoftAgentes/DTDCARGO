@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- 0547 · SDD-0626 §3.4 y §3.5 (Paso 3a) — El despachador mínimo del cable: el
+-- 0548 · SDD-0626 §3.4 y §3.5 (Paso 3a) — El despachador mínimo del cable: el
 -- agente redacta, NO envía.
 --
 -- ⚠️ NO APLICADA EN NINGÚN ENTORNO. Declarada como espera en
@@ -10,7 +10,7 @@
 --    REQUIERE la 0541 (tablas del cable y office_esta_pausada()) y la 0544
 --    (event_inbox.triaje_en): su preflight para si falta alguna.
 --    ORDEN: después de la 0544. El código del Paso 3a funciona con o sin ella:
---    sin la 0547 el despachador no hace nada y lo anota una vez en el log.
+--    sin la 0548 el despachador no hace nada y lo anota una vez en el log.
 --
 -- ── Qué crea ────────────────────────────────────────────────
 -- 1. office_borradores: lo que redactó el agente para que Sam lo revise (D3).
@@ -52,7 +52,7 @@
 -- o casi; el cable sigue apagado). lock_timeout 5 s.
 --
 -- ── Deshacer ────────────────────────────────────────────────
--- supabase/desarmes/0547_desarme.sql (sin número; usarlo exige OK nominal de
+-- supabase/desarmes/0548_desarme.sql (sin número; usarlo exige OK nominal de
 -- Sam). Pierde los borradores y el turno; las tareas y la bitácora quedan.
 -- ─────────────────────────────────────────────────────────────────────────────
 set local lock_timeout = '5s';
@@ -63,16 +63,16 @@ begin
   if pg_catalog.to_regclass('public.office_tasks') is null
      or pg_catalog.to_regclass('public.task_events') is null
      or pg_catalog.to_regprocedure('public.office_esta_pausada()') is null then
-    raise exception '0547 requiere la 0541 (tablas del cable y office_esta_pausada())';
+    raise exception '0548 requiere la 0541 (tablas del cable y office_esta_pausada())';
   end if;
   if not exists (select 1 from information_schema.columns
                   where table_schema = 'public' and table_name = 'event_inbox' and column_name = 'triaje_en') then
-    raise exception '0547 requiere la 0544 (event_inbox.triaje_en)';
+    raise exception '0548 requiere la 0544 (event_inbox.triaje_en)';
   end if;
   if pg_catalog.to_regclass('public.office_borradores') is not null
      and not exists (select 1 from information_schema.columns
                       where table_schema = 'public' and table_name = 'office_borradores' and column_name = 'guion') then
-    raise exception '0547: public.office_borradores ya existe con otra forma';
+    raise exception '0548: public.office_borradores ya existe con otra forma';
   end if;
 end
 $preflight$;
@@ -519,36 +519,36 @@ declare
 begin
   foreach v_tabla in array array['office_borradores', 'office_despachador'] loop
     if not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = pg_catalog.to_regclass('public.' || v_tabla)) then
-      raise exception '0547 postflight: RLS apagada en %', v_tabla;
+      raise exception '0548 postflight: RLS apagada en %', v_tabla;
     end if;
     if exists (select 1 from pg_catalog.pg_policies where schemaname = 'public' and tablename = v_tabla) then
-      raise exception '0547 postflight: % no debía tener policies', v_tabla;
+      raise exception '0548 postflight: % no debía tener policies', v_tabla;
     end if;
     foreach v_rol in array array['anon', 'authenticated'] loop
       foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE'] loop
         if pg_catalog.has_table_privilege(v_rol, 'public.' || v_tabla, v_priv) then
-          raise exception '0547 postflight: % tiene % sobre %', v_rol, v_priv, v_tabla;
+          raise exception '0548 postflight: % tiene % sobre %', v_rol, v_priv, v_tabla;
         end if;
       end loop;
       if pg_catalog.has_any_column_privilege(v_rol, 'public.' || v_tabla, 'SELECT') then
-        raise exception '0547 postflight: % lee columnas de %', v_rol, v_tabla;
+        raise exception '0548 postflight: % lee columnas de %', v_rol, v_tabla;
       end if;
     end loop;
     if pg_catalog.has_table_privilege('service_role', 'public.' || v_tabla, 'DELETE')
        or pg_catalog.has_table_privilege('service_role', 'public.' || v_tabla, 'TRUNCATE')
        or pg_catalog.has_any_column_privilege('service_role', 'public.' || v_tabla, 'UPDATE') then
-      raise exception '0547 postflight: service_role cambia o borra filas de %', v_tabla;
+      raise exception '0548 postflight: service_role cambia o borra filas de %', v_tabla;
     end if;
   end loop;
   if pg_catalog.has_any_column_privilege('service_role', 'public.office_despachador', 'INSERT') then
-    raise exception '0547 postflight: service_role escribe el turno sin las funciones';
+    raise exception '0548 postflight: service_role escribe el turno sin las funciones';
   end if;
   if pg_catalog.has_column_privilege('service_role', 'public.office_borradores', 'creado_en', 'INSERT')
      or pg_catalog.has_column_privilege('service_role', 'public.office_borradores', 'id', 'INSERT') then
-    raise exception '0547 postflight: service_role pone la hora o la identidad de un borrador';
+    raise exception '0548 postflight: service_role pone la hora o la identidad de un borrador';
   end if;
   if pg_catalog.to_regclass('public.office_tasks_evento_unico') is null then
-    raise exception '0547 postflight: falta el índice único de evento en office_tasks';
+    raise exception '0548 postflight: falta el índice único de evento en office_tasks';
   end if;
   for v_fn in
     select * from (values
@@ -570,22 +570,22 @@ begin
          and p.prosecdef = v_fn.definer
          and p.proconfig @> array['search_path=""']
     ) then
-      raise exception '0547 postflight: % sin search_path vacío o sin el SECURITY esperado', v_fn.firma;
+      raise exception '0548 postflight: % sin search_path vacío o sin el SECURITY esperado', v_fn.firma;
     end if;
     if pg_catalog.has_function_privilege('anon', v_fn.firma, 'EXECUTE')
        or pg_catalog.has_function_privilege('authenticated', v_fn.firma, 'EXECUTE') then
-      raise exception '0547 postflight: % ejecutable por anon o authenticated', v_fn.firma;
+      raise exception '0548 postflight: % ejecutable por anon o authenticated', v_fn.firma;
     end if;
     if not pg_catalog.has_function_privilege('service_role', v_fn.firma, 'EXECUTE') then
-      raise exception '0547 postflight: service_role no ejecuta %', v_fn.firma;
+      raise exception '0548 postflight: service_role no ejecuta %', v_fn.firma;
     end if;
   end loop;
   -- La auto-pausa no abre ningún camino para despausar: service_role sigue sin office_cambiar_pausa.
   if pg_catalog.has_function_privilege('service_role', 'public.office_cambiar_pausa(boolean, text)', 'EXECUTE') then
-    raise exception '0547 postflight: service_role puede cambiar la pausa';
+    raise exception '0548 postflight: service_role puede cambiar la pausa';
   end if;
   if not exists (select 1 from public.office_despachador where id = 1) then
-    raise exception '0547 postflight: falta la fila del turno';
+    raise exception '0548 postflight: falta la fila del turno';
   end if;
 end
 $postflight$;

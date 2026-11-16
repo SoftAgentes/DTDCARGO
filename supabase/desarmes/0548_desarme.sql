@@ -1,8 +1,8 @@
--- SDD-0626 Paso 3a · Desarme de la 0547: quita el despachador mínimo del cable.
+-- SDD-0626 Paso 3a · Desarme de la 0548: quita el despachador mínimo del cable.
 -- ⚠️ NO ES UNA MIGRACIÓN TODAVÍA. Vive fuera de supabase/migrations/ y sin número, para que nada la
 --    aplique ni la empaquete. Usarla exige OK nominal de Sam: se copia a supabase/migrations/ con el
 --    siguiente número libre y se aplica con el runbook de producción.
--- Ensayo: supabase/tests/0547_oficina_despachador.test.sql y
+-- Ensayo: supabase/tests/0548_oficina_despachador.test.sql y
 --   lib/studio/__tests__/oficina-despachador.migration.test.ts.
 --
 -- QUITA las funciones del despachador, office_borradores (y sus borradores), office_despachador (el turno)

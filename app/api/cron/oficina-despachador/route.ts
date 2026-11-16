@@ -9,7 +9,7 @@
  * NADA SE ENVÍA a Chatwoot desde aquí (D1; el envío es del Paso 3b, tras la aprobación de Sam).
  *
  * Nace APAGADO: con `OFICINA_DESPACHADOR_ACTIVO` vacío o falso no crea el cliente de la base ni llama a nadie.
- * Sin la 0547 responde 200 `sin_migracion` y lo anota una vez en el log. Respuesta: solo conteos y estados.
+ * Sin la 0548 responde 200 `sin_migracion` y lo anota una vez en el log. Respuesta: solo conteos y estados.
  *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera. Solo en el servidor
  * (infra/dtd-cargo/cron/crontab, no en vercel.json).

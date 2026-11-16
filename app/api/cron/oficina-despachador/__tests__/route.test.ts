@@ -63,7 +63,7 @@ describe("GET /api/cron/oficina-despachador", () => {
     expect(m.rpc).toHaveBeenCalledWith("office_despachador_turno", expect.objectContaining({ p_segundos: 260 }));
   });
 
-  it("encendido sin la 0547: 200 «sin_migracion», no rompe", async () => {
+  it("encendido sin la 0548: 200 «sin_migracion», no rompe", async () => {
     m.rpc.mockResolvedValue({ data: null, error: { code: "PGRST202" } });
     const r = await GET(req("Bearer cron-sintetico"));
     expect(r.status).toBe(200);

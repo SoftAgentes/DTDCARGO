@@ -52,7 +52,7 @@ usa este mapa.
 | Paso 1 | §3.1 · las 4 tablas y la bandera | construido (migración 0541, sin aplicar) |
 | Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | construido (migración 0544) |
 | Paso 2b | prueba con el mensaje real del inbox de prueba, por el puente interno («Opción 3: puente») | construido y probado en staging el 16/11/2026 |
-| Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | construido con el modelo simulado (migración 0547, sin aplicar); falta la prueba en staging |
+| Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | construido con el modelo simulado (migración 0548, sin aplicar); falta la prueba en staging |
 | Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4) | pendiente |
 | Paso 4 | §3.6 · mini-vista | pendiente |
 
@@ -213,7 +213,7 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   Solo el ERP envía, y solo después de la aprobación de Sam (Paso 3b). Esto reemplaza el «acceso nivel 2» de la v0.3.
 - **D2 · Las aprobaciones van a una tabla propia de la oficina**, con casillas fijas (no texto libre). Se construye en
   el Paso 3b; el 3a solo deja el borrador y la tarea en «aprobación».
-- **D3 · El borrador se guarda para la revisión de Sam y se borra a los 90 días** (`office_borradores`, 0547).
+- **D3 · El borrador se guarda para la revisión de Sam y se borra a los 90 días** (`office_borradores`, 0548).
 - **D4 · La página de aprobación es solo para `is_platform_admin`**, con un aviso en Discord que no incluye el texto.
   Se construye en el Paso 3b.
 - **D5 · Tope de $15 al mes y auto-pausa al 80 %.** Las llaves de los proveedores las coloca Claude Code en el
@@ -241,7 +241,7 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   aborta la llamada en vuelo; la tarea vuelve a «listo» (`run.abortada`).
 - **Bitácora (AC-2).** Cada paso va a `task_events` con tipo, actor, resumen, modelo y costo, pasando por
   `exigirTextosDelCable`.
-- **Interruptor.** `OFICINA_DESPACHADOR_ACTIVO` (solo `1` o `true`), apagado por defecto. Sin la 0547 no hace nada.
+- **Interruptor.** `OFICINA_DESPACHADOR_ACTIVO` (solo `1` o `true`), apagado por defecto. Sin la 0548 no hace nada.
 - **El agente (VPS Oficina).** glm-5.3 con respaldo deepseek-chat; instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
@@ -250,8 +250,8 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   y pagina conversaciones y mensajes (O5).
 
 **Archivos del Paso 3a (allowlist):**
-- `supabase/migrations/0547_oficina_despachador.sql`, `supabase/desarmes/0547_desarme.sql` y
-  `supabase/tests/0547_oficina_despachador.test.sql`
+- `supabase/migrations/0548_oficina_despachador.sql`, `supabase/desarmes/0548_desarme.sql` y
+  `supabase/tests/0548_oficina_despachador.test.sql`
 - `lib/studio/oficina/` (despachador, almacén, configuración, lectura de Chatwoot, cliente del cable, salida del agente,
   eval automático, guiones; el webhook y el almacén de la bandeja) y sus pruebas
 - `lib/studio/__tests__/oficina-despachador*.test.ts` y `lib/studio/__tests__/oficina-webhook.test.ts`
@@ -362,7 +362,7 @@ de suscripción 2×día · modo degradado de dos vías.
 | Migraciones | reversibles; índices en task_events.task_id y event_inbox.clave (única: AC-4) |
 | Webhook | prueba con mensaje interno del inbox de prueba. **Paso 2:** eventos simulados, sin Chatwoot real (firma mala, bandeja ajena, nota interna, interruptor apagado y pausa activa). **Paso 2b («Opción 3: puente»):** el mensaje real del inbox de prueba (cuenta 2, bandeja 11) entra por el puente interno al web de prueba. **Éxito:** 1 fila en `event_inbox` con su prioridad, ninguna respuesta automática y ningún dato personal en los logs. Hecho el 16/11/2026 (01:26 a 01:29Z). **NO VERIFICADO:** la entrada real desde fuera, es decir, la ruta pública, Traefik/Cloudflare y la firma emitida por Chatwoot |
 | Filtro | ráfaga de 50 eventos simulados → dedupe y cuota funcionan (Paso 2: contra el esquema real, en PGlite y en Postgres 17) |
-| Despachador | prueba de caída del proceso → reinicia y retoma del último tick. **Paso 3a, en CI con el modelo simulado:** la corrida a medias se escala sin repetirse, el turno viejo bloquea hasta vencer y la tanda nueva retoma; JSON inválido y cifra inventada escalan; ninguna fila ni log guarda el texto del cliente; con el interruptor apagado o sin la 0547 no hace nada (`lib/studio/__tests__/oficina-despachador.test.ts`, contra las funciones reales de la 0547) |
+| Despachador | prueba de caída del proceso → reinicia y retoma del último tick. **Paso 3a, en CI con el modelo simulado:** la corrida a medias se escala sin repetirse, el turno viejo bloquea hasta vencer y la tanda nueva retoma; JSON inválido y cifra inventada escalan; ninguna fila ni log guarda el texto del cliente; con el interruptor apagado o sin la 0548 no hace nada (`lib/studio/__tests__/oficina-despachador.test.ts`, contra las funciones reales de la 0548) |
 | Kill switch | drill: activar y verificar pausa + aborto en vuelo (AC-3). **Paso 3a, en CI:** con un agente lento, la llamada en vuelo se aborta en ≤ 10 s y la tarea vuelve a «listo»; la auto-pausa al 80 % con un tope de juguete pausa la oficina y nunca despausa |
 | Prueba real | AC-1 (etapas 1 y 2) y AC-2..AC-6 con Sam presente |
 | Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `agent_approvals`, contada con la consulta de AC-7), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
@@ -402,7 +402,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
-| 0.4 | 16/11/2026 | **Paso 3a** (Sam: «Sí a todo» a D1–D6 y «Sí, lánzalo», 16/11/2026): decisiones D1 a D6 en §3.5; el mapa de pasos parte el Paso 3 en 3a y 3b (D6); cómo se construyó §3.4 y §3.5 y su allowlist (migración 0547, sin aplicar); filas Despachador y Kill switch de §9 con lo probado en CI; Anexo A sin herramientas (ficha 0.2). `privacidad.md`: hallazgos 12 (el borrador) y 13 (los mensajes salen hacia los cerebros: dónde, cuánto tiempo y qué guarda Hermes) |
+| 0.4 | 16/11/2026 | **Paso 3a** (Sam: «Sí a todo» a D1–D6 y «Sí, lánzalo», 16/11/2026): decisiones D1 a D6 en §3.5; el mapa de pasos parte el Paso 3 en 3a y 3b (D6); cómo se construyó §3.4 y §3.5 y su allowlist (migración 0548, sin aplicar); filas Despachador y Kill switch de §9 con lo probado en CI; Anexo A sin herramientas (ficha 0.2). `privacidad.md`: hallazgos 12 (el borrador) y 13 (los mensajes salen hacia los cerebros: dónde, cuánto tiempo y qué guarda Hermes) |
 | 0.3.2 | 16/11/2026 | **Paso 2b con la «Opción 3: puente»** (Sam, 15/11/2026): mapa de pasos, cómo se construyó, allowlist del Paso 2b (`infra/ops/cable-oficina/puente-prueba.*` y `infra/ops/tests/cable-oficina-puente.test.mjs`) y su fila en §9. La entrada real del webhook desde fuera queda NO VERIFICADA. Prueba en staging el 16/11/2026 de 01:26 a 01:29Z (cuenta 2 reactivada y vuelta a suspender, token del puente rotado). `privacidad.md`: hallazgo 11, el puente |
 | 0.3.1 | 15/11/2026 | Encabezado: aprobada para construir §3.2 y §3.3, con el OK de Sam al cable del 14/11/2026 y su «Sí, las dos» del 15/11/2026 al lanzar el Paso 2 v2. **Mapa de pasos** al inicio de §3 (Paso 0 = §3.0 · Paso 1 = §3.1 · Paso 2 = §3.2 y §3.3 · Paso 3 = §3.4 y §3.5 · Paso 4 = §3.6) y menciones sueltas corregidas. **AC-1, condición 6:** pasa a «AC-5 completo: gasto visible por corrida y simulacro de auto-pausa al 80 % superado, con un tope de prueba». **AC-1, condición 2:** la revisión de Sam de las 10 conversaciones se anota en `agent_approvals`, igual que en la etapa 2, con la misma consulta de conteo que AC-7 (solo texto; se construye en el Paso 3). Cómo se construyen §3.2 y §3.3 y allowlist del Paso 2 (migración 0544 para la cuota) |
 | 0.3 | 15/11/2026 | **Revisión independiente de la #572 (0541 corregida en su lugar, porque no está aplicada en ningún entorno).** Bajas: autorización del Paso 1 registrada (Sam, 15/11/2026, «Sí, lánzalo», por Hermes); «3 tablas» → 4 en §1 y §3.6; `clave_dedupe` única (§3.2, §9). **Con el OK de Sam del 15/11/2026, dado en la sesión del cable** sobre la propuesta de las medias: §3.1 suma la minimización y retención de los textos libres («A: regla + 90 días»; Sam la mantuvo sabiendo que los 90 días no son de R5) y declara que el §3 de AUD-01 no aplica a `task_events` («Sí, apruebo»). Revisión de datos personales en [privacidad.md](privacidad.md). **Con el OK de Sam del 15/11/2026 al pedido «Paso 1.1» de Hermes** («Sí, añádelas»): la regla del paso de la etapa 1 a la 2 en AC-1 (y su fila en §9) y la de un solo contestador por bandeja (§3.5). Allowlist del Paso 1 en §3.1 |
