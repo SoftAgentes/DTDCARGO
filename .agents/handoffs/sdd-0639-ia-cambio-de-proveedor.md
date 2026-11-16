@@ -1,0 +1,37 @@
+# Handoff · SDD-0639 · Cambiar de modelo o de proveedor de IA (fase de plan)
+
+- **Owner:** Worker `pagos-de-ia-d02a4a`. Separada de la PR #603 a pedido del DG (2026-11-16).
+- **Ruta y rama:** `DTD-worktrees/ia-cambio-de-proveedor` · `codex/ia-cambio-de-proveedor`, desde `origin/main` `6dc137029`.
+- **Reserva:** `codex/sdd-reserve-0639`, commit `2ab348c84`.
+- **Objetivo:** solo planear. Spec en estado `proposed`, PR draft. No incluye producto.
+- **Origen:** Sam preguntó si se puede cambiar de proveedor desde el menú cuando Anthropic se cae. Codex, en una revisión de solo lectura, recomendó una spec aparte de la SDD-0638.
+
+## COMPLETADO
+
+- `docs/specs/0639-ia-cambio-de-proveedor/spec.md`. Cubre:
+  - los niveles de cambio: modelo y proveedor;
+  - las capacidades de riesgo: herramienta forzada, bucle de herramientas, PDF y `json_schema`;
+  - el diseño mínimo: motor común, catálogo aprobado y elección por función; manual primero;
+  - la privacidad con proveedores chinos;
+  - las fases, las pruebas y las decisiones D-1 a D-6.
+
+## VALIDACIÓN
+
+| Comprobación | Resultado |
+|---|---|
+| `pnpm docs:check` | Ver PR |
+| `pnpm sdd:check` | Ver PR |
+| `pnpm verify` | NO EJECUTADO: solo documentación |
+
+## PENDIENTES DE ESTA TAREA
+
+- Que Sam decida las D-1 a D-6 y apruebe la spec. El DG la fusiona por separado de la #603.
+- Depende de la SDD-0638 (clasificador y registro), que va en la PR #603.
+
+## FUERA DE ALCANCE DETECTADO
+
+- La cadena de fallback de la Oficina (SDD-0626 §7) se coordina, no se toca.
+
+## Impacto documental
+
+- Nueva: la spec 0639. Regenerado: `docs/specs/README.md`. Sin montos, llaves ni datos de cuentas.
