@@ -47,7 +47,12 @@
 ## Impacto documental
 
 - La spec 0636 y este handoff. El índice `docs/specs/README.md` está regenerado.
-- Graphify, Archify y Obsidian: los revisa el Director al integrar.
+
+## Seguimientos posibles (spec §8)
+
+- **Reinvitar como admin una invitación pendiente que emitió un admin del equipo:** el superadministrador la reutiliza con el `invited_by` del admin y la aceptación falla. Por ahora: revocar e invitar de nuevo. Seguimiento: que la re-invitación registre como emisor a quien invita.
+- **Las altas** quedan en `user_role_audit` pero no en la línea de tiempo de acceso de la SDD-0635.
+- **Límites que se dejan anotados sin tocar el SQL:** el comentario de cabecera de la 0545 abarca más de lo que cubre, y el desarme no tiene postflight propio (lo cubre el runner PGlite).
 
 ## FUERA DE ALCANCE DETECTADO
 

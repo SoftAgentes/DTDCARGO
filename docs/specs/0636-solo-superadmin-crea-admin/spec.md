@@ -198,3 +198,24 @@ supabase/tests/0545_solo_superadmin_crea_admin.test.sql
 
 - Suspender a un administrador no cambia: sigue la 0355.
 - Los demás roles del equipo y sus permisos no cambian.
+
+## 8. Límites conocidos y seguimientos posibles
+
+- **Reinvitar como admin una invitación pendiente que emitió un admin del
+  equipo.** Si el superadministrador vuelve a invitar como admin un correo que
+  ya tiene una invitación pendiente emitida por un admin del equipo,
+  `studio_invite_user` (0203) reutiliza esa fila: cambia el rol y la oficina,
+  pero conserva su `invited_by`. Al aceptar, la 0545 la niega porque el emisor
+  no es superadministrador. **Salida por ahora:** revocar la invitación
+  pendiente e invitar de nuevo. **Seguimiento posible:** que la re-invitación
+  registre como emisor a quien invita.
+- **El comentario de cabecera de la 0545** («aplica la política a todas,
+  también a las futuras») abarca más de lo que cubre: la política vale para
+  las escrituras de `user_invitations` y `user_tenants` con sesión, y
+  service_role o sin claims pasan. El SQL no se toca para no cambiar su md5.
+- **El desarme no tiene postflight.** Lo comprueba el runner PGlite (bloque
+  «(j)»), no el propio archivo.
+- **Las altas no aparecen en la línea de tiempo de acceso (SDD-0635).** La 0545
+  escribe el alta en `user_role_audit` como `role_change` con `old_value`
+  nulo, y la línea de tiempo de la ficha lee de esa bitácora solo los
+  eventos `disable` y `enable`. Seguimiento posible: mostrarlas ahí.
