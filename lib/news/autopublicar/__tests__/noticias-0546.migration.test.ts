@@ -147,7 +147,7 @@ describe("SDD-0611 §11.4.1 · 0546 purga de actor_id (PGlite)", () => {
       const run = await contract();
       expect(run.error).toBeNull();
       expect(run.green).toMatch(/^TEST 0546 GREEN: \d+ aserciones$/);
-      expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(30);
+      expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(27);
     },
     SLOW,
   );

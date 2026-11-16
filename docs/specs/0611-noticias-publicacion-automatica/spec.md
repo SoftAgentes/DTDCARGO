@@ -772,7 +772,7 @@ producción, con OK nominal de Sam) y el 5 (encender) siguen abiertos.
     Una fila nueva sigue exigiendo persona (sin marca, se rechaza).
   - `news_autopublish_settings_log.changed_by` deja de ser NOT NULL, con un CHECK equivalente (uuid o marca).
   - Ninguna de las cuatro tablas tiene disparadores de solo agregar (la 0518 no los creó): no hay excepción que abrir.
-- `supabase/desarmes/0546_desarme.sql`: quita función, marcas y CHECK y restaura los de la 0518. **Para** si la purga ya
+- El desarme de la 0546 (en `supabase/desarmes/`, sin número): quita función, marcas y CHECK y restaura los de la 0518. **Para** si la purga ya
   vació algún uuid: lo vaciado no vuelve.
 - Contrato `supabase/tests/0546_noticias_purga_actor_id.test.sql` (filas de 13, 12 y 11 meses en las cuatro tablas, resto
   de la fila intacto, ninguna fila borrada, rechazos de CHECK, solo `service_role` ejecuta, idempotente) y
