@@ -919,3 +919,19 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **Publicación:** van en la imagen de `fe35eb2d1`, publicada en `dtd-cargo` el 2026-11-04 a las 12:41:54Z por el Director General; la hora es la que él reportó.
 - **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
+
+## 2026-11-16 · Enmienda: la lista de miembros de la Bandeja sale con el cliente admin
+
+Medido en producción el 2026-11-16: en `/studio/bandeja`, «Vincular» y «Dar de alta» solo ofrecían al propio admin aunque Usuarios mostraba 9 personas. `bandeja/page.tsx` leía `listMembers` con el cliente de sesión y la RLS de `user_tenants` deja ver una sola fila.
+
+- **Cambio:** la lista se pide con `miembrosDeBandeja` (`lib/studio/chatwoot/bandeja-miembros.ts`), que usa el cliente admin solo si `role === "admin"` y hay `tenantId`; si no, devuelve `[]` y el cliente admin ni se crea. Se filtra siempre por el `tenant_id` del que pide (`listMembers` lo exige) y solo miembros activos.
+- **Acciones:** `vincularAgente` y `altaAgente` ya comprobaban al miembro elegido con `createAdminClient` y el `tenant_id` del gate (`actions.ts`), así que no tenían el defecto y no cambian.
+- **Sin migración.** Pruebas: `lib/studio/chatwoot/__tests__/bandeja-miembros.test.ts` (no admin no recibe la lista; admin recibe a los de su tenant y no a los de otro).
+
+**Allowlist exacta de esta enmienda (PR #618):**
+
+- `lib/studio/chatwoot/bandeja-miembros.ts` (nuevo)
+- `lib/studio/chatwoot/__tests__/bandeja-miembros.test.ts` (nuevo)
+- `app/studio/(app)/bandeja/page.tsx`
+- `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md` (esta nota)
+- `.agents/handoffs/bandeja-miembros-admin-0585.md`

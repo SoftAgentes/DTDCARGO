@@ -24,7 +24,7 @@ import { getVinculoPropio, listVinculos } from "@/lib/studio/chatwoot/links-quer
 import { listEventosDescartados, type EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 import { parseChatwootUserId, urlPanel } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, ssoVigentePara } from "@/lib/studio/chatwoot/sso-cookie";
-import { listMembers } from "@/lib/studio/user-queries";
+import { miembrosDeBandeja } from "@/lib/studio/chatwoot/bandeja-miembros";
 import { canAccessModule } from "@/lib/studio/rbac";
 import { BandejaClient, type BandejaEstado } from "./_components/BandejaClient";
 import type { MiembroOpcion, VinculoFila } from "./_components/VinculosAdmin";
@@ -70,7 +70,9 @@ export default async function BandejaPage({
   if (access.role === "admin" && access.tenantId && cfg) {
     const [vinculos, miembros, descartados, cuenta, webhook, portal] = await Promise.all([
       listVinculos(supabase, access.tenantId),
-      listMembers(supabase, { tenantId: access.tenantId }),
+      // La RLS de user_tenants deja ver 1 fila con el cliente de sesión: la lista va con el cliente
+      // admin, pero solo si quien pide es admin del tenant (el gate de arriba), filtrada por su tenant.
+      miembrosDeBandeja(access, createAdminClient),
       listEventosDescartados(supabase, access.tenantId),
       listarMiembrosCuenta(cfg),
       revisarWebhookCuenta(cfg, chatwootServicioUserId()),
