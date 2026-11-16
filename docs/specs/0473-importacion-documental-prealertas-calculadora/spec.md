@@ -4,7 +4,7 @@ title: "Importación documental, borrador compartido y calculadora puerta a puer
 status: in-progress
 author: "Codex"
 created: 2026-09-16
-updated: 2026-09-18
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0468"]
@@ -300,3 +300,75 @@ IA-01 I2: preview humana antes de aplicar; nunca envío/confirmación automátic
 no son instrucciones. Auditoría sin prompts completos, secretos ni contenido de documentos en logs.
 Riesgo R3 de identidad/logística; validación proporcional documentada en handoff. Lectura de producción,
 llamadas IA reales con datos cliente y publicación en bóveda compartida fuera de autorización.
+
+## Retoma 2026-11-16 · PR #319 recortada en P1 y P2
+
+Sam decidió que la #319 siga («Que siga»). El DG aprobó partirla y que cada parte salga
+desde main en una PR propia. La #319 queda abierta como archivo histórico y no se fusiona:
+cuando entren P1 y P2, el DG la cierra sin merge.
+
+**GLM descartado.** El lector GLM de la #319 (`glm.ts` y `provider.ts`) mandaba el PDF del cliente
+a Z.AI para OCR y lectura asistida. Choca con la regla D-2 de Sam
+([SDD-0639 §4](../0639-ia-cambio-de-proveedor/spec.md)): los datos de clientes nunca van a un
+proveedor chino. No entra en P1 ni en P2. Lo mismo vale para el contrato intermedio que solo usaba
+GLM (`extraction-contract.ts` y `draft-from-extraction.ts`), los mensajes `qa_glm_*`, el arnés QA
+de `qa/portal-confirmacion/` y la bitácora de sesiones. La lectura asistida existente
+(`extract.ts` → `anthropic.ts`) y la lectura nativa de XLSX/CSV no cambian de proveedor.
+
+### P1 · núcleo, PDF confirmado y fuentes
+
+- **Documento compartido** (`lib/shared/document-import.ts`): validación de confirmación
+  y logística revisable por campo y por grupo. Logística una sola vez por grupo, valor por producto.
+- **Servicio y HTTP** (`service.ts`, `http.ts`): `action=labels` y `action=pdf`
+  (`surface=packing-list|labels`, `workspaceId`, `expectedRevision`). `getDocumentLabels`
+  autoriza y valida la revisión antes y después del render. Con una revisión vieja devuelve 409
+  y ningún PDF. La respuesta es `application/pdf` privada (`no-store`).
+- **PDF** (`pdf.tsx`): Packing List + Factura y etiquetas, con los mismos datos y códigos físicos
+  del gate. No lleva fuentes privadas, identidad del cliente ni códigos inventados.
+  - Para CJK exige `DOCUMENT_IMPORT_PDF_CJK_FONT_PATH`. Sin una fuente compatible responde
+    503 `pdf_font_unavailable`: no hay fallback ni omite caracteres.
+  - `DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR` es solo para pruebas; vacío, no escribe nada.
+- **Estimado y exportación** (`estimate.ts`, `export.ts`, `extract.ts`): el flete se calcula
+  sobre la revisión guardada y el Excel sale de esa misma revisión.
+- **Fuentes estáticas para PDF** (`lib/font-files/pdf/`): Nunito Sans 400, Sora 600,
+  JetBrains Mono 400 y Archivo Black 400 en TTF. Son las familias de marca que ya están en
+  `lib/font-files/`, sin modificar. Licencia SIL OFL 1.1: permite redistribuirlas junto con el
+  software si se incluyen el copyright y la licencia. Las cuatro licencias, con su URL y commit de
+  origen, están completas en `lib/font-files/pdf/README.md`. No se redistribuye ninguna fuente CJK.
+
+Allowlist exacta de P1:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-p1-nucleo-pdf-20261116.md`
+- `.env.example`
+- `infra/dtd-cargo/.env.example`
+- `lib/shared/document-import.ts`
+- `lib/shared/__tests__/document-import.test.ts`
+- `lib/studio/document-import/estimate.ts`
+- `lib/studio/document-import/estimate.test.ts`
+- `lib/studio/document-import/export.ts`
+- `lib/studio/document-import/export.test.ts`
+- `lib/studio/document-import/extract.ts`
+- `lib/studio/document-import/extract.test.ts`
+- `lib/studio/document-import/http.ts`
+- `lib/studio/document-import/http.test.ts`
+- `lib/studio/document-import/service.ts`
+- `lib/studio/document-import/service.test.ts`
+- `lib/studio/document-import/migration.test.ts`
+- `lib/studio/document-import/pdf.tsx`
+- `lib/studio/document-import/pdf.test.tsx`
+- `lib/font-files/pdf/README.md`
+- `lib/font-files/pdf/archivo-black-400.ttf`
+- `lib/font-files/pdf/jetbrains-mono-400.ttf`
+- `lib/font-files/pdf/nunito-sans-400.ttf`
+- `lib/font-files/pdf/sora-600.ttf`
+
+Sin migraciones: la tabla de workspaces es la 0457, que ya está en main. No se encienden banderas
+(`DOCUMENT_IMPORT_ENABLED` y `DOCUMENT_IMPORT_PORTAL_ENABLED` siguen como estén).
+
+### P2 · interfaz (pendiente, depende de P1)
+
+P2 toca el portal de compras (documento, etiquetas y compra nueva), la página del proveedor
+`/p/[token]`, el cotizador y `components/document-import`, sin `qa_glm_*`. Su allowlist exacta va
+en su propia sección cuando abra la PR. P2 mueve packing lists y facturas entre el cliente
+y el proveedor, por eso pasa por `.claude/skills/revisar-datos-ve/SKILL.md`.
