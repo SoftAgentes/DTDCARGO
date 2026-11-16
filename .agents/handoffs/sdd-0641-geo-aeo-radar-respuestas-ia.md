@@ -40,4 +40,4 @@ ya hace DTD Cargo, y proponer fases con lo que ya existe, orden y qué no copiar
 - `pnpm verify`: NO EJECUTADO, no aplica (solo documento).
 
 ## REVISIÓN
-Revisión independiente del Director General: aprobada con menores; segunda pasada aplicó títulos, criterios por fase, regla D-2, tope propuesto de 15 USD, allowlist, citas de línea y `related`.
+Revisión independiente del Director General: aprobada con menores; segunda pasada aplicó títulos, criterios por fase, regla D-2, tope de 15 USD (aprobado por Sam 2026-11-16), allowlist, citas de línea y `related`.

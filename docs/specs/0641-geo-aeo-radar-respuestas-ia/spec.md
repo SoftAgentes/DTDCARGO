@@ -137,11 +137,12 @@ tarea. Riesgo: **B**ajo / **M**edio / **A**lto.
 - **Regla D-2 (ver §4, punto 6):** el agente del radar, sea del modelo que sea, recibe solo la
   lista fija de preguntas públicas; si corre con GLM o DeepSeek, nada de datos de clientes llega a
   su contexto.
-- **Tope de gasto (propuesta, la valida Sam):** **15 USD al mes** solo para consultas de API del
+- **Tope de gasto (DECIDIDO por Sam, 2026-11-16):** **15 USD al mes** solo para consultas de API del
   radar, repartido entre las herramientas elegidas, aparte del tope de 100 USD de la oficina. El
   radar **se corta solo** al llegar al 100 %: lleva un contador por corrida, avisa en Discord al
-  80 % y al llegar al tope no lanza más consultas ese mes. La cifra es una propuesta de orden de
-  magnitud sin precios verificados; Sam la confirma o la cambia antes de encender nada.
+  80 % y al llegar al tope no lanza más consultas ese mes. Sam aprobó la cifra el 2026-11-16, según
+  lo relayó el Director General: «Sí, sí, apruebo los $15 al mes». Los precios de cada proveedor
+  siguen sin verificar; si el tope no alcanza para las herramientas elegidas, se vuelve a pedir.
 - **Costo:** ~20 preguntas por herramienta y semana son pocas llamadas; el gasto de API es
   probablemente **de pocos dólares al mes**, más el consumo del agente de la oficina que ya está
   dentro del tope de la oficina (100 USD según `hermes-oficina.md`). **[INFERIDO]**: depende de los
@@ -241,7 +242,8 @@ Orden por «más por menos»:
 
 | Qué | Quién | Fase | Estado |
 |---|---|---|---|
-| Qué herramientas de IA se consultan y presupuesto mensual | Sam | B | Pendiente |
+| Qué herramientas de IA se consultan | Sam | B | Pendiente |
+| Tope mensual del radar: 15 USD | Sam | B | **Decidido** 2026-11-16 |
 | Llaves de API (si se automatiza), en el gestor de secretos del VPS | Sam | B | Pendiente |
 | URL de Google Business Profile, LinkedIn y Wikidata | Sam | D | Pendiente (ya lo estaba) |
 | OK por cada alta de directorio o mensaje a un tercero | Sam | D | Pendiente |
