@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0553_crm_tarjetas_clientes_con_carga": "PENDIENTE DE APLICAR — SDD-0647 (decisión de Sam del 2026-11-16: al pulsar «Clientes» salen TODOS los clientes con carga, aunque nunca hayan escrito). REQUIERE la 0506 (su preflight para si falta). Reemplaza el CHECK crm_tarjetas_fuente_check con la misma lista más 'carga_erp' y crea crm_asegurar_tarjetas_clientes() (SECURITY DEFINER, search_path vacío, EXECUTE solo authenticated; exige crm_puede_usar()): crea la tarjeta que falta a cada ficha viva y no fusionada del tenant de quien llama con segmento cliente según crm_segmento_clientes (envío no borrado salvo borrador o cancelado, o recibo de China no borrado y no huérfano). Solo inserta tenant, ficha y fuente (sin nombre ni teléfono); no toca tarjetas existentes; idempotente (on conflict sobre crm_tarjetas_client_uq). La aplicación NO escribe filas: las tarjetas se crean cuando alguien con el módulo CRM abre Embudos. migrate-first: el tablero funciona sin ella (sin la 0553, Clientes muestra solo a quien ya tiene tarjeta). ⚠️ ALTER TABLE toma ACCESS EXCLUSIVE breve sobre crm_tarjetas al validar el CHECK; lock_timeout 5 s. Desarme: supabase/desarmes/0553_desarme.sql (aborta si ya hay tarjetas carga_erp, salvo que se borren antes con OK). Requiere OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG; aplicar individualmente con name exacto 0553_crm_tarjetas_clientes_con_carga. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
+  }
 }

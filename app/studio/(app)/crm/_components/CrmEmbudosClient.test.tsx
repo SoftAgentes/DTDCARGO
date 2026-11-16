@@ -36,6 +36,8 @@ const base = {
   asesorNombre: null,
   tareasAbiertas: 0,
   tareasVencidas: 0,
+  fuente: "manual",
+  utmSource: null,
 } as const;
 
 const TARJETAS: CrmTarjetaTablero[] = [
@@ -76,7 +78,7 @@ function pintar(tarjetas = TARJETAS, ocultas = 0) {
 }
 
 describe("CrmEmbudosClient", () => {
-  it("tres segmentos con su conteo; cada tarjeta en exactamente uno (SDD-0645)", async () => {
+  it("tres segmentos con su conteo; cada tarjeta en exactamente uno (SDD-0647)", async () => {
     const user = userEvent.setup();
     pintar([...TARJETAS, LEAD_CON_CODIGO]);
     expect(screen.getAllByRole("radio").map((r) => r.textContent)).toEqual([

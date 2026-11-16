@@ -144,6 +144,8 @@ function tarjeta(id: string, etapa: string, over: Partial<CrmTarjetaTablero> = {
     asesorNombre: null,
     tareasAbiertas: 0,
     tareasVencidas: 0,
+    fuente: "manual",
+    utmSource: null,
     ...over,
   };
 }
@@ -190,7 +192,7 @@ describe("búsqueda y antigüedad", () => {
   });
 });
 
-// ── Vistas por segmento (SDD-0645, regla de Sam del 2026-11-16) ─────────────
+// ── Vistas por segmento (SDD-0647, regla de Sam del 2026-11-16) ─────────────
 
 function tarjetaVista(
   segmento: CrmTarjetaTablero["segmento"],
@@ -209,6 +211,8 @@ function tarjetaVista(
     asesorNombre: null,
     tareasAbiertas: 0,
     tareasVencidas: 0,
+    fuente: "manual",
+    utmSource: null,
     ...over,
   };
 }

@@ -7,7 +7,9 @@
  *  - una tarjeta cuya ficha está borrada en suave no se pinta (pendiente de 6.2);
  *  - una anonimizada tampoco;
  *  - el tablero sale del segmento de la RPC y el rastro del historial;
- *  - sin la 0506 la pantalla lo dice en vez de romperse.
+ *  - sin la 0506 la pantalla lo dice en vez de romperse;
+ *  - SDD-0647: con la 0553 aparecen las tarjetas nuevas de los clientes con
+ *    carga; sin ella, o si falla, el tablero carga igual.
  * Fixtures sin datos personales: nombres de prueba y códigos inventados.
  */
 import { describe, expect, it } from "vitest";
@@ -28,9 +30,12 @@ const ID = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")
 function doble(
   tablas: Record<string, Fila[]>,
   segmentos: Record<string, string>,
-  errores: { tabla?: Record<string, Err>; rpc?: Err } = {},
+  errores: { tabla?: Record<string, Err>; rpc?: Err; alta?: Err } = {},
+  /** Lo que crea la 0553; `undefined` = la 0553 no está aplicada (función ausente). */
+  alta?: Fila[],
 ) {
   const rpcLlamadas: unknown[] = [];
+  let altaLlamadas = 0;
   const client = {
     from(tabla: string) {
       let filas = [...(tablas[tabla] ?? [])];
@@ -70,6 +75,18 @@ function doble(
       return q;
     },
     async rpc(nombre: string, args: { p_tarjeta_ids: string[] }) {
+      if (nombre === "crm_asegurar_tarjetas_clientes") {
+        altaLlamadas += 1;
+        if (alta === undefined) {
+          return { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
+        }
+        if (errores.alta) return { data: null, error: errores.alta };
+        // Como la 0553: solo crea la de una ficha que no tiene tarjeta.
+        const existentes = new Set((tablas.crm_tarjetas ?? []).map((t) => t.client_id));
+        const nuevas = alta.filter((t) => !existentes.has(t.client_id));
+        tablas.crm_tarjetas = [...(tablas.crm_tarjetas ?? []), ...nuevas];
+        return { data: nuevas.length, error: null };
+      }
       rpcLlamadas.push({ nombre, args });
       if (errores.rpc) return { data: null, error: errores.rpc };
       return {
@@ -78,7 +95,7 @@ function doble(
       };
     },
   };
-  return { client: client as unknown as SupabaseClient, rpcLlamadas };
+  return { client: client as unknown as SupabaseClient, rpcLlamadas, altas: () => altaLlamadas };
 }
 
 const ETAPAS: Fila[] = [
@@ -201,6 +218,48 @@ describe("cargarTableroCrm", () => {
       origen: { tablero: "clientes", etapa: "activo", vuelta: true },
       diasEnEtapa: 10,
     });
+  });
+
+  it("SDD-0647: con la 0553, el cliente con carga que nunca escribió aparece en Clientes", async () => {
+    const tablas: Record<string, Fila[]> = {
+      crm_etapas: ETAPAS,
+      crm_tarjetas: [tarjeta(1), tarjeta(2, { client_id: "c-ya", nombre_visible: null })],
+      clients: [
+        { id: "c-ya", name: "Ya tenía de prueba", markbox: "DTD-0201", deleted_at: null },
+        { id: "c-carga", name: "Con carga de prueba", markbox: "DTD-0202", deleted_at: null },
+      ],
+    };
+    const { client, altas } = doble(
+      tablas,
+      { [ID(2)]: "lead_registrado", [ID(7)]: "cliente" },
+      {},
+      [
+        tarjeta(7, { client_id: "c-carga", nombre_visible: null, fuente: "carga_erp" }),
+        // La ficha que ya tenía tarjeta no recibe otra.
+        tarjeta(8, { client_id: "c-ya", nombre_visible: null, fuente: "carga_erp" }),
+      ],
+    );
+    const r = await cargarTableroCrm(client, { asesores, ahoraMs: AHORA });
+    if (!r.ok) throw new Error("debía cargar");
+    expect(altas()).toBe(1);
+    expect(r.tarjetas.map((t) => t.id).sort()).toEqual([ID(1), ID(2), ID(7)]);
+    expect(r.tarjetas.find((t) => t.id === ID(7))).toMatchObject({
+      tablero: "clientes",
+      etapa: "activo",
+      nombre: "Con carga de prueba",
+      shippingMark: "DTD-0202",
+    });
+  });
+
+  it("SDD-0647: sin la 0553, o si falla, el tablero carga igual con lo que había", async () => {
+    for (const caso of [
+      doble({ crm_etapas: ETAPAS, crm_tarjetas: [tarjeta(1)] }, {}),
+      doble({ crm_etapas: ETAPAS, crm_tarjetas: [tarjeta(1)] }, {}, { alta: { code: "42501", message: "sin acceso al CRM" } }, []),
+    ]) {
+      const r = await cargarTableroCrm(caso.client, { asesores, ahoraMs: AHORA });
+      expect(r.ok && r.tarjetas.map((t) => t.id)).toEqual([ID(1)]);
+      expect(caso.altas()).toBe(1);
+    }
   });
 
   it("sin la 0506 responde «sin_modelo»", async () => {

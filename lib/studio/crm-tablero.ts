@@ -64,7 +64,7 @@ export function resolverTablero(raw: string | null | undefined): CrmTablero {
 }
 
 /*
- * ── Vistas (segmentos que se ven como pestañas) · SDD-0645 ──────────────────
+ * ── Vistas (segmentos que se ven como pestañas) · SDD-0647 ──────────────────
  * Regla de Sam (2026-11-16):
  *   · Clientes: prueba de carga con DTD alguna vez (segmento `cliente` de la
  *     0506: envío no borrado salvo borrador o cancelado —entregado cuenta—, o
@@ -175,6 +175,7 @@ export const FUENTE_LABEL: Record<string, string> = {
   cotizador: "Cotizador",
   kommo: "CRM anterior",
   manual: "Creada en Studio",
+  carga_erp: "Cliente con carga en el ERP",
 };
 
 export interface CrmEtapa {
@@ -198,6 +199,8 @@ export interface CrmTarjetaFila {
   etapa_clientes_at: string;
   asesor_id: string | null;
   fuente: string;
+  /** Atribución de la tarjeta (0506); la vista la usa para el logo del canal. */
+  utm_source?: string | null;
   ultima_actividad_at: string;
 }
 
@@ -285,6 +288,10 @@ export interface CrmTarjetaTablero {
   asesorNombre: string | null;
   tareasAbiertas: number;
   tareasVencidas: number;
+  /** Fuente de entrada (`FUENTE_LABEL`), para el logo del canal. */
+  fuente: string;
+  /** `utm_source` de la tarjeta (p. ej. «tiktok») o null. */
+  utmSource: string | null;
 }
 
 export interface CrmColumna {

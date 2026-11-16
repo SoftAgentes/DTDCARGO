@@ -25,7 +25,7 @@ import {
 } from "@/lib/studio/crm-tablero";
 
 const COLS_TARJETA =
-  "id, client_id, nombre_visible, etapa_leads, etapa_leads_at, etapa_clientes, etapa_clientes_at, asesor_id, fuente, ultima_actividad_at";
+  "id, client_id, nombre_visible, etapa_leads, etapa_leads_at, etapa_clientes, etapa_clientes_at, asesor_id, fuente, utm_source, ultima_actividad_at";
 
 /** Lote para la RPC de segmentos: el arreglo viaja en el cuerpo, no en la URL. */
 const SEGMENTO_LOTE = 500;
@@ -105,6 +105,25 @@ export function rastrosDesdeHistorial(
   return out;
 }
 
+/**
+ * Todos los clientes con carga tienen tarjeta (SDD-0647, decisión de Sam del
+ * 2026-11-16): la 0553 crea las que faltan, sin nombre ni teléfono, en
+ * Clientes › Activo. Es idempotente y la decide la base con el segmento en vivo.
+ *
+ * Nunca rompe el tablero: sin la 0553 (función ausente) o con cualquier error,
+ * Clientes muestra solo a quien ya tenía tarjeta, como antes. Devuelve cuántas
+ * creó, o `null` si no corrió.
+ */
+export async function asegurarTarjetasClientes(supabase: SupabaseClient): Promise<number | null> {
+  try {
+    const { data, error } = await supabase.rpc("crm_asegurar_tarjetas_clientes");
+    if (error) return null;
+    return typeof data === "number" ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function cargarTableroCrm(
   supabase: SupabaseClient,
   opts: { asesores: ReadonlyMap<string, string>; ahoraMs?: number },
@@ -119,6 +138,8 @@ export async function cargarTableroCrm(
     return { ok: false, motivo: esModeloAusente(etapasRes.error) ? "sin_modelo" : "error" };
   }
   const etapas = (etapasRes.data ?? []) as CrmEtapa[];
+
+  await asegurarTarjetasClientes(supabase);
 
   // Las anonimizadas (D6) quedan para los conteos, no para trabajar.
   const tarjetasRes = await supabase
@@ -215,6 +236,8 @@ export async function cargarTableroCrm(
         asesorNombre: t.asesor_id ? (opts.asesores.get(t.asesor_id) ?? null) : null,
         tareasAbiertas: tk?.total ?? 0,
         tareasVencidas: tk?.vencidas ?? 0,
+        fuente: t.fuente,
+        utmSource: t.utm_source?.trim() || null,
       };
     });
 
