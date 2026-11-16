@@ -1,6 +1,6 @@
-import type { GuiaModulo } from "../tipos";
+import { editar, type GuiaModulo, ver } from "../tipos";
 
-/** Guía de Facturación (`/studio/facturacion`). Leída del código el 2026-11-16. */
+/** Guía de Facturación (`/studio/facturacion`). Leída del código el 2026-11-16; corregida tras la revisión de Codex. */
 export const GUIA_INVOICES: GuiaModulo = {
   modulo: "invoices",
   estado: "borrador",
@@ -10,6 +10,7 @@ export const GUIA_INVOICES: GuiaModulo = {
     fuentes: [
       "app/studio/(app)/facturacion/page.tsx",
       "app/studio/(app)/facturacion/actions.ts",
+      "app/studio/(app)/facturacion/payment-report-actions.ts",
       "app/studio/(app)/facturacion/_components/FacturacionClient.tsx",
       "app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx",
       "app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx",
@@ -36,12 +37,17 @@ export const GUIA_INVOICES: GuiaModulo = {
       id: "crear-factura",
       titulo: "Crear una factura",
       ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
       pasos: [
         { texto: "Pulsa «+ Nueva factura»." },
-        { texto: "Escribe el «Shipping Mark» y el «Nombre del cliente»." },
         {
           texto:
-            "Si la factura es de un embarque, escribe su código en «Embarque (opcional)»: si existe, completa el cliente solo.",
+            "Si la factura es de un embarque, escribe primero su código en «Embarque (opcional)»: si existe, llena los datos del cliente que estén vacíos.",
+        },
+        { texto: "Revisa o completa el «Shipping Mark» y el «Nombre del cliente»." },
+        {
+          texto:
+            "Si aparece «Titular de la factura», elige a nombre de quién sale. Queda fijo al emitir; si eliges distinto de la preferencia del cliente, queda registrado.",
         },
         { texto: "Elige la «Moneda». Si no es dólares, puedes indicar la tasa o dejarla vacía para usar la vigente." },
         {
@@ -58,16 +64,27 @@ export const GUIA_INVOICES: GuiaModulo = {
       notas: [
         "Si emites sin fecha de vencimiento, se fija a treinta días de la emisión.",
         "Si el embarque exige que el cliente haya aceptado los términos y condiciones y todavía no lo hizo, la factura se crea pero queda en borrador aunque hayas marcado emitir.",
-        "Si el cliente tiene varias opciones de titular, elige el «Titular de la factura»: queda fijo al emitir.",
       ],
+    },
+    {
+      id: "corregir-borrador",
+      titulo: "Corregir una factura en borrador",
+      ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
+      pasos: [
+        { texto: "Abre la factura desde la lista." },
+        { texto: "Pulsa «Editar», cambia lo necesario y pulsa «Guardar cambios»." },
+        { texto: "Si el borrador no va, en el mismo panel pulsa «Eliminar» y confirma con «Sí, eliminar»." },
+      ],
+      notas: ["Solo un borrador se edita o se elimina. Una factura emitida se anula con un motivo."],
     },
     {
       id: "emitir-factura",
       titulo: "Emitir una factura que está en borrador",
       ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
       pasos: [
-        { texto: "Abre la factura desde la lista." },
-        { texto: "Revisa los datos. Si hay que corregir, pulsa «Editar»." },
+        { texto: "Abre la factura desde la lista y revisa los datos." },
         { texto: "Pulsa «Emitir factura»." },
       ],
       notas: ["Una vez emitida ya no se edita ni se elimina: si está mal, se anula con un motivo."],
@@ -76,8 +93,13 @@ export const GUIA_INVOICES: GuiaModulo = {
       id: "registrar-pago-desde-factura",
       titulo: "Registrar un pago desde la factura",
       ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
       pasos: [
         { texto: "Abre la factura." },
+        {
+          texto:
+            "Mira primero si hay pagos reportados por el cliente sin revisar. Si el pago que vas a registrar es uno de esos, confírmalo desde allí en vez de registrarlo, para no contarlo dos veces.",
+        },
         { texto: "Pulsa «Registrar pago»." },
         { texto: "Completa monto, «Cuenta de caja / banco», «Método», «Fecha» y «Referencia»." },
         { texto: "Pulsa «Registrar cobro»." },
@@ -88,21 +110,30 @@ export const GUIA_INVOICES: GuiaModulo = {
       id: "resolver-pago-reportado",
       titulo: "Confirmar o rechazar un pago que reportó el cliente",
       ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
       pasos: [
         { texto: "Abre la factura y ubica el pago reportado." },
         { texto: "Pulsa «Ver comprobante» para revisarlo." },
         { texto: "Si es correcto, elige la «Cuenta donde entró el dinero» y pulsa «Confirmar pago»." },
-        { texto: "Si no lo es, pulsa «Rechazar» y escribe el motivo." },
+        { texto: "Si no lo es, pulsa «Rechazar»." },
+        {
+          texto:
+            "En el cuadro que se abre, escribe el motivo, que es obligatorio en los dos casos, y pulsa «Confirmar pago» o «Rechazar reporte».",
+        },
       ],
-      notas: ["Confirmar crea el recibo. Rechazar no cambia el saldo."],
+      notas: [
+        "Confirmar crea el recibo y suma el pago a la factura; no lo registres también en Cobranzas.",
+        "Rechazar no cambia el saldo; el comprobante y la nota del cliente se conservan.",
+      ],
     },
     {
-      id: "descargar-pdf",
-      titulo: "Descargar la factura en PDF",
+      id: "abrir-pdf",
+      titulo: "Abrir o descargar la factura en PDF",
       ruta: "/studio/facturacion",
+      requiere: [ver("invoices")],
       pasos: [
         { texto: "Abre la factura." },
-        { texto: "Pulsa «PDF». Se abre en otra pestaña." },
+        { texto: "Pulsa «PDF». Se abre en otra pestaña, desde donde la guardas o la imprimes." },
       ],
       notas: ["Un borrador no tiene PDF: primero hay que emitirlo."],
     },
@@ -110,21 +141,23 @@ export const GUIA_INVOICES: GuiaModulo = {
       id: "anular-factura",
       titulo: "Anular una factura",
       ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
       pasos: [
+        {
+          texto:
+            "Antes de empezar: si la factura tiene cobros registrados, primero hay que anularlos en Cobranzas. Una factura pagada no se anula.",
+        },
         { texto: "Abre la factura y pulsa «Anular»." },
         { texto: "Escribe el motivo." },
         { texto: "Mantén presionado el botón «Anular factura» para confirmar." },
       ],
-      notas: [
-        "La factura queda anulada en el historial y su asiento se revierte.",
-        "Si tiene cobros registrados, primero hay que anularlos en Cobranzas.",
-        "Una factura ya pagada no se puede anular.",
-      ],
+      notas: ["La factura queda anulada en el historial y su asiento se revierte."],
     },
     {
       id: "duplicar-factura",
       titulo: "Hacer una factura parecida a otra",
       ruta: "/studio/facturacion",
+      requiere: [editar("invoices")],
       pasos: [
         { texto: "Abre la factura que quieres copiar." },
         { texto: "Pulsa «Duplicar». Se crea otra en borrador para que la ajustes." },
@@ -157,8 +190,8 @@ export const GUIA_INVOICES: GuiaModulo = {
       salida: "Otra persona la modificó. Recarga la página y revisa los datos antes de repetir.",
     },
     {
-      sintoma: "«Emite la factura antes de generar el PDF»",
-      salida: "Está en borrador. Emítela y vuelve a pulsar «PDF».",
+      sintoma: "«Escribe un motivo de 4 a 500 caracteres.» al resolver un pago reportado",
+      salida: "El motivo es obligatorio tanto para confirmar como para rechazar.",
     },
   ],
   quienPuede:

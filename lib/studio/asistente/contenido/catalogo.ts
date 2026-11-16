@@ -20,7 +20,18 @@
  *                   no es una alerta; queda en el registro como «sin acceso».
  */
 
-import type { EntradaCatalogo, Visibilidad } from "./tipos";
+import type { EntradaCatalogo, Procedencia, Visibilidad } from "./tipos";
+
+/**
+ * Procedencia del catálogo entero. Es una sola para las 57 entradas a
+ * propósito: cada descripción sale de la `page.tsx` de la ruta de su módulo
+ * (`slug` de `MODULES`), y la prueba comprueba que esa página exista.
+ */
+export const PROCEDENCIA_CATALOGO: Procedencia = {
+  revisado: "2026-11-16",
+  responsable: "Sesión Lumi (Worker SDD-0637)",
+  fuentes: ["lib/studio/modules.ts", "lib/studio/rbac.ts", "app/studio/(app)"],
+};
 
 function e(
   id: string,

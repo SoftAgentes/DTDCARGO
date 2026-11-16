@@ -1,6 +1,6 @@
-import type { GuiaModulo } from "../tipos";
+import { editar, type GuiaModulo, ver } from "../tipos";
 
-/** Guía de Estimados (`/studio/cotizador`). Leída del código el 2026-11-16. */
+/** Guía de Estimados (`/studio/cotizador`). Leída del código el 2026-11-16; corregida tras la revisión de Codex. */
 export const GUIA_QUOTES: GuiaModulo = {
   modulo: "quotes",
   estado: "borrador",
@@ -15,6 +15,7 @@ export const GUIA_QUOTES: GuiaModulo = {
       "app/studio/(app)/cotizador/_components/QuoteDetailClient.tsx",
       "app/studio/(app)/cotizador/[code]/page.tsx",
       "lib/studio/quote-types.ts",
+      "lib/studio/mail/mail-rule-engine.ts",
       "lib/shared/shipment-public.ts",
     ],
   },
@@ -32,12 +33,16 @@ export const GUIA_QUOTES: GuiaModulo = {
       id: "crear-estimado",
       titulo: "Hacer un estimado",
       ruta: "/studio/cotizador",
+      requiere: [editar("quotes")],
       pasos: [
         { texto: "Pulsa «+ Nuevo estimado»." },
         { texto: "En «Servicio», elige la tarjeta del servicio." },
         { texto: "En «Cliente», busca por cédula, nombre o Shipping Mark y elígelo." },
         { texto: "Escribe «Origen» y «Destino»." },
-        { texto: "Completa «CBM», «Peso (kg)» y «Cajas», según lo que pida el servicio." },
+        {
+          texto:
+            "Completa las medidas. Si el servicio cobra por volumen, pide «CBM», «Peso (kg)» y «Cajas»; si es de tarifa fija, solo «Peso (kg)».",
+        },
         {
           texto:
             "Revisa la tarifa: se propone la del catálogo. Si dice «Sin tarifa registrada», escríbela tú.",
@@ -56,17 +61,34 @@ export const GUIA_QUOTES: GuiaModulo = {
       id: "enviar-estimado",
       titulo: "Enviar un estimado al cliente",
       ruta: "/studio/cotizador",
+      requiere: [editar("quotes")],
       pasos: [
-        { texto: "Abre el estimado desde la lista." },
-        { texto: "Pulsa «Enviar estimado». Le llega por correo y pasa a Enviada." },
-        { texto: "Si prefieres mandarlo por mensaje, pulsa «WhatsApp»; para el documento, «PDF»." },
+        { texto: "Abre el estimado desde la lista. Debe estar en Borrador." },
+        { texto: "Pulsa «Enviar estimado». El estimado pasa a Enviada y el sistema intenta mandarle el correo al cliente." },
       ],
-      notas: ["Solo se envía un estimado en Borrador. Una vez enviado ya no se puede editar."],
+      notas: [
+        "Que el estimado diga Enviada no garantiza que el correo salió: depende de que haya una regla activa en Mailing. Si dudas, confírmalo con el cliente.",
+        "Una vez enviado ya no se puede editar.",
+      ],
+    },
+    {
+      id: "compartir-estimado",
+      titulo: "Compartir un estimado por WhatsApp o en PDF",
+      ruta: "/studio/cotizador",
+      requiere: [ver("quotes")],
+      pasos: [
+        { texto: "Abre el estimado." },
+        { texto: "Pulsa «WhatsApp» para abrir el mensaje con el desglose listo, o «PDF» para abrir el documento." },
+      ],
+      notas: [
+        "Compartirlo así no cambia su estado: si quieres que conste como enviado, pulsa también «Enviar estimado».",
+      ],
     },
     {
       id: "aceptar-rechazar-estimado",
       titulo: "Marcar un estimado como aceptado o rechazado",
       ruta: "/studio/cotizador",
+      requiere: [editar("quotes")],
       pasos: [
         { texto: "Abre el estimado. Debe estar en Enviada." },
         { texto: "Pulsa «Aceptada» o «Rechazada», según lo que respondió el cliente." },
@@ -76,10 +98,14 @@ export const GUIA_QUOTES: GuiaModulo = {
       id: "convertir-a-embarque",
       titulo: "Convertir un estimado aceptado en embarque",
       ruta: "/studio/cotizador",
+      requiere: [editar("quotes"), ver("tracking")],
       pasos: [
         { texto: "Abre el estimado. Debe estar en Aceptada." },
         { texto: "Pulsa «Convertir a embarque» y confirma con «Sí, convertir»." },
-        { texto: "Se crea el embarque en Borrador con el cliente, la ruta, el peso y el volumen, y te lleva a él." },
+        {
+          texto:
+            "Se crea el embarque en Borrador con el cliente, la ruta, el peso y el volumen, y te lleva a su página en Tracking.",
+        },
       ],
       notas: [
         "La conversión no es automática al aceptar: hay que pulsar el botón.",
@@ -90,21 +116,38 @@ export const GUIA_QUOTES: GuiaModulo = {
       id: "duplicar-estimado",
       titulo: "Hacer un estimado parecido a otro",
       ruta: "/studio/cotizador",
+      requiere: [editar("quotes")],
       pasos: [
         { texto: "Abre el estimado que quieres copiar." },
         { texto: "Pulsa «Duplicar». Se crea un Borrador nuevo con la vigencia recalculada." },
+        { texto: "Revisa la tarifa y el total antes de enviarlo: se copian del original." },
       ],
     },
     {
       id: "vincular-estimado-web",
       titulo: "Asignar a un cliente un estimado que llegó de la web",
       ruta: "/studio/cotizador",
+      requiere: [editar("quotes")],
       pasos: [
         { texto: "Pulsa «Web · por revisar»." },
         { texto: "Abre el estimado y revisa los datos del prospecto." },
-        { texto: "Pulsa «Vincular a cliente» y escribe el Shipping Mark del cliente." },
+        { texto: "En la sección «Vincular a cliente», escribe el Shipping Mark del cliente y pulsa «Vincular»." },
       ],
-      notas: ["Si la persona todavía no es cliente, créala primero en Clientes."],
+      notas: ["Si la persona todavía no es cliente, hay que crearla primero en Clientes."],
+    },
+    {
+      id: "eliminar-estimado",
+      titulo: "Eliminar un estimado",
+      ruta: "/studio/cotizador",
+      requiere: [editar("quotes")],
+      pasos: [
+        { texto: "En la lista, abre el menú de la fila y pulsa «Eliminar»." },
+        { texto: "Confirma en el cuadro «Eliminar estimado»." },
+      ],
+      notas: [
+        "Deja de verse en el Studio y en el portal del cliente, y recuperarlo no es sencillo.",
+        "No se puede eliminar un estimado ya convertido en embarque ni uno ligado a una orden de venta.",
+      ],
     },
   ],
   erroresFrecuentes: [

@@ -1,6 +1,6 @@
-import type { GuiaModulo } from "../tipos";
+import { editar, type GuiaModulo, ver } from "../tipos";
 
-/** Guía de Gastos (`/studio/gastos`). Leída del código el 2026-11-16. */
+/** Guía de Gastos (`/studio/gastos`). Leída del código el 2026-11-16; corregida tras la revisión de Codex. */
 export const GUIA_EXPENSES: GuiaModulo = {
   modulo: "expenses",
   estado: "borrador",
@@ -15,11 +15,12 @@ export const GUIA_EXPENSES: GuiaModulo = {
       "app/studio/(app)/gastos/_components/ExpenseRowActions.tsx",
       "lib/studio/expense-types.ts",
       "lib/studio/expense-void.ts",
+      "lib/studio/attachments/pilot-gate.ts",
       "lib/i18n/es-VE/expenses.ts",
     ],
   },
   paraQueSirve:
-    "Registrar y consultar los gastos de la operación: los que pertenecen a un contenedor (transporte local, aduana) y los operativos (alquiler, servicios, suministros). Cada gasto guardado genera su asiento contable.",
+    "Registrar y consultar los gastos de la operación: los que pertenecen a un contenedor (transporte local, aduana) y los operativos (alquiler, servicios, suministros).",
   queSeVe: [
     "Tarjetas del mes: «Total del mes (USD)», «Por contenedor», «Operativos» y «Gastos cargados».",
     "Un aviso cuando hay contenedores esperando gastos, con los botones «Cargar gasto» y «Marcar cargado».",
@@ -33,6 +34,7 @@ export const GUIA_EXPENSES: GuiaModulo = {
       id: "registrar-gasto",
       titulo: "Registrar un gasto",
       ruta: "/studio/gastos",
+      requiere: [editar("expenses")],
       pasos: [
         { texto: "Pulsa «+ Nuevo gasto»." },
         {
@@ -48,7 +50,10 @@ export const GUIA_EXPENSES: GuiaModulo = {
         },
         { texto: "Elige el «Método de pago»: Efectivo, Tarjeta, Transferencia o USDT." },
         { texto: "Escribe el «Detalle / descripción» y, si quieres, la «Ubicación»." },
-        { texto: "Adjunta la foto del comprobante en «Adjuntar recibo / foto»." },
+        {
+          texto:
+            "Comprobante: si ves el campo «Adjuntar recibo / foto», adjunta ahí la foto (es opcional). Si en cambio ves el texto «Guarda el gasto y vuelve a abrirlo para adjuntar el comprobante», no hay campo: lo adjuntas después, al editar.",
+        },
         { texto: "Marca «Cobrable al cliente» si el gasto se le va a cobrar." },
         { texto: "Pulsa «Guardar gasto»." },
       ],
@@ -56,24 +61,56 @@ export const GUIA_EXPENSES: GuiaModulo = {
         "El gasto se fecha con el día de hoy; no hay campo de fecha.",
         "El botón «Guardar gasto» se activa cuando hay monto, contenedor (si aplica) y tipo de cambio (si la moneda no es dólares).",
         "Un gasto de contenedor cierra solo el aviso de ese contenedor.",
+        "El sistema intenta generar el asiento contable. Si no lo logra, el gasto queda guardado igual y contabilidad lo ve en «Por contabilizar».",
+      ],
+    },
+    {
+      id: "adjuntar-comprobante-despues",
+      titulo: "Adjuntar el comprobante de un gasto ya guardado",
+      ruta: "/studio/gastos",
+      requiere: [editar("expenses")],
+      pasos: [
+        { texto: "Abre el menú «Acciones» de la fila y pulsa «Editar»." },
+        {
+          texto:
+            "Si el panel muestra el cargador de comprobantes, sube ahí el archivo y espera a que diga «Guardado». Si falla, pulsa «Reintentar».",
+        },
+      ],
+      notas: [
+        "Esta opción solo existe cuando está activa la subida de comprobantes en dos pasos. Si al editar no ves el cargador, en tu sistema el comprobante se adjunta al crear el gasto y después ya no se cambia.",
       ],
     },
     {
       id: "editar-gasto",
       titulo: "Corregir un gasto ya guardado",
       ruta: "/studio/gastos",
+      requiere: [editar("expenses")],
       pasos: [
         { texto: "Busca el gasto en la tabla." },
         { texto: "Abre el menú «Acciones» de su fila y pulsa «Editar»." },
         { texto: "Cambia lo necesario y guarda." },
       ],
-      notas: ["Al editar no se puede cambiar el comprobante."],
+      notas: ["Un gasto de un período contable ya cerrado no se edita."],
+    },
+    {
+      id: "aviso-contenedor",
+      titulo: "Atender el aviso de contenedores esperando gastos",
+      ruta: "/studio/gastos",
+      requiere: [editar("expenses")],
+      pasos: [
+        { texto: "Si al contenedor le falta un gasto, pulsa «Cargar gasto»: abre el formulario con ese contenedor ya elegido." },
+        {
+          texto:
+            "Si ya cargaste todos sus gastos (o no tiene), pulsa «Marcar cargado». Eso solo cierra el aviso; no crea ningún gasto.",
+        },
+      ],
     },
     {
       id: "anular-gasto",
       titulo: "Anular un gasto",
       ruta: "/studio/gastos",
-      soloRoles: ["admin", "accounting"],
+      requiere: [editar("expenses")],
+      capacidad: "void_expense",
       pasos: [
         { texto: "Abre el menú «Acciones» de la fila y pulsa «Anular gasto»." },
         { texto: "Escribe el «Motivo de la anulación»." },
@@ -90,9 +127,13 @@ export const GUIA_EXPENSES: GuiaModulo = {
       id: "exportar-mes",
       titulo: "Descargar los gastos del mes",
       ruta: "/studio/gastos",
+      requiere: [ver("expenses")],
       pasos: [
         { texto: "Elige el mes en el filtro «Mes»." },
-        { texto: "Pulsa «Exportar mes». Se descarga un archivo CSV con los gastos de contenedor y los operativos." },
+        {
+          texto:
+            "Pulsa «Exportar mes». Se descarga un CSV con los gastos de contenedor y los operativos, aunque estés en una sola pestaña.",
+        },
       ],
     },
   ],
@@ -111,8 +152,8 @@ export const GUIA_EXPENSES: GuiaModulo = {
       salida: "Es una advertencia, no bloquea. Revisa que no hayas invertido la tasa o puesto un cero de más.",
     },
     {
-      sintoma: "«Formato inválido (JPG/PNG/WebP/HEIC).» o «Foto demasiado pesada»",
-      salida: "El comprobante debe ser una foto en uno de esos formatos y de tamaño moderado. Vuelve a tomarla o redúcela.",
+      sintoma: "«Formato inválido (JPG/PNG/WebP/HEIC).» o «Foto demasiado pesada (máx 5 MB).»",
+      salida: "En el formulario de alta, el comprobante debe ser una foto JPG, PNG, WebP o HEIC de hasta 5 MB.",
     },
     {
       sintoma: "No aparece «Anular gasto» en el menú.",

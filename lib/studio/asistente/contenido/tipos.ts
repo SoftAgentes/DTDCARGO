@@ -11,6 +11,7 @@
  * montos reales, nombres de personas ni capturas.
  */
 
+import type { StudioCapability } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 
 /**
@@ -56,6 +57,22 @@ export interface PasoGuia {
   readonly ancla?: string;
 }
 
+/**
+ * Permiso que pide una tarea (SDD-0637 §6.1). La fase 3 lo evalúa con los
+ * permisos EFECTIVOS de la sesión (rol, accesos adicionales por persona,
+ * flags y alcance por almacén), no con la lista de roles de esta guía.
+ */
+export interface Requisito {
+  /** `id` del módulo en `MODULES`. Puede ser otro módulo que el de la guía. */
+  readonly modulo: string;
+  /** `ver` = basta con abrir la pantalla; `editar` = la acción exige edición. */
+  readonly operacion: "ver" | "editar";
+}
+
+/** Atajos para declarar requisitos sin repetir la forma del objeto. */
+export const ver = (modulo: string): Requisito => ({ modulo, operacion: "ver" });
+export const editar = (modulo: string): Requisito => ({ modulo, operacion: "editar" });
+
 export interface TareaGuia {
   /** Identificador estable dentro de la guía (kebab-case). */
   readonly id: string;
@@ -64,7 +81,19 @@ export interface TareaGuia {
   /** Ruta de Studio donde empieza la tarea («Llévame ahí»). */
   readonly ruta: `/studio/${string}`;
   readonly pasos: readonly PasoGuia[];
-  /** Roles que pueden hacerla, si es más estrecho que el acceso a la pantalla. */
+  /**
+   * TODOS los permisos que hace falta tener para completar la tarea, incluidos
+   * los de otras pantallas por las que pasa. Si a la persona le falta uno, la
+   * tarea no se le entrega al modelo. La prueba exige que el módulo de `ruta`
+   * esté en esta lista.
+   */
+  readonly requiere: readonly Requisito[];
+  /** Acción gobernada por una capability de `CAPABILITIES` (además de `requiere`). */
+  readonly capacidad?: StudioCapability;
+  /**
+   * Roles fijados en el código para esta acción (por ejemplo, el cierre de
+   * período exige administrador). Es más estrecho que `requiere`.
+   */
   readonly soloRoles?: readonly StudioUserRole[];
   /** Aclaraciones cortas: qué pasa después, qué no se puede deshacer. */
   readonly notas?: readonly string[];
