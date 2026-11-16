@@ -19,7 +19,8 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones abiertas:** D-1 a D-8 (§11).
+**Decisiones:** D-1 a D-11 (§11). Decididas por Sam: D-3, D-6, D-9, D-10 y D-11. Abiertas: D-1, D-2, D-4, D-5, D-7
+y D-8.
 
 **Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
 Nada se programa hasta que Sam apruebe esta spec.
@@ -69,7 +70,8 @@ Sam trajo como referencia el documento «cómo se construyó Lumi» (asistente d
 
 ## 3. Arquitectura: cinco capas
 
-Faro es un **flujo fijo**, no un agente: no tiene herramientas ni memoria. Solo una capa habla con una IA.
+Faro es un **flujo fijo**, no un agente: no tiene herramientas y no tiene memoria entre conversaciones; solo recuerda
+la conversación en curso, acotada (D-9). Solo una capa habla con una IA.
 
 | Capa | Qué es | Dónde vive |
 |---|---|---|
@@ -85,7 +87,9 @@ Faro es un **flujo fijo**, no un agente: no tiene herramientas ni memoria. Solo 
 2. **Portero:** sesión del Studio (`requireStudioSession`), origen de la petición y tope por hora.
 3. **Permisos:** `getStudioAccess()` devuelve rol, almacén, ajustes por rol y accesos por persona.
 4. **Recorte:** se arma el contexto con las entradas del minicerebro que esa persona puede ver (§6.1).
-5. **Motor:** instrucciones fijas + contexto recortado + historial leído de la base + pregunta.
+5. **Motor:** instrucciones fijas + contexto recortado + los últimos turnos de **esta** conversación, leídos de la base y revalidados contra los permisos actuales + pregunta. Si
+   la persona perdió acceso a algo de lo conversado, el contexto se reinicia. Cuántos turnos (propuesta: ocho
+   intercambios y un tope de tokens) es un detalle de diseño de la fase 3, no parte de lo que Sam aprobó en D-9.
 6. **Verificador:** valida la ficha, descarta la ruta sugerida si no está permitida y decide si hubo bloqueo (§6.2).
 7. **Registro:** guarda pregunta y respuesta. Si corresponde, crea la alerta.
 8. El panel muestra la respuesta y los botones que correspondan al resultado.
@@ -119,6 +123,7 @@ versionados, revisados en cada PR. Cada entrada lleva fecha de revisión, respon
 | Guías | `guias/<modulo>.ts` | «Para qué sirve», «Qué se ve», «Tareas comunes» con los botones exactos, «Errores frecuentes», «Quién puede» |
 | Procesos | `procesos/<slug>.ts` | Tareas que cruzan varias pantallas, por ejemplo del pago recibido a la conciliación |
 | Glosario | `glosario.ts` | Términos del negocio y del sistema |
+| Novedades | `novedades/<id>.ts` | Qué cambió en el Studio: título, resumen, fecha, módulos, la tarea de la guía que lo explica, el recorrido visual si existe, permisos y condición de disponibilidad (flag) |
 
 Reglas:
 
@@ -127,6 +132,16 @@ Reglas:
 - Regla de mantenimiento propuesta para `AGENTS.md` (requiere OK de Sam, fase 6): todo cambio que altere lo que
   ve o hace un usuario en una pantalla actualiza su guía en la misma PR.
 - Con el tamaño previsto todo cabe en el contexto del modelo. Se revisa si pasa de unos 150.000 tokens.
+
+**Novedades (aprobado por Sam el 2026-11-16, D-10).** Cada función nueva del Studio trae, en la misma PR, la tarea
+de la guía que la explica y su entrada en `novedades/`. La novedad apunta a la tarea; no repite los pasos. Faro
+usa la novedad para «¿qué hay de nuevo?» y la tarea para «¿cómo se hace?». Una novedad o una tarea solo entra al
+contexto si está aprobada, si su condición de disponibilidad está encendida para el tenant y si la persona tiene el
+permiso. Si no se puede leer el estado de los flags, Faro no la menciona: `listFeatureFlags` vuelve a los valores
+por defecto cuando la lectura falla (`lib/studio/feature-flags-queries.ts:35-36`), y para Faro «no sé» significa
+«no lo menciono». Una comprobación de CI pedirá, por cada pantalla cambiada, la guía tocada o una justificación de
+«sin impacto para el usuario»; una persona confirma que el texto es correcto. Hermes, en la fase 7, revisa las PR
+fusionadas que se escaparon.
 
 ## 6. Seguridad y seguimiento
 
@@ -190,14 +205,25 @@ desde qué pantalla y el resultado. Requiere un valor nuevo en el enum `bug_noti
 
 ### 6.4 Registro
 
-- `asistente_conversaciones` y `asistente_mensajes`, de solo inserción. Un trigger rechaza `update` y `delete`.
+Tres finalidades, cada una con su plazo (detalle y plazos propuestos en [`privacidad.md`](privacidad.md) §2):
+**auditoría** (conversaciones y mensajes), **mejora del conocimiento** (eventos de feedback y alertas; Hermes lee
+solo agregados) y **costo y operación** (llamadas a la IA y cuotas, sin texto ni usuario).
+
+- `asistente_conversaciones` y `asistente_mensajes`, de solo inserción. Un trigger rechaza `update` y `delete`,
+  salvo el `delete` de la función de purga (`privacidad.md`, E-1).
+- `asistente_eventos` (feedback y alertas), `asistente_llamadas` (una fila por intento a la IA), `asistente_cuotas`
+  (tope por persona y gasto del mes) y `asistente_purgas` (constancia de cada purga).
 - `authenticated` no tiene `insert`: escribe solo el servidor, con la sesión ya verificada.
 - Lectura solo para el administrador del tenant. El usuario no relee su historial: el panel lo tiene en memoria.
-- Cada respuesta guarda resultado, pantalla de origen, motor, modelo, tokens, costo y milisegundos.
+- Cada respuesta guarda resultado, pantalla de origen y versiones del contenido. Motor, modelo, tokens, costo y
+  milisegundos van por intento en `asistente_llamadas`.
+- La pregunta se guarda **depurada**: el servidor reemplaza cédulas, RIF, teléfonos, correos y Shipping Marks por
+  marcadores antes de enviarla a la IA y antes de guardarla (`privacidad.md`, E-3).
 - Los logs del servidor guardan el tipo de fallo, nunca el texto de la pregunta.
 - **Este registro es el único lugar donde se conservan la pregunta y la respuesta**, y solo durante el plazo que
   fije §10 (D-6). «Inalterable» significa que nadie edita ni borra a mano; al vencer el plazo, una purga
-  programada y auditada elimina las filas, como la purga de `actor_id` de noticias.
+  programada y auditada **borra las filas completas**. No sirve copiar la purga de noticias, que solo vacía el
+  identificador (`supabase/migrations/0546_noticias_purga_actor_id.sql:178-202`): aquí el dato está en el texto.
 - El contexto recortado que se envía al modelo (catálogo y guías) no se guarda: se vuelve a armar en cada pregunta.
 
 ### 6.5 El motor de IA y la Oficina (decisión abierta D-1)
@@ -215,8 +241,11 @@ Propuesta, a coordinar con la sesión que lleva la SDD-0626:
 - Faro define una interfaz `Motor` mínima con **un principal y un respaldo**. No es una cadena: sin cortacircuitos
   ni política propia de fallos.
 - **Principal:** llamada directa a un proveedor, con el SDK de Anthropic ya instalado.
-- **Respaldo:** el runtime de la Oficina, reutilizando `runtime-cliente.ts` con un perfil propio sin herramientas
-  ni memoria, cuando la SDD-0626 lo permita. Mientras no exista, el respaldo es un segundo modelo directo.
+- **Respaldo:** un segundo modelo directo de un proveedor **no chino**, o ninguno. **No** el runtime de la Oficina
+  mientras use Z.AI o DeepSeek (`docs/specs/0626-oficina-runtime/privacidad.md:254`): una pregunta a Faro puede
+  nombrar a un cliente, la depuración no atrapa nombres propios (`privacidad.md`, E-3) y Sam decidió que los datos
+  de clientes nunca van a un proveedor chino (SDD-0639 §4, D-2, PR #606 sin fusionar al escribir esto). Ver
+  `privacidad.md`, E-10.
 - Si la Oficina extrae su política de fallos a un módulo común, Faro la adopta y borra la suya.
 - Motor `simulado` para pruebas (`LLM_FORCE_MOCK`).
 
@@ -230,7 +259,7 @@ condiciones, que son requisitos de esta spec:
      hace cumplir una prueba de importaciones (o una regla `no-restricted-imports`) que falla si otro archivo de
      Faro lo importa.
    - **Tope de gasto propio con pausa automática.** El gasto del mes se mide sumando el costo guardado en
-     `asistente_mensajes` (§6.4) y se compara con `FARO_TOPE_USD_MES` antes de cada llamada. Al alcanzarlo, Faro
+     `asistente_llamadas` (§6.4), que cuenta también los intentos fallidos y de respaldo, y se compara con `FARO_TOPE_USD_MES` antes de cada llamada. Al alcanzarlo, Faro
      deja de llamar al modelo, responde que no puede contestar ahora, mantiene los reportes y avisa al
      administrador. El monto es la decisión D-8.
 2. **El modelo se elige por configuración:** el más reciente que alcance para la tarea, Sonnet o Haiku si sirve,
@@ -239,11 +268,12 @@ condiciones, que son requisitos de esta spec:
      `lib/studio/asistente/motor/config.ts`.
    - El id de un modelo no aparece como literal en el código de Faro, salvo el valor por defecto de ese archivo.
      Lo hace cumplir una prueba que busca ids de modelo en el resto de los archivos.
+   - `config.ts` acepta en `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo proveedores de una lista permitida, sin
+     proveedores chinos. Si alguno de los dos apunta a un proveedor fuera de la lista, Faro no arranca, y una prueba
+     falla (AC-16).
 3. **Fuera del registro del Studio, la pregunta y el contexto no se conservan.** El registro de §6.4 sí guarda
    pregunta y respuesta, por diseño y durante el plazo de §10; esta condición cubre todo lo demás:
    - el proveedor de IA, con la política de retención que fije §10;
-   - las sesiones del runtime de la Oficina, si se usa el respaldo, que se borran al terminar cada llamada como
-     ya hace la SDD-0626;
    - los logs del servidor y cualquier herramienta de seguimiento, que nunca reciben el texto.
 
    Todo ello se revisa con `revisar-datos-ve` antes del primer envío real al modelo (§10).
@@ -340,13 +370,14 @@ incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisi
 | AC-6 | Las tres situaciones de §6.3 crean una alerta; un «sin acceso» aislado no la crea | 3 |
 | AC-7 | Al superar el tope por hora, Faro responde con un aviso claro y guarda el intento | 3 |
 | AC-8 | Al alcanzar `FARO_TOPE_USD_MES`, Faro no llama al modelo, los reportes siguen funcionando y el administrador recibe un aviso (simulacro) | 3 |
-| AC-9 | Si el motor principal falla o excede el tiempo límite, responde el respaldo; si fallan los dos, Faro lo dice y guarda `error` | 3 |
+| AC-9 | Si el motor principal falla o excede el tiempo límite, responde el respaldo si hay uno configurado; si no hay respaldo, o si fallan los dos, Faro dice que no puede responder ahora, los accesos de reporte siguen funcionando y se guarda `error` | 3 |
 | AC-10 | Solo `cliente-directo.ts` importa el SDK del proveedor, y el id del modelo solo aparece en `config.ts` | 3 |
 | AC-11 | Ni la pregunta ni la respuesta aparecen en los logs del servidor | 3 |
 | AC-12 | El botón se arrastra, se pega al borde, recuerda su posición y respeta `prefers-reduced-motion`; en teléfono el panel ocupa la pantalla | 4 |
 | AC-13 | Sin motor disponible, Faro lo indica y los accesos de reporte siguen funcionando | 4 |
 | AC-14 | La batería alcanza al menos 95 % de aciertos con cero filtraciones, y el ataque con promptfoo no obtiene pasos ni descripciones prohibidas | 5 |
 | AC-15 | Existe la revisión `revisar-datos-ve` aprobada antes del primer envío real al modelo | 5 |
+| AC-16 | `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo aceptan proveedores de la lista permitida, sin proveedores chinos; una prueba falla si se configura uno fuera de la lista | 3 |
 
 ## 10. Datos personales
 
@@ -365,22 +396,31 @@ Puntos que esa revisión debe resolver:
 
 - Aviso al personal de que las preguntas se guardan y de quién las lee.
 - Plazo de conservación. «Inalterable» no puede significar «para siempre» sin un plazo definido.
-- El proveedor de IA como encargado: hoy Anthropic no figura en el inventario de terceros
-  (`docs/legal/privacidad/inventario-terceros.md`). Es un pendiente previo a producción.
+- El proveedor de IA como encargado: Anthropic figura en el inventario de terceros
+  (`docs/legal/privacidad/inventario-terceros.md:38`), pero su fila no menciona Faro. Sumarlo es un pendiente previo
+  al primer envío real.
+
 - Las guías no contienen datos personales ni de clientes.
+
+**Revisión hecha (2026-11-16):** [`privacidad.md`](privacidad.md). Cubre la puerta de la fase 2. La puerta del
+primer envío real sigue abierta (N-1 y N-2 de esa revisión). El equipo en China (E-2) queda activo por decisión de
+Sam (D-11), con el riesgo anotado.
 
 ## 11. Decisiones abiertas
 
 | # | Decisión | Recomendación |
 |---|---|---|
-| D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo en la Oficina | La tercera (§6.5). Aceptada por el Director General con tres condiciones; falta Sam |
+| D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo | Principal directo (hoy Anthropic) y respaldo solo de un proveedor no chino, o ninguno; la Oficina no sirve de respaldo mientras use Z.AI o DeepSeek (§6.5, `privacidad.md` E-10). Aceptada por el Director General con tres condiciones; falta Sam |
 | D-2 | ¿Faro absorbe el botón de reportar errores? | Sí: un solo elemento flotante, como hizo la referencia |
 | D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
 | D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |
 | D-5 | Tope de preguntas por usuario y hora | 30, configurable |
-| D-6 | Plazo de conservación del registro | Lo define la revisión de datos (§10) |
+| D-6 | Plazo de conservación del registro | **Aprobada por Sam el 2026-11-16** (`privacidad.md` §2): conversaciones, mensajes y feedback 180 días; alertas y lecturas del administrador 2 años, sin texto; llamadas a la IA 13 meses, sin texto ni usuario. Su respuesta a «¿Apruebas los plazos propuestos para D-6?» fue «Sí, apruébalos» |
 | D-7 | ¿Las alertas van también a Telegram o Discord? | Campana siempre; el canal externo, apagado al inicio |
-| D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo guardado por respuesta en `asistente_mensajes` |
+| D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo por intento en `asistente_llamadas` |
+| D-9 | Memoria | **Aprobada por Sam el 2026-11-16**: solo la conversación en curso, acotada y revalidada contra los permisos actuales. Sin memoria por persona entre conversaciones. El conocimiento compartido mejora por guías aprobadas. Su respuesta a «¿Apruebas la recomendación de Codex sobre memoria y novedades?» fue «Sí, apruébala» |
+| D-10 | Cómo se entera Faro de lo nuevo | **Aprobada por Sam el 2026-11-16**, en la misma respuesta: estante `novedades/`, guía y novedad en la misma PR de la función, filtro por flags y permisos, Hermes como vigía en la fase 7 (§5). La regla de PR para `AGENTS.md` sigue necesitando su OK aparte (fase 6) |
+| D-11 | ¿Faro para el equipo en China? | **Decidida por Sam el 2026-11-16: activo, sin filtro por región.** Su respuesta a «¿Dejamos Faro apagado por ahora para el equipo en China, o prefieres consultarlo antes?» fue «No es necesario ocultar a China, déjalo activo, no importa. Todavía China no va a trabajar, así que actívalo normal.» La recomendación era apagarlo para `region = 'cn'` (`privacidad.md`, E-2); el riesgo PIPL queda anotado y conviene revisarla cuando el equipo en China empiece a usar el Studio |
 
 ## 12. Riesgos
 
@@ -389,8 +429,8 @@ Puntos que esa revisión debe resolver:
 | Inyección de prompt | El modelo no recibe lo prohibido (§6.1) y el servidor decide el bloqueo (§6.2) |
 | Guía desactualizada | Regla de mantenimiento (§5) y fecha de revisión por entrada |
 | El modelo inventa un paso | Batería antes de producción y al cambiar de modelo; el administrador lee el registro |
-| Costo descontrolado | Tope por usuario y hora; costo guardado por respuesta |
-| Dependencia de la PR #598 | Faro puede salir con motor directo y sumar el respaldo de la Oficina después |
+| Costo descontrolado | Tope por usuario y hora; tope mensual medido por intento en `asistente_llamadas` |
+| Dependencia de la PR #598 | Ya no: la Oficina no es respaldo de Faro mientras use proveedores chinos (§6.5, E-10) |
 | El botón tapa datos | Se arrastra y recuerda la posición |
 
 ## 13. Fuentes
