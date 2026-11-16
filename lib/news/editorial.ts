@@ -27,7 +27,7 @@ const CATEGORY_IMAGES: Record<NewsCategoria, { src: string; alt: string }> = {
   },
   "historias-reales": {
     src: "/fotos/dtd-cargo-equipo-contenedor.webp",
-    alt: "Mercancía de clientes durante una operación de DTD Cargo",
+    alt: "Equipo de DTD Cargo junto a un contenedor",
   },
   "novedades-dtd": {
     src: "/fotos/bodega-yiwu-china-recepcion-consolidacion-dtd-cargo.jpg",
