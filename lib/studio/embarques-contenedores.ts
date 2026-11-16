@@ -122,9 +122,10 @@ export function tipoDeContenedor(
 
 /**
  * Prefijo del rótulo. Sam usó dos formas para el consolidado el 2026-11-16
- * («Contenedor 64» y «DDP 64»); se usa «DDP» cuando el contenedor lleva carga
- * puerta a puerta (DDP) y «Contenedor» si no (p. ej., sólo LCL). Pendiente de
- * confirmar por el DG (spec §3.3).
+ * («Contenedor 64» y «DDP 64»); el DG confirmó ese día «DDP 64» para los
+ * consolidados propios y «FCL 63» para los FCL (spec §1 y §3.3). Se usa «DDP»
+ * cuando el contenedor lleva carga puerta a puerta (DDP) y «Contenedor» si no
+ * (p. ej., sólo LCL), porque llamarlo DDP sería falso.
  */
 export function prefijoDeContenedor(
   tipo: TipoContenedor,
