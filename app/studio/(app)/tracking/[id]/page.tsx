@@ -23,6 +23,7 @@ import { ShipmentPlanPanel } from "./_components/ShipmentPlanPanel";
 import { CustomerPreview } from "./_components/CustomerPreview";
 import { TimelinePanel } from "./_components/TimelinePanel";
 import { FooterActions } from "./_components/FooterActions";
+import { ReassignClientPanel } from "./_components/ReassignClientPanel";
 import { ShipmentDocsPanel } from "./_components/ShipmentDocsPanel";
 import {
   listShipmentDocuments,
@@ -320,6 +321,18 @@ export default async function ShipmentDetailPage({
               >
                 Expediente de defensa
               </a>
+            </section>
+          )}
+
+          {/* SDD-0645 · operations + admin. No para el equipo de China (SDD-0531):
+              el buscador muestra nombres de clientes. */}
+          {puedeVerNombres && canSpecial(roleRow?.role, "reassign_shipment_owner") && (
+            <section>
+              <ReassignClientPanel
+                shipmentId={shipment.id}
+                shipmentCode={shipment.code}
+                currentMarkbox={shipment.client_markbox}
+              />
             </section>
           )}
 

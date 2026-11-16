@@ -376,8 +376,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
   // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
   // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
+  // SDD-0645 sumó `tracking/[id]/actions.ts::previewReassignShipmentClient` y
+  // `::reassignShipmentClient` (472 → 474): pasar un embarque a otro cliente. Las
+  // dos llaman a `capabilityDenial(supabase, "reassign_shipment_owner")` antes de
+  // leer nada y escriben sólo por la RPC `reassign_shipment_client` (0551), que
+  // repite operations/admin activo y el tenant de la sesión.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(472);
+    expect(reportes.length).toBe(474);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

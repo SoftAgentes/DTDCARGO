@@ -321,6 +321,13 @@ export const CAPABILITIES = {
    * candado: `congelar_tarifa_recepcion` (migr 0496) exige admin o accounting.
    */
   fix_frozen_rate: ["accounting"],
+  /**
+   * Pasar un embarque a otro cliente (SDD-0645): operations + admin implícito.
+   * La base repite el candado: la RPC de la migr 0551 exige
+   * `operations` o `admin` activo en user_tenants. Agregar un rol acá sin una
+   * migración sólo mostraría el botón a quien la base igual rechaza.
+   */
+  reassign_shipment_owner: ["operations"],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;
