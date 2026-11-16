@@ -29,7 +29,7 @@
   en `main`. Por orden del DG la ruta de la purga va aquí. Si el cron de noticias llega en otra PR, sigue siendo independiente.
 
 ## Validación
-Ver el cierre en la PR/mensaje final (PASÓ/FALLÓ/NO EJECUTADO por comprobación).
+PASÓ: vitest focal (noticias-0546, ruta de cron, build-crontab, spec-migration-refs), eslint y tsc sobre lo nuevo, docs:check, sdd:check, build-crontab --check, gate de símbolos (0 rojo, 1 amarillo declarado). NO EJECUTADO: pnpm verify. PR 595.
 
 ## Pendientes de esta tarea
 - Aplicar la 0546 en prueba y producción (OK nominal de Sam + runbook de producción), retirar su espera después.
