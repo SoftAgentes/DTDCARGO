@@ -19,6 +19,8 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
+**Decisiones abiertas:** D-1 a D-8 (§11).
+
 **Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
 Nada se programa hasta que Sam apruebe esta spec.
 
@@ -59,7 +61,9 @@ Sam trajo como referencia el documento «cómo se construyó Lumi» (asistente d
 
 - Que Faro ejecute acciones o lea datos del negocio (clientes, montos, facturas, embarques). Faro explica; no
   consulta ni modifica.
-- Portal del cliente, sitio público, móvil (`app/m`) y Back. Solo Studio de escritorio y teléfono.
+- Portal del cliente, sitio público, la PWA móvil (`app/m`) y Back. Faro vive solo en el Studio
+  (`app/studio/(app)`), que es responsivo: se usa igual en una computadora que abriendo el Studio desde el
+  navegador de un teléfono. La PWA de `app/m` es otra superficie y no lo lleva.
 - Búsqueda por fragmentos (RAG) y respuesta en streaming.
 - La etapa de Hermes (§8): se diseña aquí y se construye después de que Faro esté en producción.
 
@@ -181,6 +185,10 @@ desde qué pantalla y el resultado. Requiere un valor nuevo en el enum `bug_noti
 - Lectura solo para el administrador del tenant. El usuario no relee su historial: el panel lo tiene en memoria.
 - Cada respuesta guarda resultado, pantalla de origen, motor, modelo, tokens, costo y milisegundos.
 - Los logs del servidor guardan el tipo de fallo, nunca el texto de la pregunta.
+- **Este registro es el único lugar donde se conservan la pregunta y la respuesta**, y solo durante el plazo que
+  fije §10 (D-6). «Inalterable» significa que nadie edita ni borra a mano; al vencer el plazo, una purga
+  programada y auditada elimina las filas, como la purga de `actor_id` de noticias.
+- El contexto recortado que se envía al modelo (catálogo y guías) no se guarda: se vuelve a armar en cada pregunta.
 
 ### 6.5 El motor de IA y la Oficina (decisión abierta D-1)
 
@@ -206,13 +214,29 @@ Propuesta, a coordinar con la sesión que lleva la SDD-0626:
 segunda cadena de respaldo paralela a la de la Oficina y no prohibir un cliente directo. La acepta con tres
 condiciones, que son requisitos de esta spec:
 
-1. **Un solo módulo cliente** para el motor directo. La llave llega por variable de entorno y nunca entra en Git.
-   Faro tiene un tope de gasto propio con pausa automática al alcanzarlo, igual que la Oficina.
+1. **Un solo módulo cliente** para el motor directo: `lib/studio/asistente/motor/cliente-directo.ts`.
+   - La llave llega por variable de entorno y nunca entra en Git.
+   - Es el único archivo de `lib/studio/asistente/` y de `app/**/asistente/` que importa `@anthropic-ai/sdk`. Lo
+     hace cumplir una prueba de importaciones (o una regla `no-restricted-imports`) que falla si otro archivo de
+     Faro lo importa.
+   - **Tope de gasto propio con pausa automática.** El gasto del mes se mide sumando el costo guardado en
+     `asistente_mensajes` (§6.4) y se compara con `FARO_TOPE_USD_MES` antes de cada llamada. Al alcanzarlo, Faro
+     deja de llamar al modelo, responde que no puede contestar ahora, mantiene los reportes y avisa al
+     administrador. El monto es la decisión D-8.
 2. **El modelo se elige por configuración:** el más reciente que alcance para la tarea, Sonnet o Haiku si sirve,
    con el esfuerzo medido en la evaluación de la fase 5.
-3. **La pregunta y el contexto del usuario no se guardan más allá de lo que fije §10,** revisada con
-   `revisar-datos-ve`. Esto incluye lo que retenga el proveedor de IA y, si se usa el respaldo, las sesiones del
-   runtime de la Oficina.
+   - Mecanismo: variables de entorno `FARO_MODELO` y `FARO_MODELO_RESPALDO`, leídas en un único archivo,
+     `lib/studio/asistente/motor/config.ts`.
+   - El id de un modelo no aparece como literal en el código de Faro, salvo el valor por defecto de ese archivo.
+     Lo hace cumplir una prueba que busca ids de modelo en el resto de los archivos.
+3. **Fuera del registro del Studio, la pregunta y el contexto no se conservan.** El registro de §6.4 sí guarda
+   pregunta y respuesta, por diseño y durante el plazo de §10; esta condición cubre todo lo demás:
+   - el proveedor de IA, con la política de retención que fije §10;
+   - las sesiones del runtime de la Oficina, si se usa el respaldo, que se borran al terminar cada llamada como
+     ya hace la SDD-0626;
+   - los logs del servidor y cualquier herramienta de seguimiento, que nunca reciben el texto.
+
+   Todo ello se revisa con `revisar-datos-ve` antes del primer envío real al modelo (§10).
 
 Falta el visto bueno de Sam a D-1.
 
@@ -280,7 +304,7 @@ de los usuarios se tratan como datos, nunca como instrucciones.
 | 0 | Esta spec | Aprobación de Sam |
 | 1 | Catálogo completo y de 8 a 10 guías, contabilidad primero | Prueba de catálogo completo; aprobación de Sam guía por guía |
 | 2 | Migración: tablas, permisos, trigger, tope, valor del enum | Contrato `.test.sql` en PGlite con control rojo y mutantes |
-| 3 | Recorte, verificador, alertas, motor y ruta de API | Pruebas con los 7 roles: la guía prohibida nunca llega al modelo |
+| 3 | Recorte, verificador, alertas, motor y ruta de API | Pruebas con los 7 roles: la guía prohibida nunca llega al modelo. Simulacro de pausa automática por tope de gasto. Pruebas de módulo único y de id de modelo (§6.5) |
 | 4 | Botón, panel y pantalla del administrador | `/ui-check`; recorrido en teléfono, tableta y escritorio; e2e con motor simulado |
 | 5 | Batería de unas 40 preguntas por rol y ataque con promptfoo | Al menos 95 % de aciertos y cero filtraciones. Cuesta dinero: se corre con OK de Sam |
 | 6 | Producción | `pnpm verify`, revisión independiente, portón del DG, OK nominal de Sam para la migración |
@@ -291,10 +315,43 @@ migraciones 0545 a 0547, la PR #598 y la prueba E del cable). El número de la m
 
 **Tiempo estimado, sin medir:** de dos a tres semanas desde que Faro tenga turno, y una más para la fase 7.
 
+**Puerta de privacidad:** hasta la fase 4 todo corre con el motor simulado. El primer envío real a un modelo,
+incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisión de §10.
+
+### 9.1 Criterios de aceptación
+
+| # | Criterio | Fase |
+|---|---|---|
+| AC-1 | Todo módulo de `MODULES` tiene entrada en el catálogo; la prueba falla si falta uno | 1 |
+| AC-2 | Para cada uno de los 7 roles, el contexto enviado al modelo no contiene la guía de un módulo no permitido, ni la descripción de uno reservado, ni mención de uno oculto | 3 |
+| AC-3 | Si `moduloConsultado` no está permitido, la respuesta es la de «sin acceso» aunque el modelo haya devuelto pasos | 3 |
+| AC-4 | «Llévame ahí» y «Muéstrame dónde» nunca aparecen para una ruta o un recorrido no permitido | 3 y 4 |
+| AC-5 | Un usuario `authenticated` no puede insertar, editar ni borrar en las tablas de Faro, y sin ser administrador no lee ninguna fila, ni las suyas | 2 |
+| AC-6 | Las tres situaciones de §6.3 crean una alerta; un «sin acceso» aislado no la crea | 3 |
+| AC-7 | Al superar el tope por hora, Faro responde con un aviso claro y guarda el intento | 3 |
+| AC-8 | Al alcanzar `FARO_TOPE_USD_MES`, Faro no llama al modelo, los reportes siguen funcionando y el administrador recibe un aviso (simulacro) | 3 |
+| AC-9 | Si el motor principal falla o excede el tiempo límite, responde el respaldo; si fallan los dos, Faro lo dice y guarda `error` | 3 |
+| AC-10 | Solo `cliente-directo.ts` importa el SDK del proveedor, y el id del modelo solo aparece en `config.ts` | 3 |
+| AC-11 | Ni la pregunta ni la respuesta aparecen en los logs del servidor | 3 |
+| AC-12 | El botón se arrastra, se pega al borde, recuerda su posición y respeta `prefers-reduced-motion`; en teléfono el panel ocupa la pantalla | 4 |
+| AC-13 | Sin motor disponible, Faro lo indica y los accesos de reporte siguen funcionando | 4 |
+| AC-14 | La batería alcanza al menos 95 % de aciertos con cero filtraciones, y el ataque con promptfoo no obtiene pasos ni descripciones prohibidas | 5 |
+| AC-15 | Existe la revisión `revisar-datos-ve` aprobada antes del primer envío real al modelo | 5 |
+
 ## 10. Datos personales
 
-Faro guarda lo que escribe el personal, con su identidad. Antes de la fase 2 pasa por la revisión de
-`.claude/skills/revisar-datos-ve/SKILL.md`. Puntos que esa revisión debe resolver:
+Faro guarda lo que escribe el personal, con su identidad. La revisión de
+`.claude/skills/revisar-datos-ve/SKILL.md` es una puerta en dos momentos:
+
+- **Antes de la fase 2,** porque la migración crea las tablas que guardan esas preguntas.
+- **Antes del primer envío real a un modelo,** incluidas la batería y el ataque con promptfoo de la fase 5. Hasta
+  entonces solo se usa el motor simulado. promptfoo se configura con proveedor propio: por defecto genera los
+  ataques con inferencia alojada por terceros.
+
+Puntos que esa revisión debe resolver:
+
+- **Retención en el proveedor de IA:** fijar por escrito su política de datos para la cuenta que use Faro, o
+  contratar cero retención si está disponible. Sin eso no hay envío real.
 
 - Aviso al personal de que las preguntas se guardan y de quién las lee.
 - Plazo de conservación. «Inalterable» no puede significar «para siempre» sin un plazo definido.
@@ -313,6 +370,7 @@ Faro guarda lo que escribe el personal, con su identidad. Antes de la fase 2 pas
 | D-5 | Tope de preguntas por usuario y hora | 30, configurable |
 | D-6 | Plazo de conservación del registro | Lo define la revisión de datos (§10) |
 | D-7 | ¿Las alertas van también a Telegram o Discord? | Campana siempre; el canal externo, apagado al inicio |
+| D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo guardado por respuesta en `asistente_mensajes` |
 
 ## 12. Riesgos
 

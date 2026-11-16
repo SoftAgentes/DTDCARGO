@@ -1,7 +1,8 @@
 # Handoff · SDD-0637 Faro, asistente de ayuda del Studio
 
 - **Fecha:** 2026-11-16 · **Owner:** sesión «Lumi» (Claude Worker), a pedido de Sam vía el Director General.
-- **Worktree / rama / base:** `.claude/worktrees/lumi-3ff50d` · `claude/lumi-3ff50d` · `origin/main` en `433e1e2aa`.
+- **Worktree / rama / base:** `.claude/worktrees/lumi-3ff50d` · `claude/lumi-3ff50d` · creada sobre `origin/main` en `433e1e2aa`; main avanzó después y la rama quedó por detrás (traer main lo ordena el Director General).
+- **PR:** SoftAgentes/DTDCARGO#600, en borrador, solo docs. Publicada con el sí de Sam del 2026-11-16.
 - **Spec:** `docs/specs/0637-faro-asistente-ayuda/spec.md` (estado `proposed`).
 - **Estado de la tarea:** lista-para-revision (solo etapa 0, documento).
 
@@ -28,8 +29,8 @@ con excepción a BRAND.md solo para Faro · Hermes como analista, redactor y vig
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ: sin números repetidos |
 
 ## Pendientes de esta tarea
-- Aprobación de Sam a la spec y a las decisiones D-1 a D-7.
-- Publicar la rama y abrir PR: requiere autorización; no se hizo.
+- Aprobación de Sam a la spec y a las decisiones D-1 a D-8.
+- Revisión independiente del Director General del 2026-11-16 sobre `e41d6eec8`: CAMBIOS, sin bloqueos graves. Ajustes aplicados: tope de gasto (D-8) con simulacro de pausa, módulo único y modelo por configuración con sus pruebas, registro frente a «no se guarda» (§6.4 y §6.5), retención del proveedor y puerta de privacidad antes del primer envío real (§10), criterios AC-1 a AC-15 (§9.1) y aclaración de Studio responsivo frente a `app/m`.
 
 ## Dependencias
 - SDD-0626 (PR #598, sesión «Hermes VPS y PaperCut»): cliente del runtime de la Oficina. Faro no escribe otra
