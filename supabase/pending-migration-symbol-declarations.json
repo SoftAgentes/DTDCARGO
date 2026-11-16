@@ -7,5 +7,94 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0552-registro-por-link-publico",
+      "migration": "0552_registro_portal_por_link",
+      "primarySymbol": "portal_registration_link_complete",
+      "symbols": [
+        {
+          "name": "portal_registration_link_peek",
+          "kind": "function",
+          "callSites": [
+            "app/registro/link/[token]/page.tsx:53"
+          ]
+        },
+        {
+          "name": "portal_registration_link_complete",
+          "kind": "function",
+          "callSites": [
+            "app/registro/link/[token]/actions.ts:85"
+          ]
+        },
+        {
+          "name": "portal_registration_link_bind",
+          "kind": "function",
+          "callSites": [
+            "app/registro/link/[token]/actions.ts:136"
+          ]
+        },
+        {
+          "name": "portal_registration_link_access_error",
+          "kind": "function",
+          "callSites": [
+            "app/registro/link/[token]/actions.ts:128",
+            "app/registro/link/[token]/actions.ts:141"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/registro/link/[token]/page.tsx:57",
+          "contains": "target = row?.markbox ? row : null;",
+          "degradation": "Sin la 0552 la RPC de lectura responde error (PGRST202) y no hay fila: la página muestra «Enlace no disponible» con el mensaje genérico y ningún formulario. No escribe nada."
+        },
+        {
+          "site": "app/registro/link/[token]/actions.ts:101",
+          "contains": "const kind = registroLinkErrorKind(error);",
+          "degradation": "Si se llegara a enviar el formulario sin la 0552, el error cae en «otro»: el cliente lee «No pudimos guardar tus datos ahora» y no se crea cuenta ni vínculo. bind y access_error sólo corren después de un complete exitoso, que sin la 0552 no existe."
+        }
+      ]
+    },
+    {
+      "id": "0552-registro-por-link-studio",
+      "migration": "0552_registro_portal_por_link",
+      "primarySymbol": "portal_registration_link_create",
+      "symbols": [
+        {
+          "name": "portal_registration_link_create",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/clientes/actions.ts:701"
+          ]
+        },
+        {
+          "name": "portal_registration_link_mark_reviewed",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/clientes/actions.ts:741"
+          ]
+        },
+        {
+          "name": "client_registration_links",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/registro-link-queries.ts:28"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/clientes/actions.ts:707",
+          "contains": "if (error.code === \"PGRST202\" || error.code === \"42883\") {",
+          "degradation": "Sin la 0552 «Generar link de registro» responde «Esta acción todavía no está disponible.»: no se arma link ni se muestra el error crudo."
+        },
+        {
+          "site": "lib/studio/registro-link-queries.ts:41",
+          "contains": "console.error(\"[listRegistrosPorLink]\", error.code);",
+          "degradation": "Sin la tabla, la lista devuelve null y «Registros por link» muestra el aviso «Todavía no está disponible» en vez de una lista vacía. Sin registros no hay botón «Marcar comprobado», así que su RPC no se alcanza."
+        }
+      ]
+    }
+  ]
 }
