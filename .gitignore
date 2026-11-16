@@ -197,3 +197,6 @@ __pycache__/
 
 # Almacén local de pnpm
 /.pnpm-store/
+
+# SDD-0642: informes locales de la auditoria GEO/AEO
+auditoria-geo-aeo-*.json
