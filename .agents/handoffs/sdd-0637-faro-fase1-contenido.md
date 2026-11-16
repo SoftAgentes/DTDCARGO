@@ -14,7 +14,7 @@ Solo archivos nuevos, bajo `lib/studio/asistente/contenido/`. No se tocó ningú
 | Archivo | Contenido |
 |---|---|
 | `tipos.ts` | Formas del minicerebro: catálogo, guía, tarea, paso, procedencia, visibilidad |
-| `catalogo.ts` | Una entrada por cada uno de los 57 módulos de `MODULES`, con la propuesta de la D-3 |
+| `catalogo.ts` | Una entrada por cada uno de los 57 módulos de `MODULES`, con la visibilidad de la D-3 |
 | `guias/index.ts` | Registro de guías y `guiaDe(modulo)` |
 | `guias/*.ts` | 10 guías: collections, invoices, treasury, expenses, accounting, reports, clients, quotes, shipments, mis-bugs |
 | `__tests__/catalogo.test.ts` | Contrato AC-1 y coherencia del contenido (12 pruebas) |
@@ -25,7 +25,10 @@ una lista sus fuentes en `procedencia.fuentes`. Los textos entre «» son los qu
 **Todas las guías están en `estado: "borrador"`.** La spec (§5) exige que una persona las apruebe. La fase 3 no
 debe entregar al modelo una guía en borrador.
 
-## Propuesta de la decisión D-3 (la aprueba Sam)
+## Decisión D-3 (aprobada por Sam el 2026-11-16)
+
+Texto de Sam ante la pregunta «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?»: «Sí, apruébala».
+Falta reflejarlo en la tabla de decisiones de la spec, que vive en la PR #600.
 
 - **Ocultas (4):** `renditions`, `financiero-china`, `legal`, `no-olvidar`. Son los de superadministrador.
 - **Reservadas (6):** `direccion`, `users`, `admin`, `mailing`, `nomina`, `costing`.
@@ -49,7 +52,7 @@ pidió «solo lo serio». Sin acceso, esas preguntas igual se bloquean y quedan 
 ## Pendientes de esta tarea
 
 1. Abrir la PR de esta rama **después** de que la #600 entre a `main`, trayendo `main` antes (orden del Director).
-2. Sam revisa y aprueba las 10 guías y la propuesta D-3.
+2. Sam revisa y aprueba las 10 guías. La D-3 ya está aprobada.
 3. Estantes que faltan del minicerebro: `procesos/` y `glosario.ts`.
 4. Ninguna de las 10 pantallas tiene anclas `data-guia` (salvo `cliente.conversaciones`). «Muéstrame dónde»
    necesita agregarlas; eso toca archivos existentes y va en la fase 4, no aquí.

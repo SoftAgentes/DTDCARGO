@@ -46,7 +46,7 @@ describe("Faro · catálogo (AC-1)", () => {
   });
 });
 
-describe("Faro · visibilidad (D-3, propuesta)", () => {
+describe("Faro · visibilidad (D-3)", () => {
   it("todo módulo de superadministrador es oculto", () => {
     for (const id of SUPERADMIN_ONLY_MODULES) {
       expect(entradaDe(id)?.visibilidad, id).toBe("oculta");

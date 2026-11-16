@@ -6,7 +6,8 @@
  * `__tests__/catalogo.test.ts` falla si falta o sobra alguna. Las descripciones
  * se redactaron leyendo la `page.tsx` de cada pantalla el 2026-11-16.
  *
- * VISIBILIDAD · PROPUESTA de la decisión D-3, pendiente de aprobación de Sam:
+ * VISIBILIDAD · decisión D-3, aprobada por Sam el 2026-11-16. Cambiarla exige
+ * su aprobación y pasa por PR:
  *   - `oculta`    = los cuatro módulos de superadministrador
  *                   (`SUPERADMIN_ONLY_MODULES`). Para quien no entra, no existen.
  *   - `reservada` = los demás solo-administrador (`ADMIN_ONLY_MODULES`) más

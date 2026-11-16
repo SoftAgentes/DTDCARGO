@@ -15,7 +15,7 @@ import type { StudioUserRole } from "@/lib/studio/user-types";
 
 /**
  * Cómo trata Faro a un módulo cuando alguien SIN acceso pregunta por él
- * (SDD-0637 §6.1; decisión D-3, propuesta pendiente de aprobación de Sam).
+ * (SDD-0637 §6.1; decisión D-3, aprobada por Sam el 2026-11-16).
  *
  * - `normal`: puede decir que la pantalla existe y que la persona no tiene
  *   acceso; nunca explica cómo se usa.
