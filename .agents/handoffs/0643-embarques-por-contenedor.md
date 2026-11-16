@@ -76,6 +76,19 @@ Rótulo confirmado por el DG el 2026-11-16: «DDP 64» para los consolidados pro
 | eslint de los archivos tocados | PASÓ |
 | `docs:check` | PASÓ |
 
+## MERGE CON MAIN (2026-11-16)
+
+La PR chocaba con main. Traje `origin/main` (`c4d155a8a`) con `git merge`, sin rebase ni force push, y quedó en `cf5257c1f`.
+
+- El único archivo en común era `docs/specs/README.md`. Lo resolvió el driver del repo, y `docs:check` PASÓ con 626 specs.
+- Main no tocó archivos de Embarques, ni `package.json`, ni el lockfile.
+- Vitest de embarques PASÓ (9 archivos, 127 pruebas) y typecheck PASÓ.
+- `pnpm verify` no se ejecutó: el portón es el CI, por decisión del DG.
+
+**Observación de Vitest, sin explicar.** La primera corrida después del merge, con los mismos tres argumentos de ruta, reportó `Test Files 5 passed (5)` y `Tests 59 passed (59)`, sin ningún fallo. Las dos corridas siguientes con el mismo comando dieron `9 passed (9)` y `127 passed (127)`. Una de ellas fue con `--reporter=verbose`, y en esa los 9 archivos aparecieron por nombre.
+
+No encontré la causa. Un resumen en verde con menos archivos de los esperados no prueba cobertura: antes de dar una corrida por buena, hay que comparar el número de archivos con el esperado.
+
 ## PENDIENTES DE ESTA TAREA
 
 - **M3 de la revisión.** El DG lo pasó a pendiente sin aplicarlo en esta ronda; el detalle está en el informe de la revisión independiente de la #616.
