@@ -22,7 +22,7 @@ completo, y cómo se enmienda la matriz del paso 2.7 (SDD-0585).
 - Spec de diseño con evidencia etiquetada: permisos de cada rol en CE 4.19.1, cuatro opciones
   con costo y riesgo, opción recomendada (inicializador propio que reserva el borrado), cómo
   se prueba, enmienda a la matriz (tres niveles, permiso «Chat: administrar», candado del
-  administrador completo), orden para vincular a los dos agentes actuales y cinco preguntas
+  administrador completo), orden para vincular a los dos agentes actuales y seis preguntas
   cerradas para Sam.
 - No se tocó `lib/studio/chatwoot/matriz.ts` ni ningún código de producto.
 
@@ -57,7 +57,7 @@ completo, y cómo se enmienda la matriz del paso 2.7 (SDD-0585).
 
 ## PENDIENTES DE ESTA TAREA
 
-- Respuesta de Sam a las cinco preguntas de §9 de la spec. Sin ella no se implementa.
+- Respuesta de Sam a las seis preguntas de §9 de la spec. Sin ella no se implementa.
 - La reserva `codex/sdd-reserve-0644` se puede borrar cuando la spec esté en `main`.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -72,3 +72,24 @@ completo, y cómo se enmienda la matriz del paso 2.7 (SDD-0585).
 
 PR de documentos contra `main`, sin migraciones ni producto. No fusionar hasta que el Director
 General la revise. La implementación es otra tarea y depende de las respuestas de Sam.
+
+## SEGUNDA VUELTA · revisión del Director General (2026-11-16)
+
+La revisión sobre `63503400d` dio CAMBIOS NECESARIOS, todos de texto. Aplicados en la spec:
+
+- **N1:** con la lista inválida se niega a todos el cambio de rol y la salida de cuenta de un
+  `administrator` (§5.1), con su caso en §5.3.
+- **N2:** inventario de `rails routes` como entregable de la etapa 1 y diff de rutas en E3 (§5.4).
+- **N3 y N4:** allowlist exacta por etapa, criterios medibles de la etapa de Studio (§8) y
+  sección «Alcance» (§10).
+- **M1 a M6:** solo un `User` cuenta como «en la lista»; lectura estricta al arrancar; comando
+  de recrear y por qué también `sidekiq` (§5.5); salida de datos clasificada y pregunta 6;
+  «editar también puede destruir» como riesgo aceptado; administrador invitado sin vínculo.
+- **M7:** la 0643 (#616) toca el mismo índice `docs/specs/README.md`. La que entre segunda
+  trae `main` en su turno y lo regenera con `pnpm docs:index`.
+
+Regla de turno: no corro nada que instale dependencias sin pedirle turno al Subdirector. La
+instalación que disparó `pnpm sdd:next` en la primera vuelta fue sin turno y queda anotada arriba.
+
+Los párrafos «Estado» vencidos de `chatwoot-agentes.md` y `chatwoot-bandeja.md` no van en esta
+PR: quedan para una PR de documentos aparte.
