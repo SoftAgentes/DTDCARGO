@@ -21,9 +21,13 @@
 -- 1. `news_posts` +7 columnas: cover_image_url, cover_alt, cover_origin
 --    (fuente | banco | propia), cover_credit, cover_license, cover_source_url y
 --    cover_license_verified_at. Dos CHECK: una portada solo existe con URL permitida
---    (ruta propia `/fotos/…` o Storage público de Supabase; nunca la marca
---    anterior), licencia escrita, comprobación con fecha y, si es de la fuente o de
---    un banco, enlace de origen.
+--    (una de las 5 fotos propias de la lista cerrada revisada a la vista, o el
+--    Storage público de Supabase; nunca la marca anterior, tampoco en el alt, el
+--    crédito, la licencia ni el enlace), licencia escrita, comprobación con fecha
+--    no futura y, si es de la fuente o de un banco, enlace de origen.
+--    Límites conocidos: el CHECK usa now() (un reloj atrasado rechaza una
+--    comprobación de hoy) y la marca se busca con una expresión simple, sin
+--    sustituciones tipo d00r ni espacios intercalados; ver spec §11.5.1.
 -- 2. `seo_drafts` +6 columnas autopub_cover_*: lo que el borrador declara. Solo
 --    forma (largos y origen); la exigencia de permiso se aplica al publicar.
 -- 3. `news_insertar_post` (la que usan las dos vías) guarda la portada SOLO si

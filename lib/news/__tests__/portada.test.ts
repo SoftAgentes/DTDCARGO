@@ -7,6 +7,7 @@ import {
   esUrlDePortadaPermitida,
   evaluarPortada,
   nombraMarcaAnterior,
+  urlNombraMarcaAnterior,
   portadaDeRegistro,
   type PortadaDeclarada,
 } from "../portada";
@@ -64,8 +65,41 @@ describe("SDD-0611 §11.5 · URL de portada permitida", () => {
       expect(esUrlDePortadaPermitida(u), u).toBe(false);
       expect(nombraMarcaAnterior(u), u).toBe(true);
     }
-    expect(nombraMarcaAnterior("/fotos/dtd-cargo-puerta-a-puerta-china-venezuela.jpg")).toBe(false);
-    expect(nombraMarcaAnterior("/fotos/%E0%A4%A.jpg")).toBe(true); // no decodificable: falla cerrado
+    expect(urlNombraMarcaAnterior("/fotos/dtd-cargo-puerta-a-puerta-china-venezuela.jpg")).toBe(false);
+    expect(urlNombraMarcaAnterior("/fotos/%E0%A4%A.jpg")).toBe(true); // URL no decodificable: falla cerrado
+    expect(urlNombraMarcaAnterior("/fotos/door%20to%20door.webp")).toBe(true);
+  });
+});
+
+describe("SDD-0611 §11.5 · la marca anterior en textos (no se decodifican)", () => {
+  it.each(["Foto 100% propia", "Carga al 50%", "Descuento del 20 % en fletes", "100%", "%", "Equipo %E0 de DTD"])(
+    "«%s» no es la marca anterior",
+    (t) => expect(nombraMarcaAnterior(t)).toBe(false),
+  );
+  it.each(["Equipo DoorTuDoor", "DOOR-TO-DOOR", "door to door 100%", "Foto 100% de Door2Door"])(
+    "«%s» sí",
+    (t) => expect(nombraMarcaAnterior(t)).toBe(true),
+  );
+  it("una portada con «%» en alt, crédito y licencia se usa", () => {
+    const r = evaluarPortada({
+      url: "/fotos/dtd-cargo-camion-entrega.webp", origen: "propia", alt: "Carga al 50%", credito: "Foto 100% propia",
+      licencia: "Propia 100%", licenciaVerificadaEn: "2026-11-15T12:00:00Z",
+    });
+    expect(r.usa).toBe(true);
+    expect(
+      portadaDeRegistro({
+        cover_image_url: "/fotos/dtd-cargo-camion-entrega.webp", cover_alt: "Carga al 50%",
+        cover_credit: "Foto 100% propia", cover_license: "Propia 100%",
+      }),
+    ).not.toBeNull();
+  });
+  it("la marca anterior en la licencia descarta la portada", () => {
+    const r = evaluarPortada({
+      url: "/fotos/dtd-cargo-camion-entrega.webp", origen: "propia", licencia: "Propia de DoorTuDoor",
+      licenciaVerificadaEn: "2026-11-15T12:00:00Z",
+    });
+    expect(r.usa).toBe(false);
+    if (!r.usa) expect(r.motivos).toContain("portada:marca_anterior");
   });
 });
 

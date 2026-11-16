@@ -282,9 +282,10 @@ describe("SDD-0611 §11.5 · 0547 portada con licencia (PGlite)", () => {
     }
   });
 
-  it("GEMELA: la marca anterior de la base es la misma expresión que la del código", () => {
-    const m = FILE_0547.match(/!~\* '([^']+)'/);
-    expect(m, "la 0547 tiene el CHECK de la marca anterior").not.toBeNull();
-    expect(m![1]).toBe(MARCA_ANTERIOR_RE.source);
+  it("GEMELA: las dos apariciones de la marca anterior en la base son la expresión del código", () => {
+    const apariciones = [...FILE_0547.matchAll(/!~\* '([^']+)'/g)].map((m) => m[1]);
+    // Una sobre cover_image_url y otra sobre alt, crédito, licencia y enlace.
+    expect(apariciones).toHaveLength(2);
+    for (const a of apariciones) expect(a).toBe(MARCA_ANTERIOR_RE.source);
   });
 });

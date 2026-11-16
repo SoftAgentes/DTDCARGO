@@ -828,6 +828,12 @@ Hecho en código; la migración **0547** queda en espera (sin aplicar):
 
 Pendiente fuera de esta PR: aplicar la 0547 (OK nominal de Sam), que el Studio (o quien carga la foto) capture crédito, licencia y comprobación en el borrador, y revisar a la vista cada foto nueva (límite de la prueba, arriba).
 
+**Límites conocidos de la detección de la marca anterior** (código y CHECK usan la misma expresión simple, `door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door`, sin distinguir mayúsculas):
+- Falsos positivos posibles («Indoor to outdoor», «door-to-door campaign»): descartan la portada, nunca la noticia.
+- Saltos triviales no detectados (`d00r`, espacios o puntos intercalados, otros alfabetos): por eso la URL de la imagen sale de una lista cerrada revisada a la vista y la revisión humana sigue siendo la barrera real.
+- En textos (alt, crédito, licencia) la expresión se prueba tal cual, sin decodificar (un «%» suelto es texto normal); solo las URL se prueban también decodificadas en el código. El CHECK no decodifica en ningún campo.
+- El CHECK de `cover_license_verified_at <= now()` depende del reloj del servidor: con un reloj atrasado se rechaza una comprobación de hoy (la noticia se publica sin foto) y, al restaurar un volcado, solo se revalida lo ya pasado.
+
 **Allowlist exacta de la PR #597** (`git diff --name-only origin/main...HEAD`, 24 archivos; ningún otro entra):
 
 | Archivo | Cambio |

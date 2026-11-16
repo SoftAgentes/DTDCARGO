@@ -62,9 +62,22 @@ function sinVacios(valor: unknown): string {
   return typeof valor === "string" ? valor.trim() : "";
 }
 
-/** ¿El texto (crudo o decodificado) nombra la marca anterior? Texto no decodificable = sí (falla cerrado). */
+/**
+ * ¿Un TEXTO (alt, crédito, licencia) nombra la marca anterior? Se prueba el valor
+ * tal cual, tras NFKC: un «%» suelto («Foto 100% propia», «Carga al 50%») es texto
+ * normal y no cuenta. El CHECK de la 0547 hace lo mismo (no decodifica).
+ */
 export function nombraMarcaAnterior(texto: string): boolean {
-  const nfkc = texto.normalize("NFKC");
+  return MARCA_ANTERIOR_RE.test(texto.normalize("NFKC"));
+}
+
+/**
+ * ¿Una URL (la de la imagen o el enlace de origen) nombra la marca anterior? Se
+ * prueba cruda y decodificada (`door%20to%20door`); una URL que no decodifica
+ * falla cerrado (sí la nombra).
+ */
+export function urlNombraMarcaAnterior(url: string): boolean {
+  const nfkc = url.normalize("NFKC");
   if (MARCA_ANTERIOR_RE.test(nfkc)) return true;
   try {
     return MARCA_ANTERIOR_RE.test(decodeURIComponent(nfkc).normalize("NFKC"));
@@ -97,7 +110,7 @@ export function esHostPermitido(url: string): boolean {
     HOST_PERMITIDO_RE.test(u.hostname) &&
     RUTA_STORAGE_RE.test(u.pathname) &&
     !u.pathname.includes("..") &&
-    !nombraMarcaAnterior(url)
+    !urlNombraMarcaAnterior(url)
   );
 }
 
@@ -163,10 +176,13 @@ export function evaluarPortada(p: PortadaDeclarada | null | undefined): Decision
   if (url === "") return { usa: false, declarada: false, motivos: [] };
 
   const motivos: MotivoDeDescarte[] = [];
-  if (nombraMarcaAnterior(url)) motivos.push("portada:marca_anterior");
+  if (urlNombraMarcaAnterior(url)) motivos.push("portada:marca_anterior");
   else if (!esUrlDePortadaPermitida(url)) motivos.push("portada:url");
-  // La marca anterior tampoco entra por el enlace, el crédito ni el texto alternativo.
-  if ([p?.enlaceOrigen, p?.credito, p?.alt].some((t) => nombraMarcaAnterior(sinVacios(t)))) {
+  // La marca anterior tampoco entra por el enlace, el crédito, la licencia ni el texto alternativo.
+  if (
+    urlNombraMarcaAnterior(sinVacios(p?.enlaceOrigen)) ||
+    [p?.credito, p?.licencia, p?.alt].some((t) => nombraMarcaAnterior(sinVacios(t)))
+  ) {
     if (!motivos.includes("portada:marca_anterior")) motivos.push("portada:marca_anterior");
   }
 
@@ -244,7 +260,7 @@ export function portadaDeRegistro(post: PortadaDeRegistro): PortadaPublica | nul
   const alt = sinVacios(post.cover_alt);
   const credito = sinVacios(post.cover_credit);
   // La marca anterior en el enlace, el crédito o el alt también descarta la portada.
-  if ([enlace, alt, credito, licencia].some(nombraMarcaAnterior)) return null;
+  if (urlNombraMarcaAnterior(enlace) || [alt, credito, licencia].some(nombraMarcaAnterior)) return null;
   return {
     src: url,
     alt: alt === "" ? null : alt.slice(0, ALT_MAX),
