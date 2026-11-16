@@ -31,6 +31,7 @@ import {
   type DiscordAlertOutcome,
 } from "@/lib/studio/alerts/dispatch-alert";
 import { resolveDiscordTarget } from "@/lib/studio/discord/channels";
+import type { EnvSource } from "@/lib/runtime/app-env";
 import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
 import { isKnownModuleSlug, moduleLabelFromSlug } from "@/lib/studio/bug-module-name";
 import type { BugCategory, BugSeverity } from "@/lib/studio/bug-types";
@@ -69,7 +70,7 @@ export function entraAlResumen(row: Pick<BugDigestRow, "severity">): boolean {
 
 /**
  * La ventana del resumen: el día ANTERIOR completo en hora de Caracas.
- * Con `now` = 2026-11-16 12:00Z (08:00 en Caracas) → 2026-11-15, de
+ * Con `now` = 2026-11-16 12:05Z (08:05 en Caracas) → 2026-11-15, de
  * 2026-11-15T04:00Z a 2026-11-16T04:00Z.
  */
 export function ventanaDelResumen(now: Date): { fecha: string; desde: string; hasta: string } {
@@ -165,7 +166,11 @@ export async function fetchBugDigestRows(
 }
 
 export interface BugDailyDigestResult {
-  /** `discord-apagado`: el tenant no tiene canal de bugs (falla cerrado). */
+  /**
+   * `discord-apagado`: el tenant no tiene canal PROPIO de `#bugs` (falla
+   * cerrado). Si sólo hay el canal de respaldo (`#avisos-equipo`), el resumen
+   * tampoco sale: es de `#bugs` y no se manda a otro canal.
+   */
   estado: "enviado" | "sin-reportes" | "discord-apagado" | "error";
   fecha: string;
   reportes: number;
@@ -175,15 +180,17 @@ export interface BugDailyDigestResult {
 
 /**
  * Corre el resumen de un tenant: lee el día anterior y lo manda a `#bugs`.
- * Sin canal de Discord para el tenant, no toca la base. Nunca lanza.
+ * Sin canal propio de `#bugs` para el tenant —ni Discord, ni sólo el canal de
+ * respaldo— no toca la base. Nunca lanza.
  */
 export async function runBugDailyDigest(
   admin: SupabaseClient,
   tenantId: string,
-  opts: { now?: Date; siteUrl: string },
+  opts: { now?: Date; siteUrl: string; env?: EnvSource },
 ): Promise<BugDailyDigestResult> {
   const { fecha, desde, hasta } = ventanaDelResumen(opts.now ?? new Date());
-  if (!resolveDiscordTarget("bugs", tenantId)) {
+  const target = resolveDiscordTarget("bugs", tenantId, opts.env);
+  if (!target || target.esRespaldo) {
     return { estado: "discord-apagado", fecha, reportes: 0 };
   }
   try {

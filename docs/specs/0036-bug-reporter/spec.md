@@ -364,8 +364,10 @@ en la rama `claude/0637-faro-fase3-servidor` hasta que se fusione). Texto litera
 - **Día sin reportes:** no se manda nada.
 - **Camino:** `sendDiscordCategoryAlert` (categoría `bugs`). Si Discord no lo guarda, entra a la cola durable
   `studio_alert_outbox` (migración 0515) y lo reintenta el drenado de `/api/cron/bug-notifications-drain`.
-  Sólo para el tenant de `DISCORD_TENANT_ID`; sin esa variable o sin webhook de `#bugs`, el cron no toca la
-  base. Telegram sigue retirado (SDD-0606): el resumen no tiene camino de Telegram.
+  Sólo para el tenant de `DISCORD_TENANT_ID`; sin esa variable o sin webhook propio de `#bugs`, el cron no toca la
+  base y responde `discord-apagado`, aunque exista el canal de respaldo (`#avisos-equipo`): el resumen es de
+  `#bugs` y no cae a otro canal. Lee a lo sumo 500 reportes por día (`.limit(500)`); si un día pasara de eso,
+  los conteos se quedarían cortos en ese día. Telegram sigue retirado (SDD-0606): el resumen no tiene camino de Telegram.
 - **Cron:** `/api/cron/bug-daily-digest`, autenticado con `CRON_SECRET` por header, como
   `/api/cron/bug-notifications-drain`. Sólo lee: no mueve bugs de estado (D9 intacta).
 - **Sin migración.** Lee `bug_reports` y usa la cola existente.
@@ -407,4 +409,6 @@ agenda una sola vez.
   ninguno aparece en el texto que sale a Discord ni en el aviso que entra a la cola.
 - Alta y crítica no entran al resumen; un día vacío no manda nada; el módulo desconocido y el folio sin forma
   no se nombran.
+- Con sólo el canal de respaldo configurado, el resumen no sale y no se lee `bug_reports`.
+- `fetchBugDigestRows` pide exactamente `folio, category, severity, module` (doble de PostgREST).
 - `build-crontab` al día con 23 crons de `vercel.json`.

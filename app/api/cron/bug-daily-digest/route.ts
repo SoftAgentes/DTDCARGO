@@ -2,14 +2,15 @@
  * /api/cron/bug-daily-digest — resumen diario de reportes a Discord `#bugs`
  * (SDD-0036 §11, enmienda D-13).
  *
- * Una vez al día (12:00 UTC = 08:00 en Caracas) manda el resumen del día
+ * Una vez al día (12:05 UTC = 08:05 en Caracas) manda el resumen del día
  * anterior: mejoras, sugerencias, preguntas y errores leves, con conteos,
  * folios y módulos. Sin títulos, sin textos y sin nombres. Los errores de
  * gravedad alta y crítica siguen saliendo al momento y no se repiten acá.
  *
  * Sólo para el tenant dueño de los canales (`DISCORD_TENANT_ID`): sin esa
  * variable o sin `DISCORD_WEBHOOK_BUGS`, no toca la base y responde
- * `discord-apagado`.
+ * `discord-apagado`. Aunque exista el canal de respaldo (`#avisos-equipo`), el
+ * resumen no cae ahí: es de `#bugs`.
  *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, sólo por header.
  * No es idempotente por sí mismo: correrlo dos veces el mismo día manda dos

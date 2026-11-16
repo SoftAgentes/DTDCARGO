@@ -8,12 +8,16 @@
  */
 
 import { describe, it, expect } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildBugDailyDigest,
   entraAlResumen,
+  fetchBugDigestRows,
+  runBugDailyDigest,
   ventanaDelResumen,
   type BugDigestRow,
 } from "../bug-daily-digest";
+import { fakeWebhook } from "@/lib/studio/discord/__tests__/webhook-fixture";
 import { buildDiscordContent } from "@/lib/studio/discord/minimal-alert";
 import { minimalFromPayload } from "@/lib/studio/alerts/alert-outbox";
 
@@ -213,5 +217,101 @@ describe("ventana del resumen", () => {
   it("antes de la medianoche de Caracas todavía cuenta el día de ayer de allá", () => {
     // 2026-11-16 02:00Z = 2026-11-15 22:00 en Caracas → resume el 14.
     expect(ventanaDelResumen(new Date("2026-11-16T02:00:00Z")).fecha).toBe("2026-11-14");
+  });
+});
+
+const TENANT = "00000000-0000-4000-8000-000000000001";
+
+/**
+ * Doble de PostgREST: anota la tabla, las columnas pedidas y cada filtro, y
+ * devuelve `rows` al final de la cadena (`.limit`).
+ */
+function postgrestDoble(rows: unknown[] = []) {
+  const llamadas: { tabla: string[]; select: string[]; filtros: string[] } = {
+    tabla: [],
+    select: [],
+    filtros: [],
+  };
+  const cadena = {
+    select(cols: string) {
+      llamadas.select.push(cols);
+      return cadena;
+    },
+    eq(col: string, v: unknown) {
+      llamadas.filtros.push(`eq:${col}=${String(v)}`);
+      return cadena;
+    },
+    gte(col: string, v: unknown) {
+      llamadas.filtros.push(`gte:${col}=${String(v)}`);
+      return cadena;
+    },
+    lt(col: string, v: unknown) {
+      llamadas.filtros.push(`lt:${col}=${String(v)}`);
+      return cadena;
+    },
+    or(expr: string) {
+      llamadas.filtros.push(`or:${expr}`);
+      return cadena;
+    },
+    order() {
+      return cadena;
+    },
+    limit(n: number) {
+      llamadas.filtros.push(`limit:${n}`);
+      return Promise.resolve({ data: rows, error: null });
+    },
+  };
+  const admin = {
+    from(tabla: string) {
+      llamadas.tabla.push(tabla);
+      return cadena;
+    },
+  } as unknown as SupabaseClient;
+  return { admin, llamadas };
+}
+
+describe("consulta del resumen (barrera 1 de §11.2)", () => {
+  it("pide exactamente folio, category, severity y module: ni título, ni texto, ni quién reportó", async () => {
+    const { admin, llamadas } = postgrestDoble();
+    await fetchBugDigestRows(admin, TENANT, "2026-11-15T04:00:00.000Z", "2026-11-16T04:00:00.000Z");
+    expect(llamadas.tabla).toEqual(["bug_reports"]);
+    expect(llamadas.select).toEqual(["folio, category, severity, module"]);
+    expect(llamadas.filtros).toEqual([
+      `eq:tenant_id=${TENANT}`,
+      "gte:created_at=2026-11-15T04:00:00.000Z",
+      "lt:created_at=2026-11-16T04:00:00.000Z",
+      "or:severity.is.null,severity.in.(baja,media)",
+      "limit:500",
+    ]);
+  });
+});
+
+describe("canal del resumen", () => {
+  const NOW = new Date("2026-11-16T12:05:00Z");
+  const SITE = "https://dtdcargo.com";
+
+  it("con sólo el canal de respaldo (#avisos-equipo) no sale y no lee bug_reports", async () => {
+    const { admin, llamadas } = postgrestDoble();
+    const env = { DISCORD_TENANT_ID: TENANT, DISCORD_WEBHOOK_EQUIPO: fakeWebhook(2) };
+    const res = await runBugDailyDigest(admin, TENANT, { now: NOW, siteUrl: SITE, env });
+    expect(res).toEqual({ estado: "discord-apagado", fecha: "2026-11-15", reportes: 0 });
+    expect(llamadas.tabla).toEqual([]);
+  });
+
+  it("sin Discord para el tenant tampoco lee la base", async () => {
+    const { admin, llamadas } = postgrestDoble();
+    const env = { DISCORD_TENANT_ID: TENANT, DISCORD_WEBHOOK_BUGS: fakeWebhook(1) };
+    const otro = "00000000-0000-4000-8000-000000000002";
+    const res = await runBugDailyDigest(admin, otro, { now: NOW, siteUrl: SITE, env });
+    expect(res.estado).toBe("discord-apagado");
+    expect(llamadas.tabla).toEqual([]);
+  });
+
+  it("con el canal propio de #bugs sí lee el día (y un día vacío no manda nada)", async () => {
+    const { admin, llamadas } = postgrestDoble([]);
+    const env = { DISCORD_TENANT_ID: TENANT, DISCORD_WEBHOOK_BUGS: fakeWebhook(1) };
+    const res = await runBugDailyDigest(admin, TENANT, { now: NOW, siteUrl: SITE, env });
+    expect(res).toEqual({ estado: "sin-reportes", fecha: "2026-11-15", reportes: 0 });
+    expect(llamadas.tabla).toEqual(["bug_reports"]);
   });
 });

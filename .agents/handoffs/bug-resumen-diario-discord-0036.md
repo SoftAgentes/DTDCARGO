@@ -19,7 +19,9 @@ registrarlo como enmienda de la SDD-0036, sin número nuevo.
   - `fetchBugDigestRows`, que pide sólo `folio, category, severity, module`;
   - `runBugDailyDigest`.
 - `app/api/cron/bug-daily-digest/route.ts`: cron con `CRON_SECRET` por header. Sin `DISCORD_TENANT_ID` o sin
-  webhook de `#bugs` responde `discord-apagado` y no toca la base.
+  webhook propio de `#bugs` responde `discord-apagado` y no toca la base. Si sólo existe el canal de respaldo
+  (`#avisos-equipo`), tampoco sale: `runBugDailyDigest` corta cuando `target.esRespaldo` es true. Así lo pidió
+  la revisión del DG sobre `cda939151`.
 - `MinimalAlert.codigos`, para la lista de folios. Sólo acepta textos con forma de código. La cola
   `studio_alert_outbox` lo guarda y lo relee con el mismo filtro.
 - `isKnownModuleSlug`: un módulo fuera de la lista cerrada se cuenta como «Otro módulo».
@@ -36,6 +38,7 @@ Sin migración. El aviso al momento (`notifyBugCreatedToAdmin`) no cambió. Tele
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (625 specs) |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ |
 | `node scripts/build-crontab.mjs --check` | PASÓ (29 crons) |
+| Ronda 2 (revisión del DG sobre `cda939151`): corte por canal de respaldo, prueba de columnas, horas 12:05 | Vitest NO EJECUTADO, el portón es la CI |
 | Vitest local (`bug-daily-digest.test.ts`, `build-crontab.test.ts`, pruebas de alert-outbox/minimal-alert) | NO EJECUTADO: el worktree no tiene `node_modules` y el DG pidió usar la CI de GitHub como portón |
 | `pnpm verify` | NO EJECUTADO, por la misma razón |
 | CI de GitHub | ver la PR |
@@ -47,6 +50,8 @@ Sin migración. El aviso al momento (`notifyBugCreatedToAdmin`) no cambió. Tele
   Las variables `DISCORD_TENANT_ID` y `DISCORD_WEBHOOK_BUGS` ya existen por la SDD-0606. El valor del webhook es
   secreto y no va al repositorio.
 - Límite conocido: dos corridas el mismo día mandan dos resúmenes iguales. El crontab lo agenda una sola vez.
+- Límite conocido: `fetchBugDigestRows` lee a lo sumo 500 reportes por día (`.limit(500)`). Si un día pasara de
+  eso, los conteos de ese día se quedarían cortos. Hoy un día real está muy por debajo.
 
 ## FUERA DE ALCANCE DETECTADO
 
