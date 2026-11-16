@@ -927,3 +927,11 @@ Medido en producción el 2026-11-16: en `/studio/bandeja`, «Vincular» y «Dar 
 - **Cambio:** la lista se pide con `miembrosDeBandeja` (`lib/studio/chatwoot/bandeja-miembros.ts`), que usa el cliente admin solo si `role === "admin"` y hay `tenantId`; si no, devuelve `[]` y el cliente admin ni se crea. Se filtra siempre por el `tenant_id` del que pide (`listMembers` lo exige) y solo miembros activos.
 - **Acciones:** `vincularAgente` y `altaAgente` ya comprobaban al miembro elegido con `createAdminClient` y el `tenant_id` del gate (`actions.ts`), así que no tenían el defecto y no cambian.
 - **Sin migración.** Pruebas: `lib/studio/chatwoot/__tests__/bandeja-miembros.test.ts` (no admin no recibe la lista; admin recibe a los de su tenant y no a los de otro).
+
+**Allowlist exacta de esta enmienda (PR #618):**
+
+- `lib/studio/chatwoot/bandeja-miembros.ts` (nuevo)
+- `lib/studio/chatwoot/__tests__/bandeja-miembros.test.ts` (nuevo)
+- `app/studio/(app)/bandeja/page.tsx`
+- `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md` (esta nota)
+- `.agents/handoffs/bandeja-miembros-admin-0585.md`

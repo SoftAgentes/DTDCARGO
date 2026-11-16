@@ -6,6 +6,8 @@
  * igual, pero la lista solo se pide si quien llama es admin del tenant (el cliente admin ni se crea
  * si no) y siempre filtrada por el `tenant_id` de quien pide: `listMembers` lo exige.
  */
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { listMembers } from "@/lib/studio/user-queries";
