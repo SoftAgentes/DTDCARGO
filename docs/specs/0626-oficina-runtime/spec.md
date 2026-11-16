@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.4 (Paso 3a: despachador mínimo, el agente redacta y no envía; decisiones D1 a D6 de Sam) · 16/11/2026**
+**Versión 0.5 (Paso 3b: la revisión de Sam y el envío desde el ERP; D2 y D4) · 16/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -53,7 +53,7 @@ usa este mapa.
 | Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | construido (migración 0544) |
 | Paso 2b | prueba con el mensaje real del inbox de prueba, por el puente interno («Opción 3: puente») | construido y probado en staging el 16/11/2026 |
 | Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | hecho y probado en staging el 16/11/2026 (prueba E: 6 borradores, 0 envíos). Migración 0548 **aplicada** en staging (10:58:56Z) y en producción (11:54:57Z, OK de Sam al DG; md5 `ee02f470301985260fdf56a5cb232d73`). En producción sigue todo apagado y la oficina pausada |
-| Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4); más los pendientes de la revisión del DG en §3.5 | pendiente |
+| Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4); más los pendientes de la revisión del DG en §3.5 | construido (migración 0549, sin aplicar); falta la prueba F en staging |
 | Paso 4 | §3.6 · mini-vista | pendiente |
 
 **3.0 Paso 0 · Prueba de conexión (antes de todo):** antes de crear
@@ -270,6 +270,62 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   `.env.example` e `infra/dtd-cargo/.env.example`
 - esta spec, `privacidad.md`, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
 
+**Cómo se construyó el Paso 3b (D2 y D4 · AC-1 etapa 1).** Todo nace apagado y solo la bandeja de prueba (la 11).
+- **A · Revisiones (D2): `office_revisiones`** (migración **0549**, sin aplicar). Una fila por borrador con el veredicto
+  (aprobado | rechazado), las 5 casillas de eval.md (§A.7), el motivo, el revisor (`auth.uid()`) y la hora (`now()`).
+  **Solo se agregan filas** (el disparador ALWAYS `office_solo_insertar` de la 0541). Guarda la huella sha256 del
+  borrador, no su texto: el borrador se purga a los 90 días (D3) y la revisión queda para contar. No se aprueba un envío
+  con la casilla de datos inventados o la de datos personales sin marcar. **D2 reemplaza a `agent_approvals`** en AC-1 y
+  AC-7: la revisión vive en la tabla propia de la oficina.
+- **La consulta de conteo (AC-1 y AC-7): `office_conteo_revisiones(etapa)`.** La misma para las dos etapas. Cuenta por
+  conversación: correcta si todas sus revisiones de la etapa tienen las 5 casillas; con dato inventado si alguna no
+  marcó «cero datos inventados». Cumple con el mínimo (etapa 1: 10; etapa 2: 20), el 90 % correctas (9 de 10, 18 de 20)
+  y cero inventados. La etapa de cada revisión la fija `OFICINA_ETAPA` (1 por defecto). Las demás condiciones de AC-1
+  (AC-3 a AC-6) se siguen comprobando aparte; Sam firma el paso.
+- **B · La página (D4): `/studio/admin/oficina`**, solo para `is_platform_admin`: el layout corta con `notFound()` y la
+  base lo vuelve a exigir en cada función (`office_borradores_pendientes`, `office_revisar_borrador`,
+  `office_conteo_revisiones`). Muestra el borrador (o el motivo del escalado) **siempre como texto plano**, las 5
+  casillas, el motivo obligatorio (sin datos personales: la regla del cable) y los botones Aprobar y Rechazar. Rechazado
+  o escalado: la tarea termina. Aprobado: queda para el envío. **Discord** avisa «hay N pendientes» al canal de equipo
+  cuando el despachador deja un borrador; el aviso lleva el número y el enlace, nunca el texto (`MinimalAlert`, SDD-0606;
+  apagado en staging).
+- **C · El envío: `/api/cron/oficina-envio`**, cada minuto, con su interruptor `OFICINA_ENVIO_ACTIVO` (apagado por
+  defecto). Solo el ERP envía, solo lo aprobado y solo a `OFICINA_CHATWOOT_INBOX_PRUEBA`, con un token de escritura
+  propio (`OFICINA_CHATWOOT_TOKEN_ENVIO`) de un usuario agente que solo es miembro de esa bandeja (Chatwoot 4.19.1 no
+  tiene tokens con alcance: el límite es el del usuario). Por cada aprobado: la huella del texto tiene que ser la
+  aprobada; un GET comprueba la cuenta, la bandeja y que nadie haya contestado después del borrador;
+  `office_reservar_envio` mira **otra vez la pausa** y que **el borrador no cambió desde la aprobación**, y reserva el
+  envío una sola vez; recién entonces el POST del mensaje saliente y `office_cerrar_envio`. Un envío fallido o a medias
+  no se reintenta solo: como mucho una vez, nunca dos.
+- **Un solo contestador por bandeja (§3.5).** La bandeja del cable nunca puede ser una del ERP (portal, clientes,
+  leads): la configuración la anula y no hay a dónde enviar. Y si alguien ya contestó en la conversación después del
+  borrador, no se envía. El `dtd-bot` de la SDD-0618 todavía no atiende ninguna bandeja; cuando lo haga, su configuración
+  tiene que excluir la del cable.
+- **D · Pendientes del 3a.**
+  - **Enlaces:** `revisarRespuesta` escala (`enlace`) si el borrador trae una URL o un dominio que no está en el guion.
+  - **Dinero = 3 y escalado:** si un mensaje del cliente habla de dinero (cobro, pago, tarifa, reembolso…) o el evento
+    ya venía con prioridad 3, el despachador escala con prioridad 3 **sin llamar al agente** (`tema-dinero.ts`), y el
+    texto ni sale hacia el proveedor del modelo. Guiones v0.2: `derivar-equipo` ya no cubre el dinero.
+  - **Sesión de una llamada abortada:** se borra al momento y, como Hermes puede seguir escribiendo el turno después del
+    DELETE (o el DELETE puede fallar), se anota en `office_sesiones_por_borrar` y el despachador la vuelve a borrar en
+    cada tick durante 15 min, también con la oficina pausada. Ya no espera a la purga diaria de 24 h.
+- **E · Compactación semanal de `state.db`** (hallazgo 16 A, obligatoria antes de la etapa 2): en la oficina, fuera del
+  repo. Runbook §11.
+- **Sin la 0549** la página lo dice, el envío responde `sin_migracion` y el despachador sigue como en el Paso 3a (lo
+  anota una vez).
+
+**Archivos del Paso 3b (allowlist):**
+- `supabase/migrations/0549_oficina_revisiones_envio.sql`, `supabase/desarmes/0549_desarme.sql` y
+  `supabase/tests/0549_oficina_revisiones_envio.test.sql`
+- `lib/studio/oficina/` (revisiones, envío, aviso de pendientes, tema dinero; despachador, su almacén, eval automático y
+  guiones) y sus pruebas
+- `lib/studio/__tests__/oficina-revisiones.migration.test.ts` y `lib/studio/__tests__/oficina-paso3b.test.ts`
+- `app/studio/(app)/admin/oficina/` y `app/api/cron/oficina-envio/`; `app/api/cron/oficina-despachador/route.ts` (el aviso)
+- `scripts/build-crontab.mjs`, su prueba e `infra/dtd-cargo/cron/crontab`
+- `supabase/migrations-baseline.json` (la espera), `supabase/pending-migration-symbol-declarations.json`,
+  `.env.example` e `infra/dtd-cargo/.env.example`
+- esta spec, `privacidad.md`, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
+
 **Un solo contestador por bandeja.** Una bandeja de Chatwoot solo puede tener
 un contestador automático. `soporte-chatwoot` y el `dtd-bot` de la SDD-0618
 nunca comparten bandeja. Se hace cumplir en el Paso 3 del cable (§3.4 y §3.5),
@@ -323,9 +379,9 @@ de suscripción 2×día · modo degradado de dos vías.
     1. **10 conversaciones internas** del inbox de prueba atendidas de punta a
        punta.
     2. **9 o más correctas** según eval.md (§A.7), revisadas por Sam. Esa
-       revisión se anota en `agent_approvals`, igual que en la etapa 2, y el
-       conteo usa la misma consulta que AC-7. (Solo texto: se construye en el
-       Paso 3.)
+       revisión se anota en `office_revisiones` (D2; antes `agent_approvals`),
+       igual que en la etapa 2, y el conteo usa la misma consulta que AC-7
+       (`office_conteo_revisiones`, Paso 3b).
     3. **Cero datos inventados.**
     4. **Simulacro de `office_paused` superado** (AC-3) y **dedupe superado**
        (AC-4).
@@ -335,7 +391,7 @@ de suscripción 2×día · modo degradado de dos vías.
 
     Sam firma el paso. Si falla una, no se pasa.
   - **Etapa 2 · Redacta, Sam aprueba:** el agente redacta y Sam aprueba cada
-    respuesta antes de enviarla, vía `agent_approvals`. Sin aprobación no se
+    respuesta antes de enviarla, vía `office_revisiones` (D2). Sin aprobación no se
     envía nada.
   - **Etapa 3 · Responde solo:** el agente responde sin aprobación previa,
     únicamente con guiones aprobados y solo después de pasar la regla de
@@ -353,7 +409,7 @@ de suscripción 2×día · modo degradado de dos vías.
   etapa 3 hacen falta, todas a la vez:
   1. **20 conversaciones** atendidas en la etapa 2.
   2. **90 % correctas** (18 de 20 o más). Correcta = cumple eval.md (§A.7)
-     según la revisión de Sam en `agent_approvals`.
+     según la revisión de Sam en `office_revisiones` (D2).
   3. **Cero datos inventados:** ningún estado de envío, cifra ni promesa que
      no salga de un guión aprobado o del sistema.
   4. **Gasto dentro del tope de $15/mes**, medido en `task_events.costo_usd`.
@@ -373,8 +429,9 @@ de suscripción 2×día · modo degradado de dos vías.
 | Despachador | prueba de caída del proceso → reinicia y retoma del último tick. **Paso 3a, en CI con el modelo simulado:** la corrida a medias se escala sin repetirse, el turno viejo bloquea hasta vencer y la tanda nueva retoma; JSON inválido y cifra inventada escalan; ninguna fila ni log guarda el texto del cliente; con el interruptor apagado o sin la 0548 no hace nada (`lib/studio/__tests__/oficina-despachador.test.ts`, contra las funciones reales de la 0548) |
 | Kill switch | drill: activar y verificar pausa + aborto en vuelo (AC-3). **Paso 3a, en CI:** con un agente lento, la llamada en vuelo se aborta en ≤ 10 s y la tarea vuelve a «listo»; la auto-pausa al 80 % con un tope de juguete pausa la oficina y nunca despausa |
 | Prueba real | AC-1 (etapas 1 y 2) y AC-2..AC-6 con Sam presente |
-| Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `agent_approvals`, contada con la consulta de AC-7), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
-| Paso a etapa 3 | AC-7: conteo de las 20 conversaciones en `agent_approvals` y `task_events`; Sam firma el paso |
+| Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `office_revisiones`, contada con `office_conteo_revisiones`, la misma consulta de AC-7), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
+| Paso a etapa 3 | AC-7: conteo de las 20 conversaciones con `office_conteo_revisiones(2)` y `task_events`; Sam firma el paso |
+| Envío (Paso 3b) | **En CI con dobles:** sin aprobación no sale nada; con la oficina pausada, una huella cambiada, otra bandeja o una conversación ya contestada, no se envía; un borrador sale una sola vez; 3 conversaciones con 2 aprobadas y 1 rechazada dan 2 salientes en la bandeja 11 (`lib/studio/__tests__/oficina-paso3b.test.ts`). **Prueba F en staging (con OK de Sam):** lo mismo con Chatwoot real; 0 salientes en las demás bandejas |
 
 ## 10 · Riesgos y qué NO es
 
@@ -410,6 +467,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.5 | 16/11/2026 | **Paso 3b** (pedido de Hermes «PASO 3b», tras la #598): cómo se construyó y allowlist en §3.5 (migración 0549, sin aplicar): `office_revisiones` (D2, solo agregar), la consulta de conteo de AC-1 y AC-7, la página solo para `is_platform_admin` con el texto plano (D4), el aviso de Discord sin texto, el envío desde el ERP (`OFICINA_ENVIO_ACTIVO`, solo la bandeja de prueba, otra vez la pausa y la huella) y los pendientes del 3a (enlaces, dinero = 3 y escalado sin llamar al agente, sesión abortada borrada al momento). AC-1, AC-7 y §9: `agent_approvals` → `office_revisiones` (D2); fila «Envío» en §9. `privacidad.md`: hallazgos 19 y 20 |
 | 0.4 | 16/11/2026 | **Paso 3a** (Sam: «Sí a todo» a D1–D6 y «Sí, lánzalo», 16/11/2026): decisiones D1 a D6 en §3.5; el mapa de pasos parte el Paso 3 en 3a y 3b (D6); cómo se construyó §3.4 y §3.5 y su allowlist (migración 0548, sin aplicar); filas Despachador y Kill switch de §9 con lo probado en CI; Anexo A sin herramientas (ficha 0.2). `privacidad.md`: hallazgos 12 (el borrador) y 13 (los mensajes salen hacia los cerebros: dónde, cuánto tiempo y qué guarda Hermes) |
 | 0.3.2 | 16/11/2026 | **Paso 2b con la «Opción 3: puente»** (Sam, 15/11/2026): mapa de pasos, cómo se construyó, allowlist del Paso 2b (`infra/ops/cable-oficina/puente-prueba.*` y `infra/ops/tests/cable-oficina-puente.test.mjs`) y su fila en §9. La entrada real del webhook desde fuera queda NO VERIFICADA. Prueba en staging el 16/11/2026 de 01:26 a 01:29Z (cuenta 2 reactivada y vuelta a suspender, token del puente rotado). `privacidad.md`: hallazgo 11, el puente |
 | 0.3.1 | 15/11/2026 | Encabezado: aprobada para construir §3.2 y §3.3, con el OK de Sam al cable del 14/11/2026 y su «Sí, las dos» del 15/11/2026 al lanzar el Paso 2 v2. **Mapa de pasos** al inicio de §3 (Paso 0 = §3.0 · Paso 1 = §3.1 · Paso 2 = §3.2 y §3.3 · Paso 3 = §3.4 y §3.5 · Paso 4 = §3.6) y menciones sueltas corregidas. **AC-1, condición 6:** pasa a «AC-5 completo: gasto visible por corrida y simulacro de auto-pausa al 80 % superado, con un tope de prueba». **AC-1, condición 2:** la revisión de Sam de las 10 conversaciones se anota en `agent_approvals`, igual que en la etapa 2, con la misma consulta de conteo que AC-7 (solo texto; se construye en el Paso 3). Cómo se construyen §3.2 y §3.3 y allowlist del Paso 2 (migración 0544 para la cuota) |

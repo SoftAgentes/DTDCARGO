@@ -60,6 +60,11 @@ export interface AlmacenDespachador {
   anotar(paso: PasoDeBitacora): Promise<void>;
   entregar(entrega: Entrega): Promise<boolean>;
   soltar(taskId: string, runId: string, resumen: string): Promise<boolean>;
+  // Paso 3b (0549). Opcionales: sin la 0549 lanzan SinMigracion y el despachador sigue como en el 3a.
+  anotarSesionPorBorrar?(sesionId: string, minutos: number): Promise<void>;
+  sesionesPorBorrar?(): Promise<Array<{ sesionId: string; vencida: boolean }>>;
+  quitarSesionPorBorrar?(sesionId: string): Promise<boolean>;
+  contarPendientes?(): Promise<number>;
 }
 
 type ErrorPg = { code?: string | null } | null;
@@ -147,5 +152,16 @@ export function crearAlmacenDespachador(admin: SupabaseClient): AlmacenDespachad
         p_resumen: e.resumen,
       }),
     soltar: (taskId, runId, resumen) => rpc<boolean>("office_soltar_corrida", { p_tarea: taskId, p_run: runId, p_resumen: resumen }),
+    async anotarSesionPorBorrar(sesionId, minutos) {
+      await rpc<null>("office_anotar_sesion_por_borrar", { p_sesion: sesionId, p_minutos: minutos });
+    },
+    async sesionesPorBorrar() {
+      const filas = await rpc<Array<Record<string, unknown>> | null>("office_sesiones_por_borrar", {});
+      return (filas ?? [])
+        .filter((f) => typeof f.sesion_id === "string")
+        .map((f) => ({ sesionId: f.sesion_id as string, vencida: f.vencida === true }));
+    },
+    quitarSesionPorBorrar: (sesionId) => rpc<boolean>("office_quitar_sesion_por_borrar", { p_sesion: sesionId }),
+    contarPendientes: async () => Number((await rpc<number>("office_pendientes_conteo", {})) ?? 0),
   };
 }

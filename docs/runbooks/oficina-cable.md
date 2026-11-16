@@ -1,4 +1,4 @@
-# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2 y 3a)
+# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2, 3a y 3b)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
@@ -315,7 +315,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 - El despachador usa una sesión propia por llamada (`cable-<run>-<intento>`) y la borra al terminar.
 - El timer `hermes-soporte-purga` (§2) borra lo que haya quedado con más de 24 h. **Máximo en disco: 48 h.**
 - La copia previa a `hermes update` está apagada en el perfil (`updates.pre_update_backup: "off"`).
-- Pendiente de decisión de Sam: los bytes borrados quedan en páginas libres de SQLite hasta un `VACUUM` (privacidad.md, hallazgo 16).
+- Los bytes borrados quedan en páginas libres de SQLite hasta un `VACUUM`: desde el 16/11/2026 hay una compactación semanal (§11; privacidad.md, hallazgo 16).
 - Lo demás está en [privacidad.md](../specs/0626-oficina-runtime/privacidad.md), hallazgo 13.
 
 ### Llaves del agente (D5)
@@ -329,5 +329,68 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 
 ### Lo que este paso NO hace
 
-- No envía nada a Chatwoot. No tiene página de aprobación (Paso 3b, D2 y D4).
-- La prueba con el modelo real en staging (sección E del pedido) todavía no se hizo.
+- No envía nada a Chatwoot. La página de aprobación y el envío son del Paso 3b (§11).
+- La prueba con el modelo real en staging (sección E del pedido) se hizo el 16/11/2026 (spec §3.5).
+
+## 11 · Paso 3b: la revisión de Sam y el envío (SDD-0626 D2 y D4 · AC-1 etapa 1)
+
+**Qué hace.** El despachador deja cada borrador en «aprobación» y avisa a Discord «hay N pendientes» (solo el número).
+Sam revisa en **`/studio/admin/oficina`** (solo `is_platform_admin`): ve el borrador en texto plano, marca las 5 casillas
+de eval.md, escribe el motivo y aprueba o rechaza. Lo aprobado lo envía **`/api/cron/oficina-envio`** (cada minuto),
+solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 3b».
+
+### Las variables (solo en el `.env` del entorno; nombres en `.env.example`, sin valores)
+
+| Variable | Para qué |
+|---|---|
+| `OFICINA_ENVIO_ACTIVO` | El interruptor del envío. Solo `1` o `true` enciende; vacío = apagado. Independiente del despachador |
+| `OFICINA_CHATWOOT_TOKEN_ENVIO` | Token de **escritura** de un usuario agente de Chatwoot que solo es miembro de la bandeja de prueba. Chatwoot 4.19.1 no tiene tokens con alcance: el límite es el del usuario |
+| `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la única bandeja a la que se envía (las del webhook). Si la bandeja coincide con una del ERP (portal, clientes, leads), no hay a dónde enviar |
+| `OFICINA_ETAPA` | La etapa de AC-1 en la que se cuentan las revisiones (1 por defecto). 2 solo cuando Sam firme el paso |
+| `DISCORD_TENANT_ID` y `DISCORD_WEBHOOK_EQUIPO` | El aviso «hay N pendientes» (SDD-0606). En staging Discord está apagado |
+
+### Requisitos para encenderlo (con OK de Sam y aviso al DG)
+
+1. La migración **0549** aplicada en esa base (sin ella el envío responde `sin_migracion` y la página lo dice).
+2. Lo del Paso 3a encendido (§10) para que haya borradores.
+3. El token de escritura en el `.env` sin pasar por el chat; recrear el web; después `OFICINA_ENVIO_ACTIVO=1`.
+
+### Qué revisar
+
+- `office_revisiones`: una fila por borrador revisado (veredicto, 5 casillas, motivo, revisor, hora). Solo se agregan filas.
+- `office_envios`: `enviando` → `enviado` (con el id del mensaje de Chatwoot) o `fallido`; `bloqueado` si la huella cambió.
+  Un envío `fallido` o que quedó en `enviando` **no se reintenta solo**: lo mira Sam.
+- `task_events`: `revision.aprobada` / `revision.rechazada` (actor `persona:<uuid>`), `envio.reservado`, `envio.hecho`,
+  `envio.fallido`, `envio.bloqueado`.
+- El conteo de AC-1 (y AC-7): `office_conteo_revisiones(1)` desde la página, o en la base como el dueño.
+- En los logs del web solo aparecen códigos (`[oficina-envio] …`), nunca el texto.
+
+### Cómo se apaga
+
+- **Pausa:** `office_cambiar_pausa(true, motivo)`. El envío la mira antes de cada mensaje y otra vez dentro de la reserva.
+- **Apagado:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el web. Lo aprobado queda esperando; no se pierde ni se manda luego
+  sin que alguien lo encienda.
+
+### Sesiones de una llamada abortada
+
+Si la pausa o el tope de tiempo abortan una llamada (o el `DELETE` falla), el despachador anota la sesión en
+`office_sesiones_por_borrar` y la vuelve a borrar en cada tick durante 15 min, también con la oficina pausada. La purga
+diaria de la oficina sigue como red de seguridad.
+
+### Compactación semanal del `state.db` (E · hallazgo 16 A, obligatoria antes de la etapa 2)
+
+| Pieza (VPS Oficina) | Detalle |
+|---|---|
+| `/usr/local/libexec/hermes-soporte-compactar.sh` | root 755. Para `hermes-gateway-soporte-chatwoot`, corre `hermes sessions optimize` (FTS merge + VACUUM) como `agentes-soporte`, vacía el WAL (`wal_checkpoint(TRUNCATE)`) y arranca el gateway **siempre** (trap), esperando a que escuche en `127.0.0.1:8642`. Solo imprime tamaños y conteos |
+| `hermes-soporte-compactar.service` / `.timer` | root, oneshot. **Domingos 05:10 UTC**, `Persistent=true` (después de la purga diaria de las 04:40) |
+| Ventana | unos 10 s sin agente. Si el despachador está encendido en ese momento, la corrida escala por `runtime:red` |
+| Reversión | `/srv/oficina/backups/compactar-soporte-20261116T123857Z/REVERTIR.txt` |
+
+Probado el 2026-11-16 a las 12:39Z: `state.db` de 0,6 a 0,5 MB, 0 páginas libres y WAL en 0; los restos de la marca de
+la prueba E (hallazgo 18) pasaron de 1 a 0; el gateway volvió y `GET /v1/models` responde 200 con su llave y 401 sin ella.
+
+### Lo que este paso NO hace
+
+- No sube a la etapa 2: eso lo firma Sam con el conteo y las demás condiciones de AC-1.
+- No reintenta un envío fallido ni manda a otra bandeja que no sea la de prueba.
+- La prueba F en staging (3 conversaciones; Sam aprueba 2 y rechaza 1) todavía no se hizo: necesita el OK de Sam.
