@@ -56,6 +56,8 @@ import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
 import { createAccessLink } from "@/lib/studio/portal/access-link";
 import { toWhatsAppRaw } from "@/lib/portal/portal-types";
+import { generateRegistroToken, hashRegistroToken } from "@/lib/portal/registro-link";
+import { registroLinkUrl } from "@/lib/portal/registro-link-types";
 import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
 import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
 import { identityResetOnChange } from "@/lib/studio/identity/reset-on-change";
@@ -133,7 +135,52 @@ export async function createClientAction(
 
   let markbox: string;
 
-  if (aliadoId) {
+  // SDD-0646: el equipo puede escribir el código real del cliente (el viejo de
+  // siempre, si no tiene ficha). Mismo formato que el renombrado; las guardas de
+  // aliados e insignias las aplica el trigger de `clients` al insertar, y el de
+  // la 0552 rechaza un código retirado.
+  const markboxManualRaw = String(formData.get("markbox") ?? "").trim();
+  if (markboxManualRaw) {
+    const parsed = validateNuevoMarkbox(markboxManualRaw, "");
+    if (parsed.error) return { fieldErrors: { markbox: parsed.error } };
+    const manual = parsed.value!;
+
+    // Mensaje útil antes del candado: si es el código viejo de una ficha que ya
+    // existe, lo que corresponde es recuperarlo en esa ficha, no crear otra.
+    const { data: retirado } = await supabase
+      .from("client_markbox_history")
+      .select("client_id")
+      .ilike("markbox", manual.replace(/[\\%_]/g, "\\$&"))
+      .limit(1)
+      .maybeSingle<{ client_id: string }>();
+    if (retirado) {
+      const { data: dueno } = await supabase
+        .from("clients")
+        .select("markbox")
+        .eq("id", retirado.client_id)
+        .maybeSingle<{ markbox: string }>();
+      return {
+        fieldErrors: {
+          markbox: dueno?.markbox
+            ? `Ese es el código viejo de la ficha ${dueno.markbox}. Ábrela y recupéralo con «Cambiar Shipping Mark» en vez de crear otra ficha.`
+            : "Ese Shipping Mark ya lo tuvo otro cliente y quedó reservado.",
+        },
+      };
+    }
+    if (aliadoId) {
+      const { data: aliadoRow } = await supabase
+        .from("aliados")
+        .select("status")
+        .eq("id", aliadoId)
+        .is("deleted_at", null)
+        .maybeSingle<{ status: string }>();
+      if (!aliadoRow) return { error: "Ese aliado no existe o no está disponible." };
+      if (aliadoRow.status !== "activo") {
+        return { error: "Ese aliado no está activo: no se le pueden dar de alta clientes nuevos." };
+      }
+    }
+    markbox = manual;
+  } else if (aliadoId) {
     // Se lee el prefijo del aliado para poder verificar el código emitido contra
     // el aliado que el usuario eligió (y no sólo contra "parece un código").
     const { data: aliadoRow } = await supabase
@@ -210,6 +257,16 @@ export async function createClientAction(
     // reportaba al usuario como documento duplicado y lo mandaba a buscar una
     // ficha que no existe. Se distinguen por el nombre del constraint.
     if (error.code === "23505") {
+      // SDD-0646 · con el código escrito a mano, el choque no es una carrera:
+      // el código ya es de otra ficha o está retirado (trigger de la 0552).
+      if (markboxManualRaw && /clients_tenant_id_markbox_key/.test(error.message)) {
+        return { fieldErrors: { markbox: "Ese Shipping Mark ya es de otro cliente." } };
+      }
+      if (/retirado/i.test(error.message)) {
+        return {
+          fieldErrors: { markbox: "Ese Shipping Mark ya lo tuvo otro cliente y quedó reservado." },
+        };
+      }
       if (/clients_tenant_id_markbox_key/.test(error.message)) {
         return {
           error: "Dos altas tomaron el mismo Shipping Mark al mismo tiempo. Intenta otra vez — el código siguiente ya está libre.",
@@ -611,6 +668,86 @@ export async function portalAccessLinkAction(
     whatsappRaw: toWhatsAppRaw(client.phone),
     name: client.name,
   };
+}
+
+/**
+ * Link de registro para un cliente que ya tiene ficha y no tiene portal
+ * (SDD-0646): los clientes del legado, casi todos sin correo. El asesor lo manda
+ * por WhatsApp; el cliente completa SU ficha con su código fijo y queda dentro.
+ *
+ * El token sale de acá (256 bits) y a la base va SOLO su sha256. La URL no lleva
+ * el Shipping Mark. La RPC revoca el link anterior, exige rol y tenant, y rechaza
+ * al cliente que ya tiene acceso activo.
+ */
+export async function registrationLinkAction(
+  clientId: string,
+): Promise<
+  | { ok: true; link: string; whatsappRaw: string | null; name: string | null; expiresAt: string }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { ok: false, error: denial };
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("name, phone")
+    .eq("id", clientId)
+    .maybeSingle<{ name: string | null; phone: string | null }>();
+  if (!client) return { ok: false, error: "No se encontró ese cliente." };
+
+  const token = generateRegistroToken();
+  const { data, error } = await supabase.rpc("portal_registration_link_create", {
+    p_client_id: clientId,
+    p_token_hash: hashRegistroToken(token),
+  });
+
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") {
+      return { ok: false, error: "Esta acción todavía no está disponible." };
+    }
+    if (error.code === "42501") {
+      return { ok: false, error: "No tienes permiso para generar el link de registro." };
+    }
+    if (/ya tiene acceso/i.test(error.message)) {
+      return { ok: false, error: "Este cliente ya tiene acceso al portal." };
+    }
+    return { ok: false, error: "No se pudo generar el link. Intenta de nuevo." };
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as { expires_at?: string } | null;
+  return {
+    ok: true,
+    link: registroLinkUrl(token),
+    whatsappRaw: toWhatsAppRaw(client.phone),
+    name: client.name,
+    expiresAt: row?.expires_at ?? "",
+  };
+}
+
+/**
+ * «Marcar comprobado» en «Registros por link» (SDD-0646). La RPC exige rol y
+ * tenant y sólo acepta un link ya usado.
+ */
+export async function markRegistrationReviewedAction(
+  linkId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const { error } = await supabase.rpc("portal_registration_link_mark_reviewed", {
+    p_link_id: linkId,
+  });
+  if (error) {
+    if (error.code === "42501") return { error: "No tienes permiso para marcarlo." };
+    return { error: "No se pudo marcar como comprobado." };
+  }
+
+  revalidatePath("/studio/clientes/registros-link");
+  return { ok: true };
 }
 
 export async function revokePortalAction(
@@ -1144,7 +1281,9 @@ export async function renombrarMarkboxAction(
 function mensajeDeErrorRenombrado(error: { code?: string; message: string }): string {
   if (error.code === "23505") {
     if (/retirado/i.test(error.message)) {
-      return "Ese Shipping Mark ya lo tuvo alguien y quedó reservado para él. Un código retirado no se reutiliza nunca: si se reasignara, la carga rotulada con ese código llegaría a la ficha equivocada.";
+      // SDD-0646: el retirado de ESTA ficha sí se recupera; este error sólo sale
+      // cuando el código lo tuvo OTRO cliente.
+      return "Ese Shipping Mark lo tuvo otro cliente y quedó reservado para él. Un código retirado sólo vuelve a la ficha que lo tuvo: si se reasignara, la carga rotulada con ese código llegaría a la ficha equivocada.";
     }
     return "Ese Shipping Mark ya es de otro cliente.";
   }
