@@ -366,9 +366,62 @@ Allowlist exacta de P1:
 Sin migraciones: la tabla de workspaces es la 0457, que ya está en main. No se encienden banderas
 (`DOCUMENT_IMPORT_ENABLED` y `DOCUMENT_IMPORT_PORTAL_ENABLED` siguen como estén).
 
-### P2 · interfaz (pendiente, depende de P1)
+### P2 · interfaz (apilada sobre P1)
 
-P2 toca el portal de compras (documento, etiquetas y compra nueva), la página del proveedor
-`/p/[token]`, el cotizador y `components/document-import`, sin `qa_glm_*`. Su allowlist exacta va
-en su propia sección cuando abra la PR. P2 mueve packing lists y facturas entre el cliente
-y el proveedor, por eso pasa por `.claude/skills/revisar-datos-ve/SKILL.md`.
+P2 lleva la interfaz al contrato de P1. Las dos se revisan por separado y entran juntas:
+P2 se fusiona en la rama de P1 y después P1 entra a main, así main nunca queda con
+la API nueva y la interfaz vieja.
+
+- **Cotizador y calculadora:** mandan `expectedRevisions` y comprueban `documentRevisions`.
+  Las baterías y la carga especial se leen de las declaraciones guardadas en el documento.
+  Al guardar se manda `documentEdit`, solo con las ediciones de negocio, y se adopta el workspace del recibo.
+- **Portal de compras:** el documento compartido reemplaza la precarga local en las compras
+  gestionadas. Las descargas en PDF y XLSX van ligadas a la revisión. Las etiquetas finales
+  exigen una revisión confirmada.
+- **Proveedor (`/p/[token]`):** abre la revisión compartida, corrige peso bruto y CBM, confirma
+  y descarga. Ve la proyección `projectSupplierDocument`: sin fuentes, decisiones ni mensajes privados.
+- **Sin GLM:** no entran los mensajes `qa_glm_*`. Los tests usan un texto de divulgación neutral.
+
+Revisión `revisar-datos-ve` (2026-11-16, lectura de código, inventario técnico, no asesoría legal):
+- **Correctos:** la proyección al proveedor (`sources` vacío, `issues` genéricos, sin `fieldDecisions`),
+  el control de acceso por token y por dueño, `Cache-Control: private, no-store` en descargas,
+  logs sin datos, y el PDF y el QR renderizados en local, sin terceros nuevos.
+- **Abiertos:** el plazo de retención de los workspaces ligados a compra (la 0457 los guarda sin
+  `expires_at`), la purga de los anónimos vencidos y la fila del registro de tratamiento.
+  Vienen de la 0457 y ya están en main; quedan como pendientes del handoff de P2.
+
+Allowlist exacta de P2:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-p2-interfaz-20261116.md`
+- `app/cotizador/CotizadorClient.tsx`
+- `app/cotizador/cotizador.test.tsx`
+- `app/p/[token]/ProviderShareClient.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SupplierUploadSection.test.tsx`
+- `app/p/[token]/SupplierUploadSection.tsx`
+- `app/p/[token]/page.shared-document.test.tsx`
+- `app/p/[token]/page.tsx`
+- `app/portal/(app)/compras/[code]/_components/PackingListDelProveedor.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.test.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.test.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/page.tsx`
+- `app/portal/(app)/compras/[code]/page.test.tsx`
+- `app/portal/(app)/compras/[code]/page.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.test.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.tsx`
+- `app/portal/_components/ShareProviderButton.tsx`
+- `components/document-import/DocumentCalculator.test.tsx`
+- `components/document-import/DocumentCalculator.tsx`
+- `components/document-import/DocumentEditor.test.tsx`
+- `components/document-import/DocumentEditor.tsx`
+- `components/document-import/DocumentImportEntry.test.tsx`
+- `components/document-import/DocumentImportEntry.tsx`
+- `components/document-import/DocumentImportPanel.test.tsx`
+- `components/document-import/DocumentImportPanel.tsx`
+- `components/document-import/document-client.test.ts`
+- `components/document-import/document-client.ts`
+- `components/document-import/document-import.module.css`

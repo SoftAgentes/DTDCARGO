@@ -33,7 +33,7 @@
  * `@/lib/shared/*` y tokens de marca; nada de `lib/studio`, `lib/db` ni Supabase.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { computeDocumentTotals, type DocumentDraft } from "@/lib/shared/document-import";
 import { DocumentCalculator } from "@/components/document-import/DocumentCalculator";
@@ -41,6 +41,8 @@ import { DocumentEditor } from "@/components/document-import/DocumentEditor";
 import { DocumentImportPanel } from "@/components/document-import/DocumentImportPanel";
 import {
   createDocumentClient,
+  documentEdit,
+  receiptWorkspace,
   DocumentRequestError,
   type DocumentClient,
   type DocumentReceipt,
@@ -84,6 +86,9 @@ export function CotizadorClient({
   pollMs?: number;
 }) {
   const [base] = useState<DocumentClient>(() => client ?? createDocumentClient());
+  const mounted = useRef(true), generation = useRef(0), dirty = useRef(false);
+  const command = useRef<{key:string;id:string}|null>(null);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; }; }, []);
   const [ws, setWs] = useState<DocumentWorkspace | null>(null);
   const [draft, setDraft] = useState<DocumentDraft | null>(null);
   // Un workspace recién abierto NO es un documento: llega vacío. Esto se
@@ -121,6 +126,7 @@ export function CotizadorClient({
   }, [base]);
 
   function aplicar(next: DocumentWorkspace) {
+    generation.current++; dirty.current = false;
     setWs(next);
     setDraft(next.draft);
     setSucio(false);
@@ -134,15 +140,17 @@ export function CotizadorClient({
    * relee el workspace en vez de vaciarla.
    */
   function adoptar(next: DocumentWorkspace) {
+    if (dirty.current) { setAviso("El documento cambió mientras editabas. Tus correcciones siguen en pantalla; guarda o vuelve a consultar la revisión compartida."); return; }
     if (next && typeof next.id === "string" && next.draft) {
       aplicar(next);
       return;
     }
     const id = ws?.id;
     if (!id) return;
+    const requestedGeneration = generation.current;
     void transport
       .get<{ workspace: DocumentWorkspace }>("workspace", { workspaceId: id })
-      .then(({ workspace }) => aplicar(workspace))
+      .then(({ workspace }) => { if (mounted.current && generation.current === requestedGeneration && !dirty.current) aplicar(workspace); })
       .catch(() =>
         setAviso(
           "Aplicamos lo que leímos, pero no pudimos recargar el documento. Vuelve a abrir la página para verlo.",
@@ -151,22 +159,25 @@ export function CotizadorClient({
   }
 
   async function guardar(): Promise<boolean> {
-    if (!ws || !draft) return false;
+    if (!ws || !draft || guardando) return false;
     setGuardando(true);
     setAviso(null);
+    const requestedGeneration = generation.current;
+    const key = JSON.stringify([ws.id, ws.revision, draft]);
+    if(command.current?.key!==key) command.current={key,id:transport.id()};
     try {
-      // El servidor responde un recibo, no el workspace: de ahí sale la revisión
-      // nueva y en pantalla queda el borrador que acabamos de mandar.
       const recibo = await transport.post<DocumentReceipt>("save", {
         workspaceId: ws.id,
-        draft,
+        draft: documentEdit(draft),
         expectedRevision: ws.revision,
-        commandId: transport.id(),
+        commandId: command.current.id,
       });
-      setWs({ ...ws, revision: recibo.revision });
-      setSucio(false);
+      if (!mounted.current || generation.current !== requestedGeneration) return false;
+      aplicar(receiptWorkspace(recibo, ws.id));
+      command.current=null;
       return true;
     } catch (error) {
+      if (!mounted.current || generation.current !== requestedGeneration) return false;
       setAviso(
         error instanceof DocumentRequestError && error.status === 409
           ? "Este documento cambió en otra pestaña. Lo que escribiste sigue en pantalla: vuelve a abrir la página para ver la versión guardada antes de continuar."
@@ -174,7 +185,7 @@ export function CotizadorClient({
       );
       return false;
     } finally {
-      setGuardando(false);
+      if (mounted.current) setGuardando(false);
     }
   }
 
@@ -275,6 +286,7 @@ export function CotizadorClient({
           <DocumentEditor
             draft={draft}
             onChange={(next) => {
+              generation.current++; dirty.current = true;
               setDraft(next);
               setSucio(true);
             }}
@@ -318,7 +330,7 @@ export function CotizadorClient({
       {paso === "cotizar" && ws && (
         <section className={s.stack} aria-label="Precio del transporte">
           <DocumentCalculator
-            workspaceIds={[ws.id]}
+            workspaces={[ws]}
             locale="es"
             client={transport}
             merchandise={merchandise}

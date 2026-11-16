@@ -29,6 +29,7 @@ import { PortalNotificationHistory } from "../../../_components/PortalNotificati
 import { PrealertaStatusBadge } from "../../../_components/PrealertaStatusBadge";
 import { PortalTrackingEnConstruccion } from "../../../_components/PortalTrackingEnConstruccion";
 import { PackingListDelProveedor } from "./_components/PackingListDelProveedor";
+import { DocumentImportEntry } from "@/components/document-import/DocumentImportEntry";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -139,7 +140,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
     <div>
       <Link
         href="/portal/compras"
-        className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-grey-500 hover:text-ink transition-colors"
+        className="inline-flex min-h-12 items-center gap-2 text-base font-semibold text-grey-700 hover:text-ink transition-colors"
       >
         <ArrowIcon size={15} className="rotate-180" /> Volver a mis compras
       </Link>
@@ -156,11 +157,15 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
           >
             {prealerta.code}
           </div>
-          <p className="mt-3 text-[15px] text-grey-700 max-w-[60ch] leading-[1.55]">
+          <p className="mt-3 text-base text-grey-700 max-w-prose leading-relaxed">
             {prealerta.description}
           </p>
         </div>
         <PrealertaStatusBadge status={prealerta.status} />
+      </div>
+
+      <div className="mt-6">
+        <DocumentImportEntry purchaseCode={prealerta.code} reviewHref={`/portal/compras/${encodeURIComponent(prealerta.code)}/documento`} presentation="overview" />
       </div>
 
       {/* SDD-0514 · la bodega de China todavía registra en Excel, así que la
@@ -181,7 +186,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 lg:gap-8 items-start">
         {/* Recepciones en bodega */}
         <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-          <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          <h2 className="text-xl sm:text-2xl font-bold text-ink">
             Recepción en bodega (China)
           </h2>
 
@@ -318,7 +323,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
 
         {/* Lo que el cliente declaró */}
         <div className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-6 sm:p-8">
-          <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          <h2 className="text-xl sm:text-2xl font-bold text-ink">
             Lo que registraste
           </h2>
 
@@ -333,10 +338,10 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
                 background: "var(--color-paper)",
               }}
             >
-              <div className="text-[13px] font-bold text-ink">
+              <div className="text-base font-bold text-ink">
                 Te falta el detalle de esta compra.
               </div>
-              <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
+              <p className="mt-2 text-base text-grey-700 leading-relaxed">
                 Cuéntanos qué traes, cuántas cajas y su valor. Nos ayuda a
                 recibirla más rápido — y te queda de recordatorio.
               </p>
@@ -454,13 +459,13 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
 function EsperandoPackingList({ code }: { code: string }) {
   return (
     <section className="mt-6 rounded-[18px] border border-dashed border-grey-300 p-6 sm:p-8">
-      <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
-        Packing list del proveedor
+      <h2 className="text-2xl font-bold text-ink">
+        Packing List + Factura del proveedor
       </h2>
-      <p className="mt-3 text-[14px] text-grey-700 max-w-[62ch] leading-[1.55]">
-        Tu proveedor todavía no ha enviado el packing list de esta compra.
-        Cuando lo llene, acá vas a ver el detalle línea por línea: qué despachó,
-        cuántas cajas, cuánto pesa y cuánto mide.
+      <p className="mt-3 text-base text-grey-700 max-w-prose leading-relaxed">
+        Tu proveedor todavía no ha confirmado el documento de esta compra.
+        Cuando lo envíe, verás aquí los productos, las cajas, el peso y el CBM
+        de lo que despachó.
       </p>
       <Link
         href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
