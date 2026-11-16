@@ -78,6 +78,9 @@ describe("ReassignClientPanel", () => {
     expect(dialogo.textContent).toContain("1 recepción del Almacén CN (5 cajas), 1 factura en borrador");
     expect(dialogo.textContent).toContain("DTD-0000 dejará de verlo en el Portal y DTD-1001 lo verá");
 
+    // El motivo queda en la bitácora: se avisa que no lleve datos personales.
+    expect(within(dialogo).getByLabelText("Motivo")).toHaveAccessibleDescription(/no escribas datos personales/);
+
     const confirmar = within(dialogo).getByRole("button", { name: "Pasar a DTD-1001" });
     expect(confirmar).toBeDisabled();
     await user.type(within(dialogo).getByLabelText("Motivo"), "abc");

@@ -202,7 +202,8 @@ El Subdirector Portal se las hace **una por una**:
      seguir.
   2. Al elegirlo, la **vista previa** (`p_dry_run`): «Se moverán: N recepciones del Almacén CN, la factura en borrador,
      N líneas de consolidación, N documentos y N avisos pendientes», o los bloqueos con su motivo en texto llano.
-  3. **Motivo** (4 a 1000 caracteres) con contador.
+  3. **Motivo** (4 a 1000 caracteres) con contador y el aviso «no escribas datos personales (cédula, teléfono ni
+     dirección)»: el motivo es texto del equipo y queda en la bitácora (DG, 2026-11-16).
   4. Botón primario **«Pasar a DTD-1234»** (con el Shipping Mark nuevo), deshabilitado sin cliente, sin motivo o con
      bloqueos. Texto de confirmación sobre el botón: «El cliente actual dejará de verlo en el Portal y DTD-1234 lo verá».
 - Al terminar: toast «Embarque pasado a DTD-1234» y se refresca la página.
