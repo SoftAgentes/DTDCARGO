@@ -7,5 +7,27 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0546-purga-actor-id-noticias",
+      "migration": "0546_noticias_purga_actor_id",
+      "primarySymbol": "news_purgar_actor_id",
+      "symbols": [
+        {
+          "name": "news_purgar_actor_id",
+          "kind": "function",
+          "callSites": [
+            "app/api/cron/noticias-purga-actor/route.ts:41"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/api/cron/noticias-purga-actor/route.ts:43",
+          "contains": "faltaLaMigracion(error)",
+          "degradation": "Sin la 0546 PostgREST responde PGRST202 (o 42883): la purga no hace nada, devuelve «sin_migracion» y lo anota en el log. Además nace apagada (NOTICIAS_PURGA_ACTOR_ACTIVO)."
+        }
+      ]
+    }
+  ]
 }
