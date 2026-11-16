@@ -31,6 +31,11 @@ Fecha: 2026-11-16 · Rama `claude/sdd-0647-crm-segmentos` (PR #621) · Reserva `
   dentro de la cadena. Corregido con `
 `; vitest local NO EJECUTADO, porque el turno de PC era de otro
   Worker. Sí corrió `pnpm install` en este worktree, antes de que el DG retirara el turno.
+- CI de 44837fcf8: 18 906 pruebas pasaron y 2 fallaron en la prueba de la 0553. Faltaba subir el conteo
+  de 14 a 16 aserciones, y la prueba PREFLIGHT caía en un insert del escenario de prueba (no en la
+  migración, que no tiene lock), porque ese insert tocaba crm_tarjetas antes de la 0553. Corregido: el
+  insert solo corre si la tabla existe. Vitest local de ese archivo con turno del DG: PASÓ, 14/14. ESLint
+  de ese archivo: PASÓ.
 - `check-pending-migration-symbols`: la medición local (0 rojo, 1 amarillo) era de la cabeza f29d95a4f, cuando el tablero llamaba a la RPC. Desde 396422331 no hay código que llame a un símbolo de la 0553 ni declaración; la medición sobre la cabeza nueva es NO EJECUTADA en local (sin turno de PC) y la hace el CI. `check-numbering`: PASÓ. Índice
   de specs regenerado.
 - `pnpm verify`: NO EJECUTADO (requiere turno del DG). Lint y tipos: los mide el CI.

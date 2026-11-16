@@ -75,7 +75,7 @@ describe("SDD-0647 · 0553 tarjetas para los clientes con carga (PGlite)", () =>
   it("el contrato pasa entero con la 0553", async () => {
     const run = await contract();
     expect(run.error).toBeNull();
-    expect(run.green).toBe("TEST 0553 GREEN: 14 aserciones");
+    expect(run.green).toBe("TEST 0553 GREEN: 16 aserciones");
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0553 la función no existe y el contrato cae", async () => {

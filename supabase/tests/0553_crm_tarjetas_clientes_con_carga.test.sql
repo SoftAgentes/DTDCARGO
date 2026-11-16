@@ -203,10 +203,18 @@ insert into public.clients (id, tenant_id, markbox, phone, merged_into_client_id
 insert into public.shipments (tenant_id, client_markbox, status, deleted_at) values
   ('10000000-0000-0000-0000-000000000001', 'DTD-1020', 'in_transit', null);
 -- La ficha 01 (cliente) ya tiene tarjeta, con actividad real; y hay un lead sin ficha.
-insert into public.crm_tarjetas (tenant_id, client_id, fuente, ultima_actividad_at) values
-  ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'web_registro', '2026-11-15 12:00:00+00');
-insert into public.crm_tarjetas (tenant_id, nombre_visible, phone_last10, fuente) values
-  ('10000000-0000-0000-0000-000000000001', 'Lead sin ficha', '4125550299', 'whatsapp_leads');
+-- Solo si la 0506 creó crm_tarjetas: así la prueba PREFLIGHT (0506 reemplazada)
+-- llega al preflight de la 0553 en vez de caer aquí.
+do $previas$
+begin
+  if to_regclass('public.crm_tarjetas') is not null then
+    insert into public.crm_tarjetas (tenant_id, client_id, fuente, ultima_actividad_at) values
+      ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'web_registro', '2026-11-15 12:00:00+00');
+    insert into public.crm_tarjetas (tenant_id, nombre_visible, phone_last10, fuente) values
+      ('10000000-0000-0000-0000-000000000001', 'Lead sin ficha', '4125550299', 'whatsapp_leads');
+  end if;
+end;
+$previas$;
 
 \ir ../migrations/0553_crm_tarjetas_clientes_con_carga.sql
 
