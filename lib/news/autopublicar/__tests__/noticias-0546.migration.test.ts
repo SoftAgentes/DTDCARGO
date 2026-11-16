@@ -184,6 +184,55 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "0546 postflight: faltan los disparadores BEFORE INSERT de la marca de purga",
   },
   {
+    nombre: "el disparador rechaza TODO INSERT (condiciones en true)",
+    sql: () =>
+      once(
+        once(
+          FILE_0546,
+          "if tg_table_name = 'news_publication_audit' and (pg_catalog.to_jsonb(new) ->> 'actor_purged_at') is not null then",
+          "if tg_table_name = 'news_publication_audit' and true then",
+        ),
+        "elsif tg_table_name = 'news_autopublish_settings_log' and (pg_catalog.to_jsonb(new) ->> 'changed_by_purged_at') is not null then",
+        "elsif tg_table_name = 'news_autopublish_settings_log' and true then",
+      ),
+    cae: "TEST 0546: N: una fila manual con uuid y sin marca entra",
+  },
+  {
+    nombre: "el disparador rechaza todo INSERT del log (solo esa condición en true)",
+    sql: () =>
+      once(
+        FILE_0546,
+        "elsif tg_table_name = 'news_autopublish_settings_log' and (pg_catalog.to_jsonb(new) ->> 'changed_by_purged_at') is not null then",
+        "elsif tg_table_name = 'news_autopublish_settings_log' and true then",
+      ),
+    cae: "TEST 0546: N: una fila del log con changed_by y sin marca entra",
+  },
+  {
+    nombre: "el disparador deja entrar la marca del log (solo esa condición apagada)",
+    sql: () =>
+      once(
+        FILE_0546,
+        "elsif tg_table_name = 'news_autopublish_settings_log' and (pg_catalog.to_jsonb(new) ->> 'changed_by_purged_at') is not null then",
+        "elsif tg_table_name = 'news_autopublish_settings_log' and false then",
+      ),
+    cae: "TEST 0546: M: una fila nueva del log no entra con marca de purga",
+  },
+  {
+    nombre: "uuid y marca pueden convivir en el log",
+    sql: () => once(FILE_0546, "changed_by_purged_at is null or changed_by is null) not valid;", "true) not valid;"),
+    cae: "TEST 0546: M: uuid y marca a la vez se rechazan (log)",
+  },
+  {
+    nombre: "la función del disparador queda con EXECUTE para todos",
+    sql: () =>
+      once(
+        FILE_0546,
+        "revoke all on function public.news_purga_marca_solo_por_purga() from public, anon, authenticated, service_role;",
+        "",
+      ),
+    cae: "0546 postflight: la función del disparador de marca tiene EXECUTE",
+  },
+  {
     nombre: "el log queda NOT NULL",
     sql: () => once(FILE_0546, "alter column changed_by drop not null;", "alter column changed_by set not null;"),
     cae: "0546 postflight: changed_by sigue NOT NULL",
@@ -233,7 +282,7 @@ describe("SDD-0611 §11.4.1 · 0546 purga de actor_id (PGlite)", () => {
   );
 
   it("hay un mutante por defecto protegido (piso)", () => {
-    expect(MUTANTES.length).toBeGreaterThanOrEqual(18);
+    expect(MUTANTES.length).toBeGreaterThanOrEqual(23);
   });
 
   it(

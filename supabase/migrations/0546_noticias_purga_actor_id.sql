@@ -237,6 +237,16 @@ begin
                            'news_autopublish_log_con_persona', 'news_autopublish_log_purga_sin_uuid')) <> 4 then
     raise exception '0546 postflight: faltan los CHECK de persona/purga (o no están validados)';
   end if;
+  if pg_catalog.has_function_privilege('anon', 'public.news_purga_marca_solo_por_purga()', 'execute')
+     or pg_catalog.has_function_privilege('authenticated', 'public.news_purga_marca_solo_por_purga()', 'execute')
+     or pg_catalog.has_function_privilege('service_role', 'public.news_purga_marca_solo_por_purga()', 'execute') then
+    raise exception '0546 postflight: la función del disparador de marca tiene EXECUTE para anon, authenticated o service_role';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_proc p
+                  where p.oid = 'public.news_purga_marca_solo_por_purga()'::pg_catalog.regprocedure
+                    and p.proconfig @> array['search_path=""']) then
+    raise exception '0546 postflight: la función del disparador de marca necesita search_path vacío';
+  end if;
   if (select pg_catalog.count(*) from pg_catalog.pg_trigger t
        where not t.tgisinternal and t.tgenabled = 'O'
          and t.tgfoid = 'public.news_purga_marca_solo_por_purga()'::pg_catalog.regprocedure

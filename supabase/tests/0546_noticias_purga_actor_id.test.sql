@@ -204,6 +204,34 @@ begin
 end;
 $$;
 
+-- Como entra(), pero devuelve el MENSAJE del error (null si la fila entra): así un rechazo se atribuye
+-- al disparador o al CHECK por su texto, no solo por el SQLSTATE (los dos son 23514).
+create function pg_temp.entra_msg(p_sql text) returns text language plpgsql as $$
+begin
+  begin
+    execute p_sql;
+    raise exception 'entro' using errcode = 'P9999';
+  exception
+    when sqlstate 'P9999' then return null;
+    when others then return sqlerrm;
+  end;
+end;
+$$;
+
+-- Corre la sentencia como un rol (service_role: la vía real de la oficina) y devuelve el mensaje de error (null si entra).
+create function pg_temp.entra_como(p_rol text, p_sql text) returns text language plpgsql as $$
+declare v text;
+begin
+  execute format('set local role %I', p_rol);
+  v := pg_temp.entra_msg(p_sql);
+  reset role;
+  return v;
+exception when others then
+  reset role;
+  raise;
+end;
+$$;
+
 do $contrato$
 declare
   t1 constant uuid := '10000000-0000-4000-8000-000000000001';
@@ -238,29 +266,69 @@ begin
     'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id)
      values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null)', t1)) = '23514',
     'M: una fila manual nueva sin uuid y sin marca se rechaza');
+
+  -- ── N · lo legítimo SIGUE entrando (sin esto, un disparador que rechaza todo INSERT pasaría en verde) ──
+  perform pg_temp.assert_true(pg_temp.entra_como('service_role', format(
+    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id)
+     values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', %L)', t1,
+    '20000000-0000-4000-8000-000000000001')) is null,
+    'N: una fila manual con uuid y sin marca entra (como service_role)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(format(
+    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id)
+     values (%L, gen_random_uuid(), ''automatica'', ''retenida'', ''{}'', null)', t1)) is null,
+    'N: una fila automática con actor_id nulo y sin marca entra');
+  perform pg_temp.assert_true(pg_temp.entra_como('service_role', format(
+    'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by)
+     values (%L, true, 1, 2, %L)', t1, '20000000-0000-4000-8000-000000000001')) is null,
+    'N: una fila del log con changed_by y sin marca entra (como service_role)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(format(
+    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id)
+     values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null)', t1)) like '%news_audit_manual_con_persona%',
+    'M: ... y lo rechaza el CHECK news_audit_manual_con_persona');
   -- Una fila nueva no entra ya «purgada»: el disparador BEFORE INSERT rechaza la marca (con o sin uuid).
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
      values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null, now())', t1)) = '23514',
     'M: una fila nueva de la auditoría no entra con marca de purga (sin uuid)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(format(
+    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
+     values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', null, now())', t1)) like '%solo lo escribe la purga%',
+    'M: ... lo rechaza el disparador, no el CHECK (auditoría)');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
      values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', %L, now())', t1,
     '20000000-0000-4000-8000-000000000001')) = '23514',
     'M: una fila nueva de la auditoría no entra con marca de purga (con uuid)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(format(
+    'insert into public.news_publication_audit (tenant_id, correlation_id, via, decision, filters, actor_id, actor_purged_at)
+     values (%L, gen_random_uuid(), ''manual'', ''retenida'', ''{}'', %L, now())', t1,
+    '20000000-0000-4000-8000-000000000001')) like '%solo lo escribe la purga%',
+    'M: ... con uuid también lo rechaza el disparador (auditoría)');
   -- El CHECK «uuid y marca a la vez» sigue vigente para un UPDATE (la purga pone las dos cosas juntas).
   perform pg_temp.assert_true(pg_temp.entra(
     'update public.news_publication_audit set actor_purged_at = now()
       where correlation_id = ''40000000-0000-4000-8000-000000000003''') = '23514',
     'M: uuid y marca de purga a la vez se rechazan (auditoría)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(
+    'update public.news_publication_audit set actor_purged_at = now()
+      where correlation_id = ''40000000-0000-4000-8000-000000000003''') like '%news_audit_purga_sin_uuid%',
+    'M: ... lo rechaza el CHECK news_audit_purga_sin_uuid (auditoría)');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by)
      values (%L, true, 1, 2, null)', t1)) = '23514',
     'M: una fila nueva del log sin uuid y sin marca se rechaza');
+  perform pg_temp.assert_true(pg_temp.entra_msg(format(
+    'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by)
+     values (%L, true, 1, 2, null)', t1)) like '%news_autopublish_log_con_persona%',
+    'M: ... y lo rechaza el CHECK news_autopublish_log_con_persona');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by, changed_by_purged_at)
      values (%L, true, 1, 2, null, now())', t1)) = '23514',
     'M: una fila nueva del log no entra con marca de purga (sin uuid)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(format(
+    'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by, changed_by_purged_at)
+     values (%L, true, 1, 2, null, now())', t1)) like '%solo lo escribe la purga%',
+    'M: ... lo rechaza el disparador, no el CHECK (log)');
   perform pg_temp.assert_true(pg_temp.entra(format(
     'insert into public.news_autopublish_settings_log (tenant_id, enabled, daily_cap, weekly_cap, changed_by, changed_by_purged_at)
      values (%L, true, 1, 2, %L, now())', t1, '20000000-0000-4000-8000-000000000001')) = '23514',
@@ -269,6 +337,10 @@ begin
     'update public.news_autopublish_settings_log set changed_by_purged_at = now()
       where changed_at = now() - interval ''11 months''') = '23514',
     'M: uuid y marca a la vez se rechazan (log)');
+  perform pg_temp.assert_true(pg_temp.entra_msg(
+    'update public.news_autopublish_settings_log set changed_by_purged_at = now()
+      where changed_at = now() - interval ''11 months''') like '%news_autopublish_log_purga_sin_uuid%',
+    'M: ... lo rechaza el CHECK news_autopublish_log_purga_sin_uuid (log)');
 
   -- ── F · la purga ──
   v_r := pg_temp.purgar();
