@@ -7,7 +7,7 @@
 #   - nombre dtd-cable-puente-prueba, imagen node:24.22.1-alpine, solo lectura, sin capacidades,
 #     usuario 1000, 128 MiB, --restart no, --stop-timeout 1;
 #   - dos redes y ninguna más: chatwoot_interna (para leer la API de Chatwoot en rails:3000) y
-#     dtd-cargo-staging_dtd_internal (para llegar al web de PRUEBA en web:3000). Ninguna sale a
+#     dtd-cargo-staging_dtd_internal (para llegar al web de PRUEBA en dtd-cargo-staging-web-1:3000). Ninguna sale a
 #     internet. La red de producción (dtd-cargo_dtd_internal) está prohibida: si el contenedor
 #     terminara en ella, se borra y el script falla;
 #   - el entorno sale de /etc/dtd-cable/puente-prueba.env (root 600): CHATWOOT_API_TOKEN y
@@ -56,6 +56,10 @@ guardas() {
   webs="$(docker network inspect "${RED_PRUEBA}" -f '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null | tr ' ' '\n' | grep -c -- '-web-')"
   [[ "${webs}" == "1" ]] || refuse "en ${RED_PRUEBA} hay ${webs} contenedores web (se espera solo ${WEB_PRUEBA})"
   docker network inspect "${RED_CHATWOOT}" > /dev/null 2>&1 || refuse "no existe la red ${RED_CHATWOOT}"
+  # En la red de Chatwoot no puede haber ningún web (ni de prueba ni de producción).
+  local webs_cw
+  webs_cw="$(docker network inspect "${RED_CHATWOOT}" -f '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null | tr ' ' '\n' | grep -c -- '-web-')"
+  [[ "${webs_cw}" == "0" ]] || refuse "en ${RED_CHATWOOT} hay ${webs_cw} contenedores web (se espera ninguno)"
 }
 
 redes_ok() {
@@ -78,8 +82,8 @@ crear() { # $1 nombre, $2 extra (vacío o PUENTE_UNA_VUELTA=1)
     -v "${CODIGO}:/app/puente.mjs:ro" -v "${ESTADO_DIR}:/estado" \
     --label dtd.cable=puente-prueba --label dtd.sdd=0626 \
     "${IMAGEN}" node /app/puente.mjs > /dev/null || return 1
-  docker network connect "${RED_PRUEBA}" "$1" || { docker rm -f "$1" > /dev/null; return 1; }
-  redes_ok "$1" || { docker rm -f "$1" > /dev/null; refuse "el contenedor quedó en una red no permitida"; }
+  docker network connect "${RED_PRUEBA}" "$1" || { docker rm -f "$1" > /dev/null 2>&1; return 1; }
+  redes_ok "$1" || { docker rm -f "$1" > /dev/null 2>&1; refuse "el contenedor quedó en una red no permitida"; }
 }
 
 case "${1-}" in
@@ -94,8 +98,13 @@ case "${1-}" in
     ;;
   parar)
     if docker inspect "${NOMBRE}" > /dev/null 2>&1; then
-      docker stop -t 1 "${NOMBRE}" > /dev/null; docker rm "${NOMBRE}" > /dev/null
-      echo "puente-prueba: parado y borrado (el cursor queda en ${ESTADO_DIR})"
+      docker stop -t 1 "${NOMBRE}" > /dev/null 2>&1
+      if docker rm -f "${NOMBRE}" > /dev/null && ! docker inspect "${NOMBRE}" > /dev/null 2>&1; then
+        echo "puente-prueba: parado y borrado (el cursor queda en ${ESTADO_DIR})"
+      else
+        echo "puente-prueba: FALLÓ borrar ${NOMBRE}; sigue existiendo (docker ps -a --filter name=${NOMBRE})" >&2
+        exit 5
+      fi
     else
       echo "puente-prueba: no estaba corriendo"
     fi
@@ -115,7 +124,7 @@ case "${1-}" in
     docker rm -f "${n}" > /dev/null 2>&1
     crear "${n}" "PUENTE_UNA_VUELTA=1" || exit 5
     docker start -a "${n}"; rc=$?
-    docker rm "${n}" > /dev/null
+    docker rm -f "${n}" > /dev/null 2>&1 || echo "puente-prueba: FALLÓ borrar ${n}" >&2
     exit "${rc}"
     ;;
   *) die "uso: $0 arrancar|parar|estado|una-vuelta" ;;

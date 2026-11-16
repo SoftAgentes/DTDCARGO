@@ -9,7 +9,8 @@
 // el ERP la valide igual que la de un webhook real.
 //
 // Lo que NO hace, a propósito:
-//   - no escribe en Chatwoot: solo pide GET (`chatwoot()` rechaza cualquier otro método);
+//   - no escribe en Chatwoot: `chatwoot()` solo hace GET, y solo a rutas de la cuenta 2
+//     (`/api/v1/accounts/2/…`); cualquier otra ruta la rechaza antes de pedir;
 //   - no manda el texto del mensaje ni los datos del contacto: el cuerpo lleva solo ids, tipo,
 //     estado y etiquetas (lo que el ERP lee; `interpretarEvento` no usa nada más para message_created);
 //   - no guarda textos: en disco solo el cursor (el último id de mensaje entregado), y en el log
@@ -21,9 +22,12 @@
 //   PUENTE_ENTORNO=prueba            obligatorio
 //   CHATWOOT_API_TOKEN               token de un usuario de la cuenta 2, miembro solo de la bandeja 11
 //   OFICINA_WEBHOOK_SECRET           el mismo secreto que el `.env` del ERP de prueba
-//   CHATWOOT_API_URL                 por defecto http://rails:3000 (red chatwoot_interna)
-//   PUENTE_ERP_URL                   por defecto http://web:3000/api/oficina/webhook-chatwoot
-//                                    (red dtd-cargo-staging_dtd_internal)
+//   CHATWOOT_API_URL                 por defecto http://rails:3000 (red chatwoot_interna); solo el
+//                                    contenedor rails de Chatwoot (rails o chatwoot-rails-1), puerto 3000
+//   PUENTE_ERP_URL                   por defecto y único valor válido:
+//                                    http://dtd-cargo-staging-web-1:3000/api/oficina/webhook-chatwoot
+//                                    (red dtd-cargo-staging_dtd_internal; sin el alias «web», que
+//                                    podría resolver a otro contenedor)
 //   PUENTE_CURSOR                    por defecto /estado/cursor
 //   PUENTE_INTERVALO_MS              por defecto 5000
 //   PUENTE_UNA_VUELTA=1              una sola vuelta y sale (pruebas y diagnóstico)
@@ -41,9 +45,13 @@ import { fileURLToPath } from "node:url";
 /** Las únicas que el puente atiende (SDD-0626 Paso 2b, OK de Sam y del DG del 2026-11-15). */
 export const CUENTA = 2;
 export const BANDEJA = 11;
-/** Los únicos destinos válidos: el web de PRUEBA por su nombre en la red interna de prueba. */
-export const DESTINOS = new Set(["web", "dtd-cargo-staging-web-1"]);
+/** El único destino válido: el web de PRUEBA por su nombre de contenedor (sin alias). */
+export const DESTINOS = new Set(["dtd-cargo-staging-web-1"]);
+/** El único Chatwoot válido: su contenedor rails, por el alias de compose o por el nombre. */
+export const CHATWOOTS = new Set(["rails", "chatwoot-rails-1"]);
+export const PUERTO = "3000";
 export const RUTA_ERP = "/api/oficina/webhook-chatwoot";
+const ERP_POR_DEFECTO = `http://dtd-cargo-staging-web-1:${PUERTO}${RUTA_ERP}`;
 
 export class ConfigInvalida extends Error {}
 
@@ -61,10 +69,30 @@ export function leerConfig(env = process.env) {
   if (token.length < 16) throw new ConfigInvalida("falta CHATWOOT_API_TOKEN");
   if (secreto.length < 32) throw new ConfigInvalida("falta OFICINA_WEBHOOK_SECRET (32 caracteres o más)");
 
-  const chatwoot = url(t("CHATWOOT_API_URL") || "http://rails:3000", "CHATWOOT_API_URL");
-  const erp = url(t("PUENTE_ERP_URL") || `http://web:3000${RUTA_ERP}`, "PUENTE_ERP_URL");
-  if (erp.protocol !== "http:" || !DESTINOS.has(erp.hostname) || erp.pathname !== RUTA_ERP || erp.search) {
-    throw new ConfigInvalida(`PUENTE_ERP_URL tiene que ser http://web:3000${RUTA_ERP} (el web de prueba)`);
+  const chatwoot = url(t("CHATWOOT_API_URL") || `http://rails:${PUERTO}`, "CHATWOOT_API_URL");
+  if (
+    chatwoot.protocol !== "http:" ||
+    !CHATWOOTS.has(chatwoot.hostname) ||
+    chatwoot.port !== PUERTO ||
+    chatwoot.username ||
+    chatwoot.password ||
+    (chatwoot.pathname !== "/" && chatwoot.pathname !== "") ||
+    chatwoot.search
+  ) {
+    throw new ConfigInvalida(`CHATWOOT_API_URL tiene que ser http://rails:${PUERTO} (el rails de Chatwoot)`);
+  }
+  const erp = url(t("PUENTE_ERP_URL") || ERP_POR_DEFECTO, "PUENTE_ERP_URL");
+  if (
+    erp.protocol !== "http:" ||
+    !DESTINOS.has(erp.hostname) ||
+    erp.port !== PUERTO ||
+    erp.username ||
+    erp.password ||
+    erp.pathname !== RUTA_ERP ||
+    erp.search ||
+    erp.hash
+  ) {
+    throw new ConfigInvalida(`PUENTE_ERP_URL tiene que ser ${ERP_POR_DEFECTO} (el web de prueba)`);
   }
   const intervalo = Number.parseInt(t("PUENTE_INTERVALO_MS") || "5000", 10);
   if (!Number.isFinite(intervalo) || intervalo < 200 || intervalo > 600_000) {

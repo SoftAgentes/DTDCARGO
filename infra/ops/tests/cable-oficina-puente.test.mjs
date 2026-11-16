@@ -8,7 +8,8 @@
  *     la bandeja 11, y `procesarWebhookOficina` lo guarda con su referencia y su prioridad;
  *   - el cuerpo NO lleva el texto del mensaje ni datos del contacto, y el log tampoco;
  *   - a Chatwoot solo se le piden GET;
- *   - fuera de prueba, con otra cuenta, otra bandeja u otro destino, no arranca.
+ *   - fuera de prueba, con otra cuenta, otra bandeja, otro destino, otro puerto u otro Chatwoot, no arranca;
+ *   - ni el token ni el secreto salen en el log.
  */
 import { createServer } from "node:http";
 import { mkdtempSync, readFileSync } from "node:fs";
@@ -63,7 +64,7 @@ const mensaje = (id, extra = {}) => ({
 describe("leerConfig: solo prueba", () => {
   it("acepta la configuración de prueba con los valores por defecto", () => {
     const c = leerConfig(BASE_ENV);
-    expect(c.erp).toBe("http://web:3000/api/oficina/webhook-chatwoot");
+    expect(c.erp).toBe("http://dtd-cargo-staging-web-1:3000/api/oficina/webhook-chatwoot");
     expect(c.chatwoot).toBe("http://rails:3000");
     expect(c.cursor).toBe("/estado/cursor");
   });
@@ -76,7 +77,16 @@ describe("leerConfig: solo prueba", () => {
     [{ OFICINA_WEBHOOK_SECRET: "corto" }, /OFICINA_WEBHOOK_SECRET/],
     [{ PUENTE_ERP_URL: "https://dtdcargo.com/api/oficina/webhook-chatwoot" }, /web de prueba/],
     [{ PUENTE_ERP_URL: "http://dtd-cargo-web-1:3000/api/oficina/webhook-chatwoot" }, /web de prueba/],
-    [{ PUENTE_ERP_URL: "http://web:3000/api/chatwoot/webhook" }, /web de prueba/],
+    [{ PUENTE_ERP_URL: "http://dtd-cargo-staging-web-1:3000/api/chatwoot/webhook" }, /web de prueba/],
+    [{ PUENTE_ERP_URL: "http://web:3000/api/oficina/webhook-chatwoot" }, /web de prueba/],
+    [{ PUENTE_ERP_URL: "http://dtd-cargo-staging-web-1:8080/api/oficina/webhook-chatwoot" }, /web de prueba/],
+    [{ PUENTE_ERP_URL: "http://dtd-cargo-staging-web-1/api/oficina/webhook-chatwoot" }, /web de prueba/],
+    [{ PUENTE_ERP_URL: "http://dtd-cargo-staging-web-1:3000/api/oficina/webhook-chatwoot?x=1" }, /web de prueba/],
+    [{ CHATWOOT_API_URL: "http://chatwoot.dtdcargo.com:3000" }, /rails de Chatwoot/],
+    [{ CHATWOOT_API_URL: "https://rails:3000" }, /rails de Chatwoot/],
+    [{ CHATWOOT_API_URL: "http://rails:8080" }, /rails de Chatwoot/],
+    [{ CHATWOOT_API_URL: "http://rails:3000/otra" }, /rails de Chatwoot/],
+    [{ CHATWOOT_API_URL: "http://dtd-cargo-staging-web-1:3000" }, /rails de Chatwoot/],
     [{ PUENTE_ERP_URL: "https://prueba.dtdcargo.com/api/oficina/webhook-chatwoot" }, /web de prueba/],
     [{ PUENTE_INTERVALO_MS: "10" }, /INTERVALO/],
   ])("rechaza %o", (cambio, error) => {
@@ -221,6 +231,20 @@ describe("una vuelta contra un Chatwoot y un ERP de mentira", () => {
     expect(log.join("")).not.toContain(TEXTO);
     expect(log.join("")).not.toContain("Persona");
     expect(log.join("")).toMatch(/entrega conv=7 msg=41 → 200 guardado/);
+  });
+
+  it("ni el token ni el secreto salen en el log (entrega, 4xx y errores)", async () => {
+    const log = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((s) => (log.push(String(s)), true));
+    vi.spyOn(process.stderr, "write").mockImplementation((s) => (log.push(String(s)), true));
+    const ok = await montar();
+    await vuelta(ok.cfg, 40);
+    const con4xx = await montar(401);
+    await vuelta(con4xx.cfg, 40);
+    await vuelta({ ...ok.cfg, token: `${TOKEN}-malo` }, 40).catch((e) => log.push(String(e?.message)));
+    const todo = log.join("");
+    expect(todo).not.toContain(TOKEN);
+    expect(todo).not.toContain(SECRETO);
   });
 
   it("con 5xx del ERP no avanza el cursor (se reintenta)", async () => {

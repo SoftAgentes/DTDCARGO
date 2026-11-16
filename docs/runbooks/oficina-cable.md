@@ -208,14 +208,14 @@ valida la firma igual que con un webhook real.
 
 ```
 Chatwoot (cuenta 2 «DTD Prueba», bandeja 11 «Prueba Oficina») ──GET──▶ puente ──POST firmado──▶ web de prueba /api/oficina/webhook-chatwoot
-            red chatwoot_interna (rails:3000)                              red dtd-cargo-staging_dtd_internal (web:3000)
+            red chatwoot_interna (rails:3000)                              red dtd-cargo-staging_dtd_internal (dtd-cargo-staging-web-1:3000)
 ```
 
 - **Código:** `infra/ops/cable-oficina/puente-prueba.mjs` (el puente) y `puente-prueba.sh` (arrancar, parar, estado,
   una-vuelta). Pruebas: `infra/ops/tests/cable-oficina-puente.test.mjs`, contra el código real del ERP.
 - **Solo prueba, a la fuerza:** la cuenta (2) y la bandeja (11) están fijas en el código. Si falta
-  `PUENTE_ENTORNO=prueba`, el puente sale con código 2. También sale si el destino no es `http://web:3000/api/oficina/webhook-chatwoot`.
-  El lanzador comprueba que en `dtd-cargo-staging_dtd_internal` haya un solo `web`, el de prueba, y borra el contenedor si
+  `PUENTE_ENTORNO=prueba`, el puente sale con código 2. También sale si el destino no es exactamente `http://dtd-cargo-staging-web-1:3000/api/oficina/webhook-chatwoot`, sin el alias `web`, o si `CHATWOOT_API_URL` no es el rails de Chatwoot (`rails` o `chatwoot-rails-1`) en el puerto 3000.
+  El lanzador comprueba que en `dtd-cargo-staging_dtd_internal` haya un solo `web`, el de prueba, y que en `chatwoot_interna` no haya ninguno. Borra el contenedor si
   quedara en otra red. La red de producción `dtd-cargo_dtd_internal` está prohibida. No hay compose ni reinicio
   automático (`--restart no`).
 - **No escribe en Chatwoot:** solo pide GET. No contesta.
@@ -227,13 +227,23 @@ Chatwoot (cuenta 2 «DTD Prueba», bandeja 11 «Prueba Oficina») ──GET─�
   - `OFICINA_WEBHOOK_SECRET`: el mismo que el `.env` del web de prueba.
 - **Contenedor:** `docker create` va con `--env-file`, así que `docker inspect` del contenedor muestra las variables.
   Solo root lo ve, pero no se pega su salida en ningún lado.
-- **Arrancar / parar:** `/srv/ops/cable-oficina/puente-prueba.sh arrancar` · `… parar` (se para en ~1 s y se borra; el cursor
+- **Arrancar / parar:** `/srv/ops/cable-oficina/puente-prueba.sh arrancar` · `… parar` (se para en ~1 s y se borra con `docker rm -f`; si no se pudo borrar lo dice y sale con 5; el cursor
   se queda) · `… estado` · `… una-vuelta` (diagnóstico).
 - **Primer arranque:** el cursor empieza en el último mensaje que ya existe, así que la historia no se reenvía.
 - **Reintentos:** si el ERP responde 5xx, el puente reintenta en la vuelta siguiente. Con 2xx o 4xx avanza el cursor y deja el código en el log.
 - **Revertir:** `parar`; borrar `/etc/dtd-cable/puente-prueba.env` y `/var/lib/dtd-cable/puente-prueba`; borrar el usuario
   del puente en Chatwoot; quitar las `OFICINA_*` del `.env` de prueba y recrear el web. Los comandos exactos están en el
   `REVERTIR.txt` del VPS.
+
+- **Prueba hecha (16/11/2026, 01:26 a 01:29Z):** OK de Sam y luz verde del DG. Un mensaje con texto inventado llegó a
+  `event_inbox` (prioridad 2), sin respuesta automática y sin datos personales en los logs. La cuenta 2 se reactivó
+  solo durante la prueba y quedó suspendida otra vez. El token del usuario del puente se rotó y su env se borró, así
+  que **para volver a usarlo hace falta un token nuevo**. Evidencia: `/srv/ops/evidencias/cable-puente-prueba-20261116T012638Z.txt`.
+- **Pendiente (revisión del DG de la #591):**
+  - **O4:** faltan pruebas de `mensajeSeguro`, de las respuestas 4xx de Chatwoot, y de que el puerto o una query
+    se rechacen en cada ruta. La prueba de que el token y el secreto no salen en el log ya está.
+  - **O5:** paginación de Chatwoot. Cada vuelta lee solo la página 1 de conversaciones y de mensajes, que basta para la
+    bandeja de prueba pero no para una bandeja con historia.
 
 **NO VERIFICADO** en este paso, y pendiente para el Paso 3 o para la prueba en producción: la entrada real del webhook
 desde fuera. Es decir, la ruta pública `https://<dominio>/api/oficina/webhook-chatwoot`, su paso por Traefik y Cloudflare, y
