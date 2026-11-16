@@ -57,6 +57,7 @@
 | `tms_drivers.cedula`, `address` | Identidad del chofer | no | Operación de flota | Contrato laboral | ⬜ |
 | `tms_drivers.emergency_contact` | **Nombre y teléfono de un familiar** | no | Emergencias | 🔴 **el titular nunca consintió** | ⬜ |
 | `tms_drivers.rating` | Calificación 0.0–5.0 | no | ⬜ no evidente | ⬜ | ⬜ |
+| `asistente_conversaciones`, `asistente_mensajes`, `asistente_eventos` (SDD-0637 Faro, **propuesto, todavía sin tablas ni datos**) | Preguntas del equipo al asistente de ayuda, con su identidad, depuradas de documentos, teléfonos y correos; respuestas; feedback y alertas | ⚠️ texto libre | Ayuda dentro del Studio; auditoría; alertas de seguridad | ⬜ (abogado) | 180 días; alertas 2 años sin texto (D-6, Sam 2026-11-16). Revisión: `docs/specs/0637-faro-asistente-ayuda/privacidad.md` |
 | `tms_truck_locations.lat/lng` | **Rastreo del chofer** | 🔴 geolocalización | Seguimiento de flota | ⬜ | 🔴 **ninguna** |
 
 ## 4 · Los 12 buckets
