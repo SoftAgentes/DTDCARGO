@@ -19,8 +19,8 @@ Fecha: 2026-11-16 · Rama: `claude/sdd-revisar-lote-studio-b09288` · Worker del
 
 | Comprobación | Resultado |
 |---|---|
-| `pnpm docs:check` | ver PR |
-| `pnpm sdd:check` | ver PR |
+| `pnpm docs:check` (node scripts/build-docs-index.mjs --check) | PASÓ tras regenerar el índice (623 specs) |
+| `pnpm sdd:check` (node scripts/check-numbering.mjs) | PASÓ: sin números repetidos |
 | Maqueta en navegador (marcar, filtros, botón deshabilitado con motivo, devolver) | PASÓ (panel del navegador, 2026-11-16) |
 | `pnpm verify` | NO EJECUTADO: el cambio es solo de documentación |
 
