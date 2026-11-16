@@ -25,7 +25,9 @@
   - D-4: empezar por noticias y seguir con el brief;
   - D-5: Agentes fuera de la spec, en Anthropic.
 
-  Queda abierta solo la D-7 (llaves nuevas).
+- v0.4: D-7, las llaves se pegan desde la pantalla. Van en Supabase Vault (patrón de Kommo, 0082), son de
+  solo escritura, solo las carga el superadmin con AAL2 y la variable de entorno queda de respaldo. No
+  quedan decisiones abiertas.
 
 ## VALIDACIÓN
 
@@ -37,7 +39,7 @@
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam decida la D-7 y apruebe la spec. El DG la fusiona por separado de la #603.
+- Que Sam apruebe la spec (D-1 a D-7 ya decididas). El DG la fusiona por separado de la #603.
 - Depende de la SDD-0638 (clasificador y registro), que va en la PR #603.
 
 ## FUERA DE ALCANCE DETECTADO

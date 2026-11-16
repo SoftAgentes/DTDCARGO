@@ -19,8 +19,8 @@ confidencialidad: interno
 > pantalla «Estado de la IA» de la SDD-0638.
 >
 > **Estado: proposed.** Es un plan. Depende de la SDD-0638 (clasificador y registro) y se coordina con
-> el fallback de la Oficina (SDD-0626 §7). **v0.3:** Sam decidió D-1 a D-6 el 2026-11-16 (§9).
-> Queda abierta solo la D-7 (llaves nuevas).
+> el fallback de la Oficina (SDD-0626 §7). **v0.4:** Sam decidió las D-1 a D-7 el 2026-11-16 (§9).
+> No quedan decisiones abiertas; falta solo que apruebe la spec.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no
 verificado. Base: `main` `4a3046745`. El repo es público: sin llaves, montos ni datos de cuentas.
@@ -90,14 +90,29 @@ función y proveedor se habilita solo después de pasar su prueba (§6).
      de módulo sensible (SDD-0622 §5.1) explica qué podrá hacer la persona antes de confirmar;
    - un admin normal **no** lo tiene si no se le da.
 6. **Agregar un proveedor o una suscripción nueva** (por ejemplo, si Sam contrata Anthropic u otro):
-   - la llave va en una variable de entorno del servidor; la coloca Claude Code con el OK de Sam, sin
-     que entre en Git;
-   - si el proveedor ya tiene adaptador, aparece en la pantalla en cuanto su llave existe, y basta con
-     elegirlo;
+   - **la llave se pega desde la pantalla (D-7)**, con las reglas del punto 7;
+   - si el proveedor ya tiene adaptador, basta con pegar su llave y elegirlo;
    - si no tiene adaptador, hace falta una PR pequeña con ese adaptador y su prueba de contrato (§6).
-   - **No** se propone cargar llaves desde la pantalla: guardarlas en la base sería una segunda
-     superficie de robo. Queda como decisión abierta (D-7).
-7. **Costos:** las tarifas pasan a una tabla o a la configuración por modelo, para que el tope de
+7. **Llaves desde la pantalla (D-7).** Se reutiliza el patrón que ya usa Kommo: **Supabase Vault**, donde
+   la tabla solo guarda el nombre del secreto y no la llave (C `supabase/migrations/0082_kommo_mirror_schema.sql:9-27`,
+   `0472_kommo_functions_base_url.sql:42`).
+   - **Solo escritura:** la llave se pega, se guarda cifrada en Vault y **nunca vuelve a mostrarse**,
+     ni entera ni truncada. La pantalla solo dice «llave puesta», con la fecha y quién la puso.
+   - **Quién:** solo el superadministrador, con verificación en dos pasos (AAL2, como
+     `audit_view_sensitive`). El extra «Editar» del módulo `ia` permite elegir proveedor, **no**
+     cargar llaves.
+   - **Lectura:** solo el servidor la descifra, con una función `security definer` llamada con la
+     clave de servicio, en el momento de la llamada. Nunca viaja al navegador, a los logs ni a los
+     errores. `authenticated` y `anon` no tienen ningún permiso sobre ella.
+   - **Precedencia:** si hay llave en la pantalla, se usa esa. Si no, la variable de entorno, que queda
+     como respaldo, para no romper lo que ya funciona.
+   - **Antes de guardar:** se prueba con un sondeo sin gasto. Si no autentica, no se guarda.
+   - **Cambiar o borrar:** reemplazar o borrar la llave queda en la auditoría, sin el valor. Al
+     borrarla, la función vuelve a la variable de entorno o queda «Sin configurar».
+   - **Riesgo aceptado por Sam:** la llave pasa a vivir también en la base de producción, cifrada. Si
+     alguien obtuviera la clave de servicio, podría leerla. Por eso queda solo en manos del superadmin,
+     con dos pasos y auditoría.
+8. **Costos:** las tarifas pasan a una tabla o a la configuración por modelo, para que el tope de
    Agentes y el de Faro sigan sumando bien con otro proveedor.
 
 **Coordinación con la Oficina:** la SDD-0626 §7 ya diseña una cadena con fallback del lado de Hermes.
@@ -131,7 +146,7 @@ marca permite:
 | Fase | Qué entrega | Necesita |
 |---|---|---|
 | **1 · Nivel 1** | Los ids de modelo de A1, A2 y A6 pasan a la configuración, sin literales en el código | Nada |
-| **2 · Motor** | Interfaz y adaptadores de Anthropic, GLM y DeepSeek; catálogo con las marcas de §4; módulo `ia` y permiso por persona | SDD-0638 fase 1 |
+| **2 · Motor** | Interfaz y adaptadores de Anthropic, GLM y DeepSeek; catálogo con las marcas de §4; módulo `ia` y permiso por persona; llaves en Vault desde la pantalla (migración, con OK de Sam para aplicarla) | SDD-0638 fase 1 |
 | **3 · Noticias web (A1)** | **La primera función.** GLM → DeepSeek, con cambio automático y manual | SDD-0638 fase 4 |
 | **4 · Brief del CEO (A2)** | Mismo esquema. Ya tiene salida sin IA, así que es la segunda más segura | Fase 3 |
 | **5 · Funciones con datos de clientes** | A3, A4 y A5 se quedan en Anthropic, sin respaldo chino; solo se suma un respaldo no chino si Sam contrata uno | D-7 o una suscripción nueva |
@@ -153,6 +168,13 @@ sin IA, y un error ahí no se nota tanto.
 - **Sin literales:** una prueba busca ids de modelo fuera de la configuración (como en Faro).
 - **Automático:** con un 402 simulado en GLM, la llamada va a DeepSeek una sola vez, queda registrada
   y avisa. Un 400 de entrada inválida no cambia de proveedor. Cuando GLM vuelve, las llamadas regresan.
+- **Llaves (D-7):**
+  - una llave pegada nunca aparece en el HTML, en la respuesta de la acción, en los logs ni en la
+    auditoría; la prueba siembra una llave falsa y la busca en cada salida;
+  - `authenticated` y `anon` no pueden leerla (PGlite);
+  - sin AAL2 o sin ser superadmin, se rechaza;
+  - una llave que no autentica no se guarda;
+  - al borrarla, se vuelve a la variable de entorno.
 - **Manual y permisos:** el superadmin puede cambiar. Un admin sin el extra «Editar» del módulo `ia`
   no puede cambiar, ni desde la pantalla ni directo en la base (RLS en PGlite). Una persona con el
   extra sí puede. Cada cambio queda en la auditoría.
@@ -161,6 +183,9 @@ sin IA, y un error ahí no se nota tanto.
 
 - **Regla D-2 y la Oficina:** hay un choque entre la regla D-2 y la SDD-0626, que queda como decisión
   pendiente de Sam. Lo lleva el DG; esta spec no lo resuelve.
+- **Llaves en la base (D-7):** con la clave de servicio se puede leer Vault. Mitigación: solo el
+  superadmin con dos pasos carga llaves, nunca se muestran y cada cambio queda en la auditoría.
+  Además, conviene que cada llave tenga su propio tope de gasto en el panel del proveedor.
 - **Compatibilidad:** que el endpoint compatible de un proveedor exista no prueba que soporte cada
   capacidad (§2). Por eso cada función se habilita solo después de pasar su prueba.
 
@@ -185,9 +210,6 @@ sin IA, y un error ahí no se nota tanto.
 - **D-5 · Agentes y Skills:** **queda fuera de esta spec y sigue en Anthropic**, porque sus
   herramientas devuelven nombre y dirección del cliente (regla D-2). Si algún día hace falta un
   respaldo, tendrá que ser un proveedor no chino, en su propia spec. Lo aprobó Sam con «Sí, así».
-
-### 9.2 Abierta
-
-- **D-7 · Llaves nuevas.** Propuesta: las llaves siguen en variables del servidor y las coloca Claude
-  Code con tu OK. La pantalla solo elige entre los proveedores con llave puesta. ¿O quieres poder
-  pegar una llave desde la pantalla? Es más cómodo, pero guarda la llave en la base y es más riesgoso.
+- **D-7 · Llaves nuevas:** se pegan **desde la pantalla**, guardadas en Supabase Vault. Solo las
+  carga el superadmin con dos pasos, son de solo escritura y la variable de entorno queda de respaldo
+  (§3, punto 7). Lo eligió Sam: «Desde la pantalla».
