@@ -7,7 +7,7 @@ created: 2026-11-16
 updated: 2026-11-16
 supersedes: null
 superseded_by: null
-related: ["0604", "0610", "0611", "0613"]
+related: ["0604", "0605", "0606", "0610", "0611", "0613"]
 confidencialidad: interno
 ---
 
@@ -50,12 +50,12 @@ dice que la pieza existe.
 
 | # | Grupo | Estado | Evidencia | Qué falta |
 |---|---|---|---|---|
-| 1 | Intención (forma de la página = forma de la búsqueda; sin canibalización) | **Parcial** | Páginas por intención: `/puerta-a-puerta`, `/fcl`, `/tarifas`, `/glosario`, `/faq`, 18 geo-páginas `/importar-de-china/{zona}` [SITIO]. Pero hay `/puerta-a-puerta` (0,9 de prioridad) y `/servicios/puerta-a-puerta` (0,7) sobre el mismo tema: `app/sitemap.ts:24-26`; el comentario `app/sitemap.ts:21-23` reconoce el riesgo de competirse. Canibalización real: [SIN DATOS] | Un script que detecte páginas con el mismo título o H1 casi igual; datos de consultas por página (Search Console) |
+| 1 | Intención (forma de la página = forma de la búsqueda; sin canibalización) | **Parcial** | Páginas por intención: `/puerta-a-puerta`, `/fcl`, `/tarifas`, `/glosario`, `/faq`, 18 geo-páginas `/importar-de-china/{zona}` [SITIO]. Pero hay `/puerta-a-puerta` (0,9 de prioridad) y `/servicios/puerta-a-puerta` (0,7) sobre el mismo tema: `app/sitemap.ts:17` y `:26`; el comentario `app/sitemap.ts:22-25` reconoce el riesgo de competirse. Canibalización real: [SIN DATOS] | Un script que detecte páginas con el mismo título o H1 casi igual; datos de consultas por página (Search Console) |
 | 2 | Respuesta primero | **Parcial** | Bloque `#respuesta-rapida` con `speakableSelectors` en `/`, `/tarifas`, `/fcl`: `app/page.tsx:54`, `app/tarifas/page.tsx:79`, `app/fcl/page.tsx:55`. `/puerta-a-puerta` y `/shipping-mark` también usan `WebPageJsonLd` (`app/puerta-a-puerta/page.tsx:119`, `app/shipping-mark/page.tsx:121`). El resto de páginas y las noticias: [INFERIDO] sin bloque | Medir por página si las dos primeras frases responden la pregunta del título; ampliar a `/servicios/*` y a las noticias |
 | 3 | Entidad y marca (nombre idéntico en todas partes; página Nosotros) | **Parcial, casi hecho en el sitio** | `/nosotros` existe y emite `AboutPage` [SITIO]. Una sola organización en el `@graph` de `app/layout.tsx` con `sameAs` a Instagram, YouTube y TikTok (`app/layout.tsx:139`). `docs/marketing/identidad.md` fija el nombre. **Fuera del sitio:** Wikidata, Google Business Profile y LinkedIn están **pendientes por URLs de Sam** (`docs/marketing/seo.md:159`, `:184`; SDD-0604 «Fuera de alcance»). El dominio anterior `doortudoor.com` ya redirige (`docs/marketing/README.md:193`): nombre viejo en terceros [INFERIDO] | Perfil de Google Business y alta en directorios con el nombre exacto (ver fase D) |
-| 4 | Schema (Article, FAQ, autor, fecha, título <60) | **Hecho en lo técnico, con 2 matices** | Noticias emiten `BlogPosting` con `author`, `datePublished` y `dateModified` [SITIO] (`app/noticias/[slug]/_components/NewsArticleJsonLd.tsx:93-95`). `FAQPage` en `/faq`, `/puerta-a-puerta`, `/shipping-mark` y geo-páginas [SITIO]. `BreadcrumbList` en casi todas. Matices: (a) **títulos >60 caracteres**: `/fcl` 76, `/servicios/puerta-a-puerta` 63, `/servicios/lcl` 60, `/servicios/fcl` 57 [SITIO, longitud del `<title>` ya con sufijo]; (b) el criterio vigente de la casa es que el marcado de preguntas **no es palanca** porque Google dejó de mostrar FAQ enriquecidos (`docs/organizacion/oficina-conocimiento/05-seo-geo-aeo.md`, «Criterio vigente»; SDD-0604) | Revisar los 4 títulos largos (decisión de redacción, no urgente) |
-| 5 | Prueba y confianza (fuentes, autor real, casos) | **Parcial** | Autor con persona real o «DTD Cargo» como organización con revisor humano (`NewsArticleJsonLd.tsx:61-73`; `docs/marketing/agente-seo-noticias.md` «Decisiones de Sam»). `aggregateRating` **bloqueado** hasta tener reseñas reales (`docs/marketing/seo.md:184`). Casos de clientes: existen en la web [INFERIDO]; no medido | Reseñas reales publicables, y fuentes citadas dentro de los artículos (la política de noticias ya lo exige con marcas `[VERIFICAR]`, `docs/specs/0611-noticias-publicacion-automatica/spec.md`) |
-| 6 | Frescura (fecha de actualización, sitemap con `lastmod`) | **Parcial, a propósito** | Solo las noticias llevan `lastmod`: 5 de 48 URL [SITIO]; el resto lo omite por decisión «lastmod honesto» (`app/sitemap.ts:12-16`). Las noticias usan `updated_at` (`app/sitemap.ts:68-70`). Fecha visible en cada página: [INFERIDO] solo en noticias | Nada urgente: un `lastmod` falso es peor que ninguno. Si se quiere, `lastmod` real desde Git por página (decisión aparte) |
+| 4 | Schema (Article, FAQ, autor, fecha, título <60) | **Hecho en lo técnico, con 2 matices** | Noticias emiten `BlogPosting` con `author`, `datePublished` y `dateModified` [SITIO] (`app/noticias/[slug]/_components/NewsArticleJsonLd.tsx:93-94`). `FAQPage` en `/faq`, `/puerta-a-puerta`, `/shipping-mark` y geo-páginas [SITIO]. `BreadcrumbList` en casi todas. Matices: (a) **dos títulos pasan de 60 caracteres**: `/fcl` 76 y `/servicios/puerta-a-puerta` 63; `/servicios/lcl` está justo en 60 y `/servicios/fcl` en 57 [SITIO, longitud del `<title>` ya con sufijo]; (b) el criterio vigente de la casa es que el marcado de preguntas **no es palanca** porque Google dejó de mostrar FAQ enriquecidos (`docs/organizacion/oficina-conocimiento/05-seo-geo-aeo.md`, «Criterio vigente»; SDD-0604) | Revisar los 2 títulos largos (decisión de redacción, no urgente) |
+| 5 | Prueba y confianza (fuentes, autor real, casos) | **Parcial** | Autor con persona real o «DTD Cargo» como organización con revisor humano (`NewsArticleJsonLd.tsx:63`; `docs/marketing/agente-seo-noticias.md` «Decisiones de Sam»). `aggregateRating` **bloqueado** hasta tener reseñas reales (`docs/marketing/seo.md:184`). Casos de clientes: existen en la web [INFERIDO]; no medido | Reseñas reales publicables, y fuentes citadas dentro de los artículos (la política de noticias ya lo exige con marcas `[VERIFICAR]`, `docs/specs/0611-noticias-publicacion-automatica/spec.md`) |
+| 6 | Frescura (fecha de actualización, sitemap con `lastmod`) | **Parcial, a propósito** | Solo las noticias llevan `lastmod`: 5 de 48 URL [SITIO]; el resto lo omite por decisión «lastmod honesto» (`app/sitemap.ts:11-15`). Las noticias usan `updated_at` (`app/sitemap.ts:70-71`). Fecha visible en cada página: [INFERIDO] solo en noticias | Nada urgente: un `lastmod` falso es peor que ninguno. Si se quiere, `lastmod` real desde Git por página (decisión aparte) |
 | 7 | Acceso de IA y velocidad | **Hecho** | `robots.txt` en vivo permite 14 agentes con nombre (GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, Google-Extended, Google-CloudVertexBot, Applebot-Extended, Meta-ExternalAgent, CCBot, Bingbot) y solo cierra `/marca` e `/interno/` [SITIO] = `app/robots.ts:20-36`. `llms.txt` y `llms-full.txt` responden 200 [SITIO]. Texto en el HTML inicial: las 28 páginas leídas traen entre 112 y 6.449 palabras en el HTML crudo [SITIO] | Velocidad real (Core Web Vitals): [SIN DATOS]; no se midió en esta tarea |
 | 8 | Enlaces internos | **No medido** | Existen geo-páginas, glosario y FAQ enlazados entre sí [INFERIDO] | Un script que cuente enlaces entrantes por página y huérfanas, con el sitemap como lista (parte de la fase A) |
 | 9 | Menciones fuera del sitio | **Falta (en gran parte)** | Instagram/YouTube/TikTok propios (`app/layout.tsx:139`). Google Business Profile, Wikidata, LinkedIn y directorios: pendientes (`docs/marketing/google-configuracion.md`, plan por fases; `docs/marketing/seo.md:159`). Cuántas veces nombran a DTD Cargo las IA o terceros: [SIN DATOS] | Fase B (radar) y fase D (lista de directorios) |
@@ -91,6 +91,10 @@ Principios que condicionan todo el plan, tomados de decisiones ya aprobadas:
    consulta a ChatGPT/Gemini/Perplexity/Grok es una salida de datos a un tercero: solo va texto
    público de pregunta, nunca nombres, teléfonos ni cifras de clientes.
 5. **Publicar sigue las reglas de la 0611.** Esta spec no cambia IA-01.
+6. **Regla D-2: datos de clientes nunca a un proveedor chino.** Si el agente que procesa el
+   radar corre con GLM o DeepSeek, solo recibe **preguntas públicas** y las respuestas públicas de
+   las IA; jamás texto de conversaciones, nombres, teléfonos ni cifras de clientes. Aplica a las
+   fases B y C. Se verifica en la revisión de cada fase con `revisar-datos-ve`.
 
 ## 5. Plan por fases
 
@@ -111,7 +115,7 @@ tarea. Riesgo: **B**ajo / **M**edio / **A**lto.
 - **Necesita de Sam:** nada. Es un script y una prueba; pasa por PR con SDD propia.
 - **Costo:** unas horas de un Worker; sin costo de API.
 - **Riesgo:** B. Lo único a cuidar es que no se vuelva un puntaje que se persiga por sí mismo.
-- **Primer hallazgo ya conocido:** 4 títulos de más de 60 caracteres (§2, grupo 4).
+- **Primer hallazgo ya conocido:** 2 títulos de más de 60 caracteres: `/fcl` y `/servicios/puerta-a-puerta` (§2, grupo 4).
 
 ### Fase B · Radar de menciones semanal y resumen de los lunes
 
@@ -130,6 +134,14 @@ tarea. Riesgo: **B**ajo / **M**edio / **A**lto.
 - **Necesita de Sam:** (1) decidir qué herramientas se consultan; (2) cuentas o llaves de API de
   cada una, **creadas por Sam y guardadas en el gestor de secretos del VPS, nunca en el repo ni
   en el chat**; (3) OK del tope de gasto mensual; (4) el canal de Discord donde cae el aviso.
+- **Regla D-2 (ver §4, punto 6):** el agente del radar, sea del modelo que sea, recibe solo la
+  lista fija de preguntas públicas; si corre con GLM o DeepSeek, nada de datos de clientes llega a
+  su contexto.
+- **Tope de gasto (propuesta, la valida Sam):** **15 USD al mes** solo para consultas de API del
+  radar, repartido entre las herramientas elegidas, aparte del tope de 100 USD de la oficina. El
+  radar **se corta solo** al llegar al 100 %: lleva un contador por corrida, avisa en Discord al
+  80 % y al llegar al tope no lanza más consultas ese mes. La cifra es una propuesta de orden de
+  magnitud sin precios verificados; Sam la confirma o la cambia antes de encender nada.
 - **Costo:** ~20 preguntas por herramienta y semana son pocas llamadas; el gasto de API es
   probablemente **de pocos dólares al mes**, más el consumo del agente de la oficina que ya está
   dentro del tope de la oficina (100 USD según `hermes-oficina.md`). **[INFERIDO]**: depende de los
@@ -200,7 +212,7 @@ Orden por «más por menos»:
 | # | Qué | Por qué en ese lugar |
 |---|---|---|
 | 1 | **Línea base manual del radar** (fase B, versión a mano) | Cero costo y cero código. Es la única forma de saber hoy si las IA nombran a DTD Cargo; hasta entonces todo el plan se apoya en suposiciones |
-| 2 | **Script de auditoría (fase A)** | Barato, sin dependencias de Sam, y deja un marcador que no se pudre. Cierra de una vez los títulos largos y las páginas sin respuesta-primero |
+| 2 | **Script de auditoría (fase A)** | Barato, sin dependencias de Sam, y deja un marcador que no se pudre. Cierra de una vez los dos títulos largos y las páginas sin respuesta-primero |
 | 3 | **Fase D (lista de directorios y menciones)** | Es donde el cuadro del §2 dice «Falta»; depende de decisiones de Sam, no de código. Un perfil de Google Business ya estaba pendiente antes del video |
 | 4 | **Radar y lunes automatizados (fase B completa)** | Solo vale la pena tras una línea base; si el radar manual muestra que ya nos nombran, el automático pierde urgencia |
 | 5 | **Fase C (minero a noticias y FAQ)** | Depende de que la 0611 esté encendida y de la 0613 para su versión completa |
@@ -217,7 +229,7 @@ Orden por «más por menos»:
    independiente de Grok. Se decide por precio, términos y utilidad, no por el nombre del video.
 4. **Publicar solo lo que la IA redactó.** El video deja el borrador para que una persona lo
    apruebe; en nuestro caso lo regula la 0611, con filtros y revisor humano. No se acorta.
-5. **`lastmod` falso para parecer fresco.** Ya se decidió lo contrario (`app/sitemap.ts:12-16`).
+5. **`lastmod` falso para parecer fresco.** Ya se decidió lo contrario (`app/sitemap.ts:11-15`).
 6. **Pedir o fabricar reseñas y menciones en masa.** Dañan la entidad; solo clientes reales.
 7. **Páginas nuevas por cada pregunta.** Duplicaría el problema de canibalización del grupo 1; las
    respuestas cortas van a `/faq`.
@@ -238,11 +250,24 @@ Orden por «más por menos»:
 | Descongelar la publicación de la web | Sam | A, C, E | Pendiente |
 | Revisión de privacidad de lo que sale a terceros (`revisar-datos-ve`) | Worker de cada fase | B, E | Obligatoria |
 
+## 7b. Criterios de aceptación por fase
+
+Criterios que cada SDD de fase deberá cumplir. Medibles, con su evidencia.
+
+| Fase | Criterio | Evidencia |
+|---|---|---|
+| Línea base manual | **N preguntas × M herramientas** corridas en una sola fecha: propuesta N = 20 (las del CRM), M = las que Sam elija (mínimo 3); cada celda anota si nombran a DTD Cargo, a quién nombran y qué fuente citan | Tabla con fecha y herramienta por fila; sin celdas vacías |
+| A · Auditoría | Cubre **todas las URL de `sitemap.xml`**; cada comprobación sale pasa, falla o manual; **sale con código distinto de 0** si alguna falla; las excepciones están en una lista explícita | Prueba del script con una URL que falla a propósito; salida del script |
+| B · Radar y lunes | El radar corre cada semana y deja registro con fecha; el resumen de los lunes llega a Discord; el gasto **se corta solo** al tope aprobado, con una prueba; el agente solo recibe las preguntas públicas (D-2) | Registro de corridas; prueba del corte; revisión `revisar-datos-ve` |
+| C · Minero | Cada tema que entra a la 0611 lleva su pregunta de origen y su fuente con fecha; ninguna pieza sale sin pasar los filtros F1 a F10 | Filas del banco de temas; la 0611 rechaza un tema sin origen |
+| D · Directorios | Lista con URL, requisito y nombre exacto por entrada; **ningún alta ni mensaje enviado sin OK de Sam** | Lista en `docs/marketing/`; registro de OK por envío |
+| E · Search Console | Los de la SDD-0613 §7 (llave fuera del repo, umbral de impresiones, posiciones solo de Search Console con fecha) | Pruebas de la 0613 |
+
 ## 8. Fuera de alcance
 
 - Escribir cualquiera de las fases, instalar rutinas o tocar el VPS de la oficina.
 - Contratar herramientas de pago o cuentas de IA.
-- Cambiar títulos, textos o contenido del sitio (los 4 títulos largos se reportan, no se corrigen).
+- Cambiar títulos, textos o contenido del sitio (los 2 títulos largos se reportan, no se corrigen).
 - Medir velocidad real, enlaces internos y fechas visibles por página (se reservan para la fase A).
 - Verificar las cifras del video: no son verificables y no se usan.
 
@@ -259,6 +284,9 @@ Solo documento: `pnpm docs:check` y `pnpm sdd:check`; resultado en el handoff. `
 aplica (no hay producto).
 
 ## 11. Allowlist
+
+**Solo esta spec.** Cada fase (A a E) trae **su propia SDD** con su allowlist exacta, su
+migración si la hay y su aprobación; esta spec no autoriza escribir código de ninguna.
 
 | Archivo | Cambio |
 |---|---|

@@ -18,7 +18,7 @@ ya hace DTD Cargo, y proponer fases con lo que ya existe, orden y qué no copiar
 
 ## Hallazgos que cambian algo
 - Lo técnico (robots, llms, schema, sitemap) está hecho; falta **medir** y **menciones fuera del sitio**.
-- 4 títulos de más de 60 caracteres: `/fcl` 76, `/servicios/puerta-a-puerta` 63, `/servicios/lcl` 60, `/servicios/fcl` 57.
+- 2 títulos de más de 60 caracteres: `/fcl` 76 y `/servicios/puerta-a-puerta` 63 (`/servicios/lcl` está en 60 y `/servicios/fcl` en 57).
 - `/puerta-a-puerta` y `/servicios/puerta-a-puerta` cubren el mismo tema (riesgo de canibalización, sin datos).
 - La fase E repite P2 de la SDD-0613; no la adelanta.
 
@@ -31,8 +31,13 @@ ya hace DTD Cargo, y proponer fases con lo que ya existe, orden y qué no copiar
 - Revisión y fusión: Director General.
 
 ## FUERA DE ALCANCE DETECTADO
-- Revisar los 4 títulos largos (decisión de redacción).
+- Revisar los 2 títulos largos (decisión de redacción).
 - Impacto documental: si se aprueba, enlazar la spec desde `docs/marketing/README.md` al integrar.
 
 ## VALIDACIÓN
-Ver resultado de `pnpm docs:check` y `pnpm sdd:check` en la PR. `pnpm verify` no aplica (solo documento).
+- `pnpm docs:check`: PASÓ (índice sincronizado, 624 specs).
+- `pnpm sdd:check`: PASÓ (sin números repetidos).
+- `pnpm verify`: NO EJECUTADO, no aplica (solo documento).
+
+## REVISIÓN
+Revisión independiente del Director General: aprobada con menores; segunda pasada aplicó títulos, criterios por fase, regla D-2, tope propuesto de 15 USD, allowlist, citas de línea y `related`.
