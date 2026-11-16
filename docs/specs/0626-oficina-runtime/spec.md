@@ -4,7 +4,7 @@ title: "Oficina-runtime — El Cable Vertical"
 status: approved
 author: "Hermes (redacción) · Sam (aprobación)"
 created: 2026-11-12
-updated: 2026-11-15
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0020", "0021"]
@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.3.1 (aprobada para construir §3.2 y §3.3) · 15/11/2026**
+**Versión 0.3.2 (aprobada para construir §3.2 y §3.3; Paso 2b con la «Opción 3: puente») · 16/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -50,7 +50,8 @@ usa este mapa.
 |---|---|---|
 | Paso 0 | §3.0 · prueba de conexión ERP → oficina | construido |
 | Paso 1 | §3.1 · las 4 tablas y la bandera | construido (migración 0541, sin aplicar) |
-| Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | este PR (migración 0544, sin aplicar) |
+| Paso 2 | §3.2 y §3.3 · webhook de Chatwoot y filtro nivel 1 | construido (migración 0544) |
+| Paso 2b | prueba con el mensaje real del inbox de prueba, por el puente interno («Opción 3: puente») | construido y probado en staging el 16/11/2026 |
 | Paso 3 | §3.4 y §3.5 · despachador mínimo y ejecución | pendiente |
 | Paso 4 | §3.6 · mini-vista | pendiente |
 
@@ -135,6 +136,19 @@ y `correlation_id`, y `task_events` solo lo referencia.
 - `lib/studio/oficina/cable-textos.ts` y su prueba
 - `supabase/migrations-baseline.json` (la espera)
 - esta spec, `privacidad.md` y `docs/runbooks/oficina-cable.md`
+
+**Cómo se construyó el Paso 2b («Opción 3: puente»).** Sam eligió el 15/11/2026 un puente interno de
+**prueba** en lugar de un webhook de Chatwoot por la ruta pública. El puente lee por la API de Chatwoot solo
+la cuenta 2 («DTD Prueba») y la bandeja 11 («Prueba Oficina»), y entrega cada mensaje entrante nuevo al web
+de prueba (`dtd-cargo-staging-web-1:3000`, red interna) con la misma firma que Chatwoot 4.19.1. No escribe
+en Chatwoot. No manda ni guarda el texto ni el contacto: solo guarda el cursor. Si no apunta a prueba, no arranca.
+Detalle, arranque, parada y reversión: `docs/runbooks/oficina-cable.md` §9. Prueba de punta a punta en
+staging el 16/11/2026, de 01:26 a 01:29Z (handoff `.agents/handoffs/2026-11-16-sdd-0626-paso2b-puente.md`).
+
+**Archivos del Paso 2b (allowlist):**
+- `infra/ops/cable-oficina/puente-prueba.*` (el puente y su lanzador)
+- `infra/ops/tests/cable-oficina-puente.test.mjs`
+- esta spec, `privacidad.md`, `docs/runbooks/oficina-cable.md` §9 y su handoff en `.agents/handoffs/`
 
 **3.2 Webhook Chatwoot → bandeja:** POST entrante autenticado; crea
 `event_inbox` con `clave_dedupe = conversación+mensaje` (ventana 30 min). La
@@ -291,7 +305,7 @@ de suscripción 2×día · modo degradado de dos vías.
 |---|---|
 | Paso 0 · Conexión ERP → VPS Oficina | antes de migraciones y webhook: el ERP llama al VPS Oficina con el token del gestor de secretos y recibe respuesta del runtime con el perfil `soporte-chatwoot`. **Éxito:** 3 de 3 llamadas respondidas en ≤10 s cada una, sin correr el modelo, y la misma llamada sin token es rechazada. Si no se cumple, no se sigue |
 | Migraciones | reversibles; índices en task_events.task_id y event_inbox.clave (única: AC-4) |
-| Webhook | prueba con mensaje interno del inbox de prueba. **Paso 2:** eventos simulados, sin Chatwoot real (firma mala, bandeja ajena, nota interna, interruptor apagado y pausa activa). **Paso 2b:** el mensaje real del inbox de prueba, cuando Sam entregue las piezas de Chatwoot |
+| Webhook | prueba con mensaje interno del inbox de prueba. **Paso 2:** eventos simulados, sin Chatwoot real (firma mala, bandeja ajena, nota interna, interruptor apagado y pausa activa). **Paso 2b («Opción 3: puente»):** el mensaje real del inbox de prueba (cuenta 2, bandeja 11) entra por el puente interno al web de prueba. **Éxito:** 1 fila en `event_inbox` con su prioridad, ninguna respuesta automática y ningún dato personal en los logs. Hecho el 16/11/2026 (01:26 a 01:29Z). **NO VERIFICADO:** la entrada real desde fuera, es decir, la ruta pública, Traefik/Cloudflare y la firma emitida por Chatwoot |
 | Filtro | ráfaga de 50 eventos simulados → dedupe y cuota funcionan (Paso 2: contra el esquema real, en PGlite y en Postgres 17) |
 | Despachador | prueba de caída del proceso → reinicia y retoma del último tick |
 | Kill switch | drill: activar y verificar pausa + aborto en vuelo (AC-3) |
@@ -332,6 +346,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.3.2 | 16/11/2026 | **Paso 2b con la «Opción 3: puente»** (Sam, 15/11/2026): mapa de pasos, cómo se construyó, allowlist del Paso 2b (`infra/ops/cable-oficina/puente-prueba.*` y `infra/ops/tests/cable-oficina-puente.test.mjs`) y su fila en §9. La entrada real del webhook desde fuera queda NO VERIFICADA. Prueba en staging el 16/11/2026 de 01:26 a 01:29Z (cuenta 2 reactivada y vuelta a suspender, token del puente rotado). `privacidad.md`: hallazgo 11, el puente |
 | 0.3.1 | 15/11/2026 | Encabezado: aprobada para construir §3.2 y §3.3, con el OK de Sam al cable del 14/11/2026 y su «Sí, las dos» del 15/11/2026 al lanzar el Paso 2 v2. **Mapa de pasos** al inicio de §3 (Paso 0 = §3.0 · Paso 1 = §3.1 · Paso 2 = §3.2 y §3.3 · Paso 3 = §3.4 y §3.5 · Paso 4 = §3.6) y menciones sueltas corregidas. **AC-1, condición 6:** pasa a «AC-5 completo: gasto visible por corrida y simulacro de auto-pausa al 80 % superado, con un tope de prueba». **AC-1, condición 2:** la revisión de Sam de las 10 conversaciones se anota en `agent_approvals`, igual que en la etapa 2, con la misma consulta de conteo que AC-7 (solo texto; se construye en el Paso 3). Cómo se construyen §3.2 y §3.3 y allowlist del Paso 2 (migración 0544 para la cuota) |
 | 0.3 | 15/11/2026 | **Revisión independiente de la #572 (0541 corregida en su lugar, porque no está aplicada en ningún entorno).** Bajas: autorización del Paso 1 registrada (Sam, 15/11/2026, «Sí, lánzalo», por Hermes); «3 tablas» → 4 en §1 y §3.6; `clave_dedupe` única (§3.2, §9). **Con el OK de Sam del 15/11/2026, dado en la sesión del cable** sobre la propuesta de las medias: §3.1 suma la minimización y retención de los textos libres («A: regla + 90 días»; Sam la mantuvo sabiendo que los 90 días no son de R5) y declara que el §3 de AUD-01 no aplica a `task_events` («Sí, apruebo»). Revisión de datos personales en [privacidad.md](privacidad.md). **Con el OK de Sam del 15/11/2026 al pedido «Paso 1.1» de Hermes** («Sí, añádelas»): la regla del paso de la etapa 1 a la 2 en AC-1 (y su fila en §9) y la de un solo contestador por bandeja (§3.5). Allowlist del Paso 1 en §3.1 |
 | 0.2.2 | 15/11/2026 | Encabezado: aprobada para construir el Paso 0 y §3.1, con el OK de Sam al cable del 14/11/2026. Sin cambios de alcance. §3.1 se construye en el Paso 1 (pedido de Hermes que Sam autorizó: «Sí, lánzalo») |

@@ -84,26 +84,56 @@ const BITACORA: Row[] = [
     event_type: "role_changed", reason: "Otro tipo de evento", actor_id: ADMIN_A,
     before_data: null, after_data: null, occurred_at: "2026-11-14T14:00:00Z", ...DE_MAS,
   },
+  // SDD-0635: cambios de rol y de almacén por D1 (entidad membership, con motivo).
+  {
+    id: "ev-a-rol", tenant_id: TENANT_A, entity_type: "membership", entity_id: PERSONA_A,
+    event_type: "membership_role_changed", reason: "Pasa a llevar la cobranza", actor_id: ADMIN_A,
+    before_data: { role: "operations" }, after_data: { role: "commercial" }, occurred_at: "2026-11-14T15:00:00Z", ...DE_MAS,
+  },
+  {
+    id: "ev-a-alm", tenant_id: TENANT_A, entity_type: "membership", entity_id: PERSONA_A,
+    event_type: "membership_scope_changed", reason: "Atiende solo China", actor_id: ADMIN_A,
+    before_data: { warehouse_scope: "all" }, after_data: { warehouse_scope: "cn" }, occurred_at: "2026-11-14T10:00:00Z", ...DE_MAS,
+  },
+  {
+    id: "ev-a-invit", tenant_id: TENANT_A, entity_type: "membership", entity_id: PERSONA_A,
+    event_type: "membership_invitation_revoked", reason: "No es un cambio de esta persona", actor_id: ADMIN_A,
+    before_data: null, after_data: { revoked: true }, occurred_at: "2026-11-14T16:00:00Z", ...DE_MAS,
+  },
+  {
+    id: "ev-b-rol", tenant_id: TENANT_B, entity_type: "membership", entity_id: PERSONA_A,
+    event_type: "membership_role_changed", reason: "Del otro tenant", actor_id: ADMIN_B,
+    before_data: { role: "support" }, after_data: { role: "commercial" }, occurred_at: "2026-11-14T15:30:00Z", ...DE_MAS,
+  },
+];
+
+/** `user_role_audit` (0201): suspensiones sin motivo; sus role_change repiten D1. */
+const ROLE_AUDIT: Row[] = [
+  { id: "ra-a-off", tenant_id: TENANT_A, target_user_id: PERSONA_A, action: "disable", actor_user_id: ADMIN_A, old_value: "commercial", new_value: "commercial", created_at: "2026-11-14T09:00:00Z" },
+  { id: "ra-a-rol", tenant_id: TENANT_A, target_user_id: PERSONA_A, action: "role_change", actor_user_id: ADMIN_A, old_value: "operations", new_value: "commercial", created_at: "2026-11-14T15:00:00Z" },
+  { id: "ra-b-on", tenant_id: TENANT_B, target_user_id: PERSONA_A, action: "enable", actor_user_id: ADMIN_B, old_value: null, new_value: null, created_at: "2026-11-14T09:30:00Z" },
 ];
 
 interface Consulta {
   table: string;
   columns: string | null;
   filters: [string, unknown][];
+  ins: [string, unknown[]][];
   limit: number | null;
 }
 
 /** Doble del cliente de servicio: honra `.eq()`, proyecta el `select` y aplica `.limit()`. */
 function adminDouble() {
   const consultas: Consulta[] = [];
-  const tablas: Record<string, Row[]> = { user_tenants: MIEMBROS, entity_audit_log: BITACORA };
+  const tablas: Record<string, Row[]> = { user_tenants: MIEMBROS, entity_audit_log: BITACORA, user_role_audit: ROLE_AUDIT };
   function from(table: string) {
-    const c: Consulta = { table, columns: null, filters: [], limit: null };
+    const c: Consulta = { table, columns: null, filters: [], ins: [], limit: null };
     consultas.push(c);
     const filas = () => {
       const cols = c.columns ? c.columns.split(",").map((s) => s.trim()) : null;
       const out = (tablas[table] ?? [])
         .filter((r) => c.filters.every(([k, v]) => r[k] === v))
+        .filter((r) => c.ins.every(([k, vs]) => vs.includes(r[k])))
         .map((r) => (cols ? Object.fromEntries(cols.map((k) => [k, r[k]])) : { ...r }));
       return c.limit === null ? out : out.slice(0, c.limit);
     };
@@ -111,6 +141,7 @@ function adminDouble() {
     Object.assign(b, {
       select: (cols: string) => ((c.columns = cols), b),
       eq: (k: string, v: unknown) => (c.filters.push([k, v]), b),
+      in: (k: string, vs: unknown[]) => (c.ins.push([k, vs]), b),
       order: () => b,
       limit: (n: number) => ((c.limit = n), b),
       maybeSingle: async () => ({ data: filas()[0] ?? null, error: null }),
@@ -171,7 +202,7 @@ describe("Actividad · candados antes de leer", () => {
     comoUsuario(ADMIN_B, TENANT_B, "admin");
     const res = await listUserAccessActivityAction(PERSONA_A);
     const ids = "events" in res ? res.events.map((e) => e.id) : null;
-    expect(ids).toEqual(["ev-b1"]);
+    expect(ids).toEqual(["ev-b-rol", "ev-b1", "ra-b-on"]);
   });
 
   it("una persona destino de otro tenant da error y no se lee la bitácora", async () => {
@@ -193,20 +224,31 @@ describe("Actividad · candados antes de leer", () => {
 });
 
 describe("Actividad · consulta con filtros fijos", () => {
-  it("caso feliz: solo eventos de extras de esa persona en el tenant de la sesión, con las columnas esperadas", async () => {
+  it("caso feliz: extras, rol, almacén y suspensión de esa persona en el tenant de la sesión, en orden", async () => {
     comoUsuario(ADMIN_A, TENANT_A, "admin");
     const res = await listUserAccessActivityAction(PERSONA_A);
     expect(res).toEqual({
       ok: true,
       events: [
         {
-          id: "ev-a1",
-          event: "created",
-          moduleId: "kommo",
-          canEdit: true,
-          reason: "Cubre el CRM durante una ausencia",
-          actorId: ADMIN_A,
+          id: "ev-a-rol", kind: "rol", event: "role_changed", moduleId: null, canEdit: null,
+          before: "operations", after: "commercial", reason: "Pasa a llevar la cobranza", actorId: ADMIN_A,
+          occurredAt: "2026-11-14T15:00:00Z",
+        },
+        {
+          id: "ev-a1", kind: "extra", event: "created", moduleId: "kommo", canEdit: true,
+          before: null, after: null, reason: "Cubre el CRM durante una ausencia", actorId: ADMIN_A,
           occurredAt: "2026-11-14T12:00:00Z",
+        },
+        {
+          id: "ev-a-alm", kind: "almacen", event: "scope_changed", moduleId: null, canEdit: null,
+          before: "all", after: "cn", reason: "Atiende solo China", actorId: ADMIN_A,
+          occurredAt: "2026-11-14T10:00:00Z",
+        },
+        {
+          id: "ra-a-off", kind: "estado", event: "disabled", moduleId: null, canEdit: null,
+          before: null, after: null, reason: null, actorId: ADMIN_A,
+          occurredAt: "2026-11-14T09:00:00Z",
         },
       ],
     });
@@ -228,5 +270,55 @@ describe("Actividad · consulta con filtros fijos", () => {
         ["entity_id", PERSONA_A],
       ]),
     );
+  });
+});
+
+describe("Actividad · rol, almacén y estado (SDD-0635 §3.7)", () => {
+  it("lee membership solo con los dos tipos de la persona y user_role_audit solo disable/enable, siempre del tenant", async () => {
+    comoUsuario(ADMIN_A, TENANT_A, "admin");
+    await listUserAccessActivityAction(PERSONA_A);
+    const membresia = admin.consultas.find((c) => c.table === "entity_audit_log" && c.filters.some(([, v]) => v === "membership"));
+    expect(membresia?.filters).toEqual([
+      ["tenant_id", TENANT_A],
+      ["entity_type", "membership"],
+      ["entity_id", PERSONA_A],
+    ]);
+    expect(membresia?.ins).toEqual([["event_type", ["membership_role_changed", "membership_scope_changed"]]]);
+    const estado = admin.consultas.find((c) => c.table === "user_role_audit");
+    expect(estado?.filters).toEqual([
+      ["tenant_id", TENANT_A],
+      ["target_user_id", PERSONA_A],
+    ]);
+    expect(estado?.ins).toEqual([["action", ["disable", "enable"]]]);
+    expect(estado?.columns).toBe("id, action, actor_user_id, created_at");
+  });
+
+  it("no mezcla la revocación de invitaciones, el role_change repetido ni lo del otro tenant", async () => {
+    comoUsuario(ADMIN_A, TENANT_A, "admin");
+    const res = await listUserAccessActivityAction(PERSONA_A);
+    const ids = "events" in res ? res.events.map((e) => e.id) : [];
+    expect(ids.length).toBeGreaterThan(0);
+    for (const fuera of ["ev-a-invit", "ra-a-rol", "ev-b-rol", "ra-b-on"]) expect(ids).not.toContain(fuera);
+  });
+
+  it("si una de las bitácoras falla, se dice en vez de mostrar media historia", async () => {
+    comoUsuario(ADMIN_A, TENANT_A, "admin");
+    const base = admin.client.from;
+    const falla = { data: null, error: { message: "x" } };
+    admin.client.from = ((t: string) => {
+      if (t !== "user_role_audit") return base(t);
+      const b: Record<string, unknown> = {};
+      Object.assign(b, {
+        select: () => b,
+        eq: () => b,
+        in: () => b,
+        order: () => b,
+        limit: () => b,
+        then: (ok: (r: unknown) => unknown, ko?: (e: unknown) => unknown) => Promise.resolve(falla).then(ok, ko),
+      });
+      return b;
+    }) as typeof base;
+    const res = await listUserAccessActivityAction(PERSONA_A);
+    expect(res).toEqual({ error: "No se pudo cargar la actividad. Intenta de nuevo." });
   });
 });

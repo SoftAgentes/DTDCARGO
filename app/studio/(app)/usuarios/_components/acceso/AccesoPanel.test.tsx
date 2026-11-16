@@ -1,13 +1,16 @@
 /**
- * SDD-0622 · pestaña «Acceso» de la ficha y doble aviso.
+ * SDD-0622 · pestaña «Acceso» de la ficha, rediseñada por la SDD-0635.
  *
- * Lo que defiende:
- *   1. Un módulo que la base todavía no acepta (dinero, solo-admin) se ve con
- *      su motivo y NO se puede elegir (§5.3).
- *   2. Agregar un módulo cubierto pide motivo y manda a la acción lo elegido.
- *   3. El doble aviso lista los efectos concretos y no confirma sin motivo ni
- *      casilla; con las dos cosas manda `confirmSensitive: true`.
- *   4. «Lo que puede ver» marca la fuente: el CRM de la persona de contabilidad sale como extra.
+ * Lo que defiende (aceptación de la 0635 §7):
+ *   1. Al tocar un módulo que se puede dar, las tres opciones están a la vista.
+ *   2. Lo que la base no acepta no ofrece opciones y dice su motivo en texto.
+ *   3. `support` no ofrece «Ver y editar».
+ *   4. Elegir NO guarda: va a la bandeja «N cambios para <persona>».
+ *   5. Un motivo, un «Guardar»: una llamada por módulo con el mismo motivo;
+ *      fallo a medias conserva solo lo que falta y nombra el que falló.
+ *   6. Persona frente a rol: «solo para <persona>».
+ *   7. El mapa marca el origen (extra, rol, sensible) y el extra que sobra.
+ *   8. El doble aviso sigue igual.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -33,11 +36,11 @@ vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
 const { AccesoPanel } = await import("./AccesoPanel");
 const { DobleAvisoDialog } = await import("./DobleAvisoDialog");
 
-const CONTABILIDAD_CON_CRM = "00000000-0000-4000-8000-0000000000a1";
+const PERSONA = "00000000-0000-4000-8000-0000000000a1";
 
 function miembro(over: Partial<UserMembershipWithProfile> = {}): UserMembershipWithProfile {
   return {
-    user_id: CONTABILIDAD_CON_CRM,
+    user_id: PERSONA,
     tenant_id: "tn-1",
     role: "accounting",
     warehouse_scope: "all",
@@ -46,14 +49,14 @@ function miembro(over: Partial<UserMembershipWithProfile> = {}): UserMembershipW
     invited_by: null,
     created_at: "2026-07-03T00:00:00Z",
     email: "persona@ejemplo.test",
-    profile: { user_id: CONTABILIDAD_CON_CRM, first_name: "Persona", last_name: "de contabilidad" } as never,
+    profile: { user_id: PERSONA, first_name: "Persona", last_name: "de contabilidad" } as never,
     ...over,
   };
 }
 
 function extra(over: Partial<UserModuleGrantView> = {}): UserModuleGrantView {
   return {
-    userId: CONTABILIDAD_CON_CRM,
+    userId: PERSONA,
     moduleId: "kommo",
     canView: true,
     canEdit: true,
@@ -68,109 +71,220 @@ function extra(over: Partial<UserModuleGrantView> = {}): UserModuleGrantView {
   };
 }
 
+const chip = (nombre: string) => screen.getByRole("button", { name: new RegExp(`^${nombre}:`) });
+
 beforeEach(() => {
   vi.clearAllMocks();
   grantMock.mockResolvedValue({ ok: true });
   revokeMock.mockResolvedValue({ ok: true });
 });
 
-describe("AccesoPanel · buscador de módulos", () => {
-  it("los módulos que la base no acepta se ven con su motivo y no se eligen", async () => {
+describe("AccesoPanel · mapa y detalle (0635 §3.1-3.2)", () => {
+  it("al tocar CRM salen las tres opciones a la vista, sin otro paso", async () => {
     const u = userEvent.setup();
-    render(<AccesoPanel member={miembro({ role: "commercial" })} grants={[]} overrides={{}} nombres={{}} />);
-    await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
-    const tesoreria = screen.getByRole("option", { name: /Tesorería/ });
-    expect(tesoreria).toHaveProperty("disabled", true);
-    expect(tesoreria.textContent).toContain("Requiere fase de dinero");
-    const usuarios = screen.getByRole("option", { name: /Usuarios/ });
-    expect(usuarios).toHaveProperty("disabled", true);
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} personasDelRol={2} />);
+    await u.click(chip("CRM"));
+    const grupo = screen.getByRole("radiogroup", { name: "Acceso extra a CRM" });
+    for (const n of ["Sin extra", "Solo ver", "Ver y editar"]) {
+      expect(within(grupo).getByRole("radio", { name: new RegExp(n) })).toBeTruthy();
+    }
+    expect(screen.getByText(/Su rol Contabilidad no incluye CRM/)).toBeTruthy();
   });
 
-  it("agregar el CRM pide motivo y manda lo elegido", async () => {
+  it("lo que la base no acepta no ofrece opciones y dice el motivo en texto", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro({ role: "commercial" })} grants={[]} overrides={{}} nombres={{}} />);
+    // Los no disponibles van plegados por área.
+    for (const area of screen.getAllByRole("button", { name: /todavía no se pueden? dar como extra/ })) await u.click(area);
+    await u.click(chip("Tesorería"));
+    expect(screen.queryByRole("radiogroup", { name: /^Acceso extra/ })).toBeNull();
+    expect(screen.getByText(/exige el rol contabilidad para el dinero/)).toBeTruthy();
+    await u.click(chip("Usuarios"));
+    expect(screen.queryByRole("radiogroup", { name: /^Acceso extra/ })).toBeNull();
+    expect(screen.getByText(/reserva este módulo al rol administrador/)).toBeTruthy();
+  });
+
+  it("Bandeja (Chatwoot) tampoco se puede dar", async () => {
     const u = userEvent.setup();
     render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
-    await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
-    await u.click(screen.getByRole("option", { name: /^CRM/ }));
-    await u.click(screen.getByRole("button", { name: "Agregar acceso" }));
+    for (const b of screen.getAllByRole("button", { name: /todavía no se pueden? dar como extra/ })) await u.click(b);
+    await u.click(chip("Bandeja"));
+    expect(screen.queryByRole("radiogroup", { name: /^Acceso extra/ })).toBeNull();
+    expect(screen.getByText(/Falta revisar su base/)).toBeTruthy();
+  });
+
+  it("soporte no ofrece «Ver y editar»", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro({ role: "support" })} grants={[]} overrides={{}} nombres={{}} />);
+    await u.click(chip("CRM"));
+    expect(screen.getByRole("radio", { name: /Ver y editar/ })).toHaveProperty("disabled", true);
+    expect(screen.getByText("Soporte nunca edita.")).toBeTruthy();
+  });
+
+  it("Esc cierra el detalle y devuelve el foco al chip", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Solo ver/ }));
+    await u.keyboard("{Escape}");
+    expect(screen.queryByRole("radiogroup", { name: /^Acceso extra/ })).toBeNull();
+    expect(document.activeElement).toBe(chip("CRM"));
+  });
+
+  it("a un admin no se le ofrecen extras", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro({ role: "admin" })} grants={[]} overrides={{}} nombres={{}} />);
+    expect(screen.getByText(/ya ve y edita todos los módulos/)).toBeTruthy();
+    await u.click(chip("CRM"));
+    expect(screen.queryByRole("radiogroup", { name: /^Acceso extra/ })).toBeNull();
+  });
+
+  it("el mapa marca el origen: CRM como extra, Tesorería por su rol y sensible", () => {
+    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
+    expect(chip("CRM").getAttribute("data-src")).toBe("grant");
+    expect(chip("CRM").getAttribute("aria-label")).toMatch(/acceso extra, ver y editar/);
+    expect(chip("Tesorería").getAttribute("data-src")).toBe("role");
+    expect(chip("Tesorería").getAttribute("data-sens")).toBe("true");
+  });
+
+  it("un extra vencido no suma", () => {
+    render(<AccesoPanel member={miembro()} grants={[extra({ expired: true, expiresAt: "2026-11-01T00:00:00Z" })]} overrides={{}} nombres={{}} />);
+    expect(chip("CRM").getAttribute("data-src")).toBe("none");
+  });
+
+  it("un extra que su rol ya cubre se marca «sobra» y se puede quitar", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[extra({ moduleId: "rates" })]} overrides={{}} nombres={{}} />);
+    expect(chip("Tarifas").getAttribute("aria-label")).toMatch(/con un extra que sobra/);
+    await u.click(chip("Tarifas"));
+    await u.click(screen.getByRole("button", { name: "Quitar el extra que sobra" }));
+    expect(screen.getByText("Quitar extra · Tarifas")).toBeTruthy();
+  });
+});
+
+describe("AccesoPanel · persona frente a rol (0635 §3.4)", () => {
+  it("dice que el cambio es solo para esa persona y cuántas comparten el rol", () => {
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} personasDelRol={2} />);
+    expect(screen.getByRole("note").textContent).toMatch(/solo para Persona de contabilidad.*No toca a las otras personas de Contabilidad/);
+    expect(screen.getByText(/tienen el rol Contabilidad\. El rol es el piso/)).toBeTruthy();
+  });
+});
+
+describe("AccesoPanel · bandeja (0635 §3.3)", () => {
+  it("elegir no guarda: el cambio va a la bandeja con su alcance", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Ver y editar/ }));
+    expect(grantMock).not.toHaveBeenCalled();
+    expect(revokeMock).not.toHaveBeenCalled();
+    const bandeja = screen.getByRole("region", { name: "1 cambio para Persona de contabilidad" });
+    expect(within(bandeja).getByText("No cambia el rol Contabilidad")).toBeTruthy();
+    expect(within(bandeja).getByText("+ CRM · ver y editar")).toBeTruthy();
+    expect(within(bandeja).getByText(/No escribas datos personales/)).toBeTruthy();
+  });
+
+  it("sin motivo no guarda; con motivo, una llamada por módulo con el mismo motivo", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Ver y editar/ }));
+    await u.click(chip("Conversaciones"));
+    await u.click(screen.getByRole("radio", { name: /Solo ver/ }));
+    await u.click(screen.getByRole("button", { name: "Guardar 2 cambios" }));
     expect(grantMock).not.toHaveBeenCalled();
     expect(screen.getByRole("alert").textContent).toMatch(/motivo/i);
 
-    const form = screen.getByRole("group", { name: /Agregar CRM/ });
-    await u.click(within(form).getByRole("radio", { name: "Editar" }));
-    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Atiende leads con comercial");
-    await u.click(screen.getByRole("button", { name: "Agregar acceso" }));
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Atiende leads los sábados");
+    await u.click(screen.getByRole("button", { name: "Guardar 2 cambios" }));
+    expect(grantMock).toHaveBeenCalledTimes(2);
     expect(grantMock).toHaveBeenCalledWith({
-      targetUserId: CONTABILIDAD_CON_CRM,
+      targetUserId: PERSONA,
       moduleId: "kommo",
       canEdit: true,
-      reason: "Atiende leads con comercial",
+      reason: "Atiende leads los sábados",
       expiresOn: null,
       confirmSensitive: false,
     });
+    expect(grantMock).toHaveBeenCalledWith(expect.objectContaining({ moduleId: "conversaciones", canEdit: false, reason: "Atiende leads los sábados" }));
+    expect(await screen.findByText("2 cambios guardados para Persona de contabilidad.")).toBeTruthy();
+  });
+
+  it("fallo a medias: el primero queda guardado, la bandeja conserva dos y nombra el que falló", async () => {
+    const u = userEvent.setup();
+    grantMock.mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ error: "Sin permiso." });
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
+    for (const [m, n] of [["Conversaciones", /Solo ver/], ["CRM", /Ver y editar/], ["PreAlertas de servicios", /Ver y editar/]] as const) {
+      await u.click(chip(m));
+      await u.click(screen.getByRole("radio", { name: n }));
+    }
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Cubre una ausencia");
+    await u.click(screen.getByRole("button", { name: "Guardar 3 cambios" }));
+    expect(grantMock).toHaveBeenCalledTimes(2);
+    const bandeja = await screen.findByRole("region", { name: "2 cambios para Persona de contabilidad" });
+    expect(within(bandeja).getByRole("alert").textContent).toMatch(/^CRM: Sin permiso\..*cambio anterior quedó guardado/);
+    expect((screen.getByLabelText("Motivo (obligatorio)") as HTMLInputElement).value).toBe("Cubre una ausencia");
   });
 
   it("si la acción lanza (corte de red), se ve el error y no se pierde lo escrito", async () => {
     const u = userEvent.setup();
     grantMock.mockRejectedValueOnce(new Error("Failed to fetch"));
     render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
-    await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
-    await u.click(screen.getByRole("option", { name: /^CRM/ }));
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Ver y editar/ }));
     await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Atiende leads con comercial");
-    await u.click(screen.getByRole("button", { name: "Agregar acceso" }));
+    await u.click(screen.getByRole("button", { name: "Guardar cambio" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/se cortó la conexión/);
     expect((screen.getByLabelText("Motivo (obligatorio)") as HTMLInputElement).value).toBe("Atiende leads con comercial");
   });
 
-  it("si quitar lanza, el error se ve dentro del diálogo", async () => {
+  it("quitar un extra pasa por la bandeja y llama a revocar con el motivo", async () => {
     const u = userEvent.setup();
-    revokeMock.mockRejectedValueOnce(new Error("Failed to fetch"));
     render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
-    await u.click(screen.getByRole("button", { name: "Quitar CRM" }));
-    await u.type(screen.getByRole("textbox"), "Ya no atiende el CRM");
-    await u.click(screen.getByRole("button", { name: "Quitar acceso" }));
-    expect(await screen.findByText(/se cortó la conexión/)).toBeTruthy();
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Quitar extra/ }));
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Ya no atiende el CRM");
+    await u.click(screen.getByRole("button", { name: "Guardar cambio" }));
+    expect(revokeMock).toHaveBeenCalledWith({ targetUserId: PERSONA, moduleId: "kommo", reason: "Ya no atiende el CRM" });
   });
 
-  it("los campos de motivo avisan que no se escriban datos personales", async () => {
+  it("cambiar el nivel de un extra con vencimiento lo conserva si no se escribe uno nuevo", async () => {
     const u = userEvent.setup();
-    // Alta: sin extras, para que el buscador ofrezca el CRM.
-    const { unmount } = render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
-    await u.click(screen.getByRole("combobox", { name: "Agregar módulo o área" }));
-    await u.click(screen.getByRole("option", { name: /^CRM/ }));
-    const motivo = screen.getByLabelText("Motivo (obligatorio)") as HTMLInputElement;
-    expect(motivo.placeholder).toBe("Ej: cubre el CRM durante una ausencia");
-    const aviso = document.getElementById(motivo.getAttribute("aria-describedby") ?? "");
-    expect(aviso?.textContent).toMatch(/No escribas datos personales/);
-    unmount();
-
-    // Quitar: con el CRM ya concedido.
-    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
-    await u.click(screen.getByRole("button", { name: "Quitar CRM" }));
-    expect((screen.getByRole("textbox") as HTMLInputElement).placeholder).toBe("Ej: ya no cubre el CRM");
-    expect(screen.getByText(/No escribas datos personales/)).toBeTruthy();
+    render(
+      <AccesoPanel
+        member={miembro()}
+        grants={[extra({ canEdit: false, expiresAt: "2026-12-31T03:59:59.000Z" })]}
+        overrides={{}}
+        nombres={{}}
+      />,
+    );
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Ver y editar/ }));
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Ahora también edita");
+    await u.click(screen.getByRole("button", { name: "Guardar cambio" }));
+    // 2026-12-31T03:59:59Z es el 30 de diciembre a las 23:59 en Caracas.
+    expect(grantMock).toHaveBeenCalledWith(expect.objectContaining({ moduleId: "kommo", canEdit: true, expiresOn: "2026-12-30" }));
   });
 
-  it("a un admin no se le ofrecen extras", () => {
-    render(<AccesoPanel member={miembro({ role: "admin" })} grants={[]} overrides={{}} nombres={{}} />);
-    expect(screen.queryByRole("combobox", { name: "Agregar módulo o área" })).toBeNull();
-    expect(screen.getByText(/ya ve y edita todos los módulos/)).toBeTruthy();
-  });
-});
-
-describe("AccesoPanel · lo que puede ver", () => {
-  it("el CRM concedido aparece como extra y Tesorería como del rol", () => {
-    render(<AccesoPanel member={miembro()} grants={[extra()]} overrides={{}} nombres={{}} />);
-    const crm = screen.getAllByText("CRM").find((el) => el.tagName === "LI");
-    expect(crm?.getAttribute("data-src")).toBe("grant");
-    const teso = screen.getAllByText("Tesorería").find((el) => el.tagName === "LI");
-    expect(teso?.getAttribute("data-src")).toBeNull();
-    expect(teso?.getAttribute("data-sens")).toBe("true");
+  it("«Todo Comercial» llena la bandeja con los comerciales que se pueden dar", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
+    await u.click(screen.getByRole("button", { name: "Todo Comercial" }));
+    expect(grantMock).not.toHaveBeenCalled();
+    const bandeja = screen.getByRole("region", { name: /cambios para Persona de contabilidad/ });
+    expect(within(bandeja).getByText("+ CRM · ver y editar")).toBeTruthy();
+    expect(within(bandeja).queryByText(/Tarifas/)).toBeNull(); // su rol ya lo da
   });
 
-  it("un extra vencido no suma y se marca", () => {
-    render(<AccesoPanel member={miembro()} grants={[extra({ expired: true, expiresAt: "2026-11-01T00:00:00Z" })]} overrides={{}} nombres={{}} />);
-    expect(screen.getByText("Vencido")).toBeTruthy();
-    expect(screen.getAllByText("CRM").find((el) => el.tagName === "LI")).toBeUndefined();
+  it("avisa al cajón cuántos cambios quedan sin guardar", async () => {
+    const u = userEvent.setup();
+    const onPendientes = vi.fn();
+    render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} onPendientes={onPendientes} />);
+    await u.click(chip("CRM"));
+    await u.click(screen.getByRole("radio", { name: /Solo ver/ }));
+    expect(onPendientes).toHaveBeenLastCalledWith(1);
+    await u.click(screen.getByRole("button", { name: "Deshacer CRM" }));
+    expect(onPendientes).toHaveBeenLastCalledWith(0);
   });
 });
 
