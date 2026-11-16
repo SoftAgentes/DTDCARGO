@@ -19,11 +19,11 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones:** D-1 a D-11 (§11). Decididas por Sam: D-3, D-6, D-9, D-10 y D-11. Abiertas: D-1, D-2, D-4, D-5, D-7
+**Decisiones:** D-1 a D-11 (§11). Decididas por Sam: D-3, D-4, D-5, D-6, D-9, D-10 y D-11. Abiertas: D-1, D-2, D-7
 y D-8.
 
-**Estado:** `proposed`. Este documento es la etapa 0. **No hay código, migraciones ni cambios en producción.**
-Nada se programa hasta que Sam apruebe esta spec.
+**Estado:** `proposed`. Hay contenido (fase 1, en `main`) y una migración sin aplicar (fase 2, `0550`). **No hay
+cambios en producción.** Cada fase se programa con el visto bueno de Sam y el turno del Director General.
 
 **Maquetas navegables** (archivos autocontenidos; se abren en el navegador):
 
@@ -350,6 +350,31 @@ de los usuarios se tratan como datos, nunca como instrucciones.
 | 6 | Producción | `pnpm verify`, revisión independiente, portón del DG, OK nominal de Sam para la migración |
 | 7 | Hermes (§8) | Se especifica en detalle con la sesión de la Oficina |
 
+**Fase 2 (2026-11-16):** migración `supabase/migrations/0550_faro_registro.sql`, **no aplicada**, con su
+contrato `supabase/tests/0550_faro_registro.test.sql`, su ensayo en PGlite
+`lib/studio/asistente/__tests__/faro-0550.migration.test.ts` (control rojo, mutantes y desarme) y su desarme
+`supabase/desarmes/0550_desarme.sql`. Implementa D-4 (lee solo el administrador del tenant, con rastro) y deja
+D-5 como parámetro: el tope por hora lo pasa el servidor y la base no fija el número. Sam aprobó las dos el mismo día.
+La purga a pedido exige que quien la pide sea administrador activo del tenant y un motivo de una lista cerrada; la
+constancia en `asistente_purgas` no guarda quién la pidió ni texto (`privacidad.md` §2). Quién la pidió lo
+registra la fase 3 con `append_audit_event` (0267), sin el texto de las preguntas (AC-19).
+Detalle en `.agents/handoffs/sdd-0637-faro-fase2-migracion.md`.
+
+**Allowlist exacta de la fase 2** (PR #611): ningún otro archivo cambia.
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0550_faro_registro.sql` | Nuevo |
+| `supabase/tests/0550_faro_registro.test.sql` | Nuevo |
+| `lib/studio/asistente/__tests__/faro-0550.migration.test.ts` | Nuevo |
+| `supabase/desarmes/0550_desarme.sql` | Nuevo |
+| `supabase/migrations-baseline.json` | Espera `0550_faro_registro` |
+| `docs/specs/0637-faro-asistente-ayuda/spec.md` | Fase 2, D-4, D-5, AC-17, AC-18 y AC-19 |
+| `.agents/handoffs/sdd-0637-faro-fase2-migracion.md` | Nuevo |
+
+Más `docs/specs/0637-faro-asistente-ayuda/privacidad.md`, solo para precisar el texto de E-1 y E-5 a lo que hace la
+0550.
+
 **Orden:** el Director General ubicó la implementación después de lo que está en curso (retiros de espera de las
 migraciones 0545 a 0547, la PR #598 y la prueba E del cable). El número de la migración se toma al crearla.
 
@@ -378,6 +403,9 @@ incluidas la batería y el ataque con promptfoo de la fase 5, espera a la revisi
 | AC-14 | La batería alcanza al menos 95 % de aciertos con cero filtraciones, y el ataque con promptfoo no obtiene pasos ni descripciones prohibidas | 5 |
 | AC-15 | Existe la revisión `revisar-datos-ve` aprobada antes del primer envío real al modelo | 5 |
 | AC-16 | `FARO_MODELO` y `FARO_MODELO_RESPALDO` solo aceptan proveedores de la lista permitida, sin proveedores chinos; una prueba falla si se configura uno fuera de la lista | 3 |
+| AC-17 | Cada hallazgo E-1 a E-10 de [`privacidad.md`](privacidad.md) queda resuelto en su fase, con prueba donde el código lo permite. Fase 2: E-1 (la purga borra filas completas), E-5 (purga a pedido con constancia) y E-7 (cada lectura del administrador queda en `asistente_lecturas`), en el contrato de la 0550. Fase 3: E-3 (depuración antes de la IA y antes de guardar), E-6 (la alerta es una señal que revisa una persona), E-9 (un canal externo no lleva identidad) y E-10 (AC-16). Fase 4: E-4 (aviso con versión) y el camino de E-5 para pedir. Fase 7: E-8 (Hermes solo lee agregados). E-2 queda aceptado por D-11, con el riesgo anotado | 2 a 7 |
+| AC-18 | El tope de gasto del mes no se pasa por una carrera: dos preguntas simultáneas del mismo tenant no pueden leer el mismo gasto y llamar las dos a la IA. El servidor toma un advisory lock por tenant o reserva el gasto antes de llamar; una prueba con llamadas en paralelo lo demuestra | 3 |
+| AC-19 | Cada purga a pedido deja constancia de quién la pidió con `append_audit_event` (0267): actor, tenant, persona purgada y código de motivo, sin el texto de las preguntas. `asistente_purgas` sigue sin actor (decisión del Director General, revisión de la #611) | 3 |
 
 ## 10. Datos personales
 
@@ -413,8 +441,8 @@ Sam (D-11), con el riesgo anotado.
 | D-1 | Motor de IA: directo, por la Oficina, o principal directo con respaldo | Principal directo (hoy Anthropic) y respaldo solo de un proveedor no chino, o ninguno; la Oficina no sirve de respaldo mientras use Z.AI o DeepSeek (§6.5, `privacidad.md` E-10). Aceptada por el Director General con tres condiciones; falta Sam |
 | D-2 | ¿Faro absorbe el botón de reportar errores? | Sí: un solo elemento flotante, como hizo la referencia |
 | D-3 | Lista de módulos `reservada` y `oculta` | **Aprobada por Sam el 2026-11-16** (§6.1). Su respuesta a «¿Apruebas la propuesta de módulos reservados y ocultos (D-3)?» fue «Sí, apruébala» |
-| D-4 | ¿Quién lee las conversaciones además del administrador? | Solo el administrador del tenant |
-| D-5 | Tope de preguntas por usuario y hora | 30, configurable |
+| D-4 | ¿Quién lee las conversaciones además del administrador? | **Aprobada por Sam el 2026-11-16:** solo el administrador del tenant, con cada lectura registrada en `asistente_lecturas` (migración 0550). Su respuesta en el chat del Director General a «¿Apruebas las dos recomendaciones? D-4: solo el administrador lee las preguntas del equipo, con cada lectura registrada. D-5: 30 preguntas por hora por persona, configurable» fue «Sí, D-4 y D-5» |
+| D-5 | Tope de preguntas por usuario y hora | **Aprobada por Sam el 2026-11-16**, en la misma respuesta: 30 por hora y por persona, configurable. La base no fija el número: el servidor lo pasa a `asistente_reservar_pregunta` (fase 3) |
 | D-6 | Plazo de conservación del registro | **Aprobada por Sam el 2026-11-16** (`privacidad.md` §2): conversaciones, mensajes y feedback 180 días; alertas y lecturas del administrador 2 años, sin texto; llamadas a la IA 13 meses, sin texto ni usuario. Su respuesta a «¿Apruebas los plazos propuestos para D-6?» fue «Sí, apruébalos» |
 | D-7 | ¿Las alertas van también a Telegram o Discord? | Campana siempre; el canal externo, apagado al inicio |
 | D-8 | Tope de gasto mensual de Faro (`FARO_TOPE_USD_MES`) y dónde se mide | US$25 al mes, el mismo tope que el bot de la SDD-0618. Se mide sumando el costo por intento en `asistente_llamadas` |
