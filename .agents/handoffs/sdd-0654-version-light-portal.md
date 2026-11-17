@@ -38,3 +38,19 @@ aprobar, y spec en `proposed` con decisiones para Sam. Sin producto.
 ## Impacto documental
 
 Spec nueva e índice de specs. Sin cambios en documentos canónicos.
+
+## Revisión independiente del 2026-11-17 (sobre `d0c65914c`): CHANGES REQUESTED, atendida
+
+Cada punto se verificó en el código antes de adoptarlo. Cambios en la spec:
+
+- §5: la preferencia se escribe por RPC `SECURITY DEFINER`, sin `grant update` ni policy; se lee aparte del
+  principal y degrada a `pro`.
+- §7: ficha con filtro explícito por tenant y Shipping Mark; sin service_role (FC-13); estados ocultos (FC-14);
+  sin memoria (FC-15); salida en texto plano; lista permitida por proveedor y modelo, sin agregadores.
+- §7.5: clasificación de gobernanza (IA-01 nivel I0, A11Y-01, MOT-01, CMP-01, BTN-01) y dos excepciones de marca.
+- §8: quién lee el registro, RLS de las tablas nuevas, purga al borrar o revocar, aviso de transferencia a EE. UU.
+- §9: fase 1b para el tema claro; allowlists exactas.
+- §10 y §11: AC renumerados AC-1 a AC-25 por fase; D-1 a D-20 en orden (nuevas D-17 a D-20).
+
+Una corrección al revisor: «SDD-0454/0460» son números de migración (`0454_borrar_cliente_revoca_portal.sql`,
+`0460_retencion_vinculo_portal_revocado.sql`); sus specs son la 0467 y la 0477. Así quedó citado.

@@ -4,7 +4,7 @@ title: "Versión light del portal del cliente: Vista simple, Vista Pro, selector
 status: proposed
 author: "Claude (Worker del DG) + Sam"
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-17
 supersedes: null
 superseded_by: null
 related: ["0042", "0147", "0335", "0549", "0627", "0637", "0646"]
@@ -28,7 +28,7 @@ Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y c�
 - La vista Pro de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
   suma es el selector de vista y el botón de Faro.
 
-**Decisiones:** D-1 a D-16 (§11). Decididas por Sam: D-4 y D-10. Las demás están abiertas, cada una con la opción
+**Decisiones:** D-1 a D-20 (§11). Decididas por Sam: D-4 y D-10. Las demás están abiertas, cada una con la opción
 recomendada.
 
 ## 1. Pedido de Sam (2026-11-16)
@@ -219,18 +219,39 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 - Datos (lecturas en `lib/portal/*.ts`): `shipments` y `shipment_events`; `invoices` y `payment_reports`;
   `shipment_documents` y la RPC de packing list; `warehouse_receipts_cn` y sus fotos; `conversations` y
   `conversation_messages`; `quotes`; RPC de avisos, asesor y perfil privado.
-- Acceso: mixto. Las lecturas del cliente usan su sesión con RLS y además filtran por tenant y Shipping Mark
-  (`lib/portal/portal-queries.ts:6-17`). Algunas lecturas usan service_role (por ejemplo zarpes,
-  `app/portal/(app)/layout.tsx:125`), contenido por la SDD-0335.
+- **La RLS sola no aísla al cliente** (`lib/portal/portal-queries.ts:5-17`): las policies «por tenant» son
+  permisivas (OR), así que una persona que es a la vez del equipo y cliente recibiría todo el tenant; y el Shipping
+  Mark es único por tenant, no global, y la policy de facturas compara solo el Shipping Mark. Por eso cada lector
+  del portal filtra además, de forma explícita, por el `tenant_id` y el Shipping Mark del principal (SDD-0462,
+  0549, 0552).
+- **Lecturas que hoy usan service_role** (contenidas por la SDD-0335 y la frontera de la SDD-0383), todas acotadas
+  al principal:
+  - órdenes por aceptar: `app/portal/(app)/page.tsx:89`, con `lib/portal/pending-acceptance.ts:56`;
+  - snapshot naviero del próximo arribo: `app/portal/(app)/page.tsx:97`;
+  - próximo zarpe: `app/portal/(app)/layout.tsx:125`;
+  - packing list y consolidados: `app/portal/(app)/envios/page.tsx:98` y `:135`;
+  - aviso de respuesta nueva en Soporte: `app/portal/(app)/layout.tsx:64-67`.
+- **Estados ocultos (SDD-0156):** el tenant puede ocultar un hito al cliente (por ejemplo «en aduana»). El inicio
+  sustituye el estado por el último visible con `getHiddenPortalStatusesForPortal` y `effectiveVisibleStatus`
+  (`app/portal/(app)/page.tsx:66-83`).
+- **Cliente no activado:** si la cuenta no está aprobada por un asesor ni tiene un envío, el inicio muestra la
+  pantalla de espera `PortalPending` y nada más (`app/portal/(app)/page.tsx:53-56`).
 - **El portal nace hoy en tema oscuro:** `app/portal/(app)/layout.tsx:54` usa claro solo si la cookie dice
-  `light`. Sam pidió que el predeterminado sea el claro (D-14).
+  `light`. El tema se aplica solo cuando el cliente ve el portal Norte (`layout.tsx:86`), que hoy son todos
+  (`NORTE_PORTAL_LIVE = true`, `lib/portal/demo.ts:45`). Sam pidió que el predeterminado sea el claro (D-14).
 - **El seguimiento está «en construcción»** (`lib/portal/tracking-en-construccion.ts`, SDD-0514): el almacén de
   China todavía registra en Excel, así que lo que sigue a la prealerta sale vacío y el inicio muestra un aviso. El
   inicio de hoy no tiene una franja de etapas: muestra un arco con un porcentaje derivado del estado
   (`app/portal/(app)/_components/PortalDashboardNorte.tsx`). Esto condiciona el bloque 1 de la vista simple
   (§6, §12).
 - Motor de guía: existe uno en el Studio (SDD-0589, `lib/studio/guia/`), con recorridos por pantalla, anclas y
-  arranque automático la primera vez. Es del Studio; el portal no lo puede importar tal cual (§6.2).
+  arranque automático la primera vez. El portal sí puede importar `@/lib/studio` (ya lo hace:
+  `app/portal/(app)/page.tsx:20` y `:23`, y ESLint no lo prohíbe en `app/portal`). Lo que impide usarlo tal cual
+  es que su catálogo y sus preferencias dependen de los roles y de las claves de texto del Studio
+  (`lib/studio/guia/recorridos.ts`, `preferencias.ts`) (§6.2).
+- **`client_users` no se puede escribir desde la sesión del cliente:** solo tiene `grant select` y una policy de
+  lectura; «solo las RPCs SECURITY DEFINER escriben» (`supabase/migrations/0080_portal_cliente.sql:59-60` y
+  `:67-70`). Tiene un trigger que actualiza `updated_at` en cada cambio (`0080_portal_cliente.sql:210`).
 - Preferencias: solo existe la cookie `portal-theme` (tema claro/oscuro),
   `app/portal/_components/PortalThemeToggle.tsx:26`. **Ojo con el nombre:** «light» ya significa tema claro.
   Por eso esta spec usa «simple» y «pro» en código y en pantalla (D-10). No hay tabla de preferencias del
@@ -261,6 +282,11 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
   pero esa fila no menciona Faro.
 - El runtime de la Oficina usa Z.AI y DeepSeek (`docs/specs/0626-oficina-runtime/privacidad.md`). **Faro del
   cliente nunca pasa por la Oficina** mientras use proveedores chinos.
+- **La D-1 de la 0637 sigue abierta** (`docs/specs/0637-faro-asistente-ayuda/spec.md:441`): el Director General
+  la aceptó con condiciones y falta Sam. La D-8 de esta spec recomienda lo mismo, pero no depende de aquella.
+- **Agregadores:** OpenRouter figura como ruta alternativa de modelo en
+  `docs/legal/privacidad/inventario-terceros.md:39`. Un agregador puede enrutar a modelos de proveedores chinos,
+  así que no sirve para Faro del cliente (FC-10).
 - Verificado en el código: no hay hoy ninguna llamada de Faro a un modelo, así que ningún dato de cliente sale por
   Faro. El proveedor que use Faro del cliente se fija por configuración con lista permitida (§7, FC-10).
 
@@ -268,24 +294,54 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 
 **Modelo propuesto (D-1, D-2):**
 
-- Columna nueva `client_users.portal_vista`, `text not null`, con `check (portal_vista in ('simple','pro'))`.
+- Dos columnas nuevas en `client_users`:
+  - `portal_vista text not null`, con `check (portal_vista in ('simple','pro'))`;
+  - `portal_guia_vista_at timestamptz null`. Vacío significa que la guía todavía no se le mostró (§6.2, D-15).
 - **Por persona del portal**, no por empresa: dos personas de una misma empresa pueden preferir vistas distintas.
 - **Valor inicial:**
   - En la migración, las filas que ya existen quedan en `pro`. Ningún cliente actual ve un portal distinto
     sin pedirlo.
-  - El `default` de la columna es `simple`. Toda fila nueva (registro o invitación por link) empieza en
+  - El `default` de la columna queda en `simple`. Toda fila nueva (registro o invitación por link) empieza en
     simple.
-- **Cambio:** el selector llama a una Server Action que actualiza solo la fila de la persona autenticada, con su
-  sesión y una policy que limita la columna a `auth_user_id = auth.uid()`. El servidor ignora cualquier
-  identificador que llegue del navegador.
-- **Lectura:** el layout ya resuelve el principal; se suma `portal_vista` a esa misma lectura, sin consulta extra.
-- **Respaldo sin base de datos:** si la columna no existe todavía (migración sin aplicar), el portal usa
-  `pro`. Así la fase 1 puede fusionarse antes de aplicar la migración sin cambiar nada para nadie.
-- **Interruptor general:** `PORTAL_VISTA_SIMPLE` (variable de entorno, apagada por defecto). Apagado, nadie ve el
-  selector ni la vista simple, aunque su fila diga `simple`.
-- **Guía vista:** en la misma migración, `client_users.portal_guia_vista_at timestamptz null`. Vacío significa que
-  la guía todavía no se le mostró (§6.2, D-15).
-- **Migración:** `0557_portal_vista_preferida.sql` (número reservado por el DG para esta spec).
+
+**Escritura: por RPC, nunca por policy.**
+
+- `client_users` no tiene `grant update` ni policies de escritura, a propósito (§4.1). No se agregan. Una policy
+  de UPDATE no sirve: la RLS filtra filas, no columnas, y dejaría al cliente cambiar su `client_id`, su
+  `tenant_id` o su `status`.
+- Dos RPC `SECURITY DEFINER`, con `search_path` fijo, `execute` solo para `authenticated` y sin recibir ningún
+  identificador:
+  - `portal_set_vista(p_vista text)`: valida el valor, toma la fila activa de `auth.uid()` y escribe **solo**
+    `portal_vista`;
+  - `portal_marcar_guia_vista()`: escribe **solo** `portal_guia_vista_at`, y solo si estaba vacío.
+- El trigger `client_users_touch` moverá `updated_at` en cada cambio. Se acepta; en la fase 1 se comprueba que
+  nada use `client_users.updated_at` como señal de negocio.
+- **Prueba de contrato** (`.test.sql`): tras llamar a cada RPC como el cliente A,
+  - en la fila de A solo cambian la columna de la RPC y `updated_at`; `client_id`, `tenant_id`, `auth_user_id`
+    y `status` quedan iguales;
+  - la fila del cliente B no cambia;
+  - `anon`, una persona sin fila activa y una fila revocada no cambian nada;
+  - un valor fuera de `simple`/`pro` se rechaza;
+  - el catálogo sigue sin `grant update` ni policies de escritura sobre `client_users`.
+
+**Lectura: aparte de la del principal.**
+
+- **No se toca** la lectura del principal (`lib/portal/portal-queries.ts:82-90`). Si se le sumara
+  `portal_vista` y la columna todavía no existiera, PostgREST devolvería error, el principal saldría `null` y el
+  layout mandaría a **todos** los clientes a `/entrar` (`app/portal/(app)/layout.tsx:44-45`).
+- La preferencia se lee con una consulta propia (`lib/portal/vista-preferida.ts`), filtrada por `auth.uid()` y
+  `status = 'active'`. **Cualquier fallo degrada a `pro`** y a «guía ya vista»: columna inexistente, error de red
+  o fila ausente. Nunca redirige ni rompe el portal.
+- Con el interruptor apagado no se hace la consulta.
+- Así la fase 1 puede fusionarse antes de aplicar la 0557 sin cambiar nada para nadie. Una prueba simula el error
+  de columna inexistente y comprueba que el portal responde igual que hoy.
+
+**Interruptor general:** `PORTAL_VISTA_SIMPLE` (variable de entorno, apagada por defecto). Apagado, nadie ve el
+selector ni la vista simple, aunque su fila diga `simple`.
+
+**Migración:** `0557_portal_vista_preferida.sql`. El número de migración 0557 lo reservó el Director General para
+esta spec (encargo del 2026-11-16). No existe todavía en `supabase/migrations/` (la última es la 0553). No tiene
+relación con la SDD-0557, que es una spec de contabilidad sin migración.
 
 Alternativa descartada: guardarla solo en cookie, como el tema. Es más simple, pero no sigue al cliente entre su
 teléfono y su computadora, y un cliente nuevo no tendría cómo empezar en simple en un segundo dispositivo.
@@ -345,8 +401,12 @@ Ver la maqueta. Resumen:
 - **Mientras el seguimiento esté en construcción** (§4.1), el bloque 1 no inventa etapas: muestra lo que sí se
   sabe (prealerta recibida, zarpe y entrega, que salen de operaciones del Studio) y el mismo aviso de hoy, en
   palabras sencillas. La ruta con sus cinco puntos se enciende con el mismo interruptor que apaga ese aviso.
-- **Sin datos nuevos:** todo sale de las lecturas que ya usa el portal (§4.1). Si una lectura usa service_role
-  hoy, la vista simple no suma usos nuevos.
+- **Estados ocultos:** el bloque 1 pasa cada estado por `effectiveVisibleStatus`, igual que el inicio de hoy
+  (§4.1). La ruta nunca marca ni nombra un hito que el tenant ocultó.
+- **Cliente no activado:** ve la pantalla de espera de hoy, también en la Vista simple (D-17).
+- **Sin datos nuevos:** todo sale de las lecturas que ya usa el portal (§4.1). La Vista simple no crea usos
+  nuevos del cliente de administración: si un bloque necesita un dato que hoy se lee con service_role, llama al
+  cargador acotado que ya existe (AC-10).
 
 - **Nada se mueve** (analogía de Sam: el modo simple de un teléfono Android). En la Vista simple:
   - los bloques son siempre los mismos y van siempre en el mismo orden; un bloque sin datos no desaparece: dice
@@ -386,10 +446,10 @@ Pedido de Sam. En la maqueta, botón «Guía» o primera carga.
   agregada. Se quita sola al usarla.
 - **Dónde se guarda que ya la vio:** en la fila de la persona (`client_users`), junto a la preferencia de vista,
   para que no se repita en otro dispositivo (D-15).
-- **Motor:** se extrae a `lib/shared/` la parte del motor de la SDD-0589 que no depende del Studio (pasos, anclas,
-  posición de la tarjeta), y el portal la usa con su propio catálogo de recorridos. Si extraerla resulta más
-  costoso que escribir un motor pequeño para el portal, se escribe el pequeño; se decide al medir en la fase 2. El
-  portal no importa `@/lib/studio`.
+- **Motor:** el de la SDD-0589 trae su catálogo y sus preferencias atados a los roles y textos del Studio (§4.1).
+  Se extrae a `lib/shared/` la parte genérica (pasos, anclas, posición de la tarjeta) para que el Studio y el
+  portal la usen cada uno con su catálogo. Si extraerla resulta más costoso que escribir un motor pequeño para el
+  portal, se escribe el pequeño; se decide al medir en la fase 2.
 - Respeta `prefers-reduced-motion`, funciona con teclado (Escape cierra) y en teléfono.
 
 ### 6.3 Color y densidad
@@ -421,7 +481,8 @@ Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
 ## 7. Faro del cliente
 
 Un asistente aparte del Faro del Studio. Reutiliza el motor de la 0637 (cliente directo, topes, registro), pero
-no su catálogo, su recorte ni su sesión.
+no su catálogo, su recorte ni su sesión. En IA-01 es nivel **I0**: explica y consulta datos autorizados, sin
+proponer ni ejecutar acciones.
 
 ### 7.1 Cómo responde
 
@@ -432,31 +493,59 @@ Flujo fijo, sin herramientas que el modelo pueda invocar:
 3. Clasifica la pregunta: ¿es del portal? Primero reglas en código (palabras de otros clientes, de márgenes,
    órdenes de ignorar instrucciones) y después, si hace falta, un modelo ligero con salida sí/no. Fuera de tema →
    plantilla fija, sin llamada principal.
-4. Arma la **ficha del cliente** con las lecturas del portal, **con la sesión del cliente y RLS**, nunca con
-   service_role: envíos activos (código, etapa, ETA), saldo, tareas abiertas y nombres de documentos. Solo los
-   campos de esa lista cerrada.
+4. Arma la **ficha del cliente** (§7.2).
 5. Llama al modelo con: instrucciones fijas, glosario y guías del portal revisadas, y la ficha como datos JSON.
-6. Revisa la salida en el servidor (FC-7). Si falla, la reemplaza por la plantilla de «no puedo responder».
-7. Registra (FC-9) y responde.
+   **Sin memoria:** cada pregunta se responde sola. El panel muestra la conversación, pero al modelo no se le
+   reenvían las preguntas ni las respuestas anteriores (FC-15).
+6. El modelo devuelve una ficha de salida forzada: un texto y, si aplica, un destino elegido de una lista cerrada
+   («Tus papeles», «Cuánto debes», «Mis envíos»…). El servidor la revisa (FC-7). Si falla, la reemplaza por la
+   plantilla de «no puedo responder».
+7. Registra (FC-9) y responde. El panel pinta el texto como **texto plano** y arma él mismo el botón del destino.
 
-### 7.2 Fronteras duras
+### 7.2 La ficha del cliente
+
+- **Cómo se lee.** Con los lectores del portal que ya existen, con la sesión del cliente, y **filtrando de forma
+  explícita por el `tenant_id` y el Shipping Mark del principal**. La RLS se mantiene como segunda barrera, pero no
+  es la frontera: sola no aísla (§4.1).
+- **Qué trae** (lista cerrada):
+  - envíos: código, servicio, estado **visible** (FC-14) y fecha estimada;
+  - facturas emitidas: código, monto, estado; y el saldo;
+  - documentos: nombre y tipo, sin el archivo;
+  - proveedores: número, nombre y próximo código;
+  - tareas abiertas que salen de lo anterior.
+- **Qué no trae, y por qué.** Lo que hoy el portal lee con service_role (§4.1) queda **fuera de la ficha** en la
+  primera versión, para que la frontera sea simple: Faro nunca usa service_role (FC-13). En concreto:
+  - órdenes por aceptar;
+  - buque y datos de la naviera;
+  - próximo zarpe;
+  - contenedor consolidado y packing list;
+  - aviso de respuesta nueva en Soporte.
+- **Diferencia que el cliente va a notar:** Faro no sabe en qué contenedor ni en qué buque va la carga, ni si hay
+  una orden por aceptar. Si le preguntan, responde que ese dato está en el portal y ofrece el destino. La
+  alternativa, reutilizar esos cargadores acotados con una excepción explícita por cada uno, queda como D-18.
+- **Datos personales mínimos:** nombre de pila; sin apellido, cédula, teléfono, correo ni dirección (FC-11).
+
+### 7.3 Fronteras duras
 
 | # | Frontera | Cómo se cumple | Prueba |
 |---|---|---|---|
-| FC-1 | Solo datos del cliente que pregunta | La ficha se arma con la sesión del cliente y RLS; la identidad sale de la sesión; el navegador solo manda el texto | Dos clientes sembrados en Postgres efímero: la ficha de A nunca trae un código de B |
+| FC-1 | Solo datos del cliente que pregunta | La identidad sale de la sesión; el navegador solo manda el texto. Cada lectura de la ficha filtra explícito por `tenant_id` y Shipping Mark del principal, además de la RLS | En Postgres efímero: (a) dos clientes del mismo tenant: la ficha de A nunca trae un código de B; (b) persona mixta, con fila en `user_tenants` y en `client_users`: la ficha trae solo su cliente, no el tenant; (c) el mismo Shipping Mark en dos tenants: solo las filas del tenant del principal |
 | FC-2 | Nada del ERP interno | La ficha es una lista cerrada de campos; costos, márgenes, proveedores internos, personal, notas internas y tarifas internas no existen en ella | Prueba de forma: la ficha no tiene claves fuera de la lista |
-| FC-3 | Nada de tarifas internas | Faro no calcula ni cotiza; para precios enlaza a la calculadora pública y a las cotizaciones del cliente | Batería: «¿cuánto me cobras por 2 m³?» → plantilla |
+| FC-3 | Nada de tarifas internas | Faro no calcula ni cotiza; para precios ofrece el destino de la calculadora o de las cotizaciones del cliente | Batería: «¿cuánto me cobras por 2 m³?» → plantilla |
 | FC-4 | Solo temas del portal | Clasificador previo (código + modelo ligero) y plantillas de rechazo fijas | Batería de fuera de tema |
-| FC-5 | Sin acciones | No hay herramientas. Para cambiar algo, el botón lleva al flujo de la vista Pro o al asesor | Prueba de que el motor no expone herramientas |
+| FC-5 | Sin acciones | No hay herramientas. Para cambiar algo, el destino lleva al flujo de la vista Pro o al asesor | Prueba de que el motor no expone herramientas |
 | FC-6 | El texto del ERP es dato, no orden | Notas y descripciones viajan como JSON dentro de la ficha; las instrucciones lo declaran | Batería con una descripción de carga que trae una orden inyectada |
-| FC-7 | Salida revisada | Se bloquea la respuesta si menciona un código de envío, factura o Shipping Mark que no está en la ficha, o si repite las instrucciones | Prueba de la revisión con salidas simuladas |
-| FC-8 | Ritmo limitado | Por persona: N por hora y M por día (D-5); tope de gasto mensual propio; reserva atómica como AC-18 de la 0637 | Simulacro de cupo agotado y de carrera |
-| FC-9 | Cada pregunta queda registrada | Tablas propias con `client_id`: pregunta depurada, veredicto, resultado, tokens y costo; sin la ficha | Contrato de la migración |
-| FC-10 | Proveedor no chino | Lista permitida en la configuración; Faro del cliente no arranca si apunta fuera; nunca por la Oficina | Prueba que falla con un proveedor fuera de la lista |
+| FC-7 | Salida revisada y en texto plano | Se bloquea la respuesta si menciona un código de envío, factura o Shipping Mark que no está en la ficha, si repite las instrucciones, o si trae una URL, una imagen o marcado. El panel no interpreta Markdown ni HTML del modelo; los enlaces los pone el servidor desde la lista cerrada de destinos | Prueba de la revisión con salidas simuladas, incluida una con una imagen cuya URL lleva datos de la ficha |
+| FC-8 | Ritmo limitado | Por persona (N por hora y M por día) **y por empresa cliente** (`client_id`), para que varias personas de una empresa no multipliquen el cupo (D-5); tope de gasto mensual propio; reserva atómica como el AC-18 de la 0637 | Simulacro de cupo agotado por persona y por empresa, y de carrera |
+| FC-9 | Cada pregunta queda registrada | Tablas propias con `tenant_id` y `client_id`: pregunta depurada, veredicto, resultado, tokens y costo; sin la ficha (§8) | Contrato de la migración |
+| FC-10 | Proveedor no chino | Lista permitida por **proveedor y modelo**, para el motor principal, el respaldo y el clasificador. Sin agregadores (OpenRouter y similares): pueden enrutar a un modelo chino. Nunca por la Oficina. Si la configuración apunta fuera de la lista, Faro del cliente no arranca | Prueba que falla con un proveedor, un modelo o un agregador fuera de la lista, en cualquiera de los tres papeles |
 | FC-11 | Mínimo de datos al modelo | Nombre de pila, sin apellido, cédula, teléfono, correo ni dirección | Prueba de forma de la ficha |
 | FC-12 | Salida a humano | Rechazo, duda o fallo → botón «Escribir a mi asesor» (chat SDD-0147) | Prueba de la plantilla |
+| FC-13 | Sin service_role | El código de Faro del cliente no importa ni recibe el cliente de administración | Prueba estática sobre `lib/portal/faro/**` y su ruta, en la línea de la SDD-0383 |
+| FC-14 | No revela hitos ocultos | Los estados de la ficha pasan por `getHiddenPortalStatusesForPortal` y `effectiveVisibleStatus` (SDD-0156). Si esa lectura falla, la ficha va sin estados | Con «en aduana» oculto: ni la ficha ni la respuesta lo nombran; con la lectura de ocultos fallando: la ficha no trae estados |
+| FC-15 | Sin memoria | Al modelo no se le reenvían turnos anteriores | Prueba de que la llamada lleva una sola pregunta |
 
-### 7.3 Plantillas de rechazo
+### 7.4 Plantillas de rechazo
 
 Fijas, escritas por nosotros, sin que el modelo las redacte:
 
@@ -465,29 +554,61 @@ Fijas, escritas por nosotros, sin que el modelo las redacte:
   te la explica.»
 - Fuera de tema: «Solo te ayudo con tu portal: envíos, pagos, facturas y documentos. ¿Te ayudo con alguno?»
 - Acción: «No puedo hacer cambios en tu cuenta. Puedes hacerlo en la vista Pro o pedírselo a tu asesor.»
+- Dato que Faro no ve: «Ese dato no lo tengo. Lo ves en tu portal.» y el destino.
 - Límite: «Llegaste al límite de preguntas de hoy. Mañana puedes seguir, o escríbele a tu asesor.»
 - Fallo: «No puedo responder ahora. Escríbele a tu asesor y te ayuda.»
+
+### 7.5 Gobernanza
+
+Clasificación propuesta frente a las políticas aprobadas (`docs/governance/policies/`). La evidencia se adjunta en
+la PR de cada fase; aquí solo se declara qué aplica.
+
+| Política | A qué aplica | Clasificación propuesta |
+|---|---|---|
+| IA-01 v1.0 | Faro del cliente, nivel I0 | Cumplimiento, a demostrar con su gate: inyección y contexto no confiable (FC-6), permiso y tenant antes de recuperar contexto (FC-1), alucinación de identificadores (FC-7), privacidad (FC-11, §8) y camino manual (FC-12). No aplica: preview, cancelación, doble ejecución y fallo parcial, porque no hay acciones |
+| A11Y-01 v1.1 | Selector, guía, comparación, bloque del código y panel de Faro | Cumplimiento, a demostrar en las fases 1 a 3: teclado, foco, nombres accesibles y contraste (§6.3) |
+| MOT-01 v1.0 | Guía, barco de la ruta, haz y pulso del botón de Faro | Cumplimiento, a demostrar: respeta `prefers-reduced-motion` y toda animación se puede interrumpir |
+| CMP-01 v1.1 | Componentes nuevos del portal | Cumplimiento, a demostrar en la PR de cada componente |
+| BTN-01 v1.1 | Botones de la Vista simple | Cumplimiento en jerarquía (un principal por bloque). El color va como excepción (abajo) |
+| `BRAND.md` | Botón y cabecera del panel de Faro, fuera de la marca | **Excepción**, autorizada por Sam en la 0637 §7 y extendida al portal por su pedido del 2026-11-16 |
+| `BRAND.md` | `--wine-soft` como relleno del botón principal en la Vista simple | **Excepción**, autorizada por Sam el 2026-11-17 (§6.3, D-16) |
 
 ## 8. Datos personales
 
 Revisión según `.claude/skills/revisar-datos-ve/SKILL.md`. En esta fase es un inventario de lo que habrá que
-revisar; el reporte formal se hace como puerta antes de la fase 2 (preferencia) y antes del primer envío real a un
+revisar; el reporte formal se hace como puerta antes de la fase 1 (preferencia) y antes del primer envío real a un
 modelo.
 
 | Dato | Dónde | Estado |
 |---|---|---|
-| `client_users.portal_vista` | Fase 1 | No es dato personal sensible: una preferencia. Se borra con la fila del vínculo (SDD-0467, 0477) |
+| `client_users.portal_vista` y `portal_guia_vista_at` | Fase 1 | Preferencias, no datos sensibles. Viven en la fila del vínculo y siguen su suerte al revocar o borrar (migraciones 0454 y 0460, SDD-0467 y 0477) |
 | Preguntas a Faro del cliente | Fase 3 | Dato personal: el cliente puede escribir su cédula, teléfono o datos de terceros. Se depura antes de enviar y antes de guardar (como E-3 de la 0637) |
-| Ficha enviada al modelo | Fase 3 | Datos del cliente a un tercero (Anthropic, EE. UU.). Mínimo necesario (FC-11); no se guarda |
-| Registro de Faro del cliente | Fase 3 | Retención con plazo (D-6) y purga a pedido, con constancia |
+| Ficha enviada al modelo | Fase 3 | Datos del cliente a un tercero fuera del país (Anthropic, EE. UU.). Mínimo necesario (FC-11); no se guarda |
+| Registro de Faro del cliente | Fase 3 | Retención con plazo (D-6), lectura restringida y auditada (D-19), purga a pedido y al borrar o revocar al cliente |
+
+**Registro de preguntas: quién lo lee y cómo se protege.**
+
+- Tablas nuevas con RLS activa y **sin policies para el cliente**: el cliente no lee el registro por tabla. La
+  escritura es solo por RPC `SECURITY DEFINER`.
+- Lo lee solo el administrador del tenant, desde el Studio y por una RPC que deja constancia de cada lectura:
+  quién, cuándo y de qué cliente (como E-7 de la 0637). Nadie más del equipo (D-19).
+- **Borrar o revocar al cliente purga su registro.** Los caminos que ya existen (migración 0454, SDD-0467: borrar un
+  cliente revoca su portal; migración 0460, SDD-0477: retención del vínculo revocado) se extienden para borrar
+  también las preguntas de ese cliente. Lleva prueba: tras borrar al cliente no queda ninguna fila suya.
+- La purga a pedido deja constancia de quién la pidió, sin el texto de las preguntas.
+
+**Transferencia a EE. UU.** Las preguntas y la ficha salen del país hacia el proveedor de IA. Antes de la primera
+pregunta, el panel lo dice en una frase y pide aceptación; la aceptación se guarda con la versión del aviso (como
+E-4 de la 0637). Sin aceptación, Faro no envía nada (D-20). Si esa aceptación basta como base de licitud es una
+pregunta para el abogado: desde el repo es `NO VERIFICABLE`.
 
 Pendientes que la revisión debe resolver antes del primer envío real (`NO VERIFICABLE` hoy, desde el repo):
 
 - La retención de Anthropic para la cuenta que use Faro, por escrito, o cero retención si está disponible.
 - Sumar Faro del cliente a la fila de Anthropic en `docs/legal/privacidad/inventario-terceros.md:38`.
 - El aviso al cliente en `/privacidad` y en el propio panel: qué ve Faro, que las preguntas se guardan, cuánto
-  tiempo y quién las lee. Texto aprobado por el DG antes de publicarlo.
-- Que el clasificador ligero, si es un modelo, también sea de un proveedor de la lista permitida.
+  tiempo, quién las lee y que salen a EE. UU. Texto aprobado por el DG antes de publicarlo.
+- Que el clasificador ligero, si es un modelo, también esté en la lista permitida (FC-10).
 
 La regla D-2 de Sam se cumple por diseño (FC-10) y se prueba en CI.
 
@@ -499,37 +620,42 @@ PR o se saca.
 | Fase | Qué | Allowlist | Puerta |
 |---|---|---|---|
 | 0 | Investigación, maqueta y spec | `docs/specs/0654-version-light-portal/**`, `docs/specs/README.md`, `.agents/handoffs/sdd-0654-version-light-portal.md` | Esta PR. Sam ve la maqueta |
-| 1 | Preferencia y selector, interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql` y su `.test.sql`; `lib/portal/vista-preferida.ts` y su prueba; `app/portal/(app)/layout.tsx` (preferencia y tema claro por defecto); `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` (nuevo); `app/portal/_actions/vista-preferida.ts` (nuevo); `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
-| 2 | Inicio simple, ayudas y glosario | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_simple/**` (nuevo); `lib/portal/simple/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
-| 3 | Faro del cliente con motor simulado | `lib/portal/faro/**` (nuevo); `app/api/portal/faro/route.ts` (nuevo); `app/portal/_components/PortalFaroPanel.tsx` (nuevo); el botón de Faro del Studio, movido a un lugar compartido si la 0637 ya lo creó; una migración de registro (número del DG) y su `.test.sql`; pruebas de FC-1 a FC-12 | Depende de la fase 3 de la 0637 (motor y topes). Revisión de datos |
-| 4 | Primer envío real | Solo configuración y textos: `/privacidad`, inventario de terceros, aviso del panel | Revisión de datos aprobada. OK nominal de Sam |
+| 1 | Preferencia y selector, con el interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql`; `supabase/tests/0557_portal_vista_preferida.test.sql`; `supabase/migrations-baseline.json`, `supabase/migrations.lock.json` y `supabase/pending-migration-symbol-declarations.json`, en lo que exijan sus gates; `lib/portal/vista-preferida.ts` y su prueba (lectura que degrada y llamadas a las RPC); `lib/portal/portal-queries.ts` solo si hace falta exportar un tipo: el `select` del principal (`:82-90`) no se toca; `app/portal/(app)/layout.tsx`; `app/portal/_components/PortalShell.tsx` y `PortalShell.test.tsx` (el armazón recibe la vista, `layout.tsx:90`); `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` y su prueba (nuevos); `app/portal/_actions/vista-preferida.ts` (nuevo); `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
+| 1b | Tema claro por defecto. Va aparte porque cambia el portal para todos, con o sin interruptor | `app/portal/(app)/layout.tsx` (solo la línea del tema, `:54`) y su prueba | OK de Sam a la D-14 |
+| 2 | Inicio simple, ayudas, glosario, guía y comparación | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_simple/**` (nuevo); `lib/portal/simple/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; `app/globals.css` solo para tokens de la Vista simple; la lista permitida de la SDD-0383 si un bloque reutiliza un cargador que usa service_role; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
+| 3 | Faro del cliente con motor simulado | `lib/portal/faro/config.ts`, `ficha.ts`, `clasificador.ts`, `salida.ts`, `plantillas.ts`, `cuota.ts`, `registro.ts`, `motor.ts` y sus pruebas (nuevos); `lib/portal/simple/contenido/**` (guías del portal que lee Faro); `app/api/portal/faro/route.ts` (nuevo); `app/portal/_components/PortalFaroPanel.tsx` y `PortalFaroBoton.tsx` (nuevos); el ícono de Faro del Studio, movido a `components/faro/` si la 0637 ya lo creó; una migración de registro, cuyo número asigna el DG, con su `.test.sql` y los tres archivos de control de migraciones; las extensiones de purga sobre los caminos de las migraciones 0454 y 0460, en esa misma migración | Depende de la fase 3 de la 0637 (motor y topes). Revisión de datos |
+| 4 | Primer envío real | `app/privacidad/page.tsx`; `docs/legal/privacidad/inventario-terceros.md`; `lib/portal/faro/aviso.ts` (texto y versión del aviso del panel); `.env.example` (variables de Faro del cliente). Sin otro código | Revisión de datos aprobada. OK nominal de Sam |
 | 5 | Batería adversaria y encendido | `lib/portal/faro/__tests__/bateria/**` | Batería verde; encendido con OK de Sam |
 
 ## 10. Criterios de aceptación
 
 | AC | Criterio | Fase |
 |---|---|---|
-| AC-1 | Con el interruptor apagado, el portal es idéntico al de hoy para todos | 1 |
+| AC-1 | Con el interruptor apagado, el portal responde igual que antes de la fase 1 para todos: mismo layout y mismo inicio. El tema no entra aquí (fase 1b) | 1 |
 | AC-2 | Tras la 0557, toda fila existente de `client_users` está en `pro` y una fila nueva nace en `simple` | 1 |
-| AC-3 | Un cliente solo puede cambiar su propia preferencia; un intento con otro identificador no cambia nada | 1 |
-| AC-4 | Sin la columna (migración sin aplicar), el portal funciona y usa `pro` | 1 |
-| AC-5 | El selector funciona en las dos vistas y la elección persiste entre dispositivos | 1 |
-| AC-6 | El inicio simple muestra los seis bloques con datos del propio cliente y un estado vacío que enseña en cada uno | 2 |
-| AC-7 | Cada bloque enlaza a su pantalla de la vista Pro | 2 |
+| AC-3 | Cada RPC cambia solo su columna y `updated_at`, y solo en la fila activa de quien la llama. `client_id`, `tenant_id`, `auth_user_id` y `status` no cambian; otra fila no cambia; `anon`, una persona sin fila activa y una fila revocada no cambian nada | 1 |
+| AC-4 | `client_users` sigue sin `grant update` y sin policies de escritura (prueba de catálogo) | 1 |
+| AC-5 | Sin la columna (migración sin aplicar), o si la lectura de la preferencia falla, el portal funciona, nadie es enviado a `/entrar` y la vista es `pro` | 1 |
+| AC-6 | El selector funciona en las dos vistas y la elección persiste entre dispositivos | 1 |
+| AC-7 | Sin cookie de tema, el portal abre en claro; quien ya eligió noche lo conserva | 1b |
+| AC-8 | El inicio simple muestra los seis bloques, los mismos y en el mismo orden con y sin datos, con un estado vacío que enseña en cada uno. Se prueba con una cuenta vacía y una con datos | 2 |
+| AC-9 | Cada bloque enlaza a su pantalla de la vista Pro | 2 |
+| AC-10 | La Vista simple no crea usos nuevos del cliente de administración. Si un bloque necesita un dato que hoy se lee con service_role, llama al cargador acotado que ya existe y la lista permitida de la SDD-0383 se cambia de forma explícita en la PR | 2 |
+| AC-11 | Con un hito oculto por el tenant (SDD-0156), el bloque 1 no lo marca ni lo nombra | 2 |
+| AC-12 | Con el seguimiento en construcción, el bloque 1 no muestra etapas que el sistema no conoce | 2 |
 | AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», y el mismo próximo código por proveedor que calcula `summarizeSuppliers`; una prueba compara las salidas | 2 |
-| AC-19 | En la Vista simple los bloques son los mismos y en el mismo orden con y sin datos; una prueba lo comprueba con una cuenta vacía y una con datos | 2 |
-| AC-20 | El botón «Comparar» abre la tabla de §6.1 desde las dos vistas | 2 |
-| AC-21 | En la Vista simple ningún relleno ni texto usa `--color-wine` ni `--danger` fuera de un error real; el acento es `--wine-soft` con texto navy y cada par de color pasa AA | 2 |
-| AC-18 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
-| AC-14 | El botón de Faro es el mismo componente en el Studio y en el portal | 3 |
-| AC-8 | La vista simple no agrega lecturas con service_role | 2 |
-| AC-15 | Sin cookie de tema, el portal abre en claro; quien ya eligió noche lo conserva | 1 |
-| AC-16 | La guía arranca sola solo la primera vez por persona, se puede saltar y se repite con el botón «Guía» | 2 |
-| AC-17 | Con el seguimiento en construcción, el bloque 1 no muestra etapas que el sistema no conoce | 2 |
-| AC-9 | Cada frontera FC-1 a FC-12 tiene su prueba y pasa | 3 |
-| AC-10 | Un fallo de aislamiento entre clientes pone roja la CI | 3 |
-| AC-11 | La batería tiene preguntas permitidas y rechazadas, en español y en inglés, y mide también el rechazo de preguntas legítimas | 5 |
-| AC-12 | Existe la revisión `revisar-datos-ve` aprobada antes del primer envío real | 4 |
+| AC-14 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
+| AC-15 | La guía arranca sola solo la primera vez por persona, se puede saltar y se repite con el botón «Guía» | 2 |
+| AC-16 | El botón «Comparar» abre la tabla de §6.1 desde las dos vistas | 2 |
+| AC-17 | En la Vista simple ningún relleno ni texto usa `--color-wine` ni `--danger` fuera de un error real; el acento es `--wine-soft` con texto navy y cada par de color pasa AA | 2 |
+| AC-18 | Un cliente no activado ve lo que fije la D-17, en las dos vistas, y la guía no arranca | 2 |
+| AC-19 | Cada frontera FC-1 a FC-15 tiene su prueba y pasa | 3 |
+| AC-20 | Un fallo de aislamiento pone roja la CI, en los tres casos de FC-1: dos clientes, persona mixta y mismo Shipping Mark en dos tenants | 3 |
+| AC-21 | El botón de Faro usa el mismo ícono y el mismo componente en el Studio y en el portal | 3 |
+| AC-22 | El registro de preguntas tiene RLS sin policies para el cliente, su lectura por el equipo queda auditada, y borrar o revocar al cliente lo purga | 3 |
+| AC-23 | Existe la revisión `revisar-datos-ve` aprobada, y el aviso con aceptación de la D-20, antes del primer envío real | 4 |
+| AC-24 | La batería tiene preguntas permitidas y rechazadas, en español y en inglés, y mide también el rechazo de preguntas legítimas | 5 |
+| AC-25 | El gate de IA-01 para nivel I0 está cubierto y enlazado desde la PR (§7.5) | 5 |
 
 ## 11. Decisiones para Sam
 
@@ -539,29 +665,36 @@ PR o se saca.
 | D-2 | ¿Con qué vista empieza cada uno? | **Cliente nuevo en simple; los actuales en Pro**, para que nadie vea un cambio sin pedirlo |
 | D-3 | ¿Dónde va el selector? | **En la barra superior**, visible en las dos vistas, con los nombres «Vista simple» y «Vista Pro» |
 | D-4 | ¿Faro del cliente aparece en las dos vistas o solo en la simple? | **Decidida por Sam (2026-11-16): en las dos, con el mismo ícono del faro del ERP** |
-| D-5 | ¿Cuántas preguntas por persona? | **20 por día y 5 por hora**, con tope de gasto mensual propio, separado del Faro del Studio. Sam fija el monto |
+| D-5 | ¿Cuántas preguntas? | **20 por día y 5 por hora por persona, y 60 por día por empresa cliente**, con tope de gasto mensual propio, separado del Faro del Studio. Sam fija los montos |
 | D-6 | ¿Cuánto tiempo se guardan las preguntas? | **90 días** y purga a pedido del cliente, con constancia |
 | D-7 | ¿Qué pasa cuando Faro no puede responder? | **Botón al chat con el asesor** que ya existe (SDD-0147). Sin crear tickets automáticos |
-| D-8 | ¿Qué proveedor de IA? | **Anthropic directo, sin respaldo**, igual que la D-1 de la 0637. Nunca un proveedor chino ni la Oficina |
-| D-9 | ¿En qué orden? | **Vista simple primero (fases 1 y 2) y Faro del cliente después** de la fase 3 de la 0637, para no escribir dos motores |
+| D-8 | ¿Qué proveedor de IA? | **Anthropic directo y sin respaldo en la primera versión.** Nunca un proveedor chino, un agregador ni la Oficina. Coincide con lo recomendado en la D-1 de la 0637, que sigue abierta: si Sam decide otra cosa allá, esta se revisa |
+| D-9 | ¿En qué orden? | **Vista simple primero (fases 1, 1b y 2) y Faro del cliente después** de la fase 3 de la 0637, para no escribir dos motores |
 | D-10 | ¿Cómo se llama en pantalla? | **Decidida por Sam (2026-11-16): «Vista simple» y «Vista Pro».** En el código, `simple` y `pro`; «light» no se usa porque ya es el tema claro |
-| D-11 | ¿Faro del cliente puede hablar de precios? | **No en la primera versión.** Para precios enlaza a la calculadora y a las cotizaciones del cliente |
+| D-11 | ¿Faro del cliente puede hablar de precios? | **No en la primera versión.** Para precios ofrece la calculadora y las cotizaciones del cliente |
+| D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
 | D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra del proveedor que el cliente elija.** Sin proveedores registrados, solo su Shipping Mark y el enlace para registrar al primero. Copiar el mensaje no crea la compra: después de copiar, el bloque ofrece «Avisar esta compra» (el flujo de prealerta que ya existe) |
-| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista Pro |
+| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Va en su propia fase (1b) porque cambia el portal de todos los clientes, también en la vista Pro y con el interruptor apagado |
 | D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
 | D-16 | ¿El vino claro reemplaza al vino en los botones? | **Solo en la Vista simple, como autorizó Sam**, registrado como decisión de marca en `BRAND.md`. La Vista Pro sigue con el vino de hoy hasta que Sam diga otra cosa |
-| D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
+| D-17 | ¿Qué ve en la Vista simple un cliente nuevo que todavía no está activado? | **La misma pantalla de espera de hoy**, en las dos vistas, y la guía no arranca hasta que la cuenta esté activada. La alternativa es sumarle a esa pantalla el bloque «Envíale esto a tu proveedor», porque ya tiene Shipping Mark |
+| D-18 | ¿Faro del cliente puede usar los datos que hoy el portal lee con permisos de servidor (contenedor, buque, próximo zarpe, órdenes por aceptar)? | **No en la primera versión.** Faro no sabrá en qué contenedor ni en qué buque va la carga y remitirá al portal. La alternativa es reutilizar esos cargadores acotados, con una excepción explícita y una prueba por cada uno |
+| D-19 | ¿Quién del equipo puede leer las preguntas de los clientes? | **Solo el administrador**, desde el Studio, y cada lectura queda registrada |
+| D-20 | ¿El cliente acepta un aviso antes de su primera pregunta? | **Sí.** Una frase: qué ve Faro, que la pregunta se guarda y que sale a un proveedor en EE. UU. Sin aceptar, Faro no envía nada. El texto lo revisa el abogado |
 
 ## 12. Riesgos
 
 | Riesgo | Mitigación |
 |---|---|
 | La vista simple oculta algo que el cliente necesita | Cada bloque enlaza a la Pro; prueba con clientes (D-12) |
-| El bloque «¿Dónde está tu carga?» promete más de lo que el sistema sabe | Mientras el seguimiento esté en construcción, el bloque muestra solo lo conocido (§6, AC-17). La vista simple luce completa cuando el almacén registre en el sistema |
+| El bloque «¿Dónde está tu carga?» promete más de lo que el sistema sabe | Mientras el seguimiento esté en construcción, el bloque muestra solo lo conocido (§6, AC-12). La vista simple luce completa cuando el almacén registre en el sistema |
 | El botón de Faro y el de la calculadora flotan en la misma esquina | En la maqueta van apilados. Se resuelve junto con la D-2 de la 0637 (un solo elemento flotante) |
 | Tono condescendiente | Ayudas opcionales, cortas, sin repetir lo obvio; bienvenida que se cierra |
 | Dos vistas que mantener | La simple no tiene pantallas propias más allá del inicio; reutiliza lecturas y enlaza al resto |
-| Faro filtra datos de otro cliente | Ficha con sesión y RLS (FC-1), revisión de salida (FC-7), prueba que pone roja la CI (AC-10) |
+| Faro filtra datos de otro cliente | Filtro explícito por tenant y Shipping Mark (FC-1), sin service_role (FC-13), revisión de salida (FC-7) y prueba que pone roja la CI (AC-20) |
+| Faro o el bloque 1 revelan un hito que el tenant ocultó | Estado visible en los dos (FC-14, AC-11) |
+| Fuga de datos por una URL o imagen en la respuesta | Salida en texto plano, sin enlaces ni imágenes del modelo (FC-7) |
+| La fase 1 se fusiona antes de aplicar la 0557 y deja a los clientes fuera | La preferencia se lee aparte y degrada a `pro` (§5, AC-5) |
 | Inyección desde textos del ERP | FC-6 y batería con orden inyectada |
 | Costo | Cuota por persona, tope mensual, plantillas sin llamada al modelo |
 | Confusión con el tema claro | Nombres «simple/pro» en código y pantalla (D-10) |
