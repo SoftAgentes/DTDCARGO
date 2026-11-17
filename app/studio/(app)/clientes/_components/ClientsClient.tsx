@@ -161,6 +161,11 @@ export function ClientsClient({
                 href: "/studio/clientes/duplicados",
               },
               {
+                key: "registros-link",
+                label: "Registros por link",
+                href: "/studio/clientes/registros-link",
+              },
+              {
                 key: "legado",
                 label: "Códigos del legado",
                 href: "/studio/clientes/migrar-legado",

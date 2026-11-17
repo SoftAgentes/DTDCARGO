@@ -596,6 +596,7 @@ export default async function ClienteDetallePage({
             email={client.email}
             access={portalAccess}
             approvedAt={portalApprovedAt}
+            canEdit={puedeEditarClientes}
           />
 
           <AdvisorAssignCard
