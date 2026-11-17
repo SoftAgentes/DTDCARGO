@@ -49,28 +49,33 @@ draft, sin fusionar.
   - `layout.tsx` solo consulta con el interruptor encendido y pone `data-portal-vista` solo entonces;
   - `PortalShell` y `PortalTopbar` reciben `vista` opcional (null = sin selector).
 - `.env.example`: `PORTAL_VISTA_SIMPLE=` vacío.
-- **Fuera de la allowlist, obligado por un gate:** `infra/dtd-cargo/.env.example` también lleva `PORTAL_VISTA_SIMPLE=`
-  vacío. Lo exige `scripts/__tests__/infra-env-example.test.ts` (SDD-0505): toda variable del `.env.example` raíz
+- `infra/dtd-cargo/.env.example` también lleva `PORTAL_VISTA_SIMPLE=` vacío, con su comentario. El DG lo sumó a la
+  allowlist de la fase 1 en la spec (§9). Lo exige `scripts/__tests__/infra-env-example.test.ts` (SDD-0505): toda variable del `.env.example` raíz
   tiene que estar en la plantilla del servidor. El CI de la cabeza `e4055e16b` falló por eso.
 - Pruebas nuevas o ampliadas:
   - `lib/portal/__tests__/vista-preferida.test.ts`;
   - `app/portal/__tests__/vista-preferida-actions.test.ts`;
   - `app/portal/_components/PortalVistaSelector.test.tsx`;
   - `PortalShell.test.tsx`: AC-1, el selector y el contrato de fuente del layout y del principal.
-- Comprobado que nada usa `client_users.updated_at` como señal de negocio (spec §5). El recordatorio a fríos usa
-  `invited_at` y `last_email_invite_at`; las demás lecturas de `updated_at` son de envíos y cotizaciones.
+- `client_users.updated_at` (spec §5): el recordatorio a fríos usa `invited_at` y `last_email_invite_at`. La
+  retención de vínculos revocados de la 0460 (`:330`, `:356`, `:375`) sí lo usa, como reloj de respaldo en
+  `coalesce(revoked_at, updated_at)`, pero solo para filas `revoked` sin `revoked_at`. Las RPC de la 0557 solo
+  escriben filas `active`, así que no mueven ese reloj. Corregido tras la revisión del DG: antes decía que nada lo
+  usaba.
 - Comprobado que todos los escritores de `client_users` son SECURITY DEFINER o usan service_role:
   - las funciones de 0080, 0227, 0361, 0454, 0460 y 0552;
   - `app/api/cron/portal-cold-reminder/route.ts` y `app/registro/actions.ts`, con el cliente admin.
 
-## Decisión para el DG
+## Decisión del DG sobre el REVOKE (2026-11-17): MANTENERLO
 
 La spec dice que `client_users` «no tiene grant update». En el repo, 0080 solo hace `grant select` y nunca
 revoca. En producción, el ACL predeterminado anterior a la 0263 pudo dar escritura a authenticated: no lo medí,
 porque no leo producción. La RLS sin policies de escritura ya impide escribir filas. La 0557 revoca esas
 escrituras para que AC-4 sea cierto en el catálogo y no solo en la RLS. Funcionalmente no cambia nada, porque
-nadie escribe la tabla con la sesión. Si preferimos no tocar el ACL de la tabla, se borran el REVOKE y su bloque
-del postflight, y el contrato pierde la parte de revocación.
+nadie escribe la tabla con la sesión. El DG decidió mantenerlo: verificó que no hay escritor vivo con
+`authenticated`, que los triggers no reescriben y que TRUNCATE ya estaba revocado (0399). Si algún día se quisiera
+no tocar el ACL de la tabla, se borran el REVOKE y su bloque del postflight, y el contrato pierde la parte de
+revocación.
 
 ## VALIDACIÓN
 
@@ -98,20 +103,27 @@ nominal de Sam** para ese archivo y el runbook `docs/runbooks/aplicar-migracione
 ## PENDIENTES DE ESTA TAREA
 
 - Leer el job «Contratos SQL» del CI: el contrato 0557 no corrió en local.
-- Decisión del DG sobre el REVOKE de la tabla (arriba).
 - Riesgo en producción: si las escrituras de authenticated las concedió otro rol (no `postgres`), el REVOKE de
   `postgres` no las quita. En ese caso el postflight aborta la migración entera, sin cambios. Se ve en el ensayo
   previo a aplicar.
+
+## Revisión independiente (DG, 2026-11-17, sobre e4055e16b)
+
+CHANGES REQUESTED solo por el CI (`infra-env-example.test.ts`), corregido en `4c74cb563`. Lo demás cumple: AC-1,
+AC-5, RPC DEFINER, 0557 en espera, contrato SQL verde y a11y. Menores anotados para la fase 2: el aviso de error del
+selector debe cerrarse solo o con Escape, y hay que medir la barra a 375 px antes de encender el interruptor.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - Fase 1b: tema claro por defecto y enmienda de BD-037 (PR aparte).
 - Fase 2: inicio simple, guía (usa `markPortalGuiaVistaAction`), comparación y encendido del interruptor con OK de
-  Sam. Antes de encender: medir la barra superior a 375 px con el selector (hallazgo #1 del `/ui-check`).
+  Sam. Antes de encender: medir la barra superior a 375 px con el selector (hallazgo #1 del `/ui-check`) y hacer
+  que el aviso de error del selector se cierre solo o con Escape.
 - No hay archivo de desarme en `supabase/desarmes/`: no está en la allowlist. La cabecera de la 0557 dice cómo
   deshacerla. Si el DG lo quiere, va en la PR que la aplique.
 
 ## HANDOFF AL DIRECTOR
 
-Fase 1 lista para revisión independiente. Con el interruptor apagado el portal no cambia, y la 0557 queda en
-espera. Hace falta tu turno para las pruebas locales, o leer el CI, y tu decisión sobre el REVOKE.
+Fase 1 corregida tras la revisión independiente. Con el interruptor apagado el portal no cambia, y la 0557 queda
+en espera. El REVOKE se mantiene por decisión del DG. Falta el CI verde de la cabeza nueva y la integración, que hace
+el DG. Aplicar la 0557 exige el OK nominal de Sam.
