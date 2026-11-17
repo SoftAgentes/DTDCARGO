@@ -3483,6 +3483,15 @@
         "fecha": "2026-11-16",
         "forma": "exacta"
       }
+    },
+    "0550_faro_registro": {
+      "sha256": "196547d34efd2434f854faee074ed6bd9a65a2bc20a2212a884b385b01b2148c",
+      "md5": "20ab1801d8b0b68f0f397d82f3912817",
+      "bytes": 28560,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
     }
   }
 }
