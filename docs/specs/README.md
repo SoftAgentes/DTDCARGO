@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 632 specs)
+### Índice de specs (generado · 633 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -663,6 +663,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
 | 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
 | 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
+| 0643 | Embarques por contenedor: la vista empieza por el contenedor,… | in-progress | interno |
 | 0644 | Chatwoot: nivel «gestión» (ve y edita todo, no elimina) y enm… | proposed | interno |
 | 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
 | 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
@@ -671,5 +672,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0651 | Fusión de clientes v2: campo por campo, con saldos y chats | proposed | interno |
 | 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0643, 0648, 0649, 0652, 0653 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0648, 0649, 0652, 0653 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
