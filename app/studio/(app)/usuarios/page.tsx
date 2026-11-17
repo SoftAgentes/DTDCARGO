@@ -34,11 +34,19 @@ import { getStudioAccess, requireModuleView } from "@/lib/studio/rbac-guard";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
 import { cargarAgentesBandeja, type AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
+import { chatwootConfig } from "@/lib/studio/chatwoot/config";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
 export const dynamic = "force-dynamic";
 
-export default async function UsuariosPage() {
+export default async function UsuariosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const tabParam = (await searchParams).tab;
+  // SDD-0655: la Platform API de Chatwoot (timeout 10 s) solo se llama al abrir la pestaña Bandeja.
+  const enPestanaBandeja = (Array.isArray(tabParam) ? tabParam[0] : tabParam) === "bandeja";
   // SDD-0624: el gate va también en la página, no sólo en el layout: un
   // layout compartido no se vuelve a ejecutar en la navegación parcial.
   await requireModuleView("users");
@@ -90,7 +98,7 @@ export default async function UsuariosPage() {
     // 0538 deja leer todas al admin con su sesión; sin la 0538 llega vacío.
     listTenantModuleGrants(supabase, isSensitiveModule),
     // SDD-0655: los vínculos de la Bandeja. Si algo falla, la pestaña no sale y el resto de Usuarios sigue.
-    leerAgentesBandeja(supabase),
+    leerAgentesBandeja(supabase, enPestanaBandeja),
   ]);
 
   // Resolver emails de auth.users via service_role admin client.
@@ -205,21 +213,29 @@ export default async function UsuariosPage() {
         currentUserId={userResp.user.id}
         roleModuleOverrides={roleModuleOverrides}
         grants={moduleGrants}
-        agentesBandeja={agentesBandeja}
+        bandejaDisponible={agentesBandeja.disponible}
+        agentesBandeja={agentesBandeja.datos}
       />
     </div>
   );
 }
 
-/** Mismo gate y misma lectura que tenía la Bandeja para el admin (SDD-0585, 2.5). */
+/**
+ * Mismo gate y misma lectura que tenía la Bandeja para el admin (SDD-0585, 2.5).
+ * `disponible`: flag encendido y Bandeja conectada (barato: sin red), decide si
+ * hay pestaña. `datos`: solo con la pestaña abierta, porque llama a la Platform
+ * API de Chatwoot. Si algo falla, `datos` queda en null y el resto de Usuarios sigue.
+ */
 async function leerAgentesBandeja(
   supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<AgentesBandejaDatos | null> {
+  conDatos: boolean,
+): Promise<{ disponible: boolean; datos: AgentesBandejaDatos | null }> {
   try {
     const [access, flags] = await Promise.all([getStudioAccess(supabase), listFeatureFlags(supabase)]);
-    if (!isModuleEnabled("bandeja", flags)) return null;
-    return await cargarAgentesBandeja(supabase, access, createAdminClient);
+    const disponible = isModuleEnabled("bandeja", flags) && chatwootConfig() !== null;
+    if (!disponible || !conDatos) return { disponible, datos: null };
+    return { disponible, datos: await cargarAgentesBandeja(supabase, access, createAdminClient) };
   } catch {
-    return null;
+    return { disponible: false, datos: null };
   }
 }

@@ -31,6 +31,7 @@ import { InviteUserDrawer } from "./InviteUserDrawer";
 import { InvitationsTable } from "./InvitationsTable";
 import { MembersTable } from "./MembersTable";
 import { AgentesBandeja } from "./AgentesBandeja";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type { AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 import { UserDetailDrawer } from "./UserDetailDrawer";
 import { BandaDeTrabajo } from "./personas/BandaDeTrabajo";
@@ -64,6 +65,7 @@ export function UsersClient({
   currentUserId,
   roleModuleOverrides,
   grants = [],
+  bandejaDisponible = false,
   agentesBandeja = null,
 }: {
   members: UserMembershipWithProfile[];
@@ -72,7 +74,9 @@ export function UsersClient({
   roleModuleOverrides: RoleModuleOverrides;
   /** Accesos extra del tenant (SDD-0622), vigentes y vencidos. */
   grants?: UserModuleGrantView[];
-  /** SDD-0655: vínculos Studio ↔ Chatwoot; `null` sin la Bandeja (flag apagado o sin conectar). */
+  /** SDD-0655: hay pestaña Bandeja (flag encendido y Bandeja conectada). */
+  bandejaDisponible?: boolean;
+  /** SDD-0655: vínculos Studio ↔ Chatwoot; solo llegan con `?tab=bandeja` (null si no o si la lectura falló). */
   agentesBandeja?: AgentesBandejaDatos | null;
 }) {
   const router = useRouter();
@@ -80,7 +84,7 @@ export function UsersClient({
 
   const tabUrl = params.get("tab");
   const tab: Pestana =
-    PESTANAS.includes(tabUrl as Pestana) && (tabUrl !== "bandeja" || agentesBandeja)
+    PESTANAS.includes(tabUrl as Pestana) && (tabUrl !== "bandeja" || bandejaDisponible)
       ? (tabUrl as Pestana)
       : "personas";
   const etapaUrl = params.get("estado");
@@ -210,8 +214,8 @@ export function UsersClient({
         >
           Invitaciones
         </Tab>
-        {agentesBandeja ? (
-          <Tab activa={tab === "bandeja"} onClick={() => navegar({ tab: "bandeja" })} n={agentesBandeja.vinculos.length}>
+        {bandejaDisponible ? (
+          <Tab activa={tab === "bandeja"} onClick={() => navegar({ tab: "bandeja" })} n={agentesBandeja?.vinculos.length}>
             Bandeja
           </Tab>
         ) : null}
@@ -338,8 +342,15 @@ export function UsersClient({
 
       {tab === "invitaciones" && <InvitationsTable invitations={invitations} />}
 
-      {tab === "bandeja" && agentesBandeja ? (
-        <AgentesBandeja vinculos={agentesBandeja.vinculos} miembros={agentesBandeja.miembros} salud={agentesBandeja.salud} />
+      {tab === "bandeja" ? (
+        agentesBandeja ? (
+          <AgentesBandeja vinculos={agentesBandeja.vinculos} miembros={agentesBandeja.miembros} salud={agentesBandeja.salud} />
+        ) : (
+          <EmptyState
+            title="No pudimos leer los agentes de la Bandeja"
+            description="El servidor de mensajes no respondió. Vuelve a abrir esta pestaña en un momento."
+          />
+        )
       ) : null}
 
       {fichaAbierta && (
@@ -372,7 +383,8 @@ function Tab({
 }: {
   activa: boolean;
   onClick: () => void;
-  n: number;
+  /** Sin dato todavía (pestaña que carga al abrirse, SDD-0655): no se pinta el número. */
+  n?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -385,7 +397,7 @@ function Tab({
       data-activa={activa ? "true" : undefined}
     >
       {children}
-      <span className="studio-tab-n">{n}</span>
+      {n !== undefined ? <span className="studio-tab-n">{n}</span> : null}
     </button>
   );
 }

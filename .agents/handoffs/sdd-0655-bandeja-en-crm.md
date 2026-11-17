@@ -36,6 +36,14 @@ Decisión de Sam (chat del DG, literal): «A: pestaña en CRM». Spec: `docs/spe
 Riesgo a mirar en el CI: tipos (`tsc`) de los archivos nuevos, la prueba del menú (`StudioSidebar-crm.test.tsx`,
 primera que monta el menú completo) y las pruebas de la guía que contaban U1.
 
+## Revisión independiente (DG, c0c2b01fd): CHANGES REQUESTED, solo pruebas
+
+- Bloqueante atendido: `claridad-t5d-contract.test.ts` cuenta la barra en `CrmPestanas.tsx` (tablist 1, tab 1;
+  mutantes de `data-activa` y `studio-tabs` movidos); KommoClient queda en 0; `TOTAL_PESTANAS` = 3; 9 archivos.
+- (a) Usuarios llama a la Platform API solo con `?tab=bandeja`; la pestaña se ve con flag + Bandeja conectada.
+- (b) comentario de U1 en `lib/i18n/es-VE/guide.ts` al día. (c) spec D7: U1 queda sin recorrido.
+- Sin turno de PC: no corrí nada; lo dice el CI.
+
 ## Impacto documental
 
 - Spec nueva 0655 e índice `docs/specs/README.md` regenerado (`build-docs-index`: sincronizado;

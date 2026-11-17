@@ -80,7 +80,8 @@ pero sigue en la matriz de permisos, en el mapa de accesos de Usuarios, en el fl
 **D6 · «Agentes vinculados» va a Usuarios, pestaña «Bandeja»** (`/studio/usuarios?tab=bandeja`), no a
 Ajustes: Usuarios es solo admin (como antes el panel), ya trae la ficha de cada persona y la guía ya
 llamaba a su ancla `usuarios.acceso-bandeja`. La pestaña solo aparece con el flag encendido y la Bandeja
-conectada. Mismas acciones (`bandeja/actions.ts`, sin cambios de lógica; ahora también revalidan
+conectada; la lectura (que llama a la Platform API de Chatwoot, timeout 10 s) solo corre con
+`?tab=bandeja`, así abrir Usuarios no espera al chat. Mismas acciones (`bandeja/actions.ts`, sin cambios de lógica; ahora también revalidan
 `/studio/usuarios`), misma lectura (`cargarAgentesBandeja`, mudada de `bandeja/page.tsx`). Texto nuevo
 arriba: «Vincula tu usuario del Studio con tu agente de Chatwoot para abrir la Bandeja con tu sesión.» Al
 admin, la Bandeja le deja el enlace «Agentes vinculados». Los eventos descartados y la ida del portal se
@@ -88,8 +89,9 @@ quedan en la Bandeja.
 
 **D7 · Guía (SDD-0589).** El paso U1 («Dar acceso a la Bandeja») apuntaba al ancla de Vínculos dentro del
 recorrido de la Bandeja. Como el ancla se mudó, U1 sale de ese recorrido y queda como paso suelto
-(`PASO_ACCESO_BANDEJA`), igual que U3. Sus textos aprobados no cambian. Un recorrido de Usuarios que abra
-la pestaña es trabajo aparte.
+(`PASO_ACCESO_BANDEJA`), igual que U3. Sus textos aprobados no cambian. **Queda registrado: U1 no tiene
+recorrido** — hoy ningún recorrido de la guía lo muestra, ni al admin. Un recorrido de Usuarios que abra la
+pestaña Bandeja es trabajo aparte (SDD-0589).
 
 ## 3. Aceptación
 
@@ -131,6 +133,8 @@ la pestaña es trabajo aparte.
 | `lib/studio/guia/recorridos.ts` | U1 sale del recorrido de la Bandeja (`PASO_ACCESO_BANDEJA`) |
 | `lib/studio/guia/__tests__/anclas.test.ts`, `guia.test.ts`, `puente.test.ts` | siguen el ancla mudada |
 | `lib/runtime/__tests__/next-config.test.ts` | CSP de `/studio/crm` y ningún redirect en `/studio/bandeja` |
+| `app/studio/_components/__tests__/claridad-t5d-contract.test.ts` | la barra del CRM se cuenta en `CrmPestanas.tsx` (sus 2 mutantes también); `TOTAL_PESTANAS` sigue en 3 |
+| `lib/i18n/es-VE/guide.ts` | solo el comentario de U1 (los textos aprobados no cambian) |
 | `docs/specs/0655-bandeja-en-crm/spec.md` | esta spec |
 | `docs/specs/README.md` | índice generado |
 | `.agents/handoffs/sdd-0655-bandeja-en-crm.md` | handoff |

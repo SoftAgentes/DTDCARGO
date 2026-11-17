@@ -43,7 +43,10 @@ type Cuenta = {
 
 const ESPERADO: Record<string, Cuenta> = {
   // Filas de la lista de leads: no abren un registro del Studio (el nombre es un enlace externo).
-  "crm/_components/KommoClient.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
+  // SDD-0655: su barra se mudó a CrmPestanas (compartida con la Bandeja); aquí ya no hay pestañas.
+  "crm/_components/KommoClient.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
+  // SDD-0655: la barra del CRM (Embudos y Bandeja), la misma en /studio/crm y /studio/bandeja.
+  "crm/_components/CrmPestanas.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
   // Tarjetas del tablero espejado: tampoco abren; el nombre ya es un enlace.
   "crm/_components/KommoBoardView.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
   "crm/_components/LeadDrawer.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
@@ -151,8 +154,9 @@ const TOTAL_AVISOS = 4;
 const TOTAL_PESTANAS = 3;
 
 describe("SDD-0603 · tramo 5d · pestañas, tarjetas y avisos de CRM y Conversaciones (BD-037)", () => {
-  it("mira los 8 archivos de la allowlist", () => {
-    expect(fuentes.size).toBe(8);
+  // SDD-0655: 9, con la barra del CRM mudada a CrmPestanas.tsx.
+  it("mira los 9 archivos de la allowlist", () => {
+    expect(fuentes.size).toBe(9);
   });
 
   it.each(ARCHIVOS)("%s cumple su cuenta exacta", (ruta) => {
@@ -246,13 +250,13 @@ describe("SDD-0603 · tramo 5d · pestañas, tarjetas y avisos de CRM y Conversa
     });
 
     it("una pestaña pierde el relleno de la activa → rompe", () => {
-      expect(muta("crm/_components/KommoClient.tsx", /\s*data-activa=\{isActive \? "true" : undefined\}/, "")).toEqual([
+      expect(muta("crm/_components/CrmPestanas.tsx", /\s*data-activa=\{isActive \? "true" : undefined\}/, "")).toEqual([
         expect.stringContaining("pestaña sin data-activa"),
       ]);
     });
 
     it("el tablist pierde la clase única → rompe", () => {
-      expect(muta("crm/_components/KommoClient.tsx", 'className="studio-tabs"', 'className="fila"')).toEqual([
+      expect(muta("crm/_components/CrmPestanas.tsx", 'className="studio-tabs"', 'className="fila"')).toEqual([
         expect.stringContaining("tablist sin la clase única"),
       ]);
     });
