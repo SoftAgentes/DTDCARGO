@@ -106,6 +106,11 @@ export type RegistroLinkReviewRow = {
   rifSkipped: boolean;
   accessError: string | null;
   reviewedAt: string | null;
+  /**
+   * D-1: ¿volvió a entrar al portal por un camino que pasa por su correo?
+   * `null` = no se pudo saber (p. ej. falta la RPC de la 0552).
+   */
+  enteredViaEmail: boolean | null;
 };
 
 /** Campos que se comparan en la revisión: [clave en prev, clave en submitted, etiqueta]. */

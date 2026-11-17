@@ -54,6 +54,23 @@ export async function listRegistrosPorLink(
     }
   }
 
+  // D-1: si volvió a entrar desde su correo. Si la RPC no está, se muestra
+  // «no se sabe» en vez de afirmar algo.
+  const viaCorreo = new Map<string, boolean>();
+  let viaCorreoConocido = false;
+  if (rows.length > 0) {
+    const { data: estados, error: estadoErr } = await supabase.rpc(
+      "portal_registration_link_email_status",
+      { p_link_ids: rows.map((r) => r.id) },
+    );
+    if (!estadoErr) {
+      viaCorreoConocido = true;
+      for (const e of (estados ?? []) as { link_id: string; entered_via_email: boolean }[]) {
+        viaCorreo.set(e.link_id, e.entered_via_email);
+      }
+    }
+  }
+
   return rows.map((r) => ({
     id: r.id,
     clientId: r.client_id,
@@ -68,5 +85,6 @@ export async function listRegistrosPorLink(
     rifSkipped: r.rif_skipped,
     accessError: r.access_error,
     reviewedAt: r.reviewed_at,
+    enteredViaEmail: viaCorreoConocido ? (viaCorreo.get(r.id) ?? false) : null,
   }));
 }

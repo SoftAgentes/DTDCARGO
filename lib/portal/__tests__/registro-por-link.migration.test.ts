@@ -208,6 +208,20 @@ rollback;`);
     await expect(correr(m)).rejects.toThrow(/mirar devuelve algo más que el código/);
   }, SLOW);
 
+  it("mutante: la entrada del propio registro cuenta como prueba del correo", async () => {
+    const m = mutar(
+      "and au.last_sign_in_at > l.used_at + interval '1 hour'",
+      "and au.last_sign_in_at > l.used_at",
+    );
+    await expect(correr(m)).rejects.toThrow(/contó como prueba del correo la entrada del propio registro/);
+  }, SLOW);
+
+  it("mutante: un acceso por WhatsApp cuenta como prueba del correo", async () => {
+    // Mira sólo los accesos ANTERIORES al registro: el de después pasa de largo.
+    const m = mutar("and a.used_at > l.used_at", "and a.used_at < l.used_at");
+    await expect(correr(m)).rejects.toThrow(/contó como prueba del correo una entrada por WhatsApp/);
+  }, SLOW);
+
   it("mutante: el link vencido sigue abriendo", async () => {
     const m = mutar("     and l.expires_at > now()\n", "\n");
     await expect(correr(m)).rejects.toThrow(/un link vencido todavía abre/);

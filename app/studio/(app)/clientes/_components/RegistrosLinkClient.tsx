@@ -152,9 +152,16 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
             {row.clientName ?? "—"} · se registró el {fecha(row.usedAt)}
           </span>
         </div>
-        <Badge tone={comprobado ? "success" : "warning"} size="md">
-          {comprobado ? "Comprobado" : "Por revisar"}
-        </Badge>
+        <span style={{ display: "inline-flex", gap: "var(--s-2)", alignItems: "center" }}>
+          {row.enteredViaEmail === true && (
+            <Badge tone="info" size="md">
+              Entró desde su correo
+            </Badge>
+          )}
+          <Badge tone={comprobado ? "success" : "warning"} size="md">
+            {comprobado ? "Comprobado" : "Por revisar"}
+          </Badge>
+        </span>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)", marginTop: "var(--s-3)" }}>
@@ -171,6 +178,12 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
             )}
             . No se fusionó: resuélvelo en{" "}
             <Link href="/studio/clientes/duplicados">Posibles duplicados</Link>.
+          </Aviso>
+        )}
+        {row.enteredViaEmail === false && (
+          <Aviso tono="info" compacto titulo="Correo sin comprobar">
+            Todavía no ha vuelto a entrar desde su correo. Hasta entonces no está probado que el
+            correo sea suyo: le llegó un aviso y, si no es suyo, el dueño nos escribe.
           </Aviso>
         )}
         {row.rifSkipped && (

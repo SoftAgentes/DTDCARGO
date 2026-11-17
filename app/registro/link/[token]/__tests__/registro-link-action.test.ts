@@ -56,6 +56,12 @@ const admin = {
 };
 
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => admin }));
+vi.mock("@/lib/studio/registro-link-aviso-email", () => ({
+  sendRegistroLinkAvisoEmail: async (_a: unknown, tenantId: string, input: Record<string, unknown>) => {
+    calls.push({ name: "aviso", args: { tenantId, ...input } });
+    return { ok: true };
+  },
+}));
 vi.mock("@/lib/http/request-ip", () => ({ getRequestIp: async () => "203.0.113.7" }));
 vi.mock("@/lib/studio/portal-invite-email", () => ({
   generatePortalAccessLink: async () => "https://auth.example.test/magic",
@@ -90,7 +96,9 @@ beforeEach(() => {
   bindError = null;
   createUserError = null;
   completeResult = {
-    data: [{ client_id: "c-1", markbox: "DTD-8001", email: "ana@example.test", link_id: "l-1" }],
+    data: [
+      { client_id: "c-1", tenant_id: "t-1", markbox: "DTD-8001", email: "ana@example.test", link_id: "l-1" },
+    ],
     error: null,
   };
 });
@@ -109,6 +117,7 @@ describe("registerByLinkAction", () => {
       "portal_registration_link_complete",
       "createUser",
       "portal_registration_link_bind",
+      "aviso",
     ]);
     expect(nombres).not.toContain("next_markbox_service");
     // Sólo el throttle (lectura + intento); nunca `clients`.
@@ -123,6 +132,16 @@ describe("registerByLinkAction", () => {
     expect(args.p_document).toBe("V-12345678");
     expect(args.p_email).toBe("ana@example.test");
     expect(args).not.toHaveProperty("p_markbox");
+  });
+
+  it("⭐ D-1: el correo no nace confirmado y le llega el aviso con el Shipping Mark, sin nombre", async () => {
+    await registerByLinkAction({}, form());
+    expect(calls.find((c) => c.name === "createUser")?.args.email_confirm).toBe(false);
+    expect(calls.find((c) => c.name === "aviso")?.args).toEqual({
+      tenantId: "t-1",
+      email: "ana@example.test",
+      markbox: "DTD-8001",
+    });
   });
 
   it("la contraseña de la cuenta es aleatoria, nunca la cédula", async () => {

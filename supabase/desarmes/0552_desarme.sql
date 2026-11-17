@@ -21,6 +21,7 @@ set local statement_timeout = '30s';
 
 drop trigger if exists clients_guard_markbox_retirado_t on public.clients;
 drop function if exists public.clients_guard_markbox_retirado();
+drop function if exists public.portal_registration_link_email_status(uuid[]);
 drop function if exists public.portal_registration_link_mark_reviewed(uuid);
 drop function if exists public.portal_registration_link_access_error(uuid, text);
 drop function if exists public.portal_registration_link_bind(uuid, uuid);

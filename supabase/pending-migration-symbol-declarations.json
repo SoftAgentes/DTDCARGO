@@ -24,22 +24,22 @@
           "name": "portal_registration_link_complete",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/actions.ts:108"
+            "app/registro/link/[token]/actions.ts:109"
           ]
         },
         {
           "name": "portal_registration_link_bind",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/actions.ts:161"
+            "app/registro/link/[token]/actions.ts:165"
           ]
         },
         {
           "name": "portal_registration_link_access_error",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/actions.ts:153",
-            "app/registro/link/[token]/actions.ts:166"
+            "app/registro/link/[token]/actions.ts:157",
+            "app/registro/link/[token]/actions.ts:170"
           ]
         }
       ],
@@ -50,7 +50,7 @@
           "degradation": "Sin la 0552 la RPC de lectura responde error (PGRST202) y no hay fila: la página muestra «Enlace no disponible» con el mensaje genérico y ningún formulario. No escribe nada."
         },
         {
-          "site": "app/registro/link/[token]/actions.ts:124",
+          "site": "app/registro/link/[token]/actions.ts:125",
           "contains": "const kind = registroLinkErrorKind(error);",
           "degradation": "Si se llegara a enviar el formulario sin la 0552, el error cae en «otro»: el cliente lee «No pudimos guardar tus datos ahora» y no se crea cuenta ni vínculo. bind y access_error sólo corren después de un complete exitoso, que sin la 0552 no existe."
         }
@@ -81,6 +81,13 @@
           "callSites": [
             "lib/studio/registro-link-queries.ts:28"
           ]
+        },
+        {
+          "name": "portal_registration_link_email_status",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/registro-link-queries.ts:63"
+          ]
         }
       ],
       "evidence": [
@@ -88,6 +95,11 @@
           "site": "app/studio/(app)/clientes/actions.ts:707",
           "contains": "if (error.code === \"PGRST202\" || error.code === \"42883\") {",
           "degradation": "Sin la 0552 «Generar link de registro» responde «Esta acción todavía no está disponible.»: no se arma link ni se muestra el error crudo."
+        },
+        {
+          "site": "lib/studio/registro-link-queries.ts:66",
+          "contains": "if (!estadoErr) {",
+          "degradation": "Sin la RPC de la 0552 el estado del correo queda en null y la tarjeta no afirma nada: no sale ni «Entró desde su correo» ni «Correo sin comprobar»."
         },
         {
           "site": "lib/studio/registro-link-queries.ts:41",

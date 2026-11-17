@@ -156,19 +156,31 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
 | Finalidad | CORRECTO | Mismo texto de finalidad que `/registro` en `RegistroLinkForm.tsx`; opt-in de correo explícito y apagado por defecto. |
 | Acceso | CORRECTO | RLS de solo lectura por tenant; RPC con rol y tenant; las públicas, solo `service_role`. |
 | Borrado y retención | ENCONTRADO | `prev_data`/`submitted_data` duplican datos personales y no hay flujo general de supresión de clientes en el repo. Decisión pendiente de Sam: plazo para vaciar esas copias después de «comprobado» (propuesta: 90 días). |
-| Transferencias | NO VERIFICABLE | Sin terceros nuevos; Auth es el mismo Supabase de hoy. |
+| Transferencias | NO VERIFICABLE | Sin terceros nuevos; Auth es el mismo Supabase de hoy. El aviso D-1 sale por el mismo envío de correos (`sendEmail`) que la invitación al portal. |
 
 ## 5.1 Preguntas abiertas para Sam
 
-**D-1 · El correo que escribe el cliente no se verifica antes de entrar.** El link llega por WhatsApp a
-quien el equipo ya conoce, y eso prueba quién es la persona; no prueba que el correo sea suyo. Si escribe
-un correo ajeno, a ese correo le quedaría el acceso al portal: «¿Olvidaste tu contraseña?» y los enlaces
-de acceso llegan ahí. Mitigación decidida por el DG el 2026-11-16: se mantiene la entrada directa, la
-cuenta no nace con el correo marcado como confirmado y se envía la confirmación al correo; en «Registros
-por link» se ve si el correo ya se confirmó. Límite técnico consultado al DG: en Supabase Auth, verificar
-un magic-link marca el correo como confirmado, así que la entrada directa lo confirma sin probarlo. La
-forma exacta (aviso al correo o entrada sólo desde el correo) queda registrada en el handoff. **Sam
-decide** si acepta la entrada directa con ese riesgo.
+**D-1 · El correo que escribe el cliente no se verifica antes de entrar.** Decidido por el DG
+(2026-11-16): **opción A. Sam puede cambiarla.**
+
+El riesgo: el link llega por WhatsApp a quien el equipo ya conoce, y eso prueba quién es la persona, pero
+no que el correo sea suyo. Si teclea mal el correo, o escribe uno ajeno, el acceso al portal queda atado a
+ese correo: «¿Olvidaste tu contraseña?» y los enlaces de acceso llegan ahí.
+
+Límite técnico: en Supabase Auth, verificar un magic-link marca el correo como confirmado. La entrada
+directa desde la página lo confirma sin que el correo intervenga.
+
+- **A (vigente).** Entrada directa, como pide el flujo de Sam. La cuenta nace con `email_confirm: false`
+  (lo confirma el clic de la página) y al correo le llega un **aviso**
+  (`lib/studio/registro-link-aviso-email.ts`). El aviso identifica por el Shipping Mark, nunca por el
+  nombre, dice «si no fuiste tú, escríbenos» con el correo y el WhatsApp de soporte, y no trae ningún
+  enlace, tampoco de entrada. En «Registros por link» se ve si el cliente **volvió a entrar desde su
+  correo** (`portal_registration_link_email_status`). La regla es conservadora: un inicio de sesión más
+  de 1 h después del registro, cuando el magic-link de la página ya venció, y ningún acceso por WhatsApp
+  (SDD-0253) desde entonces. Hasta entonces la tarjeta dice «Correo sin comprobar».
+- **B.** Sin sesión inmediata: el cliente termina el formulario, le llega el enlace a su correo y entra
+  desde ahí. Prueba el correo, pero agrega un paso, y el cliente del legado pudo haber escrito mal un
+  correo que ni revisa.
 
 ## 6. Criterios de aceptación
 
@@ -198,13 +210,15 @@ decide** si acepta la entrada directa con ese riesgo.
   el desarme de la 0552 en `supabase/desarmes/`, `supabase/migrations-baseline.json`,
   `supabase/pending-migration-symbol-declarations.json`
 - `lib/portal/registro-link.ts`, `lib/portal/registro-link-types.ts`, `lib/studio/registro-link-queries.ts`,
+  `lib/studio/registro-link-aviso-email.ts`,
   `lib/studio/client-types.ts`
 - `app/registro/RegisterForm.tsx` (solo `export` de seis campos), `app/registro/link/[token]/*`
-- `app/studio/(app)/clientes/actions.ts`, `…/_components/PortalAccessCard.tsx`, `…/_components/ClientDrawer.tsx`,
+- `app/studio/(app)/clientes/actions.ts`, `…/[markbox]/page.tsx` (`canEdit` a la tarjeta), `…/_components/PortalAccessCard.tsx`, `…/_components/ClientDrawer.tsx`,
   `…/_components/ClientsClient.tsx`, `…/_components/RegistrosLinkClient.tsx`, `…/registros-link/page.tsx`
 - Pruebas: `lib/portal/__tests__/registro-link.test.ts`, `lib/portal/__tests__/registro-por-link.migration.test.ts`,
   `app/registro/link/[token]/__tests__/registro-link-action.test.ts`,
-  `app/studio/(app)/clientes/__tests__/registro-por-link-studio.test.ts`, `e2e/registro-link.spec.ts`
+  `app/studio/(app)/clientes/__tests__/registro-por-link-studio.test.ts`, `lib/studio/__tests__/registro-link-aviso-email.test.ts`,
+  `lib/studio/rbac-actions-guard.test.ts` (inventario), `e2e/registro-link.spec.ts`
 - `docs/specs/0646-invitacion-portal-por-link/spec.md`, `.agents/handoffs/sdd-0646-invitacion-portal-por-link.md`
 
 ## 9. Fuera de alcance

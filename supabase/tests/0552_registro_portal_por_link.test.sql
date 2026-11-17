@@ -27,7 +27,7 @@ language sql volatile as $$ select gen_random_uuid() $$;
 
 create schema auth;
 grant usage on schema auth to authenticated, service_role;
-create table auth.users (id uuid primary key, email text);
+create table auth.users (id uuid primary key, email text, last_sign_in_at timestamptz);
 create function auth.uid() returns uuid language sql stable set search_path = ''
 as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 grant execute on function auth.uid() to public;
@@ -90,6 +90,12 @@ create table public.client_users (
   email text, auth_user_id uuid unique, status text not null default 'invited',
   invited_at timestamptz default now(), bound_at timestamptz, revoked_at timestamptz,
   unique (tenant_id, client_id)
+);
+
+-- Acceso por WhatsApp de la 0360 (SDD-0253), sólo lo que mira la 0552.
+create table public.portal_access_links (
+  id uuid primary key default extensions.gen_random_uuid(),
+  tenant_id uuid not null, client_id uuid not null, used_at timestamptz
 );
 
 create table public.aliados (
@@ -506,6 +512,53 @@ do $$ begin
   exception when invalid_parameter_value then null;
   end;
 end $$;
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- D-1. ¿Volvió a entrar desde su correo? (regla conservadora)
+-- ═════════════════════════════════════════════════════════════════════════════
+reset role;
+-- La entrada del registro (minutos después de usar el link) NO cuenta.
+update auth.users set last_sign_in_at =
+  (select used_at from public.client_registration_links where token_hash = repeat('b', 64)) + interval '10 minutes'
+ where id = '00000000-0000-0000-0000-0000000000c1';
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+do $ begin
+  assert not (select entered_via_email from public.portal_registration_link_email_status(
+    array[(select id from public.client_registration_links where token_hash = repeat('b', 64))])),
+    'contó como prueba del correo la entrada del propio registro';
+end $;
+reset role;
+update auth.users set last_sign_in_at =
+  (select used_at from public.client_registration_links where token_hash = repeat('b', 64)) + interval '2 hours'
+ where id = '00000000-0000-0000-0000-0000000000c1';
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+do $ begin
+  assert (select entered_via_email from public.portal_registration_link_email_status(
+    array[(select id from public.client_registration_links where token_hash = repeat('b', 64))])),
+    'no vio que el cliente volvió a entrar después del registro';
+end $;
+reset role;
+-- Un acceso por WhatsApp después del registro no prueba el correo.
+insert into public.portal_access_links (tenant_id, client_id, used_at)
+select tenant_id, client_id, used_at + interval '1 hour'
+  from public.client_registration_links where token_hash = repeat('b', 64);
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+do $ begin
+  assert not (select entered_via_email from public.portal_registration_link_email_status(
+    array[(select id from public.client_registration_links where token_hash = repeat('b', 64))])),
+    'contó como prueba del correo una entrada por WhatsApp';
+end $;
+-- Otro tenant no ve el estado de estos links.
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e1';
+do $ begin
+  assert not exists (select 1 from public.portal_registration_link_email_status(
+    array(select id from public.client_registration_links))),
+    'otro tenant leyó el estado de los correos';
+end $;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
 
 -- ═════════════════════════════════════════════════════════════════════════════
 -- D. Recuperar el código propio

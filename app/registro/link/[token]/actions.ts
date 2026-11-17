@@ -17,7 +17,7 @@
  *      fusionar. Un correo con cuenta se rechaza ANTES de gastar el link.
  *   3. cuenta de auth con contraseña aleatoria (nunca la cédula)
  *   4. `portal_registration_link_bind` → client_users activo
- *   5. magic-link recién acuñado → botón «Entrar a mi portal»
+ *   5. aviso al correo (D-1) y magic-link recién acuñado → «Entrar a mi portal»
  * Si 3 o 4 fallan, la ficha ya quedó completa: se anota `access_error` para que
  * el equipo lo vea en «Registros por link» y al cliente se le dice que lo
  * contactamos.
@@ -27,6 +27,7 @@ import { randomBytes } from "node:crypto";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { generatePortalAccessLink } from "@/lib/studio/portal-invite-email";
+import { sendRegistroLinkAvisoEmail } from "@/lib/studio/registro-link-aviso-email";
 import { validateRegisterInput, type RegisterInput } from "@/lib/portal/register-types";
 import { hashRegistroToken } from "@/lib/portal/registro-link";
 import {
@@ -132,7 +133,7 @@ export async function registerByLinkAction(
   }
 
   const row = (Array.isArray(data) ? data[0] : data) as
-    | { markbox: string; email: string; link_id: string }
+    | { tenant_id: string; markbox: string; email: string; link_id: string }
     | null
     | undefined;
   if (!row?.markbox) {
@@ -143,10 +144,13 @@ export async function registerByLinkAction(
     "Tus datos quedaron guardados, pero no pudimos activar tu acceso al portal. Te contactamos por WhatsApp para resolverlo.";
 
   // 3. Cuenta de auth con contraseña ALEATORIA (el cliente entra por enlace).
+  //    SDD-0646 D-1: el correo NO nace confirmado. El link de WhatsApp prueba
+  //    quién es la persona, no que el correo sea suyo. (Abrir el magic-link del
+  //    paso 5 lo marca confirmado en Auth: por eso además va el aviso del 4b.)
   const { data: authResp, error: authErr } = await admin.auth.admin.createUser({
     email: row.email,
     password: randomBytes(24).toString("base64url"),
-    email_confirm: true,
+    email_confirm: false,
     user_metadata: { portal_markbox: row.markbox, tenant: "dtd-cargo" },
   });
   if (authErr || !authResp?.user) {
@@ -169,6 +173,15 @@ export async function registerByLinkAction(
     });
     return { ok: true, markbox: row.markbox, portalUrl: null, warning: pendiente };
   }
+
+  // 4b. Aviso al correo (D-1, decisión del DG: opción A): si el correo es de otra
+  //     persona, se entera y nos escribe. Con el Shipping Mark, sin nombre y sin
+  //     enlace de entrada. Best-effort: no frena la entrada.
+  const aviso = await sendRegistroLinkAvisoEmail(admin, row.tenant_id, {
+    email: row.email,
+    markbox: row.markbox,
+  });
+  if (!aviso.ok) console.warn("[registerByLinkAction] aviso al correo no salió:", aviso.error);
 
   // 5. Un clic y adentro. Si el enlace no se pudo acuñar, el login por correo
   //    sigue sirviendo: ya tiene cuenta con ese correo.

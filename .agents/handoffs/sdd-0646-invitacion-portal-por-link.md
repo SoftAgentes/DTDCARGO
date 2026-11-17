@@ -73,6 +73,31 @@ Rama `claude/0646-invitacion-por-link-475356` publicada. [PR #626](https://githu
 
 **Choque conocido con la [PR #624](https://github.com/SoftAgentes/DTDCARGO/pull/624) (SDD-0645), aviso del DG.** `git merge-tree --write-tree HEAD refs/dtd/pr/624`, con HEAD `13d7167b1` y `refs/dtd/pr/624` traída de `origin/pull/624/head`, da **un solo conflicto**: `lib/studio/rbac-actions-guard.test.ts`. Las dos PR suben el inventario de 472 a 474 y agregan su párrafo de justificación en el mismo lugar. `migrations-baseline.json`, `pending-migration-symbol-declarations.json` y `docs/specs/README.md` los resuelve el merge semántico sin conflicto. La PR que entre segunda trae main y deja **476**, con los dos párrafos (SDD-0645 y SDD-0646) uno detrás del otro. Antes de publicar el merge corre `rbac-actions-guard.test.ts`.
 
+## RONDA DE REVISIÓN INDEPENDIENTE (2026-11-16, cabeza revisada `3493aded4`)
+
+Cambios pedidos por la revisión con Opus; el DG decidió cada punto. Se publicaron sin correr pruebas locales, por orden del DG: **el CI es la primera medición** de esta ronda.
+
+1. `portal_registration_link_peek` devuelve solo el Shipping Mark. La página dice «Tu Shipping Mark es …», sin saludo con el nombre. Mutante: un peek que devuelva también el nombre.
+2. El POST pasa por el throttle por IP de `/registro` (`portal_registro_throttle`). «Correo en uso» ahora devuelve un mensaje genérico en el formulario, después del throttle.
+3. «Registros por link»:
+   - sin `readCanSeeClientNames` no se lee nada y la pantalla dice «Sin acceso a esta lista»;
+   - «Marcar comprobado» solo aparece para quien edita;
+   - «Generar link de registro» solo aparece para quien edita (`canEdit` llega a `PortalAccessCard`).
+4. `search_path = ''` en todas las funciones nuevas. `rename_client_markbox` conserva el de la 0371.
+5. **D-1, decidido por el DG: opción A.** Entrada directa, cuenta con `email_confirm: false` y aviso al correo (Shipping Mark, «si no fuiste tú, escríbenos» con el contacto de soporte, sin enlaces). Indicador «entró desde su correo» con regla conservadora (`portal_registration_link_email_status`). Límite técnico registrado en la spec: el magic-link de la página marca el correo como confirmado en Auth. Sam puede cambiar la decisión (spec §5.1).
+6. Recuperar un código **no borra** su fila: le pone `restored_at` y `restored_by`. El índice único del historial pasa a ser parcial sobre lo vigente. El desarme conserva esas columnas y el índice.
+7. Mutantes nuevos:
+   - regenerar sin revocar (también se quita el índice, para que lo cace la aserción);
+   - correo distinto en `bind`;
+   - `correo_en_uso`;
+   - historia borrada;
+   - peek con nombre;
+   - margen de 1 h;
+   - acceso por WhatsApp.
+
+   Además, `resolve_markbox` sobre los dos códigos después de recuperar.
+8. El choque con la #624 queda como estaba anotado: lo resuelve el DG al integrar.
+
 ## PENDIENTES DE ESTA TAREA
 
 - Revisión independiente (la lanza el DG) y el CI de la PR.

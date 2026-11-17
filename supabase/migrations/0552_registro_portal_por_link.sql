@@ -579,6 +579,61 @@ revoke all on function public.portal_registration_link_mark_reviewed(uuid) from 
 grant execute on function public.portal_registration_link_mark_reviewed(uuid) to authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 7b. ¿Volvió a entrar desde su correo? (D-1, decisión del DG: opción A)
+--
+-- El correo que escribió el cliente no se prueba al registrarse: el magic-link
+-- de la página lo marca confirmado en Auth sin que el correo intervenga. La
+-- prueba real llega cuando el cliente vuelve a entrar al portal, porque hoy
+-- toda entrada pasa por su correo (enlace de acceso o contraseña puesta con
+-- «¿Olvidaste tu contraseña?»), salvo el acceso que el equipo comparte por
+-- WhatsApp (`portal_access_links`, SDD-0253).
+--
+-- Regla CONSERVADORA (sólo dice «sí» cuando está claro):
+--   · hubo un inicio de sesión más de 1 h después de usar el link — el
+--     magic-link de la página vence en 1 h (MAILER_OTP_EXP), así que esa
+--     entrada ya no pudo ser la suya; y
+--   · no se usó ningún acceso por WhatsApp después del registro.
+-- Lee auth.users, así que es security definer y sólo devuelve un booleano.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create function public.portal_registration_link_email_status(p_link_ids uuid[])
+returns table (link_id uuid, entered_via_email boolean)
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select
+    l.id,
+    exists (
+      select 1
+        from public.client_users cu
+        join auth.users au on au.id = cu.auth_user_id
+       where cu.tenant_id = l.tenant_id
+         and cu.client_id = l.client_id
+         and cu.status = 'active'
+         and au.last_sign_in_at > l.used_at + interval '1 hour'
+    )
+    and not exists (
+      select 1
+        from public.portal_access_links a
+       where a.tenant_id = l.tenant_id
+         and a.client_id = l.client_id
+         and a.used_at > l.used_at
+    )
+  from public.client_registration_links l
+  where l.id = any(p_link_ids)
+    and l.used_at is not null
+    and l.tenant_id = public.get_user_tenant_id();
+$;
+
+comment on function public.portal_registration_link_email_status(uuid[]) is
+  'SDD-0646 D-1: por cada link usado del tenant del usuario, si el cliente volvió a entrar al portal por un camino que pasa por su correo (regla conservadora; ver la migración).';
+
+revoke all on function public.portal_registration_link_email_status(uuid[]) from public, anon, service_role;
+grant execute on function public.portal_registration_link_email_status(uuid[]) to authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- 8. Un código retirado no se da a una ficha nueva
 --
 -- Los generadores ya saltan el historial (0367). Pero el alta del Studio ahora
