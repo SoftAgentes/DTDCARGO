@@ -211,6 +211,10 @@ cualquier envío: ninguna decisión sale sin una persona.
   - **B:** aceptar el resto, sabiendo que el texto es de la bandeja de prueba e inventado hasta la etapa 2.
 - **Decisión de Sam (16/11/2026, «Sí a todo»):** **B** mientras solo haya datos de prueba. **A es OBLIGATORIA antes
   de la etapa 2** (clientes reales): la compactación semanal tiene que estar instalada y probada antes de ese paso.
+- **Paso 3b (16/11/2026): A instalada y probada.** `hermes-soporte-compactar.timer`, domingos 05:10 UTC (runbook §11).
+  La primera corrida dejó 0 páginas libres y el WAL vacío, y los restos de la marca de la prueba E en `state.db`
+  pasaron de 1 a 0. Entre dos compactaciones los bytes pueden quedar hasta 7 días; con el borrado de la sesión al
+  momento, las filas siguen sin pasar de segundos.
 
 #### `ENCONTRADO` 17 · Hermes conserva la respuesta del agente 7 días tras el borrado (baja)
 
@@ -247,6 +251,30 @@ Se propone para la prueba de staging (E), con el OK de Sam:
    - después de la purga diaria.
 
 Si la marca sobrevive como fila, el borrado no borra (`ENCONTRADO`). Si sobrevive solo como bytes sueltos del archivo, es el 16.
+
+### Revisión del Paso 3b (16/11/2026): la revisión de Sam y el envío
+
+#### `CORRECTO` 19 · La revisión guarda la decisión, no el texto (D2)
+
+- `office_revisiones` (0549) guarda el veredicto, las 5 casillas, el motivo, el revisor (`auth.uid()`, un identificador)
+  y la hora. Del borrador guarda solo su huella sha256: cuando el borrador se purga a los 90 días (D3), la revisión
+  queda para el conteo sin el texto.
+- **El motivo es texto libre de Sam y se guarda para siempre** (solo se agregan filas). Por eso la acción de la página
+  lo rechaza si trae un correo, un teléfono, una cédula, un RIF o una dirección (la regla del cable,
+  `app/studio/(app)/admin/oficina/actions.ts`), y la página lo pide «sin datos personales».
+- RLS sin policies; anon y authenticated no leen la tabla; la página la usa solo por funciones que exigen
+  `is_platform_admin()`. El aviso de Discord lleva el número de pendientes y el enlace, nunca el texto (`MinimalAlert`).
+
+#### `CORRECTO` 20 · Lo que sale hacia el cliente lo aprobó Sam, y una sola vez
+
+- Solo el ERP envía, solo lo aprobado y solo a la bandeja de prueba (`lib/studio/oficina/envio.ts`). No se aprueba un
+  envío con las casillas de datos inventados o datos personales sin marcar (la base lo impide).
+- El texto que sale es el mismo que Sam vio: la huella se compara en el ERP y otra vez en la base antes de reservar.
+- `office_envios` no guarda el texto: el mensaje enviado vive en Chatwoot, con la retención de Chatwoot (§4).
+- **Dinero:** una conversación de dinero se escala sin llamar al agente, así que su texto ni sale hacia el proveedor
+  del modelo (`tema-dinero.ts`).
+- **Sesiones abortadas:** se vuelven a borrar en la oficina cada tick durante 15 min (`office_sesiones_por_borrar`, solo
+  el id). Lo que dice el hallazgo 14 vale ahora también para las llamadas cortadas a mitad.
 
 ## 4 · No verificable
 

@@ -27,7 +27,7 @@ WORKDIR /app
 # con pnpm 11 y otra major podría reinterpretarlo. Corepack viene con Node 24;
 # `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` evita el prompt interactivo de descarga.
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.12 --activate
 
 # Solo los manifiestos: si no cambian, esta capa (la más lenta) se reutiliza.
 # `pnpm-workspace.yaml` trae `allowBuilds` y los `overrides`; `.npmrc`, los
@@ -39,7 +39,7 @@ RUN pnpm install --frozen-lockfile
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.12 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
