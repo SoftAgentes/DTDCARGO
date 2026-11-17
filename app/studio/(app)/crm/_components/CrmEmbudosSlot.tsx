@@ -13,12 +13,12 @@ import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { listTenantAdvisors } from "@/lib/studio/user-queries";
-import type { CrmTablero } from "@/lib/studio/crm-tablero";
+import type { CrmVista } from "@/lib/studio/crm-tablero";
 import { canAccessModule } from "@/lib/studio/rbac";
 import { cargarTableroCrm } from "@/lib/studio/crm-tablero-queries";
 import { CrmEmbudosClient } from "./CrmEmbudosClient";
 
-export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmTablero }) {
+export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmVista }) {
   const supabase = await createClient();
   const access = await getStudioAccess(supabase);
 
