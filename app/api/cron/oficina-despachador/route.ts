@@ -19,6 +19,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
+import { avisarPendientesADiscord } from "@/lib/studio/oficina/aviso-pendientes";
 import { leerConversacion } from "@/lib/studio/oficina/chatwoot-lectura";
 import { correrTanda } from "@/lib/studio/oficina/despachador";
 import { crearAlmacenDespachador } from "@/lib/studio/oficina/despachador-almacen";
@@ -44,10 +45,13 @@ export async function GET(req: NextRequest) {
   const runtime = config.runtime;
   const chatwoot = config.chatwoot;
   try {
+    const admin = createAdminClient();
     const r = await correrTanda(
       {
         config,
-        almacen: crearAlmacenDespachador(createAdminClient()),
+        almacen: crearAlmacenDespachador(admin),
+        // Paso 3b (D4): «hay N pendientes» a Discord, sin el texto.
+        avisar: (pendientes) => avisarPendientesADiscord(admin, pendientes),
         leer: (conversacionId, signal) => leerConversacion({ ...chatwoot, conversacionId, signal }),
         llamar: (o) => llamarAgente({ ...o, url: runtime.url, token: runtime.token }),
         borrarSesion: (sesionId) => borrarSesion({ url: runtime.url, token: runtime.token, sesionId }),
