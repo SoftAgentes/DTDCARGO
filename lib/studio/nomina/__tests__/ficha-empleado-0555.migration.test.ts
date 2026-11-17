@@ -194,7 +194,8 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
   {
     nombre: "la línea de tiempo trae los eventos de todas las fichas",
     sql: () => once(FILE_0555, "         ) and log.entity_id = p_employee_id)", "         ))"),
-    cae: "TEST 0555: T2: Contabilidad ve los siete eventos de la ficha",
+    // La ficha Uno sigue viendo sus siete: el defecto se ve en la otra ficha, que recibe los ajenos.
+    cae: "TEST 0555: T4: la otra ficha solo tiene su propio finiquito",
   },
   {
     nombre: "la línea de tiempo trae los finiquitos de otras fichas",
@@ -209,7 +210,7 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
         "(log.occurred_at, log.id) < (v_cursor_at, v_cursor_id)",
         "log.occurred_at < v_cursor_at",
       ),
-    cae: "TEST 0555: T",
+    cae: "TEST 0555: T7: con cuatro eventos, tres en el mismo instante",
   },
   {
     nombre: "anon ejecuta el revelado",
@@ -230,7 +231,7 @@ describe("SDD-0652 fase 2 · 0555 ficha del empleado (PGlite)", () => {
       const run = await contract();
       expect(run.error).toBeNull();
       expect(run.green).toMatch(/^TEST 0555 GREEN: \d+ aserciones$/);
-      expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(70);
+      expect(Number(run.green!.match(/(\d+) aserciones/)![1])).toBeGreaterThanOrEqual(80);
     },
     SLOW,
   );

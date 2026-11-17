@@ -448,8 +448,7 @@ select pg_temp.assert_true(
   (select count(*) from pg_temp.linea('20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000002', null, 50)) = 1,
   'T4: la otra ficha solo tiene su propio finiquito');
 
--- Paginación con cursor (occurred_at, id): todo ocurre en el mismo instante, así
--- que el desempate por id es lo que se mide.
+-- Paginación con cursor (occurred_at, id) sobre los eventos reales de la ficha Uno.
 do $paginas$
 declare
   v_cursor text; v_vistos uuid[] := '{}'; v_pagina integer := 0; v_fila record; v_n integer; v_cursores integer;
@@ -473,6 +472,37 @@ begin
     'T6: tres páginas de 3 recorren los 7 eventos sin repetir ni saltar');
 end;
 $paginas$;
+
+-- Desempate por id: tres eventos de la ficha Dos en el MISMO instante (el writer
+-- sella cada evento con su reloj, así que el empate se siembra directo). Con
+-- páginas de 2, la primera corta dentro del empate: sin el id en el cursor, la
+-- segunda página perdería los que quedan.
+insert into public.entity_audit_log
+  (tenant_id, entity_type, entity_id, actor_type, actor_id, event_type, payload, occurred_at, source, result, sensitivity)
+select '10000000-0000-4000-8000-000000000001', 'nomina_employee_photo', '30000000-0000-4000-8000-000000000002',
+       'user', '20000000-0000-4000-8000-000000000001', 'photo_set', '{}'::jsonb,
+       '2026-01-01T00:00:00Z'::timestamptz, 'rpc', 'succeeded', 'internal'
+from generate_series(1, 3);
+do $empate$
+declare
+  v_cursor text; v_vistos uuid[] := '{}'; v_pagina integer := 0; v_fila record; v_cursores integer;
+begin
+  loop
+    v_pagina := v_pagina + 1; v_cursores := 0;
+    for v_fila in select * from pg_temp.linea(
+      '20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000002', v_cursor, 2)
+    loop
+      v_vistos := v_vistos || v_fila.id;
+      if v_fila.next_cursor is not null then v_cursores := v_cursores + 1; v_cursor := v_fila.next_cursor; end if;
+    end loop;
+    exit when v_cursores = 0 or v_pagina > 5;
+  end loop;
+  perform pg_temp.assert_true(
+    v_pagina = 2 and cardinality(v_vistos) = 4
+    and (select count(distinct x) from unnest(v_vistos) as x) = 4,
+    'T7: con cuatro eventos, tres en el mismo instante, dos páginas de 2 los traen todos');
+end;
+$empate$;
 
 select 'TEST 0555 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 

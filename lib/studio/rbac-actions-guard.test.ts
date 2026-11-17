@@ -252,12 +252,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // el estado de la guía por usuario.
   // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
-  it("la superficie escaneada es la esperada (82 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (82 → 83, exactos
+  // 58 → 59): enlace, foto y revelado de la cuenta en la ficha del empleado.
+  it("la superficie escaneada es la esperada (83 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 82,
-      exactos: 58,
+      total: 83,
+      exactos: 59,
       conPrefijo: 24,
     });
   });

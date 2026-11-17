@@ -2,7 +2,7 @@
 
 - **Owner:** Claude Worker `0652-f2-foto-enlace` (sesión hija del Director General)
 - **Ruta:** `.claude/worktrees/guia-compacta-20428c`
-- **Rama:** `claude/0652-f2-foto-enlace-18332d`. Base: `main` `dbc898b67`
+- **Rama:** `claude/0652-f2-foto-enlace-18332d`. Base: `main`, integrada por merge en `5f394f40b` (#646)
 - **PR:** ver «VALIDACIÓN» y «HANDOFF AL DIRECTOR» (se completa al publicar). No fusionar: lo decide el DG
 - **SDD:** `docs/specs/0652-ficha-empleado-360/spec.md` (`in-progress`), §F2 y §7 F2
 - **Migración:** **0555**, EN ESPERA. No se aplicó en ningún entorno real. Aplicarla exige el OK nominal de Sam en el chat del DG y el runbook
@@ -52,17 +52,18 @@ Fase 2 de la SDD-0652: (1) foto del empleado, (2) enlace explícito ficha ↔ us
 | `node scripts/migrations-lock.mjs verificar` | PASÓ: 1 espera sin sellar (la 0555) |
 | `git diff --check` | PASÓ |
 | `/ui-check` sobre el diff | Hecho, OK con ajustes menores (aplicados: etiqueta del selector de archivo y ayuda del motivo) |
-| `pnpm install --frozen-lockfile` | **NO EJECUTADO**: sin turno de PC del DG al cerrar este borrador |
-| `tsc --noEmit` | **NO EJECUTADO**: igual |
-| vitest de nomina, usuarios, rbac, cron y crontab | **NO EJECUTADO**: igual |
-| Contrato SQL de la 0555 en PGlite (envoltorio vitest) | **NO EJECUTADO**: igual. El SQL de la migración y del contrato no se corrió todavía ni una vez |
+| `pnpm install --frozen-lockfile` en el worktree | PASÓ, con turno de PC del DG (React 19.3.1, Vitest 4.1.12) |
+| `tsc --noEmit` | PASÓ, dos veces: antes y después de corregir las pruebas |
+| `eslint` sobre `nomina`, el cron, `lib/studio/nomina` y las dos pruebas tocadas | PASÓ |
+| vitest de `lib/studio/nomina`, `app/studio/(app)/nomina`, `app/studio/(app)/usuarios`, `rbac-actions-guard`, el cron de fotos y `build-crontab` | PASÓ: 51 archivos, 1.186 pruebas, sobre el árbol final |
+| Contrato SQL de la 0555 en PGlite (dentro de esa corrida) | PASÓ: 80 aserciones, control rojo, 8 casos de preflight y 14 mutantes que caen |
+| Primera corrida de ese vitest | FALLÓ en 5 de 1.186 y se corrigió: contador de archivos de acciones (82 → 83), `conservar-lo-escrito` (el panel de solicitudes ahora carga antes de mostrar el formulario), un mutante con la aserción mal anotada y **un mutante que sobrevivía** (el desempate por id del cursor no se medía: se sembraron tres eventos en el mismo instante y se agregó T7) |
+| `lib/studio/__tests__` completo (207 archivos, sumado por error a una corrida) | 4.373 pasaron y 1 FALLÓ por tiempo (`solo-superadmin-crea-admin`, 20 s) con procesos de vitest que no arrancaron; **aislada PASÓ** (36 pruebas). Es contención de la máquina, no contenido, y no es de esta tarea |
 | Contratos SQL en Docker (`run-sql-tests.mjs`) | NO EJECUTADO: lo corre el CI («Contratos SQL») |
 | `pnpm verify` completo, build y e2e | NO EJECUTADO: el portón es el CI |
 | Prueba en el navegador | NO EJECUTADO: sin la 0555 aplicada en local no hay foto, enlace ni revelado que probar |
 | Aplicar la 0555 | NO EJECUTADO, a propósito |
 | Lectura de producción | NO EJECUTADO, a propósito |
-
-> Esta tabla se actualiza cuando el DG dé el turno. Mientras diga NO EJECUTADO, **nada de lo de arriba está probado**: es código escrito y revisado a mano.
 
 ## DATOS PERSONALES (`revisar-datos-ve`)
 
@@ -87,7 +88,7 @@ Conviene que otro modelo revise este análisis.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Turno de PC para install, tsc y vitest; corregir lo que salga; publicar la rama y abrir la PR.
+- CI de la PR en verde (ahí corren los contratos SQL en Postgres real, la suite completa y el build).
 - **«Reenlazar su cuenta de empleado»** (§4 punto 6) no se construyó: falta decidir cómo se reconoce una cuenta «solo de `/m/emp`» sin leer datos de otra persona. Hoy el empleado que vuelve queda sin acceso y con el aviso.
 - «Ver más» de la línea de tiempo (la RPC ya pagina; la pantalla trae 50).
 - Carrera real de dos enlaces a la vez (dblink en la suite SQL de Docker): no escrita.
