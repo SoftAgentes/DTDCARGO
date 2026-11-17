@@ -68,7 +68,7 @@
     "exceljs": "^4.4.0",
     "fflate": "^0.8.3",
     "file-type": "^22.0.1",
-    "next": "16.2.11",
+    "next": "16.4.6",
     "parse5": "8.0.1",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
@@ -93,17 +93,17 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/ui": "^4.1.7",
+    "@vitest/ui": "^4.1.12",
     "agentation-mcp": "^1.2.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "eslint-config-next": "16.4.6",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^5",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.12"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
