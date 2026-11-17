@@ -184,7 +184,17 @@ Consecuencias:
 - ~~Que esa respuesta no se cobre dentro de la ventana de servicio~~: **refutado en la v3**. Desde el 2026-10-01 cuenta contra el cupo de 1.000 mensajes de servicio gratis al mes del número (ver «Cambio de alcance v3»).
 - **Botón CTA URL:** Meta documenta el mensaje interactivo `cta_url` (**D**, V2-3). Que Chatwoot lo envíe está **NV**, así que el enlace va en el texto.
 - **Usuario con username y sin teléfono (BSUID):** el bot no pide códigos ni teléfono. Contesta lo mismo a todos, «si ya eres cliente, escríbenos aquí», y guarda el BSUID (10.3). Así no revela si un número o un código existe. (Diseño, **I**.)
-- **No se le escribe al cliente desde el número de clientes.** Un mensaje iniciado por la empresa exige una plantilla pagada y consentimiento previo, y con el enlace basta, porque lo inicia el cliente (**I**: regla general de Meta, sin fuente leída en esta tarea). La excepción es el aviso de cambio de número de (b): si sale del número nuevo, es un mensaje iniciado por DTD y cuenta contra el tope de (c) (**I**).
+- ~~**No se le escribe al cliente desde el número de clientes.**~~ **Enmendada el 2026-11-16** (ver la entrada de Seguimiento de esa fecha).
+  - La **redirección** sigue igual: el bot no le escribe primero al cliente desde el número de clientes, porque con el enlace basta y el cliente es quien inicia.
+  - **Sí se permite** que DTD le escriba primero desde el número de clientes, con **plantillas aprobadas por Meta**. Condiciones:
+    - utilidad, solo con un embarque, pago, documento o entrega real de ese cliente;
+    - marketing, solo a quien aceptó avisos de DTD Cargo por WhatsApp, como máximo uno por persona a la semana, y con el botón «Detener promociones».
+
+    El juego propuesto está en [`docs/marketing/whatsapp-plantillas-por-numero.md`](../../marketing/whatsapp-plantillas-por-numero.md) §4.
+  - Fuera de la ventana de 24 h, Meta exige plantilla y consentimiento (**D**: [Meta, «Pricing»](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing) y [«Getting opt-in»](https://developers.facebook.com/documentation/business-messaging/whatsapp/getting-opt-in), leídas el 2026-11-16).
+  - Cada envío iniciado por DTD cuenta contra el tope de (c), y eso incluye el aviso de cambio de número de (b).
+  - Crear cada plantilla en Meta sigue pidiendo el OK de Sam con el texto exacto.
+  - Automatizar los envíos es otra tarea, con su SDD.
 
 ### Tickets del portal a los embudos
 
@@ -379,3 +389,7 @@ Fuera del paso 4.8, el código del producto y la infraestructura se allowlistan 
 
   En la D pasaron el respaldo, las puertas (269 migraciones en el ledger, con huellas iguales) y la prueba rápida, 14 de 14. El webhook de Chatwoot responde 401 sin firma, el cron 403, y el log no tiene errores. No cambió el crontab ni el compose. El Subdirector comprobó a las 02:04Z, desde fuera, que `/privacidad` publica el texto de SDD-0587 con fecha del 5 de noviembre. **Con la D, todo lo de Chatwoot del mandato está en producción.** Lo que sigue abierto está en el checklist: 4.4 y 4.6 en espera de Meta, 4.5, 4.8, 4.9, y de E6 a E9.
 - **2026-11-05 (capacitación, pedida por Sam, todavía sin orden de empezar):** lo dijo Sam en el chat del Director General: «Hay que hacer un entrenamiento al personal para que entiendan cómo manejar esta herramienta comparada con Kommo. Hay que preparar diferencias entre Kommo y Chatwoot. Lo hacía de una manera ya en el pipeline, en el embudo, y aquí lo va a hacer casi de la misma manera o diferente.» Y: «El bug del ERP hay que ponerlo visible dentro de la herramienta cuando trabajen los empleados, o recordarles que cualquier mejora puede hacerlo en el book.» La capacitación ya es parte de 8.1 y sale de [`guia-guion.md`](guia-guion.md). De 9.2 a 9.6, lo del botón de bugs cae en 9.5. **No se empieza hasta que Sam la ordene.**
+- **2026-11-16 (enmienda, plantillas desde el número de clientes):** a la pregunta «¿Enmiendo la spec 0582 para permitir plantillas desde el número de Clientes?», Sam respondió en la sesión de análisis de plantillas: «Sí, enmiéndala».
+  - Cambia la regla «No se le escribe al cliente desde el número de clientes» de *Redirección sin IA*. Ahora DTD puede escribir primero con plantillas aprobadas, con las condiciones que dice esa sección. La redirección por enlace no cambia.
+  - No cambia código, no crea plantillas en Meta y no automatiza envíos. Cada uno de esos pasos va con su propio OK.
+  - Análisis: [`docs/marketing/whatsapp-plantillas-por-numero.md`](../../marketing/whatsapp-plantillas-por-numero.md).
