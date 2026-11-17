@@ -14,9 +14,20 @@
 
 ## Hallazgo principal
 
-- Producción corre con Next 16.2.11, y nos aplican dos RCE críticas de la Image Optimization (GHSA-2464-fhr4-w9xw, por SVG, y GHSA-2xp9-vwfh-vxw4, por AVIF), una DoS alta de Server Actions (GHSA-p3m5-59mp-jv5r) y, probablemente, una SSRF alta (GHSA-cjq9-62q9-8jv4).
-- El override `sharp: 0.35.3` de `pnpm-workspace.yaml:22` bloquea la corrección aunque se suba Next.
-- Por eso se propone la oleada **A1 urgente**: Next 16.4.6, `sharp` 0.35.5, Node 24.22.3 y Vitest 4.1.12.
+- Next 16.2.11, `sharp` 0.35.3, Vitest 4.1.7 y Node 24.22.1 tienen avisos públicos de seguridad que se corrigen subiendo de versión. La spec lista los GHSA y su versión corregida.
+- La aplicabilidad a nuestra configuración se analizó y se reportó al DG. El detalle vive fuera de este repo público, porque un hueco abierto no va a Git público (revisión del DG del 2026-11-17).
+- Se propone la oleada **A1 urgente**: Next 16.4.6, `sharp` 0.35.5, Node 24.22.3 y Vitest 4.1.12.
+
+## Ronda de revisión del DG (2026-11-17, sobre a28a823ec)
+
+- B1: se redujeron la §2, la conclusión, D1 a D3 y este handoff a la lista pública de avisos. El análisis quedó en una nota del buzón del repo privado. El commit 46deba7db y el cuerpo original de la PR #635 ya contenían el detalle; reescribir la historia lo decide Sam.
+- Menores:
+  - Se agregó `chatwoot-portal-poc.yml:65` a la A1.
+  - Se documentó el origen del override de `sharp` (`b1aa30d99`, SDD-0224).
+  - Se agregó GHSA-qxg6-89mg-rqv8.
+  - Se quitaron los conteos de archivos.
+  - Se agregaron D9, D10 y D11.
+  - La clasificación del aviso de SVG («posible, no descartable», inferencia) está en la nota privada.
 
 ## Validación
 
@@ -37,7 +48,7 @@
 
 ## Pendientes de esta tarea
 
-- Sam contesta D1 a D8.
+- Sam contesta D1 a D11.
 - La revisión independiente la lanza el DG.
 
 ## Fuera de alcance detectado

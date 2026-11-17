@@ -36,7 +36,7 @@ Leyenda del salto: **patch** (x.y.**z**), **minor** (x.**y**.0), **major** (**x*
 | Pieza | Dónde está fijada | Actual | Última estable | Salto | Fecha de la última |
 |---|---|---|---|---|---|
 | Node (imagen Docker) | `Dockerfile:20` `NODE_IMAGE=node:24.22.1-bookworm-slim@sha256:…` | 24.22.1 | **24.22.3** (línea 24, LTS «Krypton»). También existe 26.13.1 (LTS «Lithium») | patch (**seguridad**). A 26 sería major | 2026-11-10 |
-| Node (CI) | `quality.yml:46`, `sql-tests.yml:56`: `runtime: node@24.22.1` | 24.22.1 | 24.22.3 | patch | 2026-11-10 |
+| Node (CI) | `quality.yml:46`, `sql-tests.yml:56`, `chatwoot-portal-poc.yml:65`: `runtime: node@24.22.1` | 24.22.1 | 24.22.3 | patch | 2026-11-10 |
 | `engines.node` | `package.json` | `>=24` | — | — | — |
 | pnpm | `Dockerfile:30` y `:42`, `quality.yml:45`, `sql-tests.yml:55`, `chatwoot-portal-poc.yml:64` | 11.19.0 | 12.21.0 (la línea 11 llega hasta 11.28.12) | major (o minor dentro de 11) | 2026-11-13 |
 
@@ -73,38 +73,22 @@ Leyenda del salto: **patch** (x.y.**z**), **minor** (x.**y**.0), **major** (**x*
 
 Queda fuera de la tabla el resto de dependencias menores: los clientes AWS, `web-push`, `rrweb`, `clsx`, `qrcode`, `parse5`, `ajv` y los `@testing-library/*` restantes. Entran en la oleada A2 si `pnpm outdated`, corrido en un worktree, muestra patch o minor.
 
-## 2. Avisos de seguridad de las versiones actuales
+## 2. Avisos de seguridad de las versiones en uso
 
-Fuente: GitHub Advisory Database, consultada el 2026-11-17 con `gh api "advisories?ecosystem=npm&affects=<paquete>@<versión>"`. Para `next@16.4.6` la misma consulta devuelve **0** avisos. Las URL son `https://github.com/advisories/<GHSA>`.
+Fuente: GitHub Advisory Database, consultada el 2026-11-17 con `gh api "advisories?ecosystem=npm&affects=<paquete>@<versión>"`. Las URL son `https://github.com/advisories/<GHSA>`. Para `next@16.4.6`, la misma consulta devuelve **0** avisos.
 
-### Next.js 16.2.11: 11 avisos, todos corregidos en 16.4.1 o antes, sin parche en la línea 16.2
+**Hay avisos aplicables a la versión en uso. Se analizaron y se reportaron al DG; el detalle de cómo afectan a nuestra configuración queda fuera de este repo, que es público.** Abajo solo va la lista pública de cada aviso y la versión que lo corrige.
 
-| Aviso | Gravedad | Qué es | Corregido en | ¿Nos aplica? (evidencia) |
-|---|---|---|---|---|
-| [GHSA-2464-fhr4-w9xw](https://github.com/advisories/GHSA-2464-fhr4-w9xw) | **crítica** | RCE en la Image Optimization con SVG, en Linux con glibc (es una biblioteca de `sharp`) | 16.4.1, o `sharp` ≥ 0.35.5 | **Sí.** La imagen es `bookworm-slim` (glibc), `next/image` se usa en 9 archivos y `next.config.ts:239` define `images.remotePatterns`. **El override `sharp: 0.35.3` de `pnpm-workspace.yaml:22` impide la corrección aunque se actualice Next.** |
-| [GHSA-2xp9-vwfh-vxw4](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4) | **crítica** | RCE en la Image Optimization con AVIF (`libheif` dentro de `sharp`) | 16.3.3 (y `sharp` 0.35.4) | **Sí**, por la misma razón. |
-| [GHSA-vcvr-r3jv-pc5j](https://github.com/advisories/GHSA-vcvr-r3jv-pc5j) | **crítica** | RCE en `ImageResponse` de `next/og` cuando valores que controla el atacante llegan al SVG | 16.3.6 | **Bajo.** `app/noticias/[slug]/opengraph-image.tsx:62` usa `ImageResponse` con el título de una noticia publicada desde el Studio, no con parámetros de la URL (inferencia: sin auditar el editor). |
-| [GHSA-673q-mjm6-r5xr](https://github.com/advisories/GHSA-673q-mjm6-r5xr) | crítica | RCE en funciones `"use cache"` que devuelven typed arrays | 16.4.1 | **No.** `"use cache"` no aparece en `app/` ni en `lib/`. |
-| [GHSA-p293-qw3h-jr36](https://github.com/advisories/GHSA-p293-qw3h-jr36) (CVE-2026-75604) | crítica | RCE en servidores alojados en Windows | 16.3.3 | **No en producción**, que es Linux. Solo toca a un `next dev` en las PC con Windows. |
-| [GHSA-p3m5-59mp-jv5r](https://github.com/advisories/GHSA-p3m5-59mp-jv5r) (CVE-2026-94482) | **alta** | DoS: una petición armada contra Server Actions acapara la CPU del proceso | 16.4.1 | **Sí.** Hay 129 archivos con `"use server"`, y el aviso dice que no hay mitigación fuera de actualizar. |
-| [GHSA-cjq9-62q9-8jv4](https://github.com/advisories/GHSA-cjq9-62q9-8jv4) (CVE-2026-94483) | **alta** | SSRF en la Image Optimization a través de un host permitido en `remotePatterns` | 16.3.8 | **Probable.** `next.config.ts:243` permite `*.supabase.co`, y cualquiera puede crear un proyecto en ese dominio (inferencia). |
-| [GHSA-mcj8-r9mp-w47p](https://github.com/advisories/GHSA-mcj8-r9mp-w47p) (CVE-2026-94484) | media | Envenenamiento de caché SSG/ISR con un catch-all en la raíz | 16.3.8 | **No.** `app/` no tiene `[...x]` ni `[[...x]]` en la raíz. |
-| [GHSA-4jqv-mc3x-m676](https://github.com/advisories/GHSA-4jqv-mc3x-m676) (CVE-2026-94543) | media | Envenenamiento de caché SSG/ISR del Pages Router autoalojado | 16.3.8 | **No.** No hay carpeta `pages/`. |
-| [GHSA-f87g-xv8r-7p7x](https://github.com/advisories/GHSA-f87g-xv8r-7p7x) (CVE-2026-94485) | media | Las rutas `opengraph-image` ignoran `dynamicParams` con webpack | 16.3.8 | **Bajo.** Se compila con `next build`, que en Next 16 usa Turbopack por defecto. |
-| [GHSA-39w2-rjm5-chcv](https://github.com/advisories/GHSA-39w2-rjm5-chcv) (CVE-2026-94486) | baja | Fuga de datos en el endpoint MCP del servidor de desarrollo | 16.3.8 | Solo en desarrollo. |
-
-### Otros
-
-| Paquete | Aviso | Gravedad | Corregido en | ¿Nos aplica? |
-|---|---|---|---|---|
-| `sharp` 0.35.3 | [GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w): `librsvg`, posible RCE en Linux con glibc | **alta** | 0.35.5 | **Sí.** Es el override de `pnpm-workspace.yaml:22`. |
-| `sharp` 0.35.3 | [GHSA-rgj7-g3m4-5g8c](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c): `libheif` | **alta** | 0.35.4 | **Sí.** |
-| `vitest` 4.1.7 | [GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) (CVE-2026-84373): lectura de archivos arbitrarios desde `@vitest/mocker` | media | 4.1.11 | Solo en desarrollo y CI, no en producción. |
-| Node 24.22.1 | 24.22.3 es una publicación de seguridad (`security: true` en `https://nodejs.org/dist/index.json`, 2026-11-10) | por medir | 24.22.3 | Corre en producción. Falta leer el boletín de nodejs.org/en/blog/vulnerability para ver qué cubre. |
+| Paquete y versión en uso | Avisos públicos (GHSA) | Corregidos en |
+|---|---|---|
+| `next` 16.2.11 (11 avisos: 5 críticos, 2 altos, 3 medios, 1 bajo) | [GHSA-673q-mjm6-r5xr](https://github.com/advisories/GHSA-673q-mjm6-r5xr), [GHSA-2464-fhr4-w9xw](https://github.com/advisories/GHSA-2464-fhr4-w9xw), [GHSA-p3m5-59mp-jv5r](https://github.com/advisories/GHSA-p3m5-59mp-jv5r), [GHSA-4jqv-mc3x-m676](https://github.com/advisories/GHSA-4jqv-mc3x-m676), [GHSA-39w2-rjm5-chcv](https://github.com/advisories/GHSA-39w2-rjm5-chcv), [GHSA-f87g-xv8r-7p7x](https://github.com/advisories/GHSA-f87g-xv8r-7p7x), [GHSA-mcj8-r9mp-w47p](https://github.com/advisories/GHSA-mcj8-r9mp-w47p), [GHSA-cjq9-62q9-8jv4](https://github.com/advisories/GHSA-cjq9-62q9-8jv4), [GHSA-vcvr-r3jv-pc5j](https://github.com/advisories/GHSA-vcvr-r3jv-pc5j), [GHSA-2xp9-vwfh-vxw4](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4), [GHSA-p293-qw3h-jr36](https://github.com/advisories/GHSA-p293-qw3h-jr36) | Todos en ≤ 16.4.1. No hay parche en la línea 16.2 (16.2.12 no los corrige) |
+| `sharp` 0.35.3 (override en `pnpm-workspace.yaml`) | [GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w), [GHSA-rgj7-g3m4-5g8c](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c) | 0.35.5 |
+| `vitest` / `@vitest/mocker` 4.1.7 | [GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9), [GHSA-qxg6-89mg-rqv8](https://github.com/advisories/GHSA-qxg6-89mg-rqv8) | 4.1.12. Son herramientas de desarrollo y CI |
+| Node 24.22.1 | Publicación de seguridad 24.22.3 (`security: true` en `https://nodejs.org/dist/index.json`, 2026-11-10) | 24.22.3 |
 
 Sin avisos en la base de GitHub para las versiones que usamos de: `react`/`react-dom` 19.2.4, `@supabase/supabase-js` 2.106.1, `@supabase/ssr` 0.5.2, `eslint` 9.39.4, `@playwright/test` 1.60.0, `@react-pdf/renderer` 4.5.1, `exceljs` 4.4.0, `@anthropic-ai/sdk` 0.98.0, `pnpm` 11.19.0, `web-push` 3.6.7, `qrcode` 1.5.4 y `rrweb` 2.0.0-alpha.4. Las dependencias transitivas **no se midieron**, porque `pnpm audit` no se corrió (NO EJECUTADO, por la regla de esta fase). La oleada A1 lo corre en su worktree.
 
-**Conclusión de seguridad:** el riesgo real no es quedarse atrás en las funciones de Next. Es que producción corre hoy con **dos RCE críticas que nos aplican** (la Image Optimization con SVG y con AVIF), **una DoS alta** (Server Actions) y **una SSRF alta probable**. Además, el override de `sharp` bloquea la corrección. Por eso este plan **adelanta una oleada de seguridad (A1)**, en vez de tratar todo como mantenimiento.
+**Conclusión:** la versión en uso tiene avisos públicos de gravedad crítica y alta que solo se corrigen subiendo de versión. Por eso este plan **adelanta una oleada de seguridad (A1)**, en vez de tratar todo como mantenimiento.
 
 ## 3. Riesgo por paquete y usos afectados en el código
 
@@ -116,6 +100,7 @@ Sin avisos en la base de GitHub para las versiones que usamos de: `react`/`react
 - **APIs `unstable_`**: `lib/shared/use-action-keeping-draft.ts:1` importa `unstable_rethrow` y `unstable_isUnrecognizedActionError` de `next/navigation`. Siguen siendo inestables y pueden cambiar entre minors, así que hay que revisar el build y el tipo de los dos en la oleada.
 - **`experimental.serverActions.bodySizeLimit`** (`next.config.ts:224-235`) lo usa el registro para subir la foto de la cédula (12 MB). Hay que confirmar que sigue vigente en la 16.4; la prueba es subir una foto de más de 1 MB en `/registro`.
 - **Image Optimization y `sharp`:** el `Dockerfile` (líneas 99-114) copia a mano los paquetes `@img/*` y prueba que `sharp` convierte. Si sube `sharp`, cambia la versión de libvips y esa prueba tiene que seguir en verde. Además, la puerta de `publicar-web.sh` vuelve a probar `sharp` dentro de la imagen.
+- **Override de `sharp`:** `sharp: 0.35.3`, en `pnpm-workspace.yaml:22`, lo introdujo el commit `b1aa30d99` (SDD-0224) como pin de seguridad. Next 16.4.6 ya declara `sharp ^0.35.5`, así que en A1 se puede subir el pin a 0.35.5 o quitarlo y dejar que mande Next (D10).
 - **`next/og`:** `app/noticias/[slug]/opengraph-image.tsx` necesita una revisión visual de la imagen OG de una noticia.
 - `eslint-config-next` sube con Next: mismo número de versión y peer `eslint >= 9`.
 
@@ -198,7 +183,7 @@ Fuente: la [guía de migración de Uppy](https://github.com/transloadit/uppy/blo
 
 ### Node 24.22.1 → 24.22.3 (riesgo: bajo) y Node 26 (más adelante)
 
-- Es un patch de seguridad. Se cambia en tres sitios que tienen que ir juntos: `Dockerfile:20` (etiqueta **y digest** `sha256`), `quality.yml:46` y `sql-tests.yml:56`. `.agents/handoffs/node24-22-1-builds-20261025.md` explica por qué se fijó la 24.22.1 con Debian 12 Bookworm; esa decisión se mantiene.
+- Es un patch de seguridad. Se cambia en cuatro sitios que tienen que ir juntos: `Dockerfile:20` (etiqueta **y digest** `sha256`), `quality.yml:46`, `sql-tests.yml:56` y `chatwoot-portal-poc.yml:65`. `.agents/handoffs/node24-22-1-builds-20261025.md` explica por qué se fijó la 24.22.1 con Debian 12 Bookworm; esa decisión se mantiene.
 - Node 26 es LTS, pero conviene esperar a que Next declare soporte explícito y a que se estabilice `sharp`/libvips en esa base. Queda como decisión aparte (D6).
 
 ## 4. Plan por oleadas
@@ -206,7 +191,7 @@ Fuente: la [guía de migración de Uppy](https://github.com/transloadit/uppy/blo
 Reglas comunes a todas las oleadas:
 
 - **Una oleada, una PR, un worktree, una sesión Worker.** La SDD de cada oleada es esta (0656) con su fase, salvo que el DG asigne otra.
-- **Ventana de congelamiento:** antes de empezar, el DG confirma que no hay PR abiertas que toquen `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, el `Dockerfile` o `.github/workflows/`. Hoy, 2026-11-17, ninguna de las 13 PR abiertas los toca. Durante la oleada no se fusiona ninguna otra PR: un merge ajeno publica en producción y mezcla dos causas si algo falla. Se puede congelar el vigilante con `publicar-web.sh congelar "SDD-0656 oleada X"` y descongelarlo para publicar la oleada a mano.
+- **Ventana de congelamiento:** antes de empezar, el DG confirma que no hay PR abiertas que toquen `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, el `Dockerfile` o `.github/workflows/`. Hoy, 2026-11-17, ninguna de las 13 PR abiertas los toca. Durante la oleada no se fusiona ninguna otra PR: un merge ajeno publica en producción y mezcla dos causas si algo falla. Si se congela o no el vigilante es la decisión D11. Si se congela, se usa `publicar-web.sh congelar "SDD-0656 oleada X"` y se descongela para publicar la oleada a mano.
 - **Instalación:** solo en el worktree de la oleada, con `pnpm install` (que actualiza el lockfile), y después `pnpm install --frozen-lockfile` limpio para comprobar. Nunca en el checkout principal.
 - **Pruebas antes de pedir el merge:** `pnpm verify` en el worktree, que incluye build, lint, typecheck, Vitest, contratos SQL y e2e, más el CI de GitHub en verde (`quality.yml`, `sql-tests.yml`) y la revisión independiente que lanza el DG.
 - **Verificación en el servidor propio:** el workflow `build-image.yml` construye la imagen; su prueba de `sharp` está en el `Dockerfile`, líneas 107-114. Al fusionar, `publicar-web.sh` pasa las puertas, levanta la imagen nueva al lado de la vieja, espera *healthy*, corre `smoke-web.sh --host dtdcargo.com --www` y, si falla, vuelve sola a la imagen anterior.
@@ -222,8 +207,8 @@ Reglas comunes a todas las oleadas:
 
 | | |
 |---|---|
-| **Qué** | `next` y `eslint-config-next` a 16.4.6; el override `sharp` a 0.35.5; Node 24.22.3 (Docker y CI); `vitest`/`@vitest/ui` a 4.1.12, sin cambiar de major |
-| **Allowlist** | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` (solo la línea de `sharp`), `Dockerfile` (`NODE_IMAGE` con su digest), `.github/workflows/quality.yml` y `sql-tests.yml` (solo `runtime: node@…`), `.agents/handoffs/0656-*.md`. El código solo se toca si el build lo exige |
+| **Qué** | `next` y `eslint-config-next` a 16.4.6; el override `sharp` a 0.35.5, o quitarlo (D10); Node 24.22.3 (Docker y CI); `vitest`/`@vitest/ui` a 4.1.12, sin cambiar de major |
+| **Allowlist** | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` (solo la línea de `sharp`), `Dockerfile` (`NODE_IMAGE` con su digest), `.github/workflows/quality.yml`, `sql-tests.yml` y `chatwoot-portal-poc.yml` (solo `runtime: node@…`), `.agents/handoffs/0656-*.md`. El código solo se toca si el build lo exige |
 | **Pruebas** | `pnpm verify`, CI en verde, `pnpm audit --prod` en el worktree (antes y después), la prueba de `sharp` del `Dockerfile` y, a mano en producción tras publicar: una página con `next/image` desde Storage, la imagen OG de una noticia, `/registro` con una foto de más de 1 MB, entrar al Studio y al portal, y un PDF del ERP |
 | **Esfuerzo** | 2 a 3 h de Worker, más 1 h de revisión y publicación |
 
@@ -258,7 +243,7 @@ Reglas comunes a todas las oleadas:
 
 **Recomendación:**
 
-1. **A1 (seguridad) hoy mismo, después de la reunión del 2026-11-17, o a más tardar mañana 18 en la mañana.** Hay que hacerla antes de la próxima tanda grande de fusiones. Las RCE críticas que nos aplican son públicas desde el 2026-09-08 y el 2026-10-22, y no tienen mitigación fuera de actualizar, salvo apagar la optimización de imágenes (D2).
+1. **A1 (seguridad) hoy mismo, después de la reunión del 2026-11-17, o a más tardar mañana 18 en la mañana.** Hay que hacerla antes de la próxima tanda grande de fusiones. Los avisos críticos de la versión en uso son públicos desde el 2026-09-08 y el 2026-10-22, y se corrigen subiendo de versión. Las mitigaciones temporales, si A1 se retrasa, están en el análisis fuera del repo (D2).
 2. **A2 al día siguiente de publicar A1**, cuando la A1 haya pasado 24 h sin vuelta atrás.
 3. **B en una ventana tranquila de la semana**, sin otras PR de producto en vuelo. B no cambia nada en tiempo de ejecución, pero choca con cualquier PR que toque código que TypeScript o ESLint vayan a marcar.
 4. **C (`@supabase/ssr`) con Sam disponible para la prueba de sesión**, en horario de poco uso, porque si falla obliga a volver a entrar. Los demás majors de C van sin prisa, uno por PR.
@@ -275,20 +260,23 @@ Reglas comunes a todas las oleadas:
 
 ## Decisiones para Sam
 
-- **D1 — ¿Adelantamos la A1 (seguridad) a hoy, después de la reunión?** Recomendación: **sí**. Hay dos RCE críticas y una DoS alta que nos aplican en producción. Es un salto minor de Next más dos patch (`sharp` y Node).
-- **D2 — Si la A1 no puede salir en 24 h, ¿apagamos mientras tanto la optimización de imágenes (`images.unoptimized: true`)?** Recomendación: **no, si la A1 sale mañana a más tardar**. Si se retrasa, sí, porque cierra las dos RCE de imágenes y la SSRF. El costo es que las imágenes salen sin optimizar (más peso).
-- **D3 — ¿Cerramos `remotePatterns` a nuestro Storage y quitamos `*.supabase.co`?** Recomendación: **sí, pero en una PR propia después de la A1.** `lib/news/portada.ts:49` y `lib/runtime/supabase-origin.ts` todavía contemplan imágenes en `*.supabase.co`, así que antes hay que medir si alguna noticia publicada sigue apuntando a Supabase Cloud. Cierra la SSRF aunque vuelva a salir otra parecida.
+- **D1 — ¿Adelantamos la A1 (seguridad) a hoy, después de la reunión?** Recomendación: **sí**. La versión en uso tiene avisos públicos críticos y altos que se corrigen subiendo de versión. Es un salto minor de Next más dos patch (`sharp` y Node).
+- **D2 — Si la A1 no puede salir en 24 h, ¿aplicamos una mitigación temporal?** Recomendación: **no hace falta si la A1 sale mañana a más tardar**. Si se retrasa, el DG trae a Sam las opciones del análisis fuera del repo, con su costo.
+- **D3 — ¿Revisamos los hosts permitidos para imágenes remotas en `next.config.ts`?** Recomendación: **sí, en una PR propia después de la A1**. Antes hay que medir qué noticias publicadas siguen usando cada host.
 - **D4 — ¿TypeScript 6.0 o directo a la 7 en la oleada B?** Recomendación: **6.0.3**. La 7 hoy rompe `typescript-eslint` y `eslint-config-next`, que piden TypeScript menor que 6.1. Se retoma cuando salga la 7.1 con su API y esos paquetes la acepten.
 - **D5 — ¿ESLint 10 en la oleada B o nos quedamos en 9.39.5?** Recomendación: **quedarnos en 9.39.5 por ahora.** Tres plugins de `eslint-config-next` (`react`, `jsx-a11y` e `import`) no declaran soporte para la 10, y las fronteras ESLint público ↔ ERP no pueden quedar en duda. Pasamos a la 10 cuando Next lo declare.
 - **D6 — ¿Node 26 LTS ahora o más adelante?** Recomendación: **más adelante**, en una SDD propia cuando Next declare soporte y lo hayamos probado en `bookworm`. Por ahora, 24.22.3.
 - **D7 — ¿Prueba de sesión de `@supabase/ssr` en el servidor de prueba o directo en producción con la vuelta atrás lista?** Recomendación: **en la prueba primero**, con Sam presente. Si falla en producción, todos tienen que volver a entrar.
 - **D8 — ¿Una revisión mensual de versiones y avisos?** Recomendación: **sí**, el primer lunes de cada mes: consultar los avisos de `next`, `sharp`, `@supabase/*` y Node, y abrir una A1 si aparece algo que nos aplique. Así no se vuelven a acumular cinco meses de parches.
+- **D9 — ¿Dónde vive el análisis de aplicabilidad hasta publicar la A1?** Recomendación: **fuera de este repo público, en el repo privado de memoria compartida**, con el DG como destinatario. Después de publicar la A1 se decide si pasa a un documento de seguridad o se archiva.
+- **D10 — ¿Subimos el override de `sharp` a 0.35.5 o lo quitamos?** Recomendación: **subirlo a 0.35.5 en la A1** y dejar para una PR aparte la decisión de quitarlo. Se puso como pin de seguridad (`b1aa30d99`, SDD-0224), y Next 16.4.6 ya pide `^0.35.5`. Mantener el pin evita que otra dependencia arrastre una versión distinta sin que nadie lo vea. El costo es que hay que subirlo a mano en cada aviso.
+- **D11 — ¿La A1 congela el vigilante de publicación?** Recomendación: **sí**. Congelar antes del merge y publicar la A1 a mano con `publicar-web.sh publicar <sha>`, para mirar la prueba rápida en vivo. Si no, otro merge que llegue en la misma ventana se publica solo.
 
 ## Criterios de aceptación de esta SDD (fase de análisis)
 
 - [x] Inventario con la versión actual, la última estable, el tipo de salto y la fecha.
-- [x] Avisos de seguridad con su fuente oficial y si nos aplican o no, con evidencia.
+- [x] Avisos de seguridad públicos con su fuente oficial y su versión corregida. La aplicabilidad se reportó al DG fuera del repo.
 - [x] Riesgo por paquete con `archivo:línea` de los usos afectados.
 - [x] Plan por oleadas con su allowlist, sus pruebas, la verificación en el servidor, la ventana y la vuelta atrás.
 - [x] Recomendación de cuándo hacerlo y esfuerzo de cada oleada.
-- [ ] Decisiones D1 a D8 contestadas por Sam. Ejecutar cada oleada es trabajo aparte, con su OK.
+- [ ] Decisiones D1 a D11 contestadas por Sam. Ejecutar cada oleada es trabajo aparte, con su OK.
