@@ -9,6 +9,27 @@
   ],
   "degradations": [
     {
+      "id": "0551-pasar-embarque-a-otro-cliente",
+      "migration": "0551_pasar_embarque_a_otro_cliente",
+      "primarySymbol": "reassign_shipment_client",
+      "symbols": [
+        {
+          "name": "reassign_shipment_client",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/tracking/[id]/actions.ts:568"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/tracking/[id]/actions.ts:575",
+          "contains": "faltaLaFuncion(error)",
+          "degradation": "Sin la 0551 PostgREST responde PGRST202 (o 42883): la vista previa y el cambio devuelven «Esta acción todavía no está disponible.» con noDisponible, el modal bloquea el buscador y no ofrece confirmar. No se escribe nada ni se muestra el error crudo."
+        }
+      ]
+    },
+    {
       "id": "0552-registro-por-link-publico",
       "migration": "0552_registro_portal_por_link",
       "primarySymbol": "portal_registration_link_complete",
