@@ -28,6 +28,7 @@ export function DrawerShell({
   closeLabel,
   variant = "drawer",
   titleAccessory,
+  closeOnBackdrop = true,
 }: {
   title: string;
   subtitle?: React.ReactNode;
@@ -41,6 +42,11 @@ export function DrawerShell({
   variant?: "drawer" | "centered";
   /** Nodo inline a la derecha del título (ej. un badge de estado). */
   titleAccessory?: React.ReactNode;
+  /**
+   * `false` = un clic en el fondo no cierra: solo el botón cerrar o Escape
+   * (SDD-0648, D8: la ficha del CRM se cerraba por error). Default `true`.
+   */
+  closeOnBackdrop?: boolean;
 }) {
   const t = useT();
   const titleId = useId();
@@ -52,7 +58,7 @@ export function DrawerShell({
 
   return (
     <div
-      onClick={() => !pending && onClose()}
+      onClick={() => closeOnBackdrop && !pending && onClose()}
       style={{
         position: "fixed",
         inset: 0,
