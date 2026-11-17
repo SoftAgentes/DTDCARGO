@@ -26,6 +26,7 @@ on:
       - "lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts"
       - "lib/studio/chatwoot/portal-conciliar.ts"
       - "lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts"
+      - "lib/studio/chatwoot/__tests__/contacto-erp.poc.test.ts"
       - "supabase/migrations/0519_chatwoot_portal.sql"
       - "supabase/tests/0519_chatwoot_portal.test.sql"
       - "supabase/tests/0519_chatwoot_portal_carrera.test.sql"
