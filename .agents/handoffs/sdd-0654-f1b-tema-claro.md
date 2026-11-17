@@ -36,9 +36,10 @@ todos?». Respuesta literal de Sam en el chat del DG: «Sí, tema claro».
 
 | Comprobación | Resultado |
 |---|---|
-| Vitest de `layout-tema.test.tsx` y de las pruebas de contraste del Portal | PENDIENTE de turno del DG |
-| `tsc --noEmit` | PENDIENTE de turno del DG |
-| `/ui-check` | Ver la PR |
+| Vitest de `layout-tema.test.tsx`, `avisos-portal-contract` y `claridad-portal-contract` (turno del DG) | PASÓ: 3 archivos, 110 pruebas |
+| Mutante: la línea del tema vuelta a oscuro por defecto | Cae: 2 rojas de 4 (sin cookie y valor raro) |
+| `tsc --noEmit` (turno del DG) | PASÓ |
+| `/ui-check` | OK para commit; falta revisar el claro con una cuenta de prueba después de publicar |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub |
 
 Los contratos de contraste del tema claro ya existían (`app/portal/__tests__/avisos-portal-contract.test.ts`, caso
@@ -51,7 +52,7 @@ nunca tocaron el botón de tema, también en la Vista Pro y con el interruptor d
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr las pruebas con turno del DG, o leerlas en el CI.
+- CI verde de la PR.
 - Después de publicar, mirar el portal en claro con una cuenta de prueba en el servidor de prueba que Sam nombre. El
   Preview de Vercel no sirve, porque comparte base con producción.
 
