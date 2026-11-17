@@ -413,6 +413,13 @@ Ver la maqueta. Resumen:
 
 - **Barra superior:** marca y selector «Vista simple / Vista Pro». El tema claro/oscuro sigue en el menú
   de la cuenta.
+- **Ajuste a la maqueta en teléfono (fase 2, aprobado por el DG el 2026-11-17).** A 375 px la barra tiene unos 343 px
+  útiles, y el selector, «Comparar» y «Guía» junto a lo que ya está (menú, calculadora, campana, tema y cuenta)
+  sumaban unos 430 px. La medida es un cálculo con los anchos del código; falta confirmarla con una captura en un
+  portal de prueba. Por debajo de 640 px el selector se reduce a un solo botón («Simple ▾» o «Pro ▾»). Abre un
+  panel con las dos vistas, «Comparar las dos vistas» y, en la Vista simple, «Guía». La barra queda en unos 300 px.
+  Al abrir, el foco entra a la vista elegida; Escape cierra el panel y devuelve el foco al botón. En pantalla ancha
+  no cambia nada: el grupo, «Comparar» y «Guía» van en la barra.
 - **Botón de Faro:** el mismo del Studio (SDD-0637 §7.1, estilo 1): faro de torre blanca con rayas rojas, fondo
   azul noche y aro dorado, flotante abajo a la derecha, **en las dos vistas** (pedido de Sam). Se reutiliza el
   componente del Studio cuando exista; no se dibuja otro. La excepción de marca que Sam autorizó para Faro en la

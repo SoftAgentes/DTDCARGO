@@ -34,13 +34,18 @@ export function PortalVistaSelector({ vista }: { vista: PortalVista }) {
   const [comparando, setComparando] = useState(false);
   const [panel, setPanel] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const disparadorRef = useRef<HTMLButtonElement>(null);
   const idPanel = useId();
 
   // El panel del teléfono se cierra con Escape o tocando fuera.
   useEffect(() => {
     if (!panel) return;
+    // Al abrir, el foco entra a la vista elegida; con Escape vuelve al botón.
+    panelRef.current?.querySelector<HTMLElement>('[role="group"] [aria-pressed="true"]')?.focus();
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setPanel(false);
+      if (e.key !== "Escape") return;
+      setPanel(false);
+      disparadorRef.current?.focus();
     }
     function onDown(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) setPanel(false);
@@ -131,6 +136,7 @@ export function PortalVistaSelector({ vista }: { vista: PortalVista }) {
           las dos vistas, «Comparar» y, en la Vista simple, «Guía». */}
       <div className="sm:hidden" ref={panelRef}>
         <button
+          ref={disparadorRef}
           type="button"
           aria-expanded={panel}
           aria-controls={idPanel}

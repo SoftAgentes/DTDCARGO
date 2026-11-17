@@ -5,7 +5,7 @@
  * instante, guarda con la acción del servidor y refresca; si no pudo guardar,
  * vuelve a la vista de antes y lo dice en un aviso visible.
  */
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const setPortalVistaAction = vi.fn();
@@ -126,14 +126,42 @@ describe("PortalVistaSelector", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("en teléfono, el panel trae las dos vistas, «Comparar» y, en la simple, «Guía»", () => {
+  it("en teléfono, el panel trae las dos vistas, «Comparar» y, en la simple, «Guía»; foco y Escape", () => {
     render(<PortalVistaSelector vista="simple" />);
-    fireEvent.click(screen.getByRole("button", { name: /cambiar de vista/ }));
-    expect(screen.getAllByRole("group", { name: "Vista del portal" })).toHaveLength(2);
+    const disparador = screen.getByRole("button", { name: /cambiar de vista/ });
+    expect(disparador).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(disparador);
+    expect(disparador).toHaveAttribute("aria-expanded", "true");
+    const grupos = screen.getAllByRole("group", { name: "Vista del portal" });
+    expect(grupos).toHaveLength(2);
+    const enPanel = within(grupos[1]);
+    expect(enPanel.getByRole("button", { name: "Vista simple" })).toHaveAttribute("aria-pressed", "true");
+    expect(enPanel.getByRole("button", { name: "Vista Pro" })).toHaveAttribute("aria-pressed", "false");
+    // El foco entra a la vista elegida.
+    expect(document.activeElement).toBe(enPanel.getByRole("button", { name: "Vista simple" }));
     expect(screen.getByRole("button", { name: "Comparar las dos vistas" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Guía" })).toHaveAttribute("href", "/portal?guia=1");
+    // Escape cierra y devuelve el foco al botón.
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("button", { name: "Comparar las dos vistas" })).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(disparador);
+  });
+
+  it("en teléfono, «Comparar» del panel cierra el panel y abre la comparación", () => {
+    render(<PortalVistaSelector vista="pro" />);
+    fireEvent.click(screen.getByRole("button", { name: /cambiar de vista/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Comparar las dos vistas" }));
+    expect(screen.getByRole("dialog", { name: /Vista simple o Vista Pro/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Comparar las dos vistas" })).not.toBeInTheDocument();
+  });
+
+  it("en teléfono, elegir la otra vista desde el panel la guarda", async () => {
+    setPortalVistaAction.mockResolvedValue({ ok: true, vista: "pro" });
+    render(<PortalVistaSelector vista="simple" />);
+    fireEvent.click(screen.getByRole("button", { name: /cambiar de vista/ }));
+    const enPanel = within(screen.getAllByRole("group", { name: "Vista del portal" })[1]);
+    fireEvent.click(enPanel.getByRole("button", { name: "Vista Pro" }));
+    await waitFor(() => expect(setPortalVistaAction).toHaveBeenCalledWith("pro"));
   });
 
   it("en la Vista Pro el panel no trae «Guía»", () => {
