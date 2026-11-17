@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 637 specs)
+### Índice de specs (generado · 638 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -668,6 +668,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
 | 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
 | 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
+| 0648 | CRM › Embudos: tarjeta compacta, logo por canal, ancho comple… | in-progress | interno |
 | 0649 | Shipping Mark y segmento del ERP en el contacto de Chatwoot | in-progress | interno |
 | 0650 | Ficha 360° del cliente en el Studio | in-progress | interno |
 | 0651 | Fusión de clientes v2: campo por campo, con saldos y chats | proposed | interno |
@@ -676,5 +677,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | approved | interno |
 | 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0648 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
