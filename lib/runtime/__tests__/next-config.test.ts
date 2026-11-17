@@ -209,6 +209,25 @@ describe("SDD-0585 · Bandeja de Chatwoot: frame-src y micrófono solo en su rut
   });
 });
 
+describe("SDD-0655 · la Bandeja es pestaña de CRM sin mover sus cabeceras ni redirigir", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("/studio/crm (Embudos) no hereda el frame-src ni el micrófono de la Bandeja", async () => {
+    const headers = await headersFor(await loadConfig({}), "/studio/crm");
+    const csp = values(headers, "Content-Security-Policy");
+    expect(csp).toHaveLength(1);
+    expect(() => directive(csp[0], "frame-src")).toThrow();
+    expect(values(headers, "Permissions-Policy")[0]).toContain("microphone=()");
+  });
+
+  it("ningún redirect toca /studio/bandeja: los ?c=N de fichas y avisos push llegan directo", async () => {
+    const cfg = await loadConfig({});
+    const redirects = (await cfg.redirects?.()) ?? [];
+    const toca = redirects.filter((r) => /studio\/bandeja/.test(r.source) || /studio\/bandeja/.test(String(r.destination)));
+    expect(toca).toEqual([]);
+  });
+});
+
 describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)", () => {
   afterEach(() => vi.unstubAllEnvs());
 
