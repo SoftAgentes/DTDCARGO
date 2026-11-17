@@ -73,14 +73,17 @@ Chequeos livianos, sobre el árbol del commit de código:
 | `pending-migration-symbols` | PASÓ: 0 rojo, 4 amarillo declarados (uno es el de la 0559) |
 | `docs:check`, `sdd:check`, `git diff --check` | PASÓ |
 | `/ui-check` | OK con ajustes menores: sin hallazgos de marca; se corrigió un sangrado; la ambigüedad «Comprobado» / «Correo comprobado» va a Sam |
-| `pnpm verify` (typecheck, build, suite completa, e2e) | Ver «Corrida pesada» abajo |
+| `pnpm install --frozen-lockfile` en este worktree | PASÓ (vitest 5.1.0, TypeScript 6.0.3; sin cambios en el árbol) |
+| `pnpm typecheck` | PASÓ |
+| `pnpm test` completo, build y e2e (`pnpm verify`) | NO EJECUTADO en la PC por decisión del DG: el portón es el CI de GitHub sobre la PR |
 | Contrato SQL con psql y Docker (`sql-tests`) | NO DISPONIBLE: sin Docker; el mismo contrato corre en PGlite |
 | Auth real (crear la cuenta y cambiarle el correo con una dirección `.invalid`) | NO EJECUTADO: Auth está doblado en todas las pruebas |
 | Producción | NO TOCADA: ni lecturas ni escrituras |
 
 ### Corrida pesada
 
-Pendiente del turno del DG al escribir este handoff. El resultado se anota aquí y en el mensaje de cierre.
+Turno del DG, acotado a instalar y `typecheck` (2026-11-17): los dos PASARON. Los archivos de prueba
+tocados se corrieron antes de instalar, con vitest 4.1.7; con vitest 5.1.0 los corre el CI.
 
 ## PENDIENTES DE ESTA TAREA
 
