@@ -140,6 +140,13 @@ Las respuestas al chat del portal llegan solo por el webhook de cuenta, y Chatwo
 
 Con cada mensaje entrante en las bandejas de WhatsApp (leads y clientes), Studio escribe en el contacto de Chatwoot dos atributos: `dtd_segmento` (`cliente`, `lead_registrado` o `lead_nuevo`) y `dtd_shipping_mark`. Usa la misma regla de la 0505: hace falta una sola ficha viva con ese teléfono. Si la persona deja de tener ficha única, el código se borra. Solo escribe si algo cambió. Los contactos que no vuelven a escribir, el Archivo Kommo incluido, quedan sin atributos.
 
+**Quién los ve** (medido el 2026-11-17 contra Chatwoot 4.19.1 efímero, SDD-0649 §4):
+- Cualquier usuario de la cuenta ve los dos atributos de **todos** los contactos, al abrirlos y en el buscador (medido por la API, `GET contacts/:id` y `contacts/search`), también un **Agente** que no es miembro de ninguna bandeja.
+- Ese Agente puede editar los valores, pero no puede crear ni borrar los atributos.
+- En la lista de conversaciones de un contacto (`GET contacts/:id/conversations`, el único endpoint medido), el Agente no ve las de bandejas en las que no está.
+
+Hoy todos los usuarios son Administradores. **Antes de pasar a alguien a rol Agente**, Sam acepta que esa persona vea y pueda editar el segmento y el Shipping Mark de todos los contactos, también los del Archivo Kommo. Si un Agente cambia uno a mano, Studio lo corrige con el siguiente mensaje de esa persona.
+
 **Encender** (cada paso con OK nominal de Sam):
 
 1. En Chatwoot, **Ajustes → Atributos personalizados → Agregar**, modelo **Contacto**:
