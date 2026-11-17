@@ -5,6 +5,9 @@
  * no tiene acceso al sistema de envíos en el Paso 3a. Todo lo que no cubren se ESCALA. Cambiar un guion es
  * cambiar la ficha (sube de versión, SGE-AG-01 §4) y lo revisa Sam.
  *
+ * v0.2 (Paso 3b): `derivar-equipo` ya no cubre el dinero (cobros, pagos, tarifas): eso se escala con prioridad 3
+ * (y el despachador lo escala antes de llamar al agente, `tema-dinero.ts`).
+ *
  * `revisarRespuesta` (eval-automatico.ts) usa el texto de estos guiones como la única fuente permitida de
  * cifras, fechas y estados en una respuesta.
  */
@@ -14,7 +17,7 @@ export interface Guion {
   texto: string;
 }
 
-export const VERSION_GUIONES = "0.1";
+export const VERSION_GUIONES = "0.2";
 
 export const GUIONES_SOPORTE: readonly Guion[] = [
   {
@@ -31,7 +34,8 @@ export const GUIONES_SOPORTE: readonly Guion[] = [
   },
   {
     id: "derivar-equipo",
-    cuando: "La consulta necesita a una persona del equipo (estado de un envío, cobros, reclamos o cualquier dato del sistema).",
+    cuando:
+      "La consulta necesita a una persona del equipo (estado de un envío, reclamos o cualquier dato del sistema). NUNCA para dinero: un cobro, un pago, una tarifa o un reembolso se escala con prioridad 3.",
     texto:
       "Entiendo tu consulta. Se la paso ya a una persona del equipo de DTD Cargo, que te responde por este mismo chat.",
   },
