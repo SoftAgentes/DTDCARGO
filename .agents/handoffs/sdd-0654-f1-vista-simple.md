@@ -49,6 +49,9 @@ draft, sin fusionar.
   - `layout.tsx` solo consulta con el interruptor encendido y pone `data-portal-vista` solo entonces;
   - `PortalShell` y `PortalTopbar` reciben `vista` opcional (null = sin selector).
 - `.env.example`: `PORTAL_VISTA_SIMPLE=` vacío.
+- **Fuera de la allowlist, obligado por un gate:** `infra/dtd-cargo/.env.example` también lleva `PORTAL_VISTA_SIMPLE=`
+  vacío. Lo exige `scripts/__tests__/infra-env-example.test.ts` (SDD-0505): toda variable del `.env.example` raíz
+  tiene que estar en la plantilla del servidor. El CI de la cabeza `e4055e16b` falló por eso.
 - Pruebas nuevas o ampliadas:
   - `lib/portal/__tests__/vista-preferida.test.ts`;
   - `app/portal/__tests__/vista-preferida-actions.test.ts`;
