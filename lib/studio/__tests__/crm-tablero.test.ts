@@ -8,7 +8,13 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  CRM_VISTAS,
   ETAPA_VUELTA_A_LEAD,
+  contarPorVista,
+  resolverVista,
+  tieneCodigo,
+  vistaDeTarjeta,
+  vistaDef,
   armarColumnas,
   coincideBusqueda,
   destinosDe,
@@ -20,6 +26,7 @@ import {
   type CrmEtapa,
   type CrmTarjetaFila,
   type CrmTarjetaTablero,
+  type CrmVista,
 } from "@/lib/studio/crm-tablero";
 
 const T0 = "2026-10-01T12:00:00.000Z";
@@ -137,6 +144,8 @@ function tarjeta(id: string, etapa: string, over: Partial<CrmTarjetaTablero> = {
     asesorNombre: null,
     tareasAbiertas: 0,
     tareasVencidas: 0,
+    fuente: "manual",
+    utmSource: null,
     ...over,
   };
 }
@@ -180,5 +189,104 @@ describe("búsqueda y antigüedad", () => {
     expect(diasDesde(T0, Date.parse(T1))).toBe(9);
     expect(diasDesde(null, Date.parse(T1))).toBeNull();
     expect(diasDesde("no es fecha", Date.parse(T1))).toBeNull();
+  });
+});
+
+// ── Vistas por segmento (SDD-0647, regla de Sam del 2026-11-16) ─────────────
+
+function tarjetaVista(
+  segmento: CrmTarjetaTablero["segmento"],
+  shippingMark: string | null,
+  over: Partial<CrmTarjetaTablero> = {},
+): CrmTarjetaTablero {
+  return {
+    id: `t-${segmento}-${shippingMark ?? "sin"}`,
+    nombre: "Persona",
+    shippingMark,
+    segmento,
+    tablero: tableroDeSegmento(segmento),
+    etapa: segmento === "cliente" ? "activo" : "nuevo",
+    origen: null,
+    diasEnEtapa: 0,
+    asesorNombre: null,
+    tareasAbiertas: 0,
+    tareasVencidas: 0,
+    fuente: "manual",
+    utmSource: null,
+    ...over,
+  };
+}
+
+describe("vistas Clientes / Leads / Leads con código", () => {
+  it("las tres pestañas, en este orden", () => {
+    expect(CRM_VISTAS.map((v) => v.label)).toEqual(["Clientes", "Leads", "Leads con código"]);
+  });
+
+  it("prueba de carga (segmento cliente) va a Clientes, tenga o no código", () => {
+    expect(vistaDeTarjeta({ segmento: "cliente", shippingMark: "DTD-0101" })).toBe("clientes");
+    // Cliente cuya carga se cruzó por un código del historial o de una ficha
+    // fusionada: la ficha vigente puede no tener código y sigue siendo cliente.
+    expect(vistaDeTarjeta({ segmento: "cliente", shippingMark: null })).toBe("clientes");
+  });
+
+  it("registrado con Shipping Mark y sin carga (solo cotización, envío cancelado o borrador) va a Leads con código", () => {
+    // El segmento ya llega como lead_registrado: la 0506 no cuenta borrador,
+    // cancelado, borrado ni recibo huérfano (supabase/tests/0506_crm_modelo.test.sql).
+    expect(vistaDeTarjeta({ segmento: "lead_registrado", shippingMark: "DTD-9497" })).toBe(
+      "leads_con_codigo",
+    );
+  });
+
+  it("sin ficha, o ficha sin código, va a Leads", () => {
+    expect(vistaDeTarjeta({ segmento: "lead_nuevo", shippingMark: null })).toBe("leads");
+    expect(vistaDeTarjeta({ segmento: "lead_registrado", shippingMark: null })).toBe("leads");
+    expect(vistaDeTarjeta({ segmento: "lead_registrado", shippingMark: "   " })).toBe("leads");
+    expect(tieneCodigo("  ")).toBe(false);
+  });
+
+  it("las vistas son disjuntas y cubren todo: cada tarjeta está en exactamente una", () => {
+    const casos = [
+      tarjetaVista("cliente", "DTD-1"),
+      tarjetaVista("cliente", null),
+      tarjetaVista("lead_registrado", "DTD-2"),
+      tarjetaVista("lead_registrado", null),
+      tarjetaVista("lead_registrado", ""),
+      tarjetaVista("lead_nuevo", null),
+    ];
+    for (const t of casos) {
+      expect(CRM_VISTAS.filter((v) => v.incluye(t))).toHaveLength(1);
+    }
+    expect(contarPorVista(casos)).toEqual({ clientes: 2, leads: 3, leads_con_codigo: 1 });
+  });
+
+  it("dos fichas de la misma persona sin fusionar: cada tarjeta sigue a su ficha, sin adivinar", () => {
+    const conCarga = tarjetaVista("cliente", "DTD-0001", { id: "a" });
+    const sinCarga = tarjetaVista("lead_registrado", "DTD-0002", { id: "b" });
+    expect([conCarga, sinCarga].map(vistaDeTarjeta)).toEqual(["clientes", "leads_con_codigo"]);
+  });
+
+  it("Leads y Leads con código comparten las etapas de Leads; Clientes, las suyas", () => {
+    expect(vistaDef("leads").tablero).toBe("leads");
+    expect(vistaDef("leads_con_codigo").tablero).toBe("leads");
+    expect(vistaDef("clientes").tablero).toBe("clientes");
+  });
+
+  it("armarColumnas con vista: Leads con código no muestra a los leads sin código", () => {
+    const etapas: CrmEtapa[] = [
+      { tablero: "leads", clave: "nuevo", nombre: "Nuevo", orden: 10, terminal: false, sistema: true, activa: true },
+    ];
+    const conCodigo = tarjetaVista("lead_registrado", "DTD-2");
+    const sinCodigo = tarjetaVista("lead_nuevo", null);
+    const cols = armarColumnas(etapas, [conCodigo, sinCodigo], "leads", vistaDef("leads_con_codigo"));
+    expect(cols[0].tarjetas.map((t) => t.id)).toEqual([conCodigo.id]);
+    const todas = armarColumnas(etapas, [conCodigo, sinCodigo], "leads");
+    expect(todas[0].tarjetas).toHaveLength(2);
+  });
+
+  it("la vista de la URL: las de antes siguen sirviendo y lo desconocido abre Leads", () => {
+    const vistas: CrmVista[] = ["clientes", "leads", "leads_con_codigo"];
+    for (const v of vistas) expect(resolverVista(v)).toBe(v);
+    expect(resolverVista("todo")).toBe("leads");
+    expect(resolverVista(undefined)).toBe("leads");
   });
 });
