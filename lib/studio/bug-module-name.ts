@@ -149,3 +149,12 @@ export function moduleLabelFromPathname(
 ): string {
   return moduleLabelFromSlug(moduleSlugFromPathname(pathname), locale);
 }
+
+/**
+ * ¿Es un slug de la lista cerrada de módulos? El resumen diario a Discord
+ * (SDD-0036 §11) sólo nombra módulos conocidos: el slug que cae al
+ * «segmento crudo» de la URL se cuenta como «Otro módulo».
+ */
+export function isKnownModuleSlug(slug: string): boolean {
+  return Object.prototype.hasOwnProperty.call(MODULE_LABELS, slug);
+}
