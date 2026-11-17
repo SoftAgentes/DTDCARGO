@@ -19,9 +19,10 @@ confidencialidad: interno
 > propone cómo cerrarla con fecha de vigencia e histórico, y diseña un estante de **ley pública** para Faro, que
 > nunca toca datos de empleados.
 
-**Estado:** `in-progress`. La fase A2a va en la PR #631; las decisiones quedaron aprobadas por Sam el 2026-11-17
-(§7). Sin migración y sin cambios en producción. Las fases siguientes no empiezan hasta que el Director General las
-asigne.
+**Estado:** `in-progress`. La fase A2a se fusionó con la PR #631; las decisiones quedaron aprobadas por Sam el
+2026-11-17 (§7). La fase A3 (tope del motor, D6) la pidió Sam el mismo día: «Sí, arráncala», a la pregunta de si
+arrancaba la corrección. Sin migración y sin cambios en producción. A2b, A4, B1 y B2 no empiezan hasta que el Director
+General las asigne.
 
 **Instrucción de Sam (2026-11-16, tras leer la primera versión):** implementar estas cosas en las reglas; lo que no
 esté verificado se implementa igual y lleva una nota simple en el sistema («no está verificado, consultar con un
@@ -146,13 +147,37 @@ mayo que se evalúa una reforma de la LOTTT; no hay proyecto aprobado ni Gaceta.
 del TSJ que lo transcribe) la Gaceta de 2005 del RPE (no está en el sitio; se leyó una reproducción) y la norma detrás de las tasas del
 IVSS (su página las da sin citar ley, artículo ni fecha). En el sistema todo eso queda «por confirmar».
 
-### 2.3 Hallazgo en el motor (no es un cambio de la ley)
+### 2.3 Hallazgo en el motor (no es un cambio de la ley) — corregido en la fase A3
 
-`lib/studio/nomina/payroll-run-types.ts:327-339` calcula el tope de SSO y RPE como `cap_sm × min_salary` y lo
-compara con el sueldo del período, que está en **USD** (`:292`). Pero `min_salary` está en **Bs**
-(`0162:77-78`). Con SML = 130 el tope queda en «650» y se aplica como si fueran USD 650. Además, el tope es mensual
-y se compara con un período que puede ser quincenal o semanal. El recibo es borrador para el contador
-(`:255-256`), pero la deducción sale mal. Es la decisión D6.
+`calcReciboDraft` (`lib/studio/nomina/payroll-run-types.ts`) calculaba el tope de SSO y RPE como `cap_sm × min_salary` y lo
+comparaba con el sueldo del período, que está en **USD**. Pero `min_salary` está en **Bs** (migración 0162, «Montos
+base (Bs)»). Con SML = 130 el tope quedaba en «650» y se aplicaba como si fueran USD 650. Además, el tope es mensual y
+se comparaba con un período que puede ser quincenal o semanal. El recibo es borrador para el contador, pero la
+deducción salía mal: con topes en Bs contra sueldos en USD, el tope casi nunca actuaba y el borrador descontaba de más
+al empleado respecto del tope legal. Era la decisión D6.
+
+**Corrección (fase A3, D6 opción a):**
+
+- El tope mensual en Bs pasa a USD con la tasa BCV del último día del período del corte (`fx_rate_on`, SDD-0569)
+  y se prorratea al período con los mismos días que el sueldo (días / 30).
+- **La tasa no puede ser vieja.** `fx_rate_on` devuelve la última tasa anterior sin límite de antigüedad, así que la fecha de valor
+  debe ser el último día del período o, a lo sumo, 4 días naturales antes (fines de semana y feriados). Más vieja, el
+  corte falla y dice qué fecha cargar.
+- **Período en curso = tasa provisional.** Si el corte se genera antes de que termine el período, no existe la tasa del
+  cierre: el borrador calcula con la vigente hoy (misma tolerancia), el renglón dice «tasa PROVISIONAL» con su fecha y
+  **no se congela**. Al regenerar con el período cerrado se congela la del cierre. **Confirmar exige la tasa del cierre
+  congelada**: un corte provisional no se confirma.
+- La tasa definitiva, su fuente y su fecha de valor se congelan en el `rules_snapshot` del corte (`cap_fx_rate`,
+  `cap_fx_source`, `cap_fx_valid_on`): regenerar un borrador no cambia la cifra. Sin migración (es jsonb).
+- Sin tasa y con topes activos el corte **no se calcula**: el error dice qué cargar en Admin › Tasas. El motor lanza
+  `FaltaTasaParaTopeError` antes de calcular Bs contra USD en silencio. Con topes desactivados (cap 0 o salario mínimo 0)
+  no hace falta tasa.
+- El renglón del recibo muestra la cuenta, la tasa y su fecha: «tope 5 SM = Bs 650 ≈ USD 50/mes a Bs 13/USD, tasa BCV del 2026-11-30».
+- Los cortes anteriores a la A3 no traen la tasa congelada: al regenerarlos se usa la del último día del período, con la
+  misma tolerancia, y para confirmarlos hay que regenerarlos. Un corte ya confirmado o pagado no se regenera (solo
+  borradores), así que no cambia.
+- **Falta el visto bueno del contador** sobre la tasa de conversión (D6): la tasa del último día del período es la que
+  decidió Sam; el contador confirma si es la que corresponde. Hasta entonces el recibo sigue siendo borrador.
 
 ## 3. Parte B — Faro con la ley pública
 
@@ -250,7 +275,7 @@ El estante no lleva datos de clientes ni de empleados. Aun así:
 | A1 | Esta spec | — | `docs:check` y `sdd:check` |
 | A2a | **Hecho en esta PR, sin migración.** Estante legal `lib/studio/nomina/ley/parametros.ts` con grado y fuente por norma; pestaña Reglas rediseñada: versión y fecha de actualización, barra «obligaciones al día» (no cuenta anuncios ni referencias), columnas «tus reglas» y «ley», asterisco en lo no verificado que abre la ficha legal con la fuente y la nota de consultar a un abogado; pistas «según la ley» en el formulario | Instrucción de Sam | Pruebas del módulo y de contratos del Studio, typecheck y lint |
 | A2b | Lo de A2 que sí necesita base de datos: estante legal (`lib/studio/nomina/ley/parametros.ts` o el de Faro, según D1), migración **0556**, reglas con fecha de vigencia, aportes patronales y escalas; pestaña Reglas con columna «según la ley» | D1-D5, D10 | Pruebas de tipos y de la migración en PGlite; ensayo de la migración en local |
-| A3 | Arreglo del tope en el motor (§2.3) | D6 y criterio del contador | Prueba con quincena y SML en Bs |
+| A3 | **Hecho en la rama `claude/0653-a3-tope-motor`, sin migración.** Arreglo del tope en el motor (§2.3): tope en Bs a USD con la tasa del corte, prorrateado al período, tasa congelada en el snapshot, falla cerrado sin tasa | D6; el contador valida la tasa | Pruebas con mes, quincena, semana, tasa distinta, sin tasa y sin topes |
 | A4 | Carga de los valores en producción, como nueva versión de las reglas | A2 en `main`, D8 y OK nominal de Sam | El contador valida en pantalla; runbook de producción |
 | B1 | Estante «Ley» en el minicerebro, con sus pruebas (importaciones, fuentes completas, vigencia) | D1, D7, D8, D9 | Pruebas unitarias; revisión del contador |
 | B2 | `fuentesLey` en la ficha, verificador y tarjeta con la cita | Fase 3 de la 0637 (motor) | Pruebas del verificador: id inexistente, sin cita, pregunta personal |
@@ -288,7 +313,9 @@ regenerado), `.agents/handoffs/0653-nomina-reglas-ley-y-faro.md`, `lib/studio/no
 `app/studio/(app)/nomina/actions.ts`, `_components/ReglasDrawer.tsx`, `_components/NominaClient.tsx`; la guía de
 Faro de nómina y su novedad si la pantalla cambia (D-10 de la 0637).
 
-**A3:** `lib/studio/nomina/payroll-run-types.ts` y `payroll-run-types.test.ts`.
+**A3:** `lib/studio/nomina/payroll-run-types.ts` y `payroll-run-types.test.ts`; `lib/studio/nomina/tope-fx.ts` y `tope-fx.test.ts`
+(nuevos: la tasa de los topes y lo que se congela); `app/studio/(app)/nomina/actions.ts` (solo el corte: resolver la tasa
+antes de crearlo y al regenerarlo).
 
 **B1:** `lib/studio/asistente/contenido/ley/*.ts`, `lib/studio/asistente/contenido/tipos.ts`,
 `lib/studio/asistente/contenido/__tests__/ley.test.ts`.
