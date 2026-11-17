@@ -30,6 +30,9 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { InviteUserDrawer } from "./InviteUserDrawer";
 import { InvitationsTable } from "./InvitationsTable";
 import { MembersTable } from "./MembersTable";
+import { AgentesBandeja } from "./AgentesBandeja";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import type { AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 import { UserDetailDrawer } from "./UserDetailDrawer";
 import { BandaDeTrabajo } from "./personas/BandaDeTrabajo";
 import { ToolbarPersonas, type FiltroEtapa } from "./personas/ToolbarPersonas";
@@ -50,10 +53,11 @@ import {
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 
-type Pestana = "personas" | "roles" | "invitaciones";
+/** `bandeja` (SDD-0655): «Agentes vinculados», solo con la Bandeja encendida y conectada. */
+type Pestana = "personas" | "roles" | "invitaciones" | "bandeja";
 /** Filtros de excepción (SDD-0622): quién tiene algo más que su rol. */
 type FiltroExtra = "todos" | "con" | "sensible" | "vence";
-const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones"];
+const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones", "bandeja"];
 
 export function UsersClient({
   members,
@@ -62,6 +66,8 @@ export function UsersClient({
   roleModuleOverrides,
   grants = [],
   fichasEmpleado,
+  bandejaDisponible = false,
+  agentesBandeja = null,
 }: {
   members: UserMembershipWithProfile[];
   invitations: UserInvitation[];
@@ -71,14 +77,19 @@ export function UsersClient({
   grants?: UserModuleGrantView[];
   /** SDD-0652: user_id → código EMP-NNNN de su ficha. `undefined` si no se pudo leer. */
   fichasEmpleado?: Record<string, string>;
+  /** SDD-0655: hay pestaña Bandeja (flag encendido y Bandeja conectada). */
+  bandejaDisponible?: boolean;
+  /** SDD-0655: vínculos Studio ↔ Chatwoot; solo llegan con `?tab=bandeja` (null si no o si la lectura falló). */
+  agentesBandeja?: AgentesBandejaDatos | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
 
   const tabUrl = params.get("tab");
-  const tab: Pestana = PESTANAS.includes(tabUrl as Pestana)
-    ? (tabUrl as Pestana)
-    : "personas";
+  const tab: Pestana =
+    PESTANAS.includes(tabUrl as Pestana) && (tabUrl !== "bandeja" || bandejaDisponible)
+      ? (tabUrl as Pestana)
+      : "personas";
   const etapaUrl = params.get("estado");
   const etapa: FiltroEtapa =
     etapaUrl === "nunca-entro" || etapaUrl === "activo" || etapaUrl === "suspendido"
@@ -206,6 +217,11 @@ export function UsersClient({
         >
           Invitaciones
         </Tab>
+        {bandejaDisponible ? (
+          <Tab activa={tab === "bandeja"} onClick={() => navegar({ tab: "bandeja" })} n={agentesBandeja?.vinculos.length}>
+            Bandeja
+          </Tab>
+        ) : null}
       </div>
 
       {tab === "personas" && (
@@ -329,6 +345,17 @@ export function UsersClient({
 
       {tab === "invitaciones" && <InvitationsTable invitations={invitations} />}
 
+      {tab === "bandeja" ? (
+        agentesBandeja ? (
+          <AgentesBandeja vinculos={agentesBandeja.vinculos} miembros={agentesBandeja.miembros} salud={agentesBandeja.salud} />
+        ) : (
+          <EmptyState
+            title="No pudimos leer los agentes de la Bandeja"
+            description="El servidor de mensajes no respondió. Vuelve a abrir esta pestaña en un momento."
+          />
+        )
+      ) : null}
+
       {fichaAbierta && (
         <UserDetailDrawer
           key={fichaAbierta.user_id}
@@ -360,7 +387,8 @@ function Tab({
 }: {
   activa: boolean;
   onClick: () => void;
-  n: number;
+  /** Sin dato todavía (pestaña que carga al abrirse, SDD-0655): no se pinta el número. */
+  n?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -373,7 +401,7 @@ function Tab({
       data-activa={activa ? "true" : undefined}
     >
       {children}
-      <span className="studio-tab-n">{n}</span>
+      {n !== undefined ? <span className="studio-tab-n">{n}</span> : null}
     </button>
   );
 }
