@@ -201,6 +201,8 @@ export type CalcRules = {
    * (SDD-0653, D6). Sin ella, y con topes activos, el motor se niega a calcular.
    */
   ves_per_usd?: number | null;
+  /** Qué tasa es, para el renglón del recibo: «BCV del 2026-11-17» o «PROVISIONAL BCV del …». */
+  ves_tasa_nota?: string | null;
   sso_pct: number;
   rpe_pct: number;
   faov_pct: number;
@@ -363,7 +365,7 @@ export function calcReciboDraft(args: CalcReciboArgs): CalcReciboResult {
   const rpeCap = Number.isFinite(rpeCapMes) ? round2((rpeCapMes * effectiveDays) / 30) : Infinity;
   const notaTope = (capSm: number, capMes: number): string =>
     Number.isFinite(capMes)
-      ? `tope ${capSm} SM = Bs ${round2(num(capSm) * minSalary)} ≈ USD ${round2(capMes)}/mes a Bs ${vesPerUsd}/USD`
+      ? `tope ${capSm} SM = Bs ${round2(num(capSm) * minSalary)} ≈ USD ${round2(capMes)}/mes a Bs ${vesPerUsd}/USD, tasa ${r.ves_tasa_nota ?? "sin fecha"}`
       : "sin tope";
 
   const ssoBase = Math.min(salaryPeriod, ssoCap);
@@ -435,12 +437,14 @@ export function calcRulesFrom(
     | "night_pct"
   >,
   vesPerUsd: number | null = null,
+  tasaNota: string | null = null,
 ): CalcRules {
   return {
     pay_frequency: rules.pay_frequency,
     day_method: rules.day_method,
     min_salary: num(rules.min_salary),
     ves_per_usd: vesPerUsd !== null && num(vesPerUsd) > 0 ? num(vesPerUsd) : null,
+    ves_tasa_nota: tasaNota,
     sso_pct: num(rules.sso_pct),
     rpe_pct: num(rules.rpe_pct),
     faov_pct: num(rules.faov_pct),

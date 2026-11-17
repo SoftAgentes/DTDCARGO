@@ -158,16 +158,24 @@ al empleado respecto del tope legal. Era la decisión D6.
 
 **Corrección (fase A3, D6 opción a):**
 
-- El tope mensual en Bs pasa a USD con la tasa BCV vigente el último día del período del corte
-  (`fx_rate_on`, SDD-0569) y se prorratea al período con los mismos días que el sueldo (días / 30).
-- La tasa, su fuente y su fecha de valor se congelan en el `rules_snapshot` del corte (`cap_fx_rate`,
+- El tope mensual en Bs pasa a USD con la tasa BCV del último día del período del corte (`fx_rate_on`, SDD-0569)
+  y se prorratea al período con los mismos días que el sueldo (días / 30).
+- **La tasa no puede ser vieja.** `fx_rate_on` devuelve la última tasa anterior sin límite de antigüedad, así que la fecha de valor
+  debe ser el último día del período o, a lo sumo, 4 días naturales antes (fines de semana y feriados). Más vieja, el
+  corte falla y dice qué fecha cargar.
+- **Período en curso = tasa provisional.** Si el corte se genera antes de que termine el período, no existe la tasa del
+  cierre: el borrador calcula con la vigente hoy (misma tolerancia), el renglón dice «tasa PROVISIONAL» con su fecha y
+  **no se congela**. Al regenerar con el período cerrado se congela la del cierre. **Confirmar exige la tasa del cierre
+  congelada**: un corte provisional no se confirma.
+- La tasa definitiva, su fuente y su fecha de valor se congelan en el `rules_snapshot` del corte (`cap_fx_rate`,
   `cap_fx_source`, `cap_fx_valid_on`): regenerar un borrador no cambia la cifra. Sin migración (es jsonb).
 - Sin tasa y con topes activos el corte **no se calcula**: el error dice qué cargar en Admin › Tasas. El motor lanza
   `FaltaTasaParaTopeError` antes de calcular Bs contra USD en silencio. Con topes desactivados (cap 0 o salario mínimo 0)
   no hace falta tasa.
-- El renglón del recibo muestra la cuenta: «tope 5 SM = Bs 650 ≈ USD 50/mes a Bs 13/USD».
-- Los cortes anteriores a la A3 no traen la tasa congelada: al regenerarlos se usa la vigente al último día del período.
-  Un corte ya confirmado o pagado no se regenera (solo borradores), así que no cambia.
+- El renglón del recibo muestra la cuenta, la tasa y su fecha: «tope 5 SM = Bs 650 ≈ USD 50/mes a Bs 13/USD, tasa BCV del 2026-11-30».
+- Los cortes anteriores a la A3 no traen la tasa congelada: al regenerarlos se usa la del último día del período, con la
+  misma tolerancia, y para confirmarlos hay que regenerarlos. Un corte ya confirmado o pagado no se regenera (solo
+  borradores), así que no cambia.
 - **Falta el visto bueno del contador** sobre la tasa de conversión (D6): la tasa del último día del período es la que
   decidió Sam; el contador confirma si es la que corresponde. Hasta entonces el recibo sigue siendo borrador.
 

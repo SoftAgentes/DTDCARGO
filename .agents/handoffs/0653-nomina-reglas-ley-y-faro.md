@@ -29,6 +29,10 @@ arráncala» y se hizo la D6 (opción a, ya aprobada). Qué cambió:
 - `actions.ts`: al generar el corte se resuelve la tasa ANTES de crearlo (no queda un borrador vacío) y se congela en
   `rules_snapshot`; al regenerar se usa la congelada.
 - La prueba antigua afirmaba el comportamiento errado («650» como USD) y se reescribió.
+- Revisión independiente de #640 (cabeza 60ad8b391, CAMBIOS): la tasa debe ser del último día del período o de hasta 4
+  días naturales antes (rechaza la vieja); con el período en curso el borrador usa una tasa PROVISIONAL que no se
+  congela y confirmar exige la del cierre; el renglón muestra la fecha y el valor de la tasa; pruebas de período
+  parcial, sueldo igual al tope, RPE semanal 0,13, tasa vieja y corte previo al cierre.
 - Sin migración. No se leyó producción.
 
 **Qué falta:** el contador confirma que la tasa del último día del período es la que corresponde (D6) y qué hacer con

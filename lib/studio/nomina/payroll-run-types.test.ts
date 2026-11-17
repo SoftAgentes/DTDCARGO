@@ -249,6 +249,68 @@ describe("calcReciboDraft — deducciones con topes en SM (SDD-0653 D6)", () => 
     expect(calcRulesFrom(base).ves_per_usd).toBeNull();
     expect(calcRulesFrom(base, 0).ves_per_usd).toBeNull();
   });
+
+  it("período parcial con días trabajados: el tope se prorratea con los días trabajados", () => {
+    const r = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: A_13,
+      period_days: 30,
+      attendance: { worked_days: 10, overtime_hours: 0, night_hours: 0 },
+      loan: null,
+    });
+    // Sueldo de 10 días = 800/30×10 = 266,67. Tope SSO 50×10/30 = 16,67 → 0,67 · RPE 100×10/30 = 33,33 → 0,17 · FAOV 2,67
+    expect(r.gross_usd).toBe(266.67);
+    expect(r.breakdown.find((b) => b.label === "SSO / IVSS")!.amount_usd).toBe(-0.67);
+    expect(r.breakdown.find((b) => b.label === "RPE")!.amount_usd).toBe(-0.17);
+    expect(r.breakdown.find((b) => b.label === "FAOV")!.amount_usd).toBe(-2.67);
+    expect(r.statutory_deductions_usd).toBe(3.51);
+  });
+
+  it("sueldo exactamente igual al tope: cotiza sobre el sueldo, que es el tope", () => {
+    const r = calcReciboDraft({ base_salary_usd: 50, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    expect(r.breakdown.find((b) => b.label === "SSO / IVSS")!.amount_usd).toBe(-2);
+    expect(r.breakdown.find((b) => b.label === "RPE")!.amount_usd).toBe(-0.25);
+    expect(r.statutory_deductions_usd).toBe(2.75);
+    // Un dólar por encima del tope, el SSO no sube.
+    const encima = calcReciboDraft({ base_salary_usd: 51, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    expect(encima.breakdown.find((b) => b.label === "SSO / IVSS")!.amount_usd).toBe(-2);
+  });
+
+  it("RPE semanal: 0,5 % de 25 es 0,125 y el recibo lo redondea a 0,13", () => {
+    const r = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, pay_frequency: "semanal" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(r.breakdown.find((b) => b.label === "RPE")!.amount_usd).toBe(-0.13);
+    expect(r.statutory_deductions_usd).toBe(2.63);
+  });
+
+  it("el renglón del recibo dice qué tasa se usó, con su fecha, y marca la provisional", () => {
+    const definitiva = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, ves_tasa_nota: "BCV del 2026-11-30" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(definitiva.breakdown.find((b) => b.label === "SSO / IVSS")!.note).toContain("a Bs 13/USD, tasa BCV del 2026-11-30");
+    const provisional = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, ves_tasa_nota: "PROVISIONAL BCV del 2026-11-17" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(provisional.breakdown.find((b) => b.label === "RPE")!.note).toContain("tasa PROVISIONAL BCV del 2026-11-17");
+  });
+
+  it("calcRulesFrom pasa la nota de la tasa", () => {
+    expect(calcRulesFrom({ ...RULES }, 130, "BCV del 2026-11-30").ves_tasa_nota).toBe("BCV del 2026-11-30");
+    expect(calcRulesFrom({ ...RULES }, 130).ves_tasa_nota).toBeNull();
+  });
 });
 
 function round(n: number): number {
