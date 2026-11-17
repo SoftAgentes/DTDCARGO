@@ -363,6 +363,30 @@ $cinco$;
 -- 6. Privilegios.
 do $seis$
 begin
+  -- Alguien autenticado que no es superadministrador no ve el conteo ni las conversaciones por cerrar.
+  perform set_config('test.uid', '00000000-0000-4000-8000-00000000b002', true);
+  begin
+    set local role authenticated;
+    perform public.office_conteo_revisiones(1::smallint);
+    raise exception 'CONTRATO 6: alguien sin is_platform_admin vio el conteo';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  begin
+    set local role authenticated;
+    perform public.office_conversaciones_por_cerrar(1::smallint);
+    raise exception 'CONTRATO 6: alguien sin is_platform_admin vio las conversaciones por cerrar';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  perform set_config('test.uid', '', true);
+  begin
+    set local role anon;
+    perform public.office_conteo_revisiones(1::smallint);
+    raise exception 'CONTRATO 6: anon vio el conteo';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
   begin
     set local role authenticated;
     perform count(*) from public.office_cierres;

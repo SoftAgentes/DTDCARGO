@@ -161,8 +161,9 @@ export type CodigoRevision =
 export type ResultadoRevision = { ok: true } | { ok: false; codigo: CodigoRevision };
 
 /**
- * Lo que la acción decide sola antes de la base (la base lo repite con checks): un rechazo marca al menos un fallo,
- * y aprobar una respuesta exige «cumple» en «Cero datos inventados» y en «No repite datos personales».
+ * Lo que la acción decide sola antes de la base: un rechazo marca al menos un fallo (la base lo repite con OFR01 y un
+ * check). La aprobación NO se comprueba aquí: la base exige «cumple» en «Cero datos inventados» y en «No repite datos
+ * personales» y responde 23514 («no_aprobable»), porque solo ella sabe si el borrador es una respuesta o un escalado.
  */
 export function revisionValida(r: Pick<Revision, "veredicto" | "criterios">): ResultadoRevision {
   const estados = CASILLAS.map((c) => r.criterios[c.clave]);

@@ -55,6 +55,9 @@ export default async function OficinaRevisionPage({
     searchParams,
   ]);
   const r = typeof sp.r === "string" ? sp.r : null;
+  // Con la 0549 y sin la 0558, office_conteo_revisiones es todavía el de la 0549 (la regla vieja): se avisa junto al
+  // conteo. La señal es la misma que da la sección de cierres: office_conversaciones_por_cerrar (0558) no existe.
+  const sin0558 = conteo.ok && !porCerrar.ok && porCerrar.motivo === "sin_migracion";
 
   return (
     <div style={{ maxWidth: 920 }}>
@@ -80,6 +83,7 @@ export default async function OficinaRevisionPage({
           Conteo de la etapa {conteo.datos.etapa}: {conteo.datos.conversaciones} de {conteo.datos.minimo} conversaciones,{" "}
           {conteo.datos.correctas} correctas (hacen falta {conteo.datos.minimoCorrectas}), {conteo.datos.conInventados} con datos
           inventados. {conteo.datos.cumple ? "Cumple el conteo (Sam firma el paso)." : "Todavía no cumple."}
+          {sin0558 ? ` ${AVISOS.sin_0558} Este conteo usa la regla vieja de la 0549.` : null}
         </p>
       ) : null}
       {!pendientes.ok ? (

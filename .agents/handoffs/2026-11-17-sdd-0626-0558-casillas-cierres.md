@@ -48,6 +48,39 @@ la #604. El contraste del borrador (H1) ya fue en la #604.
   `rbac-actions-guard.test.ts`: 478 → 479 acciones.
 - **Docs:** spec v0.6 (§3.5 y §9) y runbook §11.
 
+## Comprobaciones
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato SQL `0558_…test.sql` en PGlite (bloques 1 a 6, con los negativos de no-admin y anon para el conteo y las conversaciones por cerrar) | PASÓ |
+| Control rojo: sin la 0558 el contrato cae | PASÓ |
+| 11 mutantes de la 0558: cada uno hace caer el contrato | PASÓ |
+| Desarme: dos veces, vuelve el conteo al cuerpo de la 0549 y la 0558 se vuelve a aplicar | PASÓ |
+| Contrato en Postgres 17 («Contratos SQL» del CI) | lo corre el CI en cada cabeza |
+| Unitarias del mapeo de marcas y de los códigos (`casillas-0558.test.ts`) | PASÓ |
+| Pantalla: «marca lo que falló», aviso junto a los botones y sin `cierre_3` (`paso3b-piezas.test.ts`) | PASÓ |
+| Contraste con los tokens del Studio, incluida `TarjetaCierre` | PASÓ |
+| rbac-actions-guard (478 → 479) | PASÓ (antes de traer main) |
+| Typecheck y lint de la oficina | PASÓ (antes de traer main) |
+| pending-migration-symbols (0 rojos, 4 amarillos declarados), docs:check y numbering | PASÓ (después de traer main) |
+| Suite amplia de 62 archivos | FALLÓ 2 de 2345 por plazo vencido bajo carga (sin turno de PC); el archivo solo, 21 de 21 PASÓ. No se repitió |
+| Pruebas completas después de traer main | NO EJECUTADO en local (sin turno de PC): las corre el CI |
+| Aplicar la 0558 en staging o producción | NO EJECUTADO (fuera de esta PR; pide OK de Sam) |
+| Revisión independiente (Opus) sobre 89c32c0ef | PASÓ, con 4 hallazgos bajos: aviso de la 0558 junto al conteo, comentario de `revisionValida`, este registro y los negativos del contrato (los cuatro corregidos sin tocar el `.sql` de la 0558) |
+
+## Fuera de alcance detectado
+
+- **Staging no tenía la 0542** (EXECUTE de `is_platform_admin()` para authenticated): causó el 404 de Sam en F. Se aplicó
+  en staging el 17/11/2026 a las 19:18Z, a pedido del DG (evidencia `apply-0542-dtd-cargo-staging-20261117T191824Z`).
+  Conviene revisar si hay otra deriva de staging contra producción.
+- **`desplegar-prueba.sh` usa `--ip 127.0.0.1` por defecto** para el smoke, y con la lista de IP actual de staging eso da
+  403: el smoke pasa contra la IP pública. Al salir con código 6 puede no haber anotado `EN-PRUEBA.txt` del despliegue
+  de 91561c69b.
+- **El remoto de git avisa que el repositorio se mudó** (`hailuwaycom-sketch/DTDCARGO` → `SoftAgentes/DTDCARGO`) en cada
+  push; funciona, pero conviene actualizar la URL del remoto.
+- **`oficina-paso3b.test.ts`** tiene pruebas de envío que tardan unos 5 s bajo carga y vencen el plazo por defecto.
+- **Las 3 revisiones de la prueba F en staging** quedan con la regla 1 y con los clics del DG: no cuentan para la etapa 1.
+
 ## Lo que falta (no es de esta PR)
 
 1. Revisión del DG y fusión por su portón, después de la #604.
