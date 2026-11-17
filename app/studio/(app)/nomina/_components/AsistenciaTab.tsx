@@ -22,7 +22,7 @@ import {
   type Attendance,
   type Holiday,
 } from "@/lib/studio/nomina/attendance-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import { softDeleteHolidayAction } from "../actions";
 import { AsistenciaDrawer } from "./AsistenciaDrawer";
 import { FeriadoDrawer } from "./FeriadoDrawer";
@@ -54,7 +54,7 @@ export function AsistenciaTab({
 }: {
   attendance: Attendance[];
   holidays: Holiday[];
-  employees: Employee[];
+  employees: EmployeeRef[];
 }) {
   const [attDrawer, setAttDrawer] = useState<
     null | { mode: "new" } | { mode: "edit"; record: Attendance }
