@@ -11,6 +11,10 @@
  *
  * SDD-0274: la matriz de permisos dejó de vivir en Administración y los
  * overrides se cargan acá para la pestaña Roles.
+ *
+ * SDD-0655: «Agentes vinculados» (Studio ↔ Chatwoot, SDD-0585) se mudó de la
+ * Bandeja a la pestaña Bandeja de este módulo. Solo aparece con el flag
+ * `chatwoot_inbox` encendido y la Bandeja conectada; mismas acciones y lectura.
  */
 
 import { redirect } from "next/navigation";
@@ -26,7 +30,10 @@ import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queri
 import { listTenantModuleGrants } from "@/lib/studio/user-module-grants-queries";
 import { isSensitiveModule } from "@/lib/studio/user-module-grants";
 import { UsersClient } from "./_components/UsersClient";
-import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, requireModuleView } from "@/lib/studio/rbac-guard";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
+import { cargarAgentesBandeja, type AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -68,7 +75,7 @@ export default async function UsuariosPage() {
     }
   })();
 
-  const [membersRaw, invitations, roleModuleOverrides, moduleGrants] = await Promise.all([
+  const [membersRaw, invitations, roleModuleOverrides, moduleGrants, agentesBandeja] = await Promise.all([
     // includeDisabled: sin esto el desactivado se esfuma de la tabla y el botón
     // "Reactivar" (único unban) queda inalcanzable (hallazgo review 2026-07-02).
     listMembers(supabaseAdminForListing ?? supabase, {
@@ -82,6 +89,8 @@ export default async function UsuariosPage() {
     // SDD-0622: accesos extra del tenant (vigentes y vencidos). La RLS de la
     // 0538 deja leer todas al admin con su sesión; sin la 0538 llega vacío.
     listTenantModuleGrants(supabase, isSensitiveModule),
+    // SDD-0655: los vínculos de la Bandeja. Si algo falla, la pestaña no sale y el resto de Usuarios sigue.
+    leerAgentesBandeja(supabase),
   ]);
 
   // Resolver emails de auth.users via service_role admin client.
@@ -196,7 +205,21 @@ export default async function UsuariosPage() {
         currentUserId={userResp.user.id}
         roleModuleOverrides={roleModuleOverrides}
         grants={moduleGrants}
+        agentesBandeja={agentesBandeja}
       />
     </div>
   );
+}
+
+/** Mismo gate y misma lectura que tenía la Bandeja para el admin (SDD-0585, 2.5). */
+async function leerAgentesBandeja(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<AgentesBandejaDatos | null> {
+  try {
+    const [access, flags] = await Promise.all([getStudioAccess(supabase), listFeatureFlags(supabase)]);
+    if (!isModuleEnabled("bandeja", flags)) return null;
+    return await cargarAgentesBandeja(supabase, access, createAdminClient);
+  } catch {
+    return null;
+  }
 }

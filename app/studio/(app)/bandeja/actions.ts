@@ -57,6 +57,9 @@ import { puedeVerSaldoCliente, type EstadoCuentaCliente } from "@/lib/studio/cli
 import { getClientAccountState } from "@/lib/studio/client-queries";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 
+/** SDD-0655: «Agentes vinculados» se pinta en Usuarios › Bandeja; esa página se revalida también. */
+const RUTA_AGENTES_VINCULADOS_PAGINA = "/studio/usuarios";
+
 /** Códigos de error; el cliente los traduce con `bandeja.error.<código>`. */
 export type BandejaErrorCode =
   | "denied"
@@ -203,6 +206,7 @@ export async function vincularAgente(_prev: VinculoState, formData: FormData): P
   }
   await despuesDelVinculo(admin, gate.tenantId, userId, chatwootUserId);
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -241,6 +245,7 @@ export async function desvincularAgente(_prev: VinculoState, formData: FormData)
     .eq("user_id", userId);
   if (error) return { ok: false, error: "service" };
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -336,6 +341,7 @@ export async function altaAgente(_prev: VinculoState, formData: FormData): Promi
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
   await despuesDelVinculo(admin, gate.tenantId, userId, creado.data);
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 

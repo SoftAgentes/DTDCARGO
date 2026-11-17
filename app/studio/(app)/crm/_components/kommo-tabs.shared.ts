@@ -9,6 +9,7 @@
  * su `?tab=` abre la pestaña por defecto. Ocultar no es borrar: su código sigue
  * y se retira en 8.7, con su OK aparte.
  */
+import { RUTA_BANDEJA, RUTA_CRM, type AccesoCrm } from "@/lib/studio/crm-acceso";
 
 /** `embudos` = tablero del CRM propio (SDD-0587 · 6.3); las demás leen el espejo de Kommo. */
 export type KommoTabKey = "direccion" | "tablero" | "asesor" | "recuperacion" | "embudos";
@@ -53,3 +54,29 @@ const TODAS_LAS_PESTANAS: ReadonlyArray<{ key: KommoTabKey; label: string }> = [
 /** Las pestañas que se ven en la barra: sin las de Kommo (SDD-0614 S0). */
 export const KOMMO_TABS: ReadonlyArray<{ key: KommoTabKey; label: string }> =
   TODAS_LAS_PESTANAS.filter((t) => !KOMMO_TABS_OCULTAS.has(t.key));
+
+/**
+ * SDD-0655: la barra del CRM suma la pestaña **Bandeja** (Chatwoot, SDD-0585)
+ * para quien la ve. La Bandeja vive en `/studio/bandeja` (cabeceras propias en
+ * `next.config.ts`); la barra la enlaza, no la mueve. Embudos solo aparece para
+ * quien ve el módulo `kommo`.
+ */
+export type CrmPestanaKey = KommoTabKey | "bandeja";
+
+export interface CrmPestana {
+  key: CrmPestanaKey;
+  label: string;
+  href: string;
+}
+
+export function pestanasCrm(acceso: AccesoCrm): CrmPestana[] {
+  const pestanas: CrmPestana[] = acceso.embudos
+    ? KOMMO_TABS.map((t) => ({
+        key: t.key,
+        label: t.label,
+        href: t.key === CRM_TAB_POR_DEFECTO ? RUTA_CRM : `${RUTA_CRM}?tab=${t.key}`,
+      }))
+    : [];
+  if (acceso.bandeja) pestanas.push({ key: "bandeja", label: "Bandeja", href: RUTA_BANDEJA });
+  return pestanas;
+}

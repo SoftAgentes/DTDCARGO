@@ -30,6 +30,8 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { InviteUserDrawer } from "./InviteUserDrawer";
 import { InvitationsTable } from "./InvitationsTable";
 import { MembersTable } from "./MembersTable";
+import { AgentesBandeja } from "./AgentesBandeja";
+import type { AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 import { UserDetailDrawer } from "./UserDetailDrawer";
 import { BandaDeTrabajo } from "./personas/BandaDeTrabajo";
 import { ToolbarPersonas, type FiltroEtapa } from "./personas/ToolbarPersonas";
@@ -50,10 +52,11 @@ import {
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 
-type Pestana = "personas" | "roles" | "invitaciones";
+/** `bandeja` (SDD-0655): «Agentes vinculados», solo con la Bandeja encendida y conectada. */
+type Pestana = "personas" | "roles" | "invitaciones" | "bandeja";
 /** Filtros de excepción (SDD-0622): quién tiene algo más que su rol. */
 type FiltroExtra = "todos" | "con" | "sensible" | "vence";
-const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones"];
+const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones", "bandeja"];
 
 export function UsersClient({
   members,
@@ -61,6 +64,7 @@ export function UsersClient({
   currentUserId,
   roleModuleOverrides,
   grants = [],
+  agentesBandeja = null,
 }: {
   members: UserMembershipWithProfile[];
   invitations: UserInvitation[];
@@ -68,14 +72,17 @@ export function UsersClient({
   roleModuleOverrides: RoleModuleOverrides;
   /** Accesos extra del tenant (SDD-0622), vigentes y vencidos. */
   grants?: UserModuleGrantView[];
+  /** SDD-0655: vínculos Studio ↔ Chatwoot; `null` sin la Bandeja (flag apagado o sin conectar). */
+  agentesBandeja?: AgentesBandejaDatos | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
 
   const tabUrl = params.get("tab");
-  const tab: Pestana = PESTANAS.includes(tabUrl as Pestana)
-    ? (tabUrl as Pestana)
-    : "personas";
+  const tab: Pestana =
+    PESTANAS.includes(tabUrl as Pestana) && (tabUrl !== "bandeja" || agentesBandeja)
+      ? (tabUrl as Pestana)
+      : "personas";
   const etapaUrl = params.get("estado");
   const etapa: FiltroEtapa =
     etapaUrl === "nunca-entro" || etapaUrl === "activo" || etapaUrl === "suspendido"
@@ -203,6 +210,11 @@ export function UsersClient({
         >
           Invitaciones
         </Tab>
+        {agentesBandeja ? (
+          <Tab activa={tab === "bandeja"} onClick={() => navegar({ tab: "bandeja" })} n={agentesBandeja.vinculos.length}>
+            Bandeja
+          </Tab>
+        ) : null}
       </div>
 
       {tab === "personas" && (
@@ -325,6 +337,10 @@ export function UsersClient({
       )}
 
       {tab === "invitaciones" && <InvitationsTable invitations={invitations} />}
+
+      {tab === "bandeja" && agentesBandeja ? (
+        <AgentesBandeja vinculos={agentesBandeja.vinculos} miembros={agentesBandeja.miembros} salud={agentesBandeja.salud} />
+      ) : null}
 
       {fichaAbierta && (
         <UserDetailDrawer
