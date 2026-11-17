@@ -386,8 +386,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // "clients")` al tope, antes de leer o escribir; escriben SOLO por las RPC de la
   // 0552 (`portal_registration_link_create`, `portal_registration_link_mark_reviewed`),
   // que repiten en la base los roles admin/commercial/operations y el tenant.
+  // SDD-0652 F1 sumó `nomina/actions.ts::getEmployeeEditViewAction` (476 → 477):
+  // solo lee. `moduleViewDenial(supabase, "nomina")` al tope, después
+  // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
+  // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
+  // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(476);
+    expect(reportes.length).toBe(477);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
