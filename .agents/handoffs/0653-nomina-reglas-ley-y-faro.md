@@ -1,7 +1,8 @@
 # Handoff — SDD-0653 · Reglas de nómina al día con la ley y estante de ley pública para Faro
 
 - Rama de la fase A2a: `claude/0653-nomina-ley-faro-0b4370` · PR #631 (fusionada) · Worker 0653 · 2026-11-17
-- Rama de la fase A3: `claude/0653-a3-tope-motor` (desde `main`) · PR: ver GitHub
+- Rama de la fase A3: `claude/0653-a3-tope-motor` · PR #640 (fusionada, CI verde, revisión APPROVED)
+- Cierre del handoff: 2026-11-17. A2a y A3 en `main`; A2b, A4, B1 y B2 esperan la asignación del DG.
 - Spec: `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md` (`in-progress`).
 - Migración reservada por el DG: **0556** (no creada; es de la fase A2b).
 
@@ -78,11 +79,17 @@ ESLint, `docs:check`, `sdd:check`, `governance:check` y `components:check`.
 ## Pendiente de esta tarea
 
 - Asignación del DG para las fases siguientes; ninguna empieza sin ella.
-- A2b (migración 0556: vigencia, moneda de los montos, aportes patronales, escalas), A3 (tope del motor: hecho, falta la validación del contador), A4 (carga
+- A2b (migración 0556: vigencia, moneda de los montos, aportes patronales, escalas), A3 (tope del motor: en `main`, falta la validación del contador), A4 (carga
   en producción con OK nominal), B1 y B2 (Faro; B2 depende del motor de la SDD-0637).
 - Probar la pestaña dentro del Studio con sesión real (prueba o local con Supabase).
 - Novedad y guía de Faro para la pestaña Reglas (D-10 de la 0637): `novedades/` todavía no existe en `main` y
   `nomina` no tiene guía; queda para cuando exista ese estante.
+- **Nota para el contador (A3):** si el corte se genera el mismo día del cierre y todavía no existe la tasa de ese día, se
+  congela la de hasta 4 días naturales antes (la tolerancia por fines de semana y feriados). El contador decide si esa
+  tasa le sirve o si prefiere esperar la del día. También confirma que la tasa del último día del período es la que
+  corresponde para convertir el tope (D6).
+- Saber si algún corte ya confirmado o pagado salió con el cálculo anterior es una consulta a producción: necesita el OK
+  de Sam y no se hizo.
 - Confirmar con el contador o un abogado lo marcado «por confirmar» o «solo anuncio»: IVSS, RPE, FAOV, INCES, el
   monto del cestaticket y si el bono obliga al sector privado.
 
