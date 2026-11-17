@@ -17,7 +17,8 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   getClientByMarkbox,
-  listShipmentsByMarkbox,
+  listCodigosDeLaFicha,
+  listShipmentsDeLaFicha,
   getClientPortalAccess,
   getClientPortalApprovedAt,
   getClientAccountState,
@@ -89,6 +90,7 @@ type ShipmentRow = {
   shipment_service: ShipmentService;
   status: ShipmentStatus;
   created_at: string;
+  client_markbox: string;
 };
 
 function formatDate(iso: string): string {
@@ -110,7 +112,6 @@ export default async function ClienteDetallePage({
   const client = await getClientByMarkbox(supabase, markbox);
   if (!client) notFound();
 
-  const shipments = (await listShipmentsByMarkbox(supabase, markbox)) as ShipmentRow[];
   const portalAccess = await getClientPortalAccess(supabase, client.id);
   const portalApprovedAt = await getClientPortalApprovedAt(supabase, client.id);
 
@@ -159,6 +160,23 @@ export default async function ClienteDetallePage({
   } catch {
     markboxHistory = [];
   }
+
+  // SDD-0650 F1: los embarques salen de TODOS los códigos de la ficha (vigente,
+  // historial y fichas fusionadas), como el saldo de la 0492. Si la cadena de
+  // códigos no se puede leer, cae al vigente: la ficha muestra lo de siempre en
+  // vez de caerse. El listado de embarques lanza igual que antes.
+  let codigosFicha: string[] = [client.markbox];
+  try {
+    codigosFicha = await listCodigosDeLaFicha(
+      supabase,
+      client,
+      markboxHistory.map((h) => h.markbox),
+    );
+  } catch {
+    codigosFicha = [client.markbox];
+  }
+  const shipments = (await listShipmentsDeLaFicha(supabase, codigosFicha)) as ShipmentRow[];
+  const embarquesConCodigoAnterior = shipments.filter((s) => s.client_markbox !== client.markbox).length;
 
   // SDD-0558: la cuenta del cliente. No lanza: sin permiso no pide el saldo,
   // y si el cálculo falla la cabecera lo dice con una referencia (ERR-01).
@@ -285,8 +303,22 @@ export default async function ClienteDetallePage({
     ? isAutoVerifyEnabled(client.doc_kind)
     : false;
 
+  // SDD-0650 F1: acciones rápidas de la cabecera. Cada una aparece solo si el
+  // rol abre el módulo de destino: un botón que rebota no es una acción.
+  const cotizacionesHref = canAccessModule(studioRole, "quotes", studioAccess.overrides, studioAccess.grants)
+    ? `/studio/cotizador?client=${encodeURIComponent(client.markbox)}`
+    : null;
+  // La conversación más reciente (la lista viene ordenada por actividad). Sin
+  // Bandeja, el listado es null y no hay botón.
+  const chatHref =
+    conversacionesChatwoot && conversacionesChatwoot.length > 0
+      ? `/studio/bandeja?c=${conversacionesChatwoot[0].conversation_id}`
+      : null;
+  // Fichas que vinieron del sistema anterior o de Kommo sin nombre (SDD-0650 §F1).
+  const sinNombre = !client.name || client.name.trim() === "";
+
   return (
-    <div style={{ maxWidth: 1200 }}>
+    <div style={{ maxWidth: 1440 }}>
       <Link
         href="/studio/clientes"
         style={{
@@ -302,7 +334,12 @@ export default async function ClienteDetallePage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <ClientDetailClient client={client} canViewStatement={puedeAbrirEstadoDeCuenta}>
+      <ClientDetailClient
+        client={client}
+        canViewStatement={puedeAbrirEstadoDeCuenta}
+        quotesHref={cotizacionesHref}
+        chatHref={chatHref}
+      >
         {/* Header con MARKBOX + nombre + tier badge */}
         <div style={{ marginBottom: 28 }}>
           <div
@@ -328,12 +365,12 @@ export default async function ClienteDetallePage({
               style={{
                 fontSize: 26,
                 margin: 0,
-                color: "var(--ink)",
+                color: sinNombre ? "var(--ink-soft)" : "var(--ink)",
                 flex: 1,
                 minWidth: 0,
               }}
             >
-              {client.name}
+              {sinNombre ? "Sin nombre" : client.name}
             </h1>
             {client.doc_kind && (
               <Badge tone="neutral" size="md">
@@ -374,25 +411,31 @@ export default async function ClienteDetallePage({
         {/* SDD-0558: saldo, vencido, último pago y embarques en curso. */}
         <ClientAccountHeader estado={cuentaCliente} canViewStatement={puedeAbrirEstadoDeCuenta} />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.6fr)",
-            gap: 24,
-            alignItems: "start",
-          }}
-        >
-          {/* Columna izquierda: datos del cliente + acceso al portal */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Solicitud de cambio de datos pendiente (SDD-0151) — arriba del todo:
-              es un pendiente accionable que el asesor debe resolver. */}
-          {changeRequest && (
+        {/* Solicitud de cambio de datos pendiente (SDD-0151). SDD-0650 F1: sube
+            por encima de las columnas, a todo el ancho, porque es lo único de la
+            ficha que espera una acción del asesor. */}
+        {changeRequest && (
+          <div style={{ marginBottom: 24 }}>
             <ChangeRequestCard
               req={changeRequest}
               markbox={client.markbox}
               isEmpresa={client.doc_kind === "empresa"}
             />
-          )}
+          </div>
+        )}
+
+        {/* SDD-0650 F1: tres columnas (datos · operación · conversaciones). Sin
+            acceso a la Bandeja no hay panel y quedan dos. El reparto por ancho
+            vive en studio.css (.studio-ficha-grid). */}
+        <div
+          className={
+            conversacionesChatwoot
+              ? "studio-ficha-grid"
+              : "studio-ficha-grid studio-ficha-grid--sin-panel"
+          }
+        >
+          {/* Columna izquierda: datos del cliente + acceso al portal */}
+          <div className="studio-ficha-col studio-ficha-col--datos">
 
           {/* Historial de solicitudes ya resueltas (SDD-0151) — traza read-only.
               Se auto-oculta si no hay ninguna. */}
@@ -657,22 +700,10 @@ export default async function ClienteDetallePage({
           </section>
           </div>
 
-          {/* Columna derecha: la ANCHA (1.6fr). Antes sólo traía el histórico de
-              envíos y quedaba medio vacía mientras todo se apilaba a la
-              izquierda; ahora también lleva lo del aliado, que es donde de
-              verdad hace falta espacio para las sub-insignias y el acuerdo. */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {conversacionesChatwoot ? <ChatwootConversacionesCard conversaciones={conversacionesChatwoot} /> : null}
-          <AliadoCard
-            clientId={client.id}
-            clientName={client.name}
-            markbox={client.markbox}
-            aliado={aliado}
-            aliados={aliadoOptions}
-            priceBook={priceBook}
-            canEdit={puedeEditarClientes}
-          />
-
+          {/* Columna central: la ANCHA. SDD-0650 F1: arriba lo operativo (los
+              embarques de todos los códigos); después el aliado, que necesita
+              espacio para las sub-insignias y el acuerdo, y los adjuntos. */}
+          <div className="studio-ficha-col studio-ficha-col--operacion">
           {/* Histórico de envíos */}
           <section
             style={{
@@ -701,6 +732,21 @@ export default async function ClienteDetallePage({
                 {shipments.length === 1 ? "envío" : "envíos"}
               </span>
             </div>
+            {embarquesConCodigoAnterior > 0 && (
+              <p
+                style={{
+                  font: "500 12px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  margin: "0 0 var(--s-3)",
+                }}
+              >
+                Incluye{" "}
+                {embarquesConCodigoAnterior === 1
+                  ? "1 envío"
+                  : `${embarquesConCodigoAnterior} envíos`}{" "}
+                con un código anterior o de una ficha fusionada.
+              </p>
+            )}
 
             {shipments.length === 0 ? (
               <p
@@ -712,7 +758,7 @@ export default async function ClienteDetallePage({
                   textAlign: "center",
                 }}
               >
-                Sin envíos registrados con este Shipping Mark todavía.
+                Sin envíos registrados con los códigos de esta ficha todavía.
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -734,11 +780,33 @@ export default async function ClienteDetallePage({
                   >
                     <span
                       style={{
-                        font: "700 12px/1 var(--f-mono)",
-                        color: "var(--ink)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--s-1)",
+                        minWidth: 0,
                       }}
                     >
-                      {s.code}
+                      <span
+                        style={{
+                          font: "700 12px/1 var(--f-mono)",
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {s.code}
+                      </span>
+                      {/* SDD-0650 F1: llegó con otro código de la ficha. */}
+                      {s.client_markbox !== client.markbox && (
+                        <span
+                          title="Código anterior o de una ficha fusionada"
+                          style={{
+                            font: "500 10.5px/1.2 var(--f-mono)",
+                            color: "var(--ink-soft)",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          con {s.client_markbox}
+                        </span>
+                      )}
                     </span>
                     <div
                       style={{
@@ -771,9 +839,27 @@ export default async function ClienteDetallePage({
             )}
           </section>
 
+          <AliadoCard
+            clientId={client.id}
+            clientName={client.name}
+            markbox={client.markbox}
+            aliado={aliado}
+            aliados={aliadoOptions}
+            priceBook={priceBook}
+            canEdit={puedeEditarClientes}
+          />
+
           {/* SDD-0507: todo lo adjunto al cliente y a sus embarques, junto. */}
           <TodosLosAdjuntos datos={todosLosAdjuntos} />
           </div>
+
+          {/* Columna derecha (SDD-0650 F1): las conversaciones, a la vista sin
+              bajar. La F2 le agrega el texto y el Archivo Kommo. */}
+          {conversacionesChatwoot ? (
+            <div className="studio-ficha-col studio-ficha-col--conversaciones">
+              <ChatwootConversacionesCard conversaciones={conversacionesChatwoot} />
+            </div>
+          ) : null}
         </div>
       </ClientDetailClient>
     </div>

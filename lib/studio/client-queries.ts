@@ -246,6 +246,90 @@ export async function listShipmentsByMarkbox(
   return data ?? [];
 }
 
+/** Tope de saltos de la cadena de fusiones, el mismo de `resolve_markbox` (0341/0367). */
+const MAX_SALTOS_FUSION = 10;
+
+/**
+ * SDD-0650 F1 · Todos los códigos de una ficha: el vigente primero, después su
+ * historial (0367), y los de las fichas fusionadas en ella (0341,
+ * `merged_into_client_id`, hasta 10 saltos) con sus propios historiales. Es la
+ * misma familia de códigos con la que `client_outstanding` (0492) arma el saldo:
+ * sin esto, la ficha sumaba la deuda de un código viejo pero escondía sus
+ * embarques.
+ *
+ * Comparación exacta, igual que `listShipmentsByMarkbox`. La RLS aísla el
+ * tenant y se filtra igual. Lanza si una lectura falla: quien llama decide.
+ */
+export async function listCodigosDeLaFicha(
+  supabase: SupabaseClient,
+  client: { id: string; tenant_id: string; markbox: string },
+  historial: readonly string[],
+): Promise<string[]> {
+  const codigos: string[] = [client.markbox, ...historial];
+  const vistos = new Set<string>([client.id]);
+  let frontera = [client.id];
+
+  for (let salto = 0; salto < MAX_SALTOS_FUSION && frontera.length > 0; salto++) {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id, markbox")
+      .eq("tenant_id", client.tenant_id)
+      .in("merged_into_client_id", frontera);
+    if (error) throw error;
+    frontera = [];
+    for (const fila of (data ?? []) as { id: string; markbox: string | null }[]) {
+      if (vistos.has(fila.id)) continue;
+      vistos.add(fila.id);
+      frontera.push(fila.id);
+      if (fila.markbox) codigos.push(fila.markbox);
+    }
+  }
+
+  const fusionadas = [...vistos].filter((id) => id !== client.id);
+  if (fusionadas.length > 0) {
+    const { data, error } = await supabase
+      .from("client_markbox_history")
+      .select("markbox")
+      .in("client_id", fusionadas);
+    if (error) throw error;
+    for (const fila of (data ?? []) as { markbox: string | null }[]) {
+      if (fila.markbox) codigos.push(fila.markbox);
+    }
+  }
+
+  const unicos: string[] = [];
+  for (const c of codigos) {
+    const limpio = c.trim();
+    if (limpio !== "" && !unicos.includes(limpio)) unicos.push(limpio);
+  }
+  return unicos;
+}
+
+/**
+ * SDD-0650 F1 · Los embarques vivos de TODOS los códigos de la ficha
+ * (`listCodigosDeLaFicha`). Trae `client_markbox` para que la ficha marque los
+ * que llegaron con un código anterior. Mismo filtro de eliminados (SDD-0509),
+ * orden y tope que `listShipmentsByMarkbox`.
+ */
+export async function listShipmentsDeLaFicha(
+  supabase: SupabaseClient,
+  codigos: readonly string[],
+) {
+  if (codigos.length === 0) return [];
+  const { data, error } = await supabase
+    .from("shipments")
+    .select(
+      "id, code, origin, destination, shipment_service, status, created_at, client_markbox",
+    )
+    .is("deleted_at", null)
+    .in("client_markbox", [...codigos])
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 /**
  * Estado del acceso al Portal del Cliente (SDD-0042) de un cliente.
  * `email` e `invitedAt` sólo son null en un vínculo revocado cuyo plazo de 30
