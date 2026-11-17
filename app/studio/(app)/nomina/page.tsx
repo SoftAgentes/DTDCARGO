@@ -32,7 +32,7 @@ import {
   computeRegistrationKpis,
 } from "@/lib/studio/nomina/registration-queries";
 import { listAllComms } from "@/lib/studio/nomina/comms-queries";
-import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
+import { computeEmployeeKpis, toEmployeeListItem } from "@/lib/studio/nomina/employee-types";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
 import { computeWarningKpis } from "@/lib/studio/nomina/warning-types";
@@ -42,7 +42,13 @@ import { NominaClient } from "./_components/NominaClient";
 
 export const metadata = { title: "Nómina" };
 
-export default async function NominaPage() {
+export default async function NominaPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string | string[] }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const initialTab = typeof params.tab === "string" ? params.tab : undefined;
   const role = await requireModuleView("nomina");
   // Dar acceso al sistema (invitar usuario) es admin-only (Usuarios). Gatea la
   // sección de acceso del alta unificada; la action lo re-valida server-side.
@@ -114,7 +120,11 @@ export default async function NominaPage() {
       </div>
 
       <NominaClient
-        employees={employees}
+        // SDD-0652 F1: al navegador va la proyección de lista, sin cédula,
+        // sueldo, nacimiento, teléfono ni cuenta. La fila completa se queda en
+        // el servidor (KPIs y préstamos se calculan aquí arriba).
+        employees={employees.map(toEmployeeListItem)}
+        initialTab={initialTab}
         positions={positions}
         contractors={contractors}
         payments={payments}
