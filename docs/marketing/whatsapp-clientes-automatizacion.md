@@ -368,7 +368,7 @@ ejemplos.
 
 ## 5 · El número de leads mientras siga en Kommo
 
-- Las plantillas de leads (L1 a L8) se pueden crear **ya** en la cuenta de mensajes de **Kommo**
+- Las plantillas de leads (L1 a L9) se pueden crear **ya** en la cuenta de mensajes de **Kommo**
   y usarse desde Kommo hasta el corte.
 - Al pasar el número a Chatwoot se copian a la cuenta de mensajes de Chatwoot con la API de
   migración: mismo negocio, solo las aprobadas, y la calidad vuelve a cero (V:

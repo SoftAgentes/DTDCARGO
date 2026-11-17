@@ -59,9 +59,9 @@ termina mandando la que no es.
 
 ### Recomendación (I)
 
-- **Atención al público:** 8 plantillas (4 de utilidad y 4 de marketing).
+- **Atención al público:** 10 plantillas en dos paquetes, lead abierto y lead registrado (4 de utilidad y 6 de marketing, contando la variante L9b).
 - **Clientes:** 10 plantillas (8 de utilidad y 2 de marketing).
-- Se arranca con la **fase 1**: 4 en cada número. El resto se agrega cuando las primeras tengan
+- Se arranca con la **fase 1**: 5 en el público y 4 en Clientes. El resto se agrega cuando las primeras tengan
   calidad verde y datos de respuesta.
 
 **¿Por qué no más?**
@@ -174,18 +174,147 @@ termina mandando la que no es.
 
 ---
 
-## 3 · Número de atención al público (leads y registrados)
+## 3 · Número de atención al público: dos paquetes
 
-**Quién recibe:**
+En este número hay **dos tipos de lead**, cada uno con su paquete. Lo pidió Sam el 2026-11-16: «a
+los que no están registrados hay que empujarlos a que se registren, porque así ya tenemos sus
+datos».
 
-- el que escribió y no siguió;
-- el que pidió cotización;
-- el que se registró en la web y tiene Shipping Mark pero nunca mandó carga.
+| | **Paquete A · lead abierto** (sin registro) | **Paquete B · lead registrado** (con Shipping Mark) |
+|---|---|---|
+| Quién es | Escribió o dejó una consulta y no tiene cuenta en dtdcargo.com | Creó su cuenta y tiene Shipping Mark, pero todavía no mandó carga |
+| Objetivo de cada plantilla | **Que se registre** | **Que mande su primera carga** |
+| Qué datos tenemos | Solo el WhatsApp y lo que contó en el chat | Nombre, correo, WhatsApp y Shipping Mark. La foto de la cédula y la dirección se completan en el portal antes de la primera compra (R: `app/registro/RegisterForm.tsx`) |
+| Plantillas | L9, L9b, L4 y L8 | L1, L3 y L5 |
+| Comunes | L2, L6 y L7 | L2, L6 y L7 |
 
-**El objetivo de cada plantilla** es llevarlo al siguiente paso del embudo: Nuevo → Calificado →
-Cotización enviada → Cliente activo (R: [`embudo-ventas.md`](embudo-ventas.md)).
+### Cómo se sabe en qué paquete está cada lead (sin IA)
 
-### L1 · `cuenta_creada_shipping_mark` — utilidad · **fase 1**
+- **Ya existe en el ERP:** `chatwoot_segmento_contacto` (migración 0505, SDD-0586) cruza los
+  últimos 10 dígitos del teléfono con las fichas y responde `lead_nuevo`, `lead_registrado` o
+  `cliente`.
+  - Se calcula en el momento y no se guarda.
+  - En Chatwoot ya etiqueta la conversación con ese segmento (R: `lib/studio/chatwoot/enrutar.ts`).
+  - Cuando un lead abierto se registra con el mismo número, pasa solo al paquete B.
+- **No hace falta IA para clasificar:** registrado o no es un dato, no una opinión.
+- **Mientras el número siga en Kommo:** el enrutador del ERP solo funciona en Chatwoot. Hasta el
+  corte, el asesor elige el paquete mirando si la ficha existe en el Studio (I).
+- **Riesgo:** si el lead se registra con **otro** número, sigue apareciendo como lead abierto. Por
+  eso todo mensaje que pide el registro dice «con este mismo número de WhatsApp».
+
+### Cómo se empuja el registro sin perder la conversación
+
+- **Las preguntas del paquete A tienen dos respuestas, y las dos llevan al registro.**
+  - «Ya tengo proveedor» → regístrate para darle tu Shipping Mark a tu proveedor.
+  - «Lo estoy buscando» → regístrate y te ayudamos a verificarlo antes de pagar.
+
+  Nadie queda acorralado y los dos caminos terminan en el mismo lugar.
+- **El enlace al registro va en el segundo mensaje, no en la plantilla.**
+  - El cliente toca una respuesta rápida, eso abre la ventana y ahí se le manda el enlace con el
+    motivo que corresponde a lo que contestó.
+  - Así se sabe qué contestó, y el enlace llega acompañado, como pide `conversacion-crm.md` («el
+    link solo» es uno de los asesinos de conversación).
+  - El costo es un mensaje de servicio.
+  - Para comparar, va una variante con botón directo «Crear mi cuenta» (L9b).
+- **El registro filtra la seriedad.** Quien se toma unos minutos para crear su cuenta ya dio un
+  primer paso. Ese pie en la puerta hace más probable el siguiente (Freedman y Fraser, §2), y nos
+  deja datos verificables.
+  - La cédula **no** se pide al registrarse; se pide en el perfil, antes de la primera compra (L3).
+  - Pedirla antes sería un cambio del registro: tarea aparte con `revisar-datos-ve`.
+
+### Paquete A · lead abierto: que se registre
+
+#### L9 · `invitacion_registro` — marketing · **fase 1**
+
+- **Se dispara** de 24 a 48 h después de una primera conversación sin registro, con la ventana ya
+  cerrada y el segmento en `lead_nuevo`. Una sola vez.
+- **Qué busca:** que cree su cuenta. La pregunta lo clasifica de paso.
+
+```
+Hola {{1}}, gracias por escribirnos sobre {{2}}.
+
+Para cotizarte con exactitud y asignarte tu Shipping Mark, el siguiente paso es crear tu cuenta en DTD Cargo. Toma pocos minutos.
+
+¿Ya tienes proveedor en China o todavía lo estás buscando?
+```
+
+- **Botones:** «Ya tengo proveedor» · «Lo estoy buscando» · «Detener promociones»
+- **Ejemplo:** Pedro · traer ropa deportiva para tu tienda
+- **Lo que sigue en la ventana abierta** (texto libre que manda el asesor, o un mensaje fijo
+  automático cuando exista la fase B):
+  - **«Ya tengo proveedor»:**
+    > Perfecto. Crea tu cuenta con este mismo número de WhatsApp aquí: dtdcargo.com/registro. Al
+    > terminar te aparece tu Shipping Mark, el código que tu proveedor pone en cada bulto. ¿Me
+    > avisas cuando lo tengas?
+  - **«Lo estoy buscando»:**
+    > Te ayudamos con eso: verificamos al proveedor antes de que pagues. Crea tu cuenta con este
+    > mismo número aquí: dtdcargo.com/registro, y desde tu portal nos pasas el proveedor que estás
+    > viendo. ¿Lo encontraste en Alibaba o en otra página?
+
+  El portal ya tiene la sección de proveedores (R: `app/portal/(app)/proveedores`).
+- **Por qué funciona:**
+  - el registro se presenta como **el paso que destraba lo que el lead quiere** (cotización
+    exacta y código para su proveedor), no como un trámite;
+  - la pregunta es cerrada y fácil, y las dos respuestas siguen adelante.
+
+#### L9b · `invitacion_registro_enlace` — marketing · variante para comparar
+
+Mismo cuerpo, pero la última línea es *«Puedes crear tu cuenta desde el botón; usa este mismo
+número de WhatsApp.»*
+
+- **Botón:** solo URL «Crear mi cuenta» → `https://dtdcargo.com/registro?utm_source=whatsapp&utm_medium=plantilla&utm_campaign=invitacion_registro`
+- **Cómo se compara:** se mandan las dos por partes iguales durante dos semanas y se cuentan
+  **registros**, no respuestas. L9 abre conversación; L9b manda directo a la página.
+
+#### L4 · `seguimiento_consulta` — marketing · **fase 1**
+
+- **Se dispara** de 2 a 7 días después de una consulta que no avanzó, con la ventana cerrada. Una
+  sola vez.
+- Sirve en los dos paquetes. En el A, lo que sigue empuja el registro.
+
+```
+Hola {{1}}, hace unos días nos escribiste por traer {{2}} desde China.
+
+Para no escribirte de más: ¿sigues con ese plan o ya lo resolviste por otro lado?
+```
+
+- **Botones:** «Sigo con el plan» · «Ya lo resolví» · «Detener promociones»
+- **Ejemplo:** Pedro · ropa deportiva para tu tienda
+- **Lo que sigue:**
+  - **«Sigo con el plan»** en el paquete A:
+    > Buenísimo. Para avanzar, crea tu cuenta con este mismo número aquí: dtdcargo.com/registro.
+    > Con eso te asignamos tu Shipping Mark y te cotizamos con tus datos. ¿Qué volumen piensas
+    > traer, más o menos?
+  - **«Sigo con el plan»** en el paquete B: el asesor hace la pregunta del volumen.
+  - **«Ya lo resolví»:** el asesor pregunta, una sola vez, con qué lo resolvió. Así sabemos contra
+    quién perdimos.
+- **Por qué funciona:**
+  - pide permiso («para no escribirte de más») y nombra lo suyo, no lo nuestro;
+  - «ya lo resolví» es una salida cómoda que además informa.
+
+#### L8 · `consulta_web_recibida` — utilidad · fase 2, con condición
+
+- **Se dispara cuando** llega un formulario de `/contacto` con WhatsApp, **solo si** el formulario
+  dice que respondemos por WhatsApp.
+  - Si no lo dice, Meta lo considera «llevar la conversación a WhatsApp sin que lo pidieran» y la
+    vuelve marketing (V: «Template categorization»).
+  - `/cotizar` y `/estimacion` hoy redirigen a `/tarifas` (R: `next.config`).
+
+```
+Hola {{1}}, recibimos tu consulta sobre {{2}} desde dtdcargo.com.
+
+Para darte un número exacto nos falta un dato: ¿ya tienes el volumen o el peso aproximado?
+```
+
+- **Botones:** «Sí, lo tengo» · «Todavía no lo sé»
+- **Ejemplo:** Daniel · traer maquinaria pequeña
+- **Lo que sigue:** con el dato, el asesor cotiza **e invita a registrarse** para dejar la
+  cotización a su nombre. Como es utilidad, la invitación no va en la plantilla sino en la
+  conversación.
+
+### Paquete B · lead registrado: que mande su primera carga
+
+#### L1 · `cuenta_creada_shipping_mark` — utilidad · **fase 1**
 
 - **Se dispara cuando** alguien se registra en `/registro` y no hay conversación abierta.
 - **Qué busca:** que el registrado diga en qué punto está y entre al embudo con la primera
@@ -207,25 +336,7 @@ Tu Shipping Mark es {{2}}. Tu proveedor lo debe poner en cada bulto para que ide
     tu portal. Si tu proveedor tiene dudas con el marcado, responde a este mensaje.»* y los
     botones por «Entendido» · «Tengo una duda».
 
-### L2 · `cotizacion_lista` — utilidad · fase 2
-
-- **Se dispara cuando** el estimado pasa a «enviado» y no hay ventana abierta.
-- **Qué busca:** la entrega de algo que la persona pidió. Es utilidad pura.
-
-```
-Hola {{1}}, ya está lista la cotización que nos pediste para {{2}}.
-
-Monto estimado puerta a puerta: {{3}}. Es referencial hasta el {{4}}; el desglose y las condiciones están en tu portal.
-
-¿La reservamos para el próximo contenedor?
-```
-
-- **Botones:** «Sí, reservar» · «Tengo una duda» · «Ajustar volumen»
-- **Ejemplo:** Carla · 2 m³ de repuestos de moto · US$ 1.180,00 · 30 de noviembre
-- **Por qué cierra:** pedir la reserva es el cierre directo; «ajustar volumen» da una salida que
-  no es «no». La pregunta es cerrada y supone el sí: es una invitación, no una presión.
-
-### L3 · `perfil_pendiente` — utilidad · fase 2
+#### L3 · `perfil_pendiente` — utilidad · fase 2
 
 - **Se dispara cuando** aceptó la cotización y le falta la foto de la cédula o la dirección de
   entrega (el registro avisa que se completan antes de la primera compra; R: `RegisterForm.tsx`).
@@ -240,26 +351,7 @@ Se hace en un par de minutos desde tu portal.
   el portal, no la conversación, así que va sin respuestas rápidas.
 - **Ejemplo:** José · foto de la cédula y dirección de entrega
 
-### L4 · `seguimiento_consulta` — marketing · **fase 1**
-
-- **Se dispara** entre 2 y 7 días después de una consulta que no avanzó, cuando la ventana ya
-  cerró. Una sola vez.
-
-```
-Hola {{1}}, hace unos días nos escribiste por traer {{2}} desde China.
-
-Para no escribirte de más: ¿sigues con ese plan o ya lo resolviste por otro lado?
-```
-
-- **Botones:** «Sigo con el plan» · «Ya lo resolví» · «Detener promociones»
-- **Ejemplo:** Pedro · ropa deportiva para tu tienda
-- **Por qué funciona:**
-  - pide permiso («para no escribirte de más»);
-  - nombra lo suyo, no lo nuestro;
-  - «ya lo resolví» es una salida cómoda y además dice si lo perdimos con otro agente. Esa es la
-    conversación de `conversacion-crm.md`: «compites contra alguien».
-
-### L5 · `registrado_sin_carga` — marketing · **fase 1**
+#### L5 · `registrado_sin_carga` — marketing · **fase 1**
 
 - **Se dispara** a los 10–15 días del registro, si no ha llegado nada al almacén con ese Shipping
   Mark. Una sola vez.
@@ -278,7 +370,29 @@ Hola {{1}}, tu Shipping Mark {{2}} está activo, pero todavía no ha llegado nad
   - cada botón lleva a un servicio real: verificación de proveedores y compra asistida, la
     calculadora o una consulta.
 
-### L6 · `cotizacion_sin_respuesta` — marketing · **fase 1**
+### Comunes a los dos paquetes
+
+#### L2 · `cotizacion_lista` — utilidad · fase 2
+
+- **Se dispara cuando** el estimado pasa a «enviado» y no hay ventana abierta.
+- **Qué busca:** la entrega de algo que la persona pidió. Es utilidad pura.
+
+```
+Hola {{1}}, ya está lista la cotización que nos pediste para {{2}}.
+
+Monto estimado puerta a puerta: {{3}}. Es referencial hasta el {{4}}; el desglose y las condiciones están en tu portal.
+
+¿La reservamos para el próximo contenedor?
+```
+
+- **Botones:** «Sí, reservar» · «Tengo una duda» · «Ajustar volumen»
+- **Ejemplo:** Carla · 2 m³ de repuestos de moto · US$ 1.180,00 · 30 de noviembre
+- **En el paquete A,** «Sí, reservar» lleva primero al registro: la reserva queda a nombre de su
+  cuenta.
+- **Por qué cierra:** pedir la reserva es el cierre directo; «ajustar volumen» da una salida que
+  no es «no».
+
+#### L6 · `cotizacion_sin_respuesta` — marketing · **fase 1**
 
 - **Se dispara** a los 5–7 días de una cotización enviada sin respuesta. Va antes del paso
   automático a «perdido» a los 14 días (R: `embudo-ventas.md`, etapa 3).
@@ -293,11 +407,11 @@ Hola {{1}}, te enviamos la cotización para {{2}} el {{3}} y no queremos dejarla
 - **Ejemplo:** Mario · 1,5 m³ de artículos de ferretería · 10 de noviembre
 - **Por qué funciona:** es la pregunta que se contesta con «no», ya documentada en el repo. Las
   tres respuestas mueven la tarjeta:
-  - «sigue en pie» → el asesor cierra;
+  - «sigue en pie» → el asesor cierra (en el paquete A, con el registro primero);
   - «ajustarla» → nuevo estimado;
   - «por ahora» → perdido con su motivo.
 
-### L7 · `corte_contenedor` — marketing · fase 2 (comparte texto con C10)
+#### L7 · `corte_contenedor` — marketing · fase 2 (comparte texto con C10)
 
 - **Se dispara** como máximo **una vez al mes**, y solo a quien aceptó avisos por WhatsApp, cuando
   hay una fecha real de cierre de recepción.
@@ -312,27 +426,25 @@ Hola {{1}}, el próximo contenedor desde {{2}} cierra la recepción en nuestro a
 - **Ejemplo:** Rosa · Yiwu · 5 de diciembre
 - **Por qué funciona:**
   - la escasez es real y tiene fecha;
-  - las dos respuestas son «sí»: una ahora y otra después, así que nadie queda acorralado;
+  - las dos respuestas son «sí», una ahora y otra después, así que nadie queda acorralado;
   - el que dice «avísame el siguiente» da permiso explícito para el próximo aviso.
 
-### L8 · `consulta_web_recibida` — utilidad · fase 2, con condición
+### Quién contesta en este número
 
-- **Se dispara cuando** llega un formulario de `/contacto` o `/cotizar` con WhatsApp, **solo si**
-  el formulario dice que respondemos por WhatsApp. Si no lo dice, Meta lo considera «llevar la
-  conversación a WhatsApp sin que lo pidieran» y la vuelve marketing (V: «Template
-  categorization»).
+| Respuesta | Quién | ¿IA? |
+|---|---|---|
+| Botones de L9, L4, L5 y L6 | El asesor con los textos de arriba. En la fase B, un mensaje fijo automático por botón | No |
+| Texto libre («Tengo una duda» o lo que escriba) | El asesor. Con dtd-bot en **Sugerir** cuando la bandeja esté en Chatwoot (SDD-0618) | Sí, solo sugerencia |
+| Saber si está registrado | El ERP (`chatwoot_segmento_contacto`) | No |
+| Mientras el número siga en Kommo | El asesor desde Kommo, con las plantillas creadas en la cuenta de mensajes de Kommo. Sin automatizaciones nuevas en Kommo | No |
 
-```
-Hola {{1}}, recibimos tu consulta sobre {{2}} desde dtdcargo.com.
+**Fase 1 de este número: L9 y L4 (paquete A), L1 y L5 (paquete B) y L6 (común).** Cubren los
+huecos más grandes:
 
-Para darte un número exacto nos falta un dato: ¿ya tienes el volumen o el peso aproximado?
-```
-
-- **Botones:** «Sí, lo tengo» · «Todavía no lo sé»
-- **Ejemplo:** Daniel · traer maquinaria pequeña
-
-**Fase 1 de este número: L1, L4, L5 y L6.** Cubren los tres huecos más grandes del embudo:
-registrados que no envían, consultas que se enfrían y cotizaciones sin respuesta.
+- leads que nunca se registran;
+- registrados que no envían;
+- consultas que se enfrían;
+- cotizaciones sin respuesta.
 
 ---
 
@@ -467,6 +579,7 @@ cobro y entrega, y la pregunta de cierre que siembra reseñas y referidos.
 
 | Plantilla | Qué queremos que haga | Botón principal | Qué hace DTD con la respuesta |
 |---|---|---|---|
+| L9 | Registrarse | «Ya tengo proveedor» / «Lo estoy buscando» | Enlace al registro con el motivo de su respuesta |
 | L1 | Decir en qué punto está | «Ya la compré» | Pasa a Calificado y le pide los datos del proveedor |
 | L2 | Reservar | «Sí, reservar» | Convierte: MARKBOX y embarque (I) |
 | L3 | Completar perfil | URL «Completar perfil» | El portal desbloquea la primera carga |
@@ -525,8 +638,8 @@ Lo vemos aparte cuando toque Instagram.
 1. ~~¿Cambiamos la regla de la spec 0582 «No se le escribe al cliente desde el número de
    clientes»?~~ **Resuelta el 2026-11-16:** Sam dijo «Sí, enmiéndala» y la spec ya está
    enmendada.
-2. **¿Arrancamos con la fase 1 (L1, L4, L5 y L6 en el público; C1, C3, C5 y C8 en Clientes)?**
-   - Recomendación: **sí**. Ocho plantillas, cada una con su disparador real.
+2. **¿Arrancamos con la fase 1 (L9, L4, L1, L5 y L6 en el público; C1, C3, C5 y C8 en Clientes)?**
+   - Recomendación: **sí**. Nueve plantillas, cada una con su disparador real.
 3. **¿Abrimos una tarea aparte para agregar la casilla de avisos por WhatsApp al registro y a los
    formularios?**
    - Recomendación: **sí**, como SDD de producto con `revisar-datos-ve`. Sin ella, las de
