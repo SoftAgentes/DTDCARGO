@@ -22,7 +22,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import {
   EMPLOYEE_STATUS_OPTIONS,
   VE_BANKS,
-  type Employee,
+  type EmployeeEditView,
   type NominaActionState,
 } from "@/lib/studio/nomina/employee-types";
 import { type Position } from "@/lib/studio/nomina/position-types";
@@ -44,7 +44,8 @@ export function EmpleadoDrawer({
   canManageUsers,
   onClose,
 }: {
-  employee: Employee | null;
+  /** Al editar llega sin la cuenta: solo enmascarada (SDD-0652 F1). */
+  employee: EmployeeEditView | null;
   positions: Position[];
   canManageUsers: boolean;
   onClose: () => void;
@@ -269,15 +270,29 @@ export function EmpleadoDrawer({
             </Field>
           </Row>
 
-          <Field label="Número de cuenta">
+          {/* SDD-0652 F1: al editar, el formulario no recibe la cuenta. Muestra la
+              enmascarada y un campo vacío: si se llena, la reemplaza; si no, queda. */}
+          <Field label={isEdit ? "Nueva cuenta" : "Número de cuenta"}>
             <input
               name="bank_account"
               type="text"
               className="studio-input"
-              defaultValue={employee?.bank_account ?? ""}
+              defaultValue=""
+              autoComplete="off"
+              aria-describedby={isEdit ? "empleado-cuenta-actual" : undefined}
               placeholder="0000 0000 00 0000000000"
             />
           </Field>
+          {isEdit && (
+            <p
+              id="empleado-cuenta-actual"
+              style={{ font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "calc(-1 * var(--s-2)) 0 0" }}
+            >
+              {employee!.bank_account_masked
+                ? `Cuenta actual: ${employee!.bank_account_masked}. Déjalo vacío para conservarla.`
+                : "No tiene cuenta registrada."}
+            </p>
+          )}
 
           {isEdit && (
             <Field label="Estado" error={state.fieldErrors?.status}>
