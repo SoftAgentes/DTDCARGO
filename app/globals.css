@@ -5165,6 +5165,14 @@ a.svp-it:hover .nm {
 .vs .vs-btn-secundario:disabled {
   opacity: 0.5;
 }
+/* Hover sin oscurecer el relleno: oscurecer el vino claro bajaría el texto navy
+   de AA. Un aro del mismo navy marca el estado. */
+.vs .vs-btn-principal:hover {
+  box-shadow: inset 0 0 0 2px var(--vs-principal-ink);
+}
+.vs .vs-btn-secundario:hover:not(:disabled) {
+  background: var(--tint-ink);
+}
 .vs .vs-btn-principal:focus-visible,
 .vs .vs-btn-secundario:focus-visible {
   outline: 2px solid var(--color-ink);
