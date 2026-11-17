@@ -3,7 +3,7 @@
 - **Owner:** Claude Worker `0652-f2-foto-enlace` (sesión hija del Director General)
 - **Ruta:** `.claude/worktrees/guia-compacta-20428c`
 - **Rama:** `claude/0652-f2-foto-enlace-18332d`. Base: `main`, integrada por merge en `5f394f40b` (#646)
-- **PR:** ver «VALIDACIÓN» y «HANDOFF AL DIRECTOR» (se completa al publicar). No fusionar: lo decide el DG
+- **PR:** [#649](https://github.com/SoftAgentes/DTDCARGO/pull/649), lista para revisión. No fusionar: lo decide el DG
 - **SDD:** `docs/specs/0652-ficha-empleado-360/spec.md` (`in-progress`), §F2 y §7 F2
 - **Migración:** **0555**, EN ESPERA. No se aplicó en ningún entorno real. Aplicarla exige el OK nominal de Sam en el chat del DG y el runbook
 - **Autorización del encargo:** Sam, 2026-11-17, «Sí, las dos» (fase 2 de la ficha y fase 2 de la Vista simple), transmitido por el DG. Decisiones D1-D13 ya aprobadas («Sí, las recomendadas»)
@@ -112,4 +112,4 @@ Conviene que otro modelo revise este análisis.
 
 ## HANDOFF AL DIRECTOR
 
-Pendiente de publicar. Al abrir la PR se anota aquí el número y la cabeza, y se avisa por mensaje.
+La #649 trae la fase 2 completa salvo «Reenlazar su cuenta de empleado» (ver pendientes). La revisión independiente, la fusión y pedir a Sam el OK nominal para aplicar la 0555 son tuyos. La cabeza se lee en la PR.
