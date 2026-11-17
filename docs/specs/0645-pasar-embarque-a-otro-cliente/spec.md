@@ -250,13 +250,14 @@ El Subdirector Portal se las hace **una por una**:
      seguir.
   2. Al elegirlo, la **vista previa** (`p_dry_run`): «Se moverán: N recepciones del Almacén CN, la factura en borrador,
      N líneas de consolidación, N documentos y N avisos pendientes», o los bloqueos con su motivo en texto llano.
-  3. **Motivo** (4 a 1000 caracteres) con contador y el aviso «no escribas datos personales (cédula, teléfono ni
+  3. **Motivo** (4 a 1000 caracteres) con contador y el aviso «no escribas datos personales (nombres, cédula, teléfono ni
      dirección)»: el motivo es texto del equipo y queda en la bitácora (DG, 2026-11-16).
   4. Botón primario **«Pasar a DTD-1234»** (con el Shipping Mark nuevo), deshabilitado sin cliente, sin motivo o con
      bloqueos. Texto de confirmación sobre el botón: «El cliente actual dejará de verlo en el Portal y DTD-1234 lo verá».
 - Al terminar: toast «Embarque pasado a DTD-1234» y se refresca la página.
 - **Trazabilidad (D1).** Si el embarque cambió de cliente, la columna derecha muestra, a **todo** el que ve el detalle
-  (también al equipo de China: solo hay Shipping Marks y nombres del equipo, no de clientes):
+  (también al equipo de China, que ve Shipping Marks y nombres del equipo, no de clientes; el motivo, que es texto
+  libre y puede traer un nombre, a China no se le manda y ve «Motivo registrado» — B-1, DG 2026-11-16):
   - el Shipping Mark anterior tachado (`<s>`, con texto para lectores de pantalla «antes»), el actual y el botón «nuevo»
     (`aria-expanded`). Al pulsarlo se abre la explicación del código de las etiquetas, con la fecha del cambio;
   - **«Historial del cliente»**: una línea por cambio, del más reciente al más viejo, con fecha y hora de Caracas, el

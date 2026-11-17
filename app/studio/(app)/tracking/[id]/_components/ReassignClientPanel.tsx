@@ -251,7 +251,7 @@ export function ReassignClientPanel({
                   style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "4px 0 0" }}
                 >
                   De 4 a {MAX_MOTIVO} caracteres · {motivo.trim().length}/{MAX_MOTIVO}. Queda en la bitácora: no
-                  escribas datos personales (cédula, teléfono ni dirección).
+                  escribas datos personales (nombres, cédula, teléfono ni dirección).
                 </p>
               </div>
             )}

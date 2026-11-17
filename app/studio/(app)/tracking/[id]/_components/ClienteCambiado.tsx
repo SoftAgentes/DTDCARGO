@@ -7,8 +7,11 @@
  * qué las etiquetas conservan el código. Debajo, el historial: fecha, quién,
  * anterior → nuevo y el motivo.
  *
- * Solo Shipping Marks y nombres del equipo: sin nombres de clientes, así que se
- * muestra también al equipo de China (SDD-0531).
+ * Se muestra también al equipo de China (SDD-0531): solo lleva Shipping Marks y
+ * nombres del equipo. El motivo es texto libre y puede traer un nombre: para
+ * China la página no lo manda y aquí se lee «Motivo registrado» (B-1).
+ * Los Shipping Marks van en <code>, no en <span>, para no confundirse con el
+ * del encabezado.
  */
 
 import { useId, useState } from "react";
@@ -19,7 +22,11 @@ export type CambioVisible = {
   anterior: string | null;
   nuevo: string;
   motivo: string | null;
+  /** Hay motivo, pero quien mira no puede leerlo (región China, SDD-0531). */
+  motivoOculto?: boolean;
 };
+
+const MONO = { fontFamily: "var(--f-mono)", fontSize: "inherit", background: "none", padding: 0 } as const;
 
 function fechaCaracas(iso: string, conHora: boolean): string {
   return new Intl.DateTimeFormat("es-VE", {
@@ -65,7 +72,9 @@ export function ClienteCambiado({
         <span aria-hidden="true" style={{ color: "var(--ink-soft)" }}>
           →
         </span>
-        <span style={{ font: "700 14px/1.2 var(--f-mono)", color: "var(--ink)" }}>{ultimo.nuevo}</span>
+        <code style={{ font: "700 14px/1.2 var(--f-mono)", color: "var(--ink)", background: "none", padding: 0 }}>
+          {ultimo.nuevo}
+        </code>
         <button
           type="button"
           className="studio-btn studio-btn-ghost studio-btn-xs"
@@ -82,9 +91,9 @@ export function ClienteCambiado({
           id={idExplicacion}
           style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)", margin: 0 }}
         >
-          El código de las etiquetas (<span style={{ fontFamily: "var(--f-mono)" }}>{shipmentCode}</span>) se
+          El código de las etiquetas (<code style={MONO}>{shipmentCode}</code>) se
           mantiene porque ya está impreso en las cajas; el embarque es de{" "}
-          <span style={{ fontFamily: "var(--f-mono)" }}>{ultimo.nuevo}</span> desde el{" "}
+          <code style={MONO}>{ultimo.nuevo}</code> desde el{" "}
           {fechaCaracas(ultimo.fecha, false)}.
         </p>
       )}
@@ -97,13 +106,15 @@ export function ClienteCambiado({
           {cambios.map((c) => (
             <li key={`${c.fecha}-${c.nuevo}`} style={{ font: "400 12.5px/1.5 var(--f-sans)", color: "var(--ink)" }}>
               <span style={{ color: "var(--ink-soft)" }}>{fechaCaracas(c.fecha, true)}</span> · {c.actor} pasó el
-              embarque de <span style={{ fontFamily: "var(--f-mono)" }}>{c.anterior ?? "sin Shipping Mark"}</span> a{" "}
-              <span style={{ fontFamily: "var(--f-mono)" }}>{c.nuevo}</span>
-              {c.motivo && (
+              embarque de <code style={MONO}>{c.anterior ?? "sin Shipping Mark"}</code> a{" "}
+              <code style={MONO}>{c.nuevo}</code>
+              {c.motivo ? (
                 <>
                   . Motivo: <q>{c.motivo}</q>
                 </>
-              )}
+              ) : c.motivoOculto ? (
+                <>. Motivo registrado</>
+              ) : null}
             </li>
           ))}
         </ol>

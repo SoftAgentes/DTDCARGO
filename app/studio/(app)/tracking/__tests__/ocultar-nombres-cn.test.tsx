@@ -78,12 +78,13 @@ vi.mock("../[id]/_components/StateActionsPanel", () => ({ StateActionsPanel: () 
 vi.mock("../[id]/_components/TimelinePanel", () => ({ TimelinePanel: () => null }));
 vi.mock("../[id]/_components/FooterActions", () => ({ FooterActions: () => null }));
 vi.mock("../[id]/_components/ShipmentDocsPanel", () => ({ ShipmentDocsPanel: () => null }));
-// SDD-0645 · El embarque cambió de cliente una vez: la trazabilidad (solo
-// Shipping Marks y gente del equipo) se ve también desde China. Otros Shipping
-// Marks que el del embarque, para no chocar con las aserciones del encabezado.
+// SDD-0645 · El embarque cambió de cliente una vez y hoy es de DTD-0042 (el caso
+// real). La trazabilidad se ve también desde China, pero el motivo es texto libre
+// y aquí trae un nombre: China no lo recibe (B-1).
 vi.mock("@/lib/studio/reasignar-historial", () => ({
   listarCambiosDeCliente: async () => [
-    { fecha: "2026-11-16T18:30:00Z", actorId: null, anterior: "DTD-0000", nuevo: "DTD-0099", motivo: "Dueño real" },
+    { fecha: "2026-11-16T18:30:00Z", actorId: null, anterior: "DTD-0000", nuevo: "DTD-0042",
+      motivo: "Lo confirmó María Pérez por teléfono" },
   ],
 }));
 // SDD-0645 · «Pasar a otro cliente» busca clientes por nombre: no se monta para
@@ -315,7 +316,8 @@ describe("/studio/tracking/[id] (detalle)", () => {
     expect(screen.getByLabelText("Shipping Mark", { exact: false })).toHaveValue("DTD-0042");
     // SDD-0645 (D1): el cambio de cliente se ve, sin nombres de clientes.
     expect(screen.getByText("Historial del cliente")).toBeInTheDocument();
-    expect(texto).toContain("Alguien del equipo pasó el embarque de DTD-0000 a DTD-0099");
+    expect(texto).toContain("Alguien del equipo pasó el embarque de DTD-0000 a DTD-0042. Motivo registrado");
+    expect(texto).not.toContain("Lo confirmó");
   });
 
   it("Venezuela: el detalle sigue igual que antes", async () => {
@@ -330,6 +332,8 @@ describe("/studio/tracking/[id] (detalle)", () => {
       "Cliente y Shipping Mark vienen de la base de clientes — no se editan acá.",
     );
     expect(within(ayuda.parentElement as HTMLElement).queryByText(/tu región/)).toBeNull();
+    // SDD-0645 (B-1): Venezuela sí lee el motivo.
+    expect(document.body.textContent).toContain("Motivo: Lo confirmó María Pérez por teléfono");
     // SDD-0645: operations de Venezuela sí ve «Pasar a otro cliente».
     expect(h.props.ReassignClientPanel).toMatchObject({ shipmentCode: "S-2026-0042", currentMarkbox: "DTD-0042" });
   });

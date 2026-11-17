@@ -97,7 +97,9 @@ export default async function ShipmentDetailPage({
         actor: tenantUsers.find((u) => u.id === c.actorId)?.name ?? "Alguien del equipo",
         anterior: c.anterior,
         nuevo: c.nuevo,
-        motivo: c.motivo,
+        // B-1: el motivo es texto libre; al equipo de China no se le manda.
+        motivo: puedeVerNombres ? c.motivo : null,
+        motivoOculto: !puedeVerNombres && c.motivo !== null,
       }))
     : [];
 

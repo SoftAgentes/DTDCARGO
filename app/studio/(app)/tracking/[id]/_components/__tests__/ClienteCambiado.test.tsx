@@ -49,4 +49,16 @@ describe("ClienteCambiado", () => {
     // Hora de Caracas (UTC−4): 18:30 Z son las 2:30 p. m.
     expect(items[1]).toMatch(/16 nov.*2:30/);
   });
+
+  it("con el motivo oculto (China, B-1) dice que hay motivo, sin el texto", () => {
+    render(
+      <ClienteCambiado
+        shipmentCode="DTD-0000-64-1"
+        cambios={[{ ...CAMBIOS[1], motivo: null, motivoOculto: true }]}
+      />,
+    );
+    const item = screen.getByRole("listitem").textContent ?? "";
+    expect(item).toContain("Persona A pasó el embarque de DTD-0000 a DTD-1001. Motivo registrado");
+    expect(item).not.toContain("Dueño real");
+  });
 });
