@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0551_pasar_embarque_a_otro_cliente": "PENDIENTE DE APLICAR — SDD-0645 (pasar un embarque a otro cliente desde el Studio). Crea sólo la función reassign_shipment_client(uuid, uuid, text, boolean): SECURITY DEFINER, search_path vacío, EXECUTE sólo authenticated; exige operations, commercial o admin activo (D2 de Sam), motivo 4-1000 y, todo o nada, mueve el embarque, sus recepciones CN (cajas por el trigger de 0240), sus borradores, su consolidación, sus documentos y sus avisos programados, con el evento shipment_client_reassigned. Bloquea con factura emitida, borrador de varios embarques, reclamo, prealerta u orden de despacho viva. Sin locks de tabla ni backfill. MIGRATE-FIRST: sin ella el modal dice que no está disponible. Desarme: supabase/desarmes/0551_desarme.sql. Producción: OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG. Aplicar individualmente con name exacto 0551_pasar_embarque_a_otro_cliente. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
+  }
 }

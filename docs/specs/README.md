@@ -665,6 +665,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
 | 0643 | Embarques por contenedor: la vista empieza por el contenedor,… | in-progress | interno |
 | 0644 | Chatwoot: nivel «gestión» (ve y edita todo, no elimina) y enm… | proposed | interno |
+| 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
