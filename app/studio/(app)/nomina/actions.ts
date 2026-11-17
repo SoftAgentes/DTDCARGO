@@ -71,6 +71,7 @@ import {
   isPayrollRunStatus,
   type PayrollRunStatus,
 } from "@/lib/studio/nomina/payroll-run-types";
+import { camposDeTasaParaSnapshot, resolverTasaDeTopes } from "@/lib/studio/nomina/tope-fx";
 import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
 import { getEmployee, listEmployees } from "@/lib/studio/nomina/employee-queries";
 import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
@@ -1015,6 +1016,12 @@ async function buildRunLines(
   // Reglas mecánicas del snapshot congelado del corte (NO se relee payroll_rules,
   // así un corte viejo no cambia si editan las reglas después).
   const snap = run.rules_snapshot as Record<string, unknown>;
+  // La tasa que pasa el tope (Bs) a USD: la congelada en el snapshot; en un corte
+  // anterior a la A3, la vigente al último día del período (SDD-0653 D6).
+  const tasaTopes = await resolverTasaDeTopes(supabase, run.tenant_id, snap, run.period_end);
+  if (!tasaTopes.ok) {
+    return { error: tasaTopes.error, totals: { gross: 0, deductions: 0, net: 0 } };
+  }
   const calcRules = calcRulesFrom({
     pay_frequency: (snap.pay_frequency as "mensual" | "quincenal" | "semanal") ?? "mensual",
     day_method: (snap.day_method as "30" | "real") ?? "30",
@@ -1026,7 +1033,7 @@ async function buildRunLines(
     rpe_cap_sm: Number(snap.rpe_cap_sm ?? 0),
     overtime_pct: Number(snap.overtime_pct ?? 0),
     night_pct: Number(snap.night_pct ?? 0),
-  });
+  }, tasaTopes.tasa.rate);
 
   const employees = await listEmployees(supabase);
   const activeEmployees = employees.filter((e) => e.status === "activo");
@@ -1149,6 +1156,12 @@ export async function generatePayrollRunAction(
     return { error: "Define primero las reglas de cálculo (pestaña Reglas)." };
   }
 
+  // La tasa que pasa el tope de SSO y RPE (Bs) a USD, fijada ANTES de crear el
+  // corte: sin ella no se deja un borrador vacío. Se congela en el snapshot
+  // (SDD-0653 D6): regenerar no cambia la cifra aunque la tasa se corrija después.
+  const tasaTopes = await resolverTasaDeTopes(supabase, tenantId, rules, input!.period_end);
+  if (!tasaTopes.ok) return { error: tasaTopes.error };
+
   const { data: userResp } = await supabase.auth.getUser();
 
   // 1) Crea el corte en borrador con el snapshot congelado de las reglas.
@@ -1161,7 +1174,7 @@ export async function generatePayrollRunAction(
       period_end: input!.period_end,
       pay_frequency: rules.pay_frequency,
       day_method: rules.day_method,
-      rules_snapshot: rules,
+      rules_snapshot: { ...rules, ...camposDeTasaParaSnapshot(tasaTopes.tasa) },
       status: "borrador",
       notes: input!.notes,
       created_by: userResp.user?.id ?? null,
