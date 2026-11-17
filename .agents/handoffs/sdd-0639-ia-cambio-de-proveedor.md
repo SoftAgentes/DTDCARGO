@@ -8,6 +8,7 @@
 
 ## COMPLETADO
 
+- **2026-11-17:** Sam aprobó la spec como plan («Sí, las dos», por el chat del DG). Status `approved`, sin implementar. PR fuera de borrador; la fusiona el DG.
 - `docs/specs/0639-ia-cambio-de-proveedor/spec.md`. Cubre:
   - los niveles de cambio: modelo y proveedor;
   - las capacidades de riesgo: herramienta forzada, bucle de herramientas, PDF y `json_schema`;

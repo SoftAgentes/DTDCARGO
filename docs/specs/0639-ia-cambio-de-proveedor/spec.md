@@ -1,10 +1,10 @@
 ---
 sdd: "0639"
 title: "IA: cambiar de modelo o de proveedor por función, con principal y respaldo"
-status: proposed
+status: approved
 author: "Claude (Worker pagos-de-ia)"
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-17
 supersedes: null
 superseded_by: null
 related: ["0638", "0020", "0146", "0473", "0588", "0626", "0637"]
@@ -18,9 +18,11 @@ confidencialidad: interno
 > propone un **motor común** con un **principal** y un **respaldo** por función, que se elige desde la
 > pantalla «Estado de la IA» de la SDD-0638.
 >
-> **Estado: proposed.** Es un plan. Depende de la SDD-0638 (clasificador y registro) y se coordina con
+> **Estado: approved (como plan, sin implementar).** Sam aprobó la spec el 2026-11-17 con «Sí, las
+> dos», en respuesta a «¿apruebo las dos especificaciones de IA para que entren a main?» (SDD-0638 y
+> SDD-0639, por el chat del DG). Depende de la SDD-0638 (clasificador y registro) y se coordina con
 > el fallback de la Oficina (SDD-0626 §7). **v0.4:** Sam decidió las D-1 a D-7 el 2026-11-16 (§9).
-> No quedan decisiones abiertas; falta solo que apruebe la spec.
+> Queda abierto el choque de la D-2 con la SDD-0626 (§7), que lleva el DG.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no
 verificado. Base: `main` `4a3046745`. El repo es público: sin llaves, montos ni datos de cuentas.
