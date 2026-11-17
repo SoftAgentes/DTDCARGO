@@ -76,10 +76,10 @@ termina mandando la que no es.
 
 - Si los dos números quedan en **cuentas de mensajes distintas**, las plantillas comunes (el aviso
   de corte del contenedor) se crean dos veces, una en cada cuenta. Ver el documento anterior, §5.
-- ⚠️ **Hay que cambiar una regla vigente.** La spec 0582 dice hoy «No se le escribe al cliente
-  desde el número de clientes» (R: `docs/specs/0582-chatwoot-piloto/spec.md`, en el bot de
-  redirección). Todo el juego del número de Clientes depende de cambiarla. Es la pregunta 1 al
-  final.
+- ✅ **La regla de la spec 0582 ya está enmendada.** Decía «No se le escribe al cliente desde el
+  número de clientes». Sam aprobó cambiarla el 2026-11-16 («Sí, enmiéndala»). Ahora se permiten
+  plantillas aprobadas con las condiciones de §2 y §6 (R: `docs/specs/0582-chatwoot-piloto/spec.md`,
+  *Redirección sin IA* y Seguimiento).
 
 ---
 
@@ -522,10 +522,9 @@ Lo vemos aparte cuando toque Instagram.
 
 ## Preguntas para Sam (con mi recomendación)
 
-1. **¿Cambiamos la regla de la spec 0582 «No se le escribe al cliente desde el número de
-   clientes»** para permitir plantillas de utilidad y marketing a quien dio su consentimiento?
-   - Recomendación: **sí**, con una enmienda a la spec. Sin esto, el número de Clientes no puede
-     usar ninguna plantilla de §4.
+1. ~~¿Cambiamos la regla de la spec 0582 «No se le escribe al cliente desde el número de
+   clientes»?~~ **Resuelta el 2026-11-16:** Sam dijo «Sí, enmiéndala» y la spec ya está
+   enmendada.
 2. **¿Arrancamos con la fase 1 (L1, L4, L5 y L6 en el público; C1, C3, C5 y C8 en Clientes)?**
    - Recomendación: **sí**. Ocho plantillas, cada una con su disparador real.
 3. **¿Abrimos una tarea aparte para agregar la casilla de avisos por WhatsApp al registro y a los
