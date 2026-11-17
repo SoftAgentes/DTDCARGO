@@ -28,7 +28,8 @@ todos?». Respuesta literal de Sam en el chat del DG: «Sí, tema claro».
 - `BRAND.md`: la línea «Vista predeterminada» de BD-037 dice ahora que el Studio abre en oscuro y el Portal en claro,
   y que en el Portal quien ya eligió oscuro lo conserva.
 - `docs/design/studio/_norte/BRAND-DECISIONS.md`: enmienda del tema del Portal dentro de BD-037, con el literal de
-  Sam. Ningún token ni color nuevo, porque el Portal ya tenía su bloque `[data-portal-theme="light"]`.
+  Sam. Ningún token ni color nuevo: el tema claro del Portal ya existía. Son los tokens base más el bloque
+  `[data-portal-theme]` (`app/globals.css:123`); no hay un bloque `[data-portal-theme="light"]` propio.
 - `.agents/handoffs/sdd-0654-f1-vista-simple.md`: PR #637 fusionada (squash `c20cc7460`).
 
 ## VALIDACIÓN
