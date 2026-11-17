@@ -71,6 +71,8 @@ Hallazgo del contrato: sin duplicado, `rif_skipped` quedaba en NULL y rompía el
 
 Rama `claude/0646-invitacion-por-link-475356` publicada. [PR #626](https://github.com/SoftAgentes/DTDCARGO/pull/626) contra main, lista para revisión (no borrador). Integré `origin/main` con merge en `5486f07c6`, sin conflictos manuales; después del merge pasaron tsc, docs:check, el gate de símbolos y las suites RBAC, spec→migración y 0552 (496 pruebas). No fusioné ni apliqué nada en producción.
 
+**Choque conocido con la [PR #624](https://github.com/SoftAgentes/DTDCARGO/pull/624) (SDD-0645), aviso del DG.** `git merge-tree --write-tree HEAD refs/dtd/pr/624`, con HEAD `13d7167b1` y `refs/dtd/pr/624` traída de `origin/pull/624/head`, da **un solo conflicto**: `lib/studio/rbac-actions-guard.test.ts`. Las dos PR suben el inventario de 472 a 474 y agregan su párrafo de justificación en el mismo lugar. `migrations-baseline.json`, `pending-migration-symbol-declarations.json` y `docs/specs/README.md` los resuelve el merge semántico sin conflicto. La PR que entre segunda trae main y deja **476**, con los dos párrafos (SDD-0645 y SDD-0646) uno detrás del otro. Antes de publicar el merge corre `rbac-actions-guard.test.ts`.
+
 ## PENDIENTES DE ESTA TAREA
 
 - Revisión independiente (la lanza el DG) y el CI de la PR.
