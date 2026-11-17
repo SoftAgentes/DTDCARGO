@@ -9,6 +9,7 @@
 
 ## COMPLETADO
 
+- **2026-11-17:** Sam aprobó la spec como plan («Sí, las dos», por el chat del DG). Status `approved`, sin implementar. PR fuera de borrador; la fusiona el DG.
 - Inventario verificado en el repo (spec §2): diez puntos en el ERP (A1 a A10), tres que pasan por la Oficina
   (H1 a H3) y dos planeados (P1 Faro, P2 `dtd-bot`). Solo nombres de variables.
 - Mapa de dependencias por proveedor (§3), pantalla (§4), clasificador de errores de cobro (§5), recordatorio

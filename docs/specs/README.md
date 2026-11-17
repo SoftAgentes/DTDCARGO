@@ -660,7 +660,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0635 | Acceso por persona interactivo y matriz de roles legible: map… | approved | interno |
 | 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
 | 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
-| 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | proposed | interno |
+| 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | approved | interno |
 | 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
 | 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
 | 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |

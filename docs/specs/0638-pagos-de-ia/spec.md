@@ -1,10 +1,10 @@
 ---
 sdd: "0638"
 title: "Pagos de IA: estado de cada proveedor, errores de cobro y recordatorio de renovación"
-status: proposed
+status: approved
 author: "Claude (Worker pagos-de-ia)"
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-17
 supersedes: null
 superseded_by: null
 related: ["0020", "0146", "0473", "0505", "0588", "0611", "0618", "0626", "0637", "0639"]
@@ -18,9 +18,11 @@ confidencialidad: interno
 > cosas: una pantalla con el estado de cada proveedor, una regla para que los errores de cobro digan
 > «falta de pago», y un recordatorio periódico al equipo de lo que hay que tener pagado.
 >
-> **Estado: proposed.** Es un plan. No trae código, migraciones ni cambios de configuración. Sam
-> decide las D-1 a D-7 (§9) antes de que se implemente. **v0.2:** corregida con la revisión de Codex
-> del 2026-11-16 (§12).
+> **Estado: approved (como plan, sin implementar).** Sam aprobó la spec el 2026-11-17 con «Sí, las
+> dos», en respuesta a «¿apruebo las dos especificaciones de IA para que entren a main?» (SDD-0638 y
+> SDD-0639, por el chat del DG). No trae código, migraciones ni cambios de configuración. La
+> implementación se programa después de la ronda actual, y antes Sam decide las D-1 a D-7 (§9).
+> **v0.2:** corregida con la revisión de Codex del 2026-11-16 (§12).
 
 **Etiquetas de evidencia:** **C** código leído en esta tarea · **D** documento del repo · **I**
 inferencia · **NV** no verificado, por confirmar con Sam. Base: `main` `4a3046745` (2026-11-16).
