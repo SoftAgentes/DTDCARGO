@@ -4,7 +4,7 @@ title: "Bug Reporter · módulo interno de bug tracking con auto-captura técnic
 status: done
 author: "founder"
 created: 2026-05-26
-updated: 2026-07-04
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0024", "0026", "0028"]
@@ -339,3 +339,76 @@ Ejemplos esperados:
 - `feat(studio): SDD-0036 Fase 2 — BugFABButton + BugReportModal + /mis-bugs`
 - `feat(studio): SDD-0036 Fase 4 — Auto-captura rrweb + sanitizer console/network`
 - `feat(studio): SDD-0036 Fase 6 — Banner bugs estancados + export CSV admin`
+
+---
+
+## 11. Enmienda 2026-11-16 · resumen diario a Discord `#bugs` (D-13)
+
+**Origen.** Decisión D-13 de Sam en la [SDD-0637](../0637-faro-asistente-ayuda/spec.md) §7.6 (el §7.6 vive
+en la rama `claude/0637-faro-fase3-servidor` hasta que se fusione). Texto literal de la tabla de decisiones:
+
+> «**Decidida por Sam el 2026-11-16:** alta y crítica al momento, como hoy, más un resumen diario de lo demás,
+> sin datos de clientes (§7.6). Tarea del reportador de la SDD-0036, aparte de Faro»
+
+### 11.1 Comportamiento
+
+- **Al momento, sin cambios.** `notifyBugCreatedToAdmin` sigue avisando sólo los reportes de gravedad alta o
+  crítica (folio, etiqueta y enlace; sin título ni nombre).
+- **Resumen diario, nuevo.** Una vez al día, a las 12:05 UTC (08:05 en Caracas), sale a Discord `#bugs` el
+  resumen del día anterior completo en hora de Caracas (04:00Z a 04:00Z). Entran los reportes de ese día cuya
+  gravedad no sea alta ni crítica: mejoras, sugerencias, preguntas y errores leves (baja, media o sin gravedad).
+  Alta y crítica no se repiten.
+- **Qué lleva.** Título con la fecha y el total; conteos por tipo (orden fijo: errores leves, mejoras,
+  sugerencias, preguntas); conteos por módulo (de más a menos, a lo sumo 12 líneas de conteo en total, el resto
+  junto en «Módulo · otros»); los folios `BUG-XXXXX` (hasta 25, y «y N más»); el enlace a `/studio/bugs`.
+- **Día sin reportes:** no se manda nada.
+- **Camino:** `sendDiscordCategoryAlert` (categoría `bugs`). Si Discord no lo guarda, entra a la cola durable
+  `studio_alert_outbox` (migración 0515) y lo reintenta el drenado de `/api/cron/bug-notifications-drain`.
+  Sólo para el tenant de `DISCORD_TENANT_ID`; sin esa variable o sin webhook propio de `#bugs`, el cron no toca la
+  base y responde `discord-apagado`, aunque exista el canal de respaldo (`#avisos-equipo`): el resumen es de
+  `#bugs` y no cae a otro canal. Lee a lo sumo 500 reportes por día (`.limit(500)`); si un día pasara de eso,
+  los conteos se quedarían cortos en ese día. Telegram sigue retirado (SDD-0606): el resumen no tiene camino de Telegram.
+- **Cron:** `/api/cron/bug-daily-digest`, autenticado con `CRON_SECRET` por header, como
+  `/api/cron/bug-notifications-drain`. Sólo lee: no mueve bugs de estado (D9 intacta).
+- **Sin migración.** Lee `bug_reports` y usa la cola existente.
+
+### 11.2 Privacidad
+
+Discord es un tercero. El resumen nunca lleva título, descripción, URL del reporte ni nombres de personas o
+clientes. Barreras:
+
+1. La consulta pide sólo `folio, category, severity, module`.
+2. El armado (`buildBugDailyDigest`, función pura) lee sólo esos cuatro campos aunque reciba más.
+3. Un módulo fuera de la lista cerrada de `lib/studio/bug-module-name.ts` se cuenta como «Otro módulo»: el slug
+   crudo sale de la URL del reporte y podría traer un nombre.
+4. `MinimalAlert.codigos` sólo acepta textos con forma de código (`^[A-Z]{2,5}-\d{1,8}$`); lo demás se descarta
+   al armar el aviso y al leerlo de la cola.
+
+El webhook de Discord es un secreto: vive en el entorno (`DISCORD_WEBHOOK_BUGS`), nunca en el repositorio.
+
+### 11.3 Límite conocido
+
+El cron no es idempotente por sí mismo: dos corridas el mismo día mandan dos resúmenes iguales. El crontab lo
+agenda una sola vez.
+
+### 11.4 Allowlist exacta
+
+- `lib/studio/notify/bug-daily-digest.ts` (nuevo)
+- `lib/studio/notify/__tests__/bug-daily-digest.test.ts` (nuevo)
+- `app/api/cron/bug-daily-digest/route.ts` (nuevo)
+- `lib/studio/discord/minimal-alert.ts` (campo `codigos` y su filtro)
+- `lib/studio/alerts/alert-outbox.ts` (la cola guarda y relee `codigos`)
+- `lib/studio/bug-module-name.ts` (`isKnownModuleSlug`)
+- `vercel.json`, `infra/dtd-cargo/cron/crontab` (generado), `scripts/__tests__/build-crontab.test.ts` (22 → 23)
+- `docs/specs/0036-bug-reporter/spec.md` (esta enmienda)
+- `.agents/handoffs/` (handoff de la tarea)
+
+### 11.5 Aceptación
+
+- Pruebas de `bug-daily-digest.test.ts`: la fila de prueba trae título, nombre, teléfono, correo, RIF y URL;
+  ninguno aparece en el texto que sale a Discord ni en el aviso que entra a la cola.
+- Alta y crítica no entran al resumen; un día vacío no manda nada; el módulo desconocido y el folio sin forma
+  no se nombran.
+- Con sólo el canal de respaldo configurado, el resumen no sale y no se lee `bug_reports`.
+- `fetchBugDigestRows` pide exactamente `folio, category, severity, module` (doble de PostgREST).
+- `build-crontab` al día con 23 crons de `vercel.json`.
