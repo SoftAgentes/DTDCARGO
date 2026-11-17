@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 633 specs)
+### Índice de specs (generado · 634 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -670,7 +670,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
 | 0650 | Ficha 360° del cliente en el Studio | in-progress | interno |
 | 0651 | Fusión de clientes v2: campo por campo, con saldos y chats | proposed | interno |
+| 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
 | 0656 | Actualizar el stack: inventario, riesgos, avisos de seguridad… | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0648, 0649, 0652, 0653, 0654, 0655 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0648, 0649, 0652, 0653, 0654 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

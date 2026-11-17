@@ -162,8 +162,8 @@ export const guide = {
   // Usuarios (guion, recorrido 5; solo admin). «Qué es» de U1 y «Ahora aquí» de
   // U1 y U3: textos de la propuesta de SDD-0589 (9.5), aprobados por Sam el
   // 2026-11-07 07:02Z («Apruebo los dos»). Lo demás es del guion aceptado.
-  // U1 va en el recorrido `bandeja` (Vínculos). U3 tiene su ancla en la ficha de
-  // la persona, pero todavía no tiene recorrido: es de la 9.6.
+  // U1 tiene su ancla en «Agentes vinculados» (Usuarios › Bandeja desde SDD-0655)
+  // y, como U3 (ancla en la ficha de la persona), todavía no tiene recorrido.
   "guide.users.grant.title": "Dar acceso a la Bandeja",
   "guide.users.grant.what":
     "Desde Vínculos decides quién entra a la Bandeja. No hay que crear la cuenta dos veces.",
