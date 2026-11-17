@@ -39,8 +39,10 @@ import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   validateEmployeeInput,
   isEmployeeStatus,
+  toEmployeeEditView,
   type NominaActionState,
   type EmployeeStatus,
+  type EmployeeEditView,
 } from "@/lib/studio/nomina/employee-types";
 import {
   validateContractorInput,
@@ -69,8 +71,18 @@ import {
   isPayrollRunStatus,
   type PayrollRunStatus,
 } from "@/lib/studio/nomina/payroll-run-types";
+import {
+  camposDeTasaParaSnapshot,
+  etiquetaDeTasa,
+  faltaTasaDelCierre,
+  hoyEnCaracas,
+  resolverTasaDeTopes,
+  tasaCongelada,
+  type TasaDeTopes,
+} from "@/lib/studio/nomina/tope-fx";
 import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
-import { listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { getEmployee, listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
 import {
   getPayrollRun,
   findLivePayrollRunForPeriod,
@@ -244,9 +256,14 @@ export async function updateEmployeeAction(
   const { input, fieldErrors } = validateEmployeeInput(employeeRawFromForm(formData));
   if (fieldErrors) return { fieldErrors };
 
+  // SDD-0652 F1: el formulario ya no trae la cuenta bancaria. Un campo vacío
+  // significa «no la cambies», no «bórrala»: se quita del update.
+  const { bank_account, ...resto } = input!;
+  const cambios = bank_account === null ? resto : { ...resto, bank_account };
+
   const { error } = await supabase
     .from("nomina_employees")
-    .update({ ...input! })
+    .update(cambios)
     .eq("id", employeeId);
 
   if (error) {
@@ -257,7 +274,36 @@ export async function updateEmployeeAction(
   }
 
   revalidatePath(PATH);
+  // SDD-0652 F1: la ficha 360° también muestra estos datos.
+  revalidatePath("/studio/nomina/empleados/[codigo]", "page");
   return { ok: true };
+}
+
+/**
+ * La ficha de un empleado para el formulario de edición (SDD-0652 F1).
+ *
+ * La lista ya no manda cédula, sueldo ni cuenta al navegador, así que el lápiz
+ * pide aquí la ficha. Exige rol `admin` o `accounting` activo y busca la ficha
+ * en ese mismo tenant. Devuelve la cuenta solo enmascarada.
+ */
+export async function getEmployeeEditViewAction(
+  employeeId: string,
+): Promise<{ ok: true; employee: EmployeeEditView } | { error: string }> {
+  const supabase = await createClient();
+  // Primera puerta, la de todo el módulo (la que reconoce el inventario RBAC).
+  const denial = await moduleViewDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+  // Segunda: rol admin/accounting activo. Un acceso extra a `nomina` pasa la
+  // primera y no esta (SDD-0652 §2.2).
+  const acceso = await getFichaEmpleadoAccess(supabase);
+  if (!acceso.ok) return { error: "No tienes permiso para ver esta ficha." };
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId ?? "")) return { error: "Empleado inválido." };
+
+  const employee = await getEmployee(supabase, employeeId);
+  if (!employee || employee.tenant_id !== acceso.tenantId) {
+    return { error: "No se pudo cargar la ficha. Intenta de nuevo." };
+  }
+  return { ok: true, employee: toEmployeeEditView(employee) };
 }
 
 export async function setEmployeeStatusAction(
@@ -974,10 +1020,17 @@ export async function anularAmonestacionAction(
 async function buildRunLines(
   supabase: Awaited<ReturnType<typeof createClient>>,
   run: { id: string; tenant_id: string; period_start: string; period_end: string; rules_snapshot: Record<string, unknown> },
-): Promise<{ error: string | null; totals: { gross: number; deductions: number; net: number } }> {
+): Promise<{ error: string | null; totals: { gross: number; deductions: number; net: number }; tasa?: TasaDeTopes }> {
   // Reglas mecánicas del snapshot congelado del corte (NO se relee payroll_rules,
   // así un corte viejo no cambia si editan las reglas después).
   const snap = run.rules_snapshot as Record<string, unknown>;
+  // La tasa que pasa el tope (Bs) a USD: la congelada en el snapshot; si no hay
+  // (período en curso o corte anterior a la A3), la del último día del período con
+  // el período cerrado, o la vigente hoy como PROVISIONAL (SDD-0653 D6).
+  const tasaTopes = await resolverTasaDeTopes(supabase, run.tenant_id, snap, run.period_end, hoyEnCaracas());
+  if (!tasaTopes.ok) {
+    return { error: tasaTopes.error, totals: { gross: 0, deductions: 0, net: 0 } };
+  }
   const calcRules = calcRulesFrom({
     pay_frequency: (snap.pay_frequency as "mensual" | "quincenal" | "semanal") ?? "mensual",
     day_method: (snap.day_method as "30" | "real") ?? "30",
@@ -989,7 +1042,7 @@ async function buildRunLines(
     rpe_cap_sm: Number(snap.rpe_cap_sm ?? 0),
     overtime_pct: Number(snap.overtime_pct ?? 0),
     night_pct: Number(snap.night_pct ?? 0),
-  });
+  }, tasaTopes.tasa.rate, tasaTopes.tasa.rate === null ? null : etiquetaDeTasa(tasaTopes.tasa));
 
   const employees = await listEmployees(supabase);
   const activeEmployees = employees.filter((e) => e.status === "activo");
@@ -1061,6 +1114,7 @@ async function buildRunLines(
   }
 
   return {
+    tasa: tasaTopes.tasa,
     error: null,
     totals: {
       gross: Math.round((gross + Number.EPSILON) * 100) / 100,
@@ -1112,6 +1166,13 @@ export async function generatePayrollRunAction(
     return { error: "Define primero las reglas de cálculo (pestaña Reglas)." };
   }
 
+  // La tasa que pasa el tope de SSO y RPE (Bs) a USD, resuelta ANTES de crear el
+  // corte: sin ella no se deja un borrador vacío. Con el período cerrado se congela
+  // en el snapshot (SDD-0653 D6); con el período en curso queda PROVISIONAL y no se
+  // congela: se recalcula al regenerar y confirmar la exige.
+  const tasaTopes = await resolverTasaDeTopes(supabase, tenantId, rules, input!.period_end, hoyEnCaracas());
+  if (!tasaTopes.ok) return { error: tasaTopes.error };
+
   const { data: userResp } = await supabase.auth.getUser();
 
   // 1) Crea el corte en borrador con el snapshot congelado de las reglas.
@@ -1124,7 +1185,7 @@ export async function generatePayrollRunAction(
       period_end: input!.period_end,
       pay_frequency: rules.pay_frequency,
       day_method: rules.day_method,
-      rules_snapshot: rules,
+      rules_snapshot: { ...rules, ...camposDeTasaParaSnapshot(tasaTopes.tasa) },
       status: "borrador",
       notes: input!.notes,
       created_by: userResp.user?.id ?? null,
@@ -1190,12 +1251,19 @@ export async function regeneratePayrollRunLinesAction(
   });
   if (built.error) return { error: built.error };
 
+  // Con el período ya cerrado, la tasa del cierre se congela ahora (SDD-0653 D6):
+  // un borrador provisional pasa a definitivo y confirmar deja de bloquearse.
+  const snapActual = (run.rules_snapshot ?? {}) as Record<string, unknown>;
+  const congelar =
+    built.tasa && !tasaCongelada(snapActual) ? camposDeTasaParaSnapshot(built.tasa) : {};
+
   await supabase
     .from("nomina_payroll_runs")
     .update({
       total_gross_usd: built.totals.gross,
       total_deductions_usd: built.totals.deductions,
       total_net_usd: built.totals.net,
+      ...(Object.keys(congelar).length > 0 ? { rules_snapshot: { ...snapActual, ...congelar } } : {}),
     })
     .eq("id", runId)
     .eq("status", "borrador");
@@ -1225,6 +1293,19 @@ export async function setPayrollRunStatusAction(
 
   if (!canTransitionPayrollRun(run.status, status)) {
     return { error: `No se puede pasar de ${run.status} a ${status}.` };
+  }
+
+  // El tope de SSO y RPE se calcula con la tasa del cierre del período: un corte
+  // con tasa provisional se regenera cuando exista (SDD-0653 D6).
+  if (
+    status === "confirmado" &&
+    faltaTasaDelCierre((run.rules_snapshot ?? {}) as Record<string, unknown>)
+  ) {
+    return {
+      error:
+        "Este corte usa una tasa de bolívares PROVISIONAL (el período no había cerrado o faltaba la tasa del cierre). " +
+        "Carga la tasa del último día del período en Admin › Tasas y regenera los renglones antes de confirmar.",
+    };
   }
 
   const patch: Record<string, unknown> = { status };

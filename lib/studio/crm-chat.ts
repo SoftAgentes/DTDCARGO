@@ -44,9 +44,12 @@ export async function resolverConversacion(
   return { ok: false, motivo: "sin_chat" };
 }
 
-/** A dónde va el navegador: la Bandeja en la conversación, o el tablero con aviso. */
+/**
+ * A dónde va el navegador: la Bandeja en la conversación (pestaña del CRM desde
+ * SDD-0655, que ya trae la pestaña Embudos para volver), o el tablero con aviso.
+ */
 export function destinoChat(r: ResultadoChat): string {
   return r.ok
-    ? `/studio/bandeja?c=${r.conversacion}&volver=crm`
+    ? `/studio/bandeja?c=${r.conversacion}`
     : `/studio/crm?tab=embudos&chat=${r.motivo === "sin_chat" ? "sin" : r.motivo}`;
 }

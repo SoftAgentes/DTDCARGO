@@ -123,13 +123,4 @@ describe("CrmVistaEmbudo · chat (SDD-0648 §4)", () => {
     pintar();
     expect(document.querySelector(".studio-aviso")).toBeNull();
   });
-
-  it("«Conversaciones» abre la Bandeja a pantalla completa solo si se puede entrar a ella", () => {
-    pintar({ chat: true });
-    const enlace = screen.getByRole("link", { name: "Conversaciones" });
-    expect(enlace.getAttribute("href")).toBe("/studio/bandeja?volver=crm");
-    cleanup();
-    pintar({ chat: false });
-    expect(screen.queryByRole("link", { name: "Conversaciones" })).toBeNull();
-  });
 });

@@ -49,6 +49,7 @@ pantalla completa, no a media pantalla.
 Respuesta de Sam a la propuesta (2026-11-16): «Sí, apruebo la nueva propuesta, me gusta […] quisiera que cuando yo entre a chatear con alguien me abra ventana completa y no media ventana, porque a veces por error oprimen el mouse y se cierra la conversación».
 
 - **D7 · El chat abre a pantalla completa.** La ficha sigue a media pantalla. «Abrir chat» navega a la Bandeja (`/studio/bandeja?c=N&volver=crm`), que es una página: un clic fuera no la cierra y «← Volver al embudo» (o Atrás) regresa al tablero. Aplica D5: la vista «Conversaciones» del CRM es la misma Bandeja a pantalla completa.
+  - **Ajuste por la SDD-0655 (en main desde el 2026-11-17):** la Bandeja pasó a ser la pestaña «Bandeja» del CRM, con la cabecera y las pestañas del CRM arriba. Esa pestaña cumple D5 y trae «Embudos» para volver, así que esta PR ya no agrega el enlace «Conversaciones», ni `?volver=crm`, ni «← Volver al embudo».
 - **D8 · La ficha no se cierra con un clic fuera.** Pendiente de respuesta de Sam; no se implementa en esta PR sin su sí.
 
 ## Diseño
@@ -82,20 +83,19 @@ Cada logo lleva su nombre como `aria-label` y `title`: el canal no depende solo 
 - En Embudos, `KommoClient` deja su tope de 1.280 px y el contenedor del Studio deja el suyo (`.studio-content:has([data-ancho-completo])`). Las demás pantallas no cambian.
 - Las columnas usan `grid-auto-columns: minmax(232px, 1fr)`: llenan el ancho y, si no caben, el tablero se desplaza en horizontal como antes.
 - Selector de vista dentro de Embudos: **Tablero** | **Lista**. La Lista es una tabla densa (canal, nombre, etapa, estado, dueño, días, tareas) con las mismas tarjetas ya filtradas por embudo y búsqueda; no hace lecturas nuevas.
-- Dentro de Embudos, junto al selector Tablero | Lista, un enlace «Conversaciones» abre la Bandeja a pantalla completa (D5, D7). Solo aparece si se puede entrar a la Bandeja (§4).
+- Las conversaciones (D5) son la pestaña «Bandeja» del CRM que trajo la SDD-0655; esta PR no agrega un enlace propio.
 
 ### 4. Chat a pantalla completa
 
-- `GET /studio/crm/chat/[tarjetaId]` resuelve la conversación y redirige a `/studio/bandeja?c=N&volver=crm`:
+- `GET /studio/crm/chat/[tarjetaId]` resuelve la conversación y redirige a `/studio/bandeja?c=N` (pestaña Bandeja del CRM, SDD-0655):
   - con ficha (`client_id`): la conversación más reciente de `chatwoot_conversations`, bajo la RLS de quien mira;
   - sin ficha: las conversaciones del contacto en Chatwoot (`chatwoot_contact_id`), con el token del enrutador; la más reciente.
   - Sin sesión o sin el módulo del CRM (`kommo`): `/studio/dashboard?denied=kommo`, igual que `requireModuleView`.
   - Con CRM pero sin entrada a la Bandeja (rol `bandeja` o flag `chatwoot_inbox` apagado): `/studio/crm?tab=embudos&chat=sin_bandeja`, con aviso.
   - Id que no es UUID, tarjeta que la RLS no deja ver o sin conversación: `chat=sin`, con aviso.
   - Error de la base o de Chatwoot: `chat=error`, con aviso.
-- «Abrir chat» (tarjeta y ficha) y «Conversaciones» solo se muestran si `puedeAbrirBandeja` da sí: `moduleViewDenial(…, "bandeja")` nulo y flag `chatwoot_inbox` encendido, las mismas dos capas del layout de la Bandeja. Lo calcula `CrmEmbudosSlot` en el servidor y lo pasa por contexto (`ChatPermitido`); sin proveedor vale `false`.
+- «Abrir chat» (tarjeta y ficha) solo se muestra si `puedeAbrirBandeja` da sí: es `accesoCrm(…).bandeja` de la SDD-0655 (módulo `bandeja` por rol + flag `chatwoot_inbox`), la misma regla que muestra la pestaña Bandeja. Lo calcula `CrmEmbudosSlot` en el servidor y lo pasa por contexto (`ChatPermitido`); sin proveedor vale `false`.
 - La Bandeja respeta sus dos capas (rol + flag `chatwoot_inbox`) y el vínculo del agente; Chatwoot decide qué bandejas ve cada agente. Leer y contestar ocurre en Chatwoot: Studio no copia mensajes.
-- Con `volver=crm`, la Bandeja muestra «← Volver al embudo».
 
 ## Dependencia
 
@@ -118,8 +118,8 @@ que esta rama trae por merge. Esta PR se fusiona después de la #621.
 5. En Embudos el tablero usa el ancho de la ventana; en otras pantallas el tope de 1.440 px sigue.
 6. La vista Lista muestra las mismas tarjetas que el tablero para el embudo y la búsqueda elegidos.
 7. «Abrir chat» lleva a la Bandeja en la conversación de esa tarjeta; sin conversación vuelve al tablero con aviso.
-7b. Quien no puede entrar a la Bandeja no ve «Abrir chat» ni «Conversaciones», y si abre la ruta a mano recibe el aviso `sin_bandeja`, no el rebote al inicio.
-8. La Bandeja con `volver=crm` muestra «← Volver al embudo».
+7b. Quien no puede entrar a la Bandeja no ve «Abrir chat», y si abre la ruta a mano recibe el aviso `sin_bandeja`, no el rebote al inicio.
+8. Desde la Bandeja se vuelve al tablero con la pestaña «Embudos» del CRM (SDD-0655).
 9. Sin migraciones, sin lecturas de PII nuevas en el tablero (no se lee teléfono ni BSUID) y sin texto de mensajes en Studio.
 
 ## Allowlist
@@ -150,12 +150,7 @@ que esta rama trae por merge. Esta PR se fusiona después de la #621.
 | `app/studio/(app)/crm/_components/CrmEmbudosSlot.test.tsx` | doble de `puedeAbrirBandeja` |
 | `app/studio/(app)/crm/_components/ChatPermitido.tsx` | nuevo: contexto del permiso de chat |
 | `app/studio/(app)/crm/_components/CrmVistaEmbudo.test.tsx` | nuevo: selector, vista recordada, avisos de chat, criterio 6 |
-| `lib/studio/crm-chat-acceso.ts` | nuevo: `puedeAbrirBandeja` (rol + flag) |
-| `app/studio/(app)/bandeja/page.tsx` | lee `volver` |
-| `app/studio/(app)/bandeja/_components/BandejaClient.tsx` | «← Volver al embudo» |
-| `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx` | caso de `volver` |
-| `lib/i18n/es-VE/bandeja.ts` | texto «← Volver al embudo» |
-| `lib/i18n/zh-CN/bandeja.ts` | el mismo texto en chino |
+| `lib/studio/crm-chat-acceso.ts` | nuevo: `puedeAbrirBandeja`, sobre `accesoCrm` de la SDD-0655 |
 | `app/studio/(app)/layout.tsx` | clase `studio-content` en el contenedor |
 | `app/studio/studio.css` | ancho completo con `:has`, logo DTD por tema |
 
@@ -174,3 +169,5 @@ Worktree propio, `corepack pnpm@11.19.0 install --frozen-lockfile` (la versión 
 | Capturas antes/después | NO EJECUTADO: el Preview comparte base con producción; el DG la despliega en el entorno de prueba tras la revisión |
 | `/ui-check` | EJECUTADO: 1 hallazgo alto (el nombre de la tarjeta medía ~21 px, BD-037 pide 32) y 2 bajos de escala. Sam aprobó aplicarlos; aplicados: el botón abarca las dos líneas con `minHeight: 32`. Vitest y typecheck de este ajuste: en CI (orden del DG, PC ocupada) |
 | Revisión independiente (DG, cabeza `1afcd4169`) | sin fugas de seguridad; pidió filtrar el chat por el permiso de Bandeja, pruebas de `CrmVistaEmbudo` y de la ruta, y traer la #621 (`ebc71fc69`). Hecho; vitest, typecheck y eslint de esta ronda corren en CI (orden del DG) |
+| Merge de main con la #621 y la SDD-0655 | conflictos resueltos: la Bandeja es pestaña del CRM; se retiran «Conversaciones», `?volver=crm` y «← Volver al embudo»; `studio.css` conserva los dos bloques |
+| CI en `3103801e3` | FALLÓ: `claridad-t5d-contract` (SDD-0603 5d) pide «Abrir ›» como parada de teclado; restituido sin tocar el contrato |

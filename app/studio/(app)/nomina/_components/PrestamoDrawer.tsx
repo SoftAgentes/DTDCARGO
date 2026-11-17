@@ -12,7 +12,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createLoanAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
@@ -25,7 +25,7 @@ export function PrestamoDrawer({
   employees,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   onClose: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(createLoanAction, initial);

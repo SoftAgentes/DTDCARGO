@@ -1,24 +1,21 @@
 import "server-only";
 
 import type { createClient } from "@/lib/db/server";
+import { accesoCrm } from "@/lib/studio/crm-acceso";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
-import { moduleViewDenial } from "@/lib/studio/rbac-guard";
+import { getStudioAccess } from "@/lib/studio/rbac-guard";
 
 /**
  * ¿Quien mira puede abrir el chat de Chatwoot desde el CRM (SDD-0648 §4)?
  *
- * Son las mismas dos capas que el layout de la Bandeja: el rol, con
- * `requireModuleView("bandeja")`, y que la empresa la use, con el flag
- * `chatwoot_inbox`. Sin las dos, «Abrir chat» y «Conversaciones» no se
- * muestran, y la ruta del chat devuelve un aviso en vez de rebotar al tablero
- * de inicio.
+ * Es la misma regla que decide si ve la pestaña Bandeja del CRM (SDD-0655,
+ * `accesoCrm`): módulo `bandeja` por rol + flag `chatwoot_inbox`. Sin ella,
+ * «Abrir chat» no se muestra, y la ruta del chat devuelve un aviso en vez de
+ * rebotar al inicio.
  */
 export async function puedeAbrirBandeja(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<boolean> {
-  const [denegado, flags] = await Promise.all([
-    moduleViewDenial(supabase, "bandeja"),
-    listFeatureFlags(supabase),
-  ]);
-  return denegado === null && flags.chatwoot_inbox === true;
+  const [access, flags] = await Promise.all([getStudioAccess(supabase), listFeatureFlags(supabase)]);
+  return accesoCrm(access.role, flags, access.overrides, access.grants).bandeja;
 }

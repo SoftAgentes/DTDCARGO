@@ -2,19 +2,15 @@
  * SDD-0585 · BandejaClient: cuándo pide el SSO, qué pone en el iframe y qué
  * muestra en cada estado.
  */
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pedirEnlaceSso = vi.fn();
 const reconciliar = vi.fn(async () => ({ ok: true, aplicadas: 0 }));
-const desvincular = vi.fn<(prev: unknown, fd: FormData) => Promise<{ ok: boolean; error: null }>>(async () => ({ ok: true, error: null }));
 vi.mock("../actions", () => ({
   pedirEnlaceSso: (c?: number) => pedirEnlaceSso(c),
   reconciliarBandeja: () => reconciliar(),
-  vincularAgente: vi.fn(async () => ({ ok: false, error: null })),
-  desvincularAgente: (prev: unknown, fd: FormData) => desvincular(prev, fd),
-  altaAgente: vi.fn(async () => ({ ok: false, error: null })),
 }));
 
 const { BandejaClient } = await import("../_components/BandejaClient");
@@ -36,16 +32,6 @@ describe("BandejaClient (SDD-0585)", () => {
     expect(marco()?.getAttribute("allow")).toBe("microphone");
     expect(marco()?.hasAttribute("sandbox")).toBe(false);
     expect(pedirEnlaceSso).not.toHaveBeenCalled();
-  });
-
-  it("desde el CRM ofrece volver al embudo; sin `volver` no (SDD-0648, D7)", () => {
-    const { rerender } = render(
-      <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} conversacion={97} volverACrm admin={null} />,
-    );
-    const volver = screen.getByRole("link", { name: "← Volver al embudo" });
-    expect(volver.getAttribute("href")).toBe("/studio/crm?tab=embudos");
-    rerender(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    expect(screen.queryByRole("link", { name: "← Volver al embudo" })).toBeNull();
   });
 
   it("sin marca: pide UN enlace al montar y lo pone en el iframe", async () => {
@@ -86,41 +72,21 @@ describe("BandejaClient (SDD-0585)", () => {
     expect(pedirEnlaceSso).not.toHaveBeenCalled();
   });
 
-  it("los vínculos solo se muestran si la página los manda (admin)", () => {
+  it("SDD-0655: los vínculos ya no están en la Bandeja; el admin tiene el enlace a Usuarios", () => {
     const { rerender } = render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
-    expect(screen.queryByText("Agentes vinculados")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Agentes vinculados" })).toBeNull();
     rerender(
-      <BandejaClient
-        estado="sin_vinculo"
-        panelUrl={PANEL}
-        inicioUrl={null}
-        admin={{ vinculos: [{ userId: "u1", nombre: "Ana", chatwootUserId: 7 }], miembros: [{ userId: "u2", nombre: "Luis" }] }}
-      />,
+      <BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={{ agentesHref: "/studio/usuarios?tab=bandeja" }} />,
     );
-    expect(screen.getByText("Agentes vinculados")).toBeTruthy();
-    expect(screen.getByText("#7")).toBeTruthy();
-    // Luis sale en los dos formularios (vincular y, desde 2.5, dar de alta): se mira el de vincular.
-    const vincular = screen.getByRole("button", { name: "Vincular" }).closest("form")!;
-    expect(within(vincular).getByRole("option", { name: "Luis" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Agentes vinculados" }).getAttribute("href")).toBe("/studio/usuarios?tab=bandeja");
+    // Ni el formulario de vincular ni el de alta: viven en Usuarios › Bandeja.
+    expect(screen.queryByRole("button", { name: "Vincular" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Dar de alta" })).toBeNull();
   });
 
-  it("desvincular pide confirmación y solo borra al confirmar", async () => {
-    render(
-      <BandejaClient
-        estado="sin_vinculo"
-        panelUrl={PANEL}
-        inicioUrl={null}
-        admin={{ vinculos: [{ userId: "u1", nombre: "Ana", chatwootUserId: 7 }], miembros: [] }}
-      />,
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));
-    expect(desvincular).not.toHaveBeenCalled();
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo.textContent).toContain("Ana ya no podrá abrir la bandeja");
-    const botones = Array.from(dialogo.querySelectorAll("button")).filter((b) => b.textContent === "Desvincular");
-    await userEvent.click(botones[botones.length - 1]);
-    await waitFor(() => expect(desvincular).toHaveBeenCalledTimes(1));
-    expect((desvincular.mock.calls[0][1] as FormData).get("user_id")).toBe("u1");
+  it("SDD-0655: la Bandeja no repite su propio título; la cabecera es la del CRM", () => {
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
   it("con vínculo reconcilia UNA vez al montar; sin vínculo no", async () => {
@@ -147,8 +113,6 @@ describe("BandejaClient (SDD-0585)", () => {
         panelUrl={PANEL}
         inicioUrl={null}
         admin={{
-          vinculos: [],
-          miembros: [],
           descartados: [{ event_key: "message_created:101", event: "message_created", conversation_id: 12, attempts: 5, updated_at: "2026-10-30T03:00:00.000Z" }],
         }}
       />,
@@ -158,7 +122,7 @@ describe("BandejaClient (SDD-0585)", () => {
   });
 
   it("sin descartados no pinta la sección", () => {
-    render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={{ vinculos: [], miembros: [], descartados: [] }} />);
+    render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={{ descartados: [] }} />);
     expect(screen.queryByText("Eventos que no se pudieron procesar")).toBeNull();
   });
 });

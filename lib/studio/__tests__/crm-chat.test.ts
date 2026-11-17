@@ -50,8 +50,8 @@ describe("resolverConversacion (SDD-0648 §4)", () => {
 });
 
 describe("destinoChat", () => {
-  it("lleva a la Bandeja en esa conversación, con regreso al embudo", () => {
-    expect(destinoChat({ ok: true, conversacion: 97 })).toBe("/studio/bandeja?c=97&volver=crm");
+  it("lleva a la Bandeja (pestaña del CRM, SDD-0655) en esa conversación", () => {
+    expect(destinoChat({ ok: true, conversacion: 97 })).toBe("/studio/bandeja?c=97");
   });
   it("sin chat o con error vuelve al tablero con aviso", () => {
     expect(destinoChat({ ok: false, motivo: "sin_chat" })).toBe("/studio/crm?tab=embudos&chat=sin");

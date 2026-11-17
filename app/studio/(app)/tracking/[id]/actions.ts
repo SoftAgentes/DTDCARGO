@@ -7,6 +7,8 @@
  * - transitionShipment: cambio de estado por boton → update status + event
  * - addShipmentEvent: agregar evento manual (status + nota + occurred_at)
  * - changeDestination: cambia destino del envio + registra fee en timeline (SDD-0009)
+ * - previewReassignShipmentClient / reassignShipmentClient: pasar a otro cliente,
+ *   con vista previa y motivo (RPC de la 0551, SDD-0645)
  *
  * Todas validan sesion via Supabase. RLS filtra por tenant_id automaticamente.
  */
@@ -32,6 +34,12 @@ import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 import { scheduleClientNotifications } from "@/lib/studio/notifications/schedule-client-notifications";
 import { statusEvent } from "@/lib/studio/notifications/client-notification-types";
+import {
+  faltaLaFuncion,
+  mensajeErrorReasignar,
+  parseReasignarResultado,
+  type ReasignarResultado,
+} from "@/lib/studio/reasignar-embarque";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -540,4 +548,77 @@ export async function lookupRateForNewDestination(
   } catch {
     return { rate: null };
   }
+}
+
+// ─── Pasar a otro cliente (SDD-0645) ────────────────────────────────────────
+
+export type ReasignarActionResult =
+  | { ok: true; resultado: ReasignarResultado }
+  | { ok: false; error: string; noDisponible?: boolean };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function llamarReasignar(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shipmentId: string,
+  clientId: string,
+  reason: string | null,
+  dryRun: boolean,
+): Promise<ReasignarActionResult> {
+  const { data, error } = await supabase.rpc("reassign_shipment_client", {
+    p_shipment_id: shipmentId,
+    p_client_id: clientId,
+    p_reason: reason,
+    p_dry_run: dryRun,
+  });
+  if (error) {
+    return { ok: false, error: mensajeErrorReasignar(error), noDisponible: faltaLaFuncion(error) || undefined };
+  }
+  const resultado = parseReasignarResultado(data);
+  if (!resultado) return { ok: false, error: "No pudimos leer la respuesta. Recarga la página." };
+  return { ok: true, resultado };
+}
+
+/**
+ * Vista previa de «Pasar a otro cliente»: lo mismo que decidiría el cambio
+ * (qué se mueve y qué lo bloquea), sin escribir. La RPC de la 0551 repite el
+ * rol y el tenant.
+ */
+export async function previewReassignShipmentClient(
+  shipmentId: string,
+  clientId: string,
+): Promise<ReasignarActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "reassign_shipment_owner");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "") || !UUID_RE.test(clientId ?? "")) {
+    return { ok: false, error: "Elige un cliente de la lista." };
+  }
+  return llamarReasignar(supabase, shipmentId, clientId, null, true);
+}
+
+/**
+ * Pasa el embarque (y sus recepciones, borradores, consolidación, documentos
+ * y avisos pendientes) a otro cliente, con motivo. Todo o nada en la 0551.
+ */
+export async function reassignShipmentClient(
+  shipmentId: string,
+  clientId: string,
+  reason: string,
+): Promise<ReasignarActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "reassign_shipment_owner");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "") || !UUID_RE.test(clientId ?? "")) {
+    return { ok: false, error: "Elige un cliente de la lista." };
+  }
+  const motivo = validateAuditReason(reason);
+  if (!motivo.ok) return { ok: false, error: motivo.error };
+
+  const res = await llamarReasignar(supabase, shipmentId, clientId, motivo.reason, false);
+  if (res.ok && res.resultado.outcome === "reassigned") {
+    revalidatePath(`/studio/tracking/${shipmentId}`);
+    for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
+  }
+  return res;
 }

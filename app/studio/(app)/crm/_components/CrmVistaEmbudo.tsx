@@ -13,8 +13,6 @@ import { useEffect, useState } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import type { CrmColumna, CrmEtapa, CrmTablero, CrmTarjetaTablero } from "@/lib/studio/crm-tablero";
-import { Icon } from "@/app/studio/_components/icons";
-import { useChatPermitido } from "./ChatPermitido";
 import { CrmEmbudosLista } from "./CrmEmbudosLista";
 import { CrmTableroKanban } from "./CrmTableroKanban";
 
@@ -47,7 +45,6 @@ export function CrmVistaEmbudo(props: {
   const [vista, setVista] = useState<Vista>("tablero");
   // `?chat=sin|error` lo pone la ruta del chat (SDD-0648 §4) al no encontrarlo.
   const [chat, setChat] = useState<string | null>(null);
-  const chatPermitido = useChatPermitido();
   const aviso = chat ? AVISO_CHAT[chat] : undefined;
 
   // Se lee al montar, no al pintar en el servidor: así no hay desajuste de hidratación.
@@ -99,14 +96,6 @@ export function CrmVistaEmbudo(props: {
             { value: "lista", label: "Lista" },
           ]}
         />
-        {/* SDD-0648 (D5, D7): todas las conversaciones, en la Bandeja a pantalla
-            completa. Solo si se puede entrar a la Bandeja (§4). */}
-        {chatPermitido && (
-          <a href="/studio/bandeja?volver=crm" className="studio-btn studio-btn-ghost studio-btn-sm">
-            {Icon.chat(14)}
-            Conversaciones
-          </a>
-        )}
       </div>
       {vista === "lista" ? (
         <CrmEmbudosLista tablero={props.tablero} columnas={props.columnas} onOpen={props.onOpen} />

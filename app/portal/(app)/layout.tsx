@@ -16,6 +16,10 @@ import {
 } from "@/lib/portal/next-sailing-queries";
 import { showNortePortal } from "@/lib/portal/demo";
 import { listMyPortalAvisos } from "@/lib/portal/portal-avisos-queries";
+import {
+  getMyPortalVista,
+  isPortalVistaSimpleEnabled,
+} from "@/lib/portal/vista-preferida";
 import { PortalShell } from "../_components/PortalShell";
 import { PortalCalcFab } from "../_components/PortalCalcFab";
 import { PortalPushRegister } from "../_components/PortalPushRegister";
@@ -80,10 +84,18 @@ export default async function PortalAppLayout({
   // base). Degrada a lista vacía: nunca tumba el portal.
   const avisos = await listMyPortalAvisos(supabase);
 
+  // Vista simple / Vista Pro (SDD-0654). Con el interruptor apagado no se
+  // consulta nada y el portal es el de siempre (AC-1). Encendido, la lectura va
+  // aparte de la del principal y cualquier fallo degrada a «pro» (AC-5).
+  const vista = isPortalVistaSimpleEnabled()
+    ? (await getMyPortalVista(supabase, principal.userId)).vista
+    : null;
+
   return (
     <div
       id="portal-shell"
       data-portal-theme={norte ? theme : undefined}
+      data-portal-vista={vista ?? undefined}
       className={`${jetbrainsMonoUi.variable} min-h-screen bg-paper`}
     >
       {/* Armazón del Norte: barra lateral navy + topbar + contenido + pie. */}
@@ -98,6 +110,7 @@ export default async function PortalAppLayout({
         sailing={sailing}
         sailingDaysToCutoff={sailingDaysToCutoff}
         avisos={avisos}
+        vista={vista}
       >
         {/* Mantenimiento programado (SDD-0505): solo con MAINTENANCE_NOTICE_START/END
             y hasta el fin de la ventana; sin variables no pinta nada. */}

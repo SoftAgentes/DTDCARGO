@@ -36,3 +36,9 @@ Tarjeta compacta, logo por canal, ancho completo, vista Lista y chat a pantalla 
 
 - Sin fugas de seguridad. Cambios pedidos y hechos: «Abrir chat» y «Conversaciones» solo con `puedeAbrirBandeja` (rol `bandeja` + flag `chatwoot_inbox`); «Conversaciones» pasa de `KommoClient` a Embudos, junto a Tablero | Lista; la ruta del chat manda a `/studio/dashboard?denied=kommo` sin CRM y a `?chat=sin_bandeja` sin Bandeja; pruebas nuevas de `CrmVistaEmbudo` y de la ruta; la #621 traída en `ebc71fc69`.
 - Pruebas de esta ronda: NO EJECUTADAS en la PC (orden del DG); el portón es CI.
+
+## CI rojo y merge con la SDD-0655 (2026-11-17)
+
+- CI en `3103801e3` FALLÓ en `claridad-t5d-contract.test.ts` (SDD-0603 5d): el contrato exige «Abrir ›» (`studio-btn-ghost sm`) como parada de teclado y el nombre con `tabIndex={-1}`. Se restituyó sin tocar el contrato; el nombre conserva su zona de 32 px para el ratón.
+- main trajo la #621 y la SDD-0655 (Bandeja como pestaña del CRM). Conflictos en `BandejaClient.tsx`, `bandeja/page.tsx`, `KommoClient.tsx` y `studio.css`: se tomó main en los tres primeros (más el ancho de Embudos en `KommoClient`) y se conservaron los dos bloques de CSS. Se retiran el enlace «Conversaciones», `?volver=crm`, «← Volver al embudo» y sus textos i18n: la pestaña Bandeja los reemplaza. `puedeAbrirBandeja` usa `accesoCrm` de la 0655.
+

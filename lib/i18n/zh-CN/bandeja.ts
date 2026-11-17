@@ -21,10 +21,12 @@ export const bandeja: BandejaDict = {
   "bandeja.action.retry": "重试",
   "bandeja.action.relogin": "重新登录",
   "bandeja.action.open_tab": "在新标签页中打开",
-  "bandeja.action.back_crm": "← 返回销售漏斗",
 
   // ── 绑定（仅管理员）──────────────────────────────────────
   "bandeja.links.title": "已绑定的坐席",
+  // SDD-0655: los vínculos viven en Usuarios › Bandeja; «what» dice qué hacen y «manage» es el enlace desde la Bandeja.
+  "bandeja.links.what": "把你的 Studio 用户与你的 Chatwoot 坐席绑定，即可用你的会话打开收件箱。",
+  "bandeja.links.manage": "已绑定的坐席",
   "bandeja.links.help": "把每个 Studio 用户与其收件箱坐席绑定。坐席的邮箱必须与用户一致。",
   "bandeja.links.empty": "还没有绑定的用户。",
   "bandeja.links.user": "Studio 用户",
