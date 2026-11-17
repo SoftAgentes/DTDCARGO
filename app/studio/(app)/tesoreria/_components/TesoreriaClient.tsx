@@ -100,11 +100,12 @@ export function TesoreriaClient({
    * es lo que evita que la pantalla siga mostrando el saldo de antes.
    */
   const openBillId = selectedBillId ?? consultPayable?.bill.id ?? null;
+  // Mismo resultado que antes; separado en dos pasos porque TypeScript 6
+  // marcaba el `?? null` anidado en el ternario (TS2871, SDD-0656 B).
+  const payableDeLaCola =
+    openBillId != null ? payables.find((p) => p.bill.id === openBillId) ?? null : null;
   const selectedPayable =
-    (openBillId != null
-      ? payables.find((p) => p.bill.id === openBillId) ?? null
-      : null) ??
-    (consultPayable?.bill.id === openBillId ? consultPayable : null);
+    payableDeLaCola ?? (consultPayable?.bill.id === openBillId ? consultPayable : null);
 
   const closeDrawer = () => {
     setSelectedBillId(null);
