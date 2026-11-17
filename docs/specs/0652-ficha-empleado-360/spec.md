@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0652 — Ficha 360° del empleado en el Studio
 
 > Quien abre a una persona del equipo en Nómina ve en una sola página quién es, cuánto gana y qué debe, si tiene acceso al sistema, cuándo entró y qué hizo, con enlaces para profundizar. Toma la estructura de la ficha 360° del cliente (SDD-0650).
-> **Decisiones aprobadas por Sam el 2026-11-17** (§8). La F1 está implementada en esta misma PR, por encargo del Director General; F2 a F5 esperan su asignación.
+> **Decisiones aprobadas por Sam el 2026-11-17** (§8). La F1 está en `main` (PR #632). La F2 está implementada en su PR, con la migración 0555 **en espera** (aplicarla exige el OK nominal de Sam). F3 a F5 esperan su asignación.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 > Medido en `main` `26a9a911e` (2026-11-16). Las líneas citadas se vencen si alguien edita arriba: copia el nombre de la función o del bloque al buscar.
 > **Revisiones incorporadas.** (1) DG sobre `18441e8b7`, CHANGES REQUESTED: catálogo de auditoría, retención dentro de AUD-02, preflight de la 0555, `ensureEmployeeAuthUser`, finiquitos auditados, gobernanza. (2) DG sobre `8dcb53734`, APPROVED con ajustes menores. (3) Codex sobre `8dcb53734`, solo lectura: control de rol en el servidor, datos sensibles que ya viajan al navegador, identidad antes que todo, tres clases de inicio de sesión, «lo que hizo» acotado, foto sin P0, estados con causa y orden de fases. Cada punto se verificó en el código antes de adoptarlo.
@@ -368,23 +368,43 @@ Diferencias con lo propuesto antes de implementar:
 - **Acciones de Nómina en la ficha:** «Registrar préstamo», «Amonestación» y «Generar finiquito» no se repiten en la F1: cada bloque lleva a su pestaña («Ir a Préstamos»). Así no se duplican los formularios, que necesitan las reglas de nómina, y no se destacan (B5).
 - **Borrar la cuenta bancaria** desde el formulario ya no se puede: un campo vacío significa «conservar». Si hace falta, va como acción propia.
 
-### F2
+### F2 (implementada en su PR; la migración 0555 queda en espera)
 
 | Archivo | Cambio |
 |---|---|
-| Migración **0555** en `supabase/migrations/` | Nueva (§F2). El nombre del archivo lo fija la F2: la spec no cita un archivo que todavía no existe |
-| Su contrato en `supabase/tests/`, con el mismo número | Nuevo, en PGlite (misma carpeta que `0551`-`0553`) |
-| `app/studio/(app)/nomina/actions.ts` | Correctivo de `ensureEmployeeAuthUser` (§4, punto 6) |
-| `app/studio/(app)/nomina/__tests__/ensure-employee-auth-user.test.ts` | Nuevo: correo de cliente del portal, de usuario del Studio, error en cada comprobación, más de 200 usuarios |
-| `app/studio/(app)/nomina/empleados/[codigo]/actions.ts` | Nuevo: enlazar, quitar enlace, reenlazar, foto, mostrar la cuenta |
-| `app/studio/(app)/nomina/empleados/[codigo]/_components/*` | Enlace, sugerencia, foto, revelado, línea de tiempo con eventos |
-| `lib/studio/nomina/employee-photo.ts` | Nuevo: validación, reescalado, limpieza de EXIF |
-| `app/api/cron/purge-employee-photo-orphans/route.ts` | Nuevo: reconciliación de huérfanos del bucket (P0 técnico) |
-| `app/studio/(app)/nomina/_components/NominaClient.tsx` | Foto en la fila |
+| Migración **0555** en `supabase/migrations/` (se cita por número) | Nueva (§F2): catálogo, `photo_path`, bucket, las cinco RPC y la que resuelve quién llama |
+| Su contrato en `supabase/tests/`, con el mismo número | Nuevo. Writer AUD-01 real, casos negativos por rol, tenant, suspendido, cliente del portal, acceso extra y lectura propia |
+| `lib/studio/nomina/__tests__/ficha-empleado-0555.migration.test.ts` | Nuevo. Corre el contrato en PGlite, con control rojo, preflight y mutantes |
+| `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json` | La 0555 declarada en espera y sus degradaciones. `supabase/migrations.lock.json` no cambia hasta aplicarla |
+| `lib/studio/nomina/employee-auth-user.ts` | Nuevo. `ensureEmployeeAuthUser` sale de `actions.ts`: crea, «ya existe» o error; nunca reutiliza (§4, punto 6) |
+| `app/studio/(app)/nomina/actions.ts` | La aprobación usa el correctivo, crea la ficha sin acceso si el correo ya tiene cuenta y avisa; `getRegistrationReviewAction` (N2) |
+| `app/studio/(app)/nomina/__tests__/ensure-employee-auth-user.test.ts`, `revisar-solicitud.test.ts` | Nuevos |
+| `app/studio/(app)/nomina/empleados/[codigo]/actions.ts` | Nuevo: enlazar, quitar enlace, subir y quitar la foto, mostrar la cuenta |
+| `app/studio/(app)/nomina/empleados/[codigo]/page.tsx` | Foto firmada, eventos, candidatos y sugerencia (solo admin) |
+| `app/studio/(app)/nomina/empleados/[codigo]/_components/{FichaEmpleadoVista,FotoEmpleado,EnlaceUsuario,MostrarCuenta}.tsx`, `ficha-empleado.css` | Enlace, sugerencia, foto, revelado, línea de tiempo con eventos |
+| `app/studio/(app)/nomina/empleados/__tests__/{ficha-empleado-page.test.tsx,ficha-empleado-actions.test.ts}` | Casos de la fase 2 |
+| `lib/studio/nomina/employee-photo.ts` | Nuevo: validación por contenido, reescalado, WebP sin EXIF, ruta, firma |
+| `lib/studio/nomina/{ficha-empleado,ficha-empleado-queries,employee-types}.ts` | Eventos como hechos, sugerencia, candidatos, `photo_url` en la lista |
+| `lib/studio/nomina/{registration-types,registration-queries}.ts`, `app/studio/(app)/nomina/_components/{SolicitudesTab,RevisarSolicitudDrawer,NominaClient}.tsx`, `app/studio/(app)/nomina/page.tsx` | N2: la bandeja no lee la cédula ni la cuenta; la revisión las pide para una pendiente, con la cuenta enmascarada. Foto en la fila de Empleados |
+| `app/api/cron/purge-employee-photo-orphans/route.ts` y su prueba | Nuevo: reconciliación de huérfanos del bucket (P0 técnico). Nace apagada |
+| `scripts/build-crontab.mjs`, `scripts/__tests__/build-crontab.test.ts`, `infra/dtd-cargo/cron/crontab` | El cron nuevo, generado |
+| `.env.example`, `infra/dtd-cargo/.env.example` | `PURGE_EMPLOYEE_PHOTO_ORPHANS_ENABLED` |
+| `lib/studio/rbac-actions-guard.test.ts` | Inventario 477 → 483 |
 | `lib/studio/nomina/__tests__/*` | Pruebas nuevas |
-| `docs/legal/privacidad/registro-tratamiento.md` | Filas de la foto y del revelado |
-| `docs/legal/privacidad/mapa-de-borrado.md` | Borrado de la foto |
-| `docs/governance/` | La excepción de D9, solo si Sam se aparta del estándar |
+| `docs/legal/privacidad/registro-tratamiento.md`, `mapa-de-borrado.md` | Foto, enlace, revelado y su borrado |
+| `docs/governance/reviews/excepcion-aud-02-revelado-cuenta-nomina-2026-11-17.md` | La excepción de D9 (b) a AUD-02 §3 |
+
+Diferencias con lo propuesto antes de implementar la F2:
+
+- **Motivo de 4 a 500 caracteres**, no de 3: el writer de auditoría (0267) rechaza un motivo de menos de 4.
+- **La foto tiene su RPC** (`nomina_set_employee_photo`), que no estaba en la lista de §F2: «referencia y evento en una transacción» no se puede cumplir desde la aplicación.
+- **`ensureEmployeeAuthUser` ya no busca la cuenta existente.** Si Auth dice que el correo existe, no se consulta de quién es: no hay `listUsers` ni lecturas que puedan fallar abierto. La cuenta creada en una aprobación cuya ficha no nace se descarta.
+- **«Reenlazar su cuenta de empleado» no se construyó.** Falta decidir cómo se reconoce, sin leer datos de otra persona, que una cuenta sin membresía del Studio «era solo de `/m/emp`». Mientras tanto, un empleado que vuelve queda con la ficha sin acceso y el aviso. Queda como pendiente de la F2.
+- **La línea de tiempo trae la primera página de eventos (50).** La RPC ya pagina con cursor; «Ver más» en pantalla queda para cuando haga falta.
+- **Sin la 0555 aplicada**, la ficha se lee igual: `photo_path` se pide aparte y los eventos no se muestran. Cada acción nueva responde que todavía no está disponible.
+- **La foto del candidato** (`nomina_employee_registrations.photo_path`) deja de leerse: nadie la escribe ni la usa.
+- **La excepción de D9** vive en `docs/governance/reviews/`. La entrada en la línea base del registro maestro (protocolo L3) es del Director General.
+- **Dos enlaces a la vez** no se prueban con carrera real (PGlite tiene una conexión): se mide el segundo intento en serie, que recibe «ya enlazada».
 
 F3, F4 y F5 fijan su lista al asignarse, con su número de migración. La de F4 incluye obligatoriamente las **funciones de lote propias** para minimizar y purgar `studio_login_events` y sus pruebas en PGlite.
 
