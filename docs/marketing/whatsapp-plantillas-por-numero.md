@@ -1,7 +1,7 @@
 # Plantillas de WhatsApp por número: qué tener en cada uno, qué dicen y por qué
 
 > **Para qué:** decidir el juego de plantillas de los dos números de DTD Cargo:
-> - **Atención al público:** leads y leads que se registran en la web.
+> - **Atención al público:** leads nuevos y los que se registran en la web.
 > - **Clientes:** gente que ya trabaja con nosotros.
 >
 > **Estado (2026-11-16):** propuesta. No se creó nada en Meta, Kommo ni Chatwoot.
@@ -215,7 +215,7 @@ Tu Shipping Mark es {{2}}. Tu proveedor lo debe poner en cada bulto para que ide
 ```
 Hola {{1}}, ya está lista la cotización que nos pediste para {{2}}.
 
-Total puerta a puerta: {{3}}, válida hasta el {{4}}. El desglose completo está en tu portal.
+Monto estimado puerta a puerta: {{3}}. Es referencial hasta el {{4}}; el desglose y las condiciones están en tu portal.
 
 ¿La reservamos para el próximo contenedor?
 ```
@@ -352,11 +352,11 @@ genera la respuesta sin que haya que pedirla.
 ```
 Hola {{1}}, tu embarque {{2}} quedó registrado.
 
-Desde este número te avisaremos cada paso: recepción en China, salida del contenedor, llegada a Venezuela y entrega. Guárdanos como DTD Cargo Clientes para no perder ningún aviso.
+Por este número te escribiremos con las novedades de tu embarque. Guárdanos como DTD Cargo Clientes para tenernos a mano.
 ```
 
 - **Botones:** «Ya los guardé» · «Tengo una duda»
-- **Ejemplo:** María · DTD-1234
+- **Ejemplo:** María · S-2026-0457
 - **El truco:** pedirle que guarde el contacto es un sí chico, y además un contacto guardado
   reporta menos como spam (I).
 
@@ -367,7 +367,7 @@ Desde este número te avisaremos cada paso: recepción en China, salida del cont
 - **Encabezado:** imagen con la foto de la recepción.
 
 ```
-Hola {{1}}, recibimos en nuestro almacén de China tu carga {{2}}: {{3}}.
+Hola {{1}}, recibimos en nuestro almacén de China tu carga con Shipping Mark {{2}}: {{3}}.
 
 Revisa la foto: ¿todo coincide con lo que compraste?
 ```
@@ -401,7 +401,7 @@ Hola {{1}}, tu carga {{2}} sale a entrega el {{3}}, entre las {{4}}.
 ```
 
 - **Botones:** «Confirmo» · «Cambiar fecha» · «Cambiar dirección»
-- **Ejemplo:** Ana · DTD-9012 · martes 25 · 9:00 y 12:00
+- **Ejemplo:** Ana · S-2026-0459 · martes 25 de noviembre · 9:00 y 12:00
 - **Por qué:** es una cita. Confirmar evita la segunda vuelta del camión, que es plata.
 
 ### C7 · `pago_recibido` — utilidad · fase 2
@@ -412,8 +412,8 @@ Hola {{1}}, recibimos tu pago de {{2}} para el embarque {{3}}.
 Saldo pendiente: {{4}}. El recibo está disponible en tu portal.
 ```
 
-- **Botón:** solo URL «Ver recibo» (enlace fijo al portal), o ninguno.
-- **Ejemplo:** Carlos · US$ 500,00 · DTD-5678 · US$ 0,00
+- **Botones:** ninguno (no espera respuesta; el recibo está en el portal).
+- **Ejemplo:** Carlos · US$ 500,00 · S-2026-0458 · US$ 0,00
 
 ### C8 · `como_llego_tu_carga` — utilidad · **fase 1**
 
@@ -427,7 +427,7 @@ Hola {{1}}, ya entregamos tu carga {{2}}.
 ```
 
 - **Botones:** «Todo bien» · «Hubo un problema»
-- **Ejemplo:** Luis · DTD-3456
+- **Ejemplo:** Luis · S-2026-0460
 - **Lo que viene después,** con la ventana ya abierta y en texto libre, sin plantilla:
   - si dijo «todo bien» → pedir la reseña en Google y el referido (R: `guiones-asesor.md` §8 y la
     sección `referidos` del portal);
@@ -468,7 +468,7 @@ cobro y entrega, y la pregunta de cierre que siembra reseñas y referidos.
 | Plantilla | Qué queremos que haga | Botón principal | Qué hace DTD con la respuesta |
 |---|---|---|---|
 | L1 | Decir en qué punto está | «Ya la compré» | Pasa a Calificado y le pide los datos del proveedor |
-| L2 | Reservar | «Sí, reservar» | Convierte: MARKBOX y embarque |
+| L2 | Reservar | «Sí, reservar» | Convierte: MARKBOX y embarque (I) |
 | L3 | Completar perfil | URL «Completar perfil» | El portal desbloquea la primera carga |
 | L4 | Confirmar el plan | «Sigo con el plan» | El asesor hace la pregunta del volumen |
 | L5 | Elegir su puerta | «Encontrar proveedor» / «Cotizar mi carga» | Compra asistida o calculadora |
@@ -500,7 +500,7 @@ cobro y entrega, y la pregunta de cierre que siembra reseñas y referidos.
 
 ---
 
-## 7 · ¿E Instagram?
+## 7 · ¿Y Instagram?
 
 **Instagram no usa plantillas aprobadas como WhatsApp.**
 

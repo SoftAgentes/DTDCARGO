@@ -150,7 +150,7 @@ Automatizar antes de ver las respuestas reales es automatizar a ciegas.
 
 - **Idioma:** Español (`es`).
 - **Variables:** tipo **Número** (`{{1}}`, `{{2}}`…).
-- **Pie:** `DTD Cargo · Avisos de tu embarque` (33 caracteres; el tope es 60).
+- **Pie de las de utilidad (C1 a C8):** `DTD Cargo · Avisos de tu embarque` (33 caracteres; el tope es 60). Las de marketing (C9 y C10) llevan otro pie, indicado en su ficha.
 
 Ninguna cumple con el patrón que Meta rechaza:
 
@@ -177,7 +177,7 @@ ejemplos.
   ```
   Hola {{1}}, tu embarque {{2}} quedó registrado en DTD Cargo.
 
-  Desde este número te avisaremos cada paso: recepción en China, salida del contenedor, llegada a Venezuela y entrega. Guárdanos como DTD Cargo Clientes para no perder ningún aviso.
+  Por este número te escribiremos con las novedades de tu embarque. Guárdanos como DTD Cargo Clientes para tenernos a mano.
   ```
 
 - **Botones (respuesta rápida):** `Ya los guardé` · `Tengo una duda`
@@ -232,8 +232,8 @@ ejemplos.
   | `consolidating` | En consolidación en nuestro almacén de China | Salida en el contenedor estimado para el `<fecha>` |
   | `shipped` | Salió de China en su contenedor | Llegada estimada a Venezuela el `<fecha ETA>` |
   | `in_transit` | En tránsito marítimo hacia Venezuela | Llegada estimada el `<fecha ETA>` |
-  | `in_customs` | En proceso de aduana en Venezuela | Te avisaremos cuando esté lista para entrega |
-  | `delayed_warehouse` | Con retraso en el almacén de China | Tu asesor te escribe hoy con la nueva fecha |
+  | `in_customs` | En proceso de aduana en Venezuela | Al salir de aduana, coordinamos la entrega |
+  | `delayed_warehouse` | Con retraso en el almacén de China | Si quieres más detalle, responde a este mensaje |
 
   `exception` y `cancelled` **no** usan plantilla: los avisa una persona.
 
@@ -331,7 +331,7 @@ ejemplos.
 - **Botones:** `Sí, cotizar` · `Todavía no` · baja de marketing `Detener promociones`. Meta trae
   un tipo de botón propio para la baja; si WhatsApp Manager lo ofrece, se usa ese (I).
 - **Ejemplos:** Pedro · 45 · 5 de diciembre
-- **Pie:** el mismo. Si se usa el botón de baja de Meta, el pie lo pone WhatsApp Manager.
+- **Pie:** `DTD Cargo`. No lleva el de avisos de embarque, porque esto no es un aviso. Si se usa el botón de baja de Meta, WhatsApp Manager agrega su propio texto.
 
 ### C10 · `corte_contenedor`
 
@@ -344,8 +344,9 @@ ejemplos.
   ¿Tienes mercancía para ese corte o te aviso del siguiente?
   ```
 
-- **Botones:** `Tengo para este` · `Avísame el siguiente` · `Detener promociones`
+- **Botones:** `Tengo para este` · `Avísame el siguiente` · `Detener promociones` (el mismo botón de baja que C9)
 - **Ejemplos:** Rosa · Yiwu · 5 de diciembre
+- **Pie:** `DTD Cargo`, igual que C9.
 
 ### Cómo se suben (cuando haya OK)
 
