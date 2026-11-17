@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0557_portal_vista_preferida": "PENDIENTE DE APLICAR — SDD-0654 fase 1 (Vista simple / Vista Pro del Portal). Agrega a client_users portal_vista (text not null, CHECK simple|pro; las filas existentes quedan en pro y el default de las nuevas es simple, sin reescritura ni UPDATE) y portal_guia_vista_at (timestamptz null). Crea portal_set_vista(text) y portal_marcar_guia_vista(): SECURITY DEFINER, search_path vacío, EXECUTE solo authenticated, sin identificadores de entrada; escriben solo su columna en la fila activa de auth.uid() con cliente vivo. Revoca INSERT, UPDATE, DELETE y TRUNCATE de client_users a public, anon y authenticated (nunca tuvo policies de escritura; todos sus escritores son SECURITY DEFINER o service_role). Preflight: aborta si las columnas o las funciones ya existen, si hay policies de escritura o triggers de UPDATE sin lista de columnas distintos de client_users_touch. ⚠️ ALTER TABLE toma ACCESS EXCLUSIVE breve sobre client_users (validar el CHECK); lock_timeout 5 s, statement_timeout 30 s. ORDEN indistinto: sin ella, la lectura de la preferencia degrada a pro y el selector (solo con PORTAL_VISTA_SIMPLE=true) avisa que no pudo guardar. Requiere OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG; aplicar individualmente con name exacto 0557_portal_vista_preferida. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
-  }
+  "pendingBelowCutoff": {}
 }
