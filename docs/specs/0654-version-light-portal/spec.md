@@ -200,6 +200,43 @@ ManyChat en transcripciones es un enlace suelto en una sesión de la app de Meta
 7. Ayudas con tres íconos fijos y glosario en línea, nunca como tooltip (For Dummies, NN/g).
 8. Contacto humano siempre visible, como soporte y no como venta (COGA, Banca March).
 
+### 3.6 Segunda opinión: Codex (2026-11-17)
+
+Sam pidió una segunda opinión de Codex, primero técnica y después visual. En la revisión visual, Codex abrió la
+maqueta en Chrome y diseñó una propuesta propia de la Vista simple, publicada aparte como Artifact privado para
+Sam: <https://claude.ai/artifact/7t9znp9qf8pktXqCqrcYNp>. Lo que dijo es opinión de diseño, no medición con
+clientes.
+
+**Lo que mantiene:** los seis bloques fijos, el selector reconocible, el vino claro con texto navy (midió 4,79:1 y
+7,13:1), la Comparación como mensaje y, sobre todo, el bloque del código del proveedor («es lo mejor de la
+propuesta»).
+
+**Adoptado en la maqueta y en esta spec:**
+
+- el saldo en navy, no en dorado: un saldo sin incidencia no es una advertencia (§6.3);
+- cuerpo de las instrucciones a 15-16 px; antes había textos de 12 a 13,5 px justo donde se explica;
+- blancos táctiles de 44 px como mínimo en botones y controles;
+- guía de 4 consejos y 2 opcionales, en vez de 5 y 3 (§6.2);
+- sin animación continua en la Vista simple: el barco no se balancea, el faro no late ni gira (MOT-01);
+- junto a «Copiar mensaje»: «Copiar no registra tu compra», y el número de la compra marcado como el que tendrá
+  «al registrarla»;
+- Faro con campo libre de pregunta y el aviso de que cada pregunta se responde sola (FC-15); los ejemplos de
+  rechazo quedan plegados, solo para la revisión, fuera de la experiencia del cliente;
+- la Comparación apilada en teléfono, sin tabla ancha;
+- el wordmark en Archivo Black, como manda `BRAND.md`;
+- mientras el seguimiento esté en construcción, el bloque 1 muestra el último dato registrado y la llegada
+  estimada al puerto, en lugar de la ruta (como en su propuesta; ya era AC-12).
+
+**No adoptado, y por qué:**
+
+- el número de la compra en dorado (su propuesta lo hace): contradice `--warning` = riesgo real (§6.3);
+- colores propios para el ícono de Faro: Sam pidió el mismo faro del ERP (D-4);
+- la lista de proveedores como desplegable: la lista visible enseña que cada proveedor tiene su número, que es el
+  problema que Sam quiere resolver. Queda como alternativa si la lista crece.
+
+**Pendiente para la fase 2:** foco contenido en los diálogos (su propuesta lo trae; la maqueta no) y comportamiento
+de teclado de la lista de proveedores como grupo de opciones (A11Y-01).
+
 ## 4. Lo que existe hoy
 
 Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
@@ -460,10 +497,11 @@ Pedido de Sam. En la maqueta, botón «Guía» o primera carga.
 
 - **Arranca sola** la primera vez que la persona entra a la vista simple. Se puede saltar («Ahora no») en
   cualquier paso y repetir con el botón «Guía» de la barra superior.
-- **Cinco consejos**, uno por bloque: dónde está tu carga, lo que te toca hacer, cuánto debes, qué le mandas a tu
+- **Cuatro consejos**: dónde está tu carga, lo que te toca hacer (con el saldo al lado), qué le mandas a tu
   proveedor y Faro. Cada uno resalta su bloque y dice una sola cosa.
-- Al terminar pregunta **«¿Quieres continuar?»**: «Sí, 3 consejos más» (cambiar de vista, día o noche, tus
-  papeles) o «Listo por ahora».
+- Al terminar pregunta **«¿Quieres continuar?»**: «Sí, 2 consejos más» (cambiar de vista y día o noche) o «Listo
+  por ahora».
+- El tutorial del código (seis pasos) va aparte y se abre desde su bloque.
 - **«Nuevo»:** una etiqueta pequeña marca un bloque que la persona todavía no ha abierto o una función recién
   agregada. Se quita sola al usarla.
 - **Dónde se guarda que ya la vio:** en la fila de la persona (`client_users`), junto a la preferencia de vista,
@@ -491,9 +529,10 @@ Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
 - **Más color, sin colores nuevos:**
   - los encabezados de los bloques llevan un tinte neutro de tinta; solo el bloque del proveedor lleva tinte de vino
     claro (identidad);
-  - el dorado (`--warning`) queda para riesgo real: avisos «Atención» y el saldo por pagar cuando es mayor que cero,
-    igual que el indicador «Saldo pendiente» de hoy (`app/portal/(app)/_components/PortalDashboardNorte.tsx:154` y
-    `:513`). No va en encabezados, ni en «Nuevo», ni en el código;
+  - el dorado (`--warning`) queda para riesgo real: los avisos «Atención». **El saldo va en navy**, aunque la Vista
+    Pro de hoy lo pinte en dorado (`app/portal/(app)/_components/PortalDashboardNorte.tsx:154` y `:513`): un saldo
+    sin incidencia no es una advertencia (§3.6). Si una factura vence, ese aviso sí va en dorado. El dorado no va en
+    encabezados, ni en «Nuevo», ni en el código;
   - verde (`--success`) solo en confirmaciones reales: «Entregado»;
   - el código, por partes: «DTD» navy, el número de cliente navy claro, el número del proveedor vino claro (el mismo
     de su fila en la lista) y el número de la compra con contorno de tinta.
@@ -503,6 +542,9 @@ Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
   - en noche, el relleno de vino claro usa `--color-wine-text` oscuro (`#D89AA4`, `app/globals.css:159`), porque
     `--color-wine-soft` no se redefine en oscuro.
   Se definen en el bloque de la Vista simple de `app/globals.css` (fase 2).
+- **Legible y táctil:** instrucciones a 15-16 px y controles de 44 px como mínimo (§3.6).
+- **Tranquila:** en la Vista simple no hay animaciones continuas (barco, pulso y haz de Faro). El botón de Faro
+  conserva el ícono del ERP, quieto.
 - **Más compacto:** menos aire entre bloques y dentro de ellos. El bloque del proveedor pasa a filas de una línea
   por proveedor, textos de una frase y el mensaje en tres líneas, con el tutorial como botón en el encabezado.
 
@@ -704,9 +746,9 @@ PR o se saca.
 | AC-11 | Con un hito oculto por el tenant (SDD-0156), el bloque 1 no lo marca ni lo nombra; si la lectura estricta de ocultos falla, no dibuja la ruta | 2 |
 | AC-12 | Con el seguimiento en construcción, el bloque 1 no muestra etapas que el sistema no conoce | 2 |
 | AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», y el mismo próximo código por proveedor que calcula `summarizeSuppliers`; una prueba compara las salidas | 2 |
-| AC-14 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
-| AC-15 | La guía arranca sola solo la primera vez por persona, se puede saltar y se repite con el botón «Guía» | 2 |
-| AC-16 | El botón «Comparar» abre la tabla de §6.1 desde las dos vistas | 2 |
+| AC-14 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano; junto a «Copiar» dice que copiar no registra la compra | 2 |
+| AC-15 | La guía (4 consejos y 2 opcionales) arranca sola solo la primera vez, se puede saltar y se repite con el botón «Guía»; sus diálogos contienen el foco y se cierran con Escape | 2 |
+| AC-16 | El botón «Comparar» abre la comparación de §6.1 desde las dos vistas; en teléfono se apila sin desplazamiento lateral | 2 |
 | AC-17 | En la Vista simple el vino claro solo aparece en sus tres usos (botón principal, avatar y parte «proveedor» del código); la selección va en tinta; el dorado solo en riesgo real; ningún relleno ni texto usa `--color-wine` ni `--danger` fuera de un error; cada par de color pasa AA | 2 |
 | AC-18 | Un cliente no activado ve lo que fije la D-17, en las dos vistas, y la guía no arranca | 2 |
 | AC-19 | Cada frontera FC-1 a FC-15 tiene su prueba y pasa | 3 |
