@@ -490,7 +490,8 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Contexto:** el contorno del botón secundario y de los campos medía 1,48:1 contra la tarjeta (mínimo 3:1), y botones, avisos y estados compartían el mismo cajón claro.
 - **Excepción:** VIS-01 §3 asigna la selección al vino. Un relleno vino en cada pestaña competiría con la acción principal (VIS-01 §5). Revisada por Sam el 2026-11-15, al cerrar SDD-0603: la excepción se mantiene (selección en tinta, no en vino).
 - **Enmienda de elevación (2026-11-12, aprobada por Sam):** los controles suben de nivel con sombra (primario `--shadow-md`, relleno `--shadow-sm`, secundario `--shadow-xs` con contorno de 1,5 px en `--ink`), los rellenos llevan en oscuro un borde propio (`--ctl-edge-hi`: luz arriba y aro `--ink-soft`, 6,86:1 contra la tarjeta, porque el vino solo da 2,26:1) y los verbos de botón van en peso 700 o más. Dos tokens nuevos de forma, `--ctl-border` y `--ctl-edge-hi`; ningún color nuevo. Detalle y tabla de niveles en SDD-0603 §Enmienda de elevación. Pendiente de llevar al Brand Book en el próximo NORTE-SYNC.
-- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603.
+- **Enmienda del tema del Portal (2026-11-17, aprobada por Sam):** el Portal del cliente abre en tema claro; el Studio sigue en oscuro. Quien ya eligió oscuro con el botón del Portal lo conserva: la cookie `portal-theme=dark` sigue mandando. Literal de Sam, en el chat del Director General, ante la pregunta «¿el portal del cliente abre en tema claro para todos?»: «Sí, tema claro». Es la D-14 de SDD-0654 (fase 1b). Ningún token ni color nuevo: el Portal ya tenía su bloque claro (`[data-portal-theme="light"]`).
+- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603 · `app/portal/(app)/layout.tsx` (tema del Portal, SDD-0654).
 
 ---
 

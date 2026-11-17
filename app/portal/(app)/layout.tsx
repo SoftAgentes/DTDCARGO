@@ -51,11 +51,12 @@ export default async function PortalAppLayout({
 
   // Dark mode + rediseño Norte del portal (founder 2026-06-20). `showNortePortal`
   // decide quién lo ve: con NORTE_PORTAL_LIVE=true es TODO cliente (formalizado); si
-  // no, sólo el demo. El tema nace en OSCURO y persiste por la cookie `portal-theme`
-  // (la setea el toggle; la lee acá → sin flash en SSR).
+  // no, sólo el demo. El tema nace en CLARO (SDD-0654 D-14, enmienda de BD-037 solo
+  // para el Portal) y persiste por la cookie `portal-theme` (la setea el toggle; la
+  // lee acá → sin flash en SSR): quien ya eligió oscuro lo conserva.
   const norte = showNortePortal(client.markbox);
   const cookieTheme = (await cookies()).get("portal-theme")?.value;
-  const theme: "dark" | "light" = cookieTheme === "light" ? "light" : "dark";
+  const theme: "dark" | "light" = cookieTheme === "dark" ? "dark" : "light";
 
   // Club en el nav: oculto por defecto (founder 2026-07-01) — solo si el cliente
   // está habilitado (hoy = es miembro del Club). Config por tenant llega con el
