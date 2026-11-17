@@ -28,6 +28,9 @@ import {
   type CrmFichaTarjeta,
 } from "@/lib/studio/crm-ficha";
 import { FUENTE_LABEL, nombreEtapa, type CrmEtapa } from "@/lib/studio/crm-tablero";
+import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
+import { useChatPermitido } from "./ChatPermitido";
+import { rutaChatTarjeta } from "./CrmTableroKanban";
 import {
   agregarNotaTarjetaAction,
   agregarTareaTarjetaAction,
@@ -88,6 +91,9 @@ export function TarjetaFichaDrawer({
       onClose={onClose}
       pending={false}
       width={600}
+      // SDD-0648, D8 (Sam, 2026-11-17): «Sí, que no se cierre». Un clic fuera no
+      // cierra la ficha; solo el botón cerrar o Escape.
+      closeOnBackdrop={false}
     >
       <div style={{ padding: "var(--s-5) var(--s-6)", overflowY: "auto", flex: 1 }}>
         {estado.fase === "cargando" && (
@@ -131,6 +137,7 @@ function Ficha({
   onCambio: () => void;
 }) {
   const utm = Object.entries(f.utm).filter(([, v]) => v);
+  const chatPermitido = useChatPermitido();
   // Un solo reloj por lectura de la ficha: se fija al montar, no en cada render.
   const [ahoraMs] = useState(() => Date.now());
 
@@ -166,6 +173,15 @@ function Ficha({
         <Dueno ficha={f} canEdit={canEdit} onCambio={onCambio} />
         <div style={{ marginTop: "var(--s-4)" }}>
           <span className="studio-label">Quién contesta el chat (Chatwoot)</span>
+          {/* SDD-0648 (D7): el chat se lee y se contesta en la Bandeja, a pantalla
+              completa; la ficha sigue a media pantalla. */}
+          {chatPermitido && (f.chat != null || canalConChat(canalDeTarjeta(f.fuente))) && (
+            <p style={{ margin: "0 0 var(--s-2)" }}>
+              <a href={rutaChatTarjeta(f.id)} className="studio-btn studio-btn-primary studio-btn-sm">
+                Abrir chat
+              </a>
+            </p>
+          )}
           <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
             {f.chat == null
               ? "Sin conversación en Chatwoot ligada a esta ficha."

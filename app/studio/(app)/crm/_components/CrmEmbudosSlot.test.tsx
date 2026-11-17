@@ -16,6 +16,8 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: vi.fn(async () => null),
 }));
 vi.mock("@/lib/studio/user-queries", () => ({ listTenantAdvisors: vi.fn(async () => []) }));
+// SDD-0648 §4: el permiso de chat (rol de Bandeja + flag) se prueba aparte.
+vi.mock("@/lib/studio/crm-chat-acceso", () => ({ puedeAbrirBandeja: vi.fn(async () => false) }));
 vi.mock("@/lib/studio/crm-tablero-queries", () => ({
   cargarTableroCrm: vi.fn(async () => ({ ok: false, motivo: "sin_modelo" })),
 }));
