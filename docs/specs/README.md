@@ -667,7 +667,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
 | 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
 | 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
-| 0654 | Versión light del portal del cliente: vista sencilla, selecto… | proposed | interno |
+| 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0643, 0648, 0649, 0650, 0651, 0652, 0653 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

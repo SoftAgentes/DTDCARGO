@@ -1,6 +1,6 @@
 ---
 sdd: "0654"
-title: "Versión light del portal del cliente: vista sencilla, selector con la vista completa y Faro del cliente"
+title: "Versión light del portal del cliente: Vista simple, Vista Pro, selector entre las dos y Faro del cliente"
 status: proposed
 author: "Claude (Worker del DG) + Sam"
 created: 2026-11-16
@@ -14,8 +14,8 @@ confidencialidad: interno
 # SDD-0654 — Versión light del portal del cliente
 
 > Un cliente nuevo o poco técnico entra al portal y ve una sola página con lo que necesita saber: dónde está su
-> carga, qué le toca hacer, cuánto debe, sus papeles y a quién preguntar. Si quiere el detalle, cambia a la vista
-> completa, que es el portal de hoy sin cambios. Un Faro del cliente responde solo sobre su propia cuenta.
+> carga, qué le toca hacer, cuánto debe, sus papeles y a quién preguntar. Si quiere el detalle, cambia a la Vista
+> Pro, que es el portal de hoy sin cambios. Un Faro del cliente responde solo sobre su propia cuenta.
 
 **Estado:** `proposed`. Fase 0 (esta PR): investigación, maqueta y spec. **No hay código de producto ni
 migraciones.** Cada fase siguiente necesita el visto bueno de Sam y el turno del Director General.
@@ -23,12 +23,12 @@ migraciones.** Cada fase siguiente necesita el visto bueno de Sam y el turno del
 **Maqueta:** `maqueta/portal-vistas.html` (autocontenida; se abre en el navegador). Publicada también como
 Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y códigos son inventados.
 
-- Abre en la vista sencilla y arranca la guía. Con `#completa` al final de la dirección abre la vista completa;
-  con `#sencilla`, la sencilla sin guía; con `#codigo`, el tutorial del código.
-- La vista completa de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
+- Abre en la vista simple y arranca la guía. Con `#pro` al final de la dirección abre la vista Pro;
+  con `#simple`, la simple sin guía; con `#comparar`, la comparación; con `#codigo`, el tutorial del código.
+- La vista Pro de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
   suma es el selector de vista y el botón de Faro.
 
-**Decisiones:** D-1 a D-15 (§11). Decidida por Sam: D-4. Las demás están abiertas, cada una con la opción
+**Decisiones:** D-1 a D-15 (§11). Decididas por Sam: D-4 y D-10. Las demás están abiertas, cada una con la opción
 recomendada.
 
 ## 1. Pedido de Sam (2026-11-16)
@@ -57,6 +57,12 @@ Ajustes de Sam al ver la primera maqueta (2026-11-16, en la sesión del Worker):
   comprado), de forma interactiva o con un «aquí puedes oprimir para ver un tutorial». El motivo: «la gente está
   enviando mercancías sin poner detalles, y después andan preguntando por el Proveedor 5 o el Proveedor 6 y no lo
   tienen así».
+- Precisión que pasó el Director General (2026-11-16), literal de Sam: «Va a tener como dos vistas, como cuando
+  configuras en Android la versión parecida a iPhone (que es muy simple y no se mueve nada) y la versión Pro, algo
+  así. El usuario puede escoger vista simple o vista Pro.» Y preguntó: «¿Cuáles serían las diferencias notables y
+  las ventajas de una y la otra?». De ahí salen los nombres **«Vista simple»** y **«Vista Pro»** (D-10 decidida),
+  la regla «nada se mueve» (§6) y la comparación de §6.1. Los pedidos anteriores de esta lista dicen «sencilla» y
+  «completa» porque así se llamaban en la primera maqueta.
 - Una **guía para las primeras veces** en la vista sencilla: «Recuerda, aquí puedes hacer esto», con tres a seis
   consejos y la opción de «¿quieres continuar?» para seguir explicando la herramienta.
 - «Esta es la parte importante porque es lo que le gusta al cliente y nos separa de la competencia»: pidió una
@@ -64,7 +70,8 @@ Ajustes de Sam al ver la primera maqueta (2026-11-16, en la sesión del Worker):
 
 Lo que eso fija:
 
-- **No es un rediseño.** La vista completa queda igual. La sencilla es otra forma de presentar los mismos datos.
+- **No es un rediseño.** La Vista Pro es el portal de hoy y queda igual. La Vista simple es otra forma de presentar
+  los mismos datos.
 - **El cliente elige** y puede volver cuando quiera.
 - **Faro del cliente** es un asistente aparte del Faro del Studio (SDD-0637), con fronteras propias (§7).
 - Es una función nueva: no entra en lo acordado en la reunión del 2026-11-17. Se programa aparte.
@@ -73,19 +80,19 @@ Lo que eso fija:
 
 **Entra:**
 
-- Preferencia de vista por persona del portal: `sencilla` o `completa` (§5).
+- Preferencia de vista por persona del portal: `simple` o `pro` (§5).
 - Selector visible en la barra superior del portal, en las dos vistas.
-- Inicio de la vista sencilla: seis bloques en una página (§6).
+- Inicio de la vista simple: seis bloques en una página (§6).
 - Ayudas fijas de tres tipos (Consejo, Recuerda, Atención) y un glosario en línea.
-- Guía paso a paso para las primeras veces (§6.1).
+- Guía paso a paso para las primeras veces (§6.2).
 - Tema claro como predeterminado del portal (D-14).
 - Faro del cliente: panel de preguntas sobre la cuenta propia, con fronteras duras (§7).
 
 **No entra:**
 
-- Cambios a las pantallas de la vista completa. Si la vista sencilla necesita algo que la completa no tiene, se
-  enlaza a la completa.
-- Escrituras nuevas desde la vista sencilla. Sus botones llevan a los flujos que ya existen (subir documento,
+- Cambios a las pantallas de la vista Pro. Si la vista simple necesita algo que la Pro no tiene, se
+  enlaza a la Pro.
+- Escrituras nuevas desde la vista simple. Sus botones llevan a los flujos que ya existen (subir documento,
   reportar pago, chat con el asesor).
 - Que Faro del cliente haga cambios en la cuenta, cotice o dé precios.
 - La app móvil.
@@ -182,10 +189,10 @@ ManyChat en transcripciones es un enlace suelto en una sesión de la app de Meta
 1. Una pregunta por bloque, en el orden en que el cliente la hace (Flexport, GOV.UK).
 2. Estado en palabras del cliente, con la fecha estimada marcada como estimada.
 3. «Lo que te toca hacer» arriba, con un botón por tarea (buzón de Flexport).
-4. Un solo nivel extra: cada bloque enlaza a su pantalla de la vista completa (NN/g).
+4. Un solo nivel extra: cada bloque enlaza a su pantalla de la vista Pro (NN/g).
 5. Selector visible y reversible en los dos sentidos; la elección no borra ni mueve datos (Samsung, bancos,
    contraejemplo de Wix).
-6. Cuentas nuevas en sencilla; las existentes se quedan como están (Mailchimp).
+6. Cuentas nuevas en simple; las existentes se quedan como están (Mailchimp).
 7. Ayudas con tres íconos fijos y glosario en línea, nunca como tooltip (For Dummies, NN/g).
 8. Contacto humano siempre visible, como soporte y no como venta (COGA, Banca March).
 
@@ -216,13 +223,13 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 - **El seguimiento está «en construcción»** (`lib/portal/tracking-en-construccion.ts`, SDD-0514): el almacén de
   China todavía registra en Excel, así que lo que sigue a la prealerta sale vacío y el inicio muestra un aviso. El
   inicio de hoy no tiene una franja de etapas: muestra un arco con un porcentaje derivado del estado
-  (`app/portal/(app)/_components/PortalDashboardNorte.tsx`). Esto condiciona el bloque 1 de la vista sencilla
+  (`app/portal/(app)/_components/PortalDashboardNorte.tsx`). Esto condiciona el bloque 1 de la vista simple
   (§6, §12).
 - Motor de guía: existe uno en el Studio (SDD-0589, `lib/studio/guia/`), con recorridos por pantalla, anclas y
-  arranque automático la primera vez. Es del Studio; el portal no lo puede importar tal cual (§6.1).
+  arranque automático la primera vez. Es del Studio; el portal no lo puede importar tal cual (§6.2).
 - Preferencias: solo existe la cookie `portal-theme` (tema claro/oscuro),
   `app/portal/_components/PortalThemeToggle.tsx:26`. **Ojo con el nombre:** «light» ya significa tema claro.
-  Por eso esta spec usa «sencilla» y «completa» en código y en pantalla (D-10). No hay tabla de preferencias del
+  Por eso esta spec usa «simple» y «pro» en código y en pantalla (D-10). No hay tabla de preferencias del
   cliente.
 - Cliente nuevo: llega por registro (`app/portal/(auth)/registro/`) o por invitación con link (SDD-0646,
   migración `0552_registro_portal_por_link.sql`). En los dos casos nace una fila de `client_users`.
@@ -257,40 +264,40 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 
 **Modelo propuesto (D-1, D-2):**
 
-- Columna nueva `client_users.portal_vista`, `text not null`, con `check (portal_vista in ('sencilla','completa'))`.
+- Columna nueva `client_users.portal_vista`, `text not null`, con `check (portal_vista in ('simple','pro'))`.
 - **Por persona del portal**, no por empresa: dos personas de una misma empresa pueden preferir vistas distintas.
 - **Valor inicial:**
-  - En la migración, las filas que ya existen quedan en `completa`. Ningún cliente actual ve un portal distinto
+  - En la migración, las filas que ya existen quedan en `pro`. Ningún cliente actual ve un portal distinto
     sin pedirlo.
-  - El `default` de la columna es `sencilla`. Toda fila nueva (registro o invitación por link) empieza en
-    sencilla.
+  - El `default` de la columna es `simple`. Toda fila nueva (registro o invitación por link) empieza en
+    simple.
 - **Cambio:** el selector llama a una Server Action que actualiza solo la fila de la persona autenticada, con su
   sesión y una policy que limita la columna a `auth_user_id = auth.uid()`. El servidor ignora cualquier
   identificador que llegue del navegador.
 - **Lectura:** el layout ya resuelve el principal; se suma `portal_vista` a esa misma lectura, sin consulta extra.
 - **Respaldo sin base de datos:** si la columna no existe todavía (migración sin aplicar), el portal usa
-  `completa`. Así la fase 1 puede fusionarse antes de aplicar la migración sin cambiar nada para nadie.
-- **Interruptor general:** `PORTAL_VISTA_SENCILLA` (variable de entorno, apagada por defecto). Apagado, nadie ve el
-  selector ni la vista sencilla, aunque su fila diga `sencilla`.
+  `pro`. Así la fase 1 puede fusionarse antes de aplicar la migración sin cambiar nada para nadie.
+- **Interruptor general:** `PORTAL_VISTA_SIMPLE` (variable de entorno, apagada por defecto). Apagado, nadie ve el
+  selector ni la vista simple, aunque su fila diga `simple`.
 - **Guía vista:** en la misma migración, `client_users.portal_guia_vista_at timestamptz null`. Vacío significa que
-  la guía todavía no se le mostró (§6.1, D-15).
+  la guía todavía no se le mostró (§6.2, D-15).
 - **Migración:** `0557_portal_vista_preferida.sql` (número reservado por el DG para esta spec).
 
 Alternativa descartada: guardarla solo en cookie, como el tema. Es más simple, pero no sigue al cliente entre su
-teléfono y su computadora, y un cliente nuevo no tendría cómo empezar en sencilla en un segundo dispositivo.
+teléfono y su computadora, y un cliente nuevo no tendría cómo empezar en simple en un segundo dispositivo.
 
-## 6. La vista sencilla
+## 6. La vista simple
 
 Ver la maqueta. Resumen:
 
-- **Barra superior:** marca y selector «Vista sencilla / Vista completa». El tema claro/oscuro sigue en el menú
+- **Barra superior:** marca y selector «Vista simple / Vista Pro». El tema claro/oscuro sigue en el menú
   de la cuenta.
 - **Botón de Faro:** el mismo del Studio (SDD-0637 §7.1, estilo 1): faro de torre blanca con rayas rojas, fondo
   azul noche y aro dorado, flotante abajo a la derecha, **en las dos vistas** (pedido de Sam). Se reutiliza el
   componente del Studio cuando exista; no se dibuja otro. La excepción de marca que Sam autorizó para Faro en la
   0637 §7 se extiende a este botón y a la cabecera de su panel; el resto del panel sigue la marca del portal.
   Solo aparece si Faro del cliente está encendido.
-- **Bienvenida** la primera vez: «Te mostramos la vista sencilla… Puedes volver cuando quieras.» Se cierra con
+- **Bienvenida** la primera vez: «Te mostramos la vista simple… Puedes volver cuando quieras.» Se cierra con
   «Entendido» y no vuelve.
 - **Saludo** con el nombre de pila y el Shipping Mark, con una línea que explica para qué sirve.
 - **Seis bloques numerados**, cada uno una pregunta del cliente:
@@ -304,7 +311,7 @@ Ver la maqueta. Resumen:
      cajas sin el código completo y el cliente pregunta por un «proveedor 5» que nunca registró. Tres pasos:
      - **A · ¿A cuál proveedor le vas a comprar?** La lista de proveedores que el cliente ya registró, cada uno
        con su número y cuántas veces le ha comprado. Si es nuevo, el enlace lleva a registrarlo primero (flujo de
-       «Mis compras» de la vista completa).
+       «Mis compras» de la vista Pro).
      - **B · El código para esa compra**, parte por parte. Al elegir un proveedor, el código cambia a la vista. El
        cliente toca cada parte y lee qué significa, con sus propios datos: «2 · tu proveedor: es Repuestos
        Ejemplo», «2 · la compra: ya le compraste 1 vez; esta es la número 2». El formato es
@@ -312,10 +319,10 @@ Ver la maqueta. Resumen:
        proveedor ya lo calcula `summarizeSuppliers` (`lib/studio/prealertas/types.ts:204-230`).
      - **C · El mensaje listo para copiar**, con la dirección del almacén, quién recibe y ese código. Es el mismo
        texto que hoy arman `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` en «Mis
-       compras» (`app/portal/(app)/proveedores/SuppliersClient.tsx:120-131`); la vista sencilla lo reutiliza. Al
+       compras» (`app/portal/(app)/proveedores/SuppliersClient.tsx:120-131`); la vista simple lo reutiliza. Al
        lado, una caja dibujada con el código puesto.
      - **Tutorial del código:** un botón «Ver el tutorial del código (1 minuto)» abre seis pasos con el mismo motor
-       de la guía (§6.1): elige al proveedor, «DTD», tu número, el número del proveedor, el número de la compra y
+       de la guía (§6.2): elige al proveedor, «DTD», tu número, el número del proveedor, el número de la compra y
        «mándaselo a tu proveedor».
      - **Atención fija:** «No inventes el número del proveedor. Si escribes "5" y no tienes un proveedor 5 en tu
        lista, no sabremos de quién es la caja.»
@@ -323,7 +330,7 @@ Ver la maqueta. Resumen:
      - **Ojo con el código que se copia:** copiar el mensaje no crea la compra. La prealerta se sigue creando con
        «Nueva compra»; el bloque lo dice y enlaza a ese flujo (D-13).
   6. **¿Te quedó una duda?** Faro y el chat con el asesor (SDD-0147).
-- **Cada bloque enlaza** a su pantalla de la vista completa. No hay un tercer nivel.
+- **Cada bloque enlaza** a su pantalla de la vista Pro. No hay un tercer nivel.
 - **Ayudas:** tres tipos fijos, con ícono y texto visible, nunca tooltip:
   - **Consejo**: un atajo o una recomendación.
   - **Recuerda**: algo que conviene no olvidar (por ejemplo, que la fecha es un estimado).
@@ -335,13 +342,37 @@ Ver la maqueta. Resumen:
   sabe (prealerta recibida, zarpe y entrega, que salen de operaciones del Studio) y el mismo aviso de hoy, en
   palabras sencillas. La ruta con sus cinco puntos se enciende con el mismo interruptor que apaga ese aviso.
 - **Sin datos nuevos:** todo sale de las lecturas que ya usa el portal (§4.1). Si una lectura usa service_role
-  hoy, la vista sencilla no suma usos nuevos.
+  hoy, la vista simple no suma usos nuevos.
 
-### 6.1 Guía para las primeras veces
+- **Nada se mueve** (analogía de Sam: el modo simple de un teléfono Android). En la Vista simple:
+  - los bloques son siempre los mismos y van siempre en el mismo orden; un bloque sin datos no desaparece: dice
+    que no hay nada («No tienes nada pendiente»);
+  - no hay avisos que empujen el contenido, ni tarjetas que aparezcan y desaparezcan arriba; lo urgente entra en
+    «Lo que te toca hacer»;
+  - nada se arrastra ni se reordena: el botón de Faro queda fijo en su esquina (en el Studio se arrastra);
+  - pocas acciones y grandes: un botón principal por bloque.
+
+### 6.1 Vista simple y Vista Pro: diferencias y ventajas
+
+Respuesta a la pregunta de Sam. La misma tabla está en la maqueta (botón «Comparar», visible en las dos vistas).
+
+| | Vista simple | Vista Pro |
+|---|---|---|
+| **Para quién** | Quien empieza, entra de vez en cuando o solo quiere saber de su carga | Quien importa seguido, maneja varios proveedores y ya conoce el portal |
+| **Qué se ve** | Una sola página con 6 bloques grandes, siempre los mismos y en el mismo orden | El portal de hoy: menú lateral con envíos, compras, calculadora, finanzas, documentos, referidos, academia y soporte |
+| **Qué se hace** | Ver dónde va la carga, lo pendiente, el saldo y los papeles; enviarle el código al proveedor; preguntar | Todo lo de la simple y además crear compras y cotizaciones, registrar proveedores, estado de cuenta, reclamos y perfil |
+| **Qué se esconde** | Cotizaciones, estimados, academia, referidos, club, indicadores y próxima salida. Siguen a un toque, en la Vista Pro | Nada |
+| **Ventaja** | Se entiende en un minuto; pocos botones y grandes; trae guía, consejos y las palabras explicadas; nada se mueve | Más herramientas y más detalle por pantalla; más rápida para quien ya sabe dónde está cada cosa |
+| **Ayuda** | Guía paso a paso, consejos por bloque, tutorial del código y Faro | Faro y el chat con el asesor |
+| **Datos** | Los mismos | Los mismos. Cambiar de vista no borra ni mueve nada |
+
+El selector y el botón «Comparar» están en la barra superior de las dos vistas.
+
+### 6.2 Guía para las primeras veces
 
 Pedido de Sam. En la maqueta, botón «Guía» o primera carga.
 
-- **Arranca sola** la primera vez que la persona entra a la vista sencilla. Se puede saltar («Ahora no») en
+- **Arranca sola** la primera vez que la persona entra a la vista simple. Se puede saltar («Ahora no») en
   cualquier paso y repetir con el botón «Guía» de la barra superior.
 - **Cinco consejos**, uno por bloque: dónde está tu carga, lo que te toca hacer, cuánto debes, qué le mandas a tu
   proveedor y Faro. Cada uno resalta su bloque y dice una sola cosa.
@@ -386,7 +417,7 @@ Flujo fijo, sin herramientas que el modelo pueda invocar:
 | FC-2 | Nada del ERP interno | La ficha es una lista cerrada de campos; costos, márgenes, proveedores internos, personal, notas internas y tarifas internas no existen en ella | Prueba de forma: la ficha no tiene claves fuera de la lista |
 | FC-3 | Nada de tarifas internas | Faro no calcula ni cotiza; para precios enlaza a la calculadora pública y a las cotizaciones del cliente | Batería: «¿cuánto me cobras por 2 m³?» → plantilla |
 | FC-4 | Solo temas del portal | Clasificador previo (código + modelo ligero) y plantillas de rechazo fijas | Batería de fuera de tema |
-| FC-5 | Sin acciones | No hay herramientas. Para cambiar algo, el botón lleva al flujo de la vista completa o al asesor | Prueba de que el motor no expone herramientas |
+| FC-5 | Sin acciones | No hay herramientas. Para cambiar algo, el botón lleva al flujo de la vista Pro o al asesor | Prueba de que el motor no expone herramientas |
 | FC-6 | El texto del ERP es dato, no orden | Notas y descripciones viajan como JSON dentro de la ficha; las instrucciones lo declaran | Batería con una descripción de carga que trae una orden inyectada |
 | FC-7 | Salida revisada | Se bloquea la respuesta si menciona un código de envío, factura o Shipping Mark que no está en la ficha, o si repite las instrucciones | Prueba de la revisión con salidas simuladas |
 | FC-8 | Ritmo limitado | Por persona: N por hora y M por día (D-5); tope de gasto mensual propio; reserva atómica como AC-18 de la 0637 | Simulacro de cupo agotado y de carrera |
@@ -403,7 +434,7 @@ Fijas, escritas por nosotros, sin que el modelo las redacte:
 - Dato interno: «Esa información es interna y no está en tu portal. Si tienes una duda sobre tu precio, tu asesor
   te la explica.»
 - Fuera de tema: «Solo te ayudo con tu portal: envíos, pagos, facturas y documentos. ¿Te ayudo con alguno?»
-- Acción: «No puedo hacer cambios en tu cuenta. Puedes hacerlo en la vista completa o pedírselo a tu asesor.»
+- Acción: «No puedo hacer cambios en tu cuenta. Puedes hacerlo en la vista Pro o pedírselo a tu asesor.»
 - Límite: «Llegaste al límite de preguntas de hoy. Mañana puedes seguir, o escríbele a tu asesor.»
 - Fallo: «No puedo responder ahora. Escríbele a tu asesor y te ayuda.»
 
@@ -439,7 +470,7 @@ PR o se saca.
 |---|---|---|---|
 | 0 | Investigación, maqueta y spec | `docs/specs/0654-version-light-portal/**`, `docs/specs/README.md`, `.agents/handoffs/sdd-0654-version-light-portal.md` | Esta PR. Sam ve la maqueta |
 | 1 | Preferencia y selector, interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql` y su `.test.sql`; `lib/portal/vista-preferida.ts` y su prueba; `app/portal/(app)/layout.tsx` (preferencia y tema claro por defecto); `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` (nuevo); `app/portal/_actions/vista-preferida.ts` (nuevo); `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
-| 2 | Inicio sencillo, ayudas y glosario | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_sencilla/**` (nuevo); `lib/portal/sencilla/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
+| 2 | Inicio simple, ayudas y glosario | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_simple/**` (nuevo); `lib/portal/simple/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
 | 3 | Faro del cliente con motor simulado | `lib/portal/faro/**` (nuevo); `app/api/portal/faro/route.ts` (nuevo); `app/portal/_components/PortalFaroPanel.tsx` (nuevo); el botón de Faro del Studio, movido a un lugar compartido si la 0637 ya lo creó; una migración de registro (número del DG) y su `.test.sql`; pruebas de FC-1 a FC-12 | Depende de la fase 3 de la 0637 (motor y topes). Revisión de datos |
 | 4 | Primer envío real | Solo configuración y textos: `/privacidad`, inventario de terceros, aviso del panel | Revisión de datos aprobada. OK nominal de Sam |
 | 5 | Batería adversaria y encendido | `lib/portal/faro/__tests__/bateria/**` | Batería verde; encendido con OK de Sam |
@@ -449,16 +480,18 @@ PR o se saca.
 | AC | Criterio | Fase |
 |---|---|---|
 | AC-1 | Con el interruptor apagado, el portal es idéntico al de hoy para todos | 1 |
-| AC-2 | Tras la 0557, toda fila existente de `client_users` está en `completa` y una fila nueva nace en `sencilla` | 1 |
+| AC-2 | Tras la 0557, toda fila existente de `client_users` está en `pro` y una fila nueva nace en `simple` | 1 |
 | AC-3 | Un cliente solo puede cambiar su propia preferencia; un intento con otro identificador no cambia nada | 1 |
-| AC-4 | Sin la columna (migración sin aplicar), el portal funciona y usa `completa` | 1 |
+| AC-4 | Sin la columna (migración sin aplicar), el portal funciona y usa `pro` | 1 |
 | AC-5 | El selector funciona en las dos vistas y la elección persiste entre dispositivos | 1 |
-| AC-6 | El inicio sencillo muestra los seis bloques con datos del propio cliente y un estado vacío que enseña en cada uno | 2 |
-| AC-7 | Cada bloque enlaza a su pantalla de la vista completa | 2 |
+| AC-6 | El inicio simple muestra los seis bloques con datos del propio cliente y un estado vacío que enseña en cada uno | 2 |
+| AC-7 | Cada bloque enlaza a su pantalla de la vista Pro | 2 |
 | AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», y el mismo próximo código por proveedor que calcula `summarizeSuppliers`; una prueba compara las salidas | 2 |
+| AC-19 | En la Vista simple los bloques son los mismos y en el mismo orden con y sin datos; una prueba lo comprueba con una cuenta vacía y una con datos | 2 |
+| AC-20 | El botón «Comparar» abre la tabla de §6.1 desde las dos vistas | 2 |
 | AC-18 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
 | AC-14 | El botón de Faro es el mismo componente en el Studio y en el portal | 3 |
-| AC-8 | La vista sencilla no agrega lecturas con service_role | 2 |
+| AC-8 | La vista simple no agrega lecturas con service_role | 2 |
 | AC-15 | Sin cookie de tema, el portal abre en claro; quien ya eligió noche lo conserva | 1 |
 | AC-16 | La guía arranca sola solo la primera vez por persona, se puede saltar y se repite con el botón «Guía» | 2 |
 | AC-17 | Con el seguimiento en construcción, el bloque 1 no muestra etapas que el sistema no conoce | 2 |
@@ -472,18 +505,18 @@ PR o se saca.
 | D | Pregunta | Recomendación |
 |---|---|---|
 | D-1 | ¿La preferencia es por persona o por empresa cliente? | **Por persona** (`client_users`): en una empresa con dos usuarios, cada uno elige |
-| D-2 | ¿Con qué vista empieza cada uno? | **Cliente nuevo en sencilla; los actuales en completa**, para que nadie vea un cambio sin pedirlo |
-| D-3 | ¿Dónde va el selector? | **En la barra superior**, visible en las dos vistas, con los nombres «Vista sencilla» y «Vista completa» |
-| D-4 | ¿Faro del cliente aparece en las dos vistas o solo en la sencilla? | **Decidida por Sam (2026-11-16): en las dos, con el mismo ícono del faro del ERP** |
+| D-2 | ¿Con qué vista empieza cada uno? | **Cliente nuevo en simple; los actuales en Pro**, para que nadie vea un cambio sin pedirlo |
+| D-3 | ¿Dónde va el selector? | **En la barra superior**, visible en las dos vistas, con los nombres «Vista simple» y «Vista Pro» |
+| D-4 | ¿Faro del cliente aparece en las dos vistas o solo en la simple? | **Decidida por Sam (2026-11-16): en las dos, con el mismo ícono del faro del ERP** |
 | D-5 | ¿Cuántas preguntas por persona? | **20 por día y 5 por hora**, con tope de gasto mensual propio, separado del Faro del Studio. Sam fija el monto |
 | D-6 | ¿Cuánto tiempo se guardan las preguntas? | **90 días** y purga a pedido del cliente, con constancia |
 | D-7 | ¿Qué pasa cuando Faro no puede responder? | **Botón al chat con el asesor** que ya existe (SDD-0147). Sin crear tickets automáticos |
 | D-8 | ¿Qué proveedor de IA? | **Anthropic directo, sin respaldo**, igual que la D-1 de la 0637. Nunca un proveedor chino ni la Oficina |
-| D-9 | ¿En qué orden? | **Vista sencilla primero (fases 1 y 2) y Faro del cliente después** de la fase 3 de la 0637, para no escribir dos motores |
-| D-10 | ¿Cómo se llama en pantalla? | **«Vista sencilla» y «Vista completa»**, no «light» y «full»: «light» ya es el tema claro y el cliente habla español |
+| D-9 | ¿En qué orden? | **Vista simple primero (fases 1 y 2) y Faro del cliente después** de la fase 3 de la 0637, para no escribir dos motores |
+| D-10 | ¿Cómo se llama en pantalla? | **Decidida por Sam (2026-11-16): «Vista simple» y «Vista Pro».** En el código, `simple` y `pro`; «light» no se usa porque ya es el tema claro |
 | D-11 | ¿Faro del cliente puede hablar de precios? | **No en la primera versión.** Para precios enlaza a la calculadora y a las cotizaciones del cliente |
 | D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra del proveedor que el cliente elija.** Sin proveedores registrados, solo su Shipping Mark y el enlace para registrar al primero. Copiar el mensaje no crea la compra: después de copiar, el bloque ofrece «Avisar esta compra» (el flujo de prealerta que ya existe) |
-| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista completa |
+| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista Pro |
 | D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
 | D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
 
@@ -491,15 +524,15 @@ PR o se saca.
 
 | Riesgo | Mitigación |
 |---|---|
-| La vista sencilla oculta algo que el cliente necesita | Cada bloque enlaza a la completa; prueba con clientes (D-12) |
-| El bloque «¿Dónde está tu carga?» promete más de lo que el sistema sabe | Mientras el seguimiento esté en construcción, el bloque muestra solo lo conocido (§6, AC-17). La vista sencilla luce completa cuando el almacén registre en el sistema |
+| La vista simple oculta algo que el cliente necesita | Cada bloque enlaza a la Pro; prueba con clientes (D-12) |
+| El bloque «¿Dónde está tu carga?» promete más de lo que el sistema sabe | Mientras el seguimiento esté en construcción, el bloque muestra solo lo conocido (§6, AC-17). La vista simple luce completa cuando el almacén registre en el sistema |
 | El botón de Faro y el de la calculadora flotan en la misma esquina | En la maqueta van apilados. Se resuelve junto con la D-2 de la 0637 (un solo elemento flotante) |
 | Tono condescendiente | Ayudas opcionales, cortas, sin repetir lo obvio; bienvenida que se cierra |
-| Dos vistas que mantener | La sencilla no tiene pantallas propias más allá del inicio; reutiliza lecturas y enlaza al resto |
+| Dos vistas que mantener | La simple no tiene pantallas propias más allá del inicio; reutiliza lecturas y enlaza al resto |
 | Faro filtra datos de otro cliente | Ficha con sesión y RLS (FC-1), revisión de salida (FC-7), prueba que pone roja la CI (AC-10) |
 | Inyección desde textos del ERP | FC-6 y batería con orden inyectada |
 | Costo | Cuota por persona, tope mensual, plantillas sin llamada al modelo |
-| Confusión con el tema claro | Nombres «sencilla/completa» en código y pantalla (D-10) |
+| Confusión con el tema claro | Nombres «simple/pro» en código y pantalla (D-10) |
 
 ## 13. Fuentes
 
