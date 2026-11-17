@@ -20,7 +20,9 @@ const state = vi.hoisted(() => ({
   codigosPedidos: [] as string[][],
 }));
 
-const nada = () => null;
+// Los factories de vi.mock se elevan al tope del archivo: lo que usan tiene que
+// venir de vi.hoisted, no de una constante de nivel superior.
+const { nada } = vi.hoisted(() => ({ nada: () => null }));
 
 vi.mock("@/lib/db/server", () => ({
   createClient: async () => {
