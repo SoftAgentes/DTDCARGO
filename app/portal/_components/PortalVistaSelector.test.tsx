@@ -89,6 +89,10 @@ describe("PortalVistaSelector", () => {
       render(<PortalVistaSelector vista="pro" />);
       fireEvent.click(boton("Vista simple"));
       expect(await screen.findByRole("alert")).toBeInTheDocument();
+      // El aviso se pinta fuera de `act` (llega tras el `await` de la acción), así
+      // que su efecto, el que arranca la cuenta de 6 s, puede quedar pendiente.
+      // Se vacía primero dentro de `act`; desde ahí la cuenta empieza en cero.
+      await act(async () => {});
       await act(async () => {
         vi.advanceTimersByTime(AVISO_ERROR_MS - 100);
       });
