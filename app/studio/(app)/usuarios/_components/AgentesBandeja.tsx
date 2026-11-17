@@ -1,9 +1,11 @@
 "use client";
 
 /**
- * Vínculos usuario de Studio ↔ agente de Chatwoot (SDD-0585, E2-D10). Solo lo
- * monta la página para un admin; la acción vuelve a exigir admin y el servidor
- * comprueba la cuenta y el correo del agente por la Platform API.
+ * Vínculos usuario de Studio ↔ agente de Chatwoot (SDD-0585, E2-D10). Desde
+ * SDD-0655 viven en Usuarios › Bandeja (antes, debajo del marco de la Bandeja).
+ * Solo lo monta Usuarios, que es solo admin; las acciones (las mismas de
+ * `bandeja/actions.ts`) vuelven a exigir admin y el servidor comprueba la cuenta
+ * y el correo del agente por la Platform API.
  *
  * Desvincular borra la fila: pasa por el ConfirmDialog canónico (BTN-01/AVS-01).
  *
@@ -16,21 +18,12 @@ import { useT } from "@/lib/i18n";
 import type { I18nKey } from "@/lib/i18n/dict";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
-import { altaAgente, desvincularAgente, vincularAgente, type VinculoState } from "../actions";
+import { altaAgente, desvincularAgente, vincularAgente, type VinculoState } from "../../bandeja/actions";
 import type { SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
 
-export interface VinculoFila {
-  userId: string;
-  nombre: string;
-  chatwootUserId: number;
-}
+import type { MiembroOpcion, VinculoFila } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 
-export interface MiembroOpcion {
-  userId: string;
-  nombre: string;
-  /** Paso 2.5: solo quien ve la Bandeja se puede dar de alta. Sin dato, se ofrece. */
-  puedeBandeja?: boolean;
-}
+export type { MiembroOpcion, VinculoFila };
 
 const INICIAL: VinculoState = { ok: false, error: null };
 
@@ -143,7 +136,7 @@ function AltaAgente({ miembros: todos }: { miembros: MiembroOpcion[] }) {
   );
 }
 
-export function VinculosAdmin({
+export function AgentesBandeja({
   vinculos,
   miembros,
   salud,
@@ -167,6 +160,7 @@ export function VinculosAdmin({
         <h2 id="bandeja-vinculos" style={{ font: "800 16px/1.2 var(--f-display)", color: "var(--ink)", margin: "0 0 var(--s-1)" }}>
           {t("bandeja.links.title")}
         </h2>
+        <p style={{ margin: "0 0 var(--s-1)", font: "500 13px/1.5 var(--f-sans)", color: "var(--ink)" }}>{t("bandeja.links.what")}</p>
         <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.links.help")}</p>
       </div>
 
