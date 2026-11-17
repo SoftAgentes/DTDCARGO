@@ -1,7 +1,7 @@
 ---
 sdd: "0654"
 title: "Versión light del portal del cliente: Vista simple, Vista Pro, selector entre las dos y Faro del cliente"
-status: proposed
+status: approved
 author: "Claude (Worker del DG) + Sam"
 created: 2026-11-16
 updated: 2026-11-17
@@ -17,8 +17,9 @@ confidencialidad: interno
 > carga, qué le toca hacer, cuánto debe, sus papeles y a quién preguntar. Si quiere el detalle, cambia a la Vista
 > Pro, que es el portal de hoy sin cambios. Un Faro del cliente responde solo sobre su propia cuenta.
 
-**Estado:** `proposed`. Fase 0 (esta PR): investigación, maqueta y spec. **No hay código de producto ni
-migraciones.** Cada fase siguiente necesita el visto bueno de Sam y el turno del Director General.
+**Estado:** `approved` (2026-11-17). Fase 0 (esta PR): investigación, maqueta y spec. **No hay código de producto ni
+migraciones.** Cada fase siguiente necesita el turno del Director General; la fase 1 va en una PR nueva, después
+de que esta spec esté en `main`, con la migración 0557 reservada por el DG.
 
 **Maqueta:** `maqueta/portal-vistas.html` (autocontenida; se abre en el navegador). Publicada también como
 Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y códigos son inventados.
@@ -28,8 +29,8 @@ Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y c�
 - La vista Pro de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
   suma es el selector de vista y el botón de Faro.
 
-**Decisiones:** D-1 a D-20 (§11). Decididas por Sam: D-4 y D-10. Las demás están abiertas, cada una con la opción
-recomendada.
+**Decisiones:** D-1 a D-20 (§11), **todas decididas por Sam**: D-4 y D-10 el 2026-11-16 y las demás el
+2026-11-17, con la opción recomendada.
 
 ## 1. Pedido de Sam (2026-11-16)
 
@@ -578,7 +579,7 @@ Alternativa que respeta: dejar el botón principal en vino (#7F0F1A) con texto b
 | Fecha de revisión | 90 días después de encender la Vista simple, o al cerrar la prueba con clientes, lo que ocurra primero |
 | Dueño | Sam (aprueba); Director General (custodia del registro) |
 | Registro | Una entrada BD nueva en `docs/design/studio/_norte/BRAND-DECISIONS.md` y la regla en `BRAND.md`, en la PR de la fase 2 |
-| Estado | Autorizada por Sam en palabras; falta su aprobación del registro (D-16) |
+| Estado | **Aprobada por Sam el 2026-11-17** (D-16). El registro en `BRAND-DECISIONS.md` y `BRAND.md` se hace en la PR de la fase 2 |
 
 ## 7. Faro del cliente
 
@@ -676,8 +677,8 @@ la PR de cada fase; aquí solo se declara qué aplica.
 | VIS-01 §7 | Registro de la excepción | Cumplimiento: BRAND-CHECK con objetivo, superficie, tokens, contraste, duración y fecha de revisión (§6.3) |
 | Gobernanza L3 | Excepción con vigencia | Cumplimiento a completar en la fase 2: registro en `BRAND-DECISIONS.md`, dueño, fecha de revisión y alcance (§6.3) |
 | `BRAND.md` | Botón y cabecera del panel de Faro, fuera de la marca | **Excepción**, autorizada por Sam en la 0637 §7 y extendida al portal por su pedido del 2026-11-16 |
-| `BRAND.md:123` | `--wine-soft` claro como relleno en la Vista simple | **Excepción** EXC-0654-01, autorizada por Sam el 2026-11-17 (§6.3, D-16) |
-| BD-037 (`BRAND.md:310`) | Tema claro por defecto en el portal | **Enmienda** de la regla «vista predeterminada en tema oscuro», solo para el Portal (D-14, fase 1b) |
+| `BRAND.md:123` | `--wine-soft` claro como relleno en la Vista simple | **Excepción** EXC-0654-01, aprobada por Sam el 2026-11-17 (§6.3, D-16) |
+| BD-037 (`BRAND.md:310`) | Tema claro por defecto en el portal | **Enmienda** de la regla «vista predeterminada en tema oscuro», solo para el Portal, aprobada por Sam el 2026-11-17 (D-14, fase 1b) |
 
 ## 8. Datos personales
 
@@ -764,9 +765,18 @@ PR o se saca.
 | AC-25 | El gate de IA-01 para nivel I0 está cubierto y enlazado desde la PR (§7.5) | 5 |
 | AC-26 | EXC-0654-01 queda registrada en `BRAND-DECISIONS.md` y `BRAND.md` con objetivo, superficie, tokens, contraste, duración, fecha de revisión y dueño, antes de fusionar la fase 2 | 2 |
 
-## 11. Decisiones para Sam
+## 11. Decisiones de Sam
 
-| D | Pregunta | Recomendación |
+**Todas decididas, con la opción recomendada.**
+
+- D-4 y D-10: el 2026-11-16, en la sesión del Worker (§1).
+- D-1 a D-3, D-5 a D-9 y D-11 a D-20: el 2026-11-17, en el chat del Director General. A la pregunta «¿Apruebas las
+  decisiones recomendadas de nómina (#631) y de la Vista simple (#633)?», Sam respondió: «Sí, ambas».
+
+Con eso quedan aprobadas también EXC-0654-01 (D-16, §6.3) y la enmienda de BD-037 solo para el Portal (D-14). La
+columna «Recomendación» es lo que quedó decidido.
+
+| D | Pregunta | Recomendación (decidida) |
 |---|---|---|
 | D-1 | ¿La preferencia es por persona o por empresa cliente? | **En la V1 son lo mismo:** hay una sola persona de portal por cliente (`0080_portal_cliente.sql:29`). La preferencia vive en esa fila. Permitir varias personas por empresa no entra en esta spec; si se quiere, es una decisión y una spec aparte |
 | D-2 | ¿Con qué vista empieza cada uno? | **Cliente nuevo en simple; los actuales en Pro**, para que nadie vea un cambio sin pedirlo |

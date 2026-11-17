@@ -84,3 +84,15 @@ Codex hizo una revisión visual y diseñó su propia propuesta (spec §3.6): <ht
 
 Spec `proposed`, aprobada por el DG para que Sam decida. Decididas por Sam: D-4 y D-10. Abiertas: el resto de D-1 a
 D-20.
+
+## Decisiones de Sam (2026-11-17)
+
+En el chat del Director General, a «¿Apruebas las decisiones recomendadas de nómina (#631) y de la Vista simple
+(#633)?», Sam respondió: «Sí, ambas». Quedan decididas D-1 a D-20 con la opción recomendada (D-4 y D-10 ya estaban
+desde el 2026-11-16), y aprobadas EXC-0654-01 y la enmienda de BD-037 solo para el Portal. La spec pasa a `approved`.
+
+## Siguiente paso
+
+- El DG revisa el delta y fusiona la spec.
+- La fase 1 va en una PR nueva, después de que la spec esté en `main` y con el aviso del DG. La migración 0557
+  sigue reservada. No se empieza código antes de ese aviso.
