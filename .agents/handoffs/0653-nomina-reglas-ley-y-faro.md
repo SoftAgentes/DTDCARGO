@@ -1,6 +1,8 @@
 # Handoff — SDD-0653 · Reglas de nómina al día con la ley y estante de ley pública para Faro
 
-- Rama: `claude/0653-nomina-ley-faro-0b4370` · PR #631 · Worker 0653 · 2026-11-17
+- Rama de la fase A2a: `claude/0653-nomina-ley-faro-0b4370` · PR #631 (fusionada) · Worker 0653 · 2026-11-17
+- Rama de la fase A3: `claude/0653-a3-tope-motor` · PR #640 (fusionada, CI verde, revisión APPROVED)
+- Cierre del handoff: 2026-11-17. A2a y A3 en `main`; A2b, A4, B1 y B2 esperan la asignación del DG.
 - Spec: `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md` (`in-progress`).
 - Migración reservada por el DG: **0556** (no creada; es de la fase A2b).
 
@@ -16,7 +18,29 @@ Sam aprobó las decisiones recomendadas. Literal, en el chat del Director Genera
 recomendadas de nómina (#631) y de la Vista simple (#633)?»: «Sí, ambas». Lo transmitió el DG; esta sesión no lo
 presenció. Quedan decididas D1, D2, D3a, D3b y D4 a D10 con la opción (a). No autoriza producción ni arranca fases.
 
-## Hecho
+## Fase A3 (2026-11-17) — tope de SSO y RPE en el motor
+
+Sam preguntó si el mensaje de una captura sobre el motor era un error o estaba bien: era correcto. Luego dijo «Sí,
+arráncala» y se hizo la D6 (opción a, ya aprobada). Qué cambió:
+
+- `calcReciboDraft`: el tope mensual en Bs pasa a USD con la tasa del corte y se prorratea al período (días / 30).
+  Sin tasa y con topes activos lanza `FaltaTasaParaTopeError`.
+- `lib/studio/nomina/tope-fx.ts` (nuevo): busca la tasa vigente al último día del período, o usa la congelada en el
+  snapshot; avisa qué cargar si falta.
+- `actions.ts`: al generar el corte se resuelve la tasa ANTES de crearlo (no queda un borrador vacío) y se congela en
+  `rules_snapshot`; al regenerar se usa la congelada.
+- La prueba antigua afirmaba el comportamiento errado («650» como USD) y se reescribió.
+- Revisión independiente de #640 (cabeza 60ad8b391, CAMBIOS): la tasa debe ser del último día del período o de hasta 4
+  días naturales antes (rechaza la vieja); con el período en curso el borrador usa una tasa PROVISIONAL que no se
+  congela y confirmar exige la del cierre; el renglón muestra la fecha y el valor de la tasa; pruebas de período
+  parcial, sueldo igual al tope, RPE semanal 0,13, tasa vieja y corte previo al cierre.
+- Sin migración. No se leyó producción.
+
+**Qué falta:** el contador confirma que la tasa del último día del período es la que corresponde (D6) y qué hacer con
+los cortes ya confirmados o pagados con el cálculo anterior. Eso último es una consulta a producción que necesita el
+OK de Sam: no se hizo.
+
+## Hecho (fase A2a)
 
 - Spec: tabla regla / sistema / ley / fuente, diseño del estante «Ley» de Faro, fases, migración propuesta,
   allowlist, decisiones (D1 a D10, con D3 partida en D3a y D3b) y clasificación de gobernanza (§7 bis).
@@ -55,18 +79,23 @@ ESLint, `docs:check`, `sdd:check`, `governance:check` y `components:check`.
 ## Pendiente de esta tarea
 
 - Asignación del DG para las fases siguientes; ninguna empieza sin ella.
-- A2b (migración 0556: vigencia, moneda de los montos, aportes patronales, escalas), A3 (tope del motor), A4 (carga
+- A2b (migración 0556: vigencia, moneda de los montos, aportes patronales, escalas), A3 (tope del motor: en `main`, falta la validación del contador), A4 (carga
   en producción con OK nominal), B1 y B2 (Faro; B2 depende del motor de la SDD-0637).
 - Probar la pestaña dentro del Studio con sesión real (prueba o local con Supabase).
 - Novedad y guía de Faro para la pestaña Reglas (D-10 de la 0637): `novedades/` todavía no existe en `main` y
   `nomina` no tiene guía; queda para cuando exista ese estante.
+- **Nota para el contador (A3):** si el corte se genera el mismo día del cierre y todavía no existe la tasa de ese día, se
+  congela la de hasta 4 días naturales antes (la tolerancia por fines de semana y feriados). El contador decide si esa
+  tasa le sirve o si prefiere esperar la del día. También confirma que la tasa del último día del período es la que
+  corresponde para convertir el tope (D6).
+- Saber si algún corte ya confirmado o pagado salió con el cálculo anterior es una consulta a producción: necesita el OK
+  de Sam y no se hizo.
 - Confirmar con el contador o un abogado lo marcado «por confirmar» o «solo anuncio»: IVSS, RPE, FAOV, INCES, el
   monto del cestaticket y si el bono obliga al sector privado.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- `lib/studio/nomina/payroll-run-types.ts:327-339`: el tope de SSO/RPE mezcla Bs (`min_salary`) con USD (sueldo del
-  período) y compara un tope mensual con períodos quincenales o semanales. Es la D6 / fase A3.
+- (Resuelto en la fase A3.) El tope de SSO/RPE mezclaba Bs con USD; ver la sección de la fase A3.
 - La siembra demo de `0162:121` rotula en Bs montos que parecen dólares (cestaticket 40, bono 90).
 - El sitio de la Imprenta Nacional no publica 68 Gacetas Extraordinarias de 2026 y su búsqueda por texto no
   funciona; cualquier vigilancia automática de Gacetas tiene que recorrer sumarios.

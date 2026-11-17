@@ -294,7 +294,7 @@ mkdir -p "$J"; JW="$(cd "$J" && pwd -W 2>/dev/null || pwd)"
 node "$(cd "$ORIGEN/pruebas" && pwd -W 2>/dev/null || pwd)/firmar-jwt-prueba.mjs" "$JW" "$TEAM" "$AUD" "$CORREO" >/dev/null
 [ -s "$J/tokens.env" ] && [ -s "$J/cdn-cgi/access/certs" ] || mal D0 "no se generaron las claves y los tokens de prueba en $J"
 docker run -d --rm --name jwks-prueba --network chatwoot_edge_prueba -v "$JW:/srv:ro" \
-  node:24.22.1-alpine node -e "const h=require('http'),f=require('fs');h.createServer((q,s)=>{try{s.writeHead(200,{'content-type':'application/json'});s.end(f.readFileSync('/srv'+q.url.split('?')[0]))}catch{s.writeHead(404);s.end()}}).listen(8080)" >/dev/null
+  node:24.22.3-alpine node -e "const h=require('http'),f=require('fs');h.createServer((q,s)=>{try{s.writeHead(200,{'content-type':'application/json'});s.end(f.readFileSync('/srv'+q.url.split('?')[0]))}catch{s.writeHead(404);s.end()}}).listen(8080)" >/dev/null
 cat >>"$D/.env" <<EOF
 CHATWOOT_CF_ACCESS_TEAM_DOMAIN=$TEAM
 CHATWOOT_CF_ACCESS_AUD=$AUD

@@ -219,11 +219,13 @@ export default async function StudioAppLayout({
                 initialUnreadConversations={initialUnreadConversations}
                 showConversations={canAccessModule(role, "conversaciones", roleModuleOverrides, myModuleGrants)}
               />
+              {/* El tope de ancho vive en `.studio-content` (studio.css) para que una
+                  pantalla que lo pide (SDD-0648: Embudos del CRM) use todo el ancho. */}
               <div
+                className="studio-content"
                 style={{
                   flex: 1,
                   padding: "var(--s-6) var(--s-8)",
-                  maxWidth: "var(--content-max)",
                   width: "100%",
                   margin: "0 auto",
                 }}

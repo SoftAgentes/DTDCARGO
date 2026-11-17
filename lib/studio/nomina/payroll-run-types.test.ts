@@ -7,6 +7,8 @@ import {
   validateGeneratePayrollRunInput,
   canTransitionPayrollRun,
   periodDaysForFrequency,
+  topesNecesitanTasa,
+  FaltaTasaParaTopeError,
   daysBetweenInclusive,
   payrollRunStatusLabel,
   payrollRunStatusTone,
@@ -16,10 +18,14 @@ import {
 } from "./payroll-run-types";
 
 // Reglas mecánicas base (espejo de los defaults de payroll_rules).
+// `ves_per_usd: 0.13` es una tasa ficticia: con el salario mínimo en 130 Bs deja el
+// salario mínimo en USD 1.000 y el tope muy por encima de los sueldos de estas
+// pruebas, que no son sobre el tope. Los topes se prueban abajo con tasas explícitas.
 const RULES: CalcRules = {
   pay_frequency: "mensual",
   day_method: "30",
   min_salary: 130,
+  ves_per_usd: 0.13,
   sso_pct: 4,
   rpe_pct: 0.5,
   faov_pct: 1,
@@ -126,34 +132,190 @@ describe("calcReciboDraft — horas extra y nocturnas (recargos)", () => {
   });
 });
 
-describe("calcReciboDraft — deducciones con topes en SM", () => {
-  it("aplica el tope SSO/RPE cuando el sueldo supera cap_sm × min_salary", () => {
-    // min_salary 130, sso_cap_sm 5 → tope SSO = 650; sueldo 800 > 650 → cotiza 650.
-    const r = calcReciboDraft({
-      base_salary_usd: 800,
-      rules: RULES,
-      period_days: 30,
-      attendance: { worked_days: 0, overtime_hours: 0, night_hours: 0 },
-      loan: null,
-    });
-    // SSO 4% de min(800,650)=650 → 26
-    // RPE 0.5% de min(800, 10*130=1300)=800 → 4
-    // FAOV 1% de 800 (sin tope) → 8
-    expect(r.statutory_deductions_usd).toBe(38);
+describe("calcReciboDraft — deducciones con topes en SM (SDD-0653 D6)", () => {
+  const sinAsistencia = { worked_days: 0, overtime_hours: 0, night_hours: 0 };
+  // Salario mínimo 130 Bs y 13 Bs por USD → el salario mínimo vale USD 10.
+  // Tope mensual: SSO 5 SM = USD 50 · RPE 10 SM = USD 100.
+  const A_13: CalcRules = { ...RULES, ves_per_usd: 13 };
+
+  it("el tope sale en Bs y se pasa a USD con la tasa: el sueldo en USD no se compara con los Bs", () => {
+    const r = calcReciboDraft({ base_salary_usd: 800, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    // SSO 4 % de min(800, 50) = 2 · RPE 0,5 % de min(800, 100) = 0,5 · FAOV 1 % de 800 (sin tope) = 8
+    expect(r.statutory_deductions_usd).toBe(10.5);
+    expect(r.net_usd).toBe(789.5);
   });
 
-  it("sin tope (cap=0 o min_salary=0) cotiza sobre el sueldo completo", () => {
+  it("antes de la corrección, 650 contaba como USD: con 130 Bs el tope en USD es otro", () => {
+    // El motor viejo cotizaba SSO sobre min(800, 650) = 650 → 26. Ahora sobre USD 50 → 2.
+    const r = calcReciboDraft({ base_salary_usd: 800, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    const sso = r.breakdown.find((b) => b.label === "SSO / IVSS")!;
+    expect(sso.amount_usd).toBe(-2);
+    expect(sso.note).toContain("Bs 650");
+    expect(sso.note).toContain("USD 50");
+    expect(sso.note).toContain("Bs 13/USD");
+  });
+
+  it("con un sueldo por debajo del tope cotiza sobre el sueldo completo", () => {
+    const r = calcReciboDraft({ base_salary_usd: 40, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    // 4 % de 40 = 1,6 · 0,5 % de 40 = 0,2 · 1 % de 40 = 0,4
+    expect(r.statutory_deductions_usd).toBe(2.2);
+  });
+
+  it("el tope mensual se prorratea al período: quincenal topa a la mitad", () => {
     const r = calcReciboDraft({
       base_salary_usd: 800,
-      rules: { ...RULES, min_salary: 0 },
+      rules: { ...A_13, pay_frequency: "quincenal" },
       period_days: 30,
-      attendance: { worked_days: 0, overtime_hours: 0, night_hours: 0 },
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    // Sueldo de la quincena 400. Tope SSO 50 × 15/30 = 25 → 1 · RPE 100 × 15/30 = 50 → 0,25 · FAOV 4
+    expect(r.statutory_deductions_usd).toBe(5.25);
+  });
+
+  it("semanal topa a un cuarto del tope mensual", () => {
+    const r = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, pay_frequency: "semanal" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    // 7,5 días: sueldo 200. Tope SSO 50 × 7,5/30 = 12,5 → 0,5 · RPE 25 → 0,125 · FAOV 2
+    const sso = r.breakdown.find((b) => b.label === "SSO / IVSS")!;
+    expect(sso.amount_usd).toBe(-0.5);
+    const faov = r.breakdown.find((b) => b.label === "FAOV")!;
+    expect(faov.amount_usd).toBe(-2); // FAOV no tiene tope
+  });
+
+  it("con la misma deducción mensual da lo mismo en un solo corte que en dos quincenas", () => {
+    const mes = calcReciboDraft({ base_salary_usd: 800, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    const quincena = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, pay_frequency: "quincenal" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(round(quincena.statutory_deductions_usd * 2)).toBe(mes.statutory_deductions_usd);
+  });
+
+  it("cambia con la tasa: a más Bs por USD, menor el tope en USD", () => {
+    const barata = calcReciboDraft({ base_salary_usd: 800, rules: { ...A_13, ves_per_usd: 13 }, period_days: 30, attendance: sinAsistencia, loan: null });
+    const cara = calcReciboDraft({ base_salary_usd: 800, rules: { ...A_13, ves_per_usd: 130 }, period_days: 30, attendance: sinAsistencia, loan: null });
+    expect(cara.statutory_deductions_usd).toBeLessThan(barata.statutory_deductions_usd);
+    // 130 Bs/USD → SM = USD 1: SSO 4 % de 5 = 0,2 · RPE 0,5 % de 10 = 0,05 · FAOV 8
+    expect(cara.statutory_deductions_usd).toBe(8.25);
+  });
+
+  it("con topes activos y sin tasa se niega: no calcula Bs contra USD en silencio", () => {
+    for (const ves_per_usd of [undefined, null, 0, -5]) {
+      expect(() =>
+        calcReciboDraft({ base_salary_usd: 800, rules: { ...RULES, ves_per_usd }, period_days: 30, attendance: sinAsistencia, loan: null }),
+      ).toThrow(FaltaTasaParaTopeError);
+    }
+  });
+
+  it("sin tope (cap=0 o min_salary=0) cotiza sobre el sueldo completo y no necesita tasa", () => {
+    const sinSalarioMinimo = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...RULES, min_salary: 0, ves_per_usd: null },
+      period_days: 30,
+      attendance: sinAsistencia,
       loan: null,
     });
     // 5.5% de 800 = 44
-    expect(r.statutory_deductions_usd).toBe(44);
+    expect(sinSalarioMinimo.statutory_deductions_usd).toBe(44);
+    const sinTopes = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...RULES, sso_cap_sm: 0, rpe_cap_sm: 0, ves_per_usd: null },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(sinTopes.statutory_deductions_usd).toBe(44);
+  });
+
+  it("topesNecesitanTasa: solo con salario mínimo y algún tope mayores que cero", () => {
+    expect(topesNecesitanTasa({ min_salary: 130, sso_cap_sm: 5, rpe_cap_sm: 10 })).toBe(true);
+    expect(topesNecesitanTasa({ min_salary: 130, sso_cap_sm: 0, rpe_cap_sm: 10 })).toBe(true);
+    expect(topesNecesitanTasa({ min_salary: 130, sso_cap_sm: 0, rpe_cap_sm: 0 })).toBe(false);
+    expect(topesNecesitanTasa({ min_salary: 0, sso_cap_sm: 5, rpe_cap_sm: 10 })).toBe(false);
+  });
+
+  it("calcRulesFrom pasa la tasa y descarta una inválida", () => {
+    const base = { ...RULES };
+    expect(calcRulesFrom(base, 130).ves_per_usd).toBe(130);
+    expect(calcRulesFrom(base).ves_per_usd).toBeNull();
+    expect(calcRulesFrom(base, 0).ves_per_usd).toBeNull();
+  });
+
+  it("período parcial con días trabajados: el tope se prorratea con los días trabajados", () => {
+    const r = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: A_13,
+      period_days: 30,
+      attendance: { worked_days: 10, overtime_hours: 0, night_hours: 0 },
+      loan: null,
+    });
+    // Sueldo de 10 días = 800/30×10 = 266,67. Tope SSO 50×10/30 = 16,67 → 0,67 · RPE 100×10/30 = 33,33 → 0,17 · FAOV 2,67
+    expect(r.gross_usd).toBe(266.67);
+    expect(r.breakdown.find((b) => b.label === "SSO / IVSS")!.amount_usd).toBe(-0.67);
+    expect(r.breakdown.find((b) => b.label === "RPE")!.amount_usd).toBe(-0.17);
+    expect(r.breakdown.find((b) => b.label === "FAOV")!.amount_usd).toBe(-2.67);
+    expect(r.statutory_deductions_usd).toBe(3.51);
+  });
+
+  it("sueldo exactamente igual al tope: cotiza sobre el sueldo, que es el tope", () => {
+    const r = calcReciboDraft({ base_salary_usd: 50, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    expect(r.breakdown.find((b) => b.label === "SSO / IVSS")!.amount_usd).toBe(-2);
+    expect(r.breakdown.find((b) => b.label === "RPE")!.amount_usd).toBe(-0.25);
+    expect(r.statutory_deductions_usd).toBe(2.75);
+    // Un dólar por encima del tope, el SSO no sube.
+    const encima = calcReciboDraft({ base_salary_usd: 51, rules: A_13, period_days: 30, attendance: sinAsistencia, loan: null });
+    expect(encima.breakdown.find((b) => b.label === "SSO / IVSS")!.amount_usd).toBe(-2);
+  });
+
+  it("RPE semanal: 0,5 % de 25 es 0,125 y el recibo lo redondea a 0,13", () => {
+    const r = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, pay_frequency: "semanal" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(r.breakdown.find((b) => b.label === "RPE")!.amount_usd).toBe(-0.13);
+    expect(r.statutory_deductions_usd).toBe(2.63);
+  });
+
+  it("el renglón del recibo dice qué tasa se usó, con su fecha, y marca la provisional", () => {
+    const definitiva = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, ves_tasa_nota: "BCV del 2026-11-30" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(definitiva.breakdown.find((b) => b.label === "SSO / IVSS")!.note).toContain("a Bs 13/USD, tasa BCV del 2026-11-30");
+    const provisional = calcReciboDraft({
+      base_salary_usd: 800,
+      rules: { ...A_13, ves_tasa_nota: "PROVISIONAL BCV del 2026-11-17" },
+      period_days: 30,
+      attendance: sinAsistencia,
+      loan: null,
+    });
+    expect(provisional.breakdown.find((b) => b.label === "RPE")!.note).toContain("tasa PROVISIONAL BCV del 2026-11-17");
+  });
+
+  it("calcRulesFrom pasa la nota de la tasa", () => {
+    expect(calcRulesFrom({ ...RULES }, 130, "BCV del 2026-11-30").ves_tasa_nota).toBe("BCV del 2026-11-30");
+    expect(calcRulesFrom({ ...RULES }, 130).ves_tasa_nota).toBeNull();
   });
 });
+
+function round(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
 
 describe("calcReciboDraft — cuota de préstamo capada al saldo", () => {
   it("descuenta la cuota completa si hay saldo suficiente", () => {
