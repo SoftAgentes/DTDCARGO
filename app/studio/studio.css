@@ -1785,3 +1785,47 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
     color: var(--warning);
   }
 }
+
+/* ─── Ficha del cliente · tres columnas (SDD-0650 F1) ─────────────────────
+   Datos · operación · conversaciones. Sin acceso a la Bandeja no hay panel y
+   quedan dos columnas. Por debajo de 1440 px de ventana (con el menú lateral, la
+   columna central bajaba a ~430 px y la fila de envíos se cortaba) las
+   conversaciones bajan a todo el ancho; por debajo de 900 px, una sola columna. */
+.studio-ficha-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-areas: "datos operacion conversaciones";
+  gap: var(--s-6);
+  align-items: start;
+}
+.studio-ficha-grid--sin-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  grid-template-areas: "datos operacion";
+}
+.studio-ficha-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  min-width: 0;
+}
+.studio-ficha-col--datos { grid-area: datos; }
+.studio-ficha-col--operacion { grid-area: operacion; }
+.studio-ficha-col--conversaciones { grid-area: conversaciones; }
+/* `:not(--sin-panel)`: esta regla es posterior y de igual especificidad; sin la
+   exclusión, pisaba la de dos columnas sin panel y dejaba una fila vacía. */
+@media (max-width: 1440px) {
+  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    grid-template-areas:
+      "datos operacion"
+      "conversaciones conversaciones";
+  }
+}
+@media (max-width: 900px) {
+  /* Misma especificidad que la regla de 1440 px (0,2,0) y posterior: gana. */
+  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel),
+  .studio-ficha-grid.studio-ficha-grid--sin-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "operacion" "conversaciones" "datos";
+  }
+}
