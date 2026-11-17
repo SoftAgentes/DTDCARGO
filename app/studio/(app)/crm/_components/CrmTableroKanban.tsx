@@ -16,7 +16,7 @@
  * motivo si la etapa es de cierre, llamar a la acción, avisar).
  */
 
-import { useRef, useState, type DragEvent } from "react";
+import { useId, useRef, useState, type DragEvent } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionMenu, type ActionMenuItem } from "@/app/studio/_components/ui/ActionMenu";
 import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
@@ -296,6 +296,7 @@ function TarjetaCard({
   ];
 
   const segmento = tablero === "leads" ? SEGMENTO_LABEL[t.segmento] : null;
+  const metaId = useId();
   const extras = t.tareasVencidas > 0 || t.tareasAbiertas > 0 || t.origen != null;
 
   return (
@@ -324,35 +325,87 @@ function TarjetaCard({
         alignItems: "center",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-        {canal && <CanalLogo canal={canal} />}
-        {/* SDD-0648: el nombre vuelve a ser la parada de teclado que abre la
-            ficha (antes era «Abrir», al pie). Un clic fantasma tras soltar lo
-            descarta `onOpen`. */}
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label={`Abrir ficha de ${nombre}`}
-          className="studio-link-quiet"
+      {/* SDD-0648 (/ui-check): el botón que abre la ficha abarca las dos líneas
+          (logo, nombre, estado, dueño y días), así es un objetivo de 32 px como
+          pide BD-037 sin que la tarjeta crezca. Es la parada de teclado de la
+          tarjeta; un clic fantasma tras soltar lo descarta `onOpen`. */}
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Abrir ficha de ${nombre}`}
+        aria-describedby={metaId}
+        className="studio-link-quiet"
+        style={{
+          gridRow: "1 / span 2",
+          gridColumn: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          minWidth: 0,
+          minHeight: 32,
+          textAlign: "left",
+          background: "none",
+          border: 0,
+          padding: 0,
+          cursor: "pointer",
+          color: "inherit",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: "var(--s-1)", minWidth: 0 }}>
+          {canal && <CanalLogo canal={canal} />}
+          <span
+            style={{
+              minWidth: 0,
+              font: "600 13px/1.3 var(--f-sans)",
+              color: t.nombre ? "var(--ink)" : "var(--ink-soft)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {nombre}
+          </span>
+        </span>
+        <span
+          id={metaId}
           style={{
-            display: "block",
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-1)",
             minWidth: 0,
-            flex: 1,
-            textAlign: "left",
-            background: "none",
-            border: 0,
-            padding: "2px 0",
-            cursor: "pointer",
-            font: "600 13px/1.3 var(--f-sans)",
-            color: t.nombre ? "var(--ink)" : "var(--ink-soft)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            font: "500 11px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
             whiteSpace: "nowrap",
+            overflow: "hidden",
           }}
         >
-          {nombre}
-        </button>
-      </div>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+            {[segmento, t.shippingMark, t.asesorNombre ?? "Sin dueño"].filter(Boolean).join(" · ")}
+          </span>
+          <span aria-hidden>·</span>
+          <span
+            title={dias == null ? "Sin fecha" : `${dias} días en esta etapa`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--s-1)",
+              font: "700 11px/1 var(--f-mono)",
+              color: atencion ? "var(--ink)" : "var(--ink-soft)",
+              flex: "0 0 auto",
+            }}
+          >
+            {atencion && (
+              // Atención = dorado en el punto, texto neutro (BRAND §Estados).
+              <span
+                aria-hidden
+                style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warning)" }}
+              />
+            )}
+            {dias == null ? "—" : `${dias}d`}
+            {atencion && <span style={SR_ONLY}> (más de {CRM_DIAS_ATENCION} días)</span>}
+          </span>
+        </span>
+      </button>
 
       <div style={{ gridRow: "1 / span 2", gridColumn: 2 }}>
         {enCurso ? (
@@ -364,45 +417,6 @@ function TarjetaCard({
         )}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          minWidth: 0,
-          font: "500 11px/1.3 var(--f-sans)",
-          color: "var(--ink-soft)",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-        }}
-      >
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-          {[segmento, t.shippingMark, t.asesorNombre ?? "Sin dueño"].filter(Boolean).join(" · ")}
-        </span>
-        <span aria-hidden>·</span>
-        <span
-          title={dias == null ? "Sin fecha" : `${dias} días en esta etapa`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            font: "700 11px/1 var(--f-mono)",
-            color: atencion ? "var(--ink)" : "var(--ink-soft)",
-            flex: "0 0 auto",
-          }}
-        >
-          {atencion && (
-            // Atención = dorado en el punto, texto neutro (BRAND §Estados).
-            <span
-              aria-hidden
-              style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warning)" }}
-            />
-          )}
-          {dias == null ? "—" : `${dias}d`}
-          {atencion && <span style={SR_ONLY}> (más de {CRM_DIAS_ATENCION} días)</span>}
-        </span>
-      </div>
-
       {extras && (
         <div
           style={{
@@ -411,7 +425,7 @@ function TarjetaCard({
             alignItems: "center",
             gap: "var(--s-1)",
             flexWrap: "wrap",
-            marginTop: 4,
+            marginTop: "var(--s-1)",
             font: "500 11px/1.35 var(--f-sans)",
             color: "var(--ink-soft)",
           }}

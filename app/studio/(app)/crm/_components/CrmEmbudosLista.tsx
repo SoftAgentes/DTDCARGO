@@ -76,9 +76,9 @@ export function CrmEmbudosLista({
             const atencion = t.diasEnEtapa != null && t.diasEnEtapa >= CRM_DIAS_ATENCION;
             return (
               <tr key={t.id} data-tarjeta-id={t.id} className="studio-row-hover">
-                <td style={{ ...TD, width: 120 }}>
+                <td style={{ ...TD, width: 120, whiteSpace: "nowrap" }}>
                   {canal ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}>
                       <CanalLogo canal={canal} />
                       <span>{CANAL_LABEL[canal]}</span>
                     </span>
@@ -95,7 +95,7 @@ export function CrmEmbudosLista({
                     style={{
                       background: "none",
                       border: 0,
-                      padding: "6px 0",
+                      padding: "var(--s-1) 0",
                       minHeight: 32,
                       cursor: "pointer",
                       textAlign: "left",
@@ -119,7 +119,7 @@ export function CrmEmbudosLista({
                         height: 6,
                         borderRadius: "50%",
                         background: "var(--warning)",
-                        marginRight: 4,
+                        marginRight: "var(--s-1)",
                         verticalAlign: "middle",
                       }}
                     />

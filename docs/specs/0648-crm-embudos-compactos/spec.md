@@ -161,4 +161,4 @@ Worktree propio, `corepack pnpm@11.19.0 install --frozen-lockfile` (la versión 
 | merge-tree contra la #621 (`1330e7606`) y contra `main` (`26a9a911e`) | sin conflictos; `1330e7606` traída por merge |
 | `pnpm verify` completo | NO EJECUTADO: el portón es CI |
 | Capturas antes/después | NO EJECUTADO: el Preview comparte base con producción; el DG la despliega en el entorno de prueba tras la revisión |
-| `/ui-check` | EJECUTADO: 1 hallazgo alto (el nombre de la tarjeta mide ~21 px, BD-037 pide 32) y 2 bajos de escala; pendientes de la decisión de Sam |
+| `/ui-check` | EJECUTADO: 1 hallazgo alto (el nombre de la tarjeta medía ~21 px, BD-037 pide 32) y 2 bajos de escala. Sam aprobó aplicarlos; aplicados: el botón abarca las dos líneas con `minHeight: 32`. Vitest y typecheck de este ajuste: en CI (orden del DG, PC ocupada) |

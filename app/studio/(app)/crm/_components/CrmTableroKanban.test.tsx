@@ -182,7 +182,13 @@ describe("CrmTableroKanban · mover y abrir (DND-01)", () => {
   it("el nombre abre la ficha y es la primera parada de teclado; la segunda es el menú", async () => {
     const user = userEvent.setup();
     const { onOpen } = pintar();
-    expect(abrir().textContent).toBe("Lead de prueba");
+    // El botón abarca las dos líneas: nombre, estado, dueño y días (objetivo de 32 px, BD-037).
+    expect(abrir().textContent).toContain("Lead de prueba");
+    expect(abrir().textContent).toContain("Registrado · Asesora de prueba");
+    expect(abrir().style.minHeight).toBe("32px");
+    // La segunda línea se anuncia como descripción del botón.
+    const desc = document.getElementById(abrir().getAttribute("aria-describedby")!);
+    expect(desc?.textContent).toContain("Asesora de prueba");
     expect(screen.getAllByRole("button", { name: /^Abrir ficha de / })).toHaveLength(1);
     await user.tab();
     expect(document.activeElement).toBe(abrir());

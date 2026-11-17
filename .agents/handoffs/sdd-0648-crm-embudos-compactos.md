@@ -14,7 +14,7 @@ Tarjeta compacta, logo por canal, ancho completo, vista Lista y chat a pantalla 
 - [x] Spec con D1–D6 literales, D7 y allowlist.
 - [x] Código: `crm-canal.ts`, `crm-chat.ts`, `CanalLogo`, tarjeta con `ActionMenu`, `CrmVistaEmbudo` (Tablero/Lista), `CrmEmbudosLista`, ruta `/studio/crm/chat/[tarjetaId]`, «← Volver al embudo» en la Bandeja, «Abrir chat» en la ficha, ancho completo con `.studio-content:has([data-ancho-completo])`, excepción D1 en BRAND.
 - [x] Pruebas, typecheck, eslint y gates de docs: PASÓ con el turno del DG (detalle en «Validación» de la spec).
-- [x] `/ui-check`: hecho. Pendientes, a la espera de Sam: el nombre de la tarjeta como objetivo de 32 px (alto) y el espaciado en escala (bajo).
+- [x] `/ui-check`: hecho, y Sam aprobó aplicar los tres hallazgos; aplicados (nombre como objetivo de 32 px, espaciado en escala, `nowrap` en Canal). Su vitest/typecheck corre en CI.
 - [ ] Capturas antes/después: NO EJECUTADAS. Por orden del DG, el Preview no se usa (comparte base con producción); el DG despliega en prueba.dtdcargo.com tras la revisión.
 - [x] PR en borrador contra main; va después de la #621.
 
