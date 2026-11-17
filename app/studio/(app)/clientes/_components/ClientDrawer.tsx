@@ -6,7 +6,8 @@
  * Drawer lateral derecho 560px. Mode "create" o "edit" según props.
  * useActionState con createClientAction / updateClientAction.
  * Soft delete button en footer (solo mode edit) con ConfirmDialog R2 (SDD-0469).
- * En mode create: MARKBOX se autogenera al submit (no input).
+ * En mode create: MARKBOX se autogenera al submit, salvo que el equipo escriba
+ * el código real del cliente (campo opcional, SDD-0646).
  * En mode edit: MARKBOX visible read-only.
  */
 
@@ -366,6 +367,34 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                 ) : (
                   <>El Shipping Mark se asigna automáticamente al crear el cliente.</>
                 )}
+              </div>
+
+              {/* SDD-0646 · el código real del cliente, si ya tenía uno. */}
+              <div>
+                <label className="studio-label" htmlFor="cl-markbox">
+                  Shipping Mark (opcional)
+                </label>
+                <input
+                  id="cl-markbox"
+                  name="markbox"
+                  className="studio-input studio-input-mono"
+                  placeholder="Vacío = se asigna automáticamente"
+                  autoComplete="off"
+                  maxLength={40}
+                  aria-describedby="cl-markbox-hint"
+                  style={{ width: "100%", textTransform: "uppercase" }}
+                />
+                <p
+                  id="cl-markbox-hint"
+                  style={{
+                    font: "500 11.5px/1.4 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    margin: "4px 0 0",
+                  }}
+                >
+                  Escríbelo solo si el cliente ya tiene su código de siempre. Letras,
+                  números y guiones. Si algo no cuadra, el aviso sale al crear.
+                </p>
               </div>
             </>
           )}
