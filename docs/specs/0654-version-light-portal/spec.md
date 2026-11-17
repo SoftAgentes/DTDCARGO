@@ -24,7 +24,7 @@ migraciones.** Cada fase siguiente necesita el visto bueno de Sam y el turno del
 Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y códigos son inventados.
 
 - Abre en la vista sencilla y arranca la guía. Con `#completa` al final de la dirección abre la vista completa;
-  con `#sencilla`, la sencilla sin guía.
+  con `#sencilla`, la sencilla sin guía; con `#codigo`, el tutorial del código.
 - La vista completa de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
   suma es el selector de vista y el botón de Faro.
 
@@ -52,6 +52,11 @@ Ajustes de Sam al ver la primera maqueta (2026-11-16, en la sesión del Worker):
   instrucciones**, y una sección pequeña, «interactiva, visual y simple», que explica el Shipping Mark y cómo se
   arma el código.
 - El tema **predeterminado es el claro (blanco)**. El cliente puede pasar a noche.
+- Al ver la segunda maqueta: «Me gustó la propuesta». Pidió **más detalle en la explicación del código**: qué
+  significa el número que va después del código de cliente (el proveedor) y el siguiente (las veces que le ha
+  comprado), de forma interactiva o con un «aquí puedes oprimir para ver un tutorial». El motivo: «la gente está
+  enviando mercancías sin poner detalles, y después andan preguntando por el Proveedor 5 o el Proveedor 6 y no lo
+  tienen así».
 - Una **guía para las primeras veces** en la vista sencilla: «Recuerda, aquí puedes hacer esto», con tres a seis
   consejos y la opción de «¿quieres continuar?» para seguir explicando la herramienta.
 - «Esta es la parte importante porque es lo que le gusta al cliente y nos separa de la competencia»: pidió una
@@ -295,16 +300,28 @@ Ver la maqueta. Resumen:
      hay, lo dice: «No tienes nada pendiente».
   3. **Cuánto debes.** Saldo en USD; bolívares solo como vista, según la regla vigente.
   4. **Tus documentos.** Los últimos papeles con su botón de descarga.
-  5. **¿Vas a comprar en China? Envíale esto a tu proveedor.** Dos partes:
-     - El mensaje listo para copiar, con la dirección del almacén, quién recibe y el código que va en cada caja.
-       Es el mismo texto que hoy arman `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx`
-       en «Mis compras» (`app/portal/(app)/proveedores/SuppliersClient.tsx:120-131`); la vista sencilla lo
-       reutiliza, no lo reescribe.
-     - El código parte por parte: el cliente toca cada parte y lee qué significa. El formato es
-       `DTD-{cliente}-{proveedor}-{compra}` (`lib/studio/prealertas/types.ts:116-118`). Al lado, una caja
-       dibujada con el código puesto.
+  5. **¿Vas a comprar en China? Envíale esto a tu proveedor.** Resuelve un problema que Sam describió: llegan
+     cajas sin el código completo y el cliente pregunta por un «proveedor 5» que nunca registró. Tres pasos:
+     - **A · ¿A cuál proveedor le vas a comprar?** La lista de proveedores que el cliente ya registró, cada uno
+       con su número y cuántas veces le ha comprado. Si es nuevo, el enlace lleva a registrarlo primero (flujo de
+       «Mis compras» de la vista completa).
+     - **B · El código para esa compra**, parte por parte. Al elegir un proveedor, el código cambia a la vista. El
+       cliente toca cada parte y lee qué significa, con sus propios datos: «2 · tu proveedor: es Repuestos
+       Ejemplo», «2 · la compra: ya le compraste 1 vez; esta es la número 2». El formato es
+       `DTD-{cliente}-{proveedor}-{compra}` (`lib/studio/prealertas/types.ts:116-118`) y el próximo código por
+       proveedor ya lo calcula `summarizeSuppliers` (`lib/studio/prealertas/types.ts:204-230`).
+     - **C · El mensaje listo para copiar**, con la dirección del almacén, quién recibe y ese código. Es el mismo
+       texto que hoy arman `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` en «Mis
+       compras» (`app/portal/(app)/proveedores/SuppliersClient.tsx:120-131`); la vista sencilla lo reutiliza. Al
+       lado, una caja dibujada con el código puesto.
+     - **Tutorial del código:** un botón «Ver el tutorial del código (1 minuto)» abre seis pasos con el mismo motor
+       de la guía (§6.1): elige al proveedor, «DTD», tu número, el número del proveedor, el número de la compra y
+       «mándaselo a tu proveedor».
+     - **Atención fija:** «No inventes el número del proveedor. Si escribes "5" y no tienes un proveedor 5 en tu
+       lista, no sabremos de quién es la caja.»
      - En pantalla se dice **«Shipping Mark»**, nunca «Markbox» (BRAND.md, BD-022).
-     - Para registrar un proveedor o una compra nueva, enlaza a la vista completa.
+     - **Ojo con el código que se copia:** copiar el mensaje no crea la compra. La prealerta se sigue creando con
+       «Nueva compra»; el bloque lo dice y enlaza a ese flujo (D-13).
   6. **¿Te quedó una duda?** Faro y el chat con el asesor (SDD-0147).
 - **Cada bloque enlaza** a su pantalla de la vista completa. No hay un tercer nivel.
 - **Ayudas:** tres tipos fijos, con ícono y texto visible, nunca tooltip:
@@ -438,7 +455,8 @@ PR o se saca.
 | AC-5 | El selector funciona en las dos vistas y la elección persiste entre dispositivos | 1 |
 | AC-6 | El inicio sencillo muestra los seis bloques con datos del propio cliente y un estado vacío que enseña en cada uno | 2 |
 | AC-7 | Cada bloque enlaza a su pantalla de la vista completa | 2 |
-| AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», con el Shipping Mark del cliente; una prueba compara las dos salidas | 2 |
+| AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», y el mismo próximo código por proveedor que calcula `summarizeSuppliers`; una prueba compara las salidas | 2 |
+| AC-18 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
 | AC-14 | El botón de Faro es el mismo componente en el Studio y en el portal | 3 |
 | AC-8 | La vista sencilla no agrega lecturas con service_role | 2 |
 | AC-15 | Sin cookie de tema, el portal abre en claro; quien ya eligió noche lo conserva | 1 |
@@ -464,7 +482,7 @@ PR o se saca.
 | D-9 | ¿En qué orden? | **Vista sencilla primero (fases 1 y 2) y Faro del cliente después** de la fase 3 de la 0637, para no escribir dos motores |
 | D-10 | ¿Cómo se llama en pantalla? | **«Vista sencilla» y «Vista completa»**, no «light» y «full»: «light» ya es el tema claro y el cliente habla español |
 | D-11 | ¿Faro del cliente puede hablar de precios? | **No en la primera versión.** Para precios enlaza a la calculadora y a las cotizaciones del cliente |
-| D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra si el cliente ya tiene un proveedor registrado; si no, solo su Shipping Mark** y el enlace para registrar al proveedor |
+| D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra del proveedor que el cliente elija.** Sin proveedores registrados, solo su Shipping Mark y el enlace para registrar al primero. Copiar el mensaje no crea la compra: después de copiar, el bloque ofrece «Avisar esta compra» (el flujo de prealerta que ya existe) |
 | D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista completa |
 | D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
 | D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |

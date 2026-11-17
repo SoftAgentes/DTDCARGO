@@ -230,10 +230,20 @@ details.gloss p{margin-top:8px;color:var(--g500)}
 .sub{font-weight:700;font-size:14px;display:flex;gap:8px;align-items:center}
 .sub i{font-style:normal;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:12px;font-family:var(--f-display)}
 .clip{white-space:pre-wrap;font-family:var(--f-mono);font-size:12.5px;background:var(--elev);border:1px dashed var(--border);border-radius:12px;padding:12px;overflow-wrap:anywhere;user-select:all;margin-block:10px}
-.mark{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--f-mono);font-size:24px;font-weight:700;margin-block:10px}
+.mark{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;font-family:var(--f-mono);font-size:24px;font-weight:700;margin-block:10px}
 .seg-m{font:inherit;border:2px solid var(--border);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px}
 .seg-m.on{border-color:var(--wine);background:var(--wine);color:#FFFFFF}
-.mark-exp{min-height:4.5em;font-size:14.5px}
+.mark-exp{min-height:5.5em;font-size:14.5px}
+.mark .part{display:grid;justify-items:center;gap:4px}
+.mark .part small{font-family:var(--f-sans);font-size:11px;font-weight:700;color:var(--g500);letter-spacing:.02em}
+.mark .dash{align-self:start;padding-top:8px}
+.sups{display:grid;gap:8px;margin-block:10px}
+.sup{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:center;text-align:left;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);padding:10px 12px;font-size:14px}
+.sup[aria-checked="true"]{border-color:var(--wine);background:var(--tint-wine)}
+.sup .n{width:34px;height:34px;border-radius:8px;background:var(--ink);color:var(--paper);font-family:var(--f-mono);font-weight:700;display:grid;place-items:center;font-size:16px}
+.sup[aria-checked="true"] .n{background:var(--wine);color:#FFFFFF}
+.sup b{display:block}
+.sup small{display:block;color:var(--g500);font-size:12.5px}
 .mark-exp b{font-family:var(--f-display)}
 .boxdemo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--g500)}
 
@@ -439,36 +449,39 @@ details.gloss p{margin-top:8px;color:var(--g500)}
 
       <section class="card prov" id="b-prov" aria-labelledby="h-prov">
         <div class="q-title"><span class="num">5</span><h3 id="h-prov">¿Vas a comprar en China? Envíale esto a tu proveedor</h3><span class="newtag">Nuevo</span></div>
-        <p style="max-width:70ch;color:var(--g700)">Tu proveedor necesita dos cosas: a dónde llevar la carga y qué código escribir en cada caja. Aquí tienes las dos.</p>
+        <p style="max-width:70ch;color:var(--g700)">Cada caja debe llevar escrito un código. Ese código nos dice de quién es la caja, de cuál proveedor viene y cuál compra es. Sin él, la caja llega al almacén sin dueño.</p>
+        <button class="btn sm ghost" type="button" id="mark-tour" style="justify-self:start"><svg class="ic"><use href="#i-guide"/></svg>Ver el tutorial del código (1 minuto)</button>
         <div class="prov-grid">
           <div>
-            <p class="sub"><i>A</i>Copia este mensaje y pégalo en WeChat o WhatsApp</p>
-            <div class="clip" id="clip-text" tabindex="0">收货地址 / Dirección de entrega (ejemplo inventado):
-Almacén DTD Cargo, Calle Ejemplo 123, Distrito Ejemplo, Guangzhou
-收货人 / Recibe: DTD Cargo · Tel. 000-0000-0000
-唛头 / Shipping Mark en cada caja: DTD-9999-2-1
-Escribe el código grande, en dos lados de cada caja.</div>
+            <p class="sub"><i>A</i>¿A cuál proveedor le vas a comprar?</p>
+            <div class="sups" id="sups" role="radiogroup" aria-label="Tus proveedores registrados"></div>
+            <button class="link" type="button" id="add-sup">+ Es un proveedor nuevo: registrarlo primero</button>
+            <p id="add-note" style="font-size:13px;color:var(--g500);margin-top:6px"></p>
+
+            <p class="sub" style="margin-top:18px"><i>B</i>Este es el código para esa compra. Toca cada parte</p>
+            <div class="mark" id="mark" role="group" aria-label="Partes del código">
+              <span class="part"><button type="button" class="seg-m" id="m0" data-m="0">DTD</button><small>DTD Cargo</small></span><span class="dash" aria-hidden="true">-</span>
+              <span class="part"><button type="button" class="seg-m" id="m1" data-m="1">9999</button><small>tú</small></span><span class="dash" aria-hidden="true">-</span>
+              <span class="part"><button type="button" class="seg-m on" id="m2" data-m="2">2</button><small>tu proveedor</small></span><span class="dash" aria-hidden="true">-</span>
+              <span class="part"><button type="button" class="seg-m" id="m3" data-m="3">2</button><small>la compra</small></span>
+            </div>
+            <p class="mark-exp" id="mark-exp" aria-live="polite"></p>
+          </div>
+          <div>
+            <p class="sub"><i>C</i>Copia este mensaje y envíaselo a ese proveedor</p>
+            <div class="clip" id="clip-text" tabindex="0"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="btn sm" type="button" id="copy-clip">Copiar mensaje</button>
               <span id="copy-ok" role="status" style="font-size:13px;color:var(--g500)"></span>
             </div>
-          </div>
-          <div>
-            <p class="sub"><i>B</i>Tu código, parte por parte. Toca cada parte</p>
-            <div class="mark" role="group" aria-label="Partes del código">
-              <button type="button" class="seg-m on" data-m="0">DTD</button><span aria-hidden="true">-</span>
-              <button type="button" class="seg-m" data-m="1">9999</button><span aria-hidden="true">-</span>
-              <button type="button" class="seg-m" data-m="2">2</button><span aria-hidden="true">-</span>
-              <button type="button" class="seg-m" data-m="3">1</button>
-            </div>
-            <p class="mark-exp" id="mark-exp" aria-live="polite"></p>
-            <div class="boxdemo" aria-hidden="true">
-              <svg viewBox="0 0 220 120" width="200" height="110"><path d="M20 40 110 15l90 25v55l-90 22-90-22z" fill="var(--elev)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M20 40l90 22 90-22M110 62v55" fill="none" stroke="var(--ink)" stroke-width="2"/><text id="box-code" x="64" y="88" transform="rotate(13 64 88)" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-weight="700" font-size="11" fill="var(--wine-text)">DTD-9999-2-1</text></svg>
-              <span>Así debe verse en cada caja.</span>
+            <div class="boxdemo" aria-hidden="true" style="margin-top:14px">
+              <svg viewBox="0 0 220 120" width="200" height="110"><path d="M20 40 110 15l90 25v55l-90 22-90-22z" fill="var(--elev)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M20 40l90 22 90-22M110 62v55" fill="none" stroke="var(--ink)" stroke-width="2"/><text id="box-code" x="64" y="88" transform="rotate(13 64 88)" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-weight="700" font-size="11" fill="var(--wine-text)"></text></svg>
+              <span>Así debe verse en cada caja, en dos lados.</span>
             </div>
           </div>
         </div>
-        <div class="help warn"><svg class="ic"><use href="#i-warn"/></svg><div><b>Atención</b>Una caja sin código llega al almacén sin dueño y se retrasa. Pídele a tu proveedor una foto de la caja marcada.</div></div>
+        <div class="help warn"><svg class="ic"><use href="#i-warn"/></svg><div><b>Atención</b>No inventes el número del proveedor. Si escribes «5» y no tienes un proveedor 5 en tu lista, no sabremos de quién es la caja. Si el proveedor es nuevo, regístralo primero y usa el número que le toque.</div></div>
+        <div class="help tip"><svg class="ic"><use href="#i-tip"/></svg><div><b>Consejo</b>Pídele a tu proveedor una foto de la caja ya marcada antes de que la despache.</div></div>
       </section>
 
       <div class="duo" id="b-help">
@@ -528,7 +541,7 @@ Escribe el código grande, en dos lados de cada caja.</div>
           <div class="rows">
             <div class="ship"><div class="a"><b>DTD-9999-1-1</b><span class="st"><svg class="ic"><use href="#i-ship"/></svg>En tránsito</span></div><span>Marítimo consolidado · Sillas de oficina</span><small class="mono">Guangzhou → La Guaira</small><small>Actualizado 12 nov 2026</small></div>
             <div class="ship"><div class="a"><b>DTD-9999-2-1</b><span class="st"><svg class="ic"><use href="#i-box"/></svg>Pre-alerta</span></div><span>Aéreo · Repuestos de moto</span><small class="mono">Guangzhou → Caracas</small><small>Actualizado 10 nov 2026</small></div>
-            <div class="ship"><div class="a"><b>DTD-9999-1-0</b><span class="st" style="color:var(--success)"><svg class="ic"><use href="#i-check"/></svg>Entregado</span></div><span>Marítimo consolidado · Lámparas LED</span><small class="mono">Guangzhou → La Guaira</small><small>Actualizado 14 oct 2026</small></div>
+            <div class="ship"><div class="a"><b>DTD-9999-3-1</b><span class="st" style="color:var(--success)"><svg class="ic"><use href="#i-check"/></svg>Entregado</span></div><span>Marítimo consolidado · Lámparas LED</span><small class="mono">Guangzhou → La Guaira</small><small>Actualizado 14 oct 2026</small></div>
           </div>
         </section>
         <div class="stack">
@@ -557,7 +570,7 @@ Escribe el código grande, en dos lados de cada caja.</div>
             <span class="eyebrow">Actividad reciente</span>
             <div class="act"><i style="background:var(--ink)"></i><div><span class="mono">DTD-9999-1-1</span> · En tránsito<small>hace 4 días</small></div></div>
             <div class="act"><i style="background:var(--warning)"></i><div><span class="mono">DTD-9999-2-1</span> · Pre-alerta creada<small>hace 6 días</small></div></div>
-            <div class="act"><i style="background:var(--success)"></i><div><span class="mono">DTD-9999-1-0</span> · Entregado<small>hace 1 mes</small></div></div>
+            <div class="act"><i style="background:var(--success)"></i><div><span class="mono">DTD-9999-3-1</span> · Entregado<small>hace 1 mes</small></div></div>
           </section>
         </div>
       </div>
@@ -636,15 +649,44 @@ Escribe el código grande, en dos lados de cada caja.</div>
   document.querySelectorAll('[data-task]').forEach(function(b){b.addEventListener('click',function(){
     var s=document.createElement('span');s.className='done-msg';s.textContent='En el portal real, este botón abre el paso para hacerlo.';b.replaceWith(s)})});
 
-  /* Shipping Mark */
-  var EXP=[['DTD','Todas las cargas de DTD Cargo empiezan así. Le dice al almacén que la caja es nuestra.'],
-    ['9999 · tu número de cliente','Es solo tuyo y no cambia nunca. «DTD-9999» es tu Shipping Mark.'],
-    ['2 · tu proveedor','Es el segundo proveedor que registraste. Cada proveedor tiene su número.'],
-    ['1 · tu compra','Es tu primera compra a ese proveedor. La próxima será la 2.']];
-  var segs=document.querySelectorAll('.seg-m'), mexp=$('mark-exp');
-  function pick(i){segs.forEach(function(b,k){b.classList.toggle('on',k===i);b.setAttribute('aria-pressed',String(k===i))});
-    mexp.innerHTML='';var b=document.createElement('b');b.textContent=EXP[i][0]+'. ';mexp.appendChild(b);mexp.appendChild(document.createTextNode(EXP[i][1]))}
-  segs.forEach(function(b){b.addEventListener('click',function(){pick(Number(b.dataset.m))})});pick(0);
+  /* Shipping Mark: el cliente elige al proveedor y el código cambia */
+  var SUPS=[{n:1,name:'Muebles Ejemplo',city:'Foshan',buys:1},{n:2,name:'Repuestos Ejemplo',city:'Guangzhou',buys:1},{n:3,name:'Iluminación Ejemplo',city:'Zhongshan',buys:1}];
+  var cur=1, part=2, segs=document.querySelectorAll('.seg-m'), mexp=$('mark-exp'), supsEl=$('sups');
+  function veces(k){return k===0?'Todavía no le has comprado':k===1?'Ya le compraste 1 vez':'Ya le compraste '+k+' veces'}
+  function code(){var x=SUPS[cur];return 'DTD-9999-'+x.n+'-'+(x.buys+1)}
+  function explainPart(){
+    var x=SUPS[cur], k=x.buys+1, T=[
+      ['DTD','Todas las cargas de DTD Cargo empiezan así. Le dice al almacén que la caja es nuestra.'],
+      ['9999 · tu número de cliente','Es solo tuyo y no cambia nunca. «DTD-9999» es tu Shipping Mark.'],
+      [x.n+' · tu proveedor','Es '+x.name+'. Recibió el número '+x.n+' cuando lo registraste, y ese número es suyo para siempre. Sale de tu lista: no se inventa.'],
+      [k+' · la compra',veces(x.buys)+' a '+x.name+'. Esta es tu compra número '+k+'. El número sube solo con cada compra nueva.']];
+    segs.forEach(function(b,i){b.classList.toggle('on',i===part);b.setAttribute('aria-pressed',String(i===part))});
+    mexp.innerHTML='';var b=document.createElement('b');b.textContent=T[part][0]+'. ';mexp.appendChild(b);mexp.appendChild(document.createTextNode(T[part][1]));
+  }
+  function renderSups(){
+    supsEl.innerHTML='';
+    SUPS.forEach(function(x,i){
+      var b=document.createElement('button');b.type='button';b.className='sup';b.setAttribute('role','radio');b.setAttribute('aria-checked',String(i===cur));
+      var n=document.createElement('span');n.className='n';n.textContent=x.n;
+      var d=document.createElement('span'),t=document.createElement('b'),m=document.createElement('small');
+      t.textContent=x.name+' · '+x.city;m.textContent=veces(x.buys)+'. La próxima compra es la '+(x.buys+1)+'.';
+      d.appendChild(t);d.appendChild(m);b.appendChild(n);b.appendChild(d);
+      b.addEventListener('click',function(){cur=i;part=2;renderAll()});supsEl.appendChild(b)});
+  }
+  function renderAll(){
+    var x=SUPS[cur], c=code();
+    renderSups();$('m2').textContent=x.n;$('m3').textContent=x.buys+1;$('box-code').textContent=c;
+    $('clip-text').textContent='收货地址 / Dirección de entrega (ejemplo inventado):\nAlmacén DTD Cargo, Calle Ejemplo 123, Distrito Ejemplo, Guangzhou\n收货人 / Recibe: DTD Cargo · Tel. 000-0000-0000\n唛头 / Shipping Mark en cada caja: '+c+'\nEscribe el código grande, en dos lados de cada caja.';
+    $('copy-ok').textContent='';explainPart();
+  }
+  segs.forEach(function(b){b.addEventListener('click',function(){part=Number(b.dataset.m);explainPart()})});
+  $('add-sup').addEventListener('click',function(){
+    if(SUPS.length>3){return}
+    SUPS.push({n:4,name:'Proveedor nuevo',city:'por registrar',buys:0});cur=3;part=2;renderAll();
+    $('add-note').textContent='En el portal real aquí escribes el nombre y la ciudad del proveedor. Le tocó el número 4 y su primera compra es la 1.';
+    $('add-sup').hidden=true;
+  });
+  renderAll();
   $('copy-clip').addEventListener('click',function(){
     var t=$('clip-text'), ok=$('copy-ok');
     function sel(){var r=document.createRange();r.selectNodeContents(t);var g=getSelection();g.removeAllRanges();g.addRange(r);ok.textContent='Texto seleccionado. Cópialo con tu teclado.'}
@@ -685,7 +727,7 @@ Escribe el código grande, en dos lados de cada caja.</div>
     {t:'b-where',k:'Consejo 1 de 5',h:'Aquí ves dónde está tu carga',p:'Toca cada punto de la ruta y te explicamos qué pasa en esa etapa.'},
     {t:'b-tasks',k:'Consejo 2 de 5',h:'Aquí está lo que te toca hacer',p:'Si falta un papel o un pago, aparece aquí con su botón. Si no hay nada, estás al día.'},
     {t:'b-money',k:'Consejo 3 de 5',h:'Aquí ves cuánto debes',p:'Siempre en dólares. Cuando pagues, repórtalo con el botón.'},
-    {t:'b-prov',k:'Consejo 4 de 5',h:'Esto es lo que le mandas a tu proveedor',p:'La dirección del almacén y tu código para las cajas, listos para copiar.'},
+    {t:'b-prov',k:'Consejo 4 de 5',h:'Esto es lo que le mandas a tu proveedor',p:'Eliges al proveedor y te damos el código y el mensaje listos para copiar. Hay un tutorial de 1 minuto dentro.'},
     {t:'open-faro',k:'Consejo 5 de 5',ico:'#i-rem',h:'Recuerda: Faro te ayuda',p:'Si te queda una duda, toca el faro y pregúntale. Solo ve tu cuenta.'},
     {t:null,k:'¿Quieres continuar?',ico:'#i-guide',h:'Ya sabes lo básico',p:'Si quieres, te damos 3 consejos más para sacarle provecho al portal.',next:'Sí, 3 consejos más',alt:'Listo por ahora',branch:true}
   ];
@@ -695,6 +737,14 @@ Escribe el código grande, en dos lados de cada caja.</div>
     {t:'b-docs',k:'Consejo extra 3 de 3',h:'Tus papeles están aquí',p:'Facturas, lista de empaque y fotos. Las palabras raras traen su explicación debajo.'},
     {t:null,k:'Listo',ico:'#i-check',h:'Eso es todo',p:'Cuando quieras repetir la guía, toca «Guía» arriba.',next:'Terminar'}
   ];
+  var MARK=[
+    {t:'sups',k:'Paso 1 de 6',h:'Primero, elige a tu proveedor',p:'Cada proveedor que registras recibe un número: 1, 2, 3… Ese número es suyo para siempre. Tócalo en tu lista.',next:'Siguiente'},
+    {t:'m0',k:'Paso 2 de 6',h:'«DTD» va siempre',p:'Todas nuestras cargas empiezan así. Le dice al almacén que la caja es de DTD Cargo.'},
+    {t:'m1',k:'Paso 3 de 6',h:'Tu número de cliente',p:'Es solo tuyo y no cambia. Con «DTD» adelante forma tu Shipping Mark.'},
+    {t:'m2',k:'Paso 4 de 6',h:'El número de tu proveedor',p:'Sale de tu lista. Si el proveedor no está en la lista, regístralo antes de comprar. No lo inventes.'},
+    {t:'m3',k:'Paso 5 de 6',h:'El número de la compra',p:'Cuenta las veces que le has comprado a ese proveedor. Primera compra: 1. Segunda: 2. El portal lo calcula por ti.'},
+    {t:'clip-text',k:'Paso 6 de 6',ico:'#i-rem',h:'Recuerda: mándaselo a tu proveedor',p:'El mensaje ya trae la dirección del almacén y el código completo. Cópialo y pídele una foto de la caja marcada.',next:'Terminar'}
+  ];
   var steps=BASE, idx=0, on=false;
   var ring=$('tour-ring'), card=$('tour-card'), block=$('tour-block');
   function place(){
@@ -703,7 +753,7 @@ Escribe el código grande, en dos lados de cada caja.</div>
     var r=el.getBoundingClientRect(), pad=6;
     ring.className='tour-ring';
     ring.style.left=(r.left-pad)+'px';ring.style.top=(r.top-pad)+'px';ring.style.width=(r.width+pad*2)+'px';ring.style.height=(r.height+pad*2)+'px';
-    ring.style.borderRadius=(el.id==='open-faro'||el.classList.contains('round')||el.classList.contains('seg'))?'999px':'22px';
+    ring.style.borderRadius=el.classList.contains('seg-m')?'12px':(el.id==='open-faro'||el.classList.contains('round')||el.classList.contains('seg'))?'999px':'22px';
     var top; if(r.bottom+ch+24<H)top=r.bottom+16; else if(r.top-ch-16>8)top=r.top-ch-16; else top=H-ch-16;
     var leftPx=Math.min(Math.max(16,r.left+r.width/2-cw/2),W-cw-16);
     card.style.top=top+'px';card.style.left=leftPx+'px';
@@ -720,10 +770,10 @@ Escribe el código grande, en dos lados de cada caja.</div>
       var r=el.getBoundingClientRect();
       if(r.height>innerHeight*0.6){window.scrollTo(0,window.scrollY+r.top-76)}else{el.scrollIntoView({block:'center'})}
     }
-    place();setTimeout(place,60);setTimeout(place,320);
+    place();[60,320,700,1200].forEach(function(ms){setTimeout(place,ms)});
     $('tour-next').focus({preventScroll:true});
   }
-  function start(){setView('simple',true);steps=BASE;idx=0;on=true;block.hidden=false;ring.hidden=false;card.hidden=false;show()}
+  function start(list){setView('simple',true);steps=Array.isArray(list)?list:BASE;idx=0;on=true;block.hidden=false;ring.hidden=false;card.hidden=false;show()}
   function end(){on=false;block.hidden=true;ring.hidden=true;card.hidden=true;store('dtd-m-guia','vista')}
   $('tour-next').addEventListener('click',function(){
     var s=steps[idx];
@@ -732,7 +782,8 @@ Escribe el código grande, en dos lados de cada caja.</div>
     idx++;show()});
   $('tour-alt').addEventListener('click',end);
   $('tour-skip').addEventListener('click',end);
-  $('btn-guia').addEventListener('click',start);
+  $('btn-guia').addEventListener('click',function(){start(BASE)});
+  $('mark-tour').addEventListener('click',function(){start(MARK)});
   addEventListener('resize',place);addEventListener('scroll',place,{passive:true});
   document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(on)end();else if(!faro.hidden)closeFaro()});
 
@@ -740,8 +791,9 @@ Escribe el código grande, en dos lados de cada caja.</div>
   var h=location.hash;
   if(h==='#completa')setView('full',true);
   else if(h==='#sencilla')setView('simple',true);
+  else if(h==='#codigo'){setView('simple',true);setTimeout(function(){start(MARK)},400)}
   else if(store('dtd-m-vista')==='full')setView('full',true);
-  else if(store('dtd-m-guia')!=='vista')setTimeout(start,500);
+  else if(store('dtd-m-guia')!=='vista')setTimeout(function(){start(BASE)},500);
 })();
 </script>
 
