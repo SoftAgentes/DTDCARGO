@@ -7,6 +7,7 @@
  *   no está en el texto del guion usado. En el Paso 3a el agente no ve el sistema de envíos, así que la única
  *   fuente permitida es el guion. Conservador a propósito: ante la duda, se escala.
  * - `datos_personales`: el texto trae un correo, teléfono, cédula, RIF o dirección (la regla del cable).
+ * - `enlace` (Paso 3b): el texto trae una URL o un dominio que no está en el guion usado (`enlacesAjenos`).
  *
  * Cualquier código → el despachador escala en vez de guardar la respuesta. Lo que eval.md pide y no se puede
  * automatizar (cierre en ≤ 3 intercambios, tono) lo revisa Sam en la aprobación.
@@ -15,7 +16,7 @@ import { detectorDelCable } from "./cable-textos";
 import type { Guion } from "./guiones-soporte";
 import type { SalidaAgente } from "./salida-agente";
 
-export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales";
+export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace";
 
 function normal(s: string): string {
   return s
@@ -58,5 +59,18 @@ export function revisarRespuesta(
   if (inventado) codigos.push("dato_inventado");
 
   if (detectorDelCable(r.texto)) codigos.push("datos_personales");
+  if (enlacesAjenos(r.texto, guion?.texto ?? "").length > 0) codigos.push("enlace");
   return codigos;
+}
+
+/**
+ * Paso 3b (pendiente del 3a): URLs y dominios del borrador que NO vienen del guion usado. Un enlace que el agente
+ * inventa puede llevar al cliente a cualquier lado (phishing, un sitio que no es de DTD), así que escala.
+ * Mira `http(s)://…`, `www.…` y todo `nombre.tld` (también `dtdcargo.com`): ningún guion de la etapa 1 trae uno.
+ */
+const ENLACE = /\b(?:https?:\/\/|www\.)[^\s<>"')]+|\b[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,24}\b(?:\/[^\s<>"')]*)?/gi;
+
+export function enlacesAjenos(texto: string, permitido: string): string[] {
+  const delGuion = new Set([...permitido.toLowerCase().matchAll(ENLACE)].map((m) => m[0]));
+  return [...texto.toLowerCase().matchAll(ENLACE)].map((m) => m[0]).filter((e) => !delGuion.has(e));
 }
