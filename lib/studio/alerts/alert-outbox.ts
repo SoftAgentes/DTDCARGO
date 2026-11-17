@@ -26,7 +26,7 @@ import {
   TELEGRAM_ALERT_CATEGORIES,
   type TelegramAlertCategory,
 } from "@/lib/studio/telegram/alert-routing";
-import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
+import { codigosValidos, type MinimalAlert } from "@/lib/studio/discord/minimal-alert";
 import { isDiscordUserId } from "@/lib/studio/discord/send-webhook";
 import { deliverDiscordAlert } from "./discord-delivery";
 
@@ -76,11 +76,13 @@ export function minimalFromPayload(payload: unknown): MinimalAlert | null {
         )
         .map((c) => ({ etiqueta: c.etiqueta, valor: c.valor }))
     : undefined;
+  const codigos = Array.isArray(p.codigos) ? codigosValidos(p.codigos) : [];
   return {
     titulo: p.titulo,
     codigo: typeof p.codigo === "string" ? p.codigo : null,
     url: typeof p.url === "string" ? p.url : null,
     ...(conteos && conteos.length > 0 ? { conteos } : {}),
+    ...(codigos.length > 0 ? { codigos } : {}),
   };
 }
 
@@ -90,6 +92,8 @@ function payloadOf(aviso: MinimalAlert): Record<string, unknown> {
   if (aviso.codigo != null) out.codigo = aviso.codigo;
   if (aviso.url != null) out.url = aviso.url;
   if (aviso.conteos?.length) out.conteos = aviso.conteos.map((c) => ({ ...c }));
+  const codigos = codigosValidos(aviso.codigos);
+  if (codigos.length) out.codigos = codigos;
   return out;
 }
 
