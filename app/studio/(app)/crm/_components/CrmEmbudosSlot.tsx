@@ -63,7 +63,7 @@ export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmVi
     );
   }
 
-  // SDD-0648 §4: «Abrir chat» y «Conversaciones» solo si se puede entrar a la Bandeja.
+  // SDD-0648 §4: «Abrir chat» solo si se puede entrar a la Bandeja.
   const chat = await puedeAbrirBandeja(supabase);
 
   return (

@@ -7,5 +7,154 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0549-despachador-sesiones-y-aviso",
+      "migration": "0549_oficina_revisiones_envio",
+      "primarySymbol": "office_sesiones_por_borrar",
+      "symbols": [
+        {
+          "name": "office_anotar_sesion_por_borrar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:156"
+          ]
+        },
+        {
+          "name": "office_sesiones_por_borrar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:159"
+          ]
+        },
+        {
+          "name": "office_sesiones_por_borrar",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:159"
+          ]
+        },
+        {
+          "name": "office_quitar_sesion_por_borrar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:164"
+          ]
+        },
+        {
+          "name": "office_pendientes_conteo",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:165"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/oficina/despachador-almacen.ts:74",
+          "contains": "faltaLaMigracion(error)",
+          "degradation": "Sin la 0549 PostgREST responde PGRST202 (o 42883): el almacén lanza SinMigracion."
+        },
+        {
+          "site": "lib/studio/oficina/despachador.ts:259",
+          "contains": "e instanceof SinMigracion) avisarUnaVez(\"despachador-sin-0549\"",
+          "degradation": "anotarSesion, limpiarSesiones y avisarPendientes atrapan SinMigracion: el despachador sigue como en el Paso 3a (redacta, no avisa ni reintenta borrar sesiones) y lo anota una sola vez en el log. Nace apagado (OFICINA_DESPACHADOR_ACTIVO)."
+        }
+      ]
+    },
+    {
+      "id": "0549-envio-del-cable",
+      "migration": "0549_oficina_revisiones_envio",
+      "primarySymbol": "office_reservar_envio",
+      "symbols": [
+        {
+          "name": "office_envios_por_hacer",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:116"
+          ]
+        },
+        {
+          "name": "office_reservar_envio",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:136"
+          ]
+        },
+        {
+          "name": "office_bloquear_envio",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:143"
+          ]
+        },
+        {
+          "name": "office_cerrar_envio",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:145"
+          ]
+        },
+        {
+          "name": "office_marcar_envio_incierto",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/envio.ts:147"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/oficina/envio.ts:108",
+          "contains": "if (faltaLaMigracion(error)) throw new SinMigracion();",
+          "degradation": "Sin la 0549 el almacén del envío lanza SinMigracion."
+        },
+        {
+          "site": "lib/studio/oficina/envio.ts:403",
+          "contains": "if (err instanceof SinMigracion) return { estado: \"sin_migracion\", resultados };",
+          "degradation": "procesarEnvios atrapa SinMigracion antes de llamar a Chatwoot: /api/cron/oficina-envio responde 200 «sin_migracion» y no envía nada. Nace apagado (OFICINA_ENVIO_ACTIVO)."
+        }
+      ]
+    },
+    {
+      "id": "0549-pagina-de-revision",
+      "migration": "0549_oficina_revisiones_envio",
+      "primarySymbol": "office_revisar_borrador",
+      "symbols": [
+        {
+          "name": "office_borradores_pendientes",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:83"
+          ]
+        },
+        {
+          "name": "office_conteo_revisiones",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:103"
+          ]
+        },
+        {
+          "name": "office_revisar_borrador",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:140"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/oficina/revisiones.ts:71",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, motivo: \"sin_migracion\" };",
+          "degradation": "Sin la 0549 leerPendientes y leerConteo devuelven «sin_migracion» y /studio/admin/oficina (solo is_platform_admin) muestra «Falta la migración 0549» en vez de romper."
+        },
+        {
+          "site": "lib/studio/oficina/revisiones.ts:142",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_migracion\" };",
+          "degradation": "guardarRevision devuelve «sin_migracion»: la acción vuelve a la página con el aviso, sin escribir nada."
+        }
+      ]
+    }
+  ]
 }

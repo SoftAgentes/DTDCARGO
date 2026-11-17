@@ -252,12 +252,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // el estado de la guía por usuario.
   // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
-  it("la superficie escaneada es la esperada (82 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
+  // borradores del agente.
+  it("la superficie escaneada es la esperada (83 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 82,
-      exactos: 58,
+      total: 83,
+      exactos: 59,
       conPrefijo: 24,
     });
   });
@@ -391,8 +393,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
   // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
   // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
+  // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
+  // repite `is_platform_admin()`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(477);
+    expect(reportes.length).toBe(478);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
