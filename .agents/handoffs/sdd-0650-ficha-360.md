@@ -9,7 +9,17 @@
 
 ## Estado
 
-Ver la PR y el cierre del Worker. Este archivo se actualiza al publicar.
+- **PR:** https://github.com/SoftAgentes/DTDCARGO/pull/629 (lista para revisión, base `main`). Lleva la F1 y las specs 0650 y 0651, esta última solo como spec.
+- **Validación local:**
+  - `tsc --noEmit`: PASÓ.
+  - vitest: PASÓ, 19 archivos y 138 pruebas.
+  - Tres mutantes: los tres caen.
+  - `docs:check`, `sdd:check`, `governance:check` y `components:check`: PASÓ.
+  - `/ui-check`: OK con ajustes, aplicados.
+  - `pnpm verify`: NO EJECUTADO; el portón es el CI.
+  - Revisión visual en el navegador: NO EJECUTADA.
+- **Pendiente de esta tarea:** el CI de la PR #629 y la revisión independiente, que lanza el DG.
+- **Siguiente:** F2 (migración 0554), F3, F4, F5 y la implementación de la 0651. Las asigna el DG cuando entre la F1.
 
 ## Impacto documental
 
