@@ -152,13 +152,20 @@ describe("la página de revisión muestra el borrador como texto plano (D4)", ()
     expect(html).not.toContain("<img");
     expect(html).toContain("**negrita** [enlace](http://x.y)");
     expect(html).not.toContain("<strong>");
-    for (const c of CASILLAS) expect(html).toContain(`name="${c.clave}"`);
+    // 0558: por criterio, «Falló» y «No evaluado»; sin marcas = cumple, y la pantalla lo dice junto a los botones.
+    expect(CASILLAS).toHaveLength(4);
+    for (const c of CASILLAS) {
+      expect(html).toContain(`name="falla_${c.clave}"`);
+      expect(html).toContain(`name="sin_${c.clave}"`);
+    }
+    expect(html).toContain("Guardar sin marcas significa «revisé y cumple»");
+    expect(html).not.toContain('name="cierre_3"');
     expect(html).toContain('value="aprobado"');
     expect(html).toContain('value="rechazado"');
   });
 
   it("ningún archivo de la página usa dangerouslySetInnerHTML", () => {
-    for (const f of ["page.tsx", "_components/TarjetaBorrador.tsx", "layout.tsx", "actions.ts"]) {
+    for (const f of ["page.tsx", "_components/TarjetaBorrador.tsx", "_components/TarjetaCierre.tsx", "layout.tsx", "actions.ts"]) {
       expect(readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina", f), "utf8")).not.toMatch(/dangerouslySetInnerHTML\s*=|from ["'][^"']*(?:marked|markdown|remark|rehype)/i);
     }
   });
