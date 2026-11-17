@@ -309,10 +309,12 @@ export async function listCodigosDeLaFicha(
  * SDD-0650 F1 · Los embarques vivos de TODOS los códigos de la ficha
  * (`listCodigosDeLaFicha`). Trae `client_markbox` para que la ficha marque los
  * que llegaron con un código anterior. Mismo filtro de eliminados (SDD-0509),
- * orden y tope que `listShipmentsByMarkbox`.
+ * orden y tope que `listShipmentsByMarkbox`. El tenant se filtra además de la
+ * RLS, como defensa en profundidad: un código puede repetirse entre tenants.
  */
 export async function listShipmentsDeLaFicha(
   supabase: SupabaseClient,
+  tenantId: string,
   codigos: readonly string[],
 ) {
   if (codigos.length === 0) return [];
@@ -321,6 +323,7 @@ export async function listShipmentsDeLaFicha(
     .select(
       "id, code, origin, destination, shipment_service, status, created_at, client_markbox",
     )
+    .eq("tenant_id", tenantId)
     .is("deleted_at", null)
     .in("client_markbox", [...codigos])
     .order("created_at", { ascending: false })

@@ -37,6 +37,7 @@ import {
   type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
 import { isAutoVerifyEnabled } from "@/lib/studio/identity";
+import { accionesRapidas, codigosConCaida, nombreDeLaFicha } from "@/lib/studio/ficha-cliente";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
@@ -165,17 +166,11 @@ export default async function ClienteDetallePage({
   // historial y fichas fusionadas), como el saldo de la 0492. Si la cadena de
   // códigos no se puede leer, cae al vigente: la ficha muestra lo de siempre en
   // vez de caerse. El listado de embarques lanza igual que antes.
-  let codigosFicha: string[] = [client.markbox];
-  try {
-    codigosFicha = await listCodigosDeLaFicha(
-      supabase,
-      client,
-      markboxHistory.map((h) => h.markbox),
-    );
-  } catch {
-    codigosFicha = [client.markbox];
-  }
-  const shipments = (await listShipmentsDeLaFicha(supabase, codigosFicha)) as ShipmentRow[];
+  const codigosFicha = await codigosConCaida(
+    () => listCodigosDeLaFicha(supabase, client, markboxHistory.map((h) => h.markbox)),
+    client.markbox,
+  );
+  const shipments = (await listShipmentsDeLaFicha(supabase, client.tenant_id, codigosFicha)) as ShipmentRow[];
   const embarquesConCodigoAnterior = shipments.filter((s) => s.client_markbox !== client.markbox).length;
 
   // SDD-0558: la cuenta del cliente. No lanza: sin permiso no pide el saldo,
@@ -305,17 +300,15 @@ export default async function ClienteDetallePage({
 
   // SDD-0650 F1: acciones rápidas de la cabecera. Cada una aparece solo si el
   // rol abre el módulo de destino: un botón que rebota no es una acción.
-  const cotizacionesHref = canAccessModule(studioRole, "quotes", studioAccess.overrides, studioAccess.grants)
-    ? `/studio/cotizador?client=${encodeURIComponent(client.markbox)}`
-    : null;
-  // La conversación más reciente (la lista viene ordenada por actividad). Sin
-  // Bandeja, el listado es null y no hay botón.
-  const chatHref =
-    conversacionesChatwoot && conversacionesChatwoot.length > 0
-      ? `/studio/bandeja?c=${conversacionesChatwoot[0].conversation_id}`
-      : null;
+  // Sin Bandeja, `conversacionesChatwoot` es null y no hay «Abrir chat».
+  const { cotizacionesHref, chatHref } = accionesRapidas({
+    markbox: client.markbox,
+    puedeVerCotizaciones: canAccessModule(studioRole, "quotes", studioAccess.overrides, studioAccess.grants),
+    conversaciones: conversacionesChatwoot,
+  });
   // Fichas que vinieron del sistema anterior o de Kommo sin nombre (SDD-0650 §F1).
-  const sinNombre = !client.name || client.name.trim() === "";
+  const nombreFicha = nombreDeLaFicha(client.name);
+  const sinNombre = nombreFicha.sinNombre;
 
   return (
     <div style={{ maxWidth: 1440 }}>
@@ -370,7 +363,7 @@ export default async function ClienteDetallePage({
                 minWidth: 0,
               }}
             >
-              {sinNombre ? "Sin nombre" : client.name}
+              {nombreFicha.texto}
             </h1>
             {client.doc_kind && (
               <Badge tone="neutral" size="md">

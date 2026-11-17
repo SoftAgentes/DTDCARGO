@@ -1811,8 +1811,10 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 .studio-ficha-col--datos { grid-area: datos; }
 .studio-ficha-col--operacion { grid-area: operacion; }
 .studio-ficha-col--conversaciones { grid-area: conversaciones; }
+/* `:not(--sin-panel)`: esta regla es posterior y de igual especificidad; sin la
+   exclusión, pisaba la de dos columnas sin panel y dejaba una fila vacía. */
 @media (max-width: 1440px) {
-  .studio-ficha-grid {
+  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
     grid-template-areas:
       "datos operacion"
@@ -1820,8 +1822,9 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   }
 }
 @media (max-width: 900px) {
-  .studio-ficha-grid,
-  .studio-ficha-grid--sin-panel {
+  /* Misma especificidad que la regla de 1440 px (0,2,0) y posterior: gana. */
+  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel),
+  .studio-ficha-grid.studio-ficha-grid--sin-panel {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "operacion" "conversaciones" "datos";
   }

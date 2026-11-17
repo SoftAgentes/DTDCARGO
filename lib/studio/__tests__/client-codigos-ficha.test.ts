@@ -27,6 +27,7 @@ function cliente(parcial: Fila & { id: string }): Fila {
 
 function envio(parcial: Fila & { id: string; client_markbox: string }): Fila {
   return {
+    tenant_id: T,
     code: `ENV-${parcial.id}`,
     origin: "Yiwu",
     destination: "Valencia",
@@ -67,7 +68,28 @@ describe("listCodigosDeLaFicha", () => {
     expect(doble.filtros.some((f) => f.table === "client_markbox_history")).toBe(false);
   });
 
-  it("un ciclo de fusiones no se repite y la cadena se corta en 10 saltos", async () => {
+  it("un ciclo corto no vuelve a meter la ficha vigente en la frontera", async () => {
+    // Ciclo de dos: A está fusionada en la vigente y la vigente «en» A. Bajo el
+    // tope, solo `vistos` corta la vuelta: sin él, la vigente regresa a la
+    // frontera y la cadena gira hasta los 10 saltos.
+    const { client, filtros } = dobleListados({
+      clients: [
+        cliente({ id: FICHA.id, markbox: FICHA.markbox, merged_into_client_id: "c-a" }),
+        cliente({ id: "c-a", markbox: "DTD-0457", merged_into_client_id: FICHA.id }),
+      ],
+      client_markbox_history: [],
+    });
+
+    const codigos = await listCodigosDeLaFicha(client, FICHA, []);
+
+    expect(codigos).toEqual(["DTD-8001", "DTD-0457"]);
+    const fronteras = filtros
+      .filter((f) => f.table === "clients" && f.op === "in")
+      .map((f) => f.val);
+    expect(fronteras).toEqual([[FICHA.id], ["c-a"]]);
+  });
+
+  it("una cadena larga se corta en 10 saltos", async () => {
     const cadena: Fila[] = [cliente({ id: FICHA.id, markbox: FICHA.markbox })];
     let padre = FICHA.id;
     for (let i = 1; i <= 12; i++) {
@@ -107,10 +129,12 @@ describe("listShipmentsDeLaFicha", () => {
         envio({ id: "3", client_markbox: "DTD-0457", created_at: "2026-10-10T00:00:00Z", deleted_at: "2026-10-11T00:00:00Z" }),
         // Otro cliente.
         envio({ id: "4", client_markbox: "DTD-5555", created_at: "2026-10-12T00:00:00Z" }),
+        // Mismo código en otro tenant: solo el filtro de tenant lo deja fuera.
+        envio({ id: "5", tenant_id: "t2", client_markbox: "DTD-0457", created_at: "2026-10-13T00:00:00Z" }),
       ],
     }, { proyectar: true });
 
-    const filas = (await listShipmentsDeLaFicha(client, ["DTD-8001", "DTD-0457"])) as Fila[];
+    const filas = (await listShipmentsDeLaFicha(client, T, ["DTD-8001", "DTD-0457"])) as Fila[];
 
     expect(filas.map((f) => f.id)).toEqual(["2", "1"]);
     expect(filas[0].client_markbox).toBe("DTD-0457");
@@ -118,7 +142,7 @@ describe("listShipmentsDeLaFicha", () => {
 
   it("sin códigos no consulta", async () => {
     const doble = dobleListados({ shipments: [envio({ id: "1", client_markbox: "DTD-8001" })] });
-    expect(await listShipmentsDeLaFicha(doble.client, [])).toEqual([]);
+    expect(await listShipmentsDeLaFicha(doble.client, T, [])).toEqual([]);
     expect(doble.filtros).toHaveLength(0);
   });
 });

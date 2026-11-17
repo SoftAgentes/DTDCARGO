@@ -3,8 +3,8 @@ sdd: "0651"
 title: "Fusión de clientes v2: campo por campo, con saldos y chats"
 status: proposed
 author: "Claude Worker (Sam)"
-created: 2026-11-17
-updated: 2026-11-17
+created: 2026-11-16
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0246", "0341", "0358", "0361", "0367", "0492", "0504", "0650"]

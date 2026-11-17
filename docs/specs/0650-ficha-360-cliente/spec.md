@@ -3,8 +3,8 @@ sdd: "0650"
 title: "Ficha 360° del cliente en el Studio"
 status: in-progress
 author: "Claude Worker (Sam)"
-created: 2026-11-17
-updated: 2026-11-17
+created: 2026-11-16
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0246", "0258", "0483", "0504", "0507", "0558", "0585", "0590", "0635", "0647", "0648", "0649", "0651"]
@@ -84,6 +84,7 @@ Comparación de códigos exacta, igual que antes. Normalizar mayúsculas y espac
 - **Lista de uniones** `chatwoot_contact_links` (D4): `tenant_id, client_id, chatwoot_contact_id, origen, created_by, created_at`, sin nombres ni teléfonos. RLS por tenant y lectura para los roles con Bandeja. Se llena desde tres lados: el webhook cuando el cruce por teléfono es único (0504); un relleno único con el `client_id` que dejó el cargador de Kommo, que corre en el VPS y sale con solo ids; y «Unir este chat a la ficha», manual y auditado. Al borrar o anonimizar una ficha, sus uniones se borran en cascada.
 - **Lectura en vivo** con una cuenta de servicio de Chatwoot (D2): `GET /contacts/{id}/conversations` por cada contacto unido. Studio toma 160 caracteres del último mensaje, el autor, la bandeja, el estado y la fecha. No los guarda, ni en logs ni en caché.
 - **«Nombre en el chat»** (D5) cuando la ficha no tiene nombre.
+- **Privacidad ante el equipo de China (SDD-0531):** el texto de los mensajes y el «Nombre en el chat» solo salen del servidor si `canSeeClientNames` (`lib/studio/privacidad-cn.ts`) lo permite. Un usuario de región `cn` que no es admin recibe el panel sin texto ni nombre, en el servidor y no con CSS.
 - **Abrir:** `/studio/bandeja?c=N`. Para el Archivo Kommo solo se ofrece a Admin y Contabilidad (D3). Contabilidad necesita usuario de Chatwoot, ser miembro del Archivo Kommo y una entrada en Studio; la F2 decide si es la Bandeja entera o una vista solo del Archivo.
 - **Estados:** cargando; Chatwoot no responde (con reintento); sin conversaciones; hay conversaciones que tu rol no abre (sin decir cuántas).
 - **Puertas, cada una con OK nominal de Sam:** aplicar la 0554; el relleno en el VPS; crear la cuenta de servicio y agregar miembros al Archivo Kommo (D3). La F2 no hace ninguna por su cuenta.
@@ -118,11 +119,15 @@ Chatwoot y Studio corren en el servidor propio (`docs/runbooks/servidor-contabo.
 
 | Archivo | Cambio |
 |---|---|
-| `lib/studio/client-queries.ts` | `listCodigosDeLaFicha` y `listShipmentsDeLaFicha` (nuevas) |
+| `lib/studio/client-queries.ts` | `listCodigosDeLaFicha` y `listShipmentsDeLaFicha` (nuevas; la segunda filtra tenant además de la RLS) |
+| `lib/studio/ficha-cliente.ts` | Reglas puras: `nombreDeLaFicha`, `accionesRapidas` y `codigosConCaida` (nuevo) |
 | `app/studio/(app)/clientes/[markbox]/page.tsx` | Envíos de todos los códigos, «Sin nombre», acciones, tres columnas |
 | `app/studio/(app)/clientes/_components/ClientDetailClient.tsx` | «Abrir chat» y «Cotizaciones» |
 | `app/studio/studio.css` | `.studio-ficha-grid` y sus columnas |
-| `lib/studio/__tests__/client-codigos-ficha.test.ts` | Pruebas nuevas |
+| `lib/studio/__tests__/client-codigos-ficha.test.ts` | Pruebas nuevas de las consultas |
+| `lib/studio/__tests__/ficha-cliente.test.ts` | Pruebas nuevas de las reglas puras |
+| `app/studio/(app)/clientes/__tests__/ficha-cliente-page.test.tsx` | Pruebas nuevas de la página: acciones, «Sin nombre» y caída al vigente |
+| `docs/specs/0651-fusion-clientes-v2/spec.md` | Spec de la fusión v2 (solo documento) |
 | `docs/specs/0650-ficha-360-cliente/spec.md` | Esta spec |
 | `docs/specs/README.md` | Índice regenerado |
 | `.agents/handoffs/sdd-0650-ficha-360.md` | Handoff |
