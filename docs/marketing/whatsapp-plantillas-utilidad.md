@@ -300,6 +300,17 @@ Herramientas peligrosas para DTD:
 - La ficha del token de Business Management es **solo para Chatwoot Cloud** con Embedded Signup.
   No aplica a nuestra bandeja manual (V: [guía](https://www.chatwoot.com/hc/user-guide/articles/1785260890-whatsapp-business-token)).
 
+### ¿Se pueden crear dentro de Chatwoot? **No**
+
+- Las plantillas se crean y se aprueban en Meta (WhatsApp Manager → Administrar plantillas).
+  Chatwoot solo las sincroniza, las muestra y las envía.
+- Chatwoot lo dice así: «Templates are created and approved outside Chatwoot, then synced in»
+  ([guía](https://www.chatwoot.com/hc/user-guide/articles/1754940076-whatsapp-templates)). Y su
+  blog del 20-ago-2026: «Creating and editing templates still happens with your provider»
+  ([«All your WhatsApp templates in one place»](https://www.chatwoot.com/blog/all-your-whatsapp-templates-in-one-place)).
+  Leído el 2026-11-16 (V).
+- El juego de plantillas por número está en [`whatsapp-plantillas-por-numero.md`](whatsapp-plantillas-por-numero.md).
+
 ### ¿«No llegan porque el número no se ha transferido»? **Refutado en lo esencial**
 
 - Con el modelo nuevo, las plantillas «pertenecen a la cuenta de mensajes en la que se crearon y
