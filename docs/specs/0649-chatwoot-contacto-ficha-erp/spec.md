@@ -82,7 +82,7 @@ D1 (a), D2 (a), D3 (a), D4 (b) y D5 (a). D4 queda en (b) porque la condición de
 |---|---|---|
 | 1 | Reglas puras: qué escribir y qué código se muestra | `lib/studio/chatwoot/contacto-erp.ts` (nuevo) |
 | 2 | Leer y escribir los atributos del contacto (`GET` y `PATCH /contacts/{id}`) | `lib/studio/chatwoot/router-api.ts` |
-| 3 | El interruptor `CHATWOOT_ATRIBUTOS_CONTACTO` | `lib/studio/chatwoot/config.ts`, `.env.example` |
+| 3 | El interruptor `CHATWOOT_ATRIBUTOS_CONTACTO` | `lib/studio/chatwoot/config.ts`, `.env.example`, `infra/dtd-cargo/.env.example` |
 | 4 | El manejador y su lugar en la lista | `lib/studio/chatwoot/contacto-erp-manejador.ts` (nuevo), `lib/studio/chatwoot/webhook-procesar.ts` |
 | 5 | Pruebas | `lib/studio/chatwoot/__tests__/contacto-erp.test.ts` (nuevo); `lib/studio/chatwoot/__tests__/aviso-unico-por-evento.test.ts` (la lista de nombres de los manejadores) |
 | 6 | Runbook: crear los atributos, encender, comprobar y apagar | `docs/runbooks/chatwoot-bandeja.md` |
