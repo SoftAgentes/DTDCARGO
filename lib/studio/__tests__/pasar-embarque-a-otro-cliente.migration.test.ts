@@ -129,13 +129,10 @@ describe("0551 · pasar embarque a otro cliente (contrato en PGlite)", () => {
       "if v_n > 0 then v_warnings := v_warnings || pg_catalog.jsonb_build_object('tarifa_congelada', v_n); end if;", "",
       "la vista previa no avisó la tarifa congelada del cliente anterior"],
     ["la tarifa ya sustituida también avisa",
-      "
-     and rs.superseded_at is null and rs.client_id <> v_client.id;", "
-     and rs.client_id <> v_client.id;",
+      "\n     and rs.superseded_at is null and rs.client_id <> v_client.id;", "\n     and rs.client_id <> v_client.id;",
       "la vista previa no avisó la tarifa congelada del cliente anterior"],
     ["el evento no guarda el aviso",
-      "      'moved', v_moved,
-      'warnings', v_warnings),", "      'moved', v_moved),",
+      "      'moved', v_moved,\n      'warnings', v_warnings),", "      'moved', v_moved),",
       "el evento no guardó el aviso de tarifa congelada"],
     ["sin el bloqueo de factura emitida",
       "pg_catalog.count(*) filter (where inv.status <> 'borrador'),",
