@@ -59,3 +59,11 @@
 ## Impacto documental
 
 - Spec nueva y fila nueva en el índice. No se actualizó ningún documento canónico.
+
+## Cierre de la fase de análisis (2026-11-17)
+
+- Sam aceptó D3 a D8 con sus recomendaciones. En el chat del DG contestó «Sí, las 6».
+- D1, D2, D9, D10 y D11 quedaron resueltas con la A1.
+- Oleadas hechas y fusionadas: A1 (#636), Node en Chatwoot (#639), A2 (#643) y `agentRules` (#644).
+- La spec pasa a `in-progress`: siguen la oleada B y la C.
+- La prueba de D7 (`@supabase/ssr`) no se hace sin que el DG coordine el servidor de prueba y a Sam.

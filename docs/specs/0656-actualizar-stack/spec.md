@@ -1,7 +1,7 @@
 ---
 sdd: "0656"
 title: "Actualizar el stack: inventario, riesgos, avisos de seguridad y plan por oleadas"
-status: proposed
+status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-17
 updated: 2026-11-17
@@ -273,6 +273,35 @@ Reglas comunes a todas las oleadas:
 - **D10 — ¿Subimos el override de `sharp` a 0.35.5 o lo quitamos?** Recomendación: **subirlo a 0.35.5 en la A1** y dejar para una PR aparte la decisión de quitarlo. Se puso como pin de seguridad (`b1aa30d99`, SDD-0224), y Next 16.4.6 ya pide `^0.35.5`. Mantener el pin evita que otra dependencia arrastre una versión distinta sin que nadie lo vea. El costo es que hay que subirlo a mano en cada aviso.
 - **D11 — ¿La A1 congela el vigilante de publicación?** Recomendación: **sí**. Congelar antes del merge y publicar la A1 a mano con `publicar-web.sh publicar <sha>`, para mirar la prueba rápida en vivo. Si no, otro merge que llegue en la misma ventana se publica solo.
 
+### Decisiones tomadas (2026-11-17)
+
+- **D1, D2, D9, D10 y D11** se resolvieron con la oleada A1, según las recomendaciones:
+  - A1 salió el mismo día y no hizo falta mitigación temporal.
+  - El análisis de aplicabilidad quedó fuera de este repo.
+  - El override de `sharp` subió a 0.35.5.
+  - El DG publicó la A1 a mano.
+- **D3 a D8:** Sam aceptó las recomendaciones en el chat del DG. A la pregunta «¿acepto las 6 recomendaciones del stack?» contestó: «Sí, las 6».
+
+| Decisión | Queda así |
+|---|---|
+| D3 | Sí: revisar los hosts de imágenes remotas en una PR propia, midiendo antes qué noticias usan cada uno |
+| D4 | TypeScript 6.0.3 en la oleada B |
+| D5 | Se sigue en ESLint 9.39.5 |
+| D6 | Node 26 más adelante, en una SDD propia |
+| D7 | `@supabase/ssr` se prueba primero en el servidor de prueba, con Sam presente; lo coordina el DG |
+| D8 | Revisión mensual de versiones y avisos, el primer lunes de cada mes |
+
+## Estado de las oleadas
+
+| Oleada | Estado | PR |
+|---|---|---|
+| A1 (seguridad) | Hecha, fusionada y publicada | [#636](https://github.com/SoftAgentes/DTDCARGO/pull/636) |
+| A1 complemento: Node 24.22.3 en Chatwoot y el cable | Hecha y fusionada | [#639](https://github.com/SoftAgentes/DTDCARGO/pull/639) |
+| `agentRules: false` (efecto de Next 16.4 sobre `AGENTS.md`) | Hecha y fusionada | [#644](https://github.com/SoftAgentes/DTDCARGO/pull/644) |
+| A2 (minors y patches) | Hecha y fusionada | [#643](https://github.com/SoftAgentes/DTDCARGO/pull/643) |
+| B (tipos y herramientas) | En curso | — |
+| C (majors con cambio de API) | Pendiente; `@supabase/ssr` con la prueba de D7 | — |
+
 ## Criterios de aceptación de esta SDD (fase de análisis)
 
 - [x] Inventario con la versión actual, la última estable, el tipo de salto y la fecha.
@@ -280,4 +309,4 @@ Reglas comunes a todas las oleadas:
 - [x] Riesgo por paquete con `archivo:línea` de los usos afectados.
 - [x] Plan por oleadas con su allowlist, sus pruebas, la verificación en el servidor, la ventana y la vuelta atrás.
 - [x] Recomendación de cuándo hacerlo y esfuerzo de cada oleada.
-- [ ] Decisiones D1 a D11 contestadas por Sam. Ejecutar cada oleada es trabajo aparte, con su OK.
+- [x] Decisiones D1 a D11 contestadas por Sam (2026-11-17). Ejecutar cada oleada es trabajo aparte, con su OK.
