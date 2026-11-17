@@ -24,7 +24,7 @@
 -- ── Qué crea ────────────────────────────────────────────────────────────────
 -- · `reassign_shipment_client(p_shipment_id, p_client_id, p_reason, p_dry_run)`
 --   SECURITY DEFINER, search_path vacío, EXECUTE sólo authenticated:
---   - exige `operations` o `admin` activo en el tenant de get_user_tenant_id()
+--   - exige `operations`, `commercial` o `admin` activo (D2 de Sam, 2026-11-16) en el tenant de get_user_tenant_id()
 --     (42501); motivo de 4 a 1000 caracteres salvo en la vista previa (22023);
 --   - embarque vivo del tenant (P0002), cliente destino vivo, no fusionado, con
 --     Shipping Mark y distinto del actual (P0002 / 22023);
@@ -38,9 +38,13 @@
 --     'scheduled'. Escribe `shipment_client_reassigned` con append_audit_event
 --     (motivo por dtd.audit_reason, antes/después sólo con el Shipping Mark).
 --   - con p_dry_run devuelve lo mismo que haría, sin bloquear filas ni escribir.
+--   - avisa (no bloquea) cuántas recepciones tienen tarifa congelada (0496) de otro
+--     cliente: contabilidad la reemplaza antes de facturar; no se toca acá. El conteo
+--     va también en el evento. Y cuenta, por tipo y sin contenido, los documentos y
+--     eventos que verá el cliente nuevo en el Portal.
 --
 -- ── Qué NO toca ─────────────────────────────────────────────────────────────
--- Tablas, RLS, triggers ni grants de tablas. Facturas anuladas o eliminadas,
+-- Tablas, RLS, triggers ni grants de tablas, ni las tarifas congeladas (0496). Facturas anuladas o eliminadas,
 -- avisos ya enviados, cotizaciones, aceptaciones legales, recibos y pagos.
 -- El código del embarque y de sus cajas se conserva (spec §4.4).
 --
@@ -95,7 +99,12 @@ begin
       ('public.dispatch_orders', 'id'), ('public.dispatch_orders', 'tenant_id'),
       ('public.dispatch_orders', 'status'),
       ('public.dispatch_order_packages', 'od_id'), ('public.dispatch_order_packages', 'package_kind'),
-      ('public.dispatch_order_packages', 'package_id')
+      ('public.dispatch_order_packages', 'package_id'),
+      ('public.shipment_rate_snapshots', 'receipt_id'), ('public.shipment_rate_snapshots', 'client_id'),
+      ('public.shipment_rate_snapshots', 'superseded_at'),
+      ('public.shipment_documents', 'doc_type'), ('public.shipment_documents', 'deleted_at'),
+      ('public.shipment_events', 'shipment_id'), ('public.shipment_events', 'note'),
+      ('public.shipment_events', 'deleted_at')
     ) as r(tbl, col)
   loop
     if pg_catalog.to_regclass(v_req.tbl) is null or not exists (
@@ -216,6 +225,8 @@ declare
   v_receipts uuid[];
   v_invoices uuid[];
   v_blockers jsonb := '{}'::jsonb;
+  v_warnings jsonb := '{}'::jsonb;
+  v_portal jsonb;
   v_moved jsonb;
   v_n integer;
   v_m integer;
@@ -228,9 +239,9 @@ begin
   if v_tenant is null or not exists (
     select 1 from public.user_tenants ut
     where ut.user_id = v_actor and ut.tenant_id = v_tenant
-      and ut.role in ('admin', 'operations') and ut.disabled_at is null
+      and ut.role in ('admin', 'operations', 'commercial') and ut.disabled_at is null
   ) then
-    raise exception 'pasar embarque: solo operaciones o un administrador puede pasar un embarque a otro cliente'
+    raise exception 'pasar embarque: solo operaciones, comercial o un administrador puede pasar un embarque a otro cliente'
       using errcode = '42501';
   end if;
 
@@ -336,6 +347,29 @@ begin
      and dp.package_kind = 'warehouse_receipt_cn' and dp.package_id = any(v_receipts);
   if v_n > 0 then v_blockers := v_blockers || pg_catalog.jsonb_build_object('orden_despacho', v_n); end if;
 
+  -- Aviso, no bloqueo (H-1, DG 2026-11-16): la tarifa congelada (0496) es del
+  -- cliente anterior y esta migración no la toca; contabilidad la reemplaza antes
+  -- de facturar.
+  select pg_catalog.count(distinct rs.receipt_id) into v_n
+    from public.shipment_rate_snapshots rs
+   where rs.tenant_id = v_tenant and rs.receipt_id = any(v_receipts)
+     and rs.superseded_at is null and rs.client_id <> v_client.id;
+  if v_n > 0 then v_warnings := v_warnings || pg_catalog.jsonb_build_object('tarifa_congelada', v_n); end if;
+
+  -- Lo que el cliente nuevo va a ver en el Portal (H-2), por tipo y sin contenido.
+  v_portal := pg_catalog.jsonb_build_object(
+    'documentos', coalesce((
+      select pg_catalog.jsonb_object_agg(x.doc_type, x.n)
+        from (select d.doc_type::text as doc_type, pg_catalog.count(*) as n
+                from public.shipment_documents d
+               where d.tenant_id = v_tenant and d.shipment_id = v_ship.id and d.deleted_at is null
+               group by d.doc_type) x), '{}'::jsonb),
+    'eventos', (select pg_catalog.count(*) from public.shipment_events e
+                 where e.shipment_id = v_ship.id and e.deleted_at is null),
+    'eventos_con_nota', (select pg_catalog.count(*) from public.shipment_events e
+                          where e.shipment_id = v_ship.id and e.deleted_at is null
+                            and nullif(pg_catalog.btrim(coalesce(e.note, '')), '') is not null));
+
   v_moved := pg_catalog.jsonb_build_object(
     'shipments', 1,
     'warehouse_receipts_cn', pg_catalog.cardinality(v_receipts),
@@ -354,7 +388,7 @@ begin
       'outcome', case when v_blockers <> '{}'::jsonb then 'blocked' else 'preview' end,
       'shipment_id', v_ship.id, 'shipment_code', v_ship.code,
       'old_markbox', v_old, 'new_markbox', v_new,
-      'blockers', v_blockers, 'moved', v_moved);
+      'blockers', v_blockers, 'warnings', v_warnings, 'portal', v_portal, 'moved', v_moved);
   end if;
 
   perform pg_catalog.set_config('dtd.audit_reason', v_reason, true);
@@ -412,7 +446,8 @@ begin
       'consequence', 'portal_owner_changed',
       'recovery', 'reassign_again',
       'shipment_code', v_ship.code,
-      'moved', v_moved),
+      'moved', v_moved,
+      'warnings', v_warnings),
     pg_catalog.concat('sdd-0645:reassign:', pg_catalog.txid_current()::text),
     1,
     'internal'
@@ -424,12 +459,12 @@ begin
     'outcome', 'reassigned',
     'shipment_id', v_ship.id, 'shipment_code', v_ship.code,
     'old_markbox', v_old, 'new_markbox', v_new,
-    'blockers', '{}'::jsonb, 'moved', v_moved);
+    'blockers', '{}'::jsonb, 'warnings', v_warnings, 'portal', v_portal, 'moved', v_moved);
 end;
 $$;
 
 comment on function public.reassign_shipment_client(uuid, uuid, text, boolean) is
-  'SDD-0645/0551: pasa un embarque (y sus recepciones CN, borradores, líneas de consolidación, documentos y avisos programados) a otro cliente del tenant. Sólo operations/admin, motivo 4-1000, todo o nada, evento shipment_client_reassigned. p_dry_run: vista previa sin escribir. outcome: preview | blocked | reassigned.';
+  'SDD-0645/0551: pasa un embarque (y sus recepciones CN, borradores, líneas de consolidación, documentos y avisos programados) a otro cliente del tenant. Sólo operations/commercial/admin, motivo 4-1000, todo o nada, evento shipment_client_reassigned. p_dry_run: vista previa sin escribir. outcome: preview | blocked | reassigned.';
 
 revoke all on function public.reassign_shipment_client(uuid, uuid, text, boolean)
   from public, anon, authenticated, service_role;

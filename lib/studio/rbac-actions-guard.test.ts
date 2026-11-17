@@ -380,7 +380,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `::reassignShipmentClient` (472 → 474): pasar un embarque a otro cliente. Las
   // dos llaman a `capabilityDenial(supabase, "reassign_shipment_owner")` antes de
   // leer nada y escriben sólo por la RPC `reassign_shipment_client` (0551), que
-  // repite operations/admin activo y el tenant de la sesión.
+  // repite operations/commercial/admin activo y el tenant de la sesión.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
     expect(reportes.length).toBe(474);
   });

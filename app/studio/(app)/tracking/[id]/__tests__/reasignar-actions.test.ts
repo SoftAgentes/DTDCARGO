@@ -5,7 +5,7 @@
  * LADO NEGATIVO: quien no tiene `reassign_shipment_owner` no llega a la RPC
  * (ni a la vista previa). La base repite el candado (0551), pero la action no
  * le delega la primera puerta.
- * LADO POSITIVO: operations y admin llegan con los argumentos exactos, el
+ * LADO POSITIVO: operations, commercial y admin llegan con los argumentos exactos, el
  * motivo recortado y validado, y los errores salen en texto llano.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -57,9 +57,8 @@ beforeEach(() => {
   conRol("operations");
 });
 
-describe("candado: sólo operations y admin llegan a la RPC", () => {
+describe("candado: sólo operations, commercial y admin llegan a la RPC", () => {
   const SIN_PERMISO: [string, () => void][] = [
-    ["commercial", () => conRol("commercial")],
     ["accounting", () => conRol("accounting")],
     ["warehouse", () => conRol("warehouse")],
     ["support", () => conRol("support")],
@@ -81,7 +80,8 @@ describe("candado: sólo operations y admin llegan a la RPC", () => {
     });
   }
 
-  for (const role of ["operations", "admin"]) {
+  // D2 de Sam (2026-11-16): commercial también.
+  for (const role of ["operations", "commercial", "admin"]) {
     it(`${role}: la vista previa llega con p_dry_run y sin motivo`, async () => {
       conRol(role);
       const res = await previewReassignShipmentClient(SHIPMENT, CLIENT);

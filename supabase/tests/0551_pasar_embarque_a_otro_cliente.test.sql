@@ -125,9 +125,15 @@ create table public.consolidation_items (
 create table public.shipment_documents (
   id uuid primary key, tenant_id uuid not null,
   shipment_id uuid not null references public.shipments(id) on delete cascade, client_markbox text,
-  deleted_at timestamptz
+  doc_type text not null default 'otro' check (doc_type in ('bl', 'pod', 'otro')), deleted_at timestamptz
 );
 alter table public.shipment_documents enable row level security;
+-- 0496: la tarifa congelada por recepción (las columnas que lee la 0551).
+create table public.shipment_rate_snapshots (
+  id uuid primary key, tenant_id uuid not null,
+  receipt_id uuid not null references public.warehouse_receipts_cn(id) on delete cascade,
+  client_id uuid not null references public.clients(id), superseded_at timestamptz
+);
 create table public.client_notification_schedule (
   id uuid primary key, tenant_id uuid not null,
   shipment_id uuid not null references public.shipments(id) on delete cascade, client_markbox text not null,
@@ -237,8 +243,16 @@ insert into public.consolidations (id, tenant_id) values (pg_temp.fid('cons'), p
 insert into public.consolidation_items (id, tenant_id, consolidation_id, shipment_id, client_markbox, client_name) values
   (pg_temp.fid('ci-ok'), pg_temp.fid('tenant-A'), pg_temp.fid('cons'), pg_temp.fid('S-OK'), 'SINT-0000', 'Ficha provisional'),
   (pg_temp.fid('ci-otro'), pg_temp.fid('tenant-A'), pg_temp.fid('cons'), pg_temp.fid('S-OTRO'), 'SINT-0000', 'Ficha provisional');
-insert into public.shipment_documents (id, tenant_id, shipment_id, client_markbox) values
-  (pg_temp.fid('sdoc-ok'), pg_temp.fid('tenant-A'), pg_temp.fid('S-OK'), 'SINT-0000');
+insert into public.shipment_documents (id, tenant_id, shipment_id, client_markbox, doc_type) values
+  (pg_temp.fid('sdoc-ok'), pg_temp.fid('tenant-A'), pg_temp.fid('S-OK'), 'SINT-0000', 'bl'),
+  (pg_temp.fid('sdoc-pod'), pg_temp.fid('tenant-A'), pg_temp.fid('S-OK'), 'SINT-0000', 'pod');
+-- Un evento con nota además del inicial de 0003: el Portal del nuevo lo verá.
+insert into public.shipment_events (tenant_id, shipment_id, status, note) values
+  (pg_temp.fid('tenant-A'), pg_temp.fid('S-OK'), 'consolidating', 'Nota sintética del equipo');
+-- H-1: la tarifa congelada viva de WR-OK-1 es del cliente provisional; la de WR-OK-2 ya fue sustituida.
+insert into public.shipment_rate_snapshots (id, tenant_id, receipt_id, client_id, superseded_at) values
+  (pg_temp.fid('rs-viva'), pg_temp.fid('tenant-A'), pg_temp.fid('WR-OK-1'), pg_temp.fid('C-PROV'), null),
+  (pg_temp.fid('rs-vieja'), pg_temp.fid('tenant-A'), pg_temp.fid('WR-OK-2'), pg_temp.fid('C-PROV'), now());
 insert into public.client_notification_schedule (id, tenant_id, shipment_id, client_markbox, status) values
   (pg_temp.fid('noti-prog'), pg_temp.fid('tenant-A'), pg_temp.fid('S-OK'), 'SINT-0000', 'scheduled'),
   (pg_temp.fid('noti-env'), pg_temp.fid('tenant-A'), pg_temp.fid('S-OK'), 'SINT-0000', 'sent');
@@ -328,10 +342,19 @@ begin
     'la vista previa escribió algo');
   perform pg_temp.afirmar(v_prev -> 'r' -> 'moved' = jsonb_build_object(
       'shipments', 1, 'warehouse_receipts_cn', 2, 'warehouse_boxes', 6, 'invoices', 2,
-      'consolidation_items', 1, 'shipment_documents', 1, 'client_notification_schedule', 1),
+      'consolidation_items', 1, 'shipment_documents', 2, 'client_notification_schedule', 1),
     'la vista previa contó otra cosa: ' || (v_prev -> 'r' -> 'moved')::text);
+  perform pg_temp.afirmar(v_prev -> 'r' -> 'warnings' = '{"tarifa_congelada": 1}'::jsonb,
+    'la vista previa no avisó la tarifa congelada del cliente anterior: ' || coalesce((v_prev -> 'r' -> 'warnings')::text, 'null'));
+  perform pg_temp.afirmar(v_prev -> 'r' -> 'portal' = jsonb_build_object(
+      'documentos', '{"bl": 1, "pod": 1}'::jsonb,
+      'eventos', (select count(*) from public.shipment_events where shipment_id = pg_temp.fid('S-OK') and deleted_at is null),
+      'eventos_con_nota', (select count(*) from public.shipment_events where shipment_id = pg_temp.fid('S-OK')
+                             and deleted_at is null and nullif(btrim(coalesce(note, '')), '') is not null)),
+    'la vista previa no contó lo que verá el Portal: ' || coalesce((v_prev -> 'r' -> 'portal')::text, 'null'));
+  perform pg_temp.afirmar(((v_prev -> 'r' -> 'portal' ->> 'eventos_con_nota')::int) >= 1, 'el evento con nota no se contó');
 
-  v_r := pg_temp.pasar('operations-A', 'S-OK', 'C-REAL', '  Dueño real confirmado por Alejandro  ');
+  v_r := pg_temp.pasar('operations-A', 'S-OK', 'C-REAL', '  Dueño real confirmado por la persona de operaciones  ');
   perform pg_temp.afirmar((v_r ->> 'ok')::boolean and v_r -> 'r' ->> 'outcome' = 'reassigned',
     'operaciones no pudo pasar el embarque: ' || v_r::text);
   perform pg_temp.afirmar(v_r -> 'r' -> 'moved' = v_prev -> 'r' -> 'moved',
@@ -371,13 +394,17 @@ begin
   perform pg_temp.afirmar(pg_temp.eventos() = 1 and v_ev.entity_type = 'shipment' and v_ev.entity_id = pg_temp.fid('S-OK')
     and v_ev.actor_type = 'user' and v_ev.actor_id = pg_temp.fid('operations-A'),
     'el evento no tiene la entidad o el actor');
-  perform pg_temp.afirmar(v_ev.reason = 'Dueño real confirmado por Alejandro', 'el evento no tiene el motivo recortado');
+  perform pg_temp.afirmar(v_ev.reason = 'Dueño real confirmado por la persona de operaciones', 'el evento no tiene el motivo recortado');
   perform pg_temp.afirmar(v_ev.before_data = '{"client_markbox": "SINT-0000"}'::jsonb
     and v_ev.after_data = '{"client_markbox": "SINT-1001"}'::jsonb,
     'antes/después no son sólo el Shipping Mark: ' || coalesce(v_ev.before_data::text, '') || coalesce(v_ev.after_data::text, ''));
   perform pg_temp.afirmar(v_ev.correlation_id like 'sdd-%:reassign:%' and v_ev.source = 'rpc'
     and v_ev.payload ->> 'shipment_code' = 'S-OK' and v_ev.payload -> 'moved' = v_r -> 'r' -> 'moved',
     'el evento no tiene correlación, fuente o payload');
+  perform pg_temp.afirmar(v_ev.payload -> 'warnings' = '{"tarifa_congelada": 1}'::jsonb,
+    'el evento no guardó el aviso de tarifa congelada');
+  perform pg_temp.afirmar((select client_id from public.shipment_rate_snapshots where id = pg_temp.fid('rs-viva')) = pg_temp.fid('C-PROV'),
+    'la 0551 tocó la tarifa congelada');
   perform pg_temp.afirmar(position('Cliente Ficticio' in v_ev.payload::text || v_ev.before_data::text || v_ev.after_data::text) = 0,
     'el evento lleva el nombre del cliente');
   perform pg_temp.afirmar(coalesce(current_setting('dtd.audit_reason', true), '') = '',
@@ -407,7 +434,7 @@ $forma$;
 do $roles$
 declare v_r jsonb; v_actor text; v_huella text := pg_temp.huella(); v_ev bigint := pg_temp.eventos();
 begin
-  foreach v_actor in array array['commercial-A', 'accounting-A', 'warehouse-A', 'support-A', 'marketing-A',
+  foreach v_actor in array array['accounting-A', 'warehouse-A', 'support-A', 'marketing-A',
     'admin-off', 'admin-dual'] loop
     v_r := pg_temp.pasar(v_actor, 'S-ROL', 'C-REAL', 'Intento sin permiso');
     perform pg_temp.afirmar(not (v_r ->> 'ok')::boolean and v_r ->> 'sqlstate' = '42501',
@@ -415,6 +442,9 @@ begin
     v_r := pg_temp.pasar(v_actor, 'S-ROL', 'C-REAL', null, true);
     perform pg_temp.afirmar(v_r ->> 'sqlstate' = '42501', v_actor || ' vio la vista previa: ' || v_r::text);
   end loop;
+  -- D2 de Sam (2026-11-16): comercial también puede.
+  v_r := pg_temp.pasar('commercial-A', 'S-ROL', 'C-REAL', null, true);
+  perform pg_temp.afirmar(v_r -> 'r' ->> 'outcome' = 'preview', 'comercial no pudo ver la vista previa: ' || v_r::text);
   v_r := pg_temp.pasar(null, 'S-ROL', 'C-REAL', 'Sin sesión');
   perform pg_temp.afirmar(v_r ->> 'sqlstate' = '42501', 'sin sesión no dio 42501: ' || v_r::text);
   v_r := pg_temp.pasar('operations-A', 'S-ROL', 'C-REAL', 'Por anon', false, 'anon');
@@ -422,6 +452,10 @@ begin
   -- Un admin de otro tenant no ve el embarque ni el cliente del tenant A.
   v_r := pg_temp.pasar('admin-B', 'S-ROL', 'C-REAL', 'Otro tenant');
   perform pg_temp.afirmar(v_r ->> 'sqlstate' = 'P0002', 'un admin de otro tenant encontró el embarque: ' || v_r::text);
+  -- … tampoco con un cliente de SU tenant (H-6): el embarque del tenant A no existe para él.
+  v_r := pg_temp.pasar('admin-B', 'S-ROL', 'C-B', 'Otro tenant con cliente propio');
+  perform pg_temp.afirmar(v_r ->> 'sqlstate' = 'P0002' and pg_temp.marca_embarque('S-ROL') = 'SINT-0000',
+    'un admin de otro tenant pasó un embarque ajeno a su cliente: ' || v_r::text);
   perform pg_temp.afirmar(pg_temp.huella() = v_huella and pg_temp.eventos() = v_ev, 'un intento rechazado cambió algo');
 end;
 $roles$;

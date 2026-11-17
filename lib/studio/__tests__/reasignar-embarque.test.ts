@@ -3,8 +3,10 @@ import {
   faltaLaFuncion,
   mensajeErrorReasignar,
   parseReasignarResultado,
+  textosAvisos,
   textosBloqueos,
   textosMovidos,
+  textosPortal,
 } from "../reasignar-embarque";
 
 describe("SDD-0645 · parseReasignarResultado", () => {
@@ -16,6 +18,8 @@ describe("SDD-0645 · parseReasignarResultado", () => {
         old_markbox: null,
         new_markbox: "DTD-1001",
         blockers: { reclamo: 1, raro: "x" },
+        warnings: { tarifa_congelada: 2 },
+        portal: { documentos: { bl: 1, pod: 2 }, eventos: 3, eventos_con_nota: 1 },
         moved: { shipments: 1, invoices: "2" },
       }),
     ).toEqual({
@@ -24,6 +28,8 @@ describe("SDD-0645 · parseReasignarResultado", () => {
       oldMarkbox: null,
       newMarkbox: "DTD-1001",
       blockers: { reclamo: 1 },
+      warnings: { tarifa_congelada: 2 },
+      portal: { documentos: { bl: 1, pod: 2 }, eventos: 3, eventosConNota: 1 },
       moved: { shipments: 1, invoices: 2 },
     });
   });
@@ -66,6 +72,27 @@ describe("textos", () => {
       ...["42501", "P0002", "22023", "40001", "XX"].map((code) => mensajeErrorReasignar({ code, message: "" })),
     ];
     for (const t of todos) expect(t).not.toMatch(/\b(anulá|separá|buscá|elegí|recargá|intentá)\b/i);
+  });
+});
+
+describe("aviso de tarifa y lo que verá el Portal (H-1, H-2)", () => {
+  it("la tarifa congelada avisa, en singular y plural", () => {
+    expect(textosAvisos({})).toEqual([]);
+    expect(textosAvisos({ tarifa_congelada: 1 })).toEqual([
+      "1 recepción tiene tarifa congelada del cliente anterior; contabilidad debe reemplazarla antes de facturar.",
+    ]);
+    expect(textosAvisos({ tarifa_congelada: 3 })[0]).toMatch(/^3 recepciones tienen/);
+  });
+
+  it("el Portal: documentos por tipo y eventos, sin contenido", () => {
+    expect(textosPortal({ documentos: {}, eventos: 0, eventosConNota: 0 })).toEqual([]);
+    expect(textosPortal({ documentos: { bl: 1, pod: 2, otro: 0 }, eventos: 4, eventosConNota: 1 })).toEqual([
+      "1 BL",
+      "2 pruebas de entrega (POD)",
+      "4 eventos del seguimiento (1 con nota)",
+    ]);
+    expect(parseReasignarResultado({ outcome: "preview", shipment_code: "S", new_markbox: "D" })?.portal)
+      .toEqual({ documentos: {}, eventos: 0, eventosConNota: 0 });
   });
 });
 

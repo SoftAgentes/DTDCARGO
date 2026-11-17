@@ -346,7 +346,7 @@ export default async function ShipmentDetailPage({
             </section>
           )}
 
-          {/* SDD-0645 · operations + admin. No para el equipo de China (SDD-0531):
+          {/* SDD-0645 · operations, commercial y admin (D2). No para el equipo de China (SDD-0531):
               el buscador muestra nombres de clientes. */}
           {puedeVerNombres && canSpecial(roleRow?.role, "reassign_shipment_owner") && (
             <section>

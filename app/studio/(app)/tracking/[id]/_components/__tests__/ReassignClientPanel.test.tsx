@@ -48,6 +48,8 @@ const resultado = (outcome: string, extra: Record<string, unknown> = {}) => ({
     oldMarkbox: "DTD-0000",
     newMarkbox: "DTD-1001",
     blockers: {},
+    warnings: { tarifa_congelada: 1 },
+    portal: { documentos: { bl: 1 }, eventos: 2, eventosConNota: 1 },
     moved: { shipments: 1, warehouse_receipts_cn: 1, warehouse_boxes: 5, invoices: 1 },
     ...extra,
   },
@@ -77,6 +79,9 @@ describe("ReassignClientPanel", () => {
     await within(dialogo).findByText(/Se pasa de DTD-0000 a DTD-1001/);
     expect(dialogo.textContent).toContain("1 recepción del Almacén CN (5 cajas), 1 factura en borrador");
     expect(dialogo.textContent).toContain("DTD-0000 dejará de verlo en el Portal y DTD-1001 lo verá");
+    // H-2: qué verá el nuevo, sin contenido. H-1: la tarifa congelada avisa, no bloquea.
+    expect(dialogo.textContent).toContain("DTD-1001 va a ver en el Portal: 1 BL, 2 eventos del seguimiento (1 con nota)");
+    expect(dialogo.textContent).toContain("1 recepción tiene tarifa congelada del cliente anterior; contabilidad debe reemplazarla antes de facturar.");
 
     // El motivo queda en la bitácora: se avisa que no lleve datos personales.
     expect(within(dialogo).getByLabelText("Motivo")).toHaveAccessibleDescription(/no escribas datos personales/);

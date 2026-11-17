@@ -25,7 +25,7 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0551_pasar_embarque_a_otro_client
 const M0551 = "0551_pasar_embarque_a_otro_cliente.sql";
 const FILE_0551 = readFileSync(resolve(ROOT, "supabase/migrations", M0551), "utf8");
 const SLOW = 300_000;
-const ASERCIONES = 77;
+const ASERCIONES = 82;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
@@ -114,10 +114,29 @@ describe("0551 · pasar embarque a otro cliente (contrato en PGlite)", () => {
     expect(error).toContain("TEST 0551: operaciones no pudo ver la vista previa del cambio");
   }, SLOW);
 
-  const MUTANTES: [nombre: string, from: string, to: string, muere: string][] = [
-    ["commercial también puede",
-      "ut.role in ('admin', 'operations')", "ut.role in ('admin', 'operations', 'commercial')",
-      "commercial-A pudo pasar el embarque"],
+  const MUTANTES: [nombre: string, from: string, to: string, muere: string, veces?: number][] = [
+    ["warehouse también puede",
+      "ut.role in ('admin', 'operations', 'commercial')", "ut.role in ('admin', 'operations', 'commercial', 'warehouse')",
+      "warehouse-A pudo pasar el embarque"],
+    ["sin commercial (D2 de Sam)",
+      "ut.role in ('admin', 'operations', 'commercial')", "ut.role in ('admin', 'operations')",
+      "comercial no pudo ver la vista previa"],
+    ["el embarque se busca sin el tenant de la sesión (H-6)",
+      "where s.id = p_shipment_id and s.tenant_id = v_tenant", "where s.id = p_shipment_id",
+      // Las dos lecturas del embarque: la de la vista previa y la FOR UPDATE.
+      "un admin de otro tenant pasó un embarque ajeno a su cliente", 2],
+    ["sin el aviso de tarifa congelada (H-1)",
+      "if v_n > 0 then v_warnings := v_warnings || pg_catalog.jsonb_build_object('tarifa_congelada', v_n); end if;", "",
+      "la vista previa no avisó la tarifa congelada del cliente anterior"],
+    ["la tarifa ya sustituida también avisa",
+      "
+     and rs.superseded_at is null and rs.client_id <> v_client.id;", "
+     and rs.client_id <> v_client.id;",
+      "la vista previa no avisó la tarifa congelada del cliente anterior"],
+    ["el evento no guarda el aviso",
+      "      'moved', v_moved,
+      'warnings', v_warnings),", "      'moved', v_moved),",
+      "el evento no guardó el aviso de tarifa congelada"],
     ["sin el bloqueo de factura emitida",
       "pg_catalog.count(*) filter (where inv.status <> 'borrador'),",
       "pg_catalog.count(*) filter (where false),",
@@ -191,8 +210,8 @@ describe("0551 · pasar embarque a otro cliente (contrato en PGlite)", () => {
       "0551 postflight: EXECUTE de reassign_shipment_client debe ser sólo de authenticated"],
   ];
 
-  it.each(MUTANTES)("mutante «%s» muere", async (_nombre, from, to, muere) => {
-    const { error, green } = await contract({ migration: mutant(from, to) });
+  it.each(MUTANTES)("mutante «%s» muere", async (_nombre, from, to, muere, veces) => {
+    const { error, green } = await contract({ migration: mutant(from, to, veces ?? 1) });
     expect(green).toBeUndefined();
     expect(error).toContain(muere);
   }, SLOW);

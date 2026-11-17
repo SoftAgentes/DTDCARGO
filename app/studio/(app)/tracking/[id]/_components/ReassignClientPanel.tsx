@@ -21,8 +21,10 @@ import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y"
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { ClientSearchHit } from "@/lib/studio/client-search-action";
 import {
+  textosAvisos,
   textosBloqueos,
   textosMovidos,
+  textosPortal,
   type ReasignarResultado,
 } from "@/lib/studio/reasignar-embarque";
 import { previewReassignShipmentClient, reassignShipmentClient } from "../actions";
@@ -79,6 +81,8 @@ export function ReassignClientPanel({
 
   const bloqueos = previa ? textosBloqueos(previa.blockers) : [];
   const movidos = previa ? textosMovidos(previa.moved) : [];
+  const avisos = previa ? textosAvisos(previa.warnings) : [];
+  const portal = previa ? textosPortal(previa.portal) : [];
   const motivoOk = motivo.trim().length >= 4 && motivo.trim().length <= MAX_MOTIVO;
   const listo = !!cliente && !!previa && previa.outcome === "preview" && motivoOk && !cargando;
 
@@ -210,6 +214,19 @@ export function ReassignClientPanel({
                   <>Solo se mueve el embarque.</>
                 )}{" "}
                 {previa.oldMarkbox ?? "El cliente actual"} dejará de verlo en el Portal y {previa.newMarkbox} lo verá.
+              </Aviso>
+            )}
+
+            {previa && previa.outcome === "preview" && portal.length > 0 && (
+              <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
+                {previa.newMarkbox} va a ver en el Portal: {portal.join(", ")}. Revisa que nada sea solo del cliente
+                actual.
+              </p>
+            )}
+
+            {previa && previa.outcome === "preview" && avisos.length > 0 && (
+              <Aviso tono="atencion" titulo="Antes de facturar" compacto>
+                {avisos.join(" ")}
               </Aviso>
             )}
 

@@ -26,12 +26,23 @@ export type ReasignarBloqueo =
   | "prealerta"
   | "orden_despacho";
 
+export type ReasignarAviso = "tarifa_congelada";
+
+/** Lo que el cliente nuevo verá en el Portal, por tipo y sin contenido (H-2). */
+export type ReasignarPortal = {
+  documentos: Record<string, number>;
+  eventos: number;
+  eventosConNota: number;
+};
+
 export type ReasignarResultado = {
   outcome: ReasignarOutcome;
   shipmentCode: string;
   oldMarkbox: string | null;
   newMarkbox: string;
   blockers: Partial<Record<ReasignarBloqueo, number>>;
+  warnings: Partial<Record<ReasignarAviso, number>>;
+  portal: ReasignarPortal;
   moved: ReasignarMovidos;
 };
 
@@ -47,6 +58,12 @@ function conteos(raw: unknown): Record<string, number> {
   return out;
 }
 
+function parsePortal(raw: unknown): ReasignarPortal {
+  const r = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const n = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Number(v) : 0);
+  return { documentos: conteos(r.documentos), eventos: n(r.eventos), eventosConNota: n(r.eventos_con_nota) };
+}
+
 /** jsonb de la RPC → resultado tipado; `null` si no tiene la forma esperada. */
 export function parseReasignarResultado(raw: unknown): ReasignarResultado | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -59,6 +76,8 @@ export function parseReasignarResultado(raw: unknown): ReasignarResultado | null
     oldMarkbox: typeof r.old_markbox === "string" ? r.old_markbox : null,
     newMarkbox: r.new_markbox,
     blockers: conteos(r.blockers) as ReasignarResultado["blockers"],
+    warnings: conteos(r.warnings) as ReasignarResultado["warnings"],
+    portal: parsePortal(r.portal),
     moved: conteos(r.moved) as ReasignarMovidos,
   };
 }
@@ -85,6 +104,36 @@ export function textosBloqueos(blockers: ReasignarResultado["blockers"]): string
   return (Object.entries(blockers) as [ReasignarBloqueo, number][])
     .filter(([, n]) => n > 0)
     .map(([tipo, n]) => textoBloqueo(tipo, n));
+}
+
+/** Avisos que no impiden pasarlo (H-1). */
+export function textosAvisos(warnings: ReasignarResultado["warnings"]): string[] {
+  const n = warnings.tarifa_congelada ?? 0;
+  if (n <= 0) return [];
+  return [
+    `${plural(n, "recepción tiene", "recepciones tienen")} tarifa congelada del cliente anterior; contabilidad debe reemplazarla antes de facturar.`,
+  ];
+}
+
+const TIPO_DOCUMENTO: Record<string, [string, string]> = {
+  bl: ["BL", "BL"],
+  pod: ["prueba de entrega (POD)", "pruebas de entrega (POD)"],
+  otro: ["otro documento", "otros documentos"],
+};
+
+/** Lo que el cliente nuevo verá en el Portal, sin contenido (H-2). Vacío si no verá nada más que el embarque. */
+export function textosPortal(portal: ReasignarPortal): string[] {
+  const out: string[] = [];
+  for (const [tipo, n] of Object.entries(portal.documentos)) {
+    if (n <= 0) continue;
+    const [uno, varios] = TIPO_DOCUMENTO[tipo] ?? ["documento", "documentos"];
+    out.push(plural(n, uno, varios));
+  }
+  if (portal.eventos > 0) {
+    const notas = portal.eventosConNota > 0 ? ` (${plural(portal.eventosConNota, "con nota", "con nota")})` : "";
+    out.push(`${plural(portal.eventos, "evento del seguimiento", "eventos del seguimiento")}${notas}`);
+  }
+  return out;
 }
 
 /** Lo que se mueve además del embarque, en el orden en que lo piensa la oficina. */
