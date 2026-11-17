@@ -63,6 +63,10 @@
       "schedule": "*/5 * * * *"
     },
     {
+      "path": "/api/cron/bug-daily-digest",
+      "schedule": "5 12 * * *"
+    },
+    {
       "path": "/api/cron/workflow-drain",
       "schedule": "*/5 * * * *"
     },
