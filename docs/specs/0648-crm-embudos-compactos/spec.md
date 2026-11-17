@@ -150,4 +150,15 @@ que esta rama trae por merge. Esta PR se fusiona después de la #621.
 
 ## Validación
 
-Pendiente: pruebas con turno de PC del Director General, `/ui-check` sobre el diff y capturas antes/después.
+Worktree propio, `corepack pnpm@11.19.0 install --frozen-lockfile` (la versión de CI), turno de PC del Director General, 2026-11-16, sobre `45e6b8eaf` + la #621 en `f29d95a4f`:
+
+| Comprobación | Resultado |
+|---|---|
+| vitest `app/studio/(app)/crm`, `app/studio/(app)/bandeja`, `crm-canal`, `crm-chat` | PASÓ: 24 archivos, 333 pruebas |
+| `typecheck` | PASÓ |
+| eslint del diff | PASÓ: 0 errores; un aviso previo en `KommoClient.tsx:580` |
+| `docs:check`, `sdd:check`, `governance:check`, `components:check` | PASÓ |
+| merge-tree contra la #621 (`1330e7606`) y contra `main` (`26a9a911e`) | sin conflictos; `1330e7606` traída por merge |
+| `pnpm verify` completo | NO EJECUTADO: el portón es CI |
+| Capturas antes/después | NO EJECUTADO: el Preview comparte base con producción; el DG la despliega en el entorno de prueba tras la revisión |
+| `/ui-check` | EJECUTADO: 1 hallazgo alto (el nombre de la tarjeta mide ~21 px, BD-037 pide 32) y 2 bajos de escala; pendientes de la decisión de Sam |
