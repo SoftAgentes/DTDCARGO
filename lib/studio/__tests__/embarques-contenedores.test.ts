@@ -2,7 +2,7 @@
  * SDD-0643 · Agrupado de Embarques por contenedor: nombre visible, FCL o
  * consolidado, número DTD, filtros y orden. Datos inventados.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SIN_CONTENEDOR_KEY,
   agruparPorContenedor,
@@ -207,16 +207,17 @@ describe("agruparPorContenedor", () => {
 });
 
 describe("formatFecha", () => {
+  // stubEnv cambia la zona del proceso (Node relee TZ al asignarla) y la
+  // restaura, como en ExpenseDrawer.fecha-tasa.test.ts.
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("no corre el día en la zona de Caracas (UTC-4) ni en otras", () => {
-    const previa = process.env.TZ;
-    try {
-      for (const tz of ["America/Caracas", "Asia/Shanghai", "UTC"]) {
-        process.env.TZ = tz;
-        expect(formatFecha("2026-12-12")).toBe("12 dic. 2026");
-        expect(formatFecha("2026-01-01")).toBe("01 ene. 2026");
-      }
-    } finally {
-      process.env.TZ = previa;
+    for (const tz of ["America/Caracas", "Asia/Shanghai", "UTC"]) {
+      vi.stubEnv("TZ", tz);
+      expect(formatFecha("2026-12-12")).toBe("12 dic. 2026");
+      expect(formatFecha("2026-01-01")).toBe("01 ene. 2026");
     }
   });
   it("lo que no es una fecha se devuelve igual", () => {
