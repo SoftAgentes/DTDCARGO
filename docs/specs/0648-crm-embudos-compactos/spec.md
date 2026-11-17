@@ -50,14 +50,14 @@ Respuesta de Sam a la propuesta (2026-11-16): «Sí, apruebo la nueva propuesta,
 
 - **D7 · El chat abre a pantalla completa.** La ficha sigue a media pantalla. «Abrir chat» navega a la Bandeja (`/studio/bandeja?c=N&volver=crm`), que es una página: un clic fuera no la cierra y «← Volver al embudo» (o Atrás) regresa al tablero. Aplica D5: la vista «Conversaciones» del CRM es la misma Bandeja a pantalla completa.
   - **Ajuste por la SDD-0655 (en main desde el 2026-11-17):** la Bandeja pasó a ser la pestaña «Bandeja» del CRM, con la cabecera y las pestañas del CRM arriba. Esa pestaña cumple D5 y trae «Embudos» para volver, así que esta PR ya no agrega el enlace «Conversaciones», ni `?volver=crm`, ni «← Volver al embudo».
-- **D8 · La ficha no se cierra con un clic fuera.** Pendiente de respuesta de Sam; no se implementa en esta PR sin su sí.
+- **D8 · La ficha no se cierra con un clic fuera.** Resuelta el 2026-11-17: a la pregunta «¿la ficha del CRM deja de cerrarse con un clic fuera?», Sam respondió «Sí, que no se cierre» (por el chat del Director General). La ficha se cierra solo con su botón «Cerrar» o con Escape, y el foco vuelve a lo que la abrió. Va en la PR de seguimiento de la #628: `DrawerShell` suma `closeOnBackdrop` (por defecto `true`, así los demás drawers no cambian) y `TarjetaFichaDrawer` lo pasa en `false`.
 
 ## Diseño
 
 ### 1. Tarjeta compacta (`CrmTableroKanban`)
 
-- Dos líneas: logo del canal + nombre (botón que abre la ficha y vuelve a ser parada de teclado) y, debajo, estado · dueño · días.
-- Una sola acción visible: `ActionMenu` de solo icono, 32 × 32 (BTN-01 §7, BRAND BD-037: nada que se oprima baja de 32 px), con «Abrir ficha», «Abrir chat» y las etapas destino («Mover a …»).
+- Dos líneas: logo del canal + nombre y, debajo, estado · dueño · días. El nombre abre la ficha con el ratón en una zona de 32 px y sale del Tab (`tabIndex={-1}`).
+- Dos acciones visibles, en la misma fila: «Abrir ›» (`studio-btn-ghost sm`, la parada de teclado y de lector que exige el contrato SDD-0603 tramo 5d) y un `ActionMenu` «⋯» de solo icono, 32 × 32 (BTN-01 §7, BRAND BD-037: nada que se oprima baja de 32 px), con «Abrir ficha», «Abrir chat» y las etapas destino («Mover a …»).
 - Tercera línea solo cuando existe: tareas (vencidas o abiertas) y «Vino de Leads / Volvió de Clientes».
 - El arrastre (DND-01) no cambia. La etapa de cierre sigue pidiendo motivo en `CrmEmbudosClient`.
 
@@ -107,7 +107,6 @@ que esta rama trae por merge. Esta PR se fusiona después de la #621.
 - Lista propia de conversaciones con la API (D5 la deja para después).
 - TikTok como `fuente` propia (migración, D4).
 - Guardar o mostrar el texto de los mensajes en Studio.
-- D8 hasta que Sam responda.
 
 ## Criterios de aceptación
 
@@ -142,7 +141,9 @@ que esta rama trae por merge. Esta PR se fusiona después de la #621.
 | `app/studio/(app)/crm/_components/CrmVistaEmbudo.tsx` | nuevo: selector Tablero/Lista y aviso de chat |
 | `app/studio/(app)/crm/_components/CrmEmbudosClient.tsx` | solo el bloque que monta el tablero: pasa a `CrmVistaEmbudo` |
 | `app/studio/(app)/crm/_components/CrmEmbudosClient.test.tsx` | mover pasa por el menú de la tarjeta (dos pruebas) |
-| `app/studio/(app)/crm/_components/TarjetaFichaDrawer.tsx` | botón «Abrir chat» |
+| `app/studio/(app)/crm/_components/TarjetaFichaDrawer.tsx` | botón «Abrir chat»; D8: `closeOnBackdrop={false}` |
+| `app/studio/(app)/crm/_components/TarjetaFichaDrawer.test.tsx` | nuevo (D8): clic fuera no cierra; Escape y «Cerrar» sí; foco al disparador |
+| `app/studio/_components/ui/drawer/DrawerShell.tsx` | D8: opción `closeOnBackdrop` (default `true`) |
 | `app/studio/(app)/crm/_components/KommoClient.tsx` | ancho completo en Embudos |
 | `app/studio/(app)/crm/chat/[tarjetaId]/route.ts` | nuevo: redirección al chat |
 | `app/studio/(app)/crm/chat/[tarjetaId]/route.test.ts` | nuevo: sin sesión, sin CRM, sin Bandeja e id inválido |
@@ -171,3 +172,4 @@ Worktree propio, `corepack pnpm@11.19.0 install --frozen-lockfile` (la versión 
 | Revisión independiente (DG, cabeza `1afcd4169`) | sin fugas de seguridad; pidió filtrar el chat por el permiso de Bandeja, pruebas de `CrmVistaEmbudo` y de la ruta, y traer la #621 (`ebc71fc69`). Hecho; vitest, typecheck y eslint de esta ronda corren en CI (orden del DG) |
 | Merge de main con la #621 y la SDD-0655 | conflictos resueltos: la Bandeja es pestaña del CRM; se retiran «Conversaciones», `?volver=crm` y «← Volver al embudo»; `studio.css` conserva los dos bloques |
 | CI en `3103801e3` | FALLÓ: `claridad-t5d-contract` (SDD-0603 5d) pide «Abrir ›» como parada de teclado; restituido sin tocar el contrato |
+| PR de seguimiento (D8 y menores) | pruebas con turno de PC; detalle en su PR |
