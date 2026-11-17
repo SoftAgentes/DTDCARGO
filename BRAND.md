@@ -386,6 +386,18 @@ El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a su
 - **ERP Studio · fondos (BD-034):** las superficies vino/navy llevan **degradado tonal `--grad-*`** (sidebar navy, hero vino, KPI destacado, fondo de página, cards) + **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, wallpaper, opacidad baja .05–.10). Extiende BD-030 (tonal, **nunca** rainbow ni textura).
 - **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra. Desde el 2026-10-13 las dos fuentes se sirven desde el repositorio (SDD-0505).
 
+### ✅ Excepción · Vino claro en la Vista simple del portal (EXC-0654-01, Sam 2026-11-17)
+
+Pedido de Sam: «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino claro ya probado». Aprobada con la D-16 de SDD-0654 («Sí, ambas», 2026-11-17).
+
+- **Regla que rompe:** `--wine-soft` «solo sobre fondo oscuro» (arriba, §Light theme) y VIS-01 §3 (el vino es la acción primaria).
+- **Superficie:** solo la Vista simple del portal (`.vs`). La Vista Pro, el Studio y la web pública no cambian.
+- **Usos, y nada más:** el relleno del botón principal de cada bloque, el avatar y la parte «proveedor» del código de la compra. **No** selección (va en tinta, BD-037), **no** texto, **no** error.
+- **Tokens:** relleno `--color-wine-soft` en claro y `--color-wine-text` (#D89AA4) en noche; texto **siempre** `--on-warning` (#0F1E3D, navy fijo). **No** `--color-ink`: en noche es crema y sobre #D89AA4 mide 2,03:1.
+- **Contraste:** 4,79:1 en claro y 7,13:1 en noche. Lo mide `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
+- **Duración y revisión:** hasta la prueba con clientes (D-12); se revisa 90 días después de encender la Vista simple o al cerrar esa prueba, lo que ocurra primero. Sam decide si pasa a regla o se extiende.
+- **Dueño:** Sam aprueba; el Director General custodia el registro. Detalle en `docs/design/studio/_norte/BRAND-DECISIONS.md` (EXC-0654-01) y SDD-0654 §6.3.
+
 ---
 
 ## 📋 Convenciones de código
