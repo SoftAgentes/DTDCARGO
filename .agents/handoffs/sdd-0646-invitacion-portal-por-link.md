@@ -69,7 +69,7 @@ Hallazgo del contrato: sin duplicado, `rif_skipped` quedaba en NULL y rompía el
 
 ## PR / BRANCH
 
-Rama `claude/0646-invitacion-por-link-475356`; la PR se registra abajo al abrirla. No fusioné ni apliqué nada en producción.
+Rama `claude/0646-invitacion-por-link-475356` publicada. [PR #626](https://github.com/SoftAgentes/DTDCARGO/pull/626) contra main, lista para revisión (no borrador). Integré `origin/main` con merge en `5486f07c6`, sin conflictos manuales; después del merge pasaron tsc, docs:check, el gate de símbolos y las suites RBAC, spec→migración y 0552 (496 pruebas). No fusioné ni apliqué nada en producción.
 
 ## PENDIENTES DE ESTA TAREA
 
