@@ -5,7 +5,7 @@
 - **Rama:** `claude/0652-f2-foto-enlace-18332d`. Base: `main`, integrada por merge en `5f394f40b` (#646)
 - **PR:** [#649](https://github.com/SoftAgentes/DTDCARGO/pull/649), lista para revisión. No fusionar: lo decide el DG
 - **SDD:** `docs/specs/0652-ficha-empleado-360/spec.md` (`in-progress`), §F2 y §7 F2
-- **Migración:** **0555**, EN ESPERA. No se aplicó en ningún entorno real. Aplicarla exige el OK nominal de Sam en el chat del DG y el runbook
+- **Migración:** **0555**, **aplicada en producción el 2026-11-17 a las 21:53:05Z** por el Director General, con el OK nominal de Sam en su chat («OK, aplica la 0555»). md5 `36debb54e643898cc15f77ee9ac72974`, 29.489 bytes. Previa, aplicación y verificación pasaron, según el informe del DG; este Worker no la aplicó ni leyó producción. En los archivos de control **sigue declarada en espera**: retirar la espera y sellar el candado es el cierre del DG, después de fusionar
 - **Autorización del encargo:** Sam, 2026-11-17, «Sí, las dos» (fase 2 de la ficha y fase 2 de la Vista simple), transmitido por el DG. Decisiones D1-D13 ya aprobadas («Sí, las recomendadas»)
 
 ## OBJETIVO ORIGINAL
@@ -14,7 +14,7 @@ Fase 2 de la SDD-0652: (1) foto del empleado, (2) enlace explícito ficha ↔ us
 
 ## COMPLETADO
 
-**Migración 0555** (en espera):
+**Migración 0555** (escrita en esta PR como espera; aplicada después por el DG, ver arriba):
 
 - tres tipos en el catálogo de auditoría (`nomina_employee_access`/`access`, `nomina_employee_photo`/`governance`, `nomina_employee_sensitive_view`/`security`);
 - `nomina_employees.photo_path` y el bucket privado `employee-photos` (2 MB, JPEG/PNG/WebP, sin policies);
@@ -62,7 +62,8 @@ Fase 2 de la SDD-0652: (1) foto del empleado, (2) enlace explícito ficha ↔ us
 | Contratos SQL en Docker (`run-sql-tests.mjs`) | NO EJECUTADO: lo corre el CI («Contratos SQL») |
 | `pnpm verify` completo, build y e2e | NO EJECUTADO: el portón es el CI |
 | Prueba en el navegador | NO EJECUTADO: sin la 0555 aplicada en local no hay foto, enlace ni revelado que probar |
-| Aplicar la 0555 | NO EJECUTADO, a propósito |
+| Aplicar la 0555 | NO EJECUTADO por este Worker. La aplicó el DG en producción el 2026-11-17 a las 21:53:05Z, con el OK nominal de Sam |
+| Merge de `origin/main` (`3a7169a6e`, #604) y sus dos conflictos | Resuelto. `rbac-actions-guard` y `build-crontab`: PASÓ, 500 pruebas. Gate de símbolos, `migrations-lock verificar`, `docs:check` y `sdd:check`: PASÓ. `tsc` y el resto de vitest sobre el merge: NO EJECUTADO, lo corre el CI |
 | Lectura de producción | NO EJECUTADO, a propósito |
 
 ## DATOS PERSONALES (`revisar-datos-ve`)
@@ -95,14 +96,19 @@ Conviene que otro modelo revise este análisis.
 
 La migración 0555 no se tocó: su md5 es el mismo que revisó el DG.
 
+## DECISIONES PARA SAM
+
+Dos cosas de la fase 2 que no son solo trabajo técnico: las decide Sam.
+
+1. **«Reenlazar su cuenta de empleado»** (§4 punto 6). No se construyó. Hoy, si al aprobar una solicitud el correo ya tiene una cuenta que es solo de la app del empleado (`/m/emp`), la ficha nace sin acceso, el aviso lo dice y **no hay forma de enlazarla desde la ficha**: la RPC solo acepta miembros activos del Studio. Lo que hay que decidir: si se construye, y cómo se reconoce que esa cuenta es de la misma persona sin leer datos de otra (por ejemplo, que el admin lo confirme con motivo y que se niegue si la cuenta es de un cliente del portal).
+2. **Prueba de dos enlaces a la vez.** El contrato mide el segundo intento en serie, que recibe «ya enlazada». La carrera real (dos admin enlazando la misma ficha en el mismo instante) no está probada: exige una prueba con dos conexiones en Postgres real. Lo que hay que decidir: si se escribe ahora o se acepta el riesgo, que es bajo porque el índice único de la base impide que un usuario quede en dos fichas.
+
 ## PENDIENTES DE ESTA TAREA
 
 - CI de la PR en verde (ahí corren los contratos SQL en Postgres real, la suite completa y el build).
-- **«Reenlazar su cuenta de empleado»** (§4 punto 6) no se construyó: falta decidir cómo se reconoce una cuenta «solo de `/m/emp`» sin leer datos de otra persona. Hoy el empleado que vuelve queda sin acceso y con el aviso.
 - «Ver más» de la línea de tiempo (la RPC ya pagina; la pantalla trae 50).
-- Carrera real de dos enlaces a la vez (dblink en la suite SQL de Docker): no escrita.
 - Medir en el navegador la cabecera con la foto de 72 px y los controles a 320 px.
-- Después de aplicar la 0555: quitar la espera del baseline y las tres declaraciones, sellar el lock, probar en pantalla, leer los conteos del cron y decidir si se enciende.
+- Con la 0555 ya aplicada: quitar la espera del baseline y las tres declaraciones y sellar el lock (cierre del DG, después de fusionar); probar en pantalla la foto, el enlace y «Mostrar»; leer los conteos del cron y decidir si se enciende.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -120,4 +126,4 @@ La migración 0555 no se tocó: su md5 es el mismo que revisó el DG.
 
 ## HANDOFF AL DIRECTOR
 
-La #649 trae la fase 2 completa salvo «Reenlazar su cuenta de empleado» (ver pendientes). La revisión independiente, la fusión y pedir a Sam el OK nominal para aplicar la 0555 son tuyos. La cabeza se lee en la PR.
+La #649 trae la fase 2 completa salvo «Reenlazar su cuenta de empleado» (ver pendientes). La revisión independiente la aprobó; la 0555 ya está aplicada. Quedan tuyos la fusión y el cierre de la espera. La cabeza se lee en la PR.
