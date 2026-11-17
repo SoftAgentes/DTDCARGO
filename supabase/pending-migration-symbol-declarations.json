@@ -155,6 +155,133 @@
           "degradation": "guardarRevision devuelve «sin_migracion»: la acción vuelve a la página con el aviso, sin escribir nada."
         }
       ]
+    },
+    {
+      "id": "0559-correo-comprobado-del-registro-por-link",
+      "migration": "0559_registro_link_correo_comprobado",
+      "primarySymbol": "client_email_checks",
+      "symbols": [
+        {
+          "name": "portal_email_check_auth_interno",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/portal/correo-comprobacion.ts:80"
+          ]
+        },
+        {
+          "name": "portal_email_check_claim",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:65"
+          ]
+        },
+        {
+          "name": "portal_email_check_confirm",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:93"
+          ]
+        },
+        {
+          "name": "portal_email_check_issue",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/portal/correo-comprobacion.ts:100"
+          ]
+        },
+        {
+          "name": "portal_email_check_peek",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/page.tsx:45"
+          ]
+        },
+        {
+          "name": "portal_email_check_prepare",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/clientes/actions.ts:834"
+          ]
+        },
+        {
+          "name": "portal_email_check_release",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:84",
+            "app/registro/correo/[token]/actions.ts:112"
+          ]
+        },
+        {
+          "name": "portal_email_sin_comprobar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/portal/correo-comprobacion.ts:50"
+          ]
+        },
+        {
+          "name": "client_email_checks",
+          "kind": "table",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:102",
+            "app/registro/link/[token]/actions.ts:190",
+            "app/studio/(app)/clientes/actions.ts:481",
+            "lib/studio/portal/correo-comprobacion.ts:134",
+            "lib/studio/registro-link-queries.ts:74"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/portal/correo-comprobacion.ts:52",
+          "contains": "if (error.code === \"PGRST202\" || error.code === \"42883\") return { estado: \"sin-migracion\" };",
+          "degradation": "Sin la 0559 no hay cuentas sin comprobar: correoSinComprobar devuelve «sin-migracion» y /entrar y la invitación por correo siguen como siempre."
+        },
+        {
+          "site": "lib/studio/portal/correo-comprobacion.ts:140",
+          "contains": "if (error || !data?.internal_email) return null;",
+          "degradation": "Sin la tabla, direccionInternaDelCliente devuelve null y el acceso por WhatsApp acuña con el correo de la ficha, como antes."
+        },
+        {
+          "site": "lib/studio/portal/correo-comprobacion.ts:104",
+          "contains": "if (error) return { ok: false, error: `emitir: ${error.message}` };",
+          "degradation": "emitirYEnviarComprobacion no tira: devuelve ok:false y quien llama sigue (el registro deja entrar al cliente; Studio muestra el error)."
+        },
+        {
+          "site": "lib/studio/portal/correo-comprobacion.ts:83",
+          "contains": "if (error) return { ok: false, error: `base: ${error.code ?? \"sin código\"}` };",
+          "degradation": "pasarCuentaADireccionInterna devuelve ok:false si la base no anota; sólo se llega aquí después de portal_email_check_prepare o de leer la tabla, que sin la 0559 ya cortaron antes."
+        },
+        {
+          "site": "app/registro/link/[token]/actions.ts:198",
+          "contains": "console.warn(\"[registerByLinkAction] el registro no quedó anotado para comprobar\");",
+          "degradation": "Sin la 0559 el vínculo de la 0552 rechaza la cuenta con dirección interna: la ficha queda guardada, se anota access_error y el cliente lee «te contactamos por WhatsApp». Si el vínculo pasó pero no hay fila, se avisa en el log y el cliente entra igual."
+        },
+        {
+          "site": "app/registro/correo/[token]/page.tsx:49",
+          "contains": "markbox = row?.markbox ?? null;",
+          "degradation": "Sin la 0559 portal_email_check_peek no existe: la página muestra «Enlace no disponible» (no llega ningún enlace de estos sin la migración)."
+        },
+        {
+          "site": "app/registro/correo/[token]/actions.ts:69",
+          "contains": "console.error(\"[comprobarCorreoAction] reclamar falló:\", error.code);",
+          "degradation": "Sin la 0559 reclamar falla: la acción responde «intenta de nuevo» y no toca Auth; confirmar y soltar sólo corren después de reclamar."
+        },
+        {
+          "site": "app/studio/(app)/clientes/actions.ts:491",
+          "contains": "if (error || !data || data.verified_at) return \"nada\";",
+          "degradation": "Al corregir el correo en la ficha, sin la tabla no hay cuenta por link que tocar: la ficha se guarda como siempre."
+        },
+        {
+          "site": "app/studio/(app)/clientes/actions.ts:839",
+          "contains": "return { error: \"Esta acción todavía no está disponible.\" };",
+          "degradation": "«Reenviar comprobación» sin la 0559 (PGRST202 o 42883) lo dice y no usa service_role."
+        },
+        {
+          "site": "lib/studio/registro-link-queries.ts:77",
+          "contains": "if (!checkErr) {",
+          "degradation": "Sin la tabla, «Registros por link» deja correoEstado en null y la tarjeta dice que todavía no se puede saber si el correo está comprobado."
+        }
+      ]
     }
   ]
 }

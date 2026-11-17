@@ -58,6 +58,10 @@ import { createAccessLink } from "@/lib/studio/portal/access-link";
 import { toWhatsAppRaw } from "@/lib/portal/portal-types";
 import { generateRegistroToken, hashRegistroToken } from "@/lib/portal/registro-link";
 import { registroLinkUrl } from "@/lib/portal/registro-link-types";
+import {
+  emitirYEnviarComprobacion,
+  pasarCuentaADireccionInterna,
+} from "@/lib/studio/portal/correo-comprobacion";
 import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
 import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
 import { identityResetOnChange } from "@/lib/studio/identity/reset-on-change";
@@ -361,7 +365,7 @@ export async function updateClientAction(
   // Estado previo (para el reset de verificación + la traza de auditoría).
   const { data: currentRow } = await supabase
     .from("clients")
-    .select("id, tenant_id, name, rif, phone")
+    .select("id, tenant_id, name, rif, phone, email")
     .eq("markbox", markbox)
     .maybeSingle<{
       id: string;
@@ -369,6 +373,7 @@ export async function updateClientAction(
       name: string | null;
       rif: string | null;
       phone: string | null;
+      email: string | null;
     }>();
   // Si cambia el nombre o el RIF/cédula, la verificación previa (SDD-0046) queda
   // desalineada → resetear doc_verify_* para forzar re-verificación.
@@ -439,9 +444,65 @@ export async function updateClientAction(
     }
   }
 
+  // SDD-0646 D-1 (opción C): si cambió el correo de una cuenta que nació del
+  // link de registro, la base ya la dejó «sin comprobar» (trigger de la 0559).
+  // Falta lo que la base no puede hacer: que la cuenta de Auth deje de llevar el
+  // correo anterior. Después del control de rol de arriba, y sólo en el servidor.
+  let warning: string | undefined;
+  const correoCambio =
+    currentRow != null &&
+    (currentRow.email ?? "").trim().toLowerCase() !== (input!.email ?? "").trim().toLowerCase();
+  if (currentRow && correoCambio) {
+    const sync = await dejarCuentaSinComprobar(currentRow.id);
+    if (sync === "pendiente") {
+      warning =
+        "El correo cambió y quedó sin comprobar. Envíale la comprobación desde Registros por link.";
+    } else if (sync === "fallo") {
+      warning =
+        "El correo cambió y quedó sin comprobar, pero no se pudo terminar de actualizar su acceso. Usa «Reenviar comprobación» en Registros por link para completarlo.";
+    }
+  }
+
   revalidatePath("/studio/clientes");
   revalidatePath(`/studio/clientes/${markbox}`);
-  return { ok: true };
+  return warning ? { ok: true, warning } : { ok: true };
+}
+
+/**
+ * Tras corregir el correo de la ficha: si el cliente tiene una cuenta por link
+ * cuya cuenta de Auth todavía lleva un correo real, la pasa a su dirección
+ * interna. `nada` = el cliente no tiene cuenta por link (o falta la 0559).
+ * Sin `export`: la llama sólo `updateClientAction`, después de su control de rol.
+ */
+async function dejarCuentaSinComprobar(clientId: string): Promise<"nada" | "pendiente" | "fallo"> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("client_email_checks")
+      .select("id, auth_user_id, internal_email, auth_interno, verified_at")
+      .eq("client_id", clientId)
+      .maybeSingle<{
+        id: string;
+        auth_user_id: string;
+        internal_email: string;
+        auth_interno: boolean;
+        verified_at: string | null;
+      }>();
+    if (error || !data || data.verified_at) return "nada";
+    if (data.auth_interno) return "pendiente";
+    const moved = await pasarCuentaADireccionInterna(admin, {
+      checkId: data.id,
+      authUserId: data.auth_user_id,
+      internalEmail: data.internal_email,
+    });
+    if (!moved.ok) {
+      console.error("[updateClientAction] la cuenta no pasó a su dirección interna");
+      return "fallo";
+    }
+    return "pendiente";
+  } catch {
+    return "fallo";
+  }
 }
 
 /**
@@ -744,6 +805,73 @@ export async function markRegistrationReviewedAction(
   if (error) {
     if (error.code === "42501") return { error: "No tienes permiso para marcarlo." };
     return { error: "No se pudo marcar como comprobado." };
+  }
+
+  revalidatePath("/studio/clientes/registros-link");
+  return { ok: true };
+}
+
+/**
+ * «Reenviar comprobación» en «Registros por link» (SDD-0646, D-1 opción C).
+ *
+ * Manda al correo de la ficha un enlace nuevo, de un solo uso, que SOLO
+ * comprueba el correo (no abre sesión). Reemplaza el enlace anterior.
+ *
+ * Orden: control de rol → la RPC `prepare` (rol y tenant otra vez, en la base)
+ * → recién entonces service_role, en el servidor: si la cuenta de Auth todavía
+ * lleva un correo real (cuentas de antes del cambio, o correo corregido después
+ * de comprobado), primero pasa a su dirección interna; después se emite y se
+ * envía.
+ */
+export async function resendEmailCheckAction(
+  linkId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
+  const { data, error } = await supabase.rpc("portal_email_check_prepare", {
+    p_link_id: linkId,
+  });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") {
+      return { error: "Esta acción todavía no está disponible." };
+    }
+    if (error.code === "42501") return { error: "No tienes permiso para reenviar la comprobación." };
+    if (/ya_comprobado/.test(error.message)) return { error: "Este correo ya está comprobado." };
+    if (/sin_correo/.test(error.message)) {
+      return { error: "La ficha no tiene un correo válido. Corrígelo en la ficha y vuelve a intentar." };
+    }
+    if (/sin_acceso|sin_registro/.test(error.message)) {
+      return { error: "Este cliente ya no tiene el acceso que creó con el link: no hay correo que comprobar." };
+    }
+    return { error: "No se pudo preparar la comprobación. Intenta de nuevo." };
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { check_id: string; auth_user_id: string; internal_email: string; auth_interno: boolean }
+    | null
+    | undefined;
+  if (!row?.check_id) return { error: "No se pudo preparar la comprobación. Intenta de nuevo." };
+
+  const admin = createAdminClient();
+  if (!row.auth_interno) {
+    const moved = await pasarCuentaADireccionInterna(admin, {
+      checkId: row.check_id,
+      authUserId: row.auth_user_id,
+      internalEmail: row.internal_email,
+    });
+    if (!moved.ok) {
+      console.error("[resendEmailCheckAction] la cuenta no pasó a su dirección interna");
+      return { error: "No se pudo preparar el acceso del cliente. Intenta de nuevo en un minuto." };
+    }
+  }
+
+  const envio = await emitirYEnviarComprobacion(admin, row.check_id);
+  if (!envio.ok) {
+    console.error("[resendEmailCheckAction] la comprobación no salió");
+    return { error: "No se pudo enviar el correo de comprobación. Intenta de nuevo en un minuto." };
   }
 
   revalidatePath("/studio/clientes/registros-link");

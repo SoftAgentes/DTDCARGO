@@ -78,7 +78,14 @@ export function RegistroLinkForm({
   }, [state.fieldErrors]);
 
   if (state.ok && state.markbox) {
-    return <Listo markbox={state.markbox} portalUrl={state.portalUrl ?? null} warning={state.warning} />;
+    return (
+      <Listo
+        markbox={state.markbox}
+        portalUrl={state.portalUrl ?? null}
+        warning={state.warning}
+        correoPorComprobar={state.correoPorComprobar === true}
+      />
+    );
   }
 
   return (
@@ -300,10 +307,12 @@ function Listo({
   markbox,
   portalUrl,
   warning,
+  correoPorComprobar,
 }: {
   markbox: string;
   portalUrl: string | null;
   warning?: string;
+  correoPorComprobar: boolean;
 }) {
   return (
     <section className="mx-auto max-w-[560px] px-4 py-16 sm:py-24" aria-live="polite">
@@ -326,11 +335,15 @@ function Listo({
         </a>
       ) : (
         <p className="mt-4 text-[14px] text-grey-700 leading-[1.6]">
-          Entra desde{" "}
-          <Link href="/entrar" className="text-wine font-semibold underline underline-offset-2">
-            tu portal
-          </Link>{" "}
-          con el correo que acabas de registrar.
+          No pudimos abrir tu portal desde aquí. Escríbele a tu asesor de DTD Cargo y te manda
+          un acceso por WhatsApp.
+        </p>
+      )}
+      {correoPorComprobar && !warning && (
+        <p className="mt-6 text-[14px] text-grey-700 leading-[1.6]">
+          Te enviamos un correo para comprobar tu dirección. Ábrelo y confírmala: hasta entonces,
+          ese correo no sirve para volver a entrar. Si lo necesitas antes, tu asesor te manda un
+          acceso por WhatsApp.
         </p>
       )}
     </section>

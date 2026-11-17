@@ -8,6 +8,7 @@ import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import { resendPuedeEnviar } from "@/lib/studio/mail/resend-api";
 import { mintPortalMagicToken, portalOpenUrl } from "@/lib/studio/portal/magic-link";
 import { sendPortalMagicLinkEmail } from "@/lib/studio/portal/magic-link-email";
+import { correoSinComprobar } from "@/lib/studio/portal/correo-comprobacion";
 import { findClienteSinAcceso } from "@/lib/studio/portal/sin-acceso";
 import { avisarClienteSinAcceso } from "@/lib/studio/portal/sin-acceso-aviso";
 
@@ -163,10 +164,21 @@ export async function requestMagicLink(
     .maybeSingle<{ id: string; tenant_id: string; email: string }>();
   // Una consulta caída falla igual para cualquier correo: decirlo no revela nada.
   if (clientUserError) return { error: NO_PUDIMOS_ATENDER, email };
+
+  // SDD-0646 D-1 · un correo que su dueño todavía no comprobó (cuenta que nació
+  // del link de registro) no recibe enlace de entrada. Se pregunta SIEMPRE, para
+  // cualquier correo y antes de bifurcar, y un correo así sigue el mismo camino
+  // que uno que no existe: mismas consultas, ningún envío, la misma respuesta.
+  // Si la consulta falla, falla para cualquier correo (no revela nada).
+  const sinComprobar = await correoSinComprobar(admin, email);
+  if (sinComprobar.estado === "error") return { error: NO_PUDIMOS_ATENDER, email };
+  const bloqueado = sinComprobar.estado === "ok" && sinComprobar.bloquea;
+  const pendiente = sinComprobar.estado === "ok" && sinComprobar.pendiente;
+
   // `sameEmail` y no sólo la fila: `*` no se puede escapar (ver `email-literal.ts`).
   // Sin esto se le acuña un enlace y una cuenta de Auth al correo que escribió, sin
   // que el equipo lo haya habilitado.
-  if (!clientUser || !sameEmail(clientUser.email, email)) {
+  if (bloqueado || !clientUser || !sameEmail(clientUser.email, email)) {
     // SDD-0279 · sin fila de acceso NO quiere decir "desconocido". La mayoría de
     // los clientes vivos del ERP nunca fue invitada al portal: pedían el enlace
     // y esperaban para siempre un correo que nadie mandaba.
@@ -180,7 +192,9 @@ export async function requestMagicLink(
     // Si NO es cliente, no sale ningún correo. Es lo que impide que `/entrar`
     // sirva para mandarle correo de DTD a un tercero cualquiera.
     const cliente = await findClienteSinAcceso(admin, email);
-    if (cliente) await avisarClienteSinAcceso(admin, cliente, email);
+    // Un correo sin comprobar SÍ tiene acceso (por WhatsApp): no es «cliente sin
+    // acceso», y no se le manda ningún correo desde aquí.
+    if (cliente && !bloqueado && !pendiente) await avisarClienteSinAcceso(admin, cliente, email);
     return requestReceived(prev, email);
   }
 

@@ -19,7 +19,7 @@ import {
   REGISTRO_LINK_CAMPOS,
   type RegistroLinkReviewRow,
 } from "@/lib/portal/registro-link-types";
-import { markRegistrationReviewedAction } from "../actions";
+import { markRegistrationReviewedAction, resendEmailCheckAction } from "../actions";
 
 const POR = { documento: "la cédula/RIF", correo: "el correo", telefono: "el teléfono" } as const;
 
@@ -44,7 +44,7 @@ export function RegistrosLinkClient({
 }: {
   rows: RegistroLinkReviewRow[] | null;
   todos: boolean;
-  /** Sólo quien edita clientes ve «Marcar comprobado». */
+  /** Sólo quien edita clientes ve «Marcar comprobado» y «Reenviar comprobación». */
   canEdit: boolean;
   /** Sin permiso de ver nombres de clientes (SDD-0531): no se muestra nada. */
   sinAcceso?: boolean;
@@ -118,6 +118,8 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [comprobado, setComprobado] = useState(row.reviewedAt != null);
+  const [enviadoAt, setEnviadoAt] = useState<string | null>(row.correoEnviadoAt);
+  const correoPendiente = row.correoEstado === "sin_comprobar" || row.correoEstado === "choque";
   const esEmpresa = row.submitted.kind === "empresa";
 
   const campos = REGISTRO_LINK_CAMPOS.filter(([, sub]) => sub !== "company" || esEmpresa).map(
@@ -153,9 +155,14 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
           </span>
         </div>
         <span style={{ display: "inline-flex", gap: "var(--s-2)", alignItems: "center" }}>
-          {row.enteredViaEmail === true && (
-            <Badge tone="info" size="md">
-              Entró desde su correo
+          {row.correoEstado === "comprobado" && (
+            <Badge tone="success" size="md">
+              Correo comprobado
+            </Badge>
+          )}
+          {correoPendiente && (
+            <Badge tone="warning" size="md">
+              Correo sin comprobar
             </Badge>
           )}
           <Badge tone={comprobado ? "success" : "warning"} size="md">
@@ -180,10 +187,25 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
             <Link href="/studio/clientes/duplicados">Posibles duplicados</Link>.
           </Aviso>
         )}
-        {row.enteredViaEmail === false && (
+        {row.correoEstado === "sin_comprobar" && (
           <Aviso tono="info" compacto titulo="Correo sin comprobar">
-            Todavía no ha vuelto a entrar desde su correo. Hasta entonces no está probado que el
-            correo sea suyo: le llegó un aviso y, si no es suyo, el dueño nos escribe.
+            {enviadoAt
+              ? `El cliente todavía no confirmó el enlace que le llegó a su correo (enviado el ${fecha(enviadoAt)}).`
+              : "Todavía no se le ha enviado el enlace para comprobar su correo."}{" "}
+            Hasta que lo confirme, ese correo no sirve para entrar ni para recuperar el acceso: si
+            lo necesita, mándale un acceso por WhatsApp desde su ficha.
+          </Aviso>
+        )}
+        {row.correoEstado === "choque" && (
+          <Aviso tono="atencion" compacto titulo="Ese correo ya tiene otra cuenta">
+            El cliente intentó comprobar su correo, pero esa dirección ya está en otra cuenta. No
+            se fusionó nada. Revisa cuál es la correcta, corrige el correo en la ficha si hace
+            falta y reenvía la comprobación.
+          </Aviso>
+        )}
+        {row.correoEstado === null && (
+          <Aviso tono="info" compacto>
+            Todavía no se puede saber si el correo está comprobado: falta aplicar una migración.
           </Aviso>
         )}
         {row.rifSkipped && (
@@ -254,26 +276,54 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
           {error}
         </p>
       )}
-      {!comprobado && canEdit && (
-        <div style={{ marginTop: "var(--s-4)", display: "flex", justifyContent: "flex-end" }}>
-          <ActionButton
-            variant="primary"
-            size="sm"
-            idleLabel="Marcar comprobado"
-            loadingLabel="Marcando…"
-            successLabel="Comprobado"
-            onAction={async () => {
-              setError(null);
-              return markRegistrationReviewedAction(row.id);
-            }}
-            onSuccess={() => {
-              setComprobado(true);
-              toast.success(`Registro de ${row.markbox} comprobado`, {
-                link: { href: "/studio/clientes/registros-link?ver=todos", label: "Ver todos" },
-              });
-            }}
-            onError={setError}
-          />
+      {canEdit && (correoPendiente || !comprobado) && (
+        <div
+          style={{
+            marginTop: "var(--s-4)",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "var(--s-2)",
+            flexWrap: "wrap",
+          }}
+        >
+          {correoPendiente && (
+            <ActionButton
+              variant="ghost"
+              size="sm"
+              idleLabel="Reenviar comprobación"
+              loadingLabel="Enviando…"
+              successLabel="Comprobación enviada"
+              onAction={async () => {
+                setError(null);
+                return resendEmailCheckAction(row.id);
+              }}
+              onSuccess={() => {
+                setEnviadoAt(new Date().toISOString());
+                toast.success(`Comprobación enviada al correo de ${row.markbox}`);
+              }}
+              onError={setError}
+            />
+          )}
+          {!comprobado && (
+            <ActionButton
+              variant="primary"
+              size="sm"
+              idleLabel="Marcar comprobado"
+              loadingLabel="Marcando…"
+              successLabel="Comprobado"
+              onAction={async () => {
+                setError(null);
+                return markRegistrationReviewedAction(row.id);
+              }}
+              onSuccess={() => {
+                setComprobado(true);
+                toast.success(`Registro de ${row.markbox} comprobado`, {
+                  link: { href: "/studio/clientes/registros-link?ver=todos", label: "Ver todos" },
+                });
+              }}
+              onError={setError}
+            />
+          )}
         </div>
       )}
     </section>

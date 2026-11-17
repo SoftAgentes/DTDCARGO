@@ -5,7 +5,17 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CorreoEstado } from "@/lib/portal/correo-comprobacion";
 import type { RegistroLinkReviewRow } from "@/lib/portal/registro-link-types";
+
+type CheckRow = {
+  link_id: string | null;
+  client_id: string;
+  auth_user_id: string;
+  verified_at: string | null;
+  conflict_at: string | null;
+  sent_at: string | null;
+};
 
 type Row = {
   id: string;
@@ -54,22 +64,47 @@ export async function listRegistrosPorLink(
     }
   }
 
-  // D-1: si volvió a entrar desde su correo. Si la RPC no está, se muestra
-  // «no se sabe» en vez de afirmar algo.
-  const viaCorreo = new Map<string, boolean>();
-  let viaCorreoConocido = false;
+  // D-1 (opción C): el estado REAL del correo, de `client_email_checks`. Si la
+  // tabla no está (falta la 0559), se muestra «no se sabe» en vez de afirmar algo.
+  const checks = new Map<string, CheckRow>();
+  const cuentaVigente = new Set<string>();
+  let estadoConocido = false;
   if (rows.length > 0) {
-    const { data: estados, error: estadoErr } = await supabase.rpc(
-      "portal_registration_link_email_status",
-      { p_link_ids: rows.map((r) => r.id) },
-    );
-    if (!estadoErr) {
-      viaCorreoConocido = true;
-      for (const e of (estados ?? []) as { link_id: string; entered_via_email: boolean }[]) {
-        viaCorreo.set(e.link_id, e.entered_via_email);
+    const { data: cs, error: checkErr } = await supabase
+      .from("client_email_checks")
+      .select("link_id, client_id, auth_user_id, verified_at, conflict_at, sent_at")
+      .in("link_id", rows.map((r) => r.id));
+    if (!checkErr) {
+      estadoConocido = true;
+      const filas = (cs ?? []) as CheckRow[];
+      for (const c of filas) if (c.link_id) checks.set(c.link_id, c);
+      // La regla sólo aplica mientras el acceso activo siga siendo de la cuenta
+      // que nació del link (si el equipo revocó y volvió a invitar, ya no).
+      if (filas.length > 0) {
+        const { data: accesos } = await supabase
+          .from("client_users")
+          .select("client_id, auth_user_id, status")
+          .in("client_id", filas.map((c) => c.client_id));
+        for (const a of (accesos ?? []) as {
+          client_id: string;
+          auth_user_id: string | null;
+          status: string;
+        }[]) {
+          if (a.status === "active" && a.auth_user_id) {
+            cuentaVigente.add(`${a.client_id}:${a.auth_user_id}`);
+          }
+        }
       }
     }
   }
+
+  const estadoDe = (linkId: string): CorreoEstado | null => {
+    if (!estadoConocido) return null;
+    const c = checks.get(linkId);
+    if (!c || !cuentaVigente.has(`${c.client_id}:${c.auth_user_id}`)) return "no_aplica";
+    if (c.verified_at) return "comprobado";
+    return c.conflict_at ? "choque" : "sin_comprobar";
+  };
 
   return rows.map((r) => ({
     id: r.id,
@@ -85,6 +120,7 @@ export async function listRegistrosPorLink(
     rifSkipped: r.rif_skipped,
     accessError: r.access_error,
     reviewedAt: r.reviewed_at,
-    enteredViaEmail: viaCorreoConocido ? (viaCorreo.get(r.id) ?? false) : null,
+    correoEstado: estadoDe(r.id),
+    correoEnviadoAt: checks.get(r.id)?.sent_at ?? null,
   }));
 }
