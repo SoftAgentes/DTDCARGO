@@ -28,7 +28,7 @@ Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y c�
 - La vista Pro de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
   suma es el selector de vista y el botón de Faro.
 
-**Decisiones:** D-1 a D-15 (§11). Decididas por Sam: D-4 y D-10. Las demás están abiertas, cada una con la opción
+**Decisiones:** D-1 a D-16 (§11). Decididas por Sam: D-4 y D-10. Las demás están abiertas, cada una con la opción
 recomendada.
 
 ## 1. Pedido de Sam (2026-11-16)
@@ -63,6 +63,10 @@ Ajustes de Sam al ver la primera maqueta (2026-11-16, en la sesión del Worker):
   las ventajas de una y la otra?». De ahí salen los nombres **«Vista simple»** y **«Vista Pro»** (D-10 decidida),
   la regla «nada se mueve» (§6) y la comparación de §6.1. Los pedidos anteriores de esta lista dicen «sencilla» y
   «completa» porque así se llamaban en la primera maqueta.
+- Comentario sobre la maqueta que pasó el Director General (2026-11-17), literal de Sam: «Compáctalo un poquito.
+  El tema que habla: vas a comprar en China, envía esto al proveedor. Compáctalo un poquito y te autorizo a usar un
+  poquito más de colores en algunas partes. El rojo, recuerda que el rojo siempre llama como si fuera un error: lo
+  cambiamos por un rosado, un color que ya está probado, que es un vino claro.» De ahí sale §6.3.
 - Una **guía para las primeras veces** en la vista sencilla: «Recuerda, aquí puedes hacer esto», con tres a seis
   consejos y la opción de «¿quieres continuar?» para seguir explicando la herramienta.
 - «Esta es la parte importante porque es lo que le gusta al cliente y nos separa de la competencia»: pidió una
@@ -388,6 +392,31 @@ Pedido de Sam. En la maqueta, botón «Guía» o primera carga.
   portal no importa `@/lib/studio`.
 - Respeta `prefers-reduced-motion`, funciona con teclado (Escape cierra) y en teléfono.
 
+### 6.3 Color y densidad
+
+Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
+
+- **El rojo queda para los errores reales.** En la Vista simple, el acento de relleno (botón principal, selección,
+  círculos de paso, avatar) es el vino claro de la marca, `--wine-soft` (`#C2747F` en claro, `#D89AA4` en noche;
+  `BRAND.md`, sistema de color), con texto navy `#0F1E3D` encima. Ese par mide cerca de 4,8:1; con texto blanco
+  mediría 3,44:1 y no pasa AA, por eso el texto es navy.
+- **Los enlaces de texto van en navy subrayado.** `--wine-soft` no sirve para texto pequeño (3,44:1 sobre blanco,
+  `BRAND.md` §Contraste). El Shipping Mark conserva `--wine-text`, que es regla de marca (BD-026).
+- **Es una excepción de marca:** `BRAND.md` reserva `--wine-soft` para acento, borde y hover, y BTN-01 fija el vino
+  para el botón principal. Sam la autorizó para esta vista. Antes de implementarla se registra como decisión de
+  marca (D-16).
+- **Más color, con los tonos que ya existen:**
+  - encabezado de cada bloque con un tinte suave: dorado para lo pendiente («Lo que te toca hacer», «Cuánto
+    debes»), navy para «Tus papeles» y Faro, vino claro para el bloque del proveedor;
+  - el saldo por pagar en dorado (`--warning`), igual que el indicador «Saldo pendiente» de hoy;
+  - verde (`--success`) solo en confirmaciones reales: «Entregado»;
+  - **el código, por colores:** cada parte tiene el suyo y lo repite donde aparece. «DTD» navy, el número de
+    cliente navy claro, el número del proveedor vino claro (el mismo de su fila en la lista) y el número de la
+    compra dorado (el mismo de «próxima compra»).
+- **Más compacto:** menos aire entre bloques y dentro de ellos. El bloque del proveedor pasa a filas de una línea
+  por proveedor, textos de una frase y el mensaje en tres líneas, con el tutorial como botón en el encabezado.
+- Ningún color nuevo: todos son tokens de `BRAND.md` y `app/globals.css`.
+
 ## 7. Faro del cliente
 
 Un asistente aparte del Faro del Studio. Reutiliza el motor de la 0637 (cliente directo, topes, registro), pero
@@ -489,6 +518,7 @@ PR o se saca.
 | AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», y el mismo próximo código por proveedor que calcula `summarizeSuppliers`; una prueba compara las salidas | 2 |
 | AC-19 | En la Vista simple los bloques son los mismos y en el mismo orden con y sin datos; una prueba lo comprueba con una cuenta vacía y una con datos | 2 |
 | AC-20 | El botón «Comparar» abre la tabla de §6.1 desde las dos vistas | 2 |
+| AC-21 | En la Vista simple ningún relleno ni texto usa `--color-wine` ni `--danger` fuera de un error real; el acento es `--wine-soft` con texto navy y cada par de color pasa AA | 2 |
 | AC-18 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
 | AC-14 | El botón de Faro es el mismo componente en el Studio y en el portal | 3 |
 | AC-8 | La vista simple no agrega lecturas con service_role | 2 |
@@ -518,6 +548,7 @@ PR o se saca.
 | D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra del proveedor que el cliente elija.** Sin proveedores registrados, solo su Shipping Mark y el enlace para registrar al primero. Copiar el mensaje no crea la compra: después de copiar, el bloque ofrece «Avisar esta compra» (el flujo de prealerta que ya existe) |
 | D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista Pro |
 | D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
+| D-16 | ¿El vino claro reemplaza al vino en los botones? | **Solo en la Vista simple, como autorizó Sam**, registrado como decisión de marca (excepción a BTN-01). La Vista Pro sigue con el vino de hoy hasta que Sam diga otra cosa |
 | D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
 
 ## 12. Riesgos

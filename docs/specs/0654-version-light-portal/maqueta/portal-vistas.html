@@ -14,7 +14,7 @@
 :root{
   color-scheme:light;
   --paper:#FBFAF7; --surface:#FFFFFF; --elev:#F2F0EC; --border:#E8E6E2;
-  --ink:#0F1E3D; --g700:#333333; --g500:#6B6B6B; --wine:#7F0F1A; --wine-text:#7F0F1A; --wine-deep:#5E0A12;
+  --ink:#0F1E3D; --g700:#333333; --g500:#6B6B6B; --wine:#7F0F1A; --wine-text:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F; --navy:#0F1E3D; --navy-2:#26406F;
   --success:#1F8A5B; --warning:#B8893A; --danger:#C2353F; --on-accent:#FFFFFF;
   --hero:linear-gradient(135deg,#0F1E3D 0%,#1F3055 100%); --hero-line:#1F3055; --hero-accent:#DD8088;
   --nav-bg:radial-gradient(120% 125% at 18% -20%,#243C6B,#0F1E3D 52%,#081226);
@@ -29,7 +29,7 @@
 :root[data-pt="dark"]{
   color-scheme:dark;
   --paper:#0B1428; --surface:#16264A; --elev:#1F3055; --border:#2A3C63;
-  --ink:#F2F0EC; --g700:#D5D9E3; --g500:#A8B0C4; --wine:#A8323E; --wine-text:#D89AA4; --wine-deep:#7F0F1A;
+  --ink:#F2F0EC; --g700:#D5D9E3; --g500:#A8B0C4; --wine:#A8323E; --wine-text:#D89AA4; --wine-deep:#7F0F1A; --wine-soft:#D89AA4;
   --hero:linear-gradient(135deg,#16264A 0%,#26406F 100%); --hero-line:#2A3C63;
   --nav-bg:radial-gradient(120% 125% at 18% -22%,#26406F,#0B1428 58%,#060D1C);
   --nav-active:linear-gradient(135deg,#C23C4A,#A8323E 52%,#7F0F1A);
@@ -319,6 +319,77 @@ details.gloss p{margin-top:8px;color:var(--g500)}
   .faro-pill .beam{animation:faro-gira 3.2s linear infinite}
   .route .boat{animation:boat 3.4s ease-in-out infinite}
 }
+
+/* ===== Ajuste de Sam (2026-11-17): más compacto, más color y vino claro en vez de rojo =====
+   En la Vista simple el acento de relleno es --wine-soft (vino claro de la marca) con texto navy.
+   El rojo queda para errores reales. La Vista Pro no cambia: es la réplica de hoy.
+   BRAND-EXCEPTION: --wine-soft como relleno de botón principal — autorizado por Sam el 2026-11-17 */
+:root[data-vista="simple"] .btn{background:var(--wine-soft);color:#0F1E3D}
+:root[data-vista="simple"] .btn:hover{background:var(--wine-soft);filter:brightness(.94)}
+:root[data-vista="simple"] .btn.ghost{background:var(--surface);color:var(--ink);filter:none}
+:root[data-vista="simple"] .btn.ghost:hover{background:var(--elev)}
+:root[data-vista="simple"] .av{background:var(--wine-soft);color:#0F1E3D}
+:root[data-vista="simple"] .tour-dots i.on{background:var(--wine-soft)}
+.is-simple .page{gap:18px;padding-block:18px 110px}
+.s-hi h2{font-size:clamp(24px,3.6vw,32px)}
+.s-hi p{font-size:15px;margin-top:2px}
+.markchip{background:var(--tint-wine);border-style:solid;border-color:transparent;padding:6px 12px}
+.where{padding:20px;gap:12px}
+.where .big{font-size:clamp(20px,3vw,26px)}
+.route{padding-top:30px}
+.explain{min-height:0;padding:10px 12px;font-size:13.5px}
+.facts div{padding:6px 10px}
+.where .help{padding:8px 12px;font-size:13px}
+.others{padding:12px 18px;gap:4px}
+.orow{padding:6px 0}
+.orow .ok{color:var(--success);font-weight:700;display:inline-flex;gap:6px;align-items:center}
+.trio,.duo{gap:16px}
+.blk,.ask{padding:16px;gap:10px;overflow:hidden}
+.blk>.q-title,.prov>.q-title{margin:-16px -16px 0;padding:10px 16px;border-radius:17px 17px 0 0}
+.q-title h3{font-size:17px}
+#b-tasks>.q-title,#b-money>.q-title{background:var(--tint-warn)}
+#b-tasks .num,#b-money .num{background:var(--warning);color:#0F1E3D}
+#b-docs>.q-title{background:var(--tint-ink)}
+#b-prov>.q-title{background:var(--tint-wine)}
+#b-prov .num{background:var(--wine-soft);color:#0F1E3D}
+#b-help .ask:first-child{background:var(--tint-ink);border-color:transparent}
+:root[data-vista="simple"] .link{color:var(--ink)}
+:root[data-vista="simple"] .msg.no .tag{color:var(--wine-text)}
+#b-money .money{color:var(--warning);font-size:28px}
+#b-money .money small{color:var(--g500)}
+.tasks{gap:8px}
+.tasks li{padding:10px;gap:6px}
+.help{padding:9px 12px;font-size:13px}
+.docs{gap:8px}
+.note{font-size:12.5px;color:var(--g500)}
+
+.prov{padding:16px;gap:10px;overflow:hidden}
+.prov-lead{color:var(--g700);font-size:14px;max-width:80ch}
+.prov-grid{gap:16px 24px}
+.sub{font-size:13.5px}
+.sub i{background:var(--wine-soft);border-color:transparent;color:#0F1E3D}
+.sups{gap:6px;margin-block:8px 6px}
+.sup{grid-template-columns:28px minmax(0,1fr) auto;gap:10px;padding:6px 10px;border-radius:10px;font-size:13.5px}
+.sup .n{width:28px;height:28px;border-radius:7px;font-size:14px;background:var(--elev);color:var(--ink)}
+.sup .nm{font-weight:700;min-width:0}
+.sup .nx{font-size:12px;color:var(--g500);white-space:nowrap}
+.sup .nx b{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:6px;background:var(--warning);color:#0F1E3D;font-family:var(--f-mono);padding:0 4px}
+.sup[aria-checked="true"]{border-color:var(--wine-soft);background:var(--tint-wine)}
+.sup[aria-checked="true"] .n{background:var(--wine-soft);color:#0F1E3D}
+.mark{font-size:21px;margin-block:8px 6px}
+.seg-m{border:0;padding:6px 12px;border-radius:8px}
+.seg-m.c0{background:var(--navy);color:#FFFFFF}
+.seg-m.c1{background:var(--navy-2);color:#FFFFFF}
+.seg-m.c2{background:var(--wine-soft);color:#0F1E3D}
+.seg-m.c3{background:var(--warning);color:#0F1E3D}
+.seg-m.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.seg-m.on.c0,.seg-m.on.c1,.seg-m.on.c2,.seg-m.on.c3{border:0}
+.mark-exp{min-height:2.9em;font-size:13.5px}
+.send{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;align-items:center;border-top:1px solid var(--border);padding-top:10px}
+@media (max-width:640px){.send{grid-template-columns:minmax(0,1fr)}}
+.clip{font-size:12px;padding:9px 11px;margin-block:8px}
+.boxdemo{font-size:12.5px;gap:8px;flex-direction:column;align-items:center}
+@media (max-width:640px){.boxdemo{flex-direction:row}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -430,7 +501,7 @@ details.gloss p{margin-top:8px;color:var(--g500)}
       <div class="card others" aria-label="Tus otros envíos">
         <span class="eyebrow">Tus otros envíos</span>
         <div class="orow"><span>Repuestos de moto · aéreo</span><span><span class="dot"></span>Esperando que llegue a nuestro almacén</span></div>
-        <div class="orow"><span>Lámparas LED · marítimo</span><span>Entregado el 14 oct.</span></div>
+        <div class="orow"><span>Lámparas LED · marítimo</span><span class="ok"><svg class="ic"><use href="#i-check"/></svg>Entregado el 14 oct.</span></div>
         <button class="link" type="button" data-go-full style="justify-self:start">Ver todos mis envíos en la vista Pro</button>
       </div>
 
@@ -462,40 +533,42 @@ details.gloss p{margin-top:8px;color:var(--g500)}
       </div>
 
       <section class="card prov" id="b-prov" aria-labelledby="h-prov">
-        <div class="q-title"><span class="num">5</span><h3 id="h-prov">¿Vas a comprar en China? Envíale esto a tu proveedor</h3><span class="newtag">Nuevo</span></div>
-        <p style="max-width:70ch;color:var(--g700)">Cada caja debe llevar escrito un código. Ese código nos dice de quién es la caja, de cuál proveedor viene y cuál compra es. Sin él, la caja llega al almacén sin dueño.</p>
-        <button class="btn sm ghost" type="button" id="mark-tour" style="justify-self:start"><svg class="ic"><use href="#i-guide"/></svg>Ver el tutorial del código (1 minuto)</button>
+        <div class="q-title"><span class="num">5</span><h3 id="h-prov">¿Vas a comprar en China? Envíale esto a tu proveedor</h3><span class="newtag">Nuevo</span>
+          <button class="pill-out" type="button" id="mark-tour" style="margin-left:auto"><svg class="ic"><use href="#i-guide"/></svg>Ver tutorial (1 min)</button></div>
+        <p class="prov-lead">Cada caja lleva un código. Nos dice de quién es, de cuál proveedor viene y cuál compra es.</p>
         <div class="prov-grid">
           <div>
-            <p class="sub"><i>A</i>¿A cuál proveedor le vas a comprar?</p>
+            <p class="sub"><i>A</i>Elige a tu proveedor</p>
             <div class="sups" id="sups" role="radiogroup" aria-label="Tus proveedores registrados"></div>
             <button class="link" type="button" id="add-sup">+ Es un proveedor nuevo: registrarlo primero</button>
-            <p id="add-note" style="font-size:13px;color:var(--g500);margin-top:6px"></p>
-
-            <p class="sub" style="margin-top:18px"><i>B</i>Este es el código para esa compra. Toca cada parte</p>
+            <p id="add-note" class="note"></p>
+          </div>
+          <div>
+            <p class="sub"><i>B</i>Este es su código. Toca cada parte</p>
             <div class="mark" id="mark" role="group" aria-label="Partes del código">
-              <span class="part"><button type="button" class="seg-m" id="m0" data-m="0">DTD</button><small>DTD Cargo</small></span><span class="dash" aria-hidden="true">-</span>
-              <span class="part"><button type="button" class="seg-m" id="m1" data-m="1">9999</button><small>tú</small></span><span class="dash" aria-hidden="true">-</span>
-              <span class="part"><button type="button" class="seg-m on" id="m2" data-m="2">2</button><small>tu proveedor</small></span><span class="dash" aria-hidden="true">-</span>
-              <span class="part"><button type="button" class="seg-m" id="m3" data-m="3">2</button><small>la compra</small></span>
+              <span class="part"><button type="button" class="seg-m c0" id="m0" data-m="0">DTD</button><small>DTD Cargo</small></span><span class="dash" aria-hidden="true">-</span>
+              <span class="part"><button type="button" class="seg-m c1" id="m1" data-m="1">9999</button><small>tú</small></span><span class="dash" aria-hidden="true">-</span>
+              <span class="part"><button type="button" class="seg-m c2 on" id="m2" data-m="2">2</button><small>tu proveedor</small></span><span class="dash" aria-hidden="true">-</span>
+              <span class="part"><button type="button" class="seg-m c3" id="m3" data-m="3">2</button><small>la compra</small></span>
             </div>
             <p class="mark-exp" id="mark-exp" aria-live="polite"></p>
           </div>
-          <div>
-            <p class="sub"><i>C</i>Copia este mensaje y envíaselo a ese proveedor</p>
+        </div>
+        <div class="send">
+          <div style="min-width:0">
+            <p class="sub"><i>C</i>Copia el mensaje y envíaselo</p>
             <div class="clip" id="clip-text" tabindex="0"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="btn sm" type="button" id="copy-clip">Copiar mensaje</button>
-              <span id="copy-ok" role="status" style="font-size:13px;color:var(--g500)"></span>
-            </div>
-            <div class="boxdemo" aria-hidden="true" style="margin-top:14px">
-              <svg viewBox="0 0 220 120" width="200" height="110"><path d="M20 40 110 15l90 25v55l-90 22-90-22z" fill="var(--elev)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M20 40l90 22 90-22M110 62v55" fill="none" stroke="var(--ink)" stroke-width="2"/><text id="box-code" x="64" y="88" transform="rotate(13 64 88)" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-weight="700" font-size="11" fill="var(--wine-text)"></text></svg>
-              <span>Así debe verse en cada caja, en dos lados.</span>
+              <span id="copy-ok" role="status" class="note"></span>
             </div>
           </div>
+          <div class="boxdemo" aria-hidden="true">
+            <svg viewBox="0 0 220 120" width="170" height="93"><path d="M20 40 110 15l90 25v55l-90 22-90-22z" fill="var(--elev)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M20 40l90 22 90-22M110 62v55" fill="none" stroke="var(--ink)" stroke-width="2"/><text id="box-code" x="64" y="88" transform="rotate(13 64 88)" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-weight="700" font-size="11" fill="var(--ink)"></text></svg>
+            <span>Así se ve en la caja.</span>
+          </div>
         </div>
-        <div class="help warn"><svg class="ic"><use href="#i-warn"/></svg><div><b>Atención</b>No inventes el número del proveedor. Si escribes «5» y no tienes un proveedor 5 en tu lista, no sabremos de quién es la caja. Si el proveedor es nuevo, regístralo primero y usa el número que le toque.</div></div>
-        <div class="help tip"><svg class="ic"><use href="#i-tip"/></svg><div><b>Consejo</b>Pídele a tu proveedor una foto de la caja ya marcada antes de que la despache.</div></div>
+        <div class="help warn"><svg class="ic"><use href="#i-warn"/></svg><div><b>Atención</b>No inventes el número del proveedor: si no está en tu lista, regístralo primero. Y pídele una foto de la caja ya marcada.</div></div>
       </section>
 
       <div class="duo" id="b-help">
@@ -661,6 +734,7 @@ details.gloss p{margin-top:8px;color:var(--g500)}
     var isFull=v==='full';
     simple.hidden=isFull; full.hidden=!isFull;
     shell.classList.toggle('is-full',isFull); shell.classList.toggle('is-simple',!isFull);
+    root.setAttribute('data-vista',isFull?'pro':'simple');
     $('v-simple').setAttribute('aria-pressed',String(!isFull)); $('v-full').setAttribute('aria-pressed',String(isFull));
     store('dtd-m-vista',v); if(!keepScroll)window.scrollTo(0,0);
   }
@@ -692,10 +766,10 @@ details.gloss p{margin-top:8px;color:var(--g500)}
   function code(){var x=SUPS[cur];return 'DTD-9999-'+x.n+'-'+(x.buys+1)}
   function explainPart(){
     var x=SUPS[cur], k=x.buys+1, T=[
-      ['DTD','Todas las cargas de DTD Cargo empiezan así. Le dice al almacén que la caja es nuestra.'],
-      ['9999 · tu número de cliente','Es solo tuyo y no cambia nunca. «DTD-9999» es tu Shipping Mark.'],
-      [x.n+' · tu proveedor','Es '+x.name+'. Recibió el número '+x.n+' cuando lo registraste, y ese número es suyo para siempre. Sale de tu lista: no se inventa.'],
-      [k+' · la compra',veces(x.buys)+' a '+x.name+'. Esta es tu compra número '+k+'. El número sube solo con cada compra nueva.']];
+      ['DTD','Va siempre. Le dice al almacén que la caja es de DTD Cargo.'],
+      ['9999 · tú','Tu número de cliente. No cambia nunca.'],
+      [x.n+' · tu proveedor',x.name+'. Es su número en tu lista: no se inventa.'],
+      [k+' · la compra',veces(x.buys)+' a '+x.name+'; esta es la número '+k+'. Sube sola con cada compra.']];
     segs.forEach(function(b,i){b.classList.toggle('on',i===part);b.setAttribute('aria-pressed',String(i===part))});
     mexp.innerHTML='';var b=document.createElement('b');b.textContent=T[part][0]+'. ';mexp.appendChild(b);mexp.appendChild(document.createTextNode(T[part][1]));
   }
@@ -704,22 +778,23 @@ details.gloss p{margin-top:8px;color:var(--g500)}
     SUPS.forEach(function(x,i){
       var b=document.createElement('button');b.type='button';b.className='sup';b.setAttribute('role','radio');b.setAttribute('aria-checked',String(i===cur));
       var n=document.createElement('span');n.className='n';n.textContent=x.n;
-      var d=document.createElement('span'),t=document.createElement('b'),m=document.createElement('small');
-      t.textContent=x.name+' · '+x.city;m.textContent=veces(x.buys)+'. La próxima compra es la '+(x.buys+1)+'.';
-      d.appendChild(t);d.appendChild(m);b.appendChild(n);b.appendChild(d);
+      var t=document.createElement('span');t.className='nm';t.textContent=x.name+' · '+x.city;
+      var m=document.createElement('span');m.className='nx';m.appendChild(document.createTextNode('próxima compra '));
+      var k=document.createElement('b');k.textContent=x.buys+1;m.appendChild(k);
+      b.appendChild(n);b.appendChild(t);b.appendChild(m);
       b.addEventListener('click',function(){cur=i;part=2;renderAll()});supsEl.appendChild(b)});
   }
   function renderAll(){
     var x=SUPS[cur], c=code();
     renderSups();$('m2').textContent=x.n;$('m3').textContent=x.buys+1;$('box-code').textContent=c;
-    $('clip-text').textContent='收货地址 / Dirección de entrega (ejemplo inventado):\nAlmacén DTD Cargo, Calle Ejemplo 123, Distrito Ejemplo, Guangzhou\n收货人 / Recibe: DTD Cargo · Tel. 000-0000-0000\n唛头 / Shipping Mark en cada caja: '+c+'\nEscribe el código grande, en dos lados de cada caja.';
+    $('clip-text').textContent='收货地址 / Entregar en (ejemplo inventado): Almacén DTD Cargo, Calle Ejemplo 123, Guangzhou\n收货人 / Recibe: DTD Cargo · Tel. 000-0000-0000\n唛头 / Código en cada caja, grande y en dos lados: '+c;
     $('copy-ok').textContent='';explainPart();
   }
   segs.forEach(function(b){b.addEventListener('click',function(){part=Number(b.dataset.m);explainPart()})});
   $('add-sup').addEventListener('click',function(){
     if(SUPS.length>3){return}
     SUPS.push({n:4,name:'Proveedor nuevo',city:'por registrar',buys:0});cur=3;part=2;renderAll();
-    $('add-note').textContent='En el portal real aquí escribes el nombre y la ciudad del proveedor. Le tocó el número 4 y su primera compra es la 1.';
+    $('add-note').textContent='En el portal real aquí escribes su nombre y ciudad. Le tocó el número 4; su primera compra es la 1.';
     $('add-sup').hidden=true;
   });
   renderAll();
@@ -832,6 +907,7 @@ details.gloss p{margin-top:8px;color:var(--g500)}
   document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(!cmp.hidden)closeCmp();else if(on)end();else if(!faro.hidden)closeFaro()});
 
   /* Arranque: vista guardada; la guía sale sola la primera vez en la vista simple */
+  root.setAttribute('data-vista','simple');
   var h=location.hash;
   if(h==='#pro')setView('full',true);
   else if(h==='#simple')setView('simple',true);
