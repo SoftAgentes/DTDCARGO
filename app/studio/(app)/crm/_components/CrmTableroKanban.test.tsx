@@ -191,22 +191,32 @@ describe("CrmTableroKanban · mover y abrir (DND-01)", () => {
     expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
   });
 
-  it("el nombre abre la ficha y es la primera parada de teclado; la segunda es el menú", async () => {
+  it("«Abrir» es la parada de teclado (SDD-0603 5d); la segunda es el menú", async () => {
     const user = userEvent.setup();
     const { onOpen } = pintar();
-    // El botón abarca las dos líneas: nombre, estado, dueño y días (objetivo de 32 px, BD-037).
-    expect(abrir().textContent).toContain("Lead de prueba");
-    expect(abrir().textContent).toContain("Registrado · Asesora de prueba");
-    expect(abrir().style.minHeight).toBe("32px");
-    // La segunda línea se anuncia como descripción del botón.
-    const desc = document.getElementById(abrir().getAttribute("aria-describedby")!);
-    expect(desc?.textContent).toContain("Asesora de prueba");
+    expect(abrir().textContent).toBe("Abrir");
+    expect(abrir().className.split(" ")).toEqual(
+      expect.arrayContaining(["studio-btn", "studio-btn-ghost", "studio-btn-sm"]),
+    );
     expect(screen.getAllByRole("button", { name: /^Abrir ficha de / })).toHaveLength(1);
     await user.tab();
     expect(document.activeElement).toBe(abrir());
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Acciones de Lead de prueba" }));
-    await user.click(abrir());
+    await user.keyboard("{Escape}");
+    abrir().focus();
+    await user.keyboard("{Enter}");
+    expect(onOpen).toHaveBeenCalledWith(lead);
+  });
+
+  it("el nombre abre con el ratón, abarca las dos líneas (32 px, BD-037) y sale del Tab", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = pintar();
+    const nombre = screen.getByText("Lead de prueba").closest("button")!;
+    expect(nombre.tabIndex).toBe(-1);
+    expect(nombre.style.minHeight).toBe("32px");
+    expect(nombre.textContent).toContain("Registrado · Asesora de prueba");
+    await user.click(nombre);
     expect(onOpen).toHaveBeenCalledWith(lead);
   });
 

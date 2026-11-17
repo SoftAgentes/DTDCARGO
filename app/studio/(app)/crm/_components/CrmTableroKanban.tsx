@@ -16,7 +16,8 @@
  * motivo si la etapa es de cierre, llamar a la acción, avisar).
  */
 
-import { useId, useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent } from "react";
+import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionMenu, type ActionMenuItem } from "@/app/studio/_components/ui/ActionMenu";
 import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
@@ -298,7 +299,6 @@ function TarjetaCard({
   ];
 
   const segmento = tablero === "leads" ? SEGMENTO_LABEL[t.segmento] : null;
-  const metaId = useId();
   const extras = t.tareasVencidas > 0 || t.tareasAbiertas > 0 || t.origen != null;
 
   return (
@@ -327,15 +327,14 @@ function TarjetaCard({
         alignItems: "center",
       }}
     >
-      {/* SDD-0648 (/ui-check): el botón que abre la ficha abarca las dos líneas
-          (logo, nombre, estado, dueño y días), así es un objetivo de 32 px como
-          pide BD-037 sin que la tarjeta crezca. Es la parada de teclado de la
-          tarjeta; un clic fantasma tras soltar lo descarta `onOpen`. */}
+      {/* SDD-0648 (/ui-check): el nombre abre la ficha con el ratón y abarca las
+          dos líneas, así es un objetivo de 32 px (BD-037). Sale del Tab: la
+          parada de teclado y de lector es «Abrir», a la derecha (SDD-0603 5d).
+          Un clic fantasma tras soltar lo descarta `onOpen`. */}
       <button
         type="button"
+        tabIndex={-1}
         onClick={onOpen}
-        aria-label={`Abrir ficha de ${nombre}`}
-        aria-describedby={metaId}
         className="studio-link-quiet"
         style={{
           gridRow: "1 / span 2",
@@ -369,7 +368,6 @@ function TarjetaCard({
           </span>
         </span>
         <span
-          id={metaId}
           style={{
             display: "flex",
             alignItems: "center",
@@ -409,13 +407,34 @@ function TarjetaCard({
         </span>
       </button>
 
-      <div style={{ gridRow: "1 / span 2", gridColumn: 2 }}>
+      <div
+        style={{
+          gridRow: "1 / span 2",
+          gridColumn: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--s-1)",
+        }}
+      >
         {enCurso ? (
           <span role="status" style={{ font: "600 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
             Moviendo…
           </span>
         ) : (
-          <ActionMenu items={acciones} ariaLabel={`Acciones de ${nombre}`} align="end" size="sm" />
+          <>
+            {/* No es arrastrable por sí mismo: la tarjeta lo es. Un clic no
+                inicia arrastre, y el clic fantasma tras soltar lo descarta `onOpen`. */}
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              aria-label={`Abrir ficha de ${nombre}`}
+              onClick={onOpen}
+            >
+              Abrir
+              {Icon.chevR(14)}
+            </button>
+            <ActionMenu items={acciones} ariaLabel={`Acciones de ${nombre}`} align="end" size="sm" />
+          </>
         )}
       </div>
 
