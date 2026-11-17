@@ -17,6 +17,8 @@ import { interpretarContacto, interpretarConversacion, type ContactoEntrada, typ
  *   POST /conversations/{id}/labels       → reemplaza TODAS las etiquetas
  *   POST /conversations/{id}/assignments  → { team_id }: asigna el equipo
  *   POST /conversations/{id}/messages     → la respuesta del bot, saliente y pública
+ *   GET  /contacts/{id}                   → los atributos del contacto (SDD-0649)
+ *   PATCH /contacts/{id}                  → { custom_attributes }: se mezclan (SDD-0649)
  *
  * En el envío, `red` (caída o tiempo agotado), un 5xx y un 408 son INCIERTOS:
  * un proxy puede responder 502/504 después de que Chatwoot aceptó el mensaje
@@ -45,7 +47,7 @@ async function llamar(
 async function llamarCuenta(
   cfg: CuentaChatwoot,
   ruta: string,
-  init: { method: "GET" | "POST"; body?: unknown } = { method: "GET" },
+  init: { method: "GET" | "POST" | "PATCH"; body?: unknown } = { method: "GET" },
 ): Promise<ChatwootResult<unknown>> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -207,6 +209,39 @@ export async function buscarContactoPortal(
     if (contactoId !== null && sourceId !== null) return { ok: true, data: { contactoId, sourceId } };
   }
   return { ok: true, data: null };
+}
+
+/**
+ * SDD-0649: los atributos personalizados del contacto (`custom_attributes`).
+ * `GET /contacts/{id}` responde `{ payload: contacto }`. Devuelve solo el objeto
+ * de atributos: ni nombre ni teléfono salen de aquí.
+ */
+export async function leerAtributosContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+): Promise<ChatwootResult<Record<string, unknown>>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  const atributos = (payload as { custom_attributes?: unknown }).custom_attributes;
+  if (atributos === null || atributos === undefined) return { ok: true, data: {} };
+  return typeof atributos === "object" && !Array.isArray(atributos)
+    ? { ok: true, data: atributos as Record<string, unknown> }
+    : { ok: false, error: "respuesta_invalida" };
+}
+
+/**
+ * SDD-0649: `PATCH /contacts/{id}` con `custom_attributes`. Chatwoot 4.19.1 los
+ * MEZCLA con los que ya tiene (`contacts_controller.rb:185-200`): no borra otros.
+ */
+export async function escribirAtributosContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+  atributos: Record<string, string | null>,
+): Promise<ChatwootResult<null>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}`, { method: "PATCH", body: { custom_attributes: atributos } });
+  return r.ok ? { ok: true, data: null } : r;
 }
 
 export async function listarConversacionesContacto(
