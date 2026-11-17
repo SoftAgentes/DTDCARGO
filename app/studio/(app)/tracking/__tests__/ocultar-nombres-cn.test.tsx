@@ -78,6 +78,23 @@ vi.mock("../[id]/_components/StateActionsPanel", () => ({ StateActionsPanel: () 
 vi.mock("../[id]/_components/TimelinePanel", () => ({ TimelinePanel: () => null }));
 vi.mock("../[id]/_components/FooterActions", () => ({ FooterActions: () => null }));
 vi.mock("../[id]/_components/ShipmentDocsPanel", () => ({ ShipmentDocsPanel: () => null }));
+// SDD-0645 · El embarque cambió de cliente una vez y hoy es de DTD-0042 (el caso
+// real). La trazabilidad se ve también desde China, pero el motivo es texto libre
+// y aquí trae un nombre: China no lo recibe (B-1).
+vi.mock("@/lib/studio/reasignar-historial", () => ({
+  listarCambiosDeCliente: async () => [
+    { fecha: "2026-11-16T18:30:00Z", actorId: null, anterior: "DTD-0000", nuevo: "DTD-0042",
+      motivo: "Lo confirmó María Pérez por teléfono" },
+  ],
+}));
+// SDD-0645 · «Pasar a otro cliente» busca clientes por nombre: no se monta para
+// China. Se registra si la página lo monta y con qué.
+vi.mock("../[id]/_components/ReassignClientPanel", () => ({
+  ReassignClientPanel: (p: object) => {
+    h.props.ReassignClientPanel = p;
+    return null;
+  },
+}));
 vi.mock("@/app/studio/_components/documents/DocsPanel", () => ({ DocsPanel: () => null }));
 vi.mock("@/app/studio/(app)/_components/comments/CommentsThread", () => ({
   CommentsThread: () => null,
@@ -281,6 +298,8 @@ describe("/studio/tracking/[id] (detalle)", () => {
       expect(serializado, panel).not.toContain("10.1620");
     }
     expect((h.props.ShipmentDataPanel as { nombresOcultos: boolean }).nombresOcultos).toBe(true);
+    // SDD-0645: operations de China tiene la acción, pero el buscador muestra nombres.
+    expect(h.props.ReassignClientPanel).toBeUndefined();
   });
 
   it("China: no pinta el nombre ni la ubicación; el encabezado muestra el Shipping Mark", async () => {
@@ -295,6 +314,10 @@ describe("/studio/tracking/[id] (detalle)", () => {
     // El Shipping Mark sigue: en el encabezado y en su campo bloqueado.
     expect(screen.getByText("DTD-0042", { selector: "span" })).toBeInTheDocument();
     expect(screen.getByLabelText("Shipping Mark", { exact: false })).toHaveValue("DTD-0042");
+    // SDD-0645 (D1): el cambio de cliente se ve, sin nombres de clientes.
+    expect(screen.getByText("Historial del cliente")).toBeInTheDocument();
+    expect(texto).toContain("Alguien del equipo pasó el embarque de DTD-0000 a DTD-0042. Motivo registrado");
+    expect(texto).not.toContain("Lo confirmó");
   });
 
   it("Venezuela: el detalle sigue igual que antes", async () => {
@@ -309,5 +332,9 @@ describe("/studio/tracking/[id] (detalle)", () => {
       "Cliente y Shipping Mark vienen de la base de clientes — no se editan acá.",
     );
     expect(within(ayuda.parentElement as HTMLElement).queryByText(/tu región/)).toBeNull();
+    // SDD-0645 (B-1): Venezuela sí lee el motivo.
+    expect(document.body.textContent).toContain("Motivo: Lo confirmó María Pérez por teléfono");
+    // SDD-0645: operations de Venezuela sí ve «Pasar a otro cliente».
+    expect(h.props.ReassignClientPanel).toMatchObject({ shipmentCode: "S-2026-0042", currentMarkbox: "DTD-0042" });
   });
 });
