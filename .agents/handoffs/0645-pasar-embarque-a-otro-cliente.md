@@ -46,9 +46,16 @@ Los fallos de `verify` que no son de este cambio: los scripts bash con dobles (`
 «la app invita solo por audit_d1_execute» se pasa de 20 s también aislado: recorre ~3.100 archivos de
 `lib/app/components`; este cambio suma 3. Queda para el CI de Linux.
 
+## D1 de Sam (2026-11-16)
+
+Registrada literal en la spec §4.4. Implementada: `ClienteCambiado.tsx` (anterior tachado, «nuevo» con explicación del
+código, historial) y `lib/studio/reasignar-historial.ts` (lectura acotada de `shipment_client_reassigned`). Sus
+pruebas (`reasignar-historial.test.ts`, `ClienteCambiado.test.tsx` y las aserciones nuevas de `ocultar-nombres-cn`)
+se escribieron sin correr: esperan el turno de PC del DG; mientras, el portón es el CI.
+
 ## PENDIENTES DE ESTA TAREA
 
-- Decisiones D1 y D2 de Sam (el Subdirector Portal las hace una por una).
+- D2 (`commercial`) sin respuesta: rige la recomendada. D3 (¿el Portal muestra la trazabilidad?) abierta para Sam.
 - Aplicar la 0551: OK nominal de Sam en el chat del DG + runbook. Migrate-first.
 - Concurrencia real (dos personas pasando el mismo embarque a la vez): NO VERIFICADO; PGlite tiene una conexión.
 

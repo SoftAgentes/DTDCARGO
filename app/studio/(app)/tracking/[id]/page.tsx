@@ -24,6 +24,9 @@ import { CustomerPreview } from "./_components/CustomerPreview";
 import { TimelinePanel } from "./_components/TimelinePanel";
 import { FooterActions } from "./_components/FooterActions";
 import { ReassignClientPanel } from "./_components/ReassignClientPanel";
+import { ClienteCambiado } from "./_components/ClienteCambiado";
+import { createAdminClient } from "@/lib/db/admin";
+import { listarCambiosDeCliente } from "@/lib/studio/reasignar-historial";
 import { ShipmentDocsPanel } from "./_components/ShipmentDocsPanel";
 import {
   listShipmentDocuments,
@@ -84,6 +87,19 @@ export default async function ShipmentDetailPage({
   const authUser = await getUser();
   const tenantId = await getUserTenantId();
   const tenantUsers = tenantId ? await loadTenantUsers(tenantId) : [];
+
+  // SDD-0645 · D1 de Sam: el cambio de cliente queda a la vista, con quién y por qué.
+  // La RLS ya dejó leer este embarque; la lectura de la bitácora va acotada a sus
+  // eventos de cambio de cliente, en el tenant de la sesión (reasignar-historial.ts).
+  const cambiosDeCliente = tenantId
+    ? (await listarCambiosDeCliente(createAdminClient, tenantId, shipment.id)).map((c) => ({
+        fecha: c.fecha,
+        actor: tenantUsers.find((u) => u.id === c.actorId)?.name ?? "Alguien del equipo",
+        anterior: c.anterior,
+        nuevo: c.nuevo,
+        motivo: c.motivo,
+      }))
+    : [];
 
   // Rol del usuario → el "Expediente de defensa" (SDD-0070) es admin-only
   // (evidencia con PII). Mismo gate que /studio/legal.
@@ -321,6 +337,12 @@ export default async function ShipmentDetailPage({
               >
                 Expediente de defensa
               </a>
+            </section>
+          )}
+
+          {cambiosDeCliente.length > 0 && (
+            <section>
+              <ClienteCambiado shipmentCode={shipment.code} cambios={cambiosDeCliente} />
             </section>
           )}
 

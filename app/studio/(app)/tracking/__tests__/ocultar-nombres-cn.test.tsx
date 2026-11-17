@@ -78,6 +78,13 @@ vi.mock("../[id]/_components/StateActionsPanel", () => ({ StateActionsPanel: () 
 vi.mock("../[id]/_components/TimelinePanel", () => ({ TimelinePanel: () => null }));
 vi.mock("../[id]/_components/FooterActions", () => ({ FooterActions: () => null }));
 vi.mock("../[id]/_components/ShipmentDocsPanel", () => ({ ShipmentDocsPanel: () => null }));
+// SDD-0645 · El embarque cambió de cliente una vez: la trazabilidad (solo
+// Shipping Marks y gente del equipo) se ve también desde China.
+vi.mock("@/lib/studio/reasignar-historial", () => ({
+  listarCambiosDeCliente: async () => [
+    { fecha: "2026-11-16T18:30:00Z", actorId: null, anterior: "DTD-0000", nuevo: "DTD-0042", motivo: "Dueño real" },
+  ],
+}));
 // SDD-0645 · «Pasar a otro cliente» busca clientes por nombre: no se monta para
 // China. Se registra si la página lo monta y con qué.
 vi.mock("../[id]/_components/ReassignClientPanel", () => ({
@@ -305,6 +312,9 @@ describe("/studio/tracking/[id] (detalle)", () => {
     // El Shipping Mark sigue: en el encabezado y en su campo bloqueado.
     expect(screen.getByText("DTD-0042", { selector: "span" })).toBeInTheDocument();
     expect(screen.getByLabelText("Shipping Mark", { exact: false })).toHaveValue("DTD-0042");
+    // SDD-0645 (D1): el cambio de cliente se ve, sin nombres de clientes.
+    expect(screen.getByText("Historial del cliente")).toBeInTheDocument();
+    expect(texto).toContain("Alguien del equipo pasó el embarque de DTD-0000 a DTD-0042");
   });
 
   it("Venezuela: el detalle sigue igual que antes", async () => {
