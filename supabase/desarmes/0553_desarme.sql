@@ -3,7 +3,7 @@
 --    aplique ni la empaquete. Usarla exige OK nominal de Sam: se copia a supabase/migrations/ con el
 --    siguiente número libre y se aplica con el runbook de producción.
 --
--- QUITA crm_asegurar_tarjetas_clientes() y devuelve el CHECK de fuente de la 0506.
+-- QUITA crm_alta_tarjetas_clientes(uuid) y devuelve el CHECK de fuente de la 0506.
 -- ABORTA si ya existen tarjetas con fuente 'carga_erp': devolver el CHECK las dejaría inválidas.
 --   Antes hay que decidir con Sam qué pasa con ellas (borrarlas pierde sus etapas, notas y tareas).
 -- NO TOCA ninguna otra tarjeta ni el resto del CRM.
@@ -18,7 +18,7 @@ begin
 end;
 $guarda$;
 
-drop function if exists public.crm_asegurar_tarjetas_clientes();
+drop function if exists public.crm_alta_tarjetas_clientes(uuid);
 alter table public.crm_tarjetas drop constraint crm_tarjetas_fuente_check;
 alter table public.crm_tarjetas add constraint crm_tarjetas_fuente_check check (fuente in (
   'whatsapp_leads', 'whatsapp_clientes', 'instagram', 'messenger', 'correo',

@@ -98,16 +98,20 @@ Preguntas cerradas; entre comillas, la opción que Sam eligió, literal.
 
 ### 4.2 Tarjetas para todos los clientes con carga (migración 0553, en espera)
 
+Diseño ajustado tras la revisión independiente del DG (2026-11-16): **la vista no escribe**.
+
 - `crm_tarjetas.fuente` admite `carga_erp` («Cliente con carga en el ERP»).
-- `crm_asegurar_tarjetas_clientes()`: SECURITY DEFINER, `search_path` vacío, EXECUTE solo `authenticated`,
-  exige `crm_puede_usar()`. Crea la tarjeta que falta a cada ficha viva y no fusionada del tenant de quien
-  llama con segmento `cliente`. Solo inserta tenant, ficha y fuente (sin nombre ni teléfono: D6), en
-  Clientes › Activo; no toca tarjetas existentes; idempotente (`on conflict` sobre `crm_tarjetas_client_uq`).
-- El tablero la llama al cargar (`asegurarTarjetasClientes` en `crm-tablero-queries.ts`). **migrate-first:**
-  sin la 0553, o si falla, el tablero carga igual y Clientes muestra solo a quien ya tenía tarjeta
-  (degradación declarada en `supabase/pending-migration-symbol-declarations.json`).
-- Aplicar la 0553 no escribe filas; las tarjetas se crean la primera vez que alguien con el módulo CRM abre
-  Embudos. Aplicarla en producción exige el OK nominal de Sam para el archivo, el runbook
+- `crm_alta_tarjetas_clientes(tenant)`: SECURITY DEFINER, `search_path` vacío, EXECUTE solo `service_role`.
+  Crea la tarjeta que falta a cada ficha viva y no fusionada del tenant con segmento `cliente`. Inserta tenant,
+  ficha, fuente, el asesor de la ficha (solo si sigue activo en el tenant, como la 0513) y
+  `ultima_actividad_at = 2000-01-01`, para que no aparente actividad ni le quite lugar a un lead real en el tope
+  de 2000 tarjetas del tablero. Sin nombre ni teléfono (D6); nace en Clientes › Activo; no toca tarjetas
+  existentes; idempotente (`on conflict` sobre `crm_tarjetas_client_uq`).
+- **Alta inicial:** la 0553 corre la función una vez por tenant al aplicarse. Aplicarla escribe filas; antes,
+  el DG le pide a Sam el conteo de solo lectura de fichas con segmento cliente y sin tarjeta.
+- El tablero no llama a la función y funciona igual con o sin la 0553 (sin ella, Clientes muestra solo a quien
+  ya tenía tarjeta).
+- Aplicarla en producción exige el OK nominal de Sam para el archivo, el runbook
   `docs/runbooks/aplicar-migraciones-prod.md` y el Director General. Desarme: `supabase/desarmes/0553_desarme.sql`.
 
 ### 4.3 Datos personales
@@ -122,11 +126,13 @@ datos. Sin cambios en retención.
   decide en la vista, conteos, columnas filtradas y `?embudo=`.
 - `app/studio/(app)/crm/_components/CrmEmbudosClient.test.tsx`: tres pestañas con su conteo, cada tarjeta
   en la suya, URL y vista inicial.
-- `lib/studio/__tests__/crm-tablero-queries.test.ts`: con un doble que aplica los filtros, el cliente con
-  carga sin tarjeta aparece con la 0553; sin ella o con error, el tablero carga igual.
+- `lib/studio/__tests__/crm-tablero-queries.test.ts`: con un doble que aplica los filtros, el tablero solo
+  lee (la única RPC es `crm_segmento_tarjetas`).
 - `supabase/tests/0553_crm_tarjetas_clientes_con_carga.test.sql` +
-  `lib/studio/__tests__/crm-tarjetas-clientes.migration.test.ts` (PGlite): la 0553 real sobre el escenario de
-  la 0506 (14 aserciones), control rojo, mutantes, reaplicar y preflight. Los casos de carga anulada,
+  `lib/studio/__tests__/crm-tarjetas-clientes.migration.test.ts` (PGlite): el alta inicial de la 0553 real
+  sobre el escenario de la 0506, más una ficha fusionada viva, asesores activo, desactivado y de otro tenant,
+  y una tarjeta previa con actividad real; control rojo, mutantes (sin alta, fusionada viva, actividad de hoy,
+  asesor), reaplicar y preflight. Los casos de carga anulada,
   huérfana, de otro tenant, por historial y por fusión ya tienen mutantes en `crm-modelo.migration.test.ts`.
 
 ## 6. Allowlist exacta
@@ -144,14 +150,17 @@ datos. Sin cambios en retención.
 - `supabase/migrations/0553_crm_tarjetas_clientes_con_carga.sql` (nuevo),
   `supabase/tests/0553_crm_tarjetas_clientes_con_carga.test.sql` (nuevo),
   `supabase/desarmes/0553_desarme.sql` (nuevo).
-- `supabase/migrations-baseline.json` (la espera de la 0553) y
-  `supabase/pending-migration-symbol-declarations.json` (la degradación del tablero sin la 0553).
+- `supabase/migrations-baseline.json` (la espera de la 0553).
 - `.agents/handoffs/` (handoff de esta tarea).
 
 La tarjeta, los logos por canal y el layout del tablero son de la tarea «CRM: fichas compactas, logos por
 canal y Conversaciones globales»; esta SDD no los toca.
 
 ## 7. Fuera de alcance
+
+- Materializar las tarjetas de las fichas que ganen carga **después** de aplicar la 0553. Si hace falta, va con
+  su OK: una acción con `crm_puede_editar()` o un proceso de servicio que llame a `crm_alta_tarjetas_clientes`,
+  nunca al pintar el tablero.
 
 - Ligar automáticamente una tarjeta sin ficha a la ficha con carga de la misma persona.
 - Filtros adicionales (se suman como entradas de `CRM_VISTAS`).
