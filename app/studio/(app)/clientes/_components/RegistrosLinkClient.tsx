@@ -39,9 +39,15 @@ function fecha(iso: string): string {
 export function RegistrosLinkClient({
   rows,
   todos,
+  canEdit,
+  sinAcceso = false,
 }: {
   rows: RegistroLinkReviewRow[] | null;
   todos: boolean;
+  /** Sólo quien edita clientes ve «Marcar comprobado». */
+  canEdit: boolean;
+  /** Sin permiso de ver nombres de clientes (SDD-0531): no se muestra nada. */
+  sinAcceso?: boolean;
 }) {
   return (
     <div style={{ padding: "var(--s-6) var(--s-8)", maxWidth: 1100 }}>
@@ -81,7 +87,12 @@ export function RegistrosLinkClient({
         </Link>
       </div>
 
-      {rows === null ? (
+      {sinAcceso ? (
+        <Aviso tono="info" titulo="Sin acceso a esta lista">
+          Esta lista muestra datos personales de los clientes y tu usuario no los puede ver.
+          Si necesitas revisarla, pídeselo a un administrador.
+        </Aviso>
+      ) : rows === null ? (
         <Aviso tono="atencion" titulo="Todavía no está disponible">
           Falta aplicar la migración del registro por link. Cuando esté, aquí aparecen los
           registros.
@@ -95,7 +106,7 @@ export function RegistrosLinkClient({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
           {rows.map((r) => (
-            <RegistroCard key={r.id} row={r} />
+            <RegistroCard key={r.id} row={r} canEdit={canEdit} />
           ))}
         </div>
       )}
@@ -103,7 +114,7 @@ export function RegistrosLinkClient({
   );
 }
 
-function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
+function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: boolean }) {
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [comprobado, setComprobado] = useState(row.reviewedAt != null);
@@ -230,7 +241,7 @@ function RegistroCard({ row }: { row: RegistroLinkReviewRow }) {
           {error}
         </p>
       )}
-      {!comprobado && (
+      {!comprobado && canEdit && (
         <div style={{ marginTop: "var(--s-4)", display: "flex", justifyContent: "flex-end" }}>
           <ActionButton
             variant="primary"

@@ -16,7 +16,8 @@
 --   2. Las RPC del link: crear (equipo), mirar y completar (ruta pública con
 --      service_role) y marcar comprobado (equipo).
 --   3. `rename_client_markbox` deja que un cliente RECUPERE SU PROPIO código
---      retirado. Sigue prohibido para cualquier otro cliente.
+--      retirado (la fila del historial queda marcada como restaurada, no se
+--      borra). Sigue prohibido para cualquier otro cliente.
 --   4. Un candado al insertar en `clients`: un código retirado no se puede dar a
 --      una ficha nueva escrita a mano (el alta del Studio ahora acepta el código).
 --
@@ -59,6 +60,11 @@ begin
        and pg_catalog.md5(p.prosrc) = '61d5707d7c63d2c3647a554a497c7569'
   ) then
     raise exception '0552 abortado: find_duplicate_client_service no es el cuerpo de la 0342; leer el vivo antes de reemplazarlo';
+  end if;
+  if exists (select 1 from pg_catalog.pg_attribute
+              where attrelid = 'public.client_markbox_history'::pg_catalog.regclass
+                and attname = 'restored_at' and not attisdropped) then
+    raise exception '0552 abortado: client_markbox_history.restored_at ya existe; no reaplicar';
   end if;
   if pg_catalog.to_regclass('public.client_registration_links') is not null then
     raise exception '0552 abortado: client_registration_links ya existe; no reaplicar';
@@ -149,7 +155,7 @@ returns table (client_id uuid, matched_by text)
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   with q as (
     select
@@ -195,7 +201,7 @@ returns table (client_id uuid, matched_by text)
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select d.client_id, d.matched_by
     from public.find_duplicate_client_except_service(p_tenant_id, null, p_document, p_email, p_phone) d;
@@ -221,7 +227,7 @@ create function public.portal_registration_link_create(
 returns table (link_id uuid, expires_at timestamptz)
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   c         public.clients;
@@ -273,18 +279,19 @@ grant execute on function public.portal_registration_link_create(uuid, text) to 
 -- 4. Mirar el link (ruta pública, GET)
 --
 -- Sólo lee: el robot de vista previa de WhatsApp hace GET y no debe gastar nada
--- (lección de la SDD-0253). Devuelve el código y el nombre sólo si el link sirve;
--- si no, ninguna fila — el visitante ve un único mensaje para todos los casos.
+-- (lección de la SDD-0253). Devuelve SOLO el código, y sólo si el link sirve: el
+-- nombre de la ficha no sale a una página que abre cualquiera con el link. Si no
+-- sirve, ninguna fila — el visitante ve un único mensaje para todos los casos.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create function public.portal_registration_link_peek(p_token_hash text)
-returns table (markbox text, client_name text)
+returns table (markbox text)
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
-  select c.markbox, c.name
+  select c.markbox
     from public.client_registration_links l
     join public.clients c on c.id = l.client_id
    where l.token_hash = p_token_hash
@@ -339,7 +346,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   l          public.client_registration_links;
@@ -484,7 +491,7 @@ create function public.portal_registration_link_bind(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   l       public.client_registration_links;
@@ -527,7 +534,7 @@ create function public.portal_registration_link_access_error(p_link_id uuid, p_e
 returns void
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   update public.client_registration_links
      set access_error = left(coalesce(nullif(btrim(p_error), ''), 'sin detalle'), 500)
@@ -545,7 +552,7 @@ create function public.portal_registration_link_mark_reviewed(p_link_id uuid)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   l public.client_registration_links;
@@ -586,7 +593,7 @@ create function public.clients_guard_markbox_retirado()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   if new.markbox is not null and exists (
@@ -607,13 +614,34 @@ create trigger clients_guard_markbox_retirado_t
   for each row execute function public.clients_guard_markbox_retirado();
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 9. rename_client_markbox: recuperar el código PROPIO
+-- 9a. El historial marca lo restaurado; no se borra (0367:49-50)
+--
+-- Recuperar un código no borra su fila: la marca con fecha y autor. El índice
+-- único pasa a mirar sólo lo retirado VIGENTE, para que el mismo código pueda
+-- volver a retirarse más adelante sin chocar con su fila restaurada. Todas las
+-- filas de un código son del mismo cliente: sólo su dueño lo puede recuperar.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table public.client_markbox_history
+  add column restored_at timestamptz,
+  add column restored_by uuid references auth.users(id);
+
+comment on column public.client_markbox_history.restored_at is
+  'SDD-0646: el cliente recuperó este código (volvió a ser su Shipping Mark actual). La fila se conserva como historia; no reserva el código porque ya está vivo en clients.';
+
+drop index if exists public.client_markbox_history_uq;
+create unique index client_markbox_history_uq
+  on public.client_markbox_history (tenant_id, upper(markbox))
+  where restored_at is null;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 9b. rename_client_markbox: recuperar el código PROPIO
 --
 -- Cuerpo idéntico al de la 0371 salvo el bloque del historial. Antes: cualquier
 -- código del historial se rechazaba, aunque fuera el retirado del MISMO cliente.
--- Ahora: si el código está retirado y es de ESTE cliente, sale del historial y el
--- actual (p. ej. DTD-8123) entra en su lugar. Si es de otro cliente, sigue el
--- 23505 de siempre.
+-- Ahora: si el código está retirado y es de ESTE cliente, su fila queda marcada
+-- como restaurada (fecha y autor) y el actual (p. ej. DTD-8123) entra al
+-- historial. Si es de otro cliente, sigue el 23505 de siempre.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create or replace function public.rename_client_markbox(
@@ -688,6 +716,7 @@ begin
   -- SDD-0646: el retirado del MISMO cliente se puede recuperar; el de otro, no.
   select * into v_hist from public.client_markbox_history h
    where h.tenant_id = c.tenant_id and upper(h.markbox) = v_new
+     and h.restored_at is null
    for update;
   if v_hist.id is not null and v_hist.client_id is distinct from c.id then
     raise exception 'El Shipping Mark % está retirado y reservado; no se reutiliza', v_new
@@ -708,9 +737,12 @@ begin
     end if;
   end if;
 
-  -- Recuperar: el código vuelve a ser el actual, así que deja de estar retirado.
+  -- Recuperar: el código vuelve a ser el actual. La fila NO se borra (la historia
+  -- no se pierde, 0367:49-50): queda marcada como restaurada.
   if v_hist.id is not null then
-    delete from public.client_markbox_history where id = v_hist.id;
+    update public.client_markbox_history
+       set restored_at = now(), restored_by = auth.uid()
+     where id = v_hist.id;
   end if;
 
   insert into public.client_markbox_history (tenant_id, client_id, markbox, reason, retired_by)

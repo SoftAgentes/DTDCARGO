@@ -22,6 +22,7 @@ let completeResult: { data: unknown; error: { code?: string; message: string } |
 let bindError: { message: string } | null = null;
 let createUserError: { message: string } | null = null;
 let fromTables: string[] = [];
+let throttleCount = 0;
 
 const admin = {
   rpc: async (name: string, args: Record<string, unknown>) => {
@@ -32,7 +33,15 @@ const admin = {
   },
   from: (t: string) => {
     fromTables.push(t);
-    throw new Error(`no debería tocar la tabla ${t}`);
+    // El único acceso directo permitido es el throttle de /registro.
+    if (t !== "portal_registro_throttle") throw new Error(`no debería tocar la tabla ${t}`);
+    const chain = {
+      select: () => chain,
+      eq: () => chain,
+      gte: async () => ({ count: throttleCount, error: null }),
+      insert: async () => ({ error: null }),
+    };
+    return chain;
   },
   auth: {
     admin: {
@@ -47,12 +56,16 @@ const admin = {
 };
 
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => admin }));
+vi.mock("@/lib/http/request-ip", () => ({ getRequestIp: async () => "203.0.113.7" }));
 vi.mock("@/lib/studio/portal-invite-email", () => ({
   generatePortalAccessLink: async () => "https://auth.example.test/magic",
 }));
 
 import { registerByLinkAction } from "../actions";
-import { REGISTRO_LINK_INVALIDO } from "@/lib/portal/registro-link-types";
+import {
+  REGISTRO_LINK_DATOS_NO_SIRVEN,
+  REGISTRO_LINK_INVALIDO,
+} from "@/lib/portal/registro-link-types";
 
 const TOKEN = "A".repeat(43);
 
@@ -73,6 +86,7 @@ function form(extra: Record<string, string> = {}): FormData {
 beforeEach(() => {
   calls = [];
   fromTables = [];
+  throttleCount = 0;
   bindError = null;
   createUserError = null;
   completeResult = {
@@ -97,7 +111,8 @@ describe("registerByLinkAction", () => {
       "portal_registration_link_bind",
     ]);
     expect(nombres).not.toContain("next_markbox_service");
-    expect(fromTables).toEqual([]);
+    // Sólo el throttle (lectura + intento); nunca `clients`.
+    expect(new Set(fromTables)).toEqual(new Set(["portal_registro_throttle"]));
   });
 
   it("⭐ a la base va el hash del token, nunca el token, y los datos ya normalizados", async () => {
@@ -144,10 +159,18 @@ describe("registerByLinkAction", () => {
     expect(calls.map((c) => c.name)).toEqual(["portal_registration_link_complete"]);
   });
 
-  it("el correo con cuenta vuelve al campo del correo", async () => {
+  it("⭐ el correo con cuenta da un mensaje genérico, sin señalar el correo", async () => {
     completeResult = { data: null, error: { code: "23505", message: "correo_en_uso" } };
     const res = await registerByLinkAction({}, form());
-    expect(res.fieldErrors?.email).toMatch(/ya tiene una cuenta/);
+    expect(res).toEqual({ error: REGISTRO_LINK_DATOS_NO_SIRVEN });
+    expect(JSON.stringify(res)).not.toMatch(/cuenta|correo/i);
+  });
+
+  it("⭐ con el tope de la IP alcanzado no se consulta el link", async () => {
+    throttleCount = 5;
+    const res = await registerByLinkAction({}, form());
+    expect(res.error).toMatch(/Demasiados intentos/);
+    expect(calls).toHaveLength(0);
   });
 
   it("si la cuenta de auth falla, queda anotado y el cliente sabe que lo contactamos", async () => {

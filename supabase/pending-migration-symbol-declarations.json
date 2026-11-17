@@ -17,40 +17,40 @@
           "name": "portal_registration_link_peek",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/page.tsx:54"
+            "app/registro/link/[token]/page.tsx:46"
           ]
         },
         {
           "name": "portal_registration_link_complete",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/actions.ts:85"
+            "app/registro/link/[token]/actions.ts:108"
           ]
         },
         {
           "name": "portal_registration_link_bind",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/actions.ts:136"
+            "app/registro/link/[token]/actions.ts:161"
           ]
         },
         {
           "name": "portal_registration_link_access_error",
           "kind": "function",
           "callSites": [
-            "app/registro/link/[token]/actions.ts:128",
-            "app/registro/link/[token]/actions.ts:141"
+            "app/registro/link/[token]/actions.ts:153",
+            "app/registro/link/[token]/actions.ts:166"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/registro/link/[token]/page.tsx:58",
+          "site": "app/registro/link/[token]/page.tsx:50",
           "contains": "target = row?.markbox ? row : null;",
           "degradation": "Sin la 0552 la RPC de lectura responde error (PGRST202) y no hay fila: la página muestra «Enlace no disponible» con el mensaje genérico y ningún formulario. No escribe nada."
         },
         {
-          "site": "app/registro/link/[token]/actions.ts:101",
+          "site": "app/registro/link/[token]/actions.ts:124",
           "contains": "const kind = registroLinkErrorKind(error);",
           "degradation": "Si se llegara a enviar el formulario sin la 0552, el error cae en «otro»: el cliente lee «No pudimos guardar tus datos ahora» y no se crea cuenta ni vínculo. bind y access_error sólo corren después de un complete exitoso, que sin la 0552 no existe."
         }

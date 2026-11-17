@@ -151,6 +151,63 @@ rollback;`);
     await expect(correr(m)).rejects.toThrow(/el link se usó dos veces/);
   }, SLOW);
 
+  // Regenerar sin revocar choca primero con el índice de un link vivo por
+  // cliente: son dos candados. El mutante quita los dos para que lo cace la
+  // aserción del contrato y no el índice.
+  it("mutante: regenerar no revoca el link anterior", async () => {
+    const sinRevocar = mutar(
+      `  update public.client_registration_links l
+     set revoked_at = now()
+   where l.client_id = c.id and l.used_at is null and l.revoked_at is null;
+`,
+      "",
+    );
+    const m = sinRevocar.replace(
+      `create unique index client_registration_links_one_open
+  on public.client_registration_links (client_id)
+  where used_at is null and revoked_at is null;`,
+      "",
+    );
+    expect(m).not.toBe(sinRevocar);
+    await expect(correr(m)).rejects.toThrow(/regenerar no revocó el link anterior/);
+  }, SLOW);
+
+  it("mutante: bind enlaza una cuenta con otro correo", async () => {
+    const m = mutar(
+      "  if v_email is null or v_email is distinct from (l.submitted_data ->> 'email') then",
+      "  if v_email is null then",
+    );
+    await expect(correr(m)).rejects.toThrow(/enlazó una cuenta con otro correo/);
+  }, SLOW);
+
+  it("mutante: completar acepta un correo que ya tiene cuenta", async () => {
+    const m = mutar(
+      `  if exists (select 1 from auth.users au where lower(au.email) = v_email) then
+    raise exception 'correo_en_uso' using errcode = '23505';
+  end if;`,
+      "",
+    );
+    await expect(correr(m)).rejects.toThrow(/aceptó un correo que ya tiene cuenta/);
+  }, SLOW);
+
+  it("mutante: recuperar el código borra su historia", async () => {
+    const m = mutar(
+      `    update public.client_markbox_history
+       set restored_at = now(), restored_by = auth.uid()
+     where id = v_hist.id;`,
+      "    delete from public.client_markbox_history where id = v_hist.id;",
+    );
+    await expect(correr(m)).rejects.toThrow(/se borró o no dice quién lo restauró/);
+  }, SLOW);
+
+  it("mutante: mirar devuelve también el nombre de la ficha", async () => {
+    const m = mutar(
+      "returns table (markbox text)\nlanguage sql",
+      "returns table (markbox text, client_name text)\nlanguage sql",
+    ).replace("  select c.markbox\n    from public.client_registration_links l", "  select c.markbox, c.name\n    from public.client_registration_links l");
+    await expect(correr(m)).rejects.toThrow(/mirar devuelve algo más que el código/);
+  }, SLOW);
+
   it("mutante: el link vencido sigue abriendo", async () => {
     const m = mutar("     and l.expires_at > now()\n", "\n");
     await expect(correr(m)).rejects.toThrow(/un link vencido todavía abre/);

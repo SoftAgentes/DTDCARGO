@@ -17,15 +17,6 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-/** Primer nombre, sin MAYÚSCULA SOSTENIDA (los nombres del legado vienen así). */
-function primerNombre(name: string | null): string | null {
-  const first = (name ?? "").trim().split(/\s+/)[0] ?? "";
-  if (!first) return null;
-  return first.length > 2 && first === first.toUpperCase()
-    ? first.charAt(0) + first.slice(1).toLowerCase()
-    : first;
-}
-
 /**
  * Registro al portal por link (SDD-0646) — el GET.
  *
@@ -34,7 +25,8 @@ function primerNombre(name: string | null): string | null {
  * SDD-0253). El link se gasta en el POST del formulario (`./actions.ts`).
  *
  * El Shipping Mark sale de la ficha a la que apunta el token y se muestra
- * congelado: la URL no lo lleva y el formulario no lo envía.
+ * congelado: la URL no lo lleva y el formulario no lo envía. Es lo ÚNICO de la
+ * ficha que ve esta página: el nombre no sale a quien abra el link.
  *
  * Ruta pública respaldada por la base, igual que `app/registro`: usa el admin
  * client con el visitante anónimo y el token como control.
@@ -46,7 +38,7 @@ export default async function RegistroLinkPage({
 }) {
   const { token } = await params;
 
-  type Target = { markbox: string; client_name: string | null };
+  type Target = { markbox: string };
   let target: Target | null = null;
   if (isRegistroTokenShape(token)) {
     try {
@@ -71,7 +63,6 @@ export default async function RegistroLinkPage({
           <RegistroLinkForm
             token={token}
             markbox={target.markbox}
-            saludo={primerNombre(target.client_name)}
             cities={cities}
           />
         ) : (

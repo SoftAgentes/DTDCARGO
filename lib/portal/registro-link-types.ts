@@ -51,8 +51,12 @@ export function registroLinkWhatsAppText(name: string | null, url: string): stri
 export const REGISTRO_LINK_INVALIDO =
   "Este enlace ya no está disponible. Pídele a tu asesor de DTD Cargo uno nuevo.";
 
-export const REGISTRO_LINK_CORREO_EN_USO =
-  "Ese correo ya tiene una cuenta en DTD Cargo. Usa otro correo o escríbele a tu asesor.";
+/**
+ * Correo con cuenta, sin decirlo: el mensaje no confirma qué correos están
+ * registrados (se devuelve en el formulario, no en el campo del correo).
+ */
+export const REGISTRO_LINK_DATOS_NO_SIRVEN =
+  "No pudimos completar tu registro con esos datos. Revísalos o escríbele a tu asesor de DTD Cargo.";
 
 /** Error de la RPC `portal_registration_link_complete` → qué ve el cliente. */
 export function registroLinkErrorKind(error: {

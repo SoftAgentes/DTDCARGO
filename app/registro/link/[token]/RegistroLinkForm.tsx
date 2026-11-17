@@ -44,12 +44,10 @@ const CAMPO_ORDEN = [
 export function RegistroLinkForm({
   token,
   markbox,
-  saludo,
   cities,
 }: {
   token: string;
   markbox: string;
-  saludo: string | null;
   cities: RegisterCity[];
 }) {
   const [state, formAction, pending] = useActionState(registerByLinkAction, initial);
@@ -92,11 +90,11 @@ export function RegistroLinkForm({
         className="mt-2 text-[26px] sm:text-[30px] leading-[1.08] text-ink"
         style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
       >
-        {saludo ? `Hola ${saludo}, completa tus datos` : "Completa tus datos"}
+        Completa tus datos
       </h1>
       <p className="mt-2 text-[14px] text-grey-700 leading-[1.6] max-w-[52ch]">
-        Tu código de siempre ya está guardado. Llena tus datos y entras a tu portal para
-        ver tus envíos.
+        Tu Shipping Mark es <strong className="text-ink">{markbox}</strong>. Ya está
+        guardado: llena tus datos y entras a tu portal para ver tus envíos.
       </p>
 
       {/* Congelado: sale de la ficha, no del formulario. */}

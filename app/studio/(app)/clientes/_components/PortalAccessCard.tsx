@@ -43,6 +43,7 @@ export function PortalAccessCard({
   email,
   access,
   approvedAt,
+  canEdit = true,
 }: {
   clientId: string;
   markbox: string;
@@ -50,6 +51,8 @@ export function PortalAccessCard({
   access: ClientPortalAccess | null;
   /** clients.portal_approved_at — null = pendiente de revisión (SDD-0042 Fase 5). */
   approvedAt?: string | null;
+  /** SDD-0646: el link de registro sólo se le ofrece a quien edita clientes. */
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +110,7 @@ export function PortalAccessCard({
         </Badge>
       </div>
 
-      {status !== "active" && <RegistrationLinkBlock clientId={clientId} />}
+      {status !== "active" && canEdit && <RegistrationLinkBlock clientId={clientId} />}
 
       {!email ? (
         <p style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>

@@ -11,6 +11,10 @@
 -- y el trigger clients_guard_markbox_retirado_t.
 -- NO DESHACE DATOS: las fichas que el cliente completó siguen completas, los accesos al portal creados
 -- siguen activos y un código recuperado sigue siendo el actual (su 8xxx queda en el historial).
+-- SE QUEDAN client_markbox_history.restored_at / restored_by y el índice único parcial
+--   (sólo lo retirado vigente): son historia, y el índice completo de la 0367 podría no recrearse
+--   si un código se restauró y después se volvió a retirar. La 0371 restaurada no los necesita: su
+--   chequeo de historial mira todas las filas, así que vuelve a rechazar cualquier código retirado.
 -- Los cuerpos de abajo son copia exacta de la 0371 y la 0342 (md5 ed233ed2… y 61d5707d…).
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';

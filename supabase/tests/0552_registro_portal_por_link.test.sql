@@ -311,6 +311,13 @@ begin
   -- B1. Mirar devuelve el código congelado sólo si el link sirve.
   select * into r from public.portal_registration_link_peek(repeat('b', 64));
   assert r.markbox = 'DTD-8001', 'mirar no devolvió el código de la ficha';
+  -- El nombre de la ficha no sale a la página pública.
+  assert (select array_agg(a.attname order by a.attnum)
+            from pg_catalog.pg_proc p,
+                 lateral unnest(p.proargnames, p.proargmodes) with ordinality as a(attname, mode, attnum)
+           where p.oid = 'public.portal_registration_link_peek(text)'::regprocedure
+             and a.mode = 't') = array['markbox']::text[],
+    'mirar devuelve algo más que el código (el nombre no debe salir)';
   assert not exists (select 1 from public.portal_registration_link_peek(repeat('a', 64))),
     'un link revocado todavía abre';
   assert not exists (select 1 from public.portal_registration_link_peek(repeat('9', 64))),
@@ -518,8 +525,21 @@ begin
   assert (j ->> 'recovered')::boolean, 'no reportó la recuperación';
   assert (select markbox from public.clients where id = '00000000-0000-0000-0000-00000000c001') = 'VJ-77',
     'no recuperó el código';
-  assert not exists (select 1 from public.client_markbox_history where markbox = 'VJ-77'),
+  assert not exists (select 1 from public.client_markbox_history
+                      where markbox = 'VJ-77' and restored_at is null),
     'el código recuperado sigue retirado';
+  -- La historia no se pierde (0367:49-50): la fila queda marcada, no se borra.
+  assert (select restored_by from public.client_markbox_history
+           where markbox = 'VJ-77' and restored_at is not null)
+         = '00000000-0000-0000-0000-0000000000a1',
+    'la fila del código recuperado se borró o no dice quién lo restauró';
+  -- Las cajas rotuladas con cualquiera de los dos códigos siguen llegando a c1.
+  assert (select client_id from public.resolve_markbox('00000000-0000-0000-0000-00000000d7d1', 'VJ-77'))
+         = '00000000-0000-0000-0000-00000000c001', 'resolve_markbox perdió el código recuperado';
+  assert (select not was_redirected from public.resolve_markbox('00000000-0000-0000-0000-00000000d7d1', 'VJ-77')),
+    'resolve_markbox trata el código recuperado como alias';
+  assert (select client_id from public.resolve_markbox('00000000-0000-0000-0000-00000000d7d1', 'DTD-8001'))
+         = '00000000-0000-0000-0000-00000000c001', 'resolve_markbox no resuelve el 8xxx retirado';
   assert (select client_id from public.client_markbox_history where markbox = 'DTD-8001')
          = '00000000-0000-0000-0000-00000000c001', 'el código 8xxx no pasó al historial';
   assert (select client_markbox from public.shipments limit 1) = 'VJ-77', 'no movió los embarques';
@@ -533,9 +553,13 @@ begin
   perform public.rename_client_markbox('00000000-0000-0000-0000-00000000c001', 'DTD-8001');
   assert (select markbox from public.clients where id = '00000000-0000-0000-0000-00000000c001') = 'DTD-8001',
     'no pudo volver a su otro código propio';
+  -- Retirado vigente: sólo VJ-77. Las dos restauraciones quedan como historia.
   assert (select count(*) from public.client_markbox_history
-           where client_id = '00000000-0000-0000-0000-00000000c001') = 1,
-    'el historial quedó con filas de más';
+           where client_id = '00000000-0000-0000-0000-00000000c001' and restored_at is null) = 1,
+    'el historial quedó con retirados de más';
+  assert (select count(*) from public.client_markbox_history
+           where client_id = '00000000-0000-0000-0000-00000000c001') = 3,
+    'el historial perdió filas';
   -- Lo de siempre sigue: el código vivo de otro, no.
   begin
     perform public.rename_client_markbox('00000000-0000-0000-0000-00000000c004', 'DTD-9101');

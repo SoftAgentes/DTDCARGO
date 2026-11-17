@@ -51,12 +51,16 @@ evitar.
   el número para quedarse con el portal de otro cliente.
 - Lo emite la RPC `portal_registration_link_create` (roles admin, commercial y operations, tenant del
   usuario; rechaza al cliente con acceso activo, a la ficha borrada y a la fusionada).
+- El bloque sólo se le muestra a quien puede editar clientes (`canEditModule`); quien sólo ve la ficha no
+  lo recibe. La acción y la RPC lo exigen igual.
 
 ### 3.2 Página pública
 
 - `GET /registro/link/[token]` **solo lee** (`portal_registration_link_peek`): el robot de vista previa
   de WhatsApp hace GET y no debe gastar el link (lección de la SDD-0253). No se indexa.
 - Muestra el Shipping Mark de la ficha **congelado**: sale de la base, no de la URL ni del formulario.
+  Es lo **único** de la ficha que ve la página («Tu Shipping Mark es …»): `peek` no devuelve el nombre,
+  para que no salga a quien abra el link (revisión independiente, 2026-11-16).
 - Pide los datos del registro actual con los mismos campos (`RegisterForm.tsx` exporta `Field`,
   `CedulaInput`, `PhoneInput`, `CiudadEntrega`, `TypeCard`, `LeyendaObligatorio`) y valida con
   `validateRegisterInput`: tipo, nombre o empresa, cédula/RIF, correo, WhatsApp, teléfono de oficina
@@ -68,9 +72,12 @@ evitar.
   vincula `client_users` con `portal_registration_link_bind` y acuña un magic-link de un clic.
 - Mensaje final: «¡Ya eras cliente de DTD Cargo! Este es tu código de siempre: <código>. Ya puedes ver tu
   portal.» y el botón «Entrar a mi portal».
-- Si el correo ya tiene una cuenta de Auth, la base lo rechaza **antes** de gastar el link y el aviso
-  sale en el campo del correo. Si la cuenta o el vínculo fallan después, la ficha queda completa, se
-  anota `access_error` y el cliente lee que lo contactamos por WhatsApp.
+- El POST pasa por el **throttle por IP** de `/registro` (`portal_registro_throttle`, 5 por hora, fail-open
+  si la lectura falla) antes de tocar la ficha.
+- Si el correo ya tiene una cuenta de Auth, la base lo rechaza **antes** de gastar el link. El cliente lee
+  un mensaje **genérico** en el formulario, no en el campo del correo, y sólo después del throttle: un
+  link vivo no sirve para averiguar qué correos tienen cuenta. Si la cuenta o el vínculo fallan después,
+  la ficha queda completa, se anota `access_error` y el cliente lee que lo contactamos por WhatsApp.
 - Frontera: la ruta sigue el patrón de `app/registro` (ruta pública respaldada por la base, admin
   client con el visitante anónimo y el token como control), que la regla ESLint de frontera excluye
   por diseño. La página y el formulario no importan `@/lib/studio`; la acción importa
@@ -95,6 +102,11 @@ tenía la ficha al lado de lo que escribió el cliente, resalta lo que cambió, 
 duplicado, de la cédula no copiada y del acceso fallido, y ofrece «Marcar comprobado»
 (`portal_registration_link_mark_reviewed`, mismos roles). Filtro «Pendientes» / «Todos».
 
+- La pantalla es entera de datos personales: quien no puede ver nombres de clientes
+  (`readCanSeeClientNames`, equipo de China sin rol admin, SDD-0531 / PIPL) no entra; el servidor no lee
+  la tabla y muestra «Sin acceso a esta lista».
+- «Marcar comprobado» sólo aparece para quien puede editar clientes.
+
 **Por qué no `client_change_requests` (SDD-0151).** Aquella tabla es una propuesta que el asesor
 aprueba **antes** de tocar `clients`, con tres campos y una sola abierta por cliente. Aquí el cliente
 completa la ficha en el acto (es su primer acceso) y el equipo revisa **después**, con correo, ciudad,
@@ -112,8 +124,11 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
   cualquier ficha nueva con un código retirado: `clients_tenant_id_markbox_key` solo mira `clients`.
 - **Cliente existente con DTD-8xxx.** `rename_client_markbox` (cuerpo de la 0371) rechazaba cualquier
   código del historial, incluso el retirado del MISMO cliente. Ahora, si el código está retirado y es
-  de esa ficha, sale del historial y el código actual (DTD-8xxx) entra en su lugar. Si es de otro
-  cliente, sigue el 23505 de siempre. El resultado agrega `recovered`.
+  de esa ficha, su fila **no se borra** (0367:49-50): queda marcada con `restored_at` y `restored_by`, y
+  el código actual (DTD-8xxx) entra al historial. El índice único del historial pasa a mirar sólo lo
+  retirado vigente (`restored_at is null`), para que el mismo código pueda volver a retirarse. Si es de
+  otro cliente, sigue el 23505 de siempre. El resultado agrega `recovered`. `resolve_markbox` resuelve
+  los dos códigos a la misma ficha (contrato §D).
 
 ## 4. Migración 0552 (`supabase/migrations/0552_registro_portal_por_link.sql`)
 
@@ -122,7 +137,10 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
   `61d5707d7c63d2c3647a554a497c7569`); si producción tiene otro, aborta sin tocar nada.
 - Tabla `client_registration_links` con RLS: el equipo solo lee su tenant; nadie escribe por PostgREST.
 - RPC: `create` y `mark_reviewed` para `authenticated`; `peek`, `complete`, `bind` y `access_error`
-  solo para `service_role`.
+  solo para `service_role`. Las funciones nuevas llevan `search_path = ''` y todo nombre calificado;
+  `rename_client_markbox` conserva el de la 0371.
+- `client_markbox_history` suma `restored_at` y `restored_by`; el índice `client_markbox_history_uq` se
+  recrea parcial (`where restored_at is null`).
 - Sin backfill ni locks de tabla largos. Desarme: el de la 0552 en `supabase/desarmes/` (no deshace
   datos: las fichas completadas, los accesos creados y los códigos recuperados se quedan).
 - Gate de pendientes: entrada en `supabase/migrations-baseline.json`. MIGRATE-FIRST: sin la 0552, el
@@ -140,6 +158,18 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
 | Borrado y retención | ENCONTRADO | `prev_data`/`submitted_data` duplican datos personales y no hay flujo general de supresión de clientes en el repo. Decisión pendiente de Sam: plazo para vaciar esas copias después de «comprobado» (propuesta: 90 días). |
 | Transferencias | NO VERIFICABLE | Sin terceros nuevos; Auth es el mismo Supabase de hoy. |
 
+## 5.1 Preguntas abiertas para Sam
+
+**D-1 · El correo que escribe el cliente no se verifica antes de entrar.** El link llega por WhatsApp a
+quien el equipo ya conoce, y eso prueba quién es la persona; no prueba que el correo sea suyo. Si escribe
+un correo ajeno, a ese correo le quedaría el acceso al portal: «¿Olvidaste tu contraseña?» y los enlaces
+de acceso llegan ahí. Mitigación decidida por el DG el 2026-11-16: se mantiene la entrada directa, la
+cuenta no nace con el correo marcado como confirmado y se envía la confirmación al correo; en «Registros
+por link» se ve si el correo ya se confirmó. Límite técnico consultado al DG: en Supabase Auth, verificar
+un magic-link marca el correo como confirmado, así que la entrada directa lo confirma sin probarlo. La
+forma exacta (aviso al correo o entrada sólo desde el correo) queda registrada en el handoff. **Sam
+decide** si acepta la entrada directa con ese riesgo.
+
 ## 6. Criterios de aceptación
 
 1. El link tiene ≥128 bits (son 256), se guarda como hash, es de un solo uso, vence a los 14 días y
@@ -149,7 +179,8 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
 3. Completar no crea ficha ni código y deja el acceso activo. — contrato §B4/§B7 y
    `registro-link-action.test.ts`.
 4. El duplicado se marca sin fusionar y la cédula ajena no se copia. — contrato §C.
-5. Un cliente recupera su propio código retirado; nadie más puede tomarlo. — contrato §D.
+5. Un cliente recupera su propio código retirado sin borrar su historia, `resolve_markbox` sigue
+   resolviendo los dos códigos, y nadie más puede tomarlo. — contrato §D.
 6. Una ficha nueva no nace con un código retirado. — contrato §E.
 7. El alta acepta el código a mano sin pasar por el generador. — `registro-por-link-studio.test.ts`.
 8. «Registros por link» muestra antes/después y marca comprobado con rol y tenant. — contrato

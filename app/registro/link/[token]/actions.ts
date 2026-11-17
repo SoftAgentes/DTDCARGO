@@ -10,7 +10,8 @@
  * uso, 14 días) y el honeypot.
  *
  * Orden, a propósito:
- *   1. validar con `validateRegisterInput` (las MISMAS reglas del registro)
+ *   1. validar con `validateRegisterInput` (las MISMAS reglas del registro) y
+ *      pasar el throttle por IP de `/registro`
  *   2. `portal_registration_link_complete` — todo o nada en la base: completa la
  *      ficha, gasta el link, guarda antes/después y marca el duplicado sin
  *      fusionar. Un correo con cuenta se rechaza ANTES de gastar el link.
@@ -24,19 +25,27 @@
 
 import { randomBytes } from "node:crypto";
 import { createAdminClient } from "@/lib/db/admin";
+import { getRequestIp } from "@/lib/http/request-ip";
 import { generatePortalAccessLink } from "@/lib/studio/portal-invite-email";
 import { validateRegisterInput, type RegisterInput } from "@/lib/portal/register-types";
 import { hashRegistroToken } from "@/lib/portal/registro-link";
 import {
   isRegistroTokenShape,
   registroLinkErrorKind,
-  REGISTRO_LINK_CORREO_EN_USO,
+  REGISTRO_LINK_DATOS_NO_SIRVEN,
   REGISTRO_LINK_INVALIDO,
   type RegistroLinkActionState,
 } from "@/lib/portal/registro-link-types";
 
 /** Campo trampa (mismo nombre que el registro normal). */
 const HONEYPOT_FIELD = "empresa_web";
+
+// Throttle por IP: la MISMA tabla y los mismos topes que /registro (SDD-0042 §10).
+// Además de frenar bots, impide usar un link vivo para probar correos uno tras
+// otro: «correo en uso» no gasta el link.
+const REGISTRO_IP_LIMIT = 5;
+const REGISTRO_WINDOW_MINUTES = 60;
+const THROTTLE_TABLE = "portal_registro_throttle";
 
 function parseForm(formData: FormData): Partial<RegisterInput> {
   const str = (k: string) => (formData.get(k) as string | null) ?? undefined;
@@ -81,6 +90,20 @@ export async function registerByLinkAction(
     return { error: "El registro no está disponible ahora. Prueba de nuevo en un rato." };
   }
 
+  // 1b. Throttle por IP, antes de tocar la ficha. Igual que /registro: si falla
+  //     la lectura, no se bloquea un registro legítimo (fail-open).
+  const ip = await getRequestIp();
+  const windowStart = new Date(Date.now() - REGISTRO_WINDOW_MINUTES * 60 * 1000).toISOString();
+  const { count: recentCount, error: throttleErr } = await admin
+    .from(THROTTLE_TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if (!throttleErr && (recentCount ?? 0) >= REGISTRO_IP_LIMIT) {
+    return { error: "Demasiados intentos desde tu conexión. Prueba de nuevo en un rato." };
+  }
+  await admin.from(THROTTLE_TABLE).insert({ ip });
+
   // 2. Completar la ficha (todo o nada en la base).
   const { data, error } = await admin.rpc("portal_registration_link_complete", {
     p_token_hash: hashRegistroToken(token),
@@ -100,7 +123,9 @@ export async function registerByLinkAction(
   if (error) {
     const kind = registroLinkErrorKind(error);
     if (kind === "invalido") return { error: REGISTRO_LINK_INVALIDO };
-    if (kind === "correo") return { fieldErrors: { email: REGISTRO_LINK_CORREO_EN_USO } };
+    // Mensaje genérico, sin señalar el correo: que no sirva para saber qué
+    // correos tienen cuenta en DTD Cargo.
+    if (kind === "correo") return { error: REGISTRO_LINK_DATOS_NO_SIRVEN };
     if (kind === "datos") return { error: "Revisa los datos: falta alguno obligatorio." };
     console.error("[registerByLinkAction] complete falló:", error.code);
     return { error: "No pudimos guardar tus datos ahora. Intenta de nuevo en un rato." };
