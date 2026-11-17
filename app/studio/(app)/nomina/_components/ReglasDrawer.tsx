@@ -22,13 +22,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { savePayrollRulesAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
-import {
-  PARAMETROS_LEY,
-  NOTA_NO_VERIFICADO,
-  estaVerificado,
-  formatearValorLey,
-  type CampoRegla,
-} from "@/lib/studio/nomina/ley/parametros";
+import { PistaLey } from "./PistaLey";
 
 const FORM_ID = "reglas-form";
 const initial: NominaActionState = {};
@@ -55,30 +49,6 @@ function GroupTitle({ children }: { children: React.ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-/**
- * Pista legal bajo cada grupo (SDD-0653): lo que dice la ley para esos campos.
- * El asterisco marca lo no verificado; la nota pide consultar a un abogado.
- */
-function PistaLey({ campos }: { campos: CampoRegla[] }) {
-  const items = PARAMETROS_LEY.filter((p) => p.campo && campos.includes(p.campo));
-  if (items.length === 0) return null;
-  const hayNoVerificado = items.some((p) => !estaVerificado(p));
-  return (
-    <p style={{ margin: "-4px 0 0", font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-      <strong style={{ color: "var(--ink)" }}>Según la ley: </strong>
-      {items.map((p, i) => (
-        <span key={p.id}>
-          {i > 0 ? " · " : ""}
-          {p.etiqueta} {p.comparacion === "minimo" ? "≥ " : ""}
-          {formatearValorLey(p.valor, p.unidad)}
-          {!estaVerificado(p) && <span aria-label=" (no verificado)">*</span>}
-        </span>
-      ))}
-      {hayNoVerificado && <span style={{ display: "block" }}>* {NOTA_NO_VERIFICADO}</span>}
-    </p>
   );
 }
 

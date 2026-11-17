@@ -9,6 +9,7 @@ import {
   NOTA_NO_VERIFICADO,
   compararParametro,
   compararConLey,
+  cuentaComoObligacion,
   resumenComparacion,
   estaVerificado,
   formatearValorLey,
@@ -70,40 +71,14 @@ describe("PARAMETROS_LEY · forma", () => {
     for (const g of GRUPOS_LEY) expect(PARAMETROS_LEY.some((p) => p.grupo === g.id)).toBe(true);
   });
 
-  it("toda entrada trae instrumento, texto y fechas ISO válidas", () => {
+  it("toda entrada trae instrumento, texto, dónde se comprobó y fechas ISO válidas", () => {
     for (const p of PARAMETROS_LEY) {
-      expect(p.fuente.instrumento.trim().length).toBeGreaterThan(0);
-      expect(p.texto.trim().length).toBeGreaterThan(10);
-      if (p.vigenteDesde) expect(p.vigenteDesde).toMatch(ISO);
-      if (p.fuente.fecha) expect(p.fuente.fecha).toMatch(ISO);
+      expect(p.fuente.instrumento.trim().length, p.id).toBeGreaterThan(0);
+      expect(p.texto.trim().length, p.id).toBeGreaterThan(10);
+      expect(p.comprobadoEn.trim().length, p.id).toBeGreaterThan(10);
+      if (p.vigenteDesde) expect(p.vigenteDesde, p.id).toMatch(ISO);
+      if (p.fuente.fecha) expect(p.fuente.fecha, p.id).toMatch(ISO);
     }
-  });
-
-  it("un anuncio nunca dice tener Gaceta propia del anuncio, salvo referencia previa explícita", () => {
-    for (const p of PARAMETROS_LEY.filter((x) => x.grado === "anuncio")) {
-      // Si cita Gaceta, el detalle tiene que explicar que es otra (anterior).
-      if (p.fuente.gaceta) expect(p.detalle ?? "").toMatch(/Gaceta|G\.O\./);
-    }
-  });
-
-  it("lo marcado verificado dice dónde se comprobó", () => {
-    for (const p of PARAMETROS_LEY.filter(estaVerificado)) {
-      expect((p.comprobadoEn ?? "").trim().length, p.id).toBeGreaterThan(10);
-    }
-  });
-
-  it("un anuncio o algo por confirmar nunca se presenta como comprobado en Gaceta", () => {
-    for (const p of PARAMETROS_LEY.filter((x) => !estaVerificado(x))) {
-      expect(p.comprobadoEn ?? "", p.id).not.toMatch(/^PDF de la Imprenta Nacional/);
-    }
-  });
-
-  it("LOTTT, IVSS y RPE quedaron verificados; FAOV sigue por confirmar", () => {
-    for (const id of ["hora-extra", "bono-nocturno", "dia-feriado", "utilidades", "vacaciones", "bono-vacacional", "sso-trabajador", "sso-tope", "sso-patrono", "rpe-trabajador", "rpe-tope", "rpe-patrono"]) {
-      expect(porId(id).grado, id).toBe("verificado");
-    }
-    expect(porId("faov-trabajador").grado).toBe("por-confirmar");
-    expect(porId("faov-patrono").grado).toBe("por-confirmar");
   });
 
   it("un campo de reglas aparece una sola vez", () => {
@@ -117,24 +92,82 @@ describe("PARAMETROS_LEY · forma", () => {
   });
 });
 
-describe("PARAMETROS_LEY · valores de la investigación del 2026-11-16", () => {
-  it("salario mínimo Bs 130 verificado (G.O. 6.691 Ext.)", () => {
+describe("PARAMETROS_LEY · qué significa cada grado", () => {
+  it("verificado exige número y fecha de Gaceta, fecha de vigencia y lectura en la Gaceta", () => {
+    const verificados = PARAMETROS_LEY.filter(estaVerificado);
+    expect(verificados.length).toBeGreaterThan(0);
+    for (const p of verificados) {
+      expect(p.fuente.gaceta, p.id).toMatch(/^G\.O\. N° [\d.]+/);
+      expect(p.fuente.fecha, p.id).toMatch(ISO);
+      expect(p.vigenteDesde, p.id).toMatch(ISO);
+      expect(p.comprobadoEn, p.id).toMatch(/Imprenta Nacional|Facsímil de la G\.O\./);
+    }
+  });
+
+  it("nada leído en una reproducción, una sentencia, una página sin cita o la prensa es verificado", () => {
+    for (const p of PARAMETROS_LEY) {
+      if (/Reproducción|Sentencia|Fuentes secundarias|Página informativa|Prensa/.test(p.comprobadoEn)) {
+        expect(p.grado, p.id).not.toBe("verificado");
+      }
+    }
+  });
+
+  it("un anuncio no cita Gaceta propia ni se presenta como leído en la Imprenta Nacional", () => {
+    const anuncios = PARAMETROS_LEY.filter((p) => p.grado === "anuncio");
+    expect(anuncios.map((p) => p.id).sort()).toEqual(["bono-guerra", "cestaticket", "ingreso-minimo-integral"]);
+    for (const p of anuncios) {
+      expect(p.fuente.gaceta, p.id).toBeNull();
+      expect(p.fuente.instrumento, p.id).toMatch(/^Anuncio/);
+      expect(p.comprobadoEn, p.id).not.toMatch(/^PDF de la Imprenta Nacional/);
+    }
+  });
+
+  it("sin fecha de vigencia conocida, la entrada no es verificada", () => {
+    for (const p of PARAMETROS_LEY.filter((x) => x.vigenteDesde === null)) {
+      expect(p.grado, p.id).not.toBe("verificado");
+    }
+  });
+
+  it("grados de la investigación del 2026-11-17", () => {
+    const verificados = [
+      "salario-minimo", "hora-extra", "bono-nocturno", "dia-feriado",
+      "utilidades", "vacaciones", "bono-vacacional", "contribucion-pensiones",
+    ];
+    const porConfirmar = [
+      "sso-trabajador", "sso-tope", "sso-patrono", "rpe-trabajador", "rpe-tope", "rpe-patrono",
+      "faov-trabajador", "faov-patrono", "inces-trabajador", "inces-patrono",
+    ];
+    for (const id of verificados) expect(porId(id).grado, id).toBe("verificado");
+    for (const id of porConfirmar) expect(porId(id).grado, id).toBe("por-confirmar");
+    expect(verificados.length + porConfirmar.length + 3).toBe(PARAMETROS_LEY.length);
+  });
+});
+
+describe("PARAMETROS_LEY · valores", () => {
+  it("salario mínimo Bs 130 (Decreto 4.653, G.O. 6.691 Ext., Art. 1)", () => {
     const p = porId("salario-minimo");
-    expect(p.valor).toBe(130);
-    expect(p.unidad).toBe("VES");
-    expect(p.grado).toBe("verificado");
+    expect(p).toMatchObject({ valor: 130, unidad: "VES", vigenteDesde: "2022-03-15" });
     expect(p.fuente.gaceta).toContain("6.691");
+    expect(p.fuente.articulo).toBe("Art. 1");
   });
 
-  it("ingreso mínimo integral y bono de guerra son anuncios en USD", () => {
-    expect(porId("ingreso-minimo-integral")).toMatchObject({ valor: 240, unidad: "USD", grado: "anuncio" });
-    expect(porId("bono-guerra")).toMatchObject({ valor: 200, unidad: "USD", grado: "anuncio" });
+  it("el cestaticket de USD 40 es un anuncio: no se atribuye a la Gaceta de 2023 ni tiene vigencia", () => {
+    const p = porId("cestaticket");
+    expect(p).toMatchObject({ valor: 40, unidad: "USD", grado: "anuncio", vigenteDesde: null, alcance: "obliga" });
+    expect(p.fuente.gaceta).toBeNull();
+    expect(p.detalle).toMatch(/6\.746/);
   });
 
-  it("contribución de pensiones 9 % verificada (Decreto 4.952, G.O. 42.880)", () => {
+  it("ingreso mínimo integral y bono de guerra: anuncio para el sector público, referencia para DTD", () => {
+    expect(porId("ingreso-minimo-integral")).toMatchObject({ valor: 240, unidad: "USD", alcance: "referencia" });
+    expect(porId("ingreso-minimo-integral").texto).toMatch(/sector público/);
+    expect(porId("ingreso-minimo-integral").texto).toMatch(/exhortó/);
+    expect(porId("bono-guerra")).toMatchObject({ valor: 200, unidad: "USD", alcance: "referencia" });
+  });
+
+  it("contribución de pensiones 9 % (Decreto 4.952, G.O. 42.880)", () => {
     const p = porId("contribucion-pensiones");
-    expect(p.valor).toBe(9);
-    expect(p.grado).toBe("verificado");
+    expect(p).toMatchObject({ valor: 9, unidad: "pct", vigenteDesde: "2024-05-16" });
     expect(p.fuente.gaceta).toContain("42.880");
   });
 });
@@ -153,7 +186,7 @@ describe("compararParametro", () => {
     expect(compararParametro(porId("salario-minimo"), reglas({ min_salary: 150 })).estado).toBe("difiere");
   });
 
-  it("monto en Bs frente a ley en USD → otra moneda, no «al día»", () => {
+  it("monto en Bs frente a referencia en USD → otra moneda, no «al día»", () => {
     const c = compararParametro(porId("cestaticket"), reglas({ cestaticket: 40 }));
     expect(c.estado).toBe("unidad");
     expect(c.valorRegla).toBe(40);
@@ -176,14 +209,39 @@ describe("compararParametro", () => {
   });
 });
 
-describe("resumenComparacion", () => {
-  it("cuenta estados y no verificados sobre todo el catálogo", () => {
-    const items = compararConLey(reglas());
-    const r = resumenComparacion(items);
-    expect(r["al-dia"] + r.difiere + r.unidad + r.falta).toBe(PARAMETROS_LEY.length);
-    expect(r.noVerificados).toBe(PARAMETROS_LEY.filter((p) => !estaVerificado(p)).length);
-    // Siembra demo: cestaticket y bono en «Bs» frente a USD.
-    expect(r.unidad).toBe(2);
+describe("obligaciones y referencias", () => {
+  it("un anuncio o algo que no obliga a DTD no cuenta como obligación", () => {
+    expect(cuentaComoObligacion(porId("ingreso-minimo-integral"))).toBe(false);
+    expect(cuentaComoObligacion(porId("bono-guerra"))).toBe(false);
+    expect(cuentaComoObligacion(porId("cestaticket"))).toBe(false);
+    expect(cuentaComoObligacion(porId("salario-minimo"))).toBe(true);
+    expect(cuentaComoObligacion(porId("sso-trabajador"))).toBe(true);
+  });
+
+  it("el resumen cuenta solo obligaciones; las referencias van aparte", () => {
+    const r = resumenComparacion(compararConLey(reglas()));
+    expect(r).toEqual({
+      obligaciones: 18,
+      obligacionesAlDia: 12,
+      porRevisar: 0,
+      faltan: 6,
+      referencias: 3,
+      noVerificados: 13,
+    });
+    expect(r.obligaciones + r.referencias).toBe(PARAMETROS_LEY.length);
+    expect(r.obligacionesAlDia + r.porRevisar + r.faltan).toBe(r.obligaciones);
+  });
+
+  it("cargar el bono anunciado no sube la cuenta de obligaciones al día", () => {
+    const base = resumenComparacion(compararConLey(reglas()));
+    const conBono = resumenComparacion(compararConLey(reglas({ bono_guerra: 200 })));
+    expect(conBono.obligacionesAlDia).toBe(base.obligacionesAlDia);
+  });
+
+  it("una obligación que difiere sí se cuenta por revisar", () => {
+    const r = resumenComparacion(compararConLey(reglas({ min_salary: 100, overtime_pct: 10 })));
+    expect(r.porRevisar).toBe(2);
+    expect(r.obligacionesAlDia).toBe(10);
   });
 });
 
@@ -203,11 +261,15 @@ describe("formato", () => {
 });
 
 describe("frontera: solo información pública", () => {
-  it("no importa base de datos, Supabase ni consultas", () => {
+  it("solo importa tipos: nada de base de datos, Supabase ni consultas en tiempo de ejecución", () => {
     const src = readFileSync(fileURLToPath(new URL("./parametros.ts", import.meta.url)), "utf8");
     const imports = src.split("\n").filter((l) => /^\s*import\b/.test(l));
+    expect(imports.length).toBeGreaterThan(0);
     for (const l of imports) {
-      expect(l).not.toMatch(/@supabase|@\/lib\/db|queries|server-only/);
+      // `import type` se borra al compilar: no ejecuta el módulo importado.
+      expect(l, l).toMatch(/^\s*import type\b/);
+      expect(l, l).not.toMatch(/@supabase|@\/lib\/db|queries|server-only/);
     }
+    expect(src).not.toMatch(/\brequire\(|\bimport\(/);
   });
 });

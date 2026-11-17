@@ -9,9 +9,11 @@
  *
  * Cada entrada dice de dónde sale y qué tan verificada está. Lo que no está
  * verificado se muestra con asterisco y con la nota de `NOTA_NO_VERIFICADO`.
- * Investigación del 2026-11-16 (spec 0653 §2 y §9); la revisa el contador.
+ * Investigación del 2026-11-16 y 17 (spec 0653 §2 y §9); la revisa el contador.
  */
 
+// Solo el TIPO de las reglas (se borra al compilar): este módulo no ejecuta
+// nada de la capa de datos. La prueba de frontera lo exige así.
 import type { PayrollRules } from "../payroll-rules-types";
 
 /** Fecha de corte de la investigación legal (AAAA-MM-DD). */
@@ -22,11 +24,23 @@ export const NOTA_NO_VERIFICADO =
   "No está verificado. Consúltalo con un abogado laboral o con el contador antes de usarlo.";
 
 /**
- * - `verificado`: se leyó la Gaceta o el texto de la ley (o una fuente que la cita).
+ * - `verificado`: el texto se leyó en la Gaceta Oficial: en el PDF de la
+ *   Imprenta Nacional, o en un facsímil de esa misma Gaceta cuando el sitio
+ *   oficial la tiene solo escaneada. Exige número y fecha de Gaceta y fecha de
+ *   vigencia.
  * - `anuncio`: lo anunció el Ejecutivo; no se encontró decreto en Gaceta.
- * - `por-confirmar`: norma conocida, pero no se volvió a leer el texto oficial.
+ * - `por-confirmar`: todo lo demás: la página de un organismo que no cita ley
+ *   ni fecha, una reproducción, una sentencia que transcribe la norma o una
+ *   fuente secundaria.
  */
 export type GradoLey = "verificado" | "anuncio" | "por-confirmar";
+
+/**
+ * - `obliga`: una ley la impone a una empresa privada como DTD.
+ * - `referencia`: no consta que obligue al sector privado; se muestra para
+ *   comparar, pero no cuenta en «obligaciones al día».
+ */
+export type AlcanceLey = "obliga" | "referencia";
 
 export type UnidadLey = "VES" | "USD" | "pct" | "dias" | "sm";
 
@@ -35,7 +49,7 @@ export type GrupoLey = "montos" | "deducciones" | "recargos" | "provisiones" | "
 export interface FuenteLegal {
   /** «LOTTT», «Decreto N° 4.952», «Ley del Seguro Social». */
   readonly instrumento: string;
-  /** «G.O. N° 6.691 Extraordinario»; null si solo hay anuncio. */
+  /** «G.O. N° 6.691 Extraordinario»; null si no se tiene la Gaceta. */
   readonly gaceta: string | null;
   /** Fecha de publicación AAAA-MM-DD, si se conoce. */
   readonly fecha: string | null;
@@ -96,13 +110,27 @@ export interface ParametroLey {
   /** Lo que dice la norma, en una o dos frases llanas. */
   readonly texto: string;
   readonly fuente: FuenteLegal;
+  /** Desde cuándo rige. null = no se pudo establecer; la ficha lo dice. */
   readonly vigenteDesde: string | null;
   readonly grado: GradoLey;
+  readonly alcance: AlcanceLey;
   /** Precisión extra que se muestra en la ficha legal. */
   readonly detalle?: string;
   /** Dónde se leyó el texto (Gaceta oficial, organismo, reproducción). */
-  readonly comprobadoEn?: string;
+  readonly comprobadoEn: string;
 }
+
+const EN_IMPRENTA = "PDF de la Imprenta Nacional (gacetaoficial.gob.ve)";
+const EN_FACSIMIL_LOTTT =
+  "Facsímil de la G.O. N° 6.076 Ext. en FAOLEX (FAO); en el sitio de la Imprenta Nacional esa Gaceta está escaneada, sin texto";
+const EN_IVSS =
+  "Página informativa del IVSS (ivss.gov.ve). No cita la ley, el artículo ni la fecha de vigencia";
+const EN_REPRO_RPE =
+  "Reproducción del texto de la ley. La Gaceta de 2005 no está en el sitio de la Imprenta Nacional";
+const EN_SECUNDARIA_FAOV =
+  "Fuentes secundarias. El sitio de BANAVIH no abrió (certificado inválido)";
+const EN_SENTENCIA_INCES =
+  "Sentencia del TSJ que transcribe los artículos. No se leyó la Gaceta de la ley";
 
 const LOTTT = (articulo: string): FuenteLegal => ({
   instrumento: "LOTTT",
@@ -110,6 +138,44 @@ const LOTTT = (articulo: string): FuenteLegal => ({
   fecha: "2012-05-07",
   articulo,
 });
+
+const SEGURO_SOCIAL: FuenteLegal = {
+  instrumento: "Ley del Seguro Social",
+  gaceta: null,
+  fecha: null,
+  articulo: null,
+};
+
+const RPE: FuenteLegal = {
+  instrumento: "Ley del Régimen Prestacional de Empleo",
+  gaceta: "G.O. N° 38.281",
+  fecha: "2005-09-27",
+  articulo: "Art. 46",
+};
+
+const VIVIENDA: FuenteLegal = {
+  instrumento: "Ley del Régimen Prestacional de Vivienda y Hábitat",
+  gaceta: null,
+  fecha: null,
+  articulo: null,
+};
+
+const INCES: FuenteLegal = {
+  instrumento: "Ley del INCES",
+  gaceta: null,
+  fecha: null,
+  articulo: "Art. 14 y 15 (Decreto de 2008); Art. 49 y 50 (Decreto de 2014)",
+};
+
+const ANUNCIO_2026: FuenteLegal = {
+  instrumento: "Anuncio del Ejecutivo Nacional",
+  gaceta: null,
+  fecha: "2026-04-30",
+  articulo: null,
+};
+
+const DETALLE_RPE =
+  "La cotización total es 2,50 % del salario normal: 80 % la paga el empleador (2 %) y 20 % el trabajador (0,5 %). La base va de 1 a 10 salarios mínimos.";
 
 export const PARAMETROS_LEY: readonly ParametroLey[] = [
   // ── Montos base ───────────────────────────────────────────
@@ -121,7 +187,8 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 130,
     unidad: "VES",
     comparacion: "igual",
-    texto: "Salario mínimo nacional mensual de Bs 130,00 para los sectores público y privado. No ha cambiado desde marzo de 2022.",
+    texto:
+      "Salario mínimo nacional mensual de Bs 130,00 para los sectores público y privado. No ha cambiado desde marzo de 2022.",
     fuente: {
       instrumento: "Decreto N° 4.653",
       gaceta: "G.O. N° 6.691 Extraordinario",
@@ -130,7 +197,8 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     },
     vigenteDesde: "2022-03-15",
     grado: "verificado",
-    comprobadoEn: "PDF de la Imprenta Nacional (gacetaoficial.gob.ve)",
+    alcance: "obliga",
+    comprobadoEn: EN_IMPRENTA,
   },
   {
     id: "ingreso-minimo-integral",
@@ -141,17 +209,15 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "USD",
     comparacion: "igual",
     texto:
-      "USD 240 al mes, pagados en bolívares a tasa BCV (antes USD 190). Es la suma de bonos; no es salario.",
-    fuente: {
-      instrumento: "Anuncio del Ejecutivo Nacional",
-      gaceta: null,
-      fecha: "2026-04-30",
-      articulo: null,
-    },
+      "USD 240 al mes, pagados en bolívares a tasa BCV (antes USD 190). Es la suma de bonos, no es salario. El aumento se anunció para el sector público; a las empresas privadas solo se les exhortó a alcanzarlo.",
+    fuente: ANUNCIO_2026,
     vigenteDesde: "2026-05-01",
     grado: "anuncio",
-    detalle: "La figura existe en la Ley de Protección de las Pensiones (Art. 7) como base mínima de la contribución del 9 %. El monto de USD 240 no aparece en los sumarios de las Gacetas de 2026 que publica la Imprenta Nacional; faltan allí 68 Extraordinarias, entre ellas las N° 7.021 a 7.024, de las fechas del anuncio.",
-    comprobadoEn: "Sumarios de las 273 Gacetas de 2026 en gacetaoficial.gob.ve (hasta el 2 de noviembre): sin decreto",
+    alcance: "referencia",
+    detalle:
+      "La figura existe en la Ley de Protección de las Pensiones (Art. 7) como base mínima de la contribución del 9 %: ahí sí afecta a DTD. El monto de USD 240 no aparece en los sumarios de las Gacetas de 2026 que publica la Imprenta Nacional; faltan allí 68 Extraordinarias, entre ellas las N° 7.021 a 7.024, de las fechas del anuncio.",
+    comprobadoEn:
+      "Sumarios de las Gacetas de 2026 en gacetaoficial.gob.ve (hasta el 2 de noviembre): sin decreto",
   },
   {
     id: "cestaticket",
@@ -161,16 +227,16 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 40,
     unidad: "USD",
     comparacion: "igual",
-    texto: "USD 40 al mes indexados a la tasa BCV. El último monto en Gaceta es Bs 1.000 (2023).",
-    fuente: {
-      instrumento: "Ley del Cestaticket Socialista",
-      gaceta: "G.O. N° 6.746 Extraordinario",
-      fecha: "2023-05-12",
-      articulo: null,
-    },
-    vigenteDesde: "2024-05-01",
+    texto:
+      "USD 40 al mes indexados a la tasa BCV, según los anuncios de 2024 y de 2026. El beneficio es de ley; lo que no tiene Gaceta a la vista es este monto.",
+    fuente: ANUNCIO_2026,
+    vigenteDesde: null,
     grado: "anuncio",
-    detalle: "Los USD 40 vienen de los anuncios de 2024 y de 2026. La Gaceta de 2023 que fija Bs 1.000 (N° 6.746 Ext.) no está en el sitio de la Imprenta Nacional; se conoce por reproducciones.",
+    alcance: "obliga",
+    detalle:
+      "El beneficio lo crea la Ley del Cestaticket Socialista, que alcanza a las empresas privadas (su Gaceta no se pudo leer). El último monto que se conoce en Gaceta es Bs 1.000 (G.O. N° 6.746 Ext., 2023), pero esa Gaceta no está en el sitio de la Imprenta Nacional. El sumario de la G.O. N° 6.691 Ext. de 2022 sí trae el Decreto N° 4.654, que lo incrementó. No se sabe desde cuándo rigen los USD 40.",
+    comprobadoEn:
+      "Prensa sobre los anuncios. Sumarios de 2026 en gacetaoficial.gob.ve: sin decreto del monto",
   },
   {
     id: "bono-guerra",
@@ -180,16 +246,16 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 200,
     unidad: "USD",
     comparacion: "igual",
-    texto: "USD 200 al mes (antes USD 150). Ningún texto lo hace obligatorio para el sector privado.",
-    fuente: {
-      instrumento: "Anuncio del Ejecutivo Nacional",
-      gaceta: null,
-      fecha: "2026-04-30",
-      articulo: null,
-    },
+    texto:
+      "USD 200 al mes (antes USD 150) para el sector público. Ningún texto lo hace obligatorio para el sector privado.",
+    fuente: ANUNCIO_2026,
     vigenteDesde: "2026-05-01",
     grado: "anuncio",
-    detalle: "En Gaceta solo se conoce el de 2023, para la administración pública (N° 6.746 Ext., que no está en el sitio de la Imprenta Nacional). El de 2026 no aparece en los sumarios oficiales.",
+    alcance: "referencia",
+    detalle:
+      "En Gaceta solo se conoce el de 2023, para la administración pública (N° 6.746 Ext., que no está en el sitio de la Imprenta Nacional). El de 2026 no aparece en los sumarios oficiales.",
+    comprobadoEn:
+      "Prensa sobre el anuncio. Sumarios de 2026 en gacetaoficial.gob.ve: sin decreto",
   },
   // ── Deducciones del trabajador ────────────────────────────
   {
@@ -201,10 +267,11 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "El trabajador aporta 4 % de su salario al Seguro Social.",
-    fuente: { instrumento: "Ley del Seguro Social (página informativa del IVSS)", gaceta: null, fecha: null, articulo: null },
+    fuente: SEGURO_SOCIAL,
     vigenteDesde: null,
-    grado: "verificado",
-    comprobadoEn: "Página oficial del IVSS (ivss.gov.ve); no cita el artículo",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    comprobadoEn: EN_IVSS,
   },
   {
     id: "sso-tope",
@@ -215,10 +282,11 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "sm",
     comparacion: "igual",
     texto: "La cotización al IVSS se calcula hasta un tope de 5 salarios mínimos.",
-    fuente: { instrumento: "Ley del Seguro Social (página informativa del IVSS)", gaceta: null, fecha: null, articulo: null },
+    fuente: SEGURO_SOCIAL,
     vigenteDesde: null,
-    grado: "verificado",
-    comprobadoEn: "Página oficial del IVSS (ivss.gov.ve); no cita el artículo",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    comprobadoEn: EN_IVSS,
   },
   {
     id: "rpe-trabajador",
@@ -229,16 +297,12 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "El trabajador aporta 0,5 % al Régimen Prestacional de Empleo.",
-    fuente: {
-      instrumento: "Ley del Régimen Prestacional de Empleo",
-      gaceta: "G.O. N° 38.281",
-      fecha: "2005-09-27",
-      articulo: "Art. 46",
-    },
+    fuente: RPE,
     vigenteDesde: "2005-09-27",
-    grado: "verificado",
-    detalle: "La cotización total es 2,50 % del salario normal: 80 % la paga el empleador (2 %) y 20 % el trabajador (0,5 %). La base va de 1 a 10 salarios mínimos.",
-    comprobadoEn: "Reproducción del texto de la ley (la Gaceta de 2005 no está en el sitio de la Imprenta Nacional)",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    detalle: DETALLE_RPE,
+    comprobadoEn: EN_REPRO_RPE,
   },
   {
     id: "rpe-tope",
@@ -249,16 +313,12 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "sm",
     comparacion: "igual",
     texto: "La cotización al RPE se calcula hasta un tope de 10 salarios mínimos.",
-    fuente: {
-      instrumento: "Ley del Régimen Prestacional de Empleo",
-      gaceta: "G.O. N° 38.281",
-      fecha: "2005-09-27",
-      articulo: "Art. 46",
-    },
+    fuente: RPE,
     vigenteDesde: "2005-09-27",
-    grado: "verificado",
-    detalle: "La cotización total es 2,50 % del salario normal: 80 % la paga el empleador (2 %) y 20 % el trabajador (0,5 %). La base va de 1 a 10 salarios mínimos.",
-    comprobadoEn: "Reproducción del texto de la ley (la Gaceta de 2005 no está en el sitio de la Imprenta Nacional)",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    detalle: DETALLE_RPE,
+    comprobadoEn: EN_REPRO_RPE,
   },
   {
     id: "faov-trabajador",
@@ -269,16 +329,13 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "El trabajador aporta 1 % al Fondo de Ahorro Obligatorio para la Vivienda, sin tope.",
-    fuente: {
-      instrumento: "Ley del Régimen Prestacional de Vivienda y Hábitat",
-      gaceta: null,
-      fecha: null,
-      articulo: null,
-    },
+    fuente: VIVIENDA,
     vigenteDesde: null,
     grado: "por-confirmar",
-    detalle: "Una fuente lo calcula sobre el salario integral; hoy el recibo lo calcula sobre el sueldo base.",
-    comprobadoEn: "No se pudo abrir el sitio de BANAVIH; solo fuentes secundarias",
+    alcance: "obliga",
+    detalle:
+      "Una fuente lo calcula sobre el salario integral; hoy el recibo lo calcula sobre el sueldo base.",
+    comprobadoEn: EN_SECUNDARIA_FAOV,
   },
   {
     id: "inces-trabajador",
@@ -289,15 +346,11 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "El patrono retiene al trabajador el 0,5 % de sus utilidades anuales para el INCES.",
-    fuente: {
-      instrumento: "Ley del INCES",
-      gaceta: null,
-      fecha: null,
-      articulo: "Art. 14 y 15 (Decreto de 2008); Art. 49 y 50 (Decreto de 2014)",
-    },
+    fuente: INCES,
     vigenteDesde: null,
-    grado: "verificado",
-    comprobadoEn: "Artículos de la ley transcritos en una sentencia del TSJ",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    comprobadoEn: EN_SENTENCIA_INCES,
   },
   // ── Recargos ──────────────────────────────────────────────
   {
@@ -308,11 +361,13 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 50,
     unidad: "pct",
     comparacion: "minimo",
-    texto: "Las horas extraordinarias se pagan con un recargo de 50 %, por lo menos, sobre el salario de la jornada ordinaria.",
+    texto:
+      "Las horas extraordinarias se pagan con un recargo de 50 %, por lo menos, sobre el salario de la jornada ordinaria.",
     fuente: LOTTT("Art. 118"),
     vigenteDesde: "2012-05-07",
     grado: "verificado",
-    comprobadoEn: "Facsímil de la Gaceta en el repositorio FAOLEX de la FAO",
+    alcance: "obliga",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   {
     id: "bono-nocturno",
@@ -322,11 +377,13 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 30,
     unidad: "pct",
     comparacion: "minimo",
-    texto: "La jornada nocturna se paga con un recargo de 30 %, por lo menos, sobre el salario de la jornada diurna.",
+    texto:
+      "La jornada nocturna se paga con un recargo de 30 %, por lo menos, sobre el salario de la jornada diurna.",
     fuente: LOTTT("Art. 117"),
     vigenteDesde: "2012-05-07",
     grado: "verificado",
-    comprobadoEn: "Facsímil de la Gaceta en el repositorio FAOLEX de la FAO",
+    alcance: "obliga",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   {
     id: "dia-feriado",
@@ -336,11 +393,13 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 50,
     unidad: "pct",
     comparacion: "minimo",
-    texto: "Quien trabaja un feriado cobra el salario de ese día y, además, el del trabajo realizado con un recargo de 50 % sobre el salario normal.",
+    texto:
+      "Quien trabaja un feriado cobra el salario de ese día y, además, el del trabajo realizado con un recargo de 50 % sobre el salario normal.",
     fuente: LOTTT("Art. 120"),
     vigenteDesde: "2012-05-07",
     grado: "verificado",
-    comprobadoEn: "Facsímil de la Gaceta en el repositorio FAOLEX de la FAO",
+    alcance: "obliga",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   // ── Provisiones ───────────────────────────────────────────
   {
@@ -352,11 +411,13 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "dias",
     comparacion: "minimo",
     maximo: 120,
-    texto: "Las utilidades son, por trabajador, de 30 días de salario como mínimo y de cuatro meses (120 días) como máximo.",
+    texto:
+      "Las utilidades son, por trabajador, de 30 días de salario como mínimo y de cuatro meses (120 días) como máximo.",
     fuente: LOTTT("Art. 131"),
     vigenteDesde: "2012-05-07",
     grado: "verificado",
-    comprobadoEn: "Facsímil de la Gaceta en el repositorio FAOLEX de la FAO",
+    alcance: "obliga",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   {
     id: "vacaciones",
@@ -366,12 +427,14 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 15,
     unidad: "dias",
     comparacion: "minimo",
-    texto: "15 días hábiles de vacaciones al cumplir un año, más 1 día adicional por cada año de servicio, hasta 15 días hábiles adicionales.",
+    texto:
+      "15 días hábiles de vacaciones al cumplir un año, más 1 día adicional por cada año de servicio, hasta 15 días hábiles adicionales.",
     fuente: LOTTT("Art. 190"),
     vigenteDesde: "2012-05-07",
     grado: "verificado",
+    alcance: "obliga",
     detalle: "Las reglas guardan un número fijo: todavía no suman el día por año de antigüedad.",
-    comprobadoEn: "Facsímil de la Gaceta en el repositorio FAOLEX de la FAO",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   {
     id: "bono-vacacional",
@@ -382,12 +445,14 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "dias",
     comparacion: "minimo",
     maximo: 30,
-    texto: "Un mínimo de 15 días de salario normal, más 1 día por cada año de servicio, hasta un total de 30 días. Tiene carácter salarial.",
+    texto:
+      "Un mínimo de 15 días de salario normal, más 1 día por cada año de servicio, hasta un total de 30 días. Tiene carácter salarial.",
     fuente: LOTTT("Art. 192"),
     vigenteDesde: "2012-05-07",
     grado: "verificado",
+    alcance: "obliga",
     detalle: "Las reglas guardan un número fijo: todavía no suman el día por año de antigüedad.",
-    comprobadoEn: "Facsímil de la Gaceta en el repositorio FAOLEX de la FAO",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   // ── Aportes del patrono (las reglas todavía no los tienen) ─
   {
@@ -398,11 +463,13 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     valor: 9,
     unidad: "pct",
     comparacion: "minimo",
-    texto: "El patrono aporta 9 % (riesgo mínimo), 10 % (riesgo medio) u 11 % (riesgo máximo) al Seguro Social, hasta 5 salarios mínimos.",
-    fuente: { instrumento: "Ley del Seguro Social (página informativa del IVSS)", gaceta: null, fecha: null, articulo: null },
+    texto:
+      "El patrono aporta 9 % (riesgo mínimo), 10 % (riesgo medio) u 11 % (riesgo máximo) al Seguro Social, hasta 5 salarios mínimos.",
+    fuente: SEGURO_SOCIAL,
     vigenteDesde: null,
-    grado: "verificado",
-    comprobadoEn: "Página oficial del IVSS (ivss.gov.ve); no cita el artículo",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    comprobadoEn: EN_IVSS,
   },
   {
     id: "rpe-patrono",
@@ -413,16 +480,12 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "El patrono aporta 2 % al Régimen Prestacional de Empleo.",
-    fuente: {
-      instrumento: "Ley del Régimen Prestacional de Empleo",
-      gaceta: "G.O. N° 38.281",
-      fecha: "2005-09-27",
-      articulo: "Art. 46",
-    },
+    fuente: RPE,
     vigenteDesde: "2005-09-27",
-    grado: "verificado",
-    detalle: "La cotización total es 2,50 % del salario normal: 80 % la paga el empleador (2 %) y 20 % el trabajador (0,5 %). La base va de 1 a 10 salarios mínimos.",
-    comprobadoEn: "Reproducción del texto de la ley (la Gaceta de 2005 no está en el sitio de la Imprenta Nacional)",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    detalle: DETALLE_RPE,
+    comprobadoEn: EN_REPRO_RPE,
   },
   {
     id: "faov-patrono",
@@ -433,15 +496,11 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "El patrono aporta 2 % al FAOV.",
-    fuente: {
-      instrumento: "Ley del Régimen Prestacional de Vivienda y Hábitat",
-      gaceta: null,
-      fecha: null,
-      articulo: null,
-    },
+    fuente: VIVIENDA,
     vigenteDesde: null,
     grado: "por-confirmar",
-    comprobadoEn: "No se pudo abrir el sitio de BANAVIH; solo fuentes secundarias",
+    alcance: "obliga",
+    comprobadoEn: EN_SECUNDARIA_FAOV,
   },
   {
     id: "inces-patrono",
@@ -452,15 +511,11 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     unidad: "pct",
     comparacion: "igual",
     texto: "Con 5 o más trabajadores, el patrono aporta 2 % del salario normal, cada trimestre.",
-    fuente: {
-      instrumento: "Ley del INCES",
-      gaceta: null,
-      fecha: null,
-      articulo: "Art. 14 y 15 (Decreto de 2008); Art. 49 y 50 (Decreto de 2014)",
-    },
+    fuente: INCES,
     vigenteDesde: null,
-    grado: "verificado",
-    comprobadoEn: "Artículos de la ley transcritos en una sentencia del TSJ",
+    grado: "por-confirmar",
+    alcance: "obliga",
+    comprobadoEn: EN_SENTENCIA_INCES,
   },
   {
     id: "contribucion-pensiones",
@@ -476,18 +531,19 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
       instrumento: "Decreto N° 4.952 (Ley de Protección de las Pensiones, G.O. N° 6.806 Ext., Arts. 6, 7 y 9)",
       gaceta: "G.O. N° 42.880",
       fecha: "2024-05-16",
-      articulo: "Art. 7",
+      articulo: "Art. 1",
     },
     vigenteDesde: "2024-05-16",
     grado: "verificado",
+    alcance: "obliga",
     detalle:
       "Solo la pagan las personas jurídicas. La declaración y el pago siguen la Providencia SNAT/2024/000042 (G.O. N° 42.881, 2024-05-17). Tope legal: 15 %.",
-    comprobadoEn: "PDF de la Imprenta Nacional (gacetaoficial.gob.ve)",
+    comprobadoEn: EN_IMPRENTA,
   },
 ];
 
 export const GRUPOS_LEY: readonly { id: GrupoLey; titulo: string; bajada: string }[] = [
-  { id: "montos", titulo: "Montos base", bajada: "Salario mínimo y bonos de ley" },
+  { id: "montos", titulo: "Montos base", bajada: "Salario mínimo y bonos" },
   { id: "deducciones", titulo: "Deducciones del trabajador", bajada: "Lo que se descuenta del recibo" },
   { id: "recargos", titulo: "Recargos", bajada: "Horas extra, noches y feriados" },
   { id: "provisiones", titulo: "Provisiones", bajada: "Utilidades y vacaciones" },
@@ -498,10 +554,18 @@ export function estaVerificado(p: ParametroLey): boolean {
   return p.grado === "verificado";
 }
 
+/**
+ * ¿Cuenta en «obligaciones al día»? Solo lo que obliga a DTD y no es un
+ * anuncio: un anuncio sin Gaceta no se puede dar por cumplido ni incumplido.
+ */
+export function cuentaComoObligacion(p: ParametroLey): boolean {
+  return p.alcance === "obliga" && p.grado !== "anuncio";
+}
+
 export const GRADO_META: Record<GradoLey, { etiqueta: string; explicacion: string }> = {
   verificado: {
     etiqueta: "Verificado",
-    explicacion: "Se leyó en la Gaceta Oficial o en el texto de la ley.",
+    explicacion: "Se leyó en la Gaceta Oficial.",
   },
   anuncio: {
     etiqueta: "Solo anuncio",
@@ -509,7 +573,7 @@ export const GRADO_META: Record<GradoLey, { etiqueta: string; explicacion: strin
   },
   "por-confirmar": {
     etiqueta: "Por confirmar",
-    explicacion: "Es la norma conocida, pero no volvimos a leer el texto oficial.",
+    explicacion: "Es la norma conocida, pero no la leímos en la Gaceta Oficial.",
   },
 };
 
@@ -555,15 +619,40 @@ export function compararConLey(rules: PayrollRules | null): Comparacion[] {
   return PARAMETROS_LEY.map((p) => compararParametro(p, rules));
 }
 
-export function resumenComparacion(items: readonly Comparacion[]): Record<EstadoComparacion, number> & {
-  noVerificados: number;
-} {
-  const r = { "al-dia": 0, difiere: 0, unidad: 0, falta: 0, noVerificados: 0 };
+export interface ResumenComparacion {
+  /** Parámetros que obligan a DTD y tienen norma (no anuncio). */
+  readonly obligaciones: number;
+  /** De esas obligaciones, cuántas tienen la regla al día. */
+  readonly obligacionesAlDia: number;
+  /** Obligaciones que difieren o están en otra moneda. */
+  readonly porRevisar: number;
+  /** Obligaciones que las reglas todavía no tienen. */
+  readonly faltan: number;
+  /** Anuncios y parámetros que no obligan: se muestran, no se cuentan. */
+  readonly referencias: number;
+  /** Entradas con asterisco, obliguen o no. */
+  readonly noVerificados: number;
+}
+
+export function resumenComparacion(items: readonly Comparacion[]): ResumenComparacion {
+  let obligaciones = 0;
+  let obligacionesAlDia = 0;
+  let porRevisar = 0;
+  let faltan = 0;
+  let referencias = 0;
+  let noVerificados = 0;
   for (const c of items) {
-    r[c.estado] += 1;
-    if (!estaVerificado(c.parametro)) r.noVerificados += 1;
+    if (!estaVerificado(c.parametro)) noVerificados += 1;
+    if (!cuentaComoObligacion(c.parametro)) {
+      referencias += 1;
+      continue;
+    }
+    obligaciones += 1;
+    if (c.estado === "al-dia") obligacionesAlDia += 1;
+    else if (c.estado === "falta") faltan += 1;
+    else porRevisar += 1;
   }
-  return r;
+  return { obligaciones, obligacionesAlDia, porRevisar, faltan, referencias, noVerificados };
 }
 
 /** «Bs 130,00», «USD 40», «4 %», «5 SM», «30 días». */

@@ -51,29 +51,35 @@ es sensible, así que la columna «valor en el sistema» de §2 muestra los **va
 están en Git**. Si el contador ya los corrigió en producción, la tabla lo subestima. Comprobarlo requiere el OK de
 Sam para una consulta de solo lectura de la fila vigente de `nomina_payroll_rules`, sin montos de empleados.
 
-## 2. Parte A — reglas frente a la ley (corte: 2026-11-16)
+## 2. Parte A — reglas frente a la ley (corte: 2026-11-17)
 
 Grado de verificación:
 
-- **V** = verificado en esta investigación con la Gaceta o con un organismo o medio que cita la Gaceta.
-- **A** = anunciado por el Ejecutivo; **no** se encontró decreto en Gaceta Oficial.
-- **C** = norma conocida de la LOTTT u otra ley; el artículo no se volvió a leer en el texto oficial en esta corrida.
+- **V** = el texto se leyó en la Gaceta Oficial: en el PDF de la Imprenta Nacional, o en un facsímil de esa misma
+  Gaceta cuando el sitio oficial la tiene solo escaneada. Lleva número y fecha de Gaceta y fecha de vigencia. En el
+  sistema: `verificado`.
+- **A** = anunciado por el Ejecutivo; **no** se encontró decreto en Gaceta Oficial. En el sistema: `anuncio`.
+- **O** = página de un organismo oficial que da el valor sin citar ley, artículo ni fecha.
+- **R** = reproducción del texto, sentencia que lo transcribe o fuente secundaria.
 - **N** = no se pudo confirmar.
+
+**O**, **R** y **N** son `por-confirmar` en el sistema: llevan asterisco y la nota de consultar a un abogado. Un
+medio que cita una Gaceta no cuenta como V, y tampoco una Gaceta que no está en el sitio oficial.
 
 | # | Regla | Valor en el sistema (Git) | Valor según la ley | Fuente y vigencia | Grado | ¿Cambia? |
 |---|---|---|---|---|---|---|
 | 1 | Salario mínimo (SML) | `min_salary` = 130 (Bs) — `0162:121` | **Bs 130,00 mensuales** | Decreto N° 4.653, G.O. N° 6.691 Extraordinario, 15-03-2022; vigente desde el 15-03-2022. Sin cambio a nov. 2026 | V | No |
-| 2 | Ingreso mínimo integral indexado (IMI) | **No existe** | **USD 240/mes**, pagados en Bs a tasa BCV (antes USD 190). Es la suma de bonos; no es salario | Anuncio del Ejecutivo, 30-04-2026, vigente desde el 01-05-2026. Sin decreto en Gaceta encontrado. La figura legal existe: Art. 7 de la Ley de Protección de las Pensiones (G.O. 6.806 Ext., 08-05-2024) | A | **Sí: falta el campo** |
-| 3 | Cestaticket / bono de alimentación | `cestaticket` = 40 (Bs) — `0162:121` | **USD 40/mes indexado** (anuncio). Último monto en Gaceta: **Bs 1.000** | Ley del Cestaticket Socialista. Monto en Gaceta: G.O. N° 6.746 Ext., 12-05-2023 (Bs 1.000). USD 40 se mantiene en los anuncios de 2024 y del 30-04-2026 | V (Gaceta 2023) / A (USD 40) | **Sí: unidad errada** (40 «Bs» parece querer decir USD 40) |
+| 2 | Ingreso mínimo integral indexado (IMI) | **No existe** | **USD 240/mes**, pagados en Bs a tasa BCV (antes USD 190). Es la suma de bonos; no es salario. El aumento es del sector público; a la empresa privada solo se le exhortó | Anuncio del Ejecutivo, 30-04-2026, vigente desde el 01-05-2026. Sin decreto en Gaceta encontrado. La figura legal existe: Art. 7 de la Ley de Protección de las Pensiones (G.O. 6.806 Ext., 08-05-2024) | A | **Sí: falta el campo** |
+| 3 | Cestaticket / bono de alimentación | `cestaticket` = 40 (Bs) — `0162:121` | **USD 40/mes indexado** (anuncio). Último monto en Gaceta: **Bs 1.000** | El beneficio es de la Ley del Cestaticket Socialista, que alcanza al sector privado (su Gaceta no se leyó). El monto de USD 40 viene de los anuncios de 2024 y del 30-04-2026; no se sabe desde cuándo rige. Último monto en Gaceta: Bs 1.000 (G.O. N° 6.746 Ext., 12-05-2023, que no está en el sitio oficial) | A (USD 40) / R (Bs 1.000) | **Sí: unidad errada** (40 «Bs» parece querer decir USD 40) |
 | 4 | Bono contra la Guerra Económica | `bono_guerra` = 90 (Bs) — `0162:121` | **USD 200/mes** (antes USD 150; USD 90 en mayo de 2024) | Anuncio del 30-04-2026. En Gaceta solo el de 2023 para la administración pública (G.O. 6.746 Ext., Bs 750). Ningún texto lo hace obligatorio para el sector privado | A | **Sí: monto y unidad** |
-| 5 | SSO / IVSS, trabajador | `sso_pct` = 4 %, tope `sso_cap_sm` = 5 SM — `0162:44,49` | **4 %**, tope **5 SML** | Página oficial del IVSS (no cita el artículo) | V | No |
-| 6 | SSO / IVSS, patrono | **No existe** | **9 %, 10 % u 11 %** según el riesgo de la empresa | Página oficial del IVSS: 9 % riesgo mínimo, 10 % medio, 11 % máximo | V | **Sí: falta el campo** |
-| 7 | RPE, trabajador | `rpe_pct` = 0,5 %, tope `rpe_cap_sm` = 10 SM — `0162:45,50` | **0,5 %**, tope **10 SML** | Ley del Régimen Prestacional de Empleo, Art. 46 (G.O. 38.281, 27-09-2005): 2,50 % en total, 20 % el trabajador | V (reproducción) | No |
-| 8 | RPE, patrono | **No existe** | **2 %** | Mismo Art. 46: 80 % del 2,50 % lo paga el empleador | V (reproducción) | **Sí: falta el campo** |
-| 9 | FAOV, trabajador | `faov_pct` = 1 %, sin tope — `0162:46` | **1 %**, sin tope. Una fuente lo calcula sobre el **salario integral**; el motor usa el sueldo base | Ley del Régimen Prestacional de Vivienda y Hábitat; BANAVIH | V (1 %) / N (base) | Revisar la base con el contador |
-| 10 | FAOV, patrono | **No existe** | **2 %** | Ley del Régimen Prestacional de Vivienda y Hábitat; BANAVIH | V | **Sí: falta el campo** |
-| 11 | INCES, patrono | **No existe** | **2 %** del salario normal, si hay **5 o más** trabajadores. Trimestral | Ley del INCES (Decreto de 2008, Art. 14 num. 1-2 y 15; Decreto de 2014, Arts. 49-50) | V | **Sí: falta el campo** |
-| 12 | INCES, trabajador | **No existe** | **0,5 %** de las utilidades anuales, que retiene el patrono | Ley del INCES, mismos artículos | V | **Sí: falta el campo** |
+| 5 | SSO / IVSS, trabajador | `sso_pct` = 4 %, tope `sso_cap_sm` = 5 SM — `0162:44,49` | **4 %**, tope **5 SML** | Página oficial del IVSS (no cita ley, artículo ni fecha) | O | No |
+| 6 | SSO / IVSS, patrono | **No existe** | **9 %, 10 % u 11 %** según el riesgo de la empresa | Página oficial del IVSS: 9 % riesgo mínimo, 10 % medio, 11 % máximo | O | **Sí: falta el campo** |
+| 7 | RPE, trabajador | `rpe_pct` = 0,5 %, tope `rpe_cap_sm` = 10 SM — `0162:45,50` | **0,5 %**, tope **10 SML** | Ley del Régimen Prestacional de Empleo, Art. 46 (G.O. 38.281, 27-09-2005): 2,50 % en total, 20 % el trabajador | R | No |
+| 8 | RPE, patrono | **No existe** | **2 %** | Mismo Art. 46: 80 % del 2,50 % lo paga el empleador | R | **Sí: falta el campo** |
+| 9 | FAOV, trabajador | `faov_pct` = 1 %, sin tope — `0162:46` | **1 %**, sin tope. Una fuente lo calcula sobre el **salario integral**; el motor usa el sueldo base | Ley del Régimen Prestacional de Vivienda y Hábitat; BANAVIH | R (1 %) / N (base) | Revisar la base con el contador |
+| 10 | FAOV, patrono | **No existe** | **2 %** | Ley del Régimen Prestacional de Vivienda y Hábitat; BANAVIH | R | **Sí: falta el campo** |
+| 11 | INCES, patrono | **No existe** | **2 %** del salario normal, si hay **5 o más** trabajadores. Trimestral | Ley del INCES (Decreto de 2008, Art. 14 num. 1-2 y 15; Decreto de 2014, Arts. 49-50), según una sentencia del TSJ que los transcribe | R | **Sí: falta el campo** |
+| 12 | INCES, trabajador | **No existe** | **0,5 %** de las utilidades anuales, que retiene el patrono | Ley del INCES, mismos artículos | R | **Sí: falta el campo** |
 | 13 | Contribución especial para las pensiones | **No existe** | **9 %** de todo lo pagado a los trabajadores (salario **y** bonos no salariales). Base mínima por trabajador: el IMI. Mensual, ante el SENIAT. Solo personas jurídicas. La paga la empresa, no el trabajador | Ley de Protección de las Pensiones de Seguridad Social, G.O. 6.806 Ext., 08-05-2024, Arts. 6, 7 y 9 (tope legal 15 %). Decreto N° 4.952, G.O. 42.880, 16-05-2024 (fija 9 %). Providencia SNAT/2024/000042, G.O. 42.881, 17-05-2024 (declaración y pago) | V | **Sí: falta el campo** |
 | 14 | Recargo de hora extra diurna | `overtime_pct` = 50 % — `0162:53` | **50 %** | LOTTT Art. 118 (G.O. 6.076 Ext., 07-05-2012) | V | No |
 | 15 | Bono nocturno | `night_pct` = 30 % — `0162:54` | **30 %** | LOTTT Art. 117 | V | No |
@@ -81,8 +87,8 @@ Grado de verificación:
 | 17 | Utilidades | `utilidades_days` = 30, mínimo 30 — `0162:58`, `payroll-rules-types.ts:180` | **30 días mínimo, 120 máximo** | LOTTT Art. 131 | V | Agregar el tope de 120 al validador |
 | 18 | Vacaciones | `vacaciones_days` = 15 fijos — `0162:60` | **15 días hábiles** + **1 día por año** de servicio, hasta **15 adicionales** | LOTTT Art. 190 | V | **Sí: falta la escala por antigüedad** |
 | 19 | Bono vacacional | `bono_vacacional_days` = 15 fijos — `0162:59` | **15 días** + **1 día por año**, hasta **30** en total | LOTTT Art. 192 | V | **Sí: falta la escala por antigüedad** |
-| 20 | Prestaciones sociales | `prestaciones_method` = `mejor` — `0179:46` | Garantía trimestral frente a retroactivo; se paga **la mayor** | LOTTT Art. 142 | C | No |
-| 21 | Intereses sobre prestaciones | `prestaciones_interest_pct` = 0 — `0179:48` | Tasa que fija el **BCV** (la carga el contador) | LOTTT Art. 143 | C | Cargar la tasa vigente |
+| 20 | Prestaciones sociales | `prestaciones_method` = `mejor` — `0179:46` | Garantía trimestral frente a retroactivo; se paga **la mayor** | LOTTT Art. 142 | R | No |
+| 21 | Intereses sobre prestaciones | `prestaciones_interest_pct` = 0 — `0179:48` | Tasa que fija el **BCV** (la carga el contador) | LOTTT Art. 143 | R | Cargar la tasa vigente |
 | 22 | Reforma de la LOTTT | — | En debate en la Asamblea Nacional desde abril de 2026; **no se encontró aprobación ni Gaceta** | Prensa de abril y mayo de 2026 | N | No, por ahora |
 
 ### 2.1 Qué cambia, en limpio
@@ -106,7 +112,7 @@ número y fecha, sumario de cada Gaceta y su PDF. La búsqueda por texto del sit
 control («salario mínimo», marzo de 2022) devuelve cero aunque la Gaceta 6.691 está ahí. Por eso se recorrieron
 los sumarios uno por uno.
 
-**Leído en el PDF oficial:**
+**Leído en la Gaceta:**
 
 | Norma | Gaceta en el sitio oficial | Qué se leyó |
 |---|---|---|
@@ -135,7 +141,8 @@ mayo que se evalúa una reforma de la LOTTT; no hay proyecto aprobado ni Gaceta.
 
 **Sigue sin comprobar:** el FAOV (no se pudo abrir el sitio de BANAVIH: su certificado no es válido; la tasa de
 1 % y 2 % y la base vienen de fuentes secundarias), el texto del INCES en su Gaceta (se conoce por una sentencia
-del TSJ que lo transcribe) y la Gaceta de 2005 del RPE (no está en el sitio; se leyó una reproducción).
+del TSJ que lo transcribe) la Gaceta de 2005 del RPE (no está en el sitio; se leyó una reproducción) y la norma detrás de las tasas del
+IVSS (su página las da sin citar ley, artículo ni fecha). En el sistema todo eso queda «por confirmar».
 
 ### 2.3 Hallazgo en el motor (no es un cambio de la ley)
 
@@ -180,17 +187,24 @@ interface EntradaLey {
   texto: string;            // lo que dice la norma, en lenguaje llano; sin consejo para casos personales
   valor?: { monto: number; unidad: "VES" | "USD" | "pct" | "dias" | "sml" };
   fuente: FuenteLegal;
-  vigenteDesde: string;     // AAAA-MM-DD
+  vigenteDesde: string | null;   // AAAA-MM-DD; null = no se pudo establecer, y Faro lo dice
   vigenteHasta: string | null;
-  grado: "oficial" | "anuncio";   // «anuncio» = sin Gaceta encontrada
-  procedencia: Procedencia;       // revisado, responsable, fuentes (tipos.ts:30-37)
+  grado: "verificado" | "anuncio" | "por-confirmar";  // los mismos tres de §2
+  alcance: "obliga" | "referencia";   // si la norma obliga a una empresa privada
+  comprobadoEn: string;               // dónde se leyó: Gaceta oficial, organismo, reproducción
+  procedencia: Procedencia;           // revisado, responsable, fuentes (tipos.ts:30-37)
 }
 ```
+
+Es la forma que ya tiene `lib/studio/nomina/ley/parametros.ts` (fase A2a). B1 la reutiliza; no crea otra tabla
+de leyes.
 
 Reglas del estante:
 
 1. **Solo información pública.** El estante no importa nada de `@/lib/db`, `@supabase/*` ni consultas de nómina.
    Una prueba de importaciones lo hace cumplir. Faro nunca lee salarios, recibos, finiquitos ni fichas.
+   `parametros.ts` importa un solo símbolo de `payroll-rules-types`, y lo hace con `import type`: se borra al
+   compilar y no ejecuta ese módulo. La prueba de B1 permite únicamente importaciones de tipo; cualquier otra falla.
 2. **Una sola fuente de verdad legal.** El mismo archivo alimenta a Faro y a la columna «según la ley» de la pestaña
    Reglas (Parte A, fase A2). Si la ley cambia, se cambia en un solo lugar y en una PR revisada.
 3. **La cita la pone el servidor, no el modelo.** La ficha de respuesta de Faro (`0637 spec.md:174-190`) suma
@@ -198,8 +212,10 @@ Reglas del estante:
    respuesta muestra la gaceta, el artículo y la fecha de vigencia **leídos del archivo**. El modelo no puede
    inventar un número de Gaceta. Una respuesta sobre la ley sin `fuentesLey` válidas se reemplaza por «no tengo
    esa norma en mi base».
-4. **Anuncio no es ley.** Las entradas `grado: "anuncio"` se muestran como «anunciado por el Ejecutivo el …; no
-   encontramos la Gaceta». Caso actual: el IMI de USD 240 y el bono de USD 200.
+4. **Anuncio no es ley, y «por confirmar» se dice.** Las entradas `grado: "anuncio"` se muestran como «anunciado
+   por el Ejecutivo el …; no encontramos la Gaceta». Caso actual: el IMI de USD 240, el bono de USD 200 y el monto
+   de USD 40 del cestaticket. Las `por-confirmar` llevan la nota de consultar a un abogado. Si `alcance` es
+   `referencia`, Faro dice que no consta que obligue a la empresa privada.
 5. **Lo personal se corta.** «¿Cuánto gano yo?», «¿me pagaron bien?», «¿cuánto me toca de utilidades?» reciben una
    respuesta fija: Faro explica la regla general y remite a Recursos Humanos, porque no ve recibos. No es una
    alerta; es la respuesta correcta.
@@ -211,14 +227,17 @@ Reglas del estante:
    avisa en amarillo (no rompe CI). Hermes puede proponer actualizaciones al ver una Gaceta nueva, pero entra por
    PR con aprobación humana (`0637 spec.md:337`).
 
-### 3.3 Proveedor de IA y la regla D-2
+### 3.3 Proveedor de IA y la regla SDD-0639 D-2
 
 El estante no lleva datos de clientes ni de empleados. Aun así:
 
 - Faro usa **el mismo motor** de la 0637, con su lista permitida sin proveedores chinos.
 - La pregunta de un empleado puede traer datos personales suyos («gano tanto, ¿está bien?»). Por eso el estante no
-  abre ninguna excepción a la regla D-2 de Sam: **los datos de clientes, y aquí también los de empleados, nunca van
-  a un proveedor chino.**
+  abre ninguna excepción a la regla **SDD-0639 D-2** de Sam: **los datos de clientes, y aquí también los de
+  empleados, nunca van a un proveedor chino.**
+- **Prohibido OpenRouter y cualquier agregador o intermediario de modelos.** Un agregador decide por su cuenta a
+  qué proveedor manda cada llamada, así que no se puede garantizar la regla anterior. Las consultas de ley van por
+  la llamada directa al proveedor de la lista permitida, o no van.
 - Antes del primer envío real se pasa `revisar-datos-ve` (`0637 spec.md:279`), ahora con preguntas de nómina en el
   inventario.
 
@@ -227,7 +246,7 @@ El estante no lleva datos de clientes ni de empleados. Aun así:
 | Fase | Entrega | Depende de | Cómo se comprueba |
 |---|---|---|---|
 | A1 | Esta spec | — | `docs:check` y `sdd:check` |
-| A2a | **Hecho en esta PR, sin migración.** Estante legal `lib/studio/nomina/ley/parametros.ts` con grado y fuente por norma; pestaña Reglas rediseñada: versión y fecha de actualización, barra «al día con la ley», columnas «tus reglas» y «ley», asterisco en lo no verificado que abre la ficha legal con la fuente y la nota de consultar a un abogado; pistas «según la ley» en el formulario | Instrucción de Sam | Pruebas del módulo y de contratos del Studio, typecheck y lint |
+| A2a | **Hecho en esta PR, sin migración.** Estante legal `lib/studio/nomina/ley/parametros.ts` con grado y fuente por norma; pestaña Reglas rediseñada: versión y fecha de actualización, barra «obligaciones al día» (no cuenta anuncios ni referencias), columnas «tus reglas» y «ley», asterisco en lo no verificado que abre la ficha legal con la fuente y la nota de consultar a un abogado; pistas «según la ley» en el formulario | Instrucción de Sam | Pruebas del módulo y de contratos del Studio, typecheck y lint |
 | A2b | Lo de A2 que sí necesita base de datos: estante legal (`lib/studio/nomina/ley/parametros.ts` o el de Faro, según D1), migración **0556**, reglas con fecha de vigencia, aportes patronales y escalas; pestaña Reglas con columna «según la ley» | D1-D5, D10 | Pruebas de tipos y de la migración en PGlite; ensayo de la migración en local |
 | A3 | Arreglo del tope en el motor (§2.3) | D6 y criterio del contador | Prueba con quincena y SML en Bs |
 | A4 | Carga de los valores en producción, como nueva versión de las reglas | A2 en `main`, D8 y OK nominal de Sam | El contador valida en pantalla; runbook de producción |
@@ -258,8 +277,8 @@ El estante legal no necesita tabla si D1 elige archivos en Git.
 **Esta PR (A1 y A2a):** `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md`, `docs/specs/README.md` (índice
 regenerado), `.agents/handoffs/0653-nomina-reglas-ley-y-faro.md`, `lib/studio/nomina/ley/parametros.ts` y
 `parametros.test.ts`, `app/studio/(app)/nomina/_components/ReglasTab.tsx` (nuevo),
-`_components/__tests__/ReglasTab.test.tsx` (nuevo), `_components/NominaClient.tsx` (la pestaña sale a su archivo)
-y `_components/ReglasDrawer.tsx` (pistas legales).
+`_components/PistaLey.tsx` (nuevo), `_components/__tests__/ReglasTab.test.tsx` y `PistaLey.test.tsx` (nuevos),
+`_components/NominaClient.tsx` (la pestaña sale a su archivo) y `_components/ReglasDrawer.tsx` (usa la pista).
 
 **A2b:** `supabase/migrations/0556_nomina_reglas_vigencia_y_aportes.sql`;
 `lib/studio/nomina/__tests__/nomina-0556.migration.test.ts`; `lib/studio/nomina/ley/parametros.ts` y su prueba;
@@ -278,16 +297,37 @@ Faro de nómina y su novedad si la pantalla cambia (D-10 de la 0637).
 
 | D | Pregunta | Opciones | Recomendada |
 |---|---|---|---|
-| D1 | ¿Dónde vive la ley? | (a) Archivo en Git, revisado por PR, que leen Faro y la pestaña Reglas. (b) Tabla en la base, editable desde el Studio | **(a)**: la ley es pública y la misma para todos; su historia queda en Git; Faro ya trabaja así; no hace falta migración para la ley |
+| D1 | ¿Dónde vive la ley? | (a) Archivo en Git, revisado por PR, que leen Faro y la pestaña Reglas. (b) Tabla en la base, editable desde el Studio | **(a)**: la ley es pública y la misma para todos; su historia queda en Git; Faro ya trabaja así; no hace falta migración para la ley. **Esta PR ya lo hace así en la práctica** para la pestaña Reglas (`lib/studio/nomina/ley/parametros.ts`); elegir (b) obligaría a rehacerlo |
 | D2 | ¿Cómo se actualizan las reglas? | (a) Nueva versión con `vigente_desde` y fuente, conservando las anteriores. (b) Editar la fila vigente | **(a)**: el versionado ya existe; los cortes viejos no cambian |
-| D3 | Bono de guerra y cestaticket sin Gaceta para el sector privado | (a) Guardarlos como «referencia anunciada», y que el contador decida lo que DTD paga. (b) Tratarlos como obligación legal | **(a)**: es lo que dicen los textos encontrados; Faro lo explica así |
+| D3a | **Cestaticket.** El beneficio sí obliga a la empresa privada por ley; lo que no tiene Gaceta a la vista es el monto de USD 40 | (a) Tratarlo como obligación y pagar, como mínimo, lo que el contador o un abogado confirme que es el monto vigente; mientras tanto la pantalla lo marca «solo anuncio» y no lo cuenta en la barra. (b) Tratarlo como referencia opcional | **(a)**: con (b) DTD podría pagar menos de lo obligatorio. Esta decisión necesita al contador (D8) |
+| D3b | **Bono de guerra e ingreso mínimo integral.** Se anunciaron para el sector público; a la empresa privada solo se le exhortó | (a) Guardarlos como «referencia», y que Sam y el contador decidan lo que DTD paga. (b) Tratarlos como obligación legal | **(a)**: ningún texto encontrado los impone al sector privado. Ojo: el ingreso mínimo integral sí cuenta como base mínima de la contribución del 9 % |
 | D4 | Unidad de los montos | (a) Moneda explícita por monto: SML en Bs; IMI, cestaticket y bono en USD indexados a BCV. (b) Todo en Bs | **(a)**: concuerda con «todo en dólares, Bs como vista» y con cómo se fijan hoy los bonos |
 | D5 | ¿Agregar aportes patronales y el 9 % de pensiones? | (a) Sí, como config para el costo de la nómina; no se descuentan al trabajador. (b) No por ahora | **(a)**: hoy el costo real de un empleado no aparece en ninguna parte |
 | D6 | Tope de SSO/RPE en el motor (§2.3) | (a) Convertir el tope a USD con la tasa BCV del día del corte y prorratearlo al período. (b) Dejarlo hasta que el contador defina | **(a)**, con el visto bueno del contador sobre la tasa |
 | D7 | ¿Quién ve el estante «Ley» en Faro? | (a) Todo usuario del Studio. (b) Solo quien tiene acceso a nómina | **(a)**: el objetivo es la transparencia hacia todos los empleados; el estante no tiene datos internos |
-| D8 | ¿Quién aprueba los textos y valores legales? | (a) El contador (o un abogado laboral) y Sam, por PR. (b) Solo Sam | **(a)**: hay valores marcados N y C que necesitan ojo profesional |
+| D8 | ¿Quién aprueba los textos y valores legales? | (a) El contador (o un abogado laboral) y Sam, por PR. (b) Solo Sam | **(a)**: hay valores marcados O, R y N que necesitan ojo profesional |
 | D9 | Aviso de las respuestas legales | (a) «Información general de la ley vigente al {fecha}. No es asesoría para tu caso.» (b) Otro texto | **(a)** |
 | D10 | Escala de vacaciones y bono vacacional por antigüedad | (a) Agregarla en A2 (Arts. 190 y 192). (b) Dejar los 15 días fijos | **(a)**: los 15 fijos subpagan desde el segundo año |
+
+## 7 bis. Clasificación de gobernanza (AGENT-BRIEF, paso 4)
+
+Superficie: Studio, módulo Nómina, pestaña Reglas. Riesgo: lectura; no muta datos, no cambia permisos ni cálculos.
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| SGE-00, MP-01, AUD-01, AUD-02 | no aplica | La pestaña y la ficha legal solo leen; guardar reglas sigue en `ReglasDrawer`, sin cambios de comportamiento |
+| BTN-01 | cumplimiento | Una sola acción primaria («Editar reglas»); el asterisco y el nombre son botones con nombre accesible y área de 32 px |
+| A11Y-01 | cumplimiento | Todo se abre con teclado; la ficha usa `useDialogA11y` (foco, Escape, retorno del foco); el estado va en texto e icono (`Badge`); el asterisco decorativo se oculta al lector y hay texto equivalente (`studio-sr-only`) |
+| MOT-01 | cumplimiento | Solo `--dur-fast`, `--dur` y `--dur-slow` con `--ease`; nada se repite; con movimiento reducido no hay escala ni desplazamiento. Lo vigila `ReglasTab.test.tsx` |
+| VIS-01, VIS-02 | cumplimiento | Solo tokens; cabecera en tinta con texto invertido (los dos tokens se invierten juntos en oscuro); `dark-theme-contrast-contract` pasa |
+| ICO-01 | cumplimiento | Iconos del catálogo (`Icon.close`, `Icon.check`); el botón de cerrar lleva nombre accesible y `title` |
+| NUM-01 | cumplimiento | Cada valor muestra su unidad o moneda; «—» distingue lo que no existe de un cero |
+| CMP-01 | cumplimiento | Usa los canónicos `Badge`, `Aviso`, `EmptyState`, `SegmentedControl` y `useDialogA11y`. `ReglasTab` y `PistaLey` son piezas del módulo, no componentes compartidos nuevos |
+| FRM-01, ERR-01 | no aplica | El formulario de Reglas no cambia de campos ni de validación; solo gana un texto informativo |
+| IA-01 | no aplica en esta PR | La parte de Faro es diseño (§3); al implementarla aplica entera, junto con privacidad |
+| TBL-01 | no aplica | La comparación es una ficha de lectura de 21 filas en tarjetas, no un listado operativo de módulo |
+
+Ninguna no conformidad conocida. `pnpm governance:check` y `pnpm components:check`: PASAN.
 
 ## 8. Fuera de alcance
 

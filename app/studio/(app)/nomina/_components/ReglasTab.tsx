@@ -33,6 +33,7 @@ import {
   GRUPOS_LEY,
   NOTA_NO_VERIFICADO,
   compararConLey,
+  cuentaComoObligacion,
   estaVerificado,
   formatearFechaLey,
   formatearValorLey,
@@ -41,7 +42,7 @@ import {
   type EstadoComparacion,
 } from "@/lib/studio/nomina/ley/parametros";
 
-type Filtro = "todo" | "revisar" | "falta";
+type Filtro = "todo" | "revisar" | "falta" | "referencia";
 
 const ESTADO_TONO: Record<EstadoComparacion, BadgeTone> = {
   "al-dia": "success",
@@ -57,8 +58,11 @@ const CREMA = "var(--ink-inv)";
 const CREMA_SUAVE = "var(--ink-inv-soft)";
 const CREMA_TENUE = "var(--ink-inv-mute)";
 
+/* Movimiento (MOT-01): solo --dur-fast, --dur y --dur-slow con --ease. Nada se
+   repite: el asterisco responde a hover, foco y presión, y la ficha entra una
+   sola vez. Con movimiento reducido no hay escala ni desplazamiento. */
 const CSS = `
-.rl-row { transition: background-color .15s ease; }
+.rl-row { transition: background-color var(--dur-fast) var(--ease); }
 .rl-row:hover { background: var(--bg-elevated); }
 .rl-ast {
   all:unset; display:inline-grid; place-items:center; flex:none; width:32px; height:32px;
@@ -67,39 +71,39 @@ const CSS = `
 .rl-ast-dot {
   display:grid; place-items:center; width:22px; height:22px; border-radius:999px;
   background:var(--warning-bg); color:var(--ink); font:800 15px/1 var(--f-sans);
-  transition: transform .18s cubic-bezier(.2,.8,.2,1.4), box-shadow .18s ease;
-  animation: rl-pulso 2.4s ease-in-out infinite;
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
-.rl-ast:hover .rl-ast-dot { transform: scale(1.18) rotate(-8deg); box-shadow: 0 0 0 4px var(--warning-bg); }
+.rl-ast:hover .rl-ast-dot, .rl-ast:focus-visible .rl-ast-dot { transform: scale(1.18) rotate(-8deg); box-shadow: 0 0 0 4px var(--warning-bg); }
+.rl-ast:active .rl-ast-dot { transform: scale(.94); }
 .rl-ast:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; }
 .rl-name { all:unset; cursor:pointer; font:600 13px/1.3 var(--f-sans); color:var(--ink); }
 .rl-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .rl-name:focus-visible { outline:2px solid var(--ink); outline-offset:2px; border-radius:4px; }
-.rl-scrim { position:fixed; inset:0; background: var(--scrim-soft); z-index:80; animation: rl-fade .18s ease; }
+.rl-scrim { position:fixed; inset:0; background: var(--scrim-soft); z-index:80; animation: rl-fade var(--dur) var(--ease); }
 .rl-ficha {
   position:fixed; z-index:81; width:min(420px, calc(100vw - 32px));
   max-height: calc(100vh - 32px); overflow:auto;
   background:var(--bg-surface); color:var(--ink); border:1px solid var(--border-strong);
   border-radius: var(--r-xl); box-shadow: var(--shadow-pop);
-  animation: rl-abrir .26s cubic-bezier(.2,.9,.25,1.15);
+  animation: rl-abrir var(--dur-slow) var(--ease);
 }
 .rl-sello {
   display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:6px;
   border:2px solid currentColor; font:800 11px/1 var(--f-sans); letter-spacing:.14em; text-transform:uppercase;
-  transform: rotate(-6deg); animation: rl-sello .42s cubic-bezier(.2,.9,.3,1.5) .12s both;
+  transform: rotate(-6deg); animation: rl-sello var(--dur-slow) var(--ease) both;
 }
+.rl-barra-fill { transform-origin:left; animation: rl-barra var(--dur-slow) var(--ease); }
 @keyframes rl-abrir { from { opacity:0; transform: scale(.86) translateY(6px); } to { opacity:1; transform:none; } }
 @keyframes rl-fade { from { opacity:0 } to { opacity:1 } }
-@keyframes rl-sello { 0% { opacity:0; transform: rotate(-18deg) scale(1.9); } 70% { opacity:1; transform: rotate(-4deg) scale(.94); } 100% { opacity:1; transform: rotate(-6deg) scale(1); } }
-@keyframes rl-pulso { 0%,100% { opacity:1 } 50% { opacity:.45 } }
+@keyframes rl-sello { from { opacity:0; transform: rotate(-18deg) scale(1.6); } to { opacity:1; transform: rotate(-6deg) scale(1); } }
 @keyframes rl-barra { from { transform: scaleX(0) } to { transform: scaleX(1) } }
 @media (max-width: 719px) {
   .rl-ficha { left:16px !important; right:16px; top:auto !important; bottom:16px; width:auto; transform-origin: 50% 100% !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rl-ficha, .rl-scrim, .rl-sello, .rl-ast-dot, .rl-barra-fill { animation: none !important; }
+  .rl-ficha, .rl-scrim, .rl-sello, .rl-barra-fill { animation: none !important; }
   .rl-ast-dot, .rl-row { transition: none !important; }
-  .rl-ast:hover .rl-ast-dot { transform:none; }
+  .rl-ast:hover .rl-ast-dot, .rl-ast:focus-visible .rl-ast-dot, .rl-ast:active .rl-ast-dot { transform:none; }
 }
 `;
 
@@ -119,15 +123,13 @@ export function ReglasTab({
   const [filtro, setFiltro] = useState<Filtro>("todo");
   const [abierta, setAbierta] = useState<{ c: Comparacion; origen: DOMRect | null } | null>(null);
 
-  const visibles = items.filter((c) =>
-    filtro === "todo"
-      ? true
-      : filtro === "revisar"
-        ? c.estado === "difiere" || c.estado === "unidad"
-        : c.estado === "falta",
-  );
-
-  const porRevisar = resumen.difiere + resumen.unidad;
+  const visibles = items.filter((c) => {
+    if (filtro === "todo") return true;
+    const obliga = cuentaComoObligacion(c.parametro);
+    if (filtro === "referencia") return !obliga;
+    if (!obliga) return false;
+    return filtro === "falta" ? c.estado === "falta" : c.estado === "difiere" || c.estado === "unidad";
+  });
 
   return (
     <>
@@ -135,11 +137,12 @@ export function ReglasTab({
 
       <Hero
         rules={rules}
-        alDia={resumen["al-dia"]}
-        porRevisar={porRevisar}
-        faltan={resumen.falta}
+        alDia={resumen.obligacionesAlDia}
+        porRevisar={resumen.porRevisar}
+        faltan={resumen.faltan}
+        referencias={resumen.referencias}
         noVerificados={resumen.noVerificados}
-        total={items.length}
+        total={resumen.obligaciones}
         onEdit={onEdit}
       />
 
@@ -176,8 +179,9 @@ export function ReglasTab({
           onChange={setFiltro}
           options={[
             { value: "todo", label: `Todo (${items.length})` },
-            { value: "revisar", label: `Por revisar (${porRevisar})` },
-            { value: "falta", label: `No están en tus reglas (${resumen.falta})` },
+            { value: "revisar", label: `Por revisar (${resumen.porRevisar})` },
+            { value: "falta", label: `No están en tus reglas (${resumen.faltan})` },
+            { value: "referencia", label: `Referencias (${resumen.referencias})` },
           ]}
         />
         <p style={{ margin: 0, font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", maxWidth: "52ch" }}>
@@ -284,6 +288,7 @@ function Hero({
   alDia,
   porRevisar,
   faltan,
+  referencias,
   noVerificados,
   total,
   onEdit,
@@ -292,6 +297,7 @@ function Hero({
   alDia: number;
   porRevisar: number;
   faltan: number;
+  referencias: number;
   noVerificados: number;
   total: number;
   onEdit: () => void;
@@ -358,14 +364,14 @@ function Hero({
 
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", font: "600 12px/1 var(--f-sans)", color: CREMA_SUAVE }}>
-          <span>Al día con la ley</span>
+          <span>Obligaciones al día</span>
           <span style={{ color: CREMA }}>
             {alDia} de {total}
           </span>
         </div>
         <div
           role="progressbar"
-          aria-label="Reglas al día con la ley"
+          aria-label="Obligaciones de ley que tus reglas tienen al día"
           aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={alDia}
@@ -377,8 +383,6 @@ function Hero({
               width: `${pct}%`,
               height: "100%",
               background: CREMA,
-              transformOrigin: "left",
-              animation: "rl-barra .7s cubic-bezier(.2,.8,.2,1)",
             }}
           />
         </div>
@@ -387,6 +391,7 @@ function Hero({
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Pastilla valor={porRevisar} texto="por revisar" />
         <Pastilla valor={faltan} texto="no están en tus reglas" />
+        <Pastilla valor={referencias} texto="referencias, no cuentan" />
         <Pastilla valor={noVerificados} texto="sin verificar" prefijo="*" />
       </div>
     </section>
@@ -457,10 +462,15 @@ function Fila({ c, onAbrir }: { c: Comparacion; onAbrir: (origen: DOMRect | null
           </button>
         )}
         </div>
-        <div style={{ marginTop: 4 }}>
+        <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
           <Badge tone={ESTADO_TONO[c.estado]} size="xs">
             {ESTADO_META[c.estado].etiqueta}
           </Badge>
+          {!cuentaComoObligacion(p) && (
+            <Badge tone="neutral" size="xs">
+              Referencia
+            </Badge>
+          )}
         </div>
       </div>
       <span
@@ -543,7 +553,7 @@ function FichaLegal({
               {p.etiqueta}
             </h3>
           </div>
-          <button type="button" className="studio-btn studio-btn-ghost" onClick={onClose} aria-label="Cerrar ficha legal">
+          <button type="button" className="studio-btn studio-btn-ghost" onClick={onClose} aria-label="Cerrar ficha legal" title="Cerrar">
             {Icon.close(14)}
           </button>
         </div>
@@ -600,11 +610,17 @@ function FichaLegal({
             {p.vigenteDesde ? `Vigente desde el ${formatearFechaLey(p.vigenteDesde)}` : "Vigencia: por confirmar"}
           </div>
           {p.detalle && <p style={{ margin: "8px 0 0" }}>{p.detalle}</p>}
-          {p.comprobadoEn && (
-            <p style={{ margin: "8px 0 0", color: "var(--ink-soft)" }}>
-              <strong style={{ color: "var(--ink)" }}>Dónde se comprobó:</strong> {p.comprobadoEn}
-            </p>
-          )}
+          <p style={{ margin: "8px 0 0", color: "var(--ink-soft)" }}>
+            <strong style={{ color: "var(--ink)" }}>Dónde se comprobó:</strong> {p.comprobadoEn}
+          </p>
+          <p style={{ margin: "8px 0 0", color: "var(--ink-soft)" }}>
+            <strong style={{ color: "var(--ink)" }}>¿Obliga a la empresa?</strong>{" "}
+            {p.alcance === "obliga"
+              ? p.grado === "anuncio"
+                ? "Sí, el beneficio es de ley. El monto es solo un anuncio y por eso no cuenta en la barra."
+                : "Sí."
+              : "No consta que obligue al sector privado. Se muestra como referencia y no cuenta en la barra."}
+          </p>
         </div>
 
         {!verificado && (
