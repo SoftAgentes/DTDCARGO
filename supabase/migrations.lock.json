@@ -3484,6 +3484,15 @@
         "forma": "exacta"
       }
     },
+    "0549_oficina_revisiones_envio": {
+      "sha256": "8b0cf629455b1d1a1606bce850745118d6a542ddb5106e0a46f979f26eddd9d3",
+      "md5": "4083f60eb93fa7ad9f5c43b68cefda2d",
+      "bytes": 40270,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
     "0550_faro_registro": {
       "sha256": "196547d34efd2434f854faee074ed6bd9a65a2bc20a2212a884b385b01b2148c",
       "md5": "20ab1801d8b0b68f0f397d82f3912817",
