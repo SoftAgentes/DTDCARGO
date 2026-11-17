@@ -123,7 +123,7 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
 - Tabla `client_registration_links` con RLS: el equipo solo lee su tenant; nadie escribe por PostgREST.
 - RPC: `create` y `mark_reviewed` para `authenticated`; `peek`, `complete`, `bind` y `access_error`
   solo para `service_role`.
-- Sin backfill ni locks de tabla largos. Desarme: `supabase/desarmes/0552_desarme.sql` (no deshace
+- Sin backfill ni locks de tabla largos. Desarme: el de la 0552 en `supabase/desarmes/` (no deshace
   datos: las fichas completadas, los accesos creados y los códigos recuperados se quedan).
 - Gate de pendientes: entrada en `supabase/migrations-baseline.json`. MIGRATE-FIRST: sin la 0552, el
   botón dice «Esta acción todavía no está disponible», la lista avisa que falta la migración y el link
@@ -164,7 +164,7 @@ fila de `client_registration_links`: un link usado **es** el registro a revisar.
 ## 8. Allowlist
 
 - `supabase/migrations/0552_registro_portal_por_link.sql`, `supabase/tests/0552_registro_portal_por_link.test.sql`,
-  `supabase/desarmes/0552_desarme.sql`, `supabase/migrations-baseline.json`,
+  el desarme de la 0552 en `supabase/desarmes/`, `supabase/migrations-baseline.json`,
   `supabase/pending-migration-symbol-declarations.json`
 - `lib/portal/registro-link.ts`, `lib/portal/registro-link-types.ts`, `lib/studio/registro-link-queries.ts`,
   `lib/studio/client-types.ts`

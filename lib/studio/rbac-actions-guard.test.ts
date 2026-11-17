@@ -376,8 +376,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
   // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
   // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
+  // SDD-0646 sumó `clientes/actions.ts::registrationLinkAction` y
+  // `::markRegistrationReviewedAction` (472 → 474): `moduleEditDenial(supabase,
+  // "clients")` al tope, antes de leer o escribir; escriben SOLO por las RPC de la
+  // 0552 (`portal_registration_link_create`, `portal_registration_link_mark_reviewed`),
+  // que repiten en la base los roles admin/commercial/operations y el tenant.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(472);
+    expect(reportes.length).toBe(474);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
