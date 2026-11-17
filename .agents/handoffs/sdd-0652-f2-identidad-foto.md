@@ -86,6 +86,15 @@ Alcance: Venezuela (CRBV arts. 28 y 60). No es asesoría legal.
 
 Conviene que otro modelo revise este análisis.
 
+## REVISIÓN INDEPENDIENTE (DG, Opus, sobre `4a0e1be51`): APROBADA, con dos ajustes
+
+| Hallazgo | Corrección |
+|---|---|
+| MEDIA: la excepción D9 no estaba en la línea base del registro maestro | Registrada en la fila de AUD-02 de `docs/governance/README.md`, por delegación del DG, con enlace al documento |
+| BAJA: el aviso de la aprobación decía «enlázala desde la ficha» también cuando la cuenta es solo de `/m/emp`, y la RPC rechaza ese caso | El aviso distingue los dos casos y dice a quién acudir; prueba ajustada |
+
+La migración 0555 no se tocó: su md5 es el mismo que revisó el DG.
+
 ## PENDIENTES DE ESTA TAREA
 
 - CI de la PR en verde (ahí corren los contratos SQL en Postgres real, la suite completa y el build).
@@ -94,7 +103,6 @@ Conviene que otro modelo revise este análisis.
 - Carrera real de dos enlaces a la vez (dblink en la suite SQL de Docker): no escrita.
 - Medir en el navegador la cabecera con la foto de 72 px y los controles a 320 px.
 - Después de aplicar la 0555: quitar la espera del baseline y las tres declaraciones, sellar el lock, probar en pantalla, leer los conteos del cron y decidir si se enciende.
-- Entrada de la excepción D9 en la línea base del registro maestro de gobernanza (protocolo L3): es del DG.
 
 ## FUERA DE ALCANCE DETECTADO
 

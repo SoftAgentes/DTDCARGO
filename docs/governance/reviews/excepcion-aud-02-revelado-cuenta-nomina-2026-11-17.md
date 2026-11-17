@@ -2,7 +2,7 @@
 
 Estado: **aprobada por Sam el 2026-11-17** (decisión D9, opción b, de la SDD-0652) · Dueño: Sam · Revisión: **2027-02-17**, o antes si cambia el equipo de Contabilidad.
 
-Registro pedido por [SGE-00 §7](../policies/sge-00.md) y por el [índice maestro §5](../README.md): una excepción de comportamiento lleva política afectada, motivo, alcance, mitigación, responsable y fecha de revisión. La entrada en la línea base del registro maestro (protocolo L3) queda a cargo del Director General; este documento es la decisión escrita.
+Registro pedido por [SGE-00 §7](../policies/sge-00.md) y por el [índice maestro §5](../README.md): una excepción de comportamiento lleva política afectada, motivo, alcance, mitigación, responsable y fecha de revisión. La entrada en la línea base está en la fila de AUD-02 del [registro maestro](../README.md) (protocolo L3), por delegación del Director General; este documento es la decisión escrita.
 
 ## 1. Principio y política afectados
 

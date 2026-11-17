@@ -12,8 +12,10 @@
  *   - `created`: el correo no existía y se creó la cuenta. Es la única vía por
  *     la que una aprobación enlaza;
  *   - `exists`: el correo ya tiene una cuenta, de quien sea. No se toca ni se
- *     busca de quién es. La ficha se crea **sin acceso** y el admin, si es la
- *     misma persona, la enlaza a mano desde la ficha (con motivo y registro);
+ *     busca de quién es. La ficha se crea **sin acceso**. Si la cuenta es de un
+ *     usuario del Studio, el admin la enlaza a mano desde la ficha (con motivo y
+ *     registro). Si es solo de `/m/emp`, la RPC de enlace la rechaza: ese caso
+ *     («reenlazar») todavía no existe y el aviso lo dice;
  *   - `error`: cualquier otra cosa. La aprobación se detiene: falla cerrado.
  *
  * No hay `listUsers` ni lecturas de otras tablas: lo que no se consulta no puede

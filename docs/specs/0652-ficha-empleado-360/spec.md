@@ -403,7 +403,7 @@ Diferencias con lo propuesto antes de implementar la F2:
 - **La línea de tiempo trae la primera página de eventos (50).** La RPC ya pagina con cursor; «Ver más» en pantalla queda para cuando haga falta.
 - **Sin la 0555 aplicada**, la ficha se lee igual: `photo_path` se pide aparte y los eventos no se muestran. Cada acción nueva responde que todavía no está disponible.
 - **La foto del candidato** (`nomina_employee_registrations.photo_path`) deja de leerse: nadie la escribe ni la usa.
-- **La excepción de D9** vive en `docs/governance/reviews/`. La entrada en la línea base del registro maestro (protocolo L3) es del Director General.
+- **La excepción de D9** vive en `docs/governance/reviews/` y está registrada en la fila de AUD-02 del registro maestro (protocolo L3).
 - **Dos enlaces a la vez** no se prueban con carrera real (PGlite tiene una conexión): se mide el segundo intento en serie, que recibe «ya enlazada».
 
 F3, F4 y F5 fijan su lista al asignarse, con su número de migración. La de F4 incluye obligatoriamente las **funciones de lote propias** para minimizar y purgar `studio_login_events` y sus pruebas en PGlite.

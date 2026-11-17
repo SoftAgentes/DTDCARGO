@@ -1966,7 +1966,7 @@ export async function approveRegistrationAction(
       ok: true,
       createdCode: employeeCode,
       accessWarning:
-        "Ese correo ya tiene una cuenta. La ficha se creó sin acceso. Si es la misma persona, enlázala desde la ficha.",
+        "Ese correo ya tiene una cuenta. La ficha se creó sin acceso. Si esa cuenta es de un usuario del Studio y es la misma persona, enlázala desde la ficha. Si es solo de la app del empleado, todavía no se puede enlazar desde la ficha: pídeselo a quien administra el sistema.",
     };
   }
   return { ok: true, createdCode: employeeCode };

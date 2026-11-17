@@ -235,7 +235,7 @@ describe("approveRegistrationAction · acceso del empleado (SDD-0652 §4 punto 6
     const r = await approveRegistrationAction(REG, {}, form());
     expect(r.ok).toBe(true);
     expect(r.accessWarning).toBe(
-      "Ese correo ya tiene una cuenta. La ficha se creó sin acceso. Si es la misma persona, enlázala desde la ficha.",
+      "Ese correo ya tiene una cuenta. La ficha se creó sin acceso. Si esa cuenta es de un usuario del Studio y es la misma persona, enlázala desde la ficha. Si es solo de la app del empleado, todavía no se puede enlazar desde la ficha: pídeselo a quien administra el sistema.",
     );
     expect(state.inserts).toHaveLength(1);
     expect(state.inserts[0]!.auth_user_id).toBeNull();
