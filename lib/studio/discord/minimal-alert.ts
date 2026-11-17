@@ -26,6 +26,12 @@ export interface MinimalAlert {
    * teléfono— y por regla no se usa para montos de dinero.
    */
   conteos?: ReadonlyArray<{ etiqueta: string; valor: number }>;
+  /**
+   * Varios códigos de registro (folios `BUG-00012`), para un resumen. Cada uno
+   * tiene que tener forma de código —letras, guion y dígitos—: un texto libre
+   * no pasa el filtro y se descarta al armar el aviso.
+   */
+  codigos?: ReadonlyArray<string>;
 }
 
 /** Largo máximo de un código en el aviso; un código real es mucho más corto. */
@@ -33,6 +39,21 @@ const MAX_CODIGO = 60;
 const MAX_TITULO = 160;
 const MAX_ETIQUETA = 60;
 const MAX_CONTEOS = 12;
+/** Cuántos códigos se listan antes de resumir el resto como «y N más». */
+export const MAX_CODIGOS = 25;
+/** Forma de un código de registro: `BUG-00012`, `DTD-0123`. Nada más. */
+const CODIGO_RE = /^[A-Z]{2,5}-\d{1,8}$/;
+
+/** Los códigos que tienen forma de código, sin repetir y en su orden. */
+export function codigosValidos(codigos: ReadonlyArray<unknown> | null | undefined): string[] {
+  const out: string[] = [];
+  for (const c of codigos ?? []) {
+    if (typeof c !== "string") continue;
+    const limpio = c.trim();
+    if (CODIGO_RE.test(limpio) && !out.includes(limpio)) out.push(limpio);
+  }
+  return out;
+}
 
 /** Una línea: sin saltos, sin espacios repetidos, sin marcas que rompan el formato. */
 function unaLinea(text: string, max: number): string {
@@ -88,6 +109,13 @@ export function buildDiscordContent(
   for (const c of (aviso.conteos ?? []).slice(0, MAX_CONTEOS)) {
     if (!Number.isFinite(c.valor)) continue;
     lines.push(`• ${unaLinea(c.etiqueta, MAX_ETIQUETA)}: ${c.valor}`);
+  }
+
+  const codigos = codigosValidos(aviso.codigos);
+  if (codigos.length > 0) {
+    const vistos = codigos.slice(0, MAX_CODIGOS).map((c) => `\`${c}\``).join(" ");
+    const resto = codigos.length - MAX_CODIGOS;
+    lines.push(resto > 0 ? `${vistos} y ${resto} más` : vistos);
   }
 
   const link = enlace(aviso.url);

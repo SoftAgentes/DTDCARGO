@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0550_faro_registro": "PENDIENTE DE APLICAR — SDD-0637 fase 2 (registro de Faro, el asistente de ayuda del Studio). Crea siete tablas de solo inserción (trigger asistente_solo_insercion; UPDATE nunca, DELETE/TRUNCATE solo dentro de la purga): asistente_conversaciones, asistente_mensajes, asistente_eventos, asistente_lecturas, asistente_llamadas, asistente_cuotas y asistente_purgas. RLS sin policies; service_role solo SELECT e INSERT (lecturas, purgas y cuotas solo SELECT). Funciones con search_path vacío: asistente_reservar_pregunta (tope por hora, atómico), asistente_gasto_del_mes, asistente_purgar_vencidos (180 días conversaciones y eventos; 2 años alertas y lecturas; 13 meses llamadas; 7 días cuotas — D-6) y asistente_purgar_usuario, solo service_role; asistente_listar_conversaciones (sin texto) y asistente_leer_conversacion (deja rastro en asistente_lecturas), solo el admin del tenant (D-4). Agrega 'asistente_alerta' a bug_notif_type (no se puede quitar). Guarda preguntas del personal ya depuradas: la revisión de datos personales es docs/specs/0637-faro-asistente-ayuda/privacidad.md. Ningún código de la app usa estos símbolos todavía (fase 3). Idempotente. Desarme: supabase/desarmes/0550_desarme.sql (pierde todo lo guardado; el valor del enum queda). Producción: OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG. Aplicar individualmente con name exacto 0550_faro_registro. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
-  }
+  "pendingBelowCutoff": {}
 }
