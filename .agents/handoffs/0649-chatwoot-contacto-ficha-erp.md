@@ -1,6 +1,6 @@
 # Handoff — SDD-0649 Shipping Mark y segmento del ERP en el contacto de Chatwoot
 
-Fecha: 2026-11-16 · Rama: `claude/quizzical-villani-eb5dfc` · PR #622 · Reserva: `codex/sdd-reserve-0649-chatwoot-contacto-ficha-erp` + `refs/dtd/reservations/0649`.
+Fecha: 2026-11-16, cerrado 2026-11-17 · Rama: `claude/quizzical-villani-eb5dfc` · PR #622 (fusionada) · Reserva: `codex/sdd-reserve-0649-chatwoot-contacto-ficha-erp` + `refs/dtd/reservations/0649`.
 
 ## Hecho
 - Spec `docs/specs/0649-chatwoot-contacto-ficha-erp/spec.md`: D1 a D5 resueltas por Sam («Sí, como recomiendas»). D4 queda en (b): su recomendación era condicional y la frecuencia del borrado no está medida.
@@ -16,9 +16,16 @@ Fecha: 2026-11-16 · Rama: `claude/quizzical-villani-eb5dfc` · PR #622 · Reser
   - **`shippingMarkVisible` descarta códigos con espacios** (y vacíos o de más de 40 caracteres): una ficha con un código así queda sin Shipping Mark en Chatwoot, aunque su segmento sí se escribe.
 - Antes de encender D1: medir si un Agente de Chatwoot CE ve los Shipping Marks de contactos de bandejas de las que no es miembro (spec §4).
 
-## Pendiente de esta tarea
-- CI de la PR en verde y revisión independiente, que lanza el Director General.
-- Puertas, cada una con OK nominal de Sam: fusionar y desplegar; crear los dos atributos en Chatwoot (D1); cargar `CHATWOOT_ATRIBUTOS_CONTACTO=1` y recrear `web`; smoke con el número de prueba (runbook).
+## Cierre (2026-11-17)
+- **#622 fusionada** por el Director General: squash `9a3197a0c` en `main`, cabeza revisada `f178e4cd4`, CI verde y revisión independiente APPROVED (Opus).
+- Reserva cumplida (la spec está en `main`): se borran `refs/heads/codex/sdd-reserve-0649-chatwoot-contacto-ficha-erp` y `refs/dtd/reservations/0649`, local y remoto.
+- **El interruptor sigue apagado.** En producción no se encendió nada ni se creó ningún atributo.
+
+## Pendiente de esta tarea (puertas, en este orden y cada una con OK nominal de Sam)
+1. Medir si un Agente de Chatwoot CE 4.19.1 ve los Shipping Marks de contactos de bandejas de las que no es miembro (spec §4). Si los ve, se decide con Sam antes de seguir.
+2. Smoke de la lectura y la escritura de `custom_attributes` contra Chatwoot 4.19.1, con el número de prueba (runbook).
+3. Crear los dos atributos en Chatwoot (D1).
+4. Cargar `CHATWOOT_ATRIBUTOS_CONTACTO=1` en `web` y recrear el contenedor. El código ya está en `main`; antes hay que confirmar que esa versión está desplegada.
 
 ## FUERA DE ALCANCE DETECTADO
 - Conteos de solo lectura del Archivo Kommo: el guion está en la carpeta de notas del Subdirector de Chatwoot (`0590-por-que-no-veo-kommo-conteos.rb`). Lo corre el Director General; Sam lo aprobó el 2026-11-16.
