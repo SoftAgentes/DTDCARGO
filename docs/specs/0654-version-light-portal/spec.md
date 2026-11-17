@@ -522,15 +522,17 @@ Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
   - el relleno del botón principal de cada bloque;
   - el avatar;
   - la parte «proveedor» del código.
-  Con texto navy `#0F1E3D` encima: 4,79:1 en claro y 7,13:1 en noche. Con texto blanco mediría 3,44:1 y no pasa
+  Con texto navy fijo encima (`--on-warning`, `#0F1E3D`, que no se invierte con el tema): 4,79:1 en claro y 7,13:1
+  en noche. Con texto blanco mediría 3,44:1 y no pasa
   AA, por eso el texto es navy.
 - **La selección no usa vino claro.** El proveedor elegido, la parte del código que se está explicando y el avance de
   la guía van con relleno o contorno de tinta, como fija BD-037 (`BRAND.md:308`, `app/portal/claridad.css:75`).
 - **Los enlaces de texto van en navy subrayado.** `--wine-soft` no sirve para texto pequeño (3,44:1 sobre blanco,
   `BRAND.md` §Contraste). El Shipping Mark conserva `--wine-text`, que es regla de marca (BD-026).
 - **Más color, sin colores nuevos:**
-  - los encabezados de los bloques llevan un tinte neutro de tinta; solo el bloque del proveedor lleva tinte de vino
-    claro (identidad);
+  - los encabezados de los bloques, las ayudas «Recuerda» y el Shipping Mark llevan un tinte neutro de tinta; solo
+    el encabezado del bloque del proveedor lleva tinte de vino claro (identidad);
+  - los estados normales («Esperando que llegue a nuestro almacén») van con punto gris, no dorado;
   - el dorado (`--warning`) queda para riesgo real: los avisos «Atención». **El saldo va en navy**, aunque la Vista
     Pro de hoy lo pinte en dorado (`app/portal/(app)/_components/PortalDashboardNorte.tsx:154` y `:513`): un saldo
     sin incidencia no es una advertencia (§3.6). Si una factura vence, ese aviso sí va en dorado. El dorado no va en
@@ -542,7 +544,7 @@ Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
   - tintes de fondo `--tint-ink`, `--tint-wine`, `--tint-ok` y `--tint-warn`: `color-mix` del token de color sobre
     la superficie, con el mismo patrón que `.portal-aviso` (`app/portal/claridad.css:197`);
   - en noche, el relleno de vino claro usa `--color-wine-text` oscuro (`#D89AA4`, `app/globals.css:159`), porque
-    `--color-wine-soft` no se redefine en oscuro.
+    `--color-wine-soft` no se redefine en oscuro; el texto encima es siempre `--on-warning`.
   Se definen en el bloque de la Vista simple de `app/globals.css` (fase 2).
 - **Legible y táctil:** instrucciones a 15-16 px y controles de 44 px como mínimo (§3.6).
 - **Tranquila:** en la Vista simple no hay animaciones continuas (barco, pulso y haz de Faro). El botón de Faro
@@ -569,7 +571,7 @@ Alternativa que respeta: dejar el botón principal en vino (#7F0F1A) con texto b
 |---|---|
 | Objetivo | Que la acción principal no se confunda con un error en la vista para clientes nuevos |
 | Superficie | Solo la Vista simple del portal. La Vista Pro, el Studio y la web pública no cambian |
-| Tokens | `--color-wine-soft` (claro) y `--color-wine-text` (noche) como relleno; texto `--color-ink` claro (`#0F1E3D`) en los dos temas |
+| Tokens | `--color-wine-soft` (claro) y `--color-wine-text` (noche) como relleno; texto `--on-warning` (`#0F1E3D`, navy fijo de BD-027, `app/globals.css:105`) en los dos temas. **No** `--color-ink`: en noche vale `#f2f0ec` (`app/globals.css:156`) y crema sobre `#D89AA4` mide 2,03:1 |
 | Usos | Botón principal, avatar y parte «proveedor» del código. **No** selección, **no** texto, **no** error |
 | Contraste | 4,79:1 en claro y 7,13:1 en noche con texto navy (AC-17) |
 | Duración | Hasta la prueba con clientes (D-12). Si funciona, Sam decide si pasa a regla o se extiende |

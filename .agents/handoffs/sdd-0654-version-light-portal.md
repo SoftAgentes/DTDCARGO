@@ -54,3 +54,33 @@ Cada punto se verificó en el código antes de adoptarlo. Cambios en la spec:
 
 Una corrección al revisor: «SDD-0454/0460» son números de migración (`0454_borrar_cliente_revoca_portal.sql`,
 `0460_retencion_vinculo_portal_revocado.sql`); sus specs son la 0467 y la 0477. Así quedó citado.
+
+## Segunda re-revisión (2026-11-17, sobre `8986b4153`): CHANGES REQUESTED, atendida
+
+- B1: una sola persona de portal por cliente en la V1 (`0080_portal_cliente.sql:29`, `0552:481`); D-1, D-5 y FC-8
+  por cliente.
+- B2: **EXC-0654-01**, el vino claro en la Vista simple. Va con BRAND-CHECK y la tabla de VIS-01 §7 (objetivo,
+  superficie, tokens, contraste, duración, fecha de revisión y dueño). Alcance: tres usos (botón principal, avatar
+  y parte «proveedor» del código). La selección va en tinta (BD-037). AC-26. El registro L3 en `BRAND-DECISIONS.md`
+  y `BRAND.md` queda en la fase 2; el número BD lo asigna el DG.
+- B3: D-14 enmienda BD-037 solo en el Portal; `BRAND.md` y `BRAND-DECISIONS.md` entran en la allowlist de la fase
+  1b.
+- M1: FC-14 con `getHiddenPortalStatusesStrict`, una función nueva que distingue «falló» de «vacío».
+- M2: tintes declarados como `color-mix` de tokens existentes; mapeo en noche a `--color-wine-text`.
+- M3: el dorado, solo para avisos de riesgo.
+- Menores: D-8 más estricta que la 0637; acciones en `app/portal/actions.ts`.
+
+Codex hizo una revisión visual y diseñó su propia propuesta (spec §3.6): <https://claude.ai/artifact/7t9znp9qf8pktXqCqrcYNp>.
+
+## Tercera revisión (2026-11-17, sobre `ec54a061b`): APPROVED, con menores
+
+- El texto sobre el vino claro es `--on-warning` (navy fijo, `app/globals.css:105`), no `--color-ink`, que en noche
+  es crema (2,03:1).
+- Maqueta: el punto de estado normal pasa a gris; el tinte de vino claro queda solo en el encabezado del bloque del
+  proveedor.
+- La migración 0557 sigue reservada por el DG para esta spec.
+
+## Estado
+
+Spec `proposed`, aprobada por el DG para que Sam decida. Decididas por Sam: D-4 y D-10. Abiertas: el resto de D-1 a
+D-20.
