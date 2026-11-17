@@ -7,5 +7,70 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0557-vista-preferida-lectura",
+      "migration": "0557_portal_vista_preferida",
+      "primarySymbol": "client_users.portal_vista",
+      "symbols": [
+        {
+          "name": "client_users.portal_vista",
+          "kind": "column",
+          "callSites": [
+            "lib/portal/vista-preferida.ts:65",
+            "lib/portal/vista-preferida.ts:74",
+            "lib/portal/vista-preferida.ts:77"
+          ]
+        },
+        {
+          "name": "client_users.portal_guia_vista_at",
+          "kind": "column",
+          "callSites": [
+            "lib/portal/vista-preferida.ts:65",
+            "lib/portal/vista-preferida.ts:77"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/portal/vista-preferida.ts:71",
+          "contains": "return { ...VISTA_POR_OMISION };",
+          "degradation": "Sin la 0557 PostgREST responde error de columna inexistente (42703 o PGRST204): getMyPortalVista devuelve «pro» y «guía ya vista», loguea solo el código y no lanza ni redirige. Además, solo corre con PORTAL_VISTA_SIMPLE=true (apagado por omisión): con el interruptor apagado el layout no hace la consulta y el portal es el de siempre (AC-1, AC-5). La lectura del principal no nombra estas columnas."
+        }
+      ]
+    },
+    {
+      "id": "0557-vista-preferida-escritura",
+      "migration": "0557_portal_vista_preferida",
+      "primarySymbol": "portal_set_vista",
+      "symbols": [
+        {
+          "name": "portal_set_vista",
+          "kind": "function",
+          "callSites": [
+            "lib/portal/vista-preferida.ts:94"
+          ]
+        },
+        {
+          "name": "portal_marcar_guia_vista",
+          "kind": "function",
+          "callSites": [
+            "lib/portal/vista-preferida.ts:109"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/portal/vista-preferida.ts:97",
+          "contains": "return null;",
+          "degradation": "Sin la 0557 la RPC responde PGRST202 (o 42883): setMyPortalVista devuelve null, setPortalVistaAction responde ok: false y el selector vuelve a la vista de antes con «No pudimos cambiar la vista». No se escribe nada. El selector solo existe con PORTAL_VISTA_SIMPLE=true."
+        },
+        {
+          "site": "lib/portal/vista-preferida.ts:112",
+          "contains": "return false;",
+          "degradation": "Sin la 0557 markMyPortalGuiaVista devuelve false y markPortalGuiaVistaAction responde ok: false; nadie la llama todavía en la fase 1 (la guía es de la fase 2) y la acción no hace nada con el interruptor apagado."
+        }
+      ]
+    }
+  ]
 }
