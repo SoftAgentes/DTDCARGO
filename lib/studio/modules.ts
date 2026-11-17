@@ -50,6 +50,13 @@ export interface ModuleDef {
    * (`/studio/legal/expediente|evidencia`) conservan `requireModuleView("legal")`.
    */
   hidden?: boolean;
+  /**
+   * Vive como pestaña de otro módulo (su `id`) y no como ítem propio del menú
+   * (SDD-0655: la Bandeja dentro de CRM). A diferencia de `hidden`, sigue en el
+   * mapa de accesos de Usuarios y en la matriz de permisos: se da y se quita
+   * como siempre.
+   */
+  dentroDe?: string;
 }
 
 /** Group label → I18nKey para localización en sidebar headers. */
@@ -123,7 +130,10 @@ export const MODULES: ModuleDef[] = [
   // CRM / relación
   { id: "conversaciones", group: "COMERCIAL", label: "Conversaciones", icon: "mail", slug: "/studio/conversaciones" },
   // Bandeja de Chatwoot dentro de Studio (SDD-0585). Detrás del flag `chatwoot_inbox`.
-  { id: "bandeja", group: "COMERCIAL", label: "Bandeja", labelKey: "chrome.sidebar.inbox", icon: "chat", slug: "/studio/bandeja" },
+  // SDD-0655: salió del menú; es una pestaña de CRM (`dentroDe`). Sigue siendo
+  // módulo (RBAC, flag, guard de `/studio/bandeja`, matriz y mapa de accesos). El
+  // ítem «CRM» la abre a quien solo ve la Bandeja (`lib/studio/crm-acceso.ts`).
+  { id: "bandeja", group: "COMERCIAL", label: "Bandeja", labelKey: "chrome.sidebar.inbox", icon: "chat", slug: "/studio/bandeja", dentroDe: "kommo" },
   // Una sola entrada de CRM (founder 2026-08-11). El rótulo es neutro respecto
   // al proveedor: si mañana cambiamos de herramienta, sobrevive. El `id` sigue
   // siendo "kommo" a propósito — es la clave de RBAC y de las tablas, plomería.
