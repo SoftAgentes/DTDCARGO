@@ -257,7 +257,7 @@ El estante no lleva datos de clientes ni de empleados. Aun así:
 
 ## 5. Migración 0556 (propuesta, fase A2)
 
-`supabase/migrations/0556_nomina_reglas_vigencia_y_aportes.sql`, aditiva, sobre `nomina_payroll_rules`:
+Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vigencia_y_aportes`. **Todavía no existe:** se crea en la fase A2b. Es aditiva, sobre `nomina_payroll_rules`:
 
 - `vigente_desde date not null default current_date`, y `fuente_legal text` (texto corto: «G.O. 6.691 Ext.»).
 - `ingreso_minimo_integral_usd numeric(14,2) not null default 0`.
@@ -282,7 +282,7 @@ regenerado), `.agents/handoffs/0653-nomina-reglas-ley-y-faro.md`, `lib/studio/no
 `_components/PistaLey.tsx` (nuevo), `_components/__tests__/ReglasTab.test.tsx` y `PistaLey.test.tsx` (nuevos),
 `_components/NominaClient.tsx` (la pestaña sale a su archivo) y `_components/ReglasDrawer.tsx` (usa la pista).
 
-**A2b:** `supabase/migrations/0556_nomina_reglas_vigencia_y_aportes.sql`;
+**A2b:** la migración 0556 (`nomina_reglas_vigencia_y_aportes`, por crear en `supabase/migrations/`);
 `lib/studio/nomina/__tests__/nomina-0556.migration.test.ts`; `lib/studio/nomina/ley/parametros.ts` y su prueba;
 `lib/studio/nomina/payroll-rules-types.ts`, `payroll-rules-types.test.ts`, `payroll-rules-queries.ts`;
 `app/studio/(app)/nomina/actions.ts`, `_components/ReglasDrawer.tsx`, `_components/NominaClient.tsx`; la guía de
