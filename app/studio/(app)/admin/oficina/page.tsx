@@ -46,7 +46,7 @@ export default async function OficinaRevisionPage({
 
   return (
     <div style={{ maxWidth: 920 }}>
-      <Link href="/studio/admin" style={{ font: "500 12px/1 var(--font-sans, 'Archivo')", color: "var(--ink-soft)", textDecoration: "none" }}>
+      <Link href="/studio/admin" style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)", textDecoration: "none" }}>
         ← Volver a Administración
       </Link>
       <span className="studio-eyebrow" style={{ display: "block", marginTop: 12 }}>
@@ -55,7 +55,7 @@ export default async function OficinaRevisionPage({
       <h1 className="studio-display" style={{ fontSize: 30, margin: "8px 0", color: "var(--ink)" }}>
         Revisión de borradores
       </h1>
-      <p style={{ font: "400 13px/1.4 var(--font-sans, 'Archivo')", color: "var(--ink-soft)", margin: "0 0 16px", maxWidth: "76ch" }}>
+      <p style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 16px", maxWidth: "76ch" }}>
         Lo que redactó el agente soporte-chatwoot. Nada se envía sin tu aprobación, y solo a la bandeja de prueba.
       </p>
       {r && AVISOS[r] ? (
@@ -64,7 +64,7 @@ export default async function OficinaRevisionPage({
         </p>
       ) : null}
       {conteo.ok ? (
-        <p style={{ font: "400 13px/1.4 var(--font-sans, 'Archivo')", margin: "0 0 16px" }}>
+        <p style={{ font: "400 13px/1.4 var(--f-sans)", margin: "0 0 16px" }}>
           Conteo de la etapa {conteo.datos.etapa}: {conteo.datos.conversaciones} de {conteo.datos.minimo} conversaciones,{" "}
           {conteo.datos.correctas} correctas (hacen falta {conteo.datos.minimoCorrectas}), {conteo.datos.conInventados} con datos
           inventados. {conteo.datos.cumple ? "Cumple el conteo (Sam firma el paso)." : "Todavía no cumple."}

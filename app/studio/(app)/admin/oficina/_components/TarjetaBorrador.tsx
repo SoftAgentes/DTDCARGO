@@ -7,10 +7,10 @@ import { CASILLAS, type BorradorPendiente } from "@/lib/studio/oficina/revisione
 export const estiloTextoPlano: React.CSSProperties = {
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
-  font: "400 14px/1.5 var(--font-sans, 'Archivo')",
+  font: "400 14px/1.5 var(--f-sans)",
   color: "var(--ink)",
-  background: "var(--paper-2, #f6f5f2)",
-  border: "1px solid var(--line, #e4e2dc)",
+  background: "var(--bg-elevated)",
+  border: "1px solid var(--border)",
   borderRadius: 8,
   padding: "var(--s-3, 12px)",
   margin: 0,
@@ -19,9 +19,9 @@ export const estiloTextoPlano: React.CSSProperties = {
 export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (formData: FormData) => void | Promise<void> }) {
   return (
     <article
-      style={{ border: "1px solid var(--line, #e4e2dc)", borderRadius: 12, padding: "var(--s-4, 16px)", marginBottom: "var(--s-4, 16px)" }}
+      style={{ background: "var(--bg-surface)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 12, padding: "var(--s-4, 16px)", marginBottom: "var(--s-4, 16px)" }}
     >
-      <p style={{ margin: "0 0 8px", font: "500 12px/1.3 var(--font-sans, 'Archivo')", color: "var(--ink-soft)" }}>
+      <p style={{ margin: "0 0 8px", font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
         {b.tipo === "respuesta" ? `Respuesta · guion ${b.guion ?? "?"}` : `Escalado · prioridad ${b.prioridad ?? "?"}`}
         {b.conversacion !== null ? ` · conversación ${b.conversacion}` : ""} · {b.creadoEn.slice(0, 16).replace("T", " ")} UTC
       </p>
@@ -32,14 +32,14 @@ export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (
       <form action={accion} style={{ marginTop: "var(--s-3, 12px)" }}>
         <input type="hidden" name="borrador" value={b.borradorId} />
         <fieldset style={{ border: 0, padding: 0, margin: "0 0 8px" }}>
-          <legend style={{ font: "600 13px/1.3 var(--font-sans, 'Archivo')", marginBottom: 6 }}>eval.md (las 5 casillas)</legend>
+          <legend style={{ font: "600 13px/1.3 var(--f-sans)", marginBottom: 6 }}>eval.md (las 5 casillas)</legend>
           {CASILLAS.map((c) => (
-            <label key={c.clave} style={{ display: "block", font: "400 13px/1.6 var(--font-sans, 'Archivo')" }}>
+            <label key={c.clave} style={{ display: "block", font: "400 13px/1.6 var(--f-sans)" }}>
               <input type="checkbox" name={c.clave} /> {c.texto}
             </label>
           ))}
         </fieldset>
-        <label style={{ display: "block", font: "400 13px/1.4 var(--font-sans, 'Archivo')" }}>
+        <label style={{ display: "block", font: "400 13px/1.4 var(--f-sans)" }}>
           Motivo (obligatorio, sin datos personales)
           <textarea name="motivo" required maxLength={500} rows={2} style={{ display: "block", width: "100%", marginTop: 4 }} />
         </label>
