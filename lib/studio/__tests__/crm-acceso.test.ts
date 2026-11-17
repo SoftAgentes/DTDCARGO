@@ -113,6 +113,8 @@ describe("los enlaces que ya existen siguen abriendo la pestaña Bandeja (sin re
     "lib/studio/chatwoot/portal.ts",
     "lib/studio/chatwoot/agentes-ciclo.ts",
     "lib/studio/guia/recorridos.ts",
+    // SDD-0650 (ficha del cliente en tres columnas): «Abrir en la Bandeja».
+    "lib/studio/ficha-cliente.ts",
   ];
 
   it.each(PRODUCTORES)("%s apunta a /studio/bandeja, que es la pestaña Bandeja del CRM", (archivo) => {
