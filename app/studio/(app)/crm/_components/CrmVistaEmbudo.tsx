@@ -13,11 +13,27 @@ import { useEffect, useState } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import type { CrmColumna, CrmEtapa, CrmTablero, CrmTarjetaTablero } from "@/lib/studio/crm-tablero";
+import { Icon } from "@/app/studio/_components/icons";
+import { useChatPermitido } from "./ChatPermitido";
 import { CrmEmbudosLista } from "./CrmEmbudosLista";
 import { CrmTableroKanban } from "./CrmTableroKanban";
 
 type Vista = "tablero" | "lista";
-const CLAVE = "dtd:crm:vista-embudo";
+export const CLAVE_VISTA = "dtd:crm:vista-embudo";
+const CLAVE = CLAVE_VISTA;
+
+/** Avisos que deja la ruta del chat en `?chat=` (SDD-0648 §4). */
+const AVISO_CHAT: Record<string, { tono: "info" | "error"; texto: string }> = {
+  sin: { tono: "info", texto: "Esa tarjeta todavía no tiene conversación en Chatwoot." },
+  error: {
+    tono: "error",
+    texto: "No se pudo abrir el chat: Chatwoot no respondió. Vuelve a intentarlo desde la tarjeta.",
+  },
+  sin_bandeja: {
+    tono: "info",
+    texto: "Tu usuario no tiene la Bandeja de Chatwoot. Pídesela a un administrador para chatear desde el CRM.",
+  },
+};
 
 export function CrmVistaEmbudo(props: {
   tablero: CrmTablero;
@@ -31,6 +47,8 @@ export function CrmVistaEmbudo(props: {
   const [vista, setVista] = useState<Vista>("tablero");
   // `?chat=sin|error` lo pone la ruta del chat (SDD-0648 §4) al no encontrarlo.
   const [chat, setChat] = useState<string | null>(null);
+  const chatPermitido = useChatPermitido();
+  const aviso = chat ? AVISO_CHAT[chat] : undefined;
 
   // Se lee al montar, no al pintar en el servidor: así no hay desajuste de hidratación.
   useEffect(() => {
@@ -54,16 +72,23 @@ export function CrmVistaEmbudo(props: {
 
   return (
     <div data-ancho-completo>
-      {(chat === "sin" || chat === "error") && (
+      {aviso && (
         <div style={{ marginBottom: "var(--s-3)" }}>
-          <Aviso tono={chat === "error" ? "error" : "info"} compacto>
-            {chat === "error"
-              ? "No se pudo abrir el chat: Chatwoot no respondió o no tienes acceso. Vuelve a intentarlo desde la tarjeta."
-              : "Esa tarjeta todavía no tiene conversación en Chatwoot."}
+          <Aviso tono={aviso.tono} compacto>
+            {aviso.texto}
           </Aviso>
         </div>
       )}
-      <div style={{ marginBottom: "var(--s-3)" }}>
+      <div
+        style={{
+          marginBottom: "var(--s-3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "var(--s-2)",
+          flexWrap: "wrap",
+        }}
+      >
         <SegmentedControl<Vista>
           variant="pills"
           ariaLabel="Vista del embudo"
@@ -74,6 +99,14 @@ export function CrmVistaEmbudo(props: {
             { value: "lista", label: "Lista" },
           ]}
         />
+        {/* SDD-0648 (D5, D7): todas las conversaciones, en la Bandeja a pantalla
+            completa. Solo si se puede entrar a la Bandeja (§4). */}
+        {chatPermitido && (
+          <a href="/studio/bandeja?volver=crm" className="studio-btn studio-btn-ghost studio-btn-sm">
+            {Icon.chat(14)}
+            Conversaciones
+          </a>
+        )}
       </div>
       {vista === "lista" ? (
         <CrmEmbudosLista tablero={props.tablero} columnas={props.columnas} onOpen={props.onOpen} />

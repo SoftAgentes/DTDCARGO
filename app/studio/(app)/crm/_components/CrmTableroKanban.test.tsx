@@ -6,6 +6,7 @@ import {
   type CrmEtapa,
   type CrmTarjetaTablero,
 } from "@/lib/studio/crm-tablero";
+import { ChatPermitido } from "./ChatPermitido";
 import { CrmTableroKanban } from "./CrmTableroKanban";
 
 afterEach(cleanup);
@@ -39,22 +40,26 @@ function pintar({
   tarjetas = [lead],
   onMove = vi.fn<(t: CrmTarjetaTablero, d: CrmEtapa) => void>(),
   onOpen = vi.fn<(t: CrmTarjetaTablero) => void>(),
+  chat = false,
 }: {
+  chat?: boolean;
   canEdit?: boolean;
   tarjetas?: CrmTarjetaTablero[];
   onMove?: Mock<(t: CrmTarjetaTablero, d: CrmEtapa) => void>;
   onOpen?: Mock<(t: CrmTarjetaTablero) => void>;
 } = {}) {
   render(
-    <CrmTableroKanban
-      tablero="leads"
-      columnas={armarColumnas(ETAPAS, tarjetas, "leads")}
-      etapas={ETAPAS}
-      canEdit={canEdit}
-      moviendo={new Set()}
-      onMove={onMove}
-      onOpen={onOpen}
-    />,
+    <ChatPermitido valor={chat}>
+      <CrmTableroKanban
+        tablero="leads"
+        columnas={armarColumnas(ETAPAS, tarjetas, "leads")}
+        etapas={ETAPAS}
+        canEdit={canEdit}
+        moviendo={new Set()}
+        onMove={onMove}
+        onOpen={onOpen}
+      />
+    </ChatPermitido>,
   );
   return { onMove, onOpen };
 }
@@ -130,16 +135,23 @@ describe("CrmTableroKanban · menú de la tarjeta (SDD-0648 §1)", () => {
 
   it("«Abrir chat» navega a la ruta que resuelve la conversación cuando el canal es de Chatwoot", async () => {
     const user = userEvent.setup();
-    pintar({ tarjetas: [{ ...lead, fuente: "whatsapp_leads" }] });
+    pintar({ tarjetas: [{ ...lead, fuente: "whatsapp_leads" }], chat: true });
     await user.click(disparador());
     const chat = screen.getByRole("menuitem", { name: "Abrir chat" });
     expect(chat.tagName).toBe("A");
     expect(chat.getAttribute("href")).toBe("/studio/crm/chat/t-1");
   });
 
+  it("sin entrada a la Bandeja (rol o flag) no ofrece «Abrir chat» aunque el canal sea de Chatwoot", async () => {
+    const user = userEvent.setup();
+    pintar({ tarjetas: [{ ...lead, fuente: "whatsapp_leads" }], chat: false });
+    await user.click(disparador());
+    expect(screen.queryByRole("menuitem", { name: "Abrir chat" })).toBeNull();
+  });
+
   it("sin canal de chat ni ficha no ofrece «Abrir chat»", async () => {
     const user = userEvent.setup();
-    pintar({ tarjetas: [{ ...lead, fuente: "manual" }] });
+    pintar({ tarjetas: [{ ...lead, fuente: "manual" }], chat: true });
     await user.click(disparador());
     expect(screen.queryByRole("menuitem", { name: "Abrir chat" })).toBeNull();
   });

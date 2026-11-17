@@ -21,6 +21,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionMenu, type ActionMenuItem } from "@/app/studio/_components/ui/ActionMenu";
 import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
 import { CanalLogo } from "./CanalLogo";
+import { useChatPermitido } from "./ChatPermitido";
 import {
   CRM_DIAS_ATENCION,
   CRM_TARJETAS_POR_COLUMNA,
@@ -276,7 +277,8 @@ function TarjetaCard({
   const dias = t.diasEnEtapa;
   const atencion = dias != null && dias >= CRM_DIAS_ATENCION;
   const canal = canalDeTarjeta(t.fuente, t.utmSource);
-  const conChat = canalConChat(canal) || t.shippingMark != null;
+  // SDD-0648 §4: solo si se puede entrar a la Bandeja (rol + flag `chatwoot_inbox`).
+  const conChat = useChatPermitido() && (canalConChat(canal) || t.shippingMark != null);
 
   const acciones: ActionMenuItem[] = [
     { key: "ficha", label: "Abrir ficha", icon: "doc", onSelect: onOpen },

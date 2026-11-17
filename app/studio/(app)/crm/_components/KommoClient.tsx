@@ -40,7 +40,6 @@ import {
   type KommoPipelineRow,
   type KommoStatusRow,
 } from "@/lib/studio/kommo-types";
-import { Icon } from "@/app/studio/_components/icons";
 import { CRM_TAB_POR_DEFECTO, KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 import { LeadActionsButton } from "./LeadActionsButton";
@@ -309,16 +308,7 @@ export function KommoClient({
       {/* Pestañas · SDD-0603 tramo 5d: la clase única del Studio; la activa va
           con relleno de tinta (BD-037). El margen y la espera van en el
           envoltorio, para que el tablist no lleve estilo propio. */}
-      <div
-        style={{
-          marginBottom: 20,
-          opacity: isPending ? 0.7 : 1,
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--s-2)",
-          flexWrap: "wrap",
-        }}
-      >
+      <div style={{ marginBottom: 20, opacity: isPending ? 0.7 : 1 }}>
         <div role="tablist" aria-label="Tablero CRM" className="studio-tabs">
           {KOMMO_TABS.map((t) => {
             const isActive = t.key === tab;
@@ -338,12 +328,6 @@ export function KommoClient({
             );
           })}
         </div>
-        {/* SDD-0648 (D5, D7): todas las conversaciones, en la Bandeja a pantalla
-            completa. Navega, así que es enlace y queda fuera del tablist. */}
-        <a href="/studio/bandeja?volver=crm" className="studio-btn studio-btn-ghost studio-btn-sm">
-          {Icon.chat(14)}
-          Conversaciones
-        </a>
       </div>
 
       {/* Contenido */}

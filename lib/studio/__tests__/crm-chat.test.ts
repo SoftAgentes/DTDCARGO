@@ -56,5 +56,6 @@ describe("destinoChat", () => {
   it("sin chat o con error vuelve al tablero con aviso", () => {
     expect(destinoChat({ ok: false, motivo: "sin_chat" })).toBe("/studio/crm?tab=embudos&chat=sin");
     expect(destinoChat({ ok: false, motivo: "error" })).toBe("/studio/crm?tab=embudos&chat=error");
+    expect(destinoChat({ ok: false, motivo: "sin_bandeja" })).toBe("/studio/crm?tab=embudos&chat=sin_bandeja");
   });
 });

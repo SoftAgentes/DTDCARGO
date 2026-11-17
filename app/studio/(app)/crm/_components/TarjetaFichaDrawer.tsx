@@ -29,6 +29,7 @@ import {
 } from "@/lib/studio/crm-ficha";
 import { FUENTE_LABEL, nombreEtapa, type CrmEtapa } from "@/lib/studio/crm-tablero";
 import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
+import { useChatPermitido } from "./ChatPermitido";
 import { rutaChatTarjeta } from "./CrmTableroKanban";
 import {
   agregarNotaTarjetaAction,
@@ -133,6 +134,7 @@ function Ficha({
   onCambio: () => void;
 }) {
   const utm = Object.entries(f.utm).filter(([, v]) => v);
+  const chatPermitido = useChatPermitido();
   // Un solo reloj por lectura de la ficha: se fija al montar, no en cada render.
   const [ahoraMs] = useState(() => Date.now());
 
@@ -170,7 +172,7 @@ function Ficha({
           <span className="studio-label">Quién contesta el chat (Chatwoot)</span>
           {/* SDD-0648 (D7): el chat se lee y se contesta en la Bandeja, a pantalla
               completa; la ficha sigue a media pantalla. */}
-          {(f.chat != null || canalConChat(canalDeTarjeta(f.fuente))) && (
+          {chatPermitido && (f.chat != null || canalConChat(canalDeTarjeta(f.fuente))) && (
             <p style={{ margin: "0 0 var(--s-2)" }}>
               <a href={rutaChatTarjeta(f.id)} className="studio-btn studio-btn-primary studio-btn-sm">
                 Abrir chat

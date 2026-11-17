@@ -3,7 +3,8 @@
  * completa (SDD-0648 §4, D7).
  *
  * Candados: sesión del Studio (proxy) + acceso al módulo del CRM (`kommo`, el
- * mismo de `CrmEmbudosSlot`) + RLS de la 0506/0539 al leer la tarjeta y el
+ * mismo de `CrmEmbudosSlot`; sin él, al inicio con `?denied=kommo`) + entrada a
+ * la Bandeja (rol + flag; sin ella, aviso `?chat=sin_bandeja`) + RLS de la 0506/0539 al leer la tarjeta y el
  * espejo de conversaciones. El token del enrutador solo se usa para listar los
  * ids de conversación de un contacto que la RLS ya dejó ver; la Bandeja y
  * Chatwoot vuelven a decidir si el agente puede abrir esa conversación.
@@ -16,6 +17,7 @@ import { localRedirect } from "@/lib/http/local-redirect";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
 import { chatwootRouterConfig } from "@/lib/studio/chatwoot/config";
+import { puedeAbrirBandeja } from "@/lib/studio/crm-chat-acceso";
 import { listarConversacionesContacto } from "@/lib/studio/chatwoot/router-api";
 import { destinoChat, resolverConversacion, type TarjetaParaChat } from "@/lib/studio/crm-chat";
 
@@ -27,8 +29,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ tarjeta
   const { tarjetaId } = await params;
   const supabase = await createClient();
   const access = await getStudioAccess(supabase);
+  // Sin sesión o sin el módulo del CRM: lo mismo que `requireModuleView("kommo")`.
   if (!canAccessModule(access.role, "kommo", access.overrides, access.grants) || !access.tenantId) {
-    return localRedirect("/studio/crm?tab=embudos&chat=error");
+    return localRedirect("/studio/dashboard?denied=kommo");
+  }
+  // Sin Bandeja (rol o flag): se avisa en el tablero en vez de rebotar al inicio.
+  if (!(await puedeAbrirBandeja(supabase))) {
+    return localRedirect(destinoChat({ ok: false, motivo: "sin_bandeja" }));
   }
   if (!UUID.test(tarjetaId)) return localRedirect(destinoChat({ ok: false, motivo: "sin_chat" }));
 

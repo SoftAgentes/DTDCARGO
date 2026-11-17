@@ -31,3 +31,8 @@ Tarjeta compacta, logo por canal, ancho completo, vista Lista y chat a pantalla 
 
 - El `node_modules` del checkout principal está junction-eado con `retira-espera-0548`: un `pnpm` en cualquiera de los dos borra los paquetes del otro.
 - Lista propia de conversaciones (D5) y TikTok como fuente propia (D4, migración).
+
+## Revisión independiente (2026-11-17)
+
+- Sin fugas de seguridad. Cambios pedidos y hechos: «Abrir chat» y «Conversaciones» solo con `puedeAbrirBandeja` (rol `bandeja` + flag `chatwoot_inbox`); «Conversaciones» pasa de `KommoClient` a Embudos, junto a Tablero | Lista; la ruta del chat manda a `/studio/dashboard?denied=kommo` sin CRM y a `?chat=sin_bandeja` sin Bandeja; pruebas nuevas de `CrmVistaEmbudo` y de la ruta; la #621 traída en `ebc71fc69`.
+- Pruebas de esta ronda: NO EJECUTADAS en la PC (orden del DG); el portón es CI.

@@ -24,7 +24,9 @@ export interface LecturasChat {
   delContacto: (contactId: number) => Promise<number[] | null>;
 }
 
-export type ResultadoChat = { ok: true; conversacion: number } | { ok: false; motivo: "sin_chat" | "error" };
+export type ResultadoChat =
+  | { ok: true; conversacion: number }
+  | { ok: false; motivo: "sin_chat" | "sin_bandeja" | "error" };
 
 export async function resolverConversacion(
   t: TarjetaParaChat,
@@ -46,5 +48,5 @@ export async function resolverConversacion(
 export function destinoChat(r: ResultadoChat): string {
   return r.ok
     ? `/studio/bandeja?c=${r.conversacion}&volver=crm`
-    : `/studio/crm?tab=embudos&chat=${r.motivo === "error" ? "error" : "sin"}`;
+    : `/studio/crm?tab=embudos&chat=${r.motivo === "sin_chat" ? "sin" : r.motivo}`;
 }
