@@ -20,10 +20,15 @@ confidencialidad: interno
 **Estado:** `proposed`. Fase 0 (esta PR): investigación, maqueta y spec. **No hay código de producto ni
 migraciones.** Cada fase siguiente necesita el visto bueno de Sam y el turno del Director General.
 
-**Maqueta:** `maqueta/portal-light.html` (autocontenida; se abre en el navegador). Publicada también como Artifact
-privado para Sam; el enlace va en la PR. Todos los nombres, montos y códigos de la maqueta son inventados.
+**Maqueta:** `maqueta/portal-vistas.html` (autocontenida; se abre en el navegador). Publicada también como
+Artifact privado para Sam; el enlace va en la PR. Todos los nombres, montos y códigos son inventados.
 
-**Decisiones:** D-1 a D-14 (§11). Decidida por Sam: D-4. Las demás están abiertas, cada una con la opción
+- Abre en la vista sencilla y arranca la guía. Con `#completa` al final de la dirección abre la vista completa;
+  con `#sencilla`, la sencilla sin guía.
+- La vista completa de la maqueta es una réplica del inicio de hoy, medida del código (§4.1). Lo único que se le
+  suma es el selector de vista y el botón de Faro.
+
+**Decisiones:** D-1 a D-15 (§11). Decidida por Sam: D-4. Las demás están abiertas, cada una con la opción
 recomendada.
 
 ## 1. Pedido de Sam (2026-11-16)
@@ -47,6 +52,8 @@ Ajustes de Sam al ver la primera maqueta (2026-11-16, en la sesión del Worker):
   instrucciones**, y una sección pequeña, «interactiva, visual y simple», que explica el Shipping Mark y cómo se
   arma el código.
 - El tema **predeterminado es el claro (blanco)**. El cliente puede pasar a noche.
+- Una **guía para las primeras veces** en la vista sencilla: «Recuerda, aquí puedes hacer esto», con tres a seis
+  consejos y la opción de «¿quieres continuar?» para seguir explicando la herramienta.
 - «Esta es la parte importante porque es lo que le gusta al cliente y nos separa de la competencia»: pidió una
   maqueta más trabajada, con la vista completa tal como está hoy y la sencilla con la marca vigente y el faro.
 
@@ -65,6 +72,8 @@ Lo que eso fija:
 - Selector visible en la barra superior del portal, en las dos vistas.
 - Inicio de la vista sencilla: seis bloques en una página (§6).
 - Ayudas fijas de tres tipos (Consejo, Recuerda, Atención) y un glosario en línea.
+- Guía paso a paso para las primeras veces (§6.1).
+- Tema claro como predeterminado del portal (D-14).
 - Faro del cliente: panel de preguntas sobre la cuenta propia, con fronteras duras (§7).
 
 **No entra:**
@@ -197,6 +206,15 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 - Acceso: mixto. Las lecturas del cliente usan su sesión con RLS y además filtran por tenant y Shipping Mark
   (`lib/portal/portal-queries.ts:6-17`). Algunas lecturas usan service_role (por ejemplo zarpes,
   `app/portal/(app)/layout.tsx:125`), contenido por la SDD-0335.
+- **El portal nace hoy en tema oscuro:** `app/portal/(app)/layout.tsx:54` usa claro solo si la cookie dice
+  `light`. Sam pidió que el predeterminado sea el claro (D-14).
+- **El seguimiento está «en construcción»** (`lib/portal/tracking-en-construccion.ts`, SDD-0514): el almacén de
+  China todavía registra en Excel, así que lo que sigue a la prealerta sale vacío y el inicio muestra un aviso. El
+  inicio de hoy no tiene una franja de etapas: muestra un arco con un porcentaje derivado del estado
+  (`app/portal/(app)/_components/PortalDashboardNorte.tsx`). Esto condiciona el bloque 1 de la vista sencilla
+  (§6, §12).
+- Motor de guía: existe uno en el Studio (SDD-0589, `lib/studio/guia/`), con recorridos por pantalla, anclas y
+  arranque automático la primera vez. Es del Studio; el portal no lo puede importar tal cual (§6.1).
 - Preferencias: solo existe la cookie `portal-theme` (tema claro/oscuro),
   `app/portal/_components/PortalThemeToggle.tsx:26`. **Ojo con el nombre:** «light» ya significa tema claro.
   Por eso esta spec usa «sencilla» y «completa» en código y en pantalla (D-10). No hay tabla de preferencias del
@@ -249,6 +267,8 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
   `completa`. Así la fase 1 puede fusionarse antes de aplicar la migración sin cambiar nada para nadie.
 - **Interruptor general:** `PORTAL_VISTA_SENCILLA` (variable de entorno, apagada por defecto). Apagado, nadie ve el
   selector ni la vista sencilla, aunque su fila diga `sencilla`.
+- **Guía vista:** en la misma migración, `client_users.portal_guia_vista_at timestamptz null`. Vacío significa que
+  la guía todavía no se le mostró (§6.1, D-15).
 - **Migración:** `0557_portal_vista_preferida.sql` (número reservado por el DG para esta spec).
 
 Alternativa descartada: guardarla solo en cookie, como el tema. Es más simple, pero no sigue al cliente entre su
@@ -275,8 +295,7 @@ Ver la maqueta. Resumen:
      hay, lo dice: «No tienes nada pendiente».
   3. **Cuánto debes.** Saldo en USD; bolívares solo como vista, según la regla vigente.
   4. **Tus documentos.** Los últimos papeles con su botón de descarga.
-  5. **¿Te quedó una duda?** Faro y el chat con el asesor (SDD-0147).
-  6. **¿Vas a comprar en China? Envíale esto a tu proveedor.** Dos partes:
+  5. **¿Vas a comprar en China? Envíale esto a tu proveedor.** Dos partes:
      - El mensaje listo para copiar, con la dirección del almacén, quién recibe y el código que va en cada caja.
        Es el mismo texto que hoy arman `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx`
        en «Mis compras» (`app/portal/(app)/proveedores/SuppliersClient.tsx:120-131`); la vista sencilla lo
@@ -286,6 +305,7 @@ Ver la maqueta. Resumen:
        dibujada con el código puesto.
      - En pantalla se dice **«Shipping Mark»**, nunca «Markbox» (BRAND.md, BD-022).
      - Para registrar un proveedor o una compra nueva, enlaza a la vista completa.
+  6. **¿Te quedó una duda?** Faro y el chat con el asesor (SDD-0147).
 - **Cada bloque enlaza** a su pantalla de la vista completa. No hay un tercer nivel.
 - **Ayudas:** tres tipos fijos, con ícono y texto visible, nunca tooltip:
   - **Consejo**: un atajo o una recomendación.
@@ -294,8 +314,31 @@ Ver la maqueta. Resumen:
 - **Glosario en línea:** desplegables con las palabras que el cliente no tiene por qué saber (consolidado, m³,
   packing list, prealerta, aduana). Viven en un archivo de contenido revisado, el mismo que usará Faro del cliente.
 - **Copy:** tuteo, voz activa, frases cortas, un verbo por botón. «Contenedor» o «consolidado», nunca «lote».
+- **Mientras el seguimiento esté en construcción** (§4.1), el bloque 1 no inventa etapas: muestra lo que sí se
+  sabe (prealerta recibida, zarpe y entrega, que salen de operaciones del Studio) y el mismo aviso de hoy, en
+  palabras sencillas. La ruta con sus cinco puntos se enciende con el mismo interruptor que apaga ese aviso.
 - **Sin datos nuevos:** todo sale de las lecturas que ya usa el portal (§4.1). Si una lectura usa service_role
   hoy, la vista sencilla no suma usos nuevos.
+
+### 6.1 Guía para las primeras veces
+
+Pedido de Sam. En la maqueta, botón «Guía» o primera carga.
+
+- **Arranca sola** la primera vez que la persona entra a la vista sencilla. Se puede saltar («Ahora no») en
+  cualquier paso y repetir con el botón «Guía» de la barra superior.
+- **Cinco consejos**, uno por bloque: dónde está tu carga, lo que te toca hacer, cuánto debes, qué le mandas a tu
+  proveedor y Faro. Cada uno resalta su bloque y dice una sola cosa.
+- Al terminar pregunta **«¿Quieres continuar?»**: «Sí, 3 consejos más» (cambiar de vista, día o noche, tus
+  papeles) o «Listo por ahora».
+- **«Nuevo»:** una etiqueta pequeña marca un bloque que la persona todavía no ha abierto o una función recién
+  agregada. Se quita sola al usarla.
+- **Dónde se guarda que ya la vio:** en la fila de la persona (`client_users`), junto a la preferencia de vista,
+  para que no se repita en otro dispositivo (D-15).
+- **Motor:** se extrae a `lib/shared/` la parte del motor de la SDD-0589 que no depende del Studio (pasos, anclas,
+  posición de la tarjeta), y el portal la usa con su propio catálogo de recorridos. Si extraerla resulta más
+  costoso que escribir un motor pequeño para el portal, se escribe el pequeño; se decide al medir en la fase 2. El
+  portal no importa `@/lib/studio`.
+- Respeta `prefers-reduced-motion`, funciona con teclado (Escape cierra) y en teléfono.
 
 ## 7. Faro del cliente
 
@@ -378,8 +421,8 @@ PR o se saca.
 | Fase | Qué | Allowlist | Puerta |
 |---|---|---|---|
 | 0 | Investigación, maqueta y spec | `docs/specs/0654-version-light-portal/**`, `docs/specs/README.md`, `.agents/handoffs/sdd-0654-version-light-portal.md` | Esta PR. Sam ve la maqueta |
-| 1 | Preferencia y selector, interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql` y su `.test.sql`; `lib/portal/vista-preferida.ts` y su prueba; `app/portal/(app)/layout.tsx`; `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` (nuevo); `app/portal/_actions/vista-preferida.ts` (nuevo); `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
-| 2 | Inicio sencillo, ayudas y glosario | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_sencilla/**` (nuevo); `lib/portal/sencilla/**` (nuevo: armado de bloques y contenido de ayudas y glosario); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
+| 1 | Preferencia y selector, interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql` y su `.test.sql`; `lib/portal/vista-preferida.ts` y su prueba; `app/portal/(app)/layout.tsx` (preferencia y tema claro por defecto); `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` (nuevo); `app/portal/_actions/vista-preferida.ts` (nuevo); `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
+| 2 | Inicio sencillo, ayudas y glosario | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_sencilla/**` (nuevo); `lib/portal/sencilla/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
 | 3 | Faro del cliente con motor simulado | `lib/portal/faro/**` (nuevo); `app/api/portal/faro/route.ts` (nuevo); `app/portal/_components/PortalFaroPanel.tsx` (nuevo); el botón de Faro del Studio, movido a un lugar compartido si la 0637 ya lo creó; una migración de registro (número del DG) y su `.test.sql`; pruebas de FC-1 a FC-12 | Depende de la fase 3 de la 0637 (motor y topes). Revisión de datos |
 | 4 | Primer envío real | Solo configuración y textos: `/privacidad`, inventario de terceros, aviso del panel | Revisión de datos aprobada. OK nominal de Sam |
 | 5 | Batería adversaria y encendido | `lib/portal/faro/__tests__/bateria/**` | Batería verde; encendido con OK de Sam |
@@ -398,6 +441,9 @@ PR o se saca.
 | AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», con el Shipping Mark del cliente; una prueba compara las dos salidas | 2 |
 | AC-14 | El botón de Faro es el mismo componente en el Studio y en el portal | 3 |
 | AC-8 | La vista sencilla no agrega lecturas con service_role | 2 |
+| AC-15 | Sin cookie de tema, el portal abre en claro; quien ya eligió noche lo conserva | 1 |
+| AC-16 | La guía arranca sola solo la primera vez por persona, se puede saltar y se repite con el botón «Guía» | 2 |
+| AC-17 | Con el seguimiento en construcción, el bloque 1 no muestra etapas que el sistema no conoce | 2 |
 | AC-9 | Cada frontera FC-1 a FC-12 tiene su prueba y pasa | 3 |
 | AC-10 | Un fallo de aislamiento entre clientes pone roja la CI | 3 |
 | AC-11 | La batería tiene preguntas permitidas y rechazadas, en español y en inglés, y mide también el rechazo de preguntas legítimas | 5 |
@@ -419,6 +465,8 @@ PR o se saca.
 | D-10 | ¿Cómo se llama en pantalla? | **«Vista sencilla» y «Vista completa»**, no «light» y «full»: «light» ya es el tema claro y el cliente habla español |
 | D-11 | ¿Faro del cliente puede hablar de precios? | **No en la primera versión.** Para precios enlaza a la calculadora y a las cotizaciones del cliente |
 | D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra si el cliente ya tiene un proveedor registrado; si no, solo su Shipping Mark** y el enlace para registrar al proveedor |
+| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista completa |
+| D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
 | D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
 
 ## 12. Riesgos
@@ -426,6 +474,8 @@ PR o se saca.
 | Riesgo | Mitigación |
 |---|---|
 | La vista sencilla oculta algo que el cliente necesita | Cada bloque enlaza a la completa; prueba con clientes (D-12) |
+| El bloque «¿Dónde está tu carga?» promete más de lo que el sistema sabe | Mientras el seguimiento esté en construcción, el bloque muestra solo lo conocido (§6, AC-17). La vista sencilla luce completa cuando el almacén registre en el sistema |
+| El botón de Faro y el de la calculadora flotan en la misma esquina | En la maqueta van apilados. Se resuelve junto con la D-2 de la 0637 (un solo elemento flotante) |
 | Tono condescendiente | Ayudas opcionales, cortas, sin repetir lo obvio; bienvenida que se cierra |
 | Dos vistas que mantener | La sencilla no tiene pantallas propias más allá del inicio; reutiliza lecturas y enlaza al resto |
 | Faro filtra datos de otro cliente | Ficha con sesión y RLS (FC-1), revisión de salida (FC-7), prueba que pone roja la CI (AC-10) |
