@@ -602,7 +602,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select
     l.id,
     exists (
@@ -625,7 +625,7 @@ as $
   where l.id = any(p_link_ids)
     and l.used_at is not null
     and l.tenant_id = public.get_user_tenant_id();
-$;
+$$;
 
 comment on function public.portal_registration_link_email_status(uuid[]) is
   'SDD-0646 D-1: por cada link usado del tenant del usuario, si el cliente volvió a entrar al portal por un camino que pasa por su correo (regla conservadora; ver la migración).';

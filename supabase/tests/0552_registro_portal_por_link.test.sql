@@ -523,22 +523,22 @@ update auth.users set last_sign_in_at =
  where id = '00000000-0000-0000-0000-0000000000c1';
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
-do $ begin
+do $$ begin
   assert not (select entered_via_email from public.portal_registration_link_email_status(
     array[(select id from public.client_registration_links where token_hash = repeat('b', 64))])),
     'contó como prueba del correo la entrada del propio registro';
-end $;
+end $$;
 reset role;
 update auth.users set last_sign_in_at =
   (select used_at from public.client_registration_links where token_hash = repeat('b', 64)) + interval '2 hours'
  where id = '00000000-0000-0000-0000-0000000000c1';
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
-do $ begin
+do $$ begin
   assert (select entered_via_email from public.portal_registration_link_email_status(
     array[(select id from public.client_registration_links where token_hash = repeat('b', 64))])),
     'no vio que el cliente volvió a entrar después del registro';
-end $;
+end $$;
 reset role;
 -- Un acceso por WhatsApp después del registro no prueba el correo.
 insert into public.portal_access_links (tenant_id, client_id, used_at)
@@ -546,18 +546,18 @@ select tenant_id, client_id, used_at + interval '1 hour'
   from public.client_registration_links where token_hash = repeat('b', 64);
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
-do $ begin
+do $$ begin
   assert not (select entered_via_email from public.portal_registration_link_email_status(
     array[(select id from public.client_registration_links where token_hash = repeat('b', 64))])),
     'contó como prueba del correo una entrada por WhatsApp';
-end $;
+end $$;
 -- Otro tenant no ve el estado de estos links.
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e1';
-do $ begin
+do $$ begin
   assert not exists (select 1 from public.portal_registration_link_email_status(
     array(select id from public.client_registration_links))),
     'otro tenant leyó el estado de los correos';
-end $;
+end $$;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
 
 -- ═════════════════════════════════════════════════════════════════════════════
