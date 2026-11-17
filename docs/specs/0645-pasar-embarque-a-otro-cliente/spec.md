@@ -24,9 +24,9 @@ confidencialidad: interno
 ## 1. Contexto
 
 En prueba se cargó el consolidado DDP 64. Dos líneas sin código (5 cajas «HZ» y 1 caja «SIN CODIGO») quedaron en una
-ficha provisional **DTD-0000 «SIN IDENTIFICAR»**, para que Alejandro, de operaciones, las pase a su dueño real cuando lo
-sepa. Pedido de Sam (2026-11-16, literal): «Móntalas como están y sin código para que Alejandro las aclare… y que él los
-pueda editar adentro del ERP si es necesario.» Sam aprobó encargarla: «Sí, encárgala».
+ficha provisional **DTD-0000 «SIN IDENTIFICAR»**, para que la persona de operaciones las pase a su dueño real cuando lo
+sepa. Pedido de Sam (2026-11-16, con el nombre reemplazado por su rol): «Móntalas como están y sin código para que [la
+persona de operaciones] las aclare… y que él los pueda editar adentro del ERP si es necesario.» Sam aprobó encargarla: «Sí, encárgala».
 
 Hoy el Studio no lo permite (verificado en `main` b9b29db96):
 
@@ -59,7 +59,7 @@ No hay `client_id` en `shipments`. El vínculo es el texto `client_markbox` (Shi
 
 1. Una RPC transaccional `reassign_shipment_client(p_shipment_id, p_client_id, p_reason, p_dry_run)` que mueve un
    embarque y lo que cuelga de él a otro cliente del mismo tenant, o explica por qué no.
-2. Una acción RBAC nueva `reassign_shipment_owner` (operations + admin) en `lib/studio/rbac.ts`.
+2. Una acción RBAC nueva `reassign_shipment_owner` (operations + commercial + admin, D2) en `lib/studio/rbac.ts`.
 3. En el detalle del embarque (`/studio/tracking/[id]`), «Pasar a otro cliente»: buscador de cliente por nombre,
    cédula o Shipping Mark (el `ClientCombobox` de SDD-0108), vista previa de lo que se mueve, motivo obligatorio y
    confirmación.
@@ -79,7 +79,7 @@ No hay `client_id` en `shipments`. El vínculo es el texto `client_markbox` (Shi
 
 ### 3.1 Quién
 
-Solo `operations` y `admin` activos del tenant (`user_tenants.disabled_at is null`, la única membresía activa de
+Solo `operations`, `commercial` y `admin` activos del tenant (D2 de Sam) (`user_tenants.disabled_at is null`, la única membresía activa de
 `get_user_tenant_id()`, 0453). La server action exige la acción RBAC `reassign_shipment_owner`; la base lo exige por su
 cuenta (42501), porque la RPC es alcanzable por PostgREST.
 
@@ -126,10 +126,21 @@ hace falta tocar la RLS.
 **No se toca:** `quotes` convertidas (la cotización fue del viejo), `legal_acceptances`, recibos y pagos, cajas de
 Venezuela y paquetes de despacho (si hay despacho vivo, se bloquea antes).
 
+### 3.4b Avisos que no bloquean (H-1 y H-2, decisiones del DG, 2026-11-16)
+
+- **Tarifa congelada (H-1).** `shipment_rate_snapshots` (0496) guarda por recepción el `client_id` y el precio del
+  cliente que la congeló. La 0551 **no la toca y no bloquea**: la vista previa avisa «N recepciones tienen tarifa congelada
+  del cliente anterior; contabilidad debe reemplazarla antes de facturar» (las vivas, `superseded_at is null`, de otro
+  cliente) y el evento guarda ese conteo en `payload.warnings`.
+- **Lo que verá el cliente nuevo en el Portal (H-2).** La vista previa cuenta, por tipo y sin contenido, los documentos
+  del Portal (BL, POD, otro) y los eventos del seguimiento (cuántos tienen nota). Que el cliente nuevo vea documentos y
+  notas escritos cuando el embarque era de la ficha anterior es un **riesgo aceptado**, con ese aviso para que quien lo
+  pasa revise antes de confirmar.
+
 ### 3.5 Respuesta
 
 `jsonb` con `outcome` (`preview` | `blocked` | `reassigned`), el Shipping Mark viejo y el nuevo, el código del embarque,
-`blockers` y `moved` (tabla → filas). La vista previa calcula exactamente lo mismo, sin escribir.
+`blockers`, `warnings` (§3.4b), `portal` (§3.4b) y `moved` (tabla → filas). La vista previa calcula exactamente lo mismo, sin escribir.
 
 ### 3.6 Auditoría (AUD-01, AUD-02)
 
@@ -198,7 +209,9 @@ Consecuencia visible: un embarque nacido en la ficha provisional puede llevar el
 
 ### 4.5 Roles (resuelta por la tarea)
 
-`operations` y `admin`, con la acción RBAC nueva `reassign_shipment_owner` (lista `["operations"]`, admin implícito).
+`operations`, `commercial` y `admin` (D2 de Sam, 2026-11-16), con la acción RBAC nueva `reassign_shipment_owner`
+(lista `["operations", "commercial"]`, admin implícito). No hay un rol de logística distinto de `operations`: los roles
+son `admin`, `commercial`, `operations`, `accounting`, `warehouse`, `support` y `marketing`.
 
 ### 4.6 Auditoría (resuelta por la tarea)
 
@@ -210,8 +223,17 @@ El Subdirector Portal se las hace **una por una**:
 
 - **D1. ¿El código del embarque se conserva al pasarlo?** **Resuelta por Sam el 2026-11-16:** se conserva, con el
   cambio tachado y explicado en el detalle y su historial (§4.4).
-- **D2. ¿`commercial` también puede pasarlo?** Recomendado: no; solo operaciones y admin, como pidió la tarea.
-  Agregarlo es una línea en `CAPABILITIES` y otra en la migración. Sin respuesta al 2026-11-16: rige la recomendada.
+- **D2. ¿`commercial` también puede pasarlo?** **Resuelta por Sam el 2026-11-16** (en el chat del DG; el nombre de la
+  persona va reemplazado por su rol, porque el repositorio es público):
+
+  > «Que comercial, logística y [la persona de operaciones] (que no sé qué rol tiene) puedan hacerlo. Lo importante es
+  > que quede un registro de quién está haciendo los cambios en los logs, eso es todo. Después pongo algo para poder
+  > buscar en los logs quién hizo ese cambio o que aparezca en una ficha en el embarque, así que no hay problema por
+  > ahora. Deja que ellos lo hagan porque estamos en start y no quiero estar al pendiente de todos los permisos. Ya los
+  > voy modificando con el tiempo.»
+
+  Traducción del DG: `admin`, `operations` y `commercial`. «Logística» es `operations` (no hay otro rol), y la
+  persona de operaciones también.
 - **D3. ¿El Portal del cliente nuevo muestra la trazabilidad?** Propuesta del DG: que vea solo la explicación del
   código («el código de las etiquetas se mantiene porque ya estaba impreso»), **sin** el Shipping Mark ni el nombre del
   cliente anterior, que son datos de otra persona. **Abierta para Sam; esta PR no toca el Portal.**
@@ -248,12 +270,16 @@ El Subdirector Portal se las hace **una por una**:
 
 ## 6. Criterios de aceptación
 
-1. Un `operations` o `admin` activo pasa un embarque a otro cliente con motivo, y se mueven el embarque, sus
+1. Un `operations`, `commercial` o `admin` activo pasa un embarque a otro cliente con motivo, y se mueven el embarque, sus
    recepciones vivas (y sus cajas), su borrador, sus líneas de consolidación, sus documentos y sus avisos `scheduled`.
-2. `commercial`, `accounting`, `warehouse`, `support`, `marketing`, un usuario desactivado, `anon` y un admin de otro
+2. `accounting`, `warehouse`, `support`, `marketing`, un usuario desactivado, `anon` y un admin de otro
    tenant reciben 42501, sin cambios.
 3. Cada bloqueo de §3.3 impide el cambio y su contraparte (anulada, eliminada, cancelada) no lo impide.
 4. Todo o nada: con un bloqueo o un error del evento de auditoría, ninguna fila cambia.
+4b. (H-1) Con una recepción con tarifa congelada viva de otro cliente, la vista previa avisa el conteo, el cambio
+    se hace, la tarifa no cambia y el evento guarda el conteo; una ya sustituida no avisa.
+4c. (H-2) La vista previa cuenta los documentos del Portal por tipo y los eventos del seguimiento (y cuántos con nota).
+4d. (H-6) Un admin de otro tenant no encuentra el embarque, ni con un cliente de su propio tenant.
 5. La vista previa devuelve los mismos conteos que el cambio real y no escribe nada ni deja evento.
 6. El evento `shipment_client_reassigned` lleva actor, motivo, antes/después solo con el Shipping Mark y la correlación.
 7. Las facturas anuladas, los avisos enviados, las recepciones eliminadas y las cotizaciones no cambian.
@@ -277,7 +303,8 @@ El Subdirector Portal se las hace **una por una**:
   sincronía de cajas de 0240, `get_user_tenant_id()` SECURITY DEFINER, y que quien aplica omite RLS.
 - `reassign_shipment_client(uuid, uuid, text, boolean)`: SECURITY DEFINER, `search_path` vacío, `EXECUTE` solo
   `authenticated`.
-- Postflight: forma, ACL, timeouts restaurados.
+- Postflight: forma y ACL. `lock_timeout` y `statement_timeout` son `set local`: rigen sólo dentro de la transacción del
+  envoltorio del runbook y vuelven solos al terminar; el postflight no los mide (H-5).
 - Concurrencia: aplicar toma `FOR UPDATE` del embarque, sus recepciones y sus facturas, en orden de id; la vista
   previa no bloquea. PGlite tiene una sola conexión, así que el contrato no prueba la carrera: queda como
   **NO VERIFICADO** en concurrencia real.
