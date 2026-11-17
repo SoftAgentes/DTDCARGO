@@ -43,3 +43,29 @@ Lectura: no se ve una regresión atribuible a la A2. Es inestabilidad de `next d
 ## Fuera de alcance detectado
 
 - `next dev` 16.4 (ya en main desde la A1) escribe un bloque `nextjs-agent-rules` en `AGENTS.md` cuando detecta un agente (`node_modules/next/dist/server/lib/start-server.js:406`). Se desactiva con `agentRules: false` en `next.config.ts`. Se le propuso al DG una PR aparte.
+
+## Ronda del DG (2026-11-17)
+
+### `@emnapi` en beta
+
+- `pnpm why @emnapi/core --prod` sale vacío.
+- Llega solo por `@rolldown/binding-wasm32-wasi`, que viene de `vite` 8.3.8, `@vitejs/plugin-react` y devDependencies.
+- No entra en la imagen de producción. El DG la aceptó con esa condición.
+
+### Render de PDF
+
+- **Pruebas existentes:** `lib/studio/pdf/**` y `document-import/pdf.test.tsx` pasan: 5 archivos, 60 pruebas.
+- **Hallazgo:** bajo jsdom, `@react-pdf` 4.9 genera PDF que poppler no puede leer (`Missing 'endstream'`, `Bad FCHECK in flate stream`). Con 4.5.1 en jsdom salían bien. Las pruebas pasaban igual porque solo miran que el buffer no esté vacío y que empiece con `%PDF-`.
+- **Servidor:** Next carga `@react-pdf/renderer` como paquete externo con `import()` (Turbopack `e.y(...)` en `.next/server`). Reproduje ese camino empaquetando `ReciboDocument` con esbuild en ESM y `packages: external`, y lo importé en Node. Resultado:
+
+  | Versión | Páginas | Bytes | Errores de poppler |
+  |---|---|---|---|
+  | 4.5.1 | 1 | 3036 | 0 |
+  | 4.9.0 | 1 | 3035 | 0 |
+
+  El texto extraído es idéntico.
+- **En Vitest con `--environment node`:** los 3 PDF (recibo y dos finiquitos) dan 0 errores de poppler.
+- **Datos:** sintéticos («Persona Sintetica», EMP-0001), sin datos reales.
+- **Cambio de pruebas:** `recibo-pdf.test.ts` y `finiquito-pdf.test.ts` pasan a `// @vitest-environment node`, como ya hace `document-import/pdf.test.tsx`, para probar lo que corre en el servidor. No se debilitó ninguna aserción.
+- **Riesgo residual:** un componente de cliente que generara el PDF en el navegador saldría corrupto. Hoy no hay ninguno: ningún archivo con `"use client"` importa `@react-pdf`, y `ReciboTab` solo lo menciona en un comentario.
+- **Otro hallazgo:** bajo CJS (`tsx`), la 4.9 no carga, porque `@react-pdf/hyphenate` 0.1.0 solo exporta `import`. Hoy no afecta: no hay scripts que usen react-pdf con `require`.

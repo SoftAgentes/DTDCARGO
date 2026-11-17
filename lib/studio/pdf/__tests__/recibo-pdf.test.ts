@@ -1,3 +1,5 @@
+// @vitest-environment node
+// El PDF se genera en el servidor (Node). Con @react-pdf 4.9, jsdom resuelve el build de navegador y el PDF sale corrupto (SDD-0656 A2).
 import { describe, it, expect } from "vitest";
 import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
