@@ -219,6 +219,11 @@ const nextConfig: NextConfig = {
   output: process.env.DTD_STANDALONE === "1" ? "standalone" : undefined,
   // Sitio público, optimizado para SEO. App Router por default.
   reactStrictMode: true,
+  // Next 16.4 escribe por su cuenta un bloque «nextjs-agent-rules» en AGENTS.md
+  // cuando `next dev` detecta un agente de IA, y lo repone si se borra.
+  // AGENTS.md es gobernanza del repo: sus reglas no las escribe una dependencia
+  // (SDD-0656). La opción está en next/dist/server/config-shared.d.ts.
+  agentRules: false,
   // Bloquea que el sitio dependa accidentalmente del repo del ERP.
   // Si alguien importa de "hailuway-erp" → error de bundling.
   experimental: {

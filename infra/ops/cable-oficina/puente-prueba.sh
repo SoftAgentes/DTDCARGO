@@ -4,7 +4,7 @@
 #
 # Corre EN EL VPS DTD como root, con la copia en /srv/ops/cable-oficina/. El puente es un contenedor
 # suelto, sin compose y sin reinicio automático:
-#   - nombre dtd-cable-puente-prueba, imagen node:24.22.1-alpine, solo lectura, sin capacidades,
+#   - nombre dtd-cable-puente-prueba, imagen node:24.22.3-alpine, solo lectura, sin capacidades,
 #     usuario 1000, 128 MiB, --restart no, --stop-timeout 1;
 #   - dos redes y ninguna más: chatwoot_interna (para leer la API de Chatwoot en rails:3000) y
 #     dtd-cargo-staging_dtd_internal (para llegar al web de PRUEBA en dtd-cargo-staging-web-1:3000). Ninguna sale a
@@ -28,7 +28,7 @@ set -uo pipefail
 umask 077
 
 NOMBRE="dtd-cable-puente-prueba"
-IMAGEN="node:24.22.1-alpine"
+IMAGEN="node:24.22.3-alpine"
 RED_CHATWOOT="chatwoot_interna"
 RED_PRUEBA="dtd-cargo-staging_dtd_internal"
 RED_PROHIBIDA="dtd-cargo_dtd_internal"
