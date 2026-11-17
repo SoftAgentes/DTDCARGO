@@ -50,7 +50,8 @@ describe("CrmEmbudosLista (SDD-0648 §3, D6)", () => {
   it("cada fila dice el canal con texto, no solo con el logo", () => {
     pintar();
     const fila = document.querySelector('[data-tarjeta-id="t-2"]') as HTMLElement;
-    expect(within(fila).getByText("Instagram")).toBeTruthy();
+    // El texto visible, no el <title> del logo.
+    expect(within(fila).getByText("Instagram", { selector: "span" })).toBeTruthy();
     expect(within(fila).getByText("1 vencida")).toBeTruthy();
     expect(within(fila).getByText(/más de 30 días/)).toBeTruthy();
   });

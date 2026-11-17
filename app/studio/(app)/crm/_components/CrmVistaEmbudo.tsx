@@ -37,7 +37,6 @@ export function CrmVistaEmbudo(props: {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única del navegador al montar
     setChat(new URLSearchParams(window.location.search).get("chat"));
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferencia guardada, solo en el cliente
       if (window.localStorage.getItem(CLAVE) === "lista") setVista("lista");
     } catch {
       /* sin almacenamiento: queda el tablero */

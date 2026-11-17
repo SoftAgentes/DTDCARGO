@@ -81,7 +81,9 @@ describe("CrmEmbudosClient", () => {
   it("tres segmentos con su conteo; cada tarjeta en exactamente uno (SDD-0647)", async () => {
     const user = userEvent.setup();
     pintar([...TARJETAS, LEAD_CON_CODIGO]);
-    expect(screen.getAllByRole("radio").map((r) => r.textContent)).toEqual([
+    // SDD-0648: la vista Tablero | Lista suma su propio grupo de radios; aquí cuenta el de segmentos.
+    const segmentos = screen.getByRole("radiogroup", { name: "Segmento" });
+    expect(within(segmentos).getAllByRole("radio").map((r) => r.textContent)).toEqual([
       "Clientes (1)",
       "Leads (1)",
       "Leads con código (1)",
