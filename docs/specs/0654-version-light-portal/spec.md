@@ -84,7 +84,7 @@ Lo que eso fija:
 
 **Entra:**
 
-- Preferencia de vista por persona del portal: `simple` o `pro` (§5).
+- Preferencia de vista por cliente (en la V1, una sola persona de portal por cliente): `simple` o `pro` (§5).
 - Selector visible en la barra superior del portal, en las dos vistas.
 - Inicio de la vista simple: seis bloques en una página (§6).
 - Ayudas fijas de tres tipos (Consejo, Recuerda, Atención) y un glosario en línea.
@@ -233,11 +233,14 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
   - aviso de respuesta nueva en Soporte: `app/portal/(app)/layout.tsx:64-67`.
 - **Estados ocultos (SDD-0156):** el tenant puede ocultar un hito al cliente (por ejemplo «en aduana»). El inicio
   sustituye el estado por el último visible con `getHiddenPortalStatusesForPortal` y `effectiveVisibleStatus`
-  (`app/portal/(app)/page.tsx:66-83`).
+  (`app/portal/(app)/page.tsx:66-83`). **Ojo:** ante un error esa función devuelve el conjunto vacío y se muestra
+  todo (`lib/studio/notifications/portal-visibility-queries.ts:15-16` y `:36-41`). No distingue «falló» de «no
+  hay ocultos».
 - **Cliente no activado:** si la cuenta no está aprobada por un asesor ni tiene un envío, el inicio muestra la
   pantalla de espera `PortalPending` y nada más (`app/portal/(app)/page.tsx:53-56`).
-- **El portal nace hoy en tema oscuro:** `app/portal/(app)/layout.tsx:54` usa claro solo si la cookie dice
-  `light`. El tema se aplica solo cuando el cliente ve el portal Norte (`layout.tsx:86`), que hoy son todos
+- **El portal nace hoy en tema oscuro, por decisión de marca:** BD-037 fija «Vista predeterminada: compacta y en
+  tema oscuro» para Studio y Portal (`BRAND.md:310`). El código lo cumple: `app/portal/(app)/layout.tsx:54` usa
+  claro solo si la cookie dice `light`. El tema se aplica solo cuando el cliente ve el portal Norte (`layout.tsx:86`), que hoy son todos
   (`NORTE_PORTAL_LIVE = true`, `lib/portal/demo.ts:45`). Sam pidió que el predeterminado sea el claro (D-14).
 - **El seguimiento está «en construcción»** (`lib/portal/tracking-en-construccion.ts`, SDD-0514): el almacén de
   China todavía registra en Excel, así que lo que sigue a la prealerta sale vacío y el inicio muestra un aviso. El
@@ -249,9 +252,24 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
   `app/portal/(app)/page.tsx:20` y `:23`, y ESLint no lo prohíbe en `app/portal`). Lo que impide usarlo tal cual
   es que su catálogo y sus preferencias dependen de los roles y de las claves de texto del Studio
   (`lib/studio/guia/recorridos.ts`, `preferencias.ts`) (§6.2).
+- **Una sola persona de portal por cliente:** `client_users` tiene `unique (tenant_id, client_id)` («1 acceso de
+  portal por cliente (V1)», `supabase/migrations/0080_portal_cliente.sql:29`), reafirmado en
+  `0552_registro_portal_por_link.sql:481`. Hoy «la persona» y «el cliente» son lo mismo.
 - **`client_users` no se puede escribir desde la sesión del cliente:** solo tiene `grant select` y una policy de
   lectura; «solo las RPCs SECURITY DEFINER escriben» (`supabase/migrations/0080_portal_cliente.sql:59-60` y
   `:67-70`). Tiene un trigger que actualiza `updated_at` en cada cambio (`0080_portal_cliente.sql:210`).
+- **Marca y gobernanza que tocan esta spec:**
+  - `--wine-soft` claro (`#C2747F`) es «acento secundario · solo sobre fondo oscuro» (`BRAND.md:123`).
+  - VIS-01 §3: el vino es «identidad, selección y acción primaria»; VIS-01 §7: una desviación visual usa
+    BRAND-CHECK y registra objetivo, superficie, tokens, contraste, duración y fecha de revisión.
+  - BD-037 (`BRAND.md:308`): la selección (pestaña, filtro) va con relleno de tinta; es una excepción ya
+    registrada a VIS-01 §3 y el portal la aplica en `app/portal/claridad.css:75`.
+  - `--warning` es «riesgo real» (`BRAND.md:137`).
+  - Una excepción con vigencia es un cambio L3: registro, dueño, fecha de revisión y alcance escrito
+    (`docs/governance/README.md:108` y `:132`). Las decisiones de marca se registran en
+    `docs/design/studio/_norte/BRAND-DECISIONS.md` (hoy llega a BD-070; BD-071 a BD-075 ya se nombran en otros
+    documentos, así que el número lo asigna el DG al registrar).
+  - En noche, `--color-wine-soft` no se redefine: sigue en `#C2747F` (`app/globals.css:144-160`).
 - Preferencias: solo existe la cookie `portal-theme` (tema claro/oscuro),
   `app/portal/_components/PortalThemeToggle.tsx:26`. **Ojo con el nombre:** «light» ya significa tema claro.
   Por eso esta spec usa «simple» y «pro» en código y en pantalla (D-10). No hay tabla de preferencias del
@@ -283,7 +301,8 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 - El runtime de la Oficina usa Z.AI y DeepSeek (`docs/specs/0626-oficina-runtime/privacidad.md`). **Faro del
   cliente nunca pasa por la Oficina** mientras use proveedores chinos.
 - **La D-1 de la 0637 sigue abierta** (`docs/specs/0637-faro-asistente-ayuda/spec.md:441`): el Director General
-  la aceptó con condiciones y falta Sam. La D-8 de esta spec recomienda lo mismo, pero no depende de aquella.
+  la aceptó con condiciones y falta Sam. Esa D-1 permite un respaldo de un proveedor no chino. La D-8 de esta spec
+  es **más estricta**: sin respaldo en la primera versión y sin agregadores. No depende de aquella.
 - **Agregadores:** OpenRouter figura como ruta alternativa de modelo en
   `docs/legal/privacidad/inventario-terceros.md:39`. Un agregador puede enrutar a modelos de proveedores chinos,
   así que no sirve para Faro del cliente (FC-10).
@@ -297,7 +316,9 @@ Medido sobre `main` en `27a8027eb`. Rutas relativas a la raíz del repo.
 - Dos columnas nuevas en `client_users`:
   - `portal_vista text not null`, con `check (portal_vista in ('simple','pro'))`;
   - `portal_guia_vista_at timestamptz null`. Vacío significa que la guía todavía no se le mostró (§6.2, D-15).
-- **Por persona del portal**, no por empresa: dos personas de una misma empresa pueden preferir vistas distintas.
+- **Por fila de `client_users`.** En la V1 hay una sola persona de portal por cliente (§4.1), así que la preferencia
+  es, a la vez, de la persona y del cliente. Si algún día se permiten varias personas por empresa, la columna ya está
+  en el lugar correcto, pero eso es una decisión aparte (D-1).
 - **Valor inicial:**
   - En la migración, las filas que ya existen quedan en `pro`. Ningún cliente actual ve un portal distinto
     sin pedirlo.
@@ -401,8 +422,9 @@ Ver la maqueta. Resumen:
 - **Mientras el seguimiento esté en construcción** (§4.1), el bloque 1 no inventa etapas: muestra lo que sí se
   sabe (prealerta recibida, zarpe y entrega, que salen de operaciones del Studio) y el mismo aviso de hoy, en
   palabras sencillas. La ruta con sus cinco puntos se enciende con el mismo interruptor que apaga ese aviso.
-- **Estados ocultos:** el bloque 1 pasa cada estado por `effectiveVisibleStatus`, igual que el inicio de hoy
-  (§4.1). La ruta nunca marca ni nombra un hito que el tenant ocultó.
+- **Estados ocultos:** el bloque 1 pasa cada estado por `effectiveVisibleStatus` con la lectura estricta de
+  ocultos (FC-14). Si la lectura de ocultos falla, el bloque no dibuja la ruta de cinco puntos: muestra la fecha
+  estimada y «Ver el detalle en la Vista Pro». Nunca marca ni nombra un hito que el tenant ocultó.
 - **Cliente no activado:** ve la pantalla de espera de hoy, también en la Vista simple (D-17).
 - **Sin datos nuevos:** todo sale de las lecturas que ya usa el portal (§4.1). La Vista simple no crea usos
   nuevos del cliente de administración: si un bloque necesita un dato que hoy se lee con service_role, llama al
@@ -456,27 +478,61 @@ Pedido de Sam. En la maqueta, botón «Guía» o primera carga.
 
 Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
 
-- **El rojo queda para los errores reales.** En la Vista simple, el acento de relleno (botón principal, selección,
-  círculos de paso, avatar) es el vino claro de la marca, `--wine-soft` (`#C2747F` en claro, `#D89AA4` en noche;
-  `BRAND.md`, sistema de color), con texto navy `#0F1E3D` encima. Ese par mide 4,79:1 en claro y 7,13:1 en noche;
-  con texto blanco mediría 3,44:1 y no pasa AA, por eso el texto es navy.
+- **El rojo queda para los errores reales.** En la Vista simple, el vino claro reemplaza al vino en **tres usos**:
+  - el relleno del botón principal de cada bloque;
+  - el avatar;
+  - la parte «proveedor» del código.
+  Con texto navy `#0F1E3D` encima: 4,79:1 en claro y 7,13:1 en noche. Con texto blanco mediría 3,44:1 y no pasa
+  AA, por eso el texto es navy.
+- **La selección no usa vino claro.** El proveedor elegido, la parte del código que se está explicando y el avance de
+  la guía van con relleno o contorno de tinta, como fija BD-037 (`BRAND.md:308`, `app/portal/claridad.css:75`).
 - **Los enlaces de texto van en navy subrayado.** `--wine-soft` no sirve para texto pequeño (3,44:1 sobre blanco,
   `BRAND.md` §Contraste). El Shipping Mark conserva `--wine-text`, que es regla de marca (BD-026).
-- **Es una excepción de marca:** `BRAND.md` reserva `--wine-soft` para acento, borde y hover, y el botón principal
-  del portal es vino (`.btn-primary` en `app/globals.css`). Va en la misma dirección que BTN-01 §2 («el vino de
-  marca no sustituye `danger`») y que la SDD-0261. Sam la autorizó para esta vista. Antes de implementarla se registra como decisión de
-  marca (D-16).
-- **Más color, con los tonos que ya existen:**
-  - encabezado de cada bloque con un tinte suave: dorado para lo pendiente («Lo que te toca hacer», «Cuánto
-    debes»), navy para «Tus papeles» y Faro, vino claro para el bloque del proveedor;
-  - el saldo por pagar en dorado (`--warning`), igual que el indicador «Saldo pendiente» de hoy;
+- **Más color, sin colores nuevos:**
+  - los encabezados de los bloques llevan un tinte neutro de tinta; solo el bloque del proveedor lleva tinte de vino
+    claro (identidad);
+  - el dorado (`--warning`) queda para riesgo real: avisos «Atención» y el saldo por pagar cuando es mayor que cero,
+    igual que el indicador «Saldo pendiente» de hoy (`app/portal/(app)/_components/PortalDashboardNorte.tsx:154` y
+    `:513`). No va en encabezados, ni en «Nuevo», ni en el código;
   - verde (`--success`) solo en confirmaciones reales: «Entregado»;
-  - **el código, por colores:** cada parte tiene el suyo y lo repite donde aparece. «DTD» navy, el número de
-    cliente navy claro, el número del proveedor vino claro (el mismo de su fila en la lista) y el número de la
-    compra dorado (el mismo de «próxima compra»).
+  - el código, por partes: «DTD» navy, el número de cliente navy claro, el número del proveedor vino claro (el mismo
+    de su fila en la lista) y el número de la compra con contorno de tinta.
+- **Tokens y mapeos nuevos que se declaran** (no son colores nuevos; son mezclas o reasignaciones de los existentes):
+  - tintes de fondo `--tint-ink`, `--tint-wine`, `--tint-ok` y `--tint-warn`: `color-mix` del token de color sobre
+    la superficie, con el mismo patrón que `.portal-aviso` (`app/portal/claridad.css:197`);
+  - en noche, el relleno de vino claro usa `--color-wine-text` oscuro (`#D89AA4`, `app/globals.css:159`), porque
+    `--color-wine-soft` no se redefine en oscuro.
+  Se definen en el bloque de la Vista simple de `app/globals.css` (fase 2).
 - **Más compacto:** menos aire entre bloques y dentro de ellos. El bloque del proveedor pasa a filas de una línea
   por proveedor, textos de una frase y el mensaje en tres líneas, con el tutorial como botón en el encabezado.
-- Ningún color nuevo: todos son tokens de `BRAND.md` y `app/globals.css`.
+
+#### Excepción de marca EXC-0654-01: vino claro en la Vista simple
+
+Registro según VIS-01 §7 y `docs/governance/README.md:108` y `:132` (cambio L3). Formato BRAND-CHECK:
+
+```
+BRAND-CHECK
+Lo que pidió Sam:        «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino
+                         claro ya probado» (2026-11-17).
+Regla que rompe:         BRAND.md:123 (--wine-soft claro «solo sobre fondo oscuro») y VIS-01 §3 (el vino es la
+                         acción primaria).
+Por qué se acepta:       el vino oscuro se lee como error para el cliente poco técnico; el vino claro es un tono
+                         ya probado de la marca y con texto navy pasa AA.
+Alternativa que respeta: dejar el botón principal en vino (#7F0F1A) con texto blanco, como la Vista Pro.
+```
+
+| Campo | Valor |
+|---|---|
+| Objetivo | Que la acción principal no se confunda con un error en la vista para clientes nuevos |
+| Superficie | Solo la Vista simple del portal. La Vista Pro, el Studio y la web pública no cambian |
+| Tokens | `--color-wine-soft` (claro) y `--color-wine-text` (noche) como relleno; texto `--color-ink` claro (`#0F1E3D`) en los dos temas |
+| Usos | Botón principal, avatar y parte «proveedor» del código. **No** selección, **no** texto, **no** error |
+| Contraste | 4,79:1 en claro y 7,13:1 en noche con texto navy (AC-17) |
+| Duración | Hasta la prueba con clientes (D-12). Si funciona, Sam decide si pasa a regla o se extiende |
+| Fecha de revisión | 90 días después de encender la Vista simple, o al cerrar la prueba con clientes, lo que ocurra primero |
+| Dueño | Sam (aprueba); Director General (custodia del registro) |
+| Registro | Una entrada BD nueva en `docs/design/studio/_norte/BRAND-DECISIONS.md` y la regla en `BRAND.md`, en la PR de la fase 2 |
+| Estado | Autorizada por Sam en palabras; falta su aprobación del registro (D-16) |
 
 ## 7. Faro del cliente
 
@@ -536,13 +592,13 @@ Flujo fijo, sin herramientas que el modelo pueda invocar:
 | FC-5 | Sin acciones | No hay herramientas. Para cambiar algo, el destino lleva al flujo de la vista Pro o al asesor | Prueba de que el motor no expone herramientas |
 | FC-6 | El texto del ERP es dato, no orden | Notas y descripciones viajan como JSON dentro de la ficha; las instrucciones lo declaran | Batería con una descripción de carga que trae una orden inyectada |
 | FC-7 | Salida revisada y en texto plano | Se bloquea la respuesta si menciona un código de envío, factura o Shipping Mark que no está en la ficha, si repite las instrucciones, o si trae una URL, una imagen o marcado. El panel no interpreta Markdown ni HTML del modelo; los enlaces los pone el servidor desde la lista cerrada de destinos | Prueba de la revisión con salidas simuladas, incluida una con una imagen cuya URL lleva datos de la ficha |
-| FC-8 | Ritmo limitado | Por persona (N por hora y M por día) **y por empresa cliente** (`client_id`), para que varias personas de una empresa no multipliquen el cupo (D-5); tope de gasto mensual propio; reserva atómica como el AC-18 de la 0637 | Simulacro de cupo agotado por persona y por empresa, y de carrera |
+| FC-8 | Ritmo limitado | Por cliente (en la V1, una persona por cliente: §4.1): N por hora y M por día (D-5); tope de gasto mensual propio; reserva atómica como el AC-18 de la 0637. Si algún día hay varias personas por empresa, el tope se cuenta por `client_id`, no por persona | Simulacro de cupo agotado y de carrera |
 | FC-9 | Cada pregunta queda registrada | Tablas propias con `tenant_id` y `client_id`: pregunta depurada, veredicto, resultado, tokens y costo; sin la ficha (§8) | Contrato de la migración |
 | FC-10 | Proveedor no chino | Lista permitida por **proveedor y modelo**, para el motor principal, el respaldo y el clasificador. Sin agregadores (OpenRouter y similares): pueden enrutar a un modelo chino. Nunca por la Oficina. Si la configuración apunta fuera de la lista, Faro del cliente no arranca | Prueba que falla con un proveedor, un modelo o un agregador fuera de la lista, en cualquiera de los tres papeles |
 | FC-11 | Mínimo de datos al modelo | Nombre de pila, sin apellido, cédula, teléfono, correo ni dirección | Prueba de forma de la ficha |
 | FC-12 | Salida a humano | Rechazo, duda o fallo → botón «Escribir a mi asesor» (chat SDD-0147) | Prueba de la plantilla |
 | FC-13 | Sin service_role | El código de Faro del cliente no importa ni recibe el cliente de administración | Prueba estática sobre `lib/portal/faro/**` y su ruta, en la línea de la SDD-0383 |
-| FC-14 | No revela hitos ocultos | Los estados de la ficha pasan por `getHiddenPortalStatusesForPortal` y `effectiveVisibleStatus` (SDD-0156). Si esa lectura falla, la ficha va sin estados | Con «en aduana» oculto: ni la ficha ni la respuesta lo nombran; con la lectura de ocultos fallando: la ficha no trae estados |
+| FC-14 | No revela hitos ocultos | Los estados de la ficha pasan por `effectiveVisibleStatus` con una **lectura estricta** de ocultos: una función nueva, `getHiddenPortalStatusesStrict`, en el mismo archivo que la de hoy, que devuelve `{ ok: true, ocultos }` o `{ ok: false }`. La de hoy (`getHiddenPortalStatusesForPortal`) no cambia: ante error devuelve vacío y muestra todo, que sirve al portal pero no a Faro. Si la lectura estricta falla, la ficha va **sin estados** | Con «en aduana» oculto: ni la ficha ni la respuesta lo nombran. Con la RPC fallando: la ficha no trae estados. Y la función de hoy sigue devolviendo vacío ante error |
 | FC-15 | Sin memoria | Al modelo no se le reenvían turnos anteriores | Prueba de que la llamada lleva una sola pregunta |
 
 ### 7.4 Plantillas de rechazo
@@ -570,8 +626,12 @@ la PR de cada fase; aquí solo se declara qué aplica.
 | MOT-01 v1.0 | Guía, barco de la ruta, haz y pulso del botón de Faro | Cumplimiento, a demostrar: respeta `prefers-reduced-motion` y toda animación se puede interrumpir |
 | CMP-01 v1.1 | Componentes nuevos del portal | Cumplimiento, a demostrar en la PR de cada componente |
 | BTN-01 v1.1 | Botones de la Vista simple | Cumplimiento en jerarquía (un principal por bloque). El color va como excepción (abajo) |
+| VIS-01 §3 | Vino claro como acción primaria en la Vista simple | **Excepción** EXC-0654-01 (§6.3). La selección sigue la excepción ya registrada de BD-037 (tinta) |
+| VIS-01 §7 | Registro de la excepción | Cumplimiento: BRAND-CHECK con objetivo, superficie, tokens, contraste, duración y fecha de revisión (§6.3) |
+| Gobernanza L3 | Excepción con vigencia | Cumplimiento a completar en la fase 2: registro en `BRAND-DECISIONS.md`, dueño, fecha de revisión y alcance (§6.3) |
 | `BRAND.md` | Botón y cabecera del panel de Faro, fuera de la marca | **Excepción**, autorizada por Sam en la 0637 §7 y extendida al portal por su pedido del 2026-11-16 |
-| `BRAND.md` | `--wine-soft` como relleno del botón principal en la Vista simple | **Excepción**, autorizada por Sam el 2026-11-17 (§6.3, D-16) |
+| `BRAND.md:123` | `--wine-soft` claro como relleno en la Vista simple | **Excepción** EXC-0654-01, autorizada por Sam el 2026-11-17 (§6.3, D-16) |
+| BD-037 (`BRAND.md:310`) | Tema claro por defecto en el portal | **Enmienda** de la regla «vista predeterminada en tema oscuro», solo para el Portal (D-14, fase 1b) |
 
 ## 8. Datos personales
 
@@ -620,10 +680,10 @@ PR o se saca.
 | Fase | Qué | Allowlist | Puerta |
 |---|---|---|---|
 | 0 | Investigación, maqueta y spec | `docs/specs/0654-version-light-portal/**`, `docs/specs/README.md`, `.agents/handoffs/sdd-0654-version-light-portal.md` | Esta PR. Sam ve la maqueta |
-| 1 | Preferencia y selector, con el interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql`; `supabase/tests/0557_portal_vista_preferida.test.sql`; `supabase/migrations-baseline.json`, `supabase/migrations.lock.json` y `supabase/pending-migration-symbol-declarations.json`, en lo que exijan sus gates; `lib/portal/vista-preferida.ts` y su prueba (lectura que degrada y llamadas a las RPC); `lib/portal/portal-queries.ts` solo si hace falta exportar un tipo: el `select` del principal (`:82-90`) no se toca; `app/portal/(app)/layout.tsx`; `app/portal/_components/PortalShell.tsx` y `PortalShell.test.tsx` (el armazón recibe la vista, `layout.tsx:90`); `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` y su prueba (nuevos); `app/portal/_actions/vista-preferida.ts` (nuevo); `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
-| 1b | Tema claro por defecto. Va aparte porque cambia el portal para todos, con o sin interruptor | `app/portal/(app)/layout.tsx` (solo la línea del tema, `:54`) y su prueba | OK de Sam a la D-14 |
-| 2 | Inicio simple, ayudas, glosario, guía y comparación | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_simple/**` (nuevo); `lib/portal/simple/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; `app/globals.css` solo para tokens de la Vista simple; la lista permitida de la SDD-0383 si un bloque reutiliza un cargador que usa service_role; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
-| 3 | Faro del cliente con motor simulado | `lib/portal/faro/config.ts`, `ficha.ts`, `clasificador.ts`, `salida.ts`, `plantillas.ts`, `cuota.ts`, `registro.ts`, `motor.ts` y sus pruebas (nuevos); `lib/portal/simple/contenido/**` (guías del portal que lee Faro); `app/api/portal/faro/route.ts` (nuevo); `app/portal/_components/PortalFaroPanel.tsx` y `PortalFaroBoton.tsx` (nuevos); el ícono de Faro del Studio, movido a `components/faro/` si la 0637 ya lo creó; una migración de registro, cuyo número asigna el DG, con su `.test.sql` y los tres archivos de control de migraciones; las extensiones de purga sobre los caminos de las migraciones 0454 y 0460, en esa misma migración | Depende de la fase 3 de la 0637 (motor y topes). Revisión de datos |
+| 1 | Preferencia y selector, con el interruptor apagado | `supabase/migrations/0557_portal_vista_preferida.sql`; `supabase/tests/0557_portal_vista_preferida.test.sql`; `supabase/migrations-baseline.json`, `supabase/migrations.lock.json` y `supabase/pending-migration-symbol-declarations.json`, en lo que exijan sus gates; `lib/portal/vista-preferida.ts` y su prueba (lectura que degrada y llamadas a las RPC); `lib/portal/portal-queries.ts` solo si hace falta exportar un tipo: el `select` del principal (`:82-90`) no se toca; `app/portal/(app)/layout.tsx`; `app/portal/_components/PortalShell.tsx` y `PortalShell.test.tsx` (el armazón recibe la vista, `layout.tsx:90`); `app/portal/_components/PortalTopbar.tsx`; `app/portal/_components/PortalVistaSelector.tsx` y su prueba (nuevos); `app/portal/actions.ts` (dos acciones nuevas junto a las de la barra que ya viven ahí, como `markPortalAvisosSeenAction`) y su prueba nueva `app/portal/__tests__/vista-preferida-actions.test.ts`; `.env.example` | Revisión de datos (preferencia). Aplicar la 0557 con OK de Sam y runbook |
+| 1b | Tema claro por defecto. Va aparte porque cambia el portal para todos, con o sin interruptor, y enmienda BD-037 | `app/portal/(app)/layout.tsx` (solo la línea del tema, `:54`) y su prueba; `BRAND.md` (la línea «Vista predeterminada» de BD-037, `:310`, aclarando que el Portal abre en claro y el Studio sigue en oscuro); `docs/design/studio/_norte/BRAND-DECISIONS.md` (entrada de la enmienda) | OK de Sam a la D-14 |
+| 2 | Inicio simple, ayudas, glosario, guía y comparación | `app/portal/(app)/page.tsx` (solo el desvío según la vista); `app/portal/(app)/_simple/**` (nuevo); `lib/portal/simple/**` (nuevo: armado de bloques, contenido de ayudas y glosario, y recorridos de la guía); `lib/shared/guia/**` (nuevo, solo si se extrae el motor de la 0589; en ese caso también los archivos de `lib/studio/guia/` que pasen a importarlo, sin cambiar su comportamiento); `components/ChinaSupplierClip.tsx` y `components/AlibabaAddressGuide.tsx` solo si hace falta extraer el texto a una función compartida, sin cambiar lo que muestran; `app/globals.css` solo para los tintes y el mapeo de la Vista simple (§6.3); `BRAND.md` y `docs/design/studio/_norte/BRAND-DECISIONS.md` (registro de EXC-0654-01); `lib/studio/notifications/portal-visibility-queries.ts` (solo la función estricta nueva, si la fase 2 llega antes que la 3) y su prueba; la lista permitida de la SDD-0383 si un bloque reutiliza un cargador que usa service_role; sus pruebas y un e2e del selector | `/ui-check`. Prueba con clientes (D-12). Encender el interruptor con OK de Sam |
+| 3 | Faro del cliente con motor simulado | `lib/portal/faro/config.ts`, `ficha.ts`, `clasificador.ts`, `salida.ts`, `plantillas.ts`, `cuota.ts`, `registro.ts`, `motor.ts` y sus pruebas (nuevos); `lib/portal/simple/contenido/**` (guías del portal que lee Faro); `app/api/portal/faro/route.ts` (nuevo); `app/portal/_components/PortalFaroPanel.tsx` y `PortalFaroBoton.tsx` (nuevos); el ícono de Faro del Studio, movido a `components/faro/` si la 0637 ya lo creó; `lib/studio/notifications/portal-visibility-queries.ts` (solo la función estricta nueva de FC-14, sin tocar la de hoy) y su prueba; una migración de registro, cuyo número asigna el DG, con su `.test.sql` y los tres archivos de control de migraciones; las extensiones de purga sobre los caminos de las migraciones 0454 y 0460, en esa misma migración | Depende de la fase 3 de la 0637 (motor y topes). Revisión de datos |
 | 4 | Primer envío real | `app/privacidad/page.tsx`; `docs/legal/privacidad/inventario-terceros.md`; `lib/portal/faro/aviso.ts` (texto y versión del aviso del panel); `.env.example` (variables de Faro del cliente). Sin otro código | Revisión de datos aprobada. OK nominal de Sam |
 | 5 | Batería adversaria y encendido | `lib/portal/faro/__tests__/bateria/**` | Batería verde; encendido con OK de Sam |
 
@@ -641,13 +701,13 @@ PR o se saca.
 | AC-8 | El inicio simple muestra los seis bloques, los mismos y en el mismo orden con y sin datos, con un estado vacío que enseña en cada uno. Se prueba con una cuenta vacía y una con datos | 2 |
 | AC-9 | Cada bloque enlaza a su pantalla de la vista Pro | 2 |
 | AC-10 | La Vista simple no crea usos nuevos del cliente de administración. Si un bloque necesita un dato que hoy se lee con service_role, llama al cargador acotado que ya existe y la lista permitida de la SDD-0383 se cambia de forma explícita en la PR | 2 |
-| AC-11 | Con un hito oculto por el tenant (SDD-0156), el bloque 1 no lo marca ni lo nombra | 2 |
+| AC-11 | Con un hito oculto por el tenant (SDD-0156), el bloque 1 no lo marca ni lo nombra; si la lectura estricta de ocultos falla, no dibuja la ruta | 2 |
 | AC-12 | Con el seguimiento en construcción, el bloque 1 no muestra etapas que el sistema no conoce | 2 |
 | AC-13 | El bloque del proveedor muestra la misma dirección y el mismo texto que «Mis compras», y el mismo próximo código por proveedor que calcula `summarizeSuppliers`; una prueba compara las salidas | 2 |
 | AC-14 | El bloque solo ofrece números de proveedor que existen en la cuenta del cliente; no hay campo para escribir uno a mano | 2 |
 | AC-15 | La guía arranca sola solo la primera vez por persona, se puede saltar y se repite con el botón «Guía» | 2 |
 | AC-16 | El botón «Comparar» abre la tabla de §6.1 desde las dos vistas | 2 |
-| AC-17 | En la Vista simple ningún relleno ni texto usa `--color-wine` ni `--danger` fuera de un error real; el acento es `--wine-soft` con texto navy y cada par de color pasa AA | 2 |
+| AC-17 | En la Vista simple el vino claro solo aparece en sus tres usos (botón principal, avatar y parte «proveedor» del código); la selección va en tinta; el dorado solo en riesgo real; ningún relleno ni texto usa `--color-wine` ni `--danger` fuera de un error; cada par de color pasa AA | 2 |
 | AC-18 | Un cliente no activado ve lo que fije la D-17, en las dos vistas, y la guía no arranca | 2 |
 | AC-19 | Cada frontera FC-1 a FC-15 tiene su prueba y pasa | 3 |
 | AC-20 | Un fallo de aislamiento pone roja la CI, en los tres casos de FC-1: dos clientes, persona mixta y mismo Shipping Mark en dos tenants | 3 |
@@ -656,27 +716,28 @@ PR o se saca.
 | AC-23 | Existe la revisión `revisar-datos-ve` aprobada, y el aviso con aceptación de la D-20, antes del primer envío real | 4 |
 | AC-24 | La batería tiene preguntas permitidas y rechazadas, en español y en inglés, y mide también el rechazo de preguntas legítimas | 5 |
 | AC-25 | El gate de IA-01 para nivel I0 está cubierto y enlazado desde la PR (§7.5) | 5 |
+| AC-26 | EXC-0654-01 queda registrada en `BRAND-DECISIONS.md` y `BRAND.md` con objetivo, superficie, tokens, contraste, duración, fecha de revisión y dueño, antes de fusionar la fase 2 | 2 |
 
 ## 11. Decisiones para Sam
 
 | D | Pregunta | Recomendación |
 |---|---|---|
-| D-1 | ¿La preferencia es por persona o por empresa cliente? | **Por persona** (`client_users`): en una empresa con dos usuarios, cada uno elige |
+| D-1 | ¿La preferencia es por persona o por empresa cliente? | **En la V1 son lo mismo:** hay una sola persona de portal por cliente (`0080_portal_cliente.sql:29`). La preferencia vive en esa fila. Permitir varias personas por empresa no entra en esta spec; si se quiere, es una decisión y una spec aparte |
 | D-2 | ¿Con qué vista empieza cada uno? | **Cliente nuevo en simple; los actuales en Pro**, para que nadie vea un cambio sin pedirlo |
 | D-3 | ¿Dónde va el selector? | **En la barra superior**, visible en las dos vistas, con los nombres «Vista simple» y «Vista Pro» |
 | D-4 | ¿Faro del cliente aparece en las dos vistas o solo en la simple? | **Decidida por Sam (2026-11-16): en las dos, con el mismo ícono del faro del ERP** |
-| D-5 | ¿Cuántas preguntas? | **20 por día y 5 por hora por persona, y 60 por día por empresa cliente**, con tope de gasto mensual propio, separado del Faro del Studio. Sam fija los montos |
+| D-5 | ¿Cuántas preguntas? | **20 por día y 5 por hora por cliente**, con tope de gasto mensual propio, separado del Faro del Studio. Sam fija los montos |
 | D-6 | ¿Cuánto tiempo se guardan las preguntas? | **90 días** y purga a pedido del cliente, con constancia |
 | D-7 | ¿Qué pasa cuando Faro no puede responder? | **Botón al chat con el asesor** que ya existe (SDD-0147). Sin crear tickets automáticos |
-| D-8 | ¿Qué proveedor de IA? | **Anthropic directo y sin respaldo en la primera versión.** Nunca un proveedor chino, un agregador ni la Oficina. Coincide con lo recomendado en la D-1 de la 0637, que sigue abierta: si Sam decide otra cosa allá, esta se revisa |
+| D-8 | ¿Qué proveedor de IA? | **Anthropic directo y sin respaldo en la primera versión.** Nunca un proveedor chino, un agregador ni la Oficina. Es **más estricta** que la D-1 de la 0637 (que admite un respaldo no chino y sigue abierta). Si Sam decide allá un respaldo, esta se revisa |
 | D-9 | ¿En qué orden? | **Vista simple primero (fases 1, 1b y 2) y Faro del cliente después** de la fase 3 de la 0637, para no escribir dos motores |
 | D-10 | ¿Cómo se llama en pantalla? | **Decidida por Sam (2026-11-16): «Vista simple» y «Vista Pro».** En el código, `simple` y `pro`; «light» no se usa porque ya es el tema claro |
 | D-11 | ¿Faro del cliente puede hablar de precios? | **No en la primera versión.** Para precios ofrece la calculadora y las cotizaciones del cliente |
 | D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
 | D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra del proveedor que el cliente elija.** Sin proveedores registrados, solo su Shipping Mark y el enlace para registrar al primero. Copiar el mensaje no crea la compra: después de copiar, el bloque ofrece «Avisar esta compra» (el flujo de prealerta que ya existe) |
-| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Va en su propia fase (1b) porque cambia el portal de todos los clientes, también en la vista Pro y con el interruptor apagado |
+| D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam, y solo en el Portal.** Es una **enmienda de BD-037** («vista predeterminada: compacta y en tema oscuro», `BRAND.md:310`); el Studio sigue en oscuro. Quien ya eligió noche con el botón lo conserva. Va en su propia fase (1b) porque cambia el portal de todos los clientes, también en la vista Pro y con el interruptor apagado |
 | D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
-| D-16 | ¿El vino claro reemplaza al vino en los botones? | **Solo en la Vista simple, como autorizó Sam**, registrado como decisión de marca en `BRAND.md`. La Vista Pro sigue con el vino de hoy hasta que Sam diga otra cosa |
+| D-16 | ¿Aprobamos la excepción del vino claro? | **Sí, como EXC-0654-01 (§6.3):** solo en la Vista simple y solo en botón principal, avatar y parte «proveedor» del código; la selección sigue en tinta. Revisión a los 90 días o al cerrar la prueba con clientes. La Vista Pro sigue con el vino de hoy |
 | D-17 | ¿Qué ve en la Vista simple un cliente nuevo que todavía no está activado? | **La misma pantalla de espera de hoy**, en las dos vistas, y la guía no arranca hasta que la cuenta esté activada. La alternativa es sumarle a esa pantalla el bloque «Envíale esto a tu proveedor», porque ya tiene Shipping Mark |
 | D-18 | ¿Faro del cliente puede usar los datos que hoy el portal lee con permisos de servidor (contenedor, buque, próximo zarpe, órdenes por aceptar)? | **No en la primera versión.** Faro no sabrá en qué contenedor ni en qué buque va la carga y remitirá al portal. La alternativa es reutilizar esos cargadores acotados, con una excepción explícita y una prueba por cada uno |
 | D-19 | ¿Quién del equipo puede leer las preguntas de los clientes? | **Solo el administrador**, desde el Studio, y cada lectura queda registrada |
@@ -696,8 +757,9 @@ PR o se saca.
 | Fuga de datos por una URL o imagen en la respuesta | Salida en texto plano, sin enlaces ni imágenes del modelo (FC-7) |
 | La fase 1 se fusiona antes de aplicar la 0557 y deja a los clientes fuera | La preferencia se lee aparte y degrada a `pro` (§5, AC-5) |
 | Inyección desde textos del ERP | FC-6 y batería con orden inyectada |
-| Costo | Cuota por persona, tope mensual, plantillas sin llamada al modelo |
+| Costo | Cuota por cliente, tope mensual, plantillas sin llamada al modelo |
 | Confusión con el tema claro | Nombres «simple/pro» en código y pantalla (D-10) |
+| La excepción del vino claro se extiende sin control | Alcance escrito de tres usos, fecha de revisión y registro L3 (EXC-0654-01, AC-26) |
 
 ## 13. Fuentes
 

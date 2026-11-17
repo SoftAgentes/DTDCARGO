@@ -19,7 +19,9 @@
   --hero:linear-gradient(135deg,#0F1E3D 0%,#1F3055 100%); --hero-line:#1F3055; --hero-accent:#DD8088;
   --nav-bg:radial-gradient(120% 125% at 18% -20%,#243C6B,#0F1E3D 52%,#081226);
   --nav-active:linear-gradient(135deg,#9E1522 0%,#7F0F1A 52%,#5A0910 100%);
-  --tint-wine:#F6ECEE; --tint-ink:#EEF1F6; --tint-ok:#EAF4EF; --tint-warn:#F7F0E2;
+  /* Tintes: mezcla de tokens existentes, como .portal-aviso (app/portal/claridad.css:197). Ningún hex nuevo. */
+  --tint-wine:color-mix(in srgb,var(--wine-soft) 18%,var(--surface)); --tint-ink:color-mix(in srgb,var(--ink) 7%,var(--surface));
+  --tint-ok:color-mix(in srgb,var(--success) 14%,var(--surface)); --tint-warn:color-mix(in srgb,var(--warning) 14%,var(--elev));
   --shadow:0 2px 4px rgba(15,30,61,.08),0 8px 16px rgba(15,30,61,.10),0 24px 48px -16px rgba(15,30,61,.22);
   --shadow-sm:0 1px 2px rgba(15,30,61,.06),0 2px 6px rgba(15,30,61,.08);
   --f-sans:"Nunito Sans",system-ui,-apple-system,sans-serif;
@@ -33,7 +35,7 @@
   --hero:linear-gradient(135deg,#16264A 0%,#26406F 100%); --hero-line:#2A3C63;
   --nav-bg:radial-gradient(120% 125% at 18% -22%,#26406F,#0B1428 58%,#060D1C);
   --nav-active:linear-gradient(135deg,#C23C4A,#A8323E 52%,#7F0F1A);
-  --tint-wine:#2B2540; --tint-ink:#1B2D52; --tint-ok:#17352F; --tint-warn:#2E2A22;
+  /* En noche --wine-soft se mapea a --color-wine-text oscuro (#D89AA4, app/globals.css:159): mapeo nuevo, color existente. */
   --shadow:0 2px 4px rgba(0,0,0,.25),0 12px 28px rgba(0,0,0,.35);
   --shadow-sm:0 1px 3px rgba(0,0,0,.3);
 }
@@ -175,7 +177,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .foot img{width:26px;height:26px;object-fit:contain}
 .calc-fab{position:fixed;z-index:14;right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;border:2px solid #FFFFFF;background:var(--wine);color:#FFFFFF;display:none;place-items:center;box-shadow:var(--shadow)}
 .shell.is-full ~ .calc-fab{display:grid}
-.newtag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--warning);color:#0F1E3D;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.newtag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--surface);color:var(--ink);border:1.5px solid var(--ink);border-radius:999px;padding:2px 8px;white-space:nowrap}
 
 /* ===== Vista simple ===== */
 .s-hi{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
@@ -323,13 +325,15 @@ details.gloss p{margin-top:8px;color:var(--g500)}
 /* ===== Ajuste de Sam (2026-11-17): más compacto, más color y vino claro en vez de rojo =====
    En la Vista simple el acento de relleno es --wine-soft (vino claro de la marca) con texto navy.
    El rojo queda para errores reales. La Vista Pro no cambia: es la réplica de hoy.
-   BRAND-EXCEPTION: --wine-soft como relleno de botón principal — autorizado por Sam el 2026-11-17 */
+   BRAND-EXCEPTION: --wine-soft como relleno del botón principal, del avatar y de la parte «proveedor» del código,
+   solo en la Vista simple — autorizado por Sam el 2026-11-17 (SDD-0654 §6.3, D-16). Excepción a BRAND.md:123 y a VIS-01 §3.
+   La selección NO usa vino claro: va con relleno de tinta (BD-037). */
 :root[data-vista="simple"] .btn{background:var(--wine-soft);color:#0F1E3D}
 :root[data-vista="simple"] .btn:hover{background:var(--wine-soft);filter:brightness(.94)}
 :root[data-vista="simple"] .btn.ghost{background:var(--surface);color:var(--ink);filter:none}
 :root[data-vista="simple"] .btn.ghost:hover{background:var(--elev)}
 :root[data-vista="simple"] .av{background:var(--wine-soft);color:#0F1E3D}
-:root[data-vista="simple"] .tour-dots i.on{background:var(--wine-soft)}
+:root[data-vista="simple"] .tour-dots i.on{background:var(--ink)}
 .is-simple .page{gap:18px;padding-block:18px 110px}
 .s-hi h2{font-size:clamp(24px,3.6vw,32px)}
 .s-hi p{font-size:15px;margin-top:2px}
@@ -347,11 +351,10 @@ details.gloss p{margin-top:8px;color:var(--g500)}
 .blk,.ask{padding:16px;gap:10px;overflow:hidden}
 .blk>.q-title,.prov>.q-title{margin:-16px -16px 0;padding:10px 16px;border-radius:17px 17px 0 0}
 .q-title h3{font-size:17px}
-#b-tasks>.q-title,#b-money>.q-title{background:var(--tint-warn)}
-#b-tasks .num,#b-money .num{background:var(--warning);color:#0F1E3D}
+#b-tasks>.q-title,#b-money>.q-title{background:var(--tint-ink)}
 #b-docs>.q-title{background:var(--tint-ink)}
 #b-prov>.q-title{background:var(--tint-wine)}
-#b-prov .num{background:var(--wine-soft);color:#0F1E3D}
+
 #b-help .ask:first-child{background:var(--tint-ink);border-color:transparent}
 :root[data-vista="simple"] .link{color:var(--ink)}
 :root[data-vista="simple"] .msg.no .tag{color:var(--wine-text)}
@@ -367,22 +370,22 @@ details.gloss p{margin-top:8px;color:var(--g500)}
 .prov-lead{color:var(--g700);font-size:14px;max-width:80ch}
 .prov-grid{gap:16px 24px}
 .sub{font-size:13.5px}
-.sub i{background:var(--wine-soft);border-color:transparent;color:#0F1E3D}
+
 .sups{gap:6px;margin-block:8px 6px}
 .sup{grid-template-columns:28px minmax(0,1fr) auto;gap:10px;padding:6px 10px;border-radius:10px;font-size:13.5px}
 .sup .n{width:28px;height:28px;border-radius:7px;font-size:14px;background:var(--elev);color:var(--ink)}
 .sup .nm{font-weight:700;min-width:0}
 .sup .nx{font-size:12px;color:var(--g500);white-space:nowrap}
-.sup .nx b{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:6px;background:var(--warning);color:#0F1E3D;font-family:var(--f-mono);padding:0 4px}
-.sup[aria-checked="true"]{border-color:var(--wine-soft);background:var(--tint-wine)}
-.sup[aria-checked="true"] .n{background:var(--wine-soft);color:#0F1E3D}
+.sup .nx b{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:6px;background:var(--surface);color:var(--ink);border:1.5px solid var(--ink);font-family:var(--f-mono);padding:0 4px}
+.sup[aria-checked="true"]{border-color:var(--ink);background:var(--tint-ink)}
+.sup[aria-checked="true"] .n{background:var(--ink);color:var(--surface)}
 .mark{font-size:21px;margin-block:8px 6px}
 .seg-m{border:0;padding:6px 12px;border-radius:8px}
 .seg-m.c0{background:var(--navy);color:#FFFFFF}
 .seg-m.c1{background:var(--navy-2);color:#FFFFFF}
 .seg-m.c2{background:var(--wine-soft);color:#0F1E3D}
-.seg-m.c3{background:var(--warning);color:#0F1E3D}
-.seg-m.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.seg-m.c3{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.seg-m.on{outline:3px solid var(--ink);outline-offset:2px}
 .seg-m.on.c0,.seg-m.on.c1,.seg-m.on.c2,.seg-m.on.c3{border:0}
 .mark-exp{min-height:2.9em;font-size:13.5px}
 .send{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;align-items:center;border-top:1px solid var(--border);padding-top:10px}
