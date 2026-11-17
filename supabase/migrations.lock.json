@@ -3483,6 +3483,51 @@
         "fecha": "2026-11-16",
         "forma": "exacta"
       }
+    },
+    "0550_faro_registro": {
+      "sha256": "196547d34efd2434f854faee074ed6bd9a65a2bc20a2212a884b385b01b2148c",
+      "md5": "20ab1801d8b0b68f0f397d82f3912817",
+      "bytes": 28560,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0551_pasar_embarque_a_otro_cliente": {
+      "sha256": "6bedb8869c073a194d47d093f6b8e9d114466e3be47a0ada9ad3fffa82531abd",
+      "md5": "176bfd515507ba1e51d36384578ce1f4",
+      "bytes": 26210,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0552_registro_portal_por_link": {
+      "sha256": "75e116578669d547d8d9cf3451054d9e195d144cff75808d87f63bb5cee9c521",
+      "md5": "09ca8cc1d33ef4f417c856e61be4f976",
+      "bytes": 43842,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0553_crm_tarjetas_clientes_con_carga": {
+      "sha256": "4b579d09859f6bfa1de3b1fe41835d34269631bd0139f5209c988ab2c62fc7b2",
+      "md5": "ce792ec6e9bce0aab8ffd9cab3d1522b",
+      "bytes": 7909,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0557_portal_vista_preferida": {
+      "sha256": "82ce84ec200719a60adfe6c627292e40a8eddbc8f3c762a633676a1b22764f96",
+      "md5": "fe1c8d05334658e1502a90676986c67d",
+      "bytes": 14921,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
     }
   }
 }

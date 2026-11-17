@@ -19,7 +19,7 @@ import {
   ATTENDANCE_STATUS_OPTIONS,
   type Attendance,
 } from "@/lib/studio/nomina/attendance-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import {
   createAttendanceAction,
@@ -43,7 +43,7 @@ export function AsistenciaDrawer({
   onClose,
 }: {
   record: Attendance | null;
-  employees: Employee[];
+  employees: EmployeeRef[];
   employeeName: string | null;
   onClose: () => void;
 }) {

@@ -3,7 +3,7 @@
 # Horarios en UTC (los mismos que agenda Vercel). ${CRON_SECRET} se queda literal:
 # lo resuelve el contenedor `cron` (entrypoint con envsubst, o sh -c) desde su entorno.
 
-# 22 crons de vercel.json, en su mismo orden.
+# 23 crons de vercel.json, en su mismo orden.
 * * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-drain
 17 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-cleanup
 0 11 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ceo-brief
@@ -19,6 +19,7 @@
 0 5 1 * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/conversation-digests
 0 14 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/portal-cold-reminder
 */5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bug-notifications-drain
+5 12 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bug-daily-digest
 */5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/workflow-drain
 0 13 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/rate-expiry-alert
 */30 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/mail-health

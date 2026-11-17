@@ -14,7 +14,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { PayrollRules } from "@/lib/studio/nomina/payroll-rules-types";
 import {
   TERMINATION_CAUSES,
@@ -37,7 +37,7 @@ export function GenerarFiniquitoDrawer({
   rules,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   rules: PayrollRules | null;
   onClose: () => void;
 }) {

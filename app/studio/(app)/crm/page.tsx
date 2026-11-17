@@ -39,7 +39,7 @@ import type {
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
 import { Suspense, type ReactNode } from "react";
-import { resolverTablero } from "@/lib/studio/crm-tablero";
+import { resolverVista } from "@/lib/studio/crm-tablero";
 import {
   filterRecoveryRows,
   getRecoveryUniverse,
@@ -52,6 +52,7 @@ import { KommoClient } from "./_components/KommoClient";
 import { RecoveryTab } from "./_components/RecoveryTab";
 import { CrmEmbudosCargando, CrmEmbudosSlot } from "./_components/CrmEmbudosSlot";
 import { KOMMO_TABS_OCULTAS, resolveKommoTab } from "./_components/kommo-tabs.shared";
+import { leerAccesoCrm } from "@/lib/studio/crm-acceso-server";
 
 /** Tope de leads traídos por embudo para el Tablero kanban. */
 const BOARD_CAP = 2000;
@@ -72,13 +73,15 @@ export default async function KommoPage({
   };
   const tab = resolveKommoTab(single("tab"));
   const filters = parseKommoFiltersFromSearchParams(raw);
+  // SDD-0655: la pestaña Bandeja solo para quien la ve (rol + flag `chatwoot_inbox`).
+  const { bandeja } = await leerAccesoCrm();
 
   // Embudos del CRM propio (SDD-0587 · 6.3): se lee dentro de su Suspense, así
   // la pestaña muestra su estado de carga en vez de congelar la página.
   const embudos: ReactNode =
     tab === "embudos" ? (
       <Suspense fallback={<CrmEmbudosCargando />}>
-        <CrmEmbudosSlot tableroInicial={resolverTablero(single("embudo"))} />
+        <CrmEmbudosSlot tableroInicial={resolverVista(single("embudo"))} />
       </Suspense>
     ) : null;
 
@@ -111,6 +114,7 @@ export default async function KommoPage({
         // Solo lo usa el worklist de Kommo (oculto); Embudos resuelve su permiso.
         canEdit={false}
         responsibleUsers={[]}
+        bandeja={bandeja}
       />
     );
   }
@@ -314,6 +318,7 @@ export default async function KommoPage({
       staleOpsByLead={staleOpsByLead}
       canEdit={canEdit}
       responsibleUsers={analytics.ownership.owners}
+      bandeja={bandeja}
     />
   );
 }

@@ -378,11 +378,26 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
   // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
   // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
-  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (472 → 473): `moduleEditDenial(supabase,
+  // SDD-0645 sumó `tracking/[id]/actions.ts::previewReassignShipmentClient` y
+  // `::reassignShipmentClient` (472 → 474): pasar un embarque a otro cliente. Las
+  // dos llaman a `capabilityDenial(supabase, "reassign_shipment_owner")` antes de
+  // leer nada y escriben sólo por la RPC `reassign_shipment_client` (0551), que
+  // repite operations/commercial/admin activo y el tenant de la sesión.
+  // SDD-0646 sumó `clientes/actions.ts::registrationLinkAction` y
+  // `::markRegistrationReviewedAction` (474 → 476): `moduleEditDenial(supabase,
+  // "clients")` al tope, antes de leer o escribir; escriben SOLO por las RPC de la
+  // 0552 (`portal_registration_link_create`, `portal_registration_link_mark_reviewed`),
+  // que repiten en la base los roles admin/commercial/operations y el tenant.
+  // SDD-0652 F1 sumó `nomina/actions.ts::getEmployeeEditViewAction` (476 → 477):
+  // solo lee. `moduleViewDenial(supabase, "nomina")` al tope, después
+  // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
+  // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
+  // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
   // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
   // repite `is_platform_admin()`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(473);
+    expect(reportes.length).toBe(478);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

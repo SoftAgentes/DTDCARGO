@@ -27,6 +27,9 @@ export const bandeja = {
 
   // ── Vínculos (solo admin) ────────────────────────────────
   "bandeja.links.title": "Agentes vinculados",
+  // SDD-0655: los vínculos viven en Usuarios › Bandeja; «what» dice qué hacen y «manage» es el enlace desde la Bandeja.
+  "bandeja.links.what": "Vincula tu usuario del Studio con tu agente de Chatwoot para abrir la Bandeja con tu sesión.",
+  "bandeja.links.manage": "Agentes vinculados",
   "bandeja.links.help":
     "Vincula cada usuario de Studio con su agente de la bandeja. El correo del agente tiene que ser el mismo del usuario.",
   "bandeja.links.empty": "Todavía no hay usuarios vinculados.",

@@ -7,7 +7,7 @@
  */
 
 import { useState } from "react";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import {
   commTypeLabel,
   commTypeTone,
@@ -26,7 +26,7 @@ export function ComunicacionesTab({
   employees,
 }: {
   comms: EmployeeComm[];
-  employees: Employee[];
+  employees: EmployeeRef[];
 }) {
   const [open, setOpen] = useState(false);
   const nameById = new Map(employees.map((e) => [e.id, `${e.full_name} · ${e.employee_code}`]));

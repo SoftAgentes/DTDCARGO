@@ -304,6 +304,38 @@ describe("movimiento reducido e idioma", () => {
     expect(screen.getByRole("dialog")).toHaveAccessibleDescription(/Antes en Kommo/);
   });
 
+  it("se distingue del sistema, es compacta y el Cerrar se lee (§9, 2026-11-16)", () => {
+    render(
+      <GuiaTarjeta
+        titulo="Contestar un WhatsApp"
+        que="Aquí llegan juntos los canales."
+        n={1}
+        total={6}
+        esUltimo={false}
+        puedeAtras={false}
+        faltaAncla={false}
+        top={0}
+        left={0}
+        reducido
+        onSiguiente={() => {}}
+        onAnterior={() => {}}
+        onCerrar={() => {}}
+      />,
+    );
+    const d = screen.getByRole("dialog");
+    // Etiqueta «Guía» y contador visibles.
+    expect(within(d).getByText("Guía")).toBeInTheDocument();
+    // Cerrar no es solo una X: la palabra se ve y está en el nombre accesible.
+    expect(within(d).getByRole("button", { name: "Cerrar la guía" })).toHaveTextContent("Cerrar");
+    // Más compacta: 300 px como máximo y alto acotado.
+    expect(d.style.width).toContain("300px");
+    expect(d.style.maxHeight).toContain("340px");
+    // Superficie y acento propios, con tokens de marca.
+    const estilo = d.getAttribute("style") ?? "";
+    expect(estilo).toContain("var(--wine-tint)");
+    expect(estilo).toContain("var(--wine-text)");
+  });
+
   it("en zh-CN usa los textos chinos", () => {
     nav.query = "guia=dashboard";
     render(
