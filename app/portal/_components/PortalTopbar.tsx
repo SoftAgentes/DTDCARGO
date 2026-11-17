@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 import { CalcIcon, ShipIcon, WarningIcon } from "@/components/Icon";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import type { PortalAviso } from "@/lib/portal/portal-avisos";
+import type { PortalVista } from "@/lib/portal/vista-preferida";
 import { PortalNextSailingCard } from "../(app)/_components/PortalNextSailingCard";
 import { PortalAccountMenu } from "./PortalAccountMenu";
 import { PortalAvisosBell } from "./PortalAvisosBell";
 import { PortalThemeToggle } from "./PortalThemeToggle";
+import { PortalVistaSelector } from "./PortalVistaSelector";
 
 /**
  * Barra superior del portal — diseño de Cloud Design (`_norte/portal/app.jsx` ·
@@ -26,6 +28,8 @@ import { PortalThemeToggle } from "./PortalThemeToggle";
  *     de cuenta regresiva del Inicio — sin duplicar lógica.
  *   · Avisos (SDD-0526): la bandeja con los avisos que el sistema ya le envió
  *     al cliente y la respuesta del asesor (SDD-0148). Ver `PortalAvisosBell`.
+ *   · «Vista simple / Vista Pro» (SDD-0654) solo aparece si el layout le pasa
+ *     una vista, y eso solo pasa con el interruptor `PORTAL_VISTA_SIMPLE`.
  *   · El botón de la calculadora dispara `portal:open-calc` (la ventana flotante
  *     ya vive en `PortalCalcFab`); se pinta en vidrio (BD-031), que es
  *     justamente el caso permitido: control de una superficie flotante.
@@ -72,6 +76,7 @@ export function PortalTopbar({
   sailingDaysToCutoff,
   soporteDot,
   avisos,
+  vista = null,
   onOpenMenu,
 }: {
   name: string;
@@ -84,6 +89,8 @@ export function PortalTopbar({
   soporteDot: boolean;
   /** Avisos enviados al cliente (SDD-0526), del más nuevo al más viejo. */
   avisos: readonly PortalAviso[];
+  /** Vista elegida (SDD-0654). null = interruptor apagado: no hay selector. */
+  vista?: PortalVista | null;
   onOpenMenu: () => void;
 }) {
   const pathname = usePathname() ?? "";
@@ -119,6 +126,7 @@ export function PortalTopbar({
         {sailing && (
           <SailingPill sailing={sailing} serverDays={sailingDaysToCutoff} />
         )}
+        {vista && <PortalVistaSelector vista={vista} />}
         <CalcButton />
         <PortalAvisosBell avisos={avisos} soporteDot={soporteDot} />
         {themed && <PortalThemeToggle initialTheme={theme} />}
