@@ -5,6 +5,33 @@ import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { buildPayslipLines, ReciboDocument } from "../recibo-pdf";
 import type { MyPayslip } from "@/lib/studio/nomina/employee-self-queries";
+import { inflateSync } from "node:zlib";
+
+/**
+ * Integridad del PDF (SDD-0656 A2). La cabecera %PDF- sola no detecta un PDF
+ * dañado: con @react-pdf 4.9 bajo jsdom salía con la cabecera y el %%EOF bien,
+ * pero con el `/Length` de cada stream distinto de sus bytes y el contenido
+ * comprimido roto. Aquí: termina en %%EOF, cada `stream` tiene su `endstream`,
+ * cada `/Length` coincide con los bytes del stream y cada stream se descomprime.
+ */
+function expectPdfIntegro(buffer: Buffer) {
+  const raw = buffer.toString("latin1");
+  expect(raw.trimEnd().endsWith("%%EOF")).toBe(true);
+  const streams = raw.match(/(?<!end)stream\r?\n/g)?.length ?? 0;
+  const endstreams = raw.match(/endstream/g)?.length ?? 0;
+  expect(streams).toBeGreaterThan(0);
+  expect(endstreams).toBe(streams);
+  const conLength = /\/Length (\d+)[^]*?(?<!end)stream\r?\n/g;
+  let m: RegExpExecArray | null;
+  while ((m = conLength.exec(raw))) {
+    const inicio = m.index + m[0].length;
+    const declarado = Number(m[1]);
+    expect(raw.slice(inicio + declarado).trimStart().startsWith("endstream")).toBe(true);
+    if (/\/FlateDecode/.test(m[0])) {
+      expect(() => inflateSync(buffer.subarray(inicio, inicio + declarado))).not.toThrow();
+    }
+  }
+}
 
 function mockPayslip(over: Partial<MyPayslip> = {}): MyPayslip {
   return {
@@ -74,6 +101,7 @@ describe("ReciboDocument", () => {
     const doc = createElement(ReciboDocument, { payslip: mockPayslip() }) as ReactElement<DocumentProps>;
     const buffer = await renderToBuffer(doc);
     expect(buffer.length).toBeGreaterThan(0);
+    expectPdfIntegro(buffer);
     // cabecera de un PDF
     expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   }, 20000);

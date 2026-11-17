@@ -69,3 +69,40 @@ Lectura: no se ve una regresión atribuible a la A2. Es inestabilidad de `next d
 - **Cambio de pruebas:** `recibo-pdf.test.ts` y `finiquito-pdf.test.ts` pasan a `// @vitest-environment node`, como ya hace `document-import/pdf.test.tsx`, para probar lo que corre en el servidor. No se debilitó ninguna aserción.
 - **Riesgo residual:** un componente de cliente que generara el PDF en el navegador saldría corrupto. Hoy no hay ninguno: ningún archivo con `"use client"` importa `@react-pdf`, y `ReciboTab` solo lo menciona en un comentario.
 - **Otro hallazgo:** bajo CJS (`tsx`), la 4.9 no carga, porque `@react-pdf/hyphenate` 0.1.0 solo exporta `import`. Hoy no afecta: no hay scripts que usen react-pdf con `require`.
+
+## Segunda ronda del DG (2026-11-17): los 7 PDF e integridad
+
+### Excepción a la allowlist de la A2
+
+La A2 toca dos archivos de prueba que no estaban en su allowlist, con el visto bueno del DG:
+
+- `lib/studio/pdf/__tests__/recibo-pdf.test.ts`
+- `lib/studio/pdf/__tests__/finiquito-pdf.test.ts`
+
+Pasan a `@vitest-environment node` y llevan la aserción `expectPdfIntegro`. No se debilitó ninguna aserción.
+
+### Render de los 7 tipos de PDF, antes y después
+
+Mismo método ESM: esbuild con `packages: external` e import en Node, que es como Next carga el paquete. Se usaron datos sintéticos y la fuente CJK local `C:/Windows/Fonts/Deng.ttf`, que no se commitea.
+
+| PDF | Páginas 4.5.1 → 4.9.0 | Bytes 4.5.1 → 4.9.0 | Errores de poppler | Texto (`pdftotext`) |
+|---|---|---|---|---|
+| Recibo de pago | 1 → 1 | 3248 → 3247 | 0 / 0 | idéntico (17 líneas) |
+| Finiquito | 1 → 1 | 3391 → 3389 | 0 / 0 | idéntico (29) |
+| Factura (45 renglones) | 3 → 3 | 8644 → 8642 | 0 / 0 | idéntico (95) |
+| Estimado | 1 → 1 | 3803 → 3802 | 0 / 0 | idéntico (26) |
+| Estado de cuenta (70 movimientos) | 3 → 3 | 11120 → 11120 | 0 / 0 | idéntico (93) |
+| Packing list | 1 → 1 | 39188 → 38879 | 0 / 0 | idéntico (26) |
+| Etiquetas / guía (10 cajas) | 2 → 2 | 95618 → 95504 | 0 / 0 | idéntico (57) |
+
+Ningún PDF cambió de páginas ni de texto.
+
+### Aserción de integridad
+
+Las dos comprobaciones que pidió el DG, que el PDF termine en `%%EOF` y que haya tantos `stream` como `endstream`, **no bastan**: los PDF corruptos de jsdom las pasaban. El daño estaba dentro del stream: el `/Length` declarado era 1313 y los bytes reales eran 1230, y el inflate fallaba con `Z_DATA_ERROR`.
+
+Por eso `expectPdfIntegro` comprueba, además, que cada `/Length` coincida con los bytes del stream y que cada stream FlateDecode se descomprima.
+
+Control:
+- Aplicada a los PDF guardados, rechaza los 3 de jsdom («/Length no coincide») y acepta los 3 de Node y los 14 del render de 7 tipos.
+- Con el recibo cambiado a jsdom a propósito, la prueba FALLA. Con `node`, PASA.
