@@ -398,12 +398,13 @@ Pedido de Sam (§1). Vale para la Vista simple; la Vista Pro no cambia.
 
 - **El rojo queda para los errores reales.** En la Vista simple, el acento de relleno (botón principal, selección,
   círculos de paso, avatar) es el vino claro de la marca, `--wine-soft` (`#C2747F` en claro, `#D89AA4` en noche;
-  `BRAND.md`, sistema de color), con texto navy `#0F1E3D` encima. Ese par mide cerca de 4,8:1; con texto blanco
-  mediría 3,44:1 y no pasa AA, por eso el texto es navy.
+  `BRAND.md`, sistema de color), con texto navy `#0F1E3D` encima. Ese par mide 4,79:1 en claro y 7,13:1 en noche;
+  con texto blanco mediría 3,44:1 y no pasa AA, por eso el texto es navy.
 - **Los enlaces de texto van en navy subrayado.** `--wine-soft` no sirve para texto pequeño (3,44:1 sobre blanco,
   `BRAND.md` §Contraste). El Shipping Mark conserva `--wine-text`, que es regla de marca (BD-026).
-- **Es una excepción de marca:** `BRAND.md` reserva `--wine-soft` para acento, borde y hover, y BTN-01 fija el vino
-  para el botón principal. Sam la autorizó para esta vista. Antes de implementarla se registra como decisión de
+- **Es una excepción de marca:** `BRAND.md` reserva `--wine-soft` para acento, borde y hover, y el botón principal
+  del portal es vino (`.btn-primary` en `app/globals.css`). Va en la misma dirección que BTN-01 §2 («el vino de
+  marca no sustituye `danger`») y que la SDD-0261. Sam la autorizó para esta vista. Antes de implementarla se registra como decisión de
   marca (D-16).
 - **Más color, con los tonos que ya existen:**
   - encabezado de cada bloque con un tinte suave: dorado para lo pendiente («Lo que te toca hacer», «Cuánto
@@ -548,7 +549,7 @@ PR o se saca.
 | D-13 | ¿El bloque del proveedor muestra el código de la próxima compra o solo el Shipping Mark? | **El código completo de la próxima compra del proveedor que el cliente elija.** Sin proveedores registrados, solo su Shipping Mark y el enlace para registrar al primero. Copiar el mensaje no crea la compra: después de copiar, el bloque ofrece «Avisar esta compra» (el flujo de prealerta que ya existe) |
 | D-14 | ¿El portal abre en claro para todos? | **Sí, como pidió Sam.** Hoy nace en oscuro. Quien ya eligió noche con el botón lo conserva. Es un cambio de una línea en la fase 1 y afecta también a la vista Pro |
 | D-15 | ¿Cuántas veces sale sola la guía? | **Una vez por persona**, guardado en su cuenta. Después, solo con el botón «Guía». La etiqueta «Nuevo» avisa de lo que se agregue más adelante |
-| D-16 | ¿El vino claro reemplaza al vino en los botones? | **Solo en la Vista simple, como autorizó Sam**, registrado como decisión de marca (excepción a BTN-01). La Vista Pro sigue con el vino de hoy hasta que Sam diga otra cosa |
+| D-16 | ¿El vino claro reemplaza al vino en los botones? | **Solo en la Vista simple, como autorizó Sam**, registrado como decisión de marca en `BRAND.md`. La Vista Pro sigue con el vino de hoy hasta que Sam diga otra cosa |
 | D-12 | ¿Probamos con clientes antes de que sea el inicio de los nuevos? | **Sí: 5 clientes en dos rondas.** Que expliquen con sus palabras el estado de su carga y encuentren un documento. Después se enciende |
 
 ## 12. Riesgos
