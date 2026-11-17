@@ -228,6 +228,7 @@ Reglas comunes a todas las oleadas:
 | **Qué** | `@types/node` a ^24 (24.19.2); TypeScript 6.0.3; ESLint 9.39.5 (sin cambiar de major); Vitest 5.1.0 con `@vitest/ui`; `jsdom` 30 con `@types/jsdom` 30; pnpm 11.28.12 (sin cambiar de major) en el `Dockerfile` y los 3 workflows |
 | **Allowlist** | `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `eslint.config.mjs`, `vitest.config.ts`, `vitest.setup.ts`, `Dockerfile` (pnpm), `.github/workflows/{quality,sql-tests,chatwoot-portal-poc}.yml` (pnpm), `scripts/verify.mjs` si cambia la salida de Vitest, los archivos de código o de prueba que pida el compilador o el linter (sin debilitar pruebas), y el handoff |
 | **Pruebas** | `pnpm verify`. Comparar el **número de pruebas** de Vitest antes y después: un reporter o un patrón `include` que cambie puede dar un verde falso con menos pruebas. `pnpm harness:test` y `node scripts/check-build.mjs`. No necesita prueba manual en producción más allá de la prueba rápida, porque no cambia nada en tiempo de ejecución |
+| **Pendiente que viene de la A2** | Hoy `expectPdfIntegro`, en `recibo-pdf.test.ts` y `finiquito-pdf.test.ts`, pasa si ningún `/Length` hace match. Hay que exigir que el número de streams con `/Length` sea igual al número de `stream`. Es una recomendación de la revisión de #643 y no bloqueó esa PR |
 | **Esfuerzo** | 4 a 8 h; depende de cuántos errores nuevos destape TypeScript o ESLint |
 
 ### Oleada C — Majors con cambio de API
