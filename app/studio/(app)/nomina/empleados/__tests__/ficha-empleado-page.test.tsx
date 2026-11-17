@@ -22,6 +22,8 @@ const state = vi.hoisted(() => ({
   authUserId: "22222222-2222-2222-2222-222222222222" as string | null,
   prestamosFalla: false,
   lookups: [] as { tenantId: string; code: string }[],
+  refreshes: 0,
+  refresh: () => {},
 }));
 const { nada } = vi.hoisted(() => ({ nada: () => null }));
 
@@ -32,6 +34,7 @@ vi.mock("next/navigation", () => ({
   redirect: () => {
     throw new Error("NEXT_REDIRECT");
   },
+  useRouter: () => ({ refresh: state.refresh }),
 }));
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/db/admin", () => ({
@@ -130,6 +133,10 @@ beforeEach(() => {
   state.authUserId = "22222222-2222-2222-2222-222222222222";
   state.prestamosFalla = false;
   state.lookups = [];
+  state.refreshes = 0;
+  state.refresh = () => {
+    state.refreshes += 1;
+  };
 });
 afterEach(cleanup);
 
@@ -163,6 +170,8 @@ describe("Ficha del empleado · quién entra (SDD-0652 F1)", () => {
     state.lookup = { kind: "error" };
     await montar();
     expect(screen.getByText("No se pudo cargar la ficha")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(state.refreshes).toBe(1);
   });
 });
 
@@ -211,8 +220,10 @@ describe("Ficha del empleado · estados de los bloques (§5.3)", () => {
     cleanup();
     state.prestamosFalla = true;
     r = await montar();
-    expect(r.container.textContent).toContain("No se pudo cargar");
+    expect(r.container.textContent).toContain("No se pudo cargar este bloque.");
     expect(r.container.textContent).not.toContain("No tiene préstamos.");
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(state.refreshes).toBe(1);
   });
 
   it("la línea de tiempo muestra el finiquito anulado", async () => {

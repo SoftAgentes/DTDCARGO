@@ -38,7 +38,7 @@ import {
   prestamosDe,
   recibosDe,
 } from "@/lib/studio/nomina/ficha-empleado-queries";
-import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { ReintentarCarga } from "./_components/ReintentarCarga";
 import { FichaEmpleadoVista } from "./_components/FichaEmpleadoVista";
 
 export const metadata = { title: "Ficha del empleado" };
@@ -60,9 +60,9 @@ export default async function FichaEmpleadoPage({ params }: { params: Promise<{ 
           ← Volver a Empleados
         </Link>
         <div style={{ marginTop: "var(--s-4)" }}>
-          <Aviso tono="error" titulo="No se pudo cargar la ficha">
-            Hubo un problema al leer los datos. Recarga la página en unos segundos.
-          </Aviso>
+          <ReintentarCarga titulo="No se pudo cargar la ficha">
+            Hubo un problema al leer los datos. Vuelve a intentarlo en unos segundos.
+          </ReintentarCarga>
         </div>
       </div>
     );

@@ -265,6 +265,8 @@ export async function updateEmployeeAction(
   }
 
   revalidatePath(PATH);
+  // SDD-0652 F1: la ficha 360° también muestra estos datos.
+  revalidatePath("/studio/nomina/empleados/[codigo]", "page");
   return { ok: true };
 }
 

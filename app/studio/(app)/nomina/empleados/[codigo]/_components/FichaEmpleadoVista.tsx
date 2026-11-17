@@ -13,6 +13,7 @@
  */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
@@ -49,6 +50,7 @@ import type {
 import { ROLE_LABELS } from "@/lib/studio/user-types";
 import { ActividadAcceso } from "@/app/studio/(app)/usuarios/_components/acceso/ActividadAcceso";
 import { EmpleadoDrawer } from "@/app/studio/(app)/nomina/_components/EmpleadoDrawer";
+import { ReintentarCarga } from "./ReintentarCarga";
 import "./ficha-empleado.css";
 
 export type FichaEmpleadoProps = {
@@ -120,6 +122,7 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
   ];
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [editando, setEditando] = useState(false);
+  const router = useRouter();
   const titulo = useRef<HTMLHeadingElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -284,7 +287,12 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
           employee={e}
           positions={p.positions.filter((x) => x.active)}
           canManageUsers={false}
-          onClose={() => setEditando(false)}
+          onClose={() => {
+            // Al guardar, el panel se cierra: se vuelve a pedir la ficha para que
+            // la cabecera y los bloques muestren lo nuevo.
+            setEditando(false);
+            router.refresh();
+          }}
         />
       )}
     </div>
@@ -501,11 +509,7 @@ function Tarjeta({ titulo, id, verTodo, irA, children }: { titulo: string; id: s
 }
 
 function NoSePudo() {
-  return (
-    <p role="status" style={{ margin: 0, font: "500 12.5px/1.5 var(--f-sans)", color: "var(--danger-text)" }}>
-      No se pudo cargar. Recarga la página para intentar de nuevo.
-    </p>
-  );
+  return <ReintentarCarga compacto>No se pudo cargar este bloque.</ReintentarCarga>;
 }
 
 function ListaBloque<T>({
@@ -541,14 +545,17 @@ function Compacta<T>({
     <section className="ficha-emp-card ficha-emp-card--compacta" aria-label={titulo}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--s-3)", alignItems: "center" }}>
         <span style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>{titulo}</span>
-        {bloque.ok ? (
+        {bloque.ok && (
           <Link href={href} className="studio-link-quiet" style={{ font: "500 12.5px/1.3 var(--f-sans)" }}>
             {texto(bloque.data)}
           </Link>
-        ) : (
-          <span style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--danger-text)" }}>No se pudo cargar</span>
         )}
       </div>
+      {!bloque.ok && (
+        <div style={{ marginTop: "var(--s-2)" }}>
+          <NoSePudo />
+        </div>
+      )}
     </section>
   );
 }

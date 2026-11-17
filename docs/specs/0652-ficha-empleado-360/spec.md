@@ -354,7 +354,9 @@ En pantalla: «Enlazar con usuario», «Quitar enlace», la sugerencia por corre
 | `app/studio/(app)/nomina/_components/EmpleadoDrawer.tsx` | Recibe `EmployeeEditView`; cuenta enmascarada y «Nueva cuenta» |
 | `app/studio/(app)/nomina/_components/{Amonestacion,Asistencia,GenerarFiniquito,Prestamo,EnviarComunicacion}Drawer.tsx`, `AsistenciaTab.tsx`, `ComunicacionesTab.tsx` | Solo el tipo: `EmployeeRef` en vez de `Employee` |
 | `app/studio/(app)/usuarios/page.tsx`, `_components/UsersClient.tsx`, `_components/UserDetailDrawer.tsx` | «Ver ficha de empleado» con el código de la ficha enlazada |
+| `app/studio/(app)/nomina/empleados/[codigo]/_components/ReintentarCarga.tsx` | Nuevo. «No se pudo cargar» con «Reintentar» (`router.refresh()`) |
 | `lib/studio/nomina/__tests__/ficha-empleado.test.ts` | Nuevo |
+| `lib/studio/nomina/__tests__/employee-queries.test.ts` | Nuevo. `getEmployeeByCode` real con cliente falso: códigos válidos e inválidos, tenant y los tres resultados |
 | `app/studio/(app)/nomina/empleados/__tests__/ficha-empleado-page.test.tsx` | Nuevo (§11, F1) |
 | `app/studio/(app)/nomina/__tests__/editar-empleado-cuenta.test.ts` | Nuevo |
 | `docs/specs/0652-ficha-empleado-360/spec.md`, `docs/specs/README.md` | Estado y lista |

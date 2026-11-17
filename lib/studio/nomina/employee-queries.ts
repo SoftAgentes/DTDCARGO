@@ -70,7 +70,8 @@ export type EmployeeLookup =
   | { kind: "not_found" }
   | { kind: "error" };
 
-const EMPLOYEE_CODE_RE = /^EMP-d{1,9}$/;
+/** `EMP-` y de 1 a 9 dígitos (`next_employee_code` rellena a 4). Se prueba en `employee-queries.test.ts`. */
+const EMPLOYEE_CODE_RE = /^EMP-[0-9]{1,9}$/;
 
 /**
  * Una ficha por código `EMP-NNNN` **en el tenant dado** (SDD-0652 F1).
