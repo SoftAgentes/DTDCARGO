@@ -126,8 +126,8 @@ describe("SDD-0647 · 0553 tarjetas para los clientes con carga (PGlite)", () =>
     expect(run.error).toMatch(/0553 requiere la 0506/);
   }, SLOW);
 
-  it("la 0553 está declarada como espera hasta que Sam la apruebe", () => {
-    expect(BASELINE.pendingBelowCutoff["0553_crm_tarjetas_clientes_con_carga"]).toMatch(/PENDIENTE DE APLICAR/);
-    expect(FILE_0553).toMatch(/NO APLICADA EN NINGÚN ENTORNO/);
+  it("la 0553 ya no está en espera: se aplicó en producción con OK de Sam (2026-11-17)", () => {
+    // La cabecera del archivo conserva «NO APLICADA…»: el blob está sellado y no se edita.
+    expect(BASELINE.pendingBelowCutoff["0553_crm_tarjetas_clientes_con_carga"]).toBeUndefined();
   });
 });
