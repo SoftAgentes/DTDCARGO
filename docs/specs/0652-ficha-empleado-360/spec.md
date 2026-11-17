@@ -1,7 +1,7 @@
 ---
 sdd: "0652"
 title: "Ficha 360° del empleado en el Studio: datos, nómina, acceso, inicios de sesión y lo que hizo"
-status: proposed
+status: approved
 author: "Claude Worker (Sam)"
 created: 2026-11-16
 updated: 2026-11-17
@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0652 — Ficha 360° del empleado en el Studio
 
 > Quien abre a una persona del equipo en Nómina ve en una sola página quién es, cuánto gana y qué debe, si tiene acceso al sistema, cuándo entró y qué hizo, con enlaces para profundizar. Toma la estructura de la ficha 360° del cliente (SDD-0650).
-> **Esta PR es solo la spec (fase de análisis).** No implementa nada. Las fases F1 a F5 las asigna el Director General después de que Sam responda las decisiones de §8.
+> **Decisiones aprobadas por Sam el 2026-11-17** (§8). La F1 se implementa en esta misma PR por encargo del Director General; F2 a F5 esperan su asignación.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 > Medido en `main` `26a9a911e` (2026-11-16). Las líneas citadas se vencen si alguien edita arriba: copia el nombre de la función o del bloque al buscar.
 > **Revisiones incorporadas.** (1) DG sobre `18441e8b7`, CHANGES REQUESTED: catálogo de auditoría, retención dentro de AUD-02, preflight de la 0555, `ensureEmployeeAuthUser`, finiquitos auditados, gobernanza. (2) DG sobre `8dcb53734`, APPROVED con ajustes menores. (3) Codex sobre `8dcb53734`, solo lectura: control de rol en el servidor, datos sensibles que ya viajan al navegador, identidad antes que todo, tres clases de inicio de sesión, «lo que hizo» acotado, foto sin P0, estados con causa y orden de fases. Cada punto se verificó en el código antes de adoptarlo.
@@ -381,6 +381,8 @@ En pantalla: «Enlazar con usuario», «Quitar enlace», la sugerencia por corre
 F3, F4 y F5 fijan su lista al asignarse, con su número de migración. La de F4 incluye obligatoriamente las **funciones de lote propias** para minimizar y purgar `studio_login_events` y sus pruebas en PGlite.
 
 ## 8. Decisiones para Sam
+
+> **Aprobadas el 2026-11-17.** En el chat del Director General, a la pregunta «¿Apruebas las 13 decisiones recomendadas de la ficha de empleado?», con la tabla de recomendadas a la vista, Sam respondió literal: **«Sí, las recomendadas»**. Rige la columna «Recomendada» para D1 a D13. En D9 eso es la opción **(b)**: Admin y Contabilidad, con motivo y sin volver a pedir la contraseña. Es una **excepción a AUD-02 §3** y se registra en `docs/governance/` en la F2, antes de construir el revelado.
 
 | ID | Pregunta | Opciones | Recomendada |
 |---|---|---|---|
