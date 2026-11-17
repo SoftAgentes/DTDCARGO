@@ -91,6 +91,9 @@ export function TarjetaFichaDrawer({
       onClose={onClose}
       pending={false}
       width={600}
+      // SDD-0648, D8 (Sam, 2026-11-17): «Sí, que no se cierre». Un clic fuera no
+      // cierra la ficha; solo el botón cerrar o Escape.
+      closeOnBackdrop={false}
     >
       <div style={{ padding: "var(--s-5) var(--s-6)", overflowY: "auto", flex: 1 }}>
         {estado.fase === "cargando" && (
