@@ -93,12 +93,16 @@ revocación.
 
 ## COMMITS
 
-Ver la PR.
+En la rama: `f153001a7` (fase 1), `e4055e16b` (handoff), `4c74cb563` (plantilla del servidor), `1b15bcf99` (spec §9
+y handoff) y `628b0a9d3` (merge de main). En `main`, squash `c20cc7460`.
 
 ## PR / BRANCH
 
-`claude/0654-f1-vista-simple` → `main`. PR no draft. No fusionar. **La 0557 no se aplica en producción sin OK
-nominal de Sam** para ese archivo y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+**FUSIONADA (2026-11-17):** PR #637, `claude/0654-f1-vista-simple` → `main`, squash `c20cc7460`. La fusionó el DG con
+la guarda en `628b0a9d3`. Se comprobó que los archivos de la PR están idénticos en `origin/main`. Claim `local_0654`
+liberado. **La 0557 sigue EN ESPERA:** no se aplica en producción sin el OK nominal de Sam para ese archivo y el
+runbook `docs/runbooks/aplicar-migraciones-prod.md`. El interruptor `PORTAL_VISTA_SIMPLE` sigue apagado.
+El worktree y la rama siguen en disco: los limpia el DG al cerrar la 0654 entera.
 
 ## PENDIENTES DE ESTA TAREA
 
