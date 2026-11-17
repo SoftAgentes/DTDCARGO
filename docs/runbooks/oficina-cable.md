@@ -161,6 +161,7 @@ cron del servidor, diario 04:15 UTC ────────▶  /api/cron/ofici
 | `OFICINA_WEBHOOK_ACTIVO` | Enciende el webhook y el filtro. Solo vale `1` o `true` (cualquier otra cosa, apagado) | El webhook responde 200 sin hacer nada y no escribe; el filtro no llama a la base |
 | `OFICINA_WEBHOOK_SECRET` | El «secret» del webhook de Chatwoot que apunta a este endpoint. **Propio del cable**, no el de `/api/chatwoot/webhook` | Se rechaza todo (503) |
 | `OFICINA_CHATWOOT_INBOX_PRUEBA` | Id numérico de la única bandeja que el cable atiende | Se rechaza todo (503). Cualquier otra bandeja se ignora |
+| `OFICINA_CHATWOOT_ACCOUNT_ID` | Id numérico de la cuenta de Chatwoot de esa bandeja (la cuenta de prueba). **Propia del cable:** el webhook, el despachador, la lectura y el envío usan solo esta, nunca `CHATWOOT_ACCOUNT_ID` (la cuenta real del ERP, que sigue siendo la de la Bandeja) | Se rechaza todo (503); el despachador y el envío responden `sin_config`. Los avisos de otra cuenta se ignoran |
 | `OFICINA_ETIQUETAS_DINERO`, `OFICINA_ETIQUETAS_INTERNO` | Etiquetas de Chatwoot (separadas por comas) que dan prioridad 3 (dinero) o 1 (interno). Opcionales | Valen las del código: dinero, pago, cobro, cobranza, factura, reembolso / interno, prueba. Sin etiqueta clara, cliente (2) |
 | `OFICINA_VACIADO_ACTIVO` | Enciende el vaciado diario del resumen. **Interruptor propio**: no lo enciende el del webhook. Solo vale `1` o `true` | No llama a la base |
 
@@ -280,7 +281,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 | `OFICINA_RUNTIME_URL` / `OFICINA_RUNTIME_TOKEN` | El cable (§3); ya están |
 | `OFICINA_CHATWOOT_TOKEN_LECTURA` | Token de un usuario **agente** de Chatwoot que solo es miembro de la bandeja de prueba. El despachador solo hace GET con él |
 | `OFICINA_CHATWOOT_API_URL` | Opcional: la URL interna de la API de Chatwoot (sin ella, `CHATWOOT_URL`) |
-| `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
+| `OFICINA_CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
 | `OFICINA_TOPE_MENSUAL_USD` | El tope del mes (D5: 15; solo se puede bajar). **Etapa 1: `1`** (Sam, 16/11/2026). Al 80 % la oficina se auto-pausa |
 | `OFICINA_TOPE_LLAMADAS_CORRIDA` / `OFICINA_TOPE_TOKENS_CORRIDA` | Topes por corrida (2 y 24000) |
 | `OFICINA_PRECIO_ENTRADA_USD_MTOK` / `OFICINA_PRECIO_SALIDA_USD_MTOK` | La tarifa con la que se estima el costo (1,00 y 3,20 USD por millón de tokens). 0, negativo o inválido vale el de por defecto |
@@ -345,7 +346,7 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
 |---|---|
 | `OFICINA_ENVIO_ACTIVO` | El interruptor del envío. Solo `1` o `true` enciende; vacío = apagado. Independiente del despachador |
 | `OFICINA_CHATWOOT_TOKEN_ENVIO` | Token de **escritura** de un usuario agente de Chatwoot que solo es miembro de la bandeja de prueba. Chatwoot 4.19.1 no tiene tokens con alcance: el límite es el del usuario |
-| `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la única bandeja a la que se envía (las del webhook). Si la bandeja coincide con una del ERP (portal, clientes, leads), no hay a dónde enviar |
+| `OFICINA_CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la única bandeja a la que se envía (las del webhook). Si la bandeja coincide con una del ERP (portal, clientes, leads), no hay a dónde enviar |
 | `OFICINA_ETAPA` | La etapa de AC-1 en la que se cuentan las revisiones (1 por defecto). 2 solo cuando Sam firme el paso |
 | `DISCORD_TENANT_ID` y `DISCORD_WEBHOOK_EQUIPO` | El aviso «hay N pendientes» (SDD-0606). En staging Discord está apagado |
 
@@ -402,3 +403,54 @@ la prueba E (hallazgo 18) pasaron de 1 a 0; el gateway volvió y `GET /v1/models
 - No sube a la etapa 2: eso lo firma Sam con el conteo y las demás condiciones de AC-1.
 - No reintenta un envío fallido ni manda a otra bandeja que no sea la de prueba.
 - La prueba F en staging (3 conversaciones; Sam aprueba 2 y rechaza 1) todavía no se hizo: necesita el OK de Sam.
+
+## 12 · Encender la etapa 1 en producción (lista)
+
+La etapa 1 de AC-1 corre en producción, solo en la bandeja de prueba de la **cuenta de prueba** de Chatwoot (no en la
+cuenta real del ERP: decisión del DG, 17/11/2026). Todo pide el **OK nominal de Sam en la sesión del DG**, con los
+interruptores nombrados. Los valores secretos van de archivo a archivo, nunca por el chat, el repo ni los logs.
+
+**Antes:** la #652 (0558) fusionada y publicada en producción con la prueba rápida en verde; y esta pieza (la cuenta
+propia del cable) también publicada. El `cron` ya tiene `oficina-despachador` y `oficina-envio`: no se toca.
+
+### Lo que se pone (servicio `web`, `/srv/dtd-cargo/.env`, root 0600, con copia `.env.bak-<ts>` antes)
+
+| Variable | Valor | Nota |
+|---|---|---|
+| `OFICINA_CHATWOOT_ACCOUNT_ID` | id de la cuenta de prueba | **No** se toca `CHATWOOT_ACCOUNT_ID` (la del ERP) |
+| `OFICINA_CHATWOOT_INBOX_PRUEBA` | id de la bandeja de prueba de esa cuenta | No puede ser `CHATWOOT_INBOX_PORTAL_ID`, `_CLIENTES_ID` ni `_LEADS_ID`: si coincide, el código la anula |
+| `OFICINA_WEBHOOK_SECRET` | secreto | El mismo «secret» del webhook de Chatwoot (evento `message_created`, en la cuenta de prueba) que apunta a `/api/oficina/webhook-chatwoot` |
+| `OFICINA_CHATWOOT_TOKEN_LECTURA` | secreto | Usuario agente que solo es miembro de la bandeja de prueba; solo GET |
+| `OFICINA_CHATWOOT_TOKEN_ENVIO` | secreto | OTRO usuario agente, también solo miembro de la bandeja de prueba (Chatwoot 4.19.1 no tiene tokens con alcance) |
+| `OFICINA_TOPE_MENSUAL_USD` | `1` | Al 80 % la oficina se auto-pausa |
+| `OFICINA_VACIADO_ACTIVO` | `1` | Requisito del despachador |
+| `OFICINA_WEBHOOK_ACTIVO` | `1` | |
+| `OFICINA_DESPACHADOR_ACTIVO` | `1` | |
+| `OFICINA_ENVIO_ACTIVO` | `1` | |
+| `OFICINA_ETAPA` | sin definir | Vale 1 |
+
+Después, recrear **solo** el `web`.
+
+### En Chatwoot y en la base
+
+1. **Reactivar la cuenta de prueba** con `rails runner` y `Account#update!` (nunca `compose up`), con motivo, hora y
+   evidencia root-600.
+2. Crear (o rotar) los dos tokens de los usuarios agentes y copiarlos al `.env` de archivo a archivo.
+3. Despausar la oficina: `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
+4. Sam entra en `/studio/admin/oficina` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
+
+### Vuelta atrás y cierre
+
+- **Al instante, sin recrear nada:** `office_cambiar_pausa(true, '<motivo>')`. El envío la mira antes de cada mensaje y
+  dentro de la reserva; el despachador, en cada tanda.
+- **Solo el envío:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el `web`. Lo aprobado queda esperando.
+- **Todo el cable:** además `OFICINA_DESPACHADOR_ACTIVO` y `OFICINA_WEBHOOK_ACTIVO` vacíos, recrear el `web`; o borrar
+  o pausar el webhook en Chatwoot. Quitar `OFICINA_CHATWOOT_ACCOUNT_ID` también apaga todo el cable (falla hacia apagado).
+- **Al cerrar la etapa (o si algo sale mal):** volver a **suspender la cuenta de prueba** (`Account#update!`, con
+  motivo, hora y evidencia), **rotar los dos tokens** (lectura y envío) y borrarlos del `.env`, y dejar la oficina
+  pausada. La base no se toca: no hay desarme, las filas solo se agregan.
+
+### Staging
+
+Staging usa la misma pieza: antes de la próxima prueba en staging hay que definir ahí `OFICINA_CHATWOOT_ACCOUNT_ID`
+(la cuenta de prueba). Sin ella, el cable de staging queda apagado (503 / `sin_config`).

@@ -144,7 +144,7 @@ describe("el formato y la firma los acepta el ERP real", () => {
       OFICINA_WEBHOOK_ACTIVO: "1",
       OFICINA_WEBHOOK_SECRET: SECRETO,
       OFICINA_CHATWOOT_INBOX_PRUEBA: "11",
-      CHATWOOT_ACCOUNT_ID: "2",
+      OFICINA_CHATWOOT_ACCOUNT_ID: "2",
       CHATWOOT_INBOX_PORTAL_ID: "9",
       CHATWOOT_INBOX_CLIENTES_ID: "7",
       CHATWOOT_INBOX_LEADS_ID: "6",
