@@ -223,9 +223,11 @@ propuesta»).
 - Faro con campo libre de pregunta y el aviso de que cada pregunta se responde sola (FC-15); los ejemplos de
   rechazo quedan plegados, solo para la revisión, fuera de la experiencia del cliente;
 - la Comparación apilada en teléfono, sin tabla ancha;
-- el wordmark en Archivo Black, como manda `BRAND.md`;
-- mientras el seguimiento esté en construcción, el bloque 1 muestra el último dato registrado y la llegada
-  estimada al puerto, en lugar de la ruta (como en su propuesta; ya era AC-12).
+- el wordmark en Archivo Black, como manda `BRAND.md`.
+
+**Adoptado solo en la spec:** mientras el seguimiento esté en construcción, el bloque 1 muestra el último dato
+registrado y la llegada estimada al puerto, en lugar de la ruta, como en la propuesta de Codex (ya era AC-12). La
+maqueta sigue mostrando la ruta, que es como se verá con el seguimiento activo.
 
 **No adoptado, y por qué:**
 
