@@ -281,6 +281,11 @@ export async function getEmployeeEditViewAction(
   employeeId: string,
 ): Promise<{ ok: true; employee: EmployeeEditView } | { error: string }> {
   const supabase = await createClient();
+  // Primera puerta, la de todo el módulo (la que reconoce el inventario RBAC).
+  const denial = await moduleViewDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+  // Segunda: rol admin/accounting activo. Un acceso extra a `nomina` pasa la
+  // primera y no esta (SDD-0652 §2.2).
   const acceso = await getFichaEmpleadoAccess(supabase);
   if (!acceso.ok) return { error: "No tienes permiso para ver esta ficha." };
   if (!/^[0-9a-f-]{36}$/i.test(employeeId ?? "")) return { error: "Empleado inválido." };

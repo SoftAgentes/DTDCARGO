@@ -372,8 +372,8 @@ Diferencias con lo propuesto antes de implementar:
 
 | Archivo | Cambio |
 |---|---|
-| `supabase/migrations/0555_nomina_enlace_usuario_y_foto.sql` | Nuevo (§F2) |
-| `supabase/tests/0555_nomina_enlace_usuario_y_foto.test.sql` | Nuevo, contrato en PGlite (misma carpeta que `0551`-`0553`) |
+| Migración **0555** en `supabase/migrations/` | Nueva (§F2). El nombre del archivo lo fija la F2: la spec no cita un archivo que todavía no existe |
+| Su contrato en `supabase/tests/`, con el mismo número | Nuevo, en PGlite (misma carpeta que `0551`-`0553`) |
 | `app/studio/(app)/nomina/actions.ts` | Correctivo de `ensureEmployeeAuthUser` (§4, punto 6) |
 | `app/studio/(app)/nomina/__tests__/ensure-employee-auth-user.test.ts` | Nuevo: correo de cliente del portal, de usuario del Studio, error en cada comprobación, más de 200 usuarios |
 | `app/studio/(app)/nomina/empleados/[codigo]/actions.ts` | Nuevo: enlazar, quitar enlace, reenlazar, foto, mostrar la cuenta |

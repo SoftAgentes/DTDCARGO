@@ -42,7 +42,10 @@
 | vitest `lib/studio/nomina`, `app/studio/(app)/nomina`, `app/studio/(app)/usuarios` | `1e5de53a6` | PASÓ, 36 archivos y 413 pruebas |
 | Los 3 archivos nuevos, aparte | `1e5de53a6` | PASÓ, 40 pruebas |
 | `docs:check`, `sdd:check`, `git diff --check` | cabeza actual | PASÓ |
-| tsc y vitest de la corrección B1, N1 y N3 | cabeza actual | **NO EJECUTADO en local**: sin turno de PC. Lo dice el CI de la #632 |
+| tsc y vitest de la corrección B1, N1 y N3 | `e2566eadf` | NO EJECUTADO en local en su momento (sin turno). Cubierto por la fila siguiente |
+| Rojo del CI (run 44025362712): inventario RBAC 476 → 477, candado `moduleViewDenial` en `getEmployeeEditViewAction`, spec sin nombre de archivo 0555 | después del merge de main `39731c0bf` | Corregido |
+| `tsc --noEmit` | ese arreglo, con main integrado | PASÓ, con turno de PC del DG |
+| vitest: `rbac-actions-guard`, `spec-migration-refs` y los 4 archivos de la F1 | ese arreglo | PASÓ, 6 archivos y 545 pruebas |
 | `pnpm verify` completo y e2e | — | NO EJECUTADO: turno acotado; el portón es el CI |
 | Lectura de producción | — | NO EJECUTADO, a propósito |
 
