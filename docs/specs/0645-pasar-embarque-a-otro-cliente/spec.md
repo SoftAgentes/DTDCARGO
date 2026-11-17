@@ -163,7 +163,7 @@ congelado por 0466.
 
 Se mueven; el viejo deja de verlo y el nuevo lo ve (§3.4).
 
-### 4.4 El código del embarque: **se conserva** (decisión de Sam abierta, D1)
+### 4.4 El código del embarque: **se conserva, con trazabilidad visible** (D1, resuelta por Sam el 2026-11-16)
 
 El código del embarque y los de sus cajas **no cambian**. Motivo: el código es la llave que ya está impresa en las
 etiquetas físicas de las cajas, en el manifiesto, en el snapshot `invoices.shipment_code` y en las líneas
@@ -171,7 +171,30 @@ etiquetas físicas de las cajas, en el manifiesto, en el snapshot `invoices.ship
 referencias y las etiquetas ya pegadas.
 
 Consecuencia visible: un embarque nacido en la ficha provisional puede llevar el Shipping Mark viejo dentro del código
-(por ejemplo `DTD-0000-…`), y el cliente nuevo lo verá así en el Portal.
+(por ejemplo `DTD-0000-…`).
+
+**Respuesta de Sam (2026-11-16, en el chat del DG, literal):**
+
+> «Se queda registrado el cambio como historial dentro del embarque. No conserva el código del otro cliente, sino que
+> queda como registro: conserva el cambio del cliente nuevo y se mantiene el cliente nuevo, pero yo puedo ver en
+> registros que se hizo eso. O sea, si yo en algún momento llego a ver el embarque, que aparezca: tal día, fulano de tal
+> hizo este cambio y la justificación de por qué hizo este cambio.»
+>
+> «Para que la recomendación que tú estás dando sea viable, cuando haya un cambio, este debe ser totalmente visible. Por
+> ejemplo, que "DTD 000" salga tachado y al lado diga "nuevo", o algo así. Tiene que haber un elemento visual que
+> identifique la trazabilidad del cambio de cliente. Además, si oprimo el botón encima, debería salir alguna
+> justificación o aclaración de por qué es así, considerando que la etiqueta ya está puesta como "000".»
+
+**Cómo se aplica (lectura del DG, 2026-11-16):**
+
+- El código del embarque y de las cajas se conserva, porque la etiqueta ya está impresa. El dueño pasa a ser el
+  cliente nuevo.
+- En el detalle del embarque del Studio, junto al cliente: el Shipping Mark anterior **tachado** y el nuevo al lado,
+  con la marca «nuevo».
+- Al pulsar esa marca se abre la explicación: «El código de las etiquetas (`<código>`) se mantiene porque ya está
+  impreso en las cajas; el embarque es de `<Shipping Mark nuevo>` desde `<fecha>`».
+- **Historial del cliente** visible en el detalle: fecha, quién hizo el cambio, cliente anterior → nuevo y el motivo.
+  Sale del evento `shipment_client_reassigned` que ya escribe la 0551 (§3.6), sin otra tabla.
 
 ### 4.5 Roles (resuelta por la tarea)
 
@@ -185,10 +208,13 @@ Consecuencia visible: un embarque nacido en la ficha provisional puede llevar el
 
 El Subdirector Portal se las hace **una por una**:
 
-- **D1. ¿El código del embarque se conserva al pasarlo?** Recomendado: sí, se conserva (§4.4). Alternativa: renombrarlo
-  al Shipping Mark nuevo, lo que pide además reimprimir las etiquetas y tocar facturas y manifiesto (otra SDD).
+- **D1. ¿El código del embarque se conserva al pasarlo?** **Resuelta por Sam el 2026-11-16:** se conserva, con el
+  cambio tachado y explicado en el detalle y su historial (§4.4).
 - **D2. ¿`commercial` también puede pasarlo?** Recomendado: no; solo operaciones y admin, como pidió la tarea.
-  Agregarlo es una línea en `CAPABILITIES` y otra en la migración.
+  Agregarlo es una línea en `CAPABILITIES` y otra en la migración. Sin respuesta al 2026-11-16: rige la recomendada.
+- **D3. ¿El Portal del cliente nuevo muestra la trazabilidad?** Propuesta del DG: que vea solo la explicación del
+  código («el código de las etiquetas se mantiene porque ya estaba impreso»), **sin** el Shipping Mark ni el nombre del
+  cliente anterior, que son datos de otra persona. **Abierta para Sam; esta PR no toca el Portal.**
 
 ## 5. Diseño de UI
 
@@ -207,6 +233,16 @@ El Subdirector Portal se las hace **una por una**:
   4. Botón primario **«Pasar a DTD-1234»** (con el Shipping Mark nuevo), deshabilitado sin cliente, sin motivo o con
      bloqueos. Texto de confirmación sobre el botón: «El cliente actual dejará de verlo en el Portal y DTD-1234 lo verá».
 - Al terminar: toast «Embarque pasado a DTD-1234» y se refresca la página.
+- **Trazabilidad (D1).** Si el embarque cambió de cliente, la columna derecha muestra, a **todo** el que ve el detalle
+  (también al equipo de China: solo hay Shipping Marks y nombres del equipo, no de clientes):
+  - el Shipping Mark anterior tachado (`<s>`, con texto para lectores de pantalla «antes»), el actual y el botón «nuevo»
+    (`aria-expanded`). Al pulsarlo se abre la explicación del código de las etiquetas, con la fecha del cambio;
+  - **«Historial del cliente»**: una línea por cambio, del más reciente al más viejo, con fecha y hora de Caracas, el
+    nombre de la persona del equipo (o «Alguien del equipo» si ya no está), anterior → nuevo y el motivo.
+  - La lectura es acotada: con el cliente de servicio (la 0270 no deja leer la bitácora a `authenticated`), después de
+    que la RLS dejó leer el embarque, con filtro fijo por tenant de la sesión, `entity_type = 'shipment'`, el id del
+    embarque y `event_type = 'shipment_client_reassigned'`, columnas fijas y tope de 20. Si falla, no se muestra y el
+    detalle sigue.
 - Sin la migración aplicada, el modal dice «Esta acción todavía no está disponible.» y no ofrece confirmar.
 - Tokens `var(--*)` y la tipografía de `BRAND.md`. Español venezolano neutro, con tuteo.
 
@@ -227,7 +263,10 @@ El Subdirector Portal se las hace **una por una**:
    de otro embarque del mismo contenedor no cambia.
 10. Con el `EXECUTE` por defecto de Supabase (`alter default privileges`), la migración deja la función sólo a
     `authenticated`.
-11. El modal solo aparece para quien tiene la acción y no deja confirmar sin cliente, sin motivo o con bloqueos.
+11. (D1) En el detalle de un embarque que cambió de cliente, cualquiera que lo vea encuentra el Shipping Mark anterior
+    tachado, el actual con «nuevo», la explicación del código de las etiquetas al pulsarlo y el historial con fecha,
+    persona, anterior → nuevo y motivo. La lectura de la bitácora es la acotada de §5 y, si falla, el detalle sigue.
+12. El modal solo aparece para quien tiene la acción y no deja confirmar sin cliente, sin motivo o con bloqueos.
 
 ## 7. Migración
 
@@ -268,7 +307,11 @@ Cualquier archivo fuera de esta lista pide enmendar esta spec.
 - `app/studio/(app)/tracking/[id]/__tests__/reasignar-actions.test.ts` (nueva)
 - `app/studio/(app)/tracking/[id]/_components/ReassignClientPanel.tsx` (nueva)
 - `app/studio/(app)/tracking/[id]/_components/__tests__/ReassignClientPanel.test.tsx` (nueva)
-- `app/studio/(app)/tracking/[id]/page.tsx` (montar el panel)
+- `app/studio/(app)/tracking/[id]/page.tsx` (montar el panel y la trazabilidad)
+- `lib/studio/reasignar-historial.ts` (nueva: lectura acotada del historial de cambios de cliente)
+- `lib/studio/__tests__/reasignar-historial.test.ts` (nueva)
+- `app/studio/(app)/tracking/[id]/_components/ClienteCambiado.tsx` (nueva: tachado, «nuevo» e historial)
+- `app/studio/(app)/tracking/[id]/_components/__tests__/ClienteCambiado.test.tsx` (nueva)
 - `app/studio/(app)/tracking/__tests__/ocultar-nombres-cn.test.tsx` (China no ve el panel; Venezuela sí)
 - `.agents/handoffs/0645-pasar-embarque-a-otro-cliente.md`
 
@@ -281,4 +324,5 @@ Cualquier archivo fuera de esta lista pide enmendar esta spec.
 | AUD-01 / AUD-02 | cumplimiento: evento en la misma transacción, motivo obligatorio, sin PII |
 | FRM-01 / ERR-01 | cumplimiento: motivo con contador; errores en texto llano |
 | A11Y-01 | cumplimiento: diálogo con `useDialogA11y` y combobox WAI-ARIA existente |
+| AUD-02 (consulta de la bitácora) | excepción autorizada por Sam (D1, 2026-11-16): lectura acotada de un solo tipo de evento del embarque, columnas fijas, para mostrar su historial a quien ya ve el embarque |
 | Privacidad (`revisar-datos-ve`) | cumplimiento: no se capturan datos personales nuevos; el evento guarda solo Shipping Marks |
