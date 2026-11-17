@@ -31,6 +31,13 @@ todos?». Respuesta literal de Sam en el chat del DG: «Sí, tema claro».
   Sam. Ningún token ni color nuevo: el tema claro del Portal ya existía. Son los tokens base más el bloque
   `[data-portal-theme]` (`app/globals.css:123`); no hay un bloque `[data-portal-theme="light"]` propio.
 - `.agents/handoffs/sdd-0654-f1-vista-simple.md`: PR #637 fusionada (squash `c20cc7460`).
+- **Ampliación de la allowlist por el DG en la revisión independiente (2026-11-17), solo comentarios y sin tocar
+  código:**
+  - `app/portal/layout.tsx`: el comentario de `appleWebApp` decía que el shell nace en oscuro;
+  - `app/portal/_components/PortalThemeToggle.tsx`: el comentario de cabecera decía que el portal nace en oscuro y
+    que el layout pasa «cookie o dark».
+
+  Anotado también en la spec §9.
 
 ## VALIDACIÓN
 
@@ -55,6 +62,9 @@ nunca tocaron el botón de tema, también en la Vista Pro y con el interruptor d
 - CI verde de la PR.
 - Después de publicar, mirar el portal en claro con una cuenta de prueba en el servidor de prueba que Sam nombre. El
   Preview de Vercel no sirve, porque comparte base con producción.
+- En esa misma comprobación, en un iPhone con el portal instalado como PWA: `statusBarStyle: "black-translucent"`
+  (`app/portal/layout.tsx`, `appleWebApp`) con el tema claro. Hay que ver que la hora y la batería se lean sobre el
+  contenido claro; si no, se decide con el DG si cambia a `default`.
 
 ## FUERA DE ALCANCE DETECTADO
 
