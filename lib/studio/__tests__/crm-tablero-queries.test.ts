@@ -7,7 +7,9 @@
  *  - una tarjeta cuya ficha está borrada en suave no se pinta (pendiente de 6.2);
  *  - una anonimizada tampoco;
  *  - el tablero sale del segmento de la RPC y el rastro del historial;
- *  - sin la 0506 la pantalla lo dice en vez de romperse.
+ *  - sin la 0506 la pantalla lo dice en vez de romperse;
+ *  - SDD-0647: la vista no escribe (las tarjetas de los clientes con carga
+ *    las crea la 0553 al aplicarse).
  * Fixtures sin datos personales: nombres de prueba y códigos inventados.
  */
 import { describe, expect, it } from "vitest";
@@ -201,6 +203,13 @@ describe("cargarTableroCrm", () => {
       origen: { tablero: "clientes", etapa: "activo", vuelta: true },
       diasEnEtapa: 10,
     });
+  });
+
+  it("SDD-0647: el tablero solo lee; no llama a ninguna RPC que escriba", async () => {
+    const { client, rpcLlamadas } = doble({ crm_etapas: ETAPAS, crm_tarjetas: [tarjeta(1)] }, {});
+    const r = await cargarTableroCrm(client, { asesores, ahoraMs: AHORA });
+    expect(r.ok).toBe(true);
+    expect(rpcLlamadas.map((l) => (l as { nombre: string }).nombre)).toEqual(["crm_segmento_tarjetas"]);
   });
 
   it("sin la 0506 responde «sin_modelo»", async () => {
