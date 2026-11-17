@@ -24,6 +24,14 @@ const state = vi.hoisted(() => ({
   lookups: [] as { tenantId: string; code: string }[],
   refreshes: 0,
   refresh: () => {},
+  // Fase 2
+  eventos: [] as { id: string; entity_type: string; event_type: string; occurred_at: string; actor_id: string | null }[],
+  eventosFallan: false,
+  candidatos: [] as { userId: string; nombre: string; correoAcceso: string | null }[],
+  candidatosFallan: false,
+  pidioCandidatos: 0,
+  rutaFoto: null as string | null,
+  firmaFalla: false,
 }));
 const { nada } = vi.hoisted(() => ({ nada: () => null }));
 
@@ -119,8 +127,26 @@ vi.mock("@/lib/studio/nomina/ficha-empleado-queries", async (importOriginal) => 
       ok([{ id: "s1", settlement_code: "LIQ-0001", termination_date: "2026-06-30", status: "anulado", created_at: "2026-07-02T00:00:00Z" }]),
     comunicacionesDe: async () => ok([]),
     cambioBancoPendiente: async () => ok(false),
+    eventosDe: async () => (state.eventosFallan ? { ok: false as const } : ok(state.eventos)),
+    candidatosDeEnlace: async () => {
+      state.pidioCandidatos += 1;
+      return state.candidatosFallan ? { ok: false as const } : ok(state.candidatos);
+    },
   };
 });
+vi.mock("@/lib/studio/nomina/employee-photo", () => ({
+  rutasDeFoto: async () => new Map(state.rutaFoto ? [["e1", state.rutaFoto]] : []),
+  firmarFotos: async (_admin: unknown, rutas: string[]) =>
+    new Map(state.firmaFalla ? [] : rutas.map((r) => [r, `https://firmada.example.test/${encodeURIComponent(r)}`])),
+}));
+// Las acciones de la ficha son del servidor: aquí solo importa qué se dibuja.
+vi.mock("../[codigo]/actions", () => ({
+  linkEmployeeUserAction: async () => ({ ok: true }),
+  unlinkEmployeeUserAction: async () => ({ ok: true }),
+  uploadEmployeePhotoAction: async () => ({ ok: true }),
+  removeEmployeePhotoAction: async () => ({ ok: true }),
+  revealBankAccountAction: async () => ({ ok: true, cuenta: "0102 0000 00 0000004321" }),
+}));
 vi.mock("@/app/studio/(app)/usuarios/_components/acceso/ActividadAcceso", () => ({ ActividadAcceso: nada }));
 vi.mock("@/app/studio/(app)/nomina/_components/EmpleadoDrawer", () => ({ EmpleadoDrawer: nada }));
 
@@ -137,6 +163,13 @@ beforeEach(() => {
   state.refresh = () => {
     state.refreshes += 1;
   };
+  state.eventos = [];
+  state.eventosFallan = false;
+  state.candidatos = [];
+  state.candidatosFallan = false;
+  state.pidioCandidatos = 0;
+  state.rutaFoto = null;
+  state.firmaFalla = false;
 });
 afterEach(cleanup);
 
@@ -237,5 +270,118 @@ describe("Ficha del empleado · estados de los bloques (§5.3)", () => {
     const resumen = screen.getByRole("tab", { name: "Resumen" });
     fireEvent.keyDown(resumen, { key: "ArrowRight" });
     expect(screen.getByRole("tab", { name: "Línea de tiempo" }).getAttribute("aria-selected")).toBe("true");
+  });
+});
+
+// ── Fase 2 ──────────────────────────────────────────────────────────────────
+const CANDIDATA = { userId: "33333333-3333-3333-3333-333333333333", nombre: "Usuaria Sintética", correoAcceso: "contacto-sintetico@example.test" };
+const OTRO = { userId: "44444444-4444-4444-4444-444444444444", nombre: "Otro Sintético", correoAcceso: "otro-sintetico@example.test" };
+
+describe("Ficha del empleado · enlace con un usuario (SDD-0652 fase 2, §4)", () => {
+  it("admin, sin enlace: ve el selector con los candidatos y el motivo", async () => {
+    state.authUserId = null;
+    state.candidatos = [OTRO];
+    await montar();
+    const selector = screen.getByLabelText("Usuario del Studio") as HTMLSelectElement;
+    expect([...selector.options].map((o) => o.value)).toEqual(["", OTRO.userId]);
+    expect(screen.getByLabelText("Motivo")).toBeTruthy();
+    // Sin persona ni motivo, el botón no se puede usar.
+    expect((screen.getByRole("button", { name: "Enlazar con usuario" }) as HTMLButtonElement).disabled).toBe(true);
+    // Otro correo: no hay sugerencia.
+    expect(screen.queryByText("Puede ser la misma persona")).toBeNull();
+  });
+
+  it("la sugerencia por correo propone y no enlaza: deja elegida a la persona", async () => {
+    state.authUserId = null;
+    state.candidatos = [OTRO, CANDIDATA];
+    await montar();
+    expect(screen.getByText("Puede ser la misma persona")).toBeTruthy();
+    const selector = screen.getByLabelText("Usuario del Studio") as HTMLSelectElement;
+    expect(selector.value).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Elegir para enlazar" }));
+    expect((screen.getByLabelText("Usuario del Studio") as HTMLSelectElement).value).toBe(CANDIDATA.userId);
+    // Sigue sin enlazar: falta el motivo.
+    expect((screen.getByRole("button", { name: "Enlazar con usuario" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("Contabilidad no recibe candidatos ni sugerencia: ni se piden", async () => {
+    state.role = "accounting";
+    state.authUserId = null;
+    state.candidatos = [CANDIDATA];
+    const { container } = await montar();
+    expect(state.pidioCandidatos).toBe(0);
+    expect(container.innerHTML).not.toContain(CANDIDATA.userId);
+    expect(container.innerHTML).not.toContain("Usuaria Sintética");
+    expect(screen.queryByText("Puede ser la misma persona")).toBeNull();
+    expect(screen.queryByLabelText("Usuario del Studio")).toBeNull();
+  });
+
+  it("con enlace no se piden candidatos y admin ve «Quitar enlace»", async () => {
+    state.candidatos = [CANDIDATA];
+    await montar();
+    expect(state.pidioCandidatos).toBe(0);
+    expect(screen.getByRole("button", { name: "Quitar enlace" })).toBeTruthy();
+    expect(screen.queryByLabelText("Usuario del Studio")).toBeNull();
+  });
+
+  it("si la lista de candidatos falla, se dice y no se ofrece a nadie", async () => {
+    state.authUserId = null;
+    state.candidatosFallan = true;
+    const { container } = await montar();
+    expect(container.textContent).toContain("No se pudo cargar la lista de usuarios del Studio.");
+    expect(screen.queryByLabelText("Usuario del Studio")).toBeNull();
+  });
+});
+
+describe("Ficha del empleado · foto, cuenta y eventos (SDD-0652 fase 2)", () => {
+  it("con foto muestra la URL firmada con texto alternativo; la ruta del bucket no viaja", async () => {
+    state.rutaFoto = "t1/e1/aaaaaaaa-0000-4000-8000-000000000001.webp";
+    const { container } = await montar();
+    const img = screen.getByAltText("Foto de Persona Sintética") as HTMLImageElement;
+    expect(img.getAttribute("src")).toContain("https://firmada.example.test/");
+    expect(container.innerHTML).not.toContain('"t1/e1/');
+  });
+
+  it("sin foto, o si no se pudo firmar, se ven las iniciales", async () => {
+    let r = await montar();
+    expect(screen.queryByAltText("Foto de Persona Sintética")).toBeNull();
+    expect(r.container.textContent).toContain("PS");
+    cleanup();
+    state.rutaFoto = "t1/e1/aaaaaaaa-0000-4000-8000-000000000001.webp";
+    state.firmaFalla = true;
+    r = await montar();
+    expect(screen.queryByAltText("Foto de Persona Sintética")).toBeNull();
+  });
+
+  it("quien no edita Nómina no ve los controles de la foto", async () => {
+    await montar();
+    expect(screen.queryByRole("button", { name: "Subir foto" })).toBeNull();
+  });
+
+  it.each(["admin", "accounting"])("%s ve «Mostrar» junto a la cuenta enmascarada, y el número sigue sin viajar", async (role) => {
+    state.role = role;
+    const { container } = await montar();
+    expect(screen.getByRole("button", { name: "Mostrar la cuenta bancaria completa" })).toBeTruthy();
+    expect(container.textContent).toContain("•••• 4321");
+    expect(container.innerHTML).not.toContain("0000004321");
+  });
+
+  it("la línea de tiempo suma los eventos de la ficha, con quién los hizo", async () => {
+    state.eventos = [
+      { id: "ev1", entity_type: "nomina_employee_sensitive_view", event_type: "bank_account_revealed", occurred_at: "2026-11-17T12:00:00Z", actor_id: null },
+      { id: "ev2", entity_type: "nomina_employee_access", event_type: "user_linked", occurred_at: "2026-11-16T12:00:00Z", actor_id: null },
+    ];
+    await montar();
+    fireEvent.click(screen.getByRole("tab", { name: "Línea de tiempo" }));
+    expect(screen.getByText("Se consultó la cuenta bancaria completa")).toBeTruthy();
+    expect(screen.getByText("Se enlazó con un usuario del Studio")).toBeTruthy();
+    expect(screen.getByText("Finiquito LIQ-0001 (anulado)")).toBeTruthy();
+  });
+
+  it("si los eventos no se pueden leer, la línea de tiempo lo dice", async () => {
+    state.eventosFallan = true;
+    const { container } = await montar();
+    fireEvent.click(screen.getByRole("tab", { name: "Línea de tiempo" }));
+    expect(container.textContent).toContain("No se pudieron cargar: cambios registrados");
   });
 });

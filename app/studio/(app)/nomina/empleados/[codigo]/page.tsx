@@ -26,13 +26,22 @@ import { getEmployeeByCode } from "@/lib/studio/nomina/employee-queries";
 import { toEmployeeEditView } from "@/lib/studio/nomina/employee-types";
 import { listPositions } from "@/lib/studio/nomina/position-queries";
 import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
-import { lineaDeTiempo, mesDeCaracas } from "@/lib/studio/nomina/ficha-empleado";
+import {
+  hechosDeEventos,
+  lineaDeTiempo,
+  mesDeCaracas,
+  sugerenciaDeEnlace,
+  unirHechos,
+} from "@/lib/studio/nomina/ficha-empleado";
+import { firmarFotos, rutasDeFoto } from "@/lib/studio/nomina/employee-photo";
 import {
   accesoDe,
   amonestacionesDe,
   asistenciaDelMes,
   cambioBancoPendiente,
+  candidatosDeEnlace,
   comunicacionesDe,
+  eventosDe,
   finiquitosDe,
   nombresDelTenant,
   prestamosDe,
@@ -74,8 +83,25 @@ export default async function FichaEmpleadoPage({ params }: { params: Promise<{ 
   const admin = createAdminClient();
   const puedeEditar = canEditModule(role, "nomina");
 
-  const [prestamos, asistencia, amonestaciones, recibos, finiquitos, comunicaciones, cambioBanco, accesoStudio, positions, nombres] =
-    await Promise.all([
+  // Fase 2. Los candidatos a enlazar se calculan solo para admin y solo si la
+  // ficha no tiene cuenta: a Contabilidad no le llega ni la lista ni la
+  // sugerencia. La foto se firma aquí, después del control de rol.
+  const esAdmin = acceso.nivel === "admin";
+  const [
+    prestamos,
+    asistencia,
+    amonestaciones,
+    recibos,
+    finiquitos,
+    comunicaciones,
+    cambioBanco,
+    accesoStudio,
+    positions,
+    nombres,
+    eventos,
+    candidatos,
+    rutasFoto,
+  ] = await Promise.all([
       prestamosDe(supabase, ids),
       asistenciaDelMes(supabase, ids, mes),
       amonestacionesDe(supabase, ids),
@@ -85,23 +111,35 @@ export default async function FichaEmpleadoPage({ params }: { params: Promise<{ 
       cambioBancoPendiente(supabase, ids),
       accesoDe(admin, acceso.nivel, acceso.tenantId, employee.auth_user_id),
       listPositions(supabase),
-      acceso.nivel === "admin" && employee.auth_user_id
-        ? nombresDelTenant(admin, acceso.tenantId)
-        : Promise.resolve({} as Record<string, string>),
+      // Quién hizo cada cambio de la línea de tiempo: nombres del equipo, para los dos niveles.
+      nombresDelTenant(admin, acceso.tenantId),
+      eventosDe(supabase, employee.id),
+      esAdmin && !employee.auth_user_id ? candidatosDeEnlace(admin, acceso.tenantId) : Promise.resolve(null),
+      rutasDeFoto(supabase, acceso.tenantId, [employee.id]),
     ]);
 
-  const fallaron = Object.entries({ prestamos, amonestaciones, recibos, finiquitos, comunicaciones })
+  const rutaFoto = rutasFoto.get(employee.id) ?? null;
+  const fotoUrl = rutaFoto ? ((await firmarFotos(admin, [rutaFoto])).get(rutaFoto) ?? null) : null;
+  const sugerencia =
+    esAdmin && candidatos?.ok && employee.status !== "egresado"
+      ? sugerenciaDeEnlace(employee.email, candidatos.data)
+      : null;
+
+  const fallaron = Object.entries({ prestamos, amonestaciones, recibos, finiquitos, comunicaciones, eventos })
     .filter(([, b]) => !b.ok)
     .map(([k]) => k);
 
-  const hechos = lineaDeTiempo({
-    hireDate: employee.hire_date,
-    comunicaciones: comunicaciones.ok ? comunicaciones.data : [],
-    prestamos: prestamos.ok ? prestamos.data : [],
-    amonestaciones: amonestaciones.ok ? amonestaciones.data : [],
-    recibos: recibos.ok ? recibos.data : [],
-    finiquitos: finiquitos.ok ? finiquitos.data : [],
-  });
+  const hechos = unirHechos(
+    lineaDeTiempo({
+      hireDate: employee.hire_date,
+      comunicaciones: comunicaciones.ok ? comunicaciones.data : [],
+      prestamos: prestamos.ok ? prestamos.data : [],
+      amonestaciones: amonestaciones.ok ? amonestaciones.data : [],
+      recibos: recibos.ok ? recibos.data : [],
+      finiquitos: finiquitos.ok ? finiquitos.data : [],
+    }),
+    eventos.ok ? hechosDeEventos(eventos.data, nombres) : [],
+  );
 
   const puesto = positions.find((x) => x.id === employee.position_id)?.title ?? null;
 
@@ -121,7 +159,10 @@ export default async function FichaEmpleadoPage({ params }: { params: Promise<{ 
       comunicaciones={comunicaciones}
       cambioBanco={cambioBanco}
       linea={{ hechos, fallaron }}
-      nombres={nombres}
+      nombres={esAdmin ? nombres : {}}
+      fotoUrl={fotoUrl}
+      candidatos={candidatos}
+      sugerencia={sugerencia}
     />
   );
 }

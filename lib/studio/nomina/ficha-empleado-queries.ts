@@ -17,6 +17,8 @@ import {
   type AccesoStudio,
   type AsistenciaDia,
   type Bloque,
+  type CandidatoEnlace,
+  type EventoFicha,
   type NivelFicha,
   type PrestamoFicha,
 } from "./ficha-empleado";
@@ -250,6 +252,97 @@ export async function accesoDe(
     userId: authUserId,
     error: !!errM || !!errA,
   };
+}
+
+/** Cuántos eventos de la ficha trae la línea de tiempo en la primera página. */
+export const LIMITE_EVENTOS = 50;
+
+/**
+ * Eventos de auditoría de la ficha (RPC de la migración 0555): enlace, foto,
+ * consulta de la cuenta y anulación de sus finiquitos. La RPC repite el control
+ * de rol y de tenant y no devuelve payload ni motivo.
+ *
+ * Sin la 0555 aplicada la RPC no existe (PGRST202 o 42883) y tampoco hay
+ * eventos que mostrar: nada los escribió todavía. Ese caso devuelve una lista
+ * vacía. Cualquier otro error sí es un error y la línea de tiempo lo dice.
+ */
+export async function eventosDe(supabase: SupabaseClient, employeeId: string): Promise<Bloque<EventoFicha[]>> {
+  const { data, error } = await supabase.rpc("nomina_employee_timeline_events", {
+    p_employee_id: employeeId,
+    p_cursor: null,
+    p_limit: LIMITE_EVENTOS,
+  });
+  if (error?.code === "PGRST202" || error?.code === "42883") return bloqueOk([]);
+  if (error) {
+    console.error("[ficha-empleado] eventos", error.code ?? "error");
+    return BLOQUE_ERROR;
+  }
+  type Fila = { id: string; entity_type: string; event_type: string; occurred_at: string; actor_id: string | null };
+  return bloqueOk(
+    ((data ?? []) as Fila[]).map((r) => ({
+      id: r.id,
+      entity_type: r.entity_type,
+      event_type: r.event_type,
+      occurred_at: r.occurred_at,
+      actor_id: r.actor_id,
+    })),
+  );
+}
+
+/** Tope de candidatos: el equipo es pequeño; si algún día no cabe, se corta aquí. */
+export const LIMITE_CANDIDATOS = 100;
+
+/**
+ * Miembros activos del Studio del tenant que todavía no tienen ficha viva
+ * (§4 punto 1). **Solo para admin**: quien llama lo comprueba antes.
+ *
+ * Usa el cliente admin, siempre filtrado por el tenant. El correo de acceso
+ * sirve solo para reconocer a la persona en el selector.
+ */
+export async function candidatosDeEnlace(admin: SupabaseClient, tenantId: string): Promise<Bloque<CandidatoEnlace[]>> {
+  const { data: miembros, error: errM } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .is("disabled_at", null)
+    .limit(LIMITE_CANDIDATOS);
+  if (errM) {
+    console.error("[ficha-empleado] candidatos", errM.message);
+    return BLOQUE_ERROR;
+  }
+  const ids = (miembros ?? []).map((m) => m.user_id as string);
+  if (ids.length === 0) return bloqueOk([]);
+
+  const [conFicha, clientes, perfiles] = await Promise.all([
+    admin.from("nomina_employees").select("auth_user_id").in("auth_user_id", ids).is("deleted_at", null),
+    admin.from("client_users").select("auth_user_id").in("auth_user_id", ids),
+    admin.from("user_profiles").select("user_id, first_name, last_name").in("user_id", ids),
+  ]);
+  // Si no se puede saber quién ya tiene ficha o quién es cliente, no se ofrece a nadie.
+  const fallo = conFicha.error ?? clientes.error ?? perfiles.error;
+  if (fallo) {
+    console.error("[ficha-empleado] candidatos", fallo.message);
+    return BLOQUE_ERROR;
+  }
+  const fuera = new Set<string>([
+    ...(conFicha.data ?? []).map((r) => r.auth_user_id as string),
+    ...(clientes.data ?? []).map((r) => r.auth_user_id as string),
+  ]);
+  const nombre = new Map<string, string>();
+  for (const p of perfiles.data ?? []) {
+    const n = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+    if (n) nombre.set(p.user_id as string, n);
+  }
+
+  const libres = ids.filter((id) => !fuera.has(id));
+  const candidatos = await Promise.all(
+    libres.map(async (userId) => {
+      const { data, error } = await admin.auth.admin.getUserById(userId);
+      const correo = error ? null : (data?.user?.email ?? null);
+      return { userId, nombre: nombre.get(userId) ?? correo ?? "Usuario sin nombre", correoAcceso: correo };
+    }),
+  );
+  return bloqueOk(candidatos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
 }
 
 /** Nombres de los miembros del tenant, para la pestaña Acceso (quién cambió qué). */

@@ -391,8 +391,21 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
   // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
   // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
+  // SDD-0652 fase 2 sumó seis (477 → 483):
+  //  · `nomina/actions.ts::getRegistrationReviewAction`: solo lee. `moduleViewDenial`
+  //    al tope, después `getFichaEmpleadoAccess`; devuelve los datos de una
+  //    solicitud PENDIENTE del tenant de la membresía, con la cuenta enmascarada.
+  //  · `nomina/empleados/[codigo]/actions.ts::linkEmployeeUserAction`,
+  //    `::unlinkEmployeeUserAction`, `::uploadEmployeePhotoAction`,
+  //    `::removeEmployeePhotoAction` y `::revealBankAccountAction`:
+  //    `moduleEditDenial(supabase, "nomina")` al tope, después
+  //    `getFichaEmpleadoAccess` (enlazar y quitar el enlace, solo admin), y la
+  //    escritura va SOLO por las RPC de la migración 0555, que repiten en la base
+  //    el rol, la membresía única y el tenant y dejan el evento en la misma
+  //    transacción. La subida al bucket privado va después de leer la ficha en
+  //    el tenant de la membresía.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(477);
+    expect(reportes.length).toBe(483);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
