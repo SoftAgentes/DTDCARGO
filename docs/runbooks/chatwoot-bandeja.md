@@ -136,6 +136,25 @@ Las respuestas al chat del portal llegan solo por el webhook de cuenta, y Chatwo
 
 **Portal → Chatwoot** (tarjeta de la Bandeja, solo admin, con la bandeja del portal configurada) muestra cuántos mensajes del portal llevan más de 15 minutos sin llegar a Chatwoot y cuántos están atascados. Un atascado detiene su conversación. «Reintentar los atascados» los devuelve a la cola: antes de mandarlos se revisa si ya habían llegado, y tienen 24 h nuevas. Arreglar antes la causa: si no, se vuelven a atascar.
 
+## Segmento y Shipping Mark en el contacto (SDD-0649)
+
+Con cada mensaje entrante en las bandejas de WhatsApp (leads y clientes), Studio escribe en el contacto de Chatwoot dos atributos: `dtd_segmento` (`cliente`, `lead_registrado` o `lead_nuevo`) y `dtd_shipping_mark`. Usa la misma regla de la 0505: hace falta una sola ficha viva con ese teléfono. Si la persona deja de tener ficha única, el código se borra. Solo escribe si algo cambió. Los contactos que no vuelven a escribir, el Archivo Kommo incluido, quedan sin atributos.
+
+**Encender** (cada paso con OK nominal de Sam):
+
+1. En Chatwoot, **Ajustes → Atributos personalizados → Agregar**, modelo **Contacto**:
+   - nombre visible «Segmento DTD», clave `dtd_segmento`, tipo **Lista**, con los valores `cliente`, `lead_registrado` y `lead_nuevo`;
+   - nombre visible «Shipping Mark», clave `dtd_shipping_mark`, tipo **Texto**.
+2. En el `.env` de `web`, `CHATWOOT_ATRIBUTOS_CONTACTO=1`, y recrear `web`. Hacen falta también `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_INBOX_LEADS_ID`, `CHATWOOT_INBOX_CLIENTES_ID` y el resto de la configuración de E10.
+
+**Comprobar** con el número de prueba, desde un teléfono que sea de una ficha de prueba:
+
+- escribir y abrir el contacto en Chatwoot: deben verse el segmento y el Shipping Mark;
+- escribir desde un número sin ficha: «lead_nuevo» y Shipping Mark vacío;
+- los logs de `web` solo muestran códigos de error, nunca un teléfono ni un código.
+
+**Apagar:** quitar la variable o dejarla distinta de `1`, y recrear `web`. Los atributos ya escritos quedan en Chatwoot; para retirarlos, se borran en **Ajustes → Atributos personalizados**.
+
 ## Apagar
 
 - **Flag `chatwoot_inbox` apagado:** desaparecen la Bandeja, el contador y los avisos, y Chatwoot sigue funcionando solo.
