@@ -1,7 +1,7 @@
 # Handoff — SDD-0653 · Reglas de nómina al día con la ley y estante de ley pública para Faro
 
 - Rama: `claude/0653-nomina-ley-faro-0b4370` · PR #631 · Worker 0653 · 2026-11-17
-- Spec: `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md` (`proposed`).
+- Spec: `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md` (`in-progress`).
 - Migración reservada por el DG: **0556** (no creada; es de la fase A2b).
 
 ## Instrucción de Sam que amplió el encargo (2026-11-16)
@@ -9,6 +9,12 @@
 Implementar en las reglas; lo no verificado se implementa con una nota simple («no está verificado, consultar con
 un abogado»); la versión muestra su fecha de actualización; lo no verificado lleva un asterisco con algo llamativo
 al tocarlo; y volver a comprobar las dudas contra las Gacetas.
+
+## Decisiones aprobadas (2026-11-17)
+
+Sam aprobó las decisiones recomendadas. Literal, en el chat del Director General, a «¿Apruebas las decisiones
+recomendadas de nómina (#631) y de la Vista simple (#633)?»: «Sí, ambas». Lo transmitió el DG; esta sesión no lo
+presenció. Quedan decididas D1, D2, D3a, D3b y D4 a D10 con la opción (a). No autoriza producción ni arranca fases.
 
 ## Hecho
 
@@ -48,7 +54,7 @@ ESLint, `docs:check`, `sdd:check`, `governance:check` y `components:check`.
 
 ## Pendiente de esta tarea
 
-- Respuestas de Sam a las decisiones.
+- Asignación del DG para las fases siguientes; ninguna empieza sin ella.
 - A2b (migración 0556: vigencia, moneda de los montos, aportes patronales, escalas), A3 (tope del motor), A4 (carga
   en producción con OK nominal), B1 y B2 (Faro; B2 depende del motor de la SDD-0637).
 - Probar la pestaña dentro del Studio con sesión real (prueba o local con Supabase).

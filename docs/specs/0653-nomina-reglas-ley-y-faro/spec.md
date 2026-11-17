@@ -1,7 +1,7 @@
 ---
 sdd: "0653"
 title: "Nómina: reglas al día con la ley a noviembre de 2026 y un estante de ley pública para Faro"
-status: proposed
+status: in-progress
 author: "Claude (Worker 0653) + Sam"
 created: 2026-11-16
 updated: 2026-11-17
@@ -19,13 +19,15 @@ confidencialidad: interno
 > propone cómo cerrarla con fecha de vigencia e histórico, y diseña un estante de **ley pública** para Faro, que
 > nunca toca datos de empleados.
 
-**Estado:** `proposed`. Sin migración y sin cambios en producción.
+**Estado:** `in-progress`. La fase A2a va en la PR #631; las decisiones quedaron aprobadas por Sam el 2026-11-17
+(§7). Sin migración y sin cambios en producción. Las fases siguientes no empiezan hasta que el Director General las
+asigne.
 
 **Instrucción de Sam (2026-11-16, tras leer la primera versión):** implementar estas cosas en las reglas; lo que no
 esté verificado se implementa igual y lleva una nota simple en el sistema («no está verificado, consultar con un
 abogado»); la versión muestra su fecha de actualización; lo no verificado va con un asterisco que abre algo
 llamativo; y volver a comprobar las dudas contra las Gacetas mismas. Esta PR entrega eso sin tocar la base de
-datos (§4, fase A2a, y §2.2). Lo que necesita migración o cambia cálculos sigue esperando las decisiones (§7).
+datos (§4, fase A2a, y §2.2). Lo que necesita migración o cambia cálculos ya tiene sus decisiones (§7) y espera la asignación del DG.
 
 **Advertencia de origen.** Esta investigación es de un agente con búsqueda web, no de un abogado laboral ni de un
 contador. Cada valor trae su fuente y su grado de verificación. Antes de cargar valores en producción, el contador
@@ -294,6 +296,21 @@ Faro de nómina y su novedad si la pantalla cambia (D-10 de la 0637).
 **B2:** los archivos de verificador y ficha que cree la fase 3 de la 0637; se fijan cuando esa fase exista.
 
 ## 7. Decisiones para Sam
+
+**Aprobadas por Sam el 2026-11-17.** En el chat del Director General, a la pregunta «¿Apruebas las decisiones
+recomendadas de nómina (#631) y de la Vista simple (#633)?», Sam respondió, literal: **«Sí, ambas»**. La cita la
+transmitió el DG a esta sesión, que no presenció ese chat.
+
+Quedan decididas, con la opción recomendada de la tabla: **D1, D2, D3a, D3b, D4, D5, D6, D7, D8, D9 y D10**. En las
+once la recomendada es la opción (a).
+
+Lo que esta aprobación **no** es:
+
+- No autoriza cargar valores en producción ni aplicar la migración 0556: eso sigue pidiendo el OK nominal de Sam y el
+  runbook de producción (fase A4).
+- No da por verificado lo que el sistema marca «por confirmar» o «solo anuncio». Según D3a y D8, el monto del
+  cestaticket y los textos legales los confirma el contador o un abogado laboral antes de usarse.
+- No arranca fases: A2b, A3, B1 y B2 esperan la asignación del DG.
 
 | D | Pregunta | Opciones | Recomendada |
 |---|---|---|---|
