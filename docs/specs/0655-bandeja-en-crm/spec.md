@@ -71,8 +71,9 @@ candado real sigue en cada layout (`requireModuleView("kommo")`; rol + flag en `
 **D4 · El ítem «CRM» del menú reúne las dos pestañas.** Se ve si se ve alguna; lleva a Embudos, o a la
 Bandeja si es la única que se ve; queda activo en las dos rutas (con `aria-current="page"`). Sin esto,
 `support` perdería su único acceso a la Bandeja al quitarla del menú. **No cambia ningún permiso**:
-`support` sigue sin poder abrir `/studio/crm`. El módulo `bandeja` queda `hidden` (como Legal): sigue en la
-matriz de permisos, en el flag y en el guard.
+`support` sigue sin poder abrir `/studio/crm`. El módulo `bandeja` lleva `dentroDe: "kommo"`: sale del menú
+pero sigue en la matriz de permisos, en el mapa de accesos de Usuarios, en el flag y en el guard. No se usa
+`hidden` (como Legal), porque también lo saca del mapa de accesos (`MapaAcceso.tsx`).
 
 **D5 · El contador** (`BandejaBadge`) pasa al ítem «CRM» y solo se pinta si quien mira ve la Bandeja.
 
@@ -109,7 +110,7 @@ la pestaña es trabajo aparte.
 | `lib/studio/crm-acceso.ts` | nuevo: permisos de cada pestaña, destino y estado activo de «CRM» |
 | `lib/studio/crm-acceso-server.ts` | nuevo: lee rol y flags en servidor |
 | `lib/studio/__tests__/crm-acceso.test.ts` | nuevo: permisos, barra, menú y enlaces existentes |
-| `lib/studio/modules.ts` | `bandeja` pasa a `hidden` |
+| `lib/studio/modules.ts` | campo `dentroDe`; `bandeja` lleva `dentroDe: "kommo"` |
 | `app/studio/(app)/_components/StudioSidebar.tsx` | ítem «CRM» con las dos pestañas, contador y `aria-current` |
 | `app/studio/(app)/_components/__tests__/StudioSidebar-crm.test.tsx` | nuevo |
 | `app/studio/(app)/crm/_components/CrmPestanas.tsx` | nuevo: cabecera y barra compartidas |

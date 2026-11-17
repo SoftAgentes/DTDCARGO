@@ -94,9 +94,11 @@ describe("el ítem «CRM» del menú", () => {
     },
   );
 
-  it("la Bandeja salió del menú pero sigue siendo módulo (RBAC, flag y guard); CRM sigue siendo `kommo`", () => {
+  it("la Bandeja salió del menú pero sigue siendo módulo (RBAC, flag, guard y mapa de accesos); CRM sigue siendo `kommo`", () => {
     const bandeja = MODULES.find((m) => m.id === "bandeja");
-    expect(bandeja).toMatchObject({ slug: RUTA_BANDEJA, hidden: true, group: "COMERCIAL" });
+    expect(bandeja).toMatchObject({ slug: RUTA_BANDEJA, dentroDe: "kommo", group: "COMERCIAL" });
+    // `hidden` la sacaría también del mapa de accesos de Usuarios (MapaAcceso): no se usa.
+    expect(bandeja?.hidden).toBeFalsy();
     expect(MODULES.find((m) => m.id === "kommo")).toMatchObject({ slug: RUTA_CRM, label: "CRM" });
     expect(MODULES.find((m) => m.id === "kommo")?.hidden).toBeFalsy();
   });

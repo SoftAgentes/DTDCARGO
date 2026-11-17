@@ -12,7 +12,7 @@ Decisión de Sam (chat del DG, literal): «A: pestaña en CRM». Spec: `docs/spe
   tocar). CRM y la Bandeja pintan la misma cabecera y la misma barra (`CrmPestanas`).
 - Permisos por pestaña en `lib/studio/crm-acceso.ts`: Embudos = `kommo`; Bandeja = `bandeja` + flag
   `chatwoot_inbox`, con desvíos por rol y accesos extra.
-- Menú: sin ítem «Bandeja» (`hidden`); «CRM» se ve si se ve alguna pestaña, lleva a Embudos o, a quien solo
+- Menú: sin ítem «Bandeja» (`dentroDe: "kommo"`; `hidden` la sacaba también del mapa de accesos); «CRM» se ve si se ve alguna pestaña, lleva a Embudos o, a quien solo
   ve la Bandeja (`support`), a la Bandeja; activo en las dos rutas (`aria-current`); lleva `BandejaBadge`.
 - «Agentes vinculados» → Usuarios, pestaña «Bandeja» (`?tab=bandeja`), solo con flag y Bandeja conectada,
   con el texto pedido. Mismas acciones; ahora también revalidan `/studio/usuarios`. La Bandeja le deja al

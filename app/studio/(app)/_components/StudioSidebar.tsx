@@ -489,6 +489,7 @@ export function StudioSidebar({
   const visibleModules = MODULES.filter(
     (m) =>
       !m.hidden &&
+      !m.dentroDe && // SDD-0655: una pestaña de otro módulo no es ítem del menú
       (m.id === "kommo"
         ? crmDestino !== null
         : isModuleEnabled(m.id, flags) && canAccessModule(role, m.id, overrides, grants)) &&
