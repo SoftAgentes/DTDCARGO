@@ -84,6 +84,22 @@ export default async function UsuariosPage() {
     listTenantModuleGrants(supabase, isSensitiveModule),
   ]);
 
+  // SDD-0652 F1: qué personas tienen ficha de empleado enlazada, para el
+  // enlace «Ver ficha de empleado». Solo el código, que no es dato personal.
+  // Usuarios es solo de admin y la RLS de Nómina deja leer al admin. Si la
+  // lectura falla no se dice nada (ni «tiene» ni «no tiene»).
+  const { data: fichasRaw, error: fichasError } = await supabase
+    .from("nomina_employees")
+    .select("auth_user_id, employee_code")
+    .eq("tenant_id", link.tenant_id)
+    .not("auth_user_id", "is", null)
+    .is("deleted_at", null);
+  const fichasEmpleado: Record<string, string> | undefined = fichasError
+    ? undefined
+    : Object.fromEntries(
+        (fichasRaw ?? []).map((f) => [f.auth_user_id as string, f.employee_code as string]),
+      );
+
   // Resolver emails de auth.users via service_role admin client.
   // La query de listMembers devuelve email='' como placeholder.
   let members: UserMembershipWithProfile[] = membersRaw;
@@ -196,6 +212,7 @@ export default async function UsuariosPage() {
         currentUserId={userResp.user.id}
         roleModuleOverrides={roleModuleOverrides}
         grants={moduleGrants}
+        fichasEmpleado={fichasEmpleado}
       />
     </div>
   );

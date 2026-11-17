@@ -84,3 +84,19 @@ Cada punto se verificó en el código antes de adoptarlo:
 Otros hallazgos verificados: el `insert` directo en `entity_audit_log` está revocado (`0293:528`) y se escribe con `append_audit_event` (`0538:507`); suspender en `user_tenants` no corta `/m/emp` (`0181:48-62`, H11).
 
 Fases reordenadas: F1 lectura segura → F2 identidad, revelado y foto (0555) → F3 «lo que hizo» → F4 inicios de sesión → F5 historial y alta con acceso.
+
+## Decisiones de Sam (2026-11-17)
+
+En el chat del DG, a «¿Apruebas las 13 decisiones recomendadas de la ficha de empleado?», Sam respondió literal: «Sí, las recomendadas». Quedó en la spec §8; estado `approved`, y `in-progress` al empezar la F1. D9 = (b), excepción a AUD-02 §3 que se registra en la F2.
+
+## F1 — lectura segura (implementada en esta rama)
+
+Encargo del DG: que la lista de Nómina deje de mandar cédula, sueldo y cuenta completa al navegador; ficha con correo y ruta de detalle; control de rol admin/accounting en el servidor. Allowlist real en la spec §7, F1.
+
+- La lista manda `toEmployeeListItem` (id, código, nombre, estado, cargo, departamento, puesto, correo de contacto, `has_account`). Sale la columna «Sueldo / mes»; el total sigue en los KPIs, calculado en el servidor.
+- El lápiz pide la ficha con `getEmployeeEditViewAction` (rol y tenant comprobados); la cuenta llega enmascarada y «Nueva cuenta» vacía no la toca.
+- `/studio/nomina/empleados/[codigo]`: `getFichaEmpleadoAccess` antes de leer, búsqueda por código en el tenant de la membresía, 404 o «No se pudo cargar», bloques con su propio error, Contabilidad sin correo de acceso, rol, último ingreso ni pestaña Acceso.
+- Usuarios: «Ver ficha de empleado» en la ficha de usuario.
+- `/ui-check`: OK con ajustes menores; se aplicaron «Ir a …» en vez de «Ver todo», `nowrap` en la fecha y un margen con token. Quedan por medir en el navegador el ancho de la columna de correo (180 px, con elipsis) y la fecha de la línea de tiempo (110 px).
+
+Pendiente de la F1: correr `pnpm install`, `tsc` y vitest con turno del DG; después el CI de la PR.

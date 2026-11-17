@@ -61,6 +61,7 @@ export function UsersClient({
   currentUserId,
   roleModuleOverrides,
   grants = [],
+  fichasEmpleado,
 }: {
   members: UserMembershipWithProfile[];
   invitations: UserInvitation[];
@@ -68,6 +69,8 @@ export function UsersClient({
   roleModuleOverrides: RoleModuleOverrides;
   /** Accesos extra del tenant (SDD-0622), vigentes y vencidos. */
   grants?: UserModuleGrantView[];
+  /** SDD-0652: user_id → código EMP-NNNN de su ficha. `undefined` si no se pudo leer. */
+  fichasEmpleado?: Record<string, string>;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -338,6 +341,7 @@ export function UsersClient({
           pestana={fichaUrl === "acceso" || fichaUrl === "actividad" ? fichaUrl : "perfil"}
           personasDelRol={personasPorRol[fichaAbierta.role]}
           onIrARoles={() => navegar({ tab: "roles", persona: null, ficha: null })}
+          fichaEmpleado={fichasEmpleado === undefined ? undefined : (fichasEmpleado[fichaAbierta.user_id] ?? null)}
         />
       )}
 

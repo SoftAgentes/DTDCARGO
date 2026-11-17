@@ -39,8 +39,10 @@ import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   validateEmployeeInput,
   isEmployeeStatus,
+  toEmployeeEditView,
   type NominaActionState,
   type EmployeeStatus,
+  type EmployeeEditView,
 } from "@/lib/studio/nomina/employee-types";
 import {
   validateContractorInput,
@@ -70,7 +72,8 @@ import {
   type PayrollRunStatus,
 } from "@/lib/studio/nomina/payroll-run-types";
 import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
-import { listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { getEmployee, listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
 import {
   getPayrollRun,
   findLivePayrollRunForPeriod,
@@ -244,9 +247,14 @@ export async function updateEmployeeAction(
   const { input, fieldErrors } = validateEmployeeInput(employeeRawFromForm(formData));
   if (fieldErrors) return { fieldErrors };
 
+  // SDD-0652 F1: el formulario ya no trae la cuenta bancaria. Un campo vacío
+  // significa «no la cambies», no «bórrala»: se quita del update.
+  const { bank_account, ...resto } = input!;
+  const cambios = bank_account === null ? resto : { ...resto, bank_account };
+
   const { error } = await supabase
     .from("nomina_employees")
-    .update({ ...input! })
+    .update(cambios)
     .eq("id", employeeId);
 
   if (error) {
@@ -258,6 +266,28 @@ export async function updateEmployeeAction(
 
   revalidatePath(PATH);
   return { ok: true };
+}
+
+/**
+ * La ficha de un empleado para el formulario de edición (SDD-0652 F1).
+ *
+ * La lista ya no manda cédula, sueldo ni cuenta al navegador, así que el lápiz
+ * pide aquí la ficha. Exige rol `admin` o `accounting` activo y busca la ficha
+ * en ese mismo tenant. Devuelve la cuenta solo enmascarada.
+ */
+export async function getEmployeeEditViewAction(
+  employeeId: string,
+): Promise<{ ok: true; employee: EmployeeEditView } | { error: string }> {
+  const supabase = await createClient();
+  const acceso = await getFichaEmpleadoAccess(supabase);
+  if (!acceso.ok) return { error: "No tienes permiso para ver esta ficha." };
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId ?? "")) return { error: "Empleado inválido." };
+
+  const employee = await getEmployee(supabase, employeeId);
+  if (!employee || employee.tenant_id !== acceso.tenantId) {
+    return { error: "No se pudo cargar la ficha. Intenta de nuevo." };
+  }
+  return { ok: true, employee: toEmployeeEditView(employee) };
 }
 
 export async function setEmployeeStatusAction(

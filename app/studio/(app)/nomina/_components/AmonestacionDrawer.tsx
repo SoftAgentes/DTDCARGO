@@ -20,7 +20,7 @@ import {
   warningSeverityLabel,
   type WarningSeverity,
 } from "@/lib/studio/nomina/warning-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { emitirAmonestacionAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
@@ -38,7 +38,7 @@ export function AmonestacionDrawer({
   employees,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   onClose: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(emitirAmonestacionAction, initial);

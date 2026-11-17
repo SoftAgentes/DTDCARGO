@@ -8,6 +8,7 @@
  */
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -15,7 +16,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import {
   employeeStatusLabel,
   employeeStatusTone,
-  type Employee,
+  type EmployeeListItem,
   type EmployeeKpis,
 } from "@/lib/studio/nomina/employee-types";
 import {
@@ -56,6 +57,7 @@ import {
   anularAmonestacionAction,
 } from "../actions";
 import { EmpleadoDrawer } from "./EmpleadoDrawer";
+import { EditarEmpleadoDrawer } from "./EditarEmpleadoDrawer";
 import { PrestadorDrawer } from "./PrestadorDrawer";
 import { PagoPrestadorDrawer } from "./PagoPrestadorDrawer";
 import { ReglasDrawer } from "./ReglasDrawer";
@@ -112,6 +114,11 @@ function initialsOf(name: string): string {
   );
 }
 
+/** ¿Es un valor de pestaña conocido? Se usa con `?tab=` de la URL (SDD-0652). */
+export function isNominaTab(v: unknown): v is Tab {
+  return typeof v === "string" && TABS.some((t) => t.value === v);
+}
+
 const TABS: { value: Tab; label: string }[] = [
   { value: "empleados", label: "Empleados" },
   { value: "puestos", label: "Puestos" },
@@ -149,8 +156,11 @@ export function NominaClient({
   settlementKpis,
   registrationKpis,
   canManageUsers,
+  initialTab,
 }: {
-  employees: Employee[];
+  employees: EmployeeListItem[];
+  /** Pestaña con la que abre (`?tab=`); al volver de una ficha se conserva. */
+  initialTab?: string;
   positions: Position[];
   canManageUsers: boolean;
   contractors: Contractor[];
@@ -173,8 +183,21 @@ export function NominaClient({
   settlementKpis: SettlementKpis;
   registrationKpis: RegistrationKpis;
 }) {
-  const [tab, setTab] = useState<Tab>("empleados");
-  const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
+  const [tab, setTabState] = useState<Tab>(isNominaTab(initialTab) ? initialTab : "empleados");
+  // La pestaña va en la URL (sin nombres ni correos): volver de la ficha de un
+  // empleado deja a la persona donde estaba (SDD-0652 §5.4).
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try {
+      const url = new URL(window.location.href);
+      if (t === "empleados") url.searchParams.delete("tab");
+      else url.searchParams.set("tab", t);
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch {
+      /* sin URL no se pierde nada: la pestaña sigue en el estado */
+    }
+  };
+  const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employeeId: string }>(null);
   const [puestoDrawer, setPuestoDrawer] = useState<null | { mode: "new" } | { mode: "edit"; position: Position }>(null);
   const [prestDrawer, setPrestDrawer] = useState<null | { mode: "new" } | { mode: "edit"; contractor: Contractor }>(null);
   const [pagoOpen, setPagoOpen] = useState(false);
@@ -288,7 +311,7 @@ export function NominaClient({
         <EmpleadosTab
           employees={employees}
           onNew={() => setEmpDrawer({ mode: "new" })}
-          onEdit={(employee) => setEmpDrawer({ mode: "edit", employee })}
+          onEdit={(employee) => setEmpDrawer({ mode: "edit", employeeId: employee.id })}
         />
       )}
       {tab === "puestos" && (
@@ -355,11 +378,20 @@ export function NominaClient({
         <ReglasTab rules={rules} onEdit={() => setReglasOpen(true)} />
       )}
 
-      {empDrawer && (
+      {empDrawer?.mode === "new" && (
         <EmpleadoDrawer
-          employee={empDrawer.mode === "edit" ? empDrawer.employee : null}
+          employee={null}
           positions={positions.filter((p) => p.active)}
           canManageUsers={canManageUsers}
+          onClose={() => setEmpDrawer(null)}
+        />
+      )}
+      {/* SDD-0652 F1: la lista no trae cédula, sueldo ni cuenta. Al editar se
+          pide la ficha al servidor, con la cuenta ya enmascarada. */}
+      {empDrawer?.mode === "edit" && (
+        <EditarEmpleadoDrawer
+          employeeId={empDrawer.employeeId}
+          positions={positions.filter((p) => p.active)}
           onClose={() => setEmpDrawer(null)}
         />
       )}
@@ -577,16 +609,16 @@ function RulesCard({
 // ─────────────────────────────────────────────────────────────
 // Empleados
 // ─────────────────────────────────────────────────────────────
-const EMP_COLS = "minmax(220px,1.4fr) 1fr 120px 96px 150px";
+const EMP_COLS = "minmax(220px,1.4fr) 1fr minmax(180px,1fr) 96px 150px";
 
 function EmpleadosTab({
   employees,
   onNew,
   onEdit,
 }: {
-  employees: Employee[];
+  employees: EmployeeListItem[];
   onNew: () => void;
-  onEdit: (e: Employee) => void;
+  onEdit: (e: EmployeeListItem) => void;
 }) {
   return (
     <>
@@ -620,7 +652,7 @@ function EmpleadosTab({
           <TableHeader cols={EMP_COLS}>
             <span>Empleado</span>
             <span>Cargo · Departamento</span>
-            <span style={{ textAlign: "right" }}>Sueldo / mes</span>
+            <span>Correo de contacto</span>
             <span>Estado</span>
             <span style={{ textAlign: "right" }}>Acciones</span>
           </TableHeader>
@@ -638,9 +670,9 @@ function EmpleadoRow({
   first,
   onEdit,
 }: {
-  e: Employee;
+  e: EmployeeListItem;
   first: boolean;
-  onEdit: (e: Employee) => void;
+  onEdit: (e: EmployeeListItem) => void;
 }) {
   const dimmed = e.status !== "activo";
   return (
@@ -673,17 +705,22 @@ function EmpleadoRow({
           {initialsOf(e.full_name)}
         </span>
         <div style={{ minWidth: 0 }}>
-          <div
+          {/* SDD-0652 F1: el nombre es el enlace a la ficha (`<a href>`, BTN-01).
+              La fila no es clicable: el interruptor y el lápiz siguen siendo botones. */}
+          <Link
+            href={`/studio/nomina/empleados/${encodeURIComponent(e.employee_code)}`}
+            aria-label={`Abrir ficha de ${e.full_name}`}
+            className="studio-link-quiet"
             style={{
+              display: "block",
               font: "700 13px/1.2 var(--f-sans)",
-              color: "var(--ink)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
             }}
           >
             {e.full_name}
-          </div>
+          </Link>
           <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
             {e.employee_code}
           </div>
@@ -699,9 +736,23 @@ function EmpleadoRow({
         </div>
       </div>
 
-      <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
-        {fmtUsd(e.salary_usd)}
-      </span>
+      <div style={{ minWidth: 0 }}>
+        <div
+          title={e.email ?? undefined}
+          style={{
+            font: "500 12.5px/1.3 var(--f-sans)",
+            color: e.email ? "var(--ink)" : "var(--ink-soft)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {e.email ?? "Sin correo"}
+        </div>
+        <div style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+          {e.has_account ? "Tiene cuenta" : "Sin cuenta"}
+        </div>
+      </div>
 
       <Badge tone={employeeStatusTone(e.status)} size="sm">
         {employeeStatusLabel(e.status)}

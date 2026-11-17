@@ -1,7 +1,7 @@
 ---
 sdd: "0652"
 title: "Ficha 360° del empleado en el Studio: datos, nómina, acceso, inicios de sesión y lo que hizo"
-status: approved
+status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-16
 updated: 2026-11-17
@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0652 — Ficha 360° del empleado en el Studio
 
 > Quien abre a una persona del equipo en Nómina ve en una sola página quién es, cuánto gana y qué debe, si tiene acceso al sistema, cuándo entró y qué hizo, con enlaces para profundizar. Toma la estructura de la ficha 360° del cliente (SDD-0650).
-> **Decisiones aprobadas por Sam el 2026-11-17** (§8). La F1 se implementa en esta misma PR por encargo del Director General; F2 a F5 esperan su asignación.
+> **Decisiones aprobadas por Sam el 2026-11-17** (§8). La F1 está implementada en esta misma PR, por encargo del Director General; F2 a F5 esperan su asignación.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 > Medido en `main` `26a9a911e` (2026-11-16). Las líneas citadas se vencen si alguien edita arriba: copia el nombre de la función o del bloque al buscar.
 > **Revisiones incorporadas.** (1) DG sobre `18441e8b7`, CHANGES REQUESTED: catálogo de auditoría, retención dentro de AUD-02, preflight de la 0555, `ensureEmployeeAuthUser`, finiquitos auditados, gobernanza. (2) DG sobre `8dcb53734`, APPROVED con ajustes menores. (3) Codex sobre `8dcb53734`, solo lectura: control de rol en el servidor, datos sensibles que ya viajan al navegador, identidad antes que todo, tres clases de inicio de sesión, «lo que hizo» acotado, foto sin P0, estados con causa y orden de fases. Cada punto se verificó en el código antes de adoptarlo.
@@ -335,30 +335,36 @@ En pantalla: «Enlazar con usuario», «Quitar enlace», la sugerencia por corre
 
 ## 7. Lista exacta de archivos por fase
 
-### F1
+### F1 (implementada en esta PR)
 
 | Archivo | Cambio |
 |---|---|
-| `lib/studio/nomina/employee-queries.ts` | Proyecciones de lista, ficha y edición; `getEmployeeByCode` con «encontrada / no existe / error»; `auth_user_id` |
-| `lib/studio/nomina/employee-types.ts` | Tipos de cada proyección |
-| `lib/studio/nomina/ficha-empleado.ts` | Nuevo. Reglas puras: línea de tiempo, los cinco datos de §5.1, KPIs, máscara de cuenta |
-| `lib/studio/nomina/ficha-empleado-queries.ts` | Nuevo. Bloques acotados por `employee_id` y `tenant_id`, cada uno con su error |
-| `lib/studio/nomina/ficha-empleado-guard.ts` | Nuevo. Control de rol `admin` o `accounting` activo en el tenant, antes de leer |
-| `app/studio/(app)/nomina/page.tsx` | Usa la proyección de lista |
-| `app/studio/(app)/nomina/actions.ts` | La edición no recibe la cuenta; «Nueva cuenta» la reemplaza solo si se llena |
-| `app/studio/(app)/nomina/empleados/[codigo]/page.tsx` | Nuevo |
-| `app/studio/(app)/nomina/empleados/[codigo]/_components/FichaEmpleado*.tsx` | Nuevos (cabecera, columnas, pestañas, estados) |
-| `app/studio/(app)/nomina/_components/NominaClient.tsx` | Fila con correo, enlace a la ficha y sin datos sensibles |
-| `app/studio/(app)/nomina/_components/EmpleadoDrawer.tsx` | Cuenta enmascarada y «Nueva cuenta» |
-| `app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx` | «Ver ficha de empleado» |
-| `app/studio/(app)/usuarios/page.tsx` | Pasar el código de la ficha enlazada |
-| `app/studio/studio.css` | Solo si la #629 no está en `main`, o si su grilla no alcanza |
+| `lib/studio/nomina/employee-types.ts` | `auth_user_id` en `Employee`; proyecciones `EmployeeRef`, `EmployeeListItem` y `EmployeeEditView`; `maskBankAccount`, `toEmployeeListItem`, `toEmployeeEditView` (campo por campo, sin `...e`) |
+| `lib/studio/nomina/employee-queries.ts` | `auth_user_id` en las columnas; `getEmployeeByCode(supabase, tenantId, code)` con «encontrada / no existe / error» |
+| `lib/studio/nomina/ficha-empleado.ts` | Nuevo. Reglas puras: nivel por rol, saldo de préstamos, asistencia del mes en hora de Caracas, línea de tiempo, los cinco datos de §5.1 |
+| `lib/studio/nomina/ficha-empleado-queries.ts` | Nuevo. Bloques acotados por `employee_id` y `tenant_id`, cada uno con su error; `accesoDe` (detalle solo para admin) y `nombresDelTenant` |
+| `lib/studio/nomina/ficha-empleado-guard.ts` | Nuevo. `getFichaEmpleadoAccess`: rol `admin` o `accounting` activo, con su tenant |
+| `app/studio/(app)/nomina/empleados/[codigo]/page.tsx` | Nuevo. Control de rol antes de leer; 404 o «No se pudo cargar» |
+| `app/studio/(app)/nomina/empleados/[codigo]/_components/FichaEmpleadoVista.tsx` | Nuevo. Cabecera, avisos, KPIs, columnas, pestañas con teclado |
+| `app/studio/(app)/nomina/empleados/[codigo]/_components/ficha-empleado.css` | Nuevo. Grilla propia (la de la #629 todavía no está en `main`); no se toca `studio.css` |
+| `app/studio/(app)/nomina/page.tsx` | Manda `toEmployeeListItem`; lee `?tab=` |
+| `app/studio/(app)/nomina/actions.ts` | `getEmployeeEditViewAction`; la edición no toca la cuenta si «Nueva cuenta» queda vacía |
+| `app/studio/(app)/nomina/_components/NominaClient.tsx` | Fila con correo de contacto y «Tiene cuenta»; el nombre enlaza a la ficha; pestaña en la URL; edición a pedido. **Sale la columna «Sueldo / mes»**: el sueldo está en la ficha y el total sigue en los KPIs |
+| `app/studio/(app)/nomina/_components/EditarEmpleadoDrawer.tsx` | Nuevo. Pide la ficha al abrir, con su carga y su error |
+| `app/studio/(app)/nomina/_components/EmpleadoDrawer.tsx` | Recibe `EmployeeEditView`; cuenta enmascarada y «Nueva cuenta» |
+| `app/studio/(app)/nomina/_components/{Amonestacion,Asistencia,GenerarFiniquito,Prestamo,EnviarComunicacion}Drawer.tsx`, `AsistenciaTab.tsx`, `ComunicacionesTab.tsx` | Solo el tipo: `EmployeeRef` en vez de `Employee` |
+| `app/studio/(app)/usuarios/page.tsx`, `_components/UsersClient.tsx`, `_components/UserDetailDrawer.tsx` | «Ver ficha de empleado» con el código de la ficha enlazada |
 | `lib/studio/nomina/__tests__/ficha-empleado.test.ts` | Nuevo |
-| `lib/studio/nomina/__tests__/employee-queries.test.ts` | Nuevo o ampliado: la lista no trae cédula, sueldo ni cuenta; error ≠ ausencia |
 | `app/studio/(app)/nomina/empleados/__tests__/ficha-empleado-page.test.tsx` | Nuevo (§11, F1) |
-| `docs/governance/components/*.json` y `docs/governance/generated/component-registry.json` | Alta de los componentes nuevos (CMP-01), regenerado con `pnpm components:index` y validado con `pnpm components:check` |
-| `docs/specs/0652-ficha-empleado-360/spec.md` | Estado y aceptación |
+| `app/studio/(app)/nomina/__tests__/editar-empleado-cuenta.test.ts` | Nuevo |
+| `docs/specs/0652-ficha-empleado-360/spec.md`, `docs/specs/README.md` | Estado y lista |
 | `.agents/handoffs/sdd-0652-ficha-empleado-360.md` | Handoff |
+
+Diferencias con lo propuesto antes de implementar:
+
+- **CMP-01:** el registro (`docs/governance/components/`) solo lista primitivas compartidas. Los componentes de la ficha son locales y usan primitivas existentes, así que **no se dan de alta**. Si alguno se promueve a compartido, ahí sí.
+- **Acciones de Nómina en la ficha:** «Registrar préstamo», «Amonestación» y «Generar finiquito» no se repiten en la F1: cada bloque lleva a su pestaña («Ir a Préstamos»). Así no se duplican los formularios, que necesitan las reglas de nómina, y no se destacan (B5).
+- **Borrar la cuenta bancaria** desde el formulario ya no se puede: un campo vacío significa «conservar». Si hace falta, va como acción propia.
 
 ### F2
 
@@ -462,7 +468,7 @@ La spec es propuesta: casi todo es **diseño propuesto, prueba pendiente**. Solo
 | TBL-01 | Fila con enlace y dos botones | **Diseño propuesto, prueba pendiente** | Acciones fijas; lista y detalle en el teléfono |
 | A11Y-01 | Pestañas, enlace, selector, foto, zoom | **Diseño propuesto, prueba pendiente** | §5.4 |
 | FRM-01, ERR-01, LOD-01 | Motivo, enlace, foto, bloques | **Diseño propuesto, prueba pendiente** | §5.3: error distinto de ausencia |
-| CMP-01 | Componentes nuevos de la ficha (`FichaEmpleado*`) | **Aplica**: se dan de alta en el registro y no se crean consumidores de componentes `deprecated` | §7, F1 |
+| CMP-01 | Componentes de la ficha (`FichaEmpleado*`, `EditarEmpleadoDrawer`) | **Cumplimiento** en F1: son locales, usan solo primitivas `canonical` o existentes y no crean consumidores de `deprecated`. El registro solo lista primitivas compartidas, así que no hay alta | §7, F1 |
 | SGE-00 | Toda la SDD | **Cumplimiento** | SDD con allowlist exacta por fase |
 | IA-01 | — | **No aplica**: no hay IA | — |
 
