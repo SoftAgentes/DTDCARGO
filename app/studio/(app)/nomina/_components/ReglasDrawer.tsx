@@ -22,6 +22,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { savePayrollRulesAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { PistaLey } from "./PistaLey";
 
 const FORM_ID = "reglas-form";
 const initial: NominaActionState = {};
@@ -127,6 +128,7 @@ export function ReglasDrawer({
 
         {/* Montos base (Bs) */}
         <GroupTitle>Montos base (Bs)</GroupTitle>
+        <PistaLey campos={["min_salary", "cestaticket", "bono_guerra"]} />
         <Row>
           <Field label="Salario mínimo" error={state.fieldErrors?.min_salary}>
             <input
@@ -162,6 +164,7 @@ export function ReglasDrawer({
 
         {/* Deducciones (%) */}
         <GroupTitle>Deducciones del empleado (%)</GroupTitle>
+        <PistaLey campos={["sso_pct", "rpe_pct", "faov_pct"]} />
         <Row>
           <Field label="SSO / IVSS" error={state.fieldErrors?.sso_pct}>
             <input
@@ -200,6 +203,7 @@ export function ReglasDrawer({
 
         {/* Topes (nº de SM) */}
         <GroupTitle>Topes de cotización (nº de salarios mínimos)</GroupTitle>
+        <PistaLey campos={["sso_cap_sm", "rpe_cap_sm"]} />
         <Row>
           <Field label="Tope IVSS" error={state.fieldErrors?.sso_cap_sm}>
             <input
@@ -225,6 +229,7 @@ export function ReglasDrawer({
 
         {/* Recargos (%) */}
         <GroupTitle>Recargos (%)</GroupTitle>
+        <PistaLey campos={["overtime_pct", "night_pct", "holiday_pct"]} />
         <Row>
           <Field label="Hora extra diurna" error={state.fieldErrors?.overtime_pct}>
             <input
@@ -263,6 +268,7 @@ export function ReglasDrawer({
 
         {/* Provisiones (días) */}
         <GroupTitle>Provisiones / prestaciones (días)</GroupTitle>
+        <PistaLey campos={["utilidades_days", "bono_vacacional_days", "vacaciones_days"]} />
         <Row>
           <Field label="Utilidades" error={state.fieldErrors?.utilidades_days}>
             <input
