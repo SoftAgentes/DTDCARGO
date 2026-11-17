@@ -16,6 +16,8 @@ import { listTenantAdvisors } from "@/lib/studio/user-queries";
 import type { CrmVista } from "@/lib/studio/crm-tablero";
 import { canAccessModule } from "@/lib/studio/rbac";
 import { cargarTableroCrm } from "@/lib/studio/crm-tablero-queries";
+import { puedeAbrirBandeja } from "@/lib/studio/crm-chat-acceso";
+import { ChatPermitido } from "./ChatPermitido";
 import { CrmEmbudosClient } from "./CrmEmbudosClient";
 
 export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmVista }) {
@@ -61,15 +63,20 @@ export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmVi
     );
   }
 
+  // SDD-0648 §4: «Abrir chat» solo si se puede entrar a la Bandeja.
+  const chat = await puedeAbrirBandeja(supabase);
+
   return (
-    <CrmEmbudosClient
-      etapas={datos.etapas}
-      tarjetas={datos.tarjetas}
-      ocultas={datos.ocultas}
-      recortado={datos.recortado}
-      canEdit={canEdit}
-      tableroInicial={tableroInicial}
-    />
+    <ChatPermitido valor={chat}>
+      <CrmEmbudosClient
+        etapas={datos.etapas}
+        tarjetas={datos.tarjetas}
+        ocultas={datos.ocultas}
+        recortado={datos.recortado}
+        canEdit={canEdit}
+        tableroInicial={tableroInicial}
+      />
+    </ChatPermitido>
   );
 }
 
