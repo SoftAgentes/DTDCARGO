@@ -252,7 +252,8 @@ const VALID_TIERS: ClientTier[] = ["regular", "vip", "premium"];
 export type ClientActionState = {
   ok?: boolean;
   error?: string;
-  fieldErrors?: Partial<Record<keyof ClientInput, string>>;
+  // `markbox`: el código escrito a mano en el alta (SDD-0646).
+  fieldErrors?: Partial<Record<keyof ClientInput | "markbox", string>>;
   /** En create, el server devuelve el markbox autogenerado. */
   createdMarkbox?: string;
   /**
