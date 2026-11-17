@@ -247,7 +247,8 @@ export function KommoClient({
   const hasFilters = Boolean(filters.q) || Boolean(pipeline) || Boolean(asesor) || Boolean(aged);
 
   return (
-    <div style={{ maxWidth: 1280 }}>
+    // SDD-0648 §3: Embudos usa todo el ancho; las pestañas de Kommo conservan su tope.
+    <div style={{ maxWidth: tab === "embudos" ? "none" : 1280 }}>
       {/* Cabecera y pestañas compartidas con la Bandeja (SDD-0655). */}
       <CrmCabecera
         bajada="Leads y clientes, por etapa. En Embudos, lo que mueves o guardas queda en Studio."
