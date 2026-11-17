@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 628 specs)
+### Índice de specs (generado · 629 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -666,6 +666,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0644 | Chatwoot: nivel «gestión» (ve y edita todo, no elimina) y enm… | proposed | interno |
 | 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
 | 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
+| 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0638, 0639, 0643 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -39,7 +39,7 @@ import type {
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
 import { Suspense, type ReactNode } from "react";
-import { resolverTablero } from "@/lib/studio/crm-tablero";
+import { resolverVista } from "@/lib/studio/crm-tablero";
 import {
   filterRecoveryRows,
   getRecoveryUniverse,
@@ -78,7 +78,7 @@ export default async function KommoPage({
   const embudos: ReactNode =
     tab === "embudos" ? (
       <Suspense fallback={<CrmEmbudosCargando />}>
-        <CrmEmbudosSlot tableroInicial={resolverTablero(single("embudo"))} />
+        <CrmEmbudosSlot tableroInicial={resolverVista(single("embudo"))} />
       </Suspense>
     ) : null;
 
