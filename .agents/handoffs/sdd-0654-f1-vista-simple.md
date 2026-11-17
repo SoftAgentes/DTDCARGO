@@ -78,9 +78,9 @@ del postflight, y el contrato pierde la parte de revocación.
 | `node scripts/check-numbering.mjs` | PASÓ |
 | `node scripts/check-feature-constants.mjs` | PASÓ |
 | `/ui-check` | OK con ajustes menores (ver PR); el #1 es medir la barra a 375 px al encender |
-| Vitest de los 4 archivos | PENDIENTE de turno del DG |
-| `tsc --noEmit` | PENDIENTE de turno del DG |
-| Contrato `0557_portal_vista_preferida.test.sql` | PENDIENTE: Docker con turno, o el job «Contratos SQL» del CI |
+| Vitest de los 4 archivos (turno del DG) | PASÓ: 4 archivos, 34 pruebas |
+| `tsc --noEmit` (turno del DG) | PASÓ: exit 0 |
+| Contrato `0557_portal_vista_preferida.test.sql` | NO EJECUTADO en local (Docker sin turno, decisión del DG): lo corre el job «Contratos SQL» del CI |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI de GitHub |
 
 ## COMMITS
@@ -94,7 +94,7 @@ nominal de Sam** para ese archivo y el runbook `docs/runbooks/aplicar-migracione
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr Vitest, tsc y el contrato SQL con turno del DG, o leerlos en el CI.
+- Leer el job «Contratos SQL» del CI: el contrato 0557 no corrió en local.
 - Decisión del DG sobre el REVOKE de la tabla (arriba).
 - Riesgo en producción: si las escrituras de authenticated las concedió otro rol (no `postgres`), el REVOKE de
   `postgres` no las quita. En ese caso el postflight aborta la migración entera, sin cambios. Se ve en el ensayo
