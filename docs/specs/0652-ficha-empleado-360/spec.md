@@ -198,6 +198,8 @@ Contenido de la 0555, en este orden:
    | `studio_login_events` | `security` | `security`, 2 años | `login_events_viewed` (sin IP ni agente; solo de quién y qué rango) | F3, en su migración |
    | `nomina_employee` | `finance` | `fiscal`, 10 años | cambios de sueldo, banco, estado y puesto | F5, en su migración |
 
+   **Primer uso del `domain_code` `security`:** ningún tipo del catálogo lo usa hoy (`grep "'active', 'security'"` en `supabase/migrations`, sin resultados). El calendario y `0304_audit_retention_batches.sql:69` ya lo cuentan en la clase `security`, así que no cambia ningún lote. La revisión de la 0555 lo comprueba igual.
+
    La foto va en `governance` y no en `operations` porque es un dato de la persona, no un hecho operativo: así se purga a los 2 años y no a los 5. Los cambios de sueldo son nómina, y por eso `finance`, como `payroll_settlement` (`0316:26-32`).
 4. **RPC** `nomina_link_employee_user(p_employee_id uuid, p_user_id uuid, p_reason text)` y `nomina_unlink_employee_user(p_employee_id uuid, p_reason text)`:
    - `security definer`, `set search_path = ''`;
@@ -219,7 +221,7 @@ Reglas de la foto (UPL-01 y MP-01):
 - **Reemplazar** o **quitar** la foto borra el archivo anterior (P0 de MP-01: la foto no es evidencia) y deja el evento `photo_set` o `photo_removed`. «Quitar» es destructivo y pide confirmación (BTN-01: Cancelar con el foco, la acción a la derecha).
 - Ficha **egresada**: la foto se sigue viendo y no se puede cambiar. Ficha **borrada** (`deleted_at`): el archivo se borra junto con la ficha. El borrado de la ficha se agrega al mapa de borrado.
 
-«Mostrar» la cuenta bancaria (D9): lo hace una RPC solo para Admin y Contabilidad, que devuelve el número completo y en la misma transacción deja `bank_account_revealed`, sin el número. Es el revelado sensible de AUD-02 §3 llevado a Nómina.
+«Mostrar» la cuenta bancaria (D9): lo hace una RPC solo para Admin y Contabilidad, que devuelve el número completo y en la misma transacción deja `bank_account_revealed`, sin el número. Está **inspirado en AUD-02 §3**, pero no es lo mismo. `audit:view_sensitive` exige motivo, reautenticación y evento, y por defecto solo lo tiene admin (`docs/governance/policies/aud-02.md:39`, `:44-46`). Aquí cambian tres cosas: **no pide motivo**, **no pide reautenticación** y **Contabilidad también puede**. Las tres van a Sam en D9.
 
 En pantalla: «Enlazar con usuario», «Quitar enlace» y la sugerencia por correo (§4), «Subir foto», «Cambiar» y «Quitar», y «Mostrar» la cuenta. La foto sale en la cabecera de la ficha y en la fila de Empleados. Si sale o no en el resto del Studio, lo decide D4.
 
@@ -233,12 +235,18 @@ En pantalla: «Enlazar con usuario», «Quitar enlace» y la sugerencia por corr
   - el acceso por invitación (`app/invitar/[token]/actions.ts:129`).
 - **No** se registra la reconfirmación de contraseña de `lib/db/password-confirmed.ts:70`: es un segundo factor dentro de una sesión abierta, no un inicio de sesión.
 - Si escribir falla, el login sigue: es evidencia, no control.
-- Intentos fallidos (D7): solo cuando el correo es de un miembro de Studio del tenant. Si no lo es, no se guarda nada: no se guardan correos tecleados. Para que la pantalla no delate qué correos existen, la escritura se hace **después de responder** (`after()` de Next), así el tiempo de respuesta es el mismo exista o no el correo. El mensaje de error sigue siendo el mismo de hoy. Queda un límite de ritmo por IP (huella SHA-256, como `portal_registro_throttle`) para que no se pueda tantear correos a ritmo alto.
+- Intentos fallidos (D7): solo cuando el correo es de un miembro de Studio del tenant. Si no lo es, no se guarda nada: no se guardan correos tecleados. Para no agregar una diferencia de tiempo propia, la búsqueda del correo y la escritura se hacen **después de responder** (`after()` de Next). El mensaje de error sigue siendo el de hoy, y queda un límite de ritmo por IP (huella SHA-256, como `portal_registro_throttle`) para que no se pueda tantear correos a ritmo alto.
+
+  Lo que esto **no** resuelve, y la F3 **mide, no promete**:
+  - `after()` no iguala el tiempo de `signInWithPassword`: GoTrue puede tardar distinto si el correo existe o no. Si la medida en local muestra una diferencia que se pueda explotar, el límite de ritmo es la defensa, y se documenta.
+  - Si para saber si el correo es de un miembro de Studio se usara `listUsers`, solo se vería la primera página de usuarios, como pasa con `ensureEmployeeAuthUser` (`nomina/actions.ts:1910`). La F3 resuelve el `user_id` con una consulta directa por correo normalizado, del lado del servidor y sin paginar, o no registra el intento.
 - RLS: sin acceso directo para `anon` ni `authenticated`. Se lee por una RPC solo de admin, con paginación por cursor y límite (AUD-02 §4 y §7).
 - Ver los inicios de sesión de otra persona es una consulta de datos personales (AUD-01 §2, AUD-02): cada vez que el admin abre la pestaña queda `login_events_viewed`, sin las IP.
 - **Retención (D6), dentro de AUD-02.** Es un dato de seguridad, de clase A en AUD-02 §5. El calendario aprobado `docs/legal/retention-schedule-v1.md` §3 le da a la clase `security` **2 años** desde `occurred_at`, «por investigación de incidentes y control de acceso». Pero hoy su alcance es solo `entity_audit_log`, y AUD-02 §5 dice que **nada se purga solo** sin un calendario con fundamento. Por eso la F3 no corre con un cron propio. Hace dos cosas:
   1. **Enmienda del calendario a v1.1**, con aprobación de Sam registrada y revisión del abogado: incluye `studio_login_events` en la clase `security`, 2 años, con **minimización escalonada** a los 90 días. Esa minimización vacía `ip` y `ua_*` y marca `minimized_at`; quedan fecha, resultado y método.
-  2. **Ejecución con el mismo control que la E5** (AUD-02 §8; `0304_audit_retention_batches.sql`): la minimización y la purga a 2 años corren como **lote** con dry-run, conteo y hash, aprobado por un segundo actor y revalidado al ejecutar. Respetan un hold de `0301`. Dejan un evento de lote sin valores.
+  2. **Ejecución con el mismo control que la E5** (AUD-02 §8): la minimización y la purga a 2 años corren como **lote** con dry-run, conteo y hash, aprobado por un segundo actor y revalidado al ejecutar. Respetan un hold de `0301`. Dejan un evento de lote sin valores.
+
+     Las funciones de lote de la 0304 **no sirven tal cual**: solo leen `entity_audit_log` (`0304_audit_retention_batches.sql:57-72`). La F3 declara en su allowlist **funciones nuevas** con el mismo contrato: elegibles, foto del lote (conteo y hash), pedir lote, aprobar con segundo actor y ejecutar con revalidación, para minimizar y para purgar. Pueden ir en una tabla de lotes propia o ampliar `audit_retention_batches` con una clase nueva; lo decide la F3 con su revisión.
 
   Mientras la enmienda no esté aprobada, la tabla **se conserva sin purga**, que es el default seguro de AUD-02 §5. La F3 puede salir igual.
 - **Medir antes de construir**, en el stack local: qué IP y qué agente llegan a la action detrás de Traefik, y qué guarda `auth.audit_log_entries` en v2.197. Si hay Cloudflare delante, la IP será la del borde mientras el borde no cambie; la pestaña lo dice («IP del borde») en vez de mostrar una IP falsa como real. Esta SDD no toca el borde.
@@ -294,7 +302,7 @@ En pantalla: «Enlazar con usuario», «Quitar enlace» y la sugerencia por corr
 | `docs/legal/privacidad/registro-tratamiento.md` | Filas de la foto |
 | `docs/legal/privacidad/mapa-de-borrado.md` | Borrado de la foto |
 
-F3, F4 y F5 fijan su lista al asignarse, con su número de migración.
+F3, F4 y F5 fijan su lista al asignarse, con su número de migración. La de F3 incluye obligatoriamente, además de la tabla y la action de login, las **funciones de lote propias** para minimizar y purgar `studio_login_events` (§F3, retención) y sus pruebas en PGlite.
 
 ## 8. Decisiones para Sam
 
@@ -308,7 +316,7 @@ F3, F4 y F5 fijan su lista al asignarse, con su número de migración.
 | D6 | ¿Cuánto se guardan los inicios de sesión? Es un dato de seguridad: AUD-02 no deja purgarlo solo, sin un calendario aprobado. | (a) Enmendar el calendario de retención a v1.1: clase `security`, 2 años como el resto de los eventos de seguridad, con IP y navegador vaciados a los 90 días. Todo por lote controlado, con segundo actor, y revisado por el abogado. (b) Clase `security`, 2 años, sin vaciar antes la IP. (c) No enmendar: se guarda sin purga hasta que haya calendario | **(a)**: es el plazo que ya aprobaste para seguridad, y la IP no se guarda más de lo que hace falta para revisar un incidente. Mientras no se apruebe, rige (c) |
 | D7 | ¿Se registran los intentos fallidos? | (a) Sí, solo de correos que son usuarios del Studio, sin delatar qué correos existen (mismo tiempo y mismo mensaje) y con límite de ritmo. (b) No, solo los que entraron | **(a)**: un intento fallido es lo que avisa de un ataque |
 | D8 | ¿«Lo que hizo» incluye las páginas que visitó? | (a) No: solo lo que cambió (lo auditado). (b) Sí, también lo que vio | **(a)**: vigilar la navegación es desproporcionado y pesa mucho |
-| D9 | ¿Se ve la cuenta bancaria completa en la ficha? | (a) Enmascarada (últimos 4). «Mostrar» la abre y queda registrado quién la vio. (b) Completa, como hoy en el formulario | **(a)**. Pregunta aparte: ¿«Mostrar» pide motivo? Recomiendo que no: Contabilidad la ve para pagar todos los meses, y el registro ya dice quién y cuándo |
+| D9 | ¿Se ve la cuenta bancaria completa en la ficha? | (a) Enmascarada (últimos 4). «Mostrar» la abre y queda registrado quién la vio. (b) Completa, como hoy en el formulario | **(a)**, inspirado en AUD-02 §3 pero con **tres diferencias que tienes que aceptar**: (1) **sin motivo**, (2) **sin volver a pedir la contraseña** y (3) **Contabilidad también puede**, cuando AUD-02 por defecto solo deja a admin (`aud-02.md:39`, `:44-46`). Lo recomiendo así porque Contabilidad necesita la cuenta para pagar todos los meses, y el registro ya dice quién la vio y cuándo. Si prefieres el estándar completo: motivo y contraseña de nuevo, y solo admin |
 | D10 | Contabilidad abre la ficha. ¿Qué ve del acceso? | (a) Solo «Tiene acceso» o «Sin acceso». (b) También rol y último ingreso | **(a)**: Sam pidió logins y seguimiento solo para admin |
 | D11 | ¿En qué orden se construye? | (a) F1 → F2 → F3 → F4 → F5. (b) Adelantar F3 (inicios de sesión) antes de F2 | **(a)**: F1 resuelve ya el correo y la entrada; F3 necesita su medida primero |
 | D12 | ¿Hay que avisar al equipo que se registran sus inicios de sesión? | (a) Sí: una línea en la pantalla de login del Studio y un párrafo en el aviso interno, revisado por el abogado. (b) No | **(a)**: es lo que la persona espera saber de su propio dato |

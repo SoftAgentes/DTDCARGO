@@ -12,7 +12,7 @@ Medir la ficha de empleado de Nómina, la ficha de usuario, el seguimiento y los
 
 ## COMPLETADO
 
-- Spec con medición citada (§2), respuestas (§3), enlace (§4), diseño basado en la 0650 y el Expediente del Norte (§5), fases F1-F5 (§6), allowlist F1 y F2 (§7), D1-D12 (§8), privacidad (§9), aceptación (§10).
+- Spec con medición citada (§2), respuestas (§3), enlace (§4), diseño basado en la 0650 y el Expediente del Norte (§5), fases F1-F5 (§6), allowlist F1 y F2 (§7), D1-D13 (§8), privacidad (§9), gobernanza (§10), aceptación (§11).
 - Índice `docs/specs/README.md` regenerado con `node scripts/build-docs-index.mjs`.
 
 ## Revisión independiente del DG (18441e8b7, CHANGES REQUESTED)
@@ -41,13 +41,13 @@ Cada hallazgo se verificó en el código antes de corregir:
 
 ## PENDIENTES DE ESTA TAREA
 
-- Respuestas de Sam a D1-D12.
+- Respuestas de Sam a D1-D13.
 - Medidas marcadas NV en la spec: columnas e IP de `auth.audit_log_entries`/`auth.sessions` en GoTrue v2.197 (stack local) y qué IP llega detrás del borde. Van al inicio de la F3.
 - El índice de specs choca con la PR #629 (agrega 0650/0651): al integrar, regenerar el índice.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- Nómina no audita cambios de sueldo, banco ni estado (AUD-01). La spec lo deja como F5.
+- La ficha del empleado no audita cambios de sueldo, banco ni estado (AUD-01); los finiquitos sí (0316). La spec lo deja como F5.
 - `audit_list_events` no filtra por actor, aunque AUD-02 §4 lo pide. La spec lo deja como F4.
 - `nomina_employee_registrations.photo_path` sin escritor y con conservación indefinida (`registro-tratamiento.md:56`).
 - `nomina_employees` sin plazo de conservación (`registro-tratamiento.md:55`).
@@ -60,3 +60,7 @@ Cada hallazgo se verificó en el código antes de corregir:
 ## HANDOFF AL DIRECTOR
 
 PR borrador con la spec. El DG lanza la revisión independiente y asigna las fases cuando Sam responda.
+
+## Re-revisión del DG (8dcb53734, APPROVED con ajustes menores)
+
+Aplicados: D9 nombra las tres diferencias con AUD-02 §3 (sin motivo, sin reautenticación, Contabilidad también); F3 declara funciones de lote propias, porque las de 0304 solo leen `entity_audit_log` (`0304:57-72`); D7 dice lo que `after()` no resuelve (el tiempo de `signInWithPassword`, el límite de 200 de `listUsers`) y que la F3 lo mide; nota del primer uso del `domain_code` `security`. Pendiente: la revisión de Codex que pasará el DG.
