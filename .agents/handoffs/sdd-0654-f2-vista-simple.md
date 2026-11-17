@@ -84,7 +84,7 @@ Orden del DG (2026-11-17). Sam aprobó arrancar la fase 2 con «Sí, las dos».
 | Comprobación | Resultado |
 |---|---|
 | `docs:check`, `check-numbering`, `check-pending-migration-symbols`, `check-feature-constants` | PASÓ |
-| Vitest de las pruebas nuevas y tocadas | PENDIENTE de turno del DG |
+| Vitest acotado al portal (20 archivos) | PASÓ: 145 de 145, con turno del DG (2026-11-17) |
 | `tsc --noEmit` | PENDIENTE de turno del DG |
 | ESLint de los archivos tocados | PENDIENTE de turno del DG |
 | `/ui-check` | Ver la PR |
@@ -110,6 +110,13 @@ encenderlo y la prueba con clientes (D-12) son decisiones de Sam.
 - Captura de la barra a 375 px en el servidor de prueba.
 - `app/portal/_components/PortalShell.test.tsx`: cambié el nombre con que busca el botón «Vista Pro», porque ahora
   hay dos botones con «Pro». No está en la fila 2; es efecto directo del cambio del selector.
+
+**Rojo del CI en la #648, causa confirmada.** «se repite con «Guía» desde otra pantalla (?guia=1) y limpia la
+URL» (`GuiaPortal.test.tsx`) no terminaba y el proceso de Vitest se quedaba sin memoria. El efecto de `?guia=1`
+dependía de `router` y volvía a abrir la guía en cada render mientras la URL conservaba el parámetro. El doble de
+la prueba da un router nuevo en cada render, y así el bucle no terminaba nunca. Se corrigió en el componente: la URL
+se atiende una sola vez por visita, y la prueba ahora exige que `replace` se llame una sola vez. Aparte, la prueba
+del aviso que se cierra solo vacía los efectos dentro de `act` antes de medir.
 
 ## FUERA DE ALCANCE DETECTADO
 

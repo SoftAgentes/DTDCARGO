@@ -49,6 +49,12 @@ export function GuiaPortal({ guiaVista }: { guiaVista: boolean }) {
   const [activa, setActiva] = useState<Activa>(null);
   const [marco, setMarco] = useState<DOMRect | null>(null);
   const arrancoSola = useRef(false);
+  // `?guia=1` se atiende una sola vez por visita a esa URL. Sin esto, cada
+  // render que cambie una dependencia (un `router` con otra identidad, por
+  // ejemplo) mientras la URL sigue con el parámetro volvía a abrir la guía, y
+  // abrirla vuelve a renderizar: un bucle sin fin.
+  const atendioUrl = useRef(false);
+  const porUrl = params?.get(PARAM_GUIA) === "1";
 
   const abrir = useCallback((rec: Recorrido) => {
     const fase = primeraFase(rec, existe);
@@ -58,7 +64,10 @@ export function GuiaPortal({ guiaVista }: { guiaVista: boolean }) {
   // Primera vez: arranca sola y queda marcada en la base. `?guia=1`: arranca y
   // se limpia la URL.
   useEffect(() => {
-    if (params?.get(PARAM_GUIA) === "1") {
+    if (!porUrl) atendioUrl.current = false;
+    if (porUrl) {
+      if (atendioUrl.current) return;
+      atendioUrl.current = true;
       // Arranque desde la URL o la primera vez: es sincronizar con la carga, no
       // un estado derivado (mismo caso que PushOptIn).
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -72,7 +81,7 @@ export function GuiaPortal({ guiaVista }: { guiaVista: boolean }) {
       abrir(GUIA_PRIMERAS_VECES);
       void markPortalGuiaVistaAction().catch(() => undefined);
     }
-  }, [abrir, guiaVista, params, pathname, router]);
+  }, [abrir, guiaVista, porUrl, pathname, router]);
 
   useEffect(() => {
     const guia = () => abrir(GUIA_PRIMERAS_VECES);

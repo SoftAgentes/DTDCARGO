@@ -113,6 +113,9 @@ describe("GuiaPortal", () => {
     params = new URLSearchParams("guia=1");
     render(<Pantalla guiaVista />);
     expect(screen.getByRole("dialog", { name: "Te mostramos tu portal en 1 minuto" })).toBeInTheDocument();
+    // Una sola vez, aunque el router del doble cambie de identidad en cada
+    // render (antes eso volvía a abrir la guía sin fin).
+    expect(replace).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledWith("/portal", { scroll: false });
     expect(markPortalGuiaVistaAction).not.toHaveBeenCalled();
   });
