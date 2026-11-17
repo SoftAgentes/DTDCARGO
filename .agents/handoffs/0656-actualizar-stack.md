@@ -54,7 +54,7 @@
 ## Fuera de alcance detectado
 
 - Leer el boletín de seguridad de Node 24.22.3 (nodejs.org/en/blog/vulnerability) para saber qué cubre.
-- Medir si alguna noticia publicada sigue sirviendo imágenes desde `*.supabase.co`. Es la condición de D3.
+- Medir qué hosts de imágenes remotas siguen usando las noticias publicadas. Es la condición de D3.
 
 ## Impacto documental
 
