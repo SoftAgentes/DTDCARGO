@@ -687,7 +687,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0663 | Subaliados como jobs: estado de cuenta por trabajo, sección A… | proposed | interno |
 | 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
 | 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
-| 0666 | Portal del aliado: sus clientes, prealertas y marca blanca en… | proposed | interno |
+| 0666 | Portal del aliado: sus clientes, prealertas y marca blanca | proposed | interno |
 | 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
 | 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
 
