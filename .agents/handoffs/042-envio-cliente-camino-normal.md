@@ -1675,3 +1675,44 @@ Residual de catálogo atendido en autoría:0502:2507/2512 añade tgqual IS NULL 
 Test37: dos negativos de catálogo separados añaden WHEN al prepaso y al general manteniendo las demás propiedades. Ambos exigen error específico0502 contrato de prepaso scope incompleto, no fusible/parser u otrofallo. Conteo textual del bloque:9casos/9llamadas al contrato real, desglosados1positivo+8mutantes; ninguno ejecutado/detectado. Runner sólo corrige comentario503–506 y mensaje522: prepaso sólo gate puede rechazar segunda clave antes de cualquier UPSERT. Target sin fence sigue siendo oráculo pertinente; no acredita una escritura durable previa revertida. Todos los asserts de estado/barreras anteriores se conservan.
 
 Informe peer9e58dc27 adoptado arriba, lectura completa71líneas/17307bytes y preimagen153c preservadas. Plan actual externo plan-relevo-p1-72-claves-noop-sin-when.md,2729bytes/SHAde4c5a73d1245fed11c97af6e5c0f3dc8baa3d4b8221d801fdecd2bf00c79555 compone planes previos conservados y corrige conteo/atribución sin cuota artificial. P2 atendido por mecanismo de fuente, NO REPRODUCIDO; matrizA1–A18 NO EJECUTADA. Sólo Git/nativo guard/hash/allowlist/diffcheck, sin parser o runtime. No instalación/Nodeproducto/tests/SQL/DB/Docker/browser/tipos/lint/build/verify/knowledge. NuevoSHA/diff/manifiesto/readback se fija en recibo externo; revisión antes de cualquierGO. Claim retenido, PR318DRAFT/baseD1, sin main/merge/prod/deploy/activación4.2/finanzas4.3 o cambios históricos.
+
+## Prueba funcional pedida por Sam — 2026-11-18 (Worker Claude, PR #318)
+
+Encargo del DG: traer main, resolver conflictos y probar en local el camino
+recepción CN → consolidación/estiba → zarpe → recepción VE. Sin publicar, sin
+producción, sin aplicar la 0502 en ningún entorno.
+
+Hecho:
+- `git merge-tree` contra origin/main 9434cc4f6 (2.438 commits): un solo conflicto
+  textual, imports de `app/studio/(app)/tracking/[id]/actions.ts` (cohorte 0578 y
+  reasignar-embarque 0551). Merge local `884cc8665` (sin push): se conservan ambos.
+- «Pasar a otro cliente» (SDD-0645, entró después de esta rama) ahora pasa por
+  `legacyShipmentMutationDenial` como el resto de escritores legados; dos casos
+  nuevos en `tracking/[id]/__tests__/reasignar-actions.test.ts` (cohorte y
+  pertenencia no comprobable no llegan a la RPC). NO EJECUTADO.
+- Ninguna función que la 0502 compone (stuff/unstuff_*_as_operario,
+  *_governed, camionero_pod_v, get_user_tenant_id 0453…) fue redefinida en
+  0503–0560; la policy «shipments portal self read» sigue siendo la de 0416.
+
+Estado real de la PR (leído de la propia fuente, no de la descripción):
+- `0502_consolidacion_cliente_camino_normal.sql:22-24` abre con un fusible
+  `raise exception '0502: borrador SDD-0578 en autoría; NO EJECUTAR'`; la
+  cabecera dice «BORRADOR EN AUTORÍA P1, NO VALIDADO; NO APLICAR».
+- La matriz de aceptación A1–A18 está NO EJECUTADA; nunca corrieron tests,
+  tipos, lint, build, SQL, PGlite ni Docker sobre esta rama.
+- La spec exige entregar con enrolamiento y activación OFF.
+- Fusionarla así rompe cualquier `db reset`/CI que aplique migraciones.
+
+| Comprobación | Estado |
+|---|---|
+| merge-tree y merge local | PASÓ (1 conflicto, resuelto) |
+| vitest de la PR | NO EJECUTADO (espera turno de PC) |
+| pgTAP/PGlite `consolidacion_cliente_normal.test.sql` | NO EJECUTADO |
+| aplicar 0502 en Supabase local | NO EJECUTADO (fusible + número pendiente del DG) |
+| e2e `consolidacion-clientes-camino-normal.spec.ts` | NO EJECUTADO |
+| `pnpm verify` | NO EJECUTADO |
+
+Pendiente de esta tarea: número nuevo de migración (lo da el DG), GO del DG para
+retirar el fusible en la prueba, turno de PC; después la matriz.
+
+FUERA DE ALCANCE DETECTADO: ninguno nuevo.
