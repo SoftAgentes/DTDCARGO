@@ -6,7 +6,7 @@
 
 ## Hecho
 - `lib/shared/cbm.ts`: `formatCbm` (máx. 4 decimales, sin ceros de relleno, es-VE con coma), `roundCbm`, `cbmPlano` (CSV). Pruebas en `lib/shared/__tests__/cbm.test.ts`.
-- Usada en los sitios de Studio, móvil y portal que formateaban CBM/m³: Embarques, Tracking, Cotizador, Almacén CN/VE, KPIs CN, Inventario, Despacho, Club, Reportes, Costing, Proveedores, Dashboard, Dirección, tarifa congelada, móvil, packing list público y portal (estos con punto decimal, como sus kg/USD), cotización. Los CSV no se tocaron (revisión 1: bloqueante 3).
+- Usada en los sitios de Studio, móvil y portal que formateaban CBM/m³: Embarques, Tracking, Cotizador, Almacén CN/VE, KPIs CN, Inventario, Despacho, Club, Reportes, Costing, Proveedores, Dashboard, Dirección, tarifa congelada, móvil, packing list público y portal (estos con punto decimal, como sus kg/USD). Los CSV y el texto de WhatsApp de la cotización (sale al cliente) no se tocaron (revisión 1: bloqueante 3).
 - `NumericInput type="volume"`: la vista previa ya muestra los decimales reales (el valor enviado no se truncaba).
 - Se afinan agregados de pantalla de 2–3 a 4 decimales con `roundCbm`. Se revirtió el de `despacho/actions.ts` porque ese sí se escribe en la base.
 - Tests actualizados al formato nuevo (Embarques «3 m³», Tracking «4 m³»); nueva prueba de `metrosCubicos`.
