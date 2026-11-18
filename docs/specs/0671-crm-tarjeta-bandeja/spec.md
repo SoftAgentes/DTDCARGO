@@ -46,6 +46,26 @@ Ahora:
 
 Archivo: `app/studio/(app)/crm/_components/CrmTableroKanban.tsx`.
 
+### 1.1 Enmienda de la regla de la tarjeta (SDD-0603 tramo 5d, BD-037)
+
+El tramo 5d fijaba para la tarjeta del CRM: «lo que abre un registro es un botón real "Abrir <nombre>" y la
+tarjeta sale del orden de Tab», con «Abrir» como `studio-btn-ghost -sm` visible y el nombre con
+`tabIndex={-1}`. Esta SDD lo **enmienda solo para la tarjeta del CRM**:
+
+- Sigue habiendo **exactamente un** botón real con nombre accesible «Abrir ficha de <nombre>». Ahora es el
+  **propio nombre**, y es la **única parada de Tab** de la tarjeta antes del menú.
+- **No lleva `studio-btn`.** Esa clase es la de un botón con caja; ponérsela al nombre devolvería el control
+  grande que Sam pidió quitar. Lleva `studio-link-quiet` (subrayado siempre, SDD-0603), que es como el
+  sistema marca un nombre que abre.
+- **No vuelve un botón «Abrir» visible** (ni texto «Abrir» ni chevrón).
+- Un clic en cualquier parte de la tarjeta abre la ficha, **salvo el menú «…» y sus opciones**.
+
+Las filas de Conversaciones siguen con la regla original del tramo 5d. El contrato
+`app/studio/_components/__tests__/claridad-t5d-contract.test.ts` cambia la cuenta de la tarjeta
+(`fueraDeTab` de 1 a 0) y suma `formaTarjeta`, con estos mutantes: el nombre sale del Tab, vuelve un botón
+«Abrir» aparte, el nombre deja de ser botón, el nombre pierde `studio-link-quiet`, el menú abre la ficha y
+se quita el menú. `docs/specs/0603-claridad-controles/tramo-5d.md` lleva la nota de la enmienda.
+
 ## 2. Diagnóstico: por qué no ve la Bandeja, los chats ni los comentarios
 
 Para ver la Bandeja y trabajar dentro de Chatwoot hacen falta **cuatro condiciones a la vez**. Si falla
@@ -115,11 +135,15 @@ que medirla aparte.
 - un clic en el nombre abre una sola vez y conserva los 32 px;
 - un clic en otra parte de la tarjeta abre; abrir el menú o elegir «Mover a …» no abre la ficha.
 
+- `claridad-t5d-contract.test.ts`: la cuenta y la forma nuevas de la tarjeta, y los seis mutantes de §1.1.
+
 ## 5. Allowlist exacta
 
 - `docs/specs/0671-crm-tarjeta-bandeja/spec.md` (nuevo) y `docs/specs/README.md` (índice generado).
 - `app/studio/(app)/crm/_components/CrmTableroKanban.tsx`.
 - `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx`.
+- `app/studio/_components/__tests__/claridad-t5d-contract.test.ts` (enmienda §1.1) y
+  `docs/specs/0603-claridad-controles/tramo-5d.md` (nota de la enmienda).
 - `.agents/handoffs/sdd-0671-crm-tarjeta-bandeja.md`.
 
 No cambia permisos, RLS, migraciones ni el ciclo de agentes.

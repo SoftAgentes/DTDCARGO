@@ -12,7 +12,10 @@ Fecha: 2026-11-18 · Rama `claude/sdd-0671-crm-tarjeta-bandeja` · Reserva `refs
 
 ## Evidencia
 
-- Vitest local: NO EJECUTADO al publicar, sin turno de PC (lo tenía la #318). El portón es el CI.
+- Primera cabeza (ceeaef7d2): el CI falló en `claridad-t5d-contract.test.ts`, porque el contrato del tramo
+  5d fijaba el diseño viejo. Se enmendó de forma explícita (spec §1.1), con mutantes nuevos.
+- Vitest local con turno del DG: `claridad-t5d-contract.test.ts` y `CrmTableroKanban.test.tsx` PASARON
+  (51/51). ESLint de los tres archivos: PASÓ.
 - `/ui-check`: ver el cuerpo de la PR.
 - Proceso: el worktree `crm-0671-tarjeta-bandeja` que creé para esta tarea lo retiré sin commits con
   `worktree remove`. Un hook de la sesión impide escribir fuera de su worktree, y el trabajo se llevó con un
