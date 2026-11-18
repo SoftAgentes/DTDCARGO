@@ -116,3 +116,19 @@ describe("BoardKanban · DND-01", () => {
     );
   });
 });
+
+describe("BoardKanban · pie de la tarjeta angosta", () => {
+  it("el pie y su grupo de datos parten en líneas en vez de enciman textos", () => {
+    renderBoard();
+    const selector = screen.getByRole("combobox", {
+      name: "Mover Revisar documentos a otro estado",
+    });
+    const pie = selector.closest("label")!.parentElement as HTMLElement;
+    expect(pie.style.flexWrap).toBe("wrap");
+    const datos = pie.firstElementChild as HTMLElement;
+    expect(datos.style.flexWrap).toBe("wrap");
+    expect(datos.textContent).toContain("Sin asignar");
+    // El selector baja a su propia línea cuando no cabe y se alinea a la derecha.
+    expect(selector.closest("label")!.style.marginLeft).toBe("auto");
+  });
+});

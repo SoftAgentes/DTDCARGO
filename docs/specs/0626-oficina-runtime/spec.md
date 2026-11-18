@@ -4,7 +4,7 @@ title: "Oficina-runtime — El Cable Vertical"
 status: approved
 author: "Hermes (redacción) · Sam (aprobación)"
 created: 2026-11-12
-updated: 2026-11-17
+updated: 2026-11-18
 supersedes: null
 superseded_by: null
 related: ["0020", "0021"]
@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.7 (Paso 3b y etapa 1: «Acuse» en los escalados, 0560) · 17/11/2026**
+**Versión 0.8 (Paso 4: mini-vista de solo lectura) · 18/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -54,7 +54,7 @@ usa este mapa.
 | Paso 2b | prueba con el mensaje real del inbox de prueba, por el puente interno («Opción 3: puente») | construido y probado en staging el 16/11/2026 |
 | Paso 3a | §3.4 y §3.5 · despachador mínimo: el agente **redacta** un borrador para Sam; nada se envía (D6) | hecho y probado en staging el 16/11/2026 (prueba E: 6 borradores, 0 envíos). Migración 0548 **aplicada** en staging (10:58:56Z) y en producción (11:54:57Z, OK de Sam al DG; md5 `ee02f470301985260fdf56a5cb232d73`). En producción sigue todo apagado y la oficina pausada |
 | Paso 3b | aprobación de Sam (tabla propia, página solo para `is_platform_admin`, aviso en Discord) y envío desde el ERP (D2, D4); más los pendientes de la revisión del DG en §3.5 | construido (migración 0549, sin aplicar); falta la prueba F en staging |
-| Paso 4 | §3.6 · mini-vista | pendiente |
+| Paso 4 | §3.6 · mini-vista de solo lectura | construido, apagado por defecto (`OFICINA_VISTA_ACTIVA`); sin migración |
 
 **3.0 Paso 0 · Prueba de conexión (antes de todo):** antes de crear
 migraciones o webhook, el ERP (VPS DTD) llama al VPS Oficina por la red
@@ -408,6 +408,36 @@ cuando el agente empiece a responder.
 **3.6 Mini-vista:** página de prueba leyendo las 4 tablas (cola, eventos,
 bitácora y la bandera) — maqueta de la V3, solo lectura.
 
+**Cómo se construyó §3.6 (Paso 4).** Sam la pidió el 18/11/2026, con la etapa 1 ya encendida. No lleva migración.
+- **Dónde: `/studio/admin/oficina/vista`**, bajo el mismo layout de la revisión (solo `is_platform_admin`, `notFound()`
+  para los demás). **Nace apagada:** sin `OFICINA_VISTA_ACTIVA` (`1` o `true`) la página es un 404, también para el
+  superadministrador, y la revisión de borradores no la enlaza.
+- **Qué muestra, de lo nuevo a lo viejo:**
+  - **La bandera:** si la oficina está pausada o despausada, los últimos 10 cambios (cuándo, quién, motivo) y el gasto
+    del mes contra el tope (`office_gasto_del_mes()`, AC-5).
+  - **La cola:** cuántas tareas hay por estado y las últimas 50 (`office_tasks`).
+  - **Los eventos:** cuántos hay por estado y los últimos 50 (`event_inbox`).
+  - **La bitácora:** los últimos 100 pasos, con modelo, costo y resumen (`task_events`, AC-2).
+- **Solo lectura.** Sin formularios, botones ni acciones: desde ahí no se cambia nada. No llama a Chatwoot ni al
+  runtime del agente. **No pausa ni despausa:** el interruptor de la pausa en pantalla no es parte de este paso.
+- **Con qué permiso lee.** Las 4 tablas tienen RLS sin policies y solo las lee `service_role` (0541), así que la lectura
+  usa el cliente de servicio. `leerMiniVista` (`lib/studio/oficina/mini-vista.ts`) le pregunta antes a la base si quien
+  mira es `is_platform_admin()` y **solo con ese «sí» crea el cliente de servicio**; sin él, la página es un 404. Es el
+  mismo patrón de otras pantallas de solo lectura del administrador, y evita una migración solo para leer.
+- **Qué NO muestra (R5 · AUD-01 §5).** Solo columnas que la regla del cable deja sin datos personales:
+  identificadores, referencias, estados, horas, costos, `titulo` y `resumen`. Nunca `meta_datos` ni `clave_dedupe`, y
+  nunca el borrador ni el texto del cliente (eso vive en la revisión, con su candado en la base). Todo va como texto
+  plano.
+- **Sin la 0541** la página lo dice. Sin la 0548 muestra «?» en el gasto y lo demás sigue.
+
+**Archivos del Paso 4 (allowlist):**
+- `lib/studio/oficina/mini-vista.ts`, `lib/studio/oficina/config.ts` (`vistaActiva`) y
+  `lib/studio/oficina/__tests__/mini-vista.test.ts`
+- `app/studio/(app)/admin/oficina/vista/page.tsx` y `app/studio/(app)/admin/oficina/page.tsx` (el enlace)
+- `lib/studio/__tests__/oficina-contraste.test.ts` (suma la página nueva)
+- `.env.example` e `infra/dtd-cargo/.env.example`
+- esta spec, `docs/runbooks/oficina-cable.md` §13 y su handoff en `.agents/handoffs/`
+
 ## 4 · Fase B (semanas 4-5) — resumen para planificar
 Los 6 disparadores (pago, pre-alerta, contenedor, reclamo, run fallido,
 presupuesto 80%) + despachador completo (dependencias `espera:<id>`, modo
@@ -541,6 +571,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.8 | 18/11/2026 | **Paso 4: la mini-vista** (pedido de Sam del 18/11/2026, con la etapa 1 ya encendida): cómo se construyó §3.6 y su allowlist. Página de solo lectura `/studio/admin/oficina/vista` (bandera, cola, eventos, bitácora y gasto del mes), solo para `is_platform_admin`, apagada por defecto con `OFICINA_VISTA_ACTIVA`. Sin migración: lee con el cliente de servicio, que solo se crea después del «sí» de `is_platform_admin()`. No pausa ni despausa. Mapa de pasos: Paso 4 construido |
 | 0.7 | 17/11/2026 | **Etapa 1: «Acuse» en los escalados** (decisión del DG por delegación de Sam): §3.5 suma la **0560** (sin aplicar) y su allowlist: en un escalado, «Acuse» en «No evaluado» no cuenta en contra; en una respuesta nada cambia; la pantalla deja «Acuse» en «No evaluado» en los escalados y el aviso junto a los botones dice lo que de verdad hace el conteo. La 0558, aplicada en producción el 2026-11-17 a las 22:21Z |
 | 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (aplicada en producción el 2026-11-17 a las 22:21Z) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |
 | 0.5 | 16/11/2026 | **Paso 3b** (pedido de Hermes «PASO 3b», tras la #598): cómo se construyó y allowlist en §3.5 (migración 0549, sin aplicar): `office_revisiones` (D2, solo agregar), la consulta de conteo de AC-1 y AC-7, la página solo para `is_platform_admin` con el texto plano (D4), el aviso de Discord sin texto, el envío desde el ERP (`OFICINA_ENVIO_ACTIVO`, solo la bandeja de prueba, otra vez la pausa y la huella) y los pendientes del 3a (enlaces, dinero = 3 y escalado sin llamar al agente, sesión abortada borrada al momento). AC-1, AC-7 y §9: `agent_approvals` → `office_revisiones` (D2); fila «Envío» en §9. `privacidad.md`: hallazgos 19 y 20 |

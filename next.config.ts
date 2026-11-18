@@ -528,12 +528,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // Red de seguridad del 301 de dominio doortudoor.com → dtdcargo.com.
-      // El 301 REAL vive en el DNS/hosting externo (Hostinger) — pero ya se
-      // cayó una vez (clientHold, ver memoria project_dominio_clienthold).
-      // Estos redirects host-based son INERTES mientras el externo funcione;
-      // si algún día doortudoor.com se apunta a este deployment de Vercel, el
-      // 301 path-preserving sigue vivo desde código. Regla SEO #1: nunca
-      // quitar este redirect (docs/marketing/seo.md).
+      // El 301 REAL vive en Cloudflare desde 2026-11-18 (SDD-0657): la zona
+      // doortudoor.com está proxied y sus Single Redirect rules mandan cada
+      // ruta a dtdcargo.com conservando el path y el query; una regla WAF
+      // responde 403 al spam del WordPress hackeado. Antes vivía en
+      // Hostinger/Vercel y ya se cayó dos veces (clientHold y cuenta Vercel
+      // impaga). Estos redirects host-based son INERTES mientras Cloudflare
+      // funcione, porque Traefik solo enruta los host de dtdcargo.com; si
+      // algún día doortudoor.com apunta a este servidor, el 301
+      // path-preserving sigue vivo desde código. Regla SEO #1: nunca quitar
+      // este redirect (docs/marketing/seo.md).
       {
         source: "/:path*",
         has: [{ type: "host", value: "doortudoor.com" }],
@@ -552,6 +556,14 @@ const nextConfig: NextConfig = {
       // guardado. Los PNG estáticos en `public/brand/*` siguen sirviéndose
       // (el sitio los usa en nav/footer/og/favicon) — el redirect es exacto a
       // `/brand`, no afecta `/brand/<archivo>.png`.
+      // SDD-0657 · Los navegadores y Googlebot piden `/favicon.ico` en la
+      // raíz aunque el `<link rel="icon">` apunte a `/brand/favicon.ico`, y
+      // Search Console lo contaba entre los 404 del rastreo.
+      {
+        source: "/favicon.ico",
+        destination: "/brand/favicon.ico",
+        permanent: true,
+      },
       {
         source: "/brand",
         destination: "/",

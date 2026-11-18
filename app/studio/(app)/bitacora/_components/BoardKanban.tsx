@@ -324,10 +324,19 @@ function TaskCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
           gap: "var(--s-2)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "var(--s-1) 6px",
+            minWidth: 0,
+          }}
+        >
           {task.assignees.length > 0 ? (
             <div style={{ display: "flex", gap: 2 }}>
               {task.assignees.slice(0, 3).map((a) => (
@@ -387,6 +396,7 @@ function TaskCard({
               alignItems: "center",
               gap: "var(--s-1)",
               flexShrink: 0,
+              marginLeft: "auto",
               font: "600 10.5px/1 var(--f-sans)",
               color: "var(--ink-soft)",
             }}

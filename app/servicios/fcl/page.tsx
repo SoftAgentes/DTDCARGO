@@ -21,7 +21,7 @@ import {
 } from "@/components/servicios/FichaF2";
 
 const DESC =
-  "FCL contenedor completo China a Venezuela: en bodega (MOD A) o directo fábrica (MOD B, con el BL emitido por DTD). Recibe todo pagado hasta tu puerta o hasta puerto para desaduanizar tú. 40–55 días.";
+  "FCL contenedor completo China a Venezuela: desde nuestra bodega o directo de fábrica, todo pagado hasta tu puerta o hasta puerto para desaduanizar. 40–55 días.";
 
 export const metadata: Metadata = {
   title: "FCL — Contenedor completo, solo para tu carga",
@@ -316,6 +316,12 @@ export default function FclPage() {
                     </>,
                   ]}
                 />
+                {/* SDD-0657 · /llenado no tenía ningún enlace en el sitio. */}
+                <XrefF2>
+                  <b>¿No sabes si tu carga llena un contenedor?</b> Calcula{" "}
+                  <Link href="/llenado">cuánto contenedor ocupa tu carga</Link> con
+                  las medidas de tus cajas.
+                </XrefF2>
               </SecF2>
 
               <SecF2 title="Precio" price>
