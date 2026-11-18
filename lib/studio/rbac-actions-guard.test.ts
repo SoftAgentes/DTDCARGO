@@ -424,8 +424,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
   // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
   // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
+  // SDD-0626 (botón de pausa) sumó `admin/oficina/actions.ts::cambiarPausaAction` (488 → 489): los mismos dos candados
+  // al tope (`moduleEditDenial(supabase, "admin")` y `platformAdminDenial`) y escribe SOLO por la RPC
+  // `office_cambiar_pausa` (0541), con la sesión del usuario, que repite `is_platform_admin()` y exige el motivo.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(488);
+    expect(reportes.length).toBe(489);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

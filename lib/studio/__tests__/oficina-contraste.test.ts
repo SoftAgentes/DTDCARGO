@@ -15,6 +15,7 @@ const ARCHIVOS = [
   "app/studio/(app)/admin/oficina/page.tsx",
   "app/studio/(app)/admin/oficina/_components/TarjetaCierre.tsx",
   "app/studio/(app)/admin/oficina/vista/page.tsx",
+  "app/studio/(app)/admin/oficina/_components/TarjetaPausa.tsx",
 ];
 
 function bloque(selector: string): Record<string, string> {
