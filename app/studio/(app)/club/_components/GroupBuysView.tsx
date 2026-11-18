@@ -7,6 +7,7 @@
  * drawers; baja con confirm. Trazabilidad: highlight warm de la ronda creada.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -38,7 +39,7 @@ function fmtDate(iso: string | null): string {
 }
 function fmtCbm(n: number | null): string {
   if (n == null) return "—";
-  return `${(Math.round(n * 1000) / 1000).toLocaleString("es-VE")} m³`;
+  return formatCbm(n, { unit: true });
 }
 
 export function GroupBuysView({
