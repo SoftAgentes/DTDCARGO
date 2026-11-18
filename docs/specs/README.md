@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 648 specs)
+### Índice de specs (generado · 649 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -686,6 +686,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0662 | Ficha del embarque: ancho completo y «Asignar cliente» a la v… | in-progress | interno |
 | 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
 | 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
+| 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
