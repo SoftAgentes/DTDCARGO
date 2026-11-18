@@ -15,7 +15,7 @@ vi.mock("../actions", () => ({
   reconciliarBandeja: () => reconciliar(),
 }));
 
-const { BandejaClient } = await import("../_components/BandejaClient");
+const { BandejaClient, reiniciarFrenoEnMemoria } = await import("../_components/BandejaClient");
 
 const PANEL = "https://chat.dtdcargo.com/app/accounts/1/dashboard";
 const SSO = "https://chat.dtdcargo.com/app/login?email=ana%40example.test&sso_auth_token=t";
@@ -25,6 +25,7 @@ beforeEach(() => {
   pedirEnlaceSso.mockReset();
   reconciliar.mockClear();
   window.localStorage.clear();
+  reiniciarFrenoEnMemoria();
 });
 afterEach(() => {
   cleanup();
@@ -211,32 +212,62 @@ describe("BandejaClient · pantalla completa (SDD-0677)", () => {
     expect(modo()).toBe("compacta");
   });
 
-  it("en pantalla completa el fondo queda inert (Tab no cae detrás); al reducir se devuelve", async () => {
+  it("en pantalla completa quedan inert solo las ramas del fondo; el toast, la guía y el BugFAB siguen vivos", async () => {
+    // La estructura real: body > div.studio-sys > [shell, toast, BugFAB, guía], sin portal.
     render(
-      <div data-testid="shell">
-        <nav data-testid="menu">
-          <a href="/studio">Inicio</a>
-        </nav>
-        <main>
-          <header data-testid="cabecera">CRM</header>
-          <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />
-        </main>
-        <div data-testid="ya-inerte" inert />
+      <div className="studio-sys">
+        <div data-testid="shell" style={{ display: "flex" }}>
+          <div data-capa-fondo="" style={{ display: "contents" }}>
+            <nav data-testid="menu">
+              <a href="/studio">Inicio</a>
+            </nav>
+          </div>
+          <main>
+            <div data-capa-fondo="" style={{ display: "contents" }}>
+              <header data-testid="barra">Barra</header>
+            </div>
+            <div className="studio-content">
+              <div data-capa-fondo="" data-testid="cabecera">
+                CRM
+              </div>
+              <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />
+            </div>
+          </main>
+        </div>
+        <div role="region" aria-label="Notificaciones" data-testid="toast">
+          <button type="button">Ver</button>
+        </div>
+        <button type="button" data-testid="bugfab">Reportar</button>
+        <aside data-testid="guia">Guía</aside>
+        <div data-capa-fondo="" data-testid="ya-inerte" inert />
       </div>,
     );
+    const vivos = ["toast", "bugfab", "guia", "shell"];
+    const enFondo = ["menu", "barra", "cabecera"];
+    const inerte = (id: string) => screen.getByTestId(id).closest("[inert]") !== null;
     await waitFor(() => expect(modo()).toBe("completa"));
-    expect(screen.getByTestId("menu").hasAttribute("inert")).toBe(true);
-    expect(screen.getByTestId("cabecera").hasAttribute("inert")).toBe(true);
-    // La propia capa y sus ancestros no.
+    for (const id of enFondo) expect(inerte(id)).toBe(true);
+    for (const id of vivos) expect(inerte(id)).toBe(false);
+    // La propia capa nunca queda inert.
     expect(region()?.closest("[inert]")).toBeNull();
-    // Los portales (hijos de body) siguen vivos.
-    expect(screen.getByTestId("shell").hasAttribute("inert")).toBe(false);
 
     await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
-    expect(screen.getByTestId("menu").hasAttribute("inert")).toBe(false);
-    expect(screen.getByTestId("cabecera").hasAttribute("inert")).toBe(false);
+    for (const id of [...enFondo, ...vivos]) expect(inerte(id)).toBe(false);
     // Lo que ya estaba inert antes no se toca.
     expect(screen.getByTestId("ya-inerte").hasAttribute("inert")).toBe(true);
+  });
+
+  it("lo del admin debajo del panel es fondo: queda inert en pantalla completa", async () => {
+    render(
+      <BandejaClient
+        estado="listo"
+        panelUrl={PANEL}
+        inicioUrl={PANEL}
+        admin={{ descartados: [{ event_key: "message_created:1", event: "message_created", conversation_id: 7, attempts: 5, updated_at: "2026-11-18T03:00:00.000Z" }] }}
+      />,
+    );
+    await waitFor(() => expect(modo()).toBe("completa"));
+    expect(screen.getByText("Eventos que no se pudieron procesar").closest("[inert]")).not.toBeNull();
   });
 
   it("recuerda en el navegador que la persona la redujo", async () => {
@@ -435,6 +466,84 @@ describe("BandejaClient · recuperación (SDD-0677)", () => {
     expect(screen.queryByText(/frena los ingresos repetidos/)).toBeNull();
   });
 
+  it("una marca futura (reloj atrasado) cuenta para el freno", async () => {
+    const ahora = Date.now();
+    window.localStorage.setItem("dtd.bandeja.sso", JSON.stringify([ahora + 60_000, ahora + 30_000, ahora - 1000]));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).not.toHaveBeenCalled();
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+  });
+
+  it("con navigator.locks la reserva corre dentro del candado del freno", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    const nombres: string[] = [];
+    const request = vi.fn(async (nombre: string, fn: () => unknown) => {
+      nombres.push(nombre);
+      return fn();
+    });
+    vi.stubGlobal("navigator", { ...navigator, locks: { request } });
+    try {
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+      await drenar();
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(nombres).toEqual(["dtd.bandeja.sso"]);
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("si el candado falla, reserva igual sin exclusión", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    vi.stubGlobal("navigator", { ...navigator, locks: { request: vi.fn(async () => Promise.reject(new Error("sin locks"))) } });
+    try {
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+      await drenar();
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("con setItem roto y getItem sano el freno no queda en cero: manda la memoria", async () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("cuota");
+    });
+    try {
+      pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+      await drenar();
+      for (let i = 0; i < 4; i++) {
+        fireEvent.click(reabrirFranja());
+        await drenar();
+      }
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+      expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it("con getItem roto y setItem sano el freno tampoco queda en cero", async () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("bloqueado");
+    });
+    try {
+      pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+      await drenar();
+      for (let i = 0; i < 4; i++) {
+        fireEvent.click(reabrirFranja());
+        await drenar();
+      }
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
   it("sin almacenamiento el freno sigue valiendo en la página", async () => {
     const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("bloqueado");
@@ -462,12 +571,14 @@ describe("BandejaClient · recuperación (SDD-0677)", () => {
 });
 
 describe("marcasVigentes (SDD-0677)", () => {
-  it("cuenta lo de los últimos 5 min, sin futuras ni basura", async () => {
+  it("cuenta lo de los últimos 5 min y las futuras cercanas; descarta lo vencido, lo lejano y la basura", async () => {
     const { marcasVigentes, VENTANA_SSO_MS } = await import("../_components/BandejaClient");
     const ahora = 10_000_000;
-    expect(marcasVigentes([ahora - VENTANA_SSO_MS, ahora - VENTANA_SSO_MS + 1, ahora, ahora + 1, Number.NaN], ahora)).toEqual([
-      ahora - VENTANA_SSO_MS + 1,
-      ahora,
-    ]);
+    expect(
+      marcasVigentes(
+        [ahora - VENTANA_SSO_MS, ahora - VENTANA_SSO_MS + 1, ahora, ahora + 1, ahora + VENTANA_SSO_MS - 1, ahora + VENTANA_SSO_MS, Number.NaN],
+        ahora,
+      ),
+    ).toEqual([ahora - VENTANA_SSO_MS + 1, ahora, ahora + 1, ahora + VENTANA_SSO_MS - 1]);
   });
 });

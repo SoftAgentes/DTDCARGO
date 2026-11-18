@@ -30,14 +30,19 @@
  * - **Freno.** Como mucho 3 aperturas por SSO cada 5 minutos en este navegador,
  *   automáticas y manuales, también las que terminan en `service`. Las marcas
  *   (solo horas, sin datos) van en localStorage: sobreviven a recargar y se
- *   comparten entre pestañas; sin almacenamiento quedan en memoria de la página.
+ *   comparten entre pestañas. Si el almacenamiento falla al leer O al escribir,
+ *   la página pasa a usar solo la memoria. La reserva corre bajo
+ *   `navigator.locks` cuando existe: dos pestañas no pasan el tope a la vez; sin
+ *   locks, el límite es «3 por navegador, salvo carrera entre pestañas».
  *   rack-attack corta a 5 logins por IP cada 5 min y cada SSO suma una sesión
  *   (tope 5): Studio no debe empeorar ninguna de las dos (H1, H4).
  * - **Con `error` el iframe se desmonta**: no hay enlace válido que mostrar. Con
  *   `lento` y `freno` sigue montado por si termina de cargar.
  * - **El fondo queda `inert`** en pantalla completa: Tab no cae detrás de la capa.
- *   Solo los hermanos dentro del árbol de la app; los hijos directos de `body`
- *   (avisos, guía, drawers en portal) siguen vivos.
+ *   Solo las ramas marcadas con `data-capa-fondo` (el menú y la barra del shell,
+ *   la cabecera del CRM y lo del admin debajo del panel). Los avisos, la guía y
+ *   el BugFAB no están marcados y siguen vivos: cuelgan del shell como hermanos,
+ *   sin portal, así que «todo lo de al lado» los apagaría.
  */
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -93,30 +98,52 @@ type Fase =
 
 const esperar = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** Respaldo si el almacenamiento no está disponible: vale para esta página. */
-let marcasEnMemoria: number[] = [];
+/** Marca de las ramas del fondo que la pantalla completa vuelve `inert`. */
+export const ATRIBUTO_FONDO = "data-capa-fondo";
 
-/** Marcas dentro de la ventana que termina en `ahora`. */
+/**
+ * Respaldo cuando el almacenamiento falla (al leer o al escribir): desde ese
+ * momento la página usa solo esta memoria, para que el freno no quede en cero
+ * leyendo un localStorage que ya no se actualiza.
+ */
+let marcasEnMemoria: number[] = [];
+let almacenamientoRoto = false;
+
+/** Solo para pruebas: vuelve el freno en memoria a su estado inicial. */
+export function reiniciarFrenoEnMemoria() {
+  marcasEnMemoria = [];
+  almacenamientoRoto = false;
+}
+
+/**
+ * Marcas que cuentan en `ahora`: las de los últimos 5 min y también las futuras
+ * (un reloj que se atrasó no abre el freno). Una marca más allá de una ventana en
+ * el futuro es basura: si contara, cerraría el freno para siempre.
+ */
 export function marcasVigentes(marcas: readonly number[], ahora: number): number[] {
-  return marcas.filter((t0) => Number.isFinite(t0) && t0 <= ahora && ahora - t0 < VENTANA_SSO_MS);
+  return marcas.filter((t0) => Number.isFinite(t0) && Math.abs(ahora - t0) < VENTANA_SSO_MS);
 }
 
 function leerMarcas(): number[] {
+  if (almacenamientoRoto) return marcasEnMemoria;
   try {
     const crudo = window.localStorage.getItem(CLAVE_SSO);
     const valor: unknown = crudo ? JSON.parse(crudo) : [];
     return Array.isArray(valor) ? valor.filter((n): n is number => typeof n === "number") : [];
   } catch {
+    almacenamientoRoto = true;
     return marcasEnMemoria;
   }
 }
 
 function guardarMarcas(marcas: number[]) {
+  marcasEnMemoria = marcas;
+  if (almacenamientoRoto) return;
   try {
     window.localStorage.setItem(CLAVE_SSO, JSON.stringify(marcas));
   } catch {
-    // Queda en memoria: el freno sigue valiendo en esta página.
-    marcasEnMemoria = marcas;
+    // Desde ahora manda la memoria: el freno sigue valiendo en esta página.
+    almacenamientoRoto = true;
   }
 }
 
@@ -132,23 +159,35 @@ function reservarApertura(ahora: number): boolean {
 }
 
 /**
- * Pone `inert` a los hermanos de cada ancestro de `el`, hasta el hijo directo de
- * `body` (exclusive: ahí viven los portales). Devuelve cómo deshacerlo. Solo toca
- * los que no lo tenían. Sin soporte de `inert` el atributo no hace nada y la capa
- * sigue funcionando: es el respaldo seguro.
+ * La reserva entre pestañas: con `navigator.locks` leer y escribir las marcas es
+ * una sola operación para todo el navegador. Sin locks (o si fallan) se reserva
+ * igual, sin exclusión: el límite documentado es «salvo carrera entre pestañas».
  */
-function inertizarFondo(el: HTMLElement): () => void {
-  const tocados: Element[] = [];
-  let nodo: HTMLElement | null = el;
-  while (nodo && nodo.parentElement && nodo.parentElement !== document.body) {
-    for (const hermano of Array.from(nodo.parentElement.children)) {
-      if (hermano === nodo || hermano.hasAttribute("inert")) continue;
-      hermano.setAttribute("inert", "");
-      tocados.push(hermano);
+async function reservarAperturaExclusiva(): Promise<boolean> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  if (locks?.request) {
+    try {
+      return await locks.request(CLAVE_SSO, () => reservarApertura(Date.now()));
+    } catch {
+      // Sigue sin exclusión.
     }
-    nodo = nodo.parentElement;
   }
-  return () => tocados.forEach((h) => h.removeAttribute("inert"));
+  return reservarApertura(Date.now());
+}
+
+/**
+ * Pone `inert` a las ramas marcadas con `data-capa-fondo` que no contienen la capa.
+ * Solo toca las que no lo tenían y devuelve cómo deshacerlo. Sin soporte de
+ * `inert` el atributo no hace nada y la capa sigue funcionando: es el respaldo seguro.
+ */
+function inertizarFondo(capa: HTMLElement): () => void {
+  const tocados: Element[] = [];
+  for (const rama of Array.from(document.querySelectorAll(`[${ATRIBUTO_FONDO}]`))) {
+    if (rama.contains(capa) || rama.hasAttribute("inert")) continue;
+    rama.setAttribute("inert", "");
+    tocados.push(rama);
+  }
+  return () => tocados.forEach((r) => r.removeAttribute("inert"));
 }
 
 function leerAmpliada(): boolean {
@@ -192,7 +231,9 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   const pedirConReintentos = useCallback(async () => {
     const mia = ++corrida.current;
     // Cada apertura cuenta una vez para el freno, termine bien o en `service`.
-    if (!reservarApertura(Date.now())) {
+    const reservada = await reservarAperturaExclusiva();
+    if (mia !== corrida.current) return;
+    if (!reservada) {
       setFase({ tipo: "freno" });
       setHuboFallo(true);
       return;
@@ -496,9 +537,14 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
         panel
       )}
 
-      {admin?.portal ? <PortalChatwoot resumen={admin.portal} /> : null}
+      {admin?.portal ? (
+        <div data-capa-fondo="">
+          <PortalChatwoot resumen={admin.portal} />
+        </div>
+      ) : null}
       {admin?.descartados?.length ? (
         <section
+          data-capa-fondo=""
           aria-labelledby="bandeja-descartados"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "var(--s-6)", display: "flex", flexDirection: "column", gap: "var(--s-2)" }}
         >
