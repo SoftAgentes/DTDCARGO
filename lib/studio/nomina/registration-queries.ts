@@ -5,30 +5,43 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { EmployeeRegistration, RegistrationStatus } from "./registration-types";
+import {
+  toRegistrationListItem,
+  type EmployeeRegistration,
+  type RegistrationListItem,
+  type RegistrationStatus,
+} from "./registration-types";
 
+// La foto del candidato (columna de la 0180) no se lee: ningún código la escribe ni la
+// usa (SDD-0652 §2.1), y lo que no se usa no se pide.
 const REG_COLUMNS =
   "id, tenant_id, invite_id, full_name, national_id, birth_date, phone, email, " +
-  "cargo, start_date, bank_name, bank_account_type, bank_account, photo_path, " +
+  "cargo, start_date, bank_name, bank_account_type, bank_account, " +
   "status, reviewed_by, reviewed_at, employee_id, rejection_reason, created_at, updated_at";
 
-/** Solicitudes del tenant, pendientes primero y más recientes arriba. */
+/**
+ * Lo que la bandeja muestra (SDD-0652 fase 2, N2). La cédula y la cuenta
+ * bancaria **no se piden**: lo que no se lee no puede llegar al navegador.
+ */
+export const REG_LIST_COLUMNS = "id, full_name, email, status, created_at";
+
+/** Solicitudes del tenant, más recientes arriba. Proyección de lista: sin cédula ni cuenta. */
 export async function listRegistrations(
   supabase: SupabaseClient,
-): Promise<EmployeeRegistration[]> {
+): Promise<RegistrationListItem[]> {
   const { data, error } = await supabase
     .from("nomina_employee_registrations")
-    .select(REG_COLUMNS)
+    .select(REG_LIST_COLUMNS)
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("[listRegistrations]", error.message);
     return [];
   }
-  return (data ?? []) as unknown as EmployeeRegistration[];
+  return ((data ?? []) as unknown as RegistrationListItem[]).map(toRegistrationListItem);
 }
 
-/** Una solicitud por id (o null). */
+/** Una solicitud por id (o null). Fila completa: **solo servidor** (aprobar, armar la revisión). */
 export async function getRegistration(
   supabase: SupabaseClient,
   id: string,

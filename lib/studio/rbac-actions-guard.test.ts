@@ -254,14 +254,16 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
   // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
   // borradores del agente.
-  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (83 → 84, con prefijo 24 → 25): unir y quitar un chat
+  // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (83 → 84, exactos
+  // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
   // de la ficha.
-  it("la superficie escaneada es la esperada (84 archivos, no sólo los `actions.ts`)", () => {
+  it("la superficie escaneada es la esperada (85 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 84,
-      exactos: 59,
+      total: 85,
+      exactos: 60,
       conPrefijo: 25,
     });
   });
@@ -401,12 +403,25 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0626 (0558) sumó `admin/oficina/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
   // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
   // pasa a `office_revisar_borrador_v2`.
-  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (479 → 481):
+  // SDD-0652 fase 2 sumó seis (479 → 485):
+  //  · `nomina/actions.ts::getRegistrationReviewAction`: solo lee. `moduleViewDenial`
+  //    al tope, después `getFichaEmpleadoAccess`; devuelve los datos de una
+  //    solicitud PENDIENTE del tenant de la membresía, con la cuenta enmascarada.
+  //  · `nomina/empleados/[codigo]/actions.ts::linkEmployeeUserAction`,
+  //    `::unlinkEmployeeUserAction`, `::uploadEmployeePhotoAction`,
+  //    `::removeEmployeePhotoAction` y `::revealBankAccountAction`:
+  //    `moduleEditDenial(supabase, "nomina")` al tope, después
+  //    `getFichaEmpleadoAccess` (enlazar y quitar el enlace, solo admin), y la
+  //    escritura va SOLO por las RPC de la migración 0555, que repiten en la base
+  //    el rol, la membresía única y el tenant y dejan el evento en la misma
+  //    transacción. La subida al bucket privado va después de leer la ficha en
+  //    el tenant de la membresía.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (485 → 487):
   // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
   // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
   // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(481);
+    expect(reportes.length).toBe(487);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

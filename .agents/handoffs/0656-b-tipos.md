@@ -30,7 +30,7 @@ Con jsdom 30 fallaron 27 pruebas que dependen de internos de jsdom:
 - `app/m/erp/_components/MobileErpClient.fechas-caracas.test.tsx` (18) y `lib/portal/__tests__/payment-report-ui.test.tsx` (8). Sus fixtures llenan el FileList nativo leyendo el símbolo interno `impl`. En jsdom 30, `Object.getOwnPropertySymbols` de un FileList o un File da `[]`, y tampoco existe `DataTransfer`. La guarda del fixture salta, como está diseñada.
 - `app/studio/(app)/_components/comments/CommentsThread.test.tsx` (1): `toHaveStyle` ya no ve `flex: 1 1 12rem` ni `minWidth: 0`, por el motor de CSS nuevo de jsdom.
 
-Decisión del DG: jsdom queda en 29 dentro de la B. La 30 pasa a una tarea aparte, junto con la reescritura de los dos fixtures, sin debilitar pruebas. Cuando la #635 esté en main, hay que anotarlo en la spec como pendiente de la oleada C.
+Decisión del DG: jsdom queda en 29 dentro de la B. La 30 pasa a una tarea aparte, junto con la reescritura de los dos fixtures, sin debilitar pruebas. Ya está anotado en la spec como pendiente de la oleada C (PR de seguimiento, rama `claude/0656-seguimiento-docs`).
 
 ## Validación
 
@@ -43,6 +43,8 @@ Windows, Node 24.22.1 local, pnpm 11.28.12.
 | `typecheck` | PASÓ, después del arreglo de Tesorería |
 | `lint` | PASÓ: 0 errores, 32 advertencias, las mismas que antes |
 | Conteo de pruebas | 19.365 activas en main y en la B. La B suma 32 omitidas; tiene 1.211 archivos activos y 4 omitidos |
+
+**Las 32 omitidas no son nuevas.** Main ya las tenía: la corrida completa de la A2 dio «2 failed | 18802 passed | 32 skipped». No aparecen en la fila de main porque `vitest list` no cuenta las pruebas omitidas.
 
 Primera corrida completa, con jsdom 30: 19.335 pasaron y 30 fallaron.
 - 27 son de jsdom 30.
