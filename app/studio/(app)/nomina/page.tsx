@@ -17,7 +17,7 @@ import {
   listContractors,
   listContractorPayments,
 } from "@/lib/studio/nomina/contractor-queries";
-import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
+import { getVigentePayrollRulesConEstado } from "@/lib/studio/nomina/payroll-rules-queries";
 import {
   listAttendance,
   listHolidays,
@@ -63,7 +63,7 @@ export default async function NominaPage({
     positions,
     contractors,
     payments,
-    rules,
+    reglasEstado,
     attendance,
     holidays,
     warnings,
@@ -77,7 +77,7 @@ export default async function NominaPage({
     listPositions(supabase),
     listContractors(supabase),
     listContractorPayments(supabase),
-    getVigentePayrollRules(supabase),
+    getVigentePayrollRulesConEstado(supabase),
     listAttendance(supabase),
     listHolidays(supabase),
     listWarnings(supabase),
@@ -87,6 +87,10 @@ export default async function NominaPage({
     listRegistrations(supabase),
     listAllComms(supabase),
   ]);
+
+  // SDD-0653 A2b: las reglas y si la base ya tiene la migración 0556 (campos nuevos del formulario).
+  const rules = reglasEstado.rules;
+  const reglasAmpliada = reglasEstado.ampliada;
 
   // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
   const loans = await listLoansWithBalance(supabase, employees);
@@ -154,6 +158,7 @@ export default async function NominaPage({
         contractors={contractors}
         payments={payments}
         rules={rules}
+        reglasAmpliada={reglasAmpliada}
         attendance={attendance}
         holidays={holidays}
         loans={loans}
