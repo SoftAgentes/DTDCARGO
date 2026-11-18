@@ -476,7 +476,7 @@ begin
     if not found and tg_op<>'DELETE' and v_id is not distinct from v_new then perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
   end loop;
   if tg_op = 'UPDATE' and new.markbox is distinct from old.markbox
-     and (to_jsonb(new)-array['markbox','updated_at']) = (to_jsonb(old)-array['markbox','updated_at'])
+     and (to_jsonb(new)-array['markbox','client_name','updated_at']) = (to_jsonb(old)-array['markbox','client_name','updated_at'])
      and exists(select 1 from dtd_client_normal.receipts r where r.receipt_id=old.receipt_id)
      and dtd_client_normal.rename_follows(old.tenant_id,
        coalesce((select g.client_id from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id
@@ -729,7 +729,7 @@ begin
   if exists(select 1 from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id
     join public.shipment_rate_snapshots s on s.receipt_id=m.receipt_id and s.superseded_at is null
     where m.receipt_id=v_receipt and (s.shipment_id is distinct from g.shipment_id or s.tenant_id is distinct from m.tenant_id
-      or s.cohort_client_id is distinct from g.client_id or s.service is distinct from g.service or s.destination is distinct from g.destination
+      or s.client_id is distinct from g.client_id or s.service is distinct from g.service or s.destination is distinct from g.destination
       or s.cbm is distinct from m.cbm or s.weight_kg is distinct from m.weight_kg)) then
     perform dtd_client_normal.fail('NORMAL_INCOMPATIBLE');
   end if;
@@ -747,7 +747,7 @@ begin
   select * into strict v_group from dtd_client_normal.groups where id=p_group;
   if exists(select 1 from dtd_client_normal.members m join public.shipment_rate_snapshots s
     on s.receipt_id=m.receipt_id and s.superseded_at is null where m.group_id=p_group
-    and (s.tenant_id is distinct from m.tenant_id or s.cohort_client_id is distinct from v_group.client_id
+    and (s.tenant_id is distinct from m.tenant_id or s.client_id is distinct from v_group.client_id
       or s.shipment_id is distinct from v_group.shipment_id or s.service is distinct from v_group.service
       or s.destination is distinct from v_group.destination or s.cbm is distinct from m.cbm
       or s.weight_kg is distinct from m.weight_kg or s.amount_to_invoice is null or s.amount_to_invoice < 0)) then

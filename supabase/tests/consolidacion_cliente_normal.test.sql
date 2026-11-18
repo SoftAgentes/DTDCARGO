@@ -385,7 +385,7 @@ begin
   select to_jsonb(m) into v_old_member from dtd_client_normal.members m where group_id=v_group.id;
   select jsonb_agg(to_jsonb(b) order by b.box_id) into v_old_boxes from dtd_client_normal.member_boxes b where receipt_id=(select id from sdd0578_fixture.state where label='r1');
   perform sdd0578_fixture.check(v_first->>'operation'='form' and v_first->>'containerRevision'='1','one durable confirmed intention/revision1');
-  perform sdd0578_fixture.check((select client_id=sdd0578_fixture.id('client-A') and code='S-2026-0001' and status='consolidating'
+  perform sdd0578_fixture.check((select cohort_client_id=sdd0578_fixture.id('client-A') and code='S-2026-0001' and status='consolidating'
     and volume_m3=1 and weight_kg=100 from public.shipments where id=v_ship),'client identity/manual code/fixed source measures');
   perform sdd0578_fixture.check((select shipment_id=v_ship from public.shipment_rate_snapshots where id=v_snapshot),'0496 binds NULL to shipment once');
   perform sdd0578_fixture.check((select count(*)=1 from public.expense_alerts where shipment_id=v_ship),'one alert, no costing');

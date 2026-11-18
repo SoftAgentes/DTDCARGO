@@ -243,29 +243,24 @@ describe("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral connection"
   }, 300_000);
   it("kills a guard that forgets the 0552 rename on the cohort shipment", async () => {
     const source = readFileSync(migrationFile, "utf8");
-    const anchor = "    v_allowed:=v_allowed||array['client_markbox'];
-";
+    const anchor = "    v_allowed:=v_allowed||array['client_markbox'];\n";
     expect(source.split(anchor)).toHaveLength(2);
     const result = await executeRealContract(source.replace(anchor, ""));
     expect(result.completed).toBe(false); expect(result.error).toContain("NORMAL_GOVERNED");
   }, 300_000);
   it("kills a rename that leaves member box fixed data behind", async () => {
     const source = readFileSync(migrationFile, "utf8");
-    const anchor = "    update dtd_client_normal.member_boxes set fixed_data=jsonb_set(fixed_data,'{markbox}',to_jsonb(new.markbox))
-" +
-      "      where box_id=old.id and fixed_data->>'markbox' is not distinct from old.markbox;
-";
+    const anchor = "    update dtd_client_normal.member_boxes set fixed_data=jsonb_set(fixed_data,'{markbox}',to_jsonb(new.markbox))\n" +
+      "      where box_id=old.id and fixed_data->>'markbox' is not distinct from old.markbox;\n";
     expect(source.split(anchor)).toHaveLength(2);
     const result = await executeRealContract(source.replace(anchor, ""));
     expect(result.completed).toBe(false); expect(result.error).toContain("rename refreshes member box fixed data");
   }, 300_000);
   it("kills a module check that ignores per-person grants (0538/0539)", async () => {
     const source = readFileSync(migrationFile, "utf8");
-    const anchor = "      or exists(select 1 from public.studio_user_module_grants g where g.tenant_id = p_tenant
-";
+    const anchor = "      or exists(select 1 from public.studio_user_module_grants g where g.tenant_id = p_tenant\n";
     expect(source.split(anchor)).toHaveLength(2);
-    const result = await executeRealContract(source.replace(anchor, "      or false and exists(select 1 from public.studio_user_module_grants g where g.tenant_id = p_tenant
-"));
+    const result = await executeRealContract(source.replace(anchor, "      or false and exists(select 1 from public.studio_user_module_grants g where g.tenant_id = p_tenant\n"));
     expect(result.completed).toBe(false); expect(result.error).toContain("view grant adds view, not edit");
   }, 300_000);
   it("kills the material0321 collision mutant instead of losing the second group AUD", async () => {
@@ -278,7 +273,7 @@ describe("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral connection"
   }, 300_000);
   it("kills a Portal projection that drops both group and shipment client identity", async () => {
     const source = readFileSync(migrationFile, "utf8");
-    const anchor = "and g.client_id=v_principal.client_id and s.client_id=v_principal.client_id";
+    const anchor = "and g.client_id=v_principal.client_id and s.cohort_client_id=v_principal.client_id";
     // portal_read and portal_events are independently scoped, with one exact
     // predicate each. The policy helper has a distinct expression and remains.
     expect(source.split(anchor)).toHaveLength(3);
