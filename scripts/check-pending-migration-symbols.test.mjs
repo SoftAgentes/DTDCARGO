@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   analyzeRepositoryData,
   applyRelationColumns,
@@ -8,6 +11,7 @@ import {
   extractImportSpecifiers,
   findPendingOnlySymbols,
   findReachableModules,
+  parseExposedSchemaSource,
   parseExposedSchemas,
   readExposedSchemas,
   relationColumnsAfter,
@@ -688,6 +692,30 @@ describe("esquemas que PostgREST no expone (SDD-0578)", () => {
     expect(names(result.red)).toEqual(["privado.fail", "privado.groups", "privado.members.client_id", "widgets_nuevos"]);
   });
 
+  it("una columna privada no se descuenta como homónima aunque el módulo nombre otra dueña del nombre", () => {
+    // Identificador entre comillas con mayúsculas: los tokens del módulo van en
+    // minúsculas y la asociación por relación no ve «Members». Sin la regla del
+    // esquema no expuesto, el uso real se descontaría por `client_users`.
+    const result = analyzeRepositoryData({
+      migrations: [
+        { name: "0500_aplicada", sql: 'create schema privado; create table privado."Members"(id uuid); create table public.client_users(id uuid, client_id uuid);' },
+        { name: "0561_pendiente", sql: 'alter table privado."Members" add column client_id uuid;' },
+      ],
+      pendingMigrationNames: ["0561_pendiente"],
+      sourceFiles: {
+        "app/page.tsx": `import { load } from "@/lib/queries";`,
+        "lib/queries.ts": [
+          `const a = db.from("client_users").select("client_id");`,
+          `const b = sql('select client_id from privado."Members"');`,
+        ].join("\n"),
+      },
+      declarations: EMPTY_DECLARATIONS,
+      exposedSchemas: PUBLIC_ONLY,
+    });
+    expect(names(result.red)).toEqual(["privado.Members.client_id"]);
+    expect(result.red[0].reachableReferences.map((reference) => reference.site)).toEqual(["lib/queries.ts:2"]);
+  });
+
   it("un esquema expuesto por config se mide por nombre suelto", () => {
     const result = run(sourceFiles, new Set(["public", "privado"]));
     expect(names(result.red)).toContain("privado.groups");
@@ -695,14 +723,25 @@ describe("esquemas que PostgREST no expone (SDD-0578)", () => {
 });
 
 describe("parseExposedSchemas / readExposedSchemas", () => {
-  it("lee el default del compose, el valor del .env y descarta comentarios y variables sin valor", () => {
-    expect([...parseExposedSchemas([
+  it("lee el default del compose, el valor del .env, la lista de compose y descarta comentarios", () => {
+    const parsed = parseExposedSchemaSource([
       "      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,graphql_public}",
       "# PGRST_DB_SCHEMAS=secreto",
       "PGRST_DB_SCHEMAS=public, extra",
+      "      - PGRST_DB_SCHEMAS=lista",
       "PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}",
+    ].join("\n"));
+    expect([...parsed.schemas].sort()).toEqual(["extra", "graphql_public", "lista", "public"]);
+    expect(parsed.unreadable).toEqual([]);
+    expect([...parseExposedSchemas("PGRST_DB_SCHEMAS=public")]).toEqual(["public"]);
+  });
+
+  it("una mención que no sabe leer queda como ilegible, no como silencio", () => {
+    expect(parseExposedSchemaSource([
       "PGRST_DB_SCHEMAS=${OTRA}",
-    ].join("\n"))].sort()).toEqual(["extra", "graphql_public", "public"]);
+      "      PGRST_DB_SCHEMAS -> public",
+      "export PGRST_DB_SCHEMAS=public",
+    ].join("\n")).unreadable).toEqual(["PGRST_DB_SCHEMAS=${OTRA}", "PGRST_DB_SCHEMAS -> public", "export PGRST_DB_SCHEMAS=public"]);
   });
 
   it("la config versionada del repo expone public y graphql_public", () => {
@@ -711,5 +750,26 @@ describe("parseExposedSchemas / readExposedSchemas", () => {
 
   it("sin config conocida devuelve null (todos expuestos)", () => {
     expect(readExposedSchemas("/no/existe")).toBeNull();
+  });
+
+  const conCompose = (lineas) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "gate-esquemas-"));
+    fs.mkdirSync(path.join(root, "infra", "dtd-cargo"), { recursive: true });
+    fs.writeFileSync(path.join(root, "infra", "dtd-cargo", "compose.supabase.yml"), lineas.join("\n"));
+    return root;
+  };
+
+  it("public siempre está, aunque la config sólo nombre otro esquema", () => {
+    const root = conCompose(["    environment:", "      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-graphql_public}"]);
+    try {
+      expect([...readExposedSchemas(root)].sort()).toEqual(["graphql_public", "public"]);
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("una línea ilegible en cualquier fuente hace fallar cerrado (todos expuestos)", () => {
+    const root = conCompose(["      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public}", "      PGRST_DB_SCHEMAS=${DESDE_OTRO_LADO}"]);
+    try {
+      expect(readExposedSchemas(root)).toBeNull();
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 });

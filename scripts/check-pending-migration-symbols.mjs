@@ -23,7 +23,8 @@
  * PostgREST propio (`readExposedSchemas`): el default de `PGRST_DB_SCHEMAS` en
  * `infra/dtd-cargo/compose.supabase.yml` y su valor en
  * `infra/dtd-cargo/.env.example`, unidos (si discrepan, gana el más amplio) y
- * siempre con `public`. Si no se encuentra ninguna, se tratan TODOS los
+ * siempre con `public`. Si no se encuentra ninguna, o si alguna nombra la
+ * variable en una línea que el lector no entiende, se tratan TODOS los
  * esquemas como expuestos: falla cerrado, igual que antes de esta regla.
  *
  * Uso: node scripts/check-pending-migration-symbols.mjs
@@ -1009,35 +1010,50 @@ export function loadRepositoryData(root = process.cwd()) {
 export const EXPOSED_SCHEMA_SOURCES = ["infra/dtd-cargo/compose.supabase.yml", "infra/dtd-cargo/.env.example"];
 
 /**
- * Esquemas que nombra `PGRST_DB_SCHEMAS` en un texto de compose o de .env:
- * `PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-a,b}`, `PGRST_DB_SCHEMAS: a,b` o
- * `PGRST_DB_SCHEMAS=a,b`. Una variable sin default no aporta nada.
+ * Lee `PGRST_DB_SCHEMAS` de un texto de compose o de .env. Formas que entiende:
+ * `PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-a,b}` (el default), `PGRST_DB_SCHEMAS: a,b`,
+ * `PGRST_DB_SCHEMAS=a,b` y la lista de compose `- PGRST_DB_SCHEMAS=a,b`.
+ * `${PGRST_DB_SCHEMAS}` sin default no aporta (el valor viene del .env).
+ * Toda otra línea que nombre la variable fuera de un comentario es ilegible:
+ * va a `unreadable` y `readExposedSchemas` falla cerrado.
  */
-export function parseExposedSchemas(text) {
-  const found = new Set();
+export function parseExposedSchemaSource(text) {
+  const schemas = new Set();
+  const unreadable = [];
   for (const line of text.split(/\r?\n/)) {
-    if (/^\s*#/.test(line)) continue;
-    const match = line.match(/^\s*PGRST_DB_SCHEMAS\s*[:=]\s*["']?(.*?)["']?\s*$/);
-    if (!match) continue;
+    if (/^\s*#/.test(line) || !line.includes("PGRST_DB_SCHEMAS")) continue;
+    const match = line.match(/^\s*(?:-\s*)?["']?PGRST_DB_SCHEMAS["']?\s*[:=]\s*["']?([^"'#]*?)["']?\s*(?:#.*)?$/);
+    if (!match) { unreadable.push(line.trim()); continue; }
     let value = match[1];
     const expansion = value.match(/^\$\{PGRST_DB_SCHEMAS(?::?-([^}]*))?\}$/);
     if (expansion) value = expansion[1] ?? "";
-    if (value.includes("$")) continue;
+    if (value.includes("$") || !/^[A-Za-z0-9_",\s]*$/.test(value)) { unreadable.push(line.trim()); continue; }
     for (const schema of value.split(",")) {
       const name = normalizeIdentifier(schema.trim());
-      if (name) found.add(name);
+      if (name) schemas.add(name);
     }
   }
-  return found;
+  return { schemas, unreadable };
 }
 
-/** Unión de las fuentes, con `public`; null si ninguna fija la lista. */
+/** Sólo los esquemas legibles de un texto (ver `parseExposedSchemaSource`). */
+export function parseExposedSchemas(text) {
+  return parseExposedSchemaSource(text).schemas;
+}
+
+/**
+ * Unión de las fuentes, con `public`. null (todo esquema expuesto: falla
+ * cerrado) si ninguna fija la lista o si alguna nombra la variable en una
+ * línea que no se pudo leer.
+ */
 export function readExposedSchemas(root = process.cwd()) {
   const found = new Set();
   for (const file of EXPOSED_SCHEMA_SOURCES) {
     const absolute = path.join(root, file);
     if (!fs.existsSync(absolute)) continue;
-    for (const schema of parseExposedSchemas(fs.readFileSync(absolute, "utf8"))) found.add(schema);
+    const { schemas, unreadable } = parseExposedSchemaSource(fs.readFileSync(absolute, "utf8"));
+    if (unreadable.length > 0) return null;
+    for (const schema of schemas) found.add(schema);
   }
   if (found.size === 0) return null;
   found.add("public");

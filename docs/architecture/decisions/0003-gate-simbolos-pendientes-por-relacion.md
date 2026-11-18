@@ -140,11 +140,26 @@ y su valor en `infra/dtd-cargo/.env.example`, unidos y siempre con `public`
 (hoy: `public`, `graphql_public`). Si ninguna fuente fija la lista, todos los
 esquemas cuentan como expuestos: el gate falla cerrado, como antes.
 
+Una línea que nombra `PGRST_DB_SCHEMAS` fuera de un comentario y que el
+lector no entiende (otra variable en el valor, `export …`, una forma nueva)
+hace fallar cerrado: todos los esquemas cuentan como expuestos. El lector
+entiende `CLAVE: valor`, `CLAVE=valor`, la lista de compose `- CLAVE=valor` y
+el default `${PGRST_DB_SCHEMAS:-…}`; `${PGRST_DB_SCHEMAS}` sin default no aporta
+porque el valor sale del `.env`.
+
 **Límites.** La config de producción vive fuera del repo: si alguien expusiera
 otro esquema sólo en el `.env` real, el gate no lo sabría. Por eso la lista se
 lee del default versionado y del ejemplo, y exponer un esquema nuevo exige
 cambiarlos en el repo. `.schema("x")` de supabase-js contra un esquema no
 expuesto lo rechaza el propio PostgREST.
+
+El gate mide código de la app contra símbolos, no SQL contra SQL. Un wrapper
+de `public` ya aplicado que llama a una función privada pendiente no aparece:
+la app nombra el wrapper, que no es pendiente, y la llamada a
+`privado.funcion()` vive en el cuerpo SQL del wrapper, no en el código. Antes
+de esta enmienda pasaba lo mismo; la regla no lo empeora, pero tampoco lo
+cubre. Quien escriba un wrapper así debe declarar la dependencia en la
+migración pendiente (preflight que exija el wrapper) o en la revisión.
 
 **Rollback.** Revertir el commit que agrega `readExposedSchemas` y
 `referencePattern`; sin `exposedSchemas`, `analyzeRepositoryData` mide como
