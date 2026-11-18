@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 644 specs)
+### Índice de specs (generado · 645 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -681,7 +681,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0657 | Enlaces internos e indexación del sitio público | in-progress | interno |
 | 0658 | Nómina: el finiquito lee y conserva los ajustes de liquidació… | in-progress | interno |
 | 0659 | Tracking en vivo por contenedor: mesa de control con mapa cen… | in-progress | interno |
+| 0660 | Estándar de fechas del Studio: campo con máscara, calendario … | in-progress | interno |
 | 0661 | Embarques por contenedor: franja de totales y detalle por cli… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0660 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

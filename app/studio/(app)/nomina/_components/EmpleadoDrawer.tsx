@@ -34,6 +34,7 @@ import {
 } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "empleado-form";
 const initial: NominaActionState = {};
@@ -229,20 +230,10 @@ export function EmpleadoDrawer({
 
           <Row>
             <Field label="Fecha de ingreso" error={state.fieldErrors?.hire_date}>
-              <input
-                name="hire_date"
-                type="date"
-                className="studio-input"
-                defaultValue={employee?.hire_date ?? ""}
-              />
+              <DateField name="hire_date" defaultValue={employee?.hire_date ?? ""} />
             </Field>
             <Field label="Fecha de nacimiento" error={state.fieldErrors?.birth_date}>
-              <input
-                name="birth_date"
-                type="date"
-                className="studio-input"
-                defaultValue={employee?.birth_date ?? ""}
-              />
+              <DateField name="birth_date" defaultValue={employee?.birth_date ?? ""} />
             </Field>
           </Row>
 

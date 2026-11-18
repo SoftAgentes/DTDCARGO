@@ -56,6 +56,7 @@ import {
   type DocumentRow,
   type DocumentVersionRow,
 } from "@/lib/studio/documents/types";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const initial: DocActionState = {};
 
@@ -381,12 +382,7 @@ export function DocsPanel({
             <label className="studio-label" htmlFor={`doc_valid_${entityId}`}>
               Vence (opcional)
             </label>
-            <input
-              id={`doc_valid_${entityId}`}
-              name="valid_until"
-              type="date"
-              className="studio-input"
-            />
+            <DateField id={`doc_valid_${entityId}`} name="valid_until" />
           </div>
         </div>
 

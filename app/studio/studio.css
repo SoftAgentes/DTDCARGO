@@ -2394,3 +2394,88 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   [data-theme="dark"] .crm-logo-dtd-claro { display: block; }
   [data-theme="dark"] .crm-logo-dtd-oscuro { display: none; }
 }
+
+/* ── Campo de fecha <DateField> (SDD-0660) ────────────────────────────────
+   El formato `dd/mm/aaaa` se pinta en gris DETRÁS del texto, con la misma
+   letra monoespaciada: lo escrito tapa su parte y el resto queda a la vista.
+   La caja lleva el fondo porque el campo es transparente. */
+.studio-date-field__box {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--r-md);
+}
+.studio-date-field__box[data-disabled] {
+  background: var(--studio-paper-2);
+}
+.studio-date-field__ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  /* 12 px de padding del campo + 1 px de su borde. */
+  padding: 0 13px;
+  font: 500 14px/1.2 var(--f-mono);
+  letter-spacing: 0.02em;
+  white-space: pre;
+  color: var(--studio-text-soft);
+  pointer-events: none;
+  overflow: hidden;
+}
+.studio-input.studio-date-field__input {
+  position: relative;
+  background: transparent;
+  font: 500 14px/1.2 var(--f-mono);
+  letter-spacing: 0.02em;
+  padding-right: 40px;
+}
+.studio-input.studio-date-field__input:disabled {
+  background: transparent;
+}
+[data-density="compact"] .studio-date-field__ghost,
+[data-density="compact"] .studio-input.studio-date-field__input {
+  font-size: 13.5px;
+}
+.studio-date-field__trigger {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.studio-date-field__trigger:hover:not(:disabled) {
+  background: var(--wine-tint);
+  color: var(--ink);
+}
+.studio-date-field__trigger:disabled {
+  cursor: not-allowed;
+}
+.studio-date-field__error {
+  margin-top: 4px;
+  font: 500 12px/1.3 var(--f-sans);
+  color: var(--danger-text);
+}
+.studio-date-field__btn:hover {
+  border-color: var(--ink-soft);
+}
+.studio-date-field__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.studio-date-field__btn:focus-visible,
+.studio-date-field__cell:focus-visible,
+.studio-date-field__trigger:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 1px;
+}
+.studio-date-field__cell:hover:not([aria-disabled="true"]):not([aria-pressed]) {
+  background: var(--wine-tint);
+}
