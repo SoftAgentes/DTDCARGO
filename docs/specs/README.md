@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 653 specs)
+### Índice de specs (generado · 654 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -690,7 +690,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
 | 0671 | CRM: tarjetas sin botón Abrir y Bandeja visible para la oficina | proposed | interno |
 | 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
+| 0673 | Partir un embarque en dos, corregir sus medidas y anotar la r… | in-progress | interno |
 | 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666, 0668, 0670, 0673, 0674, 0675, 0676 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666, 0668, 0670, 0674, 0675, 0676 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
