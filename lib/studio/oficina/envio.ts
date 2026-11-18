@@ -8,7 +8,7 @@
  *   bandeja de prueba. Chatwoot 4.19.1 no tiene tokens con alcance: el token tiene los permisos de su usuario,
  *   así que «limitado a la bandeja» = el usuario solo está en esa bandeja. Además, este código solo escribe en
  *   la conversación que Sam aprobó, y antes comprueba por GET que es de la cuenta y de la bandeja permitidas.
- * - La cuenta (`CHATWOOT_ACCOUNT_ID`) y la bandeja (`OFICINA_CHATWOOT_INBOX_PRUEBA`) son las del webhook. La
+ * - La cuenta (`OFICINA_CHATWOOT_ACCOUNT_ID`, nunca la del ERP) y la bandeja (`OFICINA_CHATWOOT_INBOX_PRUEBA`) son las del webhook. La
  *   bandeja nunca puede ser una del ERP (portal, clientes, leads): un solo contestador por bandeja (§3.5).
  *
  * Por cada revisión aprobada (`office_envios_por_hacer`):
