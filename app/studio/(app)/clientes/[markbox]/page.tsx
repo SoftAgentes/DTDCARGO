@@ -348,8 +348,10 @@ export default async function ClienteDetallePage({
   const asesor = client.advisor_id ? advisors.find((a) => a.userId === client.advisor_id) ?? null : null;
   const totalAdjuntos = todosLosAdjuntos !== null ? todosLosAdjuntos.total : null;
 
-  // SDD-0669: el servidor arma SOLO las pestañas de este rol; la URL elige entre
-  // ellas (`pestanaDeLaFicha`), nunca abre otra.
+  // SDD-0669: las cuatro pestañas existen para todo el que abre la ficha; dentro
+  // de cada una, cada tarjeta conserva su condición de antes. La URL solo elige
+  // entre las pestañas que llegan a `FichaPestanas` (`pestanaDeLaFicha`).
+  // Con Bandeja, las conversaciones van en su columna, fuera de las pestañas.
   const conPanel = Boolean(conversacionesChatwoot && tenantLink?.tenant_id);
 
   const encabezado = (

@@ -112,6 +112,22 @@ export function DocsPanel({
   const [opening, startOpen] = useTransition();
   const [historyFor, setHistoryFor] = useState<DocumentRow | null>(null);
   const [formularioAbierto, setFormularioAbierto] = useState(!formularioPlegado);
+  // SDD-0669: al abrir, el foco va al primer campo; al cancelar, vuelve al
+  // botón «Subir documento» (no cae al body). Solo tras un clic, no al montar.
+  const botonSubirRef = useRef<HTMLButtonElement>(null);
+  const focoPendiente = useRef<"abrir" | "cerrar" | null>(null);
+  useEffect(() => {
+    if (focoPendiente.current === "abrir") {
+      document.getElementById(`doc_folder_${entityId}`)?.focus();
+    } else if (focoPendiente.current === "cerrar") {
+      botonSubirRef.current?.focus();
+    }
+    focoPendiente.current = null;
+  }, [formularioAbierto, entityId]);
+  function plegar(abrir: boolean) {
+    focoPendiente.current = abrir ? "abrir" : "cerrar";
+    setFormularioAbierto(abrir);
+  }
 
   // Limpiar el form tras una subida exitosa (evita re-subir el mismo archivo).
   useEffect(() => {
@@ -325,9 +341,9 @@ export function DocsPanel({
           <button
             type="button"
             className="studio-btn studio-btn-primary studio-btn-sm"
+            ref={botonSubirRef}
             aria-expanded={false}
-            aria-controls={`doc_form_${entityId}`}
-            onClick={() => setFormularioAbierto(true)}
+            onClick={() => plegar(true)}
           >
             {Icon.upload(13)} Subir documento
           </button>
@@ -486,7 +502,7 @@ export function DocsPanel({
               className="studio-btn studio-btn-ghost studio-btn-sm"
               style={{ marginLeft: "var(--s-2)" }}
               disabled={isPending}
-              onClick={() => setFormularioAbierto(false)}
+              onClick={() => plegar(false)}
             >
               Cancelar
             </button>

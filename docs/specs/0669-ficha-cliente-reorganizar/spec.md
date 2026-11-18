@@ -93,7 +93,7 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 ## 4. Permisos y privacidad (invariantes)
 
 1. **Reorganizar no muestra a un rol nada que hoy no ve.** Cada tarjeta conserva su condición actual: el saldo (`puedeVerSaldoCliente`), el estado de cuenta (`puedeVerEstadoDeCuenta`), la facturación (RLS de la 0466), la identidad (`showIdentityCard`), las conversaciones (Bandeja y su flag), el texto del chat (`readCanSeeClientNames`, 0531) y la edición (`canEditModule(..., "clients")`).
-2. **Una pestaña sin nada que mostrar no aparece.** Ningún contador cuenta algo que el rol no puede abrir.
+2. **Las cuatro pestañas tienen contenido para todo el que abre la ficha** (Configuración siempre lleva portal, asesor y direcciones), así que se arman las cuatro. Los contadores son los de envíos y adjuntos que la ficha ya mostraba. Si un día una pestaña quedara vacía para un rol, no se arma, y la URL no la puede abrir (`pestanaDeLaFicha`).
 3. **El asesor en la franja** es el mismo nombre que hoy enseña `AdvisorAssignCard` a quien abre la ficha; no se lee nada más.
 4. **La nota en Avisos** es la misma nota que hoy se ve en «Datos del cliente».
 5. Las pruebas comparan, por rol, que el conjunto de tarjetas pintadas es el mismo antes y después.
@@ -107,7 +107,7 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 
 | Archivo | Cambio |
 |---|---|
-| `app/studio/(app)/clientes/[markbox]/page.tsx` | Arma la franja, los avisos, las pestañas y la columna; lee `searchParams.pestana` |
+| `app/studio/(app)/clientes/[markbox]/page.tsx` | Arma la franja, los avisos, las cuatro pestañas y la columna. No lee `?pestana=`: lo lee `FichaPestanas` en el cliente con `useSearchParams` |
 | `app/studio/(app)/clientes/_components/FichaPestanas.tsx` (nuevo) | Pestañas del lado del cliente: estado en la URL, teclado, `hidden` |
 | `app/studio/(app)/clientes/_components/NotaDeLaFicha.tsx` (nuevo) | La nota como franja plana (`Aviso`), plegable |
 | `app/studio/(app)/clientes/_components/ClientDetailClient.tsx` | Prop `encabezado`: identidad y acciones forman la franja fija |
