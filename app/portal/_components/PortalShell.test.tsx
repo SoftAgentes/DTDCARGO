@@ -70,7 +70,7 @@ describe("PortalShell", () => {
     render(<PortalShell {...base} vista="pro">contenido</PortalShell>);
     const grupo = screen.getByRole("group", { name: "Vista del portal" });
     expect(grupo).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /pro/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Vista Pro" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("el layout solo lee la vista con el interruptor encendido y no toca el principal", () => {

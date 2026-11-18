@@ -509,6 +509,25 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 
 ---
 
+### EXC-0654-01 · Vino claro en la Vista simple del portal
+- **Fecha:** 2026-11-17
+- **Tipo:** Excepción L3 (VIS-01 §7), acotada y con fecha de revisión
+- **Estado:** Aprobada por Sam. Se aplica en la fase 2 de SDD-0654, con el interruptor `PORTAL_VISTA_SIMPLE` apagado hasta que Sam lo encienda.
+- **Autorizado por:** Sam (founder). Pedido literal: «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino claro ya probado». Aprobación en el chat del Director General, a la pregunta «¿Apruebas las decisiones recomendadas de nómina (#631) y de la Vista simple (#633)?»: «Sí, ambas» (D-16).
+- **Objetivo:** que la acción principal no se confunda con un error en la vista para clientes nuevos.
+- **Regla que rompe:** `BRAND.md` §Light theme (`--wine-soft` «solo sobre fondo oscuro») y VIS-01 §3 (el vino es la acción primaria).
+- **Superficie:** solo la Vista simple del portal (`.vs`). La Vista Pro, el Studio y la web pública no cambian.
+- **Usos:** botón principal, avatar y parte «proveedor» del código. No selección, no texto, no error.
+- **Tokens:** relleno `--color-wine-soft` (claro) y `--color-wine-text` (noche); texto `--on-warning` (#0F1E3D) en los dos temas. Tintes declarados, sin colores nuevos: `--tint-ink`, `--tint-wine`, `--tint-ok`, `--tint-warn` (mezclas `color-mix` de tokens existentes), en el bloque `.vs` de `app/globals.css`.
+- **Contraste:** 4,79:1 en claro y 7,13:1 en noche (AC-17), medido por `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
+- **Alternativa que respeta la regla:** dejar el botón principal en vino (#7F0F1A) con texto blanco, como la Vista Pro.
+- **Duración:** hasta la prueba con clientes (D-12). Si funciona, Sam decide si pasa a regla o se extiende.
+- **Fecha de revisión:** 90 días después de encender la Vista simple, o al cerrar la prueba con clientes, lo que ocurra primero.
+- **Dueño:** Sam (aprueba); Director General (custodia del registro).
+- **Regla viva en:** `BRAND.md` §Excepción · Vino claro en la Vista simple · `app/globals.css` (bloque `.vs`) · SDD-0654 §6.3.
+
+---
+
 ## Índice rápido
 
 | ID | Decisión | Tipo | Estado |
@@ -551,6 +570,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
 | BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada. Adoptada en producción el 2026-11-15 (SDD-0603); quedan siete pantallas que dependen de la PR #318 |
 | BD-070 | Sombra de borde fijo `--shadow-sticky-top` / `--shadow-sticky-left` | Normativo (adición) | Vigente — matriz «Roles y permisos» (SDD-0635) |
+| EXC-0654-01 | Vino claro en la Vista simple del portal (botón principal, avatar y parte «proveedor» del código) | Excepción L3 con fecha de revisión | Aprobada — se revisa a los 90 días de encender la Vista simple o al cerrar la prueba con clientes |
 
 ---
 
