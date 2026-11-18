@@ -26,8 +26,18 @@
  *   gastaría otro login o reusaría un enlace de un solo uso ya consumido).
  * - **Recuperación.** El enlace se reintenta solo ante `service` (pedirlo no gasta
  *   un login: el login lo hace el navegador al cargarlo). Un vigilante avisa si
- *   el marco no carga. Tres «Abrir de nuevo» en 5 minutos frenan: rack-attack
- *   corta a 5 logins por IP cada 5 min y cada SSO suma una sesión (tope 5).
+ *   el marco no carga.
+ * - **Freno.** Como mucho 3 aperturas por SSO cada 5 minutos en este navegador,
+ *   automáticas y manuales, también las que terminan en `service`. Las marcas
+ *   (solo horas, sin datos) van en localStorage: sobreviven a recargar y se
+ *   comparten entre pestañas; sin almacenamiento quedan en memoria de la página.
+ *   rack-attack corta a 5 logins por IP cada 5 min y cada SSO suma una sesión
+ *   (tope 5): Studio no debe empeorar ninguna de las dos (H1, H4).
+ * - **Con `error` el iframe se desmonta**: no hay enlace válido que mostrar. Con
+ *   `lento` y `freno` sigue montado por si termina de cargar.
+ * - **El fondo queda `inert`** en pantalla completa: Tab no cae detrás de la capa.
+ *   Solo los hermanos dentro del árbol de la app; los hijos directos de `body`
+ *   (avisos, guía, drawers en portal) siguen vivos.
  */
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -50,9 +60,11 @@ export const INTENTOS_ENLACE = 3;
 export const ESPERAS_REINTENTO_MS = [1500, 4000] as const;
 /** Si el marco no termina de cargar en este tiempo, se ofrece abrirlo de nuevo. */
 export const VIGILANTE_CARGA_MS = 20_000;
-/** «Abrir de nuevo» manuales permitidos por ventana antes del freno. */
-export const REAPERTURAS_MAX = 2;
-export const VENTANA_REAPERTURAS_MS = 5 * 60_000;
+/** Aperturas por SSO permitidas por ventana y navegador (automáticas y manuales). */
+export const SSO_MAX = 3;
+export const VENTANA_SSO_MS = 5 * 60_000;
+/** Marcas del freno: horas (ms) de las últimas aperturas por SSO. Sin datos de nadie. */
+export const CLAVE_SSO = "dtd.bandeja.sso";
 /** Preferencia de este navegador: "0" = reducida. Sin valor, pantalla completa. */
 export const CLAVE_AMPLIADA = "dtd.bandeja.ampliada";
 
@@ -81,6 +93,64 @@ type Fase =
 
 const esperar = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** Respaldo si el almacenamiento no está disponible: vale para esta página. */
+let marcasEnMemoria: number[] = [];
+
+/** Marcas dentro de la ventana que termina en `ahora`. */
+export function marcasVigentes(marcas: readonly number[], ahora: number): number[] {
+  return marcas.filter((t0) => Number.isFinite(t0) && t0 <= ahora && ahora - t0 < VENTANA_SSO_MS);
+}
+
+function leerMarcas(): number[] {
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_SSO);
+    const valor: unknown = crudo ? JSON.parse(crudo) : [];
+    return Array.isArray(valor) ? valor.filter((n): n is number => typeof n === "number") : [];
+  } catch {
+    return marcasEnMemoria;
+  }
+}
+
+function guardarMarcas(marcas: number[]) {
+  try {
+    window.localStorage.setItem(CLAVE_SSO, JSON.stringify(marcas));
+  } catch {
+    // Queda en memoria: el freno sigue valiendo en esta página.
+    marcasEnMemoria = marcas;
+  }
+}
+
+/** Reserva una apertura si cabe en la ventana; si no, `false` y no se pide SSO. */
+function reservarApertura(ahora: number): boolean {
+  const vigentes = marcasVigentes(leerMarcas(), ahora);
+  if (vigentes.length >= SSO_MAX) {
+    guardarMarcas(vigentes);
+    return false;
+  }
+  guardarMarcas([...vigentes, ahora]);
+  return true;
+}
+
+/**
+ * Pone `inert` a los hermanos de cada ancestro de `el`, hasta el hijo directo de
+ * `body` (exclusive: ahí viven los portales). Devuelve cómo deshacerlo. Solo toca
+ * los que no lo tenían. Sin soporte de `inert` el atributo no hace nada y la capa
+ * sigue funcionando: es el respaldo seguro.
+ */
+function inertizarFondo(el: HTMLElement): () => void {
+  const tocados: Element[] = [];
+  let nodo: HTMLElement | null = el;
+  while (nodo && nodo.parentElement && nodo.parentElement !== document.body) {
+    for (const hermano of Array.from(nodo.parentElement.children)) {
+      if (hermano === nodo || hermano.hasAttribute("inert")) continue;
+      hermano.setAttribute("inert", "");
+      tocados.push(hermano);
+    }
+    nodo = nodo.parentElement;
+  }
+  return () => tocados.forEach((h) => h.removeAttribute("inert"));
+}
+
 function leerAmpliada(): boolean {
   try {
     return window.localStorage.getItem(CLAVE_AMPLIADA) !== "0";
@@ -101,10 +171,13 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   const t = useT();
   const [src, setSrc] = useState<string | null>(inicioUrl);
   const [fase, setFase] = useState<Fase>(inicioUrl ? { tipo: "abriendo" } : { tipo: "pidiendo", intento: 1 });
-  const [ampliada, setAmpliada] = useState(true);
+  /** `null` hasta leer la preferencia: así el servidor y la hidratación coinciden y no hay destello. */
+  const [ampliada, setAmpliada] = useState<boolean | null>(null);
+  /** La ayuda de «Abrir de nuevo» aparece solo después de un fallo (o de reabrir a mano). */
+  const [huboFallo, setHuboFallo] = useState(false);
   const pidioAlMontar = useRef(false);
   const reconcilio = useRef(false);
-  const reaperturas = useRef<number[]>([]);
+  const seccionRef = useRef<HTMLElement | null>(null);
   /** Cada pedido lleva un número; el que llega tarde (otro pedido o desmontado) no pisa el estado. */
   const corrida = useRef(0);
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
@@ -118,6 +191,12 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
 
   const pedirConReintentos = useCallback(async () => {
     const mia = ++corrida.current;
+    // Cada apertura cuenta una vez para el freno, termine bien o en `service`.
+    if (!reservarApertura(Date.now())) {
+      setFase({ tipo: "freno" });
+      setHuboFallo(true);
+      return;
+    }
     for (let intento = 1; intento <= INTENTOS_ENLACE; intento++) {
       setFase({ tipo: "pidiendo", intento });
       const r = await pedirEnlaceSso(conversacion ?? undefined);
@@ -130,6 +209,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
       // Solo `service` es pasajero; denied/unlinked/unconfigured no cambian por reintentar.
       if (r.error !== "service" || intento === INTENTOS_ENLACE) {
         setFase({ tipo: "error", codigo: r.error });
+        setHuboFallo(true);
         return;
       }
       // Durante la espera ya se anuncia el próximo intento.
@@ -139,15 +219,9 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
     }
   }, [conversacion]);
 
-  /** «Abrir de nuevo»: un SSO nuevo, con el freno de los ingresos repetidos. */
+  /** «Abrir de nuevo»: un SSO nuevo; el freno lo aplica `pedirConReintentos`. */
   const abrirDeNuevo = useCallback(async () => {
-    const ahora = Date.now();
-    reaperturas.current = reaperturas.current.filter((t0) => ahora - t0 < VENTANA_REAPERTURAS_MS);
-    if (reaperturas.current.length >= REAPERTURAS_MAX) {
-      setFase({ tipo: "freno" });
-      return;
-    }
-    reaperturas.current.push(ahora);
+    setHuboFallo(true);
     await pedirConReintentos();
   }, [pedirConReintentos]);
 
@@ -175,7 +249,10 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   useEffect(() => {
     // Vigilante: el `onLoad` no llegó a tiempo. El marco sigue montado por si termina.
     if (fase.tipo !== "abriendo") return;
-    const id = setTimeout(() => setFase((f) => (f.tipo === "abriendo" ? { tipo: "lento" } : f)), VIGILANTE_CARGA_MS);
+    const id = setTimeout(() => {
+      setFase((f) => (f.tipo === "abriendo" ? { tipo: "lento" } : f));
+      setHuboFallo(true);
+    }, VIGILANTE_CARGA_MS);
     return () => clearTimeout(id);
   }, [fase.tipo, src]);
 
@@ -187,7 +264,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   }, []);
 
   const listo = estado === "listo";
-  const enPantallaCompleta = listo && ampliada;
+  const enPantallaCompleta = listo && ampliada === true;
 
   const cambiarModo = useCallback((valor: boolean) => {
     moverFoco.current = true;
@@ -213,9 +290,11 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
     const previo = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeyDown);
+    const deshacerInert = seccionRef.current ? inertizarFondo(seccionRef.current) : () => undefined;
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previo;
+      deshacerInert();
     };
   }, [enPantallaCompleta, cambiarModo]);
 
@@ -260,10 +339,14 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
 
   const panel = listo ? (
     <section
+      ref={seccionRef}
       aria-labelledby="bandeja-titulo"
-      data-modo={enPantallaCompleta ? "completa" : "compacta"}
+      data-modo={ampliada === null ? "pendiente" : enPantallaCompleta ? "completa" : "compacta"}
       style={
-        enPantallaCompleta
+        ampliada === null
+          ? // Sin decidir todavía: el marco ya carga, pero no se pinta en un modo para saltar al otro.
+            { display: "flex", flexDirection: "column", gap: "var(--s-2)", visibility: "hidden" }
+          : enPantallaCompleta
           ? {
               position: "fixed",
               inset: 0,
@@ -296,9 +379,13 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
         >
           {t("bandeja.page.title")}
         </h2>
-        <p style={{ flex: "1 1 220px", margin: 0, font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-          {t("bandeja.help.reopen")}
-        </p>
+        {huboFallo && !aviso ? (
+          <p style={{ flex: "1 1 220px", margin: 0, font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+            {t("bandeja.help.reopen")}
+          </p>
+        ) : (
+          <span style={{ flex: "1 1 auto" }} />
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
           {agentes}
           {reabrir("ghost")}
@@ -372,7 +459,9 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
             src={src}
             title={t("bandeja.frame.title")}
             allow="microphone"
-            onLoad={() => setFase((f) => (f.tipo === "abriendo" || f.tipo === "lento" ? { tipo: "abierto" } : f))}
+            onLoad={() =>
+              setFase((f) => (f.tipo === "abriendo" || f.tipo === "lento" || f.tipo === "freno" ? { tipo: "abierto" } : f))
+            }
             style={
               enPantallaCompleta
                 ? { display: "block", width: "100%", height: "100%", border: 0, background: "var(--bg-surface)" }

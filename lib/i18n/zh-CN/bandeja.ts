@@ -23,11 +23,11 @@ export const bandeja: BandejaDict = {
   "bandeja.action.expand": "全屏",
   "bandeja.action.collapse": "缩小",
   "bandeja.action.collapse_hint": "Esc",
-  "bandeja.help.reopen": "看到 Chatwoot 登录页或错误？请点击「重新打开」。",
+  "bandeja.help.reopen": "看到 Chatwoot 登录页或错误？请点击一次「重新打开」。如果再次出现，请告知系统团队。",
   "bandeja.state.retrying": "正在连接收件箱…（第 {n} 次，共 {total} 次）",
   "bandeja.recover.title": "收件箱没有打开",
-  "bandeja.recover.service": "消息服务器在 {total} 次尝试后仍未响应，可能正在重启：请稍后重新打开。",
-  "bandeja.recover.slow": "收件箱打开得比平时慢，消息服务器可能正在重启。",
+  "bandeja.recover.service": "消息服务器在 {total} 次尝试后仍未响应。请稍后重新打开。",
+  "bandeja.recover.slow": "收件箱加载得比平时慢。",
   "bandeja.recover.throttle": "Chatwoot 会限制频繁登录。请等几分钟，或在新标签页中打开。",
 
   // ── 绑定（仅管理员）──────────────────────────────────────

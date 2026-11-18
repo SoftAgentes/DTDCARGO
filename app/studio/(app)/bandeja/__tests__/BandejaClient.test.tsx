@@ -51,6 +51,7 @@ describe("BandejaClient (SDD-0585)", () => {
   it("«Abrir de nuevo» pide un enlace nuevo aunque ya haya panel", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await waitFor(() => expect(document.querySelector("section[data-modo='completa']")).not.toBeNull());
     await userEvent.click(screen.getByRole("button", { name: "Abrir de nuevo" }));
     await waitFor(() => expect(marco()?.getAttribute("src")).toBe(SSO));
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
@@ -60,6 +61,8 @@ describe("BandejaClient (SDD-0585)", () => {
     pedirEnlaceSso.mockResolvedValueOnce({ ok: false, error: "denied" }).mockResolvedValueOnce({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
     expect(await screen.findByText("La bandeja no abrió")).toBeTruthy();
+    // Los roles se consultan cuando la capa ya eligió su modo (antes está oculta).
+    await waitFor(() => expect(document.querySelector("section[data-modo='pendiente']")).toBeNull());
     expect(screen.getByText("No tienes permiso para hacer esto.")).toBeTruthy();
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
     expect(marco()).toBeNull();
@@ -136,18 +139,39 @@ describe("BandejaClient (SDD-0585)", () => {
   });
 });
 
+const region = () => document.querySelector("section[aria-labelledby='bandeja-titulo']") as HTMLElement | null;
+const modo = () => region()?.dataset.modo;
+const AYUDA = /Oprime «Abrir de nuevo» una vez/;
+/** El de la franja; con aviso hay un segundo, el principal, al final. */
+const reabrirFranja = () => screen.getAllByRole("button", { name: "Abrir de nuevo" })[0] as HTMLButtonElement;
+const reabrirAviso = () => {
+  const b = screen.getAllByRole("button", { name: "Abrir de nuevo" });
+  return b[b.length - 1] as HTMLButtonElement;
+};
+/** Deja que corran las promesas y los temporizadores de 0 ms con relojes falsos. */
+const drenar = (ms = 0) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+
 describe("BandejaClient · pantalla completa (SDD-0677)", () => {
-  const region = () => document.querySelector("section[aria-labelledby='bandeja-titulo']") as HTMLElement | null;
+  it("antes de leer la preferencia no pinta ningún modo (sin destello en la hidratación)", () => {
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    expect(modo()).toBe("pendiente");
+    expect(region()?.style.visibility).toBe("hidden");
+    // El marco ya está montado y cargando.
+    expect(marco()?.getAttribute("src")).toBe(PANEL);
+  });
 
   it("lista, abre a pantalla completa; Reducir y Esc vuelven a la vista compacta sin volver a montar el marco", async () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await waitFor(() => expect(modo()).toBe("completa"));
     const antes = marco();
-    expect(region()?.dataset.modo).toBe("completa");
     expect(region()?.style.position).toBe("fixed");
     expect(document.body.style.overflow).toBe("hidden");
 
     await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
-    expect(region()?.dataset.modo).toBe("compacta");
+    expect(modo()).toBe("compacta");
     expect(document.body.style.overflow).toBe("");
     // Mismo elemento y mismo src: no hay recarga ni login nuevo.
     expect(marco()).toBe(antes);
@@ -157,33 +181,71 @@ describe("BandejaClient · pantalla completa (SDD-0677)", () => {
     expect(document.activeElement).toBe(ampliar);
 
     await userEvent.click(ampliar);
-    expect(region()?.dataset.modo).toBe("completa");
+    expect(modo()).toBe("completa");
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Bandeja" }));
     expect(marco()).toBe(antes);
 
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(region()?.dataset.modo).toBe("compacta");
+    expect(modo()).toBe("compacta");
     expect(marco()).toBe(antes);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Pantalla completa" }));
     expect(pedirEnlaceSso).not.toHaveBeenCalled();
   });
 
-  it("Esc no reduce si hay un diálogo de Studio abierto encima", () => {
-    render(
+  it("Esc reduce solo con Escape, y no si hay un diálogo de Studio abierto encima", async () => {
+    const vista = (conDialogo: boolean) => (
       <>
         <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />
-        <div role="dialog" aria-modal="true" />
-      </>,
+        {conDialogo ? <div role="dialog" aria-modal="true" /> : null}
+      </>
     );
+    const { rerender } = render(vista(true));
+    await waitFor(() => expect(modo()).toBe("completa"));
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(region()?.dataset.modo).toBe("completa");
+    expect(modo()).toBe("completa");
+    rerender(vista(false));
+    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(document, { key: "a" });
+    expect(modo()).toBe("completa");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(modo()).toBe("compacta");
+  });
+
+  it("en pantalla completa el fondo queda inert (Tab no cae detrás); al reducir se devuelve", async () => {
+    render(
+      <div data-testid="shell">
+        <nav data-testid="menu">
+          <a href="/studio">Inicio</a>
+        </nav>
+        <main>
+          <header data-testid="cabecera">CRM</header>
+          <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />
+        </main>
+        <div data-testid="ya-inerte" inert />
+      </div>,
+    );
+    await waitFor(() => expect(modo()).toBe("completa"));
+    expect(screen.getByTestId("menu").hasAttribute("inert")).toBe(true);
+    expect(screen.getByTestId("cabecera").hasAttribute("inert")).toBe(true);
+    // La propia capa y sus ancestros no.
+    expect(region()?.closest("[inert]")).toBeNull();
+    // Los portales (hijos de body) siguen vivos.
+    expect(screen.getByTestId("shell").hasAttribute("inert")).toBe(false);
+
+    await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
+    expect(screen.getByTestId("menu").hasAttribute("inert")).toBe(false);
+    expect(screen.getByTestId("cabecera").hasAttribute("inert")).toBe(false);
+    // Lo que ya estaba inert antes no se toca.
+    expect(screen.getByTestId("ya-inerte").hasAttribute("inert")).toBe(true);
   });
 
   it("recuerda en el navegador que la persona la redujo", async () => {
     const { unmount } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await waitFor(() => expect(modo()).toBe("completa"));
     await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
     unmount();
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await waitFor(() => expect(region()?.dataset.modo).toBe("compacta"));
+    await waitFor(() => expect(modo()).toBe("compacta"));
   });
 
   it("sin vínculo no hay capa a pantalla completa", () => {
@@ -194,84 +256,218 @@ describe("BandejaClient · pantalla completa (SDD-0677)", () => {
 });
 
 describe("BandejaClient · recuperación (SDD-0677)", () => {
-  it("con `service` reintenta el enlace dos veces y abre sin mostrar el error", async () => {
-    vi.useFakeTimers();
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  });
+
+  it("con `service` reintenta el enlace dos veces y abre sin mostrar el error ni la ayuda", async () => {
     pedirEnlaceSso
       .mockResolvedValueOnce({ ok: false, error: "service" })
       .mockResolvedValueOnce({ ok: false, error: "service" })
       .mockResolvedValueOnce({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
-    await act(async () => {});
+    await drenar();
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Conectando con la bandeja… (intento 2 de 3)")).toBeTruthy();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1500);
-    });
+    await drenar(1500);
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(4000);
-    });
+    await drenar(4000);
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
     expect(marco()?.getAttribute("src")).toBe(SSO);
     expect(screen.queryByText("La bandeja no abrió")).toBeNull();
+    expect(screen.queryByText(AYUDA)).toBeNull();
   });
 
-  it("con `service` tres veces muestra el aviso claro, no el error crudo", async () => {
-    vi.useFakeTimers();
+  it("con `service` tres veces muestra el aviso claro, sin decir que Chatwoot se reinicia", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: false, error: "service" });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(6000);
-    });
+    await drenar(6000);
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
     expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
     expect(screen.getByText(/no respondió después de 3 intentos/)).toBeTruthy();
+    expect(screen.queryByText(/reinici/)).toBeNull();
+    // Con error el marco se desmonta: no hay enlace válido.
+    expect(marco()).toBeNull();
+  });
+
+  it("con `error` el marco se desmonta aunque antes hubiera panel", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: false, error: "denied" });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await drenar();
+    expect(marco()?.getAttribute("src")).toBe(PANEL);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(screen.getByText("No tienes permiso para hacer esto.")).toBeTruthy();
     expect(marco()).toBeNull();
   });
 
   it("si el marco no carga en 20 s, ofrece abrirlo de nuevo y eso pide un SSO nuevo", async () => {
-    vi.useFakeTimers();
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(19_000);
-    });
+    await drenar(19_000);
     expect(screen.queryByText("La bandeja no abrió")).toBeNull();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
-    });
+    await drenar(1_000);
     expect(screen.getByText(/tardando más de lo normal/)).toBeTruthy();
     // El marco sigue montado por si termina de cargar.
     expect(marco()?.getAttribute("src")).toBe(PANEL);
-    vi.useRealTimers();
-    const botones = screen.getAllByRole("button", { name: "Abrir de nuevo" });
-    await userEvent.click(botones[botones.length - 1]);
-    await waitFor(() => expect(marco()?.getAttribute("src")).toBe(SSO));
+    fireEvent.click(reabrirAviso());
+    await drenar();
+    expect(marco()?.getAttribute("src")).toBe(SSO);
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
   });
 
-  it("si el marco carga a tiempo no hay aviso", async () => {
-    vi.useFakeTimers();
+  it("si el marco carga a tiempo no hay aviso ni ayuda", async () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
     fireEvent.load(marco()!);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(25_000);
-    });
+    await drenar(25_000);
     expect(screen.queryByText("La bandeja no abrió")).toBeNull();
+    expect(screen.queryByText(AYUDA)).toBeNull();
   });
 
-  it("el tercer «Abrir de nuevo» en 5 minutos no pide SSO y explica el freno", async () => {
+  it("la ayuda aparece solo después de un fallo, y no junto al aviso", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    const boton = () => screen.getAllByRole("button", { name: "Abrir de nuevo" })[0] as HTMLButtonElement;
-    await userEvent.click(boton());
-    await waitFor(() => expect(pedirEnlaceSso).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(boton().disabled).toBe(false));
-    await userEvent.click(boton());
-    await waitFor(() => expect(pedirEnlaceSso).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(boton().disabled).toBe(false));
-    await userEvent.click(boton());
-    expect(await screen.findByText(/frena los ingresos repetidos/)).toBeTruthy();
+    await drenar();
+    expect(screen.queryByText(AYUDA)).toBeNull();
+    await drenar(20_000);
+    // Con el aviso de «lento» a la vista, la ayuda no se repite.
+    expect(screen.getByText(/tardando más de lo normal/)).toBeTruthy();
+    expect(screen.queryByText(AYUDA)).toBeNull();
+    fireEvent.load(marco()!);
+    await drenar();
+    expect(screen.queryByText("La bandeja no abrió")).toBeNull();
+    expect(screen.getByText(AYUDA)).toBeTruthy();
+  });
+
+  it("tope de 3 aperturas cada 5 min: la cuarta no pide SSO y explica el freno", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await drenar();
+    for (let i = 1; i <= 3; i++) {
+      fireEvent.click(reabrirFranja());
+      await drenar();
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(i);
+    }
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+  });
+
+  it("el freno sobrevive al remonte y cuenta la apertura automática", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    // Una apertura automática (sin marca de SSO) y la página se recarga.
+    const { unmount } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    unmount();
+    // Con 1 marca guardada, al remontar quedan 2.
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+  });
+
+  it("al remontar con el tope lleno, la apertura automática tampoco pide SSO", async () => {
+    const ahora = Date.now();
+    window.localStorage.setItem("dtd.bandeja.sso", JSON.stringify([ahora - 3000, ahora - 2000, ahora - 1000]));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).not.toHaveBeenCalled();
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Abrir en pestaña aparte" }).length).toBeGreaterThan(0);
+  });
+
+  it("una apertura que termina en `service` cuenta para el freno (una vez, no por reintento)", async () => {
+    pedirEnlaceSso.mockResolvedValueOnce({ ok: false, error: "service" }).mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(1500);
+    // Dos llamadas (un reintento) pero una sola marca.
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(1);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(4);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(4);
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+  });
+
+  it("la ventana de 5 min expira: pasado el plazo se puede abrir otra vez", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await drenar();
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(reabrirFranja());
+      await drenar();
+    }
+    // Un milisegundo antes de que venza la primera marca, sigue frenado.
+    await drenar(5 * 60_000 - 1);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    await drenar(1);
+    fireEvent.click(reabrirFranja());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(4);
+  });
+
+  it("si el marco carga estando en freno, el aviso se va", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await drenar();
+    for (let i = 0; i < 4; i++) {
+      fireEvent.click(reabrirFranja());
+      await drenar();
+    }
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+    fireEvent.load(marco()!);
+    await drenar();
+    expect(screen.queryByText(/frena los ingresos repetidos/)).toBeNull();
+  });
+
+  it("sin almacenamiento el freno sigue valiendo en la página", async () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("bloqueado");
+    });
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("bloqueado");
+    });
+    try {
+      pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+      await drenar();
+      // Sin preferencia legible abre a pantalla completa.
+      expect(modo()).toBe("completa");
+      for (let i = 0; i < 4; i++) {
+        fireEvent.click(reabrirFranja());
+        await drenar();
+      }
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+      expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+  });
+});
+
+describe("marcasVigentes (SDD-0677)", () => {
+  it("cuenta lo de los últimos 5 min, sin futuras ni basura", async () => {
+    const { marcasVigentes, VENTANA_SSO_MS } = await import("../_components/BandejaClient");
+    const ahora = 10_000_000;
+    expect(marcasVigentes([ahora - VENTANA_SSO_MS, ahora - VENTANA_SSO_MS + 1, ahora, ahora + 1, Number.NaN], ahora)).toEqual([
+      ahora - VENTANA_SSO_MS + 1,
+      ahora,
+    ]);
   });
 });
