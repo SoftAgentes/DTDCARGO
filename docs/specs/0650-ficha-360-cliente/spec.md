@@ -4,7 +4,7 @@ title: "Ficha 360° del cliente en el Studio"
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-17
 supersedes: null
 superseded_by: null
 related: ["0246", "0258", "0483", "0504", "0507", "0558", "0585", "0590", "0635", "0647", "0648", "0649", "0651"]
@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0650 — Ficha 360° del cliente en el Studio
 
 > Quien abre la ficha de un cliente en `app/studio/(app)/clientes/[markbox]` ve ahí mismo quién es, cuánto debe, qué tiene en camino y qué escribió por última vez, con enlaces para profundizar.
-> Una sola SDD con cinco fases (F1 a F5). **Esta PR implementa solo la F1.** F2 a F5 quedan especificadas y las asigna el Director General.
+> Una sola SDD con cinco fases (F1 a F5). La F1 está en `main` (PR #629). **La F2 va en su propia PR** (§5 F2, §6, §10 y §11). F3 a F5 quedan especificadas y las asigna el Director General.
 > La **F5 absorbe la reserva 0483** («El Studio muestra el historial de cambios que hizo el cliente»): la 0483 queda reemplazada por la 0650 §F5.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 
@@ -90,6 +90,21 @@ Comparación de códigos exacta, igual que antes. Normalizar mayúsculas y espac
 - **Puertas, cada una con OK nominal de Sam:** aplicar la 0554; el relleno en el VPS; crear la cuenta de servicio y agregar miembros al Archivo Kommo (D3). La F2 no hace ninguna por su cuenta.
 - **Medir antes de construir:** cuánto tarda `/contacts/{id}/conversations` en el entorno de prueba de la 0590. Si pasa de 400 ms, el panel carga aparte.
 
+#### Decisiones tomadas en la F2 (Worker, 2026-11-17; revisables por el DG y Sam)
+
+| ID | Decisión | Por qué |
+|---|---|---|
+| F2-1 | El panel carga **siempre** aparte (`<Suspense>`), sin esperar la medida | Cumple la regla de los 400 ms en los dos casos. La medida queda en el smoke M de `ficha-conversaciones.poc.test.ts` (Chatwoot 4.19.1 efímero en CI), no en el entorno de la 0590: leer ahí es una puerta |
+| F2-2 | Un contacto es de **una** ficha por tenant (llave `tenant_id, chatwoot_contact_id`); una ficha puede tener varios contactos | Un chat en dos fichas muestra conversaciones de una persona en la ficha de otra. Mover un chat exige quitarlo primero |
+| F2-3 | Ni el webhook ni el relleno pisan una unión existente; «Unir este chat» no mueve un chat unido a otra ficha | Una unión manual (auditada) no la deshace un cruce automático |
+| F2-4 | «Quitar la unión», auditada | Una unión equivocada expone conversaciones ajenas: tiene que poder deshacerse sin una migración |
+| F2-5 | Unir y quitar piden **editar** la Bandeja (Admin y Comercial); Soporte solo ve | Soporte es de solo lectura en el Studio (`user_has_module` de la 0538) |
+| F2-6 | D3 tal cual lo dijo Sam: las conversaciones del Archivo Kommo se **ven** con su texto (Admin, Comercial y Soporte); el enlace **Abrir** solo lo reciben Admin y Contabilidad. Un rol sin Bandeja no recibe nada: ni texto ni enlace | «todos van a ver en esa sección. Pero si quieren abrir el chat completo, solamente […] admin y administración» |
+| F2-7 | Contabilidad entra por un **acceso extra por persona a la Bandeja** (SDD-0622/0635), no por cambiar el default del rol. La F2 no le da la Bandeja a nadie | No abre la Bandeja a todo el rol. **Necesita a Sam:** si prefiere una vista solo del Archivo, es otra pieza |
+| F2-8 | Una nota interna se nombra («Nota interna») sin su texto | No es del cliente |
+| F2-9 | La F2 apagada (sin 0554, sin `CHATWOOT_FICHA_TOKEN` o sin `CHATWOOT_INBOX_ARCHIVO_KOMMO_ID`) o una ficha sin uniones muestran la tarjeta de la F1 | Nada cambia hasta abrir las puertas. Las conversaciones que cruzó el teléfono antes de la 0554 no tienen contacto en `chatwoot_conversations`: entran al panel cuando el webhook las une en su siguiente mensaje |
+| F2-10 | La ficha lee las uniones de **su** `client_id`; las de una ficha fusionada en ella no | Mover uniones al fusionar es de la SDD-0651 (fusión v2) |
+
 ### F3 — Barra de dinero en USD (D6)
 
 - Cinco cifras: **cotizado vigente** (`quotes.total_usd` sin vencer), **por facturar** (regla de Sam en §3: recibos en bodega China y embarques consolidados sin factura), **abierto** y **vencido** (`client_outstanding`, 0492), y **cobrado en 30 días** (`payment_receipts`). Todo con los códigos de la ficha (F1).
@@ -109,11 +124,12 @@ Una línea de tiempo con los cambios del perfil hechos desde el portal (lo que p
 
 | Dato | Finalidad | Dónde vive | Quién lo ve | Estado |
 |---|---|---|---|---|
-| Texto del último mensaje (160 caracteres) | Atender sin salir de la ficha | Solo en memoria y en la página | Roles con Bandeja (D2) | NO VERIFICABLE hasta la F2 |
-| Nombre del contacto en Chatwoot | Identificar fichas sin nombre | Igual, sin guardar | Igual | NO VERIFICABLE hasta la F2 |
-| Unión chat ↔ ficha | Encontrar los chats de la ficha | Supabase propio, con RLS | Roles con Bandeja | Diseño en §F2 |
+| Texto del último mensaje (160 caracteres) | Atender sin salir de la ficha | Solo en memoria del servidor y en la página; ni tabla, ni caché, ni log | Roles con Bandeja (D2); no sale para región `cn` no admin (SDD-0531) | CORRECTO: corte en `lib/studio/chatwoot/ficha-conversaciones.ts:19` y `:92` (nota interna sin texto); por región en `ficha-conversaciones.ts:147`; rol antes del token en `lib/studio/chatwoot/ficha-panel.ts:88` y `:90`; sin caché en `lib/studio/chatwoot/router-api.ts:64`; los logs solo llevan el código en `ficha-panel.ts:68` y `:107`. La 0554 no tiene columna de texto (`supabase/migrations/0554_chatwoot_contact_links.sql:80`, contrato 1c) |
+| Nombre del contacto en Chatwoot («Nombre en el chat») | Identificar fichas sin nombre (D5) | Igual, sin guardar; nunca un teléfono o correo (`nombreVisibleDe`) | Igual, y solo si la ficha no tiene nombre | CORRECTO: `ficha-conversaciones.ts:159`; la región se lee en `app/studio/(app)/clientes/[markbox]/page.tsx:318`. Unir un chat usa solo el id del contacto: `app/studio/(app)/clientes/conversaciones-actions.ts:73` |
+| Unión chat ↔ ficha | Encontrar los chats de la ficha | Supabase propio: `chatwoot_contact_links`, solo ids, origen y autor | Roles con Bandeja de su tenant (RLS) | CORRECTO en el contrato: RLS en `0554_chatwoot_contact_links.sql:104`; autor obligatorio en lo manual `:89`; cascada `:82` y al borrar la ficha `:322`; negativos de rol y tenant en `supabase/tests/0554_chatwoot_contact_links.test.sql` §3. NO VERIFICABLE contra producción: la 0554 no está aplicada |
+| Auditoría de unir y quitar | Saber quién unió un chat a una ficha y por qué | `entity_audit_log` (solo agregar), con el id del contacto y el origen, sin nombres | Lo que ya dicta la auditoría del Studio | CORRECTO en el contrato (§4j y §5g). Retención: la de `entity_audit_log`; el evento no se borra al borrar la ficha |
 
-Chatwoot y Studio corren en el servidor propio (`docs/runbooks/servidor-contabo.md`). El panel no llama a terceros, y no hay IA (D7). La F1 no agrega datos personales: reordena lo que la ficha ya mostraba y suma envíos de la misma persona. Esto no es asesoría legal.
+Chatwoot y Studio corren en el servidor propio (`docs/runbooks/servidor-contabo.md`). El panel no llama a terceros, y no hay IA (D7). Revisión con `revisar-datos-ve`, acotada a la F2: hallazgos y NO VERIFICABLE en `.agents/handoffs/sdd-0650-f2-panel-conversaciones.md`. La F1 no agrega datos personales: reordena lo que la ficha ya mostraba y suma envíos de la misma persona. Esto no es asesoría legal.
 
 ## 7. Lista exacta de archivos de la F1
 
@@ -150,3 +166,38 @@ Chatwoot y Studio corren en el servidor propio (`docs/runbooks/servidor-contabo.
 - El cambio de la decisión 14 es de la F3. En la F1 la cabecera de cuenta queda como está.
 - La fusión v2 es la SDD-0651.
 - Leer filas de producción. Las cuentas de cuántas fichas no tienen nombre o tienen contacto de Kommo con `client_id` piden autorización.
+
+## 10. Lista exacta de archivos de la F2
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0554_chatwoot_contact_links.sql` | Tabla, RLS, cuatro funciones, disparador y tipo de auditoría (en espera) |
+| `supabase/desarmes/0554_desarme.sql` | Desarme sin número |
+| `supabase/tests/0554_chatwoot_contact_links.test.sql` | Contrato: RLS por Bandeja y tenant, unir, quitar, borrar, idempotencia |
+| `lib/studio/__tests__/chatwoot-contact-links.migration.test.ts` | El contrato en PGlite, control rojo, 11 mutantes y el desarme |
+| `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json` | Espera y degradación declaradas |
+| `lib/studio/chatwoot/config.ts` | `chatwootFichaConfig` (`CHATWOOT_FICHA_TOKEN`, `CHATWOOT_INBOX_ARCHIVO_KOMMO_ID`) |
+| `lib/studio/chatwoot/router-api.ts` | `leerConversacionesDeContacto`; `obtenerConversacionYContacto` acepta cualquier cuenta |
+| `lib/studio/chatwoot/ficha-conversaciones.ts` | Reglas puras: resumen de 160 caracteres, D3, D5, SDD-0531 |
+| `lib/studio/chatwoot/ficha-panel.ts` | Cargador del servidor: rol, configuración, uniones, Chatwoot |
+| `lib/studio/chatwoot/union-ficha-manejador.ts` · `webhook-procesar.ts` | El webhook une cuando el teléfono cruzó con una ficha |
+| `app/studio/(app)/clientes/conversaciones-actions.ts` | Unir y quitar (candado de edición de la Bandeja) |
+| `app/studio/(app)/clientes/_components/ConversacionesFichaCard.tsx` · `PanelConversacionesFicha.tsx` | Panel y sus estados |
+| `app/studio/(app)/clientes/[markbox]/page.tsx` | Suspense y región |
+| `lib/i18n/es-VE/bandeja.ts` · `lib/i18n/zh-CN/bandeja.ts` | Textos del panel |
+| `.env.example` · `infra/dtd-cargo/.env.example` | Las dos variables, vacías |
+| Pruebas | `ficha-conversaciones.test.ts`, `ficha-panel.test.ts`, `union-ficha-manejador.test.ts`, `conversaciones-actions.test.ts`, `conversaciones-ficha-card.test.tsx`, `ficha-conversaciones.poc.test.ts` (Chatwoot 4.19.1 efímero); ajustes en `aviso-unico-por-evento.test.ts`, `ficha-cliente-page.test.tsx` y `rbac-actions-guard.test.ts` (479 → 481) |
+| `infra/chatwoot/pruebas/portal/prueba-portal-poc.sh` · `.github/workflows/chatwoot-portal-poc.yml` | Corren el smoke nuevo |
+
+## 11. Aceptación de la F2
+
+- [ ] Un rol sin Bandeja no lee uniones (RLS) y el servidor no toca el token ni Chatwoot.
+- [ ] Otro tenant no ve ni quita uniones.
+- [ ] Comercial y Soporte ven el texto del Archivo Kommo sin enlace; Admin y Contabilidad (con Bandeja) reciben el enlace. «Hay conversaciones que tu rol no abre» sin número.
+- [ ] Región `cn` no admin: ni texto ni nombre salen del servidor.
+- [ ] Sin la 0554, sin token (o con token vacío) o sin uniones, la ficha se ve como en la F1.
+- [ ] Chatwoot caído: aviso con «Reintentar»; uno de varios contactos caído: lo leído, marcado incompleto.
+- [ ] Unir y quitar: Admin y Comercial, con motivo, auditado; no mueve un chat de otra ficha.
+- [ ] El webhook une solo con cruce único y nunca pisa una unión.
+- [ ] Contrato SQL en Postgres 17 y PGlite, con control rojo y mutantes; smoke contra Chatwoot 4.19.1 con la medida.
+- [ ] Puertas de producción sin ejecutar (handoff): aplicar la 0554, relleno en el VPS, cuenta de servicio y variables, miembros del Archivo Kommo y acceso de Contabilidad.
