@@ -231,7 +231,7 @@ export default async function ShipmentDetailPage({
 
       {/* SDD-0662 · el cambio de cliente va arriba. SDD-0645: operations, commercial y
           admin (D2). El equipo de China (SDD-0531) no recibe el buscador: muestra nombres. */}
-      <div style={{ marginBottom: 20 }}>
+      <div className="studio-ficha-embarque-franja">
         <ClienteDelEmbarque
           shipmentId={shipment.id}
           shipmentCode={shipment.code}

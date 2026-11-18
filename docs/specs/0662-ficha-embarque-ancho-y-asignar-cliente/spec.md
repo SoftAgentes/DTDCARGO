@@ -36,7 +36,7 @@ Solo aplicación. Sin migraciones y sin cambiar permisos.
    - **operación**: acciones, plan operativo y expediente legal;
    - **seguimiento**: historial de cambios de cliente, «Esto verá el cliente» y timeline.
 
-   Tres columnas desde 1500 px de ancho de ventana; dos columnas (datos a la izquierda, operación y seguimiento apiladas a la derecha) entre 900 y 1500 px; una columna por debajo de 900 px, como hoy.
+   Tres columnas desde 1600 px de ancho de ventana; dos columnas (datos a la izquierda, operación y seguimiento apiladas a la derecha) entre 900 y 1600 px; una columna por debajo de 900 px, como hoy.
 2. **Cliente arriba.** Una franja «Cliente» queda debajo del encabezado, a todo el ancho, antes de la grilla:
    - Con permiso: el Shipping Mark actual y el botón «Pasar a otro cliente» (el mismo modal de SDD-0645).
    - Con permiso y embarque sin cliente (Shipping Mark vacío o `DTD-0000`): un aviso de atención «Este embarque no tiene cliente asignado» y el botón principal «Asignar cliente». El modal es el mismo, con ese título.

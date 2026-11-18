@@ -959,7 +959,7 @@
     grid-template-rows: auto 1fr;
   }
 }
-@media (min-width: 1500px) {
+@media (min-width: 1600px) {
   .studio-ficha-embarque-grid {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "datos operacion seguimiento";
@@ -967,6 +967,9 @@
   }
 }
 /* Franja «Cliente»: Shipping Mark, aviso y la acción de cambiarlo. */
+.studio-ficha-embarque-franja {
+  margin-bottom: var(--s-5);
+}
 .studio-ficha-embarque-cliente {
   display: flex;
   flex-wrap: wrap;
