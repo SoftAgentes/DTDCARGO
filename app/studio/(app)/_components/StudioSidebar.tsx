@@ -283,6 +283,18 @@ export function StudioSidebar({
     }
   };
 
+  // Nombre del módulo con el menú cerrado: tooltip propio (el `title` nativo tarda ~1 s).
+  // Va con `position: fixed` porque el aside recorta lo que sale de su borde.
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+  const mostrarTip = (el: HTMLElement, label: string) => {
+    const r = el.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 10 });
+  };
+  useEffect(() => {
+    if (collapsed) return;
+    queueMicrotask(() => setTip(null));
+  }, [collapsed]);
+
   // Match active: exacto o prefijo + "/"
   const isActive = (slug: string) =>
     pathname === slug || pathname.startsWith(slug + "/");
@@ -330,7 +342,8 @@ export function StudioSidebar({
         key={m.id}
         href={hrefDe(m)}
         aria-current={active ? "page" : undefined}
-        title={collapsed ? moduleLabel : undefined}
+        aria-label={collapsed ? moduleLabel : undefined}
+        className={collapsed ? "studio-sb-link--cerrado" : undefined}
         style={{
           width: "100%",
           display: "flex",
@@ -352,12 +365,20 @@ export function StudioSidebar({
         onMouseEnter={(e) => {
           if (!active)
             e.currentTarget.style.background = "var(--bg-sidebar-hover)";
+          if (collapsed) mostrarTip(e.currentTarget, moduleLabel);
         }}
         onMouseLeave={(e) => {
           if (!active) e.currentTarget.style.background = "transparent";
+          setTip(null);
         }}
+        onFocus={(e) => {
+          if (collapsed && e.currentTarget.matches(":focus-visible"))
+            mostrarTip(e.currentTarget, moduleLabel);
+        }}
+        onBlur={() => setTip(null)}
       >
         <span
+          className="studio-sb-icono"
           style={{
             color: active ? "var(--wine)" : "var(--ink-side)",
             flexShrink: 0,
@@ -708,6 +729,12 @@ export function StudioSidebar({
           </div>
         )}
       </nav>
+
+      {tip && collapsed && (
+        <span role="presentation" className="studio-sb-tip" style={{ top: tip.top, left: tip.left }}>
+          {tip.label}
+        </span>
+      )}
 
       {/* Footer: collapse toggle */}
       <div
