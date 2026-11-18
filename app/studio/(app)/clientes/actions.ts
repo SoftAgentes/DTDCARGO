@@ -470,7 +470,7 @@ export async function updateClientAction(
 
 /**
  * Tras corregir el correo de la ficha: si el cliente tiene una cuenta por link
- * cuya cuenta de Auth todavía lleva un correo real, la pasa a su dirección
+ * que todavía no pasó a su dirección interna, la pasa a su dirección
  * interna. `nada` = el cliente no tiene cuenta por link (o falta la 0559).
  * Sin `export`: la llama sólo `updateClientAction`, después de su control de rol.
  */
@@ -488,7 +488,14 @@ async function dejarCuentaSinComprobar(clientId: string): Promise<"nada" | "pend
         auth_interno: boolean;
         verified_at: string | null;
       }>();
-    if (error || !data || data.verified_at) return "nada";
+    if (error) {
+      // Sin la migración 0559 la tabla no existe: no hay cuenta por link que
+      // tocar. Cualquier otro fallo NO es «nada»: el equipo tiene que enterarse.
+      if (error.code === "42P01" || error.code === "PGRST205") return "nada";
+      console.error("[updateClientAction] no se pudo leer la comprobación:", error.code);
+      return "fallo";
+    }
+    if (!data || data.verified_at) return "nada";
     if (data.auth_interno) return "pendiente";
     const moved = await pasarCuentaADireccionInterna(admin, {
       checkId: data.id,
@@ -619,11 +626,34 @@ export async function softDeleteClientAction(
 export async function invitePortalAction(
   clientId: string,
   markbox: string,
-): Promise<{ ok?: boolean; error?: string; email?: string; warning?: string }> {
+  opts: { confirmarCorreoSinComprobar?: boolean } = {},
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  email?: string;
+  warning?: string;
+  /** El correo de este cliente nunca se comprobó: hay que confirmarlo antes de invitar. */
+  requiereConfirmar?: boolean;
+}> {
   const supabase = await createClient();
 
   const denial = await moduleEditDenial(supabase, "clients");
   if (denial) return { error: denial };
+
+  // SDD-0646 D-1 · si este cliente se registró por link y nunca comprobó su
+  // correo, invitarlo por correo le da la entrada a quien lea ese buzón. No se
+  // bloquea (es una decisión del equipo), pero se pide una confirmación
+  // explícita. Si no se puede saber, también se pide.
+  if (!opts.confirmarCorreoSinComprobar) {
+    const { data: estados, error: estadoErr } = await supabase.rpc("portal_email_check_estado", {
+      p_client_ids: [clientId],
+    });
+    const sinMigracion = estadoErr?.code === "PGRST202" || estadoErr?.code === "42883";
+    const fila = ((estados ?? []) as { estado: string }[])[0];
+    if ((estadoErr && !sinMigracion) || (fila && fila.estado !== "comprobado")) {
+      return { requiereConfirmar: true };
+    }
+  }
 
   const { data, error } = await supabase.rpc("portal_invite_client", {
     p_client_id: clientId,
@@ -819,7 +849,7 @@ export async function markRegistrationReviewedAction(
  *
  * Orden: control de rol → la RPC `prepare` (rol y tenant otra vez, en la base)
  * → recién entonces service_role, en el servidor: si la cuenta de Auth todavía
- * lleva un correo real (cuentas de antes del cambio, o correo corregido después
+ * no pasó a su dirección interna (cuentas de antes del cambio, o correo corregido después
  * de comprobado), primero pasa a su dirección interna; después se emite y se
  * envía.
  */

@@ -2,18 +2,30 @@
 
 /**
  * Botón del enlace de comprobación (SDD-0646, D-1 opción C). El enlace se gasta
- * con este POST, no al abrir la página. Al terminar no hay sesión: sólo el
- * aviso de que el correo quedó comprobado y el camino a `/entrar`.
+ * con este POST, no al abrir la página, y sólo con la sesión del portal del
+ * titular. Al terminar no se ofrece ninguna entrada: quien confirma ya está
+ * dentro de su portal.
  */
 
-import Link from "next/link";
 import { useActionState } from "react";
-import type { ComprobarCorreoState } from "@/lib/portal/correo-comprobacion";
+import {
+  COMPROBAR_CORREO_ENTRA_PRIMERO,
+  type ComprobarCorreoState,
+} from "@/lib/portal/correo-comprobacion";
 import { comprobarCorreoAction } from "./actions";
 
 const INITIAL: ComprobarCorreoState = {};
 
-export function ComprobarCorreoForm({ token, markbox }: { token: string; markbox: string }) {
+export function ComprobarCorreoForm({
+  token,
+  markbox,
+  conSesion,
+}: {
+  token: string;
+  markbox: string;
+  /** ¿Hay una sesión del portal en este navegador? (sólo para el texto; el POST lo vuelve a exigir) */
+  conSesion: boolean;
+}) {
   const [state, formAction, isPending] = useActionState(comprobarCorreoAction, INITIAL);
 
   if (state.ok) {
@@ -26,14 +38,8 @@ export function ComprobarCorreoForm({ token, markbox }: { token: string; markbox
           Tu correo quedó comprobado
         </h1>
         <p className="mt-4 text-[14.5px] text-grey-700 leading-[1.6]">
-          Desde ahora puedes pedir el enlace de acceso a tu portal con este correo.
+          Listo. Ya puedes cerrar esta página.
         </p>
-        <Link
-          href="/entrar"
-          className="mt-8 inline-flex h-12 items-center rounded-[10px] bg-wine px-6 text-white text-[15px] font-bold focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
-        >
-          Ir a mi portal
-        </Link>
       </section>
     );
   }
@@ -48,26 +54,34 @@ export function ComprobarCorreoForm({ token, markbox }: { token: string; markbox
       </h1>
       <p className="mt-4 text-[14.5px] text-grey-700 leading-[1.6]">
         Este correo quedó asociado al Shipping Mark{" "}
-        <b className="text-ink" style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}>
+        <b
+          className="text-ink"
+          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+        >
           {markbox}
         </b>{" "}
-        en el portal de clientes de DTD Cargo. Confirma que es tuyo para que sirva para volver a
-        entrar.
+        en el portal de clientes de DTD Cargo.
       </p>
       <p className="mt-3 text-[13.5px] text-grey-700 leading-[1.6]">
         Si no te registraste tú, no lo confirmes y escríbenos.
       </p>
-      <form action={formAction} className="mt-8">
-        <input type="hidden" name="token" value={token} />
-        <button
-          type="submit"
-          disabled={isPending}
-          aria-busy={isPending}
-          className="inline-flex h-12 items-center rounded-[10px] bg-wine px-6 text-white text-[15px] font-bold disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
-        >
-          {isPending ? "Comprobando…" : "Sí, este correo es mío"}
-        </button>
-      </form>
+      {conSesion ? (
+        <form action={formAction} className="mt-8">
+          <input type="hidden" name="token" value={token} />
+          <button
+            type="submit"
+            disabled={isPending}
+            aria-busy={isPending}
+            className="inline-flex h-12 items-center rounded-[10px] bg-wine px-6 text-white text-[15px] font-bold disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
+          >
+            {isPending ? "Comprobando…" : "Sí, este correo es mío"}
+          </button>
+        </form>
+      ) : (
+        <p role="status" className="mt-8 text-[14.5px] text-ink leading-[1.6]">
+          {COMPROBAR_CORREO_ENTRA_PRIMERO}
+        </p>
+      )}
       {state.error && (
         <p role="alert" className="mt-4 text-[14px] text-wine leading-[1.6]">
           {state.error}

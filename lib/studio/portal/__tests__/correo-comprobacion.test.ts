@@ -214,9 +214,22 @@ describe("emitirYEnviarComprobacion", () => {
 });
 
 describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
-  function make(check: { internal_email: string } | null, checkError: unknown = null) {
+  function make(
+    check: { auth_user_id: string } | null,
+    checkError: unknown = null,
+    cuenta: { email: string | null; error?: unknown } = { email: null },
+  ) {
     const filtros: Array<[string, string, unknown]> = [];
+    const leidas: string[] = [];
     const admin = {
+      auth: {
+        admin: {
+          getUserById: async (id: string) => {
+            leidas.push(id);
+            return { data: { user: cuenta.email ? { email: cuenta.email } : null }, error: cuenta.error ?? null };
+          },
+        },
+      },
       from(table: string) {
         const chain: Record<string, unknown> = {
           select: () => chain,
@@ -236,17 +249,27 @@ describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
         return chain;
       },
     } as never;
-    return { admin, filtros };
+    return { admin, filtros, leidas };
   }
 
-  it("⭐ la entrada se acuña para la dirección interna, no para el correo de la ficha", async () => {
+  it("⭐ la entrada se acuña para la dirección que lleva la cuenta, no para el correo de la ficha", async () => {
     const interna = `c-${"c".repeat(32)}@sin-comprobar.invalid`;
-    const { admin, filtros } = make({ internal_email: interna });
+    const { admin, filtros, leidas } = make({ auth_user_id: "auth-1" }, null, { email: interna.toUpperCase() });
     await expect(loadAccessTarget(admin, "c-1")).resolves.toEqual({ name: "Ana", email: interna });
-    // Sólo cuentas sin comprobar que ya llevan la dirección interna.
+    // Sólo cuentas por link sin comprobar; la dirección se le pregunta a Auth.
     expect(filtros).toContainEqual(["client_email_checks", "is:verified_at", null]);
-    expect(filtros).toContainEqual(["client_email_checks", "eq:auth_interno", true]);
     expect(filtros).toContainEqual(["client_email_checks", "eq:client_id", "c-1"]);
+    expect(leidas).toEqual(["auth-1"]);
+  });
+
+  it("⭐ no supone qué lleva la cuenta: si el paso quedó a medias, usa lo que diga Auth", async () => {
+    const { admin } = make({ auth_user_id: "auth-1" }, null, { email: "otra@example.test" });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toEqual({ name: "Ana", email: "otra@example.test" });
+  });
+
+  it("si Auth no responde, cae al correo de la ficha (como antes)", async () => {
+    const { admin } = make({ auth_user_id: "auth-1" }, null, { email: null, error: { message: "boom" } });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toEqual({ name: "Ana", email: "ana@example.test" });
   });
 
   it("un cliente de otro camino (o sin la migración) entra con su correo de siempre", async () => {
@@ -301,6 +324,23 @@ describe("⭐ inventario: quién acuña un enlace que abre el portal", () => {
       .map((f) => relative(ROOT, f).replace(/\\/g, "/"))
       .sort();
     expect(encontrados).toEqual(Object.keys(PERMITIDOS).sort());
+  });
+
+  it("⭐ /entrar no llega a Auth por ningún camino sin haber preguntado antes", () => {
+    const src = readFileSync(resolve(ROOT, "app/entrar/actions.ts"), "utf8");
+    const cuerpo = src.slice(src.indexOf("export async function requestMagicLink("));
+    const pregunta = cuerpo.indexOf("await correoSinComprobar(");
+    expect(pregunta).toBeGreaterThan(-1);
+    // Todas las caídas al camino de Auth (`signInWithOtp`) y todo acuñado van después.
+    const usos = [...cuerpo.matchAll(/sendMagicLinkLegacy\(|signInWithOtp\(|mintPortalMagicToken\(/g)].map(
+      (m) => m.index ?? -1,
+    );
+    expect(usos.length).toBeGreaterThan(0);
+    for (const i of usos) expect(i, "llega a Auth antes de preguntar").toBeGreaterThan(pregunta);
+    // Y `signInWithOtp` sólo vive dentro del camino viejo, que sólo se llama desde ahí.
+    expect([...src.matchAll(/signInWithOtp\(/g)]).toHaveLength(1);
+    expect(src.indexOf("signInWithOtp(")).toBeLessThan(src.indexOf("export async function requestMagicLink("));
+    expect(src.indexOf("signInWithOtp(")).toBeGreaterThan(src.indexOf("async function sendMagicLinkLegacy("));
   });
 
   it("los dos que mandan el enlace por correo preguntan antes si está sin comprobar", () => {

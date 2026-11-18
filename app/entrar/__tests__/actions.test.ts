@@ -254,12 +254,18 @@ describe("enlace de acceso al portal", () => {
       expect(consoleError).not.toHaveBeenCalled();
     });
 
-    it("preserva la entrada si falta el cliente admin", async () => {
+    // SDD-0646 D-1 · cambió a propósito: antes caía a Auth. Sin el cliente admin
+    // no se puede saber si el correo está sin comprobar, así que no sale nada.
+    it("⭐ si falta el cliente admin no envía nada por ningún camino, y falla igual para cualquier correo", async () => {
       mocks.adminAvailable = false;
-      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(
-        OK,
-      );
-      expect(mocks.signInWithOtp).toHaveBeenCalledOnce();
+      const res = await requestMagicLink({}, form("cliente@example.com"));
+      expect(res.requested).toBeUndefined();
+      expect(res.error).toBeTruthy();
+      expect(mocks.signInWithOtp).not.toHaveBeenCalled();
+      expect(mocks.mintPortalMagicToken).not.toHaveBeenCalled();
+      expect(mocks.sendPortalMagicLinkEmail).not.toHaveBeenCalled();
+      const otro = await requestMagicLink({}, form("nadie@example.com"));
+      expect(otro.error).toBe(res.error);
     });
   });
 
@@ -434,7 +440,7 @@ describe("enlace de acceso al portal", () => {
       const patron = await inexistente();
       nadaSalio();
 
-      // Cuenta por link de antes del cambio: su fila de acceso todavía lleva el correo.
+      // Cuenta por link de antes del cambio.
       mocks.clientsFilters.length = 0;
       mocks.rpcCalls.length = 0;
       mocks.clientUser = { id: "client-user-1", tenant_id: "tenant-1", email: "cliente@example.com" };

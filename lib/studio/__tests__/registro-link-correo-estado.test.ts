@@ -6,24 +6,28 @@
  */
 import { describe, expect, it } from "vitest";
 import { listRegistrosPorLink } from "../registro-link-queries";
-import { pasarCuentas } from "../../../infra/ops/portal-correo-comprobacion/pasar-cuentas-a-direccion-interna.mjs";
+import {
+  codigoDeSalida,
+  pasarCuentas,
+} from "../../../infra/ops/portal-correo-comprobacion/pasar-cuentas-a-direccion-interna.mjs";
 
 type Fila = Record<string, unknown>;
 
-function supabase(opts: {
-  links: Fila[];
-  checks: Fila[] | null;
-  accesos: Fila[];
-}) {
-  const rpcs: string[] = [];
+function supabase(opts: { links: Fila[]; estados: Fila[] | null }) {
+  const rpcs: Array<[string, unknown]> = [];
+  const tablas: string[] = [];
   return {
     rpcs,
+    tablas,
     client: {
-      rpc: async (name: string) => {
-        rpcs.push(name);
-        return { data: null, error: { code: "PGRST202", message: "no existe" } };
+      rpc: async (name: string, args: unknown) => {
+        rpcs.push([name, args]);
+        return opts.estados === null
+          ? { data: null, error: { code: "PGRST202", message: "no existe" } }
+          : { data: opts.estados, error: null };
       },
       from(table: string) {
+        tablas.push(table);
         const chain: Record<string, unknown> = {
           select: () => chain,
           not: () => chain,
@@ -33,14 +37,6 @@ function supabase(opts: {
           limit: () => chain,
           then: (ok: (v: unknown) => unknown) => {
             if (table === "client_registration_links") return ok({ data: opts.links, error: null });
-            if (table === "client_email_checks") {
-              return ok(
-                opts.checks === null
-                  ? { data: null, error: { code: "42P01", message: "no existe" } }
-                  : { data: opts.checks, error: null },
-              );
-            }
-            if (table === "client_users") return ok({ data: opts.accesos, error: null });
             return ok({ data: [{ id: "c-1", markbox: "DTD-8001", name: "Ana" }], error: null });
           },
         };
@@ -62,79 +58,111 @@ const link = (id: string) => ({
   access_error: null,
   reviewed_at: null,
 });
-const check = (extra: Fila = {}) => ({
-  link_id: "l-1",
+const fila = (estado: string, extra: Fila = {}) => ({
   client_id: "c-1",
-  auth_user_id: "auth-1",
-  verified_at: null,
-  conflict_at: null,
+  link_id: "l-1",
+  estado,
   sent_at: "2026-11-17T12:00:05Z",
   ...extra,
 });
-const acceso = (extra: Fila = {}) => ({ client_id: "c-1", auth_user_id: "auth-1", status: "active", ...extra });
 
-async function estado(checks: Fila[] | null, accesos: Fila[] = [acceso()]) {
-  const s = supabase({ links: [link("l-1")], checks, accesos });
+async function leer(estados: Fila[] | null, links: Fila[] = [link("l-1")]) {
+  const s = supabase({ links, estados });
   const rows = await listRegistrosPorLink(s.client, { soloPendientes: false });
-  return { row: rows?.[0], rpcs: s.rpcs };
+  return { rows: rows ?? [], rpcs: s.rpcs, tablas: s.tablas };
 }
 
 describe("estado del correo en «Registros por link»", () => {
-  it("⭐ sin confirmar: «sin comprobar», con la fecha del último envío", async () => {
-    const { row } = await estado([check()]);
-    expect(row?.correoEstado).toBe("sin_comprobar");
-    expect(row?.correoEnviadoAt).toBe("2026-11-17T12:00:05Z");
+  it.each(["comprobado", "sin_comprobar", "choque", "revisar", "nunca_comprobado"])(
+    "⭐ muestra el estado real «%s», con la fecha del último envío",
+    async (e) => {
+      const { rows } = await leer([fila(e)]);
+      expect(rows[0].correoEstado).toBe(e);
+      expect(rows[0].correoEnviadoAt).toBe("2026-11-17T12:00:05Z");
+    },
+  );
+
+  it("⭐ el equipo no lee la tabla (hash del token, correo por comprobar): pregunta por la función", async () => {
+    const { rpcs, tablas } = await leer([fila("sin_comprobar")]);
+    expect(rpcs).toEqual([["portal_email_check_estado", { p_client_ids: ["c-1"] }]]);
+    expect(tablas).not.toContain("client_email_checks");
+    expect(tablas).not.toContain("client_users");
   });
 
-  it("⭐ confirmado: «comprobado»", async () => {
-    const { row } = await estado([check({ verified_at: "2026-11-17T13:00:00Z" })]);
-    expect(row?.correoEstado).toBe("comprobado");
+  it("ya no usa la heurística de «volvió a entrar»", async () => {
+    const { rpcs } = await leer([fila("sin_comprobar")]);
+    expect(rpcs.map(([n]) => n)).not.toContain("portal_registration_link_email_status");
   });
 
-  it("ese correo ya tenía otra cuenta: «choque»", async () => {
-    const { row } = await estado([check({ conflict_at: "2026-11-17T13:00:00Z" })]);
-    expect(row?.correoEstado).toBe("choque");
+  it("el registro no dejó cuenta: «no aplica»", async () => {
+    expect((await leer([])).rows[0].correoEstado).toBe("no_aplica");
   });
 
-  it("⭐ ya no usa la heurística de «volvió a entrar»: no llama a ninguna RPC", async () => {
-    const { rpcs } = await estado([check()]);
-    expect(rpcs).toEqual([]);
+  it("un link más viejo del mismo cliente no hereda el estado del registro vigente", async () => {
+    const { rows } = await leer([fila("comprobado", { link_id: "l-2" })], [link("l-1"), link("l-2")]);
+    expect(rows.find((r) => r.id === "l-2")?.correoEstado).toBe("comprobado");
+    expect(rows.find((r) => r.id === "l-1")?.correoEstado).toBe("no_aplica");
+    expect(rows.find((r) => r.id === "l-1")?.correoEnviadoAt).toBeNull();
   });
 
-  it("el registro no dejó cuenta, o la cuenta ya no es la del link: «no aplica»", async () => {
-    expect((await estado([])).row?.correoEstado).toBe("no_aplica");
-    expect((await estado([check()], [acceso({ auth_user_id: "otra" })])).row?.correoEstado).toBe("no_aplica");
-    expect((await estado([check()], [acceso({ status: "revoked" })])).row?.correoEstado).toBe("no_aplica");
+  it("un estado que la app no conoce no se muestra como comprobado", async () => {
+    expect((await leer([fila("otra_cosa")])).rows[0].correoEstado).toBe("no_aplica");
   });
 
   it("sin la migración 0559 dice «no se sabe» en vez de afirmar algo", async () => {
-    expect((await estado(null)).row?.correoEstado).toBeNull();
+    expect((await leer(null)).rows[0].correoEstado).toBeNull();
   });
 });
 
 describe("corrida única de las cuentas ya creadas", () => {
   const INTERNA = `c-${"d".repeat(32)}@sin-comprobar.invalid`;
 
-  function admin(filas: Fila[], opts: { correoActual?: string; authError?: unknown } = {}) {
+  /**
+   * Doble con estado: una fila deja de estar pendiente cuando la base la anota
+   * (`portal_email_check_auth_interno`), y la lectura pagina por id como PostgREST.
+   */
+  function admin(
+    filas: Fila[],
+    opts: { correoActual?: string; authError?: unknown; anotarNoHaceNada?: boolean } = {},
+  ) {
     const escrituras: Array<[string, unknown]> = [];
-    const lecturas: string[] = [];
+    const anotadas = new Set<string>();
+    let lecturas = 0;
+    const pendientes = () =>
+      filas.filter((f) => !anotadas.has(String(f.id))).sort((a, b) => String(a.id).localeCompare(String(b.id)));
     return {
       escrituras,
-      lecturas,
+      lecturas: () => lecturas,
       client: {
-        from(table: string) {
-          lecturas.push(table);
+        from() {
+          let despuesDe: string | null = null;
+          let tope = Infinity;
           const chain: Record<string, unknown> = {
             select: () => chain,
             is: () => chain,
             eq: () => chain,
             order: () => chain,
-            limit: async () => ({ data: filas, error: null }),
+            gt: (_c: string, v: string) => {
+              despuesDe = v;
+              return chain;
+            },
+            limit: (n: number) => {
+              tope = n;
+              return chain;
+            },
+            then: (ok: (v: unknown) => unknown) => {
+              lecturas += 1;
+              const data = pendientes()
+                .filter((f) => despuesDe === null || String(f.id) > despuesDe)
+                .slice(0, tope);
+              return ok({ data, error: null });
+            },
           };
           return chain;
         },
-        rpc: async (name: string, args: unknown) => {
+        rpc: async (name: string, args: { p_check_id: string }) => {
           escrituras.push([name, args]);
+          if (!opts.anotarNoHaceNada) anotadas.add(args.p_check_id);
           return { data: null, error: null };
         },
         auth: {
@@ -157,8 +185,39 @@ describe("corrida única de las cuentas ya creadas", () => {
   it("⭐ por defecto es un ensayo: cuenta y no escribe nada", async () => {
     const a = admin([fila, { ...fila, id: "chk-2", auth_user_id: "auth-2" }]);
     const r = await pasarCuentas(a.client, { aplicar: false });
-    expect(r).toMatchObject({ pendientes: 2, pasadas: 0, yaEstaban: 0, fallidas: 0, aplicar: false });
+    expect(r).toMatchObject({ pendientes: 2, pasadas: 0, yaEstaban: 0, fallidas: 0, quedan: 2, aplicar: false });
     expect(a.escrituras).toEqual([]);
+    expect(codigoDeSalida(r)).toBe(0);
+  });
+
+  it("⭐ recorre TODAS las filas por lotes, no sólo las primeras", async () => {
+    const muchas = Array.from({ length: 450 }, (_, i) => ({
+      id: `chk-${String(i).padStart(4, "0")}`,
+      auth_user_id: `auth-${i}`,
+      internal_email: INTERNA,
+    }));
+    const ensayo = admin(muchas);
+    expect((await pasarCuentas(ensayo.client, { aplicar: false })).pendientes).toBe(450);
+    expect(ensayo.lecturas()).toBeGreaterThan(1);
+
+    const real = admin(muchas);
+    const r = await pasarCuentas(real.client, { aplicar: true });
+    expect(r).toMatchObject({ pendientes: 450, pasadas: 450, fallidas: 0, quedan: 0 });
+    expect(codigoDeSalida(r)).toBe(0);
+  });
+
+  it("⭐ nunca termina en 0 si después de aplicar siguen quedando pendientes", async () => {
+    // La base «anota» pero la fila sigue pendiente: la corrida lo vuelve a contar y no lo da por hecho.
+    const a = admin([fila], { anotarNoHaceNada: true });
+    const r = await pasarCuentas(a.client, { aplicar: true });
+    expect(r.quedan).toBe(1);
+    expect(codigoDeSalida(r)).not.toBe(0);
+  });
+
+  it("⭐ si alguna falla, el código de salida no es 0", async () => {
+    const a = admin([fila], { authError: { status: 500, message: "boom" } });
+    const r = await pasarCuentas(a.client, { aplicar: true });
+    expect(codigoDeSalida(r)).not.toBe(0);
   });
 
   it("con --aplicar pasa la cuenta a su dirección interna y lo anota", async () => {

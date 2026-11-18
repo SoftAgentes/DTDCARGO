@@ -53,6 +53,9 @@ function requestReceived(prev: PortalLoginState, email: string): PortalLoginStat
  * "el enlace venció" (ver `lib/studio/portal/magic-link.ts`). Queda **sólo como
  * plan B**, y sólo donde todavía no se acuñó nada (ver `requestMagicLink`).
  *
+ * SDD-0646 D-1 · sólo se llama DESPUÉS de preguntar `correoSinComprobar`: un
+ * correo sin comprobar no llega aquí. Lo vigila la prueba de inventario.
+ *
  * Su error se registra y no llega a la pantalla: a un correo sin cuenta Auth le
  * responde otra cosa que a uno con cuenta, y mostrarlo abriría el oráculo.
  */
@@ -134,7 +137,10 @@ export async function requestMagicLink(
   try {
     admin = createAdminClient();
   } catch {
-    return sendMagicLinkLegacy(prev, email);
+    // SDD-0646 D-1 · sin el cliente admin no se puede preguntar si el correo
+    // está sin comprobar, así que no sale ningún enlace por ningún camino.
+    // Falla igual para cualquier correo: no revela nada.
+    return { error: NO_PUDIMOS_ATENDER, email };
   }
 
   const originHash = createHash("sha256")

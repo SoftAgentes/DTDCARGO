@@ -4,7 +4,8 @@
  *
  * El link de registro llega por WhatsApp: prueba quién es la persona, no que el
  * correo que escribió sea suyo. Hasta que su dueño lo confirme con el enlace de
- * comprobación, ese correo no sirve para obtener ni recuperar acceso, y la
+ * comprobación —con su sesión del portal abierta: el enlace solo no
+ * comprueba—, ese correo no sirve para obtener ni recuperar acceso, y la
  * cuenta lleva una dirección interna que no recibe correo.
  *
  * Tipos y textos puros (los importa un componente cliente). Lo que usa
@@ -57,6 +58,14 @@ export function comprobarCorreoUrl(token: string): string {
 export const COMPROBAR_CORREO_NO_SIRVE =
   "No pudimos comprobar tu correo con este enlace. Pídele a tu asesor de DTD Cargo uno nuevo.";
 
+/**
+ * Sin la sesión del portal del titular no se comprueba nada. El mismo texto
+ * para «no hay sesión» y para «la sesión es de otra cuenta»: no dice de quién
+ * es la comprobación.
+ */
+export const COMPROBAR_CORREO_ENTRA_PRIMERO =
+  "Para comprobar tu correo, entra primero a tu portal y vuelve a abrir este enlace en el mismo navegador. Si no tienes cómo entrar, pídele a tu asesor de DTD Cargo un acceso por WhatsApp.";
+
 /** Fallo pasajero: el enlace se soltó y se puede volver a intentar. */
 export const COMPROBAR_CORREO_REINTENTA =
   "No pudimos comprobar tu correo en este momento. Intenta de nuevo en un minuto.";
@@ -72,5 +81,13 @@ export type CorreoEstado =
   | "sin_comprobar"
   /** Al confirmar, ese correo ya tenía otra cuenta. Lo resuelve el equipo. */
   | "choque"
-  /** El registro no dejó cuenta (acceso fallido) o la cuenta ya no es la del link. */
+  /** Una confirmación quedó a medias; reenviar la comprobación la normaliza. */
+  | "revisar"
+  /**
+   * La cuenta del link ya no es la del cliente (el equipo revocó y volvió a
+   * invitar por correo) y ese correo nunca se comprobó. La regla ya no aplica,
+   * pero el equipo lo sigue viendo.
+   */
+  | "nunca_comprobado"
+  /** El registro no dejó cuenta (acceso fallido). */
   | "no_aplica";

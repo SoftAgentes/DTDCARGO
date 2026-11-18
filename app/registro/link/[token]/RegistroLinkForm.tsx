@@ -341,9 +341,9 @@ function Listo({
       )}
       {correoPorComprobar && !warning && (
         <p className="mt-6 text-[14px] text-grey-700 leading-[1.6]">
-          Te enviamos un correo para comprobar tu dirección. Ábrelo y confírmala: hasta entonces,
-          ese correo no sirve para volver a entrar. Si lo necesitas antes, tu asesor te manda un
-          acceso por WhatsApp.
+          Te enviamos un correo para comprobar tu dirección. Ábrelo en este mismo teléfono o
+          computadora, con tu portal abierto, y confírmala. Si necesitas volver a entrar antes,
+          tu asesor te manda un acceso por WhatsApp.
         </p>
       )}
     </section>

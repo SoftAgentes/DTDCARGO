@@ -3,27 +3,34 @@
 /**
  * Enlace de comprobación del correo (SDD-0646, D-1 opción C) — el POST.
  *
- * ⚠️ Todo el valor de este archivo está en dos cosas:
+ * ⚠️ Todo el valor de este archivo está en tres cosas:
  *   1. Es un POST. Un filtro de correo o un robot de vista previa abre el enlace
  *      con GET, y `page.tsx` sólo lee. El enlace se gasta aquí.
- *   2. SOLO comprueba. No crea sesión, no acuña ningún enlace de entrada y no
- *      devuelve nada con qué entrar: quien reciba este correo por error no abre
- *      el portal de nadie. Lo que habilita es que, de ahí en adelante, ese
- *      correo sirva para pedir el enlace de acceso en `/entrar`.
+ *   2. EL ENLACE SOLO NO COMPRUEBA. Tener el enlace prueba que se lee ese buzón,
+ *      no que quien lo lee sea el cliente. Por eso se exige la sesión del portal
+ *      del titular de la comprobación: el usuario sale de la sesión (nunca del
+ *      formulario), y la base vuelve a compararlo al reclamar y al confirmar.
+ *      Sin sesión, o con la sesión de otra cuenta, no se confirma y el enlace no
+ *      se gasta.
+ *   3. SOLO comprueba. Lee la sesión que ya existe; no crea ninguna, no acuña
+ *      ningún enlace de entrada y no devuelve nada con qué entrar.
  *
- * Orden, a propósito: primero se reclama el enlace (atómico, un solo uso),
- * después el correo pasa a la cuenta con la API de Auth, y al final la base
- * marca «comprobado» (y exige que la cuenta YA lleve ese correo). Si el paso de
- * Auth falla por algo pasajero, el enlace se suelta para reintentar; si ese
- * correo ya tiene otra cuenta, queda marcado para que el equipo lo revise en
- * «Registros por link» y no se fusiona nada.
+ * Orden: sesión → reclamar (atómico, un solo uso, compara el titular) → el
+ * correo pasa a la cuenta con la API de Auth → la base marca «comprobado» (y
+ * exige que la cuenta YA lleve ese correo y que la sesión sea la del titular).
  *
- * Un solo mensaje para todo lo que no comprueba: no confirma qué tokens son
- * reales ni qué correos tienen cuenta.
+ * Si algo falla después de reclamar, cada paso de la vuelta se revisa:
+ *   · fallo pasajero de Auth → se suelta el enlace para reintentar;
+ *   · ese correo ya es de otra cuenta → queda marcado para el equipo;
+ *   · la confirmación quedó a medias y no se pudo deshacer → el enlace NO se
+ *     suelta y la fila queda «para revisar» en «Registros por link».
+ * Los avisos de consola llevan códigos, nunca el correo ni el token.
  */
 
 import { createAdminClient } from "@/lib/db/admin";
+import { createClient } from "@/lib/db/server";
 import {
+  COMPROBAR_CORREO_ENTRA_PRIMERO,
   COMPROBAR_CORREO_NO_SIRVE,
   COMPROBAR_CORREO_REINTENTA,
   type ComprobarCorreoState,
@@ -32,19 +39,41 @@ import { hashRegistroToken } from "@/lib/portal/registro-link";
 import { isRegistroTokenShape } from "@/lib/portal/registro-link-types";
 
 type Claim = {
-  check_id: string;
-  auth_user_id: string;
-  pending_email: string;
-  outcome: "ok" | "conflicto";
+  check_id: string | null;
+  auth_user_id: string | null;
+  pending_email: string | null;
+  outcome: "ok" | "conflicto" | "sin_sesion_del_titular";
 };
 
-/** Auth dice «ese correo ya es de otra cuenta» con estos códigos y textos. */
-function esCorreoOcupado(err: { status?: number; code?: string; message?: string }): boolean {
+/**
+ * ¿Auth dice «ese correo ya es de otra cuenta»? Sólo por su código o su texto:
+ * un 422 a secas puede ser otra validación (formato, política) y eso no es un
+ * choque permanente.
+ */
+function esCorreoOcupado(err: { code?: string; message?: string }): boolean {
   return (
     err.code === "email_exists" ||
-    err.status === 422 ||
-    /already (been )?registered|already exists|email_exists/i.test(err.message ?? "")
+    /email_exists|already (been )?registered|email address .*already/i.test(err.message ?? "")
   );
+}
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+/** Suelta el enlace (o lo deja como choque). Si falla, el enlace queda gastado: se anota. */
+async function soltar(admin: Admin, checkId: string, conflicto: boolean): Promise<boolean> {
+  const { error } = await admin.rpc("portal_email_check_release", {
+    p_check_id: checkId,
+    p_conflicto: conflicto,
+  });
+  if (error) console.error("[comprobarCorreoAction] soltar falló:", error.code);
+  return !error;
+}
+
+/** Deja la fila para revisión del equipo, con el enlace gastado. */
+async function dejarParaRevision(admin: Admin, checkId: string, paso: string): Promise<void> {
+  console.error("[comprobarCorreoAction] quedó para revisión del equipo:", paso);
+  const { error } = await admin.rpc("portal_email_check_revisar", { p_check_id: checkId });
+  if (error) console.error("[comprobarCorreoAction] no se pudo marcar para revisión:", error.code);
 }
 
 export async function comprobarCorreoAction(
@@ -54,25 +83,47 @@ export async function comprobarCorreoAction(
   const token = String(formData.get("token") ?? "");
   if (!isRegistroTokenShape(token)) return { error: COMPROBAR_CORREO_NO_SIRVE };
 
-  let admin;
+  // 0. La sesión del portal. Sin sesión no se toca nada: ni se consulta el enlace.
+  let sessionUserId: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    sessionUserId = data.user?.id ?? null;
+  } catch {
+    sessionUserId = null;
+  }
+  if (!sessionUserId) return { error: COMPROBAR_CORREO_ENTRA_PRIMERO };
+
+  let admin: Admin;
   try {
     admin = createAdminClient();
   } catch {
     return { error: COMPROBAR_CORREO_REINTENTA };
   }
 
-  // 1. Reclamar. Vencido, usado, reemplazado o inventado: ninguna fila.
+  // 1. Reclamar. Vencido, usado, reemplazado o inventado: ninguna fila. La base
+  //    compara la sesión con el titular: si no es, no gasta nada.
   const { data, error } = await admin.rpc("portal_email_check_claim", {
     p_token_hash: hashRegistroToken(token),
+    p_session_user_id: sessionUserId,
   });
   if (error) {
     console.error("[comprobarCorreoAction] reclamar falló:", error.code);
     return { error: COMPROBAR_CORREO_REINTENTA };
   }
   const claim = (Array.isArray(data) ? data[0] : data) as Claim | null | undefined;
-  if (!claim?.check_id) return { error: COMPROBAR_CORREO_NO_SIRVE };
+  if (!claim) return { error: COMPROBAR_CORREO_NO_SIRVE };
+  // La sesión es de otra cuenta: el mismo texto que sin sesión, sin decir de quién es.
+  if (claim.outcome === "sin_sesion_del_titular") return { error: COMPROBAR_CORREO_ENTRA_PRIMERO };
   // Ese correo ya tiene otra cuenta: quedó marcado para el equipo.
-  if (claim.outcome !== "ok") return { error: COMPROBAR_CORREO_NO_SIRVE };
+  if (claim.outcome !== "ok" || !claim.check_id || !claim.auth_user_id || !claim.pending_email) {
+    return { error: COMPROBAR_CORREO_NO_SIRVE };
+  }
+  // Cinturón: la app tampoco sigue si la cuenta que devuelve la base no es la de la sesión.
+  if (claim.auth_user_id !== sessionUserId) {
+    await soltar(admin, claim.check_id, false);
+    return { error: COMPROBAR_CORREO_ENTRA_PRIMERO };
+  }
 
   // 2. El correo pasa a la cuenta. Recién aquí entra a Auth.
   const { error: authErr } = await admin.auth.admin.updateUserById(claim.auth_user_id, {
@@ -81,40 +132,40 @@ export async function comprobarCorreoAction(
   });
   if (authErr) {
     const ocupado = esCorreoOcupado(authErr);
-    await admin.rpc("portal_email_check_release", {
-      p_check_id: claim.check_id,
-      p_conflicto: ocupado,
-    });
     console.error("[comprobarCorreoAction] Auth no tomó el correo:", authErr.status, authErr.code);
-    return { error: ocupado ? COMPROBAR_CORREO_NO_SIRVE : COMPROBAR_CORREO_REINTENTA };
+    const suelto = await soltar(admin, claim.check_id, ocupado);
+    // Si no se pudo soltar, el enlace quedó gastado: que pida uno nuevo.
+    return { error: ocupado || !suelto ? COMPROBAR_CORREO_NO_SIRVE : COMPROBAR_CORREO_REINTENTA };
   }
 
-  // 3. Marcar comprobado. La base exige que la cuenta ya lleve ese correo.
+  // 3. Marcar comprobado. La base exige que la cuenta ya lleve ese correo y que
+  //    la sesión sea la del titular.
   const { error: confirmErr } = await admin.rpc("portal_email_check_confirm", {
     p_check_id: claim.check_id,
+    p_session_user_id: sessionUserId,
   });
-  if (confirmErr) {
-    // La cuenta ya lleva el correo pero no quedó «comprobado»: se devuelve la
-    // cuenta a su dirección interna y se suelta el enlace, para no dejar un
-    // correo habilitado en Auth que la base considera sin comprobar.
-    console.error("[comprobarCorreoAction] confirmar falló:", confirmErr.code);
-    const { data: fila } = await admin
-      .from("client_email_checks")
-      .select("internal_email")
-      .eq("id", claim.check_id)
-      .maybeSingle<{ internal_email: string }>();
-    if (fila?.internal_email) {
-      await admin.auth.admin.updateUserById(claim.auth_user_id, {
-        email: fila.internal_email,
-        email_confirm: true,
-      });
-    }
-    await admin.rpc("portal_email_check_release", {
-      p_check_id: claim.check_id,
-      p_conflicto: false,
-    });
-    return { error: COMPROBAR_CORREO_REINTENTA };
-  }
+  if (!confirmErr) return { ok: true };
 
-  return { ok: true };
+  // La cuenta ya lleva el correo pero no quedó «comprobado». Hay que devolverla
+  // a su dirección interna; cada paso de la vuelta se revisa.
+  console.error("[comprobarCorreoAction] confirmar falló:", confirmErr.code);
+  const { data: fila, error: filaErr } = await admin
+    .from("client_email_checks")
+    .select("internal_email")
+    .eq("id", claim.check_id)
+    .maybeSingle<{ internal_email: string }>();
+  if (filaErr || !fila?.internal_email) {
+    await dejarParaRevision(admin, claim.check_id, "leer la dirección interna");
+    return { error: COMPROBAR_CORREO_NO_SIRVE };
+  }
+  const { error: vueltaErr } = await admin.auth.admin.updateUserById(claim.auth_user_id, {
+    email: fila.internal_email,
+    email_confirm: true,
+  });
+  if (vueltaErr) {
+    await dejarParaRevision(admin, claim.check_id, "devolver la cuenta");
+    return { error: COMPROBAR_CORREO_NO_SIRVE };
+  }
+  const suelto = await soltar(admin, claim.check_id, false);
+  return { error: suelto ? COMPROBAR_CORREO_REINTENTA : COMPROBAR_CORREO_NO_SIRVE };
 }

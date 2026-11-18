@@ -42,8 +42,12 @@ describe("correo de comprobación del registro por link", () => {
     expect(html).toContain(CONTACT.ve.whatsapp);
   });
 
-  it("avisa que hasta confirmarlo el correo no sirve para recuperar el acceso", () => {
-    expect(html).toContain("no sirve para recuperar tu acceso");
+  it("⭐ no invita a pedir un enlace de acceso con este correo ni a recuperar nada", () => {
+    expect(html).not.toMatch(/enlace de acceso|recuperar|pide tu enlace|Entrar a mi portal|Ir a mi portal/i);
+  });
+
+  it("dice dónde abrirlo: donde el cliente ya tiene su portal abierto", () => {
+    expect(html).toContain("donde ya entraste a tu portal");
   });
 
   it("escapa el código y la URL", () => {

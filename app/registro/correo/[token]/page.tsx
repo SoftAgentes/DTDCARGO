@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/db/admin";
+import { createClient } from "@/lib/db/server";
 import { COMPROBAR_CORREO_NO_SIRVE } from "@/lib/portal/correo-comprobacion";
 import { hashRegistroToken } from "@/lib/portal/registro-link";
 import { isRegistroTokenShape } from "@/lib/portal/registro-link-types";
@@ -25,8 +25,9 @@ export const dynamic = "force-dynamic";
  * (`./actions.ts`).
  *
  * De la ficha muestra SOLO el Shipping Mark (el mismo que ya va en el correo).
- * No hay sesión antes ni después: este enlace comprueba un correo, no abre el
- * portal.
+ * Este enlace comprueba un correo, no abre el portal: mira si ya hay una sesión
+ * (sólo para decirle a quien no la tiene que entre primero) y no crea ninguna.
+ * El POST vuelve a exigir la sesión, y que sea la del titular.
  *
  * Ruta pública respaldada por la base, igual que `app/registro`: usa el admin
  * client con el visitante anónimo y el token como control.
@@ -52,12 +53,24 @@ export default async function ComprobarCorreoPage({
     }
   }
 
+  // ¿Hay sesión del portal en este navegador? Sólo lectura, sólo para el texto.
+  let conSesion = false;
+  if (markbox) {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase.auth.getUser();
+      conSesion = Boolean(data.user);
+    } catch {
+      conSesion = false;
+    }
+  }
+
   return (
     <>
       <Nav />
       <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
         {markbox ? (
-          <ComprobarCorreoForm token={token} markbox={markbox} />
+          <ComprobarCorreoForm token={token} markbox={markbox} conSesion={conSesion} />
         ) : (
           <section className="mx-auto max-w-[560px] px-4 py-16 sm:py-24">
             <h1
@@ -68,12 +81,6 @@ export default async function ComprobarCorreoPage({
             </h1>
             <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.6]">
               {COMPROBAR_CORREO_NO_SIRVE}
-            </p>
-            <p className="mt-6 text-[14px] text-grey-700">
-              ¿Ya tienes tu acceso?{" "}
-              <Link href="/entrar" className="text-wine font-semibold underline underline-offset-2">
-                Entra a tu portal
-              </Link>
             </p>
           </section>
         )}

@@ -119,7 +119,10 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
   const [error, setError] = useState<string | null>(null);
   const [comprobado, setComprobado] = useState(row.reviewedAt != null);
   const [enviadoAt, setEnviadoAt] = useState<string | null>(row.correoEnviadoAt);
-  const correoPendiente = row.correoEstado === "sin_comprobar" || row.correoEstado === "choque";
+  const correoPendiente =
+    row.correoEstado === "sin_comprobar" ||
+    row.correoEstado === "choque" ||
+    row.correoEstado === "revisar";
   const esEmpresa = row.submitted.kind === "empresa";
 
   const campos = REGISTRO_LINK_CAMPOS.filter(([, sub]) => sub !== "company" || esEmpresa).map(
@@ -165,6 +168,11 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
               Correo sin comprobar
             </Badge>
           )}
+          {row.correoEstado === "nunca_comprobado" && (
+            <Badge tone="warning" size="md">
+              Correo nunca comprobado
+            </Badge>
+          )}
           <Badge tone={comprobado ? "success" : "warning"} size="md">
             {comprobado ? "Comprobado" : "Por revisar"}
           </Badge>
@@ -201,6 +209,19 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
             El cliente intentó comprobar su correo, pero esa dirección ya está en otra cuenta. No
             se fusionó nada. Revisa cuál es la correcta, corrige el correo en la ficha si hace
             falta y reenvía la comprobación.
+          </Aviso>
+        )}
+        {row.correoEstado === "revisar" && (
+          <Aviso tono="atencion" compacto titulo="La comprobación quedó a medias">
+            El cliente intentó comprobar su correo y el paso no terminó. Su acceso al portal no
+            cambió. Reenvía la comprobación para dejarlo en orden.
+          </Aviso>
+        )}
+        {row.correoEstado === "nunca_comprobado" && (
+          <Aviso tono="atencion" compacto titulo="Correo nunca comprobado">
+            Este cliente se registró por link y nunca comprobó su correo. Después se le volvió a
+            invitar por correo, así que hoy entra con el enlace que le llega a esa dirección.
+            Confirma con el cliente, por WhatsApp, que el correo de su ficha es el suyo.
           </Aviso>
         )}
         {row.correoEstado === null && (

@@ -122,8 +122,10 @@ export async function emitirYEnviarComprobacion(
 
 /**
  * La dirección con la que se acuña la entrada de un cliente cuya cuenta por
- * link sigue sin comprobar (acceso por WhatsApp, SDD-0253). `null` = no es una
- * cuenta de esas (o falta la migración): se usa el correo de siempre.
+ * link sigue sin comprobar (acceso por WhatsApp, SDD-0253). Se le pregunta a
+ * Auth qué lleva la cuenta en este momento, en vez de suponerlo: así la entrada
+ * siempre se acuña para la cuenta del cliente, esté el paso que esté. `null` =
+ * no es una cuenta de esas (o falta la migración): se usa el correo de siempre.
  */
 export async function direccionInternaDelCliente(
   admin: SupabaseClient,
@@ -132,13 +134,15 @@ export async function direccionInternaDelCliente(
   try {
     const { data, error } = await admin
       .from("client_email_checks")
-      .select("internal_email")
+      .select("auth_user_id")
       .eq("client_id", clientId)
       .is("verified_at", null)
-      .eq("auth_interno", true)
-      .maybeSingle<{ internal_email: string }>();
-    if (error || !data?.internal_email) return null;
-    return data.internal_email;
+      .maybeSingle<{ auth_user_id: string }>();
+    if (error || !data?.auth_user_id) return null;
+    const { data: cuenta, error: cuentaErr } = await admin.auth.admin.getUserById(data.auth_user_id);
+    const email = cuenta?.user?.email?.trim().toLowerCase();
+    if (cuentaErr || !email) return null;
+    return email;
   } catch {
     return null;
   }
